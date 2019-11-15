@@ -1,0 +1,11 @@
+[package]
+name = "substrate-bridge"
+version = "0.1.0"
+authors = ["Jim Posen <jim.posen@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.3.3"
+derive_more = "0.99.1"
+log = "0.4.8"
+url = "2.1.0"
