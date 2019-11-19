@@ -5,7 +5,14 @@ authors = ["Jim Posen <jim.posen@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+async-std = "1.0.1"
 clap = "2.3.3"
 derive_more = "0.99.1"
+env_logger = "0.7.1"
+futures = "0.3.1"
+jsonrpsee = { git = "https://github.com/paritytech/jsonrpsee", features = ["ws"], branch = "jimpo/positional-params" }
 log = "0.4.8"
+node-primitives = { git = "https://github.com/paritytech/substrate" }
+substrate-primitives = { git = "https://github.com/paritytech/substrate" }
+substrate-rpc-primitives = { git = "https://github.com/paritytech/substrate" }
 url = "2.1.0"
