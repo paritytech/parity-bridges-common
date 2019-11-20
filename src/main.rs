@@ -16,7 +16,8 @@ use jsonrpsee::{
 };
 use node_primitives::{Hash, Header};
 use url::Url;
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::collections::{HashMap, hash_map};
 use std::process;
 use std::str::FromStr;
 
@@ -63,15 +64,15 @@ impl FromStr for RPCUrlParam {
 	}
 }
 
-pub type BridgeId = u32;
+type ChainId = Hash;
 
 struct BridgeState {
-	locally_finalized_head_on_bridged_chain: Header,
+	locally_finalized_head_on_bridged_chain: Hash,
 }
 
 struct ChainState {
 	current_finalized_head: Header,
-	bridges: HashMap<BridgeId, BridgeState>,
+	bridges: HashMap<ChainId, BridgeState>,
 }
 
 struct Chain {
@@ -188,14 +189,80 @@ async fn init_rpc_connection(url: &RPCUrlParam) -> Result<Chain, Error> {
 	})
 }
 
+/// Returns IDs of the bridged chains.
+async fn read_bridges(chain: &mut Chain, chain_ids: &[Hash])
+	-> Result<Vec<Hash>, Error>
+{
+	// TODO: Actually
+	Ok(
+		chain_ids
+			.iter()
+			.cloned()
+			.filter(|&chain_id| chain_id != chain.genesis_hash)
+			.collect()
+	)
+}
+
 async fn run_async(params: Params) -> Result<(), Error> {
-	let mut chains = future::join_all(params.rpc_urls.iter().map(init_rpc_connection))
+	let chains = future::join_all(params.rpc_urls.iter().map(init_rpc_connection))
+		.await
+		.into_iter()
+		.map(|result| result.map(|chain| (chain.genesis_hash, RefCell::new(chain))))
+		.collect::<Result<HashMap<_, _>, _>>()?;
+
+	// TODO: Remove when read_bridges is implemented correctly.
+	let chain_ids = chains.keys()
+		.cloned()
+		.collect::<Vec<_>>();
+	let chain_ids_slice = chain_ids.as_slice();
+
+	let bridges = future::join_all(
+		chains.iter()
+			.map(|(chain_id, chain_cell)| async move {
+				let mut chain = chain_cell.borrow_mut();
+				let bridges = read_bridges(&mut chain, chain_ids_slice).await?;
+				Ok((*chain_id, bridges))
+			})
+	)
 		.await
 		.into_iter()
 		.collect::<Result<Vec<_>, _>>()?;
 
-	for chain in chains {
-		println!("Genesis hash: {}", chain.genesis_hash);
+	for (chain_id, bridges) in bridges {
+		let mut chain = chains.get(&chain_id)
+			.expect(
+				"chain IDs in bridges map must have been in chains map and not removed; qed"
+			)
+			.borrow_mut();
+
+		for bridged_chain_id in bridges {
+			if chain_id == bridged_chain_id {
+				log::warn!("chain {} has a bridge to itself", chain_id);
+				continue;
+			}
+
+			if let Some(bridged_chain_cell) = chains.get(&bridged_chain_id) {
+				let bridged_chain = bridged_chain_cell.borrow_mut();
+
+				// TODO: Get this from RPC to runtime API.
+				let locally_finalized_head_on_bridged_chain = chain_id;
+
+//				log::info!(
+//					"Found bridge from {} to {} with id {}, but no bridge in the opposite direction. \
+//					Skipping...",
+//					chain_id, bridged_chain_id, forward_bridge_id
+//				);
+
+				chain.state.bridges.insert(bridged_chain_id, BridgeState {
+					locally_finalized_head_on_bridged_chain,
+				});
+
+				// The conditional ensures that we don't log twice per pair of chains.
+				if chain_id.as_ref() < bridged_chain_id.as_ref() {
+					log::info!("initialized bridge between {} and {}", chain_id, bridged_chain_id);
+				}
+			}
+		}
 	}
 
 	Ok(())
