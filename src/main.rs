@@ -6,17 +6,14 @@ use error::Error;
 use rpc::SubstrateRPC;
 
 use clap::{App, Arg, value_t, values_t};
-use futures::{
-	prelude::*,
-	future,
-};
+use futures::{prelude::*, channel, future};
 use jsonrpsee::{
 	core::client::{Client, ClientError, ClientEvent, ClientSubscription},
 	ws::{WsClient, WsConnecError, ws_client},
 };
 use node_primitives::{Hash, Header};
 use url::Url;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, hash_map};
 use std::pin::Pin;
 use std::process;
@@ -256,12 +253,32 @@ async fn run_async(params: Params) -> Result<(), Error> {
 		.collect::<Result<Vec<_>, ClientError<WsConnecError>>>()
 		.map_err(|e| Error::RPCError(e.to_string()))?;
 
+	let (exit_sender, exit_receiver) = channel::oneshot::channel();
+	let exit_sender = Cell::new(Some(exit_sender));
+	let mut exit_receiver = Box::pin(exit_receiver);
+
 	// TODO: Set up an exit signal handler.
+	ctrlc::set_handler(move || {
+		if let Some(mut exit_sender) = exit_sender.take() {
+			if let Err(()) = exit_sender.send(()) {
+				panic!("failed to handle exit signal, aborting");
+			}
+		}
+	})
+		.expect("must be able to set Ctrl-C handler");
 
 	// TODO: Make this a stream.
 	let mut events = initial_next_events(&chains);
 	while !events.is_empty() {
-		let (result, next_events) = next_event(events, &chains).await;
+		let ((result, next_events), new_exit_receiver) = match future::select(
+			Box::pin(next_event(events, &chains)),
+			exit_receiver
+		).await {
+			future::Either::Left(v) => v,
+			future::Either::Right(_) => break,
+		};
+
+		exit_receiver = new_exit_receiver;
 
 		match result {
 			Ok((chain_id, event)) => {
