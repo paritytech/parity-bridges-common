@@ -11,13 +11,14 @@ use futures::{
 	future,
 };
 use jsonrpsee::{
-	core::client::{Client, ClientError, ClientEvent},
+	core::client::{Client, ClientError, ClientEvent, ClientSubscription},
 	ws::{WsClient, WsConnecError, ws_client},
 };
 use node_primitives::{Hash, Header};
 use url::Url;
 use std::cell::RefCell;
 use std::collections::{HashMap, hash_map};
+use std::pin::Pin;
 use std::process;
 use std::str::FromStr;
 
@@ -204,6 +205,123 @@ async fn read_bridges(chain: &mut Chain, chain_ids: &[Hash])
 }
 
 async fn run_async(params: Params) -> Result<(), Error> {
+	let chains = init_chains(&params).await?;
+
+	let subscriptions = future::join_all(
+		chains.values()
+			.map(|chain_cell| async move {
+				let mut chain = chain_cell.borrow_mut();
+
+				let new_heads_subscription_id = chain.client
+					.start_subscription(
+						"chain_subscribeNewHeads",
+						jsonrpsee::core::common::Params::None,
+					)
+					.await
+					.map_err(ClientError::Inner)?;
+
+				let finalized_heads_subscription_id = chain.client
+					.start_subscription(
+						"chain_subscribeFinalizedHeads",
+						jsonrpsee::core::common::Params::None,
+					)
+					.await
+					.map_err(ClientError::Inner)?;
+
+				let new_heads_subscription =
+					chain.client.subscription_by_id(new_heads_subscription_id)
+						.expect("subscription_id was returned from start_subscription above; qed");
+				let new_heads_subscription = match new_heads_subscription {
+					ClientSubscription::Active(_) => {}
+					ClientSubscription::Pending(subscription) => {
+						subscription.wait().await?;
+					}
+				};
+
+				let finalized_heads_subscription =
+					chain.client.subscription_by_id(finalized_heads_subscription_id)
+						.expect("subscription_id was returned from start_subscription above; qed");
+				let finalized_heads_subscription = match finalized_heads_subscription {
+					ClientSubscription::Active(subscription) => {}
+					ClientSubscription::Pending(subscription) => {
+						subscription.wait().await?;
+					}
+				};
+
+				Ok((new_heads_subscription_id, finalized_heads_subscription_id))
+			})
+	)
+		.await
+		.into_iter()
+		.collect::<Result<Vec<_>, ClientError<WsConnecError>>>()
+		.map_err(|e| Error::RPCError(e.to_string()))?;
+
+	// TODO: Set up an exit signal handler.
+
+	// TODO: Make this a stream.
+	let mut events = initial_next_events(&chains);
+	while !events.is_empty() {
+		let (result, next_events) = next_event(events, &chains).await;
+
+		match result {
+			Ok((chain_id, event)) => {
+				log::info!("Received subscription event from chain {}: {:?}", chain_id, event);
+			}
+			Err(_) => {}
+		}
+
+		events = next_events;
+	}
+
+	Ok(())
+}
+
+fn initial_next_events<'a>(chains: &'a HashMap<ChainId, RefCell<Chain>>)
+	-> Vec<Pin<Box<dyn Future<Output=Result<(ChainId, ClientEvent), Error>> + 'a>>>
+{
+	chains.values()
+		.map(|chain_cell| async move {
+			let mut chain = chain_cell.borrow_mut();
+			let event = chain.client.next_event()
+				.await
+				.map_err(|err| Error::RPCError(err.to_string()))?;
+			Ok((chain.genesis_hash, event))
+		})
+		.map(|fut| Box::pin(fut) as Pin<Box<dyn Future<Output=_>>>)
+		.collect()
+}
+
+async fn next_event<'a>(
+	next_events: Vec<Pin<Box<dyn Future<Output=Result<(ChainId, ClientEvent), Error>> + 'a>>>,
+	chains: &'a HashMap<ChainId, RefCell<Chain>>,
+)
+	-> (
+		Result<(Hash, ClientEvent), Error>,
+		Vec<Pin<Box<dyn Future<Output=Result<(ChainId, ClientEvent), Error>> +'a>>>
+	)
+{
+	let (result, _, mut rest) = future::select_all(next_events).await;
+
+	match result {
+		Ok((chain_id, _)) => {
+			let fut = async move {
+				let chain_cell = chains.get(&chain_id)
+					.expect("chain must be in the map as a function precondition; qed");
+				let mut chain = chain_cell.borrow_mut();
+				let event = chain.client.next_event()
+					.await
+					.map_err(|err| Error::RPCError(err.to_string()))?;
+				Ok((chain_id, event))
+			};
+			rest.push(Box::pin(fut));
+		}
+		Err(ref err) => log::warn!("error in RPC connection with a chain: {}", err),
+	}
+
+	(result, rest)
+}
+
+async fn init_chains(params: &Params) -> Result<HashMap<ChainId, RefCell<Chain>>, Error> {
 	let chains = future::join_all(params.rpc_urls.iter().map(init_rpc_connection))
 		.await
 		.into_iter()
@@ -214,28 +332,11 @@ async fn run_async(params: Params) -> Result<(), Error> {
 	let chain_ids = chains.keys()
 		.cloned()
 		.collect::<Vec<_>>();
-	let chain_ids_slice = chain_ids.as_slice();
+	// let chain_ids_slice = chain_ids.as_slice();
 
-	let bridges = future::join_all(
-		chains.iter()
-			.map(|(chain_id, chain_cell)| async move {
-				let mut chain = chain_cell.borrow_mut();
-				let bridges = read_bridges(&mut chain, chain_ids_slice).await?;
-				Ok((*chain_id, bridges))
-			})
-	)
-		.await
-		.into_iter()
-		.collect::<Result<Vec<_>, _>>()?;
-
-	for (chain_id, bridges) in bridges {
-		let mut chain = chains.get(&chain_id)
-			.expect(
-				"chain IDs in bridges map must have been in chains map and not removed; qed"
-			)
-			.borrow_mut();
-
-		for bridged_chain_id in bridges {
+	for (&chain_id, chain_cell) in chains.iter() {
+		let mut chain = chain_cell.borrow_mut();
+		for bridged_chain_id in read_bridges(&mut chain, &chain_ids).await? {
 			if chain_id == bridged_chain_id {
 				log::warn!("chain {} has a bridge to itself", chain_id);
 				continue;
@@ -265,7 +366,7 @@ async fn run_async(params: Params) -> Result<(), Error> {
 		}
 	}
 
-	Ok(())
+	Ok(chains)
 }
 
 #[cfg(test)]
