@@ -12,9 +12,10 @@ Run two development Substrate chains:
 > TMPDIR=(mktemp -d)
 > cd $TMPDIR
 > substrate build-spec --dev > red-spec.json
-# Modify the chain spec so that the genesis hashes of the two chains differ.
-> jq '.genesis.runtime.balances.balances[0][1] |= . * 2' red-spec.json > blue-spec.json 
-$ substrate --chain red-spec.json --alice --base-path ./red --port 30343 --ws-port 9954
+> cp red-spec.json blue-spec.json
+# Modify the chain spec in an editor so that the genesis hashes of the two chains differ.
+# For example, double one of the balances in '$.genesis.runtime.balances.balances'.
+> substrate --chain red-spec.json --alice --base-path ./red --port 30343 --ws-port 9954
 > substrate --chain blue-spec.json --alice --base-path ./blue --port 30353 --ws-port 9964
 ```
 

@@ -1,8 +1,4 @@
-use jsonrpsee::{
-	core::client::{Client, ClientError, RawClient},
-	core::common::Params,
-	rpc_api,
-};
+use jsonrpsee::core::client::{Client, ClientError, RawClient};
 use node_primitives::{BlockNumber, Hash, Header};
 use substrate_primitives::Bytes;
 use substrate_rpc_primitives::number::NumberOrHex;
