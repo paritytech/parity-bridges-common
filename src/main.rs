@@ -59,14 +59,14 @@ fn parse_args() -> Params {
 	}
 }
 
-fn setup_exit_handler() -> Box<dyn Future<Output=()> + Unpin> {
+fn setup_exit_handler() -> Box<dyn Future<Output=()> + Unpin + Send> {
 	let (exit_sender, exit_receiver) = channel::oneshot::channel();
 	let exit_sender = Cell::new(Some(exit_sender));
 
 	ctrlc::set_handler(move || {
 		if let Some(exit_sender) = exit_sender.take() {
 			if let Err(()) = exit_sender.send(()) {
-				panic!("failed to handle exit signal, aborting");
+				log::warn!("failed to send exit signal");
 			}
 		}
 	})

@@ -2,9 +2,9 @@ use crate::error::Error;
 use crate::rpc::{self, SubstrateRPC};
 use crate::params::{RPCUrlParam, Params};
 
-use futures::{prelude::*, future};
+use futures::{prelude::*, channel::{mpsc, oneshot}, future, select};
 use jsonrpsee::{
-	core::client::{ClientError, ClientEvent, ClientSubscription},
+	core::client::{ClientError, ClientEvent, ClientRequestId, ClientSubscription},
 	ws::{WsClient, WsConnecError, ws_client},
 };
 use node_primitives::{Hash, Header};
@@ -15,6 +15,7 @@ use std::pin::Pin;
 type ChainId = Hash;
 
 struct BridgeState {
+	channel: mpsc::Sender<Event>,
 	locally_finalized_head_on_bridged_chain: Hash,
 }
 
@@ -23,9 +24,16 @@ struct ChainState {
 	bridges: HashMap<ChainId, BridgeState>,
 }
 
+enum Event {
+	NewChainHead(Header),
+	NewFinalizedHead(Header),
+}
+
 struct Chain {
 	url: String,
 	client: WsClient,
+	sender: mpsc::Sender<Event>,
+	receiver: mpsc::Receiver<Event>,
 	genesis_hash: Hash,
 	state: ChainState,
 }
@@ -62,9 +70,13 @@ async fn init_rpc_connection(url: &RPCUrlParam) -> Result<Chain, Error> {
 			genesis_hash, latest_finalized_hash
 		)))?;
 
+	let (sender, receiver) = mpsc::channel(0);
+
 	Ok(Chain {
 		url: url_str,
 		client,
+		sender,
+		receiver,
 		genesis_hash,
 		state: ChainState {
 			current_finalized_head: latest_finalized_header,
@@ -75,7 +87,7 @@ async fn init_rpc_connection(url: &RPCUrlParam) -> Result<Chain, Error> {
 
 /// Returns IDs of the bridged chains.
 async fn read_bridges(chain: &mut Chain, chain_ids: &[Hash])
-					  -> Result<Vec<Hash>, Error>
+	-> Result<Vec<Hash>, Error>
 {
 	// This should make an RPC call to read this information from the bridge pallet state.
 	// For now, just pretend every chain is bridged to every other chain.
@@ -90,88 +102,42 @@ async fn read_bridges(chain: &mut Chain, chain_ids: &[Hash])
 	)
 }
 
-pub async fn run_async(params: Params, exit: Box<dyn Future<Output=()> + Unpin>) -> Result<(), Error> {
+pub async fn run_async(
+	params: Params,
+	exit: Box<dyn Future<Output=()> + Unpin + Send>
+) -> Result<(), Error>
+{
 	let chains = init_chains(&params).await?;
 
-	let subscriptions = future::join_all(
-		chains.values()
-			.map(|chain_cell| async move {
-				let mut chain = chain_cell.borrow_mut();
+	let (chain_tasks, exit_signals) = chains.into_iter()
+		.map(|(chain_id, chain_cell)| {
+			let chain = chain_cell.into_inner();
+			let (task_exit_signal, task_exit_receiver) = oneshot::channel();
+			let task_exit = Box::new(task_exit_receiver.map(|result| {
+				result.expect("task_exit_signal is not dropped before send() is called")
+			}));
+			let chain_task = async_std::task::spawn(async move {
+				if let Err(err) = chain_task(chain_id, chain, task_exit).await {
+					log::error!("Error in task for chain {}: {}", chain_id, err);
+				}
+			});
+			(chain_task, task_exit_signal)
+		})
+		.unzip::<_, _, Vec<_>, Vec<_>>();
 
-				let new_heads_subscription_id = chain.client
-					.start_subscription(
-						"chain_subscribeNewHeads",
-						jsonrpsee::core::common::Params::None,
-					)
-					.await
-					.map_err(ClientError::Inner)?;
-
-				let finalized_heads_subscription_id = chain.client
-					.start_subscription(
-						"chain_subscribeFinalizedHeads",
-						jsonrpsee::core::common::Params::None,
-					)
-					.await
-					.map_err(ClientError::Inner)?;
-
-				let new_heads_subscription =
-					chain.client.subscription_by_id(new_heads_subscription_id)
-						.expect("subscription_id was returned from start_subscription above; qed");
-				let new_heads_subscription = match new_heads_subscription {
-					ClientSubscription::Active(_) => {}
-					ClientSubscription::Pending(subscription) => {
-						subscription.wait().await?;
-					}
-				};
-
-				let finalized_heads_subscription =
-					chain.client.subscription_by_id(finalized_heads_subscription_id)
-						.expect("subscription_id was returned from start_subscription above; qed");
-				let finalized_heads_subscription = match finalized_heads_subscription {
-					ClientSubscription::Active(subscription) => {}
-					ClientSubscription::Pending(subscription) => {
-						subscription.wait().await?;
-					}
-				};
-
-				Ok((new_heads_subscription_id, finalized_heads_subscription_id))
-			})
-	)
-		.await
-		.into_iter()
-		.collect::<Result<Vec<_>, ClientError<WsConnecError>>>()
-		.map_err(|e| Error::RPCError(e.to_string()))?;
-
-	let mut exit_receiver = exit;
-
-	// TODO: Make this a stream.
-	let mut events = initial_next_events(&chains);
-	while !events.is_empty() {
-		let ((result, next_events), new_exit_receiver) = match future::select(
-			Box::pin(next_event(events, &chains)),
-			exit_receiver
-		).await {
-			future::Either::Left(v) => v,
-			future::Either::Right(_) => break,
-		};
-
-		exit_receiver = new_exit_receiver;
-
-		match result {
-			Ok((chain_id, event)) => {
-				log::info!("Received subscription event from chain {}: {:?}", chain_id, event);
-			}
-			Err(_) => {}
+	async_std::task::spawn(async move {
+		exit.await;
+		for exit_signal in exit_signals {
+			let _ = exit_signal.send(());
 		}
+	});
 
-		events = next_events;
-	}
-
+	future::join_all(chain_tasks).await;
 	Ok(())
 }
 
 fn initial_next_events<'a>(chains: &'a HashMap<ChainId, RefCell<Chain>>)
-						   -> Vec<Pin<Box<dyn Future<Output=Result<(ChainId, ClientEvent), Error>> + 'a>>>
+	-> Vec<Pin<Box<dyn Future<Output=Result<(ChainId, ClientEvent), Error>> + 'a>>>
 {
 	chains.values()
 		.map(|chain_cell| async move {
@@ -248,7 +214,9 @@ async fn init_chains(params: &Params) -> Result<HashMap<ChainId, RefCell<Chain>>
 //					chain_id, bridged_chain_id, forward_bridge_id
 //				);
 
+				let channel = chain.sender.clone();
 				chain.state.bridges.insert(bridged_chain_id, BridgeState {
+					channel,
 					locally_finalized_head_on_bridged_chain,
 				});
 
@@ -263,3 +231,97 @@ async fn init_chains(params: &Params) -> Result<HashMap<ChainId, RefCell<Chain>>
 	Ok(chains)
 }
 
+async fn setup_subscriptions(chain: &mut Chain)
+	-> Result<(ClientRequestId, ClientRequestId), ClientError<WsConnecError>>
+{
+	let new_heads_subscription_id = chain.client
+		.start_subscription(
+			"chain_subscribeNewHeads",
+			jsonrpsee::core::common::Params::None,
+		)
+		.await
+		.map_err(ClientError::Inner)?;
+
+	let finalized_heads_subscription_id = chain.client
+		.start_subscription(
+			"chain_subscribeFinalizedHeads",
+			jsonrpsee::core::common::Params::None,
+		)
+		.await
+		.map_err(ClientError::Inner)?;
+
+	let new_heads_subscription =
+		chain.client.subscription_by_id(new_heads_subscription_id)
+			.expect("subscription_id was returned from start_subscription above; qed");
+	let new_heads_subscription = match new_heads_subscription {
+		ClientSubscription::Active(_) => {}
+		ClientSubscription::Pending(subscription) => {
+			subscription.wait().await?;
+		}
+	};
+
+	let finalized_heads_subscription =
+		chain.client.subscription_by_id(finalized_heads_subscription_id)
+			.expect("subscription_id was returned from start_subscription above; qed");
+	let finalized_heads_subscription = match finalized_heads_subscription {
+		ClientSubscription::Active(subscription) => {}
+		ClientSubscription::Pending(subscription) => {
+			subscription.wait().await?;
+		}
+	};
+
+	Ok((new_heads_subscription_id, finalized_heads_subscription_id))
+}
+
+fn handle_rpc_event(
+	chain_id: ChainId,
+	chain_state: &mut ChainState,
+	event: ClientEvent,
+) -> Result<(), Error>
+{
+	log::info!("Received subscription event from chain {}: {:?}", chain_id, event);
+	Ok(())
+}
+
+fn handle_bridge_event(
+	chain_id: ChainId,
+	chain_state: &mut ChainState,
+	rpc_client: &mut WsClient,
+	event: Event
+) -> Result<(), Error>
+{
+	Ok(())
+}
+
+async fn chain_task(
+	chain_id: ChainId,
+	mut chain: Chain,
+	exit: impl Future<Output=()> + Unpin + Send
+) -> Result<(), Error>
+{
+	setup_subscriptions(&mut chain)
+		.await
+		.map_err(|e| Error::RPCError(e.to_string()))?;
+
+	let mut next_bridge_event = chain.receiver.next().fuse();
+	let mut exit = exit.fuse();
+	loop {
+		select! {
+			result = chain.client.next_event().fuse() => {
+				let event = result.map_err(|e| Error::RPCError(e.to_string()))?;
+				handle_rpc_event(chain_id, &mut chain.state, event)?;
+			}
+			event = next_bridge_event => {
+				let event = event
+					.expect("stream will never close as the chain has an mpsc Sender");
+				handle_bridge_event(chain_id, &mut chain.state, &mut chain.client, event)?;
+				next_bridge_event = chain.receiver.next().fuse();
+			}
+			_ = exit => {
+				log::debug!("Received exit signal, shutting down task for chain {}", chain_id);
+				break;
+			}
+		}
+	}
+	Ok(())
+}
