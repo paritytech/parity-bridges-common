@@ -10,6 +10,15 @@ pub enum Error {
 	WsConnectionError(String),
 	#[display(fmt = "unexpected client event from RPC URL {}: {:?}", _0, _1)]
 	UnexpectedClientEvent(String, String),
+	#[display(fmt = "serialization error: {}", _0)]
+	SerializationError(serde_json::error::Error),
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+		match self {
+			Error::SerializationError(err) => Some(err),
+			_ => None,
+		}
+	}
+}

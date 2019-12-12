@@ -14,6 +14,7 @@ futures = "0.3.1"
 jsonrpsee = { git = "https://github.com/paritytech/jsonrpsee", features = ["ws"], branch = "jimpo/positional-params" }
 log = "0.4.8"
 node-primitives = { git = "https://github.com/paritytech/substrate" }
+serde_json = "1.0.41"
 substrate-primitives = { git = "https://github.com/paritytech/substrate" }
 substrate-rpc-primitives = { git = "https://github.com/paritytech/substrate" }
 url = "2.1.0"

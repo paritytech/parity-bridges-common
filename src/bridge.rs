@@ -277,9 +277,30 @@ fn handle_rpc_event(
 	chain_id: ChainId,
 	chain_state: &mut ChainState,
 	event: ClientEvent,
+	new_heads_subscription_id: ClientRequestId,
+	finalized_heads_subscription_id: ClientRequestId,
 ) -> Result<(), Error>
 {
-	log::info!("Received subscription event from chain {}: {:?}", chain_id, event);
+	match event {
+		ClientEvent::SubscriptionNotif { request_id, result } => match request_id {
+			new_heads_subscription_id => {
+				let header: Header = serde_json::from_value(result)
+					.map_err(Error::SerializationError)?;
+				log::info!("Received new head {:?} on chain {}", header, chain_id);
+			}
+			finalized_heads_subscription_id => {
+				let header: Header = serde_json::from_value(result)
+					.map_err(Error::SerializationError)?;
+				log::info!("Received finalized head {:?} on chain {}", header, chain_id);
+			}
+			_ => return Err(Error::RPCError(format!(
+				"unexpected subscription response with request ID {:?}", request_id
+			))),
+		},
+		_ => return Err(Error::RPCError(format!(
+			"unexpected RPC event from chain {}: {:?}", chain_id, event
+		))),
+	}
 	Ok(())
 }
 
@@ -287,7 +308,7 @@ fn handle_bridge_event(
 	chain_id: ChainId,
 	chain_state: &mut ChainState,
 	rpc_client: &mut WsClient,
-	event: Event
+	event: Event,
 ) -> Result<(), Error>
 {
 	Ok(())
@@ -299,9 +320,10 @@ async fn chain_task(
 	exit: impl Future<Output=()> + Unpin + Send
 ) -> Result<(), Error>
 {
-	setup_subscriptions(&mut chain)
-		.await
-		.map_err(|e| Error::RPCError(e.to_string()))?;
+	let (new_heads_subscription_id, finalized_heads_subscription_id) =
+		setup_subscriptions(&mut chain)
+			.await
+			.map_err(|e| Error::RPCError(e.to_string()))?;
 
 	let mut next_bridge_event = chain.receiver.next().fuse();
 	let mut exit = exit.fuse();
@@ -309,7 +331,13 @@ async fn chain_task(
 		select! {
 			result = chain.client.next_event().fuse() => {
 				let event = result.map_err(|e| Error::RPCError(e.to_string()))?;
-				handle_rpc_event(chain_id, &mut chain.state, event)?;
+				handle_rpc_event(
+					chain_id,
+					&mut chain.state,
+					event,
+					new_heads_subscription_id,
+					finalized_heads_subscription_id,
+				)?;
 			}
 			event = next_bridge_event => {
 				let event = event
