@@ -11,12 +11,13 @@ use node_primitives::{Hash, Header};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::pin::Pin;
+use substrate_primitives::Bytes;
 
 type ChainId = Hash;
 
 struct BridgeState {
 	channel: mpsc::Sender<Event>,
-	locally_finalized_head_on_bridged_chain: Hash,
+	locally_finalized_head_on_bridged_chain: Header,
 }
 
 struct ChainState {
@@ -25,8 +26,7 @@ struct ChainState {
 }
 
 enum Event {
-	NewChainHead(Header),
-	NewFinalizedHead(Header),
+	SubmitExtrinsic(Bytes),
 }
 
 struct Chain {
@@ -206,18 +206,17 @@ async fn init_chains(params: &Params) -> Result<HashMap<ChainId, RefCell<Chain>>
 				let bridged_chain = bridged_chain_cell.borrow_mut();
 
 				// TODO: Get this from RPC to runtime API.
-				let locally_finalized_head_on_bridged_chain = chain_id;
-
-//				log::info!(
-//					"Found bridge from {} to {} with id {}, but no bridge in the opposite direction. \
-//					Skipping...",
-//					chain_id, bridged_chain_id, forward_bridge_id
-//				);
+				let genesis_head = SubstrateRPC::chain_header(&mut chain.client, chain_id)
+					.await
+					.map_err(|e| Error::RPCError(e.to_string()))?
+					.ok_or_else(|| Error::InvalidChainState(format!(
+						"chain {} is missing a genesis block header", chain_id
+					)))?;
 
 				let channel = chain.sender.clone();
 				chain.state.bridges.insert(bridged_chain_id, BridgeState {
 					channel,
-					locally_finalized_head_on_bridged_chain,
+					locally_finalized_head_on_bridged_chain: genesis_head,
 				});
 
 				// The conditional ensures that we don't log twice per pair of chains.
@@ -273,7 +272,7 @@ async fn setup_subscriptions(chain: &mut Chain)
 	Ok((new_heads_subscription_id, finalized_heads_subscription_id))
 }
 
-fn handle_rpc_event(
+async fn handle_rpc_event(
 	chain_id: ChainId,
 	chain_state: &mut ChainState,
 	event: ClientEvent,
@@ -282,21 +281,34 @@ fn handle_rpc_event(
 ) -> Result<(), Error>
 {
 	match event {
-		ClientEvent::SubscriptionNotif { request_id, result } => match request_id {
-			new_heads_subscription_id => {
+		ClientEvent::SubscriptionNotif { request_id, result } =>
+			if request_id == new_heads_subscription_id {
 				let header: Header = serde_json::from_value(result)
 					.map_err(Error::SerializationError)?;
 				log::info!("Received new head {:?} on chain {}", header, chain_id);
-			}
-			finalized_heads_subscription_id => {
+			} else if request_id == finalized_heads_subscription_id {
 				let header: Header = serde_json::from_value(result)
 					.map_err(Error::SerializationError)?;
 				log::info!("Received finalized head {:?} on chain {}", header, chain_id);
-			}
-			_ => return Err(Error::RPCError(format!(
-				"unexpected subscription response with request ID {:?}", request_id
-			))),
-		},
+
+				// let old_finalized_head = chain_state.current_finalized_head;
+				chain_state.current_finalized_head = header;
+				for (bridged_chain_id, bridged_chain) in chain_state.bridges.iter_mut() {
+					if bridged_chain.locally_finalized_head_on_bridged_chain.number <
+						chain_state.current_finalized_head.number {
+						// Craft and submit an extrinsic over RPC
+						log::info!("Sending command to submit extrinsic to chain {}", chain_id);
+						bridged_chain.channel
+							.send(Event::SubmitExtrinsic(Bytes(Vec::new())))
+							.await
+							.map_err(Error::ChannelError)?;
+					}
+				}
+			} else {
+				return Err(Error::RPCError(format!(
+					"unexpected subscription response with request ID {:?}", request_id
+				)));
+			},
 		_ => return Err(Error::RPCError(format!(
 			"unexpected RPC event from chain {}: {:?}", chain_id, event
 		))),
@@ -304,13 +316,21 @@ fn handle_rpc_event(
 	Ok(())
 }
 
-fn handle_bridge_event(
+async fn handle_bridge_event(
 	chain_id: ChainId,
 	chain_state: &mut ChainState,
 	rpc_client: &mut WsClient,
 	event: Event,
 ) -> Result<(), Error>
 {
+	match event {
+		Event::SubmitExtrinsic(data) => {
+			log::info!("Submitting extrinsic to chain {}", chain_id);
+			SubstrateRPC::author_submit_extrinsic(rpc_client, data)
+				.await
+				.map_err(|e| Error::RPCError(e.to_string()))?;
+		}
+	}
 	Ok(())
 }
 
@@ -325,7 +345,6 @@ async fn chain_task(
 			.await
 			.map_err(|e| Error::RPCError(e.to_string()))?;
 
-	let mut next_bridge_event = chain.receiver.next().fuse();
 	let mut exit = exit.fuse();
 	loop {
 		select! {
@@ -337,13 +356,13 @@ async fn chain_task(
 					event,
 					new_heads_subscription_id,
 					finalized_heads_subscription_id,
-				)?;
+				).await?;
 			}
-			event = next_bridge_event => {
+			event = chain.receiver.next().fuse() => {
 				let event = event
 					.expect("stream will never close as the chain has an mpsc Sender");
-				handle_bridge_event(chain_id, &mut chain.state, &mut chain.client, event)?;
-				next_bridge_event = chain.receiver.next().fuse();
+				handle_bridge_event(chain_id, &mut chain.state, &mut chain.client, event)
+					.await?;
 			}
 			_ = exit => {
 				log::debug!("Received exit signal, shutting down task for chain {}", chain_id);
