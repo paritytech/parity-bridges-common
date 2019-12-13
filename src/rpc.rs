@@ -5,7 +5,7 @@ use substrate_rpc_primitives::number::NumberOrHex;
 
 jsonrpsee::rpc_api! {
 	pub SubstrateRPC {
-		#[rpc(method = "author_submitExtrinsic")]
+		#[rpc(method = "author_submitExtrinsic", positional_params)]
 		fn author_submit_extrinsic(extrinsic: Bytes) -> Hash;
 
 		#[rpc(method = "chain_getFinalizedHead")]

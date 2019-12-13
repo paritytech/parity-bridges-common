@@ -274,7 +274,7 @@ async fn setup_subscriptions(chain: &mut Chain)
 
 async fn handle_rpc_event(
 	chain_id: ChainId,
-	chain_state: &mut ChainState,
+	chain: &mut Chain,
 	event: ClientEvent,
 	new_heads_subscription_id: ClientRequestId,
 	finalized_heads_subscription_id: ClientRequestId,
@@ -292,16 +292,33 @@ async fn handle_rpc_event(
 				log::info!("Received finalized head {:?} on chain {}", header, chain_id);
 
 				// let old_finalized_head = chain_state.current_finalized_head;
-				chain_state.current_finalized_head = header;
-				for (bridged_chain_id, bridged_chain) in chain_state.bridges.iter_mut() {
+				chain.state.current_finalized_head = header;
+				for (bridged_chain_id, bridged_chain) in chain.state.bridges.iter_mut() {
 					if bridged_chain.locally_finalized_head_on_bridged_chain.number <
-						chain_state.current_finalized_head.number {
+						chain.state.current_finalized_head.number {
 						// Craft and submit an extrinsic over RPC
 						log::info!("Sending command to submit extrinsic to chain {}", chain_id);
-						bridged_chain.channel
+						let mut send_event = bridged_chain.channel
 							.send(Event::SubmitExtrinsic(Bytes(Vec::new())))
-							.await
-							.map_err(Error::ChannelError)?;
+							.fuse();
+
+						// Continue processing events from other chain tasks while waiting to send
+						// event to other chain task in order to prevent deadlocks.
+						loop {
+							select! {
+								result = send_event => {
+									result.map_err(Error::ChannelError)?;
+									break;
+								}
+								event = chain.receiver.next().fuse() => {
+									let event = event
+										.expect("stream will never close as the chain has an mpsc Sender");
+									handle_bridge_event(chain_id, &mut chain.client, event)
+										.await?;
+								}
+								// TODO: exit
+							}
+						}
 					}
 				}
 			} else {
@@ -316,9 +333,9 @@ async fn handle_rpc_event(
 	Ok(())
 }
 
+// Let's say this never sends over a channel (ie. cannot block on another task).
 async fn handle_bridge_event(
 	chain_id: ChainId,
-	chain_state: &mut ChainState,
 	rpc_client: &mut WsClient,
 	event: Event,
 ) -> Result<(), Error>
@@ -326,9 +343,9 @@ async fn handle_bridge_event(
 	match event {
 		Event::SubmitExtrinsic(data) => {
 			log::info!("Submitting extrinsic to chain {}", chain_id);
-			SubstrateRPC::author_submit_extrinsic(rpc_client, data)
-				.await
-				.map_err(|e| Error::RPCError(e.to_string()))?;
+			if let Err(err) = SubstrateRPC::author_submit_extrinsic(rpc_client, data).await {
+				log::error!("failed to submit extrinsic: {}", err);
+			}
 		}
 	}
 	Ok(())
@@ -352,7 +369,7 @@ async fn chain_task(
 				let event = result.map_err(|e| Error::RPCError(e.to_string()))?;
 				handle_rpc_event(
 					chain_id,
-					&mut chain.state,
+					&mut chain,
 					event,
 					new_heads_subscription_id,
 					finalized_heads_subscription_id,
@@ -361,7 +378,7 @@ async fn chain_task(
 			event = chain.receiver.next().fuse() => {
 				let event = event
 					.expect("stream will never close as the chain has an mpsc Sender");
-				handle_bridge_event(chain_id, &mut chain.state, &mut chain.client, event)
+				handle_bridge_event(chain_id, &mut chain.client, event)
 					.await?;
 			}
 			_ = exit => {
