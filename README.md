@@ -4,6 +4,10 @@ The bridge relay is a process that connects to running Substrate nodes and sends
 
 For more details, see the [design document](doc/design.md).
 
+## Status
+
+This is a not-in-progress prototype.
+
 ## Running in development
 
 Run two development Substrate chains:
