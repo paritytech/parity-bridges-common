@@ -11,7 +11,7 @@ use node_primitives::{Hash, Header};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::pin::Pin;
-use substrate_primitives::Bytes;
+use sp_core::Bytes;
 
 type ChainId = Hash;
 
