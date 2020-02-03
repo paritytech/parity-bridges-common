@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "modules/substrate",
+    "modules/ethereum",
+]
