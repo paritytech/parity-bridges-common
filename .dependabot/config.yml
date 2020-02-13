@@ -3,6 +3,13 @@ update_configs:
   - package_manager: "rust:cargo"
     directory: "/"
     update_schedule: "weekly"
+    ignored_updates:
+      - match:
+          dependency_name: "sp-*"
+      - match:
+          dependency_name: "frame-*"
+      - match:
+          dependency_name: "pallet-*"
     automerged_updates:
       - match:
           dependency_type: "development"
