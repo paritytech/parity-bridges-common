@@ -12,27 +12,27 @@ primitives = { package = "sp-bridge-eth-poa", path = "../../primitives/ethereum-
 
 # Substrate Based Dependencies
 [dependencies.frame-support]
-version = "2.0.0"
+version = "2.0.0-alpha.1"
 git = "https://github.com/paritytech/substrate.git"
 default-features = false
 
 [dependencies.frame-system]
-version = "2.0.0"
+version = "2.0.0-alpha.1"
 git = "https://github.com/paritytech/substrate.git"
 default-features = false
 
 [dependencies.sp-std]
-version = "2.0.0"
+version = "2.0.0-alpha.1"
 git = "https://github.com/paritytech/substrate.git"
 default-features = false
 
 [dependencies.sp-io]
-version = "2.0.0"
+version = "2.0.0-alpha.1"
 git = "https://github.com/paritytech/substrate.git"
 default-features = false
 
 [dependencies.sp-runtime]
-version = "2.0.0"
+version = "2.0.0-alpha.1"
 git = "https://github.com/paritytech/substrate.git"
 default-features = false
 

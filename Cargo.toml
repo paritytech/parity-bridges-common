@@ -3,4 +3,5 @@
 members = [
     "modules/substrate",
     "modules/ethereum",
+    "relays/ethereum",
 ]
