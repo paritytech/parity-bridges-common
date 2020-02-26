@@ -1,4 +1,4 @@
-use jsonrpsee::core::client::{Client, ClientError, RawClient};
+use jsonrpsee::core::client::{RawClient, RawClientError, TransportClient};
 use node_primitives::{BlockNumber, Hash, Header};
 use sp_core::Bytes;
 use sp_rpc::number::NumberOrHex;
@@ -22,8 +22,8 @@ jsonrpsee::rpc_api! {
 	}
 }
 
-pub async fn genesis_block_hash<R: RawClient>(client: &mut Client<R>)
-	-> Result<Option<Hash>, ClientError<R::Error>>
+pub async fn genesis_block_hash<R: TransportClient>(client: &mut RawClient<R>)
+	-> Result<Option<Hash>, RawClientError<R::Error>>
 {
 	SubstrateRPC::chain_block_hash(client, Some(NumberOrHex::Number(0))).await
 }

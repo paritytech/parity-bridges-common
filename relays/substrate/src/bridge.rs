@@ -4,8 +4,8 @@ use crate::params::{RPCUrlParam, Params};
 
 use futures::{prelude::*, channel::{mpsc, oneshot}, future, select};
 use jsonrpsee::{
-	core::client::{ClientError, ClientEvent, ClientRequestId, ClientSubscription},
-	ws::{WsClient, WsConnecError, ws_client},
+	core::client::{RawClientError, RawClientEvent, RawClientRequestId, RawClientSubscription},
+	ws::{WsRawClient, WsConnecError, ws_raw_client},
 };
 use node_primitives::{Hash, Header};
 use std::cell::RefCell;
@@ -31,7 +31,7 @@ enum Event {
 
 struct Chain {
 	url: String,
-	client: WsClient,
+	client: WsRawClient,
 	sender: mpsc::Sender<Event>,
 	receiver: mpsc::Receiver<Event>,
 	genesis_hash: Hash,
@@ -44,7 +44,7 @@ async fn init_rpc_connection(url: &RPCUrlParam) -> Result<Chain, Error> {
 
 	// Skip the leading "ws://" and trailing "/".
 	let url_without_scheme = &url_str[5..(url_str.len() - 1)];
-	let mut client = ws_client(url_without_scheme)
+	let mut client = ws_raw_client(url_without_scheme)
 		.await
 		.map_err(|err| Error::WsConnectionError(err.to_string()))?;
 
@@ -137,7 +137,7 @@ pub async fn run_async(
 }
 
 fn initial_next_events<'a>(chains: &'a HashMap<ChainId, RefCell<Chain>>)
-	-> Vec<Pin<Box<dyn Future<Output=Result<(ChainId, ClientEvent), Error>> + 'a>>>
+	-> Vec<Pin<Box<dyn Future<Output=Result<(ChainId, RawClientEvent), Error>> + 'a>>>
 {
 	chains.values()
 		.map(|chain_cell| async move {
@@ -152,12 +152,12 @@ fn initial_next_events<'a>(chains: &'a HashMap<ChainId, RefCell<Chain>>)
 }
 
 async fn next_event<'a>(
-	next_events: Vec<Pin<Box<dyn Future<Output=Result<(ChainId, ClientEvent), Error>> + 'a>>>,
+	next_events: Vec<Pin<Box<dyn Future<Output=Result<(ChainId, RawClientEvent), Error>> + 'a>>>,
 	chains: &'a HashMap<ChainId, RefCell<Chain>>,
 )
 	-> (
-		Result<(Hash, ClientEvent), Error>,
-		Vec<Pin<Box<dyn Future<Output=Result<(ChainId, ClientEvent), Error>> +'a>>>
+		Result<(Hash, RawClientEvent), Error>,
+		Vec<Pin<Box<dyn Future<Output=Result<(ChainId, RawClientEvent), Error>> +'a>>>
 	)
 {
 	let (result, _, mut rest) = future::select_all(next_events).await;
@@ -231,7 +231,7 @@ async fn init_chains(params: &Params) -> Result<HashMap<ChainId, RefCell<Chain>>
 }
 
 async fn setup_subscriptions(chain: &mut Chain)
-	-> Result<(ClientRequestId, ClientRequestId), ClientError<WsConnecError>>
+	-> Result<(RawClientRequestId, RawClientRequestId), RawClientError<WsConnecError>>
 {
 	let new_heads_subscription_id = chain.client
 		.start_subscription(
@@ -239,7 +239,7 @@ async fn setup_subscriptions(chain: &mut Chain)
 			jsonrpsee::core::common::Params::None,
 		)
 		.await
-		.map_err(ClientError::Inner)?;
+		.map_err(RawClientError::Inner)?;
 
 	let finalized_heads_subscription_id = chain.client
 		.start_subscription(
@@ -247,14 +247,14 @@ async fn setup_subscriptions(chain: &mut Chain)
 			jsonrpsee::core::common::Params::None,
 		)
 		.await
-		.map_err(ClientError::Inner)?;
+		.map_err(RawClientError::Inner)?;
 
 	let new_heads_subscription =
 		chain.client.subscription_by_id(new_heads_subscription_id)
 			.expect("subscription_id was returned from start_subscription above; qed");
 	let new_heads_subscription = match new_heads_subscription {
-		ClientSubscription::Active(_) => {}
-		ClientSubscription::Pending(subscription) => {
+		RawClientSubscription::Active(_) => {}
+		RawClientSubscription::Pending(subscription) => {
 			subscription.wait().await?;
 		}
 	};
@@ -263,8 +263,8 @@ async fn setup_subscriptions(chain: &mut Chain)
 		chain.client.subscription_by_id(finalized_heads_subscription_id)
 			.expect("subscription_id was returned from start_subscription above; qed");
 	let finalized_heads_subscription = match finalized_heads_subscription {
-		ClientSubscription::Active(subscription) => {}
-		ClientSubscription::Pending(subscription) => {
+		RawClientSubscription::Active(subscription) => {}
+		RawClientSubscription::Pending(subscription) => {
 			subscription.wait().await?;
 		}
 	};
@@ -275,13 +275,13 @@ async fn setup_subscriptions(chain: &mut Chain)
 async fn handle_rpc_event(
 	chain_id: ChainId,
 	chain: &mut Chain,
-	event: ClientEvent,
-	new_heads_subscription_id: ClientRequestId,
-	finalized_heads_subscription_id: ClientRequestId,
+	event: RawClientEvent,
+	new_heads_subscription_id: RawClientRequestId,
+	finalized_heads_subscription_id: RawClientRequestId,
 ) -> Result<(), Error>
 {
 	match event {
-		ClientEvent::SubscriptionNotif { request_id, result } =>
+		RawClientEvent::SubscriptionNotif { request_id, result } =>
 			if request_id == new_heads_subscription_id {
 				let header: Header = serde_json::from_value(result)
 					.map_err(Error::SerializationError)?;
@@ -336,7 +336,7 @@ async fn handle_rpc_event(
 // Let's say this never sends over a channel (ie. cannot block on another task).
 async fn handle_bridge_event(
 	chain_id: ChainId,
-	rpc_client: &mut WsClient,
+	rpc_client: &mut WsRawClient,
 	event: Event,
 ) -> Result<(), Error>
 {
