@@ -1,6 +1,8 @@
 [workspace]
 
 members = [
+    # "bin/node-template/node",
+    "bin/node/runtime",
     "modules/substrate",
     "modules/ethereum",
 ]
