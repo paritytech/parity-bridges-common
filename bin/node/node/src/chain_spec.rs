@@ -123,20 +123,20 @@ fn testnet_genesis(initial_authorities: Vec<(AuraId, GrandpaId)>,
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool) -> GenesisConfig {
 	GenesisConfig {
-		system: Some(SystemConfig {
+		frame_system: Some(SystemConfig {
 			code: WASM_BINARY.to_vec(),
 			changes_trie_config: Default::default(),
 		}),
-		balances: Some(BalancesConfig {
+		pallet_balances: Some(BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|k|(k, 1 << 60)).collect(),
 		}),
-		aura: Some(AuraConfig {
+		pallet_aura: Some(AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
 		}),
-		grandpa: Some(GrandpaConfig {
+		pallet_grandpa: Some(GrandpaConfig {
 			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
 		}),
-		sudo: Some(SudoConfig {
+		pallet_sudo: Some(SudoConfig {
 			key: root_key,
 		}),
 	}
