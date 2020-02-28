@@ -9,13 +9,13 @@ mod command;
 
 fn main() -> sc_cli::Result<()> {
 	let version = sc_cli::VersionInfo {
-		name: "Substrate Node",
+		name: "Bridge Node",
 		commit: env!("VERGEN_SHA_SHORT"),
 		version: env!("CARGO_PKG_VERSION"),
-		executable_name: "node-template",
-		author: "Anonymous",
-		description: "Template Node",
-		support_url: "support.anonymous.an",
+		executable_name: "bridge-node",
+		author: "Parity Technologies",
+		description: "Bridge Node",
+		support_url: "https://github.com/paritytech/parity-bridges-common/",
 		copyright_start_year: 2017,
 	};
 
