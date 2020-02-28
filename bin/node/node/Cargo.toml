@@ -1,21 +1,20 @@
 [package]
-name = "node-template"
-version = "2.0.0-alpha.2"
-authors = ["Anonymous"]
+name = "bridge-node"
+version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
-license = "Unlicense"
 build = "build.rs"
 homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/substrate/"
+repository = "https://github.com/paritytech/parity-bridges-common/"
 
 [[bin]]
-name = "node-template"
+name = "bridge-node"
 
 [dependencies]
 futures = "0.3.1"
 log = "0.4.8"
 structopt = "0.3.8"
-node-template-runtime = { version = "2.0.0-alpha.2", path = "../runtime" }
+bridge-node-runtime = { version = "0.1.0", path = "../runtime" }
 
 [dependencies.sc-cli]
 version = "0.8.0-alpha.2"

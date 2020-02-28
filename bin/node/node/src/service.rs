@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 use sc_client::LongestChain;
-use node_template_runtime::{self, GenesisConfig, opaque::Block, RuntimeApi};
+use bridge_node_runtime::{self, GenesisConfig, opaque::Block, RuntimeApi};
 use sc_service::{error::{Error as ServiceError}, AbstractService, Configuration, ServiceBuilder};
 use sp_inherents::InherentDataProviders;
 use sc_executor::native_executor_instance;
@@ -14,8 +14,8 @@ use grandpa::{self, FinalityProofProvider as GrandpaFinalityProofProvider};
 // Our native executor instance.
 native_executor_instance!(
 	pub Executor,
-	node_template_runtime::api::dispatch,
-	node_template_runtime::native_version,
+	bridge_node_runtime::api::dispatch,
+	bridge_node_runtime::native_version,
 );
 
 /// Starts a `ServiceBuilder` for a full service.
@@ -28,7 +28,7 @@ macro_rules! new_full_start {
 		let inherent_data_providers = sp_inherents::InherentDataProviders::new();
 
 		let builder = sc_service::ServiceBuilder::new_full::<
-			node_template_runtime::opaque::Block, node_template_runtime::RuntimeApi, crate::service::Executor
+			bridge_node_runtime::opaque::Block, bridge_node_runtime::RuntimeApi, crate::service::Executor
 		>($config)?
 			.with_select_chain(|_config, backend| {
 				Ok(sc_client::LongestChain::new(backend.clone()))
