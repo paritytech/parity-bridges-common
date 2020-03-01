@@ -5,7 +5,7 @@ rust:
   - nightly
 before_install:
   - rustup install nightly-2020-02-29
-  - rustup target add wasm32-unknown-unknown --toolchain nightly
+  - rustup target add wasm32-unknown-unknown --toolchain nightly-2020-02-29
 jobs:
   allow_failures:
     - rust: nightly
