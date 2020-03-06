@@ -32,7 +32,7 @@ fn main() -> sc_cli::Result<()> {
 		author: "Parity Technologies",
 		description: "Bridge Node",
 		support_url: "https://github.com/paritytech/parity-bridges-common/",
-		copyright_start_year: 2017,
+		copyright_start_year: 2019,
 	};
 
 	command::run(version)
