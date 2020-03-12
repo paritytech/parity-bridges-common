@@ -20,7 +20,7 @@ use crate::params::{RPCUrlParam, Params};
 
 use futures::{prelude::*, channel::{mpsc, oneshot}, future, select};
 use jsonrpsee::{
-	core::client::{RawClientError, RawClientEvent, RawClientRequestId, RawClientSubscription},
+	raw::client::{RawClientError, RawClientEvent, RawClientRequestId, RawClientSubscription},
 	ws::{WsRawClient, WsConnecError, ws_raw_client},
 };
 use node_primitives::{Hash, Header};
