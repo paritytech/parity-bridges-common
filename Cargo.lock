@@ -1967,7 +1967,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "1.0.0"
-source = "git+https://github.com/paritytech/jsonrpsee#de7cbf2b7528802b6c1079de837db1d4f24561a6"
+source = "git+https://github.com/paritytech/jsonrpsee#a0bea41c4f37125fa742ec48b12e11cf55c592b5"
 dependencies = [
  "async-std",
  "async-tls",
@@ -1999,7 +1999,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/paritytech/jsonrpsee#de7cbf2b7528802b6c1079de837db1d4f24561a6"
+source = "git+https://github.com/paritytech/jsonrpsee#a0bea41c4f37125fa742ec48b12e11cf55c592b5"
 dependencies = [
  "Inflector",
  "proc-macro2 1.0.8",
@@ -6524,7 +6524,7 @@ version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bfd5b7557925ce778ff9b9ef90e3ade34c524b5ff10e239c69a42d546d2af56"
 dependencies = [
- "rand 0.7.3",
+ "rand 0.3.23",
 ]
 
 [[package]]
