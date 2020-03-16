@@ -12,9 +12,5 @@ update_configs:
           dependency_name: "pallet-*"
     automerged_updates:
       - match:
-          dependency_type: "development"
           update_type: "all"
-      - match:
-          dependency_type: "production"
-          update_type: "security:patch"
     version_requirement_updates: "auto"
