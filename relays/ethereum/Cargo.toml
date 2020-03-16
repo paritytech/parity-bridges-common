@@ -30,40 +30,47 @@ web3 = { git = "https://github.com/svyatonik/rust-web3.git", branch = "fix_recei
 
 # Substrate Based Dependencies
 [dependencies.frame-system]
-version = "2.0.0-alpha.1"
-git = "https://github.com/paritytech/substrate.git"
+version = "2.0.0-alpha.2"
+rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
+git = "https://github.com/paritytech/substrate/"
 # frame-system = { git = "https://github.com/svyatonik/substrate.git", branch = "bridge_runtime" }
 
 [dependencies.pallet-transaction-payment]
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
+rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
 git = "https://github.com/paritytech/substrate.git"
 # pallet-transaction-payment = { git = "https://github.com/svyatonik/substrate.git", branch = "bridge_runtime" }
 
 # I think this is used for sr-io and stuff
 [dependencies.node-primitives]
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
+rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
 git = "https://github.com/paritytech/substrate.git"
 # node-primitives = { git = "https://github.com/svyatonik/substrate.git", branch = "bridge_runtime" }
 
 # Branch used for keccack256 hasher code
 # Could probably move the keccack hasher stuff to our own primitives
 [dependencies.sp-core]
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
+rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
 git = "https://github.com/paritytech/substrate.git"
 # sp-core = { git = "https://github.com/svyatonik/substrate.git", branch = "bridge_runtime" }
 
 [dependencies.sp-keyring]
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
+rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
 git = "https://github.com/paritytech/substrate.git"
 # sp-keyring = { git = "https://github.com/svyatonik/substrate.git", branch = "bridge_runtime" }
 
 [dependencies.sp-runtime]
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
+rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
 git = "https://github.com/paritytech/substrate.git"
 # sp-runtime = { git = "https://github.com/svyatonik/substrate.git", branch = "bridge_runtime" }
 
 # This should get moved to our `bin` folder
 [dependencies.node-runtime]
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.2"
+rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
 git = "https://github.com/paritytech/substrate.git"
 # node-runtime = { git = "https://github.com/svyatonik/substrate.git", branch = "bridge_runtime" }

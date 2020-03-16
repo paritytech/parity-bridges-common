@@ -1,7 +1,10 @@
 [workspace]
 
 members = [
+    "bin/node/node",
+    "bin/node/runtime",
     "modules/substrate",
     "modules/ethereum",
     "relays/ethereum",
+    "relays/substrate",
 ]
