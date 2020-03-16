@@ -1967,7 +1967,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "1.0.0"
-source = "git+https://github.com/paritytech/jsonrpsee#de7cbf2b7528802b6c1079de837db1d4f24561a6"
+source = "git+https://github.com/paritytech/jsonrpsee#a0bea41c4f37125fa742ec48b12e11cf55c592b5"
 dependencies = [
  "async-std",
  "async-tls",
@@ -1999,7 +1999,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/paritytech/jsonrpsee#de7cbf2b7528802b6c1079de837db1d4f24561a6"
+source = "git+https://github.com/paritytech/jsonrpsee#a0bea41c4f37125fa742ec48b12e11cf55c592b5"
 dependencies = [
  "Inflector",
  "proc-macro2 1.0.8",
@@ -6655,13 +6655,12 @@ checksum = "05c78687fb1a80548ae3250346c3db86a80a7cdd77bda190189f2d0a0987c81a"
 
 [[package]]
 name = "vergen"
-version = "3.0.4"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aba5e34f93dc7051dfad05b98a18e9156f27e7b431fe1d2398cb6061c0a1dba"
+checksum = "4ce50d8996df1f85af15f2cd8d33daae6e479575123ef4314a51a70a230739cb"
 dependencies = [
  "bitflags",
  "chrono",
- "failure",
 ]
 
 [[package]]
