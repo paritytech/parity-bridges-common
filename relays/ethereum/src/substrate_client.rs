@@ -289,9 +289,9 @@ fn create_submit_transaction(
 	signer: &sp_core::sr25519::Pair,
 	index: node_primitives::Index,
 	genesis_hash: H256,
-) -> node_runtime::UncheckedExtrinsic {
-	let function = node_runtime::Call::BridgeEthPoa(
-		node_runtime::BridgeEthPoaCall::import_headers(
+) -> bridge_node_runtime::UncheckedExtrinsic {
+	let function = bridge_node_runtime::Call::BridgeEthPoA(
+		bridge_node_runtime::BridgeEthPoACall::import_headers(
 			headers
 				.into_iter()
 				.map(|header| {
@@ -307,23 +307,21 @@ fn create_submit_transaction(
 
 	let extra = |i: node_primitives::Index, f: node_primitives::Balance| {
 		(
-			frame_system::CheckVersion::<node_runtime::Runtime>::new(),
-			frame_system::CheckGenesis::<node_runtime::Runtime>::new(),
-			frame_system::CheckEra::<node_runtime::Runtime>::from(sp_runtime::generic::Era::Immortal),
-			frame_system::CheckNonce::<node_runtime::Runtime>::from(i),
-			frame_system::CheckWeight::<node_runtime::Runtime>::new(),
-			pallet_transaction_payment::ChargeTransactionPayment::<node_runtime::Runtime>::from(f),
-			Default::default(),
+			frame_system::CheckVersion::<bridge_node_runtime::Runtime>::new(),
+			frame_system::CheckGenesis::<bridge_node_runtime::Runtime>::new(),
+			frame_system::CheckEra::<bridge_node_runtime::Runtime>::from(sp_runtime::generic::Era::Immortal),
+			frame_system::CheckNonce::<bridge_node_runtime::Runtime>::from(i),
+			frame_system::CheckWeight::<bridge_node_runtime::Runtime>::new(),
+			pallet_transaction_payment::ChargeTransactionPayment::<bridge_node_runtime::Runtime>::from(f),
 		)
 	};
-	let raw_payload = node_runtime::SignedPayload::from_raw(
+	let raw_payload = bridge_node_runtime::SignedPayload::from_raw(
 		function,
 		extra(index, 0),
 		(
-			198, // VERSION.spec_version as u32,
+			bridge_node_runtime::VERSION.spec_version as u32,
 			genesis_hash,
 			genesis_hash,
-			(),
 			(),
 			(),
 			(),
@@ -333,7 +331,7 @@ fn create_submit_transaction(
 	let signer: sp_runtime::MultiSigner = signer.public().into();
 	let (function, extra, _) = raw_payload.deconstruct();
 
-	node_runtime::UncheckedExtrinsic::new_signed(
+	bridge_node_runtime::UncheckedExtrinsic::new_signed(
 		function,
 		signer.into_account().into(),
 		signature.into(),
