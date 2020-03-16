@@ -31,8 +31,13 @@
 // along with Parity-Bridge.  If not, see <http://www.gnu.org/licenses/>.
 
 use codec::{Encode, Decode};
-use jsonrpsee::core::{client::RawClientError, common::Params};
-use jsonrpsee::http::{HttpRawClient, RequestError, http_raw_client};
+use jsonrpsee::common::Params;
+use jsonrpsee::raw::{
+	RawClient, RawClientError
+};
+use jsonrpsee::transport::http::{
+	HttpTransportClient, RequestError
+};
 use serde_json::{from_value, to_value};
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
@@ -52,7 +57,7 @@ use crate::substrate_types::{
 /// Substrate client type.
 pub struct Client {
 	/// Substrate RPC client.
-	rpc_client: HttpRawClient,
+	rpc_client: RawClient<HttpTransportClient>,
 	/// Transactions signer.
 	signer: sp_core::sr25519::Pair,
 	/// Genesis block hash.
@@ -83,8 +88,9 @@ impl MaybeConnectionError for Error {
 
 /// Returns client that is able to call RPCs on Substrate node.
 pub fn client(uri: &str, signer: sp_core::sr25519::Pair) -> Client {
+	let transport = HttpTransportClient::new(uri);
 	Client {
-		rpc_client: http_raw_client(uri),
+		rpc_client: RawClient::new(transport),
 		signer,
 		genesis_hash: None,
 	}
