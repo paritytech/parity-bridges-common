@@ -237,7 +237,7 @@ mod tests {
 		};
 		let hash1 = header1.hash();
 		let mut header_to_import = HeaderToImport {
-			context: storage.import_context(&genesis().hash()).unwrap(),
+			context: storage.import_context(None, &genesis().hash()).unwrap(),
 			is_best: true,
 			hash: hash1,
 			header: header1,
@@ -257,7 +257,7 @@ mod tests {
 			),
 			Ok(Vec::new()),
 		);
-		storage.insert_header(None, header_to_import.clone());
+		storage.insert_header(header_to_import.clone());
 
 		// when header#2 is inserted, nothing is finalized (2 votes)
 		header_to_import.header = Header {
@@ -280,7 +280,7 @@ mod tests {
 			),
 			Ok(Vec::new()),
 		);
-		storage.insert_header(None, header_to_import.clone());
+		storage.insert_header(header_to_import.clone());
 
 		// when header#3 is inserted, header#1 is finalized (3 votes)
 		header_to_import.header = Header {
@@ -303,6 +303,6 @@ mod tests {
 			),
 			Ok(vec![(1, hash1, None)]),
 		);
-		storage.insert_header(None, header_to_import);
+		storage.insert_header(header_to_import);
 	}
 }

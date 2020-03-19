@@ -117,7 +117,7 @@ pub fn import_header<S: Storage>(
 	let (hash, prev_finalized_hash) = is_importable_header(storage, &header)?;
 
 	// verify header
-	let import_context = verify_aura_header(storage, aura_config, &header)?;
+	let import_context = verify_aura_header(storage, aura_config, submitter, &header)?;
 
 	// check if block schedules new validators
 	let validators = Validators::new(validators_config);
@@ -129,7 +129,7 @@ pub fn import_header<S: Storage>(
 		&prev_finalized_hash,
 		(import_context.validators_start(), import_context.validators()),
 		&hash,
-		submitter.as_ref(),
+		import_context.submitter(),
 		&header,
 		aura_config.two_thirds_majority_transition,
 	)?;
@@ -144,7 +144,6 @@ pub fn import_header<S: Storage>(
 	let is_best = total_difficulty > best_total_difficulty;
 	let header_number = header.number;
 	storage.insert_header(
-		submitter,
 		import_context.into_import_header(
 			is_best,
 			hash,
