@@ -36,12 +36,7 @@ use codec::{Decode, Encode};
 use frame_support::{decl_module, decl_storage};
 use primitives::{Address, Header, Receipt, H256, U256};
 use sp_runtime::RuntimeDebug;
-use sp_std::{
-	prelude::*,
-	cmp::Ord,
-	collections::btree_map::BTreeMap,
-	iter::from_fn,
-};
+use sp_std::{cmp::Ord, collections::btree_map::BTreeMap, iter::from_fn, prelude::*};
 use validators::{ValidatorsConfiguration, ValidatorsSource};
 
 pub use import::{header_import_requires_receipts, import_header};
@@ -779,7 +774,9 @@ pub(crate) mod tests {
 		}
 
 		fn header(&self, hash: &H256) -> Option<(Header, Option<Self::Submitter>)> {
-			self.headers.get(hash).map(|header| (header.header.clone(), header.submitter.clone()))
+			self.headers
+				.get(hash)
+				.map(|header| (header.header.clone(), header.submitter.clone()))
 		}
 
 		fn import_context(
