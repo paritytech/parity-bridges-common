@@ -647,6 +647,8 @@ pub(crate) mod tests {
 	use primitives::{rlp_encode, H520};
 	use std::collections::{hash_map::Entry, HashMap};
 
+	type AccountId = u64;
+
 	pub fn genesis() -> Header {
 		Header {
 			seal: vec![vec![42].into(), vec![].into()],
@@ -702,7 +704,7 @@ pub(crate) mod tests {
 		best_block: (u64, H256, U256),
 		finalized_block: (u64, H256),
 		oldest_unpruned_block: u64,
-		headers: HashMap<H256, StoredHeader<u64>>,
+		headers: HashMap<H256, StoredHeader<AccountId>>,
 		headers_by_number: HashMap<u64, Vec<H256>>,
 		next_validators_set_id: u64,
 		validators_sets: HashMap<u64, (H256, Vec<Address>)>,
@@ -740,13 +742,13 @@ pub(crate) mod tests {
 			self.oldest_unpruned_block
 		}
 
-		pub(crate) fn stored_header(&self, hash: &H256) -> Option<&StoredHeader<u64>> {
+		pub(crate) fn stored_header(&self, hash: &H256) -> Option<&StoredHeader<AccountId>> {
 			self.headers.get(hash)
 		}
 	}
 
 	impl Storage for InMemoryStorage {
-		type Submitter = u64;
+		type Submitter = AccountId;
 
 		fn best_block(&self) -> (u64, H256, U256) {
 			self.best_block.clone()
