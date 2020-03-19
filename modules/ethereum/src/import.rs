@@ -33,7 +33,7 @@
 use crate::error::Error;
 use crate::finality::finalize_blocks;
 use crate::validators::{Validators, ValidatorsConfiguration};
-use crate::verification::verify_aura_header;
+use crate::verification::{is_importable_header, verify_aura_header};
 use crate::{AuraConfiguration, Storage};
 use primitives::{Header, Receipt, H256};
 use sp_std::prelude::*;
@@ -150,24 +150,6 @@ pub fn header_import_requires_receipts<S: Storage>(
 		.map(|_| Validators::new(validators_config))
 		.map(|validators| validators.maybe_signals_validators_change(header))
 		.unwrap_or(false)
-}
-
-/// Checks that we are able to ***try to** import this header.
-/// Returns error if we should not try to import this block.
-/// Returns hash of the header and number of the last finalized block.
-fn is_importable_header<S: Storage>(storage: &S, header: &Header) -> Result<(H256, H256), Error> {
-	// we never import any header that competes with finalized header
-	let (finalized_block_number, finalized_block_hash) = storage.finalized_block();
-	if header.number <= finalized_block_number {
-		return Err(Error::AncientHeader);
-	}
-	// we never import any header with known hash
-	let hash = header.hash();
-	if storage.header(&hash).is_some() {
-		return Err(Error::KnownHeader);
-	}
-
-	Ok((hash, finalized_block_hash))
 }
 
 #[cfg(test)]

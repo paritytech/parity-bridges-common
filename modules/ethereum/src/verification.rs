@@ -32,85 +32,118 @@
 
 use crate::error::Error;
 use crate::validators::step_validator;
-use crate::{AuraConfiguration, ImportContext, Storage};
+use crate::{AuraConfiguration, PoolConfiguration, ImportContext, Storage};
+use codec::Encode;
 use primitives::{public_to_address, Address, Header, SealedEmptyStep, H256, H520, U128, U256};
 use sp_io::crypto::secp256k1_ecdsa_recover;
+
+/// Checks that we are able to ***try to** import this header.
+/// Returns error if we should not try to import this block.
+/// Returns hash of the header and number of the last finalized block otherwise.
+pub fn is_importable_header<S: Storage>(storage: &S, header: &Header) -> Result<(H256, H256), Error> {
+	// we never import any header that competes with finalized header
+	let (finalized_block_number, finalized_block_hash) = storage.finalized_block();
+	if header.number <= finalized_block_number {
+		return Err(Error::AncientHeader);
+	}
+	// we never import any header with known hash
+	let hash = header.hash();
+	if storage.header(&hash).is_some() {
+		return Err(Error::KnownHeader);
+	}
+
+	Ok((hash, finalized_block_hash))
+}
+
+/// Try accept unsigned aura header into transaction pool.
+pub fn accept_aura_header_into_pool<S: Storage>(
+	storage: &S,
+	config: &AuraConfiguration,
+	pool_config: &PoolConfiguration,
+	header: &Header,
+) -> Result<(Vec<Vec<u8>>, Vec<Vec<u8>>), Error> {
+	// check if we can verify further
+	let (hash, _) = is_importable_header(storage, header)?;
+
+	// we do not want to have all future headers in the pool at once
+	// => if we see header with number > maximal ever seen header number + LIMIT,
+	// => we consider this transaction invalid, but only at this moment (we do not want to ban it)
+	// => let's mark it as Unknown transaction
+	let (best_number, best_hash, _) = storage.best_block();
+	let difference = header.number.saturating_sub(best_number);
+	if difference > pool_config.max_future_number_difference {
+		return Err(Error::UnsignedTooFarInTheFuture);
+	}
+
+	// TODO: only accept new headers when we're at the tip of PoA chain
+	// https://github.com/paritytech/parity-bridges-common/issues/38
+
+	// we do not want to see more at most one header with given number from single authority
+	// => every header is providing tag (block_number + authority)
+	// => since only one tx in the pool can provide the same tag, they're auto-deduplicated
+	let prv_number_and_authority_tag = (header.number, header.author).encode();
+
+	// we want to see several 'future' headers in the pool at once, but we may not have access to
+	// previous headers here
+	// => we can at least 'verify' that headers comprise a chain by providing and requiring
+	// tag (header.number, header.hash)
+	let prv_header_number_and_hash_tag = (header.number, hash).encode();
+
+	// depending on whether parent header is available, we either perform full or 'shortened' check
+	let context = storage.import_context(&header.parent_hash);
+	match context {
+		Some(context) => {
+			let header_step = contextual_checks(config, &context, None, header)?;
+			validator_checks(config, context.validators(), header, header_step)?;
+	
+			// since our parent is already in the storage, we do not require it
+			// to be in the transaction pool
+			Ok((
+				vec![],
+				vec![prv_number_and_authority_tag, prv_header_number_and_hash_tag],
+			))
+		},
+		None => {
+			// we know nothing about parent header
+			// => the best thing we can do is to believe that there are no forks in
+			// PoA chain AND that the header is produced either by previous, or next
+			// signalled validators set
+			let header_step = header.step().ok_or(Error::MissingStep)?;
+			let best_context = storage.import_context(&best_hash)
+				.expect("import context is None only when header is missing from the storage;\
+							best header is always in the storage; qed");
+			if let Err(error) = validator_checks(config, best_context.validators(), header, header_step) {
+				// TODO: try verification using next scheduled validators set
+				return Err(error);
+			}
+
+			// since our parent is missing from the storage, we **DO** require it
+			// to be in the transaction pool
+			// (- 1 can't underflow because there's always best block in the header)
+			let req_header_number_and_hash_tag = (header.number - 1, header.parent_hash).encode();
+			Ok((
+				vec![req_header_number_and_hash_tag],
+				vec![prv_number_and_authority_tag, prv_header_number_and_hash_tag],
+			))
+		}
+	}
+}
 
 /// Verify header by Aura rules.
 pub fn verify_aura_header<S: Storage>(
 	storage: &S,
-	params: &AuraConfiguration,
+	config: &AuraConfiguration,
 	header: &Header,
 ) -> Result<ImportContext, Error> {
 	// let's do the lightest check first
-	contextless_checks(params, header)?;
+	contextless_checks(config, header)?;
 
-	// the rest of checks requires parent
+	// the rest of checks requires access to the parent header
 	let context = storage
 		.import_context(&header.parent_hash)
 		.ok_or(Error::MissingParentBlock)?;
-	let validators = context.validators();
-	let header_step = header.step().ok_or(Error::MissingStep)?;
-	let parent_step = context.parent_header().step().ok_or(Error::MissingStep)?;
-
-	// Ensure header is from the step after context.
-	if header_step == parent_step || (header.number >= params.validate_step_transition && header_step <= parent_step) {
-		return Err(Error::DoubleVote);
-	}
-
-	// If empty step messages are enabled we will validate the messages in the seal, missing messages are not
-	// reported as there's no way to tell whether the empty step message was never sent or simply not included.
-	let empty_steps_len = match header.number >= params.empty_steps_transition {
-		true => {
-			let strict_empty_steps = header.number >= params.strict_empty_steps_transition;
-			let empty_steps = header.empty_steps().ok_or(Error::MissingEmptySteps)?;
-			let empty_steps_len = empty_steps.len();
-			let mut prev_empty_step = 0;
-
-			for empty_step in empty_steps {
-				if empty_step.step <= parent_step || empty_step.step >= header_step {
-					return Err(Error::InsufficientProof);
-				}
-
-				if !verify_empty_step(&header.parent_hash, &empty_step, validators) {
-					return Err(Error::InsufficientProof);
-				}
-
-				if strict_empty_steps {
-					if empty_step.step <= prev_empty_step {
-						return Err(Error::InsufficientProof);
-					}
-
-					prev_empty_step = empty_step.step;
-				}
-			}
-
-			empty_steps_len
-		}
-		false => 0,
-	};
-
-	// Validate chain score.
-	if header.number >= params.validate_score_transition {
-		let expected_difficulty = calculate_score(parent_step, header_step, empty_steps_len as _);
-		if header.difficulty != expected_difficulty {
-			return Err(Error::InvalidDifficulty);
-		}
-	}
-
-	let expected_validator = step_validator(validators, header_step);
-	if header.author != expected_validator {
-		return Err(Error::NotValidator);
-	}
-
-	let validator_signature = header.signature().ok_or(Error::MissingSignature)?;
-	let header_seal_hash = header
-		.seal_hash(header.number >= params.empty_steps_transition)
-		.ok_or(Error::MissingEmptySteps)?;
-	let is_invalid_proposer = !verify_signature(&expected_validator, &validator_signature, &header_seal_hash);
-	if is_invalid_proposer {
-		return Err(Error::NotValidator);
-	}
+	let header_step = contextual_checks(config, &context, None, header)?;
+	validator_checks(config, context.validators(), header, header_step)?;
 
 	Ok(context)
 }
@@ -141,6 +174,89 @@ fn contextless_checks(config: &AuraConfiguration, header: &Header) -> Result<(),
 	// => let's only do an overflow check
 	if header.timestamp > i32::max_value() as u64 {
 		return Err(Error::TimestampOverflow);
+	}
+
+	Ok(())
+}
+
+/// Perform checks that require access to parent header.
+fn contextual_checks(
+	config: &AuraConfiguration,
+	context: &ImportContext,
+	validators_override: Option<&[Address]>,
+	header: &Header,
+) -> Result<u64, Error> {
+	let validators = validators_override.unwrap_or_else(|| context.validators());
+	let header_step = header.step().ok_or(Error::MissingStep)?;
+	let parent_step = context.parent_header().step().ok_or(Error::MissingStep)?;
+
+	// Ensure header is from the step after context.
+	if header_step == parent_step || (header.number >= config.validate_step_transition && header_step <= parent_step) {
+		return Err(Error::DoubleVote);
+	}
+
+	// If empty step messages are enabled we will validate the messages in the seal, missing messages are not
+	// reported as there's no way to tell whether the empty step message was never sent or simply not included.
+	let empty_steps_len = match header.number >= config.empty_steps_transition {
+		true => {
+			let strict_empty_steps = header.number >= config.strict_empty_steps_transition;
+			let empty_steps = header.empty_steps().ok_or(Error::MissingEmptySteps)?;
+			let empty_steps_len = empty_steps.len();
+			let mut prev_empty_step = 0;
+
+			for empty_step in empty_steps {
+				if empty_step.step <= parent_step || empty_step.step >= header_step {
+					return Err(Error::InsufficientProof);
+				}
+
+				if !verify_empty_step(&header.parent_hash, &empty_step, validators) {
+					return Err(Error::InsufficientProof);
+				}
+
+				if strict_empty_steps {
+					if empty_step.step <= prev_empty_step {
+						return Err(Error::InsufficientProof);
+					}
+
+					prev_empty_step = empty_step.step;
+				}
+			}
+
+			empty_steps_len
+		}
+		false => 0,
+	};
+
+	// Validate chain score.
+	if header.number >= config.validate_score_transition {
+		let expected_difficulty = calculate_score(parent_step, header_step, empty_steps_len as _);
+		if header.difficulty != expected_difficulty {
+			return Err(Error::InvalidDifficulty);
+		}
+	}
+
+	Ok(header_step)
+}
+
+/// Check that block is produced by expected validator.
+fn validator_checks(
+	config: &AuraConfiguration,
+	validators: &[Address],
+	header: &Header,
+	header_step: u64,
+) -> Result<(), Error> {
+	let expected_validator = step_validator(validators, header_step);
+	if header.author != expected_validator {
+		return Err(Error::NotValidator);
+	}
+
+	let validator_signature = header.signature().ok_or(Error::MissingSignature)?;
+	let header_seal_hash = header
+		.seal_hash(header.number >= config.empty_steps_transition)
+		.ok_or(Error::MissingEmptySteps)?;
+	let is_invalid_proposer = !verify_signature(&expected_validator, &validator_signature, &header_seal_hash);
+	if is_invalid_proposer {
+		return Err(Error::NotValidator);
 	}
 
 	Ok(())

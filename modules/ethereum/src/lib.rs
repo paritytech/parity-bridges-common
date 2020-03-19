@@ -35,7 +35,13 @@
 use codec::{Decode, Encode};
 use frame_support::{decl_module, decl_storage};
 use primitives::{Address, Header, Receipt, H256, U256};
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{
+	RuntimeDebug,
+	transaction_validity::{
+		InvalidTransaction, ValidTransaction, UnknownTransaction,
+		TransactionLongevity, TransactionPriority, TransactionValidity,
+	},
+};
 use sp_std::{iter::from_fn, prelude::*};
 use validators::{ValidatorsConfiguration, ValidatorsSource};
 
@@ -66,6 +72,16 @@ pub struct AuraConfiguration {
 	pub max_gas_limit: U256,
 	/// Maximum size of extra data.
 	pub maximum_extra_data_size: u64,
+}
+
+/// Transaction pool configuration.
+///
+/// This is used to limit number of unsigned headers transactions in
+/// the pool. We never use it to verify signed transactions.
+pub struct PoolConfiguration {
+	/// Maximal difference between number of header from unsigned transaction
+	/// and current best block. This must be selected with caution - we can't
+	pub max_future_number_difference: u64,
 }
 
 /// Block header as it is stored in the runtime storage.
@@ -220,9 +236,24 @@ pub trait Trait: frame_system::Trait {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		/// Import Aura chain headers. Ignores non-fatal errors (like when known
-		/// header is provided), rewards for successful headers import and penalizes
-		/// for fatal errors.
+		/// Import single Aura header. Requires transaction to be **UNSIGNED**.
+		pub fn unsigned_import_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
+			frame_system::ensure_none(origin)?;
+
+			// just ignore error here, because we can't identify submitter
+			let _ = import_header(
+				&mut BridgeStorage,
+				&kovan_aura_config(),
+				&kovan_validators_config(),
+				crate::import::PRUNE_DEPTH,
+				header,
+				receipts,
+			);
+		}
+
+		/// Import Aura chain headers in a single **SIGNED** transaction.
+		/// Ignores non-fatal errors (like when known header is provided), rewards
+		/// for successful headers import and penalizes for fatal errors.
 		///
 		/// This should be used with caution - passing too many headers could lead to
 		/// enormous block production/import time.
@@ -322,6 +353,36 @@ impl<T: Trait> Module<T> {
 	/// Returns true if header is known to the runtime.
 	pub fn is_known_block(hash: H256) -> bool {
 		BridgeStorage.header(&hash).is_some()
+	}
+}
+
+impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
+	type Call = Call<T>;
+
+	fn validate_unsigned(call: &Self::Call) -> TransactionValidity {
+		match *call {
+			Self::Call::unsigned_import_header(ref header, _) => {
+				let accept_result = verification::accept_aura_header_into_pool(
+					&BridgeStorage,
+					&kovan_aura_config(),
+					&pool_configuration(),
+					header,
+				);
+
+				match accept_result {
+					Ok((requires, provides)) => Ok(ValidTransaction {
+						priority: TransactionPriority::max_value(),
+						requires,
+						provides,
+						longevity: TransactionLongevity::max_value(),
+						propagate: true,
+					}),
+					Err(error::Error::UnsignedTooFarInTheFuture) => UnknownTransaction::CannotLookup.into(),
+					Err(error) => InvalidTransaction::Custom(error.code()).into(),
+				}
+			},
+			_ => InvalidTransaction::Call.into(),
+		}
 	}
 }
 
@@ -567,6 +628,13 @@ pub fn kovan_validators_config() -> ValidatorsConfiguration {
 			),
 		),
 	])
+}
+
+/// Transaction pool configuration.
+fn pool_configuration() -> PoolConfiguration {
+	PoolConfiguration {
+		max_future_number_difference: 10,
+	}
 }
 
 /// Return iterator of given header ancestors.
