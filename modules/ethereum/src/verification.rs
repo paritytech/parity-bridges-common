@@ -90,7 +90,7 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 	let prv_header_number_and_hash_tag = (header.number, hash).encode();
 
 	// depending on whether parent header is available, we either perform full or 'shortened' check
-	let context = storage.import_context(&header.parent_hash);
+	let context = storage.import_context(None, &header.parent_hash);
 	match context {
 		Some(context) => {
 			let header_step = contextual_checks(config, &context, None, header)?;
@@ -109,7 +109,7 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 			// PoA chain AND that the header is produced either by previous, or next
 			// signalled validators set
 			let header_step = header.step().ok_or(Error::MissingStep)?;
-			let best_context = storage.import_context(&best_hash)
+			let best_context = storage.import_context(None, &best_hash)
 				.expect("import context is None only when header is missing from the storage;\
 							best header is always in the storage; qed");
 			if let Err(error) = validator_checks(config, best_context.validators(), header, header_step) {
@@ -133,14 +133,15 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 pub fn verify_aura_header<S: Storage>(
 	storage: &S,
 	config: &AuraConfiguration,
+	submitter: Option<S::Submitter>,
 	header: &Header,
-) -> Result<ImportContext, Error> {
+) -> Result<ImportContext<S::Submitter>, Error> {
 	// let's do the lightest check first
 	contextless_checks(config, header)?;
 
 	// the rest of checks requires access to the parent header
 	let context = storage
-		.import_context(&header.parent_hash)
+		.import_context(submitter, &header.parent_hash)
 		.ok_or(Error::MissingParentBlock)?;
 	let header_step = contextual_checks(config, &context, None, header)?;
 	validator_checks(config, context.validators(), header, header_step)?;
@@ -180,9 +181,9 @@ fn contextless_checks(config: &AuraConfiguration, header: &Header) -> Result<(),
 }
 
 /// Perform checks that require access to parent header.
-fn contextual_checks(
+fn contextual_checks<Submitter>(
 	config: &AuraConfiguration,
-	context: &ImportContext,
+	context: &ImportContext<Submitter>,
 	validators_override: Option<&[Address]>,
 	header: &Header,
 ) -> Result<u64, Error> {
@@ -295,7 +296,7 @@ fn verify_signature(expected_validator: &Address, signature: &H520, message: &H2
 mod tests {
 	use super::*;
 	use crate::kovan_aura_config;
-	use crate::tests::{genesis, signed_header, validator, validators_addresses, InMemoryStorage};
+	use crate::tests::{genesis, signed_header, validator, validators_addresses, AccountId, InMemoryStorage};
 	use parity_crypto::publickey::{sign, KeyPair};
 	use primitives::{rlp_encode, H520};
 
@@ -313,12 +314,15 @@ mod tests {
 		empty_step
 	}
 
-	fn verify_with_config(config: &AuraConfiguration, header: &Header) -> Result<ImportContext, Error> {
+	fn verify_with_config(
+		config: &AuraConfiguration,
+		header: &Header,
+	) -> Result<ImportContext<AccountId>, Error> {
 		let storage = InMemoryStorage::new(genesis(), validators_addresses(3));
-		verify_aura_header(&storage, &config, header)
+		verify_aura_header(&storage, &config, None, header)
 	}
 
-	fn default_verify(header: &Header) -> Result<ImportContext, Error> {
+	fn default_verify(header: &Header) -> Result<ImportContext<AccountId>, Error> {
 		verify_with_config(&kovan_aura_config(), header)
 	}
 
