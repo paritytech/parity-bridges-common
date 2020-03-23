@@ -53,6 +53,9 @@ const SUBSTRATE_TICK_INTERVAL_MS: u64 = 5_000;
 /// the subscriber will receive every best header (2) reorg won't always lead to sync
 /// stall and restart is a heavy operation (we forget all in-memory headers).
 const STALL_SYNC_TIMEOUT_MS: u64 = 30_000;
+/// Delay (in milliseconds) after we have seen update of best Ethereum header in Substrate,
+/// for us to treat sync stalled. ONLY when relay operates in backup mode.
+const BACKUP_STALL_SYNC_TIMEOUT_MS: u64 = 5 * 60_000;
 /// Delay (in milliseconds) after connection-related error happened before we'll try
 /// reconnection again.
 const CONNECTION_ERROR_DELAY_MS: u64 = 10_000;
@@ -91,7 +94,7 @@ pub struct EthereumSyncParams {
 }
 
 /// Substrate transaction mode.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SubstrateTransactionMode {
 	/// Submit eth headers using signed substrate transactions.
 	Signed,
@@ -141,6 +144,10 @@ impl Default for EthereumSyncParams {
 pub fn run(params: EthereumSyncParams) {
 	let mut local_pool = futures::executor::LocalPool::new();
 	let mut progress_context = (std::time::Instant::now(), None, None);
+	let sign_sub_transactions = match params.sub_tx_mode {
+		SubstrateTransactionMode::Signed | SubstrateTransactionMode::Backup => true,
+		SubstrateTransactionMode::Unsigned => false,
+	};
 
 	local_pool.run_until(async move {
 		let eth_uri = format!("http://{}:{}", params.eth_host, params.eth_port);
@@ -149,6 +156,7 @@ pub fn run(params: EthereumSyncParams) {
 
 		let mut eth_sync = crate::ethereum_sync::HeadersSync::new(params);
 		let mut stall_countdown = None;
+		let mut last_update_time = std::time::Instant::now();
 
 		let mut eth_maybe_client = None;
 		let mut eth_best_block_number_required = false;
@@ -252,6 +260,9 @@ pub fn run(params: EthereumSyncParams) {
 						sub_best_block,
 						|sub_best_block| {
 							let head_updated = eth_sync.substrate_best_header_response(sub_best_block);
+							if head_updated {
+								last_update_time = std::time::Instant::now();
+							}
 							match head_updated {
 								// IF head is updated AND there are still our transactions:
 								// => restart stall countdown timer
@@ -370,7 +381,9 @@ pub fn run(params: EthereumSyncParams) {
 					sub_existence_status_future.set(
 						substrate_client::ethereum_header_known(sub_client, parent_id).fuse(),
 					);
-				} else if let Some(headers) = eth_sync.select_headers_to_submit() {
+				} else if let Some(headers) = eth_sync.select_headers_to_submit(
+					last_update_time.elapsed() > std::time::Duration::from_millis(BACKUP_STALL_SYNC_TIMEOUT_MS)
+				) {
 					let ids = match headers.len() {
 						1 => format!("{:?}", headers[0].id()),
 						2 => format!("[{:?}, {:?}]", headers[0].id(), headers[1].id()),
@@ -385,7 +398,11 @@ pub fn run(params: EthereumSyncParams) {
 
 					let headers = headers.into_iter().cloned().collect();
 					sub_submit_header_future.set(
-						substrate_client::submit_ethereum_headers(sub_client, headers).fuse(),
+						substrate_client::submit_ethereum_headers(
+							sub_client,
+							headers,
+							sign_sub_transactions,
+						).fuse(),
 					);
 
 					// remember that we have submitted some headers
