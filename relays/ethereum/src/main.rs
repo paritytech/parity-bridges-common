@@ -114,13 +114,18 @@ fn ethereum_sync_params() -> Result<ethereum_sync_loop::EthereumSyncParams, Stri
 			.map_err(|e| format!("{:?}", e))?;
 	}
 
-	eth_sync_params.sub_tx_mode = match matches.value_of("sub-tx-mode") {
-		Some("signed") => ethereum_sync_loop::SubstrateTransactionMode::Signed,
-		Some("unsigned") => ethereum_sync_loop::SubstrateTransactionMode::Unsigned,
-		Some("backup") => ethereum_sync_loop::SubstrateTransactionMode::Backup,
+	match matches.value_of("sub-tx-mode") {
+		Some("signed") => eth_sync_params.sub_tx_mode = ethereum_sync_loop::SubstrateTransactionMode::Signed,
+		Some("unsigned") => {
+			eth_sync_params.sub_tx_mode = ethereum_sync_loop::SubstrateTransactionMode::Unsigned;
+
+			// tx pool won't accept too much unsigned transactions
+			eth_sync_params.max_headers_in_submitted_status = 10;
+		},
+		Some("backup") => eth_sync_params.sub_tx_mode = ethereum_sync_loop::SubstrateTransactionMode::Backup,
 		Some(mode) => return Err(format!("Invalid sub-tx-mode: {}", mode)),
-		None => ethereum_sync_loop::SubstrateTransactionMode::Signed,
-	};
+		None => eth_sync_params.sub_tx_mode = ethereum_sync_loop::SubstrateTransactionMode::Signed,
+	}
 
 	Ok(eth_sync_params)
 }
