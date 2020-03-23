@@ -73,6 +73,8 @@ pub struct EthereumSyncParams {
 	pub sub_host: String,
 	/// Substrate RPC port.
 	pub sub_port: u16,
+	/// Substrate transactions submission mode.
+	pub sub_tx_mode: SubstrateTransactionMode,
 	/// Substrate transactions signer.
 	pub sub_signer: sp_core::sr25519::Pair,
 	/// Maximal number of ethereum headers to pre-download.
@@ -88,6 +90,18 @@ pub struct EthereumSyncParams {
 	pub prune_depth: u64,
 }
 
+/// Substrate transaction mode.
+#[derive(Debug)]
+pub enum SubstrateTransactionMode {
+	/// Submit eth headers using signed substrate transactions.
+	Signed,
+	/// Submit eth headers using unsigned substrate transactions.
+	Unsigned,
+	/// Submit eth headers using signed substrate transactions, but only when we
+	/// believe that sync has stalled.
+	Backup,
+}
+
 impl std::fmt::Debug for EthereumSyncParams {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		f.debug_struct("EthereumSyncParams")
@@ -95,6 +109,7 @@ impl std::fmt::Debug for EthereumSyncParams {
 			.field("eth_port", &self.eth_port)
 			.field("sub_host", &self.sub_port)
 			.field("sub_port", &self.sub_port)
+			.field("sub_tx_mode", &self.sub_tx_mode)
 			.field("max_future_headers_to_download", &self.max_future_headers_to_download)
 			.field("max_headers_in_submitted_status", &self.max_headers_in_submitted_status)
 			.field("max_headers_in_single_submit", &self.max_headers_in_single_submit)
@@ -111,6 +126,7 @@ impl Default for EthereumSyncParams {
 			eth_port: 8545,
 			sub_host: "localhost".into(),
 			sub_port: 9933,
+			sub_tx_mode: SubstrateTransactionMode::Signed,
 			sub_signer: sp_keyring::AccountKeyring::Alice.pair(),
 			max_future_headers_to_download: 128,
 			max_headers_in_submitted_status: 128,
