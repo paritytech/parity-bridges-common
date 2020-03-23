@@ -124,16 +124,19 @@ pub fn import_header<S: Storage>(
 	let (scheduled_change, enacted_change) = validators.extract_validators_change(&header, receipts)?;
 
 	// check if block finalizes some other blocks and corresponding scheduled validators
+	let validators_set = import_context.validators_set();
 	let finalized_blocks = finalize_blocks(
 		storage,
 		&prev_finalized_hash,
-		(import_context.validators_start(), import_context.validators()),
+		(&validators_set.enact_block, &validators_set.validators),
 		&hash,
 		import_context.submitter(),
 		&header,
 		aura_config.two_thirds_majority_transition,
 	)?;
-	let enacted_change = enacted_change.or_else(|| validators.finalize_validators_change(storage, &finalized_blocks));
+	let enacted_change = enacted_change
+		.map(|validators| (None, validators))
+		.or_else(|| validators.finalize_validators_change(storage, &finalized_blocks));
 
 	// NOTE: we can't return Err() from anywhere below this line
 	// (because otherwise we'll have inconsistent storage if transaction will fail)

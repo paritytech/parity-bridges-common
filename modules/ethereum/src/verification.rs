@@ -32,7 +32,7 @@
 
 use crate::error::Error;
 use crate::validators::step_validator;
-use crate::{AuraConfiguration, PoolConfiguration, ImportContext, Storage};
+use crate::{AuraConfiguration, PoolConfiguration, ImportContext, ScheduledChange, Storage};
 use codec::Encode;
 use primitives::{public_to_address, Address, Header, SealedEmptyStep, H256, H520, U128, U256};
 use sp_io::crypto::secp256k1_ecdsa_recover;
@@ -65,6 +65,9 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 	// check if we can verify further
 	let (hash, _) = is_importable_header(storage, header)?;
 
+	// we can always do contextless checks
+	contextless_checks(config, header)?;
+
 	// we do not want to have all future headers in the pool at once
 	// => if we see header with number > maximal ever seen header number + LIMIT,
 	// => we consider this transaction invalid, but only at this moment (we do not want to ban it)
@@ -94,7 +97,7 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 	match context {
 		Some(context) => {
 			let header_step = contextual_checks(config, &context, None, header)?;
-			validator_checks(config, context.validators(), header, header_step)?;
+			validator_checks(config, &context.validators_set().validators, header, header_step)?;
 	
 			// since our parent is already in the storage, we do not require it
 			// to be in the transaction pool
@@ -107,14 +110,26 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 			// we know nothing about parent header
 			// => the best thing we can do is to believe that there are no forks in
 			// PoA chain AND that the header is produced either by previous, or next
-			// signalled validators set
+			// scheduled validators set change
 			let header_step = header.step().ok_or(Error::MissingStep)?;
 			let best_context = storage.import_context(None, &best_hash)
 				.expect("import context is None only when header is missing from the storage;\
 							best header is always in the storage; qed");
-			if let Err(error) = validator_checks(config, best_context.validators(), header, header_step) {
-				// TODO: try verification using next scheduled validators set
-				return Err(error);
+			let validators_check_result = validator_checks(
+				config,
+				&best_context.validators_set().validators,
+				header,
+				header_step,
+			);
+			if let Err(error) = validators_check_result {
+				find_next_validators_signal(storage, &best_context, header)
+					.ok_or_else(|| error)
+					.and_then(|next_validators| validator_checks(
+						config,
+						&next_validators,
+						header,
+						header_step,
+					))?;
 			}
 
 			// since our parent is missing from the storage, we **DO** require it
@@ -144,7 +159,7 @@ pub fn verify_aura_header<S: Storage>(
 		.import_context(submitter, &header.parent_hash)
 		.ok_or(Error::MissingParentBlock)?;
 	let header_step = contextual_checks(config, &context, None, header)?;
-	validator_checks(config, context.validators(), header, header_step)?;
+	validator_checks(config, &context.validators_set().validators, header, header_step)?;
 
 	Ok(context)
 }
@@ -187,7 +202,7 @@ fn contextual_checks<Submitter>(
 	validators_override: Option<&[Address]>,
 	header: &Header,
 ) -> Result<u64, Error> {
-	let validators = validators_override.unwrap_or_else(|| context.validators());
+	let validators = validators_override.unwrap_or_else(|| &context.validators_set().validators);
 	let header_step = header.step().ok_or(Error::MissingStep)?;
 	let parent_step = context.parent_header().step().ok_or(Error::MissingStep)?;
 
@@ -292,11 +307,53 @@ fn verify_signature(expected_validator: &Address, signature: &H520, message: &H2
 		.unwrap_or(false)
 }
 
+/// Find next unfinalized validators set change after finalized set.
+fn find_next_validators_signal<S: Storage>(
+	storage: &S,
+	context: &ImportContext<S::Submitter>,
+	header: &Header,
+) -> Option<Vec<Address>> {
+	// that's the earliest block number we may met in following loop
+	// it may be None if that's the first set
+	let best_set_signal_block = context.validators_set().signal_block;
+
+	// if parent schedules validators set change, then it may be our set
+	// else we'll start with last known change
+	let parent_schedules_change = context.parent_scheduled_change();
+	let mut current_set_signal_block = match parent_schedules_change {
+		Some(_) => Some(header.parent_hash),
+		None => context.last_signal_block().cloned(),
+	};
+	let mut next_scheduled_set: Option<ScheduledChange> = None;
+
+	loop {
+		// if we have reached block that signals finalized change, then
+		// next_current_block_hash points to the block that schedules next
+		// change
+		let current_scheduled_set = match current_set_signal_block {
+			Some(current_set_signal_block) if Some(&current_set_signal_block) == best_set_signal_block.as_ref()
+				=> return next_scheduled_set.map(|scheduled_set| scheduled_set.validators),
+			None => return next_scheduled_set.map(|scheduled_set| scheduled_set.validators),
+			Some(current_set_signal_block) => storage
+				.scheduled_change(&current_set_signal_block)
+				.expect("header that is associated with this change is not pruned;\
+					scheduled changes are only removed when header is pruned; qed"),
+		};
+
+		current_set_signal_block = current_scheduled_set.prev_signal_block;
+		next_scheduled_set = Some(current_scheduled_set);
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::kovan_aura_config;
-	use crate::tests::{genesis, signed_header, validator, validators_addresses, AccountId, InMemoryStorage};
+	use crate::{kovan_aura_config, pool_configuration};
+	use crate::tests::{
+		block_i, custom_block_i, genesis, signed_header,
+		validator, validators_addresses,
+		AccountId, InMemoryStorage,
+	};
 	use parity_crypto::publickey::{sign, KeyPair};
 	use primitives::{rlp_encode, H520};
 
@@ -324,6 +381,31 @@ mod tests {
 
 	fn default_verify(header: &Header) -> Result<ImportContext<AccountId>, Error> {
 		verify_with_config(&kovan_aura_config(), header)
+	}
+
+	fn default_accept_into_pool(
+		mut make_header: impl FnMut(&mut InMemoryStorage, &[KeyPair]) -> Header,
+	) -> Result<(Vec<Vec<u8>>, Vec<Vec<u8>>), Error> {
+		let validators = vec![validator(0), validator(1), validator(2)];
+		let mut storage = InMemoryStorage::new(genesis(), validators_addresses(3));
+		let block1 = block_i(&storage, 1, &validators);
+		storage.insert(block1);
+		let block2 = block_i(&storage, 2, &validators);
+		let block2_hash = block2.hash();
+		storage.insert(block2);
+		let block3 = block_i(&storage, 3, &validators);
+		let block3_hash = block3.hash();
+		storage.insert(block3);
+		storage.set_finalized_block((2, block2_hash));
+		storage.set_best_block((3, block3_hash));
+
+		let header = make_header(&mut storage, &validators);
+		accept_aura_header_into_pool(
+			&storage,
+			&kovan_aura_config(),
+			&pool_configuration(),
+			&header,
+		)
 	}
 
 	#[test]
@@ -567,5 +649,186 @@ mod tests {
 
 		// when everything is OK
 		assert_eq!(default_verify(&good_header).map(|_| ()), Ok(()));
+	}
+
+	#[test]
+	fn pool_verifies_known_blocks() {
+		// when header is known
+		assert_eq!(
+			default_accept_into_pool(|storage, validators| block_i(storage, 3, validators)),
+			Err(Error::KnownHeader),
+		);
+	}
+
+	#[test]
+	fn pool_verifies_ancient_blocks() {
+		// when header number is less than finalized
+		assert_eq!(
+			default_accept_into_pool(|storage, validators| custom_block_i(
+				storage,
+				2,
+				validators,
+				|header| header.gas_limit += 1.into(),
+			)),
+			Err(Error::AncientHeader),
+		);
+	}
+
+	#[test]
+	fn pool_verifies_future_block_number() {
+		// when header is too far from the future
+		assert_eq!(
+			default_accept_into_pool(|storage, validators| custom_block_i(
+				storage,
+				4,
+				validators,
+				|header| header.number = 100,
+			)),
+			Err(Error::UnsignedTooFarInTheFuture),
+		);
+	}
+
+	#[test]
+	fn pool_performs_full_verification_when_parent_is_known() {
+		// if parent is known, then we'll execute contextual_checks, which
+		// checks for DoubleVote
+		assert_eq!(
+			default_accept_into_pool(|storage, validators| custom_block_i(
+				storage,
+				4,
+				validators,
+				|header| header.seal[0] = block_i(storage, 3, validators).seal[0].clone(),
+			)),
+			Err(Error::DoubleVote),
+		);
+	}
+
+	#[test]
+	fn pool_performs_validators_checks_when_parent_is_unknown() {
+		// if parent is unknown, then we still need to check if header has required signature
+		// (even if header will be considered invalid/duplicate later, we can use this signature
+		// as a proof of malicious action by this validator)
+		assert_eq!(
+			default_accept_into_pool(|_, validators| signed_header(validators, Header {
+				author: validators[1].address().as_fixed_bytes().into(),
+				seal: vec![vec![8].into(), vec![].into()],
+				gas_limit: kovan_aura_config().min_gas_limit,
+				parent_hash: [42; 32].into(),
+				number: 8,
+				..Default::default()
+			}, 43)),
+			Err(Error::NotValidator),
+		);
+	}
+
+	#[test]
+	fn pool_verifies_header_with_known_parent() {
+		let mut hash = None;
+		assert_eq!(
+			default_accept_into_pool(|storage, validators| {
+				let header = block_i(&storage, 4, &validators);
+				hash = Some(header.hash());
+				header
+			}),
+			Ok((
+				// no tags are required
+				vec![],
+				// header provides two tags
+				vec![
+					(4u64, validators_addresses(3)[1]).encode(),
+					(4u64, hash.unwrap()).encode(),
+				],
+			)),
+		);
+	}
+
+	#[test]
+	fn pool_verifies_header_with_unknown_parent() {
+		let mut hash = None;
+		assert_eq!(
+			default_accept_into_pool(|_, validators| {
+				let header = signed_header(validators, Header {
+					author: validators[2].address().as_fixed_bytes().into(),
+					seal: vec![vec![47].into(), vec![].into()],
+					gas_limit: kovan_aura_config().min_gas_limit,
+					parent_hash: [42; 32].into(),
+					number: 5,
+					..Default::default()
+				}, 47);
+				hash = Some(header.hash());
+				header
+			}),
+			Ok((
+				// parent tag required
+				vec![
+					(4u64, [42u8; 32]).encode(),
+				],
+				// header provides two tags
+				vec![
+					(5u64, validators_addresses(3)[2]).encode(),
+					(5u64, hash.unwrap()).encode(),
+				],
+			)),
+		);
+	}
+
+	#[test]
+	fn pool_uses_next_validators_set_when_finalized_fails() {
+		assert_eq!(
+			default_accept_into_pool(|storage, actual_validators| {
+				// change finalized set at parent header
+				storage.change_validators_set_at(
+					3,
+					validators_addresses(1),
+					None,
+				);
+
+				// header is signed using wrong set
+				signed_header(actual_validators, Header {
+					author: actual_validators[2].address().as_fixed_bytes().into(),
+					seal: vec![vec![47].into(), vec![].into()],
+					gas_limit: kovan_aura_config().min_gas_limit,
+					parent_hash: [42; 32].into(),
+					number: 5,
+					..Default::default()
+				}, 47)
+			}),
+			Err(Error::NotValidator),
+		);
+
+		let mut hash = None;
+		assert_eq!(
+			default_accept_into_pool(|storage, actual_validators| {
+				// change finalized set at parent header + signal valid set at parent block
+				storage.change_validators_set_at(
+					3,
+					validators_addresses(10),
+					Some(validators_addresses(3)),
+				);
+
+				// header is signed using wrong set
+				let header = signed_header(actual_validators, Header {
+					author: actual_validators[2].address().as_fixed_bytes().into(),
+					seal: vec![vec![47].into(), vec![].into()],
+					gas_limit: kovan_aura_config().min_gas_limit,
+					parent_hash: [42; 32].into(),
+					number: 5,
+					..Default::default()
+				}, 47);
+				hash = Some(header.hash());
+				header
+			}),
+			Ok((
+				// parent tag required
+				vec![
+					(4u64, [42u8; 32]).encode(),
+				],
+				// header provides two tags
+				vec![
+					(5u64, validators_addresses(3)[2]).encode(),
+					(5u64, hash.unwrap()).encode(),
+				],
+			)),
+		);
 	}
 }
