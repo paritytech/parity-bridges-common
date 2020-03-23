@@ -36,6 +36,7 @@ use crate::{AuraConfiguration, PoolConfiguration, ImportContext, ScheduledChange
 use codec::Encode;
 use primitives::{public_to_address, Address, Header, SealedEmptyStep, H256, H520, U128, U256};
 use sp_io::crypto::secp256k1_ecdsa_recover;
+use sp_std::{vec, vec::Vec};
 
 /// Checks that we are able to ***try to** import this header.
 /// Returns error if we should not try to import this block.
