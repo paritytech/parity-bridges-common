@@ -14,29 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity-Bridge.  If not, see <http://www.gnu.org/licenses/>.
 
-use codec::{Encode, Decode};
+use crate::ethereum_sync_loop::MaybeConnectionError;
+use crate::ethereum_types::{Bytes, HeaderId as EthereumHeaderId, QueuedHeader as QueuedEthereumHeader, H256};
+use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts, TransactionHash};
+use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
-use jsonrpsee::raw::{
-	RawClient, RawClientError
-};
-use jsonrpsee::transport::http::{
-	HttpTransportClient, RequestError
-};
+use jsonrpsee::raw::{RawClient, RawClientError};
+use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
 use serde_json::{from_value, to_value};
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
-use crate::ethereum_sync_loop::MaybeConnectionError;
-use crate::ethereum_types::{
-	Bytes,
-	H256,
-	HeaderId as EthereumHeaderId,
-	QueuedHeader as QueuedEthereumHeader,
-};
-use crate::substrate_types::{
-	TransactionHash,
-	into_substrate_ethereum_header,
-	into_substrate_ethereum_receipts,
-};
 
 /// Substrate client type.
 pub struct Client {
@@ -89,7 +76,8 @@ pub async fn best_ethereum_block(client: Client) -> (Client, Result<EthereumHead
 			to_value("EthereumHeadersApi_best_block").unwrap(),
 			to_value("0x").unwrap(),
 		]),
-	).await;
+	)
+	.await;
 	(client, result.map(|(num, hash)| EthereumHeaderId(num, hash)))
 }
 
@@ -108,8 +96,12 @@ pub async fn ethereum_receipts_required(
 			to_value("EthereumHeadersApi_is_import_requires_receipts").unwrap(),
 			to_value(Bytes(encoded_header)).unwrap(),
 		]),
-	).await;
-	(client, receipts_required.map(|receipts_required| (id, receipts_required)))
+	)
+	.await;
+	(
+		client,
+		receipts_required.map(|receipts_required| (id, receipts_required)),
+	)
 }
 
 /// Returns true if Ethereum header is known to Substrate runtime.
@@ -131,7 +123,8 @@ pub async fn ethereum_header_known(
 			to_value("EthereumHeadersApi_is_known_block").unwrap(),
 			to_value(Bytes(encoded_id)).unwrap(),
 		]),
-	).await;
+	)
+	.await;
 	(client, is_known_block.map(|is_known_block| (id, is_known_block)))
 }
 
@@ -163,7 +156,7 @@ pub async fn submit_signed_ethereum_headers(
 			};
 			client.genesis_hash = Some(genesis_hash);
 			(client, genesis_hash)
-		},
+		}
 	};
 	let account_id = client.signer.public().as_array_ref().clone().into();
 	let (client, nonce) = next_account_index(client, account_id).await;
@@ -225,10 +218,9 @@ async fn block_hash_by_number(client: Client, number: u64) -> (Client, Result<H2
 	call_rpc(
 		client,
 		"chain_getBlockHash",
-		Params::Array(vec![
-			to_value(number).unwrap(),
-		]),
-	).await
+		Params::Array(vec![to_value(number).unwrap()]),
+	)
+	.await
 }
 
 /// Get substrate account nonce.
@@ -241,24 +233,15 @@ async fn next_account_index(
 	let (client, index) = call_rpc_u64(
 		client,
 		"system_accountNextIndex",
-		Params::Array(vec![
-			to_value(account.to_ss58check()).unwrap(),
-		]),
-	).await;
+		Params::Array(vec![to_value(account.to_ss58check()).unwrap()]),
+	)
+	.await;
 	(client, index.map(|index| index as _))
 }
 
 /// Calls RPC on Substrate node that returns Bytes.
-async fn call_rpc<T: Decode>(
-	mut client: Client,
-	method: &'static str,
-	params: Params,
-) -> (Client, Result<T, Error>) {
-	async fn do_call_rpc<T: Decode>(
-		client: &mut Client,
-		method: &'static str,
-		params: Params,
-	) -> Result<T, Error> {
+async fn call_rpc<T: Decode>(mut client: Client, method: &'static str, params: Params) -> (Client, Result<T, Error>) {
+	async fn do_call_rpc<T: Decode>(client: &mut Client, method: &'static str, params: Params) -> Result<T, Error> {
 		let request_id = client
 			.rpc_client
 			.start_request(method, params)
@@ -281,16 +264,8 @@ async fn call_rpc<T: Decode>(
 }
 
 /// Calls RPC on Substrate node that returns u64.
-async fn call_rpc_u64(
-	mut client: Client,
-	method: &'static str,
-	params: Params,
-) -> (Client, Result<u64, Error>) {
-	async fn do_call_rpc(
-		client: &mut Client,
-		method: &'static str,
-		params: Params,
-	) -> Result<u64, Error> {
+async fn call_rpc_u64(mut client: Client, method: &'static str, params: Params) -> (Client, Result<u64, Error>) {
+	async fn do_call_rpc(client: &mut Client, method: &'static str, params: Params) -> Result<u64, Error> {
 		let request_id = client
 			.rpc_client
 			.start_request(method, params)
@@ -318,20 +293,18 @@ fn create_signed_submit_transaction(
 	index: node_primitives::Index,
 	genesis_hash: H256,
 ) -> bridge_node_runtime::UncheckedExtrinsic {
-	let function = bridge_node_runtime::Call::BridgeEthPoA(
-		bridge_node_runtime::BridgeEthPoACall::import_headers(
-			headers
-				.into_iter()
-				.map(|header| {
-					let (header, receipts) = header.extract();
-					(
-						into_substrate_ethereum_header(&header),
-						into_substrate_ethereum_receipts(&receipts),
-					)
-				})
-				.collect(),
-		),
-	);
+	let function = bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::import_headers(
+		headers
+			.into_iter()
+			.map(|header| {
+				let (header, receipts) = header.extract();
+				(
+					into_substrate_ethereum_header(&header),
+					into_substrate_ethereum_receipts(&receipts),
+				)
+			})
+			.collect(),
+	));
 
 	let extra = |i: node_primitives::Index, f: node_primitives::Balance| {
 		(
@@ -359,12 +332,7 @@ fn create_signed_submit_transaction(
 	let signer: sp_runtime::MultiSigner = signer.public().into();
 	let (function, extra, _) = raw_payload.deconstruct();
 
-	bridge_node_runtime::UncheckedExtrinsic::new_signed(
-		function,
-		signer.into_account().into(),
-		signature.into(),
-		extra,
-	)
+	bridge_node_runtime::UncheckedExtrinsic::new_signed(function, signer.into_account().into(), signature.into(), extra)
 }
 
 /// Create unsigned Substrate transaction for submitting Ethereum header.

@@ -6,6 +6,9 @@ rust:
 before_install:
   - rustup install nightly
   - rustup target add wasm32-unknown-unknown --toolchain nightly
+  - rustup component add rustfmt
+before_script:
+  - cargo fmt --all -- --check
 jobs:
   allow_failures:
     - rust: nightly

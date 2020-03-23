@@ -36,10 +36,7 @@ use crate::validators::{Validators, ValidatorsConfiguration};
 use crate::verification::{is_importable_header, verify_aura_header};
 use crate::{AuraConfiguration, Storage};
 use primitives::{Header, Receipt, H256};
-use sp_std::{
-	collections::btree_map::BTreeMap,
-	prelude::*,
-};
+use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 /// Maximal number of headers behind best blocks that we are aiming to store. When there
 /// are too many unfinalized headers, it slows down finalization tracking significantly.
@@ -89,7 +86,7 @@ pub fn import_headers<S: Storage>(
 					}
 				}
 				useful += 1;
-			},
+			}
 			Err(Error::AncientHeader) | Err(Error::KnownHeader) => useless += 1,
 			Err(error) => return Err(error),
 		}
@@ -326,7 +323,8 @@ mod tests {
 			Some(vec![crate::validators::tests::validators_change_recept(
 				latest_block_hash,
 			)]),
-		).unwrap();
+		)
+		.unwrap();
 		assert_eq!(
 			finalized_blocks,
 			vec![(10, block_i(&storage, 10, &validators).hash(), Some(100))],
@@ -391,7 +389,8 @@ mod tests {
 			Some(103),
 			header,
 			None,
-		).unwrap();
+		)
+		.unwrap();
 		assert_eq!(finalized_blocks, expected_blocks);
 		assert_eq!(storage.oldest_unpruned_block(), 15);
 	}

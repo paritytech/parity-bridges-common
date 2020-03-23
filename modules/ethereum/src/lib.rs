@@ -171,6 +171,11 @@ impl<Submitter> ImportContext<Submitter> {
 		self.submitter.as_ref()
 	}
 
+	/// Returns reference to header submitter (if known).
+	pub fn submitter(&self) -> Option<&Submitter> {
+		self.submitter.as_ref()
+	}
+
 	/// Returns reference to parent header.
 	pub fn parent_header(&self) -> &Header {
 		&self.parent_header
@@ -585,7 +590,10 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 				// ensure that unfinalized headers we want to prune do not have scheduled changes
 				if number > finalized_number {
 					if let Some(ref blocks_at_number) = blocks_at_number {
-						if blocks_at_number.iter().any(|block| ScheduledChanges::contains_key(block)) {
+						if blocks_at_number
+							.iter()
+							.any(|block| ScheduledChanges::contains_key(block))
+						{
 							HeadersByNumber::insert(number, blocks_at_number);
 							OldestUnprunedBlock::put(number);
 							return;
@@ -923,7 +931,9 @@ pub(crate) mod tests {
 		}
 
 		fn header(&self, hash: &H256) -> Option<(Header, Option<Self::Submitter>)> {
-			self.headers.get(hash).map(|header| (header.header.clone(), header.submitter.clone()))
+			self.headers
+				.get(hash)
+				.map(|header| (header.header.clone(), header.submitter.clone()))
 		}
 
 		fn import_context(
