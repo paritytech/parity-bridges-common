@@ -31,8 +31,8 @@
 // along with Parity-Bridge.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_headers::QueuedHeaders;
-use crate::ethereum_types::{HeaderId, HeaderStatus, QueuedHeader};
 use crate::ethereum_sync_loop::{EthereumSyncParams, SubstrateTransactionMode};
+use crate::ethereum_types::{HeaderId, HeaderStatus, QueuedHeader};
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts};
 use codec::Encode;
 

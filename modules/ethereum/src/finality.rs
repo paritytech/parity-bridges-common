@@ -34,6 +34,7 @@ use crate::error::Error;
 use crate::Storage;
 use primitives::{public_to_address, Address, Header, SealedEmptyStep, H256};
 use sp_io::crypto::secp256k1_ecdsa_recover;
+use sp_std::prelude::*;
 use sp_std::{
 	collections::{
 		btree_map::{BTreeMap, Entry},
@@ -42,7 +43,6 @@ use sp_std::{
 	},
 	iter::from_fn,
 };
-use sp_std::prelude::*;
 
 /// Tries to finalize blocks when given block is imported.
 ///

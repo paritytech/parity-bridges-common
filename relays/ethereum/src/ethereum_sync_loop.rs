@@ -377,11 +377,10 @@ pub fn run(params: EthereumSyncParams) {
 						parent_id,
 					);
 
-					sub_existence_status_future.set(
-						substrate_client::ethereum_header_known(sub_client, parent_id).fuse(),
-					);
+					sub_existence_status_future
+						.set(substrate_client::ethereum_header_known(sub_client, parent_id).fuse());
 				} else if let Some(headers) = eth_sync.select_headers_to_submit(
-					last_update_time.elapsed() > std::time::Duration::from_millis(BACKUP_STALL_SYNC_TIMEOUT_MS)
+					last_update_time.elapsed() > std::time::Duration::from_millis(BACKUP_STALL_SYNC_TIMEOUT_MS),
 				) {
 					let ids = match headers.len() {
 						1 => format!("{:?}", headers[0].id()),
@@ -397,11 +396,7 @@ pub fn run(params: EthereumSyncParams) {
 
 					let headers = headers.into_iter().cloned().collect();
 					sub_submit_header_future.set(
-						substrate_client::submit_ethereum_headers(
-							sub_client,
-							headers,
-							sign_sub_transactions,
-						).fuse(),
+						substrate_client::submit_ethereum_headers(sub_client, headers, sign_sub_transactions).fuse(),
 					);
 
 					// remember that we have submitted some headers

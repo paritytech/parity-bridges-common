@@ -165,23 +165,20 @@ pub async fn submit_signed_ethereum_headers(
 		Err(err) => return (client, Err(err)),
 	};
 
-	let transaction = create_signed_submit_transaction(
-		headers,
-		&client.signer,
-		nonce,
-		genesis_hash,
-	);
+	let transaction = create_signed_submit_transaction(headers, &client.signer, nonce, genesis_hash);
 
 	let encoded_transaction = transaction.encode();
 	let (client, transaction_hash) = call_rpc(
 		client,
 		"author_submitExtrinsic",
-		Params::Array(vec![
-			to_value(Bytes(encoded_transaction)).unwrap(),
-		]),
-	).await;
+		Params::Array(vec![to_value(Bytes(encoded_transaction)).unwrap()]),
+	)
+	.await;
 
-	(client, transaction_hash.map(|transaction_hash| (vec![transaction_hash], ids)))
+	(
+		client,
+		transaction_hash.map(|transaction_hash| (vec![transaction_hash], ids)),
+	)
 }
 
 /// Submits unsigned Ethereum header to Substrate runtime.
@@ -198,10 +195,9 @@ pub async fn submit_unsigned_ethereum_headers(
 		let (used_client, transaction_hash) = call_rpc(
 			client,
 			"author_submitExtrinsic",
-			Params::Array(vec![
-				to_value(Bytes(encoded_transaction)).unwrap(),
-			]),
-		).await;
+			Params::Array(vec![to_value(Bytes(encoded_transaction)).unwrap()]),
+		)
+		.await;
 
 		client = used_client;
 		transactions_hashes.push(match transaction_hash {
@@ -336,18 +332,13 @@ fn create_signed_submit_transaction(
 }
 
 /// Create unsigned Substrate transaction for submitting Ethereum header.
-fn create_unsigned_submit_transaction(
-	header: QueuedEthereumHeader,
-) -> bridge_node_runtime::UncheckedExtrinsic {
+fn create_unsigned_submit_transaction(header: QueuedEthereumHeader) -> bridge_node_runtime::UncheckedExtrinsic {
 	let (header, receipts) = header.extract();
-	let function = bridge_node_runtime::Call::BridgeEthPoA(
-		bridge_node_runtime::BridgeEthPoACall::unsigned_import_header(
+	let function =
+		bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::unsigned_import_header(
 			into_substrate_ethereum_header(&header),
 			into_substrate_ethereum_receipts(&receipts),
-		),
-	);
+		));
 
-	bridge_node_runtime::UncheckedExtrinsic::new_unsigned(
-		function,
-	)
+	bridge_node_runtime::UncheckedExtrinsic::new_unsigned(function)
 }

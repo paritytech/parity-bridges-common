@@ -36,17 +36,13 @@ use codec::{Decode, Encode};
 use frame_support::{decl_module, decl_storage};
 use primitives::{Address, Header, Receipt, H256, U256};
 use sp_runtime::{
-	RuntimeDebug,
 	transaction_validity::{
-		InvalidTransaction, ValidTransaction, UnknownTransaction,
-		TransactionLongevity, TransactionPriority, TransactionValidity,
+		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionValidity, UnknownTransaction,
+		ValidTransaction,
 	},
+	RuntimeDebug,
 };
-use sp_std::{
-	prelude::*,
-	cmp::Ord,
-	collections::btree_map::BTreeMap,
-};
+use sp_std::{cmp::Ord, collections::btree_map::BTreeMap, prelude::*};
 use validators::{ValidatorsConfiguration, ValidatorsSource};
 
 pub use import::{header_import_requires_receipts, import_header};
@@ -458,7 +454,7 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 					Err(error::Error::UnsignedTooFarInTheFuture) => UnknownTransaction::CannotLookup.into(),
 					Err(error) => InvalidTransaction::Custom(error.code()).into(),
 				}
-			},
+			}
 			_ => InvalidTransaction::Call.into(),
 		}
 	}
@@ -846,16 +842,16 @@ pub(crate) mod tests {
 				.into_iter()
 				.collect(),
 				next_validators_set_id: 1,
-				validators_sets: vec![
-					(
-						0,
-						ValidatorsSet {
-							validators: initial_validators,
-							signal_block: None,
-							enact_block: hash,
-						},
-					),
-				].into_iter().collect(),
+				validators_sets: vec![(
+					0,
+					ValidatorsSet {
+						validators: initial_validators,
+						signal_block: None,
+						enact_block: hash,
+					},
+				)]
+				.into_iter()
+				.collect(),
 				validators_sets_rc: vec![(0, 1)].into_iter().collect(),
 				scheduled_changes: HashMap::new(),
 			}
@@ -864,16 +860,19 @@ pub(crate) mod tests {
 		pub(crate) fn insert(&mut self, header: Header) {
 			let hash = header.hash();
 			self.headers_by_number.entry(header.number).or_default().push(hash);
-			self.headers.insert(hash, StoredHeader {
-				submitter: None,
-				header,
-				total_difficulty: 0.into(),
-				next_validators_set_id: 0,
-				last_signal_block: None,
-			});
+			self.headers.insert(
+				hash,
+				StoredHeader {
+					submitter: None,
+					header,
+					total_difficulty: 0.into(),
+					next_validators_set_id: 0,
+					last_signal_block: None,
+				},
+			);
 		}
 
-		pub (crate) fn change_validators_set_at(
+		pub(crate) fn change_validators_set_at(
 			&mut self,
 			number: u64,
 			finalized_set: Vec<Address>,
@@ -881,16 +880,24 @@ pub(crate) mod tests {
 		) {
 			let set_id = self.next_validators_set_id;
 			self.next_validators_set_id += 1;
-			self.validators_sets.insert(set_id, ValidatorsSet {
-				validators: finalized_set,
-				signal_block: None,
-				enact_block: self.headers_by_number[&0][0],
-			});
+			self.validators_sets.insert(
+				set_id,
+				ValidatorsSet {
+					validators: finalized_set,
+					signal_block: None,
+					enact_block: self.headers_by_number[&0][0],
+				},
+			);
 
-			self.headers.get_mut(&self.headers_by_number[&number][0]).unwrap().next_validators_set_id = set_id;
+			self.headers
+				.get_mut(&self.headers_by_number[&number][0])
+				.unwrap()
+				.next_validators_set_id = set_id;
 			if let Some(signalled_set) = signalled_set {
-				self.headers.get_mut(&self.headers_by_number[&number][0]).unwrap().last_signal_block =
-					Some(self.headers_by_number[&(number - 1)][0]);
+				self.headers
+					.get_mut(&self.headers_by_number[&number][0])
+					.unwrap()
+					.last_signal_block = Some(self.headers_by_number[&(number - 1)][0]);
 				self.scheduled_changes.insert(
 					self.headers_by_number[&(number - 1)][0],
 					ScheduledChange {
@@ -901,12 +908,12 @@ pub(crate) mod tests {
 			}
 		}
 
-		pub (crate) fn set_best_block(&mut self, best_block: (u64, H256)) {
+		pub(crate) fn set_best_block(&mut self, best_block: (u64, H256)) {
 			self.best_block.0 = best_block.0;
 			self.best_block.1 = best_block.1;
 		}
 
-		pub (crate) fn set_finalized_block(&mut self, finalized_block: (u64, H256)) {
+		pub(crate) fn set_finalized_block(&mut self, finalized_block: (u64, H256)) {
 			self.finalized_block = finalized_block;
 		}
 
@@ -942,13 +949,12 @@ pub(crate) mod tests {
 			parent_hash: &H256,
 		) -> Option<ImportContext<Self::Submitter>> {
 			self.headers.get(parent_hash).map(|parent_header| {
-				let validators_set = self.validators_sets
+				let validators_set = self
+					.validators_sets
 					.get(&parent_header.next_validators_set_id)
 					.unwrap()
 					.clone();
-				let parent_scheduled_change = self.scheduled_changes
-					.get(parent_hash)
-					.cloned();
+				let parent_scheduled_change = self.scheduled_changes.get(parent_hash).cloned();
 				ImportContext {
 					submitter,
 					parent_header: parent_header.header.clone(),

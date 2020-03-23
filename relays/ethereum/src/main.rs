@@ -122,7 +122,7 @@ fn ethereum_sync_params() -> Result<ethereum_sync_loop::EthereumSyncParams, Stri
 
 			// tx pool won't accept too much unsigned transactions
 			eth_sync_params.max_headers_in_submitted_status = 10;
-		},
+		}
 		Some("backup") => eth_sync_params.sub_tx_mode = ethereum_sync_loop::SubstrateTransactionMode::Backup,
 		Some(mode) => return Err(format!("Invalid sub-tx-mode: {}", mode)),
 		None => eth_sync_params.sub_tx_mode = ethereum_sync_loop::SubstrateTransactionMode::Signed,
