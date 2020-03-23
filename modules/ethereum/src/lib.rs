@@ -167,11 +167,6 @@ impl<Submitter> ImportContext<Submitter> {
 		self.submitter.as_ref()
 	}
 
-	/// Returns reference to header submitter (if known).
-	pub fn submitter(&self) -> Option<&Submitter> {
-		self.submitter.as_ref()
-	}
-
 	/// Returns reference to parent header.
 	pub fn parent_header(&self) -> &Header {
 		&self.parent_header
