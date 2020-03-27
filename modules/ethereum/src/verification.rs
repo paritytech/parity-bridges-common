@@ -38,7 +38,7 @@ use primitives::{public_to_address, Address, Header, Receipt, SealedEmptyStep, H
 use sp_io::crypto::secp256k1_ecdsa_recover;
 use sp_std::{vec, vec::Vec};
 
-/// Checks that we are able to ***try to** import this header.
+/// Pre-check to see if should try and import this header.
 /// Returns error if we should not try to import this block.
 /// Returns hash of the header and number of the last finalized block otherwise.
 pub fn is_importable_header<S: Storage>(storage: &S, header: &Header) -> Result<(H256, H256), Error> {
