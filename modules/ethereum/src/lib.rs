@@ -142,7 +142,8 @@ pub struct HeaderToImport<Submitter> {
 	pub header: Header,
 	/// Total chain difficulty at the header.
 	pub total_difficulty: U256,
-	/// Validators set enacted change, if happened at the header.
+	/// New validators set and the hash of block where it has been scheduled (if applicable).
+	/// Some if set is is enacted by this header.
 	pub enacted_change: Option<(Option<H256>, Vec<Address>)>,
 	/// Validators set scheduled change, if happened at the header.
 	pub scheduled_change: Option<Vec<Address>>,
