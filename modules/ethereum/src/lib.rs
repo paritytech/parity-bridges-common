@@ -178,7 +178,7 @@ impl<Submitter> ImportContext<Submitter> {
 		&self.parent_total_difficulty
 	}
 
-	/// Returns true if parent header has signalled validators set change.
+	/// Returns the validator set change if the parent header has signaled a change.
 	pub fn parent_scheduled_change(&self) -> Option<&ScheduledChange> {
 		self.parent_scheduled_change.as_ref()
 	}
