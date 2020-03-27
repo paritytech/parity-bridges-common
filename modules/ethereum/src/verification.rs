@@ -94,7 +94,7 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 	// TODO: only accept new headers when we're at the tip of PoA chain
 	// https://github.com/paritytech/parity-bridges-common/issues/38
 
-	// we do not want to see more at most one header with given number from single authority
+	// we want to see at most one header with given number from single authority
 	// => every header is providing tag (block_number + authority)
 	// => since only one tx in the pool can provide the same tag, they're auto-deduplicated
 	let prv_number_and_authority_tag = (header.number, header.author).encode();
