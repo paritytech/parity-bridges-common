@@ -157,7 +157,7 @@ pub fn verify_aura_header<S: Storage>(
 	Ok(context)
 }
 
-/// Perform basic checks that only require header iteself.
+/// Perform basic checks that only require header itself.
 fn contextless_checks(config: &AuraConfiguration, header: &Header) -> Result<(), Error> {
 	let expected_seal_fields = expected_header_seal_fields(config, header);
 	if header.seal.len() != expected_seal_fields {
