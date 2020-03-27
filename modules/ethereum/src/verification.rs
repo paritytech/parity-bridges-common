@@ -31,10 +31,10 @@
 // along with Parity-Bridge.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::error::Error;
-use crate::validators::step_validator;
+use crate::validators::{Validators, ValidatorsConfiguration, step_validator};
 use crate::{AuraConfiguration, ImportContext, PoolConfiguration, ScheduledChange, Storage};
 use codec::Encode;
-use primitives::{public_to_address, Address, Header, SealedEmptyStep, H256, H520, U128, U256};
+use primitives::{public_to_address, Address, Header, Receipt, SealedEmptyStep, H256, H520, U128, U256};
 use sp_io::crypto::secp256k1_ecdsa_recover;
 use sp_std::{vec, vec::Vec};
 
@@ -60,14 +60,26 @@ pub fn is_importable_header<S: Storage>(storage: &S, header: &Header) -> Result<
 pub fn accept_aura_header_into_pool<S: Storage>(
 	storage: &S,
 	config: &AuraConfiguration,
+	validators_config: &ValidatorsConfiguration,
 	pool_config: &PoolConfiguration,
 	header: &Header,
+	receipts: Option<&Vec<Receipt>>,
 ) -> Result<(Vec<Vec<u8>>, Vec<Vec<u8>>), Error> {
 	// check if we can verify further
 	let (hash, _) = is_importable_header(storage, header)?;
 
 	// we can always do contextless checks
 	contextless_checks(config, header)?;
+
+	// we want to avoid having same headers twice in the pool
+	// => we're strict about receipts here - if we need them, we require receipts to be Some,
+	// otherwise we require receipts to be None
+	let receipts_required = Validators::new(validators_config).maybe_signals_validators_change(header);
+	match (receipts_required, receipts.is_some()) {
+		(true, false) => return Err(Error::MissingTransactionsReceipts),
+		(false, true) => return Err(Error::RedundantTransactionsReceipts),
+		_ => (),
+	}
 
 	// we do not want to have all future headers in the pool at once
 	// => if we see header with number > maximal ever seen header number + LIMIT,
@@ -95,17 +107,17 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 
 	// depending on whether parent header is available, we either perform full or 'shortened' check
 	let context = storage.import_context(None, &header.parent_hash);
-	match context {
+	let tags = match context {
 		Some(context) => {
 			let header_step = contextual_checks(config, &context, None, header)?;
 			validator_checks(config, &context.validators_set().validators, header, header_step)?;
 
 			// since our parent is already in the storage, we do not require it
 			// to be in the transaction pool
-			Ok((
+			(
 				vec![],
 				vec![prv_number_and_authority_tag, prv_header_number_and_hash_tag],
-			))
+			)
 		}
 		None => {
 			// we know nothing about parent header
@@ -129,12 +141,21 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 			// to be in the transaction pool
 			// (- 1 can't underflow because there's always best block in the header)
 			let req_header_number_and_hash_tag = (header.number - 1, header.parent_hash).encode();
-			Ok((
+			(
 				vec![req_header_number_and_hash_tag],
 				vec![prv_number_and_authority_tag, prv_header_number_and_hash_tag],
-			))
+			)
+		}
+	};
+
+	// the heaviest, but rare operation - we do not want invalid receipts in the pool
+	if let Some(receipts) = receipts {
+		if !header.check_transactions_receipts(receipts) {
+			return Err(Error::TransactionsReceiptsMismatch);
 		}
 	}
+
+	Ok(tags)
 }
 
 /// Verify header by Aura rules.
@@ -345,9 +366,10 @@ mod tests {
 	use crate::tests::{
 		block_i, custom_block_i, genesis, signed_header, validator, validators_addresses, AccountId, InMemoryStorage,
 	};
+	use crate::validators::{ValidatorsSource, tests::validators_change_recept};
 	use crate::{kovan_aura_config, pool_configuration};
 	use parity_crypto::publickey::{sign, KeyPair};
-	use primitives::{rlp_encode, H520};
+	use primitives::{rlp_encode, H520, TransactionOutcome};
 
 	fn sealed_empty_step(validators: &[KeyPair], parent_hash: &H256, step: u64) -> SealedEmptyStep {
 		let mut empty_step = SealedEmptyStep {
@@ -373,7 +395,7 @@ mod tests {
 	}
 
 	fn default_accept_into_pool(
-		mut make_header: impl FnMut(&mut InMemoryStorage, &[KeyPair]) -> Header,
+		mut make_header: impl FnMut(&mut InMemoryStorage, &[KeyPair]) -> (Header, Option<Vec<Receipt>>),
 	) -> Result<(Vec<Vec<u8>>, Vec<Vec<u8>>), Error> {
 		let validators = vec![validator(0), validator(1), validator(2)];
 		let mut storage = InMemoryStorage::new(genesis(), validators_addresses(3));
@@ -388,8 +410,18 @@ mod tests {
 		storage.set_finalized_block((2, block2_hash));
 		storage.set_best_block((3, block3_hash));
 
-		let header = make_header(&mut storage, &validators);
-		accept_aura_header_into_pool(&storage, &kovan_aura_config(), &pool_configuration(), &header)
+		let validators_config = ValidatorsConfiguration::Single(ValidatorsSource::Contract(
+			Default::default(), Vec::new(),
+		));
+		let (header, receipts) = make_header(&mut storage, &validators);
+		accept_aura_header_into_pool(
+			&storage,
+			&kovan_aura_config(),
+			&validators_config,
+			&pool_configuration(),
+			&header,
+			receipts.as_ref(),
+		)
 	}
 
 	#[test]
@@ -639,7 +671,7 @@ mod tests {
 	fn pool_verifies_known_blocks() {
 		// when header is known
 		assert_eq!(
-			default_accept_into_pool(|storage, validators| block_i(storage, 3, validators)),
+			default_accept_into_pool(|storage, validators| (block_i(storage, 3, validators), None)),
 			Err(Error::KnownHeader),
 		);
 	}
@@ -649,9 +681,49 @@ mod tests {
 		// when header number is less than finalized
 		assert_eq!(
 			default_accept_into_pool(
-				|storage, validators| custom_block_i(storage, 2, validators, |header| header.gas_limit += 1.into(),)
+				|storage, validators| (
+					custom_block_i(storage, 2, validators, |header| header.gas_limit += 1.into()),
+					None,
+				),
 			),
 			Err(Error::AncientHeader),
+		);
+	}
+
+	#[test]
+	fn pool_rejects_headers_without_required_receipts() {
+		assert_eq!(
+			default_accept_into_pool(
+				|_, _| (
+					Header {
+						number: 20_000_000,
+						seal: vec![vec![].into(), vec![].into()],
+						gas_limit: kovan_aura_config().min_gas_limit,
+						log_bloom: (&[0xff; 256]).into(),
+						..Default::default()
+					},
+					None,
+				),
+			),
+			Err(Error::MissingTransactionsReceipts),
+		);
+	}
+
+	#[test]
+	fn pool_rejects_headers_with_redundant_receipts() {
+		assert_eq!(
+			default_accept_into_pool(
+				|storage, validators| (
+					block_i(storage, 4, validators),
+					Some(vec![Receipt {
+						gas_used: 1.into(),
+						log_bloom: (&[0xff; 256]).into(),
+						logs: vec![],
+						outcome: TransactionOutcome::Unknown,
+					}]),
+				),
+			),
+			Err(Error::RedundantTransactionsReceipts),
 		);
 	}
 
@@ -660,7 +732,10 @@ mod tests {
 		// when header is too far from the future
 		assert_eq!(
 			default_accept_into_pool(
-				|storage, validators| custom_block_i(storage, 4, validators, |header| header.number = 100,)
+				|storage, validators| (
+					custom_block_i(storage, 4, validators, |header| header.number = 100),
+					None,
+				),
 			),
 			Err(Error::UnsignedTooFarInTheFuture),
 		);
@@ -672,8 +747,11 @@ mod tests {
 		// checks for DoubleVote
 		assert_eq!(
 			default_accept_into_pool(
-				|storage, validators| custom_block_i(storage, 4, validators, |header| header.seal[0] =
-					block_i(storage, 3, validators).seal[0].clone(),)
+				|storage, validators| (
+					custom_block_i(storage, 4, validators, |header|
+						header.seal[0] = block_i(storage, 3, validators).seal[0].clone()),
+					None,
+				),
 			),
 			Err(Error::DoubleVote),
 		);
@@ -685,17 +763,20 @@ mod tests {
 		// (even if header will be considered invalid/duplicate later, we can use this signature
 		// as a proof of malicious action by this validator)
 		assert_eq!(
-			default_accept_into_pool(|_, validators| signed_header(
-				validators,
-				Header {
-					author: validators[1].address().as_fixed_bytes().into(),
-					seal: vec![vec![8].into(), vec![].into()],
-					gas_limit: kovan_aura_config().min_gas_limit,
-					parent_hash: [42; 32].into(),
-					number: 8,
-					..Default::default()
-				},
-				43
+			default_accept_into_pool(|_, validators| (
+				signed_header(
+					validators,
+					Header {
+						author: validators[1].address().as_fixed_bytes().into(),
+						seal: vec![vec![8].into(), vec![].into()],
+						gas_limit: kovan_aura_config().min_gas_limit,
+						parent_hash: [42; 32].into(),
+						number: 8,
+						..Default::default()
+					},
+					43
+				),
+				None,
 			)),
 			Err(Error::NotValidator),
 		);
@@ -708,7 +789,7 @@ mod tests {
 			default_accept_into_pool(|storage, validators| {
 				let header = block_i(&storage, 4, &validators);
 				hash = Some(header.hash());
-				header
+				(header, None)
 			}),
 			Ok((
 				// no tags are required
@@ -740,7 +821,7 @@ mod tests {
 					47,
 				);
 				hash = Some(header.hash());
-				header
+				(header, None)
 			}),
 			Ok((
 				// parent tag required
@@ -762,7 +843,7 @@ mod tests {
 				storage.change_validators_set_at(3, validators_addresses(1), None);
 
 				// header is signed using wrong set
-				signed_header(
+				let header = signed_header(
 					actual_validators,
 					Header {
 						author: actual_validators[2].address().as_fixed_bytes().into(),
@@ -773,7 +854,9 @@ mod tests {
 						..Default::default()
 					},
 					47,
-				)
+				);
+
+				(header, None)
 			}),
 			Err(Error::NotValidator),
 		);
@@ -798,7 +881,8 @@ mod tests {
 					47,
 				);
 				hash = Some(header.hash());
-				header
+
+				(header, None)
 			}),
 			Ok((
 				// parent tag required
@@ -807,6 +891,45 @@ mod tests {
 				vec![
 					(5u64, validators_addresses(3)[2]).encode(),
 					(5u64, hash.unwrap()).encode(),
+				],
+			)),
+		);
+	}
+
+	#[test]
+	fn pool_rejects_headers_with_invalid_receipts() {
+		assert_eq!(
+			default_accept_into_pool(|storage, validators| {
+				let header = custom_block_i(&storage, 4, &validators, |header| {
+					header.log_bloom = (&[0xff; 256]).into();
+				});
+				(header, Some(vec![validators_change_recept(Default::default())]))
+			}),
+			Err(Error::TransactionsReceiptsMismatch),
+		);
+	}
+
+	#[test]
+	fn pool_accepts_headers_with_valid_receipts() {
+		let mut hash = None;
+		assert_eq!(
+			default_accept_into_pool(|storage, validators| {
+				let header = custom_block_i(&storage, 4, &validators, |header| {
+					header.log_bloom = (&[0xff; 256]).into();
+					header.receipts_root = "81ce88dc524403b796222046bf3daf543978329b87ffd50228f1d3987031dc45"
+						.parse()
+						.unwrap();
+				});
+				hash = Some(header.hash());
+				(header, Some(vec![validators_change_recept(Default::default())]))
+			}),
+			Ok((
+				// no tags are required
+				vec![],
+				// header provides two tags
+				vec![
+					(4u64, validators_addresses(3)[1]).encode(),
+					(4u64, hash.unwrap()).encode(),
 				],
 			)),
 		);

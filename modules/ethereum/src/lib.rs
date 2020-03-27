@@ -431,12 +431,14 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 
 	fn validate_unsigned(call: &Self::Call) -> TransactionValidity {
 		match *call {
-			Self::Call::unsigned_import_header(ref header, _) => {
+			Self::Call::unsigned_import_header(ref header, ref receipts) => {
 				let accept_result = verification::accept_aura_header_into_pool(
 					&BridgeStorage::<T>::new(),
 					&kovan_aura_config(),
+					&kovan_validators_config(),
 					&pool_configuration(),
 					header,
+					receipts.as_ref(),
 				);
 
 				match accept_result {

@@ -70,10 +70,12 @@ pub enum Error {
 	NotValidator = 15,
 	/// Missing transaction receipts for the operation.
 	MissingTransactionsReceipts = 16,
+	/// Redundant transaction receipts are provided.
+	RedundantTransactionsReceipts = 17,
 	/// Provided transactions receipts are not matching the header.
-	TransactionsReceiptsMismatch = 17,
+	TransactionsReceiptsMismatch = 18,
 	/// Can't accept unsigned header from the far future.
-	UnsignedTooFarInTheFuture = 18,
+	UnsignedTooFarInTheFuture = 19,
 }
 
 impl Error {
@@ -96,6 +98,7 @@ impl Error {
 			Error::InvalidDifficulty => "Header has invalid difficulty",
 			Error::NotValidator => "Header is sealed by unexpected validator",
 			Error::MissingTransactionsReceipts => "The import operation requires transactions receipts",
+			Error::RedundantTransactionsReceipts => "Redundant transactions receipts are provided",
 			Error::TransactionsReceiptsMismatch => "Invalid transactions receipts provided",
 			Error::UnsignedTooFarInTheFuture => "The unsigned header is too far in future",
 		}
