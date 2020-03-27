@@ -31,7 +31,7 @@
 // along with Parity-Bridge.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::error::Error;
-use crate::validators::{Validators, ValidatorsConfiguration, step_validator};
+use crate::validators::{step_validator, Validators, ValidatorsConfiguration};
 use crate::{AuraConfiguration, ImportContext, PoolConfiguration, ScheduledChange, Storage};
 use codec::Encode;
 use primitives::{public_to_address, Address, Header, Receipt, SealedEmptyStep, H256, H520, U128, U256};
@@ -366,10 +366,10 @@ mod tests {
 	use crate::tests::{
 		block_i, custom_block_i, genesis, signed_header, validator, validators_addresses, AccountId, InMemoryStorage,
 	};
-	use crate::validators::{ValidatorsSource, tests::validators_change_recept};
+	use crate::validators::{tests::validators_change_recept, ValidatorsSource};
 	use crate::{kovan_aura_config, pool_configuration};
 	use parity_crypto::publickey::{sign, KeyPair};
-	use primitives::{rlp_encode, H520, TransactionOutcome};
+	use primitives::{rlp_encode, TransactionOutcome, H520};
 
 	fn sealed_empty_step(validators: &[KeyPair], parent_hash: &H256, step: u64) -> SealedEmptyStep {
 		let mut empty_step = SealedEmptyStep {
@@ -410,9 +410,8 @@ mod tests {
 		storage.set_finalized_block((2, block2_hash));
 		storage.set_best_block((3, block3_hash));
 
-		let validators_config = ValidatorsConfiguration::Single(ValidatorsSource::Contract(
-			Default::default(), Vec::new(),
-		));
+		let validators_config =
+			ValidatorsConfiguration::Single(ValidatorsSource::Contract(Default::default(), Vec::new()));
 		let (header, receipts) = make_header(&mut storage, &validators);
 		accept_aura_header_into_pool(
 			&storage,
@@ -680,12 +679,10 @@ mod tests {
 	fn pool_verifies_ancient_blocks() {
 		// when header number is less than finalized
 		assert_eq!(
-			default_accept_into_pool(
-				|storage, validators| (
-					custom_block_i(storage, 2, validators, |header| header.gas_limit += 1.into()),
-					None,
-				),
-			),
+			default_accept_into_pool(|storage, validators| (
+				custom_block_i(storage, 2, validators, |header| header.gas_limit += 1.into()),
+				None,
+			),),
 			Err(Error::AncientHeader),
 		);
 	}
@@ -693,18 +690,16 @@ mod tests {
 	#[test]
 	fn pool_rejects_headers_without_required_receipts() {
 		assert_eq!(
-			default_accept_into_pool(
-				|_, _| (
-					Header {
-						number: 20_000_000,
-						seal: vec![vec![].into(), vec![].into()],
-						gas_limit: kovan_aura_config().min_gas_limit,
-						log_bloom: (&[0xff; 256]).into(),
-						..Default::default()
-					},
-					None,
-				),
-			),
+			default_accept_into_pool(|_, _| (
+				Header {
+					number: 20_000_000,
+					seal: vec![vec![].into(), vec![].into()],
+					gas_limit: kovan_aura_config().min_gas_limit,
+					log_bloom: (&[0xff; 256]).into(),
+					..Default::default()
+				},
+				None,
+			),),
 			Err(Error::MissingTransactionsReceipts),
 		);
 	}
@@ -712,17 +707,15 @@ mod tests {
 	#[test]
 	fn pool_rejects_headers_with_redundant_receipts() {
 		assert_eq!(
-			default_accept_into_pool(
-				|storage, validators| (
-					block_i(storage, 4, validators),
-					Some(vec![Receipt {
-						gas_used: 1.into(),
-						log_bloom: (&[0xff; 256]).into(),
-						logs: vec![],
-						outcome: TransactionOutcome::Unknown,
-					}]),
-				),
-			),
+			default_accept_into_pool(|storage, validators| (
+				block_i(storage, 4, validators),
+				Some(vec![Receipt {
+					gas_used: 1.into(),
+					log_bloom: (&[0xff; 256]).into(),
+					logs: vec![],
+					outcome: TransactionOutcome::Unknown,
+				}]),
+			),),
 			Err(Error::RedundantTransactionsReceipts),
 		);
 	}
@@ -731,12 +724,10 @@ mod tests {
 	fn pool_verifies_future_block_number() {
 		// when header is too far from the future
 		assert_eq!(
-			default_accept_into_pool(
-				|storage, validators| (
-					custom_block_i(storage, 4, validators, |header| header.number = 100),
-					None,
-				),
-			),
+			default_accept_into_pool(|storage, validators| (
+				custom_block_i(storage, 4, validators, |header| header.number = 100),
+				None,
+			),),
 			Err(Error::UnsignedTooFarInTheFuture),
 		);
 	}
@@ -746,13 +737,11 @@ mod tests {
 		// if parent is known, then we'll execute contextual_checks, which
 		// checks for DoubleVote
 		assert_eq!(
-			default_accept_into_pool(
-				|storage, validators| (
-					custom_block_i(storage, 4, validators, |header|
-						header.seal[0] = block_i(storage, 3, validators).seal[0].clone()),
-					None,
-				),
-			),
+			default_accept_into_pool(|storage, validators| (
+				custom_block_i(storage, 4, validators, |header| header.seal[0] =
+					block_i(storage, 3, validators).seal[0].clone()),
+				None,
+			),),
 			Err(Error::DoubleVote),
 		);
 	}
