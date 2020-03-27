@@ -97,13 +97,13 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 	// we want to see at most one header with given number from single authority
 	// => every header is providing tag (block_number + authority)
 	// => since only one tx in the pool can provide the same tag, they're auto-deduplicated
-	let prv_number_and_authority_tag = (header.number, header.author).encode();
+	let provides_number_and_authority_tag = (header.number, header.author).encode();
 
 	// we want to see several 'future' headers in the pool at once, but we may not have access to
 	// previous headers here
 	// => we can at least 'verify' that headers comprise a chain by providing and requiring
 	// tag (header.number, header.hash)
-	let prv_header_number_and_hash_tag = (header.number, hash).encode();
+	let provides_header_number_and_hash_tag = (header.number, hash).encode();
 
 	// depending on whether parent header is available, we either perform full or 'shortened' check
 	let context = storage.import_context(None, &header.parent_hash);
@@ -116,7 +116,10 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 			// to be in the transaction pool
 			(
 				vec![],
-				vec![prv_number_and_authority_tag, prv_header_number_and_hash_tag],
+				vec![
+					provides_number_and_authority_tag,
+					provides_header_number_and_hash_tag,
+				],
 			)
 		}
 		None => {
@@ -140,10 +143,13 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 			// since our parent is missing from the storage, we **DO** require it
 			// to be in the transaction pool
 			// (- 1 can't underflow because there's always best block in the header)
-			let req_header_number_and_hash_tag = (header.number - 1, header.parent_hash).encode();
+			let requires_header_number_and_hash_tag = (header.number - 1, header.parent_hash).encode();
 			(
-				vec![req_header_number_and_hash_tag],
-				vec![prv_number_and_authority_tag, prv_header_number_and_hash_tag],
+				vec![requires_header_number_and_hash_tag],
+				vec![
+					provides_number_and_authority_tag,
+					provides_header_number_and_hash_tag,
+				],
 			)
 		}
 	};
