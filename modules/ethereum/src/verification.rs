@@ -116,10 +116,7 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 			// to be in the transaction pool
 			(
 				vec![],
-				vec![
-					provides_number_and_authority_tag,
-					provides_header_number_and_hash_tag,
-				],
+				vec![provides_number_and_authority_tag, provides_header_number_and_hash_tag],
 			)
 		}
 		None => {
@@ -146,10 +143,7 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 			let requires_header_number_and_hash_tag = (header.number - 1, header.parent_hash).encode();
 			(
 				vec![requires_header_number_and_hash_tag],
-				vec![
-					provides_number_and_authority_tag,
-					provides_header_number_and_hash_tag,
-				],
+				vec![provides_number_and_authority_tag, provides_header_number_and_hash_tag],
 			)
 		}
 	};
