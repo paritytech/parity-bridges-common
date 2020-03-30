@@ -144,9 +144,20 @@ pub struct HeaderToImport<Submitter> {
 	pub total_difficulty: U256,
 	/// New validators set and the hash of block where it has been scheduled (if applicable).
 	/// Some if set is is enacted by this header.
-	pub enacted_change: Option<(Option<H256>, Vec<Address>)>,
+	pub enacted_change: Option<ChangeToEnact>,
 	/// Validators set scheduled change, if happened at the header.
 	pub scheduled_change: Option<Vec<Address>>,
+}
+
+/// Header that we're importing.
+#[derive(RuntimeDebug)]
+#[cfg_attr(test, derive(Clone, PartialEq))]
+pub struct ChangeToEnact {
+	/// The hash of the header where change has been scheduled.
+	/// None if it is a first set within current `ValidatorsSource`.
+	pub signal_block: Option<H256>,
+	/// Validators set that is enacted.
+	pub validators: Vec<Address>,
 }
 
 /// Header import context.
@@ -205,7 +216,7 @@ impl<Submitter> ImportContext<Submitter> {
 		hash: H256,
 		header: Header,
 		total_difficulty: U256,
-		enacted_change: Option<(Option<H256>, Vec<Address>)>,
+		enacted_change: Option<ChangeToEnact>,
 		scheduled_change: Option<Vec<Address>>,
 	) -> HeaderToImport<Submitter> {
 		HeaderToImport {
@@ -522,7 +533,7 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 			);
 		}
 		let next_validators_set_id = match header.enacted_change {
-			Some((signal_block, enacted_change)) => {
+			Some(enacted_change) => {
 				let next_validators_set_id = NextValidatorsSetId::mutate(|set_id| {
 					let next_set_id = *set_id;
 					*set_id += 1;
@@ -531,9 +542,9 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 				ValidatorsSets::insert(
 					next_validators_set_id,
 					ValidatorsSet {
-						validators: enacted_change,
+						validators: enacted_change.validators,
 						enact_block: header.hash,
-						signal_block,
+						signal_block: enacted_change.signal_block,
 					},
 				);
 				ValidatorsSetsRc::insert(next_validators_set_id, 1);
@@ -983,15 +994,15 @@ pub(crate) mod tests {
 				);
 			}
 			let next_validators_set_id = match header.enacted_change {
-				Some((signal_block, enacted_change)) => {
+				Some(enacted_change) => {
 					let next_validators_set_id = self.next_validators_set_id;
 					self.next_validators_set_id += 1;
 					self.validators_sets.insert(
 						next_validators_set_id,
 						ValidatorsSet {
-							validators: enacted_change,
+							validators: enacted_change.validators,
 							enact_block: header.hash,
-							signal_block,
+							signal_block: enacted_change.signal_block,
 						},
 					);
 					self.validators_sets_rc.insert(next_validators_set_id, 1);

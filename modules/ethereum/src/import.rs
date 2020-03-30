@@ -34,7 +34,7 @@ use crate::error::Error;
 use crate::finality::finalize_blocks;
 use crate::validators::{Validators, ValidatorsConfiguration};
 use crate::verification::{is_importable_header, verify_aura_header};
-use crate::{AuraConfiguration, Storage};
+use crate::{AuraConfiguration, ChangeToEnact, Storage};
 use primitives::{Header, Receipt, H256};
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
@@ -132,7 +132,10 @@ pub fn import_header<S: Storage>(
 		aura_config.two_thirds_majority_transition,
 	)?;
 	let enacted_change = enacted_change
-		.map(|validators| (None, validators))
+		.map(|validators| ChangeToEnact {
+			signal_block: None,
+			validators,
+		})
 		.or_else(|| validators.finalize_validators_change(storage, &finalized_blocks));
 
 	// NOTE: we can't return Err() from anywhere below this line
