@@ -36,7 +36,7 @@ use sp_runtime::RuntimeDebug;
 #[derive(Clone, Copy, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(PartialEq))]
 pub enum Error {
-	/// The header is beyound last finalized and can not be imported.
+	/// The header is beyond last finalized and can not be imported.
 	AncientHeader = 0,
 	/// The header is already imported.
 	KnownHeader = 1,
