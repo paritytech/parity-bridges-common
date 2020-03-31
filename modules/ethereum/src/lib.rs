@@ -161,6 +161,11 @@ pub struct ChangeToEnact {
 }
 
 /// Header import context.
+///
+/// The import context contains information needed by the header verification
+/// pipeline which is not directly part of the header being imported. This includes
+/// information relating to its parent, and the current validator set (which
+/// provide _context_ for the current header).
 #[derive(RuntimeDebug)]
 #[cfg_attr(test, derive(Clone, PartialEq))]
 pub struct ImportContext<Submitter> {
