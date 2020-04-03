@@ -473,9 +473,9 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 					// UnsignedTooFarInTheFuture is the special error code used to limit
 					// number of transactions in the pool - we do not want to ban transaction
 					// in this case (see verification.rs for details)
-					Err(error::Error::UnsignedTooFarInTheFuture) => UnknownTransaction::Custom(
-						error::Error::UnsignedTooFarInTheFuture.code(),
-					).into(),
+					Err(error::Error::UnsignedTooFarInTheFuture) => {
+						UnknownTransaction::Custom(error::Error::UnsignedTooFarInTheFuture.code()).into()
+					}
 					Err(error) => InvalidTransaction::Custom(error.code()).into(),
 				}
 			}
@@ -911,9 +911,7 @@ pub(crate) mod tests {
 				},
 			);
 
-			let mut header = self.headers
-				.get_mut(&self.headers_by_number[&number][0])
-				.unwrap();
+			let mut header = self.headers.get_mut(&self.headers_by_number[&number][0]).unwrap();
 			header.next_validators_set_id = set_id;
 			if let Some(signalled_set) = signalled_set {
 				header.last_signal_block = Some(self.headers_by_number[&(number - 1)][0]);

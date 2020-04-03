@@ -322,10 +322,7 @@ fn verify_signature(expected_validator: &Address, signature: &H520, message: &H2
 }
 
 /// Find next unfinalized validators set change after finalized set.
-fn find_next_validators_signal<S: Storage>(
-	storage: &S,
-	context: &ImportContext<S::Submitter>,
-) -> Option<Vec<Address>> {
+fn find_next_validators_signal<S: Storage>(storage: &S, context: &ImportContext<S::Submitter>) -> Option<Vec<Address>> {
 	// that's the earliest block number we may met in following loop
 	// it may be None if that's the first set
 	let best_set_signal_block = context.validators_set().signal_block;
