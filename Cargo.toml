@@ -5,6 +5,7 @@ members = [
     "bin/node/runtime",
     "modules/substrate",
     "modules/ethereum",
+    "modules/ethereum-contract/builtin",
     "relays/ethereum",
     "relays/substrate",
 ]
