@@ -104,6 +104,7 @@ impl Error {
 		}
 	}
 
+	/// Return unique error code.
 	pub fn code(&self) -> u8 {
 		*self as u8
 	}
