@@ -308,8 +308,7 @@ decl_module! {
 		pub fn unsigned_import_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
 			frame_system::ensure_none(origin)?;
 
-			// just ignore error here, because we can't identify submitter
-			let _ = import_header(
+			import_header(
 				&mut BridgeStorage::<T>::new(),
 				&kovan_aura_config(),
 				&kovan_validators_config(),
@@ -317,7 +316,7 @@ decl_module! {
 				None,
 				header,
 				receipts,
-			);
+			).map_err(|e| e.msg())?;
 		}
 
 		/// Import Aura chain headers in a single **SIGNED** transaction.
