@@ -216,19 +216,14 @@ pub(crate) fn ancestry<'a, S: Storage>(
 ) -> impl Iterator<Item = (H256, Header, Option<S::Submitter>)> + 'a {
 	let mut parent_hash = header.parent_hash.clone();
 	from_fn(move || {
-		let header_and_submitter = storage.header(&parent_hash);
-		match header_and_submitter {
-			Some((header, submitter)) => {
-				if header.number == 0 {
-					return None;
-				}
-
-				let hash = parent_hash.clone();
-				parent_hash = header.parent_hash.clone();
-				Some((hash, header, submitter))
-			}
-			None => None,
+		let (header, submitter) = storage.header(&parent_hash)?;
+		if header.number == 0 {
+			return None;
 		}
+
+		let hash = parent_hash.clone();
+		parent_hash = header.parent_hash.clone();
+		Some((hash, header, submitter))
 	})
 }
 
