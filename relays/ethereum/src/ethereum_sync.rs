@@ -114,9 +114,7 @@ impl HeadersSync {
 	pub fn select_headers_to_submit(&self, stalled: bool) -> Option<Vec<&QueuedHeader>> {
 		// if we operate in backup mode, we only submit headers when sync has stalled
 		if self.params.sub_tx_mode == SubstrateTransactionMode::Backup && !stalled {
-			if self.params.sub_tx_mode == SubstrateTransactionMode::Backup {
-				return None;
-			}
+			return None;
 		}
 
 		let headers_in_submit_status = self.headers.headers_in_status(HeaderStatus::Submitted);
