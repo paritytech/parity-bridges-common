@@ -465,7 +465,12 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 						longevity: TransactionLongevity::max_value(),
 						propagate: true,
 					}),
-					Err(error::Error::UnsignedTooFarInTheFuture) => UnknownTransaction::CannotLookup.into(),
+					// UnsignedTooFarInTheFuture is the special error code used to limit
+					// number of transactions in the pool - we do not want to ban transaction
+					// in this case (see verification.rs for details)
+					Err(error::Error::UnsignedTooFarInTheFuture) => UnknownTransaction::Custom(
+						error::Error::UnsignedTooFarInTheFuture.code(),
+					).into(),
 					Err(error) => InvalidTransaction::Custom(error.code()).into(),
 				}
 			}
