@@ -113,7 +113,7 @@ impl HeadersSync {
 	/// Select headers that need to be submitted to the Substrate node.
 	pub fn select_headers_to_submit(&self, stalled: bool) -> Option<Vec<&QueuedHeader>> {
 		// if we operate in backup mode, we only submit headers when sync has stalled
-		if !stalled {
+		if self.params.sub_tx_mode == SubstrateTransactionMode::Backup && !stalled {
 			if self.params.sub_tx_mode == SubstrateTransactionMode::Backup {
 				return None;
 			}
