@@ -80,7 +80,9 @@ pub struct AuraConfiguration {
 /// the pool. We never use it to verify signed transactions.
 pub struct PoolConfiguration {
 	/// Maximal difference between number of header from unsigned transaction
-	/// and current best block. This must be selected with caution - we can't
+	/// and current best block. This must be selected with caution - the more
+	/// is the difference, the more (potentially invalid) transactions could be
+	/// accepted to the pool and mined later (filling blocks with spam).
 	pub max_future_number_difference: u64,
 }
 
