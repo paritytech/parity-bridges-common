@@ -171,6 +171,7 @@ pub struct ChangeToEnact {
 #[cfg_attr(test, derive(Clone, PartialEq))]
 pub struct ImportContext<Submitter> {
 	submitter: Option<Submitter>,
+	parent_hash: H256,
 	parent_header: Header,
 	parent_total_difficulty: U256,
 	parent_scheduled_change: Option<ScheduledChange>,
@@ -211,8 +212,12 @@ impl<Submitter> ImportContext<Submitter> {
 	}
 
 	/// Returns reference to the latest block which has signalled change of validators set.
+	/// This may point to parent if parent has signalled change.
 	pub fn last_signal_block(&self) -> Option<&H256> {
-		self.last_signal_block.as_ref()
+		match self.parent_scheduled_change {
+			Some(_) => Some(&self.parent_hash),
+			None => self.last_signal_block.as_ref(),
+		}
 	}
 
 	/// Converts import context into header we're going to import.
@@ -515,6 +520,7 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 			let parent_scheduled_change = ScheduledChanges::get(parent_hash);
 			ImportContext {
 				submitter,
+				parent_hash: *parent_hash,
 				parent_header: parent_header.header,
 				parent_total_difficulty: parent_header.total_difficulty,
 				parent_scheduled_change,
@@ -568,11 +574,8 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 				header.context.validators_set_id
 			}
 		};
-		let last_signal_block = match header.context.parent_scheduled_change() {
-			Some(_) => Some(header.header.parent_hash),
-			None => header.context.last_signal_block().cloned(),
-		};
 
+		let last_signal_block = header.context.last_signal_block().cloned();
 		HeadersByNumber::append_or_insert(header.header.number, vec![header.hash]);
 		Headers::<T>::insert(
 			&header.hash,
@@ -973,6 +976,7 @@ pub(crate) mod tests {
 				let parent_scheduled_change = self.scheduled_changes.get(parent_hash).cloned();
 				ImportContext {
 					submitter,
+					parent_hash: *parent_hash,
 					parent_header: parent_header.header.clone(),
 					parent_total_difficulty: parent_header.total_difficulty,
 					parent_scheduled_change,
@@ -1023,11 +1027,8 @@ pub(crate) mod tests {
 					header.context.validators_set_id
 				}
 			};
-			let last_signal_block = match header.context.parent_scheduled_change() {
-				Some(_) => Some(header.header.parent_hash),
-				None => header.context.last_signal_block().cloned(),
-			};
 
+			let last_signal_block = header.context.last_signal_block().cloned();
 			self.headers_by_number
 				.entry(header.header.number)
 				.or_default()

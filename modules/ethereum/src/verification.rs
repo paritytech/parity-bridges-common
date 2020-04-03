@@ -132,7 +132,7 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 			let validators_check_result =
 				validator_checks(config, &best_context.validators_set().validators, header, header_step);
 			if let Err(error) = validators_check_result {
-				find_next_validators_signal(storage, &best_context, header)
+				find_next_validators_signal(storage, &best_context)
 					.ok_or_else(|| error)
 					.and_then(|next_validators| validator_checks(config, &next_validators, header, header_step))?;
 			}
@@ -325,7 +325,6 @@ fn verify_signature(expected_validator: &Address, signature: &H520, message: &H2
 fn find_next_validators_signal<S: Storage>(
 	storage: &S,
 	context: &ImportContext<S::Submitter>,
-	header: &Header,
 ) -> Option<Vec<Address>> {
 	// that's the earliest block number we may met in following loop
 	// it may be None if that's the first set
@@ -333,11 +332,7 @@ fn find_next_validators_signal<S: Storage>(
 
 	// if parent schedules validators set change, then it may be our set
 	// else we'll start with last known change
-	let parent_schedules_change = context.parent_scheduled_change();
-	let mut current_set_signal_block = match parent_schedules_change {
-		Some(_) => Some(header.parent_hash),
-		None => context.last_signal_block().cloned(),
-	};
+	let mut current_set_signal_block = context.last_signal_block().cloned();
 	let mut next_scheduled_set: Option<ScheduledChange> = None;
 
 	loop {
