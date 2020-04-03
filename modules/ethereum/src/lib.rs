@@ -903,15 +903,12 @@ pub(crate) mod tests {
 				},
 			);
 
-			self.headers
+			let mut header = self.headers
 				.get_mut(&self.headers_by_number[&number][0])
-				.unwrap()
-				.next_validators_set_id = set_id;
+				.unwrap();
+			header.next_validators_set_id = set_id;
 			if let Some(signalled_set) = signalled_set {
-				self.headers
-					.get_mut(&self.headers_by_number[&number][0])
-					.unwrap()
-					.last_signal_block = Some(self.headers_by_number[&(number - 1)][0]);
+				header.last_signal_block = Some(self.headers_by_number[&(number - 1)][0]);
 				self.scheduled_changes.insert(
 					self.headers_by_number[&(number - 1)][0],
 					ScheduledChange {
