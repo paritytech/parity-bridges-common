@@ -126,7 +126,6 @@ pub struct ScheduledChange {
 	/// Validators of this set.
 	pub validators: Vec<Address>,
 	/// Hash of the block which has emitted previous validators change signal.
-	/// change signal.
 	pub prev_signal_block: Option<H256>,
 }
 
