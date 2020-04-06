@@ -309,7 +309,7 @@ pub trait Trait: frame_system::Trait {
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		/// Import single Aura header. Requires transaction to be **UNSIGNED**.
-		pub fn unsigned_import_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
+		pub fn import_unsigned_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
 			frame_system::ensure_none(origin)?;
 
 			import_header(
@@ -329,7 +329,7 @@ decl_module! {
 		///
 		/// This should be used with caution - passing too many headers could lead to
 		/// enormous block production/import time.
-		pub fn import_headers(origin, headers_with_receipts: Vec<(Header, Option<Vec<Receipt>>)>) {
+		pub fn import_signed_headers(origin, headers_with_receipts: Vec<(Header, Option<Vec<Receipt>>)>) {
 			let submitter = frame_system::ensure_signed(origin)?;
 			let mut finalized_headers = BTreeMap::new();
 			let import_result = import::import_headers(
@@ -452,7 +452,7 @@ impl<T: Trait> frame_support::unsigned::ValidateUnsigned for Module<T> {
 
 	fn validate_unsigned(call: &Self::Call) -> TransactionValidity {
 		match *call {
-			Self::Call::unsigned_import_header(ref header, ref receipts) => {
+			Self::Call::import_unsigned_header(ref header, ref receipts) => {
 				let accept_result = verification::accept_aura_header_into_pool(
 					&BridgeStorage::<T>::new(),
 					&kovan_aura_config(),

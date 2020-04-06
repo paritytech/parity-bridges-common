@@ -305,18 +305,19 @@ fn create_signed_submit_transaction(
 	index: node_primitives::Index,
 	genesis_hash: H256,
 ) -> bridge_node_runtime::UncheckedExtrinsic {
-	let function = bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::import_headers(
-		headers
-			.into_iter()
-			.map(|header| {
-				let (header, receipts) = header.extract();
-				(
-					into_substrate_ethereum_header(&header),
-					into_substrate_ethereum_receipts(&receipts),
-				)
-			})
-			.collect(),
-	));
+	let function =
+		bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::import_signed_headers(
+			headers
+				.into_iter()
+				.map(|header| {
+					let (header, receipts) = header.extract();
+					(
+						into_substrate_ethereum_header(&header),
+						into_substrate_ethereum_receipts(&receipts),
+					)
+				})
+				.collect(),
+		));
 
 	let extra = |i: node_primitives::Index, f: node_primitives::Balance| {
 		(
@@ -351,7 +352,7 @@ fn create_signed_submit_transaction(
 fn create_unsigned_submit_transaction(header: QueuedEthereumHeader) -> bridge_node_runtime::UncheckedExtrinsic {
 	let (header, receipts) = header.extract();
 	let function =
-		bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::unsigned_import_header(
+		bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::import_unsigned_header(
 			into_substrate_ethereum_header(&header),
 			into_substrate_ethereum_receipts(&receipts),
 		));
