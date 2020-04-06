@@ -17,10 +17,10 @@
 #![recursion_limit = "1024"]
 
 mod ethereum_client;
-mod ethereum_headers;
 mod ethereum_sync;
 mod ethereum_sync_loop;
 mod ethereum_types;
+mod headers;
 mod substrate_client;
 mod substrate_types;
 

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_headers::QueuedHeaders;
+use crate::headers::QueuedHeaders;
 use crate::ethereum_sync_loop::EthereumSyncParams;
 use crate::ethereum_types::{HeaderId, HeaderStatus, QueuedHeader};
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts};
@@ -167,7 +167,7 @@ impl HeadersSync {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::ethereum_headers::tests::{header, id};
+	use crate::headers::tests::{header, id};
 	use crate::ethereum_types::{HeaderStatus, H256};
 
 	fn side_hash(number: u64) -> H256 {
