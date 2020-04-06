@@ -76,7 +76,9 @@ contract SubstrateBridge {
 	) external {
 		// verify finalization data
 		(uint256 begin, uint256 end) = verifyFinalityProof(
-			bestHeaderHash,
+			bestVoterSet.id,
+			bestVoterSet.rawVoters,
+			headerByHash[bestHeaderHash].rawHeader,
 			rawHeaders,
 			rawFinalityProof
 		);
@@ -171,7 +173,9 @@ contract SubstrateBridge {
 	/// Verify finality proof.
 	/// @return Range of headers within rawHeaders that are proved to be final.
 	function verifyFinalityProof(
-		bytes32 bestHeaderHash,
+		uint64 currentSetId,
+		bytes memory rawCurrentVoters,
+		bytes memory rawBestHeader,
 		bytes[] memory rawHeaders,
 		bytes memory rawFinalityProof
 	) private pure returns (uint256, uint256) {
