@@ -41,12 +41,6 @@ const STALL_SYNC_TIMEOUT_MS: u64 = 30_000;
 /// reconnection again.
 const CONNECTION_ERROR_DELAY_MS: u64 = 10_000;
 
-/// Error type that can signal connection errors.
-pub trait MaybeConnectionError {
-	/// Returns true if error (maybe) represents connection error.
-	fn is_connection_error(&self) -> bool;
-}
-
 /// Ethereum synchronization parameters.
 pub struct EthereumSyncParams {
 	/// Ethereum RPC host.
@@ -133,7 +127,7 @@ pub fn run(params: EthereumSyncParams) {
 		let mut sub_maybe_client = None;
 		let mut sub_best_block_required = false;
 		let sub_best_block_future =
-			substrate_client::best_ethereum_block(substrate_client::client(&sub_uri, sub_signer)).fuse();
+			substrate_client::best_ethereum_block(substrate_client::client(&sub_uri)).fuse();
 		let sub_receipts_check_future = futures::future::Fuse::terminated();
 		let sub_existence_status_future = futures::future::Fuse::terminated();
 		let sub_submit_header_future = futures::future::Fuse::terminated();
@@ -301,7 +295,7 @@ pub fn run(params: EthereumSyncParams) {
 			}
 
 			// print progress
-			progress_context = print_progress(progress_context, &eth_sync);
+			progress_context = print_sync_progress(progress_context, &eth_sync);
 
 			// if client is available: wait, or call Substrate RPC methods
 			if let Some(sub_client) = sub_maybe_client.take() {
@@ -350,7 +344,9 @@ pub fn run(params: EthereumSyncParams) {
 					);
 
 					let headers = headers.into_iter().cloned().collect();
-					sub_submit_header_future.set(substrate_client::submit_ethereum_headers(sub_client, headers).fuse());
+					sub_submit_header_future.set(
+						substrate_client::submit_ethereum_headers(sub_client, sub_signer.clone(), headers).fuse()
+					);
 
 					// remember that we have submitted some headers
 					if stall_countdown.is_none() {
@@ -408,71 +404,4 @@ pub fn run(params: EthereumSyncParams) {
 			}
 		}
 	});
-}
-
-fn print_progress(
-	progress_context: (std::time::Instant, Option<u64>, Option<u64>),
-	eth_sync: &crate::ethereum_sync::HeadersSync,
-) -> (std::time::Instant, Option<u64>, Option<u64>) {
-	let (prev_time, prev_best_header, prev_target_header) = progress_context;
-	let now_time = std::time::Instant::now();
-	let (now_best_header, now_target_header) = eth_sync.status();
-
-	let need_update = now_time - prev_time > std::time::Duration::from_secs(10)
-		|| match (prev_best_header, now_best_header) {
-			(Some(prev_best_header), Some(now_best_header)) => now_best_header.0.saturating_sub(prev_best_header) > 10,
-			_ => false,
-		};
-	if !need_update {
-		return (prev_time, prev_best_header, prev_target_header);
-	}
-
-	log::info!(
-		target: "bridge",
-		"Synced {:?} of {:?} headers",
-		now_best_header.map(|id| id.0),
-		now_target_header,
-	);
-	(now_time, now_best_header.clone().map(|id| id.0), *now_target_header)
-}
-
-async fn delay<T>(timeout_ms: u64, retval: T) -> T {
-	async_std::task::sleep(std::time::Duration::from_millis(timeout_ms)).await;
-	retval
-}
-
-fn interval(timeout_ms: u64) -> impl futures::Stream<Item = ()> {
-	futures::stream::unfold((), move |_| async move {
-		delay(timeout_ms, ()).await;
-		Some(((), ()))
-	})
-}
-
-fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
-	maybe_client: &mut Option<TClient>,
-	client: TClient,
-	result: Result<TResult, TError>,
-	on_success: impl FnOnce(TResult),
-	go_offline_future: &mut std::pin::Pin<&mut futures::future::Fuse<TGoOfflineFuture>>,
-	go_offline: impl FnOnce(TClient) -> TGoOfflineFuture,
-	error_pattern: &'static str,
-) where
-	TError: std::fmt::Debug + MaybeConnectionError,
-	TGoOfflineFuture: FutureExt,
-{
-	match result {
-		Ok(result) => {
-			*maybe_client = Some(client);
-			on_success(result);
-		}
-		Err(error) => {
-			if error.is_connection_error() {
-				go_offline_future.set(go_offline(client).fuse());
-			} else {
-				*maybe_client = Some(client);
-			}
-
-			log::error!(target: "bridge", "{}: {:?}", error_pattern, error);
-		}
-	}
 }

@@ -22,21 +22,45 @@ mod ethereum_sync_loop;
 mod ethereum_types;
 mod headers;
 mod substrate_client;
+mod substrate_sync;
+mod substrate_sync_loop;
 mod substrate_types;
+mod utils;
 
+use parity_crypto::publickey::KeyPair;
 use sp_core::crypto::Pair;
 use std::io::Write;
 
 fn main() {
 	initialize();
 
-	ethereum_sync_loop::run(match ethereum_sync_params() {
-		Ok(ethereum_sync_params) => ethereum_sync_params,
-		Err(err) => {
-			log::error!(target: "bridge", "Error parsing parameters: {}", err);
+	let yaml = clap::load_yaml!("cli.yml");
+	let matches = clap::App::from_yaml(yaml).get_matches();
+	match matches.subcommand() {
+		("eth-to-sub", Some(eth_to_sub_matches)) => {
+			ethereum_sync_loop::run(match ethereum_sync_params(&eth_to_sub_matches) {
+				Ok(ethereum_sync_params) => ethereum_sync_params,
+				Err(err) => {
+					log::error!(target: "bridge", "Error parsing parameters: {}", err);
+					return;
+				}
+			});
+		},
+		("sub-to-eth", Some(sub_to_eth_matches)) => {
+			substrate_sync_loop::run(match substrate_sync_params(&sub_to_eth_matches) {
+				Ok(substrate_sync_params) => substrate_sync_params,
+				Err(err) => {
+					log::error!(target: "bridge", "Error parsing parameters: {}", err);
+					return;
+				}
+			});
+		},
+		("", _) => {
+			log::error!(target: "bridge", "No subcommand specified");
 			return;
-		}
-	});
+		},
+		_ => unreachable!(),
+	}
 }
 
 fn initialize() {
@@ -76,10 +100,7 @@ fn initialize() {
 	builder.init();
 }
 
-fn ethereum_sync_params() -> Result<ethereum_sync_loop::EthereumSyncParams, String> {
-	let yaml = clap::load_yaml!("cli.yml");
-	let matches = clap::App::from_yaml(yaml).get_matches();
-
+fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<ethereum_sync_loop::EthereumSyncParams, String> {
 	let mut eth_sync_params = ethereum_sync_loop::EthereumSyncParams::default();
 	if let Some(eth_host) = matches.value_of("eth-host") {
 		eth_sync_params.eth_host = eth_host.into();
@@ -100,4 +121,27 @@ fn ethereum_sync_params() -> Result<ethereum_sync_loop::EthereumSyncParams, Stri
 	}
 
 	Ok(eth_sync_params)
+}
+
+fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<substrate_sync_loop::SubstrateSyncParams, String> {
+	let mut sub_sync_params = substrate_sync_loop::SubstrateSyncParams::default();
+	if let Some(eth_host) = matches.value_of("eth-host") {
+		sub_sync_params.eth_host = eth_host.into();
+	}
+	if let Some(eth_port) = matches.value_of("eth-port") {
+		sub_sync_params.eth_port = eth_port.parse().map_err(|e| format!("{}", e))?;
+	}
+	if let Some(eth_signer) = matches.value_of("eth-signer") {
+		sub_sync_params.eth_signer = KeyPair::from_secret(
+			eth_signer.parse().map_err(|e| format!("{}", e))?
+		).map_err(|e| format!("{}", e))?;
+	}
+	if let Some(sub_host) = matches.value_of("sub-host") {
+		sub_sync_params.sub_host = sub_host.into();
+	}
+	if let Some(sub_port) = matches.value_of("sub-port") {
+		sub_sync_params.sub_port = sub_port.parse().map_err(|e| format!("{}", e))?;
+	}
+
+	Ok(sub_sync_params)
 }

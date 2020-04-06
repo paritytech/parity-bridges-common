@@ -29,8 +29,6 @@ use sp_runtime::traits::IdentifyAccount;
 pub struct Client {
 	/// Substrate RPC client.
 	rpc_client: RawClient<HttpTransportClient>,
-	/// Transactions signer.
-	signer: sp_core::sr25519::Pair,
 	/// Genesis block hash.
 	genesis_hash: Option<H256>,
 }
@@ -58,11 +56,10 @@ impl MaybeConnectionError for Error {
 }
 
 /// Returns client that is able to call RPCs on Substrate node.
-pub fn client(uri: &str, signer: sp_core::sr25519::Pair) -> Client {
+pub fn client(uri: &str) -> Client {
 	let transport = HttpTransportClient::new(uri);
 	Client {
 		rpc_client: RawClient::new(transport),
-		signer,
 		genesis_hash: None,
 	}
 }
@@ -131,6 +128,7 @@ pub async fn ethereum_header_known(
 /// Submits Ethereum header to Substrate runtime.
 pub async fn submit_ethereum_headers(
 	client: Client,
+	signer: sp_core::sr25519::Pair,
 	headers: Vec<QueuedEthereumHeader>,
 ) -> (Client, Result<(TransactionHash, Vec<EthereumHeaderId>), Error>) {
 	let ids = headers.iter().map(|header| header.id()).collect();
@@ -146,13 +144,13 @@ pub async fn submit_ethereum_headers(
 			(client, genesis_hash)
 		}
 	};
-	let account_id = client.signer.public().as_array_ref().clone().into();
+	let account_id = signer.public().as_array_ref().clone().into();
 	let (client, nonce) = next_account_index(client, account_id).await;
 	let nonce = match nonce {
 		Ok(nonce) => nonce,
 		Err(err) => return (client, Err(err)),
 	};
-	let transaction = create_submit_transaction(headers, &client.signer, nonce, genesis_hash);
+	let transaction = create_submit_transaction(headers, &signer, nonce, genesis_hash);
 	let encoded_transaction = transaction.encode();
 	let (client, transaction_hash) = call_rpc(
 		client,

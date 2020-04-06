@@ -1058,6 +1058,7 @@ dependencies = [
  "log 0.4.8",
  "node-primitives",
  "pallet-transaction-payment",
+ "parity-crypto 0.6.0",
  "parity-scale-codec",
  "parking_lot 0.10.0",
  "rustc-hex",
