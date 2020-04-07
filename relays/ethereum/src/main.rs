@@ -109,5 +109,19 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<ethereum_sync_loop
 			sp_core::sr25519::Pair::from_string(sub_signer, sub_signer_password).map_err(|e| format!("{:?}", e))?;
 	}
 
+	match matches.value_of("sub-tx-mode") {
+		Some("signed") =>
+			eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
+		Some("unsigned") => {
+			eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Unsigned;
+
+			// tx pool won't accept too much unsigned transactions
+			eth_sync_params.sync_params.max_headers_in_submitted_status = 10;
+		}
+		Some("backup") => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Backup,
+		Some(mode) => return Err(format!("Invalid sub-tx-mode: {}", mode)),
+		None => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
+	}
+
 	Ok(eth_sync_params)
 }

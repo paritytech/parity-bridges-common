@@ -447,6 +447,7 @@ version = "0.1.0"
 dependencies = [
  "bridge-node-runtime",
  "futures 0.3.4",
+ "jsonrpc-core",
  "log 0.4.8",
  "sc-basic-authorship",
  "sc-cli",
@@ -455,6 +456,7 @@ dependencies = [
  "sc-executor",
  "sc-finality-grandpa",
  "sc-network",
+ "sc-rpc",
  "sc-service",
  "sc-transaction-pool",
  "sp-bridge-eth-poa",
@@ -467,6 +469,7 @@ dependencies = [
  "sp-transaction-pool",
  "structopt",
  "substrate-build-script-utils",
+ "substrate-frame-rpc-system",
  "vergen",
 ]
 
@@ -477,6 +480,7 @@ dependencies = [
  "frame-executive",
  "frame-support",
  "frame-system",
+ "frame-system-rpc-runtime-api",
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-eth-poa",
@@ -1357,6 +1361,15 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-version",
+]
+
+[[package]]
+name = "frame-system-rpc-runtime-api"
+version = "2.0.0-alpha.2"
+source = "git+https://github.com/paritytech/substrate.git?rev=2afecf81ee19b8a6edb364b419190ea47c4a4a31#2afecf81ee19b8a6edb364b419190ea47c4a4a31"
+dependencies = [
+ "parity-scale-codec",
+ "sp-api",
 ]
 
 [[package]]
@@ -6080,6 +6093,27 @@ dependencies = [
 name = "substrate-build-script-utils"
 version = "2.0.0-alpha.2"
 source = "git+https://github.com/paritytech/substrate.git?rev=2afecf81ee19b8a6edb364b419190ea47c4a4a31#2afecf81ee19b8a6edb364b419190ea47c4a4a31"
+
+[[package]]
+name = "substrate-frame-rpc-system"
+version = "2.0.0-alpha.2"
+source = "git+https://github.com/paritytech/substrate.git?rev=2afecf81ee19b8a6edb364b419190ea47c4a4a31#2afecf81ee19b8a6edb364b419190ea47c4a4a31"
+dependencies = [
+ "frame-system-rpc-runtime-api",
+ "futures 0.3.4",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "log 0.4.8",
+ "parity-scale-codec",
+ "sc-client",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
+ "sp-transaction-pool",
+]
 
 [[package]]
 name = "substrate-wasm-builder-runner"

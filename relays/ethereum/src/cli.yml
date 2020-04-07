@@ -26,6 +26,15 @@ subcommands:
                 value_name: SUB_PORT
                 help: Connect to Substrate node at given port.
                 takes_value: true
+            - sub-tx-mode:
+                long: sub-tx-mode
+                value_name: MODE
+                help: Submit headers using signed (default) or unsigned transactions. Third mode - backup - submits signed transactions only when we believe that sync has stalled.
+                takes_value: true
+                possible_values:
+                    - signed
+                    - unsigned
+                    - backup
             - sub-signer:
                 long: sub-signer
                 value_name: SUB_SIGNER

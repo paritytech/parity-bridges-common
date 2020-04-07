@@ -31,6 +31,9 @@ use std::future::Future;
 /// the subscriber will receive every best header (2) reorg won't always lead to sync
 /// stall and restart is a heavy operation (we forget all in-memory headers).
 const STALL_SYNC_TIMEOUT_MS: u64 = 30_000;
+/// Delay (in milliseconds) after we have seen update of best source header at target node,
+/// for us to treat sync stalled. ONLY when relay operates in backup mode.
+const BACKUP_STALL_SYNC_TIMEOUT_MS: u64 = 5 * 60_000;
 /// Delay (in milliseconds) after connection-related error happened before we'll try
 /// reconnection again.
 const CONNECTION_ERROR_DELAY_MS: u64 = 10_000;
@@ -95,6 +98,7 @@ pub fn run<P: HeadersSyncPipeline>(
 	local_pool.run_until(async move {
 		let mut sync = crate::sync::HeadersSync::<P>::new(sync_params);
 		let mut stall_countdown = None;
+		let mut last_update_time = std::time::Instant::now();
 
 		let mut source_maybe_client = None;
 		let mut source_best_block_number_required = false;
@@ -194,6 +198,9 @@ pub fn run<P: HeadersSyncPipeline>(
 						target_best_block,
 						|target_best_block| {
 							let head_updated = sync.target_best_header_response(target_best_block);
+							if head_updated {
+								last_update_time = std::time::Instant::now();
+							}
 							match head_updated {
 								// IF head is updated AND there are still our transactions:
 								// => restart stall countdown timer
@@ -307,7 +314,9 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 
 					target_existence_status_future.set(target_client.is_known_header(parent_id).fuse());
-				} else if let Some(headers) = sync.select_headers_to_submit() {
+				} else if let Some(headers) = sync.select_headers_to_submit(
+					last_update_time.elapsed() > std::time::Duration::from_millis(BACKUP_STALL_SYNC_TIMEOUT_MS),
+				) {
 					let ids = match headers.len() {
 						1 => format!("{:?}", headers[0].id()),
 						2 => format!("[{:?}, {:?}]", headers[0].id(), headers[1].id()),
