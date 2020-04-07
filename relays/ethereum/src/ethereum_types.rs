@@ -46,18 +46,13 @@ pub type QueuedEthereumHeader = QueuedHeader<EthereumHeadersSyncPipeline>;
 pub struct EthereumHeadersSyncPipeline;
 
 impl HeadersSyncPipeline for EthereumHeadersSyncPipeline {
+	const SOURCE_NAME: &'static str = "Ethereum";
+	const TARGET_NAME: &'static str = "Substrate";
+
 	type Hash = H256;
 	type Number = u64;
 	type Header = Header;
 	type Extra = Vec<Receipt>;
-
-	fn source_name() -> &'static str {
-		"Ethereum"
-	}
-
-	fn target_name() -> &'static str {
-		"Substrate"
-	}
 
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
 		into_substrate_ethereum_header(source.header()).encode().len()

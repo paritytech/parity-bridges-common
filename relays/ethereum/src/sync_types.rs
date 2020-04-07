@@ -47,6 +47,11 @@ pub trait MaybeConnectionError {
 
 /// Headers synchronization pipeline.
 pub trait HeadersSyncPipeline: Clone + Copy {
+	/// Name of the headers source.
+	const SOURCE_NAME: &'static str;
+	/// Name of the headers target.
+	const TARGET_NAME: &'static str;
+
 	/// Headers we're syncing are identified by this hash.
 	type Hash: Eq + Clone + Copy + std::fmt::Debug + std::fmt::Display + std::hash::Hash;
 	/// Headers we're syncing are identified by this number.
@@ -66,10 +71,6 @@ pub trait HeadersSyncPipeline: Clone + Copy {
 	/// Type of extra data for the header that we're receiving from the source node.
 	type Extra: Clone + std::fmt::Debug;
 
-	/// Name of the headers source.
-	fn source_name() -> &'static str;
-	/// Name of the headers target.
-	fn target_name() -> &'static str;
 	/// Function used to convert from queued header to target header.
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize;
 }

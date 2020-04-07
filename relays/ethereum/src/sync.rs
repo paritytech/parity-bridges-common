@@ -143,7 +143,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		log::debug!(
 			target: "bridge",
 			"Received best header number from {} node: {}",
-			P::source_name(),
+			P::SOURCE_NAME,
 			best_header_number,
 		);
 		self.source_best_number = Some(best_header_number);
@@ -155,7 +155,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		log::debug!(
 			target: "bridge",
 			"Received best known header from {}: {:?}",
-			P::target_name(),
+			P::TARGET_NAME,
 			best_header,
 		);
 

@@ -171,7 +171,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			log::debug!(
 				target: "bridge",
 				"Ignoring new {} header: {:?}. Status is {:?}.",
-				P::source_name(),
+				P::SOURCE_NAME,
 				id,
 				status,
 			);
@@ -182,7 +182,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			log::debug!(
 				target: "bridge",
 				"Ignoring ancient new {} header: {:?}.",
-				P::source_name(),
+				P::SOURCE_NAME,
 				id,
 			);
 			return;
@@ -215,7 +215,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		log::debug!(
 			target: "bridge",
 			"Queueing new {} header: {:?}. Queue: {:?}.",
-			P::source_name(),
+			P::SOURCE_NAME,
 			id,
 			status,
 		);
@@ -242,7 +242,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			log::debug!(
 				target: "bridge",
 				"{} header {:?} is now {:?}",
-				P::source_name(),
+				P::SOURCE_NAME,
 				current,
 				HeaderStatus::Synced,
 			);
@@ -259,7 +259,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		log::debug!(
 			target: "bridge",
 			"{} header {:?} is now {:?}",
-			P::source_name(),
+			P::SOURCE_NAME,
 			id,
 			HeaderStatus::Synced,
 		);
@@ -426,7 +426,7 @@ fn move_header<P: HeadersSyncPipeline>(
 	log::debug!(
 		target: "bridge",
 		"{} header {:?} is now {:?}",
-		P::source_name(),
+		P::SOURCE_NAME,
 		id,
 		destination_status,
 	);
@@ -474,7 +474,7 @@ fn move_header_descendants<P: HeadersSyncPipeline>(
 					log::debug!(
 						target: "bridge",
 						"{} header {:?} is now {:?}",
-						P::source_name(),
+						P::SOURCE_NAME,
 						header_to_move_id,
 						destination_status,
 					);

@@ -141,7 +141,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|source_best_block_number| sync.source_best_header_number_response(source_best_block_number),
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
-						|| format!("Error retrieving best header number from {}", P::source_name()),
+						|| format!("Error retrieving best header number from {}", P::SOURCE_NAME),
 					);
 				},
 				(source_client, source_new_header) = source_new_header_future => {
@@ -152,7 +152,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|source_new_header| sync.headers_mut().header_response(source_new_header),
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
-						|| format!("Error retrieving header from {} node", P::source_name()),
+						|| format!("Error retrieving header from {} node", P::SOURCE_NAME),
 					);
 				},
 				(source_client, source_orphan_header) = source_orphan_header_future => {
@@ -163,7 +163,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|source_orphan_header| sync.headers_mut().header_response(source_orphan_header),
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
-						|| format!("Error retrieving orphan header from {} node", P::source_name()),
+						|| format!("Error retrieving orphan header from {} node", P::SOURCE_NAME),
 					);
 				},
 				(source_client, source_extra) = source_extra_future => {
@@ -174,7 +174,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|(header, extra)| sync.headers_mut().extra_response(&header, extra),
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
-						|| format!("Error retrieving extra data from {} node", P::source_name()),
+						|| format!("Error retrieving extra data from {} node", P::SOURCE_NAME),
 					);
 				},
 				source_client = source_go_offline_future => {
@@ -215,8 +215,8 @@ pub fn run<P: HeadersSyncPipeline>(
 									log::info!(
 										target: "bridge",
 										"Possible {} fork detected. Restarting {} headers synchronization.",
-										P::target_name(),
-										P::source_name(),
+										P::TARGET_NAME,
+										P::SOURCE_NAME,
 									);
 									stall_countdown = None;
 									sync.restart();
@@ -225,7 +225,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						},
 						&mut target_go_offline_future,
 						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
-						|| format!("Error retrieving best known header from {} node", P::target_name()),
+						|| format!("Error retrieving best known header from {} node", P::TARGET_NAME),
 					);
 				},
 				(target_client, target_existence_status) = target_existence_status_future => {
@@ -238,7 +238,7 @@ pub fn run<P: HeadersSyncPipeline>(
 							.maybe_orphan_response(&target_header, target_existence_status),
 						&mut target_go_offline_future,
 						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
-						|| format!("Error retrieving existence status from {} node", P::target_name()),
+						|| format!("Error retrieving existence status from {} node", P::TARGET_NAME),
 					);
 				},
 				(target_client, target_submit_header_result) = target_submit_header_future => {
@@ -249,7 +249,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|submitted_headers| sync.headers_mut().headers_submitted(submitted_headers),
 						&mut target_go_offline_future,
 						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
-						|| format!("Error submitting headers to {} node", P::target_name()),
+						|| format!("Error submitting headers to {} node", P::TARGET_NAME),
 					);
 				},
 				(target_client, target_extra_check_result) = target_extra_check_future => {
@@ -262,7 +262,7 @@ pub fn run<P: HeadersSyncPipeline>(
 							.maybe_extra_response(&header, extra_check_result),
 						&mut target_go_offline_future,
 						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
-						|| format!("Error retrieving receipts requirement from {} node", P::target_name()),
+						|| format!("Error retrieving receipts requirement from {} node", P::TARGET_NAME),
 					);
 				},
 				target_client = target_go_offline_future => {
@@ -285,7 +285,7 @@ pub fn run<P: HeadersSyncPipeline>(
 				// 4) submit header
 
 				if target_best_block_required {
-					log::debug!(target: "bridge", "Asking {} about best block", P::target_name());
+					log::debug!(target: "bridge", "Asking {} about best block", P::TARGET_NAME);
 					target_best_block_future.set(target_client.best_header_id().fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::MaybeExtra) {
 					log::debug!(
@@ -302,7 +302,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					log::debug!(
 						target: "bridge",
 						"Asking {} node for existence of: {:?}",
-						P::target_name(),
+						P::TARGET_NAME,
 						parent_id,
 					);
 
@@ -317,7 +317,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						target: "bridge",
 						"Submitting {} header(s) to {} node: {:?}",
 						headers.len(),
-						P::target_name(),
+						P::TARGET_NAME,
 						ids,
 					);
 
@@ -342,7 +342,7 @@ pub fn run<P: HeadersSyncPipeline>(
 				// 4) downloading new headers
 
 				if source_best_block_number_required {
-					log::debug!(target: "bridge", "Asking {} node about best block number", P::source_name());
+					log::debug!(target: "bridge", "Asking {} node about best block number", P::SOURCE_NAME);
 					source_best_block_number_future.set(source_client.best_block_number().fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::Extra) {
 					let id = header.id();
@@ -359,7 +359,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					log::debug!(
 						target: "bridge",
 						"Going to download orphan header from {} node: {:?}",
-						P::source_name(),
+						P::SOURCE_NAME,
 						parent_id,
 					);
 
@@ -368,7 +368,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					log::debug!(
 						target: "bridge",
 						"Going to download new header from {} node: {:?}",
-						P::source_name(),
+						P::SOURCE_NAME,
 						id,
 					);
 
