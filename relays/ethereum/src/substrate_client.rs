@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_sync_loop::MaybeConnectionError;
-use crate::ethereum_types::{Bytes, HeaderId as EthereumHeaderId, QueuedHeader as QueuedEthereumHeader, H256};
+use crate::ethereum_types::{Bytes, EthereumHeaderId, H256, QueuedEthereumHeader};
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts, TransactionHash};
+use crate::sync_types::HeaderId;
+use crate::utils::MaybeConnectionError;
 use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
@@ -75,7 +76,7 @@ pub async fn best_ethereum_block(client: Client) -> (Client, Result<EthereumHead
 		]),
 	)
 	.await;
-	(client, result.map(|(num, hash)| EthereumHeaderId(num, hash)))
+	(client, result.map(|(num, hash)| HeaderId(num, hash)))
 }
 
 /// Returns true if transactions receipts are required for Ethereum header submission.

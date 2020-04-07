@@ -17,14 +17,14 @@
 #![recursion_limit = "1024"]
 
 mod ethereum_client;
-mod ethereum_sync;
 mod ethereum_sync_loop;
 mod ethereum_types;
 mod headers;
 mod substrate_client;
-mod substrate_sync;
 mod substrate_sync_loop;
 mod substrate_types;
+mod sync;
+mod sync_types;
 mod utils;
 
 use parity_crypto::publickey::KeyPair;

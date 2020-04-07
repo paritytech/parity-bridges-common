@@ -1057,6 +1057,7 @@ dependencies = [
  "linked-hash-map",
  "log 0.4.8",
  "node-primitives",
+ "num-traits",
  "pallet-transaction-payment",
  "parity-crypto 0.6.0",
  "parity-scale-codec",

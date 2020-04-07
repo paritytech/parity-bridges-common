@@ -15,8 +15,10 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_client;
-use crate::ethereum_types::HeaderStatus as EthereumHeaderStatus;
 use crate::substrate_client;
+use crate::sync::HeadersSyncParams;
+use crate::sync_types::HeaderStatus as EthereumHeaderStatus;
+use crate::utils::{delay, interval, print_sync_progress, process_future_result};
 use futures::{future::FutureExt, stream::StreamExt};
 
 // TODO: when SharedClient will be available, switch to Substrate headers subscription
@@ -53,17 +55,8 @@ pub struct EthereumSyncParams {
 	pub sub_port: u16,
 	/// Substrate transactions signer.
 	pub sub_signer: sp_core::sr25519::Pair,
-	/// Maximal number of ethereum headers to pre-download.
-	pub max_future_headers_to_download: usize,
-	/// Maximal number of active (we believe) submit header transactions.
-	pub max_headers_in_submitted_status: usize,
-	/// Maximal number of headers in single submit request.
-	pub max_headers_in_single_submit: usize,
-	/// Maximal total headers size in single submit request.
-	pub max_headers_size_in_single_submit: usize,
-	/// We only may store and accept (from Ethereum node) headers that have
-	/// number >= than best_substrate_header.number - prune_depth.
-	pub prune_depth: u64,
+	/// Synchronization parameters.
+	pub sync_params: HeadersSyncParams,
 }
 
 impl std::fmt::Debug for EthereumSyncParams {
@@ -73,14 +66,7 @@ impl std::fmt::Debug for EthereumSyncParams {
 			.field("eth_port", &self.eth_port)
 			.field("sub_host", &self.sub_port)
 			.field("sub_port", &self.sub_port)
-			.field("max_future_headers_to_download", &self.max_future_headers_to_download)
-			.field("max_headers_in_submitted_status", &self.max_headers_in_submitted_status)
-			.field("max_headers_in_single_submit", &self.max_headers_in_single_submit)
-			.field(
-				"max_headers_size_in_single_submit",
-				&self.max_headers_size_in_single_submit,
-			)
-			.field("prune_depth", &self.prune_depth)
+			.field("sync_params", &self.sync_params)
 			.finish()
 	}
 }
@@ -93,11 +79,7 @@ impl Default for EthereumSyncParams {
 			sub_host: "localhost".into(),
 			sub_port: 9933,
 			sub_signer: sp_keyring::AccountKeyring::Alice.pair(),
-			max_future_headers_to_download: 128,
-			max_headers_in_submitted_status: 128,
-			max_headers_in_single_submit: 32,
-			max_headers_size_in_single_submit: 131_072,
-			prune_depth: 4096,
+			sync_params: Default::default(),
 		}
 	}
 }
@@ -112,7 +94,7 @@ pub fn run(params: EthereumSyncParams) {
 		let sub_uri = format!("http://{}:{}", params.sub_host, params.sub_port);
 		let sub_signer = params.sub_signer.clone();
 
-		let mut eth_sync = crate::ethereum_sync::HeadersSync::new(params);
+		let mut eth_sync = crate::sync::HeadersSync::new(params.sync_params);
 		let mut stall_countdown = None;
 
 		let mut eth_maybe_client = None;
@@ -158,7 +140,7 @@ pub fn run(params: EthereumSyncParams) {
 						&mut eth_maybe_client,
 						eth_client,
 						eth_best_block_number,
-						|eth_best_block_number| eth_sync.ethereum_best_header_number_response(eth_best_block_number),
+						|eth_best_block_number| eth_sync.source_best_header_number_response(eth_best_block_number),
 						&mut eth_go_offline_future,
 						|eth_client| delay(CONNECTION_ERROR_DELAY_MS, eth_client),
 						"Error retrieving best header number from Ethereum number",
@@ -191,7 +173,7 @@ pub fn run(params: EthereumSyncParams) {
 						&mut eth_maybe_client,
 						eth_client,
 						eth_receipts,
-						|(header, receipts)| eth_sync.headers_mut().receipts_response(&header, receipts),
+						|(header, receipts)| eth_sync.headers_mut().extra_response(&header, receipts),
 						&mut eth_go_offline_future,
 						|eth_client| delay(CONNECTION_ERROR_DELAY_MS, eth_client),
 						"Error retrieving transactions receipts from Ethereum node",
@@ -213,7 +195,7 @@ pub fn run(params: EthereumSyncParams) {
 						sub_client,
 						sub_best_block,
 						|sub_best_block| {
-							let head_updated = eth_sync.substrate_best_header_response(sub_best_block);
+							let head_updated = eth_sync.target_best_header_response(sub_best_block);
 							match head_updated {
 								// IF head is updated AND there are still our transactions:
 								// => restart stall countdown timer
@@ -280,7 +262,7 @@ pub fn run(params: EthereumSyncParams) {
 						sub_receipts_check_result,
 						|(header, receipts_check_result)| eth_sync
 							.headers_mut()
-							.maybe_receipts_response(&header, receipts_check_result),
+							.maybe_extra_response(&header, receipts_check_result),
 						&mut sub_go_offline_future,
 						|sub_client| delay(CONNECTION_ERROR_DELAY_MS, sub_client),
 						"Error retrieving receipts requirement from Substrate node",
@@ -308,7 +290,7 @@ pub fn run(params: EthereumSyncParams) {
 				if sub_best_block_required {
 					log::debug!(target: "bridge", "Asking Substrate about best block");
 					sub_best_block_future.set(substrate_client::best_ethereum_block(sub_client).fuse());
-				} else if let Some(header) = eth_sync.headers().header(EthereumHeaderStatus::MaybeReceipts) {
+				} else if let Some(header) = eth_sync.headers().header(EthereumHeaderStatus::MaybeExtra) {
 					log::debug!(
 						target: "bridge",
 						"Checking if header submission requires receipts: {:?}",
@@ -368,7 +350,7 @@ pub fn run(params: EthereumSyncParams) {
 				if eth_best_block_number_required {
 					log::debug!(target: "bridge", "Asking Ethereum node about best block number");
 					eth_best_block_number_future.set(ethereum_client::best_block_number(eth_client).fuse());
-				} else if let Some(header) = eth_sync.headers().header(EthereumHeaderStatus::Receipts) {
+				} else if let Some(header) = eth_sync.headers().header(EthereumHeaderStatus::Extra) {
 					let id = header.id();
 					log::debug!(
 						target: "bridge",

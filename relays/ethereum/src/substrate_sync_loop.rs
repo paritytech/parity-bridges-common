@@ -16,7 +16,7 @@
 
 use crate::ethereum_client;
 use crate::substrate_client;
-use futures::{future::FutureExt, stream::StreamExt};
+use futures::future::FutureExt;
 use parity_crypto::publickey::KeyPair;
 
 /// Substrate synchronization parameters.
@@ -77,21 +77,13 @@ pub fn run(params: SubstrateSyncParams) {
 		let eth_uri = format!("http://{}:{}", params.eth_host, params.eth_port);
 		let sub_uri = format!("http://{}:{}", params.sub_host, params.sub_port);
 
-		let mut eth_maybe_client = None;
-		let mut eth_best_block_number_required = false;
-		let eth_best_block_number_future = ethereum_client::best_block_number(ethereum_client::client(&eth_uri)).fuse();
+		let _eth_best_block_number_future = ethereum_client::best_block_number(ethereum_client::client(&eth_uri)).fuse();
 
-		let mut sub_maybe_client = None;
-		let mut sub_best_block_required = false;
-		let sub_best_block_future =
+		let _sub_best_block_future =
 			substrate_client::best_ethereum_block(substrate_client::client(&sub_uri)).fuse();
 
 		loop {
-			futures::select! {
-				(eth_client, eth_best_block_number) = eth_best_block_number_future => {
-					eth_best_block_number_required = false;
-				}
-			}
+
 		}
 	});
 }

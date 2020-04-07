@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::sync_types::HeadersSyncPipeline;
+use futures::future::FutureExt;
+use num_traits::Saturating;
+
 /// Error type that can signal connection errors.
 pub trait MaybeConnectionError {
 	/// Returns true if error (maybe) represents connection error.
@@ -65,17 +69,18 @@ pub fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
 }
 
 /// Print synchronization progress.
-pub fn print_sync_progress(
-	progress_context: (std::time::Instant, Option<u64>, Option<u64>),
-	eth_sync: &crate::ethereum_sync::HeadersSync,
-) -> (std::time::Instant, Option<u64>, Option<u64>) {
+pub fn print_sync_progress<P: HeadersSyncPipeline>(
+	progress_context: (std::time::Instant, Option<P::Number>, Option<P::Number>),
+	eth_sync: &crate::sync::HeadersSync<P>,
+) -> (std::time::Instant, Option<P::Number>, Option<P::Number>) {
 	let (prev_time, prev_best_header, prev_target_header) = progress_context;
 	let now_time = std::time::Instant::now();
 	let (now_best_header, now_target_header) = eth_sync.status();
 
 	let need_update = now_time - prev_time > std::time::Duration::from_secs(10)
 		|| match (prev_best_header, now_best_header) {
-			(Some(prev_best_header), Some(now_best_header)) => now_best_header.0.saturating_sub(prev_best_header) > 10,
+			(Some(prev_best_header), Some(now_best_header)) =>
+				now_best_header.0.saturating_sub(prev_best_header) > 10.into(),
 			_ => false,
 		};
 	if !need_update {
