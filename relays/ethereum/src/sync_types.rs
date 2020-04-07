@@ -48,22 +48,21 @@ pub trait MaybeConnectionError {
 /// Headers synchronization pipeline.
 pub trait HeadersSyncPipeline: Clone + Copy {
 	/// Headers we're syncing are identified by this hash.
-	type Hash:
-		Eq + Clone + Copy +
-		std::fmt::Debug + std::fmt::Display +
-		std::hash::Hash;
+	type Hash: Eq + Clone + Copy + std::fmt::Debug + std::fmt::Display + std::hash::Hash;
 	/// Headers we're syncing are identified by this number.
-	type Number:
-		From<u32> + Ord + Clone + Copy +
-		std::fmt::Debug + std::fmt::Display +
-		std::ops::Add<Output = Self::Number> + std::ops::Sub<Output = Self::Number> +
-		num_traits::Saturating +
-		num_traits::Zero + num_traits::One;
+	type Number: From<u32>
+		+ Ord
+		+ Clone
+		+ Copy
+		+ std::fmt::Debug
+		+ std::fmt::Display
+		+ std::ops::Add<Output = Self::Number>
+		+ std::ops::Sub<Output = Self::Number>
+		+ num_traits::Saturating
+		+ num_traits::Zero
+		+ num_traits::One;
 	/// Type of header that we're syncing.
-	type Header:
-		Clone +
-		std::fmt::Debug +
-		SourceHeader<Self::Hash, Self::Number>;
+	type Header: Clone + std::fmt::Debug + SourceHeader<Self::Hash, Self::Number>;
 	/// Type of extra data for the header that we're receiving from the source node.
 	type Extra: Clone + std::fmt::Debug;
 

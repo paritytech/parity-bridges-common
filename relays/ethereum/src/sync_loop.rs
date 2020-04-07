@@ -15,10 +15,10 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::sync::HeadersSyncParams;
-use crate::sync_types::{HeadersSyncPipeline, HeaderId, HeaderStatus, MaybeConnectionError, QueuedHeader};
-use std::future::Future;
+use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader};
 use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::Saturating;
+use std::future::Future;
 
 /// When we submit headers to target node, but see no updates of best
 /// source block known to target node during STALL_SYNC_TIMEOUT_MS milliseconds,
@@ -294,8 +294,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						header.id(),
 					);
 
-					target_extra_check_future
-						.set(target_client.requires_extra(header).fuse());
+					target_extra_check_future.set(target_client.requires_extra(header).fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::MaybeOrphan) {
 					// for MaybeOrphan we actually ask for parent' header existence
 					let parent_id = header.parent_id();
@@ -307,8 +306,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						parent_id,
 					);
 
-					target_existence_status_future
-						.set(target_client.is_known_header(parent_id).fuse());
+					target_existence_status_future.set(target_client.is_known_header(parent_id).fuse());
 				} else if let Some(headers) = sync.select_headers_to_submit() {
 					let ids = match headers.len() {
 						1 => format!("{:?}", headers[0].id()),
@@ -324,9 +322,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 
 					let headers = headers.into_iter().cloned().collect();
-					target_submit_header_future.set(
-						target_client.submit_headers(headers).fuse()
-					);
+					target_submit_header_future.set(target_client.submit_headers(headers).fuse());
 
 					// remember that we have submitted some headers
 					if stall_countdown.is_none() {
@@ -355,9 +351,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						"Retrieving extra data for header: {:?}",
 						id,
 					);
-					source_extra_future.set(
-						source_client.header_extra(id, header.header()).fuse(),
-					);
+					source_extra_future.set(source_client.header_extra(id, header.header()).fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::Orphan) {
 					// for Orphan we actually ask for parent' header
 					let parent_id = header.parent_id();
@@ -442,8 +436,9 @@ fn print_sync_progress<P: HeadersSyncPipeline>(
 
 	let need_update = now_time - prev_time > std::time::Duration::from_secs(10)
 		|| match (prev_best_header, now_best_header) {
-			(Some(prev_best_header), Some(now_best_header)) =>
-				now_best_header.0.saturating_sub(prev_best_header) > 10.into(),
+			(Some(prev_best_header), Some(now_best_header)) => {
+				now_best_header.0.saturating_sub(prev_best_header) > 10.into()
+			}
 			_ => false,
 		};
 	if !need_update {

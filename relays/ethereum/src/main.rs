@@ -43,11 +43,11 @@ fn main() {
 					return;
 				}
 			});
-		},
+		}
 		("", _) => {
 			log::error!(target: "bridge", "No subcommand specified");
 			return;
-		},
+		}
 		_ => unreachable!("all possible subcommands are checked above; qed"),
 	}
 }

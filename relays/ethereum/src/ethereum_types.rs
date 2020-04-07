@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::sync_types::{HeaderId, HeadersSyncPipeline, SourceHeader, QueuedHeader};
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts};
+use crate::sync_types::{HeaderId, HeadersSyncPipeline, QueuedHeader, SourceHeader};
 use codec::Encode;
 
 pub use web3::types::{Bytes, H256, U128, U64};
@@ -76,9 +76,6 @@ impl SourceHeader<H256, u64> for Header {
 	}
 
 	fn parent_id(&self) -> EthereumHeaderId {
-		HeaderId(
-			self.number.expect(HEADER_ID_PROOF).as_u64() - 1,
-			self.parent_hash,
-		)
+		HeaderId(self.number.expect(HEADER_ID_PROOF).as_u64() - 1, self.parent_hash)
 	}
 }

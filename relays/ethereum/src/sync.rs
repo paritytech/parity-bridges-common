@@ -200,8 +200,8 @@ impl Default for HeadersSyncParams {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::headers::tests::{header, id};
 	use crate::ethereum_types::{EthereumHeadersSyncPipeline, H256};
+	use crate::headers::tests::{header, id};
 	use crate::sync_types::HeaderStatus;
 
 	fn side_hash(number: u64) -> H256 {

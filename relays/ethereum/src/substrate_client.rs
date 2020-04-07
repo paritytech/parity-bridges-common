@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_types::{Bytes, EthereumHeaderId, H256, QueuedEthereumHeader};
+use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256};
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts, TransactionHash};
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
 use codec::{Decode, Encode};

@@ -19,8 +19,8 @@ use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Heade
 use crate::substrate_client;
 use crate::sync::HeadersSyncParams;
 use crate::sync_loop::{SourceClient, TargetClient};
-use std::{future::Future, pin::Pin};
 use futures::future::FutureExt;
+use std::{future::Future, pin::Pin};
 pub use web3::types::H256;
 
 /// Interval (in ms) at which we check new Ethereum headers when we are synced/almost synced.
@@ -80,7 +80,8 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<u64, Self::Error>)>>>;
 	type HeaderByHashFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
 	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
-	type HeaderExtraFuture = Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, Vec<Receipt>), Self::Error>)>>>;
+	type HeaderExtraFuture =
+		Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, Vec<Receipt>), Self::Error>)>>>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
 		ethereum_client::best_block_number(self.client)
@@ -149,10 +150,12 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	fn submit_headers(self, headers: Vec<QueuedEthereumHeader>) -> Self::SubmitHeadersFuture {
 		let signer = self.signer;
 		substrate_client::submit_ethereum_headers(self.client, signer.clone(), headers)
-			.map(move |(client, result)| (
-				SubstrateHeadersTarget { client, signer },
-				result.map(|(_, submitted_headers)| submitted_headers),
-			))
+			.map(move |(client, result)| {
+				(
+					SubstrateHeadersTarget { client, signer },
+					result.map(|(_, submitted_headers)| submitted_headers),
+				)
+			})
 			.boxed()
 	}
 }
@@ -169,7 +172,10 @@ pub fn run(params: EthereumSyncParams) {
 	crate::sync_loop::run(
 		EthereumHeadersSource { client: eth_client },
 		ETHEREUM_TICK_INTERVAL_MS,
-		SubstrateHeadersTarget { client: sub_client, signer: sub_signer },
+		SubstrateHeadersTarget {
+			client: sub_client,
+			signer: sub_signer,
+		},
 		SUBSTRATE_TICK_INTERVAL_MS,
 		params.sync_params,
 	);
