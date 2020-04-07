@@ -128,14 +128,32 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	fn best_header_id(self) -> Self::BestHeaderIdFuture {
 		let (signer, sign_transactions) = (self.signer, self.sign_transactions);
 		substrate_client::best_ethereum_block(self.client)
-			.map(move |(client, result)| (SubstrateHeadersTarget { client, signer, sign_transactions }, result))
+			.map(move |(client, result)| {
+				(
+					SubstrateHeadersTarget {
+						client,
+						signer,
+						sign_transactions,
+					},
+					result,
+				)
+			})
 			.boxed()
 	}
 
 	fn is_known_header(self, id: EthereumHeaderId) -> Self::IsKnownHeaderFuture {
 		let (signer, sign_transactions) = (self.signer, self.sign_transactions);
 		substrate_client::ethereum_header_known(self.client, id)
-			.map(move |(client, result)| (SubstrateHeadersTarget { client, signer, sign_transactions }, result))
+			.map(move |(client, result)| {
+				(
+					SubstrateHeadersTarget {
+						client,
+						signer,
+						sign_transactions,
+					},
+					result,
+				)
+			})
 			.boxed()
 	}
 
@@ -145,7 +163,16 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 		// source is contract, we never need any logs)
 		let (signer, sign_transactions) = (self.signer, self.sign_transactions);
 		substrate_client::ethereum_receipts_required(self.client, header.clone())
-			.map(move |(client, result)| (SubstrateHeadersTarget { client, signer, sign_transactions }, result))
+			.map(move |(client, result)| {
+				(
+					SubstrateHeadersTarget {
+						client,
+						signer,
+						sign_transactions,
+					},
+					result,
+				)
+			})
 			.boxed()
 	}
 
@@ -154,7 +181,11 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 		substrate_client::submit_ethereum_headers(self.client, signer.clone(), headers, sign_transactions)
 			.map(move |(client, result)| {
 				(
-					SubstrateHeadersTarget { client, signer, sign_transactions },
+					SubstrateHeadersTarget {
+						client,
+						signer,
+						sign_transactions,
+					},
 					result.map(|(_, submitted_headers)| submitted_headers),
 				)
 			})

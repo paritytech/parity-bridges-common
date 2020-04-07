@@ -110,8 +110,7 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<ethereum_sync_loop
 	}
 
 	match matches.value_of("sub-tx-mode") {
-		Some("signed") =>
-			eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
+		Some("signed") => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
 		Some("unsigned") => {
 			eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Unsigned;
 
