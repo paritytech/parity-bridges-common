@@ -85,9 +85,10 @@ macro_rules! new_full_start {
 			use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
 			let mut io = jsonrpc_core::IoHandler::default();
-			io.extend_with(
-				SystemApi::to_delegate(FullSystem::new(builder.client().clone(), builder.pool()))
-			);
+			io.extend_with(SystemApi::to_delegate(FullSystem::new(
+				builder.client().clone(),
+				builder.pool(),
+			)));
 			Ok(io)
 		})?;
 
