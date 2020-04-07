@@ -20,13 +20,13 @@ use std::future::Future;
 use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::Saturating;
 
-/// When we submit Ethereum headers to Substrate runtime, but see no updates of best
-/// Ethereum block known to Substrate runtime during STALL_SYNC_TIMEOUT_MS milliseconds,
-/// we consider that our headers are rejected because there has been reorg in Substrate.
+/// When we submit headers to target node, but see no updates of best
+/// source block known to target node during STALL_SYNC_TIMEOUT_MS milliseconds,
+/// we consider that our headers are rejected because there has been reorg in target chain.
 /// This reorg could invalidate our knowledge about sync process (i.e. we have asked if
-/// HeaderA is known to Substrate, but then reorg happened and the answer is different
+/// HeaderA is known to target, but then reorg happened and the answer is different
 /// now) => we need to reset sync.
-/// The other option is to receive **EVERY** best Substrate header and check if it is
+/// The other option is to receive **EVERY** best target header and check if it is
 /// direct child of previous best header. But: (1) subscription doesn't guarantee that
 /// the subscriber will receive every best header (2) reorg won't always lead to sync
 /// stall and restart is a heavy operation (we forget all in-memory headers).
@@ -214,8 +214,9 @@ pub fn run<P: HeadersSyncPipeline>(
 								false => {
 									log::info!(
 										target: "bridge",
-										"Possible {} fork detected. Restarting Ethereum headers synchronization.",
+										"Possible {} fork detected. Restarting {} headers synchronization.",
 										P::target_name(),
+										P::source_name(),
 									);
 									stall_countdown = None;
 									sync.restart();

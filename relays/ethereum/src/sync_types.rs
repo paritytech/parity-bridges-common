@@ -33,9 +33,9 @@ pub enum HeaderStatus {
 	Extra,
 	/// Header is in Ready queue.
 	Ready,
-	/// Header has been recently submitted to the Substrate runtime.
+	/// Header has been recently submitted to the target node.
 	Submitted,
-	/// Header is known to the Substrate runtime.
+	/// Header is known to the target node.
 	Synced,
 }
 
@@ -47,12 +47,12 @@ pub trait MaybeConnectionError {
 
 /// Headers synchronization pipeline.
 pub trait HeadersSyncPipeline: Clone + Copy {
-	/// Headers we're synching are identified by this hash.
+	/// Headers we're syncing are identified by this hash.
 	type Hash:
 		Eq + Clone + Copy +
 		std::fmt::Debug + std::fmt::Display +
 		std::hash::Hash;
-	/// Headers we're synching are identified by this number.
+	/// Headers we're syncing are identified by this number.
 	type Number:
 		From<u32> + Ord + Clone + Copy +
 		std::fmt::Debug + std::fmt::Display +
@@ -81,12 +81,6 @@ pub trait SourceHeader<Hash, Number> {
 	fn id(&self) -> HeaderId<Hash, Number>;
 	/// Returns ID of parent header.
 	fn parent_id(&self) -> HeaderId<Hash, Number>;
-}
-
-/// Header that we're submitting to target node.
-pub trait TargetHeader {
-	/// Size of the header in bytes.
-	fn size(&self) -> usize;
 }
 
 /// Header how it's stored in the synchronization queue.
