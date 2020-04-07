@@ -14,18 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_client;
-use crate::ethereum_types::HeaderStatus as EthereumHeaderStatus;
-use crate::substrate_client;
+use crate::sync::HeadersSyncParams;
+use crate::sync_types::{HeadersSyncPipeline, HeaderId, HeaderStatus, MaybeConnectionError, QueuedHeader};
+use std::future::Future;
 use futures::{future::FutureExt, stream::StreamExt};
+use num_traits::Saturating;
 
-// TODO: when SharedClient will be available, switch to Substrate headers subscription
-// (because we do not need old Substrate headers)
-
-/// Interval (in ms) at which we check new Ethereum headers when we are synced/almost synced.
-const ETHEREUM_TICK_INTERVAL_MS: u64 = 10_000;
-/// Interval (in ms) at which we check new Substrate blocks.
-const SUBSTRATE_TICK_INTERVAL_MS: u64 = 5_000;
 /// When we submit Ethereum headers to Substrate runtime, but see no updates of best
 /// Ethereum block known to Substrate runtime during STALL_SYNC_TIMEOUT_MS milliseconds,
 /// we consider that our headers are rejected because there has been reorg in Substrate.
@@ -41,189 +35,169 @@ const STALL_SYNC_TIMEOUT_MS: u64 = 30_000;
 /// reconnection again.
 const CONNECTION_ERROR_DELAY_MS: u64 = 10_000;
 
-/// Error type that can signal connection errors.
-pub trait MaybeConnectionError {
-	/// Returns true if error (maybe) represents connection error.
-	fn is_connection_error(&self) -> bool;
+/// Source client trait.
+pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
+	/// Type of error this clients returns.
+	type Error: std::fmt::Debug + MaybeConnectionError;
+	/// Future that returns best block number.
+	type BestBlockNumberFuture: Future<Output = (Self, Result<P::Number, Self::Error>)>;
+	/// Future that returns header by hash.
+	type HeaderByHashFuture: Future<Output = (Self, Result<P::Header, Self::Error>)>;
+	/// Future that returns header by number.
+	type HeaderByNumberFuture: Future<Output = (Self, Result<P::Header, Self::Error>)>;
+	/// Future that returns extra data associated with header.
+	type HeaderExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, P::Extra), Self::Error>)>;
+
+	/// Get best block number.
+	fn best_block_number(self) -> Self::BestBlockNumberFuture;
+	/// Get header by hash.
+	fn header_by_hash(self, hash: P::Hash) -> Self::HeaderByHashFuture;
+	/// Get canonical header by number.
+	fn header_by_number(self, number: P::Number) -> Self::HeaderByNumberFuture;
+	/// Get extra data by header hash.
+	fn header_extra(self, id: HeaderId<P::Hash, P::Number>, header: &P::Header) -> Self::HeaderExtraFuture;
 }
 
-/// Ethereum synchronization parameters.
-pub struct EthereumSyncParams {
-	/// Ethereum RPC host.
-	pub eth_host: String,
-	/// Ethereum RPC port.
-	pub eth_port: u16,
-	/// Substrate RPC host.
-	pub sub_host: String,
-	/// Substrate RPC port.
-	pub sub_port: u16,
-	/// Substrate transactions signer.
-	pub sub_signer: sp_core::sr25519::Pair,
-	/// Maximal number of ethereum headers to pre-download.
-	pub max_future_headers_to_download: usize,
-	/// Maximal number of active (we believe) submit header transactions.
-	pub max_headers_in_submitted_status: usize,
-	/// Maximal number of headers in single submit request.
-	pub max_headers_in_single_submit: usize,
-	/// Maximal total headers size in single submit request.
-	pub max_headers_size_in_single_submit: usize,
-	/// We only may store and accept (from Ethereum node) headers that have
-	/// number >= than best_substrate_header.number - prune_depth.
-	pub prune_depth: u64,
+/// Target client trait.
+pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
+	/// Type of error this clients returns.
+	type Error: std::fmt::Debug + MaybeConnectionError;
+	/// Future that returns best header id.
+	type BestHeaderIdFuture: Future<Output = (Self, Result<HeaderId<P::Hash, P::Number>, Self::Error>)>;
+	/// Future that returns known header check result.
+	type IsKnownHeaderFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>)>;
+	/// Future that returns extra check result.
+	type RequiresExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>)>;
+	/// Future that returns header submission result.
+	type SubmitHeadersFuture: Future<Output = (Self, Result<Vec<HeaderId<P::Hash, P::Number>>, Self::Error>)>;
+
+	/// Returns ID of best header known to the target node.
+	fn best_header_id(self) -> Self::BestHeaderIdFuture;
+	/// Returns true if header is known to the target node.
+	fn is_known_header(self, id: HeaderId<P::Hash, P::Number>) -> Self::IsKnownHeaderFuture;
+	/// Returns true if header requires extra data to be submitted.
+	fn requires_extra(self, header: &QueuedHeader<P>) -> Self::RequiresExtraFuture;
+	/// Submit headers.
+	fn submit_headers(self, headers: Vec<QueuedHeader<P>>) -> Self::SubmitHeadersFuture;
 }
 
-impl std::fmt::Debug for EthereumSyncParams {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		f.debug_struct("EthereumSyncParams")
-			.field("eth_host", &self.eth_host)
-			.field("eth_port", &self.eth_port)
-			.field("sub_host", &self.sub_port)
-			.field("sub_port", &self.sub_port)
-			.field("max_future_headers_to_download", &self.max_future_headers_to_download)
-			.field("max_headers_in_submitted_status", &self.max_headers_in_submitted_status)
-			.field("max_headers_in_single_submit", &self.max_headers_in_single_submit)
-			.field(
-				"max_headers_size_in_single_submit",
-				&self.max_headers_size_in_single_submit,
-			)
-			.field("prune_depth", &self.prune_depth)
-			.finish()
-	}
-}
-
-impl Default for EthereumSyncParams {
-	fn default() -> Self {
-		EthereumSyncParams {
-			eth_host: "localhost".into(),
-			eth_port: 8545,
-			sub_host: "localhost".into(),
-			sub_port: 9933,
-			sub_signer: sp_keyring::AccountKeyring::Alice.pair(),
-			max_future_headers_to_download: 128,
-			max_headers_in_submitted_status: 128,
-			max_headers_in_single_submit: 32,
-			max_headers_size_in_single_submit: 131_072,
-			prune_depth: 4096,
-		}
-	}
-}
-
-/// Run Ethereum headers synchronization.
-pub fn run(params: EthereumSyncParams) {
+/// Run headers synchronization.
+pub fn run<P: HeadersSyncPipeline>(
+	source_client: impl SourceClient<P>,
+	source_tick_ms: u64,
+	target_client: impl TargetClient<P>,
+	target_tick_ms: u64,
+	sync_params: HeadersSyncParams,
+) {
 	let mut local_pool = futures::executor::LocalPool::new();
 	let mut progress_context = (std::time::Instant::now(), None, None);
 
 	local_pool.run_until(async move {
-		let eth_uri = format!("http://{}:{}", params.eth_host, params.eth_port);
-		let sub_uri = format!("http://{}:{}", params.sub_host, params.sub_port);
-		let sub_signer = params.sub_signer.clone();
-
-		let mut eth_sync = crate::ethereum_sync::HeadersSync::new(params);
+		let mut sync = crate::sync::HeadersSync::<P>::new(sync_params);
 		let mut stall_countdown = None;
 
-		let mut eth_maybe_client = None;
-		let mut eth_best_block_number_required = false;
-		let eth_best_block_number_future = ethereum_client::best_block_number(ethereum_client::client(&eth_uri)).fuse();
-		let eth_new_header_future = futures::future::Fuse::terminated();
-		let eth_orphan_header_future = futures::future::Fuse::terminated();
-		let eth_receipts_future = futures::future::Fuse::terminated();
-		let eth_go_offline_future = futures::future::Fuse::terminated();
-		let eth_tick_stream = interval(ETHEREUM_TICK_INTERVAL_MS).fuse();
+		let mut source_maybe_client = None;
+		let mut source_best_block_number_required = false;
+		let source_best_block_number_future = source_client.best_block_number().fuse();
+		let source_new_header_future = futures::future::Fuse::terminated();
+		let source_orphan_header_future = futures::future::Fuse::terminated();
+		let source_extra_future = futures::future::Fuse::terminated();
+		let source_go_offline_future = futures::future::Fuse::terminated();
+		let source_tick_stream = interval(source_tick_ms).fuse();
 
-		let mut sub_maybe_client = None;
-		let mut sub_best_block_required = false;
-		let sub_best_block_future =
-			substrate_client::best_ethereum_block(substrate_client::client(&sub_uri, sub_signer)).fuse();
-		let sub_receipts_check_future = futures::future::Fuse::terminated();
-		let sub_existence_status_future = futures::future::Fuse::terminated();
-		let sub_submit_header_future = futures::future::Fuse::terminated();
-		let sub_go_offline_future = futures::future::Fuse::terminated();
-		let sub_tick_stream = interval(SUBSTRATE_TICK_INTERVAL_MS).fuse();
+		let mut target_maybe_client = None;
+		let mut target_best_block_required = false;
+		let target_best_block_future = target_client.best_header_id().fuse();
+		let target_extra_check_future = futures::future::Fuse::terminated();
+		let target_existence_status_future = futures::future::Fuse::terminated();
+		let target_submit_header_future = futures::future::Fuse::terminated();
+		let target_go_offline_future = futures::future::Fuse::terminated();
+		let target_tick_stream = interval(target_tick_ms).fuse();
 
 		futures::pin_mut!(
-			eth_best_block_number_future,
-			eth_new_header_future,
-			eth_orphan_header_future,
-			eth_receipts_future,
-			eth_go_offline_future,
-			eth_tick_stream,
-			sub_best_block_future,
-			sub_receipts_check_future,
-			sub_existence_status_future,
-			sub_submit_header_future,
-			sub_go_offline_future,
-			sub_tick_stream
+			source_best_block_number_future,
+			source_new_header_future,
+			source_orphan_header_future,
+			source_extra_future,
+			source_go_offline_future,
+			source_tick_stream,
+			target_best_block_future,
+			target_extra_check_future,
+			target_existence_status_future,
+			target_submit_header_future,
+			target_go_offline_future,
+			target_tick_stream
 		);
 
 		loop {
 			futures::select! {
-				(eth_client, eth_best_block_number) = eth_best_block_number_future => {
-					eth_best_block_number_required = false;
+				(source_client, source_best_block_number) = source_best_block_number_future => {
+					source_best_block_number_required = false;
 
 					process_future_result(
-						&mut eth_maybe_client,
-						eth_client,
-						eth_best_block_number,
-						|eth_best_block_number| eth_sync.ethereum_best_header_number_response(eth_best_block_number),
-						&mut eth_go_offline_future,
-						|eth_client| delay(CONNECTION_ERROR_DELAY_MS, eth_client),
-						"Error retrieving best header number from Ethereum number",
+						&mut source_maybe_client,
+						source_client,
+						source_best_block_number,
+						|source_best_block_number| sync.source_best_header_number_response(source_best_block_number),
+						&mut source_go_offline_future,
+						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|| format!("Error retrieving best header number from {}", P::source_name()),
 					);
 				},
-				(eth_client, eth_new_header) = eth_new_header_future => {
+				(source_client, source_new_header) = source_new_header_future => {
 					process_future_result(
-						&mut eth_maybe_client,
-						eth_client,
-						eth_new_header,
-						|eth_new_header| eth_sync.headers_mut().header_response(eth_new_header),
-						&mut eth_go_offline_future,
-						|eth_client| delay(CONNECTION_ERROR_DELAY_MS, eth_client),
-						"Error retrieving header from Ethereum node",
+						&mut source_maybe_client,
+						source_client,
+						source_new_header,
+						|source_new_header| sync.headers_mut().header_response(source_new_header),
+						&mut source_go_offline_future,
+						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|| format!("Error retrieving header from {} node", P::source_name()),
 					);
 				},
-				(eth_client, eth_orphan_header) = eth_orphan_header_future => {
+				(source_client, source_orphan_header) = source_orphan_header_future => {
 					process_future_result(
-						&mut eth_maybe_client,
-						eth_client,
-						eth_orphan_header,
-						|eth_orphan_header| eth_sync.headers_mut().header_response(eth_orphan_header),
-						&mut eth_go_offline_future,
-						|eth_client| delay(CONNECTION_ERROR_DELAY_MS, eth_client),
-						"Error retrieving orphan header from Ethereum node",
+						&mut source_maybe_client,
+						source_client,
+						source_orphan_header,
+						|source_orphan_header| sync.headers_mut().header_response(source_orphan_header),
+						&mut source_go_offline_future,
+						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|| format!("Error retrieving orphan header from {} node", P::source_name()),
 					);
 				},
-				(eth_client, eth_receipts) = eth_receipts_future => {
+				(source_client, source_extra) = source_extra_future => {
 					process_future_result(
-						&mut eth_maybe_client,
-						eth_client,
-						eth_receipts,
-						|(header, receipts)| eth_sync.headers_mut().receipts_response(&header, receipts),
-						&mut eth_go_offline_future,
-						|eth_client| delay(CONNECTION_ERROR_DELAY_MS, eth_client),
-						"Error retrieving transactions receipts from Ethereum node",
+						&mut source_maybe_client,
+						source_client,
+						source_extra,
+						|(header, extra)| sync.headers_mut().extra_response(&header, extra),
+						&mut source_go_offline_future,
+						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|| format!("Error retrieving extra data from {} node", P::source_name()),
 					);
 				},
-				eth_client = eth_go_offline_future => {
-					eth_maybe_client = Some(eth_client);
+				source_client = source_go_offline_future => {
+					source_maybe_client = Some(source_client);
 				},
-				_ = eth_tick_stream.next() => {
-					if eth_sync.is_almost_synced() {
-						eth_best_block_number_required = true;
+				_ = source_tick_stream.next() => {
+					if sync.is_almost_synced() {
+						source_best_block_number_required = true;
 					}
 				},
-				(sub_client, sub_best_block) = sub_best_block_future => {
-					sub_best_block_required = false;
+				(target_client, target_best_block) = target_best_block_future => {
+					target_best_block_required = false;
 
 					process_future_result(
-						&mut sub_maybe_client,
-						sub_client,
-						sub_best_block,
-						|sub_best_block| {
-							let head_updated = eth_sync.substrate_best_header_response(sub_best_block);
+						&mut target_maybe_client,
+						target_client,
+						target_best_block,
+						|target_best_block| {
+							let head_updated = sync.target_best_header_response(target_best_block);
 							match head_updated {
 								// IF head is updated AND there are still our transactions:
 								// => restart stall countdown timer
-								true if eth_sync.headers().headers_in_status(EthereumHeaderStatus::Submitted) != 0 =>
+								true if sync.headers().headers_in_status(HeaderStatus::Submitted) != 0 =>
 									stall_countdown = Some(std::time::Instant::now()),
 								// IF head is updated AND there are no our transactions:
 								// => stop stall countdown timer
@@ -240,103 +214,101 @@ pub fn run(params: EthereumSyncParams) {
 								false => {
 									log::info!(
 										target: "bridge",
-										"Possible Substrate fork detected. Restarting Ethereum headers synchronization.",
+										"Possible {} fork detected. Restarting Ethereum headers synchronization.",
+										P::target_name(),
 									);
 									stall_countdown = None;
-									eth_sync.restart();
+									sync.restart();
 								},
 							}
 						},
-						&mut sub_go_offline_future,
-						|sub_client| delay(CONNECTION_ERROR_DELAY_MS, sub_client),
-						"Error retrieving best known header from Substrate node",
+						&mut target_go_offline_future,
+						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|| format!("Error retrieving best known header from {} node", P::target_name()),
 					);
 				},
-				(sub_client, sub_existence_status) = sub_existence_status_future => {
+				(target_client, target_existence_status) = target_existence_status_future => {
 					process_future_result(
-						&mut sub_maybe_client,
-						sub_client,
-						sub_existence_status,
-						|(sub_header, sub_existence_status)| eth_sync
+						&mut target_maybe_client,
+						target_client,
+						target_existence_status,
+						|(target_header, target_existence_status)| sync
 							.headers_mut()
-							.maybe_orphan_response(&sub_header, sub_existence_status),
-						&mut sub_go_offline_future,
-						|sub_client| delay(CONNECTION_ERROR_DELAY_MS, sub_client),
-						"Error retrieving existence status from Substrate node",
+							.maybe_orphan_response(&target_header, target_existence_status),
+						&mut target_go_offline_future,
+						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|| format!("Error retrieving existence status from {} node", P::target_name()),
 					);
 				},
-				(sub_client, sub_submit_header_result) = sub_submit_header_future => {
+				(target_client, target_submit_header_result) = target_submit_header_future => {
 					process_future_result(
-						&mut sub_maybe_client,
-						sub_client,
-						sub_submit_header_result,
-						|(_, submitted_headers)| eth_sync.headers_mut().headers_submitted(submitted_headers),
-						&mut sub_go_offline_future,
-						|sub_client| delay(CONNECTION_ERROR_DELAY_MS, sub_client),
-						"Error submitting headers to Substrate node",
+						&mut target_maybe_client,
+						target_client,
+						target_submit_header_result,
+						|submitted_headers| sync.headers_mut().headers_submitted(submitted_headers),
+						&mut target_go_offline_future,
+						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|| format!("Error submitting headers to {} node", P::target_name()),
 					);
 				},
-				(sub_client, sub_receipts_check_result) = sub_receipts_check_future => {
-					// we can minimize number of receipts_check calls by checking header
-					// logs bloom here, but it may give us false positives (when authorities
-					// source is contract, we never need any logs)
+				(target_client, target_extra_check_result) = target_extra_check_future => {
 					process_future_result(
-						&mut sub_maybe_client,
-						sub_client,
-						sub_receipts_check_result,
-						|(header, receipts_check_result)| eth_sync
+						&mut target_maybe_client,
+						target_client,
+						target_extra_check_result,
+						|(header, extra_check_result)| sync
 							.headers_mut()
-							.maybe_receipts_response(&header, receipts_check_result),
-						&mut sub_go_offline_future,
-						|sub_client| delay(CONNECTION_ERROR_DELAY_MS, sub_client),
-						"Error retrieving receipts requirement from Substrate node",
+							.maybe_extra_response(&header, extra_check_result),
+						&mut target_go_offline_future,
+						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|| format!("Error retrieving receipts requirement from {} node", P::target_name()),
 					);
 				},
-				sub_client = sub_go_offline_future => {
-					sub_maybe_client = Some(sub_client);
+				target_client = target_go_offline_future => {
+					target_maybe_client = Some(target_client);
 				},
-				_ = sub_tick_stream.next() => {
-					sub_best_block_required = true;
+				_ = target_tick_stream.next() => {
+					target_best_block_required = true;
 				},
 			}
 
 			// print progress
-			progress_context = print_progress(progress_context, &eth_sync);
+			progress_context = print_sync_progress(progress_context, &sync);
 
-			// if client is available: wait, or call Substrate RPC methods
-			if let Some(sub_client) = sub_maybe_client.take() {
+			// if target client is available: wait, or call required target methods
+			if let Some(target_client) = target_maybe_client.take() {
 				// the priority is to:
 				// 1) get best block - it stops us from downloading/submitting new blocks + we call it rarely;
-				// 2) check transactions receipts - it stops us from downloading/submitting new blocks;
+				// 2) check if we need extra data from source - it stops us from downloading/submitting new blocks;
 				// 3) check existence - it stops us from submitting new blocks;
 				// 4) submit header
 
-				if sub_best_block_required {
-					log::debug!(target: "bridge", "Asking Substrate about best block");
-					sub_best_block_future.set(substrate_client::best_ethereum_block(sub_client).fuse());
-				} else if let Some(header) = eth_sync.headers().header(EthereumHeaderStatus::MaybeReceipts) {
+				if target_best_block_required {
+					log::debug!(target: "bridge", "Asking {} about best block", P::target_name());
+					target_best_block_future.set(target_client.best_header_id().fuse());
+				} else if let Some(header) = sync.headers().header(HeaderStatus::MaybeExtra) {
 					log::debug!(
 						target: "bridge",
-						"Checking if header submission requires receipts: {:?}",
+						"Checking if header submission requires extra: {:?}",
 						header.id(),
 					);
 
-					let header = header.clone();
-					sub_receipts_check_future
-						.set(substrate_client::ethereum_receipts_required(sub_client, header).fuse());
-				} else if let Some(header) = eth_sync.headers().header(EthereumHeaderStatus::MaybeOrphan) {
+					target_extra_check_future
+						.set(target_client.requires_extra(header).fuse());
+				} else if let Some(header) = sync.headers().header(HeaderStatus::MaybeOrphan) {
 					// for MaybeOrphan we actually ask for parent' header existence
 					let parent_id = header.parent_id();
 
 					log::debug!(
 						target: "bridge",
-						"Asking Substrate node for existence of: {:?}",
+						"Asking {} node for existence of: {:?}",
+						P::target_name(),
 						parent_id,
 					);
 
-					sub_existence_status_future
-						.set(substrate_client::ethereum_header_known(sub_client, parent_id).fuse());
-				} else if let Some(headers) = eth_sync.select_headers_to_submit() {
+					target_existence_status_future
+						.set(target_client.is_known_header(parent_id).fuse());
+				} else if let Some(headers) = sync.select_headers_to_submit() {
 					let ids = match headers.len() {
 						1 => format!("{:?}", headers[0].id()),
 						2 => format!("[{:?}, {:?}]", headers[0].id(), headers[1].id()),
@@ -344,103 +316,83 @@ pub fn run(params: EthereumSyncParams) {
 					};
 					log::debug!(
 						target: "bridge",
-						"Submitting {} header(s) to Substrate node: {:?}",
+						"Submitting {} header(s) to {} node: {:?}",
 						headers.len(),
+						P::target_name(),
 						ids,
 					);
 
 					let headers = headers.into_iter().cloned().collect();
-					sub_submit_header_future.set(substrate_client::submit_ethereum_headers(sub_client, headers).fuse());
+					target_submit_header_future.set(
+						target_client.submit_headers(headers).fuse()
+					);
 
 					// remember that we have submitted some headers
 					if stall_countdown.is_none() {
 						stall_countdown = Some(std::time::Instant::now());
 					}
 				} else {
-					sub_maybe_client = Some(sub_client);
+					target_maybe_client = Some(target_client);
 				}
 			}
 
-			// if client is available: wait, or call Ethereum RPC methods
-			if let Some(eth_client) = eth_maybe_client.take() {
+			// if source client is available: wait, or call required source methods
+			if let Some(source_client) = source_maybe_client.take() {
 				// the priority is to:
 				// 1) get best block - it stops us from downloading new blocks + we call it rarely;
-				// 2) check transactions receipts - it stops us from downloading/submitting new blocks;
-				// 3) check existence - it stops us from submitting new blocks;
-				// 4) submit header
+				// 2) download extra data - it stops us from submitting new blocks;
+				// 3) download missing headers - it stops us from downloading/submitting new blocks;
+				// 4) downloading new headers
 
-				if eth_best_block_number_required {
-					log::debug!(target: "bridge", "Asking Ethereum node about best block number");
-					eth_best_block_number_future.set(ethereum_client::best_block_number(eth_client).fuse());
-				} else if let Some(header) = eth_sync.headers().header(EthereumHeaderStatus::Receipts) {
+				if source_best_block_number_required {
+					log::debug!(target: "bridge", "Asking {} node about best block number", P::source_name());
+					source_best_block_number_future.set(source_client.best_block_number().fuse());
+				} else if let Some(header) = sync.headers().header(HeaderStatus::Extra) {
 					let id = header.id();
 					log::debug!(
 						target: "bridge",
-						"Retrieving receipts for header: {:?}",
+						"Retrieving extra data for header: {:?}",
 						id,
 					);
-					eth_receipts_future.set(
-						ethereum_client::transactions_receipts(eth_client, id, header.header().transactions.clone())
-							.fuse(),
+					source_extra_future.set(
+						source_client.header_extra(id, header.header()).fuse(),
 					);
-				} else if let Some(header) = eth_sync.headers().header(EthereumHeaderStatus::Orphan) {
+				} else if let Some(header) = sync.headers().header(HeaderStatus::Orphan) {
 					// for Orphan we actually ask for parent' header
 					let parent_id = header.parent_id();
 
 					log::debug!(
 						target: "bridge",
-						"Going to download orphan header from Ethereum node: {:?}",
+						"Going to download orphan header from {} node: {:?}",
+						P::source_name(),
 						parent_id,
 					);
 
-					eth_orphan_header_future.set(ethereum_client::header_by_hash(eth_client, parent_id.1).fuse());
-				} else if let Some(id) = eth_sync.select_new_header_to_download() {
+					source_orphan_header_future.set(source_client.header_by_hash(parent_id.1).fuse());
+				} else if let Some(id) = sync.select_new_header_to_download() {
 					log::debug!(
 						target: "bridge",
-						"Going to download new header from Ethereum node: {:?}",
+						"Going to download new header from {} node: {:?}",
+						P::source_name(),
 						id,
 					);
 
-					eth_new_header_future.set(ethereum_client::header_by_number(eth_client, id).fuse());
+					source_new_header_future.set(source_client.header_by_number(id).fuse());
 				} else {
-					eth_maybe_client = Some(eth_client);
+					source_maybe_client = Some(source_client);
 				}
 			}
 		}
 	});
 }
 
-fn print_progress(
-	progress_context: (std::time::Instant, Option<u64>, Option<u64>),
-	eth_sync: &crate::ethereum_sync::HeadersSync,
-) -> (std::time::Instant, Option<u64>, Option<u64>) {
-	let (prev_time, prev_best_header, prev_target_header) = progress_context;
-	let now_time = std::time::Instant::now();
-	let (now_best_header, now_target_header) = eth_sync.status();
-
-	let need_update = now_time - prev_time > std::time::Duration::from_secs(10)
-		|| match (prev_best_header, now_best_header) {
-			(Some(prev_best_header), Some(now_best_header)) => now_best_header.0.saturating_sub(prev_best_header) > 10,
-			_ => false,
-		};
-	if !need_update {
-		return (prev_time, prev_best_header, prev_target_header);
-	}
-
-	log::info!(
-		target: "bridge",
-		"Synced {:?} of {:?} headers",
-		now_best_header.map(|id| id.0),
-		now_target_header,
-	);
-	(now_time, now_best_header.clone().map(|id| id.0), *now_target_header)
-}
-
+/// Future that resolves into given value after given timeout.
 async fn delay<T>(timeout_ms: u64, retval: T) -> T {
 	async_std::task::sleep(std::time::Duration::from_millis(timeout_ms)).await;
 	retval
 }
 
+/// Stream that emits item every `timeout_ms` milliseconds.
 fn interval(timeout_ms: u64) -> impl futures::Stream<Item = ()> {
 	futures::stream::unfold((), move |_| async move {
 		delay(timeout_ms, ()).await;
@@ -448,6 +400,7 @@ fn interval(timeout_ms: u64) -> impl futures::Stream<Item = ()> {
 	})
 }
 
+/// Process result of the future that may have been caused by connection failure.
 fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
 	maybe_client: &mut Option<TClient>,
 	client: TClient,
@@ -455,7 +408,7 @@ fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
 	on_success: impl FnOnce(TResult),
 	go_offline_future: &mut std::pin::Pin<&mut futures::future::Fuse<TGoOfflineFuture>>,
 	go_offline: impl FnOnce(TClient) -> TGoOfflineFuture,
-	error_pattern: &'static str,
+	error_pattern: impl FnOnce() -> String,
 ) where
 	TError: std::fmt::Debug + MaybeConnectionError,
 	TGoOfflineFuture: FutureExt,
@@ -472,7 +425,35 @@ fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
 				*maybe_client = Some(client);
 			}
 
-			log::error!(target: "bridge", "{}: {:?}", error_pattern, error);
+			log::error!(target: "bridge", "{}: {:?}", error_pattern(), error);
 		}
 	}
+}
+
+/// Print synchronization progress.
+fn print_sync_progress<P: HeadersSyncPipeline>(
+	progress_context: (std::time::Instant, Option<P::Number>, Option<P::Number>),
+	eth_sync: &crate::sync::HeadersSync<P>,
+) -> (std::time::Instant, Option<P::Number>, Option<P::Number>) {
+	let (prev_time, prev_best_header, prev_target_header) = progress_context;
+	let now_time = std::time::Instant::now();
+	let (now_best_header, now_target_header) = eth_sync.status();
+
+	let need_update = now_time - prev_time > std::time::Duration::from_secs(10)
+		|| match (prev_best_header, now_best_header) {
+			(Some(prev_best_header), Some(now_best_header)) =>
+				now_best_header.0.saturating_sub(prev_best_header) > 10.into(),
+			_ => false,
+		};
+	if !need_update {
+		return (prev_time, prev_best_header, prev_target_header);
+	}
+
+	log::info!(
+		target: "bridge",
+		"Synced {:?} of {:?} headers",
+		now_best_header.map(|id| id.0),
+		now_target_header,
+	);
+	(now_time, now_best_header.clone().map(|id| id.0), *now_target_header)
 }

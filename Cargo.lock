@@ -1045,6 +1045,7 @@ dependencies = [
  "linked-hash-map",
  "log 0.4.8",
  "node-primitives",
+ "num-traits",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "parking_lot 0.10.0",
