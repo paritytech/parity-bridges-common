@@ -16,6 +16,7 @@
 
 use crate::ethereum_client;
 use crate::substrate_client;
+use crate::sync::HeadersSyncParams;
 use futures::future::FutureExt;
 use parity_crypto::publickey::KeyPair;
 
@@ -31,17 +32,8 @@ pub struct SubstrateSyncParams {
 	pub sub_host: String,
 	/// Substrate RPC port.
 	pub sub_port: u16,
-	/// Maximal number of ethereum headers to pre-download.
-	pub max_future_headers_to_download: usize,
-	/// Maximal number of active (we believe) submit header transactions.
-	pub max_headers_in_submitted_status: usize,
-	/// Maximal number of headers in single submit request.
-	pub max_headers_in_single_submit: usize,
-	/// Maximal total headers size in single submit request.
-	pub max_headers_size_in_single_submit: usize,
-	/// We only may store and accept (from Ethereum node) headers that have
-	/// number >= than best_substrate_header.number - prune_depth.
-	pub prune_depth: u64,
+	/// Synchronization parameters.
+	pub sync_params: HeadersSyncParams,
 }
 
 impl Default for SubstrateSyncParams {
@@ -59,32 +51,113 @@ impl Default for SubstrateSyncParams {
 			).expect("secret is hardcoded, thus valid; qed"),
 			sub_host: "localhost".into(),
 			sub_port: 9933,
-			max_future_headers_to_download: 128,
-			max_headers_in_submitted_status: 128,
-			max_headers_in_single_submit: 32,
-			max_headers_size_in_single_submit: 131_072,
-			prune_depth: 4096,
+			sync_params: Default::default(),
 		}
 	}
 }
 
 /// Run Substrate headers synchronization.
 pub fn run(params: SubstrateSyncParams) {
-	let mut local_pool = futures::executor::LocalPool::new();
-//	let mut progress_context = (std::time::Instant::now(), None, None);
+/*	let mut local_pool = futures::executor::LocalPool::new();
+	let mut progress_context = (std::time::Instant::now(), None, None);
 
 	local_pool.run_until(async move {
 		let eth_uri = format!("http://{}:{}", params.eth_host, params.eth_port);
 		let sub_uri = format!("http://{}:{}", params.sub_host, params.sub_port);
 
-		let _eth_best_block_number_future = ethereum_client::best_block_number(ethereum_client::client(&eth_uri)).fuse();
+		let mut sub_sync = crate::sync::HeadersSync::new(params.sync_params);
+		let mut stall_countdown = None;
 
-		let _sub_best_block_future =
+		let mut eth_maybe_client = None;
+		let mut eth_best_block_number_required = false;
+		let eth_best_block_number_future = ethereum_client::best_block_number(ethereum_client::client(&eth_uri)).fuse();
+		let eth_tick_stream = interval(ETHEREUM_TICK_INTERVAL_MS).fuse();
+
+		let mut sub_maybe_client = None;
+		let mut sub_best_block_required = false;
+		let sub_best_block_future =
 			substrate_client::best_ethereum_block(substrate_client::client(&sub_uri)).fuse();
+		let sub_tick_stream = interval(SUBSTRATE_TICK_INTERVAL_MS).fuse();
+
+		futures::pin_mut!(
+			eth_best_block_number_future,
+			eth_tick_stream,
+			sub_best_block_future,
+			sub_tick_stream
+		);
 
 		loop {
+			futures::select! {
+				(eth_client, eth_best_block_number) = eth_best_block_number_future => {
+					eth_best_block_number_required = false;
 
+					process_future_result(
+						&mut eth_maybe_client,
+						eth_client,
+						eth_best_block_number,
+						|eth_best_block_number| eth_sync.source_best_header_number_response(eth_best_block_number),
+						&mut eth_go_offline_future,
+						|eth_client| delay(CONNECTION_ERROR_DELAY_MS, eth_client),
+						"Error retrieving best header number from Ethereum number",
+					);
+				},
+				eth_client = eth_go_offline_future => {
+					eth_maybe_client = Some(eth_client);
+				},
+				_ = eth_tick_stream.next() => {
+					if eth_sync.is_almost_synced() {
+						eth_best_block_number_required = true;
+					}
+				},
+				(sub_client, sub_best_block) = sub_best_block_future => {
+					sub_best_block_required = false;
+
+					process_future_result(
+						&mut sub_maybe_client,
+						sub_client,
+						sub_best_block,
+						|sub_best_block| {
+							let head_updated = eth_sync.target_best_header_response(sub_best_block);
+							match head_updated {
+								// IF head is updated AND there are still our transactions:
+								// => restart stall countdown timer
+								true if eth_sync.headers().headers_in_status(EthereumHeaderStatus::Submitted) != 0 =>
+									stall_countdown = Some(std::time::Instant::now()),
+								// IF head is updated AND there are no our transactions:
+								// => stop stall countdown timer
+								true => stall_countdown = None,
+								// IF head is not updated AND stall countdown is not yet completed
+								// => do nothing
+								false if stall_countdown
+									.map(|stall_countdown| std::time::Instant::now() - stall_countdown <
+										std::time::Duration::from_millis(STALL_SYNC_TIMEOUT_MS))
+									.unwrap_or(true)
+									=> (),
+								// IF head is not updated AND stall countdown has completed
+								// => restart sync
+								false => {
+									log::info!(
+										target: "bridge",
+										"Possible Substrate fork detected. Restarting Ethereum headers synchronization.",
+									);
+									stall_countdown = None;
+									eth_sync.restart();
+								},
+							}
+						},
+						&mut sub_go_offline_future,
+						|sub_client| delay(CONNECTION_ERROR_DELAY_MS, sub_client),
+						"Error retrieving best known header from Substrate node",
+					);
+				},
+				sub_client = sub_go_offline_future => {
+					sub_maybe_client = Some(sub_client);
+				},
+				_ = sub_tick_stream.next() => {
+					sub_best_block_required = true;
+				},
+			}
 		}
-	});
+	});*/
 }
 

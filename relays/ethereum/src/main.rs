@@ -24,6 +24,7 @@ mod substrate_client;
 mod substrate_sync_loop;
 mod substrate_types;
 mod sync;
+mod sync_loop;
 mod sync_types;
 mod utils;
 

@@ -16,7 +16,7 @@
 
 use crate::ethereum_types::{Bytes, EthereumHeaderId, H256, QueuedEthereumHeader};
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts, TransactionHash};
-use crate::sync_types::HeaderId;
+use crate::sync_types::{HeaderId, SourceHeader};
 use crate::utils::MaybeConnectionError;
 use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
@@ -84,7 +84,7 @@ pub async fn ethereum_receipts_required(
 	client: Client,
 	header: QueuedEthereumHeader,
 ) -> (Client, Result<(EthereumHeaderId, bool), Error>) {
-	let id = header.id();
+	let id = header.header().id();
 	let header = into_substrate_ethereum_header(header.header());
 	let encoded_header = header.encode();
 	let (client, receipts_required) = call_rpc(

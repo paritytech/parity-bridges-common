@@ -46,7 +46,7 @@ pub fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
 	on_success: impl FnOnce(TResult),
 	go_offline_future: &mut std::pin::Pin<&mut futures::future::Fuse<TGoOfflineFuture>>,
 	go_offline: impl FnOnce(TClient) -> TGoOfflineFuture,
-	error_pattern: &'static str,
+	error_pattern: impl FnOnce() -> String,
 ) where
 	TError: std::fmt::Debug + MaybeConnectionError,
 	TGoOfflineFuture: FutureExt,
@@ -63,7 +63,7 @@ pub fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
 				*maybe_client = Some(client);
 			}
 
-			log::error!(target: "bridge", "{}: {:?}", error_pattern, error);
+			log::error!(target: "bridge", "{}: {:?}", error_pattern(), error);
 		}
 	}
 }

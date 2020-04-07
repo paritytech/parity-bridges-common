@@ -54,9 +54,12 @@ pub trait HeadersSyncPipeline: Clone + Copy {
 		num_traits::Saturating +
 		num_traits::Zero + num_traits::One;
 	/// Type of header that we're syncing.
-	type Header: std::fmt::Debug + SourceHeader<Self::Hash, Self::Number>;
+	type Header:
+		Clone +
+		std::fmt::Debug +
+		SourceHeader<Self::Hash, Self::Number>;
 	/// Type of extra data for the header that we're receiving from the source node.
-	type Extra: std::fmt::Debug;
+	type Extra: Clone + std::fmt::Debug;
 
 	/// Name of the headers source.
 	fn source_name() -> &'static str;

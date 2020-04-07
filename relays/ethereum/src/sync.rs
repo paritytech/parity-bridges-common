@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::headers::QueuedHeaders;
+use crate::headers::{ExtraMode, QueuedHeaders};
 use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, QueuedHeader};
 use num_traits::{One, Saturating};
 
@@ -32,6 +32,8 @@ pub struct HeadersSyncParams {
 	/// We only may store and accept (from Ethereum node) headers that have
 	/// number >= than best_substrate_header.number - prune_depth.
 	pub prune_depth: u32,
+	/// Extra data synchronization mode.
+	pub extra_mode: ExtraMode,
 }
 
 /// Headers synchronization context.
@@ -51,10 +53,10 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 	/// Creates new headers synchronizer.
 	pub fn new(params: HeadersSyncParams) -> Self {
 		HeadersSync {
+			headers: QueuedHeaders::new(params.extra_mode),
 			params,
 			source_best_number: None,
 			target_best_header: None,
-			headers: QueuedHeaders::new(),
 		}
 	}
 
@@ -193,6 +195,7 @@ impl Default for HeadersSyncParams {
 			max_headers_in_single_submit: 32,
 			max_headers_size_in_single_submit: 131_072,
 			prune_depth: 4096,
+			extra_mode: ExtraMode::PerHeader,
 		}
 	}
 }

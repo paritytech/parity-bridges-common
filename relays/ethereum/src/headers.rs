@@ -35,9 +35,23 @@ type KnownHeaders<P> = BTreeMap<
 	>,
 >;
 
+/// Extra data mode.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ExtraMode {
+	/// Extra data only affects single header. When extra data for header
+	/// is provided, we may submit this header to the target node.
+	PerHeader,
+	/// Extra data affects header and all its ancestors. When extra data
+	/// for header is provided, we may submit this header and all unsubmitted
+	/// ancestors (if they're waiting for extra data) to the target node.
+	PerChain,
+}
+
 /// Ethereum headers queue.
 #[derive(Debug)]
 pub struct QueuedHeaders<P: HeadersSyncPipeline> {
+	/// How we are trating extra data.
+	extra_mode: ExtraMode,
 	/// Headers that are received from source node, but we (native sync code) have
 	/// never seen their parents. So we need to check if we can/should submit this header.
 	maybe_orphan: HeadersQueue<P>,
@@ -65,8 +79,9 @@ pub struct QueuedHeaders<P: HeadersSyncPipeline> {
 
 impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 	/// Returns new QueuedHeaders.
-	pub fn new() -> Self {
+	pub fn new(extra_mode: ExtraMode) -> Self {
 		QueuedHeaders {
+			extra_mode,
 			maybe_orphan: HeadersQueue::new(),
 			orphan: HeadersQueue::new(),
 			maybe_extra: HeadersQueue::new(),
@@ -333,7 +348,8 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 	/// Receive extra from source node.
 	pub fn extra_response(&mut self, id: &HeaderId<P::Hash, P::Number>, extra: P::Extra) {
-		move_header(
+		// move header itself from extra to ready queue
+		let mut parent_id = move_header(
 			&mut self.extra,
 			&mut self.ready,
 			&mut self.known_headers,
@@ -341,6 +357,20 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			id,
 			|header| header.set_extra(extra),
 		);
+
+		// if extra affects all ancestors, move them from extra to ready queue
+		if self.extra_mode == ExtraMode::PerChain {
+			while let Some(current_id) = parent_id {
+				parent_id = move_header(
+					&mut self.extra,
+					&mut self.ready,
+					&mut self.known_headers,
+					HeaderStatus::Ready,
+					&current_id,
+					|header| header,
+				);
+			}
+		}
 	}
 
 	/// When header is submitted to target node.
@@ -413,6 +443,8 @@ fn remove_header<P: HeadersSyncPipeline>(
 }
 
 /// Move header from source to destination queue.
+///
+/// Returns ID of parent header, if header has been moved, or None otherwise.
 fn move_header<P: HeadersSyncPipeline>(
 	source_queue: &mut HeadersQueue<P>,
 	destination_queue: &mut HeadersQueue<P>,
@@ -420,12 +452,13 @@ fn move_header<P: HeadersSyncPipeline>(
 	destination_status: HeaderStatus,
 	id: &HeaderId<P::Hash, P::Number>,
 	prepare: impl FnOnce(QueuedHeader<P>) -> QueuedHeader<P>,
-) {
+) -> Option<HeaderId<P::Hash, P::Number>> {
 	let header = match remove_header(source_queue, id) {
 		Some(header) => prepare(header),
-		None => return,
+		None => return None,
 	};
 
+	let parent_id = header.header().parent_id();
 	known_headers.entry(id.0).or_default().insert(id.1, destination_status);
 	destination_queue.entry(id.0).or_default().insert(id.1, header);
 
@@ -436,6 +469,8 @@ fn move_header<P: HeadersSyncPipeline>(
 		id,
 		destination_status,
 	);
+
+	Some(parent_id)
 }
 
 /// Move all descendant headers from the source to destination queue.
@@ -572,7 +607,7 @@ pub(crate) mod tests {
 	#[test]
 	fn total_headers_works() {
 		// total headers just sums up number of headers in every queue
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.maybe_orphan
 			.entry(1)
@@ -609,7 +644,7 @@ pub(crate) mod tests {
 	#[test]
 	fn best_queued_number_works() {
 		// initially there are headers in MaybeOrphan queue only
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.maybe_orphan
 			.entry(1)
@@ -659,7 +694,7 @@ pub(crate) mod tests {
 	#[test]
 	fn status_works() {
 		// all headers are unknown initially
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		assert_eq!(queue.status(&id(10)), HeaderStatus::Unknown);
 		// and status is read from the KnownHeaders
 		queue
@@ -673,7 +708,7 @@ pub(crate) mod tests {
 	#[test]
 	fn header_works() {
 		// initially we have oldest header #10
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue.maybe_orphan.entry(10).or_default().insert(hash(1), header(100));
 		assert_eq!(
 			queue.header(HeaderStatus::MaybeOrphan).unwrap().header().hash.unwrap(),
@@ -696,7 +731,7 @@ pub(crate) mod tests {
 	#[test]
 	fn header_response_works() {
 		// when parent is Synced, we insert to MaybeExtra
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -706,7 +741,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeExtra);
 
 		// when parent is Ready, we insert to MaybeExtra
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -716,7 +751,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeExtra);
 
 		// when parent is Receipts, we insert to MaybeExtra
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -726,7 +761,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeExtra);
 
 		// when parent is MaybeExtra, we insert to MaybeExtra
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -736,7 +771,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeExtra);
 
 		// when parent is Orphan, we insert to Orphan
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -746,7 +781,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::Orphan);
 
 		// when parent is MaybeOrphan, we insert to MaybeOrphan
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -756,7 +791,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeOrphan);
 
 		// when parent is unknown, we insert to MaybeOrphan
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue.header_response(header(101).header().clone());
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeOrphan);
 	}
@@ -770,7 +805,7 @@ pub(crate) mod tests {
 		// #98 in MaybeExtra
 		// #97 in Receipts
 		// #96 in Ready
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -827,7 +862,7 @@ pub(crate) mod tests {
 		// #101 in Orphan
 		// #102 in MaybeOrphan
 		// #103 in Orphan
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(101)
@@ -869,7 +904,7 @@ pub(crate) mod tests {
 		// #102 in MaybeOrphan
 		// and we have asked for MaybeOrphan status of #100.parent (i.e. #99)
 		// and the response is: YES, #99 is known to the Substrate runtime
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -914,7 +949,7 @@ pub(crate) mod tests {
 		// #101 in MaybeOrphan
 		// and we have asked for MaybeOrphan status of #100.parent (i.e. #99)
 		// and the response is: NO, #99 is NOT known to the Substrate runtime
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -946,7 +981,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn positive_maybe_extra_response_works() {
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -965,7 +1000,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn negative_maybe_extra_response_works() {
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -984,7 +1019,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn receipts_response_works() {
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -999,7 +1034,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn header_submitted_works() {
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(100)
@@ -1013,7 +1048,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn prune_works() {
-		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new(ExtraMode::PerHeader);
 		queue
 			.known_headers
 			.entry(104)
