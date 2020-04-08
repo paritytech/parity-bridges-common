@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_types::{EthereumHeaderId, Header, Receipt, H256, U64};
-use crate::utils::MaybeConnectionError;
+use crate::sync_types::MaybeConnectionError;
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};

@@ -33,38 +33,44 @@ pub enum HeaderStatus {
 	Extra,
 	/// Header is in Ready queue.
 	Ready,
-	/// Header has been recently submitted to the Substrate runtime.
+	/// Header has been recently submitted to the target node.
 	Submitted,
-	/// Header is known to the Substrate runtime.
+	/// Header is known to the target node.
 	Synced,
+}
+
+/// Error type that can signal connection errors.
+pub trait MaybeConnectionError {
+	/// Returns true if error (maybe) represents connection error.
+	fn is_connection_error(&self) -> bool;
 }
 
 /// Headers synchronization pipeline.
 pub trait HeadersSyncPipeline: Clone + Copy {
-	/// Headers we're synching are identified by this hash.
-	type Hash:
-		Eq + Clone + Copy +
-		std::fmt::Debug + std::fmt::Display +
-		std::hash::Hash;
-	/// Headers we're synching are identified by this number.
-	type Number:
-		From<u32> + Ord + Clone + Copy +
-		std::fmt::Debug + std::fmt::Display +
-		std::ops::Add<Output = Self::Number> + std::ops::Sub<Output = Self::Number> +
-		num_traits::Saturating +
-		num_traits::Zero + num_traits::One;
+	/// Name of the headers source.
+	const SOURCE_NAME: &'static str;
+	/// Name of the headers target.
+	const TARGET_NAME: &'static str;
+
+	/// Headers we're syncing are identified by this hash.
+	type Hash: Eq + Clone + Copy + std::fmt::Debug + std::fmt::Display + std::hash::Hash;
+	/// Headers we're syncing are identified by this number.
+	type Number: From<u32>
+		+ Ord
+		+ Clone
+		+ Copy
+		+ std::fmt::Debug
+		+ std::fmt::Display
+		+ std::ops::Add<Output = Self::Number>
+		+ std::ops::Sub<Output = Self::Number>
+		+ num_traits::Saturating
+		+ num_traits::Zero
+		+ num_traits::One;
 	/// Type of header that we're syncing.
-	type Header:
-		Clone +
-		std::fmt::Debug +
-		SourceHeader<Self::Hash, Self::Number>;
+	type Header: Clone + std::fmt::Debug + SourceHeader<Self::Hash, Self::Number>;
 	/// Type of extra data for the header that we're receiving from the source node.
 	type Extra: Clone + std::fmt::Debug;
 
-	/// Name of the headers source.
-	fn source_name() -> &'static str;
-	/// Name of the headers target.
-	fn target_name() -> &'static str;
 	/// Function used to convert from queued header to target header.
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize;
 }
@@ -75,12 +81,6 @@ pub trait SourceHeader<Hash, Number> {
 	fn id(&self) -> HeaderId<Hash, Number>;
 	/// Returns ID of parent header.
 	fn parent_id(&self) -> HeaderId<Hash, Number>;
-}
-
-/// Header that we're submitting to target node.
-pub trait TargetHeader {
-	/// Size of the header in bytes.
-	fn size(&self) -> usize;
 }
 
 /// Header how it's stored in the synchronization queue.

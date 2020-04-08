@@ -17,34 +17,17 @@
 use crate::ethereum_client;
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
 use crate::substrate_client;
-use crate::sync::HeadersSyncParams;
+use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
-use std::{future::Future, pin::Pin};
 use futures::future::FutureExt;
-pub use web3::types::H256;
-
-// TODO: when SharedClient will be available, switch to Substrate headers subscription
-// (because we do not need old Substrate headers)
+use std::{future::Future, pin::Pin};
+use web3::types::H256;
 
 /// Interval (in ms) at which we check new Ethereum headers when we are synced/almost synced.
 const ETHEREUM_TICK_INTERVAL_MS: u64 = 10_000;
 /// Interval (in ms) at which we check new Substrate blocks.
 const SUBSTRATE_TICK_INTERVAL_MS: u64 = 5_000;
-/*/// When we submit Ethereum headers to Substrate runtime, but see no updates of best
-/// Ethereum block known to Substrate runtime during STALL_SYNC_TIMEOUT_MS milliseconds,
-/// we consider that our headers are rejected because there has been reorg in Substrate.
-/// This reorg could invalidate our knowledge about sync process (i.e. we have asked if
-/// HeaderA is known to Substrate, but then reorg happened and the answer is different
-/// now) => we need to reset sync.
-/// The other option is to receive **EVERY** best Substrate header and check if it is
-/// direct child of previous best header. But: (1) subscription doesn't guarantee that
-/// the subscriber will receive every best header (2) reorg won't always lead to sync
-/// stall and restart is a heavy operation (we forget all in-memory headers).
-const STALL_SYNC_TIMEOUT_MS: u64 = 30_000;
-/// Delay (in milliseconds) after connection-related error happened before we'll try
-/// reconnection again.
-const CONNECTION_ERROR_DELAY_MS: u64 = 10_000;
-*/
+
 /// Ethereum synchronization parameters.
 pub struct EthereumSyncParams {
 	/// Ethereum RPC host.
@@ -130,6 +113,8 @@ struct SubstrateHeadersTarget {
 	client: substrate_client::Client,
 	/// Substrate transactions signer.
 	signer: sp_core::sr25519::Pair,
+	/// Whether we want to submit signed (true), or unsigned (false) transactions.
+	sign_transactions: bool,
 }
 
 impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
@@ -140,16 +125,34 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<Vec<EthereumHeaderId>, Self::Error>)>>>;
 
 	fn best_header_id(self) -> Self::BestHeaderIdFuture {
-		let signer = self.signer;
+		let (signer, sign_transactions) = (self.signer, self.sign_transactions);
 		substrate_client::best_ethereum_block(self.client)
-			.map(move |(client, result)| (SubstrateHeadersTarget { client, signer }, result))
+			.map(move |(client, result)| {
+				(
+					SubstrateHeadersTarget {
+						client,
+						signer,
+						sign_transactions,
+					},
+					result,
+				)
+			})
 			.boxed()
 	}
 
 	fn is_known_header(self, id: EthereumHeaderId) -> Self::IsKnownHeaderFuture {
-		let signer = self.signer;
+		let (signer, sign_transactions) = (self.signer, self.sign_transactions);
 		substrate_client::ethereum_header_known(self.client, id)
-			.map(move |(client, result)| (SubstrateHeadersTarget { client, signer }, result))
+			.map(move |(client, result)| {
+				(
+					SubstrateHeadersTarget {
+						client,
+						signer,
+						sign_transactions,
+					},
+					result,
+				)
+			})
 			.boxed()
 	}
 
@@ -157,19 +160,34 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 		// we can minimize number of receipts_check calls by checking header
 		// logs bloom here, but it may give us false positives (when authorities
 		// source is contract, we never need any logs)
-		let signer = self.signer;
+		let (signer, sign_transactions) = (self.signer, self.sign_transactions);
 		substrate_client::ethereum_receipts_required(self.client, header.clone())
-			.map(move |(client, result)| (SubstrateHeadersTarget { client, signer }, result))
+			.map(move |(client, result)| {
+				(
+					SubstrateHeadersTarget {
+						client,
+						signer,
+						sign_transactions,
+					},
+					result,
+				)
+			})
 			.boxed()
 	}
 
 	fn submit_headers(self, headers: Vec<QueuedEthereumHeader>) -> Self::SubmitHeadersFuture {
-		let signer = self.signer;
-		substrate_client::submit_ethereum_headers(self.client, signer.clone(), headers)
-			.map(move |(client, result)| (
-				SubstrateHeadersTarget { client, signer },
-				result.map(|(_, submitted_headers)| submitted_headers), // TODO: print tx hashes???
-			))
+		let (signer, sign_transactions) = (self.signer, self.sign_transactions);
+		substrate_client::submit_ethereum_headers(self.client, signer.clone(), headers, sign_transactions)
+			.map(move |(client, result)| {
+				(
+					SubstrateHeadersTarget {
+						client,
+						signer,
+						sign_transactions,
+					},
+					result.map(|(_, submitted_headers)| submitted_headers),
+				)
+			})
 			.boxed()
 	}
 }
@@ -182,11 +200,19 @@ pub fn run(params: EthereumSyncParams) {
 	let sub_uri = format!("http://{}:{}", params.sub_host, params.sub_port);
 	let sub_client = substrate_client::client(&sub_uri);
 	let sub_signer = params.sub_signer;
+	let sign_sub_transactions = match params.sync_params.target_tx_mode {
+		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,
+		TargetTransactionMode::Unsigned => false,
+	};
 
 	crate::sync_loop::run(
 		EthereumHeadersSource { client: eth_client },
 		ETHEREUM_TICK_INTERVAL_MS,
-		SubstrateHeadersTarget { client: sub_client, signer: sub_signer },
+		SubstrateHeadersTarget {
+			client: sub_client,
+			signer: sub_signer,
+			sign_transactions: sign_sub_transactions,
+		},
 		SUBSTRATE_TICK_INTERVAL_MS,
 		params.sync_params,
 	);

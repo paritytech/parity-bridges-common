@@ -15,22 +15,25 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::sync::HeadersSyncParams;
-use crate::sync_types::{HeadersSyncPipeline, HeaderId, HeaderStatus, QueuedHeader};
-use crate::utils::{MaybeConnectionError, delay, interval, print_sync_progress, process_future_result};
-use std::future::Future;
+use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader};
 use futures::{future::FutureExt, stream::StreamExt};
+use num_traits::Saturating;
+use std::future::Future;
 
-/// When we submit Ethereum headers to Substrate runtime, but see no updates of best
-/// Ethereum block known to Substrate runtime during STALL_SYNC_TIMEOUT_MS milliseconds,
-/// we consider that our headers are rejected because there has been reorg in Substrate.
+/// When we submit headers to target node, but see no updates of best
+/// source block known to target node during STALL_SYNC_TIMEOUT_MS milliseconds,
+/// we consider that our headers are rejected because there has been reorg in target chain.
 /// This reorg could invalidate our knowledge about sync process (i.e. we have asked if
-/// HeaderA is known to Substrate, but then reorg happened and the answer is different
+/// HeaderA is known to target, but then reorg happened and the answer is different
 /// now) => we need to reset sync.
-/// The other option is to receive **EVERY** best Substrate header and check if it is
+/// The other option is to receive **EVERY** best target header and check if it is
 /// direct child of previous best header. But: (1) subscription doesn't guarantee that
 /// the subscriber will receive every best header (2) reorg won't always lead to sync
 /// stall and restart is a heavy operation (we forget all in-memory headers).
 const STALL_SYNC_TIMEOUT_MS: u64 = 30_000;
+/// Delay (in milliseconds) after we have seen update of best source header at target node,
+/// for us to treat sync stalled. ONLY when relay operates in backup mode.
+const BACKUP_STALL_SYNC_TIMEOUT_MS: u64 = 5 * 60_000;
 /// Delay (in milliseconds) after connection-related error happened before we'll try
 /// reconnection again.
 const CONNECTION_ERROR_DELAY_MS: u64 = 10_000;
@@ -95,6 +98,7 @@ pub fn run<P: HeadersSyncPipeline>(
 	local_pool.run_until(async move {
 		let mut sync = crate::sync::HeadersSync::<P>::new(sync_params);
 		let mut stall_countdown = None;
+		let mut last_update_time = std::time::Instant::now();
 
 		let mut source_maybe_client = None;
 		let mut source_best_block_number_required = false;
@@ -141,7 +145,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|source_best_block_number| sync.source_best_header_number_response(source_best_block_number),
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
-						|| format!("Error retrieving best header number from {}", P::source_name()),
+						|| format!("Error retrieving best header number from {}", P::SOURCE_NAME),
 					);
 				},
 				(source_client, source_new_header) = source_new_header_future => {
@@ -152,7 +156,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|source_new_header| sync.headers_mut().header_response(source_new_header),
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
-						|| format!("Error retrieving header from {} node", P::source_name()),
+						|| format!("Error retrieving header from {} node", P::SOURCE_NAME),
 					);
 				},
 				(source_client, source_orphan_header) = source_orphan_header_future => {
@@ -163,7 +167,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|source_orphan_header| sync.headers_mut().header_response(source_orphan_header),
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
-						|| format!("Error retrieving orphan header from {} node", P::source_name()),
+						|| format!("Error retrieving orphan header from {} node", P::SOURCE_NAME),
 					);
 				},
 				(source_client, source_extra) = source_extra_future => {
@@ -174,7 +178,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|(header, extra)| sync.headers_mut().extra_response(&header, extra),
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
-						|| format!("Error retrieving extra data from {} node", P::source_name()),
+						|| format!("Error retrieving extra data from {} node", P::SOURCE_NAME),
 					);
 				},
 				source_client = source_go_offline_future => {
@@ -194,6 +198,9 @@ pub fn run<P: HeadersSyncPipeline>(
 						target_best_block,
 						|target_best_block| {
 							let head_updated = sync.target_best_header_response(target_best_block);
+							if head_updated {
+								last_update_time = std::time::Instant::now();
+							}
 							match head_updated {
 								// IF head is updated AND there are still our transactions:
 								// => restart stall countdown timer
@@ -214,8 +221,9 @@ pub fn run<P: HeadersSyncPipeline>(
 								false => {
 									log::info!(
 										target: "bridge",
-										"Possible {} fork detected. Restarting Ethereum headers synchronization.",
-										P::target_name(),
+										"Possible {} fork detected. Restarting {} headers synchronization.",
+										P::TARGET_NAME,
+										P::SOURCE_NAME,
 									);
 									stall_countdown = None;
 									sync.restart();
@@ -224,7 +232,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						},
 						&mut target_go_offline_future,
 						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
-						|| format!("Error retrieving best known header from {} node", P::target_name()),
+						|| format!("Error retrieving best known header from {} node", P::TARGET_NAME),
 					);
 				},
 				(target_client, target_existence_status) = target_existence_status_future => {
@@ -237,7 +245,7 @@ pub fn run<P: HeadersSyncPipeline>(
 							.maybe_orphan_response(&target_header, target_existence_status),
 						&mut target_go_offline_future,
 						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
-						|| format!("Error retrieving existence status from {} node", P::target_name()),
+						|| format!("Error retrieving existence status from {} node", P::TARGET_NAME),
 					);
 				},
 				(target_client, target_submit_header_result) = target_submit_header_future => {
@@ -248,7 +256,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						|submitted_headers| sync.headers_mut().headers_submitted(submitted_headers),
 						&mut target_go_offline_future,
 						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
-						|| format!("Error submitting headers to {} node", P::target_name()),
+						|| format!("Error submitting headers to {} node", P::TARGET_NAME),
 					);
 				},
 				(target_client, target_extra_check_result) = target_extra_check_future => {
@@ -261,7 +269,7 @@ pub fn run<P: HeadersSyncPipeline>(
 							.maybe_extra_response(&header, extra_check_result),
 						&mut target_go_offline_future,
 						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
-						|| format!("Error retrieving receipts requirement from {} node", P::target_name()),
+						|| format!("Error retrieving receipts requirement from {} node", P::TARGET_NAME),
 					);
 				},
 				target_client = target_go_offline_future => {
@@ -284,7 +292,7 @@ pub fn run<P: HeadersSyncPipeline>(
 				// 4) submit header
 
 				if target_best_block_required {
-					log::debug!(target: "bridge", "Asking {} about best block", P::target_name());
+					log::debug!(target: "bridge", "Asking {} about best block", P::TARGET_NAME);
 					target_best_block_future.set(target_client.best_header_id().fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::MaybeExtra) {
 					log::debug!(
@@ -293,8 +301,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						header.id(),
 					);
 
-					target_extra_check_future
-						.set(target_client.requires_extra(header).fuse());
+					target_extra_check_future.set(target_client.requires_extra(header).fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::MaybeOrphan) {
 					// for MaybeOrphan we actually ask for parent' header existence
 					let parent_id = header.parent_id();
@@ -302,13 +309,14 @@ pub fn run<P: HeadersSyncPipeline>(
 					log::debug!(
 						target: "bridge",
 						"Asking {} node for existence of: {:?}",
-						P::target_name(),
+						P::TARGET_NAME,
 						parent_id,
 					);
 
-					target_existence_status_future
-						.set(target_client.is_known_header(parent_id).fuse());
-				} else if let Some(headers) = sync.select_headers_to_submit() {
+					target_existence_status_future.set(target_client.is_known_header(parent_id).fuse());
+				} else if let Some(headers) = sync.select_headers_to_submit(
+					last_update_time.elapsed() > std::time::Duration::from_millis(BACKUP_STALL_SYNC_TIMEOUT_MS),
+				) {
 					let ids = match headers.len() {
 						1 => format!("{:?}", headers[0].id()),
 						2 => format!("[{:?}, {:?}]", headers[0].id(), headers[1].id()),
@@ -318,14 +326,12 @@ pub fn run<P: HeadersSyncPipeline>(
 						target: "bridge",
 						"Submitting {} header(s) to {} node: {:?}",
 						headers.len(),
-						P::target_name(),
+						P::TARGET_NAME,
 						ids,
 					);
 
 					let headers = headers.into_iter().cloned().collect();
-					target_submit_header_future.set(
-						target_client.submit_headers(headers).fuse()
-					);
+					target_submit_header_future.set(target_client.submit_headers(headers).fuse());
 
 					// remember that we have submitted some headers
 					if stall_countdown.is_none() {
@@ -345,7 +351,7 @@ pub fn run<P: HeadersSyncPipeline>(
 				// 4) downloading new headers
 
 				if source_best_block_number_required {
-					log::debug!(target: "bridge", "Asking {} node about best block number", P::source_name());
+					log::debug!(target: "bridge", "Asking {} node about best block number", P::SOURCE_NAME);
 					source_best_block_number_future.set(source_client.best_block_number().fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::Extra) {
 					let id = header.id();
@@ -354,9 +360,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						"Retrieving extra data for header: {:?}",
 						id,
 					);
-					source_extra_future.set(
-						source_client.header_extra(id, header.header()).fuse(),
-					);
+					source_extra_future.set(source_client.header_extra(id, header.header()).fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::Orphan) {
 					// for Orphan we actually ask for parent' header
 					let parent_id = header.parent_id();
@@ -364,7 +368,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					log::debug!(
 						target: "bridge",
 						"Going to download orphan header from {} node: {:?}",
-						P::source_name(),
+						P::SOURCE_NAME,
 						parent_id,
 					);
 
@@ -373,7 +377,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					log::debug!(
 						target: "bridge",
 						"Going to download new header from {} node: {:?}",
-						P::source_name(),
+						P::SOURCE_NAME,
 						id,
 					);
 
@@ -386,3 +390,75 @@ pub fn run<P: HeadersSyncPipeline>(
 	});
 }
 
+/// Future that resolves into given value after given timeout.
+async fn delay<T>(timeout_ms: u64, retval: T) -> T {
+	async_std::task::sleep(std::time::Duration::from_millis(timeout_ms)).await;
+	retval
+}
+
+/// Stream that emits item every `timeout_ms` milliseconds.
+fn interval(timeout_ms: u64) -> impl futures::Stream<Item = ()> {
+	futures::stream::unfold((), move |_| async move {
+		delay(timeout_ms, ()).await;
+		Some(((), ()))
+	})
+}
+
+/// Process result of the future that may have been caused by connection failure.
+fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
+	maybe_client: &mut Option<TClient>,
+	client: TClient,
+	result: Result<TResult, TError>,
+	on_success: impl FnOnce(TResult),
+	go_offline_future: &mut std::pin::Pin<&mut futures::future::Fuse<TGoOfflineFuture>>,
+	go_offline: impl FnOnce(TClient) -> TGoOfflineFuture,
+	error_pattern: impl FnOnce() -> String,
+) where
+	TError: std::fmt::Debug + MaybeConnectionError,
+	TGoOfflineFuture: FutureExt,
+{
+	match result {
+		Ok(result) => {
+			*maybe_client = Some(client);
+			on_success(result);
+		}
+		Err(error) => {
+			if error.is_connection_error() {
+				go_offline_future.set(go_offline(client).fuse());
+			} else {
+				*maybe_client = Some(client);
+			}
+
+			log::error!(target: "bridge", "{}: {:?}", error_pattern(), error);
+		}
+	}
+}
+
+/// Print synchronization progress.
+fn print_sync_progress<P: HeadersSyncPipeline>(
+	progress_context: (std::time::Instant, Option<P::Number>, Option<P::Number>),
+	eth_sync: &crate::sync::HeadersSync<P>,
+) -> (std::time::Instant, Option<P::Number>, Option<P::Number>) {
+	let (prev_time, prev_best_header, prev_target_header) = progress_context;
+	let now_time = std::time::Instant::now();
+	let (now_best_header, now_target_header) = eth_sync.status();
+
+	let need_update = now_time - prev_time > std::time::Duration::from_secs(10)
+		|| match (prev_best_header, now_best_header) {
+			(Some(prev_best_header), Some(now_best_header)) => {
+				now_best_header.0.saturating_sub(prev_best_header) > 10.into()
+			}
+			_ => false,
+		};
+	if !need_update {
+		return (prev_time, prev_best_header, prev_target_header);
+	}
+
+	log::info!(
+		target: "bridge",
+		"Synced {:?} of {:?} headers",
+		now_best_header.map(|id| id.0),
+		now_target_header,
+	);
+	(now_time, now_best_header.clone().map(|id| id.0), *now_target_header)
+}

@@ -32,8 +32,22 @@ pub struct HeadersSyncParams {
 	/// We only may store and accept (from Ethereum node) headers that have
 	/// number >= than best_substrate_header.number - prune_depth.
 	pub prune_depth: u32,
+	/// Target transactions mode.
+	pub target_tx_mode: TargetTransactionMode,
 	/// Extra data synchronization mode.
 	pub extra_mode: ExtraMode,
+}
+
+/// Target transaction mode.
+#[derive(Debug, PartialEq)]
+pub enum TargetTransactionMode {
+	/// Submit new headers using signed transactions.
+	Signed,
+	/// Submit new headers using unsigned transactions.
+	Unsigned,
+	/// Submit new headers using signed transactions, but only when we
+	/// believe that sync has stalled.
+	Backup,
 }
 
 /// Headers synchronization context.
@@ -111,7 +125,12 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 	}
 
 	/// Select headers that need to be submitted to the target node.
-	pub fn select_headers_to_submit(&self) -> Option<Vec<&QueuedHeader<P>>> {
+	pub fn select_headers_to_submit(&self, stalled: bool) -> Option<Vec<&QueuedHeader<P>>> {
+		// if we operate in backup mode, we only submit headers when sync has stalled
+		if self.params.target_tx_mode == TargetTransactionMode::Backup && !stalled {
+			return None;
+		}
+
 		let headers_in_submit_status = self.headers.headers_in_status(HeaderStatus::Submitted);
 		let headers_to_submit_count = self
 			.params
@@ -145,7 +164,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		log::debug!(
 			target: "bridge",
 			"Received best header number from {} node: {}",
-			P::source_name(),
+			P::SOURCE_NAME,
 			best_header_number,
 		);
 		self.source_best_number = Some(best_header_number);
@@ -157,7 +176,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		log::debug!(
 			target: "bridge",
 			"Received best known header from {}: {:?}",
-			P::target_name(),
+			P::TARGET_NAME,
 			best_header,
 		);
 
@@ -195,6 +214,7 @@ impl Default for HeadersSyncParams {
 			max_headers_in_single_submit: 32,
 			max_headers_size_in_single_submit: 131_072,
 			prune_depth: 4096,
+			target_tx_mode: TargetTransactionMode::Signed,
 			extra_mode: ExtraMode::PerHeader,
 		}
 	}
@@ -261,7 +281,7 @@ mod tests {
 		assert_eq!(eth_sync.headers.header(HeaderStatus::MaybeExtra), Some(&header(101)));
 		eth_sync.headers.maybe_extra_response(&id(101), false);
 		assert_eq!(eth_sync.headers.header(HeaderStatus::Ready), Some(&header(101)));
-		assert_eq!(eth_sync.select_headers_to_submit(), Some(vec![&header(101)]));
+		assert_eq!(eth_sync.select_headers_to_submit(false), Some(vec![&header(101)]));
 
 		// and header #102 is ready to be downloaded
 		assert_eq!(eth_sync.select_new_header_to_download(), Some(102));
@@ -275,13 +295,13 @@ mod tests {
 		assert_eq!(eth_sync.headers.header(HeaderStatus::MaybeExtra), Some(&header(102)));
 		eth_sync.headers.maybe_extra_response(&id(102), false);
 		assert_eq!(eth_sync.headers.header(HeaderStatus::Ready), Some(&header(102)));
-		assert_eq!(eth_sync.select_headers_to_submit(), None);
+		assert_eq!(eth_sync.select_headers_to_submit(false), None);
 
 		// substrate reports that it has imported block #101
 		eth_sync.target_best_header_response(id(101));
 
 		// and we are ready to submit #102
-		assert_eq!(eth_sync.select_headers_to_submit(), Some(vec![&header(102)]));
+		assert_eq!(eth_sync.select_headers_to_submit(false), Some(vec![&header(102)]));
 		eth_sync.headers.headers_submitted(vec![id(102)]);
 
 		// substrate reports that it has imported block #102
@@ -306,7 +326,7 @@ mod tests {
 		eth_sync.headers.header_response(header(101).header().clone());
 
 		// we can't submit header #101, because its parent status is unknown
-		assert_eq!(eth_sync.select_headers_to_submit(), None);
+		assert_eq!(eth_sync.select_headers_to_submit(false), None);
 
 		// instead we are trying to determine status of its parent (#100)
 		assert_eq!(eth_sync.headers.header(HeaderStatus::MaybeOrphan), Some(&header(101)));
@@ -319,7 +339,7 @@ mod tests {
 		eth_sync.headers.header_response(header(100).header().clone());
 
 		// we can't submit header #100, because its parent status is unknown
-		assert_eq!(eth_sync.select_headers_to_submit(), None);
+		assert_eq!(eth_sync.select_headers_to_submit(false), None);
 
 		// instead we are trying to determine status of its parent (#99)
 		assert_eq!(eth_sync.headers.header(HeaderStatus::MaybeOrphan), Some(&header(100)));
@@ -330,13 +350,13 @@ mod tests {
 		// and we are ready to submit #100
 		assert_eq!(eth_sync.headers.header(HeaderStatus::MaybeExtra), Some(&header(100)));
 		eth_sync.headers.maybe_extra_response(&id(100), false);
-		assert_eq!(eth_sync.select_headers_to_submit(), Some(vec![&header(100)]));
+		assert_eq!(eth_sync.select_headers_to_submit(false), Some(vec![&header(100)]));
 		eth_sync.headers.headers_submitted(vec![id(100)]);
 
 		// and we are ready to submit #101
 		assert_eq!(eth_sync.headers.header(HeaderStatus::MaybeExtra), Some(&header(101)));
 		eth_sync.headers.maybe_extra_response(&id(101), false);
-		assert_eq!(eth_sync.select_headers_to_submit(), Some(vec![&header(101)]));
+		assert_eq!(eth_sync.select_headers_to_submit(false), Some(vec![&header(101)]));
 		eth_sync.headers.headers_submitted(vec![id(101)]);
 	}
 
@@ -346,5 +366,27 @@ mod tests {
 		eth_sync.params.prune_depth = 50;
 		eth_sync.target_best_header_response(id(100));
 		assert_eq!(eth_sync.headers.prune_border(), 50);
+	}
+
+	#[test]
+	fn only_submitting_headers_in_backup_mode_when_stalled() {
+		let mut eth_sync = HeadersSync::new(Default::default());
+		eth_sync.params.target_tx_mode = TargetTransactionMode::Backup;
+
+		// ethereum reports best header #102
+		eth_sync.source_best_header_number_response(102);
+
+		// substrate reports that it is at block #100
+		eth_sync.target_best_header_response(id(100));
+
+		// block #101 is downloaded first
+		eth_sync.headers.header_response(header(101).header().clone());
+		eth_sync.headers.maybe_extra_response(&id(101), false);
+
+		// ensure that headers are not submitted when sync is not stalled
+		assert_eq!(eth_sync.select_headers_to_submit(false), None);
+
+		// ensure that headers are not submitted when sync is stalled
+		assert_eq!(eth_sync.select_headers_to_submit(true), Some(vec![&header(101)]));
 	}
 }
