@@ -144,6 +144,9 @@ fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<substrate_sync_lo
 	if let Some(eth_port) = matches.value_of("eth-port") {
 		sub_sync_params.eth_port = eth_port.parse().map_err(|e| format!("{}", e))?;
 	}
+	if let Some(eth_contract) = matches.value_of("eth-contract") {
+		sub_sync_params.eth_contract = eth_contract.parse().map_err(|e| format!("{}", e))?;
+	}
 	if let Some(eth_signer) = matches.value_of("eth-signer") {
 		sub_sync_params.eth_signer = KeyPair::from_secret(
 			eth_signer.parse().map_err(|e| format!("{}", e))?
