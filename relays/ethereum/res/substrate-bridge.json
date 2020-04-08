@@ -1,0 +1,57 @@
+[
+	{
+		"inputs": [],
+		"name": "bestKnownHeader",
+		"outputs": [
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes[]",
+				"name": "rawHeaders",
+				"type": "bytes[]"
+			},
+			{
+				"internalType": "bytes",
+				"name": "rawFinalityProof",
+				"type": "bytes"
+			}
+		],
+		"name": "importHeaders",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "headerHash",
+				"type": "bytes"
+			}
+		],
+		"name": "isKnownHeader",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]

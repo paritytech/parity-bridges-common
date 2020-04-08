@@ -15,7 +15,11 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256};
-use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts, TransactionHash};
+use crate::substrate_types::{
+	into_substrate_ethereum_header, into_substrate_ethereum_receipts,
+	Hash, Header as SubstrateHeader, Justification, Number,
+	TransactionHash,
+};
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
 use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
@@ -62,6 +66,50 @@ pub fn client(uri: &str) -> Client {
 		rpc_client: RawClient::new(transport),
 		genesis_hash: None,
 	}
+}
+
+/// Returns best Substrate header.
+pub async fn best_header(client: Client) -> (Client, Result<SubstrateHeader, Error>) {
+	call_rpc(
+		client,
+		"chain_getHeader",
+		Params::None,
+	)
+	.await
+}
+
+/// Returns Substrate header by hash.
+pub async fn header_by_hash(client: Client, hash: Hash) -> (Client, Result<SubstrateHeader, Error>) {
+	call_rpc(
+		client,
+		"chain_getHeader",
+		Params::Array(vec![
+			to_value(hash).unwrap(),
+		]),
+	)
+	.await
+}
+
+/// Returns Substrate header by number.
+pub async fn header_by_number(client: Client, number: Number) -> (Client, Result<SubstrateHeader, Error>) {
+	let (client, hash) = call_rpc(
+		client,
+		"chain_getBlockHash",
+		Params::Array(vec![
+			to_value(number).unwrap(),
+		]),
+	)
+	.await;
+	let hash = match hash {
+		Ok(hash) => hash,
+		Err(error) => return (client, Err(error)),
+	};
+	header_by_hash(client, hash).await
+}
+
+/// Returns justification for Substrate header.
+pub async fn justification(client: Client, _hash: Hash) -> (Client, Result<Option<Justification>, Error>) {
+	(client, Ok(Some(vec![42]))) // TODO: implement me
 }
 
 /// Returns best Ethereum block that Substrate runtime knows of.

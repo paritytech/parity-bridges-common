@@ -14,13 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_types::{EthereumHeaderId, Header, Receipt, H256, U64};
-use crate::sync_types::MaybeConnectionError;
+use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, H256, U256, U64};
+use crate::substrate_types::{SubstrateHeaderId, Hash as SubstrateHash, Number as SubstrateNumber, QueuedSubstrateHeader};
+use crate::sync_types::{HeaderId, MaybeConnectionError};
+use codec::{Encode, Decode};
+use ethabi::FunctionOutputDecoder;
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
-use serde::de::DeserializeOwned;
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{from_value, to_value};
+
+// to encode/decode contract calls
+ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge.json");
 
 /// Proof of hash serialization success.
 const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; qed";
@@ -32,6 +38,15 @@ const BOOL_SERIALIZATION_PROOF: &'static str = "bool serialization never fails; 
 /// Ethereum client type.
 pub type Client = RawClient<HttpTransportClient>;
 
+/// Ethereum contract call request.
+#[derive(Debug, Default, PartialEq, Serialize)]
+pub struct CallRequest {
+	/// Contract address.
+	pub to: Option<Address>,
+	/// Call data.
+	pub data: Option<Bytes>,
+}
+
 /// All possible errors that can occur during interacting with Ethereum node.
 #[derive(Debug)]
 pub enum Error {
@@ -42,11 +57,13 @@ pub enum Error {
 	/// Failed to receive response.
 	ResponseRetrievalFailed(RawClientError<RequestError>),
 	/// Failed to parse response.
-	ResponseParseFailed(serde_json::Error),
+	ResponseParseFailed(String),
 	/// We have received header with missing number and hash fields.
 	IncompleteHeader,
 	/// We have received receipt with missing gas_used field.
 	IncompleteReceipt,
+	/// Justification for last Substrate header is missing.
+	MissingJustification,
 }
 
 impl MaybeConnectionError for Error {
@@ -150,6 +167,158 @@ async fn transaction_receipt(client: Client, hash: H256) -> (Client, Result<Rece
 	)
 }
 
+/// Returns best Substrate block that PoA chain knows of.
+pub async fn best_substrate_block(
+	client: Client,
+	contract_address: Address,
+) -> (Client, Result<SubstrateHeaderId, Error>) {
+	let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
+	let (client, result) = call_rpc::<Bytes>(
+		client,
+		"eth_call",
+		Params::Array(vec![
+			to_value(CallRequest {
+				to: Some(contract_address),
+				data: Some(encoded_call.into()),
+			}).unwrap(),
+		]),
+	)
+	.await;
+	let call_result = match result {
+		Ok(result) => result,
+		Err(error) => return (client, Err(error)),
+	};
+	let (raw_number, raw_hash) = match call_decoder.decode(&call_result.0) {
+		Ok((raw_number, raw_hash)) => (raw_number, raw_hash),
+		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+	};
+	let number = match SubstrateNumber::decode(&mut &raw_number[..]) {
+		Ok(number) => number,
+		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+	};
+	let hash = match SubstrateHash::decode(&mut &raw_hash[..]) {
+		Ok(hash) => hash,
+		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+	};
+
+	(
+		client,
+		Ok(HeaderId(number, hash)),
+	)
+}
+
+/// Returns true if Substrate header is known to Ethereum node.
+pub async fn substrate_header_known(
+	client: Client,
+	contract_address: Address,
+	id: SubstrateHeaderId,
+) -> (Client, Result<(SubstrateHeaderId, bool), Error>) {
+	// Ethereum contract could prune old headers. So this fn could return false even
+	// if header is synced. And we'll mark corresponding Ethereum header as Orphan.
+	//
+	// But when we'll read best header from Ethereum next time, we will know that
+	// there's a better header => this Orphan will either be marked as synced, or
+	// eventually pruned.
+	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1.encode());
+	let (client, result) = call_rpc::<Bytes>(
+		client,
+		"eth_call",
+		Params::Array(vec![
+			to_value(CallRequest {
+				to: Some(contract_address),
+				data: Some(encoded_call.into()),
+			}).unwrap(),
+		]),
+	)
+	.await;
+	let call_result = match result {
+		Ok(result) => result,
+		Err(error) => return (client, Err(error)),
+	};
+	match call_decoder.decode(&call_result.0) {
+		Ok(is_known_block) => (client, Ok((id, is_known_block))),
+		Err(error) => (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+	}
+}
+
+/// Submits Substrate headers to Ethereum contract.
+pub async fn submit_substrate_headers(
+	client: Client,
+	signer: parity_crypto::publickey::KeyPair,
+	chain_id: u64,
+	contract_address: Address,
+	gas_price: U256,
+	headers: Vec<QueuedSubstrateHeader>,
+) -> (Client, Result<(H256, Vec<SubstrateHeaderId>), Error>) {
+	let ids = headers.iter().map(|header| header.id()).collect();
+	let num_headers = headers.len();
+	let (headers, justification) = headers
+		.into_iter()
+		.fold((Vec::with_capacity(num_headers), None), |(mut headers, _), header| {
+			let (header, justification) = header.extract();
+			headers.push(header.encode());
+			(headers, justification)
+		});
+	let justification = match justification {
+		Some(justification) => justification.encode(),
+		None => return (client, Err(Error::MissingJustification)),
+	};
+	let encoded_call = bridge_contract::functions::import_headers::encode_input(
+		headers,
+		justification,
+	);
+	let (client, nonce) = account_nonce(client, signer.address().as_fixed_bytes().into()).await;
+	let nonce = match nonce {
+		Ok(nonce) => nonce,
+		Err(error) => return (client, Err(error)),
+	};
+	let (client, gas) = estimate_gas(client, CallRequest {
+		to: Some(contract_address),
+		data: Some(encoded_call.clone().into()),
+	}).await;
+	let gas = match gas {
+		Ok(gas) => gas,
+		Err(error) => return (client, Err(error)),
+	};
+	let raw_transaction = ethereum_tx_sign::RawTransaction {
+		nonce,
+		to: Some(contract_address),
+		value: U256::zero(),
+		gas,
+		gas_price,
+		data: encoded_call,
+	}.sign(&signer.secret().as_fixed_bytes().into(), &chain_id);
+	let (client, result) = call_rpc(
+		client,
+		"eth_submitTransaction",
+		Params::Array(vec![
+			to_value(raw_transaction).unwrap(),
+		]),
+	)
+	.await;
+	(client, result.map(|tx_hash| (tx_hash, ids)))
+}
+
+/// Get account nonce.
+async fn account_nonce(
+	client: Client,
+	caller_address: Address,
+) -> (Client, Result<U256, Error>) {
+	call_rpc(client, "eth_getTransactionCount", Params::Array(vec![
+		to_value(caller_address).unwrap(),
+	])).await
+}
+
+/// Estimate gas usage for call.
+async fn estimate_gas(
+	client: Client,
+	call_request: CallRequest,
+) -> (Client, Result<U256, Error>) {
+	call_rpc(client, "eth_getTransactionCount", Params::Array(vec![
+		to_value(call_request).unwrap(),
+	])).await
+}
+
 /// Calls RPC on Ethereum node.
 async fn call_rpc<T: DeserializeOwned>(
 	mut client: Client,
@@ -172,7 +341,7 @@ async fn call_rpc<T: DeserializeOwned>(
 			.ok_or(Error::RequestNotFound)?
 			.await
 			.map_err(Error::ResponseRetrievalFailed)?;
-		from_value(response).map_err(Error::ResponseParseFailed)
+		from_value(response).map_err(|e| Error::ResponseParseFailed(format!("{}", e)))
 	}
 
 	let result = do_call_rpc(&mut client, method, params).await;

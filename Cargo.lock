@@ -1008,6 +1008,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethabi"
+version = "11.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97652a7d1f2504d6c885c87e242a06ccef5bd3054093d3fb742d8fb64806231a"
+dependencies = [
+ "ethereum-types 0.8.0",
+ "rustc-hex",
+ "serde",
+ "serde_json",
+ "tiny-keccak 1.5.0",
+ "uint",
+]
+
+[[package]]
+name = "ethabi-contract"
+version = "11.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88d4002f1f77d8233685dafd8589efe1c9dfa63e21ca6c11134372acc7f68032"
+
+[[package]]
+name = "ethabi-derive"
+version = "11.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "587a3ff9748b24f38caecfec9654ae1aa5916ac2e7db2d15f2ab8f59b2fdc70a"
+dependencies = [
+ "ethabi 11.0.0",
+ "heck",
+ "proc-macro2 1.0.10",
+ "quote 1.0.3",
+ "syn 1.0.17",
+]
+
+[[package]]
 name = "ethbloom"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1055,6 +1088,10 @@ dependencies = [
  "bridge-node-runtime",
  "clap",
  "env_logger",
+ "ethabi 11.0.0",
+ "ethabi-contract",
+ "ethabi-derive",
+ "ethereum-tx-sign",
  "frame-system",
  "futures 0.3.4",
  "jsonrpsee",
@@ -1089,6 +1126,22 @@ dependencies = [
  "rlp",
  "serde",
  "tiny-keccak 1.5.0",
+]
+
+[[package]]
+name = "ethereum-tx-sign"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d65552d3f9f24d3085823d47bb6cdee8a42a53b2ce8f262d69c1780262dd121"
+dependencies = [
+ "ethereum-types 0.8.0",
+ "num-traits",
+ "rlp",
+ "secp256k1 0.17.2",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "tiny-keccak 2.0.2",
 ]
 
 [[package]]
@@ -7553,7 +7606,7 @@ dependencies = [
  "arrayvec 0.5.1",
  "base64 0.11.0",
  "derive_more",
- "ethabi",
+ "ethabi 9.0.1",
  "ethereum-transaction",
  "ethereum-types 0.8.0",
  "ethsign",

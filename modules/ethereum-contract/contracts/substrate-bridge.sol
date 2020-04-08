@@ -17,6 +17,8 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
+// TODO: expose interface + switch to external+calldata after https://github.com/ethereum/solidity/issues/7929
+
 /// @title Substrate-to-PoA Bridge Contract.
 contract SubstrateBridge {
 	/// Voter set as it is stored in the storage.
@@ -37,24 +39,32 @@ contract SubstrateBridge {
 
 	/// Header as it is stored in the storage.
 	struct Header {
-		/// keccak256(rawHeader) of the next header, or bytes32(0) if it is the best header.
-		bytes32 nextHeaderHash;
-		/// Raw header data.
-		bytes rawHeader;
+		/// keccak256(header.hash) of the next header, or bytes32(0) if it is the best header.
+		bytes32 nextHeaderKeccak;
+		/// Header hash.
+		bytes hash;
+		/// Header number.
+		bytes number;
 	}
 
 	/// Initializes bridge contract.
 	/// @param rawInitialHeader Raw finalized header that is ancestor of all importing headers.
 	/// @param initialVoters GRANDPA voter set that must finalize direct children of the initial header.
-	/// @param voterSetSignals GRANDPA voter set signals (including signal from rawInitialHeader).
+	/// @param voterSetSignals Active GRANDPA voter set signals.
 	constructor(
 		bytes memory rawInitialHeader,
 		VoterSet memory initialVoters,
 		VoterSetSignal[] memory voterSetSignals
 	) public {
 		// save initial header
-		bytes32 headerHash = saveBestHeader(rawInitialHeader);
-		oldestHeaderHash = headerHash;
+		(
+			Header memory initialHeader,
+			VoterSetSignal memory voterSetSignal
+		) = parseSubstrateHeader(
+			rawInitialHeader
+		);
+		bytes32 headerKeccak = saveBestHeader(initialHeader);
+		oldestHeaderKeccak = headerKeccak;
 		// save best voter set
 		bestVoterSet.id = initialVoters.id;
 		bestVoterSet.rawVoters = initialVoters.rawVoters;
@@ -67,18 +77,32 @@ contract SubstrateBridge {
 	/// Reject direct payments.
 	fallback() external { revert(); }
 
+	/// Returns hash of the best known header.
+	function bestKnownHeader() public view returns (bytes memory, bytes memory) {
+		Header storage bestHeader = headerByKeccak[bestHeaderKeccak];
+		return (bestHeader.number, bestHeader.hash);
+	}
+
+	/// Returns true if header is known to the bridge.
+	/// @param headerHash Hash of the header we want to check.
+	function isKnownHeader(
+		bytes memory headerHash
+	) public view returns (bool) {
+		return headerByKeccak[keccak256(headerHash)].hash.length != 0;
+	}
+
 	/// Import range of headers with finalization data.
 	/// @param rawHeaders Finalized headers to import.
 	/// @param rawFinalityProof Data required to finalize rawHeaders.
 	function importHeaders(
-		bytes[] calldata rawHeaders,
-		bytes calldata rawFinalityProof
-	) external {
+		bytes[] memory rawHeaders,
+		bytes memory rawFinalityProof
+	) public {
 		// verify finalization data
 		(uint256 begin, uint256 end) = verifyFinalityProof(
 			bestVoterSet.id,
 			bestVoterSet.rawVoters,
-			headerByHash[bestHeaderHash].rawHeader,
+			headerByKeccak[bestHeaderKeccak].hash,
 			rawHeaders,
 			rawFinalityProof
 		);
@@ -88,18 +112,22 @@ contract SubstrateBridge {
 		for (uint256 i = begin; i < end; ++i) {
 			// parse header
 			bytes memory rawHeader = rawHeaders[i];
-			(bytes32 headerNumber, VoterSetSignal memory voterSetSignal) = parseSubstrateHeader(
+			(
+				Header memory header,
+				VoterSetSignal memory voterSetSignal
+			) = parseSubstrateHeader(
 				rawHeader
 			);
 
 			// save header to the storage
-			saveBestHeader(rawHeader);
+			bytes32 headerNumberKeccak = keccak256(header.number);
+			saveBestHeader(header);
 			// save voters set signal (if signalled by the header)
 			if (voterSetSignal.rawVoters.length != 0) {
 				saveSignal(voterSetSignal);
 			}
 			// check if header enacts new set
-			bytes memory newRawVoters = voterSetByEnactNumber[headerNumber];
+			bytes memory newRawVoters = voterSetByEnactNumber[headerNumberKeccak];
 			if (newRawVoters.length != 0) {
 				require(
 					!enactedNewSet,
@@ -122,26 +150,27 @@ contract SubstrateBridge {
 	}
 
 	/// Save best header to the storage.
-	/// @return keccak256(rawHeader)
+	/// @return keccak256(header.hash)
 	function saveBestHeader(
-		bytes memory rawHeader
+		Header memory header
 	) private returns (bytes32) {
-		bytes32 headerHash = keccak256(rawHeader);
-		bytes32 previousHeaderHash = bestHeaderHash;
-		if (previousHeaderHash != bytes32(0)) {
-			headerByHash[previousHeaderHash].nextHeaderHash = headerHash;
+		bytes32 headerKeccak = keccak256(header.hash);
+		bytes32 previousHeaderKeccak = bestHeaderKeccak;
+		if (previousHeaderKeccak != bytes32(0)) {
+			headerByKeccak[previousHeaderKeccak].nextHeaderKeccak = headerKeccak;
 		}
-		headerByHash[headerHash].rawHeader = rawHeader;
-		bestHeaderHash = headerHash;
+		headerByKeccak[headerKeccak] = header;
+		bestHeaderKeccak = headerKeccak;
 		storedHeadersCount = storedHeadersCount + 1;
-		return headerHash;
+		return headerKeccak;
 	}
 
 	/// Prune oldest header.
 	function pruneOldestHeader() private {
-		Header storage oldestHeader = headerByHash[oldestHeaderHash];
-		oldestHeaderHash = oldestHeader.nextHeaderHash;
-		delete headerByHash[oldestHeaderHash];
+		bytes32 headerKeccakToRemove = oldestHeaderKeccak;
+		Header storage oldestHeader = headerByKeccak[headerKeccakToRemove];
+		oldestHeaderKeccak = oldestHeader.nextHeaderKeccak;
+		delete headerByKeccak[headerKeccakToRemove];
 		storedHeadersCount = storedHeadersCount - 1;
 	}
 
@@ -157,12 +186,16 @@ contract SubstrateBridge {
 	}
 
 	/// Parse Substrate header.
-	/// @return keccak256(header.number) and voter set signal (if signalled by the header).
+	/// @return header.hash, header.number and optional voter set signal.
 	function parseSubstrateHeader(
-		bytes memory rawHeader
-	) private pure returns (bytes32, VoterSetSignal memory) {
+		bytes memory /*rawHeader*/
+	) private pure returns (Header memory, VoterSetSignal memory) {
 		return (
-			bytes32(0),
+			Header({
+				nextHeaderKeccak: bytes32(0),
+				hash: "",
+				number: ""
+			}),
 			VoterSetSignal({
 				headerNumber: bytes32(0),
 				rawVoters: ""
@@ -173,11 +206,11 @@ contract SubstrateBridge {
 	/// Verify finality proof.
 	/// @return Range of headers within rawHeaders that are proved to be final.
 	function verifyFinalityProof(
-		uint64 currentSetId,
-		bytes memory rawCurrentVoters,
-		bytes memory rawBestHeader,
-		bytes[] memory rawHeaders,
-		bytes memory rawFinalityProof
+		uint64 /*currentSetId*/,
+		bytes memory /*rawCurrentVoters*/,
+		bytes memory /*rawBestHeader*/,
+		bytes[] memory /*rawHeaders*/,
+		bytes memory /*rawFinalityProof*/
 	) private pure returns (uint256, uint256) {
 		return (0, 0); // TODO: replace with builtin call
 	}
@@ -187,14 +220,14 @@ contract SubstrateBridge {
 
 	/// Current number of headers that we store.
 	uint256 storedHeadersCount;
-	/// keccak32(rawHeader) of the oldest header.
-	bytes32 oldestHeaderHash;
-	/// keccak32(rawHeader) of the last finalized block.
-	bytes32 bestHeaderHash;
+	/// keccak256(header.hash) of the oldest header.
+	bytes32 oldestHeaderKeccak;
+	/// keccak256(header.hash) of the last finalized block.
+	bytes32 bestHeaderKeccak;
 	/// Raw voter set for the last finalized block.
 	VoterSet bestVoterSet;
-	/// Map of keccak256(raw header) => raw header.
-	mapping (bytes32 => Header) headerByHash;
+	/// Map of keccak256(header.hash) => header.
+	mapping (bytes32 => Header) headerByKeccak;
 	/// Map of keccak256(header.number) => raw voter set that is enacted when block
 	/// with given number is finalized.
 	mapping (bytes32 => bytes) voterSetByEnactNumber;
