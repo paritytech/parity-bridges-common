@@ -61,7 +61,6 @@ subcommands:
                 value_name: ETH_CONTRACT
                 help: Address of deployed bridge contract.
                 takes_value: true
-                required: true
             - eth-signer:
                 long: eth-signer
                 value_name: ETH_SIGNER

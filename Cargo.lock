@@ -447,10 +447,8 @@ version = "0.1.0"
 dependencies = [
  "bridge-node-runtime",
  "futures 0.3.4",
- "hex",
  "jsonrpc-core",
  "log 0.4.8",
- "parity-scale-codec",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client",
