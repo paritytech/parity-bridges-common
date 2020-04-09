@@ -1,5 +1,30 @@
 [
 	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "rawInitialHeader",
+				"type": "bytes"
+			},
+			{
+				"internalType": "uint64",
+				"name": "initialVotersSetId",
+				"type": "uint64"
+			},
+			{
+				"internalType": "bytes",
+				"name": "initialRawVoters",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"stateMutability": "nonpayable",
+		"type": "fallback"
+	},
+	{
 		"inputs": [],
 		"name": "bestKnownHeader",
 		"outputs": [
@@ -20,9 +45,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes[]",
+				"internalType": "bytes",
 				"name": "rawHeaders",
-				"type": "bytes[]"
+				"type": "bytes"
 			},
 			{
 				"internalType": "bytes",

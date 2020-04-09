@@ -25,6 +25,7 @@ use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
+use num_traits::Zero;
 use serde_json::{from_value, to_value};
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
@@ -70,7 +71,7 @@ pub fn client(uri: &str) -> Client {
 
 /// Returns best Substrate header.
 pub async fn best_header(client: Client) -> (Client, Result<SubstrateHeader, Error>) {
-	call_rpc(
+	call_rpc_header(
 		client,
 		"chain_getHeader",
 		Params::None,
@@ -80,7 +81,7 @@ pub async fn best_header(client: Client) -> (Client, Result<SubstrateHeader, Err
 
 /// Returns Substrate header by hash.
 pub async fn header_by_hash(client: Client, hash: Hash) -> (Client, Result<SubstrateHeader, Error>) {
-	call_rpc(
+	call_rpc_header(
 		client,
 		"chain_getHeader",
 		Params::Array(vec![
@@ -92,14 +93,7 @@ pub async fn header_by_hash(client: Client, hash: Hash) -> (Client, Result<Subst
 
 /// Returns Substrate header by number.
 pub async fn header_by_number(client: Client, number: Number) -> (Client, Result<SubstrateHeader, Error>) {
-	let (client, hash) = call_rpc(
-		client,
-		"chain_getBlockHash",
-		Params::Array(vec![
-			to_value(number).unwrap(),
-		]),
-	)
-	.await;
+	let (client, hash) = block_hash_by_number(client, number).await;
 	let hash = match hash {
 		Ok(hash) => hash,
 		Err(error) => return (client, Err(error)),
@@ -196,7 +190,7 @@ pub async fn submit_signed_ethereum_headers(
 	let (client, genesis_hash) = match client.genesis_hash {
 		Some(genesis_hash) => (client, genesis_hash),
 		None => {
-			let (mut client, genesis_hash) = block_hash_by_number(client, 0).await;
+			let (mut client, genesis_hash) = block_hash_by_number(client, Zero::zero()).await;
 			let genesis_hash = match genesis_hash {
 				Ok(genesis_hash) => genesis_hash,
 				Err(err) => return (client, Err(err)),
@@ -255,14 +249,26 @@ pub async fn submit_unsigned_ethereum_headers(
 	(client, Ok((transactions_hashes, ids)))
 }
 
+/// Get GRANDPA authorities set at given block.
+pub async fn grandpa_authorities_set(client: Client, block: Hash) -> (Client, Result<Vec<u8>, Error>) {
+	call_rpc(
+		client,
+		"state_call",
+		Params::Array(vec![
+			to_value("GrandpaApi_grandpa_authorities").unwrap(),
+			to_value(block).unwrap(),
+		]),
+	)
+	.await
+}
+
 /// Get Substrate block hash by its number.
-async fn block_hash_by_number(client: Client, number: u64) -> (Client, Result<H256, Error>) {
+async fn block_hash_by_number(client: Client, number: Number) -> (Client, Result<Hash, Error>) {
 	call_rpc(
 		client,
 		"chain_getBlockHash",
 		Params::Array(vec![to_value(number).unwrap()]),
-	)
-	.await
+	).await
 }
 
 /// Get substrate account nonce.
@@ -299,6 +305,29 @@ async fn call_rpc<T: Decode>(mut client: Client, method: &'static str, params: P
 			.map_err(Error::ResponseRetrievalFailed)?;
 		let encoded_response: Bytes = from_value(response).map_err(|_| Error::ResponseParseFailed)?;
 		Decode::decode(&mut &encoded_response.0[..]).map_err(|_| Error::ResponseParseFailed)
+	}
+
+	let result = do_call_rpc(&mut client, method, params).await;
+	(client, result)
+}
+
+/// Calls RPC on Substrate node that returns Header.
+async fn call_rpc_header(mut client: Client, method: &'static str, params: Params) -> (Client, Result<SubstrateHeader, Error>) {
+	async fn do_call_rpc(client: &mut Client, method: &'static str, params: Params) -> Result<SubstrateHeader, Error> {
+		let request_id = client
+			.rpc_client
+			.start_request(method, params)
+			.await
+			.map_err(Error::StartRequestFailed)?;
+		// WARN: if there'll be need for executing >1 request at a time, we should avoid
+		// calling request_by_id
+		let response = client
+			.rpc_client
+			.request_by_id(request_id)
+			.ok_or(Error::RequestNotFound)?
+			.await
+			.map_err(Error::ResponseRetrievalFailed)?;
+		from_value(response).map_err(|_| Error::ResponseParseFailed)
 	}
 
 	let result = do_call_rpc(&mut client, method, params).await;

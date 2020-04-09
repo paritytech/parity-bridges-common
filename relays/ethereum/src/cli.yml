@@ -76,3 +76,20 @@ subcommands:
                 value_name: SUB_PORT
                 help: Connect to Substrate node at given port.
                 takes_value: true
+    - eth-deploy-contract:
+        about: Deploy Bridge contract on Ethereum node.
+        args:
+            - eth-host:
+                long: eth-host
+                value_name: ETH_HOST
+                help: Connect to Ethereum node at given host.
+                takes_value: true
+            - eth-port:
+                long: eth-port
+                value_name: ETH_PORT
+                help: Connect to Ethereum node at given port.
+                takes_value: true
+            - eth-signer:
+                long: eth-signer
+                value_name: ETH_SIGNER
+                help: Hex-encoded secret to use when transactions are submitted to the Ethereum node.

@@ -15,9 +15,11 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.6.4;
-pragma experimental ABIEncoderV2;
 
 // TODO: expose interface + switch to external+calldata after https://github.com/ethereum/solidity/issues/7929
+
+// TODO: use ABIEncoderV2 to allow passing headers array as bytes[] and structs to constructor
+// when ethabi will support it
 
 /// @title Substrate-to-PoA Bridge Contract.
 contract SubstrateBridge {
@@ -48,30 +50,27 @@ contract SubstrateBridge {
 	}
 
 	/// Initializes bridge contract.
-	/// @param rawInitialHeader Raw finalized header that is ancestor of all importing headers.
-	/// @param initialVoters GRANDPA voter set that must finalize direct children of the initial header.
-	/// @param voterSetSignals Active GRANDPA voter set signals.
+	/// @param rawInitialHeader Vec of single element - raw finalized header that will be ancestor of all importing headers.
+	/// @param initialVotersSetId ID of GRANDPA voter set that must finalize direct children of the initial header.
+	/// @param initialRawVoters Raw GRANDPA voter set that must finalize direct children of the initial header.
 	constructor(
 		bytes memory rawInitialHeader,
-		VoterSet memory initialVoters,
-		VoterSetSignal[] memory voterSetSignals
+		uint64 initialVotersSetId,
+		bytes memory initialRawVoters
 	) public {
 		// save initial header
 		(
 			Header memory initialHeader,
 			VoterSetSignal memory voterSetSignal
 		) = parseSubstrateHeader(
+			0,
 			rawInitialHeader
 		);
 		bytes32 headerKeccak = saveBestHeader(initialHeader);
 		oldestHeaderKeccak = headerKeccak;
 		// save best voter set
-		bestVoterSet.id = initialVoters.id;
-		bestVoterSet.rawVoters = initialVoters.rawVoters;
-		// save all signals
-		for (uint i = 0; i < voterSetSignals.length; ++i) {
-			saveSignal(voterSetSignals[i]);
-		}
+		bestVoterSet.id = initialVotersSetId;
+		bestVoterSet.rawVoters = initialRawVoters;
 	}
 
 	/// Reject direct payments.
@@ -92,10 +91,10 @@ contract SubstrateBridge {
 	}
 
 	/// Import range of headers with finalization data.
-	/// @param rawHeaders Finalized headers to import.
+	/// @param rawHeaders Vec of encoded finalized headers to import.
 	/// @param rawFinalityProof Data required to finalize rawHeaders.
 	function importHeaders(
-		bytes[] memory rawHeaders,
+		bytes memory rawHeaders,
 		bytes memory rawFinalityProof
 	) public {
 		// verify finalization data
@@ -111,12 +110,12 @@ contract SubstrateBridge {
 		bool enactedNewSet = false;
 		for (uint256 i = begin; i < end; ++i) {
 			// parse header
-			bytes memory rawHeader = rawHeaders[i];
 			(
 				Header memory header,
 				VoterSetSignal memory voterSetSignal
 			) = parseSubstrateHeader(
-				rawHeader
+				i,
+				rawHeaders
 			);
 
 			// save header to the storage
@@ -185,16 +184,17 @@ contract SubstrateBridge {
 		voterSetByEnactNumber[voterSetSignal.headerNumber] = voterSetSignal.rawVoters;
 	}
 
-	/// Parse Substrate header.
+	/// Parse i-th Substrate header from the raw headers vector.
 	/// @return header.hash, header.number and optional voter set signal.
 	function parseSubstrateHeader(
-		bytes memory /*rawHeader*/
+		uint256 headerIndex,
+		bytes memory rawHeaders
 	) private pure returns (Header memory, VoterSetSignal memory) {
 		return (
 			Header({
 				nextHeaderKeccak: bytes32(0),
-				hash: "",
-				number: ""
+				hash: abi.encodePacked(keccak256(abi.encode(headerIndex, rawHeaders))),
+				number: abi.encodePacked(headerIndex)
 			}),
 			VoterSetSignal({
 				headerNumber: bytes32(0),
@@ -209,7 +209,7 @@ contract SubstrateBridge {
 		uint64 /*currentSetId*/,
 		bytes memory /*rawCurrentVoters*/,
 		bytes memory /*rawBestHeader*/,
-		bytes[] memory /*rawHeaders*/,
+		bytes memory /*rawHeaders*/,
 		bytes memory /*rawFinalityProof*/
 	) private pure returns (uint256, uint256) {
 		return (0, 0); // TODO: replace with builtin call

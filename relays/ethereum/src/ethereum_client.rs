@@ -264,7 +264,7 @@ pub async fn submit_substrate_headers(
 		None => return (client, Err(Error::MissingJustification)),
 	};
 	let encoded_call = bridge_contract::functions::import_headers::encode_input(
-		headers,
+		headers.encode(),
 		justification,
 	);
 	let (client, nonce) = account_nonce(client, signer.address().as_fixed_bytes().into()).await;
@@ -299,6 +299,54 @@ pub async fn submit_substrate_headers(
 	(client, result.map(|tx_hash| (tx_hash, ids)))
 }
 
+/// Deploy bridge contract.
+pub async fn deploy_bridge_contract(
+	client: Client,
+	signer: parity_crypto::publickey::KeyPair,
+	chain_id: u64,
+	gas_price: U256,
+	contract_code: Vec<u8>,
+	initial_header: Vec<u8>,
+	initial_set_id: u64,
+	initial_authorities: Vec<u8>,
+) -> (Client, Result<H256, Error>) {
+	let encoded_call = bridge_contract::constructor(
+		contract_code,
+		vec![initial_header].encode(),
+		initial_set_id,
+		initial_authorities,
+	);
+	let (client, nonce) = account_nonce(client, signer.address().as_fixed_bytes().into()).await;
+	let nonce = match nonce {
+		Ok(nonce) => nonce,
+		Err(error) => return (client, Err(error)),
+	};
+	let (client, gas) = estimate_gas(client, CallRequest {
+		data: Some(encoded_call.clone().into()),
+		..Default::default()
+	}).await;
+	let gas = match gas {
+		Ok(gas) => gas,
+		Err(error) => return (client, Err(error)),
+	};
+	let raw_transaction = ethereum_tx_sign::RawTransaction {
+		nonce: nonce,
+		to: None,
+		value: U256::zero(),
+		gas,
+		gas_price,
+		data: encoded_call,
+	}.sign(&signer.secret().as_fixed_bytes().into(), &chain_id);
+	call_rpc(
+		client,
+		"eth_submitTransaction",
+		Params::Array(vec![
+			to_value(Bytes(raw_transaction)).unwrap(),
+		]),
+	)
+	.await
+}
+
 /// Get account nonce.
 async fn account_nonce(
 	client: Client,
@@ -314,7 +362,7 @@ async fn estimate_gas(
 	client: Client,
 	call_request: CallRequest,
 ) -> (Client, Result<U256, Error>) {
-	call_rpc(client, "eth_getTransactionCount", Params::Array(vec![
+	call_rpc(client, "eth_estimateGas", Params::Array(vec![
 		to_value(call_request).unwrap(),
 	])).await
 }

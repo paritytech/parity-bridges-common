@@ -61,8 +61,11 @@ impl Default for SubstrateSyncParams {
 		SubstrateSyncParams {
 			eth_host: "localhost".into(),
 			eth_port: 8545,
-			eth_chain_id: 1, // Ethereum mainnet
-			eth_contract_address: Default::default(),
+			eth_chain_id: 0x11, // Parity dev chain
+			// the address 0x731a10897d267e19b34503ad902d0a29173ba4b1 is the address
+			// of the contract that is deployed by default signer and 0 nonce
+			eth_contract_address: "731a10897d267e19b34503ad902d0a29173ba4b1".parse()
+				.expect("address is hardcoded, thus valid; qed"),
 			// that the account that has a lot of ether when we run instant seal engine
 			// address: 0x00a329c0648769a73afac7f9381e08fb43dbea72
 			// secret: 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7

@@ -17,6 +17,7 @@
 #![recursion_limit = "1024"]
 
 mod ethereum_client;
+mod ethereum_deploy_contract;
 mod ethereum_sync_loop;
 mod ethereum_types;
 mod headers;
@@ -49,6 +50,15 @@ fn main() {
 		("sub-to-eth", Some(sub_to_eth_matches)) => {
 			substrate_sync_loop::run(match substrate_sync_params(&sub_to_eth_matches) {
 				Ok(substrate_sync_params) => substrate_sync_params,
+				Err(err) => {
+					log::error!(target: "bridge", "Error parsing parameters: {}", err);
+					return;
+				}
+			});
+		},
+		("eth-deploy-contract", Some(eth_deploy_matches)) => {
+			ethereum_deploy_contract::run(match ethereum_deploy_contract_params(&eth_deploy_matches) {
+				Ok(ethereum_deploy_matches) => ethereum_deploy_matches,
 				Err(err) => {
 					log::error!(target: "bridge", "Error parsing parameters: {}", err);
 					return;
@@ -145,7 +155,7 @@ fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<substrate_sync_lo
 		sub_sync_params.eth_port = eth_port.parse().map_err(|e| format!("{}", e))?;
 	}
 	if let Some(eth_contract) = matches.value_of("eth-contract") {
-		sub_sync_params.eth_contract = eth_contract.parse().map_err(|e| format!("{}", e))?;
+		sub_sync_params.eth_contract_address = eth_contract.parse().map_err(|e| format!("{}", e))?;
 	}
 	if let Some(eth_signer) = matches.value_of("eth-signer") {
 		sub_sync_params.eth_signer = KeyPair::from_secret(
@@ -160,4 +170,21 @@ fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<substrate_sync_lo
 	}
 
 	Ok(sub_sync_params)
+}
+
+fn ethereum_deploy_contract_params(matches: &clap::ArgMatches) -> Result<ethereum_deploy_contract::EthereumDeployContractParams, String> {
+	let mut eth_deploy_params = ethereum_deploy_contract::EthereumDeployContractParams::default();
+	if let Some(eth_host) = matches.value_of("eth-host") {
+		eth_deploy_params.eth_host = eth_host.into();
+	}
+	if let Some(eth_port) = matches.value_of("eth-port") {
+		eth_deploy_params.eth_port = eth_port.parse().map_err(|e| format!("{}", e))?;
+	}
+	if let Some(eth_signer) = matches.value_of("eth-signer") {
+		eth_deploy_params.eth_signer = KeyPair::from_secret(
+			eth_signer.parse().map_err(|e| format!("{}", e))?
+		).map_err(|e| format!("{}", e))?;
+	}
+
+	Ok(eth_deploy_params)
 }
