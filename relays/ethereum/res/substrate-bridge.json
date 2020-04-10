@@ -8,12 +8,12 @@
 			},
 			{
 				"internalType": "uint64",
-				"name": "initialVotersSetId",
+				"name": "initialValidatorsSetId",
 				"type": "uint64"
 			},
 			{
 				"internalType": "bytes",
-				"name": "initialRawVoters",
+				"name": "initialValidatorsSet",
 				"type": "bytes"
 			}
 		],
@@ -29,14 +29,14 @@
 		"name": "bestKnownHeader",
 		"outputs": [
 			{
-				"internalType": "bytes",
+				"internalType": "uint256",
 				"name": "",
-				"type": "bytes"
+				"type": "uint256"
 			},
 			{
-				"internalType": "bytes",
+				"internalType": "bytes32",
 				"name": "",
-				"type": "bytes"
+				"type": "bytes32"
 			}
 		],
 		"stateMutability": "view",
@@ -45,9 +45,14 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes",
-				"name": "rawHeaders",
-				"type": "bytes"
+				"internalType": "uint256",
+				"name": "finalityTargetNumber",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "finalityTargetHash",
+				"type": "bytes32"
 			},
 			{
 				"internalType": "bytes",
@@ -55,7 +60,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "importHeaders",
+		"name": "importFinalityProof",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -64,8 +69,40 @@
 		"inputs": [
 			{
 				"internalType": "bytes",
-				"name": "headerHash",
+				"name": "rawHeader",
 				"type": "bytes"
+			}
+		],
+		"name": "importHeader",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "headerHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "isFinalityProofRequired",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "headerHash",
+				"type": "bytes32"
 			}
 		],
 		"name": "isKnownHeader",

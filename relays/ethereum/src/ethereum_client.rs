@@ -312,7 +312,7 @@ pub async fn deploy_bridge_contract(
 ) -> (Client, Result<H256, Error>) {
 	let encoded_call = bridge_contract::constructor(
 		contract_code,
-		vec![initial_header].encode(),
+		initial_header.encode(),
 		initial_set_id,
 		initial_authorities,
 	);

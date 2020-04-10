@@ -189,7 +189,23 @@ contract SubstrateBridge {
 	function parseSubstrateHeader(
 		uint256 headerIndex,
 		bytes memory rawHeaders
-	) private pure returns (Header memory, VoterSetSignal memory) {
+	) private returns (Header memory, VoterSetSignal memory) {
+		// https://ethereum.stackexchange.com/questions/76346/how-to-call-ecrecover-in-pure-assembly
+		assembly {
+			let pointer := mload(0x40)
+			let rawHeadersLength := mload(rawHeaders)
+			let rawHeadersPointer := add(rawHeaders, 0x20)
+/*			mstore(pointer, headerIndex)
+			mstore(add(pointer, 0x20), rawHeaders)
+			mstore(add(pointer, 0x40), rawHeadersLength)*/
+			// ?, builtin_address, in_off, in_size, out_off, out_size
+			// call parse: staticcall(?, builtinAddress, inPointer, inSize, outPointer, outSize)
+			if iszero(staticcall(not(0), 0x10, rawHeadersPointer, rawHeadersLength, pointer, 0x00)) {
+				revert(0, 0)
+			}
+		}
+
+
 		return (
 			Header({
 				nextHeaderKeccak: bytes32(0),

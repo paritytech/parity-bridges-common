@@ -57,7 +57,7 @@ impl HeadersSyncPipeline for SubstrateHeadersSyncPipeline {
 	type Hash = bridge_node_runtime::Hash;
 	type Number = bridge_node_runtime::BlockNumber;
 	type Header = Header;
-	type Extra = Option<Justification>;
+	type Extra = ();
 
 	fn estimate_size(_source: &QueuedHeader<Self>) -> usize {
 		// we may only submit Substrate headers wit finality proof

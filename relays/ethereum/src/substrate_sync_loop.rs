@@ -186,8 +186,8 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	}
 
 	fn requires_extra(self, header: &QueuedSubstrateHeader) -> Self::RequiresExtraFuture {
-		// we would require justification for every header
-		ready((self, Ok((header.header().id(), true))))
+		// we do not require any extra data for substrate headers
+		ready((self, Ok((header.header().id(), false))))
 	}
 
 	fn submit_headers(self, headers: Vec<QueuedSubstrateHeader>) -> Self::SubmitHeadersFuture {
