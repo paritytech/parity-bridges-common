@@ -131,12 +131,13 @@ contract SubstrateBridge {
 			"Missing parent header from the storage"
 		);
 
-		// check if parent header has emitted validators set change signal
-		uint64 validatorsSetId = parentHeader.validatorsSetId;
-		bytes32 prevSignalHeaderHash = parentHeader.prevSignalHeaderHash;
-		if (parentHeader.signal.length != 0) {
-			prevSignalHeaderHash = header.parentHash;
-			validatorsSetId = validatorsSetId + 1;
+		// forbid appending to fork until we'll get finality proof for header that
+		// requires it
+		if (parentHeader.prevSignalTargetNumber == parentHeader.number) {
+			require(
+				bestFinalizedHeaderHash == header.parentHash,
+				"Missing required finality proof for parent header"
+			);
 		}
 
 		// forbid overlapping signals
@@ -147,6 +148,14 @@ contract SubstrateBridge {
 				"Overlapping signals found"
 			);
 			prevSignalTargetNumber = header.number + header.signalDelay;
+		}
+
+		// check if parent header has emitted validators set change signal
+		uint64 validatorsSetId = parentHeader.validatorsSetId;
+		bytes32 prevSignalHeaderHash = parentHeader.prevSignalHeaderHash;
+		if (parentHeader.signal.length != 0) {
+			prevSignalHeaderHash = header.parentHash;
+			validatorsSetId = validatorsSetId + 1;
 		}
 
 		// store header in the storage

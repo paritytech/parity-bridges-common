@@ -19,7 +19,7 @@ use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Heade
 use crate::substrate_client;
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
-use futures::future::FutureExt;
+use futures::future::{FutureExt, Ready, ready};
 use std::{future::Future, pin::Pin};
 use web3::types::H256;
 
@@ -80,6 +80,7 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<u64, Self::Error>)>>>;
 	type HeaderByHashFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
 	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
+	type HeaderAsyncExtraFuture = Ready<(Self, Result<(EthereumHeaderId, Option<()>), Self::Error>)>;
 	type HeaderExtraFuture = Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, Vec<Receipt>), Self::Error>)>>>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
@@ -98,6 +99,10 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 		ethereum_client::header_by_number(self.client, number)
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
 			.boxed()
+	}
+
+	fn header_async_extra(self, id: EthereumHeaderId) -> Self::HeaderAsyncExtraFuture {
+		ready((self, Ok((id, Some(())))))
 	}
 
 	fn header_extra(self, id: EthereumHeaderId, header: &Header) -> Self::HeaderExtraFuture {
@@ -121,6 +126,7 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = substrate_client::Error;
 	type BestHeaderIdFuture = Pin<Box<dyn Future<Output = (Self, Result<EthereumHeaderId, Self::Error>)>>>;
 	type IsKnownHeaderFuture = Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, bool), Self::Error>)>>>;
+	type RequiresAsyncExtraFuture = Ready<(Self, Result<(EthereumHeaderId, bool), Self::Error>)>;
 	type RequiresExtraFuture = Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, bool), Self::Error>)>>>;
 	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<Vec<EthereumHeaderId>, Self::Error>)>>>;
 
@@ -154,6 +160,10 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 				)
 			})
 			.boxed()
+	}
+
+	fn requires_async_extra(self, id: EthereumHeaderId) -> Self::RequiresAsyncExtraFuture {
+		ready((self, Ok((id, false))))
 	}
 
 	fn requires_extra(self, header: &QueuedEthereumHeader) -> Self::RequiresExtraFuture {

@@ -70,6 +70,8 @@ pub trait HeadersSyncPipeline: Clone + Copy {
 	type Header: Clone + std::fmt::Debug + SourceHeader<Self::Hash, Self::Number>;
 	/// Type of extra data for the header that we're receiving from the source node.
 	type Extra: Clone + std::fmt::Debug;
+	/// Type of extra data that we're sending separately from the header itself.
+	type AsyncExtra: Clone + std::fmt::Debug;
 
 	/// Function used to convert from queued header to target header.
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize;

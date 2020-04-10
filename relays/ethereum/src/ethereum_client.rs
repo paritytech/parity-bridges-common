@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, H256, U256, U64};
-use crate::substrate_types::{SubstrateHeaderId, Hash as SubstrateHash, Number as SubstrateNumber, QueuedSubstrateHeader};
+use crate::substrate_types::{SubstrateHeaderId, Hash as SubstrateHash, QueuedSubstrateHeader};
 use crate::sync_types::{HeaderId, MaybeConnectionError};
 use codec::{Encode, Decode};
 use ethabi::FunctionOutputDecoder;
@@ -62,8 +62,6 @@ pub enum Error {
 	IncompleteHeader,
 	/// We have received receipt with missing gas_used field.
 	IncompleteReceipt,
-	/// Justification for last Substrate header is missing.
-	MissingJustification,
 }
 
 impl MaybeConnectionError for Error {
@@ -188,12 +186,8 @@ pub async fn best_substrate_block(
 		Ok(result) => result,
 		Err(error) => return (client, Err(error)),
 	};
-	let (raw_number, raw_hash) = match call_decoder.decode(&call_result.0) {
+	let (number, raw_hash) = match call_decoder.decode(&call_result.0) {
 		Ok((raw_number, raw_hash)) => (raw_number, raw_hash),
-		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
-	};
-	let number = match SubstrateNumber::decode(&mut &raw_number[..]) {
-		Ok(number) => number,
 		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
 	};
 	let hash = match SubstrateHash::decode(&mut &raw_hash[..]) {
@@ -203,7 +197,7 @@ pub async fn best_substrate_block(
 
 	(
 		client,
-		Ok(HeaderId(number, hash)),
+		Ok(HeaderId(number.low_u32(), hash)), // TODO: verify that low_u32().into() == self
 	)
 }
 
@@ -219,7 +213,7 @@ pub async fn substrate_header_known(
 	// But when we'll read best header from Ethereum next time, we will know that
 	// there's a better header => this Orphan will either be marked as synced, or
 	// eventually pruned.
-	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1.encode());
+	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1);
 	let (client, result) = call_rpc::<Bytes>(
 		client,
 		"eth_call",
@@ -249,54 +243,55 @@ pub async fn submit_substrate_headers(
 	contract_address: Address,
 	gas_price: U256,
 	headers: Vec<QueuedSubstrateHeader>,
-) -> (Client, Result<(H256, Vec<SubstrateHeaderId>), Error>) {
-	let ids = headers.iter().map(|header| header.id()).collect();
-	let num_headers = headers.len();
-	let (headers, justification) = headers
-		.into_iter()
-		.fold((Vec::with_capacity(num_headers), None), |(mut headers, _), header| {
-			let (header, justification) = header.extract();
-			headers.push(header.encode());
-			(headers, justification)
-		});
-	let justification = match justification {
-		Some(justification) => justification.encode(),
-		None => return (client, Err(Error::MissingJustification)),
-	};
-	let encoded_call = bridge_contract::functions::import_headers::encode_input(
-		headers.encode(),
-		justification,
-	);
-	let (client, nonce) = account_nonce(client, signer.address().as_fixed_bytes().into()).await;
-	let nonce = match nonce {
+) -> (Client, Result<(Vec<H256>, Vec<SubstrateHeaderId>), Error>) {
+	let (mut client, nonce) = account_nonce(client, signer.address().as_fixed_bytes().into()).await;
+	let mut nonce = match nonce {
 		Ok(nonce) => nonce,
 		Err(error) => return (client, Err(error)),
 	};
-	let (client, gas) = estimate_gas(client, CallRequest {
-		to: Some(contract_address),
-		data: Some(encoded_call.clone().into()),
-	}).await;
-	let gas = match gas {
-		Ok(gas) => gas,
-		Err(error) => return (client, Err(error)),
-	};
-	let raw_transaction = ethereum_tx_sign::RawTransaction {
-		nonce,
-		to: Some(contract_address),
-		value: U256::zero(),
-		gas,
-		gas_price,
-		data: encoded_call,
-	}.sign(&signer.secret().as_fixed_bytes().into(), &chain_id);
-	let (client, result) = call_rpc(
-		client,
-		"eth_submitTransaction",
-		Params::Array(vec![
-			to_value(raw_transaction).unwrap(),
-		]),
-	)
-	.await;
-	(client, result.map(|tx_hash| (tx_hash, ids)))
+
+	let mut tx_hashes = Vec::with_capacity(headers.len());
+	let ids = headers.iter().map(|header| header.id()).collect();
+	for header in headers {
+		let raw_header = header.extract().0.encode();
+		let encoded_call = bridge_contract::functions::import_header::encode_input(
+			raw_header,
+		);
+		let (ret_client, gas) = estimate_gas(client, CallRequest {
+			to: Some(contract_address),
+			data: Some(encoded_call.clone().into()),
+		}).await;
+		let gas = match gas {
+			Ok(gas) => gas,
+			Err(error) => return (ret_client, Err(error)),
+		};
+		let raw_transaction = ethereum_tx_sign::RawTransaction {
+			nonce,
+			to: Some(contract_address),
+			value: U256::zero(),
+			gas: gas * 2,
+			gas_price,
+			data: encoded_call,
+		}.sign(&signer.secret().as_fixed_bytes().into(), &chain_id);
+		let (ret_client, result) = call_rpc(
+			ret_client,
+			"eth_submitTransaction",
+			Params::Array(vec![
+				to_value(raw_transaction).unwrap(),
+			]),
+		)
+		.await;
+		let tx_hash = match result {
+			Ok(tx_hash) => tx_hash,
+			Err(error) => return (ret_client, Err(error)),
+		};
+
+		tx_hashes.push(tx_hash);
+		nonce += 1.into();
+		client = ret_client;
+	}
+
+	(client, Ok((tx_hashes, ids)))
 }
 
 /// Deploy bridge contract.
