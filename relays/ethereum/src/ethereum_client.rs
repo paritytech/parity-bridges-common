@@ -277,7 +277,7 @@ pub async fn submit_substrate_headers(
 			ret_client,
 			"eth_submitTransaction",
 			Params::Array(vec![
-				to_value(raw_transaction).unwrap(),
+				to_value(Bytes(raw_transaction)).unwrap(),
 			]),
 		)
 		.await;
@@ -307,7 +307,7 @@ pub async fn deploy_bridge_contract(
 ) -> (Client, Result<H256, Error>) {
 	let encoded_call = bridge_contract::constructor(
 		contract_code,
-		initial_header.encode(),
+		initial_header,
 		initial_set_id,
 		initial_authorities,
 	);

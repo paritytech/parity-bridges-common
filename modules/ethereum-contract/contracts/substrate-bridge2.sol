@@ -133,7 +133,7 @@ contract SubstrateBridge {
 
 		// forbid appending to fork until we'll get finality proof for header that
 		// requires it
-		if (parentHeader.prevSignalTargetNumber == parentHeader.number) {
+		if (parentHeader.prevSignalTargetNumber != 0 && parentHeader.prevSignalTargetNumber == parentHeader.number) {
 			require(
 				bestFinalizedHeaderHash == header.parentHash,
 				"Missing required finality proof for parent header"
@@ -224,8 +224,8 @@ contract SubstrateBridge {
 
 		assembly {
 			// inputs
-			let rawHeadersSize := mload(rawHeader)
-			let rawHeadersPointer := add(rawHeader, 0x20)
+			let rawHeaderSize := mload(rawHeader)
+			let rawHeaderPointer := add(rawHeader, 0x20)
 
 			// output
 			let headerHashPointer := mload(0x40)
@@ -238,8 +238,8 @@ contract SubstrateBridge {
 			if iszero(staticcall(
 				not(0),
 				SUBSTRATE_PARSE_HEADER_BUILTIN_ADDRESS,
-				rawHeadersPointer,
-				rawHeadersSize,
+				rawHeaderPointer,
+				rawHeaderSize,
 				headerHashPointer,
 				0xA0
 			)) {

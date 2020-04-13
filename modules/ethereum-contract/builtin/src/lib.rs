@@ -15,11 +15,12 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use codec::{Encode, Decode};
-use bridge_node_runtime::{BlockNumber, Header as RuntimeHeader};
+use bridge_node_runtime::{BlockNumber, Hash, Header as RuntimeHeader};
 use sp_blockchain::Error as ClientError;
 use sp_finality_grandpa::AuthorityList;
 
 /// Builtin errors.
+#[derive(Debug)]
 pub enum Error {
 	/// Failed to decode Substrate header.
 	HeaderDecode(codec::Error),
@@ -34,9 +35,25 @@ pub enum Error {
 }
 
 /// Substrate header.
+#[derive(Debug)]
 pub struct Header {
+	/// Header hash.
+	pub hash: Hash,
+	/// Parent header hash.
+	pub parent_hash: Hash,
 	/// Header number.
 	pub number: BlockNumber,
+	/// GRANDPA validators change signal.
+	pub signal: Option<ValidatorsSetSignal>,
+}
+
+/// GRANDPA validators set change signal.
+#[derive(Debug)]
+pub struct ValidatorsSetSignal {
+	/// Signal delay.
+	pub delay: BlockNumber,
+	/// New validators set.
+	pub validators: Vec<u8>,
 }
 
 /// All types of finality proofs.
@@ -50,7 +67,10 @@ pub enum FinalityProof {
 pub fn parse_substrate_header(raw_header: &[u8]) -> Result<Header, Error> {
 	RuntimeHeader::decode(&mut &raw_header[..])
 		.map(|header| Header {
+			hash: header.hash(),
+			parent_hash: header.parent_hash,
 			number: header.number,
+			signal: None, // TODO
 		})
 		.map_err(Error::HeaderDecode)
 }

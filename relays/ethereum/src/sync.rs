@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::headers::{ExtraMode, QueuedHeaders};
+use crate::headers::QueuedHeaders;
 use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, QueuedHeader};
 use num_traits::{One, Saturating};
 
@@ -34,8 +34,6 @@ pub struct HeadersSyncParams {
 	pub prune_depth: u32,
 	/// Target transactions mode.
 	pub target_tx_mode: TargetTransactionMode,
-	/// Extra data synchronization mode.
-	pub extra_mode: ExtraMode,
 }
 
 /// Target transaction mode.
@@ -67,7 +65,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 	/// Creates new headers synchronizer.
 	pub fn new(params: HeadersSyncParams) -> Self {
 		HeadersSync {
-			headers: QueuedHeaders::new(params.extra_mode),
+			headers: QueuedHeaders::new(),
 			params,
 			source_best_number: None,
 			target_best_header: None,
@@ -203,20 +201,6 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		self.source_best_number = None;
 		self.target_best_header = None;
 		self.headers.clear();
-	}
-}
-
-impl Default for HeadersSyncParams {
-	fn default() -> Self {
-		HeadersSyncParams {
-			max_future_headers_to_download: 128,
-			max_headers_in_submitted_status: 128,
-			max_headers_in_single_submit: 32,
-			max_headers_size_in_single_submit: 131_072,
-			prune_depth: 4096,
-			target_tx_mode: TargetTransactionMode::Signed,
-			extra_mode: ExtraMode::PerHeader,
-		}
 	}
 }
 

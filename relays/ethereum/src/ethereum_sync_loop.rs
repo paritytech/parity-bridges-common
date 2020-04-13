@@ -64,7 +64,14 @@ impl Default for EthereumSyncParams {
 			sub_host: "localhost".into(),
 			sub_port: 9933,
 			sub_signer: sp_keyring::AccountKeyring::Alice.pair(),
-			sync_params: Default::default(),
+			sync_params: HeadersSyncParams {
+				max_future_headers_to_download: 8,
+				max_headers_in_submitted_status: 4,
+				max_headers_in_single_submit: 4,
+				max_headers_size_in_single_submit: 8 * 1024 * 1024, // we should never hit it
+				prune_depth: 256,
+				target_tx_mode: TargetTransactionMode::Signed,
+			},
 		}
 	}
 }

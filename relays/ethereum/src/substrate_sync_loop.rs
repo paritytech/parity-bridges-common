@@ -21,7 +21,7 @@ use crate::substrate_types::{
 	Header, Hash, Number, Justification, QueuedSubstrateHeader,
 	SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
-use crate::sync::HeadersSyncParams;
+use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::SourceHeader;
 use futures::future::{FutureExt, Ready, ready};
@@ -77,7 +77,14 @@ impl Default for SubstrateSyncParams {
 			eth_gas_price: 8_000_000_000u64.into(), // 8 Gwei
 			sub_host: "localhost".into(),
 			sub_port: 9933,
-			sync_params: Default::default(),
+			sync_params: HeadersSyncParams {
+				max_future_headers_to_download: 128,
+				max_headers_in_submitted_status: 128,
+				max_headers_in_single_submit: 32,
+				max_headers_size_in_single_submit: 131_072,
+				prune_depth: 4096,
+				target_tx_mode: TargetTransactionMode::Signed,
+			},
 		}
 	}
 }
