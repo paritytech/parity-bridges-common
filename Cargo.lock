@@ -517,7 +517,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "futures-util",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "slab 0.4.2",
 ]
 
@@ -1052,7 +1052,7 @@ dependencies = [
  "num-traits",
  "pallet-transaction-payment",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "rustc-hex",
  "serde",
  "serde_json",
@@ -2148,7 +2148,7 @@ dependencies = [
  "jsonrpc-server-utils",
  "log 0.4.8",
  "net2",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "unicase 2.6.0",
 ]
 
@@ -2160,7 +2160,7 @@ checksum = "5b31c9b90731276fdd24d896f31bb10aecf2e5151733364ae81123186643d939"
 dependencies = [
  "jsonrpc-core",
  "log 0.4.8",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "serde",
 ]
 
@@ -2189,7 +2189,7 @@ dependencies = [
  "jsonrpc-core",
  "jsonrpc-server-utils",
  "log 0.4.8",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "slab 0.4.2",
  "ws",
 ]
@@ -2212,7 +2212,7 @@ dependencies = [
  "jsonrpsee-proc-macros",
  "lazy_static",
  "log 0.4.8",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "pin-project",
  "rand 0.7.3",
  "serde",
@@ -2281,7 +2281,7 @@ checksum = "b9355274e5a9e0a7e8ef43916950eae3949024de2a8dffe4d5a6c13974a37c8e"
 dependencies = [
  "kvdb",
  "parity-util-mem",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
 ]
 
 [[package]]
@@ -2297,7 +2297,7 @@ dependencies = [
  "num_cpus",
  "owning_ref",
  "parity-util-mem",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "regex",
  "rocksdb",
  "smallvec 1.2.0",
@@ -2369,7 +2369,7 @@ dependencies = [
  "libp2p-yamux",
  "parity-multiaddr 0.7.3",
  "parity-multihash 0.2.3",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "pin-project",
  "smallvec 1.2.0",
  "wasm-timer",
@@ -2393,7 +2393,7 @@ dependencies = [
  "multistream-select",
  "parity-multiaddr 0.7.3",
  "parity-multihash 0.2.3",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "pin-project",
  "prost",
  "prost-build",
@@ -2559,7 +2559,7 @@ dependencies = [
  "futures_codec",
  "libp2p-core",
  "log 0.4.8",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "unsigned-varint 0.3.2",
 ]
 
@@ -2745,7 +2745,7 @@ checksum = "9dac30de24ccde0e67f363d71a125c587bbe6589503f664947e9b084b68a34f1"
 dependencies = [
  "futures 0.3.4",
  "libp2p-core",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "thiserror",
  "yamux",
 ]
@@ -2807,9 +2807,9 @@ dependencies = [
 
 [[package]]
 name = "lock_api"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79b2de95ecb4691949fea4716ca53cdbcfccb2c612e19644a8bad05edcf9f47b"
+checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
 dependencies = [
  "scopeguard",
 ]
@@ -3542,7 +3542,7 @@ dependencies = [
  "cfg-if",
  "impl-trait-for-tuples",
  "parity-util-mem-derive",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "primitive-types 0.6.2",
  "smallvec 1.2.0",
  "winapi 0.3.8",
@@ -3578,12 +3578,12 @@ dependencies = [
 
 [[package]]
 name = "parking_lot"
-version = "0.10.0"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92e98c49ab0b7ce5b222f2cc9193fc4efe11c6d0bd4f648e374684a6857b1cfc"
+checksum = "d3a704eb390aafdc107b0e392f56a82b668e3a71366993b5340f5833fd62505e"
 dependencies = [
  "lock_api",
- "parking_lot_core 0.7.0",
+ "parking_lot_core 0.7.1",
 ]
 
 [[package]]
@@ -3603,9 +3603,9 @@ dependencies = [
 
 [[package]]
 name = "parking_lot_core"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7582838484df45743c8434fbff785e8edf260c28748353d44bc0da32e0ceabf1"
+checksum = "0e136c1904604defe99ce5fd71a28d473fa60a12255d511aa78a9ddf11237aeb"
 dependencies = [
  "cfg-if",
  "cloudabi",
@@ -4485,7 +4485,7 @@ dependencies = [
  "kvdb",
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-block-builder",
  "sc-client-api",
  "sc-executor",
@@ -4518,7 +4518,7 @@ dependencies = [
  "kvdb",
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-executor",
  "sc-telemetry",
  "sp-api",
@@ -4549,7 +4549,7 @@ dependencies = [
  "log 0.4.8",
  "parity-scale-codec",
  "parity-util-mem",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "rand 0.7.3",
  "sc-client",
  "sc-client-api",
@@ -4573,7 +4573,7 @@ dependencies = [
  "futures-timer 3.0.2",
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-client",
  "sc-client-api",
  "sc-consensus-slots",
@@ -4602,7 +4602,7 @@ dependencies = [
  "futures-timer 3.0.2",
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-client-api",
  "sc-telemetry",
  "sp-api",
@@ -4625,7 +4625,7 @@ dependencies = [
  "log 0.4.8",
  "parity-scale-codec",
  "parity-wasm",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-executor-common",
  "sc-executor-wasmi",
  "sp-core",
@@ -4684,7 +4684,7 @@ dependencies = [
  "futures-timer 3.0.2",
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "pin-project",
  "rand 0.7.3",
  "sc-client",
@@ -4728,7 +4728,7 @@ source = "git+https://github.com/paritytech/substrate.git?rev=2afecf81ee19b8a6ed
 dependencies = [
  "derive_more",
  "hex",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "rand 0.7.3",
  "serde_json",
  "sp-application-crypto",
@@ -4758,7 +4758,7 @@ dependencies = [
  "lru",
  "nohash-hasher",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "pin-project",
  "prost",
  "prost-build",
@@ -4796,7 +4796,7 @@ dependencies = [
  "libp2p",
  "log 0.4.8",
  "lru",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-network",
  "sp-runtime",
  "wasm-timer",
@@ -4816,7 +4816,7 @@ dependencies = [
  "log 0.4.8",
  "num_cpus",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "rand 0.7.3",
  "sc-client-api",
  "sc-keystore",
@@ -4851,7 +4851,7 @@ dependencies = [
  "jsonrpc-pubsub",
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-client",
  "sc-client-api",
  "sc-executor",
@@ -4883,7 +4883,7 @@ dependencies = [
  "jsonrpc-pubsub",
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "serde",
  "serde_json",
  "sp-core",
@@ -4924,7 +4924,7 @@ dependencies = [
  "parity-multiaddr 0.5.0",
  "parity-scale-codec",
  "parity-util-mem",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "prometheus-exporter",
  "sc-chain-spec",
  "sc-client",
@@ -4964,7 +4964,7 @@ source = "git+https://github.com/paritytech/substrate.git?rev=2afecf81ee19b8a6ed
 dependencies = [
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sp-core",
 ]
 
@@ -4978,7 +4978,7 @@ dependencies = [
  "futures-timer 3.0.2",
  "libp2p",
  "log 0.4.8",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "pin-project",
  "rand 0.7.3",
  "serde",
@@ -4997,7 +4997,7 @@ source = "git+https://github.com/paritytech/substrate.git?rev=2afecf81ee19b8a6ed
 dependencies = [
  "erased-serde",
  "log 0.4.8",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-telemetry",
  "serde",
  "serde_json",
@@ -5015,7 +5015,7 @@ dependencies = [
  "linked-hash-map",
  "log 0.4.8",
  "parity-util-mem",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "serde",
  "sp-blockchain",
  "sp-core",
@@ -5036,7 +5036,7 @@ dependencies = [
  "log 0.4.8",
  "parity-scale-codec",
  "parity-util-mem",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sc-client-api",
  "sc-transaction-graph",
  "sp-api",
@@ -5507,7 +5507,7 @@ dependencies = [
  "log 0.4.8",
  "lru",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sp-block-builder",
  "sp-consensus",
  "sp-runtime",
@@ -5549,7 +5549,7 @@ dependencies = [
  "libp2p",
  "log 0.4.8",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "serde",
  "sp-core",
  "sp-inherents",
@@ -5608,7 +5608,7 @@ dependencies = [
  "num-traits",
  "parity-scale-codec",
  "parity-util-mem",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "primitive-types 0.6.2",
  "rand 0.7.3",
  "regex",
@@ -5679,7 +5679,7 @@ source = "git+https://github.com/paritytech/substrate.git?rev=2afecf81ee19b8a6ed
 dependencies = [
  "derive_more",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "sp-core",
  "sp-std",
 ]
@@ -5825,7 +5825,7 @@ dependencies = [
  "log 0.4.8",
  "num-traits",
  "parity-scale-codec",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "rand 0.7.3",
  "sp-core",
  "sp-externalities",
@@ -7126,7 +7126,7 @@ dependencies = [
  "log 0.4.8",
  "native-tls",
  "parity-crypto 0.4.2",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "rustc-hex",
  "serde",
  "serde_json",
@@ -7300,7 +7300,7 @@ dependencies = [
  "futures 0.3.4",
  "log 0.4.8",
  "nohash-hasher",
- "parking_lot 0.10.0",
+ "parking_lot 0.10.2",
  "rand 0.7.3",
  "static_assertions",
 ]
