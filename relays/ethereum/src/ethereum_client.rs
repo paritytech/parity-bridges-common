@@ -349,7 +349,7 @@ async fn submit_ethereum_transaction(
 		nonce,
 		to: contract_address,
 		value: U256::zero(),
-		gas: if double_gas { gas.saturating_sub(2.into()) } else { gas },
+		gas: if double_gas { gas.saturating_mul(2.into()) } else { gas },
 		gas_price: params.gas_price,
 		data: encoded_call,
 	}
