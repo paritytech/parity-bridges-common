@@ -339,6 +339,7 @@ async fn submit_ethereum_transaction(
 		estimate_gas(
 			client,
 			CallRequest {
+				to: contract_address,
 				data: Some(encoded_call.clone().into()),
 				..Default::default()
 			}
