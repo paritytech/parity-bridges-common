@@ -70,7 +70,7 @@ impl Default for EthereumSigningParams {
 	fn default() -> Self {
 		EthereumSigningParams {
 			chain_id: 0x11, // Parity dev chain
-			// that the account that has a lot of ether when we run instant seal engine
+			// account that has a lot of ether when we run instant seal engine
 			// address: 0x00a329c0648769a73afac7f9381e08fb43dbea72
 			// secret: 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7
 			signer: KeyPair::from_secret_slice(
@@ -289,37 +289,21 @@ pub async fn submit_substrate_headers(
 	let mut tx_hashes = Vec::with_capacity(headers.len());
 	let ids = headers.iter().map(|header| header.id()).collect();
 	for header in headers {
-		let raw_header = header.extract().0.encode();
-		let encoded_call = bridge_contract::functions::import_header::encode_input(
-			raw_header,
-		);
-		let (ret_client, gas) = bail_on_error!(
-			estimate_gas(client, CallRequest {
-				to: Some(contract_address),
-				data: Some(encoded_call.clone().into()),
-			}).await
-		);
-		let raw_transaction = ethereum_tx_sign::RawTransaction {
-			nonce,
-			to: Some(contract_address),
-			value: U256::zero(),
-			gas: gas * 2,
-			gas_price: params.gas_price,
-			data: encoded_call,
-		}.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
 		let (ret_client, tx_hash) = bail_on_error!(
-			call_rpc(
-				ret_client,
-				"eth_submitTransaction",
-				Params::Array(vec![
-					to_value(Bytes(raw_transaction)).unwrap(),
-				]),
-			)
-			.await
+			submit_ethereum_transaction(
+				client,
+				&params,
+				Some(contract_address),
+				Some(nonce),
+				true, // we may need slightly more gas because other actors could change contract state
+				bridge_contract::functions::import_header::encode_input(
+					header.extract().0.encode(),
+				),
+			).await
 		);
 
-		tx_hashes.push(tx_hash);
 		nonce += 1.into();
+		tx_hashes.push(tx_hash);
 		client = ret_client;
 	}
 
@@ -335,13 +319,36 @@ pub async fn deploy_bridge_contract(
 	initial_set_id: u64,
 	initial_authorities: Vec<u8>,
 ) -> (Client, Result<H256, Error>) {
-	let encoded_call = bridge_contract::constructor(
-		contract_code,
-		initial_header,
-		initial_set_id,
-		initial_authorities,
-	);
-	let (client, nonce) = bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await);
+	submit_ethereum_transaction(
+		client,
+		params,
+		None,
+		None,
+		false,
+		bridge_contract::constructor(
+			contract_code,
+			initial_header,
+			initial_set_id,
+			initial_authorities,
+		),
+	).await
+}
+
+/// Submit ethereum transaction.
+async fn submit_ethereum_transaction(
+	client: Client,
+	params: &EthereumSigningParams,
+	contract_address: Option<Address>,
+	nonce: Option<U256>,
+	double_gas: bool,
+	encoded_call: Vec<u8>,
+) -> (Client, Result<H256, Error>) {
+	let (client, nonce) = match nonce {
+		Some(nonce) => (client, nonce),
+		None => bail_on_error!(
+			account_nonce(client, params.signer.address().as_fixed_bytes().into()).await
+		),
+	};
 	let (client, gas) = bail_on_error!(
 		estimate_gas(client, CallRequest {
 			data: Some(encoded_call.clone().into()),
@@ -349,10 +356,10 @@ pub async fn deploy_bridge_contract(
 		}).await
 	);
 	let raw_transaction = ethereum_tx_sign::RawTransaction {
-		nonce: nonce,
-		to: None,
+		nonce,
+		to: contract_address,
 		value: U256::zero(),
-		gas,
+		gas: if double_gas { gas.saturating_sub(2.into()) } else { gas },
 		gas_price: params.gas_price,
 		data: encoded_call,
 	}.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
