@@ -26,7 +26,8 @@ use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
 use num_traits::Zero;
-use serde_json::{from_value, to_value};
+use serde::de::DeserializeOwned;
+use serde_json::{Value, from_value, to_value};
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
 
@@ -111,22 +112,24 @@ pub fn client(params: SubstrateConnectionParams) -> Client {
 
 /// Returns best Substrate header.
 pub async fn best_header(client: Client) -> (Client, Result<SubstrateHeader, Error>) {
-	call_rpc_header(
+	call_rpc(
 		client,
 		"chain_getHeader",
 		Params::None,
+		rpc_returns_value,
 	)
 	.await
 }
 
 /// Returns Substrate header by hash.
 pub async fn header_by_hash(client: Client, hash: Hash) -> (Client, Result<SubstrateHeader, Error>) {
-	call_rpc_header(
+	call_rpc(
 		client,
 		"chain_getHeader",
 		Params::Array(vec![
 			to_value(hash).unwrap(),
 		]),
+		rpc_returns_value,
 	)
 	.await
 }
@@ -148,13 +151,14 @@ pub async fn justification(client: Client, _hash: Hash) -> (Client, Result<Optio
 
 /// Returns best Ethereum block that Substrate runtime knows of.
 pub async fn best_ethereum_block(client: Client) -> (Client, Result<EthereumHeaderId, Error>) {
-	let (client, result) = call_rpc::<(u64, H256)>(
+	let (client, result) = call_rpc(
 		client,
 		"state_call",
 		Params::Array(vec![
 			to_value("EthereumHeadersApi_best_block").unwrap(),
 			to_value("0x").unwrap(),
 		]),
+		rpc_returns_encoded_value,
 	)
 	.await;
 	(client, result.map(|(num, hash)| HeaderId(num, hash)))
@@ -175,6 +179,7 @@ pub async fn ethereum_receipts_required(
 			to_value("EthereumHeadersApi_is_import_requires_receipts").unwrap(),
 			to_value(Bytes(encoded_header)).unwrap(),
 		]),
+		rpc_returns_encoded_value,
 	)
 	.await;
 	(
@@ -202,6 +207,7 @@ pub async fn ethereum_header_known(
 			to_value("EthereumHeadersApi_is_known_block").unwrap(),
 			to_value(Bytes(encoded_id)).unwrap(),
 		]),
+		rpc_returns_encoded_value,
 	)
 	.await;
 	(client, is_known_block.map(|is_known_block| (id, is_known_block)))
@@ -252,6 +258,7 @@ pub async fn submit_signed_ethereum_headers(
 		client,
 		"author_submitExtrinsic",
 		Params::Array(vec![to_value(Bytes(encoded_transaction)).unwrap()]),
+		rpc_returns_value,
 	)
 	.await;
 
@@ -276,6 +283,7 @@ pub async fn submit_unsigned_ethereum_headers(
 			client,
 			"author_submitExtrinsic",
 			Params::Array(vec![to_value(Bytes(encoded_transaction)).unwrap()]),
+			rpc_returns_value,
 		)
 		.await;
 
@@ -298,6 +306,7 @@ pub async fn grandpa_authorities_set(client: Client, block: Hash) -> (Client, Re
 			to_value("GrandpaApi_grandpa_authorities").unwrap(),
 			to_value(block).unwrap(),
 		]),
+		rpc_returns_bytes,
 	)
 	.await
 }
@@ -308,6 +317,7 @@ async fn block_hash_by_number(client: Client, number: Number) -> (Client, Result
 		client,
 		"chain_getBlockHash",
 		Params::Array(vec![to_value(number).unwrap()]),
+		rpc_returns_value,
 	).await
 }
 
@@ -318,18 +328,29 @@ async fn next_account_index(
 ) -> (Client, Result<node_primitives::Index, Error>) {
 	use sp_core::crypto::Ss58Codec;
 
-	let (client, index) = call_rpc_u64(
+	let (client, index) = call_rpc(
 		client,
 		"system_accountNextIndex",
 		Params::Array(vec![to_value(account.to_ss58check()).unwrap()]),
+		|v| rpc_returns_value::<u64>(v),
 	)
 	.await;
 	(client, index.map(|index| index as _))
 }
 
 /// Calls RPC on Substrate node that returns Bytes.
-async fn call_rpc<T: Decode>(mut client: Client, method: &'static str, params: Params) -> (Client, Result<T, Error>) {
-	async fn do_call_rpc<T: Decode>(client: &mut Client, method: &'static str, params: Params) -> Result<T, Error> {
+async fn call_rpc<T>(
+	mut client: Client,
+	method: &'static str,
+	params: Params,
+	decode_value: impl Fn(Value) -> Result<T, Error>,
+) -> (Client, Result<T, Error>) {
+	async fn do_call_rpc<T>(
+		client: &mut Client,
+		method: &'static str,
+		params: Params,
+		decode_value: impl Fn(Value) -> Result<T, Error>,
+	) -> Result<T, Error> {
 		let request_id = client
 			.rpc_client
 			.start_request(method, params)
@@ -343,57 +364,10 @@ async fn call_rpc<T: Decode>(mut client: Client, method: &'static str, params: P
 			.ok_or(Error::RequestNotFound)?
 			.await
 			.map_err(Error::ResponseRetrievalFailed)?;
-		let encoded_response: Bytes = from_value(response).map_err(|_| Error::ResponseParseFailed)?;
-		Decode::decode(&mut &encoded_response.0[..]).map_err(|_| Error::ResponseParseFailed)
+		decode_value(response)
 	}
 
-	let result = do_call_rpc(&mut client, method, params).await;
-	(client, result)
-}
-
-/// Calls RPC on Substrate node that returns Header.
-async fn call_rpc_header(mut client: Client, method: &'static str, params: Params) -> (Client, Result<SubstrateHeader, Error>) {
-	async fn do_call_rpc(client: &mut Client, method: &'static str, params: Params) -> Result<SubstrateHeader, Error> {
-		let request_id = client
-			.rpc_client
-			.start_request(method, params)
-			.await
-			.map_err(Error::StartRequestFailed)?;
-		// WARN: if there'll be need for executing >1 request at a time, we should avoid
-		// calling request_by_id
-		let response = client
-			.rpc_client
-			.request_by_id(request_id)
-			.ok_or(Error::RequestNotFound)?
-			.await
-			.map_err(Error::ResponseRetrievalFailed)?;
-		from_value(response).map_err(|_| Error::ResponseParseFailed)
-	}
-
-	let result = do_call_rpc(&mut client, method, params).await;
-	(client, result)
-}
-
-/// Calls RPC on Substrate node that returns u64.
-async fn call_rpc_u64(mut client: Client, method: &'static str, params: Params) -> (Client, Result<u64, Error>) {
-	async fn do_call_rpc(client: &mut Client, method: &'static str, params: Params) -> Result<u64, Error> {
-		let request_id = client
-			.rpc_client
-			.start_request(method, params)
-			.await
-			.map_err(Error::StartRequestFailed)?;
-		// WARN: if there'll be need for executing >1 request at a time, we should avoid
-		// calling request_by_id
-		let response = client
-			.rpc_client
-			.request_by_id(request_id)
-			.ok_or(Error::RequestNotFound)?
-			.await
-			.map_err(Error::ResponseRetrievalFailed)?;
-		response.as_u64().ok_or(Error::ResponseParseFailed)
-	}
-
-	let result = do_call_rpc(&mut client, method, params).await;
+	let result = do_call_rpc(&mut client, method, params, decode_value).await;
 	(client, result)
 }
 
@@ -457,4 +431,21 @@ fn create_unsigned_submit_transaction(header: QueuedEthereumHeader) -> bridge_no
 		));
 
 	bridge_node_runtime::UncheckedExtrinsic::new_unsigned(function)
+}
+
+/// When RPC method returns encoded value.
+fn rpc_returns_encoded_value<T: Decode>(value: Value) -> Result<T, Error> {
+	let encoded_response: Bytes = from_value(value).map_err(|_| Error::ResponseParseFailed)?;
+	Decode::decode(&mut &encoded_response.0[..]).map_err(|_| Error::ResponseParseFailed)
+}
+
+/// When RPC method returns value.
+fn rpc_returns_value<T: DeserializeOwned>(value: Value) -> Result<T, Error> {
+	from_value(value).map_err(|_| Error::ResponseParseFailed)
+}
+
+/// When RPC method returns raw bytes.
+fn rpc_returns_bytes(value: Value) -> Result<Vec<u8>, Error> {
+	let encoded_response: Bytes = from_value(value).map_err(|_| Error::ResponseParseFailed)?;
+	Ok(encoded_response.0)
 }
