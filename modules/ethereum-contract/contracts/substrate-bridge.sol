@@ -16,235 +16,306 @@
 
 pragma solidity ^0.6.4;
 
-// TODO: expose interface + switch to external+calldata after https://github.com/ethereum/solidity/issues/7929
-
-// TODO: use ABIEncoderV2 to allow passing headers array as bytes[] and structs to constructor
-// when ethabi will support it
+// for simplicity, this contract works with 32-bit headers hashes and headers
+// numbers that can be represented as uint256 (supporting uint256 arithmetics)
 
 /// @title Substrate-to-PoA Bridge Contract.
 contract SubstrateBridge {
-	/// Voter set as it is stored in the storage.
-	struct VoterSet {
-		/// Id of the set.
-		uint64 id;
-		/// Raw voter set.
-		bytes rawVoters;
-	}
-
-	/// Voter set change signals.
-	struct VoterSetSignal {
-		/// keccak256(header.number) of the header that enacts this voter set.
-		bytes32 headerNumber;
-		/// Raw voter set.
-		bytes rawVoters;
+	/// Parsed header.
+	struct ParsedHeader {
+		/// Header hash.
+		bytes32 hash;
+		/// Parent header hash.
+		bytes32 parentHash;
+		/// Header number.
+		uint256 number;
+		/// Validators set change signal delay.
+		uint256 signalDelay;
+		/// Validators set change signal.
+		bytes signal;
 	}
 
 	/// Header as it is stored in the storage.
 	struct Header {
-		/// keccak256(header.hash) of the next header, or bytes32(0) if it is the best header.
-		bytes32 nextHeaderKeccak;
-		/// Header hash.
-		bytes hash;
+		/// Flag to ensure that the header exists :/
+		bool isKnown;
+
+		/// Parent header hash.
+		bytes32 parentHash;
 		/// Header number.
-		bytes number;
+		uint256 number;
+
+		/// Validators set change signal.
+		bytes signal;
+
+		/// ID of validators set that must finalize this header. This equals to same
+		/// field of the parent + 1 if parent header should enact new set.
+		uint64 validatorsSetId;
+		/// Hash of the latest header of this fork that has emitted last validators set
+		/// change signal.
+		bytes32 prevSignalHeaderHash;
+		/// Number of the header where latest signal of this fork must be enacted.
+		uint256 prevSignalTargetNumber;
 	}
 
 	/// Initializes bridge contract.
-	/// @param rawInitialHeader Vec of single element - raw finalized header that will be ancestor of all importing headers.
-	/// @param initialVotersSetId ID of GRANDPA voter set that must finalize direct children of the initial header.
-	/// @param initialRawVoters Raw GRANDPA voter set that must finalize direct children of the initial header.
+	/// @param rawInitialHeader Raw finalized header that will be ancestor of all importing headers.
+	/// @param initialValidatorsSetId ID of validators set that must finalize direct children of the initial header.
+	/// @param initialValidatorsSet Raw validators set that must finalize direct children of the initial header.
 	constructor(
 		bytes memory rawInitialHeader,
-		uint64 initialVotersSetId,
-		bytes memory initialRawVoters
+		uint64 initialValidatorsSetId,
+		bytes memory initialValidatorsSet
 	) public {
-		// save initial header
-		(
-			Header memory initialHeader,
-			VoterSetSignal memory voterSetSignal
-		) = parseSubstrateHeader(
-			0,
-			rawInitialHeader
-		);
-		bytes32 headerKeccak = saveBestHeader(initialHeader);
-		oldestHeaderKeccak = headerKeccak;
-		// save best voter set
-		bestVoterSet.id = initialVotersSetId;
-		bestVoterSet.rawVoters = initialRawVoters;
+		// parse and save header
+		ParsedHeader memory header = parseSubstrateHeader(rawInitialHeader);
+		lastImportedHeaderHash = header.hash;
+		bestFinalizedHeaderHash = header.hash;
+		bestFinalizedHeaderNumber = header.number;
+		headerByHash[header.hash] = Header({
+			isKnown: true,
+			parentHash: header.parentHash,
+			number: header.number,
+			signal: header.signal,
+			validatorsSetId: initialValidatorsSetId,
+			prevSignalHeaderHash: bytes32(0),
+			prevSignalTargetNumber: 0
+		});
+
+		// save best validators set
+		bestFinalizedValidatorsSetId = initialValidatorsSetId;
+		bestFinalizedValidatorsSet = initialValidatorsSet;
 	}
 
 	/// Reject direct payments.
 	fallback() external { revert(); }
 
-	/// Returns hash of the best known header.
-	function bestKnownHeader() public view returns (bytes memory, bytes memory) {
-		Header storage bestHeader = headerByKeccak[bestHeaderKeccak];
-		return (bestHeader.number, bestHeader.hash);
+	/// Returns number and hash of the best known header. Best known header is
+	/// the last header we have received, no matter hash or number. We can't
+	/// verify unfinalized header => we are only signalling relay that we are
+	/// receiving new headers here, so honest relay can continue to submit valid
+	/// headers and, eventually, finality proofs.
+	function bestKnownHeader() public view returns (uint256, bytes32) {
+		Header storage lastImportedHeader = headerByHash[lastImportedHeaderHash];
+		return (lastImportedHeader.number, lastImportedHeaderHash);
 	}
 
 	/// Returns true if header is known to the bridge.
 	/// @param headerHash Hash of the header we want to check.
 	function isKnownHeader(
-		bytes memory headerHash
+		bytes32 headerHash
 	) public view returns (bool) {
-		return headerByKeccak[keccak256(headerHash)].hash.length != 0;
+		return headerByHash[headerHash].isKnown;
 	}
 
-	/// Import range of headers with finalization data.
-	/// @param rawHeaders Vec of encoded finalized headers to import.
-	/// @param rawFinalityProof Data required to finalize rawHeaders.
-	function importHeaders(
-		bytes memory rawHeaders,
+	/// Returns true if finality proof is required for this header.
+	function isFinalityProofRequired(
+		bytes32 headerHash
+	) public view returns (bool) {
+		Header storage header = headerByHash[headerHash];
+		return header.isKnown
+			&& header.number > bestFinalizedHeaderNumber
+			&& header.number == header.prevSignalTargetNumber
+			&& header.validatorsSetId == bestFinalizedValidatorsSetId;
+	}
+
+	/// Import header.
+	function importHeader(
+		bytes memory rawHeader
+	) public {
+		// parse and save header
+		ParsedHeader memory header = parseSubstrateHeader(rawHeader);
+		Header storage parentHeader = headerByHash[header.parentHash];
+		require(
+			parentHeader.number == header.number - 1,
+			"Missing parent header from the storage"
+		);
+
+		// forbid appending to fork until we'll get finality proof for header that
+		// requires it
+		if (parentHeader.prevSignalTargetNumber != 0 && parentHeader.prevSignalTargetNumber == parentHeader.number) {
+			require(
+				bestFinalizedHeaderHash == header.parentHash,
+				"Missing required finality proof for parent header"
+			);
+		}
+
+		// forbid overlapping signals
+		uint256 prevSignalTargetNumber = parentHeader.prevSignalTargetNumber;
+		if (header.signal.length != 0) {
+			require(
+				prevSignalTargetNumber < header.number,
+				"Overlapping signals found"
+			);
+			prevSignalTargetNumber = header.number + header.signalDelay;
+		}
+
+		// check if parent header has emitted validators set change signal
+		uint64 validatorsSetId = parentHeader.validatorsSetId;
+		bytes32 prevSignalHeaderHash = parentHeader.prevSignalHeaderHash;
+		if (parentHeader.signal.length != 0) {
+			prevSignalHeaderHash = header.parentHash;
+			validatorsSetId = validatorsSetId + 1;
+		}
+
+		// store header in the storage
+		headerByHash[header.hash] = Header({
+			isKnown: true,
+			parentHash: header.parentHash,
+			number: header.number,
+			signal: header.signal,
+			validatorsSetId: validatorsSetId,
+			prevSignalHeaderHash: prevSignalHeaderHash,
+			prevSignalTargetNumber: prevSignalTargetNumber
+		});
+		lastImportedHeaderHash = header.hash;
+	}
+
+	/// Import finality proof.
+	function importFinalityProof(
+		uint256 finalityTargetNumber,
+		bytes32 finalityTargetHash,
 		bytes memory rawFinalityProof
 	) public {
-		// verify finalization data
-		(uint256 begin, uint256 end) = verifyFinalityProof(
-			bestVoterSet.id,
-			bestVoterSet.rawVoters,
-			headerByKeccak[bestHeaderKeccak].hash,
-			rawHeaders,
+		// check that header that we're going to finalize is already imported
+		require(
+			headerByHash[finalityTargetHash].number == finalityTargetNumber,
+			"Missing finality target header from the storage"
+		);
+
+		// verify finality proof
+		bytes32 oldBestFinalizedHeaderHash = bestFinalizedHeaderHash;
+		bytes32 newBestFinalizedHeaderHash = verifyFinalityProof(
+			finalityTargetNumber,
+			finalityTargetHash,
 			rawFinalityProof
 		);
 
-		// save finalized headers
-		bool enactedNewSet = false;
-		for (uint256 i = begin; i < end; ++i) {
-			// parse header
-			(
-				Header memory header,
-				VoterSetSignal memory voterSetSignal
-			) = parseSubstrateHeader(
-				i,
-				rawHeaders
-			);
+		// remember new best finalized header
+		Header storage newFinalizedHeader = headerByHash[newBestFinalizedHeaderHash];
+		bestFinalizedHeaderHash = newBestFinalizedHeaderHash;
+		bestFinalizedHeaderNumber = newFinalizedHeader.number;
 
-			// save header to the storage
-			bytes32 headerNumberKeccak = keccak256(header.number);
-			saveBestHeader(header);
-			// save voters set signal (if signalled by the header)
-			if (voterSetSignal.rawVoters.length != 0) {
-				saveSignal(voterSetSignal);
-			}
-			// check if header enacts new set
-			bytes memory newRawVoters = voterSetByEnactNumber[headerNumberKeccak];
-			if (newRawVoters.length != 0) {
-				require(
-					!enactedNewSet,
-					"Trying to enact several sets using single finality proof"
-				);
-
-				enactedNewSet = true;
-				bestVoterSet.id = bestVoterSet.id + 1;
-				bestVoterSet.rawVoters = newRawVoters;
-			}
-		}
-
-		// prune oldest headers
-		if (storedHeadersCount > maxHeadersToStore) {
-			uint256 headersToPrune = storedHeadersCount - maxHeadersToStore;
-			for (uint256 i = 0; i < headersToPrune; ++i) {
-				pruneOldestHeader();
+		// apply validators set change signal if required
+		while (newBestFinalizedHeaderHash != oldBestFinalizedHeaderHash) {
+			newFinalizedHeader = headerByHash[newBestFinalizedHeaderHash];
+			newBestFinalizedHeaderHash = newFinalizedHeader.parentHash;
+			// if we are finalizing header that should enact validators set change, do this
+			// (this only affects latest scheduled change)
+			if (newFinalizedHeader.number == newFinalizedHeader.prevSignalTargetNumber) {
+				Header storage signalHeader = headerByHash[newFinalizedHeader.prevSignalHeaderHash];
+				bestFinalizedValidatorsSetId += 1;
+				bestFinalizedValidatorsSet = signalHeader.signal;
+				break;
 			}
 		}
 	}
 
-	/// Save best header to the storage.
-	/// @return keccak256(header.hash)
-	function saveBestHeader(
-		Header memory header
-	) private returns (bytes32) {
-		bytes32 headerKeccak = keccak256(header.hash);
-		bytes32 previousHeaderKeccak = bestHeaderKeccak;
-		if (previousHeaderKeccak != bytes32(0)) {
-			headerByKeccak[previousHeaderKeccak].nextHeaderKeccak = headerKeccak;
-		}
-		headerByKeccak[headerKeccak] = header;
-		bestHeaderKeccak = headerKeccak;
-		storedHeadersCount = storedHeadersCount + 1;
-		return headerKeccak;
-	}
-
-	/// Prune oldest header.
-	function pruneOldestHeader() private {
-		bytes32 headerKeccakToRemove = oldestHeaderKeccak;
-		Header storage oldestHeader = headerByKeccak[headerKeccakToRemove];
-		oldestHeaderKeccak = oldestHeader.nextHeaderKeccak;
-		delete headerByKeccak[headerKeccakToRemove];
-		storedHeadersCount = storedHeadersCount - 1;
-	}
-
-	/// Save voter set change signal to the storage.
-	function saveSignal(
-		VoterSetSignal memory voterSetSignal
-	) private {
-		require(
-			voterSetByEnactNumber[voterSetSignal.headerNumber].length == 0,
-			"Duplicate signal for the same block"
-		);
-		voterSetByEnactNumber[voterSetSignal.headerNumber] = voterSetSignal.rawVoters;
-	}
-
-	/// Parse i-th Substrate header from the raw headers vector.
-	/// @return header.hash, header.number and optional voter set signal.
+	/// Parse Substrate header.
 	function parseSubstrateHeader(
-		uint256 headerIndex,
-		bytes memory rawHeaders
-	) private returns (Header memory, VoterSetSignal memory) {
-		// https://ethereum.stackexchange.com/questions/76346/how-to-call-ecrecover-in-pure-assembly
+		bytes memory rawHeader
+	) private view returns (ParsedHeader memory) {
+		bytes32 headerHash;
+		bytes32 headerParentHash;
+		uint256 headerNumber;
+		uint256 headerSignalDelay;
+		uint256 headerSignalSize;
+		bytes memory headerSignal;
+
 		assembly {
-			let pointer := mload(0x40)
-			let rawHeadersLength := mload(rawHeaders)
-			let rawHeadersPointer := add(rawHeaders, 0x20)
-/*			mstore(pointer, headerIndex)
-			mstore(add(pointer, 0x20), rawHeaders)
-			mstore(add(pointer, 0x40), rawHeadersLength)*/
-			// ?, builtin_address, in_off, in_size, out_off, out_size
-			// call parse: staticcall(?, builtinAddress, inPointer, inSize, outPointer, outSize)
-			if iszero(staticcall(not(0), 0x10, rawHeadersPointer, rawHeadersLength, pointer, 0x00)) {
+			// inputs
+			let rawHeaderSize := mload(rawHeader)
+			let rawHeaderPointer := add(rawHeader, 0x20)
+
+			// output
+			let headerHashPointer := mload(0x40)
+			let headerParentHashPointer := add(headerHashPointer, 0x20)
+			let headerNumberPointer := add(headerParentHashPointer, 0x20)
+			let headerSignalDelayPointer := add(headerNumberPointer, 0x20)
+			let headerSignalSizePointer := add(headerSignalDelayPointer, 0x20)
+
+			// parse substrate header
+			if iszero(staticcall(
+				not(0),
+				SUBSTRATE_PARSE_HEADER_BUILTIN_ADDRESS,
+				rawHeaderPointer,
+				rawHeaderSize,
+				headerHashPointer,
+				0xA0
+			)) {
 				revert(0, 0)
 			}
+
+			// fill basic header fields
+			headerHash := mload(headerHashPointer)
+			headerParentHash := mload(headerParentHashPointer)
+			headerNumber := mload(headerNumberPointer)
+			headerSignalDelay := mload(headerSignalDelayPointer)
+			headerSignalSize := mload(headerSignalSizePointer)
 		}
 
+		// if validators set change is signalled, read it
+		if (headerSignalSize != 0) {
+			headerSignal = new bytes(headerSignalSize);
 
-		return (
-			Header({
-				nextHeaderKeccak: bytes32(0),
-				hash: abi.encodePacked(keccak256(abi.encode(headerIndex, rawHeaders))),
-				number: abi.encodePacked(headerIndex)
-			}),
-			VoterSetSignal({
-				headerNumber: bytes32(0),
-				rawVoters: ""
-			})
-		); // TODO: replace with builtin call
+			assembly {
+				// inputs
+				let rawHeadersSize := mload(rawHeader)
+				let rawHeadersPointer := add(rawHeader, 0x20)
+
+				// output
+				let headerSignalPointer := add(headerSignal, 0x20)
+
+				// get substrate header valdiators set change signal
+				if iszero(staticcall(
+					not(0),
+					SUBSTRATE_GET_HEADER_SIGNAL_BUILTIN_ADDRESS,
+					rawHeadersPointer,
+					rawHeadersSize,
+					headerSignalPointer,
+					headerSignalSize
+				)) {
+					revert(0, 0)
+				}
+			}
+		}
+
+		return ParsedHeader({
+			hash: headerHash,
+			parentHash: headerParentHash,
+			number: headerNumber,
+			signalDelay: headerSignalDelay,
+			signal: headerSignal
+		});
 	}
+
 
 	/// Verify finality proof.
-	/// @return Range of headers within rawHeaders that are proved to be final.
 	function verifyFinalityProof(
-		uint64 /*currentSetId*/,
-		bytes memory /*rawCurrentVoters*/,
-		bytes memory /*rawBestHeader*/,
-		bytes memory /*rawHeaders*/,
+		uint256 /*finalityTargetNumber*/,
+		bytes32 /*finalityTargetHash*/,
 		bytes memory /*rawFinalityProof*/
-	) private pure returns (uint256, uint256) {
-		return (0, 0); // TODO: replace with builtin call
+	) private view returns (bytes32) {
+		return bestFinalizedHeaderHash; // TODO: call builtin instead
 	}
 
-	/// Maximal number of headers that we store.
-	uint256 constant maxHeadersToStore = 1024;
+	/// Address of parse_substrate_header builtin.
+	uint256 constant SUBSTRATE_PARSE_HEADER_BUILTIN_ADDRESS = 0x10;
+	/// Address of get_substrate_validators_set_signal builtin.
+	uint256 constant SUBSTRATE_GET_HEADER_SIGNAL_BUILTIN_ADDRESS = 0x11;
 
-	/// Current number of headers that we store.
-	uint256 storedHeadersCount;
-	/// keccak256(header.hash) of the oldest header.
-	bytes32 oldestHeaderKeccak;
-	/// keccak256(header.hash) of the last finalized block.
-	bytes32 bestHeaderKeccak;
-	/// Raw voter set for the last finalized block.
-	VoterSet bestVoterSet;
-	/// Map of keccak256(header.hash) => header.
-	mapping (bytes32 => Header) headerByKeccak;
-	/// Map of keccak256(header.number) => raw voter set that is enacted when block
-	/// with given number is finalized.
-	mapping (bytes32 => bytes) voterSetByEnactNumber;
+	/// Last imported header hash.
+	bytes32 lastImportedHeaderHash;
+
+	/// Best finalized header number.
+	uint256 bestFinalizedHeaderNumber;
+	/// Best finalized header hash.
+	bytes32 bestFinalizedHeaderHash;
+	/// Best finalized validators set id.
+	uint64 bestFinalizedValidatorsSetId;
+	/// Best finalized validators set.
+	bytes bestFinalizedValidatorsSet;
+
+	/// Map of headers by their hashes.
+	mapping (bytes32 => Header) headerByHash;
 }
