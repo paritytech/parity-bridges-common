@@ -240,7 +240,7 @@ pub async fn best_substrate_block(
 	};
 
 	if number != number.low_u32().into() {
-		return Err(Error::InvalidSubstrateBlockNumber);
+		return (client, Err(Error::InvalidSubstrateBlockNumber));
 	}
 
 	(client, Ok(HeaderId(number.low_u32(), hash)))
