@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::bail_on_error;
 use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, H256, U256, U64};
 use crate::substrate_types::{Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId};
 use crate::sync_types::{HeaderId, MaybeConnectionError};
+use crate::{bail_on_arg_error, bail_on_error};
 use codec::{Decode, Encode};
 use ethabi::FunctionOutputDecoder;
 use jsonrpsee::common::Params;
@@ -100,6 +100,8 @@ pub struct CallRequest {
 pub enum Error {
 	/// Request start failed.
 	StartRequestFailed(RequestError),
+	/// Error serializing request.
+	RequestSerialization(serde_json::Error),
 	/// Request not found (should never occur?).
 	RequestNotFound,
 	/// Failed to receive response.
@@ -218,18 +220,16 @@ pub async fn best_substrate_block(
 	contract_address: Address,
 ) -> (Client, Result<SubstrateHeaderId, Error>) {
 	let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
-	let (client, call_result) = bail_on_error!(
-		call_rpc::<Bytes>(
-			client,
-			"eth_call",
-			Params::Array(vec![to_value(CallRequest {
-				to: Some(contract_address),
-				data: Some(encoded_call.into()),
-			})
-			.unwrap(),]),
-		)
-		.await
+	let call_request = bail_on_arg_error!(
+		to_value(CallRequest {
+			to: Some(contract_address),
+			data: Some(encoded_call.into()),
+		})
+		.map_err(|e| Error::RequestSerialization(e)),
+		client
 	);
+	let (client, call_result) =
+		bail_on_error!(call_rpc::<Bytes>(client, "eth_call", Params::Array(vec![call_request]),).await);
 	let (number, raw_hash) = match call_decoder.decode(&call_result.0) {
 		Ok((raw_number, raw_hash)) => (raw_number, raw_hash),
 		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
@@ -253,18 +253,16 @@ pub async fn substrate_header_known(
 	id: SubstrateHeaderId,
 ) -> (Client, Result<(SubstrateHeaderId, bool), Error>) {
 	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1);
-	let (client, call_result) = bail_on_error!(
-		call_rpc::<Bytes>(
-			client,
-			"eth_call",
-			Params::Array(vec![to_value(CallRequest {
-				to: Some(contract_address),
-				data: Some(encoded_call.into()),
-			})
-			.unwrap(),]),
-		)
-		.await
+	let call_request = bail_on_arg_error!(
+		to_value(CallRequest {
+			to: Some(contract_address),
+			data: Some(encoded_call.into()),
+		})
+		.map_err(|e| Error::RequestSerialization(e)),
+		client
 	);
+	let (client, call_result) =
+		bail_on_error!(call_rpc::<Bytes>(client, "eth_call", Params::Array(vec![call_request]),).await);
 	match call_decoder.decode(&call_result.0) {
 		Ok(is_known_block) => (client, Ok((id, is_known_block))),
 		Err(error) => (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
@@ -356,32 +354,29 @@ async fn submit_ethereum_transaction(
 		data: encoded_call,
 	}
 	.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
-	call_rpc(
-		client,
-		"eth_submitTransaction",
-		Params::Array(vec![to_value(Bytes(raw_transaction)).unwrap()]),
-	)
-	.await
+	let transaction = bail_on_arg_error!(
+		to_value(Bytes(raw_transaction)).map_err(|e| Error::RequestSerialization(e)),
+		client
+	);
+	call_rpc(client, "eth_submitTransaction", Params::Array(vec![transaction])).await
 }
 
 /// Get account nonce.
 async fn account_nonce(client: Client, caller_address: Address) -> (Client, Result<U256, Error>) {
-	call_rpc(
-		client,
-		"eth_getTransactionCount",
-		Params::Array(vec![to_value(caller_address).unwrap()]),
-	)
-	.await
+	let caller_address = bail_on_arg_error!(
+		to_value(caller_address).map_err(|e| Error::RequestSerialization(e)),
+		client
+	);
+	call_rpc(client, "eth_getTransactionCount", Params::Array(vec![caller_address])).await
 }
 
 /// Estimate gas usage for call.
 async fn estimate_gas(client: Client, call_request: CallRequest) -> (Client, Result<U256, Error>) {
-	call_rpc(
-		client,
-		"eth_estimateGas",
-		Params::Array(vec![to_value(call_request).unwrap()]),
-	)
-	.await
+	let call_request = bail_on_arg_error!(
+		to_value(call_request).map_err(|e| Error::RequestSerialization(e)),
+		client
+	);
+	call_rpc(client, "eth_estimateGas", Params::Array(vec![call_request])).await
 }
 
 /// Calls RPC on Ethereum node.

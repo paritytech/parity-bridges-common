@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::bail_on_error;
 use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256};
 use crate::substrate_types::{
 	into_substrate_ethereum_header, into_substrate_ethereum_receipts, Hash, Header as SubstrateHeader, Justification,
 	Number, TransactionHash,
 };
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
+use crate::{bail_on_arg_error, bail_on_error};
 use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
@@ -83,6 +83,8 @@ pub struct Client {
 pub enum Error {
 	/// Request start failed.
 	StartRequestFailed(RequestError),
+	/// Error serializing request.
+	RequestSerialization(serde_json::Error),
 	/// Request not found (should never occur?).
 	RequestNotFound,
 	/// Failed to receive response.
@@ -117,13 +119,8 @@ pub async fn best_header(client: Client) -> (Client, Result<SubstrateHeader, Err
 
 /// Returns Substrate header by hash.
 pub async fn header_by_hash(client: Client, hash: Hash) -> (Client, Result<SubstrateHeader, Error>) {
-	call_rpc(
-		client,
-		"chain_getHeader",
-		Params::Array(vec![to_value(hash).unwrap()]),
-		rpc_returns_value,
-	)
-	.await
+	let hash = bail_on_arg_error!(to_value(hash).map_err(|e| Error::RequestSerialization(e)), client);
+	call_rpc(client, "chain_getHeader", Params::Array(vec![hash]), rpc_returns_value).await
 }
 
 /// Returns Substrate header by number.
@@ -143,8 +140,8 @@ pub async fn best_ethereum_block(client: Client) -> (Client, Result<EthereumHead
 		client,
 		"state_call",
 		Params::Array(vec![
-			to_value("EthereumHeadersApi_best_block").unwrap(),
-			to_value("0x").unwrap(),
+			serde_json::Value::String("EthereumHeadersApi_best_block".into()),
+			serde_json::Value::String("0x".into()),
 		]),
 		rpc_returns_encoded_value,
 	)
@@ -159,13 +156,16 @@ pub async fn ethereum_receipts_required(
 ) -> (Client, Result<(EthereumHeaderId, bool), Error>) {
 	let id = header.header().id();
 	let header = into_substrate_ethereum_header(header.header());
-	let encoded_header = header.encode();
+	let encoded_header = bail_on_arg_error!(
+		to_value(Bytes(header.encode())).map_err(|e| Error::RequestSerialization(e)),
+		client
+	);
 	let (client, receipts_required) = call_rpc(
 		client,
 		"state_call",
 		Params::Array(vec![
-			to_value("EthereumHeadersApi_is_import_requires_receipts").unwrap(),
-			to_value(Bytes(encoded_header)).unwrap(),
+			serde_json::Value::String("EthereumHeadersApi_is_import_requires_receipts".into()),
+			encoded_header,
 		]),
 		rpc_returns_encoded_value,
 	)
@@ -187,13 +187,16 @@ pub async fn ethereum_header_known(
 	// But when we'll read best header from Substrate next time, we will know that
 	// there's a better header => this Orphan will either be marked as synced, or
 	// eventually pruned.
-	let encoded_id = id.1.encode();
+	let encoded_id = bail_on_arg_error!(
+		to_value(Bytes(id.1.encode())).map_err(|e| Error::RequestSerialization(e)),
+		client
+	);
 	let (client, is_known_block) = call_rpc(
 		client,
 		"state_call",
 		Params::Array(vec![
-			to_value("EthereumHeadersApi_is_known_block").unwrap(),
-			to_value(Bytes(encoded_id)).unwrap(),
+			serde_json::Value::String("EthereumHeadersApi_is_known_block".into()),
+			encoded_id,
 		]),
 		rpc_returns_encoded_value,
 	)
@@ -233,11 +236,14 @@ pub async fn submit_signed_ethereum_headers(
 	let (client, nonce) = bail_on_error!(next_account_index(client, account_id).await);
 
 	let transaction = create_signed_submit_transaction(headers, &params.signer, nonce, genesis_hash);
-	let encoded_transaction = transaction.encode();
+	let encoded_transaction = bail_on_arg_error!(
+		to_value(Bytes(transaction.encode())).map_err(|e| Error::RequestSerialization(e)),
+		client
+	);
 	let (client, transaction_hash) = call_rpc(
 		client,
 		"author_submitExtrinsic",
-		Params::Array(vec![to_value(Bytes(encoded_transaction)).unwrap()]),
+		Params::Array(vec![encoded_transaction]),
 		rpc_returns_value,
 	)
 	.await;
@@ -258,12 +264,15 @@ pub async fn submit_unsigned_ethereum_headers(
 	for header in headers {
 		let transaction = create_unsigned_submit_transaction(header);
 
-		let encoded_transaction = transaction.encode();
+		let encoded_transaction = bail_on_arg_error!(
+			to_value(Bytes(transaction.encode())).map_err(|e| Error::RequestSerialization(e)),
+			client
+		);
 		let (used_client, transaction_hash) = bail_on_error!(
 			call_rpc(
 				client,
 				"author_submitExtrinsic",
-				Params::Array(vec![to_value(Bytes(encoded_transaction)).unwrap()]),
+				Params::Array(vec![encoded_transaction]),
 				rpc_returns_value,
 			)
 			.await
@@ -278,12 +287,13 @@ pub async fn submit_unsigned_ethereum_headers(
 
 /// Get GRANDPA authorities set at given block.
 pub async fn grandpa_authorities_set(client: Client, block: Hash) -> (Client, Result<Vec<u8>, Error>) {
+	let block = bail_on_arg_error!(to_value(block).map_err(|e| Error::RequestSerialization(e)), client);
 	call_rpc(
 		client,
 		"state_call",
 		Params::Array(vec![
-			to_value("GrandpaApi_grandpa_authorities").unwrap(),
-			to_value(block).unwrap(),
+			serde_json::Value::String("GrandpaApi_grandpa_authorities".into()),
+			block,
 		]),
 		rpc_returns_bytes,
 	)
@@ -292,10 +302,11 @@ pub async fn grandpa_authorities_set(client: Client, block: Hash) -> (Client, Re
 
 /// Get Substrate block hash by its number.
 async fn block_hash_by_number(client: Client, number: Number) -> (Client, Result<Hash, Error>) {
+	let number = bail_on_arg_error!(to_value(number).map_err(|e| Error::RequestSerialization(e)), client);
 	call_rpc(
 		client,
 		"chain_getBlockHash",
-		Params::Array(vec![to_value(number).unwrap()]),
+		Params::Array(vec![number]),
 		rpc_returns_value,
 	)
 	.await
@@ -308,12 +319,13 @@ async fn next_account_index(
 ) -> (Client, Result<node_primitives::Index, Error>) {
 	use sp_core::crypto::Ss58Codec;
 
-	let (client, index) = call_rpc(
-		client,
-		"system_accountNextIndex",
-		Params::Array(vec![to_value(account.to_ss58check()).unwrap()]),
-		|v| rpc_returns_value::<u64>(v),
-	)
+	let account = bail_on_arg_error!(
+		to_value(account.to_ss58check()).map_err(|e| Error::RequestSerialization(e)),
+		client
+	);
+	let (client, index) = call_rpc(client, "system_accountNextIndex", Params::Array(vec![account]), |v| {
+		rpc_returns_value::<u64>(v)
+	})
 	.await;
 	(client, index.map(|index| index as _))
 }

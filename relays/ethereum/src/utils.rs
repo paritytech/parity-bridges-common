@@ -24,3 +24,14 @@ macro_rules! bail_on_error {
 			}
 	};
 }
+
+/// Macro that returns (client, Err(error)) tuple from function if result is Err(error).
+#[macro_export]
+macro_rules! bail_on_arg_error {
+	($result: expr, $client: ident) => {
+		match $result {
+			Ok(result) => result,
+			Err(error) => return ($client, Err(error)),
+			}
+	};
+}
