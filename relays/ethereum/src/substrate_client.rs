@@ -21,6 +21,7 @@ use crate::substrate_types::{
 	TransactionHash,
 };
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
+use crate::bail_on_error;
 use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
@@ -136,11 +137,7 @@ pub async fn header_by_hash(client: Client, hash: Hash) -> (Client, Result<Subst
 
 /// Returns Substrate header by number.
 pub async fn header_by_number(client: Client, number: Number) -> (Client, Result<SubstrateHeader, Error>) {
-	let (client, hash) = block_hash_by_number(client, number).await;
-	let hash = match hash {
-		Ok(hash) => hash,
-		Err(error) => return (client, Err(error)),
-	};
+	let (client, hash) = bail_on_error!(block_hash_by_number(client, number).await);
 	header_by_hash(client, hash).await
 }
 
@@ -236,21 +233,13 @@ pub async fn submit_signed_ethereum_headers(
 	let (client, genesis_hash) = match client.genesis_hash {
 		Some(genesis_hash) => (client, genesis_hash),
 		None => {
-			let (mut client, genesis_hash) = block_hash_by_number(client, Zero::zero()).await;
-			let genesis_hash = match genesis_hash {
-				Ok(genesis_hash) => genesis_hash,
-				Err(err) => return (client, Err(err)),
-			};
+			let (mut client, genesis_hash) = bail_on_error!(block_hash_by_number(client, Zero::zero()).await);
 			client.genesis_hash = Some(genesis_hash);
 			(client, genesis_hash)
 		}
 	};
 	let account_id = params.signer.public().as_array_ref().clone().into();
-	let (client, nonce) = next_account_index(client, account_id).await;
-	let nonce = match nonce {
-		Ok(nonce) => nonce,
-		Err(err) => return (client, Err(err)),
-	};
+	let (client, nonce) = bail_on_error!(next_account_index(client, account_id).await);
 
 	let transaction = create_signed_submit_transaction(headers, &params.signer, nonce, genesis_hash);
 	let encoded_transaction = transaction.encode();
@@ -279,19 +268,18 @@ pub async fn submit_unsigned_ethereum_headers(
 		let transaction = create_unsigned_submit_transaction(header);
 
 		let encoded_transaction = transaction.encode();
-		let (used_client, transaction_hash) = call_rpc(
-			client,
-			"author_submitExtrinsic",
-			Params::Array(vec![to_value(Bytes(encoded_transaction)).unwrap()]),
-			rpc_returns_value,
-		)
-		.await;
+		let (used_client, transaction_hash) = bail_on_error!(
+			call_rpc(
+				client,
+				"author_submitExtrinsic",
+				Params::Array(vec![to_value(Bytes(encoded_transaction)).unwrap()]),
+				rpc_returns_value,
+			)
+			.await
+		);
 
 		client = used_client;
-		transactions_hashes.push(match transaction_hash {
-			Ok(transaction_hash) => transaction_hash,
-			Err(error) => return (client, Err(error)),
-		});
+		transactions_hashes.push(transaction_hash);
 	}
 
 	(client, Ok((transactions_hashes, ids)))

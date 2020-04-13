@@ -17,6 +17,7 @@
 use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, H256, U256, U64};
 use crate::substrate_types::{SubstrateHeaderId, Hash as SubstrateHash, QueuedSubstrateHeader};
 use crate::sync_types::{HeaderId, MaybeConnectionError};
+use crate::bail_on_error;
 use codec::{Encode, Decode};
 use ethabi::FunctionOutputDecoder;
 use jsonrpsee::common::Params;
@@ -184,11 +185,7 @@ pub async fn transactions_receipts(
 ) -> (Client, Result<(EthereumHeaderId, Vec<Receipt>), Error>) {
 	let mut transactions_receipts = Vec::with_capacity(transacactions.len());
 	for transacaction in transacactions {
-		let (next_client, transaction_receipt) = transaction_receipt(client, transacaction).await;
-		let transaction_receipt = match transaction_receipt {
-			Ok(transaction_receipt) => transaction_receipt,
-			Err(error) => return (next_client, Err(error)),
-		};
+		let (next_client, transaction_receipt) = bail_on_error!(transaction_receipt(client, transacaction).await);
 		transactions_receipts.push(transaction_receipt);
 		client = next_client;
 	}
@@ -218,21 +215,19 @@ pub async fn best_substrate_block(
 	contract_address: Address,
 ) -> (Client, Result<SubstrateHeaderId, Error>) {
 	let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
-	let (client, result) = call_rpc::<Bytes>(
-		client,
-		"eth_call",
-		Params::Array(vec![
-			to_value(CallRequest {
-				to: Some(contract_address),
-				data: Some(encoded_call.into()),
-			}).unwrap(),
-		]),
-	)
-	.await;
-	let call_result = match result {
-		Ok(result) => result,
-		Err(error) => return (client, Err(error)),
-	};
+	let (client, call_result) = bail_on_error!(
+		call_rpc::<Bytes>(
+			client,
+			"eth_call",
+			Params::Array(vec![
+				to_value(CallRequest {
+					to: Some(contract_address),
+					data: Some(encoded_call.into()),
+				}).unwrap(),
+			]),
+		)
+		.await
+	);
 	let (number, raw_hash) = match call_decoder.decode(&call_result.0) {
 		Ok((raw_number, raw_hash)) => (raw_number, raw_hash),
 		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
@@ -261,21 +256,19 @@ pub async fn substrate_header_known(
 	// there's a better header => this Orphan will either be marked as synced, or
 	// eventually pruned.
 	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1);
-	let (client, result) = call_rpc::<Bytes>(
-		client,
-		"eth_call",
-		Params::Array(vec![
-			to_value(CallRequest {
-				to: Some(contract_address),
-				data: Some(encoded_call.into()),
-			}).unwrap(),
-		]),
-	)
-	.await;
-	let call_result = match result {
-		Ok(result) => result,
-		Err(error) => return (client, Err(error)),
-	};
+	let (client, call_result) = bail_on_error!(
+		call_rpc::<Bytes>(
+			client,
+			"eth_call",
+			Params::Array(vec![
+				to_value(CallRequest {
+					to: Some(contract_address),
+					data: Some(encoded_call.into()),
+				}).unwrap(),
+			]),
+		)
+		.await
+	);
 	match call_decoder.decode(&call_result.0) {
 		Ok(is_known_block) => (client, Ok((id, is_known_block))),
 		Err(error) => (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
@@ -289,11 +282,9 @@ pub async fn submit_substrate_headers(
 	contract_address: Address,
 	headers: Vec<QueuedSubstrateHeader>,
 ) -> (Client, Result<(Vec<H256>, Vec<SubstrateHeaderId>), Error>) {
-	let (mut client, nonce) = account_nonce(client, params.signer.address().as_fixed_bytes().into()).await;
-	let mut nonce = match nonce {
-		Ok(nonce) => nonce,
-		Err(error) => return (client, Err(error)),
-	};
+	let (mut client, mut nonce) = bail_on_error!(
+		account_nonce(client, params.signer.address().as_fixed_bytes().into()).await
+	);
 
 	let mut tx_hashes = Vec::with_capacity(headers.len());
 	let ids = headers.iter().map(|header| header.id()).collect();
@@ -302,14 +293,12 @@ pub async fn submit_substrate_headers(
 		let encoded_call = bridge_contract::functions::import_header::encode_input(
 			raw_header,
 		);
-		let (ret_client, gas) = estimate_gas(client, CallRequest {
-			to: Some(contract_address),
-			data: Some(encoded_call.clone().into()),
-		}).await;
-		let gas = match gas {
-			Ok(gas) => gas,
-			Err(error) => return (ret_client, Err(error)),
-		};
+		let (ret_client, gas) = bail_on_error!(
+			estimate_gas(client, CallRequest {
+				to: Some(contract_address),
+				data: Some(encoded_call.clone().into()),
+			}).await
+		);
 		let raw_transaction = ethereum_tx_sign::RawTransaction {
 			nonce,
 			to: Some(contract_address),
@@ -318,18 +307,16 @@ pub async fn submit_substrate_headers(
 			gas_price: params.gas_price,
 			data: encoded_call,
 		}.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
-		let (ret_client, result) = call_rpc(
-			ret_client,
-			"eth_submitTransaction",
-			Params::Array(vec![
-				to_value(Bytes(raw_transaction)).unwrap(),
-			]),
-		)
-		.await;
-		let tx_hash = match result {
-			Ok(tx_hash) => tx_hash,
-			Err(error) => return (ret_client, Err(error)),
-		};
+		let (ret_client, tx_hash) = bail_on_error!(
+			call_rpc(
+				ret_client,
+				"eth_submitTransaction",
+				Params::Array(vec![
+					to_value(Bytes(raw_transaction)).unwrap(),
+				]),
+			)
+			.await
+		);
 
 		tx_hashes.push(tx_hash);
 		nonce += 1.into();
@@ -354,19 +341,13 @@ pub async fn deploy_bridge_contract(
 		initial_set_id,
 		initial_authorities,
 	);
-	let (client, nonce) = account_nonce(client, params.signer.address().as_fixed_bytes().into()).await;
-	let nonce = match nonce {
-		Ok(nonce) => nonce,
-		Err(error) => return (client, Err(error)),
-	};
-	let (client, gas) = estimate_gas(client, CallRequest {
-		data: Some(encoded_call.clone().into()),
-		..Default::default()
-	}).await;
-	let gas = match gas {
-		Ok(gas) => gas,
-		Err(error) => return (client, Err(error)),
-	};
+	let (client, nonce) = bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await);
+	let (client, gas) = bail_on_error!(
+		estimate_gas(client, CallRequest {
+			data: Some(encoded_call.clone().into()),
+			..Default::default()
+		}).await
+	);
 	let raw_transaction = ethereum_tx_sign::RawTransaction {
 		nonce: nonce,
 		to: None,
