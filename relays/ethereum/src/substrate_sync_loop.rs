@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_client;
-use crate::ethereum_types::{Address, U256};
-use crate::substrate_client;
+use crate::ethereum_client::{EthereumConnectionParams, EthereumSigningParams, self};
+use crate::ethereum_types::Address;
+use crate::substrate_client::{SubstrateConnectionParams, self};
 use crate::substrate_types::{
 	Header, Hash, Number, Justification, QueuedSubstrateHeader,
 	SubstrateHeaderId, SubstrateHeadersSyncPipeline,
@@ -25,7 +25,6 @@ use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::SourceHeader;
 use futures::future::{FutureExt, Ready, ready};
-use parity_crypto::publickey::KeyPair;
 use std::{future::Future, pin::Pin};
 
 /// Interval (in ms) at which we check new Substrate headers when we are synced/almost synced.
@@ -36,22 +35,14 @@ const ETHEREUM_TICK_INTERVAL_MS: u64 = 5_000;
 /// Substrate synchronization parameters.
 #[derive(Debug)]
 pub struct SubstrateSyncParams {
-	/// Ethereum RPC host.
-	pub eth_host: String,
-	/// Ethereum RPC port.
-	pub eth_port: u16,
-	/// Ethereum chain id.
-	pub eth_chain_id: u64,
+	/// Ethereum connection params.
+	pub eth: EthereumConnectionParams,
+	/// Ethereum signing params.
+	pub eth_sign: EthereumSigningParams,
 	/// Ethereum bridge contract address.
 	pub eth_contract_address: Address,
-	/// Ethereum transactions signer.
-	pub eth_signer: KeyPair,
-	/// Gas price we agree to pay.
-	pub eth_gas_price: U256,
-	/// Substrate RPC host.
-	pub sub_host: String,
-	/// Substrate RPC port.
-	pub sub_port: u16,
+	/// Substrate connection params.
+	pub sub: SubstrateConnectionParams,
 	/// Synchronization parameters.
 	pub sync_params: HeadersSyncParams,
 }
@@ -59,24 +50,13 @@ pub struct SubstrateSyncParams {
 impl Default for SubstrateSyncParams {
 	fn default() -> Self {
 		SubstrateSyncParams {
-			eth_host: "localhost".into(),
-			eth_port: 8545,
-			eth_chain_id: 0x11, // Parity dev chain
+			eth: Default::default(),
+			eth_sign: Default::default(),
 			// the address 0x731a10897d267e19b34503ad902d0a29173ba4b1 is the address
 			// of the contract that is deployed by default signer and 0 nonce
 			eth_contract_address: "731a10897d267e19b34503ad902d0a29173ba4b1".parse()
 				.expect("address is hardcoded, thus valid; qed"),
-			// that the account that has a lot of ether when we run instant seal engine
-			// address: 0x00a329c0648769a73afac7f9381e08fb43dbea72
-			// secret: 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7
-			eth_signer: KeyPair::from_secret_slice(
-				&[0x4d, 0x5d, 0xb4, 0x10, 0x7d, 0x23, 0x7d, 0xf6, 0xa3, 0xd5, 0x8e, 0xe5, 0xf7, 0x0a,
-				0xe6, 0x3d, 0x73, 0xd7, 0x65, 0x8d, 0x40, 0x26, 0xf2, 0xee, 0xfd, 0x2f, 0x20, 0x4c,
-				0x81, 0x68, 0x2c, 0xb7]
-			).expect("secret is hardcoded, thus valid; qed"),
-			eth_gas_price: 8_000_000_000u64.into(), // 8 Gwei
-			sub_host: "localhost".into(),
-			sub_port: 9933,
+			sub: Default::default(),
 			sync_params: HeadersSyncParams {
 				max_future_headers_to_download: 128,
 				max_headers_in_submitted_status: 128,
@@ -142,14 +122,10 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 struct EthereumHeadersTarget {
 	/// Ethereum node client.
 	client: ethereum_client::Client,
-	/// Ethereum transactions signer.
-	signer: parity_crypto::publickey::KeyPair,
-	/// Ethereum chain id.
-	chain_id: u64,
 	/// Bridge contract address.
 	contract: Address,
-	/// Gas price we are paying for transactions.
-	gas_price: U256,
+	/// Ethereum signing params.
+	sign_params: EthereumSigningParams,
 }
 
 impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
@@ -161,17 +137,14 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<Vec<SubstrateHeaderId>, Self::Error>)>>>;
 
 	fn best_header_id(self) -> Self::BestHeaderIdFuture {
-		let (signer, chain_id, contract, gas_price)
-			= (self.signer, self.chain_id, self.contract, self.gas_price);
+		let (contract, sign_params) = (self.contract, self.sign_params);
 		ethereum_client::best_substrate_block(self.client, contract)
 			.map(move |(client, result)| {
 				(
 					EthereumHeadersTarget {
 						client,
-						signer,
-						chain_id,
 						contract,
-						gas_price,
+						sign_params,
 					},
 					result,
 				)
@@ -180,17 +153,14 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	}
 
 	fn is_known_header(self, id: SubstrateHeaderId) -> Self::IsKnownHeaderFuture {
-		let (signer, chain_id, contract, gas_price)
-			= (self.signer, self.chain_id, self.contract, self.gas_price);
+		let (contract, sign_params) = (self.contract, self.sign_params);
 		ethereum_client::substrate_header_known(self.client, contract, id)
 			.map(move |(client, result)| {
 				(
 					EthereumHeadersTarget {
 						client,
-						signer,
-						chain_id,
 						contract,
-						gas_price,
+						sign_params,
 					},
 					result,
 				)
@@ -207,23 +177,18 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	}
 
 	fn submit_headers(self, headers: Vec<QueuedSubstrateHeader>) -> Self::SubmitHeadersFuture {
-		let (signer, chain_id, contract, gas_price)
-			= (self.signer, self.chain_id, self.contract, self.gas_price);
+		let (contract, sign_params) = (self.contract, self.sign_params);
 		ethereum_client::submit_substrate_headers(
 			self.client,
-			signer.clone(),
-			chain_id,
+			sign_params.clone(),
 			contract,
-			gas_price,
 			headers,
 		).map(move |(client, result)| {
 			(
 				EthereumHeadersTarget {
 					client,
-					signer,
-					chain_id,
 					contract,
-					gas_price,
+					sign_params,
 				},
 				result.map(|(_, submitted_headers)| submitted_headers),
 			)
@@ -234,21 +199,16 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 
 /// Run Substrate headers synchronization.
 pub fn run(params: SubstrateSyncParams) {
-	let eth_uri = format!("http://{}:{}", params.eth_host, params.eth_port);
-	let eth_client = ethereum_client::client(&eth_uri);
-
-	let sub_uri = format!("http://{}:{}", params.sub_host, params.sub_port);
-	let sub_client = substrate_client::client(&sub_uri);
+	let eth_client = ethereum_client::client(params.eth);
+	let sub_client = substrate_client::client(params.sub);
 
 	crate::sync_loop::run(
 		SubstrateHeadersSource { client: sub_client },
 		SUBSTRATE_TICK_INTERVAL_MS,
 		EthereumHeadersTarget {
 			client: eth_client,
-			signer: params.eth_signer,
-			chain_id: params.eth_chain_id,
 			contract: params.eth_contract_address,
-			gas_price: params.eth_gas_price,
+			sign_params: params.eth_sign,
 		},
 		ETHEREUM_TICK_INTERVAL_MS,
 		params.sync_params,

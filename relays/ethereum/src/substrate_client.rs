@@ -30,6 +30,45 @@ use serde_json::{from_value, to_value};
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
 
+/// Substrate connection params.
+#[derive(Debug)]
+pub struct SubstrateConnectionParams {
+	/// Substrate RPC host.
+	pub host: String,
+	/// Substrate RPC port.
+	pub port: u16,
+}
+
+impl Default for SubstrateConnectionParams {
+	fn default() -> Self {
+		SubstrateConnectionParams {
+			host: "localhost".into(),
+			port: 9933,
+		}
+	}
+}
+
+/// Substrate signing params.
+#[derive(Clone)]
+pub struct SubstrateSigningParams {
+	/// Substrate transactions signer.
+	pub signer: sp_core::sr25519::Pair,
+}
+
+impl std::fmt::Debug for SubstrateSigningParams {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "{}", self.signer.public())
+	}
+}
+
+impl Default for SubstrateSigningParams {
+	fn default() -> Self {
+		SubstrateSigningParams {
+			signer: sp_keyring::AccountKeyring::Alice.pair(),
+		}
+	}
+}
+
 /// Substrate client type.
 pub struct Client {
 	/// Substrate RPC client.
@@ -61,8 +100,9 @@ impl MaybeConnectionError for Error {
 }
 
 /// Returns client that is able to call RPCs on Substrate node.
-pub fn client(uri: &str) -> Client {
-	let transport = HttpTransportClient::new(uri);
+pub fn client(params: SubstrateConnectionParams) -> Client {
+	let uri = format!("http://{}:{}", params.host, params.port);
+	let transport = HttpTransportClient::new(&uri);
 	Client {
 		rpc_client: RawClient::new(transport),
 		genesis_hash: None,
@@ -170,12 +210,12 @@ pub async fn ethereum_header_known(
 /// Submits Ethereum header to Substrate runtime.
 pub async fn submit_ethereum_headers(
 	client: Client,
-	signer: sp_core::sr25519::Pair,
+	params: SubstrateSigningParams,
 	headers: Vec<QueuedEthereumHeader>,
 	sign_transactions: bool,
 ) -> (Client, Result<(Vec<TransactionHash>, Vec<EthereumHeaderId>), Error>) {
 	match sign_transactions {
-		true => submit_signed_ethereum_headers(client, signer, headers).await,
+		true => submit_signed_ethereum_headers(client, params, headers).await,
 		false => submit_unsigned_ethereum_headers(client, headers).await,
 	}
 }
@@ -183,7 +223,7 @@ pub async fn submit_ethereum_headers(
 /// Submits signed Ethereum header to Substrate runtime.
 pub async fn submit_signed_ethereum_headers(
 	client: Client,
-	signer: sp_core::sr25519::Pair,
+	params: SubstrateSigningParams,
 	headers: Vec<QueuedEthereumHeader>,
 ) -> (Client, Result<(Vec<TransactionHash>, Vec<EthereumHeaderId>), Error>) {
 	let ids = headers.iter().map(|header| header.id()).collect();
@@ -199,14 +239,14 @@ pub async fn submit_signed_ethereum_headers(
 			(client, genesis_hash)
 		}
 	};
-	let account_id = signer.public().as_array_ref().clone().into();
+	let account_id = params.signer.public().as_array_ref().clone().into();
 	let (client, nonce) = next_account_index(client, account_id).await;
 	let nonce = match nonce {
 		Ok(nonce) => nonce,
 		Err(err) => return (client, Err(err)),
 	};
 
-	let transaction = create_signed_submit_transaction(headers, &signer, nonce, genesis_hash);
+	let transaction = create_signed_submit_transaction(headers, &params.signer, nonce, genesis_hash);
 	let encoded_transaction = transaction.encode();
 	let (client, transaction_hash) = call_rpc(
 		client,

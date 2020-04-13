@@ -22,6 +22,7 @@ use ethabi::FunctionOutputDecoder;
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
+use parity_crypto::publickey::KeyPair;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{from_value, to_value};
 
@@ -34,6 +35,51 @@ const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; 
 const INT_SERIALIZATION_PROOF: &'static str = "integer serialization never fails; qed";
 /// Proof of bool serialization success.
 const BOOL_SERIALIZATION_PROOF: &'static str = "bool serialization never fails; qed";
+
+/// Ethereum connection params.
+#[derive(Debug)]
+pub struct EthereumConnectionParams {
+	/// Ethereum RPC host.
+	pub host: String,
+	/// Ethereum RPC port.
+	pub port: u16,
+}
+
+impl Default for EthereumConnectionParams {
+	fn default() -> Self {
+		EthereumConnectionParams {
+			host: "localhost".into(),
+			port: 8545,
+		}
+	}
+}
+
+/// Ethereum signing params.
+#[derive(Clone, Debug)]
+pub struct EthereumSigningParams {
+	/// Ethereum chain id.
+	pub chain_id: u64,
+	/// Ethereum transactions signer.
+	pub signer: KeyPair,
+	/// Gas price we agree to pay.
+	pub gas_price: U256,
+}
+
+impl Default for EthereumSigningParams {
+	fn default() -> Self {
+		EthereumSigningParams {
+			chain_id: 0x11, // Parity dev chain
+			// that the account that has a lot of ether when we run instant seal engine
+			// address: 0x00a329c0648769a73afac7f9381e08fb43dbea72
+			// secret: 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7
+			signer: KeyPair::from_secret_slice(
+				&hex::decode("4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7")
+					.expect("secret is hardcoded, thus valid; qed"),
+			).expect("secret is hardcoded, thus valid; qed"),
+			gas_price: 8_000_000_000u64.into(), // 8 Gwei
+		}
+	}
+}
 
 /// Ethereum client type.
 pub type Client = RawClient<HttpTransportClient>;
@@ -74,8 +120,9 @@ impl MaybeConnectionError for Error {
 }
 
 /// Returns client that is able to call RPCs on Ethereum node.
-pub fn client(uri: &str) -> Client {
-	let transport = HttpTransportClient::new(uri);
+pub fn client(params: EthereumConnectionParams) -> Client {
+	let uri = format!("http://{}:{}", params.host, params.port);
+	let transport = HttpTransportClient::new(&uri);
 	RawClient::new(transport)
 }
 
@@ -238,13 +285,11 @@ pub async fn substrate_header_known(
 /// Submits Substrate headers to Ethereum contract.
 pub async fn submit_substrate_headers(
 	client: Client,
-	signer: parity_crypto::publickey::KeyPair,
-	chain_id: u64,
+	params: EthereumSigningParams,
 	contract_address: Address,
-	gas_price: U256,
 	headers: Vec<QueuedSubstrateHeader>,
 ) -> (Client, Result<(Vec<H256>, Vec<SubstrateHeaderId>), Error>) {
-	let (mut client, nonce) = account_nonce(client, signer.address().as_fixed_bytes().into()).await;
+	let (mut client, nonce) = account_nonce(client, params.signer.address().as_fixed_bytes().into()).await;
 	let mut nonce = match nonce {
 		Ok(nonce) => nonce,
 		Err(error) => return (client, Err(error)),
@@ -270,9 +315,9 @@ pub async fn submit_substrate_headers(
 			to: Some(contract_address),
 			value: U256::zero(),
 			gas: gas * 2,
-			gas_price,
+			gas_price: params.gas_price,
 			data: encoded_call,
-		}.sign(&signer.secret().as_fixed_bytes().into(), &chain_id);
+		}.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
 		let (ret_client, result) = call_rpc(
 			ret_client,
 			"eth_submitTransaction",
@@ -297,9 +342,7 @@ pub async fn submit_substrate_headers(
 /// Deploy bridge contract.
 pub async fn deploy_bridge_contract(
 	client: Client,
-	signer: parity_crypto::publickey::KeyPair,
-	chain_id: u64,
-	gas_price: U256,
+	params: &EthereumSigningParams,
 	contract_code: Vec<u8>,
 	initial_header: Vec<u8>,
 	initial_set_id: u64,
@@ -311,7 +354,7 @@ pub async fn deploy_bridge_contract(
 		initial_set_id,
 		initial_authorities,
 	);
-	let (client, nonce) = account_nonce(client, signer.address().as_fixed_bytes().into()).await;
+	let (client, nonce) = account_nonce(client, params.signer.address().as_fixed_bytes().into()).await;
 	let nonce = match nonce {
 		Ok(nonce) => nonce,
 		Err(error) => return (client, Err(error)),
@@ -329,9 +372,9 @@ pub async fn deploy_bridge_contract(
 		to: None,
 		value: U256::zero(),
 		gas,
-		gas_price,
+		gas_price: params.gas_price,
 		data: encoded_call,
-	}.sign(&signer.secret().as_fixed_bytes().into(), &chain_id);
+	}.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
 	call_rpc(
 		client,
 		"eth_submitTransaction",
