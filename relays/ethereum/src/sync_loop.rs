@@ -49,7 +49,12 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	/// Future that returns header by number.
 	type HeaderByNumberFuture: Future<Output = (Self, Result<P::Header, Self::Error>)>;
 	/// Future that returns async extra data associated with header.
-	type HeaderAsyncExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, Option<P::AsyncExtra>), Self::Error>)>;
+	type HeaderAsyncExtraFuture: Future<
+		Output = (
+			Self,
+			Result<(HeaderId<P::Hash, P::Number>, Option<P::AsyncExtra>), Self::Error>,
+		),
+	>;
 	/// Future that returns extra data associated with header.
 	type HeaderExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, P::Extra), Self::Error>)>;
 

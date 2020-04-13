@@ -21,6 +21,6 @@ macro_rules! bail_on_error {
 		match $result {
 			(client, Ok(result)) => (client, result),
 			(client, Err(error)) => return (client, Err(error)),
-		}
+			}
 	};
 }

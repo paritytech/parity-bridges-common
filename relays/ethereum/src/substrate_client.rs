@@ -14,21 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::bail_on_error;
 use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256};
 use crate::substrate_types::{
-	into_substrate_ethereum_header, into_substrate_ethereum_receipts,
-	Hash, Header as SubstrateHeader, Justification, Number,
-	TransactionHash,
+	into_substrate_ethereum_header, into_substrate_ethereum_receipts, Hash, Header as SubstrateHeader, Justification,
+	Number, TransactionHash,
 };
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
-use crate::bail_on_error;
 use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
 use num_traits::Zero;
 use serde::de::DeserializeOwned;
-use serde_json::{Value, from_value, to_value};
+use serde_json::{from_value, to_value, Value};
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
 
@@ -113,13 +112,7 @@ pub fn client(params: SubstrateConnectionParams) -> Client {
 
 /// Returns best Substrate header.
 pub async fn best_header(client: Client) -> (Client, Result<SubstrateHeader, Error>) {
-	call_rpc(
-		client,
-		"chain_getHeader",
-		Params::None,
-		rpc_returns_value,
-	)
-	.await
+	call_rpc(client, "chain_getHeader", Params::None, rpc_returns_value).await
 }
 
 /// Returns Substrate header by hash.
@@ -127,9 +120,7 @@ pub async fn header_by_hash(client: Client, hash: Hash) -> (Client, Result<Subst
 	call_rpc(
 		client,
 		"chain_getHeader",
-		Params::Array(vec![
-			to_value(hash).unwrap(),
-		]),
+		Params::Array(vec![to_value(hash).unwrap()]),
 		rpc_returns_value,
 	)
 	.await
@@ -306,7 +297,8 @@ async fn block_hash_by_number(client: Client, number: Number) -> (Client, Result
 		"chain_getBlockHash",
 		Params::Array(vec![to_value(number).unwrap()]),
 		rpc_returns_value,
-	).await
+	)
+	.await
 }
 
 /// Get substrate account nonce.

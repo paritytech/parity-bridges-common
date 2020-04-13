@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use codec::{Encode, Decode};
 use bridge_node_runtime::{BlockNumber, Hash, Header as RuntimeHeader};
+use codec::{Decode, Encode};
 use sp_blockchain::Error as ClientError;
 
 /// Builtin errors.
@@ -82,5 +82,7 @@ pub fn verify_substrate_finality_proof(
 	_raw_headers: &[&[u8]],
 	_raw_finality_proof: &[u8],
 ) -> Result<(usize, usize), Error> {
-	Err(Error::JustificationVerify(ClientError::Msg("Not yet implemented".into()))) // TODO: implement me
+	Err(Error::JustificationVerify(ClientError::Msg(
+		"Not yet implemented".into(),
+	))) // TODO: implement me
 }

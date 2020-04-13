@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_client::{EthereumConnectionParams, EthereumSigningParams, self};
-use crate::substrate_client::{SubstrateConnectionParams, self};
+use crate::ethereum_client::{self, EthereumConnectionParams, EthereumSigningParams};
+use crate::substrate_client::{self, SubstrateConnectionParams};
 use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader};
 use codec::{Decode, Encode};
 use num_traits::Zero;
@@ -102,24 +102,19 @@ async fn prepare_initial_header(
 	sub_initial_header: Option<Vec<u8>>,
 ) -> (substrate_client::Client, Result<(SubstrateHash, Vec<u8>), String>) {
 	match sub_initial_header {
-		Some(raw_initial_header) => {
-			match SubstrateHeader::decode(&mut &raw_initial_header[..]) {
-				Ok(initial_header) => (sub_client, Ok((initial_header.hash(), raw_initial_header))),
-				Err(error) => (sub_client, Err(format!("Error decoding initial header: {}", error))),
-			}
+		Some(raw_initial_header) => match SubstrateHeader::decode(&mut &raw_initial_header[..]) {
+			Ok(initial_header) => (sub_client, Ok((initial_header.hash(), raw_initial_header))),
+			Err(error) => (sub_client, Err(format!("Error decoding initial header: {}", error))),
 		},
 		None => {
-			let (sub_client, initial_header) = substrate_client::header_by_number(
-				sub_client,
-				Zero::zero(),
-			).await;
+			let (sub_client, initial_header) = substrate_client::header_by_number(sub_client, Zero::zero()).await;
 			(
 				sub_client,
 				initial_header
 					.map(|header| (header.hash(), header.encode()))
-					.map_err(|error| format!("Error reading Substrate genesis header: {:?}", error))
+					.map_err(|error| format!("Error reading Substrate genesis header: {:?}", error)),
 			)
-		},
+		}
 	}
 }
 
@@ -131,15 +126,11 @@ async fn prepare_initial_authorities_set(
 ) -> (substrate_client::Client, Result<Vec<u8>, String>) {
 	let (sub_client, initial_authorities_set) = match sub_initial_authorities_set {
 		Some(initial_authorities_set) => (sub_client, Ok(initial_authorities_set)),
-		None => substrate_client::grandpa_authorities_set(
-			sub_client,
-			sub_initial_header_hash,
-		).await,
+		None => substrate_client::grandpa_authorities_set(sub_client, sub_initial_header_hash).await,
 	};
 
 	(
 		sub_client,
-		initial_authorities_set
-			.map_err(|error| format!("Error reading GRANDPA authorities set: {:?}", error)),
+		initial_authorities_set.map_err(|error| format!("Error reading GRANDPA authorities set: {:?}", error)),
 	)
 }

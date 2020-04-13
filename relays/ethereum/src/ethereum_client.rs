@@ -14,17 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, H256, U256, U64};
-use crate::substrate_types::{SubstrateHeaderId, Hash as SubstrateHash, QueuedSubstrateHeader};
-use crate::sync_types::{HeaderId, MaybeConnectionError};
 use crate::bail_on_error;
-use codec::{Encode, Decode};
+use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, H256, U256, U64};
+use crate::substrate_types::{Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId};
+use crate::sync_types::{HeaderId, MaybeConnectionError};
+use codec::{Decode, Encode};
 use ethabi::FunctionOutputDecoder;
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
 use parity_crypto::publickey::KeyPair;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{from_value, to_value};
 
 // to encode/decode contract calls
@@ -76,7 +76,8 @@ impl Default for EthereumSigningParams {
 			signer: KeyPair::from_secret_slice(
 				&hex::decode("4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7")
 					.expect("secret is hardcoded, thus valid; qed"),
-			).expect("secret is hardcoded, thus valid; qed"),
+			)
+			.expect("secret is hardcoded, thus valid; qed"),
 			gas_price: 8_000_000_000u64.into(), // 8 Gwei
 		}
 	}
@@ -221,12 +222,11 @@ pub async fn best_substrate_block(
 		call_rpc::<Bytes>(
 			client,
 			"eth_call",
-			Params::Array(vec![
-				to_value(CallRequest {
-					to: Some(contract_address),
-					data: Some(encoded_call.into()),
-				}).unwrap(),
-			]),
+			Params::Array(vec![to_value(CallRequest {
+				to: Some(contract_address),
+				data: Some(encoded_call.into()),
+			})
+			.unwrap(),]),
 		)
 		.await
 	);
@@ -243,10 +243,7 @@ pub async fn best_substrate_block(
 		return Err(Error::InvalidSubstrateBlockNumber);
 	}
 
-	(
-		client,
-		Ok(HeaderId(number.low_u32(), hash)),
-	)
+	(client, Ok(HeaderId(number.low_u32(), hash)))
 }
 
 /// Returns true if Substrate header is known to Ethereum node.
@@ -260,12 +257,11 @@ pub async fn substrate_header_known(
 		call_rpc::<Bytes>(
 			client,
 			"eth_call",
-			Params::Array(vec![
-				to_value(CallRequest {
-					to: Some(contract_address),
-					data: Some(encoded_call.into()),
-				}).unwrap(),
-			]),
+			Params::Array(vec![to_value(CallRequest {
+				to: Some(contract_address),
+				data: Some(encoded_call.into()),
+			})
+			.unwrap(),]),
 		)
 		.await
 	);
@@ -282,9 +278,8 @@ pub async fn submit_substrate_headers(
 	contract_address: Address,
 	headers: Vec<QueuedSubstrateHeader>,
 ) -> (Client, Result<(Vec<H256>, Vec<SubstrateHeaderId>), Error>) {
-	let (mut client, mut nonce) = bail_on_error!(
-		account_nonce(client, params.signer.address().as_fixed_bytes().into()).await
-	);
+	let (mut client, mut nonce) =
+		bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await);
 
 	let mut tx_hashes = Vec::with_capacity(headers.len());
 	let ids = headers.iter().map(|header| header.id()).collect();
@@ -296,10 +291,9 @@ pub async fn submit_substrate_headers(
 				Some(contract_address),
 				Some(nonce),
 				true, // we may need slightly more gas because other actors could change contract state
-				bridge_contract::functions::import_header::encode_input(
-					header.extract().0.encode(),
-				),
-			).await
+				bridge_contract::functions::import_header::encode_input(header.extract().0.encode(),),
+			)
+			.await
 		);
 
 		nonce += 1.into();
@@ -325,13 +319,9 @@ pub async fn deploy_bridge_contract(
 		None,
 		None,
 		false,
-		bridge_contract::constructor(
-			contract_code,
-			initial_header,
-			initial_set_id,
-			initial_authorities,
-		),
-	).await
+		bridge_contract::constructor(contract_code, initial_header, initial_set_id, initial_authorities),
+	)
+	.await
 }
 
 /// Submit ethereum transaction.
@@ -345,15 +335,17 @@ async fn submit_ethereum_transaction(
 ) -> (Client, Result<H256, Error>) {
 	let (client, nonce) = match nonce {
 		Some(nonce) => (client, nonce),
-		None => bail_on_error!(
-			account_nonce(client, params.signer.address().as_fixed_bytes().into()).await
-		),
+		None => bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await),
 	};
 	let (client, gas) = bail_on_error!(
-		estimate_gas(client, CallRequest {
-			data: Some(encoded_call.clone().into()),
-			..Default::default()
-		}).await
+		estimate_gas(
+			client,
+			CallRequest {
+				data: Some(encoded_call.clone().into()),
+				..Default::default()
+			}
+		)
+		.await
 	);
 	let raw_transaction = ethereum_tx_sign::RawTransaction {
 		nonce,
@@ -362,35 +354,34 @@ async fn submit_ethereum_transaction(
 		gas: if double_gas { gas.saturating_sub(2.into()) } else { gas },
 		gas_price: params.gas_price,
 		data: encoded_call,
-	}.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
+	}
+	.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
 	call_rpc(
 		client,
 		"eth_submitTransaction",
-		Params::Array(vec![
-			to_value(Bytes(raw_transaction)).unwrap(),
-		]),
+		Params::Array(vec![to_value(Bytes(raw_transaction)).unwrap()]),
 	)
 	.await
 }
 
 /// Get account nonce.
-async fn account_nonce(
-	client: Client,
-	caller_address: Address,
-) -> (Client, Result<U256, Error>) {
-	call_rpc(client, "eth_getTransactionCount", Params::Array(vec![
-		to_value(caller_address).unwrap(),
-	])).await
+async fn account_nonce(client: Client, caller_address: Address) -> (Client, Result<U256, Error>) {
+	call_rpc(
+		client,
+		"eth_getTransactionCount",
+		Params::Array(vec![to_value(caller_address).unwrap()]),
+	)
+	.await
 }
 
 /// Estimate gas usage for call.
-async fn estimate_gas(
-	client: Client,
-	call_request: CallRequest,
-) -> (Client, Result<U256, Error>) {
-	call_rpc(client, "eth_estimateGas", Params::Array(vec![
-		to_value(call_request).unwrap(),
-	])).await
+async fn estimate_gas(client: Client, call_request: CallRequest) -> (Client, Result<U256, Error>) {
+	call_rpc(
+		client,
+		"eth_estimateGas",
+		Params::Array(vec![to_value(call_request).unwrap()]),
+	)
+	.await
 }
 
 /// Calls RPC on Ethereum node.

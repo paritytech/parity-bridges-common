@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_client::{EthereumConnectionParams, self};
+use crate::ethereum_client::{self, EthereumConnectionParams};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
-use crate::substrate_client::{SubstrateConnectionParams, SubstrateSigningParams, self};
+use crate::substrate_client::{self, SubstrateConnectionParams, SubstrateSigningParams};
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
-use futures::future::{FutureExt, Ready, ready};
+use futures::future::{ready, FutureExt, Ready};
 use std::{future::Future, pin::Pin};
 use web3::types::H256;
 
@@ -70,7 +70,8 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type HeaderByHashFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
 	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
 	type HeaderAsyncExtraFuture = Ready<(Self, Result<(EthereumHeaderId, Option<()>), Self::Error>)>;
-	type HeaderExtraFuture = Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, Vec<Receipt>), Self::Error>)>>>;
+	type HeaderExtraFuture =
+		Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, Vec<Receipt>), Self::Error>)>>>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
 		ethereum_client::best_block_number(self.client)

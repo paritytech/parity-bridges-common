@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::sync_types::{HeaderId, HeadersSyncPipeline, SourceHeader, QueuedHeader};
 use crate::ethereum_types::{
 	Header as EthereumHeader, Receipt as EthereumReceipt, HEADER_ID_PROOF as ETHEREUM_HEADER_ID_PROOF,
 	RECEIPT_GAS_USED_PROOF as ETHEREUM_RECEIPT_GAS_USED_PROOF,
 };
+use crate::sync_types::{HeaderId, HeadersSyncPipeline, QueuedHeader, SourceHeader};
 pub use sp_bridge_eth_poa::{
 	Address, Bloom, Bytes, Header as SubstrateEthereumHeader, LogEntry as SubstrateEthereumLogEntry,
 	Receipt as SubstrateEthereumReceipt, TransactionOutcome as SubstrateEthereumTransactionOutcome, H256, U256,

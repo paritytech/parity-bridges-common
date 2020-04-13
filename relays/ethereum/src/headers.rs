@@ -20,20 +20,10 @@ use std::collections::{
 	btree_map::Entry as BTreeMapEntry, hash_map::Entry as HashMapEntry, BTreeMap, HashMap, HashSet,
 };
 
-type HeadersQueue<P> = BTreeMap<
-	<P as HeadersSyncPipeline>::Number,
-	HashMap<
-		<P as HeadersSyncPipeline>::Hash,
-		QueuedHeader<P>,
-	>,
->;
-type KnownHeaders<P> = BTreeMap<
-	<P as HeadersSyncPipeline>::Number,
-	HashMap<
-		<P as HeadersSyncPipeline>::Hash,
-		HeaderStatus,
-	>,
->;
+type HeadersQueue<P> =
+	BTreeMap<<P as HeadersSyncPipeline>::Number, HashMap<<P as HeadersSyncPipeline>::Hash, QueuedHeader<P>>>;
+type KnownHeaders<P> =
+	BTreeMap<<P as HeadersSyncPipeline>::Number, HashMap<<P as HeadersSyncPipeline>::Hash, HeaderStatus>>;
 
 /// Ethereum headers queue.
 #[derive(Debug)]
@@ -271,7 +261,8 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		}
 
 		// remember that the header is synced
-		if !id_processed { // to avoid duplicate log message
+		if !id_processed {
+			// to avoid duplicate log message
 			log::debug!(
 				target: "bridge",
 				"{} header {:?} is now {:?}",
@@ -538,18 +529,12 @@ fn oldest_headers<P: HeadersSyncPipeline>(
 }
 
 /// Forget all headers with number less than given.
-fn prune_queue<P: HeadersSyncPipeline>(
-	queue: &mut HeadersQueue<P>,
-	prune_border: P::Number,
-) {
+fn prune_queue<P: HeadersSyncPipeline>(queue: &mut HeadersQueue<P>, prune_border: P::Number) {
 	*queue = queue.split_off(&prune_border);
 }
 
 /// Forget all known headers with number less than given.
-fn prune_known_headers<P: HeadersSyncPipeline>(
-	known_headers: &mut KnownHeaders<P>,
-	prune_border: P::Number,
-) {
+fn prune_known_headers<P: HeadersSyncPipeline>(known_headers: &mut KnownHeaders<P>, prune_border: P::Number) {
 	let new_known_headers = known_headers.split_off(&prune_border);
 	for (pruned_number, pruned_headers) in &*known_headers {
 		for pruned_hash in pruned_headers.keys() {
@@ -562,7 +547,7 @@ fn prune_known_headers<P: HeadersSyncPipeline>(
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, H256, Header};
+	use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, H256};
 	use crate::sync_types::{HeaderId, QueuedHeader};
 
 	pub(crate) fn header(number: u64) -> QueuedHeader<EthereumHeadersSyncPipeline> {
@@ -586,36 +571,30 @@ pub(crate) mod tests {
 	fn total_headers_works() {
 		// total headers just sums up number of headers in every queue
 		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
-		queue
-			.maybe_orphan
-			.entry(1)
-			.or_default()
-			.insert(hash(1), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
-		queue
-			.maybe_orphan
-			.entry(1)
-			.or_default()
-			.insert(hash(2), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
-		queue
-			.maybe_orphan
-			.entry(2)
-			.or_default()
-			.insert(hash(3), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
-		queue
-			.orphan
-			.entry(3)
-			.or_default()
-			.insert(hash(4), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
-		queue
-			.maybe_extra
-			.entry(4)
-			.or_default()
-			.insert(hash(5), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
-		queue
-			.ready
-			.entry(5)
-			.or_default()
-			.insert(hash(6), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
+		queue.maybe_orphan.entry(1).or_default().insert(
+			hash(1),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		queue.maybe_orphan.entry(1).or_default().insert(
+			hash(2),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		queue.maybe_orphan.entry(2).or_default().insert(
+			hash(3),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		queue.orphan.entry(3).or_default().insert(
+			hash(4),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		queue.maybe_extra.entry(4).or_default().insert(
+			hash(5),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		queue.ready.entry(5).or_default().insert(
+			hash(6),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
 		assert_eq!(queue.total_headers(), 6);
 	}
 
@@ -623,49 +602,42 @@ pub(crate) mod tests {
 	fn best_queued_number_works() {
 		// initially there are headers in MaybeOrphan queue only
 		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
-		queue
-			.maybe_orphan
-			.entry(1)
-			.or_default()
-			.insert(hash(1), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
-		queue
-			.maybe_orphan
-			.entry(1)
-			.or_default()
-			.insert(hash(2), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
-		queue
-			.maybe_orphan
-			.entry(3)
-			.or_default()
-			.insert(hash(3), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
+		queue.maybe_orphan.entry(1).or_default().insert(
+			hash(1),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		queue.maybe_orphan.entry(1).or_default().insert(
+			hash(2),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		queue.maybe_orphan.entry(3).or_default().insert(
+			hash(3),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
 		assert_eq!(queue.best_queued_number(), 3);
 		// and then there's better header in Orphan
-		queue
-			.orphan
-			.entry(10)
-			.or_default()
-			.insert(hash(10), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
+		queue.orphan.entry(10).or_default().insert(
+			hash(10),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
 		assert_eq!(queue.best_queued_number(), 10);
 		// and then there's better header in MaybeExtra
-		queue
-			.maybe_extra
-			.entry(20)
-			.or_default()
-			.insert(hash(20), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
+		queue.maybe_extra.entry(20).or_default().insert(
+			hash(20),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
 		assert_eq!(queue.best_queued_number(), 20);
 		// and then there's better header in Ready
-		queue
-			.ready
-			.entry(30)
-			.or_default()
-			.insert(hash(30), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
+		queue.ready.entry(30).or_default().insert(
+			hash(30),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
 		assert_eq!(queue.best_queued_number(), 30);
 		// and then there's better header in MaybeOrphan again
-		queue
-			.maybe_orphan
-			.entry(40)
-			.or_default()
-			.insert(hash(40), QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()));
+		queue.maybe_orphan.entry(40).or_default().insert(
+			hash(40),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
 		assert_eq!(queue.best_queued_number(), 40);
 	}
 
@@ -965,11 +937,7 @@ pub(crate) mod tests {
 			.entry(100)
 			.or_default()
 			.insert(hash(100), HeaderStatus::MaybeExtra);
-		queue
-			.maybe_extra
-			.entry(100)
-			.or_default()
-			.insert(hash(100), header(100));
+		queue.maybe_extra.entry(100).or_default().insert(hash(100), header(100));
 		queue.maybe_extra_response(&id(100), true);
 		assert!(queue.maybe_extra.is_empty());
 		assert_eq!(queue.extra.len(), 1);
@@ -984,11 +952,7 @@ pub(crate) mod tests {
 			.entry(100)
 			.or_default()
 			.insert(hash(100), HeaderStatus::MaybeExtra);
-		queue
-			.maybe_extra
-			.entry(100)
-			.or_default()
-			.insert(hash(100), header(100));
+		queue.maybe_extra.entry(100).or_default().insert(hash(100), header(100));
 		queue.maybe_extra_response(&id(100), false);
 		assert!(queue.maybe_extra.is_empty());
 		assert_eq!(queue.ready.len(), 1);
@@ -1048,11 +1012,7 @@ pub(crate) mod tests {
 			.entry(102)
 			.or_default()
 			.insert(hash(102), HeaderStatus::MaybeExtra);
-		queue
-			.maybe_extra
-			.entry(102)
-			.or_default()
-			.insert(hash(102), header(102));
+		queue.maybe_extra.entry(102).or_default().insert(hash(102), header(102));
 		queue
 			.known_headers
 			.entry(101)
