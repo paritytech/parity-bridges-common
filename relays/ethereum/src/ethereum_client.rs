@@ -109,6 +109,8 @@ pub enum Error {
 	IncompleteHeader,
 	/// We have received receipt with missing gas_used field.
 	IncompleteReceipt,
+	/// Invalid Substrate block number received from Ethereum node.
+	InvalidSubstrateBlockNumber,
 }
 
 impl MaybeConnectionError for Error {
@@ -237,9 +239,13 @@ pub async fn best_substrate_block(
 		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
 	};
 
+	if number != number.low_u32().into() {
+		return Err(Error::InvalidSubstrateBlockNumber);
+	}
+
 	(
 		client,
-		Ok(HeaderId(number.low_u32(), hash)), // TODO: verify that low_u32().into() == self
+		Ok(HeaderId(number.low_u32(), hash)),
 	)
 }
 
@@ -249,12 +255,6 @@ pub async fn substrate_header_known(
 	contract_address: Address,
 	id: SubstrateHeaderId,
 ) -> (Client, Result<(SubstrateHeaderId, bool), Error>) {
-	// Ethereum contract could prune old headers. So this fn could return false even
-	// if header is synced. And we'll mark corresponding Ethereum header as Orphan.
-	//
-	// But when we'll read best header from Ethereum next time, we will know that
-	// there's a better header => this Orphan will either be marked as synced, or
-	// eventually pruned.
 	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1);
 	let (client, call_result) = bail_on_error!(
 		call_rpc::<Bytes>(
