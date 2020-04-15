@@ -16,8 +16,8 @@
 
 use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256};
 use crate::substrate_types::{
-	into_substrate_ethereum_header, into_substrate_ethereum_receipts, Hash, Header as SubstrateHeader, Justification,
-	Number, TransactionHash,
+	into_substrate_ethereum_header, into_substrate_ethereum_receipts, Hash, Header as SubstrateHeader, Number,
+	TransactionHash,
 };
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
 use crate::{bail_on_arg_error, bail_on_error};
@@ -127,11 +127,6 @@ pub async fn header_by_hash(client: Client, hash: Hash) -> (Client, Result<Subst
 pub async fn header_by_number(client: Client, number: Number) -> (Client, Result<SubstrateHeader, Error>) {
 	let (client, hash) = bail_on_error!(block_hash_by_number(client, number).await);
 	header_by_hash(client, hash).await
-}
-
-/// Returns justification for Substrate header.
-pub async fn justification(client: Client, _hash: Hash) -> (Client, Result<Option<Justification>, Error>) {
-	(client, Ok(Some(vec![42]))) // TODO: implement me
 }
 
 /// Returns best Ethereum block that Substrate runtime knows of.

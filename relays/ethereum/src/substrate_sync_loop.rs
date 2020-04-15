@@ -18,7 +18,7 @@ use crate::ethereum_client::{self, EthereumConnectionParams, EthereumSigningPara
 use crate::ethereum_types::Address;
 use crate::substrate_client::{self, SubstrateConnectionParams};
 use crate::substrate_types::{
-	Hash, Header, Justification, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
+	Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
@@ -80,8 +80,6 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Number, Self::Error>)>>>;
 	type HeaderByHashFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
 	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
-	type HeaderAsyncExtraFuture =
-		Pin<Box<dyn Future<Output = (Self, Result<(SubstrateHeaderId, Option<Justification>), Self::Error>)>>>;
 	type HeaderExtraFuture = Ready<(Self, Result<(SubstrateHeaderId, ()), Self::Error>)>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
@@ -99,17 +97,6 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	fn header_by_number(self, number: Number) -> Self::HeaderByNumberFuture {
 		substrate_client::header_by_number(self.client, number)
 			.map(|(client, result)| (SubstrateHeadersSource { client }, result))
-			.boxed()
-	}
-
-	fn header_async_extra(self, id: SubstrateHeaderId) -> Self::HeaderAsyncExtraFuture {
-		substrate_client::justification(self.client, id.1)
-			.map(move |(client, result)| {
-				(
-					SubstrateHeadersSource { client },
-					result.map(|justification| (id, justification)),
-				)
-			})
 			.boxed()
 	}
 
@@ -132,8 +119,6 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = ethereum_client::Error;
 	type BestHeaderIdFuture = Pin<Box<dyn Future<Output = (Self, Result<SubstrateHeaderId, Self::Error>)>>>;
 	type IsKnownHeaderFuture = Pin<Box<dyn Future<Output = (Self, Result<(SubstrateHeaderId, bool), Self::Error>)>>>;
-	type RequiresAsyncExtraFuture =
-		Pin<Box<dyn Future<Output = (Self, Result<(SubstrateHeaderId, bool), Self::Error>)>>>;
 	type RequiresExtraFuture = Ready<(Self, Result<(SubstrateHeaderId, bool), Self::Error>)>;
 	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<Vec<SubstrateHeaderId>, Self::Error>)>>>;
 
@@ -167,10 +152,6 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 				)
 			})
 			.boxed()
-	}
-
-	fn requires_async_extra(self, id: SubstrateHeaderId) -> Self::RequiresAsyncExtraFuture {
-		ready((self, Ok((id, false)))).boxed() // TODO: actual impl
 	}
 
 	fn requires_extra(self, header: &QueuedSubstrateHeader) -> Self::RequiresExtraFuture {
