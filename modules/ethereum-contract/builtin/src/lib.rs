@@ -16,15 +16,19 @@
 
 use bridge_node_runtime::{BlockNumber, Hash, Header as RuntimeHeader};
 use codec::{Decode, Encode};
+use ethereum_types::U256;
 use sp_blockchain::Error as ClientError;
+use sp_finality_grandpa::{AuthorityList, ConsensusLog, GRANDPA_ENGINE_ID};
 
 /// Builtin errors.
 #[derive(Debug)]
 pub enum Error {
+	/// Failed to decode block number.
+	BlockNumberDecode,
 	/// Failed to decode Substrate header.
 	HeaderDecode(codec::Error),
 	/// Failed to decode best voters set.
-	BestVotersDecode(codec::Error),
+	BestSetDecode(codec::Error),
 	/// Failed to decode finality proof.
 	FinalityProofDecode(codec::Error),
 	/// Failed to verify justification.
@@ -53,13 +57,17 @@ pub struct ValidatorsSetSignal {
 	pub validators: Vec<u8>,
 }
 
-/// All types of finality proofs.
-#[derive(Decode, Encode)]
-pub enum FinalityProof {
-	/// GRANDPA justification.
-	Justification(Vec<u8>),
-	/// GRANDPA commit.
-	Commit(Vec<u8>),
+/// Convert from U256 to BlockNumber.
+pub fn to_substrate_block_number(number: U256) -> Result<BlockNumber, Error> {
+	match number == number.low_u32().into() {
+		true => Ok(number.low_u32()),
+		false => Err(Error::BlockNumberDecode),
+	}
+}
+
+/// Convert from BlockNumber to U256.
+pub fn from_substrate_block_number(number: BlockNumber) -> Result<U256, Error> {
+	Ok(U256::from(number as u64))
 }
 
 /// Parse Substrate header.
@@ -69,20 +77,188 @@ pub fn parse_substrate_header(raw_header: &[u8]) -> Result<Header, Error> {
 			hash: header.hash(),
 			parent_hash: header.parent_hash,
 			number: header.number,
-			signal: None, // TODO: parse me
+			signal: sp_runtime::traits::Header::digest(&header)
+				.log(|log| {
+					log.as_consensus().and_then(|(engine_id, log)| {
+						if engine_id == GRANDPA_ENGINE_ID {
+							Some(log)
+						} else {
+							None
+						}
+					})
+				})
+				.and_then(|log| ConsensusLog::decode(&mut &log[..]).ok())
+				.and_then(|log| match log {
+					ConsensusLog::ScheduledChange(scheduled_change) => Some(ValidatorsSetSignal {
+						delay: scheduled_change.delay,
+						validators: scheduled_change.next_authorities.encode(),
+					}),
+					_ => None,
+				}),
 		})
 		.map_err(Error::HeaderDecode)
 }
 
 /// Verify GRANDPA finality proof.
 pub fn verify_substrate_finality_proof(
-	_best_set_id: u64,
-	_raw_best_voters: &[u8],
-	_raw_best_header: &[u8],
-	_raw_headers: &[&[u8]],
-	_raw_finality_proof: &[u8],
-) -> Result<(usize, usize), Error> {
-	Err(Error::JustificationVerify(ClientError::Msg(
-		"Not yet implemented".into(),
-	))) // TODO: implement me
+	finality_target_number: BlockNumber,
+	finality_target_hash: Hash,
+	best_set_id: u64,
+	raw_best_set: &[u8],
+	raw_finality_proof: &[u8],
+) -> Result<(), Error> {
+	// TODO: accept other types of finality proof (Commit)
+	let best_set = AuthorityList::decode(&mut &raw_best_set[..]).map_err(Error::BestSetDecode)?;
+
+	substrate::GrandpaJustification::decode_and_verify_finalizes(
+		&raw_finality_proof,
+		(finality_target_hash, finality_target_number),
+		best_set_id,
+		&best_set.into_iter().collect(),
+	)
+	.map_err(Error::JustificationVerify)
+	.map(|_| ())
+}
+
+/// ==================================================================================================================
+/// === Everything below should be (?) exposed by Substrate ==========================================================
+/// ==================================================================================================================
+
+mod substrate {
+	use bridge_node_runtime::{BlockNumber, Hash, Header as RuntimeHeader};
+	use codec::{Decode, Encode};
+	use finality_grandpa::voter_set::VoterSet;
+	use sp_blockchain::Error as ClientError;
+	use sp_finality_grandpa::{AuthorityId, AuthoritySignature};
+	use std::collections::HashMap;
+
+	/// A commit message for this chain's block type.
+	pub type Commit = finality_grandpa::Commit<Hash, BlockNumber, AuthoritySignature, AuthorityId>;
+
+	/// GRANDPA justification.
+	#[derive(Encode, Decode)]
+	pub struct GrandpaJustification {
+		pub round: u64,
+		pub commit: Commit,
+		pub votes_ancestries: Vec<RuntimeHeader>,
+	}
+
+	impl GrandpaJustification {
+		/// Decode a GRANDPA justification and validate the commit and the votes'
+		/// ancestry proofs finalize the given block.
+		pub(crate) fn decode_and_verify_finalizes(
+			encoded: &[u8],
+			finalized_target: (Hash, BlockNumber),
+			set_id: u64,
+			voters: &VoterSet<AuthorityId>,
+		) -> Result<GrandpaJustification, ClientError> {
+			let justification =
+				GrandpaJustification::decode(&mut &*encoded).map_err(|_| ClientError::JustificationDecode)?;
+
+			if (justification.commit.target_hash, justification.commit.target_number) != finalized_target {
+				let msg = format!("invalid commit target in grandpa justification: {:?} != {:?}", (justification.commit.target_hash, justification.commit.target_number), finalized_target);
+				Err(ClientError::BadJustification(msg))
+			} else {
+				justification.verify(set_id, voters).map(|_| justification)
+			}
+		}
+
+		/// Validate the commit and the votes' ancestry proofs.
+		pub(crate) fn verify(&self, _set_id: u64, voters: &VoterSet<AuthorityId>) -> Result<(), ClientError> {
+			//			use finality_grandpa::Chain;
+
+			let ancestry_chain = AncestryChain::new(&self.votes_ancestries);
+
+			match finality_grandpa::validate_commit(&self.commit, voters, &ancestry_chain) {
+				Ok(ref result) if result.ghost().is_some() => {}
+				_ => {
+					let msg = "invalid commit in grandpa justification".to_string();
+					return Err(ClientError::BadJustification(msg));
+				}
+			}
+			/* TODO
+						let mut buf = Vec::new();
+						let mut visited_hashes = HashSet::new();
+						for signed in self.commit.precommits.iter() {
+							if let Err(_) = communication::check_message_sig_with_buffer::<Block>(
+								&finality_grandpa::Message::Precommit(signed.precommit.clone()),
+								&signed.id,
+								&signed.signature,
+								self.round,
+								set_id,
+								&mut buf,
+							) {
+								return Err(ClientError::BadJustification(
+									"invalid signature for precommit in grandpa justification".to_string()).into());
+							}
+							if self.commit.target_hash == signed.precommit.target_hash {
+								continue;
+							}
+							match ancestry_chain.ancestry(self.commit.target_hash, signed.precommit.target_hash) {
+								Ok(route) => {
+									// ancestry starts from parent hash but the precommit target hash has been visited
+									visited_hashes.insert(signed.precommit.target_hash);
+									for hash in route {
+										visited_hashes.insert(hash);
+									}
+								},
+								_ => {
+									return Err(ClientError::BadJustification(
+										"invalid precommit ancestry proof in grandpa justification".to_string()).into());
+								},
+							}
+						}
+						let ancestry_hashes = self.votes_ancestries
+							.iter()
+							.map(|h: &Block::Header| h.hash())
+							.collect();
+						if visited_hashes != ancestry_hashes {
+							return Err(ClientError::BadJustification(
+								"invalid precommit ancestries in grandpa justification with unused headers".to_string()).into());
+						}
+			*/
+			Ok(())
+		}
+	}
+
+	/// A utility trait implementing `finality_grandpa::Chain` using a given set of headers.
+	/// This is useful when validating commits, using the given set of headers to
+	/// verify a valid ancestry route to the target commit block.
+	struct AncestryChain {
+		ancestry: HashMap<Hash, RuntimeHeader>,
+	}
+
+	impl AncestryChain {
+		fn new(ancestry: &[RuntimeHeader]) -> AncestryChain {
+			let ancestry: HashMap<_, _> = ancestry.iter().cloned().map(|h: RuntimeHeader| (h.hash(), h)).collect();
+
+			AncestryChain { ancestry }
+		}
+	}
+
+	impl finality_grandpa::Chain<Hash, BlockNumber> for AncestryChain {
+		fn ancestry(&self, base: Hash, block: Hash) -> Result<Vec<Hash>, finality_grandpa::Error> {
+			let mut route = Vec::new();
+			let mut current_hash = block;
+			loop {
+				if current_hash == base {
+					break;
+				}
+				match self.ancestry.get(&current_hash) {
+					Some(current_header) => {
+						current_hash = current_header.parent_hash;
+						route.push(current_hash);
+					}
+					_ => return Err(finality_grandpa::Error::NotDescendent),
+				}
+			}
+			route.pop(); // remove the base
+
+			Ok(route)
+		}
+
+		fn best_chain_containing(&self, _block: Hash) -> Option<(Hash, BlockNumber)> {
+			None
+		}
+	}
 }

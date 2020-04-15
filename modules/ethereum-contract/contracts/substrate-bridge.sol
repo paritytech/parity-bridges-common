@@ -108,15 +108,14 @@ contract SubstrateBridge {
 		return headerByHash[headerHash].isKnown;
 	}
 
-	/// Returns true if finality proof is required for this header.
-	function isFinalityProofRequired(
-		bytes32 headerHash
-	) public view returns (bool) {
-		Header storage header = headerByHash[headerHash];
-		return header.isKnown
-			&& header.number > bestFinalizedHeaderNumber
-			&& header.number == header.prevSignalTargetNumber
-			&& header.validatorsSetId == bestFinalizedValidatorsSetId;
+	/// Returns numbers of headers that require finality proofs.
+	function incompleteHeaders() public view returns (uint256[] memory, bytes32[] memory) {
+		uint256 incompleteHeadersCount = incompleteHeadersHashes.length;
+		uint256[] memory incompleteHeadersNumbers = new uint256[](incompleteHeadersCount);
+		for (uint256 i = 0; i < incompleteHeadersCount; ++i) {
+			incompleteHeadersNumbers[i] = headerByHash[incompleteHeadersHashes[i]].number;
+		}
+		return (incompleteHeadersNumbers, incompleteHeadersHashes);
 	}
 
 	/// Import header.
@@ -127,7 +126,7 @@ contract SubstrateBridge {
 		ParsedHeader memory header = parseSubstrateHeader(rawHeader);
 		Header storage parentHeader = headerByHash[header.parentHash];
 		require(
-			parentHeader.number == header.number - 1,
+			parentHeader.isKnown && parentHeader.number == header.number - 1,
 			"Missing parent header from the storage"
 		);
 
@@ -156,6 +155,27 @@ contract SubstrateBridge {
 		if (parentHeader.signal.length != 0) {
 			prevSignalHeaderHash = header.parentHash;
 			validatorsSetId = validatorsSetId + 1;
+		}
+
+		// remember if we need finality proof for this header
+		if (prevSignalTargetNumber == header.number) {
+			// TODO:
+			//
+			// In current implementation any submitter may submit any (invalid) block B that signals validators
+			// set change in N blocks. This would require relay to ask Substrate node for finality proof and
+			// submit it here, if it exists. So by spamming contract with signal headers, malicious submitter
+			// can significantly slow down sync just because actual block that will need finality proof will
+			// be waiting in the relay queue to be processed + incompleteHeadersNumbers may grow without any
+			// limits.
+			//
+			// One solution would be to have reputation system - initially you may submit only one block-with-signal
+			// (or you may submit it only once every N blocks). When your block-with-signal is finalized, your
+			// reputation is increased and you may submit multiple blocks-with-signals (and they got priority in
+			// the queue), but with every submitted block-with-signal, it decreases. This should cause honest
+			// competition for block-with-signal 'slots' even if malicious submitters are present.
+			uint256 incompleteHeaderHashIndex = incompleteHeadersHashes.length;
+			incompleteHeadersHashes.push(header.hash);
+			incompleteHeadersIndices[header.hash] = incompleteHeaderHashIndex + 1;
 		}
 
 		// store header in the storage
@@ -188,6 +208,8 @@ contract SubstrateBridge {
 		bytes32 newBestFinalizedHeaderHash = verifyFinalityProof(
 			finalityTargetNumber,
 			finalityTargetHash,
+			bestFinalizedValidatorsSetId,
+			bestFinalizedValidatorsSet,
 			rawFinalityProof
 		);
 
@@ -198,8 +220,29 @@ contract SubstrateBridge {
 
 		// apply validators set change signal if required
 		while (newBestFinalizedHeaderHash != oldBestFinalizedHeaderHash) {
-			newFinalizedHeader = headerByHash[newBestFinalizedHeaderHash];
+			bytes32 finalizingHeader = newBestFinalizedHeaderHash;
+			newFinalizedHeader = headerByHash[finalizingHeader];
 			newBestFinalizedHeaderHash = newFinalizedHeader.parentHash;
+
+			// swap_remove from incomplete headers, if required
+			uint256 incompleteHeaderIndex = incompleteHeadersIndices[finalizingHeader];
+			if (incompleteHeaderIndex != 0) {
+				// shift by -1 to get actual array index
+				incompleteHeaderIndex = incompleteHeaderIndex - 1;
+
+				// if it isn't the last element, swap with last element
+				uint256 incompleteHeadersCount = incompleteHeadersHashes.length;
+				if (incompleteHeaderIndex != incompleteHeadersCount - 1) {
+					bytes32 lastIncompleHeaderHash = incompleteHeadersHashes[incompleteHeadersCount - 1];
+					incompleteHeadersHashes[incompleteHeaderIndex] = lastIncompleHeaderHash;
+					incompleteHeadersIndices[lastIncompleHeaderHash] = incompleteHeaderIndex;
+				}
+
+				// remove last element from array and index from mapping
+				incompleteHeadersHashes.pop();
+				delete incompleteHeadersIndices[finalizingHeader];
+			}
+
 			// if we are finalizing header that should enact validators set change, do this
 			// (this only affects latest scheduled change)
 			if (newFinalizedHeader.number == newFinalizedHeader.prevSignalTargetNumber) {
@@ -220,7 +263,6 @@ contract SubstrateBridge {
 		uint256 headerNumber;
 		uint256 headerSignalDelay;
 		uint256 headerSignalSize;
-		bytes memory headerSignal;
 
 		assembly {
 			// inputs
@@ -255,13 +297,12 @@ contract SubstrateBridge {
 		}
 
 		// if validators set change is signalled, read it
+		bytes memory headerSignal = new bytes(headerSignalSize);
 		if (headerSignalSize != 0) {
-			headerSignal = new bytes(headerSignalSize);
-
 			assembly {
 				// inputs
-				let rawHeadersSize := mload(rawHeader)
-				let rawHeadersPointer := add(rawHeader, 0x20)
+				let rawHeaderSize := mload(rawHeader)
+				let rawHeaderPointer := add(rawHeader, 0x20)
 
 				// output
 				let headerSignalPointer := add(headerSignal, 0x20)
@@ -270,8 +311,8 @@ contract SubstrateBridge {
 				if iszero(staticcall(
 					not(0),
 					SUBSTRATE_GET_HEADER_SIGNAL_BUILTIN_ADDRESS,
-					rawHeadersPointer,
-					rawHeadersSize,
+					rawHeaderPointer,
+					rawHeaderSize,
 					headerSignalPointer,
 					headerSignalSize
 				)) {
@@ -291,18 +332,49 @@ contract SubstrateBridge {
 
 
 	/// Verify finality proof.
+	/// @return Hash of the new best finalized header.
 	function verifyFinalityProof(
-		uint256 /*finalityTargetNumber*/,
-		bytes32 /*finalityTargetHash*/,
-		bytes memory /*rawFinalityProof*/
+		uint256 finalityTargetNumber,
+		bytes32 finalityTargetHash,
+		uint64 bestSetId,
+		bytes memory rawBestSet,
+		bytes memory rawFinalityProof
 	) private view returns (bytes32) {
-		return bestFinalizedHeaderHash; // TODO: call builtin instead
+		bytes memory encodedArgs = abi.encode(
+			finalityTargetNumber,
+			finalityTargetHash,
+			bestSetId,
+			rawBestSet,
+			rawFinalityProof
+		);
+
+		assembly {
+			// inputs
+			let encodedArgsSize := mload(encodedArgs)
+			let encodedArgsPointer := add(encodedArgs, 0x20)
+
+			// verify finality proof
+			if iszero(staticcall(
+				not(0),
+				SUBSTRATE_VERIFY_FINALITY_PROOF_BUILTIN_ADDRESS,
+				encodedArgsPointer,
+				encodedArgsSize,
+				0x00,
+				0x00
+			)) {
+				revert(0, 0)
+			}
+		}
+
+		return finalityTargetHash;
 	}
 
 	/// Address of parse_substrate_header builtin.
 	uint256 constant SUBSTRATE_PARSE_HEADER_BUILTIN_ADDRESS = 0x10;
 	/// Address of get_substrate_validators_set_signal builtin.
 	uint256 constant SUBSTRATE_GET_HEADER_SIGNAL_BUILTIN_ADDRESS = 0x11;
+	/// Address of verify_substrate_finality_proof builtin.
+	uint256 constant SUBSTRATE_VERIFY_FINALITY_PROOF_BUILTIN_ADDRESS = 0x12;
 
 	/// Last imported header hash.
 	bytes32 lastImportedHeaderHash;
@@ -315,6 +387,11 @@ contract SubstrateBridge {
 	uint64 bestFinalizedValidatorsSetId;
 	/// Best finalized validators set.
 	bytes bestFinalizedValidatorsSet;
+
+	/// Hashes of headers that require finality proof.
+	bytes32[] incompleteHeadersHashes;
+	/// Map of the incomplete header hash => index+1 within incompleteHeadersHashes.
+	mapping (bytes32 => uint256) incompleteHeadersIndices;
 
 	/// Map of headers by their hashes.
 	mapping (bytes32 => Header) headerByHash;

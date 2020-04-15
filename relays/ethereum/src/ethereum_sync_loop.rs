@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Ethereum PoA -> Substrate synchronization.
+
 use crate::ethereum_client::{self, EthereumConnectionParams};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
 use crate::substrate_client::{self, SubstrateConnectionParams, SubstrateSigningParams};
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
-use futures::future::{ready, FutureExt, Ready};
-use std::{future::Future, pin::Pin};
+use futures::future::{FutureExt, Ready, ready};
+use std::{collections::HashSet, future::Future, pin::Pin};
 use web3::types::H256;
 
 /// Interval (in ms) at which we check new Ethereum headers when we are synced/almost synced.
@@ -69,9 +71,9 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<u64, Self::Error>)>>>;
 	type HeaderByHashFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
 	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
-	type HeaderAsyncExtraFuture = Ready<(Self, Result<(EthereumHeaderId, Option<()>), Self::Error>)>;
 	type HeaderExtraFuture =
 		Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, Vec<Receipt>), Self::Error>)>>>;
+	type HeaderCompletionFuture = Ready<(Self, Result<(EthereumHeaderId, Option<()>), Self::Error>)>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
 		ethereum_client::best_block_number(self.client)
@@ -91,14 +93,14 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 			.boxed()
 	}
 
-	fn header_async_extra(self, id: EthereumHeaderId) -> Self::HeaderAsyncExtraFuture {
-		ready((self, Ok((id, Some(())))))
-	}
-
 	fn header_extra(self, id: EthereumHeaderId, header: &Header) -> Self::HeaderExtraFuture {
 		ethereum_client::transactions_receipts(self.client, id, header.transactions.clone())
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
 			.boxed()
+	}
+
+	fn header_completion(self, id: EthereumHeaderId) -> Self::HeaderCompletionFuture {
+		ready((self, Ok((id, None))))
 	}
 }
 
@@ -116,9 +118,10 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = substrate_client::Error;
 	type BestHeaderIdFuture = Pin<Box<dyn Future<Output = (Self, Result<EthereumHeaderId, Self::Error>)>>>;
 	type IsKnownHeaderFuture = Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, bool), Self::Error>)>>>;
-	type RequiresAsyncExtraFuture = Ready<(Self, Result<(EthereumHeaderId, bool), Self::Error>)>;
 	type RequiresExtraFuture = Pin<Box<dyn Future<Output = (Self, Result<(EthereumHeaderId, bool), Self::Error>)>>>;
 	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<Vec<EthereumHeaderId>, Self::Error>)>>>;
+	type IncompleteHeadersFuture = Ready<(Self, Result<HashSet<EthereumHeaderId>, Self::Error>)>;
+	type CompleteHeadersFuture = Ready<(Self, Result<EthereumHeaderId, Self::Error>)>;
 
 	fn best_header_id(self) -> Self::BestHeaderIdFuture {
 		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
@@ -150,10 +153,6 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 				)
 			})
 			.boxed()
-	}
-
-	fn requires_async_extra(self, id: EthereumHeaderId) -> Self::RequiresAsyncExtraFuture {
-		ready((self, Ok((id, false))))
 	}
 
 	fn requires_extra(self, header: &QueuedEthereumHeader) -> Self::RequiresExtraFuture {
@@ -189,6 +188,14 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 				)
 			})
 			.boxed()
+	}
+
+	fn incomplete_headers_ids(self) -> Self::IncompleteHeadersFuture {
+		ready((self, Ok(HashSet::new())))
+	}
+
+	fn complete_header(self, id: EthereumHeaderId, _completion: ()) -> Self::CompleteHeadersFuture {
+		ready((self, Ok(id)))
 	}
 }
 

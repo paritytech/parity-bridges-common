@@ -52,8 +52,8 @@ impl HeadersSyncPipeline for EthereumHeadersSyncPipeline {
 	type Hash = H256;
 	type Number = u64;
 	type Header = Header;
-	type AsyncExtra = ();
 	type Extra = Vec<Receipt>;
+	type Completion = ();
 
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
 		into_substrate_ethereum_header(source.header()).encode().len()

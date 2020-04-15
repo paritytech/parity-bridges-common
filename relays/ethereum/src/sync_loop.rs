@@ -18,7 +18,7 @@ use crate::sync::HeadersSyncParams;
 use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader};
 use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
-use std::future::Future;
+use std::{collections::HashSet, future::Future};
 
 /// When we submit headers to target node, but see no updates of best
 /// source block known to target node during STALL_SYNC_TIMEOUT_MS milliseconds,
@@ -48,15 +48,10 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	type HeaderByHashFuture: Future<Output = (Self, Result<P::Header, Self::Error>)>;
 	/// Future that returns header by number.
 	type HeaderByNumberFuture: Future<Output = (Self, Result<P::Header, Self::Error>)>;
-	/// Future that returns async extra data associated with header.
-	type HeaderAsyncExtraFuture: Future<
-		Output = (
-			Self,
-			Result<(HeaderId<P::Hash, P::Number>, Option<P::AsyncExtra>), Self::Error>,
-		),
-	>;
 	/// Future that returns extra data associated with header.
 	type HeaderExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, P::Extra), Self::Error>)>;
+	/// Future that returns data required to 'complete' header.
+	type HeaderCompletionFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, Option<P::Completion>), Self::Error>)>;
 
 	/// Get best block number.
 	fn best_block_number(self) -> Self::BestBlockNumberFuture;
@@ -64,10 +59,10 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	fn header_by_hash(self, hash: P::Hash) -> Self::HeaderByHashFuture;
 	/// Get canonical header by number.
 	fn header_by_number(self, number: P::Number) -> Self::HeaderByNumberFuture;
-	/// Get async extra data by header hash.
-	fn header_async_extra(self, id: HeaderId<P::Hash, P::Number>) -> Self::HeaderAsyncExtraFuture;
 	/// Get extra data by header hash.
 	fn header_extra(self, id: HeaderId<P::Hash, P::Number>, header: &P::Header) -> Self::HeaderExtraFuture;
+	/// Get completion data by header hash.
+	fn header_completion(self, id: HeaderId<P::Hash, P::Number>) -> Self::HeaderCompletionFuture;
 }
 
 /// Target client trait.
@@ -78,23 +73,27 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	type BestHeaderIdFuture: Future<Output = (Self, Result<HeaderId<P::Hash, P::Number>, Self::Error>)>;
 	/// Future that returns known header check result.
 	type IsKnownHeaderFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>)>;
-	/// Future that returns async extra check result.
-	type RequiresAsyncExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>)>;
 	/// Future that returns extra check result.
 	type RequiresExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>)>;
 	/// Future that returns header submission result.
 	type SubmitHeadersFuture: Future<Output = (Self, Result<Vec<HeaderId<P::Hash, P::Number>>, Self::Error>)>;
+	/// Future that returns incomplete headers ids.
+	type IncompleteHeadersFuture: Future<Output = (Self, Result<HashSet<HeaderId<P::Hash, P::Number>>, Self::Error>)>;
+	/// Future that returns header completion result.
+	type CompleteHeadersFuture: Future<Output = (Self, Result<HeaderId<P::Hash, P::Number>, Self::Error>)>;
 
 	/// Returns ID of best header known to the target node.
 	fn best_header_id(self) -> Self::BestHeaderIdFuture;
 	/// Returns true if header is known to the target node.
 	fn is_known_header(self, id: HeaderId<P::Hash, P::Number>) -> Self::IsKnownHeaderFuture;
-	/// Returns true if header requires async extra data to be submitted.
-	fn requires_async_extra(self, id: HeaderId<P::Hash, P::Number>) -> Self::RequiresAsyncExtraFuture;
 	/// Returns true if header requires extra data to be submitted.
 	fn requires_extra(self, header: &QueuedHeader<P>) -> Self::RequiresExtraFuture;
 	/// Submit headers.
 	fn submit_headers(self, headers: Vec<QueuedHeader<P>>) -> Self::SubmitHeadersFuture;
+	/// Returns ID of headers that require to be 'completed' before children can be submitted.
+	fn incomplete_headers_ids(self) -> Self::IncompleteHeadersFuture;
+	/// Submit completion data for header.
+	fn complete_header(self, id: HeaderId<P::Hash, P::Number>, completion: P::Completion) -> Self::CompleteHeadersFuture;
 }
 
 /// Run headers synchronization.
@@ -119,15 +118,19 @@ pub fn run<P: HeadersSyncPipeline>(
 		let source_new_header_future = futures::future::Fuse::terminated();
 		let source_orphan_header_future = futures::future::Fuse::terminated();
 		let source_extra_future = futures::future::Fuse::terminated();
+		let source_completion_future = futures::future::Fuse::terminated();
 		let source_go_offline_future = futures::future::Fuse::terminated();
 		let source_tick_stream = interval(source_tick_ms).fuse();
 
 		let mut target_maybe_client = None;
 		let mut target_best_block_required = false;
+		let mut target_incomplete_headers_required = true;
 		let target_best_block_future = target_client.best_header_id().fuse();
+		let target_incomplete_headers_future = futures::future::Fuse::terminated();
 		let target_extra_check_future = futures::future::Fuse::terminated();
 		let target_existence_status_future = futures::future::Fuse::terminated();
 		let target_submit_header_future = futures::future::Fuse::terminated();
+		let target_complete_header_future = futures::future::Fuse::terminated();
 		let target_go_offline_future = futures::future::Fuse::terminated();
 		let target_tick_stream = interval(target_tick_ms).fuse();
 
@@ -136,12 +139,15 @@ pub fn run<P: HeadersSyncPipeline>(
 			source_new_header_future,
 			source_orphan_header_future,
 			source_extra_future,
+			source_completion_future,
 			source_go_offline_future,
 			source_tick_stream,
 			target_best_block_future,
+			target_incomplete_headers_future,
 			target_extra_check_future,
 			target_existence_status_future,
 			target_submit_header_future,
+			target_complete_header_future,
 			target_go_offline_future,
 			target_tick_stream
 		);
@@ -192,6 +198,17 @@ pub fn run<P: HeadersSyncPipeline>(
 						&mut source_go_offline_future,
 						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
 						|| format!("Error retrieving extra data from {} node", P::SOURCE_NAME),
+					);
+				},
+				(source_client, source_completion) = source_completion_future => {
+					process_future_result(
+						&mut source_maybe_client,
+						source_client,
+						source_completion,
+						|(header, completion)| sync.headers_mut().completion_response(&header, completion),
+						&mut source_go_offline_future,
+						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|| format!("Error retrieving completion data from {} node", P::SOURCE_NAME),
 					);
 				},
 				source_client = source_go_offline_future => {
@@ -248,6 +265,19 @@ pub fn run<P: HeadersSyncPipeline>(
 						|| format!("Error retrieving best known header from {} node", P::TARGET_NAME),
 					);
 				},
+				(target_client, incomplete_headers_ids) = target_incomplete_headers_future => {
+					target_incomplete_headers_required = false;
+
+					process_future_result(
+						&mut target_maybe_client,
+						target_client,
+						incomplete_headers_ids,
+						|incomplete_headers_ids| sync.headers_mut().incomplete_headers_response(incomplete_headers_ids),
+						&mut target_go_offline_future,
+						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|| format!("Error retrieving incomplete headers from {} node", P::TARGET_NAME),
+					);
+				},
 				(target_client, target_existence_status) = target_existence_status_future => {
 					process_future_result(
 						&mut target_maybe_client,
@@ -272,6 +302,17 @@ pub fn run<P: HeadersSyncPipeline>(
 						|| format!("Error submitting headers to {} node", P::TARGET_NAME),
 					);
 				},
+				(target_client, target_complete_header_result) = target_complete_header_future => {
+					process_future_result(
+						&mut target_maybe_client,
+						target_client,
+						target_complete_header_result,
+						|completed_header| sync.headers_mut().header_completed(&completed_header),
+						&mut target_go_offline_future,
+						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|| format!("Error completing headers at {}", P::TARGET_NAME),
+					);
+				},
 				(target_client, target_extra_check_result) = target_extra_check_future => {
 					process_future_result(
 						&mut target_maybe_client,
@@ -290,6 +331,7 @@ pub fn run<P: HeadersSyncPipeline>(
 				},
 				_ = target_tick_stream.next() => {
 					target_best_block_required = true;
+					target_incomplete_headers_required = true;
 				},
 			}
 
@@ -300,13 +342,26 @@ pub fn run<P: HeadersSyncPipeline>(
 			if let Some(target_client) = target_maybe_client.take() {
 				// the priority is to:
 				// 1) get best block - it stops us from downloading/submitting new blocks + we call it rarely;
-				// 2) check if we need extra data from source - it stops us from downloading/submitting new blocks;
-				// 3) check existence - it stops us from submitting new blocks;
-				// 4) submit header
+				// 2) get incomplete headers - it stops us from submitting new blocks + we call it rarely;
+				// 3) complete headers - it stops us from submitting new blocks;
+				// 4) check if we need extra data from source - it stops us from downloading/submitting new blocks;
+				// 5) check existence - it stops us from submitting new blocks;
+				// 6) submit header
 
 				if target_best_block_required {
 					log::debug!(target: "bridge", "Asking {} about best block", P::TARGET_NAME);
 					target_best_block_future.set(target_client.best_header_id().fuse());
+				} else if target_incomplete_headers_required {
+					log::debug!(target: "bridge", "Asking {} about incomplete headers", P::TARGET_NAME);
+					target_incomplete_headers_future.set(target_client.incomplete_headers_ids().fuse());
+				} else if let Some((id, completion)) = sync.headers_mut().header_to_complete() {
+					log::debug!(
+						target: "bridge",
+						"Going to complete header: {:?}",
+						id,
+					);
+
+					target_complete_header_future.set(target_client.complete_header(id, completion.clone()).fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::MaybeExtra) {
 					log::debug!(
 						target: "bridge",
@@ -359,13 +414,21 @@ pub fn run<P: HeadersSyncPipeline>(
 			if let Some(source_client) = source_maybe_client.take() {
 				// the priority is to:
 				// 1) get best block - it stops us from downloading new blocks + we call it rarely;
-				// 2) download extra data - it stops us from submitting new blocks;
-				// 3) download missing headers - it stops us from downloading/submitting new blocks;
-				// 4) downloading new headers
+				// 2) download completion data - it stops us from submitting new blocks;
+				// 3) download extra data - it stops us from submitting new blocks;
+				// 4) download missing headers - it stops us from downloading/submitting new blocks;
+				// 5) downloading new headers
 
 				if source_best_block_number_required {
 					log::debug!(target: "bridge", "Asking {} node about best block number", P::SOURCE_NAME);
 					source_best_block_number_future.set(source_client.best_block_number().fuse());
+				} else if let Some(id) = sync.headers_mut().incomplete_header() {
+					log::debug!(
+						target: "bridge",
+						"Retrieving completion data for header: {:?}",
+						id,
+					);
+					source_completion_future.set(source_client.header_completion(id).fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::Extra) {
 					let id = header.id();
 					log::debug!(
