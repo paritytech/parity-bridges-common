@@ -218,6 +218,8 @@ contract SubstrateBridge {
 		bestFinalizedHeaderHash = newBestFinalizedHeaderHash;
 		bestFinalizedHeaderNumber = newFinalizedHeader.number;
 
+		// TODO: we may actually use prevSignalHeaderHash to find previous signal block instead of this while?
+
 		// apply validators set change signal if required
 		while (newBestFinalizedHeaderHash != oldBestFinalizedHeaderHash) {
 			bytes32 finalizingHeader = newBestFinalizedHeaderHash;
