@@ -3251,7 +3251,7 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "parity-crypto 0.6.0",
+ "parity-crypto 0.6.1",
  "parity-scale-codec",
  "serde",
  "sp-bridge-eth-poa",
@@ -3413,9 +3413,9 @@ dependencies = [
 
 [[package]]
 name = "parity-crypto"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97cb113593965e4ece813a49f8ff669728dfb4feb76af8208ea73d81d58aee42"
+checksum = "2b7f19c1acc7fc6c5256a2f4f0c5af022044b9bdfdd0a218ff79f8cbb29779a5"
 dependencies = [
  "aes",
  "aes-ctr",
