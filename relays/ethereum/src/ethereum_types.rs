@@ -28,6 +28,9 @@ pub const HEADER_ID_PROOF: &'static str = "checked on retrieval; qed";
 /// gas_used field filled.
 pub const RECEIPT_GAS_USED_PROOF: &'static str = "checked on retrieval; qed";
 
+/// Ethereum transaction hash type.
+pub type TransactionHash = H256;
+
 /// Ethereum header type.
 pub type Header = web3::types::Block<H256>;
 
