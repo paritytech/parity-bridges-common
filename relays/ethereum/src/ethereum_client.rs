@@ -28,7 +28,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{from_value, to_value};
 
 // to encode/decode contract calls
-ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge.json");
+ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge-abi.json");
 
 /// Proof of hash serialization success.
 const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; qed";
