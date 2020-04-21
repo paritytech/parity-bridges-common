@@ -123,11 +123,17 @@ contract SubstrateBridge {
 	function importHeader(
 		bytes memory rawHeader
 	) public {
-		// parse and save header
+		// parse header
 		ParsedHeader memory header = parseSubstrateHeader(rawHeader);
+		require(
+			!headerByHash[header.hash].isKnown,
+			"Header is already known"
+		);
+
+		// check if we're able to coninue chain with this header
 		Header storage parentHeader = headerByHash[header.parentHash];
 		require(
-			parentHeader.number == header.number - 1,
+			parentHeader.isKnown && parentHeader.number == header.number - 1,
 			"Missing parent header from the storage"
 		);
 
