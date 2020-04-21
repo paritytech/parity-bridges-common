@@ -242,10 +242,7 @@ pub async fn submit_signed_ethereum_headers(
 	)
 	.await;
 
-	(
-		client,
-		Ok(ids),
-	)
+	(client, Ok(ids))
 }
 
 /// Submits unsigned Ethereum header to Substrate runtime.
