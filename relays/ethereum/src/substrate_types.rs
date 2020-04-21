@@ -24,9 +24,6 @@ pub use sp_bridge_eth_poa::{
 	Receipt as SubstrateEthereumReceipt, TransactionOutcome as SubstrateEthereumTransactionOutcome, H256, U256,
 };
 
-/// Substrate transaction hash type.
-pub type TransactionHash = bridge_node_runtime::Hash;
-
 /// Substrate header hash.
 pub type Hash = bridge_node_runtime::Hash;
 

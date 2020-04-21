@@ -175,7 +175,7 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 						sign_transactions,
 						sign_params,
 					},
-					result.map(|(_, submitted_headers)| submitted_headers),
+					result,
 				)
 			})
 			.boxed()
