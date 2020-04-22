@@ -273,7 +273,7 @@ impl pallet_session::SessionManager<AccountId> for ShiftSessionManager {
 			});
 
 		let available_validators_count = available_validators.len();
-		let count = 2 * available_validators_count / 3;
+		let count = sp_std::cmp::max(1, 2 * available_validators_count / 3);
 		let offset = session_index as usize % available_validators_count;
 		let end = offset + count;
 		let session_validators = match end.overflowing_sub(available_validators_count) {
