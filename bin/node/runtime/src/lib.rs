@@ -251,6 +251,30 @@ impl pallet_session::Trait for Runtime {
 }
 
 pub struct ShiftSessionManager;
+
+impl ShiftSessionManager {
+	/// Select validators for session.
+	fn select_validators(
+		session_index: sp_staking::SessionIndex,
+		available_validators: &[AccountId],
+	) -> Vec<AccountId> {
+		let available_validators_count = available_validators.len();
+		let count = sp_std::cmp::max(1, 2 * available_validators_count / 3);
+		let offset = session_index as usize % available_validators_count;
+		let end = offset + count;
+		let session_validators = match end.overflowing_sub(available_validators_count) {
+			(wrapped_end, false) if wrapped_end != 0 =>
+				available_validators[offset..].iter()
+					.chain(available_validators[..wrapped_end].iter())
+					.cloned()
+					.collect(),
+			_ => available_validators[offset..end].to_vec(),
+		};
+
+		session_validators
+	}
+}
+
 impl pallet_session::SessionManager<AccountId> for ShiftSessionManager {
 	fn end_session(_: sp_staking::SessionIndex) {}
 	fn new_session(session_index: sp_staking::SessionIndex) -> Option<Vec<AccountId>> {
@@ -272,20 +296,7 @@ impl pallet_session::SessionManager<AccountId> for ShiftSessionManager {
 				validators
 			});
 
-		let available_validators_count = available_validators.len();
-		let count = sp_std::cmp::max(1, 2 * available_validators_count / 3);
-		let offset = session_index as usize % available_validators_count;
-		let end = offset + count;
-		let session_validators = match end.overflowing_sub(available_validators_count) {
-			(wrapped_end, false) if wrapped_end != 0 =>
-				available_validators[offset..].iter()
-					.chain(available_validators[..wrapped_end].iter())
-					.cloned()
-					.collect(),
-			_ => available_validators[offset..end].to_vec(),
-		};
-
-		Some(session_validators)
+		Some(Self::select_validators(session_index, &available_validators))
 	}
 }
 
@@ -445,5 +456,50 @@ impl_runtime_apis! {
 		fn grandpa_authorities() -> GrandpaAuthorityList {
 			Grandpa::grandpa_authorities()
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn shift_session_manager_works() {
+		let acc1 = AccountId::from([1u8; 32]);
+		let acc2 = AccountId::from([2u8; 32]);
+		let acc3 = AccountId::from([3u8; 32]);
+		let acc4 = AccountId::from([4u8; 32]);
+		let acc5 = AccountId::from([5u8; 32]);
+		let all_accs = vec![acc1.clone(), acc2.clone(), acc3.clone(), acc4.clone(), acc5.clone()];
+
+		// at least 1 validator is selected
+		assert_eq!(
+			ShiftSessionManager::select_validators(0, &[acc1.clone()]),
+			vec![acc1.clone()],
+		);
+
+		// at session#0, shift is also 0
+		assert_eq!(
+			ShiftSessionManager::select_validators(0, &all_accs),
+			vec![acc1.clone(), acc2.clone(), acc3.clone()],
+		);
+
+		// at session#1, shift is also 1
+		assert_eq!(
+			ShiftSessionManager::select_validators(1, &all_accs),
+			vec![acc2.clone(), acc3.clone(), acc4.clone()],
+		);
+
+		// at session#3, we're wrapping
+		assert_eq!(
+			ShiftSessionManager::select_validators(3, &all_accs),
+			vec![acc4, acc5, acc1.clone()],
+		);
+
+		// at session#5, we're starting from the beginning again
+		assert_eq!(
+			ShiftSessionManager::select_validators(5, &all_accs),
+			vec![acc1, acc2, acc3],
+		);
 	}
 }
