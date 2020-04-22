@@ -287,7 +287,7 @@ pub async fn submit_substrate_headers(
 				&params,
 				Some(contract_address),
 				Some(nonce),
-				true, // we may need slightly more gas because other actors could change contract state
+				false,
 				bridge_contract::functions::import_header::encode_input(header.extract().0.encode(),),
 			)
 			.await
