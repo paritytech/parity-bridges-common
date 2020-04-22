@@ -339,7 +339,6 @@ async fn submit_ethereum_transaction(
 			CallRequest {
 				to: contract_address,
 				data: Some(encoded_call.clone().into()),
-				..Default::default()
 			}
 		)
 		.await
