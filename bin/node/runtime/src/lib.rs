@@ -24,6 +24,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+use codec::{Decode, Encode};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::AuthorityList as GrandpaAuthorityList;
 use sp_api::impl_runtime_apis;
@@ -234,7 +235,7 @@ impl pallet_sudo::Trait for Runtime {
 }
 
 parameter_types! {
-	pub const Period: BlockNumber = 8;
+	pub const Period: BlockNumber = 4;
 	pub const Offset: BlockNumber = 0;
 }
 
@@ -252,17 +253,39 @@ impl pallet_session::Trait for Runtime {
 pub struct ShiftSessionManager;
 impl pallet_session::SessionManager<AccountId> for ShiftSessionManager {
 	fn end_session(_: sp_staking::SessionIndex) {}
-//	fn start_session(_: sp_staking::SessionIndex) {}
 	fn new_session(session_index: sp_staking::SessionIndex) -> Option<Vec<AccountId>> {
+		// can't access genesis config here :/
 		if session_index == 0 || session_index == 1 {
 			return None;
 		}
 
-		let mut current_validators = <pallet_session::Module<Runtime>>::validators();
-		if session_index % 2 != 0 {
-			current_validators.reverse();
-		}
-		Some(current_validators)
+		// the idea that on first call (i.e. when session 1 ends) we're reading current
+		// set of validators from session module (they are initial validators) and save
+		// in our 'local storage'.
+		// then for every session we select (deterministically) 2/3 of these initial
+		// validators to serve validators of new session
+		let available_validators = sp_io::storage::get(b":available_validators")
+			.and_then(|validators| Decode::decode(&mut &validators[..]).ok())
+			.unwrap_or_else(|| {
+				let validators = <pallet_session::Module<Runtime>>::validators();
+				sp_io::storage::set(b":available_validators", &validators.encode());
+				validators
+			});
+
+		let available_validators_count = available_validators.len();
+		let count = 2 * available_validators_count / 3;
+		let offset = session_index as usize % available_validators_count;
+		let end = offset + count;
+		let session_validators = match end.overflowing_sub(available_validators_count) {
+			(wrapped_end, false) if wrapped_end != 0 =>
+				available_validators[offset..].iter()
+					.chain(available_validators[..wrapped_end].iter())
+					.cloned()
+					.collect(),
+			_ => available_validators[offset..end].to_vec(),
+		};
+
+		Some(session_validators)
 	}
 }
 

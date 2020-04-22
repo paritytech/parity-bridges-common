@@ -140,21 +140,18 @@ contract SubstrateBridge {
 		}
 
 		// forbid overlapping signals
+		uint64 validatorsSetId = parentHeader.validatorsSetId;
+		bytes32 prevSignalHeaderHash = parentHeader.prevSignalHeaderHash;
 		uint256 prevSignalTargetNumber = parentHeader.prevSignalTargetNumber;
 		if (header.signal.length != 0) {
 			require(
 				prevSignalTargetNumber < header.number,
 				"Overlapping signals found"
 			);
-			prevSignalTargetNumber = header.number + header.signalDelay;
-		}
 
-		// check if parent header has emitted validators set change signal
-		uint64 validatorsSetId = parentHeader.validatorsSetId;
-		bytes32 prevSignalHeaderHash = parentHeader.prevSignalHeaderHash;
-		if (parentHeader.signal.length != 0) {
-			prevSignalHeaderHash = header.parentHash;
 			validatorsSetId = validatorsSetId + 1;
+			prevSignalHeaderHash = header.hash;
+			prevSignalTargetNumber = header.number + header.signalDelay;
 		}
 
 		// remember if we need finality proof for this header
