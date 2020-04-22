@@ -53,10 +53,8 @@ impl HeadersSyncPipeline for SubstrateHeadersSyncPipeline {
 	type Header = Header;
 	type Extra = ();
 
-	fn estimate_size(_source: &QueuedHeader<Self>) -> usize {
-		// we may only submit Substrate headers wit finality proof
-		// => this value should never be used
-		0
+	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
+		source.header().encode().len()
 	}
 }
 

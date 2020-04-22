@@ -47,11 +47,11 @@ impl Default for EthereumSyncParams {
 			sub: Default::default(),
 			sub_sign: Default::default(),
 			sync_params: HeadersSyncParams {
-				max_future_headers_to_download: 8,
-				max_headers_in_submitted_status: 4,
-				max_headers_in_single_submit: 4,
-				max_headers_size_in_single_submit: 64 * 1024 * 1024, // something that we should never hit
-				prune_depth: 256,
+				max_future_headers_to_download: 128,
+				max_headers_in_submitted_status: 128,
+				max_headers_in_single_submit: 32,
+				max_headers_size_in_single_submit: 131_072,
+				prune_depth: 4096,
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
 		}

@@ -58,11 +58,11 @@ impl Default for SubstrateSyncParams {
 				.expect("address is hardcoded, thus valid; qed"),
 			sub: Default::default(),
 			sync_params: HeadersSyncParams {
-				max_future_headers_to_download: 128,
-				max_headers_in_submitted_status: 128,
-				max_headers_in_single_submit: 32,
+				max_future_headers_to_download: 8,
+				max_headers_in_submitted_status: 4,
+				max_headers_in_single_submit: 4,
 				max_headers_size_in_single_submit: 131_072,
-				prune_depth: 4096,
+				prune_depth: 256,
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
 		}
