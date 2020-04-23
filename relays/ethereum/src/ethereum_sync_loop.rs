@@ -27,6 +27,12 @@ use web3::types::H256;
 const ETHEREUM_TICK_INTERVAL_MS: u64 = 10_000;
 /// Interval (in ms) at which we check new Substrate blocks.
 const SUBSTRATE_TICK_INTERVAL_MS: u64 = 5_000;
+/// Max number of headers in single submit transaction.
+const MAX_HEADERS_IN_SINGLE_SUBMIT: usize = 32;
+/// Max total size of headers in single submit transaction. This only affects signed
+/// submissions, when several headers are submitted at once. 4096 is the maximal **expected**
+/// size of the Ethereum header + transactions receipts (if they're required).
+const MAX_HEADERS_SIZE_IN_SINGLE_SUBMIT: usize = MAX_HEADERS_IN_SINGLE_SUBMIT * 4096;
 
 /// Ethereum synchronization parameters.
 pub struct EthereumSyncParams {
@@ -49,8 +55,8 @@ impl Default for EthereumSyncParams {
 			sync_params: HeadersSyncParams {
 				max_future_headers_to_download: 128,
 				max_headers_in_submitted_status: 128,
-				max_headers_in_single_submit: 32,
-				max_headers_size_in_single_submit: 131_072,
+				max_headers_in_single_submit: MAX_HEADERS_IN_SINGLE_SUBMIT,
+				max_headers_size_in_single_submit: MAX_HEADERS_SIZE_IN_SINGLE_SUBMIT,
 				prune_depth: 4096,
 				target_tx_mode: TargetTransactionMode::Signed,
 			},

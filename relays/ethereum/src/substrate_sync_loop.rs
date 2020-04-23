@@ -60,8 +60,10 @@ impl Default for SubstrateSyncParams {
 			sync_params: HeadersSyncParams {
 				max_future_headers_to_download: 8,
 				max_headers_in_submitted_status: 4,
+				// since we always have single Substrate header in separate Ethereum transaction,
+				// all max_**_in_single_submit aren't important here
 				max_headers_in_single_submit: 4,
-				max_headers_size_in_single_submit: 131_072,
+				max_headers_size_in_single_submit: std::usize::MAX,
 				prune_depth: 256,
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
