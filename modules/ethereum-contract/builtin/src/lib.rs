@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bridge_node_runtime::{BlockNumber, Hash, Header as RuntimeHeader};
-use codec::{Decode, Encode};
+use codec::Decode;
 use sp_blockchain::Error as ClientError;
 
 /// Builtin errors.
@@ -51,15 +51,6 @@ pub struct ValidatorsSetSignal {
 	pub delay: BlockNumber,
 	/// New validators set.
 	pub validators: Vec<u8>,
-}
-
-/// All types of finality proofs.
-#[derive(Decode, Encode)]
-pub enum FinalityProof {
-	/// GRANDPA justification.
-	Justification(Vec<u8>),
-	/// GRANDPA commit.
-	Commit(Vec<u8>),
 }
 
 /// Parse Substrate header.
