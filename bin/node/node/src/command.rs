@@ -65,11 +65,14 @@ impl SubstrateCli for Cli {
 	}
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
-		Ok(Box::new(match id {
-			"" | "dev" => crate::chain_spec::Alternative::Development,
-			"local" => crate::chain_spec::Alternative::LocalTestnet,
-			_ => return Err(format!("Unsupported chain specification: {}", id)),
-		}.load()?))
+		Ok(Box::new(
+			match id {
+				"" | "dev" => crate::chain_spec::Alternative::Development,
+				"local" => crate::chain_spec::Alternative::LocalTestnet,
+				_ => return Err(format!("Unsupported chain specification: {}", id)),
+			}
+			.load()?,
+		))
 	}
 }
 
@@ -84,11 +87,7 @@ pub fn run() -> sc_cli::Result<()> {
 		}
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
-			runner.run_node(
-				service::new_light,
-				service::new_full,
-				bridge_node_runtime::VERSION
-			)
+			runner.run_node(service::new_light, service::new_full, bridge_node_runtime::VERSION)
 		}
 	}
 }

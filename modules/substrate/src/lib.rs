@@ -157,8 +157,7 @@ impl<T: Trait> Module<T> {
 		proof: StorageProof,
 		validator_set: &Vec<(AuthorityId, AuthorityWeight)>,
 	) -> DispatchResult {
-		let checker =
-			<StorageProofChecker<T::Hashing>>::new(*state_root, proof.clone());
+		let checker = <StorageProofChecker<T::Hashing>>::new(*state_root, proof.clone());
 
 		let checker = checker.map_err(Self::map_storage_err)?;
 

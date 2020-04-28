@@ -65,7 +65,8 @@ macro_rules! new_full_start {
 				.take()
 				.ok_or_else(|| sc_service::Error::SelectChainRequired)?;
 
-			let (grandpa_block_import, grandpa_link) = grandpa::block_import(client.clone(), &(client.clone() as Arc<_>), select_chain)?;
+			let (grandpa_block_import, grandpa_link) =
+				grandpa::block_import(client.clone(), &(client.clone() as Arc<_>), select_chain)?;
 
 			let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
 				grandpa_block_import.clone(),
@@ -121,8 +122,7 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 		.build()?;
 
 	if role.is_authority() {
-		let proposer =
-			sc_basic_authorship::ProposerFactory::new(service.client(), service.transaction_pool());
+		let proposer = sc_basic_authorship::ProposerFactory::new(service.client(), service.transaction_pool());
 
 		let client = service.client();
 		let select_chain = service.select_chain().ok_or(ServiceError::SelectChainRequired)?;
@@ -180,7 +180,7 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 			inherent_data_providers: inherent_data_providers.clone(),
 			telemetry_on_connect: Some(service.telemetry_on_connect_stream()),
 			voting_rule: grandpa::VotingRulesBuilder::default().build(),
-			prometheus_registry: service.prometheus_registry()
+			prometheus_registry: service.prometheus_registry(),
 		};
 
 		// the GRANDPA voter task is considered infallible, i.e.
@@ -215,8 +215,12 @@ pub fn new_light(config: Configuration) -> Result<impl AbstractService, ServiceE
 			let fetch_checker = fetcher
 				.map(|fetcher| fetcher.checker().clone())
 				.ok_or_else(|| "Trying to start light import queue without active fetch checker")?;
-			let grandpa_block_import =
-				grandpa::light_block_import(client.clone(), backend, &(client.clone() as Arc<_>), Arc::new(fetch_checker))?;
+			let grandpa_block_import = grandpa::light_block_import(
+				client.clone(),
+				backend,
+				&(client.clone() as Arc<_>),
+				Arc::new(fetch_checker),
+			)?;
 			let finality_proof_import = grandpa_block_import.clone();
 			let finality_proof_request_builder = finality_proof_import.create_finality_proof_request_builder();
 

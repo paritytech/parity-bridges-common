@@ -34,8 +34,9 @@ use sp_runtime::traits::{
 	BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, IdentityLookup, OpaqueKeys, Verify,
 };
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys, transaction_validity::{TransactionSource, TransactionValidity}, ApplyExtrinsicResult,
-	MultiSignature,
+	create_runtime_str, generic, impl_opaque_keys,
+	transaction_validity::{TransactionSource, TransactionValidity},
+	ApplyExtrinsicResult, MultiSignature,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -43,7 +44,12 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
-pub use frame_support::{construct_runtime, parameter_types, traits::Randomness, weights::{RuntimeDbWeight, Weight}, StorageValue};
+pub use frame_support::{
+	construct_runtime, parameter_types,
+	traits::Randomness,
+	weights::{RuntimeDbWeight, Weight},
+	StorageValue,
+};
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_eth_poa::Call as BridgeEthPoACall;
 pub use pallet_timestamp::Call as TimestampCall;
