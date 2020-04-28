@@ -74,7 +74,8 @@ pub fn run(params: EthereumDeployContractParams) {
 
 		log::info!(
 			target: "bridge",
-			"Deploying Ethereum contract.\r\n\tInitial header: {}\r\n\tInitial authorities set ID: {}\r\n\tInitial authorities set: {}",
+			"Deploying Ethereum contract.\r\n\tInitial header: {:?}\r\n\tInitial header encoded: {}\r\n\tInitial authorities set ID: {}\r\n\tInitial authorities set: {}",
+			initial_header,
 			hex::encode(&initial_header),
 			initial_set_id,
 			hex::encode(&initial_set),
