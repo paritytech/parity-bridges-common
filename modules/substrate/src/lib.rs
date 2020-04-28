@@ -108,7 +108,7 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
-		#[weight = 0]
+		#[weight = 0] // TODO: update me
 		fn initialize_bridge(
 			origin,
 			block_header: T::Header,
@@ -132,7 +132,7 @@ decl_module! {
 			NumBridges::put(new_bridge_id);
 		}
 
-		#[weight = 0]
+		#[weight = 0] // TODO: update me
 		fn submit_finalized_headers(origin) {
 			let _sender = ensure_signed(origin)?;
 		}
