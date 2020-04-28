@@ -291,7 +291,8 @@ pub async fn submit_substrate_headers(
 				bridge_contract::functions::import_header::encode_input(header.extract().0.encode(),),
 			)
 			.await
-		).0;
+		)
+		.0;
 
 		nonce += 1.into();
 	}
