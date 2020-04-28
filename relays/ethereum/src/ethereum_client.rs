@@ -186,11 +186,11 @@ pub async fn header_by_hash(client: Client, hash: H256) -> (Client, Result<Heade
 pub async fn transactions_receipts(
 	mut client: Client,
 	id: EthereumHeaderId,
-	transacactions: Vec<H256>,
+	transactions: Vec<H256>,
 ) -> (Client, Result<(EthereumHeaderId, Vec<Receipt>), Error>) {
-	let mut transactions_receipts = Vec::with_capacity(transacactions.len());
-	for transacaction in transacactions {
-		let (next_client, transaction_receipt) = bail_on_error!(transaction_receipt(client, transacaction).await);
+	let mut transactions_receipts = Vec::with_capacity(transactions.len());
+	for transaction in transactions {
+		let (next_client, transaction_receipt) = bail_on_error!(transaction_receipt(client, transaction).await);
 		transactions_receipts.push(transaction_receipt);
 		client = next_client;
 	}
