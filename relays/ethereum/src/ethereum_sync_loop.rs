@@ -33,6 +33,12 @@ const MAX_HEADERS_IN_SINGLE_SUBMIT: usize = 32;
 /// submissions, when several headers are submitted at once. 4096 is the maximal **expected**
 /// size of the Ethereum header + transactions receipts (if they're required).
 const MAX_HEADERS_SIZE_IN_SINGLE_SUBMIT: usize = MAX_HEADERS_IN_SINGLE_SUBMIT * 4096;
+/// Max Ethereum headers we want to have in all 'before-submitted' states.
+const MAX_FUTURE_HEADERS_TO_DOWNLOAD: usize = 128;
+/// Max Ethereum headers count we want to have in 'submitted' state.
+const MAX_SUBMITTED_HEADERS: usize = 128;
+/// Max depth of in-memory headers in all states, before we'll forget about them.
+const PRUNE_DEPTH: u32 = 4096;
 
 /// Ethereum synchronization parameters.
 pub struct EthereumSyncParams {
@@ -53,11 +59,11 @@ impl Default for EthereumSyncParams {
 			sub: Default::default(),
 			sub_sign: Default::default(),
 			sync_params: HeadersSyncParams {
-				max_future_headers_to_download: 128,
-				max_headers_in_submitted_status: 128,
+				max_future_headers_to_download: MAX_FUTURE_HEADERS_TO_DOWNLOAD,
+				max_headers_in_submitted_status: MAX_SUBMITTED_HEADERS,
 				max_headers_in_single_submit: MAX_HEADERS_IN_SINGLE_SUBMIT,
 				max_headers_size_in_single_submit: MAX_HEADERS_SIZE_IN_SINGLE_SUBMIT,
-				prune_depth: 4096,
+				prune_depth: PRUNE_DEPTH,
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
 		}
