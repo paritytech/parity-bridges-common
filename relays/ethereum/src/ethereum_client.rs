@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, H256, U256, U64};
+use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, TransactionHash, H256, U256, U64};
 use crate::substrate_types::{Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId, GrandpaJustification};
 use crate::sync_types::{HeaderId, MaybeConnectionError};
 use crate::{bail_on_arg_error, bail_on_error};
@@ -29,7 +29,7 @@ use serde_json::{from_value, to_value};
 use std::collections::HashSet;
 
 // to encode/decode contract calls
-ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge.json");
+ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge-abi.json");
 
 /// Proof of hash serialization success.
 const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; qed";
@@ -187,11 +187,11 @@ pub async fn header_by_hash(client: Client, hash: H256) -> (Client, Result<Heade
 pub async fn transactions_receipts(
 	mut client: Client,
 	id: EthereumHeaderId,
-	transacactions: Vec<H256>,
+	transactions: Vec<H256>,
 ) -> (Client, Result<(EthereumHeaderId, Vec<Receipt>), Error>) {
-	let mut transactions_receipts = Vec::with_capacity(transacactions.len());
-	for transacaction in transacactions {
-		let (next_client, transaction_receipt) = bail_on_error!(transaction_receipt(client, transacaction).await);
+	let mut transactions_receipts = Vec::with_capacity(transactions.len());
+	for transaction in transactions {
+		let (next_client, transaction_receipt) = bail_on_error!(transaction_receipt(client, transaction).await);
 		transactions_receipts.push(transaction_receipt);
 		client = next_client;
 	}
@@ -276,31 +276,28 @@ pub async fn submit_substrate_headers(
 	params: EthereumSigningParams,
 	contract_address: Address,
 	headers: Vec<QueuedSubstrateHeader>,
-) -> (Client, Result<(Vec<H256>, Vec<SubstrateHeaderId>), Error>) {
+) -> (Client, Result<Vec<SubstrateHeaderId>, Error>) {
 	let (mut client, mut nonce) =
 		bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await);
 
-	let mut tx_hashes = Vec::with_capacity(headers.len());
 	let ids = headers.iter().map(|header| header.id()).collect();
 	for header in headers {
-		let (ret_client, tx_hash) = bail_on_error!(
+		client = bail_on_error!(
 			submit_ethereum_transaction(
 				client,
 				&params,
 				Some(contract_address),
 				Some(nonce),
-				true, // we may need slightly more gas because other actors could change contract state
+				false,
 				bridge_contract::functions::import_header::encode_input(header.extract().0.encode(),),
 			)
 			.await
-		);
+		).0;
 
 		nonce += 1.into();
-		tx_hashes.push(tx_hash);
-		client = ret_client;
 	}
 
-	(client, Ok((tx_hashes, ids)))
+	(client, Ok(ids))
 }
 
 /// Returns ids of incomplete Substrate headers.
@@ -343,8 +340,8 @@ pub async fn complete_substrate_header(
 	contract_address: Address,
 	id: SubstrateHeaderId,
 	justification: GrandpaJustification,
-) -> (Client, Result<(H256, SubstrateHeaderId), Error>) {
-	let (client, tx_hash) = bail_on_error!(
+) -> (Client, Result<SubstrateHeaderId, Error>) {
+	let (client, _) = bail_on_error!(
 		submit_ethereum_transaction(
 			client,
 			&params,
@@ -360,7 +357,7 @@ pub async fn complete_substrate_header(
 		.await
 	);
 
-	(client, Ok((tx_hash, id)))
+	(client, Ok(id))
 }
 
 /// Deploy bridge contract.
@@ -371,7 +368,7 @@ pub async fn deploy_bridge_contract(
 	initial_header: Vec<u8>,
 	initial_set_id: u64,
 	initial_authorities: Vec<u8>,
-) -> (Client, Result<H256, Error>) {
+) -> (Client, Result<(), Error>) {
 	submit_ethereum_transaction(
 		client,
 		params,
@@ -391,7 +388,7 @@ async fn submit_ethereum_transaction(
 	nonce: Option<U256>,
 	double_gas: bool,
 	encoded_call: Vec<u8>,
-) -> (Client, Result<H256, Error>) {
+) -> (Client, Result<(), Error>) {
 	let (client, nonce) = match nonce {
 		Some(nonce) => (client, nonce),
 		None => bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await),
@@ -402,7 +399,6 @@ async fn submit_ethereum_transaction(
 			CallRequest {
 				to: contract_address,
 				data: Some(encoded_call.clone().into()),
-				..Default::default()
 			}
 		)
 		.await
@@ -420,7 +416,10 @@ async fn submit_ethereum_transaction(
 		to_value(Bytes(raw_transaction)).map_err(|e| Error::RequestSerialization(e)),
 		client
 	);
-	call_rpc(client, "eth_submitTransaction", Params::Array(vec![transaction])).await
+	let (client, _) = bail_on_error!(
+		call_rpc::<TransactionHash>(client, "eth_submitTransaction", Params::Array(vec![transaction])).await
+	);
+	(client, Ok(()))
 }
 
 /// Get account nonce.

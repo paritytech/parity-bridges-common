@@ -17,7 +17,7 @@
 use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256};
 use crate::substrate_types::{
 	into_substrate_ethereum_header, into_substrate_ethereum_receipts, Hash, Header as SubstrateHeader, Number,
-	GrandpaJustification, SubstrateHeaderId, TransactionHash, SignedBlock as SignedSubstrateBlock,
+	GrandpaJustification, SubstrateHeaderId, SignedBlock as SignedSubstrateBlock,
 };
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
 use crate::{bail_on_arg_error, bail_on_error};
@@ -205,7 +205,7 @@ pub async fn submit_ethereum_headers(
 	params: SubstrateSigningParams,
 	headers: Vec<QueuedEthereumHeader>,
 	sign_transactions: bool,
-) -> (Client, Result<(Vec<TransactionHash>, Vec<EthereumHeaderId>), Error>) {
+) -> (Client, Result<Vec<EthereumHeaderId>, Error>) {
 	match sign_transactions {
 		true => submit_signed_ethereum_headers(client, params, headers).await,
 		false => submit_unsigned_ethereum_headers(client, headers).await,
@@ -217,7 +217,7 @@ pub async fn submit_signed_ethereum_headers(
 	client: Client,
 	params: SubstrateSigningParams,
 	headers: Vec<QueuedEthereumHeader>,
-) -> (Client, Result<(Vec<TransactionHash>, Vec<EthereumHeaderId>), Error>) {
+) -> (Client, Result<Vec<EthereumHeaderId>, Error>) {
 	let ids = headers.iter().map(|header| header.id()).collect();
 	let (client, genesis_hash) = match client.genesis_hash {
 		Some(genesis_hash) => (client, genesis_hash),
@@ -235,27 +235,23 @@ pub async fn submit_signed_ethereum_headers(
 		to_value(Bytes(transaction.encode())).map_err(|e| Error::RequestSerialization(e)),
 		client
 	);
-	let (client, transaction_hash) = call_rpc(
+	let (client, _) = call_rpc(
 		client,
 		"author_submitExtrinsic",
 		Params::Array(vec![encoded_transaction]),
-		rpc_returns_value,
+		|_| Ok(()),
 	)
 	.await;
 
-	(
-		client,
-		transaction_hash.map(|transaction_hash| (vec![transaction_hash], ids)),
-	)
+	(client, Ok(ids))
 }
 
 /// Submits unsigned Ethereum header to Substrate runtime.
 pub async fn submit_unsigned_ethereum_headers(
 	mut client: Client,
 	headers: Vec<QueuedEthereumHeader>,
-) -> (Client, Result<(Vec<TransactionHash>, Vec<EthereumHeaderId>), Error>) {
+) -> (Client, Result<Vec<EthereumHeaderId>, Error>) {
 	let ids = headers.iter().map(|header| header.id()).collect();
-	let mut transactions_hashes = Vec::new();
 	for header in headers {
 		let transaction = create_unsigned_submit_transaction(header);
 
@@ -263,21 +259,20 @@ pub async fn submit_unsigned_ethereum_headers(
 			to_value(Bytes(transaction.encode())).map_err(|e| Error::RequestSerialization(e)),
 			client
 		);
-		let (used_client, transaction_hash) = bail_on_error!(
+		let (used_client, _) = bail_on_error!(
 			call_rpc(
 				client,
 				"author_submitExtrinsic",
 				Params::Array(vec![encoded_transaction]),
-				rpc_returns_value,
+				|_| Ok(()),
 			)
 			.await
 		);
 
 		client = used_client;
-		transactions_hashes.push(transaction_hash);
 	}
 
-	(client, Ok((transactions_hashes, ids)))
+	(client, Ok(ids))
 }
 
 /// Get GRANDPA justification for given block.

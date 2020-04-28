@@ -34,7 +34,7 @@ pub type ChainSpec = sc_service::ChainSpec<GenesisConfig>;
 pub enum Alternative {
 	/// Whatever the current runtime is, with just Alice as an auth.
 	Development,
-	/// Whatever the current runtime is, with simple Alice/Bob auths.
+	/// Whatever the current runtime is, with simple Alice/Bob/Charlie/Dave/Eve auths.
 	LocalTestnet,
 }
 
@@ -93,36 +93,38 @@ impl Alternative {
 			Alternative::LocalTestnet => ChainSpec::from_genesis(
 				"Local Testnet",
 				"local_testnet",
-				|| testnet_genesis(
-					vec![
-						get_authority_keys_from_seed("Alice"),
-						get_authority_keys_from_seed("Bob"),
-						get_authority_keys_from_seed("Charlie"),
-						get_authority_keys_from_seed("Dave"),
-						get_authority_keys_from_seed("Eve"),
-					],
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					vec![
+				|| {
+					testnet_genesis(
+						vec![
+							get_authority_keys_from_seed("Alice"),
+							get_authority_keys_from_seed("Bob"),
+							get_authority_keys_from_seed("Charlie"),
+							get_authority_keys_from_seed("Dave"),
+							get_authority_keys_from_seed("Eve"),
+						],
 						get_account_id_from_seed::<sr25519::Public>("Alice"),
-						get_account_id_from_seed::<sr25519::Public>("Bob"),
-						get_account_id_from_seed::<sr25519::Public>("Charlie"),
-						get_account_id_from_seed::<sr25519::Public>("Dave"),
-						get_account_id_from_seed::<sr25519::Public>("Eve"),
-						get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-						get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-						get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-						get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-						get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-						get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-						get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-					],
-					true,
-				),
+						vec![
+							get_account_id_from_seed::<sr25519::Public>("Alice"),
+							get_account_id_from_seed::<sr25519::Public>("Bob"),
+							get_account_id_from_seed::<sr25519::Public>("Charlie"),
+							get_account_id_from_seed::<sr25519::Public>("Dave"),
+							get_account_id_from_seed::<sr25519::Public>("Eve"),
+							get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+							get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+							get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+							get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+							get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+							get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+							get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+						],
+						true,
+					)
+				},
 				vec![],
 				None,
 				None,
 				None,
-				None
+				None,
 			),
 		})
 	}
@@ -136,10 +138,7 @@ impl Alternative {
 	}
 }
 
-fn session_keys(
-	aura: AuraId,
-	grandpa: GrandpaId,
-) -> SessionKeys {
+fn session_keys(aura: AuraId, grandpa: GrandpaId) -> SessionKeys {
 	SessionKeys { aura, grandpa }
 }
 
@@ -166,12 +165,10 @@ fn testnet_genesis(
 		}),
 		pallet_sudo: Some(SudoConfig { key: root_key }),
 		pallet_session: Some(SessionConfig {
-			keys: initial_authorities.iter().map(|x| {
-				(x.0.clone(), x.0.clone(), session_keys(
-					x.1.clone(),
-					x.2.clone(),
-				))
-			}).collect::<Vec<_>>(),
+			keys: initial_authorities
+				.iter()
+				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
+				.collect::<Vec<_>>(),
 		}),
 	}
 }

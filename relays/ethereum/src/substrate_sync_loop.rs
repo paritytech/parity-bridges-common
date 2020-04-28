@@ -33,6 +33,12 @@ use std::{collections::HashSet, future::Future, pin::Pin};
 const SUBSTRATE_TICK_INTERVAL_MS: u64 = 10_000;
 /// Interval (in ms) at which we check new Ethereum blocks.
 const ETHEREUM_TICK_INTERVAL_MS: u64 = 5_000;
+/// Max Ethereum headers we want to have in all 'before-submitted' states.
+const MAX_FUTURE_HEADERS_TO_DOWNLOAD: usize = 8;
+/// Max Ethereum headers count we want to have in 'submitted' state.
+const MAX_SUBMITTED_HEADERS: usize = 4;
+/// Max depth of in-memory headers in all states, before we'll forget about them.
+const PRUNE_DEPTH: u32 = 256;
 
 /// Substrate synchronization parameters.
 #[derive(Debug)]
@@ -61,11 +67,13 @@ impl Default for SubstrateSyncParams {
 				.expect("address is hardcoded, thus valid; qed"),
 			sub: Default::default(),
 			sync_params: HeadersSyncParams {
-				max_future_headers_to_download: 128,
-				max_headers_in_submitted_status: 128,
-				max_headers_in_single_submit: 32,
-				max_headers_size_in_single_submit: 131_072,
-				prune_depth: 4096,
+				max_future_headers_to_download: MAX_FUTURE_HEADERS_TO_DOWNLOAD,
+				max_headers_in_submitted_status: MAX_SUBMITTED_HEADERS,
+				// since we always have single Substrate header in separate Ethereum transaction,
+				// all max_**_in_single_submit aren't important here
+				max_headers_in_single_submit: 4,
+				max_headers_size_in_single_submit: std::usize::MAX,
+				prune_depth: PRUNE_DEPTH,
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
 		}
@@ -180,7 +188,7 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 						contract,
 						sign_params,
 					},
-					result.map(|(_, submitted_headers)| submitted_headers),
+					result,
 				)
 			})
 			.boxed()
@@ -212,7 +220,7 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 						contract,
 						sign_params,
 					},
-					result.map(|(_, id)| id),
+					result,
 				)
 			})
 			.boxed()

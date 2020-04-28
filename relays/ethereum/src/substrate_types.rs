@@ -19,13 +19,11 @@ use crate::ethereum_types::{
 	RECEIPT_GAS_USED_PROOF as ETHEREUM_RECEIPT_GAS_USED_PROOF,
 };
 use crate::sync_types::{HeaderId, HeadersSyncPipeline, QueuedHeader, SourceHeader};
+use codec::Encode;
 pub use sp_bridge_eth_poa::{
 	Address, Bloom, Bytes, Header as SubstrateEthereumHeader, LogEntry as SubstrateEthereumLogEntry,
 	Receipt as SubstrateEthereumReceipt, TransactionOutcome as SubstrateEthereumTransactionOutcome, H256, U256,
 };
-
-/// Substrate transaction hash type.
-pub type TransactionHash = bridge_node_runtime::Hash;
 
 /// Substrate header hash.
 pub type Hash = bridge_node_runtime::Hash;
@@ -63,10 +61,8 @@ impl HeadersSyncPipeline for SubstrateHeadersSyncPipeline {
 	type Extra = ();
 	type Completion = GrandpaJustification;
 
-	fn estimate_size(_source: &QueuedHeader<Self>) -> usize {
-		// we may only submit Substrate headers wit finality proof
-		// => this value should never be used
-		0
+	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
+		source.header().encode().len()
 	}
 }
 

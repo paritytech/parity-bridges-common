@@ -95,7 +95,7 @@ subcommands:
             - eth-contract-code:
                 long: eth-contract-code
                 value_name: ETH_CONTRACT_CODE
-                help: Code of bridge contract.
+                help: Bytecode of bridge contract.
                 takes_value: true
             - sub-host:
                 long: sub-host
