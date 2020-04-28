@@ -44,7 +44,6 @@ impl Default for EthereumDeployContractParams {
 		EthereumDeployContractParams {
 			eth: Default::default(),
 			eth_sign: Default::default(),
-			// compiler: 0.6.6+commit.6c089d02 + optimization
 			eth_contract_code: hex::decode(include_str!("../res/substrate-bridge-bytecode.hex"))
 				.expect("code is hardcoded, thus valid; qed"),
 			sub: Default::default(),
