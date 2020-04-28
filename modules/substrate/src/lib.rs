@@ -158,7 +158,7 @@ impl<T: Trait> Module<T> {
 		validator_set: &Vec<(AuthorityId, AuthorityWeight)>,
 	) -> DispatchResult {
 		let checker =
-			<StorageProofChecker<<T::Hashing as sp_runtime::traits::Hash>::Hasher>>::new(*state_root, proof.clone());
+			<StorageProofChecker<T::Hashing>>::new(*state_root, proof.clone());
 
 		let checker = checker.map_err(Self::map_storage_err)?;
 
@@ -261,6 +261,9 @@ mod tests {
 		type Event = ();
 		type BlockHashCount = ();
 		type MaximumBlockWeight = ();
+		type DbWeight = ();
+		type BlockExecutionWeight = ();
+		type ExtrinsicBaseWeight = ();
 		type AvailableBlockRatio = ();
 		type MaximumBlockLength = ();
 		type Version = ();
