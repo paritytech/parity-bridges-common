@@ -486,6 +486,7 @@ dependencies = [
  "pallet-bridge-eth-poa",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
+ "pallet-session",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -501,6 +502,7 @@ dependencies = [
  "sp-offchain",
  "sp-runtime 2.0.0-alpha.2",
  "sp-session",
+ "sp-staking",
  "sp-std 2.0.0-alpha.2",
  "sp-transaction-pool",
  "sp-version 2.0.0-alpha.2",
@@ -1101,7 +1103,7 @@ dependencies = [
  "node-primitives",
  "num-traits",
  "pallet-transaction-payment",
- "parity-crypto 0.6.0",
+ "parity-crypto 0.6.1",
  "parity-scale-codec",
  "parking_lot 0.10.2",
  "rustc-hex",
@@ -1111,7 +1113,7 @@ dependencies = [
  "sp-core 2.0.0-alpha.2",
  "sp-keyring",
  "sp-runtime 2.0.0-alpha.2",
- "time 0.2.9",
+ "time 0.2.10",
  "web3",
 ]
 
@@ -2172,9 +2174,9 @@ dependencies = [
 
 [[package]]
 name = "jsonrpc-core"
-version = "14.0.5"
+version = "14.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe3b688648f1ef5d5072229e2d672ecb92cbff7d1c79bcf3fd5898f3f3df0970"
+checksum = "25525f6002338fb4debb5167a89a0b47f727a5a48418417545ad3429758b7fec"
 dependencies = [
  "futures 0.1.29",
  "log 0.4.8",
@@ -3342,7 +3344,7 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "parity-crypto 0.6.0",
+ "parity-crypto 0.6.1",
  "parity-scale-codec",
  "serde",
  "sp-bridge-eth-poa",
@@ -3504,9 +3506,9 @@ dependencies = [
 
 [[package]]
 name = "parity-crypto"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97cb113593965e4ece813a49f8ff669728dfb4feb76af8208ea73d81d58aee42"
+checksum = "2b7f19c1acc7fc6c5256a2f4f0c5af022044b9bdfdd0a218ff79f8cbb29779a5"
 dependencies = [
  "aes",
  "aes-ctr",
@@ -6410,9 +6412,9 @@ checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 
 [[package]]
 name = "standback"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee531c64ad0f80d289504bd32fb047f42a9e957cda584276ab96eb587e9abac3"
+checksum = "96eca17d57aac1688897d4c5e519ed600fc6f28aeabc7b1abb188e945deb0732"
 
 [[package]]
 name = "static_assertions"
@@ -6495,9 +6497,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "structopt"
-version = "0.3.13"
+version = "0.3.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff6da2e8d107dfd7b74df5ef4d205c6aebee0706c647f6bc6a2d5789905c00fb"
+checksum = "863246aaf5ddd0d6928dfeb1a9ca65f505599e4e1b399935ef7e75107516b4ef"
 dependencies = [
  "clap",
  "lazy_static",
@@ -6506,9 +6508,9 @@ dependencies = [
 
 [[package]]
 name = "structopt-derive"
-version = "0.4.6"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a489c87c08fbaf12e386665109dd13470dcc9c4583ea3e10dd2b4523e5ebd9ac"
+checksum = "d239ca4b13aee7a2142e6795cbd69e457665ff8037aed33b3effdc430d2f927a"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -6789,9 +6791,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.9"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6329a7835505d46f5f3a9a2c237f8d6bf5ca6f0015decb3698ba57fcdbb609ba"
+checksum = "cacbd5ebf7b211db6d9500b8b033c20b6e333a68368a9e8d3a1d073bb1f0a12a"
 dependencies = [
  "cfg-if",
  "libc",
