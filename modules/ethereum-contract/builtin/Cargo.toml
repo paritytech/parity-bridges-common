@@ -11,10 +11,6 @@ edition = "2018"
 
 codec = { package = "parity-scale-codec", version = "1.0.0" }
 ethereum-types = "0.8.0"
-finality-grandpa = { version = "0.11.2", features = ["derive-codec"] }
-#sp-blockchain = "2.0.0-alpha.2"
-#sp-finality-grandpa = "2.0.0-alpha.2"
-#sp-runtime = "2.0.0-alpha.2"
 
 # Runtime/chain specific dependencies
 
@@ -22,15 +18,20 @@ bridge-node-runtime = { path = "../../../bin/node/runtime" }
 
 [dependencies.sp-blockchain]
 version = "2.0.0-alpha.2"
-rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
+rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-finality-grandpa]
 version = "2.0.0-alpha.2"
-rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
+rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-runtime]
 version = "2.0.0-alpha.2"
-rev = "2afecf81ee19b8a6edb364b419190ea47c4a4a31"
+rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
+git = "https://github.com/paritytech/substrate/"
+
+[dependencies.sc-finality-grandpa]
+version = "0.8.0-dev"
+rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"

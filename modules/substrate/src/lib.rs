@@ -96,11 +96,11 @@ pub trait Trait: system::Trait {}
 decl_storage! {
 	trait Store for Module<T: Trait> as Bridge {
 		/// The number of current bridges managed by the module.
-		pub NumBridges get(num_bridges) config(): BridgeId;
+		pub NumBridges get(fn num_bridges) config(): BridgeId;
 
 		/// Maps a bridge id to a bridge struct. Allows a single
 		/// `bridge` module to manage multiple bridges.
-		pub TrackedBridges get(tracked_bridges): map hasher(blake2_256) BridgeId => Option<BridgeInfo<T>>;
+		pub TrackedBridges get(fn tracked_bridges): map hasher(blake2_128_concat) BridgeId => Option<BridgeInfo<T>>;
 	}
 }
 
@@ -108,6 +108,7 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
+		#[weight = 0]
 		fn initialize_bridge(
 			origin,
 			block_header: T::Header,
@@ -131,6 +132,7 @@ decl_module! {
 			NumBridges::put(new_bridge_id);
 		}
 
+		#[weight = 0]
 		fn submit_finalized_headers(origin) {
 			let _sender = ensure_signed(origin)?;
 		}
