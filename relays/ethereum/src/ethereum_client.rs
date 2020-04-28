@@ -281,7 +281,7 @@ pub async fn submit_substrate_headers(
 
 	let ids = headers.iter().map(|header| header.id()).collect();
 	for header in headers {
-		let (ret_client, _) = bail_on_error!(
+		client = bail_on_error!(
 			submit_ethereum_transaction(
 				client,
 				&params,
@@ -291,10 +291,9 @@ pub async fn submit_substrate_headers(
 				bridge_contract::functions::import_header::encode_input(header.extract().0.encode(),),
 			)
 			.await
-		);
+		).0;
 
 		nonce += 1.into();
-		client = ret_client;
 	}
 
 	(client, Ok(ids))
