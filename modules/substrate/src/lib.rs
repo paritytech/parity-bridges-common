@@ -108,7 +108,7 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
-		#[weight = 0]
+		#[weight = 0] // TODO: update me
 		fn initialize_bridge(
 			origin,
 			block_header: T::Header,
@@ -132,7 +132,7 @@ decl_module! {
 			NumBridges::put(new_bridge_id);
 		}
 
-		#[weight = 0]
+		#[weight = 0] // TODO: update me
 		fn submit_finalized_headers(origin) {
 			let _sender = ensure_signed(origin)?;
 		}
@@ -157,8 +157,7 @@ impl<T: Trait> Module<T> {
 		proof: StorageProof,
 		validator_set: &Vec<(AuthorityId, AuthorityWeight)>,
 	) -> DispatchResult {
-		let checker =
-			<StorageProofChecker<<T::Hashing as sp_runtime::traits::Hash>::Hasher>>::new(*state_root, proof.clone());
+		let checker = <StorageProofChecker<T::Hashing>>::new(*state_root, proof.clone());
 
 		let checker = checker.map_err(Self::map_storage_err)?;
 
@@ -261,6 +260,9 @@ mod tests {
 		type Event = ();
 		type BlockHashCount = ();
 		type MaximumBlockWeight = ();
+		type DbWeight = ();
+		type BlockExecutionWeight = ();
+		type ExtrinsicBaseWeight = ();
 		type AvailableBlockRatio = ();
 		type MaximumBlockLength = ();
 		type Version = ();
