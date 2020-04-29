@@ -39,7 +39,7 @@ const MAX_HEADERS_SIZE_IN_SINGLE_SUBMIT: usize = MAX_HEADERS_IN_SINGLE_SUBMIT * 
 const MAX_FUTURE_HEADERS_TO_DOWNLOAD: usize = 128;
 /// Max Ethereum headers count we want to have in 'submitted' state.
 const MAX_SUBMITTED_HEADERS: usize = 128;
-/// Max depth of in-memory headers in all states, before we'll forget about them.
+/// Max depth of in-memory headers in all states. Past this depth they will be forgotten (pruned).
 const PRUNE_DEPTH: u32 = 4096;
 
 /// Ethereum synchronization parameters.

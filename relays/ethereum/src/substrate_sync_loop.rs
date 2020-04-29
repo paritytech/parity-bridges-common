@@ -37,7 +37,7 @@ const ETHEREUM_TICK_INTERVAL_MS: u64 = 5_000;
 const MAX_FUTURE_HEADERS_TO_DOWNLOAD: usize = 8;
 /// Max Ethereum headers count we want to have in 'submitted' state.
 const MAX_SUBMITTED_HEADERS: usize = 4;
-/// Max depth of in-memory headers in all states, before we'll forget about them.
+/// Max depth of in-memory headers in all states. Past this depth they will be forgotten (pruned).
 const PRUNE_DEPTH: u32 = 256;
 
 /// Substrate synchronization parameters.

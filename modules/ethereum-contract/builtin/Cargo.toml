@@ -17,17 +17,17 @@ ethereum-types = "0.9.1"
 bridge-node-runtime = { path = "../../../bin/node/runtime" }
 
 [dependencies.sp-blockchain]
-version = "2.0.0-alpha.2"
+version = "2.0.0-alpha.6"
 rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-finality-grandpa]
-version = "2.0.0-alpha.2"
+version = "2.0.0-alpha.6"
 rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-runtime]
-version = "2.0.0-alpha.2"
+version = "2.0.0-alpha.6"
 rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"
 
