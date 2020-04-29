@@ -18,7 +18,7 @@ use crate::sync::HeadersSyncParams;
 use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader};
 use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
-use std::{collections::HashSet, future::Future};
+use std::{collections::HashSet, future::Future, time::{Duration, Instant}};
 
 /// When we submit headers to target node, but see no updates of best
 /// source block known to target node during STALL_SYNC_TIMEOUT_MS milliseconds,
@@ -30,13 +30,13 @@ use std::{collections::HashSet, future::Future};
 /// direct child of previous best header. But: (1) subscription doesn't guarantee that
 /// the subscriber will receive every best header (2) reorg won't always lead to sync
 /// stall and restart is a heavy operation (we forget all in-memory headers).
-const STALL_SYNC_TIMEOUT_MS: u64 = 30_000;
+const STALL_SYNC_TIMEOUT: Duration = Duration::from_millis(5 * 60 * 1_000);
 /// Delay (in milliseconds) after we have seen update of best source header at target node,
 /// for us to treat sync stalled. ONLY when relay operates in backup mode.
-const BACKUP_STALL_SYNC_TIMEOUT_MS: u64 = 5 * 60_000;
+const BACKUP_STALL_SYNC_TIMEOUT: Duration = Duration::from_millis(10 * 60 * 1_000);
 /// Delay (in milliseconds) after connection-related error happened before we'll try
 /// reconnection again.
-const CONNECTION_ERROR_DELAY_MS: u64 = 10_000;
+const CONNECTION_ERROR_DELAY: Duration = Duration::from_millis(10 * 1_000);
 
 /// Source client trait.
 pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
@@ -114,12 +114,12 @@ pub fn run<P: HeadersSyncPipeline>(
 	sync_params: HeadersSyncParams,
 ) {
 	let mut local_pool = futures::executor::LocalPool::new();
-	let mut progress_context = (std::time::Instant::now(), None, None);
+	let mut progress_context = (Instant::now(), None, None);
 
 	local_pool.run_until(async move {
 		let mut sync = crate::sync::HeadersSync::<P>::new(sync_params);
 		let mut stall_countdown = None;
-		let mut last_update_time = std::time::Instant::now();
+		let mut last_update_time = Instant::now();
 
 		let mut source_maybe_client = None;
 		let mut source_best_block_number_required = false;
@@ -172,7 +172,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						source_best_block_number,
 						|source_best_block_number| sync.source_best_header_number_response(source_best_block_number),
 						&mut source_go_offline_future,
-						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|source_client| delay(CONNECTION_ERROR_DELAY, source_client),
 						|| format!("Error retrieving best header number from {}", P::SOURCE_NAME),
 					);
 				},
@@ -183,7 +183,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						source_new_header,
 						|source_new_header| sync.headers_mut().header_response(source_new_header),
 						&mut source_go_offline_future,
-						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|source_client| delay(CONNECTION_ERROR_DELAY, source_client),
 						|| format!("Error retrieving header from {} node", P::SOURCE_NAME),
 					);
 				},
@@ -194,7 +194,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						source_orphan_header,
 						|source_orphan_header| sync.headers_mut().header_response(source_orphan_header),
 						&mut source_go_offline_future,
-						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|source_client| delay(CONNECTION_ERROR_DELAY, source_client),
 						|| format!("Error retrieving orphan header from {} node", P::SOURCE_NAME),
 					);
 				},
@@ -205,7 +205,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						source_extra,
 						|(header, extra)| sync.headers_mut().extra_response(&header, extra),
 						&mut source_go_offline_future,
-						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|source_client| delay(CONNECTION_ERROR_DELAY, source_client),
 						|| format!("Error retrieving extra data from {} node", P::SOURCE_NAME),
 					);
 				},
@@ -216,7 +216,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						source_completion,
 						|(header, completion)| sync.headers_mut().completion_response(&header, completion),
 						&mut source_go_offline_future,
-						|source_client| delay(CONNECTION_ERROR_DELAY_MS, source_client),
+						|source_client| delay(CONNECTION_ERROR_DELAY, source_client),
 						|| format!("Error retrieving completion data from {} node", P::SOURCE_NAME),
 					);
 				},
@@ -238,21 +238,20 @@ pub fn run<P: HeadersSyncPipeline>(
 						|target_best_block| {
 							let head_updated = sync.target_best_header_response(target_best_block);
 							if head_updated {
-								last_update_time = std::time::Instant::now();
+								last_update_time = Instant::now();
 							}
 							match head_updated {
 								// IF head is updated AND there are still our transactions:
 								// => restart stall countdown timer
 								true if sync.headers().headers_in_status(HeaderStatus::Submitted) != 0 =>
-									stall_countdown = Some(std::time::Instant::now()),
+									stall_countdown = Some(Instant::now()),
 								// IF head is updated AND there are no our transactions:
 								// => stop stall countdown timer
 								true => stall_countdown = None,
 								// IF head is not updated AND stall countdown is not yet completed
 								// => do nothing
 								false if stall_countdown
-									.map(|stall_countdown| std::time::Instant::now() - stall_countdown <
-										std::time::Duration::from_millis(STALL_SYNC_TIMEOUT_MS))
+									.map(|stall_countdown| stall_countdown.elaped() < STALL_SYNC_TIMEOUT)
 									.unwrap_or(true)
 									=> (),
 								// IF head is not updated AND stall countdown has completed
@@ -270,7 +269,7 @@ pub fn run<P: HeadersSyncPipeline>(
 							}
 						},
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
 						|| format!("Error retrieving best known header from {} node", P::TARGET_NAME),
 					);
 				},
@@ -283,7 +282,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						incomplete_headers_ids,
 						|incomplete_headers_ids| sync.headers_mut().incomplete_headers_response(incomplete_headers_ids),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
 						|| format!("Error retrieving incomplete headers from {} node", P::TARGET_NAME),
 					);
 				},
@@ -296,7 +295,7 @@ pub fn run<P: HeadersSyncPipeline>(
 							.headers_mut()
 							.maybe_orphan_response(&target_header, target_existence_status),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
 						|| format!("Error retrieving existence status from {} node", P::TARGET_NAME),
 					);
 				},
@@ -307,7 +306,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						target_submit_header_result,
 						|submitted_headers| sync.headers_mut().headers_submitted(submitted_headers),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
 						|| format!("Error submitting headers to {} node", P::TARGET_NAME),
 					);
 				},
@@ -318,7 +317,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						target_complete_header_result,
 						|completed_header| sync.headers_mut().header_completed(&completed_header),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
 						|| format!("Error completing headers at {}", P::TARGET_NAME),
 					);
 				},
@@ -331,7 +330,7 @@ pub fn run<P: HeadersSyncPipeline>(
 							.headers_mut()
 							.maybe_extra_response(&header, extra_check_result),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY_MS, target_client),
+						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
 						|| format!("Error retrieving receipts requirement from {} node", P::TARGET_NAME),
 					);
 				},
@@ -392,7 +391,7 @@ pub fn run<P: HeadersSyncPipeline>(
 
 					target_existence_status_future.set(target_client.is_known_header(parent_id).fuse());
 				} else if let Some(headers) = sync.select_headers_to_submit(
-					last_update_time.elapsed() > std::time::Duration::from_millis(BACKUP_STALL_SYNC_TIMEOUT_MS),
+					last_update_time.elapsed() > BACKUP_STALL_SYNC_TIMEOUT,
 				) {
 					let ids = match headers.len() {
 						1 => format!("{:?}", headers[0].id()),
@@ -412,7 +411,7 @@ pub fn run<P: HeadersSyncPipeline>(
 
 					// remember that we have submitted some headers
 					if stall_countdown.is_none() {
-						stall_countdown = Some(std::time::Instant::now());
+						stall_countdown = Some(Instant::now());
 					}
 				} else {
 					target_maybe_client = Some(target_client);
@@ -487,8 +486,8 @@ pub fn run<P: HeadersSyncPipeline>(
 }
 
 /// Future that resolves into given value after given timeout.
-async fn delay<T>(timeout_ms: u64, retval: T) -> T {
-	async_std::task::sleep(std::time::Duration::from_millis(timeout_ms)).await;
+async fn delay<T>(timeout: Duration, retval: T) -> T {
+	async_std::task::sleep(timeout).await;
 	retval
 }
 
@@ -532,14 +531,14 @@ fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
 
 /// Print synchronization progress.
 fn print_sync_progress<P: HeadersSyncPipeline>(
-	progress_context: (std::time::Instant, Option<P::Number>, Option<P::Number>),
+	progress_context: (Instant, Option<P::Number>, Option<P::Number>),
 	eth_sync: &crate::sync::HeadersSync<P>,
-) -> (std::time::Instant, Option<P::Number>, Option<P::Number>) {
+) -> (Instant, Option<P::Number>, Option<P::Number>) {
 	let (prev_time, prev_best_header, prev_target_header) = progress_context;
-	let now_time = std::time::Instant::now();
+	let now_time = Instant::now();
 	let (now_best_header, now_target_header) = eth_sync.status();
 
-	let need_update = now_time - prev_time > std::time::Duration::from_secs(10)
+	let need_update = now_time - prev_time > Duration::from_secs(10)
 		|| match (prev_best_header, now_best_header) {
 			(Some(prev_best_header), Some(now_best_header)) => {
 				now_best_header.0.saturating_sub(prev_best_header) > 10.into()
