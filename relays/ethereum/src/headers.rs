@@ -29,8 +29,6 @@ type KnownHeaders<P> =
 
 /// We're trying to fetch completion data for single header at this interval.
 const RETRY_FETCH_COMPLETION_INTERVAL: Duration = Duration::from_millis(60 * 1_000);
-/// We're trying to submit completion data for single header at this interval.
-const RETRY_COMPLETION_INTERVAL: Duration = Duration::from_millis(10 * 60 * 1_000);
 
 /// Ethereum headers queue.
 #[derive(Debug)]
@@ -139,7 +137,6 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 	/// Returns number of best block in the queue.
 	pub fn best_queued_number(&self) -> P::Number {
-		// TODO: move submitted headers back to ready/incomplete periodically
 		std::cmp::max(
 			self.maybe_orphan.keys().next_back().cloned().unwrap_or_else(Zero::zero),
 			std::cmp::max(
@@ -461,7 +458,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 	pub fn header_to_complete(&mut self) -> Option<(HeaderId<P::Hash, P::Number>, &P::Completion)> {
 		queued_incomplete_header(&mut self.completion_data, |incomplete_header| {
 			let retry = match incomplete_header.last_upload_time {
-				Some(last_upload_time) => last_upload_time.elapsed() > RETRY_COMPLETION_INTERVAL,
+				Some(_) => false,
 				None => true,
 			};
 
