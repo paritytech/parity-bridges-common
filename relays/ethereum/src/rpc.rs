@@ -18,49 +18,97 @@
 
 // #[warn(missing_docs)]
 
+use crate::ethereum_client::EthereumConnectionParams;
 use crate::ethereum_types::U256;
-use crate::substrate_types::Header as SubstrateHeader;
+use crate::substrate_client::SubstrateConnectionParams;
+use crate::substrate_types::{Hash, Header as SubstrateHeader};
 
-use jsonrpsee::Client;
+use async_trait::async_trait;
 use jsonrpsee::common::Params;
+use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
+use jsonrpsee::Client;
 use jsonrpsee::{
 	raw::client::{RawClient, RawClientError},
 	transport::TransportClient,
 };
-use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
-
 use serde_json;
 
 jsonrpsee::rpc_api! {
-    Ethereum {
+	Ethereum {
 		fn eth_estimateGas(call_request: Params) -> U256;
-    }
+	}
 
-    Substrate {
-		fn chain_getHeader() -> SubstrateHeader;
-    }
+	Substrate {
+		fn chain_getHeader(params: Params) -> SubstrateHeader;
+	}
 }
 
-pub async fn estimate_gas(client: &mut RawClient<HttpTransportClient>) -> U256 {
-	let call_request = Params::Array(vec![
-		serde_json::to_value(1).unwrap(),
-		serde_json::to_value(2).unwrap(),
-		serde_json::to_value(3).unwrap(),
-	]);
-	Ethereum::eth_estimateGas(client, call_request).await.unwrap()
+#[async_trait]
+pub trait EthereumRpc {
+	async fn estimate_gas(&mut self, _params: Vec<u32>) -> Result<U256, ()>;
 }
 
-pub async fn best_header(client: &mut RawClient<HttpTransportClient>) -> SubstrateHeader {
-	Substrate::chain_getHeader(client).await.unwrap()
+pub struct EthereumRpcClient {
+	client: RawClient<HttpTransportClient>,
 }
 
-pub async fn test_rpc_calls() {
-	let mut eth_transport = jsonrpsee::transport::http::HttpTransportClient::new("http://localhost:8545");
-    let mut eth_client = jsonrpsee::raw::RawClient::new(eth_transport);
+impl EthereumRpcClient {
+	pub fn new(params: EthereumConnectionParams) -> Self {
+		let uri = format!("http://{}:{}", params.host, params.port);
+		let transport = HttpTransportClient::new(&uri);
+		let client = RawClient::new(transport);
 
-	let mut sub_transport = jsonrpsee::transport::http::HttpTransportClient::new("http://localhost:9933");
-    let mut sub_client = jsonrpsee::raw::RawClient::new(sub_transport);
+		Self { client }
+	}
+}
 
-	estimate_gas(&mut eth_client);
-	best_header(&mut sub_client);
+#[async_trait]
+impl EthereumRpc for EthereumRpcClient {
+	async fn estimate_gas(&mut self, _params: Vec<u32>) -> Result<U256, ()> {
+		let call_request = Params::Array(vec![
+			serde_json::to_value(1).unwrap(),
+			serde_json::to_value(2).unwrap(),
+			serde_json::to_value(3).unwrap(),
+		]);
+
+		let gas = Ethereum::eth_estimateGas(&mut self.client, call_request).await.unwrap();
+		Ok(gas)
+	}
+}
+
+#[async_trait]
+pub trait SubstrateRpc {
+	async fn best_header(&mut self) -> Result<SubstrateHeader, ()>;
+	async fn header_by_hash(&mut self, hash: Hash) -> Result<SubstrateHeader, ()>;
+}
+
+pub struct SubstrateRpcClient {
+	client: RawClient<HttpTransportClient>,
+}
+
+impl SubstrateRpcClient {
+	pub fn new(params: SubstrateConnectionParams) -> Self {
+		let uri = format!("http://{}:{}", params.host, params.port);
+		let transport = HttpTransportClient::new(&uri);
+		let client = RawClient::new(transport);
+
+		Self { client }
+	}
+}
+
+#[async_trait]
+impl SubstrateRpc for SubstrateRpcClient {
+	async fn best_header(&mut self) -> Result<SubstrateHeader, ()> {
+		Ok(Substrate::chain_getHeader(&mut self.client, Params::None)
+			.await
+			.unwrap())
+	}
+
+	async fn header_by_hash(&mut self, hash: Hash) -> Result<SubstrateHeader, ()> {
+		let hash = serde_json::to_value(hash).unwrap();
+		let params = Params::Array(vec![hash]);
+		let best_header = Substrate::chain_getHeader(&mut self.client, params).await.unwrap();
+
+		Ok(best_header)
+	}
 }
