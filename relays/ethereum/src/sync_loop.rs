@@ -51,7 +51,12 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	/// Future that returns extra data associated with header.
 	type HeaderExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, P::Extra), Self::Error>)>;
 	/// Future that returns data required to 'complete' header.
-	type HeaderCompletionFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, Option<P::Completion>), Self::Error>)>;
+	type HeaderCompletionFuture: Future<
+		Output = (
+			Self,
+			Result<(HeaderId<P::Hash, P::Number>, Option<P::Completion>), Self::Error>,
+		),
+	>;
 
 	/// Get best block number.
 	fn best_block_number(self) -> Self::BestBlockNumberFuture;
@@ -93,7 +98,11 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	/// Returns ID of headers that require to be 'completed' before children can be submitted.
 	fn incomplete_headers_ids(self) -> Self::IncompleteHeadersFuture;
 	/// Submit completion data for header.
-	fn complete_header(self, id: HeaderId<P::Hash, P::Number>, completion: P::Completion) -> Self::CompleteHeadersFuture;
+	fn complete_header(
+		self,
+		id: HeaderId<P::Hash, P::Number>,
+		completion: P::Completion,
+	) -> Self::CompleteHeadersFuture;
 }
 
 /// Run headers synchronization.

@@ -80,6 +80,7 @@ git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.grandpa]
 package = "sc-finality-grandpa"
+version = "0.8.0-alpha.6"
 rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate.git"
 

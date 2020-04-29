@@ -30,7 +30,9 @@ use pallet_grandpa::AuthorityList as GrandpaAuthorityList;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::OpaqueMetadata;
-use sp_runtime::traits::{BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, IdentityLookup, Verify, OpaqueKeys};
+use sp_runtime::traits::{
+	BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, IdentityLookup, OpaqueKeys, Verify,
+};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
@@ -283,11 +285,11 @@ impl ShiftSessionManager {
 		let offset = session_index as usize % available_validators_count;
 		let end = offset + count;
 		let session_validators = match end.overflowing_sub(available_validators_count) {
-			(wrapped_end, false) if wrapped_end != 0 =>
-				available_validators[offset..].iter()
-					.chain(available_validators[..wrapped_end].iter())
-					.cloned()
-					.collect(),
+			(wrapped_end, false) if wrapped_end != 0 => available_validators[offset..]
+				.iter()
+				.chain(available_validators[..wrapped_end].iter())
+				.cloned()
+				.collect(),
 			_ => available_validators[offset..end].to_vec(),
 		};
 

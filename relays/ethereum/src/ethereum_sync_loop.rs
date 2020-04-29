@@ -21,7 +21,7 @@ use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Heade
 use crate::substrate_client::{self, SubstrateConnectionParams, SubstrateSigningParams};
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
-use futures::future::{FutureExt, Ready, ready};
+use futures::future::{ready, FutureExt, Ready};
 use std::{collections::HashSet, future::Future, pin::Pin};
 use web3::types::H256;
 

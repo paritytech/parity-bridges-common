@@ -16,8 +16,8 @@
 
 use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256};
 use crate::substrate_types::{
-	into_substrate_ethereum_header, into_substrate_ethereum_receipts, Hash, Header as SubstrateHeader, Number,
-	GrandpaJustification, SubstrateHeaderId, SignedBlock as SignedSubstrateBlock,
+	into_substrate_ethereum_header, into_substrate_ethereum_receipts, GrandpaJustification, Hash,
+	Header as SubstrateHeader, Number, SignedBlock as SignedSubstrateBlock, SubstrateHeaderId,
 };
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
 use crate::{bail_on_arg_error, bail_on_error};
@@ -276,16 +276,16 @@ pub async fn submit_unsigned_ethereum_headers(
 }
 
 /// Get GRANDPA justification for given block.
-pub async fn grandpa_justification(client: Client, id: SubstrateHeaderId) -> (Client, Result<(SubstrateHeaderId, Option<GrandpaJustification>), Error>) {
+pub async fn grandpa_justification(
+	client: Client,
+	id: SubstrateHeaderId,
+) -> (Client, Result<(SubstrateHeaderId, Option<GrandpaJustification>), Error>) {
 	let hash = bail_on_arg_error!(to_value(id.1).map_err(|e| Error::RequestSerialization(e)), client);
-	let (client, signed_block) = call_rpc(
+	let (client, signed_block) = call_rpc(client, "chain_getBlock", Params::Array(vec![hash]), rpc_returns_value).await;
+	(
 		client,
-		"chain_getBlock",
-		Params::Array(vec![hash]),
-		rpc_returns_value,
+		signed_block.map(|signed_block: SignedSubstrateBlock| (id, signed_block.justification)),
 	)
-	.await;
-	(client, signed_block.map(|signed_block: SignedSubstrateBlock| (id, signed_block.justification)))
 }
 
 /// Get GRANDPA authorities set at given block.

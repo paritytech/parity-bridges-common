@@ -15,8 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bridge_node_runtime::{
-	AccountId, AuraConfig, BalancesConfig, BridgeEthPoAConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-	SystemConfig, SessionConfig, SessionKeys, WASM_BINARY,
+	AccountId, AuraConfig, BalancesConfig, BridgeEthPoAConfig, GenesisConfig, GrandpaConfig, SessionConfig,
+	SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use sc_service;

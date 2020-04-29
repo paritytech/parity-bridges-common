@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, TransactionHash, H256, U256, U64};
-use crate::substrate_types::{Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId, GrandpaJustification};
+use crate::substrate_types::{GrandpaJustification, Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId};
 use crate::sync_types::{HeaderId, MaybeConnectionError};
 use crate::{bail_on_arg_error, bail_on_error};
 use codec::{Decode, Encode};
@@ -318,8 +318,10 @@ pub async fn incomplete_substrate_headers(
 	let (client, call_result) =
 		bail_on_error!(call_rpc::<Bytes>(client, "eth_call", Params::Array(vec![call_request]),).await);
 	match call_decoder.decode(&call_result.0) {
-		Ok((incomplete_headers_numbers, incomplete_headers_hashes)) => (client, Ok(
-			incomplete_headers_numbers.into_iter()
+		Ok((incomplete_headers_numbers, incomplete_headers_hashes)) => (
+			client,
+			Ok(incomplete_headers_numbers
+				.into_iter()
 				.zip(incomplete_headers_hashes)
 				.filter_map(|(number, hash)| {
 					if number != number.low_u32().into() {
@@ -328,8 +330,8 @@ pub async fn incomplete_substrate_headers(
 
 					Some(HeaderId(number.low_u32(), hash))
 				})
-				.collect(),
-			)),
+				.collect()),
+		),
 		Err(error) => (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
 	}
 }
@@ -349,11 +351,7 @@ pub async fn complete_substrate_header(
 			Some(contract_address),
 			None,
 			false,
-			bridge_contract::functions::import_finality_proof::encode_input(
-				id.0,
-				id.1,
-				justification,
-			),
+			bridge_contract::functions::import_finality_proof::encode_input(id.0, id.1, justification,),
 		)
 		.await
 	);

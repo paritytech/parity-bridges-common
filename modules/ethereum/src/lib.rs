@@ -21,8 +21,8 @@ use frame_support::{decl_module, decl_storage};
 use primitives::{Address, Header, Receipt, H256, U256};
 use sp_runtime::{
 	transaction_validity::{
-		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionSource,
-		TransactionValidity, UnknownTransaction, ValidTransaction,
+		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionSource, TransactionValidity,
+		UnknownTransaction, ValidTransaction,
 	},
 	RuntimeDebug,
 };

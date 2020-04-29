@@ -18,9 +18,7 @@ use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, QueuedHeade
 use linked_hash_map::LinkedHashMap;
 use num_traits::{One, Zero};
 use std::{
-	collections::{
-		btree_map::Entry as BTreeMapEntry, hash_map::Entry as HashMapEntry, BTreeMap, HashMap, HashSet,
-	},
+	collections::{btree_map::Entry as BTreeMapEntry, hash_map::Entry as HashMapEntry, BTreeMap, HashMap, HashSet},
 	time::{Duration, Instant},
 };
 
@@ -415,7 +413,9 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 		// for all headers that were incompleted previously, but now are completed, we move
 		// all descendants from incomplete to ready
-		let just_completed_headers = self.incomplete_headers.keys()
+		let just_completed_headers = self
+			.incomplete_headers
+			.keys()
 			.chain(self.completion_data.keys())
 			.filter(|id| !ids.contains(id))
 			.cloned()
@@ -442,40 +442,36 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 	/// Returns id of the header for which we want to fetch completion data.
 	pub fn incomplete_header(&mut self) -> Option<HeaderId<P::Hash, P::Number>> {
-		queued_incomplete_header(
-			&mut self.incomplete_headers,
-			|last_fetch_time| {
-				let retry = match *last_fetch_time {
-					Some(last_fetch_time) => last_fetch_time.elapsed() > RETRY_FETCH_COMPLETION_INTERVAL,
-					None => true,
-				};
+		queued_incomplete_header(&mut self.incomplete_headers, |last_fetch_time| {
+			let retry = match *last_fetch_time {
+				Some(last_fetch_time) => last_fetch_time.elapsed() > RETRY_FETCH_COMPLETION_INTERVAL,
+				None => true,
+			};
 
-				if retry {
-					*last_fetch_time = Some(Instant::now());
-				}
+			if retry {
+				*last_fetch_time = Some(Instant::now());
+			}
 
-				retry
-			},
-		).map(|(id, _)| id)
+			retry
+		})
+		.map(|(id, _)| id)
 	}
 
 	/// Returns header completion data to upload to target node.
 	pub fn header_to_complete(&mut self) -> Option<(HeaderId<P::Hash, P::Number>, &P::Completion)> {
-		queued_incomplete_header(
-			&mut self.completion_data,
-			|incomplete_header| {
-				let retry = match incomplete_header.last_upload_time {
-					Some(last_upload_time) => last_upload_time.elapsed() > RETRY_COMPLETION_INTERVAL,
-					None => true,
-				};
+		queued_incomplete_header(&mut self.completion_data, |incomplete_header| {
+			let retry = match incomplete_header.last_upload_time {
+				Some(last_upload_time) => last_upload_time.elapsed() > RETRY_COMPLETION_INTERVAL,
+				None => true,
+			};
 
-				if retry {
-					incomplete_header.last_upload_time = Some(Instant::now());
-				}
+			if retry {
+				incomplete_header.last_upload_time = Some(Instant::now());
+			}
 
-				retry
-			},
-		).map(|(id, data)| (id, &data.completion))
+			retry
+		})
+		.map(|(id, data)| (id, &data.completion))
 	}
 
 	/// Prune and never accep headers before this block.
@@ -530,7 +526,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 				self.incomplete_headers.contains_key(&parent_id)
 					|| self.completion_data.contains_key(&parent_id)
 					|| self.status(&parent_id) == HeaderStatus::Incomplete
-			},
+			}
 			None => false,
 		}
 	}
@@ -740,11 +736,7 @@ fn set_header_status<P: HeadersSyncPipeline>(
 		id,
 		status,
 	);
-	*known_headers
-		.entry(id.0)
-		.or_default()
-		.entry(id.1)
-		.or_insert(status) = status;
+	*known_headers.entry(id.0).or_default().entry(id.1).or_insert(status) = status;
 }
 
 /// Returns queued imcomplete header with maximal elapsed time since last update.
@@ -758,17 +750,12 @@ fn queued_incomplete_header<Id: Clone + Eq + std::hash::Hash, T>(
 	let retry_old_header = map
 		.front()
 		.map(|(key, _)| key.clone())
-		.and_then(|key| map
-			.get_mut(&key)
-			.map(filter)
-		)
+		.and_then(|key| map.get_mut(&key).map(filter))
 		.unwrap_or(false);
 	if retry_old_header {
 		let (header_key, header) = map.pop_front().expect("we have checked that front() exists; qed");
 		map.insert(header_key, header);
-		return map
-			.back()
-			.map(|(id, data)| (id.clone(), data));
+		return map.back().map(|(id, data)| (id.clone(), data));
 	}
 
 	None

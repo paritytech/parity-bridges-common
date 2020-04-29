@@ -20,8 +20,7 @@ use crate::ethereum_client::{self, EthereumConnectionParams, EthereumSigningPara
 use crate::ethereum_types::Address;
 use crate::substrate_client::{self, SubstrateConnectionParams};
 use crate::substrate_types::{
-	Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
-	GrandpaJustification,
+	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
@@ -92,7 +91,16 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type HeaderByHashFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
 	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
 	type HeaderExtraFuture = Ready<(Self, Result<(SubstrateHeaderId, ()), Self::Error>)>;
-	type HeaderCompletionFuture = Pin<Box<dyn Future<Output = (Self, Result<(SubstrateHeaderId, Option<GrandpaJustification>), Self::Error>)>>>;
+	type HeaderCompletionFuture = Pin<
+		Box<
+			dyn Future<
+				Output = (
+					Self,
+					Result<(SubstrateHeaderId, Option<GrandpaJustification>), Self::Error>,
+				),
+			>,
+		>,
+	>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
 		substrate_client::best_header(self.client)
@@ -139,7 +147,8 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type IsKnownHeaderFuture = Pin<Box<dyn Future<Output = (Self, Result<(SubstrateHeaderId, bool), Self::Error>)>>>;
 	type RequiresExtraFuture = Ready<(Self, Result<(SubstrateHeaderId, bool), Self::Error>)>;
 	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<Vec<SubstrateHeaderId>, Self::Error>)>>>;
-	type IncompleteHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<HashSet<SubstrateHeaderId>, Self::Error>)>>>;
+	type IncompleteHeadersFuture =
+		Pin<Box<dyn Future<Output = (Self, Result<HashSet<SubstrateHeaderId>, Self::Error>)>>>;
 	type CompleteHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<SubstrateHeaderId, Self::Error>)>>>;
 
 	fn best_header_id(self) -> Self::BestHeaderIdFuture {
