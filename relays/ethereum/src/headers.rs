@@ -27,10 +27,10 @@ type HeadersQueue<P> =
 type KnownHeaders<P> =
 	BTreeMap<<P as HeadersSyncPipeline>::Number, HashMap<<P as HeadersSyncPipeline>::Hash, HeaderStatus>>;
 
-/// TODO
-const RETRY_FETCH_COMPLETION_INTERVAL: Duration = Duration::from_millis(60_000);
-/// TODO
-const RETRY_COMPLETION_INTERVAL: Duration = Duration::from_millis(60_000);
+/// We're trying to fetch completion data for single header at this interval.
+const RETRY_FETCH_COMPLETION_INTERVAL: Duration = Duration::from_millis(60 * 1_000);
+/// We're trying to submit completion data for single header at this interval.
+const RETRY_COMPLETION_INTERVAL: Duration = Duration::from_millis(10 * 60 * 1_000);
 
 /// Ethereum headers queue.
 #[derive(Debug)]
