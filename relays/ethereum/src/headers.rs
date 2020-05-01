@@ -475,7 +475,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		prune_queue(&mut self.extra, prune_border);
 		prune_queue(&mut self.ready, prune_border);
 		prune_queue(&mut self.submitted, prune_border);
-		prune_queue(&mut self.submitted, prune_border);
+		prune_queue(&mut self.incomplete, prune_border);
 		prune_known_headers::<P>(&mut self.known_headers, prune_border);
 		self.prune_border = prune_border;
 	}
@@ -801,7 +801,11 @@ pub(crate) mod tests {
 			hash(6),
 			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
 		);
-		assert_eq!(queue.total_headers(), 6);
+		queue.incomplete.entry(6).or_default().insert(
+			hash(7),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		assert_eq!(queue.total_headers(), 7);
 	}
 
 	#[test]
@@ -845,6 +849,12 @@ pub(crate) mod tests {
 			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
 		);
 		assert_eq!(queue.best_queued_number(), 40);
+		// and then there's some header in Incomplete
+		queue.incomplete.entry(50).or_default().insert(
+			hash(50),
+			QueuedHeader::<EthereumHeadersSyncPipeline>::new(Default::default()),
+		);
+		assert_eq!(queue.best_queued_number(), 50);
 	}
 
 	#[test]
@@ -1152,6 +1162,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn negative_maybe_extra_response_works() {
+		// when parent header is complete
 		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
 		queue
 			.known_headers
@@ -1163,10 +1174,24 @@ pub(crate) mod tests {
 		assert!(queue.maybe_extra.is_empty());
 		assert_eq!(queue.ready.len(), 1);
 		assert_eq!(queue.known_headers[&100][&hash(100)], HeaderStatus::Ready);
+
+		// when parent header is incomplete
+		queue.incomplete_headers.insert(id(200), None);
+		queue
+			.known_headers
+			.entry(201)
+			.or_default()
+			.insert(hash(201), HeaderStatus::MaybeExtra);
+		queue.maybe_extra.entry(201).or_default().insert(hash(201), header(201));
+		queue.maybe_extra_response(&id(201), false);
+		assert!(queue.maybe_extra.is_empty());
+		assert_eq!(queue.incomplete.len(), 1);
+		assert_eq!(queue.known_headers[&201][&hash(201)], HeaderStatus::Incomplete);
 	}
 
 	#[test]
 	fn receipts_response_works() {
+		// when parent header is complete
 		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
 		queue
 			.known_headers
@@ -1178,6 +1203,19 @@ pub(crate) mod tests {
 		assert!(queue.extra.is_empty());
 		assert_eq!(queue.ready.len(), 1);
 		assert_eq!(queue.known_headers[&100][&hash(100)], HeaderStatus::Ready);
+
+		// when parent header is incomplete
+		queue.incomplete_headers.insert(id(200), None);
+		queue
+			.known_headers
+			.entry(201)
+			.or_default()
+			.insert(hash(201), HeaderStatus::Extra);
+		queue.extra.entry(201).or_default().insert(hash(201), header(201));
+		queue.extra_response(&id(201), Vec::new());
+		assert!(queue.extra.is_empty());
+		assert_eq!(queue.incomplete.len(), 1);
+		assert_eq!(queue.known_headers[&201][&hash(201)], HeaderStatus::Incomplete);
 	}
 
 	#[test]
@@ -1195,8 +1233,151 @@ pub(crate) mod tests {
 	}
 
 	#[test]
+	fn incomplete_header_works() {
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+
+		// nothing to complete if queue is empty
+		assert_eq!(queue.incomplete_header(), None);
+
+		// when there's new header to complete => ask for completion data
+		queue.incomplete_headers.insert(id(100), None);
+		assert_eq!(queue.incomplete_header(), Some(id(100)));
+
+		// we have just asked for completion data => nothing to request
+		assert_eq!(queue.incomplete_header(), None);
+
+		// enough time have passed => ask again
+		queue.incomplete_headers.clear();
+		queue.incomplete_headers.insert(
+			id(100),
+			Some(Instant::now() - RETRY_FETCH_COMPLETION_INTERVAL - RETRY_FETCH_COMPLETION_INTERVAL),
+		);
+		assert_eq!(queue.incomplete_header(), Some(id(100)));
+	}
+
+	#[test]
+	fn completion_response_works() {
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		queue.incomplete_headers.insert(id(100), None);
+		queue.incomplete_headers.insert(id(200), Some(Instant::now()));
+
+		// when headers isn't incompete, nothing changes
+		queue.completion_response(&id(300), None);
+		assert_eq!(queue.incomplete_headers.len(), 2);
+		assert_eq!(queue.completion_data.len(), 0);
+		assert_eq!(queue.header_to_complete(), None);
+
+		// when response is None, nothing changes
+		queue.completion_response(&id(100), None);
+		assert_eq!(queue.incomplete_headers.len(), 2);
+		assert_eq!(queue.completion_data.len(), 0);
+		assert_eq!(queue.header_to_complete(), None);
+
+		// when response is Some, we're scheduling completion
+		queue.completion_response(&id(200), Some(()));
+		assert_eq!(queue.incomplete_headers.len(), 1);
+		assert_eq!(queue.completion_data.len(), 1);
+		assert!(queue.incomplete_headers.contains_key(&id(100)));
+		assert!(queue.completion_data.contains_key(&id(200)));
+		assert_eq!(queue.header_to_complete(), Some((id(200), &())));
+	}
+
+	#[test]
+	fn header_completed_works() {
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		queue.completion_data.insert(id(100), ());
+
+		// when unknown header is completed
+		queue.header_completed(&id(200));
+		assert_eq!(queue.completion_data.len(), 1);
+
+		// when known header is completed
+		queue.header_completed(&id(100));
+		assert_eq!(queue.completion_data.len(), 0);
+	}
+
+	#[test]
+	fn incomplete_headers_response_works() {
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+
+		// when we have already submitted #101 and #102 is ready
+		queue.known_headers.entry(101).or_default().insert(hash(101), HeaderStatus::Submitted);
+		queue.submitted.entry(101).or_default().insert(hash(101), header(101));
+		queue.known_headers.entry(102).or_default().insert(hash(102), HeaderStatus::Ready);
+		queue.submitted.entry(102).or_default().insert(hash(102), header(102));
+
+		// AND now we know that the #100 is incomplete
+		queue.incomplete_headers_response(vec![id(100)].into_iter().collect());
+
+		// => #101 and #102 are moved to the Incomplete and #100 is now synced
+		assert_eq!(queue.status(&id(100)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(101)), HeaderStatus::Incomplete);
+		assert_eq!(queue.status(&id(102)), HeaderStatus::Incomplete);
+		assert_eq!(queue.submitted.len(), 0);
+		assert_eq!(queue.ready.len(), 0);
+		assert!(queue.incomplete.entry(101).or_default().contains_key(&hash(101)));
+		assert!(queue.incomplete.entry(102).or_default().contains_key(&hash(102)));
+		assert!(queue.incomplete_headers.contains_key(&id(100)));
+		assert!(queue.completion_data.is_empty());
+
+		// and then header #100 is no longer incomplete
+		queue.incomplete_headers_response(vec![].into_iter().collect());
+
+		// => #101 and #102 are moved to the Ready queue and #100 if now forgotten
+		assert_eq!(queue.status(&id(100)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(101)), HeaderStatus::Ready);
+		assert_eq!(queue.status(&id(102)), HeaderStatus::Ready);
+		assert_eq!(queue.incomplete.len(), 0);
+		assert_eq!(queue.submitted.len(), 0);
+		assert!(queue.ready.entry(101).or_default().contains_key(&hash(101)));
+		assert!(queue.ready.entry(102).or_default().contains_key(&hash(102)));
+		assert!(queue.incomplete_headers.is_empty());
+		assert!(queue.completion_data.is_empty());
+	}
+
+	#[test]
+	fn is_parent_incomplete_works() {
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+
+		// when we do not know header itself
+		assert_eq!(queue.is_parent_incomplete(&id(50)), false);
+
+		// when we do not know parent
+		queue.known_headers.entry(100).or_default().insert(hash(100), HeaderStatus::Incomplete);
+		queue.incomplete.entry(100).or_default().insert(hash(100), header(100));
+		assert_eq!(queue.is_parent_incomplete(&id(100)), false);
+
+		// when parent is inside incomplete queue (i.e. some other ancestor is actually incomplete)
+		queue.known_headers.entry(101).or_default().insert(hash(101), HeaderStatus::Submitted);
+		queue.submitted.entry(101).or_default().insert(hash(101), header(101));
+		assert_eq!(queue.is_parent_incomplete(&id(101)), true);
+
+		// when parent is the incomplete header and we do not have completion data
+		queue.incomplete_headers.insert(id(199), None);
+		queue.known_headers.entry(200).or_default().insert(hash(200), HeaderStatus::Submitted);
+		queue.submitted.entry(200).or_default().insert(hash(200), header(200));
+		assert_eq!(queue.is_parent_incomplete(&id(200)), true);
+
+		// when parent is the incomplete header and we have completion data
+		queue.completion_data.insert(id(299), ());
+		queue.known_headers.entry(300).or_default().insert(hash(300), HeaderStatus::Submitted);
+		queue.submitted.entry(300).or_default().insert(hash(300), header(300));
+		assert_eq!(queue.is_parent_incomplete(&id(300)), true);
+	}
+
+	#[test]
 	fn prune_works() {
 		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+		queue
+			.known_headers
+			.entry(105)
+			.or_default()
+			.insert(hash(105), HeaderStatus::Incomplete);
+		queue
+			.incomplete
+			.entry(105)
+			.or_default()
+			.insert(hash(105), header(105));
 		queue
 			.known_headers
 			.entry(104)
@@ -1239,7 +1420,8 @@ pub(crate) mod tests {
 		assert_eq!(queue.maybe_extra.len(), 1);
 		assert_eq!(queue.orphan.len(), 1);
 		assert_eq!(queue.maybe_orphan.len(), 1);
-		assert_eq!(queue.known_headers.len(), 3);
+		assert_eq!(queue.incomplete.len(), 1);
+		assert_eq!(queue.known_headers.len(), 4);
 
 		queue.prune(110);
 
@@ -1248,6 +1430,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.maybe_extra.len(), 0);
 		assert_eq!(queue.orphan.len(), 0);
 		assert_eq!(queue.maybe_orphan.len(), 0);
+		assert_eq!(queue.incomplete.len(), 0);
 		assert_eq!(queue.known_headers.len(), 0);
 
 		queue.header_response(header(109).header().clone());
