@@ -32,6 +32,7 @@ use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
+use bridge_node_runtime::UncheckedExtrinsic;
 use ethereum_tx_sign::RawTransaction;
 use jsonrpsee::common::Params;
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
@@ -41,7 +42,7 @@ use jsonrpsee::{
 	transport::TransportClient,
 };
 use serde_json;
-use sp_bridge_eth_poa::{EthereumHeadersApiCalls, Header as SubstrateEthereumHeader};
+use sp_bridge_eth_poa::{EthereumHeadersApiCalls, Header as SubstrateEthereumHeader, RuntimeApiCalls};
 
 /// Proof of hash serialization success.
 const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; qed";
@@ -51,6 +52,7 @@ const INT_SERIALIZATION_PROOF: &'static str = "integer serialization never fails
 const BOOL_SERIALIZATION_PROOF: &'static str = "bool serialization never fails; qed";
 
 type Result<T> = result::Result<T, RpcError>;
+type GrandpaAuthorityList = Vec<u8>;
 
 jsonrpsee::rpc_api! {
 	Ethereum {
@@ -178,6 +180,8 @@ pub trait SubstrateRpc {
 	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId>;
 	async fn ethereum_receipts_required(&mut self, header: SubstrateEthereumHeader) -> Result<bool>;
 	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool>;
+	async fn submit_extrinsic(&mut self, transaction: UncheckedExtrinsic) -> Result<SubstrateHash>;
+	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList>;
 }
 
 pub struct SubstrateRpcClient {
@@ -252,7 +256,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		let encoded_response = Substrate::state_call(&mut self.client, params).await?;
 		let receipts_required: bool = Decode::decode(&mut &encoded_response.0[..])?;
 
-		// Gonna make it the resposibility of the caller to return (receipts_required, id)
+		// Gonna make it the responsibility of the caller to return (receipts_required, id)
 		Ok(receipts_required)
 	}
 
@@ -264,7 +268,27 @@ impl SubstrateRpc for SubstrateRpcClient {
 		let encoded_response = Substrate::state_call(&mut self.client, params).await?;
 		let is_known_block: bool = Decode::decode(&mut &encoded_response.0[..])?;
 
-		// Gonna make it the resposibility of the caller to return (is_known_block, id)
+		// Gonna make it the responsibility of the caller to return (is_known_block, id)
 		Ok(is_known_block)
+	}
+
+	// TODO: Should move the UncheckedExtrinsic type elsewhere so I don't have to pull it in from
+	// the runtime
+	async fn submit_extrinsic(&mut self, transaction: UncheckedExtrinsic) -> Result<SubstrateHash> {
+		let encoded_transaction = Bytes(transaction.encode());
+		let params = Params::Array(vec![serde_json::to_value(encoded_transaction)?]);
+
+		Ok(Substrate::author_submitExtrinsic(&mut self.client, params).await?)
+	}
+
+	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList> {
+		let call = RuntimeApiCalls::GrandpaAuthorities.to_string();
+		let data = block;
+		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::to_value(data)?]);
+
+		let encoded_response = Substrate::state_call(&mut self.client, params).await?;
+		let authority_list = encoded_response.0;
+
+		Ok(authority_list)
 	}
 }
