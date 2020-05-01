@@ -84,6 +84,7 @@ pub trait EthereumRpc {
 	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt>;
 	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256>;
 	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash>;
+	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes>;
 }
 
 pub struct EthereumRpcClient {
@@ -158,7 +159,7 @@ impl EthereumRpc for EthereumRpcClient {
 	}
 
 	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256> {
-		let params = Params::Array(vec![serde_json::to_value(address).unwrap()]);
+		let params = Params::Array(vec![serde_json::to_value(address)?]);
 		Ok(Ethereum::eth_getTransactionCount(&mut self.client, params).await?)
 	}
 
@@ -167,6 +168,11 @@ impl EthereumRpc for EthereumRpcClient {
 		let params = Params::Array(vec![transaction]);
 
 		Ok(Ethereum::eth_submitTransaction(&mut self.client, params).await?)
+	}
+
+	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes> {
+		let params = Params::Array(vec![serde_json::to_value(call_transaction)?]);
+		Ok(Ethereum::eth_call(&mut self.client, params).await?)
 	}
 }
 
