@@ -108,9 +108,9 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 /// Run headers synchronization.
 pub fn run<P: HeadersSyncPipeline>(
 	source_client: impl SourceClient<P>,
-	source_tick_ms: u64,
+	source_tick: Duration,
 	target_client: impl TargetClient<P>,
-	target_tick_ms: u64,
+	target_tick: Duration,
 	sync_params: HeadersSyncParams,
 ) {
 	let mut local_pool = futures::executor::LocalPool::new();
@@ -129,7 +129,7 @@ pub fn run<P: HeadersSyncPipeline>(
 		let source_extra_future = futures::future::Fuse::terminated();
 		let source_completion_future = futures::future::Fuse::terminated();
 		let source_go_offline_future = futures::future::Fuse::terminated();
-		let source_tick_stream = interval(source_tick_ms).fuse();
+		let source_tick_stream = interval(source_tick).fuse();
 
 		let mut target_maybe_client = None;
 		let mut target_best_block_required = false;
@@ -141,7 +141,7 @@ pub fn run<P: HeadersSyncPipeline>(
 		let target_submit_header_future = futures::future::Fuse::terminated();
 		let target_complete_header_future = futures::future::Fuse::terminated();
 		let target_go_offline_future = futures::future::Fuse::terminated();
-		let target_tick_stream = interval(target_tick_ms).fuse();
+		let target_tick_stream = interval(target_tick).fuse();
 
 		futures::pin_mut!(
 			source_best_block_number_future,
@@ -251,7 +251,7 @@ pub fn run<P: HeadersSyncPipeline>(
 								// IF head is not updated AND stall countdown is not yet completed
 								// => do nothing
 								false if stall_countdown
-									.map(|stall_countdown| stall_countdown.elaped() < STALL_SYNC_TIMEOUT)
+									.map(|stall_countdown| stall_countdown.elapsed() < STALL_SYNC_TIMEOUT)
 									.unwrap_or(true)
 									=> (),
 								// IF head is not updated AND stall countdown has completed
@@ -492,9 +492,9 @@ async fn delay<T>(timeout: Duration, retval: T) -> T {
 }
 
 /// Stream that emits item every `timeout_ms` milliseconds.
-fn interval(timeout_ms: u64) -> impl futures::Stream<Item = ()> {
+fn interval(timeout: Duration) -> impl futures::Stream<Item = ()> {
 	futures::stream::unfold((), move |_| async move {
-		delay(timeout_ms, ()).await;
+		delay(timeout, ()).await;
 		Some(((), ()))
 	})
 }

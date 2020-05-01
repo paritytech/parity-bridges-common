@@ -28,7 +28,7 @@ type KnownHeaders<P> =
 	BTreeMap<<P as HeadersSyncPipeline>::Number, HashMap<<P as HeadersSyncPipeline>::Hash, HeaderStatus>>;
 
 /// We're trying to fetch completion data for single header at this interval.
-const RETRY_FETCH_COMPLETION_INTERVAL: Duration = Duration::from_millis(60 * 1_000);
+const RETRY_FETCH_COMPLETION_INTERVAL: Duration = Duration::from_millis(20 * 1_000);
 
 /// Ethereum headers queue.
 #[derive(Debug)]
@@ -60,8 +60,8 @@ pub struct QueuedHeaders<P: HeadersSyncPipeline> {
 	/// Headers that are waiting for completion data from source node. Mapped (and auto-sorted
 	/// by) to the last fetch time.
 	incomplete_headers: LinkedHashMap<HeaderId<P::Hash, P::Number>, Option<Instant>>,
-	/// Headers that are waiting to be completed at target node. Auto-sorted by last upload time.
-	completion_data: LinkedHashMap<HeaderId<P::Hash, P::Number>, HeaderCompletion<P::Completion>>,
+	/// Headers that are waiting to be completed at target node. Auto-sorted by insertion time.
+	completion_data: LinkedHashMap<HeaderId<P::Hash, P::Number>, P::Completion>,
 	/// Pruned blocks border. We do not store or accept any blocks with number less than
 	/// this number.
 	prune_border: P::Number,
@@ -341,10 +341,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 			self.completion_data.insert(
 				id.clone(),
-				HeaderCompletion {
-					last_upload_time: None,
-					completion,
-				},
+				completion,
 			);
 		}
 	}
@@ -365,7 +362,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 	/// When header completion data is sent to target node.
 	pub fn header_completed(&mut self, id: &HeaderId<P::Hash, P::Number>) {
-		if let Some(mut incomplete_header) = self.completion_data.remove(id) {
+		if let Some(_) = self.completion_data.remove(id) {
 			log::debug!(
 				target: "bridge",
 				"Sent completion data to {} for header: {:?}",
@@ -373,10 +370,17 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 				id,
 			);
 
-			incomplete_header.last_upload_time = Some(Instant::now());
-
-			// reinsert it to maintain sorting
-			self.completion_data.insert(id.clone(), incomplete_header);
+			// transaction can be dropped by target chain nodes => it would never be mined
+			//
+			// in current implementation the sync loop would wait for some time && if best
+			// **source** header won't change on **target** node, then the sync will be restarted
+			// => we'll resubmit the same completion data again (the same is true for submitted
+			// headers)
+			//
+			// the other option would be to track emitted transactions at least on target node,
+			// but it won't give us 100% guarantee anyway
+			//
+			// => we're just dropping completion data just after it has been submitted
 		}
 	}
 
@@ -456,19 +460,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 	/// Returns header completion data to upload to target node.
 	pub fn header_to_complete(&mut self) -> Option<(HeaderId<P::Hash, P::Number>, &P::Completion)> {
-		queued_incomplete_header(&mut self.completion_data, |incomplete_header| {
-			let retry = match incomplete_header.last_upload_time {
-				Some(_) => false,
-				None => true,
-			};
-
-			if retry {
-				incomplete_header.last_upload_time = Some(Instant::now());
-			}
-
-			retry
-		})
-		.map(|(id, data)| (id, &data.completion))
+		queued_incomplete_header(&mut self.completion_data, |_| true)
 	}
 
 	/// Prune and never accep headers before this block.

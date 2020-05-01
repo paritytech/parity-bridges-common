@@ -22,13 +22,13 @@ use crate::substrate_client::{self, SubstrateConnectionParams, SubstrateSigningP
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
 use futures::future::{ready, FutureExt, Ready};
-use std::{collections::HashSet, future::Future, pin::Pin};
+use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 use web3::types::H256;
 
 /// Interval (in ms) at which we check new Ethereum headers when we are synced/almost synced.
-const ETHEREUM_TICK_INTERVAL_MS: u64 = 10_000;
+const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_millis(10 * 1_000);
 /// Interval (in ms) at which we check new Substrate blocks.
-const SUBSTRATE_TICK_INTERVAL_MS: u64 = 5_000;
+const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_millis(5 * 1_000);
 /// Max number of headers in single submit transaction.
 const MAX_HEADERS_IN_SINGLE_SUBMIT: usize = 32;
 /// Max total size of headers in single submit transaction. This only affects signed
@@ -223,13 +223,13 @@ pub fn run(params: EthereumSyncParams) {
 
 	crate::sync_loop::run(
 		EthereumHeadersSource { client: eth_client },
-		ETHEREUM_TICK_INTERVAL_MS,
+		ETHEREUM_TICK_INTERVAL,
 		SubstrateHeadersTarget {
 			client: sub_client,
 			sign_transactions: sign_sub_transactions,
 			sign_params: params.sub_sign,
 		},
-		SUBSTRATE_TICK_INTERVAL_MS,
+		SUBSTRATE_TICK_INTERVAL,
 		params.sync_params,
 	);
 }

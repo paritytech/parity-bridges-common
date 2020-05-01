@@ -26,12 +26,12 @@ use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::SourceHeader;
 use futures::future::{ready, FutureExt, Ready};
-use std::{collections::HashSet, future::Future, pin::Pin};
+use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 
 /// Interval (in ms) at which we check new Substrate headers when we are synced/almost synced.
-const SUBSTRATE_TICK_INTERVAL_MS: u64 = 10_000;
+const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_millis(10 * 1_000);
 /// Interval (in ms) at which we check new Ethereum blocks.
-const ETHEREUM_TICK_INTERVAL_MS: u64 = 5_000;
+const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_millis(5 * 1_000);
 /// Max Ethereum headers we want to have in all 'before-submitted' states.
 const MAX_FUTURE_HEADERS_TO_DOWNLOAD: usize = 8;
 /// Max Ethereum headers count we want to have in 'submitted' state.
@@ -243,13 +243,13 @@ pub fn run(params: SubstrateSyncParams) {
 
 	crate::sync_loop::run(
 		SubstrateHeadersSource { client: sub_client },
-		SUBSTRATE_TICK_INTERVAL_MS,
+		SUBSTRATE_TICK_INTERVAL,
 		EthereumHeadersTarget {
 			client: eth_client,
 			contract: params.eth_contract_address,
 			sign_params: params.eth_sign,
 		},
-		ETHEREUM_TICK_INTERVAL_MS,
+		ETHEREUM_TICK_INTERVAL,
 		params.sync_params,
 	);
 }
