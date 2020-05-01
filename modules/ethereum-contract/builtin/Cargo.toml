@@ -35,3 +35,6 @@ git = "https://github.com/paritytech/substrate/"
 version = "0.8.0-dev"
 rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"
+
+[dev-dependencies]
+hex-literal = "0.2"
