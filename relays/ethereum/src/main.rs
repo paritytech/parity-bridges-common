@@ -22,6 +22,7 @@ mod ethereum_sync_loop;
 mod ethereum_types;
 mod headers;
 mod rpc;
+mod rpc_errors;
 mod substrate_client;
 mod substrate_sync_loop;
 mod substrate_types;

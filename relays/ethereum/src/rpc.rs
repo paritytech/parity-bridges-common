@@ -18,11 +18,14 @@
 
 // #[warn(missing_docs)]
 
+use std::result;
+
 use crate::ethereum_client::{CallRequest, Error as EthError, EthereumConnectionParams};
 use crate::ethereum_types::{
 	Address as EthAddress, Bytes, EthereumHeaderId, Header as EthereumHeader, Receipt, SignedRawTx,
 	TransactionHash as EthereumTxHash, H256, U256, U64,
 };
+use crate::rpc_errors::{EthereumNodeError, RpcError, SubstrateNodeError};
 use crate::substrate_client::{Error as SubError, SubstrateConnectionParams};
 use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, Number as SubBlockNumber};
 
@@ -38,7 +41,14 @@ use jsonrpsee::{
 use serde_json;
 use sp_bridge_eth_poa::EthereumHeadersApiCalls;
 
-type RpcHttpError = RawClientError<RequestError>;
+/// Proof of hash serialization success.
+const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; qed";
+/// Proof of integer serialization success.
+const INT_SERIALIZATION_PROOF: &'static str = "integer serialization never fails; qed";
+/// Proof of bool serialization success.
+const BOOL_SERIALIZATION_PROOF: &'static str = "bool serialization never fails; qed";
+
+type Result<T> = result::Result<T, RpcError>;
 
 jsonrpsee::rpc_api! {
 	Ethereum {
@@ -63,13 +73,13 @@ jsonrpsee::rpc_api! {
 
 #[async_trait]
 pub trait EthereumRpc {
-	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256, RpcHttpError>;
-	async fn best_block_number(&mut self) -> Result<u64, RpcHttpError>;
-	async fn header_by_number(&mut self, block_number: u64) -> Result<EthereumHeader, RpcHttpError>;
-	async fn header_by_hash(&mut self, hash: H256) -> Result<EthereumHeader, RpcHttpError>;
-	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt, RpcHttpError>;
-	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256, RpcHttpError>;
-	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash, RpcHttpError>;
+	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256>;
+	async fn best_block_number(&mut self) -> Result<u64>;
+	async fn header_by_number(&mut self, block_number: u64) -> Result<EthereumHeader>;
+	async fn header_by_hash(&mut self, hash: H256) -> Result<EthereumHeader>;
+	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt>;
+	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256>;
+	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash>;
 }
 
 pub struct EthereumRpcClient {
@@ -89,22 +99,22 @@ impl EthereumRpcClient {
 #[async_trait]
 impl EthereumRpc for EthereumRpcClient {
 	// Not sure if I should use EthError, or jsonrpc::client::RequestError
-	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256, RpcHttpError> {
-		let params = Params::Array(vec![serde_json::to_value(call_request).unwrap()]);
+	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
+		let params = Params::Array(vec![serde_json::to_value(call_request)?]);
 		Ok(Ethereum::eth_estimateGas(&mut self.client, params).await?)
 	}
 
-	async fn best_block_number(&mut self) -> Result<u64, RpcHttpError> {
+	async fn best_block_number(&mut self) -> Result<u64> {
 		Ok(Ethereum::eth_blockNumber(&mut self.client).await?.as_u64())
 	}
 
-	async fn header_by_number(&mut self, block_number: u64) -> Result<EthereumHeader, RpcHttpError> {
+	async fn header_by_number(&mut self, block_number: u64) -> Result<EthereumHeader> {
 		// Only want to get hashes back from the RPC
 		let return_full_tx_obj = false;
 
 		let params = Params::Array(vec![
-			serde_json::to_value(U64::from(block_number)).unwrap(),
-			serde_json::to_value(return_full_tx_obj).unwrap(),
+			serde_json::to_value(U64::from(block_number)).expect(INT_SERIALIZATION_PROOF),
+			serde_json::to_value(return_full_tx_obj).expect(BOOL_SERIALIZATION_PROOF),
 		]);
 
 		let header = Ethereum::eth_getBlockByNumber(&mut self.client, params).await?;
@@ -114,40 +124,42 @@ impl EthereumRpc for EthereumRpcClient {
 		}
 	}
 
-	async fn header_by_hash(&mut self, hash: H256) -> Result<EthereumHeader, RpcHttpError> {
+	async fn header_by_hash(&mut self, hash: H256) -> Result<EthereumHeader> {
 		// Only want to get hashes back from the RPC
 		let return_full_tx_obj = false;
 
 		let params = Params::Array(vec![
-			serde_json::to_value(hash).unwrap(),
-			serde_json::to_value(return_full_tx_obj).unwrap(),
+			serde_json::to_value(hash).expect(HASH_SERIALIZATION_PROOF),
+			serde_json::to_value(return_full_tx_obj).expect(BOOL_SERIALIZATION_PROOF),
 		]);
 
 		let header = Ethereum::eth_getBlockByHash(&mut self.client, params).await?;
 		// Q: Slava, why are we checking `is_none()` here?
 		match header.number.is_none() && header.hash.is_none() {
 			true => Ok(header),
-			false => todo!(),
+			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
 		}
 	}
 
-	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt, RpcHttpError> {
-		let params = Params::Array(vec![serde_json::to_value(transaction_hash).unwrap()]);
+	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt> {
+		let params = Params::Array(vec![
+			serde_json::to_value(transaction_hash).expect(HASH_SERIALIZATION_PROOF)
+		]);
 		let receipt = Ethereum::eth_getTransactionReceipt(&mut self.client, params).await?;
 
 		match receipt.gas_used {
 			Some(_) => Ok(receipt),
-			None => todo!(),
+			None => Err(RpcError::Ethereum(EthereumNodeError::IncompleteReceipt)),
 		}
 	}
 
-	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256, RpcHttpError> {
+	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256> {
 		let params = Params::Array(vec![serde_json::to_value(address).unwrap()]);
 		Ok(Ethereum::eth_getTransactionCount(&mut self.client, params).await?)
 	}
 
-	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash, RpcHttpError> {
-		let transaction = serde_json::to_value(Bytes(signed_raw_tx)).unwrap();
+	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash> {
+		let transaction = serde_json::to_value(Bytes(signed_raw_tx))?;
 		let params = Params::Array(vec![transaction]);
 
 		Ok(Ethereum::eth_submitTransaction(&mut self.client, params).await?)
@@ -156,20 +168,20 @@ impl EthereumRpc for EthereumRpcClient {
 
 #[async_trait]
 pub trait SubstrateRpc {
-	async fn best_header(&mut self) -> Result<SubstrateHeader, RpcHttpError>;
-	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader, RpcHttpError>;
-	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash, RpcHttpError>;
-	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader, RpcHttpError>;
+	async fn best_header(&mut self) -> Result<SubstrateHeader>;
+	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader>;
+	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash>;
+	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader>;
 	async fn next_account_index(
 		&mut self,
 		account: node_primitives::AccountId,
-	) -> Result<node_primitives::Index, RpcHttpError>;
-	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId, RpcHttpError>;
-	async fn ethereum_receipts_required(&mut self) -> Result<(bool, EthereumHeaderId), RpcHttpError>;
+	) -> Result<node_primitives::Index>;
+	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId>;
+	async fn ethereum_receipts_required(&mut self) -> Result<(bool, EthereumHeaderId)>;
 	async fn ethereum_header_known(
 		&mut self,
 		header_id: EthereumHeaderId,
-	) -> Result<(bool, EthereumHeaderId), RpcHttpError>;
+	) -> Result<(bool, EthereumHeaderId)>;
 }
 
 pub struct SubstrateRpcClient {
@@ -188,26 +200,24 @@ impl SubstrateRpcClient {
 
 #[async_trait]
 impl SubstrateRpc for SubstrateRpcClient {
-	async fn best_header(&mut self) -> Result<SubstrateHeader, RpcHttpError> {
-		Ok(Substrate::chain_getHeader(&mut self.client, Params::None)
-			.await
-			.unwrap())
+	async fn best_header(&mut self) -> Result<SubstrateHeader> {
+		Ok(Substrate::chain_getHeader(&mut self.client, Params::None).await?)
 	}
 
-	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader, RpcHttpError> {
-		let hash = serde_json::to_value(hash).unwrap();
+	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader> {
+		let hash = serde_json::to_value(hash)?;
 		let params = Params::Array(vec![hash]);
 
 		Ok(Substrate::chain_getHeader(&mut self.client, params).await?)
 	}
 
-	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash, RpcHttpError> {
-		let params = Params::Array(vec![serde_json::to_value(number).unwrap()]);
+	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash> {
+		let params = Params::Array(vec![serde_json::to_value(number)?]);
 
 		Ok(Substrate::chain_getBlockHash(&mut self.client, params).await?)
 	}
 
-	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader, RpcHttpError> {
+	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader> {
 		// let block_hash = Self::block_hash_by_number(self, block_number).await?;
 		// Self::header_by_hash(self, block_hash).await?
 		todo!()
@@ -216,16 +226,16 @@ impl SubstrateRpc for SubstrateRpcClient {
 	async fn next_account_index(
 		&mut self,
 		account: node_primitives::AccountId,
-	) -> Result<node_primitives::Index, RpcHttpError> {
+	) -> Result<node_primitives::Index> {
 		// Q: Should this belong here, or be left to the caller?
 		use sp_core::crypto::Ss58Codec;
-		let account = serde_json::to_value(account.to_ss58check()).unwrap();
+		let account = serde_json::to_value(account.to_ss58check())?;
 		let params = Params::Array(vec![account]);
 
 		Ok(Substrate::system_accountNextIndex(&mut self.client, params).await?)
 	}
 
-	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId, RpcHttpError> {
+	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId> {
 		let call = EthereumHeadersApiCalls::BestBlock.to_string();
 		let data = "0x".to_string();
 		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::Value::String(data)]);
@@ -237,7 +247,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 	// Should I work with a QueuedEthereumHeader or a SubstrateEthereumHeader since that's what'll
 	// actually get encoded and sent to the RPC?
 	// I'm leaning towards the SubstrateEthereumHeader since that's a bit "lower level"
-	async fn ethereum_receipts_required(&mut self) -> Result<(bool, EthereumHeaderId), RpcHttpError> {
+	async fn ethereum_receipts_required(&mut self) -> Result<(bool, EthereumHeaderId)> {
 		let call = EthereumHeadersApiCalls::IsImportRequiresReceipts.to_string();
 		let data = "todo_put_header_in_here".to_string();
 		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::Value::String(data)]);
@@ -249,7 +259,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 	async fn ethereum_header_known(
 		&mut self,
 		header_id: EthereumHeaderId,
-	) -> Result<(bool, EthereumHeaderId), RpcHttpError> {
+	) -> Result<(bool, EthereumHeaderId)> {
 		let call = EthereumHeadersApiCalls::IsKnownBlock.to_string();
 		let data = "todo_put_header_id".to_string();
 		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::Value::String(data)]);
