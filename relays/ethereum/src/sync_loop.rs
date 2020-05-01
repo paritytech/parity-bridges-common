@@ -18,7 +18,11 @@ use crate::sync::HeadersSyncParams;
 use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader};
 use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
-use std::{collections::HashSet, future::Future, time::{Duration, Instant}};
+use std::{
+	collections::HashSet,
+	future::Future,
+	time::{Duration, Instant},
+};
 
 /// When we submit headers to target node, but see no updates of best
 /// source block known to target node during STALL_SYNC_TIMEOUT_MS milliseconds,
@@ -390,9 +394,9 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 
 					target_existence_status_future.set(target_client.is_known_header(parent_id).fuse());
-				} else if let Some(headers) = sync.select_headers_to_submit(
-					last_update_time.elapsed() > BACKUP_STALL_SYNC_TIMEOUT,
-				) {
+				} else if let Some(headers) =
+					sync.select_headers_to_submit(last_update_time.elapsed() > BACKUP_STALL_SYNC_TIMEOUT)
+				{
 					let ids = match headers.len() {
 						1 => format!("{:?}", headers[0].id()),
 						2 => format!("[{:?}, {:?}]", headers[0].id(), headers[1].id()),

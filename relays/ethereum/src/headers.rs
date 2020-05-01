@@ -339,10 +339,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 				id,
 			);
 
-			self.completion_data.insert(
-				id.clone(),
-				completion,
-			);
+			self.completion_data.insert(id.clone(), completion);
 		}
 	}
 
@@ -1301,9 +1298,17 @@ pub(crate) mod tests {
 		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
 
 		// when we have already submitted #101 and #102 is ready
-		queue.known_headers.entry(101).or_default().insert(hash(101), HeaderStatus::Submitted);
+		queue
+			.known_headers
+			.entry(101)
+			.or_default()
+			.insert(hash(101), HeaderStatus::Submitted);
 		queue.submitted.entry(101).or_default().insert(hash(101), header(101));
-		queue.known_headers.entry(102).or_default().insert(hash(102), HeaderStatus::Ready);
+		queue
+			.known_headers
+			.entry(102)
+			.or_default()
+			.insert(hash(102), HeaderStatus::Ready);
 		queue.submitted.entry(102).or_default().insert(hash(102), header(102));
 
 		// AND now we know that the #100 is incomplete
@@ -1343,24 +1348,40 @@ pub(crate) mod tests {
 		assert_eq!(queue.is_parent_incomplete(&id(50)), false);
 
 		// when we do not know parent
-		queue.known_headers.entry(100).or_default().insert(hash(100), HeaderStatus::Incomplete);
+		queue
+			.known_headers
+			.entry(100)
+			.or_default()
+			.insert(hash(100), HeaderStatus::Incomplete);
 		queue.incomplete.entry(100).or_default().insert(hash(100), header(100));
 		assert_eq!(queue.is_parent_incomplete(&id(100)), false);
 
 		// when parent is inside incomplete queue (i.e. some other ancestor is actually incomplete)
-		queue.known_headers.entry(101).or_default().insert(hash(101), HeaderStatus::Submitted);
+		queue
+			.known_headers
+			.entry(101)
+			.or_default()
+			.insert(hash(101), HeaderStatus::Submitted);
 		queue.submitted.entry(101).or_default().insert(hash(101), header(101));
 		assert_eq!(queue.is_parent_incomplete(&id(101)), true);
 
 		// when parent is the incomplete header and we do not have completion data
 		queue.incomplete_headers.insert(id(199), None);
-		queue.known_headers.entry(200).or_default().insert(hash(200), HeaderStatus::Submitted);
+		queue
+			.known_headers
+			.entry(200)
+			.or_default()
+			.insert(hash(200), HeaderStatus::Submitted);
 		queue.submitted.entry(200).or_default().insert(hash(200), header(200));
 		assert_eq!(queue.is_parent_incomplete(&id(200)), true);
 
 		// when parent is the incomplete header and we have completion data
 		queue.completion_data.insert(id(299), ());
-		queue.known_headers.entry(300).or_default().insert(hash(300), HeaderStatus::Submitted);
+		queue
+			.known_headers
+			.entry(300)
+			.or_default()
+			.insert(hash(300), HeaderStatus::Submitted);
 		queue.submitted.entry(300).or_default().insert(hash(300), header(300));
 		assert_eq!(queue.is_parent_incomplete(&id(300)), true);
 	}
@@ -1373,11 +1394,7 @@ pub(crate) mod tests {
 			.entry(105)
 			.or_default()
 			.insert(hash(105), HeaderStatus::Incomplete);
-		queue
-			.incomplete
-			.entry(105)
-			.or_default()
-			.insert(hash(105), header(105));
+		queue.incomplete.entry(105).or_default().insert(hash(105), header(105));
 		queue
 			.known_headers
 			.entry(104)
