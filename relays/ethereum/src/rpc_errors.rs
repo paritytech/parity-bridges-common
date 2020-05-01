@@ -26,7 +26,7 @@ pub enum RpcError {
 	Ethereum(EthereumNodeError),
 	Substrate(SubstrateNodeError),
 	Request(RpcHttpError),
-	Decoding,
+	Decoding(codec::Error),
 }
 
 impl From<serde_json::Error> for RpcError {
@@ -50,6 +50,12 @@ impl From<SubstrateNodeError> for RpcError {
 impl From<RpcHttpError> for RpcError {
 	fn from(err: RpcHttpError) -> Self {
 		Self::Request(err)
+	}
+}
+
+impl From<codec::Error> for RpcError {
+	fn from(err: codec::Error) -> Self {
+		Self::Decoding(err)
 	}
 }
 

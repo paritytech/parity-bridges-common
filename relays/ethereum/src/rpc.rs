@@ -28,8 +28,10 @@ use crate::ethereum_types::{
 use crate::rpc_errors::{EthereumNodeError, RpcError, SubstrateNodeError};
 use crate::substrate_client::{Error as SubError, SubstrateConnectionParams};
 use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, Number as SubBlockNumber};
+use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
+use codec::{Decode, Encode};
 use ethereum_tx_sign::RawTransaction;
 use jsonrpsee::common::Params;
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
@@ -39,7 +41,7 @@ use jsonrpsee::{
 	transport::TransportClient,
 };
 use serde_json;
-use sp_bridge_eth_poa::EthereumHeadersApiCalls;
+use sp_bridge_eth_poa::{EthereumHeadersApiCalls, Header as SubstrateEthereumHeader};
 
 /// Proof of hash serialization success.
 const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; qed";
@@ -65,7 +67,7 @@ jsonrpsee::rpc_api! {
 	Substrate {
 		fn chain_getHeader(params: Params) -> SubstrateHeader;
 		fn state_call(method: Params) -> Bytes;
-		fn author_submitExtrinsic(extrinsic: Params) ->SubstrateHash;
+		fn author_submitExtrinsic(extrinsic: Params) -> SubstrateHash;
 		fn chain_getBlockHash(block_number: Params) -> SubstrateHash;
 		fn system_accountNextIndex(account_id: Params) -> node_primitives::Index;
 	}
@@ -172,16 +174,10 @@ pub trait SubstrateRpc {
 	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader>;
 	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash>;
 	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader>;
-	async fn next_account_index(
-		&mut self,
-		account: node_primitives::AccountId,
-	) -> Result<node_primitives::Index>;
+	async fn next_account_index(&mut self, account: node_primitives::AccountId) -> Result<node_primitives::Index>;
 	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId>;
-	async fn ethereum_receipts_required(&mut self) -> Result<(bool, EthereumHeaderId)>;
-	async fn ethereum_header_known(
-		&mut self,
-		header_id: EthereumHeaderId,
-	) -> Result<(bool, EthereumHeaderId)>;
+	async fn ethereum_receipts_required(&mut self, header: SubstrateEthereumHeader) -> Result<bool>;
+	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool>;
 }
 
 pub struct SubstrateRpcClient {
@@ -223,10 +219,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		todo!()
 	}
 
-	async fn next_account_index(
-		&mut self,
-		account: node_primitives::AccountId,
-	) -> Result<node_primitives::Index> {
+	async fn next_account_index(&mut self, account: node_primitives::AccountId) -> Result<node_primitives::Index> {
 		// Q: Should this belong here, or be left to the caller?
 		use sp_core::crypto::Ss58Codec;
 		let account = serde_json::to_value(account.to_ss58check())?;
@@ -240,31 +233,38 @@ impl SubstrateRpc for SubstrateRpcClient {
 		let data = "0x".to_string();
 		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::Value::String(data)]);
 
-		let _encoded_result = Substrate::state_call(&mut self.client, params).await?;
-		todo!("Decode result")
+		let encoded_response = Substrate::state_call(&mut self.client, params).await?;
+		let decoded_response: (u64, sp_bridge_eth_poa::H256) = Decode::decode(&mut &encoded_response.0[..])?;
+
+		let best_header_id = HeaderId(decoded_response.0, decoded_response.1);
+		Ok(best_header_id)
 	}
 
 	// Should I work with a QueuedEthereumHeader or a SubstrateEthereumHeader since that's what'll
 	// actually get encoded and sent to the RPC?
+	//
 	// I'm leaning towards the SubstrateEthereumHeader since that's a bit "lower level"
-	async fn ethereum_receipts_required(&mut self) -> Result<(bool, EthereumHeaderId)> {
+	async fn ethereum_receipts_required(&mut self, header: SubstrateEthereumHeader) -> Result<bool> {
 		let call = EthereumHeadersApiCalls::IsImportRequiresReceipts.to_string();
-		let data = "todo_put_header_in_here".to_string();
-		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::Value::String(data)]);
+		let data = Bytes(header.encode());
+		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::to_value(data)?]);
 
-		let _encoded_result = Substrate::state_call(&mut self.client, params).await?;
-		todo!("Decode result")
+		let encoded_response = Substrate::state_call(&mut self.client, params).await?;
+		let receipts_required: bool = Decode::decode(&mut &encoded_response.0[..])?;
+
+		// Gonna make it the resposibility of the caller to return (receipts_required, id)
+		Ok(receipts_required)
 	}
 
-	async fn ethereum_header_known(
-		&mut self,
-		header_id: EthereumHeaderId,
-	) -> Result<(bool, EthereumHeaderId)> {
+	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool> {
 		let call = EthereumHeadersApiCalls::IsKnownBlock.to_string();
-		let data = "todo_put_header_id".to_string();
-		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::Value::String(data)]);
+		let data = Bytes(header_id.1.encode());
+		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::to_value(data)?]);
 
-		let _encoded_result = Substrate::state_call(&mut self.client, params).await?;
-		todo!("Decode result")
+		let encoded_response = Substrate::state_call(&mut self.client, params).await?;
+		let is_known_block: bool = Decode::decode(&mut &encoded_response.0[..])?;
+
+		// Gonna make it the resposibility of the caller to return (is_known_block, id)
+		Ok(is_known_block)
 	}
 }
