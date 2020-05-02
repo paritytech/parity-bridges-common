@@ -103,16 +103,18 @@ impl EthereumRpcClient {
 
 #[async_trait]
 impl EthereumRpc for EthereumRpcClient {
-	// Not sure if I should use EthError, or jsonrpc::client::RequestError
+	/// Estimate gas usage for the given call.
 	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
 		let params = Params::Array(vec![serde_json::to_value(call_request)?]);
 		Ok(Ethereum::eth_estimateGas(&mut self.client, params).await?)
 	}
 
+	/// Retrieve number of the best known block from the Ethereum node.
 	async fn best_block_number(&mut self) -> Result<u64> {
 		Ok(Ethereum::eth_blockNumber(&mut self.client).await?.as_u64())
 	}
 
+	/// Retrieve block header by its number from Ethereum node.
 	async fn header_by_number(&mut self, block_number: u64) -> Result<EthereumHeader> {
 		// Only want to get hashes back from the RPC
 		let return_full_tx_obj = false;
@@ -125,10 +127,11 @@ impl EthereumRpc for EthereumRpcClient {
 		let header = Ethereum::eth_getBlockByNumber(&mut self.client, params).await?;
 		match header.number.is_some() && header.hash.is_some() {
 			true => Ok(header),
-			false => todo!(),
+			false => Err(RpcError::Ethereum::IncompleteHeader),
 		}
 	}
 
+	/// Retrieve block header by its hash from Ethereum node.
 	async fn header_by_hash(&mut self, hash: H256) -> Result<EthereumHeader> {
 		// Only want to get hashes back from the RPC
 		let return_full_tx_obj = false;
@@ -146,6 +149,7 @@ impl EthereumRpc for EthereumRpcClient {
 		}
 	}
 
+	/// Retrieve transaction receipt by transaction hash.
 	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt> {
 		let params = Params::Array(vec![
 			serde_json::to_value(transaction_hash).expect(HASH_SERIALIZATION_PROOF)
@@ -158,11 +162,15 @@ impl EthereumRpc for EthereumRpcClient {
 		}
 	}
 
+	/// Get the nonce of the given account.
 	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256> {
 		let params = Params::Array(vec![serde_json::to_value(address)?]);
 		Ok(Ethereum::eth_getTransactionCount(&mut self.client, params).await?)
 	}
 
+	/// Submit an Ethereum transaction.
+	///
+	/// The transaction must already be signed before sending it through this method.
 	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash> {
 		let transaction = serde_json::to_value(Bytes(signed_raw_tx))?;
 		let params = Params::Array(vec![transaction]);

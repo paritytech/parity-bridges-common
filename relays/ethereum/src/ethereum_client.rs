@@ -134,56 +134,6 @@ pub fn client(params: EthereumConnectionParams) -> Client {
 	RawClient::new(transport)
 }
 
-/// Retrieve best known block number from Ethereum node.
-pub async fn best_block_number(client: Client) -> (Client, Result<u64, Error>) {
-	let (client, result) = call_rpc::<U64>(client, "eth_blockNumber", Params::None).await;
-	(client, result.map(|x| x.as_u64()))
-}
-
-/// Retrieve block header by its number from Ethereum node.
-pub async fn header_by_number(client: Client, number: u64) -> (Client, Result<Header, Error>) {
-	let (client, header) = call_rpc(
-		client,
-		"eth_getBlockByNumber",
-		Params::Array(vec![
-			to_value(U64::from(number)).expect(INT_SERIALIZATION_PROOF),
-			to_value(false).expect(BOOL_SERIALIZATION_PROOF),
-		]),
-	)
-	.await;
-	(
-		client,
-		header.and_then(
-			|header: Header| match header.number.is_some() && header.hash.is_some() {
-				true => Ok(header),
-				false => Err(Error::IncompleteHeader),
-			},
-		),
-	)
-}
-
-/// Retrieve block header by its hash from Ethereum node.
-pub async fn header_by_hash(client: Client, hash: H256) -> (Client, Result<Header, Error>) {
-	let (client, header) = call_rpc(
-		client,
-		"eth_getBlockByHash",
-		Params::Array(vec![
-			to_value(hash).expect(HASH_SERIALIZATION_PROOF),
-			to_value(false).expect(BOOL_SERIALIZATION_PROOF),
-		]),
-	)
-	.await;
-	(
-		client,
-		header.and_then(
-			|header: Header| match header.number.is_none() && header.hash.is_none() {
-				true => Ok(header),
-				false => Err(Error::IncompleteHeader),
-			},
-		),
-	)
-}
-
 /// Retrieve transactions receipts for given block.
 pub async fn transactions_receipts(
 	client: &mut EthereumRpcClient,
@@ -201,23 +151,6 @@ pub async fn transactions_receipts(
 	}
 
 	Ok((id, transactions_receipts))
-}
-
-/// Retrieve transaction receipt by transaction hash.
-async fn transaction_receipt(client: Client, hash: H256) -> (Client, Result<Receipt, Error>) {
-	let (client, receipt) = call_rpc::<Receipt>(
-		client,
-		"eth_getTransactionReceipt",
-		Params::Array(vec![to_value(hash).expect(HASH_SERIALIZATION_PROOF)]),
-	)
-	.await;
-	(
-		client,
-		receipt.and_then(|receipt| match receipt.gas_used.is_some() {
-			true => Ok(receipt),
-			false => Err(Error::IncompleteReceipt),
-		}),
-	)
 }
 
 /// Returns best Substrate block that PoA chain knows of.
@@ -285,7 +218,7 @@ pub async fn submit_substrate_headers(
 	headers: Vec<QueuedSubstrateHeader>,
 ) -> Result<Vec<SubstrateHeaderId>, Error> {
 	let address: Address = params.signer.address().as_fixed_bytes().into();
-	let nonce = client
+	let mut nonce = client
 		.account_nonce(address)
 		.await
 		.expect("TODO: Figure out error handling");
@@ -370,51 +303,4 @@ async fn submit_ethereum_transaction(
 		.expect("TODO: Figure out error handling");
 
 	Ok(())
-}
-
-/// Get account nonce.
-async fn account_nonce(client: Client, caller_address: Address) -> (Client, Result<U256, Error>) {
-	let caller_address = bail_on_arg_error!(
-		to_value(caller_address).map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	call_rpc(client, "eth_getTransactionCount", Params::Array(vec![caller_address])).await
-}
-
-/// Estimate gas usage for call.
-async fn estimate_gas(client: Client, call_request: CallRequest) -> (Client, Result<U256, Error>) {
-	let call_request = bail_on_arg_error!(
-		to_value(call_request).map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	call_rpc(client, "eth_estimateGas", Params::Array(vec![call_request])).await
-}
-
-/// Calls RPC on Ethereum node.
-async fn call_rpc<T: DeserializeOwned>(
-	mut client: Client,
-	method: &'static str,
-	params: Params,
-) -> (Client, Result<T, Error>) {
-	async fn do_call_rpc<T: DeserializeOwned>(
-		client: &mut Client,
-		method: &'static str,
-		params: Params,
-	) -> Result<T, Error> {
-		let request_id = client
-			.start_request(method, params)
-			.await
-			.map_err(Error::StartRequestFailed)?;
-		// WARN: if there'll be need for executing >1 request at a time, we should avoid
-		// calling request_by_id
-		let response = client
-			.request_by_id(request_id)
-			.ok_or(Error::RequestNotFound)?
-			.await
-			.map_err(Error::ResponseRetrievalFailed)?;
-		from_value(response).map_err(|e| Error::ResponseParseFailed(format!("{}", e)))
-	}
-
-	let result = do_call_rpc(&mut client, method, params).await;
-	(client, result)
 }
