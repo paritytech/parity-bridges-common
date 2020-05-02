@@ -214,10 +214,12 @@ impl SubstrateRpcClient {
 
 #[async_trait]
 impl SubstrateRpc for SubstrateRpcClient {
+	/// Returns the best Substrate header.
 	async fn best_header(&mut self) -> Result<SubstrateHeader> {
 		Ok(Substrate::chain_getHeader(&mut self.client, Params::None).await?)
 	}
 
+	/// Get a Substrate header by its hash.
 	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader> {
 		let hash = serde_json::to_value(hash)?;
 		let params = Params::Array(vec![hash]);
@@ -225,18 +227,21 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(Substrate::chain_getHeader(&mut self.client, params).await?)
 	}
 
+	/// Get a Substrate block hash by its number.
 	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash> {
 		let params = Params::Array(vec![serde_json::to_value(number)?]);
 
 		Ok(Substrate::chain_getBlockHash(&mut self.client, params).await?)
 	}
 
+	/// Get a Substrate header by its number.
 	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader> {
 		// let block_hash = Self::block_hash_by_number(self, block_number).await?;
 		// Self::header_by_hash(self, block_hash).await?
 		todo!()
 	}
 
+	/// Get the nonce of the given Substrate account.
 	async fn next_account_index(&mut self, account: node_primitives::AccountId) -> Result<node_primitives::Index> {
 		// Q: Should this belong here, or be left to the caller?
 		use sp_core::crypto::Ss58Codec;
@@ -246,6 +251,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(Substrate::system_accountNextIndex(&mut self.client, params).await?)
 	}
 
+	/// Returns best Ethereum block that Substrate runtime knows of.
 	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId> {
 		let call = EthereumHeadersApiCalls::BestBlock.to_string();
 		let data = "0x".to_string();
@@ -258,6 +264,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(best_header_id)
 	}
 
+	/// Returns whether or not transactions receipts are required for Ethereum header submission.
 	// Should I work with a QueuedEthereumHeader or a SubstrateEthereumHeader since that's what'll
 	// actually get encoded and sent to the RPC?
 	//
@@ -274,6 +281,13 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(receipts_required)
 	}
 
+	/// Returns whether or not the given Ethereum header is known to the Substrate runtime.
+	// The Substrate module could prune old headers. So this function could return false even
+	// if header is synced. And we'll mark corresponding Ethereum header as Orphan.
+	//
+	// But when we read the best header from Substrate next time, we will know that
+	// there's a better header. This Orphan will either be marked as synced, or
+	// eventually pruned.
 	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool> {
 		let call = EthereumHeadersApiCalls::IsKnownBlock.to_string();
 		let data = Bytes(header_id.1.encode());
