@@ -20,6 +20,8 @@ use crate::substrate_types::{
 };
 use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
 use crate::{bail_on_arg_error, bail_on_error};
+use crate::rpc::{SubstrateRpc, SubstrateRpcClient};
+
 use codec::{Decode, Encode};
 use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
@@ -72,7 +74,7 @@ impl Default for SubstrateSigningParams {
 /// Substrate client type.
 pub struct Client {
 	/// Substrate RPC client.
-	rpc_client: RawClient<HttpTransportClient>,
+	rpc_client: SubstrateRpcClient,
 	/// Genesis block hash.
 	genesis_hash: Option<H256>,
 }
@@ -103,10 +105,10 @@ impl MaybeConnectionError for Error {
 
 /// Returns client that is able to call RPCs on Substrate node.
 pub fn client(params: SubstrateConnectionParams) -> Client {
-	let uri = format!("http://{}:{}", params.host, params.port);
-	let transport = HttpTransportClient::new(&uri);
+	// let uri = format!("http://{}:{}", params.host, params.port);
+	// let transport = HttpTransportClient::new(&uri);
 	Client {
-		rpc_client: RawClient::new(transport),
+		rpc_client: SubstrateRpcClient::new(params),
 		genesis_hash: None,
 	}
 }
@@ -200,78 +202,51 @@ pub async fn ethereum_header_known(
 
 /// Submits Ethereum header to Substrate runtime.
 pub async fn submit_ethereum_headers(
-	client: Client,
+	client: &mut Client,
 	params: SubstrateSigningParams,
 	headers: Vec<QueuedEthereumHeader>,
 	sign_transactions: bool,
-) -> (Client, Result<Vec<EthereumHeaderId>, Error>) {
+) -> Result<Vec<EthereumHeaderId>, Error> {
 	match sign_transactions {
 		true => submit_signed_ethereum_headers(client, params, headers).await,
 		false => submit_unsigned_ethereum_headers(client, headers).await,
 	}
 }
 
+// Note: These should probably be impl's of `Client`
 /// Submits signed Ethereum header to Substrate runtime.
 pub async fn submit_signed_ethereum_headers(
-	client: Client,
+	client: &mut Client,
 	params: SubstrateSigningParams,
 	headers: Vec<QueuedEthereumHeader>,
-) -> (Client, Result<Vec<EthereumHeaderId>, Error>) {
+) -> Result<Vec<EthereumHeaderId>, Error> {
 	let ids = headers.iter().map(|header| header.id()).collect();
-	let (client, genesis_hash) = match client.genesis_hash {
-		Some(genesis_hash) => (client, genesis_hash),
-		None => {
-			let (mut client, genesis_hash) = bail_on_error!(block_hash_by_number(client, Zero::zero()).await);
-			client.genesis_hash = Some(genesis_hash);
-			(client, genesis_hash)
-		}
+	let genesis_hash = match client.genesis_hash {
+		Some(genesis_hash) => genesis_hash,
+		None => client.rpc_client.block_hash_by_number(Zero::zero()).await.expect("TODO: Error handling"),
 	};
+
 	let account_id = params.signer.public().as_array_ref().clone().into();
-	let (client, nonce) = bail_on_error!(next_account_index(client, account_id).await);
+	let nonce = client.rpc_client.next_account_index(account_id).await.expect("TODO: Error handling");
 
 	let transaction = create_signed_submit_transaction(headers, &params.signer, nonce, genesis_hash);
-	let encoded_transaction = bail_on_arg_error!(
-		to_value(Bytes(transaction.encode())).map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	let (client, _) = call_rpc(
-		client,
-		"author_submitExtrinsic",
-		Params::Array(vec![encoded_transaction]),
-		|_| Ok(()),
-	)
-	.await;
+	let _tx_hash = client.rpc_client.submit_extrinsic(transaction).await.expect("TODO: Error handling");
 
-	(client, Ok(ids))
+	Ok(ids)
 }
 
 /// Submits unsigned Ethereum header to Substrate runtime.
 pub async fn submit_unsigned_ethereum_headers(
-	mut client: Client,
+	client: &mut Client,
 	headers: Vec<QueuedEthereumHeader>,
-) -> (Client, Result<Vec<EthereumHeaderId>, Error>) {
+) -> Result<Vec<EthereumHeaderId>, Error> {
 	let ids = headers.iter().map(|header| header.id()).collect();
 	for header in headers {
 		let transaction = create_unsigned_submit_transaction(header);
-
-		let encoded_transaction = bail_on_arg_error!(
-			to_value(Bytes(transaction.encode())).map_err(|e| Error::RequestSerialization(e)),
-			client
-		);
-		let (used_client, _) = bail_on_error!(
-			call_rpc(
-				client,
-				"author_submitExtrinsic",
-				Params::Array(vec![encoded_transaction]),
-				|_| Ok(()),
-			)
-			.await
-		);
-
-		client = used_client;
+		let _tx_hash = client.rpc_client.submit_extrinsic(transaction).await.expect("TODO: Error handling");
 	}
 
-	(client, Ok(ids))
+	Ok(ids)
 }
 
 /// Get GRANDPA authorities set at given block.
