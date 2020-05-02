@@ -15,9 +15,11 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_types::{Address, Bytes, EthereumHeaderId, Header, Receipt, TransactionHash, H256, U256, U64};
+use crate::rpc::{EthereumRpc, EthereumRpcClient};
 use crate::substrate_types::{Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId};
 use crate::sync_types::{HeaderId, MaybeConnectionError};
 use crate::{bail_on_arg_error, bail_on_error};
+
 use codec::{Decode, Encode};
 use ethabi::FunctionOutputDecoder;
 use jsonrpsee::common::Params;
@@ -184,17 +186,21 @@ pub async fn header_by_hash(client: Client, hash: H256) -> (Client, Result<Heade
 
 /// Retrieve transactions receipts for given block.
 pub async fn transactions_receipts(
-	mut client: Client,
+	client: &mut EthereumRpcClient,
 	id: EthereumHeaderId,
 	transactions: Vec<H256>,
-) -> (Client, Result<(EthereumHeaderId, Vec<Receipt>), Error>) {
+) -> Result<(EthereumHeaderId, Vec<Receipt>), Error> {
 	let mut transactions_receipts = Vec::with_capacity(transactions.len());
+
 	for transaction in transactions {
-		let (next_client, transaction_receipt) = bail_on_error!(transaction_receipt(client, transaction).await);
+		let transaction_receipt = client
+			.transaction_receipt(transaction)
+			.await
+			.expect("TODO: Figure out error handling");
 		transactions_receipts.push(transaction_receipt);
-		client = next_client;
 	}
-	(client, Ok((id, transactions_receipts)))
+
+	Ok((id, transactions_receipts))
 }
 
 /// Retrieve transaction receipt by transaction hash.
@@ -216,99 +222,102 @@ async fn transaction_receipt(client: Client, hash: H256) -> (Client, Result<Rece
 
 /// Returns best Substrate block that PoA chain knows of.
 pub async fn best_substrate_block(
-	client: Client,
+	client: &mut EthereumRpcClient,
 	contract_address: Address,
-) -> (Client, Result<SubstrateHeaderId, Error>) {
+) -> Result<SubstrateHeaderId, Error> {
 	let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
-	let call_request = bail_on_arg_error!(
-		to_value(CallRequest {
-			to: Some(contract_address),
-			data: Some(encoded_call.into()),
-		})
-		.map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	let (client, call_result) =
-		bail_on_error!(call_rpc::<Bytes>(client, "eth_call", Params::Array(vec![call_request]),).await);
+
+	let call_request = CallRequest {
+		to: Some(contract_address),
+		data: Some(encoded_call.into()),
+	};
+
+	let call_result = client
+		.eth_call(call_request)
+		.await
+		.expect("TODO: Figure out error handling");
+
 	let (number, raw_hash) = match call_decoder.decode(&call_result.0) {
 		Ok((raw_number, raw_hash)) => (raw_number, raw_hash),
-		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+		Err(error) => return Err(Error::ResponseParseFailed(format!("{}", error))),
 	};
+
 	let hash = match SubstrateHash::decode(&mut &raw_hash[..]) {
 		Ok(hash) => hash,
-		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+		Err(error) => return Err(Error::ResponseParseFailed(format!("{}", error))),
 	};
 
 	if number != number.low_u32().into() {
-		return (client, Err(Error::InvalidSubstrateBlockNumber));
+		return Err(Error::InvalidSubstrateBlockNumber);
 	}
 
-	(client, Ok(HeaderId(number.low_u32(), hash)))
+	Ok(HeaderId(number.low_u32(), hash))
 }
 
 /// Returns true if Substrate header is known to Ethereum node.
 pub async fn substrate_header_known(
-	client: Client,
+	client: &mut EthereumRpcClient,
 	contract_address: Address,
 	id: SubstrateHeaderId,
-) -> (Client, Result<(SubstrateHeaderId, bool), Error>) {
+) -> Result<(SubstrateHeaderId, bool), Error> {
 	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1);
-	let call_request = bail_on_arg_error!(
-		to_value(CallRequest {
-			to: Some(contract_address),
-			data: Some(encoded_call.into()),
-		})
-		.map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	let (client, call_result) =
-		bail_on_error!(call_rpc::<Bytes>(client, "eth_call", Params::Array(vec![call_request]),).await);
+
+	let call_request = CallRequest {
+		to: Some(contract_address),
+		data: Some(encoded_call.into()),
+	};
+
+	let call_result = client
+		.eth_call(call_request)
+		.await
+		.expect("TODO: Figure out error handling");
 	match call_decoder.decode(&call_result.0) {
-		Ok(is_known_block) => (client, Ok((id, is_known_block))),
-		Err(error) => (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+		Ok(is_known_block) => Ok((id, is_known_block)),
+		Err(error) => Err(Error::ResponseParseFailed(format!("{}", error))),
 	}
 }
 
 /// Submits Substrate headers to Ethereum contract.
 pub async fn submit_substrate_headers(
-	client: Client,
+	client: &mut EthereumRpcClient,
 	params: EthereumSigningParams,
 	contract_address: Address,
 	headers: Vec<QueuedSubstrateHeader>,
-) -> (Client, Result<Vec<SubstrateHeaderId>, Error>) {
-	let (mut client, mut nonce) =
-		bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await);
+) -> Result<Vec<SubstrateHeaderId>, Error> {
+	let address: Address = params.signer.address().as_fixed_bytes().into();
+	let nonce = client
+		.account_nonce(address)
+		.await
+		.expect("TODO: Figure out error handling");
 
 	let ids = headers.iter().map(|header| header.id()).collect();
 	for header in headers {
-		client = bail_on_error!(
-			submit_ethereum_transaction(
-				client,
-				&params,
-				Some(contract_address),
-				Some(nonce),
-				false,
-				bridge_contract::functions::import_header::encode_input(header.extract().0.encode(),),
-			)
-			.await
+		submit_ethereum_transaction(
+			client,
+			&params,
+			Some(contract_address),
+			Some(nonce),
+			false,
+			bridge_contract::functions::import_header::encode_input(header.extract().0.encode()),
 		)
-		.0;
+		.await
+		.expect("TODO: Figure out error handling");
 
 		nonce += 1.into();
 	}
 
-	(client, Ok(ids))
+	Ok(ids)
 }
 
 /// Deploy bridge contract.
 pub async fn deploy_bridge_contract(
-	client: Client,
+	client: &mut EthereumRpcClient,
 	params: &EthereumSigningParams,
 	contract_code: Vec<u8>,
 	initial_header: Vec<u8>,
 	initial_set_id: u64,
 	initial_authorities: Vec<u8>,
-) -> (Client, Result<(), Error>) {
+) -> Result<(), Error> {
 	submit_ethereum_transaction(
 		client,
 		params,
@@ -322,27 +331,29 @@ pub async fn deploy_bridge_contract(
 
 /// Submit ethereum transaction.
 async fn submit_ethereum_transaction(
-	client: Client,
+	client: &mut EthereumRpcClient,
 	params: &EthereumSigningParams,
 	contract_address: Option<Address>,
 	nonce: Option<U256>,
 	double_gas: bool,
 	encoded_call: Vec<u8>,
-) -> (Client, Result<(), Error>) {
-	let (client, nonce) = match nonce {
-		Some(nonce) => (client, nonce),
-		None => bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await),
-	};
-	let (client, gas) = bail_on_error!(
-		estimate_gas(
-			client,
-			CallRequest {
-				to: contract_address,
-				data: Some(encoded_call.clone().into()),
-			}
-		)
+) -> Result<(), Error> {
+	let address: Address = params.signer.address().as_fixed_bytes().into();
+	let nonce = client
+		.account_nonce(address)
 		.await
-	);
+		.expect("TODO: Figure out error handling");
+
+	let call_request = CallRequest {
+		to: contract_address,
+		data: Some(encoded_call.clone().into()),
+	};
+
+	let gas = client
+		.estimate_gas(call_request)
+		.await
+		.expect("TODO: Figure out error handling");
+
 	let raw_transaction = ethereum_tx_sign::RawTransaction {
 		nonce,
 		to: contract_address,
@@ -352,14 +363,13 @@ async fn submit_ethereum_transaction(
 		data: encoded_call,
 	}
 	.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
-	let transaction = bail_on_arg_error!(
-		to_value(Bytes(raw_transaction)).map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	let (client, _) = bail_on_error!(
-		call_rpc::<TransactionHash>(client, "eth_submitTransaction", Params::Array(vec![transaction])).await
-	);
-	(client, Ok(()))
+
+	let _tx_hash = client
+		.submit_transaction(raw_transaction)
+		.await
+		.expect("TODO: Figure out error handling");
+
+	Ok(())
 }
 
 /// Get account nonce.

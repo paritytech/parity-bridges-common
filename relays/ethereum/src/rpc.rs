@@ -31,8 +31,8 @@ use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, N
 use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
-use codec::{Decode, Encode};
 use bridge_node_runtime::UncheckedExtrinsic;
+use codec::{Decode, Encode};
 use ethereum_tx_sign::RawTransaction;
 use jsonrpsee::common::Params;
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
