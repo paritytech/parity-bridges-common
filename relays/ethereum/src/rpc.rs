@@ -300,6 +300,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(is_known_block)
 	}
 
+	/// Submit an extrinsic for inclusion in a block.
 	// TODO: Should move the UncheckedExtrinsic type elsewhere so I don't have to pull it in from
 	// the runtime
 	async fn submit_extrinsic(&mut self, transaction: UncheckedExtrinsic) -> Result<SubstrateHash> {
@@ -309,6 +310,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(Substrate::author_submitExtrinsic(&mut self.client, params).await?)
 	}
 
+	/// Get the GRANDPA authority set at given block.
 	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList> {
 		let call = RuntimeApiCalls::GrandpaAuthorities.to_string();
 		let data = block;
