@@ -127,7 +127,7 @@ impl EthereumRpc for EthereumRpcClient {
 		let header = Ethereum::eth_getBlockByNumber(&mut self.client, params).await?;
 		match header.number.is_some() && header.hash.is_some() {
 			true => Ok(header),
-			false => Err(RpcError::Ethereum::IncompleteHeader),
+			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
 		}
 	}
 
