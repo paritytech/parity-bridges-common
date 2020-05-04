@@ -1021,25 +1021,11 @@ dependencies = [
 
 [[package]]
 name = "ethabi"
-version = "11.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97652a7d1f2504d6c885c87e242a06ccef5bd3054093d3fb742d8fb64806231a"
-dependencies = [
- "ethereum-types 0.8.0",
- "rustc-hex",
- "serde",
- "serde_json",
- "tiny-keccak 1.5.0",
- "uint",
-]
-
-[[package]]
-name = "ethabi"
 version = "12.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "052a565e3de82944527d6d10a465697e6bb92476b772ca7141080c901f6a63c6"
 dependencies = [
- "ethereum-types 0.9.1",
+ "ethereum-types",
  "rustc-hex",
  "serde",
  "serde_json",
@@ -1055,11 +1041,11 @@ checksum = "88d4002f1f77d8233685dafd8589efe1c9dfa63e21ca6c11134372acc7f68032"
 
 [[package]]
 name = "ethabi-derive"
-version = "11.0.0"
+version = "12.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "587a3ff9748b24f38caecfec9654ae1aa5916ac2e7db2d15f2ab8f59b2fdc70a"
+checksum = "b7c0fe66618e0cfcf111afc863e7940413f2a88240cf63b38cc61206fe7be025"
 dependencies = [
- "ethabi 11.0.0",
+ "ethabi",
  "heck",
  "proc-macro2",
  "quote 1.0.3",
@@ -1075,7 +1061,6 @@ dependencies = [
  "crunchy",
  "fixed-hash 0.5.2",
  "impl-rlp",
- "impl-serde 0.2.3",
  "tiny-keccak 1.5.0",
 ]
 
@@ -1114,7 +1099,7 @@ dependencies = [
  "bridge-node-runtime",
  "clap",
  "env_logger",
- "ethabi 12.0.0",
+ "ethabi",
  "ethabi-contract",
  "ethabi-derive",
  "ethereum-tx-sign",
@@ -1146,7 +1131,7 @@ name = "ethereum-tx-sign"
 version = "3.0.2"
 source = "git+https://github.com/svyatonik/ethereum-tx-sign.git?branch=up-ethereum-types#f3ea6bf9ad2d2be708af13882474334b4e2d06ae"
 dependencies = [
- "ethereum-types 0.9.1",
+ "ethereum-types",
  "num-traits 0.2.11",
  "rlp",
  "secp256k1",
@@ -1154,20 +1139,6 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "tiny-keccak 2.0.2",
-]
-
-[[package]]
-name = "ethereum-types"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba744248e3553a393143d5ebb68939fc3a4ec0c22a269682535f5ffe7fed728c"
-dependencies = [
- "ethbloom 0.8.1",
- "fixed-hash 0.5.2",
- "impl-rlp",
- "impl-serde 0.2.3",
- "primitive-types 0.6.2",
- "uint",
 ]
 
 [[package]]
@@ -1180,7 +1151,7 @@ dependencies = [
  "fixed-hash 0.6.1",
  "impl-rlp",
  "impl-serde 0.3.0",
- "primitive-types 0.7.1",
+ "primitive-types",
  "uint",
 ]
 
@@ -3869,7 +3840,7 @@ dependencies = [
  "aes-ctr",
  "block-modes",
  "digest",
- "ethereum-types 0.9.1",
+ "ethereum-types",
  "hmac",
  "lazy_static",
  "pbkdf2",
@@ -3990,7 +3961,7 @@ dependencies = [
  "impl-trait-for-tuples",
  "parity-util-mem-derive",
  "parking_lot 0.10.2",
- "primitive-types 0.7.1",
+ "primitive-types",
  "smallvec 1.4.0",
  "winapi 0.3.8",
 ]
@@ -4185,19 +4156,6 @@ name = "ppv-lite86"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74490b50b9fbe561ac330df47c08f3f33073d2d00c150f719147d7c54522fa1b"
-
-[[package]]
-name = "primitive-types"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4336f4f5d5524fa60bcbd6fe626f9223d8142a50e7053e979acdf0da41ab975"
-dependencies = [
- "fixed-hash 0.5.2",
- "impl-codec",
- "impl-rlp",
- "impl-serde 0.3.0",
- "uint",
-]
 
 [[package]]
 name = "primitive-types"
@@ -6032,7 +5990,7 @@ dependencies = [
  "integer-sqrt",
  "num-traits 0.2.11",
  "parity-scale-codec",
- "primitive-types 0.7.1",
+ "primitive-types",
  "serde",
  "sp-debug-derive 2.0.0-dev",
  "sp-std 2.0.0-dev",
@@ -6108,7 +6066,7 @@ dependencies = [
  "parity-bytes",
  "parity-scale-codec",
  "plain_hasher",
- "primitive-types 0.7.1",
+ "primitive-types",
  "rlp",
  "serde",
  "serde-big-array",
@@ -6238,7 +6196,7 @@ dependencies = [
  "parity-scale-codec",
  "parity-util-mem",
  "parking_lot 0.10.2",
- "primitive-types 0.7.1",
+ "primitive-types",
  "rand 0.7.3",
  "regex",
  "rustc-hex",
@@ -6280,7 +6238,7 @@ dependencies = [
  "parity-scale-codec",
  "parity-util-mem",
  "parking_lot 0.10.2",
- "primitive-types 0.7.1",
+ "primitive-types",
  "rand 0.7.3",
  "regex",
  "schnorrkel",
@@ -6551,7 +6509,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d25229ba01740b13368f743e866d8ee155826932c9f2c4390e4ceb7730df214"
 dependencies = [
  "parity-scale-codec",
- "primitive-types 0.7.1",
+ "primitive-types",
  "sp-externalities 0.8.0-alpha.5",
  "sp-runtime-interface-proc-macro 2.0.0-alpha.5",
  "sp-std 2.0.0-alpha.5",
@@ -6565,7 +6523,7 @@ version = "2.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?rev=c13ad41634d0bd7cf07897c2aa062b917d520520#c13ad41634d0bd7cf07897c2aa062b917d520520"
 dependencies = [
  "parity-scale-codec",
- "primitive-types 0.7.1",
+ "primitive-types",
  "sp-externalities 0.8.0-dev",
  "sp-runtime-interface-proc-macro 2.0.0-dev",
  "sp-std 2.0.0-dev",
@@ -8040,8 +7998,8 @@ dependencies = [
  "arrayvec 0.5.1",
  "base64 0.12.0",
  "derive_more",
- "ethabi 12.0.0",
- "ethereum-types 0.9.1",
+ "ethabi",
+ "ethereum-types",
  "futures 0.1.29",
  "hyper 0.12.35",
  "hyper-tls",
