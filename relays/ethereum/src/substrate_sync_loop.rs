@@ -85,22 +85,15 @@ struct SubstrateHeadersSource {
 	client: substrate_client::Client,
 }
 
+type OwnedFutureOutput<T> = (SubstrateHeadersSource, Result<T, substrate_client::Error>);
+
 impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type Error = substrate_client::Error;
-	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Number, Self::Error>)>>>;
-	type HeaderByHashFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
-	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = (Self, Result<Header, Self::Error>)>>>;
-	type HeaderExtraFuture = Ready<(Self, Result<(SubstrateHeaderId, ()), Self::Error>)>;
-	type HeaderCompletionFuture = Pin<
-		Box<
-			dyn Future<
-				Output = (
-					Self,
-					Result<(SubstrateHeaderId, Option<GrandpaJustification>), Self::Error>,
-				),
-			>,
-		>,
-	>;
+	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<Number>>>>;
+	type HeaderByHashFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<Header>>>>;
+	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<Header>>>>;
+	type HeaderExtraFuture = Ready<OwnedFutureOutput<(SubstrateHeaderId, ())>>;
+	type HeaderCompletionFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)>>>>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
 		substrate_client::best_header(self.client)
