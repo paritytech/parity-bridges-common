@@ -156,15 +156,25 @@ mod tests {
 	#[test]
 	fn substrate_header_without_signal_parsed() {
 		assert_eq!(
-			parse_substrate_header(&RuntimeHeader {
-				parent_hash: [0u8; 32].into(),
-				number: 0,
-				state_root: "b2fc47904df5e355c6ab476d89fbc0733aeddbe302f0b94ba4eea9283f7e89e7".parse().unwrap(),
-				extrinsics_root: "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314".parse().unwrap(),
-				digest: Default::default(),
-			}.encode()).unwrap(),
+			parse_substrate_header(
+				&RuntimeHeader {
+					parent_hash: [0u8; 32].into(),
+					number: 0,
+					state_root: "b2fc47904df5e355c6ab476d89fbc0733aeddbe302f0b94ba4eea9283f7e89e7"
+						.parse()
+						.unwrap(),
+					extrinsics_root: "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314"
+						.parse()
+						.unwrap(),
+					digest: Default::default(),
+				}
+				.encode()
+			)
+			.unwrap(),
 			Header {
-				hash: "afbbeb92bf6ff14f60bdef0aa89f043dd403659ae82665238810ace0d761f6d0".parse().unwrap(),
+				hash: "afbbeb92bf6ff14f60bdef0aa89f043dd403659ae82665238810ace0d761f6d0"
+					.parse()
+					.unwrap(),
 				parent_hash: Default::default(),
 				number: 0,
 				signal: None,
@@ -184,20 +194,35 @@ mod tests {
 			ConsensusLog::ScheduledChange(ScheduledChange {
 				next_authorities: authorities.clone(),
 				delay: 8,
-			}).encode(),
+			})
+			.encode(),
 		));
 
 		assert_eq!(
-			parse_substrate_header(&RuntimeHeader {
-				parent_hash: "c0ac300d4005141ea690f3df593e049739c227316eb7f05052f3ee077388b68b".parse().unwrap(),
-				number: 8,
-				state_root: "822d6b412033aa9ac8e1722918eec5f25633529225754b3d4149982f5cacd4aa".parse().unwrap(),
-				extrinsics_root: "e7b07c0ce2799416ce7877b9cefc7f596bea5e8813bb2a0abf760414073ca928".parse().unwrap(),
-				digest,
-			}.encode()).unwrap(),
+			parse_substrate_header(
+				&RuntimeHeader {
+					parent_hash: "c0ac300d4005141ea690f3df593e049739c227316eb7f05052f3ee077388b68b"
+						.parse()
+						.unwrap(),
+					number: 8,
+					state_root: "822d6b412033aa9ac8e1722918eec5f25633529225754b3d4149982f5cacd4aa"
+						.parse()
+						.unwrap(),
+					extrinsics_root: "e7b07c0ce2799416ce7877b9cefc7f596bea5e8813bb2a0abf760414073ca928"
+						.parse()
+						.unwrap(),
+					digest,
+				}
+				.encode()
+			)
+			.unwrap(),
 			Header {
-				hash: "3dfebb280bd87a4640f89d7f2adecd62b88148747bff5b63af6e1634ee37a56e".parse().unwrap(),
-				parent_hash: "c0ac300d4005141ea690f3df593e049739c227316eb7f05052f3ee077388b68b".parse().unwrap(),
+				hash: "3dfebb280bd87a4640f89d7f2adecd62b88148747bff5b63af6e1634ee37a56e"
+					.parse()
+					.unwrap(),
+				parent_hash: "c0ac300d4005141ea690f3df593e049739c227316eb7f05052f3ee077388b68b"
+					.parse()
+					.unwrap(),
 				number: 8,
 				signal: Some(ValidatorsSetSignal {
 					delay: 8,
@@ -210,7 +235,8 @@ mod tests {
 	/// Number of the example block with justification.
 	const EXAMPLE_JUSTIFIED_BLOCK_NUMBER: u32 = 8;
 	/// Hash of the example block with justification.
-	const EXAMPLE_JUSTIFIED_BLOCK_HASH: &'static str = "a2f45892db86b2ad133ce57d81b7e4375bb7035ce9883e6b68c358164f343775";
+	const EXAMPLE_JUSTIFIED_BLOCK_HASH: &'static str =
+		"a2f45892db86b2ad133ce57d81b7e4375bb7035ce9883e6b68c358164f343775";
 	/// Id of authorities set that have generated example justification. Could be computed by tracking
 	/// every set change in canonized headers.
 	const EXAMPLE_AUTHORITIES_SET_ID: u64 = 0;
@@ -234,7 +260,8 @@ mod tests {
 			EXAMPLE_AUTHORITIES_SET_ID,
 			&hex::decode(EXAMPLE_AUTHORITIES_SET).unwrap(),
 			&hex::decode(EXAMPLE_JUSTIFICATION).unwrap(),
-		).unwrap();
+		)
+		.unwrap();
 	}
 
 	#[test]
@@ -245,7 +272,8 @@ mod tests {
 			EXAMPLE_AUTHORITIES_SET_ID,
 			&hex::decode(EXAMPLE_AUTHORITIES_SET).unwrap(),
 			&hex::decode(EXAMPLE_JUSTIFICATION).unwrap(),
-		).unwrap_err();
+		)
+		.unwrap_err();
 	}
 
 	#[test]
@@ -256,7 +284,8 @@ mod tests {
 			EXAMPLE_AUTHORITIES_SET_ID,
 			&hex::decode("deadbeef").unwrap(),
 			&hex::decode(EXAMPLE_JUSTIFICATION).unwrap(),
-		).unwrap_err();
+		)
+		.unwrap_err();
 	}
 
 	#[test]
@@ -267,7 +296,8 @@ mod tests {
 			42,
 			&hex::decode(EXAMPLE_AUTHORITIES_SET).unwrap(),
 			&hex::decode(EXAMPLE_JUSTIFICATION).unwrap(),
-		).unwrap_err();
+		)
+		.unwrap_err();
 	}
 
 	#[test]
@@ -278,6 +308,7 @@ mod tests {
 			0,
 			&hex::decode(EXAMPLE_AUTHORITIES_SET).unwrap(),
 			&hex::decode("deadbeef").unwrap(),
-		).unwrap_err();
+		)
+		.unwrap_err();
 	}
 }

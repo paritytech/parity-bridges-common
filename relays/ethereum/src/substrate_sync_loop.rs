@@ -23,7 +23,7 @@ use crate::substrate_types::{
 	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
-use crate::sync_loop::{SourceClient, OwnedSourceFutureOutput, OwnedTargetFutureOutput, TargetClient};
+use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceClient, TargetClient};
 use crate::sync_types::SourceHeader;
 use futures::future::{ready, FutureExt, Ready};
 use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
@@ -143,8 +143,7 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type IsKnownHeaderFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<(SubstrateHeaderId, bool)>>>>;
 	type RequiresExtraFuture = Ready<EthereumFutureOutput<(SubstrateHeaderId, bool)>>;
 	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<Vec<SubstrateHeaderId>>>>>;
-	type IncompleteHeadersFuture =
-		Pin<Box<dyn Future<Output = EthereumFutureOutput<HashSet<SubstrateHeaderId>>>>>;
+	type IncompleteHeadersFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<HashSet<SubstrateHeaderId>>>>>;
 	type CompleteHeadersFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<SubstrateHeaderId>>>>;
 
 	fn best_header_id(self) -> Self::BestHeaderIdFuture {

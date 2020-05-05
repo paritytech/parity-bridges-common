@@ -20,7 +20,7 @@ use crate::ethereum_client::{self, EthereumConnectionParams};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
 use crate::substrate_client::{self, SubstrateConnectionParams, SubstrateSigningParams};
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
-use crate::sync_loop::{SourceClient, OwnedSourceFutureOutput, OwnedTargetFutureOutput, TargetClient};
+use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceClient, TargetClient};
 use futures::future::{ready, FutureExt, Ready};
 use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 use web3::types::H256;
@@ -85,8 +85,7 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<u64>>>>;
 	type HeaderByHashFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<Header>>>>;
 	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<Header>>>>;
-	type HeaderExtraFuture =
-		Pin<Box<dyn Future<Output = EthereumFutureOutput<(EthereumHeaderId, Vec<Receipt>)>>>>;
+	type HeaderExtraFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<(EthereumHeaderId, Vec<Receipt>)>>>>;
 	type HeaderCompletionFuture = Ready<EthereumFutureOutput<(EthereumHeaderId, Option<()>)>>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {

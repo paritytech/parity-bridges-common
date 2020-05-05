@@ -61,7 +61,7 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	type HeaderExtraFuture: Future<Output = OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, P::Extra)>>;
 	/// Future that returns data required to 'complete' header.
 	type HeaderCompletionFuture: Future<
-		Output = OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, Option<P::Completion>)>
+		Output = OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, Option<P::Completion>)>,
 	>;
 
 	/// Get best block number.
@@ -89,7 +89,9 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	/// Future that returns header submission result.
 	type SubmitHeadersFuture: Future<Output = OwnedTargetFutureOutput<Self, P, Vec<HeaderId<P::Hash, P::Number>>>>;
 	/// Future that returns incomplete headers ids.
-	type IncompleteHeadersFuture: Future<Output = OwnedTargetFutureOutput<Self, P, HashSet<HeaderId<P::Hash, P::Number>>>>;
+	type IncompleteHeadersFuture: Future<
+		Output = OwnedTargetFutureOutput<Self, P, HashSet<HeaderId<P::Hash, P::Number>>>,
+	>;
 	/// Future that returns header completion result.
 	type CompleteHeadersFuture: Future<Output = OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>>;
 
