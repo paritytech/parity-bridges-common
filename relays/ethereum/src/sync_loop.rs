@@ -42,24 +42,26 @@ const BACKUP_STALL_SYNC_TIMEOUT: Duration = Duration::from_millis(10 * 60 * 1_00
 /// reconnection again.
 const CONNECTION_ERROR_DELAY: Duration = Duration::from_millis(10 * 1_000);
 
+/// Type alias for all SourceClient futures.
+pub type OwnedSourceFutureOutput<Client, P, T> = (Client, Result<T, <Client as SourceClient<P>>::Error>);
+/// Type alias for all TargetClient futures.
+pub type OwnedTargetFutureOutput<Client, P, T> = (Client, Result<T, <Client as TargetClient<P>>::Error>);
+
 /// Source client trait.
 pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
 	/// Future that returns best block number.
-	type BestBlockNumberFuture: Future<Output = (Self, Result<P::Number, Self::Error>)>;
+	type BestBlockNumberFuture: Future<Output = OwnedSourceFutureOutput<Self, P, P::Number>>;
 	/// Future that returns header by hash.
-	type HeaderByHashFuture: Future<Output = (Self, Result<P::Header, Self::Error>)>;
+	type HeaderByHashFuture: Future<Output = OwnedSourceFutureOutput<Self, P, P::Header>>;
 	/// Future that returns header by number.
-	type HeaderByNumberFuture: Future<Output = (Self, Result<P::Header, Self::Error>)>;
+	type HeaderByNumberFuture: Future<Output = OwnedSourceFutureOutput<Self, P, P::Header>>;
 	/// Future that returns extra data associated with header.
-	type HeaderExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, P::Extra), Self::Error>)>;
+	type HeaderExtraFuture: Future<Output = OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, P::Extra)>>;
 	/// Future that returns data required to 'complete' header.
 	type HeaderCompletionFuture: Future<
-		Output = (
-			Self,
-			Result<(HeaderId<P::Hash, P::Number>, Option<P::Completion>), Self::Error>,
-		),
+		Output = OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, Option<P::Completion>)>
 	>;
 
 	/// Get best block number.
@@ -79,17 +81,17 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
 	/// Future that returns best header id.
-	type BestHeaderIdFuture: Future<Output = (Self, Result<HeaderId<P::Hash, P::Number>, Self::Error>)>;
+	type BestHeaderIdFuture: Future<Output = OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>>;
 	/// Future that returns known header check result.
-	type IsKnownHeaderFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>)>;
+	type IsKnownHeaderFuture: Future<Output = OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>>;
 	/// Future that returns extra check result.
-	type RequiresExtraFuture: Future<Output = (Self, Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>)>;
+	type RequiresExtraFuture: Future<Output = OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>>;
 	/// Future that returns header submission result.
-	type SubmitHeadersFuture: Future<Output = (Self, Result<Vec<HeaderId<P::Hash, P::Number>>, Self::Error>)>;
+	type SubmitHeadersFuture: Future<Output = OwnedTargetFutureOutput<Self, P, Vec<HeaderId<P::Hash, P::Number>>>>;
 	/// Future that returns incomplete headers ids.
-	type IncompleteHeadersFuture: Future<Output = (Self, Result<HashSet<HeaderId<P::Hash, P::Number>>, Self::Error>)>;
+	type IncompleteHeadersFuture: Future<Output = OwnedTargetFutureOutput<Self, P, HashSet<HeaderId<P::Hash, P::Number>>>>;
 	/// Future that returns header completion result.
-	type CompleteHeadersFuture: Future<Output = (Self, Result<HeaderId<P::Hash, P::Number>, Self::Error>)>;
+	type CompleteHeadersFuture: Future<Output = OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>>;
 
 	/// Returns ID of best header known to the target node.
 	fn best_header_id(self) -> Self::BestHeaderIdFuture;

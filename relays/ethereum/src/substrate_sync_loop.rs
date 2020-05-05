@@ -23,7 +23,7 @@ use crate::substrate_types::{
 	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
-use crate::sync_loop::{SourceClient, TargetClient};
+use crate::sync_loop::{SourceClient, OwnedSourceFutureOutput, OwnedTargetFutureOutput, TargetClient};
 use crate::sync_types::SourceHeader;
 use futures::future::{ready, FutureExt, Ready};
 use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
@@ -85,16 +85,16 @@ struct SubstrateHeadersSource {
 	client: substrate_client::Client,
 }
 
-type OwnedFutureOutput<T> = (SubstrateHeadersSource, Result<T, substrate_client::Error>);
+type SubstrateFutureOutput<T> = OwnedSourceFutureOutput<SubstrateHeadersSource, SubstrateHeadersSyncPipeline, T>;
 
 impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type Error = substrate_client::Error;
-	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<Number>>>>;
-	type HeaderByHashFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<Header>>>>;
-	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<Header>>>>;
-	type HeaderExtraFuture = Ready<OwnedFutureOutput<(SubstrateHeaderId, ())>>;
+	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<Number>>>>;
+	type HeaderByHashFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<Header>>>>;
+	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<Header>>>>;
+	type HeaderExtraFuture = Ready<SubstrateFutureOutput<(SubstrateHeaderId, ())>>;
 	type HeaderCompletionFuture =
-		Pin<Box<dyn Future<Output = OwnedFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)>>>>;
+		Pin<Box<dyn Future<Output = SubstrateFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)>>>>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
 		substrate_client::best_header(self.client)
@@ -135,15 +135,17 @@ struct EthereumHeadersTarget {
 	sign_params: EthereumSigningParams,
 }
 
+type EthereumFutureOutput<T> = OwnedTargetFutureOutput<EthereumHeadersTarget, SubstrateHeadersSyncPipeline, T>;
+
 impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = ethereum_client::Error;
-	type BestHeaderIdFuture = Pin<Box<dyn Future<Output = (Self, Result<SubstrateHeaderId, Self::Error>)>>>;
-	type IsKnownHeaderFuture = Pin<Box<dyn Future<Output = (Self, Result<(SubstrateHeaderId, bool), Self::Error>)>>>;
-	type RequiresExtraFuture = Ready<(Self, Result<(SubstrateHeaderId, bool), Self::Error>)>;
-	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<Vec<SubstrateHeaderId>, Self::Error>)>>>;
+	type BestHeaderIdFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<SubstrateHeaderId>>>>;
+	type IsKnownHeaderFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<(SubstrateHeaderId, bool)>>>>;
+	type RequiresExtraFuture = Ready<EthereumFutureOutput<(SubstrateHeaderId, bool)>>;
+	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<Vec<SubstrateHeaderId>>>>>;
 	type IncompleteHeadersFuture =
-		Pin<Box<dyn Future<Output = (Self, Result<HashSet<SubstrateHeaderId>, Self::Error>)>>>;
-	type CompleteHeadersFuture = Pin<Box<dyn Future<Output = (Self, Result<SubstrateHeaderId, Self::Error>)>>>;
+		Pin<Box<dyn Future<Output = EthereumFutureOutput<HashSet<SubstrateHeaderId>>>>>;
+	type CompleteHeadersFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<SubstrateHeaderId>>>>;
 
 	fn best_header_id(self) -> Self::BestHeaderIdFuture {
 		let (contract, sign_params) = (self.contract, self.sign_params);
