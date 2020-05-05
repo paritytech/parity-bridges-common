@@ -122,7 +122,11 @@ pub fn verify_substrate_finality_proof(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bridge_node_runtime::DigestItem;
 	use hex_literal::hex;
+	use sp_core::crypto::Public;
+	use sp_finality_grandpa::{AuthorityId, ScheduledChange};
+	use sp_runtime::generic::Digest;
 
 	#[test]
 	fn to_substrate_block_number_succeeds() {
@@ -153,7 +157,13 @@ mod tests {
 	#[test]
 	fn substrate_header_without_signal_parsed() {
 		assert_eq!(
-			parse_substrate_header(&hex!("000000000000000000000000000000000000000000000000000000000000000000b2fc47904df5e355c6ab476d89fbc0733aeddbe302f0b94ba4eea9283f7e89e703170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c11131400")).unwrap(),
+			parse_substrate_header(&RuntimeHeader {
+				parent_hash: [0u8; 32].into(),
+				number: 0,
+				state_root: "b2fc47904df5e355c6ab476d89fbc0733aeddbe302f0b94ba4eea9283f7e89e7".parse().unwrap(),
+				extrinsics_root: "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314".parse().unwrap(),
+				digest: Default::default(),
+			}.encode()).unwrap(),
 			Header {
 				hash: "afbbeb92bf6ff14f60bdef0aa89f043dd403659ae82665238810ace0d761f6d0".parse().unwrap(),
 				parent_hash: Default::default(),
@@ -165,15 +175,34 @@ mod tests {
 
 	#[test]
 	fn substrate_header_with_signal_parsed() {
+		let authorities = vec![
+			(AuthorityId::from_slice(&[1; 32]), 101),
+			(AuthorityId::from_slice(&[3; 32]), 103),
+		];
+		let mut digest = Digest::default();
+		digest.push(DigestItem::Consensus(
+			GRANDPA_ENGINE_ID,
+			ConsensusLog::ScheduledChange(ScheduledChange {
+				next_authorities: authorities.clone(),
+				delay: 8,
+			}).encode(),
+		));
+
 		assert_eq!(
-			parse_substrate_header(&hex!("c0ac300d4005141ea690f3df593e049739c227316eb7f05052f3ee077388b68b20822d6b412033aa9ac8e1722918eec5f25633529225754b3d4149982f5cacd4aae7b07c0ce2799416ce7877b9cefc7f596bea5e8813bb2a0abf760414073ca92810066175726120ae54c70f0000000004617572618901010c90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20e659a7a1628cdd93febc04a4e0646ea20e9f5f0ce097d9a05290d4a9e054df4e0446524e4bf901010c439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f01000000000000005e639b43e0052c47447dac87d6fd2b6ec50bdd4d0f614e4299c665249bbd09d901000000000000001dfe3e22cc0d45c70779c1095f7489a8ef3cf52d62fbd8c2fa38c9f1723502b501000000000000000000000005617572610101acd5bb6f958101f460c5f86a1c45f6a28bc66fa436508e3db597ba76edefa5552c09b76850fd34328fa938b591cc1d59445d713b4ab59c750f5cdccd259d0383")).unwrap(),
+			parse_substrate_header(&RuntimeHeader {
+				parent_hash: "c0ac300d4005141ea690f3df593e049739c227316eb7f05052f3ee077388b68b".parse().unwrap(),
+				number: 8,
+				state_root: "822d6b412033aa9ac8e1722918eec5f25633529225754b3d4149982f5cacd4aa".parse().unwrap(),
+				extrinsics_root: "e7b07c0ce2799416ce7877b9cefc7f596bea5e8813bb2a0abf760414073ca928".parse().unwrap(),
+				digest,
+			}.encode()).unwrap(),
 			Header {
-				hash: "4444c880757dc15aa0aa54b26a7738131ffb33a95fc2b7cea1c1f5e933157ebd".parse().unwrap(),
+				hash: "3dfebb280bd87a4640f89d7f2adecd62b88148747bff5b63af6e1634ee37a56e".parse().unwrap(),
 				parent_hash: "c0ac300d4005141ea690f3df593e049739c227316eb7f05052f3ee077388b68b".parse().unwrap(),
 				number: 8,
 				signal: Some(ValidatorsSetSignal {
-					delay: 0,
-					validators: hex!("0c439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f01000000000000005e639b43e0052c47447dac87d6fd2b6ec50bdd4d0f614e4299c665249bbd09d901000000000000001dfe3e22cc0d45c70779c1095f7489a8ef3cf52d62fbd8c2fa38c9f1723502b50100000000000000").to_vec(),
+					delay: 8,
+					validators: authorities.encode(),
 				}),
 			},
 		);

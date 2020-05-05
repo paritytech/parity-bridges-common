@@ -1071,6 +1071,7 @@ dependencies = [
  "parity-scale-codec",
  "sc-finality-grandpa",
  "sp-blockchain",
+ "sp-core",
  "sp-finality-grandpa",
  "sp-runtime",
 ]
