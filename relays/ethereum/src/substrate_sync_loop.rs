@@ -93,7 +93,8 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type HeaderByHashFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<Header>>>>;
 	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<Header>>>>;
 	type HeaderExtraFuture = Ready<OwnedFutureOutput<(SubstrateHeaderId, ())>>;
-	type HeaderCompletionFuture = Pin<Box<dyn Future<Output = OwnedFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)>>>>;
+	type HeaderCompletionFuture =
+		Pin<Box<dyn Future<Output = OwnedFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)>>>>;
 
 	fn best_block_number(self) -> Self::BestBlockNumberFuture {
 		substrate_client::best_header(self.client)
