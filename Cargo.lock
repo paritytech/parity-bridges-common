@@ -1067,7 +1067,7 @@ version = "0.1.0"
 dependencies = [
  "bridge-node-runtime",
  "ethereum-types",
- "hex-literal",
+ "hex",
  "parity-scale-codec",
  "sc-finality-grandpa",
  "sp-blockchain",
