@@ -57,7 +57,8 @@ pub struct ValidatorsSetSignal {
 	pub validators: Vec<u8>,
 }
 
-/// Convert from U256 to BlockNumber.
+/// Convert from U256 to BlockNumber. Fails if `U256` value isn't fitting within `BlockNumber`
+/// limits (the runtime referenced by this module uses u32 as `BlockNumber`).
 pub fn to_substrate_block_number(number: U256) -> Result<BlockNumber, Error> {
 	match number == number.low_u32().into() {
 		true => Ok(number.low_u32()),
