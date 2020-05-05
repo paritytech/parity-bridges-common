@@ -25,9 +25,9 @@ use futures::future::{ready, FutureExt, Ready};
 use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 use web3::types::H256;
 
-/// Interval (in ms) at which we check new Ethereum headers when we are synced/almost synced.
+/// Interval at which we check new Ethereum headers when we are synced/almost synced.
 const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_millis(10 * 1_000);
-/// Interval (in ms) at which we check new Substrate blocks.
+/// Interval at which we check new Substrate blocks.
 const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_millis(5 * 1_000);
 /// Max number of headers in single submit transaction.
 const MAX_HEADERS_IN_SINGLE_SUBMIT: usize = 32;
