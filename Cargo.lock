@@ -542,6 +542,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-eth-poa",
+ "pallet-bridge-eth-poa-exchange",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
  "pallet-session",
@@ -3274,6 +3275,22 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "parity-crypto",
+ "parity-scale-codec",
+ "serde",
+ "sp-bridge-eth-poa",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-eth-poa-exchange"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "hex-literal",
  "parity-crypto",
  "parity-scale-codec",
  "serde",

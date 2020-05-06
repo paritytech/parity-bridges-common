@@ -35,6 +35,11 @@ version = "0.1.0"
 default-features = false
 path = "../../../modules/ethereum"
 
+[dependencies.pallet-bridge-eth-poa-exchange]
+version = "0.1.0"
+default-features = false
+path = "../../../modules/ethereum-exchange"
+
 [dependencies.frame-support]
 version = "2.0.0-alpha.6"
 default-features = false
@@ -191,6 +196,7 @@ std = [
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-bridge-eth-poa/std",
+	"pallet-bridge-eth-poa-exchange/std",
 	"codec/std",
 	"frame-executive/std",
 	"frame-support/std",

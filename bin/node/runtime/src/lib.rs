@@ -24,6 +24,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod kovan;
+
 use codec::{Decode, Encode};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::AuthorityList as GrandpaAuthorityList;
@@ -46,12 +48,13 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::Randomness,
+	traits::{Currency, ExistenceRequirement, Randomness},
 	weights::{RuntimeDbWeight, Weight},
 	StorageValue,
 };
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_eth_poa::Call as BridgeEthPoACall;
+pub use pallet_bridge_eth_poa_exchange::Call as BridgeEthPoAExchangeCall;
 pub use pallet_timestamp::Call as TimestampCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -208,6 +211,31 @@ impl pallet_bridge_eth_poa::Trait for Runtime {
 	type OnHeadersSubmitted = ();
 }
 
+impl pallet_bridge_eth_poa_exchange::Trait for Runtime {
+	type PeerBlockchain = kovan::KovanBlockchain;
+	type PeerMaybeLockFundsTransaction = kovan::KovanTransaction;
+	type RecipientsMap = pallet_bridge_eth_poa_exchange::AsIsRecipients<AccountId>;
+	type Amount = Balance;
+	type CurrencyConverter = pallet_bridge_eth_poa_exchange::AsIsCurrencyConverter<Balance>;
+	type Airdrop = AirdropFromAlice;
+}
+
+pub struct AirdropFromAlice;
+
+impl pallet_bridge_eth_poa_exchange::Airdrop for AirdropFromAlice {
+	type Recipient = AccountId;
+	type Amount = Balance;
+
+	fn drop(recipient: Self::Recipient, amount: Self::Amount) -> Result<(), &'static str> {
+		<pallet_balances::Module<Runtime> as Currency<AccountId>>::transfer(
+			&recipient, // TODO: Alice
+			&recipient,
+			amount,
+			frame_support::traits::ExistenceRequirement::AllowDeath,
+		).map_err(|_| "Airdrop failed")
+	}
+}
+
 impl pallet_grandpa::Trait for Runtime {
 	type Event = Event;
 }
@@ -339,6 +367,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		Session: pallet_session::{Module, Call, Storage, Event, Config<T>},
 		BridgeEthPoA: pallet_bridge_eth_poa::{Module, Call, Config, Storage, ValidateUnsigned},
+		BridgeEthPoAExchange: pallet_bridge_eth_poa_exchange::{Module, Call},
 	}
 );
 
