@@ -171,7 +171,7 @@ mod tests {
 			raw_header,
 			hex::decode("000000000000000000000000000000000000000000000000000000000000000000b2fc47904df5e355c6ab476d89fbc0733aeddbe302f0b94ba4eea9283f7e89e703170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c11131400").unwrap(),
 		);
-		
+
 		assert_eq!(
 			parse_substrate_header(&raw_header).unwrap(),
 			Header {

@@ -1467,11 +1467,31 @@ pub(crate) mod tests {
 		queue.incomplete.entry(102).or_default().insert(hash(102), header(102));
 		queue.incomplete.entry(103).or_default().insert(hash(103), header(103));
 		queue.incomplete.entry(104).or_default().insert(hash(104), header(104));
-		queue.known_headers.entry(100).or_default().insert(hash(100), HeaderStatus::Synced);
-		queue.known_headers.entry(101).or_default().insert(hash(101), HeaderStatus::Incomplete);
-		queue.known_headers.entry(102).or_default().insert(hash(102), HeaderStatus::Incomplete);
-		queue.known_headers.entry(103).or_default().insert(hash(103), HeaderStatus::Incomplete);
-		queue.known_headers.entry(104).or_default().insert(hash(104), HeaderStatus::Incomplete);
+		queue
+			.known_headers
+			.entry(100)
+			.or_default()
+			.insert(hash(100), HeaderStatus::Synced);
+		queue
+			.known_headers
+			.entry(101)
+			.or_default()
+			.insert(hash(101), HeaderStatus::Incomplete);
+		queue
+			.known_headers
+			.entry(102)
+			.or_default()
+			.insert(hash(102), HeaderStatus::Incomplete);
+		queue
+			.known_headers
+			.entry(103)
+			.or_default()
+			.insert(hash(103), HeaderStatus::Incomplete);
+		queue
+			.known_headers
+			.entry(104)
+			.or_default()
+			.insert(hash(104), HeaderStatus::Incomplete);
 
 		// let's say relay#2 completes header#100 and then submits header#101+header#102 and it turns
 		// that header#102 is also incomplete
