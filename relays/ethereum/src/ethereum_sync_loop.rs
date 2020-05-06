@@ -28,7 +28,7 @@ use web3::types::H256;
 /// Interval at which we check new Ethereum headers when we are synced/almost synced.
 const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(10);
 /// Interval at which we check new Substrate blocks.
-const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_millis(5 * 1_000);
+const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_secs(5);
 /// Max number of headers in single submit transaction.
 const MAX_HEADERS_IN_SINGLE_SUBMIT: usize = 32;
 /// Max total size of headers in single submit transaction. This only affects signed
