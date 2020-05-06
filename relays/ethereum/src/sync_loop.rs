@@ -34,13 +34,13 @@ use std::{
 /// direct child of previous best header. But: (1) subscription doesn't guarantee that
 /// the subscriber will receive every best header (2) reorg won't always lead to sync
 /// stall and restart is a heavy operation (we forget all in-memory headers).
-const STALL_SYNC_TIMEOUT: Duration = Duration::from_millis(5 * 60 * 1_000);
+const STALL_SYNC_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 /// Delay after we have seen update of best source header at target node,
 /// for us to treat sync stalled. ONLY when relay operates in backup mode.
-const BACKUP_STALL_SYNC_TIMEOUT: Duration = Duration::from_millis(10 * 60 * 1_000);
+const BACKUP_STALL_SYNC_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 /// Delay after connection-related error happened before we'll try
 /// reconnection again.
-const CONNECTION_ERROR_DELAY: Duration = Duration::from_millis(10 * 1_000);
+const CONNECTION_ERROR_DELAY: Duration = Duration::from_secs(10);
 
 /// Type alias for all SourceClient futures.
 pub type OwnedSourceFutureOutput<Client, P, T> = (Client, Result<T, <Client as SourceClient<P>>::Error>);
