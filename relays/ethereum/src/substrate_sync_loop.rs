@@ -28,10 +28,10 @@ use crate::sync_types::SourceHeader;
 use futures::future::{ready, FutureExt, Ready};
 use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 
-/// Interval (in ms) at which we check new Substrate headers when we are synced/almost synced.
-const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_millis(10 * 1_000);
-/// Interval (in ms) at which we check new Ethereum blocks.
-const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_millis(5 * 1_000);
+/// Interval at which we check new Substrate headers when we are synced/almost synced.
+const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_secs(10);
+/// Interval at which we check new Ethereum blocks.
+const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(5);
 /// Max Ethereum headers we want to have in all 'before-submitted' states.
 const MAX_FUTURE_HEADERS_TO_DOWNLOAD: usize = 8;
 /// Max Ethereum headers count we want to have in 'submitted' state.
