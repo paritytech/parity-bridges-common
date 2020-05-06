@@ -331,7 +331,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			None => return, // we'll try refetch later
 		};
 
-		if let Some(_) = self.incomplete_headers.remove(id) {
+		if self.incomplete_headers.remove(id).is_some() {
 			log::debug!(
 				target: "bridge",
 				"Received completion data from {} for header: {:?}",
