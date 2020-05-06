@@ -359,7 +359,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 	/// When header completion data is sent to target node.
 	pub fn header_completed(&mut self, id: &HeaderId<P::Hash, P::Number>) {
-		if let Some(_) = self.completion_data.remove(id) {
+		if self.completion_data.remove(id).is_some() {
 			log::debug!(
 				target: "bridge",
 				"Sent completion data to {} for header: {:?}",
