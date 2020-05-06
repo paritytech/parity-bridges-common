@@ -1456,4 +1456,31 @@ pub(crate) mod tests {
 		queue.header_response(header(110).header().clone());
 		assert_eq!(queue.known_headers.len(), 1);
 	}
+
+	#[test]
+	fn incomplete_headers_are_still_incomplete_after_advance() {
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+
+		// relay#1 knows that header#100 is incomplete && it has headers 101..104 in inomplete queue
+		queue.incomplete_headers.insert(id(100), None);
+		queue.incomplete.entry(101).or_default().insert(hash(101), header(101));
+		queue.incomplete.entry(102).or_default().insert(hash(102), header(102));
+		queue.incomplete.entry(103).or_default().insert(hash(103), header(103));
+		queue.incomplete.entry(104).or_default().insert(hash(104), header(104));
+		queue.known_headers.entry(100).or_default().insert(hash(100), HeaderStatus::Synced);
+		queue.known_headers.entry(101).or_default().insert(hash(101), HeaderStatus::Incomplete);
+		queue.known_headers.entry(102).or_default().insert(hash(102), HeaderStatus::Incomplete);
+		queue.known_headers.entry(103).or_default().insert(hash(103), HeaderStatus::Incomplete);
+		queue.known_headers.entry(104).or_default().insert(hash(104), HeaderStatus::Incomplete);
+
+		// let's say relay#2 completes header#100 and then submits header#101+header#102 and it turns
+		// that header#102 is also incomplete
+		queue.incomplete_headers_response(vec![id(102)].into_iter().collect());
+
+		// then the header#103 and the header#104 must have Incomplete status
+		assert_eq!(queue.status(&id(101)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(102)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(103)), HeaderStatus::Incomplete);
+		assert_eq!(queue.status(&id(104)), HeaderStatus::Incomplete);
+	}
 }
