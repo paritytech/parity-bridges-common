@@ -116,7 +116,6 @@ impl EthereumRpcClient {
 #[async_trait]
 impl EthereumRpc for EthereumRpcClient {
 	/// Estimate gas usage for the given call.
-	// Not sure if I should use EthError, or jsonrpc::client::RequestError
 	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
 		let params = Params::Array(vec![serde_json::to_value(call_request)?]);
 		Ok(Ethereum::estimate_gas(&mut self.client, params).await?)
@@ -155,8 +154,7 @@ impl EthereumRpc for EthereumRpcClient {
 		]);
 
 		let header = Ethereum::get_block_by_hash(&mut self.client, params).await?;
-		// Q: Slava, why are we checking `is_none()` here?
-		match header.number.is_none() && header.hash.is_none() {
+		match header.number.is_some() && header.hash.is_some() {
 			true => Ok(header),
 			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
 		}
@@ -317,8 +315,8 @@ impl SubstrateRpc for SubstrateRpcClient {
 	}
 
 	/// Submit an extrinsic for inclusion in a block.
-	// TODO: Should move the UncheckedExtrinsic type elsewhere so I don't have to pull it in from
-	// the runtime
+	// Q: Should I move the UncheckedExtrinsic type elsewhere so I don't have to pull it in from
+	// the runtime?
 	async fn submit_extrinsic(&mut self, transaction: UncheckedExtrinsic) -> Result<SubstrateHash> {
 		let encoded_transaction = Bytes(transaction.encode());
 		let params = Params::Array(vec![serde_json::to_value(encoded_transaction)?]);
