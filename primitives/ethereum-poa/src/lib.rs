@@ -354,7 +354,8 @@ impl std::string::ToString for RuntimeApiCalls {
 	fn to_string(&self) -> String {
 		match self {
 			RuntimeApiCalls::GrandpaAuthorities => "GrandpaApi_grandpa_authorities",
-		}.into()
+		}
+		.into()
 	}
 }
 

@@ -16,7 +16,7 @@
 
 //! RPC Module
 
-// #[warn(missing_docs)]
+#[warn(missing_docs)]
 
 use std::result;
 
@@ -31,8 +31,8 @@ use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, N
 use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
-use codec::{Decode, Encode};
 use bridge_node_runtime::UncheckedExtrinsic;
+use codec::{Decode, Encode};
 use ethereum_tx_sign::RawTransaction;
 use jsonrpsee::common::Params;
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
@@ -75,6 +75,7 @@ jsonrpsee::rpc_api! {
 	}
 }
 
+/// The API for the supported Ethereum RPC methods.
 #[async_trait]
 pub trait EthereumRpc {
 	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256>;
@@ -87,11 +88,13 @@ pub trait EthereumRpc {
 	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes>;
 }
 
+/// The client used to interact with an Ethereum node through RPC.
 pub struct EthereumRpcClient {
 	client: RawClient<HttpTransportClient>,
 }
 
 impl EthereumRpcClient {
+	/// Create a new Ethereum RPC Client.
 	pub fn new(params: EthereumConnectionParams) -> Self {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
@@ -103,16 +106,19 @@ impl EthereumRpcClient {
 
 #[async_trait]
 impl EthereumRpc for EthereumRpcClient {
+	/// Estimate gas usage for the given call.
 	// Not sure if I should use EthError, or jsonrpc::client::RequestError
 	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
 		let params = Params::Array(vec![serde_json::to_value(call_request)?]);
 		Ok(Ethereum::eth_estimateGas(&mut self.client, params).await?)
 	}
 
+	/// Retrieve number of the best known block from the Ethereum node.
 	async fn best_block_number(&mut self) -> Result<u64> {
 		Ok(Ethereum::eth_blockNumber(&mut self.client).await?.as_u64())
 	}
 
+	/// Retrieve block header by its number from Ethereum node.
 	async fn header_by_number(&mut self, block_number: u64) -> Result<EthereumHeader> {
 		// Only want to get hashes back from the RPC
 		let return_full_tx_obj = false;
@@ -125,10 +131,11 @@ impl EthereumRpc for EthereumRpcClient {
 		let header = Ethereum::eth_getBlockByNumber(&mut self.client, params).await?;
 		match header.number.is_some() && header.hash.is_some() {
 			true => Ok(header),
-			false => todo!(),
+			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
 		}
 	}
 
+	/// Retrieve block header by its hash from Ethereum node.
 	async fn header_by_hash(&mut self, hash: H256) -> Result<EthereumHeader> {
 		// Only want to get hashes back from the RPC
 		let return_full_tx_obj = false;
@@ -146,6 +153,7 @@ impl EthereumRpc for EthereumRpcClient {
 		}
 	}
 
+	/// Retrieve transaction receipt by transaction hash.
 	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt> {
 		let params = Params::Array(vec![
 			serde_json::to_value(transaction_hash).expect(HASH_SERIALIZATION_PROOF)
@@ -158,11 +166,15 @@ impl EthereumRpc for EthereumRpcClient {
 		}
 	}
 
+	/// Get the nonce of the given account.
 	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256> {
 		let params = Params::Array(vec![serde_json::to_value(address)?]);
 		Ok(Ethereum::eth_getTransactionCount(&mut self.client, params).await?)
 	}
 
+	/// Submit an Ethereum transaction.
+	///
+	/// The transaction must already be signed before sending it through this method.
 	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash> {
 		let transaction = serde_json::to_value(Bytes(signed_raw_tx))?;
 		let params = Params::Array(vec![transaction]);
@@ -170,12 +182,14 @@ impl EthereumRpc for EthereumRpcClient {
 		Ok(Ethereum::eth_submitTransaction(&mut self.client, params).await?)
 	}
 
+	/// Submit a call to an Ethereum smart contract.
 	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes> {
 		let params = Params::Array(vec![serde_json::to_value(call_transaction)?]);
 		Ok(Ethereum::eth_call(&mut self.client, params).await?)
 	}
 }
 
+/// The API for the supported Substrate RPC methods.
 #[async_trait]
 pub trait SubstrateRpc {
 	async fn best_header(&mut self) -> Result<SubstrateHeader>;
@@ -190,11 +204,13 @@ pub trait SubstrateRpc {
 	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList>;
 }
 
+/// The client used to interact with a Substrate node through RPC.
 pub struct SubstrateRpcClient {
 	client: RawClient<HttpTransportClient>,
 }
 
 impl SubstrateRpcClient {
+	/// Create a new Substrate RPC Client.
 	pub fn new(params: SubstrateConnectionParams) -> Self {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
@@ -206,10 +222,12 @@ impl SubstrateRpcClient {
 
 #[async_trait]
 impl SubstrateRpc for SubstrateRpcClient {
+	/// Returns the best Substrate header.
 	async fn best_header(&mut self) -> Result<SubstrateHeader> {
 		Ok(Substrate::chain_getHeader(&mut self.client, Params::None).await?)
 	}
 
+	/// Get a Substrate header by its hash.
 	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader> {
 		let hash = serde_json::to_value(hash)?;
 		let params = Params::Array(vec![hash]);
@@ -217,18 +235,21 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(Substrate::chain_getHeader(&mut self.client, params).await?)
 	}
 
+	/// Get a Substrate block hash by its number.
 	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash> {
 		let params = Params::Array(vec![serde_json::to_value(number)?]);
 
 		Ok(Substrate::chain_getBlockHash(&mut self.client, params).await?)
 	}
 
+	/// Get a Substrate header by its number.
 	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader> {
 		// let block_hash = Self::block_hash_by_number(self, block_number).await?;
 		// Self::header_by_hash(self, block_hash).await?
 		todo!()
 	}
 
+	/// Get the nonce of the given Substrate account.
 	async fn next_account_index(&mut self, account: node_primitives::AccountId) -> Result<node_primitives::Index> {
 		// Q: Should this belong here, or be left to the caller?
 		use sp_core::crypto::Ss58Codec;
@@ -238,6 +259,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(Substrate::system_accountNextIndex(&mut self.client, params).await?)
 	}
 
+	/// Returns best Ethereum block that Substrate runtime knows of.
 	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId> {
 		let call = EthereumHeadersApiCalls::BestBlock.to_string();
 		let data = "0x".to_string();
@@ -250,6 +272,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(best_header_id)
 	}
 
+	/// Returns whether or not transactions receipts are required for Ethereum header submission.
 	// Should I work with a QueuedEthereumHeader or a SubstrateEthereumHeader since that's what'll
 	// actually get encoded and sent to the RPC?
 	//
@@ -266,6 +289,13 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(receipts_required)
 	}
 
+	/// Returns whether or not the given Ethereum header is known to the Substrate runtime.
+	// The Substrate module could prune old headers. So this function could return false even
+	// if header is synced. And we'll mark corresponding Ethereum header as Orphan.
+	//
+	// But when we read the best header from Substrate next time, we will know that
+	// there's a better header. This Orphan will either be marked as synced, or
+	// eventually pruned.
 	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool> {
 		let call = EthereumHeadersApiCalls::IsKnownBlock.to_string();
 		let data = Bytes(header_id.1.encode());
@@ -278,6 +308,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(is_known_block)
 	}
 
+	/// Submit an extrinsic for inclusion in a block.
 	// TODO: Should move the UncheckedExtrinsic type elsewhere so I don't have to pull it in from
 	// the runtime
 	async fn submit_extrinsic(&mut self, transaction: UncheckedExtrinsic) -> Result<SubstrateHash> {
@@ -287,6 +318,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(Substrate::author_submitExtrinsic(&mut self.client, params).await?)
 	}
 
+	/// Get the GRANDPA authority set at given block.
 	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList> {
 		let call = RuntimeApiCalls::GrandpaAuthorities.to_string();
 		let data = block;
