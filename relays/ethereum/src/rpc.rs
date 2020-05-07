@@ -16,31 +16,27 @@
 
 //! RPC Module
 
+#![allow(dead_code)]
+#![allow(unused_variables)]
 #[warn(missing_docs)]
-
 use std::result;
 
-use crate::ethereum_client::{CallRequest, Error as EthError, EthereumConnectionParams};
+use crate::ethereum_client::{CallRequest, EthereumConnectionParams};
 use crate::ethereum_types::{
 	Address as EthAddress, Bytes, EthereumHeaderId, Header as EthereumHeader, Receipt, SignedRawTx,
 	TransactionHash as EthereumTxHash, H256, U256, U64,
 };
-use crate::rpc_errors::{EthereumNodeError, RpcError, SubstrateNodeError};
-use crate::substrate_client::{Error as SubError, SubstrateConnectionParams};
+use crate::rpc_errors::{EthereumNodeError, RpcError};
+use crate::substrate_client::SubstrateConnectionParams;
 use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, Number as SubBlockNumber};
 use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
 use bridge_node_runtime::UncheckedExtrinsic;
 use codec::{Decode, Encode};
-use ethereum_tx_sign::RawTransaction;
 use jsonrpsee::common::Params;
-use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
-use jsonrpsee::Client;
-use jsonrpsee::{
-	raw::client::{RawClient, RawClientError},
-	transport::TransportClient,
-};
+use jsonrpsee::raw::client::RawClient;
+use jsonrpsee::transport::http::HttpTransportClient;
 use serde_json;
 use sp_bridge_eth_poa::{EthereumHeadersApiCalls, Header as SubstrateEthereumHeader, RuntimeApiCalls};
 
@@ -56,22 +52,35 @@ type GrandpaAuthorityList = Vec<u8>;
 
 jsonrpsee::rpc_api! {
 	Ethereum {
-		fn eth_estimateGas(call_request: Params) -> U256;
-		fn eth_blockNumber() -> U64;
-		fn eth_getBlockByNumber(block_number: Params) -> EthereumHeader;
-		fn eth_getBlockByHash(hash: Params) -> EthereumHeader;
-		fn eth_getTransactionReceipt(transaction_hash: Params) -> Receipt;
-		fn eth_call(transaction_call: Params) -> Bytes;
-		fn eth_getTransactionCount(address: Params) -> U256;
-		fn eth_submitTransaction(transaction: Params) -> EthereumTxHash;
+		#[rpc(method = "eth_estimateGas")]
+		fn estimate_gas(call_request: Params) -> U256;
+		#[rpc(method = "eth_blockNumber")]
+		fn block_number() -> U64;
+		#[rpc(method = "eth_getBlockByNumber")]
+		fn get_block_by_number(block_number: Params) -> EthereumHeader;
+		#[rpc(method = "eth_getBlockByHash")]
+		fn get_block_by_hash(hash: Params) -> EthereumHeader;
+		#[rpc(method = "eth_getTransactionReceipt")]
+		fn get_transaction_receipt(transaction_hash: Params) -> Receipt;
+		#[rpc(method = "eth_getTransactionCount")]
+		fn get_transaction_count(address: Params) -> U256;
+		#[rpc(method = "eth_submitTransaction")]
+		fn submit_transaction(transaction: Params) -> EthereumTxHash;
+		#[rpc(method = "eth_call")]
+		fn call(transaction_call: Params) -> Bytes;
 	}
 
 	Substrate {
-		fn chain_getHeader(params: Params) -> SubstrateHeader;
+		#[rpc(method = "chain_getHeader")]
+		fn chain_get_header(params: Params) -> SubstrateHeader;
+		#[rpc(method = "chain_getBlockHash")]
+		fn chain_get_block_hash(block_number: Params) -> SubstrateHash;
+		#[rpc(method = "system_accountNextIndex")]
+		fn system_account_next_index(account_id: Params) -> node_primitives::Index;
+		#[rpc(method = "author_submitExtrinsic")]
+		fn author_submit_extrinsic(extrinsic: Params) -> SubstrateHash;
+		#[rpc(method = "state_call")]
 		fn state_call(method: Params) -> Bytes;
-		fn author_submitExtrinsic(extrinsic: Params) -> SubstrateHash;
-		fn chain_getBlockHash(block_number: Params) -> SubstrateHash;
-		fn system_accountNextIndex(account_id: Params) -> node_primitives::Index;
 	}
 }
 
@@ -110,12 +119,12 @@ impl EthereumRpc for EthereumRpcClient {
 	// Not sure if I should use EthError, or jsonrpc::client::RequestError
 	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
 		let params = Params::Array(vec![serde_json::to_value(call_request)?]);
-		Ok(Ethereum::eth_estimateGas(&mut self.client, params).await?)
+		Ok(Ethereum::estimate_gas(&mut self.client, params).await?)
 	}
 
 	/// Retrieve number of the best known block from the Ethereum node.
 	async fn best_block_number(&mut self) -> Result<u64> {
-		Ok(Ethereum::eth_blockNumber(&mut self.client).await?.as_u64())
+		Ok(Ethereum::block_number(&mut self.client).await?.as_u64())
 	}
 
 	/// Retrieve block header by its number from Ethereum node.
@@ -128,7 +137,7 @@ impl EthereumRpc for EthereumRpcClient {
 			serde_json::to_value(return_full_tx_obj).expect(BOOL_SERIALIZATION_PROOF),
 		]);
 
-		let header = Ethereum::eth_getBlockByNumber(&mut self.client, params).await?;
+		let header = Ethereum::get_block_by_number(&mut self.client, params).await?;
 		match header.number.is_some() && header.hash.is_some() {
 			true => Ok(header),
 			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
@@ -145,7 +154,7 @@ impl EthereumRpc for EthereumRpcClient {
 			serde_json::to_value(return_full_tx_obj).expect(BOOL_SERIALIZATION_PROOF),
 		]);
 
-		let header = Ethereum::eth_getBlockByHash(&mut self.client, params).await?;
+		let header = Ethereum::get_block_by_hash(&mut self.client, params).await?;
 		// Q: Slava, why are we checking `is_none()` here?
 		match header.number.is_none() && header.hash.is_none() {
 			true => Ok(header),
@@ -158,7 +167,7 @@ impl EthereumRpc for EthereumRpcClient {
 		let params = Params::Array(vec![
 			serde_json::to_value(transaction_hash).expect(HASH_SERIALIZATION_PROOF)
 		]);
-		let receipt = Ethereum::eth_getTransactionReceipt(&mut self.client, params).await?;
+		let receipt = Ethereum::get_transaction_receipt(&mut self.client, params).await?;
 
 		match receipt.gas_used {
 			Some(_) => Ok(receipt),
@@ -169,7 +178,7 @@ impl EthereumRpc for EthereumRpcClient {
 	/// Get the nonce of the given account.
 	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256> {
 		let params = Params::Array(vec![serde_json::to_value(address)?]);
-		Ok(Ethereum::eth_getTransactionCount(&mut self.client, params).await?)
+		Ok(Ethereum::get_transaction_count(&mut self.client, params).await?)
 	}
 
 	/// Submit an Ethereum transaction.
@@ -179,13 +188,13 @@ impl EthereumRpc for EthereumRpcClient {
 		let transaction = serde_json::to_value(Bytes(signed_raw_tx))?;
 		let params = Params::Array(vec![transaction]);
 
-		Ok(Ethereum::eth_submitTransaction(&mut self.client, params).await?)
+		Ok(Ethereum::submit_transaction(&mut self.client, params).await?)
 	}
 
 	/// Submit a call to an Ethereum smart contract.
 	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes> {
 		let params = Params::Array(vec![serde_json::to_value(call_transaction)?]);
-		Ok(Ethereum::eth_call(&mut self.client, params).await?)
+		Ok(Ethereum::call(&mut self.client, params).await?)
 	}
 }
 
@@ -224,7 +233,7 @@ impl SubstrateRpcClient {
 impl SubstrateRpc for SubstrateRpcClient {
 	/// Returns the best Substrate header.
 	async fn best_header(&mut self) -> Result<SubstrateHeader> {
-		Ok(Substrate::chain_getHeader(&mut self.client, Params::None).await?)
+		Ok(Substrate::chain_get_header(&mut self.client, Params::None).await?)
 	}
 
 	/// Get a Substrate header by its hash.
@@ -232,21 +241,20 @@ impl SubstrateRpc for SubstrateRpcClient {
 		let hash = serde_json::to_value(hash)?;
 		let params = Params::Array(vec![hash]);
 
-		Ok(Substrate::chain_getHeader(&mut self.client, params).await?)
+		Ok(Substrate::chain_get_header(&mut self.client, params).await?)
 	}
 
 	/// Get a Substrate block hash by its number.
 	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash> {
 		let params = Params::Array(vec![serde_json::to_value(number)?]);
 
-		Ok(Substrate::chain_getBlockHash(&mut self.client, params).await?)
+		Ok(Substrate::chain_get_block_hash(&mut self.client, params).await?)
 	}
 
 	/// Get a Substrate header by its number.
 	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader> {
-		// let block_hash = Self::block_hash_by_number(self, block_number).await?;
-		// Self::header_by_hash(self, block_hash).await?
-		todo!()
+		let block_hash = Self::block_hash_by_number(self, block_number).await?;
+		Ok(Self::header_by_hash(self, block_hash).await?)
 	}
 
 	/// Get the nonce of the given Substrate account.
@@ -256,7 +264,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		let account = serde_json::to_value(account.to_ss58check())?;
 		let params = Params::Array(vec![account]);
 
-		Ok(Substrate::system_accountNextIndex(&mut self.client, params).await?)
+		Ok(Substrate::system_account_next_index(&mut self.client, params).await?)
 	}
 
 	/// Returns best Ethereum block that Substrate runtime knows of.
@@ -315,7 +323,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 		let encoded_transaction = Bytes(transaction.encode());
 		let params = Params::Array(vec![serde_json::to_value(encoded_transaction)?]);
 
-		Ok(Substrate::author_submitExtrinsic(&mut self.client, params).await?)
+		Ok(Substrate::author_submit_extrinsic(&mut self.client, params).await?)
 	}
 
 	/// Get the GRANDPA authority set at given block.
