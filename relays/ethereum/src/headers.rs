@@ -460,7 +460,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		queued_incomplete_header(&mut self.completion_data, |_| true)
 	}
 
-	/// Prune and never accep headers before this block.
+	/// Prune and never accept headers before this block.
 	pub fn prune(&mut self, prune_border: P::Number) {
 		if prune_border <= self.prune_border {
 			return;
