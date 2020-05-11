@@ -429,7 +429,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 			log::debug!(
 				target: "bridge",
-				"Completion data is no more required for header: {:?}",
+				"Completion data is no longer required for header: {:?}",
 				just_completed_header,
 			);
 
