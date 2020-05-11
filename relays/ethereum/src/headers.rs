@@ -1461,7 +1461,7 @@ pub(crate) mod tests {
 	fn incomplete_headers_are_still_incomplete_after_advance() {
 		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
 
-		// relay#1 knows that header#100 is incomplete && it has headers 101..104 in inomplete queue
+		// relay#1 knows that header#100 is incomplete && it has headers 101..104 in incomplete queue
 		queue.incomplete_headers.insert(id(100), None);
 		queue.incomplete.entry(101).or_default().insert(hash(101), header(101));
 		queue.incomplete.entry(102).or_default().insert(hash(102), header(102));
