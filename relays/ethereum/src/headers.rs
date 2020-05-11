@@ -730,7 +730,7 @@ fn queued_incomplete_header<Id: Clone + Eq + std::hash::Hash, T>(
 	map: &mut LinkedHashMap<Id, T>,
 	filter: impl FnMut(&mut T) -> bool,
 ) -> Option<(Id, &T)> {
-	// TODO: headers that have been just appended to the end of the queue would have to wait until
+	// TODO (#84): headers that have been just appended to the end of the queue would have to wait until
 	// all previous headers will be retried
 
 	let retry_old_header = map
