@@ -587,7 +587,7 @@ fn remove_header<P: HeadersSyncPipeline>(
 	header
 }
 
-/// Get header from the qeueue.
+/// Get header from the queue.
 fn header<'a, P: HeadersSyncPipeline>(
 	queue: &'a HeadersQueue<P>,
 	id: &HeaderId<P::Hash, P::Number>,
