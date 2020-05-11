@@ -725,7 +725,7 @@ fn set_header_status<P: HeadersSyncPipeline>(
 	*known_headers.entry(id.0).or_default().entry(id.1).or_insert(status) = status;
 }
 
-/// Returns queued imcomplete header with maximal elapsed time since last update.
+/// Returns queued incomplete header with maximal elapsed time since last update.
 fn queued_incomplete_header<Id: Clone + Eq + std::hash::Hash, T>(
 	map: &mut LinkedHashMap<Id, T>,
 	filter: impl FnMut(&mut T) -> bool,
