@@ -49,10 +49,28 @@ impl pallet_bridge_eth_poa_exchange::MaybeLockFundsTransaction for KovanTransact
 	type Amount = crate::Balance;
 
 	fn parse(tx: &Self::Transaction) -> Option<pallet_bridge_eth_poa_exchange::LockFundsTransaction<Self::Id, Self::Recipient, Self::Amount>> {
+		/*let tx_rlp = Rlp::new(&tx);
+		let nonce: U256 = tx_rlp.val_at(0)?;
+		let value: U256 = tx_rlp.val_at(4)?;
+		let account_id:  = tx_rlp.val_at(5);*/
+		unimplemented!()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn my_test() {
+		// https://etherscan.io/getRawTx?tx=0xb9d4ad5408f53eac8627f9ccd840ba8fb3469d55cd9cc2a11c6e049f1eef4edd
+		let tx = hex::decode("f86c0a85046c7cfe0083016dea94d1310c1e038bc12865d3d3997275b3e4737c6302880b503be34d9fe80080269fc7eaaa9c21f59adf8ad43ed66cf5ef9ee1c317bd4d32cd65401e7aaca47cfaa0387d79c65b90be6260d09dcfb780f29dd8133b9b1ceb20b83b7e442b4bfc30cb");
+
 		let tx_rlp = Rlp::new(&tx);
-		let nonce = tx_rlp.val_at(0)?;
-		let value = tx_rlp.val_at(4)?;
+		let nonce: U256 = tx_rlp.val_at(0)?;
+		let value: U256 = tx_rlp.val_at(4)?;
 		let account_id = tx_rlp.val_at(5);
-		
+
+		prin
 	}
 }

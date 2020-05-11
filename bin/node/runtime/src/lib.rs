@@ -227,7 +227,7 @@ impl pallet_bridge_eth_poa_exchange::Airdrop for AirdropFromAlice {
 	type Amount = Balance;
 
 	fn drop(recipient: Self::Recipient, amount: Self::Amount) -> Result<(), &'static str> {
-		<pallet_balances::Module<Runtime> as Currency<AccountId>>::transfer(
+		<pallet_balances::Module<Runtime> as Currency<AccountId>>::transfer( // TODO: deposit_into_existing
 			&recipient, // TODO: Alice
 			&recipient,
 			amount,
