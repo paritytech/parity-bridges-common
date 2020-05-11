@@ -1494,7 +1494,7 @@ pub(crate) mod tests {
 			.insert(hash(104), HeaderStatus::Incomplete);
 
 		// let's say relay#2 completes header#100 and then submits header#101+header#102 and it turns
-		// that header#102 is also incomplete
+		// out that header#102 is also incomplete
 		queue.incomplete_headers_response(vec![id(102)].into_iter().collect());
 
 		// then the header#103 and the header#104 must have Incomplete status
