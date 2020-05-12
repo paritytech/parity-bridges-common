@@ -344,40 +344,6 @@ pub fn public_to_address(public: &[u8; 64]) -> Address {
 	result
 }
 
-// TODO: There's got to be a better place for this
-pub enum RuntimeApiCalls {
-	GrandpaAuthorities,
-}
-
-#[cfg(feature = "std")]
-impl std::string::ToString for RuntimeApiCalls {
-	fn to_string(&self) -> String {
-		match self {
-			RuntimeApiCalls::GrandpaAuthorities => "GrandpaApi_grandpa_authorities",
-		}
-		.into()
-	}
-}
-
-// I want to be able to generate something like this directly from the decl_runtime_apis! macro
-pub enum EthereumHeadersApiCalls {
-	BestBlock,
-	IsImportRequiresReceipts,
-	IsKnownBlock,
-}
-
-#[cfg(feature = "std")]
-impl std::string::ToString for EthereumHeadersApiCalls {
-	fn to_string(&self) -> String {
-		match self {
-			EthereumHeadersApiCalls::BestBlock => "EthereumHeadersApi_best_block",
-			EthereumHeadersApiCalls::IsImportRequiresReceipts => "EthereumHeadersApi_is_import_requires_receipts",
-			EthereumHeadersApiCalls::IsKnownBlock => "EthereumHeadersApi_is_known_block",
-		}
-		.into()
-	}
-}
-
 sp_api::decl_runtime_apis! {
 	/// API for headers submitters.
 	pub trait EthereumHeadersApi {

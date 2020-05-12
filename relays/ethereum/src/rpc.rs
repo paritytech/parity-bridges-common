@@ -38,7 +38,12 @@ use jsonrpsee::common::Params;
 use jsonrpsee::raw::client::RawClient;
 use jsonrpsee::transport::http::HttpTransportClient;
 use serde_json;
-use sp_bridge_eth_poa::{EthereumHeadersApiCalls, Header as SubstrateEthereumHeader, RuntimeApiCalls};
+use sp_bridge_eth_poa::Header as SubstrateEthereumHeader;
+
+const ETH_API_BEST_BLOCK: &str = "EthereumHeadersApi_best_block";
+const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "EthereumHeadersApi_is_import_requires_receipts";
+const ETH_API_IS_KNOWN_BLOCK: &str = "EthereumHeadersApi_is_known_block";
+const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 
 type Result<T> = result::Result<T, RpcError>;
 type GrandpaAuthorityList = Vec<u8>;
@@ -160,9 +165,7 @@ impl EthereumRpc for EthereumRpcClient {
 	}
 
 	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt> {
-		let params = Params::Array(vec![
-			serde_json::to_value(transaction_hash)?
-		]);
+		let params = Params::Array(vec![serde_json::to_value(transaction_hash)?]);
 		let receipt = Ethereum::get_transaction_receipt(&mut self.client, params).await?;
 
 		match receipt.gas_used {
@@ -264,7 +267,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 	}
 
 	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId> {
-		let call = EthereumHeadersApiCalls::BestBlock.to_string();
+		let call = ETH_API_BEST_BLOCK.to_string();
 		let data = "0x".to_string();
 		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::Value::String(data)]);
 
@@ -280,7 +283,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 	//
 	// I'm leaning towards the SubstrateEthereumHeader since that's a bit "lower level"
 	async fn ethereum_receipts_required(&mut self, header: SubstrateEthereumHeader) -> Result<bool> {
-		let call = EthereumHeadersApiCalls::IsImportRequiresReceipts.to_string();
+		let call = ETH_API_IMPORT_REQUIRES_RECEIPTS.to_string();
 		let data = Bytes(header.encode());
 		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::to_value(data)?]);
 
@@ -298,7 +301,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 	// there's a better header. This Orphan will either be marked as synced, or
 	// eventually pruned.
 	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool> {
-		let call = EthereumHeadersApiCalls::IsKnownBlock.to_string();
+		let call = ETH_API_IS_KNOWN_BLOCK.to_string();
 		let data = Bytes(header_id.1.encode());
 		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::to_value(data)?]);
 
@@ -319,7 +322,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 	}
 
 	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList> {
-		let call = RuntimeApiCalls::GrandpaAuthorities.to_string();
+		let call = SUB_API_GRANDPA_AUTHORITIES.to_string();
 		let data = block;
 		let params = Params::Array(vec![serde_json::Value::String(call), serde_json::to_value(data)?]);
 
