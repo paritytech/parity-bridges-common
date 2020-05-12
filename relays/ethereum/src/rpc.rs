@@ -40,13 +40,6 @@ use jsonrpsee::transport::http::HttpTransportClient;
 use serde_json;
 use sp_bridge_eth_poa::{EthereumHeadersApiCalls, Header as SubstrateEthereumHeader, RuntimeApiCalls};
 
-/// Proof of hash serialization success.
-const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; qed";
-/// Proof of integer serialization success.
-const INT_SERIALIZATION_PROOF: &'static str = "integer serialization never fails; qed";
-/// Proof of bool serialization success.
-const BOOL_SERIALIZATION_PROOF: &'static str = "bool serialization never fails; qed";
-
 type Result<T> = result::Result<T, RpcError>;
 type GrandpaAuthorityList = Vec<u8>;
 
@@ -139,8 +132,8 @@ impl EthereumRpc for EthereumRpcClient {
 		let return_full_tx_obj = false;
 
 		let params = Params::Array(vec![
-			serde_json::to_value(U64::from(block_number)).expect(INT_SERIALIZATION_PROOF),
-			serde_json::to_value(return_full_tx_obj).expect(BOOL_SERIALIZATION_PROOF),
+			serde_json::to_value(U64::from(block_number))?,
+			serde_json::to_value(return_full_tx_obj)?,
 		]);
 
 		let header = Ethereum::get_block_by_number(&mut self.client, params).await?;
@@ -155,8 +148,8 @@ impl EthereumRpc for EthereumRpcClient {
 		let return_full_tx_obj = false;
 
 		let params = Params::Array(vec![
-			serde_json::to_value(hash).expect(HASH_SERIALIZATION_PROOF),
-			serde_json::to_value(return_full_tx_obj).expect(BOOL_SERIALIZATION_PROOF),
+			serde_json::to_value(hash)?,
+			serde_json::to_value(return_full_tx_obj)?,
 		]);
 
 		let header = Ethereum::get_block_by_hash(&mut self.client, params).await?;
@@ -168,7 +161,7 @@ impl EthereumRpc for EthereumRpcClient {
 
 	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt> {
 		let params = Params::Array(vec![
-			serde_json::to_value(transaction_hash).expect(HASH_SERIALIZATION_PROOF)
+			serde_json::to_value(transaction_hash)?
 		]);
 		let receipt = Ethereum::get_transaction_receipt(&mut self.client, params).await?;
 
