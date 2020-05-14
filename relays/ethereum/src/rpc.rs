@@ -28,7 +28,9 @@ use crate::ethereum_types::{
 };
 use crate::rpc_errors::{EthereumNodeError, RpcError};
 use crate::substrate_client::SubstrateConnectionParams;
-use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, Number as SubBlockNumber};
+use crate::substrate_types::{
+	Hash as SubstrateHash, Header as SubstrateHeader, Number as SubBlockNumber, SignedBlock as SubstrateBlock,
+};
 use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
@@ -70,6 +72,8 @@ jsonrpsee::rpc_api! {
 	Substrate {
 		#[rpc(method = "chain_getHeader")]
 		fn chain_get_header(block_hash: Option<SubstrateHash>) -> SubstrateHeader;
+		#[rpc(method = "chain_getBlock")]
+		fn chain_get_block(block_hash: Option<SubstrateHash>) -> SubstrateBlock;
 		#[rpc(method = "chain_getBlockHash")]
 		fn chain_get_block_hash(block_number: Option<SubBlockNumber>) -> SubstrateHash;
 		#[rpc(method = "system_accountNextIndex")]
@@ -182,6 +186,8 @@ impl EthereumRpc for EthereumRpcClient {
 pub trait SubstrateRpc {
 	/// Returns the best Substrate header.
 	async fn best_header(&mut self) -> Result<SubstrateHeader>;
+	/// Get a Substrate block from its hash.
+	async fn get_block(&mut self, block_hash: Option<SubstrateHash>) -> Result<SubstrateBlock>;
 	/// Get a Substrate header by its hash.
 	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader>;
 	/// Get a Substrate block hash by its number.
@@ -226,6 +232,10 @@ impl SubstrateRpcClient {
 impl SubstrateRpc for SubstrateRpcClient {
 	async fn best_header(&mut self) -> Result<SubstrateHeader> {
 		Ok(Substrate::chain_get_header(&mut self.client, None).await?)
+	}
+
+	async fn get_block(&mut self, block_hash: Option<SubstrateHash>) -> Result<SubstrateBlock> {
+		Ok(Substrate::chain_get_block(&mut self.client, block_hash).await?)
 	}
 
 	async fn header_by_hash(&mut self, block_hash: SubstrateHash) -> Result<SubstrateHeader> {
