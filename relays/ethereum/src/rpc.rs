@@ -212,7 +212,9 @@ pub trait SubstrateRpc {
 	/// Returns whether or not the given Ethereum header is known to the Substrate runtime.
 	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool>;
 	/// Submit an extrinsic for inclusion in a block.
-	async fn submit_extrinsic(&mut self, transaction: UncheckedExtrinsic) -> Result<SubstrateHash>;
+	///
+	/// Note: The given transaction does not need be SCALE encoded beforehand.
+	async fn submit_extrinsic(&mut self, transaction: Bytes) -> Result<SubstrateHash>;
 	/// Get the GRANDPA authority set at given block.
 	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList>;
 }
@@ -312,10 +314,8 @@ impl SubstrateRpc for SubstrateRpcClient {
 		Ok(is_known_block)
 	}
 
-	// Q: Should I move the UncheckedExtrinsic type elsewhere so I don't have to pull it in from
-	// the runtime?
-	async fn submit_extrinsic(&mut self, transaction: UncheckedExtrinsic) -> Result<SubstrateHash> {
-		let encoded_transaction = Bytes(transaction.encode());
+	async fn submit_extrinsic(&mut self, transaction: Bytes) -> Result<SubstrateHash> {
+		let encoded_transaction = Bytes(transaction.0.encode());
 		let params = Params::Array(vec![serde_json::to_value(encoded_transaction)?]);
 
 		Ok(Substrate::author_submit_extrinsic(&mut self.client, params).await?)
