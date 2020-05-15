@@ -3299,6 +3299,7 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-bridge-eth-poa",
+ "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",

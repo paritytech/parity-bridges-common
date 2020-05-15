@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use codec::Encode;
+use codec::{Decode, Encode};
 use sp_std::marker::PhantomData;
 
 /// All errors that may happen during exchange.
@@ -37,6 +37,7 @@ pub enum Error {
 pub type Result<T> = sp_std::result::Result<T, Error>;
 
 /// Peer blockchain lock funds transaction.
+#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq)]
 pub struct LockFundsTransaction<TransferId, Recipient, Amount> {
 	/// Something that uniquely identifies this transfer.
 	pub id: TransferId,
@@ -81,7 +82,7 @@ pub trait CurrencyConverter {
 	type TargetAmount;
 
 	/// Covert from source to target currency.
-	fn convert(currency: Self::SourceAmount) -> Result<Self::TargetAmount>;
+	fn convert(amount: Self::SourceAmount) -> Result<Self::TargetAmount>;
 }
 
 /// Currency airdrop.
@@ -96,6 +97,7 @@ pub trait Airdrop {
 }
 
 /// Recipients map which is used when accounts ids are the same on both chains.
+#[derive(Debug)]
 pub struct AsIsRecipients<AccountId>(PhantomData<AccountId>);
 
 impl<AccountId> RecipientsMap for AsIsRecipients<AccountId> {
@@ -108,6 +110,7 @@ impl<AccountId> RecipientsMap for AsIsRecipients<AccountId> {
 }
 
 /// Currency converter which is used when currency is the same on both chains.
+#[derive(Debug)]
 pub struct AsIsCurrencyConverter<Amount>(PhantomData<Amount>);
 
 impl<Amount> CurrencyConverter for AsIsCurrencyConverter<Amount> {

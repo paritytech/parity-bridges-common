@@ -159,3 +159,270 @@ impl<T: Trait> From<ExchangeError> for Error<T> {
 		}
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use frame_support::{assert_noop, assert_ok, impl_outer_origin, parameter_types, weights::Weight};
+	use primitives::exchange::LockFundsTransaction;
+	use sp_core::H256;
+	use sp_runtime::{Perbill, traits::{BlakeTwo256, IdentityLookup}, testing::Header};
+	use super::*;
+
+	const INVALID_TRANSACTION_ID: u64 = 100;
+	const ALREADY_CLAIMED_TRANSACTION_ID: u64 = 101;
+	const UNKNOWN_RECIPIENT_ID: u64 = 0;
+	const INVALID_AMOUNT: u64 = 0;
+	const MAX_AIRDROP_AMOUNT: u64 = 1000;
+
+	type RawTransaction = LockFundsTransaction<u64, u64, u64>;
+
+	pub struct DummyBlockchain;
+
+	impl Blockchain for DummyBlockchain {
+		type BlockHash = u64;
+		type Transaction = RawTransaction;
+		type TransactionInclusionProof = bool;
+
+		fn verify_transaction_inclusion_proof(
+			_transaction: &Self::Transaction,
+			_block: Self::BlockHash,
+			proof: &Self::TransactionInclusionProof,
+		) -> bool {
+			*proof
+		}
+	}
+
+	pub struct DummyTransaction;
+
+	impl MaybeLockFundsTransaction for DummyTransaction {
+		type Transaction = RawTransaction;
+		type Id = u64;
+		type Recipient = u64;
+		type Amount = u64;
+
+		fn parse(tx: &Self::Transaction) -> primitives::exchange::Result<RawTransaction> {
+			match tx.id {
+				INVALID_TRANSACTION_ID => Err(primitives::exchange::Error::InvalidTransaction),
+				_ => Ok(tx.clone()),
+			}
+		}
+	}
+
+	pub struct DummyRecipientsMap;
+
+	impl RecipientsMap for DummyRecipientsMap {
+		type PeerRecipient = u64;
+		type Recipient = u64;
+
+		fn map(peer_recipient: Self::PeerRecipient) -> primitives::exchange::Result<Self::Recipient> {
+			match peer_recipient {
+				UNKNOWN_RECIPIENT_ID => Err(primitives::exchange::Error::FailedToMapRecipients),
+				_ => Ok(peer_recipient * 10),
+			}
+		}
+	}
+
+	pub struct DummyCurrencyConverter;
+
+	impl CurrencyConverter for DummyCurrencyConverter {
+		type SourceAmount = u64;
+		type TargetAmount = u64;
+
+		fn convert(amount: Self::SourceAmount) -> primitives::exchange::Result<Self::TargetAmount> {
+			match amount {
+				INVALID_AMOUNT => Err(primitives::exchange::Error::FailedToCovertCurrency),
+				_ => Ok(amount * 10),
+			}
+		}
+	}
+
+	pub struct DummyAirdrop;
+
+	impl Airdrop for DummyAirdrop {
+		type Recipient = u64;
+		type Amount = u64;
+
+		fn drop(_recipient: Self::Recipient, amount: Self::Amount) -> primitives::exchange::Result<()> {
+			match amount > MAX_AIRDROP_AMOUNT {
+				true => Err(primitives::exchange::Error::AirdropFailed),
+				_ => Ok(()),
+			}
+		}
+	}
+
+	#[derive(Clone, Eq, PartialEq)]
+	pub struct TestRuntime;
+
+	impl_outer_origin! {
+		pub enum Origin for TestRuntime where system = frame_system {}
+	}
+
+	parameter_types! {
+		pub const BlockHashCount: u64 = 250;
+		pub const MaximumBlockWeight: Weight = 1024;
+		pub const MaximumBlockLength: u32 = 2 * 1024;
+		pub const AvailableBlockRatio: Perbill = Perbill::one();
+	}
+
+	impl frame_system::Trait for TestRuntime {
+		type Origin = Origin;
+		type Index = u64;
+		type Call = ();
+		type BlockNumber = u64;
+		type Hash = H256;
+		type Hashing = BlakeTwo256;
+		type AccountId = u64;
+		type Lookup = IdentityLookup<Self::AccountId>;
+		type Header = Header;
+		type Event = ();
+		type BlockHashCount = BlockHashCount;
+		type MaximumBlockWeight = MaximumBlockWeight;
+		type DbWeight = ();
+		type BlockExecutionWeight = ();
+		type ExtrinsicBaseWeight = ();
+		type AvailableBlockRatio = AvailableBlockRatio;
+		type MaximumBlockLength = MaximumBlockLength;
+		type Version = ();
+		type ModuleToIndex = ();
+		type AccountData = ();
+		type OnNewAccount = ();
+		type OnKilledAccount = ();
+	}
+
+	impl Trait for TestRuntime {
+		type PeerBlockchain = DummyBlockchain;
+		type PeerMaybeLockFundsTransaction = DummyTransaction;
+		type RecipientsMap = DummyRecipientsMap;
+		type Amount = u64;
+		type CurrencyConverter = DummyCurrencyConverter;
+		type Airdrop = DummyAirdrop;
+	}
+
+	type EthereumExchange = Module<TestRuntime>;
+
+	fn new_test_ext() -> sp_io::TestExternalities {
+		let t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+		sp_io::TestExternalities::new(t)
+	}
+
+	fn transaction(id: u64) -> RawTransaction {
+		RawTransaction {
+			id,
+			recipient: 1,
+			amount: 2,
+		}
+	}
+
+	#[test]
+	fn unfinalized_transaction_rejected() {
+		new_test_ext().execute_with(|| {
+			assert_noop!(
+				EthereumExchange::import_peer_transaction(
+					Origin::signed(1),
+					transaction(0),
+					0,
+					false,
+				),
+				Error::<TestRuntime>::UnfinalizedTransaction,
+			);
+		});
+	}
+
+	#[test]
+	fn invalid_transaction_rejected() {
+		new_test_ext().execute_with(|| {
+			assert_noop!(
+				EthereumExchange::import_peer_transaction(
+					Origin::signed(1),
+					transaction(INVALID_TRANSACTION_ID),
+					0,
+					true,
+				),
+				Error::<TestRuntime>::InvalidTransaction,
+			);
+		});
+	}
+
+	#[test]
+	fn claimed_transaction_rejected() {
+		new_test_ext().execute_with(|| {
+			<EthereumExchange as crate::Store>::Transfers::insert(ALREADY_CLAIMED_TRANSACTION_ID.encode(), ());
+			assert_noop!(
+				EthereumExchange::import_peer_transaction(
+					Origin::signed(1),
+					transaction(ALREADY_CLAIMED_TRANSACTION_ID),
+					0,
+					true,
+				),
+				Error::<TestRuntime>::AlreadyClaimed,
+			);
+		});
+	}
+
+	#[test]
+	fn transaction_with_unknown_recipient_rejected() {
+		new_test_ext().execute_with(|| {
+			let mut transaction = transaction(0);
+			transaction.recipient = UNKNOWN_RECIPIENT_ID;
+			assert_noop!(
+				EthereumExchange::import_peer_transaction(
+					Origin::signed(1),
+					transaction,
+					0,
+					true,
+				),
+				Error::<TestRuntime>::FailedToMapRecipients,
+			);
+		});
+	}
+
+	#[test]
+	fn transaction_with_invalid_amount_rejected() {
+		new_test_ext().execute_with(|| {
+			let mut transaction = transaction(0);
+			transaction.amount = INVALID_AMOUNT;
+			assert_noop!(
+				EthereumExchange::import_peer_transaction(
+					Origin::signed(1),
+					transaction,
+					0,
+					true,
+				),
+				Error::<TestRuntime>::FailedToCovertCurrency,
+			);
+		});
+	}
+
+	#[test]
+	fn transaction_with_invalid_airdrop_rejected() {
+		new_test_ext().execute_with(|| {
+			let mut transaction = transaction(0);
+			transaction.amount = MAX_AIRDROP_AMOUNT;
+			assert_noop!(
+				EthereumExchange::import_peer_transaction(
+					Origin::signed(1),
+					transaction,
+					0,
+					true,
+				),
+				Error::<TestRuntime>::AirdropFailed,
+			);
+		});
+	}
+
+	#[test]
+	fn valid_transaction_accepted() {
+		new_test_ext().execute_with(|| {
+			assert_ok!(
+				EthereumExchange::import_peer_transaction(
+					Origin::signed(1),
+					transaction(0),
+					0,
+					true,
+				),
+			);
+
+			assert!(<EthereumExchange as crate::Store>::Transfers::contains_key(0u64.encode()));
+		});
+	}
+}
