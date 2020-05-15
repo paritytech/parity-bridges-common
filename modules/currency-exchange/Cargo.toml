@@ -29,31 +29,21 @@ default-features = false
 rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"
 
-[dependencies.sp-core]
-version = "2.0.0-alpha.6"
-default-features = false
-rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
-git = "https://github.com/paritytech/substrate/"
-
-[dependencies.sp-io]
-version = "2.0.0-alpha.6"
-default-features = false
-rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
-git = "https://github.com/paritytech/substrate/"
-
 [dependencies.sp-runtime]
 version = "2.0.0-alpha.6"
 default-features = false
 rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate/"
 
-# Dev Dependencies
-[dev-dependencies]
+[dev-dependencies.sp-core]
+version = "2.0.0-alpha.6"
+rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
+git = "https://github.com/paritytech/substrate/"
 
-# TODO: Stop renaming this on import
-primitives = { package = "sp-bridge-eth-poa", path = "../../primitives/ethereum-poa", features = ["std", "test-helpers"] }
-parity-crypto = { version = "0.6", features = ["publickey"] }
-hex-literal = "0.2"
+[dev-dependencies.sp-io]
+version = "2.0.0-alpha.6"
+rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
+git = "https://github.com/paritytech/substrate/"
 
 [features]
 default = ["std"]

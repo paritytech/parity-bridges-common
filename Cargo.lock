@@ -3279,8 +3279,6 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "hex-literal",
- "parity-crypto",
  "parity-scale-codec",
  "serde",
  "sp-bridge-eth-poa",
