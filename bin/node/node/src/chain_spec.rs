@@ -57,7 +57,6 @@ where
 
 /// Helper function to generate an authority key for Aura
 pub fn get_authority_keys_from_seed(s: &str) -> (AccountId, AuraId, GrandpaId) {
-println!("=== {}: {:?}", s, get_account_id_from_seed::<sr25519::Public>(s));
 	(
 		get_account_id_from_seed::<sr25519::Public>(s),
 		get_from_seed::<AuraId>(s),
