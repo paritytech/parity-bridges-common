@@ -331,7 +331,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			None => return, // we'll try refetch later
 		};
 
-		if let Some(_) = self.incomplete_headers.remove(id) {
+		if self.incomplete_headers.remove(id).is_some() {
 			log::debug!(
 				target: "bridge",
 				"Received completion data from {} for header: {:?}",
@@ -359,7 +359,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 	/// When header completion data is sent to target node.
 	pub fn header_completed(&mut self, id: &HeaderId<P::Hash, P::Number>) {
-		if let Some(_) = self.completion_data.remove(id) {
+		if self.completion_data.remove(id).is_some() {
 			log::debug!(
 				target: "bridge",
 				"Sent completion data to {} for header: {:?}",
@@ -429,7 +429,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 			log::debug!(
 				target: "bridge",
-				"Completion data is no more required for header: {:?}",
+				"Completion data is no longer required for header: {:?}",
 				just_completed_header,
 			);
 
@@ -460,7 +460,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		queued_incomplete_header(&mut self.completion_data, |_| true)
 	}
 
-	/// Prune and never accep headers before this block.
+	/// Prune and never accept headers before this block.
 	pub fn prune(&mut self, prune_border: P::Number) {
 		if prune_border <= self.prune_border {
 			return;
@@ -587,7 +587,7 @@ fn remove_header<P: HeadersSyncPipeline>(
 	header
 }
 
-/// Get header from the qeueue.
+/// Get header from the queue.
 fn header<'a, P: HeadersSyncPipeline>(
 	queue: &'a HeadersQueue<P>,
 	id: &HeaderId<P::Hash, P::Number>,
@@ -725,12 +725,12 @@ fn set_header_status<P: HeadersSyncPipeline>(
 	*known_headers.entry(id.0).or_default().entry(id.1).or_insert(status) = status;
 }
 
-/// Returns queued imcomplete header with maximal elapsed time since last update.
+/// Returns queued incomplete header with maximal elapsed time since last update.
 fn queued_incomplete_header<Id: Clone + Eq + std::hash::Hash, T>(
 	map: &mut LinkedHashMap<Id, T>,
 	filter: impl FnMut(&mut T) -> bool,
 ) -> Option<(Id, &T)> {
-	// TODO: headers that have been just appended to the end of the queue would have to wait until
+	// TODO (#84): headers that have been just appended to the end of the queue would have to wait until
 	// all previous headers will be retried
 
 	let retry_old_header = map
@@ -1455,5 +1455,52 @@ pub(crate) mod tests {
 
 		queue.header_response(header(110).header().clone());
 		assert_eq!(queue.known_headers.len(), 1);
+	}
+
+	#[test]
+	fn incomplete_headers_are_still_incomplete_after_advance() {
+		let mut queue = QueuedHeaders::<EthereumHeadersSyncPipeline>::new();
+
+		// relay#1 knows that header#100 is incomplete && it has headers 101..104 in incomplete queue
+		queue.incomplete_headers.insert(id(100), None);
+		queue.incomplete.entry(101).or_default().insert(hash(101), header(101));
+		queue.incomplete.entry(102).or_default().insert(hash(102), header(102));
+		queue.incomplete.entry(103).or_default().insert(hash(103), header(103));
+		queue.incomplete.entry(104).or_default().insert(hash(104), header(104));
+		queue
+			.known_headers
+			.entry(100)
+			.or_default()
+			.insert(hash(100), HeaderStatus::Synced);
+		queue
+			.known_headers
+			.entry(101)
+			.or_default()
+			.insert(hash(101), HeaderStatus::Incomplete);
+		queue
+			.known_headers
+			.entry(102)
+			.or_default()
+			.insert(hash(102), HeaderStatus::Incomplete);
+		queue
+			.known_headers
+			.entry(103)
+			.or_default()
+			.insert(hash(103), HeaderStatus::Incomplete);
+		queue
+			.known_headers
+			.entry(104)
+			.or_default()
+			.insert(hash(104), HeaderStatus::Incomplete);
+
+		// let's say relay#2 completes header#100 and then submits header#101+header#102 and it turns
+		// out that header#102 is also incomplete
+		queue.incomplete_headers_response(vec![id(102)].into_iter().collect());
+
+		// then the header#103 and the header#104 must have Incomplete status
+		assert_eq!(queue.status(&id(101)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(102)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(103)), HeaderStatus::Incomplete);
+		assert_eq!(queue.status(&id(104)), HeaderStatus::Incomplete);
 	}
 }

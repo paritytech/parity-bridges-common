@@ -71,9 +71,21 @@ pub trait HeadersSyncPipeline: Clone + Copy {
 		+ num_traits::One;
 	/// Type of header that we're syncing.
 	type Header: Clone + std::fmt::Debug + SourceHeader<Self::Hash, Self::Number>;
-	/// Type of extra data for the header that we're receiving from the source node.
+	/// Type of extra data for the header that we're receiving from the source node:
+	/// 1) extra data is required for some headers;
+	/// 2) target node may answer if it'll require extra data before header is submitted;
+	/// 3) extra data available since the header creation time;
+	/// 4) header and extra data are submitted in single transaction.
+	///
+	/// Example: Ethereum transactions receipts.
 	type Extra: Clone + std::fmt::Debug;
-	/// Type of data required to 'complete' header that we're receiving from the source node.
+	/// Type of data required to 'complete' header that we're receiving from the source node:
+	/// 1) completion data is required for some headers;
+	/// 2) target node can't answer if it'll require completion data before header is accepted;
+	/// 3) completion data may be generated after header generation;
+	/// 4) header and completion data are submitted in separate transactions.
+	///
+	/// Example: Substrate GRANDPA justifications.
 	type Completion: Clone + std::fmt::Debug;
 
 	/// Function used to estimate size of target-encoded header.

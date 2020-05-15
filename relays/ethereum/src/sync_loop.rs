@@ -25,7 +25,7 @@ use std::{
 };
 
 /// When we submit headers to target node, but see no updates of best
-/// source block known to target node during STALL_SYNC_TIMEOUT_MS milliseconds,
+/// source block known to target node during STALL_SYNC_TIMEOUT seconds,
 /// we consider that our headers are rejected because there has been reorg in target chain.
 /// This reorg could invalidate our knowledge about sync process (i.e. we have asked if
 /// HeaderA is known to target, but then reorg happened and the answer is different
