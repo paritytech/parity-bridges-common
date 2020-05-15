@@ -541,8 +541,8 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "pallet-aura",
  "pallet-balances",
+ "pallet-bridge-currency-exchange",
  "pallet-bridge-eth-poa",
- "pallet-bridge-eth-poa-exchange",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
  "pallet-session",
@@ -3274,22 +3274,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-eth-poa"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-crypto",
- "parity-scale-codec",
- "serde",
- "sp-bridge-eth-poa",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-bridge-eth-poa-exchange"
+name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
  "frame-support",
@@ -3300,6 +3285,21 @@ dependencies = [
  "serde",
  "sp-bridge-eth-poa",
  "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-eth-poa"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-crypto",
+ "parity-scale-codec",
+ "serde",
+ "sp-bridge-eth-poa",
  "sp-io",
  "sp-runtime",
  "sp-std",

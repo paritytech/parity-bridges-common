@@ -433,7 +433,7 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Verify that transaction is included in given block.
-	pub fn verify_transaction_included(
+	pub fn verify_transaction_finalized(
 		tx: &RawTransaction,
 		block: H256,
 		proof: &Vec<RawTransaction>,
@@ -447,6 +447,12 @@ impl<T: Trait> Module<T> {
 			Some((header, _)) => header,
 			None => return false,
 		};
+		let (finalized_number, finalized_hash) = storage.finalized_block();
+
+		if header.number > finalized_number ||
+			(header.number == finalized_number && block != finalized_hash) {
+			return false;
+		}
 
 		header.check_transactions_root(proof)
 	}

@@ -17,7 +17,7 @@
 use codec::{Encode, Decode};
 use frame_support::RuntimeDebug;
 use sp_std::vec::Vec;
-use pallet_bridge_eth_poa_exchange::Blockchain;
+use pallet_bridge_currency_exchange::Blockchain;
 use sp_bridge_eth_poa::{
 	rlp_decode, transaction_decode,
 	exchange::{
@@ -54,7 +54,7 @@ impl Blockchain for KovanBlockchain {
 		block: Self::BlockHash,
 		proof: &Self::TransactionInclusionProof,
 	) -> bool {
-		crate::BridgeEthPoA::verify_transaction_included(
+		crate::BridgeEthPoA::verify_transaction_finalized(
 			transaction,
 			block,
 			proof,

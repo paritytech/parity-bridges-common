@@ -6,7 +6,7 @@ members = [
     "modules/substrate",
     "modules/ethereum",
     "modules/ethereum-contract/builtin",
-    "modules/ethereum-exchange",
+    "modules/currency-exchange",
     "relays/ethereum",
     "relays/substrate",
 ]
