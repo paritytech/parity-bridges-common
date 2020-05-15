@@ -18,7 +18,7 @@
 
 use codec::{Decode, Encode};
 use frame_support::{decl_module, decl_storage};
-use primitives::{Address, Header, Receipt, H256, U256};
+use primitives::{Address, Header, Receipt, H256, U256, RawTransaction};
 use sp_runtime::{
 	transaction_validity::{
 		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionSource, TransactionValidity,
@@ -430,6 +430,25 @@ impl<T: Trait> Module<T> {
 	/// Returns true if header is known to the runtime.
 	pub fn is_known_block(hash: H256) -> bool {
 		BridgeStorage::<T>::new().header(&hash).is_some()
+	}
+
+	/// Verify that transaction is included in given block.
+	pub fn verify_transaction_included(
+		tx: &RawTransaction,
+		block: H256,
+		proof: &Vec<RawTransaction>,
+	) -> bool {
+		if !proof.contains(tx) {
+			return false;
+		}
+
+		let storage = BridgeStorage::<T>::new();
+		let header = match storage.header(&block) {
+			Some((header, _)) => header,
+			None => return false,
+		};
+
+		header.check_transactions_root(proof)
 	}
 }
 

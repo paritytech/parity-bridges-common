@@ -17,16 +17,34 @@
 use codec::{Encode, Decode};
 use frame_support::RuntimeDebug;
 use sp_std::vec::Vec;
+use pallet_bridge_eth_poa_exchange::Blockchain;
+use sp_bridge_eth_poa::{
+	rlp_decode, transaction_decode,
+	exchange::{
+		MaybeLockFundsTransaction, LockFundsTransaction,
+		Error as ExchangeError, Result as ExchangeResult,
+	},
+};
 
+/// Address where locked PoA funds must be sent to (0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF).
+const LOCK_FUNDS_ADDRESS: [u8; 20] = [
+	0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD,
+	0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xDE, 0xAD,
+];
+
+/// We're uniquely identify transfer by pair (sender, nonce).
 #[derive(Encode, Decode, RuntimeDebug)]
 pub struct EthereumTransactionTag {
+	/// Account that has locked funds.
 	pub account: [u8; 20],
-	pub nonce: u64,
+	/// Lock transaction nonce.
+	pub nonce: sp_core::U256,
 }
 
+/// Kovan blockchain from runtime perspective.
 pub struct KovanBlockchain;
 
-impl pallet_bridge_eth_poa_exchange::Blockchain for KovanBlockchain {
+impl Blockchain for KovanBlockchain {
 	type BlockHash = sp_core::H256;
 	type Transaction = Vec<u8>;
 	type TransactionInclusionProof = Vec<Self::Transaction>;
@@ -35,42 +53,46 @@ impl pallet_bridge_eth_poa_exchange::Blockchain for KovanBlockchain {
 		transaction: &Self::Transaction,
 		block: Self::BlockHash,
 		proof: &Self::TransactionInclusionProof,
-	) {
-		unimplemented!()
+	) -> bool {
+		crate::BridgeEthPoA::verify_transaction_included(
+			transaction,
+			block,
+			proof,
+		)
 	}
 }
 
+/// Kovan transaction from runtime perspective.
 pub struct KovanTransaction;
 
-impl pallet_bridge_eth_poa_exchange::MaybeLockFundsTransaction for KovanTransaction {
+impl MaybeLockFundsTransaction for KovanTransaction {
 	type Transaction = Vec<u8>;
 	type Id = EthereumTransactionTag;
 	type Recipient = crate::AccountId;
 	type Amount = crate::Balance;
 
-	fn parse(tx: &Self::Transaction) -> Option<pallet_bridge_eth_poa_exchange::LockFundsTransaction<Self::Id, Self::Recipient, Self::Amount>> {
-		/*let tx_rlp = Rlp::new(&tx);
-		let nonce: U256 = tx_rlp.val_at(0)?;
-		let value: U256 = tx_rlp.val_at(4)?;
-		let account_id:  = tx_rlp.val_at(5);*/
-		unimplemented!()
-	}
-}
+	fn parse(raw_tx: &Self::Transaction) -> ExchangeResult<LockFundsTransaction<Self::Id, Self::Recipient, Self::Amount>> {
+		let tx = transaction_decode(raw_tx).map_err(|_| ExchangeError::InvalidTransaction)?;
 
-#[cfg(test)]
-mod tests {
-	use super::*;
+		// we only accept transactions sending funds to pre-configured address
+		if tx.to != Some(LOCK_FUNDS_ADDRESS.into()) {
+			return Err(ExchangeError::InvalidTransaction);
+		}
 
-	#[test]
-	fn my_test() {
-		// https://etherscan.io/getRawTx?tx=0xb9d4ad5408f53eac8627f9ccd840ba8fb3469d55cd9cc2a11c6e049f1eef4edd
-		let tx = hex::decode("f86c0a85046c7cfe0083016dea94d1310c1e038bc12865d3d3997275b3e4737c6302880b503be34d9fe80080269fc7eaaa9c21f59adf8ad43ed66cf5ef9ee1c317bd4d32cd65401e7aaca47cfaa0387d79c65b90be6260d09dcfb780f29dd8133b9b1ceb20b83b7e442b4bfc30cb");
+		let recipient: sp_core::H256 = rlp_decode(&tx.payload).map_err(|_| ExchangeError::InvalidRecipient)?;
+		let amount = tx.value.low_u128();
 
-		let tx_rlp = Rlp::new(&tx);
-		let nonce: U256 = tx_rlp.val_at(0)?;
-		let value: U256 = tx_rlp.val_at(4)?;
-		let account_id = tx_rlp.val_at(5);
+		if tx.value != amount.into() {
+			return Err(ExchangeError::InvalidAmount);
+		}
 
-		prin
+		Ok(LockFundsTransaction {
+			id: EthereumTransactionTag {
+				account: *tx.sender.as_fixed_bytes(),
+				nonce: tx.nonce,
+			},
+			recipient: crate::AccountId::from(*recipient.as_fixed_bytes()),
+			amount,
+		})
 	}
 }

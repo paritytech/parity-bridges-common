@@ -214,25 +214,23 @@ impl pallet_bridge_eth_poa::Trait for Runtime {
 impl pallet_bridge_eth_poa_exchange::Trait for Runtime {
 	type PeerBlockchain = kovan::KovanBlockchain;
 	type PeerMaybeLockFundsTransaction = kovan::KovanTransaction;
-	type RecipientsMap = pallet_bridge_eth_poa_exchange::AsIsRecipients<AccountId>;
+	type RecipientsMap = sp_bridge_eth_poa::exchange::AsIsRecipients<AccountId>;
 	type Amount = Balance;
-	type CurrencyConverter = pallet_bridge_eth_poa_exchange::AsIsCurrencyConverter<Balance>;
-	type Airdrop = AirdropFromAlice;
+	type CurrencyConverter = sp_bridge_eth_poa::exchange::AsIsCurrencyConverter<Balance>;
+	type Airdrop = Airdrop;
 }
 
-pub struct AirdropFromAlice;
+pub struct Airdrop;
 
-impl pallet_bridge_eth_poa_exchange::Airdrop for AirdropFromAlice {
+impl sp_bridge_eth_poa::exchange::Airdrop for Airdrop {
 	type Recipient = AccountId;
 	type Amount = Balance;
 
-	fn drop(recipient: Self::Recipient, amount: Self::Amount) -> Result<(), &'static str> {
-		<pallet_balances::Module<Runtime> as Currency<AccountId>>::transfer( // TODO: deposit_into_existing
-			&recipient, // TODO: Alice
+	fn drop(recipient: Self::Recipient, amount: Self::Amount) -> sp_bridge_eth_poa::exchange::Result<()> {
+		<pallet_balances::Module<Runtime> as Currency<AccountId>>::deposit_into_existing(
 			&recipient,
 			amount,
-			frame_support::traits::ExistenceRequirement::AllowDeath,
-		).map_err(|_| "Airdrop failed")
+		).map(drop).map_err(|_| sp_bridge_eth_poa::exchange::Error::AirdropFailed)
 	}
 }
 

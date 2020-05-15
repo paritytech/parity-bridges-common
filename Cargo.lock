@@ -5553,6 +5553,7 @@ dependencies = [
  "ethbloom 0.8.1",
  "fixed-hash 0.5.2",
  "hash-db",
+ "hex-literal",
  "impl-rlp",
  "impl-serde 0.2.3",
  "parity-bytes",
