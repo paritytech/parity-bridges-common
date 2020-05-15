@@ -54,7 +54,7 @@ pub use frame_support::{
 };
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_eth_poa::Call as BridgeEthPoACall;
-pub use pallet_bridge_eth_poa_exchange::Call as BridgeEthPoAExchangeCall;
+pub use pallet_bridge_exchange::Call as BridgeExchangeCall;
 pub use pallet_timestamp::Call as TimestampCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -211,7 +211,7 @@ impl pallet_bridge_eth_poa::Trait for Runtime {
 	type OnHeadersSubmitted = ();
 }
 
-impl pallet_bridge_eth_poa_exchange::Trait for Runtime {
+impl pallet_bridge_exchange::Trait for Runtime {
 	type PeerBlockchain = kovan::KovanBlockchain;
 	type PeerMaybeLockFundsTransaction = kovan::KovanTransaction;
 	type RecipientsMap = sp_bridge_eth_poa::exchange::AsIsRecipients<AccountId>;

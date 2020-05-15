@@ -1,5 +1,5 @@
 [package]
-name = "pallet-bridge-exchange"
+name = "pallet-bridge-currency-exchange"
 description = "A Substrate Runtime module that accepts 'lock funds' transactions from peer chain and grants equivalent amount to given Substrate account."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]

@@ -298,7 +298,7 @@ mod tests {
 		type Airdrop = DummyAirdrop;
 	}
 
-	type EthereumExchange = Module<TestRuntime>;
+	type Exhange = Module<TestRuntime>;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
 		let t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
@@ -317,7 +317,7 @@ mod tests {
 	fn unfinalized_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				EthereumExchange::import_peer_transaction(
+				Exhange::import_peer_transaction(
 					Origin::signed(1),
 					transaction(0),
 					0,
@@ -332,7 +332,7 @@ mod tests {
 	fn invalid_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				EthereumExchange::import_peer_transaction(
+				Exhange::import_peer_transaction(
 					Origin::signed(1),
 					transaction(INVALID_TRANSACTION_ID),
 					0,
@@ -346,9 +346,9 @@ mod tests {
 	#[test]
 	fn claimed_transaction_rejected() {
 		new_test_ext().execute_with(|| {
-			<EthereumExchange as crate::Store>::Transfers::insert(ALREADY_CLAIMED_TRANSACTION_ID.encode(), ());
+			<Exhange as crate::Store>::Transfers::insert(ALREADY_CLAIMED_TRANSACTION_ID.encode(), ());
 			assert_noop!(
-				EthereumExchange::import_peer_transaction(
+				Exhange::import_peer_transaction(
 					Origin::signed(1),
 					transaction(ALREADY_CLAIMED_TRANSACTION_ID),
 					0,
@@ -365,7 +365,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.recipient = UNKNOWN_RECIPIENT_ID;
 			assert_noop!(
-				EthereumExchange::import_peer_transaction(
+				Exhange::import_peer_transaction(
 					Origin::signed(1),
 					transaction,
 					0,
@@ -382,7 +382,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = INVALID_AMOUNT;
 			assert_noop!(
-				EthereumExchange::import_peer_transaction(
+				Exhange::import_peer_transaction(
 					Origin::signed(1),
 					transaction,
 					0,
@@ -399,7 +399,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = MAX_AIRDROP_AMOUNT;
 			assert_noop!(
-				EthereumExchange::import_peer_transaction(
+				Exhange::import_peer_transaction(
 					Origin::signed(1),
 					transaction,
 					0,
@@ -414,7 +414,7 @@ mod tests {
 	fn valid_transaction_accepted() {
 		new_test_ext().execute_with(|| {
 			assert_ok!(
-				EthereumExchange::import_peer_transaction(
+				Exhange::import_peer_transaction(
 					Origin::signed(1),
 					transaction(0),
 					0,
@@ -422,7 +422,7 @@ mod tests {
 				),
 			);
 
-			assert!(<EthereumExchange as crate::Store>::Transfers::contains_key(0u64.encode()));
+			assert!(<Exhange as crate::Store>::Transfers::contains_key(0u64.encode()));
 		});
 	}
 }
