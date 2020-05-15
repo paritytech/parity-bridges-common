@@ -53,8 +53,8 @@ pub use frame_support::{
 	StorageValue,
 };
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_bridge_eth_poa::Call as BridgeEthPoACall;
 pub use pallet_bridge_currency_exchange::Call as BridgeCurrencyExchangeCall;
+pub use pallet_bridge_eth_poa::Call as BridgeEthPoACall;
 pub use pallet_timestamp::Call as TimestampCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -227,10 +227,9 @@ impl sp_bridge_eth_poa::exchange::Airdrop for Airdrop {
 	type Amount = Balance;
 
 	fn drop(recipient: Self::Recipient, amount: Self::Amount) -> sp_bridge_eth_poa::exchange::Result<()> {
-		<pallet_balances::Module<Runtime> as Currency<AccountId>>::deposit_into_existing(
-			&recipient,
-			amount,
-		).map(drop).map_err(|_| sp_bridge_eth_poa::exchange::Error::AirdropFailed)
+		<pallet_balances::Module<Runtime> as Currency<AccountId>>::deposit_into_existing(&recipient, amount)
+			.map(drop)
+			.map_err(|_| sp_bridge_eth_poa::exchange::Error::AirdropFailed)
 	}
 }
 

@@ -14,22 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use codec::{Encode, Decode};
+use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
-use sp_std::vec::Vec;
 use pallet_bridge_currency_exchange::Blockchain;
 use sp_bridge_eth_poa::{
+	exchange::{Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult},
 	rlp_decode, transaction_decode,
-	exchange::{
-		MaybeLockFundsTransaction, LockFundsTransaction,
-		Error as ExchangeError, Result as ExchangeResult,
-	},
 };
+use sp_std::vec::Vec;
 
 /// Address where locked PoA funds must be sent to (0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF).
 const LOCK_FUNDS_ADDRESS: [u8; 20] = [
-	0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD,
-	0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xDE, 0xAD,
+	0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xDE,
+	0xAD,
 ];
 
 /// We're uniquely identify transfer by pair (sender, nonce).
@@ -54,11 +51,7 @@ impl Blockchain for KovanBlockchain {
 		block: Self::BlockHash,
 		proof: &Self::TransactionInclusionProof,
 	) -> bool {
-		crate::BridgeEthPoA::verify_transaction_finalized(
-			transaction,
-			block,
-			proof,
-		)
+		crate::BridgeEthPoA::verify_transaction_finalized(transaction, block, proof)
 	}
 }
 
@@ -71,7 +64,9 @@ impl MaybeLockFundsTransaction for KovanTransaction {
 	type Recipient = crate::AccountId;
 	type Amount = crate::Balance;
 
-	fn parse(raw_tx: &Self::Transaction) -> ExchangeResult<LockFundsTransaction<Self::Id, Self::Recipient, Self::Amount>> {
+	fn parse(
+		raw_tx: &Self::Transaction,
+	) -> ExchangeResult<LockFundsTransaction<Self::Id, Self::Recipient, Self::Amount>> {
 		let tx = transaction_decode(raw_tx).map_err(|_| ExchangeError::InvalidTransaction)?;
 
 		// we only accept transactions sending funds to pre-configured address

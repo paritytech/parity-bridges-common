@@ -18,7 +18,7 @@
 
 use codec::{Decode, Encode};
 use frame_support::{decl_module, decl_storage};
-use primitives::{Address, Header, Receipt, H256, U256, RawTransaction};
+use primitives::{Address, Header, RawTransaction, Receipt, H256, U256};
 use sp_runtime::{
 	transaction_validity::{
 		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionSource, TransactionValidity,
@@ -433,11 +433,7 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Verify that transaction is included in given block.
-	pub fn verify_transaction_finalized(
-		tx: &RawTransaction,
-		block: H256,
-		proof: &Vec<RawTransaction>,
-	) -> bool {
+	pub fn verify_transaction_finalized(tx: &RawTransaction, block: H256, proof: &Vec<RawTransaction>) -> bool {
 		if !proof.contains(tx) {
 			return false;
 		}
@@ -449,8 +445,7 @@ impl<T: Trait> Module<T> {
 		};
 		let (finalized_number, finalized_hash) = storage.finalized_block();
 
-		if header.number > finalized_number ||
-			(header.number == finalized_number && block != finalized_hash) {
+		if header.number > finalized_number || (header.number == finalized_number && block != finalized_hash) {
 			return false;
 		}
 

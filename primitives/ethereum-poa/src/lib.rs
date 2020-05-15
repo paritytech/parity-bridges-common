@@ -166,18 +166,12 @@ impl Header {
 
 	/// Check if passed transactions receipts are matching receipts root in this header.
 	pub fn check_receipts_root(&self, receipts: &[Receipt]) -> bool {
-		verify_merkle_proof(
-			self.receipts_root,
-			receipts.iter().map(|r| r.rlp()),
-		)
+		verify_merkle_proof(self.receipts_root, receipts.iter().map(|r| r.rlp()))
 	}
 
 	/// Check if passed transactions are matching transactions root in this header.
 	pub fn check_transactions_root(&self, transactions: &[RawTransaction]) -> bool {
-		verify_merkle_proof(
-			self.transactions_root,
-			transactions.into_iter(),
-		)
+		verify_merkle_proof(self.transactions_root, transactions.into_iter())
 	}
 
 	/// Gets the seal hash of this header.
@@ -456,8 +450,8 @@ sp_api::decl_runtime_apis! {
 
 #[cfg(test)]
 mod tests {
-	use hex_literal::hex;
 	use super::*;
+	use hex_literal::hex;
 
 	#[test]
 	fn transfer_transaction_decode_works() {

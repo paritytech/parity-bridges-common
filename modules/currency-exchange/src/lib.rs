@@ -17,13 +17,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
-use frame_support::{Parameter, decl_error, decl_module, decl_storage, ensure, fail};
+use frame_support::{decl_error, decl_module, decl_storage, ensure, fail, Parameter};
+use primitives::exchange::{
+	Airdrop, CurrencyConverter, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
+};
 use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
-use primitives::exchange::{
-	Error as ExchangeError, MaybeLockFundsTransaction,
-	RecipientsMap, CurrencyConverter, Airdrop,
-};
 
 /// Peer blockhain interface.
 pub trait Blockchain {
@@ -63,10 +62,7 @@ pub trait Trait: frame_system::Trait {
 		TargetAmount = Self::Amount,
 	>;
 	/// Something that could grant money.
-	type Airdrop: Airdrop<
-		Recipient = Self::AccountId,
-		Amount = Self::Amount,
-	>;
+	type Airdrop: Airdrop<Recipient = Self::AccountId, Amount = Self::Amount>;
 }
 
 decl_error! {
@@ -162,11 +158,15 @@ impl<T: Trait> From<ExchangeError> for Error<T> {
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use frame_support::{assert_noop, assert_ok, impl_outer_origin, parameter_types, weights::Weight};
 	use primitives::exchange::LockFundsTransaction;
 	use sp_core::H256;
-	use sp_runtime::{Perbill, traits::{BlakeTwo256, IdentityLookup}, testing::Header};
-	use super::*;
+	use sp_runtime::{
+		testing::Header,
+		traits::{BlakeTwo256, IdentityLookup},
+		Perbill,
+	};
 
 	const INVALID_TRANSACTION_ID: u64 = 100;
 	const ALREADY_CLAIMED_TRANSACTION_ID: u64 = 101;
@@ -301,7 +301,9 @@ mod tests {
 	type Exhange = Module<TestRuntime>;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
-		let t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+		let t = frame_system::GenesisConfig::default()
+			.build_storage::<TestRuntime>()
+			.unwrap();
 		sp_io::TestExternalities::new(t)
 	}
 
@@ -317,12 +319,7 @@ mod tests {
 	fn unfinalized_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Exhange::import_peer_transaction(
-					Origin::signed(1),
-					transaction(0),
-					0,
-					false,
-				),
+				Exhange::import_peer_transaction(Origin::signed(1), transaction(0), 0, false,),
 				Error::<TestRuntime>::UnfinalizedTransaction,
 			);
 		});
@@ -332,12 +329,7 @@ mod tests {
 	fn invalid_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Exhange::import_peer_transaction(
-					Origin::signed(1),
-					transaction(INVALID_TRANSACTION_ID),
-					0,
-					true,
-				),
+				Exhange::import_peer_transaction(Origin::signed(1), transaction(INVALID_TRANSACTION_ID), 0, true,),
 				Error::<TestRuntime>::InvalidTransaction,
 			);
 		});
@@ -365,12 +357,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.recipient = UNKNOWN_RECIPIENT_ID;
 			assert_noop!(
-				Exhange::import_peer_transaction(
-					Origin::signed(1),
-					transaction,
-					0,
-					true,
-				),
+				Exhange::import_peer_transaction(Origin::signed(1), transaction, 0, true,),
 				Error::<TestRuntime>::FailedToMapRecipients,
 			);
 		});
@@ -382,12 +369,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = INVALID_AMOUNT;
 			assert_noop!(
-				Exhange::import_peer_transaction(
-					Origin::signed(1),
-					transaction,
-					0,
-					true,
-				),
+				Exhange::import_peer_transaction(Origin::signed(1), transaction, 0, true,),
 				Error::<TestRuntime>::FailedToCovertCurrency,
 			);
 		});
@@ -399,12 +381,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = MAX_AIRDROP_AMOUNT;
 			assert_noop!(
-				Exhange::import_peer_transaction(
-					Origin::signed(1),
-					transaction,
-					0,
-					true,
-				),
+				Exhange::import_peer_transaction(Origin::signed(1), transaction, 0, true,),
 				Error::<TestRuntime>::AirdropFailed,
 			);
 		});
@@ -413,14 +390,12 @@ mod tests {
 	#[test]
 	fn valid_transaction_accepted() {
 		new_test_ext().execute_with(|| {
-			assert_ok!(
-				Exhange::import_peer_transaction(
-					Origin::signed(1),
-					transaction(0),
-					0,
-					true,
-				),
-			);
+			assert_ok!(Exhange::import_peer_transaction(
+				Origin::signed(1),
+				transaction(0),
+				0,
+				true,
+			),);
 
 			assert!(<Exhange as crate::Store>::Transfers::contains_key(0u64.encode()));
 		});
