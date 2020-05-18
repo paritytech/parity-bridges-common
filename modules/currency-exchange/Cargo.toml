@@ -52,8 +52,7 @@ std = [
 	"codec/std",
 	"sp-std/std",
 	"frame-support/std",
-	"sp-runtime/std",
 	"frame-system/std",
-	"sp-io/std",
+	"sp-runtime/std",
 	"primitives/std",
 ]

@@ -15,9 +15,11 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use codec::{Decode, Encode};
+use frame_support::RuntimeDebug;
 use sp_std::marker::PhantomData;
 
 /// All errors that may happen during exchange.
+#[derive(RuntimeDebug, PartialEq)]
 pub enum Error {
 	/// Invalid peer blockchain transaction provided.
 	InvalidTransaction,
@@ -37,7 +39,7 @@ pub enum Error {
 pub type Result<T> = sp_std::result::Result<T, Error>;
 
 /// Peer blockchain lock funds transaction.
-#[derive(Encode, Decode, Debug, Clone, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct LockFundsTransaction<TransferId, Recipient, Amount> {
 	/// Something that uniquely identifies this transfer.
 	pub id: TransferId,

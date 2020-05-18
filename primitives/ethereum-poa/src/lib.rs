@@ -21,7 +21,6 @@ pub mod exchange;
 pub use parity_bytes::Bytes;
 pub use primitive_types::{H160, H256, H512, U128, U256};
 
-pub use rlp::decode as rlp_decode;
 #[cfg(feature = "test-helpers")]
 pub use rlp::encode as rlp_encode;
 

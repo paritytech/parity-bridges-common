@@ -19,7 +19,7 @@ use frame_support::RuntimeDebug;
 use pallet_bridge_currency_exchange::Blockchain;
 use sp_bridge_eth_poa::{
 	exchange::{Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult},
-	rlp_decode, transaction_decode,
+	transaction_decode,
 };
 use sp_std::vec::Vec;
 
@@ -30,7 +30,7 @@ const LOCK_FUNDS_ADDRESS: [u8; 20] = [
 ];
 
 /// We're uniquely identify transfer by pair (sender, nonce).
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, PartialEq, RuntimeDebug)]
 pub struct EthereumTransactionTag {
 	/// Account that has locked funds.
 	pub account: [u8; 20],
@@ -74,7 +74,11 @@ impl MaybeLockFundsTransaction for KovanTransaction {
 			return Err(ExchangeError::InvalidTransaction);
 		}
 
-		let recipient: sp_core::H256 = rlp_decode(&tx.payload).map_err(|_| ExchangeError::InvalidRecipient)?;
+		let mut recipient_raw = sp_core::H256::default();
+		match tx.payload.len() {
+			32 => recipient_raw.as_fixed_bytes_mut().copy_from_slice(&tx.payload),
+			_ => return Err(ExchangeError::InvalidRecipient),
+		}
 		let amount = tx.value.low_u128();
 
 		if tx.value != amount.into() {
@@ -86,8 +90,48 @@ impl MaybeLockFundsTransaction for KovanTransaction {
 				account: *tx.sender.as_fixed_bytes(),
 				nonce: tx.nonce,
 			},
-			recipient: crate::AccountId::from(*recipient.as_fixed_bytes()),
+			recipient: crate::AccountId::from(*recipient_raw.as_fixed_bytes()),
 			amount,
 		})
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use hex_literal::hex;
+	use super::*;
+	
+	#[test]
+	fn fund_locks_transaction_decode_works() {
+		// prepare tx for OpenEthereum private dev chain:
+		// chain id is 0x11
+		// sender secret is 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7
+		let chain_id = 0x11_u64;
+		let signer = hex!("4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7");
+		let signer_addr = hex!("00a329c0648769a73afac7f9381e08fb43dbea72");
+		let ferdie_id: crate::AccountId = hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c")
+			.into();
+		let ferdie_raw: &[u8; 32] = ferdie_id.as_ref();
+		let signed_tx = ethereum_tx_sign::RawTransaction {
+			nonce: 0.into(),
+			to: Some(LOCK_FUNDS_ADDRESS.into()),
+			value: 100.into(),
+			gas: 100_000.into(),
+			gas_price: 100_000.into(),
+			data: ferdie_raw.to_vec(),
+		}
+		.sign(&signer.into(), &chain_id);
+
+		assert_eq!(
+			KovanTransaction::parse(&signed_tx),
+			Ok(LockFundsTransaction {
+				id: EthereumTransactionTag {
+					account: signer_addr,
+					nonce: 0.into(),
+				},
+				recipient: ferdie_id,
+				amount: 100,
+			}),
+		);
 	}
 }

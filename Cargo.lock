@@ -535,10 +535,12 @@ dependencies = [
 name = "bridge-node-runtime"
 version = "0.1.0"
 dependencies = [
+ "ethereum-tx-sign",
  "frame-executive",
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
+ "hex-literal",
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-currency-exchange",
@@ -1116,8 +1118,9 @@ dependencies = [
 
 [[package]]
 name = "ethereum-tx-sign"
-version = "3.0.2"
-source = "git+https://github.com/svyatonik/ethereum-tx-sign.git?branch=up-ethereum-types#f3ea6bf9ad2d2be708af13882474334b4e2d06ae"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bad75bd5547ae8e8086776ffdff546ac4bf1e20de589ba1dd4a860f69ea21189"
 dependencies = [
  "ethereum-types",
  "num-traits 0.2.11",
@@ -5555,6 +5558,7 @@ version = "0.1.0"
 dependencies = [
  "ethbloom 0.8.1",
  "fixed-hash 0.5.2",
+ "frame-support",
  "hash-db",
  "hex-literal",
  "impl-rlp",
