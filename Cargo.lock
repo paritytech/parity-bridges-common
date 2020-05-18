@@ -7189,8 +7189,9 @@ dependencies = [
 
 [[package]]
 name = "web3"
-version = "0.10.0"
-source = "git+https://github.com/tomusdrw/rust-web3#27ec38723ab32210ec77a5033d8f17a2d05e4af0"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a681e8d15deced7c510db88c59133d2eafa7b6298b6e91b545e2a3fed93b3fe"
 dependencies = [
  "arrayvec 0.5.1",
  "base64 0.12.0",
