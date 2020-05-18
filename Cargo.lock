@@ -1109,7 +1109,7 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "sp-runtime",
- "time 0.2.15",
+ "time 0.2.16",
  "web3",
 ]
 
@@ -6393,9 +6393,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1330829d2e6c06771eeae476be12ff1aa9eb5e29ca718a431ab27168efde6c1"
+checksum = "3a51cadc5b1eec673a685ff7c33192ff7b7603d0b75446fb354939ee615acb15"
 dependencies = [
  "cfg-if",
  "libc",
