@@ -98,9 +98,9 @@ impl MaybeLockFundsTransaction for KovanTransaction {
 
 #[cfg(test)]
 mod tests {
-	use hex_literal::hex;
 	use super::*;
-	
+	use hex_literal::hex;
+
 	#[test]
 	fn fund_locks_transaction_decode_works() {
 		// prepare tx for OpenEthereum private dev chain:
@@ -109,8 +109,8 @@ mod tests {
 		let chain_id = 0x11_u64;
 		let signer = hex!("4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7");
 		let signer_addr = hex!("00a329c0648769a73afac7f9381e08fb43dbea72");
-		let ferdie_id: crate::AccountId = hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c")
-			.into();
+		let ferdie_id: crate::AccountId =
+			hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c").into();
 		let ferdie_raw: &[u8; 32] = ferdie_id.as_ref();
 		let signed_tx = ethereum_tx_sign::RawTransaction {
 			nonce: 0.into(),
