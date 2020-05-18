@@ -7190,7 +7190,7 @@ dependencies = [
 [[package]]
 name = "web3"
 version = "0.10.0"
-source = "git+https://github.com/svyatonik/rust-web3.git?branch=add-receipt-root#38aa215d1764df747c9ef8832f5abb15f95f3fec"
+source = "git+https://github.com/tomusdrw/rust-web3#27ec38723ab32210ec77a5033d8f17a2d05e4af0"
 dependencies = [
  "arrayvec 0.5.1",
  "base64 0.12.0",
