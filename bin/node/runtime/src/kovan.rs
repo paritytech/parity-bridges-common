@@ -121,37 +121,82 @@ mod tests {
 	use super::*;
 	use hex_literal::hex;
 
-	#[test]
-	fn fund_locks_transaction_decode_works() {
+	fn ferdie() -> crate::AccountId {
+		hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c").into()
+	}
+
+	fn prepare_ethereum_transaction(
+		editor: impl Fn(&mut ethereum_tx_sign::RawTransaction),
+	) -> Vec<u8> {
 		// prepare tx for OpenEthereum private dev chain:
 		// chain id is 0x11
 		// sender secret is 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7
 		let chain_id = 0x11_u64;
 		let signer = hex!("4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7");
-		let signer_addr = hex!("00a329c0648769a73afac7f9381e08fb43dbea72");
-		let ferdie_id: crate::AccountId =
-			hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c").into();
+		let ferdie_id = ferdie();
 		let ferdie_raw: &[u8; 32] = ferdie_id.as_ref();
-		let signed_tx = ethereum_tx_sign::RawTransaction {
+		let mut eth_tx = ethereum_tx_sign::RawTransaction {
 			nonce: 0.into(),
 			to: Some(LOCK_FUNDS_ADDRESS.into()),
 			value: 100.into(),
 			gas: 100_000.into(),
 			gas_price: 100_000.into(),
 			data: ferdie_raw.to_vec(),
-		}
-		.sign(&signer.into(), &chain_id);
+		};
+		editor(&mut eth_tx);
+		eth_tx.sign(&signer.into(), &chain_id)
+	}
 
+	#[test]
+	fn valid_transaction_accepted() {
 		assert_eq!(
-			KovanTransaction::parse(&signed_tx),
+			KovanTransaction::parse(&prepare_ethereum_transaction(|_| {})),
 			Ok(LockFundsTransaction {
 				id: EthereumTransactionTag {
-					account: signer_addr,
+					account: hex!("00a329c0648769a73afac7f9381e08fb43dbea72"),
 					nonce: 0.into(),
 				},
-				recipient: ferdie_id,
+				recipient: ferdie(),
 				amount: 100,
 			}),
+		);
+	}
+
+	#[test]
+	fn invalid_transaction_rejected() {
+		assert_eq!(
+			KovanTransaction::parse(&Vec::new()),
+			Err(ExchangeError::InvalidTransaction),
+		);
+	}
+
+	#[test]
+	fn invalid_with_invalid_peer_recipient_rejected() {
+		assert_eq!(
+			KovanTransaction::parse(&prepare_ethereum_transaction(|tx| {
+				tx.to = None;
+			})),
+			Err(ExchangeError::InvalidTransaction),
+		);
+	}
+
+	#[test]
+	fn invalid_with_invalid_recipient_rejected() {
+		assert_eq!(
+			KovanTransaction::parse(&prepare_ethereum_transaction(|tx| {
+				tx.data.clear();
+			})),
+			Err(ExchangeError::InvalidRecipient),
+		);
+	}
+
+	#[test]
+	fn invalid_with_invalid_amount_rejected() {
+		assert_eq!(
+			KovanTransaction::parse(&prepare_ethereum_transaction(|tx| {
+				tx.value = sp_core::U256::from(u128::max_value()) + sp_core::U256::from(1);
+			})),
+			Err(ExchangeError::InvalidAmount),
 		);
 	}
 }
