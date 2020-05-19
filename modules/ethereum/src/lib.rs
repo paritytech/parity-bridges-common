@@ -432,24 +432,14 @@ impl<T: Trait> Module<T> {
 		BridgeStorage::<T>::new().header(&hash).is_some()
 	}
 
-	/// Verify that transaction is included in given block.
+	/// Verify that transaction is included into given finalized block.
 	pub fn verify_transaction_finalized(tx: &RawTransaction, block: H256, proof: &Vec<RawTransaction>) -> bool {
-		if !proof.contains(tx) {
-			return false;
-		}
-
-		let storage = BridgeStorage::<T>::new();
-		let header = match storage.header(&block) {
-			Some((header, _)) => header,
-			None => return false,
-		};
-		let (finalized_number, finalized_hash) = storage.finalized_block();
-
-		if header.number > finalized_number || (header.number == finalized_number && block != finalized_hash) {
-			return false;
-		}
-
-		header.check_transactions_root(proof)
+		crate::verify_transaction_finalized(
+			&BridgeStorage::<T>::new(),
+			tx,
+			block,
+			proof,
+		)
 	}
 }
 
@@ -657,6 +647,30 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 	}
 }
 
+/// Verify that transaction is included into given finalized block.
+pub fn verify_transaction_finalized<S: Storage>(
+	storage: &S,
+	tx: &RawTransaction,
+	block: H256,
+	proof: &Vec<RawTransaction>,
+) -> bool {
+	if !proof.contains(tx) {
+		return false;
+	}
+
+	let header = match storage.header(&block) {
+		Some((header, _)) => header,
+		None => return false,
+	};
+	let (finalized_number, finalized_hash) = storage.finalized_block();
+
+	if header.number > finalized_number || (header.number == finalized_number && block != finalized_hash) {
+		return false;
+	}
+
+	header.check_transactions_root(proof)
+}
+
 /// Aura engine configuration for Kovan chain.
 pub fn kovan_aura_config() -> AuraConfiguration {
 	AuraConfiguration {
@@ -795,7 +809,7 @@ fn pool_configuration() -> PoolConfiguration {
 pub(crate) mod tests {
 	use super::*;
 	use parity_crypto::publickey::{sign, KeyPair, Secret};
-	use primitives::{rlp_encode, H520};
+	use primitives::{compute_merkle_root, rlp_encode, H520};
 	use std::collections::{hash_map::Entry, HashMap};
 
 	pub type AccountId = u64;
@@ -1114,5 +1128,90 @@ pub(crate) mod tests {
 				self.oldest_unpruned_block = prune_end;
 			}
 		}
+	}
+
+	fn example_tx() -> Vec<u8> {
+		vec![42]
+	}
+
+	fn example_header() -> Header {
+		let mut header = Header::default();
+		header.number = 1000;
+		header.transactions_root = compute_merkle_root(vec![example_tx()].into_iter());
+		header
+	}
+
+	#[test]
+	fn verify_transaction_finalized_works() {
+		let storage = InMemoryStorage::new(example_header(), Vec::new());
+		assert_eq!(
+			verify_transaction_finalized(
+				&storage,
+				&example_tx(),
+				example_header().hash(),
+				&vec![example_tx()],
+			),
+			true,
+		);
+	}
+
+	#[test]
+	fn verify_transaction_finalized_rejects_proof_with_missing_tx() {
+		let storage = InMemoryStorage::new(example_header(), Vec::new());
+		assert_eq!(
+			verify_transaction_finalized(
+				&storage,
+				&example_tx(),
+				example_header().hash(),
+				&vec![],
+			),
+			false,
+		);
+	}
+
+	#[test]
+	fn verify_transaction_finalized_rejects_unknown_header() {
+		let storage = InMemoryStorage::new(Default::default(), Vec::new());
+		assert_eq!(
+			verify_transaction_finalized(
+				&storage,
+				&example_tx(),
+				example_header().hash(),
+				&vec![example_tx()],
+			),
+			false,
+		);
+	}
+
+	#[test]
+	fn verify_transaction_finalized_rejects_unfinalized_header() {
+		let mut storage = InMemoryStorage::new(example_header(), Vec::new());
+		storage.finalized_block = (0, Default::default());
+		assert_eq!(
+			verify_transaction_finalized(
+				&storage,
+				&example_tx(),
+				example_header().hash(),
+				&vec![example_tx()],
+			),
+			false,
+		);
+	}
+
+	#[test]
+	fn verify_transaction_finalized_rejects_invalid_proof() {
+		let storage = InMemoryStorage::new(example_header(), Vec::new());
+		assert_eq!(
+			verify_transaction_finalized(
+				&storage,
+				&example_tx(),
+				example_header().hash(),
+				&vec![
+					example_tx(),
+					example_tx(),
+				],
+			),
+			false,
+		);
 	}
 }

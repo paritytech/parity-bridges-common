@@ -416,6 +416,11 @@ pub fn public_to_address(public: &[u8; 64]) -> Address {
 
 /// Verify ethereum merkle proof.
 fn verify_merkle_proof<T: AsRef<[u8]>>(expected_root: H256, items: impl Iterator<Item = T>) -> bool {
+	compute_merkle_root(items) == expected_root
+}
+
+/// Compute ethereum merkle root.
+pub fn compute_merkle_root<T: AsRef<[u8]>>(items: impl Iterator<Item = T>) -> H256 {
 	struct Keccak256Hasher;
 
 	impl hash_db::Hasher for Keccak256Hasher {
@@ -427,8 +432,7 @@ fn verify_merkle_proof<T: AsRef<[u8]>>(expected_root: H256, items: impl Iterator
 		}
 	}
 
-	let actual_root = triehash::ordered_trie_root::<Keccak256Hasher, _>(items);
-	actual_root == expected_root
+	triehash::ordered_trie_root::<Keccak256Hasher, _>(items)
 }
 
 sp_api::decl_runtime_apis! {
