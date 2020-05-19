@@ -91,7 +91,7 @@ impl MaybeLockFundsTransaction for KovanTransaction {
 				);
 
 				return Err(ExchangeError::InvalidRecipient);
-			},
+			}
 		}
 		let amount = tx.value.low_u128();
 
@@ -125,9 +125,7 @@ mod tests {
 		hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c").into()
 	}
 
-	fn prepare_ethereum_transaction(
-		editor: impl Fn(&mut ethereum_tx_sign::RawTransaction),
-	) -> Vec<u8> {
+	fn prepare_ethereum_transaction(editor: impl Fn(&mut ethereum_tx_sign::RawTransaction)) -> Vec<u8> {
 		// prepare tx for OpenEthereum private dev chain:
 		// chain id is 0x11
 		// sender secret is 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7

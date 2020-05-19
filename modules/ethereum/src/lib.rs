@@ -434,12 +434,7 @@ impl<T: Trait> Module<T> {
 
 	/// Verify that transaction is included into given finalized block.
 	pub fn verify_transaction_finalized(tx: &RawTransaction, block: H256, proof: &Vec<RawTransaction>) -> bool {
-		crate::verify_transaction_finalized(
-			&BridgeStorage::<T>::new(),
-			tx,
-			block,
-			proof,
-		)
+		crate::verify_transaction_finalized(&BridgeStorage::<T>::new(), tx, block, proof)
 	}
 }
 
@@ -1145,12 +1140,7 @@ pub(crate) mod tests {
 	fn verify_transaction_finalized_works() {
 		let storage = InMemoryStorage::new(example_header(), Vec::new());
 		assert_eq!(
-			verify_transaction_finalized(
-				&storage,
-				&example_tx(),
-				example_header().hash(),
-				&vec![example_tx()],
-			),
+			verify_transaction_finalized(&storage, &example_tx(), example_header().hash(), &vec![example_tx()],),
 			true,
 		);
 	}
@@ -1159,12 +1149,7 @@ pub(crate) mod tests {
 	fn verify_transaction_finalized_rejects_proof_with_missing_tx() {
 		let storage = InMemoryStorage::new(example_header(), Vec::new());
 		assert_eq!(
-			verify_transaction_finalized(
-				&storage,
-				&example_tx(),
-				example_header().hash(),
-				&vec![],
-			),
+			verify_transaction_finalized(&storage, &example_tx(), example_header().hash(), &vec![],),
 			false,
 		);
 	}
@@ -1173,12 +1158,7 @@ pub(crate) mod tests {
 	fn verify_transaction_finalized_rejects_unknown_header() {
 		let storage = InMemoryStorage::new(Default::default(), Vec::new());
 		assert_eq!(
-			verify_transaction_finalized(
-				&storage,
-				&example_tx(),
-				example_header().hash(),
-				&vec![example_tx()],
-			),
+			verify_transaction_finalized(&storage, &example_tx(), example_header().hash(), &vec![example_tx()],),
 			false,
 		);
 	}
@@ -1188,12 +1168,7 @@ pub(crate) mod tests {
 		let mut storage = InMemoryStorage::new(example_header(), Vec::new());
 		storage.finalized_block = (0, Default::default());
 		assert_eq!(
-			verify_transaction_finalized(
-				&storage,
-				&example_tx(),
-				example_header().hash(),
-				&vec![example_tx()],
-			),
+			verify_transaction_finalized(&storage, &example_tx(), example_header().hash(), &vec![example_tx()],),
 			false,
 		);
 	}
@@ -1206,10 +1181,7 @@ pub(crate) mod tests {
 				&storage,
 				&example_tx(),
 				example_header().hash(),
-				&vec![
-					example_tx(),
-					example_tx(),
-				],
+				&vec![example_tx(), example_tx(),],
 			),
 			false,
 		);
