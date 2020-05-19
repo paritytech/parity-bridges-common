@@ -71,17 +71,37 @@ impl MaybeLockFundsTransaction for KovanTransaction {
 
 		// we only accept transactions sending funds to pre-configured address
 		if tx.to != Some(LOCK_FUNDS_ADDRESS.into()) {
+			frame_support::debug::error!(
+				target: "runtime",
+				"Failed to parse fund locks transaction. Invalid peer recipient: {:?}",
+				tx.to,
+			);
+
 			return Err(ExchangeError::InvalidTransaction);
 		}
 
 		let mut recipient_raw = sp_core::H256::default();
 		match tx.payload.len() {
 			32 => recipient_raw.as_fixed_bytes_mut().copy_from_slice(&tx.payload),
-			_ => return Err(ExchangeError::InvalidRecipient),
+			_ => {
+				frame_support::debug::error!(
+					target: "runtime",
+					"Failed to parse fund locks transaction. Invalid recipient length: {}",
+					tx.payload.len(),
+				);
+
+				return Err(ExchangeError::InvalidRecipient);
+			},
 		}
 		let amount = tx.value.low_u128();
 
 		if tx.value != amount.into() {
+			frame_support::debug::error!(
+				target: "runtime",
+				"Failed to parse fund locks transaction. Invalid amount: {}",
+				tx.value,
+			);
+
 			return Err(ExchangeError::InvalidAmount);
 		}
 

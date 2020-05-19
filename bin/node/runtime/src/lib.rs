@@ -228,8 +228,25 @@ impl sp_bridge_eth_poa::exchange::Airdrop for Airdrop {
 
 	fn drop(recipient: Self::Recipient, amount: Self::Amount) -> sp_bridge_eth_poa::exchange::Result<()> {
 		<pallet_balances::Module<Runtime> as Currency<AccountId>>::deposit_into_existing(&recipient, amount)
-			.map(drop)
-			.map_err(|_| sp_bridge_eth_poa::exchange::Error::AirdropFailed)
+			.map(|_| {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Airdropped {} to {:?}",
+					amount,
+					recipient,
+				);
+			})
+			.map_err(|e| {
+				frame_support::debug::error!(
+					target: "runtime",
+					"Airdrop of {} to {:?} has failed with: {:?}",
+					amount,
+					recipient,
+					e
+				);
+
+				sp_bridge_eth_poa::exchange::Error::AirdropFailed
+			})
 	}
 }
 

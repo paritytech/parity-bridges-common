@@ -581,6 +581,13 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 			}
 		};
 
+		frame_support::debug::trace!(
+			target: "runtime",
+			"Inserting PoA header: ({}, {})",
+			header.header.number,
+			header.hash,
+		);
+
 		let last_signal_block = header.context.last_signal_block().cloned();
 		HeadersByNumber::append_or_insert(header.header.number, vec![header.hash]);
 		Headers::<T>::insert(
@@ -602,6 +609,13 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 			.map(|f| f.0)
 			.unwrap_or_else(|| FinalizedBlock::get().0);
 		if let Some(finalized) = finalized {
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Finalizing PoA header: ({}, {})",
+				finalized.0,
+				finalized.1,
+			);
+
 			FinalizedBlock::put(finalized);
 		}
 
