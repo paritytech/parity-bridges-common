@@ -21,9 +21,9 @@
 #[warn(missing_docs)]
 use std::result;
 
-use crate::ethereum_client::{CallRequest, EthereumConnectionParams};
+use crate::ethereum_client::EthereumConnectionParams;
 use crate::ethereum_types::{
-	Address as EthAddress, Bytes, EthereumHeaderId, Header as EthereumHeader, Receipt, SignedRawTx,
+	Address as EthAddress, Bytes, CallRequest, EthereumHeaderId, Header as EthereumHeader, Receipt, SignedRawTx,
 	TransactionHash as EthereumTxHash, H256, U256, U64,
 };
 use crate::rpc_errors::{EthereumNodeError, RpcError};
@@ -35,10 +35,8 @@ use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
-use jsonrpsee::common::Params;
 use jsonrpsee::raw::client::RawClient;
 use jsonrpsee::transport::http::HttpTransportClient;
-use serde_json;
 use sp_bridge_eth_poa::Header as SubstrateEthereumHeader;
 
 const ETH_API_BEST_BLOCK: &str = "EthereumHeadersApi_best_block";
@@ -52,7 +50,7 @@ type GrandpaAuthorityList = Vec<u8>;
 jsonrpsee::rpc_api! {
 	Ethereum {
 		#[rpc(method = "eth_estimateGas")]
-		fn estimate_gas(call_request: Params) -> U256;
+		fn estimate_gas(call_request: CallRequest) -> U256;
 		#[rpc(method = "eth_blockNumber")]
 		fn block_number() -> U64;
 		#[rpc(method = "eth_getBlockByNumber")]
@@ -66,7 +64,7 @@ jsonrpsee::rpc_api! {
 		#[rpc(method = "eth_submitTransaction")]
 		fn submit_transaction(transaction: Bytes) -> EthereumTxHash;
 		#[rpc(method = "eth_call")]
-		fn call(transaction_call: Params) -> Bytes;
+		fn call(transaction_call: CallRequest) -> Bytes;
 	}
 
 	Substrate {
@@ -127,8 +125,7 @@ impl EthereumRpcClient {
 #[async_trait]
 impl EthereumRpc for EthereumRpcClient {
 	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
-		let params = Params::Array(vec![serde_json::to_value(call_request)?]);
-		Ok(Ethereum::estimate_gas(&mut self.client, params).await?)
+		Ok(Ethereum::estimate_gas(&mut self.client, call_request).await?)
 	}
 
 	async fn best_block_number(&mut self) -> Result<u64> {
@@ -176,8 +173,7 @@ impl EthereumRpc for EthereumRpcClient {
 	}
 
 	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes> {
-		let params = Params::Array(vec![serde_json::to_value(call_transaction)?]);
-		Ok(Ethereum::call(&mut self.client, params).await?)
+		Ok(Ethereum::call(&mut self.client, call_transaction).await?)
 	}
 }
 
