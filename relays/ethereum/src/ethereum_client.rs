@@ -216,12 +216,9 @@ pub async fn best_substrate_block(
 	let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
 	let call_request = bail_on_arg_error!(
 		to_value(CallRequest {
-			to: contract_address,
+			to: Some(contract_address),
 			data: Some(encoded_call.into()),
-			from: None,
-			gas: None,
-			gas_price: None,
-			value: None,
+			..Default::default()
 		})
 		.map_err(|e| Error::RequestSerialization(e)),
 		client
@@ -253,12 +250,9 @@ pub async fn substrate_header_known(
 	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1);
 	let call_request = bail_on_arg_error!(
 		to_value(CallRequest {
-			to: contract_address,
+			to: Some(contract_address),
 			data: Some(encoded_call.into()),
-			from: None,
-			gas: None,
-			gas_price: None,
-			value: None,
+			..Default::default()
 		})
 		.map_err(|e| Error::RequestSerialization(e)),
 		client
@@ -310,12 +304,9 @@ pub async fn incomplete_substrate_headers(
 	let (encoded_call, call_decoder) = bridge_contract::functions::incomplete_headers::call();
 	let call_request = bail_on_arg_error!(
 		to_value(CallRequest {
-			to: contract_address,
+			to: Some(contract_address),
 			data: Some(encoded_call.into()),
-			from: None,
-			gas: None,
-			gas_price: None,
-			value: None,
+			..Default::default()
 		})
 		.map_err(|e| Error::RequestSerialization(e)),
 		client
@@ -401,12 +392,9 @@ async fn submit_ethereum_transaction(
 		estimate_gas(
 			client,
 			CallRequest {
-				to: contract_address.unwrap_or_default(),
+				to: contract_address,
 				data: Some(encoded_call.clone().into()),
-				from: None,
-				gas: None,
-				gas_price: None,
-				value: None,
+				..Default::default()
 			}
 		)
 		.await
