@@ -49,7 +49,6 @@
 
 // TODO: when (if) this module will be resurrected, remove this
 #![allow(dead_code)]
-
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
