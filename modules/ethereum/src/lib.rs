@@ -364,9 +364,7 @@ decl_storage! {
 		BestBlock: (u64, H256, U256);
 		/// Best finalized block.
 		FinalizedBlock: (u64, H256);
-		/// The range (inclusive from both ends) of blocks that we want to prune.
-		///
-		/// The first number number of the oldest blo
+		/// Oldest unpruned block(s) number.
 		OldestUnprunedBlock: u64;
 		/// Map of imported headers by hash.
 		Headers: map hasher(identity) H256 => Option<StoredHeader<T::AccountId>>;
