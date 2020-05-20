@@ -24,7 +24,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-mod kovan;
+mod exchange;
 
 use codec::{Decode, Encode};
 use pallet_grandpa::fg_primitives;
@@ -212,8 +212,8 @@ impl pallet_bridge_eth_poa::Trait for Runtime {
 }
 
 impl pallet_bridge_currency_exchange::Trait for Runtime {
-	type PeerBlockchain = kovan::KovanBlockchain;
-	type PeerMaybeLockFundsTransaction = kovan::KovanTransaction;
+	type PeerBlockchain = exchange::EthBlockchain;
+	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
 	type RecipientsMap = sp_bridge_eth_poa::exchange::AsIsRecipients<AccountId>;
 	type Amount = Balance;
 	type CurrencyConverter = sp_bridge_eth_poa::exchange::AsIsCurrencyConverter<Balance>;

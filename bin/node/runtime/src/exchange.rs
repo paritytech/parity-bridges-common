@@ -38,10 +38,10 @@ pub struct EthereumTransactionTag {
 	pub nonce: sp_core::U256,
 }
 
-/// Kovan blockchain from runtime perspective.
-pub struct KovanBlockchain;
+/// Eth blockchain from runtime perspective.
+pub struct EthBlockchain;
 
-impl Blockchain for KovanBlockchain {
+impl Blockchain for EthBlockchain {
 	type BlockHash = sp_core::H256;
 	type Transaction = Vec<u8>;
 	type TransactionInclusionProof = Vec<Self::Transaction>;
@@ -55,10 +55,10 @@ impl Blockchain for KovanBlockchain {
 	}
 }
 
-/// Kovan transaction from runtime perspective.
-pub struct KovanTransaction;
+/// Eth transaction from runtime perspective.
+pub struct EthTransaction;
 
-impl MaybeLockFundsTransaction for KovanTransaction {
+impl MaybeLockFundsTransaction for EthTransaction {
 	type Transaction = Vec<u8>;
 	type Id = EthereumTransactionTag;
 	type Recipient = crate::AccountId;
@@ -148,7 +148,7 @@ mod tests {
 	#[test]
 	fn valid_transaction_accepted() {
 		assert_eq!(
-			KovanTransaction::parse(&prepare_ethereum_transaction(|_| {})),
+			EthTransaction::parse(&prepare_ethereum_transaction(|_| {})),
 			Ok(LockFundsTransaction {
 				id: EthereumTransactionTag {
 					account: hex!("00a329c0648769a73afac7f9381e08fb43dbea72"),
@@ -163,7 +163,7 @@ mod tests {
 	#[test]
 	fn invalid_transaction_rejected() {
 		assert_eq!(
-			KovanTransaction::parse(&Vec::new()),
+			EthTransaction::parse(&Vec::new()),
 			Err(ExchangeError::InvalidTransaction),
 		);
 	}
@@ -171,7 +171,7 @@ mod tests {
 	#[test]
 	fn invalid_with_invalid_peer_recipient_rejected() {
 		assert_eq!(
-			KovanTransaction::parse(&prepare_ethereum_transaction(|tx| {
+			EthTransaction::parse(&prepare_ethereum_transaction(|tx| {
 				tx.to = None;
 			})),
 			Err(ExchangeError::InvalidTransaction),
@@ -181,7 +181,7 @@ mod tests {
 	#[test]
 	fn invalid_with_invalid_recipient_rejected() {
 		assert_eq!(
-			KovanTransaction::parse(&prepare_ethereum_transaction(|tx| {
+			EthTransaction::parse(&prepare_ethereum_transaction(|tx| {
 				tx.data.clear();
 			})),
 			Err(ExchangeError::InvalidRecipient),
@@ -191,7 +191,7 @@ mod tests {
 	#[test]
 	fn invalid_with_invalid_amount_rejected() {
 		assert_eq!(
-			KovanTransaction::parse(&prepare_ethereum_transaction(|tx| {
+			EthTransaction::parse(&prepare_ethereum_transaction(|tx| {
 				tx.value = sp_core::U256::from(u128::max_value()) + sp_core::U256::from(1);
 			})),
 			Err(ExchangeError::InvalidAmount),
