@@ -137,7 +137,7 @@ impl EthereumRpc for EthereumRpcClient {
 		let return_full_tx_obj = false;
 
 		let header = Ethereum::get_block_by_number(&mut self.client, block_number).await?;
-		match header.number.is_some() && header.hash.is_some() {
+		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
 			true => Ok(header),
 			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
 		}
@@ -148,7 +148,7 @@ impl EthereumRpc for EthereumRpcClient {
 		let return_full_tx_obj = false;
 
 		let header = Ethereum::get_block_by_hash(&mut self.client, hash).await?;
-		match header.number.is_some() && header.hash.is_some() {
+		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
 			true => Ok(header),
 			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
 		}
