@@ -22,12 +22,21 @@ use serde_json;
 
 type RpcHttpError = RawClientError<RequestError>;
 
+/// Contains common errors that can occur when
+/// interacting with a Substrate or Ethereum node
+/// through RPC.
 #[derive(Debug)]
 pub enum RpcError {
+	/// The arguments to the RPC method failed to serialize.
 	Serialization(serde_json::Error),
+	/// An error occured when interacting with an Ethereum node.
 	Ethereum(EthereumNodeError),
+	/// An error occured when interacting with a Substrate node.
 	Substrate(SubstrateNodeError),
+	/// An error that can occur when making an HTTP request to
+	/// an JSON-RPC client.
 	Request(RpcHttpError),
+	/// The response from the client could not be SCALE decoded.
 	Decoding(codec::Error),
 }
 
@@ -61,18 +70,23 @@ impl From<codec::Error> for RpcError {
 	}
 }
 
+/// Errors that can occur only when interacting with
+/// an Ethereum node through RPC.
 #[derive(Debug)]
 pub enum EthereumNodeError {
 	/// Failed to parse response.
 	ResponseParseFailed(String),
-	/// We have received header with missing number and hash fields.
+	/// We have received a header with missing fields.
 	IncompleteHeader,
-	/// We have received receipt with missing gas_used field.
+	/// We have received a receipt missing a `gas_used` field.
 	IncompleteReceipt,
-	/// Invalid Substrate block number received from Ethereum node.
+	/// An invalid Substrate block number was received from
+	/// an Ethereum node.
 	InvalidSubstrateBlockNumber,
 }
 
+/// Errors that can occur only when interacting with
+/// a Substrate node through RPC.
 #[derive(Debug)]
 pub enum SubstrateNodeError {
 	/// Request start failed.
