@@ -16,13 +16,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
 use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
 use primitives::exchange::{
-	DepositInto, CurrencyConverter, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
+	CurrencyConverter, DepositInto, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
 };
 use sp_runtime::DispatchResult;
-use sp_std::vec::Vec;
 
 /// Called when transaction is submitted to the exchange module.
 pub trait OnTransactionSubmitted<AccountId> {
@@ -123,9 +121,9 @@ decl_module! {
 			// parse transaction
 			let transaction = <T as Trait>::PeerMaybeLockFundsTransaction::parse(&transaction)
 				.map_err(Error::<T>::from)?;
-			let transfer_id = transaction.id.encode();
+			let transfer_id = transaction.id;
 			ensure!(
-				!Transfers::contains_key(&transfer_id),
+				!Transfers::<T>::contains_key(&transfer_id),
 				Error::<T>::AlreadyClaimed
 			);
 
@@ -135,7 +133,7 @@ decl_module! {
 			T::DepositInto::deposit_into(recipient, amount).map_err(Error::<T>::from)?;
 
 			// remember that we have accepted this transfer
-			Transfers::insert(transfer_id, ());
+			Transfers::<T>::insert(transfer_id, ());
 
 			// reward submitter for providing valid message
 			T::OnTransactionSubmitted::on_valid_transaction_submitted(submitter);
@@ -148,7 +146,7 @@ decl_module! {
 decl_storage! {
 	trait Store for Module<T: Trait> as Bridge {
 		/// All transfers that have already been claimed.
-		Transfers: map hasher(blake2_128_concat) Vec<u8> => ();
+		Transfers: map hasher(blake2_128_concat) <T::PeerMaybeLockFundsTransaction as MaybeLockFundsTransaction>::Id => ();
 	}
 }
 
@@ -166,8 +164,7 @@ impl<T: Trait> From<ExchangeError> for Error<T> {
 }
 
 impl<AccountId> OnTransactionSubmitted<AccountId> for () {
-	fn on_valid_transaction_submitted(_: AccountId) {
-	}
+	fn on_valid_transaction_submitted(_: AccountId) {}
 }
 
 #[cfg(test)]
@@ -189,7 +186,7 @@ mod tests {
 	const UNKNOWN_RECIPIENT_ID: u64 = 0;
 	const INVALID_AMOUNT: u64 = 0;
 	const MAX_DEPOSIT_AMOUNT: u64 = 1000;
-	const SUBMITTER_PREFIX: u64 = 2000;
+	const SUBMITTER: u64 = 2000;
 
 	type RawTransaction = LockFundsTransaction<u64, u64, u64>;
 
@@ -197,7 +194,7 @@ mod tests {
 
 	impl OnTransactionSubmitted<AccountId> for DummyTransactionSubmissionHandler {
 		fn on_valid_transaction_submitted(submitter: AccountId) {
-			Transfers::insert((SUBMITTER_PREFIX, submitter).encode(), ());
+			Transfers::<TestRuntime>::insert(submitter, ());
 		}
 	}
 
@@ -345,7 +342,7 @@ mod tests {
 	fn unfinalized_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(1), transaction(0), 0, false,),
+				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction(0), 0, false,),
 				Error::<TestRuntime>::UnfinalizedTransaction,
 			);
 		});
@@ -355,7 +352,12 @@ mod tests {
 	fn invalid_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(1), transaction(INVALID_TRANSACTION_ID), 0, true,),
+				Exhange::import_peer_transaction(
+					Origin::signed(SUBMITTER),
+					transaction(INVALID_TRANSACTION_ID),
+					0,
+					true,
+				),
 				Error::<TestRuntime>::InvalidTransaction,
 			);
 		});
@@ -364,10 +366,10 @@ mod tests {
 	#[test]
 	fn claimed_transaction_rejected() {
 		new_test_ext().execute_with(|| {
-			<Exhange as crate::Store>::Transfers::insert(ALREADY_CLAIMED_TRANSACTION_ID.encode(), ());
+			<Exhange as crate::Store>::Transfers::insert(ALREADY_CLAIMED_TRANSACTION_ID, ());
 			assert_noop!(
 				Exhange::import_peer_transaction(
-					Origin::signed(1),
+					Origin::signed(SUBMITTER),
 					transaction(ALREADY_CLAIMED_TRANSACTION_ID),
 					0,
 					true,
@@ -383,7 +385,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.recipient = UNKNOWN_RECIPIENT_ID;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(1), transaction, 0, true,),
+				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction, 0, true,),
 				Error::<TestRuntime>::FailedToMapRecipients,
 			);
 		});
@@ -395,7 +397,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = INVALID_AMOUNT;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(1), transaction, 0, true,),
+				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction, 0, true,),
 				Error::<TestRuntime>::FailedToCovertCurrency,
 			);
 		});
@@ -407,7 +409,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = MAX_DEPOSIT_AMOUNT;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(1), transaction, 0, true,),
+				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction, 0, true,),
 				Error::<TestRuntime>::DepositFailed,
 			);
 		});
@@ -417,16 +419,16 @@ mod tests {
 	fn valid_transaction_accepted() {
 		new_test_ext().execute_with(|| {
 			assert_ok!(Exhange::import_peer_transaction(
-				Origin::signed(1),
+				Origin::signed(SUBMITTER),
 				transaction(0),
 				0,
 				true,
 			),);
 
 			// ensure that the transfer has been marked as completed
-			assert!(<Exhange as crate::Store>::Transfers::contains_key(0u64.encode()));
+			assert!(<Exhange as crate::Store>::Transfers::contains_key(0u64));
 			// ensure that submitter has been rewarded
-			assert!(<Exhange as crate::Store>::Transfers::contains_key((SUBMITTER_PREFIX, 1u64).encode()));
+			assert!(<Exhange as crate::Store>::Transfers::contains_key(SUBMITTER));
 		});
 	}
 }

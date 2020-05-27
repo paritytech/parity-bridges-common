@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, EncodeLike};
 use frame_support::RuntimeDebug;
 use sp_std::marker::PhantomData;
 
@@ -54,7 +54,7 @@ pub trait MaybeLockFundsTransaction {
 	/// Transaction type.
 	type Transaction;
 	/// Identifier that uniquely identifies this transfer.
-	type Id: Encode;
+	type Id: Decode + Encode + EncodeLike;
 	/// Peer recipient type.
 	type Recipient;
 	/// Peer currency amount type.
