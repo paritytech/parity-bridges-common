@@ -29,7 +29,7 @@ use sp_runtime::{
 
 pub type AccountId = u64;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
 
 impl_outer_origin! {
