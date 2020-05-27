@@ -275,6 +275,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da71fef07bc806586090247e971229289f64c210a278ee5ae419314eb386b31d"
+dependencies = [
+ "proc-macro2",
+ "quote 1.0.3",
+ "syn 1.0.18",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1084,6 +1095,7 @@ dependencies = [
  "ansi_term 0.12.1",
  "async-std",
  "async-stream",
+ "async-trait",
  "bridge-node-runtime",
  "clap",
  "env_logger",
@@ -7190,8 +7202,8 @@ dependencies = [
 
 [[package]]
 name = "web3"
-version = "0.10.0"
-source = "git+https://github.com/svyatonik/rust-web3.git?branch=add-receipt-root#38aa215d1764df747c9ef8832f5abb15f95f3fec"
+version = "0.11.0"
+source = "git+https://github.com/tomusdrw/rust-web3#a3e5a5315f0a6bf907183322844f7d6650fa8da7"
 dependencies = [
  "arrayvec 0.5.1",
  "base64 0.12.0",
