@@ -87,7 +87,7 @@ impl MaybeLockFundsTransaction for EthTransaction {
 	) -> ExchangeResult<LockFundsTransaction<Self::Id, Self::Recipient, Self::Amount>> {
 		let tx = transaction_decode(raw_tx).map_err(|_| ExchangeError::InvalidTransaction)?;
 
-		// we only accept transactions sending funds to pre-configured address
+		// we only accept transactions sending funds directly to the pre-configured address
 		if tx.to != Some(LOCK_FUNDS_ADDRESS.into()) {
 			frame_support::debug::error!(
 				target: "runtime",
