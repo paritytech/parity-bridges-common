@@ -145,7 +145,7 @@ pub fn validator(index: u8) -> KeyPair {
 
 /// Return key pairs of all test validators.
 pub fn validators(count: u8) -> Vec<KeyPair> {
-	(0..count as usize).map(|index| validator(index as u8)).collect()
+	(0..count).map(validator).collect()
 }
 
 /// Return addresses of all test validators.
