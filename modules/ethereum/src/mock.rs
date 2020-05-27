@@ -118,7 +118,7 @@ pub fn custom_block_i(number: u64, validators: &[KeyPair], customize: impl FnOnc
 		number,
 		parent_hash: HeadersByNumber::get(number - 1).unwrap()[0].clone(),
 		gas_limit: 0x2000.into(),
-		author: validator(validator_index).address().to_fixed_bytes().into(),
+		author: validator(validator_index).address(),
 		seal: vec![vec![number as u8 + 42].into(), vec![].into()],
 		difficulty: number.into(),
 		..Default::default()
