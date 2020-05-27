@@ -29,7 +29,7 @@ const LOCK_FUNDS_ADDRESS: [u8; 20] = [
 	0xAD,
 ];
 
-/// We're uniquely identify transfer by pair (sender, nonce).
+/// We uniquely identify transfer by the pair (sender, nonce).
 #[derive(Encode, Decode, PartialEq, RuntimeDebug)]
 pub struct EthereumTransactionTag {
 	/// Account that has locked funds.
