@@ -16,6 +16,7 @@
 
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
+use hex_literal::hex;
 use pallet_bridge_currency_exchange::Blockchain;
 use sp_bridge_eth_poa::{
 	exchange::{Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult},
@@ -23,11 +24,8 @@ use sp_bridge_eth_poa::{
 };
 use sp_std::vec::Vec;
 
-/// Address where locked PoA funds must be sent to (0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF).
-const LOCK_FUNDS_ADDRESS: [u8; 20] = [
-	0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xDE,
-	0xAD,
-];
+/// Address where locked PoA funds must be sent to.
+const LOCK_FUNDS_ADDRESS: [u8; 20] = hex!("DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF");
 
 /// Ethereum transaction inclusion proof.
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug)]
