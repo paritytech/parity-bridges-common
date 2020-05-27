@@ -82,7 +82,7 @@ decl_error! {
 		/// Cannot map from peer recipient to this blockchain recipient.
 		FailedToMapRecipients,
 		/// Failed to convert from peer blockchain currency to this blockhain currency.
-		FailedToCovertCurrency,
+		FailedToConvertCurrency,
 		/// Deposit has failed.
 		DepositFailed,
 		/// Transaction is not finalized.
@@ -157,7 +157,7 @@ impl<T: Trait> From<ExchangeError> for Error<T> {
 			ExchangeError::InvalidAmount => Error::InvalidAmount,
 			ExchangeError::InvalidRecipient => Error::InvalidRecipient,
 			ExchangeError::FailedToMapRecipients => Error::FailedToMapRecipients,
-			ExchangeError::FailedToCovertCurrency => Error::FailedToCovertCurrency,
+			ExchangeError::FailedToConvertCurrency => Error::FailedToConvertCurrency,
 			ExchangeError::DepositFailed => Error::DepositFailed,
 		}
 	}
@@ -252,7 +252,7 @@ mod tests {
 
 		fn convert(amount: Self::SourceAmount) -> primitives::exchange::Result<Self::TargetAmount> {
 			match amount {
-				INVALID_AMOUNT => Err(primitives::exchange::Error::FailedToCovertCurrency),
+				INVALID_AMOUNT => Err(primitives::exchange::Error::FailedToConvertCurrency),
 				_ => Ok(amount * 10),
 			}
 		}
@@ -398,7 +398,7 @@ mod tests {
 			transaction.amount = INVALID_AMOUNT;
 			assert_noop!(
 				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction, 0, true,),
-				Error::<TestRuntime>::FailedToCovertCurrency,
+				Error::<TestRuntime>::FailedToConvertCurrency,
 			);
 		});
 	}

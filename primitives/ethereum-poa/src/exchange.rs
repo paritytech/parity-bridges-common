@@ -30,7 +30,7 @@ pub enum Error {
 	/// Cannot map from peer recipient to this blockchain recipient.
 	FailedToMapRecipients,
 	/// Failed to convert from peer blockchain currency to this blockhain currency.
-	FailedToCovertCurrency,
+	FailedToConvertCurrency,
 	/// Deposit has failed.
 	DepositFailed,
 }
