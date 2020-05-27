@@ -663,7 +663,7 @@ pub fn verify_transaction_finalized<S: Storage>(
 		return false;
 	}
 
-	header.check_transactions_root(proof)
+	header.verify_transactions_root(proof)
 }
 
 /// Aura engine configuration for Kovan chain.

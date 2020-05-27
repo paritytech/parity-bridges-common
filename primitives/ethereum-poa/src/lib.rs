@@ -164,12 +164,12 @@ impl Header {
 	}
 
 	/// Check if passed transactions receipts are matching receipts root in this header.
-	pub fn check_receipts_root(&self, receipts: &[Receipt]) -> bool {
+	pub fn verify_receipts_root(&self, receipts: &[Receipt]) -> bool {
 		verify_merkle_proof(self.receipts_root, receipts.iter().map(|r| r.rlp()))
 	}
 
 	/// Check if passed transactions are matching transactions root in this header.
-	pub fn check_transactions_root(&self, transactions: &[RawTransaction]) -> bool {
+	pub fn verify_transactions_root(&self, transactions: &[RawTransaction]) -> bool {
 		verify_merkle_proof(self.transactions_root, transactions.into_iter())
 	}
 
