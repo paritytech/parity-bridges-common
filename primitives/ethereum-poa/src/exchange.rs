@@ -100,9 +100,9 @@ pub trait DepositInto {
 
 /// Recipients map which is used when accounts ids are the same on both chains.
 #[derive(Debug)]
-pub struct AsIsRecipients<AccountId>(PhantomData<AccountId>);
+pub struct IdentityRecipients<AccountId>(PhantomData<AccountId>);
 
-impl<AccountId> RecipientsMap for AsIsRecipients<AccountId> {
+impl<AccountId> RecipientsMap for IdentityRecipients<AccountId> {
 	type PeerRecipient = AccountId;
 	type Recipient = AccountId;
 
@@ -113,9 +113,9 @@ impl<AccountId> RecipientsMap for AsIsRecipients<AccountId> {
 
 /// Currency converter which is used when currency is the same on both chains.
 #[derive(Debug)]
-pub struct AsIsCurrencyConverter<Amount>(PhantomData<Amount>);
+pub struct IdentityCurrencyConverter<Amount>(PhantomData<Amount>);
 
-impl<Amount> CurrencyConverter for AsIsCurrencyConverter<Amount> {
+impl<Amount> CurrencyConverter for IdentityCurrencyConverter<Amount> {
 	type SourceAmount = Amount;
 	type TargetAmount = Amount;
 

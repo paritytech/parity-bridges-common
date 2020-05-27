@@ -214,9 +214,9 @@ impl pallet_bridge_eth_poa::Trait for Runtime {
 impl pallet_bridge_currency_exchange::Trait for Runtime {
 	type PeerBlockchain = exchange::EthBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
-	type RecipientsMap = sp_bridge_eth_poa::exchange::AsIsRecipients<AccountId>;
+	type RecipientsMap = sp_bridge_eth_poa::exchange::IdentityRecipients<AccountId>;
 	type Amount = Balance;
-	type CurrencyConverter = sp_bridge_eth_poa::exchange::AsIsCurrencyConverter<Balance>;
+	type CurrencyConverter = sp_bridge_eth_poa::exchange::IdentityCurrencyConverter<Balance>;
 	type DepositInto = DepositInto;
 }
 
