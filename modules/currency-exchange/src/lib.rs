@@ -17,12 +17,18 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
-use frame_support::{decl_error, decl_module, decl_storage, ensure, fail, Parameter};
+use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
 use primitives::exchange::{
 	DepositInto, CurrencyConverter, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
 };
 use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
+
+/// Called when transaction is submitted to the exchange module.
+pub trait OnTransactionSubmitted<AccountId> {
+	/// Called when valid transaction is submitted and accepted by the module.
+	fn on_valid_transaction_submitted(submitter: AccountId);
+}
 
 /// Peer blockhain interface.
 pub trait Blockchain {
@@ -43,6 +49,8 @@ pub trait Blockchain {
 
 /// The module configuration trait
 pub trait Trait: frame_system::Trait {
+	/// Handler for transaction submission result.
+	type OnTransactionSubmitted: OnTransactionSubmitted<Self::AccountId>;
 	/// Peer blockchain type.
 	type PeerBlockchain: Blockchain;
 	/// Peer blockchain transaction parser.
@@ -96,7 +104,7 @@ decl_module! {
 			block: <<T as Trait>::PeerBlockchain as Blockchain>::BlockHash,
 			proof: <<T as Trait>::PeerBlockchain as Blockchain>::TransactionInclusionProof,
 		) -> DispatchResult {
-			frame_system::ensure_signed(origin)?;
+			let submitter = frame_system::ensure_signed(origin)?;
 
 			// ensure that transaction is included in finalized block that we know of
 			//
@@ -110,9 +118,7 @@ decl_module! {
 				block,
 				&proof,
 			);
-			if !is_transaction_finalized {
-				fail!(Error::<T>::UnfinalizedTransaction);
-			}
+			ensure!(is_transaction_finalized, Error::<T>::UnfinalizedTransaction);
 
 			// parse transaction
 			let transaction = <T as Trait>::PeerMaybeLockFundsTransaction::parse(&transaction)
@@ -130,6 +136,9 @@ decl_module! {
 
 			// remember that we have accepted this transfer
 			Transfers::insert(transfer_id, ());
+
+			// reward submitter for providing valid message
+			T::OnTransactionSubmitted::on_valid_transaction_submitted(submitter);
 
 			Ok(())
 		}
@@ -156,6 +165,11 @@ impl<T: Trait> From<ExchangeError> for Error<T> {
 	}
 }
 
+impl<AccountId> OnTransactionSubmitted<AccountId> for () {
+	fn on_valid_transaction_submitted(_: AccountId) {
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -168,13 +182,24 @@ mod tests {
 		Perbill,
 	};
 
+	type AccountId = u64;
+
 	const INVALID_TRANSACTION_ID: u64 = 100;
 	const ALREADY_CLAIMED_TRANSACTION_ID: u64 = 101;
 	const UNKNOWN_RECIPIENT_ID: u64 = 0;
 	const INVALID_AMOUNT: u64 = 0;
 	const MAX_DEPOSIT_AMOUNT: u64 = 1000;
+	const SUBMITTER_PREFIX: u64 = 2000;
 
 	type RawTransaction = LockFundsTransaction<u64, u64, u64>;
+
+	pub struct DummyTransactionSubmissionHandler;
+
+	impl OnTransactionSubmitted<AccountId> for DummyTransactionSubmissionHandler {
+		fn on_valid_transaction_submitted(submitter: AccountId) {
+			Transfers::insert((SUBMITTER_PREFIX, submitter).encode(), ());
+		}
+	}
 
 	pub struct DummyBlockchain;
 
@@ -197,7 +222,7 @@ mod tests {
 	impl MaybeLockFundsTransaction for DummyTransaction {
 		type Transaction = RawTransaction;
 		type Id = u64;
-		type Recipient = u64;
+		type Recipient = AccountId;
 		type Amount = u64;
 
 		fn parse(tx: &Self::Transaction) -> primitives::exchange::Result<RawTransaction> {
@@ -211,8 +236,8 @@ mod tests {
 	pub struct DummyRecipientsMap;
 
 	impl RecipientsMap for DummyRecipientsMap {
-		type PeerRecipient = u64;
-		type Recipient = u64;
+		type PeerRecipient = AccountId;
+		type Recipient = AccountId;
 
 		fn map(peer_recipient: Self::PeerRecipient) -> primitives::exchange::Result<Self::Recipient> {
 			match peer_recipient {
@@ -239,7 +264,7 @@ mod tests {
 	pub struct DummyDepositInto;
 
 	impl DepositInto for DummyDepositInto {
-		type Recipient = u64;
+		type Recipient = AccountId;
 		type Amount = u64;
 
 		fn deposit_into(_recipient: Self::Recipient, amount: Self::Amount) -> primitives::exchange::Result<()> {
@@ -271,7 +296,7 @@ mod tests {
 		type BlockNumber = u64;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
-		type AccountId = u64;
+		type AccountId = AccountId;
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
 		type Event = ();
@@ -290,6 +315,7 @@ mod tests {
 	}
 
 	impl Trait for TestRuntime {
+		type OnTransactionSubmitted = DummyTransactionSubmissionHandler;
 		type PeerBlockchain = DummyBlockchain;
 		type PeerMaybeLockFundsTransaction = DummyTransaction;
 		type RecipientsMap = DummyRecipientsMap;
@@ -397,7 +423,10 @@ mod tests {
 				true,
 			),);
 
+			// ensure that the transfer has been marked as completed
 			assert!(<Exhange as crate::Store>::Transfers::contains_key(0u64.encode()));
+			// ensure that submitter has been rewarded
+			assert!(<Exhange as crate::Store>::Transfers::contains_key((SUBMITTER_PREFIX, 1u64).encode()));
 		});
 	}
 }

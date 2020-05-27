@@ -212,6 +212,7 @@ impl pallet_bridge_eth_poa::Trait for Runtime {
 }
 
 impl pallet_bridge_currency_exchange::Trait for Runtime {
+	type OnTransactionSubmitted = ();
 	type PeerBlockchain = exchange::EthBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
 	type RecipientsMap = sp_bridge_eth_poa::exchange::IdentityRecipients<AccountId>;
