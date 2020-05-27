@@ -1177,12 +1177,7 @@ pub(crate) mod tests {
 	fn verify_transaction_finalized_rejects_invalid_proof() {
 		let storage = InMemoryStorage::new(example_header(), Vec::new());
 		assert_eq!(
-			verify_transaction_finalized(
-				&storage,
-				example_header().hash(),
-				0,
-				&vec![example_tx(), example_tx(),],
-			),
+			verify_transaction_finalized(&storage, example_header().hash(), 0, &vec![example_tx(), example_tx(),],),
 			false,
 		);
 	}

@@ -38,9 +38,7 @@ pub trait Blockchain {
 	/// Verify that transaction is a part of given block.
 	///
 	/// Returns Some(transaction) if proof is valid and None otherwise.
-	fn verify_transaction_inclusion_proof(
-		proof: &Self::TransactionInclusionProof,
-	) -> Option<Self::Transaction>;
+	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction>;
 }
 
 /// The module configuration trait
@@ -197,9 +195,7 @@ mod tests {
 		type Transaction = RawTransaction;
 		type TransactionInclusionProof = (bool, RawTransaction);
 
-		fn verify_transaction_inclusion_proof(
-			proof: &Self::TransactionInclusionProof,
-		) -> Option<RawTransaction> {
+		fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<RawTransaction> {
 			if proof.0 {
 				Some(proof.1.clone())
 			} else {
