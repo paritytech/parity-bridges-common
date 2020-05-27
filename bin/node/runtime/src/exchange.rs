@@ -29,6 +29,17 @@ const LOCK_FUNDS_ADDRESS: [u8; 20] = [
 	0xAD,
 ];
 
+/// Ethereum transaction inclusion proof.
+#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug)]
+pub struct EthereumTransactionInclusionProof {
+	/// Hash of the block with transaction.
+	pub block: sp_core::H256,
+	/// Index of the transaction within the block.
+	pub index: u64,
+	/// The proof itself (right now it is all RLP-encoded transactions of the block).
+	pub proof: Vec<Vec<u8>>,
+}
+
 /// We uniquely identify transfer by the pair (sender, nonce).
 ///
 /// The assumption is that this pair will never appear more than once in
@@ -47,16 +58,23 @@ pub struct EthereumTransactionTag {
 pub struct EthBlockchain;
 
 impl Blockchain for EthBlockchain {
-	type BlockHash = sp_core::H256;
 	type Transaction = Vec<u8>;
-	type TransactionInclusionProof = Vec<Self::Transaction>;
+	type TransactionInclusionProof = EthereumTransactionInclusionProof;
 
 	fn verify_transaction_inclusion_proof(
-		transaction: &Self::Transaction,
-		block: Self::BlockHash,
 		proof: &Self::TransactionInclusionProof,
-	) -> bool {
-		crate::BridgeEthPoA::verify_transaction_finalized(transaction, block, proof)
+	) -> Option<Self::Transaction> {
+		let is_transaction_finalized = crate::BridgeEthPoA::verify_transaction_finalized(
+			proof.block,
+			proof.index,
+			&proof.proof,
+		);
+
+		if !is_transaction_finalized {
+			return None;
+		}
+
+		proof.proof.get(proof.index as usize).cloned()
 	}
 }
 

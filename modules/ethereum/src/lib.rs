@@ -433,8 +433,8 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Verify that transaction is included into given finalized block.
-	pub fn verify_transaction_finalized(tx: &RawTransaction, block: H256, proof: &Vec<RawTransaction>) -> bool {
-		crate::verify_transaction_finalized(&BridgeStorage::<T>::new(), tx, block, proof)
+	pub fn verify_transaction_finalized(block: H256, tx_index: u64, proof: &Vec<RawTransaction>) -> bool {
+		crate::verify_transaction_finalized(&BridgeStorage::<T>::new(), block, tx_index, proof)
 	}
 }
 
@@ -645,11 +645,11 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 /// Verify that transaction is included into given finalized block.
 pub fn verify_transaction_finalized<S: Storage>(
 	storage: &S,
-	tx: &RawTransaction,
 	block: H256,
+	tx_index: u64,
 	proof: &Vec<RawTransaction>,
 ) -> bool {
-	if !proof.contains(tx) {
+	if tx_index >= proof.len() as _ {
 		return false;
 	}
 
@@ -1140,7 +1140,7 @@ pub(crate) mod tests {
 	fn verify_transaction_finalized_works() {
 		let storage = InMemoryStorage::new(example_header(), Vec::new());
 		assert_eq!(
-			verify_transaction_finalized(&storage, &example_tx(), example_header().hash(), &vec![example_tx()],),
+			verify_transaction_finalized(&storage, example_header().hash(), 0, &vec![example_tx()],),
 			true,
 		);
 	}
@@ -1149,7 +1149,7 @@ pub(crate) mod tests {
 	fn verify_transaction_finalized_rejects_proof_with_missing_tx() {
 		let storage = InMemoryStorage::new(example_header(), Vec::new());
 		assert_eq!(
-			verify_transaction_finalized(&storage, &example_tx(), example_header().hash(), &vec![],),
+			verify_transaction_finalized(&storage, example_header().hash(), 1, &vec![],),
 			false,
 		);
 	}
@@ -1158,7 +1158,7 @@ pub(crate) mod tests {
 	fn verify_transaction_finalized_rejects_unknown_header() {
 		let storage = InMemoryStorage::new(Default::default(), Vec::new());
 		assert_eq!(
-			verify_transaction_finalized(&storage, &example_tx(), example_header().hash(), &vec![example_tx()],),
+			verify_transaction_finalized(&storage, example_header().hash(), 0, &vec![example_tx()],),
 			false,
 		);
 	}
@@ -1168,7 +1168,7 @@ pub(crate) mod tests {
 		let mut storage = InMemoryStorage::new(example_header(), Vec::new());
 		storage.finalized_block = (0, Default::default());
 		assert_eq!(
-			verify_transaction_finalized(&storage, &example_tx(), example_header().hash(), &vec![example_tx()],),
+			verify_transaction_finalized(&storage, example_header().hash(), 0, &vec![example_tx()],),
 			false,
 		);
 	}
@@ -1179,8 +1179,8 @@ pub(crate) mod tests {
 		assert_eq!(
 			verify_transaction_finalized(
 				&storage,
-				&example_tx(),
 				example_header().hash(),
+				0,
 				&vec![example_tx(), example_tx(),],
 			),
 			false,

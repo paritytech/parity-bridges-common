@@ -30,19 +30,17 @@ pub trait OnTransactionSubmitted<AccountId> {
 
 /// Peer blockhain interface.
 pub trait Blockchain {
-	/// Block hash type.
-	type BlockHash: Parameter;
 	/// Transaction type.
 	type Transaction: Parameter;
 	/// Transaction inclusion proof type.
 	type TransactionInclusionProof: Parameter;
 
 	/// Verify that transaction is a part of given block.
+	///
+	/// Returns Some(transaction) if proof is valid and None otherwise.
 	fn verify_transaction_inclusion_proof(
-		transaction: &Self::Transaction,
-		block: Self::BlockHash,
 		proof: &Self::TransactionInclusionProof,
-	) -> bool;
+	) -> Option<Self::Transaction>;
 }
 
 /// The module configuration trait
@@ -98,8 +96,6 @@ decl_module! {
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn import_peer_transaction(
 			origin,
-			transaction: <<T as Trait>::PeerBlockchain as Blockchain>::Transaction,
-			block: <<T as Trait>::PeerBlockchain as Blockchain>::BlockHash,
 			proof: <<T as Trait>::PeerBlockchain as Blockchain>::TransactionInclusionProof,
 		) -> DispatchResult {
 			let submitter = frame_system::ensure_signed(origin)?;
@@ -111,12 +107,9 @@ decl_module! {
 			// reconstructed from proof during verification
 			//
 			// leaving it here for now just for simplicity
-			let is_transaction_finalized = <T as Trait>::PeerBlockchain::verify_transaction_inclusion_proof(
-				&transaction,
-				block,
+			let transaction = <T as Trait>::PeerBlockchain::verify_transaction_inclusion_proof(
 				&proof,
-			);
-			ensure!(is_transaction_finalized, Error::<T>::UnfinalizedTransaction);
+			).ok_or_else(|| Error::<T>::UnfinalizedTransaction)?;
 
 			// parse transaction
 			let transaction = <T as Trait>::PeerMaybeLockFundsTransaction::parse(&transaction)
@@ -201,16 +194,17 @@ mod tests {
 	pub struct DummyBlockchain;
 
 	impl Blockchain for DummyBlockchain {
-		type BlockHash = u64;
 		type Transaction = RawTransaction;
-		type TransactionInclusionProof = bool;
+		type TransactionInclusionProof = (bool, RawTransaction);
 
 		fn verify_transaction_inclusion_proof(
-			_transaction: &Self::Transaction,
-			_block: Self::BlockHash,
 			proof: &Self::TransactionInclusionProof,
-		) -> bool {
-			*proof
+		) -> Option<RawTransaction> {
+			if proof.0 {
+				Some(proof.1.clone())
+			} else {
+				None
+			}
 		}
 	}
 
@@ -342,7 +336,7 @@ mod tests {
 	fn unfinalized_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction(0), 0, false,),
+				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), (false, transaction(0))),
 				Error::<TestRuntime>::UnfinalizedTransaction,
 			);
 		});
@@ -354,9 +348,7 @@ mod tests {
 			assert_noop!(
 				Exhange::import_peer_transaction(
 					Origin::signed(SUBMITTER),
-					transaction(INVALID_TRANSACTION_ID),
-					0,
-					true,
+					(true, transaction(INVALID_TRANSACTION_ID)),
 				),
 				Error::<TestRuntime>::InvalidTransaction,
 			);
@@ -370,9 +362,7 @@ mod tests {
 			assert_noop!(
 				Exhange::import_peer_transaction(
 					Origin::signed(SUBMITTER),
-					transaction(ALREADY_CLAIMED_TRANSACTION_ID),
-					0,
-					true,
+					(true, transaction(ALREADY_CLAIMED_TRANSACTION_ID)),
 				),
 				Error::<TestRuntime>::AlreadyClaimed,
 			);
@@ -385,7 +375,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.recipient = UNKNOWN_RECIPIENT_ID;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction, 0, true,),
+				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
 				Error::<TestRuntime>::FailedToMapRecipients,
 			);
 		});
@@ -397,7 +387,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = INVALID_AMOUNT;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction, 0, true,),
+				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
 				Error::<TestRuntime>::FailedToConvertCurrency,
 			);
 		});
@@ -409,7 +399,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = MAX_DEPOSIT_AMOUNT;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), transaction, 0, true,),
+				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
 				Error::<TestRuntime>::DepositFailed,
 			);
 		});
@@ -420,9 +410,7 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			assert_ok!(Exhange::import_peer_transaction(
 				Origin::signed(SUBMITTER),
-				transaction(0),
-				0,
-				true,
+				(true, transaction(0)),
 			),);
 
 			// ensure that the transfer has been marked as completed
