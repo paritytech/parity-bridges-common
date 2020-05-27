@@ -217,21 +217,21 @@ impl pallet_bridge_currency_exchange::Trait for Runtime {
 	type RecipientsMap = sp_bridge_eth_poa::exchange::AsIsRecipients<AccountId>;
 	type Amount = Balance;
 	type CurrencyConverter = sp_bridge_eth_poa::exchange::AsIsCurrencyConverter<Balance>;
-	type Airdrop = Airdrop;
+	type DepositInto = DepositInto;
 }
 
-pub struct Airdrop;
+pub struct DepositInto;
 
-impl sp_bridge_eth_poa::exchange::Airdrop for Airdrop {
+impl sp_bridge_eth_poa::exchange::DepositInto for DepositInto {
 	type Recipient = AccountId;
 	type Amount = Balance;
 
-	fn drop(recipient: Self::Recipient, amount: Self::Amount) -> sp_bridge_eth_poa::exchange::Result<()> {
+	fn deposit_into(recipient: Self::Recipient, amount: Self::Amount) -> sp_bridge_eth_poa::exchange::Result<()> {
 		<pallet_balances::Module<Runtime> as Currency<AccountId>>::deposit_into_existing(&recipient, amount)
 			.map(|_| {
 				frame_support::debug::trace!(
 					target: "runtime",
-					"Airdropped {} to {:?}",
+					"Deposited {} to {:?}",
 					amount,
 					recipient,
 				);
@@ -239,13 +239,13 @@ impl sp_bridge_eth_poa::exchange::Airdrop for Airdrop {
 			.map_err(|e| {
 				frame_support::debug::error!(
 					target: "runtime",
-					"Airdrop of {} to {:?} has failed with: {:?}",
+					"Deposit of {} to {:?} has failed with: {:?}",
 					amount,
 					recipient,
 					e
 				);
 
-				sp_bridge_eth_poa::exchange::Error::AirdropFailed
+				sp_bridge_eth_poa::exchange::Error::DepositFailed
 			})
 	}
 }

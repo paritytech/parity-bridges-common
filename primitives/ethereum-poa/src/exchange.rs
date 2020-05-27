@@ -31,8 +31,8 @@ pub enum Error {
 	FailedToMapRecipients,
 	/// Failed to convert from peer blockchain currency to this blockhain currency.
 	FailedToCovertCurrency,
-	/// Airdrop has failed.
-	AirdropFailed,
+	/// Deposit has failed.
+	DepositFailed,
 }
 
 /// Result of all exchange operations.
@@ -87,15 +87,15 @@ pub trait CurrencyConverter {
 	fn convert(amount: Self::SourceAmount) -> Result<Self::TargetAmount>;
 }
 
-/// Currency airdrop.
-pub trait Airdrop {
+/// Currency deposit.
+pub trait DepositInto {
 	/// Recipient type.
 	type Recipient;
 	/// Currency amount type.
 	type Amount;
 
 	/// Grant some money to given account.
-	fn drop(recipient: Self::Recipient, amount: Self::Amount) -> Result<()>;
+	fn deposit_into(recipient: Self::Recipient, amount: Self::Amount) -> Result<()>;
 }
 
 /// Recipients map which is used when accounts ids are the same on both chains.

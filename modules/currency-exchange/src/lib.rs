@@ -19,7 +19,7 @@
 use codec::Encode;
 use frame_support::{decl_error, decl_module, decl_storage, ensure, fail, Parameter};
 use primitives::exchange::{
-	Airdrop, CurrencyConverter, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
+	DepositInto, CurrencyConverter, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
 };
 use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
@@ -62,7 +62,7 @@ pub trait Trait: frame_system::Trait {
 		TargetAmount = Self::Amount,
 	>;
 	/// Something that could grant money.
-	type Airdrop: Airdrop<Recipient = Self::AccountId, Amount = Self::Amount>;
+	type DepositInto: DepositInto<Recipient = Self::AccountId, Amount = Self::Amount>;
 }
 
 decl_error! {
@@ -77,8 +77,8 @@ decl_error! {
 		FailedToMapRecipients,
 		/// Failed to convert from peer blockchain currency to this blockhain currency.
 		FailedToCovertCurrency,
-		/// Airdrop has failed.
-		AirdropFailed,
+		/// Deposit has failed.
+		DepositFailed,
 		/// Transaction is not finalized.
 		UnfinalizedTransaction,
 		/// Transaction funds are already claimed.
@@ -126,7 +126,7 @@ decl_module! {
 			// grant recipient
 			let recipient = T::RecipientsMap::map(transaction.recipient).map_err(Error::<T>::from)?;
 			let amount = T::CurrencyConverter::convert(transaction.amount).map_err(Error::<T>::from)?;
-			T::Airdrop::drop(recipient, amount).map_err(Error::<T>::from)?;
+			T::DepositInto::deposit_into(recipient, amount).map_err(Error::<T>::from)?;
 
 			// remember that we have accepted this transfer
 			Transfers::insert(transfer_id, ());
@@ -151,7 +151,7 @@ impl<T: Trait> From<ExchangeError> for Error<T> {
 			ExchangeError::InvalidRecipient => Error::InvalidRecipient,
 			ExchangeError::FailedToMapRecipients => Error::FailedToMapRecipients,
 			ExchangeError::FailedToCovertCurrency => Error::FailedToCovertCurrency,
-			ExchangeError::AirdropFailed => Error::AirdropFailed,
+			ExchangeError::DepositFailed => Error::DepositFailed,
 		}
 	}
 }
@@ -172,7 +172,7 @@ mod tests {
 	const ALREADY_CLAIMED_TRANSACTION_ID: u64 = 101;
 	const UNKNOWN_RECIPIENT_ID: u64 = 0;
 	const INVALID_AMOUNT: u64 = 0;
-	const MAX_AIRDROP_AMOUNT: u64 = 1000;
+	const MAX_DEPOSIT_AMOUNT: u64 = 1000;
 
 	type RawTransaction = LockFundsTransaction<u64, u64, u64>;
 
@@ -236,15 +236,15 @@ mod tests {
 		}
 	}
 
-	pub struct DummyAirdrop;
+	pub struct DummyDepositInto;
 
-	impl Airdrop for DummyAirdrop {
+	impl DepositInto for DummyDepositInto {
 		type Recipient = u64;
 		type Amount = u64;
 
-		fn drop(_recipient: Self::Recipient, amount: Self::Amount) -> primitives::exchange::Result<()> {
-			match amount > MAX_AIRDROP_AMOUNT {
-				true => Err(primitives::exchange::Error::AirdropFailed),
+		fn deposit_into(_recipient: Self::Recipient, amount: Self::Amount) -> primitives::exchange::Result<()> {
+			match amount > MAX_DEPOSIT_AMOUNT {
+				true => Err(primitives::exchange::Error::DepositFailed),
 				_ => Ok(()),
 			}
 		}
@@ -295,7 +295,7 @@ mod tests {
 		type RecipientsMap = DummyRecipientsMap;
 		type Amount = u64;
 		type CurrencyConverter = DummyCurrencyConverter;
-		type Airdrop = DummyAirdrop;
+		type DepositInto = DummyDepositInto;
 	}
 
 	type Exhange = Module<TestRuntime>;
@@ -376,13 +376,13 @@ mod tests {
 	}
 
 	#[test]
-	fn transaction_with_invalid_airdrop_rejected() {
+	fn transaction_with_invalid_deposit_rejected() {
 		new_test_ext().execute_with(|| {
 			let mut transaction = transaction(0);
-			transaction.amount = MAX_AIRDROP_AMOUNT;
+			transaction.amount = MAX_DEPOSIT_AMOUNT;
 			assert_noop!(
 				Exhange::import_peer_transaction(Origin::signed(1), transaction, 0, true,),
-				Error::<TestRuntime>::AirdropFailed,
+				Error::<TestRuntime>::DepositFailed,
 			);
 		});
 	}
