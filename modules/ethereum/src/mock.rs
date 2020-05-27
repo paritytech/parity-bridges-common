@@ -150,8 +150,8 @@ pub fn validators(count: u8) -> Vec<KeyPair> {
 
 /// Return addresses of all test validators.
 pub fn validators_addresses(count: u8) -> Vec<Address> {
-	(0..count as usize)
-		.map(|i| validator(i as u8).address().as_fixed_bytes().into())
+	(0..count)
+		.map(|i| validator(i).address())
 		.collect()
 }
 
