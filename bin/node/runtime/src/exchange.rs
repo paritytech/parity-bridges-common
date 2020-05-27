@@ -88,11 +88,11 @@ impl MaybeLockFundsTransaction for EthTransaction {
 		let mut recipient_raw = sp_core::H256::default();
 		match tx.payload.len() {
 			32 => recipient_raw.as_fixed_bytes_mut().copy_from_slice(&tx.payload),
-			_ => {
+			len => {
 				frame_support::debug::error!(
 					target: "runtime",
 					"Failed to parse fund locks transaction. Invalid recipient length: {}",
-					tx.payload.len(),
+					len,
 				);
 
 				return Err(ExchangeError::InvalidRecipient);
