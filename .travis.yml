@@ -1,7 +1,10 @@
 language: rust
 cache:
   timeout: 600
-  cargo: true
+  cargo: false
+  directories:
+    - target/debug/wbuild
+    - target/debug/wbuild-runner
 rust:
   - stable
 before_install:
