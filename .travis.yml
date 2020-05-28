@@ -1,15 +1,14 @@
 language: rust
+cache:
+  timeout: 600
+  cargo: true
+  directories:
+    - target/release
 rust:
   - stable
-  - beta
-  - nightly
 before_install:
   - rustup install nightly-2020-05-14
   - rustup target add wasm32-unknown-unknown --toolchain nightly-2020-05-14
   - rustup component add rustfmt
 before_script:
   - cargo fmt --all -- --check
-jobs:
-  allow_failures:
-    - rust: nightly
-  fast_finish: true
