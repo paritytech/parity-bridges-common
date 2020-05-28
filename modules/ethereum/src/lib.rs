@@ -385,8 +385,9 @@ decl_storage! {
 			// 2) there are no scheduled validators changes from previous blocks;
 			// 3) (implied) all direct children of initial block are authred by the same validators set.
 
+			let initial_validators_not_empty = !config.initial_validators.is_empty();
 			assert!(
-				!config.initial_validators.is_empty(),
+				initial_validators_not_empty,
 				"Initial validators set can't be empty",
 			);
 
