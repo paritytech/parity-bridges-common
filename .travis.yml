@@ -2,8 +2,6 @@ language: rust
 cache:
   timeout: 600
   cargo: true
-  directories:
-    - target/release
 rust:
   - stable
 before_install:
