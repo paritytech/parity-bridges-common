@@ -558,6 +558,7 @@ dependencies = [
  "sp-bridge-eth-poa",
  "sp-consensus-aura",
  "sp-core",
+ "sp-currency-exchange",
  "sp-inherents",
  "sp-io",
  "sp-offchain",
@@ -3284,8 +3285,8 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "serde",
- "sp-bridge-eth-poa",
  "sp-core",
+ "sp-currency-exchange",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -5558,7 +5559,6 @@ version = "0.1.0"
 dependencies = [
  "ethbloom 0.8.1",
  "fixed-hash 0.5.2",
- "frame-support",
  "hash-db",
  "hex-literal",
  "impl-rlp",
@@ -5690,6 +5690,15 @@ dependencies = [
  "twox-hash",
  "wasmi",
  "zeroize",
+]
+
+[[package]]
+name = "sp-currency-exchange"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "sp-std",
 ]
 
 [[package]]

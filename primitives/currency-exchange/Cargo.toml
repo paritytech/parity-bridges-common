@@ -1,0 +1,31 @@
+[package]
+name = "sp-currency-exchange"
+description = "Primitives of currency exchange module."
+version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2018"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "1.0.0", default-features = false }
+
+# Substrate Based Dependencies
+
+[dependencies.sp-std]
+version = "2.0.0-alpha.6"
+default-features = false
+rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
+git = "https://github.com/paritytech/substrate.git"
+
+[dependencies.frame-support]
+version = "2.0.0-alpha.6"
+default-features = false
+rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
+git = "https://github.com/paritytech/substrate.git"
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"sp-std/std",
+	"frame-support/std",
+]

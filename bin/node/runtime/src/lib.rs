@@ -215,19 +215,19 @@ impl pallet_bridge_currency_exchange::Trait for Runtime {
 	type OnTransactionSubmitted = ();
 	type PeerBlockchain = exchange::EthBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
-	type RecipientsMap = sp_bridge_eth_poa::exchange::IdentityRecipients<AccountId>;
+	type RecipientsMap = sp_currency_exchange::IdentityRecipients<AccountId>;
 	type Amount = Balance;
-	type CurrencyConverter = sp_bridge_eth_poa::exchange::IdentityCurrencyConverter<Balance>;
+	type CurrencyConverter = sp_currency_exchange::IdentityCurrencyConverter<Balance>;
 	type DepositInto = DepositInto;
 }
 
 pub struct DepositInto;
 
-impl sp_bridge_eth_poa::exchange::DepositInto for DepositInto {
+impl sp_currency_exchange::DepositInto for DepositInto {
 	type Recipient = AccountId;
 	type Amount = Balance;
 
-	fn deposit_into(recipient: Self::Recipient, amount: Self::Amount) -> sp_bridge_eth_poa::exchange::Result<()> {
+	fn deposit_into(recipient: Self::Recipient, amount: Self::Amount) -> sp_currency_exchange::Result<()> {
 		<pallet_balances::Module<Runtime> as Currency<AccountId>>::deposit_into_existing(&recipient, amount)
 			.map(|_| {
 				frame_support::debug::trace!(
@@ -246,7 +246,7 @@ impl sp_bridge_eth_poa::exchange::DepositInto for DepositInto {
 					e
 				);
 
-				sp_bridge_eth_poa::exchange::Error::DepositFailed
+				sp_currency_exchange::Error::DepositFailed
 			})
 	}
 }

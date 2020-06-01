@@ -16,8 +16,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod exchange;
-
 pub use parity_bytes::Bytes;
 pub use primitive_types::{H160, H256, H512, U128, U256};
 

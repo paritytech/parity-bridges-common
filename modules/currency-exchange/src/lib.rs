@@ -17,7 +17,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
-use primitives::exchange::{
+use sp_currency_exchange::{
 	CurrencyConverter, DepositInto, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
 };
 use sp_runtime::DispatchResult;
@@ -162,7 +162,7 @@ impl<AccountId> OnTransactionSubmitted<AccountId> for () {
 mod tests {
 	use super::*;
 	use frame_support::{assert_noop, assert_ok, impl_outer_origin, parameter_types, weights::Weight};
-	use primitives::exchange::LockFundsTransaction;
+	use sp_currency_exchange::LockFundsTransaction;
 	use sp_core::H256;
 	use sp_runtime::{
 		testing::Header,
@@ -212,9 +212,9 @@ mod tests {
 		type Recipient = AccountId;
 		type Amount = u64;
 
-		fn parse(tx: &Self::Transaction) -> primitives::exchange::Result<RawTransaction> {
+		fn parse(tx: &Self::Transaction) -> sp_currency_exchange::Result<RawTransaction> {
 			match tx.id {
-				INVALID_TRANSACTION_ID => Err(primitives::exchange::Error::InvalidTransaction),
+				INVALID_TRANSACTION_ID => Err(sp_currency_exchange::Error::InvalidTransaction),
 				_ => Ok(tx.clone()),
 			}
 		}
@@ -226,9 +226,9 @@ mod tests {
 		type PeerRecipient = AccountId;
 		type Recipient = AccountId;
 
-		fn map(peer_recipient: Self::PeerRecipient) -> primitives::exchange::Result<Self::Recipient> {
+		fn map(peer_recipient: Self::PeerRecipient) -> sp_currency_exchange::Result<Self::Recipient> {
 			match peer_recipient {
-				UNKNOWN_RECIPIENT_ID => Err(primitives::exchange::Error::FailedToMapRecipients),
+				UNKNOWN_RECIPIENT_ID => Err(sp_currency_exchange::Error::FailedToMapRecipients),
 				_ => Ok(peer_recipient * 10),
 			}
 		}
@@ -240,9 +240,9 @@ mod tests {
 		type SourceAmount = u64;
 		type TargetAmount = u64;
 
-		fn convert(amount: Self::SourceAmount) -> primitives::exchange::Result<Self::TargetAmount> {
+		fn convert(amount: Self::SourceAmount) -> sp_currency_exchange::Result<Self::TargetAmount> {
 			match amount {
-				INVALID_AMOUNT => Err(primitives::exchange::Error::FailedToConvertCurrency),
+				INVALID_AMOUNT => Err(sp_currency_exchange::Error::FailedToConvertCurrency),
 				_ => Ok(amount * 10),
 			}
 		}
@@ -254,9 +254,9 @@ mod tests {
 		type Recipient = AccountId;
 		type Amount = u64;
 
-		fn deposit_into(_recipient: Self::Recipient, amount: Self::Amount) -> primitives::exchange::Result<()> {
+		fn deposit_into(_recipient: Self::Recipient, amount: Self::Amount) -> sp_currency_exchange::Result<()> {
 			match amount > MAX_DEPOSIT_AMOUNT {
-				true => Err(primitives::exchange::Error::DepositFailed),
+				true => Err(sp_currency_exchange::Error::DepositFailed),
 				_ => Ok(()),
 			}
 		}

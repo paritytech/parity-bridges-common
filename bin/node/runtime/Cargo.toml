@@ -124,6 +124,11 @@ version = "0.1.0"
 default-features = false
 path = "../../../primitives/ethereum-poa"
 
+[dependencies.sp-currency-exchange]
+version = "0.1.0"
+default-features = false
+path = "../../../primitives/currency-exchange"
+
 [dependencies.sp-consensus-aura]
 version = "0.8.0-alpha.6"
 default-features = false
@@ -214,6 +219,7 @@ std = [
 	"sp-api/std",
 	"sp-block-builder/std",
 	"sp-bridge-eth-poa/std",
+	"sp-currency-exchange/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
 	"sp-inherents/std",

@@ -48,12 +48,6 @@ default-features = false
 rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
 git = "https://github.com/paritytech/substrate.git"
 
-[dependencies.frame-support]
-version = "2.0.0-alpha.6"
-default-features = false
-rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
-git = "https://github.com/paritytech/substrate.git"
-
 [features]
 default = ["std"]
 test-helpers = []
