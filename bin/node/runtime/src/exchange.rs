@@ -35,7 +35,7 @@ use sp_currency_exchange::{Error as ExchangeError, LockFundsTransaction, MaybeLo
 use sp_bridge_eth_poa::transaction_decode;
 use sp_std::vec::Vec;
 
-/// Address where locked PoA funds must be sent to.
+/// Ethereum address where locked PoA funds must be sent to.
 const LOCK_FUNDS_ADDRESS: [u8; 20] = hex!("DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF");
 
 /// Ethereum transaction inclusion proof.
