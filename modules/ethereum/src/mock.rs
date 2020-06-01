@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
-use crate::{AuraConfiguration, GenesisConfig, HeadersByNumber, Trait};
+use crate::{AuraConfiguration, GenesisConfig, HeaderToImport, HeadersByNumber, Storage, Trait};
 use frame_support::StorageMap;
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use parity_crypto::publickey::{sign, KeyPair, Secret};
@@ -163,4 +163,17 @@ pub fn custom_test_ext(initial_header: Header, initial_validators: Vec<Address>)
 	.build_storage::<TestRuntime>()
 	.unwrap();
 	sp_io::TestExternalities::new(t)
+}
+
+/// Insert header into storage.
+pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
+	storage.insert_header(HeaderToImport {
+		context: storage.import_context(None, &header.parent_hash).unwrap(),
+		is_best: true,
+		hash: header.hash(),
+		header,
+		total_difficulty: 0.into(),
+		enacted_change: None,
+		scheduled_change: None,
+	});
 }

@@ -340,8 +340,8 @@ fn find_next_validators_signal<S: Storage>(storage: &S, context: &ImportContext<
 mod tests {
 	use super::*;
 	use crate::mock::{
-		block_i, custom_block_i, custom_test_ext, genesis, signed_header, test_aura_config, validator,
-		validators_addresses, AccountId, TestRuntime,
+		block_i, custom_block_i, custom_test_ext, genesis, insert_header, signed_header,
+		test_aura_config, validator, validators_addresses, AccountId, TestRuntime,
 	};
 	use crate::validators::{tests::validators_change_recept, ValidatorsSource};
 	use crate::{
@@ -384,27 +384,12 @@ mod tests {
 			let validators = vec![validator(0), validator(1), validator(2)];
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 			let block1 = block_i(1, &validators);
-			storage.insert_header(
-				storage
-					.import_context(None, &block1.parent_hash)
-					.unwrap()
-					.into_import_header(true, block1.hash(), block1, 0.into(), None, None),
-			);
+			insert_header(&mut storage, block1);
 			let block2 = block_i(2, &validators);
 			let block2_hash = block2.hash();
-			storage.insert_header(
-				storage
-					.import_context(None, &block2.parent_hash)
-					.unwrap()
-					.into_import_header(true, block2.hash(), block2, 0.into(), None, None),
-			);
+			insert_header(&mut storage, block2);
 			let block3 = block_i(3, &validators);
-			storage.insert_header(
-				storage
-					.import_context(None, &block3.parent_hash)
-					.unwrap()
-					.into_import_header(true, block3.hash(), block3, 0.into(), None, None),
-			);
+			insert_header(&mut storage, block3);
 
 			FinalizedBlock::put((2, block2_hash));
 
