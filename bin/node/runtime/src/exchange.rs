@@ -196,7 +196,7 @@ mod tests {
 	}
 
 	#[test]
-	fn invalid_with_invalid_peer_recipient_rejected() {
+	fn transaction_with_invalid_peer_recipient_rejected() {
 		assert_eq!(
 			EthTransaction::parse(&prepare_ethereum_transaction(|tx| {
 				tx.to = None;
@@ -206,7 +206,7 @@ mod tests {
 	}
 
 	#[test]
-	fn invalid_with_invalid_recipient_rejected() {
+	fn transaction_with_invalid_recipient_rejected() {
 		assert_eq!(
 			EthTransaction::parse(&prepare_ethereum_transaction(|tx| {
 				tx.data.clear();
@@ -216,7 +216,7 @@ mod tests {
 	}
 
 	#[test]
-	fn invalid_with_invalid_amount_rejected() {
+	fn transaction_with_invalid_amount_rejected() {
 		assert_eq!(
 			EthTransaction::parse(&prepare_ethereum_transaction(|tx| {
 				tx.value = sp_core::U256::from(u128::max_value()) + sp_core::U256::from(1);
