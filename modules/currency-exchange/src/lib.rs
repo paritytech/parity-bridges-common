@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Runtime module that allows tokens exchange between two bridged chains.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
@@ -99,12 +101,6 @@ decl_module! {
 			let submitter = frame_system::ensure_signed(origin)?;
 
 			// ensure that transaction is included in finalized block that we know of
-			//
-			// note that the transaction itself is actually redundant here, because it
-			// will probably be a part of proof itself (like it is now), or could be
-			// reconstructed from proof during verification
-			//
-			// leaving it here for now just for simplicity
 			let transaction = <T as Trait>::PeerBlockchain::verify_transaction_inclusion_proof(
 				&proof,
 			).ok_or_else(|| Error::<T>::UnfinalizedTransaction)?;
