@@ -311,7 +311,7 @@ mod tests {
 		type DepositInto = DummyDepositInto;
 	}
 
-	type Exhange = Module<TestRuntime>;
+	type Exchange = Module<TestRuntime>;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
 		let t = frame_system::GenesisConfig::default()
@@ -332,7 +332,7 @@ mod tests {
 	fn unfinalized_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), (false, transaction(0))),
+				Exchange::import_peer_transaction(Origin::signed(SUBMITTER), (false, transaction(0))),
 				Error::<TestRuntime>::UnfinalizedTransaction,
 			);
 		});
@@ -342,7 +342,7 @@ mod tests {
 	fn invalid_transaction_rejected() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Exhange::import_peer_transaction(
+				Exchange::import_peer_transaction(
 					Origin::signed(SUBMITTER),
 					(true, transaction(INVALID_TRANSACTION_ID)),
 				),
@@ -354,9 +354,9 @@ mod tests {
 	#[test]
 	fn claimed_transaction_rejected() {
 		new_test_ext().execute_with(|| {
-			<Exhange as crate::Store>::Transfers::insert(ALREADY_CLAIMED_TRANSACTION_ID, ());
+			<Exchange as crate::Store>::Transfers::insert(ALREADY_CLAIMED_TRANSACTION_ID, ());
 			assert_noop!(
-				Exhange::import_peer_transaction(
+				Exchange::import_peer_transaction(
 					Origin::signed(SUBMITTER),
 					(true, transaction(ALREADY_CLAIMED_TRANSACTION_ID)),
 				),
@@ -371,7 +371,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.recipient = UNKNOWN_RECIPIENT_ID;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
+				Exchange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
 				Error::<TestRuntime>::FailedToMapRecipients,
 			);
 		});
@@ -383,7 +383,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = INVALID_AMOUNT;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
+				Exchange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
 				Error::<TestRuntime>::FailedToConvertCurrency,
 			);
 		});
@@ -395,7 +395,7 @@ mod tests {
 			let mut transaction = transaction(0);
 			transaction.amount = MAX_DEPOSIT_AMOUNT;
 			assert_noop!(
-				Exhange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
+				Exchange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
 				Error::<TestRuntime>::DepositFailed,
 			);
 		});
@@ -404,15 +404,15 @@ mod tests {
 	#[test]
 	fn valid_transaction_accepted() {
 		new_test_ext().execute_with(|| {
-			assert_ok!(Exhange::import_peer_transaction(
+			assert_ok!(Exchange::import_peer_transaction(
 				Origin::signed(SUBMITTER),
 				(true, transaction(0)),
 			),);
 
 			// ensure that the transfer has been marked as completed
-			assert!(<Exhange as crate::Store>::Transfers::contains_key(0u64));
+			assert!(<Exchange as crate::Store>::Transfers::contains_key(0u64));
 			// ensure that submitter has been rewarded
-			assert!(<Exhange as crate::Store>::Transfers::contains_key(SUBMITTER));
+			assert!(<Exchange as crate::Store>::Transfers::contains_key(SUBMITTER));
 		});
 	}
 }
