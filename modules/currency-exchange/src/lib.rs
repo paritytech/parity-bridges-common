@@ -158,8 +158,8 @@ impl<AccountId> OnTransactionSubmitted<AccountId> for () {
 mod tests {
 	use super::*;
 	use frame_support::{assert_noop, assert_ok, impl_outer_origin, parameter_types, weights::Weight};
-	use sp_currency_exchange::LockFundsTransaction;
 	use sp_core::H256;
+	use sp_currency_exchange::LockFundsTransaction;
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, IdentityLookup},

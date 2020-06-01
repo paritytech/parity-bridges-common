@@ -31,8 +31,10 @@ use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
 use pallet_bridge_currency_exchange::Blockchain;
-use sp_currency_exchange::{Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult};
 use sp_bridge_eth_poa::transaction_decode;
+use sp_currency_exchange::{
+	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult,
+};
 use sp_std::vec::Vec;
 
 /// Ethereum address where locked PoA funds must be sent to.
