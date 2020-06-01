@@ -14,6 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Support for PoA -> Substrate native tokens exchange.
+//!
+//! If you want to exchange native
+//! PoA tokens for Substrate chain native tokens, you need to:
+//! 1) send some PoA tokens to `LOCK_FUNDS_ADDRESS` address on PoA chain. Data field of
+//!    the transaction must be SCALE-encoded id of Substrate account that will receive
+//!    funds on Substrate chain;
+//! 2) wait until that 'lock funds' transaction is mined on PoA chain;
+//! 3) wait until block with 'lock funds' transaction is finalized on PoA chain;
+//! 4) wait until (or provide) required PoA header and its finality will be provided
+//!    to the PoA -> Substrate bridge module;
+//! 5) receive tokens by providing proof-of-inclusion of PoA transaction.
+
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
