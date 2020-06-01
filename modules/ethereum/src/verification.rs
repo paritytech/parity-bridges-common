@@ -340,8 +340,8 @@ fn find_next_validators_signal<S: Storage>(storage: &S, context: &ImportContext<
 mod tests {
 	use super::*;
 	use crate::mock::{
-		block_i, custom_block_i, custom_test_ext, genesis, insert_header, signed_header,
-		test_aura_config, validator, validators_addresses, AccountId, TestRuntime,
+		block_i, custom_block_i, custom_test_ext, genesis, insert_header, signed_header, test_aura_config, validator,
+		validators_addresses, AccountId, TestRuntime,
 	};
 	use crate::validators::{tests::validators_change_recept, ValidatorsSource};
 	use crate::{
