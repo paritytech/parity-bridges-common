@@ -307,8 +307,7 @@ mod tests {
 					None,
 					&header_to_import.header,
 					u64::max_value(),
-				)
-				.map(|eff| eff.finalized_headers),
+				).map(|eff| eff.finalized_headers),
 				Ok(Vec::new()),
 			);
 			storage.insert_header(header_to_import.clone());
@@ -320,8 +319,8 @@ mod tests {
 				number: 2,
 				..Default::default()
 			};
+			header_to_import.id = header_to_import.header.compute_id();
 			let id2 = header_to_import.header.compute_id();
-			header_to_import.id = id2;
 			assert_eq!(
 				finalize_blocks(
 					&storage,
@@ -331,8 +330,7 @@ mod tests {
 					None,
 					&header_to_import.header,
 					u64::max_value(),
-				)
-				.map(|eff| eff.finalized_headers),
+				).map(|eff| eff.finalized_headers),
 				Ok(Vec::new()),
 			);
 			storage.insert_header(header_to_import.clone());
@@ -344,8 +342,8 @@ mod tests {
 				number: 3,
 				..Default::default()
 			};
+			header_to_import.id = header_to_import.header.compute_id();
 			let id3 = header_to_import.header.compute_id();
-			header_to_import.id = id3;
 			assert_eq!(
 				finalize_blocks(
 					&storage,
@@ -355,8 +353,7 @@ mod tests {
 					None,
 					&header_to_import.header,
 					u64::max_value(),
-				)
-				.map(|eff| eff.finalized_headers),
+				).map(|eff| eff.finalized_headers),
 				Ok(vec![(id1, None)]),
 			);
 			storage.insert_header(header_to_import);
