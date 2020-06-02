@@ -696,7 +696,7 @@ fn pool_configuration() -> PoolConfiguration {
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::mock::{TestRuntime, custom_test_ext, genesis, insert_header, validators_addresses};
+	use crate::mock::{custom_test_ext, genesis, insert_header, validators_addresses, TestRuntime};
 	use primitives::compute_merkle_root;
 
 	fn example_tx() -> Vec<u8> {
