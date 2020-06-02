@@ -17,9 +17,9 @@
 use bridge_node_runtime::{Block, BlockNumber, Hash, Header as RuntimeHeader};
 use codec::{Decode, Encode};
 use ethereum_types::U256;
+use finality_grandpa::voter_set::VoterSet;
 use sp_blockchain::Error as ClientError;
 use sp_finality_grandpa::{AuthorityList, ConsensusLog, GRANDPA_ENGINE_ID};
-use finality_grandpa::voter_set::VoterSet;
 
 /// Builtin errors.
 #[derive(Debug)]
@@ -113,9 +113,7 @@ pub fn verify_substrate_finality_proof(
 ) -> Result<(), Error> {
 	let best_set = AuthorityList::decode(&mut &raw_best_set[..])
 		.map_err(Error::BestSetDecode)
-		.and_then(|authorities| VoterSet::new(authorities.into_iter())
-			.ok_or(Error::InvalidBestSet)
-		)?;
+		.and_then(|authorities| VoterSet::new(authorities.into_iter()).ok_or(Error::InvalidBestSet))?;
 	sc_finality_grandpa::GrandpaJustification::<Block>::decode_and_verify_finalizes(
 		&raw_finality_proof,
 		(finality_target_hash, finality_target_number),

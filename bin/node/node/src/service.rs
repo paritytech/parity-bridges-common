@@ -17,9 +17,9 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use bridge_node_runtime::{self, opaque::Block, RuntimeApi};
-use grandpa::{self, FinalityProofProvider as GrandpaFinalityProofProvider, StorageAndProofProvider, SharedVoterState};
-use sc_consensus::LongestChain;
+use grandpa::{self, FinalityProofProvider as GrandpaFinalityProofProvider, SharedVoterState, StorageAndProofProvider};
 use sc_client_api::ExecutorProvider;
+use sc_consensus::LongestChain;
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
 use sc_service::{error::Error as ServiceError, AbstractService, Configuration, ServiceBuilder};
@@ -60,34 +60,36 @@ macro_rules! new_full_start {
 				prometheus_registry,
 			))
 		})?
-		.with_import_queue(|_config, client, mut select_chain, _transaction_pool, spawn_task_handle, registry| {
-			let select_chain = select_chain
-				.take()
-				.ok_or_else(|| sc_service::Error::SelectChainRequired)?;
+		.with_import_queue(
+			|_config, client, mut select_chain, _transaction_pool, spawn_task_handle, registry| {
+				let select_chain = select_chain
+					.take()
+					.ok_or_else(|| sc_service::Error::SelectChainRequired)?;
 
-			let (grandpa_block_import, grandpa_link) =
-				grandpa::block_import(client.clone(), &(client.clone() as Arc<_>), select_chain)?;
+				let (grandpa_block_import, grandpa_link) =
+					grandpa::block_import(client.clone(), &(client.clone() as Arc<_>), select_chain)?;
 
-			let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
-				grandpa_block_import.clone(),
-				client.clone(),
-			);
+				let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
+					grandpa_block_import.clone(),
+					client.clone(),
+				);
 
-			let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _>(
-				sc_consensus_aura::slot_duration(&*client)?,
-				aura_block_import,
-				Some(Box::new(grandpa_block_import.clone())),
-				None,
-				client,
-				inherent_data_providers.clone(),
-				spawn_task_handle,
-				registry,
-			)?;
+				let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _>(
+					sc_consensus_aura::slot_duration(&*client)?,
+					aura_block_import,
+					Some(Box::new(grandpa_block_import.clone())),
+					None,
+					client,
+					inherent_data_providers.clone(),
+					spawn_task_handle,
+					registry,
+				)?;
 
-			import_setup = Some((grandpa_block_import, grandpa_link));
+				import_setup = Some((grandpa_block_import, grandpa_link));
 
-			Ok(import_queue)
-		})?
+				Ok(import_queue)
+			},
+			)?
 		.with_rpc_extensions(|builder| -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, _> {
 			use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
@@ -218,41 +220,34 @@ pub fn new_light(config: Configuration) -> Result<impl AbstractService, ServiceE
 			);
 			Ok(pool)
 		})?
-		.with_import_queue_and_fprb(|
-			_config,
-			client,
-			backend,
-			fetcher,
-			_select_chain,
-			_tx_pool,
-			spawn_task_handle,
-			prometheus_registry,
-		| {
-			let fetch_checker = fetcher
-				.map(|fetcher| fetcher.checker().clone())
-				.ok_or_else(|| "Trying to start light import queue without active fetch checker")?;
-			let grandpa_block_import = grandpa::light_block_import(
-				client.clone(),
-				backend,
-				&(client.clone() as Arc<_>),
-				Arc::new(fetch_checker),
-			)?;
-			let finality_proof_import = grandpa_block_import.clone();
-			let finality_proof_request_builder = finality_proof_import.create_finality_proof_request_builder();
+		.with_import_queue_and_fprb(
+			|_config, client, backend, fetcher, _select_chain, _tx_pool, spawn_task_handle, prometheus_registry| {
+				let fetch_checker = fetcher
+					.map(|fetcher| fetcher.checker().clone())
+					.ok_or_else(|| "Trying to start light import queue without active fetch checker")?;
+				let grandpa_block_import = grandpa::light_block_import(
+					client.clone(),
+					backend,
+					&(client.clone() as Arc<_>),
+					Arc::new(fetch_checker),
+				)?;
+				let finality_proof_import = grandpa_block_import.clone();
+				let finality_proof_request_builder = finality_proof_import.create_finality_proof_request_builder();
 
-			let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _>(
-				sc_consensus_aura::slot_duration(&*client)?,
-				grandpa_block_import,
-				None,
-				Some(Box::new(finality_proof_import)),
-				client,
-				inherent_data_providers.clone(),
-				spawn_task_handle,
-				prometheus_registry,
-			)?;
+				let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _>(
+					sc_consensus_aura::slot_duration(&*client)?,
+					grandpa_block_import,
+					None,
+					Some(Box::new(finality_proof_import)),
+					client,
+					inherent_data_providers.clone(),
+					spawn_task_handle,
+					prometheus_registry,
+				)?;
 
-			Ok((import_queue, finality_proof_request_builder))
-		})?
+				Ok((import_queue, finality_proof_request_builder))
+			},
+		)?
 		.with_finality_proof_provider(|client, backend| {
 			let provider = client as Arc<dyn StorageAndProofProvider<_, _>>;
 			Ok(Arc::new(GrandpaFinalityProofProvider::new(backend, provider)) as _)
