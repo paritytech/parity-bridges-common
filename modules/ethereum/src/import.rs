@@ -333,7 +333,7 @@ mod tests {
 					number: i as _,
 					parent_hash: latest_block_hash,
 					gas_limit: 0x2000.into(),
-					author: validator(2).address().to_fixed_bytes().into(),
+					author: validator(2).address(),
 					seal: vec![vec![step].into(), vec![].into()],
 					difficulty: i.into(),
 					..Default::default()
@@ -369,7 +369,7 @@ mod tests {
 				number: 25,
 				parent_hash: latest_block_hash,
 				gas_limit: 0x2000.into(),
-				author: validator(0).address().to_fixed_bytes().into(),
+				author: validator(0).address(),
 				seal: vec![vec![step].into(), vec![].into()],
 				difficulty: 25.into(),
 				..Default::default()

@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
-use crate::{AuraConfiguration, GenesisConfig, HeadersByNumber, Trait};
+use crate::{AuraConfiguration, GenesisConfig, HeaderToImport, HeadersByNumber, Storage, Trait};
 use frame_support::StorageMap;
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use parity_crypto::publickey::{sign, KeyPair, Secret};
@@ -29,7 +29,7 @@ use sp_runtime::{
 
 pub type AccountId = u64;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
 
 impl_outer_origin! {
@@ -118,7 +118,7 @@ pub fn custom_block_i(number: u64, validators: &[KeyPair], customize: impl FnOnc
 		number,
 		parent_hash: HeadersByNumber::get(number - 1).unwrap()[0].clone(),
 		gas_limit: 0x2000.into(),
-		author: validator(validator_index).address().to_fixed_bytes().into(),
+		author: validator(validator_index).address(),
 		seal: vec![vec![number as u8 + 42].into(), vec![].into()],
 		difficulty: number.into(),
 		..Default::default()
@@ -145,14 +145,12 @@ pub fn validator(index: u8) -> KeyPair {
 
 /// Return key pairs of all test validators.
 pub fn validators(count: u8) -> Vec<KeyPair> {
-	(0..count as usize).map(|index| validator(index as u8)).collect()
+	(0..count).map(validator).collect()
 }
 
 /// Return addresses of all test validators.
 pub fn validators_addresses(count: u8) -> Vec<Address> {
-	(0..count as usize)
-		.map(|i| validator(i as u8).address().as_fixed_bytes().into())
-		.collect()
+	(0..count).map(|i| validator(i).address()).collect()
 }
 
 /// Prepare externalities to start with custom initial header.
@@ -165,4 +163,17 @@ pub fn custom_test_ext(initial_header: Header, initial_validators: Vec<Address>)
 	.build_storage::<TestRuntime>()
 	.unwrap();
 	sp_io::TestExternalities::new(t)
+}
+
+/// Insert header into storage.
+pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
+	storage.insert_header(HeaderToImport {
+		context: storage.import_context(None, &header.parent_hash).unwrap(),
+		is_best: true,
+		hash: header.hash(),
+		header,
+		total_difficulty: 0.into(),
+		enacted_change: None,
+		scheduled_change: None,
+	});
 }
