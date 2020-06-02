@@ -22,7 +22,7 @@
 //!    the transaction must be SCALE-encoded id of Substrate account that will receive
 //!    funds on Substrate chain;
 //! 2) wait until the 'lock funds' transaction is mined on PoA chain;
-//! 3) wait until block with 'lock funds' transaction is finalized on PoA chain;
+//! 3) wait until the block containing the 'lock funds' transaction is finalized on PoA chain;
 //! 4) wait until (or provide) required PoA header and its finality will be provided
 //!    to the PoA -> Substrate bridge module;
 //! 5) receive tokens by providing proof-of-inclusion of PoA transaction.
