@@ -553,7 +553,7 @@ impl<T: Trait> BridgeStorage<T> {
 		}
 	}
 
-	/// Prune od blocks with given hashes.
+	/// Prune old blocks with given hashes.
 	fn prune_blocks_by_hashes(
 		&self,
 		max_blocks_to_prune: &mut u64,
