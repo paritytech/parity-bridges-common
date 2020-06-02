@@ -26,6 +26,8 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod exchange;
 
+pub mod kovan;
+
 use codec::{Decode, Encode};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::AuthorityList as GrandpaAuthorityList;
@@ -207,7 +209,14 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
+parameter_types! {
+	pub const KovanAuraConfiguration: pallet_bridge_eth_poa::AuraConfiguration = kovan::kovan_aura_configuration();
+	pub const KovanValidatorsConfiguration: pallet_bridge_eth_poa::ValidatorsConfiguration = kovan::kovan_validators_configuration();
+}
+
 impl pallet_bridge_eth_poa::Trait for Runtime {
+	type AuraConfiguration = KovanAuraConfiguration;
+	type ValidatorsConfiguration = KovanValidatorsConfiguration;
 	type OnHeadersSubmitted = ();
 }
 
