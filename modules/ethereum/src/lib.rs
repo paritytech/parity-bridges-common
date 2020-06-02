@@ -659,7 +659,21 @@ pub fn verify_transaction_finalized<S: Storage>(
 	};
 	let (finalized_number, finalized_hash) = storage.finalized_block();
 
-	if header.number > finalized_number || (header.number == finalized_number && block != finalized_hash) {
+	// if header is not yet finalized => return
+	if header.number > finalized_number {
+		return false;
+	}
+
+	// check if header is actually finalized
+	let is_finalized = match header.number < finalized_number {
+		true => finality::ancestry(storage, finalized_hash)
+			.skip_while(|(_, ancestor, _)| ancestor.number > header.number)
+			.filter(|&(ancestor_hash, _, _)| ancestor_hash == block)
+			.next()
+			.is_some(),
+		false => block == finalized_hash,
+	};
+	if !is_finalized {
 		return false;
 	}
 
@@ -1133,14 +1147,34 @@ pub(crate) mod tests {
 		let mut header = Header::default();
 		header.number = 1000;
 		header.transactions_root = compute_merkle_root(vec![example_tx()].into_iter());
+		header.parent_hash = example_header_parent().hash();
+		header
+	}
+
+	fn example_header_parent() -> Header {
+		let mut header = Header::default();
+		header.number = 999;
+		header.transactions_root = compute_merkle_root(vec![example_tx()].into_iter());
 		header
 	}
 
 	#[test]
-	fn verify_transaction_finalized_works() {
+	fn verify_transaction_finalized_works_for_best_finalized_header() {
 		let storage = InMemoryStorage::new(example_header(), Vec::new());
 		assert_eq!(
 			verify_transaction_finalized(&storage, example_header().hash(), 0, &vec![example_tx()],),
+			true,
+		);
+	}
+
+	#[test]
+	fn verify_transaction_finalized_works_for_best_finalized_header_ancestor() {
+		let mut storage = InMemoryStorage::new(example_header(), Vec::new());
+		let finalized_header_parent = example_header_parent();
+		let finalized_header_parent_hash = finalized_header_parent.hash();
+		storage.insert(finalized_header_parent);
+		assert_eq!(
+			verify_transaction_finalized(&storage, finalized_header_parent_hash, 0, &vec![example_tx()],),
 			true,
 		);
 	}
@@ -1169,6 +1203,36 @@ pub(crate) mod tests {
 		storage.finalized_block = (0, Default::default());
 		assert_eq!(
 			verify_transaction_finalized(&storage, example_header().hash(), 0, &vec![example_tx()],),
+			false,
+		);
+	}
+
+	#[test]
+	fn verify_transaction_finalized_rejects_finalized_header_sibling() {
+		let mut finalized_header_sibling = example_header();
+		finalized_header_sibling.timestamp = 1;
+
+		let mut storage = InMemoryStorage::new(example_header(), Vec::new());
+		let finalized_header_sibling_hash = finalized_header_sibling.hash();
+		storage.insert(finalized_header_sibling);
+		assert_eq!(
+			verify_transaction_finalized(&storage, finalized_header_sibling_hash, 0, &vec![example_tx()],),
+			false,
+		);
+	}
+
+	#[test]
+	fn verify_transaction_finalized_rejects_finalized_header_uncle() {
+		let finalized_header_parent = example_header_parent();
+		let mut finalized_header_uncle = finalized_header_parent.clone();
+		finalized_header_uncle.timestamp = 1;
+
+		let mut storage = InMemoryStorage::new(example_header(), Vec::new());
+		let finalized_header_uncle_hash = finalized_header_uncle.hash();
+		storage.insert(finalized_header_parent);
+		storage.insert(finalized_header_uncle);
+		assert_eq!(
+			verify_transaction_finalized(&storage, finalized_header_uncle_hash, 0, &vec![example_tx()],),
 			false,
 		);
 	}
