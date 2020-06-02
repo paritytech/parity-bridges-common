@@ -16,8 +16,8 @@
 
 //! Support for PoA -> Substrate native tokens exchange.
 //!
-//! If you want to exchange native
-//! PoA tokens for Substrate chain native tokens, you need to:
+//! If you want to exchange native PoA tokens for native Substrate
+//! chain tokens, you need to:
 //! 1) send some PoA tokens to `LOCK_FUNDS_ADDRESS` address on PoA chain. Data field of
 //!    the transaction must be SCALE-encoded id of Substrate account that will receive
 //!    funds on Substrate chain;
