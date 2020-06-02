@@ -512,7 +512,9 @@ impl<T: Trait> BridgeStorage<T> {
 
 		// update oldest block we want to keep
 		if let Some(prune_end) = prune_end {
-			new_pruning_range.oldest_block_to_keep = prune_end;
+			if prune_end > new_pruning_range.oldest_block_to_keep {
+				new_pruning_range.oldest_block_to_keep = prune_end;
+			}
 		}
 
 		// start pruning blocks
@@ -761,6 +763,26 @@ mod tests {
 			// try to prune blocks [5; 10)
 			storage.prune_blocks(0xFFFF, 10, Some(5));
 			assert_eq!(HeadersByNumber::get(&5).unwrap().len(), 5);
+			assert_eq!(
+				BlocksToPrune::get(),
+				PruningRange {
+					oldest_unpruned_block: 5,
+					oldest_block_to_keep: 5,
+				},
+			);
+		});
+	}
+
+	#[test]
+	fn blocks_to_prune_never_shrinks_from_the_end() {
+		with_headers_to_prune(|storage| {
+			BlocksToPrune::put(PruningRange {
+				oldest_unpruned_block: 0,
+				oldest_block_to_keep: 5,
+			});
+
+			// try to prune blocks [5; 10)
+			storage.prune_blocks(0xFFFF, 10, Some(3));
 			assert_eq!(
 				BlocksToPrune::get(),
 				PruningRange {
