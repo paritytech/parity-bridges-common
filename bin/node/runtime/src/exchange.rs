@@ -24,7 +24,7 @@
 //! 2) wait until the 'lock funds' transaction is mined on PoA chain;
 //! 3) wait until the block containing the 'lock funds' transaction is finalized on PoA chain;
 //! 4) wait until the required PoA header and its finality are provided
-//!    to the PoA -> Substrate bridge module;
+//!    to the PoA -> Substrate bridge module (it can be provided by you);
 //! 5) receive tokens by providing proof-of-inclusion of PoA transaction.
 
 use codec::{Decode, Encode};
