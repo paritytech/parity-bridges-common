@@ -307,7 +307,8 @@ mod tests {
 					None,
 					&header_to_import.header,
 					u64::max_value(),
-				).map(|eff| eff.finalized_headers),
+				)
+				.map(|eff| eff.finalized_headers),
 				Ok(Vec::new()),
 			);
 			storage.insert_header(header_to_import.clone());
@@ -330,7 +331,8 @@ mod tests {
 					None,
 					&header_to_import.header,
 					u64::max_value(),
-				).map(|eff| eff.finalized_headers),
+				)
+				.map(|eff| eff.finalized_headers),
 				Ok(Vec::new()),
 			);
 			storage.insert_header(header_to_import.clone());
@@ -353,7 +355,8 @@ mod tests {
 					None,
 					&header_to_import.header,
 					u64::max_value(),
-				).map(|eff| eff.finalized_headers),
+				)
+				.map(|eff| eff.finalized_headers),
 				Ok(vec![(id1, None)]),
 			);
 			storage.insert_header(header_to_import);

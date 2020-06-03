@@ -784,7 +784,9 @@ fn pool_configuration() -> PoolConfiguration {
 mod tests {
 	use super::*;
 	use crate::finality::FinalityAncestor;
-	use crate::mock::{block_i, custom_block_i, custom_test_ext, genesis, insert_header, validators, validators_addresses, TestRuntime};
+	use crate::mock::{
+		block_i, custom_block_i, custom_test_ext, genesis, insert_header, validators, validators_addresses, TestRuntime,
+	};
 
 	fn with_headers_to_prune<T>(f: impl Fn(BridgeStorage<TestRuntime>) -> T) -> T {
 		custom_test_ext(genesis(), validators_addresses(3)).execute_with(|| {
