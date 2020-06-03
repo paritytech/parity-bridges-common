@@ -768,7 +768,9 @@ fn pool_configuration() -> PoolConfiguration {
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::mock::{custom_block_i, custom_test_ext, genesis, insert_header, validators, validators_addresses, TestRuntime};
+	use crate::mock::{
+		custom_block_i, custom_test_ext, genesis, insert_header, validators, validators_addresses, TestRuntime,
+	};
 	use primitives::compute_merkle_root;
 
 	fn with_headers_to_prune<T>(f: impl Fn(BridgeStorage<TestRuntime>) -> T) -> T {
