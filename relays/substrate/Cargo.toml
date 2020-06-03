@@ -5,7 +5,7 @@ authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
 
 [dependencies]
-async-std = "1.6.0"
+async-std = "=1.5.0"
 clap = "2.33.1"
 ctrlc = "3.1.4"
 derive_more = "0.99.7"
@@ -17,16 +17,16 @@ serde_json = "1.0.53"
 url = "2.1.0"
 
 [dependencies.sp-core]
-version = "2.0.0-alpha.6"
-rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
+version = "2.0.0-rc1"
+rev = "599ba75bc2b5acd238c21c5c7efe8e2ad8d401ee"
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-rpc]
-version = "2.0.0-alpha.6"
-rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
+version = "2.0.0-rc1"
+rev = "599ba75bc2b5acd238c21c5c7efe8e2ad8d401ee"
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.node-primitives]
-version = "2.0.0-alpha.6"
-rev = "c13ad41634d0bd7cf07897c2aa062b917d520520"
+version = "2.0.0-rc1"
+rev = "599ba75bc2b5acd238c21c5c7efe8e2ad8d401ee"
 git = "https://github.com/paritytech/substrate/"

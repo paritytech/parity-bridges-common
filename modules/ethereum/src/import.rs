@@ -172,7 +172,7 @@ mod tests {
 		validator, validators, validators_addresses, TestRuntime,
 	};
 	use crate::validators::ValidatorsSource;
-	use crate::{BridgeStorage, Headers, OldestUnprunedBlock};
+	use crate::{BlocksToPrune, BridgeStorage, Headers, PruningRange};
 	use frame_support::{StorageMap, StorageValue};
 
 	#[test]
@@ -271,7 +271,7 @@ mod tests {
 	}
 
 	#[test]
-	fn headers_are_pruned() {
+	fn headers_are_pruned_during_import() {
 		custom_test_ext(genesis(), validators_addresses(3)).execute_with(|| {
 			let validators_config =
 				ValidatorsConfiguration::Single(ValidatorsSource::Contract([3; 20].into(), validators_addresses(3)));
@@ -364,7 +364,13 @@ mod tests {
 				latest_block_id = rolling_last_block_id;
 				step += 3;
 			}
-			assert_eq!(OldestUnprunedBlock::get(), 11);
+			assert_eq!(
+				BlocksToPrune::get(),
+				PruningRange {
+					oldest_unpruned_block: 11,
+					oldest_block_to_keep: 14,
+				},
+			);
 
 			// now let's insert block signed by validator 1
 			// => blocks 11..24 are finalized and blocks 11..14 are pruned
@@ -390,7 +396,13 @@ mod tests {
 			)
 			.unwrap();
 			assert_eq!(finalized_blocks, expected_blocks);
-			assert_eq!(OldestUnprunedBlock::get(), 15);
+			assert_eq!(
+				BlocksToPrune::get(),
+				PruningRange {
+					oldest_unpruned_block: 15,
+					oldest_block_to_keep: 15,
+				},
+			);
 		});
 	}
 }
