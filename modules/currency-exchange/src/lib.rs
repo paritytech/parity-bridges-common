@@ -117,10 +117,13 @@ decl_module! {
 			// grant recipient
 			let recipient = T::RecipientsMap::map(transaction.recipient).map_err(Error::<T>::from)?;
 			let amount = T::CurrencyConverter::convert(transaction.amount).map_err(Error::<T>::from)?;
-			T::DepositInto::deposit_into(recipient, amount).map_err(Error::<T>::from)?;
 
-			// remember that we have accepted this transfer
-			Transfers::<T>::insert(transfer_id, ());
+			// make sure to update the mapping if we deposit successfully to avoid double spending,
+			// i.e. whenever `deposit_into` is successful we MUST update `Transfers`.
+			{
+				T::DepositInto::deposit_into(recipient, amount).map_err(Error::<T>::from)?;
+				Transfers::<T>::insert(transfer_id, ())
+			}
 
 			// reward submitter for providing valid message
 			T::OnTransactionSubmitted::on_valid_transaction_submitted(submitter);
