@@ -16,7 +16,7 @@
 
 use crate::finality::FinalityVotes;
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
-use crate::{AuraConfiguration, GenesisConfig, HeaderToImport, HeadersByNumber, Storage, Trait};
+use crate::{AuraConfiguration, GenesisConfig, HeaderToImport, HeadersByNumber, PruningStrategy, Storage, Trait};
 use frame_support::StorageMap;
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use parity_crypto::publickey::{sign, KeyPair, Secret};
@@ -78,8 +78,9 @@ parameter_types! {
 
 impl Trait for TestRuntime {
 	type AuraConfiguration = TestAuraConfiguration;
-	type FinalityVotesCachingInterval = TestFinalityVotesCachingInterval;
 	type ValidatorsConfiguration = TestValidatorsConfiguration;
+	type FinalityVotesCachingInterval = TestFinalityVotesCachingInterval;
+	type PruningStrategy = Keep10HeadersBehindBest;
 	type OnHeadersSubmitted = ();
 }
 
@@ -181,4 +182,13 @@ pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
 		scheduled_change: None,
 		finality_votes: FinalityVotes::default(),
 	});
+}
+
+/// Pruning strategy that keeps 10 headers behind best block.
+pub struct Keep10HeadersBehindBest;
+
+impl PruningStrategy for Keep10HeadersBehindBest {
+	fn pruning_upper_bound(best_number: u64, _: u64) -> u64 {
+		best_number.checked_sub(10).unwrap_or(0)
+	}
 }

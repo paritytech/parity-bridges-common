@@ -18,18 +18,9 @@ use crate::error::Error;
 use crate::finality::finalize_blocks;
 use crate::validators::{Validators, ValidatorsConfiguration};
 use crate::verification::{is_importable_header, verify_aura_header};
-use crate::{AuraConfiguration, ChangeToEnact, Storage};
+use crate::{AuraConfiguration, ChangeToEnact, PruningStrategy, Storage};
 use primitives::{Header, HeaderId, Receipt};
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
-
-/// Maximal number of headers behind best blocks that we are aiming to store. When there
-/// are too many unfinalized headers, it slows down finalization tracking significantly.
-/// That's why we won't consider imports/reorganizations to blocks of PRUNE_DEPTH age.
-/// If there's more headers than that, we prune the oldest. The only exception is
-/// when unfinalized header schedules validators set change. We can't compute finality
-/// for pruned headers => we won't know when to enact validators set change. That's
-/// why we never prune headers with scheduled changes.
-pub(crate) const PRUNE_DEPTH: u64 = 4096;
 
 /// Imports bunch of headers and updates blocks finality.
 ///
@@ -40,11 +31,10 @@ pub(crate) const PRUNE_DEPTH: u64 = 4096;
 /// we have NOT imported.
 /// Returns error if fatal error has occured during import. Some valid headers may be
 /// imported in this case.
-pub fn import_headers<S: Storage>(
+pub fn import_headers<S: Storage, PS: PruningStrategy>(
 	storage: &mut S,
 	aura_config: &AuraConfiguration,
 	validators_config: &ValidatorsConfiguration,
-	prune_depth: u64,
 	submitter: Option<S::Submitter>,
 	headers: Vec<(Header, Option<Vec<Receipt>>)>,
 	finalized_headers: &mut BTreeMap<S::Submitter, u64>,
@@ -52,11 +42,10 @@ pub fn import_headers<S: Storage>(
 	let mut useful = 0;
 	let mut useless = 0;
 	for (header, receipts) in headers {
-		let import_result = import_header(
+		let import_result = import_header::<_, PS>(
 			storage,
 			aura_config,
 			validators_config,
-			prune_depth,
 			submitter.clone(),
 			header,
 			receipts,
@@ -85,11 +74,10 @@ pub fn import_headers<S: Storage>(
 /// has returned true.
 ///
 /// Returns imported block id and list of all finalized headers.
-pub fn import_header<S: Storage>(
+pub fn import_header<S: Storage, PS: PruningStrategy>(
 	storage: &mut S,
 	aura_config: &AuraConfiguration,
 	validators_config: &ValidatorsConfiguration,
-	prune_depth: u64,
 	submitter: Option<S::Submitter>,
 	header: Header,
 	receipts: Option<Vec<Receipt>>,
@@ -126,10 +114,9 @@ pub fn import_header<S: Storage>(
 	// (because otherwise we'll have inconsistent storage if transaction will fail)
 
 	// and finally insert the block
-	let (_, best_total_difficulty) = storage.best_block();
+	let (best_id, best_total_difficulty) = storage.best_block();
 	let total_difficulty = import_context.total_difficulty() + header.difficulty;
 	let is_best = total_difficulty > best_total_difficulty;
-	let header_number = header.number;
 	storage.insert_header(import_context.into_import_header(
 		is_best,
 		header_id,
@@ -140,13 +127,27 @@ pub fn import_header<S: Storage>(
 		finalized_blocks.votes,
 	));
 
+	// compute upper border of updated pruning range
+	let new_best_block_id = if is_best {
+		header_id
+	} else {
+		best_id
+	};
+	let new_best_finalized_block_id = finalized_blocks
+		.finalized_headers
+		.last()
+		.map(|(id, _)| *id);
+	let pruning_upper_bound = PS::pruning_upper_bound(
+		new_best_block_id.number,
+		new_best_finalized_block_id
+			.map(|id| id.number)
+			.unwrap_or(finalized_id.number),
+	);
+
 	// now mark finalized headers && prune old headers
 	storage.finalize_headers(
-		finalized_blocks.finalized_headers.last().map(|(id, _)| *id),
-		match is_best {
-			true => header_number.checked_sub(prune_depth),
-			false => None,
-		},
+		new_best_finalized_block_id,
+		pruning_upper_bound,
 	);
 
 	Ok((header_id, finalized_blocks.finalized_headers))
@@ -169,7 +170,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		block_i, custom_block_i, custom_test_ext, genesis, signed_header, test_aura_config, test_validators_config,
-		validator, validators, validators_addresses, TestRuntime,
+		validator, validators, validators_addresses, Keep10HeadersBehindBest, TestRuntime,
 	};
 	use crate::validators::ValidatorsSource;
 	use crate::{BlocksToPrune, BridgeStorage, Headers, PruningRange};
@@ -184,14 +185,13 @@ mod tests {
 					number: 100,
 					..Default::default()
 				}),
-				None,
+				0,
 			);
 			assert_eq!(
-				import_header(
+				import_header::<_, Keep10HeadersBehindBest>(
 					&mut storage,
 					&test_aura_config(),
 					&test_validators_config(),
-					PRUNE_DEPTH,
 					None,
 					Default::default(),
 					None,
@@ -208,11 +208,10 @@ mod tests {
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 			let block = block_i(1, &validators);
 			assert_eq!(
-				import_header(
+				import_header::<_, Keep10HeadersBehindBest>(
 					&mut storage,
 					&test_aura_config(),
 					&test_validators_config(),
-					PRUNE_DEPTH,
 					None,
 					block.clone(),
 					None,
@@ -221,11 +220,10 @@ mod tests {
 				Ok(()),
 			);
 			assert_eq!(
-				import_header(
+				import_header::<_, Keep10HeadersBehindBest>(
 					&mut storage,
 					&test_aura_config(),
 					&test_validators_config(),
-					PRUNE_DEPTH,
 					None,
 					block,
 					None,
@@ -248,11 +246,10 @@ mod tests {
 			let header = block_i(1, &validators);
 			let hash = header.compute_hash();
 			assert_eq!(
-				import_header(
+				import_header::<_, Keep10HeadersBehindBest>(
 					&mut storage,
 					&test_aura_config(),
 					&validators_config,
-					PRUNE_DEPTH,
 					None,
 					header,
 					None
@@ -283,11 +280,10 @@ mod tests {
 			let mut latest_block_id = Default::default();
 			for i in 1..11 {
 				let header = block_i(i, &validators);
-				let (rolling_last_block_id, finalized_blocks) = import_header(
+				let (rolling_last_block_id, finalized_blocks) = import_header::<_, Keep10HeadersBehindBest>(
 					&mut storage,
 					&test_aura_config(),
 					&validators_config,
-					10,
 					Some(100),
 					header,
 					None,
@@ -314,11 +310,10 @@ mod tests {
 					.parse()
 					.unwrap();
 			});
-			let (rolling_last_block_id, finalized_blocks) = import_header(
+			let (rolling_last_block_id, finalized_blocks) = import_header::<_, Keep10HeadersBehindBest>(
 				&mut storage,
 				&test_aura_config(),
 				&validators_config,
-				10,
 				Some(101),
 				header11.clone(),
 				Some(vec![crate::validators::tests::validators_change_recept(
@@ -350,11 +345,10 @@ mod tests {
 				};
 				let header = signed_header(&validators, header, step as _);
 				expected_blocks.push((header.compute_id(), Some(102)));
-				let (rolling_last_block_id, finalized_blocks) = import_header(
+				let (rolling_last_block_id, finalized_blocks) = import_header::<_, Keep10HeadersBehindBest>(
 					&mut storage,
 					&test_aura_config(),
 					&validators_config,
-					10,
 					Some(102),
 					header,
 					None,
@@ -385,11 +379,10 @@ mod tests {
 				..Default::default()
 			};
 			let header = signed_header(&validators, header, step as _);
-			let (_, finalized_blocks) = import_header(
+			let (_, finalized_blocks) = import_header::<_, Keep10HeadersBehindBest>(
 				&mut storage,
 				&test_aura_config(),
 				&validators_config,
-				10,
 				Some(103),
 				header,
 				None,
