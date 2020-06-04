@@ -19,7 +19,15 @@ PoA chains to Substrate. We're working on expanding this functionality in the fu
 - [Running the Bridge](#running-the-bridge)
 
 ## Installation
-To get up and running all you need is a stable version of Rust.
+To get up and running you need both stable and nightly Rust. Rust nightly is used to build the Web
+Assembly (WASM) runtime for the node. You can configure the WASM support as so:
+
+```
+rustup install nightly
+rustup target add wasm32-unknown-unknown --toolchain nightly
+```
+
+Once this is configured you can build and test the repo as follows:
 
 ```
 git clone https://github.com/paritytech/parity-bridges-common.git
