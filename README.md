@@ -59,8 +59,9 @@ Below is a brief description of each of the runtime modules.
 ### Ethereum Bridge Runtime Module
 The main job of this runtime module is to keep track of useful information an Ethereum PoA chain
 which has been submitted by a bridge relayer. This includes:
-	- Ethereum headers and their status (e.g are they the best header, are they finalized, etc.)
-	- Current validator set, and upcoming validator sets
+
+  - Ethereum headers and their status (e.g are they the best header, are they finalized, etc.)
+  - Current validator set, and upcoming validator sets
 
 This runtime module has more responsibilties than simply storing headers and validator sets. It is
 able to perform checks on the incoming headers to verify their general integrity, as well as whether
