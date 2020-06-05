@@ -838,10 +838,7 @@ fn pool_configuration() -> PoolConfiguration {
 }
 
 /// Return iterator of given header ancestors.
-fn ancestry<'a, S: Storage>(
-	storage: &'a S,
-	mut parent_hash: H256,
-) -> impl Iterator<Item = (H256, Header)> + 'a {
+fn ancestry<'a, S: Storage>(storage: &'a S, mut parent_hash: H256) -> impl Iterator<Item = (H256, Header)> + 'a {
 	sp_std::iter::from_fn(move || {
 		let (header, _) = storage.header(&parent_hash)?;
 		if header.number == 0 {
@@ -1138,7 +1135,6 @@ pub(crate) mod tests {
 		});
 	}
 
-
 	#[test]
 	fn verify_transaction_finalized_works_for_best_finalized_header() {
 		custom_test_ext(example_header(), validators_addresses(3)).execute_with(|| {
@@ -1242,7 +1238,12 @@ pub(crate) mod tests {
 		custom_test_ext(example_header(), validators_addresses(3)).execute_with(|| {
 			let storage = BridgeStorage::<TestRuntime>::new();
 			assert_eq!(
-				verify_transaction_finalized(&storage, example_header().compute_hash(), 0, &vec![example_tx(), example_tx(),],),
+				verify_transaction_finalized(
+					&storage,
+					example_header().compute_hash(),
+					0,
+					&vec![example_tx(), example_tx(),],
+				),
 				false,
 			);
 		});
