@@ -25,6 +25,8 @@ use crate::substrate_types::{
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceClient, TargetClient};
 use crate::sync_types::SourceHeader;
+
+use async_trait::async_trait;
 use futures::future::{ready, FutureExt, Ready};
 use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 
@@ -87,41 +89,44 @@ struct SubstrateHeadersSource {
 
 type SubstrateFutureOutput<T> = OwnedSourceFutureOutput<SubstrateHeadersSource, SubstrateHeadersSyncPipeline, T>;
 
+#[async_trait]
 impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type Error = substrate_client::Error;
-	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<Number>>>>;
-	type HeaderByHashFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<Header>>>>;
-	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<Header>>>>;
-	type HeaderExtraFuture = Ready<SubstrateFutureOutput<(SubstrateHeaderId, ())>>;
-	type HeaderCompletionFuture =
-		Pin<Box<dyn Future<Output = SubstrateFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)>>>>;
 
-	fn best_block_number(self) -> Self::BestBlockNumberFuture {
+	async fn best_block_number(self) -> SubstrateFutureOutput<Number> {
 		substrate_client::best_header(self.client)
 			.map(|(client, result)| (SubstrateHeadersSource { client }, result.map(|header| header.number)))
-			.boxed()
+			.await
 	}
 
-	fn header_by_hash(self, hash: Hash) -> Self::HeaderByHashFuture {
+	async fn header_by_hash(self, hash: Hash) -> SubstrateFutureOutput<Header> {
 		substrate_client::header_by_hash(self.client, hash)
 			.map(|(client, result)| (SubstrateHeadersSource { client }, result))
-			.boxed()
+			.await
 	}
 
-	fn header_by_number(self, number: Number) -> Self::HeaderByNumberFuture {
+	async fn header_by_number(self, number: Number) -> SubstrateFutureOutput<Header> {
 		substrate_client::header_by_number(self.client, number)
 			.map(|(client, result)| (SubstrateHeadersSource { client }, result))
-			.boxed()
+			.await
 	}
 
-	fn header_extra(self, id: SubstrateHeaderId, _header: &Header) -> Self::HeaderExtraFuture {
-		ready((self, Ok((id, ()))))
+	// TODO: Watch Ready
+	async fn header_extra(
+		self,
+		id: SubstrateHeaderId,
+		_header: &Header,
+	) -> SubstrateFutureOutput<(SubstrateHeaderId, ())> {
+		ready((self, Ok((id, ())))).await
 	}
 
-	fn header_completion(self, id: SubstrateHeaderId) -> Self::HeaderCompletionFuture {
+	async fn header_completion(
+		self,
+		id: SubstrateHeaderId,
+	) -> SubstrateFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)> {
 		substrate_client::grandpa_justification(self.client, id)
 			.map(|(client, result)| (SubstrateHeadersSource { client }, result))
-			.boxed()
+			.await
 	}
 }
 
