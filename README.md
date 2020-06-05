@@ -5,7 +5,7 @@ This is a collection of components for building bridges.
 These components include runtime modules to help you construct your bridge's runtime, as well as
 bridge relays for cross-chain communication.
 
-A bridge node is also available. The runtime used for this node has support for bridging Ethereum
+A bridge node is also available. The node can be used to run a test network which has support for bridging Ethereum
 PoA chains to Substrate. We're working on expanding this functionality in the future.
 
 🚧 The bridges are currently under construction - a hardhat is recommended beyond this point 🚧
