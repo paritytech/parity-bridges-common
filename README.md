@@ -36,6 +36,10 @@ cargo build --all
 cargo test --all
 ```
 
+If you need more information about setting up your development environment Substrate's
+[Getting Started](https://substrate.dev/docs/en/knowledgebase/getting-started/) page is a good
+resource.
+
 ## Project Layout
 Here's an overview of how the project is laid out. The main bits are the `node`, which is the actual
 "blockchain", the `modules` which are used to build the blockchain's logic (a.k.a the runtime) and
