@@ -92,6 +92,7 @@ This module is laid out as so:
 The currency exchange module is used to faciliate cross-chain funds transfers. It works by accepting
 a transaction which proves that funds were locked on one chain, and releases a corresponding amount
 of funds on the recieving chain.
+This module is one example of how the header-chain can be used to prove a particular action has been taken on the foreign chain. It enables transfers of native token of the foreign chain, but more sophisticated modules (ERC20 token transfers or arbitrary message transfers) are being worked on as well.
 
 For example: Alice would like to send funds from chain A to chain B. What she would do is send a
 transaction to chain A indicating that she would like to send funds to an address on chain B. This
