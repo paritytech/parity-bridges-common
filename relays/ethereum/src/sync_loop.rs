@@ -59,17 +59,21 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 
 	/// Get best block number.
 	async fn best_block_number(self) -> OwnedSourceFutureOutput<Self, P, P::Number>;
+
 	/// Get header by hash.
 	async fn header_by_hash(self, hash: P::Hash) -> OwnedSourceFutureOutput<Self, P, P::Header>;
+
 	/// Get canonical header by number.
 	async fn header_by_number(self, number: P::Number) -> OwnedSourceFutureOutput<Self, P, P::Header>;
-	/// Get extra data by header hash.
-	fn header_extra(self, id: HeaderId<P::Hash, P::Number>, header: &P::Header) -> Self::HeaderExtraFuture;
+
 	/// Get completion data by header hash.
 	async fn header_completion(
 		self,
 		id: HeaderId<P::Hash, P::Number>,
 	) -> OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, Option<P::Completion>)>;
+
+	/// Get extra data by header hash.
+	fn header_extra(self, id: HeaderId<P::Hash, P::Number>, header: &P::Header) -> Self::HeaderExtraFuture;
 }
 
 /// Target client trait.
@@ -82,26 +86,32 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 
 	/// Returns ID of best header known to the target node.
 	async fn best_header_id(self) -> OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>;
+
 	/// Returns true if header is known to the target node.
 	async fn is_known_header(
 		self,
 		id: HeaderId<P::Hash, P::Number>,
 	) -> OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>;
-	/// Returns true if header requires extra data to be submitted.
-	fn requires_extra(self, header: &QueuedHeader<P>) -> Self::RequiresExtraFuture;
+
+
 	/// Submit headers.
 	async fn submit_headers(
 		self,
 		headers: Vec<QueuedHeader<P>>,
 	) -> OwnedTargetFutureOutput<Self, P, Vec<HeaderId<P::Hash, P::Number>>>;
+
 	/// Returns ID of headers that require to be 'completed' before children can be submitted.
 	async fn incomplete_headers_ids(self) -> OwnedTargetFutureOutput<Self, P, HashSet<HeaderId<P::Hash, P::Number>>>;
+
 	/// Submit completion data for header.
 	async fn complete_header(
 		self,
 		id: HeaderId<P::Hash, P::Number>,
 		completion: P::Completion,
 	) -> OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>;
+
+	/// Returns true if header requires extra data to be submitted.
+	fn requires_extra(self, header: &QueuedHeader<P>) -> Self::RequiresExtraFuture;
 }
 
 /// Run headers synchronization.

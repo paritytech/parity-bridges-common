@@ -28,7 +28,7 @@ use crate::sync_types::SourceHeader;
 
 use async_trait::async_trait;
 use futures::future::{ready, FutureExt, Ready};
-use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
+use std::{collections::HashSet, time::Duration};
 
 /// Interval at which we check new Substrate headers when we are synced/almost synced.
 const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_secs(10);
@@ -112,10 +112,6 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 			.await
 	}
 
-	fn header_extra(self, id: SubstrateHeaderId, _header: &Header) -> Self::HeaderExtraFuture {
-		ready((self, Ok((id, ()))))
-	}
-
 	async fn header_completion(
 		self,
 		id: SubstrateHeaderId,
@@ -123,6 +119,10 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 		substrate_client::grandpa_justification(self.client, id)
 			.map(|(client, result)| (SubstrateHeadersSource { client }, result))
 			.await
+	}
+
+	fn header_extra(self, id: SubstrateHeaderId, _header: &Header) -> Self::HeaderExtraFuture {
+		ready((self, Ok((id, ()))))
 	}
 }
 
@@ -175,10 +175,6 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 			.await
 	}
 
-	fn requires_extra(self, header: &QueuedSubstrateHeader) -> Self::RequiresExtraFuture {
-		ready((self, Ok((header.header().id(), false))))
-	}
-
 	async fn submit_headers(self, headers: Vec<QueuedSubstrateHeader>) -> EthereumFutureOutput<Vec<SubstrateHeaderId>> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
 		ethereum_client::submit_substrate_headers(self.client, sign_params.clone(), contract, headers)
@@ -229,6 +225,10 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 				)
 			})
 			.await
+	}
+
+	fn requires_extra(self, header: &QueuedSubstrateHeader) -> Self::RequiresExtraFuture {
+		ready((self, Ok((header.header().id(), false))))
 	}
 }
 
