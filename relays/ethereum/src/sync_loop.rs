@@ -93,7 +93,6 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 		id: HeaderId<P::Hash, P::Number>,
 	) -> OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>;
 
-
 	/// Submit headers.
 	async fn submit_headers(
 		self,
