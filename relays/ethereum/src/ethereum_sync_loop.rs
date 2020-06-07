@@ -21,8 +21,6 @@ use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Heade
 use crate::substrate_client::{self, SubstrateConnectionParams, SubstrateSigningParams};
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceClient, TargetClient};
-
-use async_trait::async_trait;
 use futures::future::{ready, FutureExt, Ready};
 use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 use web3::types::H256;
@@ -82,41 +80,40 @@ struct EthereumHeadersSource {
 
 type EthereumFutureOutput<T> = OwnedSourceFutureOutput<EthereumHeadersSource, EthereumHeadersSyncPipeline, T>;
 
-#[async_trait]
 impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type Error = ethereum_client::Error;
+	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<u64>>>>;
+	type HeaderByHashFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<Header>>>>;
+	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<Header>>>>;
+	type HeaderExtraFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<(EthereumHeaderId, Vec<Receipt>)>>>>;
+	type HeaderCompletionFuture = Ready<EthereumFutureOutput<(EthereumHeaderId, Option<()>)>>;
 
-	async fn best_block_number(self) -> EthereumFutureOutput<u64> {
+	fn best_block_number(self) -> Self::BestBlockNumberFuture {
 		ethereum_client::best_block_number(self.client)
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
-			.await
+			.boxed()
 	}
 
-	async fn header_by_hash(self, hash: H256) -> EthereumFutureOutput<Header> {
+	fn header_by_hash(self, hash: H256) -> Self::HeaderByHashFuture {
 		ethereum_client::header_by_hash(self.client, hash)
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
-			.await
+			.boxed()
 	}
 
-	async fn header_by_number(self, number: u64) -> EthereumFutureOutput<Header> {
+	fn header_by_number(self, number: u64) -> Self::HeaderByNumberFuture {
 		ethereum_client::header_by_number(self.client, number)
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
-			.await
+			.boxed()
 	}
 
-	async fn header_extra(
-		self,
-		id: EthereumHeaderId,
-		header: &Header,
-	) -> EthereumFutureOutput<(EthereumHeaderId, Vec<Receipt>)> {
+	fn header_extra(self, id: EthereumHeaderId, header: &Header) -> Self::HeaderExtraFuture {
 		ethereum_client::transactions_receipts(self.client, id, header.transactions.clone())
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
-			.await
+			.boxed()
 	}
 
-	// TODO: Watch Ready
-	async fn header_completion(self, id: EthereumHeaderId) -> EthereumFutureOutput<(EthereumHeaderId, Option<()>)> {
-		ready((self, Ok((id, None)))).await
+	fn header_completion(self, id: EthereumHeaderId) -> Self::HeaderCompletionFuture {
+		ready((self, Ok((id, None))))
 	}
 }
 
@@ -132,11 +129,16 @@ struct SubstrateHeadersTarget {
 
 type SubstrateFutureOutput<T> = OwnedTargetFutureOutput<SubstrateHeadersTarget, EthereumHeadersSyncPipeline, T>;
 
-#[async_trait]
 impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = substrate_client::Error;
+	type BestHeaderIdFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<EthereumHeaderId>>>>;
+	type IsKnownHeaderFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<(EthereumHeaderId, bool)>>>>;
+	type RequiresExtraFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<(EthereumHeaderId, bool)>>>>;
+	type SubmitHeadersFuture = Pin<Box<dyn Future<Output = SubstrateFutureOutput<Vec<EthereumHeaderId>>>>>;
+	type IncompleteHeadersFuture = Ready<SubstrateFutureOutput<HashSet<EthereumHeaderId>>>;
+	type CompleteHeadersFuture = Ready<SubstrateFutureOutput<EthereumHeaderId>>;
 
-	async fn best_header_id(self) -> SubstrateFutureOutput<EthereumHeaderId> {
+	fn best_header_id(self) -> Self::BestHeaderIdFuture {
 		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
 		substrate_client::best_ethereum_block(self.client)
 			.map(move |(client, result)| {
@@ -149,10 +151,10 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 					result,
 				)
 			})
-			.await
+			.boxed()
 	}
 
-	async fn is_known_header(self, id: EthereumHeaderId) -> SubstrateFutureOutput<(EthereumHeaderId, bool)> {
+	fn is_known_header(self, id: EthereumHeaderId) -> Self::IsKnownHeaderFuture {
 		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
 		substrate_client::ethereum_header_known(self.client, id)
 			.map(move |(client, result)| {
@@ -165,10 +167,10 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 					result,
 				)
 			})
-			.await
+			.boxed()
 	}
 
-	async fn requires_extra(self, header: &QueuedEthereumHeader) -> SubstrateFutureOutput<(EthereumHeaderId, bool)> {
+	fn requires_extra(self, header: &QueuedEthereumHeader) -> Self::RequiresExtraFuture {
 		// we can minimize number of receipts_check calls by checking header
 		// logs bloom here, but it may give us false positives (when authorities
 		// source is contract, we never need any logs)
@@ -184,10 +186,10 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 					result,
 				)
 			})
-			.await
+			.boxed()
 	}
 
-	async fn submit_headers(self, headers: Vec<QueuedEthereumHeader>) -> SubstrateFutureOutput<Vec<EthereumHeaderId>> {
+	fn submit_headers(self, headers: Vec<QueuedEthereumHeader>) -> Self::SubmitHeadersFuture {
 		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
 		substrate_client::submit_ethereum_headers(self.client, sign_params.clone(), headers, sign_transactions)
 			.map(move |(client, result)| {
@@ -200,15 +202,15 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 					result,
 				)
 			})
-			.await
+			.boxed()
 	}
 
-	async fn incomplete_headers_ids(self) -> SubstrateFutureOutput<HashSet<EthereumHeaderId>> {
-		ready((self, Ok(HashSet::new()))).await
+	fn incomplete_headers_ids(self) -> Self::IncompleteHeadersFuture {
+		ready((self, Ok(HashSet::new())))
 	}
 
-	async fn complete_header(self, id: EthereumHeaderId, _completion: ()) -> SubstrateFutureOutput<EthereumHeaderId> {
-		ready((self, Ok(id))).await
+	fn complete_header(self, id: EthereumHeaderId, _completion: ()) -> Self::CompleteHeadersFuture {
+		ready((self, Ok(id)))
 	}
 }
 
