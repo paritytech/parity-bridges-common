@@ -82,30 +82,27 @@ struct EthereumHeadersSource {
 
 type EthereumFutureOutput<T> = OwnedSourceFutureOutput<EthereumHeadersSource, EthereumHeadersSyncPipeline, T>;
 
+#[async_trait]
 impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type Error = ethereum_client::Error;
-	type BestBlockNumberFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<u64>>>>;
-	type HeaderByHashFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<Header>>>>;
-	type HeaderByNumberFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<Header>>>>;
 	type HeaderExtraFuture = Pin<Box<dyn Future<Output = EthereumFutureOutput<(EthereumHeaderId, Vec<Receipt>)>>>>;
-	type HeaderCompletionFuture = Ready<EthereumFutureOutput<(EthereumHeaderId, Option<()>)>>;
 
-	fn best_block_number(self) -> Self::BestBlockNumberFuture {
+	async fn best_block_number(self) -> EthereumFutureOutput<u64> {
 		ethereum_client::best_block_number(self.client)
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
-			.boxed()
+			.await
 	}
 
-	fn header_by_hash(self, hash: H256) -> Self::HeaderByHashFuture {
+	async fn header_by_hash(self, hash: H256) -> EthereumFutureOutput<Header> {
 		ethereum_client::header_by_hash(self.client, hash)
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
-			.boxed()
+			.await
 	}
 
-	fn header_by_number(self, number: u64) -> Self::HeaderByNumberFuture {
+	async fn header_by_number(self, number: u64) -> EthereumFutureOutput<Header> {
 		ethereum_client::header_by_number(self.client, number)
 			.map(|(client, result)| (EthereumHeadersSource { client }, result))
-			.boxed()
+			.await
 	}
 
 	fn header_extra(self, id: EthereumHeaderId, header: &Header) -> Self::HeaderExtraFuture {
@@ -114,8 +111,8 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 			.boxed()
 	}
 
-	fn header_completion(self, id: EthereumHeaderId) -> Self::HeaderCompletionFuture {
-		ready((self, Ok((id, None))))
+	async fn header_completion(self, id: EthereumHeaderId) -> EthereumFutureOutput<(EthereumHeaderId, Option<()>)> {
+		ready((self, Ok((id, None)))).await
 	}
 }
 

@@ -50,32 +50,26 @@ pub type OwnedSourceFutureOutput<Client, P, T> = (Client, Result<T, <Client as S
 pub type OwnedTargetFutureOutput<Client, P, T> = (Client, Result<T, <Client as TargetClient<P>>::Error>);
 
 /// Source client trait.
+#[async_trait]
 pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
-	/// Future that returns best block number.
-	type BestBlockNumberFuture: Future<Output = OwnedSourceFutureOutput<Self, P, P::Number>>;
-	/// Future that returns header by hash.
-	type HeaderByHashFuture: Future<Output = OwnedSourceFutureOutput<Self, P, P::Header>>;
-	/// Future that returns header by number.
-	type HeaderByNumberFuture: Future<Output = OwnedSourceFutureOutput<Self, P, P::Header>>;
 	/// Future that returns extra data associated with header.
 	type HeaderExtraFuture: Future<Output = OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, P::Extra)>>;
-	/// Future that returns data required to 'complete' header.
-	type HeaderCompletionFuture: Future<
-		Output = OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, Option<P::Completion>)>,
-	>;
 
 	/// Get best block number.
-	fn best_block_number(self) -> Self::BestBlockNumberFuture;
+	async fn best_block_number(self) -> OwnedSourceFutureOutput<Self, P, P::Number>;
 	/// Get header by hash.
-	fn header_by_hash(self, hash: P::Hash) -> Self::HeaderByHashFuture;
+	async fn header_by_hash(self, hash: P::Hash) -> OwnedSourceFutureOutput<Self, P, P::Header>;
 	/// Get canonical header by number.
-	fn header_by_number(self, number: P::Number) -> Self::HeaderByNumberFuture;
+	async fn header_by_number(self, number: P::Number) -> OwnedSourceFutureOutput<Self, P, P::Header>;
 	/// Get extra data by header hash.
 	fn header_extra(self, id: HeaderId<P::Hash, P::Number>, header: &P::Header) -> Self::HeaderExtraFuture;
 	/// Get completion data by header hash.
-	fn header_completion(self, id: HeaderId<P::Hash, P::Number>) -> Self::HeaderCompletionFuture;
+	async fn header_completion(
+		self,
+		id: HeaderId<P::Hash, P::Number>,
+	) -> OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, Option<P::Completion>)>;
 }
 
 /// Target client trait.
