@@ -16,6 +16,8 @@
 
 use crate::sync::HeadersSyncParams;
 use crate::sync_types::{HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader};
+
+use async_trait::async_trait;
 use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
 use std::{
@@ -77,40 +79,35 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 }
 
 /// Target client trait.
+#[async_trait]
 pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
-	/// Future that returns best header id.
-	type BestHeaderIdFuture: Future<Output = OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>>;
-	/// Future that returns known header check result.
-	type IsKnownHeaderFuture: Future<Output = OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>>;
 	/// Future that returns extra check result.
 	type RequiresExtraFuture: Future<Output = OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>>;
-	/// Future that returns header submission result.
-	type SubmitHeadersFuture: Future<Output = OwnedTargetFutureOutput<Self, P, Vec<HeaderId<P::Hash, P::Number>>>>;
-	/// Future that returns incomplete headers ids.
-	type IncompleteHeadersFuture: Future<
-		Output = OwnedTargetFutureOutput<Self, P, HashSet<HeaderId<P::Hash, P::Number>>>,
-	>;
-	/// Future that returns header completion result.
-	type CompleteHeadersFuture: Future<Output = OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>>;
 
 	/// Returns ID of best header known to the target node.
-	fn best_header_id(self) -> Self::BestHeaderIdFuture;
+	async fn best_header_id(self) -> OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>;
 	/// Returns true if header is known to the target node.
-	fn is_known_header(self, id: HeaderId<P::Hash, P::Number>) -> Self::IsKnownHeaderFuture;
+	async fn is_known_header(
+		self,
+		id: HeaderId<P::Hash, P::Number>,
+	) -> OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>;
 	/// Returns true if header requires extra data to be submitted.
 	fn requires_extra(self, header: &QueuedHeader<P>) -> Self::RequiresExtraFuture;
 	/// Submit headers.
-	fn submit_headers(self, headers: Vec<QueuedHeader<P>>) -> Self::SubmitHeadersFuture;
+	async fn submit_headers(
+		self,
+		headers: Vec<QueuedHeader<P>>,
+	) -> OwnedTargetFutureOutput<Self, P, Vec<HeaderId<P::Hash, P::Number>>>;
 	/// Returns ID of headers that require to be 'completed' before children can be submitted.
-	fn incomplete_headers_ids(self) -> Self::IncompleteHeadersFuture;
+	async fn incomplete_headers_ids(self) -> OwnedTargetFutureOutput<Self, P, HashSet<HeaderId<P::Hash, P::Number>>>;
 	/// Submit completion data for header.
-	fn complete_header(
+	async fn complete_header(
 		self,
 		id: HeaderId<P::Hash, P::Number>,
 		completion: P::Completion,
-	) -> Self::CompleteHeadersFuture;
+	) -> OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>;
 }
 
 /// Run headers synchronization.
