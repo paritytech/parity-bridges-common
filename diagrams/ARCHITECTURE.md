@@ -5,7 +5,7 @@
 ![Bridge Relay Node](bridge-relay.svg)
 
 ## Runtime Modules
-![Ethereum Pallet](ethereum-pallet)
+![Ethereum Pallet](ethereum-pallet.svg)
 ![Currency Exchange Pallet](currency-exchange-pallet.svg)
 
 ## Usage
