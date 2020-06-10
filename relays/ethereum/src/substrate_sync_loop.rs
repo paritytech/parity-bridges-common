@@ -27,7 +27,7 @@ use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceC
 use crate::sync_types::SourceHeader;
 
 use async_trait::async_trait;
-use futures::future::{ready, FutureExt, Ready};
+use futures::future::FutureExt;
 use std::{collections::HashSet, time::Duration};
 
 /// Interval at which we check new Substrate headers when we are synced/almost synced.
@@ -92,7 +92,6 @@ type SubstrateFutureOutput<T> = OwnedSourceFutureOutput<SubstrateHeadersSource, 
 #[async_trait]
 impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type Error = substrate_client::Error;
-	type HeaderExtraFuture = Ready<SubstrateFutureOutput<(SubstrateHeaderId, ())>>;
 
 	async fn best_block_number(self) -> SubstrateFutureOutput<Number> {
 		substrate_client::best_header(self.client)
@@ -121,8 +120,12 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 			.await
 	}
 
-	fn header_extra(self, id: SubstrateHeaderId, _header: &Header) -> Self::HeaderExtraFuture {
-		ready((self, Ok((id, ()))))
+	async fn header_extra(
+		self,
+		id: SubstrateHeaderId,
+		_header: QueuedSubstrateHeader,
+	) -> SubstrateFutureOutput<(SubstrateHeaderId, ())> {
+		(self, Ok((id, ())))
 	}
 }
 
@@ -141,7 +144,6 @@ type EthereumFutureOutput<T> = OwnedTargetFutureOutput<EthereumHeadersTarget, Su
 #[async_trait]
 impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = ethereum_client::Error;
-	type RequiresExtraFuture = Ready<EthereumFutureOutput<(SubstrateHeaderId, bool)>>;
 
 	async fn best_header_id(self) -> EthereumFutureOutput<SubstrateHeaderId> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
@@ -227,8 +229,8 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 			.await
 	}
 
-	fn requires_extra(self, header: &QueuedSubstrateHeader) -> Self::RequiresExtraFuture {
-		ready((self, Ok((header.header().id(), false))))
+	async fn requires_extra(self, header: QueuedSubstrateHeader) -> EthereumFutureOutput<(SubstrateHeaderId, bool)> {
+		(self, Ok((header.header().id(), false)))
 	}
 }
 

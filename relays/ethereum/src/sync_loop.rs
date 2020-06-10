@@ -22,7 +22,6 @@ use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
 use std::{
 	collections::HashSet,
-	future::Future,
 	time::{Duration, Instant},
 };
 
@@ -54,8 +53,6 @@ pub type OwnedTargetFutureOutput<Client, P, T> = (Client, Result<T, <Client as T
 pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
-	/// Future that returns extra data associated with header.
-	type HeaderExtraFuture: Future<Output = OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, P::Extra)>>;
 
 	/// Get best block number.
 	async fn best_block_number(self) -> OwnedSourceFutureOutput<Self, P, P::Number>;
@@ -73,7 +70,11 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	) -> OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, Option<P::Completion>)>;
 
 	/// Get extra data by header hash.
-	fn header_extra(self, id: HeaderId<P::Hash, P::Number>, header: &P::Header) -> Self::HeaderExtraFuture;
+	async fn header_extra(
+		self,
+		id: HeaderId<P::Hash, P::Number>,
+		header: QueuedHeader<P>,
+	) -> OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, P::Extra)>;
 }
 
 /// Target client trait.
@@ -81,8 +82,6 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
-	/// Future that returns extra check result.
-	type RequiresExtraFuture: Future<Output = OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>>;
 
 	/// Returns ID of best header known to the target node.
 	async fn best_header_id(self) -> OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>;
@@ -110,7 +109,10 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	) -> OwnedTargetFutureOutput<Self, P, HeaderId<P::Hash, P::Number>>;
 
 	/// Returns true if header requires extra data to be submitted.
-	fn requires_extra(self, header: &QueuedHeader<P>) -> Self::RequiresExtraFuture;
+	async fn requires_extra(
+		self,
+		header: QueuedHeader<P>,
+	) -> OwnedTargetFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, bool)>;
 }
 
 /// Run headers synchronization.
@@ -385,7 +387,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						header.id(),
 					);
 
-					target_extra_check_future.set(target_client.requires_extra(header).fuse());
+					target_extra_check_future.set(target_client.requires_extra(header.clone()).fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::MaybeOrphan) {
 					// for MaybeOrphan we actually ask for parent' header existence
 					let parent_id = header.parent_id();
@@ -452,7 +454,7 @@ pub fn run<P: HeadersSyncPipeline>(
 						"Retrieving extra data for header: {:?}",
 						id,
 					);
-					source_extra_future.set(source_client.header_extra(id, header.header()).fuse());
+					source_extra_future.set(source_client.header_extra(id, header.clone()).fuse());
 				} else if let Some(header) = sync.headers().header(HeaderStatus::Orphan) {
 					// for Orphan we actually ask for parent' header
 					let parent_id = header.parent_id();
