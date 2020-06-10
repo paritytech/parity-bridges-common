@@ -118,7 +118,9 @@ pub struct KovanPruningStrategy;
 
 impl PruningStrategy for KovanPruningStrategy {
 	fn pruning_upper_bound(_best_number: u64, best_finalized_number: u64) -> u64 {
-		best_finalized_number.checked_sub(FINALIZED_HEADERS_TO_KEEP).unwrap_or(0)
+		best_finalized_number
+			.checked_sub(FINALIZED_HEADERS_TO_KEEP)
+			.unwrap_or(0)
 	}
 }
 

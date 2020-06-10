@@ -128,15 +128,8 @@ pub fn import_header<S: Storage, PS: PruningStrategy>(
 	));
 
 	// compute upper border of updated pruning range
-	let new_best_block_id = if is_best {
-		header_id
-	} else {
-		best_id
-	};
-	let new_best_finalized_block_id = finalized_blocks
-		.finalized_headers
-		.last()
-		.map(|(id, _)| *id);
+	let new_best_block_id = if is_best { header_id } else { best_id };
+	let new_best_finalized_block_id = finalized_blocks.finalized_headers.last().map(|(id, _)| *id);
 	let pruning_upper_bound = PS::pruning_upper_bound(
 		new_best_block_id.number,
 		new_best_finalized_block_id
@@ -145,10 +138,7 @@ pub fn import_header<S: Storage, PS: PruningStrategy>(
 	);
 
 	// now mark finalized headers && prune old headers
-	storage.finalize_headers(
-		new_best_finalized_block_id,
-		pruning_upper_bound,
-	);
+	storage.finalize_headers(new_best_finalized_block_id, pruning_upper_bound);
 
 	Ok((header_id, finalized_blocks.finalized_headers))
 }
