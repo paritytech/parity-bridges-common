@@ -51,7 +51,7 @@ pub struct FinalityEffects<Submitter> {
 
 /// Finality votes for given block.
 #[derive(RuntimeDebug, Decode, Encode)]
-#[cfg_attr(test, derive(Clone, Default, PartialEq))]
+#[cfg_attr(test, derive(Clone, PartialEq))]
 pub struct FinalityVotes<Submitter> {
 	/// Number of votes per each validator.
 	pub votes: BTreeMap<Address, u64>,
@@ -150,10 +150,7 @@ fn prepare_votes<Submitter>(
 	// so the only thing we need to do is:
 	// 1) remove votes from blocks that have been finalized after B has been inserted;
 	// 2) add votes from B descendants
-	let mut votes = cached_votes.votes.unwrap_or_else(|| FinalityVotes {
-		votes: BTreeMap::new(),
-		ancestry: VecDeque::new(),
-	});
+	let mut votes = cached_votes.votes.unwrap_or_default();
 
 	// remove votes from finalized blocks
 	while let Some(old_ancestor) = votes.ancestry.pop_front() {
@@ -246,6 +243,15 @@ fn empty_step_signer(empty_step: &SealedEmptyStep, parent_hash: &H256) -> Option
 	secp256k1_ecdsa_recover(empty_step.signature.as_fixed_bytes(), message.as_fixed_bytes())
 		.ok()
 		.map(|public| public_to_address(&public))
+}
+
+impl<Submitter> Default for FinalityVotes<Submitter> {
+	fn default() -> Self {
+		FinalityVotes {
+			votes: BTreeMap::new(),
+			ancestry: VecDeque::new(),
+		}
+	}
 }
 
 #[cfg(test)]

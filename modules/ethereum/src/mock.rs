@@ -27,7 +27,6 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
-use sp_std::collections::{btree_map::BTreeMap, vec_deque::VecDeque};
 
 pub type AccountId = u64;
 
@@ -180,9 +179,6 @@ pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
 		total_difficulty: 0.into(),
 		enacted_change: None,
 		scheduled_change: None,
-		finality_votes: FinalityVotes {
-			votes: BTreeMap::new(),
-			ancestry: VecDeque::new(),
-		},
+		finality_votes: FinalityVotes::default(),
 	});
 }
