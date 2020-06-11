@@ -23,7 +23,7 @@ use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceClient, TargetClient};
 
 use async_trait::async_trait;
-use futures::future::{ready, FutureExt};
+use futures::future::FutureExt;
 use std::{collections::HashSet, time::Duration};
 use web3::types::H256;
 
