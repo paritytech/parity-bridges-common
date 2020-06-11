@@ -15,19 +15,20 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_types::{
-	Address, Bytes, CallRequest, EthereumHeaderId, Header, Receipt, TransactionHash, H256, U256, U64,
+	Address, Bytes, CallRequest, EthereumHeaderId, Header, Receipt, SignedRawTx, TransactionHash, H256, U256,
 };
+use crate::rpc::{Ethereum, EthereumRpc};
+use crate::rpc_errors::{EthereumNodeError, RpcError};
 use crate::substrate_types::{GrandpaJustification, Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId};
 use crate::sync_types::{HeaderId, MaybeConnectionError};
-use crate::{bail_on_arg_error, bail_on_error};
+
+use async_trait::async_trait;
 use codec::{Decode, Encode};
 use ethabi::FunctionOutputDecoder;
-use jsonrpsee::common::Params;
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
 use parity_crypto::publickey::KeyPair;
-use serde::de::DeserializeOwned;
-use serde_json::{from_value, to_value};
+
 use std::collections::HashSet;
 
 // to encode/decode contract calls
@@ -39,6 +40,8 @@ const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; 
 const INT_SERIALIZATION_PROOF: &'static str = "integer serialization never fails; qed";
 /// Proof of bool serialization success.
 const BOOL_SERIALIZATION_PROOF: &'static str = "bool serialization never fails; qed";
+
+type Result<T> = std::result::Result<T, RpcError>;
 
 /// Ethereum connection params.
 #[derive(Debug)]
@@ -89,6 +92,22 @@ impl Default for EthereumSigningParams {
 /// Ethereum client type.
 pub type Client = RawClient<HttpTransportClient>;
 
+/// The client used to interact with an Ethereum node through RPC.
+pub struct EthereumRpcClient {
+	client: Client,
+}
+
+impl EthereumRpcClient {
+	/// Create a new Ethereum RPC Client.
+	pub fn new(params: EthereumConnectionParams) -> Self {
+		let uri = format!("http://{}:{}", params.host, params.port);
+		let transport = HttpTransportClient::new(&uri);
+		let client = RawClient::new(transport);
+
+		Self { client }
+	}
+}
+
 /// All possible errors that can occur during interacting with Ethereum node.
 #[derive(Debug)]
 pub enum Error {
@@ -119,204 +138,191 @@ impl MaybeConnectionError for Error {
 	}
 }
 
-/// Returns client that is able to call RPCs on Ethereum node.
-pub fn client(params: EthereumConnectionParams) -> Client {
-	let uri = format!("http://{}:{}", params.host, params.port);
-	let transport = HttpTransportClient::new(&uri);
-	RawClient::new(transport)
-}
-
-/// Retrieve best known block number from Ethereum node.
-pub async fn best_block_number(client: Client) -> (Client, Result<u64, Error>) {
-	let (client, result) = call_rpc::<U64>(client, "eth_blockNumber", Params::None).await;
-	(client, result.map(|x| x.as_u64()))
-}
-
-/// Retrieve block header by its number from Ethereum node.
-pub async fn header_by_number(client: Client, number: u64) -> (Client, Result<Header, Error>) {
-	let (client, header) = call_rpc(
-		client,
-		"eth_getBlockByNumber",
-		Params::Array(vec![
-			to_value(U64::from(number)).expect(INT_SERIALIZATION_PROOF),
-			to_value(false).expect(BOOL_SERIALIZATION_PROOF),
-		]),
-	)
-	.await;
-	(
-		client,
-		header.and_then(|header: Header| {
-			match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
-				true => Ok(header),
-				false => Err(Error::IncompleteHeader),
-			}
-		}),
-	)
-}
-
-/// Retrieve block header by its hash from Ethereum node.
-pub async fn header_by_hash(client: Client, hash: H256) -> (Client, Result<Header, Error>) {
-	let (client, header) = call_rpc(
-		client,
-		"eth_getBlockByHash",
-		Params::Array(vec![
-			to_value(hash).expect(HASH_SERIALIZATION_PROOF),
-			to_value(false).expect(BOOL_SERIALIZATION_PROOF),
-		]),
-	)
-	.await;
-	(
-		client,
-		header.and_then(|header: Header| {
-			match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
-				true => Ok(header),
-				false => Err(Error::IncompleteHeader),
-			}
-		}),
-	)
-}
-
-/// Retrieve transactions receipts for given block.
-pub async fn transactions_receipts(
-	mut client: Client,
-	id: EthereumHeaderId,
-	transactions: Vec<H256>,
-) -> (Client, Result<(EthereumHeaderId, Vec<Receipt>), Error>) {
-	let mut transactions_receipts = Vec::with_capacity(transactions.len());
-	for transaction in transactions {
-		let (next_client, transaction_receipt) = bail_on_error!(transaction_receipt(client, transaction).await);
-		transactions_receipts.push(transaction_receipt);
-		client = next_client;
+#[async_trait]
+impl EthereumRpc for EthereumRpcClient {
+	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
+		Ok(Ethereum::estimate_gas(&mut self.client, call_request).await?)
 	}
-	(client, Ok((id, transactions_receipts)))
+
+	async fn best_block_number(&mut self) -> Result<u64> {
+		Ok(Ethereum::block_number(&mut self.client).await?.as_u64())
+	}
+
+	async fn header_by_number(&mut self, block_number: u64) -> Result<Header> {
+		let header = Ethereum::get_block_by_number(&mut self.client, block_number).await?;
+		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
+			true => Ok(header),
+			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
+		}
+	}
+
+	async fn header_by_hash(&mut self, hash: H256) -> Result<Header> {
+		let header = Ethereum::get_block_by_hash(&mut self.client, hash).await?;
+		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
+			true => Ok(header),
+			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
+		}
+	}
+
+	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt> {
+		let receipt = Ethereum::get_transaction_receipt(&mut self.client, transaction_hash).await?;
+
+		match receipt.gas_used {
+			Some(_) => Ok(receipt),
+			None => Err(RpcError::Ethereum(EthereumNodeError::IncompleteReceipt)),
+		}
+	}
+
+	async fn account_nonce(&mut self, address: Address) -> Result<U256> {
+		Ok(Ethereum::get_transaction_count(&mut self.client, address).await?)
+	}
+
+	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<TransactionHash> {
+		let transaction = Bytes(signed_raw_tx);
+		Ok(Ethereum::submit_transaction(&mut self.client, transaction).await?)
+	}
+
+	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes> {
+		Ok(Ethereum::call(&mut self.client, call_transaction).await?)
+	}
 }
 
-/// Retrieve transaction receipt by transaction hash.
-async fn transaction_receipt(client: Client, hash: H256) -> (Client, Result<Receipt, Error>) {
-	let (client, receipt) = call_rpc::<Receipt>(
-		client,
-		"eth_getTransactionReceipt",
-		Params::Array(vec![to_value(hash).expect(HASH_SERIALIZATION_PROOF)]),
-	)
-	.await;
-	(
-		client,
-		receipt.and_then(|receipt| match receipt.gas_used.is_some() {
-			true => Ok(receipt),
-			false => Err(Error::IncompleteReceipt),
-		}),
-	)
+#[async_trait]
+pub trait HigherLevelCalls: EthereumRpc {
+	/// Returns best Substrate block that PoA chain knows of.
+	async fn best_substrate_block(&mut self, contract_address: Address) -> Result<SubstrateHeaderId>;
+
+	/// Returns true if Substrate header is known to Ethereum node.
+	async fn substrate_header_known(
+		&mut self,
+		contract_address: Address,
+		id: SubstrateHeaderId,
+	) -> Result<(SubstrateHeaderId, bool)>;
+
+	/// Submits Substrate headers to Ethereum contract.
+	async fn submit_substrate_headers(
+		&mut self,
+		params: EthereumSigningParams,
+		contract_address: Address,
+		headers: Vec<QueuedSubstrateHeader>,
+	) -> Result<Vec<SubstrateHeaderId>>;
+
+	/// Returns ids of incomplete Substrate headers.
+	async fn incomplete_substrate_headers(&mut self, contract_address: Address) -> Result<HashSet<SubstrateHeaderId>>;
+
+	/// Complete Substrate header.
+	async fn complete_substrate_header(
+		&mut self,
+		params: EthereumSigningParams,
+		contract_address: Address,
+		id: SubstrateHeaderId,
+		justification: GrandpaJustification,
+	) -> Result<SubstrateHeaderId>;
+
+	/// Submit ethereum transaction.
+	async fn submit_ethereum_transaction(
+		&mut self,
+		params: &EthereumSigningParams,
+		contract_address: Option<Address>,
+		nonce: Option<U256>,
+		double_gas: bool,
+		encoded_call: Vec<u8>,
+	) -> Result<()>;
+
+	/// Retrieve transactions receipts for given block.
+	async fn transactions_receipts(
+		&mut self,
+		id: EthereumHeaderId,
+		transactions: Vec<H256>,
+	) -> Result<(EthereumHeaderId, Vec<Receipt>)>;
 }
 
-/// Returns best Substrate block that PoA chain knows of.
-pub async fn best_substrate_block(
-	client: Client,
-	contract_address: Address,
-) -> (Client, Result<SubstrateHeaderId, Error>) {
-	let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
-	let call_request = bail_on_arg_error!(
-		to_value(CallRequest {
+#[async_trait]
+impl HigherLevelCalls for EthereumRpcClient {
+	async fn best_substrate_block(&mut self, contract_address: Address) -> Result<SubstrateHeaderId> {
+		let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
+		let call_request = CallRequest {
 			to: Some(contract_address),
 			data: Some(encoded_call.into()),
 			..Default::default()
-		})
-		.map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	let (client, call_result) =
-		bail_on_error!(call_rpc::<Bytes>(client, "eth_call", Params::Array(vec![call_request]),).await);
-	let (number, raw_hash) = match call_decoder.decode(&call_result.0) {
-		Ok((raw_number, raw_hash)) => (raw_number, raw_hash),
-		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
-	};
-	let hash = match SubstrateHash::decode(&mut &raw_hash[..]) {
-		Ok(hash) => hash,
-		Err(error) => return (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
-	};
+		};
 
-	if number != number.low_u32().into() {
-		return (client, Err(Error::InvalidSubstrateBlockNumber));
+		let call_result = self.eth_call(call_request).await?;
+
+		let (number, raw_hash) = match call_decoder.decode(&call_result.0) {
+			Ok((raw_number, raw_hash)) => (raw_number, raw_hash),
+			Err(error) => return todo!(), // Err(Error::ResponseParseFailed(format!("{}", error))),
+		};
+
+		let hash = match SubstrateHash::decode(&mut &raw_hash[..]) {
+			Ok(hash) => hash,
+			Err(error) => return todo!(), // Err(Error::ResponseParseFailed(format!("{}", error))),
+		};
+
+		if number != number.low_u32().into() {
+			return todo!(); // Err(Error::InvalidSubstrateBlockNumber));
+		}
+
+		Ok(HeaderId(number.low_u32(), hash))
 	}
 
-	(client, Ok(HeaderId(number.low_u32(), hash)))
-}
-
-/// Returns true if Substrate header is known to Ethereum node.
-pub async fn substrate_header_known(
-	client: Client,
-	contract_address: Address,
-	id: SubstrateHeaderId,
-) -> (Client, Result<(SubstrateHeaderId, bool), Error>) {
-	let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1);
-	let call_request = bail_on_arg_error!(
-		to_value(CallRequest {
+	async fn substrate_header_known(
+		&mut self,
+		contract_address: Address,
+		id: SubstrateHeaderId,
+	) -> Result<(SubstrateHeaderId, bool)> {
+		let (encoded_call, call_decoder) = bridge_contract::functions::is_known_header::call(id.1);
+		let call_request = CallRequest {
 			to: Some(contract_address),
 			data: Some(encoded_call.into()),
 			..Default::default()
-		})
-		.map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	let (client, call_result) =
-		bail_on_error!(call_rpc::<Bytes>(client, "eth_call", Params::Array(vec![call_request]),).await);
-	match call_decoder.decode(&call_result.0) {
-		Ok(is_known_block) => (client, Ok((id, is_known_block))),
-		Err(error) => (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+		};
+
+		let call_result = self.eth_call(call_request).await?;
+		match call_decoder.decode(&call_result.0) {
+			Ok(is_known_block) => Ok((id, is_known_block)),
+			Err(error) => todo!(), //Err(Error::ResponseParseFailed(format!("{}", error))),
+		}
 	}
-}
 
-/// Submits Substrate headers to Ethereum contract.
-pub async fn submit_substrate_headers(
-	client: Client,
-	params: EthereumSigningParams,
-	contract_address: Address,
-	headers: Vec<QueuedSubstrateHeader>,
-) -> (Client, Result<Vec<SubstrateHeaderId>, Error>) {
-	let (mut client, mut nonce) =
-		bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await);
+	async fn submit_substrate_headers(
+		&mut self,
+		params: EthereumSigningParams,
+		contract_address: Address,
+		headers: Vec<QueuedSubstrateHeader>,
+	) -> Result<Vec<SubstrateHeaderId>> {
+		let address: Address = params.signer.address().as_fixed_bytes().into();
+		let mut nonce = self.account_nonce(address).await?;
 
-	let ids = headers.iter().map(|header| header.id()).collect();
-	for header in headers {
-		client = bail_on_error!(
-			submit_ethereum_transaction(
-				client,
+		let ids = headers.iter().map(|header| header.id()).collect();
+		for header in headers {
+			self.submit_ethereum_transaction(
 				&params,
 				Some(contract_address),
 				Some(nonce),
 				false,
-				bridge_contract::functions::import_header::encode_input(header.header().encode(),),
+				bridge_contract::functions::import_header::encode_input(header.header().encode()),
 			)
 			.await
-		)
-		.0;
+			.expect("TODO");
 
-		nonce += 1.into();
+			nonce += 1.into();
+		}
+
+		Ok(ids)
 	}
 
-	(client, Ok(ids))
-}
-
-/// Returns ids of incomplete Substrate headers.
-pub async fn incomplete_substrate_headers(
-	client: Client,
-	contract_address: Address,
-) -> (Client, Result<HashSet<SubstrateHeaderId>, Error>) {
-	let (encoded_call, call_decoder) = bridge_contract::functions::incomplete_headers::call();
-	let call_request = bail_on_arg_error!(
-		to_value(CallRequest {
+	async fn incomplete_substrate_headers(&mut self, contract_address: Address) -> Result<HashSet<SubstrateHeaderId>> {
+		let (encoded_call, call_decoder) = bridge_contract::functions::incomplete_headers::call();
+		let call_request = CallRequest {
 			to: Some(contract_address),
 			data: Some(encoded_call.into()),
 			..Default::default()
-		})
-		.map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	let (client, call_result) =
-		bail_on_error!(call_rpc::<Bytes>(client, "eth_call", Params::Array(vec![call_request]),).await);
-	match call_decoder.decode(&call_result.0) {
-		Ok((incomplete_headers_numbers, incomplete_headers_hashes)) => (
-			client,
-			Ok(incomplete_headers_numbers
+		};
+
+		let call_result = self.eth_call(call_request).await.expect("TODO");
+		match call_decoder.decode(&call_result.0) {
+			Ok((incomplete_headers_numbers, incomplete_headers_hashes)) => Ok(incomplete_headers_numbers
 				.into_iter()
 				.zip(incomplete_headers_hashes)
 				.filter_map(|(number, hash)| {
@@ -327,140 +333,107 @@ pub async fn incomplete_substrate_headers(
 					Some(HeaderId(number.low_u32(), hash))
 				})
 				.collect()),
-		),
-		Err(error) => (client, Err(Error::ResponseParseFailed(format!("{}", error)))),
+			Err(error) => todo!(), // Err(Error::ResponseParseFailed(format!("{}", error))),
+		}
+	}
+
+	async fn complete_substrate_header(
+		&mut self,
+		params: EthereumSigningParams,
+		contract_address: Address,
+		id: SubstrateHeaderId,
+		justification: GrandpaJustification,
+	) -> Result<SubstrateHeaderId> {
+		let _ = self
+			.submit_ethereum_transaction(
+				&params,
+				Some(contract_address),
+				None,
+				false,
+				bridge_contract::functions::import_finality_proof::encode_input(id.0, id.1, justification),
+			)
+			.await
+			.expect("TDOO");
+
+		Ok(id)
+	}
+
+	async fn submit_ethereum_transaction(
+		&mut self,
+		params: &EthereumSigningParams,
+		contract_address: Option<Address>,
+		nonce: Option<U256>,
+		double_gas: bool,
+		encoded_call: Vec<u8>,
+	) -> Result<()> {
+		let address: Address = params.signer.address().as_fixed_bytes().into();
+		let nonce = self.account_nonce(address).await.expect("TODO");
+
+		let call_request = CallRequest {
+			to: contract_address,
+			data: Some(encoded_call.clone().into()),
+			..Default::default()
+		};
+		let gas = self.estimate_gas(call_request).await.expect("TODO");
+
+		let raw_transaction = ethereum_tx_sign::RawTransaction {
+			nonce,
+			to: contract_address,
+			value: U256::zero(),
+			gas: if double_gas { gas.saturating_mul(2.into()) } else { gas },
+			gas_price: params.gas_price,
+			data: encoded_call,
+		}
+		.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
+
+		let _ = self.submit_transaction(raw_transaction).await.expect("TODO");
+		Ok(())
+	}
+
+	async fn transactions_receipts(
+		&mut self,
+		id: EthereumHeaderId,
+		transactions: Vec<H256>,
+	) -> Result<(EthereumHeaderId, Vec<Receipt>)> {
+		let mut transactions_receipts = Vec::with_capacity(transactions.len());
+		for transaction in transactions {
+			let transaction_receipt = self.transaction_receipt(transaction).await.expect("TODO");
+			transactions_receipts.push(transaction_receipt);
+		}
+		Ok((id, transactions_receipts))
 	}
 }
 
-/// Complete Substrate header.
-pub async fn complete_substrate_header(
-	client: Client,
-	params: EthereumSigningParams,
-	contract_address: Address,
-	id: SubstrateHeaderId,
-	justification: GrandpaJustification,
-) -> (Client, Result<SubstrateHeaderId, Error>) {
-	let (client, _) = bail_on_error!(
-		submit_ethereum_transaction(
-			client,
-			&params,
-			Some(contract_address),
+#[async_trait]
+pub trait DeployContract: EthereumRpc {
+	/// Deploy bridge contract.
+	async fn deploy_bridge_contract(
+		&mut self,
+		params: &EthereumSigningParams,
+		contract_code: Vec<u8>,
+		initial_header: Vec<u8>,
+		initial_set_id: u64,
+		initial_authorities: Vec<u8>,
+	) -> Result<()>;
+}
+
+#[async_trait]
+impl DeployContract for EthereumRpcClient {
+	async fn deploy_bridge_contract(
+		&mut self,
+		params: &EthereumSigningParams,
+		contract_code: Vec<u8>,
+		initial_header: Vec<u8>,
+		initial_set_id: u64,
+		initial_authorities: Vec<u8>,
+	) -> Result<()> {
+		self.submit_ethereum_transaction(
+			params,
+			None,
 			None,
 			false,
-			bridge_contract::functions::import_finality_proof::encode_input(id.0, id.1, justification,),
+			bridge_contract::constructor(contract_code, initial_header, initial_set_id, initial_authorities),
 		)
 		.await
-	);
-
-	(client, Ok(id))
-}
-
-/// Deploy bridge contract.
-pub async fn deploy_bridge_contract(
-	client: Client,
-	params: &EthereumSigningParams,
-	contract_code: Vec<u8>,
-	initial_header: Vec<u8>,
-	initial_set_id: u64,
-	initial_authorities: Vec<u8>,
-) -> (Client, Result<(), Error>) {
-	submit_ethereum_transaction(
-		client,
-		params,
-		None,
-		None,
-		false,
-		bridge_contract::constructor(contract_code, initial_header, initial_set_id, initial_authorities),
-	)
-	.await
-}
-
-/// Submit ethereum transaction.
-async fn submit_ethereum_transaction(
-	client: Client,
-	params: &EthereumSigningParams,
-	contract_address: Option<Address>,
-	nonce: Option<U256>,
-	double_gas: bool,
-	encoded_call: Vec<u8>,
-) -> (Client, Result<(), Error>) {
-	let (client, nonce) = match nonce {
-		Some(nonce) => (client, nonce),
-		None => bail_on_error!(account_nonce(client, params.signer.address().as_fixed_bytes().into()).await),
-	};
-	let (client, gas) = bail_on_error!(
-		estimate_gas(
-			client,
-			CallRequest {
-				to: contract_address,
-				data: Some(encoded_call.clone().into()),
-				..Default::default()
-			}
-		)
-		.await
-	);
-	let raw_transaction = ethereum_tx_sign::RawTransaction {
-		nonce,
-		to: contract_address,
-		value: U256::zero(),
-		gas: if double_gas { gas.saturating_mul(2.into()) } else { gas },
-		gas_price: params.gas_price,
-		data: encoded_call,
 	}
-	.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
-	let transaction = bail_on_arg_error!(
-		to_value(Bytes(raw_transaction)).map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	let (client, _) = bail_on_error!(
-		call_rpc::<TransactionHash>(client, "eth_submitTransaction", Params::Array(vec![transaction])).await
-	);
-	(client, Ok(()))
-}
-
-/// Get account nonce.
-async fn account_nonce(client: Client, caller_address: Address) -> (Client, Result<U256, Error>) {
-	let caller_address = bail_on_arg_error!(
-		to_value(caller_address).map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	call_rpc(client, "eth_getTransactionCount", Params::Array(vec![caller_address])).await
-}
-
-/// Estimate gas usage for call.
-async fn estimate_gas(client: Client, call_request: CallRequest) -> (Client, Result<U256, Error>) {
-	let call_request = bail_on_arg_error!(
-		to_value(call_request).map_err(|e| Error::RequestSerialization(e)),
-		client
-	);
-	call_rpc(client, "eth_estimateGas", Params::Array(vec![call_request])).await
-}
-
-/// Calls RPC on Ethereum node.
-async fn call_rpc<T: DeserializeOwned>(
-	mut client: Client,
-	method: &'static str,
-	params: Params,
-) -> (Client, Result<T, Error>) {
-	async fn do_call_rpc<T: DeserializeOwned>(
-		client: &mut Client,
-		method: &'static str,
-		params: Params,
-	) -> Result<T, Error> {
-		let request_id = client
-			.start_request(method, params)
-			.await
-			.map_err(Error::StartRequestFailed)?;
-		// WARN: if there'll be need for executing >1 request at a time, we should avoid
-		// calling request_by_id
-		let response = client
-			.request_by_id(request_id)
-			.ok_or(Error::RequestNotFound)?
-			.await
-			.map_err(Error::ResponseRetrievalFailed)?;
-		from_value(response).map_err(|e| Error::ResponseParseFailed(format!("{}", e)))
-	}
-
-	let result = do_call_rpc(&mut client, method, params).await;
-	(client, result)
 }

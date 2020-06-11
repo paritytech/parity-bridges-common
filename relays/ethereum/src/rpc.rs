@@ -21,7 +21,6 @@
 #[warn(missing_docs)]
 use std::result;
 
-use crate::ethereum_client::EthereumConnectionParams;
 use crate::ethereum_types::{
 	Address as EthAddress, Bytes, CallRequest, EthereumHeaderId, Header as EthereumHeader, Receipt, SignedRawTx,
 	TransactionHash as EthereumTxHash, H256, U256, U64,
@@ -48,7 +47,7 @@ type Result<T> = result::Result<T, RpcError>;
 type GrandpaAuthorityList = Vec<u8>;
 
 jsonrpsee::rpc_api! {
-	Ethereum {
+	pub(crate) Ethereum {
 		#[rpc(method = "eth_estimateGas")]
 		fn estimate_gas(call_request: CallRequest) -> U256;
 		#[rpc(method = "eth_blockNumber")]
@@ -67,7 +66,7 @@ jsonrpsee::rpc_api! {
 		fn call(transaction_call: CallRequest) -> Bytes;
 	}
 
-	Substrate {
+	pub(crate) Substrate {
 		#[rpc(method = "chain_getHeader")]
 		fn chain_get_header(block_hash: Option<SubstrateHash>) -> SubstrateHeader;
 		#[rpc(method = "chain_getBlock")]
@@ -104,71 +103,6 @@ pub trait EthereumRpc {
 	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash>;
 	/// Submit a call to an Ethereum smart contract.
 	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes>;
-}
-
-/// The client used to interact with an Ethereum node through RPC.
-pub struct EthereumRpcClient {
-	client: RawClient<HttpTransportClient>,
-}
-
-impl EthereumRpcClient {
-	/// Create a new Ethereum RPC Client.
-	pub fn new(params: EthereumConnectionParams) -> Self {
-		let uri = format!("http://{}:{}", params.host, params.port);
-		let transport = HttpTransportClient::new(&uri);
-		let client = RawClient::new(transport);
-
-		Self { client }
-	}
-}
-
-#[async_trait]
-impl EthereumRpc for EthereumRpcClient {
-	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
-		Ok(Ethereum::estimate_gas(&mut self.client, call_request).await?)
-	}
-
-	async fn best_block_number(&mut self) -> Result<u64> {
-		Ok(Ethereum::block_number(&mut self.client).await?.as_u64())
-	}
-
-	async fn header_by_number(&mut self, block_number: u64) -> Result<EthereumHeader> {
-		let header = Ethereum::get_block_by_number(&mut self.client, block_number).await?;
-		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
-			true => Ok(header),
-			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
-		}
-	}
-
-	async fn header_by_hash(&mut self, hash: H256) -> Result<EthereumHeader> {
-		let header = Ethereum::get_block_by_hash(&mut self.client, hash).await?;
-		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
-			true => Ok(header),
-			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
-		}
-	}
-
-	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt> {
-		let receipt = Ethereum::get_transaction_receipt(&mut self.client, transaction_hash).await?;
-
-		match receipt.gas_used {
-			Some(_) => Ok(receipt),
-			None => Err(RpcError::Ethereum(EthereumNodeError::IncompleteReceipt)),
-		}
-	}
-
-	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256> {
-		Ok(Ethereum::get_transaction_count(&mut self.client, address).await?)
-	}
-
-	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash> {
-		let transaction = Bytes(signed_raw_tx);
-		Ok(Ethereum::submit_transaction(&mut self.client, transaction).await?)
-	}
-
-	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes> {
-		Ok(Ethereum::call(&mut self.client, call_transaction).await?)
-	}
 }
 
 /// The API for the supported Substrate RPC methods.
