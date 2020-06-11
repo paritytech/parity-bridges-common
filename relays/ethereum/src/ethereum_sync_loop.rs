@@ -188,7 +188,7 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	}
 
 	async fn complete_header(self, id: EthereumHeaderId, _completion: ()) -> SubstrateFutureOutput<EthereumHeaderId> {
-		ready((self, Ok(id))).await
+		(self, Ok(id))
 	}
 
 	async fn requires_extra(self, header: QueuedEthereumHeader) -> SubstrateFutureOutput<(EthereumHeaderId, bool)> {
