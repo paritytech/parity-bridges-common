@@ -105,7 +105,7 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	}
 
 	async fn header_completion(self, id: EthereumHeaderId) -> EthereumFutureOutput<(EthereumHeaderId, Option<()>)> {
-		ready((self, Ok((id, None)))).await
+		(self, Ok((id, None)))
 	}
 
 	async fn header_extra(
