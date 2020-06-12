@@ -22,8 +22,11 @@ use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
 use std::{
 	collections::HashSet,
+	sync::Arc,
 	time::{Duration, Instant},
 };
+
+use parking_lot::Mutex;
 
 /// When we submit headers to target node, but see no updates of best
 /// source block known to target node during STALL_SYNC_TIMEOUT seconds,
@@ -55,23 +58,23 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	type Error: std::fmt::Debug + MaybeConnectionError;
 
 	/// Get best block number.
-	async fn best_block_number(self) -> Result<P::Number, Self::Error>;
+	async fn best_block_number(&mut self) -> Result<P::Number, Self::Error>;
 
 	/// Get header by hash.
-	async fn header_by_hash(self, hash: P::Hash) -> Result<P::Header, Self::Error>;
+	async fn header_by_hash(&mut self, hash: P::Hash) -> Result<P::Header, Self::Error>;
 
 	/// Get canonical header by number.
-	async fn header_by_number(self, number: P::Number) -> Result<P::Header, Self::Error>;
+	async fn header_by_number(&mut self, number: P::Number) -> Result<P::Header, Self::Error>;
 
 	/// Get completion data by header hash.
 	async fn header_completion(
-		self,
+		&mut self,
 		id: HeaderId<P::Hash, P::Number>,
 	) -> Result<(HeaderId<P::Hash, P::Number>, Option<P::Completion>), Self::Error>;
 
 	/// Get extra data by header hash.
 	async fn header_extra(
-		self,
+		&mut self,
 		id: HeaderId<P::Hash, P::Number>,
 		header: QueuedHeader<P>,
 	) -> Result<(HeaderId<P::Hash, P::Number>, P::Extra), Self::Error>;
@@ -84,40 +87,40 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	type Error: std::fmt::Debug + MaybeConnectionError;
 
 	/// Returns ID of best header known to the target node.
-	async fn best_header_id(self) -> Result<HeaderId<P::Hash, P::Number>, Self::Error>;
+	async fn best_header_id(&mut self) -> Result<HeaderId<P::Hash, P::Number>, Self::Error>;
 
 	/// Returns true if header is known to the target node.
 	async fn is_known_header(
-		self,
+		&mut self,
 		id: HeaderId<P::Hash, P::Number>,
 	) -> Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>;
 
 	/// Submit headers.
 	async fn submit_headers(
-		self,
+		&mut self,
 		headers: Vec<QueuedHeader<P>>,
 	) -> Result<Vec<HeaderId<P::Hash, P::Number>>, Self::Error>;
 
 	/// Returns ID of headers that require to be 'completed' before children can be submitted.
-	async fn incomplete_headers_ids(self) -> Result<HashSet<HeaderId<P::Hash, P::Number>>, Self::Error>;
+	async fn incomplete_headers_ids(&mut self) -> Result<HashSet<HeaderId<P::Hash, P::Number>>, Self::Error>;
 
 	/// Submit completion data for header.
 	async fn complete_header(
-		self,
+		&mut self,
 		id: HeaderId<P::Hash, P::Number>,
 		completion: P::Completion,
 	) -> Result<HeaderId<P::Hash, P::Number>, Self::Error>;
 
 	/// Returns true if header requires extra data to be submitted.
-	async fn requires_extra(self, header: QueuedHeader<P>)
+	async fn requires_extra(&mut self, header: QueuedHeader<P>)
 		-> Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>;
 }
 
 /// Run headers synchronization.
 pub fn run<P: HeadersSyncPipeline>(
-	source_client: impl SourceClient<P>,
+	mut source_client: impl SourceClient<P>,
 	source_tick: Duration,
-	target_client: impl TargetClient<P>,
+	mut target_client: impl TargetClient<P>,
 	target_tick: Duration,
 	sync_params: HeadersSyncParams,
 ) {
@@ -534,7 +537,7 @@ where
 	TError: std::fmt::Debug + MaybeConnectionError,
 	TGoOfflineFuture: FutureExt,
 {
-	let client_is_online = true;
+	let mut client_is_online = true;
 
 	match result {
 		Ok(result) => {
