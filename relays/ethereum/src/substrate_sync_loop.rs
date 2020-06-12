@@ -16,9 +16,12 @@
 
 //! Substrate -> Ethereum synchronization.
 
-use crate::ethereum_client::{self, EthereumConnectionParams, EthereumSigningParams};
+use crate::ethereum_client::{
+	self, EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams, HigherLevelCalls,
+};
 use crate::ethereum_types::Address;
-use crate::substrate_client::{self, SubstrateConnectionParams};
+use crate::rpc::{EthereumRpc, SubstrateRpc};
+use crate::substrate_client::{self, AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{
 	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
@@ -84,7 +87,7 @@ impl Default for SubstrateSyncParams {
 /// Substrate client as headers source.
 struct SubstrateHeadersSource {
 	/// Substrate node client.
-	client: substrate_client::Client,
+	client: SubstrateRpcClient, // substrate_client::Client,
 }
 
 type SubstrateFutureOutput<T> = OwnedSourceFutureOutput<SubstrateHeadersSource, SubstrateHeadersSyncPipeline, T>;
@@ -93,31 +96,23 @@ type SubstrateFutureOutput<T> = OwnedSourceFutureOutput<SubstrateHeadersSource, 
 impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type Error = substrate_client::Error;
 
-	async fn best_block_number(self) -> SubstrateFutureOutput<Number> {
-		substrate_client::best_header(self.client)
-			.map(|(client, result)| (SubstrateHeadersSource { client }, result.map(|header| header.number)))
-			.await
+	async fn best_block_number(&mut self) -> SubstrateFutureOutput<Number> {
+		self.client.best_header().await.expect("DO").number
 	}
 
-	async fn header_by_hash(self, hash: Hash) -> SubstrateFutureOutput<Header> {
-		substrate_client::header_by_hash(self.client, hash)
-			.map(|(client, result)| (SubstrateHeadersSource { client }, result))
-			.await
+	async fn header_by_hash(&mut self, hash: Hash) -> SubstrateFutureOutput<Header> {
+		self.client.header_by_hash(hash).await.expect("TO")
 	}
 
-	async fn header_by_number(self, number: Number) -> SubstrateFutureOutput<Header> {
-		substrate_client::header_by_number(self.client, number)
-			.map(|(client, result)| (SubstrateHeadersSource { client }, result))
-			.await
+	async fn header_by_number(&mut self, number: Number) -> SubstrateFutureOutput<Header> {
+		self.client.header_by_number(number).await.expect("OT")
 	}
 
 	async fn header_completion(
-		self,
+		&mut self,
 		id: SubstrateHeaderId,
 	) -> SubstrateFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)> {
-		substrate_client::grandpa_justification(self.client, id)
-			.map(|(client, result)| (SubstrateHeadersSource { client }, result))
-			.await
+		self.client.grandpa_justification(id).await
 	}
 
 	async fn header_extra(
@@ -125,14 +120,14 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 		id: SubstrateHeaderId,
 		_header: QueuedSubstrateHeader,
 	) -> SubstrateFutureOutput<(SubstrateHeaderId, ())> {
-		(self, Ok((id, ())))
+		Ok((id, ()))
 	}
 }
 
 /// Ethereum client as Substrate headers target.
 struct EthereumHeadersTarget {
 	/// Ethereum node client.
-	client: ethereum_client::Client,
+	client: EthereumRpcClient, // ethereum_client::Client,
 	/// Bridge contract address.
 	contract: Address,
 	/// Ethereum signing params.
@@ -147,66 +142,69 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 
 	async fn best_header_id(self) -> EthereumFutureOutput<SubstrateHeaderId> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
-		ethereum_client::best_substrate_block(self.client, contract)
-			.map(move |(client, result)| {
-				(
-					EthereumHeadersTarget {
-						client,
-						contract,
-						sign_params,
-					},
-					result,
-				)
-			})
-			.await
+		self.client.best_substrate_block(contract).await.expect("TOD");
+		// .map(move |(client, result)| {
+		// 	(
+		// 		EthereumHeadersTarget {
+		// 			client,
+		// 			contract,
+		// 			sign_params,
+		// 		},
+		// 		result,
+		// 	)
+		// })
+		// .await
 	}
 
 	async fn is_known_header(self, id: SubstrateHeaderId) -> EthereumFutureOutput<(SubstrateHeaderId, bool)> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
-		ethereum_client::substrate_header_known(self.client, contract, id)
-			.map(move |(client, result)| {
-				(
-					EthereumHeadersTarget {
-						client,
-						contract,
-						sign_params,
-					},
-					result,
-				)
-			})
-			.await
+		self.client.substrate_header_known(contract, id).await.expect("D")
+		// .map(move |(client, result)| {
+		// 	(
+		// 		EthereumHeadersTarget {
+		// 			client,
+		// 			contract,
+		// 			sign_params,
+		// 		},
+		// 		result,
+		// 	)
+		// })
+		// .await
 	}
 
 	async fn submit_headers(self, headers: Vec<QueuedSubstrateHeader>) -> EthereumFutureOutput<Vec<SubstrateHeaderId>> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
-		ethereum_client::submit_substrate_headers(self.client, sign_params.clone(), contract, headers)
-			.map(move |(client, result)| {
-				(
-					EthereumHeadersTarget {
-						client,
-						contract,
-						sign_params,
-					},
-					result,
-				)
-			})
+		self.client
+			.submit_substrate_headers(sign_params.clone(), contract, headers)
 			.await
+			.expect("TO")
+		// .map(move |(client, result)| {
+		// 	(
+		// 		EthereumHeadersTarget {
+		// 			client,
+		// 			contract,
+		// 			sign_params,
+		// 		},
+		// 		result,
+		// 	)
+		// })
+		// .await
 	}
 
 	async fn incomplete_headers_ids(self) -> EthereumFutureOutput<HashSet<SubstrateHeaderId>> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
-		ethereum_client::incomplete_substrate_headers(self.client, contract)
-			.map(move |(client, result)| {
-				(
-					EthereumHeadersTarget {
-						client,
-						contract,
-						sign_params,
-					},
-					result,
-				)
-			})
-			.await
+		self.client.incomplete_substrate_headers(contract).await.expect("TOD")
+		// .map(move |(client, result)| {
+		// 	(
+		// 		EthereumHeadersTarget {
+		// 			client,
+		// 			contract,
+		// 			sign_params,
+		// 		},
+		// 		result,
+		// 	)
+		// })
+		// .await
 	}
 
 	async fn complete_header(
@@ -215,18 +213,21 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 		completion: GrandpaJustification,
 	) -> EthereumFutureOutput<SubstrateHeaderId> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
-		ethereum_client::complete_substrate_header(self.client, sign_params.clone(), contract, id, completion)
-			.map(move |(client, result)| {
-				(
-					EthereumHeadersTarget {
-						client,
-						contract,
-						sign_params,
-					},
-					result,
-				)
-			})
+		self.client
+			.complete_substrate_header(sign_params.clone(), contract, id, completion)
 			.await
+			.expect("TD")
+		// .map(move |(client, result)| {
+		// 	(
+		// 		EthereumHeadersTarget {
+		// 			client,
+		// 			contract,
+		// 			sign_params,
+		// 		},
+		// 		result,
+		// 	)
+		// })
+		// .await
 	}
 
 	async fn requires_extra(self, header: QueuedSubstrateHeader) -> EthereumFutureOutput<(SubstrateHeaderId, bool)> {
@@ -236,8 +237,8 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 
 /// Run Substrate headers synchronization.
 pub fn run(params: SubstrateSyncParams) {
-	let eth_client = ethereum_client::client(params.eth);
-	let sub_client = substrate_client::client(params.sub);
+	let mut eth_client = EthereumRpcClient::new(params.eth);
+	let mut sub_client = SubstrateRpcClient::new(params.sub);
 
 	crate::sync_loop::run(
 		SubstrateHeadersSource { client: sub_client },
