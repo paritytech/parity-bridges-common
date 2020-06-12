@@ -55,19 +55,19 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	type Error: std::fmt::Debug + MaybeConnectionError;
 
 	/// Get best block number.
-	async fn best_block_number(self) -> OwnedSourceFutureOutput<Self, P, P::Number>;
+	async fn best_block_number(self) -> Result<P::Number, Self::Error>;
 
 	/// Get header by hash.
-	async fn header_by_hash(self, hash: P::Hash) -> OwnedSourceFutureOutput<Self, P, P::Header>;
+	async fn header_by_hash(self, hash: P::Hash) -> Result<P::Header, Self::Error>;
 
 	/// Get canonical header by number.
-	async fn header_by_number(self, number: P::Number) -> OwnedSourceFutureOutput<Self, P, P::Header>;
+	async fn header_by_number(self, number: P::Number) -> Result<P::Header, Self::Error>;
 
 	/// Get completion data by header hash.
 	async fn header_completion(
 		self,
 		id: HeaderId<P::Hash, P::Number>,
-	) -> OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, Option<P::Completion>)>;
+	) -> Result<(HeaderId<P::Hash, P::Number>, Option<P::Completion>), Self::Error>;
 
 	/// Get extra data by header hash.
 	async fn header_extra(

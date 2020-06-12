@@ -16,7 +16,7 @@
 
 //! Ethereum PoA -> Substrate synchronization.
 
-use crate::ethereum_client::{self, EthereumConnectionParams, EthereumRpcClient};
+use crate::ethereum_client::{self, EthereumConnectionParams, EthereumRpcClient, HigherLevelCalls};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::substrate_client::{
@@ -82,6 +82,7 @@ struct EthereumHeadersSource {
 	client: EthereumRpcClient,
 }
 
+// pub type OwnedSourceFutureOutput<Client, P, T> = (Client, Result<T, <Client as SourceClient<P>>::Error>);
 type EthereumFutureOutput<T> = OwnedSourceFutureOutput<EthereumHeadersSource, EthereumHeadersSyncPipeline, T>;
 // type EthereumFutureOutput<T> = OwnedSourceFutureOutput<EthereumHeadersSyncPipeline, T>;
 
@@ -89,33 +90,41 @@ type EthereumFutureOutput<T> = OwnedSourceFutureOutput<EthereumHeadersSource, Et
 impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type Error = ethereum_client::Error;
 
-	async fn best_block_number(&mut self) -> EthereumFutureOutput<u64> {
-		self.client.best_block_number().await
+	// TODO: Fix error
+	async fn best_block_number(&mut self) -> Result<u64, Self::Error> {
+		self.client
+			.best_block_number()
+			.await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn header_by_hash(&mut self, hash: H256) -> EthereumFutureOutput<Header> {
-		self.client.header_by_hash(hash).await
+	async fn header_by_hash(&mut self, hash: H256) -> Result<Header, Self::Error> {
+		self.client
+			.header_by_hash(hash)
+			.await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn header_by_number(&mut self, number: u64) -> EthereumFutureOutput<Header> {
-		self.client.header_by_number(number).await
+	async fn header_by_number(&mut self, number: u64) -> Result<Header, Self::Error> {
+		self.client
+			.header_by_number(number)
+			.await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn header_completion(
-		&mut self,
-		id: EthereumHeaderId,
-	) -> EthereumFutureOutput<(EthereumHeaderId, Option<()>)> {
-		(id, None)
+	async fn header_completion(&mut self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, Option<()>), Self::Error> {
+		Ok((id, None))
 	}
 
 	async fn header_extra(
 		&mut self,
 		id: EthereumHeaderId,
 		header: QueuedEthereumHeader,
-	) -> EthereumFutureOutput<(EthereumHeaderId, Vec<Receipt>)> {
+	) -> Result<(EthereumHeaderId, Vec<Receipt>), Self::Error> {
 		self.client
-			.transactions_receipt(id, header.header().transactions.clone())
+			.transactions_receipts(id, header.header().transactions.clone())
 			.await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 }
 

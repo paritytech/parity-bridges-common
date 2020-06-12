@@ -96,30 +96,43 @@ type SubstrateFutureOutput<T> = OwnedSourceFutureOutput<SubstrateHeadersSource, 
 impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type Error = substrate_client::Error;
 
-	async fn best_block_number(&mut self) -> SubstrateFutureOutput<Number> {
-		self.client.best_header().await.expect("DO").number
+	// TODO: Fix error
+	async fn best_block_number(&mut self) -> Result<Number, Self::Error> {
+		match self.client.best_header().await {
+			Ok(h) => Ok(h.number),
+			Err(e) => Err(substrate_client::Error::RequestNotFound),
+		}
 	}
 
-	async fn header_by_hash(&mut self, hash: Hash) -> SubstrateFutureOutput<Header> {
-		self.client.header_by_hash(hash).await.expect("TO")
+	async fn header_by_hash(&mut self, hash: Hash) -> Result<Header, Self::Error> {
+		self.client
+			.header_by_hash(hash)
+			.await
+			.map_err(|_| substrate_client::Error::RequestNotFound)
 	}
 
-	async fn header_by_number(&mut self, number: Number) -> SubstrateFutureOutput<Header> {
-		self.client.header_by_number(number).await.expect("OT")
+	async fn header_by_number(&mut self, number: Number) -> Result<Header, Self::Error> {
+		self.client
+			.header_by_number(number)
+			.await
+			.map_err(|_| substrate_client::Error::RequestNotFound)
 	}
 
 	async fn header_completion(
 		&mut self,
 		id: SubstrateHeaderId,
-	) -> SubstrateFutureOutput<(SubstrateHeaderId, Option<GrandpaJustification>)> {
-		self.client.grandpa_justification(id).await
+	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>), Self::Error> {
+		self.client
+			.grandpa_justification(id)
+			.await
+			.map_err(|_| substrate_client::Error::RequestNotFound)
 	}
 
 	async fn header_extra(
 		self,
 		id: SubstrateHeaderId,
 		_header: QueuedSubstrateHeader,
-	) -> SubstrateFutureOutput<(SubstrateHeaderId, ())> {
+	) -> Result<(SubstrateHeaderId, ()), Self::Error> {
 		Ok((id, ()))
 	}
 }
