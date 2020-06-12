@@ -28,9 +28,9 @@ use codec::{Decode, Encode};
 use jsonrpsee::raw::{RawClient, RawClientError};
 use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
 use num_traits::Zero;
+use sp_bridge_eth_poa::Header as SubstrateEthereumHeader;
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
-use sp_bridge_eth_poa::Header as SubstrateEthereumHeader;
 
 const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "EthereumHeadersApi_is_import_requires_receipts";
 const ETH_API_IS_KNOWN_BLOCK: &str = "EthereumHeadersApi_is_known_block";
@@ -248,7 +248,7 @@ pub trait AlsoHigherLevelCalls: SubstrateRpc {
 
 #[async_trait]
 impl AlsoHigherLevelCalls for SubstrateRpcClient {
-	// TODO: Fix
+	// TODO: Fix naming
 	async fn ethereum_receipts_required_high(
 		&mut self,
 		header: QueuedEthereumHeader,
@@ -259,7 +259,7 @@ impl AlsoHigherLevelCalls for SubstrateRpcClient {
 		Ok((id, receipts_required))
 	}
 
-	// TODO: Fix
+	// TODO: Fix naming
 	async fn ethereum_header_known_high(&mut self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, bool)> {
 		let is_known_block = self.ethereum_header_known(id).await?;
 		Ok((id, is_known_block))
@@ -298,12 +298,7 @@ impl AlsoHigherLevelCalls for SubstrateRpcClient {
 		let nonce = self.next_account_index(account_id).await?;
 
 		let transaction = create_signed_submit_transaction(headers, &params.signer, nonce, genesis_hash);
-		let _ = self.submit_extrinsic(transaction).await?;
-
-		// let encoded_transaction = bail_on_arg_error!(
-		// 	to_value(Bytes(transaction.encode())).map_err(|e| Error::RequestSerialization(e)),
-		// 	client
-		// );
+		let _ = self.submit_extrinsic(Bytes(transaction.encode())).await?;
 
 		Ok(ids)
 	}
@@ -315,13 +310,7 @@ impl AlsoHigherLevelCalls for SubstrateRpcClient {
 		let ids = headers.iter().map(|header| header.id()).collect();
 		for header in headers {
 			let transaction = create_unsigned_submit_transaction(header);
-
-			// let encoded_transaction = bail_on_arg_error!(
-			// 	to_value(Bytes(transaction.encode())).map_err(|e| Error::RequestSerialization(e)),
-			// 	client
-			// );
-
-			let _ = self.submit_extrinsic(transaction).await?;
+			let _ = self.submit_extrinsic(Bytes(transaction.encode())).await?;
 		}
 
 		Ok(ids)
