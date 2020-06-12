@@ -144,82 +144,49 @@ type SubstrateFutureOutput<T> = OwnedTargetFutureOutput<SubstrateHeadersTarget, 
 impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = substrate_client::Error;
 
-	async fn best_header_id(self) -> SubstrateFutureOutput<EthereumHeaderId> {
+	async fn best_header_id(self) -> Result<EthereumHeaderId, Self::Error> {
 		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
-		self.client.best_ethereum_block().await
-		// .map(move |(client, result)| {
-		// 	(
-		// 		SubstrateHeadersTarget {
-		// 			client,
-		// 			sign_transactions,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+		self.client
+			.best_ethereum_block()
+			.await
+			.map_err(|_| substrate_client::Error::RequestNotFound)
 	}
 
-	async fn is_known_header(self, id: EthereumHeaderId) -> SubstrateFutureOutput<(EthereumHeaderId, bool)> {
+	async fn is_known_header(self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, bool), Self::Error> {
 		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
 		// TODO: Fix naming
-		self.client.ethereum_header_known_high(id).await
-		// .map(move |(client, result)| {
-		// 	(
-		// 		SubstrateHeadersTarget {
-		// 			client,
-		// 			sign_transactions,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+		self.client
+			.ethereum_header_known_high(id)
+			.await
+			.map_err(|_| substrate_client::Error::RequestNotFound)
 	}
 
-	async fn submit_headers(self, headers: Vec<QueuedEthereumHeader>) -> SubstrateFutureOutput<Vec<EthereumHeaderId>> {
+	async fn submit_headers(self, headers: Vec<QueuedEthereumHeader>) -> Result<Vec<EthereumHeaderId>, Self::Error> {
 		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
 		self.client
 			.submit_ethereum_headers(sign_params.clone(), headers, sign_transactions)
 			.await
-		// .map(move |(client, result)| {
-		// 	(
-		// 		SubstrateHeadersTarget {
-		// 			client,
-		// 			sign_transactions,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+			.map_err(|e| substrate_client::Error::RequestNotFound)
 	}
 
-	async fn incomplete_headers_ids(self) -> SubstrateFutureOutput<HashSet<EthereumHeaderId>> {
-		(self, Ok(HashSet::new()))
+	async fn incomplete_headers_ids(self) -> Result<HashSet<EthereumHeaderId>, Self::Error> {
+		Ok(HashSet::new())
 	}
 
-	async fn complete_header(self, id: EthereumHeaderId, _completion: ()) -> SubstrateFutureOutput<EthereumHeaderId> {
-		(self, Ok(id))
+	async fn complete_header(self, id: EthereumHeaderId, _completion: ()) -> Result<EthereumHeaderId, Self::Error> {
+		Ok(id)
 	}
 
-	async fn requires_extra(self, header: QueuedEthereumHeader) -> SubstrateFutureOutput<(EthereumHeaderId, bool)> {
+	async fn requires_extra(self, header: QueuedEthereumHeader) -> Result<(EthereumHeaderId, bool), Self::Error> {
 		// we can minimize number of receipts_check calls by checking header
 		// logs bloom here, but it may give us false positives (when authorities
 		// source is contract, we never need any logs)
 		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
-		self.client.ethereum_receipts_required(header).await
-		// .map(move |(client, result)| {
-		// 	(
-		// 		SubstrateHeadersTarget {
-		// 			client,
-		// 			sign_transactions,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+		// TODO: Fix name
+		self.client
+			.ethereum_receipts_required_high(header)
+			.await
+			.map_err(|e| substrate_client::Error::RequestNotFound)
 	}
 }
 

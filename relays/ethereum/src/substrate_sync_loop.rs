@@ -153,98 +153,52 @@ type EthereumFutureOutput<T> = OwnedTargetFutureOutput<EthereumHeadersTarget, Su
 impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = ethereum_client::Error;
 
-	async fn best_header_id(self) -> EthereumFutureOutput<SubstrateHeaderId> {
+	async fn best_header_id(self) -> Result<SubstrateHeaderId, Self::Error> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
-		self.client.best_substrate_block(contract).await.expect("TOD");
-		// .map(move |(client, result)| {
-		// 	(
-		// 		EthereumHeadersTarget {
-		// 			client,
-		// 			contract,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+		self.client
+			.best_substrate_block(contract)
+			.await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn is_known_header(self, id: SubstrateHeaderId) -> EthereumFutureOutput<(SubstrateHeaderId, bool)> {
+	async fn is_known_header(self, id: SubstrateHeaderId) -> Result<(SubstrateHeaderId, bool), Self::Error> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
-		self.client.substrate_header_known(contract, id).await.expect("D")
-		// .map(move |(client, result)| {
-		// 	(
-		// 		EthereumHeadersTarget {
-		// 			client,
-		// 			contract,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+		self.client
+			.substrate_header_known(contract, id)
+			.await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn submit_headers(self, headers: Vec<QueuedSubstrateHeader>) -> EthereumFutureOutput<Vec<SubstrateHeaderId>> {
+	async fn submit_headers(self, headers: Vec<QueuedSubstrateHeader>) -> Result<Vec<SubstrateHeaderId>, Self::Error> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
 		self.client
 			.submit_substrate_headers(sign_params.clone(), contract, headers)
 			.await
-			.expect("TO")
-		// .map(move |(client, result)| {
-		// 	(
-		// 		EthereumHeadersTarget {
-		// 			client,
-		// 			contract,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn incomplete_headers_ids(self) -> EthereumFutureOutput<HashSet<SubstrateHeaderId>> {
+	async fn incomplete_headers_ids(self) -> Result<HashSet<SubstrateHeaderId>, Self::Error> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
-		self.client.incomplete_substrate_headers(contract).await.expect("TOD")
-		// .map(move |(client, result)| {
-		// 	(
-		// 		EthereumHeadersTarget {
-		// 			client,
-		// 			contract,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+		self.client
+			.incomplete_substrate_headers(contract)
+			.await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
 	async fn complete_header(
 		self,
 		id: SubstrateHeaderId,
 		completion: GrandpaJustification,
-	) -> EthereumFutureOutput<SubstrateHeaderId> {
+	) -> Result<SubstrateHeaderId, Self::Error> {
 		let (contract, sign_params) = (self.contract, self.sign_params);
 		self.client
 			.complete_substrate_header(sign_params.clone(), contract, id, completion)
 			.await
-			.expect("TD")
-		// .map(move |(client, result)| {
-		// 	(
-		// 		EthereumHeadersTarget {
-		// 			client,
-		// 			contract,
-		// 			sign_params,
-		// 		},
-		// 		result,
-		// 	)
-		// })
-		// .await
+			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn requires_extra(self, header: QueuedSubstrateHeader) -> EthereumFutureOutput<(SubstrateHeaderId, bool)> {
-		(self, Ok((header.header().id(), false)))
+	async fn requires_extra(self, header: QueuedSubstrateHeader) -> Result<(SubstrateHeaderId, bool), Self::Error> {
+		Ok((header.header().id(), false))
 	}
 }
 
