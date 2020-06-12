@@ -74,7 +74,7 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 		self,
 		id: HeaderId<P::Hash, P::Number>,
 		header: QueuedHeader<P>,
-	) -> OwnedSourceFutureOutput<Self, P, (HeaderId<P::Hash, P::Number>, P::Extra)>;
+	) -> Result<(HeaderId<P::Hash, P::Number>, P::Extra), Self::Error>;
 }
 
 /// Target client trait.
@@ -129,7 +129,7 @@ pub fn run<P: HeadersSyncPipeline>(
 		let mut stall_countdown = None;
 		let mut last_update_time = Instant::now();
 
-		let mut source_maybe_client = None;
+		// let mut source_maybe_client = None;
 		let mut source_client_is_online = true; // maybe make false
 		let mut source_best_block_number_required = false;
 		let source_best_block_number_future = source_client.best_block_number().fuse();
@@ -140,7 +140,8 @@ pub fn run<P: HeadersSyncPipeline>(
 		let source_go_offline_future = futures::future::Fuse::terminated();
 		let source_tick_stream = interval(source_tick).fuse();
 
-		let mut target_maybe_client = None;
+		// let mut target_maybe_client = None;
+		let mut target_client_is_online = true; // maybe make false
 		let mut target_best_block_required = false;
 		let mut target_incomplete_headers_required = true;
 		let target_best_block_future = target_client.best_header_id().fuse();
@@ -227,12 +228,10 @@ pub fn run<P: HeadersSyncPipeline>(
 						source_best_block_number_required = true;
 					}
 				},
-				(target_client, target_best_block) = target_best_block_future => {
+				target_best_block = target_best_block_future => {
 					target_best_block_required = false;
 
-					process_future_result(
-						&mut target_maybe_client,
-						target_client,
+					target_client_is_online = better_process_future_result(
 						target_best_block,
 						|target_best_block| {
 							let head_updated = sync.target_best_header_response(target_best_block);
@@ -268,73 +267,64 @@ pub fn run<P: HeadersSyncPipeline>(
 							}
 						},
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
+						|| async_std::task::sleep(CONNECTION_ERROR_DELAY),
 						|| format!("Error retrieving best known header from {} node", P::TARGET_NAME),
 					);
 				},
-				(target_client, incomplete_headers_ids) = target_incomplete_headers_future => {
+				incomplete_headers_ids = target_incomplete_headers_future => {
 					target_incomplete_headers_required = false;
 
-					process_future_result(
-						&mut target_maybe_client,
-						target_client,
+					target_client_is_online = better_process_future_result(
 						incomplete_headers_ids,
 						|incomplete_headers_ids| sync.headers_mut().incomplete_headers_response(incomplete_headers_ids),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
+						|| async_std::task::sleep(CONNECTION_ERROR_DELAY),
 						|| format!("Error retrieving incomplete headers from {} node", P::TARGET_NAME),
 					);
 				},
-				(target_client, target_existence_status) = target_existence_status_future => {
-					process_future_result(
-						&mut target_maybe_client,
-						target_client,
+				target_existence_status = target_existence_status_future => {
+					target_client_is_online = better_process_future_result(
 						target_existence_status,
 						|(target_header, target_existence_status)| sync
 							.headers_mut()
 							.maybe_orphan_response(&target_header, target_existence_status),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
+						|| async_std::task::sleep(CONNECTION_ERROR_DELAY),
 						|| format!("Error retrieving existence status from {} node", P::TARGET_NAME),
 					);
 				},
-				(target_client, target_submit_header_result) = target_submit_header_future => {
-					process_future_result(
-						&mut target_maybe_client,
-						target_client,
+				target_submit_header_result = target_submit_header_future => {
+					target_client_is_online = better_process_future_result(
 						target_submit_header_result,
 						|submitted_headers| sync.headers_mut().headers_submitted(submitted_headers),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
+						|| async_std::task::sleep(CONNECTION_ERROR_DELAY),
 						|| format!("Error submitting headers to {} node", P::TARGET_NAME),
 					);
 				},
-				(target_client, target_complete_header_result) = target_complete_header_future => {
-					process_future_result(
-						&mut target_maybe_client,
-						target_client,
+				target_complete_header_result = target_complete_header_future => {
+					target_client_is_online = better_process_future_result(
 						target_complete_header_result,
 						|completed_header| sync.headers_mut().header_completed(&completed_header),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
+						|| async_std::task::sleep(CONNECTION_ERROR_DELAY),
 						|| format!("Error completing headers at {}", P::TARGET_NAME),
 					);
 				},
-				(target_client, target_extra_check_result) = target_extra_check_future => {
-					process_future_result(
-						&mut target_maybe_client,
-						target_client,
+				target_extra_check_result = target_extra_check_future => {
+					target_client_is_online = better_process_future_result(
 						target_extra_check_result,
 						|(header, extra_check_result)| sync
 							.headers_mut()
 							.maybe_extra_response(&header, extra_check_result),
 						&mut target_go_offline_future,
-						|target_client| delay(CONNECTION_ERROR_DELAY, target_client),
+						|| async_std::task::sleep(CONNECTION_ERROR_DELAY),
 						|| format!("Error retrieving receipts requirement from {} node", P::TARGET_NAME),
 					);
 				},
 				target_client = target_go_offline_future => {
-					target_maybe_client = Some(target_client);
+					target_client_is_online = true;
+					// target_maybe_client = Some(target_client);
 				},
 				_ = target_tick_stream.next() => {
 					target_best_block_required = true;
@@ -346,7 +336,8 @@ pub fn run<P: HeadersSyncPipeline>(
 			progress_context = print_sync_progress(progress_context, &sync);
 
 			// if target client is available: wait, or call required target methods
-			if let Some(target_client) = target_maybe_client.take() {
+			// if let Some(target_client) = target_maybe_client.take() {
+			if target_client_is_online {
 				// the priority is to:
 				// 1) get best block - it stops us from downloading/submitting new blocks + we call it rarely;
 				// 2) get incomplete headers - it stops us from submitting new blocks + we call it rarely;
@@ -413,7 +404,8 @@ pub fn run<P: HeadersSyncPipeline>(
 						stall_countdown = Some(Instant::now());
 					}
 				} else {
-					target_maybe_client = Some(target_client);
+					// target_maybe_client = Some(target_client);
+					target_client_is_online = true;
 				}
 			}
 
@@ -478,7 +470,8 @@ pub fn run<P: HeadersSyncPipeline>(
 
 					source_new_header_future.set(source_client.header_by_number(id).fuse());
 				} else {
-					source_maybe_client = Some(source_client);
+					// source_maybe_client = Some(source_client);
+					source_client_is_online = true;
 				}
 			}
 		}
@@ -530,7 +523,7 @@ fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
 }
 
 /// Process result of the future that may have been caused by connection failure.
-fn better_process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
+fn better_process_future_result<TResult, TError, TGoOfflineFuture>(
 	result: Result<TResult, TError>,
 	on_success: impl FnOnce(TResult),
 	go_offline_future: &mut std::pin::Pin<&mut futures::future::Fuse<TGoOfflineFuture>>,
