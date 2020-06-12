@@ -95,7 +95,7 @@ impl SubstrateRpcClient {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
 		Self {
-			rpc_client: RawClient::new(transport),
+			client: RawClient::new(transport),
 			genesis_hash: None,
 		}
 	}
@@ -241,7 +241,7 @@ pub trait AlsoHigherLevelCalls: SubstrateRpc {
 
 	/// Get GRANDPA justification for given block.
 	async fn grandpa_justification(
-		&self,
+		&mut self,
 		id: SubstrateHeaderId,
 	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>)>;
 }
@@ -317,7 +317,7 @@ impl AlsoHigherLevelCalls for SubstrateRpcClient {
 	}
 
 	async fn grandpa_justification(
-		&self,
+		&mut self,
 		id: SubstrateHeaderId,
 	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>)> {
 		let hash = id.1; // bail_on_arg_error!(to_value(id.1).map_err(|e| Error::RequestSerialization(e)), client);
