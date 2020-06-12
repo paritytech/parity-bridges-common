@@ -29,6 +29,9 @@ use async_trait::async_trait;
 use std::{collections::HashSet, time::Duration};
 use web3::types::H256;
 
+use parking_lot::Mutex;
+use std::sync::Arc;
+
 /// Interval at which we check new Ethereum headers when we are synced/almost synced.
 const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(10);
 /// Interval at which we check new Substrate blocks.
@@ -128,8 +131,7 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	}
 }
 
-/// Substrate client as Ethereum headers target.
-struct SubstrateHeadersTarget {
+struct SubstrateTargetData {
 	/// Substrate node client.
 	client: SubstrateRpcClient, // substrate_client::Client,
 	/// Whether we want to submit signed (true), or unsigned (false) transactions.
@@ -138,52 +140,75 @@ struct SubstrateHeadersTarget {
 	sign_params: SubstrateSigningParams,
 }
 
+struct SubstrateHeadersTarget(Arc<Mutex<SubstrateTargetData>>);
+impl SubstrateHeadersTarget {
+	fn new(client: SubstrateRpcClient, sign_transactions: bool, sign_params: SubstrateSigningParams) -> Self {
+		Self(Arc::new(Mutex::new(SubstrateTargetData {
+			client,
+			sign_transactions,
+			sign_params,
+		})))
+	}
+}
+
 type SubstrateFutureOutput<T> = OwnedTargetFutureOutput<SubstrateHeadersTarget, EthereumHeadersSyncPipeline, T>;
 
 #[async_trait]
 impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = substrate_client::Error;
 
-	async fn best_header_id(self) -> Result<EthereumHeaderId, Self::Error> {
-		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
-		self.client
+	async fn best_header_id(&mut self) -> Result<EthereumHeaderId, Self::Error> {
+		self.0
+			.lock()
+			.client
 			.best_ethereum_block()
 			.await
 			.map_err(|_| substrate_client::Error::RequestNotFound)
 	}
 
-	async fn is_known_header(self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, bool), Self::Error> {
-		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
+	async fn is_known_header(&mut self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, bool), Self::Error> {
 		// TODO: Fix naming
-		self.client
+		self.0
+			.lock()
+			.client
 			.ethereum_header_known_high(id)
 			.await
 			.map_err(|_| substrate_client::Error::RequestNotFound)
 	}
 
-	async fn submit_headers(self, headers: Vec<QueuedEthereumHeader>) -> Result<Vec<EthereumHeaderId>, Self::Error> {
-		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
-		self.client
-			.submit_ethereum_headers(sign_params.clone(), headers, sign_transactions)
+	async fn submit_headers(
+		&mut self,
+		headers: Vec<QueuedEthereumHeader>,
+	) -> Result<Vec<EthereumHeaderId>, Self::Error> {
+		let mut data = self.0.lock();
+
+		let (sign_params, sign_transactions) = (data.sign_params.clone(), data.sign_transactions.clone());
+		data.client
+			.submit_ethereum_headers(sign_params, headers, sign_transactions)
 			.await
 			.map_err(|e| substrate_client::Error::RequestNotFound)
 	}
 
-	async fn incomplete_headers_ids(self) -> Result<HashSet<EthereumHeaderId>, Self::Error> {
+	async fn incomplete_headers_ids(&mut self) -> Result<HashSet<EthereumHeaderId>, Self::Error> {
 		Ok(HashSet::new())
 	}
 
-	async fn complete_header(self, id: EthereumHeaderId, _completion: ()) -> Result<EthereumHeaderId, Self::Error> {
+	async fn complete_header(
+		&mut self,
+		id: EthereumHeaderId,
+		_completion: (),
+	) -> Result<EthereumHeaderId, Self::Error> {
 		Ok(id)
 	}
 
-	async fn requires_extra(self, header: QueuedEthereumHeader) -> Result<(EthereumHeaderId, bool), Self::Error> {
+	async fn requires_extra(&mut self, header: QueuedEthereumHeader) -> Result<(EthereumHeaderId, bool), Self::Error> {
 		// we can minimize number of receipts_check calls by checking header
 		// logs bloom here, but it may give us false positives (when authorities
 		// source is contract, we never need any logs)
-		let (sign_transactions, sign_params) = (self.sign_transactions, self.sign_params);
 		// TODO: Fix name
-		self.client
+		self.0
+			.lock()
+			.client
 			.ethereum_receipts_required_high(header)
 			.await
 			.map_err(|e| substrate_client::Error::RequestNotFound)
@@ -192,22 +217,26 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 
 /// Run Ethereum headers synchronization.
 pub fn run(params: EthereumSyncParams) {
-	let mut eth_client = EthereumRpcClient::new(params.eth); // ethereum_client::client(params.eth);
-	let mut sub_client = SubstrateRpcClient::new(params.sub); // substrate_client::client(params.sub);
+	let mut eth_client = EthereumRpcClient::new(params.eth);
+	let mut sub_client = SubstrateRpcClient::new(params.sub);
 
 	let sign_sub_transactions = match params.sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,
 		TargetTransactionMode::Unsigned => false,
 	};
 
+	// let source = EthereumHeadersSource::new(eth_client);
+	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, params.sub_sign);
+
 	crate::sync_loop::run(
 		EthereumHeadersSource { client: eth_client },
 		ETHEREUM_TICK_INTERVAL,
-		SubstrateHeadersTarget {
-			client: sub_client,
-			sign_transactions: sign_sub_transactions,
-			sign_params: params.sub_sign,
-		},
+		target,
+		// SubstrateHeadersTarget {
+		// 	client: sub_client,
+		// 	sign_transactions: sign_sub_transactions,
+		// 	sign_params: params.sub_sign,
+		// },
 		SUBSTRATE_TICK_INTERVAL,
 		params.sync_params,
 	);

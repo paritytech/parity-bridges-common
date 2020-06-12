@@ -129,7 +129,7 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	}
 
 	async fn header_extra(
-		self,
+		&mut self,
 		id: SubstrateHeaderId,
 		_header: QueuedSubstrateHeader,
 	) -> Result<(SubstrateHeaderId, ()), Self::Error> {
@@ -153,51 +153,52 @@ type EthereumFutureOutput<T> = OwnedTargetFutureOutput<EthereumHeadersTarget, Su
 impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = ethereum_client::Error;
 
-	async fn best_header_id(self) -> Result<SubstrateHeaderId, Self::Error> {
-		let (contract, sign_params) = (self.contract, self.sign_params);
+	async fn best_header_id(&mut self) -> Result<SubstrateHeaderId, Self::Error> {
 		self.client
-			.best_substrate_block(contract)
+			.best_substrate_block(self.contract)
 			.await
 			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn is_known_header(self, id: SubstrateHeaderId) -> Result<(SubstrateHeaderId, bool), Self::Error> {
-		let (contract, sign_params) = (self.contract, self.sign_params);
+	async fn is_known_header(&mut self, id: SubstrateHeaderId) -> Result<(SubstrateHeaderId, bool), Self::Error> {
 		self.client
-			.substrate_header_known(contract, id)
+			.substrate_header_known(self.contract, id)
 			.await
 			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn submit_headers(self, headers: Vec<QueuedSubstrateHeader>) -> Result<Vec<SubstrateHeaderId>, Self::Error> {
-		let (contract, sign_params) = (self.contract, self.sign_params);
+	async fn submit_headers(
+		&mut self,
+		headers: Vec<QueuedSubstrateHeader>,
+	) -> Result<Vec<SubstrateHeaderId>, Self::Error> {
 		self.client
-			.submit_substrate_headers(sign_params.clone(), contract, headers)
+			.submit_substrate_headers(self.sign_params.clone(), self.contract, headers)
 			.await
 			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn incomplete_headers_ids(self) -> Result<HashSet<SubstrateHeaderId>, Self::Error> {
-		let (contract, sign_params) = (self.contract, self.sign_params);
+	async fn incomplete_headers_ids(&mut self) -> Result<HashSet<SubstrateHeaderId>, Self::Error> {
 		self.client
-			.incomplete_substrate_headers(contract)
+			.incomplete_substrate_headers(self.contract)
 			.await
 			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
 	async fn complete_header(
-		self,
+		&mut self,
 		id: SubstrateHeaderId,
 		completion: GrandpaJustification,
 	) -> Result<SubstrateHeaderId, Self::Error> {
-		let (contract, sign_params) = (self.contract, self.sign_params);
 		self.client
-			.complete_substrate_header(sign_params.clone(), contract, id, completion)
+			.complete_substrate_header(self.sign_params.clone(), self.contract, id, completion)
 			.await
 			.map_err(|_| ethereum_client::Error::RequestNotFound)
 	}
 
-	async fn requires_extra(self, header: QueuedSubstrateHeader) -> Result<(SubstrateHeaderId, bool), Self::Error> {
+	async fn requires_extra(
+		&mut self,
+		header: QueuedSubstrateHeader,
+	) -> Result<(SubstrateHeaderId, bool), Self::Error> {
 		Ok((header.header().id(), false))
 	}
 }
