@@ -25,23 +25,13 @@ use crate::ethereum_types::{
 	Address as EthAddress, Bytes, CallRequest, EthereumHeaderId, Header as EthereumHeader, Receipt, SignedRawTx,
 	TransactionHash as EthereumTxHash, H256, U256, U64,
 };
-use crate::rpc_errors::{EthereumNodeError, RpcError};
-use crate::substrate_client::SubstrateConnectionParams;
+use crate::rpc_errors::RpcError;
 use crate::substrate_types::{
 	Hash as SubstrateHash, Header as SubstrateHeader, Number as SubBlockNumber, SignedBlock as SubstrateBlock,
 };
-use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
-use codec::{Decode, Encode};
-use jsonrpsee::raw::client::RawClient;
-use jsonrpsee::transport::http::HttpTransportClient;
 use sp_bridge_eth_poa::Header as SubstrateEthereumHeader;
-
-const ETH_API_BEST_BLOCK: &str = "EthereumHeadersApi_best_block";
-const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "EthereumHeadersApi_is_import_requires_receipts";
-const ETH_API_IS_KNOWN_BLOCK: &str = "EthereumHeadersApi_is_known_block";
-const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 
 type Result<T> = result::Result<T, RpcError>;
 type GrandpaAuthorityList = Vec<u8>;
@@ -134,102 +124,4 @@ pub trait SubstrateRpc {
 	async fn submit_extrinsic(&mut self, transaction: Bytes) -> Result<SubstrateHash>;
 	/// Get the GRANDPA authority set at given block.
 	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList>;
-}
-
-/// The client used to interact with a Substrate node through RPC.
-pub struct SubstrateRpcClient {
-	client: RawClient<HttpTransportClient>,
-}
-
-impl SubstrateRpcClient {
-	/// Create a new Substrate RPC Client.
-	pub fn new(params: SubstrateConnectionParams) -> Self {
-		let uri = format!("http://{}:{}", params.host, params.port);
-		let transport = HttpTransportClient::new(&uri);
-		let client = RawClient::new(transport);
-
-		Self { client }
-	}
-}
-
-#[async_trait]
-impl SubstrateRpc for SubstrateRpcClient {
-	async fn best_header(&mut self) -> Result<SubstrateHeader> {
-		Ok(Substrate::chain_get_header(&mut self.client, None).await?)
-	}
-
-	async fn get_block(&mut self, block_hash: Option<SubstrateHash>) -> Result<SubstrateBlock> {
-		Ok(Substrate::chain_get_block(&mut self.client, block_hash).await?)
-	}
-
-	async fn header_by_hash(&mut self, block_hash: SubstrateHash) -> Result<SubstrateHeader> {
-		Ok(Substrate::chain_get_header(&mut self.client, block_hash).await?)
-	}
-
-	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash> {
-		Ok(Substrate::chain_get_block_hash(&mut self.client, number).await?)
-	}
-
-	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader> {
-		let block_hash = Self::block_hash_by_number(self, block_number).await?;
-		Ok(Self::header_by_hash(self, block_hash).await?)
-	}
-
-	async fn next_account_index(&mut self, account: node_primitives::AccountId) -> Result<node_primitives::Index> {
-		Ok(Substrate::system_account_next_index(&mut self.client, account).await?)
-	}
-
-	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId> {
-		let call = ETH_API_BEST_BLOCK.to_string();
-		let data = Bytes("0x".into());
-
-		let encoded_response = Substrate::state_call(&mut self.client, call, data, None).await?;
-		let decoded_response: (u64, sp_bridge_eth_poa::H256) = Decode::decode(&mut &encoded_response.0[..])?;
-
-		let best_header_id = HeaderId(decoded_response.0, decoded_response.1);
-		Ok(best_header_id)
-	}
-
-	async fn ethereum_receipts_required(&mut self, header: SubstrateEthereumHeader) -> Result<bool> {
-		let call = ETH_API_IMPORT_REQUIRES_RECEIPTS.to_string();
-		let data = Bytes(header.encode());
-
-		let encoded_response = Substrate::state_call(&mut self.client, call, data, None).await?;
-		let receipts_required: bool = Decode::decode(&mut &encoded_response.0[..])?;
-
-		// Gonna make it the responsibility of the caller to return (receipts_required, id)
-		Ok(receipts_required)
-	}
-
-	// The Substrate module could prune old headers. So this function could return false even
-	// if header is synced. And we'll mark corresponding Ethereum header as Orphan.
-	//
-	// But when we read the best header from Substrate next time, we will know that
-	// there's a better header. This Orphan will either be marked as synced, or
-	// eventually pruned.
-	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool> {
-		let call = ETH_API_IS_KNOWN_BLOCK.to_string();
-		let data = Bytes(header_id.1.encode());
-
-		let encoded_response = Substrate::state_call(&mut self.client, call, data, None).await?;
-		let is_known_block: bool = Decode::decode(&mut &encoded_response.0[..])?;
-
-		// Gonna make it the responsibility of the caller to return (is_known_block, id)
-		Ok(is_known_block)
-	}
-
-	async fn submit_extrinsic(&mut self, transaction: Bytes) -> Result<SubstrateHash> {
-		let encoded_transaction = Bytes(transaction.0.encode());
-		Ok(Substrate::author_submit_extrinsic(&mut self.client, encoded_transaction).await?)
-	}
-
-	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList> {
-		let call = SUB_API_GRANDPA_AUTHORITIES.to_string();
-		let data = Bytes(block.as_bytes().to_vec());
-
-		let encoded_response = Substrate::state_call(&mut self.client, call, data, None).await?;
-		let authority_list = encoded_response.0;
-
-		Ok(authority_list)
-	}
 }
