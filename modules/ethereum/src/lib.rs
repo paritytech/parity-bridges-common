@@ -286,7 +286,7 @@ pub trait Storage {
 	fn scheduled_change(&self, hash: &H256) -> Option<ScheduledChange>;
 	/// Insert imported header.
 	fn insert_header(&mut self, header: HeaderToImport<Self::Submitter>);
-	/// Finalize given block and prune schedules pruning of all headers
+	/// Finalize given block and schedules pruning of all headers
 	/// with number < prune_end.
 	///
 	/// The headers in the pruning range could be either finalized, or not.
