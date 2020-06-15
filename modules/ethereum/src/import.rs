@@ -138,7 +138,7 @@ pub fn import_header<S: Storage, PS: PruningStrategy>(
 	);
 
 	// now mark finalized headers && prune old headers
-	storage.finalize_headers(new_best_finalized_block_id, pruning_upper_bound);
+	storage.finalize_and_prune_headers(new_best_finalized_block_id, pruning_upper_bound);
 
 	Ok((header_id, finalized_blocks.finalized_headers))
 }
@@ -170,7 +170,7 @@ mod tests {
 	fn rejects_finalized_block_competitors() {
 		custom_test_ext(genesis(), validators_addresses(3)).execute_with(|| {
 			let mut storage = BridgeStorage::<TestRuntime>::new();
-			storage.finalize_headers(
+			storage.finalize_and_prune_headers(
 				Some(HeaderId {
 					number: 100,
 					..Default::default()

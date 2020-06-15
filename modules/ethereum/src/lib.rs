@@ -293,7 +293,7 @@ pub trait Storage {
 	/// It is the storage duty to ensure that unfinalized headers that have
 	/// scheduled changes won't be pruned until they or their competitors
 	/// are finalized.
-	fn finalize_headers(&mut self, finalized: Option<HeaderId>, prune_end: u64);
+	fn finalize_and_prune_headers(&mut self, finalized: Option<HeaderId>, prune_end: u64);
 }
 
 /// Headers pruning strategy.
@@ -786,7 +786,7 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 		);
 	}
 
-	fn finalize_headers(&mut self, finalized: Option<HeaderId>, prune_end: u64) {
+	fn finalize_and_prune_headers(&mut self, finalized: Option<HeaderId>, prune_end: u64) {
 		// remember just finalized block
 		let finalized_number = finalized
 			.as_ref()
@@ -1087,7 +1087,7 @@ pub(crate) mod tests {
 				oldest_unpruned_block: interval - 1,
 				oldest_block_to_keep: interval - 1,
 			});
-			storage.finalize_headers(None, interval + 1);
+			storage.finalize_and_prune_headers(None, interval + 1);
 			assert_eq!(FinalityCache::<TestRuntime>::get(&header_with_entry_hash), None);
 		});
 	}
@@ -1168,7 +1168,7 @@ pub(crate) mod tests {
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 			insert_header(&mut storage, example_header_parent());
 			insert_header(&mut storage, example_header());
-			storage.finalize_headers(Some(example_header().compute_id()), 0);
+			storage.finalize_and_prune_headers(Some(example_header().compute_id()), 0);
 			assert_eq!(
 				verify_transaction_finalized(&storage, example_header_parent().compute_hash(), 0, &vec![example_tx()],),
 				true,
@@ -1222,7 +1222,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, example_header_parent());
 			insert_header(&mut storage, example_header());
 			insert_header(&mut storage, finalized_header_sibling);
-			storage.finalize_headers(Some(example_header().compute_id()), 0);
+			storage.finalize_and_prune_headers(Some(example_header().compute_id()), 0);
 			assert_eq!(
 				verify_transaction_finalized(&storage, finalized_header_sibling_hash, 0, &vec![example_tx()],),
 				false,
@@ -1241,7 +1241,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, example_header_parent());
 			insert_header(&mut storage, finalized_header_uncle);
 			insert_header(&mut storage, example_header());
-			storage.finalize_headers(Some(example_header().compute_id()), 0);
+			storage.finalize_and_prune_headers(Some(example_header().compute_id()), 0);
 			assert_eq!(
 				verify_transaction_finalized(&storage, finalized_header_uncle_hash, 0, &vec![example_tx()],),
 				false,
