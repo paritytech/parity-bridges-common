@@ -20,13 +20,13 @@ use crate::ethereum_types::{
 use crate::rpc::{Ethereum, EthereumRpc};
 use crate::rpc_errors::{EthereumNodeError, RpcError};
 use crate::substrate_types::{GrandpaJustification, Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId};
-use crate::sync_types::{HeaderId, MaybeConnectionError};
+use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
 use ethabi::FunctionOutputDecoder;
-use jsonrpsee::raw::{RawClient, RawClientError};
-use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
+use jsonrpsee::raw::RawClient;
+use jsonrpsee::transport::http::HttpTransportClient;
 use parity_crypto::publickey::KeyPair;
 
 use std::collections::HashSet;

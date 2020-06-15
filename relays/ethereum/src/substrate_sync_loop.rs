@@ -17,12 +17,12 @@
 //! Substrate -> Ethereum synchronization.
 
 use crate::ethereum_client::{
-	self, EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams, HigherLevelCalls,
+	EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams, HigherLevelCalls,
 };
 use crate::ethereum_types::Address;
-use crate::rpc::{EthereumRpc, SubstrateRpc};
+use crate::rpc::SubstrateRpc;
 use crate::rpc_errors::RpcError;
-use crate::substrate_client::{self, AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient};
+use crate::substrate_client::{AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{
 	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
@@ -31,7 +31,6 @@ use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceC
 use crate::sync_types::SourceHeader;
 
 use async_trait::async_trait;
-use futures::future::FutureExt;
 use std::{collections::HashSet, time::Duration};
 
 /// Interval at which we check new Substrate headers when we are synced/almost synced.

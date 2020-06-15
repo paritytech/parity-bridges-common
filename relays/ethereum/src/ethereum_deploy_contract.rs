@@ -16,7 +16,7 @@
 
 use crate::ethereum_client::{DeployContract, EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams};
 use crate::rpc::SubstrateRpc;
-use crate::substrate_client::{self, SubstrateConnectionParams, SubstrateRpcClient};
+use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader};
 
 use codec::{Decode, Encode};
@@ -81,7 +81,6 @@ pub fn run(params: EthereumDeployContractParams) {
 			hex::encode(&initial_set),
 		);
 
-		// ethereum_client::deploy_bridge_contract(
 		eth_client.deploy_bridge_contract(
 			&params.eth_sign,
 			params.eth_contract_code,

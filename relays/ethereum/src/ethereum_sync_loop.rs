@@ -16,12 +16,12 @@
 
 //! Ethereum PoA -> Substrate synchronization.
 
-use crate::ethereum_client::{self, EthereumConnectionParams, EthereumRpcClient, HigherLevelCalls};
+use crate::ethereum_client::{EthereumConnectionParams, EthereumRpcClient, HigherLevelCalls};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{
-	self, AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient, SubstrateSigningParams,
+	AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient, SubstrateSigningParams,
 };
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceClient, TargetClient};

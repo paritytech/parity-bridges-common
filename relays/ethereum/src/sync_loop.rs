@@ -22,11 +22,8 @@ use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
 use std::{
 	collections::HashSet,
-	sync::Arc,
 	time::{Duration, Instant},
 };
-
-use parking_lot::Mutex;
 
 /// When we submit headers to target node, but see no updates of best
 /// source block known to target node during STALL_SYNC_TIMEOUT seconds,

@@ -19,7 +19,6 @@
 
 use crate::sync_types::MaybeConnectionError;
 
-use ethabi::Error;
 use jsonrpsee::raw::client::RawClientError;
 use jsonrpsee::transport::http::RequestError;
 use serde_json;
@@ -69,7 +68,7 @@ impl From<RpcHttpError> for RpcError {
 }
 
 impl From<ethabi::Error> for RpcError {
-	fn from (err: ethabi::Error) -> Self {
+	fn from(err: ethabi::Error) -> Self {
 		Self::Ethereum(EthereumNodeError::ResponseParseFailed(format!("{}", err)))
 	}
 }

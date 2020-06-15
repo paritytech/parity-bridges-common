@@ -21,12 +21,12 @@ use crate::substrate_types::{
 	into_substrate_ethereum_header, into_substrate_ethereum_receipts, GrandpaJustification, Hash,
 	Header as SubstrateHeader, Number, SignedBlock as SignedSubstrateBlock, SubstrateHeaderId,
 };
-use crate::sync_types::{HeaderId, MaybeConnectionError, SourceHeader};
+use crate::sync_types::{HeaderId, SourceHeader};
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
-use jsonrpsee::raw::{RawClient, RawClientError};
-use jsonrpsee::transport::http::{HttpTransportClient, RequestError};
+use jsonrpsee::raw::RawClient;
+use jsonrpsee::transport::http::HttpTransportClient;
 use num_traits::Zero;
 use sp_bridge_eth_poa::Header as SubstrateEthereumHeader;
 use sp_core::crypto::Pair;
