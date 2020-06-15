@@ -21,6 +21,7 @@ use crate::ethereum_client::{
 };
 use crate::ethereum_types::Address;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
+use crate::rpc_errors::RpcError;
 use crate::substrate_client::{self, AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{
 	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
@@ -94,38 +95,25 @@ type SubstrateFutureOutput<T> = OwnedSourceFutureOutput<SubstrateHeadersSource, 
 
 #[async_trait]
 impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
-	type Error = substrate_client::Error;
+	type Error = RpcError;
 
-	// TODO: Fix error
 	async fn best_block_number(&mut self) -> Result<Number, Self::Error> {
-		match self.client.best_header().await {
-			Ok(h) => Ok(h.number),
-			Err(e) => Err(substrate_client::Error::RequestNotFound),
-		}
+		Ok(self.client.best_header().await?.number)
 	}
 
 	async fn header_by_hash(&mut self, hash: Hash) -> Result<Header, Self::Error> {
-		self.client
-			.header_by_hash(hash)
-			.await
-			.map_err(|_| substrate_client::Error::RequestNotFound)
+		Ok(self.client.header_by_hash(hash).await?)
 	}
 
 	async fn header_by_number(&mut self, number: Number) -> Result<Header, Self::Error> {
-		self.client
-			.header_by_number(number)
-			.await
-			.map_err(|_| substrate_client::Error::RequestNotFound)
+		Ok(self.client.header_by_number(number).await?)
 	}
 
 	async fn header_completion(
 		&mut self,
 		id: SubstrateHeaderId,
 	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>), Self::Error> {
-		self.client
-			.grandpa_justification(id)
-			.await
-			.map_err(|_| substrate_client::Error::RequestNotFound)
+		Ok(self.client.grandpa_justification(id).await?)
 	}
 
 	async fn header_extra(
@@ -151,37 +139,28 @@ type EthereumFutureOutput<T> = OwnedTargetFutureOutput<EthereumHeadersTarget, Su
 
 #[async_trait]
 impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
-	type Error = ethereum_client::Error;
+	type Error = RpcError;
 
 	async fn best_header_id(&mut self) -> Result<SubstrateHeaderId, Self::Error> {
-		self.client
-			.best_substrate_block(self.contract)
-			.await
-			.map_err(|_| ethereum_client::Error::RequestNotFound)
+		Ok(self.client.best_substrate_block(self.contract).await?)
 	}
 
 	async fn is_known_header(&mut self, id: SubstrateHeaderId) -> Result<(SubstrateHeaderId, bool), Self::Error> {
-		self.client
-			.substrate_header_known(self.contract, id)
-			.await
-			.map_err(|_| ethereum_client::Error::RequestNotFound)
+		Ok(self.client.substrate_header_known(self.contract, id).await?)
 	}
 
 	async fn submit_headers(
 		&mut self,
 		headers: Vec<QueuedSubstrateHeader>,
 	) -> Result<Vec<SubstrateHeaderId>, Self::Error> {
-		self.client
+		Ok(self
+			.client
 			.submit_substrate_headers(self.sign_params.clone(), self.contract, headers)
-			.await
-			.map_err(|_| ethereum_client::Error::RequestNotFound)
+			.await?)
 	}
 
 	async fn incomplete_headers_ids(&mut self) -> Result<HashSet<SubstrateHeaderId>, Self::Error> {
-		self.client
-			.incomplete_substrate_headers(self.contract)
-			.await
-			.map_err(|_| ethereum_client::Error::RequestNotFound)
+		Ok(self.client.incomplete_substrate_headers(self.contract).await?)
 	}
 
 	async fn complete_header(
@@ -189,10 +168,10 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 		id: SubstrateHeaderId,
 		completion: GrandpaJustification,
 	) -> Result<SubstrateHeaderId, Self::Error> {
-		self.client
+		Ok(self
+			.client
 			.complete_substrate_header(self.sign_params.clone(), self.contract, id, completion)
-			.await
-			.map_err(|_| ethereum_client::Error::RequestNotFound)
+			.await?)
 	}
 
 	async fn requires_extra(

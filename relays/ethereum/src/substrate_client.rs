@@ -101,30 +101,6 @@ impl SubstrateRpcClient {
 	}
 }
 
-/// All possible errors that can occur during interacting with Ethereum node.
-#[derive(Debug)]
-pub enum Error {
-	/// Request start failed.
-	StartRequestFailed(RequestError),
-	/// Error serializing request.
-	RequestSerialization(serde_json::Error),
-	/// Request not found (should never occur?).
-	RequestNotFound,
-	/// Failed to receive response.
-	ResponseRetrievalFailed(RawClientError<RequestError>),
-	/// Failed to parse response.
-	ResponseParseFailed,
-}
-
-impl MaybeConnectionError for Error {
-	fn is_connection_error(&self) -> bool {
-		match *self {
-			Error::StartRequestFailed(_) | Error::ResponseRetrievalFailed(_) => true,
-			_ => false,
-		}
-	}
-}
-
 #[async_trait]
 impl SubstrateRpc for SubstrateRpcClient {
 	async fn best_header(&mut self) -> Result<SubstrateHeader> {
@@ -320,7 +296,7 @@ impl AlsoHigherLevelCalls for SubstrateRpcClient {
 		&mut self,
 		id: SubstrateHeaderId,
 	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>)> {
-		let hash = id.1; // bail_on_arg_error!(to_value(id.1).map_err(|e| Error::RequestSerialization(e)), client);
+		let hash = id.1;
 		let signed_block = self.get_block(Some(hash)).await?;
 		Ok((id, signed_block.justification))
 	}

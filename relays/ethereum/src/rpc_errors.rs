@@ -14,8 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+// TODO: Remove this
 #![allow(dead_code)]
 
+use crate::sync_types::MaybeConnectionError;
+
+use ethabi::Error;
 use jsonrpsee::raw::client::RawClientError;
 use jsonrpsee::transport::http::RequestError;
 use serde_json;
@@ -61,6 +65,27 @@ impl From<SubstrateNodeError> for RpcError {
 impl From<RpcHttpError> for RpcError {
 	fn from(err: RpcHttpError) -> Self {
 		Self::Request(err)
+	}
+}
+
+impl From<ethabi::Error> for RpcError {
+	fn from (err: ethabi::Error) -> Self {
+		Self::Ethereum(EthereumNodeError::ResponseParseFailed(format!("{}", err)))
+	}
+}
+
+// TODO: Should also look into implementing this director for SubstrateNodeError and
+// EthereumSync Error
+//
+// Would allow us to have TargetClient/SourceClient::Error = SubstrateNodeError instead
+// of RpcError
+impl MaybeConnectionError for RpcError {
+	fn is_connection_error(&self) -> bool {
+		match *self {
+			// Q: Is blanket handling `Request` too broad?
+			RpcError::Substrate(SubstrateNodeError::StartRequestFailed(_)) | RpcError::Request(_) => true,
+			_ => false,
+		}
 	}
 }
 

@@ -108,36 +108,6 @@ impl EthereumRpcClient {
 	}
 }
 
-/// All possible errors that can occur during interacting with Ethereum node.
-#[derive(Debug)]
-pub enum Error {
-	/// Request start failed.
-	StartRequestFailed(RequestError),
-	/// Error serializing request.
-	RequestSerialization(serde_json::Error),
-	/// Request not found (should never occur?).
-	RequestNotFound,
-	/// Failed to receive response.
-	ResponseRetrievalFailed(RawClientError<RequestError>),
-	/// Failed to parse response.
-	ResponseParseFailed(String),
-	/// We have received header with missing number and hash fields.
-	IncompleteHeader,
-	/// We have received receipt with missing gas_used field.
-	IncompleteReceipt,
-	/// Invalid Substrate block number received from Ethereum node.
-	InvalidSubstrateBlockNumber,
-}
-
-impl MaybeConnectionError for Error {
-	fn is_connection_error(&self) -> bool {
-		match *self {
-			Error::StartRequestFailed(_) | Error::ResponseRetrievalFailed(_) => true,
-			_ => false,
-		}
-	}
-}
-
 #[async_trait]
 impl EthereumRpc for EthereumRpcClient {
 	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
@@ -248,19 +218,11 @@ impl HigherLevelCalls for EthereumRpcClient {
 		};
 
 		let call_result = self.eth_call(call_request).await?;
-
-		let (number, raw_hash) = match call_decoder.decode(&call_result.0) {
-			Ok((raw_number, raw_hash)) => (raw_number, raw_hash),
-			Err(error) => return todo!(), // Err(Error::ResponseParseFailed(format!("{}", error))),
-		};
-
-		let hash = match SubstrateHash::decode(&mut &raw_hash[..]) {
-			Ok(hash) => hash,
-			Err(error) => return todo!(), // Err(Error::ResponseParseFailed(format!("{}", error))),
-		};
+		let (number, raw_hash) = call_decoder.decode(&call_result.0)?;
+		let hash = SubstrateHash::decode(&mut &raw_hash[..])?;
 
 		if number != number.low_u32().into() {
-			return todo!(); // Err(Error::InvalidSubstrateBlockNumber));
+			return Err(RpcError::Ethereum(EthereumNodeError::InvalidSubstrateBlockNumber));
 		}
 
 		Ok(HeaderId(number.low_u32(), hash))
@@ -279,10 +241,9 @@ impl HigherLevelCalls for EthereumRpcClient {
 		};
 
 		let call_result = self.eth_call(call_request).await?;
-		match call_decoder.decode(&call_result.0) {
-			Ok(is_known_block) => Ok((id, is_known_block)),
-			Err(error) => todo!(), //Err(Error::ResponseParseFailed(format!("{}", error))),
-		}
+		let is_known_block = call_decoder.decode(&call_result.0)?;
+
+		Ok((id, is_known_block))
 	}
 
 	async fn submit_substrate_headers(
@@ -303,8 +264,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 				false,
 				bridge_contract::functions::import_header::encode_input(header.header().encode()),
 			)
-			.await
-			.expect("TODO");
+			.await?;
 
 			nonce += 1.into();
 		}
@@ -320,21 +280,23 @@ impl HigherLevelCalls for EthereumRpcClient {
 			..Default::default()
 		};
 
-		let call_result = self.eth_call(call_request).await.expect("TODO");
-		match call_decoder.decode(&call_result.0) {
-			Ok((incomplete_headers_numbers, incomplete_headers_hashes)) => Ok(incomplete_headers_numbers
-				.into_iter()
-				.zip(incomplete_headers_hashes)
-				.filter_map(|(number, hash)| {
-					if number != number.low_u32().into() {
-						return None;
-					}
+		let call_result = self.eth_call(call_request).await?;
 
-					Some(HeaderId(number.low_u32(), hash))
-				})
-				.collect()),
-			Err(error) => todo!(), // Err(Error::ResponseParseFailed(format!("{}", error))),
-		}
+		// Q: Is is correct to call these "incomplete_ids"?
+		let (incomplete_headers_numbers, incomplete_headers_hashes) = call_decoder.decode(&call_result.0)?;
+		let incomplete_ids = incomplete_headers_numbers
+			.into_iter()
+			.zip(incomplete_headers_hashes)
+			.filter_map(|(number, hash)| {
+				if number != number.low_u32().into() {
+					return None;
+				}
+
+				Some(HeaderId(number.low_u32(), hash))
+			})
+			.collect();
+
+		Ok(incomplete_ids)
 	}
 
 	async fn complete_substrate_header(
@@ -352,8 +314,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 				false,
 				bridge_contract::functions::import_finality_proof::encode_input(id.0, id.1, justification),
 			)
-			.await
-			.expect("TDOO");
+			.await?;
 
 		Ok(id)
 	}
@@ -367,14 +328,14 @@ impl HigherLevelCalls for EthereumRpcClient {
 		encoded_call: Vec<u8>,
 	) -> Result<()> {
 		let address: Address = params.signer.address().as_fixed_bytes().into();
-		let nonce = self.account_nonce(address).await.expect("TODO");
+		let nonce = self.account_nonce(address).await?;
 
 		let call_request = CallRequest {
 			to: contract_address,
 			data: Some(encoded_call.clone().into()),
 			..Default::default()
 		};
-		let gas = self.estimate_gas(call_request).await.expect("TODO");
+		let gas = self.estimate_gas(call_request).await?;
 
 		let raw_transaction = ethereum_tx_sign::RawTransaction {
 			nonce,
@@ -386,7 +347,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 		}
 		.sign(&params.signer.secret().as_fixed_bytes().into(), &params.chain_id);
 
-		let _ = self.submit_transaction(raw_transaction).await.expect("TODO");
+		let _ = self.submit_transaction(raw_transaction).await?;
 		Ok(())
 	}
 
@@ -397,7 +358,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 	) -> Result<(EthereumHeaderId, Vec<Receipt>)> {
 		let mut transactions_receipts = Vec::with_capacity(transactions.len());
 		for transaction in transactions {
-			let transaction_receipt = self.transaction_receipt(transaction).await.expect("TODO");
+			let transaction_receipt = self.transaction_receipt(transaction).await?;
 			transactions_receipts.push(transaction_receipt);
 		}
 		Ok((id, transactions_receipts))
