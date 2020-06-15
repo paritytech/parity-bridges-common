@@ -14,9 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: Remove this
-#![allow(dead_code)]
-
 use crate::sync_types::MaybeConnectionError;
 
 use jsonrpsee::raw::client::RawClientError;

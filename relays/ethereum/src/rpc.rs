@@ -16,9 +16,7 @@
 
 //! RPC Module
 
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#[warn(missing_docs)]
+#![warn(missing_docs)]
 use std::result;
 
 use crate::ethereum_types::{
