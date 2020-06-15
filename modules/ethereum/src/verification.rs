@@ -159,7 +159,16 @@ pub fn verify_aura_header<S: Storage>(
 	// the rest of checks requires access to the parent header
 	let context = storage
 		.import_context(submitter, &header.parent_hash)
-		.ok_or(Error::MissingParentBlock)?;
+		.ok_or_else(|| {
+			frame_support::debug::warn!(
+				target: "runtime",
+				"Missing parent PoA block: ({:?}, {})",
+				header.number.checked_sub(1),
+				header.parent_hash,
+			);
+
+			Error::MissingParentBlock
+		})?;
 	let header_step = contextual_checks(config, &context, None, header)?;
 	validator_checks(config, &context.validators_set().validators, header, header_step)?;
 

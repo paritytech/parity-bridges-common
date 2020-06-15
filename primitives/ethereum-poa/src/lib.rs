@@ -19,7 +19,6 @@
 pub use parity_bytes::Bytes;
 pub use primitive_types::{H160, H256, H512, U128, U256};
 
-#[cfg(feature = "test-helpers")]
 pub use rlp::encode as rlp_encode;
 
 use codec::{Decode, Encode};
@@ -59,8 +58,8 @@ pub struct HeaderId {
 }
 
 /// An Aura header.
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
-#[cfg_attr(feature = "std", derive(Default, Serialize, Deserialize))]
+#[derive(Clone, Default, Encode, Decode, PartialEq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Header {
 	/// Parent block hash.
 	pub parent_hash: H256,

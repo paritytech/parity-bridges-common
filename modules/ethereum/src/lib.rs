@@ -37,6 +37,9 @@ mod import;
 mod validators;
 mod verification;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 
@@ -437,32 +440,11 @@ decl_storage! {
 				"Initial validators set can't be empty",
 			);
 
-			let initial_hash = config.initial_header.compute_hash();
-			let initial_id = HeaderId {
-				number: config.initial_header.number,
-				hash: initial_hash,
-			};
-			BestBlock::put((initial_id, config.initial_difficulty));
-			FinalizedBlock::put(initial_id);
-			BlocksToPrune::put(PruningRange {
-				oldest_unpruned_block: config.initial_header.number,
-				oldest_block_to_keep: config.initial_header.number,
-			});
-			HeadersByNumber::insert(config.initial_header.number, vec![initial_hash]);
-			Headers::<T>::insert(initial_hash, StoredHeader {
-				submitter: None,
-				header: config.initial_header.clone(),
-				total_difficulty: config.initial_difficulty,
-				next_validators_set_id: 0,
-				last_signal_block: None,
-			});
-			NextValidatorsSetId::put(1);
-			ValidatorsSets::insert(0, ValidatorsSet {
-				validators: config.initial_validators.clone(),
-				signal_block: None,
-				enact_block: initial_id,
-			});
-			ValidatorsSetsRc::insert(0, 1);
+			initialize_storage::<T>(
+				&config.initial_header,
+				config.initial_difficulty,
+				&config.initial_validators,
+			);
 		})
 	}
 }
@@ -607,6 +589,13 @@ impl<T: Trait> BridgeStorage<T> {
 		// physically remove headers and (probably) obsolete validators sets
 		while let Some(hash) = blocks_at_number.pop() {
 			let header = Headers::<T>::take(&hash);
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Pruning PoA header: ({}, {})",
+				number,
+				hash,
+			);
+
 			ScheduledChanges::remove(hash);
 			FinalityCache::<T>::remove(hash);
 			if let Some(header) = header {
@@ -790,6 +779,47 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 		// and now prune headers if we need to
 		self.prune_blocks(MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT, finalized_number, prune_end);
 	}
+}
+
+/// Initialize storage.
+pub(crate) fn initialize_storage<T: Trait>(
+	initial_header: &Header,
+	initial_difficulty: U256,
+	initial_validators: &[Address],
+) {
+	let initial_hash = initial_header.compute_hash();
+	frame_support::debug::trace!(
+		target: "runtime",
+		"Initializing bridge with PoA header: ({}, {})",
+		initial_header.number,
+		initial_hash,
+	);
+
+	let initial_id = HeaderId {
+		number: initial_header.number,
+		hash: initial_hash,
+	};
+	BestBlock::put((initial_id, initial_difficulty));
+	FinalizedBlock::put(initial_id);
+	BlocksToPrune::put(PruningRange {
+		oldest_unpruned_block: initial_header.number,
+		oldest_block_to_keep: initial_header.number,
+	});
+	HeadersByNumber::insert(initial_header.number, vec![initial_hash]);
+	Headers::<T>::insert(initial_hash, StoredHeader {
+		submitter: None,
+		header: initial_header.clone(),
+		total_difficulty: initial_difficulty,
+		next_validators_set_id: 0,
+		last_signal_block: None,
+	});
+	NextValidatorsSetId::put(1);
+	ValidatorsSets::insert(0, ValidatorsSet {
+		validators: initial_validators.to_vec(),
+		signal_block: None,
+		enact_block: initial_id,
+	});
+	ValidatorsSetsRc::insert(0, 1);
 }
 
 /// Verify that transaction is included into given finalized block.
