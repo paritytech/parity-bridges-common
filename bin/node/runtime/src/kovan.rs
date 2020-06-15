@@ -113,11 +113,11 @@ pub fn kovan_genesis_header() -> Header {
 /// We do not prune unfinalized headers because exchange module only accepts
 /// claims from finalized headers. And if we're pruning unfinalized headers, then
 /// some claims may never be accepted.
-#[derive(RuntimeDebug)]
+#[derive(Default, RuntimeDebug)]
 pub struct KovanPruningStrategy;
 
 impl PruningStrategy for KovanPruningStrategy {
-	fn pruning_upper_bound(_best_number: u64, best_finalized_number: u64) -> u64 {
+	fn pruning_upper_bound(&mut self, _best_number: u64, best_finalized_number: u64) -> u64 {
 		best_finalized_number
 			.checked_sub(FINALIZED_HEADERS_TO_KEEP)
 			.unwrap_or(0)
@@ -131,19 +131,19 @@ mod tests {
 	#[test]
 	fn pruning_strategy_keeps_enough_headers() {
 		assert_eq!(
-			KovanPruningStrategy::pruning_upper_bound(100_000, 10_000),
+			KovanPruningStrategy::default().pruning_upper_bound(100_000, 10_000),
 			0,
 			"10_000 <= 20_000 => nothing should be pruned yet",
 		);
 
 		assert_eq!(
-			KovanPruningStrategy::pruning_upper_bound(100_000, 20_000),
+			KovanPruningStrategy::default().pruning_upper_bound(100_000, 20_000),
 			0,
 			"20_000 <= 20_000 => nothing should be pruned yet",
 		);
 
 		assert_eq!(
-			KovanPruningStrategy::pruning_upper_bound(100_000, 30_000),
+			KovanPruningStrategy::default().pruning_upper_bound(100_000, 30_000),
 			10_000,
 			"20_000 <= 30_000 => we're ready to prune first 10_000 headers",
 		);

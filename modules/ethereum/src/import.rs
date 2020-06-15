@@ -33,6 +33,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 /// imported in this case.
 pub fn import_headers<S: Storage, PS: PruningStrategy>(
 	storage: &mut S,
+	pruning_strategy: &mut PS,
 	aura_config: &AuraConfiguration,
 	validators_config: &ValidatorsConfiguration,
 	submitter: Option<S::Submitter>,
@@ -42,8 +43,9 @@ pub fn import_headers<S: Storage, PS: PruningStrategy>(
 	let mut useful = 0;
 	let mut useless = 0;
 	for (header, receipts) in headers {
-		let import_result = import_header::<_, PS>(
+		let import_result = import_header(
 			storage,
+			pruning_strategy,
 			aura_config,
 			validators_config,
 			submitter.clone(),
@@ -76,6 +78,7 @@ pub fn import_headers<S: Storage, PS: PruningStrategy>(
 /// Returns imported block id and list of all finalized headers.
 pub fn import_header<S: Storage, PS: PruningStrategy>(
 	storage: &mut S,
+	pruning_strategy: &mut PS,
 	aura_config: &AuraConfiguration,
 	validators_config: &ValidatorsConfiguration,
 	submitter: Option<S::Submitter>,
@@ -130,7 +133,7 @@ pub fn import_header<S: Storage, PS: PruningStrategy>(
 	// compute upper border of updated pruning range
 	let new_best_block_id = if is_best { header_id } else { best_id };
 	let new_best_finalized_block_id = finalized_blocks.finalized_headers.last().map(|(id, _)| *id);
-	let pruning_upper_bound = PS::pruning_upper_bound(
+	let pruning_upper_bound = pruning_strategy.pruning_upper_bound(
 		new_best_block_id.number,
 		new_best_finalized_block_id
 			.map(|id| id.number)
@@ -160,7 +163,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		block_i, custom_block_i, custom_test_ext, genesis, signed_header, test_aura_config, test_validators_config,
-		validator, validators, validators_addresses, Keep10HeadersBehindBest, TestRuntime,
+		validator, validators, validators_addresses, KeepSomeHeadersBehindBest, TestRuntime,
 	};
 	use crate::validators::ValidatorsSource;
 	use crate::{BlocksToPrune, BridgeStorage, Headers, PruningRange};
@@ -178,8 +181,9 @@ mod tests {
 				0,
 			);
 			assert_eq!(
-				import_header::<_, Keep10HeadersBehindBest>(
+				import_header(
 					&mut storage,
+					&mut KeepSomeHeadersBehindBest::default(),
 					&test_aura_config(),
 					&test_validators_config(),
 					None,
@@ -198,8 +202,9 @@ mod tests {
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 			let block = block_i(1, &validators);
 			assert_eq!(
-				import_header::<_, Keep10HeadersBehindBest>(
+				import_header(
 					&mut storage,
+					&mut KeepSomeHeadersBehindBest::default(),
 					&test_aura_config(),
 					&test_validators_config(),
 					None,
@@ -210,8 +215,9 @@ mod tests {
 				Ok(()),
 			);
 			assert_eq!(
-				import_header::<_, Keep10HeadersBehindBest>(
+				import_header(
 					&mut storage,
+					&mut KeepSomeHeadersBehindBest::default(),
 					&test_aura_config(),
 					&test_validators_config(),
 					None,
@@ -236,8 +242,9 @@ mod tests {
 			let header = block_i(1, &validators);
 			let hash = header.compute_hash();
 			assert_eq!(
-				import_header::<_, Keep10HeadersBehindBest>(
+				import_header(
 					&mut storage,
+					&mut KeepSomeHeadersBehindBest::default(),
 					&test_aura_config(),
 					&validators_config,
 					None,
@@ -270,8 +277,9 @@ mod tests {
 			let mut latest_block_id = Default::default();
 			for i in 1..11 {
 				let header = block_i(i, &validators);
-				let (rolling_last_block_id, finalized_blocks) = import_header::<_, Keep10HeadersBehindBest>(
+				let (rolling_last_block_id, finalized_blocks) = import_header(
 					&mut storage,
+					&mut KeepSomeHeadersBehindBest::default(),
 					&test_aura_config(),
 					&validators_config,
 					Some(100),
@@ -300,8 +308,9 @@ mod tests {
 					.parse()
 					.unwrap();
 			});
-			let (rolling_last_block_id, finalized_blocks) = import_header::<_, Keep10HeadersBehindBest>(
+			let (rolling_last_block_id, finalized_blocks) = import_header(
 				&mut storage,
+				&mut KeepSomeHeadersBehindBest::default(),
 				&test_aura_config(),
 				&validators_config,
 				Some(101),
@@ -335,8 +344,9 @@ mod tests {
 				};
 				let header = signed_header(&validators, header, step as _);
 				expected_blocks.push((header.compute_id(), Some(102)));
-				let (rolling_last_block_id, finalized_blocks) = import_header::<_, Keep10HeadersBehindBest>(
+				let (rolling_last_block_id, finalized_blocks) = import_header(
 					&mut storage,
+					&mut KeepSomeHeadersBehindBest::default(),
 					&test_aura_config(),
 					&validators_config,
 					Some(102),
@@ -369,8 +379,9 @@ mod tests {
 				..Default::default()
 			};
 			let header = signed_header(&validators, header, step as _);
-			let (_, finalized_blocks) = import_header::<_, Keep10HeadersBehindBest>(
+			let (_, finalized_blocks) = import_header(
 				&mut storage,
+				&mut KeepSomeHeadersBehindBest::default(),
 				&test_aura_config(),
 				&validators_config,
 				Some(103),

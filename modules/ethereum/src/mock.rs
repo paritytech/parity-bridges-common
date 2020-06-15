@@ -80,7 +80,7 @@ impl Trait for TestRuntime {
 	type AuraConfiguration = TestAuraConfiguration;
 	type ValidatorsConfiguration = TestValidatorsConfiguration;
 	type FinalityVotesCachingInterval = TestFinalityVotesCachingInterval;
-	type PruningStrategy = Keep10HeadersBehindBest;
+	type PruningStrategy = KeepSomeHeadersBehindBest;
 	type OnHeadersSubmitted = ();
 }
 
@@ -185,10 +185,16 @@ pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
 }
 
 /// Pruning strategy that keeps 10 headers behind best block.
-pub struct Keep10HeadersBehindBest;
+pub struct KeepSomeHeadersBehindBest(pub u64);
 
-impl PruningStrategy for Keep10HeadersBehindBest {
-	fn pruning_upper_bound(best_number: u64, _: u64) -> u64 {
-		best_number.checked_sub(10).unwrap_or(0)
+impl Default for KeepSomeHeadersBehindBest {
+	fn default() -> KeepSomeHeadersBehindBest {
+		KeepSomeHeadersBehindBest(10)
+	}
+}
+
+impl PruningStrategy for KeepSomeHeadersBehindBest {
+	fn pruning_upper_bound(&mut self, best_number: u64, _: u64) -> u64 {
+		best_number.checked_sub(self.0).unwrap_or(0)
 	}
 }

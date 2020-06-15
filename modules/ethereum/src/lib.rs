@@ -297,7 +297,7 @@ pub trait Storage {
 }
 
 /// Headers pruning strategy.
-pub trait PruningStrategy {
+pub trait PruningStrategy: Default {
 	/// Return upper bound (exclusive) of headers pruning range.
 	///
 	/// Every value that is returned from this function, must be greater or equal to the
@@ -307,7 +307,7 @@ pub trait PruningStrategy {
 	/// guarantees on when it will happen. Example: if some unfinalized block at height N
 	/// has scheduled validators set change, then the module won't prune any blocks with
 	/// number >= N even if strategy allows that.
-	fn pruning_upper_bound(best_number: u64, best_finalized_number: u64) -> u64;
+	fn pruning_upper_bound(&mut self, best_number: u64, best_finalized_number: u64) -> u64;
 }
 
 /// Callbacks for header submission rewards/penalties.
@@ -362,8 +362,9 @@ decl_module! {
 		pub fn import_unsigned_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
 			frame_system::ensure_none(origin)?;
 
-			import::import_header::<_, T::PruningStrategy>(
+			import::import_header(
 				&mut BridgeStorage::<T>::new(),
+				&mut T::PruningStrategy::default(),
 				&T::AuraConfiguration::get(),
 				&T::ValidatorsConfiguration::get(),
 				None,
@@ -382,8 +383,9 @@ decl_module! {
 		pub fn import_signed_headers(origin, headers_with_receipts: Vec<(Header, Option<Vec<Receipt>>)>) {
 			let submitter = frame_system::ensure_signed(origin)?;
 			let mut finalized_headers = BTreeMap::new();
-			let import_result = import::import_headers::<_, T::PruningStrategy>(
+			let import_result = import::import_headers(
 				&mut BridgeStorage::<T>::new(),
+				&mut T::PruningStrategy::default(),
 				&T::AuraConfiguration::get(),
 				&T::ValidatorsConfiguration::get(),
 				Some(submitter.clone()),
