@@ -84,6 +84,9 @@ impl Trait for TestRuntime {
 	type OnHeadersSubmitted = ();
 }
 
+/// Step of genesis header.
+pub const GENESIS_STEP: u64 = 42;
+
 /// Aura configuration that is used in tests by default.
 pub fn test_aura_config() -> AuraConfiguration {
 	AuraConfiguration {
@@ -106,7 +109,7 @@ pub fn test_validators_config() -> ValidatorsConfiguration {
 /// Genesis header that is used in tests by default.
 pub fn genesis() -> Header {
 	Header {
-		seal: vec![vec![42].into(), vec![].into()],
+		seal: vec![vec![GENESIS_STEP as _].into(), vec![].into()],
 		..Default::default()
 	}
 }
@@ -124,12 +127,12 @@ pub fn custom_block_i(number: u64, validators: &[KeyPair], customize: impl FnOnc
 		parent_hash: HeadersByNumber::get(number - 1).unwrap()[0].clone(),
 		gas_limit: 0x2000.into(),
 		author: validator(validator_index).address(),
-		seal: vec![vec![number as u8 + 42].into(), vec![].into()],
+		seal: vec![vec![(number + GENESIS_STEP) as u8].into(), vec![].into()],
 		difficulty: number.into(),
 		..Default::default()
 	};
 	customize(&mut header);
-	signed_header(validators, header, number + 42)
+	signed_header(validators, header, number + GENESIS_STEP)
 }
 
 /// Build signed header from given header.

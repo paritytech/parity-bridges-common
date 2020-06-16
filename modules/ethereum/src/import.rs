@@ -163,7 +163,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		block_i, custom_block_i, custom_test_ext, genesis, signed_header, test_aura_config, test_validators_config,
-		validator, validators, validators_addresses, KeepSomeHeadersBehindBest, TestRuntime,
+		validator, validators, validators_addresses, KeepSomeHeadersBehindBest, TestRuntime, GENESIS_STEP,
 	};
 	use crate::validators::ValidatorsSource;
 	use crate::{BlocksToPrune, BridgeStorage, Headers, PruningRange};
@@ -397,6 +397,78 @@ mod tests {
 					oldest_block_to_keep: 15,
 				},
 			);
+		});
+	}
+
+	#[test]
+	fn import_of_non_best_block_may_finalize_blocks() {
+		const TOTAL_VALIDATORS: u8 = 3;
+		let validators_addresses = validators_addresses(TOTAL_VALIDATORS);
+		custom_test_ext(genesis(), validators_addresses.clone()).execute_with(move || {
+			let validators = validators(TOTAL_VALIDATORS);
+			let validators_config = ValidatorsConfiguration::Single(ValidatorsSource::Contract(
+				[0; 20].into(),
+				validators_addresses.clone(),
+			));
+			let mut storage = BridgeStorage::<TestRuntime>::new();
+			let mut pruning_strategy = KeepSomeHeadersBehindBest::default();
+
+			// insert headers (H1, validator1), (H2, validator1), (H3, validator1)
+			// making H3 the best header, without finalizing anything (we need 2 signatures)
+			let mut expected_best_block = Default::default();
+			for i in 1..4 {
+				let step = GENESIS_STEP + i * TOTAL_VALIDATORS as u64;
+				let header = custom_block_i(i, &validators, |header| {
+					header.author = validators_addresses[0];
+					header.seal[0][0] = step as u8;
+				});
+				let header = signed_header(&validators, header, step);
+				expected_best_block = header.compute_id();
+				import_header(
+					&mut storage,
+					&mut pruning_strategy,
+					&test_aura_config(),
+					&validators_config,
+					None,
+					header,
+					None,
+				)
+				.unwrap();
+			}
+			let (best_block, best_difficulty) = storage.best_block();
+			assert_eq!(best_block, expected_best_block);
+			assert_eq!(storage.finalized_block(), genesis().compute_id());
+
+			// insert headers (H1', validator1), (H2', validator2), finalizing H2, even though H3
+			// has better difficulty than H2' (because there are more steps involved)
+			let mut expected_finalized_block = Default::default();
+			let mut parent_hash = genesis().compute_hash();
+			for i in 1..3 {
+				let header = custom_block_i(i, &validators, |header| {
+					header.gas_limit += 1.into();
+					header.parent_hash = parent_hash;
+				});
+				let header = signed_header(&validators, header, GENESIS_STEP + i);
+				parent_hash = header.compute_hash();
+				if i == 1 {
+					expected_finalized_block = header.compute_id();
+				}
+
+				import_header(
+					&mut storage,
+					&mut pruning_strategy,
+					&test_aura_config(),
+					&validators_config,
+					None,
+					header,
+					None,
+				)
+				.unwrap();
+			}
+			let (new_best_block, new_best_difficulty) = storage.best_block();
+			assert_eq!(new_best_block, expected_best_block);
+			assert_eq!(new_best_difficulty, best_difficulty);
+			assert_eq!(storage.finalized_block(), expected_finalized_block);
 		});
 	}
 }
