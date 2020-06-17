@@ -693,10 +693,11 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 				Some(header) if header.header.number != 0 => header,
 				_ => return votes,
 			};
-			let parent_id = header.header.parent_id()
-				.expect("only returns None at genesis header;\
+			let parent_id = header.header.parent_id().expect(
+				"only returns None at genesis header;\
 					the header is proved to have number > 0;\
-					qed");
+					qed",
+			);
 
 			votes
 				.unaccounted_ancestry
@@ -1190,10 +1191,18 @@ pub(crate) mod tests {
 			FinalizedBlock::put(header1_id);
 
 			// trying to get finality votes when importing header2 -> header1 succeeds
-			assert!(!storage.cached_finality_votes(&header1_id, &genesis().compute_id(), |_| false).stopped_at_finalized_sibling);
+			assert!(
+				!storage
+					.cached_finality_votes(&header1_id, &genesis().compute_id(), |_| false)
+					.stopped_at_finalized_sibling
+			);
 
 			// trying to get finality votes when importing header2s -> header1s fails
-			assert!(storage.cached_finality_votes(&header1s_id, &header1_id, |_| false).stopped_at_finalized_sibling);
+			assert!(
+				storage
+					.cached_finality_votes(&header1s_id, &header1_id, |_| false)
+					.stopped_at_finalized_sibling
+			);
 		});
 	}
 

@@ -167,8 +167,8 @@ mod tests {
 	};
 	use crate::validators::ValidatorsSource;
 	use crate::{BlocksToPrune, BridgeStorage, Headers, PruningRange};
-	use parity_crypto::publickey::KeyPair;
 	use frame_support::{StorageMap, StorageValue};
+	use parity_crypto::publickey::KeyPair;
 
 	#[test]
 	fn rejects_finalized_block_competitors() {
@@ -410,7 +410,8 @@ mod tests {
 	) -> Result<HeaderId, Error> {
 		let header = custom_block_i(number, validators, |header| {
 			header.seal[0][0] = step as _;
-			header.author = crate::validators::step_validator(&validators.iter().map(|kp| kp.address()).collect::<Vec<_>>(), step);
+			header.author =
+				crate::validators::step_validator(&validators.iter().map(|kp| kp.address()).collect::<Vec<_>>(), step);
 			customize(header);
 		});
 		let header = signed_header(validators, header, step);
@@ -426,7 +427,8 @@ mod tests {
 			None,
 			header,
 			None,
-		).map(|_| id)
+		)
+		.map(|_| id)
 	}
 
 	#[test]
@@ -445,7 +447,8 @@ mod tests {
 				expected_best_block = import_custom_block(&mut storage, &validators, i, step, |header| {
 					header.author = validators_addresses[0];
 					header.seal[0][0] = step as u8;
-				}).unwrap();
+				})
+				.unwrap();
 			}
 			let (best_block, best_difficulty) = storage.best_block();
 			assert_eq!(best_block, expected_best_block);
@@ -460,7 +463,8 @@ mod tests {
 				let id = import_custom_block(&mut storage, &validators, i, step, |header| {
 					header.gas_limit += 1.into();
 					header.parent_hash = parent_hash;
-				}).unwrap();
+				})
+				.unwrap();
 				parent_hash = id.hash;
 				if i == 1 {
 					expected_finalized_block = id;
@@ -499,16 +503,38 @@ mod tests {
 			// validator[4] has authored 4 blocks: header2'...header5' (header1 is still finalized)
 			let header2_1 = import_custom_block(&mut storage, &validators, 2, GENESIS_STEP + 3, |header| {
 				header.gas_limit += 1.into();
-			}).unwrap();
-			let header3_1 = import_custom_block(&mut storage, &validators, 3, GENESIS_STEP + 3 + TOTAL_VALIDATORS, |header| {
-				header.parent_hash = header2_1.hash;
-			}).unwrap();
-			let header4_1 = import_custom_block(&mut storage, &validators, 4, GENESIS_STEP + 3 + TOTAL_VALIDATORS*2, |header| {
-				header.parent_hash = header3_1.hash;
-			}).unwrap();
-			let header5_1 = import_custom_block(&mut storage, &validators, 5, GENESIS_STEP + 3 + TOTAL_VALIDATORS*3, |header| {
-				header.parent_hash = header4_1.hash;
-			}).unwrap();
+			})
+			.unwrap();
+			let header3_1 = import_custom_block(
+				&mut storage,
+				&validators,
+				3,
+				GENESIS_STEP + 3 + TOTAL_VALIDATORS,
+				|header| {
+					header.parent_hash = header2_1.hash;
+				},
+			)
+			.unwrap();
+			let header4_1 = import_custom_block(
+				&mut storage,
+				&validators,
+				4,
+				GENESIS_STEP + 3 + TOTAL_VALIDATORS * 2,
+				|header| {
+					header.parent_hash = header3_1.hash;
+				},
+			)
+			.unwrap();
+			let header5_1 = import_custom_block(
+				&mut storage,
+				&validators,
+				5,
+				GENESIS_STEP + 3 + TOTAL_VALIDATORS * 3,
+				|header| {
+					header.parent_hash = header4_1.hash;
+				},
+			)
+			.unwrap();
 			assert_eq!(storage.best_block().0, header5_1);
 			assert_eq!(storage.finalized_block(), header1);
 
@@ -520,7 +546,8 @@ mod tests {
 			// when we import header5 { parent = header4 }, authored by validator[1], header3 is finalized
 			let _ = import_custom_block(&mut storage, &validators, 5, GENESIS_STEP + 5, |header| {
 				header.parent_hash = header4.hash;
-			}).unwrap();
+			})
+			.unwrap();
 			assert_eq!(storage.best_block().0, header5_1);
 			assert_eq!(storage.finalized_block(), header3);
 
@@ -535,7 +562,13 @@ mod tests {
 			// import of header6' should also fail because we're trying to append to fork thas
 			// has forked before finalized block
 			assert_eq!(
-				import_custom_block(&mut storage, &validators, 6, GENESIS_STEP + 3 + TOTAL_VALIDATORS*4, |_| ()),
+				import_custom_block(
+					&mut storage,
+					&validators,
+					6,
+					GENESIS_STEP + 3 + TOTAL_VALIDATORS * 4,
+					|_| ()
+				),
 				Err(Error::TryingToFinalizeSibling),
 			);
 		});

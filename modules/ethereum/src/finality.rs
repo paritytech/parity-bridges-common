@@ -94,13 +94,11 @@ pub fn finalize_blocks<S: Storage>(
 	let votes = prepare_votes(
 		header
 			.parent_id()
-			.map(|parent_id| storage.cached_finality_votes(
-				&parent_id,
-				&best_finalized,
-				|hash| {
+			.map(|parent_id| {
+				storage.cached_finality_votes(&parent_id, &best_finalized, |hash| {
 					*hash == header_validators.0.hash || *hash == best_finalized.hash
 				})
-			)
+			})
 			.unwrap_or_else(|| CachedFinalityVotes::default()),
 		best_finalized,
 		&validators,
@@ -499,7 +497,11 @@ mod tests {
 			let id7 = headers[6].compute_id();
 			assert_eq!(
 				prepare_votes(
-					storage.cached_finality_votes(&headers.get(5).unwrap().compute_id(), &genesis().compute_id(), |_| false,),
+					storage.cached_finality_votes(
+						&headers.get(5).unwrap().compute_id(),
+						&genesis().compute_id(),
+						|_| false,
+					),
 					Default::default(),
 					&validators_addresses.iter().collect(),
 					id7,
@@ -526,7 +528,11 @@ mod tests {
 			// check that votes at #7 are computed correctly with cache
 			assert_eq!(
 				prepare_votes(
-					storage.cached_finality_votes(&headers.get(5).unwrap().compute_id(), &genesis().compute_id(), |_| false,),
+					storage.cached_finality_votes(
+						&headers.get(5).unwrap().compute_id(),
+						&genesis().compute_id(),
+						|_| false,
+					),
 					Default::default(),
 					&validators_addresses.iter().collect(),
 					id7,
@@ -550,7 +556,11 @@ mod tests {
 			};
 			assert_eq!(
 				prepare_votes(
-					storage.cached_finality_votes(&headers.get(5).unwrap().compute_id(), &headers.get(2).unwrap().compute_id(), |hash| *hash == hashes[2],),
+					storage.cached_finality_votes(
+						&headers.get(5).unwrap().compute_id(),
+						&headers.get(2).unwrap().compute_id(),
+						|hash| *hash == hashes[2],
+					),
 					headers[2].compute_id(),
 					&validators_addresses.iter().collect(),
 					id7,
