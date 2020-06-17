@@ -16,9 +16,7 @@
 
 //! Substrate -> Ethereum synchronization.
 
-use crate::ethereum_client::{
-	EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams, HigherLevelCalls,
-};
+use crate::ethereum_client::{EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams, HigherLevelCalls};
 use crate::ethereum_types::Address;
 use crate::rpc::SubstrateRpc;
 use crate::rpc_errors::RpcError;
@@ -96,27 +94,27 @@ type SubstrateFutureOutput<T> = OwnedSourceFutureOutput<SubstrateHeadersSource, 
 impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	type Error = RpcError;
 
-	async fn best_block_number(&mut self) -> Result<Number, Self::Error> {
+	async fn best_block_number(&self) -> Result<Number, Self::Error> {
 		Ok(self.client.best_header().await?.number)
 	}
 
-	async fn header_by_hash(&mut self, hash: Hash) -> Result<Header, Self::Error> {
+	async fn header_by_hash(&self, hash: Hash) -> Result<Header, Self::Error> {
 		Ok(self.client.header_by_hash(hash).await?)
 	}
 
-	async fn header_by_number(&mut self, number: Number) -> Result<Header, Self::Error> {
+	async fn header_by_number(&self, number: Number) -> Result<Header, Self::Error> {
 		Ok(self.client.header_by_number(number).await?)
 	}
 
 	async fn header_completion(
-		&mut self,
+		&self,
 		id: SubstrateHeaderId,
 	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>), Self::Error> {
 		Ok(self.client.grandpa_justification(id).await?)
 	}
 
 	async fn header_extra(
-		&mut self,
+		&self,
 		id: SubstrateHeaderId,
 		_header: QueuedSubstrateHeader,
 	) -> Result<(SubstrateHeaderId, ()), Self::Error> {
@@ -140,30 +138,27 @@ type EthereumFutureOutput<T> = OwnedTargetFutureOutput<EthereumHeadersTarget, Su
 impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = RpcError;
 
-	async fn best_header_id(&mut self) -> Result<SubstrateHeaderId, Self::Error> {
+	async fn best_header_id(&self) -> Result<SubstrateHeaderId, Self::Error> {
 		Ok(self.client.best_substrate_block(self.contract).await?)
 	}
 
-	async fn is_known_header(&mut self, id: SubstrateHeaderId) -> Result<(SubstrateHeaderId, bool), Self::Error> {
+	async fn is_known_header(&self, id: SubstrateHeaderId) -> Result<(SubstrateHeaderId, bool), Self::Error> {
 		Ok(self.client.substrate_header_known(self.contract, id).await?)
 	}
 
-	async fn submit_headers(
-		&mut self,
-		headers: Vec<QueuedSubstrateHeader>,
-	) -> Result<Vec<SubstrateHeaderId>, Self::Error> {
+	async fn submit_headers(&self, headers: Vec<QueuedSubstrateHeader>) -> Result<Vec<SubstrateHeaderId>, Self::Error> {
 		Ok(self
 			.client
 			.submit_substrate_headers(self.sign_params.clone(), self.contract, headers)
 			.await?)
 	}
 
-	async fn incomplete_headers_ids(&mut self) -> Result<HashSet<SubstrateHeaderId>, Self::Error> {
+	async fn incomplete_headers_ids(&self) -> Result<HashSet<SubstrateHeaderId>, Self::Error> {
 		Ok(self.client.incomplete_substrate_headers(self.contract).await?)
 	}
 
 	async fn complete_header(
-		&mut self,
+		&self,
 		id: SubstrateHeaderId,
 		completion: GrandpaJustification,
 	) -> Result<SubstrateHeaderId, Self::Error> {
@@ -173,10 +168,7 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 			.await?)
 	}
 
-	async fn requires_extra(
-		&mut self,
-		header: QueuedSubstrateHeader,
-	) -> Result<(SubstrateHeaderId, bool), Self::Error> {
+	async fn requires_extra(&self, header: QueuedSubstrateHeader) -> Result<(SubstrateHeaderId, bool), Self::Error> {
 		Ok((header.header().id(), false))
 	}
 }

@@ -27,6 +27,7 @@ use codec::{Decode, Encode};
 use ethabi::FunctionOutputDecoder;
 use jsonrpsee::raw::RawClient;
 use jsonrpsee::transport::http::HttpTransportClient;
+use jsonrpsee::Client;
 use parity_crypto::publickey::KeyPair;
 
 use std::collections::HashSet;
@@ -89,9 +90,6 @@ impl Default for EthereumSigningParams {
 	}
 }
 
-/// Ethereum client type.
-pub type Client = RawClient<HttpTransportClient>;
-
 /// The client used to interact with an Ethereum node through RPC.
 pub struct EthereumRpcClient {
 	client: Client,
@@ -102,7 +100,8 @@ impl EthereumRpcClient {
 	pub fn new(params: EthereumConnectionParams) -> Self {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
-		let client = RawClient::new(transport);
+		let raw_client = RawClient::new(transport);
+		let client: Client = raw_client.into();
 
 		Self { client }
 	}
@@ -110,32 +109,32 @@ impl EthereumRpcClient {
 
 #[async_trait]
 impl EthereumRpc for EthereumRpcClient {
-	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256> {
-		Ok(Ethereum::estimate_gas(&mut self.client, call_request).await?)
+	async fn estimate_gas(&self, call_request: CallRequest) -> Result<U256> {
+		Ok(Ethereum::estimate_gas(&self.client, call_request).await?)
 	}
 
-	async fn best_block_number(&mut self) -> Result<u64> {
-		Ok(Ethereum::block_number(&mut self.client).await?.as_u64())
+	async fn best_block_number(&self) -> Result<u64> {
+		Ok(Ethereum::block_number(&self.client).await?.as_u64())
 	}
 
-	async fn header_by_number(&mut self, block_number: u64) -> Result<Header> {
-		let header = Ethereum::get_block_by_number(&mut self.client, block_number).await?;
+	async fn header_by_number(&self, block_number: u64) -> Result<Header> {
+		let header = Ethereum::get_block_by_number(&self.client, block_number).await?;
 		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
 			true => Ok(header),
 			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
 		}
 	}
 
-	async fn header_by_hash(&mut self, hash: H256) -> Result<Header> {
-		let header = Ethereum::get_block_by_hash(&mut self.client, hash).await?;
+	async fn header_by_hash(&self, hash: H256) -> Result<Header> {
+		let header = Ethereum::get_block_by_hash(&self.client, hash).await?;
 		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
 			true => Ok(header),
 			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
 		}
 	}
 
-	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt> {
-		let receipt = Ethereum::get_transaction_receipt(&mut self.client, transaction_hash).await?;
+	async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt> {
+		let receipt = Ethereum::get_transaction_receipt(&self.client, transaction_hash).await?;
 
 		match receipt.gas_used {
 			Some(_) => Ok(receipt),
@@ -143,46 +142,46 @@ impl EthereumRpc for EthereumRpcClient {
 		}
 	}
 
-	async fn account_nonce(&mut self, address: Address) -> Result<U256> {
-		Ok(Ethereum::get_transaction_count(&mut self.client, address).await?)
+	async fn account_nonce(&self, address: Address) -> Result<U256> {
+		Ok(Ethereum::get_transaction_count(&self.client, address).await?)
 	}
 
-	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<TransactionHash> {
+	async fn submit_transaction(&self, signed_raw_tx: SignedRawTx) -> Result<TransactionHash> {
 		let transaction = Bytes(signed_raw_tx);
-		Ok(Ethereum::submit_transaction(&mut self.client, transaction).await?)
+		Ok(Ethereum::submit_transaction(&self.client, transaction).await?)
 	}
 
-	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes> {
-		Ok(Ethereum::call(&mut self.client, call_transaction).await?)
+	async fn eth_call(&self, call_transaction: CallRequest) -> Result<Bytes> {
+		Ok(Ethereum::call(&self.client, call_transaction).await?)
 	}
 }
 
 #[async_trait]
 pub trait HigherLevelCalls: EthereumRpc {
 	/// Returns best Substrate block that PoA chain knows of.
-	async fn best_substrate_block(&mut self, contract_address: Address) -> Result<SubstrateHeaderId>;
+	async fn best_substrate_block(&self, contract_address: Address) -> Result<SubstrateHeaderId>;
 
 	/// Returns true if Substrate header is known to Ethereum node.
 	async fn substrate_header_known(
-		&mut self,
+		&self,
 		contract_address: Address,
 		id: SubstrateHeaderId,
 	) -> Result<(SubstrateHeaderId, bool)>;
 
 	/// Submits Substrate headers to Ethereum contract.
 	async fn submit_substrate_headers(
-		&mut self,
+		&self,
 		params: EthereumSigningParams,
 		contract_address: Address,
 		headers: Vec<QueuedSubstrateHeader>,
 	) -> Result<Vec<SubstrateHeaderId>>;
 
 	/// Returns ids of incomplete Substrate headers.
-	async fn incomplete_substrate_headers(&mut self, contract_address: Address) -> Result<HashSet<SubstrateHeaderId>>;
+	async fn incomplete_substrate_headers(&self, contract_address: Address) -> Result<HashSet<SubstrateHeaderId>>;
 
 	/// Complete Substrate header.
 	async fn complete_substrate_header(
-		&mut self,
+		&self,
 		params: EthereumSigningParams,
 		contract_address: Address,
 		id: SubstrateHeaderId,
@@ -191,7 +190,7 @@ pub trait HigherLevelCalls: EthereumRpc {
 
 	/// Submit ethereum transaction.
 	async fn submit_ethereum_transaction(
-		&mut self,
+		&self,
 		params: &EthereumSigningParams,
 		contract_address: Option<Address>,
 		nonce: Option<U256>,
@@ -201,7 +200,7 @@ pub trait HigherLevelCalls: EthereumRpc {
 
 	/// Retrieve transactions receipts for given block.
 	async fn transactions_receipts(
-		&mut self,
+		&self,
 		id: EthereumHeaderId,
 		transactions: Vec<H256>,
 	) -> Result<(EthereumHeaderId, Vec<Receipt>)>;
@@ -209,7 +208,7 @@ pub trait HigherLevelCalls: EthereumRpc {
 
 #[async_trait]
 impl HigherLevelCalls for EthereumRpcClient {
-	async fn best_substrate_block(&mut self, contract_address: Address) -> Result<SubstrateHeaderId> {
+	async fn best_substrate_block(&self, contract_address: Address) -> Result<SubstrateHeaderId> {
 		let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
 		let call_request = CallRequest {
 			to: Some(contract_address),
@@ -229,7 +228,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 	}
 
 	async fn substrate_header_known(
-		&mut self,
+		&self,
 		contract_address: Address,
 		id: SubstrateHeaderId,
 	) -> Result<(SubstrateHeaderId, bool)> {
@@ -247,7 +246,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 	}
 
 	async fn submit_substrate_headers(
-		&mut self,
+		&self,
 		params: EthereumSigningParams,
 		contract_address: Address,
 		headers: Vec<QueuedSubstrateHeader>,
@@ -272,7 +271,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 		Ok(ids)
 	}
 
-	async fn incomplete_substrate_headers(&mut self, contract_address: Address) -> Result<HashSet<SubstrateHeaderId>> {
+	async fn incomplete_substrate_headers(&self, contract_address: Address) -> Result<HashSet<SubstrateHeaderId>> {
 		let (encoded_call, call_decoder) = bridge_contract::functions::incomplete_headers::call();
 		let call_request = CallRequest {
 			to: Some(contract_address),
@@ -300,7 +299,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 	}
 
 	async fn complete_substrate_header(
-		&mut self,
+		&self,
 		params: EthereumSigningParams,
 		contract_address: Address,
 		id: SubstrateHeaderId,
@@ -320,7 +319,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 	}
 
 	async fn submit_ethereum_transaction(
-		&mut self,
+		&self,
 		params: &EthereumSigningParams,
 		contract_address: Option<Address>,
 		nonce: Option<U256>,
@@ -352,7 +351,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 	}
 
 	async fn transactions_receipts(
-		&mut self,
+		&self,
 		id: EthereumHeaderId,
 		transactions: Vec<H256>,
 	) -> Result<(EthereumHeaderId, Vec<Receipt>)> {
@@ -369,7 +368,7 @@ impl HigherLevelCalls for EthereumRpcClient {
 pub trait DeployContract: EthereumRpc {
 	/// Deploy bridge contract.
 	async fn deploy_bridge_contract(
-		&mut self,
+		&self,
 		params: &EthereumSigningParams,
 		contract_code: Vec<u8>,
 		initial_header: Vec<u8>,
@@ -381,7 +380,7 @@ pub trait DeployContract: EthereumRpc {
 #[async_trait]
 impl DeployContract for EthereumRpcClient {
 	async fn deploy_bridge_contract(
-		&mut self,
+		&self,
 		params: &EthereumSigningParams,
 		contract_code: Vec<u8>,
 		initial_header: Vec<u8>,

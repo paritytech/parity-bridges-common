@@ -74,52 +74,52 @@ jsonrpsee::rpc_api! {
 #[async_trait]
 pub trait EthereumRpc {
 	/// Estimate gas usage for the given call.
-	async fn estimate_gas(&mut self, call_request: CallRequest) -> Result<U256>;
+	async fn estimate_gas(&self, call_request: CallRequest) -> Result<U256>;
 	/// Retrieve number of the best known block from the Ethereum node.
-	async fn best_block_number(&mut self) -> Result<u64>;
+	async fn best_block_number(&self) -> Result<u64>;
 	/// Retrieve block header by its number from Ethereum node.
-	async fn header_by_number(&mut self, block_number: u64) -> Result<EthereumHeader>;
+	async fn header_by_number(&self, block_number: u64) -> Result<EthereumHeader>;
 	/// Retrieve block header by its hash from Ethereum node.
-	async fn header_by_hash(&mut self, hash: H256) -> Result<EthereumHeader>;
+	async fn header_by_hash(&self, hash: H256) -> Result<EthereumHeader>;
 	/// Retrieve transaction receipt by transaction hash.
-	async fn transaction_receipt(&mut self, transaction_hash: H256) -> Result<Receipt>;
+	async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt>;
 	/// Get the nonce of the given account.
-	async fn account_nonce(&mut self, address: EthAddress) -> Result<U256>;
+	async fn account_nonce(&self, address: EthAddress) -> Result<U256>;
 	/// Submit an Ethereum transaction.
 	///
 	/// The transaction must already be signed before sending it through this method.
-	async fn submit_transaction(&mut self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash>;
+	async fn submit_transaction(&self, signed_raw_tx: SignedRawTx) -> Result<EthereumTxHash>;
 	/// Submit a call to an Ethereum smart contract.
-	async fn eth_call(&mut self, call_transaction: CallRequest) -> Result<Bytes>;
+	async fn eth_call(&self, call_transaction: CallRequest) -> Result<Bytes>;
 }
 
 /// The API for the supported Substrate RPC methods.
 #[async_trait]
 pub trait SubstrateRpc {
 	/// Returns the best Substrate header.
-	async fn best_header(&mut self) -> Result<SubstrateHeader>;
+	async fn best_header(&self) -> Result<SubstrateHeader>;
 	/// Get a Substrate block from its hash.
-	async fn get_block(&mut self, block_hash: Option<SubstrateHash>) -> Result<SubstrateBlock>;
+	async fn get_block(&self, block_hash: Option<SubstrateHash>) -> Result<SubstrateBlock>;
 	/// Get a Substrate header by its hash.
-	async fn header_by_hash(&mut self, hash: SubstrateHash) -> Result<SubstrateHeader>;
+	async fn header_by_hash(&self, hash: SubstrateHash) -> Result<SubstrateHeader>;
 	/// Get a Substrate block hash by its number.
-	async fn block_hash_by_number(&mut self, number: SubBlockNumber) -> Result<SubstrateHash>;
+	async fn block_hash_by_number(&self, number: SubBlockNumber) -> Result<SubstrateHash>;
 	/// Get a Substrate header by its number.
-	async fn header_by_number(&mut self, block_number: SubBlockNumber) -> Result<SubstrateHeader>;
+	async fn header_by_number(&self, block_number: SubBlockNumber) -> Result<SubstrateHeader>;
 	/// Get the nonce of the given Substrate account.
 	///
 	/// Note: It's the caller's responsibility to make sure `account` is a valid ss58 address.
-	async fn next_account_index(&mut self, account: node_primitives::AccountId) -> Result<node_primitives::Index>;
+	async fn next_account_index(&self, account: node_primitives::AccountId) -> Result<node_primitives::Index>;
 	/// Returns best Ethereum block that Substrate runtime knows of.
-	async fn best_ethereum_block(&mut self) -> Result<EthereumHeaderId>;
+	async fn best_ethereum_block(&self) -> Result<EthereumHeaderId>;
 	/// Returns whether or not transactions receipts are required for Ethereum header submission.
-	async fn ethereum_receipts_required(&mut self, header: SubstrateEthereumHeader) -> Result<bool>;
+	async fn ethereum_receipts_required(&self, header: SubstrateEthereumHeader) -> Result<bool>;
 	/// Returns whether or not the given Ethereum header is known to the Substrate runtime.
-	async fn ethereum_header_known(&mut self, header_id: EthereumHeaderId) -> Result<bool>;
+	async fn ethereum_header_known(&self, header_id: EthereumHeaderId) -> Result<bool>;
 	/// Submit an extrinsic for inclusion in a block.
 	///
 	/// Note: The given transaction does not need be SCALE encoded beforehand.
-	async fn submit_extrinsic(&mut self, transaction: Bytes) -> Result<SubstrateHash>;
+	async fn submit_extrinsic(&self, transaction: Bytes) -> Result<SubstrateHash>;
 	/// Get the GRANDPA authority set at given block.
-	async fn grandpa_authorities_set(&mut self, block: SubstrateHash) -> Result<GrandpaAuthorityList>;
+	async fn grandpa_authorities_set(&self, block: SubstrateHash) -> Result<GrandpaAuthorityList>;
 }

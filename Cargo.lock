@@ -1120,7 +1120,7 @@ dependencies = [
  "frame-system",
  "futures 0.3.5",
  "hex",
- "jsonrpsee",
+ "jsonrpsee 1.0.0 (git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api)",
  "linked-hash-map",
  "log 0.4.8",
  "node-primitives",
@@ -2271,7 +2271,7 @@ dependencies = [
  "globset",
  "hashbrown 0.7.2",
  "hyper 0.13.5",
- "jsonrpsee-proc-macros",
+ "jsonrpsee-proc-macros 1.0.0 (git+https://github.com/paritytech/jsonrpsee.git)",
  "lazy_static",
  "log 0.4.8",
  "parking_lot 0.10.2",
@@ -2289,9 +2289,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpsee"
+version = "1.0.0"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
+dependencies = [
+ "async-std",
+ "bs58",
+ "fnv",
+ "futures 0.3.5",
+ "futures-timer 3.0.2",
+ "globset",
+ "hashbrown 0.7.2",
+ "hyper 0.13.5",
+ "jsonrpsee-proc-macros 1.0.0 (git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api)",
+ "lazy_static",
+ "log 0.4.8",
+ "parking_lot 0.10.2",
+ "pin-project",
+ "rand 0.7.3",
+ "serde",
+ "serde_json",
+ "smallvec 1.4.0",
+ "thiserror",
+ "tokio 0.2.19",
+ "unicase 2.6.0",
+]
+
+[[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
 source = "git+https://github.com/paritytech/jsonrpsee.git#6bcb8efe3953f5882890d83bfcf1da223cf7eab0"
+dependencies = [
+ "Inflector",
+ "proc-macro2",
+ "quote 1.0.7",
+ "syn 1.0.18",
+]
+
+[[package]]
+name = "jsonrpsee-proc-macros"
+version = "1.0.0"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -6229,7 +6267,7 @@ dependencies = [
  "derive_more",
  "env_logger",
  "futures 0.3.5",
- "jsonrpsee",
+ "jsonrpsee 1.0.0 (git+https://github.com/paritytech/jsonrpsee.git)",
  "log 0.4.8",
  "node-primitives",
  "serde_json",

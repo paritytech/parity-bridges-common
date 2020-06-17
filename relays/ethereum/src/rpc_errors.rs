@@ -16,11 +16,9 @@
 
 use crate::sync_types::MaybeConnectionError;
 
+use jsonrpsee::client::RequestError;
 use jsonrpsee::raw::client::RawClientError;
-use jsonrpsee::transport::http::RequestError;
 use serde_json;
-
-type RpcHttpError = RawClientError<RequestError>;
 
 /// Contains common errors that can occur when
 /// interacting with a Substrate or Ethereum node
@@ -35,7 +33,7 @@ pub enum RpcError {
 	Substrate(SubstrateNodeError),
 	/// An error that can occur when making an HTTP request to
 	/// an JSON-RPC client.
-	Request(RpcHttpError),
+	Request(RequestError),
 	/// The response from the client could not be SCALE decoded.
 	Decoding(codec::Error),
 }
@@ -58,8 +56,8 @@ impl From<SubstrateNodeError> for RpcError {
 	}
 }
 
-impl From<RpcHttpError> for RpcError {
-	fn from(err: RpcHttpError) -> Self {
+impl From<RequestError> for RpcError {
+	fn from(err: RequestError) -> Self {
 		Self::Request(err)
 	}
 }

@@ -18,7 +18,7 @@ ethabi-derive = "12.0"
 ethereum-tx-sign = "3.0"
 futures = "0.3.5"
 hex = "0.4"
-jsonrpsee = { git = "https://github.com/paritytech/jsonrpsee.git", default-features = false, features = ["http"] }
+jsonrpsee = { git = "https://github.com/svyatonik/jsonrpsee.git", branch = "shared-client-in-rpc-api", default-features = false, features = ["http"] }
 linked-hash-map = "0.5.3"
 log = "0.4.8"
 num-traits = "0.2"
