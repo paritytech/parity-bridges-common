@@ -35,13 +35,6 @@ use std::collections::HashSet;
 // to encode/decode contract calls
 ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge-abi.json");
 
-/// Proof of hash serialization success.
-const HASH_SERIALIZATION_PROOF: &'static str = "hash serialization never fails; qed";
-/// Proof of integer serialization success.
-const INT_SERIALIZATION_PROOF: &'static str = "integer serialization never fails; qed";
-/// Proof of bool serialization success.
-const BOOL_SERIALIZATION_PROOF: &'static str = "bool serialization never fails; qed";
-
 type Result<T> = std::result::Result<T, RpcError>;
 
 /// Ethereum connection params.
@@ -326,8 +319,12 @@ impl HigherLevelCalls for EthereumRpcClient {
 		double_gas: bool,
 		encoded_call: Vec<u8>,
 	) -> Result<()> {
-		let address: Address = params.signer.address().as_fixed_bytes().into();
-		let nonce = self.account_nonce(address).await?;
+		let nonce = if let Some(n) = nonce {
+			n
+		} else {
+			let address: Address = params.signer.address().as_fixed_bytes().into();
+			self.account_nonce(address).await?
+		};
 
 		let call_request = CallRequest {
 			to: contract_address,

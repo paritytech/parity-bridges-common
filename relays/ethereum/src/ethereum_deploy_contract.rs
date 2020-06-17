@@ -61,13 +61,13 @@ pub fn run(params: EthereumDeployContractParams) {
 	let mut local_pool = futures::executor::LocalPool::new();
 
 	let result = local_pool.run_until(async move {
-		let mut eth_client = EthereumRpcClient::new(params.eth); // ethereum_client::client(params.eth);
-		let mut sub_client = SubstrateRpcClient::new(params.sub); // substrate_client::client(params.sub);
+		let eth_client = EthereumRpcClient::new(params.eth);
+		let sub_client = SubstrateRpcClient::new(params.sub);
 
-		let (initial_header_hash, initial_header) = prepare_initial_header(&mut sub_client, params.sub_initial_header).await?;
+		let (initial_header_hash, initial_header) = prepare_initial_header(&sub_client, params.sub_initial_header).await?;
 		let initial_set_id = params.sub_initial_authorities_set_id.unwrap_or(0);
 		let initial_set = prepare_initial_authorities_set(
-			&mut sub_client,
+			&sub_client,
 			initial_header_hash,
 			params.sub_initial_authorities_set,
 		).await?;
@@ -97,7 +97,7 @@ pub fn run(params: EthereumDeployContractParams) {
 
 /// Prepare initial header.
 async fn prepare_initial_header(
-	sub_client: &mut SubstrateRpcClient,
+	sub_client: &SubstrateRpcClient,
 	sub_initial_header: Option<Vec<u8>>,
 ) -> Result<(SubstrateHash, Vec<u8>), String> {
 	match sub_initial_header {
@@ -116,7 +116,7 @@ async fn prepare_initial_header(
 
 /// Prepare initial GRANDPA authorities set.
 async fn prepare_initial_authorities_set(
-	sub_client: &mut SubstrateRpcClient,
+	sub_client: &SubstrateRpcClient,
 	sub_initial_header_hash: SubstrateHash,
 	sub_initial_authorities_set: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, String> {

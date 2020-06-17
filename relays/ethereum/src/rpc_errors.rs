@@ -17,7 +17,6 @@
 use crate::sync_types::MaybeConnectionError;
 
 use jsonrpsee::client::RequestError;
-use jsonrpsee::raw::client::RawClientError;
 use serde_json;
 
 /// Contains common errors that can occur when
@@ -68,11 +67,6 @@ impl From<ethabi::Error> for RpcError {
 	}
 }
 
-// TODO: Should also look into implementing this director for SubstrateNodeError and
-// EthereumSync Error
-//
-// Would allow us to have TargetClient/SourceClient::Error = SubstrateNodeError instead
-// of RpcError
 impl MaybeConnectionError for RpcError {
 	fn is_connection_error(&self) -> bool {
 		match *self {

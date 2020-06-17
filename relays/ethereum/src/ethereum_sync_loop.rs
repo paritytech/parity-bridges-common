@@ -24,7 +24,7 @@ use crate::substrate_client::{
 	AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient, SubstrateSigningParams,
 };
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
-use crate::sync_loop::{OwnedSourceFutureOutput, OwnedTargetFutureOutput, SourceClient, TargetClient};
+use crate::sync_loop::{SourceClient, TargetClient};
 
 use async_trait::async_trait;
 use std::{collections::HashSet, time::Duration};
@@ -83,9 +83,11 @@ struct EthereumHeadersSource {
 	client: EthereumRpcClient,
 }
 
-// pub type OwnedSourceFutureOutput<Client, P, T> = (Client, Result<T, <Client as SourceClient<P>>::Error>);
-type EthereumFutureOutput<T> = OwnedSourceFutureOutput<EthereumHeadersSource, EthereumHeadersSyncPipeline, T>;
-// type EthereumFutureOutput<T> = OwnedSourceFutureOutput<EthereumHeadersSyncPipeline, T>;
+impl EthereumHeadersSource {
+	fn new(client: EthereumRpcClient) -> Self {
+		Self { client }
+	}
+}
 
 #[async_trait]
 impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
@@ -138,8 +140,6 @@ impl SubstrateHeadersTarget {
 	}
 }
 
-type SubstrateFutureOutput<T> = OwnedTargetFutureOutput<SubstrateHeadersTarget, EthereumHeadersSyncPipeline, T>;
-
 #[async_trait]
 impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = RpcError;
@@ -180,26 +180,21 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 
 /// Run Ethereum headers synchronization.
 pub fn run(params: EthereumSyncParams) {
-	let mut eth_client = EthereumRpcClient::new(params.eth);
-	let mut sub_client = SubstrateRpcClient::new(params.sub);
+	let eth_client = EthereumRpcClient::new(params.eth);
+	let sub_client = SubstrateRpcClient::new(params.sub);
 
 	let sign_sub_transactions = match params.sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,
 		TargetTransactionMode::Unsigned => false,
 	};
 
-	// let source = EthereumHeadersSource::new(eth_client);
+	let source = EthereumHeadersSource::new(eth_client);
 	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, params.sub_sign);
 
 	crate::sync_loop::run(
-		EthereumHeadersSource { client: eth_client },
+		source,
 		ETHEREUM_TICK_INTERVAL,
 		target,
-		// SubstrateHeadersTarget {
-		// 	client: sub_client,
-		// 	sign_transactions: sign_sub_transactions,
-		// 	sign_params: params.sub_sign,
-		// },
 		SUBSTRATE_TICK_INTERVAL,
 		params.sync_params,
 	);

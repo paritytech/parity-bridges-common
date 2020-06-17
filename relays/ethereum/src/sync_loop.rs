@@ -43,11 +43,6 @@ const BACKUP_STALL_SYNC_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 /// reconnection again.
 const CONNECTION_ERROR_DELAY: Duration = Duration::from_secs(10);
 
-/// Type alias for all SourceClient futures.
-pub type OwnedSourceFutureOutput<Client, P, T> = (Client, Result<T, <Client as SourceClient<P>>::Error>);
-/// Type alias for all TargetClient futures.
-pub type OwnedTargetFutureOutput<Client, P, T> = (Client, Result<T, <Client as TargetClient<P>>::Error>);
-
 /// Source client trait.
 #[async_trait]
 pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
@@ -117,9 +112,9 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 
 /// Run headers synchronization.
 pub fn run<P: HeadersSyncPipeline>(
-	mut source_client: impl SourceClient<P>,
+	source_client: impl SourceClient<P>,
 	source_tick: Duration,
-	mut target_client: impl TargetClient<P>,
+	target_client: impl TargetClient<P>,
 	target_tick: Duration,
 	sync_params: HeadersSyncParams,
 ) {
@@ -131,8 +126,7 @@ pub fn run<P: HeadersSyncPipeline>(
 		let mut stall_countdown = None;
 		let mut last_update_time = Instant::now();
 
-		// let mut source_maybe_client = None;
-		let mut source_client_is_online = true; // maybe make false
+		let mut source_client_is_online = false;
 		let mut source_best_block_number_required = false;
 		let source_best_block_number_future = source_client.best_block_number().fuse();
 		let source_new_header_future = futures::future::Fuse::terminated();
@@ -142,8 +136,7 @@ pub fn run<P: HeadersSyncPipeline>(
 		let source_go_offline_future = futures::future::Fuse::terminated();
 		let source_tick_stream = interval(source_tick).fuse();
 
-		// let mut target_maybe_client = None;
-		let mut target_client_is_online = true; // maybe make false
+		let mut target_client_is_online = false;
 		let mut target_best_block_required = false;
 		let mut target_incomplete_headers_required = true;
 		let target_best_block_future = target_client.best_header_id().fuse();
@@ -178,7 +171,7 @@ pub fn run<P: HeadersSyncPipeline>(
 				source_best_block_number = source_best_block_number_future => {
 					source_best_block_number_required = false;
 
-					source_client_is_online = better_process_future_result(
+					source_client_is_online = process_future_result(
 						source_best_block_number,
 						|source_best_block_number| sync.source_best_header_number_response(source_best_block_number),
 						&mut source_go_offline_future,
@@ -187,7 +180,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				source_new_header = source_new_header_future => {
-					source_client_is_online = better_process_future_result(
+					source_client_is_online = process_future_result(
 						source_new_header,
 						|source_new_header| sync.headers_mut().header_response(source_new_header),
 						&mut source_go_offline_future,
@@ -196,7 +189,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				source_orphan_header = source_orphan_header_future => {
-					source_client_is_online = better_process_future_result(
+					source_client_is_online = process_future_result(
 						source_orphan_header,
 						|source_orphan_header| sync.headers_mut().header_response(source_orphan_header),
 						&mut source_go_offline_future,
@@ -205,7 +198,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				source_extra = source_extra_future => {
-					source_client_is_online = better_process_future_result(
+					source_client_is_online = process_future_result(
 						source_extra,
 						|(header, extra)| sync.headers_mut().extra_response(&header, extra),
 						&mut source_go_offline_future,
@@ -214,7 +207,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				source_completion = source_completion_future => {
-					source_client_is_online = better_process_future_result(
+					source_client_is_online = process_future_result(
 						source_completion,
 						|(header, completion)| sync.headers_mut().completion_response(&header, completion),
 						&mut source_go_offline_future,
@@ -223,7 +216,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				source_client = source_go_offline_future => {
-					source_client_is_online = true; //source_maybe_client = Some(source_client);
+					source_client_is_online = true;
 				},
 				_ = source_tick_stream.next() => {
 					if sync.is_almost_synced() {
@@ -233,7 +226,7 @@ pub fn run<P: HeadersSyncPipeline>(
 				target_best_block = target_best_block_future => {
 					target_best_block_required = false;
 
-					target_client_is_online = better_process_future_result(
+					target_client_is_online = process_future_result(
 						target_best_block,
 						|target_best_block| {
 							let head_updated = sync.target_best_header_response(target_best_block);
@@ -276,7 +269,7 @@ pub fn run<P: HeadersSyncPipeline>(
 				incomplete_headers_ids = target_incomplete_headers_future => {
 					target_incomplete_headers_required = false;
 
-					target_client_is_online = better_process_future_result(
+					target_client_is_online = process_future_result(
 						incomplete_headers_ids,
 						|incomplete_headers_ids| sync.headers_mut().incomplete_headers_response(incomplete_headers_ids),
 						&mut target_go_offline_future,
@@ -285,7 +278,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				target_existence_status = target_existence_status_future => {
-					target_client_is_online = better_process_future_result(
+					target_client_is_online = process_future_result(
 						target_existence_status,
 						|(target_header, target_existence_status)| sync
 							.headers_mut()
@@ -296,7 +289,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				target_submit_header_result = target_submit_header_future => {
-					target_client_is_online = better_process_future_result(
+					target_client_is_online = process_future_result(
 						target_submit_header_result,
 						|submitted_headers| sync.headers_mut().headers_submitted(submitted_headers),
 						&mut target_go_offline_future,
@@ -305,7 +298,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				target_complete_header_result = target_complete_header_future => {
-					target_client_is_online = better_process_future_result(
+					target_client_is_online = process_future_result(
 						target_complete_header_result,
 						|completed_header| sync.headers_mut().header_completed(&completed_header),
 						&mut target_go_offline_future,
@@ -314,7 +307,7 @@ pub fn run<P: HeadersSyncPipeline>(
 					);
 				},
 				target_extra_check_result = target_extra_check_future => {
-					target_client_is_online = better_process_future_result(
+					target_client_is_online = process_future_result(
 						target_extra_check_result,
 						|(header, extra_check_result)| sync
 							.headers_mut()
@@ -326,7 +319,6 @@ pub fn run<P: HeadersSyncPipeline>(
 				},
 				target_client = target_go_offline_future => {
 					target_client_is_online = true;
-					// target_maybe_client = Some(target_client);
 				},
 				_ = target_tick_stream.next() => {
 					target_best_block_required = true;
@@ -338,7 +330,6 @@ pub fn run<P: HeadersSyncPipeline>(
 			progress_context = print_sync_progress(progress_context, &sync);
 
 			// if target client is available: wait, or call required target methods
-			// if let Some(target_client) = target_maybe_client.take() {
 			if target_client_is_online {
 				// the priority is to:
 				// 1) get best block - it stops us from downloading/submitting new blocks + we call it rarely;
@@ -406,13 +397,11 @@ pub fn run<P: HeadersSyncPipeline>(
 						stall_countdown = Some(Instant::now());
 					}
 				} else {
-					// target_maybe_client = Some(target_client);
 					target_client_is_online = true;
 				}
 			}
 
 			// if source client is available: wait, or call required source methods
-			// if let Some(source_client) = source_maybe_client.take() {
 			if source_client_is_online {
 				// the priority is to:
 				// 1) get best block - it stops us from downloading new blocks + we call it rarely;
@@ -472,7 +461,6 @@ pub fn run<P: HeadersSyncPipeline>(
 
 					source_new_header_future.set(source_client.header_by_number(id).fuse());
 				} else {
-					// source_maybe_client = Some(source_client);
 					source_client_is_online = true;
 				}
 			}
@@ -480,52 +468,16 @@ pub fn run<P: HeadersSyncPipeline>(
 	});
 }
 
-/// Future that resolves into given value after given timeout.
-async fn delay<T>(timeout: Duration, retval: T) -> T {
-	async_std::task::sleep(timeout).await;
-	retval
-}
-
 /// Stream that emits item every `timeout_ms` milliseconds.
 fn interval(timeout: Duration) -> impl futures::Stream<Item = ()> {
 	futures::stream::unfold((), move |_| async move {
-		delay(timeout, ()).await;
+		async_std::task::sleep(timeout).await;
 		Some(((), ()))
 	})
 }
 
 /// Process result of the future that may have been caused by connection failure.
-fn process_future_result<TClient, TResult, TError, TGoOfflineFuture>(
-	maybe_client: &mut Option<TClient>,
-	client: TClient,
-	result: Result<TResult, TError>,
-	on_success: impl FnOnce(TResult),
-	go_offline_future: &mut std::pin::Pin<&mut futures::future::Fuse<TGoOfflineFuture>>,
-	go_offline: impl FnOnce(TClient) -> TGoOfflineFuture,
-	error_pattern: impl FnOnce() -> String,
-) where
-	TError: std::fmt::Debug + MaybeConnectionError,
-	TGoOfflineFuture: FutureExt,
-{
-	match result {
-		Ok(result) => {
-			*maybe_client = Some(client);
-			on_success(result);
-		}
-		Err(error) => {
-			if error.is_connection_error() {
-				go_offline_future.set(go_offline(client).fuse());
-			} else {
-				*maybe_client = Some(client);
-			}
-
-			log::error!(target: "bridge", "{}: {:?}", error_pattern(), error);
-		}
-	}
-}
-
-/// Process result of the future that may have been caused by connection failure.
-fn better_process_future_result<TResult, TError, TGoOfflineFuture>(
+fn process_future_result<TResult, TError, TGoOfflineFuture>(
 	result: Result<TResult, TError>,
 	on_success: impl FnOnce(TResult),
 	go_offline_future: &mut std::pin::Pin<&mut futures::future::Fuse<TGoOfflineFuture>>,
