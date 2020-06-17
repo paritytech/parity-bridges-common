@@ -14,13 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_client::{DeployContract, EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams};
+use crate::ethereum_client::{
+	EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient, EthereumSigningParams,
+};
 use crate::rpc::SubstrateRpc;
 use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader};
 
 use codec::{Decode, Encode};
 use num_traits::Zero;
+
+// to encode/decode contract calls
+ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge-abi.json");
 
 /// Ethereum synchronization parameters.
 #[derive(Debug)]
@@ -81,13 +86,14 @@ pub fn run(params: EthereumDeployContractParams) {
 			hex::encode(&initial_set),
 		);
 
-		eth_client.deploy_bridge_contract(
+		deploy_bridge_contract(
+			&eth_client,
 			&params.eth_sign,
 			params.eth_contract_code,
 			initial_header,
 			initial_set_id,
 			initial_set,
-		).await.map_err(|error| format!("Error deploying contract: {:?}", error))
+		).await
 	});
 
 	if let Err(error) = result {
@@ -126,4 +132,25 @@ async fn prepare_initial_authorities_set(
 	};
 
 	initial_authorities_set.map_err(|error| format!("Error reading GRANDPA authorities set: {:?}", error))
+}
+
+/// Deploy bridge contract to Ethereum chain.
+async fn deploy_bridge_contract(
+	eth_client: &EthereumRpcClient,
+	params: &EthereumSigningParams,
+	contract_code: Vec<u8>,
+	initial_header: Vec<u8>,
+	initial_set_id: u64,
+	initial_authorities: Vec<u8>,
+) -> Result<(), String> {
+	eth_client
+		.submit_ethereum_transaction(
+			params,
+			None,
+			None,
+			false,
+			bridge_contract::constructor(contract_code, initial_header, initial_set_id, initial_authorities),
+		)
+		.await
+		.map_err(|error| format!("Error deploying contract: {:?}", error))
 }

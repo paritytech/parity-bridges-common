@@ -149,8 +149,10 @@ impl EthereumRpc for EthereumRpcClient {
 	}
 }
 
+/// A trait which contains methods that work by using multiple low-level RPCs, or more complicated
+/// interactions involving, for example, an Ethereum contract.
 #[async_trait]
-pub trait HigherLevelCalls: EthereumRpc {
+pub trait EthereumHighLevelRpc: EthereumRpc {
 	/// Returns best Substrate block that PoA chain knows of.
 	async fn best_substrate_block(&self, contract_address: Address) -> Result<SubstrateHeaderId>;
 
@@ -192,7 +194,7 @@ pub trait HigherLevelCalls: EthereumRpc {
 	) -> Result<()>;
 
 	/// Retrieve transactions receipts for given block.
-	async fn transactions_receipts(
+	async fn transaction_receipts(
 		&self,
 		id: EthereumHeaderId,
 		transactions: Vec<H256>,
@@ -200,7 +202,7 @@ pub trait HigherLevelCalls: EthereumRpc {
 }
 
 #[async_trait]
-impl HigherLevelCalls for EthereumRpcClient {
+impl EthereumHighLevelRpc for EthereumRpcClient {
 	async fn best_substrate_block(&self, contract_address: Address) -> Result<SubstrateHeaderId> {
 		let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
 		let call_request = CallRequest {
@@ -347,50 +349,16 @@ impl HigherLevelCalls for EthereumRpcClient {
 		Ok(())
 	}
 
-	async fn transactions_receipts(
+	async fn transaction_receipts(
 		&self,
 		id: EthereumHeaderId,
 		transactions: Vec<H256>,
 	) -> Result<(EthereumHeaderId, Vec<Receipt>)> {
-		let mut transactions_receipts = Vec::with_capacity(transactions.len());
+		let mut transaction_receipts = Vec::with_capacity(transactions.len());
 		for transaction in transactions {
 			let transaction_receipt = self.transaction_receipt(transaction).await?;
-			transactions_receipts.push(transaction_receipt);
+			transaction_receipts.push(transaction_receipt);
 		}
-		Ok((id, transactions_receipts))
-	}
-}
-
-#[async_trait]
-pub trait DeployContract: EthereumRpc {
-	/// Deploy bridge contract.
-	async fn deploy_bridge_contract(
-		&self,
-		params: &EthereumSigningParams,
-		contract_code: Vec<u8>,
-		initial_header: Vec<u8>,
-		initial_set_id: u64,
-		initial_authorities: Vec<u8>,
-	) -> Result<()>;
-}
-
-#[async_trait]
-impl DeployContract for EthereumRpcClient {
-	async fn deploy_bridge_contract(
-		&self,
-		params: &EthereumSigningParams,
-		contract_code: Vec<u8>,
-		initial_header: Vec<u8>,
-		initial_set_id: u64,
-		initial_authorities: Vec<u8>,
-	) -> Result<()> {
-		self.submit_ethereum_transaction(
-			params,
-			None,
-			None,
-			false,
-			bridge_contract::constructor(contract_code, initial_header, initial_set_id, initial_authorities),
-		)
-		.await
+		Ok((id, transaction_receipts))
 	}
 }

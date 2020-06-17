@@ -16,15 +16,17 @@
 
 //! Ethereum PoA -> Substrate synchronization.
 
-use crate::ethereum_client::{EthereumConnectionParams, EthereumRpcClient, HigherLevelCalls};
+use crate::ethereum_client::{EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{
-	AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient, SubstrateSigningParams,
+	SubmitEthereumHeaders, SubstrateConnectionParams, SubstrateRpcClient, SubstrateSigningParams,
 };
+use crate::substrate_types::into_substrate_ethereum_header;
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
+use crate::sync_types::SourceHeader;
 
 use async_trait::async_trait;
 use std::{collections::HashSet, time::Duration};
@@ -116,14 +118,14 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	) -> Result<(EthereumHeaderId, Vec<Receipt>), Self::Error> {
 		Ok(self
 			.client
-			.transactions_receipts(id, header.header().transactions.clone())
+			.transaction_receipts(id, header.header().transactions.clone())
 			.await?)
 	}
 }
 
 struct SubstrateHeadersTarget {
 	/// Substrate node client.
-	client: SubstrateRpcClient, // substrate_client::Client,
+	client: SubstrateRpcClient,
 	/// Whether we want to submit signed (true), or unsigned (false) transactions.
 	sign_transactions: bool,
 	/// Substrate signing params.
@@ -149,8 +151,7 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	}
 
 	async fn is_known_header(&self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, bool), Self::Error> {
-		// TODO: Fix naming
-		Ok(self.client.ethereum_header_known_high(id).await?)
+		Ok((id, self.client.ethereum_header_known(id).await?))
 	}
 
 	async fn submit_headers(&self, headers: Vec<QueuedEthereumHeader>) -> Result<Vec<EthereumHeaderId>, Self::Error> {
@@ -173,8 +174,9 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 		// we can minimize number of receipts_check calls by checking header
 		// logs bloom here, but it may give us false positives (when authorities
 		// source is contract, we never need any logs)
-		// TODO: Fix name
-		Ok(self.client.ethereum_receipts_required_high(header).await?)
+		let id = header.header().id();
+		let sub_eth_header = into_substrate_ethereum_header(header.header());
+		Ok((id, self.client.ethereum_receipts_required(sub_eth_header).await?))
 	}
 }
 

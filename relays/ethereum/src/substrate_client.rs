@@ -18,10 +18,10 @@ use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256}
 use crate::rpc::{Substrate, SubstrateRpc};
 use crate::rpc_errors::RpcError;
 use crate::substrate_types::{
-	into_substrate_ethereum_header, into_substrate_ethereum_receipts, GrandpaJustification, Hash,
-	Header as SubstrateHeader, Number, SignedBlock as SignedSubstrateBlock, SubstrateHeaderId,
+	into_substrate_ethereum_header, into_substrate_ethereum_receipts, Hash, Header as SubstrateHeader, Number,
+	SignedBlock as SignedSubstrateBlock,
 };
-use crate::sync_types::{HeaderId, SourceHeader};
+use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
@@ -148,7 +148,6 @@ impl SubstrateRpc for SubstrateRpcClient {
 		let encoded_response = Substrate::state_call(&self.client, call, data, None).await?;
 		let receipts_required: bool = Decode::decode(&mut &encoded_response.0[..])?;
 
-		// Gonna make it the responsibility of the caller to return (receipts_required, id)
 		Ok(receipts_required)
 	}
 
@@ -165,7 +164,6 @@ impl SubstrateRpc for SubstrateRpcClient {
 		let encoded_response = Substrate::state_call(&self.client, call, data, None).await?;
 		let is_known_block: bool = Decode::decode(&mut &encoded_response.0[..])?;
 
-		// Gonna make it the responsibility of the caller to return (is_known_block, id)
 		Ok(is_known_block)
 	}
 
@@ -185,14 +183,11 @@ impl SubstrateRpc for SubstrateRpcClient {
 	}
 }
 
+/// A trait for RPC calls which are used to submit Ethereum headers to a Substrate
+/// runtime. These are typically calls which use a combination of other low-level RPC
+/// calls.
 #[async_trait]
-pub trait AlsoHigherLevelCalls: SubstrateRpc {
-	/// Returns true if transactions receipts are required for Ethereum header submission.
-	async fn ethereum_receipts_required_high(&self, header: QueuedEthereumHeader) -> Result<(EthereumHeaderId, bool)>;
-
-	/// Returns true if Ethereum header is known to Substrate runtime.
-	async fn ethereum_header_known_high(&self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, bool)>;
-
+pub trait SubmitEthereumHeaders: SubstrateRpc {
 	/// Submits Ethereum header to Substrate runtime.
 	async fn submit_ethereum_headers(
 		&self,
@@ -213,30 +208,10 @@ pub trait AlsoHigherLevelCalls: SubstrateRpc {
 		&self,
 		headers: Vec<QueuedEthereumHeader>,
 	) -> Result<Vec<EthereumHeaderId>>;
-
-	/// Get GRANDPA justification for given block.
-	async fn grandpa_justification(
-		&self,
-		id: SubstrateHeaderId,
-	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>)>;
 }
 
 #[async_trait]
-impl AlsoHigherLevelCalls for SubstrateRpcClient {
-	// TODO: Fix naming
-	async fn ethereum_receipts_required_high(&self, header: QueuedEthereumHeader) -> Result<(EthereumHeaderId, bool)> {
-		let id = header.header().id();
-		let header = into_substrate_ethereum_header(header.header());
-		let receipts_required = self.ethereum_receipts_required(header).await?;
-		Ok((id, receipts_required))
-	}
-
-	// TODO: Fix naming
-	async fn ethereum_header_known_high(&self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, bool)> {
-		let is_known_block = self.ethereum_header_known(id).await?;
-		Ok((id, is_known_block))
-	}
-
+impl SubmitEthereumHeaders for SubstrateRpcClient {
 	async fn submit_ethereum_headers(
 		&self,
 		params: SubstrateSigningParams,
@@ -287,15 +262,6 @@ impl AlsoHigherLevelCalls for SubstrateRpcClient {
 		}
 
 		Ok(ids)
-	}
-
-	async fn grandpa_justification(
-		&self,
-		id: SubstrateHeaderId,
-	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>)> {
-		let hash = id.1;
-		let signed_block = self.get_block(Some(hash)).await?;
-		Ok((id, signed_block.justification))
 	}
 }
 

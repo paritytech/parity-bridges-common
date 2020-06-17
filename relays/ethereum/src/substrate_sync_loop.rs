@@ -16,11 +16,13 @@
 
 //! Substrate -> Ethereum synchronization.
 
-use crate::ethereum_client::{EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams, HigherLevelCalls};
+use crate::ethereum_client::{
+	EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient, EthereumSigningParams,
+};
 use crate::ethereum_types::Address;
 use crate::rpc::SubstrateRpc;
 use crate::rpc_errors::RpcError;
-use crate::substrate_client::{AlsoHigherLevelCalls, SubstrateConnectionParams, SubstrateRpcClient};
+use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{
 	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
@@ -114,7 +116,11 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 		&self,
 		id: SubstrateHeaderId,
 	) -> Result<(SubstrateHeaderId, Option<GrandpaJustification>), Self::Error> {
-		Ok(self.client.grandpa_justification(id).await?)
+		let hash = id.1;
+		let signed_block = self.client.get_block(Some(hash)).await?;
+		let grandpa_justification = signed_block.justification;
+
+		Ok((id, grandpa_justification))
 	}
 
 	async fn header_extra(
