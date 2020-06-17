@@ -308,6 +308,12 @@ pub trait PruningStrategy: Default {
 	/// guarantees on when it will happen. Example: if some unfinalized block at height N
 	/// has scheduled validators set change, then the module won't prune any blocks with
 	/// number >= N even if strategy allows that.
+	///
+	/// If your strategy allows pruning unfinalized blocks, this could lead to switch
+	/// between finalized forks (only if authorities are misbehaving). But since 50%+1 (or 2/3)
+	/// authorities are able to do whatever they want with the chain, this isn't considered
+	/// fatal. If your strategy only prunes finalized blocks, we'll never be able to finalize
+	/// header that isn't descendant of current best finalized block.
 	fn pruning_upper_bound(&mut self, best_number: u64, best_finalized_number: u64) -> u64;
 }
 
