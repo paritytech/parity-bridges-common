@@ -111,7 +111,8 @@ impl EthereumRpc for EthereumRpcClient {
 	}
 
 	async fn header_by_number(&self, block_number: u64) -> Result<Header> {
-		let header = Ethereum::get_block_by_number(&self.client, block_number, false).await?;
+		let get_full_tx_objects = false;
+		let header = Ethereum::get_block_by_number(&self.client, block_number, get_full_tx_objects).await?;
 		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
 			true => Ok(header),
 			false => Err(RpcError::Ethereum(EthereumNodeError::IncompleteHeader)),
