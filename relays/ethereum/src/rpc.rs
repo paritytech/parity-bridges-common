@@ -36,36 +36,36 @@ type GrandpaAuthorityList = Vec<u8>;
 
 jsonrpsee::rpc_api! {
 	pub(crate) Ethereum {
-		#[rpc(method = "eth_estimateGas")]
+		#[rpc(method = "eth_estimateGas", positional_params)]
 		fn estimate_gas(call_request: CallRequest) -> U256;
-		#[rpc(method = "eth_blockNumber")]
+		#[rpc(method = "eth_blockNumber", positional_params)]
 		fn block_number() -> U64;
-		#[rpc(method = "eth_getBlockByNumber")]
-		fn get_block_by_number(block_number: u64) -> EthereumHeader;
-		#[rpc(method = "eth_getBlockByHash")]
+		#[rpc(method = "eth_getBlockByNumber", positional_params)]
+		fn get_block_by_number(block_number: U64, extended: bool) -> EthereumHeader;
+		#[rpc(method = "eth_getBlockByHash", positional_params)]
 		fn get_block_by_hash(hash: H256) -> EthereumHeader;
-		#[rpc(method = "eth_getTransactionReceipt")]
+		#[rpc(method = "eth_getTransactionReceipt", positional_params)]
 		fn get_transaction_receipt(transaction_hash: H256) -> Receipt;
-		#[rpc(method = "eth_getTransactionCount")]
+		#[rpc(method = "eth_getTransactionCount", positional_params)]
 		fn get_transaction_count(address: EthAddress) -> U256;
-		#[rpc(method = "eth_submitTransaction")]
+		#[rpc(method = "eth_submitTransaction", positional_params)]
 		fn submit_transaction(transaction: Bytes) -> EthereumTxHash;
-		#[rpc(method = "eth_call")]
+		#[rpc(method = "eth_call", positional_params)]
 		fn call(transaction_call: CallRequest) -> Bytes;
 	}
 
 	pub(crate) Substrate {
-		#[rpc(method = "chain_getHeader")]
+		#[rpc(method = "chain_getHeader", positional_params)]
 		fn chain_get_header(block_hash: Option<SubstrateHash>) -> SubstrateHeader;
-		#[rpc(method = "chain_getBlock")]
+		#[rpc(method = "chain_getBlock", positional_params)]
 		fn chain_get_block(block_hash: Option<SubstrateHash>) -> SubstrateBlock;
-		#[rpc(method = "chain_getBlockHash")]
+		#[rpc(method = "chain_getBlockHash", positional_params)]
 		fn chain_get_block_hash(block_number: Option<SubBlockNumber>) -> SubstrateHash;
-		#[rpc(method = "system_accountNextIndex")]
+		#[rpc(method = "system_accountNextIndex", positional_params)]
 		fn system_account_next_index(account_id: node_primitives::AccountId) -> node_primitives::Index;
-		#[rpc(method = "author_submitExtrinsic")]
+		#[rpc(method = "author_submitExtrinsic", positional_params)]
 		fn author_submit_extrinsic(extrinsic: Bytes) -> SubstrateHash;
-		#[rpc(method = "state_call")]
+		#[rpc(method = "state_call", positional_params)]
 		fn state_call(method: String, data: Bytes, at_block: Option<SubstrateHash>) -> Bytes;
 	}
 }

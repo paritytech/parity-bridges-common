@@ -168,8 +168,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 	}
 
 	async fn submit_extrinsic(&self, transaction: Bytes) -> Result<Hash> {
-		let encoded_transaction = Bytes(transaction.0.encode());
-		Ok(Substrate::author_submit_extrinsic(&self.client, encoded_transaction).await?)
+		Ok(Substrate::author_submit_extrinsic(&self.client, transaction).await?)
 	}
 
 	async fn grandpa_authorities_set(&self, block: Hash) -> Result<GrandpaAuthorityList> {
