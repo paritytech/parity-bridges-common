@@ -96,15 +96,15 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type Error = RpcError;
 
 	async fn best_block_number(&self) -> Result<u64, Self::Error> {
-		Ok(self.client.best_block_number().await?)
+		self.client.best_block_number().await
 	}
 
 	async fn header_by_hash(&self, hash: H256) -> Result<Header, Self::Error> {
-		Ok(self.client.header_by_hash(hash).await?)
+		self.client.header_by_hash(hash).await
 	}
 
 	async fn header_by_number(&self, number: u64) -> Result<Header, Self::Error> {
-		Ok(self.client.header_by_number(number).await?)
+		self.client.header_by_number(number).await
 	}
 
 	async fn header_completion(&self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, Option<()>), Self::Error> {
@@ -116,10 +116,9 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 		id: EthereumHeaderId,
 		header: QueuedEthereumHeader,
 	) -> Result<(EthereumHeaderId, Vec<Receipt>), Self::Error> {
-		Ok(self
-			.client
+		self.client
 			.transaction_receipts(id, header.header().transactions.clone())
-			.await?)
+			.await
 	}
 }
 
@@ -147,7 +146,7 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = RpcError;
 
 	async fn best_header_id(&self) -> Result<EthereumHeaderId, Self::Error> {
-		Ok(self.client.best_ethereum_block().await?)
+		self.client.best_ethereum_block().await
 	}
 
 	async fn is_known_header(&self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, bool), Self::Error> {
@@ -156,10 +155,9 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 
 	async fn submit_headers(&self, headers: Vec<QueuedEthereumHeader>) -> Result<Vec<EthereumHeaderId>, Self::Error> {
 		let (sign_params, sign_transactions) = (self.sign_params.clone(), self.sign_transactions.clone());
-		Ok(self
-			.client
+		self.client
 			.submit_ethereum_headers(sign_params, headers, sign_transactions)
-			.await?)
+			.await
 	}
 
 	async fn incomplete_headers_ids(&self) -> Result<HashSet<EthereumHeaderId>, Self::Error> {

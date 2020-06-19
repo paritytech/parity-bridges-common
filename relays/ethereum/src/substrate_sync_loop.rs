@@ -105,11 +105,11 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	}
 
 	async fn header_by_hash(&self, hash: Hash) -> Result<Header, Self::Error> {
-		Ok(self.client.header_by_hash(hash).await?)
+		self.client.header_by_hash(hash).await
 	}
 
 	async fn header_by_number(&self, number: Number) -> Result<Header, Self::Error> {
-		Ok(self.client.header_by_number(number).await?)
+		self.client.header_by_number(number).await
 	}
 
 	async fn header_completion(
@@ -157,22 +157,21 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = RpcError;
 
 	async fn best_header_id(&self) -> Result<SubstrateHeaderId, Self::Error> {
-		Ok(self.client.best_substrate_block(self.contract).await?)
+		self.client.best_substrate_block(self.contract).await
 	}
 
 	async fn is_known_header(&self, id: SubstrateHeaderId) -> Result<(SubstrateHeaderId, bool), Self::Error> {
-		Ok(self.client.substrate_header_known(self.contract, id).await?)
+		self.client.substrate_header_known(self.contract, id).await
 	}
 
 	async fn submit_headers(&self, headers: Vec<QueuedSubstrateHeader>) -> Result<Vec<SubstrateHeaderId>, Self::Error> {
-		Ok(self
-			.client
+		self.client
 			.submit_substrate_headers(self.sign_params.clone(), self.contract, headers)
-			.await?)
+			.await
 	}
 
 	async fn incomplete_headers_ids(&self) -> Result<HashSet<SubstrateHeaderId>, Self::Error> {
-		Ok(self.client.incomplete_substrate_headers(self.contract).await?)
+		self.client.incomplete_substrate_headers(self.contract).await
 	}
 
 	async fn complete_header(
@@ -180,10 +179,9 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 		id: SubstrateHeaderId,
 		completion: GrandpaJustification,
 	) -> Result<SubstrateHeaderId, Self::Error> {
-		Ok(self
-			.client
+		self.client
 			.complete_substrate_header(self.sign_params.clone(), self.contract, id, completion)
-			.await?)
+			.await
 	}
 
 	async fn requires_extra(&self, header: QueuedSubstrateHeader) -> Result<(SubstrateHeaderId, bool), Self::Error> {
