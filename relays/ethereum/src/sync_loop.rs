@@ -329,15 +329,35 @@ pub fn run<P: HeadersSyncPipeline>(
 			// print progress
 			progress_context = print_sync_progress(progress_context, &sync);
 
-			// if target client is available: wait, or call required target methods
+			// If the target client is accepting requests we update the requests that
+			// we want it to run
 			if target_client_is_online {
-				// the priority is to:
-				// 1) get best block - it stops us from downloading/submitting new blocks + we call it rarely;
-				// 2) get incomplete headers - it stops us from submitting new blocks + we call it rarely;
-				// 3) complete headers - it stops us from submitting new blocks;
-				// 4) check if we need extra data from source - it stops us from downloading/submitting new blocks;
-				// 5) check existence - it stops us from submitting new blocks;
-				// 6) submit header
+				// NOTE: Is is important to reset this so that we only have one
+				// request being processed by the client at a time. This prevents
+				// race conditions like receiving two transactions with the same
+				// nonce from the client.
+				target_client_is_online = false;
+
+				// The following is how we prioritize requests:
+				//
+				// 1. Get best block
+				//     - Stops us from downloading or submitting new blocks
+				//     - Only called rarely
+				//
+				// 2. Get incomplete headers
+				//     - Stops us from submitting new blocks
+				//     - Only called rarely
+				//
+				// 3. Get complete headers
+				//     - Stops us from submitting new blocks
+				//
+				// 4. Check if we need extra data from source
+				//     - Stops us from downloading or submitting new blocks
+				//
+				// 5. Check existence of header
+				//     - Stops us from submitting new blocks
+				//
+				// 6. Submit header
 
 				if target_best_block_required {
 					log::debug!(target: "bridge", "Asking {} about best block", P::TARGET_NAME);
@@ -401,14 +421,31 @@ pub fn run<P: HeadersSyncPipeline>(
 				}
 			}
 
-			// if source client is available: wait, or call required source methods
+			// If the source client is accepting requests we update the requests that
+			// we want it to run
 			if source_client_is_online {
-				// the priority is to:
-				// 1) get best block - it stops us from downloading new blocks + we call it rarely;
-				// 2) download completion data - it stops us from submitting new blocks;
-				// 3) download extra data - it stops us from submitting new blocks;
-				// 4) download missing headers - it stops us from downloading/submitting new blocks;
-				// 5) downloading new headers
+				// NOTE: Is is important to reset this so that we only have one
+				// request being processed by the client at a time. This prevents
+				// race conditions like receiving two transactions with the same
+				// nonce from the client.
+				source_client_is_online = false;
+
+				// The following is how we prioritize requests:
+				//
+				// 1. Get best block
+				//     - Stops us from downloading or submitting new blocks
+				//     - Only called rarely
+				//
+				// 2. Download completion data
+				//     - Stops us from submitting new blocks
+				//
+				// 3. Download extra data
+				//     - Stops us from submitting new blocks
+				//
+				// 4. Download missing headers
+				//     - Stops us from downloading or submitting new blocks
+				//
+				// 5. Downloading new headers
 
 				if source_best_block_number_required {
 					log::debug!(target: "bridge", "Asking {} node about best block number", P::SOURCE_NAME);
@@ -476,7 +513,11 @@ fn interval(timeout: Duration) -> impl futures::Stream<Item = ()> {
 	})
 }
 
-/// Process result of the future that may have been caused by connection failure.
+/// Process result of the future from a client.
+///
+/// Returns whether or not the client we're interacting with is online. In this context
+/// what online means is that the client is currently not handling any other requests
+/// that we've previously sent.
 fn process_future_result<TResult, TError, TGoOfflineFuture>(
 	result: Result<TResult, TError>,
 	on_success: impl FnOnce(TResult),
@@ -488,16 +529,18 @@ where
 	TError: std::fmt::Debug + MaybeConnectionError,
 	TGoOfflineFuture: FutureExt,
 {
-	let mut client_is_online = true;
+	let mut client_is_online = false;
 
 	match result {
 		Ok(result) => {
 			on_success(result);
+			client_is_online = true
 		}
 		Err(error) => {
 			if error.is_connection_error() {
 				go_offline_future.set(go_offline().fuse());
-				client_is_online = false;
+			} else {
+				client_is_online = true
 			}
 
 			log::error!(target: "bridge", "{}: {:?}", error_pattern(), error);
