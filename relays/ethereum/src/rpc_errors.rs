@@ -70,8 +70,8 @@ impl From<ethabi::Error> for RpcError {
 impl MaybeConnectionError for RpcError {
 	fn is_connection_error(&self) -> bool {
 		match *self {
-			// Q: Is blanket handling `Request` too broad?
-			RpcError::Substrate(SubstrateNodeError::StartRequestFailed(_)) | RpcError::Request(_) => true,
+			RpcError::Substrate(SubstrateNodeError::StartRequestFailed(_))
+			| RpcError::Request(RequestError::TransportError(_)) => true,
 			_ => false,
 		}
 	}
