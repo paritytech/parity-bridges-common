@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_client::{
-	EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient, EthereumSigningParams,
+	bridge_contract, EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient, EthereumSigningParams,
 };
 use crate::rpc::SubstrateRpc;
 use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
@@ -23,9 +23,6 @@ use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader};
 
 use codec::{Decode, Encode};
 use num_traits::Zero;
-
-// to encode/decode contract calls
-ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge-abi.json");
 
 /// Ethereum synchronization parameters.
 #[derive(Debug)]
