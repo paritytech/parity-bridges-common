@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::test_utils::{build_custom_header, build_genesis_header};
+use crate::{import_unsigned_header, initialize_storage};
 
-use frame_system::RawOrigin;
 use frame_benchmarking::benchmarks;
+use frame_system::RawOrigin;
 use primitives::public_to_address;
 
 benchmarks! {
@@ -31,81 +32,27 @@ benchmarks! {
 	import_unsigned_header_best_case {
 		let n in 1..1000;
 
-		// Substrate uses compressed pubkeys, and we need full pubkey to compute
-		// ethereum address => will use workaround here
-		let initial_validators = vec![
-			prepare_validator(0),
-			prepare_validator(1),
-		];
-
 		// initialize storage with some initial header
-		let initial_header = prepare_header(
-			0,
-			Default::default(),
-			0,
-			&initial_validators[0],
-			|header| header,
-		);
+		let initial_header = build_genesis_header(&validator(0));
 		let initial_header_hash = initial_header.compute_hash();
-		let initial_difficulty = 0.into();
+		let initial_difficulty = initial_header.difficulty;
 		initialize_storage::<T>(
 			&initial_header,
 			initial_difficulty,
-			&initial_validators.iter().map(|(_, address)| *address).collect::<Vec<_>>(),
+			&validators_addresses(2),
 		);
 
 		// prepare header to be inserted
-		let header = prepare_header(
-			1,
-			initial_header_hash,
-			1,
-			&initial_validators[1],
+		let header = build_custom_header(
+			&validator(1),
+			&initial_header,
 			|mut header| {
 				header.gas_limit = header.gas_limit + U256::from(n);
 				header
-			}
+			},
 		);
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		assert_eq!(BridgeStorage::<T>::new().best_block().0.number, 1);
 	}
-}
-
-fn prepare_validator(index: u8) -> (secp256k1::SecretKey, Address) {
-	let secret_key = secp256k1::SecretKey::parse(&[index + 1; 32]).unwrap();
-	let public_key = secp256k1::PublicKey::from_secret_key(&secret_key);
-	let mut public_key_raw = [0u8; 64];
-	public_key_raw.copy_from_slice(&public_key.serialize()[1..]);
-	let address = public_to_address(&public_key_raw);
-	(secret_key, address)
-}
-
-fn prepare_header(
-	number: u64,
-	parent_hash: H256,
-	step: u64,
-	validator: &(secp256k1::SecretKey, Address),
-	customize: impl FnOnce(Header) -> Header,
-) -> Header {
-	let mut header = customize(Header {
-		number,
-		parent_hash,
-		gas_limit: 0x2000.into(),
-		author: validator.1,
-		seal: vec![
-			primitives::rlp_encode(&step),
-			vec![],
-		],
-		difficulty: 0x2000.into(),
-		..Default::default()
-	});
-	// TODO: fn signed_header()
-	let message = secp256k1::Message::parse(header.seal_hash(false).unwrap().as_fixed_bytes());
-	let (signature, recovery_id) = secp256k1::sign(&message, &validator.0);
-	let mut serialized_signature = [0u8; 65];
-	serialized_signature[0..64].copy_from_slice(&signature.serialize());
-	serialized_signature[64] = recovery_id.serialize();
-	let signature = primitives::H520::from(serialized_signature);
-	header.seal[1] = primitives::rlp_encode(&signature);
-	header
 }

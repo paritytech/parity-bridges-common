@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+pub use crate::test_utils::{secret_to_address, HeaderBuilder, GAS_LIMIT};
+
 use crate::finality::FinalityVotes;
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
-use crate::{AuraConfiguration, GenesisConfig, HeaderToImport, HeadersByNumber, PruningStrategy, Storage, Trait};
-use frame_support::StorageMap;
+use crate::{AuraConfiguration, GenesisConfig, HeaderToImport, PruningStrategy, Storage, Trait};
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
-use parity_crypto::publickey::{sign, KeyPair, Secret};
-use primitives::{rlp_encode, H520};
 use primitives::{Address, Header, H256, U256};
+use secp256k1::SecretKey;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
 	traits::{BlakeTwo256, IdentityLookup},
@@ -84,8 +84,17 @@ impl Trait for TestRuntime {
 	type OnHeadersSubmitted = ();
 }
 
-/// Step of genesis header.
-pub const GENESIS_STEP: u64 = 42;
+/// Test context.
+pub struct TestContext {
+	/// Initial (genesis) header.
+	pub genesis: Header,
+	/// Number of initial validators.
+	pub total_validators: usize,
+	/// Secret keys of validators, ordered by validator index.
+	pub validators: Vec<SecretKey>,
+	/// Addresses of validators, ordered by validator index.
+	pub addresses: Vec<Address>,
+}
 
 /// Aura configuration that is used in tests by default.
 pub fn test_aura_config() -> AuraConfiguration {
@@ -108,72 +117,60 @@ pub fn test_validators_config() -> ValidatorsConfiguration {
 
 /// Genesis header that is used in tests by default.
 pub fn genesis() -> Header {
-	Header {
-		seal: vec![vec![GENESIS_STEP as _].into(), vec![].into()],
-		..Default::default()
-	}
-}
-
-/// Build default i-th block, using data from runtime storage.
-pub fn block_i(number: u64, validators: &[KeyPair]) -> Header {
-	custom_block_i(number, validators, |_| {})
-}
-
-/// Build custom i-th block, using data from runtime storage.
-pub fn custom_block_i(number: u64, validators: &[KeyPair], customize: impl FnOnce(&mut Header)) -> Header {
-	let validator_index: u8 = (number % (validators.len() as u64)) as _;
-	let mut header = Header {
-		number,
-		parent_hash: HeadersByNumber::get(number - 1).unwrap()[0].clone(),
-		gas_limit: 0x2000.into(),
-		author: validator(validator_index).address(),
-		seal: vec![vec![(number + GENESIS_STEP) as u8].into(), vec![].into()],
-		difficulty: number.into(),
-		..Default::default()
-	};
-	customize(&mut header);
-	signed_header(validators, header, number + GENESIS_STEP)
-}
-
-/// Build signed header from given header.
-pub fn signed_header(validators: &[KeyPair], mut header: Header, step: u64) -> Header {
-	let message = header.seal_hash(false).unwrap();
-	let validator_index = (step % validators.len() as u64) as usize;
-	let signature = sign(validators[validator_index].secret(), &message.as_fixed_bytes().into()).unwrap();
-	let signature: [u8; 65] = signature.into();
-	let signature = H520::from(signature);
-	header.seal[1] = rlp_encode(&signature);
-	header
+	HeaderBuilder::genesis().sign_by(&validator(0))
 }
 
 /// Return key pair of given test validator.
-pub fn validator(index: u8) -> KeyPair {
-	KeyPair::from_secret(Secret::from([index + 1; 32])).unwrap()
+pub fn validator(index: usize) -> SecretKey {
+	let mut raw_secret = [0u8; 32];
+	raw_secret[..8].copy_from_slice(&(index + 1).to_le_bytes());
+	SecretKey::parse(&raw_secret).unwrap()
 }
 
 /// Return key pairs of all test validators.
-pub fn validators(count: u8) -> Vec<KeyPair> {
+pub fn validators(count: usize) -> Vec<SecretKey> {
 	(0..count).map(validator).collect()
 }
 
+/// Return address of test validator.
+pub fn validator_address(index: usize) -> Address {
+	secret_to_address(&validator(index))
+}
+
 /// Return addresses of all test validators.
-pub fn validators_addresses(count: u8) -> Vec<Address> {
-	(0..count).map(|i| validator(i).address()).collect()
+pub fn validators_addresses(count: usize) -> Vec<Address> {
+	(0..count).map(validator_address).collect()
 }
 
-/// Prepare externalities to start with custom initial header.
-pub fn custom_test_ext(initial_header: Header, initial_validators: Vec<Address>) -> sp_io::TestExternalities {
-	let t = GenesisConfig {
-		initial_header,
-		initial_difficulty: 0.into(),
-		initial_validators,
-	}
-	.build_storage::<TestRuntime>()
-	.unwrap();
-	sp_io::TestExternalities::new(t)
+/// Run test with default genesis header.
+pub fn run_test<T>(total_validators: usize, test: impl FnOnce(TestContext) -> T) -> T {
+	run_test_with_genesis(genesis(), total_validators, test)
 }
 
-/// Insert header into storage.
+/// Run test with default genesis header.
+pub fn run_test_with_genesis<T>(genesis: Header, total_validators: usize, test: impl FnOnce(TestContext) -> T) -> T {
+	let validators = validators(total_validators);
+	let addresses = validators_addresses(total_validators);
+	sp_io::TestExternalities::new(
+		GenesisConfig {
+			initial_header: genesis.clone(),
+			initial_difficulty: 0.into(),
+			initial_validators: addresses.clone(),
+		}
+		.build_storage::<TestRuntime>()
+		.unwrap(),
+	)
+	.execute_with(|| {
+		test(TestContext {
+			genesis,
+			total_validators,
+			validators,
+			addresses,
+		})
+	})
+}
+
+/// Insert unverified header into storage.
 pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
 	storage.insert_header(HeaderToImport {
 		context: storage.import_context(None, &header.parent_hash).unwrap(),

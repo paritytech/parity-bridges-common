@@ -59,7 +59,7 @@ features = ["hmac"]
 [dev-dependencies]
 # TODO: Stop renaming this on import
 primitives = { package = "sp-bridge-eth-poa", path = "../../primitives/ethereum-poa", features = ["std", "test-helpers"] }
-parity-crypto = { version = "0.6", features = ["publickey"] }
+libsecp256k1 = { version = "0.3.4", features = ["hmac"] }
 
 [features]
 default = ["std"]

@@ -88,8 +88,10 @@ pub fn run() -> sc_cli::Result<()> {
 
 				runner.sync_run(|config| cmd.run::<Block, service::Executor>(config))
 			} else {
-				println!("Benchmarking wasn't enabled when building the node. \
-				You can enable it with `--features runtime-benchmarks`.");
+				println!(
+					"Benchmarking wasn't enabled when building the node. \
+				You can enable it with `--features runtime-benchmarks`."
+				);
 				Ok(())
 			}
 		}

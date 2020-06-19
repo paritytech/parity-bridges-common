@@ -3333,7 +3333,6 @@ dependencies = [
  "frame-system",
  "hex-literal",
  "libsecp256k1",
- "parity-crypto",
  "parity-scale-codec",
  "serde",
  "sp-bridge-eth-poa",

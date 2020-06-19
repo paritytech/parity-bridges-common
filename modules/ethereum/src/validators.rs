@@ -274,14 +274,14 @@ impl ValidatorsSource {
 }
 
 /// Get validator that should author the block at given step.
-pub fn step_validator(header_validators: &[Address], header_step: u64) -> Address {
-	header_validators[(header_step % header_validators.len() as u64) as usize]
+pub fn step_validator<T>(header_validators: &[T], header_step: u64) -> &T {
+	&header_validators[(header_step % header_validators.len() as u64) as usize]
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::mock::{custom_test_ext, genesis, validators_addresses, TestRuntime};
+	use crate::mock::{run_test, validators_addresses, TestRuntime};
 	use crate::{BridgeStorage, Headers, ScheduledChange, ScheduledChanges, StoredHeader};
 	use frame_support::StorageMap;
 	use primitives::{TransactionOutcome, H256};
@@ -425,7 +425,7 @@ pub(crate) mod tests {
 	}
 
 	fn try_finalize_with_scheduled_change(scheduled_at: Option<HeaderId>) -> Option<ChangeToEnact> {
-		custom_test_ext(genesis(), validators_addresses(3)).execute_with(|| {
+		run_test(3, |_| {
 			let config = ValidatorsConfiguration::Single(ValidatorsSource::Contract(Default::default(), Vec::new()));
 			let validators = Validators::new(&config);
 			let storage = BridgeStorage::<TestRuntime>::new();
