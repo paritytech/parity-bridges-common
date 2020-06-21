@@ -31,6 +31,8 @@ use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::SourceHeader;
 
 use async_trait::async_trait;
+use num_traits::Zero;
+
 use std::{collections::HashSet, time::Duration};
 
 /// Interval at which we check new Substrate headers when we are synced/almost synced.
@@ -192,10 +194,19 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 /// Run Substrate headers synchronization.
 pub fn run(params: SubstrateSyncParams) {
 	let eth_client = EthereumRpcClient::new(params.eth);
-	let sub_client = SubstrateRpcClient::new(params.sub);
+	let mut sub_client = SubstrateRpcClient::new(params.sub);
 
-	let source = SubstrateHeadersSource::new(sub_client);
+	let genesis_hash = async_std::task::block_on(async {
+		sub_client
+			.block_hash_by_number(Zero::zero())
+			.await
+			.expect("Q: Should we continue if we don't have a genesis hash?")
+	});
+
+	sub_client.set_genesis_hash(Some(genesis_hash));
+
 	let target = EthereumHeadersTarget::new(eth_client, params.eth_contract_address, params.eth_sign);
+	let source = SubstrateHeadersSource::new(sub_client);
 
 	crate::sync_loop::run(
 		source,

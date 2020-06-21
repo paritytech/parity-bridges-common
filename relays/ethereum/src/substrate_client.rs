@@ -101,6 +101,10 @@ impl SubstrateRpcClient {
 			genesis_hash: None,
 		}
 	}
+
+	pub(crate) fn set_genesis_hash(&mut self, genesis_hash: Option<H256>) {
+		self.genesis_hash = genesis_hash;
+	}
 }
 
 #[async_trait]
@@ -234,9 +238,9 @@ impl SubmitEthereumHeaders for SubstrateRpcClient {
 		let genesis_hash = match self.genesis_hash {
 			Some(genesis_hash) => genesis_hash,
 			None => {
+				// NOTE: If we do continue after the `expect()` during setup, we can maybe just take
+				// the L and call this every time we submit headers
 				let genesis_hash = self.block_hash_by_number(Zero::zero()).await?;
-				// TODO: Fix, need &mut
-				// self.genesis_hash = Some(genesis_hash);
 				genesis_hash
 			}
 		};

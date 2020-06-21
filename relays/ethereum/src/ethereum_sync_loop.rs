@@ -29,8 +29,10 @@ use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::SourceHeader;
 
 use async_trait::async_trait;
-use std::{collections::HashSet, time::Duration};
+use num_traits::Zero;
 use web3::types::H256;
+
+use std::{collections::HashSet, time::Duration};
 
 /// Interval at which we check new Ethereum headers when we are synced/almost synced.
 const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(10);
@@ -181,12 +183,21 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 /// Run Ethereum headers synchronization.
 pub fn run(params: EthereumSyncParams) {
 	let eth_client = EthereumRpcClient::new(params.eth);
-	let sub_client = SubstrateRpcClient::new(params.sub);
+	let mut sub_client = SubstrateRpcClient::new(params.sub);
 
 	let sign_sub_transactions = match params.sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,
 		TargetTransactionMode::Unsigned => false,
 	};
+
+	let genesis_hash = async_std::task::block_on(async {
+		sub_client
+			.block_hash_by_number(Zero::zero())
+			.await
+			.expect("Q: Should we continue if we don't have a genesis hash?")
+	});
+
+	sub_client.set_genesis_hash(Some(genesis_hash));
 
 	let source = EthereumHeadersSource::new(eth_client);
 	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, params.sub_sign);
