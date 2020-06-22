@@ -42,7 +42,7 @@ type Result<T> = std::result::Result<T, RpcError>;
 type GrandpaAuthorityList = Vec<u8>;
 
 /// Substrate connection params.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SubstrateConnectionParams {
 	/// Substrate RPC host.
 	pub host: String,
@@ -85,25 +85,21 @@ pub struct SubstrateRpcClient {
 	/// Substrate RPC client.
 	client: Client,
 	/// Genesis block hash.
-	genesis_hash: Option<H256>,
+	genesis_hash: H256,
 }
 
 impl SubstrateRpcClient {
 	/// Returns client that is able to call RPCs on Substrate node.
-	pub fn new(params: SubstrateConnectionParams) -> Self {
+	pub async fn new(params: SubstrateConnectionParams) -> Result<Self> {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
 		let raw_client = RawClient::new(transport);
 		let client: Client = raw_client.into();
 
-		Self {
-			client,
-			genesis_hash: None,
-		}
-	}
+		let number: Number = Zero::zero();
+		let genesis_hash = Substrate::chain_get_block_hash(&client, number).await?;
 
-	pub(crate) fn set_genesis_hash(&mut self, genesis_hash: Option<H256>) {
-		self.genesis_hash = genesis_hash;
+		Ok(Self { client, genesis_hash })
 	}
 }
 
@@ -235,20 +231,10 @@ impl SubmitEthereumHeaders for SubstrateRpcClient {
 	) -> Result<Vec<EthereumHeaderId>> {
 		let ids = headers.iter().map(|header| header.id()).collect();
 
-		let genesis_hash = match self.genesis_hash {
-			Some(genesis_hash) => genesis_hash,
-			None => {
-				// NOTE: If we do continue after the `expect()` during setup, we can maybe just take
-				// the L and call this every time we submit headers
-				let genesis_hash = self.block_hash_by_number(Zero::zero()).await?;
-				genesis_hash
-			}
-		};
-
 		let account_id = params.signer.public().as_array_ref().clone().into();
 		let nonce = self.next_account_index(account_id).await?;
 
-		let transaction = create_signed_submit_transaction(headers, &params.signer, nonce, genesis_hash);
+		let transaction = create_signed_submit_transaction(headers, &params.signer, nonce, self.genesis_hash);
 		let _ = self.submit_extrinsic(Bytes(transaction.encode())).await?;
 
 		Ok(ids)

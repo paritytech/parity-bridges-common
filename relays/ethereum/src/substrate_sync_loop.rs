@@ -31,7 +31,6 @@ use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::SourceHeader;
 
 use async_trait::async_trait;
-use num_traits::Zero;
 
 use std::{collections::HashSet, time::Duration};
 
@@ -47,7 +46,7 @@ const MAX_SUBMITTED_HEADERS: usize = 4;
 const PRUNE_DEPTH: u32 = 256;
 
 /// Substrate synchronization parameters.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SubstrateSyncParams {
 	/// Ethereum connection params.
 	pub eth: EthereumConnectionParams,
@@ -193,17 +192,11 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 
 /// Run Substrate headers synchronization.
 pub fn run(params: SubstrateSyncParams) {
+	let sub_params = params.clone();
+
 	let eth_client = EthereumRpcClient::new(params.eth);
-	let mut sub_client = SubstrateRpcClient::new(params.sub);
-
-	let genesis_hash = async_std::task::block_on(async {
-		sub_client
-			.block_hash_by_number(Zero::zero())
-			.await
-			.expect("Q: Should we continue if we don't have a genesis hash?")
-	});
-
-	sub_client.set_genesis_hash(Some(genesis_hash));
+	let sub_client =
+		async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub).await.expect("What do?") });
 
 	let target = EthereumHeadersTarget::new(eth_client, params.eth_contract_address, params.eth_sign);
 	let source = SubstrateHeadersSource::new(sub_client);

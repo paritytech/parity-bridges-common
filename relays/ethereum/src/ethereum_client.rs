@@ -38,7 +38,7 @@ ethabi_contract::use_contract!(bridge_contract, "res/substrate-bridge-abi.json")
 type Result<T> = std::result::Result<T, RpcError>;
 
 /// Ethereum connection params.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EthereumConnectionParams {
 	/// Ethereum RPC host.
 	pub host: String,
