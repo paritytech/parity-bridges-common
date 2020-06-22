@@ -33,8 +33,6 @@ pub enum RpcError {
 	/// An error that can occur when making an HTTP request to
 	/// an JSON-RPC client.
 	Request(RequestError),
-	/// The response from the client could not be SCALE decoded.
-	Decoding(codec::Error),
 }
 
 impl From<serde_json::Error> for RpcError {
@@ -70,8 +68,7 @@ impl From<ethabi::Error> for RpcError {
 impl MaybeConnectionError for RpcError {
 	fn is_connection_error(&self) -> bool {
 		match *self {
-			RpcError::Substrate(SubstrateNodeError::StartRequestFailed(_))
-			| RpcError::Request(RequestError::TransportError(_)) => true,
+			RpcError::Request(RequestError::TransportError(_)) => true,
 			_ => false,
 		}
 	}
@@ -79,7 +76,7 @@ impl MaybeConnectionError for RpcError {
 
 impl From<codec::Error> for RpcError {
 	fn from(err: codec::Error) -> Self {
-		Self::Decoding(err)
+		Self::Substrate(SubstrateNodeError::Decoding(err))
 	}
 }
 
@@ -102,10 +99,6 @@ pub enum EthereumNodeError {
 /// a Substrate node through RPC.
 #[derive(Debug)]
 pub enum SubstrateNodeError {
-	/// Request start failed.
-	StartRequestFailed(RequestError),
-	/// Error serializing request.
-	RequestSerialization(serde_json::Error),
-	/// Failed to parse response.
-	ResponseParseFailed,
+	/// The response from the client could not be SCALE decoded.
+	Decoding(codec::Error),
 }
