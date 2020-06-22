@@ -17,6 +17,11 @@
 //! RPC Module
 
 #![warn(missing_docs)]
+
+// The compiler doesn't think we're using the
+// code from rpc_api!
+#![allow(dead_code)]
+#![allow(unused_variables)]
 use std::result;
 
 use crate::ethereum_types::{
