@@ -35,6 +35,17 @@ pub enum RpcError {
 	Request(RequestError),
 }
 
+impl From<RpcError> for String {
+	fn from(err: RpcError) -> Self {
+		match err {
+			RpcError::Serialization(e) => e.to_string(),
+			RpcError::Ethereum(e) => e.to_string(),
+			RpcError::Substrate(e) => e.to_string(),
+			RpcError::Request(e) => e.to_string(),
+		}
+	}
+}
+
 impl From<serde_json::Error> for RpcError {
 	fn from(err: serde_json::Error) -> Self {
 		Self::Serialization(err)
@@ -95,10 +106,30 @@ pub enum EthereumNodeError {
 	InvalidSubstrateBlockNumber,
 }
 
+impl ToString for EthereumNodeError {
+	fn to_string(&self) -> String {
+		match self {
+			Self::ResponseParseFailed(e) => e,
+			Self::IncompleteHeader => "Incomplete Ethereum Header Received",
+			Self::IncompleteReceipt => "Incomplete Ethereum Receipt Recieved",
+			Self::InvalidSubstrateBlockNumber => "Received an invalid Substrate block from Ethereum Node",
+		}
+		.to_string()
+	}
+}
+
 /// Errors that can occur only when interacting with
 /// a Substrate node through RPC.
 #[derive(Debug)]
 pub enum SubstrateNodeError {
 	/// The response from the client could not be SCALE decoded.
 	Decoding(codec::Error),
+}
+
+impl ToString for SubstrateNodeError {
+	fn to_string(&self) -> String {
+		match self {
+			Self::Decoding(e) => e.what().to_string(),
+		}
+	}
 }
