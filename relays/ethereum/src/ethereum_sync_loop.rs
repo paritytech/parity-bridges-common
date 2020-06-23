@@ -181,12 +181,11 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 }
 
 /// Run Ethereum headers synchronization.
-pub fn run(params: EthereumSyncParams) {
+pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 	let sub_params = params.clone();
 
 	let eth_client = EthereumRpcClient::new(params.eth);
-	let sub_client =
-		async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub).await.expect("What do?") });
+	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub).await })?;
 
 	let sign_sub_transactions = match params.sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,
@@ -203,4 +202,6 @@ pub fn run(params: EthereumSyncParams) {
 		SUBSTRATE_TICK_INTERVAL,
 		params.sync_params,
 	);
+
+	Ok(())
 }
