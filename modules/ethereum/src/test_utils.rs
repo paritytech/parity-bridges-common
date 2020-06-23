@@ -14,10 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::validators::step_validator;
 use crate::verification::calculate_score;
-use primitives::{rlp_encode, Address, Bloom, Header, SealedEmptyStep, H256, H520, U256};
+
+use primitives::{
+	rlp_encode, secret_to_address, sign, step_validator, Address, Bloom, Header, SealedEmptyStep, H256, H520, U256,
+};
 use secp256k1::{Message, PublicKey, SecretKey};
+use sp_std::prelude::*;
 
 /// Gas limit valid in test environment.
 pub const GAS_LIMIT: u64 = 0x2000;
@@ -166,38 +169,44 @@ impl HeaderBuilder {
 		self.header.timestamp = timestamp;
 		self
 	}
-
-	/// Signs header by given author.
-	pub fn sign_by(mut self, author: &SecretKey) -> Header {
-		self.header.author = secret_to_address(author);
-
-		let message = self.header.seal_hash(false).unwrap();
-		let signature = sign(author, message);
-		self.header.seal[1] = rlp_encode(&signature);
-		self.header
-	}
-
-	/// Signs header by given authors set.
-	pub fn sign_by_set(self, authors: &[SecretKey]) -> Header {
-		let step = self.header.step().unwrap();
-		let author = step_validator(authors, step);
-		self.sign_by(author)
-	}
 }
 
-/// Returns address correspnding to given secret key.
-pub fn secret_to_address(secret: &SecretKey) -> Address {
-	let public = PublicKey::from_secret_key(secret);
-	let mut raw_public = [0u8; 64];
-	raw_public.copy_from_slice(&public.serialize()[1..]);
-	primitives::public_to_address(&raw_public)
+pub fn build_genesis_header(author: &SecretKey) -> Header {
+	let mut genesis = HeaderBuilder::genesis();
+	genesis.header.sign_by(&author)
 }
 
-/// Return author's signature over given message.
-pub fn sign(author: &SecretKey, message: H256) -> H520 {
-	let (signature, recovery_id) = secp256k1::sign(&Message::parse(message.as_fixed_bytes()), author);
-	let mut raw_signature = [0u8; 65];
-	raw_signature[..64].copy_from_slice(&signature.serialize());
-	raw_signature[64] = recovery_id.serialize();
-	raw_signature.into()
+pub fn build_custom_header<F>(author: &SecretKey, previous: &Header, customize_header: F) -> Header
+where
+	F: FnOnce(Header) -> Header,
+{
+	let mut new_header = HeaderBuilder::with_parent(&previous);
+	let custom_header = customize_header(new_header.header);
+	custom_header.sign_by(author)
+}
+
+pub mod validator_utils {
+	use super::*;
+
+	/// Return key pair of given test validator.
+	pub fn validator(index: usize) -> SecretKey {
+		let mut raw_secret = [0u8; 32];
+		raw_secret[..8].copy_from_slice(&(index + 1).to_le_bytes());
+		SecretKey::parse(&raw_secret).unwrap()
+	}
+
+	/// Return key pairs of all test validators.
+	pub fn validators(count: usize) -> Vec<SecretKey> {
+		(0..count).map(validator).collect()
+	}
+
+	/// Return address of test validator.
+	pub fn validator_address(index: usize) -> Address {
+		secret_to_address(&validator(index))
+	}
+
+	/// Return addresses of all test validators.
+	pub fn validators_addresses(count: usize) -> Vec<Address> {
+		(0..count).map(validator_address).collect()
+	}
 }

@@ -15,10 +15,12 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::error::Error;
-use crate::validators::{step_validator, Validators, ValidatorsConfiguration};
+use crate::validators::{Validators, ValidatorsConfiguration};
 use crate::{AuraConfiguration, ImportContext, PoolConfiguration, ScheduledChange, Storage};
 use codec::Encode;
-use primitives::{public_to_address, Address, Header, HeaderId, Receipt, SealedEmptyStep, H256, H520, U128, U256};
+use primitives::{
+	public_to_address, step_validator, Address, Header, HeaderId, Receipt, SealedEmptyStep, H256, H520, U128, U256,
+};
 use sp_io::crypto::secp256k1_ecdsa_recover;
 use sp_std::{vec, vec::Vec};
 

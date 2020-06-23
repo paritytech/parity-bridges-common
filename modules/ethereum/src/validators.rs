@@ -273,11 +273,6 @@ impl ValidatorsSource {
 	}
 }
 
-/// Get validator that should author the block at given step.
-pub fn step_validator<T>(header_validators: &[T], header_step: u64) -> &T {
-	&header_validators[(header_step % header_validators.len() as u64) as usize]
-}
-
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;

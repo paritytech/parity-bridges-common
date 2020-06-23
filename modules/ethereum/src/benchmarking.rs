@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::test_utils::{build_custom_header, build_genesis_header};
-use crate::{import_unsigned_header, initialize_storage};
+use super::*;
+
+use crate::test_utils::{build_custom_header, build_genesis_header, validator_utils::*};
 
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
-use primitives::public_to_address;
+use primitives::U256;
 
 benchmarks! {
 	_ { }
@@ -51,6 +52,7 @@ benchmarks! {
 				header
 			},
 		);
+
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		assert_eq!(BridgeStorage::<T>::new().best_block().0.number, 1);

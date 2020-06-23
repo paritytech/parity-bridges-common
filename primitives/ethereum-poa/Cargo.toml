@@ -20,6 +20,12 @@ hash-db = { version = "0.15.2", default-features = false }
 triehash = { version = "0.8.2", default-features = false }
 plain_hasher = { version = "0.2.2", default-features = false }
 
+# TODO; Make Dev dependency?
+[dependencies.libsecp256k1]
+version = "0.3.4"
+default-features = false
+features = ["hmac"]
+
 [dev-dependencies]
 hex-literal = "0.2"
 

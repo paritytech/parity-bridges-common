@@ -77,4 +77,5 @@ std = [
 runtime-benchmarks = [
 	"frame-benchmarking",
 	"libsecp256k1",
+	"primitives/test-helpers", # TODO: Look into removing
 ]

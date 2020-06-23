@@ -29,6 +29,9 @@ use sp_io::hashing::keccak_256;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
+// TODO: Should this be feature flagged?
+use secp256k1::{Message, PublicKey, SecretKey};
+
 use impl_rlp::impl_fixed_hash_rlp;
 #[cfg(feature = "std")]
 use impl_serde::impl_fixed_hash_serde;
@@ -255,6 +258,43 @@ impl Header {
 
 		s.out()
 	}
+
+	// TODO: Feature flag these
+	/// Signs header by given author.
+	pub fn sign_by(mut self, author: &SecretKey) -> Self {
+		self.author = secret_to_address(author);
+
+		let message = self.seal_hash(false).unwrap();
+		let signature = sign(author, message);
+		self.seal[1] = rlp_encode(&signature);
+		self
+	}
+
+	/// Signs header by given authors set.
+	pub fn sign_by_set(self, authors: &[SecretKey]) -> Header {
+		let step = self.step().unwrap();
+		let author = step_validator(authors, step);
+		self.sign_by(author)
+	}
+}
+
+// TODO: Feature flag
+/// Return author's signature over given message.
+pub fn sign(author: &SecretKey, message: H256) -> H520 {
+	let (signature, recovery_id) = secp256k1::sign(&Message::parse(message.as_fixed_bytes()), author);
+	let mut raw_signature = [0u8; 65];
+	raw_signature[..64].copy_from_slice(&signature.serialize());
+	raw_signature[64] = recovery_id.serialize();
+	raw_signature.into()
+}
+
+// TODO: Feature flag
+/// Returns address corresponding to given secret key.
+pub fn secret_to_address(secret: &SecretKey) -> Address {
+	let public = PublicKey::from_secret_key(secret);
+	let mut raw_public = [0u8; 64];
+	raw_public.copy_from_slice(&public.serialize()[1..]);
+	public_to_address(&raw_public)
 }
 
 impl Receipt {
@@ -302,6 +342,7 @@ impl SealedEmptyStep {
 	}
 
 	/// Returns rlp for the vector of empty steps (we only do encoding in tests).
+	// TODO: Do we really need an entire feature flag for one method?
 	#[cfg(feature = "test-helpers")]
 	pub fn rlp_of(empty_steps: &[SealedEmptyStep]) -> Bytes {
 		let mut s = RlpStream::new();
@@ -454,6 +495,13 @@ pub fn compute_merkle_root<T: AsRef<[u8]>>(items: impl Iterator<Item = T>) -> H2
 	}
 
 	triehash::ordered_trie_root::<Keccak256Hasher, _>(items)
+}
+
+// TODO: Move elsewhere? I move it here since I want the flow of imports to be from primitives ->
+// pallets, and not the other way around
+/// Get validator that should author the block at given step.
+pub fn step_validator<T>(header_validators: &[T], header_step: u64) -> &T {
+	&header_validators[(header_step % header_validators.len() as u64) as usize]
 }
 
 sp_api::decl_runtime_apis! {

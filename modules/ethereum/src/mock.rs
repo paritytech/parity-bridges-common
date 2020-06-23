@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-pub use crate::test_utils::{secret_to_address, HeaderBuilder, GAS_LIMIT};
+pub use crate::test_utils::{secret_to_address, validator_utils::*, HeaderBuilder, GAS_LIMIT};
 
 use crate::finality::FinalityVotes;
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
@@ -118,28 +118,6 @@ pub fn test_validators_config() -> ValidatorsConfiguration {
 /// Genesis header that is used in tests by default.
 pub fn genesis() -> Header {
 	HeaderBuilder::genesis().sign_by(&validator(0))
-}
-
-/// Return key pair of given test validator.
-pub fn validator(index: usize) -> SecretKey {
-	let mut raw_secret = [0u8; 32];
-	raw_secret[..8].copy_from_slice(&(index + 1).to_le_bytes());
-	SecretKey::parse(&raw_secret).unwrap()
-}
-
-/// Return key pairs of all test validators.
-pub fn validators(count: usize) -> Vec<SecretKey> {
-	(0..count).map(validator).collect()
-}
-
-/// Return address of test validator.
-pub fn validator_address(index: usize) -> Address {
-	secret_to_address(&validator(index))
-}
-
-/// Return addresses of all test validators.
-pub fn validators_addresses(count: usize) -> Vec<Address> {
-	(0..count).map(validator_address).collect()
 }
 
 /// Run test with default genesis header.

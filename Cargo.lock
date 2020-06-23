@@ -5639,6 +5639,7 @@ dependencies = [
  "hex-literal",
  "impl-rlp",
  "impl-serde 0.2.3",
+ "libsecp256k1",
  "parity-bytes",
  "parity-scale-codec",
  "plain_hasher",
