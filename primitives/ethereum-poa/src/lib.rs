@@ -29,7 +29,7 @@ use sp_io::hashing::keccak_256;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
-// TODO: Should this be feature flagged?
+#[cfg(feature = "test-helpers")]
 use secp256k1::{Message, PublicKey, SecretKey};
 
 use impl_rlp::impl_fixed_hash_rlp;
@@ -259,8 +259,8 @@ impl Header {
 		s.out()
 	}
 
-	// TODO: Feature flag these
 	/// Signs header by given author.
+	#[cfg(any(feature = "test-helpers", test))]
 	pub fn sign_by(mut self, author: &SecretKey) -> Self {
 		self.author = secret_to_address(author);
 
@@ -271,30 +271,12 @@ impl Header {
 	}
 
 	/// Signs header by given authors set.
+	#[cfg(any(feature = "test-helpers", test))]
 	pub fn sign_by_set(self, authors: &[SecretKey]) -> Header {
 		let step = self.step().unwrap();
 		let author = step_validator(authors, step);
 		self.sign_by(author)
 	}
-}
-
-// TODO: Feature flag
-/// Return author's signature over given message.
-pub fn sign(author: &SecretKey, message: H256) -> H520 {
-	let (signature, recovery_id) = secp256k1::sign(&Message::parse(message.as_fixed_bytes()), author);
-	let mut raw_signature = [0u8; 65];
-	raw_signature[..64].copy_from_slice(&signature.serialize());
-	raw_signature[64] = recovery_id.serialize();
-	raw_signature.into()
-}
-
-// TODO: Feature flag
-/// Returns address corresponding to given secret key.
-pub fn secret_to_address(secret: &SecretKey) -> Address {
-	let public = PublicKey::from_secret_key(secret);
-	let mut raw_public = [0u8; 64];
-	raw_public.copy_from_slice(&public.serialize()[1..]);
-	public_to_address(&raw_public)
 }
 
 impl Receipt {
@@ -474,6 +456,25 @@ pub fn public_to_address(public: &[u8; 64]) -> Address {
 	let mut result = Address::zero();
 	result.as_bytes_mut().copy_from_slice(&hash[12..]);
 	result
+}
+
+/// Return author's signature over given message.
+#[cfg(feature = "test-helpers")]
+pub fn sign(author: &SecretKey, message: H256) -> H520 {
+	let (signature, recovery_id) = secp256k1::sign(&Message::parse(message.as_fixed_bytes()), author);
+	let mut raw_signature = [0u8; 65];
+	raw_signature[..64].copy_from_slice(&signature.serialize());
+	raw_signature[64] = recovery_id.serialize();
+	raw_signature.into()
+}
+
+/// Returns address corresponding to given secret key.
+#[cfg(feature = "test-helpers")]
+pub fn secret_to_address(secret: &SecretKey) -> Address {
+	let public = PublicKey::from_secret_key(secret);
+	let mut raw_public = [0u8; 64];
+	raw_public.copy_from_slice(&public.serialize()[1..]);
+	public_to_address(&raw_public)
 }
 
 /// Verify ethereum merkle proof.

@@ -16,16 +16,15 @@
 
 use crate::verification::calculate_score;
 
-use primitives::{
-	rlp_encode, secret_to_address, sign, step_validator, Address, Bloom, Header, SealedEmptyStep, H256, H520, U256,
-};
-use secp256k1::{Message, PublicKey, SecretKey};
+use primitives::{rlp_encode, secret_to_address, sign, Address, Bloom, Header, SealedEmptyStep, H256, U256};
+use secp256k1::SecretKey;
 use sp_std::prelude::*;
 
 /// Gas limit valid in test environment.
 pub const GAS_LIMIT: u64 = 0x2000;
 
 /// Test header builder.
+// TODO: I think this needs to be behind a testing + bench feature flag
 pub struct HeaderBuilder {
 	header: Header,
 	parent_header: Header,
@@ -169,18 +168,30 @@ impl HeaderBuilder {
 		self.header.timestamp = timestamp;
 		self
 	}
+
+	/// Signs header by given author.
+	pub fn sign_by(self, author: &SecretKey) -> Header {
+		self.header.sign_by(author)
+	}
+
+	/// Signs header by given authors set.
+	pub fn sign_by_set(self, authors: &[SecretKey]) -> Header {
+		self.header.sign_by_set(authors)
+	}
 }
 
+/// Helper function for getting a genesis header which has been signed by an authority.
 pub fn build_genesis_header(author: &SecretKey) -> Header {
-	let mut genesis = HeaderBuilder::genesis();
+	let genesis = HeaderBuilder::genesis();
 	genesis.header.sign_by(&author)
 }
 
+/// Helper function for building a custom child header which has been signed by an authority.
 pub fn build_custom_header<F>(author: &SecretKey, previous: &Header, customize_header: F) -> Header
 where
 	F: FnOnce(Header) -> Header,
 {
-	let mut new_header = HeaderBuilder::with_parent(&previous);
+	let new_header = HeaderBuilder::with_parent(&previous);
 	let custom_header = customize_header(new_header.header);
 	custom_header.sign_by(author)
 }
