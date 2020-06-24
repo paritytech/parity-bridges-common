@@ -16,7 +16,7 @@
 
 use crate::verification::calculate_score;
 
-use primitives::{rlp_encode, secret_to_address, sign, Address, Bloom, Header, SealedEmptyStep, H256, U256};
+use primitives::{rlp_encode, secret_to_address, sign, Address, Bloom, Header, SealedEmptyStep, H256, U256, SignHeader};
 use secp256k1::SecretKey;
 use sp_std::prelude::*;
 

@@ -258,10 +258,18 @@ impl Header {
 
 		s.out()
 	}
+}
 
+#[cfg(any(feature = "test-helpers", test))]
+pub trait SignHeader {
+	fn sign_by(self, author: &SecretKey) -> Header;
+	fn sign_by_set(self, authors: &[SecretKey]) -> Header;
+}
+
+#[cfg(any(feature = "test-helpers", test))]
+impl SignHeader for Header {
 	/// Signs header by given author.
-	#[cfg(any(feature = "test-helpers", test))]
-	pub fn sign_by(mut self, author: &SecretKey) -> Self {
+	fn sign_by(mut self, author: &SecretKey) -> Self {
 		self.author = secret_to_address(author);
 
 		let message = self.seal_hash(false).unwrap();
@@ -271,8 +279,7 @@ impl Header {
 	}
 
 	/// Signs header by given authors set.
-	#[cfg(any(feature = "test-helpers", test))]
-	pub fn sign_by_set(self, authors: &[SecretKey]) -> Header {
+	fn sign_by_set(self, authors: &[SecretKey]) -> Self {
 		let step = self.step().unwrap();
 		let author = step_validator(authors, step);
 		self.sign_by(author)
@@ -498,8 +505,6 @@ pub fn compute_merkle_root<T: AsRef<[u8]>>(items: impl Iterator<Item = T>) -> H2
 	triehash::ordered_trie_root::<Keccak256Hasher, _>(items)
 }
 
-// TODO: Move elsewhere? I move it here since I want the flow of imports to be from primitives ->
-// pallets, and not the other way around
 /// Get validator that should author the block at given step.
 pub fn step_validator<T>(header_validators: &[T], header_step: u64) -> &T {
 	&header_validators[(header_step % header_validators.len() as u64) as usize]
