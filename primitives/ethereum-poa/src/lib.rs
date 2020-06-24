@@ -304,7 +304,6 @@ impl SealedEmptyStep {
 	}
 
 	/// Returns rlp for the vector of empty steps (we only do encoding in tests).
-	// TODO: Do we really need an entire feature flag for one method?
 	#[cfg(feature = "test-helpers")]
 	pub fn rlp_of(empty_steps: &[SealedEmptyStep]) -> Bytes {
 		let mut s = RlpStream::new();
