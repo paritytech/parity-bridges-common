@@ -16,7 +16,11 @@
 
 use crate::verification::calculate_score;
 
-use primitives::{rlp_encode, secret_to_address, sign, Address, Bloom, Header, SealedEmptyStep, H256, U256, SignHeader};
+use primitives::{
+	rlp_encode,
+	signatures::{secret_to_address, sign, SignHeader},
+	Address, Bloom, Header, SealedEmptyStep, H256, U256,
+};
 use secp256k1::SecretKey;
 use sp_std::prelude::*;
 
@@ -24,7 +28,6 @@ use sp_std::prelude::*;
 pub const GAS_LIMIT: u64 = 0x2000;
 
 /// Test header builder.
-// TODO: I think this needs to be behind a testing + bench feature flag
 pub struct HeaderBuilder {
 	header: Header,
 	parent_header: Header,

@@ -18,7 +18,6 @@
 
 pub use parity_bytes::Bytes;
 pub use primitive_types::{H160, H256, H512, U128, U256};
-
 pub use rlp::encode as rlp_encode;
 
 use codec::{Decode, Encode};
@@ -28,9 +27,6 @@ use rlp::{Decodable, DecoderError, Rlp, RlpStream};
 use sp_io::hashing::keccak_256;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
-
-#[cfg(feature = "test-helpers")]
-use secp256k1::{Message, PublicKey, SecretKey};
 
 use impl_rlp::impl_fixed_hash_rlp;
 #[cfg(feature = "std")]
@@ -50,6 +46,9 @@ pub type RawTransaction = Vec<u8>;
 
 /// An ethereum address.
 pub type Address = H160;
+
+#[cfg(any(feature = "test-helpers", test))]
+pub mod signatures;
 
 /// Complete header id.
 #[derive(Encode, Decode, Default, RuntimeDebug, PartialEq, Clone, Copy)]
@@ -260,32 +259,6 @@ impl Header {
 	}
 }
 
-#[cfg(any(feature = "test-helpers", test))]
-pub trait SignHeader {
-	fn sign_by(self, author: &SecretKey) -> Header;
-	fn sign_by_set(self, authors: &[SecretKey]) -> Header;
-}
-
-#[cfg(any(feature = "test-helpers", test))]
-impl SignHeader for Header {
-	/// Signs header by given author.
-	fn sign_by(mut self, author: &SecretKey) -> Self {
-		self.author = secret_to_address(author);
-
-		let message = self.seal_hash(false).unwrap();
-		let signature = sign(author, message);
-		self.seal[1] = rlp_encode(&signature);
-		self
-	}
-
-	/// Signs header by given authors set.
-	fn sign_by_set(self, authors: &[SecretKey]) -> Self {
-		let step = self.step().unwrap();
-		let author = step_validator(authors, step);
-		self.sign_by(author)
-	}
-}
-
 impl Receipt {
 	/// Returns receipt RLP.
 	fn rlp(&self) -> Bytes {
@@ -463,25 +436,6 @@ pub fn public_to_address(public: &[u8; 64]) -> Address {
 	let mut result = Address::zero();
 	result.as_bytes_mut().copy_from_slice(&hash[12..]);
 	result
-}
-
-/// Return author's signature over given message.
-#[cfg(feature = "test-helpers")]
-pub fn sign(author: &SecretKey, message: H256) -> H520 {
-	let (signature, recovery_id) = secp256k1::sign(&Message::parse(message.as_fixed_bytes()), author);
-	let mut raw_signature = [0u8; 65];
-	raw_signature[..64].copy_from_slice(&signature.serialize());
-	raw_signature[64] = recovery_id.serialize();
-	raw_signature.into()
-}
-
-/// Returns address corresponding to given secret key.
-#[cfg(feature = "test-helpers")]
-pub fn secret_to_address(secret: &SecretKey) -> Address {
-	let public = PublicKey::from_secret_key(secret);
-	let mut raw_public = [0u8; 64];
-	raw_public.copy_from_slice(&public.serialize()[1..]);
-	public_to_address(&raw_public)
 }
 
 /// Verify ethereum merkle proof.
