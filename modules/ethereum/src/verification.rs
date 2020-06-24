@@ -366,13 +366,14 @@ mod tests {
 	use secp256k1::SecretKey;
 
 	const GENESIS_STEP: u64 = 42;
+	const TOTAL_VALIDATORS: usize = 3;
 
 	fn genesis() -> Header {
 		HeaderBuilder::genesis().step(GENESIS_STEP).sign_by(&validator(0))
 	}
 
 	fn verify_with_config(config: &AuraConfiguration, header: &Header) -> Result<ImportContext<AccountId>, Error> {
-		run_test_with_genesis(genesis(), 3, |_| {
+		run_test_with_genesis(genesis(), TOTAL_VALIDATORS, |_| {
 			let storage = BridgeStorage::<TestRuntime>::new();
 			verify_aura_header(&storage, &config, None, header)
 		})
@@ -385,7 +386,7 @@ mod tests {
 	fn default_accept_into_pool(
 		mut make_header: impl FnMut(&[SecretKey]) -> (Header, Option<Vec<Receipt>>),
 	) -> Result<(Vec<Vec<u8>>, Vec<Vec<u8>>), Error> {
-		run_test_with_genesis(genesis(), 3, |_| {
+		run_test_with_genesis(genesis(), TOTAL_VALIDATORS, |_| {
 			let validators = vec![validator(0), validator(1), validator(2)];
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 			let block1 = HeaderBuilder::with_parent_number(0).sign_by_set(&validators);

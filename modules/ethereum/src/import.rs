@@ -170,9 +170,11 @@ mod tests {
 	use frame_support::{StorageMap, StorageValue};
 	use secp256k1::SecretKey;
 
+	const TOTAL_VALIDATORS: usize = 3;
+
 	#[test]
 	fn rejects_finalized_block_competitors() {
-		run_test(3, |_| {
+		run_test(TOTAL_VALIDATORS, |_| {
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 			storage.finalize_and_prune_headers(
 				Some(HeaderId {
@@ -198,7 +200,7 @@ mod tests {
 
 	#[test]
 	fn rejects_known_header() {
-		run_test(3, |ctx| {
+		run_test(TOTAL_VALIDATORS, |ctx| {
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 			let header = HeaderBuilder::with_parent(&ctx.genesis).sign_by(&validator(1));
 			assert_eq!(
@@ -232,7 +234,7 @@ mod tests {
 
 	#[test]
 	fn import_header_works() {
-		run_test(3, |ctx| {
+		run_test(TOTAL_VALIDATORS, |ctx| {
 			let validators_config = ValidatorsConfiguration::Multi(vec![
 				(0, ValidatorsSource::List(ctx.addresses.clone())),
 				(1, ValidatorsSource::List(validators_addresses(2))),
@@ -265,7 +267,7 @@ mod tests {
 
 	#[test]
 	fn headers_are_pruned_during_import() {
-		run_test(3, |ctx| {
+		run_test(TOTAL_VALIDATORS, |ctx| {
 			let validators_config =
 				ValidatorsConfiguration::Single(ValidatorsSource::Contract([3; 20].into(), ctx.addresses.clone()));
 			let validators = vec![validator(0), validator(1), validator(2)];
@@ -407,7 +409,6 @@ mod tests {
 
 	#[test]
 	fn import_of_non_best_block_may_finalize_blocks() {
-		const TOTAL_VALIDATORS: usize = 3;
 		run_test(TOTAL_VALIDATORS, |ctx| {
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 
@@ -458,8 +459,8 @@ mod tests {
 
 	#[test]
 	fn append_to_unfinalized_fork_fails() {
-		const TOTAL_VALIDATORS: u64 = 5;
-		run_test(TOTAL_VALIDATORS as usize, |ctx| {
+		const VALIDATORS: u64 = 5;
+		run_test(VALIDATORS as usize, |ctx| {
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 
 			// header1, authored by validator[2] is best common block between two competing forks
@@ -512,7 +513,7 @@ mod tests {
 				&mut storage,
 				&ctx.validators,
 				HeaderBuilder::with_parent_hash(header2_1.hash)
-					.step(4 + TOTAL_VALIDATORS)
+					.step(4 + VALIDATORS)
 					.sign_by_set(&ctx.validators),
 			)
 			.unwrap();
@@ -520,7 +521,7 @@ mod tests {
 				&mut storage,
 				&ctx.validators,
 				HeaderBuilder::with_parent_hash(header3_1.hash)
-					.step(4 + TOTAL_VALIDATORS * 2)
+					.step(4 + VALIDATORS * 2)
 					.sign_by_set(&ctx.validators),
 			)
 			.unwrap();
@@ -528,7 +529,7 @@ mod tests {
 				&mut storage,
 				&ctx.validators,
 				HeaderBuilder::with_parent_hash(header4_1.hash)
-					.step(4 + TOTAL_VALIDATORS * 3)
+					.step(4 + VALIDATORS * 3)
 					.sign_by_set(&ctx.validators),
 			)
 			.unwrap();
@@ -580,7 +581,7 @@ mod tests {
 					&ctx.validators,
 					HeaderBuilder::with_parent_number(5)
 						.gas_limit((GAS_LIMIT + 1).into())
-						.step(5 + TOTAL_VALIDATORS * 4)
+						.step(5 + VALIDATORS * 4)
 						.sign_by_set(&ctx.validators),
 				),
 				Err(Error::TryingToFinalizeSibling),

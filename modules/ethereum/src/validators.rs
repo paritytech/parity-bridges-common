@@ -281,6 +281,8 @@ pub(crate) mod tests {
 	use frame_support::StorageMap;
 	use primitives::{TransactionOutcome, H256};
 
+	const TOTAL_VALIDATORS: usize = 3;
+
 	pub(crate) fn validators_change_recept(parent_hash: H256) -> Receipt {
 		Receipt {
 			gas_used: 0.into(),
@@ -420,7 +422,7 @@ pub(crate) mod tests {
 	}
 
 	fn try_finalize_with_scheduled_change(scheduled_at: Option<HeaderId>) -> Option<ChangeToEnact> {
-		run_test(3, |_| {
+		run_test(TOTAL_VALIDATORS, |_| {
 			let config = ValidatorsConfiguration::Single(ValidatorsSource::Contract(Default::default(), Vec::new()));
 			let validators = Validators::new(&config);
 			let storage = BridgeStorage::<TestRuntime>::new();

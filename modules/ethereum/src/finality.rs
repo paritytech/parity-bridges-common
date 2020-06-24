@@ -286,9 +286,11 @@ mod tests {
 	use crate::{BridgeStorage, FinalityCache, HeaderToImport};
 	use frame_support::StorageMap;
 
+	const TOTAL_VALIDATORS: usize = 5;
+
 	#[test]
 	fn verifies_header_author() {
-		run_test(5, |_| {
+		run_test(TOTAL_VALIDATORS, |_| {
 			assert_eq!(
 				finalize_blocks(
 					&BridgeStorage::<TestRuntime>::new(),
@@ -306,7 +308,7 @@ mod tests {
 
 	#[test]
 	fn finalize_blocks_works() {
-		run_test(5, |ctx| {
+		run_test(TOTAL_VALIDATORS, |ctx| {
 			// let's say we have 5 validators (we need 'votes' from 3 validators to achieve
 			// finality)
 			let mut storage = BridgeStorage::<TestRuntime>::new();
@@ -432,7 +434,7 @@ mod tests {
 
 	#[test]
 	fn prepare_votes_respects_finality_cache() {
-		run_test(5, |ctx| {
+		run_test(TOTAL_VALIDATORS, |ctx| {
 			// we need signatures of 3 validators to finalize block
 			let mut storage = BridgeStorage::<TestRuntime>::new();
 

@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 pub use crate::test_utils::{validator_utils::*, HeaderBuilder, GAS_LIMIT};
-pub use primitives::secret_to_address;
+pub use primitives::signatures::secret_to_address;
 
 use crate::finality::FinalityVotes;
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
