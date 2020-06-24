@@ -14,6 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Utilities for testing and benchmarking the Ethereum Bridge Pallet.
+//!
+//! Although the name implies that it is used by tests, it shouldn't be be used _directly_ by tests.
+//! Instead these utilities should be used by the Mock runtime, which in turn is used by tests.
+//!
+//! On the other hand, they may be used directly by the bechmarking module.
+
 use crate::verification::calculate_score;
 
 use primitives::{
