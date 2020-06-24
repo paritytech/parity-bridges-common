@@ -490,6 +490,8 @@ name = "bridge-node"
 version = "0.1.0"
 dependencies = [
  "bridge-node-runtime",
+ "frame-benchmarking",
+ "frame-benchmarking-cli",
  "futures 0.3.5",
  "jsonrpc-core",
  "log",
@@ -523,6 +525,7 @@ name = "bridge-node-runtime"
 version = "0.1.0"
 dependencies = [
  "ethereum-tx-sign",
+ "frame-benchmarking",
  "frame-executive",
  "frame-support",
  "frame-system",
@@ -1291,6 +1294,24 @@ dependencies = [
  "sp-runtime",
  "sp-runtime-interface",
  "sp-std",
+]
+
+[[package]]
+name = "frame-benchmarking-cli"
+version = "2.0.0-rc3"
+source = "git+https://github.com/paritytech/substrate.git?rev=606c56d2e2f69f68f3947551224be6a3515dff60#606c56d2e2f69f68f3947551224be6a3515dff60"
+dependencies = [
+ "frame-benchmarking",
+ "parity-scale-codec",
+ "sc-cli",
+ "sc-client-db",
+ "sc-executor",
+ "sc-service",
+ "sp-core",
+ "sp-externalities",
+ "sp-runtime",
+ "sp-state-machine",
+ "structopt",
 ]
 
 [[package]]
@@ -3201,6 +3222,7 @@ dependencies = [
 name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -3216,9 +3238,11 @@ dependencies = [
 name = "pallet-bridge-eth-poa"
 version = "0.1.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
- "parity-crypto",
+ "hex-literal",
+ "libsecp256k1",
  "parity-scale-codec",
  "serde",
  "sp-bridge-eth-poa",
@@ -5513,6 +5537,7 @@ dependencies = [
  "hex-literal",
  "impl-rlp",
  "impl-serde 0.2.3",
+ "libsecp256k1",
  "parity-bytes",
  "parity-scale-codec",
  "plain_hasher",
