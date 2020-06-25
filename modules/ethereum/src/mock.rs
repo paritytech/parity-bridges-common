@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-pub use crate::test_utils::{validator_utils::*, HeaderBuilder, GAS_LIMIT};
+pub use crate::test_utils::{validator_utils::*, HeaderBuilder, GAS_LIMIT, insert_header};
 pub use primitives::signatures::secret_to_address;
 
 use crate::finality::FinalityVotes;
@@ -147,20 +147,6 @@ pub fn run_test_with_genesis<T>(genesis: Header, total_validators: usize, test: 
 			addresses,
 		})
 	})
-}
-
-/// Insert unverified header into storage.
-pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
-	storage.insert_header(HeaderToImport {
-		context: storage.import_context(None, &header.parent_hash).unwrap(),
-		is_best: true,
-		id: header.compute_id(),
-		header,
-		total_difficulty: 0.into(),
-		enacted_change: None,
-		scheduled_change: None,
-		finality_votes: FinalityVotes::default(),
-	});
 }
 
 /// Pruning strategy that keeps 10 headers behind best block.

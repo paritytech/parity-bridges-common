@@ -21,6 +21,8 @@
 //!
 //! On the other hand, they may be used directly by the bechmarking module.
 
+use crate::{HeaderToImport, Storage};
+use crate::finality::FinalityVotes;
 use crate::verification::calculate_score;
 
 use primitives::{
@@ -204,6 +206,20 @@ where
 	let new_header = HeaderBuilder::with_parent(&previous);
 	let custom_header = customize_header(new_header.header);
 	custom_header.sign_by(author)
+}
+
+/// Insert unverified header into storage.
+pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
+	storage.insert_header(HeaderToImport {
+		context: storage.import_context(None, &header.parent_hash).unwrap(),
+		is_best: true,
+		id: header.compute_id(),
+		header,
+		total_difficulty: 0.into(),
+		enacted_change: None,
+		scheduled_change: None,
+		finality_votes: FinalityVotes::default(),
+	});
 }
 
 pub mod validator_utils {
