@@ -1,4 +1,6 @@
 FROM ubuntu:xenial AS builder
+# NOTE Customize the binary that is being built by providing `PROJECT` build-arg.
+# E.g. docker build --build-arg PROJECT=ethereum-poa-relay ...
 
 # show backtraces
 ENV RUST_BACKTRACE 1
@@ -29,15 +31,20 @@ RUN rustc -vV && \
     g++ -v && \
     cmake --version
 
-ENV BRIDGE_REPO https://github.com/paritytech/parity-bridges-common
-ENV BRIDGE_HASH master
-
 WORKDIR /parity-bridges-common
-RUN git clone $BRIDGE_REPO /parity-bridges-common
-RUN git checkout $BRIDGE_HASH
 
-RUN cargo build --release --verbose -p ethereum-poa-relay
-RUN strip ./target/release/ethereum-poa-relay
+### Build from the repo
+ARG BRIDGE_REPO=https://github.com/paritytech/parity-bridges-common
+ARG BRIDGE_HASH=master
+RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout $BRIDGE_HASH
+
+### Build locally
+# ADD .
+
+ARG PROJECT=bridge-node
+
+RUN cargo build --release --verbose -p ${PROJECT}
+RUN strip ./target/release/${PROJECT}
 
 FROM ubuntu:xenial
 
@@ -56,9 +63,11 @@ USER user
 
 WORKDIR /home/user
 
-COPY --chown=user:user --from=builder /parity-bridges-common/target/release/ethereum-poa-relay ./
+ARG PROJECT=bridge-node
+
+COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
 
 # check if executable works in this container
-RUN ./ethereum-poa-relay --version
+RUN ./${PROJECT} --version
 
-ENTRYPOINT ["/home/user/ethereum-poa-relay"]
+ENTRYPOINT ["/home/user/${PROJECT}"]

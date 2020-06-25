@@ -1,0 +1,49 @@
+version: '3'
+services:
+  eth-poa:
+    build:
+      context: .
+      dockerfile: ./OpenEthereum.Dockerfile
+      args:
+        ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
+        BRIDGE_HASH: master
+    command: ./openethereum --chain=dev --no-persistent-txqueue --jsonrpc-apis=all
+    ports:
+      - "8545:8545"
+      - "8546:8546"
+
+  relay-eth2sub:
+    build:
+      context: .
+      dockerfile: ../../Dockerfile
+      args:
+        BRIDGE_HASH: master
+        PROJECT: ethereum-poa-relay
+    command: ./ethereum-poa-relay eth-to-sub
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    depends_on:
+      - eth-poa
+      - substrate
+    # TODO healthcheck
+
+  substrate:
+    build:
+      context: .
+      dockerfile: ../../Dockerfile
+      args:
+        BRIDGE_HASH: master
+        PROJECT: bridge-node
+    command: ./bridge-node --execution=Native --dev
+    environment:
+      RUST_LOG: runtime=trae,rpc=debug,txpool=trace,basic_authorship=trace
+    ports:
+      - "9933:9933"
+      - "9944:9944"
+    healthcheck:
+      test: "curl -f http://localhost:9933/health || exit 1"
+      interval: 3m00s
+      timeout: 10s
+      retries: 3
+
+

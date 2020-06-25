@@ -29,19 +29,24 @@ RUN rustc -vV && \
     g++ -v && \
     cmake --version
 
-ENV REPO https://github.com/svyatonik/parity.git
-ENV HASH 9838f59b6536e7482e145fa55acf07ac4e824ed0
-
 WORKDIR /openethereum
-RUN git clone $REPO /openethereum
-RUN git checkout $HASH
 
-ENV BRIDGE_REPO https://github.com/paritytech/parity-bridges-common
-ENV BRIDGE_HASH master
+### Build from the repo
+ARG ETHEREUM_REPO=https://github.com/svyatonik/parity.git
+ARG ETHEREUM_HASH=9838f59b6536e7482e145fa55acf07ac4e824ed0
+RUN git clone $ETHEREUM_REPO /openethereum && git checkout $ETHEREUM_HASH
+### Build locally. Make sure to set the CONTEXT to main directory of the repo.
+# ADD openethereum /openethereum
 
 WORKDIR /parity-bridges-common
-RUN git clone $BRIDGE_REPO /parity-bridges-common
-RUN git checkout $BRIDGE_HASH
+
+### Build from the repo
+ARG BRIDGE_REPO=https://github.com/paritytech/parity-bridges-common
+ARG BRIDGE_HASH=master
+
+RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout $BRIDGE_HASH
+### Build locally. Make sure to set the CONTEXT to main directory of the repo.
+# ADD . /parity-bridges-common
 
 WORKDIR /openethereum
 
@@ -67,5 +72,8 @@ COPY --chown=openethereum:openethereum --from=builder /openethereum/target/relea
 RUN ./openethereum --version
 
 EXPOSE 8545 8546 30303/tcp 30303/udp
+
+HEALTHCHECK --interval=2m --timeout=3s \
+  CMD curl -f http://localhost:8545/api/health || exit 1
 
 ENTRYPOINT ["/home/openethereum/openethereum"]
