@@ -33,7 +33,7 @@ benchmarks! {
 	import_unsigned_header_best_case {
 		let n in 1..1000;
 
-		// initialize storage with some initial header
+		// Initialize storage with some initial header
 		let initial_header = build_genesis_header(&validator(0));
 		let initial_header_hash = initial_header.compute_hash();
 		let initial_difficulty = initial_header.difficulty;
@@ -55,6 +55,76 @@ benchmarks! {
 
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
+		// Make sure that the header got stored by the pallet
 		assert_eq!(BridgeStorage::<T>::new().best_block().0.number, 1);
+	}
+
+	// Benchmark `import_unsigned_header` extrinsic with the worst possible conditions
+	//
+	// Internally this calls `import_header`, which will finalize a bunch of blocks if it can
+	//	   How many should we finalize for the benchmark? The numebr of finalized headers will
+	//	   affect the benchmark
+	//
+	// We want to require receipts
+	//
+	// We also want to trigger some pruning as well
+	//   Need to look at the pruning strategy, I think it's 10 blocks behind right now
+	//
+	// The new block should schedule a validator change
+	//
+	// Look at the tests (e.g import.rs) for inspiration
+	import_unsigned_header_worst_case {
+		let n in 1..1000;
+
+		// Initialize storage with some initial header
+		let initial_header = build_genesis_header(&validator(0));
+		let initial_header_hash = initial_header.compute_hash();
+		let initial_difficulty = initial_header.difficulty;
+		let initial_validators = validators_addresses(3);
+
+		let mut storage = BridgeStorage::<T>::new();
+
+		initialize_storage::<T>(
+			&initial_header,
+			initial_difficulty,
+			&initial_validators,
+		);
+
+		let header1 = build_custom_header(
+			&validator(1),
+			&initial_header,
+			|mut header| {
+				header
+			},
+		);
+
+		// TODO: Wrap this in a nicer way
+		let mut header_to_import = HeaderToImport {
+			context: storage.import_context(None, &header1.parent_hash).unwrap(),
+			is_best: true,
+			id: header1.compute_id(),
+			header: header1.clone(),
+			total_difficulty: header1.difficulty, // 0.into(),
+			enacted_change: None,
+			scheduled_change: None,
+			finality_votes: Default::default(), // Maybe update
+		};
+
+		storage.insert_header(header_to_import);
+
+		// This _should_ finalize the genesis block
+		let header2 = build_custom_header(
+			&validator(2),
+			&header1,
+			|mut header| {
+				header
+			},
+		);
+
+	}: import_unsigned_header(RawOrigin::None, header2, None)
+	verify {
+		let storage = BridgeStorage::<T>::new();
+		assert_eq!(storage.best_block().0.number, 2);
+		// assert_eq!(storage.finalized_block().number, 0);
 	}
 }
