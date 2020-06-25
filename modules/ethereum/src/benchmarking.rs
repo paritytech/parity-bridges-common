@@ -55,8 +55,9 @@ benchmarks! {
 
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
-		// Make sure that the header got stored by the pallet
-		assert_eq!(BridgeStorage::<T>::new().best_block().0.number, 1);
+		let storage = BridgeStorage::<T>::new();
+		assert_eq!(storage.best_block().0.number, 1);
+		assert_eq!(storage.finalized_block().number, 0);
 	}
 
 	// Benchmark `import_unsigned_header` extrinsic with the worst possible conditions
@@ -112,7 +113,8 @@ benchmarks! {
 
 		storage.insert_header(header_to_import);
 
-		// This _should_ finalize the genesis block
+		// This _should_ finalize the first block
+		// First block has 2 votes, which is 2/3 authorities
 		let header2 = build_custom_header(
 			&validator(2),
 			&header1,
@@ -125,7 +127,7 @@ benchmarks! {
 	verify {
 		let storage = BridgeStorage::<T>::new();
 		assert_eq!(storage.best_block().0.number, 2);
-		// assert_eq!(storage.finalized_block().number, 0);
+		assert_eq!(storage.finalized_block().number, 1);
 	}
 }
 
@@ -139,6 +141,15 @@ mod tests {
 	fn insert_unsigned_header_best_case() {
 		run_test(2, |_| {
 			assert_ok!(test_benchmark_import_unsigned_header_best_case::<TestRuntime>());
+		});
+	}
+
+	#[test]
+	fn insert_unsigned_header_worst_case() {
+		// I don't think the initial validators matters
+		// I think we override them in the benchmark anyways
+		run_test(1, |_| {
+			assert_ok!(test_benchmark_import_unsigned_header_worst_case::<TestRuntime>());
 		});
 	}
 }
