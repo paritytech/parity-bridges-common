@@ -463,7 +463,7 @@ decl_storage! {
 			// the initial blocks should be selected so that:
 			// 1) it doesn't signal validators changes;
 			// 2) there are no scheduled validators changes from previous blocks;
-			// 3) (implied) all direct children of initial block are authred by the same validators set.
+			// 3) (implied) all direct children of initial block are authored by the same validators set.
 
 			assert!(
 				!config.initial_validators.is_empty(),
