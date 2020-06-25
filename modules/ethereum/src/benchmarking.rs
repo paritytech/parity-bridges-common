@@ -16,11 +16,12 @@
 
 use super::*;
 
-use crate::test_utils::{build_custom_header, build_genesis_header, validator_utils::*};
+use crate::finality::FinalityAncestor;
+use crate::test_utils::{build_custom_header, build_genesis_header, insert_header, validator_utils::*, HeaderBuilder};
 
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
-use primitives::U256;
+use primitives::{Address, U256};
 
 benchmarks! {
 	_ { }
@@ -113,6 +114,9 @@ benchmarks! {
 
 		storage.insert_header(header_to_import);
 
+		// there's a mock::insert_header() function that we can use to wrap HeaderToImport
+
+
 		// This _should_ finalize the first block
 		// First block has 2 votes, which is 2/3 authorities
 		let header2 = build_custom_header(
@@ -129,13 +133,78 @@ benchmarks! {
 		assert_eq!(storage.best_block().0.number, 2);
 		assert_eq!(storage.finalized_block().number, 1);
 	}
+
+	import_unsigned_header_finality {
+		let n in 1..1000;
+
+		let num_validators = 3;
+
+		let mut storage = BridgeStorage::<T>::new();
+
+		// Initialize storage with some initial header
+		let initial_header = build_genesis_header(&validator(0));
+		let initial_header_hash = initial_header.compute_hash();
+		let initial_difficulty = initial_header.difficulty;
+		let initial_validators = validators_addresses(num_validators);
+
+		initialize_storage::<T>(
+			&initial_header,
+			initial_difficulty,
+			&initial_validators,
+		);
+
+		let mut headers = Vec::new();
+		// Should this be an Address? All we need is: type Submitter: Clone + Ord
+		let mut ancestry: Vec<FinalityAncestor<Option<Address>>> = Vec::new();
+		let mut parent = initial_header.clone();
+		for i in 1..10 {
+			let header = build_custom_header(
+				&validator((i - 1) / num_validators),
+				&parent,
+				|mut header| {
+					header
+				},
+			);
+
+			let id = header.compute_id();
+			insert_header(&mut storage, header.clone());
+			ancestry.push(FinalityAncestor {
+				id: header.compute_id(),
+				submitter: None,
+				signers: vec![header.author].into_iter().collect(),
+			});
+			headers.push(header.clone());
+			parent = header;
+		}
+
+		let last_header = headers.last().unwrap().clone();
+
+		// Need to make sure that the header we're going to import hasn't been inserted
+		// into storage already
+		let header = build_custom_header(
+			&validator(1),
+			&last_header,
+			|mut header| {
+				header
+			},
+		);
+
+		assert_eq!(storage.best_block().0.number, 9);
+		assert_eq!(storage.finalized_block().number, 0);
+
+	}: import_unsigned_header(RawOrigin::None, header, None)
+	verify {
+		let storage = BridgeStorage::<T>::new();
+		assert_eq!(storage.best_block().0.number, 10);
+		assert_eq!(storage.finalized_block().number, 9);
+	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::assert_ok;
 	use crate::mock::{run_test, TestRuntime};
+	use frame_support::assert_ok;
 
 	#[test]
 	fn insert_unsigned_header_best_case() {
@@ -150,6 +219,13 @@ mod tests {
 		// I think we override them in the benchmark anyways
 		run_test(1, |_| {
 			assert_ok!(test_benchmark_import_unsigned_header_worst_case::<TestRuntime>());
+		});
+	}
+
+	#[test]
+	fn insert_unsigned_header_finality() {
+		run_test(1, |_| {
+			assert_ok!(test_benchmark_import_unsigned_header_finality::<TestRuntime>());
 		});
 	}
 }
