@@ -128,3 +128,17 @@ benchmarks! {
 		// assert_eq!(storage.finalized_block().number, 0);
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use frame_support::assert_ok;
+	use crate::mock::{run_test, TestRuntime};
+
+	#[test]
+	fn insert_unsigned_header_best_case() {
+		run_test(2, |_| {
+			assert_ok!(test_benchmark_import_unsigned_header_best_case::<TestRuntime>());
+		});
+	}
+}
