@@ -100,22 +100,7 @@ benchmarks! {
 			},
 		);
 
-		// TODO: Wrap this in a nicer way
-		let mut header_to_import = HeaderToImport {
-			context: storage.import_context(None, &header1.parent_hash).unwrap(),
-			is_best: true,
-			id: header1.compute_id(),
-			header: header1.clone(),
-			total_difficulty: header1.difficulty, // 0.into(),
-			enacted_change: None,
-			scheduled_change: None,
-			finality_votes: Default::default(), // Maybe update
-		};
-
-		storage.insert_header(header_to_import);
-
-		// there's a mock::insert_header() function that we can use to wrap HeaderToImport
-
+		insert_header(&mut storage, header1.clone());
 
 		// This _should_ finalize the first block
 		// First block has 2 votes, which is 2/3 authorities
@@ -135,9 +120,8 @@ benchmarks! {
 	}
 
 	import_unsigned_header_finality {
-		let n in 1..1000;
-
-		let num_validators = 3;
+		let n in 3..10;
+		let num_validators: u32 = 3;
 
 		let mut storage = BridgeStorage::<T>::new();
 
@@ -145,7 +129,7 @@ benchmarks! {
 		let initial_header = build_genesis_header(&validator(0));
 		let initial_header_hash = initial_header.compute_hash();
 		let initial_difficulty = initial_header.difficulty;
-		let initial_validators = validators_addresses(num_validators);
+		let initial_validators = validators_addresses(num_validators as usize);
 
 		initialize_storage::<T>(
 			&initial_header,
@@ -157,9 +141,11 @@ benchmarks! {
 		// Should this be an Address? All we need is: type Submitter: Clone + Ord
 		let mut ancestry: Vec<FinalityAncestor<Option<Address>>> = Vec::new();
 		let mut parent = initial_header.clone();
-		for i in 1..10 {
+
+		dbg!(n);
+		for i in 1..=n {
 			let header = build_custom_header(
-				&validator((i - 1) / num_validators),
+				&validator((i / num_validators) as usize),
 				&parent,
 				|mut header| {
 					header
@@ -178,25 +164,30 @@ benchmarks! {
 		}
 
 		let last_header = headers.last().unwrap().clone();
+		dbg!(((n + 1) % num_validators) as usize);
+		let last_authority = validator(( (n + 1) % num_validators) as usize);
 
 		// Need to make sure that the header we're going to import hasn't been inserted
 		// into storage already
 		let header = build_custom_header(
-			&validator(1),
+			&last_authority,
 			&last_header,
 			|mut header| {
 				header
 			},
 		);
 
-		assert_eq!(storage.best_block().0.number, 9);
-		assert_eq!(storage.finalized_block().number, 0);
+		// assert_eq!(storage.best_block().0.number, 9);
+		// assert_eq!(storage.finalized_block().number, 0);
+
+		dbg!(storage.best_block().0.number);
+		dbg!(storage.finalized_block().number);
 
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		let storage = BridgeStorage::<T>::new();
-		assert_eq!(storage.best_block().0.number, 10);
-		assert_eq!(storage.finalized_block().number, 9);
+		assert_eq!(storage.best_block().0.number, (n + 1) as u64);
+		assert_eq!(storage.finalized_block().number, n as u64);
 	}
 }
 
