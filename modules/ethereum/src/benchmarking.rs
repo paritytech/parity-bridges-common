@@ -119,9 +119,19 @@ benchmarks! {
 		assert_eq!(storage.finalized_block().number, 1);
 	}
 
+	// Our goal with this bench is to try and see the effect that finalizing difference ranges of
+	// blocks has on our import time. As such we need to make sure that we keep the number of
+	// validators fixed while changing the number blocks finalized (the complixity parameter) by
+	// importing the last header.
 	import_unsigned_header_finality {
-		let n in 3..10;
-		let num_validators: u32 = 3;
+		// Our complexity parameter, n, will represent the number of blocks imported before
+		// finalization.
+		//
+		// For two validators this is only going to work for even numbers...
+		let n in 4..10;
+
+		// This should remain fixed for the bench.
+		let num_validators: u32 = 2;
 
 		let mut storage = BridgeStorage::<T>::new();
 
@@ -138,14 +148,12 @@ benchmarks! {
 		);
 
 		let mut headers = Vec::new();
-		// Should this be an Address? All we need is: type Submitter: Clone + Ord
 		let mut ancestry: Vec<FinalityAncestor<Option<Address>>> = Vec::new();
 		let mut parent = initial_header.clone();
 
-		dbg!(n);
 		for i in 1..=n {
 			let header = build_custom_header(
-				&validator((i / num_validators) as usize),
+				&validator(0),
 				&parent,
 				|mut header| {
 					header
@@ -164,8 +172,7 @@ benchmarks! {
 		}
 
 		let last_header = headers.last().unwrap().clone();
-		dbg!(((n + 1) % num_validators) as usize);
-		let last_authority = validator(( (n + 1) % num_validators) as usize);
+		let last_authority = validator(1);
 
 		// Need to make sure that the header we're going to import hasn't been inserted
 		// into storage already
@@ -176,13 +183,6 @@ benchmarks! {
 				header
 			},
 		);
-
-		// assert_eq!(storage.best_block().0.number, 9);
-		// assert_eq!(storage.finalized_block().number, 0);
-
-		dbg!(storage.best_block().0.number);
-		dbg!(storage.finalized_block().number);
-
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		let storage = BridgeStorage::<T>::new();
