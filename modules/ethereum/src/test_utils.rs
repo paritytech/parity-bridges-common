@@ -21,9 +21,9 @@
 //!
 //! On the other hand, they may be used directly by the bechmarking module.
 
-use crate::{HeaderToImport, Storage};
 use crate::finality::FinalityVotes;
 use crate::verification::calculate_score;
+use crate::{HeaderToImport, Storage};
 
 use primitives::{
 	rlp_encode,

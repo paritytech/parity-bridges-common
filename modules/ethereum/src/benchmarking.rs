@@ -104,9 +104,11 @@ benchmarks! {
 		);
 
 		let mut headers = Vec::new();
-		let mut ancestry: Vec<FinalityAncestor<Option<Address>>> = Vec::new();
+		let mut ancestry: Vec<FinalityAncestor<Option<Address>>> = Vec::new(); // Is this needed?
 		let mut parent = initial_header.clone();
 
+		// Q: Is this a sketchy way of "delaying" finality, or should I be manually editing the
+		// "step" of the new blocks?
 		for i in 1..=n {
 			let header = build_custom_header(
 				&validator(0),
@@ -127,6 +129,7 @@ benchmarks! {
 			parent = header;
 		}
 
+		// NOTE: I should look into using `sign_by_set()`
 		let last_header = headers.last().unwrap().clone();
 		let last_authority = validator(1);
 
@@ -144,6 +147,53 @@ benchmarks! {
 		let storage = BridgeStorage::<T>::new();
 		assert_eq!(storage.best_block().0.number, (n + 1) as u64);
 		assert_eq!(storage.finalized_block().number, n as u64);
+	}
+
+	// The default pruning range is 10 blocks behind. We'll start with this for the bench, but we
+	// should move to a "dynamic" strategy based off the complexity parameter
+	//
+	// Look at `headers_are_pruned_during_import()` test from `import.rs`
+	import_unsigned_prune {
+		let n = 10..10;
+
+		// TODO: Wrap this so we don't repeat so much between benches
+		// Initialize storage with some initial header
+		let initial_header = build_genesis_header(&validator(0));
+		let initial_header_hash = initial_header.compute_hash();
+		let initial_difficulty = initial_header.difficulty;
+		let initial_validators = validators_addresses(3);
+
+		initialize_storage::<T>(
+			&initial_header,
+			initial_difficulty,
+			&initial_validators,
+		);
+
+		for i in 1..=n {
+			let header = HeaderBuilder::with_parent_number(i - 1).sign_by_set(&initial_validators);
+			let id = header.compute_id();
+			insert_header(&mut storage, header.clone());
+		}
+
+		// We want block 11 to finalize header 10 as well as schedule a validator set change
+		// This will allow us to prune blocks [0, 10]
+		storage.scheduled_change(...).unwrap();
+
+
+	} verify {
+		let storage = BridgeStorage::<T>::new();
+		assert_eq!(storage.best_block().0.number, (n + 1) as u64);
+		assert_eq!(storage.finalized_block().number, n as u64);
+	}
+
+	import_unsigned_scheduled_changes {
+		ScheduledChanges::insert(
+			hash,
+			ScheduledChange {
+				validators: validators_addresses(5),
+				prev_signal_block: None,
+			},
+		);
 	}
 }
 
