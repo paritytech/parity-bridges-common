@@ -23,6 +23,20 @@ use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use primitives::{Address, U256};
 
+// Benchmark `import_unsigned_header` extrinsic with the worst possible conditions
+//
+// Internally this calls `import_header`, which will finalize a bunch of blocks if it can
+//	   How many should we finalize for the benchmark? The numebr of finalized headers will
+//	   affect the benchmark
+//
+// We want to require receipts
+//
+// We also want to trigger some pruning as well
+//   Need to look at the pruning strategy, I think it's 10 blocks behind right now
+//
+// The new block should schedule a validator change
+//
+// Look at the tests (e.g import.rs) for inspiration
 benchmarks! {
 	_ { }
 
@@ -61,69 +75,11 @@ benchmarks! {
 		assert_eq!(storage.finalized_block().number, 0);
 	}
 
-	// Benchmark `import_unsigned_header` extrinsic with the worst possible conditions
-	//
-	// Internally this calls `import_header`, which will finalize a bunch of blocks if it can
-	//	   How many should we finalize for the benchmark? The numebr of finalized headers will
-	//	   affect the benchmark
-	//
-	// We want to require receipts
-	//
-	// We also want to trigger some pruning as well
-	//   Need to look at the pruning strategy, I think it's 10 blocks behind right now
-	//
-	// The new block should schedule a validator change
-	//
-	// Look at the tests (e.g import.rs) for inspiration
-	import_unsigned_header_worst_case {
-		let n in 1..1000;
-
-		// Initialize storage with some initial header
-		let initial_header = build_genesis_header(&validator(0));
-		let initial_header_hash = initial_header.compute_hash();
-		let initial_difficulty = initial_header.difficulty;
-		let initial_validators = validators_addresses(3);
-
-		let mut storage = BridgeStorage::<T>::new();
-
-		initialize_storage::<T>(
-			&initial_header,
-			initial_difficulty,
-			&initial_validators,
-		);
-
-		let header1 = build_custom_header(
-			&validator(1),
-			&initial_header,
-			|mut header| {
-				header
-			},
-		);
-
-		insert_header(&mut storage, header1.clone());
-
-		// This _should_ finalize the first block
-		// First block has 2 votes, which is 2/3 authorities
-		let header2 = build_custom_header(
-			&validator(2),
-			&header1,
-			|mut header| {
-				header
-			},
-		);
-
-	}: import_unsigned_header(RawOrigin::None, header2, None)
-	verify {
-		let storage = BridgeStorage::<T>::new();
-		assert_eq!(storage.best_block().0.number, 2);
-		assert_eq!(storage.finalized_block().number, 1);
-	}
-
 	// Our goal with this bench is to try and see the effect that finalizing difference ranges of
 	// blocks has on our import time. As such we need to make sure that we keep the number of
 	// validators fixed while changing the number blocks finalized (the complixity parameter) by
 	// importing the last header.
-	import_unsigned_header_finality {
+	import_unsigned_finality {
 		// Our complexity parameter, n, will represent the number of blocks imported before
 		// finalization.
 		//
@@ -205,18 +161,9 @@ mod tests {
 	}
 
 	#[test]
-	fn insert_unsigned_header_worst_case() {
-		// I don't think the initial validators matters
-		// I think we override them in the benchmark anyways
-		run_test(1, |_| {
-			assert_ok!(test_benchmark_import_unsigned_header_worst_case::<TestRuntime>());
-		});
-	}
-
-	#[test]
 	fn insert_unsigned_header_finality() {
 		run_test(1, |_| {
-			assert_ok!(test_benchmark_import_unsigned_header_finality::<TestRuntime>());
+			assert_ok!(test_benchmark_import_unsigned_finality::<TestRuntime>());
 		});
 	}
 }
