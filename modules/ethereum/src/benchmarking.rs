@@ -153,47 +153,53 @@ benchmarks! {
 	// should move to a "dynamic" strategy based off the complexity parameter
 	//
 	// Look at `headers_are_pruned_during_import()` test from `import.rs`
-	import_unsigned_prune {
-		let n = 10..10;
+	//
+	// So it looks like we're constrained by: MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT= 8
+	//
+	// So it doesn't matter how we set the pruning window or how many blocks we build because at the
+	// end of the day we can only prune that many blocks
+	import_unsigned_pruning {
+		// The default pruning strategy is to keep 10 headers, so let's build more than 10
+		let n in 10..20;
+
+		let mut storage = BridgeStorage::<T>::new();
 
 		// TODO: Wrap this so we don't repeat so much between benches
 		// Initialize storage with some initial header
 		let initial_header = build_genesis_header(&validator(0));
 		let initial_header_hash = initial_header.compute_hash();
 		let initial_difficulty = initial_header.difficulty;
-		let initial_validators = validators_addresses(3);
+		let validators = validators(3);
 
 		initialize_storage::<T>(
 			&initial_header,
 			initial_difficulty,
-			&initial_validators,
+			&validators_addresses(3),
 		);
 
+		// Want to prune eligible blocks between [0, 10)
+		BlocksToPrune::put(PruningRange {
+			oldest_unpruned_block: 0,
+			oldest_block_to_keep: 10,
+		});
+
+		let mut parent = initial_header;
 		for i in 1..=n {
-			let header = HeaderBuilder::with_parent_number(i - 1).sign_by_set(&initial_validators);
+			let header = HeaderBuilder::with_parent(&parent).sign_by_set(&validators);
 			let id = header.compute_id();
 			insert_header(&mut storage, header.clone());
+			parent = header;
 		}
 
-		// We want block 11 to finalize header 10 as well as schedule a validator set change
-		// This will allow us to prune blocks [0, 10]
-		storage.scheduled_change(...).unwrap();
-
-
-	} verify {
+		let header = HeaderBuilder::with_parent(&parent).sign_by_set(&validators);
+	}: import_unsigned_header(RawOrigin::None, header, None)
+	verify {
 		let storage = BridgeStorage::<T>::new();
 		assert_eq!(storage.best_block().0.number, (n + 1) as u64);
-		assert_eq!(storage.finalized_block().number, n as u64);
-	}
 
-	import_unsigned_scheduled_changes {
-		ScheduledChanges::insert(
-			hash,
-			ScheduledChange {
-				validators: validators_addresses(5),
-				prev_signal_block: None,
-			},
-		);
+		// We're limited to pruning only 8 blocks per import
+		assert!(HeadersByNumber::get(&0).is_none());
+		assert!(HeadersByNumber::get(&7).is_none());
 	}
 }
 
@@ -214,6 +220,13 @@ mod tests {
 	fn insert_unsigned_header_finality() {
 		run_test(1, |_| {
 			assert_ok!(test_benchmark_import_unsigned_finality::<TestRuntime>());
+		});
+	}
+
+	#[test]
+	fn insert_unsigned_header_pruning() {
+		run_test(1, |_| {
+			assert_ok!(test_benchmark_import_unsigned_pruning::<TestRuntime>());
 		});
 	}
 }
