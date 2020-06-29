@@ -38,15 +38,8 @@ benchmarks! {
 	import_unsigned_header_best_case {
 		let n in 1..1000;
 
-		// Initialize storage with some initial header
-		let initial_header = build_genesis_header(&validator(0));
-		let initial_header_hash = initial_header.compute_hash();
-		let initial_difficulty = initial_header.difficulty;
-		initialize_storage::<T>(
-			&initial_header,
-			initial_difficulty,
-			&validators_addresses(2),
-		);
+		let num_validators = 2;
+		let initial_header = initialize_bench::<T>(num_validators);
 
 		// prepare header to be inserted
 		let header = build_custom_header(
@@ -77,20 +70,9 @@ benchmarks! {
 		// finalization.
 		let n in 1..7;
 
-		let num_validators: u32 = 2;
 		let mut storage = BridgeStorage::<T>::new();
-
-		// Initialize storage with some initial header
-		let initial_header = build_genesis_header(&validator(0));
-		let initial_header_hash = initial_header.compute_hash();
-		let initial_difficulty = initial_header.difficulty;
-		let initial_validators = validators_addresses(num_validators as usize);
-
-		initialize_storage::<T>(
-			&initial_header,
-			initial_difficulty,
-			&initial_validators,
-		);
+		let num_validators: u32 = 2;
+		let initial_header = initialize_bench::<T>(num_validators as usize);
 
 		// Since we only have two validators we need to make sure the number of blocks is even to
 		// make sure the right validator signs the final block
@@ -149,18 +131,9 @@ benchmarks! {
 
 		let mut storage = BridgeStorage::<T>::new();
 
-		// TODO: Wrap this so we don't repeat so much between benches
-		// Initialize storage with some initial header
-		let initial_header = build_genesis_header(&validator(0));
-		let initial_header_hash = initial_header.compute_hash();
-		let initial_difficulty = initial_header.difficulty;
-		let validators = validators(3);
-
-		initialize_storage::<T>(
-			&initial_header,
-			initial_difficulty,
-			&validators_addresses(3),
-		);
+		let num_validators = 3;
+		let initial_header = initialize_bench::<T>(num_validators as usize);
+		let validators = validators(num_validators);
 
 		// Want to prune eligible blocks between [0, 10)
 		BlocksToPrune::put(PruningRange {
@@ -186,6 +159,18 @@ benchmarks! {
 		assert!(HeadersByNumber::get(&0).is_none());
 		assert!(HeadersByNumber::get(&7).is_none());
 	}
+}
+
+fn initialize_bench<T: Trait>(num_validators: usize) -> Header {
+	// Initialize storage with some initial header
+	let initial_header = build_genesis_header(&validator(0));
+	let initial_header_hash = initial_header.compute_hash();
+	let initial_difficulty = initial_header.difficulty;
+	let initial_validators = validators_addresses(num_validators as usize);
+
+	initialize_storage::<T>(&initial_header, initial_difficulty, &initial_validators);
+
+	initial_header
 }
 
 #[cfg(test)]
