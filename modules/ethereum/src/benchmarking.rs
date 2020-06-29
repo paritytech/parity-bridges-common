@@ -23,20 +23,10 @@ use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use primitives::{Address, U256};
 
-// Benchmark `import_unsigned_header` extrinsic with the worst possible conditions
-//
-// Internally this calls `import_header`, which will finalize a bunch of blocks if it can
-//	   How many should we finalize for the benchmark? The numebr of finalized headers will
-//	   affect the benchmark
-//
-// We want to require receipts
-//
-// We also want to trigger some pruning as well
-//   Need to look at the pruning strategy, I think it's 10 blocks behind right now
-//
-// The new block should schedule a validator change
-//
-// Look at the tests (e.g import.rs) for inspiration
+// We want to try and benchmark scenario which are going to cause a lot for work for our runtime.
+// Some of the ones which we should test that are still missing are:
+//    - Importing a header with transaction receipts
+//    - An import which causes a chain re-org
 benchmarks! {
 	_ { }
 
