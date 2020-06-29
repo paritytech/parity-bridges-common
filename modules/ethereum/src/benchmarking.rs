@@ -116,6 +116,63 @@ benchmarks! {
 		assert_eq!(storage.finalized_block().number, num_blocks as u64);
 	}
 
+	// Basically the exact same as `import_unsigned_finality` but with a different range for the
+	// complexity parameter. In this bench we use a larger range of blocks to see how performance
+	// changes when the finality cache kicks in (>16 blocks).
+	//
+	// There's definitely a better way to do this will less code duplication, but I'll deal with that
+	// later.
+	import_unsigned_finality_with_cache {
+		// Our complexity parameter, n, will represent the number of blocks imported before
+		// finalization.
+		let n in 8..15;
+
+		let mut storage = BridgeStorage::<T>::new();
+		let num_validators: u32 = 2;
+		let initial_header = initialize_bench::<T>(num_validators as usize);
+
+		// Since we only have two validators we need to make sure the number of blocks is even to
+		// make sure the right validator signs the final block
+		let num_blocks = 2 * n;
+		let mut headers = Vec::new();
+		let mut parent = initial_header.clone();
+
+		// Import a bunch of headers without any verification, will ensure that they're not
+		// finalized prematurely
+		for i in 1..=num_blocks {
+			let header = build_custom_header(
+				&validator(0),
+				&parent,
+				|mut header| {
+					header
+				},
+			);
+
+			let id = header.compute_id();
+			insert_header(&mut storage, header.clone());
+			headers.push(header.clone());
+			parent = header;
+		}
+
+		let last_header = headers.last().unwrap().clone();
+		let last_authority = validator(1);
+
+		// Need to make sure that the header we're going to import hasn't been inserted
+		// into storage already
+		let header = build_custom_header(
+			&last_authority,
+			&last_header,
+			|mut header| {
+				header
+			},
+		);
+	}: import_unsigned_header(RawOrigin::None, header, None)
+	verify {
+		let storage = BridgeStorage::<T>::new();
+		assert_eq!(storage.best_block().0.number, (num_blocks + 1) as u64);
+		assert_eq!(storage.finalized_block().number, num_blocks as u64);
+	}
+
 	// The default pruning range is 10 blocks behind. We'll start with this for the bench, but we
 	// should move to a "dynamic" strategy based off the complexity parameter
 	//
