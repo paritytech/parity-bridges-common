@@ -67,18 +67,17 @@ benchmarks! {
 
 	// Our goal with this bench is to try and see the effect that finalizing difference ranges of
 	// blocks has on our import time. As such we need to make sure that we keep the number of
-	// validators fixed while changing the number blocks finalized (the complixity parameter) by
+	// validators fixed while changing the number blocks finalized (the complexity parameter) by
 	// importing the last header.
+	//
+	// One important thing to keep in mind is that the runtime provides a finality cache in order to
+	// reduce the overhead of header finalization. However, this is only triggered every 16 blocks.
 	import_unsigned_finality {
 		// Our complexity parameter, n, will represent the number of blocks imported before
 		// finalization.
-		//
-		// For two validators this is only going to work for even numbers...
-		let n in 4..10;
+		let n in 1..7;
 
-		// This should remain fixed for the bench.
 		let num_validators: u32 = 2;
-
 		let mut storage = BridgeStorage::<T>::new();
 
 		// Initialize storage with some initial header
@@ -93,13 +92,15 @@ benchmarks! {
 			&initial_validators,
 		);
 
+		// Since we only have two validators we need to make sure the number of blocks is even to
+		// make sure the right validator signs the final block
+		let num_blocks = 2 * n;
 		let mut headers = Vec::new();
-		let mut ancestry: Vec<FinalityAncestor<Option<Address>>> = Vec::new(); // Is this needed?
 		let mut parent = initial_header.clone();
 
-		// Q: Is this a sketchy way of "delaying" finality, or should I be manually editing the
-		// "step" of the new blocks?
-		for i in 1..=n {
+		// Import a bunch of headers without any verification, will ensure that they're not
+		// finalized prematurely
+		for i in 1..=num_blocks {
 			let header = build_custom_header(
 				&validator(0),
 				&parent,
@@ -110,16 +111,10 @@ benchmarks! {
 
 			let id = header.compute_id();
 			insert_header(&mut storage, header.clone());
-			ancestry.push(FinalityAncestor {
-				id: header.compute_id(),
-				submitter: None,
-				signers: vec![header.author].into_iter().collect(),
-			});
 			headers.push(header.clone());
 			parent = header;
 		}
 
-		// NOTE: I should look into using `sign_by_set()`
 		let last_header = headers.last().unwrap().clone();
 		let last_authority = validator(1);
 
@@ -135,8 +130,8 @@ benchmarks! {
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		let storage = BridgeStorage::<T>::new();
-		assert_eq!(storage.best_block().0.number, (n + 1) as u64);
-		assert_eq!(storage.finalized_block().number, n as u64);
+		assert_eq!(storage.best_block().0.number, (num_blocks + 1) as u64);
+		assert_eq!(storage.finalized_block().number, num_blocks as u64);
 	}
 
 	// The default pruning range is 10 blocks behind. We'll start with this for the bench, but we
