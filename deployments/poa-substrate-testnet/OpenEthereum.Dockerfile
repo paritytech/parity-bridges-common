@@ -59,7 +59,7 @@ FROM ubuntu:xenial
 ENV RUST_BACKTRACE 1
 
 RUN groupadd -g 1000 openethereum \
-  && useradd -u 1000 -g openethereum -s /bin/sh openethereum
+  && useradd -u 1000 -g openethereum -s /bin/sh -m openethereum
 
 # switch to user openethereum here
 USER openethereum

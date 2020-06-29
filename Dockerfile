@@ -53,10 +53,10 @@ ENV RUST_BACKTRACE 1
 
 RUN set -eux; \
 	apt-get update && \
-	apt-get install -y libssl-dev
+	apt-get install -y libssl-dev curl
 
 RUN groupadd -g 1000 user \
-  && useradd -u 1000 -g user -s /bin/sh user
+  && useradd -u 1000 -g user -s /bin/sh -m user
 
 # switch to non-root user
 USER user
@@ -70,4 +70,5 @@ COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PR
 # check if executable works in this container
 RUN ./${PROJECT} --version
 
-ENTRYPOINT ["/home/user/${PROJECT}"]
+ENV PROJECT=$PROJECT
+ENTRYPOINT "/home/user/$PROJECT"

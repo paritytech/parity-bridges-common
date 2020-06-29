@@ -1,13 +1,15 @@
 version: '3'
 services:
-  eth-poa:
+  poa-node:
     build:
       context: .
       dockerfile: ./OpenEthereum.Dockerfile
       args:
         ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
         BRIDGE_HASH: master
-    command: ./openethereum --chain=dev --no-persistent-txqueue --jsonrpc-apis=all
+    entrypoint: /home/openethereum/openethereum --chain=dev --no-persistent-txqueue --jsonrpc-apis=all --unsafe-expose
+    environment:
+      RUST_LOG: debug,rpc=trace
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -17,26 +19,27 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: master
+        BRIDGE_HASH: td-deps
         PROJECT: ethereum-poa-relay
-    command: ./ethereum-poa-relay eth-to-sub
+    #entrypoint: bash -c "set -xe; sleep 3 && curl -v http://poa-node:8545/api/health && curl -v http://bridge-node:9933/health && /home/user/ethereum-poa-relay eth-to-sub --sub-host 172.21.0.3 --eth-host 172.21.0.2"
+    entrypoint: bash -c "exit 0"
     environment:
-      RUST_LOG: rpc=trace,bridge=trace
+      RUST_LOG: debug,rpc=trace,bridge=trace
     depends_on:
-      - eth-poa
-      - substrate
+      - poa-node
+      - bridge-node
     # TODO healthcheck
 
-  substrate:
+  bridge-node:
     build:
       context: .
       dockerfile: ../../Dockerfile
       args:
         BRIDGE_HASH: master
         PROJECT: bridge-node
-    command: ./bridge-node --execution=Native --dev
+    entrypoint: /home/user/bridge-node --execution=Native --dev --unsafe-rpc-external --unsafe-ws-external
     environment:
-      RUST_LOG: runtime=trae,rpc=debug,txpool=trace,basic_authorship=trace
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,basic_authorship=trace
     ports:
       - "9933:9933"
       - "9944:9944"

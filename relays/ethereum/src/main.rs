@@ -46,6 +46,7 @@ fn main() {
 	let matches = clap::App::from_yaml(yaml).get_matches();
 	match matches.subcommand() {
 		("eth-to-sub", Some(eth_to_sub_matches)) => {
+			log::info!(target: "bridge", "Starting ETH ➡ SUB relay.");
 			ethereum_sync_loop::run(match ethereum_sync_params(&eth_to_sub_matches) {
 				Ok(ethereum_sync_params) => ethereum_sync_params,
 				Err(err) => {
@@ -55,6 +56,7 @@ fn main() {
 			});
 		}
 		("sub-to-eth", Some(sub_to_eth_matches)) => {
+			log::info!(target: "bridge", "Starting SUB ➡ ETH relay.");
 			substrate_sync_loop::run(match substrate_sync_params(&sub_to_eth_matches) {
 				Ok(substrate_sync_params) => substrate_sync_params,
 				Err(err) => {
@@ -64,6 +66,7 @@ fn main() {
 			});
 		}
 		("eth-deploy-contract", Some(eth_deploy_matches)) => {
+			log::info!(target: "bridge", "Deploying ETH contracts.");
 			ethereum_deploy_contract::run(match ethereum_deploy_contract_params(&eth_deploy_matches) {
 				Ok(ethereum_deploy_matches) => ethereum_deploy_matches,
 				Err(err) => {
@@ -87,6 +90,7 @@ fn initialize() {
 		Ok(env_filters) => format!("bridge=info,{}", env_filters),
 		Err(_) => "bridge=info".into(),
 	};
+	println!("Filters: {:?}", filters);
 
 	builder.parse_filters(&filters);
 	builder.format(move |buf, record| {
