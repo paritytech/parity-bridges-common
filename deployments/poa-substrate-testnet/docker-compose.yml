@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: td-deps
+        BRIDGE_HASH: td-deployments
         PROJECT: ethereum-poa-relay
     #entrypoint: bash -c "set -xe; sleep 3 && curl -v http://poa-node:8545/api/health && curl -v http://bridge-node:9933/health && /home/user/ethereum-poa-relay eth-to-sub --sub-host 172.21.0.3 --eth-host 172.21.0.2"
     entrypoint: bash -c "exit 0"
