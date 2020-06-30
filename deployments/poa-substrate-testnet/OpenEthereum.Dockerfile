@@ -67,7 +67,8 @@ USER openethereum
 WORKDIR /home/openethereum
 
 COPY --chown=openethereum:openethereum --from=builder /openethereum/target/release/openethereum ./
-
+# Solve issues with custom --keys-path
+RUN mkdir -p ~/.local/share/io.parity.ethereum/keys/
 # check if executable works in this container
 RUN ./openethereum --version
 

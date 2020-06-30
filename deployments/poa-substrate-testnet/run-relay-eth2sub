@@ -1,0 +1,11 @@
+#!/bin/bash
+set -xeu
+
+sleep 3
+curl -v http://poa-node-arthur:8545/api/health
+curl -v http://poa-node-bertha:8545/api/health
+curl -v http://bridge-node:9933/health
+
+/home/user/ethereum-poa-relay eth-to-sub \
+	--sub-host bridge-node \
+	--eth-host poa-node-arthur

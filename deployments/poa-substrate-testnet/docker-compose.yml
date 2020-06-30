@@ -1,18 +1,91 @@
-version: '3'
+version: '3.5'
 services:
-  poa-node:
+  poa-node-arthur:
     build:
       context: .
       dockerfile: ./OpenEthereum.Dockerfile
       args:
         ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
         BRIDGE_HASH: master
-    entrypoint: /home/openethereum/openethereum --chain=dev --no-persistent-txqueue --jsonrpc-apis=all --unsafe-expose
+    entrypoint:
+      - /home/openethereum/openethereum
+      - --chain=/config/poa.json
+      - --keys-path=/config/keys
+      - --no-persistent-txqueue
+      - --jsonrpc-apis=all
+      - --node-key=arthur
+      - --reserved-peers=/config/reserved
+      - --force-sealing
+      - --engine-signer=0x005e714f896a8b7cede9d38688c1a81de72a58e4
+      - --password=/config/pass
+      - --unsafe-expose
+    volumes:
+      - ./poa-config:/config
+      #- poa-db-arthur:/home/openethereum/.local/share/io.parity.ethereum/chains/BridgePoa
     environment:
-      RUST_LOG: debug,rpc=trace
+      RUST_LOG: rpc=trace
     ports:
       - "8545:8545"
       - "8546:8546"
+      - "30303:30303"
+
+  poa-node-bertha:
+    build:
+      context: .
+      dockerfile: ./OpenEthereum.Dockerfile
+      args:
+        ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
+        BRIDGE_HASH: master
+    entrypoint:
+      - /home/openethereum/openethereum
+      - --chain=/config/poa.json
+      - --keys-path=/config/keys
+      - --no-persistent-txqueue
+      - --jsonrpc-apis=all
+      - --node-key=bertha
+      - --reserved-peers=/config/reserved
+      - --force-sealing
+      - --engine-signer=0x007594304039c2937a12220338aab821d819f5a4
+      - --password=/config/pass
+      - --unsafe-expose
+    volumes:
+      - ./poa-config:/config
+      # - poa-db-bertha:/home/openethereum/.local/share/io.parity.ethereum/chains/BridgePoa
+    environment:
+      RUST_LOG: rpc=trace
+    ports:
+      - "8645:8545"
+      - "8646:8546"
+      - "31303:30303"
+
+  poa-node-carlos:
+    build:
+      context: .
+      dockerfile: ./OpenEthereum.Dockerfile
+      args:
+        ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
+        BRIDGE_HASH: master
+    entrypoint:
+      - /home/openethereum/openethereum
+      - --chain=/config/poa.json
+      - --keys-path=/config/keys
+      - --no-persistent-txqueue
+      - --jsonrpc-apis=all
+      - --node-key=carlos
+      - --reserved-peers=/config/reserved
+      - --force-sealing
+      - --engine-signer=0x004e7a39907f090e19b0b80a277e77b72b22e269
+      - --password=/config/pass
+      - --unsafe-expose
+    volumes:
+      - ./poa-config:/config
+      # - poa-db-carlos:/home/openethereum/.local/share/io.parity.ethereum/chains/BridgePoa
+    environment:
+      RUST_LOG: rpc=trace
+    ports:
+      - "8745:8545"
+      - "8746:8546"
+      - "32303:30303"
 
   relay-eth2sub:
     build:
@@ -21,14 +94,16 @@ services:
       args:
         BRIDGE_HASH: td-deployments
         PROJECT: ethereum-poa-relay
-    #entrypoint: bash -c "set -xe; sleep 3 && curl -v http://poa-node:8545/api/health && curl -v http://bridge-node:9933/health && /home/user/ethereum-poa-relay eth-to-sub --sub-host 172.21.0.3 --eth-host 172.21.0.2"
-    entrypoint: bash -c "exit 0"
+    entrypoint: /config/run-relay-eth2sub
+    volumes:
+      - .:/config
     environment:
-      RUST_LOG: debug,rpc=trace,bridge=trace
+      RUST_LOG: rpc=trace,bridge=trace
     depends_on:
-      - poa-node
+      - poa-node-arthur
+      - poa-node-bertha
+      - poa-node-carlos
       - bridge-node
-    # TODO healthcheck
 
   bridge-node:
     build:
@@ -39,7 +114,7 @@ services:
         PROJECT: bridge-node
     entrypoint: /home/user/bridge-node --execution=Native --dev --unsafe-rpc-external --unsafe-ws-external
     environment:
-      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,basic_authorship=trace
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace
     ports:
       - "9933:9933"
       - "9944:9944"
@@ -49,4 +124,8 @@ services:
       timeout: 10s
       retries: 3
 
-
+volumes:
+  poa-db-arthur:
+  poa-db-bertha:
+  poa-db-carlos:
+  bridge-node-db:
