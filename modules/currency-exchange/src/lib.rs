@@ -83,7 +83,7 @@ decl_error! {
 		FailedToConvertCurrency,
 		/// Deposit has failed.
 		DepositFailed,
-		/// Deposit has partially failed (changes to recipient acount were made).
+		/// Deposit has partially failed (changes to recipient account were made).
 		DepositPartiallyFailed,
 		/// Transaction is not finalized.
 		UnfinalizedTransaction,
