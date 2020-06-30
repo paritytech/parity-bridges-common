@@ -65,7 +65,7 @@ pub fn genesis_validators() -> Vec<Address> {
 ///
 /// To obtain genesis header from a running node, invoke:
 /// ```bash
-/// TODO
+/// $ http localhost:8545 jsonrpc=2.0 id=1 method=eth_getBlockByNumber params:='["earliest", false]' -v
 /// ```
 pub fn genesis_header() -> Header {
 	Header {
@@ -76,19 +76,19 @@ pub fn genesis_header() -> Header {
 		transactions_root: hex!("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421").into(),
 		uncles_hash: hex!("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347").into(),
 		extra_data: vec![],
-		state_root: hex!("2480155b48a1cea17d67dbfdfaafe821c1d19cdd478c5358e8ec56dec24502b2").into(),
+		state_root: hex!("d6368925ffd9acad81f411ce45891d3722e14355af2790391839488e23d74b0d").into(),
 		receipts_root: hex!("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421").into(),
 		log_bloom: Default::default(),
 		gas_used: Default::default(),
-		gas_limit: 6000000.into(),
-		difficulty: 131072.into(),
+		gas_limit: 0x222222.into(),
+		difficulty: 0x20000.into(),
 		seal: vec![
-			vec![128].into(),
-			vec![
-				184, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			]
-			.into(),
+			vec![0x80].into(),
+			{
+				let mut vec = vec![0xb8, 0x41];
+				vec.resize(67, 0);
+				vec.into()
+			}
 		],
 	}
 }
@@ -114,23 +114,31 @@ mod tests {
 	use super::*;
 
 	#[test]
+	fn genesis_hash_matches() {
+		assert_eq!(
+			genesis_header().compute_hash(),
+			hex!("bc936e808b668546250ad43de5c0a95fe2a9644a850a2ff69b57f874e3e35644").into(),
+		);
+	}
+
+	#[test]
 	fn pruning_strategy_keeps_enough_headers() {
 		assert_eq!(
+			PruningStrategy::default().pruning_upper_bound(100_000, 1_000),
+			0,
+			"1_000 <= 5_000 => nothing should be pruned yet",
+		);
+
+		assert_eq!(
+			PruningStrategy::default().pruning_upper_bound(100_000, 5_000),
+			0,
+			"5_000 <= 5_000 => nothing should be pruned yet",
+		);
+
+		assert_eq!(
 			PruningStrategy::default().pruning_upper_bound(100_000, 10_000),
-			0,
-			"10_000 <= 20_000 => nothing should be pruned yet",
-		);
-
-		assert_eq!(
-			PruningStrategy::default().pruning_upper_bound(100_000, 20_000),
-			0,
-			"20_000 <= 20_000 => nothing should be pruned yet",
-		);
-
-		assert_eq!(
-			PruningStrategy::default().pruning_upper_bound(100_000, 30_000),
 			5_000,
-			"20_000 <= 30_000 => we're ready to prune first 5_000 headers",
+			"5_000 <= 10_000 => we're ready to prune first 5_000 headers",
 		);
 	}
 }
