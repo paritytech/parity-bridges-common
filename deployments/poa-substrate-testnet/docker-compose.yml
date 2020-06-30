@@ -54,7 +54,7 @@ services:
         PROJECT: ethereum-poa-relay
     entrypoint: /config/run-relay-eth2sub
     volumes:
-      - .:/config
+      - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     depends_on:
@@ -63,6 +63,7 @@ services:
       - poa-node-carlos
       - bridge-node-alice
       - bridge-node-bob
+      - bridge-node-charlie
 
   bridge-node-alice: &bridge-node
     build:
@@ -74,12 +75,15 @@ services:
     entrypoint:
       - /home/user/bridge-node
       - --execution=Native
-      - --discover-local
-      - --rpc-cors=all
       - --chain=local
+      - --bootnodes=/dns4/bridge-node-bob/tcp/30333/p2p/12D3KooWSEpHJj29HEzgPFcRYVc5X3sEuP3KgiUoqJNCet51NiMX
       - --alice
+      - --node-key=79cf382988364291a7968ae7825c01f68c50d679796a8983237d07fe0ccf363b
+      - --rpc-cors=all
       - --unsafe-rpc-external
       - --unsafe-ws-external
+    volumes:
+      - ./bridge-config:/config
     environment:
       RUST_LOG: runtime=trace,rpc=debug,txpool=trace
     ports:
@@ -96,12 +100,28 @@ services:
     entrypoint:
       - /home/user/bridge-node
       - --execution=Native
-      - --discover-local
-      - --rpc-cors=all
       - --chain=local
+      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --bob
+      - --node-key=4f9d0146dd9b7b3bf5a8089e3880023d1df92057f89e96e07bb4d8c2ead75bbd
+      - --rpc-cors=all
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
       - "10033:9933"
       - "10044:9944"
+
+  bridge-node-charlie:
+    <<: *bridge-node
+    entrypoint:
+      - /home/user/bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --charlie
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10133:9933"
+      - "10144:9944"

@@ -15,6 +15,7 @@
 				"validateStepTransition": 0,
 				"maximumUncleCountTransition": 0,
 				"maximumUncleCount": 0,
+				"emptyStepsTransition": "0xfffffffff",
 				"maximumEmptySteps": 1
 			}
 		}

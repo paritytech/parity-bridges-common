@@ -36,7 +36,7 @@ const FINALIZED_HEADERS_TO_KEEP: u64 = 5_000;
 /// Aura engine configuration for TestPoa chain.
 pub fn aura_configuration() -> AuraConfiguration {
 	AuraConfiguration {
-		empty_steps_transition: 0,
+		empty_steps_transition: 0xfffffffff,
 		strict_empty_steps_transition: 0,
 		validate_step_transition: 0,
 		validate_score_transition: 0,
@@ -82,14 +82,11 @@ pub fn genesis_header() -> Header {
 		gas_used: Default::default(),
 		gas_limit: 0x222222.into(),
 		difficulty: 0x20000.into(),
-		seal: vec![
-			vec![0x80].into(),
-			{
-				let mut vec = vec![0xb8, 0x41];
-				vec.resize(67, 0);
-				vec.into()
-			}
-		],
+		seal: vec![vec![0x80].into(), {
+			let mut vec = vec![0xb8, 0x41];
+			vec.resize(67, 0);
+			vec.into()
+		}],
 	}
 }
 

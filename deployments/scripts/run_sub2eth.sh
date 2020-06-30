@@ -8,8 +8,7 @@ rm -rf substrate_dave.db
 rm -rf substrate_eve.db
 rm -rf parity.db
 
-test -f parity || (echo "Compile Parity with Bridge builtin support first"; exit 1)
-
+#test -f parity || (echo "Compile Parity with Bridge builtin support first"; exit 1)
 cargo build --manifest-path=../../Cargo.toml -p bridge-node
 cp ../../target/debug/bridge-node .
 cargo build --manifest-path=../../Cargo.toml -p ethereum-poa-relay
