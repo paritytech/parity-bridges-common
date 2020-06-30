@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2020 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -16,29 +16,30 @@
 
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
-use pallet_bridge_eth_poa::{AuraConfiguration, PruningStrategy, ValidatorsConfiguration, ValidatorsSource};
+use pallet_bridge_eth_poa::{
+	AuraConfiguration, PruningStrategy as TPruningStrategy, ValidatorsConfiguration, ValidatorsSource,
+};
 use sp_bridge_eth_poa::{Address, Header, U256};
 use sp_std::prelude::*;
 
 frame_support::parameter_types! {
-	pub const FinalityVotesCachingInterval: Option<u64> = Some(16);
+	pub const FinalityVotesCachingInterval: Option<u64> = Some(8);
 	pub BridgeAuraConfiguration: AuraConfiguration =
-		kovan_aura_configuration();
+		aura_configuration();
 	pub BridgeValidatorsConfiguration: ValidatorsConfiguration =
-		kovan_validators_configuration();
+		validators_configuration();
 }
 
-/// Max number of finalized headers to keep. It is equivalent of ~24 hours of
-/// finalized blocks on current Kovan chain.
-const FINALIZED_HEADERS_TO_KEEP: u64 = 20_000;
+/// Max number of finalized headers to keep.
+const FINALIZED_HEADERS_TO_KEEP: u64 = 5_000;
 
-/// Aura engine configuration for Kovan chain.
-pub fn kovan_aura_configuration() -> AuraConfiguration {
+/// Aura engine configuration for TestPoa chain.
+pub fn aura_configuration() -> AuraConfiguration {
 	AuraConfiguration {
-		empty_steps_transition: u64::max_value(),
+		empty_steps_transition: 0,
 		strict_empty_steps_transition: 0,
-		validate_step_transition: 0x16e360,
-		validate_score_transition: 0x41a3c4,
+		validate_step_transition: 0,
+		validate_score_transition: 0,
 		two_thirds_majority_transition: u64::max_value(),
 		min_gas_limit: 0x1388.into(),
 		max_gas_limit: U256::max_value(),
@@ -46,50 +47,26 @@ pub fn kovan_aura_configuration() -> AuraConfiguration {
 	}
 }
 
-/// Validators configuration for Kovan chain.
-pub fn kovan_validators_configuration() -> ValidatorsConfiguration {
-	ValidatorsConfiguration::Multi(vec![
-		(0, ValidatorsSource::List(genesis_validators())),
-		(
-			10960440,
-			ValidatorsSource::List(vec![
-				hex!("00D6Cc1BA9cf89BD2e58009741f4F7325BAdc0ED").into(),
-				hex!("0010f94b296a852aaac52ea6c5ac72e03afd032d").into(),
-				hex!("00a0a24b9f0e5ec7aa4c7389b8302fd0123194de").into(),
-			]),
-		),
-		(
-			10960500,
-			ValidatorsSource::Contract(
-				hex!("aE71807C1B0a093cB1547b682DC78316D945c9B8").into(),
-				vec![
-					hex!("d05f7478c6aa10781258c5cc8b4f385fc8fa989c").into(),
-					hex!("03801efb0efe2a25ede5dd3a003ae880c0292e4d").into(),
-					hex!("a4df255ecf08bbf2c28055c65225c9a9847abd94").into(),
-					hex!("596e8221a30bfe6e7eff67fee664a01c73ba3c56").into(),
-					hex!("faadface3fbd81ce37b0e19c0b65ff4234148132").into(),
-				],
-			),
-		),
-	])
+/// Validators configuration for TestPoa chain.
+pub fn validators_configuration() -> ValidatorsConfiguration {
+	ValidatorsConfiguration::Single(ValidatorsSource::List(genesis_validators()))
 }
 
-/// Genesis validators set of Kovan chain.
+/// Genesis validators set of TestPoa chain.
 pub fn genesis_validators() -> Vec<Address> {
 	vec![
-		hex!("00D6Cc1BA9cf89BD2e58009741f4F7325BAdc0ED").into(),
-		hex!("00427feae2419c15b89d1c21af10d1b6650a4d3d").into(),
-		hex!("4Ed9B08e6354C70fE6F8CB0411b0d3246b424d6c").into(),
-		hex!("0020ee4Be0e2027d76603cB751eE069519bA81A1").into(),
-		hex!("0010f94b296a852aaac52ea6c5ac72e03afd032d").into(),
-		hex!("007733a1FE69CF3f2CF989F81C7b4cAc1693387A").into(),
-		hex!("00E6d2b931F55a3f1701c7389d592a7778897879").into(),
-		hex!("00e4a10650e5a6D6001C38ff8E64F97016a1645c").into(),
-		hex!("00a0a24b9f0e5ec7aa4c7389b8302fd0123194de").into(),
+		hex!("005e714f896a8b7cede9d38688c1a81de72a58e4").into(),
+		hex!("007594304039c2937a12220338aab821d819f5a4").into(),
+		hex!("004e7a39907f090e19b0b80a277e77b72b22e269").into(),
 	]
 }
 
-/// Genesis header of the Kovan chain.
+/// Genesis header of the TestPoa chain.
+///
+/// To obtain genesis header from a running node, invoke:
+/// ```bash
+/// TODO
+/// ```
 pub fn genesis_header() -> Header {
 	Header {
 		parent_hash: Default::default(),
@@ -116,15 +93,15 @@ pub fn genesis_header() -> Header {
 	}
 }
 
-/// Kovan headers pruning strategy.
+/// TestPoa headers pruning strategy.
 ///
 /// We do not prune unfinalized headers because exchange module only accepts
 /// claims from finalized headers. And if we're pruning unfinalized headers, then
 /// some claims may never be accepted.
 #[derive(Default, RuntimeDebug)]
-pub struct KovanPruningStrategy;
+pub struct PruningStrategy;
 
-impl PruningStrategy for KovanPruningStrategy {
+impl TPruningStrategy for PruningStrategy {
 	fn pruning_upper_bound(&mut self, _best_number: u64, best_finalized_number: u64) -> u64 {
 		best_finalized_number
 			.checked_sub(FINALIZED_HEADERS_TO_KEEP)
@@ -139,21 +116,21 @@ mod tests {
 	#[test]
 	fn pruning_strategy_keeps_enough_headers() {
 		assert_eq!(
-			KovanPruningStrategy::default().pruning_upper_bound(100_000, 10_000),
+			PruningStrategy::default().pruning_upper_bound(100_000, 10_000),
 			0,
 			"10_000 <= 20_000 => nothing should be pruned yet",
 		);
 
 		assert_eq!(
-			KovanPruningStrategy::default().pruning_upper_bound(100_000, 20_000),
+			PruningStrategy::default().pruning_upper_bound(100_000, 20_000),
 			0,
 			"20_000 <= 20_000 => nothing should be pruned yet",
 		);
 
 		assert_eq!(
-			KovanPruningStrategy::default().pruning_upper_bound(100_000, 30_000),
-			10_000,
-			"20_000 <= 30_000 => we're ready to prune first 10_000 headers",
+			PruningStrategy::default().pruning_upper_bound(100_000, 30_000),
+			5_000,
+			"20_000 <= 30_000 => we're ready to prune first 5_000 headers",
 		);
 	}
 }

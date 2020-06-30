@@ -209,7 +209,9 @@ rev = "606c56d2e2f69f68f3947551224be6a3515dff60"
 git = "https://github.com/paritytech/substrate/"
 
 [features]
-default = ["std"]
+default = ["std", "bridge-testpoa"]
+bridge-kovan = []
+bridge-testpoa = []
 std = [
 	"pallet-aura/std",
 	"pallet-balances/std",

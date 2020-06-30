@@ -26,7 +26,15 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod exchange;
 
+#[cfg(feature = "bridge-kovan")]
 pub mod kovan;
+#[cfg(feature = "bridge-kovan")]
+pub use kovan as bridge;
+
+#[cfg(feature = "bridge-testpoa")]
+pub mod testpoa;
+#[cfg(feature = "bridge-testpoa")]
+pub use testpoa as bridge;
 
 use codec::{Decode, Encode};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
@@ -215,17 +223,11 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
-parameter_types! {
-	pub const FinalityVotesCachingInterval: Option<u64> = Some(16);
-	pub KovanAuraConfiguration: pallet_bridge_eth_poa::AuraConfiguration = kovan::kovan_aura_configuration();
-	pub KovanValidatorsConfiguration: pallet_bridge_eth_poa::ValidatorsConfiguration = kovan::kovan_validators_configuration();
-}
-
 impl pallet_bridge_eth_poa::Trait for Runtime {
-	type AuraConfiguration = KovanAuraConfiguration;
-	type FinalityVotesCachingInterval = FinalityVotesCachingInterval;
-	type ValidatorsConfiguration = KovanValidatorsConfiguration;
-	type PruningStrategy = kovan::KovanPruningStrategy;
+	type AuraConfiguration = bridge::BridgeAuraConfiguration;
+	type FinalityVotesCachingInterval = bridge::FinalityVotesCachingInterval;
+	type ValidatorsConfiguration = bridge::BridgeValidatorsConfiguration;
+	type PruningStrategy = bridge::PruningStrategy;
 	type OnHeadersSubmitted = ();
 }
 
