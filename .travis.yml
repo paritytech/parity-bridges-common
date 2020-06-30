@@ -12,8 +12,8 @@ before_script:
 script:
   - cargo check --verbose --all
   # Check features combinations
-  - cargo check --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features bridge-kovan
-  - cargo check --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features bridge-testpoa
+  # - cargo check --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features bridge-kovan
+  # - cargo check --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features bridge-testpoa
   # Build & test everything
   - cargo build --verbose --all
   - cargo test --verbose --all

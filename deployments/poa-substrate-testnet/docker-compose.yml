@@ -69,7 +69,7 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: td-deployments
+        BRIDGE_HASH: 00291355117a4c5fbb2350dfb1e612ca3389168a
         PROJECT: bridge-node
     entrypoint:
       - /home/user/bridge-node
