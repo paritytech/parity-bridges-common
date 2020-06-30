@@ -1,0 +1,161 @@
+# .gitlab-ci.yml
+#
+# parity-bridges-common
+
+stages:
+  - test
+  - build
+
+variables:                         &default-vars
+  GIT_STRATEGY:                    fetch
+  GIT_DEPTH:                       100
+  CARGO_INCREMENTAL:               0
+  DOCKER_OS:                       "debian:stretch"
+  ARCH:                            "x86_64"
+
+default:
+  cache:                           {}
+
+.collect-artifacts:                &collect-artifacts
+  artifacts:
+    name:                          "${CI_JOB_NAME}_${CI_COMMIT_REF_NAME}"
+    when:                          on_success
+    expire_in:                     7 days
+    paths:
+      - artifacts/
+
+.docker-env:                       &docker-env
+  image:                           paritytech/ci-linux:production
+  before_script:
+    - rustup show
+    - cargo --version
+    - sccache -s
+  only:
+    - master
+    - /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
+    - schedules
+    - web
+    - /^[0-9]+$/                   # PRs
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - unknown_failure
+      - api_failure
+  interruptible:                   true
+  tags:
+    - linux-docker
+
+.build-only:                       &build-only
+  only:
+    - master
+    - /^v[0-9]+\.[0-9]+.*$/        # i.e. v1.0, v2.1rc1
+    - /^pre-v[0-9]+\.[0-9]+-[0-9a-f]+$/
+
+#### stage:                        test
+
+cargo-audit:
+  stage:                           test
+  <<:                              *docker-env
+  except:
+    - /^[0-9]+$/
+  script:
+    - cargo audit
+  allow_failure:                   true
+
+cargo-deny:
+  stage:                           test
+  <<:                              *docker-env
+  script:
+    - cargo deny check --hide-inclusion-graph -c .maintain/deny.toml
+  after_script:
+    - echo "___The complete log is in the artifacts___"
+    - cargo deny check -c .maintain/deny.toml 2> deny.log
+  artifacts:
+    name:                          $CI_COMMIT_SHORT_SHA
+    expire_in:                     3 days
+    when:                          always
+    paths:
+      - deny.log
+
+test-linux-stable:                 &test-linux
+  stage:                           test
+  <<:                              *docker-env
+  variables:
+    <<:                            *default-vars
+    RUSTFLAGS: "-Dwarnings"
+    RUST_BACKTRACE: 1
+  script:
+    - WASM_BUILD_NO_COLOR=1 time cargo test --all --verbose --locked
+    - sccache -s
+
+cargo-check-macos:
+  stage:                           test
+  # shell runner on mac ignores the image set in *docker-env
+  <<:                              *docker-env
+  script:
+    - BUILD_DUMMY_WASM_BINARY=1 time cargo check --release
+    - sccache -s
+  tags:
+    - osx
+
+cargo-check-bridge-kovan:          &test-linux
+  stage:                           test
+  <<:                              *docker-env
+  variables:
+    <<:                            *default-vars
+    RUSTFLAGS: "-Dwarnings"
+    RUST_BACKTRACE: 1
+  script:
+    - WASM_BUILD_NO_COLOR=1 cargo check --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features bridge-kovan
+    - sccache -s
+
+cargo-check-bridge-testpoa:        &test-linux
+  stage:                           test
+  <<:                              *docker-env
+  variables:
+    <<:                            *default-vars
+    RUSTFLAGS: "-Dwarnings"
+    RUST_BACKTRACE: 1
+  script:
+    - WASM_BUILD_NO_COLOR=1 cargo check --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features bridge-testpoa
+    - sccache -s
+
+#### stage:                        build
+
+build-linux-bridges:               &build-binary
+  stage:                           build
+  <<:                              *collect-artifacts
+  <<:                              *docker-env
+  <<:                              *build-only
+  needs:
+    - job:                         test-linux-stable
+      artifacts:                   false
+  before_script:
+    - mkdir -p ./artifacts/bridges/
+  script:
+    - WASM_BUILD_NO_COLOR=1 time cargo build --release --verbose -p bridge-node
+    - mv ./target/release/bridge-node ./artifacts/bridges/.
+    # Build relayer
+    - time cargo build --release --verbose -p ethereum-poa-relay
+    - mv ./target/release/ethereum-poa-relay ./artifacts/bridges/.
+    - sccache -s
+
+build-rust-doc-release:
+  stage:                           build
+  <<:                              *docker-env
+  allow_failure:                   true
+  artifacts:
+    name:                          "${CI_JOB_NAME}_${CI_COMMIT_REF_NAME}-doc"
+    when:                          on_success
+    expire_in:                     7 days
+    paths:
+    - ./crate-docs
+  <<:                              *build-only
+  script:
+    - rm -f ./crate-docs/index.html # use it as an indicator if the job succeeds
+    - BUILD_DUMMY_WASM_BINARY=1 time cargo +nightly doc --release --all --verbose
+    - cp -R ./target/doc ./crate-docs
+    - echo "<meta http-equiv=refresh content=0;url=bridge-node-runtime/index.html>" > ./crate-docs/index.html
+    - sccache -s
+
