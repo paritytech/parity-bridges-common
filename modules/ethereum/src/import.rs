@@ -316,7 +316,7 @@ mod tests {
 				&validators_config,
 				Some(101),
 				header11.clone(),
-				Some(vec![crate::validators::tests::validators_change_recept(
+				Some(vec![crate::validators::tests::validators_change_receipt(
 					latest_block_id.hash,
 				)]),
 			)

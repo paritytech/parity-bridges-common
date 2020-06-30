@@ -283,7 +283,7 @@ pub(crate) mod tests {
 
 	const TOTAL_VALIDATORS: usize = 3;
 
-	pub(crate) fn validators_change_recept(parent_hash: H256) -> Receipt {
+	pub(crate) fn validators_change_receipt(parent_hash: H256) -> Receipt {
 		Receipt {
 			gas_used: 0.into(),
 			log_bloom: (&[0xff; 256]).into(),
@@ -405,7 +405,7 @@ pub(crate) mod tests {
 
 		// when we're inside contract range and logs bloom signals change
 		// and there's change in receipts
-		let receipts = vec![validators_change_recept(Default::default())];
+		let receipts = vec![validators_change_receipt(Default::default())];
 		header.receipts_root = "81ce88dc524403b796222046bf3daf543978329b87ffd50228f1d3987031dc45"
 			.parse()
 			.unwrap();
