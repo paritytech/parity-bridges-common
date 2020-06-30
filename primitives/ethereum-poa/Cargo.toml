@@ -53,6 +53,7 @@ features = ["hmac"]
 
 [dev-dependencies]
 hex-literal = "0.2"
+libsecp256k1 = { version = "0.3.4", default-features = false, features = ["hmac"] }
 
 [features]
 default = ["std"]

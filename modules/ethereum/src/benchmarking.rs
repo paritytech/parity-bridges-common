@@ -52,7 +52,6 @@ benchmarks! {
 				header
 			},
 		);
-
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		assert_eq!(BridgeStorage::<T>::new().best_block().0.number, 1);

@@ -15,6 +15,12 @@ version = "1.0.0"
 default-features = false
 features = ["derive"]
 
+[dependencies.libsecp256k1]
+optional = true
+version = "0.3.4"
+default-features = false
+features = ["hmac"]
+
 [dependencies.serde]
 version = "1.0.114"
 optional = true
@@ -199,10 +205,15 @@ default-features = false
 rev = "606c56d2e2f69f68f3947551224be6a3515dff60"
 git = "https://github.com/paritytech/substrate/"
 
+[dev-dependencies.libsecp256k1]
+version = "0.3.4"
+default-features = false
+features = ["hmac"]
+
 [dev-dependencies.sp-bridge-eth-poa]
 version = "0.1.0"
 default-features = false
-features = ["test-helpers"]
+features = ["std", "test-helpers"]
 path = "../../../primitives/ethereum-poa"
 
 [build-dependencies.wasm-builder-runner]
@@ -249,7 +260,9 @@ runtime-benchmarks = [
 	"frame-benchmarking",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
+	"libsecp256k1",
 	"pallet-bridge-currency-exchange/runtime-benchmarks",
 	"pallet-bridge-eth-poa/runtime-benchmarks",
+	"sp-bridge-eth-poa/test-helpers",
 	"sp-runtime/runtime-benchmarks",
 ]
