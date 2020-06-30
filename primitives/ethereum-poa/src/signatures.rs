@@ -22,7 +22,10 @@
 // reexport to avoid direct secp256k1 deps by other crates
 pub use secp256k1::SecretKey;
 
-use crate::{public_to_address, rlp_encode, step_validator, Address, Header, H256, H520, U256, RawTransaction, UnsignedTransaction};
+use crate::{
+	public_to_address, rlp_encode, step_validator, Address, Header, RawTransaction, UnsignedTransaction, H256, H520,
+	U256,
+};
 
 use secp256k1::{Message, PublicKey};
 
@@ -95,7 +98,7 @@ pub fn secret_to_address(secret: &SecretKey) -> Address {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{Transaction, transaction_decode};
+	use crate::{transaction_decode, Transaction};
 
 	#[test]
 	fn transaction_signed_properly() {

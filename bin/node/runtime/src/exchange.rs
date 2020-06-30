@@ -31,7 +31,7 @@ use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
 use pallet_bridge_currency_exchange::Blockchain;
-use sp_bridge_eth_poa::{RawTransaction, transaction_decode};
+use sp_bridge_eth_poa::{transaction_decode, RawTransaction};
 use sp_currency_exchange::{
 	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult,
 };
@@ -149,7 +149,10 @@ impl MaybeLockFundsTransaction for EthTransaction {
 mod tests {
 	use super::*;
 	use hex_literal::hex;
-	use sp_bridge_eth_poa::{UnsignedTransaction, signatures::{SecretKey, SignTransaction}};
+	use sp_bridge_eth_poa::{
+		signatures::{SecretKey, SignTransaction},
+		UnsignedTransaction,
+	};
 
 	fn ferdie() -> crate::AccountId {
 		hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c").into()
@@ -160,7 +163,10 @@ mod tests {
 		// chain id is 0x11
 		// sender secret is 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7
 		let chain_id = 0x11_u64;
-		let signer = SecretKey::parse(&hex!("4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7")).unwrap();
+		let signer = SecretKey::parse(&hex!(
+			"4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7"
+		))
+		.unwrap();
 		let ferdie_id = ferdie();
 		let ferdie_raw: &[u8; 32] = ferdie_id.as_ref();
 		let mut eth_tx = UnsignedTransaction {
