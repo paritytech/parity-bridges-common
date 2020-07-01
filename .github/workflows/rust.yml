@@ -66,25 +66,40 @@ jobs:
           target:      wasm32-unknown-unknown
           components:  clippy, rustfmt
           override:    true
-      - name:          Set cache_hash ENV and prepare cache dir's
-        run:           |
-          echo ::set-env name=cache_hash::${{ runner.os }}-${{ steps.toolchain.outputs.rustc_hash }}-${{ matrix.compiler }}-${{ hashFiles('**/Cargo.toml') }}
-          mkdir -p ~/sccache
-        shell:         bash
-      - name:          Cache cargo build
-        uses:          actions/cache@master
+      - name: Configure cargo data directory
+        run: echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
+      - name: Cache
+        uses: actions/cache@v2
         with:
-          path:        target
-          key:         cargo-target-${{ env['cache_hash'] }}
-      - name:          Cache sccache
-        uses:          actions/cache@master
-        with:
-          path:        "~/sccache"
-          key:         sccache-${{ env['cache_hash'] }}
-      - name:          Install & start sccache for ${{ matrix.platform }}
-
-        shell:         pwsh
-        run:           pwsh .github/workflows/sccache.ps1 ${{ runner.os}}
+          path: |-
+            target/cargo
+            target/sccache
+            target/*/.*
+            target/*/build
+            target/*/deps
+          key: ${{ matrix.config.target }}-${{ matrix.config.variant }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ matrix.config.target }}-${{ matrix.config.variant }}-
+      - name: Install and start sccache
+        shell: pwsh
+        env:
+          SCCACHE_DIR: ${{ github.workspace }}/target/sccache
+          SCCACHE_CACHE_SIZE: 1G
+          SCCACHE_IDLE_TIMEOUT: 0
+        run: |
+          $version = "0.2.12"
+          $platform =
+            @{ "macOS"   = "x86_64-apple-darwin"
+               "Linux"   = "x86_64-unknown-linux-musl"
+               "Windows" = "x86_64-pc-windows-msvc"
+             }.${{ runner.os }}
+          $basename = "sccache-$version-$platform"
+          $url = "https://github.com/mozilla/sccache/releases/download/" +
+                 "$version/$basename.tar.gz"
+          cd ~
+          curl -LO $url
+          tar -xzvf "$basename.tar.gz"
+          . $basename/sccache --start-server
+          echo "::add-path::$(pwd)/$basename"
       - name:          Sccache statistics
         run:           sccache --show-stats
       - name:          Style check ${{ matrix.platform }} rust-${{ matrix.toolchain }}
@@ -95,7 +110,6 @@ jobs:
           args:        --all -- --check
       - name:          Testing ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:          actions-rs/cargo@master
-        if:            matrix.toolchain == 'nightly &&'${{ always() }} #Allow failure for nightly
         with:
           command:     test
           toolchain:   ${{ matrix.toolchain }}
