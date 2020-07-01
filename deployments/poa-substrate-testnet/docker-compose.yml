@@ -57,7 +57,7 @@ services:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
-    depends_on:
+    depends_on: &all-nodes
       - poa-node-arthur
       - poa-node-bertha
       - poa-node-carlos
@@ -65,12 +65,26 @@ services:
       - bridge-node-bob
       - bridge-node-charlie
 
+  relay-sub2eth:
+    build:
+      context: .
+      dockerfile: ../../Dockerfile
+      args:
+        BRIDGE_HASH: td-deployments
+        PROJECT: ethereum-poa-relay
+    entrypoint: /config/run-relay-sub2eth
+    volumes:
+      - ./bridge-config:/config
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    depends_on: *all-nodes
+
   bridge-node-alice: &bridge-node
     build:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: 00291355117a4c5fbb2350dfb1e612ca3389168a
+        BRIDGE_HASH: 6f881fcb1e50f08adc0493453c33ce88e9f48cd3
         PROJECT: bridge-node
     entrypoint:
       - /home/user/bridge-node

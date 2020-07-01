@@ -92,6 +92,10 @@ subcommands:
                 long: eth-signer
                 value_name: ETH_SIGNER
                 help: Hex-encoded secret to use when transactions are submitted to the Ethereum node.
+            - eth-chain-id:
+                long: eth-chain-id
+                value_name: ETH_CHAIN_ID
+                help: Chain ID to use for signing.
             - eth-contract-code:
                 long: eth-contract-code
                 value_name: ETH_CONTRACT_CODE

@@ -1,0 +1,19 @@
+#!/bin/bash
+set -xeu
+
+sleep 10
+
+# Try to deploy contracts first
+/home/user/ethereum-poa-relay eth-deploy-contract \
+	# networkID = 0x69
+	--eth-chain-id 105 \
+	# Arthur's key.
+	--eth-signer 0399dbd15cf6ee8250895a1f3873eb1e10e23ca18e8ed0726c63c4aea356e87d \
+	--sub-host bridge-node-bob \
+	--eth-host poa-node-bertha || echo "Failed to deploy contracts."
+
+sleep 10
+echo "Starting SUB -> ETH relay"
+/home/user/ethereum-poa-relay sub-to-eth \
+	--sub-host bridge-node-alice \
+	--eth-host poa-node-arthur

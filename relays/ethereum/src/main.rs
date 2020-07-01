@@ -152,6 +152,11 @@ fn ethereum_signing_params(matches: &clap::ArgMatches) -> Result<EthereumSigning
 			.map_err(|e| format!("Failed to parse eth-signer: {}", e))
 			.and_then(|secret| KeyPair::from_secret(secret).map_err(|e| format!("Invalid eth-signer: {}", e)))?;
 	}
+	if let Some(eth_chain_id) = matches.value_of("eth-chain-id") {
+		params.chain_id = eth_chain_id
+			.parse::<u64>()
+			.map_err(|e| format!("Failed to parse eth-chain-id: {}", e))?;
+	}
 	Ok(params)
 }
 
