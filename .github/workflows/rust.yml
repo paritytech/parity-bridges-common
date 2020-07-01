@@ -30,8 +30,6 @@ jobs:
     runs-on:           ${{ matrix.platform }}
     env:
       RUST_BACKTRACE:  full
-      SCCACHE_DIR:     "~/sccache"
-      SCCACHE_CACHE_SIZE: "1G"
     steps:
       - name:          Set default compiler
         if:            matrix.compiler == 'clang' && matrix.platform != 'windows-latest'
