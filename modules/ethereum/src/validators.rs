@@ -105,6 +105,7 @@ impl<'a> Validators<'a> {
 			}
 		}
 
+		frame_support::debug::trace!(target: "runtime", "Checking validator set source");
 		// else deal with previous source
 		//
 		// if we are taking validators set from the fixed list, there's always
@@ -114,6 +115,7 @@ impl<'a> Validators<'a> {
 			ValidatorsSource::List(_) => return Ok((None, None)),
 			ValidatorsSource::Contract(contract_address, _) => contract_address,
 		};
+		frame_support::debug::trace!(target: "runtime", "Got source from Contract");
 
 		// else we need to check logs bloom and if it has required bits set, it means
 		// that the contract has (probably) emitted epoch change event

@@ -227,13 +227,16 @@ benchmarks! {
 
 		let mut storage = BridgeStorage::<T>::new();
 
-		let num_validators = 3;
+		let num_validators = 1;
 		let initial_header = initialize_bench::<T>(num_validators as usize);
 		let receipts = vec![validators_change_receipt(Default::default())];
 
-		let mut header = build_custom_header(
-			&validator(1),
-			&initial_header,
+		let header1 = HeaderBuilder::with_parent(&initial_header).sign_by(&validator(0));
+		insert_header(&mut storage, header1.clone());
+
+		let header = build_custom_header(
+			&validator(0),
+			&header1,
 			|mut header| {
 				header.receipts_root =
 					hex!("81ce88dc524403b796222046bf3daf543978329b87ffd50228f1d3987031dc45").into();
@@ -241,10 +244,17 @@ benchmarks! {
 			},
 		);
 
+		// let config = ValidatorsConfiguration::Multi(vec![
+		// 	(0, ValidatorsSource::List(vec![[1; 20].into()])),
+		// 	(1, ValidatorsSource::Contract([3; 20].into(), vec![[3; 20].into()])),
+		// ]);
+
+		// T::ValidatorsConfiguration::put(&config);
+
 	}: import_unsigned_header(RawOrigin::None, header, Some(receipts))
 	verify {
 		let storage = BridgeStorage::<T>::new();
-		assert_eq!(storage.best_block().0.number, 1);
+		assert_eq!(storage.best_block().0.number, 2);
 
 		// assert_eq!(
 		// 	validators.extract_validators_change(&header, Some(receipts)),
