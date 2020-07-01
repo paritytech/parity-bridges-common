@@ -30,7 +30,8 @@ jobs:
     runs-on:           ${{ matrix.platform }}
     env:
       RUST_BACKTRACE:  full
-      SCCACHE_DIR:     "/sccache"
+      SCCACHE_DIR:     "~/sccache"
+      SCCACHE_CACHE_SIZE: "1G"
     steps:
       - name:          Set default compiler
         if:            matrix.compiler == 'clang' && matrix.platform != 'windows-latest'
@@ -70,7 +71,7 @@ jobs:
       - name:          Set cache_hash ENV and prepare cache dir's
         run:           |
           echo ::set-env name=cache_hash::${{ runner.os }}-${{ steps.toolchain.outputs.rustc_hash }}-${{ matrix.compiler }}-${{ hashFiles('**/Cargo.toml') }}
-          mkdir -p /sccache
+          mkdir -p ~/sccache
         shell:         bash
       - name:          Cache cargo build
         uses:          actions/cache@master
@@ -80,7 +81,7 @@ jobs:
       - name:          Cache sccache
         uses:          actions/cache@master
         with:
-          path:        "/sccache"
+          path:        "~/sccache"
           key:         sccache-${{ env['cache_hash'] }}
       - name:          Install & start sccache for ${{ matrix.platform }}
 
@@ -88,13 +89,13 @@ jobs:
         run:           pwsh .github/workflows/sccache.ps1 ${{ runner.os}}
       - name:          Sccache statistics
         run:           sccache --show-stats
-      - name:          Style check ${{ matrix.platform }}-${{ matrix.toolchain }}
+      - name:          Style check ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:          actions-rs/cargo@master
         with:
           command:     fmt
           toolchain:   ${{ matrix.toolchain }}
           args:        --all -- --check
-      - name:          Testing ${{ matrix.platform }}-${{ matrix.toolchain }}
+      - name:          Testing ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:          actions-rs/cargo@master
         if:            matrix.toolchain == 'nightly &&'${{ always() }} #Allow failure for nightly
         with:
