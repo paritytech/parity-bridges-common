@@ -17,6 +17,6 @@ echo "Download sccache from "+$url
 curl -LO $url
 tar -xzvf "$basename.tar.gz"
 ls $basename/
-. SCCACHE_DIR="~/sccache" $basename/sccache --start-server
+. $SCCACHE_DIR="~/sccache" $basename/sccache --start-server
 echo "::add-path::$(pwd)/$basename"
 echo "::set-env name=RUSTC_WRAPPER::sccache"
