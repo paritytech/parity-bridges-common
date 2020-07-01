@@ -2,7 +2,7 @@
 $os=$args[0]
 $SCCACHE_CACHE_SIZE="1G"
 $SCCACHE_IDLE_TIMEOUT=0
-$SCCACHE_DIR="$HOME/sccache"
+$SCCACHE_DIR="~/sccache"
 $version="0.2.12"
 echo "Current OS:" $os
 switch ($os){
