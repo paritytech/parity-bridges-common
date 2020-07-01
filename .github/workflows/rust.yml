@@ -77,8 +77,8 @@ jobs:
             target/*/.*
             target/*/build
             target/*/deps
-          key: ${{ matrix.config.target }}-${{ matrix.config.variant }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: ${{ matrix.config.target }}-${{ matrix.config.variant }}-
+          key: ${{ matrix.platform }}-${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ matrix.platform }}-${{ matrix.toolchain }}-
       - name: Install and start sccache
         shell: pwsh
         env:
