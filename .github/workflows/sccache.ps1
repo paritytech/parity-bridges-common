@@ -2,7 +2,7 @@
 $os=$args[0]
 $SCCACHE_CACHE_SIZE="1G"
 $SCCACHE_IDLE_TIMEOUT=0
-$SCCACHE_DIR="~/sccache"
+#$SCCACHE_DIR="~/sccache"
 $version="0.2.12"
 echo "Current OS:" $os
 switch ($os){
@@ -17,6 +17,6 @@ echo "Download sccache from "+$url
 curl -LO $url
 tar -xzvf "$basename.tar.gz"
 ls $basename/
-. $basename/sccache --start-server
+. SCCACHE_DIR="~/sccache" $basename/sccache --start-server
 echo "::add-path::$(pwd)/$basename"
 echo "::set-env name=RUSTC_WRAPPER::sccache"
