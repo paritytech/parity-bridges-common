@@ -36,9 +36,6 @@ jobs:
         run: |
           echo ::set-env name=CC::clang
           echo ::set-env name=CXX::clang++
-      - name:          Install sudo for windows #https://github.com/actions/virtual-environments/issues/572
-        if: matrix.platform == 'windows-latest'
-        run: choco install sudo
       - name:          Install LLVM for Windows
         if:            matrix.platform == 'windows-latest'  && matrix.compiler == 'clang'
         run:           |
@@ -51,7 +48,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules:  recursive
-      - name:          Install toolchain
+      - name:          Install ${{ matrix.toolchain }} toolchain
         uses:          actions-rs/toolchain@master
         with:
           profile:     minimal
@@ -102,6 +99,11 @@ jobs:
           echo "::add-path::$(pwd)/$basename"
       - name:          Sccache statistics
         run:           sccache --show-stats
+      - name:          Set sccache ENV
+        run:  |
+          echo "::set-env name=RUSTC_WRAPPER::sccache"
+          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
+          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
       - name:          Style check ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:          actions-rs/cargo@master
         with:
