@@ -109,7 +109,7 @@ jobs:
 ## Test stage
   test:
     name:              Test
-    needs:             [check]
+#    needs:             [check]
     strategy:
       matrix:
         platform:
