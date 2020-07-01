@@ -30,7 +30,7 @@ jobs:
     runs-on:           ${{ matrix.platform }}
     env:
       RUST_BACKTRACE:  full
-      SCCACHE_DIR:     "$HOME/sccache"
+      SCCACHE_DIR:     "/sccache"
     steps:
       - name:          Set default compiler
         if:            matrix.compiler == 'clang' && matrix.platform != 'windows-latest'
@@ -70,7 +70,7 @@ jobs:
       - name:          Set cache_hash ENV and prepare cache dir's
         run:           |
           echo ::set-env name=cache_hash::${{ runner.os }}-${{ steps.toolchain.outputs.rustc_hash }}-${{ matrix.compiler }}-${{ hashFiles('**/Cargo.toml') }}
-          mkdir -p $HOME/sccache
+          mkdir -p /sccache
         shell:         bash
       - name:          Cache cargo build
         uses:          actions/cache@master
@@ -80,7 +80,7 @@ jobs:
       - name:          Cache sccache
         uses:          actions/cache@master
         with:
-          path:        "$HOME/sccache"
+          path:        "/sccache"
           key:         sccache-${{ env['cache_hash'] }}
       - name:          Install & start sccache for ${{ matrix.platform }}
 
