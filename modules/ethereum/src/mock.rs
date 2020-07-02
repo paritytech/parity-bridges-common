@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-pub use crate::test_utils::{insert_header, validator_utils::*, HeaderBuilder, GAS_LIMIT};
+pub use crate::test_utils::{insert_header, validator_utils::*, validators_change_receipt, HeaderBuilder, GAS_LIMIT};
 pub use primitives::signatures::secret_to_address;
 
 use crate::finality::FinalityVotes;

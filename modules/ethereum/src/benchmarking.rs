@@ -16,14 +16,15 @@
 
 use super::*;
 
-use crate::finality::FinalityAncestor;
-use crate::test_utils::{build_custom_header, build_genesis_header, insert_header, validator_utils::*, HeaderBuilder};
-use crate::validators::{Validators, ValidatorsConfiguration};
+use crate::test_utils::{
+	build_custom_header, build_genesis_header, insert_header, validator_utils::*, validators_change_receipt,
+	HeaderBuilder,
+};
 
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use hex_literal::hex;
-use primitives::{Address, Receipt, H256, U256};
+use primitives::U256;
 
 // We want to try and benchmark scenario which are going to cause a lot for work for our runtime.
 // Some of the ones which we should test that are still missing are:
@@ -269,33 +270,6 @@ fn initialize_bench<T: Trait>(num_validators: usize) -> Header {
 	initialize_storage::<T>(&initial_header, initial_difficulty, &initial_validators);
 
 	initial_header
-}
-
-// TODO: Stole these from validators.rs, need to move them to a shared place
-
-/// The hash of InitiateChange event of the validators set contract.
-const CHANGE_EVENT_HASH: &'static [u8; 32] = &[
-	0x55, 0x25, 0x2f, 0xa6, 0xee, 0xe4, 0x74, 0x1b, 0x4e, 0x24, 0xa7, 0x4a, 0x70, 0xe9, 0xc1, 0x1f, 0xd2, 0xc2, 0x28,
-	0x1d, 0xf8, 0xd6, 0xea, 0x13, 0x12, 0x6f, 0xf8, 0x45, 0xf7, 0x82, 0x5c, 0x89,
-];
-
-fn validators_change_receipt(parent_hash: H256) -> Receipt {
-	use primitives::{LogEntry, TransactionOutcome};
-
-	Receipt {
-		gas_used: 0.into(),
-		log_bloom: (&[0xff; 256]).into(),
-		outcome: TransactionOutcome::Unknown,
-		logs: vec![LogEntry {
-			address: [3; 20].into(),
-			topics: vec![CHANGE_EVENT_HASH.into(), parent_hash],
-			data: vec![
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 7, 7, 7, 7,
-				7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-			],
-		}],
-	}
 }
 
 #[cfg(test)]

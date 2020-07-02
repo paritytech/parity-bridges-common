@@ -355,9 +355,9 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		insert_header, run_test_with_genesis, test_aura_config, validator, validator_address, validators_addresses,
-		AccountId, HeaderBuilder, TestRuntime, GAS_LIMIT,
+		validators_change_receipt, AccountId, HeaderBuilder, TestRuntime, GAS_LIMIT,
 	};
-	use crate::validators::{tests::validators_change_receipt, ValidatorsSource};
+	use crate::validators::ValidatorsSource;
 	use crate::{
 		pool_configuration, BridgeStorage, FinalizedBlock, Headers, HeadersByNumber, NextValidatorsSetId,
 		ScheduledChanges, ValidatorsSet, ValidatorsSets,
