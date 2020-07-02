@@ -34,6 +34,9 @@ jobs:
           cd cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl
           chmod +x cargo-deny
           mv cargo-deny ~/.cargo/bin
+      - name:              Cargo init
+        continue-on-error: true
+        run:               cargo deny init
       - name:              Cargo deny
         continue-on-error: true
         run:               cargo deny check --hide-inclusion-graph -c .maintain/deny.toml
