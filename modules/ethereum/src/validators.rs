@@ -276,29 +276,12 @@ impl ValidatorsSource {
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::mock::{run_test, validators_addresses, validators_change_receipt, TestRuntime};
+	use crate::mock::{run_test, validators_addresses, validators_change_receipt, TestRuntime, TEST_RECEIPT_ROOT};
 	use crate::{BridgeStorage, Headers, ScheduledChange, ScheduledChanges, StoredHeader};
 	use frame_support::StorageMap;
 	use primitives::{TransactionOutcome, H256};
 
 	const TOTAL_VALIDATORS: usize = 3;
-
-	// pub(crate) fn validators_change_receipt(parent_hash: H256) -> Receipt {
-	// 	Receipt {
-	// 		gas_used: 0.into(),
-	// 		log_bloom: (&[0xff; 256]).into(),
-	// 		outcome: TransactionOutcome::Unknown,
-	// 		logs: vec![LogEntry {
-	// 			address: [3; 20].into(),
-	// 			topics: vec![CHANGE_EVENT_HASH.into(), parent_hash],
-	// 			data: vec![
-	// 				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	// 				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 7, 7,
-	// 				7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-	// 			],
-	// 		}],
-	// 	}
-	// }
 
 	#[test]
 	fn source_at_works() {
@@ -406,9 +389,7 @@ pub(crate) mod tests {
 		// when we're inside contract range and logs bloom signals change
 		// and there's change in receipts
 		let receipts = vec![validators_change_receipt(Default::default())];
-		header.receipts_root = "81ce88dc524403b796222046bf3daf543978329b87ffd50228f1d3987031dc45"
-			.parse()
-			.unwrap();
+		header.receipts_root = TEST_RECEIPT_ROOT.into();
 		assert_eq!(
 			validators.extract_validators_change(&header, Some(receipts)),
 			Ok((Some(vec![[7; 20].into()]), None)),

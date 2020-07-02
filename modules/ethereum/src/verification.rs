@@ -355,7 +355,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		insert_header, run_test_with_genesis, test_aura_config, validator, validator_address, validators_addresses,
-		validators_change_receipt, AccountId, HeaderBuilder, TestRuntime, GAS_LIMIT,
+		validators_change_receipt, AccountId, HeaderBuilder, TestRuntime, GAS_LIMIT, TEST_RECEIPT_ROOT,
 	};
 	use crate::validators::ValidatorsSource;
 	use crate::{
@@ -858,11 +858,7 @@ mod tests {
 			default_accept_into_pool(|validators| {
 				let header = HeaderBuilder::with_parent_number(3)
 					.log_bloom((&[0xff; 256]).into())
-					.receipts_root(
-						"81ce88dc524403b796222046bf3daf543978329b87ffd50228f1d3987031dc45"
-							.parse()
-							.unwrap(),
-					)
+					.receipts_root(TEST_RECEIPT_ROOT.into())
 					.sign_by_set(validators);
 				hash = Some(header.compute_hash());
 				(header, Some(vec![validators_change_receipt(Default::default())]))

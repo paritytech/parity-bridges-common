@@ -18,7 +18,7 @@ use super::*;
 
 use crate::test_utils::{
 	build_custom_header, build_genesis_header, insert_header, validator_utils::*, validators_change_receipt,
-	HeaderBuilder,
+	HeaderBuilder, TEST_RECEIPT_ROOT,
 };
 
 use frame_benchmarking::benchmarks;
@@ -243,8 +243,7 @@ benchmarks! {
 			|mut header| {
 				// Logs Bloom signals a change in validator set
 				header.log_bloom = (&[0xff; 256]).into();
-				header.receipts_root =
-					hex!("81ce88dc524403b796222046bf3daf543978329b87ffd50228f1d3987031dc45").into();
+				header.receipts_root = TEST_RECEIPT_ROOT.into();
 				header
 			},
 		);
@@ -252,11 +251,6 @@ benchmarks! {
 	verify {
 		let storage = BridgeStorage::<T>::new();
 		assert_eq!(storage.best_block().0.number, 2);
-
-		// assert_eq!(
-		// 	validators.extract_validators_change(&header, Some(receipts)),
-		// 	Ok((Some(vec![[7; 20].into()]), None)),
-		// );
 	}
 }
 
