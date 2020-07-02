@@ -1,4 +1,4 @@
-name:             Cargo deny
+name:                Cargo deny
 
 on:
   pull_request:
@@ -12,22 +12,22 @@ on:
 jobs:
 ## Test stage
   test:
-    name:         Check
-    runs-on:      ubuntu-latest
+    name:            Check
+    runs-on:         ubuntu-latest
     steps:
-      - name:     Checkout sources & submodules
-        uses:     actions/checkout@master
-      - name:          Install toolchain
-        uses:          actions-rs/toolchain@master
+      - name:        Checkout sources & submodules
+        uses:        actions/checkout@master
+      - name:        Install toolchain
+        uses:        actions-rs/toolchain@master
         with:
-          profile:     minimal
-          toolchain:   stable
-      - name: Cargo deny
-        run: cargo deny check --hide-inclusion-graph -c .maintain/deny.toml
-      - name: Build deny log
-        run: cargo deny check -c .maintain/deny.toml 2> deny.log
-      - name: Upload deny.log
-        uses:          actions/upload-artifact@v1
+          profile:   minimal
+          toolchain: stable
+      - name:        Cargo deny
+        run:         cargo deny check --hide-inclusion-graph -c .maintain/deny.toml
+      - name:        Build deny log
+        run:         cargo deny check -c .maintain/deny.toml 2> deny.log
+      - name:        Upload deny.log
+        uses:        actions/upload-artifact@v1
         with:
-          name:        deny.log
-          path:        deny.log
+          name:      deny.log
+          path:      deny.log
