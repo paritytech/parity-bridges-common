@@ -15,7 +15,7 @@ services:
     volumes:
       - ./poa-config:/config
     environment:
-      RUST_LOG: rpc=trace
+      RUST_LOG: rpc=trace,txqueue=trace
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -50,7 +50,7 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: td-deployments
+        BRIDGE_HASH: e8d56eded1253cd0f7e8ce2c94af9eafab492173
         PROJECT: ethereum-poa-relay
     entrypoint: /config/run-relay-eth2sub
     volumes:
@@ -70,7 +70,7 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: td-deployments
+        BRIDGE_HASH: e8d56eded1253cd0f7e8ce2c94af9eafab492173
         PROJECT: ethereum-poa-relay
     entrypoint: /config/run-relay-sub2eth
     volumes:
