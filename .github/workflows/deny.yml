@@ -17,5 +17,7 @@ jobs:
     steps:
       - name:     Checkout sources & submodules
         uses:     actions/checkout@master
+      - name:     Copy deny.toml to .
+        run:      cp .maintain/deny.toml deny.toml
       - name:     Check crate dependencies and validate licenses
         uses:     EmbarkStudios/cargo-deny-action@master
