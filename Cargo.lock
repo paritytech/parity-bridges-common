@@ -533,7 +533,6 @@ dependencies = [
 name = "bridge-node-runtime"
 version = "0.1.0"
 dependencies = [
- "ethereum-tx-sign",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
