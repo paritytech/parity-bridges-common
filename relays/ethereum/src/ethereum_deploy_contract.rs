@@ -66,16 +66,13 @@ pub fn run(params: EthereumDeployContractParams) {
 		let eth_client = EthereumRpcClient::new(params.eth);
 		let sub_client = SubstrateRpcClient::new(params.sub).await?;
 
-		println!("Preparing initial header.");
 		let (initial_header_hash, initial_header) = prepare_initial_header(&sub_client, params.sub_initial_header).await?;
-		println!("Preparing initial authority set.");
 		let initial_set_id = params.sub_initial_authorities_set_id.unwrap_or(0);
 		let initial_set = prepare_initial_authorities_set(
 			&sub_client,
 			initial_header_hash,
 			params.sub_initial_authorities_set,
 		).await?;
-		println!("Deploying.");
 
 		log::info!(
 			target: "bridge",

@@ -61,6 +61,10 @@ subcommands:
                 value_name: ETH_CONTRACT
                 help: Address of deployed bridge contract.
                 takes_value: true
+            - eth-chain-id:
+                long: eth-chain-id
+                value_name: ETH_CHAIN_ID
+                help: Chain ID to use for signing.
             - eth-signer:
                 long: eth-signer
                 value_name: ETH_SIGNER

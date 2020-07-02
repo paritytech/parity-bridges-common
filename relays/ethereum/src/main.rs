@@ -201,7 +201,7 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams
 		None => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
 	}
 
-	log::debug!("Ethereum sync params: {:?}", eth_sync_params);
+	log::debug!(target: "bridge", "Ethereum sync params: {:?}", eth_sync_params);
 
 	Ok(eth_sync_params)
 }
@@ -216,7 +216,7 @@ fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncPara
 		sub_sync_params.eth_contract_address = eth_contract.parse().map_err(|e| format!("{}", e))?;
 	}
 
-	log::debug!("Substrate sync params: {:?}", sub_sync_params);
+	log::debug!(target: "bridge", "Substrate sync params: {:?}", sub_sync_params);
 
 	Ok(sub_sync_params)
 }
@@ -234,7 +234,7 @@ fn ethereum_deploy_contract_params(
 			hex::decode(&eth_contract_code).map_err(|e| format!("Failed to parse eth-contract-code: {}", e))?;
 	}
 
-	log::debug!("Deploy params: {:?}", eth_deploy_params);
+	log::debug!(target: "bridge", "Deploy params: {:?}", eth_deploy_params);
 
 	Ok(eth_deploy_params)
 }
