@@ -74,13 +74,7 @@ impl frame_system::Trait for TestRuntime {
 parameter_types! {
 	pub const TestFinalityVotesCachingInterval: Option<u64> = Some(16);
 	pub TestAuraConfiguration: AuraConfiguration = test_aura_config();
-	// pub TestValidatorsConfiguration: ValidatorsConfiguration = test_validators_config();
-	pub TestValidatorsConfiguration: ValidatorsConfiguration
-		= ValidatorsConfiguration::Multi(vec![
-			(0, ValidatorsSource::List(vec![validator_address(0).into()])),
-			(1, ValidatorsSource::Contract([3; 20].into(), vec![validator_address(0).into()])),
-			// (1, ValidatorsSource::Contract([3; 20].into(), vec![[3; 20].into()])),
-		]);
+	pub TestValidatorsConfiguration: ValidatorsConfiguration = test_validators_config();
 }
 
 impl Trait for TestRuntime {

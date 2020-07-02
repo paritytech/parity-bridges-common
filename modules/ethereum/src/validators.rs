@@ -39,7 +39,7 @@ pub enum ValidatorsConfiguration {
 /// This source is valid within some blocks range. The blocks range could
 /// cover multiple epochs - i.e. the validators that are authoring blocks
 /// within this range could change, but the source itself can not.
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(any(test, feature = "runtime-benchmarks"), derive(Debug, PartialEq))]
 pub enum ValidatorsSource {
 	/// The validators addresses are hardcoded and never change.
 	List(Vec<Address>),
@@ -105,7 +105,6 @@ impl<'a> Validators<'a> {
 			}
 		}
 
-		frame_support::debug::trace!(target: "runtime", "Checking validator set source");
 		// else deal with previous source
 		//
 		// if we are taking validators set from the fixed list, there's always
@@ -115,7 +114,6 @@ impl<'a> Validators<'a> {
 			ValidatorsSource::List(_) => return Ok((None, None)),
 			ValidatorsSource::Contract(contract_address, _) => contract_address,
 		};
-		frame_support::debug::trace!(target: "runtime", "Got source from Contract");
 
 		// else we need to check logs bloom and if it has required bits set, it means
 		// that the contract has (probably) emitted epoch change event

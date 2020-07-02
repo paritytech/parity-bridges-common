@@ -231,6 +231,8 @@ benchmarks! {
 		let initial_header = initialize_bench::<T>(num_validators as usize);
 		let receipts = vec![validators_change_receipt(Default::default())];
 
+		// We need this extra header since this is what signals a validator set transition. This
+		// will ensure that the next header is within the "Contract" window
 		let header1 = HeaderBuilder::with_parent(&initial_header).sign_by(&validator(0));
 		insert_header(&mut storage, header1.clone());
 
@@ -238,19 +240,13 @@ benchmarks! {
 			&validator(0),
 			&header1,
 			|mut header| {
+				// Logs Bloom signals a change in validator set
+				header.log_bloom = (&[0xff; 256]).into();
 				header.receipts_root =
 					hex!("81ce88dc524403b796222046bf3daf543978329b87ffd50228f1d3987031dc45").into();
 				header
 			},
 		);
-
-		// let config = ValidatorsConfiguration::Multi(vec![
-		// 	(0, ValidatorsSource::List(vec![[1; 20].into()])),
-		// 	(1, ValidatorsSource::Contract([3; 20].into(), vec![[3; 20].into()])),
-		// ]);
-
-		// T::ValidatorsConfiguration::put(&config);
-
 	}: import_unsigned_header(RawOrigin::None, header, Some(receipts))
 	verify {
 		let storage = BridgeStorage::<T>::new();
