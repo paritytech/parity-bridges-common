@@ -70,7 +70,7 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: c2f4c4c49ea2c7926bdcecdd0265214dfcf5240f
+        BRIDGE_HASH: 95bd4daf685aeb41b864794c97ba300f3854bb11
         PROJECT: ethereum-poa-relay
     entrypoint: /config/run-relay-sub2eth
     volumes:
