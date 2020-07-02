@@ -26,7 +26,7 @@ jobs:
         run: |
           CARGO_DENY_RELEASE=$(curl -L -s -H 'Accept: application/json' https://github.com/EmbarkStudios/cargo-deny/releases/latest)
           CARGO_DENY_VERSION=$(echo $CARGO_DENY_RELEASE | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')
-          CARGO_DENY_HOST_TRIPLE="x86_64-unknown-linux-musl";;
+          CARGO_DENY_HOST_TRIPLE="x86_64-unknown-linux-musl"
           CARGO_DENY_URL="https://github.com/EmbarkStudios/cargo-deny/releases/download/$CARGO_DENY_VERSION/cargo-deny-$CARGO_DENY_HOST_TRIPLE.tar.gz"
           echo "Downloading cargo-deny from: $CARGO_DENY_URL"
           curl -L $CARGO_DENY_URL | gzip -d > cargo-deny
