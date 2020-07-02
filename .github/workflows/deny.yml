@@ -17,7 +17,17 @@ jobs:
     steps:
       - name:     Checkout sources & submodules
         uses:     actions/checkout@master
-      - name:     Copy deny.toml to .
-        run:      cp .maintain/deny.toml deny.toml
-      - name:     Check crate dependencies and validate licenses
-        uses:     EmbarkStudios/cargo-deny-action@master
+      - name:          Install toolchain
+        uses:          actions-rs/toolchain@master
+        with:
+          profile:     minimal
+          toolchain:   stable
+      - name: Cargo deny
+        run: cargo deny check --hide-inclusion-graph -c .maintain/deny.toml
+      - name: Build deny log
+        run: cargo deny check -c .maintain/deny.toml 2> deny.log
+      - name: Upload deny.log
+        uses:          actions/upload-artifact@v1
+        with:
+          name:        deny.log
+          path:        deny.log
