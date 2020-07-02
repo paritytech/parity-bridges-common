@@ -1,4 +1,4 @@
-name:                  Cargo deny
+name:             Cargo deny
 
 on:
   pull_request:
@@ -12,13 +12,10 @@ on:
 jobs:
 ## Test stage
   test:
-    name:              Check
-    runs-on:           ubuntu-latest
+    name:         Check
+    runs-on:      ubuntu-latest
     steps:
-      - name:          Checkout sources & submodules
-        uses:          actions/checkout@master
-        with:
-          fetch-depth: 100
-          submodules:  recursive
-      - name: Check crate dependencies and validate licenses
-        uses: EmbarkStudios/cargo-deny-action@v1
+      - name:     Checkout sources & submodules
+        uses:     actions/checkout@master
+      - name:     Check crate dependencies and validate licenses
+        uses:     EmbarkStudios/cargo-deny-action@master
