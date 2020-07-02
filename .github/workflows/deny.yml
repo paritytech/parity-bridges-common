@@ -35,6 +35,7 @@ jobs:
           chmod +x cargo-deny
           mv cargo-deny ~/.cargo/bin
       - name:              Cargo deny
+        continue-on-error: true
         run:               cargo deny check --hide-inclusion-graph -c .maintain/deny.toml
       - name:              Build deny log
         run:               cargo deny check -c .maintain/deny.toml 2> deny.log
