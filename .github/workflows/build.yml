@@ -116,7 +116,6 @@ jobs:
           command:     build
           toolchain:   ${{ matrix.toolchain }}
           args:        --release --verbose -p bridge-poa-relay
-      - name:
       - name:          Stop sccache
         if:            always()
         run:           sccache --stop-server
