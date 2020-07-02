@@ -50,7 +50,7 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: e8d56eded1253cd0f7e8ce2c94af9eafab492173
+        BRIDGE_HASH: 270e7528e446ec545cf6adfc9ed159436ba607b9
         PROJECT: ethereum-poa-relay
     entrypoint: /config/run-relay-eth2sub
     volumes:
@@ -70,7 +70,7 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: 2f6c0e01da27d3ec8e30027f8cf3b74ac055af13
+        BRIDGE_HASH: 270e7528e446ec545cf6adfc9ed159436ba607b9
         PROJECT: ethereum-poa-relay
     entrypoint: /config/run-relay-sub2eth
     volumes:
@@ -84,7 +84,7 @@ services:
       context: .
       dockerfile: ../../Dockerfile
       args:
-        BRIDGE_HASH: 6f881fcb1e50f08adc0493453c33ce88e9f48cd3
+        BRIDGE_HASH: 270e7528e446ec545cf6adfc9ed159436ba607b9
         PROJECT: bridge-node
     entrypoint:
       - /home/user/bridge-node
