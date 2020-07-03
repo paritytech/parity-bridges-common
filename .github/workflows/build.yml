@@ -5,11 +5,11 @@ on:
   push:
     branches:
       - master
-      - stable
     tags:
       - v*
     paths-ignore:
       - 'README.md'
+      - diagrams/
 jobs:
 ## Build stage
   test:
@@ -109,13 +109,7 @@ jobs:
         with:
           command:     build
           toolchain:   ${{ matrix.toolchain }}
-          args:        --release --verbose -p bridge-node
-      - name:          Building relayer ${{ matrix.platform }} rust-${{ matrix.toolchain }}
-        uses:          actions-rs/cargo@master
-        with:
-          command:     build
-          toolchain:   ${{ matrix.toolchain }}
-          args:        --release --verbose -p ethereum-poa-relay
+          args:        --all--verbose
       - name:          Stop sccache
         if:            always()
         run:           sccache --stop-server
