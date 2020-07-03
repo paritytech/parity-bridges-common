@@ -39,12 +39,18 @@ jobs:
         run:               cargo deny init
       - name:              Cargo deny
         continue-on-error: true
-        run:               cargo deny check --hide-inclusion-graph -c .maintain/deny.toml
+        run:               cargo deny check --hide-inclusion-graph deny.toml
       - name:              Build deny log
         continue-on-error: true
-        run:               cargo deny check -c .maintain/deny.toml 2> deny.log
+        run:               cargo deny check -c deny.toml 2> deny.log
       - name:              Upload deny.log
         uses:              actions/upload-artifact@v1
         with:
           name:            deny.log
           path:            deny.log
+          
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: EmbarkStudios/cargo-deny-action@v1
