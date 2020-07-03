@@ -261,7 +261,7 @@ impl EthereumHighLevelRpc for EthereumRpcClient {
 			}
 		};
 
-		// submit headers. Note that w're cloning self here. It is ok, because
+		// submit headers. Note that we're cloning self here. It is ok, because
 		// cloning `jsonrpsee::Client` only clones reference to background threads
 		submit_substrate_headers(
 			EthereumHeadersSubmitter {
