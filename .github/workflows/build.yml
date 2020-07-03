@@ -102,6 +102,8 @@ jobs:
           echo "::set-env name=RUSTC_WRAPPER::sccache"
           echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
           echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
+      - name:          Cargo clean
+        run:           cargo clean      
       - name:          Building bridge node ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:          actions-rs/cargo@master
         with:
