@@ -196,14 +196,14 @@ jobs:
 ## Build stage
   build:
     name:                       Build
-#   needs:                      [test]
+   needs:                      [test]
     strategy:
       matrix:
         toolchain:
           - stable
           #- beta
           - nightly
-    runs-on:                    ${{ matrix.platform }}
+    runs-on:                    ubuntu-latest
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
