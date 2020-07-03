@@ -12,7 +12,7 @@ on:
       - diagrams/
 jobs:
 ## Build stage
-  test:
+  build:
     name:              Build
     strategy:
       matrix:
@@ -97,8 +97,6 @@ jobs:
           tar -xzvf "$basename.tar.gz"
           . $basename/sccache --start-server
           echo "::add-path::$(pwd)/$basename"
-      - name:          Sccache statistics
-        run:           sccache --show-stats
       - name:          Set sccache ENV
         run:  |
           echo "::set-env name=RUSTC_WRAPPER::sccache"
@@ -113,8 +111,3 @@ jobs:
       - name:          Stop sccache
         if:            always()
         run:           sccache --stop-server
-      - name:          Upload artifact's
-        uses:          actions/upload-artifact@v1
-        with:
-          name:        ${{ matrix.platform }}.${{ matrix.toolchain }}.${{ matrix.compiler }}.zip
-          path:        artifacts/

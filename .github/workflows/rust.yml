@@ -10,6 +10,7 @@ on:
       - v*
     paths-ignore:
       - 'README.md'
+      - diagrams/
 jobs:
 ## Test stage
   test:
@@ -97,8 +98,6 @@ jobs:
           tar -xzvf "$basename.tar.gz"
           . $basename/sccache --start-server
           echo "::add-path::$(pwd)/$basename"
-      - name:          Sccache statistics
-        run:           sccache --show-stats
       - name:          Set sccache ENV
         run:  |
           echo "::set-env name=RUSTC_WRAPPER::sccache"
@@ -131,3 +130,110 @@ jobs:
       - name:          Stop sccache
         if:            always()
         run:           sccache --stop-server
+## Release stage
+  release:
+    name:              Release
+    needs:             [test]
+    #if: startsWith(github.ref, 'refs/tags/')
+    strategy:
+      matrix:
+        platform:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        toolchain:
+          - stable
+          #- beta
+          #- nightly
+        compiler:
+          #- clang
+          - gcc
+    runs-on:           ${{ matrix.platform }}
+    env:
+      RUST_BACKTRACE:  full
+    steps:
+      - name:          Set default compiler
+        if:            matrix.compiler == 'clang' && matrix.platform != 'windows-latest'
+        run: |
+          echo ::set-env name=CC::clang
+          echo ::set-env name=CXX::clang++
+      - name:          Install LLVM for Windows
+        if:            matrix.platform == 'windows-latest'  && matrix.compiler == 'clang'
+        run:           |
+          choco install llvm
+          echo ::set-env name=CC::clang-cl.exe --enable-64-bit
+          echo ::set-env name=CXX::clang-cl.exe --enable-64-bit
+          refreshenv
+      - name:          Checkout sources & submodules
+        uses:          actions/checkout@master
+        with:
+          fetch-depth: 5
+          submodules:  recursive
+      - name:          Install ${{ matrix.toolchain }} toolchain
+        uses:          actions-rs/toolchain@master
+        with:
+          profile:     minimal
+          toolchain:   ${{ matrix.toolchain }}
+          components:  clippy, rustfmt
+          override:    true
+      - name:          Install nightly toolchain & wasm32
+        uses:          actions-rs/toolchain@master
+        with:
+          profile:     minimal
+          toolchain:   nightly
+          target:      wasm32-unknown-unknown
+          components:  clippy, rustfmt
+          override:    true
+      - name: Configure cargo data directory
+        run: echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |-
+            target/cargo
+            target/sccache
+            target/*/.*
+            target/*/build
+            target/*/deps
+          key: ${{ matrix.platform }}-${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ matrix.platform }}-${{ matrix.toolchain }}-
+      - name: Install and start sccache
+        shell: pwsh
+        env:
+          SCCACHE_DIR: ${{ github.workspace }}/target/sccache
+          SCCACHE_CACHE_SIZE: 1G
+          SCCACHE_IDLE_TIMEOUT: 0
+        run: |
+          $version = "0.2.12"
+          $platform =
+            @{ "macOS"   = "x86_64-apple-darwin"
+               "Linux"   = "x86_64-unknown-linux-musl"
+               "Windows" = "x86_64-pc-windows-msvc"
+             }.${{ runner.os }}
+          $basename = "sccache-$version-$platform"
+          $url = "https://github.com/mozilla/sccache/releases/download/" +
+                 "$version/$basename.tar.gz"
+          cd ~
+          curl -LO $url
+          tar -xzvf "$basename.tar.gz"
+          . $basename/sccache --start-server
+          echo "::add-path::$(pwd)/$basename"
+      - name:          Set sccache ENV
+        run:  |
+          echo "::set-env name=RUSTC_WRAPPER::sccache"
+          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
+          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
+      - name:          Building bridge node ${{ matrix.platform }} rust-${{ matrix.toolchain }}
+        uses:          actions-rs/cargo@master
+        with:
+          command:     build
+          toolchain:   ${{ matrix.toolchain }}
+          args:        --all --release --verbose
+      - name:          Stop sccache
+        if:            always()
+        run:           sccache --stop-server
+      - name:          Upload artifact's
+        uses:          actions/upload-artifact@v1
+        with:
+          name:        ${{ matrix.platform }}.${{ matrix.toolchain }}.${{ matrix.compiler }}.zip
+          path:        artifacts/
