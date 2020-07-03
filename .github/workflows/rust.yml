@@ -28,7 +28,7 @@ jobs:
           fetch-depth:          5
           submodules:           recursive
       - name:                   Add rustfmt and clippy
-        run:                    rustup component add rustfmt clippy
+        run:                    rustup component add rustfmt clippy --toolchain nightly
       - name:                   Configure cargo data directory
         run:                    echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
       - name:                   Cache
@@ -56,15 +56,18 @@ jobs:
         uses:                   actions-rs/cargo@master
         with:
           command:              fmt
+          toolchain:            nightly
           args:                 --all -- --check
       - name:                   Fetch
         uses:                   actions-rs/cargo@master
         with:
           command:              fetch
+          toolchain:            nightly
       - name:                   Clippy
         uses:                   actions-rs/cargo@master
         with:
           command:              clippy
+          toolchain:            nightly
           args:                 --all-targets
       - name:                   Stop sccache
         if:                     always()
