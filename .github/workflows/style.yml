@@ -1,0 +1,48 @@
+name:                  Check style
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - stable
+    tags:
+      - v*
+    paths-ignore:
+      - 'README.md'
+      - diagrams/
+jobs:
+## Check stage
+  test:
+    name:              Check
+    runs-on:           ubuntu-latest
+    env:
+      RUST_BACKTRACE:  full
+    steps:
+      - name:          Checkout sources & submodules
+        uses:          actions/checkout@master
+        with:
+          fetch-depth: 5
+          submodules:  recursive
+      - name:          Install nightly toolchain & wasm32
+        uses:          actions-rs/toolchain@master
+        with:
+          profile:     minimal
+          toolchain:   nightly
+          target:      wasm32-unknown-unknown
+          components:  clippy, rustfmt
+          override:    true
+      - name:          Style check
+        uses:          actions-rs/cargo@master
+        with:
+          command:     fmt
+          args:        --all -- --check
+      - name:          Fetch
+        uses:          actions-rs/cargo@master
+        with:
+          command:     fetch
+      - name:          Clippy
+        uses:          actions-rs/cargo@master
+        with:
+          command:     clippy
+          args:        --all-targets -- -D warnings
