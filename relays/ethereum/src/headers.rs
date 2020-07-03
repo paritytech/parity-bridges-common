@@ -62,6 +62,8 @@ pub struct QueuedHeaders<P: HeadersSyncPipeline> {
 	incomplete_headers: LinkedHashMap<HeaderId<P::Hash, P::Number>, Option<Instant>>,
 	/// Headers that are waiting to be completed at target node. Auto-sorted by insertion time.
 	completion_data: LinkedHashMap<HeaderId<P::Hash, P::Number>, P::Completion>,
+	/// Best synced block number.
+	best_synced_number: P::Number,
 	/// Pruned blocks border. We do not store or accept any blocks with number less than
 	/// this number.
 	prune_border: P::Number,
@@ -90,6 +92,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			known_headers: KnownHeaders::<P>::new(),
 			incomplete_headers: LinkedHashMap::new(),
 			completion_data: LinkedHashMap::new(),
+			best_synced_number: Zero::zero(),
 			prune_border: Zero::zero(),
 		}
 	}
@@ -156,6 +159,12 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 				),
 			),
 		)
+	}
+
+	/// Returns number of best synced block we have ever seen. It is either less
+	/// than `best_queued_number()`, or points to last synced block if queue is empty.
+	pub fn best_synced_number(&self) -> P::Number {
+		self.best_synced_number
 	}
 
 	/// Returns synchronization status of the header.
@@ -505,6 +514,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		self.incomplete.clear();
 		self.submitted.clear();
 		self.known_headers.clear();
+		self.best_synced_number = Zero::zero();
 		self.prune_border = Zero::zero();
 	}
 
@@ -537,6 +547,9 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 	/// When we receive new Synced header from target node.
 	fn header_synced(&mut self, id: &HeaderId<P::Hash, P::Number>) {
+		// update best synced block number
+		self.best_synced_number = std::cmp::max(self.best_synced_number, id.0);
+
 		// all ancestors of this header are now synced => let's remove them from
 		// queues
 		let mut current = *id;
