@@ -442,7 +442,8 @@ async fn submit_substrate_headers(
 	let mut submitted_headers = SubmittedHeaders::default();
 	for header in headers {
 		let id = ids.pop_front().expect("both collections have same size; qed");
-		submit_substrate_header(&mut header_submitter, &mut submitted_headers, id, header).await;
+		submitted_headers.fatal_error =
+			submit_substrate_header(&mut header_submitter, &mut submitted_headers, id, header).await;
 
 		if submitted_headers.fatal_error.is_some() {
 			submitted_headers.rejected.extend(ids);
@@ -459,13 +460,13 @@ async fn submit_substrate_header(
 	submitted_headers: &mut SubmittedHeaders<SubstrateHeaderId, RpcError>,
 	id: SubstrateHeaderId,
 	header: QueuedSubstrateHeader,
-) {
+) -> Option<RpcError> {
 	// if parent of this header is either incomplete, or rejected, we assume that contract
 	// will reject this header as well
 	let parent_id = header.parent_id();
 	if submitted_headers.rejected.contains(&parent_id) || submitted_headers.incomplete.contains(&parent_id) {
 		submitted_headers.rejected.push(id);
-		return;
+		return None;
 	}
 
 	// check if this header is incomplete
@@ -476,9 +477,10 @@ async fn submit_substrate_header(
 			// contract has rejected this header => we do not want to submit it
 			submitted_headers.rejected.push(id);
 			if error.is_connection_error() {
-				submitted_headers.fatal_error = Some(error);
+				return Some(error);
+			} else {
+				return None;
 			}
-			return;
 		}
 	};
 
@@ -489,10 +491,11 @@ async fn submit_substrate_header(
 			if is_header_incomplete {
 				submitted_headers.incomplete.push(id);
 			}
+			None
 		}
 		Err(error) => {
 			submitted_headers.rejected.push(id);
-			submitted_headers.fatal_error = Some(error);
+			Some(error)
 		}
 	}
 }
