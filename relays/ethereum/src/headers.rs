@@ -346,7 +346,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 				);
 
 				return;
-			},
+			}
 		};
 
 		// do not remove from `incomplete_headers` here, because otherwise we'll miss

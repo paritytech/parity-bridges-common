@@ -114,10 +114,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 
 		// we assume that there were no reorgs if we have already downloaded best header
 		let best_downloaded_number = std::cmp::max(
-			std::cmp::max(
-				self.headers.best_queued_number(),
-				self.headers.best_synced_number(),
-			),
+			std::cmp::max(self.headers.best_queued_number(), self.headers.best_synced_number()),
 			target_best_header.0,
 		);
 		if best_downloaded_number == source_best_number {

@@ -16,7 +16,7 @@
 
 use crate::sync::HeadersSyncParams;
 use crate::sync_types::{
-	HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, SubmittedHeaders, QueuedHeader,
+	HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader, SubmittedHeaders,
 };
 
 use async_trait::async_trait;
@@ -294,7 +294,7 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 					// this closure helps Rust understand the type of `submitted_headers` :/
 					let mut process_submitted_headers = |submitted_headers: SubmittedHeaders<HeaderId<P::Hash, P::Number>, TC::Error>| {
 						let maybe_fatal_error = submitted_headers.fatal_error.map(Err).unwrap_or(Ok(()));
-						
+
 						target_client_is_online = process_future_result(
 							maybe_fatal_error,
 							|_| {},

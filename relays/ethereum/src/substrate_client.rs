@@ -238,7 +238,8 @@ impl SubmitEthereumHeaders for SubstrateRpcClient {
 			let transaction = create_signed_submit_transaction(headers, &params.signer, nonce, self.genesis_hash);
 			let _ = self.submit_extrinsic(Bytes(transaction.encode())).await?;
 			Ok(())
-		}.await;
+		}
+		.await;
 
 		match submission_result {
 			Ok(_) => SubmittedHeaders {
@@ -272,7 +273,7 @@ impl SubmitEthereumHeaders for SubstrateRpcClient {
 					submitted_headers.rejected.extend(ids);
 					submitted_headers.fatal_error = Some(error);
 					break;
-				},
+				}
 			}
 		}
 

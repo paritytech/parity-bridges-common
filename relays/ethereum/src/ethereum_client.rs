@@ -251,25 +251,30 @@ impl EthereumHighLevelRpc for EthereumRpcClient {
 		let address: Address = params.signer.address().as_fixed_bytes().into();
 		let nonce = match self.account_nonce(address).await {
 			Ok(nonce) => nonce,
-			Err(error) => return SubmittedHeaders {
-				submitted: Vec::new(),
-				incomplete: Vec::new(),
-				rejected: headers.iter().rev().map(|header| header.id()).collect(),
-				fatal_error: Some(error),
-			},
+			Err(error) => {
+				return SubmittedHeaders {
+					submitted: Vec::new(),
+					incomplete: Vec::new(),
+					rejected: headers.iter().rev().map(|header| header.id()).collect(),
+					fatal_error: Some(error),
+				}
+			}
 		};
 
 		// submit headers. Note that w're cloning self here. It is ok, because
 		// cloning `jsonrpsee::Client` only clones reference to background threads
 		submit_substrate_headers(
 			EthereumHeadersSubmitter {
-				client: EthereumRpcClient { client: self.client.clone() },
+				client: EthereumRpcClient {
+					client: self.client.clone(),
+				},
 				params,
 				contract_address,
 				nonce,
 			},
 			headers,
-		).await
+		)
+		.await
 	}
 
 	async fn incomplete_substrate_headers(&self, contract_address: Address) -> Result<HashSet<SubstrateHeaderId>> {
@@ -394,9 +399,8 @@ struct EthereumHeadersSubmitter {
 #[async_trait]
 impl HeadersSubmitter for EthereumHeadersSubmitter {
 	async fn is_header_incomplete(&self, header: &QueuedSubstrateHeader) -> Result<bool> {
-		let (encoded_call, call_decoder) = bridge_contract::functions::is_incomplete_header::call(
-			header.header().encode(),
-		);
+		let (encoded_call, call_decoder) =
+			bridge_contract::functions::is_incomplete_header::call(header.header().encode());
 		let call_request = CallRequest {
 			to: Some(self.contract_address),
 			data: Some(encoded_call.into()),
@@ -410,13 +414,16 @@ impl HeadersSubmitter for EthereumHeadersSubmitter {
 	}
 
 	async fn submit_header(&mut self, header: QueuedSubstrateHeader) -> Result<()> {
-		let result = self.client.submit_ethereum_transaction(
-			&self.params,
-			Some(self.contract_address),
-			Some(self.nonce),
-			false,
-			bridge_contract::functions::import_header::encode_input(header.header().encode()),
-		).await;
+		let result = self
+			.client
+			.submit_ethereum_transaction(
+				&self.params,
+				Some(self.contract_address),
+				Some(self.nonce),
+				false,
+				bridge_contract::functions::import_header::encode_input(header.header().encode()),
+			)
+			.await;
 
 		if result.is_ok() {
 			self.nonce += U256::one();
@@ -435,12 +442,7 @@ async fn submit_substrate_headers(
 	let mut submitted_headers = SubmittedHeaders::default();
 	for header in headers {
 		let id = ids.pop_front().expect("both collections have same size; qed");
-		submit_substrate_header(
-			&mut header_submitter,
-			&mut submitted_headers,
-			id,
-			header,
-		).await;
+		submit_substrate_header(&mut header_submitter, &mut submitted_headers, id, header).await;
 
 		if submitted_headers.fatal_error.is_some() {
 			submitted_headers.rejected.extend(ids);
@@ -461,8 +463,7 @@ async fn submit_substrate_header(
 	// if parent of this header is either incomplete, or rejected, we assume that contract
 	// will reject this header as well
 	let parent_id = header.parent_id();
-	if submitted_headers.rejected.contains(&parent_id)
-		|| submitted_headers.incomplete.contains(&parent_id) {
+	if submitted_headers.rejected.contains(&parent_id) || submitted_headers.incomplete.contains(&parent_id) {
 		submitted_headers.rejected.push(id);
 		return;
 	}
@@ -478,7 +479,7 @@ async fn submit_substrate_header(
 				submitted_headers.fatal_error = Some(error);
 			}
 			return;
-		},
+		}
 	};
 
 	// submit header and update submitted headers
@@ -488,18 +489,18 @@ async fn submit_substrate_header(
 			if is_header_incomplete {
 				submitted_headers.incomplete.push(id);
 			}
-		},
+		}
 		Err(error) => {
 			submitted_headers.rejected.push(id);
 			submitted_headers.fatal_error = Some(error);
-		},
+		}
 	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::substrate_types::{Number as SubstrateBlockNumber, Header as SubstrateHeader};
+	use crate::substrate_types::{Header as SubstrateHeader, Number as SubstrateBlockNumber};
 	use sp_runtime::traits::Header;
 
 	struct TestHeadersSubmitter {
@@ -547,10 +548,7 @@ mod tests {
 				incomplete: vec![header(5).id()],
 				failed: vec![],
 			},
-			vec![
-				header(5),
-				header(6),
-			],
+			vec![header(5), header(6)],
 		));
 		assert_eq!(submitted_headers.submitted, vec![header(5).id()]);
 		assert_eq!(submitted_headers.incomplete, vec![header(5).id()]);
@@ -565,11 +563,7 @@ mod tests {
 				incomplete: vec![],
 				failed: vec![header(6).id()],
 			},
-			vec![
-				header(5),
-				header(6),
-				header(7),
-			],
+			vec![header(5), header(6), header(7)],
 		));
 		assert_eq!(submitted_headers.submitted, vec![header(5).id()]);
 		assert_eq!(submitted_headers.incomplete, vec![]);
