@@ -196,7 +196,7 @@ jobs:
 ## Build stage
   build:
     name:                       Build
-    needs:                      [test]
+#   needs:                      [test]
     strategy:
       matrix:
         toolchain:
