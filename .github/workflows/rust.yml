@@ -1,4 +1,4 @@
-name:                  Test Suite
+name:                           Test Suite
 
 on:
   pull_request:
@@ -11,135 +11,135 @@ on:
     paths-ignore:
       - 'README.md'
       - diagrams/
-  schedule: #Nightly build
-    - cron: '0 0 * * *'
+  schedule:                     #Nightly build
+    - cron:                     '0 0 * * *'
 jobs:
 ## Test stage
   test:
-    name:              Test
+    name:                       Test
     strategy:
       matrix:
         toolchain:
           - stable
           #- beta
           - nightly
-    runs-on:           ubuntu-latest
-    container: paritytech/ci-linux:production
+    runs-on:                    ubuntu-latest
+    container:                  paritytech/ci-linux:production
     env:
-      RUST_BACKTRACE:  full
+      RUST_BACKTRACE:           full
     steps:
-      - name:          Checkout sources & submodules
-        uses:          actions/checkout@master
+      - name:                   Checkout sources & submodules
+        uses:                   actions/checkout@master
         with:
-          fetch-depth: 5
-          submodules:  recursive
-      - name: Configure cargo data directory
-        run: echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
-      - name: Cache
-        uses: actions/cache@v2
+          fetch-depth:          5
+          submodules:           recursive
+      - name:                   Configure cargo data directory
+        run:                    echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
+      - name:                   Cache
+        uses:                   actions/cache@v2
         with:
-          path: |-
+          path:                 |-
             target/cargo
             target/sccache
             target/*/.*
             target/*/build
             target/*/deps
-          key: ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: ${{ matrix.toolchain }}-
-      - name: Start sccache
+          key:                  ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys:         ${{ matrix.toolchain }}-
+      - name:                   Start sccache
         env:
-          SCCACHE_DIR: ${{ github.workspace }}/target/sccache
-          SCCACHE_CACHE_SIZE: 1G
+          SCCACHE_DIR:          ${{ github.workspace }}/target/sccache
+          SCCACHE_CACHE_SIZE:   1G
           SCCACHE_IDLE_TIMEOUT: 0
-        run: sccache --start-server
-      - name:          Set sccache ENV
-        run:  |
+        run:                    sccache --start-server
+      - name:                   Set sccache ENV
+        run:                    |
           echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
           echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
-      - name:          Testing rust-${{ matrix.toolchain }}
-        uses:          actions-rs/cargo@master
+      - name:                   Testing rust-${{ matrix.toolchain }}
+        uses:                   actions-rs/cargo@master
         with:
-          command:     test
-          toolchain:   ${{ matrix.toolchain }}
-          args:        --all  --verbose
-      - name:          Stop sccache
-        if:            always()
-        run:           sccache --stop-server
+          command:              test
+          toolchain:            ${{ matrix.toolchain }}
+          args:                 --all  --verbose
+      - name:                   Stop sccache
+        if:                     always()
+        run:                    sccache --stop-server
 
   # Build `mdBook` documentation and upload it as a temporary build artifact
   #doc-book:
-  #  name: Build the book
-  #  runs-on: ubuntu-latest
+  #  name:                      Build the book
+  #  runs-on:                   ubuntu-latest
   #  steps:
-  #    - uses: actions/checkout@v1
-  #    - run: |
+  #    - uses:                  actions/checkout@v1
+  #    - run:                   |
   #        set -e
   #        curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v0.3.1/mdbook-v0.3.1-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
   #        echo ::add-path::`pwd`
-  #    - run: (cd docs && mdbook build)
-  #    - uses: actions/upload-artifact@v1
+  #    - run:                   (cd docs && mdbook build)
+  #    - uses:                  actions/upload-artifact@v1
   #      with:
-  #        name: doc-book
-  #        path: docs/book
+  #        name:                doc-book
+  #        path:                docs/book
 
 ## Build stage
   build:
-    name:              Release
-    needs:             [test]
-    #if: startsWith(github.ref, 'refs/tags/')
+    name:                       Release
+    needs:                      [test]
+    #if:                        startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
         toolchain:
           - stable
           #- beta
           - nightly
-    runs-on:           ${{ matrix.platform }}
-    container: paritytech/ci-linux:production
+    runs-on:                    ${{ matrix.platform }}
+    container:                  paritytech/ci-linux:production
     env:
-      RUST_BACKTRACE:  full
+      RUST_BACKTRACE:           full
     steps:
-      - name:          Checkout sources & submodules
-        uses:          actions/checkout@master
+      - name:                   Checkout sources & submodules
+        uses:                   actions/checkout@master
         with:
-          fetch-depth: 5
-          submodules:  recursive
-      - name: Configure cargo data directory
-        run: echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
-      - name: Cache
-        uses: actions/cache@v2
+          fetch-depth:          5
+          submodules:           recursive
+      - name:                   Configure cargo data directory
+        run:                    echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
+      - name:                   Cache
+        uses:                   actions/cache@v2
         with:
-          path: |-
+          path:                 |-
             target/cargo
             target/sccache
             target/*/.*
             target/*/build
             target/*/deps
-          key: ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: ${{ matrix.toolchain }}-
-      - name: Start sccache
+          key:                  ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys:         ${{ matrix.toolchain }}-
+      - name:                   Start sccache
         env:
-          SCCACHE_DIR: ${{ github.workspace }}/target/sccache
-          SCCACHE_CACHE_SIZE: 1G
+          SCCACHE_DIR:          ${{ github.workspace }}/target/sccache
+          SCCACHE_CACHE_SIZE:   1G
           SCCACHE_IDLE_TIMEOUT: 0
-        run: sccache --start-server
-      - name:          Set sccache ENV
-        run:  |
+        run:                    sccache --start-server
+      - name:                   Set sccache ENV
+        run:                    |
           echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
           echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
-      - name:          Building rust-${{ matrix.toolchain }}
-        uses:          actions-rs/cargo@master
+      - name:                   Building rust-${{ matrix.toolchain }}
+        uses:                   actions-rs/cargo@master
         with:
-          command:     build
-          toolchain:   ${{ matrix.toolchain }}
-          args:        --all --release --verbose
-      - name:          Stop sccache
-        if:            always()
-        run:           sccache --stop-server
-      - name:          Prepare artifact's
-        run:           .github/workflows/prepare_artifacts.sh ""
-        shell:         bash
-      - name:          Upload artifact's
-        uses:          actions/upload-artifact@v1
+          command:              build
+          toolchain:            ${{ matrix.toolchain }}
+          args:                 --all --release --verbose
+      - name:                   Stop sccache
+        if:                     always()
+        run:                    sccache --stop-server
+      - name:                   Prepare artifact's
+        run:                    .github/workflows/prepare_artifacts.sh ""
+        shell:                  bash
+      - name:                   Upload artifact's
+        uses:                   actions/upload-artifact@v1
         with:
-          name:        ${{ matrix.toolchain }}.zip
-          path:        artifacts/
+          name:                 ${{ matrix.toolchain }}.zip
+          path:                 artifacts/
