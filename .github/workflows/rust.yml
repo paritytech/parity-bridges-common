@@ -195,8 +195,8 @@ jobs:
 
 ## Build stage
   build:
-    name:                       Release
-    needs:                      [test,check-style]
+    name:                       Build
+    needs:                      [test]
     #if:                        startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
