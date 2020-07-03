@@ -394,15 +394,8 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		}
 	}
 
-	/// When incomplete headers ids are receved from target node.
-	pub fn incomplete_headers_response(&mut self, ids: HashSet<HeaderId<P::Hash, P::Number>>) {
-		// all new incomplete headers are marked Synced and all their descendants
-		// are moved from Ready/Submitted to Incomplete queue
-		let new_incomplete_headers = ids
-			.iter()
-			.filter(|id| !self.incomplete_headers.contains_key(id) && !self.completion_data.contains_key(id))
-			.cloned()
-			.collect::<Vec<_>>();
+	/// Marks given headers incomplete.
+	pub fn add_incomplete_headers(&mut self, new_incomplete_headers: Vec<HeaderId<P::Hash, P::Number>>) {
 		for new_incomplete_header in new_incomplete_headers {
 			self.header_synced(&new_incomplete_header);
 			move_header_descendants::<P>(
@@ -421,6 +414,18 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 
 			self.incomplete_headers.insert(new_incomplete_header, None);
 		}
+	}
+
+	/// When incomplete headers ids are receved from target node.
+	pub fn incomplete_headers_response(&mut self, ids: HashSet<HeaderId<P::Hash, P::Number>>) {
+		// all new incomplete headers are marked Synced and all their descendants
+		// are moved from Ready/Submitted to Incomplete queue
+		let new_incomplete_headers = ids
+			.iter()
+			.filter(|id| !self.incomplete_headers.contains_key(id) && !self.completion_data.contains_key(id))
+			.cloned()
+			.collect::<Vec<_>>();
+		self.add_incomplete_headers(new_incomplete_headers);
 
 		// for all headers that were incompleted previously, but now are completed, we move
 		// all descendants from incomplete to ready
