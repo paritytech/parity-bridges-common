@@ -21,6 +21,9 @@
 //!
 //! On the other hand, they may be used directly by the bechmarking module.
 
+// Since this is test code it's fine that not everything is used
+#![allow(dead_code)]
+
 use crate::finality::FinalityVotes;
 use crate::validators::CHANGE_EVENT_HASH;
 use crate::verification::calculate_score;

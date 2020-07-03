@@ -23,7 +23,6 @@ use crate::test_utils::{
 
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
-use hex_literal::hex;
 use primitives::U256;
 
 benchmarks! {
@@ -222,7 +221,6 @@ benchmarks! {
 fn initialize_bench<T: Trait>(num_validators: usize) -> Header {
 	// Initialize storage with some initial header
 	let initial_header = build_genesis_header(&validator(0));
-	let initial_header_hash = initial_header.compute_hash();
 	let initial_difficulty = initial_header.difficulty;
 	let initial_validators = validators_addresses(num_validators as usize);
 

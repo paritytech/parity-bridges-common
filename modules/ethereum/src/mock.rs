@@ -19,9 +19,8 @@ pub use crate::test_utils::{
 };
 pub use primitives::signatures::secret_to_address;
 
-use crate::finality::FinalityVotes;
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
-use crate::{AuraConfiguration, GenesisConfig, HeaderToImport, PruningStrategy, Storage, Trait};
+use crate::{AuraConfiguration, GenesisConfig, PruningStrategy, Trait};
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use primitives::{Address, Header, H256, U256};
 use secp256k1::SecretKey;

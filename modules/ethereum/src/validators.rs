@@ -279,7 +279,6 @@ pub(crate) mod tests {
 	use crate::mock::{run_test, validators_addresses, validators_change_receipt, TestRuntime, TEST_RECEIPT_ROOT};
 	use crate::{BridgeStorage, Headers, ScheduledChange, ScheduledChanges, StoredHeader};
 	use frame_support::StorageMap;
-	use primitives::{TransactionOutcome, H256};
 
 	const TOTAL_VALIDATORS: usize = 3;
 
