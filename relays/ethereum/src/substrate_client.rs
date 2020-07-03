@@ -32,6 +32,7 @@ use num_traits::Zero;
 use sp_bridge_eth_poa::Header as SubstrateEthereumHeader;
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
+use std::collections::VecDeque;
 
 const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "EthereumHeadersApi_is_import_requires_receipts";
 const ETH_API_IS_KNOWN_BLOCK: &str = "EthereumHeadersApi_is_known_block";
