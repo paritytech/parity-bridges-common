@@ -1,11 +1,10 @@
-name:                           Test Suite
+name:                           Check, test and build Suite
 
 on:
   pull_request:
   push:
     branches:
       - master
-      - stable
     tags:
       - v*
     paths-ignore:
@@ -14,6 +13,111 @@ on:
   schedule:                     #Nightly build
     - cron:                     '0 0 * * *'
 jobs:
+
+## Check stage
+  check-style:
+    name:                       Check format and clippy
+    runs-on:                    ubuntu-latest
+    container:                  paritytech/ci-linux:production
+    env:
+      RUST_BACKTRACE:           full
+    steps:
+      - name:                   Checkout sources & submodules
+        uses:                   actions/checkout@master
+        with:
+          fetch-depth:          5
+          submodules:           recursive
+      - name:                   Add rustfmt and clippy
+        run:                    rustup component add rustfmt clippy
+      - name:                   Configure cargo data directory
+        run:                    echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
+      - name:                   Cache
+        uses:                   actions/cache@v2
+        with:
+          path:                 |-
+            target/cargo
+            target/sccache
+            target/*/.*
+            target/*/build
+            target/*/deps
+          key:                  stable-${{ hashFiles('Cargo.lock') }}
+          restore-keys:         stable-
+      - name:                   Start sccache
+        env:
+          SCCACHE_DIR:          ${{ github.workspace }}/target/sccache
+          SCCACHE_CACHE_SIZE:   1G
+          SCCACHE_IDLE_TIMEOUT: 0
+        run:                    sccache --start-server
+      - name:                   Set sccache ENV
+        run:                    |
+          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
+          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
+      - name:                   Style check
+        uses:                   actions-rs/cargo@master
+        with:
+          command:              fmt
+          args:                 --all -- --check
+      - name:                   Fetch
+        uses:                   actions-rs/cargo@master
+        with:
+          command:              fetch
+      - name:                   Clippy
+        uses:                   actions-rs/cargo@master
+        with:
+          command:              clippy
+          args:                 --all-targets -- -D
+
+## Check stage
+  check:
+    name:                       Test
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          #- beta
+          - nightly
+    runs-on:                    ubuntu-latest
+    container:                  paritytech/ci-linux:production
+    env:
+      RUST_BACKTRACE:           full
+    steps:
+      - name:                   Checkout sources & submodules
+        uses:                   actions/checkout@master
+        with:
+          fetch-depth:          5
+          submodules:           recursive
+      - name:                   Configure cargo data directory
+        run:                    echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
+      - name:                   Cache
+        uses:                   actions/cache@v2
+        with:
+          path:                 |-
+            target/cargo
+            target/sccache
+            target/*/.*
+            target/*/build
+            target/*/deps
+          key:                  ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys:         ${{ matrix.toolchain }}-
+      - name:                   Start sccache
+        env:
+          SCCACHE_DIR:          ${{ github.workspace }}/target/sccache
+          SCCACHE_CACHE_SIZE:   1G
+          SCCACHE_IDLE_TIMEOUT: 0
+        run:                    sccache --start-server
+      - name:                   Set sccache ENV
+        run:                    |
+          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
+          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
+      - name:                   Checking rust-${{ matrix.toolchain }}
+        uses:                   actions-rs/cargo@master
+        with:
+          command:              check
+          toolchain:            ${{ matrix.toolchain }}
+          args:                 --all  --verbose
+      - name:                   Stop sccache
+        if:                     always()
+        run:                    sccache --stop-server
 ## Test stage
   test:
     name:                       Test
@@ -85,7 +189,7 @@ jobs:
 ## Build stage
   build:
     name:                       Release
-    needs:                      [test]
+    needs:                      [test,check-style]
     #if:                        startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
