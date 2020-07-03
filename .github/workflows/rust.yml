@@ -68,7 +68,7 @@ jobs:
         with:
           command:              clippy
           toolchain:            nightly
-          args:                 --all-targets
+          args:                 --all-targets -- -D warnings
       - name:                   Stop sccache
         if:                     always()
         run:                    sccache --stop-server
@@ -197,7 +197,6 @@ jobs:
   build:
     name:                       Build
     needs:                      [test]
-    #if:                        startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
         toolchain:
