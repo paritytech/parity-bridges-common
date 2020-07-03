@@ -82,14 +82,7 @@ benchmarks! {
 		// Import a bunch of headers without any verification, will ensure that they're not
 		// finalized prematurely
 		for i in 1..=num_blocks {
-			let header = build_custom_header(
-				&validator(0),
-				&parent,
-				|mut header| {
-					header
-				},
-			);
-
+			let header = HeaderBuilder::with_parent(&parent).sign_by(&validator(0));
 			let id = header.compute_id();
 			insert_header(&mut storage, header.clone());
 			headers.push(header.clone());
@@ -101,13 +94,7 @@ benchmarks! {
 
 		// Need to make sure that the header we're going to import hasn't been inserted
 		// into storage already
-		let header = build_custom_header(
-			&last_authority,
-			&last_header,
-			|mut header| {
-				header
-			},
-		);
+		let header = HeaderBuilder::with_parent(&last_header).sign_by(&last_authority);
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		let storage = BridgeStorage::<T>::new();
@@ -139,14 +126,7 @@ benchmarks! {
 		// Import a bunch of headers without any verification, will ensure that they're not
 		// finalized prematurely
 		for i in 1..=num_blocks {
-			let header = build_custom_header(
-				&validator(0),
-				&parent,
-				|mut header| {
-					header
-				},
-			);
-
+			let header = HeaderBuilder::with_parent(&parent).sign_by(&validator(0));
 			let id = header.compute_id();
 			insert_header(&mut storage, header.clone());
 			headers.push(header.clone());
@@ -158,13 +138,7 @@ benchmarks! {
 
 		// Need to make sure that the header we're going to import hasn't been inserted
 		// into storage already
-		let header = build_custom_header(
-			&last_authority,
-			&last_header,
-			|mut header| {
-				header
-			},
-		);
+		let header = HeaderBuilder::with_parent(&last_header).sign_by(&last_authority);
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		let storage = BridgeStorage::<T>::new();
