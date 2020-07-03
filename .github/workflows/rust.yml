@@ -65,11 +65,14 @@ jobs:
         uses:                   actions-rs/cargo@master
         with:
           command:              clippy
-          args:                 --all-targets -- -D
+          args:                 --all-targets
+      - name:                   Stop sccache
+        if:                     always()
+        run:                    sccache --stop-server
 
 ## Check stage
   check:
-    name:                       Test
+    name:                       Check
     strategy:
       matrix:
         toolchain:
@@ -121,6 +124,7 @@ jobs:
 ## Test stage
   test:
     name:                       Test
+    needs:                      [check]
     strategy:
       matrix:
         toolchain:
