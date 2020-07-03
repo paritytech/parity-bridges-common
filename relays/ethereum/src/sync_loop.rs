@@ -291,23 +291,20 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 					);
 				},
 				submitted_headers = target_submit_header_future => {
-					// this closure helps Rust understand the type of `submitted_headers` :/
-					let mut process_submitted_headers = |submitted_headers: SubmittedHeaders<HeaderId<P::Hash, P::Number>, TC::Error>| {
-						let maybe_fatal_error = submitted_headers.fatal_error.map(Err).unwrap_or(Ok(()));
+					// following line helps Rust understand the type of `submitted_headers` :/
+					let submitted_headers: SubmittedHeaders<HeaderId<P::Hash, P::Number>, TC::Error> = submitted_headers;
+					let maybe_fatal_error = submitted_headers.fatal_error.map(Err).unwrap_or(Ok(()));
 
-						target_client_is_online = process_future_result(
-							maybe_fatal_error,
-							|_| {},
-							&mut target_go_offline_future,
-							|| async_std::task::sleep(CONNECTION_ERROR_DELAY),
-							|| format!("Error submitting headers to {} node", P::TARGET_NAME),
-						);
+					target_client_is_online = process_future_result(
+						maybe_fatal_error,
+						|_| {},
+						&mut target_go_offline_future,
+						|| async_std::task::sleep(CONNECTION_ERROR_DELAY),
+						|| format!("Error submitting headers to {} node", P::TARGET_NAME),
+					);
 
-						sync.headers_mut().headers_submitted(submitted_headers.submitted);
-						sync.headers_mut().add_incomplete_headers(submitted_headers.incomplete);
-					};
-
-					process_submitted_headers(submitted_headers);
+					sync.headers_mut().headers_submitted(submitted_headers.submitted);
+					sync.headers_mut().add_incomplete_headers(submitted_headers.incomplete);
 				},
 				target_complete_header_result = target_complete_header_future => {
 					target_client_is_online = process_future_result(
