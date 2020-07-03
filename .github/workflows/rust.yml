@@ -103,24 +103,6 @@ jobs:
           echo "::set-env name=RUSTC_WRAPPER::sccache"
           echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
           echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
-      - name:          Style check ${{ matrix.platform }} rust-${{ matrix.toolchain }}
-        uses:          actions-rs/cargo@master
-        with:
-          command:     fmt
-          toolchain:   ${{ matrix.toolchain }}
-          args:        --all -- --check
-      - name:          Fetch ${{ matrix.platform }} rust-${{ matrix.toolchain }}
-        uses:          actions-rs/cargo@master
-        with:
-          command:     fetch
-          toolchain:   ${{ matrix.toolchain }}
-      - name:          Clippy ${{ matrix.platform }} rust-${{ matrix.toolchain }}
-        if:            ${{ matrix.toolchain }} == 'nightly'
-        uses:          actions-rs/cargo@master
-        with:
-          command:     clippy
-          toolchain:   ${{ matrix.toolchain }}
-          args:        --all-targets -- -D warnings
       - name:          Testing ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:          actions-rs/cargo@master
         with:
@@ -130,6 +112,7 @@ jobs:
       - name:          Stop sccache
         if:            always()
         run:           sccache --stop-server
+
   # Build `mdBook` documentation and upload it as a temporary build artifact
   #doc-book:
   #  name: Build the book
