@@ -124,7 +124,7 @@ benchmarks! {
 	import_unsigned_finality_with_cache {
 		// Our complexity parameter, n, will represent the number of blocks imported before
 		// finalization.
-		let n in 8..15;
+		let n in 7..15;
 
 		let mut storage = BridgeStorage::<T>::new();
 		let num_validators: u32 = 2;
@@ -178,6 +178,7 @@ benchmarks! {
 	// single import, as dictated by MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT.
 	import_unsigned_pruning {
 		let n in 1..15;
+		let num_headers = 10;
 
 		let mut storage = BridgeStorage::<T>::new();
 
@@ -192,7 +193,7 @@ benchmarks! {
 		});
 
 		let mut parent = initial_header;
-		for i in 1..=10 {
+		for i in 1..=num_headers {
 			let header = HeaderBuilder::with_parent(&parent).sign_by_set(&validators);
 			let id = header.compute_id();
 			insert_header(&mut storage, header.clone());
@@ -203,7 +204,7 @@ benchmarks! {
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		let storage = BridgeStorage::<T>::new();
-		assert_eq!(storage.best_block().0.number, (n + 1) as u64);
+		assert_eq!(storage.best_block().0.number, (num_headers + 1) as u64);
 
 		// We're limited to pruning only 8 blocks per import
 		assert!(HeadersByNumber::get(&0).is_none());
@@ -273,6 +274,13 @@ mod tests {
 	fn insert_unsigned_header_finality() {
 		run_test(1, |_| {
 			assert_ok!(test_benchmark_import_unsigned_finality::<TestRuntime>());
+		});
+	}
+
+	#[test]
+	fn insert_unsigned_header_finality_with_cache() {
+		run_test(1, |_| {
+			assert_ok!(test_benchmark_import_unsigned_finality_with_cache::<TestRuntime>());
 		});
 	}
 
