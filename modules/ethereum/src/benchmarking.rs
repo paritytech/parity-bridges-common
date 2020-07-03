@@ -26,10 +26,6 @@ use frame_system::RawOrigin;
 use hex_literal::hex;
 use primitives::U256;
 
-// We want to try and benchmark scenario which are going to cause a lot for work for our runtime.
-// Some of the ones which we should test that are still missing are:
-//    - Importing a header with transaction receipts
-//    - An import which causes a chain re-org
 benchmarks! {
 	_ { }
 
@@ -176,18 +172,12 @@ benchmarks! {
 		assert_eq!(storage.finalized_block().number, num_blocks as u64);
 	}
 
-	// The default pruning range is 10 blocks behind. We'll start with this for the bench, but we
-	// should move to a "dynamic" strategy based off the complexity parameter
-	//
-	// Look at `headers_are_pruned_during_import()` test from `import.rs`
-	//
-	// So it looks like we're constrained by: MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT= 8
-	//
-	// So it doesn't matter how we set the pruning window or how many blocks we build because at the
-	// end of the day we can only prune that many blocks
+	// A block import may trigger a pruning event, which adds extra work to the import progress.
+	// In this bench we trigger a pruning event in order to see how much extra time is spent by the
+	// runtime dealing with it. In the Ethereum Pallet, we're limited pruning to eight blocks in a
+	// single import, as dictated by MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT.
 	import_unsigned_pruning {
-		// The default pruning strategy is to keep 10 headers, so let's build more than 10
-		let n in 10..20;
+		let n in 1..15;
 
 		let mut storage = BridgeStorage::<T>::new();
 
@@ -202,7 +192,7 @@ benchmarks! {
 		});
 
 		let mut parent = initial_header;
-		for i in 1..=n {
+		for i in 1..=10 {
 			let header = HeaderBuilder::with_parent(&parent).sign_by_set(&validators);
 			let id = header.compute_id();
 			insert_header(&mut storage, header.clone());
@@ -274,7 +264,7 @@ mod tests {
 
 	#[test]
 	fn insert_unsigned_header_best_case() {
-		run_test(2, |_| {
+		run_test(1, |_| {
 			assert_ok!(test_benchmark_import_unsigned_header_best_case::<TestRuntime>());
 		});
 	}
