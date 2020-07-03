@@ -328,10 +328,23 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 	pub fn completion_response(&mut self, id: &HeaderId<P::Hash, P::Number>, completion: Option<P::Completion>) {
 		let completion = match completion {
 			Some(completion) => completion,
-			None => return, // we'll try refetch later
+			None => {
+				log::debug!(
+					target: "bridge",
+					"{} Node is still missing completion data for header: {:?}. Will retry later.",
+					P::SOURCE_NAME,
+					id,
+				);
+
+				return;
+			},
 		};
 
-		if self.incomplete_headers.remove(id).is_some() {
+		// do not remove from `incomplete_headers` here, because otherwise we'll miss
+		// completion 'notification'
+		// this could lead to duplicate completion retrieval (if completion transaction isn't mined
+		// for too long)
+		if self.incomplete_headers.get(id).is_some() {
 			log::debug!(
 				target: "bridge",
 				"Received completion data from {} for header: {:?}",
@@ -1272,7 +1285,7 @@ pub(crate) mod tests {
 
 		// when response is Some, we're scheduling completion
 		queue.completion_response(&id(200), Some(()));
-		assert_eq!(queue.incomplete_headers.len(), 1);
+		assert_eq!(queue.incomplete_headers.len(), 2);
 		assert_eq!(queue.completion_data.len(), 1);
 		assert!(queue.incomplete_headers.contains_key(&id(100)));
 		assert!(queue.completion_data.contains_key(&id(200)));
