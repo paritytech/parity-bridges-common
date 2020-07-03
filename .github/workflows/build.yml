@@ -18,8 +18,8 @@ jobs:
       matrix:
         platform:
           - ubuntu-latest
-          #- macos-latest
-          #- windows-latest
+          - macos-latest
+          - windows-latest
         toolchain:
           - stable
           #- beta
