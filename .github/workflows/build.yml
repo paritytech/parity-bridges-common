@@ -109,7 +109,7 @@ jobs:
         with:
           command:     build
           toolchain:   ${{ matrix.toolchain }}
-          args:        --all--verbose
+          args:        --all --verbose
       - name:          Stop sccache
         if:            always()
         run:           sccache --stop-server

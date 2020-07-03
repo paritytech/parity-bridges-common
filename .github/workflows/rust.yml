@@ -37,7 +37,7 @@ jobs:
           echo ::set-env name=CC::clang
           echo ::set-env name=CXX::clang++
       - name:          Install LLVM for Windows
-        if:            matrix.platform == 'windows-latest'  && matrix.compiler == 'clang'
+        if:            matrix.platform == 'windows-latest' && matrix.compiler == 'clang'
         run:           |
           choco install llvm
           echo ::set-env name=CC::clang-cl.exe --enable-64-bit
@@ -116,11 +116,12 @@ jobs:
           command:     fetch
           toolchain:   ${{ matrix.toolchain }}
       - name:          Clippy ${{ matrix.platform }} rust-${{ matrix.toolchain }}
+        if:            ${{ matrix.toolchain }} == 'nightly'
         uses:          actions-rs/cargo@master
         with:
           command:     clippy
           toolchain:   ${{ matrix.toolchain }}
-          args:        --all-targets -- -D warnings      
+          args:        --all-targets -- -D warnings
       - name:          Testing ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:          actions-rs/cargo@master
         with:
