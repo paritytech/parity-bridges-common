@@ -33,21 +33,6 @@ jobs:
         with:
           fetch-depth: 5
           submodules:  recursive
-      - name:          Install ${{ matrix.toolchain }} toolchain
-        uses:          actions-rs/toolchain@master
-        with:
-          profile:     minimal
-          toolchain:   ${{ matrix.toolchain }}
-          components:  clippy, rustfmt
-          override:    true
-      - name:          Install nightly toolchain & wasm32
-        uses:          actions-rs/toolchain@master
-        with:
-          profile:     minimal
-          toolchain:   nightly
-          target:      wasm32-unknown-unknown
-          components:  clippy, rustfmt
-          override:    true
       - name: Configure cargo data directory
         run: echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
       - name: Cache
@@ -61,30 +46,14 @@ jobs:
             target/*/deps
           key: ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ matrix.toolchain }}-
-      - name: Install and start sccache
-        shell: pwsh
+      - name: Start sccache
         env:
           SCCACHE_DIR: ${{ github.workspace }}/target/sccache
           SCCACHE_CACHE_SIZE: 1G
           SCCACHE_IDLE_TIMEOUT: 0
-        run: |
-          $version = "0.2.13"
-          $platform =
-            @{ "macOS"   = "x86_64-apple-darwin"
-               "Linux"   = "x86_64-unknown-linux-musl"
-               "Windows" = "x86_64-pc-windows-msvc"
-             }.${{ runner.os }}
-          $basename = "sccache-$version-$platform"
-          $url = "https://github.com/mozilla/sccache/releases/download/" +
-                 "$version/$basename.tar.gz"
-          cd ~
-          curl -LO $url
-          tar -xzvf "$basename.tar.gz"
-          . $basename/sccache --start-server
-          echo "::add-path::$(pwd)/$basename"
+        run: sccache --start-server
       - name:          Set sccache ENV
         run:  |
-          echo "::set-env name=RUSTC_WRAPPER::sccache"
           echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
           echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
       - name:          Testing rust-${{ matrix.toolchain }}
@@ -134,21 +103,6 @@ jobs:
         with:
           fetch-depth: 5
           submodules:  recursive
-      - name:          Install ${{ matrix.toolchain }} toolchain
-        uses:          actions-rs/toolchain@master
-        with:
-          profile:     minimal
-          toolchain:   ${{ matrix.toolchain }}
-          components:  clippy, rustfmt
-          override:    true
-      - name:          Install nightly toolchain & wasm32
-        uses:          actions-rs/toolchain@master
-        with:
-          profile:     minimal
-          toolchain:   nightly
-          target:      wasm32-unknown-unknown
-          components:  clippy, rustfmt
-          override:    true
       - name: Configure cargo data directory
         run: echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
       - name: Cache
@@ -162,30 +116,14 @@ jobs:
             target/*/deps
           key: ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ matrix.toolchain }}-
-      - name: Install and start sccache
-        shell: pwsh
+      - name: Start sccache
         env:
           SCCACHE_DIR: ${{ github.workspace }}/target/sccache
           SCCACHE_CACHE_SIZE: 1G
           SCCACHE_IDLE_TIMEOUT: 0
-        run: |
-          $version = "0.2.13"
-          $platform =
-            @{ "macOS"   = "x86_64-apple-darwin"
-               "Linux"   = "x86_64-unknown-linux-musl"
-               "Windows" = "x86_64-pc-windows-msvc"
-             }.${{ runner.os }}
-          $basename = "sccache-$version-$platform"
-          $url = "https://github.com/mozilla/sccache/releases/download/" +
-                 "$version/$basename.tar.gz"
-          cd ~
-          curl -LO $url
-          tar -xzvf "$basename.tar.gz"
-          . $basename/sccache --start-server
-          echo "::add-path::$(pwd)/$basename"
+        run: sccache --start-server
       - name:          Set sccache ENV
         run:  |
-          echo "::set-env name=RUSTC_WRAPPER::sccache"
           echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
           echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
       - name:          Building rust-${{ matrix.toolchain }}
