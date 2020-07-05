@@ -107,7 +107,7 @@ benchmarks! {
 	import_unsigned_finality_with_cache {
 		// Our complexity parameter, n, will represent the number of blocks imported before
 		// finalization.
-		let n in 7..15;
+		let n in 7..100;
 
 		let mut storage = BridgeStorage::<T>::new();
 		let num_validators: u32 = 2;
@@ -147,7 +147,7 @@ benchmarks! {
 	// runtime dealing with it. In the Ethereum Pallet, we're limited pruning to eight blocks in a
 	// single import, as dictated by MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT.
 	import_unsigned_pruning {
-		let n in 1..15;
+		let n in 1..100;
 		let num_headers = 10;
 
 		let mut storage = BridgeStorage::<T>::new();
@@ -185,7 +185,7 @@ benchmarks! {
 	// will contain a validator set change. Verifying the receipt root is an expensive operation to
 	// do, which is why we're interested in benchmarking it.
 	import_unsigned_with_receipts {
-		let n in 1..10;
+		let n in 1..100;
 
 		let mut storage = BridgeStorage::<T>::new();
 
