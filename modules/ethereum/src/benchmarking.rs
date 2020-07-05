@@ -104,9 +104,6 @@ benchmarks! {
 	// Basically the exact same as `import_unsigned_finality` but with a different range for the
 	// complexity parameter. In this bench we use a larger range of blocks to see how performance
 	// changes when the finality cache kicks in (>16 blocks).
-	//
-	// There's definitely a better way to do this will less code duplication, but I'll deal with that
-	// later.
 	import_unsigned_finality_with_cache {
 		// Our complexity parameter, n, will represent the number of blocks imported before
 		// finalization.
