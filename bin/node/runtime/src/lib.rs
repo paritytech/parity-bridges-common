@@ -638,6 +638,7 @@ impl_runtime_apis! {
 						&proof_params.recipient,
 						|tx| {
 							// our runtime only supports transactions where data is exactly 32 bytes long
+							// (receiver key)
 							// => we are ignoring `transaction_size_factor` here
 							tx.value = (ExistentialDeposit::get() * 10).into();
 						},
