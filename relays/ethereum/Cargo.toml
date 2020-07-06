@@ -44,13 +44,10 @@ version = "2.0.0-rc4"
 [dependencies.pallet-transaction-payment]
 version = "2.0.0-rc4"
 
-# I think this is used for sr-io and stuff
 [dependencies.node-primitives]
 version = "2.0.0-rc4"
 git = "https://github.com/paritytech/substrate.git"
 
-# Branch used for keccack256 hasher code
-# Could probably move the keccack hasher stuff to our own primitives
 [dependencies.sp-core]
 version = "2.0.0-rc4"
 
@@ -60,8 +57,6 @@ version = "2.0.0-rc4"
 [dependencies.sp-runtime]
 version = "2.0.0-rc4"
 
-# This should get moved to our `bin` folder
 [dependencies.bridge-node-runtime]
 version = "0.1.0"
 path = "../../bin/node/runtime"
-# node-runtime = { git = "https://github.com/svyatonik/substrate.git", branch = "bridge_runtime" }
