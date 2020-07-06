@@ -48,7 +48,8 @@ notice = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    #"RUSTSEC-0000-0000",
+	# yaml-rust < clap. Not feasible to upgrade and also not possible to trigger in practice.
+	"RUSTSEC-2018-0006"
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -69,11 +70,7 @@ unlicensed = "deny"
 # List of explictly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.7 short identifier (+ optional exception)].
-allow = [
-    #"MIT",
-    #"Apache-2.0",
-    #"Apache-2.0 WITH LLVM-exception",
-]
+allow = []
 # List of explictly disallowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.7 short identifier (+ optional exception)].
@@ -185,7 +182,7 @@ skip-tree = [
 unknown-registry = "deny"
 # Lint level for what to happen when a crate from a git repository that is not
 # in the allow list is encountered
-unknown-git = "warn"
+unknown-git = "allow"
 # List of URLs for allowed crate registries. Defaults to the crates.io index
 # if not specified. If it is specified but empty, no registries are allowed.
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
