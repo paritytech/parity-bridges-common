@@ -147,8 +147,7 @@ benchmarks! {
 	// runtime dealing with it. In the Ethereum Pallet, we're limited pruning to eight blocks in a
 	// single import, as dictated by MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT.
 	import_unsigned_pruning {
-		let n in 1..100;
-		let num_headers = 10;
+		let n in 1..MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT as u32;
 
 		let mut storage = BridgeStorage::<T>::new();
 
@@ -156,14 +155,14 @@ benchmarks! {
 		let initial_header = initialize_bench::<T>(num_validators as usize);
 		let validators = validators(num_validators);
 
-		// Want to prune eligible blocks between [0, 10)
+		// Want to prune eligible blocks between [0, n)
 		BlocksToPrune::put(PruningRange {
 			oldest_unpruned_block: 0,
-			oldest_block_to_keep: 10,
+			oldest_block_to_keep: n as u64,
 		});
 
 		let mut parent = initial_header;
-		for i in 1..=num_headers {
+		for i in 1..=n {
 			let header = HeaderBuilder::with_parent(&parent).sign_by_set(&validators);
 			let id = header.compute_id();
 			insert_header(&mut storage, header.clone());
@@ -174,11 +173,10 @@ benchmarks! {
 	}: import_unsigned_header(RawOrigin::None, header, None)
 	verify {
 		let storage = BridgeStorage::<T>::new();
-		assert_eq!(storage.best_block().0.number, (num_headers + 1) as u64);
-
-		// We're limited to pruning only 8 blocks per import
+		let max_pruned: u64 = (n - 1) as _;
+		assert_eq!(storage.best_block().0.number, (n + 1) as u64);
 		assert!(HeadersByNumber::get(&0).is_none());
-		assert!(HeadersByNumber::get(&7).is_none());
+		assert!(HeadersByNumber::get(&max_pruned).is_none());
 	}
 
 	// The goal of this bench is to import a block which contains a transaction receipt. The receipt
