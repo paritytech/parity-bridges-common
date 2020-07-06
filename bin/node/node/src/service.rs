@@ -92,12 +92,14 @@ macro_rules! new_full_start {
 			},
 			)?
 		.with_rpc_extensions(|builder| -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, _> {
+			use sc_rpc::DenyUnsafe;
 			use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
 			let mut io = jsonrpc_core::IoHandler::default();
 			io.extend_with(SystemApi::to_delegate(FullSystem::new(
 				builder.client().clone(),
 				builder.pool(),
+				DenyUnsafe::No,
 			)));
 			Ok(io)
 		})?;
