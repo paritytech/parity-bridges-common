@@ -355,7 +355,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		insert_header, run_test_with_genesis, test_aura_config, validator, validator_address, validators_addresses,
-		validators_change_receipt, AccountId, HeaderBuilder, TestRuntime, GAS_LIMIT, TEST_RECEIPT_ROOT,
+		validators_change_receipt, AccountId, HeaderBuilder, TestRuntime, GAS_LIMIT,
 	};
 	use crate::validators::ValidatorsSource;
 	use crate::{
@@ -363,7 +363,7 @@ mod tests {
 		ScheduledChanges, ValidatorsSet, ValidatorsSets,
 	};
 	use frame_support::{StorageMap, StorageValue};
-	use primitives::{rlp_encode, TransactionOutcome, H520};
+	use primitives::{compute_merkle_root, rlp_encode, TransactionOutcome, H520};
 	use secp256k1::SecretKey;
 
 	const GENESIS_STEP: u64 = 42;
@@ -854,14 +854,17 @@ mod tests {
 	#[test]
 	fn pool_accepts_headers_with_valid_receipts() {
 		let mut hash = None;
+		let receipts = vec![validators_change_receipt(Default::default())];
+		let receipts_root = compute_merkle_root(receipts.iter().map(|r| r.rlp()));
+
 		assert_eq!(
 			default_accept_into_pool(|validators| {
 				let header = HeaderBuilder::with_parent_number(3)
 					.log_bloom((&[0xff; 256]).into())
-					.receipts_root(TEST_RECEIPT_ROOT.into())
+					.receipts_root(receipts_root)
 					.sign_by_set(validators);
 				hash = Some(header.compute_hash());
-				(header, Some(vec![validators_change_receipt(Default::default())]))
+				(header, Some(receipts.clone()))
 			}),
 			Ok((
 				// no tags are required

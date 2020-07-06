@@ -29,7 +29,6 @@ use crate::validators::CHANGE_EVENT_HASH;
 use crate::verification::calculate_score;
 use crate::{HeaderToImport, Storage};
 
-use hex_literal::hex;
 use primitives::{
 	rlp_encode,
 	signatures::{secret_to_address, sign, SignHeader},
@@ -226,10 +225,6 @@ pub fn insert_header<S: Storage>(storage: &mut S, header: Header) {
 		finality_votes: FinalityVotes::default(),
 	});
 }
-
-// This test receipt root corresponds to the receipt made using `validators_change_receipt()`. If
-// that receipt changes then this hash must as well
-pub const TEST_RECEIPT_ROOT: [u8; 32] = hex!("81ce88dc524403b796222046bf3daf543978329b87ffd50228f1d3987031dc45");
 
 pub fn validators_change_receipt(parent_hash: H256) -> Receipt {
 	use primitives::{LogEntry, TransactionOutcome};

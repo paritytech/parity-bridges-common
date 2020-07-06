@@ -18,12 +18,12 @@ use super::*;
 
 use crate::test_utils::{
 	build_custom_header, build_genesis_header, insert_header, validator_utils::*, validators_change_receipt,
-	HeaderBuilder, TEST_RECEIPT_ROOT,
+	HeaderBuilder,
 };
 
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
-use primitives::U256;
+use primitives::{compute_merkle_root, U256};
 
 benchmarks! {
 	_ { }
@@ -191,7 +191,13 @@ benchmarks! {
 
 		let num_validators = 1;
 		let initial_header = initialize_bench::<T>(num_validators as usize);
-		let receipts = vec![validators_change_receipt(Default::default())];
+
+		let mut receipts = vec![];
+		for i in 1..=n {
+			let receipt = validators_change_receipt(Default::default());
+			receipts.push(receipt)
+		}
+		let encoded_receipts = receipts.iter().map(|r| r.rlp());
 
 		// We need this extra header since this is what signals a validator set transition. This
 		// will ensure that the next header is within the "Contract" window
@@ -204,7 +210,7 @@ benchmarks! {
 			|mut header| {
 				// Logs Bloom signals a change in validator set
 				header.log_bloom = (&[0xff; 256]).into();
-				header.receipts_root = TEST_RECEIPT_ROOT.into();
+				header.receipts_root = compute_merkle_root(encoded_receipts);
 				header
 			},
 		);

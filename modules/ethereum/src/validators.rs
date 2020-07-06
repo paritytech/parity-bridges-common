@@ -276,9 +276,10 @@ impl ValidatorsSource {
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::mock::{run_test, validators_addresses, validators_change_receipt, TestRuntime, TEST_RECEIPT_ROOT};
+	use crate::mock::{run_test, validators_addresses, validators_change_receipt, TestRuntime};
 	use crate::{BridgeStorage, Headers, ScheduledChange, ScheduledChanges, StoredHeader};
 	use frame_support::StorageMap;
+	use primitives::compute_merkle_root;
 
 	const TOTAL_VALIDATORS: usize = 3;
 
@@ -388,7 +389,7 @@ pub(crate) mod tests {
 		// when we're inside contract range and logs bloom signals change
 		// and there's change in receipts
 		let receipts = vec![validators_change_receipt(Default::default())];
-		header.receipts_root = TEST_RECEIPT_ROOT.into();
+		header.receipts_root = compute_merkle_root(receipts.iter().map(|r| r.rlp()));
 		assert_eq!(
 			validators.extract_validators_change(&header, Some(receipts)),
 			Ok((Some(vec![[7; 20].into()]), None)),
