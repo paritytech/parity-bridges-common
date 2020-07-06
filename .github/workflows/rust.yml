@@ -246,7 +246,11 @@ jobs:
         if:                     always()
         run:                    sccache --stop-server
       - name:                   Prepare artifact's
-        run:                    .github/workflows/prepare_artifacts.sh ""
+        run:                    |
+          mkdir -p ./artifacts
+          mv -v ./target/release/bridge-node ./artifacts/
+          mv -v ./target/release/ethereum-poa-relay ./artifacts/
+          mv -v ./target/release/substrate-bridge ./artifacts/
         shell:                  bash
       - name:                   Upload artifact's
         uses:                   actions/upload-artifact@v1
