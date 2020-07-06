@@ -126,7 +126,7 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 			let provider = client as Arc<dyn StorageAndProofProvider<_, _>>;
 			Ok(Arc::new(GrandpaFinalityProofProvider::new(backend, provider)) as _)
 		})?
-		.build()?;
+		.build_full()?;
 
 	if role.is_authority() {
 		let proposer = sc_basic_authorship::ProposerFactory::new(
@@ -155,7 +155,7 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 
 		// the AURA authoring task is considered essential, i.e. if it
 		// fails we take down the service with it.
-		service.spawn_essential_task("aura", aura);
+		service.spawn_essential_task_handle().spawn_blocking("aura", aura);
 	}
 
 	// if the node isn't actively participating in consensus then it doesn't
@@ -197,7 +197,9 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 
 		// the GRANDPA voter task is considered infallible, i.e.
 		// if it fails we take down the service with it.
-		service.spawn_essential_task("grandpa-voter", grandpa::run_grandpa_voter(grandpa_config)?);
+		service
+			.spawn_essential_task_handle()
+			.spawn_blocking("grandpa-voter", grandpa::run_grandpa_voter(grandpa_config)?);
 	} else {
 		grandpa::setup_disabled_grandpa(service.client(), &inherent_data_providers, service.network())?;
 	}
@@ -257,5 +259,5 @@ pub fn new_light(config: Configuration) -> Result<impl AbstractService, ServiceE
 			let provider = client as Arc<dyn StorageAndProofProvider<_, _>>;
 			Ok(Arc::new(GrandpaFinalityProofProvider::new(backend, provider)) as _)
 		})?
-		.build()
+		.build_light()
 }
