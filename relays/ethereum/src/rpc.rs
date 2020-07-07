@@ -26,7 +26,7 @@ use std::result;
 
 use crate::ethereum_types::{
 	Address as EthAddress, Bytes, CallRequest, EthereumHeaderId, Header as EthereumHeader, Receipt, SignedRawTx,
-	TransactionHash as EthereumTxHash, H256, U256, U64,
+	Transaction as EthereumTransaction, TransactionHash as EthereumTxHash, H256, U256, U64,
 };
 use crate::rpc_errors::RpcError;
 use crate::substrate_types::{
@@ -49,6 +49,8 @@ jsonrpsee::rpc_api! {
 		fn get_block_by_number(block_number: U64, full_tx_objs: bool) -> EthereumHeader;
 		#[rpc(method = "eth_getBlockByHash", positional_params)]
 		fn get_block_by_hash(hash: H256) -> EthereumHeader;
+		#[rpc(method = "eth_getTransactionByHash", positional_params)]
+		fn transaction_by_hash(hash: H256) -> Option<EthereumTransaction>;
 		#[rpc(method = "eth_getTransactionReceipt", positional_params)]
 		fn get_transaction_receipt(transaction_hash: H256) -> Receipt;
 		#[rpc(method = "eth_getTransactionCount", positional_params)]
@@ -86,6 +88,8 @@ pub trait EthereumRpc {
 	async fn header_by_number(&self, block_number: u64) -> Result<EthereumHeader>;
 	/// Retrieve block header by its hash from Ethereum node.
 	async fn header_by_hash(&self, hash: H256) -> Result<EthereumHeader>;
+	/// Retrieve transaction by its hash from Ethereum node.
+	async fn transaction_by_hash(&self, hash: H256) -> Result<Option<EthereumTransaction>>;
 	/// Retrieve transaction receipt by transaction hash.
 	async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt>;
 	/// Get the nonce of the given account.
@@ -117,6 +121,8 @@ pub trait SubstrateRpc {
 	async fn next_account_index(&self, account: node_primitives::AccountId) -> Result<node_primitives::Index>;
 	/// Returns best Ethereum block that Substrate runtime knows of.
 	async fn best_ethereum_block(&self) -> Result<EthereumHeaderId>;
+	/// Returns best finalized Ethereum block that Substrate runtime knows of.
+	async fn best_ethereum_finalized_block(&self) -> Result<EthereumHeaderId>;
 	/// Returns whether or not transactions receipts are required for Ethereum header submission.
 	async fn ethereum_receipts_required(&self, header: SubstrateEthereumHeader) -> Result<bool>;
 	/// Returns whether or not the given Ethereum header is known to the Substrate runtime.

@@ -6973,7 +6973,7 @@ version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bfd5b7557925ce778ff9b9ef90e3ade34c524b5ff10e239c69a42d546d2af56"
 dependencies = [
- "rand 0.7.3",
+ "rand 0.3.23",
 ]
 
 [[package]]
@@ -7283,9 +7283,8 @@ dependencies = [
 
 [[package]]
 name = "web3"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e684152b06ef1d204595dcb64b9a68f751f625d1a788482cf30110a712ff740e"
+version = "0.13.0"
+source = "git+https://github.com/svyatonik/rust-web3?branch=add-raw-transaction#c500832ab7cbff1334b7847f2552e6617ca0ad05"
 dependencies = [
  "arrayvec 0.5.1",
  "derive_more",
@@ -7295,7 +7294,7 @@ dependencies = [
  "futures-timer 3.0.2",
  "jsonrpc-core",
  "log",
- "parking_lot 0.10.2",
+ "parking_lot 0.11.0",
  "rlp",
  "rustc-hex",
  "secp256k1",
