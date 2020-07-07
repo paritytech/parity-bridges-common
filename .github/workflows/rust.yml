@@ -13,11 +13,6 @@ on:
   schedule:                     #Nightly build
     - cron:                     '0 0 * * *'
 jobs:
-  env:
-    SCCACHE_REDIS:        redis://172.17.0.1/0
-    SCCACHE_IDLE_TIMEOUT: 0
-    CMAKE_C_COMPILER_LAUNCHER: sccache
-    CMAKE_CXX_COMPILER_LAUNCHER: sccache
 
 ## Check stage
   check-style:
@@ -26,6 +21,10 @@ jobs:
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
+      SCCACHE_REDIS:        redis://172.17.0.1/0
+      SCCACHE_IDLE_TIMEOUT: 0
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
       - name:                   Checkout sources & submodules
         uses:                   actions/checkout@master
@@ -76,10 +75,14 @@ jobs:
           - stable
           #- beta
           - nightly
-    runs-on:                    ubuntu-latest
+    runs-on:                    self-hosted
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
+      SCCACHE_REDIS:        redis://172.17.0.1/0
+      SCCACHE_IDLE_TIMEOUT: 0
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
       - name:                   Checkout sources & submodules
         uses:                   actions/checkout@master
@@ -121,6 +124,10 @@ jobs:
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
+      SCCACHE_REDIS:        redis://172.17.0.1/0
+      SCCACHE_IDLE_TIMEOUT: 0
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
       - name:                   Checkout sources & submodules
         uses:                   actions/checkout@master
@@ -179,6 +186,10 @@ jobs:
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
+      SCCACHE_REDIS:        redis://172.17.0.1/0
+      SCCACHE_IDLE_TIMEOUT: 0
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
       - name:                   Checkout sources & submodules
         uses:                   actions/checkout@master
