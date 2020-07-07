@@ -48,7 +48,6 @@ jobs:
           command:                 clippy
           toolchain:               nightly
           args:                    --all-targets -- -D warnings
-
 ## Check stage
   check-test-build:
     name:                          Check, test and build
@@ -100,9 +99,6 @@ jobs:
           command:                 test
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
-      - name:                      Stats sccache
-        if:                        always()
-        run:                       sccache --show-stats
 
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
