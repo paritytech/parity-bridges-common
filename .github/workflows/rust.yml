@@ -50,8 +50,8 @@ jobs:
           args:                    --all-targets -- -D warnings
 
 ## Check stage
-  check:
-    name:                          Check
+  check-test-build:
+    name:                          Check, test and build
     strategy:
       matrix:
         toolchain:
@@ -82,8 +82,8 @@ jobs:
             target/*/.*
             target/*/build
             target/*/deps
-          key:                     ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys:            ${{ matrix.toolchain }}-
+          key:                     all-${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys:            all-${{ matrix.toolchain }}-
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
