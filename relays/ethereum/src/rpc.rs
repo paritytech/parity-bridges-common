@@ -48,7 +48,7 @@ jsonrpsee::rpc_api! {
 		#[rpc(method = "eth_getBlockByNumber", positional_params)]
 		fn get_block_by_number(block_number: U64, full_tx_objs: bool) -> EthereumHeader;
 		#[rpc(method = "eth_getBlockByHash", positional_params)]
-		fn get_block_by_hash(hash: H256) -> EthereumHeader;
+		fn get_block_by_hash(hash: H256, full_tx_objs: bool) -> EthereumHeader;
 		#[rpc(method = "eth_getTransactionByHash", positional_params)]
 		fn transaction_by_hash(hash: H256) -> Option<EthereumTransaction>;
 		#[rpc(method = "eth_getTransactionReceipt", positional_params)]
