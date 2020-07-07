@@ -21,10 +21,6 @@ jobs:
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
-      SCCACHE_REDIS:        redis://172.17.0.1/0
-      SCCACHE_IDLE_TIMEOUT: 0
-      CMAKE_C_COMPILER_LAUNCHER: sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
       - name:                   Checkout sources & submodules
         uses:                   actions/checkout@master
@@ -35,16 +31,6 @@ jobs:
         run:                    rustup component add rustfmt clippy --toolchain nightly
       - name:                   Configure cargo data directory
         run:                    echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
-      - name:                   Cache
-        uses:                   actions/cache@v2
-        with:
-          path:                 |-
-            target/cargo
-            target/*/.*
-            target/*/build
-            target/*/deps
-          key:                  stable-${{ hashFiles('Cargo.lock') }}
-          restore-keys:         stable-
       - name:                   Style check
         uses:                   actions-rs/cargo@master
         with:
@@ -62,10 +48,7 @@ jobs:
           command:              clippy
           toolchain:            nightly
           args:                 --all-targets -- -D warnings
-      - name:                   Stats sccache
-        if:                     always()
-        run:                    sccache --show-stats
-
+          
 ## Check stage
   check:
     name:                       Check
