@@ -17,7 +17,7 @@ jobs:
 ## Check stage
   check-style:
     name:                       Check format and clippy
-    runs-on:                    ubuntu-latest
+    runs-on:                    self-hosted
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
@@ -44,8 +44,7 @@ jobs:
           restore-keys:         stable-
       - name:                   Start sccache
         env:
-          SCCACHE_DIR:          ${{ github.workspace }}/target/sccache
-          SCCACHE_CACHE_SIZE:   1G
+          SCCACHE_REDIS:        redis://172.17.0.1/0
           SCCACHE_IDLE_TIMEOUT: 0
         run:                    sccache --start-server
       - name:                   Set sccache ENV
@@ -107,8 +106,7 @@ jobs:
           restore-keys:         ${{ matrix.toolchain }}-
       - name:                   Start sccache
         env:
-          SCCACHE_DIR:          ${{ github.workspace }}/target/sccache
-          SCCACHE_CACHE_SIZE:   1G
+          SCCACHE_REDIS:        redis://172.17.0.1/0
           SCCACHE_IDLE_TIMEOUT: 0
         run:                    sccache --start-server
       - name:                   Set sccache ENV
@@ -134,7 +132,7 @@ jobs:
           - stable
           #- beta
           - nightly
-    runs-on:                    ubuntu-latest
+    runs-on:                    self-hosted
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
@@ -159,8 +157,7 @@ jobs:
           restore-keys:         ${{ matrix.toolchain }}-
       - name:                   Start sccache
         env:
-          SCCACHE_DIR:          ${{ github.workspace }}/target/sccache
-          SCCACHE_CACHE_SIZE:   1G
+          SCCACHE_REDIS:        redis://172.17.0.1/0
           SCCACHE_IDLE_TIMEOUT: 0
         run:                    sccache --start-server
       - name:                   Set sccache ENV
@@ -180,7 +177,7 @@ jobs:
   # Build `mdBook` documentation and upload it as a temporary build artifact
   #doc-book:
   #  name:                      Build the book
-  #  runs-on:                   ubuntu-latest
+  #  runs-on:                   self-hosted
   #  steps:
   #    - uses:                  actions/checkout@v1
   #    - run:                   |
@@ -203,7 +200,7 @@ jobs:
           - stable
           #- beta
           - nightly
-    runs-on:                    ubuntu-latest
+    runs-on:                    self-hosted
     container:                  paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:           full
@@ -228,8 +225,7 @@ jobs:
           restore-keys:         ${{ matrix.toolchain }}-
       - name:                   Start sccache
         env:
-          SCCACHE_DIR:          ${{ github.workspace }}/target/sccache
-          SCCACHE_CACHE_SIZE:   1G
+          SCCACHE_REDIS:        redis://172.17.0.1/0
           SCCACHE_IDLE_TIMEOUT: 0
         run:                    sccache --start-server
       - name:                   Set sccache ENV
