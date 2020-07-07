@@ -48,7 +48,7 @@ jobs:
           command:              clippy
           toolchain:            nightly
           args:                 --all-targets -- -D warnings
-          
+
 ## Check stage
   check:
     name:                       Check
@@ -94,42 +94,7 @@ jobs:
         if:                     always()
         run:                    sccache --show-stats
 ## Test stage
-  test:
-    name:                       Test
-    needs:                      [check]
-    strategy:
-      matrix:
-        toolchain:
-          - stable
-          #- beta
-          - nightly
-    runs-on:                    self-hosted
-    container:                  paritytech/ci-linux:production
-    env:
-      RUST_BACKTRACE:           full
-      SCCACHE_REDIS:        redis://172.17.0.1/0
-      SCCACHE_IDLE_TIMEOUT: 0
-      CMAKE_C_COMPILER_LAUNCHER: sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
-    steps:
-      - name:                   Checkout sources & submodules
-        uses:                   actions/checkout@master
-        with:
-          fetch-depth:          5
-          submodules:           recursive
-      - name:                   Configure cargo data directory
-        run:                    echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
-      - name:                   Cache
-        uses:                   actions/cache@v2
-        with:
-          path:                 |-
-            target/cargo
-            target/*/.*
-            target/*/build
-            target/*/deps
-          key:                  ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys:         ${{ matrix.toolchain }}-
-      - name:                   Testing rust-${{ matrix.toolchain }}
+        - name:                   Testing rust-${{ matrix.toolchain }}
         uses:                   actions-rs/cargo@master
         with:
           command:              test
@@ -156,41 +121,6 @@ jobs:
   #        path:                docs/book
 
 ## Build stage
-  build:
-    name:                       Build
-    needs:                      [test]
-    strategy:
-      matrix:
-        toolchain:
-          - stable
-          #- beta
-          - nightly
-    runs-on:                    self-hosted
-    container:                  paritytech/ci-linux:production
-    env:
-      RUST_BACKTRACE:           full
-      SCCACHE_REDIS:        redis://172.17.0.1/0
-      SCCACHE_IDLE_TIMEOUT: 0
-      CMAKE_C_COMPILER_LAUNCHER: sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
-    steps:
-      - name:                   Checkout sources & submodules
-        uses:                   actions/checkout@master
-        with:
-          fetch-depth:          5
-          submodules:           recursive
-      - name:                   Configure cargo data directory
-        run:                    echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
-      - name:                   Cache
-        uses:                   actions/cache@v2
-        with:
-          path:                 |-
-            target/cargo
-            target/*/.*
-            target/*/build
-            target/*/deps
-          key:                  ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys:         ${{ matrix.toolchain }}-
       - name:                   Building rust-${{ matrix.toolchain }}
         uses:                   actions-rs/cargo@master
         with:
