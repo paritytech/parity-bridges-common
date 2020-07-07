@@ -13,6 +13,11 @@ on:
   schedule:                     #Nightly build
     - cron:                     '0 0 * * *'
 jobs:
+  env:
+    SCCACHE_REDIS:        redis://172.17.0.1/0
+    SCCACHE_IDLE_TIMEOUT: 0
+    CMAKE_C_COMPILER_LAUNCHER: sccache
+    CMAKE_CXX_COMPILER_LAUNCHER: sccache
 
 ## Check stage
   check-style:
@@ -41,15 +46,6 @@ jobs:
             target/*/deps
           key:                  stable-${{ hashFiles('Cargo.lock') }}
           restore-keys:         stable-
-      - name:                   Start sccache
-        env:
-          SCCACHE_REDIS:        redis://172.17.0.1/0
-          SCCACHE_IDLE_TIMEOUT: 0
-        run:                    sccache --start-server
-      - name:                   Set sccache ENV
-        run:                    |
-          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
-          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
       - name:                   Style check
         uses:                   actions-rs/cargo@master
         with:
@@ -67,9 +63,9 @@ jobs:
           command:              clippy
           toolchain:            nightly
           args:                 --all-targets -- -D warnings
-      - name:                   Stop sccache
+      - name:                   Stats sccache
         if:                     always()
-        run:                    sccache -s
+        run:                    sccache --show-stats
 
 ## Check stage
   check:
@@ -102,24 +98,15 @@ jobs:
             target/*/deps
           key:                  ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
           restore-keys:         ${{ matrix.toolchain }}-
-      - name:                   Start sccache
-        env:
-          SCCACHE_REDIS:        redis://172.17.0.1/0
-          SCCACHE_IDLE_TIMEOUT: 0
-        run:                    sccache --start-server
-      - name:                   Set sccache ENV
-        run:                    |
-          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
-          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
       - name:                   Checking rust-${{ matrix.toolchain }}
         uses:                   actions-rs/cargo@master
         with:
           command:              check
           toolchain:            ${{ matrix.toolchain }}
           args:                 --all  --verbose
-      - name:                   Stop sccache
+      - name:                   Stats sccache
         if:                     always()
-        run:                    sccache -s
+        run:                    sccache --show-stats
 ## Test stage
   test:
     name:                       Test
@@ -152,24 +139,15 @@ jobs:
             target/*/deps
           key:                  ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
           restore-keys:         ${{ matrix.toolchain }}-
-      - name:                   Start sccache
-        env:
-          SCCACHE_REDIS:        redis://172.17.0.1/0
-          SCCACHE_IDLE_TIMEOUT: 0
-        run:                    sccache --start-server
-      - name:                   Set sccache ENV
-        run:                    |
-          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
-          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
       - name:                   Testing rust-${{ matrix.toolchain }}
         uses:                   actions-rs/cargo@master
         with:
           command:              test
           toolchain:            ${{ matrix.toolchain }}
           args:                 --all  --verbose
-      - name:                   Stop sccache
+      - name:                   Stats sccache
         if:                     always()
-        run:                    sccache -s
+        run:                    sccache --show-stats
 
   # Build `mdBook` documentation and upload it as a temporary build artifact
   #doc-book:
@@ -219,24 +197,15 @@ jobs:
             target/*/deps
           key:                  ${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
           restore-keys:         ${{ matrix.toolchain }}-
-      - name:                   Start sccache
-        env:
-          SCCACHE_REDIS:        redis://172.17.0.1/0
-          SCCACHE_IDLE_TIMEOUT: 0
-        run:                    sccache --start-server
-      - name:                   Set sccache ENV
-        run:                    |
-          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
-          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
       - name:                   Building rust-${{ matrix.toolchain }}
         uses:                   actions-rs/cargo@master
         with:
           command:              build
           toolchain:            ${{ matrix.toolchain }}
           args:                 --all --release --verbose
-      - name:                   Stop sccache
+      - name:                   Stats sccache
         if:                     always()
-        run:                    sccache -s
+        run:                    sccache --show-stats
       - name:                   Prepare artifact's
         run:                    |
           mkdir -p ./artifacts
