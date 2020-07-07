@@ -106,14 +106,14 @@ impl SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource {
 		for (index, eth_tx_hash) in eth_header.transactions.into_iter().enumerate() {
 			if eth_tx_hash != eth_relay_tx_hash {
 				let eth_tx = self.client.transaction_by_hash(eth_tx_hash).await?;
-				transaction_proof.push(match eth_tx {
-					Some(eth_tx) => eth_tx.raw.0,
+				transaction_proof.push(match eth_tx.and_then(|eth_tx| eth_tx.raw) {
+					Some(eth_raw_tx) => eth_raw_tx.0,
 					None => return Err(EthereumNodeError::MissingTransaction(eth_tx_hash).into()),
 				});
 			} else {
 				eth_relay_tx_index = Some(index as u64);
-				transaction_proof.push(match eth_relay_tx.take() {
-					Some(eth_relay_tx) => eth_relay_tx.raw.0,
+				transaction_proof.push(match eth_relay_tx.take().and_then(|eth_tx| eth_tx.raw) {
+					Some(eth_raw_relay_tx) => eth_raw_relay_tx.0,
 					None => {
 						return Err(
 							EthereumNodeError::DuplicateBlockTransaction(*eth_header_id, eth_relay_tx_hash).into(),

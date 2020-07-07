@@ -7284,7 +7284,7 @@ dependencies = [
 [[package]]
 name = "web3"
 version = "0.13.0"
-source = "git+https://github.com/svyatonik/rust-web3?branch=add-raw-transaction#c500832ab7cbff1334b7847f2552e6617ca0ad05"
+source = "git+https://github.com/svyatonik/rust-web3?branch=add-raw-transaction#52c17d658f9ee6993dc588aae4f4621b9e786aa8"
 dependencies = [
  "arrayvec 0.5.1",
  "derive_more",
