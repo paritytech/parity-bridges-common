@@ -29,8 +29,6 @@ jobs:
           submodules:              recursive
       - name:                      Add rustfmt and clippy
         run:                       rustup component add rustfmt clippy --toolchain nightly
-      - name:                      Configure cargo data directory
-        run:                       echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
       - name:                      Style check
         uses:                      actions-rs/cargo@master
         with:
@@ -71,18 +69,6 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
-      - name:                      Configure cargo data directory
-        run:                       echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
-      - name:                      Cache
-        uses:                      actions/cache@v2
-        with:
-          path:                    |-
-            target/cargo
-            target/*/.*
-            target/*/build
-            target/*/deps
-          key:                     all-${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys:            all-${{ matrix.toolchain }}-
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
@@ -99,7 +85,9 @@ jobs:
           command:                 test
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
-
+      - name:                      Stats sccache
+        if:                        always()
+        run:                       sccache --show-stats
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
