@@ -37,7 +37,7 @@ use std::collections::VecDeque;
 const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "EthereumHeadersApi_is_import_requires_receipts";
 const ETH_API_IS_KNOWN_BLOCK: &str = "EthereumHeadersApi_is_known_block";
 const ETH_API_BEST_BLOCK: &str = "EthereumHeadersApi_best_block";
-const ETH_API_BEST_FINALIZED_BLOCK: &str = "EthereumHeadersApi_best_finalized";
+const ETH_API_BEST_FINALIZED_BLOCK: &str = "EthereumHeadersApi_finalized_block";
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 
 type Result<T> = std::result::Result<T, RpcError>;
