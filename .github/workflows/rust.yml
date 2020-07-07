@@ -36,7 +36,6 @@ jobs:
         with:
           path:                 |-
             target/cargo
-            target/sccache
             target/*/.*
             target/*/build
             target/*/deps
@@ -70,7 +69,7 @@ jobs:
           args:                 --all-targets -- -D warnings
       - name:                   Stop sccache
         if:                     always()
-        run:                    sccache --stop-server
+        run:                    sccache -s
 
 ## Check stage
   check:
@@ -98,7 +97,6 @@ jobs:
         with:
           path:                 |-
             target/cargo
-            target/sccache
             target/*/.*
             target/*/build
             target/*/deps
@@ -121,7 +119,7 @@ jobs:
           args:                 --all  --verbose
       - name:                   Stop sccache
         if:                     always()
-        run:                    sccache --stop-server
+        run:                    sccache -s
 ## Test stage
   test:
     name:                       Test
@@ -149,7 +147,6 @@ jobs:
         with:
           path:                 |-
             target/cargo
-            target/sccache
             target/*/.*
             target/*/build
             target/*/deps
@@ -172,7 +169,7 @@ jobs:
           args:                 --all  --verbose
       - name:                   Stop sccache
         if:                     always()
-        run:                    sccache --stop-server
+        run:                    sccache -s
 
   # Build `mdBook` documentation and upload it as a temporary build artifact
   #doc-book:
@@ -217,7 +214,6 @@ jobs:
         with:
           path:                 |-
             target/cargo
-            target/sccache
             target/*/.*
             target/*/build
             target/*/deps
@@ -240,7 +236,7 @@ jobs:
           args:                 --all --release --verbose
       - name:                   Stop sccache
         if:                     always()
-        run:                    sccache --stop-server
+        run:                    sccache -s
       - name:                   Prepare artifact's
         run:                    |
           mkdir -p ./artifacts
