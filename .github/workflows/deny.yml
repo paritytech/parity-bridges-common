@@ -51,9 +51,3 @@ jobs:
         with:
           name:            deny.log
           path:            deny.log
-
-  cargo-deny:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: EmbarkStudios/cargo-deny-action@v1
