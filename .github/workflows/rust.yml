@@ -60,7 +60,7 @@ jobs:
       image:                       paritytech/ci-linux:production
       volumes:
         - /cache:/cache
-      options:                     --cpus 4
+      options:                     --cpus 8
     env:
       RUST_BACKTRACE:              full
       SCCACHE_REDIS:               redis://172.17.0.1/0
@@ -73,8 +73,6 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
-      - name:                      ref
-        run: echo ${{ github.ref }} - ${{ github.head_ref }} - ${{ github.base_ref }}
       - name:                      Configure cargo data directory
         run:                       |
           echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
@@ -111,9 +109,9 @@ jobs:
       - name:                      Prepare artifact's
         run:                       |
           mkdir -p ./artifacts
-          mv -v ./target/release/bridge-node ./artifacts/
-          mv -v ./target/release/ethereum-poa-relay ./artifacts/
-          mv -v ./target/release/substrate-bridge ./artifacts/
+          mv -v ./release/bridge-node ./artifacts/
+          mv -v ./release/ethereum-poa-relay ./artifacts/
+          mv -v ./release/substrate-bridge ./artifacts/
         shell:                     bash
       - name:                      Upload artifact's
         uses:                      actions/upload-artifact@v1
