@@ -579,9 +579,7 @@ where
 				retry_backoff.reset();
 				CONNECTION_ERROR_DELAY
 			} else {
-				retry_backoff
-					.next_backoff()
-					.unwrap_or(CONNECTION_ERROR_DELAY)
+				retry_backoff.next_backoff().unwrap_or(CONNECTION_ERROR_DELAY)
 			};
 			go_offline_future.set(go_offline(retry_delay).fuse());
 
@@ -634,7 +632,7 @@ mod tests {
 	#[derive(Debug)]
 	struct TestError(bool);
 
-	impl MaybeConnectionError for TestError{
+	impl MaybeConnectionError for TestError {
 		fn is_connection_error(&self) -> bool {
 			self.0
 		}
