@@ -1,4 +1,4 @@
-name:                              Check, test and build Suite
+name:                              Compilation and Testing Suite
 
 on:
   pull_request:
