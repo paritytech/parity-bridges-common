@@ -98,28 +98,27 @@ impl SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource {
 		eth_header_id: &EthereumHeaderId,
 		eth_tx: EthereumTransaction,
 	) -> Result<EthereumTransactionInclusionProof, Self::Error> {
-		let eth_header = self.client.header_by_hash(eth_header_id.1).await?;
+		const TRANSACTION_HAS_RAW_FIELD_PROOF: &'static str = "RPC level checks that transactions from Ethereum\
+			node are having `raw` field; qed";
+
+		let eth_header = self.client.header_by_hash_with_transactions(eth_header_id.1).await?;
 		let eth_relay_tx_hash = eth_tx.hash;
 		let mut eth_relay_tx = Some(eth_tx);
 		let mut eth_relay_tx_index = None;
 		let mut transaction_proof = Vec::with_capacity(eth_header.transactions.len());
-		for (index, eth_tx_hash) in eth_header.transactions.into_iter().enumerate() {
-			if eth_tx_hash != eth_relay_tx_hash {
-				let eth_tx = self.client.transaction_by_hash(eth_tx_hash).await?;
-				transaction_proof.push(match eth_tx.and_then(|eth_tx| eth_tx.raw) {
-					Some(eth_raw_tx) => eth_raw_tx.0,
-					None => return Err(EthereumNodeError::MissingTransaction(eth_tx_hash).into()),
-				});
+		for (index, eth_tx) in eth_header.transactions.into_iter().enumerate() {
+			if eth_tx.hash != eth_relay_tx_hash {
+				let eth_raw_tx = eth_tx.raw.expect(TRANSACTION_HAS_RAW_FIELD_PROOF);
+				transaction_proof.push(eth_raw_tx.0);
 			} else {
+				let eth_raw_relay_tx = match eth_relay_tx.take() {
+					Some(eth_relay_tx) => eth_relay_tx.raw.expect(TRANSACTION_HAS_RAW_FIELD_PROOF),
+					None => return Err(
+						EthereumNodeError::DuplicateBlockTransaction(*eth_header_id, eth_relay_tx_hash).into(),
+					),
+				};
 				eth_relay_tx_index = Some(index as u64);
-				transaction_proof.push(match eth_relay_tx.take().and_then(|eth_tx| eth_tx.raw) {
-					Some(eth_raw_relay_tx) => eth_raw_relay_tx.0,
-					None => {
-						return Err(
-							EthereumNodeError::DuplicateBlockTransaction(*eth_header_id, eth_relay_tx_hash).into(),
-						)
-					}
-				});
+				transaction_proof.push(eth_raw_relay_tx.0);
 			}
 		}
 

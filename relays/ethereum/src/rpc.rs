@@ -25,7 +25,8 @@
 use std::result;
 
 use crate::ethereum_types::{
-	Address as EthAddress, Bytes, CallRequest, EthereumHeaderId, Header as EthereumHeader, Receipt, SignedRawTx,
+	Address as EthAddress, Bytes, CallRequest, EthereumHeaderId, Header as EthereumHeader,
+	HeaderWithTransactions as EthereumHeaderWithTransactions, Receipt, SignedRawTx,
 	Transaction as EthereumTransaction, TransactionHash as EthereumTxHash, H256, U256, U64,
 };
 use crate::rpc_errors::RpcError;
@@ -49,6 +50,8 @@ jsonrpsee::rpc_api! {
 		fn get_block_by_number(block_number: U64, full_tx_objs: bool) -> EthereumHeader;
 		#[rpc(method = "eth_getBlockByHash", positional_params)]
 		fn get_block_by_hash(hash: H256, full_tx_objs: bool) -> EthereumHeader;
+		#[rpc(method = "eth_getBlockByHash", positional_params)]
+		fn get_block_by_hash_with_transactions(hash: H256, full_tx_objs: bool) -> EthereumHeaderWithTransactions;
 		#[rpc(method = "eth_getTransactionByHash", positional_params)]
 		fn transaction_by_hash(hash: H256) -> Option<EthereumTransaction>;
 		#[rpc(method = "eth_getTransactionReceipt", positional_params)]
@@ -88,6 +91,8 @@ pub trait EthereumRpc {
 	async fn header_by_number(&self, block_number: u64) -> Result<EthereumHeader>;
 	/// Retrieve block header by its hash from Ethereum node.
 	async fn header_by_hash(&self, hash: H256) -> Result<EthereumHeader>;
+	/// Retrieve block header and its transactions by its hash from Ethereum node.
+	async fn header_by_hash_with_transactions(&self, hash: H256) -> Result<EthereumHeaderWithTransactions>;
 	/// Retrieve transaction by its hash from Ethereum node.
 	async fn transaction_by_hash(&self, hash: H256) -> Result<Option<EthereumTransaction>>;
 	/// Retrieve transaction receipt by transaction hash.

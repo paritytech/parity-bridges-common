@@ -102,11 +102,11 @@ pub enum EthereumNodeError {
 	IncompleteHeader,
 	/// We have received a receipt missing a `gas_used` field.
 	IncompleteReceipt,
+	/// We have received a transaction missing a `raw` field.
+	IncompleteTransaction,
 	/// An invalid Substrate block number was received from
 	/// an Ethereum node.
 	InvalidSubstrateBlockNumber,
-	/// Ethereum node is missing required transaction
-	MissingTransaction(EthereumTransactionHash),
 	/// Block includes the same transaction more than once.
 	DuplicateBlockTransaction(EthereumHeaderId, EthereumTransactionHash),
 	/// Block is missing transaction we believe is a part of this block.
@@ -119,10 +119,8 @@ impl ToString for EthereumNodeError {
 			Self::ResponseParseFailed(e) => e.to_string(),
 			Self::IncompleteHeader => "Incomplete Ethereum Header Received".to_string(),
 			Self::IncompleteReceipt => "Incomplete Ethereum Receipt Recieved".to_string(),
+			Self::IncompleteTransaction => "Incomplete Ethereum Transaction".to_string(),
 			Self::InvalidSubstrateBlockNumber => "Received an invalid Substrate block from Ethereum Node".to_string(),
-			Self::MissingTransaction(tx_hash) => {
-				format!("Ethereum node is missing required Ethereum transaction {}", tx_hash,)
-			}
 			Self::DuplicateBlockTransaction(header_id, tx_hash) => format!(
 				"Ethereum block {}/{} includes Ethereum transaction {} more than once",
 				header_id.0, header_id.1, tx_hash,
