@@ -641,15 +641,15 @@ mod tests {
 	fn run_backoff_test(result: Result<(), TestError>) -> (Duration, Duration) {
 		let mut backoff = retry_backoff();
 
-		// no ramdomness in tests (otherwis intervals may overlap => asserts are failing)
+		// no randomness in tests (otherwise intervals may overlap => asserts are failing)
 		backoff.randomization_factor = 0f64;
 
-		// increase backoff' current interval
+		// increase backoff's current interval
 		let interval1 = backoff.next_backoff().unwrap();
 		let interval2 = backoff.next_backoff().unwrap();
 		assert!(interval2 > interval1);
 
-		// successful future result leads to backoff' reset
+		// successful future result leads to backoff's reset
 		let go_offline_future = futures::future::Fuse::terminated();
 		futures::pin_mut!(go_offline_future);
 
