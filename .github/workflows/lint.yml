@@ -17,7 +17,7 @@ jobs:
 
 ## Check stage
   check-style:
-    name:                          Check format and clippy
+    name:                          Check RustFmt and Clippy
     runs-on:                       self-hosted
     container:                     paritytech/ci-linux:production
     env:
