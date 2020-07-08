@@ -85,8 +85,44 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 	target_client: &impl TargetClient<P>,
 	source_tx_hash: P::TransactionHash,
 ) -> Result<(), String> {
-	// wait until transaction is mined by source node
-	let (source_header_id, source_tx) = loop {
+	// wait for transaction and header on source node
+	let (source_header_id, source_tx) = wait_transaction_mined(source_client, &source_tx_hash).await?;
+	let transaction_proof = source_client
+		.transaction_proof(&source_header_id, source_tx)
+		.await
+		.map_err(|err| {
+			format!(
+				"Error building transaction {} proof on {} node: {:?}",
+				source_tx_hash,
+				P::SOURCE_NAME,
+				err,
+			)
+		})?;
+
+	// wait for transaction and header on target node
+	wait_header_imported(target_client, &source_header_id).await?;
+	wait_header_finalized(target_client, &source_header_id).await?;
+
+	// and finally - submit transaction proof to target node
+	target_client
+		.submit_transaction_proof(transaction_proof)
+		.await
+		.map_err(|err| {
+			format!(
+				"Error submitting transaction {} proof to {} node: {:?}",
+				source_tx_hash,
+				P::TARGET_NAME,
+				err,
+			)
+		})
+}
+
+/// Wait until transaction is mined by source node.
+async fn wait_transaction_mined<P: TransactionProofPipeline>(
+	source_client: &impl SourceClient<P>,
+	source_tx_hash: &P::TransactionHash,
+) -> Result<(HeaderId<P>, P::Transaction), String> {
+	loop {
 		let source_header_and_tx = source_client.transaction(&source_tx_hash).await.map_err(|err| {
 			format!(
 				"Error retrieving transaction {} from {} node: {:?}",
@@ -104,7 +140,7 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 					P::SOURCE_NAME,
 				);
 
-				break (source_header_id, source_tx);
+				return Ok((source_header_id, source_tx));
 			}
 			None => {
 				log::info!(
@@ -117,22 +153,14 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 				source_client.tick().await;
 			}
 		}
-	};
+	}
+}
 
-	// prepare transaction proof
-	let transaction_proof = source_client
-		.transaction_proof(&source_header_id, source_tx)
-		.await
-		.map_err(|err| {
-			format!(
-				"Error building transaction {} proof on {} node: {:?}",
-				source_tx_hash,
-				P::SOURCE_NAME,
-				err,
-			)
-		})?;
-
-	// now wait until target node imports required header
+/// Wait until target node imports required header.
+async fn wait_header_imported<P: TransactionProofPipeline>(
+	target_client: &impl TargetClient<P>,
+	source_header_id: &HeaderId<P>,
+) -> Result<(), String> {
 	loop {
 		let is_header_known = target_client.is_header_known(&source_header_id).await.map_err(|err| {
 			format!(
@@ -153,7 +181,7 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 					P::TARGET_NAME,
 				);
 
-				break;
+				return Ok(());
 			}
 			false => {
 				log::info!(
@@ -168,7 +196,13 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 			}
 		}
 	}
+}
 
+/// Wait until target node finalizes required header.
+async fn wait_header_finalized<P: TransactionProofPipeline>(
+	target_client: &impl TargetClient<P>,
+	source_header_id: &HeaderId<P>,
+) -> Result<(), String> {
 	// now wait until target node finalizes required header
 	loop {
 		let is_header_finalized = target_client
@@ -193,7 +227,7 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 					P::TARGET_NAME,
 				);
 
-				break;
+				return Ok(());
 			}
 			false => {
 				log::info!(
@@ -208,20 +242,8 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 			}
 		}
 	}
-
-	// and finally - submit transaction proof to target node
-	target_client
-		.submit_transaction_proof(transaction_proof)
-		.await
-		.map_err(|err| {
-			format!(
-				"Error submitting transaction {} proof to {} node: {:?}",
-				source_tx_hash,
-				P::TARGET_NAME,
-				err,
-			)
-		})
 }
+
 
 #[cfg(test)]
 mod tests {
