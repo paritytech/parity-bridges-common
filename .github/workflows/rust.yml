@@ -76,7 +76,7 @@ jobs:
       - name:                      ref
         run: echo ${{ github.ref }} - ${{ github.head_ref }} - ${{ github.base_ref }}
       - name:                      Configure cargo data directory
-        run:                       echo "::set-env name=CARGO_HOME::/cache"
+        run:                       echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}"
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
