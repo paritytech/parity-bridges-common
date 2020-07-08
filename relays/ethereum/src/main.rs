@@ -242,11 +242,11 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_excha
 	params.sub = substrate_connection_params(matches)?;
 	params.sub_sign = substrate_signing_params(matches)?;
 
-	if let Some(eth_tx_hash) = matches.value_of("eth-tx-hash") {
-		params.eth_tx_hash = eth_tx_hash
-			.parse()
-			.map_err(|e| format!("Failed to parse eth-tx-hash: {}", e))?;
-	}
+	params.eth_tx_hash = matches
+		.value_of("eth-tx-hash")
+		.expect("eth-tx-hash is a required parameter; clap verifies that required parameters have matches; qed")
+		.parse()
+		.map_err(|e| format!("Failed to parse eth-tx-hash: {}", e))?;
 
 	Ok(params)
 }
