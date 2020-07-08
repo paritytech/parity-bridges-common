@@ -58,7 +58,8 @@ jobs:
     runs-on:                       self-hosted
     container:
       image:                       paritytech/ci-linux:production
-      volumes:                     build:/cache
+      volumes:
+        - build:/cache
       options:                     --cpus 4
     env:
       RUST_BACKTRACE:              full
