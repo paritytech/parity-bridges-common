@@ -317,6 +317,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 
 [[package]]
+name = "backoff"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66483433ebf577e03c6546df761778e4cc40b00e5a1ea7ed850733ffb555d71f"
+dependencies = [
+ "instant",
+ "rand 0.6.5",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1135,6 +1145,7 @@ dependencies = [
  "async-std",
  "async-stream",
  "async-trait",
+ "backoff",
  "bridge-node-runtime",
  "clap",
  "env_logger",
