@@ -73,7 +73,7 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
-      - name:                      Configure cargo data directory
+      - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
         run:                       |
           echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
