@@ -81,7 +81,7 @@ jobs:
           mv -v $CARGO_TARGET_DIR/release/ethereum-poa-relay ./artifacts/
           mv -v $CARGO_TARGET_DIR/release/substrate-bridge ./artifacts/
         shell:                     bash
-      - name:                      Upload artifact's
+      - name:                      Upload artifacts
         uses:                      actions/upload-artifact@v1
         with:
           name:                    ${{ matrix.toolchain }}.zip
