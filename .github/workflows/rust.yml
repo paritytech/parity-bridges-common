@@ -57,6 +57,8 @@ jobs:
           - nightly
     runs-on:                       self-hosted
     container:                     paritytech/ci-linux:production
+      volumes:                     build/:/cache
+      options:                     --cpus 1
     env:
       RUST_BACKTRACE:              full
       SCCACHE_REDIS:               redis://172.17.0.1/0
@@ -69,6 +71,8 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
+      - name:                      Configure cargo data directory
+        run:                       echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"      
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
