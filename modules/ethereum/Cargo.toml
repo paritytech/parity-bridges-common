@@ -15,28 +15,40 @@ primitives = { package = "sp-bridge-eth-poa", path = "../../primitives/ethereum-
 # Substrate Based Dependencies
 [dependencies.frame-support]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 default-features = false
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.frame-system]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 default-features = false
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-std]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 default-features = false
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-io]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 default-features = false
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-runtime]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 default-features = false
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.frame-benchmarking]
 optional = true
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 default-features = false
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.libsecp256k1]
 optional = true

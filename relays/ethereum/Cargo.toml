@@ -40,22 +40,33 @@ features = ["http"]
 # Substrate Based Dependencies
 [dependencies.frame-system]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.pallet-transaction-payment]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.node-primitives]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.sp-core]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.sp-keyring]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.sp-runtime]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.bridge-node-runtime]
 version = "0.1.0"

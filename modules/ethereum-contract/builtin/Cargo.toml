@@ -20,18 +20,28 @@ bridge-node-runtime = { path = "../../../bin/node/runtime" }
 
 [dependencies.sp-blockchain]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-finality-grandpa]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-runtime]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sc-finality-grandpa]
-version = "0.8.0-dev"
+version = "0.8.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate/"
 
 [dev-dependencies]
 hex = "0.4"
 
 [dev-dependencies.sp-core]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+git = "https://github.com/paritytech/substrate/"

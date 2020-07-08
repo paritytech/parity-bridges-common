@@ -13,11 +13,15 @@ codec = { package = "parity-scale-codec", version = "1.0.0", default-features = 
 
 [dependencies.sp-std]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 default-features = false
+git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.frame-support]
 version = "2.0.0-rc4"
+rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
 default-features = false
+git = "https://github.com/paritytech/substrate.git"
 
 [features]
 default = ["std"]
