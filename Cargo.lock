@@ -7284,7 +7284,7 @@ dependencies = [
 [[package]]
 name = "web3"
 version = "0.13.0"
-source = "git+https://github.com/svyatonik/rust-web3?branch=add-raw-transaction#52c17d658f9ee6993dc588aae4f4621b9e786aa8"
+source = "git+https://github.com/tomusdrw/rust-web3?rev=f8ed7137fefb1b1ba41e17b86078a6eddf3ca52b#f8ed7137fefb1b1ba41e17b86078a6eddf3ca52b"
 dependencies = [
  "arrayvec 0.5.1",
  "derive_more",
@@ -7301,7 +7301,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tiny-keccak 2.0.2",
- "zeroize",
 ]
 
 [[package]]
