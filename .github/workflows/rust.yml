@@ -74,7 +74,7 @@ jobs:
           fetch-depth:             5
           submodules:              recursive
       - name:                      ref
-        run: echo ${{ github.ref }}
+        run: echo ${{ github.ref }} - ${{ github.head_ref }} - ${{ github.base_ref }}
       - name:                      Configure cargo data directory
         run:                       echo "::set-env name=CARGO_HOME::/__w/"
       - name:                      Checking rust-${{ matrix.toolchain }}
