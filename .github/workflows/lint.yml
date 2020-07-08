@@ -1,4 +1,4 @@
-name:                              Check, test and build Suite
+name:                              Check style
 
 on:
 # Uncomment when needed
