@@ -15,56 +15,56 @@ hash-db = { version = "0.15.2", default-features = false }
 # Substrate Based Dependencies
 [dependencies.frame-support]
 version = "2.0.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.frame-system]
 version = "2.0.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.pallet-session]
 version = "2.0.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-core]
 version = "2.0.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-finality-grandpa]
 version = "2.0.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-runtime]
 version = "2.0.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-trie]
 version = "2.0.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 # Dev Dependencies
 [dev-dependencies.sp-io]
 version = "2.0.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dev-dependencies.sp-state-machine]
 version = "0.8.0-rc4"
-rev = "00768a1f21a579c478fe5d4f51e1fa71f7db9fd4"
+tag = 'v2.0.0-rc4'
 git = "https://github.com/paritytech/substrate/"
 
 [features]
