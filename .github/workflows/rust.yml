@@ -59,7 +59,7 @@ jobs:
     container:
       image:                       paritytech/ci-linux:production
       volumes:
-        - /cache:/__w/
+        - /cache:/cache
       options:                     --cpus 4
     env:
       RUST_BACKTRACE:              full
@@ -76,7 +76,7 @@ jobs:
       - name:                      ref
         run: echo ${{ github.ref }} - ${{ github.head_ref }} - ${{ github.base_ref }}
       - name:                      Configure cargo data directory
-        run:                       echo "::set-env name=CARGO_HOME::/__w/"
+        run:                       echo "::set-env name=CARGO_HOME::/cache"
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
