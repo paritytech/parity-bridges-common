@@ -59,7 +59,7 @@ jobs:
     container:
       image:                       paritytech/ci-linux:production
       volumes:
-        - /__w/:/cache
+        - /cache:/__w/
       options:                     --cpus 4
     env:
       RUST_BACKTRACE:              full
