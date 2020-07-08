@@ -389,7 +389,7 @@ pub fn transaction_decode(raw_tx: &[u8]) -> Result<Transaction, rlp::DecoderErro
 	let s: U256 = tx_rlp.val_at(8)?;
 
 	// reconstruct signature
-	let mut signature = [0u8; 65];
+	let mut signature = [0u8; 100];
 	let (chain_id, v) = match v {
 		v if v == 27u64 => (None, 0),
 		v if v == 28u64 => (None, 1),
@@ -416,7 +416,9 @@ pub fn transaction_decode(raw_tx: &[u8]) -> Result<Transaction, rlp::DecoderErro
 	let message = keccak_256(&message.out());
 
 	// recover tx sender
-	let sender_public = sp_io::crypto::secp256k1_ecdsa_recover(&signature, &message)
+	let mut signature1 = [0u8; 65];
+	signature1.copy_from_slice(&signature[0..65]);
+	let sender_public = sp_io::crypto::secp256k1_ecdsa_recover(&signature1, &message)
 		.map_err(|_| rlp::DecoderError::Custom("Failed to recover transaction sender"))?;
 	let sender_address = public_to_address(&sender_public);
 
