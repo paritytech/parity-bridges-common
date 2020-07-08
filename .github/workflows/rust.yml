@@ -74,7 +74,7 @@ jobs:
       - name:                      Stats sccache
         if:                        always()
         run:                       sccache --show-stats
-      - name:                      Prepare artifact's
+      - name:                      Prepare artifacts
         run:                       |
           mkdir -p ./artifacts
           mv -v $CARGO_TARGET_DIR/release/bridge-node ./artifacts/
