@@ -113,9 +113,11 @@ impl SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource {
 			} else {
 				let eth_raw_relay_tx = match eth_relay_tx.take() {
 					Some(eth_relay_tx) => eth_relay_tx.raw.expect(TRANSACTION_HAS_RAW_FIELD_PROOF),
-					None => return Err(
-						EthereumNodeError::DuplicateBlockTransaction(*eth_header_id, eth_relay_tx_hash).into(),
-					),
+					None => {
+						return Err(
+							EthereumNodeError::DuplicateBlockTransaction(*eth_header_id, eth_relay_tx_hash).into(),
+						)
+					}
 				};
 				eth_relay_tx_index = Some(index as u64);
 				transaction_proof.push(eth_raw_relay_tx.0);

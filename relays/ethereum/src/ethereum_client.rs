@@ -15,8 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_types::{
-	Address, Bytes, CallRequest, EthereumHeaderId, Header, HeaderWithTransactions, Receipt, SignedRawTx,
-	Transaction, TransactionHash, H256, U256,
+	Address, Bytes, CallRequest, EthereumHeaderId, Header, HeaderWithTransactions, Receipt, SignedRawTx, Transaction,
+	TransactionHash, H256, U256,
 };
 use crate::rpc::{Ethereum, EthereumRpc};
 use crate::rpc_errors::{EthereumNodeError, RpcError};

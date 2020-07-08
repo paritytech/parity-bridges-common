@@ -26,8 +26,8 @@ use std::result;
 
 use crate::ethereum_types::{
 	Address as EthAddress, Bytes, CallRequest, EthereumHeaderId, Header as EthereumHeader,
-	HeaderWithTransactions as EthereumHeaderWithTransactions, Receipt, SignedRawTx,
-	Transaction as EthereumTransaction, TransactionHash as EthereumTxHash, H256, U256, U64,
+	HeaderWithTransactions as EthereumHeaderWithTransactions, Receipt, SignedRawTx, Transaction as EthereumTransaction,
+	TransactionHash as EthereumTxHash, H256, U256, U64,
 };
 use crate::rpc_errors::RpcError;
 use crate::substrate_types::{

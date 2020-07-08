@@ -244,7 +244,6 @@ async fn wait_header_finalized<P: TransactionProofPipeline>(
 	}
 }
 
-
 #[cfg(test)]
 mod tests {
 	use super::*;
