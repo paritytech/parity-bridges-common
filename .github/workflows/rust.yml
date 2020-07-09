@@ -1,4 +1,4 @@
-name:                              Check, test and build Suite
+name:                              Compilation and Testing Suite
 
 on:
   pull_request:
@@ -45,6 +45,14 @@ jobs:
         run:                       |
           echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
+      - name:                      Check Rust nightly
+        run:                       |
+          if [[ $(cat check_nightly_rust) == $(rustc +nightly --version) ]];
+            then echo "The Rust nightly version has not changed";
+            else
+            echo "The Rust nightly version has changed. Clearing the cache";
+            rm -rf $CARGO_TARGET_DIR/*;
+          fi
       - name:                      Add rustfmt
         run:                       rustup component add rustfmt --toolchain ${{ matrix.toolchain }}
       - name:                      Style check
@@ -88,6 +96,9 @@ jobs:
           mv -v $CARGO_TARGET_DIR/release/bridge-node ./artifacts/
           mv -v $CARGO_TARGET_DIR/release/ethereum-poa-relay ./artifacts/
           mv -v $CARGO_TARGET_DIR/release/substrate-bridge ./artifacts/
+        shell:                     bash
+      - name:                      Rust nightly version
+        run:                       rustc +nightly --version > $CARGO_TARGET_DIR/check_nightly_rust
         shell:                     bash
       - name:                      Upload artifacts
         uses:                      actions/upload-artifact@v1
