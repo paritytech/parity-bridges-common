@@ -57,6 +57,7 @@ jobs:
             echo "The Rust nightly version has changed. Clearing the cache";
             rm -rf $CARGO_TARGET_DIR/*;
           fi
+        shell:                     bash
       - name:                      Add rustfmt
         run:                       rustup component add rustfmt --toolchain ${{ matrix.toolchain }}
       - name:                      Style check
