@@ -1,4 +1,4 @@
-name:                              Compilation and Testing Suite
+name:                              Check, test and build Suite
 
 on:
   pull_request:
@@ -10,8 +10,8 @@ on:
     paths-ignore:
       - 'README.md'
       - diagrams/
-  schedule:                        #Nightly build
-    - cron:                        '0 0 * * *'
+  schedule:                        #Weekly build
+    - cron:                        '0 0 * * 0'
 jobs:
 
 ## Check stage
@@ -45,6 +45,14 @@ jobs:
         run:                       |
           echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
+      - name:                      Add rustfmt
+        run:                       rustup component add rustfmt --toolchain ${{ matrix.toolchain }}
+      - name:                      Style check
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 fmt
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --all -- --check
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
