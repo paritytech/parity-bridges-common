@@ -74,7 +74,7 @@ RUN ./openethereum --version
 
 EXPOSE 8545 8546 30303/tcp 30303/udp
 
-HEALTHCHECK --interval=2m --timeout=3s \
+HEALTHCHECK --interval=2m --timeout=10s \
   CMD curl -f http://localhost:8545/api/health || exit 1
 
 ENTRYPOINT ["/home/openethereum/openethereum"]
