@@ -126,7 +126,7 @@ impl ToString for EthereumNodeError {
 				header_id.0, header_id.1, tx_hash,
 			),
 			Self::BlockMissingTransaction(header_id, tx_hash) => format!(
-				"Ethereum block {}/{} is missing Ethereum transaction {} we believe is a part of this block",
+				"Ethereum block {}/{} is missing Ethereum transaction {} which we believe is a part of this block",
 				header_id.0, header_id.1, tx_hash,
 			),
 		}
