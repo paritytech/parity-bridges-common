@@ -44,7 +44,7 @@ pub struct EthereumExchangeParams {
 	pub eth_tx_hash: EthereumTransactionHash,
 	/// Substrate connection params.
 	pub sub: SubstrateConnectionParams,
-	/// Substrate connection params.
+	/// Substrate signing params.
 	pub sub_sign: SubstrateSigningParams,
 }
 
