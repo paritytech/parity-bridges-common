@@ -65,10 +65,8 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	async fn header_by_number(&self, number: P::Number) -> Result<P::Header, Self::Error>;
 
 	/// Get completion data by header hash.
-	async fn header_completion(
-		&self,
-		id: HeaderIdOf<P>,
-	) -> Result<(HeaderIdOf<P>, Option<P::Completion>), Self::Error>;
+	async fn header_completion(&self, id: HeaderIdOf<P>)
+		-> Result<(HeaderIdOf<P>, Option<P::Completion>), Self::Error>;
 
 	/// Get extra data by header hash.
 	async fn header_extra(
@@ -88,32 +86,20 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	async fn best_header_id(&self) -> Result<HeaderIdOf<P>, Self::Error>;
 
 	/// Returns true if header is known to the target node.
-	async fn is_known_header(
-		&self,
-		id: HeaderIdOf<P>,
-	) -> Result<(HeaderIdOf<P>, bool), Self::Error>;
+	async fn is_known_header(&self, id: HeaderIdOf<P>) -> Result<(HeaderIdOf<P>, bool), Self::Error>;
 
 	/// Submit headers.
-	async fn submit_headers(
-		&self,
-		headers: Vec<QueuedHeader<P>>,
-	) -> SubmittedHeaders<HeaderIdOf<P>, Self::Error>;
+	async fn submit_headers(&self, headers: Vec<QueuedHeader<P>>) -> SubmittedHeaders<HeaderIdOf<P>, Self::Error>;
 
 	/// Returns ID of headers that require to be 'completed' before children can be submitted.
 	async fn incomplete_headers_ids(&self) -> Result<HashSet<HeaderIdOf<P>>, Self::Error>;
 
 	/// Submit completion data for header.
-	async fn complete_header(
-		&self,
-		id: HeaderIdOf<P>,
-		completion: P::Completion,
-	) -> Result<HeaderIdOf<P>, Self::Error>;
+	async fn complete_header(&self, id: HeaderIdOf<P>, completion: P::Completion)
+		-> Result<HeaderIdOf<P>, Self::Error>;
 
 	/// Returns true if header requires extra data to be submitted.
-	async fn requires_extra(
-		&self,
-		header: QueuedHeader<P>,
-	) -> Result<(HeaderIdOf<P>, bool), Self::Error>;
+	async fn requires_extra(&self, header: QueuedHeader<P>) -> Result<(HeaderIdOf<P>, bool), Self::Error>;
 }
 
 /// Run headers synchronization.

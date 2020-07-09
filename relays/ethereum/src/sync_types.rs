@@ -95,10 +95,7 @@ pub trait HeadersSyncPipeline: Clone + Copy {
 }
 
 /// A HeaderId for `HeaderSyncPipeline`.
-pub type HeaderIdOf<P> = HeaderId<
-	<P as HeadersSyncPipeline>::Hash,
-	<P as HeadersSyncPipeline>::Number
->;
+pub type HeaderIdOf<P> = HeaderId<<P as HeadersSyncPipeline>::Hash, <P as HeadersSyncPipeline>::Number>;
 
 /// Header that we're receiving from source node.
 pub trait SourceHeader<Hash, Number> {

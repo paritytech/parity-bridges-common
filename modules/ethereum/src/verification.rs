@@ -21,8 +21,8 @@ use codec::Encode;
 use primitives::{
 	public_to_address, step_validator, Address, Header, HeaderId, Receipt, SealedEmptyStep, H256, H520, U128, U256,
 };
-use sp_runtime::transaction_validity::TransactionTag;
 use sp_io::crypto::secp256k1_ecdsa_recover;
+use sp_runtime::transaction_validity::TransactionTag;
 use sp_std::{vec, vec::Vec};
 
 /// Pre-check to see if should try and import this header.

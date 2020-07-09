@@ -243,11 +243,7 @@ impl<'a> Validators<'a> {
 	}
 
 	/// Returns source of validators that should author the next header.
-	fn source_at_next_header(
-		&self,
-		header_source_index: usize,
-		header_number: u64,
-	) -> (u64, &ValidatorsSource) {
+	fn source_at_next_header(&self, header_source_index: usize, header_number: u64) -> (u64, &ValidatorsSource) {
 		match self.config {
 			ValidatorsConfiguration::Single(ref source) => (0, source),
 			ValidatorsConfiguration::Multi(ref sources) => {

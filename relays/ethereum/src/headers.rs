@@ -593,19 +593,12 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 }
 
 /// Insert header to the queue.
-fn insert_header<P: HeadersSyncPipeline>(
-	queue: &mut HeadersQueue<P>,
-	id: HeaderIdOf<P>,
-	header: QueuedHeader<P>,
-) {
+fn insert_header<P: HeadersSyncPipeline>(queue: &mut HeadersQueue<P>, id: HeaderIdOf<P>, header: QueuedHeader<P>) {
 	queue.entry(id.0).or_default().insert(id.1, header);
 }
 
 /// Remove header from the queue.
-fn remove_header<P: HeadersSyncPipeline>(
-	queue: &mut HeadersQueue<P>,
-	id: &HeaderIdOf<P>,
-) -> Option<QueuedHeader<P>> {
+fn remove_header<P: HeadersSyncPipeline>(queue: &mut HeadersQueue<P>, id: &HeaderIdOf<P>) -> Option<QueuedHeader<P>> {
 	let mut headers_at = match queue.entry(id.0) {
 		BTreeMapEntry::Occupied(headers_at) => headers_at,
 		BTreeMapEntry::Vacant(_) => return None,
@@ -619,10 +612,7 @@ fn remove_header<P: HeadersSyncPipeline>(
 }
 
 /// Get header from the queue.
-fn header<'a, P: HeadersSyncPipeline>(
-	queue: &'a HeadersQueue<P>,
-	id: &HeaderIdOf<P>,
-) -> Option<&'a QueuedHeader<P>> {
+fn header<'a, P: HeadersSyncPipeline>(queue: &'a HeadersQueue<P>, id: &HeaderIdOf<P>) -> Option<&'a QueuedHeader<P>> {
 	queue.get(&id.0).and_then(|by_hash| by_hash.get(&id.1))
 }
 

@@ -608,10 +608,8 @@ impl<T: Trait> BridgeStorage<T> {
 		blocks_at_number: &mut Vec<H256>,
 	) {
 		// ensure that unfinalized headers we want to prune do not have scheduled changes
-		if number > finalized_number && blocks_at_number
-			.iter()
-			.any(ScheduledChanges::contains_key) {
-				return;
+		if number > finalized_number && blocks_at_number.iter().any(ScheduledChanges::contains_key) {
+			return;
 		}
 
 		// physically remove headers and (probably) obsolete validators sets
@@ -667,9 +665,7 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 		let mut current_id = *parent;
 		loop {
 			// if we have reached finalized block' sibling => stop with special signal
-			if current_id.number == best_finalized.number
-				&& current_id.hash != best_finalized.hash
-			{
+			if current_id.number == best_finalized.number && current_id.hash != best_finalized.hash {
 				votes.stopped_at_finalized_sibling = true;
 				return votes;
 			}
