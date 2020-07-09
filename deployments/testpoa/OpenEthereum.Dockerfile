@@ -58,6 +58,10 @@ FROM ubuntu:xenial
 # show backtraces
 ENV RUST_BACKTRACE 1
 
+RUN set -eux; \
+	apt-get update && \
+	apt-get install -y curl
+
 RUN groupadd -g 1000 openethereum \
   && useradd -u 1000 -g openethereum -s /bin/sh -m openethereum
 
@@ -74,7 +78,7 @@ RUN ./openethereum --version
 
 EXPOSE 8545 8546 30303/tcp 30303/udp
 
-HEALTHCHECK --interval=2m --timeout=10s \
+HEALTHCHECK --interval=2m --timeout=5s \
   CMD curl -f http://localhost:8545/api/health || exit 1
 
 ENTRYPOINT ["/home/openethereum/openethereum"]
