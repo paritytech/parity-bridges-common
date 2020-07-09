@@ -130,7 +130,7 @@ services:
     environment:
       <<: *bridge-env
       VIRTUAL_HOST: testpoa.bridges.test-installations.parity.io
-      VIRTUAL_PORT: 10144
+      VIRTUAL_PORT: 9944
       LETSENCRYPT_HOST: testpoa.bridges.test-installations.parity.io
       LETSENCRYPT_EMAIL: admin@parity.io
     entrypoint:
