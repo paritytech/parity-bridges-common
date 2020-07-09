@@ -65,19 +65,19 @@ services:
       - bridge-node-bob
       - bridge-node-charlie
 
-  relay-sub2eth:
-    build:
-      context: .
-      dockerfile: ../../Dockerfile
-      args:
-        BRIDGE_HASH: 3ffb023ddb5864bab6a5aa53835b2a0bc931c007
-        PROJECT: ethereum-poa-relay
-    entrypoint: /config/run-relay-sub2eth
-    volumes:
-      - ./bridge-config:/config
-    environment:
-      RUST_LOG: rpc=trace,bridge=trace
-    depends_on: *all-nodes
+  # relay-sub2eth:
+  #   build:
+  #     context: .
+  #     dockerfile: ../../Dockerfile
+  #     args:
+  #       BRIDGE_HASH: 3ffb023ddb5864bab6a5aa53835b2a0bc931c007
+  #       PROJECT: ethereum-poa-relay
+  #   entrypoint: /config/run-relay-sub2eth
+  #   volumes:
+  #     - ./bridge-config:/config
+  #   environment:
+  #     RUST_LOG: rpc=trace,bridge=trace
+  #   depends_on: *all-nodes
 
   bridge-node-alice: &bridge-node
     build:
