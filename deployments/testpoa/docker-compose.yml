@@ -98,7 +98,7 @@ services:
       - --unsafe-ws-external
     volumes:
       - ./bridge-config:/config
-    environment:
+    environment: &bridge-env
       RUST_LOG: runtime=trace,rpc=debug,txpool=trace
     ports:
       - "9933:9933"
@@ -127,6 +127,13 @@ services:
 
   bridge-node-charlie:
     <<: *bridge-node
+    environment:
+      <<: *bridge-env
+      VIRTUAL_HOST: testpoa.bridges.test-installations.parity.io
+      VIRTUAL_NETWORK: nginx-proxy
+      VIRTUAL_PORT: 9944
+      LETSENCRYPT_HOST: testpoa.bridges.test-installations.parity.io
+      LETSENCRYPT_EMAIL: admin@parity.io
     entrypoint:
       - /home/user/bridge-node
       - --execution=Native
