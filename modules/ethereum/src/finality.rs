@@ -99,7 +99,7 @@ pub fn finalize_blocks<S: Storage>(
 					*hash == header_validators.0.hash || *hash == best_finalized.hash
 				})
 			})
-			.unwrap_or_else(|| CachedFinalityVotes::default()),
+			.unwrap_or_default(),
 		best_finalized,
 		&validators,
 		id,
@@ -247,7 +247,7 @@ fn empty_steps_signers(header: &Header) -> BTreeSet<Address> {
 	header
 		.empty_steps()
 		.into_iter()
-		.flat_map(|steps| steps)
+		.flatten()
 		.filter_map(|step| empty_step_signer(&step, &header.parent_hash))
 		.collect::<BTreeSet<_>>()
 }

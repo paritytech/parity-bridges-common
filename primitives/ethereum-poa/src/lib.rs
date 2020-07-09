@@ -15,6 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+// RuntimeApi generated functions
+#![allow(clippy::too_many_arguments)]
 
 pub use parity_bytes::Bytes;
 pub use primitive_types::{H160, H256, H512, U128, U256};
@@ -206,7 +208,7 @@ impl Header {
 
 	/// Check if passed transactions are matching transactions root in this header.
 	pub fn verify_transactions_root(&self, transactions: &[RawTransaction]) -> bool {
-		verify_merkle_proof(self.transactions_root, transactions.into_iter())
+		verify_merkle_proof(self.transactions_root, transactions.iter())
 	}
 
 	/// Gets the seal hash of this header.

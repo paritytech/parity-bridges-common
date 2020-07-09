@@ -35,7 +35,7 @@ pub enum Error {
 	/// Failed to decode finality proof.
 	FinalityProofDecode(codec::Error),
 	/// Failed to verify justification.
-	JustificationVerify(ClientError),
+	JustificationVerify(Box<ClientError>),
 }
 
 /// Substrate header.
@@ -120,6 +120,7 @@ pub fn verify_substrate_finality_proof(
 		best_set_id,
 		&best_set,
 	)
+	.map_err(Box::new)
 	.map_err(Error::JustificationVerify)
 	.map(|_| ())
 }

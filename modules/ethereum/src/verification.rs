@@ -21,6 +21,7 @@ use codec::Encode;
 use primitives::{
 	public_to_address, step_validator, Address, Header, HeaderId, Receipt, SealedEmptyStep, H256, H520, U128, U256,
 };
+use sp_runtime::transaction_validity::TransactionTag;
 use sp_io::crypto::secp256k1_ecdsa_recover;
 use sp_std::{vec, vec::Vec};
 
@@ -43,6 +44,8 @@ pub fn is_importable_header<S: Storage>(storage: &S, header: &Header) -> Result<
 }
 
 /// Try accept unsigned aura header into transaction pool.
+///
+/// Returns required and provided tags.
 pub fn accept_aura_header_into_pool<S: Storage>(
 	storage: &S,
 	config: &AuraConfiguration,
@@ -50,7 +53,7 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 	pool_config: &PoolConfiguration,
 	header: &Header,
 	receipts: Option<&Vec<Receipt>>,
-) -> Result<(Vec<Vec<u8>>, Vec<Vec<u8>>), Error> {
+) -> Result<(Vec<TransactionTag>, Vec<TransactionTag>), Error> {
 	// check if we can verify further
 	let (header_id, _) = is_importable_header(storage, header)?;
 

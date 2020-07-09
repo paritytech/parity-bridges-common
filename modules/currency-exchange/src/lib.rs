@@ -129,7 +129,7 @@ decl_module! {
 				match deposit_result {
 					Ok(_) => (),
 					Err(ExchangeError::DepositPartiallyFailed) => (),
-					Err(error) => Err(Error::<T>::from(error))?,
+					Err(error) => return Err(Error::<T>::from(error).into()),
 				}
 				Transfers::<T>::insert(transfer_id, ())
 			}

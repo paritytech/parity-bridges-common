@@ -15,6 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+// Runtime-generated enums
+#![allow(clippy::large_enum_variant)]
 
 use crate::finality::{CachedFinalityVotes, FinalityVotes};
 use codec::{Decode, Encode};
@@ -235,6 +237,7 @@ impl<Submitter> ImportContext<Submitter> {
 	}
 
 	/// Converts import context into header we're going to import.
+	#[allow(clippy::too_many_arguments)]
 	pub fn into_import_header(
 		self,
 		is_best: bool,
@@ -498,7 +501,7 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Verify that transaction is included into given finalized block.
-	pub fn verify_transaction_finalized(block: H256, tx_index: u64, proof: &Vec<RawTransaction>) -> bool {
+	pub fn verify_transaction_finalized(block: H256, tx_index: u64, proof: &[RawTransaction]) -> bool {
 		crate::verify_transaction_finalized(&BridgeStorage::<T>::new(), block, tx_index, proof)
 	}
 }
@@ -605,13 +608,10 @@ impl<T: Trait> BridgeStorage<T> {
 		blocks_at_number: &mut Vec<H256>,
 	) {
 		// ensure that unfinalized headers we want to prune do not have scheduled changes
-		if number > finalized_number {
-			if blocks_at_number
-				.iter()
-				.any(|block| ScheduledChanges::contains_key(block))
-			{
+		if number > finalized_number && blocks_at_number
+			.iter()
+			.any(ScheduledChanges::contains_key) {
 				return;
-			}
 		}
 
 		// physically remove headers and (probably) obsolete validators sets
@@ -667,11 +667,11 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 		let mut current_id = *parent;
 		loop {
 			// if we have reached finalized block' sibling => stop with special signal
-			if current_id.number == best_finalized.number {
-				if current_id.hash != best_finalized.hash {
-					votes.stopped_at_finalized_sibling = true;
-					return votes;
-				}
+			if current_id.number == best_finalized.number
+				&& current_id.hash != best_finalized.hash
+			{
+				votes.stopped_at_finalized_sibling = true;
+				return votes;
 			}
 
 			// if we have reached target header => stop
@@ -874,7 +874,7 @@ pub fn verify_transaction_finalized<S: Storage>(
 	storage: &S,
 	block: H256,
 	tx_index: u64,
-	proof: &Vec<RawTransaction>,
+	proof: &[RawTransaction],
 ) -> bool {
 	if tx_index >= proof.len() as _ {
 		return false;
@@ -895,9 +895,7 @@ pub fn verify_transaction_finalized<S: Storage>(
 	let is_finalized = match header.number < finalized.number {
 		true => ancestry(storage, finalized.hash)
 			.skip_while(|(_, ancestor)| ancestor.number > header.number)
-			.filter(|&(ancestor_hash, _)| ancestor_hash == block)
-			.next()
-			.is_some(),
+			.any(|(ancestor_hash, _)| ancestor_hash == block),
 		false => block == finalized.hash,
 	};
 	if !is_finalized {

@@ -16,7 +16,7 @@
 
 use crate::sync::HeadersSyncParams;
 use crate::sync_types::{
-	HeaderId, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader, SubmittedHeaders,
+	HeaderIdOf, HeaderStatus, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader, SubmittedHeaders,
 };
 
 use async_trait::async_trait;
@@ -67,15 +67,15 @@ pub trait SourceClient<P: HeadersSyncPipeline>: Sized {
 	/// Get completion data by header hash.
 	async fn header_completion(
 		&self,
-		id: HeaderId<P::Hash, P::Number>,
-	) -> Result<(HeaderId<P::Hash, P::Number>, Option<P::Completion>), Self::Error>;
+		id: HeaderIdOf<P>,
+	) -> Result<(HeaderIdOf<P>, Option<P::Completion>), Self::Error>;
 
 	/// Get extra data by header hash.
 	async fn header_extra(
 		&self,
-		id: HeaderId<P::Hash, P::Number>,
+		id: HeaderIdOf<P>,
 		header: QueuedHeader<P>,
-	) -> Result<(HeaderId<P::Hash, P::Number>, P::Extra), Self::Error>;
+	) -> Result<(HeaderIdOf<P>, P::Extra), Self::Error>;
 }
 
 /// Target client trait.
@@ -85,35 +85,35 @@ pub trait TargetClient<P: HeadersSyncPipeline>: Sized {
 	type Error: std::fmt::Debug + MaybeConnectionError;
 
 	/// Returns ID of best header known to the target node.
-	async fn best_header_id(&self) -> Result<HeaderId<P::Hash, P::Number>, Self::Error>;
+	async fn best_header_id(&self) -> Result<HeaderIdOf<P>, Self::Error>;
 
 	/// Returns true if header is known to the target node.
 	async fn is_known_header(
 		&self,
-		id: HeaderId<P::Hash, P::Number>,
-	) -> Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>;
+		id: HeaderIdOf<P>,
+	) -> Result<(HeaderIdOf<P>, bool), Self::Error>;
 
 	/// Submit headers.
 	async fn submit_headers(
 		&self,
 		headers: Vec<QueuedHeader<P>>,
-	) -> SubmittedHeaders<HeaderId<P::Hash, P::Number>, Self::Error>;
+	) -> SubmittedHeaders<HeaderIdOf<P>, Self::Error>;
 
 	/// Returns ID of headers that require to be 'completed' before children can be submitted.
-	async fn incomplete_headers_ids(&self) -> Result<HashSet<HeaderId<P::Hash, P::Number>>, Self::Error>;
+	async fn incomplete_headers_ids(&self) -> Result<HashSet<HeaderIdOf<P>>, Self::Error>;
 
 	/// Submit completion data for header.
 	async fn complete_header(
 		&self,
-		id: HeaderId<P::Hash, P::Number>,
+		id: HeaderIdOf<P>,
 		completion: P::Completion,
-	) -> Result<HeaderId<P::Hash, P::Number>, Self::Error>;
+	) -> Result<HeaderIdOf<P>, Self::Error>;
 
 	/// Returns true if header requires extra data to be submitted.
 	async fn requires_extra(
 		&self,
 		header: QueuedHeader<P>,
-	) -> Result<(HeaderId<P::Hash, P::Number>, bool), Self::Error>;
+	) -> Result<(HeaderIdOf<P>, bool), Self::Error>;
 }
 
 /// Run headers synchronization.
@@ -306,7 +306,7 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 				},
 				submitted_headers = target_submit_header_future => {
 					// following line helps Rust understand the type of `submitted_headers` :/
-					let submitted_headers: SubmittedHeaders<HeaderId<P::Hash, P::Number>, TC::Error> = submitted_headers;
+					let submitted_headers: SubmittedHeaders<HeaderIdOf<P>, TC::Error> = submitted_headers;
 					let maybe_fatal_error = submitted_headers.fatal_error.map(Err).unwrap_or(Ok(()));
 
 					target_client_is_online = process_future_result(
