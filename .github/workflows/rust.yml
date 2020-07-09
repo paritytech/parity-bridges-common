@@ -45,9 +45,13 @@ jobs:
         run:                       |
           echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
-      - name:                      Checking the Rust nightly version 
+      - name:                      Checking the Rust nightly version
         run:                       |
-          if [[ $(cat check_nightly_rust) == $(rustc +nightly --version) ]];
+          echo "Current Rust nightly version:";
+          rustc +nightly --version;
+          echo "Cached Rust nightly version:";
+          cat check_nightly_rust;
+          if [[ $(cat $CARGO_TARGET_DIR/check_nightly_rust) == $(rustc +nightly --version) ]];
             then echo "The Rust nightly version has not changed";
             else
             echo "The Rust nightly version has changed. Clearing the cache";
@@ -92,13 +96,16 @@ jobs:
         run:                       sccache --show-stats
       - name:                      Prepare artifacts
         run:                       |
-          mkdir -p ./artifacts
-          mv -v $CARGO_TARGET_DIR/release/bridge-node ./artifacts/
-          mv -v $CARGO_TARGET_DIR/release/ethereum-poa-relay ./artifacts/
-          mv -v $CARGO_TARGET_DIR/release/substrate-bridge ./artifacts/
+          mkdir -p ./artifacts;
+          mv -v $CARGO_TARGET_DIR/release/bridge-node ./artifacts/;
+          mv -v $CARGO_TARGET_DIR/release/ethereum-poa-relay ./artifacts/;
+          mv -v $CARGO_TARGET_DIR/release/substrate-bridge ./artifacts/;
         shell:                     bash
       - name:                      Rust nightly version
-        run:                       rustc +nightly --version > $CARGO_TARGET_DIR/check_nightly_rust
+        run:                       |
+          echo "Cached Rust nightly version:";
+          rustc +nightly --version;
+          rustc +nightly --version > $CARGO_TARGET_DIR/check_nightly_rust;
         shell:                     bash
       - name:                      Upload artifacts
         uses:                      actions/upload-artifact@v1
