@@ -5,6 +5,7 @@ services:
     container_name: nginx-proxy
     networks:
       - nginx-proxy
+      - testpoa_default
     ports:
       - "80:80"
       - "443:443"
@@ -37,3 +38,5 @@ volumes:
 networks:
   nginx-proxy:
     driver: bridge
+  testpoa_default:
+    external: true

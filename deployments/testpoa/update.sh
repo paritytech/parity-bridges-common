@@ -7,4 +7,4 @@ set -xeu
 git pull
 docker-compose build
 docker-compose down
-docker-compose up
+docker-compose up -d
