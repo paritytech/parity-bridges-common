@@ -45,7 +45,7 @@ jobs:
         run:                       |
           echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
-      - name:                      Check Rust nightly
+      - name:                      Checking the Rust nightly version 
         run:                       |
           if [[ $(cat check_nightly_rust) == $(rustc +nightly --version) ]];
             then echo "The Rust nightly version has not changed";
