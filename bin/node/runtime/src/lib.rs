@@ -28,12 +28,16 @@ mod exchange;
 
 #[cfg(feature = "bridge-kovan")]
 pub mod kovan;
-#[cfg(feature = "bridge-kovan")]
-pub use kovan as bridge;
-
+#[cfg(feature = "runtime-benchmarks")]
+pub mod bench;
 #[cfg(feature = "bridge-testpoa")]
 pub mod testpoa;
-#[cfg(feature = "bridge-testpoa")]
+
+#[cfg(feature = "runtime-benchmarks")]
+pub use bench as bridge;
+#[cfg(all(feature = "bridge-kovan", not(feature = "runtime-benchmarks")))]
+pub use kovan as bridge;
+#[cfg(all(feature = "bridge-testpoa", not(feature = "runtime-benchmarks")))]
 pub use testpoa as bridge;
 
 use codec::{Decode, Encode};
@@ -165,6 +169,8 @@ parameter_types! {
 }
 
 impl frame_system::Trait for Runtime {
+	/// The basic call filter to use in dispatchable.
+	type BaseCallFilter = ();
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The aggregated dispatch type that is available for extrinsics.
