@@ -203,7 +203,6 @@ async fn wait_header_finalized<P: TransactionProofPipeline>(
 	target_client: &impl TargetClient<P>,
 	source_header_id: &HeaderId<P>,
 ) -> Result<(), String> {
-	// now wait until target node finalizes required header
 	loop {
 		let is_header_finalized = target_client
 			.is_header_finalized(&source_header_id)
