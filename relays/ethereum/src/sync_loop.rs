@@ -636,10 +636,10 @@ fn print_sync_progress<P: HeadersSyncPipeline>(
 
 #[cfg(test)]
 mod tests {
-	use std::{collections::HashMap, sync::Arc};
-	use parking_lot::Mutex;
-	use crate::sync_types::SourceHeader;
 	use super::*;
+	use crate::sync_types::SourceHeader;
+	use parking_lot::Mutex;
+	use std::{collections::HashMap, sync::Arc};
 
 	type TestNumber = u64;
 	type TestHash = u64;
@@ -728,10 +728,12 @@ mod tests {
 						.collect(),
 					header_by_number: headers
 						.iter()
-						.filter_map(|(is_canonical, header)| if *is_canonical {
-							Some((header.hash, header.clone()))
-						} else {
-							None
+						.filter_map(|(is_canonical, header)| {
+							if *is_canonical {
+								Some((header.hash, header.clone()))
+							} else {
+								None
+							}
 						})
 						.collect(),
 					provides_completion: true,
@@ -825,10 +827,7 @@ mod tests {
 			Target {
 				data: Mutex::new(TargetData {
 					best_header_id: Ok(best_header_id),
-					is_known_header_by_hash: headers
-						.iter()
-						.map(|header| (header.1, true))
-						.collect(),
+					is_known_header_by_hash: headers.iter().map(|header| (header.1, true)).collect(),
 					submitted_headers: HashMap::new(),
 					submit_headers_result: None,
 					completed_headers: HashMap::new(),
@@ -863,7 +862,8 @@ mod tests {
 		async fn submit_headers(&self, headers: Vec<TestQueuedHeader>) -> SubmittedHeaders<TestHeaderId, TestError> {
 			let mut data = self.data.lock();
 			(self.on_method_call)(TargetMethod::SubmitHeaders(headers.clone()), &mut *data);
-			data.submitted_headers.extend(headers.iter().map(|header| (header.id().1, header.clone())));
+			data.submitted_headers
+				.extend(headers.iter().map(|header| (header.id().1, header.clone())));
 			data.submit_headers_result.take().expect("test must accept headers")
 		}
 
@@ -973,10 +973,7 @@ mod tests {
 
 	fn target_accept_all_headers(method: &TargetMethod, data: &mut TargetData, requires_extra: bool) {
 		if let TargetMethod::SubmitHeaders(ref submitted) = method {
-			assert_eq!(
-				submitted.iter().all(|header| header.extra().is_some()),
-				requires_extra,
-			);
+			assert_eq!(submitted.iter().all(|header| header.extra().is_some()), requires_extra,);
 
 			let mut submitted_headers = SubmittedHeaders::default();
 			submitted_headers.submitted = submitted.iter().map(|header| header.id()).collect();
@@ -1063,18 +1060,14 @@ mod tests {
 		stop_at: TestHeaderId,
 	) {
 		let (exit_sender, exit_receiver) = futures::channel::mpsc::unbounded();
-		let source = Source::new(
-			best_source_header.id(),
-			headers_on_source,
-			move |method, _| {
-				if !target_requires_extra {
-					source_reject_extra(&method);
-				}
-				if !target_requires_completion {
-					source_reject_completion(&method);
-				}
-			},
-		);
+		let source = Source::new(best_source_header.id(), headers_on_source, move |method, _| {
+			if !target_requires_extra {
+				source_reject_extra(&method);
+			}
+			if !target_requires_completion {
+				source_reject_completion(&method);
+			}
+		});
 		let target = Target::new(
 			best_target_header.id(),
 			headers_on_target.into_iter().map(|header| header.id()).collect(),
@@ -1137,7 +1130,6 @@ mod tests {
 			true,
 			test_id(1),
 		);
-
 	}
 
 	#[test]
@@ -1152,11 +1144,7 @@ mod tests {
 				(false, test_forked_header(2, 0)),
 			],
 			test_forked_header(2, 0),
-			vec![
-				test_header(0),
-				test_forked_header(1, 0),
-				test_forked_header(2, 0),
-			],
+			vec![test_header(0), test_forked_header(1, 0), test_forked_header(2, 0)],
 			false,
 			false,
 			test_id(3),
