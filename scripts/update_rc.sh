@@ -2,6 +2,7 @@
 
 # One-liner to update between Substrate `rc` releases
 # Usage: ./update_rc.sh rc4 rc5
+set -xeu
 
 OLD_RC_VERSION=$1
 NEW_RC_VERSION=$2
