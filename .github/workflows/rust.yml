@@ -10,7 +10,7 @@ on:
     paths-ignore:
       - 'README.md'
       - diagrams/
-  schedule:                        #Weekly build
+  schedule:                        # Weekly build
     - cron:                        '0 0 * * 0'
 jobs:
 
