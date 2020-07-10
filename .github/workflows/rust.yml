@@ -88,6 +88,7 @@ jobs:
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
+        if:                        github.ref == 'refs/heads/master'
         with:
           command:                 build
           toolchain:               ${{ matrix.toolchain }}
@@ -96,6 +97,7 @@ jobs:
         if:                        always()
         run:                       sccache --show-stats
       - name:                      Prepare artifacts
+        if:                        github.ref == 'refs/heads/master'
         run:                       |
           mkdir -p ./artifacts;
           mv -v $CARGO_TARGET_DIR/release/bridge-node ./artifacts/;
@@ -109,6 +111,7 @@ jobs:
           rustc +nightly --version > $CARGO_TARGET_DIR/check_nightly_rust;
         shell:                     bash
       - name:                      Upload artifacts
+        if:                        github.ref == 'refs/heads/master'
         uses:                      actions/upload-artifact@v1
         with:
           name:                    ${{ matrix.toolchain }}.zip
