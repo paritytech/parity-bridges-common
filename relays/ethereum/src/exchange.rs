@@ -79,7 +79,7 @@ pub trait TargetClient<P: TransactionProofPipeline> {
 	async fn submit_transaction_proof(&self, proof: P::TransactionProof) -> Result<(), Self::Error>;
 }
 
-/// Relay single transaction' proof.
+/// Relay single transaction proof.
 pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 	source_client: &impl SourceClient<P>,
 	target_client: &impl TargetClient<P>,
