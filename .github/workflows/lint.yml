@@ -58,5 +58,4 @@ jobs:
         with:
           command:                 clippy
           toolchain:               nightly
-          #    args:                    --all-targets -- -D warnings
-          args:                    --all-targets
+          args:                    --all-targets -- -D warnings
