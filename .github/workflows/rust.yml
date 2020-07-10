@@ -50,7 +50,7 @@ jobs:
           echo "Current Rust nightly version:";
           rustc +nightly --version;
           echo "Cached Rust nightly version:";
-          cat $CARGO_TARGET_DIR/check_nightly_rust;
+          cat $CARGO_TARGET_DIR/check_nightly_rust || rustc +nightly --version > $CARGO_TARGET_DIR/check_nightly_rust;
           if [[ $(cat $CARGO_TARGET_DIR/check_nightly_rust) == $(rustc +nightly --version) ]];
             then echo "The Rust nightly version has not changed";
             else
