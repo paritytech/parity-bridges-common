@@ -254,4 +254,5 @@ runtime-benchmarks = [
 	"pallet-bridge-currency-exchange/runtime-benchmarks",
 	"pallet-bridge-eth-poa/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
+	"bridge-kovan",
 ]

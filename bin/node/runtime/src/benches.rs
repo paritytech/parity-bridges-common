@@ -19,6 +19,7 @@
 // together like this
 
 use pallet_bridge_eth_poa::{ValidatorsConfiguration, ValidatorsSource};
+use sp_std::prelude::vec;
 
 pub use crate::kovan::{
 	FinalityVotesCachingInterval,
@@ -28,7 +29,7 @@ pub use crate::kovan::{
 	PruningStrategy,
 };
 
-parameter_types! {
+frame_support::parameter_types! {
 	pub BridgeValidatorsConfiguration: pallet_bridge_eth_poa::ValidatorsConfiguration = bench_validator_config();
 }
 
