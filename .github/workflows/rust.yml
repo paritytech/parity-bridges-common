@@ -85,6 +85,13 @@ jobs:
       - name:                      Stats sccache
         if:                        always()
         run:                       sccache --show-stats
+## Check benchmarks compilation stage
+      - name:                      Checking benchmarks with rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 check
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --manifest-path bin/node/runtime/Cargo.toml --features=runtime-benchmarks
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
