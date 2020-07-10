@@ -2,7 +2,6 @@ name:                      Cargo deny
 
 on:
   pull_request:
-    paths: Cargo.lock
   schedule:
     - cron: '* * * * 0'
   push:
@@ -13,47 +12,10 @@ on:
     paths-ignore:
       - 'README.md'
 jobs:
-## Test stage
-  test:
-    name:                  Check
-    runs-on:               ubuntu-latest
-    steps:
-      - name:              Checkout sources & submodules
-        uses:              actions/checkout@master
-      - name:              Install toolchain
-        uses:              actions-rs/toolchain@master
-        with:
-          profile:         minimal
-          toolchain:       stable
-      - name:              Install cargo deny
-        run: |
-          mkdir -p ~/.cargo/bin
-          CARGO_DENY_RELEASE=$(curl -L -s -H 'Accept: application/json' https://github.com/EmbarkStudios/cargo-deny/releases/latest)
-          CARGO_DENY_VERSION=$(echo $CARGO_DENY_RELEASE | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')
-          CARGO_DENY_URL="https://github.com/EmbarkStudios/cargo-deny/releases/download/$CARGO_DENY_VERSION/cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz"
-          echo "Downloading cargo-deny from: $CARGO_DENY_URL"
-          curl -sLO $CARGO_DENY_URL
-          tar -xvzf cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz
-          cd cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl
-          chmod +x cargo-deny
-          mv cargo-deny ~/.cargo/bin
-      - name:              Cargo init
-        continue-on-error: true
-        run:               cargo deny init
-      - name:              Cargo deny
-        continue-on-error: true
-        run:               cargo deny check --hide-inclusion-graph
-      - name:              Build deny log
-        continue-on-error: true
-        run:               cargo deny check 2> deny.log
-      - name:              Upload deny.log
-        uses:              actions/upload-artifact@v1
-        with:
-          name:            deny.log
-          path:            deny.log
-
   cargo-deny:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - uses: EmbarkStudios/cargo-deny-action@v1
+      with:
+        command: "check --hide-inclusion-graph"
