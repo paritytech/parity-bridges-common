@@ -156,7 +156,7 @@ impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
 	}
 
 	async fn is_header_finalized(&self, id: &EthereumHeaderId) -> Result<bool, Self::Error> {
-		// we check if header is finalized by simple comparison of the header' number and
+		// we check if header is finalized by simple comparison of the header number and
 		// number of best finalized PoA header known to Substrate node.
 		//
 		// this may lead to failure in tx proof import if PoA reorganization has happened
