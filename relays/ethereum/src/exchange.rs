@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Relaying proofs of exchange transactions.
+
 use async_trait::async_trait;
 use std::fmt::{Debug, Display};
 

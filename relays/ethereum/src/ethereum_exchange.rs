@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Relaying proofs of PoA -> Substrate exchange transactions.
+
 use crate::ethereum_client::{EthereumConnectionParams, EthereumRpcClient};
 use crate::ethereum_types::{
 	EthereumHeaderId, Transaction as EthereumTransaction, TransactionHash as EthereumTransactionHash, H256,
