@@ -19,7 +19,7 @@
 // together like this
 
 use pallet_bridge_eth_poa::{ValidatorsConfiguration, ValidatorsSource};
-use sp_std::prelude::vec;
+use sp_std::vec;
 
 pub use crate::kovan::{
 	FinalityVotesCachingInterval,
