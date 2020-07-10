@@ -37,15 +37,44 @@ jobs:
   check-clippy:
     name:                          Check Clippy
     runs-on:                       self-hosted
-    container:                     paritytech/ci-linux:production
+    container:
+      image:                       paritytech/ci-linux:production
+      volumes:
+        - /cache:/cache
+      options:                     --cpus 8
     env:
       RUST_BACKTRACE:              full
+      SCCACHE_REDIS:               redis://172.17.0.1/0
+      SCCACHE_IDLE_TIMEOUT:        0
+      CMAKE_C_COMPILER_LAUNCHER:   sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
       - name:                      Checkout sources & submodules
         uses:                      actions/checkout@master
         with:
           fetch-depth:             5
           submodules:              recursive
+      - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
+        run:                       |
+          echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
+          echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
+      - name:                      Checking the Rust nightly version
+        run:                       |
+          mkdir -p $CARGO_TARGET_DIR;
+          echo "Current Rust nightly version:";
+          rustc +nightly --version;
+          echo "Cached Rust nightly version:";
+          if [ ! -f $CARGO_TARGET_DIR/check_nightly_rust ]; then
+            echo "" > $CARGO_TARGET_DIR/check_nightly_rust;
+          fi
+          cat $CARGO_TARGET_DIR/check_nightly_rust;
+          if [[ $(cat $CARGO_TARGET_DIR/check_nightly_rust) == $(rustc +nightly --version) ]];
+            then echo "The Rust nightly version has not changed";
+            else
+            echo "The Rust nightly version has changed. Clearing the cache";
+            rm -rf $CARGO_TARGET_DIR/*;
+          fi
+        shell:                     bash
       - name:                      Add clippy
         run:                       rustup component add clippy --toolchain nightly
       - name:                      Fetch
@@ -59,3 +88,6 @@ jobs:
           command:                 clippy
           toolchain:               nightly
           args:                    --all-targets -- -D warnings
+      - name:                      Stats sccache
+        if:                        always()
+        run:                       sccache --show-stats
