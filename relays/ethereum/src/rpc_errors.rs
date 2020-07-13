@@ -117,9 +117,9 @@ impl ToString for EthereumNodeError {
 	fn to_string(&self) -> String {
 		match self {
 			Self::ResponseParseFailed(e) => e.to_string(),
-			Self::IncompleteHeader => "Incomplete Ethereum Header Received".to_string(),
-			Self::IncompleteReceipt => "Incomplete Ethereum Receipt Recieved".to_string(),
-			Self::IncompleteTransaction => "Incomplete Ethereum Transaction".to_string(),
+			Self::IncompleteHeader => "Incomplete Ethereum Header Received (missing some of required fields - hash, number, logs_bloom)".to_string(),
+			Self::IncompleteReceipt => "Incomplete Ethereum Receipt Recieved (missing required field - gas_used)".to_string(),
+			Self::IncompleteTransaction => "Incomplete Ethereum Transaction (missing required field - raw)".to_string(),
 			Self::InvalidSubstrateBlockNumber => "Received an invalid Substrate block from Ethereum Node".to_string(),
 			Self::DuplicateBlockTransaction(header_id, tx_hash) => format!(
 				"Ethereum block {}/{} includes Ethereum transaction {} more than once",
