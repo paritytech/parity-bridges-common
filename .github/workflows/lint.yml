@@ -16,8 +16,6 @@ jobs:
 ## Check stage
   check-fmt:
     name:                          Check RustFmt
-    runs-on:                       self-hosted
-    container:                     paritytech/ci-linux:production
     env:
       RUST_BACKTRACE:              full
     steps:
