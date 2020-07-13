@@ -28,7 +28,6 @@ jobs:
       image:                       paritytech/ci-linux:production
       volumes:
         - /cache:/cache
-      options:                     --cpus 8
     env:
       RUST_BACKTRACE:              full
       SCCACHE_REDIS:               redis://172.17.0.1/0
