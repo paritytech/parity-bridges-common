@@ -53,7 +53,7 @@ jobs:
           if ! [ -d $CARGO_TARGET_DIR ]; then
             echo "Copy cache from master";
             mkdir -p $CARGO_TARGET_DIR;
-            cp -R /cache/${{ matrix.toolchain }}/* $CARGO_TARGET_DIR/;
+            rsync -av /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/;
           fi
         shell:                     bash
       - name:                      Checking the Rust nightly version
