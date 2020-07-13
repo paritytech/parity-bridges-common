@@ -16,6 +16,7 @@ jobs:
 ## Check stage
   check-fmt:
     name:                          Check RustFmt
+    runs-on:                       ubuntu-latest
     env:
       RUST_BACKTRACE:              full
     steps:
