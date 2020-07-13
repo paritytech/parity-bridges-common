@@ -1,121 +1,108 @@
-name:                  Test Suite
+name:                              Compilation and Testing Suite
 
 on:
   pull_request:
   push:
     branches:
       - master
-      - stable
     tags:
       - v*
     paths-ignore:
       - 'README.md'
+      - diagrams/
+  schedule:                        # Weekly build
+    - cron:                        '0 0 * * 0'
 jobs:
-## Test stage
-  test:
-    name:              Test
+
+## Check stage
+  check-test-build:
+    name:                          Check, test and build
     strategy:
       matrix:
-        platform:
-          - ubuntu-latest
-        #  - macos-latest
-        #  - windows-latest
         toolchain:
           - stable
           #- beta
           - nightly
-        compiler:
-          #- clang
-          - gcc
-    runs-on:           ${{ matrix.platform }}
+    runs-on:                       self-hosted
+    container:
+      image:                       paritytech/ci-linux:production
+      volumes:
+        - /cache:/cache
+      options:                     --cpus 8
     env:
-      RUST_BACKTRACE:  full
+      RUST_BACKTRACE:              full
+      SCCACHE_REDIS:               redis://172.17.0.1/0
+      SCCACHE_IDLE_TIMEOUT:        0
+      CMAKE_C_COMPILER_LAUNCHER:   sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
-      - name:          Set default compiler
-        if:            matrix.compiler == 'clang' && matrix.platform != 'windows-latest'
-        run: |
-          echo ::set-env name=CC::clang
-          echo ::set-env name=CXX::clang++
-      - name:          Install LLVM for Windows
-        if:            matrix.platform == 'windows-latest'  && matrix.compiler == 'clang'
-        run:           |
-          choco install llvm
-          echo ::set-env name=CC::clang-cl.exe --enable-64-bit
-          echo ::set-env name=CXX::clang-cl.exe --enable-64-bit
-          refreshenv
-      - name:          Checkout sources & submodules
-        uses:          actions/checkout@master
+      - name:                      Checkout sources & submodules
+        uses:                      actions/checkout@master
         with:
-          fetch-depth: 5
-          submodules:  recursive
-      - name:          Install ${{ matrix.toolchain }} toolchain
-        uses:          actions-rs/toolchain@master
+          fetch-depth:             5
+          submodules:              recursive
+      - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
+        run:                       |
+          echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
+          echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
+      - name:                      Checking the Rust nightly version
+        run:                       |
+          mkdir -p $CARGO_TARGET_DIR;
+          echo "Current Rust nightly version:";
+          rustc +nightly --version;
+          echo "Cached Rust nightly version:";
+          if [ ! -f $CARGO_TARGET_DIR/check_nightly_rust ]; then
+            echo "" > $CARGO_TARGET_DIR/check_nightly_rust;
+          fi
+          cat $CARGO_TARGET_DIR/check_nightly_rust;
+          if [[ $(cat $CARGO_TARGET_DIR/check_nightly_rust) == $(rustc +nightly --version) ]];
+            then echo "The Rust nightly version has not changed";
+            else
+            echo "The Rust nightly version has changed. Clearing the cache";
+            rm -rf $CARGO_TARGET_DIR/*;
+          fi;
+          rustc +nightly --version > $CARGO_TARGET_DIR/check_nightly_rust;
+        shell:                     bash
+      - name:                      Checking rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
         with:
-          profile:     minimal
-          toolchain:   ${{ matrix.toolchain }}
-          components:  clippy, rustfmt
-          override:    true
-      - name:          Install nightly toolchain & wasm32
-        uses:          actions-rs/toolchain@master
+          command:                 check
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --all  --verbose
+      - name:                      Stats sccache
+        if:                        always()
+        run:                       sccache --show-stats
+## Test stage
+      - name:                      Testing rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
         with:
-          profile:     minimal
-          toolchain:   nightly
-          target:      wasm32-unknown-unknown
-          components:  clippy, rustfmt
-          override:    true
-      - name: Configure cargo data directory
-        run: echo "::set-env name=CARGO_HOME::$(pwd)/target/cargo"
-      - name: Cache
-        uses: actions/cache@v2
+          command:                 test
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --all  --verbose
+      - name:                      Stats sccache
+        run:                       sccache --show-stats
+## Build stage
+      - name:                      Building rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
+        if:                        github.ref == 'refs/heads/master'
         with:
-          path: |-
-            target/cargo
-            target/sccache
-            target/*/.*
-            target/*/build
-            target/*/deps
-          key: ${{ matrix.platform }}-${{ matrix.toolchain }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: ${{ matrix.platform }}-${{ matrix.toolchain }}-
-      - name: Install and start sccache
-        shell: pwsh
-        env:
-          SCCACHE_DIR: ${{ github.workspace }}/target/sccache
-          SCCACHE_CACHE_SIZE: 1G
-          SCCACHE_IDLE_TIMEOUT: 0
-        run: |
-          $version = "0.2.12"
-          $platform =
-            @{ "macOS"   = "x86_64-apple-darwin"
-               "Linux"   = "x86_64-unknown-linux-musl"
-               "Windows" = "x86_64-pc-windows-msvc"
-             }.${{ runner.os }}
-          $basename = "sccache-$version-$platform"
-          $url = "https://github.com/mozilla/sccache/releases/download/" +
-                 "$version/$basename.tar.gz"
-          cd ~
-          curl -LO $url
-          tar -xzvf "$basename.tar.gz"
-          . $basename/sccache --start-server
-          echo "::add-path::$(pwd)/$basename"
-      - name:          Sccache statistics
-        run:           sccache --show-stats
-      - name:          Set sccache ENV
-        run:  |
-          echo "::set-env name=RUSTC_WRAPPER::sccache"
-          echo "::set-env name=CMAKE_C_COMPILER_LAUNCHER::sccache"
-          echo "::set-env name=CMAKE_CXX_COMPILER_LAUNCHER::sccache"
-      - name:          Style check ${{ matrix.platform }} rust-${{ matrix.toolchain }}
-        uses:          actions-rs/cargo@master
+          command:                 build
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --all --release --verbose
+      - name:                      Stats sccache
+        if:                        github.ref == 'refs/heads/master'
+        run:                       sccache --show-stats
+      - name:                      Prepare artifacts
+        if:                        github.ref == 'refs/heads/master'
+        run:                       |
+          mkdir -p ./artifacts;
+          mv -v $CARGO_TARGET_DIR/release/bridge-node ./artifacts/;
+          mv -v $CARGO_TARGET_DIR/release/ethereum-poa-relay ./artifacts/;
+          mv -v $CARGO_TARGET_DIR/release/substrate-bridge ./artifacts/;
+        shell:                     bash
+      - name:                      Upload artifacts
+        if:                        github.ref == 'refs/heads/master'
+        uses:                      actions/upload-artifact@v1
         with:
-          command:     fmt
-          toolchain:   ${{ matrix.toolchain }}
-          args:        --all -- --check
-      - name:          Testing ${{ matrix.platform }} rust-${{ matrix.toolchain }}
-        uses:          actions-rs/cargo@master
-        with:
-          command:     test
-          toolchain:   ${{ matrix.toolchain }}
-          args:        --all  --verbose
-      - name:          Stop sccache
-        if:            always()
-        run:           sccache --stop-server
+          name:                    ${{ matrix.toolchain }}.zip
+          path:                    artifacts/

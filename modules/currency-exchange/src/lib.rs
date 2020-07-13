@@ -318,6 +318,7 @@ mod tests {
 		type AccountData = ();
 		type OnNewAccount = ();
 		type OnKilledAccount = ();
+		type BaseCallFilter = ();
 	}
 
 	impl Trait for TestRuntime {
