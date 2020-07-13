@@ -27,10 +27,10 @@ jobs:
           fetch-depth:             5
           submodules:              recursive
       - name:                      Add rustfmt
-        run:                       rustup component add rustfmt --toolchain nightly
+        run:                       rustup component add rustfmt --toolchain stable
       - name:                      rust-fmt check
         uses:                      actions-rs/cargo@master
         with:
           command:                 fmt
-          toolchain:               nightly
+          toolchain:               stable
           args:                    --all -- --check
