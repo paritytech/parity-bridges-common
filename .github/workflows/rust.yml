@@ -53,6 +53,7 @@ jobs:
           if ! [ -d $CARGO_TARGET_DIR ]; then
             echo "Copy cache from master";
             mkdir -p $CARGO_TARGET_DIR;
+            apt update&&apt install rsync -y;
             rsync -av /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/;
           fi
         shell:                     bash
