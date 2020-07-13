@@ -1,4 +1,4 @@
-name:                              Check style
+name:                   Check style
 
 on:
   pull_request:
@@ -10,27 +10,31 @@ on:
     paths-ignore:
       - 'README.md'
       - diagrams
-  schedule:                        # Weekly build
-    - cron:                        '0 0 * * 0'
+  schedule:             # Weekly build
+    - cron:             '0 0 * * 0'
 jobs:
 ## Check stage
   check-fmt:
-    name:                          Check RustFmt
-    runs-on:                       self-hosted
-    container:                     paritytech/ci-linux:production
+    name:               Check RustFmt
+    runs-on:            self-hosted
+    container:          paritytech/ci-linux:production
     env:
-      RUST_BACKTRACE:              full
+      RUST_BACKTRACE:   full
     steps:
-      - name:                      Checkout sources & submodules
-        uses:                      actions/checkout@master
+      - name:           Cancel Previous Runs
+        uses:           styfle/cancel-workflow-action@0.4.0
         with:
-          fetch-depth:             5
-          submodules:              recursive
-      - name:                      Add rustfmt
-        run:                       rustup component add rustfmt --toolchain nightly
-      - name:                      rust-fmt check
-        uses:                      actions-rs/cargo@master
+          access_token: ${{ github.token }}
+      - name:           Checkout sources & submodules
+        uses:           actions/checkout@master
         with:
-          command:                 fmt
-          toolchain:               nightly
-          args:                    --all -- --check
+          fetch-depth:  5
+          submodules:   recursive
+      - name:           Add rustfmt
+        run:            rustup component add rustfmt --toolchain nightly
+      - name:           rust-fmt check
+        uses:           actions-rs/cargo@master
+        with:
+          command:      fmt
+          toolchain:    nightly
+          args:         --all -- --check
