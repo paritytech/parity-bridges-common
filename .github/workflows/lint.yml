@@ -15,26 +15,24 @@ on:
 jobs:
 ## Check stage
   check-fmt:
-    name:               Check RustFmt
-    runs-on:            self-hosted
-    container:          paritytech/ci-linux:production
+    name:                          Check RustFmt
+    runs-on:                       ubuntu-latest
     env:
       RUST_BACKTRACE:   full
     steps:
       - name:           Cancel Previous Runs
         uses:           styfle/cancel-workflow-action@0.4.0
         with:
-          access_token: ${{ github.token }}
+          access_token: ${{ github.token }}          
       - name:           Checkout sources & submodules
         uses:           actions/checkout@master
         with:
           fetch-depth:  5
           submodules:   recursive
       - name:           Add rustfmt
-        run:            rustup component add rustfmt --toolchain nightly
+        run:            rustup component add rustfmt
       - name:           rust-fmt check
         uses:           actions-rs/cargo@master
         with:
           command:      fmt
-          toolchain:    nightly
           args:         --all -- --check
