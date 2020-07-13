@@ -42,34 +42,7 @@ jobs:
           fetch-depth:             5
           submodules:              recursive
       - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
-        run:                       |
-          echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
-          echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
-      - name:                      Checking the Rust nightly version
-        run:                       |
-          mkdir -p $CARGO_TARGET_DIR;
-          echo "Current Rust nightly version:";
-          rustc +nightly --version;
-          echo "Cached Rust nightly version:";
-          if [ ! -f $CARGO_TARGET_DIR/check_nightly_rust ]; then
-            echo "" > $CARGO_TARGET_DIR/check_nightly_rust;
-          fi
-          cat $CARGO_TARGET_DIR/check_nightly_rust;
-          if [[ $(cat $CARGO_TARGET_DIR/check_nightly_rust) == $(rustc +nightly --version) ]];
-            then echo "The Rust nightly version has not changed";
-            else
-            echo "The Rust nightly version has changed. Clearing the cache";
-            rm -rf $CARGO_TARGET_DIR/*;
-          fi
-        shell:                     bash
-      - name:                      Add rustfmt
-        run:                       rustup component add rustfmt --toolchain ${{ matrix.toolchain }}
-      - name:                      Style check
-        uses:                      actions-rs/cargo@master
-        with:
-          command:                 fmt
-          toolchain:               ${{ matrix.toolchain }}
-          args:                    --all -- --check
+        run:                       ./scripts/ci-cache.sh "${{ github.head_ref }}" "${{ matrix.toolchain }}"
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
@@ -87,7 +60,6 @@ jobs:
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
       - name:                      Stats sccache
-        if:                        always()
         run:                       sccache --show-stats
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
@@ -98,7 +70,7 @@ jobs:
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all --release --verbose
       - name:                      Stats sccache
-        if:                        always()
+        if:                        github.ref == 'refs/heads/master'
         run:                       sccache --show-stats
       - name:                      Prepare artifacts
         if:                        github.ref == 'refs/heads/master'
@@ -107,12 +79,6 @@ jobs:
           mv -v $CARGO_TARGET_DIR/release/bridge-node ./artifacts/;
           mv -v $CARGO_TARGET_DIR/release/ethereum-poa-relay ./artifacts/;
           mv -v $CARGO_TARGET_DIR/release/substrate-bridge ./artifacts/;
-        shell:                     bash
-      - name:                      Rust nightly version
-        run:                       |
-          echo "Cached Rust nightly version:";
-          rustc +nightly --version;
-          rustc +nightly --version > $CARGO_TARGET_DIR/check_nightly_rust;
         shell:                     bash
       - name:                      Upload artifacts
         if:                        github.ref == 'refs/heads/master'
