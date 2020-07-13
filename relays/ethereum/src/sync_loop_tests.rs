@@ -16,14 +16,20 @@
 
 #![cfg(test)]
 
-use crate::sync_loop::{SourceClient, TargetClient, process_future_result, retry_backoff, run};
-use crate::sync_types::{HeaderId, QueuedHeader, MaybeConnectionError, SourceHeader, SubmittedHeaders, HeadersSyncPipeline};
+use crate::sync_loop::{process_future_result, retry_backoff, run, SourceClient, TargetClient};
+use crate::sync_types::{
+	HeaderId, HeadersSyncPipeline, MaybeConnectionError, QueuedHeader, SourceHeader, SubmittedHeaders,
+};
 
 use async_trait::async_trait;
 use backoff::backoff::Backoff;
 use futures::{future::FutureExt, stream::StreamExt};
 use parking_lot::Mutex;
-use std::{collections::{HashMap, HashSet}, sync::Arc, time::Duration};
+use std::{
+	collections::{HashMap, HashSet},
+	sync::Arc,
+	time::Duration,
+};
 
 type TestNumber = u64;
 type TestHash = u64;
@@ -150,10 +156,7 @@ impl SourceClient<TestHeadersSyncPipeline> for Source {
 		data.header_by_number.get(&number).cloned().ok_or(TestError(false))
 	}
 
-	async fn header_completion(
-		&self,
-		id: TestHeaderId,
-	) -> Result<(TestHeaderId, Option<TestCompletion>), Self::Error> {
+	async fn header_completion(&self, id: TestHeaderId) -> Result<(TestHeaderId, Option<TestCompletion>), Self::Error> {
 		let mut data = self.data.lock();
 		(self.on_method_call)(SourceMethod::HeaderCompletion(id), &mut *data);
 		if data.provides_completion {
@@ -266,11 +269,7 @@ impl TargetClient<TestHeadersSyncPipeline> for Target {
 		}
 	}
 
-	async fn complete_header(
-		&self,
-		id: TestHeaderId,
-		completion: TestCompletion,
-	) -> Result<TestHeaderId, TestError> {
+	async fn complete_header(&self, id: TestHeaderId, completion: TestCompletion) -> Result<TestHeaderId, TestError> {
 		let mut data = self.data.lock();
 		(self.on_method_call)(TargetMethod::CompleteHeader(id, completion), &mut *data);
 		data.completed_headers.insert(id.1, completion);
@@ -449,14 +448,18 @@ fn run_sync_loop_test(params: SyncLoopTestParams) {
 	let target_requires_extra = params.target_requires_extra;
 	let target_requires_completion = params.target_requires_completion;
 	let stop_at = params.stop_at;
-	let source = Source::new(params.best_source_header.id(), params.headers_on_source, move |method, _| {
-		if !target_requires_extra {
-			source_reject_extra(&method);
-		}
-		if !target_requires_completion {
-			source_reject_completion(&method);
-		}
-	});
+	let source = Source::new(
+		params.best_source_header.id(),
+		params.headers_on_source,
+		move |method, _| {
+			if !target_requires_extra {
+				source_reject_extra(&method);
+			}
+			if !target_requires_completion {
+				source_reject_completion(&method);
+			}
+		},
+	);
 	let target = Target::new(
 		params.best_target_header.id(),
 		params.headers_on_target.into_iter().map(|header| header.id()).collect(),
