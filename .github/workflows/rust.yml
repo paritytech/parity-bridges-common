@@ -54,7 +54,7 @@ jobs:
             echo "Copy cache from master";
             mkdir -p $CARGO_TARGET_DIR;
             apt update&&apt install rsync -y;
-            rsync -av /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/;
+            rsync -a /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/;
           fi
         shell:                     bash
       - name:                      Checking the Rust nightly version
