@@ -34,29 +34,3 @@ jobs:
           command:                 fmt
           toolchain:               nightly
           args:                    --all -- --check
-  check-clippy:
-    name:                          Check Clippy
-    runs-on:                       self-hosted
-    container:                     paritytech/ci-linux:production
-    env:
-      RUST_BACKTRACE:              full
-    steps:
-      - name:                      Checkout sources & submodules
-        uses:                      actions/checkout@master
-        with:
-          fetch-depth:             5
-          submodules:              recursive
-      - name:                      Add clippy
-        run:                       rustup component add clippy --toolchain nightly
-      - name:                      Fetch
-        uses:                      actions-rs/cargo@master
-        with:
-          command:                 fetch
-          toolchain:               nightly
-      - name:                      Clippy
-        uses:                      actions-rs/cargo@master
-        with:
-          command:                 clippy
-          toolchain:               nightly
-          #    args:                    --all-targets -- -D warnings
-          args:                    --all-targets
