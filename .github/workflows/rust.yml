@@ -36,6 +36,10 @@ jobs:
       CMAKE_C_COMPILER_LAUNCHER:   sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
+      - name:                      Cancel Previous Runs
+        uses:                      styfle/cancel-workflow-action@0.4.0
+        with:
+          access_token:            ${{ github.token }}
       - name:                      Checkout sources & submodules
         uses:                      actions/checkout@master
         with:
