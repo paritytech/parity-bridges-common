@@ -16,7 +16,9 @@
 
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
-use pallet_bridge_eth_poa::{AuraConfiguration, PruningStrategy as BridgePruningStrategy, ValidatorsConfiguration, ValidatorsSource};
+use pallet_bridge_eth_poa::{
+	AuraConfiguration, PruningStrategy as BridgePruningStrategy, ValidatorsConfiguration, ValidatorsSource,
+};
 use sp_bridge_eth_poa::{Address, Header, U256};
 use sp_std::prelude::*;
 

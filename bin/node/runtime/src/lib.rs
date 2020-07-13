@@ -26,10 +26,10 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod exchange;
 
-#[cfg(feature = "bridge-kovan")]
-pub mod kovan;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benches;
+#[cfg(feature = "bridge-kovan")]
+pub mod kovan;
 #[cfg(feature = "bridge-testpoa")]
 pub mod testpoa;
 

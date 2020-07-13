@@ -22,11 +22,7 @@ use pallet_bridge_eth_poa::{ValidatorsConfiguration, ValidatorsSource};
 use sp_std::vec;
 
 pub use crate::kovan::{
-	FinalityVotesCachingInterval,
-	BridgeAuraConfiguration,
-	genesis_validators,
-	genesis_header,
-	PruningStrategy,
+	genesis_header, genesis_validators, BridgeAuraConfiguration, FinalityVotesCachingInterval, PruningStrategy,
 };
 
 frame_support::parameter_types! {
@@ -39,4 +35,3 @@ fn bench_validator_config() -> ValidatorsConfiguration {
 		(1, ValidatorsSource::Contract([3; 20].into(), vec![[1; 20].into()])),
 	])
 }
-
