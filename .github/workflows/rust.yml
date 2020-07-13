@@ -49,6 +49,7 @@ jobs:
           echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
       - name:                      Checking for the cache
+        if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
         run:                       |
           if ! [ -d $CARGO_TARGET_DIR ]; then
             echo "Copy cache from master";
@@ -118,3 +119,7 @@ jobs:
         with:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
+      - name:                      Cleanup after merge pull request
+        if:                        github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        run:                       rm -rf $CARGO_TARGET_DIR
+        shell:                     bash
