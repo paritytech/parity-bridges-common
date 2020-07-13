@@ -1050,7 +1050,7 @@ mod tests {
 		assert!(interval2 < interval_after_reset);
 	}
 
-	fn run_sync_loop_test(
+	struct SyncLoopTestParams {
 		best_source_header: TestHeader,
 		headers_on_source: Vec<(bool, TestHeader)>,
 		best_target_header: TestHeader,
@@ -1058,9 +1058,14 @@ mod tests {
 		target_requires_extra: bool,
 		target_requires_completion: bool,
 		stop_at: TestHeaderId,
-	) {
+	}
+
+	fn run_sync_loop_test(params: SyncLoopTestParams) {
 		let (exit_sender, exit_receiver) = futures::channel::mpsc::unbounded();
-		let source = Source::new(best_source_header.id(), headers_on_source, move |method, _| {
+		let target_requires_extra = params.target_requires_extra;
+		let target_requires_completion = params.target_requires_completion;
+		let stop_at = params.stop_at;
+		let source = Source::new(params.best_source_header.id(), params.headers_on_source, move |method, _| {
 			if !target_requires_extra {
 				source_reject_extra(&method);
 			}
@@ -1069,8 +1074,8 @@ mod tests {
 			}
 		});
 		let target = Target::new(
-			best_target_header.id(),
-			headers_on_target.into_iter().map(|header| header.id()).collect(),
+			params.best_target_header.id(),
+			params.headers_on_target.into_iter().map(|header| header.id()).collect(),
 			move |method, data| {
 				target_accept_all_headers(&method, data, target_requires_extra);
 				if target_requires_completion {
@@ -1095,67 +1100,67 @@ mod tests {
 
 	#[test]
 	fn sync_loop_is_able_to_synchronize_single_header() {
-		run_sync_loop_test(
-			test_header(1),
-			vec![(true, test_header(1))],
-			test_header(0),
-			vec![test_header(0)],
-			false,
-			false,
-			test_id(1),
-		);
+		run_sync_loop_test(SyncLoopTestParams {
+			best_source_header: test_header(1),
+			headers_on_source: vec![(true, test_header(1))],
+			best_target_header: test_header(0),
+			headers_on_target: vec![test_header(0)],
+			target_requires_extra: false,
+			target_requires_completion: false,
+			stop_at: test_id(1),
+		});
 	}
 
 	#[test]
 	fn sync_loop_is_able_to_synchronize_single_header_with_extra() {
-		run_sync_loop_test(
-			test_header(1),
-			vec![(true, test_header(1))],
-			test_header(0),
-			vec![test_header(0)],
-			true,
-			false,
-			test_id(1),
-		);
+		run_sync_loop_test(SyncLoopTestParams {
+			best_source_header: test_header(1),
+			headers_on_source: vec![(true, test_header(1))],
+			best_target_header: test_header(0),
+			headers_on_target: vec![test_header(0)],
+			target_requires_extra: true,
+			target_requires_completion: false,
+			stop_at: test_id(1),
+		});
 	}
 
 	#[test]
 	fn sync_loop_is_able_to_synchronize_single_header_with_completion() {
-		run_sync_loop_test(
-			test_header(1),
-			vec![(true, test_header(1))],
-			test_header(0),
-			vec![test_header(0)],
-			false,
-			true,
-			test_id(1),
-		);
+		run_sync_loop_test(SyncLoopTestParams {
+			best_source_header: test_header(1),
+			headers_on_source: vec![(true, test_header(1))],
+			best_target_header: test_header(0),
+			headers_on_target: vec![test_header(0)],
+			target_requires_extra: false,
+			target_requires_completion: true,
+			stop_at: test_id(1),
+		});
 	}
 
 	#[test]
 	fn sync_loop_is_able_to_reorganize_from_shorter_fork() {
-		run_sync_loop_test(
-			test_header(3),
-			vec![
+		run_sync_loop_test(SyncLoopTestParams {
+			best_source_header: test_header(3),
+			headers_on_source: vec![
 				(true, test_header(1)),
 				(true, test_header(2)),
 				(true, test_header(3)),
 				(false, test_forked_header(1, 0)),
 				(false, test_forked_header(2, 0)),
 			],
-			test_forked_header(2, 0),
-			vec![test_header(0), test_forked_header(1, 0), test_forked_header(2, 0)],
-			false,
-			false,
-			test_id(3),
-		);
+			best_target_header: test_forked_header(2, 0),
+			headers_on_target: vec![test_header(0), test_forked_header(1, 0), test_forked_header(2, 0)],
+			target_requires_extra: false,
+			target_requires_completion: false,
+			stop_at: test_id(3),
+		});
 	}
 
 	#[test]
 	fn sync_loop_is_able_to_reorganize_from_longer_fork() {
-		run_sync_loop_test(
-			test_header(3),
-			vec![
+		run_sync_loop_test(SyncLoopTestParams {
+			best_source_header: test_header(3),
+			headers_on_source: vec![
 				(true, test_header(1)),
 				(true, test_header(2)),
 				(true, test_header(3)),
@@ -1165,8 +1170,8 @@ mod tests {
 				(false, test_forked_header(4, 0)),
 				(false, test_forked_header(5, 0)),
 			],
-			test_forked_header(5, 0),
-			vec![
+			best_target_header: test_forked_header(5, 0),
+			headers_on_target: vec![
 				test_header(0),
 				test_forked_header(1, 0),
 				test_forked_header(2, 0),
@@ -1174,9 +1179,9 @@ mod tests {
 				test_forked_header(4, 0),
 				test_forked_header(5, 0),
 			],
-			false,
-			false,
-			test_id(3),
-		);
+			target_requires_extra: false,
+			target_requires_completion: false,
+			stop_at: test_id(3),
+		});
 	}
 }
