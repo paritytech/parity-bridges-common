@@ -28,7 +28,6 @@ jobs:
       image:                       paritytech/ci-linux:production
       volumes:
         - /cache:/cache
-      options:                     --cpus 8
     env:
       RUST_BACKTRACE:              full
       SCCACHE_REDIS:               redis://172.17.0.1/0
@@ -36,6 +35,10 @@ jobs:
       CMAKE_C_COMPILER_LAUNCHER:   sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
+      - name:                      Cancel Previous Runs
+        uses:                      styfle/cancel-workflow-action@0.4.0
+        with:
+          access_token:            ${{ github.token }}
       - name:                      Checkout sources & submodules
         uses:                      actions/checkout@master
         with:
