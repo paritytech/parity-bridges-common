@@ -51,12 +51,10 @@ jobs:
       - name:                      Checking for the cache
         if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
         run:                       |
-          if ! [ -d $CARGO_TARGET_DIR ]; then
             echo "Copy cache from master";
             mkdir -p $CARGO_TARGET_DIR;
             apt update&&apt install rsync -y;
             rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/;
-          fi
         shell:                     bash
       - name:                      Checking the Rust nightly version
         run:                       |
@@ -119,6 +117,7 @@ jobs:
         with:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
+## Cleanup stage
       - name:                      Cleanup after merge pull request
         if:                        github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
         run:                       rm -rf $CARGO_TARGET_DIR
