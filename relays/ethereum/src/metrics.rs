@@ -21,7 +21,7 @@ use substrate_prometheus_endpoint::init_prometheus;
 use sysinfo::{ProcessExt, System, SystemExt};
 
 /// Prometheus endpoint MetricsParams.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MetricsParams {
 	/// Serve HTTP requests at given host.
 	pub host: String,
@@ -57,7 +57,7 @@ pub async fn start(params: MetricsParams, registry: Registry) -> Result<(), Stri
 impl Default for MetricsParams {
 	fn default() -> Self {
 		MetricsParams {
-			host: "0.0.0.0".into(),
+			host: "127.0.0.1".into(),
 			port: 9616,
 		}
 	}

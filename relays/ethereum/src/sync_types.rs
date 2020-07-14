@@ -69,7 +69,6 @@ pub trait HeadersSyncPipeline: Clone + Copy {
 		+ std::ops::Add<Output = Self::Number>
 		+ std::ops::Sub<Output = Self::Number>
 		+ num_traits::Saturating
-		+ num_traits::CheckedSub
 		+ num_traits::Zero
 		+ num_traits::One
 		+ Into<u64>;

@@ -18,7 +18,7 @@ use crate::metrics::{register, GaugeVec, Opts, Registry, U64};
 use crate::sync::HeadersSync;
 use crate::sync_types::{HeaderStatus, HeadersSyncPipeline};
 
-use num_traits::{CheckedSub, Zero};
+use num_traits::Zero;
 
 /// Headers sync metrics.
 pub struct SyncLoopMetrics {

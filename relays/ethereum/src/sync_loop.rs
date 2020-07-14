@@ -126,8 +126,8 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 	target_client: TC,
 	target_tick: Duration,
 	sync_params: HeadersSyncParams,
+	metrics_params: Option<MetricsParams>,
 	exit_signal: impl Future<Output = ()>,
-	//	metrics_params: MetricsParams,
 ) {
 	let mut local_pool = futures::executor::LocalPool::new();
 	let mut progress_context = (Instant::now(), None, None);
@@ -139,12 +139,15 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 
 		let mut metrics_global = GlobalMetrics::new();
 		let mut metrics_sync = SyncLoopMetrics::new();
-		if let Err(err) = expose_metrics(Default::default(), &metrics_global, &metrics_sync).await {
-			log::warn!(
-				target: "bridge",
-				"Failed to expose metrics: {}",
-				err,
-			);
+		let metrics_enabled = metrics_params.is_some();
+		if let Some(metrics_params) = metrics_params {
+			if let Err(err) = expose_metrics(metrics_params, &metrics_global, &metrics_sync).await {
+				log::warn!(
+					target: "bridge",
+					"Failed to expose metrics: {}",
+					err,
+				);
+			}
 		}
 
 		let mut source_retry_backoff = retry_backoff();
@@ -375,8 +378,10 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 			}
 
 			// update metrics
-			metrics_global.update();
-			metrics_sync.update(&mut sync);
+			if metrics_enabled {
+				metrics_global.update();
+				metrics_sync.update(&mut sync);
+			}
 
 			// print progress
 			progress_context = print_sync_progress(progress_context, &sync);
