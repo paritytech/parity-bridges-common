@@ -48,6 +48,15 @@ jobs:
         run:                       |
           echo "::set-env name=CARGO_HOME::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
+      - name:                      Cache checking
+        if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
+        run:                       |
+            echo "Copy cache from master";
+            mkdir -p $CARGO_TARGET_DIR;
+            apt update&&apt install rsync -y;
+            # TODO add rsync in docker
+            rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/;
+        shell:                     bash
       - name:                      Checking the Rust nightly version
         run:                       |
           mkdir -p $CARGO_TARGET_DIR;
@@ -129,3 +138,8 @@ jobs:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
 
+## Cleanup stage
+      - name:                      Cleanup after merge pull request
+        if:                        github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        run:                       rm -rf $CARGO_TARGET_DIR
+        shell:                     bash
