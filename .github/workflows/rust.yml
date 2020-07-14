@@ -50,6 +50,7 @@ jobs:
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
       - name:                      Cache checking
         if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
+        continue-on-error:         true
         run:                       |
             echo "Copy cache from master";
             mkdir -p $CARGO_TARGET_DIR;
@@ -120,6 +121,6 @@ jobs:
           path:                    artifacts/
 ## Cleanup stage
       - name:                      Cleanup after merge pull request
-        if:                        github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        if:                        github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && github.ref != 'refs/heads/master'
         run:                       rm -rf $CARGO_TARGET_DIR
         shell:                     bash
