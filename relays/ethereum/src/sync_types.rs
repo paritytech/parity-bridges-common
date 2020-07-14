@@ -69,8 +69,10 @@ pub trait HeadersSyncPipeline: Clone + Copy {
 		+ std::ops::Add<Output = Self::Number>
 		+ std::ops::Sub<Output = Self::Number>
 		+ num_traits::Saturating
+		+ num_traits::CheckedSub
 		+ num_traits::Zero
-		+ num_traits::One;
+		+ num_traits::One
+		+ Into<u64>;
 	/// Type of header that we're syncing.
 	type Header: Clone + std::fmt::Debug + PartialEq + SourceHeader<Self::Hash, Self::Number>;
 	/// Type of extra data for the header that we're receiving from the source node:

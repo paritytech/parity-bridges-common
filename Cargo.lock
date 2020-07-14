@@ -1184,6 +1184,8 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "sp-runtime",
+ "substrate-prometheus-endpoint",
+ "sysinfo",
  "time 0.2.16",
  "web3",
 ]
