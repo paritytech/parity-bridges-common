@@ -21,6 +21,8 @@
 #![recursion_limit = "256"]
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
+// Runtime-generated DecodeLimit::decode_all_With_depth_limit
+#![allow(clippy::unnecessary_mut_passed)]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
