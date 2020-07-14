@@ -368,7 +368,7 @@ mod tests {
 		}
 
 		async fn is_header_known(&self, _: &TestHeaderId) -> Result<bool, TestError> {
-			self.data.lock().is_header_known.clone()
+			self.data.lock().is_header_known
 		}
 
 		async fn is_header_finalized(&self, _: &TestHeaderId) -> Result<bool, TestError> {

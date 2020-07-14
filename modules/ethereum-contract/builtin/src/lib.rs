@@ -247,8 +247,7 @@ mod tests {
 	/// Number of the example block with justification.
 	const EXAMPLE_JUSTIFIED_BLOCK_NUMBER: u32 = 8;
 	/// Hash of the example block with justification.
-	const EXAMPLE_JUSTIFIED_BLOCK_HASH: &str =
-		"a2f45892db86b2ad133ce57d81b7e4375bb7035ce9883e6b68c358164f343775";
+	const EXAMPLE_JUSTIFIED_BLOCK_HASH: &str = "a2f45892db86b2ad133ce57d81b7e4375bb7035ce9883e6b68c358164f343775";
 	/// Id of authorities set that have generated example justification. Could be computed by tracking
 	/// every set change in canonized headers.
 	const EXAMPLE_AUTHORITIES_SET_ID: u64 = 0;
