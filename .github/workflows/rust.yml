@@ -122,5 +122,11 @@ jobs:
 ## Cleanup stage
       - name:                      Cleanup after merge pull request
         if:                        github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && github.ref != 'refs/heads/master'
-        run:                       rm -rf $CARGO_TARGET_DIR
+        run:                       |
+          #debug
+          echo "github.event_name == " ${{ github.event_name }}
+          echo "github.event.action == " ${{ github.event.action }}
+          echo "github.event.pull_request.merged == " ${{ github.event.pull_request.merged }}
+          echo "github.ref == " ${{ github.ref }}
+          rm -rf $CARGO_TARGET_DIR
         shell:                     bash
