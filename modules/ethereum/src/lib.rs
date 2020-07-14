@@ -830,6 +830,7 @@ impl<T: Trait> Storage for BridgeStorage<T> {
 }
 
 /// Initialize storage.
+#[cfg(any(feature = "std", feature = "runtime-benchmarks"))]
 pub(crate) fn initialize_storage<T: Trait>(
 	initial_header: &Header,
 	initial_difficulty: U256,
