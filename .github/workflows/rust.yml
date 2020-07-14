@@ -52,7 +52,7 @@ jobs:
             echo "Copy cache from master";
             apt update&&apt install rsync -y;
             # TODO add rsync in docker
-            rsync -aq /cache/master/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/;
+            rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/ || true;
         shell:                     bash
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
