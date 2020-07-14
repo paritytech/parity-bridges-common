@@ -1260,7 +1260,7 @@ pub(crate) mod tests {
 		run_test_with_genesis(example_header(), TOTAL_VALIDATORS, |_| {
 			let storage = BridgeStorage::<TestRuntime>::new();
 			assert_eq!(
-				verify_transaction_finalized(&storage, example_header().compute_hash(), 0, &vec![example_tx()],),
+				verify_transaction_finalized(&storage, example_header().compute_hash(), 0, &[example_tx()],),
 				true,
 			);
 		});
@@ -1274,7 +1274,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, example_header());
 			storage.finalize_and_prune_headers(Some(example_header().compute_id()), 0);
 			assert_eq!(
-				verify_transaction_finalized(&storage, example_header_parent().compute_hash(), 0, &vec![example_tx()],),
+				verify_transaction_finalized(&storage, example_header_parent().compute_hash(), 0, &[example_tx()],),
 				true,
 			);
 		});
@@ -1285,7 +1285,7 @@ pub(crate) mod tests {
 		run_test_with_genesis(example_header(), TOTAL_VALIDATORS, |_| {
 			let storage = BridgeStorage::<TestRuntime>::new();
 			assert_eq!(
-				verify_transaction_finalized(&storage, example_header().compute_hash(), 1, &vec![],),
+				verify_transaction_finalized(&storage, example_header().compute_hash(), 1, &[],),
 				false,
 			);
 		});
@@ -1296,7 +1296,7 @@ pub(crate) mod tests {
 		run_test(TOTAL_VALIDATORS, |_| {
 			let storage = BridgeStorage::<TestRuntime>::new();
 			assert_eq!(
-				verify_transaction_finalized(&storage, example_header().compute_hash(), 1, &vec![],),
+				verify_transaction_finalized(&storage, example_header().compute_hash(), 1, &[],),
 				false,
 			);
 		});
@@ -1309,7 +1309,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, example_header_parent());
 			insert_header(&mut storage, example_header());
 			assert_eq!(
-				verify_transaction_finalized(&storage, example_header().compute_hash(), 0, &vec![example_tx()],),
+				verify_transaction_finalized(&storage, example_header().compute_hash(), 0, &[example_tx()],),
 				false,
 			);
 		});
@@ -1328,7 +1328,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, finalized_header_sibling);
 			storage.finalize_and_prune_headers(Some(example_header().compute_id()), 0);
 			assert_eq!(
-				verify_transaction_finalized(&storage, finalized_header_sibling_hash, 0, &vec![example_tx()],),
+				verify_transaction_finalized(&storage, finalized_header_sibling_hash, 0, &[example_tx()],),
 				false,
 			);
 		});
@@ -1347,7 +1347,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, example_header());
 			storage.finalize_and_prune_headers(Some(example_header().compute_id()), 0);
 			assert_eq!(
-				verify_transaction_finalized(&storage, finalized_header_uncle_hash, 0, &vec![example_tx()],),
+				verify_transaction_finalized(&storage, finalized_header_uncle_hash, 0, &[example_tx()],),
 				false,
 			);
 		});
@@ -1362,7 +1362,7 @@ pub(crate) mod tests {
 					&storage,
 					example_header().compute_hash(),
 					0,
-					&vec![example_tx(), example_tx(),],
+					&[example_tx(), example_tx()],
 				),
 				false,
 			);

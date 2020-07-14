@@ -463,9 +463,9 @@ mod tests {
 			// check that votes at #7 are computed correctly without cache
 			let expected_votes_at_7 = FinalityVotes {
 				votes: vec![
-					(ctx.addresses[0].clone(), 3),
-					(ctx.addresses[1].clone(), 3),
-					(ctx.addresses[2].clone(), 1),
+					(ctx.addresses[0], 3),
+					(ctx.addresses[1], 3),
+					(ctx.addresses[2], 1),
 				]
 				.into_iter()
 				.collect(),
@@ -491,7 +491,7 @@ mod tests {
 
 			// cached votes at #5
 			let expected_votes_at_5 = FinalityVotes {
-				votes: vec![(ctx.addresses[0].clone(), 3), (ctx.addresses[1].clone(), 2)]
+				votes: vec![(ctx.addresses[0], 3), (ctx.addresses[1], 2)]
 					.into_iter()
 					.collect(),
 				ancestry: ancestry[..5].iter().cloned().collect(),
@@ -520,7 +520,7 @@ mod tests {
 			// when we're inserting header#7 and last finalized header is 3:
 			// check that votes at #7 are computed correctly with cache
 			let expected_votes_at_7 = FinalityVotes {
-				votes: vec![(ctx.addresses[1].clone(), 3), (ctx.addresses[2].clone(), 1)]
+				votes: vec![(ctx.addresses[1], 3), (ctx.addresses[2], 1)]
 					.into_iter()
 					.collect(),
 				ancestry: ancestry[3..7].iter().cloned().collect(),
