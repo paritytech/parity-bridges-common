@@ -979,7 +979,7 @@ pub(crate) mod tests {
 						hash,
 						StoredHeader {
 							submitter: None,
-							header: header,
+							header,
 							total_difficulty: 0.into(),
 							next_validators_set_id: 0,
 							last_signal_block: None,
