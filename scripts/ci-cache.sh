@@ -1,14 +1,15 @@
 #!/bin/bash
 
-set -xe
+set -xeu
 
 HEAD_REF=$1
 TOOLCHAIN=$2
 
-echo "::set-env name=CARGO_HOME::/cache/$HEAD_REF/$TOOLCHAIN"
-echo "::set-env name=CARGO_TARGET_DIR::/cache/$HEAD_REF/$TOOLCHAIN"
+CARGO_HOME=/cache/$HEAD_REF/$TOOLCHAIN
+CARGO_TARGET_DIR=/cache/$HEAD_REF/$TOOLCHAIN
 
-set -u
+echo "::set-env name=CARGO_HOME::$CARGO_HOME"
+echo "::set-env name=CARGO_TARGET_DIR::$CARGO_TARGET_DIR"
 
 mkdir -p $CARGO_TARGET_DIR;
 echo "Current Rust nightly version:";
