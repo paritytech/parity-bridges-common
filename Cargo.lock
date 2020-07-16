@@ -561,6 +561,7 @@ dependencies = [
  "frame-system",
  "frame-system-rpc-runtime-api",
  "hex-literal",
+ "libsecp256k1",
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-currency-exchange",
