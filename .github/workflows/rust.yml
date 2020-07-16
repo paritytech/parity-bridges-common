@@ -119,19 +119,3 @@ jobs:
         with:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
-## Cleanup stage
-      - name:                      Cleanup after merge pull request
-        if:                        always()
-        run:                       |
-          #debug
-          if ${{ github.event_name == 'pull_request' }} && ${{ github.event.action == 'closed' }} && ${{ github.event.pull_request.merged == true }}; then
-            echo "merged, cleaning";
-            rm -rf $CARGO_TARGET_DIR;
-          else
-            echo "nothing to do"
-          fi;
-          echo "github.event_name == " ${{ github.event_name }};
-          echo "github.event.action == " ${{ github.event.action }};
-          echo "github.event.pull_request.merged == " ${{ github.event.pull_request.merged }};
-          echo "github.ref == " ${{ github.ref }};
-        shell:                     bash
