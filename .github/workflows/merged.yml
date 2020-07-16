@@ -15,5 +15,5 @@ jobs:
 ## Cleanup stage
       - name:   Cleanup after merge pull request
         if:     github.event.pull_request.merged == true || github.event.pull_request.state == 'closed'
-        run:    rm -rf $CARGO_TARGET_DIR
+        run:    rm -rfv /cache/${{ github.head_ref }}
         shell:  bash
