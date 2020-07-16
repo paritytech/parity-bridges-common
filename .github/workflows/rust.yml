@@ -48,6 +48,7 @@ jobs:
         run:                       ./scripts/ci-cache.sh "${{ github.head_ref }}" "${{ matrix.toolchain }}"
       - name:                      Cache checking
         if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
+        continue-on-error:         true
         run:                       |
             echo "Copy cache from master";
             apt update&&apt install rsync -y;
@@ -60,9 +61,6 @@ jobs:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
-      - name:                      Stats sccache
-        if:                        always()
-        run:                       sccache --show-stats
 ## Test stage
       - name:                      Testing rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
@@ -70,8 +68,6 @@ jobs:
           command:                 test
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
-      - name:                      Stats sccache
-        run:                       sccache --show-stats
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
@@ -80,9 +76,6 @@ jobs:
           command:                 build
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all --release --verbose
-      - name:                      Stats sccache
-        if:                        github.ref == 'refs/heads/master'
-        run:                       sccache --show-stats
       - name:                      Prepare artifacts
         if:                        github.ref == 'refs/heads/master'
         run:                       |
@@ -97,8 +90,3 @@ jobs:
         with:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
-## Cleanup stage
-      - name:                      Cleanup after merge pull request
-        if:                        github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
-        run:                       rm -rf $CARGO_TARGET_DIR
-        shell:                     bash
