@@ -193,7 +193,7 @@ pub(crate) fn prepare_ethereum_transaction(
 		payload: recipient_raw.to_vec(),
 	};
 	editor(&mut eth_tx);
-	eth_tx.sign_by(&signer.into(), Some(chain_id))
+	eth_tx.sign_by(&signer, Some(chain_id))
 }
 
 #[cfg(test)]
