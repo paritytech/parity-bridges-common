@@ -22,7 +22,6 @@ RUN rustup update stable && \
 	rustup install nightly && \
 	rustup target add wasm32-unknown-unknown --toolchain nightly
 
-
 RUN rustc -vV && \
     cargo -V && \
     gcc -v && \

@@ -32,7 +32,7 @@ and import the [`./types.json`](./types.json)
 
 `TestPoa` is a test bridge deployment between a test Ethereum PoA network and
 test Substrate network.
-It's main purpose is to make sure that basic PoA<>Substrate bridge operation works.
+Its main purpose is to make sure that basic PoA<>Substrate bridge operation works.
 The network is being reset every now and then without a warning.
 
 ### UI
@@ -47,10 +47,10 @@ The definition of both networks and the relay node is encapsulated as
 
 ```bash
 cd testpoa
-docker-compose build # This is going to build images (might take a while)
-docker-compose up		# Start all the nodes
-docker-compose up -d  # Start the nodes in detached mode.
-docker-compose down   # Stop the network.
+docker-compose build  # This is going to build images (might take a while)
+docker-compose up      # Start all the nodes
+docker-compose up -d # Start the nodes in detached mode.
+docker-compose down # Stop the network.
 ```
 
 When the network is running you can query logs from individual nodes using:
