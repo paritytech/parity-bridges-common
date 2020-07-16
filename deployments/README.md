@@ -35,11 +35,6 @@ test Substrate network.
 Its main purpose is to make sure that basic PoA<>Substrate bridge operation works.
 The network is being reset every now and then without a warning.
 
-### UI
-
-Use [wss://testpoa.bridges.test-installations.parity.io/](https://polkadot.js.org/apps/)
-as a custom endpoint for [https://polkadot.js.org/apps/](https://polkadot.js.org/apps/).
-
 ### How to run locally?
 
 The definition of both networks and the relay node is encapsulated as
@@ -63,7 +58,10 @@ To kill all left over containers and start the network from scratch next time:
 docker ps -a --format "{{.ID}}" | xargs docker rm # This removes all containers!
 ```
 
-To configure the frontend
+### UI
+
+Use [wss://testpoa.bridges.test-installations.parity.io/](https://polkadot.js.org/apps/)
+as a custom endpoint for [https://polkadot.js.org/apps/](https://polkadot.js.org/apps/).
 
 ## Kovan -> Westend
 

@@ -41,7 +41,7 @@ RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout $BRIDGE_HASH
 ### Build locally
 # ADD .
 
-ARG PROJECT=bridge-node
+ARG PROJECT=ethereum-poa-relay
 
 RUN cargo build --release --verbose -p ${PROJECT}
 RUN strip ./target/release/${PROJECT}
@@ -63,12 +63,15 @@ USER user
 
 WORKDIR /home/user
 
-ARG PROJECT=bridge-node
+ARG PROJECT=ethereum-poa-relay
 
 COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
+HEALTHCHECK --interval=2m --timeout=5s \
+  CMD curl -f http://localhost:8545/api/health || exit 1
+
 
 ENV PROJECT=$PROJECT
 ENTRYPOINT "/home/user/$PROJECT"

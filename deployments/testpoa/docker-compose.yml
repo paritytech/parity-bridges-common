@@ -52,7 +52,7 @@ services:
       args:
         BRIDGE_HASH: 3ffb023ddb5864bab6a5aa53835b2a0bc931c007
         PROJECT: ethereum-poa-relay
-    entrypoint: /config/run-relay-eth2sub
+    entrypoint: /config/relay-eth2sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
     environment:
@@ -72,7 +72,7 @@ services:
   #     args:
   #       BRIDGE_HASH: 3ffb023ddb5864bab6a5aa53835b2a0bc931c007
   #       PROJECT: ethereum-poa-relay
-  #   entrypoint: /config/run-relay-sub2eth
+  #   entrypoint: /config/relay-sub2eth-entrypoint.sh
   #   volumes:
   #     - ./bridge-config:/config
   #   environment:
