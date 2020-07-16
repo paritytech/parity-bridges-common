@@ -36,7 +36,7 @@ jobs:
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
       - name:                      Cancel Previous Runs
-        uses:                      styfle/cancel-workflow-action@0.4.0
+        uses:                      styfle/cancel-workflow-action@0.4.1
         with:
           access_token:            ${{ github.token }}
       - name:                      Checkout sources & submodules
@@ -50,6 +50,7 @@ jobs:
           echo "::set-env name=CARGO_TARGET_DIR::/cache/${{ github.head_ref }}/${{ matrix.toolchain }}"
       - name:                      Cache checking
         if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
+        continue-on-error:         true
         run:                       |
             echo "Copy cache from master";
             mkdir -p $CARGO_TARGET_DIR;
@@ -140,6 +141,17 @@ jobs:
 
 ## Cleanup stage
       - name:                      Cleanup after merge pull request
-        if:                        github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
-        run:                       rm -rf $CARGO_TARGET_DIR
+        if:                        always()
+        run:                       |
+          #debug
+          if ${{ github.event_name == 'pull_request' }} && ${{ github.event.action == 'closed' }} && ${{ github.event.pull_request.merged == true }}; then
+            echo "merged, cleaning";
+            rm -rf $CARGO_TARGET_DIR;
+          else
+            echo "nothing to do"
+          fi;
+          echo "github.event_name == " ${{ github.event_name }};
+          echo "github.event.action == " ${{ github.event.action }};
+          echo "github.event.pull_request.merged == " ${{ github.event.pull_request.merged }};
+          echo "github.ref == " ${{ github.ref }};
         shell:                     bash
