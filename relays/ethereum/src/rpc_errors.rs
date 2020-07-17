@@ -78,10 +78,7 @@ impl From<ethabi::Error> for RpcError {
 
 impl MaybeConnectionError for RpcError {
 	fn is_connection_error(&self) -> bool {
-		match *self {
-			RpcError::Request(RequestError::TransportError(_)) => true,
-			_ => false,
-		}
+		matches!(*self, RpcError::Request(RequestError::TransportError(_)))
 	}
 }
 
