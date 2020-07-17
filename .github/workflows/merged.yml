@@ -1,0 +1,19 @@
+name:           Merged
+on:
+  pull_request:
+    types:      [closed]
+
+jobs:
+  build:
+    runs-on:    self-hosted
+    container:
+      image:    paritytech/ci-linux:production
+      volumes:
+        - /cache:/cache
+    if:         github.event.pull_request.merged
+    steps:
+## Cleanup stage
+      - name:   Cleanup after merge pull request
+        if:     github.event.pull_request.merged == true || github.event.pull_request.state == 'closed'
+        run:    rm -rfv /cache/${{ github.head_ref }}
+        shell:  bash
