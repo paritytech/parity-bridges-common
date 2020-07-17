@@ -68,6 +68,14 @@ jobs:
           command:                 test
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
+      - name:                      Add clippy
+        run:                       rustup component add clippy --toolchain nightly
+      - name:                      Clippy
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 clippy
+          toolchain:               nightly
+          args:                    --all-targets -- -D warnings
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
