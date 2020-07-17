@@ -1,0 +1,147 @@
+version: '3.5'
+services:
+  poa-node-arthur: &poa-node
+    build:
+      context: .
+      dockerfile: ./OpenEthereum.Dockerfile
+      args:
+        ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
+        BRIDGE_HASH: master
+    entrypoint:
+      - /home/openethereum/openethereum
+      - --config=/config/poa-node-config
+      - --node-key=arthur
+      - --engine-signer=0x005e714f896a8b7cede9d38688c1a81de72a58e4
+    volumes:
+      - ./poa-config:/config
+    environment:
+      RUST_LOG: rpc=trace,txqueue=trace
+    ports:
+      - "8545:8545"
+      - "8546:8546"
+      - "30303:30303"
+
+  poa-node-bertha:
+    <<: *poa-node
+    entrypoint:
+      - /home/openethereum/openethereum
+      - --config=/config/poa-node-config
+      - --node-key=bertha
+      - --engine-signer=0x007594304039c2937a12220338aab821d819f5a4
+    ports:
+      - "8645:8545"
+      - "8646:8546"
+      - "31303:30303"
+
+  poa-node-carlos:
+    <<: *poa-node
+    entrypoint:
+      - /home/openethereum/openethereum
+      - --config=/config/poa-node-config
+      - --node-key=carlos
+      - --engine-signer=0x004e7a39907f090e19b0b80a277e77b72b22e269
+    ports:
+      - "8745:8545"
+      - "8746:8546"
+      - "32303:30303"
+
+  relay-eth2sub:
+    build:
+      context: .
+      dockerfile: ./Bridge.Dockerfile
+      args:
+        BRIDGE_HASH: master
+        PROJECT: ethereum-poa-relay
+    entrypoint: /config/relay-eth2sub-entrypoint.sh
+    volumes:
+      - ./bridge-config:/config
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    depends_on: &all-nodes
+      - poa-node-arthur
+      - poa-node-bertha
+      - poa-node-carlos
+      - bridge-node-alice
+      - bridge-node-bob
+      - bridge-node-charlie
+
+  # relay-sub2eth:
+  #   build:
+  #     context: .
+  #     dockerfile: ./Bridge.Dockerfile
+  #     args:
+  #       BRIDGE_HASH: master
+  #       PROJECT: ethereum-poa-relay
+  #   entrypoint: /config/relay-sub2eth-entrypoint.sh
+  #   volumes:
+  #     - ./bridge-config:/config
+  #   environment:
+  #     RUST_LOG: rpc=trace,bridge=trace
+  #   depends_on: *all-nodes
+
+  bridge-node-alice: &bridge-node
+    build:
+      context: .
+      dockerfile: ./Bridge.Dockerfile
+      args:
+        BRIDGE_HASH: master
+        PROJECT: bridge-node
+    entrypoint:
+      - /home/user/bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/bridge-node-bob/tcp/30333/p2p/12D3KooWSEpHJj29HEzgPFcRYVc5X3sEuP3KgiUoqJNCet51NiMX
+      - --alice
+      - --node-key=79cf382988364291a7968ae7825c01f68c50d679796a8983237d07fe0ccf363b
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    volumes:
+      - ./bridge-config:/config
+    environment: &bridge-env
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace
+    ports:
+      - "9933:9933"
+      - "9944:9944"
+    healthcheck:
+      test: "curl -f http://localhost:9933/health || exit 1"
+      interval: 3m00s
+      timeout: 10s
+      retries: 3
+
+  bridge-node-bob:
+    <<: *bridge-node
+    entrypoint:
+      - /home/user/bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bob
+      - --node-key=4f9d0146dd9b7b3bf5a8089e3880023d1df92057f89e96e07bb4d8c2ead75bbd
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10033:9933"
+      - "10044:9944"
+
+  bridge-node-charlie:
+    <<: *bridge-node
+    environment:
+      <<: *bridge-env
+      VIRTUAL_HOST: rialto.bridges.test-installations.parity.io
+      VIRTUAL_PORT: 9944
+      LETSENCRYPT_HOST: rialto.bridges.test-installations.parity.io
+      LETSENCRYPT_EMAIL: admin@parity.io
+    entrypoint:
+      - /home/user/bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --charlie
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10133:9933"
+      - "10144:9944"
