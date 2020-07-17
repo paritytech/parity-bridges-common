@@ -161,10 +161,13 @@ The folder structure of the bridge relay is as follows:
 To run the Bridge you need to be able to connect to the RPC interface of nodes on each side of the
 bridge (home & foreign chain).
 
-You can build the relayer using [./Dockerfile](Dockerfile):
+You can build the relayer using [./Dockerfile](Dockerfile), which will use all the local source
+files,
+or you can use an image that is designed to build from Github repo sources (`master` branch by
+default, configurable via `build-arg`):
 ```bash
 docker build \
-  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/Dockerfile \
+  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/deployments/rialto/Bridge.Dockerfile \
   -t poa-relay
 docker run -it poa-relay
 ```
@@ -174,7 +177,7 @@ By default the relayer is configured to connect to OpenEthereum `--dev` chain no
 To build the `bridge-node`:
 ```bash
 docker build \
-  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/Dockerfile \
+  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/deployments/rialto/Bridge.Dockerfile \
   -t bridge-node \
   --build-arg PROJECT=bridge-node
 docker run -it bridge-node
@@ -183,7 +186,7 @@ docker run -it bridge-node
 And to build `OpenEthereum` with bridge support:
 ```
 docker build \
-  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/deployments/testpoa/OpenEthereum.Dockerfile
+  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/deployments/rialto/OpenEthereum.Dockerfile
   -t openethereum
 docker run it openethereum
 ```

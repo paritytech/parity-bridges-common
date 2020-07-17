@@ -33,7 +33,7 @@ frame_support::parameter_types! {
 /// Max number of finalized headers to keep.
 const FINALIZED_HEADERS_TO_KEEP: u64 = 5_000;
 
-/// Aura engine configuration for TestPoa chain.
+/// Aura engine configuration for Rialto chain.
 pub fn aura_configuration() -> AuraConfiguration {
 	AuraConfiguration {
 		empty_steps_transition: 0xfffffffff,
@@ -47,12 +47,12 @@ pub fn aura_configuration() -> AuraConfiguration {
 	}
 }
 
-/// Validators configuration for TestPoa chain.
+/// Validators configuration for Rialto chain.
 pub fn validators_configuration() -> ValidatorsConfiguration {
 	ValidatorsConfiguration::Single(ValidatorsSource::List(genesis_validators()))
 }
 
-/// Genesis validators set of TestPoa chain.
+/// Genesis validators set of Rialto chain.
 pub fn genesis_validators() -> Vec<Address> {
 	vec![
 		hex!("005e714f896a8b7cede9d38688c1a81de72a58e4").into(),
@@ -61,7 +61,7 @@ pub fn genesis_validators() -> Vec<Address> {
 	]
 }
 
-/// Genesis header of the TestPoa chain.
+/// Genesis header of the Rialto chain.
 ///
 /// To obtain genesis header from a running node, invoke:
 /// ```bash
@@ -90,7 +90,7 @@ pub fn genesis_header() -> Header {
 	}
 }
 
-/// TestPoa headers pruning strategy.
+/// Rialto headers pruning strategy.
 ///
 /// We do not prune unfinalized headers because exchange module only accepts
 /// claims from finalized headers. And if we're pruning unfinalized headers, then

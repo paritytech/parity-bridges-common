@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! We want to use a different validator configuration for benchmarking than what's used in Kovan
-//! or in our TestPoA network. However, we can't configure a new validator set on the fly which
+//! or in our Rialto test network. However, we can't configure a new validator set on the fly which
 //! means we need to wire the runtime together like this
 
 use pallet_bridge_eth_poa::{ValidatorsConfiguration, ValidatorsSource};

@@ -129,9 +129,9 @@ services:
     <<: *bridge-node
     environment:
       <<: *bridge-env
-      VIRTUAL_HOST: testpoa.bridges.test-installations.parity.io
+      VIRTUAL_HOST: rialto.bridges.test-installations.parity.io
       VIRTUAL_PORT: 9944
-      LETSENCRYPT_HOST: testpoa.bridges.test-installations.parity.io
+      LETSENCRYPT_HOST: rialto.bridges.test-installations.parity.io
       LETSENCRYPT_EMAIL: admin@parity.io
     entrypoint:
       - /home/user/bridge-node

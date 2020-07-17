@@ -146,9 +146,9 @@ tag = 'v2.0.0-rc4'
 git = "https://github.com/paritytech/substrate.git"
 
 [features]
-default = ["bridge-testpoa"]
+default = ["bridge-rialto"]
 bridge-kovan = ["bridge-node-runtime/bridge-kovan"]
-bridge-testpoa = ["bridge-node-runtime/bridge-testpoa"]
+bridge-rialto = ["bridge-node-runtime/bridge-rialto"]
 runtime-benchmarks = [
 	"bridge-node-runtime/runtime-benchmarks",
 ]

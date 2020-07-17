@@ -30,15 +30,15 @@ pub mod exchange;
 pub mod benches;
 #[cfg(feature = "bridge-kovan")]
 pub mod kovan;
-#[cfg(feature = "bridge-testpoa")]
-pub mod testpoa;
+#[cfg(feature = "bridge-rialto")]
+pub mod rialto;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub use benches as bridge;
 #[cfg(all(feature = "bridge-kovan", not(feature = "runtime-benchmarks")))]
 pub use kovan as bridge;
-#[cfg(all(feature = "bridge-testpoa", not(feature = "runtime-benchmarks")))]
-pub use testpoa as bridge;
+#[cfg(all(feature = "bridge-rialto", not(feature = "runtime-benchmarks")))]
+pub use rialto as bridge;
 
 use codec::{Decode, Encode};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};

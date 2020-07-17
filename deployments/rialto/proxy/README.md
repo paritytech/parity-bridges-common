@@ -11,5 +11,5 @@ In current directory:
 docker-compose up -d
 ```
 
-Then start `testpoa` network with the same command (one folder up). `nginx` should
+Then start `rialto` network with the same command (one folder up). `nginx` should
 pick up new containers being created and automatically create a proxy setup for `Charlie`.

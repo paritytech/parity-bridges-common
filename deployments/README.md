@@ -28,9 +28,9 @@ bridges deployments locally.
 To teach the UI decode our custom types used in the pallet, go to: `Settings -> Developer`
 and import the [`./types.json`](./types.json)
 
-## TestPoa
+## Rialto
 
-`TestPoa` is a test bridge deployment between a test Ethereum PoA network and
+`Rialto` is a test bridge network deployment between a test Ethereum PoA network and
 test Substrate network.
 Its main purpose is to make sure that basic PoA<>Substrate bridge operation works.
 The network is being reset every now and then without a warning.
@@ -38,19 +38,19 @@ The network is being reset every now and then without a warning.
 ### How to run locally?
 
 The definition of both networks and the relay node is encapsulated as
-[`docker-compose.yml`](./testpoa/docker-compose.yml) file.
+[`docker-compose.yml`](./rialto/docker-compose.yml) file.
 
 ```bash
-cd testpoa
+cd rialto
 docker-compose build  # This is going to build images (might take a while)
-docker-compose up      # Start all the nodes
-docker-compose up -d # Start the nodes in detached mode.
-docker-compose down # Stop the network.
+docker-compose up     # Start all the nodes
+docker-compose up -d  # Start the nodes in detached mode.
+docker-compose down   # Stop the network.
 ```
 
 When the network is running you can query logs from individual nodes using:
 ```bash
-docker logs testpoa_poa-node-bertha_1 -f
+docker logs rialto_poa-node-bertha_1 -f
 ```
 
 To kill all left over containers and start the network from scratch next time:
@@ -60,7 +60,7 @@ docker ps -a --format "{{.ID}}" | xargs docker rm # This removes all containers!
 
 ### UI
 
-Use [wss://testpoa.bridges.test-installations.parity.io/](https://polkadot.js.org/apps/)
+Use [wss://rialto.bridges.test-installations.parity.io/](https://polkadot.js.org/apps/)
 as a custom endpoint for [https://polkadot.js.org/apps/](https://polkadot.js.org/apps/).
 
 ## Kovan -> Westend
