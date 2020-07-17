@@ -74,4 +74,4 @@ HEALTHCHECK --interval=2m --timeout=5s \
 
 
 ENV PROJECT=$PROJECT
-ENTRYPOINT "/home/user/$PROJECT"
+ENTRYPOINT ["/home/user/$PROJECT"]
