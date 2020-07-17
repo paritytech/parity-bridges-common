@@ -76,6 +76,25 @@ jobs:
           command:                 clippy
           toolchain:               nightly
           args:                    --all-targets -- -D warnings
+      - name:                      Check kovan-bridge runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 check
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features bridge-kovan --verbose
+      - name:                      Check rialto-bridge runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 check
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features bridge-rialto --verbose
+      - name:                      Check benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 check
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
@@ -98,3 +117,4 @@ jobs:
         with:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
+
