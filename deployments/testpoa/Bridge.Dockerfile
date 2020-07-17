@@ -33,8 +33,13 @@ RUN rustc -vV && \
 
 WORKDIR /parity-bridges-common
 
+### Build from the repo
+ARG BRIDGE_REPO=https://github.com/paritytech/parity-bridges-common
+ARG BRIDGE_HASH=master
+RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout $BRIDGE_HASH
+
 ### Build locally
-ADD . /parity-bridges-common
+# ADD .
 
 ARG PROJECT=ethereum-poa-relay
 

@@ -48,7 +48,7 @@ services:
   relay-eth2sub:
     build:
       context: .
-      dockerfile: ../../Dockerfile
+      dockerfile: ./Bridge.Dockerfile
       args:
         BRIDGE_HASH: master
         PROJECT: ethereum-poa-relay
@@ -68,7 +68,7 @@ services:
   # relay-sub2eth:
   #   build:
   #     context: .
-  #     dockerfile: ../../Dockerfile
+  #     dockerfile: ./Bridge.Dockerfile
   #     args:
   #       BRIDGE_HASH: master
   #       PROJECT: ethereum-poa-relay
@@ -82,7 +82,7 @@ services:
   bridge-node-alice: &bridge-node
     build:
       context: .
-      dockerfile: ../../Dockerfile
+      dockerfile: ./Bridge.Dockerfile
       args:
         BRIDGE_HASH: master
         PROJECT: bridge-node
