@@ -57,6 +57,8 @@ services:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "9616:9616"
     depends_on: &all-nodes
       - poa-node-arthur
       - poa-node-bertha
@@ -151,7 +153,6 @@ services:
     volumes:
       - ../../relays/ethereum/dashboard/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "9616:9616"
       - "9090:9090"
     depends_on: *all-nodes
 
