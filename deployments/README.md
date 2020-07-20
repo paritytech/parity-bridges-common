@@ -63,9 +63,9 @@ docker ps -a --format "{{.ID}}" | xargs docker rm # This removes all containers!
 resource use, and block data (e.g the best blocks it knows about). In order to visualize this data
 a [Grafana](https://grafana.com/) dashboard can be used.
 
-As part of the Rialto `docker-compose` setup we spin up a Prometheus node and Grafana dashboard. The
-Prometheus node connects to the Prometheus data endpoint exposed by the bridge relay. The Grafana
-dashboard uses the Prometheus node as its data source.
+As part of the Rialto `docker-compose` setup we spin up a Prometheus server and Grafana dashboard. The
+Prometheus server connects to the Prometheus data endpoint exposed by the bridge relay. The Grafana
+dashboard uses the Prometheus server as its data source.
 
 The default port for the bridge relay's Prometheus data is `9616`. The host and port can be
 configured though the `--prometheus-host` and `--prometheus-port` flags. The Prometheus server's
