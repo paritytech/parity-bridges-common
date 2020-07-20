@@ -1186,7 +1186,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "substrate-prometheus-endpoint",
- "sysinfo",
+ "sysinfo 0.14.13",
  "time 0.2.16",
  "web3",
 ]
@@ -5335,7 +5335,7 @@ dependencies = [
  "sp-utils",
  "sp-version",
  "substrate-prometheus-endpoint",
- "sysinfo",
+ "sysinfo 0.13.4",
  "tempfile",
  "tracing",
  "wasm-timer",
@@ -6653,6 +6653,21 @@ name = "sysinfo"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1cac193374347e7c263c5f547524f36ff8ec6702d56c8799c8331d26dffe8c1e"
+dependencies = [
+ "cfg-if",
+ "doc-comment",
+ "libc",
+ "ntapi",
+ "once_cell",
+ "rayon",
+ "winapi 0.3.9",
+]
+
+[[package]]
+name = "sysinfo"
+version = "0.14.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eec476c3d107e7fc2c445e4edc26836c49ba5be0dae74146ee94ecb62759c31d"
 dependencies = [
  "cfg-if",
  "doc-comment",
