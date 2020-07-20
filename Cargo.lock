@@ -560,7 +560,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "hex-literal",
+ "hex-literal 0.3.0",
  "libsecp256k1",
  "pallet-aura",
  "pallet-balances",
@@ -1924,6 +1924,12 @@ dependencies = [
  "hex-literal-impl",
  "proc-macro-hack",
 ]
+
+[[package]]
+name = "hex-literal"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc38ca401ca1b8d89ff1185e39a132e5c4f86d844c0cf6364251576f2d7fa0c1"
 
 [[package]]
 name = "hex-literal-impl"
@@ -3497,7 +3503,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal",
+ "hex-literal 0.3.0",
  "libsecp256k1",
  "parity-scale-codec",
  "serde",
@@ -4813,7 +4819,7 @@ dependencies = [
  "fnv",
  "futures 0.3.5",
  "hash-db",
- "hex-literal",
+ "hex-literal 0.2.1",
  "kvdb",
  "lazy_static",
  "log",
@@ -5889,7 +5895,7 @@ dependencies = [
  "ethbloom 0.8.1",
  "fixed-hash 0.5.2",
  "hash-db",
- "hex-literal",
+ "hex-literal 0.2.1",
  "impl-rlp",
  "impl-serde 0.2.3",
  "libsecp256k1",
