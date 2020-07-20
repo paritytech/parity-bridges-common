@@ -78,7 +78,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 	}
 
 	/// Best header known to target node.
-	pub fn target_best_header(&self) -> Option<HeaderId<P::Hash, P::Number>> {
+	pub fn target_best_header(&self) -> Option<HeaderIdOf<P>> {
 		self.target_best_header
 	}
 

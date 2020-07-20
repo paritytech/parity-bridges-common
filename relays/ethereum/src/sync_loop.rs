@@ -366,7 +366,7 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 			// update metrics
 			if metrics_enabled {
 				metrics_global.update();
-				metrics_sync.update(&mut sync);
+				metrics_sync.update(&sync);
 			}
 
 			// print progress
