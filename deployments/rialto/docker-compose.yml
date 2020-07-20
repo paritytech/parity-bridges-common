@@ -151,7 +151,7 @@ services:
   prometheus-metrics:
     image: prom/prometheus
     volumes:
-      - ../../relays/ethereum/dashboard/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../dashboard/prometheus/:/etc/prometheus/
     ports:
       - "9090:9090"
     depends_on: *all-nodes
@@ -159,9 +159,7 @@ services:
   grafana-dashboard:
     image: grafana/grafana
     volumes:
-      - ../../relays/ethereum/dashboard/grafana-datasource.yaml:/etc/grafana/provisioning/datasources/grafana-datasource.yaml
-      - ../../relays/ethereum/dashboard/grafana-dashboard.yaml:/etc/grafana/provisioning/dashboards/grafana-dashboard.yaml
-      - ../../relays/ethereum/dashboard/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/grafana-dashboard.json
+      - ../dashboard/grafana/provisioning/:/etc/grafana/provisioning/
     ports:
       - "3000:3000"
     depends_on:
