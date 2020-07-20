@@ -42,7 +42,7 @@ The definition of both networks and the relay node is encapsulated as
 
 ```bash
 cd rialto
-docker-compose build  # This is going to build images (might take a while)
+docker-compose build  # This is going to build images (this will take a while)
 docker-compose up     # Start all the nodes
 docker-compose up -d  # Start the nodes in detached mode.
 docker-compose down   # Stop the network.
@@ -57,6 +57,20 @@ To kill all left over containers and start the network from scratch next time:
 ```bash
 docker ps -a --format "{{.ID}}" | xargs docker rm # This removes all containers!
 ```
+
+### Monitoring
+[Prometheus](https://prometheus.io/) is used by the bridge relay to monitor information such as system
+resource use, and block data (e.g the best blocks it knows about). In order to visualize this data
+a [Grafana](https://grafana.com/) dashboard can be used.
+
+As part of the Rialto `docker-compose` setup we spin up a Prometheus node and Grafana dashboard. The
+Prometheus node connects to the Prometheus data endpoint exposed by the bridge relay. The Grafana
+dashboard uses the Prometheus node as its data source.
+
+The default port for the bridge relay's Prometheus data is `9616`. The host and port can be
+configured though the `--prometheus-host` and `--prometheus-port` flags. The Prometheus server's
+dashboard can be accessed at `http://localhost:9090`. The Grafana dashboard can be accessed at
+`http://localhost:3000`. Note that the default log-in credentials for Grafana are `admin:admin`.
 
 ### UI
 
