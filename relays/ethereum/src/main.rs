@@ -24,6 +24,7 @@ mod ethereum_types;
 mod exchange;
 mod exchange_loop;
 mod headers;
+mod metrics;
 mod rpc;
 mod rpc_errors;
 mod substrate_client;
@@ -31,6 +32,7 @@ mod substrate_sync_loop;
 mod substrate_types;
 mod sync;
 mod sync_loop;
+mod sync_loop_metrics;
 mod sync_loop_tests;
 mod sync_types;
 mod utils;
@@ -50,6 +52,7 @@ fn main() {
 	let matches = clap::App::from_yaml(yaml).get_matches();
 	match matches.subcommand() {
 		("eth-to-sub", Some(eth_to_sub_matches)) => {
+			log::info!(target: "bridge", "Starting ETH ➡ SUB relay.");
 			if ethereum_sync_loop::run(match ethereum_sync_params(&eth_to_sub_matches) {
 				Ok(ethereum_sync_params) => ethereum_sync_params,
 				Err(err) => {
@@ -64,6 +67,7 @@ fn main() {
 			};
 		}
 		("sub-to-eth", Some(sub_to_eth_matches)) => {
+			log::info!(target: "bridge", "Starting SUB ➡ ETH relay.");
 			if substrate_sync_loop::run(match substrate_sync_params(&sub_to_eth_matches) {
 				Ok(substrate_sync_params) => substrate_sync_params,
 				Err(err) => {
@@ -78,6 +82,7 @@ fn main() {
 			};
 		}
 		("eth-deploy-contract", Some(eth_deploy_matches)) => {
+			log::info!(target: "bridge", "Deploying ETH contracts.");
 			ethereum_deploy_contract::run(match ethereum_deploy_contract_params(&eth_deploy_matches) {
 				Ok(ethereum_deploy_matches) => ethereum_deploy_matches,
 				Err(err) => {
@@ -161,6 +166,11 @@ fn ethereum_signing_params(matches: &clap::ArgMatches) -> Result<EthereumSigning
 			.map_err(|e| format!("Failed to parse eth-signer: {}", e))
 			.and_then(|secret| KeyPair::from_secret(secret).map_err(|e| format!("Invalid eth-signer: {}", e)))?;
 	}
+	if let Some(eth_chain_id) = matches.value_of("eth-chain-id") {
+		params.chain_id = eth_chain_id
+			.parse::<u64>()
+			.map_err(|e| format!("Failed to parse eth-chain-id: {}", e))?;
+	}
 	Ok(params)
 }
 
@@ -192,6 +202,7 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams
 	eth_sync_params.eth = ethereum_connection_params(matches)?;
 	eth_sync_params.sub = substrate_connection_params(matches)?;
 	eth_sync_params.sub_sign = substrate_signing_params(matches)?;
+	eth_sync_params.metrics_params = metrics_params(matches)?;
 
 	match matches.value_of("sub-tx-mode") {
 		Some("signed") => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
@@ -206,6 +217,8 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams
 		None => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
 	}
 
+	log::debug!(target: "bridge", "Ethereum sync params: {:?}", eth_sync_params);
+
 	Ok(eth_sync_params)
 }
 
@@ -214,10 +227,13 @@ fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncPara
 	sub_sync_params.eth = ethereum_connection_params(matches)?;
 	sub_sync_params.eth_sign = ethereum_signing_params(matches)?;
 	sub_sync_params.sub = substrate_connection_params(matches)?;
+	sub_sync_params.metrics_params = metrics_params(matches)?;
 
 	if let Some(eth_contract) = matches.value_of("eth-contract") {
 		sub_sync_params.eth_contract_address = eth_contract.parse().map_err(|e| format!("{}", e))?;
 	}
+
+	log::debug!(target: "bridge", "Substrate sync params: {:?}", sub_sync_params);
 
 	Ok(sub_sync_params)
 }
@@ -234,6 +250,8 @@ fn ethereum_deploy_contract_params(
 		eth_deploy_params.eth_contract_code =
 			hex::decode(&eth_contract_code).map_err(|e| format!("Failed to parse eth-contract-code: {}", e))?;
 	}
+
+	log::debug!(target: "bridge", "Deploy params: {:?}", eth_deploy_params);
 
 	Ok(eth_deploy_params)
 }
@@ -261,4 +279,23 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_excha
 	};
 
 	Ok(params)
+}
+
+fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<metrics::MetricsParams>, String> {
+	if matches.is_present("no-prometheus") {
+		return Ok(None);
+	}
+
+	let mut metrics_params = metrics::MetricsParams::default();
+
+	if let Some(prometheus_host) = matches.value_of("prometheus-host") {
+		metrics_params.host = prometheus_host.into();
+	}
+	if let Some(prometheus_port) = matches.value_of("prometheus-port") {
+		metrics_params.port = prometheus_port
+			.parse()
+			.map_err(|e| format!("Failed to parse prometheus-port: {}", e))?;
+	}
+
+	Ok(Some(metrics_params))
 }

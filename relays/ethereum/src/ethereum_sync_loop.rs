@@ -18,6 +18,7 @@
 
 use crate::ethereum_client::{EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
+use crate::metrics::MetricsParams;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{
@@ -51,7 +52,7 @@ const MAX_SUBMITTED_HEADERS: usize = 128;
 const PRUNE_DEPTH: u32 = 4096;
 
 /// Ethereum synchronization parameters.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EthereumSyncParams {
 	/// Ethereum connection params.
 	pub eth: EthereumConnectionParams,
@@ -61,6 +62,8 @@ pub struct EthereumSyncParams {
 	pub sub_sign: SubstrateSigningParams,
 	/// Synchronization parameters.
 	pub sync_params: HeadersSyncParams,
+	/// Metrics parameters.
+	pub metrics_params: Option<MetricsParams>,
 }
 
 impl Default for EthereumSyncParams {
@@ -77,6 +80,7 @@ impl Default for EthereumSyncParams {
 				prune_depth: PRUNE_DEPTH,
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
+			metrics_params: Some(Default::default()),
 		}
 	}
 }
@@ -204,6 +208,7 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 		target,
 		SUBSTRATE_TICK_INTERVAL,
 		params.sync_params,
+		params.metrics_params,
 		futures::future::pending(),
 	);
 
