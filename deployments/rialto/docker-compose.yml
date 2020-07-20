@@ -57,6 +57,11 @@ services:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+    healthcheck:
+      test: "curl -f http://localhost:9616/ || exit 1"
+      interval: 3m00s
+      timeout: 3s
+      retries: 3
     depends_on: &all-nodes
       - poa-node-arthur
       - poa-node-bertha
