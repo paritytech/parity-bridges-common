@@ -409,7 +409,7 @@ fn run_backoff_test(result: Result<(), TestError>) -> (Duration, Duration) {
 		&mut backoff,
 		|_| {},
 		&mut go_offline_future,
-		|delay| async_std::task::sleep(delay),
+		async_std::task::sleep,
 		|| "Test error".into(),
 	);
 

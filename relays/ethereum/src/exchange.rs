@@ -617,11 +617,11 @@ pub(crate) mod tests {
 		}
 
 		async fn is_header_known(&self, _: &TestHeaderId) -> Result<bool, TestError> {
-			self.data.lock().is_header_known.clone()
+			self.data.lock().is_header_known
 		}
 
 		async fn is_header_finalized(&self, _: &TestHeaderId) -> Result<bool, TestError> {
-			self.data.lock().is_header_finalized.clone()
+			self.data.lock().is_header_finalized
 		}
 
 		async fn best_finalized_header_id(&self) -> Result<TestHeaderId, TestError> {

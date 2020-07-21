@@ -117,7 +117,7 @@ decl_module! {
 				match deposit_result {
 					Ok(_) => (),
 					Err(ExchangeError::DepositPartiallyFailed) => (),
-					Err(error) => Err(Error::<T>::from(error))?,
+					Err(error) => return Err(Error::<T>::from(error).into()),
 				}
 				Transfers::<T>::insert(&deposit.transfer_id, ())
 			}
@@ -305,12 +305,10 @@ mod tests {
 		type Amount = u64;
 
 		fn deposit_into(_recipient: Self::Recipient, amount: Self::Amount) -> sp_currency_exchange::Result<()> {
-			if amount < MAX_DEPOSIT_AMOUNT * 10 {
-				Ok(())
-			} else if amount == MAX_DEPOSIT_AMOUNT * 10 {
-				Err(ExchangeError::DepositPartiallyFailed)
-			} else {
-				Err(ExchangeError::DepositFailed)
+			match amount {
+				amount if amount < MAX_DEPOSIT_AMOUNT * 10 => Ok(()),
+				amount if amount == MAX_DEPOSIT_AMOUNT * 10 => Err(ExchangeError::DepositPartiallyFailed),
+				_ => Err(ExchangeError::DepositFailed),
 			}
 		}
 	}
