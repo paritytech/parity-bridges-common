@@ -11,4 +11,5 @@ curl -v http://bridge-node-charlie:9933/health
 
 /home/user/ethereum-poa-relay eth-to-sub \
 	--sub-host bridge-node-alice \
-	--eth-host poa-node-arthur
+	--eth-host poa-node-arthur \
+	--prometheus-host=0.0.0.0
