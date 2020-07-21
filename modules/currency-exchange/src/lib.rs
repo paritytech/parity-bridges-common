@@ -147,7 +147,7 @@ impl<T: Trait> Module<T> {
 	/// Returns true if currency exchange module is able to import given transaction proof in
 	/// its current state.
 	pub fn filter_transaction_proof(proof: &<T::PeerBlockchain as Blockchain>::TransactionInclusionProof) -> bool {
-		if let Err(_) = prepare_deposit_details::<T>(proof) {
+		if prepare_deposit_details::<T>(proof).is_err() {
 			return false;
 		}
 

@@ -222,7 +222,7 @@ impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
 	async fn filter_transaction_proof(&self, proof: &EthereumTransactionInclusionProof) -> Result<bool, Self::Error> {
 		// let's try to parse transaction locally
 		let parse_result = bridge_node_runtime::exchange::EthTransaction::parse(&proof.proof[proof.index as usize]);
-		if let Err(_) = parse_result {
+		if parse_result.is_err() {
 			return Ok(false);
 		}
 
