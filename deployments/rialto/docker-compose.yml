@@ -65,6 +65,20 @@ services:
       - bridge-node-bob
       - bridge-node-charlie
 
+  relay-eth-exchange-sub:
+    build:
+      context: .
+      dockerfile: ./Bridge.Dockerfile
+      args:
+        BRIDGE_HASH: master
+        PROJECT: ethereum-poa-relay
+    entrypoint: /config/relay-eth-exchange-sub-entrypoint.sh
+    volumes:
+      - ./bridge-config:/config
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    depends_on: *all-nodes
+
   # relay-sub2eth:
   #   build:
   #     context: .
