@@ -233,11 +233,21 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
-impl pallet_bridge_eth_poa::Trait for Runtime {
-	type AuraConfiguration = bridge::BridgeAuraConfiguration;
-	type FinalityVotesCachingInterval = bridge::FinalityVotesCachingInterval;
-	type ValidatorsConfiguration = bridge::BridgeValidatorsConfiguration;
-	type PruningStrategy = bridge::PruningStrategy;
+type Rialto = pallet_bridge_eth_poa::Instance1;
+impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
+	type AuraConfiguration = rialto::BridgeAuraConfiguration;
+	type FinalityVotesCachingInterval = rialto::FinalityVotesCachingInterval;
+	type ValidatorsConfiguration = rialto::BridgeValidatorsConfiguration;
+	type PruningStrategy = rialto::PruningStrategy;
+	type OnHeadersSubmitted = ();
+}
+
+type Kovan = pallet_bridge_eth_poa::Instance2;
+impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
+	type AuraConfiguration = kovan::BridgeAuraConfiguration;
+	type FinalityVotesCachingInterval = kovan::FinalityVotesCachingInterval;
+	type ValidatorsConfiguration = kova::BridgeValidatorsConfiguration;
+	type PruningStrategy = kovan::PruningStrategy;
 	type OnHeadersSubmitted = ();
 }
 
@@ -448,7 +458,8 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		Session: pallet_session::{Module, Call, Storage, Event, Config<T>},
-		BridgeEthPoA: pallet_bridge_eth_poa::{Module, Call, Config, Storage, ValidateUnsigned},
+		Rialto: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
+		Kovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
 		BridgeCurrencyExchange: pallet_bridge_currency_exchange::{Module, Call},
 	}
 );
@@ -537,23 +548,43 @@ impl_runtime_apis! {
 
 	impl sp_bridge_eth_poa::EthereumHeadersApi<Block> for Runtime {
 		fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
-			let best_block = BridgeEthPoA::best_block();
+			let best_block = Rialto::best_block();
 			(best_block.number, best_block.hash)
 		}
 
 		fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
-			let finalized_block = BridgeEthPoA::finalized_block();
+			let finalized_block = Rialto::finalized_block();
 			(finalized_block.number, finalized_block.hash)
 		}
 
 		fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
-			BridgeEthPoA::is_import_requires_receipts(header)
+			Rialto::is_import_requires_receipts(header)
 		}
 
 		fn is_known_block(hash: sp_bridge_eth_poa::H256) -> bool {
-			BridgeEthPoA::is_known_block(hash)
+			Rialto::is_known_block(hash)
 		}
 	}
+
+	// impl sp_bridge_eth_poa::EthereumHeadersApi<Block, Kovan> for Runtime {
+	// 	fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
+	// 		let best_block = Kovan::best_block();
+	// 		(best_block.number, best_block.hash)
+	// 	}
+
+	// 	fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
+	// 		let finalized_block = Kovan::finalized_block();
+	// 		(finalized_block.number, finalized_block.hash)
+	// 	}
+
+	// 	fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
+	// 		Kovan::is_import_requires_receipts(header)
+	// 	}
+
+	// 	fn is_known_block(hash: sp_bridge_eth_poa::H256) -> bool {
+	// 		Kovan::is_known_block(hash)
+	// 	}
+	// }
 
 	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
 		fn validate_transaction(
