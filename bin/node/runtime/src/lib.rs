@@ -229,7 +229,10 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
-#[cfg(all(any(feature = "bridge-rialto", feature = "bridge-all-poa"), not(feature = "runtime-benchmarks")))]
+#[cfg(all(
+	any(feature = "bridge-rialto", feature = "bridge-all-poa"),
+	not(feature = "runtime-benchmarks")
+))]
 type Rialto = pallet_bridge_eth_poa::Instance1;
 impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
 	type AuraConfiguration = rialto::BridgeAuraConfiguration;
@@ -239,7 +242,10 @@ impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
 	type OnHeadersSubmitted = ();
 }
 
-#[cfg(all(any(feature = "bridge-kovan", feature = "bridge-all-poa"), not(feature = "runtime-benchmarks")))]
+#[cfg(all(
+	any(feature = "bridge-kovan", feature = "bridge-all-poa"),
+	not(feature = "runtime-benchmarks")
+))]
 type Kovan = pallet_bridge_eth_poa::Instance2;
 impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 	type AuraConfiguration = kovan::BridgeAuraConfiguration;
@@ -447,6 +453,9 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
+		// So right now this feature flag business is not supported in the macro. Since both pallets
+		// are part of the default feature having both included in the runtime is fine at the moment
+		//
 		// #[cfg(any(feature = "bridge-rialto", feature = "bridge-all-poa"))]
 		BridgeRialto: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
 		// #[cfg(any(feature = "bridge-kovan", feature = "bridge-all-poa"))]

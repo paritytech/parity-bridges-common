@@ -497,7 +497,11 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 
 	/// Returns true if the import of given block requires transactions receipts.
 	pub fn is_import_requires_receipts(header: Header) -> bool {
-		import::header_import_requires_receipts(&BridgeStorage::<T, I>::new(), &T::ValidatorsConfiguration::get(), &header)
+		import::header_import_requires_receipts(
+			&BridgeStorage::<T, I>::new(),
+			&T::ValidatorsConfiguration::get(),
+			&header,
+		)
 	}
 
 	/// Returns true if header is known to the runtime.
