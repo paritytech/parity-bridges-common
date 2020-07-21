@@ -224,7 +224,10 @@ package = "substrate-wasm-builder-runner"
 git = "https://github.com/paritytech/substrate/"
 
 [features]
-default = ["std", "bridge-rialto"]
+# TODO: Change so that Rialto is default
+# default = ["std", "bridge-rialto"]
+default = ["std", "bridge-all-poa"]
+bridge-all-poa = ["bridge-rialto", "bridge-kovan"]
 bridge-kovan = []
 bridge-rialto = []
 std = [

@@ -32,17 +32,13 @@ pub mod exchange;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benches;
-#[cfg(feature = "bridge-kovan")]
+#[cfg(any(feature = "bridge-kovan", feature = "bridge-all-poa"))]
 pub mod kovan;
-#[cfg(feature = "bridge-rialto")]
+#[cfg(any(feature = "bridge-rialto", feature = "bridge-all-poa"))]
 pub mod rialto;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub use benches as bridge;
-#[cfg(all(feature = "bridge-kovan", not(feature = "runtime-benchmarks")))]
-pub use kovan as bridge;
-#[cfg(all(feature = "bridge-rialto", not(feature = "runtime-benchmarks")))]
-pub use rialto as bridge;
 
 use codec::{Decode, Encode};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
@@ -233,6 +229,7 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
+#[cfg(all(any(feature = "bridge-rialto", feature = "bridge-all-poa"), not(feature = "runtime-benchmarks")))]
 type Rialto = pallet_bridge_eth_poa::Instance1;
 impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
 	type AuraConfiguration = rialto::BridgeAuraConfiguration;
@@ -242,11 +239,12 @@ impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
 	type OnHeadersSubmitted = ();
 }
 
+#[cfg(all(any(feature = "bridge-kovan", feature = "bridge-all-poa"), not(feature = "runtime-benchmarks")))]
 type Kovan = pallet_bridge_eth_poa::Instance2;
 impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 	type AuraConfiguration = kovan::BridgeAuraConfiguration;
 	type FinalityVotesCachingInterval = kovan::FinalityVotesCachingInterval;
-	type ValidatorsConfiguration = kova::BridgeValidatorsConfiguration;
+	type ValidatorsConfiguration = kovan::BridgeValidatorsConfiguration;
 	type PruningStrategy = kovan::PruningStrategy;
 	type OnHeadersSubmitted = ();
 }
@@ -449,6 +447,11 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
+		// #[cfg(any(feature = "bridge-rialto", feature = "bridge-all-poa"))]
+		BridgeRialto: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
+		// #[cfg(any(feature = "bridge-kovan", feature = "bridge-all-poa"))]
+		BridgeKovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
+		BridgeCurrencyExchange: pallet_bridge_currency_exchange::{Module, Call},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
@@ -458,9 +461,6 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		Session: pallet_session::{Module, Call, Storage, Event, Config<T>},
-		Rialto: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
-		Kovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
-		BridgeCurrencyExchange: pallet_bridge_currency_exchange::{Module, Call},
 	}
 );
 
@@ -540,51 +540,54 @@ impl_runtime_apis! {
 		}
 	}
 
+	// AccountId is a typedef for a concrete account ID
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
 		fn account_nonce(account: AccountId) -> Index {
 			System::account_nonce(account)
 		}
 	}
 
-	impl sp_bridge_eth_poa::EthereumHeadersApi<Block> for Runtime {
+	#[cfg(any(feature = "bridge-rialto", feature = "bridge-all-poa"))]
+	impl sp_bridge_eth_poa::RialtoHeaderApi<Block> for Runtime {
 		fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
-			let best_block = Rialto::best_block();
+			let best_block = BridgeRialto::best_block();
 			(best_block.number, best_block.hash)
 		}
 
 		fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
-			let finalized_block = Rialto::finalized_block();
+			let finalized_block = BridgeRialto::finalized_block();
 			(finalized_block.number, finalized_block.hash)
 		}
 
 		fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
-			Rialto::is_import_requires_receipts(header)
+			BridgeRialto::is_import_requires_receipts(header)
 		}
 
 		fn is_known_block(hash: sp_bridge_eth_poa::H256) -> bool {
-			Rialto::is_known_block(hash)
+			BridgeRialto::is_known_block(hash)
 		}
 	}
 
-	// impl sp_bridge_eth_poa::EthereumHeadersApi<Block, Kovan> for Runtime {
-	// 	fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
-	// 		let best_block = Kovan::best_block();
-	// 		(best_block.number, best_block.hash)
-	// 	}
+	#[cfg(any(feature = "bridge-kovan", feature = "bridge-all-poa"))]
+	impl sp_bridge_eth_poa::KovanHeaderApi<Block> for Runtime {
+		fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
+			let best_block = BridgeKovan::best_block();
+			(best_block.number, best_block.hash)
+		}
 
-	// 	fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
-	// 		let finalized_block = Kovan::finalized_block();
-	// 		(finalized_block.number, finalized_block.hash)
-	// 	}
+		fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
+			let finalized_block = BridgeKovan::finalized_block();
+			(finalized_block.number, finalized_block.hash)
+		}
 
-	// 	fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
-	// 		Kovan::is_import_requires_receipts(header)
-	// 	}
+		fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
+			BridgeKovan::is_import_requires_receipts(header)
+		}
 
-	// 	fn is_known_block(hash: sp_bridge_eth_poa::H256) -> bool {
-	// 		Kovan::is_known_block(hash)
-	// 	}
-	// }
+		fn is_known_block(hash: sp_bridge_eth_poa::H256) -> bool {
+			BridgeKovan::is_known_block(hash)
+		}
+	}
 
 	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
 		fn validate_transaction(
@@ -715,7 +718,8 @@ impl_runtime_apis! {
 				}
 			}
 
-			add_benchmark!(params, batches, b"bridge-eth-poa", BridgeEthPoA);
+			add_benchmark!(params, batches, b"bridge-eth-poa", BridgeRialto);
+			// add_benchmark!(params, batches, b"bridge-eth-poa", BridgeKovan);
 			add_benchmark!(params, batches, b"bridge-currency-exchange", BridgeCurrencyExchangeBench::<Runtime>);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }

@@ -74,7 +74,9 @@ impl Blockchain for EthBlockchain {
 
 	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction> {
 		let is_transaction_finalized =
-			crate::BridgeEthPoA::verify_transaction_finalized(proof.block, proof.index, &proof.proof);
+			// TODO: Figure out how to choose between pallet instances
+			// crate::BridgeEthPoA::verify_transaction_finalized(proof.block, proof.index, &proof.proof);
+			crate::BridgeRialto::verify_transaction_finalized(proof.block, proof.index, &proof.proof);
 
 		if !is_transaction_finalized {
 			return None;
