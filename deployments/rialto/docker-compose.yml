@@ -52,16 +52,12 @@ services:
       args:
         BRIDGE_HASH: master
         PROJECT: ethereum-poa-relay
+        HEALTH: localhost:9616
     entrypoint: /config/relay-eth2sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
-    healthcheck:
-      test: "curl -f http://localhost:9616/ || exit 1"
-      interval: 3m00s
-      timeout: 3s
-      retries: 3
     depends_on: &all-nodes
       - poa-node-arthur
       - poa-node-bertha
@@ -91,6 +87,7 @@ services:
       args:
         BRIDGE_HASH: master
         PROJECT: bridge-node
+        HEALTH: localhost:9933/health
     entrypoint:
       - /home/user/bridge-node
       - --execution=Native
@@ -108,11 +105,6 @@ services:
     ports:
       - "9933:9933"
       - "9944:9944"
-    healthcheck:
-      test: "curl -f http://localhost:9933/health || exit 1"
-      interval: 3m00s
-      timeout: 10s
-      retries: 3
 
   bridge-node-bob:
     <<: *bridge-node
