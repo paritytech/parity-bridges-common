@@ -32,9 +32,7 @@ pub mod exchange;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benches;
-#[cfg(any(feature = "bridge-kovan", feature = "bridge-all-poa"))]
 pub mod kovan;
-#[cfg(any(feature = "bridge-rialto", feature = "bridge-all-poa"))]
 pub mod rialto;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -229,10 +227,6 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
-#[cfg(all(
-	any(feature = "bridge-rialto", feature = "bridge-all-poa"),
-	not(feature = "runtime-benchmarks")
-))]
 type Rialto = pallet_bridge_eth_poa::Instance1;
 impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
 	type AuraConfiguration = rialto::BridgeAuraConfiguration;
@@ -242,10 +236,6 @@ impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
 	type OnHeadersSubmitted = ();
 }
 
-#[cfg(all(
-	any(feature = "bridge-kovan", feature = "bridge-all-poa"),
-	not(feature = "runtime-benchmarks")
-))]
 type Kovan = pallet_bridge_eth_poa::Instance2;
 impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 	type AuraConfiguration = kovan::BridgeAuraConfiguration;
@@ -255,10 +245,6 @@ impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 	type OnHeadersSubmitted = ();
 }
 
-#[cfg(all(
-	any(feature = "bridge-rialto", feature = "bridge-all-poa"),
-	not(feature = "runtime-benchmarks")
-))]
 type RialtoCurrencyExchange = pallet_bridge_currency_exchange::Instance1;
 impl pallet_bridge_currency_exchange::Trait<RialtoCurrencyExchange> for Runtime {
 	type OnTransactionSubmitted = ();
@@ -270,10 +256,6 @@ impl pallet_bridge_currency_exchange::Trait<RialtoCurrencyExchange> for Runtime 
 	type DepositInto = DepositInto;
 }
 
-#[cfg(all(
-	any(feature = "bridge-kovan", feature = "bridge-all-poa"),
-	not(feature = "runtime-benchmarks")
-))]
 type KovanCurrencyExchange = pallet_bridge_currency_exchange::Instance2;
 impl pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange> for Runtime {
 	type OnTransactionSubmitted = ();
@@ -473,12 +455,7 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		// So right now this feature flag business is not supported in the macro. Since both pallets
-		// are part of the default feature having both included in the runtime is fine at the moment
-		//
-		// #[cfg(any(feature = "bridge-rialto", feature = "bridge-all-poa"))]
 		BridgeRialto: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
-		// #[cfg(any(feature = "bridge-kovan", feature = "bridge-all-poa"))]
 		BridgeKovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
 		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
@@ -577,7 +554,6 @@ impl_runtime_apis! {
 		}
 	}
 
-	#[cfg(any(feature = "bridge-rialto", feature = "bridge-all-poa"))]
 	impl sp_bridge_eth_poa::RialtoHeaderApi<Block> for Runtime {
 		fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
 			let best_block = BridgeRialto::best_block();
@@ -598,7 +574,6 @@ impl_runtime_apis! {
 		}
 	}
 
-	#[cfg(any(feature = "bridge-kovan", feature = "bridge-all-poa"))]
 	impl sp_bridge_eth_poa::KovanHeaderApi<Block> for Runtime {
 		fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
 			let best_block = BridgeKovan::best_block();
