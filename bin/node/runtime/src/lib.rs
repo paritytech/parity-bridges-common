@@ -255,9 +255,29 @@ impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 	type OnHeadersSubmitted = ();
 }
 
-impl pallet_bridge_currency_exchange::Trait for Runtime {
+#[cfg(all(
+	any(feature = "bridge-rialto", feature = "bridge-all-poa"),
+	not(feature = "runtime-benchmarks")
+))]
+type RialtoCurrencyExchange = pallet_bridge_currency_exchange::Instance1;
+impl pallet_bridge_currency_exchange::Trait<RialtoCurrencyExchange> for Runtime {
 	type OnTransactionSubmitted = ();
 	type PeerBlockchain = rialto::RialtoBlockchain;
+	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
+	type RecipientsMap = sp_currency_exchange::IdentityRecipients<AccountId>;
+	type Amount = Balance;
+	type CurrencyConverter = sp_currency_exchange::IdentityCurrencyConverter<Balance>;
+	type DepositInto = DepositInto;
+}
+
+#[cfg(all(
+	any(feature = "bridge-kovan", feature = "bridge-all-poa"),
+	not(feature = "runtime-benchmarks")
+))]
+type KovanCurrencyExchange = pallet_bridge_currency_exchange::Instance2;
+impl pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange> for Runtime {
+	type OnTransactionSubmitted = ();
+	type PeerBlockchain = kovan::KovanBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
 	type RecipientsMap = sp_currency_exchange::IdentityRecipients<AccountId>;
 	type Amount = Balance;
@@ -460,7 +480,8 @@ construct_runtime!(
 		BridgeRialto: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
 		// #[cfg(any(feature = "bridge-kovan", feature = "bridge-all-poa"))]
 		BridgeKovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
-		BridgeCurrencyExchange: pallet_bridge_currency_exchange::{Module, Call},
+		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
+		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
