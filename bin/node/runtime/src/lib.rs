@@ -257,7 +257,7 @@ impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 
 impl pallet_bridge_currency_exchange::Trait for Runtime {
 	type OnTransactionSubmitted = ();
-	type PeerBlockchain = exchange::EthBlockchain;
+	type PeerBlockchain = rialto::RialtoBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
 	type RecipientsMap = sp_currency_exchange::IdentityRecipients<AccountId>;
 	type Amount = Balance;

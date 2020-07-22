@@ -30,7 +30,6 @@
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
-use pallet_bridge_currency_exchange::Blockchain;
 use sp_bridge_eth_poa::{transaction_decode, RawTransaction};
 use sp_currency_exchange::{
 	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult,
@@ -63,27 +62,6 @@ pub struct EthereumTransactionTag {
 	pub account: [u8; 20],
 	/// Lock transaction nonce.
 	pub nonce: sp_core::U256,
-}
-
-/// Eth blockchain from runtime perspective.
-pub struct EthBlockchain;
-
-impl Blockchain for EthBlockchain {
-	type Transaction = RawTransaction;
-	type TransactionInclusionProof = EthereumTransactionInclusionProof;
-
-	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction> {
-		let is_transaction_finalized =
-			// TODO: Figure out how to choose between pallet instances
-			// crate::BridgeEthPoA::verify_transaction_finalized(proof.block, proof.index, &proof.proof);
-			crate::BridgeRialto::verify_transaction_finalized(proof.block, proof.index, &proof.proof);
-
-		if !is_transaction_finalized {
-			return None;
-		}
-
-		proof.proof.get(proof.index as usize).cloned()
-	}
 }
 
 /// Eth transaction from runtime perspective.

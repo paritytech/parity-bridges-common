@@ -34,7 +34,7 @@ pub trait OnTransactionSubmitted<AccountId> {
 }
 
 /// Peer blockhain interface.
-pub trait Blockchain {
+pub trait PeerBlockchain {
 	/// Transaction type.
 	type Transaction: Parameter;
 	/// Transaction inclusion proof type.
@@ -50,11 +50,11 @@ pub trait Blockchain {
 pub trait Trait: frame_system::Trait {
 	/// Handler for transaction submission result.
 	type OnTransactionSubmitted: OnTransactionSubmitted<Self::AccountId>;
-	/// Peer blockchain type.
-	type PeerBlockchain: Blockchain;
+	/// Represents the blockchain that we'll be exchanging currency with.
+	type PeerBlockchain: PeerBlockchain;
 	/// Peer blockchain transaction parser.
 	type PeerMaybeLockFundsTransaction: MaybeLockFundsTransaction<
-		Transaction = <Self::PeerBlockchain as Blockchain>::Transaction,
+		Transaction = <Self::PeerBlockchain as PeerBlockchain>::Transaction,
 	>;
 	/// Map between blockchains recipients.
 	type RecipientsMap: RecipientsMap<
@@ -101,7 +101,7 @@ decl_module! {
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn import_peer_transaction(
 			origin,
-			proof: <<T as Trait>::PeerBlockchain as Blockchain>::TransactionInclusionProof,
+			proof: <<T as Trait>::PeerBlockchain as PeerBlockchain>::TransactionInclusionProof,
 		) -> DispatchResult {
 			let submitter = frame_system::ensure_signed(origin)?;
 
@@ -209,7 +209,7 @@ mod tests {
 
 	pub struct DummyBlockchain;
 
-	impl Blockchain for DummyBlockchain {
+	impl PeerBlockchain for DummyBlockchain {
 		type Transaction = RawTransaction;
 		type TransactionInclusionProof = (bool, RawTransaction);
 

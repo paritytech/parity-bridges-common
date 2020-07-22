@@ -131,6 +131,29 @@ impl BridgePruningStrategy for PruningStrategy {
 	}
 }
 
+use pallet_bridge_currency_exchange::PeerBlockchain;
+use sp_bridge_eth_poa::RawTransaction;
+use crate::exchange::EthereumTransactionInclusionProof;
+
+/// The Kovan Blockchain as seen by the runtime.
+pub struct KovanBlockchain;
+
+impl PeerBlockchain for KovanBlockchain {
+	type Transaction = RawTransaction;
+	type TransactionInclusionProof = EthereumTransactionInclusionProof;
+
+	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction> {
+		let is_transaction_finalized =
+			crate::BridgeKovan::verify_transaction_finalized(proof.block, proof.index, &proof.proof);
+
+		if !is_transaction_finalized {
+			return None;
+		}
+
+		proof.proof.get(proof.index as usize).cloned()
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
