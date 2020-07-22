@@ -317,7 +317,8 @@ impl SubmitEthereumExchangeTransactionProof for SubstrateRpcClient {
 		let nonce = self.next_account_index(account_id).await?;
 
 		let transaction = create_signed_transaction(
-			bridge_node_runtime::Call::BridgeCurrencyExchange(
+			// TODO: Change so that that it's dynamic
+			bridge_node_runtime::Call::BridgeRialtoCurrencyExchange(
 				bridge_node_runtime::BridgeCurrencyExchangeCall::import_peer_transaction(proof),
 			),
 			&params.signer,
@@ -337,7 +338,8 @@ fn create_signed_submit_transaction(
 	genesis_hash: H256,
 ) -> bridge_node_runtime::UncheckedExtrinsic {
 	create_signed_transaction(
-		bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::import_signed_headers(
+		// TODO: Change so that that it's dynamic
+		bridge_node_runtime::Call::BridgeRialto(bridge_node_runtime::BridgeEthPoACall::import_signed_headers(
 			headers
 				.into_iter()
 				.map(|header| {
@@ -357,7 +359,8 @@ fn create_signed_submit_transaction(
 /// Create unsigned Substrate transaction for submitting Ethereum header.
 fn create_unsigned_submit_transaction(header: QueuedEthereumHeader) -> bridge_node_runtime::UncheckedExtrinsic {
 	let function =
-		bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::import_unsigned_header(
+		// TODO: Change so that that it's dynamic
+		bridge_node_runtime::Call::BridgeRialto(bridge_node_runtime::BridgeEthPoACall::import_unsigned_header(
 			into_substrate_ethereum_header(header.header()),
 			into_substrate_ethereum_receipts(header.extra()),
 		));
