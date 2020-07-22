@@ -1,0 +1,15 @@
+notifiers:
+  - name: Email
+    type: email
+    uid: notifier1
+    is_default: true
+    send_reminder: true
+    frequency: 1h
+    disable_resolve_message: false
+    settings:
+      singleEmail: true
+      addresses: tomasz@parity.io
+
+delete_notifiers:
+  - name: Email
+    uid: notifier1

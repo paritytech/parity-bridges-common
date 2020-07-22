@@ -168,6 +168,12 @@ services:
       VIRTUAL_PORT: 3000
       LETSENCRYPT_HOST: dashboard.rialto.bridges.test-installations.parity.io
       LETSENCRYPT_EMAIL: admin@parity.io
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
+      GF_SMTP_ENABLED: ${GRAFANA_SMTP_ENABLED:-false}
+      GF_SMTP_USER: ${GRAFANA_SMTP_USER}
+      GF_SMTP_PASSWORD: ${GRAFANA_SMTP_PASSWORD}
+      GF_SMTP_HOST: ${GRAFANA_SMTP_HOST}
+      GF_SMTP_FROM_ADDRESS: ${GRAFANA_SMTP_ADDRESS}
     volumes:
       - ../dashboard/grafana/provisioning/:/etc/grafana/provisioning/
     ports:
