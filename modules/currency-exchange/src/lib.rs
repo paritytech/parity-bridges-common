@@ -33,7 +33,7 @@ pub trait OnTransactionSubmitted<AccountId> {
 	fn on_valid_transaction_submitted(submitter: AccountId);
 }
 
-/// Peer blockhain interface.
+/// Peer blockchain interface.
 pub trait PeerBlockchain {
 	/// Transaction type.
 	type Transaction: Parameter;
@@ -47,7 +47,7 @@ pub trait PeerBlockchain {
 }
 
 /// The module configuration trait
-pub trait Trait: frame_system::Trait {
+pub trait Trait<I: Instance>: frame_system::Trait {
 	/// Handler for transaction submission result.
 	type OnTransactionSubmitted: OnTransactionSubmitted<Self::AccountId>;
 	/// Represents the blockchain that we'll be exchanging currency with.
@@ -73,7 +73,7 @@ pub trait Trait: frame_system::Trait {
 }
 
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Trait<I>, I: Instance> {
 		/// Invalid peer blockchain transaction provided.
 		InvalidTransaction,
 		/// Peer transaction has invalid amount.
@@ -96,32 +96,32 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Trait<I>, I: Instance> for enum Call where origin: T::Origin {
 		/// Imports lock fund transaction of the peer blockchain.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn import_peer_transaction(
 			origin,
-			proof: <<T as Trait>::PeerBlockchain as PeerBlockchain>::TransactionInclusionProof,
+			proof: <<T as Trait<I>>::PeerBlockchain as PeerBlockchain>::TransactionInclusionProof,
 		) -> DispatchResult {
 			let submitter = frame_system::ensure_signed(origin)?;
 
 			// ensure that transaction is included in finalized block that we know of
-			let transaction = <T as Trait>::PeerBlockchain::verify_transaction_inclusion_proof(
+			let transaction = <T as Trait<I>>::PeerBlockchain::verify_transaction_inclusion_proof(
 				&proof,
-			).ok_or_else(|| Error::<T>::UnfinalizedTransaction)?;
+			).ok_or_else(|| Error::<T, I>::UnfinalizedTransaction)?;
 
 			// parse transaction
-			let transaction = <T as Trait>::PeerMaybeLockFundsTransaction::parse(&transaction)
-				.map_err(Error::<T>::from)?;
+			let transaction = <T as Trait<I>>::PeerMaybeLockFundsTransaction::parse(&transaction)
+				.map_err(Error::<T, I>::from)?;
 			let transfer_id = transaction.id;
 			ensure!(
-				!Transfers::<T>::contains_key(&transfer_id),
-				Error::<T>::AlreadyClaimed
+				!Transfers::<T, I>::contains_key(&transfer_id),
+				Error::<T, I>::AlreadyClaimed
 			);
 
 			// grant recipient
-			let recipient = T::RecipientsMap::map(transaction.recipient).map_err(Error::<T>::from)?;
-			let amount = T::CurrencyConverter::convert(transaction.amount).map_err(Error::<T>::from)?;
+			let recipient = T::RecipientsMap::map(transaction.recipient).map_err(Error::<T, I>::from)?;
+			let amount = T::CurrencyConverter::convert(transaction.amount).map_err(Error::<T, I>::from)?;
 
 			// make sure to update the mapping if we deposit successfully to avoid double spending,
 			// i.e. whenever `deposit_into` is successful we MUST update `Transfers`.
@@ -132,9 +132,9 @@ decl_module! {
 				match deposit_result {
 					Ok(_) => (),
 					Err(ExchangeError::DepositPartiallyFailed) => (),
-					Err(error) => return Err(Error::<T>::from(error).into()),
+					Err(error) => return Err(Error::<T, I>::from(error).into()),
 				}
-				Transfers::<T>::insert(&transfer_id, ())
+				Transfers::<T, I>::insert(&transfer_id, ())
 			}
 
 			// reward submitter for providing valid message
@@ -152,13 +152,13 @@ decl_module! {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Bridge {
+	trait Store for Module<T: Trait<I>, I: Instance> as Bridge {
 		/// All transfers that have already been claimed.
 		Transfers: map hasher(blake2_128_concat) <T::PeerMaybeLockFundsTransaction as MaybeLockFundsTransaction>::Id => ();
 	}
 }
 
-impl<T: Trait> From<ExchangeError> for Error<T> {
+impl<T: Trait<I>, I: Instance> From<ExchangeError> for Error<T, I> {
 	fn from(error: ExchangeError) -> Self {
 		match error {
 			ExchangeError::InvalidTransaction => Error::InvalidTransaction,
