@@ -131,9 +131,9 @@ impl BridgePruningStrategy for PruningStrategy {
 	}
 }
 
+use crate::exchange::EthereumTransactionInclusionProof;
 use pallet_bridge_currency_exchange::PeerBlockchain;
 use sp_bridge_eth_poa::RawTransaction;
-use crate::exchange::EthereumTransactionInclusionProof;
 
 /// The Kovan Blockchain as seen by the runtime.
 pub struct KovanBlockchain;
