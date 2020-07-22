@@ -351,7 +351,7 @@ impl<AccountId> OnHeadersSubmitted<AccountId> for () {
 }
 
 /// The module configuration trait.
-pub trait Trait<I: Instance>: frame_system::Trait {
+pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Aura configuration.
 	type AuraConfiguration: Get<AuraConfiguration>;
 	/// Validators configuration.
@@ -372,7 +372,7 @@ pub trait Trait<I: Instance>: frame_system::Trait {
 }
 
 decl_module! {
-	pub struct Module<T: Trait<I>, I: Instance> for enum Call where origin: T::Origin {
+	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Import single Aura header. Requires transaction to be **UNSIGNED**.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn import_unsigned_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
@@ -434,7 +434,7 @@ decl_module! {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait<I>, I: Instance> as Bridge {
+	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as Bridge {
 		/// Best known block.
 		BestBlock: (HeaderId, U256);
 		/// Best finalized block.
