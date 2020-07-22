@@ -57,6 +57,8 @@ services:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "9616:9616"
     depends_on: &all-nodes
       - poa-node-arthur
       - poa-node-bertha
@@ -145,3 +147,20 @@ services:
     ports:
       - "10133:9933"
       - "10144:9944"
+
+  prometheus-metrics:
+    image: prom/prometheus
+    volumes:
+      - ../dashboard/prometheus/:/etc/prometheus/
+    ports:
+      - "9090:9090"
+    depends_on: *all-nodes
+
+  grafana-dashboard:
+    image: grafana/grafana
+    volumes:
+      - ../dashboard/grafana/provisioning/:/etc/grafana/provisioning/
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus-metrics
