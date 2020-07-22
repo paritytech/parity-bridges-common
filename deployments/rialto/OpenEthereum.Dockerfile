@@ -34,21 +34,29 @@ WORKDIR /openethereum
 ARG ETHEREUM_REPO=https://github.com/svyatonik/parity.git
 ARG ETHEREUM_HASH=9838f59b6536e7482e145fa55acf07ac4e824ed0
 RUN git clone $ETHEREUM_REPO /openethereum && git checkout $ETHEREUM_HASH
+
 ### Build locally. Make sure to set the CONTEXT to main directory of the repo.
 # ADD openethereum /openethereum
 
 WORKDIR /parity-bridges-common
 
 ### Build from the repo
+# Build using `master` initially.
 ARG BRIDGE_REPO=https://github.com/paritytech/parity-bridges-common
-ARG BRIDGE_HASH=master
+RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout master
 
-RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout $BRIDGE_HASH
+WORKDIR /openethereum
+RUN cargo build --release --verbose || true
+
+# Then rebuild by switching to a different branch to only incrementally
+# build the changes.
+WORKDIR /parity-bridges-common
+ARG BRIDGE_HASH=master
+RUN git checkout $BRIDGE_HASH
 ### Build locally. Make sure to set the CONTEXT to main directory of the repo.
 # ADD . /parity-bridges-common
 
 WORKDIR /openethereum
-
 RUN cargo build --release --verbose
 RUN strip ./target/release/openethereum
 

@@ -34,14 +34,19 @@ RUN rustc -vV && \
 WORKDIR /parity-bridges-common
 
 ### Build from the repo
+# Start with master build first.
 ARG BRIDGE_REPO=https://github.com/paritytech/parity-bridges-common
+RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout master
+
+ARG PROJECT=ethereum-poa-relay
+RUN cargo build --release --verbose -p ${PROJECT}
+
+# Then switch to expected branch and re-build only the stuff that changed.
 ARG BRIDGE_HASH=master
-RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout $BRIDGE_HASH
+RUN git checkout $BRIDGE_HASH
 
 ### Build locally
 # ADD .
-
-ARG PROJECT=ethereum-poa-relay
 
 RUN cargo build --release --verbose -p ${PROJECT}
 RUN strip ./target/release/${PROJECT}
