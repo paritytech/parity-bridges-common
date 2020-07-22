@@ -86,7 +86,7 @@ impl HeaderBuilder {
 		use crate::HeadersByNumber;
 		use frame_support::StorageMap;
 
-		let parent_hash = HeadersByNumber::get(parent_number).unwrap()[0];
+		let parent_hash = HeadersByNumber::<crate::DefaultInstance>::get(parent_number).unwrap()[0];
 		Self::with_parent_hash_on_runtime::<T>(parent_hash)
 	}
 

@@ -554,7 +554,7 @@ impl<T: Trait<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Mod
 
 /// Runtime bridge storage.
 #[derive(Default)]
-pub struct BridgeStorage<T, I>(sp_std::marker::PhantomData<(T, I)>);
+pub struct BridgeStorage<T, I = DefaultInstance>(sp_std::marker::PhantomData<(T, I)>);
 
 impl<T: Trait<I>, I: Instance> BridgeStorage<T, I> {
 	/// Create new BridgeStorage.
@@ -992,7 +992,7 @@ pub(crate) mod tests {
 					);
 
 					if i == 7 && j == 1 {
-						ScheduledChanges::insert(
+						ScheduledChanges::<DefaultInstance>::insert(
 							hash,
 							ScheduledChange {
 								validators: validators_addresses(5),
@@ -1001,7 +1001,7 @@ pub(crate) mod tests {
 						);
 					}
 				}
-				HeadersByNumber::insert(i, headers_by_number);
+				HeadersByNumber::<DefaultInstance>::insert(i, headers_by_number);
 			}
 
 			f(BridgeStorage::new())
@@ -1011,16 +1011,16 @@ pub(crate) mod tests {
 	#[test]
 	fn blocks_are_not_pruned_if_range_is_empty() {
 		with_headers_to_prune(|storage| {
-			BlocksToPrune::put(PruningRange {
+			BlocksToPrune::<DefaultInstance>::put(PruningRange {
 				oldest_unpruned_block: 5,
 				oldest_block_to_keep: 5,
 			});
 
 			// try to prune blocks [5; 10)
 			storage.prune_blocks(0xFFFF, 10, 5);
-			assert_eq!(HeadersByNumber::get(&5).unwrap().len(), 5);
+			assert_eq!(HeadersByNumber::<DefaultInstance>::get(&5).unwrap().len(), 5);
 			assert_eq!(
-				BlocksToPrune::get(),
+				BlocksToPrune::<DefaultInstance>::get(),
 				PruningRange {
 					oldest_unpruned_block: 5,
 					oldest_block_to_keep: 5,
@@ -1032,7 +1032,7 @@ pub(crate) mod tests {
 	#[test]
 	fn blocks_to_prune_never_shrinks_from_the_end() {
 		with_headers_to_prune(|storage| {
-			BlocksToPrune::put(PruningRange {
+			BlocksToPrune::<DefaultInstance>::put(PruningRange {
 				oldest_unpruned_block: 0,
 				oldest_block_to_keep: 5,
 			});
@@ -1040,7 +1040,7 @@ pub(crate) mod tests {
 			// try to prune blocks [5; 10)
 			storage.prune_blocks(0xFFFF, 10, 3);
 			assert_eq!(
-				BlocksToPrune::get(),
+				BlocksToPrune::<DefaultInstance>::get(),
 				PruningRange {
 					oldest_unpruned_block: 5,
 					oldest_block_to_keep: 5,
@@ -1054,12 +1054,12 @@ pub(crate) mod tests {
 		with_headers_to_prune(|storage| {
 			// try to prune blocks [0; 10)
 			storage.prune_blocks(0, 10, 10);
-			assert!(HeadersByNumber::get(&0).is_some());
-			assert!(HeadersByNumber::get(&1).is_some());
-			assert!(HeadersByNumber::get(&2).is_some());
-			assert!(HeadersByNumber::get(&3).is_some());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&0).is_some());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&1).is_some());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&2).is_some());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&3).is_some());
 			assert_eq!(
-				BlocksToPrune::get(),
+				BlocksToPrune::<DefaultInstance>::get(),
 				PruningRange {
 					oldest_unpruned_block: 0,
 					oldest_block_to_keep: 10,
@@ -1074,13 +1074,13 @@ pub(crate) mod tests {
 			// try to prune blocks [0; 10)
 			storage.prune_blocks(7, 10, 10);
 			// 1 headers with number = 0 is pruned (1 total)
-			assert!(HeadersByNumber::get(&0).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&0).is_none());
 			// 5 headers with number = 1 are pruned (6 total)
-			assert!(HeadersByNumber::get(&1).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&1).is_none());
 			// 1 header with number = 2 are pruned (7 total)
-			assert_eq!(HeadersByNumber::get(&2).unwrap().len(), 4);
+			assert_eq!(HeadersByNumber::<DefaultInstance>::get(&2).unwrap().len(), 4);
 			assert_eq!(
-				BlocksToPrune::get(),
+				BlocksToPrune::<DefaultInstance>::get(),
 				PruningRange {
 					oldest_unpruned_block: 2,
 					oldest_block_to_keep: 10,
@@ -1090,13 +1090,13 @@ pub(crate) mod tests {
 			// try to prune blocks [2; 10)
 			storage.prune_blocks(11, 10, 10);
 			// 4 headers with number = 2 are pruned (4 total)
-			assert!(HeadersByNumber::get(&2).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&2).is_none());
 			// 5 headers with number = 3 are pruned (9 total)
-			assert!(HeadersByNumber::get(&3).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&3).is_none());
 			// 2 headers with number = 4 are pruned (11 total)
-			assert_eq!(HeadersByNumber::get(&4).unwrap().len(), 3);
+			assert_eq!(HeadersByNumber::<DefaultInstance>::get(&4).unwrap().len(), 3);
 			assert_eq!(
-				BlocksToPrune::get(),
+				BlocksToPrune::<DefaultInstance>::get(),
 				PruningRange {
 					oldest_unpruned_block: 4,
 					oldest_block_to_keep: 10,
@@ -1113,16 +1113,16 @@ pub(crate) mod tests {
 			// and one of blocks#7 has scheduled change
 			// => we won't prune any block#7 at all
 			storage.prune_blocks(0xFFFF, 5, 10);
-			assert!(HeadersByNumber::get(&0).is_none());
-			assert!(HeadersByNumber::get(&1).is_none());
-			assert!(HeadersByNumber::get(&2).is_none());
-			assert!(HeadersByNumber::get(&3).is_none());
-			assert!(HeadersByNumber::get(&4).is_none());
-			assert!(HeadersByNumber::get(&5).is_none());
-			assert!(HeadersByNumber::get(&6).is_none());
-			assert_eq!(HeadersByNumber::get(&7).unwrap().len(), 5);
+			assert!(HeadersByNumber::<DefaultInstance>::get(&0).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&1).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&2).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&3).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&4).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&5).is_none());
+			assert!(HeadersByNumber::<DefaultInstance>::get(&6).is_none());
+			assert_eq!(HeadersByNumber::<DefaultInstance>::get(&7).unwrap().len(), 5);
 			assert_eq!(
-				BlocksToPrune::get(),
+				BlocksToPrune::<DefaultInstance>::get(),
 				PruningRange {
 					oldest_unpruned_block: 7,
 					oldest_block_to_keep: 10,
@@ -1155,7 +1155,7 @@ pub(crate) mod tests {
 			);
 
 			// when we later prune this header, cache entry is removed
-			BlocksToPrune::put(PruningRange {
+			BlocksToPrune::<DefaultInstance>::put(PruningRange {
 				oldest_unpruned_block: interval - 1,
 				oldest_block_to_keep: interval - 1,
 			});
@@ -1242,7 +1242,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, header1s);
 
 			// header1 is finalized
-			FinalizedBlock::put(header1_id);
+			FinalizedBlock::<DefaultInstance>::put(header1_id);
 
 			// trying to get finality votes when importing header2 -> header1 succeeds
 			assert!(
