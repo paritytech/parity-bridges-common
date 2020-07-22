@@ -64,7 +64,7 @@ USER user
 WORKDIR /home/user
 
 ARG PROJECT=ethereum-poa-relay
-ARG HEALTH=http://localhost:9616
+ARG HEALTH=http://localhost:9616/metrics
 
 COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
 
