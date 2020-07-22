@@ -47,7 +47,7 @@ pub trait PeerBlockchain {
 }
 
 /// The module configuration trait
-pub trait Trait<I: Instance>: frame_system::Trait {
+pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Handler for transaction submission result.
 	type OnTransactionSubmitted: OnTransactionSubmitted<Self::AccountId>;
 	/// Represents the blockchain that we'll be exchanging currency with.
@@ -96,7 +96,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait<I>, I: Instance> for enum Call where origin: T::Origin {
+	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Imports lock fund transaction of the peer blockchain.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn import_peer_transaction(
@@ -152,7 +152,7 @@ decl_module! {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait<I>, I: Instance> as Bridge {
+	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as Bridge {
 		/// All transfers that have already been claimed.
 		Transfers: map hasher(blake2_128_concat) <T::PeerMaybeLockFundsTransaction as MaybeLockFundsTransaction>::Id => ();
 	}
@@ -203,7 +203,7 @@ mod tests {
 
 	impl OnTransactionSubmitted<AccountId> for DummyTransactionSubmissionHandler {
 		fn on_valid_transaction_submitted(submitter: AccountId) {
-			Transfers::<TestRuntime>::insert(submitter, ());
+			Transfers::<TestRuntime, DefaultInstance>::insert(submitter, ());
 		}
 	}
 
@@ -354,7 +354,7 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
 				Exchange::import_peer_transaction(Origin::signed(SUBMITTER), (false, transaction(0))),
-				Error::<TestRuntime>::UnfinalizedTransaction,
+				Error::<TestRuntime, DefaultInstance>::UnfinalizedTransaction,
 			);
 		});
 	}
@@ -367,7 +367,7 @@ mod tests {
 					Origin::signed(SUBMITTER),
 					(true, transaction(INVALID_TRANSACTION_ID)),
 				),
-				Error::<TestRuntime>::InvalidTransaction,
+				Error::<TestRuntime, DefaultInstance>::InvalidTransaction,
 			);
 		});
 	}
@@ -381,7 +381,7 @@ mod tests {
 					Origin::signed(SUBMITTER),
 					(true, transaction(ALREADY_CLAIMED_TRANSACTION_ID)),
 				),
-				Error::<TestRuntime>::AlreadyClaimed,
+				Error::<TestRuntime, DefaultInstance>::AlreadyClaimed,
 			);
 		});
 	}
@@ -393,7 +393,7 @@ mod tests {
 			transaction.recipient = UNKNOWN_RECIPIENT_ID;
 			assert_noop!(
 				Exchange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
-				Error::<TestRuntime>::FailedToMapRecipients,
+				Error::<TestRuntime, DefaultInstance>::FailedToMapRecipients,
 			);
 		});
 	}
@@ -405,7 +405,7 @@ mod tests {
 			transaction.amount = INVALID_AMOUNT;
 			assert_noop!(
 				Exchange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
-				Error::<TestRuntime>::FailedToConvertCurrency,
+				Error::<TestRuntime, DefaultInstance>::FailedToConvertCurrency,
 			);
 		});
 	}
@@ -417,7 +417,7 @@ mod tests {
 			transaction.amount = MAX_DEPOSIT_AMOUNT + 1;
 			assert_noop!(
 				Exchange::import_peer_transaction(Origin::signed(SUBMITTER), (true, transaction)),
-				Error::<TestRuntime>::DepositFailed,
+				Error::<TestRuntime, DefaultInstance>::DepositFailed,
 			);
 		});
 	}
