@@ -313,6 +313,8 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_excha
 
 	log::debug!(target: "bridge", "Etehereum exchange params: {:?}", params);
 
+	log::debug!(target: "bridge", "Etehereum exchange params: {:?}", params);
+
 	Ok(params)
 }
 
