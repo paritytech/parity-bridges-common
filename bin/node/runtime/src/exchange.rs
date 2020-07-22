@@ -127,7 +127,7 @@ impl MaybeLockFundsTransaction for EthTransaction {
 
 /// Prepares everything required to bench claim of funds locked by given transaction.
 #[cfg(feature = "runtime-benchmarks")]
-pub(crate) fn prepare_environment_for_claim<T: pallet_bridge_eth_poa::Trait>(
+pub(crate) fn prepare_environment_for_claim<T: pallet_bridge_eth_poa::Trait<I>, I: pallet_bridge_eth_poa::Instance>(
 	transactions: &[RawTransaction],
 ) -> sp_bridge_eth_poa::H256 {
 	use pallet_bridge_eth_poa::{
@@ -136,8 +136,8 @@ pub(crate) fn prepare_environment_for_claim<T: pallet_bridge_eth_poa::Trait>(
 	};
 	use sp_bridge_eth_poa::compute_merkle_root;
 
-	let mut storage = BridgeStorage::<T>::new();
-	let header = HeaderBuilder::with_parent_number_on_runtime::<T>(0)
+	let mut storage = BridgeStorage::<T, I>::new();
+	let header = HeaderBuilder::with_parent_number_on_runtime::<T, I>(0)
 		.with_transactions_root(compute_merkle_root(transactions.iter()))
 		.sign_by(&validator(0));
 	let header_id = header.compute_id();

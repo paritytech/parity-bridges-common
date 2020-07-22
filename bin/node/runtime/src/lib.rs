@@ -691,14 +691,14 @@ impl_runtime_apis! {
 				ProofParams as BridgeCurrencyExchangeProofParams,
 			};
 
-			impl BridgeCurrencyExchangeTrait for Runtime {
+			impl BridgeCurrencyExchangeTrait<KovanCurrencyExchange> for Runtime {
 				fn make_proof(
 					proof_params: BridgeCurrencyExchangeProofParams<AccountId>,
 				) -> crate::exchange::EthereumTransactionInclusionProof {
 					use sp_currency_exchange::DepositInto;
 
 					if proof_params.recipient_exists {
-						<Runtime as pallet_bridge_currency_exchange::Trait>::DepositInto::deposit_into(
+						<Runtime as pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange>>::DepositInto::deposit_into(
 							proof_params.recipient.clone(),
 							ExistentialDeposit::get(),
 						).unwrap();
@@ -716,7 +716,7 @@ impl_runtime_apis! {
 					let transactions = sp_std::iter::repeat(transaction.clone())
 						.take(1 + proof_params.proof_size_factor as usize)
 						.collect::<Vec<_>>();
-					let block_hash = crate::exchange::prepare_environment_for_claim::<Runtime>(&transactions);
+					let block_hash = crate::exchange::prepare_environment_for_claim::<Runtime, Kovan>(&transactions);
 					crate::exchange::EthereumTransactionInclusionProof {
 						block: block_hash,
 						index: 0,
@@ -725,9 +725,8 @@ impl_runtime_apis! {
 				}
 			}
 
-			add_benchmark!(params, batches, b"bridge-eth-poa", BridgeRialto);
-			// add_benchmark!(params, batches, b"bridge-eth-poa", BridgeKovan);
-			add_benchmark!(params, batches, b"bridge-currency-exchange", BridgeCurrencyExchangeBench::<Runtime>);
+			add_benchmark!(params, batches, b"bridge-eth-poa", BridgeKovan);
+			add_benchmark!(params, batches, b"bridge-currency-exchange", BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)
