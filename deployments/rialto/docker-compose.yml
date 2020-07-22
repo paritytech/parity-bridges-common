@@ -52,7 +52,7 @@ services:
       args:
         BRIDGE_HASH: master
         PROJECT: ethereum-poa-relay
-        HEALTH: localhost:9616
+        HEALTH: http://localhost:9616
     entrypoint: /config/relay-eth2sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
@@ -87,7 +87,7 @@ services:
       args:
         BRIDGE_HASH: master
         PROJECT: bridge-node
-        HEALTH: localhost:9933/health
+        HEALTH: http://localhost:9933/health
     entrypoint:
       - /home/user/bridge-node
       - --execution=Native

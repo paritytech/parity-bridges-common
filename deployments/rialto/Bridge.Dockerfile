@@ -64,15 +64,16 @@ USER user
 WORKDIR /home/user
 
 ARG PROJECT=ethereum-poa-relay
-ARG HEALTH=localhost:9616
+ARG HEALTH=http://localhost:9616
 
 COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
 
+ENV HEALTH=$HEALTH
 HEALTHCHECK --interval=2m --timeout=5s \
-  CMD curl -f http://${HEALTH} || exit 1
+  CMD curl -f $HEALTH || exit 1
 
 ENV PROJECT=$PROJECT
 ENTRYPOINT ["/home/user/$PROJECT"]
