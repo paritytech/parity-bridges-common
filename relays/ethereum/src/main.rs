@@ -19,6 +19,7 @@
 mod ethereum_client;
 mod ethereum_deploy_contract;
 mod ethereum_exchange;
+mod ethereum_exchange_submit;
 mod ethereum_sync_loop;
 mod ethereum_types;
 mod exchange;
@@ -83,14 +84,25 @@ fn main() {
 		("eth-deploy-contract", Some(eth_deploy_matches)) => {
 			log::info!(target: "bridge", "Deploying ETH contracts.");
 			ethereum_deploy_contract::run(match ethereum_deploy_contract_params(&eth_deploy_matches) {
-				Ok(ethereum_deploy_matches) => ethereum_deploy_matches,
+				Ok(ethereum_deploy_params) => ethereum_deploy_params,
 				Err(err) => {
 					log::error!(target: "bridge", "Error during contract deployment: {}", err);
 					return;
 				}
 			});
 		}
+		("eth-submit-exchange-tx", Some(eth_exchange_submit_matches)) => {
+			log::info!(target: "bridge", "Submitting ETH ➡ SUB exchange transaction.");
+			ethereum_exchange_submit::run(match ethereum_exchange_submit_params(&eth_exchange_submit_matches) {
+				Ok(eth_exchange_submit_params) => eth_exchange_submit_params,
+				Err(err) => {
+					log::error!(target: "bridge", "Error submitting Eethereum exchange transaction: {}", err);
+					return;
+				}
+			});
+		}
 		("eth-exchange-sub", Some(eth_exchange_matches)) => {
+			log::info!(target: "bridge", "Starting ETH ➡ SUB exchange transactions relay.");
 			ethereum_exchange::run(match ethereum_exchange_params(&eth_exchange_matches) {
 				Ok(eth_exchange_params) => eth_exchange_params,
 				Err(err) => {
@@ -254,6 +266,39 @@ fn ethereum_deploy_contract_params(
 	Ok(eth_deploy_params)
 }
 
+fn ethereum_exchange_submit_params(
+	matches: &clap::ArgMatches,
+) -> Result<ethereum_exchange_submit::EthereumExchangeSubmitParams, String> {
+	let mut params = ethereum_exchange_submit::EthereumExchangeSubmitParams::default();
+	params.eth = ethereum_connection_params(matches)?;
+	params.eth_sign = ethereum_signing_params(matches)?;
+
+	if let Some(eth_amount) = matches.value_of("eth-amount") {
+		params.eth_amount = eth_amount
+			.parse()
+			.map_err(|e| format!("Failed to parse eth-amount: {}", e))?;
+	}
+	if let Some(sub_recipient) = matches.value_of("sub-recipient") {
+		params.sub_recipient = hex::decode(&sub_recipient)
+			.map_err(|err| err.to_string())
+			.and_then(|vsub_recipient| {
+				let expected_len = params.sub_recipient.len();
+				if expected_len != vsub_recipient.len() {
+					Err(format!("invalid length. Expected {} bytes", expected_len))
+				} else {
+					let mut sub_recipient = params.sub_recipient.clone();
+					sub_recipient.copy_from_slice(&vsub_recipient[..expected_len]);
+					Ok(sub_recipient)
+				}
+			})
+			.map_err(|e| format!("Failed to parse sub-recipient: {}", e))?;
+	}
+
+	log::debug!(target: "bridge", "Submit Ethereum exchange tx params: {:?}", params);
+
+	Ok(params)
+}
+
 fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_exchange::EthereumExchangeParams, String> {
 	let mut params = ethereum_exchange::EthereumExchangeParams::default();
 	params.eth = ethereum_connection_params(matches)?;
@@ -265,6 +310,8 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_excha
 		.expect("eth-tx-hash is a required parameter; clap verifies that required parameters have matches; qed")
 		.parse()
 		.map_err(|e| format!("Failed to parse eth-tx-hash: {}", e))?;
+
+	log::debug!(target: "bridge", "Etehereum exchange params: {:?}", params);
 
 	Ok(params)
 }
