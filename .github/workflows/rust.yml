@@ -55,6 +55,9 @@ jobs:
             # TODO add rsync in docker
             rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/ || true;
         shell:                     bash
+      - name:                      Sccache stats
+        run:                       sccache --show-stats
+        shell:                     bash
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
