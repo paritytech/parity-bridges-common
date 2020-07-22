@@ -72,7 +72,7 @@ COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PR
 RUN ./${PROJECT} --version
 
 ENV HEALTH=$HEALTH
-HEALTHCHECK --interval=2m --timeout=5s \
+HEALTHCHECK --interval=2m --timeout=10s \
   CMD curl -f $HEALTH || exit 1
 
 ENV PROJECT=$PROJECT
