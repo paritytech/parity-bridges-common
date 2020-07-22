@@ -16,13 +16,16 @@
 
 //! Submitting Ethereum -> Substrate exchange transactions.
 
-use crate::ethereum_client::{EthereumRpcClient, EthereumConnectionParams, EthereumSigningParams};
+use crate::ethereum_client::{EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams};
 use crate::ethereum_types::{CallRequest, U256};
 use crate::rpc::EthereumRpc;
 
 use bridge_node_runtime::exchange::LOCK_FUNDS_ADDRESS;
 use hex_literal::hex;
-use sp_bridge_eth_poa::{UnsignedTransaction, signatures::{SecretKey, SignTransaction}};
+use sp_bridge_eth_poa::{
+	signatures::{SecretKey, SignTransaction},
+	UnsignedTransaction,
+};
 
 /// Ethereum exchange transaction params.
 #[derive(Debug)]
@@ -58,17 +61,21 @@ pub fn run(params: EthereumExchangeSubmitParams) {
 		let eth_signer_address = params.eth_sign.signer.address();
 		let sub_recipient_encoded = params.sub_recipient;
 		let eth_tx_unsigned = UnsignedTransaction {
-			nonce: eth_client.account_nonce(eth_signer_address)
+			nonce: eth_client
+				.account_nonce(eth_signer_address)
 				.await
 				.map_err(|err| format!("error fetching acount nonce: {:?}", err))?,
 			gas_price: params.eth_sign.gas_price,
-			gas: eth_client.estimate_gas(CallRequest {
-				from: Some(eth_signer_address),
-				to: Some(LOCK_FUNDS_ADDRESS.into()),
-				value: Some(params.eth_amount),
-				data: Some(sub_recipient_encoded.to_vec().into()),
-				..Default::default()
-			}).await.map_err(|err| format!("error estimating gas requirements: {:?}", err))?,
+			gas: eth_client
+				.estimate_gas(CallRequest {
+					from: Some(eth_signer_address),
+					to: Some(LOCK_FUNDS_ADDRESS.into()),
+					value: Some(params.eth_amount),
+					data: Some(sub_recipient_encoded.to_vec().into()),
+					..Default::default()
+				})
+				.await
+				.map_err(|err| format!("error estimating gas requirements: {:?}", err))?,
 			to: Some(LOCK_FUNDS_ADDRESS.into()),
 			value: params.eth_amount,
 			payload: sub_recipient_encoded.to_vec(),
@@ -78,7 +85,8 @@ pub fn run(params: EthereumExchangeSubmitParams) {
 				.expect("key is accepted by secp256k1::KeyPair and thus is valid; qed"),
 			Some(params.eth_sign.chain_id),
 		);
-		eth_client.submit_transaction(eth_tx_signed)
+		eth_client
+			.submit_transaction(eth_tx_signed)
 			.await
 			.map_err(|err| format!("error submitting transaction: {:?}", err))?;
 
@@ -92,7 +100,7 @@ pub fn run(params: EthereumExchangeSubmitParams) {
 				"Exchange transaction has been submitted to Ethereum node: {:?}",
 				eth_tx_unsigned,
 			);
-		},
+		}
 		Err(err) => {
 			log::error!(
 				target: "bridge",
