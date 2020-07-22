@@ -150,6 +150,11 @@ services:
 
   prometheus-metrics:
     image: prom/prometheus
+    environment:
+      VIRTUAL_HOST: ui.rialto.bridges.test-installations.parity.io
+      VIRTUAL_PORT: 9090
+      LETSENCRYPT_HOST: ui.rialto.bridges.test-installations.parity.io
+      LETSENCRYPT_EMAIL: admin@parity.io
     volumes:
       - ../dashboard/prometheus/:/etc/prometheus/
     ports:
@@ -158,6 +163,11 @@ services:
 
   grafana-dashboard:
     image: grafana/grafana
+    environment:
+      VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: dashboard.rialto.bridges.test-installations.parity.io
+      LETSENCRYPT_EMAIL: admin@parity.io
     volumes:
       - ../dashboard/grafana/provisioning/:/etc/grafana/provisioning/
     ports:
