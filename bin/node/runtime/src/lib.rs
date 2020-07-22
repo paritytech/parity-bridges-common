@@ -820,7 +820,7 @@ mod tests {
 			let initial_amount =
 				<pallet_balances::Module<Runtime> as Currency<AccountId>>::free_balance(&existing_account);
 			let additional_amount = 10_000;
-			<Runtime as pallet_bridge_currency_exchange::Trait>::DepositInto::deposit_into(
+			<Runtime as pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange>>::DepositInto::deposit_into(
 				existing_account.clone(),
 				additional_amount,
 			)
@@ -839,7 +839,7 @@ mod tests {
 			let initial_amount = 0;
 			let additional_amount = ExistentialDeposit::get() + 10_000;
 			let new_account: AccountId = [42u8; 32].into();
-			<Runtime as pallet_bridge_currency_exchange::Trait>::DepositInto::deposit_into(
+			<Runtime as pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange>>::DepositInto::deposit_into(
 				new_account.clone(),
 				additional_amount,
 			)
