@@ -60,22 +60,24 @@ pub fn run(params: EthereumExchangeSubmitParams) {
 
 		let eth_signer_address = params.eth_sign.signer.address();
 		let sub_recipient_encoded = params.sub_recipient;
+		let nonce = eth_client
+			.account_nonce(eth_signer_address)
+			.await
+			.map_err(|err| format!("error fetching acount nonce: {:?}", err))?;
+		let gas = eth_client
+			.estimate_gas(CallRequest {
+				from: Some(eth_signer_address),
+				to: Some(LOCK_FUNDS_ADDRESS.into()),
+				value: Some(params.eth_amount),
+				data: Some(sub_recipient_encoded.to_vec().into()),
+				..Default::default()
+			})
+			.await
+			.map_err(|err| format!("error estimating gas requirements: {:?}", err))?;
 		let eth_tx_unsigned = UnsignedTransaction {
-			nonce: eth_client
-				.account_nonce(eth_signer_address)
-				.await
-				.map_err(|err| format!("error fetching acount nonce: {:?}", err))?,
+			nonce,
 			gas_price: params.eth_sign.gas_price,
-			gas: eth_client
-				.estimate_gas(CallRequest {
-					from: Some(eth_signer_address),
-					to: Some(LOCK_FUNDS_ADDRESS.into()),
-					value: Some(params.eth_amount),
-					data: Some(sub_recipient_encoded.to_vec().into()),
-					..Default::default()
-				})
-				.await
-				.map_err(|err| format!("error estimating gas requirements: {:?}", err))?,
+			gas,
 			to: Some(LOCK_FUNDS_ADDRESS.into()),
 			value: params.eth_amount,
 			payload: sub_recipient_encoded.to_vec(),

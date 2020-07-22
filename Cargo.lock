@@ -2385,6 +2385,33 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "1.0.0"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
+dependencies = [
+ "async-std",
+ "bs58",
+ "fnv",
+ "futures 0.3.5",
+ "futures-timer 3.0.2",
+ "globset",
+ "hashbrown 0.7.2",
+ "hyper 0.13.6",
+ "jsonrpsee-proc-macros 1.0.0 (git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api)",
+ "lazy_static",
+ "log",
+ "parking_lot 0.10.2",
+ "pin-project",
+ "rand 0.7.3",
+ "serde",
+ "serde_json",
+ "smallvec 1.4.1",
+ "thiserror",
+ "tokio 0.2.21",
+ "unicase",
+]
+
+[[package]]
+name = "jsonrpsee"
+version = "1.0.0"
 source = "git+https://github.com/paritytech/jsonrpsee#ccae2c3b05207093e85c4e4c8704c8f8a65ed1e8"
 dependencies = [
  "async-std",
@@ -2415,36 +2442,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "jsonrpsee"
-version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
-dependencies = [
- "async-std",
- "bs58",
- "fnv",
- "futures 0.3.5",
- "futures-timer 3.0.2",
- "globset",
- "hashbrown 0.7.2",
- "hyper 0.13.6",
- "jsonrpsee-proc-macros 1.0.0 (git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api)",
- "lazy_static",
- "log",
- "parking_lot 0.10.2",
- "pin-project",
- "rand 0.7.3",
- "serde",
- "serde_json",
- "smallvec 1.4.1",
- "thiserror",
- "tokio 0.2.21",
- "unicase",
-]
-
-[[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/paritytech/jsonrpsee#ccae2c3b05207093e85c4e4c8704c8f8a65ed1e8"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -2455,7 +2455,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
+source = "git+https://github.com/paritytech/jsonrpsee#ccae2c3b05207093e85c4e4c8704c8f8a65ed1e8"
 dependencies = [
  "Inflector",
  "proc-macro2",

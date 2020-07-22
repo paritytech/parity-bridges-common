@@ -286,7 +286,7 @@ fn ethereum_exchange_submit_params(
 				if expected_len != vsub_recipient.len() {
 					Err(format!("invalid length. Expected {} bytes", expected_len))
 				} else {
-					let mut sub_recipient = params.sub_recipient.clone();
+					let mut sub_recipient = params.sub_recipient;
 					sub_recipient.copy_from_slice(&vsub_recipient[..expected_len]);
 					Ok(sub_recipient)
 				}
