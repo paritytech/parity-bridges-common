@@ -1,15 +1,15 @@
 notifiers:
-  - name: Email
-    type: email
+  - name: Matrix
+    type: webhook
     uid: notifier1
     is_default: true
     send_reminder: true
     frequency: 1h
     disable_resolve_message: false
     settings:
-      singleEmail: true
-      addresses: tomasz@parity.io
+      url: http://grafana-matrix-notifier:4567/hook?rule=bridge
+      http_method: POST
 
 delete_notifiers:
-  - name: Email
+  - name: Matrix
     uid: notifier1
