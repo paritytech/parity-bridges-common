@@ -14,12 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::exchange::EthereumTransactionInclusionProof;
+
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
+use pallet_bridge_currency_exchange::PeerBlockchain;
 use pallet_bridge_eth_poa::{
 	AuraConfiguration, PruningStrategy as BridgePruningStrategy, ValidatorsConfiguration, ValidatorsSource,
 };
-use sp_bridge_eth_poa::{Address, Header, U256};
+use sp_bridge_eth_poa::{Address, Header, RawTransaction, U256};
 use sp_std::prelude::*;
 
 frame_support::parameter_types! {
@@ -130,10 +133,6 @@ impl BridgePruningStrategy for PruningStrategy {
 		best_finalized_number.saturating_sub(FINALIZED_HEADERS_TO_KEEP)
 	}
 }
-
-use crate::exchange::EthereumTransactionInclusionProof;
-use pallet_bridge_currency_exchange::PeerBlockchain;
-use sp_bridge_eth_poa::RawTransaction;
 
 /// The Kovan Blockchain as seen by the runtime.
 pub struct KovanBlockchain;

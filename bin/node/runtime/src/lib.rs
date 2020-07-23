@@ -549,7 +549,6 @@ impl_runtime_apis! {
 		}
 	}
 
-	// AccountId is a typedef for a concrete account ID
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
 		fn account_nonce(account: AccountId) -> Index {
 			System::account_nonce(account)
