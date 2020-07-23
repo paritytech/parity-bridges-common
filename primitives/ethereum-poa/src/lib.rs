@@ -367,7 +367,6 @@ impl SealedEmptyStep {
 	}
 
 	/// Returns rlp for the vector of empty steps (we only do encoding in tests).
-	#[cfg(feature = "test-helpers")]
 	pub fn rlp_of(empty_steps: &[SealedEmptyStep]) -> Bytes {
 		let mut s = RlpStream::new();
 		s.begin_list(empty_steps.len());
