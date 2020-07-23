@@ -65,14 +65,14 @@ services:
       - bridge-node-bob
       - bridge-node-charlie
 
-  relay-eth-submit-exchange-tx:
+  poa-exchange-tx-generator:
     build:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
         BRIDGE_HASH: master
         PROJECT: ethereum-poa-relay
-    entrypoint: /config/relay-eth-submit-exchange-tx-entrypoint.sh
+    entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
     volumes:
       - ./bridge-config:/config
     environment:
