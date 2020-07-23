@@ -27,7 +27,7 @@ msgtype: m.text
 # Set up notification ingress rules
 rules:
 - name: bridge              # Name of the rule
-  room: "#bridges-bot-test:matrix.parity.io" # Room or ID
+  room: "#bridges-workers:matrix.parity.io" # Room or ID
   matrix: matrix-parity-io     # The Matrix HS to use - defaults to first one
   msgtype: m.notice
   # The following values are optional:
