@@ -161,6 +161,7 @@ services:
       LETSENCRYPT_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
+      GF_SERVER_ROOT_URL: ${GRAFANA_SERVER_ROOT_URL}
     volumes:
       - ./dashboard/grafana/provisioning/:/etc/grafana/provisioning/
     ports:

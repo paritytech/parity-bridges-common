@@ -34,7 +34,7 @@
             "query": {
               "params": [
                 "A",
-                "1m",
+                "5m",
                 "now"
               ]
             },
@@ -46,8 +46,8 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "1m",
-        "frequency": "1m",
+        "for": "5m",
+        "frequency": "5m",
         "handler": 1,
         "message": "",
         "name": "Rialto Block Difference > 5",
