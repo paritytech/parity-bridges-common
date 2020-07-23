@@ -49,9 +49,9 @@
         "for": "1m",
         "frequency": "1m",
         "handler": 1,
-        "message": "Rialto block difference > 5",
-        "name": "Block difference",
-        "noDataState": "alerting",
+        "message": "",
+        "name": "Rialto Block Difference > 5",
+        "noDataState": "no_data",
         "notifications": []
       },
       "aliasColors": {},
