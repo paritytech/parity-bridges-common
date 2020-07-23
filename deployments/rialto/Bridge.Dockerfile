@@ -19,7 +19,7 @@ RUN update-ca-certificates && \
 	curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 ENV PATH="/root/.cargo/bin:${PATH}"
-ENV LAST_RUST_UPDATE 2020-06-22
+ENV LAST_RUST_UPDATE 2020-07-22
 
 RUN rustup update stable && \
 	rustup install nightly && \

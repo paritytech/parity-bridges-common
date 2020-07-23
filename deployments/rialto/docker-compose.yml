@@ -6,7 +6,7 @@ services:
       dockerfile: ./OpenEthereum.Dockerfile
       args:
         ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
-        BRIDGE_HASH: master
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
     entrypoint:
       - /home/openethereum/openethereum
       - --config=/config/poa-node-config
@@ -50,7 +50,7 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: master
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
     entrypoint: /config/relay-eth2sub-entrypoint.sh
     volumes:
@@ -86,7 +86,7 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: master
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
         PROJECT: bridge-node
     entrypoint:
       - /home/user/bridge-node
