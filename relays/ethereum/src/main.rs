@@ -311,7 +311,7 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_excha
 		.parse()
 		.map_err(|e| format!("Failed to parse eth-tx-hash: {}", e))?;
 
-	log::debug!(target: "bridge", "Etehereum exchange params: {:?}", params);
+	log::debug!(target: "bridge", "Ethereum exchange params: {:?}", params);
 
 	Ok(params)
 }
