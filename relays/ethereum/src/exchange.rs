@@ -19,7 +19,10 @@
 use crate::sync_types::MaybeConnectionError;
 
 use async_trait::async_trait;
-use std::fmt::{Debug, Display};
+use std::{
+	fmt::{Debug, Display},
+	string::ToString,
+};
 
 /// Transaction proof pipeline.
 pub trait TransactionProofPipeline {
@@ -125,6 +128,14 @@ pub struct RelayedBlockTransactions {
 	pub failed: usize,
 }
 
+/// Stringified error that may be either connection-related or not.
+enum StringifiedMaybeConnectionError {
+	/// The error is connection-related error.
+	Connection(String),
+	/// The error is connection-unrelated error.
+	NonConnection(String),
+}
+
 /// Relay all suitable transactions from single block.
 ///
 /// If connection error occurs, returns Err with number of successfully processed transactions.
@@ -154,7 +165,7 @@ pub async fn relay_block_transactions<P: TransactionProofPipeline>(
 					.filter_transaction_proof(&source_tx_proof)
 					.await
 					.map_err(|err| {
-						(
+						StringifiedMaybeConnectionError::new(
 							err.is_connection_error(),
 							format!("Transaction filtering has failed with {:?}", err),
 						)
@@ -196,22 +207,22 @@ pub async fn relay_block_transactions<P: TransactionProofPipeline>(
 				relayed_transactions.processed += 1;
 				relayed_transactions.relayed += 1;
 			}
-			Err((is_connection_error, err)) => {
+			Err(err) => {
 				log::error!(
 					target: "bridge",
 					"Error relaying {} transaction {} proof to {} node: {}. {}",
 					P::SOURCE_NAME,
 					source_tx.hash(),
 					P::TARGET_NAME,
-					err,
-					if is_connection_error {
+					err.to_string(),
+					if err.is_connection_error() {
 						"Going to retry after delay..."
 					} else {
 						"You may need to submit proof of this transaction manually"
 					},
 				);
 
-				if is_connection_error {
+				if err.is_connection_error() {
 					return Err(relayed_transactions);
 				}
 
@@ -253,27 +264,24 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 		&source_tx_id,
 		prepare_transaction_proof(source_client, &source_tx_id, &source_block, source_tx_index)
 			.await
-			.map_err(|(_, err)| err)?,
+			.map_err(|err| err.to_string())?,
 	)
 	.await
-	.map_err(|(_, err)| err)
+	.map_err(|err| err.to_string())
 }
 
 /// Prepare transaction proof.
-///
-/// Returns `Err((true, _))` if connection error has occured.
-/// Returns `Err((false, _))` if connection-unrelated error has occured.
 async fn prepare_transaction_proof<P: TransactionProofPipeline>(
 	source_client: &impl SourceClient<P>,
 	source_tx_id: &str,
 	source_block: &P::Block,
 	source_tx_index: usize,
-) -> Result<P::TransactionProof, (bool, String)> {
+) -> Result<P::TransactionProof, StringifiedMaybeConnectionError> {
 	source_client
 		.transaction_proof(source_block, source_tx_index)
 		.await
 		.map_err(|err| {
-			(
+			StringifiedMaybeConnectionError::new(
 				err.is_connection_error(),
 				format!(
 					"Error building transaction {} proof on {} node: {:?}",
@@ -286,19 +294,16 @@ async fn prepare_transaction_proof<P: TransactionProofPipeline>(
 }
 
 /// Relay prepared proof of transaction.
-///
-/// Returns `Err((true, _))` if connection error has occured.
-/// Returns `Err((false, _))` if connection-unrelated error has occured.
 async fn relay_ready_transaction_proof<P: TransactionProofPipeline>(
 	target_client: &impl TargetClient<P>,
 	source_tx_id: &str,
 	source_tx_proof: P::TransactionProof,
-) -> Result<(), (bool, String)> {
+) -> Result<(), StringifiedMaybeConnectionError> {
 	target_client
 		.submit_transaction_proof(source_tx_proof)
 		.await
 		.map_err(|err| {
-			(
+			StringifiedMaybeConnectionError::new(
 				err.is_connection_error(),
 				format!(
 					"Error submitting transaction {} proof to {} node: {:?}",
@@ -432,6 +437,34 @@ async fn wait_header_finalized<P: TransactionProofPipeline>(
 
 				target_client.tick().await;
 			}
+		}
+	}
+}
+
+impl StringifiedMaybeConnectionError {
+	fn new(is_connection_error: bool, error: String) -> Self {
+		if is_connection_error {
+			StringifiedMaybeConnectionError::Connection(error)
+		} else {
+			StringifiedMaybeConnectionError::NonConnection(error)
+		}
+	}
+}
+
+impl MaybeConnectionError for StringifiedMaybeConnectionError {
+	fn is_connection_error(&self) -> bool {
+		match *self {
+			StringifiedMaybeConnectionError::Connection(_) => true,
+			StringifiedMaybeConnectionError::NonConnection(_) => false,
+		}
+	}
+}
+
+impl ToString for StringifiedMaybeConnectionError {
+	fn to_string(&self) -> String {
+		match *self {
+			StringifiedMaybeConnectionError::Connection(ref err) => err.clone(),
+			StringifiedMaybeConnectionError::NonConnection(ref err) => err.clone(),
 		}
 	}
 }
