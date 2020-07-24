@@ -52,7 +52,7 @@ RUN cargo build --release --verbose || true
 # build the changes.
 WORKDIR /parity-bridges-common
 ARG BRIDGE_HASH=master
-RUN git checkout $BRIDGE_HASH
+RUN git fetch && git checkout $BRIDGE_HASH
 ### Build locally. Make sure to set the CONTEXT to main directory of the repo.
 # ADD . /parity-bridges-common
 
