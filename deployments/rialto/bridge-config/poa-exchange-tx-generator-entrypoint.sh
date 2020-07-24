@@ -18,8 +18,8 @@ SUB_RECIPIENTS=(
 )
 # All possible Ethereum signers (hex-encoded private keys)
 ETH_SIGNERS=(
-	# Harcoded account on OE dev chain
-	"4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7"
+	# Arthur account (0x005e714f896a8b7cede9d38688c1a81de72a58e4) and its nonce (unknown)
+	"0399dbd15cf6ee8250895a1f3873eb1e10e23ca18e8ed0726c63c4aea356e87d" ""
 )
 # Minimal exchange amount (in finney)
 MIN_EXCHANGE_AMOUNT_FINNEY=${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1} # 0.1 ETH
@@ -42,9 +42,10 @@ do
 	echo $SUB_RECIPIENT
 
 	# select signer
-	ETH_SIGNERS_MAX_INDEX=$((${#ETH_SIGNERS[@]} - 1))
+	ETH_SIGNERS_MAX_INDEX=$(((${#ETH_SIGNERS[@]} - 1) / 2))
 	ETH_SIGNERS_INDEX=`shuf -i 0-$ETH_SIGNERS_MAX_INDEX -n 1`
-	ETH_SIGNER=${ETH_SIGNERS[$ETH_SIGNER_INDEX]}
+	ETH_SIGNER=${ETH_SIGNERS[$(($ETH_SIGNER_INDEX*2))]}
+	ETH_SIGNER_NONCE=${ETH_SIGNERS[$(($ETH_SIGNER_INDEX*2 + 1))]}
 	echo $ETH_SIGNER
 
 	# select amount
