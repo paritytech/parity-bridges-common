@@ -117,7 +117,7 @@ pub trait TargetClient<P: TransactionProofPipeline> {
 #[derive(Debug, Default)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct RelayedBlockTransactions {
-	/// Total number of transactions processed (either relayed of ingored) so far.
+	/// Total number of transactions processed (either relayed or ignored) so far.
 	pub processed: usize,
 	/// Total number of transactions successfully relayed so far.
 	pub relayed: usize,
