@@ -61,9 +61,10 @@ WORKDIR /home/user
 ARG PROJECT=ethereum-poa-relay
 
 COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
+COPY ./deployments/scripts/bridge-node-dev-entrypoint.sh ./
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
 
 ENV PROJECT=$PROJECT
-ENTRYPOINT ["/home/user/$PROJECT"]
+ENTRYPOINT ["/home/user/bridge-node-dev-entrypoint.sh"]
