@@ -130,7 +130,8 @@ pub struct RelayedBlockTransactions {
 /// If connection error occurs, returns Err with number of successfully processed transactions.
 /// If some other error occurs, it is ignored and other transactions are processed.
 ///
-/// All transaction-level traces are written by this function. No
+/// All transaction-level traces are written by this function. This function is not tracing
+/// any information about block.
 pub async fn relay_block_transactions<P: TransactionProofPipeline>(
 	source_client: &impl SourceClient<P>,
 	target_client: &impl TargetClient<P>,
