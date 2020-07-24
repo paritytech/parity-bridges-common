@@ -19,7 +19,7 @@ RUN update-ca-certificates && \
 	curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 ENV PATH="/root/.cargo/bin:${PATH}"
-ENV LAST_RUST_UPDATE 2020-06-22
+ENV LAST_RUST_UPDATE 2020-07-22
 
 RUN rustup update stable && \
 	rustup install nightly && \
@@ -34,14 +34,19 @@ RUN rustc -vV && \
 WORKDIR /parity-bridges-common
 
 ### Build from the repo
+# Start with master build first.
 ARG BRIDGE_REPO=https://github.com/paritytech/parity-bridges-common
+RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout master
+
+ARG PROJECT=ethereum-poa-relay
+RUN cargo build --release --verbose -p ${PROJECT}
+
+# Then switch to expected branch and re-build only the stuff that changed.
 ARG BRIDGE_HASH=master
-RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout $BRIDGE_HASH
+RUN git fetch && git checkout $BRIDGE_HASH
 
 ### Build locally
 # ADD .
-
-ARG PROJECT=ethereum-poa-relay
 
 RUN cargo build --release --verbose -p ${PROJECT}
 RUN strip ./target/release/${PROJECT}
