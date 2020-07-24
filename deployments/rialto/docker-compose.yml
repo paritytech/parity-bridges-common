@@ -77,6 +77,9 @@ services:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+      EXCHANGE_GEN_MIN_AMOUNT_FINNEY: ${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1}
+      EXCHANGE_GEN_MAX_AMOUNT_FINNEY: ${EXCHANGE_GEN_MAX_AMOUNT_FINNEY:-100000}
+      EXCHANGE_GEN_MAX_SUBMIT_DELAY_S: ${EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-60}
     depends_on: *all-nodes
 
   # relay-sub2eth:
