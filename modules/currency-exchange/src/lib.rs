@@ -193,9 +193,13 @@ fn prepare_deposit_details<T: Trait<I>, I: Instance>(
 		.ok_or_else(|| Error::<T, I>::UnfinalizedTransaction)?;
 
 	// parse transaction
-	let transaction = <T as Trait<I>>::PeerMaybeLockFundsTransaction::parse(&transaction).map_err(Error::<T, I>::from)?;
+	let transaction =
+		<T as Trait<I>>::PeerMaybeLockFundsTransaction::parse(&transaction).map_err(Error::<T, I>::from)?;
 	let transfer_id = transaction.id;
-	ensure!(!Transfers::<T, I>::contains_key(&transfer_id), Error::<T, I>::AlreadyClaimed);
+	ensure!(
+		!Transfers::<T, I>::contains_key(&transfer_id),
+		Error::<T, I>::AlreadyClaimed
+	);
 
 	// grant recipient
 	let recipient = T::RecipientsMap::map(transaction.recipient).map_err(Error::<T, I>::from)?;
