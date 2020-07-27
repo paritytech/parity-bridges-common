@@ -1187,7 +1187,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "substrate-prometheus-endpoint",
- "sysinfo 0.14.13",
+ "sysinfo 0.15.0",
  "time 0.2.16",
  "web3",
 ]
@@ -5599,9 +5599,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.56"
+version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3433e879a558dde8b5e8feb2a04899cf34fdde1fafb894687e52105fc1162ac3"
+checksum = "164eacbdb13512ec2745fb09d51fd5b22b0d65ed294a1dcf7285a360c80a675c"
 dependencies = [
  "itoa",
  "ryu",
@@ -6667,9 +6667,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.14.13"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eec476c3d107e7fc2c445e4edc26836c49ba5be0dae74146ee94ecb62759c31d"
+checksum = "f597c00e6548b9ddd54c11b8e8534fc11223f28509d57e021f01797b50ca5ca1"
 dependencies = [
  "cfg-if",
  "doc-comment",
