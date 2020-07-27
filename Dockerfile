@@ -67,4 +67,4 @@ COPY ./deployments/scripts/bridge-node-dev-entrypoint.sh ./
 RUN ./${PROJECT} --version
 
 ENV PROJECT=$PROJECT
-ENTRYPOINT ["/home/user/bridge-node-dev-entrypoint.sh"]
+ENTRYPOINT ["/home/user/bridge-entrypoint.sh"]

@@ -82,4 +82,4 @@ HEALTHCHECK --interval=2m --timeout=10s \
   CMD curl -f $HEALTH || exit 1
 
 ENV PROJECT=$PROJECT
-ENTRYPOINT ["/home/user/bridge-node-dev-entrypoint.sh"]
+ENTRYPOINT ["/home/user/bridge-entrypoint.sh"]
