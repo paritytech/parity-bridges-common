@@ -111,6 +111,11 @@ subcommands:
         args:
             - eth-host: *eth-host
             - eth-port: *eth-port
+            - eth-nonce:
+                long: eth-nonce
+                value_name: ETH_NONCE
+                help: Nonce that have to be used when building transaction. If not specified, read from PoA node.
+                takes_value: true
             - eth-signer: *eth-signer
             - eth-chain-id: *eth-chain-id
             - eth-amount:

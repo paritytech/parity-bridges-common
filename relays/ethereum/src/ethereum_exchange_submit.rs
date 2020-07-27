@@ -34,6 +34,8 @@ pub struct EthereumExchangeSubmitParams {
 	pub eth: EthereumConnectionParams,
 	/// Ethereum signing params.
 	pub eth_sign: EthereumSigningParams,
+	/// Ethereum signer nonce.
+	pub eth_nonce: Option<U256>,
 	/// Amount of Ethereum tokens to lock.
 	pub eth_amount: U256,
 	/// Funds recipient on Substrate side.
@@ -60,10 +62,13 @@ pub fn run(params: EthereumExchangeSubmitParams) {
 
 		let eth_signer_address = params.eth_sign.signer.address();
 		let sub_recipient_encoded = params.sub_recipient;
-		let nonce = eth_client
-			.account_nonce(eth_signer_address)
-			.await
-			.map_err(|err| format!("error fetching acount nonce: {:?}", err))?;
+		let nonce = match params.nonce {
+			Some(eth_nonce) => eth_nonce,
+			None => eth_client
+				.account_nonce(eth_signer_address)
+				.await
+				.map_err(|err| format!("error fetching acount nonce: {:?}", err))?,
+		};
 		let gas = eth_client
 			.estimate_gas(CallRequest {
 				from: Some(eth_signer_address),
