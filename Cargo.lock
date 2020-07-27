@@ -1183,6 +1183,7 @@ dependencies = [
  "serde_json",
  "sp-bridge-eth-poa",
  "sp-core",
+ "sp-currency-exchange",
  "sp-keyring",
  "sp-runtime",
  "substrate-prometheus-endpoint",
@@ -6008,6 +6009,7 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
+ "sp-api",
  "sp-std",
 ]
 
