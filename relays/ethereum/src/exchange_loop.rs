@@ -119,11 +119,7 @@ pub fn run<P: TransactionProofPipeline>(
 				&target_client,
 				&mut state,
 				&mut current_finalized_block,
-				if metrics_enabled {
-					Some(&mut metrics_exch)
-				} else {
-					None
-				},
+				if metrics_enabled { Some(&mut metrics_exch) } else { None },
 			)
 			.await;
 
@@ -309,6 +305,12 @@ mod tests {
 			}
 		}));
 
-		run(storage, source, target, None, exit_receiver.into_future().map(|(_, _)| ()));
+		run(
+			storage,
+			source,
+			target,
+			None,
+			exit_receiver.into_future().map(|(_, _)| ()),
+		);
 	}
 }
