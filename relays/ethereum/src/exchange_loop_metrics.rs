@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::exchange::{BlockNumberOf, RelayedBlockTransactions, TransactionProofPipeline};
-use crate::metrics::{register, Counter, CounterVec, GaugeVec, Opts, Registry, U64};
+use crate::metrics::{register, Counter, CounterVec, GaugeVec, Metrics, Opts, Registry, U64};
 
 /// Exchange transactions relay metrics.
 pub struct ExchangeLoopMetrics {
@@ -25,6 +25,15 @@ pub struct ExchangeLoopMetrics {
 	processed_blocks: Counter<U64>,
 	/// Number of processed transactions ("total", "relayed" and "failed").
 	processed_transactions: CounterVec<U64>,
+}
+
+impl Metrics for ExchangeLoopMetrics {
+	fn register(&self, registry: &Registry) -> Result<(), String> {
+		register(self.best_block_numbers.clone(), registry).map_err(|e| e.to_string())?;
+		register(self.processed_blocks.clone(), registry).map_err(|e| e.to_string())?;
+		register(self.processed_transactions.clone(), registry).map_err(|e| e.to_string())?;
+		Ok(())
+	}
 }
 
 impl ExchangeLoopMetrics {
@@ -44,14 +53,6 @@ impl ExchangeLoopMetrics {
 			)
 			.expect("metric is static and thus valid; qed"),
 		}
-	}
-
-	/// Registers sync loop metrics in the metrics registry.
-	pub fn register(&self, registry: &Registry) -> Result<(), String> {
-		register(self.best_block_numbers.clone(), registry).map_err(|e| e.to_string())?;
-		register(self.processed_blocks.clone(), registry).map_err(|e| e.to_string())?;
-		register(self.processed_transactions.clone(), registry).map_err(|e| e.to_string())?;
-		Ok(())
 	}
 
 	/// Update metrics when single block is relayed.

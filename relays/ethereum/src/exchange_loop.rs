@@ -21,7 +21,7 @@ use crate::exchange::{
 	TransactionProofPipeline,
 };
 use crate::exchange_loop_metrics::ExchangeLoopMetrics;
-use crate::metrics::{start as metrics_start, GlobalMetrics, MetricsParams, Registry as MetricsRegistry};
+use crate::metrics::{start as metrics_start, GlobalMetrics, MetricsParams};
 use crate::utils::retry_backoff;
 
 use backoff::backoff::Backoff;
@@ -98,15 +98,7 @@ pub fn run<P: TransactionProofPipeline>(
 		let mut metrics_global = GlobalMetrics::new();
 		let mut metrics_exch = ExchangeLoopMetrics::new();
 		let metrics_enabled = metrics_params.is_some();
-		if let Some(metrics_params) = metrics_params {
-			if let Err(err) = expose_metrics(metrics_params, &metrics_global, &metrics_exch).await {
-				log::warn!(
-					target: "bridge",
-					"Failed to expose metrics: {}",
-					err,
-				);
-			}
-		}
+		metrics_start(metrics_params, &metrics_global, &metrics_exch);
 
 		let exit_signal = exit_signal.fuse();
 
@@ -249,19 +241,6 @@ async fn run_loop_iteration<P: TransactionProofPipeline>(
 		// there are no any transactions we need to relay => wait for new data
 		return Ok(());
 	}
-}
-
-/// Expose exchange loop metrics.
-async fn expose_metrics(
-	metrics_params: MetricsParams,
-	metrics_global: &GlobalMetrics,
-	metrics_exch: &ExchangeLoopMetrics,
-) -> Result<(), String> {
-	let metrics_registry = MetricsRegistry::new();
-	metrics_global.register(&metrics_registry)?;
-	metrics_exch.register(&metrics_registry)?;
-	async_std::task::spawn(metrics_start(metrics_params, metrics_registry));
-	Ok(())
 }
 
 #[cfg(test)]
