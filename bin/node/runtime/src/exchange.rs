@@ -31,7 +31,7 @@ use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
 use pallet_bridge_currency_exchange::Blockchain;
-use sp_bridge_eth_poa::{transaction_decode, RawTransaction};
+use sp_bridge_eth_poa::{transaction_decode_rlp, RawTransaction, RawTransactionReceipt};
 use sp_currency_exchange::{
 	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult,
 };
@@ -47,8 +47,9 @@ pub struct EthereumTransactionInclusionProof {
 	pub block: sp_core::H256,
 	/// Index of the transaction within the block.
 	pub index: u64,
-	/// The proof itself (right now it is all RLP-encoded transactions of the block).
-	pub proof: Vec<RawTransaction>,
+	/// The proof itself (right now it is all RLP-encoded transactions of the block +
+	/// RLP-encoded receipts of all transactions of the block).
+	pub proof: Vec<(RawTransaction, RawTransactionReceipt)>,
 }
 
 /// We uniquely identify transfer by the pair (sender, nonce).
@@ -80,7 +81,7 @@ impl Blockchain for EthBlockchain {
 			return None;
 		}
 
-		proof.proof.get(proof.index as usize).cloned()
+		proof.proof.get(proof.index as usize).map(|(tx, _)| tx.clone())
 	}
 }
 
@@ -96,7 +97,7 @@ impl MaybeLockFundsTransaction for EthTransaction {
 	fn parse(
 		raw_tx: &Self::Transaction,
 	) -> ExchangeResult<LockFundsTransaction<Self::Id, Self::Recipient, Self::Amount>> {
-		let tx = transaction_decode(raw_tx).map_err(|_| ExchangeError::InvalidTransaction)?;
+		let tx = transaction_decode_rlp(raw_tx).map_err(|_| ExchangeError::InvalidTransaction)?;
 
 		// we only accept transactions sending funds directly to the pre-configured address
 		if tx.unsigned.to != Some(LOCK_FUNDS_ADDRESS.into()) {
