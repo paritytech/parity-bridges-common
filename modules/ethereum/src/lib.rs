@@ -925,10 +925,10 @@ pub fn verify_transaction_finalized<S: Storage>(
 	}
 
 	// check that transaction has completed successfully
-	match Receipt::is_successful_raw_receipt(&proof[tx_index as usize].1) {
-		Ok(true) => true,
-		_ => false,
-	}
+	matches!(
+		Receipt::is_successful_raw_receipt(&proof[tx_index as usize].1),
+		Ok(true)
+	)
 }
 
 /// Transaction pool configuration.
@@ -977,7 +977,6 @@ pub(crate) mod tests {
 			logs: Vec::new(),
 		}
 		.rlp()
-		.into()
 	}
 
 	fn example_header_with_failed_receipt() -> Header {
