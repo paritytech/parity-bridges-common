@@ -18,7 +18,7 @@ SUB_RECIPIENTS=(
 )
 # All possible Ethereum signers (hex-encoded private keys)
 ETH_SIGNERS=(
-	# Arthur account (0x005e714f896a8b7cede9d38688c1a81de72a58e4) and its nonce (unknown)
+	# Arthur account (0x005e714f896a8b7cede9d38688c1a81de72a58e4) and its current nonce (unknown by default)
 	"0399dbd15cf6ee8250895a1f3873eb1e10e23ca18e8ed0726c63c4aea356e87d" ""
 )
 # Minimal exchange amount (in finney)
@@ -43,17 +43,35 @@ do
 	# select signer
 	ETH_SIGNERS_MAX_INDEX=$(((${#ETH_SIGNERS[@]} - 1) / 2))
 	ETH_SIGNERS_INDEX=`shuf -i 0-$ETH_SIGNERS_MAX_INDEX -n 1`
-	ETH_SIGNER=${ETH_SIGNERS[$(($ETH_SIGNER_INDEX*2))]}
-	ETH_SIGNER_NONCE=${ETH_SIGNERS[$(($ETH_SIGNER_INDEX*2 + 1))]}
+	ETH_SIGNER_INDEX=$(($ETH_SIGNERS_INDEX * 2))
+	ETH_SIGNER_NONCE_INDEX=$(($ETH_SIGNER_INDEX + 1))
+	ETH_SIGNER=${ETH_SIGNERS[$ETH_SIGNER_INDEX]}
+	ETH_SIGNER_NONCE=${ETH_SIGNERS[$ETH_SIGNER_NONCE_INDEX]}
+	if [ -z $ETH_SIGNER_NONCE ]; then
+		ETH_SIGNER_NONCE_ARG=
+	else
+		ETH_SIGNER_NONCE_ARG=`printf -- "--eth-nonce=%s" $ETH_SIGNER_NONCE`
+	fi
 
 	# select amount
 	EXCHANGE_AMOUNT_FINNEY=`shuf -i $MIN_EXCHANGE_AMOUNT_FINNEY-$MAX_EXCHANGE_AMOUNT_FINNEY -n 1`
 	EXCHANGE_AMOUNT_ETH=`printf "%s000" $EXCHANGE_AMOUNT_FINNEY`
 
 	# submit transaction
-	echo "Sending $EXCHANGE_AMOUNT_ETH from PoA:$ETH_SIGNER to Substrate:$SUB_RECIPIENT"
-	./ethereum-poa-relay eth-submit-exchange-tx \
+	echo "Sending $EXCHANGE_AMOUNT_ETH from PoA:$ETH_SIGNER to Substrate:$SUB_RECIPIENT. Nonce: $ETH_SIGNER_NONCE"
+	SUBMIT_OUTPUT=`./ethereum-poa-relay eth-submit-exchange-tx \
 		--sub-recipient=$SUB_RECIPIENT \
 		--eth-signer=$ETH_SIGNER \
-		--eth-amount=$EXCHANGE_AMOUNT_ETH
+		--eth-amount=$EXCHANGE_AMOUNT_ETH \
+		$ETH_SIGNER_NONCE_ARG`
+
+	# update sender nonce
+	SUBMIT_OUTPUT_RE='nonce: ([0-9]+)'
+	if [[ $SUBMIT_OUTPUT =~ $SUBMIT_OUTPUT_RE ]]; then
+		ETH_SIGNER_NONCE=${BASH_REMATCH[1]}
+		ETH_SIGNERS[$ETH_SIGNER_NONCE_INDEX]=$(($ETH_SIGNER_NONCE + 1))
+	else
+		echo "Missing nonce in relay response: $SUBMIT_OUTPUT"
+		exit 1
+	fi
 done
