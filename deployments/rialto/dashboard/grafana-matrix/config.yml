@@ -16,9 +16,6 @@ matrix:
   # Fill that access token in here
   access_token: "<access_token>"
   #device_id: <device> # Optional
-#- name: matrix-priv
-#  url: https://private.matrix.org
-#  access_token: <token>
 
 # The default message type for messages, should be either m.text or m.notice,
 # defaults to m.text
