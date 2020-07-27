@@ -64,9 +64,6 @@ COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PR
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
-HEALTHCHECK --interval=2m --timeout=5s \
-  CMD curl -f http://localhost:8545/api/health || exit 1
-
 
 ENV PROJECT=$PROJECT
 ENTRYPOINT ["/home/user/$PROJECT"]
