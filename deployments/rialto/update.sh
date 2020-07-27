@@ -5,6 +5,8 @@
 set -xeu
 
 git pull
+sed -i '/BRIDGE_HASH/d' .env || true
+echo "BRIDGE_HASH=$(git rev-parse HEAD)" >> .env
 docker-compose build
 # Stop the proxy cause otherwise the network can't be stopped
 cd ./proxy

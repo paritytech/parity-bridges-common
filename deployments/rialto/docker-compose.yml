@@ -6,7 +6,7 @@ services:
       dockerfile: ./OpenEthereum.Dockerfile
       args:
         ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
-        BRIDGE_HASH: master
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
     entrypoint:
       - /home/openethereum/openethereum
       - --config=/config/poa-node-config
@@ -50,13 +50,16 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: master
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
+        HEALTH: http://localhost:9616/metrics
     entrypoint: /config/relay-eth2sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "9616:9616"
     depends_on: &all-nodes
       - poa-node-arthur
       - poa-node-bertha
@@ -101,8 +104,9 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: master
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
         PROJECT: bridge-node
+        HEALTH: http://localhost:9933/health
     entrypoint:
       - /home/user/bridge-node
       - --execution=Native
@@ -120,11 +124,6 @@ services:
     ports:
       - "9933:9933"
       - "9944:9944"
-    healthcheck:
-      test: "curl -f http://localhost:9933/health || exit 1"
-      interval: 3m00s
-      timeout: 10s
-      retries: 3
 
   bridge-node-bob:
     <<: *bridge-node
@@ -162,3 +161,20 @@ services:
     ports:
       - "10133:9933"
       - "10144:9944"
+
+  prometheus-metrics:
+    image: prom/prometheus
+    volumes:
+      - ../dashboard/prometheus/:/etc/prometheus/
+    ports:
+      - "9090:9090"
+    depends_on: *all-nodes
+
+  grafana-dashboard:
+    image: grafana/grafana
+    volumes:
+      - ../dashboard/grafana/provisioning/:/etc/grafana/provisioning/
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus-metrics
