@@ -47,6 +47,7 @@ impl Default for EthereumExchangeSubmitParams {
 		EthereumExchangeSubmitParams {
 			eth: Default::default(),
 			eth_sign: Default::default(),
+			eth_nonce: None,
 			eth_amount: 1_000_000_000_000_000_000_u64.into(), // 1 ETH
 			sub_recipient: hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c"), // ferdie
 		}
@@ -62,7 +63,7 @@ pub fn run(params: EthereumExchangeSubmitParams) {
 
 		let eth_signer_address = params.eth_sign.signer.address();
 		let sub_recipient_encoded = params.sub_recipient;
-		let nonce = match params.nonce {
+		let nonce = match params.eth_nonce {
 			Some(eth_nonce) => eth_nonce,
 			None => eth_client
 				.account_nonce(eth_signer_address)
