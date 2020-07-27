@@ -274,9 +274,11 @@ fn ethereum_exchange_submit_params(
 	params.eth_sign = ethereum_signing_params(matches)?;
 
 	if let Some(eth_nonce) = matches.value_of("eth-amount") {
-		params.eth_nonce = Some(eth_nonce
-			.parse()
-			.map_err(|e| format!("Failed to parse eth-nonce: {}", e))?);
+		params.eth_nonce = Some(
+			eth_nonce
+				.parse()
+				.map_err(|e| format!("Failed to parse eth-nonce: {}", e))?,
+		);
 	}
 	if let Some(eth_amount) = matches.value_of("eth-amount") {
 		params.eth_amount = eth_amount
