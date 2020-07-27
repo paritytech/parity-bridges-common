@@ -639,7 +639,7 @@ mod tests {
 
 	#[test]
 	fn is_successful_raw_receipt_works() {
-		assert!(Receipt::is_successful_raw_receipt(&vec![]).is_err());
+		assert!(Receipt::is_successful_raw_receipt(&[]).is_err());
 
 		assert_eq!(
 			Receipt::is_successful_raw_receipt(
@@ -650,7 +650,6 @@ mod tests {
 					logs: Vec::new(),
 				}
 				.rlp()
-				.into()
 			),
 			Ok(false),
 		);
@@ -663,7 +662,6 @@ mod tests {
 					logs: Vec::new(),
 				}
 				.rlp()
-				.into()
 			),
 			Ok(false),
 		);
@@ -676,7 +674,6 @@ mod tests {
 					logs: Vec::new(),
 				}
 				.rlp()
-				.into()
 			),
 			Ok(false),
 		);
@@ -689,9 +686,23 @@ mod tests {
 					logs: Vec::new(),
 				}
 				.rlp()
-				.into()
 			),
 			Ok(true),
+		);
+	}
+
+	#[test]
+	fn is_successful_raw_receipt_with_empty_data() {
+		let mut stream = RlpStream::new();
+		stream.begin_list(4);
+		stream.append_empty_data();
+		stream.append(&1u64);
+		stream.append(&2u64);
+		stream.append(&3u64);
+
+		assert_eq!(
+			Receipt::is_successful_raw_receipt(&stream.out()),
+			Ok(false),
 		);
 	}
 }
