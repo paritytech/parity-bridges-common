@@ -67,7 +67,7 @@ do
 		--eth-chain-id=$ETH_CHAIN_ID \
 		--eth-signer=$ETH_SIGNER \
 		--eth-amount=$EXCHANGE_AMOUNT_ETH \
-		$ETH_SIGNER_NONCE_ARG`
+		$ETH_SIGNER_NONCE_ARG | tee /dev/tty`
 
 	# update sender nonce
 	SUBMIT_OUTPUT_RE='nonce: ([0-9]+)'
