@@ -66,8 +66,8 @@ pub fn start(
 				.map_err(|err| format!("Invalid Prometheus host {}: {}", params.host, err))?,
 			params.port,
 		);
-		let metrics_registry = Registry::new_custom(Some(prefix), None)
-			.expect("only fails if prefix is empty; prefix is not empty; qed");
+		let metrics_registry =
+			Registry::new_custom(Some(prefix), None).expect("only fails if prefix is empty; prefix is not empty; qed");
 		global_metrics.register(&metrics_registry)?;
 		extra_metrics.register(&metrics_registry)?;
 		async_std::task::spawn(async move {
