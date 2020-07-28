@@ -34,10 +34,11 @@ use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
 use std::collections::VecDeque;
 
-const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "EthereumHeadersApi_is_import_requires_receipts";
-const ETH_API_IS_KNOWN_BLOCK: &str = "EthereumHeadersApi_is_known_block";
-const ETH_API_BEST_BLOCK: &str = "EthereumHeadersApi_best_block";
-const ETH_API_BEST_FINALIZED_BLOCK: &str = "EthereumHeadersApi_finalized_block";
+const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "RialtoHeaderApi_is_import_requires_receipts";
+const ETH_API_IS_KNOWN_BLOCK: &str = "RialtoHeaderApi_is_known_block";
+const ETH_API_BEST_BLOCK: &str = "RialtoHeaderApi_best_block";
+const ETH_API_BEST_FINALIZED_BLOCK: &str = "RialtoHeaderApi_finalized_block";
+const EXCH_API_FILTER_TRANSACTION_PROOF: &str = "CurrencyExchangeApi_filter_transaction_proof";
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 
 type Result<T> = std::result::Result<T, RpcError>;
@@ -145,7 +146,7 @@ impl SubstrateRpc for SubstrateRpcClient {
 
 	async fn best_ethereum_finalized_block(&self) -> Result<EthereumHeaderId> {
 		let call = ETH_API_BEST_FINALIZED_BLOCK.to_string();
-		let data = Bytes("0x".into());
+		let data = Bytes(Vec::new());
 
 		let encoded_response = Substrate::state_call(&self.client, call, data, None).await?;
 		let decoded_response: (u64, sp_bridge_eth_poa::H256) = Decode::decode(&mut &encoded_response.0[..])?;
@@ -298,6 +299,11 @@ impl SubmitEthereumHeaders for SubstrateRpcClient {
 /// calls.
 #[async_trait]
 pub trait SubmitEthereumExchangeTransactionProof: SubstrateRpc {
+	/// Pre-verify Ethereum exchange transaction proof.
+	async fn verify_exchange_transaction_proof(
+		&self,
+		proof: bridge_node_runtime::exchange::EthereumTransactionInclusionProof,
+	) -> Result<bool>;
 	/// Submits Ethereum exchange transaction proof to Substrate runtime.
 	async fn submit_exchange_transaction_proof(
 		&self,
@@ -308,6 +314,19 @@ pub trait SubmitEthereumExchangeTransactionProof: SubstrateRpc {
 
 #[async_trait]
 impl SubmitEthereumExchangeTransactionProof for SubstrateRpcClient {
+	async fn verify_exchange_transaction_proof(
+		&self,
+		proof: bridge_node_runtime::exchange::EthereumTransactionInclusionProof,
+	) -> Result<bool> {
+		let call = EXCH_API_FILTER_TRANSACTION_PROOF.to_string();
+		let data = Bytes(proof.encode());
+
+		let encoded_response = Substrate::state_call(&self.client, call, data, None).await?;
+		let is_allowed: bool = Decode::decode(&mut &encoded_response.0[..])?;
+
+		Ok(is_allowed)
+	}
+
 	async fn submit_exchange_transaction_proof(
 		&self,
 		params: SubstrateSigningParams,
@@ -317,7 +336,8 @@ impl SubmitEthereumExchangeTransactionProof for SubstrateRpcClient {
 		let nonce = self.next_account_index(account_id).await?;
 
 		let transaction = create_signed_transaction(
-			bridge_node_runtime::Call::BridgeCurrencyExchange(
+			// TODO [#209]: Change so that that it's dynamic
+			bridge_node_runtime::Call::BridgeRialtoCurrencyExchange(
 				bridge_node_runtime::BridgeCurrencyExchangeCall::import_peer_transaction(proof),
 			),
 			&params.signer,
@@ -337,7 +357,8 @@ fn create_signed_submit_transaction(
 	genesis_hash: H256,
 ) -> bridge_node_runtime::UncheckedExtrinsic {
 	create_signed_transaction(
-		bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::import_signed_headers(
+		// TODO [#209]: Change so that that it's dynamic
+		bridge_node_runtime::Call::BridgeRialto(bridge_node_runtime::BridgeEthPoACall::import_signed_headers(
 			headers
 				.into_iter()
 				.map(|header| {
@@ -357,7 +378,8 @@ fn create_signed_submit_transaction(
 /// Create unsigned Substrate transaction for submitting Ethereum header.
 fn create_unsigned_submit_transaction(header: QueuedEthereumHeader) -> bridge_node_runtime::UncheckedExtrinsic {
 	let function =
-		bridge_node_runtime::Call::BridgeEthPoA(bridge_node_runtime::BridgeEthPoACall::import_unsigned_header(
+		// TODO [#209]: Change so that that it's dynamic
+		bridge_node_runtime::Call::BridgeRialto(bridge_node_runtime::BridgeEthPoACall::import_unsigned_header(
 			into_substrate_ethereum_header(header.header()),
 			into_substrate_ethereum_receipts(header.extra()),
 		));

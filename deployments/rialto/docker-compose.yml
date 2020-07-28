@@ -85,6 +85,20 @@ services:
       EXCHANGE_GEN_MAX_SUBMIT_DELAY_S: ${EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-60}
     depends_on: *all-nodes
 
+  relay-eth-exchange-sub:
+    build:
+      context: .
+      dockerfile: ./Bridge.Dockerfile
+      args:
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+        PROJECT: ethereum-poa-relay
+    entrypoint: /config/relay-eth-exchange-sub-entrypoint.sh
+    volumes:
+      - ./bridge-config:/config
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    depends_on: *all-nodes
+
   # relay-sub2eth:
   #   build:
   #     context: .
@@ -145,9 +159,9 @@ services:
     <<: *bridge-node
     environment:
       <<: *bridge-env
-      VIRTUAL_HOST: rialto.bridges.test-installations.parity.io
+      VIRTUAL_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
       VIRTUAL_PORT: 9944
-      LETSENCRYPT_HOST: rialto.bridges.test-installations.parity.io
+      LETSENCRYPT_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
     entrypoint:
       - /home/user/bridge-node
@@ -165,16 +179,34 @@ services:
   prometheus-metrics:
     image: prom/prometheus
     volumes:
-      - ../dashboard/prometheus/:/etc/prometheus/
+      - ./dashboard/prometheus/:/etc/prometheus/
     ports:
       - "9090:9090"
     depends_on: *all-nodes
 
   grafana-dashboard:
     image: grafana/grafana
+    environment:
+      VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
+      LETSENCRYPT_EMAIL: admin@parity.io
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
+      GF_SERVER_ROOT_URL: ${GRAFANA_SERVER_ROOT_URL}
     volumes:
-      - ../dashboard/grafana/provisioning/:/etc/grafana/provisioning/
+      - ./dashboard/grafana/provisioning/:/etc/grafana/provisioning/
     ports:
       - "3000:3000"
     depends_on:
       - prometheus-metrics
+
+  grafana-matrix-notifier:
+    build:
+      context: .
+      dockerfile: ./GrafanaMatrix.Dockerfile
+    volumes:
+      - ./dashboard/grafana-matrix:/config
+    ports:
+      - "4567:4567"
+    depends_on:
+      - grafana-dashboard
