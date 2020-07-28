@@ -30,7 +30,6 @@
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
-use pallet_bridge_currency_exchange::Blockchain;
 use sp_bridge_eth_poa::{transaction_decode_rlp, RawTransaction, RawTransactionReceipt};
 use sp_currency_exchange::{
 	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult,
@@ -64,25 +63,6 @@ pub struct EthereumTransactionTag {
 	pub account: [u8; 20],
 	/// Lock transaction nonce.
 	pub nonce: sp_core::U256,
-}
-
-/// Eth blockchain from runtime perspective.
-pub struct EthBlockchain;
-
-impl Blockchain for EthBlockchain {
-	type Transaction = RawTransaction;
-	type TransactionInclusionProof = EthereumTransactionInclusionProof;
-
-	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction> {
-		let is_transaction_finalized =
-			crate::BridgeEthPoA::verify_transaction_finalized(proof.block, proof.index, &proof.proof);
-
-		if !is_transaction_finalized {
-			return None;
-		}
-
-		proof.proof.get(proof.index as usize).map(|(tx, _)| tx.clone())
-	}
 }
 
 /// Eth transaction from runtime perspective.
@@ -148,7 +128,7 @@ impl MaybeLockFundsTransaction for EthTransaction {
 
 /// Prepares everything required to bench claim of funds locked by given transaction.
 #[cfg(feature = "runtime-benchmarks")]
-pub(crate) fn prepare_environment_for_claim<T: pallet_bridge_eth_poa::Trait>(
+pub(crate) fn prepare_environment_for_claim<T: pallet_bridge_eth_poa::Trait<I>, I: pallet_bridge_eth_poa::Instance>(
 	transactions: &[(RawTransaction, RawTransactionReceipt)],
 ) -> sp_bridge_eth_poa::H256 {
 	use pallet_bridge_eth_poa::{
@@ -157,8 +137,8 @@ pub(crate) fn prepare_environment_for_claim<T: pallet_bridge_eth_poa::Trait>(
 	};
 	use sp_bridge_eth_poa::compute_merkle_root;
 
-	let mut storage = BridgeStorage::<T>::new();
-	let header = HeaderBuilder::with_parent_number_on_runtime::<T>(0)
+	let mut storage = BridgeStorage::<T, I>::new();
+	let header = HeaderBuilder::with_parent_number_on_runtime::<T, I>(0)
 		.transactions_root(compute_merkle_root(transactions.iter().map(|(tx, _)| tx)))
 		.receipts_root(compute_merkle_root(transactions.iter().map(|(_, receipt)| receipt)))
 		.sign_by(&validator(0));
