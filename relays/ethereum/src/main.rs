@@ -276,8 +276,7 @@ fn ethereum_exchange_submit_params(
 
 	if let Some(eth_nonce) = matches.value_of("eth-nonce") {
 		params.eth_nonce = Some(
-			eth_nonce
-				.parse()
+			ethereum_types::U256::from_dec_str(&eth_nonce)
 				.map_err(|e| format!("Failed to parse eth-nonce: {}", e))?,
 		);
 	}
