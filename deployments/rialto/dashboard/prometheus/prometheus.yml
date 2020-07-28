@@ -2,8 +2,8 @@ scrape_configs:
   # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: 'eth2sub_relay_node'
 
-    # Override the global default and scrape targets from this job every 5 seconds.
-    scrape_interval: 5s
+    # Override the global default and scrape targets from this job every 15 seconds.
+    scrape_interval: 15s
 
     static_configs:
       - targets: ['relay-eth2sub:9616']
