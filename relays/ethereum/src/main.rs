@@ -274,7 +274,7 @@ fn ethereum_exchange_submit_params(
 	params.eth = ethereum_connection_params(matches)?;
 	params.eth_sign = ethereum_signing_params(matches)?;
 
-	if let Some(eth_nonce) = matches.value_of("eth-amount") {
+	if let Some(eth_nonce) = matches.value_of("eth-nonce") {
 		params.eth_nonce = Some(
 			eth_nonce
 				.parse()
