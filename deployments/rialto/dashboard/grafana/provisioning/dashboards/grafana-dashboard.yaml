@@ -3,4 +3,4 @@
   folder: ''
   type: file
   options:
-    path: '/etc/grafana/provisioning/dashboards/grafana-dashboard.json'
+    path: '/etc/grafana/provisioning/dashboards'
