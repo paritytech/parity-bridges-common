@@ -202,6 +202,7 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams
 	eth_sync_params.sub = substrate_connection_params(matches)?;
 	eth_sync_params.sub_sign = substrate_signing_params(matches)?;
 	eth_sync_params.metrics_params = metrics_params(matches)?;
+	eth_sync_params.instance = BridgeInstance::Kovan;
 
 	match matches.value_of("sub-tx-mode") {
 		Some("signed") => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,

@@ -64,6 +64,8 @@ pub struct EthereumSyncParams {
 	pub sync_params: HeadersSyncParams,
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
+	/// Substrate bridge pallet instance to syncronize headers with
+	pub instance: BridgeInstance,
 }
 
 impl Default for EthereumSyncParams {
@@ -81,6 +83,7 @@ impl Default for EthereumSyncParams {
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
 			metrics_params: Some(Default::default()),
+			instance: Default::default(),
 		}
 	}
 }
@@ -128,6 +131,9 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	}
 }
 
+#[derive(Debug, Default, Clone)]
+struct BridgeInstance;
+
 struct SubstrateHeadersTarget {
 	/// Substrate node client.
 	client: SubstrateRpcClient,
@@ -135,14 +141,22 @@ struct SubstrateHeadersTarget {
 	sign_transactions: bool,
 	/// Substrate signing params.
 	sign_params: SubstrateSigningParams,
+	/// The instance of the bridge pallet we should submit headers to
+	instance: BridgeInstance,
 }
 
 impl SubstrateHeadersTarget {
-	fn new(client: SubstrateRpcClient, sign_transactions: bool, sign_params: SubstrateSigningParams) -> Self {
+	fn new(
+		client: SubstrateRpcClient,
+		sign_transactions: bool,
+		sign_params: SubstrateSigningParams,
+		instance: BridgeInstance,
+	) -> Self {
 		Self {
 			client,
 			sign_transactions,
 			sign_params,
+			instance,
 		}
 	}
 }
@@ -201,7 +215,7 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 	};
 
 	let source = EthereumHeadersSource::new(eth_client);
-	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, params.sub_sign);
+	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, params.sub_sign, params.instance);
 
 	crate::sync_loop::run(
 		source,

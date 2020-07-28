@@ -43,6 +43,15 @@ subcommands:
                 long: sub-signer-password
                 value_name: SUB_SIGNER_PASSWORD
                 help: The password for the SURI of secret key to use when transactions are submitted to the Substrate node.
+            - sub-pallet-instance: &sub-pallet-instance
+                long: sub-pallet-instance
+                short: i
+                value_name: PALLET_INSTANCE
+                help: Which instance of the bridge pallet should the relay follow?
+                takes_value: true
+                possible_values:
+                  - rialto
+                  - kovan
             - no-prometheus: &no-prometheus
                 long: no-prometheus
                 help: Do not expose a Prometheus metric endpoint.
