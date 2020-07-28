@@ -84,7 +84,7 @@ version = "0.8.0-rc5"
 tag = 'v2.0.0-rc5'
 git = "https://github.com/paritytech/substrate.git"
 
-[dependencies.grandpa]
+[dependencies.sc-finality-grandpa]
 package = "sc-finality-grandpa"
 version = "0.8.0-rc5"
 tag = 'v2.0.0-rc5'
