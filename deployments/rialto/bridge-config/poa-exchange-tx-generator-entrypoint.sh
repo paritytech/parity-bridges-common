@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e
 
+# Path to relay binary
+RELAY_BINARY_PATH=${RELAY_BINARY_PATH:-./ethereum-poa-relay}
+# Ethereum node host
+ETH_HOST=${ETH_HOST:-poa-node-arthur}
+# Ethereum node port
+ETH_PORT=${ETH_PORT:-8545}
+# Ethereum chain id
+ETH_CHAIN_ID=${ETH_CHAIN_ID:-105}
+
 # All possible Substrate recipients (hex-encoded public keys)
 SUB_RECIPIENTS=(
 	# Alice (5GrwvaEF...)
@@ -16,8 +25,6 @@ SUB_RECIPIENTS=(
 	# Ferdie (5CiPPseX...)
 	"1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c"
 )
-# Ethereum chain id
-ETH_CHAIN_ID=105
 # All possible Ethereum signers (hex-encoded private keys)
 ETH_SIGNERS=(
 	# Arthur account (0x005e714f896a8b7cede9d38688c1a81de72a58e4) and its current nonce (unknown by default)
@@ -61,9 +68,10 @@ do
 
 	# submit transaction
 	echo "Sending $EXCHANGE_AMOUNT_ETH from PoA:$ETH_SIGNER to Substrate:$SUB_RECIPIENT. Nonce: $ETH_SIGNER_NONCE"
-	SUBMIT_OUTPUT=`./ethereum-poa-relay eth-submit-exchange-tx \
+	SUBMIT_OUTPUT=`$RELAY_BINARY_PATH 2>&1 eth-submit-exchange-tx \
 		--sub-recipient=$SUB_RECIPIENT \
-		--eth-host=poa-node-arthur \
+		--eth-host=$ETH_HOST \
+		--eth-port=$ETH_PORT \
 		--eth-chain-id=$ETH_CHAIN_ID \
 		--eth-signer=$ETH_SIGNER \
 		--eth-amount=$EXCHANGE_AMOUNT_ETH \
