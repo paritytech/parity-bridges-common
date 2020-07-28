@@ -17,6 +17,7 @@
 use crate::ethereum_client::{
 	bridge_contract, EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient, EthereumSigningParams,
 };
+use crate::instances::BridgeInstance;
 use crate::rpc::SubstrateRpc;
 use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader};
@@ -26,7 +27,7 @@ use num_traits::Zero;
 
 /// Ethereum synchronization parameters.
 #[derive(Debug)]
-pub struct EthereumDeployContractParams {
+pub struct EthereumDeployContractParams<I> {
 	/// Ethereum connection params.
 	pub eth: EthereumConnectionParams,
 	/// Ethereum signing params.
@@ -41,9 +42,11 @@ pub struct EthereumDeployContractParams {
 	pub sub_initial_authorities_set: Option<Vec<u8>>,
 	/// Initial header.
 	pub sub_initial_header: Option<Vec<u8>>,
+	/// Bridge instance
+	pub instance: I,
 }
 
-impl Default for EthereumDeployContractParams {
+impl<I: Default> Default for EthereumDeployContractParams<I> {
 	fn default() -> Self {
 		EthereumDeployContractParams {
 			eth: Default::default(),
@@ -54,17 +57,18 @@ impl Default for EthereumDeployContractParams {
 			sub_initial_authorities_set_id: None,
 			sub_initial_authorities_set: None,
 			sub_initial_header: None,
+			instance: Default::default(),
 		}
 	}
 }
 
 /// Deploy Bridge contract on Ethereum chain.
-pub fn run(params: EthereumDeployContractParams) {
+pub fn run<I: BridgeInstance>(params: EthereumDeployContractParams<I>) {
 	let mut local_pool = futures::executor::LocalPool::new();
 
 	let result = local_pool.run_until(async move {
 		let eth_client = EthereumRpcClient::new(params.eth);
-		let sub_client = SubstrateRpcClient::new(params.sub).await?;
+		let sub_client = SubstrateRpcClient::new(params.sub, params.instance).await?;
 
 		let (initial_header_hash, initial_header) = prepare_initial_header(&sub_client, params.sub_initial_header).await?;
 		let initial_set_id = params.sub_initial_authorities_set_id.unwrap_or(0);
@@ -99,8 +103,8 @@ pub fn run(params: EthereumDeployContractParams) {
 }
 
 /// Prepare initial header.
-async fn prepare_initial_header(
-	sub_client: &SubstrateRpcClient,
+async fn prepare_initial_header<I: BridgeInstance>(
+	sub_client: &SubstrateRpcClient<I>,
 	sub_initial_header: Option<Vec<u8>>,
 ) -> Result<(SubstrateHash, Vec<u8>), String> {
 	match sub_initial_header {
@@ -118,8 +122,8 @@ async fn prepare_initial_header(
 }
 
 /// Prepare initial GRANDPA authorities set.
-async fn prepare_initial_authorities_set(
-	sub_client: &SubstrateRpcClient,
+async fn prepare_initial_authorities_set<I: BridgeInstance>(
+	sub_client: &SubstrateRpcClient<I>,
 	sub_initial_header_hash: SubstrateHash,
 	sub_initial_authorities_set: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, String> {

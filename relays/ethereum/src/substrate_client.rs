@@ -82,7 +82,7 @@ impl Default for SubstrateSigningParams {
 }
 
 /// Substrate client type.
-pub struct SubstrateRpcClient<I> {
+pub struct SubstrateRpcClient<I: BridgeInstance> {
 	/// Substrate RPC client.
 	client: Client,
 	/// Genesis block hash.
@@ -111,7 +111,7 @@ impl<I: BridgeInstance> SubstrateRpcClient<I> {
 }
 
 #[async_trait]
-impl<I> SubstrateRpc for SubstrateRpcClient<I> {
+impl<I: BridgeInstance + Send + Sync> SubstrateRpc for SubstrateRpcClient<I> {
 	async fn best_header(&self) -> Result<SubstrateHeader> {
 		Ok(Substrate::chain_get_header(&self.client, None).await?)
 	}
@@ -228,7 +228,7 @@ pub trait SubmitEthereumHeaders: SubstrateRpc {
 }
 
 #[async_trait]
-impl<I: BridgeInstance> SubmitEthereumHeaders for SubstrateRpcClient<I> {
+impl<I: BridgeInstance + Send + Sync> SubmitEthereumHeaders for SubstrateRpcClient<I> {
 	async fn submit_ethereum_headers(
 		&self,
 		params: SubstrateSigningParams,
@@ -253,7 +253,7 @@ impl<I: BridgeInstance> SubmitEthereumHeaders for SubstrateRpcClient<I> {
 			let nonce = self.next_account_index(account_id).await?;
 
 			let call = self.instance.build_signed_header_call(headers);
-			let transaction = create_signed_submit_transaction(&params.signer, nonce, self.genesis_hash, call);
+			let transaction = create_signed_submit_transaction(call, &params.signer, nonce, self.genesis_hash);
 			let _ = self.submit_extrinsic(Bytes(transaction.encode())).await?;
 			Ok(())
 		}
@@ -322,7 +322,7 @@ pub trait SubmitEthereumExchangeTransactionProof: SubstrateRpc {
 }
 
 #[async_trait]
-impl<I: BridgeInstance> SubmitEthereumExchangeTransactionProof for SubstrateRpcClient<I> {
+impl<I: BridgeInstance + Send + Sync> SubmitEthereumExchangeTransactionProof for SubstrateRpcClient<I> {
 	async fn verify_exchange_transaction_proof(
 		&self,
 		proof: bridge_node_runtime::exchange::EthereumTransactionInclusionProof,
@@ -345,7 +345,7 @@ impl<I: BridgeInstance> SubmitEthereumExchangeTransactionProof for SubstrateRpcC
 		let nonce = self.next_account_index(account_id).await?;
 
 		let call = self.instance.build_currency_exchange_call(proof);
-		let transaction = create_signed_transaction(&params.signer, nonce, self.genesis_hash, call);
+		let transaction = create_signed_transaction(call, &params.signer, nonce, self.genesis_hash);
 
 		let _ = self.submit_extrinsic(Bytes(transaction.encode())).await?;
 		Ok(())
@@ -354,10 +354,10 @@ impl<I: BridgeInstance> SubmitEthereumExchangeTransactionProof for SubstrateRpcC
 
 /// Create signed Substrate transaction for submitting Ethereum headers.
 fn create_signed_submit_transaction(
+	signed_call: bridge_node_runtime::Call,
 	signer: &sp_core::sr25519::Pair,
 	index: node_primitives::Index,
 	genesis_hash: H256,
-	signed_call: bridge_node_runtime::Call,
 ) -> bridge_node_runtime::UncheckedExtrinsic {
 	create_signed_transaction(signed_call, signer, index, genesis_hash)
 }

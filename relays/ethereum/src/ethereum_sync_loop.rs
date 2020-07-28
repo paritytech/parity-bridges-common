@@ -18,6 +18,7 @@
 
 use crate::ethereum_client::{EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
+use crate::instances::BridgeInstance;
 use crate::metrics::MetricsParams;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
@@ -53,7 +54,7 @@ const PRUNE_DEPTH: u32 = 4096;
 
 /// Ethereum synchronization parameters.
 #[derive(Clone, Debug)]
-pub struct EthereumSyncParams<I: Default> {
+pub struct EthereumSyncParams<I> {
 	/// Ethereum connection params.
 	pub eth: EthereumConnectionParams,
 	/// Substrate connection params.
@@ -68,7 +69,7 @@ pub struct EthereumSyncParams<I: Default> {
 	pub instance: I,
 }
 
-impl<I> Default for EthereumSyncParams<I> {
+impl<I: Default> Default for EthereumSyncParams<I> {
 	fn default() -> Self {
 		EthereumSyncParams {
 			eth: Default::default(),
@@ -131,17 +132,17 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	}
 }
 
-struct SubstrateHeadersTarget {
+struct SubstrateHeadersTarget<I: BridgeInstance> {
 	/// Substrate node client.
-	client: SubstrateRpcClient,
+	client: SubstrateRpcClient<I>,
 	/// Whether we want to submit signed (true), or unsigned (false) transactions.
 	sign_transactions: bool,
 	/// Substrate signing params.
 	sign_params: SubstrateSigningParams,
 }
 
-impl SubstrateHeadersTarget {
-	fn new(client: SubstrateRpcClient, sign_transactions: bool, sign_params: SubstrateSigningParams) -> Self {
+impl<I: BridgeInstance> SubstrateHeadersTarget<I> {
+	fn new(client: SubstrateRpcClient<I>, sign_transactions: bool, sign_params: SubstrateSigningParams) -> Self {
 		Self {
 			client,
 			sign_transactions,
@@ -151,7 +152,7 @@ impl SubstrateHeadersTarget {
 }
 
 #[async_trait]
-impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
+impl<I: BridgeInstance + Sync + Send> TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget<I> {
 	type Error = RpcError;
 
 	async fn best_header_id(&self) -> Result<EthereumHeaderId, Self::Error> {

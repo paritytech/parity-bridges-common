@@ -26,6 +26,7 @@ use crate::exchange::{
 	TransactionProofPipeline,
 };
 use crate::exchange_loop::{run as run_loop, InMemoryStorage};
+use crate::instances::BridgeInstance;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{
@@ -185,13 +186,13 @@ impl SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource {
 }
 
 /// Substrate node as transactions proof target.
-struct SubstrateTransactionsTarget {
-	client: SubstrateRpcClient,
+struct SubstrateTransactionsTarget<I: BridgeInstance> {
+	client: SubstrateRpcClient<I>,
 	sign_params: SubstrateSigningParams,
 }
 
 #[async_trait]
-impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
+impl<I: BridgeInstance + Sync + Send> TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget<I> {
 	type Error = RpcError;
 
 	async fn tick(&self) {

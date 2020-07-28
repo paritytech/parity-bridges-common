@@ -20,6 +20,7 @@ use crate::ethereum_client::{
 	EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient, EthereumSigningParams,
 };
 use crate::ethereum_types::Address;
+use crate::instances::BridgeInstance;
 use crate::metrics::MetricsParams;
 use crate::rpc::SubstrateRpc;
 use crate::rpc_errors::RpcError;
@@ -48,7 +49,7 @@ const PRUNE_DEPTH: u32 = 256;
 
 /// Substrate synchronization parameters.
 #[derive(Debug, Clone)]
-pub struct SubstrateSyncParams {
+pub struct SubstrateSyncParams<I> {
 	/// Ethereum connection params.
 	pub eth: EthereumConnectionParams,
 	/// Ethereum signing params.
@@ -61,9 +62,11 @@ pub struct SubstrateSyncParams {
 	pub sync_params: HeadersSyncParams,
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
+	/// Bridge instance
+	pub instance: I,
 }
 
-impl Default for SubstrateSyncParams {
+impl<I: Default> Default for SubstrateSyncParams<I> {
 	fn default() -> Self {
 		SubstrateSyncParams {
 			eth: Default::default(),
@@ -90,19 +93,19 @@ impl Default for SubstrateSyncParams {
 }
 
 /// Substrate client as headers source.
-struct SubstrateHeadersSource {
+struct SubstrateHeadersSource<I: BridgeInstance> {
 	/// Substrate node client.
-	client: SubstrateRpcClient,
+	client: SubstrateRpcClient<I>,
 }
 
-impl SubstrateHeadersSource {
-	fn new(client: SubstrateRpcClient) -> Self {
+impl<I: BridgeInstance> SubstrateHeadersSource<I> {
+	fn new(client: SubstrateRpcClient<I>) -> Self {
 		Self { client }
 	}
 }
 
 #[async_trait]
-impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
+impl<I: BridgeInstance + Sync + Send> SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource<I> {
 	type Error = RpcError;
 
 	async fn best_block_number(&self) -> Result<Number, Self::Error> {
@@ -198,11 +201,11 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 }
 
 /// Run Substrate headers synchronization.
-pub fn run(params: SubstrateSyncParams) -> Result<(), RpcError> {
+pub fn run<I: BridgeInstance>(params: SubstrateSyncParams<I>) -> Result<(), RpcError> {
 	let sub_params = params.clone();
 
 	let eth_client = EthereumRpcClient::new(params.eth);
-	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub).await })?;
+	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub, sub_params.instance).await })?;
 
 	let target = EthereumHeadersTarget::new(eth_client, params.eth_contract_address, params.eth_sign);
 	let source = SubstrateHeadersSource::new(sub_client);
