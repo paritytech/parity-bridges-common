@@ -11,7 +11,7 @@ scrape_configs:
   - job_name: 'eth_exchange_sub_relay_node'
 
     # Override the global default and scrape targets from this job every 5 seconds.
-    scrape_interval: 5s
+    scrape_interval: 15s
 
     static_configs:
       - targets: ['relay-eth-exchange-sub:9616']
