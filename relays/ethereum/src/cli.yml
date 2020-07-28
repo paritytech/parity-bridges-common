@@ -50,7 +50,9 @@ subcommands:
                 help: Which instance of the bridge pallet should the relay follow?
                 takes_value: true
                 possible_values:
+                  - Rialto
                   - rialto
+                  - Kovan
                   - kovan
             - no-prometheus: &no-prometheus
                 long: no-prometheus

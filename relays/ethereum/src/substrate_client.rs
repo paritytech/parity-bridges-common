@@ -15,12 +15,10 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::ethereum_types::{Bytes, EthereumHeaderId, QueuedEthereumHeader, H256};
+use crate::instances::BridgeInstance;
 use crate::rpc::{Substrate, SubstrateRpc};
 use crate::rpc_errors::RpcError;
-use crate::substrate_types::{
-	into_substrate_ethereum_header, into_substrate_ethereum_receipts, Hash, Header as SubstrateHeader, Number,
-	SignedBlock as SignedSubstrateBlock,
-};
+use crate::substrate_types::{Hash, Header as SubstrateHeader, Number, SignedBlock as SignedSubstrateBlock};
 use crate::sync_types::{HeaderId, SubmittedHeaders};
 
 use async_trait::async_trait;
@@ -83,25 +81,19 @@ impl Default for SubstrateSigningParams {
 	}
 }
 
-// TODO: Remove
-enum BridgeInstance {
-	Rialto,
-	Kovan,
-}
-
 /// Substrate client type.
-pub struct SubstrateRpcClient {
+pub struct SubstrateRpcClient<I> {
 	/// Substrate RPC client.
 	client: Client,
 	/// Genesis block hash.
 	genesis_hash: H256,
 	/// Bridge pallet instance we should be using
-	instance: BridgeInstance,
+	instance: I,
 }
 
-impl SubstrateRpcClient {
+impl<I: BridgeInstance> SubstrateRpcClient<I> {
 	/// Returns client that is able to call RPCs on Substrate node.
-	pub async fn new(params: SubstrateConnectionParams) -> Result<Self> {
+	pub async fn new(params: SubstrateConnectionParams, instance: I) -> Result<Self> {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
 		let raw_client = RawClient::new(transport);
@@ -110,12 +102,16 @@ impl SubstrateRpcClient {
 		let number: Number = Zero::zero();
 		let genesis_hash = Substrate::chain_get_block_hash(&client, number).await?;
 
-		Ok(Self { client, genesis_hash })
+		Ok(Self {
+			client,
+			genesis_hash,
+			instance,
+		})
 	}
 }
 
 #[async_trait]
-impl SubstrateRpc for SubstrateRpcClient {
+impl<I> SubstrateRpc for SubstrateRpcClient<I> {
 	async fn best_header(&self) -> Result<SubstrateHeader> {
 		Ok(Substrate::chain_get_header(&self.client, None).await?)
 	}
@@ -232,7 +228,7 @@ pub trait SubmitEthereumHeaders: SubstrateRpc {
 }
 
 #[async_trait]
-impl SubmitEthereumHeaders for SubstrateRpcClient {
+impl<I: BridgeInstance> SubmitEthereumHeaders for SubstrateRpcClient<I> {
 	async fn submit_ethereum_headers(
 		&self,
 		params: SubstrateSigningParams,
@@ -256,8 +252,8 @@ impl SubmitEthereumHeaders for SubstrateRpcClient {
 			let account_id = params.signer.public().as_array_ref().clone().into();
 			let nonce = self.next_account_index(account_id).await?;
 
-			let signed_call = build_signed_header_call(self.instance, headers);
-			let transaction = create_signed_submit_transaction(&params.signer, nonce, self.genesis_hash, signed_call);
+			let call = self.instance.build_signed_header_call(headers);
+			let transaction = create_signed_submit_transaction(&params.signer, nonce, self.genesis_hash, call);
 			let _ = self.submit_extrinsic(Bytes(transaction.encode())).await?;
 			Ok(())
 		}
@@ -289,8 +285,8 @@ impl SubmitEthereumHeaders for SubstrateRpcClient {
 		for header in headers {
 			let id = ids.pop_front().expect("both collections have same size; qed");
 
-			let header_call = build_submit_header_call(self.instance, header);
-			let transaction = create_unsigned_submit_transaction(header_call);
+			let call = self.instance.build_unsigned_header_call(header);
+			let transaction = create_unsigned_submit_transaction(call);
 
 			match self.submit_extrinsic(Bytes(transaction.encode())).await {
 				Ok(_) => submitted_headers.submitted.push(id),
@@ -326,7 +322,7 @@ pub trait SubmitEthereumExchangeTransactionProof: SubstrateRpc {
 }
 
 #[async_trait]
-impl SubmitEthereumExchangeTransactionProof for SubstrateRpcClient {
+impl<I: BridgeInstance> SubmitEthereumExchangeTransactionProof for SubstrateRpcClient<I> {
 	async fn verify_exchange_transaction_proof(
 		&self,
 		proof: bridge_node_runtime::exchange::EthereumTransactionInclusionProof,
@@ -348,51 +344,11 @@ impl SubmitEthereumExchangeTransactionProof for SubstrateRpcClient {
 		let account_id = params.signer.public().as_array_ref().clone().into();
 		let nonce = self.next_account_index(account_id).await?;
 
-		let exchange_call = build_currency_exchange_call(self.instance, proof);
+		let call = self.instance.build_currency_exchange_call(proof);
+		let transaction = create_signed_transaction(&params.signer, nonce, self.genesis_hash, call);
 
-		let transaction = create_signed_transaction(exchange_call, &params.signer, nonce, self.genesis_hash);
 		let _ = self.submit_extrinsic(Bytes(transaction.encode())).await?;
 		Ok(())
-	}
-}
-
-fn build_currency_exchange_call(instance: BridgeInstance, proof: Proof) -> bridge_node_runtime::Call {
-	let pallet_call = bridge_node_runtime::BridgeCurrencyExchangeCall::import_peer_transaction(proof);
-
-	match instance {
-		Rialto => bridge_node_runtime::Call::BridgeRialtoCurrencyExchange(pallet_call),
-		Kovan => bridge_node_runtime::Call::BridgeKovanCurrencyExchange(pallet_call),
-	}
-}
-
-fn build_unsigned_header_call(instance: BridgeInstance, header: QueuedEthereumHeader) -> bridge_node_runtime::Call {
-	let pallet_call = bridge_node_runtime::BridgeEthPoACall::import_unsigned_header(
-		into_substrate_ethereum_header(header.header()),
-		into_substrate_ethereum_receipts(header.extra()),
-	);
-
-	match instance {
-		Rialto => bridge_node_runtime::Call::BridgeRialto(pallet_call),
-		Kovan => bridge_node_runtime::Call::BridgeKovan(pallet_call),
-	}
-}
-
-fn build_signed_header_call(instance: BridgeInstance, headers: Vec<QueuedEthereumHeader>) -> bridge_node_runtime::Call {
-	let pallet_call = bridge_node_runtime::BridgeEthPoACall::import_signed_headers(
-		headers
-			.into_iter()
-			.map(|header| {
-				(
-					into_substrate_ethereum_header(header.header()),
-					into_substrate_ethereum_receipts(header.extra()),
-				)
-			})
-			.collect(),
-	);
-
-	match instance {
-		Rialto => bridge_node_runtime::Call::BridgeRialto(pallet_call),
-		Kovan => bridge_node_runtime::Call::BridgeKovan(pallet_call),
 	}
 }
 

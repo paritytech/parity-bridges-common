@@ -24,6 +24,7 @@ mod ethereum_types;
 mod exchange;
 mod exchange_loop;
 mod headers;
+mod instances;
 mod metrics;
 mod rpc;
 mod rpc_errors;
@@ -44,6 +45,7 @@ use sp_core::crypto::Pair;
 use std::io::Write;
 use substrate_client::{SubstrateConnectionParams, SubstrateSigningParams};
 use substrate_sync_loop::SubstrateSyncParams;
+use instances::{RialtoInstance, KovanInstance, BridgeInstance};
 
 fn main() {
 	initialize();
@@ -196,13 +198,13 @@ fn substrate_signing_params(matches: &clap::ArgMatches) -> Result<SubstrateSigni
 	Ok(params)
 }
 
-fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams, String> {
+fn ethereum_sync_params<I>(matches: &clap::ArgMatches) -> Result<EthereumSyncParams<I>, String> {
 	let mut eth_sync_params = EthereumSyncParams::default();
 	eth_sync_params.eth = ethereum_connection_params(matches)?;
 	eth_sync_params.sub = substrate_connection_params(matches)?;
 	eth_sync_params.sub_sign = substrate_signing_params(matches)?;
 	eth_sync_params.metrics_params = metrics_params(matches)?;
-	eth_sync_params.instance = BridgeInstance::Kovan;
+	eth_sync_params.instance = instance_params(matches)?;
 
 	match matches.value_of("sub-tx-mode") {
 		Some("signed") => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
@@ -298,4 +300,12 @@ fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<metrics::MetricsP
 	}
 
 	Ok(Some(metrics_params))
+}
+
+fn instance_params(matches: &clap::ArgMatches) -> Result<impl BridgeInstance, String> {
+	match matches.value_of("sub-pallet-instance") {
+		Some("rialto") | Some("Rialto") => RialtoInstance::new(),
+		Some("kovan") | Some("Kovan") => KovanInstance::new(),
+		None => todo!(),
+	}
 }

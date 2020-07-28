@@ -53,7 +53,7 @@ const PRUNE_DEPTH: u32 = 4096;
 
 /// Ethereum synchronization parameters.
 #[derive(Clone, Debug)]
-pub struct EthereumSyncParams {
+pub struct EthereumSyncParams<I: Default> {
 	/// Ethereum connection params.
 	pub eth: EthereumConnectionParams,
 	/// Substrate connection params.
@@ -64,11 +64,11 @@ pub struct EthereumSyncParams {
 	pub sync_params: HeadersSyncParams,
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
-	/// Substrate bridge pallet instance to syncronize headers with
-	pub instance: BridgeInstance,
+	/// Bridge instance
+	pub instance: I,
 }
 
-impl Default for EthereumSyncParams {
+impl<I> Default for EthereumSyncParams<I> {
 	fn default() -> Self {
 		EthereumSyncParams {
 			eth: Default::default(),
@@ -131,9 +131,6 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	}
 }
 
-#[derive(Debug, Default, Clone)]
-struct BridgeInstance;
-
 struct SubstrateHeadersTarget {
 	/// Substrate node client.
 	client: SubstrateRpcClient,
@@ -141,22 +138,14 @@ struct SubstrateHeadersTarget {
 	sign_transactions: bool,
 	/// Substrate signing params.
 	sign_params: SubstrateSigningParams,
-	/// The instance of the bridge pallet we should submit headers to
-	instance: BridgeInstance,
 }
 
 impl SubstrateHeadersTarget {
-	fn new(
-		client: SubstrateRpcClient,
-		sign_transactions: bool,
-		sign_params: SubstrateSigningParams,
-		instance: BridgeInstance,
-	) -> Self {
+	fn new(client: SubstrateRpcClient, sign_transactions: bool, sign_params: SubstrateSigningParams) -> Self {
 		Self {
 			client,
 			sign_transactions,
 			sign_params,
-			instance,
 		}
 	}
 }
@@ -203,11 +192,12 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 }
 
 /// Run Ethereum headers synchronization.
-pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
+pub fn run<I>(params: EthereumSyncParams<I>) -> Result<(), RpcError> {
 	let sub_params = params.clone();
 
 	let eth_client = EthereumRpcClient::new(params.eth);
-	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub).await })?;
+	let sub_client =
+		async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub, sub_params.instance).await })?;
 
 	let sign_sub_transactions = match params.sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,
