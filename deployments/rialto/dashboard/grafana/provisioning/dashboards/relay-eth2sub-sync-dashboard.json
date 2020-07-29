@@ -99,7 +99,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max(best_block_numbers{node=\"source\"}) - max(best_block_numbers{node=\"target\"})",
+          "expr": "max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"}) - max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"target\"})",
           "format": "table",
           "instant": false,
           "interval": "",
@@ -202,7 +202,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "system_average_load",
+          "expr": "Ethereum_to_Substrate_Sync_system_average_load",
           "interval": "",
           "legendFormat": "Average system load in last {{over}}",
           "refId": "A"
@@ -301,7 +301,7 @@
       "pluginVersion": "7.1.0",
       "targets": [
         {
-          "expr": "process_cpu_usage_percentage",
+          "expr": "Ethereum_to_Substrate_Sync_process_cpu_usage_percentage",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -361,7 +361,7 @@
       "pluginVersion": "7.1.0",
       "targets": [
         {
-          "expr": "best_block_numbers",
+          "expr": "Ethereum_to_Substrate_Sync_best_block_numbers",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -421,7 +421,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "process_memory_usage_bytes / 1024 / 1024",
+          "expr": "Ethereum_to_Substrate_Sync_process_memory_usage_bytes / 1024 / 1024",
           "interval": "",
           "legendFormat": "Process memory, MB",
           "refId": "A"
@@ -512,7 +512,7 @@
       "pluginVersion": "7.1.0",
       "targets": [
         {
-          "expr": "blocks_in_state",
+          "expr": "Ethereum_to_Substrate_Sync_blocks_in_state",
           "instant": true,
           "interval": "",
           "legendFormat": "{{state}}",
@@ -604,7 +604,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max(best_block_numbers{node=\"source\"})",
+          "expr": "max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -685,7 +685,7 @@
     ]
   },
   "timezone": "",
-  "title": "RelayDashboard",
-  "uid": "relay-eth2sub",
+  "title": "Ethereum to Substrate headers sync dashboard",
+  "uid": "relay-eth2sub-sync",
   "version": 1
 }

@@ -928,16 +928,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctrlc"
-version = "3.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54dedab740bc412d514cfbc4a1d9d5d16fed02c4b14a7be129003c07fdc33b9b"
-dependencies = [
- "nix",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "curve25519-dalek"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1169,7 +1159,7 @@ dependencies = [
  "frame-system",
  "futures 0.3.5",
  "hex",
- "jsonrpsee 1.0.0 (git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api)",
+ "jsonrpsee",
  "linked-hash-map",
  "log",
  "node-primitives",
@@ -2395,7 +2385,7 @@ dependencies = [
  "globset",
  "hashbrown 0.7.2",
  "hyper 0.13.6",
- "jsonrpsee-proc-macros 1.0.0 (git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api)",
+ "jsonrpsee-proc-macros",
  "lazy_static",
  "log",
  "parking_lot 0.10.2",
@@ -2407,55 +2397,12 @@ dependencies = [
  "thiserror",
  "tokio 0.2.21",
  "unicase",
-]
-
-[[package]]
-name = "jsonrpsee"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/jsonrpsee#ccae2c3b05207093e85c4e4c8704c8f8a65ed1e8"
-dependencies = [
- "async-std",
- "async-tls",
- "bs58",
- "bytes 0.5.5",
- "fnv",
- "futures 0.3.5",
- "futures-timer 3.0.2",
- "globset",
- "hashbrown 0.7.2",
- "hyper 0.13.6",
- "jsonrpsee-proc-macros 1.0.0 (git+https://github.com/paritytech/jsonrpsee)",
- "lazy_static",
- "log",
- "parking_lot 0.10.2",
- "pin-project",
- "rand 0.7.3",
- "serde",
- "serde_json",
- "smallvec 1.4.1",
- "soketto 0.4.1",
- "thiserror",
- "tokio 0.2.21",
- "unicase",
- "url 2.1.1",
- "webpki",
 ]
 
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
 source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
-dependencies = [
- "Inflector",
- "proc-macro2",
- "quote 1.0.7",
- "syn 1.0.33",
-]
-
-[[package]]
-name = "jsonrpsee-proc-macros"
-version = "1.0.0"
-source = "git+https://github.com/paritytech/jsonrpsee#ccae2c3b05207093e85c4e4c8704c8f8a65ed1e8"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -6513,25 +6460,6 @@ dependencies = [
  "pbkdf2",
  "schnorrkel",
  "sha2",
-]
-
-[[package]]
-name = "substrate-bridge"
-version = "0.1.0"
-dependencies = [
- "async-std",
- "clap",
- "ctrlc",
- "derive_more",
- "env_logger",
- "futures 0.3.5",
- "jsonrpsee 1.0.0 (git+https://github.com/paritytech/jsonrpsee)",
- "log",
- "node-primitives",
- "serde_json",
- "sp-core",
- "sp-rpc",
- "url 2.1.1",
 ]
 
 [[package]]
