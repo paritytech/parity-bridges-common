@@ -73,7 +73,7 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: master
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
     entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
     volumes:
