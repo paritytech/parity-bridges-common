@@ -483,4 +483,35 @@ pub mod tests {
 		// ensure that headers are not submitted when sync is stalled
 		assert_eq!(eth_sync.select_headers_to_submit(true), Some(vec![&header(101)]));
 	}
+
+	#[test]
+	fn does_not_select_new_headers_to_submit_when_submit_is_paused() {
+		let mut eth_sync = HeadersSync::new(default_sync_params());
+		eth_sync.params.max_headers_in_submitted_status = 1;
+
+		// ethereum reports best header #102 and substrate is at #100
+		eth_sync.source_best_header_number_response(102);
+		eth_sync.target_best_header_response(id(100));
+
+		// let's prepare #101 and #102 for submitting
+		eth_sync.headers.header_response(header(101).header().clone());
+		eth_sync.headers.maybe_extra_response(&id(101), false);
+		eth_sync.headers.header_response(header(102).header().clone());
+		eth_sync.headers.maybe_extra_response(&id(102), false);
+
+		// when submit is not paused, we're ready to submit #101
+		assert_eq!(eth_sync.select_headers_to_submit(false), Some(vec![&header(101)]));
+
+		// when submit is paused, we're not ready to submit anything
+		eth_sync.pause_submit();
+		assert_eq!(eth_sync.select_headers_to_submit(false), None);
+
+		// if best header on substrate node isn't updated, we still not submitting anything
+		eth_sync.target_best_header_response(id(100));
+		assert_eq!(eth_sync.select_headers_to_submit(false), None);
+
+		// but after it is actually updated, we are ready to submit
+		eth_sync.target_best_header_response(id(101));
+		assert_eq!(eth_sync.select_headers_to_submit(false), Some(vec![&header(102)]));
+	}
 }
