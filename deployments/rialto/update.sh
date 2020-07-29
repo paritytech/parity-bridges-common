@@ -23,5 +23,7 @@ docker-compose down
 docker-compose up -d
 
 # Restart the proxy
-cd ./proxy
-docker-compose up -d
+if [ ! -z ${WITH_PROXY+x} ]; then
+	cd ./proxy
+	docker-compose up -d
+fi
