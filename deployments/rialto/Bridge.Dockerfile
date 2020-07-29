@@ -43,7 +43,7 @@ RUN cargo build --release --verbose -p ${PROJECT}
 
 # Then switch to expected branch and re-build only the stuff that changed.
 ARG BRIDGE_HASH=master
-RUN git fetch && git checkout $BRIDGE_HASH
+RUN git checkout . && git fetch && git checkout $BRIDGE_HASH
 
 ### Build locally
 # ADD .
