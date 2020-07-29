@@ -542,7 +542,8 @@ async fn submit_substrate_headers(
 			header2,
 			header3,
 			header4,
-		).await;
+		)
+		.await;
 
 		if submitted_headers.fatal_error.is_some() {
 			submitted_headers.rejected.extend(ids);
@@ -565,10 +566,9 @@ async fn submit_4_substrate_headers(
 ) -> Option<RpcError> {
 	debug_assert_eq!(
 		ids.len(),
-		1 +
-		header2.as_ref().map(|_| 1).unwrap_or(0) +
-		header3.as_ref().map(|_| 1).unwrap_or(0) +
-		header4.as_ref().map(|_| 1).unwrap_or(0),
+		1 + header2.as_ref().map(|_| 1).unwrap_or(0)
+			+ header3.as_ref().map(|_| 1).unwrap_or(0)
+			+ header4.as_ref().map(|_| 1).unwrap_or(0),
 	);
 
 	// if parent of first header is either incomplete, or rejected, we assume that contract
@@ -580,12 +580,10 @@ async fn submit_4_substrate_headers(
 	}
 
 	// check if headers are incomplete
-	let incomplete_header_index = match header_submitter.is_headers_incomplete(
-		&header1,
-		header2.as_ref(),
-		header3.as_ref(),
-		header4.as_ref(),
-	).await {
+	let incomplete_header_index = match header_submitter
+		.is_headers_incomplete(&header1, header2.as_ref(), header3.as_ref(), header4.as_ref())
+		.await
+	{
 		Ok(incomplete_header_index) => incomplete_header_index,
 		Err(error) => {
 			// contract has rejected all headers => we do not want to submit it
@@ -595,7 +593,7 @@ async fn submit_4_substrate_headers(
 			} else {
 				return None;
 			}
-		},
+		}
 	};
 
 	// submit headers that contract will accept
@@ -605,12 +603,26 @@ async fn submit_4_substrate_headers(
 		Vec::new()
 	};
 	let submitted = ids;
-	let submit_result = header_submitter.submit_headers(
-		header1,
-		if incomplete_header_index == 0 || incomplete_header_index >= 2 { header2.as_ref() } else { None },
-		if incomplete_header_index == 0 || incomplete_header_index >= 3 { header3.as_ref() } else { None },
-		if incomplete_header_index == 0 || incomplete_header_index >= 4 { header4.as_ref() } else { None },
-	).await;
+	let submit_result = header_submitter
+		.submit_headers(
+			header1,
+			if incomplete_header_index == 0 || incomplete_header_index >= 2 {
+				header2.as_ref()
+			} else {
+				None
+			},
+			if incomplete_header_index == 0 || incomplete_header_index >= 3 {
+				header3.as_ref()
+			} else {
+				None
+			},
+			if incomplete_header_index == 0 || incomplete_header_index >= 4 {
+				header4.as_ref()
+			} else {
+				None
+			},
+		)
+		.await;
 	match submit_result {
 		Ok(_) => {
 			if incomplete_header_index != 0 {
@@ -706,11 +718,33 @@ mod tests {
 				incomplete: vec![],
 				failed: vec![header(9).id()],
 			},
-			vec![header(5), header(6), header(7), header(8), header(9), header(10), header(11), header(12), header(13)],
+			vec![
+				header(5),
+				header(6),
+				header(7),
+				header(8),
+				header(9),
+				header(10),
+				header(11),
+				header(12),
+				header(13),
+			],
 		));
-		assert_eq!(submitted_headers.submitted, vec![header(5).id(), header(6).id(), header(7).id(), header(8).id()]);
+		assert_eq!(
+			submitted_headers.submitted,
+			vec![header(5).id(), header(6).id(), header(7).id(), header(8).id()]
+		);
 		assert_eq!(submitted_headers.incomplete, vec![]);
-		assert_eq!(submitted_headers.rejected, vec![header(9).id(), header(10).id(), header(11).id(), header(12).id(), header(13).id()]);
+		assert_eq!(
+			submitted_headers.rejected,
+			vec![
+				header(9).id(),
+				header(10).id(),
+				header(11).id(),
+				header(12).id(),
+				header(13).id()
+			]
+		);
 		assert!(submitted_headers.fatal_error.is_some());
 	}
 }
