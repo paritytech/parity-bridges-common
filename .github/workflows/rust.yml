@@ -22,7 +22,7 @@ jobs:
         toolchain:
           - stable
           #- beta
-          - nightly
+          - nightly-2020-07-27
     runs-on:                       self-hosted
     container:
       image:                       paritytech/ci-linux:production
@@ -72,12 +72,13 @@ jobs:
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
       - name:                      Add clippy
-        run:                       rustup component add clippy --toolchain nightly
+        run:                       rustup component add clippy --toolchain nightly-2020-07-27
       - name:                      Clippy
         uses:                      actions-rs/cargo@master
+        if:                        matrix.toolchain == 'nightly-2020-07-27'
         with:
           command:                 clippy
-          toolchain:               nightly
+          toolchain:               nightly-2020-07-27
           args:                    --all-targets -- -D warnings
       - name:                      Check benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
