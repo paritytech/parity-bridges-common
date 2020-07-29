@@ -8,5 +8,4 @@ members = [
     "modules/ethereum-contract/builtin",
     "modules/currency-exchange",
     "relays/ethereum",
-    "relays/substrate",
 ]
