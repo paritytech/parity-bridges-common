@@ -183,7 +183,9 @@ impl EthereumRpc for EthereumRpcClient {
 
 	async fn submit_transaction(&self, signed_raw_tx: SignedRawTx) -> Result<TransactionHash> {
 		let transaction = Bytes(signed_raw_tx);
-		Ok(Ethereum::submit_transaction(&self.client, transaction).await?)
+		let tx_hash = Ethereum::submit_transaction(&self.client, transaction).await?;
+		log::trace!(target: "bridge", "Sent transaction to Ethereum node: {:?}", tx_hash);
+		Ok(tx_hash)
 	}
 
 	async fn eth_call(&self, call_transaction: CallRequest) -> Result<Bytes> {
@@ -418,15 +420,27 @@ impl EthereumHighLevelRpc for EthereumRpcClient {
 /// Substrate headers submitter API.
 #[async_trait]
 trait HeadersSubmitter {
-	/// Returns Ok(true) if not-yet-imported header is incomplete.
-	/// Returns Ok(false) if not-yet-imported header is complete.
+	/// Returns Ok(0) if all given not-yet-imported headers are complete.
+	/// Returns Ok(index != 0) where index is 1-based index of first header that is incomplete.
 	///
-	/// Returns Err(()) if contract has rejected header. This probably means
-	/// that the header is already imported by the contract.
-	async fn is_header_incomplete(&self, header: &QueuedSubstrateHeader) -> Result<bool>;
+	/// Returns Err(()) if contract has rejected headers. This means that the contract is
+	/// unable to import first header (e.g. it may already be imported).
+	async fn is_headers_incomplete(
+		&self,
+		header1: &QueuedSubstrateHeader,
+		header2: Option<&QueuedSubstrateHeader>,
+		header3: Option<&QueuedSubstrateHeader>,
+		header4: Option<&QueuedSubstrateHeader>,
+	) -> Result<usize>;
 
-	/// Submit given header to Ethereum node.
-	async fn submit_header(&mut self, header: QueuedSubstrateHeader) -> Result<()>;
+	/// Submit given headers to Ethereum node.
+	async fn submit_headers(
+		&mut self,
+		header1: QueuedSubstrateHeader,
+		header2: Option<&QueuedSubstrateHeader>,
+		header3: Option<&QueuedSubstrateHeader>,
+		header4: Option<&QueuedSubstrateHeader>,
+	) -> Result<()>;
 }
 
 /// Implementation of Substrate headers submitter that sends headers to running Ethereum node.
@@ -439,9 +453,19 @@ struct EthereumHeadersSubmitter {
 
 #[async_trait]
 impl HeadersSubmitter for EthereumHeadersSubmitter {
-	async fn is_header_incomplete(&self, header: &QueuedSubstrateHeader) -> Result<bool> {
-		let (encoded_call, call_decoder) =
-			bridge_contract::functions::is_incomplete_header::call(header.header().encode());
+	async fn is_headers_incomplete(
+		&self,
+		header1: &QueuedSubstrateHeader,
+		header2: Option<&QueuedSubstrateHeader>,
+		header3: Option<&QueuedSubstrateHeader>,
+		header4: Option<&QueuedSubstrateHeader>,
+	) -> Result<usize> {
+		let (encoded_call, call_decoder) = bridge_contract::functions::is_incomplete_headers::call(
+			header1.header().encode(),
+			header2.map(|header2| header2.header().encode()).unwrap_or_default(),
+			header3.map(|header3| header3.header().encode()).unwrap_or_default(),
+			header4.map(|header4| header4.header().encode()).unwrap_or_default(),
+		);
 		let call_request = CallRequest {
 			to: Some(self.contract_address),
 			data: Some(encoded_call.into()),
@@ -449,12 +473,21 @@ impl HeadersSubmitter for EthereumHeadersSubmitter {
 		};
 
 		let call_result = self.client.eth_call(call_request).await?;
-		let is_incomplete = call_decoder.decode(&call_result.0)?;
+		let incomplete_index: U256 = call_decoder.decode(&call_result.0)?;
+		if incomplete_index > 4.into() {
+			return Err(RpcError::Ethereum(EthereumNodeError::InvalidIncompleteIndex));
+		}
 
-		Ok(is_incomplete)
+		Ok(incomplete_index.low_u32() as _)
 	}
 
-	async fn submit_header(&mut self, header: QueuedSubstrateHeader) -> Result<()> {
+	async fn submit_headers(
+		&mut self,
+		header1: QueuedSubstrateHeader,
+		header2: Option<&QueuedSubstrateHeader>,
+		header3: Option<&QueuedSubstrateHeader>,
+		header4: Option<&QueuedSubstrateHeader>,
+	) -> Result<()> {
 		let result = self
 			.client
 			.submit_ethereum_transaction(
@@ -462,7 +495,12 @@ impl HeadersSubmitter for EthereumHeadersSubmitter {
 				Some(self.contract_address),
 				Some(self.nonce),
 				false,
-				bridge_contract::functions::import_header::encode_input(header.header().encode()),
+				bridge_contract::functions::import_headers::encode_input(
+					header1.header().encode(),
+					header2.map(|header2| header2.header().encode()).unwrap_or_default(),
+					header3.map(|header3| header3.header().encode()).unwrap_or_default(),
+					header4.map(|header4| header4.header().encode()).unwrap_or_default(),
+				),
 			)
 			.await;
 
@@ -477,14 +515,34 @@ impl HeadersSubmitter for EthereumHeadersSubmitter {
 /// Submit multiple Substrate headers.
 async fn submit_substrate_headers(
 	mut header_submitter: impl HeadersSubmitter,
-	headers: Vec<QueuedSubstrateHeader>,
+	mut headers: Vec<QueuedSubstrateHeader>,
 ) -> SubmittedHeaders<SubstrateHeaderId, RpcError> {
-	let mut ids = headers.iter().map(|header| header.id()).collect::<VecDeque<_>>();
 	let mut submitted_headers = SubmittedHeaders::default();
-	for header in headers {
-		let id = ids.pop_front().expect("both collections have same size; qed");
-		submitted_headers.fatal_error =
-			submit_substrate_header(&mut header_submitter, &mut submitted_headers, id, header).await;
+
+	let mut ids = headers.iter().map(|header| header.id()).collect::<VecDeque<_>>();
+	headers.reverse();
+
+	while !headers.is_empty() {
+		let header1 = headers.pop().expect("headers is not empty; qed");
+		let header2 = headers.pop();
+		let header3 = headers.pop();
+		let header4 = headers.pop();
+
+		let mut submitting_ids = Vec::with_capacity(4);
+		submitting_ids.push(ids.pop_front().expect("both collections have same size; qed"));
+		submitting_ids.extend(ids.pop_front().iter());
+		submitting_ids.extend(ids.pop_front().iter());
+		submitting_ids.extend(ids.pop_front().iter());
+
+		submitted_headers.fatal_error = submit_4_substrate_headers(
+			&mut header_submitter,
+			&mut submitted_headers,
+			submitting_ids,
+			header1,
+			header2,
+			header3,
+			header4,
+		).await;
 
 		if submitted_headers.fatal_error.is_some() {
 			submitted_headers.rejected.extend(ids);
@@ -495,47 +553,76 @@ async fn submit_substrate_headers(
 	submitted_headers
 }
 
-/// Submit single Substrate header.
-async fn submit_substrate_header(
+/// Submit 4 Substrate headers in single PoA transaction.
+async fn submit_4_substrate_headers(
 	header_submitter: &mut impl HeadersSubmitter,
 	submitted_headers: &mut SubmittedHeaders<SubstrateHeaderId, RpcError>,
-	id: SubstrateHeaderId,
-	header: QueuedSubstrateHeader,
+	mut ids: Vec<SubstrateHeaderId>,
+	header1: QueuedSubstrateHeader,
+	header2: Option<QueuedSubstrateHeader>,
+	header3: Option<QueuedSubstrateHeader>,
+	header4: Option<QueuedSubstrateHeader>,
 ) -> Option<RpcError> {
-	// if parent of this header is either incomplete, or rejected, we assume that contract
+	debug_assert_eq!(
+		ids.len(),
+		1 +
+		header2.as_ref().map(|_| 1).unwrap_or(0) +
+		header3.as_ref().map(|_| 1).unwrap_or(0) +
+		header4.as_ref().map(|_| 1).unwrap_or(0),
+	);
+
+	// if parent of first header is either incomplete, or rejected, we assume that contract
 	// will reject this header as well
-	let parent_id = header.parent_id();
+	let parent_id = header1.parent_id();
 	if submitted_headers.rejected.contains(&parent_id) || submitted_headers.incomplete.contains(&parent_id) {
-		submitted_headers.rejected.push(id);
+		submitted_headers.rejected.extend(ids);
 		return None;
 	}
 
-	// check if this header is incomplete
-	let is_header_incomplete = match header_submitter.is_header_incomplete(&header).await {
-		Ok(true) => true,
-		Ok(false) => false,
+	// check if headers are incomplete
+	let incomplete_header_index = match header_submitter.is_headers_incomplete(
+		&header1,
+		header2.as_ref(),
+		header3.as_ref(),
+		header4.as_ref(),
+	).await {
+		Ok(incomplete_header_index) => incomplete_header_index,
 		Err(error) => {
-			// contract has rejected this header => we do not want to submit it
-			submitted_headers.rejected.push(id);
+			// contract has rejected all headers => we do not want to submit it
+			submitted_headers.rejected.extend(ids);
 			if error.is_connection_error() {
 				return Some(error);
 			} else {
 				return None;
 			}
-		}
+		},
 	};
 
-	// submit header and update submitted headers
-	match header_submitter.submit_header(header).await {
+	// submit headers that contract will accept
+	let rejected = if incomplete_header_index != 0 {
+		ids.split_off(std::cmp::min(incomplete_header_index, ids.len()))
+	} else {
+		Vec::new()
+	};
+	let submitted = ids;
+	let submit_result = header_submitter.submit_headers(
+		header1,
+		if incomplete_header_index == 0 || incomplete_header_index >= 2 { header2.as_ref() } else { None },
+		if incomplete_header_index == 0 || incomplete_header_index >= 3 { header3.as_ref() } else { None },
+		if incomplete_header_index == 0 || incomplete_header_index >= 4 { header4.as_ref() } else { None },
+	).await;
+	match submit_result {
 		Ok(_) => {
-			submitted_headers.submitted.push(id);
-			if is_header_incomplete {
-				submitted_headers.incomplete.push(id);
+			if incomplete_header_index != 0 {
+				submitted_headers.incomplete.extend(submitted.iter().last().cloned());
 			}
+			submitted_headers.submitted.extend(submitted);
+			submitted_headers.rejected.extend(rejected);
 			None
 		}
 		Err(error) => {
-			submitted_headers.rejected.push(id);
+			submitted_headers.rejected.extend(submitted);
+			submitted_headers.rejected.extend(rejected);
 			Some(error)
 		}
 	}

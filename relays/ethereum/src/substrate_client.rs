@@ -182,7 +182,9 @@ impl SubstrateRpc for SubstrateRpcClient {
 	}
 
 	async fn submit_extrinsic(&self, transaction: Bytes) -> Result<Hash> {
-		Ok(Substrate::author_submit_extrinsic(&self.client, transaction).await?)
+		let tx_hash = Substrate::author_submit_extrinsic(&self.client, transaction).await?;
+		log::trace!(target: "bridge", "Sent transaction to Substrate node: {:?}", tx_hash);
+		Ok(tx_hash)
 	}
 
 	async fn grandpa_authorities_set(&self, block: Hash) -> Result<GrandpaAuthorityList> {
