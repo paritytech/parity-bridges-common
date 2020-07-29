@@ -119,20 +119,6 @@ services:
       - "9618:9616"
     depends_on: *all-nodes
 
-  # relay-sub2eth:
-  #   build:
-  #     context: .
-  #     dockerfile: ./Bridge.Dockerfile
-  #     args:
-  #       BRIDGE_HASH: master
-  #       PROJECT: ethereum-poa-relay
-  #   entrypoint: /config/relay-sub2eth-entrypoint.sh
-  #   volumes:
-  #     - ./bridge-config:/config
-  #   environment:
-  #     RUST_LOG: rpc=trace,bridge=trace
-  #   depends_on: *all-nodes
-
   bridge-node-alice: &bridge-node
     build:
       context: .
