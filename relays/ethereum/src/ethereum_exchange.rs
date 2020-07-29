@@ -27,11 +27,13 @@ use crate::exchange::{
 };
 use crate::exchange_loop::{run as run_loop, InMemoryStorage};
 use crate::instances::BridgeInstance;
+use crate::metrics::MetricsParams;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{
 	SubmitEthereumExchangeTransactionProof, SubstrateConnectionParams, SubstrateRpcClient, SubstrateSigningParams,
 };
+use crate::substrate_types::into_substrate_ethereum_receipt;
 use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
@@ -64,6 +66,8 @@ pub struct EthereumExchangeParams {
 	pub sub_sign: SubstrateSigningParams,
 	/// Relay working mode.
 	pub mode: ExchangeRelayMode,
+	/// Metrics parameters.
+	pub metrics_params: Option<MetricsParams>,
 	/// Bridge instance
 	pub instance: Box<dyn BridgeInstance + Sync + Send>,
 }
@@ -172,12 +176,17 @@ impl SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource {
 			node are having `raw` field; qed";
 		const BLOCK_HAS_HASH_FIELD_PROOF: &str = "RPC level checks that block has `hash` field; qed";
 
-		let transaction_proof = block
-			.0
-			.transactions
-			.iter()
-			.map(|tx| tx.raw.clone().expect(TRANSACTION_HAS_RAW_FIELD_PROOF).0)
-			.collect();
+		let mut transaction_proof = Vec::with_capacity(block.0.transactions.len());
+		for tx in &block.0.transactions {
+			let raw_tx_receipt = self
+				.client
+				.transaction_receipt(tx.hash)
+				.await
+				.map(|receipt| into_substrate_ethereum_receipt(&receipt))
+				.map(|receipt| receipt.rlp())?;
+			let raw_tx = tx.raw.clone().expect(TRANSACTION_HAS_RAW_FIELD_PROOF).0;
+			transaction_proof.push((raw_tx, raw_tx_receipt));
+		}
 
 		Ok(EthereumTransactionInclusionProof {
 			block: block.0.hash.expect(BLOCK_HAS_HASH_FIELD_PROOF),
@@ -224,9 +233,16 @@ impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
 
 	async fn filter_transaction_proof(&self, proof: &EthereumTransactionInclusionProof) -> Result<bool, Self::Error> {
 		// let's try to parse transaction locally
-		let parse_result = bridge_node_runtime::exchange::EthTransaction::parse(&proof.proof[proof.index as usize]);
+		let (raw_tx, raw_tx_receipt) = &proof.proof[proof.index as usize];
+		let parse_result = bridge_node_runtime::exchange::EthTransaction::parse(raw_tx);
 		if parse_result.is_err() {
 			return Ok(false);
+		}
+
+		// now let's check if transaction is successful
+		match sp_bridge_eth_poa::Receipt::is_successful_raw_receipt(raw_tx_receipt) {
+			Ok(true) => (),
+			_ => return Ok(false),
 		}
 
 		// seems that transaction is relayable - let's check if runtime is able to import it
@@ -247,6 +263,7 @@ impl Default for EthereumExchangeParams {
 			sub: Default::default(),
 			sub_sign: Default::default(),
 			mode: ExchangeRelayMode::Auto(None),
+			metrics_params: Some(Default::default()),
 			instance: Default::default(),
 		}
 	}
@@ -302,8 +319,7 @@ fn run_single_transaction_relay(params: EthereumExchangeParams, eth_tx_hash: H25
 fn run_auto_transactions_relay_loop(params: EthereumExchangeParams, eth_start_with_block_number: Option<u64>) {
 	let do_run_loop = move || -> Result<(), String> {
 		let eth_client = EthereumRpcClient::new(params.eth);
-		let sub_client = async_std::task::block_on(SubstrateRpcClient::new(params.sub,
-				params.instance))
+		let sub_client = async_std::task::block_on(SubstrateRpcClient::new(params.sub, params.instance))
 			.map_err(|err| format!("Error starting Substrate client: {:?}", err))?;
 
 		let eth_start_with_block_number = match eth_start_with_block_number {
@@ -327,6 +343,7 @@ fn run_auto_transactions_relay_loop(params: EthereumExchangeParams, eth_start_wi
 				client: sub_client,
 				sign_params: params.sub_sign,
 			},
+			params.metrics_params,
 			futures::future::pending(),
 		);
 
