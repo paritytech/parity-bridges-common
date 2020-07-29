@@ -67,6 +67,8 @@ services:
       - bridge-node-alice
       - bridge-node-bob
       - bridge-node-charlie
+      - bridge-node-dave
+      - bridge-node-eve
 
   poa-exchange-tx-generator:
     build:
@@ -92,11 +94,29 @@ services:
       args:
         BRIDGE_HASH: ${BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
+        HEALTH: http://localhost:9616/metrics
     entrypoint: /config/relay-eth-exchange-sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+    depends_on: *all-nodes
+
+  relay-sub2eth:
+    build:
+      context: .
+      dockerfile: ./Bridge.Dockerfile
+      args:
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+        PROJECT: ethereum-poa-relay
+        HEALTH: http://localhost:9616/metrics
+    entrypoint: /config/relay-sub2eth-entrypoint.sh
+    volumes:
+      - ./bridge-config:/config
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "9618:9616"
     depends_on: *all-nodes
 
   # relay-sub2eth:
@@ -175,6 +195,36 @@ services:
     ports:
       - "10133:9933"
       - "10144:9944"
+
+  bridge-node-dave:
+    <<: *bridge-node
+    entrypoint:
+      - /home/user/bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --dave
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10233:9933"
+      - "10244:9944"
+
+  bridge-node-eve:
+    <<: *bridge-node
+    entrypoint:
+      - /home/user/bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --eve
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10333:9933"
+      - "10344:9944"
 
   prometheus-metrics:
     image: prom/prometheus
