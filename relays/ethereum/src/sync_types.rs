@@ -195,6 +195,10 @@ impl<Id: std::fmt::Debug, Error> std::fmt::Display for SubmittedHeaders<Id, Erro
 		let incomplete = format_ids(self.incomplete.iter());
 		let rejected = format_ids(self.rejected.iter());
 
-		write!(f, "Submitted: {} Incomplete: {} Rejected: {}", submitted, incomplete, rejected)
+		write!(
+			f,
+			"Submitted: {} Incomplete: {} Rejected: {}",
+			submitted, incomplete, rejected
+		)
 	}
 }

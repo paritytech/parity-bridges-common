@@ -17,10 +17,8 @@
 use crate::metrics::{start as metrics_start, GlobalMetrics, MetricsParams};
 use crate::sync::HeadersSyncParams;
 use crate::sync_loop_metrics::SyncLoopMetrics;
-use crate::sync_types::{
-	HeaderIdOf, HeaderStatus, HeadersSyncPipeline, QueuedHeader, SubmittedHeaders,
-};
-use crate::utils::{MaybeConnectionError, StringifiedMaybeConnectionError, format_ids, retry_backoff};
+use crate::sync_types::{HeaderIdOf, HeaderStatus, HeadersSyncPipeline, QueuedHeader, SubmittedHeaders};
+use crate::utils::{format_ids, retry_backoff, MaybeConnectionError, StringifiedMaybeConnectionError};
 
 use async_trait::async_trait;
 use backoff::{backoff::Backoff, ExponentialBackoff};

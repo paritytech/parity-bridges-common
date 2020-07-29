@@ -97,20 +97,20 @@ pub fn retry_backoff() -> ExponentialBackoff {
 }
 
 /// Compact format of IDs vector.
-pub fn format_ids<Id: std::fmt::Debug>(mut ids: impl ExactSizeIterator<Item=Id>) -> String {
+pub fn format_ids<Id: std::fmt::Debug>(mut ids: impl ExactSizeIterator<Item = Id>) -> String {
 	const NTH_PROOF: &str = "we have checked len; qed";
 	match ids.len() {
 		0 => "<nothing>".into(),
-		1 => format!("{:?}", ids.nth(0).expect(NTH_PROOF)),
+		1 => format!("{:?}", ids.next().expect(NTH_PROOF)),
 		2 => {
-			let id0 = ids.nth(0).expect(NTH_PROOF);
-			let id1 = ids.nth(0).expect(NTH_PROOF);
+			let id0 = ids.next().expect(NTH_PROOF);
+			let id1 = ids.next().expect(NTH_PROOF);
 			format!("[{:?}, {:?}]", id0, id1)
-		},
+		}
 		len => {
-			let id0 = ids.nth(0).expect(NTH_PROOF);
+			let id0 = ids.next().expect(NTH_PROOF);
 			let id_last = ids.nth(len - 2).expect(NTH_PROOF);
 			format!("{}:[{:?} ... {:?}]", len, id0, id_last)
-		},
+		}
 	}
 }
