@@ -68,6 +68,23 @@ services:
       - bridge-node-bob
       - bridge-node-charlie
 
+  poa-exchange-tx-generator:
+    build:
+      context: .
+      dockerfile: ./Bridge.Dockerfile
+      args:
+        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+        PROJECT: ethereum-poa-relay
+    entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
+    volumes:
+      - ./bridge-config:/config
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+      EXCHANGE_GEN_MIN_AMOUNT_FINNEY: ${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1}
+      EXCHANGE_GEN_MAX_AMOUNT_FINNEY: ${EXCHANGE_GEN_MAX_AMOUNT_FINNEY:-100000}
+      EXCHANGE_GEN_MAX_SUBMIT_DELAY_S: ${EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-60}
+    depends_on: *all-nodes
+
   relay-eth-exchange-sub:
     build:
       context: .
