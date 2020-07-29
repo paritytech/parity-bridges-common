@@ -59,6 +59,8 @@ pub struct HeadersSync<P: HeadersSyncPipeline> {
 	target_best_header: Option<HeaderIdOf<P>>,
 	/// Headers queue.
 	headers: QueuedHeaders<P>,
+	/// Pause headers submit.
+	pause_submit: bool,
 }
 
 impl<P: HeadersSyncPipeline> HeadersSync<P> {
@@ -69,6 +71,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 			params,
 			source_best_number: None,
 			target_best_header: None,
+			pause_submit: false,
 		}
 	}
 
@@ -159,6 +162,11 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 
 	/// Select headers that need to be submitted to the target node.
 	pub fn select_headers_to_submit(&self, stalled: bool) -> Option<Vec<&QueuedHeader<P>>> {
+		// maybe we have paused new headers submit?
+		if self.pause_submit {
+			return None;
+		}
+
 		// if we operate in backup mode, we only submit headers when sync has stalled
 		if self.params.target_tx_mode == TargetTransactionMode::Backup && !stalled {
 			return None;
@@ -228,7 +236,32 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		// finally remember the best header itself
 		self.target_best_header = Some(best_header);
 
+		// we are ready to submit headers again
+		if self.pause_submit {
+			log::debug!(
+				target: "bridge",
+				"Ready to submit {} headers to {} node again!",
+				P::SOURCE_NAME,
+				P::TARGET_NAME,
+			);
+
+			self.pause_submit = false;
+		}
+
 		true
+	}
+
+	/// Pause headers submit until best header will be updated on target node.
+	pub fn pause_submit(&mut self) {
+		log::debug!(
+			target: "bridge",
+			"Stopping submitting {} headers to {} node. Waiting for {} submitted headers to be accepted",
+			P::SOURCE_NAME,
+			P::TARGET_NAME,
+			self.headers.headers_in_status(HeaderStatus::Submitted),
+		);
+
+		self.pause_submit = true;
 	}
 
 	/// Restart synchronization.
@@ -236,6 +269,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		self.source_best_number = None;
 		self.target_best_header = None;
 		self.headers.clear();
+		self.pause_submit = false;
 	}
 }
 
