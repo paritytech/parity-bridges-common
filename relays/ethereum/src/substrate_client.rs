@@ -93,7 +93,10 @@ pub struct SubstrateRpcClient {
 
 impl SubstrateRpcClient {
 	/// Returns client that is able to call RPCs on Substrate node.
-	pub async fn new(params: SubstrateConnectionParams, instance: Box<dyn BridgeInstance + Send + Sync>) -> Result<Self> {
+	pub async fn new(
+		params: SubstrateConnectionParams,
+		instance: Box<dyn BridgeInstance + Send + Sync>,
+	) -> Result<Self> {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
 		let raw_client = RawClient::new(transport);

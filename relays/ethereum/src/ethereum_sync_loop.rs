@@ -33,8 +33,8 @@ use crate::sync_types::{SourceHeader, SubmittedHeaders};
 use async_trait::async_trait;
 use web3::types::H256;
 
-use std::{collections::HashSet, time::Duration};
 use std::fmt::Debug;
+use std::{collections::HashSet, time::Duration};
 
 /// Interval at which we check new Ethereum headers when we are synced/almost synced.
 const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(10);
@@ -67,7 +67,7 @@ pub struct EthereumSyncParams {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Bridge instance
-	pub instance: Box<dyn BridgeInstance>,
+	pub instance: Box<dyn BridgeInstance + Send + Sync>,
 }
 
 impl Default for EthereumSyncParams {

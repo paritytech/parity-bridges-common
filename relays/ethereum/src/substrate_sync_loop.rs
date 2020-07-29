@@ -34,8 +34,8 @@ use crate::sync_types::{SourceHeader, SubmittedHeaders};
 
 use async_trait::async_trait;
 
-use std::{collections::HashSet, time::Duration};
 use std::fmt::Debug;
+use std::{collections::HashSet, time::Duration};
 
 /// Interval at which we check new Substrate headers when we are synced/almost synced.
 const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_secs(10);
@@ -64,7 +64,7 @@ pub struct SubstrateSyncParams {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Bridge instance
-	pub instance: Box<dyn BridgeInstance>,
+	pub instance: Box<dyn BridgeInstance + Send + Sync>,
 }
 
 impl Default for SubstrateSyncParams {
@@ -207,7 +207,8 @@ pub fn run(params: SubstrateSyncParams) -> Result<(), RpcError> {
 	let sub_params = params.clone();
 
 	let eth_client = EthereumRpcClient::new(params.eth);
-	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub, sub_params.instance).await })?;
+	let sub_client =
+		async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub, sub_params.instance).await })?;
 
 	let target = EthereumHeadersTarget::new(eth_client, params.eth_contract_address, params.eth_sign);
 	let source = SubstrateHeadersSource::new(sub_client);

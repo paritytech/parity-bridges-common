@@ -42,11 +42,11 @@ mod utils;
 
 use ethereum_client::{EthereumConnectionParams, EthereumSigningParams};
 use ethereum_sync_loop::EthereumSyncParams;
+use instances::{BridgeInstance, KovanInstance, RialtoInstance};
 use parity_crypto::publickey::{KeyPair, Secret};
 use sp_core::crypto::Pair;
 use substrate_client::{SubstrateConnectionParams, SubstrateSigningParams};
 use substrate_sync_loop::SubstrateSyncParams;
-use instances::{RialtoInstance, KovanInstance, BridgeInstance};
 
 use std::io::Write;
 
@@ -361,6 +361,6 @@ fn instance_params(matches: &clap::ArgMatches) -> Result<Box<dyn BridgeInstance 
 	match matches.value_of("sub-pallet-instance") {
 		Some("rialto") | Some("Rialto") => Ok(Box::new(RialtoInstance::new())),
 		Some("kovan") | Some("Kovan") => Ok(Box::new(KovanInstance::new())),
-		None => todo!(),
+		_ => todo!(),
 	}
 }

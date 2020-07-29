@@ -20,10 +20,48 @@ use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethe
 use bridge_node_runtime::exchange::EthereumTransactionInclusionProof as Proof;
 use bridge_node_runtime::Call;
 
-pub trait BridgeInstance: Send + Sync {
+use std::fmt::Debug;
+
+pub trait BridgeInstance {
 	fn build_signed_header_call(&self, headers: Vec<QueuedEthereumHeader>) -> Call;
 	fn build_unsigned_header_call(&self, header: QueuedEthereumHeader) -> Call;
 	fn build_currency_exchange_call(&self, proof: Proof) -> Call;
+}
+
+impl Debug for Box<dyn BridgeInstance> {
+	fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+		todo!()
+	}
+}
+
+impl Debug for Box<dyn BridgeInstance + Send + Sync> {
+	fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+		todo!()
+	}
+}
+
+impl Default for Box<dyn BridgeInstance> {
+	fn default() -> Self {
+		todo!()
+	}
+}
+
+impl Default for Box<dyn BridgeInstance + Send + Sync> {
+	fn default() -> Self {
+		todo!()
+	}
+}
+
+impl Clone for Box<dyn BridgeInstance> {
+	fn clone(&self) -> Self {
+		todo!()
+	}
+}
+
+impl Clone for Box<dyn BridgeInstance + Send + Sync> {
+	fn clone(&self) -> Self {
+		todo!()
+	}
 }
 
 #[derive(Default, Clone, Debug)]
