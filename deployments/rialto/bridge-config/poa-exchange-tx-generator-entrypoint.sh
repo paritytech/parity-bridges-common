@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# THIS SCRIPT IS NOT INTENDED FOR USE IN PRODUCTION ENVIRONMENT
+#
+# This scripts periodically calls relay binary to generate PoA -> Substrate
+# exchange transaction from hardcoded PoA senders (assuming they have
+# enough funds) to hardcoded Substrate recipients.
+
 set -e
 
 # Path to relay binary
