@@ -35,7 +35,7 @@ SUB_RECIPIENTS=(
 # All possible Ethereum signers (hex-encoded private keys)
 # (note that we're tracking nonce here => sender must not send concurrent transactions)
 ETH_SIGNERS=(
-	# Bertha account () and its current nonce (unknown by default)
+	# Bertha account (0x007594304039c2937a12220338aab821d819f5a4) and its current nonce (unknown by default)
 	"bc10e0f21e33456ade82182dd1ebdbdd89bca923d4e4adbd90fb5b44d7098cbe" ""
 )
 # Minimal exchange amount (in finney)
