@@ -58,6 +58,12 @@ jobs:
       - name:                      Sccache stats
         run:                       sccache --show-stats
         shell:                     bash
+      - name:                      Adding toolchain
+        if:                        matrix.toolchain == 'nightly-2020-07-27'
+        run:                       rustup toolchain add ${{ matrix.toolchain }}
+      - name:                      Adding WASM
+        if:                        matrix.toolchain == 'nightly-2020-07-27'
+        run:                       rustup target add wasm32-unknown-unknown --toolchain ${{ matrix.toolchain }}
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
@@ -72,13 +78,14 @@ jobs:
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
       - name:                      Add clippy
-        run:                       rustup component add clippy --toolchain nightly-2020-07-27
+        if:                        matrix.toolchain == 'nightly-2020-07-27'
+        run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
       - name:                      Clippy
         uses:                      actions-rs/cargo@master
         if:                        matrix.toolchain == 'nightly-2020-07-27'
         with:
           command:                 clippy
-          toolchain:               nightly-2020-07-27
+          toolchain:               ${{ matrix.toolchain }}
           args:                    --all-targets -- -D warnings
       - name:                      Check benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
