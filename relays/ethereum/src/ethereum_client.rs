@@ -641,16 +641,28 @@ mod tests {
 
 	#[async_trait]
 	impl HeadersSubmitter for TestHeadersSubmitter {
-		async fn is_header_incomplete(&self, header: &QueuedSubstrateHeader) -> Result<bool> {
-			if self.incomplete.iter().any(|i| i.0 == header.id().0) {
-				Ok(true)
+		async fn is_headers_incomplete(
+			&self,
+			header1: &QueuedSubstrateHeader,
+			_header2: Option<&QueuedSubstrateHeader>,
+			_header3: Option<&QueuedSubstrateHeader>,
+			_header4: Option<&QueuedSubstrateHeader>,
+		) -> Result<usize> {
+			if self.incomplete.iter().any(|i| i.0 == header1.id().0) {
+				Ok(1)
 			} else {
-				Ok(false)
+				Ok(0)
 			}
 		}
 
-		async fn submit_header(&mut self, header: QueuedSubstrateHeader) -> Result<()> {
-			if self.failed.iter().any(|i| i.0 == header.id().0) {
+		async fn submit_headers(
+			&mut self,
+			header1: QueuedSubstrateHeader,
+			_header2: Option<&QueuedSubstrateHeader>,
+			_header3: Option<&QueuedSubstrateHeader>,
+			_header4: Option<&QueuedSubstrateHeader>,
+		) -> Result<()> {
+			if self.failed.iter().any(|i| i.0 == header1.id().0) {
 				Err(RpcError::Ethereum(EthereumNodeError::InvalidSubstrateBlockNumber))
 			} else {
 				Ok(())
@@ -692,13 +704,13 @@ mod tests {
 		let submitted_headers = async_std::task::block_on(submit_substrate_headers(
 			TestHeadersSubmitter {
 				incomplete: vec![],
-				failed: vec![header(6).id()],
+				failed: vec![header(9).id()],
 			},
-			vec![header(5), header(6), header(7)],
+			vec![header(5), header(6), header(7), header(8), header(9), header(10), header(11), header(12), header(13)],
 		));
-		assert_eq!(submitted_headers.submitted, vec![header(5).id()]);
+		assert_eq!(submitted_headers.submitted, vec![header(5).id(), header(6).id(), header(7).id(), header(8).id()]);
 		assert_eq!(submitted_headers.incomplete, vec![]);
-		assert_eq!(submitted_headers.rejected, vec![header(6).id(), header(7).id()]);
+		assert_eq!(submitted_headers.rejected, vec![header(9).id(), header(10).id(), header(11).id(), header(12).id(), header(13).id()]);
 		assert!(submitted_headers.fatal_error.is_some());
 	}
 }
