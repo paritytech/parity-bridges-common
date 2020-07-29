@@ -82,18 +82,18 @@ impl Default for SubstrateSigningParams {
 }
 
 /// Substrate client type.
-pub struct SubstrateRpcClient<I: BridgeInstance> {
+pub struct SubstrateRpcClient {
 	/// Substrate RPC client.
 	client: Client,
 	/// Genesis block hash.
 	genesis_hash: H256,
 	/// Bridge pallet instance we should be using
-	instance: I,
+	instance: Box<dyn BridgeInstance + Send + Sync>,
 }
 
-impl<I: BridgeInstance> SubstrateRpcClient<I> {
+impl SubstrateRpcClient {
 	/// Returns client that is able to call RPCs on Substrate node.
-	pub async fn new(params: SubstrateConnectionParams, instance: I) -> Result<Self> {
+	pub async fn new(params: SubstrateConnectionParams, instance: Box<dyn BridgeInstance + Send + Sync>) -> Result<Self> {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
 		let raw_client = RawClient::new(transport);
@@ -111,7 +111,7 @@ impl<I: BridgeInstance> SubstrateRpcClient<I> {
 }
 
 #[async_trait]
-impl<I: BridgeInstance + Send + Sync> SubstrateRpc for SubstrateRpcClient<I> {
+impl SubstrateRpc for SubstrateRpcClient {
 	async fn best_header(&self) -> Result<SubstrateHeader> {
 		Ok(Substrate::chain_get_header(&self.client, None).await?)
 	}
@@ -228,7 +228,7 @@ pub trait SubmitEthereumHeaders: SubstrateRpc {
 }
 
 #[async_trait]
-impl<I: BridgeInstance + Send + Sync> SubmitEthereumHeaders for SubstrateRpcClient<I> {
+impl SubmitEthereumHeaders for SubstrateRpcClient {
 	async fn submit_ethereum_headers(
 		&self,
 		params: SubstrateSigningParams,
@@ -322,7 +322,7 @@ pub trait SubmitEthereumExchangeTransactionProof: SubstrateRpc {
 }
 
 #[async_trait]
-impl<I: BridgeInstance + Send + Sync> SubmitEthereumExchangeTransactionProof for SubstrateRpcClient<I> {
+impl SubmitEthereumExchangeTransactionProof for SubstrateRpcClient {
 	async fn verify_exchange_transaction_proof(
 		&self,
 		proof: bridge_node_runtime::exchange::EthereumTransactionInclusionProof,

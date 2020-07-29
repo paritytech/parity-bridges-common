@@ -64,6 +64,8 @@ pub struct EthereumExchangeParams {
 	pub sub_sign: SubstrateSigningParams,
 	/// Relay working mode.
 	pub mode: ExchangeRelayMode,
+	/// Bridge instance
+	pub instance: Box<dyn BridgeInstance + Sync + Send>,
 }
 
 /// Ethereum to Substrate exchange pipeline.
@@ -186,13 +188,13 @@ impl SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource {
 }
 
 /// Substrate node as transactions proof target.
-struct SubstrateTransactionsTarget<I: BridgeInstance> {
-	client: SubstrateRpcClient<I>,
+struct SubstrateTransactionsTarget {
+	client: SubstrateRpcClient,
 	sign_params: SubstrateSigningParams,
 }
 
 #[async_trait]
-impl<I: BridgeInstance + Sync + Send> TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget<I> {
+impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
 	type Error = RpcError;
 
 	async fn tick(&self) {
@@ -245,6 +247,7 @@ impl Default for EthereumExchangeParams {
 			sub: Default::default(),
 			sub_sign: Default::default(),
 			mode: ExchangeRelayMode::Auto(None),
+			instance: Default::default(),
 		}
 	}
 }
@@ -265,7 +268,7 @@ fn run_single_transaction_relay(params: EthereumExchangeParams, eth_tx_hash: H25
 
 	let result = local_pool.run_until(async move {
 		let eth_client = EthereumRpcClient::new(params.eth);
-		let sub_client = SubstrateRpcClient::new(params.sub).await?;
+		let sub_client = SubstrateRpcClient::new(params.sub, params.instance).await?;
 
 		let source = EthereumTransactionsSource { client: eth_client };
 		let target = SubstrateTransactionsTarget {
@@ -299,7 +302,8 @@ fn run_single_transaction_relay(params: EthereumExchangeParams, eth_tx_hash: H25
 fn run_auto_transactions_relay_loop(params: EthereumExchangeParams, eth_start_with_block_number: Option<u64>) {
 	let do_run_loop = move || -> Result<(), String> {
 		let eth_client = EthereumRpcClient::new(params.eth);
-		let sub_client = async_std::task::block_on(SubstrateRpcClient::new(params.sub))
+		let sub_client = async_std::task::block_on(SubstrateRpcClient::new(params.sub,
+				params.instance))
 			.map_err(|err| format!("Error starting Substrate client: {:?}", err))?;
 
 		let eth_start_with_block_number = match eth_start_with_block_number {

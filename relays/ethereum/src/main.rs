@@ -42,10 +42,11 @@ use ethereum_client::{EthereumConnectionParams, EthereumSigningParams};
 use ethereum_sync_loop::EthereumSyncParams;
 use parity_crypto::publickey::{KeyPair, Secret};
 use sp_core::crypto::Pair;
-use std::io::Write;
 use substrate_client::{SubstrateConnectionParams, SubstrateSigningParams};
 use substrate_sync_loop::SubstrateSyncParams;
 use instances::{RialtoInstance, KovanInstance, BridgeInstance};
+
+use std::io::Write;
 
 fn main() {
 	initialize();
@@ -198,7 +199,7 @@ fn substrate_signing_params(matches: &clap::ArgMatches) -> Result<SubstrateSigni
 	Ok(params)
 }
 
-fn ethereum_sync_params<I>(matches: &clap::ArgMatches) -> Result<EthereumSyncParams<I>, String> {
+fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams, String> {
 	let mut eth_sync_params = EthereumSyncParams::default();
 	eth_sync_params.eth = ethereum_connection_params(matches)?;
 	eth_sync_params.sub = substrate_connection_params(matches)?;
@@ -224,7 +225,7 @@ fn ethereum_sync_params<I>(matches: &clap::ArgMatches) -> Result<EthereumSyncPar
 	Ok(eth_sync_params)
 }
 
-fn substrate_sync_params<I: BridgeInstance>(matches: &clap::ArgMatches) -> Result<SubstrateSyncParams<I>, String> {
+fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncParams, String> {
 	let mut sub_sync_params = SubstrateSyncParams::default();
 	sub_sync_params.eth = ethereum_connection_params(matches)?;
 	sub_sync_params.eth_sign = ethereum_signing_params(matches)?;
@@ -240,9 +241,9 @@ fn substrate_sync_params<I: BridgeInstance>(matches: &clap::ArgMatches) -> Resul
 	Ok(sub_sync_params)
 }
 
-fn ethereum_deploy_contract_params<I: BridgeInstance>(
+fn ethereum_deploy_contract_params(
 	matches: &clap::ArgMatches,
-) -> Result<ethereum_deploy_contract::EthereumDeployContractParams<I>, String> {
+) -> Result<ethereum_deploy_contract::EthereumDeployContractParams, String> {
 	let mut eth_deploy_params = ethereum_deploy_contract::EthereumDeployContractParams::default();
 	eth_deploy_params.eth = ethereum_connection_params(matches)?;
 	eth_deploy_params.eth_sign = ethereum_signing_params(matches)?;
@@ -302,10 +303,10 @@ fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<metrics::MetricsP
 	Ok(Some(metrics_params))
 }
 
-fn instance_params(matches: &clap::ArgMatches) -> Result<impl BridgeInstance, String> {
+fn instance_params(matches: &clap::ArgMatches) -> Result<Box<dyn BridgeInstance + Send + Sync>, String> {
 	match matches.value_of("sub-pallet-instance") {
-		Some("rialto") | Some("Rialto") => Ok(RialtoInstance::new()),
-		Some("kovan") | Some("Kovan") => Ok(KovanInstance::new()),
+		Some("rialto") | Some("Rialto") => Ok(Box::new(RialtoInstance::new())),
+		Some("kovan") | Some("Kovan") => Ok(Box::new(KovanInstance::new())),
 		None => todo!(),
 	}
 }

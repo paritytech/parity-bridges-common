@@ -27,7 +27,7 @@ use num_traits::Zero;
 
 /// Ethereum synchronization parameters.
 #[derive(Debug)]
-pub struct EthereumDeployContractParams<I> {
+pub struct EthereumDeployContractParams {
 	/// Ethereum connection params.
 	pub eth: EthereumConnectionParams,
 	/// Ethereum signing params.
@@ -43,10 +43,10 @@ pub struct EthereumDeployContractParams<I> {
 	/// Initial header.
 	pub sub_initial_header: Option<Vec<u8>>,
 	/// Bridge instance
-	pub instance: I,
+	pub instance: Box<dyn BridgeInstance + Send + Sync>,
 }
 
-impl<I: Default> Default for EthereumDeployContractParams<I> {
+impl Default for EthereumDeployContractParams {
 	fn default() -> Self {
 		EthereumDeployContractParams {
 			eth: Default::default(),
@@ -63,7 +63,7 @@ impl<I: Default> Default for EthereumDeployContractParams<I> {
 }
 
 /// Deploy Bridge contract on Ethereum chain.
-pub fn run<I: BridgeInstance>(params: EthereumDeployContractParams<I>) {
+pub fn run(params: EthereumDeployContractParams) {
 	let mut local_pool = futures::executor::LocalPool::new();
 
 	let result = local_pool.run_until(async move {
@@ -103,8 +103,8 @@ pub fn run<I: BridgeInstance>(params: EthereumDeployContractParams<I>) {
 }
 
 /// Prepare initial header.
-async fn prepare_initial_header<I: BridgeInstance>(
-	sub_client: &SubstrateRpcClient<I>,
+async fn prepare_initial_header(
+	sub_client: &SubstrateRpcClient,
 	sub_initial_header: Option<Vec<u8>>,
 ) -> Result<(SubstrateHash, Vec<u8>), String> {
 	match sub_initial_header {
@@ -122,8 +122,8 @@ async fn prepare_initial_header<I: BridgeInstance>(
 }
 
 /// Prepare initial GRANDPA authorities set.
-async fn prepare_initial_authorities_set<I: BridgeInstance>(
-	sub_client: &SubstrateRpcClient<I>,
+async fn prepare_initial_authorities_set(
+	sub_client: &SubstrateRpcClient,
 	sub_initial_header_hash: SubstrateHash,
 	sub_initial_authorities_set: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, String> {

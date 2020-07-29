@@ -34,6 +34,7 @@ use async_trait::async_trait;
 use web3::types::H256;
 
 use std::{collections::HashSet, time::Duration};
+use std::fmt::Debug;
 
 /// Interval at which we check new Ethereum headers when we are synced/almost synced.
 const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(10);
@@ -54,7 +55,7 @@ const PRUNE_DEPTH: u32 = 4096;
 
 /// Ethereum synchronization parameters.
 #[derive(Clone, Debug)]
-pub struct EthereumSyncParams<I> {
+pub struct EthereumSyncParams {
 	/// Ethereum connection params.
 	pub eth: EthereumConnectionParams,
 	/// Substrate connection params.
@@ -66,10 +67,10 @@ pub struct EthereumSyncParams<I> {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Bridge instance
-	pub instance: I,
+	pub instance: Box<dyn BridgeInstance>,
 }
 
-impl<I: Default> Default for EthereumSyncParams<I> {
+impl Default for EthereumSyncParams {
 	fn default() -> Self {
 		EthereumSyncParams {
 			eth: Default::default(),
@@ -132,17 +133,17 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	}
 }
 
-struct SubstrateHeadersTarget<I: BridgeInstance> {
+struct SubstrateHeadersTarget {
 	/// Substrate node client.
-	client: SubstrateRpcClient<I>,
+	client: SubstrateRpcClient,
 	/// Whether we want to submit signed (true), or unsigned (false) transactions.
 	sign_transactions: bool,
 	/// Substrate signing params.
 	sign_params: SubstrateSigningParams,
 }
 
-impl<I: BridgeInstance> SubstrateHeadersTarget<I> {
-	fn new(client: SubstrateRpcClient<I>, sign_transactions: bool, sign_params: SubstrateSigningParams) -> Self {
+impl SubstrateHeadersTarget {
+	fn new(client: SubstrateRpcClient, sign_transactions: bool, sign_params: SubstrateSigningParams) -> Self {
 		Self {
 			client,
 			sign_transactions,
@@ -152,7 +153,7 @@ impl<I: BridgeInstance> SubstrateHeadersTarget<I> {
 }
 
 #[async_trait]
-impl<I: BridgeInstance + Sync + Send> TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget<I> {
+impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = RpcError;
 
 	async fn best_header_id(&self) -> Result<EthereumHeaderId, Self::Error> {
@@ -193,7 +194,7 @@ impl<I: BridgeInstance + Sync + Send> TargetClient<EthereumHeadersSyncPipeline> 
 }
 
 /// Run Ethereum headers synchronization.
-pub fn run<I>(params: EthereumSyncParams<I>) -> Result<(), RpcError> {
+pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 	let sub_params = params.clone();
 
 	let eth_client = EthereumRpcClient::new(params.eth);
@@ -206,7 +207,7 @@ pub fn run<I>(params: EthereumSyncParams<I>) -> Result<(), RpcError> {
 	};
 
 	let source = EthereumHeadersSource::new(eth_client);
-	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, params.sub_sign, params.instance);
+	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, params.sub_sign);
 
 	crate::sync_loop::run(
 		source,
