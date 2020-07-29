@@ -50,7 +50,7 @@
         "frequency": "5m",
         "handler": 1,
         "message": "",
-        "name": "Rialto Block Difference > 5 (eth2sub)",
+        "name": "Rialto Block Difference > 5 (sub2eth)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -99,7 +99,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"}) - max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"target\"})",
+          "expr": "max(Substrate_to_Ethereum_Sync_best_block_numbers{node=\"source\"}) - max(Substrate_to_Ethereum_Sync_best_block_numbers{node=\"target\"})",
           "format": "table",
           "instant": false,
           "interval": "",
@@ -202,7 +202,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_system_average_load",
+          "expr": "Substrate_to_Ethereum_Sync_system_average_load",
           "interval": "",
           "legendFormat": "Average system load in last {{over}}",
           "refId": "A"
@@ -301,7 +301,7 @@
       "pluginVersion": "7.1.0",
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_process_cpu_usage_percentage",
+          "expr": "Substrate_to_Ethereum_Sync_process_cpu_usage_percentage",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -361,7 +361,7 @@
       "pluginVersion": "7.1.0",
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_best_block_numbers",
+          "expr": "Substrate_to_Ethereum_Sync_best_block_numbers",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -421,7 +421,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_process_memory_usage_bytes / 1024 / 1024",
+          "expr": "Substrate_to_Ethereum_Sync_process_memory_usage_bytes / 1024 / 1024",
           "interval": "",
           "legendFormat": "Process memory, MB",
           "refId": "A"
@@ -512,7 +512,7 @@
       "pluginVersion": "7.1.0",
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_blocks_in_state",
+          "expr": "Substrate_to_Ethereum_Sync_blocks_in_state",
           "instant": true,
           "interval": "",
           "legendFormat": "{{state}}",
@@ -531,7 +531,7 @@
           {
             "evaluator": {
               "params": [
-                10
+                5
               ],
               "type": "lt"
             },
@@ -556,7 +556,7 @@
         "for": "3m",
         "frequency": "5m",
         "handler": 1,
-        "name": "No New Blocks (eth2sub)",
+        "name": "No New Blocks (sub2eth)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -604,7 +604,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"})",
+          "expr": "max(Substrate_to_Ethereum_Sync_best_block_numbers{node=\"source\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -685,7 +685,7 @@
     ]
   },
   "timezone": "",
-  "title": "Ethereum to Substrate headers sync dashboard",
-  "uid": "relay-eth2sub-sync",
+  "title": "Substrate to Ethereum headers sync dashboard",
+  "uid": "relay-sub2eth-sync",
   "version": 1
 }
