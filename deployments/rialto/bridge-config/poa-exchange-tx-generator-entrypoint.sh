@@ -33,9 +33,10 @@ SUB_RECIPIENTS=(
 	"1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c"
 )
 # All possible Ethereum signers (hex-encoded private keys)
+# (note that we're tracking nonce here => sender must not send concurrent transactions)
 ETH_SIGNERS=(
-	# Arthur account (0x005e714f896a8b7cede9d38688c1a81de72a58e4) and its current nonce (unknown by default)
-	"0399dbd15cf6ee8250895a1f3873eb1e10e23ca18e8ed0726c63c4aea356e87d" ""
+	# Bertha account () and its current nonce (unknown by default)
+	"bc10e0f21e33456ade82182dd1ebdbdd89bca923d4e4adbd90fb5b44d7098cbe" ""
 )
 # Minimal exchange amount (in finney)
 MIN_EXCHANGE_AMOUNT_FINNEY=${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1} # 0.1 ETH
