@@ -50,7 +50,7 @@ pub fn new_full_params(
 			FullClient,
 			sc_consensus_aura::AuraImportQueue<Block, FullClient>,
 			sc_transaction_pool::FullPool<Block, FullClient>,
-			(),
+			jsonrpc_core::IoHandler<sc_rpc::Metadata>,
 			FullBackend,
 		>,
 		FullSelectChain,
@@ -93,6 +93,27 @@ pub fn new_full_params(
 		config.prometheus_registry(),
 	)?;
 
+	let rpc_extensions_builder = {
+		use sc_rpc::DenyUnsafe;
+		use substrate_frame_rpc_system::{FullSystem, SystemApi};
+
+		let client = client.clone();
+		let pool = transaction_pool.clone();
+
+		let rpc_extensions_builder = Box::new(move |_| {
+			let mut io = jsonrpc_core::IoHandler::default();
+			io.extend_with(SystemApi::to_delegate(FullSystem::new(
+				client.clone(),
+				pool.clone(),
+				DenyUnsafe::No,
+			)));
+
+			io
+		});
+
+		rpc_extensions_builder
+	};
+
 	let provider = client.clone() as Arc<dyn StorageAndProofProvider<_, _>>;
 	let finality_proof_provider = Arc::new(GrandpaFinalityProofProvider::new(backend.clone(), provider));
 
@@ -109,7 +130,7 @@ pub fn new_full_params(
 		finality_proof_provider: Some(finality_proof_provider),
 		on_demand: None,
 		remote_blockchain: None,
-		rpc_extensions_builder: Box::new(|_| ()),
+		rpc_extensions_builder,
 	};
 
 	Ok((
