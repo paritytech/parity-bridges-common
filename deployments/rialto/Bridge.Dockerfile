@@ -43,7 +43,7 @@ RUN cargo build --release --verbose -p ${PROJECT}
 
 # Then switch to expected branch and re-build only the stuff that changed.
 ARG BRIDGE_HASH=master
-RUN git fetch && git checkout $BRIDGE_HASH
+RUN git checkout . && git fetch && git checkout $BRIDGE_HASH
 
 ### Build locally
 # ADD .
@@ -72,7 +72,7 @@ ARG PROJECT=ethereum-poa-relay
 ARG HEALTH=http://localhost:9616/metrics
 
 COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
-COPY ./deployments/scripts/bridge-node-dev-entrypoint.sh ./
+COPY --chown=user:user --from=builder /parity-bridges-common/deployments/scripts/bridge-entrypoint.sh ./
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
