@@ -1159,6 +1159,7 @@ dependencies = [
  "frame-system",
  "futures 0.3.5",
  "hex",
+ "hex-literal 0.3.0",
  "jsonrpsee",
  "linked-hash-map",
  "log",
