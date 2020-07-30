@@ -52,18 +52,6 @@ impl Default for Box<dyn BridgeInstance + Send + Sync> {
 	}
 }
 
-impl Clone for Box<dyn BridgeInstance> {
-	fn clone(&self) -> Self {
-		todo!()
-	}
-}
-
-impl Clone for Box<dyn BridgeInstance + Send + Sync> {
-	fn clone(&self) -> Self {
-		todo!()
-	}
-}
-
 #[derive(Default, Clone, Debug)]
 pub struct RialtoInstance;
 

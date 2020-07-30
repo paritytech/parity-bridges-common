@@ -54,12 +54,12 @@ const MAX_SUBMITTED_HEADERS: usize = 128;
 const PRUNE_DEPTH: u32 = 4096;
 
 /// Ethereum synchronization parameters.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EthereumSyncParams {
 	/// Ethereum connection params.
-	pub eth: EthereumConnectionParams,
+	pub eth_params: EthereumConnectionParams,
 	/// Substrate connection params.
-	pub sub: SubstrateConnectionParams,
+	pub sub_params: SubstrateConnectionParams,
 	/// Substrate signing params.
 	pub sub_sign: SubstrateSigningParams,
 	/// Synchronization parameters.
@@ -73,8 +73,8 @@ pub struct EthereumSyncParams {
 impl Default for EthereumSyncParams {
 	fn default() -> Self {
 		EthereumSyncParams {
-			eth: Default::default(),
-			sub: Default::default(),
+			eth_params: Default::default(),
+			sub_params: Default::default(),
 			sub_sign: Default::default(),
 			sync_params: HeadersSyncParams {
 				max_future_headers_to_download: MAX_FUTURE_HEADERS_TO_DOWNLOAD,
@@ -195,27 +195,34 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 
 /// Run Ethereum headers synchronization.
 pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
-	let sub_params = params.clone();
+	let EthereumSyncParams {
+		eth_params,
+		sub_params,
+		sub_sign,
+		sync_params,
+		metrics_params,
+		instance,
+	} = params;
 
-	let eth_client = EthereumRpcClient::new(params.eth);
+	let eth_client = EthereumRpcClient::new(eth_params);
 	let sub_client =
-		async_std::task::block_on(async { SubstrateRpcClient::new(sub_params.sub, sub_params.instance).await })?;
+		async_std::task::block_on(async { SubstrateRpcClient::new(sub_params, instance).await })?;
 
-	let sign_sub_transactions = match params.sync_params.target_tx_mode {
+	let sign_sub_transactions = match sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,
 		TargetTransactionMode::Unsigned => false,
 	};
 
 	let source = EthereumHeadersSource::new(eth_client);
-	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, params.sub_sign);
+	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, sub_sign);
 
 	crate::sync_loop::run(
 		source,
 		ETHEREUM_TICK_INTERVAL,
 		target,
 		SUBSTRATE_TICK_INTERVAL,
-		params.sync_params,
-		params.metrics_params,
+		sync_params,
+		metrics_params,
 		futures::future::pending(),
 	);
 

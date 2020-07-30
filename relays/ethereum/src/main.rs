@@ -214,8 +214,8 @@ fn substrate_signing_params(matches: &clap::ArgMatches) -> Result<SubstrateSigni
 
 fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams, String> {
 	let mut eth_sync_params = EthereumSyncParams::default();
-	eth_sync_params.eth = ethereum_connection_params(matches)?;
-	eth_sync_params.sub = substrate_connection_params(matches)?;
+	eth_sync_params.eth_params = ethereum_connection_params(matches)?;
+	eth_sync_params.sub_params = substrate_connection_params(matches)?;
 	eth_sync_params.sub_sign = substrate_signing_params(matches)?;
 	eth_sync_params.metrics_params = metrics_params(matches)?;
 	eth_sync_params.instance = instance_params(matches)?;
@@ -240,9 +240,9 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams
 
 fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncParams, String> {
 	let mut sub_sync_params = SubstrateSyncParams::default();
-	sub_sync_params.eth = ethereum_connection_params(matches)?;
+	sub_sync_params.eth_params = ethereum_connection_params(matches)?;
 	sub_sync_params.eth_sign = ethereum_signing_params(matches)?;
-	sub_sync_params.sub = substrate_connection_params(matches)?;
+	sub_sync_params.sub_params = substrate_connection_params(matches)?;
 	sub_sync_params.metrics_params = metrics_params(matches)?;
 
 	if let Some(eth_contract) = matches.value_of("eth-contract") {
