@@ -193,6 +193,7 @@ services:
       LETSENCRYPT_EMAIL: admin@parity.io
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
       GF_SERVER_ROOT_URL: ${GRAFANA_SERVER_ROOT_URL}
+      GF_SERVER_DOMAIN: ${GRAFANA_SERVER_DOMAIN}
     volumes:
       - ./dashboard/grafana/provisioning/:/etc/grafana/provisioning/
     ports:
