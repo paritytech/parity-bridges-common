@@ -68,7 +68,7 @@ pub struct EthereumExchangeParams {
 	pub mode: ExchangeRelayMode,
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
-	/// Bridge instance
+	/// Instance of the bridge pallet being synchronized.
 	pub instance: Box<dyn BridgeInstance>,
 }
 

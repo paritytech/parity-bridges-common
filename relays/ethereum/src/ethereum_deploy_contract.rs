@@ -42,7 +42,7 @@ pub struct EthereumDeployContractParams {
 	pub sub_initial_authorities_set: Option<Vec<u8>>,
 	/// Initial header.
 	pub sub_initial_header: Option<Vec<u8>>,
-	/// Bridge instance
+	/// Instance of the bridge pallet being synchronized.
 	pub instance: Box<dyn BridgeInstance>,
 }
 

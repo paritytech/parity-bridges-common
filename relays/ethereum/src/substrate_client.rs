@@ -87,7 +87,7 @@ pub struct SubstrateRpcClient {
 	client: Client,
 	/// Genesis block hash.
 	genesis_hash: H256,
-	/// Bridge pallet instance we should be using
+	/// Instance of the bridge pallet being synchronized.
 	instance: Box<dyn BridgeInstance>,
 }
 

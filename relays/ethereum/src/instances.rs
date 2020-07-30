@@ -14,22 +14,40 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! The PoA Bridge Pallet provides a way to include multiple instances of itself in a runtime. When
+//! synchronizing a Substrate chain which can include multiple instances of the bridge pallet we
+//! must somehow decide which of the instances to sync.
+//!
+//! Note that each instance of the bridge pallet is coupled with an instance of the currency exchange
+//! pallet. We must also have a way to create `Call`s for the correct currency exchange instance.
+//!
+//! This module helps by preparing the correct `Call`s for each of the different pallet instances.
+
 use crate::ethereum_types::QueuedEthereumHeader;
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts};
 
 use bridge_node_runtime::exchange::EthereumTransactionInclusionProof as Proof;
 use bridge_node_runtime::Call;
 
+/// Interface for `Calls` which are needed to correctly sync the bridge.
+///
+/// Each instance of the bridge and currency exchange pallets in the bridge runtime requires similar
+/// but slightly different `Call` in order to be synchronized.
 pub trait BridgeInstance: Send + Sync + std::fmt::Debug {
+	/// Used to build a `Call` for importing signed headers to a Substrate runtime.
 	fn build_signed_header_call(&self, headers: Vec<QueuedEthereumHeader>) -> Call;
+	/// Used to build a `Call` for importing an unsigned header to a Substrate runtime.
 	fn build_unsigned_header_call(&self, header: QueuedEthereumHeader) -> Call;
+	/// Used to build a `Call` for importing peer transactions to a Substrate runtime.
 	fn build_currency_exchange_call(&self, proof: Proof) -> Call;
 }
 
+/// Corresponds to the Rialto instance used in the bridge runtime.
 #[derive(Default, Clone, Debug)]
 pub struct RialtoInstance;
 
 impl RialtoInstance {
+	/// Create a new RialtoInstance.
 	pub fn new() -> Self {
 		Self
 	}
@@ -67,10 +85,12 @@ impl BridgeInstance for RialtoInstance {
 	}
 }
 
+/// Corresponds to the Kovan instance used in the bridge runtime.
 #[derive(Default, Clone, Debug)]
 pub struct KovanInstance;
 
 impl KovanInstance {
+	/// Create a new KovanInstance.
 	pub fn new() -> Self {
 		Self
 	}

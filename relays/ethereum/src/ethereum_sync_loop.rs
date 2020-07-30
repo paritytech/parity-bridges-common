@@ -66,7 +66,7 @@ pub struct EthereumSyncParams {
 	pub sync_params: HeadersSyncParams,
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
-	/// Bridge instance
+	/// Instance of the bridge pallet being synchronized.
 	pub instance: Box<dyn BridgeInstance>,
 }
 
