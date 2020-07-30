@@ -114,7 +114,11 @@ pub fn parse_substrate_header(raw_header: &[u8]) -> Result<Header, Error> {
 	log::debug!(
 		target: "bridge-builtin",
 		"Parsed Substrate header {}: {:?}",
-		hex::encode(raw_header),
+		if substrate_header.is_ok() {
+			format!("<{}-bytes-blob>", raw_header.len())
+		} else {
+			hex::encode(raw_header)
+		},
 		substrate_header,
 	);
 
@@ -136,7 +140,11 @@ pub fn verify_substrate_finality_proof(
 	log::debug!(
 		target: "bridge-builtin",
 		"Parsed Substrate authorities set {}: {:?}",
-		hex::encode(raw_best_set),
+		if best_set.is_ok() {
+			format!("<{}-bytes-blob>", raw_best_set.len())
+		} else {
+			hex::encode(raw_best_set)
+		},
 		best_set,
 	);
 
@@ -155,10 +163,10 @@ pub fn verify_substrate_finality_proof(
 	log::debug!(
 		target: "bridge-builtin",
 		"Verified Substrate finality proof {}: {:?}",
-		if log::log_enabled!(log::Level::Trace) {
-			hex::encode(raw_finality_proof)
+		if verify_result.is_ok() {
+			format!("<{}-bytes-blob>", raw_finality_proof.len())
 		} else {
-			format!("<proof-of-len-{}>", raw_finality_proof.len())
+			hex::encode(raw_finality_proof)
 		},
 		verify_result,
 	);
