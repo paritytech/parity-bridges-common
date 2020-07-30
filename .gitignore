@@ -1,5 +1,6 @@
 **/target/
 **/.env
+**/.env2
 
 **/*.rs.bk
 
