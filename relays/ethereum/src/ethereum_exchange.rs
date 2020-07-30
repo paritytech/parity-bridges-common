@@ -69,11 +69,11 @@ pub struct EthereumExchangeParams {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Bridge instance
-	pub instance: Box<dyn BridgeInstance + Sync + Send>,
+	pub instance: Box<dyn BridgeInstance>,
 }
 
 impl EthereumExchangeParams {
-	pub fn with_instance(instance: Box<dyn BridgeInstance + Sync + Send>) -> Self {
+	pub fn with_instance(instance: Box<dyn BridgeInstance>) -> Self {
 		EthereumExchangeParams {
 			eth: Default::default(),
 			sub: Default::default(),

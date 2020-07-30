@@ -20,7 +20,7 @@ use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethe
 use bridge_node_runtime::exchange::EthereumTransactionInclusionProof as Proof;
 use bridge_node_runtime::Call;
 
-pub trait BridgeInstance: std::fmt::Debug {
+pub trait BridgeInstance: Send + Sync + std::fmt::Debug {
 	fn build_signed_header_call(&self, headers: Vec<QueuedEthereumHeader>) -> Call;
 	fn build_unsigned_header_call(&self, header: QueuedEthereumHeader) -> Call;
 	fn build_currency_exchange_call(&self, proof: Proof) -> Call;

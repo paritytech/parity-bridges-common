@@ -43,11 +43,11 @@ pub struct EthereumDeployContractParams {
 	/// Initial header.
 	pub sub_initial_header: Option<Vec<u8>>,
 	/// Bridge instance
-	pub instance: Box<dyn BridgeInstance + Send + Sync>,
+	pub instance: Box<dyn BridgeInstance>,
 }
 
 impl EthereumDeployContractParams {
-	pub fn with_instance(instance: Box<dyn BridgeInstance + Send + Sync>) -> Self {
+	pub fn with_instance(instance: Box<dyn BridgeInstance>) -> Self {
 		EthereumDeployContractParams {
 			eth: Default::default(),
 			eth_sign: Default::default(),

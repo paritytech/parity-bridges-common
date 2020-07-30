@@ -64,11 +64,11 @@ pub struct SubstrateSyncParams {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Bridge instance
-	pub instance: Box<dyn BridgeInstance + Send + Sync>,
+	pub instance: Box<dyn BridgeInstance>,
 }
 
 impl SubstrateSyncParams {
-	pub fn with_instance(instance: Box<dyn BridgeInstance + Send + Sync>) -> Self {
+	pub fn with_instance(instance: Box<dyn BridgeInstance>) -> Self {
 		SubstrateSyncParams {
 			eth_params: Default::default(),
 			eth_sign: Default::default(),

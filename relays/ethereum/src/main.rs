@@ -363,7 +363,7 @@ fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<metrics::MetricsP
 	Ok(Some(metrics_params))
 }
 
-fn instance_params(matches: &clap::ArgMatches) -> Result<Box<dyn BridgeInstance + Send + Sync>, String> {
+fn instance_params(matches: &clap::ArgMatches) -> Result<Box<dyn BridgeInstance>, String> {
 	match matches.value_of("sub-pallet-instance") {
 		Some("rialto") | Some("Rialto") => Ok(Box::new(RialtoInstance::new())),
 		Some("kovan") | Some("Kovan") => Ok(Box::new(KovanInstance::new())),

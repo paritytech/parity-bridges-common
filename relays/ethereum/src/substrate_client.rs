@@ -88,15 +88,12 @@ pub struct SubstrateRpcClient {
 	/// Genesis block hash.
 	genesis_hash: H256,
 	/// Bridge pallet instance we should be using
-	instance: Box<dyn BridgeInstance + Send + Sync>,
+	instance: Box<dyn BridgeInstance>,
 }
 
 impl SubstrateRpcClient {
 	/// Returns client that is able to call RPCs on Substrate node.
-	pub async fn new(
-		params: SubstrateConnectionParams,
-		instance: Box<dyn BridgeInstance + Send + Sync>,
-	) -> Result<Self> {
+	pub async fn new(params: SubstrateConnectionParams, instance: Box<dyn BridgeInstance>) -> Result<Self> {
 		let uri = format!("http://{}:{}", params.host, params.port);
 		let transport = HttpTransportClient::new(&uri);
 		let raw_client = RawClient::new(transport);
