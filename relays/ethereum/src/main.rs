@@ -364,13 +364,15 @@ fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<metrics::MetricsP
 }
 
 fn instance_params(matches: &clap::ArgMatches) -> Result<Box<dyn BridgeInstance>, String> {
-	let instance: Box<dyn BridgeInstance> = match matches.value_of("sub-pallet-instance") {
-		Some("rialto") | Some("Rialto") => Box::new(RialtoInstance::new()),
-		Some("kovan") | Some("Kovan") => Box::new(KovanInstance::new()),
-		_ => return Err("Unsupported bridge pallet instance".to_string()),
+	let instance: Box<dyn BridgeInstance> = if let Some(instance) = matches.value_of("sub-pallet-instance") {
+		match instance.to_lowercase().as_str() {
+			"rialto" => Box::new(RialtoInstance::new()),
+			"kovan" => Box::new(KovanInstance::new()),
+			_ => return Err("Unsupported bridge pallet instance".to_string()),
+		}
+	} else {
+		Box::new(RialtoInstance::new())
 	};
-
-	log::debug!(target: "bridge", "Syncing headers with {:?} instance", instance);
 
 	Ok(instance)
 }
