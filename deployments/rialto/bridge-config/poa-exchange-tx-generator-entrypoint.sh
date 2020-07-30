@@ -6,7 +6,7 @@
 # exchange transaction from hardcoded PoA senders (assuming they have
 # enough funds) to hardcoded Substrate recipients.
 
-set -e
+set -eu
 
 # Path to relay binary
 RELAY_BINARY_PATH=${RELAY_BINARY_PATH:-./ethereum-poa-relay}
@@ -76,6 +76,7 @@ do
 
 	# submit transaction
 	echo "Sending $EXCHANGE_AMOUNT_ETH from PoA:$ETH_SIGNER to Substrate:$SUB_RECIPIENT. Nonce: $ETH_SIGNER_NONCE"
+	set -x
 	SUBMIT_OUTPUT=`$RELAY_BINARY_PATH 2>&1 eth-submit-exchange-tx \
 		--sub-recipient=$SUB_RECIPIENT \
 		--eth-host=$ETH_HOST \
@@ -83,7 +84,8 @@ do
 		--eth-chain-id=$ETH_CHAIN_ID \
 		--eth-signer=$ETH_SIGNER \
 		--eth-amount=$EXCHANGE_AMOUNT_ETH \
-		$ETH_SIGNER_NONCE_ARG | tee /dev/tty`
+		$ETH_SIGNER_NONCE_ARG`
+	set +x
 
 	# update sender nonce
 	SUBMIT_OUTPUT_RE='nonce: ([0-9]+)'
