@@ -14,4 +14,4 @@ scrape_configs:
     scrape_interval: 15s
 
     static_configs:
-      - targets: ['relay-eth-exchange-sub:9617']
+      - targets: ['relay-eth-exchange-sub:9616']

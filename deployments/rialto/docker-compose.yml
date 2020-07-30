@@ -81,7 +81,7 @@ services:
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
-      - "9616:9617"
+      - "9716:9616"
     depends_on: *all-nodes
 
   # relay-sub2eth:
