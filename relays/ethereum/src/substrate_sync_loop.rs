@@ -67,8 +67,8 @@ pub struct SubstrateSyncParams {
 	pub instance: Box<dyn BridgeInstance + Send + Sync>,
 }
 
-impl Default for SubstrateSyncParams {
-	fn default() -> Self {
+impl SubstrateSyncParams {
+	pub fn with_instance(instance: Box<dyn BridgeInstance + Send + Sync>) -> Self {
 		SubstrateSyncParams {
 			eth_params: Default::default(),
 			eth_sign: Default::default(),
@@ -89,7 +89,7 @@ impl Default for SubstrateSyncParams {
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
 			metrics_params: Some(Default::default()),
-			instance: Default::default(),
+			instance,
 		}
 	}
 }
@@ -215,8 +215,7 @@ pub fn run(params: SubstrateSyncParams) -> Result<(), RpcError> {
 	} = params;
 
 	let eth_client = EthereumRpcClient::new(eth_params);
-	let sub_client =
-		async_std::task::block_on(async { SubstrateRpcClient::new(sub_params, instance).await })?;
+	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params, instance).await })?;
 
 	let target = EthereumHeadersTarget::new(eth_client, eth_contract_address, eth_sign);
 	let source = SubstrateHeadersSource::new(sub_client);

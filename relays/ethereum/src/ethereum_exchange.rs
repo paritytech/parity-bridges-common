@@ -72,6 +72,19 @@ pub struct EthereumExchangeParams {
 	pub instance: Box<dyn BridgeInstance + Sync + Send>,
 }
 
+impl EthereumExchangeParams {
+	pub fn with_instance(instance: Box<dyn BridgeInstance + Sync + Send>) -> Self {
+		EthereumExchangeParams {
+			eth: Default::default(),
+			sub: Default::default(),
+			sub_sign: Default::default(),
+			mode: ExchangeRelayMode::Auto(None),
+			metrics_params: Some(Default::default()),
+			instance,
+		}
+	}
+}
+
 /// Ethereum to Substrate exchange pipeline.
 struct EthereumToSubstrateExchange;
 
@@ -253,19 +266,6 @@ impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
 	async fn submit_transaction_proof(&self, proof: EthereumTransactionInclusionProof) -> Result<(), Self::Error> {
 		let sign_params = self.sign_params.clone();
 		self.client.submit_exchange_transaction_proof(sign_params, proof).await
-	}
-}
-
-impl Default for EthereumExchangeParams {
-	fn default() -> Self {
-		EthereumExchangeParams {
-			eth: Default::default(),
-			sub: Default::default(),
-			sub_sign: Default::default(),
-			mode: ExchangeRelayMode::Auto(None),
-			metrics_params: Some(Default::default()),
-			instance: Default::default(),
-		}
 	}
 }
 

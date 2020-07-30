@@ -46,8 +46,8 @@ pub struct EthereumDeployContractParams {
 	pub instance: Box<dyn BridgeInstance + Send + Sync>,
 }
 
-impl Default for EthereumDeployContractParams {
-	fn default() -> Self {
+impl EthereumDeployContractParams {
+	pub fn with_instance(instance: Box<dyn BridgeInstance + Send + Sync>) -> Self {
 		EthereumDeployContractParams {
 			eth: Default::default(),
 			eth_sign: Default::default(),
@@ -57,7 +57,7 @@ impl Default for EthereumDeployContractParams {
 			sub_initial_authorities_set_id: None,
 			sub_initial_authorities_set: None,
 			sub_initial_header: None,
-			instance: Default::default(),
+			instance,
 		}
 	}
 }

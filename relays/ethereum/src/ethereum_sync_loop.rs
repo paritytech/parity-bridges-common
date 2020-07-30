@@ -70,8 +70,8 @@ pub struct EthereumSyncParams {
 	pub instance: Box<dyn BridgeInstance + Send + Sync>,
 }
 
-impl Default for EthereumSyncParams {
-	fn default() -> Self {
+impl EthereumSyncParams {
+	pub fn with_instance(instance: Box<dyn BridgeInstance + Send + Sync>) -> Self {
 		EthereumSyncParams {
 			eth_params: Default::default(),
 			sub_params: Default::default(),
@@ -85,7 +85,7 @@ impl Default for EthereumSyncParams {
 				target_tx_mode: TargetTransactionMode::Signed,
 			},
 			metrics_params: Some(Default::default()),
-			instance: Default::default(),
+			instance,
 		}
 	}
 }
@@ -205,8 +205,7 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 	} = params;
 
 	let eth_client = EthereumRpcClient::new(eth_params);
-	let sub_client =
-		async_std::task::block_on(async { SubstrateRpcClient::new(sub_params, instance).await })?;
+	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params, instance).await })?;
 
 	let sign_sub_transactions = match sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,

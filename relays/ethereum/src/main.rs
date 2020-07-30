@@ -213,51 +213,55 @@ fn substrate_signing_params(matches: &clap::ArgMatches) -> Result<SubstrateSigni
 }
 
 fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams, String> {
-	let mut eth_sync_params = EthereumSyncParams::default();
-	eth_sync_params.eth_params = ethereum_connection_params(matches)?;
-	eth_sync_params.sub_params = substrate_connection_params(matches)?;
-	eth_sync_params.sub_sign = substrate_signing_params(matches)?;
-	eth_sync_params.metrics_params = metrics_params(matches)?;
-	eth_sync_params.instance = instance_params(matches)?;
+	let instance = instance_params(matches)?;
+	let mut params = EthereumSyncParams::with_instance(instance);
+
+	params.eth_params = ethereum_connection_params(matches)?;
+	params.sub_params = substrate_connection_params(matches)?;
+	params.sub_sign = substrate_signing_params(matches)?;
+	params.metrics_params = metrics_params(matches)?;
 
 	match matches.value_of("sub-tx-mode") {
-		Some("signed") => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
+		Some("signed") => params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
 		Some("unsigned") => {
-			eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Unsigned;
+			params.sync_params.target_tx_mode = sync::TargetTransactionMode::Unsigned;
 
 			// tx pool won't accept too much unsigned transactions
-			eth_sync_params.sync_params.max_headers_in_submitted_status = 10;
+			params.sync_params.max_headers_in_submitted_status = 10;
 		}
-		Some("backup") => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Backup,
+		Some("backup") => params.sync_params.target_tx_mode = sync::TargetTransactionMode::Backup,
 		Some(mode) => return Err(format!("Invalid sub-tx-mode: {}", mode)),
-		None => eth_sync_params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
+		None => params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
 	}
 
-	log::debug!(target: "bridge", "Ethereum sync params: {:?}", eth_sync_params);
+	log::debug!(target: "bridge", "Ethereum sync params: {:?}", params);
 
-	Ok(eth_sync_params)
+	Ok(params)
 }
 
 fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncParams, String> {
-	let mut sub_sync_params = SubstrateSyncParams::default();
-	sub_sync_params.eth_params = ethereum_connection_params(matches)?;
-	sub_sync_params.eth_sign = ethereum_signing_params(matches)?;
-	sub_sync_params.sub_params = substrate_connection_params(matches)?;
-	sub_sync_params.metrics_params = metrics_params(matches)?;
+	let instance = instance_params(matches)?;
+	let mut params = SubstrateSyncParams::with_instance(instance);
+
+	params.sub_params = substrate_connection_params(matches)?;
+	params.eth_params = ethereum_connection_params(matches)?;
+	params.eth_sign = ethereum_signing_params(matches)?;
+	params.metrics_params = metrics_params(matches)?;
 
 	if let Some(eth_contract) = matches.value_of("eth-contract") {
-		sub_sync_params.eth_contract_address = eth_contract.parse().map_err(|e| format!("{}", e))?;
+		params.eth_contract_address = eth_contract.parse().map_err(|e| format!("{}", e))?;
 	}
 
-	log::debug!(target: "bridge", "Substrate sync params: {:?}", sub_sync_params);
+	log::debug!(target: "bridge", "Substrate sync params: {:?}", params);
 
-	Ok(sub_sync_params)
+	Ok(params)
 }
 
 fn ethereum_deploy_contract_params(
 	matches: &clap::ArgMatches,
 ) -> Result<ethereum_deploy_contract::EthereumDeployContractParams, String> {
-	let mut eth_deploy_params = ethereum_deploy_contract::EthereumDeployContractParams::default();
+	let instance = instance_params(matches)?;
+	let mut eth_deploy_params = ethereum_deploy_contract::EthereumDeployContractParams::with_instance(instance);
 	eth_deploy_params.eth = ethereum_connection_params(matches)?;
 	eth_deploy_params.eth_sign = ethereum_signing_params(matches)?;
 	eth_deploy_params.sub = substrate_connection_params(matches)?;
@@ -276,6 +280,7 @@ fn ethereum_exchange_submit_params(
 	matches: &clap::ArgMatches,
 ) -> Result<ethereum_exchange_submit::EthereumExchangeSubmitParams, String> {
 	let mut params = ethereum_exchange_submit::EthereumExchangeSubmitParams::default();
+
 	params.eth = ethereum_connection_params(matches)?;
 	params.eth_sign = ethereum_signing_params(matches)?;
 
@@ -311,7 +316,8 @@ fn ethereum_exchange_submit_params(
 }
 
 fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_exchange::EthereumExchangeParams, String> {
-	let mut params = ethereum_exchange::EthereumExchangeParams::default();
+	let instance = instance_params(matches)?;
+	let mut params = ethereum_exchange::EthereumExchangeParams::with_instance(instance);
 	params.eth = ethereum_connection_params(matches)?;
 	params.sub = substrate_connection_params(matches)?;
 	params.sub_sign = substrate_signing_params(matches)?;

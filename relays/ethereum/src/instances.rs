@@ -40,18 +40,6 @@ impl Debug for Box<dyn BridgeInstance + Send + Sync> {
 	}
 }
 
-impl Default for Box<dyn BridgeInstance> {
-	fn default() -> Self {
-		todo!()
-	}
-}
-
-impl Default for Box<dyn BridgeInstance + Send + Sync> {
-	fn default() -> Self {
-		todo!()
-	}
-}
-
 #[derive(Default, Clone, Debug)]
 pub struct RialtoInstance;
 
