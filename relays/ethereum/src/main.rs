@@ -367,7 +367,7 @@ fn instance_params(matches: &clap::ArgMatches) -> Result<Box<dyn BridgeInstance>
 	let instance: Box<dyn BridgeInstance> = match matches.value_of("sub-pallet-instance") {
 		Some("rialto") | Some("Rialto") => Box::new(RialtoInstance::new()),
 		Some("kovan") | Some("Kovan") => Box::new(KovanInstance::new()),
-		_ => return Err(format!("Unsupported bridge pallet instance"))
+		_ => return Err(format!("Unsupported bridge pallet instance")),
 	};
 
 	log::debug!(target: "bridge", "Syncing headers with {:?} instance", instance);
