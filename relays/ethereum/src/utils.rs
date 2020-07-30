@@ -109,7 +109,7 @@ pub fn format_ids<Id: std::fmt::Debug>(mut ids: impl ExactSizeIterator<Item = Id
 		}
 		len => {
 			let id0 = ids.next().expect(NTH_PROOF);
-			let id_last = ids.nth(len - 2).expect(NTH_PROOF);
+			let id_last = ids.last().expect(NTH_PROOF);
 			format!("{}:[{:?} ... {:?}]", len, id0, id_last)
 		}
 	}

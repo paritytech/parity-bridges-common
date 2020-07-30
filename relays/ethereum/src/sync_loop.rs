@@ -310,6 +310,7 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 					let all_headers_rejected = submitted_headers.submitted.is_empty()
 						&& submitted_headers.incomplete.is_empty();
 					let has_submitted_headers = sync.headers().headers_in_status(HeaderStatus::Submitted) != 0;
+
 					let maybe_fatal_error = match submitted_headers.fatal_error {
 						Some(fatal_error) => Err(StringifiedMaybeConnectionError::new(
 							fatal_error.is_connection_error(),
@@ -321,7 +322,6 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 					};
 
 					let no_fatal_error = maybe_fatal_error.is_ok();
-
 					target_client_is_online = process_future_result(
 						maybe_fatal_error,
 						&mut target_retry_backoff,
