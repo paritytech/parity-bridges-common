@@ -541,13 +541,13 @@
             "query": {
               "params": [
                 "A",
-                "1m",
+                "2m",
                 "now"
               ]
             },
             "reducer": {
               "params": [],
-              "type": "diff_abs"
+              "type": "min"
             },
             "type": "query"
           }
@@ -604,7 +604,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max(Substrate_to_Ethereum_Sync_best_block_numbers{node=\"source\"})",
+          "expr": "max_over_time(Substrate_to_Ethereum_Sync_best_block_numbers{node=\"source\"}[2m])-min_over_time(Substrate_to_Ethereum_Sync_best_block_numbers{node=\"source\"}[2m])",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -616,13 +616,13 @@
           "fill": true,
           "line": true,
           "op": "lt",
-          "value": 10
+          "value": 5
         }
       ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Source blocks",
+      "title": "Source blocks difference (last 2m)",
       "tooltip": {
         "shared": true,
         "sort": 0,
