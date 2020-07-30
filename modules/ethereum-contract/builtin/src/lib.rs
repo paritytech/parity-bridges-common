@@ -133,7 +133,7 @@ pub fn verify_substrate_finality_proof(
 		.map_err(Error::BestSetDecode)
 		.and_then(|authorities| VoterSet::new(authorities.into_iter()).ok_or(Error::InvalidBestSet));
 
-	log::trace!(
+	log::debug!(
 		target: "bridge-builtin",
 		"Parsed Substrate authorities set {}: {:?}",
 		hex::encode(raw_best_set),
@@ -155,7 +155,11 @@ pub fn verify_substrate_finality_proof(
 	log::debug!(
 		target: "bridge-builtin",
 		"Verified Substrate finality proof {}: {:?}",
-		hex::encode(raw_finality_proof),
+		if log::log_enabled!(log::Level::Trace) {
+			hex::encode(raw_finality_proof)
+		} else {
+			format!("<proof-of-len-{}>", raw_finality_proof.len())
+		},
 		verify_result,
 	);
 
