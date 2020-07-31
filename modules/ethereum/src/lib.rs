@@ -921,9 +921,9 @@ pub fn verify_transaction_finalized<S: Storage>(
 	if header.number > finalized.number {
 		frame_support::debug::trace!(
 			target: "runtime",
-			"Tx finality check failed: header {} is not finalized: {} > {}",
-			block,
+			"Tx finality check failed: header {}/{} is not finalized. Best finalized: {}",
 			header.number,
+			block,
 			finalized.number,
 		);
 
@@ -949,22 +949,24 @@ pub fn verify_transaction_finalized<S: Storage>(
 	}
 
 	// verify that transaction is included in the block
-	if !header.verify_transactions_root(proof.iter().map(|(tx, _)| tx)) {
+	if let Err(computed_root) = header.check_transactions_root(proof.iter().map(|(tx, _)| tx)) {
 		frame_support::debug::trace!(
 			target: "runtime",
-			"Tx finality check failed: transactions root is invalid. Expected: {}",
+			"Tx finality check failed: transactions root mismatch. Expected: {}, computed: {}",
 			header.transactions_root,
+			computed_root,
 		);
 
 		return false;
 	}
 
 	// verify that transaction receipt is included in the block
-	if !header.verify_raw_receipts_root(proof.iter().map(|(_, r)| r)) {
+	if let Err(computed_root) = header.check_raw_receipts_root(proof.iter().map(|(_, r)| r)) {
 		frame_support::debug::trace!(
 			target: "runtime",
-			"Tx finality check failed: receipts root is invalid. Expected: {}",
+			"Tx finality check failed: receipts root mismatch. Expected: {}, computed: {}",
 			header.receipts_root,
+			computed_root,
 		);
 
 		return false;
