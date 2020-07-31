@@ -214,7 +214,7 @@ fn substrate_signing_params(matches: &clap::ArgMatches) -> Result<SubstrateSigni
 
 fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams, String> {
 	let instance = instance_params(matches)?;
-	let mut params = EthereumSyncParams::with_instance(instance);
+	let mut params = EthereumSyncParams::new(instance);
 
 	params.eth_params = ethereum_connection_params(matches)?;
 	params.sub_params = substrate_connection_params(matches)?;
@@ -241,7 +241,7 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams
 
 fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncParams, String> {
 	let instance = instance_params(matches)?;
-	let mut params = SubstrateSyncParams::with_instance(instance);
+	let mut params = SubstrateSyncParams::new(instance);
 
 	params.sub_params = substrate_connection_params(matches)?;
 	params.eth_params = ethereum_connection_params(matches)?;
@@ -261,7 +261,7 @@ fn ethereum_deploy_contract_params(
 	matches: &clap::ArgMatches,
 ) -> Result<ethereum_deploy_contract::EthereumDeployContractParams, String> {
 	let instance = instance_params(matches)?;
-	let mut eth_deploy_params = ethereum_deploy_contract::EthereumDeployContractParams::with_instance(instance);
+	let mut eth_deploy_params = ethereum_deploy_contract::EthereumDeployContractParams::new(instance);
 	eth_deploy_params.eth = ethereum_connection_params(matches)?;
 	eth_deploy_params.eth_sign = ethereum_signing_params(matches)?;
 	eth_deploy_params.sub = substrate_connection_params(matches)?;
@@ -317,7 +317,7 @@ fn ethereum_exchange_submit_params(
 
 fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_exchange::EthereumExchangeParams, String> {
 	let instance = instance_params(matches)?;
-	let mut params = ethereum_exchange::EthereumExchangeParams::with_instance(instance);
+	let mut params = ethereum_exchange::EthereumExchangeParams::new(instance);
 	params.eth = ethereum_connection_params(matches)?;
 	params.sub = substrate_connection_params(matches)?;
 	params.sub_sign = substrate_signing_params(matches)?;

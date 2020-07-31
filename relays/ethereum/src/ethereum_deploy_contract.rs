@@ -48,7 +48,8 @@ pub struct EthereumDeployContractParams {
 }
 
 impl EthereumDeployContractParams {
-	pub fn with_instance(instance: Box<dyn BridgeInstance>) -> Self {
+	/// Create new parameters for deploying an Ethereum contract.
+	pub fn new(instance: Box<dyn BridgeInstance>) -> Self {
 		EthereumDeployContractParams {
 			eth: Default::default(),
 			eth_sign: Default::default(),

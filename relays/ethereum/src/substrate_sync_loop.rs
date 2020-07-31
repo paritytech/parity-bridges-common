@@ -68,7 +68,8 @@ pub struct SubstrateSyncParams {
 }
 
 impl SubstrateSyncParams {
-	pub fn with_instance(instance: Box<dyn BridgeInstance>) -> Self {
+	/// Create new parameters for syncing a Substrate chain.
+	pub fn new(instance: Box<dyn BridgeInstance>) -> Self {
 		SubstrateSyncParams {
 			eth_params: Default::default(),
 			eth_sign: Default::default(),

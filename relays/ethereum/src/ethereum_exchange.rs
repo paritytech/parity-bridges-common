@@ -73,7 +73,8 @@ pub struct EthereumExchangeParams {
 }
 
 impl EthereumExchangeParams {
-	pub fn with_instance(instance: Box<dyn BridgeInstance>) -> Self {
+	/// Create new parameters for exchanging assets between chains.
+	pub fn new(instance: Box<dyn BridgeInstance>) -> Self {
 		EthereumExchangeParams {
 			eth: Default::default(),
 			sub: Default::default(),

@@ -71,7 +71,8 @@ pub struct EthereumSyncParams {
 }
 
 impl EthereumSyncParams {
-	pub fn with_instance(instance: Box<dyn BridgeInstance>) -> Self {
+	/// Create new parameters for syncing an Ethereum chain.
+	pub fn new(instance: Box<dyn BridgeInstance>) -> Self {
 		EthereumSyncParams {
 			eth_params: Default::default(),
 			sub_params: Default::default(),
