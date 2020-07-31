@@ -48,12 +48,13 @@ subcommands:
                 long: instance
                 short: i
                 value_name: PALLET_INSTANCE
-                help: Which instance of the bridge pallet should the relay follow?
+                help: The instance of the bridge pallet the relay should follow.
                 takes_value: true
                 case_insensitive: true
                 possible_values:
                   - Rialto
                   - Kovan
+                default_value: Rialto
             - no-prometheus: &no-prometheus
                 long: no-prometheus
                 help: Do not expose a Prometheus metric endpoint.

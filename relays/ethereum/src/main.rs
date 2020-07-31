@@ -371,7 +371,7 @@ fn instance_params(matches: &clap::ArgMatches) -> Result<Box<dyn BridgeInstance>
 			_ => return Err("Unsupported bridge pallet instance".to_string()),
 		}
 	} else {
-		Box::new(Rialto::default())
+		unreachable!("CLI config enforces a default instance, can never be None")
 	};
 
 	Ok(instance)
