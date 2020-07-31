@@ -59,7 +59,7 @@ pub struct HeadersSync<P: HeadersSyncPipeline> {
 	target_best_header: Option<HeaderIdOf<P>>,
 	/// Headers queue.
 	headers: QueuedHeaders<P>,
-	/// Pause headers submit.
+	/// Pause headers submission.
 	pause_submit: bool,
 }
 
