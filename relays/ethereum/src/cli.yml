@@ -31,7 +31,6 @@ subcommands:
                 value_name: MODE
                 help: Submit headers using signed (default) or unsigned transactions. Third mode - backup - submits signed transactions only when we believe that sync has stalled.
                 takes_value: true
-                case_insensitive: true
                 possible_values:
                     - signed
                     - unsigned
