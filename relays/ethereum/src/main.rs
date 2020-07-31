@@ -42,7 +42,7 @@ mod utils;
 
 use ethereum_client::{EthereumConnectionParams, EthereumSigningParams};
 use ethereum_sync_loop::EthereumSyncParams;
-use instances::{BridgeInstance, KovanInstance, RialtoInstance};
+use instances::{BridgeInstance, Kovan, Rialto};
 use parity_crypto::publickey::{KeyPair, Secret};
 use sp_core::crypto::Pair;
 use substrate_client::{SubstrateConnectionParams, SubstrateSigningParams};
@@ -366,12 +366,12 @@ fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<metrics::MetricsP
 fn instance_params(matches: &clap::ArgMatches) -> Result<Box<dyn BridgeInstance>, String> {
 	let instance: Box<dyn BridgeInstance> = if let Some(instance) = matches.value_of("sub-pallet-instance") {
 		match instance.to_lowercase().as_str() {
-			"rialto" => Box::new(RialtoInstance::new()),
-			"kovan" => Box::new(KovanInstance::new()),
+			"rialto" => Box::new(Rialto::default()),
+			"kovan" => Box::new(Kovan::default()),
 			_ => return Err("Unsupported bridge pallet instance".to_string()),
 		}
 	} else {
-		Box::new(RialtoInstance::new())
+		Box::new(Rialto::default())
 	};
 
 	Ok(instance)

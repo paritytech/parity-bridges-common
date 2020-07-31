@@ -44,16 +44,9 @@ pub trait BridgeInstance: Send + Sync + std::fmt::Debug {
 
 /// Corresponds to the Rialto instance used in the bridge runtime.
 #[derive(Default, Clone, Debug)]
-pub struct RialtoInstance;
+pub struct Rialto;
 
-impl RialtoInstance {
-	/// Create a new RialtoInstance.
-	pub fn new() -> Self {
-		Self
-	}
-}
-
-impl BridgeInstance for RialtoInstance {
+impl BridgeInstance for Rialto {
 	fn build_signed_header_call(&self, headers: Vec<QueuedEthereumHeader>) -> Call {
 		let pallet_call = bridge_node_runtime::BridgeEthPoACall::import_signed_headers(
 			headers
@@ -87,16 +80,9 @@ impl BridgeInstance for RialtoInstance {
 
 /// Corresponds to the Kovan instance used in the bridge runtime.
 #[derive(Default, Clone, Debug)]
-pub struct KovanInstance;
+pub struct Kovan;
 
-impl KovanInstance {
-	/// Create a new KovanInstance.
-	pub fn new() -> Self {
-		Self
-	}
-}
-
-impl BridgeInstance for KovanInstance {
+impl BridgeInstance for Kovan {
 	fn build_signed_header_call(&self, headers: Vec<QueuedEthereumHeader>) -> Call {
 		let pallet_call = bridge_node_runtime::BridgeEthPoACall::import_signed_headers(
 			headers
