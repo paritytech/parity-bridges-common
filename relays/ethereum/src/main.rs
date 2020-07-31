@@ -47,6 +47,7 @@ use parity_crypto::publickey::{KeyPair, Secret};
 use sp_core::crypto::Pair;
 use substrate_client::{SubstrateConnectionParams, SubstrateSigningParams};
 use substrate_sync_loop::SubstrateSyncParams;
+use sync::HeadersSyncParams;
 
 use std::io::Write;
 
@@ -213,26 +214,29 @@ fn substrate_signing_params(matches: &clap::ArgMatches) -> Result<SubstrateSigni
 }
 
 fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams, String> {
-	let instance = instance_params(matches)?;
-	let mut params = EthereumSyncParams::new(instance);
-
-	params.eth_params = ethereum_connection_params(matches)?;
-	params.sub_params = substrate_connection_params(matches)?;
-	params.sub_sign = substrate_signing_params(matches)?;
-	params.metrics_params = metrics_params(matches)?;
+	let mut sync_params = HeadersSyncParams::ethereum_sync_default();
 
 	match matches.value_of("sub-tx-mode") {
-		Some("signed") => params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
+		Some("signed") => sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
 		Some("unsigned") => {
-			params.sync_params.target_tx_mode = sync::TargetTransactionMode::Unsigned;
+			sync_params.target_tx_mode = sync::TargetTransactionMode::Unsigned;
 
 			// tx pool won't accept too much unsigned transactions
-			params.sync_params.max_headers_in_submitted_status = 10;
+			sync_params.max_headers_in_submitted_status = 10;
 		}
-		Some("backup") => params.sync_params.target_tx_mode = sync::TargetTransactionMode::Backup,
+		Some("backup") => sync_params.target_tx_mode = sync::TargetTransactionMode::Backup,
 		Some(mode) => return Err(format!("Invalid sub-tx-mode: {}", mode)),
-		None => params.sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
+		None => sync_params.target_tx_mode = sync::TargetTransactionMode::Signed,
 	}
+
+	let params = EthereumSyncParams {
+		eth_params: ethereum_connection_params(matches)?,
+		sub_params: substrate_connection_params(matches)?,
+		sub_sign: substrate_signing_params(matches)?,
+		metrics_params: metrics_params(matches)?,
+		instance: instance_params(matches)?,
+		sync_params,
+	};
 
 	log::debug!(target: "bridge", "Ethereum sync params: {:?}", params);
 
@@ -240,17 +244,23 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams
 }
 
 fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncParams, String> {
-	let instance = instance_params(matches)?;
-	let mut params = SubstrateSyncParams::new(instance);
+	let eth_contract_address: ethereum_types::Address = if let Some(eth_contract) = matches.value_of("eth-contract") {
+		eth_contract.parse().map_err(|e| format!("{}", e))?
+	} else {
+		"731a10897d267e19b34503ad902d0a29173ba4b1"
+			.parse()
+			.expect("address is hardcoded, thus valid; qed")
+	};
 
-	params.sub_params = substrate_connection_params(matches)?;
-	params.eth_params = ethereum_connection_params(matches)?;
-	params.eth_sign = ethereum_signing_params(matches)?;
-	params.metrics_params = metrics_params(matches)?;
-
-	if let Some(eth_contract) = matches.value_of("eth-contract") {
-		params.eth_contract_address = eth_contract.parse().map_err(|e| format!("{}", e))?;
-	}
+	let params = SubstrateSyncParams {
+		sub_params: substrate_connection_params(matches)?,
+		eth_params: ethereum_connection_params(matches)?,
+		eth_sign: ethereum_signing_params(matches)?,
+		metrics_params: metrics_params(matches)?,
+		instance: instance_params(matches)?,
+		sync_params: HeadersSyncParams::substrate_sync_default(),
+		eth_contract_address,
+	};
 
 	log::debug!(target: "bridge", "Substrate sync params: {:?}", params);
 

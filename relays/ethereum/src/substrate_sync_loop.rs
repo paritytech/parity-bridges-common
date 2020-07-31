@@ -28,7 +28,7 @@ use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{
 	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
 };
-use crate::sync::{HeadersSyncParams, TargetTransactionMode};
+use crate::sync::HeadersSyncParams;
 use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::{SourceHeader, SubmittedHeaders};
 
@@ -37,16 +37,20 @@ use async_trait::async_trait;
 use std::fmt::Debug;
 use std::{collections::HashSet, time::Duration};
 
-/// Interval at which we check new Substrate headers when we are synced/almost synced.
-const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_secs(10);
-/// Interval at which we check new Ethereum blocks.
-const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(5);
-/// Max Ethereum headers we want to have in all 'before-submitted' states.
-const MAX_FUTURE_HEADERS_TO_DOWNLOAD: usize = 8;
-/// Max Ethereum headers count we want to have in 'submitted' state.
-const MAX_SUBMITTED_HEADERS: usize = 1;
-/// Max depth of in-memory headers in all states. Past this depth they will be forgotten (pruned).
-const PRUNE_DEPTH: u32 = 256;
+pub mod consts {
+	use super::*;
+
+	/// Interval at which we check new Substrate headers when we are synced/almost synced.
+	pub const SUBSTRATE_TICK_INTERVAL: Duration = Duration::from_secs(10);
+	/// Interval at which we check new Ethereum blocks.
+	pub const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(5);
+	/// Max Ethereum headers we want to have in all 'before-submitted' states.
+	pub const MAX_FUTURE_HEADERS_TO_DOWNLOAD: usize = 8;
+	/// Max Ethereum headers count we want to have in 'submitted' state.
+	pub const MAX_SUBMITTED_HEADERS: usize = 1;
+	/// Max depth of in-memory headers in all states. Past this depth they will be forgotten (pruned).
+	pub const PRUNE_DEPTH: u32 = 256;
+}
 
 /// Substrate synchronization parameters.
 #[derive(Debug)]
@@ -65,34 +69,6 @@ pub struct SubstrateSyncParams {
 	pub metrics_params: Option<MetricsParams>,
 	/// Instance of the bridge pallet being synchronized.
 	pub instance: Box<dyn BridgeInstance>,
-}
-
-impl SubstrateSyncParams {
-	/// Create new parameters for syncing a Substrate chain.
-	pub fn new(instance: Box<dyn BridgeInstance>) -> Self {
-		SubstrateSyncParams {
-			eth_params: Default::default(),
-			eth_sign: Default::default(),
-			// the address 0x731a10897d267e19b34503ad902d0a29173ba4b1 is the address
-			// of the contract that is deployed by default signer and 0 nonce
-			eth_contract_address: "731a10897d267e19b34503ad902d0a29173ba4b1"
-				.parse()
-				.expect("address is hardcoded, thus valid; qed"),
-			sub_params: Default::default(),
-			sync_params: HeadersSyncParams {
-				max_future_headers_to_download: MAX_FUTURE_HEADERS_TO_DOWNLOAD,
-				max_headers_in_submitted_status: MAX_SUBMITTED_HEADERS,
-				// since we always have single Substrate header in separate Ethereum transaction,
-				// all max_**_in_single_submit aren't important here
-				max_headers_in_single_submit: 4,
-				max_headers_size_in_single_submit: std::usize::MAX,
-				prune_depth: PRUNE_DEPTH,
-				target_tx_mode: TargetTransactionMode::Signed,
-			},
-			metrics_params: Some(Default::default()),
-			instance,
-		}
-	}
 }
 
 /// Substrate client as headers source.
@@ -223,9 +199,9 @@ pub fn run(params: SubstrateSyncParams) -> Result<(), RpcError> {
 
 	crate::sync_loop::run(
 		source,
-		SUBSTRATE_TICK_INTERVAL,
+		consts::SUBSTRATE_TICK_INTERVAL,
 		target,
-		ETHEREUM_TICK_INTERVAL,
+		consts::ETHEREUM_TICK_INTERVAL,
 		sync_params,
 		metrics_params,
 		futures::future::pending(),
