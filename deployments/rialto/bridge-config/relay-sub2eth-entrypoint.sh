@@ -22,4 +22,5 @@ echo "Starting SUB -> ETH relay"
 	--eth-chain-id 105 \
 	--eth-signer 0399dbd15cf6ee8250895a1f3873eb1e10e23ca18e8ed0726c63c4aea356e87d \
 	--sub-host bridge-node-bob \
-	--eth-host poa-node-bertha
+	--eth-host poa-node-bertha \
+	--prometheus-host=0.0.0.0

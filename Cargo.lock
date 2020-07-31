@@ -1225,6 +1225,7 @@ dependencies = [
  "ethereum-types",
  "finality-grandpa",
  "hex",
+ "log",
  "parity-scale-codec",
  "sc-finality-grandpa",
  "sp-blockchain",

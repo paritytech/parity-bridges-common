@@ -21,7 +21,8 @@ use crate::ethereum_types::{
 use crate::rpc::{Ethereum, EthereumRpc};
 use crate::rpc_errors::{EthereumNodeError, RpcError};
 use crate::substrate_types::{GrandpaJustification, Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId};
-use crate::sync_types::{HeaderId, MaybeConnectionError, SubmittedHeaders};
+use crate::sync_types::{HeaderId, SubmittedHeaders};
+use crate::utils::MaybeConnectionError;
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
@@ -168,12 +169,7 @@ impl EthereumRpc for EthereumRpcClient {
 	}
 
 	async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt> {
-		let receipt = Ethereum::get_transaction_receipt(&self.client, transaction_hash).await?;
-
-		match receipt.gas_used {
-			Some(_) => Ok(receipt),
-			None => Err(RpcError::Ethereum(EthereumNodeError::IncompleteReceipt)),
-		}
+		Ok(Ethereum::get_transaction_receipt(&self.client, transaction_hash).await?)
 	}
 
 	async fn account_nonce(&self, address: Address) -> Result<U256> {

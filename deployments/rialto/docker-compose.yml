@@ -15,7 +15,7 @@ services:
     volumes:
       - ./poa-config:/config
     environment:
-      RUST_LOG: rpc=trace,txqueue=trace
+      RUST_LOG: rpc=trace,txqueue=trace,bridge-builtin=trace
     ports:
       - "8545:8545"
       - "8546:8546"
@@ -97,6 +97,8 @@ services:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "9716:9616"
     depends_on: *all-nodes
 
   # relay-sub2eth:
@@ -193,6 +195,7 @@ services:
       LETSENCRYPT_EMAIL: admin@parity.io
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
       GF_SERVER_ROOT_URL: ${GRAFANA_SERVER_ROOT_URL}
+      GF_SERVER_DOMAIN: ${GRAFANA_SERVER_DOMAIN}
     volumes:
       - ./dashboard/grafana/provisioning/:/etc/grafana/provisioning/
     ports:
