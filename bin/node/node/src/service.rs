@@ -16,7 +16,7 @@
 
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use bridge_node_runtime::{self, Block, RuntimeApi};
+use bridge_node_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
@@ -100,7 +100,7 @@ pub fn new_full_params(
 		let client = client.clone();
 		let pool = transaction_pool.clone();
 
-		let rpc_extensions_builder = Box::new(move |_| {
+		Box::new(move |_| {
 			let mut io = jsonrpc_core::IoHandler::default();
 			io.extend_with(SystemApi::to_delegate(FullSystem::new(
 				client.clone(),
@@ -109,9 +109,7 @@ pub fn new_full_params(
 			)));
 
 			io
-		});
-
-		rpc_extensions_builder
+		})
 	};
 
 	let provider = client.clone() as Arc<dyn StorageAndProofProvider<_, _>>;
