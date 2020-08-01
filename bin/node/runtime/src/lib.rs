@@ -35,9 +35,6 @@ pub mod benches;
 pub mod kovan;
 pub mod rialto;
 
-#[cfg(feature = "runtime-benchmarks")]
-pub use benches as bridge;
-
 use codec::{Decode, Encode};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
@@ -747,8 +744,13 @@ impl_runtime_apis! {
 				}
 			}
 
-			add_benchmark!(params, batches, b"bridge-eth-poa", BridgeKovan);
-			add_benchmark!(params, batches, b"bridge-currency-exchange", BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>);
+			add_benchmark!(params, batches, pallet_bridge_eth_poa, BridgeKovan);
+			add_benchmark!(
+				params,
+				batches,
+				pallet_bridge_currency_exchange,
+				BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>
+			);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)
