@@ -43,7 +43,9 @@ mod utils;
 use ethereum_client::{EthereumConnectionParams, EthereumSigningParams};
 use ethereum_deploy_contract::EthereumDeployContractParams;
 use ethereum_exchange::EthereumExchangeParams;
+use ethereum_exchange_submit::EthereumExchangeSubmitParams;
 use ethereum_sync_loop::EthereumSyncParams;
+use hex_literal::hex;
 use instances::{BridgeInstance, Kovan, Rialto};
 use parity_crypto::publickey::{KeyPair, Secret};
 use sp_core::crypto::Pair;
@@ -292,39 +294,50 @@ fn ethereum_deploy_contract_params(matches: &clap::ArgMatches) -> Result<Ethereu
 	Ok(params)
 }
 
-fn ethereum_exchange_submit_params(
-	matches: &clap::ArgMatches,
-) -> Result<ethereum_exchange_submit::EthereumExchangeSubmitParams, String> {
-	let mut params = ethereum_exchange_submit::EthereumExchangeSubmitParams::default();
+fn ethereum_exchange_submit_params(matches: &clap::ArgMatches) -> Result<EthereumExchangeSubmitParams, String> {
+	let eth_nonce = if let Some(eth_nonce) = matches.value_of("eth-nonce") {
+		Some(ethereum_types::U256::from_dec_str(&eth_nonce).map_err(|e| format!("Failed to parse eth-nonce: {}", e))?)
+	} else {
+		None
+	};
 
-	params.eth = ethereum_connection_params(matches)?;
-	params.eth_sign = ethereum_signing_params(matches)?;
-
-	if let Some(eth_nonce) = matches.value_of("eth-nonce") {
-		params.eth_nonce = Some(
-			ethereum_types::U256::from_dec_str(&eth_nonce).map_err(|e| format!("Failed to parse eth-nonce: {}", e))?,
-		);
-	}
-	if let Some(eth_amount) = matches.value_of("eth-amount") {
-		params.eth_amount = eth_amount
+	let eth_amount = if let Some(eth_amount) = matches.value_of("eth-amount") {
+		eth_amount
 			.parse()
-			.map_err(|e| format!("Failed to parse eth-amount: {}", e))?;
-	}
-	if let Some(sub_recipient) = matches.value_of("sub-recipient") {
-		params.sub_recipient = hex::decode(&sub_recipient)
+			.map_err(|e| format!("Failed to parse eth-amount: {}", e))?
+	} else {
+		// This is in Wei, represents 1 ETH
+		1_000_000_000_000_000_000_u64.into()
+	};
+
+	// This is the well-known Substrate account of Ferdie
+	let default_recepient = hex!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c");
+
+	let sub_recipient = if let Some(sub_recipient) = matches.value_of("sub-recipient") {
+		hex::decode(&sub_recipient)
 			.map_err(|err| err.to_string())
 			.and_then(|vsub_recipient| {
-				let expected_len = params.sub_recipient.len();
+				let expected_len = default_recepient.len();
 				if expected_len != vsub_recipient.len() {
 					Err(format!("invalid length. Expected {} bytes", expected_len))
 				} else {
-					let mut sub_recipient = params.sub_recipient;
+					let mut sub_recipient = default_recepient;
 					sub_recipient.copy_from_slice(&vsub_recipient[..expected_len]);
 					Ok(sub_recipient)
 				}
 			})
-			.map_err(|e| format!("Failed to parse sub-recipient: {}", e))?;
-	}
+			.map_err(|e| format!("Failed to parse sub-recipient: {}", e))?
+	} else {
+		default_recepient
+	};
+
+	let params = EthereumExchangeSubmitParams {
+		eth_params: ethereum_connection_params(matches)?,
+		eth_sign: ethereum_signing_params(matches)?,
+		eth_nonce,
+		eth_amount,
+		sub_recipient,
+	};
 
 	log::debug!(target: "bridge", "Submit Ethereum exchange tx params: {:?}", params);
 
