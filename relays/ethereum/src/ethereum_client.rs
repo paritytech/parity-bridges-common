@@ -168,13 +168,8 @@ impl EthereumRpc for EthereumRpcClient {
 		Ok(Ethereum::transaction_by_hash(&self.client, hash).await?)
 	}
 
-	async fn transaction_receipt(&self, transaction_hash: H256) -> RpcResult<Receipt> {
-		let receipt = Ethereum::get_transaction_receipt(&self.client, transaction_hash).await?;
-
-		match receipt.gas_used {
-			Some(_) => Ok(receipt),
-			None => Err(RpcError::Ethereum(EthereumNodeError::IncompleteReceipt)),
-		}
+	async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt> {
+		Ok(Ethereum::get_transaction_receipt(&self.client, transaction_hash).await?)
 	}
 
 	async fn account_nonce(&self, address: Address) -> RpcResult<U256> {

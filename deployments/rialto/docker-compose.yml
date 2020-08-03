@@ -15,7 +15,7 @@ services:
     volumes:
       - ./poa-config:/config
     environment:
-      RUST_LOG: rpc=trace,txqueue=trace
+      RUST_LOG: rpc=trace,txqueue=trace,bridge-builtin=trace
     ports:
       - "8545:8545"
       - "8546:8546"
