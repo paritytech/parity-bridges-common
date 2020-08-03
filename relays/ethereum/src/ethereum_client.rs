@@ -621,14 +621,7 @@ async fn submit_4_substrate_headers(
 	{
 		// All headers valid
 		Ok(0) => None,
-		// none of the headers is valid
-		Ok(1) => {
-			// contract has rejected all headers => we do not want to submit it
-			submitted_headers.rejected.extend(ids);
-			return None;
-		},
-		// The method returns 1-based index, so we subtract one.
-		Ok(incomplete_header_index) => Some(incomplete_header_index - 1),
+		Ok(incomplete_header_index) => Some(incomplete_header_index),
 		Err(error) => {
 			// contract has rejected all headers => we do not want to submit it
 			submitted_headers.rejected.extend(ids);
@@ -644,7 +637,7 @@ async fn submit_4_substrate_headers(
 	let rejected = if let Some(idx) = incomplete_header_index{
 		let len = std::cmp::min(idx, ids.len());
 		headers.split_off(len)
-			.expect("len > 0, the case where all headers are invalid is handled earlier; qed");
+			.expect("len > 0, the case where all headers are valid is converted to None; qed");
 		ids.split_off(len)
 	} else {
 		Vec::new()
