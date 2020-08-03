@@ -168,7 +168,7 @@ impl EthereumRpc for EthereumRpcClient {
 		Ok(Ethereum::transaction_by_hash(&self.client, hash).await?)
 	}
 
-	async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt> {
+	async fn transaction_receipt(&self, transaction_hash: H256) -> RpcResult<Receipt> {
 		Ok(Ethereum::get_transaction_receipt(&self.client, transaction_hash).await?)
 	}
 
@@ -415,6 +415,7 @@ impl EthereumHighLevelRpc for EthereumRpcClient {
 pub const HEADERS_BATCH: usize = 4;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 pub struct Headers {
 	pub header1: QueuedSubstrateHeader,
 	pub header2: Option<QueuedSubstrateHeader>,
@@ -469,12 +470,13 @@ impl Headers {
 	/// Remove headers starting from `idx` (0-based) from this collection.
 	///
 	/// The collection will be left with `[0, idx)` headers.
-	/// Returns `Err` if `idx == 0`, since `Headers` must contain at least one header.
+	/// Returns `Err` when `idx == 0`, since `Headers` must contain at least one header,
+	/// or when `idx > HEADERS_BATCH`.
 	pub fn split_off(&mut self, idx: usize) -> Result<(), ()> {
-		if idx == 0 { return Err(()) }
+		if idx == 0 || idx > HEADERS_BATCH { return Err(()) }
 		let vals = [&mut self.header2, &mut self.header3, &mut self.header4];
-		for i in 0..idx {
-			*vals[i] = None;
+		for i in idx .. HEADERS_BATCH {
+			*vals[i - 1] = None;
 		}
 		Ok(())
 	}
@@ -766,10 +768,46 @@ mod tests {
 		let (mut headers, ids) = Headers::pop_from(&mut init_headers, &mut init_ids).unwrap();
 		assert_eq!(init_headers, vec![header(5)]);
 		assert_eq!(init_ids, vec![header(5).id()]);
+		assert_eq!(ids, vec![header(1).id(), header(2).id(), header(3).id(), header(4).id()]);
 		assert!(headers.split_off(0).is_err());
+		assert_eq!(headers.header1, header(1));
+		assert!(headers.header2.is_some());
+		assert!(headers.header3.is_some());
+		assert!(headers.header4.is_some());
+		assert_eq!(headers.len(), 4);
+		assert_eq!(headers.encode(), [
+			header(1).header().encode(),
+			header(2).header().encode(),
+			header(3).header().encode(),
+			header(4).header().encode(),
+		]);
 
-		headers.split_off(2).unwrap();
-		// todo check the headers!
+		// when
+		let mut h = headers.clone();
+		h.split_off(1).unwrap();
+		assert!(h.header2.is_none());
+		assert!(h.header3.is_none());
+		assert!(h.header4.is_none());
+
+		// when
+		let mut h = headers.clone();
+		h.split_off(2).unwrap();
+		assert!(h.header2.is_some());
+		assert!(h.header3.is_none());
+		assert!(h.header4.is_none());
+
+		// when
+		let mut h = headers.clone();
+		h.split_off(3).unwrap();
+		assert!(h.header2.is_some());
+		assert!(h.header3.is_some());
+		assert!(h.header4.is_none());
+
+		// when
+		let mut h = headers.clone();
+		h.split_off(4).unwrap();
+		assert!(h.header2.is_some());
+		assert!(h.header3.is_some());
+		assert!(h.header4.is_some());
 	}
-
 }
