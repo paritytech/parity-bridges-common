@@ -789,7 +789,7 @@ mod tests {
 		assert!(h.header4.is_none());
 
 		// when
-		let mut h = headers.clone();
+		let mut h = headers;
 		h.split_off(4).unwrap();
 		assert!(h.header2.is_some());
 		assert!(h.header3.is_some());
