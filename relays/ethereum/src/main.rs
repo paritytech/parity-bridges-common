@@ -41,6 +41,7 @@ mod sync_types;
 mod utils;
 
 use ethereum_client::{EthereumConnectionParams, EthereumSigningParams};
+use ethereum_deploy_contract::EthereumDeployContractParams;
 use ethereum_sync_loop::EthereumSyncParams;
 use instances::{BridgeInstance, Kovan, Rialto};
 use parity_crypto::publickey::{KeyPair, Secret};
@@ -267,23 +268,27 @@ fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncPara
 	Ok(params)
 }
 
-fn ethereum_deploy_contract_params(
-	matches: &clap::ArgMatches,
-) -> Result<ethereum_deploy_contract::EthereumDeployContractParams, String> {
-	let instance = instance_params(matches)?;
-	let mut eth_deploy_params = ethereum_deploy_contract::EthereumDeployContractParams::new(instance);
-	eth_deploy_params.eth = ethereum_connection_params(matches)?;
-	eth_deploy_params.eth_sign = ethereum_signing_params(matches)?;
-	eth_deploy_params.sub = substrate_connection_params(matches)?;
+fn ethereum_deploy_contract_params(matches: &clap::ArgMatches) -> Result<EthereumDeployContractParams, String> {
+	let eth_contract_code = if let Some(eth_contract_code) = matches.value_of("eth-contract-code") {
+		hex::decode(&eth_contract_code).map_err(|e| format!("Failed to parse eth-contract-code: {}", e))?
+	} else {
+		hex::decode(include_str!("../res/substrate-bridge-bytecode.hex")).expect("code is hardcoded, thus valid; qed")
+	};
 
-	if let Some(eth_contract_code) = matches.value_of("eth-contract-code") {
-		eth_deploy_params.eth_contract_code =
-			hex::decode(&eth_contract_code).map_err(|e| format!("Failed to parse eth-contract-code: {}", e))?;
-	}
+	let params = EthereumDeployContractParams {
+		eth_params: ethereum_connection_params(matches)?,
+		eth_sign: ethereum_signing_params(matches)?,
+		sub_params: substrate_connection_params(matches)?,
+		instance: instance_params(matches)?,
+		sub_initial_authorities_set_id: None,
+		sub_initial_authorities_set: None,
+		sub_initial_header: None,
+		eth_contract_code,
+	};
 
-	log::debug!(target: "bridge", "Deploy params: {:?}", eth_deploy_params);
+	log::debug!(target: "bridge", "Deploy params: {:?}", params);
 
-	Ok(eth_deploy_params)
+	Ok(params)
 }
 
 fn ethereum_exchange_submit_params(
