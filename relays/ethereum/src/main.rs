@@ -42,6 +42,7 @@ mod utils;
 
 use ethereum_client::{EthereumConnectionParams, EthereumSigningParams};
 use ethereum_deploy_contract::EthereumDeployContractParams;
+use ethereum_exchange::EthereumExchangeParams;
 use ethereum_sync_loop::EthereumSyncParams;
 use instances::{BridgeInstance, Kovan, Rialto};
 use parity_crypto::publickey::{KeyPair, Secret};
@@ -330,15 +331,8 @@ fn ethereum_exchange_submit_params(
 	Ok(params)
 }
 
-fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_exchange::EthereumExchangeParams, String> {
-	let instance = instance_params(matches)?;
-	let mut params = ethereum_exchange::EthereumExchangeParams::new(instance);
-	params.eth = ethereum_connection_params(matches)?;
-	params.sub = substrate_connection_params(matches)?;
-	params.sub_sign = substrate_signing_params(matches)?;
-	params.metrics_params = metrics_params(matches)?;
-
-	params.mode = match matches.value_of("eth-tx-hash") {
+fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<EthereumExchangeParams, String> {
+	let mode = match matches.value_of("eth-tx-hash") {
 		Some(eth_tx_hash) => ethereum_exchange::ExchangeRelayMode::Single(
 			eth_tx_hash
 				.parse()
@@ -352,6 +346,15 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<ethereum_excha
 			),
 			None => None,
 		}),
+	};
+
+	let params = EthereumExchangeParams {
+		eth_params: ethereum_connection_params(matches)?,
+		sub_params: substrate_connection_params(matches)?,
+		sub_sign: substrate_signing_params(matches)?,
+		metrics_params: metrics_params(matches)?,
+		instance: instance_params(matches)?,
+		mode,
 	};
 
 	log::debug!(target: "bridge", "Ethereum exchange params: {:?}", params);
