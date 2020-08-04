@@ -10,8 +10,9 @@ git pull
 sed -i '/BRIDGE_HASH/d' .env || true
 echo "BRIDGE_HASH=$(git rev-parse HEAD)" >> .env
 
-# Update Matrix access token
-(grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY .env > .env2 && . ./.env2 && rm .env2) || true
+# Update Matrix access token (disable errors in case
+grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY .env > .env2 && . ./.env2 && rm .env2
+
 if [ ! -z ${MATRIX_ACCESS_TOKEN+x} ]; then
 	sed -i "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./dashboard/grafana-matrix/config.yml
 fi
