@@ -3623,6 +3623,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "header-chain",
  "hex-literal 0.3.1",
  "libsecp256k1",
  "parity-scale-codec",

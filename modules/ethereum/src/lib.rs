@@ -22,6 +22,7 @@ use crate::finality::{CachedFinalityVotes, FinalityVotes};
 use codec::{Decode, Encode};
 use frame_support::{decl_module, decl_storage, traits::Get};
 use primitives::{Address, Header, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
+use header_chain::{FinalityHeaderChain, FullHeaderChain};
 use sp_runtime::{
 	transaction_validity::{
 		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionSource, TransactionValidity,
@@ -270,12 +271,21 @@ pub trait Storage {
 
 	/// Get best known block and total chain difficulty.
 	fn best_block(&self) -> (HeaderId, U256);
+
+	/// Get the earliest block that the pallet knows of.
+	fn earliest_finalized_block(&self) -> Header;
+
 	/// Get last finalized block.
 	fn finalized_block(&self) -> HeaderId;
+
 	/// Get imported header by its hash.
 	///
 	/// Returns header and its submitter (if known).
 	fn header(&self, hash: &H256) -> Option<(Header, Option<Self::Submitter>)>;
+
+	/// Get a block from the pallet given its number.
+	fn block_by_number(&self, block_number: u64) -> Header;
+
 	/// Returns latest cached finality votes (if any) for block ancestors, starting
 	/// from `parent_hash` block and stopping at genesis block, best finalized block
 	/// or block where `stop_at` returns true.
@@ -285,17 +295,21 @@ pub trait Storage {
 		best_finalized: &HeaderId,
 		stop_at: impl Fn(&H256) -> bool,
 	) -> CachedFinalityVotes<Self::Submitter>;
+
 	/// Get header import context by parent header hash.
 	fn import_context(
 		&self,
 		submitter: Option<Self::Submitter>,
 		parent_hash: &H256,
 	) -> Option<ImportContext<Self::Submitter>>;
+
 	/// Get new validators that are scheduled by given header and hash of the previous
 	/// block that has scheduled change.
 	fn scheduled_change(&self, hash: &H256) -> Option<ScheduledChange>;
+
 	/// Insert imported header.
 	fn insert_header(&mut self, header: HeaderToImport<Self::Submitter>);
+
 	/// Finalize given block and schedules pruning of all headers
 	/// with number < prune_end.
 	///
@@ -555,6 +569,68 @@ impl<T: Trait<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Mod
 		}
 	}
 }
+
+impl<T: Trait<I>, I: Instance> FinalityHeaderChain for Module<T, I> {
+	type Header = primitives::Header;
+	type Extra = primitives::Receipt;
+	type Proof = ();
+
+	fn import_finalized_header_unsigned(_header: Self::Header, _extra_data: Option<Self::Extra>) {
+		todo!()
+	}
+
+	fn import_finalized_header_signed(_header: Self::Header, _extra_data: Option<Self::Extra>) {
+		todo!()
+	}
+
+	fn best_finalized_block() -> Self::Header {
+		let _header_id = BridgeStorage::<T, I>::new().finalized_block();
+		todo!()
+	}
+
+	fn earliest_finalized_block() -> Self::Header {
+		BridgeStorage::<T, I>::new().earliest_finalized_block()
+	}
+
+	fn verify_finality_proof(_proof: Self::Proof) -> bool {
+		todo!()
+	}
+}
+
+impl<T: Trait<I>, I: Instance> FullHeaderChain for Module<T, I> {
+	type BlockNumber = u64;
+	type BlockHash = primitives::H256;
+
+	fn import_header_unsigned(_header: Self::Header, _extra_data: Option<Self::Extra>) {
+		todo!()
+	}
+
+	fn import_header_signed(_header: Self::Header, _extra_data: Option<Self::Extra>) {
+		todo!()
+	}
+
+	fn best_block() -> Self::Header {
+		let _header_id = BridgeStorage::<T, I>::new().best_block().0;
+		todo!()
+	}
+
+	fn earliest_block() -> Self::Header {
+		todo!()
+	}
+
+	fn header_by_number(block_number: Self::BlockNumber) -> Self::Header {
+		BridgeStorage::<T, I>::new().block_by_number(block_number)
+	}
+
+	fn header_by_hash(block_hash: Self::BlockHash) -> Self::Header {
+		if let Some(header) = BridgeStorage::<T, I>::new().header(&block_hash) {
+			header.0
+		} else {
+			todo!()
+		}
+	}
+}
+
 
 /// Runtime bridge storage.
 #[derive(Default)]
@@ -834,6 +910,14 @@ impl<T: Trait<I>, I: Instance> Storage for BridgeStorage<T, I> {
 
 		// and now prune headers if we need to
 		self.prune_blocks(MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT, finalized_number, prune_end);
+	}
+
+	fn earliest_finalized_block(&self) -> Header {
+		todo!()
+	}
+
+	fn block_by_number(&self, _block_number: u64) -> Header {
+		todo!()
 	}
 }
 
