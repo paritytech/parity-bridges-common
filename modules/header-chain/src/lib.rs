@@ -14,19 +14,41 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-/// A trait which defines a common interface for Substrate pallets which want
-/// to incorporate bridge functionality.
-pub trait HeaderChain {
+//! Defines traits which represent a common interface for Substrate pallets which want to
+//! incorporate bridge functinality.
+
+/// A base trait for tracking finalized headers on foreign chains in a Substrate pallet. Should be
+/// used as a primitive for more complicated header tracking logic.
+pub trait FinalityHeaderChain {
 	/// The header used by the chain.
 	type Header;
 	/// Any extra data which helps describe a transaction.
 	type Extra;
+	/// The type of transaction proof used by the chain.
+	type Proof;
+
+	/// Imports a finalized header submitted using an unsigned transaction to the pallet.
+	fn import_finalized_header_unsigned(header: Self::Header, extra_data: Option<Self::Extra>);
+
+	/// Imports a finalized header submitted using an signed transaction to the pallet.
+	fn import_finalized_header_signed(header: Self::Header, extra_data: Option<Self::Extra>);
+
+	/// Get the best finalized block the pallet knows of.
+	fn best_finalized_block() -> Self::Header;
+
+	/// Get the earliest block the pallet knows of.
+	fn earliest_finalized_block() -> Self::Header;
+
+	/// Verify a proof of finality.
+	fn verify_finality_proof(proof: Self::Proof) -> bool;
+}
+
+/// A trait for pallets which want to keep track of a full set of headers from a bridged chain.
+pub trait FullHeaderChain: FinalityHeaderChain {
 	/// The type of block number used by the chain.
 	type BlockNumber;
 	/// The type of block hash used by the chain.
 	type BlockHash;
-	/// The type of transaction proof used by the chain.
-	type Proof;
 
 	/// Imports a header submitted using an unsigned transaction to the pallet.
 	fn import_header_unsigned(header: Self::Header, extra_data: Option<Self::Extra>);
@@ -37,18 +59,12 @@ pub trait HeaderChain {
 	/// Get the best block the pallet knows of.
 	fn best_block() -> Self::Header;
 
-	/// Get the best finalized block the pallet knows of.
-	fn finalized_block() -> Self::Header;
-
 	/// Get the earliest block the pallet knows of.
 	fn earliest_block() -> Self::Header;
 
 	/// Get a specific block from the pallet given its number.
-	fn by_number(block_number: Self::BlockNumber) -> Self::Header;
+	fn header_by_number(block_number: Self::BlockNumber) -> Self::Header;
 
 	/// Get a specific block from the pallet given its hash.
-	fn by_hash(block_hash: Self::BlockHash) -> Self::Header;
-
-	/// Verfy a transaction proof.
-	fn verify_proof(proof: Self::Proof) -> bool;
+	fn header_by_hash(block_hash: Self::BlockHash) -> Self::Header;
 }
