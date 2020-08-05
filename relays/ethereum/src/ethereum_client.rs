@@ -412,18 +412,23 @@ impl EthereumHighLevelRpc for EthereumRpcClient {
 	}
 }
 
+/// Max number of headers which can be sent to Solidity contract.
 pub const HEADERS_BATCH: usize = 4;
 
+/// Substrate headers to send to the Ethereum light client.
+///
+/// The Solidity contract can only accept a fixed number of headers in one go.
+/// This struct is meant to encapsulate this limitation.
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
-pub struct Headers {
+pub struct HeadersBatch {
 	pub header1: QueuedSubstrateHeader,
 	pub header2: Option<QueuedSubstrateHeader>,
 	pub header3: Option<QueuedSubstrateHeader>,
 	pub header4: Option<QueuedSubstrateHeader>,
 }
 
-impl Headers {
+impl HeadersBatch {
 	/// Create new headers from given header & ids collections.
 	///
 	/// This method will pop `HEADERS_BATCH` items from both collections
@@ -448,7 +453,7 @@ impl Headers {
 		}
 
 		Ok((
-			Headers {
+			Self {
 				header1,
 				header2,
 				header3,
@@ -458,20 +463,33 @@ impl Headers {
 		))
 	}
 
+	/// Returns unified array of headers.
+	///
+	/// The first element is always `Some`.
+	fn headers(&self) -> [Option<&QueuedSubstrateHeader>; HEADERS_BATCH] {
+		[
+			Some(&self.header1),
+			self.header2.as_ref(),
+			self.header3.as_ref(),
+			self.header4.as_ref(),
+		]
+	}
+
 	/// Encodes all headers. If header is not present an empty vector will be returned.
 	pub fn encode(&self) -> [Vec<u8>; HEADERS_BATCH] {
 		let encode = |h: &QueuedSubstrateHeader| h.header().encode();
+		let headers = self.headers();
 		[
-			encode(&self.header1),
-			self.header2.as_ref().map(encode).unwrap_or_default(),
-			self.header3.as_ref().map(encode).unwrap_or_default(),
-			self.header4.as_ref().map(encode).unwrap_or_default(),
+			headers[0].map(encode).unwrap_or_default(),
+			headers[1].map(encode).unwrap_or_default(),
+			headers[2].map(encode).unwrap_or_default(),
+			headers[3].map(encode).unwrap_or_default(),
 		]
 	}
 	/// Returns number of contained headers.
 	pub fn len(&self) -> usize {
-		let isset = |h: &Option<QueuedSubstrateHeader>| if h.is_some() { 1 } else { 0 };
-		1 + isset(&self.header2) + isset(&self.header3) + isset(&self.header4)
+		let is_set = |h: &Option<&QueuedSubstrateHeader>| if h.is_some() { 1 } else { 0 };
+		self.headers().iter().map(is_set).sum()
 	}
 
 	/// Remove headers starting from `idx` (0-based) from this collection.
@@ -483,9 +501,14 @@ impl Headers {
 		if idx == 0 || idx > HEADERS_BATCH {
 			return Err(());
 		}
-		let vals = [&mut self.header2, &mut self.header3, &mut self.header4];
+		let vals: [_; HEADERS_BATCH] = [
+			&mut None,
+			&mut self.header2,
+			&mut self.header3,
+			&mut self.header4
+		];
 		for i in idx..HEADERS_BATCH {
-			*vals[i - 1] = None;
+			*vals[i] = None;
 		}
 		Ok(())
 	}
@@ -499,10 +522,10 @@ trait HeadersSubmitter {
 	///
 	/// Returns Err(()) if contract has rejected headers. This means that the contract is
 	/// unable to import first header (e.g. it may already be imported).
-	async fn is_headers_incomplete(&self, headers: &Headers) -> RpcResult<usize>;
+	async fn is_headers_incomplete(&self, headers: &HeadersBatch) -> RpcResult<usize>;
 
 	/// Submit given headers to Ethereum node.
-	async fn submit_headers(&mut self, headers: Headers) -> RpcResult<()>;
+	async fn submit_headers(&mut self, headers: HeadersBatch) -> RpcResult<()>;
 }
 
 /// Implementation of Substrate headers submitter that sends headers to running Ethereum node.
@@ -515,7 +538,7 @@ struct EthereumHeadersSubmitter {
 
 #[async_trait]
 impl HeadersSubmitter for EthereumHeadersSubmitter {
-	async fn is_headers_incomplete(&self, headers: &Headers) -> RpcResult<usize> {
+	async fn is_headers_incomplete(&self, headers: &HeadersBatch) -> RpcResult<usize> {
 		let [h1, h2, h3, h4] = headers.encode();
 		let (encoded_call, call_decoder) = bridge_contract::functions::is_incomplete_headers::call(h1, h2, h3, h4);
 		let call_request = CallRequest {
@@ -533,7 +556,7 @@ impl HeadersSubmitter for EthereumHeadersSubmitter {
 		Ok(incomplete_index.low_u32() as _)
 	}
 
-	async fn submit_headers(&mut self, headers: Headers) -> RpcResult<()> {
+	async fn submit_headers(&mut self, headers: HeadersBatch) -> RpcResult<()> {
 		let [h1, h2, h3, h4] = headers.encode();
 		let result = self
 			.client
@@ -566,10 +589,10 @@ async fn submit_substrate_headers(
 
 	while !headers.is_empty() {
 		let (headers, submitting_ids) =
-			Headers::pop_from(&mut headers, &mut ids).expect("Headers and ids are not empty; qed");
+			HeadersBatch::pop_from(&mut headers, &mut ids).expect("Headers and ids are not empty; qed");
 
 		submitted_headers.fatal_error =
-			submit_4_substrate_headers(&mut header_submitter, &mut submitted_headers, submitting_ids, headers).await;
+			submit_substrate_headers_batch(&mut header_submitter, &mut submitted_headers, submitting_ids, headers).await;
 
 		if submitted_headers.fatal_error.is_some() {
 			ids.reverse();
@@ -582,11 +605,11 @@ async fn submit_substrate_headers(
 }
 
 /// Submit 4 Substrate headers in single PoA transaction.
-async fn submit_4_substrate_headers(
+async fn submit_substrate_headers_batch(
 	header_submitter: &mut impl HeadersSubmitter,
 	submitted_headers: &mut SubmittedHeaders<SubstrateHeaderId, RpcError>,
 	mut ids: Vec<SubstrateHeaderId>,
-	mut headers: Headers,
+	mut headers: HeadersBatch,
 ) -> Option<RpcError> {
 	debug_assert_eq!(ids.len(), headers.len(),);
 
@@ -656,7 +679,7 @@ mod tests {
 
 	#[async_trait]
 	impl HeadersSubmitter for TestHeadersSubmitter {
-		async fn is_headers_incomplete(&self, headers: &Headers) -> RpcResult<usize> {
+		async fn is_headers_incomplete(&self, headers: &HeadersBatch) -> RpcResult<usize> {
 			if self.incomplete.iter().any(|i| i.0 == headers.header1.id().0) {
 				Ok(1)
 			} else {
@@ -664,7 +687,7 @@ mod tests {
 			}
 		}
 
-		async fn submit_headers(&mut self, headers: Headers) -> RpcResult<()> {
+		async fn submit_headers(&mut self, headers: HeadersBatch) -> RpcResult<()> {
 			if self.failed.iter().any(|i| i.0 == headers.header1.id().0) {
 				Err(RpcError::Ethereum(EthereumNodeError::InvalidSubstrateBlockNumber))
 			} else {
@@ -717,8 +740,6 @@ mod tests {
 				header(9),
 				header(10),
 				header(11),
-				header(12),
-				header(13),
 			],
 		));
 		assert_eq!(
@@ -732,31 +753,34 @@ mod tests {
 				header(9).id(),
 				header(10).id(),
 				header(11).id(),
-				header(12).id(),
-				header(13).id()
 			]
 		);
 		assert!(submitted_headers.fatal_error.is_some());
 	}
 
-	#[test]
-	fn headers_methods() {
+	fn headers_batch() -> HeadersBatch {
 		let mut init_headers = vec![header(1), header(2), header(3), header(4), header(5)];
 		init_headers.reverse();
 		let mut init_ids = init_headers.iter().map(|h| h.id()).collect();
-		let (mut headers, ids) = Headers::pop_from(&mut init_headers, &mut init_ids).unwrap();
+		let (headers, ids) = HeadersBatch::pop_from(&mut init_headers, &mut init_ids).unwrap();
 		assert_eq!(init_headers, vec![header(5)]);
 		assert_eq!(init_ids, vec![header(5).id()]);
 		assert_eq!(
 			ids,
 			vec![header(1).id(), header(2).id(), header(3).id(), header(4).id()]
 		);
-		assert!(headers.split_off(0).is_err());
-		assert_eq!(headers.header1, header(1));
-		assert!(headers.header2.is_some());
-		assert!(headers.header3.is_some());
-		assert!(headers.header4.is_some());
+		headers
+	}
+
+	#[test]
+	fn headers_batch_len() {
+		let headers = headers_batch();
 		assert_eq!(headers.len(), 4);
+	}
+
+	#[test]
+	fn headers_batch_encode() {
+		let headers = headers_batch();
 		assert_eq!(
 			headers.encode(),
 			[
@@ -766,6 +790,19 @@ mod tests {
 				header(4).header().encode(),
 			]
 		);
+	}
+
+	#[test]
+	fn headers_batch_split_off() {
+		// given
+		let mut headers = headers_batch();
+
+		// when
+		assert!(headers.split_off(0).is_err());
+		assert_eq!(headers.header1, header(1));
+		assert!(headers.header2.is_some());
+		assert!(headers.header3.is_some());
+		assert!(headers.header4.is_some());
 
 		// when
 		let mut h = headers.clone();
