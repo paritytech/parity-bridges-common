@@ -277,6 +277,9 @@ pub trait Storage {
 	fn best_block(&self) -> (HeaderId, U256);
 
 	/// Get the earliest block that the pallet knows of.
+	fn earliest_block(&self) -> Header;
+
+	/// Get the earliest finalized block that the pallet knows of.
 	fn earliest_finalized_block(&self) -> Header;
 
 	/// Get last finalized block.
@@ -653,6 +656,7 @@ impl<T: Trait<I>, I: Instance> FullHeaderChain<T::AccountId> for Module<T, I> {
 	}
 
 	fn earliest_block() -> Self::Header {
+		let _header_id = BridgeStorage::<T, I>::new().earliest_block();
 		todo!()
 	}
 
@@ -724,6 +728,8 @@ impl<T: Trait<I>, I: Instance> BridgeStorage<T, I> {
 				new_pruning_range.oldest_unpruned_block,
 			);
 		}
+
+		// TODO: We can probably update the earliest block we know of here
 
 		// update pruning range in storage
 		if pruning_range != new_pruning_range {
@@ -953,7 +959,35 @@ impl<T: Trait<I>, I: Instance> Storage for BridgeStorage<T, I> {
 		todo!()
 	}
 
-	fn block_by_number(&self, _block_number: u64) -> Header {
+	fn earliest_block(&self) -> Header {
+		// Right now I'm treaing this as the earliest unpruned block we have
+		// I'm not sure what proofs this is useful for but I'd need to clarity that to make sure
+		// that this is appropriate
+		let oldest_unpruned_block = BlocksToPrune::<I>::get().oldest_unpruned_block;
+		let _headers = self.block_by_number(oldest_unpruned_block);
+
+		todo!()
+	}
+
+	fn block_by_number(&self, block_number: u64) -> Header {
+		// Since the pallet is fork aware there may be multiple blocks at the same height
+		let block_hashes = HeadersByNumber::<I>::get(block_number);
+
+		let mut headers = Vec::new();
+		if let Some(hashes) = block_hashes {
+			for h in hashes.iter() {
+				let stored_header = Headers::<T, I>::get(h);
+				if stored_header.is_some() {
+					let header = stored_header
+						.expect("Checked that header was a valid storage entry before entering")
+						.header;
+					headers.push(header);
+				}
+			}
+		}
+
+		// Should the trait allow for multiple headers to be tracked over forks? Or should it
+		// enforce that only a block on the canonical chain is returned?
 		todo!()
 	}
 }
