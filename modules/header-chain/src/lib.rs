@@ -46,7 +46,13 @@ pub trait FinalityHeaderChain<AccountId> {
 }
 
 /// A trait for pallets which want to keep track of a full set of headers from a bridged chain.
-pub trait FullHeaderChain<AccountId>: FinalityHeaderChain<AccountId> {
+pub trait FullHeaderChain<AccountId> {
+	/// The header used by the chain.
+	type Header;
+	/// Any extra data which helps describe a transaction.
+	type Extra;
+	/// The type of transaction proof used by the chain.
+	type Proof;
 	/// The type of block number used by the chain.
 	type BlockNumber;
 	/// The type of block hash used by the chain.

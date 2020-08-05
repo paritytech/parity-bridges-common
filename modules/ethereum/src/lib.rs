@@ -25,7 +25,7 @@ use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
 	traits::Get,
 };
-use header_chain::{FinalityHeaderChain, FullHeaderChain};
+use header_chain::FullHeaderChain;
 use primitives::{Address, Header, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
 use sp_runtime::{
 	transaction_validity::{
@@ -278,9 +278,6 @@ pub trait Storage {
 
 	/// Get the earliest block that the pallet knows of.
 	fn earliest_block(&self) -> Header;
-
-	/// Get the earliest finalized block that the pallet knows of.
-	fn earliest_finalized_block(&self) -> Header;
 
 	/// Get last finalized block.
 	fn finalized_block(&self) -> HeaderId;
@@ -581,38 +578,10 @@ impl<T: Trait<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Mod
 	}
 }
 
-impl<T: Trait<I>, I: Instance> FinalityHeaderChain<T::AccountId> for Module<T, I> {
+impl<T: Trait<I>, I: Instance> FullHeaderChain<T::AccountId> for Module<T, I> {
 	type Header = primitives::Header;
 	type Extra = Vec<primitives::Receipt>;
 	type Proof = ();
-
-	fn import_finalized_header_unsigned(_header: Self::Header, _extra_data: Option<Self::Extra>) {
-		todo!()
-	}
-
-	fn import_finalized_header_signed(
-		_submitter: T::AccountId,
-		_header: Self::Header,
-		_extra_data: Option<Self::Extra>,
-	) {
-		todo!()
-	}
-
-	fn best_finalized_block() -> Self::Header {
-		let _header_id = BridgeStorage::<T, I>::new().finalized_block();
-		todo!()
-	}
-
-	fn earliest_finalized_block() -> Self::Header {
-		BridgeStorage::<T, I>::new().earliest_finalized_block()
-	}
-
-	fn verify_finality_proof(_proof: Self::Proof) -> bool {
-		todo!()
-	}
-}
-
-impl<T: Trait<I>, I: Instance> FullHeaderChain<T::AccountId> for Module<T, I> {
 	type BlockNumber = u64;
 	type BlockHash = primitives::H256;
 
@@ -953,10 +922,6 @@ impl<T: Trait<I>, I: Instance> Storage for BridgeStorage<T, I> {
 
 		// and now prune headers if we need to
 		self.prune_blocks(MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT, finalized_number, prune_end);
-	}
-
-	fn earliest_finalized_block(&self) -> Header {
-		todo!()
 	}
 
 	fn earliest_block(&self) -> Header {
