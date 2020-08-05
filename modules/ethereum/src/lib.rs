@@ -20,9 +20,13 @@
 
 use crate::finality::{CachedFinalityVotes, FinalityVotes};
 use codec::{Decode, Encode};
-use frame_support::{decl_module, decl_storage, traits::Get};
-use primitives::{Address, Header, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
+use frame_support::{
+	decl_module, decl_storage,
+	dispatch::{DispatchError, DispatchResult},
+	traits::Get,
+};
 use header_chain::{FinalityHeaderChain, FullHeaderChain};
+use primitives::{Address, Header, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
 use sp_runtime::{
 	transaction_validity::{
 		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionSource, TransactionValidity,
@@ -387,20 +391,23 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 
 decl_module! {
 	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
-		/// Import single Aura header. Requires transaction to be **UNSIGNED**.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		/// Import single Aura header using an _unsigned_ transaction.
+		// TODO[#78]: Update weight value
+		#[weight = 0]
 		pub fn import_unsigned_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
 			frame_system::ensure_none(origin)?;
+			Self::import_header_unsigned(header, receipts)?;
+		}
 
-			import::import_header(
-				&mut BridgeStorage::<T, I>::new(),
-				&mut T::PruningStrategy::default(),
-				&T::AuraConfiguration::get(),
-				&T::ValidatorsConfiguration::get(),
-				None,
-				header,
-				receipts,
-			).map_err(|e| e.msg())?;
+		/// Import a single Aura header using a _signed_ transaction.
+		///
+		/// I want to use this as a primitive to build the existing `import_signed_headers`
+		/// dispatchable at some point
+		// TODO[#78]: Update weight value
+		#[weight = 0]
+		pub fn import_signed_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
+			let submitter = frame_system::ensure_signed(origin)?;
+			Self::import_header_signed(submitter, header, receipts)?;
 		}
 
 		/// Import Aura chain headers in a single **SIGNED** transaction.
@@ -409,7 +416,8 @@ decl_module! {
 		///
 		/// This should be used with caution - passing too many headers could lead to
 		/// enormous block production/import time.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		// TODO[#78]: Update weight value
+		#[weight = 0]
 		pub fn import_signed_headers(origin, headers_with_receipts: Vec<(Header, Option<Vec<Receipt>>)>) {
 			let submitter = frame_system::ensure_signed(origin)?;
 			let mut finalized_headers = BTreeMap::new();
@@ -570,16 +578,20 @@ impl<T: Trait<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Mod
 	}
 }
 
-impl<T: Trait<I>, I: Instance> FinalityHeaderChain for Module<T, I> {
+impl<T: Trait<I>, I: Instance> FinalityHeaderChain<T::AccountId> for Module<T, I> {
 	type Header = primitives::Header;
-	type Extra = primitives::Receipt;
+	type Extra = Vec<primitives::Receipt>;
 	type Proof = ();
 
 	fn import_finalized_header_unsigned(_header: Self::Header, _extra_data: Option<Self::Extra>) {
 		todo!()
 	}
 
-	fn import_finalized_header_signed(_header: Self::Header, _extra_data: Option<Self::Extra>) {
+	fn import_finalized_header_signed(
+		_submitter: T::AccountId,
+		_header: Self::Header,
+		_extra_data: Option<Self::Extra>,
+	) {
 		todo!()
 	}
 
@@ -597,16 +609,42 @@ impl<T: Trait<I>, I: Instance> FinalityHeaderChain for Module<T, I> {
 	}
 }
 
-impl<T: Trait<I>, I: Instance> FullHeaderChain for Module<T, I> {
+impl<T: Trait<I>, I: Instance> FullHeaderChain<T::AccountId> for Module<T, I> {
 	type BlockNumber = u64;
 	type BlockHash = primitives::H256;
 
-	fn import_header_unsigned(_header: Self::Header, _extra_data: Option<Self::Extra>) {
-		todo!()
+	fn import_header_unsigned(header: Self::Header, receipts: Option<Self::Extra>) -> DispatchResult {
+		let (_, _) = import::import_header(
+			&mut BridgeStorage::<T, I>::new(),
+			&mut T::PruningStrategy::default(),
+			&T::AuraConfiguration::get(),
+			&T::ValidatorsConfiguration::get(),
+			None,
+			header,
+			receipts,
+		)
+		.map_err(|e| DispatchError::Other(e.msg()))?;
+
+		Ok(())
 	}
 
-	fn import_header_signed(_header: Self::Header, _extra_data: Option<Self::Extra>) {
-		todo!()
+	fn import_header_signed(
+		submitter: T::AccountId,
+		header: Self::Header,
+		receipts: Option<Self::Extra>,
+	) -> DispatchResult {
+		let (_, _) = import::import_header(
+			&mut BridgeStorage::<T, I>::new(),
+			&mut T::PruningStrategy::default(),
+			&T::AuraConfiguration::get(),
+			&T::ValidatorsConfiguration::get(),
+			Some(submitter.clone()),
+			header,
+			receipts,
+		)
+		.map_err(|e| DispatchError::Other(e.msg()))?;
+
+		Ok(())
 	}
 
 	fn best_block() -> Self::Header {
@@ -630,7 +668,6 @@ impl<T: Trait<I>, I: Instance> FullHeaderChain for Module<T, I> {
 		}
 	}
 }
-
 
 /// Runtime bridge storage.
 #[derive(Default)]

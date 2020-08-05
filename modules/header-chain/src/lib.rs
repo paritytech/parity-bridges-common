@@ -17,9 +17,11 @@
 //! Defines traits which represent a common interface for Substrate pallets which want to
 //! incorporate bridge functinality.
 
+use frame_support::dispatch::DispatchResult;
+
 /// A base trait for tracking finalized headers on foreign chains in a Substrate pallet. Should be
 /// used as a primitive for more complicated header tracking logic.
-pub trait FinalityHeaderChain {
+pub trait FinalityHeaderChain<AccountId> {
 	/// The header used by the chain.
 	type Header;
 	/// Any extra data which helps describe a transaction.
@@ -31,7 +33,7 @@ pub trait FinalityHeaderChain {
 	fn import_finalized_header_unsigned(header: Self::Header, extra_data: Option<Self::Extra>);
 
 	/// Imports a finalized header submitted using an signed transaction to the pallet.
-	fn import_finalized_header_signed(header: Self::Header, extra_data: Option<Self::Extra>);
+	fn import_finalized_header_signed(submitter: AccountId, header: Self::Header, extra_data: Option<Self::Extra>);
 
 	/// Get the best finalized block the pallet knows of.
 	fn best_finalized_block() -> Self::Header;
@@ -44,17 +46,21 @@ pub trait FinalityHeaderChain {
 }
 
 /// A trait for pallets which want to keep track of a full set of headers from a bridged chain.
-pub trait FullHeaderChain: FinalityHeaderChain {
+pub trait FullHeaderChain<AccountId>: FinalityHeaderChain<AccountId> {
 	/// The type of block number used by the chain.
 	type BlockNumber;
 	/// The type of block hash used by the chain.
 	type BlockHash;
 
 	/// Imports a header submitted using an unsigned transaction to the pallet.
-	fn import_header_unsigned(header: Self::Header, extra_data: Option<Self::Extra>);
+	fn import_header_unsigned(header: Self::Header, extra_data: Option<Self::Extra>) -> DispatchResult;
 
 	/// Imports a header submitted using an signed transaction to the pallet.
-	fn import_header_signed(header: Self::Header, extra_dat: Option<Self::Extra>);
+	fn import_header_signed(
+		submitter: AccountId,
+		header: Self::Header,
+		extra_data: Option<Self::Extra>,
+	) -> DispatchResult;
 
 	/// Get the best block the pallet knows of.
 	fn best_block() -> Self::Header;
