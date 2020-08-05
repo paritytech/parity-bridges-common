@@ -501,12 +501,7 @@ impl HeadersBatch {
 		if idx == 0 || idx > HEADERS_BATCH {
 			return Err(());
 		}
-		let vals: [_; HEADERS_BATCH] = [
-			&mut None,
-			&mut self.header2,
-			&mut self.header3,
-			&mut self.header4
-		];
+		let vals: [_; HEADERS_BATCH] = [&mut None, &mut self.header2, &mut self.header3, &mut self.header4];
 		for i in idx..HEADERS_BATCH {
 			*vals[i] = None;
 		}
@@ -592,7 +587,8 @@ async fn submit_substrate_headers(
 			HeadersBatch::pop_from(&mut headers, &mut ids).expect("Headers and ids are not empty; qed");
 
 		submitted_headers.fatal_error =
-			submit_substrate_headers_batch(&mut header_submitter, &mut submitted_headers, submitting_ids, headers).await;
+			submit_substrate_headers_batch(&mut header_submitter, &mut submitted_headers, submitting_ids, headers)
+				.await;
 
 		if submitted_headers.fatal_error.is_some() {
 			ids.reverse();
@@ -749,11 +745,7 @@ mod tests {
 		assert_eq!(submitted_headers.incomplete, vec![]);
 		assert_eq!(
 			submitted_headers.rejected,
-			vec![
-				header(9).id(),
-				header(10).id(),
-				header(11).id(),
-			]
+			vec![header(9).id(), header(10).id(), header(11).id(),]
 		);
 		assert!(submitted_headers.fatal_error.is_some());
 	}
