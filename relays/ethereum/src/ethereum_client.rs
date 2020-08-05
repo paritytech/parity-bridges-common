@@ -501,9 +501,9 @@ impl HeadersBatch {
 		if idx == 0 || idx > HEADERS_BATCH {
 			return Err(());
 		}
-		let vals: [_; HEADERS_BATCH] = [&mut None, &mut self.header2, &mut self.header3, &mut self.header4];
-		for i in idx..HEADERS_BATCH {
-			*vals[i] = None;
+		let mut vals: [_; HEADERS_BATCH] = [&mut None, &mut self.header2, &mut self.header3, &mut self.header4];
+		for val in vals.iter_mut().skip(idx) {
+			**val = None;
 		}
 		Ok(())
 	}
