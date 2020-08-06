@@ -32,16 +32,14 @@ jobs:
         with:
           fetch-depth:                              5
           submodules:                               recursive
-      - name:                                       Set TAGs and DATE
-        run:                                        |
-          export DATE=$(date +%Y%m%d)
-          if [ github.event_name == 'schedule' || github.event_name == 'pull_request' ] ; then
-            export TAGS="latest, nightly-$DATE"
-          else
-            export TAGS=${GITHUB_REF#refs/tags/}
-          fi
-          echo "::set-env name=TAGS::$TAGS"
-          echo "::set-env name=DATE::$DATE"
+      - name:                                       Set DATE
+        run:                                        echo "::set-env name=DATE::$(date +%Y%m%d)"
+      - name:                                       Set nightly TAGs
+        if:                                         github.event_name == 'schedule' || github.event_name == 'pull_request'
+        run:                                        echo "::set-env name=TAGS::latest, nightly-$DATE"
+      - name:                                       Set TAG
+        if:                                         github.event_name != 'schedule' || github.event_name != 'pull_request'
+        run:                                        echo "::set-env name=TAGS::${GITHUB_REF#refs/tags/}"
       - name:                                       Build and push ${{ matrix.project }}
         uses:                                       docker/build-push-action@v1
         with:
