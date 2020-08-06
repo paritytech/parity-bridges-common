@@ -32,13 +32,16 @@ jobs:
         with:
           fetch-depth:                              5
           submodules:                               recursive
-      - name:                                       Get current date
+      - name:                                       Set TAGs and DATE
         run:                                        |
+          export DATE=$(date +%Y%m%d)
           if github.event_name == 'schedule' && github.event_name == 'pull_request' ; then
-            export TAGS="latest, nightly-$(date +%Y%m%d)"
+            export TAGS="latest, nightly-$DATE"
           else
             export TAGS=${GITHUB_REF#refs/tags/}
           fi
+          echo "::set-env name=TAGS::$TAGS"
+          echo "::set-env name=DATE::$DATE"
       - name:                                       Build and push ${{ matrix.project }}
         uses:                                       docker/build-push-action@v1
         with:
@@ -46,9 +49,9 @@ jobs:
           password:                                 ${{ secrets.DOCKER_PASSWORD }}
           repository:                               paritytech/${{ matrix.project }}
           build_args:                               PROJECT=${{ matrix.project }}
-          tags:                                     $TAGS
+          tags:                                     ${{ TAGS }}
           labels:
-            org.opencontainers.image.created=$(date +%Y%m%d),
+            org.opencontainers.image.created=${{ DATE }},
             org.opencontainers.image.source="https://github.com/paritytech/${{ matrix.project }}",
             org.opencontainers.image.authors=org.opencontainers.image.vendor="Parity Technologies"
           add_git_labels:                           true
