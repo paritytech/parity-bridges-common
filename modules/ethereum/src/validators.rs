@@ -16,7 +16,7 @@
 
 use crate::error::Error;
 use crate::{ChangeToEnact, Storage};
-use primitives::{Address, Header, HeaderId, LogEntry, Receipt, U256};
+use bp_eth_poa::{Address, Header, HeaderId, LogEntry, Receipt, U256};
 use sp_std::prelude::*;
 
 /// The hash of InitiateChange event of the validators set contract.
@@ -279,7 +279,7 @@ pub(crate) mod tests {
 	use crate::DefaultInstance;
 	use crate::{BridgeStorage, Headers, ScheduledChange, ScheduledChanges, StoredHeader};
 	use frame_support::StorageMap;
-	use primitives::compute_merkle_root;
+	use bp_eth_poa::compute_merkle_root;
 
 	const TOTAL_VALIDATORS: usize = 3;
 

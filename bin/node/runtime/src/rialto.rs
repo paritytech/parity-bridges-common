@@ -22,7 +22,7 @@ use pallet_bridge_currency_exchange::PeerBlockchain;
 use pallet_bridge_eth_poa::{
 	AuraConfiguration, PruningStrategy as TPruningStrategy, ValidatorsConfiguration, ValidatorsSource,
 };
-use sp_bridge_eth_poa::{Address, Header, RawTransaction, U256};
+use bp_eth_poa::{Address, Header, RawTransaction, U256};
 use sp_std::prelude::*;
 
 frame_support::parameter_types! {

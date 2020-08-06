@@ -557,42 +557,42 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_bridge_eth_poa::RialtoHeaderApi<Block> for Runtime {
-		fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
+	impl bp_eth_poa::RialtoHeaderApi<Block> for Runtime {
+		fn best_block() -> (u64, bp_eth_poa::H256) {
 			let best_block = BridgeRialto::best_block();
 			(best_block.number, best_block.hash)
 		}
 
-		fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
+		fn finalized_block() -> (u64, bp_eth_poa::H256) {
 			let finalized_block = BridgeRialto::finalized_block();
 			(finalized_block.number, finalized_block.hash)
 		}
 
-		fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
+		fn is_import_requires_receipts(header: bp_eth_poa::Header) -> bool {
 			BridgeRialto::is_import_requires_receipts(header)
 		}
 
-		fn is_known_block(hash: sp_bridge_eth_poa::H256) -> bool {
+		fn is_known_block(hash: bp_eth_poa::H256) -> bool {
 			BridgeRialto::is_known_block(hash)
 		}
 	}
 
-	impl sp_bridge_eth_poa::KovanHeaderApi<Block> for Runtime {
-		fn best_block() -> (u64, sp_bridge_eth_poa::H256) {
+	impl bp_eth_poa::KovanHeaderApi<Block> for Runtime {
+		fn best_block() -> (u64, bp_eth_poa::H256) {
 			let best_block = BridgeKovan::best_block();
 			(best_block.number, best_block.hash)
 		}
 
-		fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
+		fn finalized_block() -> (u64, bp_eth_poa::H256) {
 			let finalized_block = BridgeKovan::finalized_block();
 			(finalized_block.number, finalized_block.hash)
 		}
 
-		fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
+		fn is_import_requires_receipts(header: bp_eth_poa::Header) -> bool {
 			BridgeKovan::is_import_requires_receipts(header)
 		}
 
-		fn is_known_block(hash: sp_bridge_eth_poa::H256) -> bool {
+		fn is_known_block(hash: bp_eth_poa::H256) -> bool {
 			BridgeKovan::is_known_block(hash)
 		}
 	}

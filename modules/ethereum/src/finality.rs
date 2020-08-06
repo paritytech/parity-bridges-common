@@ -17,7 +17,7 @@
 use crate::error::Error;
 use crate::Storage;
 use codec::{Decode, Encode};
-use primitives::{public_to_address, Address, Header, HeaderId, SealedEmptyStep, H256};
+use bp_eth_poa::{public_to_address, Address, Header, HeaderId, SealedEmptyStep, H256};
 use sp_io::crypto::secp256k1_ecdsa_recover;
 use sp_runtime::RuntimeDebug;
 use sp_std::collections::{
