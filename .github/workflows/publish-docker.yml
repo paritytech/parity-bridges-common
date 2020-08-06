@@ -51,7 +51,7 @@ jobs:
           build_args:                               PROJECT=${{ matrix.project }}
           tags:                                     $TAGS
           labels:
-            org.opencontainers.image.created=${{ DATE }},
+            org.opencontainers.image.created=$DATE,
             org.opencontainers.image.source="https://github.com/paritytech/${{ matrix.project }}",
             org.opencontainers.image.authors=org.opencontainers.image.vendor="Parity Technologies"
           add_git_labels:                           true
