@@ -31,8 +31,8 @@ RUN rustc -vV && \
 WORKDIR /openethereum
 
 ### Build from the repo
-ARG ETHEREUM_REPO=https://github.com/svyatonik/parity.git
-ARG ETHEREUM_HASH=0a3e313e5dcd8cf161741c0b2d8cf1953fce3b6a
+ARG ETHEREUM_REPO=https://github.com/hcastano/parity-ethereum.git
+ARG ETHEREUM_HASH=substrate-builtins-stubs
 RUN git clone $ETHEREUM_REPO /openethereum && git checkout $ETHEREUM_HASH
 
 ### Build locally. Make sure to set the CONTEXT to main directory of the repo.
