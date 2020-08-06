@@ -31,7 +31,7 @@ use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
 use bp_eth_poa::{transaction_decode_rlp, RawTransaction, RawTransactionReceipt};
-use sp_currency_exchange::{
+use bp_currency_exchange::{
 	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult,
 };
 use sp_std::vec::Vec;

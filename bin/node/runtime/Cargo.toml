@@ -123,11 +123,6 @@ tag = 'v2.0.0-rc5'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
-[dependencies.sp-currency-exchange]
-version = "0.1.0"
-default-features = false
-path = "../../../primitives/currency-exchange"
-
 [dependencies.sp-consensus-aura]
 version = "0.8.0-rc5"
 tag = 'v2.0.0-rc5'
@@ -201,6 +196,11 @@ tag = 'v2.0.0-rc5'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
+[dependencies.bp-currency-exchange]
+version = "0.1.0"
+default-features = false
+path = "../../../primitives/currency-exchange"
+
 [dependencies.bp-eth-poa]
 version = "0.1.0"
 default-features = false
@@ -228,6 +228,8 @@ git = "https://github.com/paritytech/substrate/"
 [features]
 default = ["std"]
 std = [
+	"bp-currency-exchange/std",
+	"bp-eth-poa/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-bridge-eth-poa/std",
@@ -243,7 +245,6 @@ std = [
 	"serde",
 	"sp-api/std",
 	"sp-block-builder/std",
-	"sp-currency-exchange/std",
 	"sp-consensus-aura/std",
 	"sp-core/std",
 	"sp-inherents/std",
@@ -257,7 +258,6 @@ std = [
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment/std",
-	"bp-eth-poa/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",

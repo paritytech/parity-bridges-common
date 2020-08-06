@@ -592,6 +592,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-currency-exchange"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-eth-poa"
 version = "0.1.0"
 dependencies = [
@@ -655,6 +665,7 @@ dependencies = [
 name = "bridge-node-runtime"
 version = "0.1.0"
 dependencies = [
+ "bp-currency-exchange",
  "bp-eth-poa",
  "frame-benchmarking",
  "frame-executive",
@@ -679,7 +690,6 @@ dependencies = [
  "sp-block-builder",
  "sp-consensus-aura",
  "sp-core",
- "sp-currency-exchange",
  "sp-inherents",
  "sp-io",
  "sp-offchain",
@@ -1268,6 +1278,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "backoff",
+ "bp-currency-exchange",
  "bp-eth-poa",
  "bridge-node-runtime",
  "clap",
@@ -1293,7 +1304,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sp-core",
- "sp-currency-exchange",
  "sp-keyring",
  "sp-runtime",
  "substrate-prometheus-endpoint",
@@ -3625,13 +3635,13 @@ dependencies = [
 name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
+ "bp-currency-exchange",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
  "serde",
  "sp-core",
- "sp-currency-exchange",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -6189,16 +6199,6 @@ dependencies = [
  "twox-hash",
  "wasmi",
  "zeroize",
-]
-
-[[package]]
-name = "sp-currency-exchange"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "parity-scale-codec",
- "sp-api",
- "sp-std",
 ]
 
 [[package]]

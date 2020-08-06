@@ -251,9 +251,9 @@ impl pallet_bridge_currency_exchange::Trait<RialtoCurrencyExchange> for Runtime 
 	type OnTransactionSubmitted = ();
 	type PeerBlockchain = rialto::RialtoBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
-	type RecipientsMap = sp_currency_exchange::IdentityRecipients<AccountId>;
+	type RecipientsMap = bp_currency_exchange::IdentityRecipients<AccountId>;
 	type Amount = Balance;
-	type CurrencyConverter = sp_currency_exchange::IdentityCurrencyConverter<Balance>;
+	type CurrencyConverter = bp_currency_exchange::IdentityCurrencyConverter<Balance>;
 	type DepositInto = DepositInto;
 }
 
@@ -262,19 +262,19 @@ impl pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange> for Runtime {
 	type OnTransactionSubmitted = ();
 	type PeerBlockchain = kovan::KovanBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
-	type RecipientsMap = sp_currency_exchange::IdentityRecipients<AccountId>;
+	type RecipientsMap = bp_currency_exchange::IdentityRecipients<AccountId>;
 	type Amount = Balance;
-	type CurrencyConverter = sp_currency_exchange::IdentityCurrencyConverter<Balance>;
+	type CurrencyConverter = bp_currency_exchange::IdentityCurrencyConverter<Balance>;
 	type DepositInto = DepositInto;
 }
 
 pub struct DepositInto;
 
-impl sp_currency_exchange::DepositInto for DepositInto {
+impl bp_currency_exchange::DepositInto for DepositInto {
 	type Recipient = AccountId;
 	type Amount = Balance;
 
-	fn deposit_into(recipient: Self::Recipient, amount: Self::Amount) -> sp_currency_exchange::Result<()> {
+	fn deposit_into(recipient: Self::Recipient, amount: Self::Amount) -> bp_currency_exchange::Result<()> {
 		// let balances module make all checks for us (it won't allow depositing lower than existential
 		// deposit, balance overflow, ...)
 		let deposited = <pallet_balances::Module<Runtime> as Currency<AccountId>>::deposit_creating(&recipient, amount);
@@ -307,7 +307,7 @@ impl sp_currency_exchange::DepositInto for DepositInto {
 					recipient,
 				);
 
-				Err(sp_currency_exchange::Error::DepositFailed)
+				Err(bp_currency_exchange::Error::DepositFailed)
 			}
 			_ => {
 				frame_support::debug::error!(
@@ -319,7 +319,7 @@ impl sp_currency_exchange::DepositInto for DepositInto {
 				);
 
 				// we can't return DepositFailed error here, because storage changes were made
-				Err(sp_currency_exchange::Error::DepositPartiallyFailed)
+				Err(bp_currency_exchange::Error::DepositPartiallyFailed)
 			}
 		}
 	}
@@ -597,13 +597,13 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_currency_exchange::RialtoCurrencyExchangeApi<Block, exchange::EthereumTransactionInclusionProof> for Runtime {
+	impl bp_currency_exchange::RialtoCurrencyExchangeApi<Block, exchange::EthereumTransactionInclusionProof> for Runtime {
 		fn filter_transaction_proof(proof: exchange::EthereumTransactionInclusionProof) -> bool {
 			BridgeRialtoCurrencyExchange::filter_transaction_proof(&proof)
 		}
 	}
 
-	impl sp_currency_exchange::KovanCurrencyExchangeApi<Block, exchange::EthereumTransactionInclusionProof> for Runtime {
+	impl bp_currency_exchange::KovanCurrencyExchangeApi<Block, exchange::EthereumTransactionInclusionProof> for Runtime {
 		fn filter_transaction_proof(proof: exchange::EthereumTransactionInclusionProof) -> bool {
 			BridgeKovanCurrencyExchange::filter_transaction_proof(&proof)
 		}
@@ -714,7 +714,7 @@ impl_runtime_apis! {
 				fn make_proof(
 					proof_params: BridgeCurrencyExchangeProofParams<AccountId>,
 				) -> crate::exchange::EthereumTransactionInclusionProof {
-					use sp_currency_exchange::DepositInto;
+					use bp_currency_exchange::DepositInto;
 
 					if proof_params.recipient_exists {
 						<Runtime as pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange>>::DepositInto::deposit_into(
@@ -761,7 +761,7 @@ impl_runtime_apis! {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_currency_exchange::DepositInto;
+	use bp_currency_exchange::DepositInto;
 
 	#[test]
 	fn shift_session_manager_works() {
