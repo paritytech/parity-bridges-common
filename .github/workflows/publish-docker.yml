@@ -1,0 +1,52 @@
+name:                                               Publish images to Docker hub
+
+on:
+  pull_request:                                     #TODO remove before merge
+  push:
+    tags:
+      - v*
+    paths-ignore:
+      - 'README.md'
+      - diagrams/
+  schedule:                                         # Nightly build
+    - cron:                                         '0 1 * * *'
+jobs:
+## Publish to Docker hub
+  publish:
+    name:                                           Publish to Docker hub
+    strategy:
+      matrix:
+        project:
+          - bridge-node
+          - ethereum-poa-relay
+    runs-on:                                        self-hosted
+    steps:
+      - name:                                       Cancel Previous Runs
+        uses:                                       styfle/cancel-workflow-action@0.4.1
+        with:
+          access_token:                             ${{ github.token }}
+      - name:                                       Checkout sources & submodules
+        uses:                                       actions/checkout@master
+        with:
+          fetch-depth:                              5
+          submodules:                               recursive
+      - name:                                       Get current date
+        run:  |
+          if github.event_name == 'schedule' && github.event_name == 'pull_request' ; then
+            export TAGS="latest, nightly-$(date +%Y%m%d)"
+          else
+            export TAGS=${GITHUB_REF#refs/tags/}
+          fi
+      - name:                                       Build and push Docker images
+        uses:                                       docker/build-push-action@v1
+        with:
+          username:                                 ${{ secrets.DOCKER_USER }}
+          password:                                 ${{ secrets.DOCKER_PASSWORD }}
+          repository:                               paritytech/${{ matrix.project }}
+          build_args:                               PROJECT=${{ matrix.project }}
+          tags:                                     $TAGS
+          labels:
+            org.opencontainers.image.created=$(date +%Y%m%d),
+            org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common",
+            org.opencontainers.image.authors=org.opencontainers.image.vendor="Parity Technologies"
+          add_git_labels:                           true

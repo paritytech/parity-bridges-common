@@ -115,17 +115,3 @@ jobs:
         with:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
-
-## Publish Docker image
-      - name: Build and push Docker images
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: paritytech/parity-bridges-common
-          tag_with_ref: true
-          tag_with_sha: true
-          labels: org.opencontainers.image.created=$(date +%Y%m%d),
-                  org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common",
-                  org.opencontainers.image.authors=org.opencontainers.image.vendor="Parity Technologies"
-          add_git_labels: true
