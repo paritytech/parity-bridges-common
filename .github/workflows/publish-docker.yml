@@ -32,14 +32,16 @@ jobs:
         with:
           fetch-depth:                              5
           submodules:                               recursive
-      - name:                                       Set DATE
-        run:                                        echo ::set-env name=DATE::$(date +%d-%m-%Y)
-      - name:                                       Set nightly TAGs
-        if:                                         github.event_name == 'schedule' || github.event_name == 'pull_request'
-        run:                                        echo ::set-env name=TAGS::nightly-$DATE
-      - name:                                       Set TAG
-        if:                                         github.event.ref_type == 'tag'
-        run:                                        echo ::set-env name=TAGS::${{ github.event.release.tag_name }}
+      - name:                                       Set vars
+        id:                                         vars
+        run:                                        |
+          echo ::set-output name=DATE::$(date +%d-%m-%Y)
+          if [[ ${GITHUB_REF} = refs/tags/* ]]
+          then
+            echo ::set-output name=TAG::${GITHUB_REF#refs/tags/}
+          else
+            echo ::set-output name=TAG::nightly-$DATE
+          fi
       - name:                                       Build and push ${{ matrix.project }}
         uses:                                       docker/build-push-action@v1
         with:
@@ -47,9 +49,9 @@ jobs:
           password:                                 ${{ secrets.DOCKER_PASSWORD }}
           repository:                               paritytech/${{ matrix.project }}
           build_args:                               PROJECT=${{ matrix.project }}
-          tags:                                     $TAGS, latest
+          tags:                                     ${{ steps.vars.outputs.TAG }}, latest
           labels:
-            org.opencontainers.image.created=$DATE,
+            org.opencontainers.image.created=${{ steps.vars.outputs.DATE }},
             org.opencontainers.image.source="https://github.com/paritytech/${{ matrix.project }}",
             org.opencontainers.image.authors=org.opencontainers.image.vendor="Parity Technologies"
           add_git_labels:                           true
