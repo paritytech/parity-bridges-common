@@ -25,7 +25,7 @@ use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
 	traits::Get,
 };
-use header_chain::FullHeaderChain;
+use header_chain::MinimalHeaderChain;
 use primitives::{Address, Header, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
 use sp_runtime::{
 	transaction_validity::{
@@ -578,10 +578,9 @@ impl<T: Trait<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Mod
 	}
 }
 
-impl<T: Trait<I>, I: Instance> FullHeaderChain<T::AccountId> for Module<T, I> {
+impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I> {
 	type Header = primitives::Header;
 	type Extra = Vec<primitives::Receipt>;
-	type Proof = ();
 	type BlockNumber = u64;
 	type BlockHash = primitives::H256;
 
@@ -619,46 +618,49 @@ impl<T: Trait<I>, I: Instance> FullHeaderChain<T::AccountId> for Module<T, I> {
 		Ok(())
 	}
 
-	fn best_block() -> Self::Header {
-		let _header_id = BridgeStorage::<T, I>::new().best_block().0;
-		todo!()
+	fn best_blocks() -> Vec<Self::Header> {
+		let storage = BridgeStorage::<T, I>::new();
+		let (header_id, _) = storage.best_block();
+		storage.blocks_by_number(header_id.number)
 	}
 
-	fn earliest_block() -> Self::Header {
+	fn best_finalized_block() -> Self::Header {
 		let storage = BridgeStorage::<T, I>::new();
-		let earliest_blocks = storage.earliest_blocks();
-		let finalized_block = storage.finalized_block();
+		let finalized_id = storage.finalized_block();
+		let header = storage.header(&finalized_id.hash);
 
-		// Want to make sure that we have blocks which are less than the latest finalized block
-		for block in earliest_blocks {
-			let is_ancestor = if block.number <= finalized_block.number {
-				ancestry(&storage, finalized_block.hash)
-				.any(|(ancestor_hash, _ancestor)| ancestor_hash == block.hash) // Don't know how to get hash here...
-			} else {
-				// Can't be the earliest block in this case
-				false
-			};
+		header.expect("Block is finalized, so it must exist in storage").0
+	}
 
-			if is_ancestor {
-				return block;
+	fn header_by_number(block_number: Self::BlockNumber) -> Option<Self::Header> {
+		let storage = BridgeStorage::<T, I>::new();
+		let finalized_id = storage.finalized_block();
+		let blocks = storage.blocks_by_number(block_number);
+
+		for block in blocks {
+			if is_ancestor(&storage, &block.compute_id(), &finalized_id) {
+				return Some(block);
 			}
 		}
 
-		todo!()
+		None
 	}
 
-	fn header_by_number(block_number: Self::BlockNumber) -> Self::Header {
-		let _blocks = BridgeStorage::<T, I>::new().blocks_by_number(block_number);
-		todo!()
+	fn header_by_hash(block_hash: Self::BlockHash) -> Option<Self::Header> {
+		BridgeStorage::<T, I>::new()
+			.header(&block_hash)
+			.map(|(header, _submitter)| header)
+	}
+}
+
+fn is_ancestor(storage: &impl Storage, child: &HeaderId, parent: &HeaderId) -> bool {
+	if child == parent {
+		return true;
 	}
 
-	fn header_by_hash(block_hash: Self::BlockHash) -> Self::Header {
-		if let Some(header) = BridgeStorage::<T, I>::new().header(&block_hash) {
-			header.0
-		} else {
-			todo!()
-		}
-	}
+	ancestry(storage, parent.hash)
+		.skip_while(|(_, ancestor)| ancestor.number > child.number)
+		.any(|(ancestor_hash, _)| ancestor_hash == child.hash)
 }
 
 /// Runtime bridge storage.
@@ -716,8 +718,6 @@ impl<T: Trait<I>, I: Instance> BridgeStorage<T, I> {
 				new_pruning_range.oldest_unpruned_block,
 			);
 		}
-
-		// TODO: We can probably update the earliest block we know of here
 
 		// update pruning range in storage
 		if pruning_range != new_pruning_range {

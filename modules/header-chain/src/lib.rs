@@ -46,13 +46,11 @@ pub trait FinalityHeaderChain<AccountId> {
 }
 
 /// A trait for pallets which want to keep track of a full set of headers from a bridged chain.
-pub trait FullHeaderChain<AccountId> {
+pub trait MinimalHeaderChain<AccountId> {
 	/// The header used by the chain.
 	type Header;
 	/// Any extra data which helps describe a transaction.
 	type Extra;
-	/// The type of transaction proof used by the chain.
-	type Proof;
 	/// The type of block number used by the chain.
 	type BlockNumber;
 	/// The type of block hash used by the chain.
@@ -69,14 +67,17 @@ pub trait FullHeaderChain<AccountId> {
 	) -> DispatchResult;
 
 	/// Get the best block the pallet knows of.
-	fn best_block() -> Self::Header;
+	///
+	/// May return multiple blocks if we have unfinalized blocks on different forks
+	/// which are at the same height.
+	fn best_blocks() -> Vec<Self::Header>;
 
-	/// Get the earliest block the pallet knows of.
-	fn earliest_block() -> Self::Header;
+	/// Get the best finalized block the pallet knows of.
+	fn best_finalized_block() -> Self::Header;
 
 	/// Get a specific block from the pallet given its number.
-	fn header_by_number(block_number: Self::BlockNumber) -> Self::Header;
+	fn header_by_number(block_hash: Self::BlockNumber) -> Option<Self::Header>;
 
 	/// Get a specific block from the pallet given its hash.
-	fn header_by_hash(block_hash: Self::BlockHash) -> Self::Header;
+	fn header_by_hash(block_hash: Self::BlockHash) -> Option<Self::Header>;
 }
