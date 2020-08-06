@@ -49,7 +49,7 @@ jobs:
           password:                                 ${{ secrets.DOCKER_PASSWORD }}
           repository:                               paritytech/${{ matrix.project }}
           build_args:                               PROJECT=${{ matrix.project }}
-          tags:                                     ${{ TAGS }}
+          tags:                                     $TAGS
           labels:
             org.opencontainers.image.created=${{ DATE }},
             org.opencontainers.image.source="https://github.com/paritytech/${{ matrix.project }}",
