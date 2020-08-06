@@ -13,13 +13,15 @@ on:
 jobs:
 ## Publish to Docker hub
   publish:
-    name:                                           Publish to Docker hub
+    name:                                           Publishing
     strategy:
       matrix:
         project:
           - bridge-node
           - ethereum-poa-relay
     runs-on:                                        self-hosted
+    container:
+      image:                                        docker:stable
     steps:
       - name:                                       Cancel Previous Runs
         uses:                                       styfle/cancel-workflow-action@0.4.1
@@ -31,13 +33,13 @@ jobs:
           fetch-depth:                              5
           submodules:                               recursive
       - name:                                       Get current date
-        run:  |
+        run:                                        |
           if github.event_name == 'schedule' && github.event_name == 'pull_request' ; then
             export TAGS="latest, nightly-$(date +%Y%m%d)"
           else
             export TAGS=${GITHUB_REF#refs/tags/}
           fi
-      - name:                                       Build and push Docker images
+      - name:                                       Build and push ${{ matrix.project }}
         uses:                                       docker/build-push-action@v1
         with:
           username:                                 ${{ secrets.DOCKER_USER }}
@@ -47,6 +49,6 @@ jobs:
           tags:                                     $TAGS
           labels:
             org.opencontainers.image.created=$(date +%Y%m%d),
-            org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common",
+            org.opencontainers.image.source="https://github.com/paritytech/${{ matrix.project }}",
             org.opencontainers.image.authors=org.opencontainers.image.vendor="Parity Technologies"
           add_git_labels:                           true
