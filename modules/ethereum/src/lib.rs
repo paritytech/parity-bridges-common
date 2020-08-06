@@ -277,7 +277,7 @@ pub trait Storage {
 	fn best_block(&self) -> (HeaderId, U256);
 
 	/// Get the earliest block that the pallet knows of.
-	fn earliest_block(&self) -> Header;
+	fn earliest_blocks(&self) -> Vec<Header>;
 
 	/// Get last finalized block.
 	fn finalized_block(&self) -> HeaderId;
@@ -288,7 +288,7 @@ pub trait Storage {
 	fn header(&self, hash: &H256) -> Option<(Header, Option<Self::Submitter>)>;
 
 	/// Get a block from the pallet given its number.
-	fn block_by_number(&self, block_number: u64) -> Header;
+	fn blocks_by_number(&self, block_number: u64) -> Vec<Header>;
 
 	/// Returns latest cached finality votes (if any) for block ancestors, starting
 	/// from `parent_hash` block and stopping at genesis block, best finalized block
@@ -625,12 +625,31 @@ impl<T: Trait<I>, I: Instance> FullHeaderChain<T::AccountId> for Module<T, I> {
 	}
 
 	fn earliest_block() -> Self::Header {
-		let _header_id = BridgeStorage::<T, I>::new().earliest_block();
+		let storage = BridgeStorage::<T, I>::new();
+		let earliest_blocks = storage.earliest_blocks();
+		let finalized_block = storage.finalized_block();
+
+		// Want to make sure that we have blocks which are less than the latest finalized block
+		for block in earliest_blocks {
+			let is_ancestor = if block.number <= finalized_block.number {
+				ancestry(&storage, finalized_block.hash)
+				.any(|(ancestor_hash, _ancestor)| ancestor_hash == block.hash) // Don't know how to get hash here...
+			} else {
+				// Can't be the earliest block in this case
+				false
+			};
+
+			if is_ancestor {
+				return block;
+			}
+		}
+
 		todo!()
 	}
 
 	fn header_by_number(block_number: Self::BlockNumber) -> Self::Header {
-		BridgeStorage::<T, I>::new().block_by_number(block_number)
+		let _blocks = BridgeStorage::<T, I>::new().blocks_by_number(block_number);
+		todo!()
 	}
 
 	fn header_by_hash(block_hash: Self::BlockHash) -> Self::Header {
@@ -924,17 +943,15 @@ impl<T: Trait<I>, I: Instance> Storage for BridgeStorage<T, I> {
 		self.prune_blocks(MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT, finalized_number, prune_end);
 	}
 
-	fn earliest_block(&self) -> Header {
+	fn earliest_blocks(&self) -> Vec<Header> {
 		// Right now I'm treaing this as the earliest unpruned block we have
 		// I'm not sure what proofs this is useful for but I'd need to clarity that to make sure
 		// that this is appropriate
 		let oldest_unpruned_block = BlocksToPrune::<I>::get().oldest_unpruned_block;
-		let _headers = self.block_by_number(oldest_unpruned_block);
-
-		todo!()
+		self.blocks_by_number(oldest_unpruned_block)
 	}
 
-	fn block_by_number(&self, block_number: u64) -> Header {
+	fn blocks_by_number(&self, block_number: u64) -> Vec<Header> {
 		// Since the pallet is fork aware there may be multiple blocks at the same height
 		let block_hashes = HeadersByNumber::<I>::get(block_number);
 
@@ -951,9 +968,7 @@ impl<T: Trait<I>, I: Instance> Storage for BridgeStorage<T, I> {
 			}
 		}
 
-		// Should the trait allow for multiple headers to be tracked over forks? Or should it
-		// enforce that only a block on the canonical chain is returned?
-		todo!()
+		headers
 	}
 }
 
