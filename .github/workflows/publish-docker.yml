@@ -35,7 +35,7 @@ jobs:
       - name:                                       Set TAGs and DATE
         run:                                        |
           export DATE=$(date +%Y%m%d)
-          if github.event_name == 'schedule' && github.event_name == 'pull_request' ; then
+          if [ github.event_name == 'schedule' || github.event_name == 'pull_request' ] ; then
             export TAGS="latest, nightly-$DATE"
           else
             export TAGS=${GITHUB_REF#refs/tags/}
