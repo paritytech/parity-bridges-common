@@ -1,7 +1,6 @@
 name:                                               Publish images to Docker hub
 
 on:
-  pull_request:                                     #TODO remove before merge
   push:
     tags:
       - v*
@@ -53,10 +52,12 @@ jobs:
           labels:
             org.opencontainers.image.created=${{ steps.vars.outputs.DATE }},
             org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common",
-            org.opencontainers.image.authors=org.opencontainers.image.vendor="Parity Technologies",
+            org.opencontainers.image.authors="devops-team@parity.io",
+            org.opencontainers.image.vendor="Parity Technologies",
             org.opencontainers.image.url="https://github.com/paritytech/parity-bridges-common",
-            org.opencontainers.image.documentation="https://github.com/paritytech/parity-bridges-common",
+            org.opencontainers.image.documentation="https://github.com/paritytech/parity-bridges-common/README.md",
             org.opencontainers.image.version=${{ steps.vars.outputs.TAG }},
             org.opencontainers.image.title=${{ matrix.project }},
+            org.opencontainers.image.description="${{ matrix.project }} - component of Parity Bridges Common",
             org.opencontainers.image.licenses="GPL-3.0 License"
           add_git_labels:                           true
