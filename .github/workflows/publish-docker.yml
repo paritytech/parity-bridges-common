@@ -1,6 +1,7 @@
 name:                                               Publish images to Docker hub
 
 on:
+  pull_request:                                     #TODO remove before merge
   push:
     tags:
       - v*
@@ -39,7 +40,7 @@ jobs:
           then
             echo ::set-output name=TAG::${GITHUB_REF#refs/tags/}
           else
-            echo ::set-output name=TAG::nightly-$DATE
+            echo ::set-output name=TAG::nightly-$(date +%d-%m-%Y)
           fi
       - name:                                       Build and push ${{ matrix.project }}
         uses:                                       docker/build-push-action@v1
