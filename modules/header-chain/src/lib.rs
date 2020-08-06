@@ -17,7 +17,10 @@
 //! Defines traits which represent a common interface for Substrate pallets which want to
 //! incorporate bridge functinality.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use frame_support::dispatch::DispatchResult;
+use sp_std::prelude::*;
 
 /// A base trait for tracking finalized headers on foreign chains in a Substrate pallet. Should be
 /// used as a primitive for more complicated header tracking logic.

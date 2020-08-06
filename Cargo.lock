@@ -2035,6 +2035,7 @@ name = "header-chain"
 version = "0.1.0"
 dependencies = [
  "frame-support",
+ "sp-std",
 ]
 
 [[package]]
