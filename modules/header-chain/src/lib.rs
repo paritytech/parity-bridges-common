@@ -70,10 +70,10 @@ pub trait MinimalHeaderChain<AccountId> {
 	///
 	/// May return multiple blocks if we have unfinalized blocks on different forks
 	/// which are at the same height.
-	fn best_blocks() -> Vec<Self::Header>;
+	fn best_headers() -> Vec<Self::Header>;
 
 	/// Get the best finalized block the pallet knows of.
-	fn best_finalized_block() -> Self::Header;
+	fn best_finalized_header() -> Self::Header;
 
 	/// Get a specific block from the pallet given its number.
 	fn header_by_number(block_hash: Self::BlockNumber) -> Option<Self::Header>;

@@ -512,11 +512,6 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 		BridgeStorage::<T, I>::new().best_block().0
 	}
 
-	/// Returns number and hash of the best finalized block known to the bridge module.
-	pub fn finalized_block() -> HeaderId {
-		BridgeStorage::<T, I>::new().finalized_block()
-	}
-
 	/// Returns true if the import of given block requires transactions receipts.
 	pub fn is_import_requires_receipts(header: Header) -> bool {
 		import::header_import_requires_receipts(
@@ -618,13 +613,13 @@ impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I>
 		Ok(())
 	}
 
-	fn best_blocks() -> Vec<Self::Header> {
+	fn best_headers() -> Vec<Self::Header> {
 		let storage = BridgeStorage::<T, I>::new();
 		let (header_id, _) = storage.best_block();
 		storage.blocks_by_number(header_id.number)
 	}
 
-	fn best_finalized_block() -> Self::Header {
+	fn best_finalized_header() -> Self::Header {
 		let storage = BridgeStorage::<T, I>::new();
 		let finalized_id = storage.finalized_block();
 		let header = storage.header(&finalized_id.hash);
