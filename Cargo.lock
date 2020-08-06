@@ -592,6 +592,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-header-chain"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "sp-std",
+]
+
+[[package]]
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
@@ -2028,14 +2036,6 @@ checksum = "34f595585f103464d8d2f6e9864682d74c1601fed5e07d62b1c9058dba8246fb"
 dependencies = [
  "ahash 0.3.8",
  "autocfg 1.0.0",
-]
-
-[[package]]
-name = "header-chain"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "sp-std",
 ]
 
 [[package]]
@@ -3624,10 +3624,10 @@ dependencies = [
 name = "pallet-bridge-eth-poa"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "header-chain",
  "hex-literal 0.3.1",
  "libsecp256k1",
  "parity-scale-codec",

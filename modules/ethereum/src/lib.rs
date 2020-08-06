@@ -19,13 +19,13 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::finality::{CachedFinalityVotes, FinalityVotes};
+use bp_header_chain::MinimalHeaderChain;
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_module, decl_storage,
 	dispatch::{DispatchError, DispatchResult},
 	traits::Get,
 };
-use header_chain::MinimalHeaderChain;
 use primitives::{Address, Header, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
 use sp_runtime::{
 	transaction_validity::{

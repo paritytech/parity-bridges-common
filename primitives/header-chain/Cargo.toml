@@ -1,5 +1,5 @@
 [package]
-name = "header-chain"
+name = "bp-header-chain"
 description = "A common interface for describing what a bridge pallet should be able to do."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
