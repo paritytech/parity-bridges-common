@@ -27,13 +27,13 @@
 //!    to the PoA -> Substrate bridge module (it can be provided by you);
 //! 5) receive tokens by providing proof-of-inclusion of PoA transaction.
 
-use codec::{Decode, Encode};
-use frame_support::RuntimeDebug;
-use hex_literal::hex;
-use bp_eth_poa::{transaction_decode_rlp, RawTransaction, RawTransactionReceipt};
 use bp_currency_exchange::{
 	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult,
 };
+use bp_eth_poa::{transaction_decode_rlp, RawTransaction, RawTransactionReceipt};
+use codec::{Decode, Encode};
+use frame_support::RuntimeDebug;
+use hex_literal::hex;
 use sp_std::vec::Vec;
 
 /// Ethereum address where locked PoA funds must be sent to.
@@ -131,11 +131,11 @@ impl MaybeLockFundsTransaction for EthTransaction {
 pub(crate) fn prepare_environment_for_claim<T: pallet_bridge_eth_poa::Trait<I>, I: pallet_bridge_eth_poa::Instance>(
 	transactions: &[(RawTransaction, RawTransactionReceipt)],
 ) -> bp_eth_poa::H256 {
+	use bp_eth_poa::compute_merkle_root;
 	use pallet_bridge_eth_poa::{
 		test_utils::{insert_header, validator_utils::validator, HeaderBuilder},
 		BridgeStorage, Storage,
 	};
-	use bp_eth_poa::compute_merkle_root;
 
 	let mut storage = BridgeStorage::<T, I>::new();
 	let header = HeaderBuilder::with_parent_number_on_runtime::<T, I>(0)

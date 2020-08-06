@@ -278,8 +278,8 @@ pub(crate) mod tests {
 	use crate::mock::{run_test, validators_addresses, validators_change_receipt, TestRuntime};
 	use crate::DefaultInstance;
 	use crate::{BridgeStorage, Headers, ScheduledChange, ScheduledChanges, StoredHeader};
-	use frame_support::StorageMap;
 	use bp_eth_poa::compute_merkle_root;
+	use frame_support::StorageMap;
 
 	const TOTAL_VALIDATORS: usize = 3;
 

@@ -37,8 +37,8 @@ use crate::substrate_types::into_substrate_ethereum_receipt;
 use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
-use bridge_node_runtime::exchange::EthereumTransactionInclusionProof;
 use bp_currency_exchange::MaybeLockFundsTransaction;
+use bridge_node_runtime::exchange::EthereumTransactionInclusionProof;
 use std::time::Duration;
 
 /// Interval at which we ask Ethereum node for updates.

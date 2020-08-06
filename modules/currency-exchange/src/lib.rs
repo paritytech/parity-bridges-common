@@ -18,10 +18,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
 use bp_currency_exchange::{
 	CurrencyConverter, DepositInto, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
 };
+use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
 use sp_runtime::DispatchResult;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -221,9 +221,9 @@ fn prepare_deposit_details<T: Trait<I>, I: Instance>(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_currency_exchange::LockFundsTransaction;
 	use frame_support::{assert_noop, assert_ok, impl_outer_origin, parameter_types, weights::Weight};
 	use sp_core::H256;
-	use bp_currency_exchange::LockFundsTransaction;
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, IdentityLookup},

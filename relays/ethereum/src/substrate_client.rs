@@ -22,12 +22,12 @@ use crate::substrate_types::{Hash, Header as SubstrateHeader, Number, SignedBloc
 use crate::sync_types::{HeaderId, SubmittedHeaders};
 
 use async_trait::async_trait;
+use bp_eth_poa::Header as SubstrateEthereumHeader;
 use codec::{Decode, Encode};
 use jsonrpsee::raw::RawClient;
 use jsonrpsee::transport::http::HttpTransportClient;
 use jsonrpsee::Client;
 use num_traits::Zero;
-use bp_eth_poa::Header as SubstrateEthereumHeader;
 use sp_core::crypto::Pair;
 use sp_runtime::traits::IdentifyAccount;
 use std::collections::VecDeque;
