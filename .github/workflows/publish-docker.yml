@@ -33,13 +33,13 @@ jobs:
           fetch-depth:                              5
           submodules:                               recursive
       - name:                                       Set DATE
-        run:                                        echo ::set-output name=DATE::$(date +%d-%m-%Y)
+        run:                                        echo ::set-env name=DATE::$(date +%d-%m-%Y)
       - name:                                       Set nightly TAGs
         if:                                         github.event_name == 'schedule' || github.event_name == 'pull_request'
-        run:                                        echo ::set-output name=TAGS::latest, nightly-$DATE
+        run:                                        echo ::set-env name=TAGS::nightly-$DATE
       - name:                                       Set TAG
         if:                                         github.event.ref_type == 'tag'
-        run:                                        echo ::set-output name=TAGS::${{ github.event.release.tag_name }}
+        run:                                        echo ::set-env name=TAGS::${{ github.event.release.tag_name }}
       - name:                                       Build and push ${{ matrix.project }}
         uses:                                       docker/build-push-action@v1
         with:
@@ -47,7 +47,7 @@ jobs:
           password:                                 ${{ secrets.DOCKER_PASSWORD }}
           repository:                               paritytech/${{ matrix.project }}
           build_args:                               PROJECT=${{ matrix.project }}
-          tags:                                     $TAGS
+          tags:                                     $TAGS, latest
           labels:
             org.opencontainers.image.created=$DATE,
             org.opencontainers.image.source="https://github.com/paritytech/${{ matrix.project }}",
