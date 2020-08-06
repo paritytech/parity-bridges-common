@@ -32,7 +32,8 @@ WORKDIR /openethereum
 
 ### Build from the repo
 ARG ETHEREUM_REPO=https://github.com/hcastano/parity-ethereum.git
-ARG ETHEREUM_HASH=79a6e12c63815c72a0152b5deb0d9e616aa42738 # substrate-builtins-stubs branch
+ # substrate-builtins-stubs branch
+ARG ETHEREUM_HASH=79a6e12c63815c72a0152b5deb0d9e616aa42738
 RUN git clone $ETHEREUM_REPO /openethereum && git checkout $ETHEREUM_HASH
 
 ### Build locally. Make sure to set the CONTEXT to main directory of the repo.
