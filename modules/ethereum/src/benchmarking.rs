@@ -23,7 +23,7 @@ use crate::test_utils::{
 
 use frame_benchmarking::benchmarks_instance;
 use frame_system::RawOrigin;
-use primitives::{compute_merkle_root, U256};
+use bp_eth_poa::{compute_merkle_root, U256};
 
 benchmarks_instance! {
 	_ { }
