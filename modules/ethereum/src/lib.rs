@@ -276,9 +276,6 @@ pub trait Storage {
 	/// Get best known block and total chain difficulty.
 	fn best_block(&self) -> (HeaderId, U256);
 
-	/// Get the earliest block that the pallet knows of.
-	fn earliest_blocks(&self) -> Vec<Header>;
-
 	/// Get last finalized block.
 	fn finalized_block(&self) -> HeaderId;
 
@@ -959,14 +956,6 @@ impl<T: Trait<I>, I: Instance> Storage for BridgeStorage<T, I> {
 
 		// and now prune headers if we need to
 		self.prune_blocks(MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT, finalized_number, prune_end);
-	}
-
-	fn earliest_blocks(&self) -> Vec<Header> {
-		// Right now I'm treaing this as the earliest unpruned block we have
-		// I'm not sure what proofs this is useful for but I'd need to clarity that to make sure
-		// that this is appropriate
-		let oldest_unpruned_block = BlocksToPrune::<I>::get().oldest_unpruned_block;
-		self.blocks_by_number(oldest_unpruned_block)
 	}
 
 	fn blocks_by_number(&self, block_number: u64) -> Vec<Header> {
