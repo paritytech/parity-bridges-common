@@ -286,9 +286,6 @@ pub trait Storage {
 	/// Returns header and its submitter (if known).
 	fn header(&self, hash: &H256) -> Option<(Header, Option<Self::Submitter>)>;
 
-	/// Get a block from the pallet given its number.
-	fn blocks_by_number(&self, block_number: u64) -> Vec<Header>;
-
 	/// Returns latest cached finality votes (if any) for block ancestors, starting
 	/// from `parent_hash` block and stopping at genesis block, best finalized block
 	/// or block where `stop_at` returns true.
@@ -633,12 +630,6 @@ impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I>
 		}
 	}
 
-	fn best_headers() -> Vec<Self::Header> {
-		let storage = BridgeStorage::<T, I>::new();
-		let (header_id, _) = storage.best_block();
-		storage.blocks_by_number(header_id.number)
-	}
-
 	fn best_finalized_header() -> Self::Header {
 		let storage = BridgeStorage::<T, I>::new();
 		let finalized_id = storage.finalized_block();
@@ -647,37 +638,11 @@ impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I>
 		header.expect("Block is finalized, so it must exist in storage").0
 	}
 
-	fn header_by_number(block_number: Self::BlockNumber) -> Option<Self::Header> {
-		let storage = BridgeStorage::<T, I>::new();
-		let finalized_id = storage.finalized_block();
-		let blocks = storage.blocks_by_number(block_number);
-
-		for block in blocks {
-			if is_ancestor(&storage, &block.compute_id(), &finalized_id) {
-				return Some(block);
-			}
-		}
-
-		None
-	}
-
 	fn header_by_hash(block_hash: Self::BlockHash) -> Option<Self::Header> {
 		BridgeStorage::<T, I>::new()
 			.header(&block_hash)
 			.map(|(header, _submitter)| header)
 	}
-}
-
-fn is_ancestor(storage: &impl Storage, child: &HeaderId, parent: &HeaderId) -> bool {
-	if child == parent {
-		return true;
-	}
-
-	if child.number < parent.number {
-		return false;
-	}
-
-	ancestry(storage, parent.hash).any(|(ancestor_hash, _)| ancestor_hash == child.hash)
 }
 
 /// Runtime bridge storage.
@@ -958,26 +923,6 @@ impl<T: Trait<I>, I: Instance> Storage for BridgeStorage<T, I> {
 
 		// and now prune headers if we need to
 		self.prune_blocks(MAX_BLOCKS_TO_PRUNE_IN_SINGLE_IMPORT, finalized_number, prune_end);
-	}
-
-	fn blocks_by_number(&self, block_number: u64) -> Vec<Header> {
-		// Since the pallet is fork aware there may be multiple blocks at the same height
-		let block_hashes = HeadersByNumber::<I>::get(block_number);
-
-		let mut headers = Vec::new();
-		if let Some(hashes) = block_hashes {
-			for h in hashes.iter() {
-				let stored_header = Headers::<T, I>::get(h);
-				if stored_header.is_some() {
-					let header = stored_header
-						.expect("Checked that header was a valid storage entry before entering")
-						.header;
-					headers.push(header);
-				}
-			}
-		}
-
-		headers
 	}
 }
 

@@ -20,7 +20,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::dispatch::DispatchResult;
-use sp_std::prelude::*;
 
 /// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
 pub trait MinimalHeaderChain<AccountId> {
@@ -43,19 +42,8 @@ pub trait MinimalHeaderChain<AccountId> {
 		extra_data: Option<Self::Extra>,
 	) -> DispatchResult;
 
-	/// Get the best block the pallet knows of.
-	///
-	/// May return multiple blocks if we have unfinalized blocks on different forks
-	/// which are at the same height.
-	fn best_headers() -> Vec<Self::Header>;
-
 	/// Get the best finalized block the pallet knows of.
 	fn best_finalized_header() -> Self::Header;
-
-	/// Get a specific block from the pallet given its number.
-	///
-	/// Will return None if this block is not part of the canonical chain tracked by the pallet.
-	fn header_by_number(block_hash: Self::BlockNumber) -> Option<Self::Header>;
 
 	/// Get a specific block from the pallet given its hash.
 	///
