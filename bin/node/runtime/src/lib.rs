@@ -35,6 +35,7 @@ pub mod benches;
 pub mod kovan;
 pub mod rialto;
 
+use bp_header_chain::MinimalHeaderChain;
 use codec::{Decode, Encode};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
@@ -564,8 +565,8 @@ impl_runtime_apis! {
 		}
 
 		fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
-			let finalized_block = BridgeRialto::finalized_block();
-			(finalized_block.number, finalized_block.hash)
+			let finalized_block = BridgeRialto::best_finalized_header();
+			(finalized_block.number, finalized_block.compute_hash())
 		}
 
 		fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
@@ -584,8 +585,8 @@ impl_runtime_apis! {
 		}
 
 		fn finalized_block() -> (u64, sp_bridge_eth_poa::H256) {
-			let finalized_block = BridgeKovan::finalized_block();
-			(finalized_block.number, finalized_block.hash)
+			let finalized_block = BridgeKovan::best_finalized_header();
+			(finalized_block.number, finalized_block.compute_hash())
 		}
 
 		fn is_import_requires_receipts(header: sp_bridge_eth_poa::Header) -> bool {
