@@ -47,18 +47,16 @@ services:
       - "32303:30303"
 
   relay-eth2sub:
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
-        PROJECT: ethereum-poa-relay
-        HEALTH: http://localhost:9616/metrics
+    image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-eth2sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+    healthcheck:
+      test: curl -f http://localhost:9616/metrics || exit 1
+      interval: 2m
+      timeout: 10s
     ports:
       - "9616:9616"
     depends_on: &all-nodes
@@ -72,12 +70,7 @@ services:
       - bridge-node-eve
 
   poa-exchange-tx-generator:
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
-        PROJECT: ethereum-poa-relay
+    image: paritytech/ethereum-poa-relay
     entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
     volumes:
       - ./bridge-config:/config
@@ -89,18 +82,16 @@ services:
     depends_on: *all-nodes
 
   relay-eth-exchange-sub:
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
-        PROJECT: ethereum-poa-relay
-        HEALTH: http://localhost:9616/metrics
+    image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-eth-exchange-sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+    healthcheck:
+      test: curl -f http://localhost:9616/metrics || exit 1
+      interval: 2m
+      timeout: 10s
     ports:
       - "9716:9616"
     depends_on: *all-nodes
@@ -123,13 +114,7 @@ services:
     depends_on: *all-nodes
 
   bridge-node-alice: &bridge-node
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
-        PROJECT: bridge-node
-        HEALTH: http://localhost:9933/health
+    image: paritytech/bridge-node
     entrypoint:
       - /home/user/bridge-node
       - --execution=Native
@@ -144,6 +129,10 @@ services:
       - ./bridge-config:/config
     environment: &bridge-env
       RUST_LOG: runtime=trace,rpc=debug,txpool=trace
+    healthcheck:
+      test: curl -f http://localhost:9933/health || exit 1
+      interval: 2m
+      timeout: 10s
     ports:
       - "9933:9933"
       - "9944:9944"
