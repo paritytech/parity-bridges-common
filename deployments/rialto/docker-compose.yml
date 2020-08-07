@@ -5,7 +5,8 @@ services:
       context: .
       dockerfile: ./OpenEthereum.Dockerfile
       args:
-        ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
+       # substrate-builtins-stubs branch
+        ETHEREUM_HASH: 79a6e12c63815c72a0152b5deb0d9e616aa42738
         BRIDGE_HASH: ${BRIDGE_HASH:-master}
     entrypoint:
       - /home/openethereum/openethereum
