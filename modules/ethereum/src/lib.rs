@@ -400,17 +400,13 @@ decl_module! {
 		}
 
 		/// Import a single Aura header using a _signed_ transaction.
-		///
-		/// I want to use this as a primitive to build the existing `import_signed_headers`
-		/// dispatchable at some point
-		// TODO[#78]: Update weight value
 		#[weight = 0]
 		pub fn import_signed_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
 			let submitter = frame_system::ensure_signed(origin)?;
 			Self::import_header_signed(submitter, header, receipts)?;
 		}
 
-		/// Import Aura chain headers in a single **SIGNED** transaction.
+		/// Import a _chain_ of Aura headers in a single **SIGNED** transaction.
 		/// Ignores non-fatal errors (like when known header is provided), rewards
 		/// for successful headers import and penalizes for fatal errors.
 		///
@@ -599,7 +595,7 @@ impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I>
 		header: Self::Header,
 		receipts: Option<Self::Extra>,
 	) -> DispatchResult {
-		let (_, _) = import::import_header(
+		let import_result = import::import_header(
 			&mut BridgeStorage::<T, I>::new(),
 			&mut T::PruningStrategy::default(),
 			&T::AuraConfiguration::get(),
@@ -607,10 +603,35 @@ impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I>
 			Some(submitter.clone()),
 			header,
 			receipts,
-		)
-		.map_err(|e| DispatchError::Other(e.msg()))?;
+		);
 
-		Ok(())
+		match import_result {
+			Ok((_imported_header, finalized_headers)) => {
+				// Want to reward submitter for having finalized some headers
+				T::OnHeadersSubmitted::on_valid_headers_finalized(
+					submitter.clone(),
+					finalized_headers.len() as u64, // Q: Is it safe to do this?
+				);
+
+				let useful = 1;
+				let useless = 0;
+				T::OnHeadersSubmitted::on_valid_headers_submitted(submitter, useful, useless);
+
+				Ok(())
+			}
+			Err(error::Error::AncientHeader) | Err(error::Error::KnownHeader) => {
+				// Want to make sure we keep track of peer who sent us valid, but useless headers
+				let useful = 0;
+				let useless = 1;
+				T::OnHeadersSubmitted::on_valid_headers_submitted(submitter, useful, useless);
+
+				Ok(())
+			}
+			Err(e) => {
+				T::OnHeadersSubmitted::on_invalid_headers_submitted(submitter);
+				Err(e.msg().into())
+			}
+		}
 	}
 
 	fn best_headers() -> Vec<Self::Header> {
@@ -653,9 +674,11 @@ fn is_ancestor(storage: &impl Storage, child: &HeaderId, parent: &HeaderId) -> b
 		return true;
 	}
 
-	ancestry(storage, parent.hash)
-		.skip_while(|(_, ancestor)| ancestor.number > child.number)
-		.any(|(ancestor_hash, _)| ancestor_hash == child.hash)
+	if child.number < parent.number {
+		return false;
+	}
+
+	ancestry(storage, parent.hash).any(|(ancestor_hash, _)| ancestor_hash == child.hash)
 }
 
 /// Runtime bridge storage.
