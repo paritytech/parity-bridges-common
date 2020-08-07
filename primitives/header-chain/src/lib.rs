@@ -22,33 +22,7 @@
 use frame_support::dispatch::DispatchResult;
 use sp_std::prelude::*;
 
-/// A base trait for tracking finalized headers on foreign chains in a Substrate pallet. Should be
-/// used as a primitive for more complicated header tracking logic.
-pub trait FinalityHeaderChain<AccountId> {
-	/// The header used by the chain.
-	type Header;
-	/// Any extra data which helps describe a transaction.
-	type Extra;
-	/// The type of transaction proof used by the chain.
-	type Proof;
-
-	/// Imports a finalized header submitted using an unsigned transaction to the pallet.
-	fn import_finalized_header_unsigned(header: Self::Header, extra_data: Option<Self::Extra>);
-
-	/// Imports a finalized header submitted using an signed transaction to the pallet.
-	fn import_finalized_header_signed(submitter: AccountId, header: Self::Header, extra_data: Option<Self::Extra>);
-
-	/// Get the best finalized block the pallet knows of.
-	fn best_finalized_block() -> Self::Header;
-
-	/// Get the earliest block the pallet knows of.
-	fn earliest_finalized_block() -> Self::Header;
-
-	/// Verify a proof of finality.
-	fn verify_finality_proof(proof: Self::Proof) -> bool;
-}
-
-/// A trait for pallets which want to keep track of a full set of headers from a bridged chain.
+/// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
 pub trait MinimalHeaderChain<AccountId> {
 	/// The header used by the chain.
 	type Header;
@@ -59,10 +33,10 @@ pub trait MinimalHeaderChain<AccountId> {
 	/// The type of block hash used by the chain.
 	type BlockHash;
 
-	/// Imports a header submitted using an unsigned transaction to the pallet.
+	/// Imports a header submitted using an _unsigned_ transaction to the pallet.
 	fn import_header_unsigned(header: Self::Header, extra_data: Option<Self::Extra>) -> DispatchResult;
 
-	/// Imports a header submitted using an signed transaction to the pallet.
+	/// Imports a header submitted using a _signed_ transaction to the pallet.
 	fn import_header_signed(
 		submitter: AccountId,
 		header: Self::Header,
@@ -79,8 +53,12 @@ pub trait MinimalHeaderChain<AccountId> {
 	fn best_finalized_header() -> Self::Header;
 
 	/// Get a specific block from the pallet given its number.
+	///
+	/// Will return None if this block is not part of the canonical chain tracked by the pallet.
 	fn header_by_number(block_hash: Self::BlockNumber) -> Option<Self::Header>;
 
 	/// Get a specific block from the pallet given its hash.
+	///
+	/// Will return None if this block is not part of the canonical chain tracked by the pallet.
 	fn header_by_hash(block_hash: Self::BlockHash) -> Option<Self::Header>;
 }
