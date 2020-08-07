@@ -18,11 +18,12 @@ use crate::ethereum_types::{
 	Header as EthereumHeader, Receipt as EthereumReceipt, HEADER_ID_PROOF as ETHEREUM_HEADER_ID_PROOF,
 };
 use crate::sync_types::{HeaderId, HeadersSyncPipeline, QueuedHeader, SourceHeader};
+use codec::Encode;
+
 pub use bp_eth_poa::{
 	Address, Bloom, Bytes, Header as SubstrateEthereumHeader, LogEntry as SubstrateEthereumLogEntry,
 	Receipt as SubstrateEthereumReceipt, TransactionOutcome as SubstrateEthereumTransactionOutcome, H256, U256,
 };
-use codec::Encode;
 
 /// Substrate header hash.
 pub type Hash = bridge_node_runtime::Hash;
