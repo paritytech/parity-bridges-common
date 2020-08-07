@@ -19,6 +19,8 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::finality::{CachedFinalityVotes, FinalityVotes};
+
+use bp_eth_poa::{Address, Header, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
 use bp_header_chain::MinimalHeaderChain;
 use codec::{Decode, Encode};
 use frame_support::{
@@ -26,7 +28,7 @@ use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
 	traits::Get,
 };
-use primitives::{Address, Header, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
+
 use sp_runtime::{
 	transaction_validity::{
 		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionSource, TransactionValidity,
@@ -567,10 +569,10 @@ impl<T: Trait<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Mod
 }
 
 impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I> {
-	type Header = primitives::Header;
-	type Extra = Vec<primitives::Receipt>;
+	type Header = bp_eth_poa::Header;
+	type Extra = Vec<bp_eth_poa::Receipt>;
 	type BlockNumber = u64;
-	type BlockHash = primitives::H256;
+	type BlockHash = bp_eth_poa::H256;
 
 	fn import_header_unsigned(header: Self::Header, receipts: Option<Self::Extra>) -> DispatchResult {
 		let (_, _) = import::import_header(
@@ -1167,7 +1169,7 @@ pub(crate) mod tests {
 		genesis, insert_header, run_test, run_test_with_genesis, validators_addresses, HeaderBuilder, TestRuntime,
 		GAS_LIMIT,
 	};
-	use primitives::compute_merkle_root;
+	use bp_eth_poa::compute_merkle_root;
 
 	const TOTAL_VALIDATORS: usize = 3;
 
@@ -1178,7 +1180,7 @@ pub(crate) mod tests {
 	fn example_tx_receipt(success: bool) -> Vec<u8> {
 		Receipt {
 			// the only thing that we care of:
-			outcome: primitives::TransactionOutcome::StatusCode(if success { 1 } else { 0 }),
+			outcome: bp_eth_poa::TransactionOutcome::StatusCode(if success { 1 } else { 0 }),
 			gas_used: Default::default(),
 			log_bloom: Default::default(),
 			logs: Vec::new(),

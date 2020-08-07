@@ -592,6 +592,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-currency-exchange"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
+name = "bp-eth-poa"
+version = "0.1.0"
+dependencies = [
+ "ethbloom 0.8.1",
+ "fixed-hash 0.5.2",
+ "hash-db",
+ "hex-literal 0.2.1",
+ "impl-rlp",
+ "impl-serde 0.2.3",
+ "libsecp256k1",
+ "parity-bytes",
+ "parity-scale-codec",
+ "plain_hasher",
+ "primitive-types",
+ "rlp",
+ "serde",
+ "serde-big-array",
+ "sp-api",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "triehash",
+]
+
+[[package]]
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
@@ -603,6 +638,7 @@ dependencies = [
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
+ "bp-eth-poa",
  "bridge-node-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -620,7 +656,6 @@ dependencies = [
  "sc-rpc",
  "sc-service",
  "sc-transaction-pool",
- "sp-bridge-eth-poa",
  "sp-consensus",
  "sp-consensus-aura",
  "sp-core",
@@ -638,6 +673,8 @@ dependencies = [
 name = "bridge-node-runtime"
 version = "0.1.0"
 dependencies = [
+ "bp-currency-exchange",
+ "bp-eth-poa",
  "bp-header-chain",
  "frame-benchmarking",
  "frame-executive",
@@ -660,10 +697,8 @@ dependencies = [
  "serde",
  "sp-api",
  "sp-block-builder",
- "sp-bridge-eth-poa",
  "sp-consensus-aura",
  "sp-core",
- "sp-currency-exchange",
  "sp-inherents",
  "sp-io",
  "sp-offchain",
@@ -1252,6 +1287,8 @@ dependencies = [
  "async-stream",
  "async-trait",
  "backoff",
+ "bp-currency-exchange",
+ "bp-eth-poa",
  "bridge-node-runtime",
  "clap",
  "env_logger",
@@ -1275,9 +1312,7 @@ dependencies = [
  "rustc-hex",
  "serde",
  "serde_json",
- "sp-bridge-eth-poa",
  "sp-core",
- "sp-currency-exchange",
  "sp-keyring",
  "sp-runtime",
  "substrate-prometheus-endpoint",
@@ -3609,13 +3644,13 @@ dependencies = [
 name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
+ "bp-currency-exchange",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
  "serde",
  "sp-core",
- "sp-currency-exchange",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -3625,6 +3660,7 @@ dependencies = [
 name = "pallet-bridge-eth-poa"
 version = "0.1.0"
 dependencies = [
+ "bp-eth-poa",
  "bp-header-chain",
  "frame-benchmarking",
  "frame-support",
@@ -3633,7 +3669,6 @@ dependencies = [
  "libsecp256k1",
  "parity-scale-codec",
  "serde",
- "sp-bridge-eth-poa",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -6077,31 +6112,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp-bridge-eth-poa"
-version = "0.1.0"
-dependencies = [
- "ethbloom 0.8.1",
- "fixed-hash 0.5.2",
- "hash-db",
- "hex-literal 0.2.1",
- "impl-rlp",
- "impl-serde 0.2.3",
- "libsecp256k1",
- "parity-bytes",
- "parity-scale-codec",
- "plain_hasher",
- "primitive-types",
- "rlp",
- "serde",
- "serde-big-array",
- "sp-api",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "triehash",
-]
-
-[[package]]
 name = "sp-chain-spec"
 version = "2.0.0-rc5"
 source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc5#e00d78cb1c354001d868fa66938a827a432dc530"
@@ -6199,16 +6209,6 @@ dependencies = [
  "twox-hash",
  "wasmi",
  "zeroize",
-]
-
-[[package]]
-name = "sp-currency-exchange"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "parity-scale-codec",
- "sp-api",
- "sp-std",
 ]
 
 [[package]]
