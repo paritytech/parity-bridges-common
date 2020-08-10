@@ -608,10 +608,7 @@ impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I>
 				//
 				// It's unlikely we'll be dealing with a target greater than 64-bit
 				// for a while, so I think the finalized_header conversion is safe.
-				T::OnHeadersSubmitted::on_valid_headers_finalized(
-					submitter.clone(),
-					finalized_headers.len() as u64,
-				);
+				T::OnHeadersSubmitted::on_valid_headers_finalized(submitter.clone(), finalized_headers.len() as u64);
 
 				let useful = 1;
 				let useless = 0;
