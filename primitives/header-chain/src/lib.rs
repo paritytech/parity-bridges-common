@@ -43,10 +43,10 @@ pub trait MinimalHeaderChain<AccountId> {
 	) -> DispatchResult;
 
 	/// Get the best finalized block the pallet knows of.
-	fn best_finalized_header() -> Self::Header;
+	fn best_finalized_header() -> (Self::BlockNumber, Self::BlockHash);
 
 	/// Get a specific block from the pallet given its hash.
 	///
 	/// Will return None if this block is not part of the canonical chain tracked by the pallet.
-	fn header_by_hash(block_hash: Self::BlockHash) -> Option<Self::Header>;
+	fn _header_by_hash(block_hash: Self::BlockHash) -> Option<Self::Header>;
 }

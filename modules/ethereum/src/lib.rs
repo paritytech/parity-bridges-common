@@ -396,6 +396,7 @@ decl_module! {
 		}
 
 		/// Import a single Aura header using a _signed_ transaction.
+		// TODO[#78]: Update weight value
 		#[weight = 0]
 		pub fn import_signed_header(origin, header: Header, receipts: Option<Vec<Receipt>>) {
 			let submitter = frame_system::ensure_signed(origin)?;
@@ -604,9 +605,12 @@ impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I>
 		match import_result {
 			Ok((_imported_header, finalized_headers)) => {
 				// Want to reward submitter for having finalized some headers
+				//
+				// It's unlikely we'll be dealing with a target greater than 64-bit
+				// for a while, so I think the finalized_header conversion is safe.
 				T::OnHeadersSubmitted::on_valid_headers_finalized(
 					submitter.clone(),
-					finalized_headers.len() as u64, // Q: Is it safe to do this?
+					finalized_headers.len() as u64,
 				);
 
 				let useful = 1;
@@ -630,15 +634,12 @@ impl<T: Trait<I>, I: Instance> MinimalHeaderChain<T::AccountId> for Module<T, I>
 		}
 	}
 
-	fn best_finalized_header() -> Self::Header {
-		let storage = BridgeStorage::<T, I>::new();
-		let finalized_id = storage.finalized_block();
-		let header = storage.header(&finalized_id.hash);
-
-		header.expect("Block is finalized, so it must exist in storage").0
+	fn best_finalized_header() -> (Self::BlockNumber, Self::BlockHash) {
+		let header_id = BridgeStorage::<T, I>::new().finalized_block();
+		(header_id.number, header_id.hash)
 	}
 
-	fn header_by_hash(block_hash: Self::BlockHash) -> Option<Self::Header> {
+	fn _header_by_hash(block_hash: Self::BlockHash) -> Option<Self::Header> {
 		BridgeStorage::<T, I>::new()
 			.header(&block_hash)
 			.map(|(header, _submitter)| header)

@@ -565,8 +565,7 @@ impl_runtime_apis! {
 		}
 
 		fn finalized_block() -> (u64, bp_eth_poa::H256) {
-			let finalized_block = BridgeRialto::best_finalized_header();
-			(finalized_block.number, finalized_block.compute_hash())
+			BridgeRialto::best_finalized_header()
 		}
 
 		fn is_import_requires_receipts(header: bp_eth_poa::Header) -> bool {
@@ -585,8 +584,7 @@ impl_runtime_apis! {
 		}
 
 		fn finalized_block() -> (u64, bp_eth_poa::H256) {
-			let finalized_block = BridgeKovan::best_finalized_header();
-			(finalized_block.number, finalized_block.compute_hash())
+			BridgeKovan::best_finalized_header()
 		}
 
 		fn is_import_requires_receipts(header: bp_eth_poa::Header) -> bool {
