@@ -4,7 +4,7 @@
 # should be at the same level as the `parity-bridges-common` repo.
 
 RUST_LOG=rpc=trace,txqueue=trace,bridge-builtin=trace \
-../parity-ethereum/target/debug/openethereum \
+../openethereum/target/debug/openethereum \
     --config="$(pwd)"/deployments/dev/poa-config/poa-node-config \
     --node-key=arthur \
     --engine-signer=0x005e714f896a8b7cede9d38688c1a81de72a58e4 \
