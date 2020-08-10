@@ -198,7 +198,7 @@ cargo build
 #### Running
 
 To run a simple dev network you'll can use the scripts located in
-[the `scripts` folder](./deployments/dev). Since the relay connects to both the Substrate and Ethereum
+[the `scripts` folder](./scripts). Since the relay connects to both the Substrate and Ethereum
 chains it must be run last.
 
 ```bash
