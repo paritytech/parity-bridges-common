@@ -169,8 +169,7 @@ through Docker.
 First you'll need to build the bridge node and relay. This can be done as follows:
 
 ```bash
-# In parity-bridges-common folder
-
+# In `parity-bridges-common` folder
 cargo build -p bridge-node
 cargo build -p ethereum-poa-relay
 ```
@@ -180,6 +179,7 @@ which only involves the Ethereum to Substrate side of the bridge you may use the
 Otherwise you'll need to checkout the `substrate-builtins-stubs` branch.
 
 ```bash
+# Should be at the same level as `parity-bridges-common` folder
 git clone https://github.com/HCastano/parity-ethereum.git openethereum
 git fetch
 git checkout substrate-builtins-stubs
@@ -191,8 +191,7 @@ repo at the same level as `parity-bridges-common` since it references the repo.
 Next you'll need to build the Ethereum node:
 
 ```bash
-# In openethereum folder
-
+# In `openethereum` folder
 cargo build
 ```
 
@@ -204,7 +203,6 @@ chains it must be run last.
 
 ```bash
 # In parity-bridges-common folder
-
 ./scripts/run-openethereum-node.sh
 ./scripts/run-bridge-node.sh
 ./scripts/run-eth2sub-relay.sh
