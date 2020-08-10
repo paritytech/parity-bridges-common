@@ -174,9 +174,9 @@ cargo build -p bridge-node
 cargo build -p ethereum-poa-relay
 ```
 
-Next you'll need to clone the following [fork of OpenEthereum](https://github.com/HCastano/parity-ethereum). If you're doing development
-which only involves the Ethereum to Substrate side of the bridge you may use the `master` branch.
-Otherwise you'll need to checkout the `substrate-builtins-stubs` branch.
+Next you'll need to clone the following [fork of OpenEthereum](https://github.com/HCastano/parity-ethereum).
+If you're doing development which only involves the Ethereum to Substrate side of the bridge you may
+use the `master` branch. Otherwise you'll need to checkout the `substrate-builtins-stubs` branch.
 
 ```bash
 # Should be at the same level as `parity-bridges-common` folder
