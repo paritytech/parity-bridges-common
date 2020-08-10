@@ -202,7 +202,7 @@ To run a simple dev network you'll can use the scripts located in
 chains it must be run last.
 
 ```bash
-# In parity-bridges-common folder
+# In `parity-bridges-common` folder
 ./scripts/run-openethereum-node.sh
 ./scripts/run-bridge-node.sh
 ./scripts/run-eth2sub-relay.sh
