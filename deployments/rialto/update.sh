@@ -27,6 +27,9 @@ cd -
 
 # Restart the network
 docker-compose down
+
+# Make sure we grab the latest images from Docker Hub
+docker-compose pull
 docker-compose up -d
 
 # Restart the proxy
