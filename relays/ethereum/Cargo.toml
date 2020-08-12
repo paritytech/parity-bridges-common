@@ -10,7 +10,7 @@ ansi_term = "0.12"
 async-std = "1.6.2"
 async-stream = "0.3.0"
 async-trait = "0.1.36"
-backoff = "0.2"
+backoff = { version = "0.2.1", features = ["async-std"] }
 bp-currency-exchange = { path = "../../primitives/currency-exchange" }
 bp-eth-poa = { path = "../../primitives/ethereum-poa" }
 clap = { version = "2.33.2", features = ["yaml"] }

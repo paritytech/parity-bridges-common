@@ -351,14 +351,18 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<EthereumExchan
 				.parse()
 				.map_err(|e| format!("Failed to parse eth-tx-hash: {}", e))?,
 		),
-		None => ethereum_exchange::ExchangeRelayMode::Auto(match matches.value_of("eth-start-with-block") {
-			Some(eth_start_with_block) => Some(
-				eth_start_with_block
-					.parse()
-					.map_err(|e| format!("Failed to parse eth-start-with-block: {}", e))?,
-			),
-			None => None,
-		}),
+		None => {
+			let start_block = match matches.value_of("eth-start-with-block") {
+				Some(eth_start_with_block) => Some(
+					eth_start_with_block
+						.parse()
+						.map_err(|e| format!("Failed to parse eth-start-with-block: {}", e))?,
+				),
+				None => None,
+			};
+
+			ethereum_exchange::ExchangeRelayMode::Auto(start_block)
+		}
 	};
 
 	let params = EthereumExchangeParams {
