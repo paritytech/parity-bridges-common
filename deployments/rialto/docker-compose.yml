@@ -1,13 +1,7 @@
 version: '3.5'
 services:
   poa-node-arthur: &poa-node
-    build:
-      context: .
-      dockerfile: ./OpenEthereum.Dockerfile
-      args:
-       # substrate-builtins-stubs branch
-        ETHEREUM_HASH: 79a6e12c63815c72a0152b5deb0d9e616aa42738
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+    image: hcastano/openethereum-bridge-builtins
     entrypoint:
       - /home/openethereum/openethereum
       - --config=/config/poa-node-config
@@ -97,13 +91,7 @@ services:
     depends_on: *all-nodes
 
   relay-sub2eth:
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
-        PROJECT: ethereum-poa-relay
-        HEALTH: http://localhost:9616/metrics
+    image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-sub2eth-entrypoint.sh
     volumes:
       - ./bridge-config:/config
