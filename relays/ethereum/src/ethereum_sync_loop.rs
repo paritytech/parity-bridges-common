@@ -209,8 +209,10 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 	} = params;
 
 	let eth_client = EthereumRpcClient::new(eth_params);
-	let client_fut = try_connect_to_sub_client(sub_params, instance);
-	let sub_client = async_std::task::block_on(client_fut).unwrap();
+
+	let mut local_pool = futures::executor::LocalPool::new();
+	let sub_client =
+		local_pool.run_until(async move { try_connect_to_sub_client(sub_params, instance).await.expect("TODO") });
 
 	let sign_sub_transactions = match sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,

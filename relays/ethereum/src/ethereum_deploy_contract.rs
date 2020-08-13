@@ -89,7 +89,6 @@ pub fn run(params: EthereumDeployContractParams) {
 	let result = local_pool.run_until(async move {
 		let eth_client = EthereumRpcClient::new(eth_params);
 		let sub_client = try_connect_to_sub_client(sub_params, instance).await?;
-		// let sub_client = SubstrateRpcClient::new(sub_params, instance).await?;
 
 		let (initial_header_id, initial_header) = prepare_initial_header(&sub_client, sub_initial_header).await?;
 		let initial_set_id = sub_initial_authorities_set_id.unwrap_or(0);
