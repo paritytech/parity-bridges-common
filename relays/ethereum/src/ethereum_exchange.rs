@@ -26,7 +26,7 @@ use crate::exchange::{
 	TransactionProofPipeline,
 };
 use crate::exchange_loop::{run as run_loop, InMemoryStorage};
-use crate::instances::BridgeInstance;
+use crate::instances::SupportedInstance;
 use crate::metrics::MetricsParams;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
@@ -37,6 +37,7 @@ use crate::substrate_types::into_substrate_ethereum_receipt;
 use crate::sync_types::HeaderId;
 
 use async_trait::async_trait;
+use backoff::{future::FutureOperation, ExponentialBackoff};
 use bp_currency_exchange::MaybeLockFundsTransaction;
 use bridge_node_runtime::exchange::EthereumTransactionInclusionProof;
 use std::time::Duration;
@@ -69,7 +70,7 @@ pub struct EthereumExchangeParams {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Instance of the bridge pallet being synchronized.
-	pub instance: Box<dyn BridgeInstance>,
+	pub instance: SupportedInstance, // Box<dyn BridgeInstance>,
 }
 
 /// Ethereum to Substrate exchange pipeline.
@@ -280,7 +281,8 @@ fn run_single_transaction_relay(params: EthereumExchangeParams, eth_tx_hash: H25
 
 	let result = local_pool.run_until(async move {
 		let eth_client = EthereumRpcClient::new(eth_params);
-		let sub_client = SubstrateRpcClient::new(sub_params, instance).await?;
+		let sub_client = try_connect_to_sub_client(sub_params, instance).await?;
+		// let sub_client = SubstrateRpcClient::new(sub_params, instance).await?;
 
 		let source = EthereumTransactionsSource { client: eth_client };
 		let target = SubstrateTransactionsTarget {
@@ -310,6 +312,25 @@ fn run_single_transaction_relay(params: EthereumExchangeParams, eth_tx_hash: H25
 	}
 }
 
+async fn try_connect_to_sub_client(
+	params: SubstrateConnectionParams,
+	instance: SupportedInstance,
+) -> Result<SubstrateRpcClient, RpcError> {
+	let wait = Duration::from_secs(1);
+	(|| async {
+		let sub_client_fut = SubstrateRpcClient::new(params.clone(), (&instance).into());
+		async_std::future::timeout(wait, sub_client_fut)
+			.await
+			.map_err(backoff::Error::Transient)
+	})
+	.retry_notify(
+		ExponentialBackoff::default(),
+		|_, _| log::warn!(target: "bridge", "Failed to connect to Substrate client, trying again..."),
+	)
+	.await
+	.expect("TODO")
+}
+
 /// Run auto-relay loop.
 fn run_auto_transactions_relay_loop(params: EthereumExchangeParams, eth_start_with_block_number: Option<u64>) {
 	let EthereumExchangeParams {
@@ -323,8 +344,9 @@ fn run_auto_transactions_relay_loop(params: EthereumExchangeParams, eth_start_wi
 
 	let do_run_loop = move || -> Result<(), String> {
 		let eth_client = EthereumRpcClient::new(eth_params);
-		let sub_client = async_std::task::block_on(SubstrateRpcClient::new(sub_params, instance))
-			.map_err(|err| format!("Error starting Substrate client: {:?}", err))?;
+		let sub_client = async_std::task::block_on(try_connect_to_sub_client(sub_params, instance)).unwrap();
+		// 		let sub_client = async_std::task::block_on(SubstrateRpcClient::new(sub_params, instance))
+		// 			.map_err(|err| format!("Error starting Substrate client: {:?}", err))?;
 
 		let eth_start_with_block_number = match eth_start_with_block_number {
 			Some(eth_start_with_block_number) => eth_start_with_block_number,

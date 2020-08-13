@@ -18,7 +18,7 @@
 
 use crate::ethereum_client::{EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient};
 use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
-use crate::instances::BridgeInstance;
+use crate::instances::SupportedInstance;
 use crate::metrics::MetricsParams;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
@@ -31,7 +31,7 @@ use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::{SourceHeader, SubmittedHeaders};
 
 use async_trait::async_trait;
-// use backoff::{future as backoff_future, ExponentialBackoff};
+use backoff::{future::FutureOperation, ExponentialBackoff};
 use web3::types::H256;
 
 use std::fmt::Debug;
@@ -72,7 +72,7 @@ pub struct EthereumSyncParams {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Instance of the bridge pallet being synchronized.
-	pub instance: Box<dyn BridgeInstance>,
+	pub instance: SupportedInstance, // Box<dyn BridgeInstance>,
 }
 
 /// Ethereum client as headers source.
@@ -178,19 +178,24 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	}
 }
 
-// async fn connect_to_substrate_client(
-// 	params: SubstrateConnectionParams,
-// 	instance: Box<dyn BridgeInstance>,
-// ) -> Result<SubstrateRpcClient, RpcError> {
-// 	let wait = Duration::from_secs(5);
-//
-// 	let fut = || async {
-// 		let sub_client_fut = SubstrateRpcClient::new(params, instance);
-// 		async_std::future::timeout(wait, sub_client_fut).await.map_err(backoff::Error::Transient)
-// 	};
-//
-// 	backoff_future::retry(ExponentialBackoff::default(), fut).await.unwrap()
-// }
+async fn try_connect_to_sub_client(
+	params: SubstrateConnectionParams,
+	instance: SupportedInstance,
+) -> Result<SubstrateRpcClient, RpcError> {
+	let wait = Duration::from_secs(1);
+	(|| async {
+		let sub_client_fut = SubstrateRpcClient::new(params.clone(), (&instance).into());
+		async_std::future::timeout(wait, sub_client_fut)
+			.await
+			.map_err(backoff::Error::Transient)
+	})
+	.retry_notify(
+		ExponentialBackoff::default(),
+		|_, _| log::warn!(target: "bridge", "Failed to connect to Substrate client, trying again..."),
+	)
+	.await
+	.expect("TODO")
+}
 
 /// Run Ethereum headers synchronization.
 pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
@@ -204,15 +209,8 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 	} = params;
 
 	let eth_client = EthereumRpcClient::new(eth_params);
-
-	let wait = Duration::from_secs(10);
-	let connection_fut = async {
-		let sub_client_fut = SubstrateRpcClient::new(sub_params, instance);
-		async_std::future::timeout(wait, sub_client_fut).await
-	};
-
-	let sub_client =
-		async_std::task::block_on(connection_fut).expect("Timed out while waiting for Substrate RPC Client")?;
+	let client_fut = try_connect_to_sub_client(sub_params, instance);
+	let sub_client = async_std::task::block_on(client_fut).unwrap();
 
 	let sign_sub_transactions = match sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,

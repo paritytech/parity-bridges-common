@@ -42,6 +42,22 @@ pub trait BridgeInstance: Send + Sync + std::fmt::Debug {
 	fn build_currency_exchange_call(&self, proof: Proof) -> Call;
 }
 
+/// TODO
+#[derive(Debug, Clone)]
+pub enum SupportedInstance {
+	Rialto,
+	Kovan,
+}
+
+impl From<&SupportedInstance> for Box<dyn BridgeInstance> {
+	fn from(i: &SupportedInstance) -> Self {
+		match i {
+			SupportedInstance::Rialto => Box::new(Rialto),
+			SupportedInstance::Kovan => Box::new(Kovan),
+		}
+	}
+}
+
 /// Corresponds to the Rialto instance used in the bridge runtime.
 #[derive(Default, Clone, Debug)]
 pub struct Rialto;
