@@ -21,28 +21,6 @@ use std::time::Duration;
 /// same request again.
 const MAX_BACKOFF_INTERVAL: Duration = Duration::from_secs(60);
 
-/// Macro that returns (client, Err(error)) tuple from function if result is Err(error).
-#[macro_export]
-macro_rules! bail_on_error {
-	($result: expr) => {
-		match $result {
-			(client, Ok(result)) => (client, result),
-			(client, Err(error)) => return (client, Err(error)),
-			}
-	};
-}
-
-/// Macro that returns (client, Err(error)) tuple from function if result is Err(error).
-#[macro_export]
-macro_rules! bail_on_arg_error {
-	($result: expr, $client: ident) => {
-		match $result {
-			Ok(result) => result,
-			Err(error) => return ($client, Err(error)),
-			}
-	};
-}
-
 /// Error type that can signal connection errors.
 pub trait MaybeConnectionError {
 	/// Returns true if error (maybe) represents connection error.
