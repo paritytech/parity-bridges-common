@@ -195,8 +195,7 @@ pub fn run(params: SubstrateSyncParams) -> Result<(), RpcError> {
 	let eth_client = EthereumRpcClient::new(eth_params);
 
 	let mut local_pool = futures::executor::LocalPool::new();
-	let sub_client =
-		local_pool.run_until(async move { try_connect_to_sub_client(sub_params, instance).await })?;
+	let sub_client = local_pool.run_until(async move { try_connect_to_sub_client(sub_params, instance).await })?;
 
 	let target = EthereumHeadersTarget::new(eth_client, eth_contract_address, eth_sign);
 	let source = SubstrateHeadersSource::new(sub_client);

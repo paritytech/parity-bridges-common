@@ -57,6 +57,12 @@ impl Default for EthereumConnectionParams {
 	}
 }
 
+impl std::fmt::Display for EthereumConnectionParams {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "{}:{}", self.host, self.port)
+	}
+}
+
 /// Ethereum signing params.
 #[derive(Clone, Debug)]
 pub struct EthereumSigningParams {

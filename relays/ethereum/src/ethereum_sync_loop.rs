@@ -192,8 +192,7 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 	let eth_client = EthereumRpcClient::new(eth_params);
 
 	let mut local_pool = futures::executor::LocalPool::new();
-	let sub_client =
-		local_pool.run_until(async move { try_connect_to_sub_client(sub_params, instance).await })?;
+	let sub_client = local_pool.run_until(async move { try_connect_to_sub_client(sub_params, instance).await })?;
 
 	let sign_sub_transactions = match sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,

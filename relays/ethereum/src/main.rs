@@ -106,7 +106,7 @@ fn main() {
 			ethereum_exchange_submit::run(match ethereum_exchange_submit_params(&eth_exchange_submit_matches) {
 				Ok(eth_exchange_submit_params) => eth_exchange_submit_params,
 				Err(err) => {
-					log::error!(target: "bridge", "Error submitting Eethereum exchange transaction: {}", err);
+					log::error!(target: "bridge", "Error submitting Ethereum exchange transaction: {}", err);
 					return;
 				}
 			});
