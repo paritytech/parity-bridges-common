@@ -193,7 +193,7 @@ services:
       - "10344:9944"
 
   prometheus-metrics:
-    image: prom/prometheus
+    image: prom/prometheus:v2.20.1
     volumes:
       - ./dashboard/prometheus/:/etc/prometheus/
     ports:
@@ -201,7 +201,7 @@ services:
     depends_on: *all-nodes
 
   grafana-dashboard:
-    image: grafana/grafana
+    image: grafana/grafana:7.1.3
     environment:
       VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
       VIRTUAL_PORT: 3000
