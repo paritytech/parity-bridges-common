@@ -16,6 +16,7 @@
 
 use crate::utils::MaybeConnectionError;
 
+use async_std::future::TimeoutError;
 use jsonrpsee::client::RequestError;
 
 /// Contains common errors that can occur when
@@ -30,7 +31,7 @@ pub enum RpcError {
 	/// An error occured when interacting with a Substrate node.
 	Substrate(SubstrateNodeError),
 	/// An error that can occur when making an HTTP request to
-	/// an JSON-RPC client.
+	/// a JSON-RPC client.
 	Request(RequestError),
 }
 
@@ -87,6 +88,12 @@ impl From<codec::Error> for RpcError {
 	}
 }
 
+impl From<TimeoutError> for RpcError {
+	fn from(_err: TimeoutError) -> Self {
+		Self::Substrate(SubstrateNodeError::NoConnection)
+	}
+}
+
 /// Errors that can occur only when interacting with
 /// an Ethereum node through RPC.
 #[derive(Debug)]
@@ -125,12 +132,16 @@ impl ToString for EthereumNodeError {
 pub enum SubstrateNodeError {
 	/// The response from the client could not be SCALE decoded.
 	Decoding(codec::Error),
+	/// We have failed to connect to a Substrate client.
+	NoConnection,
 }
 
 impl ToString for SubstrateNodeError {
 	fn to_string(&self) -> String {
 		match self {
-			Self::Decoding(e) => e.what().to_string(),
+			Self::Decoding(e) => e.what(),
+			Self::NoConnection => "Timed out while trying to connect to a Substrate client.",
 		}
+		.to_string()
 	}
 }

@@ -115,6 +115,5 @@ pub async fn try_connect_to_sub_client(
 		ExponentialBackoff::default(),
 		|_, _| log::warn!(target: "bridge", "Failed to connect to Substrate client at {}, trying again...", &params),
 	)
-	.await
-	.expect("TODO")
+	.await?
 }

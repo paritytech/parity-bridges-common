@@ -45,8 +45,7 @@ pub struct EthereumDeployContractParams {
 	/// Initial header.
 	pub sub_initial_header: Option<Vec<u8>>,
 	/// Instance of the bridge pallet being synchronized.
-	// No instance info is used here, maybe make optional
-	pub instance: SupportedInstance, // Box<dyn BridgeInstance>,
+	pub instance: SupportedInstance,
 }
 
 /// Deploy Bridge contract on Ethereum chain.
