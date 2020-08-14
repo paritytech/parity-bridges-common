@@ -42,7 +42,7 @@ pub trait BridgeInstance: Send + Sync + std::fmt::Debug {
 	fn build_currency_exchange_call(&self, proof: Proof) -> Call;
 }
 
-/// TODO
+/// Different instances supported by the relay.
 #[derive(Debug, Clone)]
 pub enum SupportedInstance {
 	Rialto,
