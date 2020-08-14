@@ -29,9 +29,9 @@ use crate::substrate_types::into_substrate_ethereum_header;
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::{SourceHeader, SubmittedHeaders};
+use crate::utils::try_connect_to_sub_client;
 
 use async_trait::async_trait;
-use backoff::{future::FutureOperation, ExponentialBackoff};
 use web3::types::H256;
 
 use std::fmt::Debug;
@@ -176,25 +176,6 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 		let sub_eth_header = into_substrate_ethereum_header(header.header());
 		Ok((id, self.client.ethereum_receipts_required(sub_eth_header).await?))
 	}
-}
-
-async fn try_connect_to_sub_client(
-	params: SubstrateConnectionParams,
-	instance: SupportedInstance,
-) -> Result<SubstrateRpcClient, RpcError> {
-	let wait = Duration::from_secs(1);
-	(|| async {
-		let sub_client_fut = SubstrateRpcClient::new(params.clone(), (&instance).into());
-		async_std::future::timeout(wait, sub_client_fut)
-			.await
-			.map_err(backoff::Error::Transient)
-	})
-	.retry_notify(
-		ExponentialBackoff::default(),
-		|_, _| log::warn!(target: "bridge", "Failed to connect to Substrate client, trying again..."),
-	)
-	.await
-	.expect("TODO")
 }
 
 /// Run Ethereum headers synchronization.

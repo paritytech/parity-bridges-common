@@ -14,8 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use backoff::ExponentialBackoff;
+use backoff::{future::FutureOperation, ExponentialBackoff};
 use std::time::Duration;
+
+use crate::instances::SupportedInstance;
+use crate::rpc_errors::RpcError;
+use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 
 /// Max delay after connection-unrelated error happened before we'll try the
 /// same request again.
@@ -91,4 +95,26 @@ pub fn format_ids<Id: std::fmt::Debug>(mut ids: impl ExactSizeIterator<Item = Id
 			format!("{}:[{:?} ... {:?}]", len, id0, id_last)
 		}
 	}
+}
+
+/// Try to connect to a Substrate client. If unsuccessful this function will
+/// retry the connection in the future, waiting longer after each unsuccessful
+/// attempt.
+pub async fn try_connect_to_sub_client(
+	params: SubstrateConnectionParams,
+	instance: SupportedInstance,
+) -> Result<SubstrateRpcClient, RpcError> {
+	let wait = Duration::from_secs(1);
+	(|| async {
+		let sub_client_fut = SubstrateRpcClient::new(params.clone(), (&instance).into());
+		async_std::future::timeout(wait, sub_client_fut)
+			.await
+			.map_err(backoff::Error::Transient)
+	})
+	.retry_notify(
+		ExponentialBackoff::default(),
+		|_, _| log::warn!(target: "bridge", "Failed to connect to Substrate client at {}, trying again...", &params),
+	)
+	.await
+	.expect("TODO")
 }

@@ -60,6 +60,12 @@ impl Default for SubstrateConnectionParams {
 	}
 }
 
+impl std::fmt::Display for SubstrateConnectionParams {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "{}:{}", self.host, self.port)
+	}
+}
+
 /// Substrate signing params.
 #[derive(Clone)]
 pub struct SubstrateSigningParams {

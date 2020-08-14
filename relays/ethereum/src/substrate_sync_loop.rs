@@ -31,9 +31,9 @@ use crate::substrate_types::{
 use crate::sync::HeadersSyncParams;
 use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::{SourceHeader, SubmittedHeaders};
+use crate::utils::try_connect_to_sub_client;
 
 use async_trait::async_trait;
-use backoff::{future::FutureOperation, ExponentialBackoff};
 
 use std::fmt::Debug;
 use std::{collections::HashSet, time::Duration};
@@ -178,25 +178,6 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	async fn requires_extra(&self, header: QueuedSubstrateHeader) -> Result<(SubstrateHeaderId, bool), Self::Error> {
 		Ok((header.header().id(), false))
 	}
-}
-
-async fn try_connect_to_sub_client(
-	params: SubstrateConnectionParams,
-	instance: SupportedInstance,
-) -> Result<SubstrateRpcClient, RpcError> {
-	let wait = Duration::from_secs(1);
-	(|| async {
-		let sub_client_fut = SubstrateRpcClient::new(params.clone(), (&instance).into());
-		async_std::future::timeout(wait, sub_client_fut)
-			.await
-			.map_err(backoff::Error::Transient)
-	})
-	.retry_notify(
-		ExponentialBackoff::default(),
-		|_, _| log::warn!(target: "bridge", "Failed to connect to Substrate client, trying again..."),
-	)
-	.await
-	.expect("TODO")
 }
 
 /// Run Substrate headers synchronization.
