@@ -35,7 +35,7 @@ use crate::substrate_client::{
 };
 use crate::substrate_types::into_substrate_ethereum_receipt;
 use crate::sync_types::HeaderId;
-use crate::utils::try_connect_to_sub_client;
+use crate::utils::{try_connect_to_eth_client, try_connect_to_sub_client};
 
 use async_trait::async_trait;
 use bp_currency_exchange::MaybeLockFundsTransaction;
@@ -280,7 +280,7 @@ fn run_single_transaction_relay(params: EthereumExchangeParams, eth_tx_hash: H25
 	} = params;
 
 	let result = local_pool.run_until(async move {
-		let eth_client = EthereumRpcClient::new(eth_params);
+		let eth_client = try_connect_to_eth_client(eth_params).await?;
 		let sub_client = try_connect_to_sub_client(sub_params, instance).await?;
 
 		let source = EthereumTransactionsSource { client: eth_client };
@@ -323,10 +323,15 @@ fn run_auto_transactions_relay_loop(params: EthereumExchangeParams, eth_start_wi
 	} = params;
 
 	let do_run_loop = move || -> Result<(), String> {
-		let eth_client = EthereumRpcClient::new(eth_params);
-
 		let mut local_pool = futures::executor::LocalPool::new();
-		let sub_client = local_pool.run_until(async move { try_connect_to_sub_client(sub_params, instance).await })?;
+		let (sub_client, eth_client) = local_pool.run_until(async move {
+			let sub_client = try_connect_to_sub_client(sub_params, instance).await;
+			let eth_client = try_connect_to_eth_client(eth_params).await;
+
+			(sub_client, eth_client)
+		});
+
+		let (sub_client, eth_client) = (sub_client?, eth_client?);
 
 		let eth_start_with_block_number = match eth_start_with_block_number {
 			Some(eth_start_with_block_number) => eth_start_with_block_number,

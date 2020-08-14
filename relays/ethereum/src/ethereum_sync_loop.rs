@@ -29,7 +29,7 @@ use crate::substrate_types::into_substrate_ethereum_header;
 use crate::sync::{HeadersSyncParams, TargetTransactionMode};
 use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::{SourceHeader, SubmittedHeaders};
-use crate::utils::try_connect_to_sub_client;
+use crate::utils::{try_connect_to_eth_client, try_connect_to_sub_client};
 
 use async_trait::async_trait;
 use web3::types::H256;
@@ -189,10 +189,15 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 		instance,
 	} = params;
 
-	let eth_client = EthereumRpcClient::new(eth_params);
-
 	let mut local_pool = futures::executor::LocalPool::new();
-	let sub_client = local_pool.run_until(async move { try_connect_to_sub_client(sub_params, instance).await })?;
+	let (sub_client, eth_client) = local_pool.run_until(async move {
+		let sub_client = try_connect_to_sub_client(sub_params, instance).await;
+		let eth_client = try_connect_to_eth_client(eth_params).await;
+
+		(sub_client, eth_client)
+	});
+
+	let (sub_client, eth_client) = (sub_client?, eth_client?);
 
 	let sign_sub_transactions = match sync_params.target_tx_mode {
 		TargetTransactionMode::Signed | TargetTransactionMode::Backup => true,

@@ -15,11 +15,13 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use backoff::{future::FutureOperation, ExponentialBackoff};
-use std::time::Duration;
 
+use crate::ethereum_client::{EthereumConnectionParams, EthereumRpcClient};
 use crate::instances::SupportedInstance;
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
+
+use std::time::Duration;
 
 /// Max delay after connection-unrelated error happened before we'll try the
 /// same request again.
@@ -97,9 +99,10 @@ pub fn format_ids<Id: std::fmt::Debug>(mut ids: impl ExactSizeIterator<Item = Id
 	}
 }
 
-/// Try to connect to a Substrate client. If unsuccessful this function will
-/// retry the connection in the future, waiting longer after each unsuccessful
-/// attempt.
+/// Try to connect to a Substrate client.
+///
+/// If unsuccessful this function will retry the connection in the future, waiting longer after each
+/// unsuccessful attempt.
 pub async fn try_connect_to_sub_client(
 	params: SubstrateConnectionParams,
 	instance: SupportedInstance,
@@ -116,4 +119,30 @@ pub async fn try_connect_to_sub_client(
 		|_, _| log::warn!(target: "bridge", "Failed to connect to Substrate client at {}, trying again...", &params),
 	)
 	.await?
+}
+
+/// Try to connect to an Ethereum client.
+///
+/// If unsuccessful this function will retry the connection in the future, waiting longer after each
+/// unsuccessful attempt.
+pub async fn try_connect_to_eth_client(params: EthereumConnectionParams) -> Result<EthereumRpcClient, RpcError> {
+	use crate::rpc::EthereumRpc;
+	let client = EthereumRpcClient::new(params.clone());
+
+	// Try and get the nonce of the zero-address as a check to see if we're able to connect to
+	// the Ethereum client.
+	let _nonce = (|| async {
+		let wait = Duration::from_secs(1);
+		let eth_client_fut = client.account_nonce([0u8; 20].into());
+		async_std::future::timeout(wait, eth_client_fut)
+			.await
+			.map_err(backoff::Error::Transient)
+	})
+	.retry_notify(
+		ExponentialBackoff::default(),
+		|_, _| log::warn!(target: "bridge", "Failed to connect to Ethereum client at {}, trying again...", &params),
+	)
+	.await?;
+
+	Ok(client)
 }

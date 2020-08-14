@@ -31,7 +31,7 @@ use crate::substrate_types::{
 use crate::sync::HeadersSyncParams;
 use crate::sync_loop::{SourceClient, TargetClient};
 use crate::sync_types::{SourceHeader, SubmittedHeaders};
-use crate::utils::try_connect_to_sub_client;
+use crate::utils::{try_connect_to_eth_client, try_connect_to_sub_client};
 
 use async_trait::async_trait;
 
@@ -192,10 +192,15 @@ pub fn run(params: SubstrateSyncParams) -> Result<(), RpcError> {
 		instance,
 	} = params;
 
-	let eth_client = EthereumRpcClient::new(eth_params);
-
 	let mut local_pool = futures::executor::LocalPool::new();
-	let sub_client = local_pool.run_until(async move { try_connect_to_sub_client(sub_params, instance).await })?;
+	let (sub_client, eth_client) = local_pool.run_until(async move {
+		let sub_client = try_connect_to_sub_client(sub_params, instance).await;
+		let eth_client = try_connect_to_eth_client(eth_params).await;
+
+		(sub_client, eth_client)
+	});
+
+	let (sub_client, eth_client) = (sub_client?, eth_client?);
 
 	let target = EthereumHeadersTarget::new(eth_client, eth_contract_address, eth_sign);
 	let source = SubstrateHeadersSource::new(sub_client);

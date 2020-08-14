@@ -22,7 +22,7 @@ use crate::rpc::SubstrateRpc;
 use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, SubstrateHeaderId};
 use crate::sync_types::HeaderId;
-use crate::utils::try_connect_to_sub_client;
+use crate::utils::{try_connect_to_eth_client, try_connect_to_sub_client};
 
 use codec::{Decode, Encode};
 use num_traits::Zero;
@@ -64,8 +64,8 @@ pub fn run(params: EthereumDeployContractParams) {
 	} = params;
 
 	let result = local_pool.run_until(async move {
-		let eth_client = EthereumRpcClient::new(eth_params);
 		let sub_client = try_connect_to_sub_client(sub_params, instance).await?;
+		let eth_client = try_connect_to_eth_client(eth_params).await?;
 
 		let (initial_header_id, initial_header) = prepare_initial_header(&sub_client, sub_initial_header).await?;
 		let initial_set_id = sub_initial_authorities_set_id.unwrap_or(0);

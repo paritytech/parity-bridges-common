@@ -16,18 +16,16 @@
 
 //! Submitting Ethereum -> Substrate exchange transactions.
 
-use crate::ethereum_client::{EthereumConnectionParams, EthereumRpcClient, EthereumSigningParams};
+use crate::ethereum_client::{EthereumConnectionParams, EthereumSigningParams};
 use crate::ethereum_types::{CallRequest, U256};
 use crate::rpc::EthereumRpc;
+use crate::utils::try_connect_to_eth_client;
 
-use backoff::{future::FutureOperation, ExponentialBackoff};
 use bp_eth_poa::{
 	signatures::{SecretKey, SignTransaction},
 	UnsignedTransaction,
 };
 use bridge_node_runtime::exchange::LOCK_FUNDS_ADDRESS;
-
-use std::time::Duration;
 
 /// Ethereum exchange transaction params.
 #[derive(Debug)]
@@ -57,29 +55,16 @@ pub fn run(params: EthereumExchangeSubmitParams) {
 	} = params;
 
 	let result: Result<_, String> = local_pool.run_until(async move {
-		let eth_client = EthereumRpcClient::new(eth_params.clone());
+		let eth_client = try_connect_to_eth_client(eth_params).await?;
+
 		let eth_signer_address = eth_sign.signer.address();
-
-		// We take this chance to ensure that we have a connection with an Ethereum node, even
-		// if we don't actually end up using this nonce (because of a user override).
-		let current_nonce = (|| async {
-			let wait = Duration::from_secs(1);
-			let eth_client_fut = eth_client.account_nonce(eth_signer_address);
-			async_std::future::timeout(wait, eth_client_fut)
-				.await
-				.map_err(backoff::Error::Transient)
-		})
-		.retry_notify(
-			ExponentialBackoff::default(),
-			|_, _| log::warn!(target: "bridge", "Failed to connect to Ethereum client at {}, trying again...", &eth_params),
-		)
-		.await
-		.map_err(|err| format!("error fetching acount nonce: {:?}", err))??;
-
 		let sub_recipient_encoded = sub_recipient;
 		let nonce = match eth_nonce {
 			Some(eth_nonce) => eth_nonce,
-			None => current_nonce,
+			None => eth_client
+				.account_nonce(eth_signer_address)
+				.await
+				.map_err(|err| format!("error fetching acount nonce: {:?}", err))?,
 		};
 		let gas = eth_client
 			.estimate_gas(CallRequest {
