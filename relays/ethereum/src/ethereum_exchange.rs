@@ -38,7 +38,6 @@ use crate::sync_types::HeaderId;
 use crate::utils::try_connect_to_sub_client;
 
 use async_trait::async_trait;
-use backoff::{future::FutureOperation, ExponentialBackoff};
 use bp_currency_exchange::MaybeLockFundsTransaction;
 use bridge_node_runtime::exchange::EthereumTransactionInclusionProof;
 use std::time::Duration;
