@@ -35,18 +35,41 @@ test Substrate network.
 Its main purpose is to make sure that basic PoA<>Substrate bridge operation works.
 The network is being reset every now and then without a warning.
 
-### How to run locally?
+### Docker-Compose Deployment
 
-The definition of both networks and the relay node is encapsulated as
-[`docker-compose.yml`](./rialto/docker-compose.yml) file.
+To run a full network with two-way bridge functionality and cross-chain transfers you
+may use the `docker-compose.yml` file in the [`rialto`](./rialto) folder. This will pull
+images from the Docker Hub for all the components.
 
 ```bash
 cd rialto
-docker-compose build  # This is going to build images (this will take a while)
+docker-compose pull   # Get the latest images from the Docker Hub
+docker-compose build  # This is going to build images
 docker-compose up     # Start all the nodes
 docker-compose up -d  # Start the nodes in detached mode.
 docker-compose down   # Stop the network.
 ```
+
+### Docker-Compose and Git Deployment
+
+It is also possible to avoid using images from the Docker Hub and instead build
+containers from GitHub. This can be done using an override file for Docker Compose. To
+build the containers you can do the following:
+
+```bash
+cd rialto
+docker-compose -f docker-compose.yml -f docker-compose.git.yml build
+```
+The order in which you specify the compose files matters, so make sure the Git override file
+comes after the base one. If you want a sanity check of the resulting compose file you may
+do the following:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.git.yml config > docker-compose.merged.yml
+```
+
+Note that this is going to take a _very long_ time to build, since it has to build multiple
+Rust projects from scratch.
 
 When the network is running you can query logs from individual nodes using:
 ```bash
@@ -57,6 +80,14 @@ To kill all left over containers and start the network from scratch next time:
 ```bash
 docker ps -a --format "{{.ID}}" | xargs docker rm # This removes all containers!
 ```
+
+### Network Updates
+
+You can update the network using the [`update.sh`](./rialto/update.sh) script. If you run it
+without any arguments it will default to using the latest images from the Docker Hub. However,
+you may also update the network using GitHub builds by passing the `-g` flag to the script.
+There you may specify which components you want to update. You have the following options:
+`all`, `node`, `relay`, and `eth`.
 
 ### Monitoring
 [Prometheus](https://prometheus.io/) is used by the bridge relay to monitor information such as system
