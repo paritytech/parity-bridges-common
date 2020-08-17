@@ -21,7 +21,7 @@
 
 use frame_support::Parameter;
 
-/// Beep boop
+/// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
 pub trait MinimalHeaderChain {
 	/// Transaction type.
 	type Transaction: Parameter;
