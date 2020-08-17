@@ -33,5 +33,3 @@ pub trait MinimalHeaderChain {
 	/// Returns Some(transaction) if proof is valid and None otherwise.
 	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction>;
 }
-
-

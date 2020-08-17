@@ -3644,6 +3644,7 @@ name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
  "bp-currency-exchange",
+ "bp-header-chain",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
