@@ -5,8 +5,9 @@ services:
       context: .
       dockerfile: ./OpenEthereum.Dockerfile
       args:
-        ETHEREUM_HASH: 9838f59b6536e7482e145fa55acf07ac4e824ed0
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+       # substrate-builtins-stubs branch
+        ETHEREUM_HASH: 79a6e12c63815c72a0152b5deb0d9e616aa42738
+        BRIDGE_HASH: ${ETH_BRIDGE_HASH:-master}
     entrypoint:
       - /home/openethereum/openethereum
       - --config=/config/poa-node-config
@@ -50,7 +51,7 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
         HEALTH: http://localhost:9616/metrics
     entrypoint: /config/relay-eth2sub-entrypoint.sh
@@ -75,7 +76,7 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
     entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
     volumes:
@@ -92,7 +93,7 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
         HEALTH: http://localhost:9616/metrics
     entrypoint: /config/relay-eth-exchange-sub-entrypoint.sh
@@ -109,7 +110,7 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
         HEALTH: http://localhost:9616/metrics
     entrypoint: /config/relay-sub2eth-entrypoint.sh
@@ -126,7 +127,7 @@ services:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
-        BRIDGE_HASH: ${BRIDGE_HASH:-master}
+        BRIDGE_HASH: ${NODE_BRIDGE_HASH:-master}
         PROJECT: bridge-node
         HEALTH: http://localhost:9933/health
     entrypoint:
