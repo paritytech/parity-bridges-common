@@ -627,6 +627,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-header-chain"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+]
+
+[[package]]
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
@@ -667,6 +674,7 @@ version = "0.1.0"
 dependencies = [
  "bp-currency-exchange",
  "bp-eth-poa",
+ "bp-header-chain",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
