@@ -25,9 +25,8 @@
 #![allow(clippy::large_enum_variant)]
 
 use frame_support::{decl_error, decl_module, decl_storage, dispatch, traits::Get};
-use frame_system::ensure_signed;
+use frame_system::{ensure_signed, ensure_none};
 
-/// Configure the pallet by specifying the parameters and types on which it depends.
 pub trait Trait: frame_system::Trait {}
 
 decl_storage! {
@@ -36,7 +35,6 @@ decl_storage! {
 	}
 }
 
-// Errors inform users that something went wrong.
 decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// Error names should be descriptive.
@@ -46,49 +44,24 @@ decl_error! {
 	}
 }
 
-// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-// These functions materialize as "extrinsics", which are often compared to transactions.
-// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		// Errors must be initialized if they are used by the pallet.
 		type Error = Error<T>;
 
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
-		#[weight = 10_000 + T::DbWeight::get().writes(1)]
-		pub fn do_something(origin, something: u32) -> dispatch::DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
-			let who = ensure_signed(origin)?;
+		#[weight = 0]
+		pub fn import_unsiged_header(origin, something: u32) -> dispatch::DispatchResult {
+			let who = ensure_none(origin)?;
 
-			// Update storage.
-			Something::put(something);
-
-			// Emit an event.
-			Self::deposit_event(RawEvent::SomethingStored(something, who));
 			// Return a successful DispatchResult
 			Ok(())
 		}
 
-		/// An example dispatchable that may throw a custom error.
-		#[weight = 10_000 + T::DbWeight::get().reads_writes(1,1)]
-		pub fn cause_error(origin) -> dispatch::DispatchResult {
-			let _who = ensure_signed(origin)?;
+		#[weight = 0]
+		pub fn import_siged_header(origin, something: u32) -> dispatch::DispatchResult {
+			let who = ensure_signed(origin)?;
 
-			// Read a value from storage.
-			match Something::get() {
-				// Return an error if the value has not been set.
-				None => Err(Error::<T>::NoneValue)?,
-				Some(old) => {
-					// Increment the value read from storage; will error in the event of overflow.
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					// Update the value in storage with the incremented result.
-					Something::put(new);
-					Ok(())
-				},
-			}
+			// Return a successful DispatchResult
+			Ok(())
 		}
 	}
 }
