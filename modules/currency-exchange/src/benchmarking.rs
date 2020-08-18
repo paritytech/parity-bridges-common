@@ -18,7 +18,7 @@
 //! So we are giving runtime opportunity to prepare environment and construct proof
 //! before invoking module calls.
 
-use super::{Call, Instance, Module as CurrencyExchangeModule, MinimalHeaderChain, Trait as CurrencyExchangeTrait};
+use super::{Call, Instance, MinimalHeaderChain, Module as CurrencyExchangeModule, Trait as CurrencyExchangeTrait};
 use sp_std::prelude::*;
 
 use frame_benchmarking::{account, benchmarks_instance};
