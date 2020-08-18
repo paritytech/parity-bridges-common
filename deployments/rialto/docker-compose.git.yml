@@ -5,8 +5,7 @@ services:
       context: .
       dockerfile: ./OpenEthereum.Dockerfile
       args:
-       # substrate-builtins-stubs branch
-        ETHEREUM_HASH: 79a6e12c63815c72a0152b5deb0d9e616aa42738
+        ETHEREUM_HASH: ${ETHEREUM_HASH:-4fecaa56da067e4c62aee76a6afb6be52754c1cf}
         BRIDGE_HASH: ${ETH_BRIDGE_HASH:-master}
 
   poa-node-bertha:

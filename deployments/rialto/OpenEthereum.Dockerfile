@@ -17,7 +17,7 @@ RUN update-ca-certificates && \
 	curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 ENV PATH="/root/.cargo/bin:${PATH}"
-ENV LAST_RUST_UPDATE="2020-07-22"
+ENV LAST_RUST_UPDATE="2020-08-17"
 RUN rustup update stable && \
 	rustup install nightly && \
 	rustup target add wasm32-unknown-unknown --toolchain nightly
@@ -31,9 +31,8 @@ RUN rustc -vV && \
 WORKDIR /openethereum
 
 ### Build from the repo
-ARG ETHEREUM_REPO=https://github.com/hcastano/parity-ethereum.git
- # substrate-builtins-stubs branch
-ARG ETHEREUM_HASH=79a6e12c63815c72a0152b5deb0d9e616aa42738
+ARG ETHEREUM_REPO=https://github.com/paritytech/openethereum.git
+ARG ETHEREUM_HASH=4fecaa56da067e4c62aee76a6afb6be52754c1cf
 RUN git clone $ETHEREUM_REPO /openethereum && git checkout $ETHEREUM_HASH
 
 ### Build locally. Make sure to set the CONTEXT to main directory of the repo.

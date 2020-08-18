@@ -332,9 +332,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.36"
+version = "0.1.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a265e3abeffdce30b2e26b7a11b222fe37c6067404001b434101457d0385eb92"
+checksum = "caae68055714ff28740f310927e04f2eba76ff580b16fb18ed90073ee71646f7"
 dependencies = [
  "proc-macro2",
  "quote 1.0.7",
@@ -844,9 +844,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "2.33.2"
+version = "2.33.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10040cdf04294b565d9e0319955430099ec3813a64c952b86a41200ad714ae48"
+checksum = "37e58ac78573c40708d45522f0d80fa2f01cc4f9b4e2bf749807255454312002"
 dependencies = [
  "ansi_term 0.11.0",
  "atty",
@@ -1307,7 +1307,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "substrate-prometheus-endpoint",
- "sysinfo 0.15.0",
+ "sysinfo 0.15.1",
  "time 0.2.16",
  "web3",
 ]
@@ -2558,7 +2558,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#99fb015dd9d678392dab8e90efdbd9b4a6b82fd9"
 dependencies = [
  "async-std",
  "bs58",
@@ -2585,7 +2585,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#99fb015dd9d678392dab8e90efdbd9b4a6b82fd9"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -5748,9 +5748,9 @@ checksum = "f638d531eccd6e23b980caf34876660d38e265409d8e99b397ab71eb3612fad0"
 
 [[package]]
 name = "serde"
-version = "1.0.114"
+version = "1.0.115"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5317f7588f0a5078ee60ef675ef96735a1442132dc645eb1d12c018620ed8cd3"
+checksum = "e54c9a88f2da7238af84b5101443f0c0d0a3bbdc455e34a5c9497b1903ed55d5"
 dependencies = [
  "serde_derive",
 ]
@@ -5767,9 +5767,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.114"
+version = "1.0.115"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a0be94b04690fbaed37cddffc5c134bf537c8e3329d53e982fe04c374978f8e"
+checksum = "609feed1d0a73cc36a0182a840a9b37b4a82f0b1150369f0536a9e3f2a31dc48"
 dependencies = [
  "proc-macro2",
  "quote 1.0.7",
@@ -6844,9 +6844,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f597c00e6548b9ddd54c11b8e8534fc11223f28509d57e021f01797b50ca5ca1"
+checksum = "13816d558f404113dfdf855ed982f160cf697b3e573a68b2b798062032182212"
 dependencies = [
  "cfg-if",
  "doc-comment",

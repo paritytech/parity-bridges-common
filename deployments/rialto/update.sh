@@ -10,24 +10,37 @@ set -xeu
 
 # Update *_BRIDGE_HASH in .env
 function update_hash {
+	echo "Updating $1"
 	sed -i "/$1/d" .env || true
 	echo "$1=$(git rev-parse HEAD)" >> .env
 }
 
-# Update Matrix access token
-# Also source the temp environment file so we can access the variables
-grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY -e WITH_GIT .env > .env2 && . ./.env2 && rm .env2
-
-COMPOSE_EXTENSION=''
-if [ ! -z ${WITH_GIT+x} ]; then
-	git pull
-	case "${1:-all}" in
+function process_argument {
+	case "$1" in
 		all) update_hash "NODE_BRIDGE_HASH"; update_hash "ETH_BRIDGE_HASH"; update_hash "RELAY_BRIDGE_HASH";;
 		node) update_hash "NODE_BRIDGE_HASH";;
 		relay) update_hash "RELAY_BRIDGE_HASH";;
 		eth) update_hash "ETH_BRIDGE_HASH";;
 		*) echo "Invalid parameter: $1 (expected all/node/relay/eth)"; exit 1;;
 	esac
+}
+
+# Read and source variables from .env file so we can use them here
+grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY -e WITH_GIT .env > .env2 && . ./.env2 && rm .env2
+
+COMPOSE_EXTENSION=''
+if [ ! -z ${WITH_GIT+x} ]; then
+	git pull
+
+	# Run at least once
+	process_argument ${1:-all}
+	shift || true
+	# Then process the rest.
+	while [[ $# -gt 0 ]]; do
+		process_argument $1
+		shift
+	done
+
 	COMPOSE_EXTENSION='-f docker-compose.yml -f docker-compose.git.yml'
 fi
 
