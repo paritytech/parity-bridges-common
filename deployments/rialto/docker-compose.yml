@@ -47,10 +47,6 @@ services:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
-    healthcheck:
-      test: curl -f http://localhost:9616/metrics || exit 1
-      interval: 2m
-      timeout: 10s
     ports:
       - "9616:9616"
     depends_on: &all-nodes
@@ -82,10 +78,6 @@ services:
       - ./bridge-config:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
-    healthcheck:
-      test: curl -f http://localhost:9616/metrics || exit 1
-      interval: 2m
-      timeout: 10s
     ports:
       - "9716:9616"
     depends_on: *all-nodes
@@ -117,10 +109,6 @@ services:
       - ./bridge-config:/config
     environment: &bridge-env
       RUST_LOG: runtime=trace,rpc=debug,txpool=trace
-    healthcheck:
-      test: curl -f http://localhost:9933/health || exit 1
-      interval: 2m
-      timeout: 10s
     ports:
       - "9933:9933"
       - "9944:9944"
