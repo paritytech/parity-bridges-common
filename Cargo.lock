@@ -627,6 +627,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-header-chain"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
@@ -667,6 +674,7 @@ version = "0.1.0"
 dependencies = [
  "bp-currency-exchange",
  "bp-eth-poa",
+ "bp-header-chain",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -3636,6 +3644,7 @@ name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
  "bp-currency-exchange",
+ "bp-header-chain",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
