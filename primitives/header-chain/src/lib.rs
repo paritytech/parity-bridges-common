@@ -49,3 +49,11 @@ pub trait FullHeaderChain<AccountId> {
 
 	fn import_header(who: Option<AccountId>, header: Self::Header, extra_data: Option<Self::Extra>) -> bool;
 }
+
+pub trait FinalityHeaderChain {
+	type Header;
+	type Proof;
+
+	// This would be used within the import header pipeline
+	fn prove_finality(header: Self::Header, proof: Self::Proof) -> bool;
+}

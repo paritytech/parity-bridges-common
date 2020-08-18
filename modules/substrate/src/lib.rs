@@ -20,30 +20,43 @@
 //! gadget. It will be able to verify that headers have been included and subsequenty
 //! finalized by Grandpa.
 
+// I think to start I want to expose one method: import_header(). This will only
+// accept finalized blocks. This will be a sort of minimum viable bridge in a sense.
+// We will only store finalized blocks. This will give us a chance to develop a finality
+// chain interface.
+//
+// Once this is done we can move on to a "full" headerchain/light client. This could then
+// add things like tracking different forks. This would also need to implement some sort
+// of pruning mechanism once we accept a finalized block.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use bp_header_chain::{FullHeaderChain, MinimalHeaderChain};
+use bp_header_chain::{BaseHeaderChain, FinalityHeaderChain, FullHeaderChain};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch, traits::Get};
 use frame_system::{ensure_none, ensure_signed};
 
 pub trait Trait: frame_system::Trait {
-	type Blockchain: MinimalHeaderChain + FullHeaderChain<Self::AccountId>;
+	type Blockchain: BaseHeaderChain + FullHeaderChain<Self::AccountId> + FinalityHeaderChain;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
-		BestHeader: T::Hash; // Maybe make this a HeaderId?
+		// Maybe make this a HeaderId?
+		BestHeader: T::Hash;
+		// Best finalized header we know of.
+		BestFinalized: T::Hash;
+		// Headers which have been imported into the runtime.
+		// Maybe made a HeaderId?
+		ImportedHeaders: map hasher(identity) T::Hash => Option<T::Header>;
 	}
 }
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		/// Error names should be descriptive.
-		NoneValue,
 		/// Errors should have helpful documentation associated with them.
-		StorageOverflow,
+		UnfinalizedHeader,
 	}
 }
 
@@ -52,20 +65,7 @@ decl_module! {
 		type Error = Error<T>;
 
 		#[weight = 0]
-		pub fn import_unsiged_header(
-			origin,
-			header: <T::Blockchain as FullHeaderChain<T::AccountId>>::Header,
-			extra_data: Option<<T::Blockchain as FullHeaderChain<T::AccountId>>::Extra>,
-		) -> dispatch::DispatchResult {
-			ensure_none(origin)?;
-
-			let successful = T::Blockchain::import_header(None, header, extra_data);
-
-			Ok(())
-		}
-
-		#[weight = 0]
-		pub fn import_siged_header(
+		pub fn import_signed_header(
 			origin,
 			header: <T::Blockchain as FullHeaderChain<T::AccountId>>::Header,
 			extra_data: Option<<T::Blockchain as FullHeaderChain<T::AccountId>>::Extra>,
@@ -73,6 +73,10 @@ decl_module! {
 			let who = ensure_signed(origin)?;
 
 			let successful = T::Blockchain::import_header(Some(who), header, extra_data);
+
+			if !successful {
+				return Err(<Error<T>>::UnfinalizedHeader.into())
+			}
 
 			Ok(())
 		}
