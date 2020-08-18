@@ -2558,7 +2558,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#99fb015dd9d678392dab8e90efdbd9b4a6b82fd9"
 dependencies = [
  "async-std",
  "bs58",
@@ -2585,7 +2585,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#aed5c25a1850196f86e046228d2439b42c84ce6a"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#99fb015dd9d678392dab8e90efdbd9b4a6b82fd9"
 dependencies = [
  "Inflector",
  "proc-macro2",
