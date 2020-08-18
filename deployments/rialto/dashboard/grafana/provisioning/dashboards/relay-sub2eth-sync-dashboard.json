@@ -301,7 +301,8 @@
       "pluginVersion": "7.1.0",
       "targets": [
         {
-          "expr": "Substrate_to_Ethereum_Sync_process_cpu_usage_percentage",
+          "expr": "avg_over_time(Substrate_to_Ethereum_Sync_process_cpu_usage_percentage[1m])",
+          "instant": true,
           "interval": "",
           "legendFormat": "",
           "refId": "A"
