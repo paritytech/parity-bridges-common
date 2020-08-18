@@ -42,3 +42,10 @@ pub trait BaseHeaderChain {
 	/// Returns Some(transaction) if proof is valid and None otherwise.
 	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction>;
 }
+
+pub trait FullHeaderChain<AccountId> {
+	type Header: Parameter;
+	type Extra: Parameter;
+
+	fn import_header(who: Option<AccountId>, header: Self::Header, extra_data: Option<Self::Extra>) -> bool;
+}

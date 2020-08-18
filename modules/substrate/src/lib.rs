@@ -24,14 +24,17 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
+use bp_header_chain::{FullHeaderChain, MinimalHeaderChain};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch, traits::Get};
-use frame_system::{ensure_signed, ensure_none};
+use frame_system::{ensure_none, ensure_signed};
 
-pub trait Trait: frame_system::Trait {}
+pub trait Trait: frame_system::Trait {
+	type Blockchain: MinimalHeaderChain + FullHeaderChain<Self::AccountId>;
+}
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
-		Something get(fn something): Option<u32>;
+		BestHeader: T::Hash; // Maybe make this a HeaderId?
 	}
 }
 
@@ -49,18 +52,28 @@ decl_module! {
 		type Error = Error<T>;
 
 		#[weight = 0]
-		pub fn import_unsiged_header(origin, something: u32) -> dispatch::DispatchResult {
-			let who = ensure_none(origin)?;
+		pub fn import_unsiged_header(
+			origin,
+			header: <T::Blockchain as FullHeaderChain<T::AccountId>>::Header,
+			extra_data: Option<<T::Blockchain as FullHeaderChain<T::AccountId>>::Extra>,
+		) -> dispatch::DispatchResult {
+			ensure_none(origin)?;
 
-			// Return a successful DispatchResult
+			let successful = T::Blockchain::import_header(None, header, extra_data);
+
 			Ok(())
 		}
 
 		#[weight = 0]
-		pub fn import_siged_header(origin, something: u32) -> dispatch::DispatchResult {
+		pub fn import_siged_header(
+			origin,
+			header: <T::Blockchain as FullHeaderChain<T::AccountId>>::Header,
+			extra_data: Option<<T::Blockchain as FullHeaderChain<T::AccountId>>::Extra>,
+		) -> dispatch::DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			// Return a successful DispatchResult
+			let successful = T::Blockchain::import_header(Some(who), header, extra_data);
+
 			Ok(())
 		}
 	}
