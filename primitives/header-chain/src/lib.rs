@@ -19,10 +19,19 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::Parameter;
+use core::clone::Clone;
+use core::cmp::Eq;
+use core::fmt::Debug;
+use parity_scale_codec::{Codec, EncodeLike};
+
+/// A type that can be used as a parameter in a dispatchable function.
+///
+/// When using `decl_module` all arguments for call functions must implement this trait.
+pub trait Parameter: Codec + EncodeLike + Clone + Eq + Debug {}
+impl<T> Parameter for T where T: Codec + EncodeLike + Clone + Eq + Debug {}
 
 /// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
-pub trait MinimalHeaderChain {
+pub trait BaseHeaderChain {
 	/// Transaction type.
 	type Transaction: Parameter;
 	/// Transaction inclusion proof type.
