@@ -18,7 +18,7 @@
 //! So we are giving runtime opportunity to prepare environment and construct proof
 //! before invoking module calls.
 
-use super::{Call, Instance, Module as CurrencyExchangeModule, PeerBlockchain, Trait as CurrencyExchangeTrait};
+use super::{Call, Instance, Module as CurrencyExchangeModule, MinimalHeaderChain, Trait as CurrencyExchangeTrait};
 use sp_std::prelude::*;
 
 use frame_benchmarking::{account, benchmarks_instance};
@@ -50,7 +50,7 @@ pub trait Trait<I: Instance>: CurrencyExchangeTrait<I> {
 	/// Prepare proof for importing exchange transaction.
 	fn make_proof(
 		proof_params: ProofParams<Self::AccountId>,
-	) -> <<Self as CurrencyExchangeTrait<I>>::PeerBlockchain as PeerBlockchain>::TransactionInclusionProof;
+	) -> <<Self as CurrencyExchangeTrait<I>>::PeerBlockchain as MinimalHeaderChain>::TransactionInclusionProof;
 }
 
 benchmarks_instance! {
