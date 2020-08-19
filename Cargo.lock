@@ -3622,24 +3622,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "hash-db",
- "pallet-session",
- "parity-scale-codec",
- "serde",
- "sp-core",
- "sp-finality-grandpa",
- "sp-io",
- "sp-runtime",
- "sp-state-machine",
- "sp-trie",
-]
-
-[[package]]
 name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
@@ -3741,6 +3723,16 @@ dependencies = [
  "sp-session",
  "sp-staking",
  "sp-std",
+ "sp-trie",
+]
+
+[[package]]
+name = "pallet-substrate-bridge"
+version = "0.1.0"
+dependencies = [
+ "hash-db",
+ "serde",
+ "sp-runtime",
  "sp-trie",
 ]
 
