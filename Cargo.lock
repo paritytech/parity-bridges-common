@@ -3731,6 +3731,8 @@ name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
+ "frame-support",
+ "frame-system",
  "hash-db",
  "parity-scale-codec",
  "serde",
