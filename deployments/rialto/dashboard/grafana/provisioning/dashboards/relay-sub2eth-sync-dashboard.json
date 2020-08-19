@@ -40,7 +40,7 @@
             },
             "reducer": {
               "params": [],
-              "type": "max"
+              "type": "min"
             },
             "type": "query"
           }
