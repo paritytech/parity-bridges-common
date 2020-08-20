@@ -33,6 +33,7 @@ pub mod exchange;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benches;
 pub mod kovan;
+pub mod millau;
 pub mod rialto;
 
 use codec::{Decode, Encode};
@@ -266,6 +267,11 @@ impl pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange> for Runtime {
 	type Amount = Balance;
 	type CurrencyConverter = bp_currency_exchange::IdentityCurrencyConverter<Balance>;
 	type DepositInto = DepositInto;
+}
+
+impl pallet_substrate_bridge::Trait for Runtime {
+	type HeaderVerifier = millau::Millau;
+	type FinalityVerifier = millau::Millau;
 }
 
 pub struct DepositInto;

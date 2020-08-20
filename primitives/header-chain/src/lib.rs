@@ -43,17 +43,21 @@ pub trait BaseHeaderChain {
 	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction>;
 }
 
-pub trait FullHeaderChain<AccountId> {
+/// A trait for verifying whether a header is valid for a particular blockchain.
+pub trait HeaderVerifier {
 	type Header: Parameter;
 	type Extra: Parameter;
 
-	fn import_header(who: Option<AccountId>, header: Self::Header, extra_data: Option<Self::Extra>) -> bool;
+	/// Check that a standalone header is well-formed. This does not need to provide any sort
+	/// of ancestry related verification.
+	fn validate_header(header: &Self::Header, extra_data: &Option<Self::Extra>) -> bool;
 }
 
-pub trait FinalityHeaderChain {
-	type Header;
-	type Proof;
+/// A trait for verifying that a given header has been finalized.
+pub trait FinalityVerifier {
+	type Header: Parameter;
+	type Proof: Parameter;
 
-	// This would be used within the import header pipeline
-	fn prove_finality(header: Self::Header, proof: Self::Proof) -> bool;
+	/// Verify that the given header has been finalized and is part of the canonical chain.
+	fn verify_finality(header: &Self::Header, proof: &Self::Proof) -> bool;
 }
