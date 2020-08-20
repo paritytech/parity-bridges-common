@@ -18,6 +18,11 @@ jobs:
         project:
           - bridge-node
           - ethereum-poa-relay
+        include:
+          - project: bridge-node
+            healthcheck: http://localhost:9933/health
+          - project: ethereum-poa-relay
+            healthcheck: http://localhost:9616/metrics
     runs-on:                                        self-hosted
     container:
       image:                                        docker:git
@@ -47,7 +52,7 @@ jobs:
           username:                                 ${{ secrets.DOCKER_USER }}
           password:                                 ${{ secrets.DOCKER_PASSWORD }}
           repository:                               paritytech/${{ matrix.project }}
-          build_args:                               PROJECT=${{ matrix.project }}
+          build_args:                               PROJECT=${{ matrix.project }}, HEALTH=${{ matrix.healthcheck }}
           tags:                                     ${{ steps.vars.outputs.TAG }}, latest
           labels:
             org.opencontainers.image.created=${{ steps.vars.outputs.DATE }},
