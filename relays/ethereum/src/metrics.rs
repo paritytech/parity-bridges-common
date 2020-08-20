@@ -150,7 +150,8 @@ impl GlobalMetrics {
 					memory_usage,
 				);
 
-				self.process_cpu_usage_percentage.set(if cpu_usage.is_finite() { cpu_usage } else { 0f64 });
+				self.process_cpu_usage_percentage
+					.set(if cpu_usage.is_finite() { cpu_usage } else { 0f64 });
 				self.process_memory_usage_bytes.set(memory_usage);
 			}
 			_ => {
