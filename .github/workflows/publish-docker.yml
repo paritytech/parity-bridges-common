@@ -18,9 +18,11 @@ jobs:
         project:
           - bridge-node
           - ethereum-poa-relay
-        healthcheck:
-          - http://localhost:9933/health
-          - http://localhost:9616/metrics
+        include:
+          - project: bridge-node
+            healthcheck: http://localhost:9933/health
+          - project: ethereum-poa-relay
+            healthcheck: http://localhost:9616/metrics
     runs-on:                                        self-hosted
     container:
       image:                                        docker:git
