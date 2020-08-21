@@ -103,7 +103,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	/// Process stored lane messages.
 	///
 	/// Stops processing either when all messages are processed, or when processor returns
-	/// MessageAction::Queue.
+	/// MessageResult::NotProcessed.
 	pub fn process_lane_messages(lane_id: &LaneId, processor: &mut impl OnMessageReceived<T::Payload>) {
 		inbound_lane::<T, I>(*lane_id).process_messages(processor);
 	}

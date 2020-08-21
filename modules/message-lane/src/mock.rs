@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_message_lane::{LaneId, Message, MessageAction, OnMessageReceived};
+use bp_message_lane::{LaneId, Message, MessageResult, OnMessageReceived};
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
@@ -94,11 +94,11 @@ pub const PAYLOAD_TO_QUEUE: TestPayload = 42;
 pub struct TestMessageProcessor;
 
 impl OnMessageReceived<TestPayload> for TestMessageProcessor {
-	fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageAction<TestPayload> {
+	fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageResult<TestPayload> {
 		if message.payload == PAYLOAD_TO_QUEUE {
-			MessageAction::Queue(message)
+			MessageResult::NotProcessed(message)
 		} else {
-			MessageAction::Drop
+			MessageResult::Processed
 		}
 	}
 }

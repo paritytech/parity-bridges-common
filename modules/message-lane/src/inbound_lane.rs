@@ -16,7 +16,7 @@
 
 //! Everything about incoming messages receival.
 
-use bp_message_lane::{InboundLaneData, LaneId, Message, MessageAction, MessageKey, MessageNonce, OnMessageReceived};
+use bp_message_lane::{InboundLaneData, LaneId, Message, MessageResult, MessageKey, MessageNonce, OnMessageReceived};
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
@@ -75,8 +75,8 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 					payload,
 				};
 				match processor.on_message_received(message) {
-					MessageAction::Drop => None,
-					MessageAction::Queue(message) => Some(message.payload),
+					MessageResult::Processed => None,
+					MessageResult::NotProcessed(message) => Some(message.payload),
 				}
 			}
 			false => Some(payload),
@@ -92,7 +92,7 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 	/// Process stored lane messages.
 	///
 	/// Stops processing either when all messages are processed, or when processor returns
-	/// MessageAction::Queue.
+	/// MessageResult::NotProcessed.
 	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<Storage::Payload>) {
 		let mut anything_processed = false;
 		let mut data = self.storage.data();
@@ -111,7 +111,7 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 			};
 
 			let process_result = processor.on_message_received(message);
-			if let MessageAction::Queue(_) = process_result {
+			if let MessageResult::NotProcessed(_) = process_result {
 				break;
 			}
 
@@ -195,11 +195,11 @@ mod tests {
 			pub struct QueueByNonce(MessageNonce);
 
 			impl OnMessageReceived<TestPayload> for QueueByNonce {
-				fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageAction<TestPayload> {
+				fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageResult<TestPayload> {
 					if message.key.nonce == self.0 {
-						MessageAction::Queue(message)
+						MessageResult::NotProcessed(message)
 					} else {
-						MessageAction::Drop
+						MessageResult::Processed
 					}
 				}
 			}

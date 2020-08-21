@@ -49,18 +49,18 @@ pub struct Message<Payload> {
 	pub payload: Payload,
 }
 
-/// Message receival result.
-pub enum MessageAction<Payload> {
+/// Message processing result.
+pub enum MessageResult<Payload> {
 	/// Message has been processed and should not be queued.
-	Drop,
+	Processed,
 	/// Message has NOT been processed and should be queued for processing later.
-	Queue(Message<Payload>),
+	NotProcessed(Message<Payload>),
 }
 
 /// Called when inbound message is received.
 pub trait OnMessageReceived<Payload> {
 	/// Called when inbound message is received.
-	fn on_message_received(&mut self, message: Message<Payload>) -> MessageAction<Payload>;
+	fn on_message_received(&mut self, message: Message<Payload>) -> MessageResult<Payload>;
 }
 
 /// Inbound lane data.
