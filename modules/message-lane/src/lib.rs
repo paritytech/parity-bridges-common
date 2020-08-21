@@ -21,7 +21,7 @@
 use bp_message_lane::{
 	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
 };
-use frame_support::{decl_module, decl_storage, Parameter, StorageMap, traits::Get};
+use frame_support::{decl_module, decl_storage, traits::Get, Parameter, StorageMap};
 use frame_system::ensure_signed;
 use sp_std::{marker::PhantomData, prelude::*};
 
