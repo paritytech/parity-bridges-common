@@ -16,7 +16,7 @@
 
 //! Everything about incoming messages receival.
 
-use bp_message_lane::{InboundLaneData, LaneId, Message, MessageResult, MessageKey, MessageNonce, OnMessageReceived};
+use bp_message_lane::{InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessageResult, OnMessageReceived};
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
