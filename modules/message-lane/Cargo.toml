@@ -1,6 +1,6 @@
 [package]
 name = "pallet-message-lane"
-description = "Substrate <-> Substrate message lane module."
+description = "Module that allows bridged chains to exchange messages using lane concept."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
