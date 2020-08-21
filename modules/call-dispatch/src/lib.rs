@@ -90,7 +90,7 @@ impl<T: Trait> Module<T> {
 mod tests {
 	use super::*;
 	use frame_support::{
-		assert_noop, assert_ok, impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight,
+		impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight,
 	};
 	use sp_core::H256;
 	use sp_runtime::{
