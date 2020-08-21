@@ -29,6 +29,9 @@ pub trait OutboundLaneStorage {
 	fn data(&self) -> OutboundLaneData;
 	/// Update lane data in the storage.
 	fn set_data(&mut self, data: OutboundLaneData);
+	/// Returns saved outbound message payload.
+	#[cfg(test)]
+	fn message(&self, nonce: &MessageNonce) -> Option<Self::Payload>;
 	/// Save outbound message in the storage.
 	fn save_message(&mut self, nonce: MessageNonce, payload: Self::Payload);
 	/// Remove outbound message from the storage.
@@ -93,5 +96,98 @@ impl<Storage: OutboundLaneStorage> OutboundLane<Storage> {
 		}
 
 		pruned_messages
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::{
+		outbound_lane,
+		mock::{REGULAR_PAYLOAD, TEST_LANE_ID, TestRuntime, run_test},
+	};
+	use super::*;
+
+	#[test]
+	fn send_message_works() {
+		run_test(|| {
+			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert_eq!(lane.storage.data().latest_generated_nonce, 0);
+			lane.send_message(REGULAR_PAYLOAD);
+			assert!(lane.storage.message(&1).is_some());
+			assert_eq!(lane.storage.data().latest_generated_nonce, 1);
+		});
+	}
+
+	#[test]
+	fn confirm_receival_works() {
+		run_test(|| {
+			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(REGULAR_PAYLOAD);
+			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
+			assert_eq!(lane.storage.data().latest_received_nonce, 0);
+			assert!(lane.confirm_receival(3));
+			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
+			assert_eq!(lane.storage.data().latest_received_nonce, 3);
+		});
+	}
+
+	#[test]
+	fn confirm_receival_rejects_nonce_lesser_than_latest_received() {
+		run_test(|| {
+			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(REGULAR_PAYLOAD);
+			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
+			assert_eq!(lane.storage.data().latest_received_nonce, 0);
+			assert!(lane.confirm_receival(3));
+			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
+			assert_eq!(lane.storage.data().latest_received_nonce, 3);
+
+			assert!(!lane.confirm_receival(2));
+			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
+			assert_eq!(lane.storage.data().latest_received_nonce, 3);
+		});
+	}
+
+	#[test]
+	fn confirm_receival_rejects_nonce_larger_than_last_generated() {
+		run_test(|| {
+			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(REGULAR_PAYLOAD);
+			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
+			assert_eq!(lane.storage.data().latest_received_nonce, 0);
+			assert!(!lane.confirm_receival(10));
+			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
+			assert_eq!(lane.storage.data().latest_received_nonce, 0);
+		});
+	}
+
+	#[test]
+	fn prune_messages_works() {
+		run_test(|| {
+			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			// when lane is empty, nothing is pruned
+			assert_eq!(lane._prune_messages(100), 0);
+			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
+			// when nothing is confirmed, nothing is pruned
+			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(REGULAR_PAYLOAD);
+			assert_eq!(lane._prune_messages(100), 0);
+			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
+			// after confirmation, some messages are receved
+			assert!(lane.confirm_receival(2));
+			assert_eq!(lane._prune_messages(100), 2);
+			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 3);
+			// after last message is confirmed, everything is pruned
+			assert!(lane.confirm_receival(3));
+			assert_eq!(lane._prune_messages(100), 1);
+			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 4);
+		});
 	}
 }

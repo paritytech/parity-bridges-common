@@ -23,7 +23,7 @@ use sp_runtime::{
 	Perbill,
 };
 
-use crate::{Module, Trait};
+use crate::Trait;
 
 pub type AccountId = u64;
 pub type TestPayload = u64;

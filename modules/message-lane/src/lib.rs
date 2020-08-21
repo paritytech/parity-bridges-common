@@ -201,6 +201,14 @@ impl<T: Trait<I>, I: Instance> crate::outbound_lane::OutboundLaneStorage for Run
 		OutboundLanes::<I>::insert(&self.lane_id, data)
 	}
 
+	#[cfg(test)]
+	fn message(&self, nonce: &MessageNonce) -> Option<Self::Payload> {
+		OutboundMessages::<T, I>::get(MessageKey {
+			lane_id: self.lane_id,
+			nonce: *nonce,
+		})
+	}
+
 	fn save_message(&mut self, nonce: MessageNonce, payload: T::Payload) {
 		OutboundMessages::<T, I>::insert(
 			MessageKey {
