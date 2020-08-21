@@ -28,6 +28,9 @@ use sp_std::{marker::PhantomData, prelude::*};
 mod inbound_lane;
 mod outbound_lane;
 
+#[cfg(test)]
+mod mock;
+
 /// The module configuration trait
 pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Message payload.

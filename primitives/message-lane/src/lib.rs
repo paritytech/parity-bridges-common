@@ -64,12 +64,23 @@ pub trait OnMessageReceived<Payload> {
 }
 
 /// Inbound lane data.
-#[derive(Default, Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone)]
 pub struct InboundLaneData {
-	/// Nonce of oldest message that we haven't processed yet.
+	/// Nonce of oldest message that we haven't processed yet. May point to not-yet-received message if
+	/// lane is currently empty.
 	pub oldest_unprocessed_nonce: MessageNonce,
 	/// Nonce of latest message that we have received from bridged chain.
 	pub latest_received_nonce: MessageNonce,
+}
+
+impl Default for InboundLaneData {
+	fn default() -> Self {
+		InboundLaneData {
+			// it is 1 because we're processing everything in [oldest_unprocessed_nonce; latest_received_nonce]
+			oldest_unprocessed_nonce: 1,
+			latest_received_nonce: 0,
+		}
+	}
 }
 
 /// Outbound lane data.

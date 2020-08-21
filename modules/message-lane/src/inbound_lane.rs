@@ -61,7 +61,7 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 			return false;
 		}
 
-		let is_process_required = is_correct_message && data.oldest_unprocessed_nonce == data.latest_received_nonce;
+		let is_process_required = is_correct_message && data.oldest_unprocessed_nonce == nonce;
 		data.latest_received_nonce = nonce;
 		self.storage.set_data(data);
 
@@ -96,7 +96,7 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<Storage::Payload>) {
 		let mut anything_processed = false;
 		let mut data = self.storage.data();
-		while data.oldest_unprocessed_nonce != data.latest_received_nonce {
+		while data.oldest_unprocessed_nonce <= data.latest_received_nonce {
 			let nonce = data.oldest_unprocessed_nonce;
 			let payload = self
 				.storage
@@ -124,5 +124,111 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 		if anything_processed {
 			self.storage.set_data(data);
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::{
+		inbound_lane,
+		mock::{PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID, TestPayload, TestRuntime, TestMessageProcessor, run_test},
+	};
+	use super::*;
+
+	#[test]
+	fn fails_to_receive_message_with_incorrect_nonce() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert!(!lane.receive_message(10, REGULAR_PAYLOAD, &mut TestMessageProcessor));
+			assert!(lane.storage.message(&10).is_none());
+			assert_eq!(lane.storage.data().latest_received_nonce, 0);
+		});
+	}
+
+	#[test]
+	fn correct_message_is_queued_if_some_other_messages_are_queued() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert!(lane.receive_message(1, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
+			assert!(lane.storage.message(&1).is_some());
+			assert!(lane.receive_message(2, REGULAR_PAYLOAD, &mut TestMessageProcessor));
+			assert!(lane.storage.message(&2).is_some());
+			assert_eq!(lane.storage.data().latest_received_nonce, 2);
+		});
+	}
+
+	#[test]
+	fn correct_message_is_queued_if_processor_wants_to_queue() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert!(lane.receive_message(1, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
+			assert!(lane.storage.message(&1).is_some());
+			assert_eq!(lane.storage.data().latest_received_nonce, 1);
+		});
+	}
+
+	#[test]
+	fn correct_message_is_not_queued_if_processed_instantly() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert!(lane.receive_message(1, REGULAR_PAYLOAD, &mut TestMessageProcessor));
+			assert!(lane.storage.message(&1).is_none());
+			assert_eq!(lane.storage.data().latest_received_nonce, 1);
+		});
+	}
+
+	#[test]
+	fn process_message_does_noting_when_lane_is_empty() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 1);
+			lane.process_messages(&mut TestMessageProcessor);
+			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 1);
+		});
+	}
+
+	#[test]
+	fn process_message_works() {
+		run_test(|| {
+			pub struct QueueByNonce(MessageNonce);
+
+			impl OnMessageReceived<TestPayload> for QueueByNonce {
+				fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageAction<TestPayload> {
+					if message.key.nonce == self.0 {
+						MessageAction::Queue(message)
+					} else {
+						MessageAction::Drop
+					}
+				}
+			}
+
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert!(lane.receive_message(1, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
+			assert!(lane.receive_message(2, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
+			assert!(lane.receive_message(3, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
+			assert!(lane.receive_message(4, REGULAR_PAYLOAD, &mut TestMessageProcessor));
+
+			assert!(lane.storage.message(&1).is_some());
+			assert!(lane.storage.message(&2).is_some());
+			assert!(lane.storage.message(&3).is_some());
+			assert!(lane.storage.message(&4).is_some());
+			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 1);
+
+			lane.process_messages(&mut QueueByNonce(3));
+
+			assert!(lane.storage.message(&1).is_none());
+			assert!(lane.storage.message(&2).is_none());
+			assert!(lane.storage.message(&3).is_some());
+			assert!(lane.storage.message(&4).is_some());
+			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 3);
+
+			lane.process_messages(&mut QueueByNonce(10));
+
+			assert!(lane.storage.message(&1).is_none());
+			assert!(lane.storage.message(&2).is_none());
+			assert!(lane.storage.message(&3).is_none());
+			assert!(lane.storage.message(&4).is_none());
+			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 5);
+		});
 	}
 }
