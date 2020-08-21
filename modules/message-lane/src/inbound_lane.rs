@@ -129,11 +129,13 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::{
 		inbound_lane,
-		mock::{PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID, TestPayload, TestRuntime, TestMessageProcessor, run_test},
+		mock::{
+			run_test, TestMessageProcessor, TestPayload, TestRuntime, PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID,
+		},
 	};
-	use super::*;
 
 	#[test]
 	fn fails_to_receive_message_with_incorrect_nonce() {

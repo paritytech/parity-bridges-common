@@ -101,11 +101,11 @@ impl<Storage: OutboundLaneStorage> OutboundLane<Storage> {
 
 #[cfg(test)]
 mod tests {
-	use crate::{
-		outbound_lane,
-		mock::{REGULAR_PAYLOAD, TEST_LANE_ID, TestRuntime, run_test},
-	};
 	use super::*;
+	use crate::{
+		mock::{run_test, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID},
+		outbound_lane,
+	};
 
 	#[test]
 	fn send_message_works() {
