@@ -52,7 +52,6 @@ impl<Storage: OutboundLaneStorage> OutboundLane<Storage> {
 	/// Send message over lane.
 	pub fn send_message(&mut self, payload: Storage::Payload) {
 		let mut data = self.storage.data();
-		// TODO: do we need to protect against nonce overflow?
 		let nonce = data.latest_generated_nonce + 1;
 		data.latest_generated_nonce = nonce;
 
