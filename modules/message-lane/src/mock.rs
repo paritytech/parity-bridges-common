@@ -71,12 +71,12 @@ impl frame_system::Trait for TestRuntime {
 }
 
 parameter_types! {
-	pub const MaxHeadersToPruneAtOnce: u64 = 10;
+	pub const MaxMessagesToPruneAtOnce: u64 = 10;
 }
 
 impl Trait for TestRuntime {
 	type Payload = TestPayload;
-	type MaxHeadersToPruneAtOnce = MaxHeadersToPruneAtOnce;
+	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type OnMessageReceived = TestMessageProcessor;
 }
 

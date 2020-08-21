@@ -39,7 +39,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// whenever outbound lane is updated - i.e. when new message is sent, or receival is
 	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
 	/// for it.
-	type MaxHeadersToPruneAtOnce: Get<MessageNonce>;
+	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
 	/// Called when message has been received.
 	type OnMessageReceived: Default + OnMessageReceived<Self::Payload>;
 }
@@ -69,7 +69,7 @@ decl_module! {
 			let _ = ensure_signed(origin)?;
 			let mut lane = outbound_lane::<T, I>(lane_id);
 			lane.send_message(payload);
-			lane.prune_messages(T::MaxHeadersToPruneAtOnce::get());
+			lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 		}
 	}
 }
@@ -118,7 +118,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	pub fn confirm_receival(lane_id: &LaneId, latest_received_nonce: MessageNonce) {
 		let mut lane = outbound_lane::<T, I>(*lane_id);
 		lane.confirm_receival(latest_received_nonce);
-		lane.prune_messages(T::MaxHeadersToPruneAtOnce::get());
+		lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 	}
 }
 
