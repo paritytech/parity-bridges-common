@@ -634,6 +634,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-message-lane"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
@@ -687,6 +694,7 @@ dependencies = [
  "pallet-bridge-currency-exchange",
  "pallet-bridge-eth-poa",
  "pallet-grandpa",
+ "pallet-message-lane",
  "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-sudo",
@@ -3690,6 +3698,17 @@ dependencies = [
  "sp-runtime",
  "sp-session",
  "sp-staking",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-message-lane"
+version = "0.1.0"
+dependencies = [
+ "bp-message-lane",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
  "sp-std",
 ]
 
