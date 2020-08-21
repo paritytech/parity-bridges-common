@@ -26,11 +26,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-use bp_message_dispatch::{MessageDispatch, BridgeOrigin};
-use codec::{Encode, Decode};
+use bp_message_dispatch::{BridgeOrigin, MessageDispatch};
+use codec::{Decode, Encode};
 use frame_support::{
-	decl_module, debug,
-	dispatch::{Parameter, Dispatchable},
+	debug, decl_module,
+	dispatch::{Dispatchable, Parameter},
 	traits::Get,
 };
 use sp_io::hashing::blake2_256;
@@ -41,7 +41,7 @@ pub type SpecVersion = u32;
 /// The module configuration trait
 pub trait Trait: frame_system::Trait {
 	/// The overarching dispatch call type.
-	type Call: Parameter + Dispatchable<Origin=<Self as frame_system::Trait>::Origin>;
+	type Call: Parameter + Dispatchable<Origin = <Self as frame_system::Trait>::Origin>;
 }
 
 decl_module! {
@@ -49,8 +49,9 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {}
 }
 
-impl<T: Trait> MessageDispatch for Module<T> where
-	<<T as Trait>::Call as Dispatchable>::PostInfo: sp_std::fmt::Debug
+impl<T: Trait> MessageDispatch for Module<T>
+where
+	<<T as Trait>::Call as Dispatchable>::PostInfo: sp_std::fmt::Debug,
 {
 	type Message = (SpecVersion, <T as Trait>::Call);
 
@@ -65,7 +66,7 @@ impl<T: Trait> MessageDispatch for Module<T> where
 				expected_version,
 				spec_version
 			);
-			return false
+			return false;
 		}
 
 		let bridge_origin = || Self::bridge_account_id(origin);
@@ -89,8 +90,7 @@ impl<T: Trait> Module<T> {
 mod tests {
 	use super::*;
 	use frame_support::{
-		assert_noop, assert_ok, impl_outer_origin, impl_outer_dispatch, parameter_types,
-		weights::Weight
+		assert_noop, assert_ok, impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight,
 	};
 	use sp_core::H256;
 	use sp_runtime::{
@@ -163,14 +163,14 @@ mod tests {
 		sp_io::TestExternalities::new(t)
 	}
 
-
 	#[test]
 	fn should_succesfuly_dispatch_remark() {
 		new_test_ext().execute_with(|| {
 			let origin = b"eth".to_owned();
-			let message = (0, Call::System(
-				<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])
-			));
+			let message = (
+				0,
+				Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])),
+			);
 			assert!(CallDispatch::dispatch(origin, message));
 		});
 	}
@@ -179,9 +179,10 @@ mod tests {
 	fn should_fail_on_spec_version_mismatch() {
 		new_test_ext().execute_with(|| {
 			let origin = b"eth".to_owned();
-			let message = (69, Call::System(
-				<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])
-			));
+			let message = (
+				69,
+				Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])),
+			);
 			assert!(!CallDispatch::dispatch(origin, message));
 		});
 	}
@@ -190,9 +191,10 @@ mod tests {
 	fn should_dispatch_from_non_root_origin() {
 		new_test_ext().execute_with(|| {
 			let origin = b"eth".to_owned();
-			let message = (69, Call::System(
-				<frame_system::Call<TestRuntime>>::fill_block(Perbill::from_percent(10))
-			));
+			let message = (
+				69,
+				Call::System(<frame_system::Call<TestRuntime>>::fill_block(Perbill::from_percent(10))),
+			);
 			assert!(!CallDispatch::dispatch(origin, message));
 		});
 	}
