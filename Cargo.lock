@@ -638,6 +638,7 @@ name = "bp-message-lane"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
+ "sp-api",
 ]
 
 [[package]]
