@@ -23,7 +23,7 @@ use bp_message_lane::{
 };
 use frame_support::{decl_module, decl_storage, Parameter, StorageMap};
 use frame_system::ensure_signed;
-use sp_std::marker::PhantomData;
+use sp_std::{marker::PhantomData, prelude::*};
 
 mod inbound_lane;
 mod outbound_lane;
@@ -141,7 +141,7 @@ impl<T: Trait<I>, I: Instance> crate::inbound_lane::InboundLaneStorage for Runti
 	type Payload = T::Payload;
 
 	fn id(&self) -> LaneId {
-		self.lane_id.clone()
+		self.lane_id
 	}
 
 	fn data(&self) -> InboundLaneData {
@@ -187,7 +187,7 @@ impl<T: Trait<I>, I: Instance> crate::outbound_lane::OutboundLaneStorage for Run
 	type Payload = T::Payload;
 
 	fn id(&self) -> LaneId {
-		self.lane_id.clone()
+		self.lane_id
 	}
 
 	fn data(&self) -> OutboundLaneData {
