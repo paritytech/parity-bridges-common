@@ -634,6 +634,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-message-dispatch"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
@@ -3617,6 +3624,20 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-call-dispatch"
+version = "0.1.0"
+dependencies = [
+ "bp-message-dispatch",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
