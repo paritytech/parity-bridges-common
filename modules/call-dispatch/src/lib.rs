@@ -89,9 +89,7 @@ impl<T: Trait> Module<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{
-		impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight,
-	};
+	use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
 	use sp_core::H256;
 	use sp_runtime::{
 		testing::Header,
