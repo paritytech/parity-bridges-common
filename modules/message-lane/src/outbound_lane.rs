@@ -74,12 +74,7 @@ impl<Storage: OutboundLaneStorage> OutboundLane<Storage> {
 	}
 
 	/// Prune at most `max_messages_to_prune` already received messages.
-	pub fn _prune_messages(&mut self, max_messages_to_prune: MessageNonce) -> MessageNonce {
-		// TODO: do we need to call it during `on_finalize` - then we need to iterate lanes map,
-		// prbably without any effect (=> slowdown if there are many lanes)
-		// track unpruned messages in other map?
-		// prune on confirmation?
-
+	pub fn prune_messages(&mut self, max_messages_to_prune: MessageNonce) -> MessageNonce {
 		let mut pruned_messages = 0;
 		let mut anything_changed = false;
 		let mut data = self.storage.data();
@@ -172,21 +167,21 @@ mod tests {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			// when lane is empty, nothing is pruned
-			assert_eq!(lane._prune_messages(100), 0);
+			assert_eq!(lane.prune_messages(100), 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
 			// when nothing is confirmed, nothing is pruned
 			lane.send_message(REGULAR_PAYLOAD);
 			lane.send_message(REGULAR_PAYLOAD);
 			lane.send_message(REGULAR_PAYLOAD);
-			assert_eq!(lane._prune_messages(100), 0);
+			assert_eq!(lane.prune_messages(100), 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
 			// after confirmation, some messages are receved
 			assert!(lane.confirm_receival(2));
-			assert_eq!(lane._prune_messages(100), 2);
+			assert_eq!(lane.prune_messages(100), 2);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 3);
 			// after last message is confirmed, everything is pruned
 			assert!(lane.confirm_receival(3));
-			assert_eq!(lane._prune_messages(100), 1);
+			assert_eq!(lane.prune_messages(100), 1);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 4);
 		});
 	}

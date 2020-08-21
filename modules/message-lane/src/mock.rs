@@ -70,8 +70,13 @@ impl frame_system::Trait for TestRuntime {
 	type SystemWeightInfo = ();
 }
 
+parameter_types! {
+	pub const MaxHeadersToPruneAtOnce: u64 = 10;
+}
+
 impl Trait for TestRuntime {
 	type Payload = TestPayload;
+	type MaxHeadersToPruneAtOnce = MaxHeadersToPruneAtOnce;
 	type OnMessageReceived = TestMessageProcessor;
 }
 

@@ -21,7 +21,7 @@
 use bp_message_lane::{
 	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
 };
-use frame_support::{decl_module, decl_storage, Parameter, StorageMap};
+use frame_support::{decl_module, decl_storage, Parameter, StorageMap, traits::Get};
 use frame_system::ensure_signed;
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -35,6 +35,11 @@ mod mock;
 pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Message payload.
 	type Payload: Parameter;
+	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
+	/// whenever outbound lane is updated - i.e. when new message is sent, or receival is
+	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
+	/// for it.
+	type MaxHeadersToPruneAtOnce: Get<MessageNonce>;
 	/// Called when message has been received.
 	type OnMessageReceived: Default + OnMessageReceived<Self::Payload>;
 }
@@ -62,8 +67,9 @@ decl_module! {
 			payload: T::Payload,
 		) {
 			let _ = ensure_signed(origin)?;
-
-			outbound_lane::<T, I>(lane_id).send_message(payload);
+			let mut lane = outbound_lane::<T, I>(lane_id);
+			lane.send_message(payload);
+			lane.prune_messages(T::MaxHeadersToPruneAtOnce::get());
 		}
 	}
 }
@@ -110,7 +116,9 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	/// The caller may break the channel by providing `latest_received_nonce` that is larger
 	/// than actual one. Not-yet-sent messages may be pruned in this case.
 	pub fn confirm_receival(lane_id: &LaneId, latest_received_nonce: MessageNonce) {
-		outbound_lane::<T, I>(*lane_id).confirm_receival(latest_received_nonce);
+		let mut lane = outbound_lane::<T, I>(*lane_id);
+		lane.confirm_receival(latest_received_nonce);
+		lane.prune_messages(T::MaxHeadersToPruneAtOnce::get());
 	}
 }
 
