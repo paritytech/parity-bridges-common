@@ -25,13 +25,13 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use bp_header_chain::{FinalityVerifier, HeaderVerifier};
+use bp_header_chain::{BridgeStorage, ChainVerifier};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
+use sp_std::{marker::PhantomData, prelude::*};
 
 pub trait Trait: frame_system::Trait {
-	type HeaderVerifier: HeaderVerifier;
-	type FinalityVerifier: FinalityVerifier;
+	type Verifier: ChainVerifier;
 }
 
 decl_storage! {
@@ -62,26 +62,42 @@ decl_module! {
 		#[weight = 0]
 		pub fn import_signed_header(
 			origin,
-			header: <T::HeaderVerifier as HeaderVerifier>::Header,
-			extra_data: Option<<T::HeaderVerifier as HeaderVerifier>::Extra>,
-			finalty_proof: <T::FinalityVerifier as FinalityVerifier>::Proof,
+			header: <T::Verifier as ChainVerifier>::Header,
+			extra_data: Option<<T::Verifier as ChainVerifier>::Extra>,
+			finality_proof: Option<<T::Verifier as ChainVerifier>::Proof>,
 		) -> dispatch::DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			let is_valid = T::HeaderVerifier::verify_header(&header, &extra_data);
+			let mut storage = PalletStorage::<T>::new();
+			let is_valid = T::Verifier::import_header(&mut storage, header, extra_data, finality_proof);
+
 			if !is_valid {
 				return Err(<Error<T>>::InvalidHeader.into())
 			}
 
-			let is_finalized = T::FinalityVerifier::verify_finality(&header, &finalty_proof);
-			if !is_finalized {
-				return Err(<Error<T>>::UnfinalizedHeader.into())
-			}
-
-			<BestFinalized<T>>::put(&header);
-			<ImportedHeaders<T>>::insert(header.hash(), header);
-
 			Ok(())
 		}
+	}
+}
+
+#[derive(Default)]
+pub struct PalletStorage<T>(PhantomData<T>);
+
+impl<T> PalletStorage<T> {
+	fn new() -> Self {
+		Self(PhantomData::<T>::default())
+	}
+}
+
+impl<T: Trait> BridgeStorage for PalletStorage<T> {
+	type Header = T::Header;
+
+	fn write_header(header: T::Header) -> bool {
+		<ImportedHeaders<T>>::insert(header.hash(), header);
+		true
+	}
+
+	fn best_finalized_header() -> Option<T::Header> {
+		<BestFinalized<T>>::get()
 	}
 }

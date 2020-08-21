@@ -43,21 +43,38 @@ pub trait BaseHeaderChain {
 	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction>;
 }
 
+pub trait BridgeStorage {
+	type Header;
+
+	fn best_finalized_header() -> Option<Self::Header>;
+	fn write_header(header: Self::Header) -> bool;
+}
+
 /// A trait for verifying whether a header is valid for a particular blockchain.
-pub trait HeaderVerifier {
+pub trait ChainVerifier {
 	type Header: Parameter;
 	type Extra: Parameter;
+	type Proof: Parameter;
+
+	/// Import a header to the pallet.
+	// TODO: This should return a result
+	fn import_header<S: BridgeStorage>(
+		storage: &mut S,
+		header: Self::Header,
+		extra_data: Option<Self::Extra>,
+		finality_proof: Option<Self::Proof>,
+	) -> bool;
 
 	/// Check that a standalone header is well-formed. This does not need to provide any sort
 	/// of ancestry related verification.
-	fn validate_header(header: &Self::Header, extra_data: &Option<Self::Extra>) -> bool;
-}
-
-/// A trait for verifying that a given header has been finalized.
-pub trait FinalityVerifier {
-	type Header: Parameter;
-	type Proof: Parameter;
+	// TODO: This should return a result
+	fn validate_header<S: BridgeStorage>(
+		storage: &mut S,
+		header: &Self::Header,
+		extra_data: &Option<Self::Extra>,
+	) -> bool;
 
 	/// Verify that the given header has been finalized and is part of the canonical chain.
-	fn verify_finality(header: &Self::Header, proof: &Self::Proof) -> bool;
+	// TODO: This should return a result
+	fn verify_finality<S: BridgeStorage>(storage: &mut S, header: &Self::Header, proof: &Self::Proof) -> bool;
 }

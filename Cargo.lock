@@ -3739,6 +3739,7 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-runtime",
+ "sp-std",
  "sp-trie",
 ]
 
