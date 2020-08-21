@@ -76,7 +76,7 @@ impl<Storage: OutboundLaneStorage> OutboundLane<Storage> {
 		// prbably without any effect (=> slowdown if there are many lanes)
 		// track unpruned messages in other map?
 		// prune on confirmation?
-		
+
 		let mut pruned_messages = 0;
 		let mut anything_changed = false;
 		let mut data = self.storage.data();

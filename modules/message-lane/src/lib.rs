@@ -19,7 +19,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_message_lane::{
-	LaneId, Message, MessageKey, MessageNonce, InboundLaneData, OutboundLaneData, OnMessageReceived,
+	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
 };
 use frame_support::{decl_module, decl_storage, Parameter, StorageMap};
 use frame_system::ensure_signed;
@@ -112,7 +112,9 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 }
 
 /// Creates new inbound lane object, backed by runtime storage.
-fn inbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> crate::inbound_lane::InboundLane<RuntimeInboundLaneStorage<T, I>> {
+fn inbound_lane<T: Trait<I>, I: Instance>(
+	lane_id: LaneId,
+) -> crate::inbound_lane::InboundLane<RuntimeInboundLaneStorage<T, I>> {
 	crate::inbound_lane::InboundLane::new(RuntimeInboundLaneStorage {
 		lane_id,
 		_phantom: Default::default(),
@@ -120,7 +122,9 @@ fn inbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> crate::inbound_lan
 }
 
 /// Creates new outbound lane object, backed by runtime storage.
-fn outbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> crate::outbound_lane::OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
+fn outbound_lane<T: Trait<I>, I: Instance>(
+	lane_id: LaneId,
+) -> crate::outbound_lane::OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
 	crate::outbound_lane::OutboundLane::new(RuntimeOutboundLaneStorage {
 		lane_id,
 		_phantom: Default::default(),
@@ -149,12 +153,10 @@ impl<T: Trait<I>, I: Instance> crate::inbound_lane::InboundLaneStorage for Runti
 	}
 
 	fn message(&self, nonce: &MessageNonce) -> Option<Self::Payload> {
-		InboundMessages::<T, I>::get(
-			MessageKey {
-				lane_id: self.lane_id,
-				nonce: *nonce,
-			},
-		)
+		InboundMessages::<T, I>::get(MessageKey {
+			lane_id: self.lane_id,
+			nonce: *nonce,
+		})
 	}
 
 	fn save_message(&mut self, nonce: MessageNonce, payload: T::Payload) {
@@ -168,12 +170,10 @@ impl<T: Trait<I>, I: Instance> crate::inbound_lane::InboundLaneStorage for Runti
 	}
 
 	fn remove_message(&mut self, nonce: &MessageNonce) {
-		InboundMessages::<T, I>::remove(
-			MessageKey {
-				lane_id: self.lane_id,
-				nonce: *nonce,
-			},
-		);
+		InboundMessages::<T, I>::remove(MessageKey {
+			lane_id: self.lane_id,
+			nonce: *nonce,
+		});
 	}
 }
 
@@ -209,11 +209,9 @@ impl<T: Trait<I>, I: Instance> crate::outbound_lane::OutboundLaneStorage for Run
 	}
 
 	fn remove_message(&mut self, nonce: &MessageNonce) {
-		OutboundMessages::<T, I>::remove(
-			MessageKey {
-				lane_id: self.lane_id,
-				nonce: *nonce,
-			},
-		);
+		OutboundMessages::<T, I>::remove(MessageKey {
+			lane_id: self.lane_id,
+			nonce: *nonce,
+		});
 	}
 }

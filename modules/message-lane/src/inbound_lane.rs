@@ -16,7 +16,7 @@
 
 //! Everything about incoming messages receival.
 
-use bp_message_lane::{LaneId, Message, MessageAction, MessageKey, MessageNonce, InboundLaneData, OnMessageReceived};
+use bp_message_lane::{InboundLaneData, LaneId, Message, MessageAction, MessageKey, MessageNonce, OnMessageReceived};
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
@@ -78,7 +78,7 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 					MessageAction::Drop => None,
 					MessageAction::Queue(message) => Some(message.payload),
 				}
-			},
+			}
 			false => Some(payload),
 		};
 
@@ -93,15 +93,15 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 	///
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageAction::Queue.
-	pub fn process_messages(
-		&mut self,
-		processor: &mut impl OnMessageReceived<Storage::Payload>,
-	) {
+	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<Storage::Payload>) {
 		let mut anything_processed = false;
 		let mut data = self.storage.data();
 		while data.oldest_unprocessed_nonce != data.latest_received_nonce {
 			let nonce = data.oldest_unprocessed_nonce;
-			let payload = self.storage.message(&nonce).expect("message is referenced by lane; referenced message is not pruned; qed");
+			let payload = self
+				.storage
+				.message(&nonce)
+				.expect("message is referenced by lane; referenced message is not pruned; qed");
 			let message = Message {
 				key: MessageKey {
 					lane_id: self.storage.id(),
