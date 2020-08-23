@@ -270,8 +270,7 @@ impl pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange> for Runtime {
 }
 
 impl pallet_substrate_bridge::Trait for Runtime {
-	type HeaderVerifier = millau::Millau;
-	type FinalityVerifier = millau::Millau;
+	type Verifier = millau::Millau;
 }
 
 pub struct DepositInto;

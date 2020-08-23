@@ -16,8 +16,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::Header;
-use bp_header_chain::{FinalityVerifier, HeaderVerifier};
+use crate::Hash as RuntimeHash;
+use crate::Header as RuntimeHeader;
+use bp_header_chain::{BridgeStorage, ChainVerifier};
 use sp_finality_grandpa::GRANDPA_ENGINE_ID;
 use sp_std::vec::Vec;
 
@@ -29,22 +30,26 @@ type AuthorityInfo = Vec<u8>;
 type FinalityProof = (Vec<u8>, Vec<u8>);
 
 impl ChainVerifier for Millau {
-	type Header = ();
+	type Header = RuntimeHeader;
 	type Extra = AuthorityInfo;
 	type Proof = FinalityProof;
 
 	fn import_header<S: BridgeStorage>(
 		storage: &mut S,
-		header: Self::Header,
+		header: &Self::Header,
 		extra_data: Option<Self::Extra>,
 		finality_proof: Option<Self::Proof>,
 	) -> bool {
-		let is_valid = Self::validate_header(&mut storage, header);
+		let is_valid = Self::validate_header(storage, &header);
 		if !is_valid {
 			return false;
 		}
 
-		let is_finalized = Self::verify_finality();
+		let is_finalized = if let Some(proof) = finality_proof {
+			Self::verify_finality(storage, &header, &proof)
+		} else {
+			false
+		};
 
 		if is_finalized { /* Walk through previous headers and mark them as final */ }
 
@@ -53,24 +58,20 @@ impl ChainVerifier for Millau {
 		true
 	}
 
-	fn validate_header<S: BridgeStorage>(
-		storage: &mut S,
-		header: &Self::Header,
-		extra_data: &Option<Self::Extra>,
-	) -> bool {
-		let last_finalized_number = storage.last_finalized_header().number;
-		if header.number < last_finalized_number {
+	fn validate_header<S: BridgeStorage>(storage: &mut S, header: &Self::Header) -> bool {
+		let best_finalized_number = storage.best_finalized_header().expect("TODO").number;
+		if header.number < best_finalized_number {
 			return false;
 		}
 
-		/* we've previously seen this header */
-		// Don't want to import a header we've already seen
-		if true {
+		if storage.header_exists(header.hash()) {
 			return false;
 		}
+
+		true
 	}
 
-	fn verify_finality<S: Storage>(storage: &mut S, header: &Self::Header, proof: &Self::Proof) -> bool {
+	fn verify_finality<S: BridgeStorage>(storage: &mut S, header: &Self::Header, proof: &Self::Proof) -> bool {
 		todo!()
 	}
 }

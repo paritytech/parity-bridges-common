@@ -45,9 +45,11 @@ pub trait BaseHeaderChain {
 
 pub trait BridgeStorage {
 	type Header;
+	type Hash;
 
-	fn best_finalized_header() -> Option<Self::Header>;
-	fn write_header(header: Self::Header) -> bool;
+	fn best_finalized_header(&self) -> Option<Self::Header>;
+	fn write_header(&mut self, header: Self::Header) -> bool;
+	fn header_exists(&self, hash: Self::Hash) -> bool;
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.
@@ -60,7 +62,7 @@ pub trait ChainVerifier {
 	// TODO: This should return a result
 	fn import_header<S: BridgeStorage>(
 		storage: &mut S,
-		header: Self::Header,
+		header: &Self::Header,
 		extra_data: Option<Self::Extra>,
 		finality_proof: Option<Self::Proof>,
 	) -> bool;
@@ -68,11 +70,7 @@ pub trait ChainVerifier {
 	/// Check that a standalone header is well-formed. This does not need to provide any sort
 	/// of ancestry related verification.
 	// TODO: This should return a result
-	fn validate_header<S: BridgeStorage>(
-		storage: &mut S,
-		header: &Self::Header,
-		extra_data: &Option<Self::Extra>,
-	) -> bool;
+	fn validate_header<S: BridgeStorage>(storage: &mut S, header: &Self::Header) -> bool;
 
 	/// Verify that the given header has been finalized and is part of the canonical chain.
 	// TODO: This should return a result

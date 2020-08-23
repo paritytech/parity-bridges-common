@@ -28,6 +28,7 @@
 use bp_header_chain::{BridgeStorage, ChainVerifier};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
+use sp_runtime::traits::Header;
 use sp_std::{marker::PhantomData, prelude::*};
 
 pub trait Trait: frame_system::Trait {
@@ -66,10 +67,10 @@ decl_module! {
 			extra_data: Option<<T::Verifier as ChainVerifier>::Extra>,
 			finality_proof: Option<<T::Verifier as ChainVerifier>::Proof>,
 		) -> dispatch::DispatchResult {
-			let who = ensure_signed(origin)?;
+			let _ = ensure_signed(origin)?;
 
 			let mut storage = PalletStorage::<T>::new();
-			let is_valid = T::Verifier::import_header(&mut storage, header, extra_data, finality_proof);
+			let is_valid = T::Verifier::import_header(&mut storage, &header, extra_data, finality_proof);
 
 			if !is_valid {
 				return Err(<Error<T>>::InvalidHeader.into())
@@ -91,13 +92,18 @@ impl<T> PalletStorage<T> {
 
 impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	type Header = T::Header;
+	type Hash = T::Hash;
 
-	fn write_header(header: T::Header) -> bool {
+	fn write_header(&mut self, header: T::Header) -> bool {
 		<ImportedHeaders<T>>::insert(header.hash(), header);
 		true
 	}
 
-	fn best_finalized_header() -> Option<T::Header> {
+	fn best_finalized_header(&self) -> Option<T::Header> {
 		<BestFinalized<T>>::get()
+	}
+
+	fn header_exists(&self, hash: T::Hash) -> bool {
+		<ImportedHeaders<T>>::get(hash).is_some()
 	}
 }
