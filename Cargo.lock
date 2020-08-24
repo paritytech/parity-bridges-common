@@ -667,6 +667,7 @@ dependencies = [
  "futures 0.3.5",
  "jsonrpc-core",
  "log",
+ "pallet-message-lane-rpc",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -3960,6 +3961,25 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-message-lane-rpc"
+version = "0.1.0"
+dependencies = [
+ "bp-message-lane",
+ "derive_more",
+ "futures 0.3.5",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "sc-client-api",
+ "serde",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
+ "sp-state-machine",
+ "sp-trie",
 ]
 
 [[package]]
