@@ -26,7 +26,7 @@ features = ["std"]
 
 [dependencies.sc-cli]
 version = "0.8.0-rc5"
-tag = 'v2.0.0-rc5'
+tag = 'v2.0.0-rc6'
 git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.sc-rpc]
