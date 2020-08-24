@@ -144,6 +144,20 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 			Self::deposit_event(Event::MessagesDelivered(lane_id.clone(), received_range.0, received_range.1));
 		}
 	}
+
+	/// Receive TRUSTED proof of message processing.
+	///
+	/// Trusted here means that the function itself doesn't check whether the bridged chain has
+	/// actually processed these messages.
+	pub fn confirm_processing(lane_id: &LaneId, latest_processed_nonce: MessageNonce) {
+		let mut lane = outbound_lane::<T, I>(*lane_id);
+		let processed_range = lane.confirm_processing(latest_processed_nonce);
+		lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
+
+		if let Some(processed_range) = processed_range {
+			Self::deposit_event(Event::MessagesProcessed(lane_id.clone(), processed_range.0, processed_range.1));
+		}
+	}
 }
 
 /// Creates new inbound lane object, backed by runtime storage.
