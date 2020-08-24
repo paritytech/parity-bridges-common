@@ -50,26 +50,34 @@ impl<Storage: OutboundLaneStorage> OutboundLane<Storage> {
 	}
 
 	/// Send message over lane.
-	pub fn send_message(&mut self, payload: Storage::Payload) {
+	///
+	/// Returns new message nonce.
+	pub fn send_message(&mut self, payload: Storage::Payload) -> MessageNonce {
 		let mut data = self.storage.data();
 		let nonce = data.latest_generated_nonce + 1;
 		data.latest_generated_nonce = nonce;
 
 		self.storage.save_message(nonce, payload);
 		self.storage.set_data(data);
+
+		nonce
 	}
 
 	/// Confirm message receival.
-	pub fn confirm_receival(&mut self, latest_received_nonce: MessageNonce) -> bool {
+	///
+	/// Returns `None` if confirmation is wrong/duplicate.
+	/// Returns `Some` with inclusive ranges of message nonces that have been received.
+	pub fn confirm_receival(&mut self, latest_received_nonce: MessageNonce) -> Option<(MessageNonce, MessageNonce)> {
 		let mut data = self.storage.data();
-		if latest_received_nonce < data.latest_received_nonce || latest_received_nonce > data.latest_generated_nonce {
-			return false;
+		if latest_received_nonce <= data.latest_received_nonce || latest_received_nonce > data.latest_generated_nonce {
+			return None;
 		}
 
+		let prev_latest_received_nonce = data.latest_received_nonce;
 		data.latest_received_nonce = latest_received_nonce;
 		self.storage.set_data(data);
 
-		true
+		Some((prev_latest_received_nonce + 1, latest_received_nonce))
 	}
 
 	/// Prune at most `max_messages_to_prune` already received messages.
@@ -106,7 +114,7 @@ mod tests {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 0);
-			lane.send_message(REGULAR_PAYLOAD);
+			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 1);
 			assert!(lane.storage.message(&1).is_some());
 			assert_eq!(lane.storage.data().latest_generated_nonce, 1);
 		});
@@ -116,12 +124,12 @@ mod tests {
 	fn confirm_receival_works() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
+			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 1);
+			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 2);
+			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 3);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
-			assert!(lane.confirm_receival(3));
+			assert_eq!(lane.confirm_receival(3), Some((1, 3)));
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
 		});
@@ -136,11 +144,12 @@ mod tests {
 			lane.send_message(REGULAR_PAYLOAD);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
-			assert!(lane.confirm_receival(3));
+			assert_eq!(lane.confirm_receival(3), Some((1, 3)));
+			assert_eq!(lane.confirm_receival(3), None);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
 
-			assert!(!lane.confirm_receival(2));
+			assert_eq!(lane.confirm_receival(2), None);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
 		});
@@ -155,7 +164,7 @@ mod tests {
 			lane.send_message(REGULAR_PAYLOAD);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
-			assert!(!lane.confirm_receival(10));
+			assert_eq!(lane.confirm_receival(10), None);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 		});
@@ -175,11 +184,11 @@ mod tests {
 			assert_eq!(lane.prune_messages(100), 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
 			// after confirmation, some messages are receved
-			assert!(lane.confirm_receival(2));
+			assert_eq!(lane.confirm_receival(2), Some((1, 2)));
 			assert_eq!(lane.prune_messages(100), 2);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 3);
 			// after last message is confirmed, everything is pruned
-			assert!(lane.confirm_receival(3));
+			assert_eq!(lane.confirm_receival(3), Some((3, 3)));
 			assert_eq!(lane.prune_messages(100), 1);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 4);
 		});

@@ -21,7 +21,7 @@
 use bp_message_lane::{
 	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
 };
-use frame_support::{decl_module, decl_storage, traits::Get, Parameter, StorageMap};
+use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter, StorageMap};
 use frame_system::ensure_signed;
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -33,6 +33,8 @@ mod mock;
 
 /// The module configuration trait
 pub trait Trait<I = DefaultInstance>: frame_system::Trait {
+	/// They overarching event type.
+	type Event: From<Event> + Into<<Self as frame_system::Trait>::Event>;
 	/// Message payload.
 	type Payload: Parameter;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
@@ -57,8 +59,24 @@ decl_storage! {
 	}
 }
 
+// Pallets use events to inform users when important changes are made.
+// https://substrate.dev/docs/en/knowledgebase/runtime/events
+decl_event!(
+	pub enum Event {
+		/// Message has been accepted and is waiting to be delivered.
+		MessageAccepted(LaneId, MessageNonce),
+		/// Messages in the inclusive range have been delievered to the bridged chain.
+		MessagesDelivered(LaneId, MessageNonce, MessageNonce),
+		/// Messages in the inclusive range have been processed by the bridged chain.
+		MessagesProcessed(LaneId, MessageNonce, MessageNonce),
+	}
+);
+
 decl_module! {
 	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
+		/// Deposit one of this module's events by using the default implementation.
+		fn deposit_event() = default;
+
 		/// Send message over lane.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn send_message(
@@ -68,8 +86,10 @@ decl_module! {
 		) {
 			let _ = ensure_signed(origin)?;
 			let mut lane = outbound_lane::<T, I>(lane_id);
-			lane.send_message(payload);
+			let nonce = lane.send_message(payload);
 			lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
+
+			Self::deposit_event(Event::MessageAccepted(lane_id, nonce));
 		}
 	}
 }
@@ -117,8 +137,12 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	/// than actual one. Not-yet-sent messages may be pruned in this case.
 	pub fn confirm_receival(lane_id: &LaneId, latest_received_nonce: MessageNonce) {
 		let mut lane = outbound_lane::<T, I>(*lane_id);
-		lane.confirm_receival(latest_received_nonce);
+		let received_range = lane.confirm_receival(latest_received_nonce);
 		lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
+
+		if let Some(received_range) = received_range {
+			Self::deposit_event(Event::MessagesDelivered(lane_id.clone(), received_range.0, received_range.1));
+		}
 	}
 }
 

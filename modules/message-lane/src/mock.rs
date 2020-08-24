@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_message_lane::{LaneId, Message, MessageResult, OnMessageReceived};
-use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
@@ -30,6 +30,17 @@ pub type TestPayload = u64;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
+
+mod message_lane {
+	pub use crate::Event;
+}
+
+impl_outer_event! {
+	pub enum TestEvent for TestRuntime {
+		frame_system<T>,
+		message_lane,
+	}
+}
 
 impl_outer_origin! {
 	pub enum Origin for TestRuntime where system = frame_system {}
@@ -52,7 +63,7 @@ impl frame_system::Trait for TestRuntime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = SubstrateHeader;
-	type Event = ();
+	type Event = TestEvent;
 	type BlockHashCount = BlockHashCount;
 	type MaximumBlockWeight = MaximumBlockWeight;
 	type DbWeight = ();
@@ -75,6 +86,7 @@ parameter_types! {
 }
 
 impl Trait for TestRuntime {
+	type Event = TestEvent;
 	type Payload = TestPayload;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type OnMessageReceived = TestMessageProcessor;
