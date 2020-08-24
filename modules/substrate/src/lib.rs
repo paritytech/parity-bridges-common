@@ -114,7 +114,11 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	}
 
 	fn header_exists(&self, hash: T::Hash) -> bool {
-		<ImportedHeaders<T>>::get(hash).is_some()
+		Self::get_header_by_hash(hash).is_some()
+	}
+
+	fn get_header_by_hash(self, hash: T::Hash) -> Option<ImportedHeader> {
+		<ImportedHeaders<T>>::get(hash)
 	}
 
 	fn authority_set_id(&self) -> SetId {

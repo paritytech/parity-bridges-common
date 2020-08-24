@@ -53,15 +53,29 @@ impl ChainVerifier for Millau {
 			false
 		};
 
-		if is_finalized { /* Walk through parent headers and mark them as final */ }
+		if is_finalized {
+			let mut finalized_headers = Vec::new();
+			let parent_hash = header.parent_hash;
 
-		/* save block, but mark as unfinalized */
+			while true
+			/* we haven't hit the previously finalized head */
+			{
+				let mut header = storage.get_header_by_hash(parent_hash).expect("TODO");
+				header.is_finalized = true;
+				pending_headers.push(header);
+				parent_hash = header.parent_hash
+			}
+
+			storage.commit_batch(pending_headers);
+		} else {
+			storage.write_header(header);
+		}
 
 		true
 	}
 
-	// Verify that the header we got sent is indeed a Substrate header. Not entirely sure
-	// what I need to check to ensure it's valid though.
+	// Verify that the header we got is valid. Valid here refers to the ability to be correctly
+	// imported without conflicting with any existing blocks.
 	fn validate_header<S: BridgeStorage>(storage: &mut S, header: &Self::Header) -> bool {
 		let best_finalized_number = storage.best_finalized_header().expect("TODO").number;
 		if header.number < best_finalized_number {
