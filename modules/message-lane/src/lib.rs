@@ -142,7 +142,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 
 		if let Some(received_range) = received_range {
 			Self::deposit_event(Event::MessagesDelivered(
-				lane_id.clone(),
+				*lane_id,
 				received_range.0,
 				received_range.1,
 			));
@@ -160,7 +160,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 
 		if let Some(processed_range) = processed_range {
 			Self::deposit_event(Event::MessagesProcessed(
-				lane_id.clone(),
+				*lane_id,
 				processed_range.0,
 				processed_range.1,
 			));
