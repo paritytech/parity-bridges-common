@@ -25,7 +25,8 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use bp_header_chain::{BridgeStorage, ChainVerifier};
+// use bp_header_chain::{BridgeStorage, ChainVerifier};
+use crate::verifier::ChainVerifier;
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
 use parity_scale_codec::{Decode, Encode};
@@ -33,8 +34,10 @@ use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::traits::Header;
 use sp_std::{marker::PhantomData, prelude::*};
 
+mod verifier;
+
 pub trait Trait: frame_system::Trait {
-	type Verifier: ChainVerifier;
+	// type Verifier: ChainVerifier;
 }
 
 decl_storage! {
@@ -45,7 +48,7 @@ decl_storage! {
 		/// Headers which have been imported into the pallet.
 		// Maybe made a HeaderId?
 		// Should maybe have some sort of notion of ancestry here.
-		ImportedHeaders: map hasher(identity) T::Hash => Option<ImportedHeader<T>>;
+		ImportedHeaders: map hasher(identity) T::Hash => Option<T::Header>;
 		/// The current Grandpa Authority set id.
 		AuthoritySetId: SetId;
 	}
@@ -67,15 +70,15 @@ decl_module! {
 		#[weight = 0]
 		pub fn import_signed_header(
 			origin,
-			header: <T::Verifier as ChainVerifier>::Header,
-			extra_data: Option<<T::Verifier as ChainVerifier>::Extra>,
-			finality_proof: Option<<T::Verifier as ChainVerifier>::Proof>,
+			header: T::Header,
+			finality_proof: Option<crate::verifier::FinalityProof>,
 		) -> dispatch::DispatchResult {
 			let _ = ensure_signed(origin)?;
 
 			let mut storage = PalletStorage::<T>::new();
-			let is_valid = T::Verifier::import_header(&mut storage, &header, extra_data, finality_proof);
+			let is_valid = verifier::Verifier::import_header(&mut storage, &header, None);
 
+			let is_valid = true;
 			if !is_valid {
 				return Err(<Error<T>>::InvalidHeader.into())
 			}
@@ -91,6 +94,18 @@ struct ImportedHeader<T: Trait> {
 	is_finalized: bool,
 }
 
+pub trait BridgeStorage {
+	type Header;
+	type Hash;
+
+	fn best_finalized_header(&self) -> Option<Self::Header>;
+	fn write_header(&mut self, header: &Self::Header) -> bool;
+	fn header_exists(&self, hash: Self::Hash) -> bool;
+	fn get_header_by_hash(&self, hash: Self::Hash) -> Option<Self::Header>;
+	// Maybe this one doesn't belong here...
+	fn authority_set_id(&self) -> u64;
+}
+
 #[derive(Default)]
 pub struct PalletStorage<T>(PhantomData<T>);
 
@@ -104,8 +119,8 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	type Header = T::Header;
 	type Hash = T::Hash;
 
-	fn write_header(&mut self, imported_header: ImportedHeader<T>) -> bool {
-		<ImportedHeaders<T>>::insert(imported_header.header.hash(), header);
+	fn write_header(&mut self, header: &T::Header) -> bool {
+		<ImportedHeaders<T>>::insert(header.hash(), header);
 		true
 	}
 
@@ -114,10 +129,10 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	}
 
 	fn header_exists(&self, hash: T::Hash) -> bool {
-		Self::get_header_by_hash(hash).is_some()
+		self.get_header_by_hash(hash).is_some()
 	}
 
-	fn get_header_by_hash(self, hash: T::Hash) -> Option<ImportedHeader> {
+	fn get_header_by_hash(&self, hash: T::Hash) -> Option<T::Header> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
