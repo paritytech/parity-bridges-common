@@ -87,7 +87,8 @@ impl<Storage: OutboundLaneStorage> OutboundLane<Storage> {
 	pub fn confirm_processing(&mut self, latest_processed_nonce: MessageNonce) -> Option<(MessageNonce, MessageNonce)> {
 		let mut data = self.storage.data();
 		// wait for recieval confirmation first
-		if latest_processed_nonce <= data.latest_processed_nonce || latest_processed_nonce > data.latest_received_nonce {
+		if latest_processed_nonce <= data.latest_processed_nonce || latest_processed_nonce > data.latest_received_nonce
+		{
 			return None;
 		}
 

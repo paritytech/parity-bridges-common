@@ -141,7 +141,11 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 		lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 
 		if let Some(received_range) = received_range {
-			Self::deposit_event(Event::MessagesDelivered(lane_id.clone(), received_range.0, received_range.1));
+			Self::deposit_event(Event::MessagesDelivered(
+				lane_id.clone(),
+				received_range.0,
+				received_range.1,
+			));
 		}
 	}
 
@@ -155,7 +159,11 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 		lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 
 		if let Some(processed_range) = processed_range {
-			Self::deposit_event(Event::MessagesProcessed(lane_id.clone(), processed_range.0, processed_range.1));
+			Self::deposit_event(Event::MessagesProcessed(
+				lane_id.clone(),
+				processed_range.0,
+				processed_range.1,
+			));
 		}
 	}
 }
