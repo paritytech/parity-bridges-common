@@ -26,12 +26,12 @@
 #![allow(clippy::large_enum_variant)]
 
 // use bp_header_chain::{BridgeStorage, ChainVerifier};
-use crate::verifier::ChainVerifier;
+use crate::verifier::{ChainVerifier, FinalityProof, ImportError};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
 use parity_scale_codec::{Decode, Encode};
 use sp_finality_grandpa::{AuthorityList, SetId};
-use sp_runtime::traits::Header;
+use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, prelude::*};
 
 mod verifier;
@@ -51,6 +51,8 @@ decl_storage! {
 		ImportedHeaders: map hasher(identity) T::Hash => Option<T::Header>;
 		/// The current Grandpa Authority set id.
 		AuthoritySetId: SetId;
+		/// The next scheduled authority set change.
+		NextScheduledChange: ScheduledChange<<T::Header as HeaderT>::Number>;
 	}
 }
 
@@ -71,17 +73,13 @@ decl_module! {
 		pub fn import_signed_header(
 			origin,
 			header: T::Header,
-			finality_proof: Option<crate::verifier::FinalityProof>,
+			finality_proof: Option<FinalityProof>,
 		) -> dispatch::DispatchResult {
 			let _ = ensure_signed(origin)?;
 
 			let mut storage = PalletStorage::<T>::new();
-			let is_valid = verifier::Verifier::import_header(&mut storage, &header, None);
-
-			let is_valid = true;
-			if !is_valid {
-				return Err(<Error<T>>::InvalidHeader.into())
-			}
+			let _ =
+				verifier::Verifier::import_header(&mut storage, &header, None).map_err(|_| <Error<T>>::InvalidHeader)?;
 
 			Ok(())
 		}
@@ -95,15 +93,23 @@ struct ImportedHeader<T: Trait> {
 }
 
 pub trait BridgeStorage {
-	type Header;
-	type Hash;
+	type Header: HeaderT;
 
 	fn best_finalized_header(&self) -> Option<Self::Header>;
 	fn write_header(&mut self, header: &Self::Header) -> bool;
-	fn header_exists(&self, hash: Self::Hash) -> bool;
-	fn get_header_by_hash(&self, hash: Self::Hash) -> Option<Self::Header>;
+	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
+	fn get_header_by_hash(&self, hash: <Self::Header as HeaderT>::Hash) -> Option<Self::Header>;
 	// Maybe this one doesn't belong here...
 	fn authority_set_id(&self) -> u64;
+	fn current_authority_set(&self) -> AuthorityList;
+	fn scheduled_set_change<N>(&self) -> ScheduledChange<N>;
+}
+
+#[derive(Default, Encode, Decode)]
+pub struct ScheduledChange<N> {
+	authorities: AuthorityList,
+	set_id: SetId,
+	height: N,
 }
 
 #[derive(Default)]
@@ -117,7 +123,6 @@ impl<T> PalletStorage<T> {
 
 impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	type Header = T::Header;
-	type Hash = T::Hash;
 
 	fn write_header(&mut self, header: &T::Header) -> bool {
 		<ImportedHeaders<T>>::insert(header.hash(), header);
@@ -128,15 +133,23 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<BestFinalized<T>>::get()
 	}
 
-	fn header_exists(&self, hash: T::Hash) -> bool {
+	fn header_exists(&self, hash: <T::Header as HeaderT>::Hash) -> bool {
 		self.get_header_by_hash(hash).is_some()
 	}
 
-	fn get_header_by_hash(&self, hash: T::Hash) -> Option<T::Header> {
+	fn get_header_by_hash(&self, hash: <T::Header as HeaderT>::Hash) -> Option<T::Header> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
 	fn authority_set_id(&self) -> SetId {
 		AuthoritySetId::get()
+	}
+
+	fn current_authority_set(&self) -> AuthorityList {
+		todo!()
+	}
+
+	fn scheduled_set_change<N>(&self) -> ScheduledChange<N> {
+		todo!()
 	}
 }

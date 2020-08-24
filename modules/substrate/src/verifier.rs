@@ -17,37 +17,99 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::BridgeStorage;
-use sp_finality_grandpa::{AuthorityList, SetId};
+use parity_scale_codec::{Decode, Encode};
+use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::Header as HeaderT;
+use sp_runtime::DigestItem;
 
 pub type FinalityProof = (Vec<u8>, AuthorityList, SetId);
 
+pub enum ImportError {
+	OldHeader,
+	HeaderAlreadyExists,
+	MissingParent,
+}
+
 /// A trait for verifying whether a header is valid for a particular blockchain.
-pub trait ChainVerifier<S, He> {
+pub trait ChainVerifier<S, H> {
 	/// Import a header to the pallet.
 	// TODO: This should return a result
-	fn import_header(storage: &mut S, header: &He, finality_proof: Option<FinalityProof>) -> bool;
+	fn import_header(storage: &mut S, header: &H, finality_proof: Option<FinalityProof>) -> Result<(), ImportError>;
 
 	//	/// Check that a standalone header is well-formed. This does not need to provide any sort
 	//	/// of ancestry related verification.
 	//	// TODO: This should return a result
 	//	fn validate_header<S: BridgeStorage>(storage: &mut S, header: &Self::Header) -> bool;
-	//
-	//	/// Verify that the given header has been finalized and is part of the canonical chain.
-	//	// TODO: This should return a result
-	//	fn verify_finality<S: BridgeStorage>(storage: &mut S, header: &Self::Header, proof: &Self::Proof) -> bool;
+
+	/// Verify that the given header has been finalized and is part of the canonical chain.
+	// TODO: This should return a result
+	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError>;
 }
 
 pub struct Verifier;
 
-impl<S, He> ChainVerifier<S, He> for Verifier
+impl<S, H> ChainVerifier<S, H> for Verifier
 where
-	S: BridgeStorage<Header = He>,
-	He: HeaderT,
+	S: BridgeStorage<Header = H>,
+	H: HeaderT,
 {
-	fn import_header(storage: &mut S, header: &He, finality_proof: Option<FinalityProof>) -> bool {
-		let foo = header.hash();
-		let boop = storage.write_header(header);
-		todo!()
+	fn import_header(storage: &mut S, header: &H, finality_proof: Option<FinalityProof>) -> Result<(), ImportError> {
+		// Validate header
+		let highest_finalized = storage.best_finalized_header().expect("TODO");
+		if header.number() < highest_finalized.number() {
+			return Err(ImportError::OldHeader);
+		}
+
+		if storage.header_exists(header.hash()) {
+			return Err(ImportError::HeaderAlreadyExists);
+		}
+
+		let parent_header = storage.get_header_by_hash(*header.parent_hash());
+		if parent_header.is_none() {
+			return Err(ImportError::MissingParent);
+		}
+
+		// A block at this height should come with a justification and signal a new
+		// authority set. We'll want to make sure it is valid
+		let scheduled_change_height = storage.scheduled_set_change::<H::Number>().height;
+		if *header.number() == scheduled_change_height {
+			// Maybe pass the scheduled_change in here so we don't have to query storage later
+			Self::verify_finality(storage, header, &finality_proof.expect("TOOO"));
+		}
+
+		Ok(())
+	}
+
+	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError> {
+		let digest = header.digest().logs().last().expect("TODO");
+		if let DigestItem::Consensus(id, item) = digest {
+			if *id == GRANDPA_ENGINE_ID {
+				let current_authority_set = storage.current_authority_set();
+				let current_set_id = storage.authority_set_id();
+				let justification = &proof.0;
+				// prove_finality(header, current_authority_set, current_set_id, justification)?
+
+				// We'll need to mark ancestors as finalized
+
+				// Since we've checked and the header is finalized we can start updating the
+				// authority set info
+
+				// We need to update the `next_validator_set` storage item if it's appropriate
+				let log: ConsensusLog<u32> = ConsensusLog::decode(&mut &item[..]).expect("TODO");
+				let authority_change = match log {
+					ConsensusLog::ScheduledChange(scheduled_change) => todo!(),
+					ConsensusLog::ForcedChange(n, forced_change) => todo!(),
+					_ => todo!("idk what to do here"),
+				};
+
+				// storage.update_current_authority_set(storage.scheduled_set_change());
+				// storage.schedule_next_change(authority_change);
+			}
+		} else {
+			// This block doesn't have a justification
+			todo!()
+		}
+
+		Ok(())
 	}
 }
