@@ -1314,7 +1314,7 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "sp-runtime",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc6",
  "sysinfo 0.15.1",
  "time 0.2.16",
  "web3",
@@ -4264,6 +4264,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "prometheus"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd0ced56dee39a6e960c15c74dc48849d614586db2eaada6497477af7c7811cd"
+dependencies = [
+ "cfg-if",
+ "fnv",
+ "lazy_static",
+ "spin",
+ "thiserror",
+]
+
+[[package]]
 name = "prost"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4859,7 +4872,7 @@ dependencies = [
  "sp-inherents",
  "sp-runtime",
  "sp-transaction-pool",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
  "tokio-executor 0.2.0-alpha.6",
 ]
 
@@ -4943,7 +4956,7 @@ dependencies = [
  "sp-utils",
  "sp-version",
  "structopt",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
  "time 0.1.43",
  "tokio 0.2.21",
 ]
@@ -4981,7 +4994,7 @@ dependencies = [
  "sp-trie",
  "sp-utils",
  "sp-version",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
 ]
 
 [[package]]
@@ -5010,7 +5023,7 @@ dependencies = [
  "sp-runtime",
  "sp-state-machine",
  "sp-trie",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
 ]
 
 [[package]]
@@ -5052,7 +5065,7 @@ dependencies = [
  "sp-runtime",
  "sp-timestamp",
  "sp-version",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
 ]
 
 [[package]]
@@ -5172,7 +5185,7 @@ dependencies = [
  "sp-inherents",
  "sp-runtime",
  "sp-utils",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
 ]
 
 [[package]]
@@ -5272,7 +5285,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-utils",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
  "thiserror",
  "unsigned-varint 0.4.0",
  "void",
@@ -5341,7 +5354,7 @@ version = "0.8.0-rc5"
 source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc5#e00d78cb1c354001d868fa66938a827a432dc530"
 dependencies = [
  "log",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
 ]
 
 [[package]]
@@ -5471,7 +5484,7 @@ dependencies = [
  "sp-trie",
  "sp-utils",
  "sp-version",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
  "sysinfo 0.14.15",
  "tempfile",
  "tracing",
@@ -5573,7 +5586,7 @@ dependencies = [
  "sp-tracing",
  "sp-transaction-pool",
  "sp-utils",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
  "wasm-timer",
 ]
 
@@ -6132,7 +6145,7 @@ dependencies = [
  "sp-trie",
  "sp-utils",
  "sp-version",
- "substrate-prometheus-endpoint",
+ "substrate-prometheus-endpoint 0.8.0-rc5",
  "wasm-timer",
 ]
 
@@ -6511,7 +6524,7 @@ dependencies = [
  "futures-core",
  "futures-timer 3.0.2",
  "lazy_static",
- "prometheus",
+ "prometheus 0.8.0",
 ]
 
 [[package]]
@@ -6753,7 +6766,21 @@ dependencies = [
  "futures-util",
  "hyper 0.13.6",
  "log",
- "prometheus",
+ "prometheus 0.8.0",
+ "tokio 0.2.21",
+]
+
+[[package]]
+name = "substrate-prometheus-endpoint"
+version = "0.8.0-rc6"
+source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6#be8bb186d87b9d2b47a2907c9b51ae1e252362c3"
+dependencies = [
+ "async-std",
+ "derive_more",
+ "futures-util",
+ "hyper 0.13.6",
+ "log",
+ "prometheus 0.9.0",
  "tokio 0.2.21",
 ]
 
