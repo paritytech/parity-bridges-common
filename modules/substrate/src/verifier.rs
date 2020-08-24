@@ -36,11 +36,6 @@ pub trait ChainVerifier<S, H> {
 	// TODO: This should return a result
 	fn import_header(storage: &mut S, header: &H, finality_proof: Option<FinalityProof>) -> Result<(), ImportError>;
 
-	//	/// Check that a standalone header is well-formed. This does not need to provide any sort
-	//	/// of ancestry related verification.
-	//	// TODO: This should return a result
-	//	fn validate_header<S: BridgeStorage>(storage: &mut S, header: &Self::Header) -> bool;
-
 	/// Verify that the given header has been finalized and is part of the canonical chain.
 	// TODO: This should return a result
 	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError>;
@@ -54,7 +49,6 @@ where
 	H: HeaderT,
 {
 	fn import_header(storage: &mut S, header: &H, finality_proof: Option<FinalityProof>) -> Result<(), ImportError> {
-		// Validate header
 		let highest_finalized = storage.best_finalized_header().expect("TODO");
 		if header.number() < highest_finalized.number() {
 			return Err(ImportError::OldHeader);
