@@ -1,12 +1,7 @@
 version: '3.5'
 services:
   poa-node-arthur: &poa-node
-    build:
-      context: .
-      dockerfile: ./OpenEthereum.Dockerfile
-      args:
-        ETHEREUM_HASH: ${ETHEREUM_HASH:-4fecaa56da067e4c62aee76a6afb6be52754c1cf}
-        BRIDGE_HASH: ${ETH_BRIDGE_HASH:-master}
+    image: hcastano/openethereum-bridge-builtins
     entrypoint:
       - /home/openethereum/openethereum
       - --config=/config/poa-node-config
@@ -46,13 +41,7 @@ services:
       - "32303:30303"
 
   relay-eth2sub:
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
-        PROJECT: ethereum-poa-relay
-        HEALTH: http://localhost:9616/metrics
+    image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-eth2sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
@@ -71,12 +60,7 @@ services:
       - bridge-node-eve
 
   poa-exchange-tx-generator:
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
-        PROJECT: ethereum-poa-relay
+    image: paritytech/ethereum-poa-relay
     entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
     volumes:
       - ./bridge-config:/config
@@ -88,13 +72,7 @@ services:
     depends_on: *all-nodes
 
   relay-eth-exchange-sub:
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
-        PROJECT: ethereum-poa-relay
-        HEALTH: http://localhost:9616/metrics
+    image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-eth-exchange-sub-entrypoint.sh
     volumes:
       - ./bridge-config:/config
@@ -105,13 +83,7 @@ services:
     depends_on: *all-nodes
 
   relay-sub2eth:
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
-        PROJECT: ethereum-poa-relay
-        HEALTH: http://localhost:9616/metrics
+    image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-sub2eth-entrypoint.sh
     volumes:
       - ./bridge-config:/config
@@ -122,13 +94,7 @@ services:
     depends_on: *all-nodes
 
   bridge-node-alice: &bridge-node
-    build:
-      context: .
-      dockerfile: ./Bridge.Dockerfile
-      args:
-        BRIDGE_HASH: ${NODE_BRIDGE_HASH:-master}
-        PROJECT: bridge-node
-        HEALTH: http://localhost:9933/health
+    image: paritytech/bridge-node
     entrypoint:
       - /home/user/bridge-node
       - --execution=Native
@@ -215,7 +181,7 @@ services:
       - "10344:9944"
 
   prometheus-metrics:
-    image: prom/prometheus
+    image: prom/prometheus:v2.20.1
     volumes:
       - ./dashboard/prometheus/:/etc/prometheus/
     ports:
@@ -223,7 +189,7 @@ services:
     depends_on: *all-nodes
 
   grafana-dashboard:
-    image: grafana/grafana
+    image: grafana/grafana:7.1.3
     environment:
       VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
       VIRTUAL_PORT: 3000

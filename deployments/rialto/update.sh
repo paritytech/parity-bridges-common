@@ -1,10 +1,12 @@
 #!/bin/bash
 
 # Script used to periodically update the network.
+#
+# Depending on whether or not the `WITH_GIT` environment variable
+# is set it will update the network using images from Docker Hub
+# or from GitHub.
 
 set -xeu
-
-git pull
 
 # Update *_BRIDGE_HASH in .env
 function update_hash {
@@ -22,24 +24,37 @@ function process_argument {
 		*) echo "Invalid parameter: $1 (expected all/node/relay/eth)"; exit 1;;
 	esac
 }
-# Run at least once
-process_argument ${1:-all}
-shift || true
-# Then process the rest.
-while [[ $# -gt 0 ]]; do
-	process_argument $1
-	shift
-done
 
-# Update Matrix access token
-grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY .env > .env2 && . ./.env2 && rm .env2
+# Read and source variables from .env file so we can use them here
+grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY -e WITH_GIT .env > .env2 && . ./.env2 && rm .env2
+
+COMPOSE_EXTENSION=''
+if [ ! -z ${WITH_GIT+x} ]; then
+	git pull
+
+	# Run at least once
+	process_argument ${1:-all}
+	shift || true
+	# Then process the rest.
+	while [[ $# -gt 0 ]]; do
+		process_argument $1
+		shift
+	done
+
+	COMPOSE_EXTENSION='-f docker-compose.yml -f docker-compose.git.yml'
+fi
 
 if [ ! -z ${MATRIX_ACCESS_TOKEN+x} ]; then
 	sed -i "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./dashboard/grafana-matrix/config.yml
 fi
 
-# Rebuild images with latest `BRIDGE_HASH`
-docker-compose build
+if [ -z ${WITH_GIT+x} ]; then
+	# Make sure we grab the latest images from Docker Hub
+	docker-compose pull
+fi
+
+# Rebuild containers with latest images
+docker-compose $COMPOSE_EXTENSION build
 
 # Stop the proxy cause otherwise the network can't be stopped
 cd ./proxy
