@@ -50,6 +50,8 @@ pub trait BridgeStorage {
 	fn best_finalized_header(&self) -> Option<Self::Header>;
 	fn write_header(&mut self, header: Self::Header) -> bool;
 	fn header_exists(&self, hash: Self::Hash) -> bool;
+	// Maybe this one doesn't belong here...
+	fn authority_set_id(&self) -> u64;
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.

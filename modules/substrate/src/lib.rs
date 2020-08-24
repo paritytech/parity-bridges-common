@@ -28,6 +28,8 @@
 use bp_header_chain::{BridgeStorage, ChainVerifier};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
+use parity_scale_codec::{Codec, EncodeLike};
+use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::traits::Header;
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -40,10 +42,12 @@ decl_storage! {
 		/// Best finalized header.
 		// Maybe make this a HeaderId?
 		BestFinalized: Option<T::Header>;
-		/// Headers which have been imported into the runtime.
+		/// Headers which have been imported into the pallet.
 		// Maybe made a HeaderId?
 		// Should maybe have some sort of notion of ancestry here.
-		ImportedHeaders: map hasher(identity) T::Hash => Option<T::Header>;
+		ImportedHeaders: map hasher(identity) T::Hash => Option<ImportedHeader<T>>;
+		/// The current Grandpa Authority set id.
+		AuthoritySetId: SetId;
 	}
 }
 
@@ -81,6 +85,12 @@ decl_module! {
 	}
 }
 
+#[derive(Default, Encode, Decode)]
+struct ImportedHeader<T: Trait> {
+	header: T::Header,
+	is_finalized: bool,
+}
+
 #[derive(Default)]
 pub struct PalletStorage<T>(PhantomData<T>);
 
@@ -94,8 +104,8 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	type Header = T::Header;
 	type Hash = T::Hash;
 
-	fn write_header(&mut self, header: T::Header) -> bool {
-		<ImportedHeaders<T>>::insert(header.hash(), header);
+	fn write_header(&mut self, imported_header: ImportedHeader<T>) -> bool {
+		<ImportedHeaders<T>>::insert(imported_header.header.hash(), header);
 		true
 	}
 
@@ -105,5 +115,9 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 	fn header_exists(&self, hash: T::Hash) -> bool {
 		<ImportedHeaders<T>>::get(hash).is_some()
+	}
+
+	fn authority_set_id(&self) -> SetId {
+		AuthoritySetId::get()
 	}
 }
