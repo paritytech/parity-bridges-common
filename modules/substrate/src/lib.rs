@@ -28,7 +28,7 @@
 use bp_header_chain::{BridgeStorage, ChainVerifier};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
-use parity_scale_codec::{Codec, EncodeLike};
+use parity_scale_codec::{Decode, Encode};
 use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::traits::Header;
 use sp_std::{marker::PhantomData, prelude::*};
