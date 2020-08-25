@@ -30,6 +30,7 @@ pub enum ImportError {
 	HeaderAlreadyExists,
 	MissingParent,
 	UnfinalizedHeader,
+	AncestryCheckFailed,
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.
@@ -87,12 +88,11 @@ where
 					return Err(ImportError::UnfinalizedHeader);
 				}
 
-				// We'll need to mark ancestors as finalized
-				// Let's walk the parents from `current_header` until we hit `highest_finalized`
-				// At that point we'll want to update `highest_finalized` to `current_header`
-
-				// Since we've checked and the header is finalized we can start updating the
-				// authority set info
+				let last_finalized = storage.best_finalized_header().expect("TODO");
+				let are_ancestors = are_ancestors(storage, last_finalized, header.clone());
+				if !are_ancestors {
+					return Err(ImportError::AncestryCheckFailed);
+				}
 
 				// We need to update the `next_validator_set` storage item if it's appropriate
 				let log: ConsensusLog<H::Number> = ConsensusLog::decode(&mut &item[..]).expect("TODO");
@@ -123,4 +123,27 @@ where
 
 		Ok(())
 	}
+}
+
+fn are_ancestors<S, H>(storage: &S, ancestor: H, child: H) -> bool
+where
+	S: BridgeStorage<Header = H>,
+	H: HeaderT,
+{
+	let mut current_header = child;
+
+	while ancestor.hash() != current_header.hash() {
+		// We've gotten to the same height and we're not related
+		if ancestor.number() == current_header.number() {
+			return false;
+		}
+
+		let parent = storage.get_header_by_hash(*current_header.parent_hash());
+		current_header = match parent {
+			Some(h) => h.header,
+			None => return false,
+		}
+	}
+
+	return true;
 }

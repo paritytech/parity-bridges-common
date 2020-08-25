@@ -33,7 +33,7 @@ pub struct ScheduledChange<N> {
 	pub height: N,
 }
 
-#[derive(Default, Encode, Decode)]
+#[derive(Default, Encode, Decode, Clone)]
 pub struct ImportedHeader<H: HeaderT> {
 	pub header: H,
 	pub is_finalized: bool,
