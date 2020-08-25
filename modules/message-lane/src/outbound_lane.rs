@@ -39,20 +39,20 @@ pub trait OutboundLaneStorage {
 }
 
 /// Outbound messages lane.
-pub struct OutboundLane<Storage> {
-	storage: Storage,
+pub struct OutboundLane<S> {
+	storage: S,
 }
 
-impl<Storage: OutboundLaneStorage> OutboundLane<Storage> {
+impl<S: OutboundLaneStorage> OutboundLane<S> {
 	/// Create new inbound lane backed by given storage.
-	pub fn new(storage: Storage) -> Self {
+	pub fn new(storage: S) -> Self {
 		OutboundLane { storage }
 	}
 
 	/// Send message over lane.
 	///
 	/// Returns new message nonce.
-	pub fn send_message(&mut self, payload: Storage::Payload) -> MessageNonce {
+	pub fn send_message(&mut self, payload: S::Payload) -> MessageNonce {
 		let mut data = self.storage.data();
 		let nonce = data.latest_generated_nonce + 1;
 		data.latest_generated_nonce = nonce;

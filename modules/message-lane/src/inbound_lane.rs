@@ -38,13 +38,13 @@ pub trait InboundLaneStorage {
 }
 
 /// Inbound messages lane.
-pub struct InboundLane<Storage> {
-	storage: Storage,
+pub struct InboundLane<S> {
+	storage: S,
 }
 
-impl<Storage: InboundLaneStorage> InboundLane<Storage> {
+impl<S: InboundLaneStorage> InboundLane<S> {
 	/// Create new inbound lane backed by given storage.
-	pub fn new(storage: Storage) -> Self {
+	pub fn new(storage: S) -> Self {
 		InboundLane { storage }
 	}
 
@@ -52,8 +52,8 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 	pub fn receive_message(
 		&mut self,
 		nonce: MessageNonce,
-		payload: Storage::Payload,
-		processor: &mut impl OnMessageReceived<Storage::Payload>,
+		payload: S::Payload,
+		processor: &mut impl OnMessageReceived<S::Payload>,
 	) -> bool {
 		let mut data = self.storage.data();
 		let is_correct_message = nonce == data.latest_received_nonce + 1;
@@ -93,7 +93,7 @@ impl<Storage: InboundLaneStorage> InboundLane<Storage> {
 	///
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageResult::NotProcessed.
-	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<Storage::Payload>) {
+	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<S::Payload>) {
 		let mut anything_processed = false;
 		let mut data = self.storage.data();
 		while data.oldest_unprocessed_nonce <= data.latest_received_nonce {
