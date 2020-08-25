@@ -162,9 +162,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 }
 
 /// Creates new inbound lane object, backed by runtime storage.
-fn inbound_lane<T: Trait<I>, I: Instance>(
-	lane_id: LaneId,
-) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
+fn inbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
 	InboundLane::new(RuntimeInboundLaneStorage {
 		lane_id,
 		_phantom: Default::default(),
@@ -172,9 +170,7 @@ fn inbound_lane<T: Trait<I>, I: Instance>(
 }
 
 /// Creates new outbound lane object, backed by runtime storage.
-fn outbound_lane<T: Trait<I>, I: Instance>(
-	lane_id: LaneId,
-) -> OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
+fn outbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
 	OutboundLane::new(RuntimeOutboundLaneStorage {
 		lane_id,
 		_phantom: Default::default(),
