@@ -25,7 +25,7 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use crate::verifier::{ChainVerifier, FinalityProof, ImportError};
+use crate::verifier::{ChainVerifier, FinalityProof};
 use bp_substrate::{AuthoritySet, ScheduledChange};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
@@ -95,7 +95,7 @@ pub trait BridgeStorage {
 	type Header: HeaderT;
 
 	fn best_finalized_header(&self) -> Option<Self::Header>;
-	fn write_header(&mut self, header: &Self::Header) -> bool;
+	fn write_header(&mut self, header: &Self::Header);
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
 	fn get_header_by_hash(&self, hash: <Self::Header as HeaderT>::Hash) -> Option<Self::Header>;
 	fn current_authority_set(&self) -> AuthoritySet;
@@ -116,9 +116,8 @@ impl<T> PalletStorage<T> {
 impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	type Header = T::Header;
 
-	fn write_header(&mut self, header: &T::Header) -> bool {
+	fn write_header(&mut self, header: &T::Header) {
 		<ImportedHeaders<T>>::insert(header.hash(), header);
-		true
 	}
 
 	fn best_finalized_header(&self) -> Option<T::Header> {

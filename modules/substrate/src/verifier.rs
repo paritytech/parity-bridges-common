@@ -17,6 +17,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::BridgeStorage;
+use bp_substrate::{AuthoritySet, ScheduledChange};
 use parity_scale_codec::{Decode, Encode};
 use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::Header as HeaderT;
@@ -78,7 +79,7 @@ where
 			if *id == GRANDPA_ENGINE_ID {
 				let current_authority_set = storage.current_authority_set();
 				let current_set_id = current_authority_set.set_id;
-				let justification = &proof.0;
+				let _justification = &proof.0;
 				// prove_finality(header, current_authority_set, current_set_id, justification)?
 
 				// We'll need to mark ancestors as finalized
@@ -87,15 +88,26 @@ where
 				// authority set info
 
 				// We need to update the `next_validator_set` storage item if it's appropriate
-				let log: ConsensusLog<u32> = ConsensusLog::decode(&mut &item[..]).expect("TODO");
-				let authority_change = match log {
-					ConsensusLog::ScheduledChange(scheduled_change) => todo!(),
-					ConsensusLog::ForcedChange(n, forced_change) => todo!(),
+				let log: ConsensusLog<H::Number> = ConsensusLog::decode(&mut &item[..]).expect("TODO");
+				let scheduled_change = match log {
+					ConsensusLog::ScheduledChange(scheduled_change) => {
+						let authority_set = AuthoritySet {
+							authorities: scheduled_change.next_authorities,
+							set_id: current_set_id + 1,
+						};
+
+						// Maybe do some overflow checks here?
+						let height = *header.number() + scheduled_change.delay;
+
+						ScheduledChange { authority_set, height }
+					}
+					ConsensusLog::ForcedChange(_n, _forced_change) => todo!(),
 					_ => todo!("idk what to do here"),
 				};
 
-				// storage.update_current_authority_set(storage.scheduled_set_change());
-				// storage.schedule_next_change(authority_change);
+				let new_set = storage.scheduled_set_change().authority_set;
+				storage.update_current_authority_set(new_set);
+				storage.schedule_next_set_change(scheduled_change);
 			}
 		} else {
 			// This block doesn't have a justification
