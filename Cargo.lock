@@ -4000,7 +4000,6 @@ dependencies = [
  "jsonrpc-core-client",
  "jsonrpc-derive",
  "sc-client-api",
- "serde",
  "sp-blockchain",
  "sp-core",
  "sp-runtime",

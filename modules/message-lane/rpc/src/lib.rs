@@ -23,10 +23,9 @@ use futures::{FutureExt, TryFutureExt};
 use jsonrpc_core::futures::Future as _;
 use jsonrpc_derive::rpc;
 use sc_client_api::Backend as BackendT;
-use serde::{Deserialize, Serialize};
 use sp_blockchain::{Error as BlockchainError, HeaderBackend};
 use sp_core::{storage::StorageKey, Bytes};
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_runtime::{codec::Encode, generic::BlockId, traits::Block as BlockT};
 use sp_state_machine::prove_read;
 use sp_trie::StorageProof;
 use std::sync::Arc;
@@ -37,19 +36,16 @@ mod error;
 pub type InstanceId = [u8; 4];
 
 /// Trie-based storage proof that the message(s) with given key(s) are sent by the bridged chain.
-pub type MessagesProof = SerializableStorageProof;
+/// SCALE-encoded trie nodes array `Vec<Vec<u8>>`.
+pub type MessagesProof = Bytes;
 
 /// Trie-based storage proof that the message(s) with given key(s) are received by the bridged chain.
-pub type MessagesRetrievalProof = SerializableStorageProof;
+/// SCALE-encoded trie nodes array `Vec<Vec<u8>>`.
+pub type MessagesRetrievalProof = Bytes;
 
 /// Trie-based storage proof that the message(s) with given key(s) are processed by the bridged chain.
-pub type MessagesProcessingProof = SerializableStorageProof;
-
-/// Serializable storage proof.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SerializableStorageProof {
-	proof: Vec<Bytes>,
-}
+/// SCALE-encoded trie nodes array `Vec<Vec<u8>>`.
+pub type MessagesProcessingProof = Bytes;
 
 /// Runtime adapter.
 pub trait Runtime: Send + Sync + 'static {
@@ -133,7 +129,7 @@ where
 			)
 			.boxed()
 			.compat()
-			.map(Into::into)
+			.map(serialize_storage_proof)
 			.map_err(Into::into),
 		)
 	}
@@ -152,7 +148,7 @@ where
 			)
 			.boxed()
 			.compat()
-			.map(Into::into)
+			.map(serialize_storage_proof)
 			.map_err(Into::into),
 		)
 	}
@@ -171,17 +167,9 @@ where
 			)
 			.boxed()
 			.compat()
-			.map(Into::into)
+			.map(serialize_storage_proof)
 			.map_err(Into::into),
 		)
-	}
-}
-
-impl From<StorageProof> for SerializableStorageProof {
-	fn from(proof: StorageProof) -> Self {
-		SerializableStorageProof {
-			proof: proof.iter_nodes().map(Into::into).collect(),
-		}
 	}
 }
 
@@ -206,6 +194,11 @@ where
 	Ok(storage_proof)
 }
 
+fn serialize_storage_proof(proof: StorageProof) -> Bytes {
+	let raw_nodes: Vec<Vec<_>> = proof.iter_nodes().map(Into::into).collect();
+	raw_nodes.encode().into()
+}
+
 fn unwrap_or_best<Block: BlockT>(backend: &impl BackendT<Block>, block: Option<Block::Hash>) -> Block::Hash {
 	match block {
 		Some(block) => block,
@@ -221,7 +214,7 @@ fn blockchain_err(err: BlockchainError) -> Error {
 mod tests {
 	use super::*;
 	use sp_core::Blake2Hasher;
-	use sp_runtime::traits::Header as HeaderT;
+	use sp_runtime::{codec::Decode, traits::Header as HeaderT};
 	use substrate_test_runtime_client::{
 		runtime::Block, Backend, DefaultTestClientBuilderExt, TestClientBuilder, TestClientBuilderExt,
 	};
@@ -281,7 +274,7 @@ mod tests {
 			.unwrap()
 			.unwrap()
 			.state_root();
-		let proof = StorageProof::new(proof.proof.into_iter().map(|b| b.0).collect());
+		let proof = StorageProof::new(Decode::decode(&mut &proof[..]).unwrap());
 		let trie_db = proof.into_memory_db::<Blake2Hasher>();
 		let checked_storage_value =
 			sp_trie::read_trie_value::<sp_trie::Layout<_>, _>(&trie_db, &root, &test_key().0).unwrap();
