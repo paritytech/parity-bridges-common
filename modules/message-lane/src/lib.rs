@@ -59,8 +59,6 @@ decl_storage! {
 	}
 }
 
-// Pallets use events to inform users when important changes are made.
-// https://substrate.dev/docs/en/knowledgebase/runtime/events
 decl_event!(
 	pub enum Event {
 		/// Message has been accepted and is waiting to be delivered.
