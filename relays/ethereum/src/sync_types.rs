@@ -19,7 +19,7 @@ use crate::utils::format_ids;
 use std::{ops::Deref, sync::Arc};
 
 /// Ethereum header Id.
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Eq, Hash, PartialEq)]
 pub struct HeaderId<Hash, Number>(pub Number, pub Hash);
 
 /// Ethereum header synchronization status.

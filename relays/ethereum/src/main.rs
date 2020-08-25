@@ -27,6 +27,7 @@ mod exchange_loop;
 mod exchange_loop_metrics;
 mod headers;
 mod instances;
+mod message_lane_loop;
 mod metrics;
 mod rpc;
 mod rpc_errors;

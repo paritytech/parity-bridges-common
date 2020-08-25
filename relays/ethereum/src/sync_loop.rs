@@ -18,7 +18,7 @@ use crate::metrics::{start as metrics_start, GlobalMetrics, MetricsParams};
 use crate::sync::HeadersSyncParams;
 use crate::sync_loop_metrics::SyncLoopMetrics;
 use crate::sync_types::{HeaderIdOf, HeaderStatus, HeadersSyncPipeline, QueuedHeader, SubmittedHeaders};
-use crate::utils::{format_ids, retry_backoff, MaybeConnectionError, StringifiedMaybeConnectionError};
+use crate::utils::{format_ids, interval, retry_backoff, MaybeConnectionError, StringifiedMaybeConnectionError};
 
 use async_trait::async_trait;
 use backoff::{backoff::Backoff, ExponentialBackoff};
@@ -555,14 +555,6 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 			}
 		}
 	});
-}
-
-/// Stream that emits item every `timeout_ms` milliseconds.
-fn interval(timeout: Duration) -> impl futures::Stream<Item = ()> {
-	futures::stream::unfold((), move |_| async move {
-		async_std::task::sleep(timeout).await;
-		Some(((), ()))
-	})
 }
 
 /// Process result of the future from a client.
