@@ -63,7 +63,7 @@ decl_event!(
 	pub enum Event {
 		/// Message has been accepted and is waiting to be delivered.
 		MessageAccepted(LaneId, MessageNonce),
-		/// Messages in the inclusive range have been delievered to the bridged chain.
+		/// Messages in the inclusive range have been delivered to the bridged chain.
 		MessagesDelivered(LaneId, MessageNonce, MessageNonce),
 		/// Messages in the inclusive range have been processed by the bridged chain.
 		MessagesProcessed(LaneId, MessageNonce, MessageNonce),
