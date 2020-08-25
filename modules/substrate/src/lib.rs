@@ -25,12 +25,11 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-// use bp_header_chain::{BridgeStorage, ChainVerifier};
 use crate::verifier::{ChainVerifier, FinalityProof, ImportError};
+use bp_substrate::{AuthoritySet, ScheduledChange};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
 use parity_scale_codec::{Decode, Encode};
-use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -49,8 +48,8 @@ decl_storage! {
 		// Maybe made a HeaderId?
 		// Should maybe have some sort of notion of ancestry here.
 		ImportedHeaders: map hasher(identity) T::Hash => Option<T::Header>;
-		/// The current Grandpa Authority set id.
-		AuthoritySetId: SetId;
+		/// The current Grandpa Authority set.
+		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change.
 		NextScheduledChange: ScheduledChange<<T::Header as HeaderT>::Number>;
 	}
@@ -99,17 +98,10 @@ pub trait BridgeStorage {
 	fn write_header(&mut self, header: &Self::Header) -> bool;
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
 	fn get_header_by_hash(&self, hash: <Self::Header as HeaderT>::Hash) -> Option<Self::Header>;
-	// Maybe this one doesn't belong here...
-	fn authority_set_id(&self) -> u64;
-	fn current_authority_set(&self) -> AuthorityList;
-	fn scheduled_set_change<N>(&self) -> ScheduledChange<N>;
-}
-
-#[derive(Default, Encode, Decode)]
-pub struct ScheduledChange<N> {
-	authorities: AuthorityList,
-	set_id: SetId,
-	height: N,
+	fn current_authority_set(&self) -> AuthoritySet;
+	fn update_current_authority_set(&self, new_set: AuthoritySet);
+	fn scheduled_set_change(&self) -> ScheduledChange<<Self::Header as HeaderT>::Number>;
+	fn schedule_next_set_change(&self, next_change: ScheduledChange<<Self::Header as HeaderT>::Number>);
 }
 
 #[derive(Default)]
@@ -141,15 +133,19 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
-	fn authority_set_id(&self) -> SetId {
-		AuthoritySetId::get()
+	fn current_authority_set(&self) -> AuthoritySet {
+		CurrentAuthoritySet::get()
 	}
 
-	fn current_authority_set(&self) -> AuthorityList {
-		todo!()
+	fn update_current_authority_set(&self, new_set: AuthoritySet) {
+		CurrentAuthoritySet::put(new_set)
 	}
 
-	fn scheduled_set_change<N>(&self) -> ScheduledChange<N> {
-		todo!()
+	fn scheduled_set_change(&self) -> ScheduledChange<<T::Header as HeaderT>::Number> {
+		<NextScheduledChange<T>>::get()
+	}
+
+	fn schedule_next_set_change(&self, next_change: ScheduledChange<<T::Header as HeaderT>::Number>) {
+		<NextScheduledChange<T>>::put(next_change)
 	}
 }

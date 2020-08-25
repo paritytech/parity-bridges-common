@@ -33,11 +33,9 @@ pub enum ImportError {
 /// A trait for verifying whether a header is valid for a particular blockchain.
 pub trait ChainVerifier<S, H> {
 	/// Import a header to the pallet.
-	// TODO: This should return a result
 	fn import_header(storage: &mut S, header: &H, finality_proof: Option<FinalityProof>) -> Result<(), ImportError>;
 
 	/// Verify that the given header has been finalized and is part of the canonical chain.
-	// TODO: This should return a result
 	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError>;
 }
 
@@ -65,10 +63,10 @@ where
 
 		// A block at this height should come with a justification and signal a new
 		// authority set. We'll want to make sure it is valid
-		let scheduled_change_height = storage.scheduled_set_change::<H::Number>().height;
+		let scheduled_change_height = storage.scheduled_set_change().height;
 		if *header.number() == scheduled_change_height {
 			// Maybe pass the scheduled_change in here so we don't have to query storage later
-			Self::verify_finality(storage, header, &finality_proof.expect("TOOO"));
+			Self::verify_finality(storage, header, &finality_proof.expect("TOOO"))?;
 		}
 
 		Ok(())
@@ -79,7 +77,7 @@ where
 		if let DigestItem::Consensus(id, item) = digest {
 			if *id == GRANDPA_ENGINE_ID {
 				let current_authority_set = storage.current_authority_set();
-				let current_set_id = storage.authority_set_id();
+				let current_set_id = current_authority_set.set_id;
 				let justification = &proof.0;
 				// prove_finality(header, current_authority_set, current_set_id, justification)?
 
