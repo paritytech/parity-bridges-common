@@ -18,6 +18,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crate::inbound_lane::{InboundLane, InboundLaneStorage};
+use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
+
 use bp_message_lane::{
 	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
 };
@@ -161,8 +164,8 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 /// Creates new inbound lane object, backed by runtime storage.
 fn inbound_lane<T: Trait<I>, I: Instance>(
 	lane_id: LaneId,
-) -> crate::inbound_lane::InboundLane<RuntimeInboundLaneStorage<T, I>> {
-	crate::inbound_lane::InboundLane::new(RuntimeInboundLaneStorage {
+) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
+	InboundLane::new(RuntimeInboundLaneStorage {
 		lane_id,
 		_phantom: Default::default(),
 	})
@@ -171,8 +174,8 @@ fn inbound_lane<T: Trait<I>, I: Instance>(
 /// Creates new outbound lane object, backed by runtime storage.
 fn outbound_lane<T: Trait<I>, I: Instance>(
 	lane_id: LaneId,
-) -> crate::outbound_lane::OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
-	crate::outbound_lane::OutboundLane::new(RuntimeOutboundLaneStorage {
+) -> OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
+	OutboundLane::new(RuntimeOutboundLaneStorage {
 		lane_id,
 		_phantom: Default::default(),
 	})
@@ -184,7 +187,7 @@ struct RuntimeInboundLaneStorage<T, I = DefaultInstance> {
 	_phantom: PhantomData<(T, I)>,
 }
 
-impl<T: Trait<I>, I: Instance> crate::inbound_lane::InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
+impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
 	type Payload = T::Payload;
 
 	fn id(&self) -> LaneId {
@@ -230,7 +233,7 @@ struct RuntimeOutboundLaneStorage<T, I = DefaultInstance> {
 	_phantom: PhantomData<(T, I)>,
 }
 
-impl<T: Trait<I>, I: Instance> crate::outbound_lane::OutboundLaneStorage for RuntimeOutboundLaneStorage<T, I> {
+impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorage<T, I> {
 	type Payload = T::Payload;
 
 	fn id(&self) -> LaneId {
