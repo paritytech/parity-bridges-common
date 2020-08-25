@@ -639,6 +639,7 @@ version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
  "sp-finality-grandpa",
+ "sp-runtime",
 ]
 
 [[package]]

@@ -17,7 +17,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::BridgeStorage;
-use bp_substrate::{AuthoritySet, ScheduledChange};
+use bp_substrate::{prove_finality, AuthoritySet, ScheduledChange};
 use parity_scale_codec::{Decode, Encode};
 use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::Header as HeaderT;
@@ -29,6 +29,7 @@ pub enum ImportError {
 	OldHeader,
 	HeaderAlreadyExists,
 	MissingParent,
+	UnfinalizedHeader,
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.
@@ -79,10 +80,16 @@ where
 			if *id == GRANDPA_ENGINE_ID {
 				let current_authority_set = storage.current_authority_set();
 				let current_set_id = current_authority_set.set_id;
-				let _justification = &proof.0;
-				// prove_finality(header, current_authority_set, current_set_id, justification)?
+				let justification = &proof.0;
+
+				let is_finalized = prove_finality(&header, &current_authority_set, &justification);
+				if !is_finalized {
+					return Err(ImportError::UnfinalizedHeader);
+				}
 
 				// We'll need to mark ancestors as finalized
+				// Let's walk the parents from `current_header` until we hit `highest_finalized`
+				// At that point we'll want to update `highest_finalized` to `current_header`
 
 				// Since we've checked and the header is finalized we can start updating the
 				// authority set info

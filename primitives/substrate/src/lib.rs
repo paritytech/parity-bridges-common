@@ -19,6 +19,7 @@
 use core::default::Default;
 use parity_scale_codec::{Decode, Encode};
 use sp_finality_grandpa::{AuthorityList, SetId};
+use sp_runtime::traits::Header as HeaderT;
 
 #[derive(Default, Encode, Decode)]
 pub struct AuthoritySet {
@@ -30,4 +31,14 @@ pub struct AuthoritySet {
 pub struct ScheduledChange<N> {
 	pub authority_set: AuthoritySet,
 	pub height: N,
+}
+
+#[derive(Default, Encode, Decode)]
+pub struct ImportedHeader<H: HeaderT> {
+	pub header: H,
+	pub is_finalized: bool,
+}
+
+pub fn prove_finality<H>(_header: &H, _set: &AuthoritySet, _justification: &[u8]) -> bool {
+	true
 }

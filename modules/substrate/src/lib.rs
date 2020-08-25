@@ -26,7 +26,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::verifier::{ChainVerifier, FinalityProof};
-use bp_substrate::{AuthoritySet, ScheduledChange};
+use bp_substrate::{AuthoritySet, ImportedHeader, ScheduledChange};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
 use parity_scale_codec::{Decode, Encode};
@@ -47,7 +47,7 @@ decl_storage! {
 		/// Headers which have been imported into the pallet.
 		// Maybe made a HeaderId?
 		// Should maybe have some sort of notion of ancestry here.
-		ImportedHeaders: map hasher(identity) T::Hash => Option<T::Header>;
+		ImportedHeaders: map hasher(identity) T::Hash => Option<ImportedHeader<T::Header>>;
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change.
@@ -85,19 +85,13 @@ decl_module! {
 	}
 }
 
-#[derive(Default, Encode, Decode)]
-struct ImportedHeader<T: Trait> {
-	header: T::Header,
-	is_finalized: bool,
-}
-
 pub trait BridgeStorage {
 	type Header: HeaderT;
 
+	fn write_header(&mut self, header: &ImportedHeader<Self::Header>);
 	fn best_finalized_header(&self) -> Option<Self::Header>;
-	fn write_header(&mut self, header: &Self::Header);
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
-	fn get_header_by_hash(&self, hash: <Self::Header as HeaderT>::Hash) -> Option<Self::Header>;
+	fn get_header_by_hash(&self, hash: <Self::Header as HeaderT>::Hash) -> Option<ImportedHeader<Self::Header>>;
 	fn current_authority_set(&self) -> AuthoritySet;
 	fn update_current_authority_set(&self, new_set: AuthoritySet);
 	fn scheduled_set_change(&self) -> ScheduledChange<<Self::Header as HeaderT>::Number>;
@@ -116,8 +110,9 @@ impl<T> PalletStorage<T> {
 impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	type Header = T::Header;
 
-	fn write_header(&mut self, header: &T::Header) {
-		<ImportedHeaders<T>>::insert(header.hash(), header);
+	fn write_header(&mut self, header: &ImportedHeader<T::Header>) {
+		let hash = header.header.hash();
+		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
 	fn best_finalized_header(&self) -> Option<T::Header> {
@@ -128,7 +123,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		self.get_header_by_hash(hash).is_some()
 	}
 
-	fn get_header_by_hash(&self, hash: <T::Header as HeaderT>::Hash) -> Option<T::Header> {
+	fn get_header_by_hash(&self, hash: <T::Header as HeaderT>::Hash) -> Option<ImportedHeader<T::Header>> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
