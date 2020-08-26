@@ -29,7 +29,6 @@ use crate::verifier::{ChainVerifier, FinalityProof};
 use bp_substrate::{AuthoritySet, ImportedHeader, ScheduledChange};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
-use parity_scale_codec::{Decode, Encode};
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -52,7 +51,6 @@ decl_storage! {
 		BestFinalized: Option<T::Header>;
 		/// Headers which have been imported into the pallet.
 		// Maybe made a HeaderId?
-		// Should maybe have some sort of notion of ancestry here.
 		ImportedHeaders: map hasher(identity) T::Hash => Option<ImportedHeader<T::Header>>;
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;

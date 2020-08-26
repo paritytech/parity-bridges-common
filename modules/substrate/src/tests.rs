@@ -16,8 +16,8 @@
 
 #![cfg(test)]
 
+use super::*;
 use crate::mock::*;
-use crate::{BridgeStorage, Module, PalletStorage};
 use bp_substrate::ImportedHeader;
 use frame_support::assert_ok;
 

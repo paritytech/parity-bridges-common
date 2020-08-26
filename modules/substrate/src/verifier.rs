@@ -17,14 +17,16 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::BridgeStorage;
-use bp_substrate::{prove_finality, AuthoritySet, ScheduledChange};
-use parity_scale_codec::{Decode, Encode};
-use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
+use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange};
+use parity_scale_codec::Decode;
+use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::Header as HeaderT;
 use sp_runtime::DigestItem;
+use sp_std::prelude::Vec;
 
-pub type FinalityProof = (Vec<u8>, AuthorityList, SetId);
+pub type FinalityProof = Vec<u8>;
 
+#[derive(Debug, PartialEq)]
 pub enum ImportError {
 	OldHeader,
 	HeaderAlreadyExists,
@@ -42,6 +44,7 @@ pub trait ChainVerifier<S, H> {
 	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError>;
 }
 
+#[derive(Debug)]
 pub struct Verifier;
 
 impl<S, H> ChainVerifier<S, H> for Verifier
@@ -64,13 +67,24 @@ where
 			return Err(ImportError::MissingParent);
 		}
 
+		let mut is_finalized = false;
 		// A block at this height should come with a justification and signal a new
 		// authority set. We'll want to make sure it is valid
+		//
+		// This defaults to 0, should it maybe be an Option?
 		let scheduled_change_height = storage.scheduled_set_change().height;
 		if *header.number() == scheduled_change_height {
 			// Maybe pass the scheduled_change in here so we don't have to query storage later
-			Self::verify_finality(storage, header, &finality_proof.expect("TOOO"))?;
+			Self::verify_finality(storage, header, &finality_proof.expect("TODO"))?;
+			is_finalized = true;
 		}
+
+		let h = ImportedHeader {
+			header: header.clone(), // I don't like having to do this...
+			is_finalized,
+		};
+
+		storage.write_header(&h);
 
 		Ok(())
 	}
@@ -81,7 +95,7 @@ where
 			if *id == GRANDPA_ENGINE_ID {
 				let current_authority_set = storage.current_authority_set();
 				let current_set_id = current_authority_set.set_id;
-				let justification = &proof.0;
+				let justification = &proof;
 
 				let is_finalized = prove_finality(&header, &current_authority_set, &justification);
 				if !is_finalized {
@@ -146,4 +160,91 @@ where
 	}
 
 	return true;
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::mock::*;
+	use crate::{BestFinalized, ImportedHeaders, PalletStorage};
+	use frame_support::{assert_err, assert_ok};
+	use frame_support::{StorageMap, StorageValue};
+
+	#[test]
+	fn fails_to_import_old_header() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let parent = <TestRuntime as frame_system::Trait>::Header::new_from_number(5);
+			<BestFinalized<TestRuntime>>::put(&parent);
+
+			let header = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+			assert_err!(
+				Verifier::import_header(&mut storage, &header, None),
+				ImportError::OldHeader
+			);
+		})
+	}
+
+	#[test]
+	fn fails_to_import_header_without_parent() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let parent = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+			<BestFinalized<TestRuntime>>::put(&parent);
+
+			// By default the parent is `0x00`
+			let header = <TestRuntime as frame_system::Trait>::Header::new_from_number(2);
+
+			assert_err!(
+				Verifier::import_header(&mut storage, &header, None),
+				ImportError::MissingParent
+			);
+		})
+	}
+
+	#[test]
+	fn fails_to_import_header_twice() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let header = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+			<BestFinalized<TestRuntime>>::put(&header);
+
+			let imported_header = ImportedHeader {
+				header: header.clone(),
+				is_finalized: true,
+			};
+
+			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
+
+			assert_err!(
+				Verifier::import_header(&mut storage, &header, None),
+				ImportError::HeaderAlreadyExists
+			);
+		})
+	}
+
+	#[test]
+	fn succesfully_imports_valid_but_unfinalized_header() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let parent = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+			let parent_hash = parent.hash();
+			<BestFinalized<TestRuntime>>::put(&parent);
+
+			let imported_header = ImportedHeader {
+				header: parent.clone(),
+				is_finalized: true,
+			};
+
+			<ImportedHeaders<TestRuntime>>::insert(parent_hash, &imported_header);
+
+			let mut header = <TestRuntime as frame_system::Trait>::Header::new_from_number(2);
+			header.parent_hash = parent_hash;
+			assert_ok!(Verifier::import_header(&mut storage, &header, None));
+
+			let stored_header = storage.get_header_by_hash(header.hash());
+			assert!(stored_header.is_some());
+			assert_eq!(stored_header.unwrap().is_finalized, false);
+		})
+	}
 }
