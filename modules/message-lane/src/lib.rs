@@ -29,6 +29,7 @@
 //! processedby the bridged chain, `MessagesProcessed` by the bridged chain.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![warn(missing_docs)]
 
 use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
