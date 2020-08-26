@@ -60,6 +60,11 @@ pub enum MessageResult<Payload> {
 /// Called when inbound message is received.
 pub trait OnMessageReceived<Payload> {
 	/// Called when inbound message is received.
+	///
+	/// It is up to the implementers of this trait to determine whether the message
+	/// is invalid (i.e. improperly encoded, has too large weight, ...) or not. And,
+	/// if message is invalid, then it should be dropped immediately (by returning
+	/// `MessageResult::Processed`), or it'll block the lane forever.
 	fn on_message_received(&mut self, message: Message<Payload>) -> MessageResult<Payload>;
 }
 
