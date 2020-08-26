@@ -106,6 +106,8 @@ pub trait BridgeStorage {
 	fn update_current_authority_set(&self, new_set: AuthoritySet);
 	fn scheduled_set_change(&self) -> ScheduledChange<<Self::Header as HeaderT>::Number>;
 	fn schedule_next_set_change(&self, next_change: ScheduledChange<<Self::Header as HeaderT>::Number>);
+	#[cfg(test)]
+	fn import_unfinalized_header(&mut self, header: Self::Header);
 }
 
 #[derive(Default)]
@@ -151,5 +153,15 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 	fn schedule_next_set_change(&self, next_change: ScheduledChange<<T::Header as HeaderT>::Number>) {
 		<NextScheduledChange<T>>::put(next_change)
+	}
+
+	#[cfg(test)]
+	fn import_unfinalized_header(&mut self, header: T::Header) {
+		let h = ImportedHeader {
+			header,
+			is_finalized: false,
+		};
+
+		self.write_header(&h);
 	}
 }

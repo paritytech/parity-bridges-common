@@ -170,14 +170,16 @@ mod tests {
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
 
+	type TestHeader = <TestRuntime as frame_system::Trait>::Header;
+
 	#[test]
 	fn fails_to_import_old_header() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let parent = <TestRuntime as frame_system::Trait>::Header::new_from_number(5);
+			let parent = TestHeader::new_from_number(5);
 			<BestFinalized<TestRuntime>>::put(&parent);
 
-			let header = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+			let header = TestHeader::new_from_number(1);
 			assert_err!(
 				Verifier::import_header(&mut storage, &header, None),
 				ImportError::OldHeader
@@ -189,11 +191,11 @@ mod tests {
 	fn fails_to_import_header_without_parent() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let parent = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+			let parent = TestHeader::new_from_number(1);
 			<BestFinalized<TestRuntime>>::put(&parent);
 
 			// By default the parent is `0x00`
-			let header = <TestRuntime as frame_system::Trait>::Header::new_from_number(2);
+			let header = TestHeader::new_from_number(2);
 
 			assert_err!(
 				Verifier::import_header(&mut storage, &header, None),
@@ -206,7 +208,7 @@ mod tests {
 	fn fails_to_import_header_twice() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let header = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+			let header = TestHeader::new_from_number(1);
 			<BestFinalized<TestRuntime>>::put(&header);
 
 			let imported_header = ImportedHeader {
@@ -227,7 +229,7 @@ mod tests {
 	fn succesfully_imports_valid_but_unfinalized_header() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let parent = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+			let parent = TestHeader::new_from_number(1);
 			let parent_hash = parent.hash();
 			<BestFinalized<TestRuntime>>::put(&parent);
 
@@ -238,13 +240,68 @@ mod tests {
 
 			<ImportedHeaders<TestRuntime>>::insert(parent_hash, &imported_header);
 
-			let mut header = <TestRuntime as frame_system::Trait>::Header::new_from_number(2);
+			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = parent_hash;
 			assert_ok!(Verifier::import_header(&mut storage, &header, None));
 
 			let stored_header = storage.get_header_by_hash(header.hash());
 			assert!(stored_header.is_some());
 			assert_eq!(stored_header.unwrap().is_finalized, false);
+		})
+	}
+
+	#[test]
+	fn related_headers_are_ancestors() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let mut headers = vec![];
+
+			let mut header = TestHeader::new_from_number(0);
+			headers.push(header.clone());
+			storage.import_unfinalized_header(header);
+
+			for i in 1..4 {
+				header = TestHeader::new_from_number(i as u64);
+				header.parent_hash = headers[i - 1].hash();
+				headers.push(header);
+				storage.import_unfinalized_header(headers[i].clone());
+			}
+
+			for i in 0..4 {
+				assert!(storage.header_exists(headers[i].hash()));
+			}
+
+			let ancestor = headers.remove(0);
+			let child = headers.pop().unwrap();
+			assert!(are_ancestors(&storage, ancestor, child));
+		})
+	}
+
+	#[test]
+	fn unrelated_headers_are_not_ancestors() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let mut headers = vec![];
+
+			let mut header = TestHeader::new_from_number(0);
+			headers.push(header.clone());
+			storage.import_unfinalized_header(header);
+
+			for i in 1..4 {
+				header = TestHeader::new_from_number(i as u64);
+				header.parent_hash = headers[i - 1].hash();
+				headers.push(header);
+				storage.import_unfinalized_header(headers[i].clone());
+			}
+
+			for i in 0..4 {
+				assert!(storage.header_exists(headers[i].hash()));
+			}
+
+			let mut bad_ancestor = TestHeader::new_from_number(0);
+			bad_ancestor.parent_hash = [1u8; 32].into();
+			let child = headers.pop().unwrap();
+			assert_eq!(are_ancestors(&storage, bad_ancestor, child), false);
 		})
 	}
 }
