@@ -100,6 +100,8 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 	}
 
 	/// Prune at most `max_messages_to_prune` already received messages.
+	///
+	/// Returns number of pruned messages.
 	pub fn prune_messages(&mut self, max_messages_to_prune: MessageNonce) -> MessageNonce {
 		let mut pruned_messages = 0;
 		let mut anything_changed = false;
