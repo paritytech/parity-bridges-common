@@ -38,6 +38,9 @@ mod verifier;
 #[cfg(test)]
 mod mock;
 
+#[cfg(test)]
+mod tests;
+
 pub trait Trait: frame_system::Trait {
 	// type Verifier: ChainVerifier;
 }
@@ -83,6 +86,12 @@ decl_module! {
 			let _ =
 				verifier::Verifier::import_header(&mut storage, &header, None).map_err(|_| <Error<T>>::InvalidHeader)?;
 
+			Ok(())
+		}
+
+		// TODO: Remove this
+		#[weight = 0]
+		pub fn test(origin) -> dispatch::DispatchResult {
 			Ok(())
 		}
 	}
