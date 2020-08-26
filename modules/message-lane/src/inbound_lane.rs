@@ -180,7 +180,7 @@ mod tests {
 	}
 
 	#[test]
-	fn process_message_does_noting_when_lane_is_empty() {
+	fn process_message_does_nothing_when_lane_is_empty() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 1);
