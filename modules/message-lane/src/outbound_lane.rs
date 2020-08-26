@@ -256,7 +256,7 @@ mod tests {
 			lane.send_message(REGULAR_PAYLOAD);
 			assert_eq!(lane.prune_messages(100), 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
-			// after confirmation, some messages are receved
+			// after confirmation, some messages are received
 			assert_eq!(lane.confirm_receival(2), Some((1, 2)));
 			assert_eq!(lane.prune_messages(100), 2);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 3);
