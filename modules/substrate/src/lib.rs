@@ -35,6 +35,9 @@ use sp_std::{marker::PhantomData, prelude::*};
 
 mod verifier;
 
+#[cfg(test)]
+mod mock;
+
 pub trait Trait: frame_system::Trait {
 	// type Verifier: ChainVerifier;
 }
