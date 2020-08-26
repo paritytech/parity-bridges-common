@@ -152,7 +152,6 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	pub fn confirm_receival(lane_id: &LaneId, latest_received_nonce: MessageNonce) {
 		let mut lane = outbound_lane::<T, I>(*lane_id);
 		let received_range = lane.confirm_receival(latest_received_nonce);
-		lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 
 		if let Some(received_range) = received_range {
 			Self::deposit_event(Event::MessagesDelivered(*lane_id, received_range.0, received_range.1));
@@ -166,7 +165,6 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	pub fn confirm_processing(lane_id: &LaneId, latest_processed_nonce: MessageNonce) {
 		let mut lane = outbound_lane::<T, I>(*lane_id);
 		let processed_range = lane.confirm_processing(latest_processed_nonce);
-		lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 
 		if let Some(processed_range) = processed_range {
 			Self::deposit_event(Event::MessagesProcessed(*lane_id, processed_range.0, processed_range.1));
