@@ -14,7 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Runtime module that allows sending and receiving messages using lane concept.
+//! Runtime module that allows sending and receiving messages using lane concept:
+//!
+//! 1) the message is sent using `send_message()` call;
+//! 2) every outbound message is assigned nonce;
+//! 3) the messages are stored in the storage;
+//! 4) external component (relay) delivers messages to bridged chain;
+//! 5) messages are processed in order (ordered by assigned nonce);
+//! 6) relay may send proof-of-receiving and proof-of-processing back to this chain.
+//!
+//! Once message is sent, its progress can be tracked by looking at module events.
+//! The assigned nonce is reported using `MessageAccepted` event. When message is
+//! accepted by the bridged chain, `MessagesDelivered` is fired. When message is
+//! processedby the bridged chain, `MessagesProcessed` by the bridged chain.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
