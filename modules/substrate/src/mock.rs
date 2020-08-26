@@ -19,7 +19,7 @@
 use crate::Trait;
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use sp_runtime::{
-	testing::{Header as SubstrateHeader, H256},
+	testing::{Header, H256},
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
@@ -49,7 +49,7 @@ impl frame_system::Trait for TestRuntime {
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = SubstrateHeader;
+	type Header = Header;
 	type Event = ();
 	type BlockHashCount = BlockHashCount;
 	type MaximumBlockWeight = MaximumBlockWeight;

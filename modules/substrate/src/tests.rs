@@ -17,8 +17,9 @@
 #![cfg(test)]
 
 use crate::mock::*;
-use crate::Module;
-use frame_support::{assert_err, assert_noop, assert_ok};
+use crate::{BridgeStorage, Module, PalletStorage};
+use bp_substrate::ImportedHeader;
+use frame_support::assert_ok;
 
 type Bridge = Module<TestRuntime>;
 
@@ -26,5 +27,30 @@ type Bridge = Module<TestRuntime>;
 fn it_works() {
 	run_test(|| {
 		assert_ok!(Bridge::test(Origin::signed(1)));
+	})
+}
+
+#[test]
+fn reading_storage_works() {
+	run_test(|| {
+		let storage = PalletStorage::<TestRuntime>::new();
+		assert!(storage.best_finalized_header().is_none());
+	})
+}
+
+#[test]
+fn writing_to_storage_works() {
+	run_test(|| {
+		let mut storage = PalletStorage::<TestRuntime>::new();
+		let header = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
+		let imported_header = ImportedHeader {
+			header: header.clone(),
+			is_finalized: false,
+		};
+		storage.write_header(&imported_header);
+
+		let hash = header.hash();
+		let header = storage.get_header_by_hash(hash);
+		assert_eq!(imported_header, header.unwrap())
 	})
 }

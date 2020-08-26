@@ -20,6 +20,7 @@ use core::default::Default;
 use parity_scale_codec::{Decode, Encode};
 use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::traits::Header as HeaderT;
+use sp_runtime::RuntimeDebug;
 
 #[derive(Default, Encode, Decode)]
 pub struct AuthoritySet {
@@ -33,7 +34,7 @@ pub struct ScheduledChange<N> {
 	pub height: N,
 }
 
-#[derive(Default, Encode, Decode, Clone)]
+#[derive(Default, Encode, Decode, Clone, RuntimeDebug, PartialEq)]
 pub struct ImportedHeader<H: HeaderT> {
 	pub header: H,
 	pub is_finalized: bool,
