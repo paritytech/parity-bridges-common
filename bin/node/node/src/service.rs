@@ -20,7 +20,7 @@
 // =====================================================================================
 // =====================================================================================
 // UPDATE GUIDE:
-// 1) replace everything with node-template/src/service.rs contents;
+// 1) replace everything with node-template/src/service.rs contents (found in main Substrate repo);
 // 2) the only thing to keep from old code, is `rpc_extensions_builder` - we use our own custom RPCs;
 // 3) fix compilation errors;
 // 4) test :)
