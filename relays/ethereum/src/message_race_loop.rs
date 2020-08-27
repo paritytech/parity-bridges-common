@@ -105,7 +105,7 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
 	/// source to target node.
 	fn select_nonces_to_deliver(
 		&mut self,
-		race_state: &mut RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof>,
+		race_state: &RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof>,
 	) -> Option<RangeInclusive<MessageNonce>>;
 }
 
@@ -130,13 +130,7 @@ pub async fn run<P: MessageRace>(
 	stall_timeout: Duration,
 	mut strategy: impl RaceStrategy<P::SourceHeaderId, P::TargetHeaderId, P::MessageNonce, P::Proof>,
 ) -> Result<(), FailedClient> {
-	let mut race_state = RaceState {
-		source_state: None,
-		target_state: None,
-		nonces_to_submit: None,
-		nonces_submitted: None,
-	};
-
+	let mut race_state = RaceState::default();
 	let mut stall_countdown = Instant::now();
 
 	let mut source_retry_backoff = retry_backoff();
@@ -322,6 +316,17 @@ pub async fn run<P: MessageRace>(
 			} else {
 				target_client_is_online = true;
 			}
+		}
+	}
+}
+
+impl<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> Default for RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
+	fn default() -> Self {
+		RaceState {
+			source_state: None,
+			target_state: None,
+			nonces_to_submit: None,
+			nonces_submitted: None,
 		}
 	}
 }

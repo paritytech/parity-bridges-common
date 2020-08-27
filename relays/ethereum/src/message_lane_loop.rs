@@ -301,24 +301,28 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
 	use super::*;
 	use crate::utils::HeaderId;
 	use futures::stream::StreamExt;
 	use parking_lot::Mutex;
 	use std::sync::Arc;
 
-	type TestMessageNonce = u64;
-	type TestMessagesProof = RangeInclusive<TestMessageNonce>;
+	pub fn header_id(number: TestSourceHeaderNumber) -> HeaderId<TestSourceHeaderNumber, TestSourceHeaderHash> {
+		HeaderId(number, number)
+	}
 
-	type TestSourceHeaderNumber = u64;
-	type TestSourceHeaderHash = u64;
+	pub type TestMessageNonce = u64;
+	pub type TestMessagesProof = RangeInclusive<TestMessageNonce>;
 
-	type TestTargetHeaderNumber = u64;
-	type TestTargetHeaderHash = u64;
+	pub type TestSourceHeaderNumber = u64;
+	pub type TestSourceHeaderHash = u64;
+
+	pub type TestTargetHeaderNumber = u64;
+	pub type TestTargetHeaderHash = u64;
 
 	#[derive(Debug)]
-	enum TestError {
+	pub enum TestError {
 		Logic,
 		Connection,
 	}
@@ -332,7 +336,7 @@ mod tests {
 		}
 	}
 
-	struct TestMessageLane;
+	pub struct TestMessageLane;
 
 	impl MessageLane for TestMessageLane {
 		const SOURCE_NAME: &'static str = "TestSource";
@@ -349,7 +353,7 @@ mod tests {
 	}
 
 	#[derive(Debug, Default, Clone)]
-	struct TestClientData {
+	pub struct TestClientData {
 		is_source_fails: bool,
 		is_source_reconnected: bool,
 		source_state: SourceClientState<TestMessageLane>,
@@ -362,7 +366,7 @@ mod tests {
 	}
 
 	#[derive(Clone)]
-	struct TestSourceClient {
+	pub struct TestSourceClient {
 		data: Arc<Mutex<TestClientData>>,
 		tick: Arc<dyn Fn(&mut TestClientData)>,
 	}
@@ -419,7 +423,7 @@ mod tests {
 	}
 
 	#[derive(Clone)]
-	struct TestTargetClient {
+	pub struct TestTargetClient {
 		data: Arc<Mutex<TestClientData>>,
 		tick: Arc<dyn Fn(&mut TestClientData)>,
 	}

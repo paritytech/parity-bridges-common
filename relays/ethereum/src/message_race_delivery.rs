@@ -166,7 +166,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		}
 
 		match self.source_queue.back() {
-			Some((_, prev_nonce)) if *prev_nonce != nonce => (),
+			Some((_, prev_nonce)) if *prev_nonce < nonce => (),
 			Some(_) => return,
 			None => (),
 		}
@@ -179,6 +179,10 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		nonce: P::MessageNonce,
 		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>,
 	) {
+		if nonce < self.target_nonce {
+			return;
+		}
+
 		while self
 			.source_queue
 			.front()
@@ -211,7 +215,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 
 	fn select_nonces_to_deliver(
 		&mut self,
-		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>,
+		race_state: &RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>,
 	) -> Option<RangeInclusive<P::MessageNonce>> {
 		// if we have already selected nonces that we want to submit, do nothing
 		if race_state.nonces_to_submit.is_some() {
@@ -236,7 +240,9 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			// if queue is empty, we don't need to prove anything
 			let (first_queued_at, first_queued_nonce) = match self.source_queue.front() {
 				Some((first_queued_at, first_queued_nonce)) => (first_queued_at.clone(), *first_queued_nonce),
-				None => break,
+				None => {
+					break
+				},
 			};
 
 			// if header that has queued the message is not yet finalized at bridged chain,
@@ -255,5 +261,123 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		}
 
 		nonces_end.map(|nonces_end| RangeInclusive::new(nonces_begin, nonces_end))
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::message_lane_loop::{ClientState, tests::{TestMessageLane, TestMessageNonce, TestMessagesProof, header_id}};
+	use super::*;
+
+	#[test]
+	fn strategy_is_empty_works() {
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		assert_eq!(strategy.is_empty(), true);
+		strategy.source_nonce_updated(header_id(1), 1);
+		assert_eq!(strategy.is_empty(), false);
+	}
+
+	#[test]
+	fn source_nonce_is_never_lower_than_known_target_nonce() {
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		strategy.target_nonce_updated(10, &mut Default::default());
+		strategy.source_nonce_updated(header_id(1), 5);
+		assert_eq!(strategy.source_queue, vec![]);
+	}
+
+	#[test]
+	fn source_nonce_is_never_lower_than_latest_known_source_nonce() {
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		strategy.source_nonce_updated(header_id(1), 5);
+		strategy.source_nonce_updated(header_id(2), 3);
+		strategy.source_nonce_updated(header_id(2), 5);
+		assert_eq!(strategy.source_queue, vec![(header_id(1), 5)]);
+	}
+
+	#[test]
+	fn target_nonce_is_never_lower_than_latest_known_target_nonce() {
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		strategy.target_nonce_updated(10, &mut Default::default());
+		strategy.target_nonce_updated(5, &mut Default::default());
+		assert_eq!(strategy.target_nonce, 10);
+	}
+
+	#[test]
+	fn updated_target_nonce_removes_queued_entries() {
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		strategy.source_nonce_updated(header_id(1), 5);
+		strategy.source_nonce_updated(header_id(2), 10);
+		strategy.source_nonce_updated(header_id(3), 15);
+		strategy.source_nonce_updated(header_id(4), 20);
+		strategy.target_nonce_updated(15, &mut Default::default());
+		assert_eq!(strategy.source_queue, vec![(header_id(4), 20)]);
+	}
+
+	#[test]
+	fn selected_nonces_are_dropped_on_target_nonce_update() {
+		let mut state = RaceState::default();
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		state.nonces_to_submit = Some((header_id(1), 5..=10, 5..=10));
+		strategy.target_nonce_updated(7, &mut state);
+		assert!(state.nonces_to_submit.is_some());
+		strategy.target_nonce_updated(10, &mut state);
+		assert!(state.nonces_to_submit.is_none());
+	}
+
+	#[test]
+	fn submitted_nonces_are_dropped_on_target_nonce_update() {
+		let mut state = RaceState::default();
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		state.nonces_submitted = Some(5..=10);
+		strategy.target_nonce_updated(7, &mut state);
+		assert!(state.nonces_submitted.is_some());
+		strategy.target_nonce_updated(10, &mut state);
+		assert!(state.nonces_submitted.is_none());
+	}
+
+	#[test]
+	fn nothing_is_selected_if_something_is_already_selected() {
+		let mut state = RaceState::default();
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		state.nonces_to_submit = Some((header_id(1), 1..=10, 1..=10));
+		strategy.source_nonce_updated(header_id(1), 10);
+		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
+	}
+
+	#[test]
+	fn nothing_is_selected_if_something_is_already_submitted() {
+		let mut state = RaceState::default();
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		state.nonces_submitted = Some(1..=10);
+		strategy.source_nonce_updated(header_id(1), 10);
+		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
+	}
+
+	#[test]
+	fn select_nonces_to_deliver_works() {
+		let mut state = RaceState::<_, _, TestMessageNonce, TestMessagesProof>::default();
+		let mut strategy = MessageDeliveryStrategy::<TestMessageLane>::default();
+		strategy.source_nonce_updated(header_id(1), 1);
+		strategy.source_nonce_updated(header_id(2), 2);
+		strategy.source_nonce_updated(header_id(3), 6);
+		strategy.source_nonce_updated(header_id(5), 8);
+
+		state.target_state = Some(ClientState {
+			best_self: header_id(0),
+			best_peer: header_id(4),
+		});
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(1..=4));
+		strategy.target_nonce_updated(4, &mut state);
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(5..=6));
+		strategy.target_nonce_updated(6, &mut state);
+		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
+
+		state.target_state = Some(ClientState {
+			best_self: header_id(0),
+			best_peer: header_id(5),
+		});
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(7..=8));
+		strategy.target_nonce_updated(8, &mut state);
+		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 	}
 }
