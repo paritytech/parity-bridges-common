@@ -47,6 +47,10 @@ macro_rules! bail_on_arg_error {
 	};
 }
 
+/// Ethereum header Id.
+#[derive(Debug, Default, Clone, Copy, Eq, Hash, PartialEq)]
+pub struct HeaderId<Hash, Number>(pub Number, pub Hash);
+
 /// Error type that can signal connection errors.
 pub trait MaybeConnectionError {
 	/// Returns true if error (maybe) represents connection error.

@@ -16,7 +16,7 @@
 
 //! One-way message lane types.
 
-use crate::sync_types::HeaderId; // TODO: move to utils
+use crate::utils::HeaderId;
 
 use std::fmt::Debug;
 

@@ -299,7 +299,7 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::sync_types::HeaderId;
+	use crate::utils::HeaderId;
 	use futures::stream::StreamExt;
 	use parking_lot::Mutex;
 	use std::sync::Arc;
