@@ -202,54 +202,54 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 
 	loop {
 		futures::select! {
-					new_source_state = source_state => {
-						source_state_required = false;
+			new_source_state = source_state => {
+				source_state_required = false;
 
-						source_client_is_online = process_future_result(
-							new_source_state,
-							&mut source_retry_backoff,
-							|new_source_state| {
-								let _ = delivery_source_state_sender.unbounded_send(new_source_state);
-							},
-							&mut source_go_offline_future,
-							|delay| async_std::task::sleep(delay),
-							|| format!("Error retrieving state from {} node", P::SOURCE_NAME),
-						).fail_if_connection_error(FailedClient::Source)?;
+				source_client_is_online = process_future_result(
+					new_source_state,
+					&mut source_retry_backoff,
+					|new_source_state| {
+						let _ = delivery_source_state_sender.unbounded_send(new_source_state);
 					},
-					_ = source_go_offline_future => {
-						source_client_is_online = true;
-					},
-					_ = source_tick_stream.next() => {
-						source_state_required = true;
-					},
-					new_target_state = target_state => {
-						target_state_required = false;
+					&mut source_go_offline_future,
+					|delay| async_std::task::sleep(delay),
+					|| format!("Error retrieving state from {} node", P::SOURCE_NAME),
+				).fail_if_connection_error(FailedClient::Source)?;
+			},
+			_ = source_go_offline_future => {
+				source_client_is_online = true;
+			},
+			_ = source_tick_stream.next() => {
+				source_state_required = true;
+			},
+			new_target_state = target_state => {
+				target_state_required = false;
 
-						target_client_is_online = process_future_result(
-							new_target_state,
-							&mut target_retry_backoff,
-							|new_target_state| {
-								let _ = delivery_target_state_sender.unbounded_send(new_target_state);
-							},
-							&mut target_go_offline_future,
-							|delay| async_std::task::sleep(delay),
-							|| format!("Error retrieving state from {} node", P::TARGET_NAME),
-						).fail_if_connection_error(FailedClient::Target)?;
+				target_client_is_online = process_future_result(
+					new_target_state,
+					&mut target_retry_backoff,
+					|new_target_state| {
+						let _ = delivery_target_state_sender.unbounded_send(new_target_state);
 					},
-					_ = target_go_offline_future => {
-						target_client_is_online = true;
-					},
-					_ = target_tick_stream.next() => {
-						target_state_required = true;
-					},
+					&mut target_go_offline_future,
+					|delay| async_std::task::sleep(delay),
+					|| format!("Error retrieving state from {} node", P::TARGET_NAME),
+				).fail_if_connection_error(FailedClient::Target)?;
+			},
+			_ = target_go_offline_future => {
+				target_client_is_online = true;
+			},
+			_ = target_tick_stream.next() => {
+				target_state_required = true;
+			},
 
-		/*			delivery_error = delivery_race_loop => {
-						match delivery_error {
-							Ok(_) => unreachable!("only ends with error; qed"),
-							Err(err) => return Err(err),
-						}
-					}*/
+			delivery_error = delivery_race_loop => {
+				match delivery_error {
+					Ok(_) => unreachable!("only ends with error; qed"),
+					Err(err) => return Err(err),
 				}
+			}
+		}
 
 		if source_client_is_online {
 			source_client_is_online = false;
