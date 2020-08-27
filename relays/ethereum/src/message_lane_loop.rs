@@ -298,11 +298,11 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::sync_types::HeaderId;
 	use futures::stream::StreamExt;
 	use parking_lot::Mutex;
 	use std::sync::Arc;
-	use super::*;
 
 	type TestMessageNonce = u64;
 	type TestMessagesProof = RangeInclusive<TestMessageNonce>;
@@ -314,7 +314,10 @@ mod tests {
 	type TestTargetHeaderHash = u64;
 
 	#[derive(Debug)]
-	enum TestError { Logic, Connection }
+	enum TestError {
+		Logic,
+		Connection,
+	}
 
 	impl MaybeConnectionError for TestError {
 		fn is_connection_error(&self) -> bool {
@@ -376,7 +379,9 @@ mod tests {
 		async fn state(&self) -> Result<SourceClientState<TestMessageLane>, Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
-			if data.is_source_fails { return Err(TestError::Connection); }
+			if data.is_source_fails {
+				return Err(TestError::Connection);
+			}
 			Ok(data.source_state.clone())
 		}
 
@@ -387,7 +392,9 @@ mod tests {
 		) -> Result<(SourceHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
-			if data.is_source_fails { return Err(TestError::Connection); }
+			if data.is_source_fails {
+				return Err(TestError::Connection);
+			}
 			Ok((id, data.source_latest_generated_nonce))
 		}
 
@@ -395,7 +402,14 @@ mod tests {
 			&self,
 			id: SourceHeaderIdOf<TestMessageLane>,
 			nonces: RangeInclusive<TestMessageNonce>,
-		) -> Result<(SourceHeaderIdOf<TestMessageLane>, RangeInclusive<TestMessageNonce>, TestMessagesProof), Self::Error> {
+		) -> Result<
+			(
+				SourceHeaderIdOf<TestMessageLane>,
+				RangeInclusive<TestMessageNonce>,
+				TestMessagesProof,
+			),
+			Self::Error,
+		> {
 			Ok((id, nonces.clone(), nonces))
 		}
 	}
@@ -422,7 +436,9 @@ mod tests {
 		async fn state(&self) -> Result<TargetClientState<TestMessageLane>, Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
-			if data.is_target_fails { return Err(TestError::Connection); }
+			if data.is_target_fails {
+				return Err(TestError::Connection);
+			}
 			Ok(data.target_state.clone())
 		}
 
@@ -432,7 +448,9 @@ mod tests {
 		) -> Result<(TargetHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
-			if data.is_target_fails { return Err(TestError::Connection); }
+			if data.is_target_fails {
+				return Err(TestError::Connection);
+			}
 			Ok((id, data.target_latest_received_nonce))
 		}
 
@@ -445,11 +463,11 @@ mod tests {
 		) -> Result<RangeInclusive<TestMessageNonce>, Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
-			if data.is_target_fails { return Err(TestError::Connection); }
-			data.target_state.best_self = HeaderId(
-				data.target_state.best_self.0 + 1,
-				data.target_state.best_self.1 + 1,
-			);
+			if data.is_target_fails {
+				return Err(TestError::Connection);
+			}
+			data.target_state.best_self =
+				HeaderId(data.target_state.best_self.0 + 1, data.target_state.best_self.1 + 1);
 			data.target_latest_received_nonce = *proof.end();
 			data.submitted_messages_proofs.push(proof);
 			Ok(nonces)
@@ -465,8 +483,14 @@ mod tests {
 		async_std::task::block_on(async {
 			let data = Arc::new(Mutex::new(data));
 
-			let source_client = TestSourceClient { data: data.clone(), tick: source_tick };
-			let target_client = TestTargetClient { data: data.clone(), tick: target_tick };
+			let source_client = TestSourceClient {
+				data: data.clone(),
+				tick: source_tick,
+			};
+			let target_client = TestTargetClient {
+				data: data.clone(),
+				tick: target_tick,
+			};
 			run(
 				source_client,
 				Duration::from_millis(100),
@@ -514,10 +538,8 @@ mod tests {
 					data.is_target_fails = false;
 				}
 				if data.target_state.best_peer.0 < 10 {
-					data.target_state.best_peer = HeaderId(
-						data.target_state.best_peer.0 + 1,
-						data.target_state.best_peer.0 + 1,
-					);
+					data.target_state.best_peer =
+						HeaderId(data.target_state.best_peer.0 + 1, data.target_state.best_peer.0 + 1);
 				}
 				if !data.submitted_messages_proofs.is_empty() {
 					exit_sender.unbounded_send(()).unwrap();
@@ -526,10 +548,7 @@ mod tests {
 			exit_receiver.into_future().map(|(_, _)| ()),
 		);
 
-		assert_eq!(
-			result.submitted_messages_proofs,
-			vec![1..=1],
-		);
+		assert_eq!(result.submitted_messages_proofs, vec![1..=1],);
 	}
 
 	#[test]
@@ -554,21 +573,21 @@ mod tests {
 			Arc::new(|_: &mut TestClientData| {}),
 			Arc::new(move |data: &mut TestClientData| {
 				if data.target_state.best_peer.0 < 10 {
-					data.target_state.best_peer = HeaderId(
-						data.target_state.best_peer.0 + 1,
-						data.target_state.best_peer.0 + 1,
-					);
+					data.target_state.best_peer =
+						HeaderId(data.target_state.best_peer.0 + 1, data.target_state.best_peer.0 + 1);
 				}
-				if data.submitted_messages_proofs.last().map(|last| *last.end() == 10).unwrap_or(false) {
+				if data
+					.submitted_messages_proofs
+					.last()
+					.map(|last| *last.end() == 10)
+					.unwrap_or(false)
+				{
 					exit_sender.unbounded_send(()).unwrap();
 				}
 			}),
 			exit_receiver.into_future().map(|(_, _)| ()),
 		);
 
-		assert_eq!(
-			result.submitted_messages_proofs,
-			vec![1..=4, 5..=8, 9..=10],
-		);
+		assert_eq!(result.submitted_messages_proofs, vec![1..=4, 5..=8, 9..=10],);
 	}
 }

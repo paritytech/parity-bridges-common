@@ -173,7 +173,12 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		nonce: P::MessageNonce,
 		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>,
 	) {
-		while self.source_queue.front().map(|(_, source_nonce)| *source_nonce <= nonce).unwrap_or(false) {
+		while self
+			.source_queue
+			.front()
+			.map(|(_, source_nonce)| *source_nonce <= nonce)
+			.unwrap_or(false)
+		{
 			self.source_queue.pop_front();
 		}
 
@@ -224,7 +229,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 
 			// if queue is empty, we don't need to prove anything
 			let (first_queued_at, first_queued_nonce) = match self.source_queue.front() {
-				Some((first_queued_at, first_queued_nonce)) => (first_queued_at.clone(), first_queued_nonce.clone()),
+				Some((first_queued_at, first_queued_nonce)) => (first_queued_at.clone(), *first_queued_nonce),
 				None => break,
 			};
 
