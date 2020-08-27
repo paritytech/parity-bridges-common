@@ -29,9 +29,9 @@ use std::{fmt::Debug, ops::RangeInclusive};
 /// One of races within lane.
 pub trait MessageRace {
 	/// Header id of the race source.
-	type SourceHeaderId: Debug + Clone;
+	type SourceHeaderId: Debug + Clone + PartialEq;
 	/// Header id of the race source.
-	type TargetHeaderId: Debug + Clone;
+	type TargetHeaderId: Debug + Clone + PartialEq;
 
 	/// Message nonce used in the race.
 	type MessageNonce: Debug + Clone;
@@ -94,7 +94,11 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
 	/// Called when latest nonce is updated at source node of the race.
 	fn source_nonce_updated(&mut self, at_block: SourceHeaderId, nonce: MessageNonce);
 	/// Called when latest nonce is updated at target node of the race.
-	fn target_nonce_updated(&mut self, nonce: MessageNonce);
+	fn target_nonce_updated(
+		&mut self,
+		nonce: MessageNonce,
+		race_state: &mut RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof>,
+	);
 	/// Should return `Some(_)` with if we need to deliver proof of given nonces from
 	/// source to target node.
 	fn select_nonces_to_deliver(
@@ -130,15 +134,17 @@ pub async fn run<P: MessageRace>(
 		nonces_submitted: None,
 	};
 
+	// TODO: restart if stall
+
 	let mut source_retry_backoff = retry_backoff();
-	let mut source_client_is_online = false;
+	let mut source_client_is_online = true;
 	let mut source_latest_nonce_required = false;
 	let source_latest_nonce = futures::future::Fuse::terminated();
 	let source_generate_proof = futures::future::Fuse::terminated();
 	let source_go_offline_future = futures::future::Fuse::terminated();
 
 	let mut target_retry_backoff = retry_backoff();
-	let mut target_client_is_online = false;
+	let mut target_client_is_online = true;
 	let mut target_latest_nonce_required = false;
 	let target_latest_nonce = futures::future::Fuse::terminated();
 	let target_submit_proof = futures::future::Fuse::terminated();
@@ -160,12 +166,18 @@ pub async fn run<P: MessageRace>(
 			// when headers ids are updated
 			source_state = race_source_updated.next() => {
 				if let Some(source_state) = source_state {
-					race_state.source_state = Some(source_state);
+					if race_state.source_state.as_ref() != Some(&source_state) {
+						source_latest_nonce_required = true;
+						race_state.source_state = Some(source_state);
+					}
 				}
 			},
 			target_state = race_target_updated.next() => {
 				if let Some(target_state) = target_state {
-					race_state.target_state = Some(target_state);
+					if race_state.target_state.as_ref() != Some(&target_state) {
+						target_latest_nonce_required = true;
+						race_state.target_state = Some(target_state);
+					}
 				}
 			},
 
@@ -205,7 +217,7 @@ pub async fn run<P: MessageRace>(
 							latest_nonce,
 						);
 
-						strategy.target_nonce_updated(latest_nonce);
+						strategy.target_nonce_updated(latest_nonce, &mut race_state);
 					},
 					&mut target_go_offline_future,
 					|delay| async_std::task::sleep(delay),

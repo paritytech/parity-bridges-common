@@ -24,7 +24,7 @@ use futures::stream::FusedStream;
 use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive};
 
 /// Maximal number of messages to relay in single transaction.
-const MAX_MESSAGES_TO_RELAY_IN_SINGLE_TX: usize = 4;
+const MAX_MESSAGES_TO_RELAY_IN_SINGLE_TX: u32 = 4;
 
 /// Run message delivery race.
 pub async fn run<P: MessageLane>(
@@ -155,15 +155,46 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 	for MessageDeliveryStrategy<P>
 {
 	fn source_nonce_updated(&mut self, at_block: SourceHeaderIdOf<P>, nonce: P::MessageNonce) {
+		if nonce <= self.target_nonce {
+			return;
+		}
+
 		match self.source_queue.back() {
 			Some((_, prev_nonce)) if *prev_nonce != nonce => (),
-			_ => return,
+			Some(_) => return,
+			None => (),
 		}
 
 		self.source_queue.push_back((at_block, nonce))
 	}
 
-	fn target_nonce_updated(&mut self, nonce: P::MessageNonce) {
+	fn target_nonce_updated(
+		&mut self,
+		nonce: P::MessageNonce,
+		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>,
+	) {
+		while self.source_queue.front().map(|(_, source_nonce)| *source_nonce <= nonce).unwrap_or(false) {
+			self.source_queue.pop_front();
+		}
+
+		let need_to_select_new_nonces = race_state
+			.nonces_to_submit
+			.as_ref()
+			.map(|(_, nonces, _)| *nonces.end() <= nonce)
+			.unwrap_or(false);
+		if need_to_select_new_nonces {
+			race_state.nonces_to_submit = None;
+		}
+
+		let need_new_nonces_to_submit = race_state
+			.nonces_submitted
+			.as_ref()
+			.map(|nonces| *nonces.end() <= nonce)
+			.unwrap_or(false);
+		if need_new_nonces_to_submit {
+			race_state.nonces_submitted = None;
+		}
+
 		self.target_nonce = nonce;
 	}
 
@@ -181,24 +212,37 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			return None;
 		}
 
-		// we can't prove new nonce until header, that has emitted this nonce, is finalized
+		// 1) we want to deliver all nonces, starting from `target_nonce + 1`
+		// 2) we want to deliver at most `MAX_MESSAGES_TO_RELAY_IN_SINGLE_TX` nonces in this batch
+		// 3) we can't deliver new nonce until header, that has emitted this nonce, is finalized
 		// by target client
+		let nonces_begin = self.target_nonce + 1.into();
 		let best_header_at_target = &race_state.target_state.as_ref()?.best_peer;
-		let num_nonces_to_deliver = self
-			.source_queue
-			.iter()
-			.take_while(|(nonce_header_id, _)| nonce_header_id.0 >= best_header_at_target.0)
-			.take(MAX_MESSAGES_TO_RELAY_IN_SINGLE_TX)
-			.count();
-		if num_nonces_to_deliver == 0 {
-			return None;
+		let mut nonces_end = None;
+		for i in 0..MAX_MESSAGES_TO_RELAY_IN_SINGLE_TX {
+			let nonce = nonces_begin + i.into();
+
+			// if queue is empty, we don't need to prove anything
+			let (first_queued_at, first_queued_nonce) = match self.source_queue.front() {
+				Some((first_queued_at, first_queued_nonce)) => (first_queued_at.clone(), first_queued_nonce.clone()),
+				None => break,
+			};
+
+			// if header that has queued the message is not yet finalized at bridged chain,
+			// we can't prove anything
+			if first_queued_at.0 > best_header_at_target.0 {
+				break;
+			}
+
+			// ok, we may deliver this nonce
+			nonces_end = Some(nonce);
+
+			// probably remove it from the queue?
+			if nonce == first_queued_nonce {
+				self.source_queue.pop_front();
+			}
 		}
 
-		// we have selected nonces => remove then from queue && start preparing the proof
-		let selected_range = self.source_queue[0].1..=self.source_queue[num_nonces_to_deliver - 1].1;
-		for _ in 0..num_nonces_to_deliver {
-			self.source_queue.pop_front();
-		}
-		Some(selected_range)
+		nonces_end.map(|nonces_end| RangeInclusive::new(nonces_begin, nonces_end))
 	}
 }

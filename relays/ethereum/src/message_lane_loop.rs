@@ -35,12 +35,8 @@ use async_trait::async_trait;
 use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
 use std::{fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
 
-/// Delay after connection-related error happened before we'll try
-/// reconnection again.
-const CONNECTION_ERROR_DELAY: Duration = Duration::from_secs(10);
-
 /// Source client trait.
-#[async_trait]
+#[async_trait(?Send)]
 pub trait SourceClient<P: MessageLane>: Clone {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
@@ -66,7 +62,7 @@ pub trait SourceClient<P: MessageLane>: Clone {
 }
 
 /// Target client trait.
-#[async_trait]
+#[async_trait(?Send)]
 pub trait TargetClient<P: MessageLane>: Clone {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
@@ -120,8 +116,10 @@ pub struct ClientsState<P: MessageLane> {
 pub fn run<P: MessageLane>(
 	mut source_client: impl SourceClient<P>,
 	source_tick: Duration,
+	source_reconnect_delay: Duration,
 	mut target_client: impl TargetClient<P>,
 	target_tick: Duration,
+	target_reconnect_delay: Duration,
 	exit_signal: impl Future<Output = ()>,
 ) {
 	let mut local_pool = futures::executor::LocalPool::new();
@@ -141,14 +139,21 @@ pub fn run<P: MessageLane>(
 			match result {
 				Ok(()) => break,
 				Err(FailedClient::Source) => {
-					async_std::task::sleep(CONNECTION_ERROR_DELAY).await;
+					async_std::task::sleep(source_reconnect_delay).await;
 					source_client = source_client.reconnect();
 				}
 				Err(FailedClient::Target) => {
-					async_std::task::sleep(CONNECTION_ERROR_DELAY).await;
+					async_std::task::sleep(target_reconnect_delay).await;
 					target_client = target_client.reconnect();
 				}
 			}
+
+			log::debug!(
+				target: "bridge",
+				"Restarting lane from {} to {}",
+				P::SOURCE_NAME,
+				P::TARGET_NAME,
+			);
 		}
 	});
 }
@@ -209,6 +214,12 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 					new_source_state,
 					&mut source_retry_backoff,
 					|new_source_state| {
+						log::debug!(
+							target: "bridge",
+							"Received state from {} node: {:?}",
+							P::SOURCE_NAME,
+							new_source_state,
+						);
 						let _ = delivery_source_state_sender.unbounded_send(new_source_state);
 					},
 					&mut source_go_offline_future,
@@ -229,6 +240,12 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 					new_target_state,
 					&mut target_retry_backoff,
 					|new_target_state| {
+						log::debug!(
+							target: "bridge",
+							"Received state from {} node: {:?}",
+							P::TARGET_NAME,
+							new_target_state,
+						);
 						let _ = delivery_target_state_sender.unbounded_send(new_target_state);
 					},
 					&mut target_go_offline_future,
@@ -248,6 +265,10 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 					Ok(_) => unreachable!("only ends with error; qed"),
 					Err(err) => return Err(err),
 				}
+			},
+
+			() = exit_signal => {
+				return Ok(());
 			}
 		}
 
@@ -272,5 +293,282 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 				target_client_is_online = true;
 			}
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::sync_types::HeaderId;
+	use futures::stream::StreamExt;
+	use parking_lot::Mutex;
+	use std::sync::Arc;
+	use super::*;
+
+	type TestMessageNonce = u64;
+	type TestMessagesProof = RangeInclusive<TestMessageNonce>;
+
+	type TestSourceHeaderNumber = u64;
+	type TestSourceHeaderHash = u64;
+
+	type TestTargetHeaderNumber = u64;
+	type TestTargetHeaderHash = u64;
+
+	#[derive(Debug)]
+	enum TestError { Logic, Connection }
+
+	impl MaybeConnectionError for TestError {
+		fn is_connection_error(&self) -> bool {
+			match *self {
+				TestError::Logic => false,
+				TestError::Connection => true,
+			}
+		}
+	}
+
+	struct TestMessageLane;
+
+	impl MessageLane for TestMessageLane {
+		const SOURCE_NAME: &'static str = "TestSource";
+		const TARGET_NAME: &'static str = "TestTarget";
+
+		type MessageNonce = TestMessageNonce;
+		type MessagesProof = TestMessagesProof;
+
+		type SourceHeaderNumber = TestSourceHeaderNumber;
+		type SourceHeaderHash = TestSourceHeaderHash;
+
+		type TargetHeaderNumber = TestTargetHeaderNumber;
+		type TargetHeaderHash = TestTargetHeaderHash;
+	}
+
+	#[derive(Debug, Default, Clone)]
+	struct TestClientData {
+		is_source_fails: bool,
+		is_source_reconnected: bool,
+		source_state: SourceClientState<TestMessageLane>,
+		source_latest_generated_nonce: TestMessageNonce,
+		is_target_fails: bool,
+		is_target_reconnected: bool,
+		target_state: SourceClientState<TestMessageLane>,
+		target_latest_received_nonce: TestMessageNonce,
+		submitted_messages_proofs: Vec<TestMessagesProof>,
+	}
+
+	#[derive(Clone)]
+	struct TestSourceClient {
+		data: Arc<Mutex<TestClientData>>,
+		tick: Arc<dyn Fn(&mut TestClientData)>,
+	}
+
+	#[async_trait(?Send)]
+	impl SourceClient<TestMessageLane> for TestSourceClient {
+		type Error = TestError;
+
+		fn reconnect(self) -> Self {
+			{
+				let mut data = self.data.lock();
+				(self.tick)(&mut *data);
+				data.is_source_reconnected = true;
+			}
+			self
+		}
+
+		async fn state(&self) -> Result<SourceClientState<TestMessageLane>, Self::Error> {
+			let mut data = self.data.lock();
+			(self.tick)(&mut *data);
+			if data.is_source_fails { return Err(TestError::Connection); }
+			Ok(data.source_state.clone())
+		}
+
+		/// Get nonce of instance of latest generated message.
+		async fn latest_generated_nonce(
+			&self,
+			id: SourceHeaderIdOf<TestMessageLane>,
+		) -> Result<(SourceHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
+			let mut data = self.data.lock();
+			(self.tick)(&mut *data);
+			if data.is_source_fails { return Err(TestError::Connection); }
+			Ok((id, data.source_latest_generated_nonce))
+		}
+
+		async fn prove_messages(
+			&self,
+			id: SourceHeaderIdOf<TestMessageLane>,
+			nonces: RangeInclusive<TestMessageNonce>,
+		) -> Result<(SourceHeaderIdOf<TestMessageLane>, RangeInclusive<TestMessageNonce>, TestMessagesProof), Self::Error> {
+			Ok((id, nonces.clone(), nonces))
+		}
+	}
+
+	#[derive(Clone)]
+	struct TestTargetClient {
+		data: Arc<Mutex<TestClientData>>,
+		tick: Arc<dyn Fn(&mut TestClientData)>,
+	}
+
+	#[async_trait(?Send)]
+	impl TargetClient<TestMessageLane> for TestTargetClient {
+		type Error = TestError;
+
+		fn reconnect(self) -> Self {
+			{
+				let mut data = self.data.lock();
+				(self.tick)(&mut *data);
+				data.is_target_reconnected = true;
+			}
+			self
+		}
+
+		async fn state(&self) -> Result<TargetClientState<TestMessageLane>, Self::Error> {
+			let mut data = self.data.lock();
+			(self.tick)(&mut *data);
+			if data.is_target_fails { return Err(TestError::Connection); }
+			Ok(data.target_state.clone())
+		}
+
+		async fn latest_received_nonce(
+			&self,
+			id: TargetHeaderIdOf<TestMessageLane>,
+		) -> Result<(TargetHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
+			let mut data = self.data.lock();
+			(self.tick)(&mut *data);
+			if data.is_target_fails { return Err(TestError::Connection); }
+			Ok((id, data.target_latest_received_nonce))
+		}
+
+		/// Submit messages proof.
+		async fn submit_messages_proof(
+			&self,
+			_generated_at_header: SourceHeaderIdOf<TestMessageLane>,
+			nonces: RangeInclusive<TestMessageNonce>,
+			proof: TestMessagesProof,
+		) -> Result<RangeInclusive<TestMessageNonce>, Self::Error> {
+			let mut data = self.data.lock();
+			(self.tick)(&mut *data);
+			if data.is_target_fails { return Err(TestError::Connection); }
+			data.target_state.best_self = HeaderId(
+				data.target_state.best_self.0 + 1,
+				data.target_state.best_self.1 + 1,
+			);
+			data.target_latest_received_nonce = *proof.end();
+			data.submitted_messages_proofs.push(proof);
+			Ok(nonces)
+		}
+	}
+
+	fn run_loop_test(
+		data: TestClientData,
+		source_tick: Arc<dyn Fn(&mut TestClientData)>,
+		target_tick: Arc<dyn Fn(&mut TestClientData)>,
+		exit_signal: impl Future<Output = ()>,
+	) -> TestClientData {
+		async_std::task::block_on(async {
+			let data = Arc::new(Mutex::new(data));
+
+			let source_client = TestSourceClient { data: data.clone(), tick: source_tick };
+			let target_client = TestTargetClient { data: data.clone(), tick: target_tick };
+			run(
+				source_client,
+				Duration::from_millis(100),
+				Duration::from_millis(0),
+				target_client,
+				Duration::from_millis(100),
+				Duration::from_millis(0),
+				exit_signal,
+			);
+
+			let result = data.lock().clone();
+			result
+		})
+	}
+
+	#[test]
+	fn message_lane_loop_is_able_to_recover_from_connection_errors() {
+		// with this configuration, source client will return Err, making source client
+		// reconnect. Then the target client will fail with Err + reconnect. Then we finally
+		// able to deliver messages.
+		let (exit_sender, exit_receiver) = unbounded();
+		let result = run_loop_test(
+			TestClientData {
+				is_source_fails: true,
+				source_state: ClientState {
+					best_self: HeaderId(0, 0),
+					best_peer: HeaderId(0, 0),
+				},
+				source_latest_generated_nonce: 1,
+				target_state: ClientState {
+					best_self: HeaderId(0, 0),
+					best_peer: HeaderId(0, 0),
+				},
+				target_latest_received_nonce: 0,
+				..Default::default()
+			},
+			Arc::new(|data: &mut TestClientData| {
+				if data.is_source_reconnected {
+					data.is_source_fails = false;
+					data.is_target_fails = true;
+				}
+			}),
+			Arc::new(move |data: &mut TestClientData| {
+				if data.is_target_reconnected {
+					data.is_target_fails = false;
+				}
+				if data.target_state.best_peer.0 < 10 {
+					data.target_state.best_peer = HeaderId(
+						data.target_state.best_peer.0 + 1,
+						data.target_state.best_peer.0 + 1,
+					);
+				}
+				if !data.submitted_messages_proofs.is_empty() {
+					exit_sender.unbounded_send(()).unwrap();
+				}
+			}),
+			exit_receiver.into_future().map(|(_, _)| ()),
+		);
+
+		assert_eq!(
+			result.submitted_messages_proofs,
+			vec![1..=1],
+		);
+	}
+
+	#[test]
+	fn message_lane_loop_works() {
+		// with this configuration, target client must first sync headers [1; 10] and
+		// then submit proof-of-messages [0; 10] at once
+		let (exit_sender, exit_receiver) = unbounded();
+		let result = run_loop_test(
+			TestClientData {
+				source_state: ClientState {
+					best_self: HeaderId(10, 10),
+					best_peer: HeaderId(0, 0),
+				},
+				source_latest_generated_nonce: 10,
+				target_state: ClientState {
+					best_self: HeaderId(0, 0),
+					best_peer: HeaderId(0, 0),
+				},
+				target_latest_received_nonce: 0,
+				..Default::default()
+			},
+			Arc::new(|_: &mut TestClientData| {}),
+			Arc::new(move |data: &mut TestClientData| {
+				if data.target_state.best_peer.0 < 10 {
+					data.target_state.best_peer = HeaderId(
+						data.target_state.best_peer.0 + 1,
+						data.target_state.best_peer.0 + 1,
+					);
+				}
+				if data.submitted_messages_proofs.last().map(|last| *last.end() == 10).unwrap_or(false) {
+					exit_sender.unbounded_send(()).unwrap();
+				}
+			}),
+			exit_receiver.into_future().map(|(_, _)| ()),
+		);
+
+		assert_eq!(
+			result.submitted_messages_proofs,
+			vec![1..=4, 5..=8, 9..=10],
+		);
 	}
 }
