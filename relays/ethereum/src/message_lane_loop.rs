@@ -27,17 +27,13 @@
 // Until there'll be actual message-lane in the runtime.
 #![allow(dead_code)]
 
-use crate::message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf, Race};
-use crate::message_delivery_race::run as run_message_delivery_race;
+use crate::message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf};
+use crate::message_race_delivery::run as run_message_delivery_race;
 use crate::utils::{interval, process_future_result, retry_backoff, FailedClient, MaybeConnectionError};
 
 use async_trait::async_trait;
-use futures::{
-	channel::mpsc::unbounded,
-	future::FutureExt,
-	stream::StreamExt,
-};
-use std::{fmt::Debug, future::Future, time::Duration};
+use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
+use std::{fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
 
 /// Delay after connection-related error happened before we'll try
 /// reconnection again.
@@ -65,9 +61,8 @@ pub trait SourceClient<P: MessageLane>: Clone {
 	async fn prove_messages(
 		&self,
 		id: SourceHeaderIdOf<P>,
-		nonces_begin: P::MessageNonce,
-		nonces_end: P::MessageNonce,
-	) -> Result<(SourceHeaderIdOf<P>, P::MessageNonce, P::MessageNonce, P::MessagesProof), Self::Error>;
+		nonces: RangeInclusive<P::MessageNonce>,
+	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<P::MessageNonce>, P::MessagesProof), Self::Error>;
 }
 
 /// Target client trait.
@@ -91,15 +86,14 @@ pub trait TargetClient<P: MessageLane>: Clone {
 	/// Submit messages proof.
 	async fn submit_messages_proof(
 		&self,
-		proof_header: SourceHeaderIdOf<P>,
-		nonces_begin: P::MessageNonce,
-		nonces_end: P::MessageNonce,
+		generated_at_header: SourceHeaderIdOf<P>,
+		nonces: RangeInclusive<P::MessageNonce>,
 		proof: P::MessagesProof,
-	) -> Result<(P::MessageNonce, P::MessageNonce), Self::Error>;
+	) -> Result<RangeInclusive<P::MessageNonce>, Self::Error>;
 }
 
 /// State of the client.
-#[derive(Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ClientState<SelfHeaderId, PeerHeaderId> {
 	/// Best header id of this chain.
 	pub best_self: SelfHeaderId,
@@ -181,12 +175,15 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 	let target_go_offline_future = futures::future::Fuse::terminated();
 	let target_tick_stream = interval(target_tick).fuse();
 
-	let (mut delivery_race, (delivery_states_sender, delivery_states_receiver)) = (Race::default(), unbounded());
+	let (
+		(delivery_source_state_sender, delivery_source_state_receiver),
+		(delivery_target_state_sender, delivery_target_state_receiver),
+	) = (unbounded(), unbounded());
 	let delivery_race_loop = run_message_delivery_race(
-		&mut delivery_race,
 		source_client.clone(),
+		delivery_source_state_receiver,
 		target_client.clone(),
-		delivery_states_receiver,
+		delivery_target_state_receiver,
 	)
 	.fuse();
 
@@ -205,60 +202,54 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 
 	loop {
 		futures::select! {
-			new_source_state = source_state => {
-				source_state_required = false;
+					new_source_state = source_state => {
+						source_state_required = false;
 
-				source_client_is_online = process_future_result(
-					new_source_state,
-					&mut source_retry_backoff,
-					|new_source_state| {
-						let _ = delivery_states_sender.unbounded_send(ClientsState {
-							source: Some(new_source_state),
-							target: None,
-						});
+						source_client_is_online = process_future_result(
+							new_source_state,
+							&mut source_retry_backoff,
+							|new_source_state| {
+								let _ = delivery_source_state_sender.unbounded_send(new_source_state);
+							},
+							&mut source_go_offline_future,
+							|delay| async_std::task::sleep(delay),
+							|| format!("Error retrieving state from {} node", P::SOURCE_NAME),
+						).fail_if_connection_error(FailedClient::Source)?;
 					},
-					&mut source_go_offline_future,
-					|delay| async_std::task::sleep(delay),
-					|| format!("Error retrieving state from {} node", P::SOURCE_NAME),
-				).fail_if_connection_error(FailedClient::Source)?;
-			},
-			_ = source_go_offline_future => {
-				source_client_is_online = true;
-			},
-			_ = source_tick_stream.next() => {
-				source_state_required = true;
-			},
-			new_target_state = target_state => {
-				target_state_required = false;
-
-				target_client_is_online = process_future_result(
-					new_target_state,
-					&mut target_retry_backoff,
-					|new_target_state| {
-						let _ = delivery_states_sender.unbounded_send(ClientsState {
-							source: None,
-							target: Some(new_target_state),
-						});
+					_ = source_go_offline_future => {
+						source_client_is_online = true;
 					},
-					&mut target_go_offline_future,
-					|delay| async_std::task::sleep(delay),
-					|| format!("Error retrieving state from {} node", P::TARGET_NAME),
-				).fail_if_connection_error(FailedClient::Target)?;
-			},
-			_ = target_go_offline_future => {
-				target_client_is_online = true;
-			},
-			_ = target_tick_stream.next() => {
-				target_state_required = true;
-			},
+					_ = source_tick_stream.next() => {
+						source_state_required = true;
+					},
+					new_target_state = target_state => {
+						target_state_required = false;
 
-			delivery_error = delivery_race_loop => {
-				match delivery_error {
-					Ok(_) => unreachable!("only ends with error; qed"),
-					Err(err) => return Err(err),
+						target_client_is_online = process_future_result(
+							new_target_state,
+							&mut target_retry_backoff,
+							|new_target_state| {
+								let _ = delivery_target_state_sender.unbounded_send(new_target_state);
+							},
+							&mut target_go_offline_future,
+							|delay| async_std::task::sleep(delay),
+							|| format!("Error retrieving state from {} node", P::TARGET_NAME),
+						).fail_if_connection_error(FailedClient::Target)?;
+					},
+					_ = target_go_offline_future => {
+						target_client_is_online = true;
+					},
+					_ = target_tick_stream.next() => {
+						target_state_required = true;
+					},
+
+		/*			delivery_error = delivery_race_loop => {
+						match delivery_error {
+							Ok(_) => unreachable!("only ends with error; qed"),
+							Err(err) => return Err(err),
+						}
+					}*/
 				}
-			}
-		}
 
 		if source_client_is_online {
 			source_client_is_online = false;

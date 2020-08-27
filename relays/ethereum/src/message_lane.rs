@@ -31,7 +31,7 @@ pub trait MessageLane {
 	type MessageNonce: Clone + Copy + Debug + Default + From<u32> + Ord + std::ops::Add<Output = Self::MessageNonce>;
 
 	/// Messages proof.
-	type MessagesProof;
+	type MessagesProof: Clone;
 
 	/// Number of the source header.
 	type SourceHeaderNumber: Clone + Debug + Default + Ord + PartialEq;

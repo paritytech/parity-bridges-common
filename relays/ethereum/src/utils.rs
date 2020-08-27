@@ -129,7 +129,10 @@ pub fn interval(timeout: Duration) -> impl futures::Stream<Item = ()> {
 
 /// Which client has caused error.
 #[derive(Debug, Clone, Copy)]
-pub enum FailedClient { Source, Target }
+pub enum FailedClient {
+	Source,
+	Target,
+}
 
 /// Future process result.
 #[derive(Debug, Clone, Copy)]
@@ -197,7 +200,7 @@ where
 			retry_backoff.reset();
 			go_offline_future.set(go_offline(CONNECTION_ERROR_DELAY).fuse());
 			ProcessFutureResult::ConnectionFailed
-		},
+		}
 		Err(error) => {
 			let retry_delay = retry_backoff.next_backoff().unwrap_or(CONNECTION_ERROR_DELAY);
 			log::error!(
