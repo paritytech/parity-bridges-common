@@ -240,9 +240,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			// if queue is empty, we don't need to prove anything
 			let (first_queued_at, first_queued_nonce) = match self.source_queue.front() {
 				Some((first_queued_at, first_queued_nonce)) => (first_queued_at.clone(), *first_queued_nonce),
-				None => {
-					break
-				},
+				None => break,
 			};
 
 			// if header that has queued the message is not yet finalized at bridged chain,
@@ -266,8 +264,11 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 
 #[cfg(test)]
 mod tests {
-	use crate::message_lane_loop::{ClientState, tests::{TestMessageLane, TestMessageNonce, TestMessagesProof, header_id}};
 	use super::*;
+	use crate::message_lane_loop::{
+		tests::{header_id, TestMessageLane, TestMessageNonce, TestMessagesProof},
+		ClientState,
+	};
 
 	#[test]
 	fn strategy_is_empty_works() {

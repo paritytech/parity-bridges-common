@@ -24,7 +24,11 @@ use futures::{
 	future::FutureExt,
 	stream::{FusedStream, StreamExt},
 };
-use std::{fmt::Debug, ops::RangeInclusive, time::{Duration, Instant}};
+use std::{
+	fmt::Debug,
+	ops::RangeInclusive,
+	time::{Duration, Instant},
+};
 
 /// One of races within lane.
 pub trait MessageRace {
@@ -266,9 +270,8 @@ pub async fn run<P: MessageRace>(
 
 		if stall_countdown.elapsed() > stall_timeout {
 			return Err(FailedClient::Both);
-		} else if race_state.nonces_to_submit.is_none()
-			&& race_state.nonces_submitted.is_none()
-			&& strategy.is_empty() {
+		} else if race_state.nonces_to_submit.is_none() && race_state.nonces_submitted.is_none() && strategy.is_empty()
+		{
 			stall_countdown = Instant::now();
 		}
 
@@ -320,7 +323,9 @@ pub async fn run<P: MessageRace>(
 	}
 }
 
-impl<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> Default for RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
+impl<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> Default
+	for RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof>
+{
 	fn default() -> Self {
 		RaceState {
 			source_state: None,

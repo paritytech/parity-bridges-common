@@ -147,7 +147,7 @@ pub fn run<P: MessageLane>(
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
 						target_client = target_client.reconnect();
 					}
-				},
+				}
 			}
 
 			log::debug!(
