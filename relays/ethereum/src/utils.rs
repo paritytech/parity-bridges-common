@@ -132,10 +132,11 @@ pub fn interval(timeout: Duration) -> impl futures::Stream<Item = ()> {
 }
 
 /// Which client has caused error.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FailedClient {
 	Source,
 	Target,
+	Both,
 }
 
 /// Future process result.

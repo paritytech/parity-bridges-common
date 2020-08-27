@@ -24,7 +24,7 @@ use futures::{
 	future::FutureExt,
 	stream::{FusedStream, StreamExt},
 };
-use std::{fmt::Debug, ops::RangeInclusive};
+use std::{fmt::Debug, ops::RangeInclusive, time::{Duration, Instant}};
 
 /// One of races within lane.
 pub trait MessageRace {
@@ -91,6 +91,8 @@ pub trait TargetClient<P: MessageRace> {
 
 /// Race strategy.
 pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
+	/// Should return true if nothing has to be synced.
+	fn is_empty(&self) -> bool;
 	/// Called when latest nonce is updated at source node of the race.
 	fn source_nonce_updated(&mut self, at_block: SourceHeaderId, nonce: MessageNonce);
 	/// Called when latest nonce is updated at target node of the race.
@@ -125,6 +127,7 @@ pub async fn run<P: MessageRace>(
 	race_source_updated: impl FusedStream<Item = SourceClientState<P>>,
 	race_target: impl TargetClient<P>,
 	race_target_updated: impl FusedStream<Item = TargetClientState<P>>,
+	stall_timeout: Duration,
 	mut strategy: impl RaceStrategy<P::SourceHeaderId, P::TargetHeaderId, P::MessageNonce, P::Proof>,
 ) -> Result<(), FailedClient> {
 	let mut race_state = RaceState {
@@ -134,7 +137,7 @@ pub async fn run<P: MessageRace>(
 		nonces_submitted: None,
 	};
 
-	// TODO: restart if stall
+	let mut stall_countdown = Instant::now();
 
 	let mut source_retry_backoff = retry_backoff();
 	let mut source_client_is_online = true;
@@ -265,6 +268,14 @@ pub async fn run<P: MessageRace>(
 					|| format!("Error submitting proof {}", P::target_name()),
 				).fail_if_connection_error(FailedClient::Target)?;
 			}
+		}
+
+		if stall_countdown.elapsed() > stall_timeout {
+			return Err(FailedClient::Both);
+		} else if race_state.nonces_to_submit.is_none()
+			&& race_state.nonces_submitted.is_none()
+			&& strategy.is_empty() {
+			stall_countdown = Instant::now();
 		}
 
 		if source_client_is_online {

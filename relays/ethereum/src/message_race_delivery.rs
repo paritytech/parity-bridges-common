@@ -21,7 +21,7 @@ use crate::utils::FailedClient;
 
 use async_trait::async_trait;
 use futures::stream::FusedStream;
-use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive};
+use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive, time::Duration};
 
 /// Maximal number of messages to relay in single transaction.
 const MAX_MESSAGES_TO_RELAY_IN_SINGLE_TX: u32 = 4;
@@ -32,6 +32,7 @@ pub async fn run<P: MessageLane>(
 	source_state_updates: impl FusedStream<Item = SourceClientState<P>>,
 	target_client: impl MessageLaneTargetClient<P>,
 	target_state_updates: impl FusedStream<Item = TargetClientState<P>>,
+	stall_timeout: Duration,
 ) -> Result<(), FailedClient> {
 	crate::message_race_loop::run(
 		MessageDeliveryRaceSource {
@@ -44,6 +45,7 @@ pub async fn run<P: MessageLane>(
 			_phantom: Default::default(),
 		},
 		target_state_updates,
+		stall_timeout,
 		MessageDeliveryStrategy::<P>::default(),
 	)
 	.await
@@ -154,6 +156,10 @@ impl<P: MessageLane> Default for MessageDeliveryStrategy<P> {
 impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>
 	for MessageDeliveryStrategy<P>
 {
+	fn is_empty(&self) -> bool {
+		self.source_queue.is_empty()
+	}
+
 	fn source_nonce_updated(&mut self, at_block: SourceHeaderIdOf<P>, nonce: P::MessageNonce) {
 		if nonce <= self.target_nonce {
 			return;

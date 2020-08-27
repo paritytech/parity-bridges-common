@@ -116,10 +116,10 @@ pub struct ClientsState<P: MessageLane> {
 pub fn run<P: MessageLane>(
 	mut source_client: impl SourceClient<P>,
 	source_tick: Duration,
-	source_reconnect_delay: Duration,
 	mut target_client: impl TargetClient<P>,
 	target_tick: Duration,
-	target_reconnect_delay: Duration,
+	reconnect_delay: Duration,
+	stall_timeout: Duration,
 	exit_signal: impl Future<Output = ()>,
 ) {
 	let mut local_pool = futures::executor::LocalPool::new();
@@ -132,25 +132,27 @@ pub fn run<P: MessageLane>(
 				source_tick,
 				target_client.clone(),
 				target_tick,
+				stall_timeout,
 				exit_signal.clone(),
 			)
 			.await;
 
 			match result {
 				Ok(()) => break,
-				Err(FailedClient::Source) => {
-					async_std::task::sleep(source_reconnect_delay).await;
-					source_client = source_client.reconnect();
-				}
-				Err(FailedClient::Target) => {
-					async_std::task::sleep(target_reconnect_delay).await;
-					target_client = target_client.reconnect();
-				}
+				Err(failed_client) => {
+					async_std::task::sleep(reconnect_delay).await;
+					if failed_client == FailedClient::Both || failed_client == FailedClient::Source {
+						source_client = source_client.reconnect();
+					}
+					if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
+						target_client = target_client.reconnect();
+					}
+				},
 			}
 
 			log::debug!(
 				target: "bridge",
-				"Restarting lane from {} to {}",
+				"Restarting lane {} -> {}",
 				P::SOURCE_NAME,
 				P::TARGET_NAME,
 			);
@@ -164,6 +166,7 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 	source_tick: Duration,
 	target_client: TC,
 	target_tick: Duration,
+	stall_timeout: Duration,
 	exit_signal: impl Future<Output = ()>,
 ) -> Result<(), FailedClient> {
 	let mut source_retry_backoff = retry_backoff();
@@ -189,6 +192,7 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 		delivery_source_state_receiver,
 		target_client.clone(),
 		delivery_target_state_receiver,
+		stall_timeout,
 	)
 	.fuse();
 
@@ -494,10 +498,10 @@ mod tests {
 			run(
 				source_client,
 				Duration::from_millis(100),
-				Duration::from_millis(0),
 				target_client,
 				Duration::from_millis(100),
 				Duration::from_millis(0),
+				Duration::from_secs(60),
 				exit_signal,
 			);
 
