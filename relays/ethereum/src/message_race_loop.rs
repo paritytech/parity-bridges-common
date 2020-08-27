@@ -278,7 +278,7 @@ pub async fn run<P: MessageRace>(
 		if source_client_is_online {
 			source_client_is_online = false;
 
-			if let Some(nonces_range) = strategy.select_nonces_to_deliver(&mut race_state) {
+			if let Some(nonces_range) = strategy.select_nonces_to_deliver(&race_state) {
 				log::debug!(
 					target: "bridge",
 					"Asking {} to prove nonces in range {:?}",
