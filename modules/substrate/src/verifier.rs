@@ -163,9 +163,12 @@ where
 
 	let scheduled_change = match log {
 		ConsensusLog::ScheduledChange(scheduled_change) => {
+			// Adding two since we need to account for scheduled set which is about
+			// to be triggered
+			let set_id = current_set_id + 2;
 			let authority_set = AuthoritySet {
 				authorities: scheduled_change.next_authorities,
-				set_id: current_set_id + 1,
+				set_id,
 			};
 
 			// Maybe do some overflow checks here?
@@ -195,6 +198,7 @@ mod tests {
 
 	type TestHeader = <TestRuntime as frame_system::Trait>::Header;
 	type TestHash = <<TestRuntime as frame_system::Trait>::Header as HeaderT>::Hash;
+	type TestNumber = <<TestRuntime as frame_system::Trait>::Header as HeaderT>::Number;
 
 	#[test]
 	fn fails_to_import_old_header() {
@@ -340,30 +344,20 @@ mod tests {
 
 			// Populate storage with a scheduled change
 			let alice = (UintAuthorityId(1).to_public_key::<AuthorityId>(), 1);
-			let first_authority_set = AuthoritySet {
-				authorities: vec![alice.clone()],
-				set_id: 2,
-			};
-			let first_scheduled_change = ScheduledChange {
-				authority_set: first_authority_set.clone(),
-				height: 1,
-			};
+			let set_id = 2;
+			let first_authority_set = AuthoritySet::new(vec![alice], set_id);
+			let first_scheduled_change = ScheduledChange::new(first_authority_set.clone(), 1);
 
 			storage.schedule_next_set_change(first_scheduled_change);
 
-			// Schedule next change
+			// Prepare next scheduled change
 			let bob = (UintAuthorityId(2).to_public_key::<AuthorityId>(), 1);
-			let next_authorities = vec![alice, bob];
-			let next_set = AuthoritySet {
-				authorities: next_authorities.clone(),
-				set_id: 3,
-			};
-			let scheduled_change = ScheduledChange {
-				authority_set: next_set,
-				height: 3,
-			};
+			let next_authorities = vec![bob];
+			let set_id = 3;
+			let next_set = AuthoritySet::new(next_authorities.clone(), set_id);
+			let scheduled_change = ScheduledChange::new(next_set, 3);
 
-			let consensus_log = ConsensusLog::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
 				next_authorities,
 				delay: 2,
 			});

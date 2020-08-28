@@ -28,10 +28,22 @@ pub struct AuthoritySet {
 	pub set_id: SetId,
 }
 
+impl AuthoritySet {
+	pub fn new(authorities: AuthorityList, set_id: SetId) -> Self {
+		Self { authorities, set_id }
+	}
+}
+
 #[derive(Default, Encode, Decode, RuntimeDebug, PartialEq)]
 pub struct ScheduledChange<N> {
 	pub authority_set: AuthoritySet,
 	pub height: N,
+}
+
+impl<N> ScheduledChange<N> {
+	pub fn new(authority_set: AuthoritySet, height: N) -> Self {
+		Self { authority_set, height }
+	}
 }
 
 #[derive(Default, Encode, Decode, Clone, RuntimeDebug, PartialEq)]
