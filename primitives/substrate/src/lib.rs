@@ -22,13 +22,13 @@ use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::traits::Header as HeaderT;
 use sp_runtime::RuntimeDebug;
 
-#[derive(Default, Encode, Decode)]
+#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
 pub struct AuthoritySet {
 	pub authorities: AuthorityList,
 	pub set_id: SetId,
 }
 
-#[derive(Default, Encode, Decode)]
+#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq)]
 pub struct ScheduledChange<N> {
 	pub authority_set: AuthoritySet,
 	pub height: N,

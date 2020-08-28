@@ -19,9 +19,9 @@
 use crate::BridgeStorage;
 use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange};
 use parity_scale_codec::Decode;
-use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
+use sp_finality_grandpa::{ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::Header as HeaderT;
-use sp_runtime::DigestItem;
+use sp_runtime::{ConsensusEngineId, DigestItem};
 use sp_std::prelude::Vec;
 
 pub type FinalityProof = Vec<u8>;
@@ -33,6 +33,7 @@ pub enum ImportError {
 	MissingParent,
 	UnfinalizedHeader,
 	AncestryCheckFailed,
+	MissingConsensusDigest,
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.
@@ -91,10 +92,9 @@ where
 
 	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError> {
 		let digest = header.digest().logs().last().expect("TODO");
-		if let DigestItem::Consensus(id, item) = digest {
+		if let DigestItem::Consensus(id, log) = digest {
 			if *id == GRANDPA_ENGINE_ID {
 				let current_authority_set = storage.current_authority_set();
-				let current_set_id = current_authority_set.set_id;
 				let justification = &proof;
 
 				let is_finalized = prove_finality(&header, &current_authority_set, &justification);
@@ -108,34 +108,18 @@ where
 					return Err(ImportError::AncestryCheckFailed);
 				}
 
-				// We need to update the `next_validator_set` storage item if it's appropriate
-				let log: ConsensusLog<H::Number> = ConsensusLog::decode(&mut &item[..]).expect("TODO");
-				let scheduled_change = match log {
-					ConsensusLog::ScheduledChange(scheduled_change) => {
-						let authority_set = AuthoritySet {
-							authorities: scheduled_change.next_authorities,
-							set_id: current_set_id + 1,
-						};
+				let current_set_id = current_authority_set.set_id;
+				update_authority_set(storage, header, current_set_id, log)?;
 
-						// Maybe do some overflow checks here?
-						let height = *header.number() + scheduled_change.delay;
-
-						ScheduledChange { authority_set, height }
-					}
-					ConsensusLog::ForcedChange(_n, _forced_change) => todo!(),
-					_ => todo!("idk what to do here"),
-				};
-
-				let new_set = storage.scheduled_set_change().authority_set;
-				storage.update_current_authority_set(new_set);
-				storage.schedule_next_set_change(scheduled_change);
+				// Need to remember to mark blocks from [last_finalized, now] as final
+				Ok(())
+			} else {
+				// This needs to be different
+				Err(ImportError::MissingConsensusDigest)
 			}
 		} else {
-			// This block doesn't have a justification
-			todo!()
+			Err(ImportError::MissingConsensusDigest)
 		}
-
-		Ok(())
 	}
 }
 
@@ -162,6 +146,44 @@ where
 	return true;
 }
 
+fn update_authority_set<S, H>(storage: &mut S, header: &H, current_set_id: SetId, log: &[u8]) -> Result<(), ImportError>
+where
+	S: BridgeStorage<Header = H>,
+	H: HeaderT,
+{
+	// We need to update the `next_validator_set` storage item if it's appropriate
+	let log: ConsensusLog<H::Number> = match ConsensusLog::decode(&mut &log[..]) {
+		Ok(log) => log,
+		Err(e) => {
+			// Need to make sure this is properly handled
+			eprintln!("{}", e.what());
+			return Err(ImportError::UnfinalizedHeader);
+		}
+	};
+
+	let scheduled_change = match log {
+		ConsensusLog::ScheduledChange(scheduled_change) => {
+			let authority_set = AuthoritySet {
+				authorities: scheduled_change.next_authorities,
+				set_id: current_set_id + 1,
+			};
+
+			// Maybe do some overflow checks here?
+			let height = *header.number() + scheduled_change.delay;
+
+			ScheduledChange { authority_set, height }
+		}
+		ConsensusLog::ForcedChange(_n, _forced_change) => todo!(),
+		_ => todo!("idk what to do here"),
+	};
+
+	let new_set = storage.scheduled_set_change().authority_set;
+	storage.update_current_authority_set(new_set);
+	storage.schedule_next_set_change(scheduled_change);
+
+	Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -169,8 +191,10 @@ mod tests {
 	use crate::{BestFinalized, ImportedHeaders, PalletStorage};
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
+	use parity_scale_codec::Encode;
 
 	type TestHeader = <TestRuntime as frame_system::Trait>::Header;
+	type TestHash = <<TestRuntime as frame_system::Trait>::Header as HeaderT>::Hash;
 
 	#[test]
 	fn fails_to_import_old_header() {
@@ -302,6 +326,61 @@ mod tests {
 			bad_ancestor.parent_hash = [1u8; 32].into();
 			let child = headers.pop().unwrap();
 			assert_eq!(are_ancestors(&storage, bad_ancestor, child), false);
+		})
+	}
+
+	#[test]
+	fn authority_set_is_updated_in_storage_correctly() {
+		run_test(|| {
+			use sp_finality_grandpa::AuthorityId;
+			use sp_runtime::testing::UintAuthorityId;
+
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let mut header = TestHeader::new_from_number(1);
+
+			// Populate storage with a scheduled change
+			let alice = (UintAuthorityId(1).to_public_key::<AuthorityId>(), 1);
+			let first_authority_set = AuthoritySet {
+				authorities: vec![alice.clone()],
+				set_id: 2,
+			};
+			let first_scheduled_change = ScheduledChange {
+				authority_set: first_authority_set.clone(),
+				height: 1,
+			};
+
+			storage.schedule_next_set_change(first_scheduled_change);
+
+			// Schedule next change
+			let bob = (UintAuthorityId(2).to_public_key::<AuthorityId>(), 1);
+			let next_authorities = vec![alice, bob];
+			let next_set = AuthoritySet {
+				authorities: next_authorities.clone(),
+				set_id: 3,
+			};
+			let scheduled_change = ScheduledChange {
+				authority_set: next_set,
+				height: 3,
+			};
+
+			let consensus_log = ConsensusLog::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+				next_authorities,
+				delay: 2,
+			});
+
+			let first_set_id = 1;
+			assert_ok!(update_authority_set(
+				&mut storage,
+				&header,
+				first_set_id,
+				&consensus_log.encode(),
+			));
+
+			// Make sure that current authority set is the first change we scheduled
+			assert_eq!(storage.current_authority_set(), first_authority_set);
+
+			// Make sure that the next scheduled change is the one we just inserted
+			assert_eq!(storage.scheduled_set_change(), scheduled_change);
 		})
 	}
 }
