@@ -22,7 +22,7 @@ jobs:
         toolchain:
           - stable
           #- beta
-          - nightly-2020-07-27
+          - nightly
     runs-on:                       self-hosted
     container:
       image:                       paritytech/ci-linux:production
@@ -44,12 +44,6 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
-      - name:                      Adding toolchain
-        if:                        matrix.toolchain == 'nightly-2020-07-27'
-        run:                       rustup toolchain add ${{ matrix.toolchain }}
-      - name:                      Adding WASM
-        if:                        matrix.toolchain == 'nightly-2020-07-27'
-        run:                       rustup target add wasm32-unknown-unknown --toolchain ${{ matrix.toolchain }}
       - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
         run:                       ./scripts/ci-cache.sh "${{ github.head_ref }}" "${{ matrix.toolchain }}"
       - name:                      Cache checking
@@ -78,11 +72,11 @@ jobs:
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
       - name:                      Add clippy
-        if:                        matrix.toolchain == 'nightly-2020-07-27'
+        if:                        matrix.toolchain == 'nightly'
         run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
       - name:                      Clippy
         uses:                      actions-rs/cargo@master
-        if:                        matrix.toolchain == 'nightly-2020-07-27'
+        if:                        matrix.toolchain == 'nightly'
         with:
           command:                 clippy
           toolchain:               ${{ matrix.toolchain }}
