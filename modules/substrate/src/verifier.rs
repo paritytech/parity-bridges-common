@@ -18,10 +18,9 @@
 
 use crate::BridgeStorage;
 use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange};
-use parity_scale_codec::Decode;
 use sp_finality_grandpa::{ConsensusLog, SetId, GRANDPA_ENGINE_ID};
+use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::Header as HeaderT;
-use sp_runtime::{ConsensusEngineId, DigestItem};
 use sp_std::prelude::Vec;
 
 pub type FinalityProof = Vec<u8>;
@@ -91,35 +90,25 @@ where
 	}
 
 	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError> {
-		let digest = header.digest().logs().last().expect("TODO");
-		if let DigestItem::Consensus(id, log) = digest {
-			if *id == GRANDPA_ENGINE_ID {
-				let current_authority_set = storage.current_authority_set();
-				let justification = &proof;
+		let current_authority_set = storage.current_authority_set();
+		let justification = &proof;
 
-				let is_finalized = prove_finality(&header, &current_authority_set, &justification);
-				if !is_finalized {
-					return Err(ImportError::UnfinalizedHeader);
-				}
-
-				let last_finalized = storage.best_finalized_header().expect("TODO");
-				let are_ancestors = are_ancestors(storage, last_finalized, header.clone());
-				if !are_ancestors {
-					return Err(ImportError::AncestryCheckFailed);
-				}
-
-				let current_set_id = current_authority_set.set_id;
-				update_authority_set(storage, header, current_set_id, log)?;
-
-				// Need to remember to mark blocks from [last_finalized, now] as final
-				Ok(())
-			} else {
-				// This needs to be different
-				Err(ImportError::MissingConsensusDigest)
-			}
-		} else {
-			Err(ImportError::MissingConsensusDigest)
+		let is_finalized = prove_finality(&header, &current_authority_set, &justification);
+		if !is_finalized {
+			return Err(ImportError::UnfinalizedHeader);
 		}
+
+		let last_finalized = storage.best_finalized_header().expect("TODO");
+		let are_ancestors = are_ancestors(storage, last_finalized, header.clone());
+		if !are_ancestors {
+			return Err(ImportError::AncestryCheckFailed);
+		}
+
+		let current_set_id = current_authority_set.set_id;
+		update_authority_set(storage, header, current_set_id)?;
+
+		// Need to remember to mark blocks from [last_finalized, now] as final
+		Ok(())
 	}
 }
 
@@ -146,45 +135,44 @@ where
 	return true;
 }
 
-fn update_authority_set<S, H>(storage: &mut S, header: &H, current_set_id: SetId, log: &[u8]) -> Result<(), ImportError>
+fn update_authority_set<S, H>(storage: &mut S, header: &H, current_set_id: SetId) -> Result<(), ImportError>
 where
 	S: BridgeStorage<Header = H>,
 	H: HeaderT,
 {
-	// We need to update the `next_validator_set` storage item if it's appropriate
-	let log: ConsensusLog<H::Number> = match ConsensusLog::decode(&mut &log[..]) {
-		Ok(log) => log,
-		Err(e) => {
-			// Need to make sure this is properly handled
-			eprintln!("{}", e.what());
-			return Err(ImportError::UnfinalizedHeader);
-		}
+	if let Some(scheduled_change) = find_scheduled_change(header) {
+		// Adding two since we need to account for scheduled set which is about to be triggered
+		let set_id = current_set_id + 2;
+		let authority_set = AuthoritySet {
+			authorities: scheduled_change.next_authorities,
+			set_id,
+		};
+
+		// Maybe do some overflow checks here?
+		let height = *header.number() + scheduled_change.delay;
+		let scheduled_change = ScheduledChange::new(authority_set, height);
+
+		let new_set = storage.scheduled_set_change().authority_set;
+		storage.update_current_authority_set(new_set);
+		storage.schedule_next_set_change(scheduled_change);
+
+		Ok(())
+	} else {
+		Err(ImportError::MissingConsensusDigest)
+	}
+}
+
+fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
+	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
+
+	let filter_log = |log: ConsensusLog<H::Number>| match log {
+		ConsensusLog::ScheduledChange(change) => Some(change),
+		_ => None,
 	};
 
-	let scheduled_change = match log {
-		ConsensusLog::ScheduledChange(scheduled_change) => {
-			// Adding two since we need to account for scheduled set which is about
-			// to be triggered
-			let set_id = current_set_id + 2;
-			let authority_set = AuthoritySet {
-				authorities: scheduled_change.next_authorities,
-				set_id,
-			};
-
-			// Maybe do some overflow checks here?
-			let height = *header.number() + scheduled_change.delay;
-
-			ScheduledChange { authority_set, height }
-		}
-		ConsensusLog::ForcedChange(_n, _forced_change) => todo!(),
-		_ => todo!("idk what to do here"),
-	};
-
-	let new_set = storage.scheduled_set_change().authority_set;
-	storage.update_current_authority_set(new_set);
-	storage.schedule_next_set_change(scheduled_change);
-
-	Ok(())
+	// find the first consensus digest with the right ID which converts to
+	// the right kind of consensus log.
+	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
 }
 
 #[cfg(test)]
@@ -195,6 +183,7 @@ mod tests {
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
 	use parity_scale_codec::Encode;
+	use sp_runtime::{Digest, DigestItem};
 
 	type TestHeader = <TestRuntime as frame_system::Trait>::Header;
 	type TestHash = <<TestRuntime as frame_system::Trait>::Header as HeaderT>::Hash;
@@ -361,14 +350,12 @@ mod tests {
 				next_authorities,
 				delay: 2,
 			});
+			header.digest = Digest::<TestHash> {
+				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+			};
 
 			let first_set_id = 1;
-			assert_ok!(update_authority_set(
-				&mut storage,
-				&header,
-				first_set_id,
-				&consensus_log.encode(),
-			));
+			assert_ok!(update_authority_set(&mut storage, &header, first_set_id,));
 
 			// Make sure that current authority set is the first change we scheduled
 			assert_eq!(storage.current_authority_set(), first_authority_set);
