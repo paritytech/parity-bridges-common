@@ -200,6 +200,43 @@ mod tests {
 	type TestHash = <TestHeader as HeaderT>::Hash;
 	type TestNumber = <TestHeader as HeaderT>::Number;
 
+	fn get_authorities(authorities: Vec<(u64, u64)>) -> AuthorityList {
+		authorities
+			.iter()
+			.map(|(id, weight)| (UintAuthorityId(*id).to_public_key::<AuthorityId>(), *weight))
+			.collect()
+	}
+
+	fn schedule_next_change(
+		authorities: Vec<(u64, u64)>,
+		set_id: u64,
+		height: TestNumber,
+	) -> ScheduledChange<TestNumber> {
+		let authorities = get_authorities(authorities);
+		let authority_set = AuthoritySet::new(authorities, set_id);
+		ScheduledChange::new(authority_set.clone(), height)
+	}
+
+	fn write_headers<S: BridgeStorage<Header = TestHeader>>(
+		storage: &mut S,
+		headers: Vec<(u64, bool)>,
+	) -> Vec<TestHeader> {
+		let mut imported_headers = vec![];
+		let genesis = TestHeader::new_from_number(0);
+		<BestFinalized<TestRuntime>>::put(&genesis);
+		storage.write_header(&ImportedHeader::new(genesis.clone(), true));
+		imported_headers.push(genesis);
+
+		for (num, finalized) in headers {
+			let mut h = TestHeader::new_from_number(num);
+			h.parent_hash = imported_headers.last().unwrap().hash();
+			storage.write_header(&ImportedHeader::new(h.clone(), finalized));
+			imported_headers.push(h);
+		}
+
+		imported_headers
+	}
+
 	#[test]
 	fn fails_to_import_old_header() {
 		run_test(|| {
@@ -344,22 +381,21 @@ mod tests {
 			let mut header = TestHeader::new_from_number(1);
 
 			// Populate storage with a scheduled change
-			let alice = (UintAuthorityId(1).to_public_key::<AuthorityId>(), 1);
 			let set_id = 2;
-			let first_authority_set = AuthoritySet::new(vec![alice], set_id);
-			let first_scheduled_change = ScheduledChange::new(first_authority_set.clone(), 1);
-
-			storage.schedule_next_set_change(first_scheduled_change);
+			let height = 1;
+			let authorities = vec![(1, 1)];
+			let change = schedule_next_change(authorities.clone(), set_id, height);
+			storage.schedule_next_set_change(change);
 
 			// Prepare next scheduled change
-			let bob = (UintAuthorityId(2).to_public_key::<AuthorityId>(), 1);
-			let next_authorities = vec![bob];
-			let set_id = 3;
-			let next_set = AuthoritySet::new(next_authorities.clone(), set_id);
-			let scheduled_change = ScheduledChange::new(next_set, 3);
+			let next_set_id = 3;
+			let next_height = 3;
+			let next_authorities = vec![(2, 1)];
+			let scheduled_change = schedule_next_change(next_authorities.clone(), next_set_id, next_height);
 
+			// Prepare header to schedule a change
 			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
-				next_authorities,
+				next_authorities: get_authorities(next_authorities),
 				delay: 2,
 			});
 			header.digest = Digest::<TestHash> {
@@ -367,45 +403,21 @@ mod tests {
 			};
 
 			let first_set_id = 1;
-			assert_ok!(update_authority_set(&mut storage, &header, first_set_id,));
+			assert_ok!(update_authority_set(&mut storage, &header, first_set_id));
 
 			// Make sure that current authority set is the first change we scheduled
-			assert_eq!(storage.current_authority_set(), first_authority_set);
+			assert_eq!(
+				storage.current_authority_set(),
+				AuthoritySet::new(get_authorities(authorities), set_id)
+			);
 
 			// Make sure that the next scheduled change is the one we just inserted
 			assert_eq!(storage.scheduled_set_change(), scheduled_change);
 		})
 	}
 
-	fn get_authorities(authorities: Vec<(u64, u64)>) -> AuthorityList {
-		authorities
-			.iter()
-			.map(|(id, weight)| (UintAuthorityId(*id).to_public_key::<AuthorityId>(), *weight))
-			.collect()
-	}
-
-	fn write_headers<S: BridgeStorage<Header = TestHeader>>(
-		storage: &mut S,
-		headers: Vec<(u64, bool)>,
-	) -> Vec<TestHeader> {
-		let mut imported_headers = vec![];
-		let genesis = TestHeader::new_from_number(0);
-		<BestFinalized<TestRuntime>>::put(&genesis);
-		storage.write_header(&ImportedHeader::new(genesis.clone(), true));
-		imported_headers.push(genesis);
-
-		for (num, finalized) in headers {
-			let mut h = TestHeader::new_from_number(num);
-			h.parent_hash = imported_headers.last().unwrap().hash();
-			storage.write_header(&ImportedHeader::new(h.clone(), finalized));
-			imported_headers.push(h);
-		}
-
-		imported_headers
-	}
-
 	#[test]
-	fn correctly_beep_boops_the_thing() {
+	fn correctly_verifies_and_finalizes_chain_of_headers() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let headers = vec![(1, false), (2, false)];
@@ -414,16 +426,14 @@ mod tests {
 			let mut header = TestHeader::new_from_number(3);
 			header.parent_hash = imported_headers[2].hash();
 
-			// Set up some dummy scheduled set changes
 			let set_id = 1;
-			let alice = (UintAuthorityId(1).to_public_key::<AuthorityId>(), 1);
-			let first_authority_set = AuthoritySet::new(vec![alice.clone()], set_id);
 			let height = *header.number();
-			let first_scheduled_change = ScheduledChange::new(first_authority_set.clone(), height);
-			storage.schedule_next_set_change(first_scheduled_change);
+			let authorities = vec![(1, 1)];
+			let change = schedule_next_change(authorities, set_id, height);
+			storage.schedule_next_set_change(change);
 
 			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
-				next_authorities: vec![alice],
+				next_authorities: get_authorities(vec![(1, 1)]),
 				delay: 0,
 			});
 
@@ -432,6 +442,8 @@ mod tests {
 			};
 
 			assert!(Verifier::import_header(&mut storage, &header, Some(vec![4, 2])).is_ok());
+
+			// Make sure we marked the our headers as finalized
 			assert!(
 				storage
 					.get_header_by_hash(imported_headers[1].hash())
