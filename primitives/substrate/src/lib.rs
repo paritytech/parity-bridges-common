@@ -52,6 +52,12 @@ pub struct ImportedHeader<H: HeaderT> {
 	pub is_finalized: bool,
 }
 
+impl<H: HeaderT> ImportedHeader<H> {
+	pub fn new(header: H, is_finalized: bool) -> Self {
+		Self { header, is_finalized }
+	}
+}
+
 pub fn prove_finality<H>(_header: &H, _set: &AuthoritySet, _justification: &[u8]) -> bool {
 	true
 }

@@ -41,7 +41,9 @@ pub trait ChainVerifier<S, H> {
 	fn import_header(storage: &mut S, header: &H, finality_proof: Option<FinalityProof>) -> Result<(), ImportError>;
 
 	/// Verify that the given header has been finalized and is part of the canonical chain.
-	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError>;
+	///
+	/// Returns a list of headers which got finalized by the given header.
+	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<Vec<H>, ImportError>;
 }
 
 #[derive(Debug)]
@@ -67,29 +69,36 @@ where
 			return Err(ImportError::MissingParent);
 		}
 
-		let mut is_finalized = false;
 		// A block at this height should come with a justification and signal a new
 		// authority set. We'll want to make sure it is valid
 		//
 		// This defaults to 0, should it maybe be an Option?
 		let scheduled_change_height = storage.scheduled_set_change().height;
-		if *header.number() == scheduled_change_height {
+		if *header.number() == scheduled_change_height && finality_proof.is_some() {
 			// Maybe pass the scheduled_change in here so we don't have to query storage later
-			Self::verify_finality(storage, header, &finality_proof.expect("TODO"))?;
-			is_finalized = true;
+			let finalized_headers = Self::verify_finality(
+				storage,
+				header,
+				&finality_proof.expect("Checked for `finality_proof` before entering if-block"),
+			)?;
+
+			dbg!(&finalized_headers);
+
+			// TODO: Would need to prune blocks from the non-canonical chain at some point
+			for header in finalized_headers.iter() {
+				storage.write_header(&ImportedHeader::new(header.clone(), true));
+			}
+
+			return Ok(());
 		}
 
-		let h = ImportedHeader {
-			header: header.clone(), // I don't like having to do this...
-			is_finalized,
-		};
-
-		storage.write_header(&h);
+		// Don't like having to take ownership of header...
+		storage.write_header(&ImportedHeader::new(header.clone(), false));
 
 		Ok(())
 	}
 
-	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<(), ImportError> {
+	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<Vec<H>, ImportError> {
 		let current_authority_set = storage.current_authority_set();
 		let justification = &proof;
 
@@ -99,40 +108,40 @@ where
 		}
 
 		let last_finalized = storage.best_finalized_header().expect("TODO");
-		let are_ancestors = are_ancestors(storage, last_finalized, header.clone());
-		if !are_ancestors {
+		if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
+			let current_set_id = current_authority_set.set_id;
+			update_authority_set(storage, header, current_set_id)?;
+			return Ok(ancestors);
+		} else {
 			return Err(ImportError::AncestryCheckFailed);
 		}
-
-		let current_set_id = current_authority_set.set_id;
-		update_authority_set(storage, header, current_set_id)?;
-
-		// Need to remember to mark blocks from [last_finalized, now] as final
-		Ok(())
 	}
 }
 
-fn are_ancestors<S, H>(storage: &S, ancestor: H, child: H) -> bool
+// Returns the lineage of headers from (ancestor, child]
+fn are_ancestors<S, H>(storage: &S, ancestor: H, child: H) -> Option<Vec<H>>
 where
 	S: BridgeStorage<Header = H>,
 	H: HeaderT,
 {
+	let mut ancestors = vec![];
 	let mut current_header = child;
 
 	while ancestor.hash() != current_header.hash() {
 		// We've gotten to the same height and we're not related
 		if ancestor.number() == current_header.number() {
-			return false;
+			return None;
 		}
 
 		let parent = storage.get_header_by_hash(*current_header.parent_hash());
+		ancestors.push(current_header);
 		current_header = match parent {
 			Some(h) => h.header,
-			None => return false,
+			None => return None,
 		}
 	}
 
-	return true;
+	return Some(ancestors);
 }
 
 fn update_authority_set<S, H>(storage: &mut S, header: &H, current_set_id: SetId) -> Result<(), ImportError>
@@ -183,11 +192,13 @@ mod tests {
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
 	use parity_scale_codec::Encode;
+	use sp_finality_grandpa::AuthorityId;
+	use sp_runtime::testing::UintAuthorityId;
 	use sp_runtime::{Digest, DigestItem};
 
 	type TestHeader = <TestRuntime as frame_system::Trait>::Header;
-	type TestHash = <<TestRuntime as frame_system::Trait>::Header as HeaderT>::Hash;
-	type TestNumber = <<TestRuntime as frame_system::Trait>::Header as HeaderT>::Number;
+	type TestHash = <TestHeader as HeaderT>::Hash;
+	type TestNumber = <TestHeader as HeaderT>::Number;
 
 	#[test]
 	fn fails_to_import_old_header() {
@@ -272,25 +283,28 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let mut headers = vec![];
+			let num_headers = 4;
 
 			let mut header = TestHeader::new_from_number(0);
 			headers.push(header.clone());
 			storage.import_unfinalized_header(header);
 
-			for i in 1..4 {
+			for i in 1..num_headers {
 				header = TestHeader::new_from_number(i as u64);
 				header.parent_hash = headers[i - 1].hash();
 				headers.push(header);
 				storage.import_unfinalized_header(headers[i].clone());
 			}
 
-			for i in 0..4 {
+			for i in 0..num_headers {
 				assert!(storage.header_exists(headers[i].hash()));
 			}
 
 			let ancestor = headers.remove(0);
 			let child = headers.pop().unwrap();
-			assert!(are_ancestors(&storage, ancestor, child));
+			let ancestors = are_ancestors(&storage, ancestor, child);
+			assert!(ancestors.is_some());
+			assert_eq!(ancestors.unwrap().len(), num_headers - 1);
 		})
 	}
 
@@ -318,16 +332,14 @@ mod tests {
 			let mut bad_ancestor = TestHeader::new_from_number(0);
 			bad_ancestor.parent_hash = [1u8; 32].into();
 			let child = headers.pop().unwrap();
-			assert_eq!(are_ancestors(&storage, bad_ancestor, child), false);
+			let ancestors = are_ancestors(&storage, bad_ancestor, child);
+			assert!(ancestors.is_none());
 		})
 	}
 
 	#[test]
 	fn authority_set_is_updated_in_storage_correctly() {
 		run_test(|| {
-			use sp_finality_grandpa::AuthorityId;
-			use sp_runtime::testing::UintAuthorityId;
-
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let mut header = TestHeader::new_from_number(1);
 
@@ -363,5 +375,46 @@ mod tests {
 			// Make sure that the next scheduled change is the one we just inserted
 			assert_eq!(storage.scheduled_set_change(), scheduled_change);
 		})
+	}
+
+	#[test]
+	fn correctly_verifies_and_finalizes_chain_of_headers() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let genesis = TestHeader::new_from_number(0);
+			let mut header1 = TestHeader::new_from_number(1);
+			header1.parent_hash = genesis.hash();
+			let mut header2 = TestHeader::new_from_number(2);
+			header2.parent_hash = header1.hash();
+			let mut header3 = TestHeader::new_from_number(3);
+			header3.parent_hash = header2.hash();
+
+			<BestFinalized<TestRuntime>>::put(&genesis);
+			storage.write_header(&ImportedHeader::new(genesis, true));
+			storage.write_header(&ImportedHeader::new(header1.clone(), false));
+			storage.write_header(&ImportedHeader::new(header2.clone(), false));
+
+			// Set up some dummy scheduled set changes
+			let set_id = 1;
+			let alice = (UintAuthorityId(1).to_public_key::<AuthorityId>(), 1);
+			let first_authority_set = AuthoritySet::new(vec![alice.clone()], set_id);
+			let height = *header3.number();
+			let first_scheduled_change = ScheduledChange::new(first_authority_set.clone(), height);
+			storage.schedule_next_set_change(first_scheduled_change);
+
+			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+				next_authorities: vec![alice],
+				delay: 0,
+			});
+
+			header3.digest = Digest::<TestHash> {
+				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+			};
+
+			assert!(Verifier::import_header(&mut storage, &header3, Some(vec![4, 2])).is_ok());
+			assert!(storage.get_header_by_hash(header1.hash()).unwrap().is_finalized);
+			assert!(storage.get_header_by_hash(header2.hash()).unwrap().is_finalized);
+			assert!(storage.get_header_by_hash(header3.hash()).unwrap().is_finalized);
+		});
 	}
 }
