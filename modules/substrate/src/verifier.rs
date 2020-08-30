@@ -192,7 +192,7 @@ mod tests {
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
 	use parity_scale_codec::Encode;
-	use sp_finality_grandpa::AuthorityId;
+	use sp_finality_grandpa::{AuthorityId, AuthorityList};
 	use sp_runtime::testing::UintAuthorityId;
 	use sp_runtime::{Digest, DigestItem};
 
@@ -377,28 +377,48 @@ mod tests {
 		})
 	}
 
+	fn get_authorities(authorities: Vec<(u64, u64)>) -> AuthorityList {
+		authorities
+			.iter()
+			.map(|(id, weight)| (UintAuthorityId(*id).to_public_key::<AuthorityId>(), *weight))
+			.collect()
+	}
+
+	fn write_headers<S: BridgeStorage<Header = TestHeader>>(
+		storage: &mut S,
+		headers: Vec<(u64, bool)>,
+	) -> Vec<TestHeader> {
+		let mut imported_headers = vec![];
+		let genesis = TestHeader::new_from_number(0);
+		<BestFinalized<TestRuntime>>::put(&genesis);
+		storage.write_header(&ImportedHeader::new(genesis.clone(), true));
+		imported_headers.push(genesis);
+
+		for (num, finalized) in headers {
+			let mut h = TestHeader::new_from_number(num);
+			h.parent_hash = imported_headers.last().unwrap().hash();
+			storage.write_header(&ImportedHeader::new(h.clone(), finalized));
+			imported_headers.push(h);
+		}
+
+		imported_headers
+	}
+
 	#[test]
-	fn correctly_verifies_and_finalizes_chain_of_headers() {
+	fn correctly_beep_boops_the_thing() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let genesis = TestHeader::new_from_number(0);
-			let mut header1 = TestHeader::new_from_number(1);
-			header1.parent_hash = genesis.hash();
-			let mut header2 = TestHeader::new_from_number(2);
-			header2.parent_hash = header1.hash();
-			let mut header3 = TestHeader::new_from_number(3);
-			header3.parent_hash = header2.hash();
+			let headers = vec![(1, false), (2, false)];
+			let imported_headers = write_headers(&mut storage, headers);
 
-			<BestFinalized<TestRuntime>>::put(&genesis);
-			storage.write_header(&ImportedHeader::new(genesis, true));
-			storage.write_header(&ImportedHeader::new(header1.clone(), false));
-			storage.write_header(&ImportedHeader::new(header2.clone(), false));
+			let mut header = TestHeader::new_from_number(3);
+			header.parent_hash = imported_headers[2].hash();
 
 			// Set up some dummy scheduled set changes
 			let set_id = 1;
 			let alice = (UintAuthorityId(1).to_public_key::<AuthorityId>(), 1);
 			let first_authority_set = AuthoritySet::new(vec![alice.clone()], set_id);
-			let height = *header3.number();
+			let height = *header.number();
 			let first_scheduled_change = ScheduledChange::new(first_authority_set.clone(), height);
 			storage.schedule_next_set_change(first_scheduled_change);
 
@@ -407,14 +427,24 @@ mod tests {
 				delay: 0,
 			});
 
-			header3.digest = Digest::<TestHash> {
+			header.digest = Digest::<TestHash> {
 				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
 			};
 
-			assert!(Verifier::import_header(&mut storage, &header3, Some(vec![4, 2])).is_ok());
-			assert!(storage.get_header_by_hash(header1.hash()).unwrap().is_finalized);
-			assert!(storage.get_header_by_hash(header2.hash()).unwrap().is_finalized);
-			assert!(storage.get_header_by_hash(header3.hash()).unwrap().is_finalized);
+			assert!(Verifier::import_header(&mut storage, &header, Some(vec![4, 2])).is_ok());
+			assert!(
+				storage
+					.get_header_by_hash(imported_headers[1].hash())
+					.unwrap()
+					.is_finalized
+			);
+			assert!(
+				storage
+					.get_header_by_hash(imported_headers[2].hash())
+					.unwrap()
+					.is_finalized
+			);
+			assert!(storage.get_header_by_hash(header.hash()).unwrap().is_finalized);
 		});
 	}
 }
