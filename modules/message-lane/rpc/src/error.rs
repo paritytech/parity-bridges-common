@@ -17,7 +17,7 @@
 //! Possible errors and results of message-lane RPC calls.
 
 /// Future Result type.
-pub type FutureResult<T> = Box<dyn jsonrpc_core::futures::Future<Item = T, Error = jsonrpc_core::Error> + Send>;
+pub type FutureResult<T> = jsonrpc_core::BoxFuture<T>;
 
 /// State RPC errors.
 #[derive(Debug, derive_more::Display, derive_more::From)]
