@@ -11,7 +11,7 @@ reserved_peers = "/config/reserved"
 
 [rpc]
 apis = ["all"]
-cors = ["all"]
+cors = ["moz-extension://*", "chrome-extension://*"]
 
 [mining]
 force_sealing = true
