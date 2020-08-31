@@ -346,6 +346,7 @@ mod tests {
 	};
 
 	fn send_regular_message() {
+		System::<TestRuntime>::set_block_number(1);
 		System::<TestRuntime>::reset_events();
 
 		assert_ok!(Module::<TestRuntime>::send_message(
@@ -354,7 +355,7 @@ mod tests {
 			REGULAR_PAYLOAD,
 		));
 
-/*		assert_eq!(
+		assert_eq!(
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
@@ -363,10 +364,11 @@ mod tests {
 				),
 				topics: vec![],
 			}],
-		);*/
+		);
 	}
 
 	fn receive_message_receiving_proof() {
+		System::<TestRuntime>::set_block_number(1);
 		System::<TestRuntime>::reset_events();
 
 		assert_ok!(Module::<TestRuntime>::receive_message_receiving_proof(
@@ -374,7 +376,7 @@ mod tests {
 			Ok((TEST_LANE_ID, 1)),
 		));
 
-/*		assert_eq!(
+		assert_eq!(
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
@@ -383,17 +385,18 @@ mod tests {
 				),
 				topics: vec![],
 			}],
-		);*/
+		);
 	}
 
 	fn receive_message_processing_proof() {
+		System::<TestRuntime>::set_block_number(1);
 		System::<TestRuntime>::reset_events();
 
 		assert_ok!(Module::<TestRuntime>::receive_message_processing_proof(
 			Origin::signed(1),
 			Ok((TEST_LANE_ID, 1)),
 		));
-/*
+
 		assert_eq!(
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
@@ -403,7 +406,7 @@ mod tests {
 				),
 				topics: vec![],
 			}],
-		);*/
+		);
 	}
 
 	#[test]
