@@ -14,7 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_message_lane::{BridgedHeaderChain, LaneId, LaneMessageVerifier, Message, MessageNonce, MessageResult, OnMessageReceived};
+use bp_message_lane::{
+	BridgedHeaderChain, LaneId, LaneMessageVerifier, Message, MessageNonce, MessageResult, OnMessageReceived,
+};
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
@@ -155,11 +157,7 @@ pub struct TestMessageVerifier;
 impl LaneMessageVerifier<AccountId, TestPayload> for TestMessageVerifier {
 	type Error = &'static str;
 
-	fn verify_message(
-		_submitter: &AccountId,
-		_lane: &LaneId,
-		payload: &TestPayload,
-	) -> Result<(), Self::Error> {
+	fn verify_message(_submitter: &AccountId, _lane: &LaneId, payload: &TestPayload) -> Result<(), Self::Error> {
 		if *payload == PAYLOAD_TO_REJECT {
 			Err("Rejected by TestMessageVerifier")
 		} else {
@@ -170,7 +168,9 @@ impl LaneMessageVerifier<AccountId, TestPayload> for TestMessageVerifier {
 
 /// Run message lane test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	let t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+	let t = frame_system::GenesisConfig::default()
+		.build_storage::<TestRuntime>()
+		.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(test)
 }

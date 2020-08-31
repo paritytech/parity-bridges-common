@@ -25,7 +25,7 @@
 use codec::{Decode, Encode};
 use frame_support::{Parameter, RuntimeDebug};
 use sp_api::decl_runtime_apis;
-use sp_std::prelude::*;
+use sp_std::{fmt::Debug, prelude::*};
 
 /// Lane identifier.
 pub type LaneId = [u8; 4];
@@ -150,7 +150,7 @@ decl_runtime_apis! {
 /// that's stuck) and/or processing messages without paying fees.
 pub trait BridgedHeaderChain<Payload> {
 	/// Error type.
-	type Error: std::fmt::Debug + Into<&'static str>;
+	type Error: Debug + Into<&'static str>;
 
 	/// Proof that messages are sent to this chain.
 	type MessagesProof: Parameter;
@@ -188,12 +188,8 @@ pub trait BridgedHeaderChain<Payload> {
 /// message, disable Lane3 until some block, ...
 pub trait LaneMessageVerifier<Submitter, Payload> {
 	/// Error type.
-	type Error: std::fmt::Debug + Into<&'static str>;
+	type Error: Debug + Into<&'static str>;
 
 	/// Verify message payload and return Ok(()) if message is valid and should be sent over lane.
-	fn verify_message(
-		submitter: &Submitter,
-		lane: &LaneId,
-		payload: &Payload,
-	) -> Result<(), Self::Error>;
+	fn verify_message(submitter: &Submitter, lane: &LaneId, payload: &Payload) -> Result<(), Self::Error>;
 }
