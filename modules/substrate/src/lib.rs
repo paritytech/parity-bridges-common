@@ -25,7 +25,7 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use crate::verifier::{ChainVerifier, FinalityProof};
+use crate::verifier::ChainVerifier;
 use bp_substrate::{AuthoritySet, ImportedHeader, ScheduledChange};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
@@ -81,7 +81,7 @@ decl_module! {
 		pub fn import_signed_header(
 			origin,
 			header: T::Header,
-			finality_proof: Option<FinalityProof>,
+			finality_proof: Option<Vec<u8>>,
 		) -> dispatch::DispatchResult {
 			let _ = ensure_signed(origin)?;
 

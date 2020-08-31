@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
 use crate::BridgeStorage;
 use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange};
 use sp_finality_grandpa::{ConsensusLog, SetId, GRANDPA_ENGINE_ID};
@@ -27,7 +25,7 @@ use sp_std::{prelude::Vec, vec};
 ///
 /// For a Substrate based chain using Grandpa this will
 /// be an encoded Grandpa Justification.
-pub type FinalityProof = Vec<u8>;
+pub type FinalityProof<'a> = &'a [u8];
 
 /// Errors which can happen while importing a header.
 #[derive(Debug, PartialEq)]
@@ -56,7 +54,7 @@ pub trait ChainVerifier<S, H> {
 	/// Verify that the given header has been finalized and is part of the canonical chain.
 	///
 	/// Returns a list of headers which got finalized by the given header.
-	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<Vec<H>, ImportError>;
+	fn verify_finality(storage: &mut S, header: &H, proof: FinalityProof) -> Result<Vec<H>, ImportError>;
 }
 
 /// Used to verify imported headers and their finality status.
@@ -93,7 +91,7 @@ where
 			let finalized_headers = Self::verify_finality(
 				storage,
 				header,
-				&finality_proof.expect("Checked for `finality_proof` before entering if-block"),
+				finality_proof.expect("Checked for `finality_proof` before entering if-block"),
 			)?;
 
 			// TODO: Would need to prune blocks from the non-canonical chain at some point
@@ -110,11 +108,10 @@ where
 		Ok(())
 	}
 
-	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<Vec<H>, ImportError> {
+	fn verify_finality(storage: &mut S, header: &H, proof: FinalityProof) -> Result<Vec<H>, ImportError> {
 		let current_authority_set = storage.current_authority_set();
-		let justification = &proof;
 
-		let is_finalized = prove_finality(&header, &current_authority_set, &justification);
+		let is_finalized = prove_finality(&header, &current_authority_set, proof);
 		if !is_finalized {
 			return Err(ImportError::UnfinalizedHeader);
 		}
@@ -226,7 +223,7 @@ mod tests {
 	) -> ScheduledChange<TestNumber> {
 		let authorities = get_authorities(authorities);
 		let authority_set = AuthoritySet::new(authorities, set_id);
-		ScheduledChange::new(authority_set.clone(), height)
+		ScheduledChange::new(authority_set, height)
 	}
 
 	fn write_headers<S: BridgeStorage<Header = TestHeader>>(
@@ -311,7 +308,7 @@ mod tests {
 			<BestFinalized<TestRuntime>>::put(&parent);
 
 			let imported_header = ImportedHeader {
-				header: parent.clone(),
+				header: parent,
 				is_finalized: true,
 			};
 
@@ -345,8 +342,8 @@ mod tests {
 				storage.import_unfinalized_header(headers[i].clone());
 			}
 
-			for i in 0..num_headers {
-				assert!(storage.header_exists(headers[i].hash()));
+			for header in headers.iter().take(num_headers) {
+				assert!(storage.header_exists(header.hash()));
 			}
 
 			let ancestor = headers.remove(0);
@@ -362,20 +359,21 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let mut headers = vec![];
+			let num_headers = 4;
 
 			let mut header = TestHeader::new_from_number(0);
 			headers.push(header.clone());
 			storage.import_unfinalized_header(header);
 
-			for i in 1..4 {
+			for i in 1..num_headers {
 				header = TestHeader::new_from_number(i as u64);
 				header.parent_hash = headers[i - 1].hash();
 				headers.push(header);
 				storage.import_unfinalized_header(headers[i].clone());
 			}
 
-			for i in 0..4 {
-				assert!(storage.header_exists(headers[i].hash()));
+			for header in headers.iter().take(num_headers) {
+				assert!(storage.header_exists(header.hash()));
 			}
 
 			let mut bad_ancestor = TestHeader::new_from_number(0);
@@ -453,7 +451,7 @@ mod tests {
 				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
 			};
 
-			assert!(Verifier::import_header(&mut storage, &header, Some(vec![4, 2])).is_ok());
+			assert!(Verifier::import_header(&mut storage, &header, Some(&[4, 2])).is_ok());
 
 			// Make sure we marked the our headers as finalized
 			assert!(
