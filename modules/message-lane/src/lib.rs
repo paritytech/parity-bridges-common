@@ -35,7 +35,7 @@ use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
 
 use bp_message_lane::{
 	BridgedHeaderChain, InboundLaneData, LaneMessageVerifier, LaneId,
-	Message, MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
+	MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
 };
 use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter, StorageMap};
 use frame_system::ensure_signed;
@@ -136,7 +136,20 @@ decl_module! {
 		) {
 			let _ = ensure_signed(origin)?;
 			let messages = T::BridgedHeaderChain::verify_messages_proof(proof).map_err(Into::into)?;
-			Self::receive_messages(messages);
+			let mut correct_messages = 0;
+			let mut processor = T::OnMessageReceived::default();
+			for message in messages {
+				let mut lane = inbound_lane::<T, I>(message.key.lane_id);
+				if lane.receive_message(message.key.nonce, message.payload, &mut processor) {
+					correct_messages += 1;
+				}
+			}
+
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Received {} messages",
+				correct_messages,
+			);
 		}
 
 		/// Receive messages receiving proof from bridged chain.
@@ -146,8 +159,20 @@ decl_module! {
 			proof: <<T as Trait<I>>::BridgedHeaderChain as BridgedHeaderChain<T::Payload>>::MessagesReceivingProof,
 		) {
 			let _ = ensure_signed(origin)?;
-			let (lane, nonce) = T::BridgedHeaderChain::verify_messages_receiving_proof(proof).map_err(Into::into)?;
-			Self::confirm_receival(&lane, nonce);
+			let (lane_id, nonce) = T::BridgedHeaderChain::verify_messages_receiving_proof(proof).map_err(Into::into)?;
+
+			let mut lane = outbound_lane::<T, I>(lane_id);
+			let received_range = lane.confirm_receival(nonce);
+			if let Some(received_range) = received_range {
+				Self::deposit_event(Event::MessagesDelivered(lane_id, received_range.0, received_range.1));
+			}
+
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Received proof of receiving messages up to (and including) {} at lane {:?}",
+				nonce,
+				lane_id,
+			);
 		}
 
 		/// Receive messages processing proof from bridged chain.
@@ -157,8 +182,20 @@ decl_module! {
 			proof: <<T as Trait<I>>::BridgedHeaderChain as BridgedHeaderChain<T::Payload>>::MessagesProcessingProof,
 		) {
 			let _ = ensure_signed(origin)?;
-			let (lane, nonce) = T::BridgedHeaderChain::verify_messages_processing_proof(proof).map_err(Into::into)?;
-			Self::confirm_processing(&lane, nonce);
+			let (lane_id, nonce) = T::BridgedHeaderChain::verify_messages_processing_proof(proof).map_err(Into::into)?;
+
+			let mut lane = outbound_lane::<T, I>(lane_id);
+			let processed_range = lane.confirm_processing(nonce);
+			if let Some(processed_range) = processed_range {
+				Self::deposit_event(Event::MessagesProcessed(lane_id, processed_range.0, processed_range.1));
+			}
+
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Received proof of processing messages up to (and including) {} at lane {:?}",
+				nonce,
+				lane_id,
+			);
 		}
 	}
 }
@@ -168,62 +205,12 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	// === Exposed mutables ====================================================================
 	// =========================================================================================
 
-	/// Receive new TRUSTED lane messages.
-	///
-	/// Trusted here means that the function itself doesn't check whether message has actually
-	/// been sent through the other end of the channel. We only check that we are receiving
-	/// and processing messages in order here.
-	///
-	/// Messages vector is required to be sorted by nonce within each lane. Otherise messages
-	/// will be rejected.
-	pub fn receive_messages(messages: Vec<Message<T::Payload>>) -> MessageNonce {
-		let mut correct_messages = 0;
-		let mut processor = T::OnMessageReceived::default();
-		for message in messages {
-			let mut lane = inbound_lane::<T, I>(message.key.lane_id);
-			if lane.receive_message(message.key.nonce, message.payload, &mut processor) {
-				correct_messages += 1;
-			}
-		}
-
-		correct_messages
-	}
-
 	/// Process stored lane messages.
 	///
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageResult::NotProcessed.
 	pub fn process_lane_messages(lane_id: &LaneId, processor: &mut impl OnMessageReceived<T::Payload>) {
 		inbound_lane::<T, I>(*lane_id).process_messages(processor);
-	}
-
-	/// Receive TRUSTED proof of message receival.
-	///
-	/// Trusted here means that the function itself doesn't check whether the bridged chain has
-	/// actually received these messages.
-	///
-	/// The caller may break the channel by providing `latest_received_nonce` that is larger
-	/// than actual one. Not-yet-sent messages may be pruned in this case.
-	pub fn confirm_receival(lane_id: &LaneId, latest_received_nonce: MessageNonce) {
-		let mut lane = outbound_lane::<T, I>(*lane_id);
-		let received_range = lane.confirm_receival(latest_received_nonce);
-
-		if let Some(received_range) = received_range {
-			Self::deposit_event(Event::MessagesDelivered(*lane_id, received_range.0, received_range.1));
-		}
-	}
-
-	/// Receive TRUSTED proof of message processing.
-	///
-	/// Trusted here means that the function itself doesn't check whether the bridged chain has
-	/// actually processed these messages.
-	pub fn confirm_processing(lane_id: &LaneId, latest_processed_nonce: MessageNonce) {
-		let mut lane = outbound_lane::<T, I>(*lane_id);
-		let processed_range = lane.confirm_processing(latest_processed_nonce);
-
-		if let Some(processed_range) = processed_range {
-			Self::deposit_event(Event::MessagesProcessed(*lane_id, processed_range.0, processed_range.1));
-		}
 	}
 }
 
@@ -339,6 +326,7 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_message_lane::Message;
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Module as System, Phase};
 	use crate::mock::{
