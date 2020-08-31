@@ -34,7 +34,8 @@ use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
 
 use bp_message_lane::{
-	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
+	BridgedHeaderChain, InboundLaneData, LaneId, Message, MessageKey,
+	MessageNonce, OnMessageReceived, OutboundLaneData,
 };
 use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter, StorageMap};
 use frame_system::ensure_signed;
@@ -57,6 +58,8 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
 	/// for it.
 	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
+	/// Bridged header chain.
+	type BridgedHeaderChain: BridgedHeaderChain<Self::Payload>;
 	/// Called when message has been received.
 	type OnMessageReceived: Default + OnMessageReceived<Self::Payload>;
 }
@@ -103,6 +106,39 @@ decl_module! {
 			lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 
 			Self::deposit_event(Event::MessageAccepted(lane_id, nonce));
+		}
+
+		/// Receive messages proof from bridged chain.
+		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		pub fn receive_messages_proof(
+			origin,
+			proof: <<T as Trait<I>>::BridgedHeaderChain as BridgedHeaderChain<T::Payload>>::MessagesProof,
+		) {
+			let _ = ensure_signed(origin)?;
+			let messages = T::BridgedHeaderChain::verify_messages_proof(proof).map_err(Into::into)?;
+			Self::receive_messages(messages);
+		}
+
+		/// Receive messages receiving proof from bridged chain.
+		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		pub fn receive_message_receiving_proof(
+			origin,
+			proof: <<T as Trait<I>>::BridgedHeaderChain as BridgedHeaderChain<T::Payload>>::MessagesReceivingProof,
+		) {
+			let _ = ensure_signed(origin)?;
+			let (lane, nonce) = T::BridgedHeaderChain::verify_messages_receiving_proof(proof).map_err(Into::into)?;
+			Self::confirm_receival(&lane, nonce);
+		}
+
+		/// Receive messages processing proof from bridged chain.
+		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		pub fn receive_message_processing_proof(
+			origin,
+			proof: <<T as Trait<I>>::BridgedHeaderChain as BridgedHeaderChain<T::Payload>>::MessagesProcessingProof,
+		) {
+			let _ = ensure_signed(origin)?;
+			let (lane, nonce) = T::BridgedHeaderChain::verify_messages_processing_proof(proof).map_err(Into::into)?;
+			Self::confirm_processing(&lane, nonce);
 		}
 	}
 }
