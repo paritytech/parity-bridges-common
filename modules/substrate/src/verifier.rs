@@ -23,15 +23,28 @@ use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{prelude::Vec, vec};
 
+/// The finality proof used by the pallet.
+///
+/// For a Substrate based chain using Grandpa this will
+/// be an encoded Grandpa Justification.
 pub type FinalityProof = Vec<u8>;
 
+/// Errors which can happen while importing a header.
 #[derive(Debug, PartialEq)]
 pub enum ImportError {
+	/// This header is older than our latest finalized block, thus not useful.
 	OldHeader,
+	/// This header has already been imported by the pallet.
 	HeaderAlreadyExists,
+	/// We're missing a parent for this header.
 	MissingParent,
+	/// We were unable to prove finality for this header.
 	UnfinalizedHeader,
+	/// We failed to verify this header's ancestry.
 	AncestryCheckFailed,
+	/// The header is missing digests related to consensus events.
+	///
+	/// This will typically have to do with missing authority set change signals.
 	MissingConsensusDigest,
 }
 
@@ -46,6 +59,7 @@ pub trait ChainVerifier<S, H> {
 	fn verify_finality(storage: &mut S, header: &H, proof: &FinalityProof) -> Result<Vec<H>, ImportError>;
 }
 
+/// Used to verify imported headers and their finality status.
 #[derive(Debug)]
 pub struct Verifier;
 

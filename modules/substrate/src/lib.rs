@@ -40,6 +40,9 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+type Hash<T> = <T as HeaderT>::Hash;
+type Number<T> = <T as HeaderT>::Number;
+
 pub trait Trait: frame_system::Trait {}
 
 decl_storage! {
@@ -53,7 +56,7 @@ decl_storage! {
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change.
-		NextScheduledChange: ScheduledChange<<T::Header as HeaderT>::Number>;
+		NextScheduledChange: ScheduledChange<Number<T::Header>>;
 	}
 }
 
@@ -70,6 +73,10 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
+		/// Import a signed Substrate header into the runtime.
+		///
+		/// Will check for finality proofs, and if available finalize any already imported
+		/// headers which are finalized by the newly imported header.
 		#[weight = 0]
 		pub fn import_signed_header(
 			origin,
@@ -93,21 +100,47 @@ decl_module! {
 	}
 }
 
+/// Expected interface for interacting with bridge pallet storage.
 pub trait BridgeStorage {
+	/// The header type being used by the pallet.
 	type Header: HeaderT;
 
+	/// Write a header to storage.
 	fn write_header(&mut self, header: &ImportedHeader<Self::Header>);
+
+	/// Get the best finalized header the pallet knows of.
+	///
+	/// Returns None if there are no finalized headers.
 	fn best_finalized_header(&self) -> Option<Self::Header>;
+
+	/// Check if a particular header is known to the pallet.
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
+
+	/// Get a specific header by its hash.
+	///
+	/// Returns None if it is not known to the pallet.
 	fn get_header_by_hash(&self, hash: <Self::Header as HeaderT>::Hash) -> Option<ImportedHeader<Self::Header>>;
+
+	/// Get the current Grandpa authority set.
 	fn current_authority_set(&self) -> AuthoritySet;
+
+	/// Update the current Grandpa authority set.
+	///
+	/// Should only be updated when a scheduled change has been triggered.
 	fn update_current_authority_set(&self, new_set: AuthoritySet);
+
+	/// Get the next scheduled Grandpa authority set change.
 	fn scheduled_set_change(&self) -> ScheduledChange<<Self::Header as HeaderT>::Number>;
+
+	/// Schedule a Grandpa authority set change in the future.
 	fn schedule_next_set_change(&self, next_change: ScheduledChange<<Self::Header as HeaderT>::Number>);
+
+	/// Helper function to store an unfinalized header.
 	#[cfg(test)]
 	fn import_unfinalized_header(&mut self, header: Self::Header);
 }
 
+/// Used to interact with the pallet storage in a more abstract way.
 #[derive(Default)]
 pub struct PalletStorage<T>(PhantomData<T>);
 
@@ -129,11 +162,11 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<BestFinalized<T>>::get()
 	}
 
-	fn header_exists(&self, hash: <T::Header as HeaderT>::Hash) -> bool {
+	fn header_exists(&self, hash: Hash<T::Header>) -> bool {
 		self.get_header_by_hash(hash).is_some()
 	}
 
-	fn get_header_by_hash(&self, hash: <T::Header as HeaderT>::Hash) -> Option<ImportedHeader<T::Header>> {
+	fn get_header_by_hash(&self, hash: Hash<T::Header>) -> Option<ImportedHeader<T::Header>> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
@@ -145,11 +178,11 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		CurrentAuthoritySet::put(new_set)
 	}
 
-	fn scheduled_set_change(&self) -> ScheduledChange<<T::Header as HeaderT>::Number> {
+	fn scheduled_set_change(&self) -> ScheduledChange<Number<T::Header>> {
 		<NextScheduledChange<T>>::get()
 	}
 
-	fn schedule_next_set_change(&self, next_change: ScheduledChange<<T::Header as HeaderT>::Number>) {
+	fn schedule_next_set_change(&self, next_change: ScheduledChange<Number<T::Header>>) {
 		<NextScheduledChange<T>>::put(next_change)
 	}
 
