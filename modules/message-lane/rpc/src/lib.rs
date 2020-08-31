@@ -18,8 +18,8 @@
 
 use crate::error::{Error, FutureResult};
 
-use bp_runtime::InstanceId;
 use bp_message_lane::{LaneId, MessageNonce};
+use bp_runtime::InstanceId;
 use futures::{FutureExt, TryFutureExt};
 use jsonrpc_core::futures::Future as _;
 use jsonrpc_derive::rpc;
