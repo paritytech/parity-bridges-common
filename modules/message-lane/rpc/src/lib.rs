@@ -18,6 +18,7 @@
 
 use crate::error::{Error, FutureResult};
 
+use bp_runtime::InstanceId;
 use bp_message_lane::{LaneId, MessageNonce};
 use futures::{FutureExt, TryFutureExt};
 use jsonrpc_core::futures::Future as _;
@@ -31,9 +32,6 @@ use sp_trie::StorageProof;
 use std::sync::Arc;
 
 mod error;
-
-/// Instance id.
-pub type InstanceId = [u8; 4];
 
 /// Trie-based storage proof that the message(s) with given key(s) are sent by the bridged chain.
 /// SCALE-encoded trie nodes array `Vec<Vec<u8>>`.
