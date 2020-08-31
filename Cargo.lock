@@ -652,8 +652,10 @@ dependencies = [
 name = "bp-message-lane"
 version = "0.1.0"
 dependencies = [
+ "frame-support",
  "parity-scale-codec",
  "sp-api",
+ "sp-std",
 ]
 
 [[package]]

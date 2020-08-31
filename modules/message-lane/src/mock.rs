@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_message_lane::{LaneId, Message, MessageResult, OnMessageReceived};
+use bp_message_lane::{BridgedHeaderChain, LaneId, Message, MessageNonce, MessageResult, OnMessageReceived};
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
@@ -89,6 +89,7 @@ impl Trait for TestRuntime {
 	type Event = TestEvent;
 	type Payload = TestPayload;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type BridgedHeaderChain = TestHeaderChain;
 	type OnMessageReceived = TestMessageProcessor;
 }
 
@@ -112,6 +113,34 @@ impl OnMessageReceived<TestPayload> for TestMessageProcessor {
 		} else {
 			MessageResult::Processed
 		}
+	}
+}
+
+/// Header chain that is used in tests.
+#[derive(Debug)]
+pub struct TestHeaderChain;
+
+impl BridgedHeaderChain<TestPayload> for TestHeaderChain {
+	type Error = &'static str;
+
+	type MessagesProof = Result<Vec<Message<TestPayload>>, ()>;
+	type MessagesReceivingProof = Result<(LaneId, MessageNonce), ()>;
+	type MessagesProcessingProof = Result<(LaneId, MessageNonce), ()>;
+
+	fn verify_messages_proof(proof: Self::MessagesProof) -> Result<Vec<Message<TestPayload>>, Self::Error> {
+		proof.map_err(|_| "Test error")
+	}
+
+	fn verify_messages_receiving_proof(
+		proof: Self::MessagesReceivingProof,
+	) -> Result<(LaneId, MessageNonce), Self::Error> {
+		proof.map_err(|_| "Test error")
+	}
+
+	fn verify_messages_processing_proof(
+		proof: Self::MessagesProcessingProof,
+	) -> Result<(LaneId, MessageNonce), Self::Error> {
+		proof.map_err(|_| "Test error")
 	}
 }
 
