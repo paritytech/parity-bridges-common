@@ -15,31 +15,31 @@ hash-db = { version = "0.15.2", default-features = false }
 
 # Substrate Based Dependencies
 
-[dependencies.sp-std]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
-default-features = false
-git = "https://github.com/paritytech/substrate/"
-
 [dependencies.frame-support]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.frame-system]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-finality-grandpa]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.sp-runtime]
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
+default-features = false
+git = "https://github.com/paritytech/substrate/"
+
+[dependencies.sp-std]
 version = "2.0.0-rc6"
 tag = 'v2.0.0-rc6'
 default-features = false
@@ -57,9 +57,9 @@ default-features = false
 features = ["derive"]
 
 # Dev Dependencies
-[dependencies.sp-io]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+[dev-dependencies.sp-io]
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 git = "https://github.com/paritytech/substrate/"
 
 [features]
@@ -69,7 +69,8 @@ std = [
 	"frame-system/std",
 	"serde",
 	"sp-finality-grandpa/std",
-	"sp-std/std",
 	"sp-runtime/std",
+	"sp-std/std",
 	"sp-trie/std",
+	"sp-io/std",
 ]

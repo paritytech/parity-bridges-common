@@ -21,7 +21,7 @@ use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange
 use sp_finality_grandpa::{ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::Header as HeaderT;
-use sp_std::prelude::Vec;
+use sp_std::{prelude::Vec, vec};
 
 pub type FinalityProof = Vec<u8>;
 
@@ -81,8 +81,6 @@ where
 				header,
 				&finality_proof.expect("Checked for `finality_proof` before entering if-block"),
 			)?;
-
-			dbg!(&finalized_headers);
 
 			// TODO: Would need to prune blocks from the non-canonical chain at some point
 			for header in finalized_headers.iter() {
