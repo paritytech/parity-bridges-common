@@ -150,7 +150,7 @@ decl_runtime_apis! {
 /// that's stuck) and/or processing messages without paying fees.
 pub trait BridgedHeaderChain<Payload> {
 	/// Error type.
-	type Error: Into<&'static str>;
+	type Error: std::fmt::Debug + Into<&'static str>;
 
 	/// Proof that messages are sent to this chain.
 	type MessagesProof: Parameter;
@@ -169,4 +169,28 @@ pub trait BridgedHeaderChain<Payload> {
 	fn verify_messages_processing_proof(
 		proof: Self::MessagesProcessingProof,
 	) -> Result<(LaneId, MessageNonce), Self::Error>;
+}
+
+/// Lane message verifier.
+///
+/// This has many uses:
+///
+/// 1) the most important -if bridged chain has some requirements to accepting transaction-with-message
+/// to the transaction pool, runtime **MUST** guarantee that it won't accept any message that can't
+/// be accepted by the bridged chain. The example could be - for BTC chain, the message (which in turn
+/// may be BTC transaction) size must not be larger than 1Mb (or whatever limit is currently imposed by
+/// BTC consensus rules);
+/// 2) if message lanes should have some security, then it must be checked by this verifier. I.e. you
+/// can only accept Lane1 messages from Submitter1, Lane2 messages for those who has submitted first
+/// message, disable Lane3 until some block, ...
+pub trait LaneMessageVerifier<Submitter, Payload> {
+	/// Error type.
+	type Error: std::fmt::Debug + Into<&'static str>;
+
+	/// Verify message payload and return Ok(()) if message is valid and should be sent over lane.
+	fn verify_message(
+		submitter: &Submitter,
+		lane: &LaneId,
+		payload: &Payload,
+	) -> Result<(), Self::Error>;
 }
