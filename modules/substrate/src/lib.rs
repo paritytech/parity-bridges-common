@@ -40,9 +40,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: frame_system::Trait {
-	// type Verifier: ChainVerifier;
-}
+pub trait Trait: frame_system::Trait {}
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
