@@ -11,6 +11,7 @@ reserved_peers = "/config/reserved"
 
 [rpc]
 apis = ["all"]
+cors = ["all"]
 
 [mining]
 force_sealing = true
