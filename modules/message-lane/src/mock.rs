@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_message_lane::{BridgedHeaderChain, LaneId, Message, MessageNonce, MessageResult, OnMessageReceived};
+use bp_message_lane::{BridgedHeaderChain, LaneId, LaneMessageVerifier, Message, MessageNonce, MessageResult, OnMessageReceived};
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
@@ -90,6 +90,7 @@ impl Trait for TestRuntime {
 	type Payload = TestPayload;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type BridgedHeaderChain = TestHeaderChain;
+	type LaneMessageVerifier = TestMessageVerifier;
 	type OnMessageReceived = TestMessageProcessor;
 }
 
@@ -101,6 +102,9 @@ pub const REGULAR_PAYLOAD: TestPayload = 0;
 
 /// All messages with this payload are queued by TestMessageProcessor.
 pub const PAYLOAD_TO_QUEUE: TestPayload = 42;
+
+/// All messags with this payload are rejected by TestMessageVerifier.
+pub const PAYLOAD_TO_REJECT: TestPayload = 43;
 
 /// Message processor that immediately handles all messages except messages with PAYLOAD_TO_QUEUE payload.
 #[derive(Debug, Default)]
@@ -128,23 +132,45 @@ impl BridgedHeaderChain<TestPayload> for TestHeaderChain {
 	type MessagesProcessingProof = Result<(LaneId, MessageNonce), ()>;
 
 	fn verify_messages_proof(proof: Self::MessagesProof) -> Result<Vec<Message<TestPayload>>, Self::Error> {
-		proof.map_err(|_| "Test error")
+		proof.map_err(|_| "Rejected by TestHeaderChain")
 	}
 
 	fn verify_messages_receiving_proof(
 		proof: Self::MessagesReceivingProof,
 	) -> Result<(LaneId, MessageNonce), Self::Error> {
-		proof.map_err(|_| "Test error")
+		proof.map_err(|_| "Rejected by TestHeaderChain")
 	}
 
 	fn verify_messages_processing_proof(
 		proof: Self::MessagesProcessingProof,
 	) -> Result<(LaneId, MessageNonce), Self::Error> {
-		proof.map_err(|_| "Test error")
+		proof.map_err(|_| "Rejected by TestHeaderChain")
+	}
+}
+
+/// Message verifier that is used in tests.
+#[derive(Debug)]
+pub struct TestMessageVerifier;
+
+impl LaneMessageVerifier<AccountId, TestPayload> for TestMessageVerifier {
+	type Error = &'static str;
+
+	fn verify_message(
+		_submitter: &AccountId,
+		_lane: &LaneId,
+		payload: &TestPayload,
+	) -> Result<(), Self::Error> {
+		if *payload == PAYLOAD_TO_REJECT {
+			Err("Rejected by TestMessageVerifier")
+		} else {
+			Ok(())
+		}
 	}
 }
 
 /// Run message lane test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	sp_io::TestExternalities::new(Default::default()).execute_with(test)
+	let t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+	let mut ext = sp_io::TestExternalities::new(t);
+	ext.execute_with(test)
 }

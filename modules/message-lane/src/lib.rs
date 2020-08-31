@@ -34,8 +34,8 @@ use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
 
 use bp_message_lane::{
-	BridgedHeaderChain, InboundLaneData, LaneId, Message, MessageKey,
-	MessageNonce, OnMessageReceived, OutboundLaneData,
+	BridgedHeaderChain, InboundLaneData, LaneMessageVerifier, LaneId,
+	Message, MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
 };
 use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter, StorageMap};
 use frame_system::ensure_signed;
@@ -60,6 +60,8 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
 	/// Bridged header chain.
 	type BridgedHeaderChain: BridgedHeaderChain<Self::Payload>;
+	/// Message paylaod verifier.
+	type LaneMessageVerifier: LaneMessageVerifier<Self::AccountId, Self::Payload>;
 	/// Called when message has been received.
 	type OnMessageReceived: Default + OnMessageReceived<Self::Payload>;
 }
@@ -100,10 +102,28 @@ decl_module! {
 			lane_id: LaneId,
 			payload: T::Payload,
 		) {
-			let _ = ensure_signed(origin)?;
+			let submitter = ensure_signed(origin)?;
+			T::LaneMessageVerifier::verify_message(&submitter, &lane_id, &payload).map_err(|err| {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Rejected message to lane {:?}: {:?}",
+					lane_id,
+					err,
+				);
+
+				err.into()
+			})?;
+
 			let mut lane = outbound_lane::<T, I>(lane_id);
 			let nonce = lane.send_message(payload);
 			lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
+
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Accepted message {} to lane {:?}",
+				nonce,
+				lane_id,
+			);
 
 			Self::deposit_event(Event::MessageAccepted(lane_id, nonce));
 		}
@@ -312,6 +332,184 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 		OutboundMessages::<T, I>::remove(MessageKey {
 			lane_id: self.lane_id,
 			nonce: *nonce,
+		});
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use frame_support::{assert_noop, assert_ok};
+	use frame_system::{EventRecord, Module as System, Phase};
+	use crate::mock::{
+		run_test, Origin, TestEvent, TestRuntime, PAYLOAD_TO_REJECT, PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID,
+	};
+
+	fn send_regular_message() {
+		System::<TestRuntime>::reset_events();
+
+		assert_ok!(Module::<TestRuntime>::send_message(
+			Origin::signed(1),
+			TEST_LANE_ID,
+			REGULAR_PAYLOAD,
+		));
+
+/*		assert_eq!(
+			System::<TestRuntime>::events(),
+			vec![EventRecord {
+				phase: Phase::Initialization,
+				event: TestEvent::message_lane(
+					Event::MessageAccepted(TEST_LANE_ID, 1)
+				),
+				topics: vec![],
+			}],
+		);*/
+	}
+
+	fn receive_message_receiving_proof() {
+		System::<TestRuntime>::reset_events();
+
+		assert_ok!(Module::<TestRuntime>::receive_message_receiving_proof(
+			Origin::signed(1),
+			Ok((TEST_LANE_ID, 1)),
+		));
+
+/*		assert_eq!(
+			System::<TestRuntime>::events(),
+			vec![EventRecord {
+				phase: Phase::Initialization,
+				event: TestEvent::message_lane(
+					Event::MessagesDelivered(TEST_LANE_ID, 1, 1)
+				),
+				topics: vec![],
+			}],
+		);*/
+	}
+
+	fn receive_message_processing_proof() {
+		System::<TestRuntime>::reset_events();
+
+		assert_ok!(Module::<TestRuntime>::receive_message_processing_proof(
+			Origin::signed(1),
+			Ok((TEST_LANE_ID, 1)),
+		));
+/*
+		assert_eq!(
+			System::<TestRuntime>::events(),
+			vec![EventRecord {
+				phase: Phase::Initialization,
+				event: TestEvent::message_lane(
+					Event::MessagesProcessed(TEST_LANE_ID, 1, 1)
+				),
+				topics: vec![],
+			}],
+		);*/
+	}
+
+	#[test]
+	fn send_event_works() {
+		run_test(|| {
+			send_regular_message();
+		});
+	}
+
+	#[test]
+	fn send_event_rejects_invalid_message() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::send_message(
+					Origin::signed(1),
+					TEST_LANE_ID,
+					PAYLOAD_TO_REJECT,
+				),
+				"Rejected by TestMessageVerifier"
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_proof_works() {
+		run_test(|| {
+			let key = MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 1,
+			};
+
+			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
+				Origin::signed(1),
+				Ok(vec![Message {
+					key: key.clone(),
+					payload: PAYLOAD_TO_QUEUE,
+				}]),
+			));
+
+			assert!(InboundMessages::<TestRuntime>::contains_key(&key));
+		});
+	}
+
+	#[test]
+	fn receive_messages_proof_rejects_invalid_proof() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::receive_messages_proof(
+					Origin::signed(1),
+					Err(()),
+				),
+				"Rejected by TestHeaderChain"
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_receiving_proof_works() {
+		run_test(|| {
+			send_regular_message();
+			receive_message_receiving_proof();
+
+			assert_eq!(
+				OutboundLanes::<DefaultInstance>::get(&TEST_LANE_ID).latest_received_nonce,
+				1,
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_receiving_proof_rejects_invalid_proof() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::receive_message_receiving_proof(
+					Origin::signed(1),
+					Err(()),
+				),
+				"Rejected by TestHeaderChain"
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_processing_proof_works() {
+		run_test(|| {
+			send_regular_message();
+			receive_message_receiving_proof();
+			receive_message_processing_proof();
+
+			assert_eq!(
+				OutboundLanes::<DefaultInstance>::get(&TEST_LANE_ID).latest_processed_nonce,
+				1,
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_processing_proof_rejects_invalid_proof() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::receive_message_processing_proof(
+					Origin::signed(1),
+					Err(()),
+				),
+				"Rejected by TestHeaderChain"
+			);
 		});
 	}
 }
