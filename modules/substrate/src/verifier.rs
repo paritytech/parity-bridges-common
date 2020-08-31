@@ -123,9 +123,9 @@ where
 		if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
 			let current_set_id = current_authority_set.set_id;
 			update_authority_set(storage, header, current_set_id)?;
-			return Ok(ancestors);
+			Ok(ancestors)
 		} else {
-			return Err(ImportError::AncestryCheckFailed);
+			Err(ImportError::AncestryCheckFailed)
 		}
 	}
 }
@@ -153,7 +153,7 @@ where
 		}
 	}
 
-	return Some(ancestors);
+	Some(ancestors)
 }
 
 fn update_authority_set<S, H>(storage: &mut S, header: &H, current_set_id: SetId) -> Result<(), ImportError>
