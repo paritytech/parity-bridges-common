@@ -16,6 +16,8 @@
 
 //! Primitives that may be used at (brides) runtime level.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 /// Id of deployed module instance. We have a bunch of pallets that may be used in
 /// different bridges. E.g. message-lane pallet may be deployed twice in the same
 /// runtime to bridge ThisChain with Chain1 and Chain2. Sometimes we need to be able
