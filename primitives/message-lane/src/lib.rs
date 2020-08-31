@@ -160,6 +160,9 @@ pub trait BridgedHeaderChain<Payload> {
 	type MessagesProcessingProof: Parameter;
 
 	/// Verify messages proof and return proved messages.
+	///
+	/// Messages vector is required to be sorted by nonce within each lane. Otherise messages
+	/// will be rejected.
 	fn verify_messages_proof(proof: Self::MessagesProof) -> Result<Vec<Message<Payload>>, Self::Error>;
 	/// Verify messages receiving proof and return lane && nonce of the latest recevied message.
 	fn verify_messages_receiving_proof(
