@@ -34,8 +34,8 @@ use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
 
 use bp_message_lane::{
-	BridgedHeaderChain, InboundLaneData, LaneMessageVerifier, LaneId,
-	MessageKey, MessageNonce, OnMessageReceived, OutboundLaneData,
+	BridgedHeaderChain, InboundLaneData, LaneId, LaneMessageVerifier, MessageKey, MessageNonce, OnMessageReceived,
+	OutboundLaneData,
 };
 use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter, StorageMap};
 use frame_system::ensure_signed;
@@ -326,12 +326,12 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::mock::{
+		run_test, Origin, TestEvent, TestRuntime, PAYLOAD_TO_QUEUE, PAYLOAD_TO_REJECT, REGULAR_PAYLOAD, TEST_LANE_ID,
+	};
 	use bp_message_lane::Message;
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Module as System, Phase};
-	use crate::mock::{
-		run_test, Origin, TestEvent, TestRuntime, PAYLOAD_TO_REJECT, PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID,
-	};
 
 	fn send_regular_message() {
 		System::<TestRuntime>::set_block_number(1);
@@ -347,9 +347,7 @@ mod tests {
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::message_lane(
-					Event::MessageAccepted(TEST_LANE_ID, 1)
-				),
+				event: TestEvent::message_lane(Event::MessageAccepted(TEST_LANE_ID, 1)),
 				topics: vec![],
 			}],
 		);
@@ -368,9 +366,7 @@ mod tests {
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::message_lane(
-					Event::MessagesDelivered(TEST_LANE_ID, 1, 1)
-				),
+				event: TestEvent::message_lane(Event::MessagesDelivered(TEST_LANE_ID, 1, 1)),
 				topics: vec![],
 			}],
 		);
@@ -389,9 +385,7 @@ mod tests {
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::message_lane(
-					Event::MessagesProcessed(TEST_LANE_ID, 1, 1)
-				),
+				event: TestEvent::message_lane(Event::MessagesProcessed(TEST_LANE_ID, 1, 1)),
 				topics: vec![],
 			}],
 		);
@@ -408,11 +402,7 @@ mod tests {
 	fn send_event_rejects_invalid_message() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::send_message(
-					Origin::signed(1),
-					TEST_LANE_ID,
-					PAYLOAD_TO_REJECT,
-				),
+				Module::<TestRuntime>::send_message(Origin::signed(1), TEST_LANE_ID, PAYLOAD_TO_REJECT,),
 				"Rejected by TestMessageVerifier"
 			);
 		});
@@ -442,10 +432,7 @@ mod tests {
 	fn receive_messages_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::receive_messages_proof(
-					Origin::signed(1),
-					Err(()),
-				),
+				Module::<TestRuntime>::receive_messages_proof(Origin::signed(1), Err(()),),
 				"Rejected by TestHeaderChain"
 			);
 		});
@@ -468,10 +455,7 @@ mod tests {
 	fn receive_messages_receiving_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::receive_message_receiving_proof(
-					Origin::signed(1),
-					Err(()),
-				),
+				Module::<TestRuntime>::receive_message_receiving_proof(Origin::signed(1), Err(()),),
 				"Rejected by TestHeaderChain"
 			);
 		});
@@ -495,10 +479,7 @@ mod tests {
 	fn receive_messages_processing_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::receive_message_processing_proof(
-					Origin::signed(1),
-					Err(()),
-				),
+				Module::<TestRuntime>::receive_message_processing_proof(Origin::signed(1), Err(()),),
 				"Rejected by TestHeaderChain"
 			);
 		});
