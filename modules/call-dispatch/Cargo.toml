@@ -12,37 +12,37 @@ bp-message-dispatch = { path = "../../primitives/message-dispatch", default-feat
 
 # Substrate Based Dependencies
 [dependencies.frame-support]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.frame-system]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-std]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-runtime]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-io]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 git = "https://github.com/paritytech/substrate/"
 
 [dev-dependencies.sp-core]
-version = "2.0.0-rc5"
-tag = 'v2.0.0-rc5'
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
 git = "https://github.com/paritytech/substrate/"
 
 [features]
@@ -51,6 +51,8 @@ std = [
 	"bp-message-dispatch/std",
 	"frame-support/std",
 	"frame-system/std",
+	"sp-core/std",
+	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
 ]
