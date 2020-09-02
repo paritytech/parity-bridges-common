@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Module that provides RPC methods speific to message-lane pallet.
+//! Module that provides RPC methods specific to message-lane pallet.
 
 use crate::error::{Error, FutureResult};
 
