@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Primitives that may be used at (brides) runtime level.
+//! Primitives that may be used at (bridges) runtime level.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
