@@ -1,6 +1,6 @@
 [package]
 name = "bp-runtime"
-description = "Primitives that may be used at (brides) runtime level."
+description = "Primitives that may be used at (bridges) runtime level."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
