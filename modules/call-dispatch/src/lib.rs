@@ -317,7 +317,6 @@ mod tests {
 		});
 	}
 
-
 	#[test]
 	fn should_dispatch_from_non_root_origin() {
 		new_test_ext().execute_with(|| {
