@@ -19,15 +19,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-/// Origin of the message.
-///
-/// 3 bytes to uniquely identify a bridge which sent the message within current runtime.
-/// This should be added by the delivery protocol - i.e. we should not rely
-/// on this being part of the bridge message itself.
-pub type BridgeOrigin = [u8; 3];
-
 /// A generic trait to dispatch arbitrary messages delivered over the bridge.
-pub trait MessageDispatch {
+pub trait MessageDispatch<MessageOrigin, MessageId> {
 	/// A type of the message to be dispatched.
 	type Message: codec::Decode;
 
@@ -35,6 +28,6 @@ pub trait MessageDispatch {
 	///
 	/// `origin` is a short indication of the source of the message.
 	///
-	/// Returns `true` if the dispatch was succesful, `false` otherwise.
-	fn dispatch(origin: BridgeOrigin, message: Self::Message) -> bool;
+	/// `id` is a short unique if of the message.
+	fn dispatch(origin: MessageOrigin, id: MessageId, message: Self::Message);
 }

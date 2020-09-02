@@ -26,61 +26,124 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-use bp_message_dispatch::{BridgeOrigin, MessageDispatch};
+use bp_message_dispatch::MessageDispatch;
 use codec::{Decode, Encode};
 use frame_support::{
-	debug, decl_module,
+	decl_event, decl_module,
 	dispatch::{Dispatchable, Parameter},
 	traits::Get,
+	weights::GetDispatchInfo,
 };
 use sp_io::hashing::blake2_256;
+use sp_runtime::DispatchResult;
 
 /// Spec version type.
 pub type SpecVersion = u32;
 
-/// The module configuration trait
+/// Weight type.
+pub type Weight = u64;
+
+/// The module configuration trait.
 pub trait Trait: frame_system::Trait {
+	/// The overarching event type.
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+	/// Message origin. Every message origin is controlled by a separate account, so it
+	/// should be crafted with care. Examples:
+	///
+	/// 1) `InstanceId` of deployed bridge module => if you want all messages coming
+	/// through this bridge to be dispatched using the same origin;
+	/// 2) `InstanceId` + `LaneId` => if you want all messages coming through given
+	/// lane of given bridge to be dispatched using the same origin
+	type MessageOrigin: Parameter;
+	/// Id of the message. Whenever message is passed to the dispatch module, it emits
+	/// event with this id + dispatch result.
+	type MessageId: Parameter;
 	/// The overarching dispatch call type.
-	type Call: Parameter + Dispatchable<Origin = <Self as frame_system::Trait>::Origin>;
+	type Call: Parameter + GetDispatchInfo + Dispatchable<Origin = <Self as frame_system::Trait>::Origin>;
 }
+
+decl_event!(
+	pub enum Event<T> where
+		<T as Trait>::MessageOrigin,
+		<T as Trait>::MessageId,
+	{
+		/// Message has been rejected by dispatcher because of spec version mismatch.
+		MessageVersionSpecMismatch(MessageOrigin, MessageId),
+		/// Message has been rejected by dispatcher because of weight mismatch.
+		MessageWeightMismatch(MessageOrigin, MessageId),
+		/// Message has been dispatched with given result.
+		MessageDispatched(MessageOrigin, MessageId, DispatchResult),
+	}
+);
 
 decl_module! {
 	/// Call Dispatch FRAME Pallet.
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {}
+	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		/// Deposit one of this module's events by using the default implementation.
+		fn deposit_event() = default;
+	}
 }
 
-impl<T: Trait> MessageDispatch for Module<T>
+impl<T: Trait> MessageDispatch<T::MessageOrigin, T::MessageId> for Module<T>
 where
 	<<T as Trait>::Call as Dispatchable>::PostInfo: sp_std::fmt::Debug,
 {
-	type Message = (SpecVersion, <T as Trait>::Call);
+	type Message = (SpecVersion, Weight, <T as Trait>::Call);
 
-	// TODO [ToDr] Weight calculations?
-	fn dispatch(origin: BridgeOrigin, msg: Self::Message) -> bool {
-		let (spec_version, msg) = msg;
+	fn dispatch(origin: T::MessageOrigin, id: T::MessageId, message: Self::Message) {
+		let (spec_version, weight, call) = message;
+
 		// verify spec version
+		// (we want it to be the same, because otherwise we may decode Call improperly)
 		let expected_version = <T as frame_system::Trait>::Version::get().spec_version;
 		if spec_version != expected_version {
-			debug::native::error!(
-				"Mismatching spec_version. Expected {:?}, got {:?}",
+			frame_support::debug::trace!(
+				"Message {:?}/{:?}: spec_version mismatch. Expected {:?}, got {:?}",
+				origin,
+				id,
 				expected_version,
-				spec_version
+				spec_version,
 			);
-			return false;
+			Self::deposit_event(Event::<T>::MessageVersionSpecMismatch(origin, id));
+			return;
 		}
 
-		let bridge_origin = || Self::bridge_account_id(origin);
-		if let Err(e) = msg.dispatch(frame_system::RawOrigin::Signed(bridge_origin()).into()) {
-			debug::native::error!("Error while dispatching bridge call: {:?}: {:?}", bridge_origin(), e);
-			false
-		} else {
-			true
+		// verify weight
+		// (we want passed weight to be at least equal to pre-dispatch weight of the call
+		// because otherwise Calls may be dispatched at lower price)
+		let expected_weight = call.get_dispatch_info().weight;
+		if weight < expected_weight {
+			frame_support::debug::trace!(
+				"Message {:?}/{:?}: passed weight is too low. Expected at least {:?}, got {:?}",
+				origin,
+				id,
+				expected_weight,
+				weight,
+			);
+			Self::deposit_event(Event::<T>::MessageWeightMismatch(origin, id));
+			return;
 		}
+
+		// finally dispatch message
+		let origin_account = Self::bridge_account_id(&origin);
+		let dispatch_result = call.dispatch(frame_system::RawOrigin::Signed(origin_account).into());
+		frame_support::debug::trace!(
+			"Message {:?}/{:?} has been dispatched. Result: {:?}",
+			origin,
+			id,
+			dispatch_result,
+		);
+
+		Self::deposit_event(Event::<T>::MessageDispatched(
+			origin,
+			id,
+			dispatch_result.map(drop).map_err(|e| e.error),
+		));
 	}
 }
 
 impl<T: Trait> Module<T> {
-	fn bridge_account_id(origin: BridgeOrigin) -> T::AccountId {
+	fn bridge_account_id(origin: &T::MessageOrigin) -> T::AccountId {
 		let entropy = (b"pallet-bridge/call-dispatch", origin).using_encoded(blake2_256);
 		T::AccountId::decode(&mut &entropy[..]).unwrap_or_default()
 	}
@@ -89,20 +152,35 @@ impl<T: Trait> Module<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{impl_outer_dispatch, impl_outer_origin, parameter_types, weights::Weight};
+	use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
+	use frame_system::{EventRecord, Phase};
 	use sp_core::H256;
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, IdentityLookup},
-		Perbill,
+		DispatchError, Perbill,
 	};
 
 	type AccountId = u64;
 	type CallDispatch = Module<TestRuntime>;
 	type System = frame_system::Module<TestRuntime>;
 
+	type MessageOrigin = [u8; 4];
+	type MessageId = [u8; 4];
+
 	#[derive(Clone, Eq, PartialEq)]
 	pub struct TestRuntime;
+
+	mod call_dispatch {
+		pub use crate::Event;
+	}
+
+	impl_outer_event! {
+		pub enum TestEvent for TestRuntime {
+			frame_system<T>,
+			call_dispatch<T>,
+		}
+	}
 
 	impl_outer_origin! {
 		pub enum Origin for TestRuntime where system = frame_system {}
@@ -132,7 +210,7 @@ mod tests {
 		type AccountId = AccountId;
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
-		type Event = ();
+		type Event = TestEvent;
 		type BlockHashCount = BlockHashCount;
 		type MaximumBlockWeight = MaximumBlockWeight;
 		type DbWeight = ();
@@ -151,6 +229,9 @@ mod tests {
 	}
 
 	impl Trait for TestRuntime {
+		type Event = TestEvent;
+		type MessageOrigin = MessageOrigin;
+		type MessageId = MessageId;
 		type Call = Call;
 	}
 
@@ -164,36 +245,79 @@ mod tests {
 	#[test]
 	fn should_succesfuly_dispatch_remark() {
 		new_test_ext().execute_with(|| {
-			let origin = b"eth".to_owned();
+			let origin = b"ethb".to_owned();
+			let id = [0; 4];
 			let message = (
 				0,
+				1_000_000_000,
 				Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])),
 			);
-			assert!(CallDispatch::dispatch(origin, message));
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(origin, id, message);
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageDispatched(origin, id, Ok(()))),
+					topics: vec![],
+				}],
+			);
 		});
 	}
 
 	#[test]
 	fn should_fail_on_spec_version_mismatch() {
 		new_test_ext().execute_with(|| {
-			let origin = b"eth".to_owned();
+			let origin = b"ethb".to_owned();
+			let id = [0; 4];
 			let message = (
 				69,
+				1_000_000,
 				Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])),
 			);
-			assert!(!CallDispatch::dispatch(origin, message));
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(origin, id, message);
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageVersionSpecMismatch(origin, id)),
+					topics: vec![],
+				}],
+			);
 		});
 	}
 
 	#[test]
 	fn should_dispatch_from_non_root_origin() {
 		new_test_ext().execute_with(|| {
-			let origin = b"eth".to_owned();
+			let origin = b"ethb".to_owned();
+			let id = [0; 4];
 			let message = (
-				69,
+				0,
+				1_000_000,
 				Call::System(<frame_system::Call<TestRuntime>>::fill_block(Perbill::from_percent(10))),
 			);
-			assert!(!CallDispatch::dispatch(origin, message));
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(origin, id, message);
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageDispatched(
+						origin,
+						id,
+						Err(DispatchError::BadOrigin)
+					)),
+					topics: vec![],
+				}],
+			);
 		});
 	}
 }
