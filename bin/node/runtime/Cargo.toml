@@ -250,7 +250,6 @@ default = ["std"]
 std = [
 	"bp-currency-exchange/std",
 	"bp-eth-poa/std",
-	"bp-header-chain/std",
 	"bp-message-lane/std",
 	"codec/std",
 	"frame-benchmarking/std",
