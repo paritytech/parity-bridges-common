@@ -1,6 +1,6 @@
 [package]
 name = "pallet-message-lane-rpc"
-description = "Module that provides RPC methods speific to message-lane pallet."
+description = "Module that provides RPC methods specific to message-lane pallet."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
