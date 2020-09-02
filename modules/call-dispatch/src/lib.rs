@@ -68,9 +68,11 @@ decl_event!(
 		<T as Trait>::MessageId,
 	{
 		/// Message has been rejected by dispatcher because of spec version mismatch.
-		MessageVersionSpecMismatch(MessageOrigin, MessageId),
+		/// Last two arguments are: expected and passed spec version.
+		MessageVersionSpecMismatch(MessageOrigin, MessageId, SpecVersion, SpecVersion),
 		/// Message has been rejected by dispatcher because of weight mismatch.
-		MessageWeightMismatch(MessageOrigin, MessageId),
+		/// Last two arguments are: expected and passed call weight.
+		MessageWeightMismatch(MessageOrigin, MessageId, Weight, Weight),
 		/// Message has been dispatched with given result.
 		MessageDispatched(MessageOrigin, MessageId, DispatchResult),
 	}
@@ -104,7 +106,7 @@ where
 				expected_version,
 				spec_version,
 			);
-			Self::deposit_event(Event::<T>::MessageVersionSpecMismatch(origin, id));
+			Self::deposit_event(Event::<T>::MessageVersionSpecMismatch(origin, id, expected_version, spec_version));
 			return;
 		}
 
@@ -120,7 +122,7 @@ where
 				expected_weight,
 				weight,
 			);
-			Self::deposit_event(Event::<T>::MessageWeightMismatch(origin, id));
+			Self::deposit_event(Event::<T>::MessageWeightMismatch(origin, id, expected_weight, weight));
 			return;
 		}
 
@@ -285,7 +287,12 @@ mod tests {
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageVersionSpecMismatch(origin, id)),
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageVersionSpecMismatch(
+						origin,
+						id,
+						0,
+						69,
+					)),
 					topics: vec![],
 				}],
 			);
@@ -310,7 +317,12 @@ mod tests {
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageWeightMismatch(origin, id)),
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageWeightMismatch(
+						origin,
+						id,
+						1305000,
+						0,
+					)),
 					topics: vec![],
 				}],
 			);
