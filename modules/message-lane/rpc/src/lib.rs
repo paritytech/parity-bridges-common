@@ -37,7 +37,7 @@ mod error;
 /// SCALE-encoded trie nodes array `Vec<Vec<u8>>`.
 pub type MessagesProof = Bytes;
 
-/// Trie-based storage proof that the message(s) with given key(s) are received by the bridged chain.
+/// Trie-based storage proof that the message(s) with given key(s) have been received by the bridged chain.
 /// SCALE-encoded trie nodes array `Vec<Vec<u8>>`.
 pub type MessagesReceivingProof = Bytes;
 
