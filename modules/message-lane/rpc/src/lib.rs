@@ -33,7 +33,7 @@ use std::sync::Arc;
 
 mod error;
 
-/// Trie-based storage proof that the message(s) with given key(s) are sent by the bridged chain.
+/// Trie-based storage proof that the message(s) with given key(s) have been sent by the bridged chain.
 /// SCALE-encoded trie nodes array `Vec<Vec<u8>>`.
 pub type MessagesProof = Bytes;
 
