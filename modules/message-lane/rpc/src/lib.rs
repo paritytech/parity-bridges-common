@@ -57,7 +57,7 @@ pub trait Runtime: Send + Sync + 'static {
 #[rpc]
 pub trait MessageLaneApi<BlockHash> {
 	/// Returns proof-of-message(s) in given inclusive range.
-	#[rpc(name = "prove_messages")]
+	#[rpc(name = "messageLane_proveMessages")]
 	fn prove_messages(
 		&self,
 		instance: InstanceId,
@@ -68,7 +68,7 @@ pub trait MessageLaneApi<BlockHash> {
 	) -> FutureResult<MessagesProof>;
 
 	/// Returns proof-of-message(s) receiving.
-	#[rpc(name = "prove_messagesReceiving")]
+	#[rpc(name = "messageLane_proveMessagesReceiving")]
 	fn prove_messages_receiving(
 		&self,
 		instance: InstanceId,
@@ -77,7 +77,7 @@ pub trait MessageLaneApi<BlockHash> {
 	) -> FutureResult<MessagesReceivingProof>;
 
 	/// Returns proof-of-message(s) processing.
-	#[rpc(name = "prove_messagesProcessing")]
+	#[rpc(name = "messageLane_proveMessagesProcessing")]
 	fn prove_messages_processing(
 		&self,
 		instance: InstanceId,
