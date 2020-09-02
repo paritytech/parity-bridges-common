@@ -293,6 +293,32 @@ mod tests {
 	}
 
 	#[test]
+	fn should_fail_on_weight_mismatch() {
+		new_test_ext().execute_with(|| {
+			let origin = b"ethb".to_owned();
+			let id = [0; 4];
+			let message = (
+				0,
+				0,
+				Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])),
+			);
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(origin, id, message);
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageWeightMismatch(origin, id)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+
+	#[test]
 	fn should_dispatch_from_non_root_origin() {
 		new_test_ext().execute_with(|| {
 			let origin = b"ethb".to_owned();
