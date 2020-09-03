@@ -19,6 +19,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
+/// Message dispatch weight.
+pub type Weight = u64;
+
 /// A generic trait to dispatch arbitrary messages delivered over the bridge.
 pub trait MessageDispatch<MessageOrigin, MessageId> {
 	/// A type of the message to be dispatched.
@@ -29,5 +32,7 @@ pub trait MessageDispatch<MessageOrigin, MessageId> {
 	/// `origin` is a short indication of the source of the message.
 	///
 	/// `id` is a short unique if of the message.
-	fn dispatch(origin: MessageOrigin, id: MessageId, message: Self::Message);
+	///
+	/// Returns post-dispatch (actual) message weight.
+	fn dispatch(origin: MessageOrigin, id: MessageId, message: Self::Message) -> Weight;
 }

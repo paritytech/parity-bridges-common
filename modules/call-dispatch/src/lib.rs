@@ -26,13 +26,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-use bp_message_dispatch::MessageDispatch;
+use bp_message_dispatch::{MessageDispatch, Weight};
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_event, decl_module,
 	dispatch::{Dispatchable, Parameter},
 	traits::Get,
-	weights::GetDispatchInfo,
+	weights::{GetDispatchInfo, extract_actual_weight},
 };
 use sp_io::hashing::blake2_256;
 use sp_runtime::DispatchResult;
@@ -40,8 +40,9 @@ use sp_runtime::DispatchResult;
 /// Spec version type.
 pub type SpecVersion = u32;
 
-/// Weight type.
-pub type Weight = u64;
+// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+/// Weight of single deposit_event() call.
+const DEPOSIT_EVENT_WEIGHT: Weight = 0;
 
 /// The module configuration trait.
 pub trait Trait: frame_system::Trait {
@@ -59,7 +60,10 @@ pub trait Trait: frame_system::Trait {
 	/// event with this id + dispatch result.
 	type MessageId: Parameter;
 	/// The overarching dispatch call type.
-	type Call: Parameter + GetDispatchInfo + Dispatchable<Origin = <Self as frame_system::Trait>::Origin>;
+	type Call: Parameter + GetDispatchInfo + Dispatchable<
+		Origin = <Self as frame_system::Trait>::Origin,
+		PostInfo = frame_support::dispatch::PostDispatchInfo,
+	>;
 }
 
 decl_event!(
@@ -86,13 +90,10 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> MessageDispatch<T::MessageOrigin, T::MessageId> for Module<T>
-where
-	<<T as Trait>::Call as Dispatchable>::PostInfo: sp_std::fmt::Debug,
-{
+impl<T: Trait> MessageDispatch<T::MessageOrigin, T::MessageId> for Module<T> {
 	type Message = (SpecVersion, Weight, <T as Trait>::Call);
 
-	fn dispatch(origin: T::MessageOrigin, id: T::MessageId, message: Self::Message) {
+	fn dispatch(origin: T::MessageOrigin, id: T::MessageId, message: Self::Message) -> Weight {
 		let (spec_version, weight, call) = message;
 
 		// verify spec version
@@ -107,13 +108,14 @@ where
 				spec_version,
 			);
 			Self::deposit_event(Event::<T>::MessageVersionSpecMismatch(origin, id, expected_version, spec_version));
-			return;
+			return DEPOSIT_EVENT_WEIGHT;
 		}
 
 		// verify weight
 		// (we want passed weight to be at least equal to pre-dispatch weight of the call
 		// because otherwise Calls may be dispatched at lower price)
-		let expected_weight = call.get_dispatch_info().weight;
+		let dispatch_info = call.get_dispatch_info();
+		let expected_weight = dispatch_info.weight;
 		if weight < expected_weight {
 			frame_support::debug::trace!(
 				"Message {:?}/{:?}: passed weight is too low. Expected at least {:?}, got {:?}",
@@ -123,12 +125,13 @@ where
 				weight,
 			);
 			Self::deposit_event(Event::<T>::MessageWeightMismatch(origin, id, expected_weight, weight));
-			return;
+			return DEPOSIT_EVENT_WEIGHT;
 		}
 
 		// finally dispatch message
 		let origin_account = Self::bridge_account_id(&origin);
 		let dispatch_result = call.dispatch(frame_system::RawOrigin::Signed(origin_account).into());
+		let actual_call_weight = extract_actual_weight(&dispatch_result, &dispatch_info);
 		frame_support::debug::trace!(
 			"Message {:?}/{:?} has been dispatched. Result: {:?}",
 			origin,
@@ -141,6 +144,8 @@ where
 			id,
 			dispatch_result.map(drop).map_err(|e| e.error),
 		));
+
+		actual_call_weight + DEPOSIT_EVENT_WEIGHT
 	}
 }
 
