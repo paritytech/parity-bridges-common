@@ -22,7 +22,7 @@ use codec::{Decode, Encode};
 use sp_io::hashing::blake2_256;
 
 /// Call-dispatch module prefix.
-pub const CALL_DISPATCH_MODULE_PREFIX: &'static [u8] = b"pallet-bridge/call-dispatch";
+pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/call-dispatch";
 
 /// Id of deployed module instance. We have a bunch of pallets that may be used in
 /// different bridges. E.g. message-lane pallet may be deployed twice in the same
