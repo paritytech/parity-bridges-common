@@ -270,7 +270,6 @@ impl pallet_bridge_currency_exchange::Trait<KovanCurrencyExchange> for Runtime {
 
 impl pallet_bridge_call_dispatch::Trait for Runtime {
 	type Event = Event;
-	type MessageOrigin = [u8; 4]; // TODO: instance id
 	type MessageId = (bp_message_lane::LaneId, bp_message_lane::MessageNonce);
 	type Call = Call;
 }

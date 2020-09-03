@@ -27,14 +27,13 @@
 #![warn(missing_docs)]
 
 use bp_message_dispatch::{MessageDispatch, Weight};
-use codec::{Decode, Encode};
+use bp_runtime::{CALL_DISPATCH_MODULE_PREFIX, InstanceId, bridge_account_id};
 use frame_support::{
 	decl_event, decl_module,
 	dispatch::{Dispatchable, Parameter},
 	traits::Get,
 	weights::{GetDispatchInfo, extract_actual_weight},
 };
-use sp_io::hashing::blake2_256;
 use sp_runtime::DispatchResult;
 
 /// Spec version type.
@@ -48,16 +47,9 @@ const DEPOSIT_EVENT_WEIGHT: Weight = 0;
 pub trait Trait: frame_system::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-	/// Message origin. Every message origin is controlled by a separate account, so it
-	/// should be crafted with care. Examples:
-	///
-	/// 1) `InstanceId` of deployed bridge module => if you want all messages coming
-	/// through this bridge to be dispatched using the same origin;
-	/// 2) `InstanceId` + `LaneId` => if you want all messages coming through given
-	/// lane of given bridge to be dispatched using the same origin
-	type MessageOrigin: Parameter;
 	/// Id of the message. Whenever message is passed to the dispatch module, it emits
-	/// event with this id + dispatch result.
+	/// event with this id + dispatch result. Could be e.g. (LaneId, MessageNonce) if
+	/// it comes from message-lane module.
 	type MessageId: Parameter;
 	/// The overarching dispatch call type.
 	type Call: Parameter + GetDispatchInfo + Dispatchable<
@@ -68,17 +60,16 @@ pub trait Trait: frame_system::Trait {
 
 decl_event!(
 	pub enum Event<T> where
-		<T as Trait>::MessageOrigin,
 		<T as Trait>::MessageId,
 	{
 		/// Message has been rejected by dispatcher because of spec version mismatch.
 		/// Last two arguments are: expected and passed spec version.
-		MessageVersionSpecMismatch(MessageOrigin, MessageId, SpecVersion, SpecVersion),
+		MessageVersionSpecMismatch(InstanceId, MessageId, SpecVersion, SpecVersion),
 		/// Message has been rejected by dispatcher because of weight mismatch.
 		/// Last two arguments are: expected and passed call weight.
-		MessageWeightMismatch(MessageOrigin, MessageId, Weight, Weight),
+		MessageWeightMismatch(InstanceId, MessageId, Weight, Weight),
 		/// Message has been dispatched with given result.
-		MessageDispatched(MessageOrigin, MessageId, DispatchResult),
+		MessageDispatched(InstanceId, MessageId, DispatchResult),
 	}
 );
 
@@ -90,10 +81,10 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> MessageDispatch<T::MessageOrigin, T::MessageId> for Module<T> {
+impl<T: Trait> MessageDispatch<T::MessageId> for Module<T> {
 	type Message = (SpecVersion, Weight, <T as Trait>::Call);
 
-	fn dispatch(origin: T::MessageOrigin, id: T::MessageId, message: Self::Message) -> Weight {
+	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Self::Message) -> Weight {
 		let (spec_version, weight, call) = message;
 
 		// verify spec version
@@ -102,12 +93,12 @@ impl<T: Trait> MessageDispatch<T::MessageOrigin, T::MessageId> for Module<T> {
 		if spec_version != expected_version {
 			frame_support::debug::trace!(
 				"Message {:?}/{:?}: spec_version mismatch. Expected {:?}, got {:?}",
-				origin,
+				bridge,
 				id,
 				expected_version,
 				spec_version,
 			);
-			Self::deposit_event(Event::<T>::MessageVersionSpecMismatch(origin, id, expected_version, spec_version));
+			Self::deposit_event(Event::<T>::MessageVersionSpecMismatch(bridge, id, expected_version, spec_version));
 			return DEPOSIT_EVENT_WEIGHT;
 		}
 
@@ -119,40 +110,33 @@ impl<T: Trait> MessageDispatch<T::MessageOrigin, T::MessageId> for Module<T> {
 		if weight < expected_weight {
 			frame_support::debug::trace!(
 				"Message {:?}/{:?}: passed weight is too low. Expected at least {:?}, got {:?}",
-				origin,
+				bridge,
 				id,
 				expected_weight,
 				weight,
 			);
-			Self::deposit_event(Event::<T>::MessageWeightMismatch(origin, id, expected_weight, weight));
+			Self::deposit_event(Event::<T>::MessageWeightMismatch(bridge, id, expected_weight, weight));
 			return DEPOSIT_EVENT_WEIGHT;
 		}
 
 		// finally dispatch message
-		let origin_account = Self::bridge_account_id(&origin);
+		let origin_account = bridge_account_id(bridge, CALL_DISPATCH_MODULE_PREFIX);
 		let dispatch_result = call.dispatch(frame_system::RawOrigin::Signed(origin_account).into());
 		let actual_call_weight = extract_actual_weight(&dispatch_result, &dispatch_info);
 		frame_support::debug::trace!(
 			"Message {:?}/{:?} has been dispatched. Result: {:?}",
-			origin,
+			bridge,
 			id,
 			dispatch_result,
 		);
 
 		Self::deposit_event(Event::<T>::MessageDispatched(
-			origin,
+			bridge,
 			id,
 			dispatch_result.map(drop).map_err(|e| e.error),
 		));
 
 		actual_call_weight + DEPOSIT_EVENT_WEIGHT
-	}
-}
-
-impl<T: Trait> Module<T> {
-	fn bridge_account_id(origin: &T::MessageOrigin) -> T::AccountId {
-		let entropy = (b"pallet-bridge/call-dispatch", origin).using_encoded(blake2_256);
-		T::AccountId::decode(&mut &entropy[..]).unwrap_or_default()
 	}
 }
 
@@ -172,7 +156,6 @@ mod tests {
 	type CallDispatch = Module<TestRuntime>;
 	type System = frame_system::Module<TestRuntime>;
 
-	type MessageOrigin = [u8; 4];
 	type MessageId = [u8; 4];
 
 	#[derive(Clone, Eq, PartialEq)]
@@ -237,7 +220,6 @@ mod tests {
 
 	impl Trait for TestRuntime {
 		type Event = TestEvent;
-		type MessageOrigin = MessageOrigin;
 		type MessageId = MessageId;
 		type Call = Call;
 	}
