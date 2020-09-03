@@ -27,12 +27,12 @@
 #![warn(missing_docs)]
 
 use bp_message_dispatch::{MessageDispatch, Weight};
-use bp_runtime::{CALL_DISPATCH_MODULE_PREFIX, InstanceId, bridge_account_id};
+use bp_runtime::{bridge_account_id, InstanceId, CALL_DISPATCH_MODULE_PREFIX};
 use frame_support::{
 	decl_event, decl_module,
 	dispatch::{Dispatchable, Parameter},
 	traits::Get,
-	weights::{GetDispatchInfo, extract_actual_weight},
+	weights::{extract_actual_weight, GetDispatchInfo},
 };
 use sp_runtime::DispatchResult;
 
@@ -52,10 +52,12 @@ pub trait Trait: frame_system::Trait {
 	/// it comes from message-lane module.
 	type MessageId: Parameter;
 	/// The overarching dispatch call type.
-	type Call: Parameter + GetDispatchInfo + Dispatchable<
-		Origin = <Self as frame_system::Trait>::Origin,
-		PostInfo = frame_support::dispatch::PostDispatchInfo,
-	>;
+	type Call: Parameter
+		+ GetDispatchInfo
+		+ Dispatchable<
+			Origin = <Self as frame_system::Trait>::Origin,
+			PostInfo = frame_support::dispatch::PostDispatchInfo,
+		>;
 }
 
 decl_event!(
@@ -98,7 +100,12 @@ impl<T: Trait> MessageDispatch<T::MessageId> for Module<T> {
 				expected_version,
 				spec_version,
 			);
-			Self::deposit_event(Event::<T>::MessageVersionSpecMismatch(bridge, id, expected_version, spec_version));
+			Self::deposit_event(Event::<T>::MessageVersionSpecMismatch(
+				bridge,
+				id,
+				expected_version,
+				spec_version,
+			));
 			return DEPOSIT_EVENT_WEIGHT;
 		}
 
@@ -275,10 +282,7 @@ mod tests {
 				vec![EventRecord {
 					phase: Phase::Initialization,
 					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageVersionSpecMismatch(
-						origin,
-						id,
-						0,
-						69,
+						origin, id, 0, 69,
 					)),
 					topics: vec![],
 				}],
@@ -305,10 +309,7 @@ mod tests {
 				vec![EventRecord {
 					phase: Phase::Initialization,
 					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageWeightMismatch(
-						origin,
-						id,
-						1305000,
-						0,
+						origin, id, 1305000, 0,
 					)),
 					topics: vec![],
 				}],

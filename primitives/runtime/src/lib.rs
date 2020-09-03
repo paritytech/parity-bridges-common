@@ -36,11 +36,8 @@ pub type InstanceId = [u8; 4];
 /// exchange, message dispatch and other modules.
 ///
 /// The account is not supposed to actually exists on the chain, or to have any funds.
-/// It is only used to 
-pub fn bridge_account_id<AccountId>(
-	bridge: InstanceId,
-	module_prefix: &[u8],
-) -> AccountId
+/// It is only used to
+pub fn bridge_account_id<AccountId>(bridge: InstanceId, module_prefix: &[u8]) -> AccountId
 where
 	AccountId: Decode + Default,
 {
