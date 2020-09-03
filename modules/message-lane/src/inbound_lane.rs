@@ -48,6 +48,12 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		InboundLane { storage }
 	}
 
+	/// Returns storage reference.
+	#[cfg(test)]
+	pub fn storage(&self) -> &S {
+		&self.storage
+	}
+
 	/// Receive new message.
 	pub fn receive_message(
 		&mut self,
@@ -63,7 +69,6 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 
 		let is_process_required = is_correct_message && data.oldest_unprocessed_nonce == nonce;
 		data.latest_received_nonce = nonce;
-		self.storage.set_data(data);
 
 		let payload_to_save = match is_process_required {
 			true => {
@@ -75,7 +80,10 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 					payload,
 				};
 				match processor.on_message_received(message) {
-					MessageResult::Processed => None,
+					MessageResult::Processed => {
+						data.oldest_unprocessed_nonce += 1;
+						None
+					}
 					MessageResult::NotProcessed(message) => Some(message.payload),
 				}
 			}
@@ -86,6 +94,8 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			self.storage.save_message(nonce, payload_to_save);
 		}
 
+		self.storage.set_data(data);
+
 		true
 	}
 
@@ -93,7 +103,9 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	///
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageResult::NotProcessed.
-	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<S::Payload>) {
+	///
+	/// Returns true if all messages have been processed (lane is empty) and false otherwise.
+	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<S::Payload>) -> bool {
 		let mut anything_processed = false;
 		let mut data = self.storage.data();
 		while data.oldest_unprocessed_nonce <= data.latest_received_nonce {
@@ -121,9 +133,12 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			data.oldest_unprocessed_nonce += 1;
 		}
 
+		let is_empty_lane = data.oldest_unprocessed_nonce > data.latest_received_nonce;
 		if anything_processed {
 			self.storage.set_data(data);
 		}
+
+		is_empty_lane
 	}
 }
 
@@ -175,6 +190,7 @@ mod tests {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			assert!(lane.receive_message(1, REGULAR_PAYLOAD, &mut TestMessageProcessor));
 			assert!(lane.storage.message(&1).is_none());
+			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 2);
 			assert_eq!(lane.storage.data().latest_received_nonce, 1);
 		});
 	}

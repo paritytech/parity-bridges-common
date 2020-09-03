@@ -41,6 +41,8 @@ use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Paramete
 use frame_system::ensure_signed;
 use sp_std::{marker::PhantomData, prelude::*};
 
+pub mod by_weight_dispatcher;
+
 mod inbound_lane;
 mod outbound_lane;
 
@@ -76,6 +78,11 @@ decl_storage! {
 		OutboundLanes: map hasher(blake2_128_concat) LaneId => OutboundLaneData;
 		/// All queued outbound messages.
 		OutboundMessages: map hasher(blake2_128_concat) MessageKey => Option<T::Payload>;
+
+		/// Set of unprocessed inbound lanes (i.e. inbound lanes that have unprocessed
+		/// messages). It is used only by `ByWeightDispatcher`. So if you are not using
+		/// this implementation of `OnMessageReceived`, this will always be empty.
+		UnprocessedInboundLanes: Vec<LaneId>;
 	}
 }
 
@@ -209,8 +216,10 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	///
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageResult::NotProcessed.
-	pub fn process_lane_messages(lane_id: &LaneId, processor: &mut impl OnMessageReceived<T::Payload>) {
-		inbound_lane::<T, I>(*lane_id).process_messages(processor);
+	///
+	/// Returns true if all messages have been processed (lane is empty) and false otherwise.
+	pub fn process_lane_messages(lane_id: &LaneId, processor: &mut impl OnMessageReceived<T::Payload>) -> bool {
+		inbound_lane::<T, I>(*lane_id).process_messages(processor)
 	}
 }
 

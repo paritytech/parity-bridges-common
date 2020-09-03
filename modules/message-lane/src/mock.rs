@@ -17,7 +17,7 @@
 use bp_message_lane::{
 	BridgedHeaderChain, LaneId, LaneMessageVerifier, Message, MessageNonce, MessageResult, OnMessageReceived,
 };
-use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::{DispatchClass, Weight}};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
@@ -25,10 +25,11 @@ use sp_runtime::{
 	Perbill,
 };
 
+use crate::by_weight_dispatcher::OnWeightedMessageReceived;
 use crate::Trait;
 
 pub type AccountId = u64;
-pub type TestPayload = u64;
+pub type TestPayload = (u64, Weight);
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
@@ -100,13 +101,13 @@ impl Trait for TestRuntime {
 pub const TEST_LANE_ID: LaneId = [0, 0, 0, 1];
 
 /// Regular message payload that is not PAYLOAD_TO_QUEUE.
-pub const REGULAR_PAYLOAD: TestPayload = 0;
+pub const REGULAR_PAYLOAD: TestPayload = (0, 0);
 
 /// All messages with this payload are queued by TestMessageProcessor.
-pub const PAYLOAD_TO_QUEUE: TestPayload = 42;
+pub const PAYLOAD_TO_QUEUE: TestPayload = (42, 0);
 
 /// All messags with this payload are rejected by TestMessageVerifier.
-pub const PAYLOAD_TO_REJECT: TestPayload = 43;
+pub const PAYLOAD_TO_REJECT: TestPayload = (43, 0);
 
 /// Message processor that immediately handles all messages except messages with PAYLOAD_TO_QUEUE payload.
 #[derive(Debug, Default)]
@@ -117,8 +118,18 @@ impl OnMessageReceived<TestPayload> for TestMessageProcessor {
 		if message.payload == PAYLOAD_TO_QUEUE {
 			MessageResult::NotProcessed(message)
 		} else {
+			frame_system::Module::<TestRuntime>::register_extra_weight_unchecked(
+				message.payload.1,
+				DispatchClass::Normal,
+			);
 			MessageResult::Processed
 		}
+	}
+}
+
+impl OnWeightedMessageReceived<TestPayload> for TestMessageProcessor {
+	fn dispatch_weight(&self, message: &Message<TestPayload>) -> Weight {
+		message.payload.1
 	}
 }
 
