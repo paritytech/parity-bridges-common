@@ -23,7 +23,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::{Decode, Encode};
-use frame_support::{Parameter, RuntimeDebug};
+use frame_support::{Parameter, RuntimeDebug, weights::Weight};
 use sp_api::decl_runtime_apis;
 use sp_std::{fmt::Debug, prelude::*};
 
@@ -54,7 +54,7 @@ pub struct Message<Payload> {
 /// Message processing result.
 pub enum MessageResult<Payload> {
 	/// Message has been processed and should not be queued.
-	Processed,
+	Processed(Weight),
 	/// Message has NOT been processed and should be queued for processing later.
 	NotProcessed(Message<Payload>),
 }
@@ -68,6 +68,12 @@ pub trait OnMessageReceived<Payload> {
 	/// if message is invalid, then it should be dropped immediately (by returning
 	/// `MessageResult::Processed`), or it'll block the lane forever.
 	fn on_message_received(&mut self, message: Message<Payload>) -> MessageResult<Payload>;
+}
+
+/// Called to process queued inbound messages.
+pub trait ProcessQueuedMessages<Payload> {
+	/// Process (some) queued messages and return weight that it took.
+	fn process_queued_messages(&mut self) -> Weight;
 }
 
 /// Inbound lane data.

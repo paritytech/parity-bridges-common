@@ -25,7 +25,7 @@ use sp_runtime::{
 	Perbill,
 };
 
-use crate::by_weight_dispatcher::OnWeightedMessageReceived;
+use crate::by_weight_dispatcher::{OnWeightedMessageReceived, ByWeightQueuedMessagesProcessor};
 use crate::Trait;
 
 pub type AccountId = u64;
@@ -95,6 +95,7 @@ impl Trait for TestRuntime {
 	type BridgedHeaderChain = TestHeaderChain;
 	type LaneMessageVerifier = TestMessageVerifier;
 	type OnMessageReceived = TestMessageProcessor;
+	type ProcessQueuedMessages = ByWeightQueuedMessagesProcessor<TestRuntime, crate::DefaultInstance>;
 }
 
 /// Lane that we're using in tests.
@@ -122,7 +123,7 @@ impl OnMessageReceived<TestPayload> for TestMessageProcessor {
 				message.payload.1,
 				DispatchClass::Normal,
 			);
-			MessageResult::Processed
+			MessageResult::Processed(message.payload.1)
 		}
 	}
 }

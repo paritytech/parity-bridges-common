@@ -16,11 +16,9 @@
 
 //! Message scheduler definitions and utilities.
 
-// TODO: if weight is larger than MaxBlockWeight, drop it immediately!!!
-
 use crate::{Trait, UnprocessedInboundLanes};
 
-use bp_message_lane::{LaneId, Message, MessageResult, OnMessageReceived};
+use bp_message_lane::{LaneId, Message, MessageResult, OnMessageReceived, ProcessQueuedMessages};
 use frame_support::{
 	storage::StorageValue,
 	traits::{Get, Instance},
@@ -91,7 +89,7 @@ where
 	fn on_message_received(&mut self, message: Message<Payload>) -> MessageResult<Payload> {
 		let weight = self.dispatcher.dispatch_weight(&message);
 		if weight > self.limits.absolute_max() {
-			return MessageResult::Processed;
+			return MessageResult::Processed(0);
 		}
 
 		if !self.force_next_message_dispatch {
@@ -103,12 +101,13 @@ where
 		}
 
 		self.force_next_message_dispatch = false;
-		if let MessageResult::NotProcessed(message) = self.dispatcher.on_message_received(message) {
-			self.storage.append_unprocessed_lane(message.key.lane_id);
-			return MessageResult::NotProcessed(message);
+		match self.dispatcher.on_message_received(message) {
+			MessageResult::Processed(weight) => MessageResult::Processed(weight),
+			MessageResult::NotProcessed(message) => {
+				self.storage.append_unprocessed_lane(message.key.lane_id);
+				MessageResult::NotProcessed(message)
+			},
 		}
-
-		MessageResult::Processed
 	}
 }
 
@@ -150,11 +149,11 @@ impl ByWeightDispatcherStorage for ByWeightDispatcherDumpStorage {
 
 /// Runtime weight limits.
 #[derive(Debug)]
-pub struct ByWeightDispatcherRuntimeLimits<T> {
-	_phantom: PhantomData<T>,
+pub struct ByWeightDispatcherRuntimeLimits<T, I> {
+	_phantom: PhantomData<(T, I)>,
 }
 
-impl<T> Default for ByWeightDispatcherRuntimeLimits<T> {
+impl<T, I> Default for ByWeightDispatcherRuntimeLimits<T, I> {
 	fn default() -> Self {
 		ByWeightDispatcherRuntimeLimits {
 			_phantom: Default::default(),
@@ -162,7 +161,7 @@ impl<T> Default for ByWeightDispatcherRuntimeLimits<T> {
 	}
 }
 
-impl<T: Trait> WeightLimits for ByWeightDispatcherRuntimeLimits<T> {
+impl<T: Trait<I>, I: Instance> WeightLimits for ByWeightDispatcherRuntimeLimits<T, I> {
 	fn current(&self) -> Weight {
 		frame_system::Module::<T>::block_weight().total()
 	}
@@ -178,12 +177,12 @@ impl<T: Trait> WeightLimits for ByWeightDispatcherRuntimeLimits<T> {
 
 /// Weight limits with custom max value.
 #[derive(Debug)]
-pub struct ByWeightDispatcherCustomLimits<T> {
+pub struct ByWeightDispatcherCustomLimits<T, I> {
 	max: Weight,
-	_phantom: PhantomData<T>,
+	_phantom: PhantomData<(T, I)>,
 }
 
-impl<T> ByWeightDispatcherCustomLimits<T> {
+impl<T, I> ByWeightDispatcherCustomLimits<T, I> {
 	/// Create weight limits with custom max.
 	pub fn new(max: Weight) -> Self {
 		ByWeightDispatcherCustomLimits {
@@ -193,7 +192,7 @@ impl<T> ByWeightDispatcherCustomLimits<T> {
 	}
 }
 
-impl<T: Trait> WeightLimits for ByWeightDispatcherCustomLimits<T> {
+impl<T: Trait<I>, I: Instance> WeightLimits for ByWeightDispatcherCustomLimits<T, I> {
 	fn current(&self) -> Weight {
 		frame_system::Module::<T>::block_weight().total()
 	}
@@ -204,6 +203,32 @@ impl<T: Trait> WeightLimits for ByWeightDispatcherCustomLimits<T> {
 
 	fn absolute_max(&self) -> Weight {
 		T::MaximumBlockWeight::get()
+	}
+}
+
+/// Queued messages processor that is using `process_scheduled_messages` and 10%
+/// of maximal block weight to process queued messages during block initialization.
+pub struct ByWeightQueuedMessagesProcessor<T, I> {
+	_phantom: PhantomData<(T, I)>,
+}
+
+impl<T, I> Default for ByWeightQueuedMessagesProcessor<T, I> {
+	fn default() -> Self {
+		ByWeightQueuedMessagesProcessor { _phantom: Default::default() }
+	}
+}
+
+impl<T: Trait<I>, I: Instance> ProcessQueuedMessages<T::Payload> for ByWeightQueuedMessagesProcessor<T, I>
+where
+	T::OnMessageReceived: OnWeightedMessageReceived<T::Payload>,
+{
+	fn process_queued_messages(&mut self) -> Weight {
+		process_scheduled_messages(
+			ByWeightDispatcherRuntimeStorage::<T, I>::default(),
+			ByWeightDispatcherCustomLimits::<T, I>::new(T::MaximumBlockWeight::get() / 10),
+			T::OnMessageReceived::default(),
+			crate::Module::<T, I>::process_lane_messages,
+		)
 	}
 }
 
@@ -225,21 +250,26 @@ pub fn process_scheduled_messages<Payload, Limits, Dispatcher, ProcessLaneMessag
 	limits: Limits,
 	dispatcher: Dispatcher,
 	process_lane_messages: ProcessLaneMessages,
-) where
+) -> Weight where
 	Limits: WeightLimits,
 	Dispatcher: OnWeightedMessageReceived<Payload>,
 	ProcessLaneMessages:
-		Fn(&LaneId, &mut ByWeightDispatcher<Payload, ByWeightDispatcherDumpStorage, Dispatcher, Limits>) -> bool,
+		Fn(&LaneId, &mut ByWeightDispatcher<Payload, ByWeightDispatcherDumpStorage, Dispatcher, Limits>) -> (bool, Weight),
 {
+	let mut total_weight = 0;
 	let mut dispatcher =
 		ByWeightDispatcher::new(ByWeightDispatcherDumpStorage, dispatcher, limits).force_next_message_dispatch();
 	while let Some(lane) = storage.take_next_unprocessed_lane() {
-		let is_empty_lane = process_lane_messages(&lane, &mut dispatcher);
+		let (is_empty_lane, lane_weight) = process_lane_messages(&lane, &mut dispatcher);
+		total_weight += lane_weight;
+
 		if !is_empty_lane {
 			storage.append_unprocessed_lane(lane);
 			break;
 		}
 	}
+
+	total_weight
 }
 
 #[cfg(test)]
@@ -258,7 +288,7 @@ mod tests {
 		TestPayload,
 		ByWeightDispatcherRuntimeStorage<TestRuntime, crate::DefaultInstance>,
 		TestMessageProcessor,
-		ByWeightDispatcherRuntimeLimits<TestRuntime>,
+		ByWeightDispatcherRuntimeLimits<TestRuntime, crate::DefaultInstance>,
 	> {
 		ByWeightDispatcher::new(
 			ByWeightDispatcherRuntimeStorage::default(),
@@ -319,7 +349,7 @@ mod tests {
 
 			process_scheduled_messages(
 				ByWeightDispatcherRuntimeStorage::<TestRuntime, crate::DefaultInstance>::default(),
-				ByWeightDispatcherRuntimeLimits::<TestRuntime>::default(),
+				ByWeightDispatcherRuntimeLimits::<TestRuntime, crate::DefaultInstance>::default(),
 				TestMessageProcessor,
 				crate::Module::<TestRuntime, crate::DefaultInstance>::process_lane_messages,
 			);
@@ -343,7 +373,7 @@ mod tests {
 
 			process_scheduled_messages(
 				ByWeightDispatcherRuntimeStorage::<TestRuntime, crate::DefaultInstance>::default(),
-				ByWeightDispatcherCustomLimits::<TestRuntime>::new(CURRENT_WEIGHT + HEAVY_PAYLOAD.1 * 2),
+				ByWeightDispatcherCustomLimits::<TestRuntime, crate::DefaultInstance>::new(CURRENT_WEIGHT + HEAVY_PAYLOAD.1 * 2),
 				TestMessageProcessor,
 				crate::Module::<TestRuntime, crate::DefaultInstance>::process_lane_messages,
 			);
@@ -384,7 +414,7 @@ mod tests {
 
 			process_scheduled_messages(
 				ByWeightDispatcherRuntimeStorage::<TestRuntime, crate::DefaultInstance>::default(),
-				ByWeightDispatcherCustomLimits::<TestRuntime>::new(CURRENT_WEIGHT + HEAVY_PAYLOAD.1 * 6),
+				ByWeightDispatcherCustomLimits::<TestRuntime, crate::DefaultInstance>::new(CURRENT_WEIGHT + HEAVY_PAYLOAD.1 * 6),
 				TestMessageProcessor,
 				crate::Module::<TestRuntime, crate::DefaultInstance>::process_lane_messages,
 			);

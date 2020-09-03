@@ -35,9 +35,9 @@ use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
 
 use bp_message_lane::{
 	BridgedHeaderChain, InboundLaneData, LaneId, LaneMessageVerifier, MessageKey, MessageNonce, OnMessageReceived,
-	OutboundLaneData,
+	OutboundLaneData, ProcessQueuedMessages,
 };
-use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter, StorageMap};
+use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter, StorageMap, weights::Weight};
 use frame_system::ensure_signed;
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -64,8 +64,14 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type BridgedHeaderChain: BridgedHeaderChain<Self::Payload>;
 	/// Message paylaod verifier.
 	type LaneMessageVerifier: LaneMessageVerifier<Self::AccountId, Self::Payload>;
+
 	/// Called when message has been received.
 	type OnMessageReceived: Default + OnMessageReceived<Self::Payload>;
+
+	/// Queued messages processor. It is called during block initialization and may
+	/// choose to process queued inbound messages, or just do nothing. It should
+	/// return weight that has been 'spent' on processing queued messages.
+	type ProcessQueuedMessages: Default + ProcessQueuedMessages<Self::Payload>;
 }
 
 decl_storage! {
@@ -101,6 +107,14 @@ decl_module! {
 	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
+
+		/// Block initialization.
+		fn on_initialize(now: T::BlockNumber) -> Weight {
+			// TODO: seems like block current weight is increased somewhere else => we can't update
+			// frame_system::BlockWeight directly!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+			T::ProcessQueuedMessages::default().process_queued_messages()
+		}
 
 		/// Send message over lane.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
@@ -217,8 +231,8 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageResult::NotProcessed.
 	///
-	/// Returns true if all messages have been processed (lane is empty) and false otherwise.
-	pub fn process_lane_messages(lane_id: &LaneId, processor: &mut impl OnMessageReceived<T::Payload>) -> bool {
+	/// Returns empty-lane flag and weight of all processed messages.
+	pub fn process_lane_messages(lane_id: &LaneId, processor: &mut impl OnMessageReceived<T::Payload>) -> (bool, Weight) {
 		inbound_lane::<T, I>(*lane_id).process_messages(processor)
 	}
 }

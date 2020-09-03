@@ -17,6 +17,7 @@
 //! Everything about incoming messages receival.
 
 use bp_message_lane::{InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessageResult, OnMessageReceived};
+use frame_support::weights::Weight;
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
@@ -80,7 +81,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 					payload,
 				};
 				match processor.on_message_received(message) {
-					MessageResult::Processed => {
+					MessageResult::Processed(_) => {
 						data.oldest_unprocessed_nonce += 1;
 						None
 					}
@@ -104,8 +105,9 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageResult::NotProcessed.
 	///
-	/// Returns true if all messages have been processed (lane is empty) and false otherwise.
-	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<S::Payload>) -> bool {
+	/// Returns empty-lane flag and weight of all processed messages.
+	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<S::Payload>) -> (bool, Weight) {
+		let mut total_weight = 0;
 		let mut anything_processed = false;
 		let mut data = self.storage.data();
 		while data.oldest_unprocessed_nonce <= data.latest_received_nonce {
@@ -123,8 +125,9 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			};
 
 			let process_result = processor.on_message_received(message);
-			if let MessageResult::NotProcessed(_) = process_result {
-				break;
+			match process_result {
+				MessageResult::Processed(weight) => total_weight += weight,
+				MessageResult::NotProcessed(_) => break,
 			}
 
 			self.storage.remove_message(&nonce);
@@ -138,7 +141,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			self.storage.set_data(data);
 		}
 
-		is_empty_lane
+		(is_empty_lane, total_weight)
 	}
 }
 
@@ -215,7 +218,7 @@ mod tests {
 					if message.key.nonce == self.0 {
 						MessageResult::NotProcessed(message)
 					} else {
-						MessageResult::Processed
+						MessageResult::Processed(message.payload.1)
 					}
 				}
 			}
