@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_message_lane::{
-	BridgedHeaderChain, LaneId, LaneMessageVerifier, Message, MessageNonce, MessageResult, OnMessageReceived,
+	BridgedHeaderChain, LaneId, LaneMessageVerifier, Message, MessageNonce, MessageResult, MessageDispatch,
 };
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::{DispatchClass, Weight}};
 use sp_core::H256;
@@ -94,7 +94,7 @@ impl Trait for TestRuntime {
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type BridgedHeaderChain = TestHeaderChain;
 	type LaneMessageVerifier = TestMessageVerifier;
-	type OnMessageReceived = TestMessageProcessor;
+	type MessageDispatch = TestMessageProcessor;
 	type ProcessQueuedMessages = ByWeightQueuedMessagesProcessor<TestRuntime, crate::DefaultInstance>;
 }
 
@@ -118,7 +118,7 @@ pub const PAYLOAD_TO_REJECT: TestPayload = (44, 0);
 #[derive(Debug, Default)]
 pub struct TestMessageProcessor;
 
-impl OnMessageReceived<TestPayload> for TestMessageProcessor {
+impl MessageDispatch<TestPayload> for TestMessageProcessor {
 	fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageResult<TestPayload> {
 		if message.payload == PAYLOAD_TO_QUEUE_AT_0 && frame_system::Module::<TestRuntime>::block_number() == 0 {
 			MessageResult::NotProcessed(message)

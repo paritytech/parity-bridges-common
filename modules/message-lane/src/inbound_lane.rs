@@ -16,13 +16,28 @@
 
 //! Everything about incoming messages receival.
 
-use bp_message_lane::{InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessageResult, OnMessageReceived};
+use bp_message_lane::{
+	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, MessageResult,
+	target_chain::MessageDispatch,
+};
 use frame_support::weights::Weight;
+
+/// Result of message receiving.
+pub enum ReceiveMessageResult {
+	/// Message is invalid/duplicate.
+	Invalid,
+	/// Message is valid and has been processed.
+	Processed,
+	/// Message is valid, but has been queued for processing later.
+	Queued,
+}
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
 	/// Message payload.
 	type Payload;
+	/// Delivery and dispatch fee type on source chain.
+	type MessageFee;
 
 	/// Lane id.
 	fn id(&self) -> LaneId;
@@ -31,9 +46,9 @@ pub trait InboundLaneStorage {
 	/// Update lane data in the storage.
 	fn set_data(&mut self, data: InboundLaneData);
 	/// Returns saved inbound message payload.
-	fn message(&self, nonce: &MessageNonce) -> Option<Self::Payload>;
+	fn message(&self, nonce: &MessageNonce) -> Option<MessageData<Self::Payload, Self::MessageFee>>;
 	/// Save inbound message in the storage.
-	fn save_message(&mut self, nonce: MessageNonce, payload: Self::Payload);
+	fn save_message(&mut self, nonce: MessageNonce, message_data: MessageData<Self::Payload, Self::MessageFee>);
 	/// Remove inbound message from the storage.
 	fn remove_message(&mut self, nonce: &MessageNonce);
 }
@@ -59,45 +74,46 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	pub fn receive_message(
 		&mut self,
 		nonce: MessageNonce,
-		payload: S::Payload,
-		processor: &mut impl OnMessageReceived<S::Payload>,
-	) -> bool {
+		message_data: MessageData<S::Payload, S::MessageFee>,
+		processor: &mut impl MessageDispatch<S::Payload, S::MessageFee>,
+	) -> ReceiveMessageResult {
 		let mut data = self.storage.data();
 		let is_correct_message = nonce == data.latest_received_nonce + 1;
 		if !is_correct_message {
-			return false;
+			return ReceiveMessageResult::Invalid;
 		}
 
 		let is_process_required = is_correct_message && data.oldest_unprocessed_nonce == nonce;
 		data.latest_received_nonce = nonce;
 
-		let payload_to_save = match is_process_required {
+		let message_to_save = match is_process_required {
 			true => {
 				let message = Message {
 					key: MessageKey {
 						lane_id: self.storage.id(),
 						nonce,
 					},
-					payload,
+					data: message_data,
 				};
-				match processor.on_message_received(message) {
+				match processor.dispatch(message) {
 					MessageResult::Processed(_) => {
 						data.oldest_unprocessed_nonce += 1;
 						None
 					}
-					MessageResult::NotProcessed(message) => Some(message.payload),
+					MessageResult::NotProcessed(message) => Some(message.data),
 				}
 			}
-			false => Some(payload),
+			false => Some(message_data),
 		};
-
-		if let Some(payload_to_save) = payload_to_save {
-			self.storage.save_message(nonce, payload_to_save);
-		}
 
 		self.storage.set_data(data);
 
-		true
+		if let Some(message_to_save) = message_to_save {
+			self.storage.save_message(nonce, message_to_save);
+			ReceiveMessageResult::Queued
+		} else {
+			ReceiveMessageResult::Processed
+		}
 	}
 
 	/// Process stored lane messages.
@@ -106,13 +122,13 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	/// MessageResult::NotProcessed.
 	///
 	/// Returns empty-lane flag and weight of all processed messages.
-	pub fn process_messages(&mut self, processor: &mut impl OnMessageReceived<S::Payload>) -> (bool, Weight) {
+	pub fn process_messages(&mut self, processor: &mut impl MessageDispatch<S::Payload, S::MessageFee>) -> (bool, Weight) {
 		let mut total_weight = 0;
 		let mut anything_processed = false;
 		let mut data = self.storage.data();
 		while data.oldest_unprocessed_nonce <= data.latest_received_nonce {
 			let nonce = data.oldest_unprocessed_nonce;
-			let payload = self
+			let message_data = self
 				.storage
 				.message(&nonce)
 				.expect("message is referenced by lane; referenced message is not pruned; qed");
@@ -121,10 +137,10 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 					lane_id: self.storage.id(),
 					nonce,
 				},
-				payload,
+				data: message_data,
 			};
 
-			let process_result = processor.on_message_received(message);
+			let process_result = processor.dispatch(message);
 			match process_result {
 				MessageResult::Processed(weight) => total_weight += weight,
 				MessageResult::NotProcessed(_) => break,
@@ -213,7 +229,7 @@ mod tests {
 		run_test(|| {
 			pub struct QueueByNonce(MessageNonce);
 
-			impl OnMessageReceived<TestPayload> for QueueByNonce {
+			impl MessageDispatch<TestPayload> for QueueByNonce {
 				fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageResult<TestPayload> {
 					if message.key.nonce == self.0 {
 						MessageResult::NotProcessed(message)

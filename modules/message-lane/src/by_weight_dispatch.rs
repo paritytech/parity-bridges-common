@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+/*// Copyright 2019-2020 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@
 
 use crate::{Trait, UnprocessedInboundLanes};
 
-use bp_message_lane::{LaneId, Message, MessageResult, OnMessageReceived, ProcessQueuedMessages};
+use bp_message_lane::{LaneId, Message, MessageResult, MessageDispatch, ProcessQueuedMessages};
 use frame_support::{
 	storage::StorageValue,
 	traits::{Get, Instance},
@@ -27,7 +27,7 @@ use frame_support::{
 use sp_std::marker::PhantomData;
 
 /// Something that can estimate message dispatch weight.
-pub trait OnWeightedMessageReceived<Payload>: OnMessageReceived<Payload> {
+pub trait OnWeightedMessageReceived<Payload>: MessageDispatch<Payload> {
 	/// Return upper-bound of message dispatch weight.
 	fn dispatch_weight(&self, payload: &Message<Payload>) -> Weight;
 }
@@ -80,7 +80,7 @@ impl<Payload, Storage, Dispatcher, Limits> ByWeightDispatcher<Payload, Storage, 
 	}
 }
 
-impl<Payload, Storage, Dispatcher, Limits> OnMessageReceived<Payload>
+impl<Payload, Storage, Dispatcher, Limits> MessageDispatch<Payload>
 	for ByWeightDispatcher<Payload, Storage, Dispatcher, Limits>
 where
 	Storage: ByWeightDispatcherStorage,
@@ -221,13 +221,13 @@ impl<T, I> Default for ByWeightQueuedMessagesProcessor<T, I> {
 
 impl<T: Trait<I>, I: Instance> ProcessQueuedMessages<T::Payload> for ByWeightQueuedMessagesProcessor<T, I>
 where
-	T::OnMessageReceived: OnWeightedMessageReceived<T::Payload>,
+	T::MessageDispatch: OnWeightedMessageReceived<T::Payload>,
 {
 	fn process_queued_messages(&mut self) -> Weight {
 		process_scheduled_messages(
 			ByWeightDispatcherRuntimeStorage::<T, I>::default(),
 			ByWeightDispatcherCustomLimits::<T, I>::new(T::MaximumBlockWeight::get() / 10),
-			T::OnMessageReceived::default(),
+			T::MessageDispatch::default(),
 			crate::Module::<T, I>::process_lane_messages,
 		)
 	}
@@ -244,7 +244,7 @@ where
 /// **CAUTION**: previous paragraph implies that if underlying dispatcher isn't
 /// processing message for any reason, then all other non-empty lanes would be blocked at
 /// least during this call. So combining this function with implementations of
-/// `OnMessageReceived` that have its own logic of message processing, could lead
+/// `MessageDispatch` that have its own logic of message processing, could lead
 /// to significant delays in message dispatch.
 pub fn process_scheduled_messages<Payload, Limits, Dispatcher, ProcessLaneMessages>(
 	mut storage: impl ByWeightDispatcherStorage,
@@ -434,3 +434,4 @@ mod tests {
 		});
 	}
 }
+*/
