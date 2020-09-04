@@ -112,7 +112,6 @@ decl_module! {
 		fn on_initialize(now: T::BlockNumber) -> Weight {
 			// TODO: seems like block current weight is increased somewhere else => we can't update
 			// frame_system::BlockWeight directly!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 			T::ProcessQueuedMessages::default().process_queued_messages()
 		}
 
@@ -349,11 +348,12 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::by_weight_dispatcher::{ByWeightDispatcherStorage, ByWeightDispatcherRuntimeStorage};
 	use crate::mock::{
-		run_test, Origin, TestEvent, TestRuntime, PAYLOAD_TO_QUEUE, PAYLOAD_TO_REJECT, REGULAR_PAYLOAD, TEST_LANE_ID,
+		run_test, Origin, TestEvent, TestRuntime, PAYLOAD_TO_QUEUE, PAYLOAD_TO_QUEUE_AT_0, PAYLOAD_TO_REJECT, REGULAR_PAYLOAD, TEST_LANE_ID,
 	};
 	use bp_message_lane::Message;
-	use frame_support::{assert_noop, assert_ok};
+	use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 	use frame_system::{EventRecord, Module as System, Phase};
 
 	fn send_regular_message() {
@@ -505,6 +505,29 @@ mod tests {
 				Module::<TestRuntime>::receive_message_processing_proof(Origin::signed(1), Err(()),),
 				"Rejected by TestHeaderChain"
 			);
+		});
+	}
+
+	#[test]
+	fn scheduled_messages_are_processed_from_on_initialize() {
+		run_test(|| {
+			let key = MessageKey { lane_id: TEST_LANE_ID, nonce: 1 };
+			Module::<TestRuntime>::receive_messages_proof(
+				Origin::signed(1),
+				Ok(vec![Message {
+					key: key.clone(),
+					payload: PAYLOAD_TO_QUEUE_AT_0,
+				}]),
+			).unwrap();
+			assert!(InboundMessages::<TestRuntime>::contains_key(&key));
+
+			let mut storage = ByWeightDispatcherRuntimeStorage::<TestRuntime, DefaultInstance>::default();
+			storage.append_unprocessed_lane(TEST_LANE_ID);
+
+			System::<TestRuntime>::set_block_number(1);
+			Module::<TestRuntime>::on_initialize(1);
+			assert!(!InboundMessages::<TestRuntime>::contains_key(&key));
+			assert!(storage.take_next_unprocessed_lane().is_none());
 		});
 	}
 }

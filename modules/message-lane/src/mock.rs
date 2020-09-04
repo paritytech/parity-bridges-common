@@ -107,8 +107,12 @@ pub const REGULAR_PAYLOAD: TestPayload = (0, 0);
 /// All messages with this payload are queued by TestMessageProcessor.
 pub const PAYLOAD_TO_QUEUE: TestPayload = (42, 0);
 
+/// All messages with this payload are queued by TestMessageProcessor at block#0, but
+/// processed at all other blocks.
+pub const PAYLOAD_TO_QUEUE_AT_0: TestPayload = (43, 0);
+
 /// All messags with this payload are rejected by TestMessageVerifier.
-pub const PAYLOAD_TO_REJECT: TestPayload = (43, 0);
+pub const PAYLOAD_TO_REJECT: TestPayload = (44, 0);
 
 /// Message processor that immediately handles all messages except messages with PAYLOAD_TO_QUEUE payload.
 #[derive(Debug, Default)]
@@ -116,7 +120,10 @@ pub struct TestMessageProcessor;
 
 impl OnMessageReceived<TestPayload> for TestMessageProcessor {
 	fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageResult<TestPayload> {
-		if message.payload == PAYLOAD_TO_QUEUE {
+		if message.payload == PAYLOAD_TO_QUEUE_AT_0 && frame_system::Module::<TestRuntime>::block_number() == 0 {
+			MessageResult::NotProcessed(message)
+		}
+		else if message.payload == PAYLOAD_TO_QUEUE {
 			MessageResult::NotProcessed(message)
 		} else {
 			frame_system::Module::<TestRuntime>::register_extra_weight_unchecked(

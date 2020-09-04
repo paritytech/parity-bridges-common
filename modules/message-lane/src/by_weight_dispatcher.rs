@@ -46,6 +46,7 @@ pub trait WeightLimits {
 	fn current(&self) -> Weight;
 	/// Returns maximal weight that we may try to fit in.
 	fn max(&self) -> Weight;
+	// TODO: should be max extrinsic weight, not block weight
 	/// Returns maximal weight of message that may ever be processed.
 	fn absolute_max(&self) -> Weight;
 }
