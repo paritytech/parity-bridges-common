@@ -1,11 +1,12 @@
 [workspace]
 
 members = [
-    "bin/node/node",
-    "bin/node/runtime",
-    "modules/substrate",
-    "modules/ethereum",
-    "modules/ethereum-contract/builtin",
-    "modules/currency-exchange",
-    "relays/ethereum",
+	"bin/node/node",
+	"bin/node/runtime",
+	"modules/call-dispatch",
+	"modules/substrate",
+	"modules/ethereum",
+	"modules/ethereum-contract/builtin",
+	"modules/currency-exchange",
+	"relays/ethereum",
 ]

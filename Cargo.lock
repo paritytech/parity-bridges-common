@@ -649,6 +649,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-message-dispatch"
+version = "0.1.0"
+dependencies = [
+ "bp-runtime",
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "bp-message-lane"
 version = "0.1.0"
 dependencies = [
@@ -659,6 +667,10 @@ dependencies = [
 [[package]]
 name = "bp-runtime"
 version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "sp-io",
+]
 
 [[package]]
 name = "bridge-node"
@@ -703,6 +715,7 @@ dependencies = [
  "bp-currency-exchange",
  "bp-eth-poa",
  "bp-header-chain",
+ "bp-message-lane",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -712,6 +725,7 @@ dependencies = [
  "libsecp256k1",
  "pallet-aura",
  "pallet-balances",
+ "pallet-bridge-call-dispatch",
  "pallet-bridge-currency-exchange",
  "pallet-bridge-eth-poa",
  "pallet-grandpa",
@@ -3902,6 +3916,21 @@ dependencies = [
  "frame-system",
  "parity-scale-codec",
  "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-call-dispatch"
+version = "0.1.0"
+dependencies = [
+ "bp-message-dispatch",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
