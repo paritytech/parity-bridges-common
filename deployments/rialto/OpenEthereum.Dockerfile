@@ -32,7 +32,7 @@ WORKDIR /openethereum
 
 ### Build from the repo
 ARG ETHEREUM_REPO=https://github.com/paritytech/openethereum.git
-ARG ETHEREUM_HASH=4fecaa56da067e4c62aee76a6afb6be52754c1cf
+ARG ETHEREUM_HASH=344991dbba2bc8657b00916f0e4b029c66f159e8
 RUN git clone $ETHEREUM_REPO /openethereum && git checkout $ETHEREUM_HASH
 
 ### Build locally. Make sure to set the CONTEXT to main directory of the repo.
