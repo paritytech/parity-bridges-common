@@ -37,10 +37,7 @@ impl ReceiveMessageResult {
 	/// Returns true if message is valid.
 	#[cfg(test)]
 	pub fn is_valid(&self) -> bool {
-		match *self {
-			ReceiveMessageResult::Processed | ReceiveMessageResult::Queued => true,
-			_ => false,
-		}
+		matches!(*self, ReceiveMessageResult::Processed | ReceiveMessageResult::Queued)
 	}
 }
 
