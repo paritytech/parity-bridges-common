@@ -21,7 +21,12 @@ use crate::{Module, QueuedInboundLanes, Trait};
 use bp_message_dispatch::MessageDispatch as WrappedMessageDispatch;
 use bp_message_lane::{target_chain::MessageDispatch, LaneId, Message, MessageId, MessageNonce, MessageResult};
 use bp_runtime::InstanceId;
-use frame_support::{RuntimeDebug, storage::StorageValue, traits::{Get, Instance}, weights::Weight};
+use frame_support::{
+	storage::StorageValue,
+	traits::{Get, Instance},
+	weights::Weight,
+	RuntimeDebug,
+};
 use sp_std::marker::PhantomData;
 
 /// By-weight message dispatch storage.
