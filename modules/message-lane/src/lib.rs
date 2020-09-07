@@ -34,11 +34,14 @@ use crate::inbound_lane::{InboundLane, InboundLaneStorage, ReceiveMessageResult}
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
 
 use bp_message_lane::{
-	InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
 	target_chain::{MessageDispatch, MessageDispatchPayment, QueuedMessageDispatch, SourceHeaderChain},
+	InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
-use frame_support::{decl_event, decl_module, decl_storage, traits::Get, Parameter, StorageMap, weights::Weight};
+use frame_support::{
+	decl_error, decl_event, decl_module, decl_storage, sp_runtime::DispatchResult, traits::Get, weights::Weight,
+	Parameter, StorageMap,
+};
 use frame_system::ensure_signed;
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -57,7 +60,7 @@ const DELIVERY_BASE_WEIGHT: Weight = 0;
 /// The module configuration trait
 pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	// General types
-	
+
 	/// They overarching event type.
 	type Event: From<Event> + Into<<Self as frame_system::Trait>::Event>;
 	/// Message payload.
@@ -75,16 +78,9 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Target header chain.
 	type TargetHeaderChain: TargetHeaderChain<Self::Payload>;
 	/// Message payload verifier.
-	type LaneMessageVerifier: LaneMessageVerifier<
-		Self::AccountId,
-		Self::Payload,
-		Self::MessageFee,
-	>;
+	type LaneMessageVerifier: LaneMessageVerifier<Self::AccountId, Self::Payload, Self::MessageFee>;
 	/// Message delivery payment.
-	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
-		Self::AccountId,
-		Self::MessageFee,
-	>;
+	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<Self::AccountId, Self::MessageFee>;
 
 	// Types that are used by inbound_lane (on target chain).
 
@@ -99,11 +95,35 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 }
 
 /// Shortcut to messages proof type for Trait.
-type MessagesProofOf<T, I> = <<T as Trait<I>>::SourceHeaderChain as SourceHeaderChain<<T as Trait<I>>::Payload, <T as Trait<I>>::MessageFee>>::MessagesProof;
+type MessagesProofOf<T, I> = <<T as Trait<I>>::SourceHeaderChain as SourceHeaderChain<
+	<T as Trait<I>>::Payload,
+	<T as Trait<I>>::MessageFee,
+>>::MessagesProof;
 /// Shortcut to messages receiving proof type for Trait.
-type MessagesReceivingProofOf<T, I> = <<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::Payload>>::MessagesReceivingProof;
+type MessagesReceivingProofOf<T, I> =
+	<<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::Payload>>::MessagesReceivingProof;
 /// Shortcut to messages processing proof type for Trait.
-type MessagesProcessingProofOf<T, I> = <<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::Payload>>::MessagesProcessingProof;
+type MessagesProcessingProofOf<T, I> =
+	<<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::Payload>>::MessagesProcessingProof;
+
+decl_error! {
+	pub enum Error for Module<T: Trait<I>, I: Instance> {
+		/// Message has been treated as invalid by chain verifier.
+		MessageRejectedByChainVerifier,
+		/// Message has been treated as invalid by lane verifier.
+		MessageRejectedByLaneVerifier,
+		/// Submitter has failed to pay fee for delivering and dispatching messages.
+		FailedToWithdrawMessageFee,
+		/// Relayer has failed to pay dispatch fee for relayed messages.
+		FailedToWithdrawDispatchFee,
+		/// Invalid messages has been submitted.
+		InvalidMessagesProof,
+		/// Invalid messages receiving proof has been submitted.
+		InvalidMessagesReceivingProof,
+		/// Invalid messages processing proof has been submitted.
+		InvalidMessagesProcessingProof,
+	}
+}
 
 decl_storage! {
 	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as MessageLane {
@@ -119,7 +139,7 @@ decl_storage! {
 		/// Set of unprocessed inbound lanes (i.e. inbound lanes that have unprocessed
 		/// messages). It is used only by `ByWeightMessageDispatch`. So if you are not using
 		/// this implementation, this will always be empty.
-		UnprocessedInboundLanes: Vec<LaneId>;
+		QueuedInboundLanes: Vec<LaneId>;
 	}
 }
 
@@ -162,7 +182,7 @@ decl_module! {
 			lane_id: LaneId,
 			payload: T::Payload,
 			delivery_and_dispatch_fee: T::MessageFee,
-		) {
+		) -> DispatchResult {
 			let submitter = ensure_signed(origin)?;
 
 			// let's first check if message can be delivered to target chain
@@ -174,7 +194,7 @@ decl_module! {
 					err,
 				);
 
-				err.into()
+				Error::<T, I>::MessageRejectedByChainVerifier
 			})?;
 
 			// now let's enforce any additional lane rules
@@ -191,7 +211,7 @@ decl_module! {
 					err,
 				);
 
-				err.into()
+				Error::<T, I>::MessageRejectedByLaneVerifier
 			})?;
 
 			// let's withdraw delivery and dispatch fee from submitter
@@ -201,14 +221,14 @@ decl_module! {
 			).map_err(|err| {
 				frame_support::debug::trace!(
 					target: "runtime",
-					"Message to lane {:?} is rejected because submitter {} is unable to pay fee {:?}: {:?}",
+					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
 					lane_id,
 					submitter,
 					delivery_and_dispatch_fee,
 					err,
 				);
 
-				err.into()
+				Error::<T, I>::FailedToWithdrawMessageFee
 			})?;
 
 			// finally, save message in outbound storage and emit event
@@ -227,15 +247,25 @@ decl_module! {
 			);
 
 			Self::deposit_event(Event::MessageAccepted(lane_id, nonce));
+
+			Ok(())
 		}
 
 		/// Receive messages proof from bridged chain.
 		#[weight = DELIVERY_BASE_WEIGHT + max_dispatch_weight]
-		pub fn receive_messages_proof(origin, proof: MessagesProofOf<T, I>, max_dispatch_weight: Weight) {
+		pub fn receive_messages_proof(origin, proof: MessagesProofOf<T, I>, max_dispatch_weight: Weight) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
 			// verify messages proof && convert proof into messages
-			let messages = T::SourceHeaderChain::verify_messages_proof(proof).map_err(Into::into)?;
+			let messages = T::SourceHeaderChain::verify_messages_proof(proof).map_err(|err| {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Rejecting invalid messages proof: {:?}",
+					err,
+				);
+
+				Error::<T, I>::InvalidMessagesProof
+			})?;
 
 			// estimate cumulative weight of messages dispatch
 			let mut dispatcher = T::MessageDispatch::with_allowed_weight(max_dispatch_weight);
@@ -245,7 +275,18 @@ decl_module! {
 			// be covered. But it has already paid regular fee for at least `max_dispatch_weight`, so we
 			// only need to withdraw `messages_dispatch_weight - max_dispatch_weight`.
 			let messages_dispatch_extra_weight = messages_dispatch_weight.saturating_sub(max_dispatch_weight);
-			T::MessageDispatchPayment::pay_dispatch_fee(&relayer, messages_dispatch_extra_weight);
+			T::MessageDispatchPayment::pay_dispatch_fee(&relayer, messages_dispatch_extra_weight).map_err(|err| {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Rejecting {} messages because relayer {:?} is unable to pay extra fee for weight {}: {:?}",
+					messages.len(),
+					relayer,
+					messages_dispatch_weight,
+					err,
+				);
+
+				Error::<T, I>::FailedToWithdrawDispatchFee
+			})?;
 
 			// now let's process as many messages, as possible
 			let total_messages = messages.len();
@@ -264,12 +305,13 @@ decl_module! {
 			let weight_left = dispatcher.weight_left();
 			frame_support::debug::trace!(
 				target: "runtime",
-				"Received messages: total={}, invalid={}, processed={}, queued={}. Weight spent: {}",
+				"Received messages: total={}, invalid={}, processed={}, queued={}. Weight spent: {}, left: {}",
 				total_messages,
 				invalid_messages,
 				processed_messages,
 				queued_messages,
 				max_dispatch_weight.saturating_sub(weight_left),
+				weight_left,
 			);
 
 			// ok - we have processed or queued all bundled messages. But what if relayer acts aggressivly
@@ -286,13 +328,23 @@ decl_module! {
 					queued_messages_dispatched,
 				);
 			}
+
+			Ok(())
 		}
 
 		/// Receive messages receiving proof from bridged chain.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-		pub fn receive_message_receiving_proof(origin, proof: MessagesReceivingProofOf<T, I>) {
+		pub fn receive_message_receiving_proof(origin, proof: MessagesReceivingProofOf<T, I>) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
-			let (lane_id, nonce) = T::TargetHeaderChain::verify_messages_receiving_proof(proof).map_err(Into::into)?;
+			let (lane_id, nonce) = T::TargetHeaderChain::verify_messages_receiving_proof(proof).map_err(|err| {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Rejecting invalid proof of messages receiving: {:?}",
+					err,
+				);
+
+				Error::<T, I>::InvalidMessagesReceivingProof
+			})?;
 
 			let mut lane = outbound_lane::<T, I>(lane_id);
 			let received_range = lane.confirm_receival(nonce);
@@ -306,13 +358,23 @@ decl_module! {
 				nonce,
 				lane_id,
 			);
+
+			Ok(())
 		}
 
 		/// Receive messages processing proof from bridged chain.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-		pub fn receive_message_processing_proof(origin, proof: MessagesProcessingProofOf<T, I>) {
+		pub fn receive_message_processing_proof(origin, proof: MessagesProcessingProofOf<T, I>) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
-			let (lane_id, nonce) = T::TargetHeaderChain::verify_messages_processing_proof(proof).map_err(Into::into)?;
+			let (lane_id, nonce) = T::TargetHeaderChain::verify_messages_processing_proof(proof).map_err(|err| {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Rejecting invalid proof of messages processing: {:?}",
+					err,
+				);
+
+				Error::<T, I>::InvalidMessagesProcessingProof
+			})?;
 
 			let mut lane = outbound_lane::<T, I>(lane_id);
 			let processed_range = lane.confirm_processing(nonce);
@@ -326,6 +388,8 @@ decl_module! {
 				nonce,
 				lane_id,
 			);
+
+			Ok(())
 		}
 	}
 }
@@ -340,8 +404,11 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageResult::NotProcessed.
 	///
-	/// Returns empty-lane flag and weight of all processed messages.
-	pub fn process_lane_messages(lane_id: &LaneId, processor: &mut impl MessageDispatch<T::Payload, T::MessageFee>) -> (bool, Weight) {
+	/// Returns empty-lane flag.
+	pub fn process_lane_messages(
+		lane_id: &LaneId,
+		processor: &mut impl MessageDispatch<T::Payload, T::MessageFee>,
+	) -> bool {
 		inbound_lane::<T, I>(*lane_id).process_messages(processor)
 	}
 }
@@ -432,7 +499,7 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 	}
 
 	#[cfg(test)]
-	fn message(&self, nonce: &MessageNonce) -> Option<Self::Payload> {
+	fn message(&self, nonce: &MessageNonce) -> Option<MessageData<T::Payload, T::MessageFee>> {
 		OutboundMessages::<T, I>::get(MessageKey {
 			lane_id: self.lane_id,
 			nonce: *nonce,
@@ -460,9 +527,9 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::by_weight_dispatcher::{ByWeightDispatcherStorage, ByWeightDispatcherRuntimeStorage};
 	use crate::mock::{
-		run_test, Origin, TestEvent, TestRuntime, PAYLOAD_TO_QUEUE, PAYLOAD_TO_QUEUE_AT_0, PAYLOAD_TO_REJECT, REGULAR_PAYLOAD, TEST_LANE_ID,
+		run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessageDispatchPayment, TestRuntime,
+		PAYLOAD_REJECTED_BY_TARGET_CHAIN, PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID,
 	};
 	use bp_message_lane::Message;
 	use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
@@ -476,8 +543,10 @@ mod tests {
 			Origin::signed(1),
 			TEST_LANE_ID,
 			REGULAR_PAYLOAD,
+			REGULAR_PAYLOAD.1,
 		));
 
+		// check event with assigned nonce
 		assert_eq!(
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
@@ -486,6 +555,9 @@ mod tests {
 				topics: vec![],
 			}],
 		);
+
+		// check that fee has been withdrawn from submitter
+		assert!(TestMessageDeliveryAndDispatchPayment::is_fee_paid(1, REGULAR_PAYLOAD.1));
 	}
 
 	fn receive_message_receiving_proof() {
@@ -527,18 +599,51 @@ mod tests {
 	}
 
 	#[test]
-	fn send_event_works() {
+	fn send_message_works() {
 		run_test(|| {
 			send_regular_message();
 		});
 	}
 
 	#[test]
-	fn send_event_rejects_invalid_message() {
+	fn chain_verifier_rejects_invalid_message_in_send_message() {
 		run_test(|| {
+			// messages with this payload are rejected by target chain verifier
 			assert_noop!(
-				Module::<TestRuntime>::send_message(Origin::signed(1), TEST_LANE_ID, PAYLOAD_TO_REJECT,),
-				"Rejected by TestMessageVerifier"
+				Module::<TestRuntime>::send_message(
+					Origin::signed(1),
+					TEST_LANE_ID,
+					PAYLOAD_REJECTED_BY_TARGET_CHAIN,
+					PAYLOAD_REJECTED_BY_TARGET_CHAIN.1
+				),
+				Error::<TestRuntime, DefaultInstance>::MessageRejectedByChainVerifier,
+			);
+		});
+	}
+
+	#[test]
+	fn lane_verifier_rejects_invalid_message_in_send_message() {
+		run_test(|| {
+			// messages with zero fee are rejected by lane verifier
+			assert_noop!(
+				Module::<TestRuntime>::send_message(Origin::signed(1), TEST_LANE_ID, REGULAR_PAYLOAD, 0),
+				Error::<TestRuntime, DefaultInstance>::MessageRejectedByLaneVerifier,
+			);
+		});
+	}
+
+	#[test]
+	fn message_send_fails_if_submitter_cant_pay_message_fee() {
+		run_test(|| {
+			TestMessageDeliveryAndDispatchPayment::reject_payments();
+			assert_noop!(
+				Module::<TestRuntime>::send_message(
+					Origin::signed(1),
+					TEST_LANE_ID,
+					REGULAR_PAYLOAD,
+					REGULAR_PAYLOAD.1
+				),
+				Error::<TestRuntime, DefaultInstance>::FailedToWithdrawMessageFee,
 			);
 		});
 	}
@@ -550,17 +655,21 @@ mod tests {
 				lane_id: TEST_LANE_ID,
 				nonce: 1,
 			};
-
 			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
 				Origin::signed(1),
 				Ok(vec![Message {
 					key: key.clone(),
-					payload: PAYLOAD_TO_QUEUE,
+					data: MessageData {
+						payload: PAYLOAD_TO_QUEUE,
+						fee: 0,
+					},
 				}]),
-				<TestRuntime as frame_system::Trait>::MaximumBlockWeight::get(),
+				PAYLOAD_TO_QUEUE.1,
 			));
 
 			assert!(InboundMessages::<TestRuntime>::contains_key(&key));
+			// we have paid the whole fee as a part of delivery tx (PAYLOAD_TO_QUEUE.1)
+			assert!(TestMessageDispatchPayment::is_fee_paid(1, 0));
 		});
 	}
 
@@ -568,9 +677,147 @@ mod tests {
 	fn receive_messages_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::receive_messages_proof(Origin::signed(1), Err(()), <TestRuntime as frame_system::Trait>::MaximumBlockWeight::get()),
-				"Rejected by TestHeaderChain"
+				Module::<TestRuntime>::receive_messages_proof(
+					Origin::signed(1),
+					Err(()),
+					<TestRuntime as frame_system::Trait>::MaximumBlockWeight::get()
+				),
+				Error::<TestRuntime, DefaultInstance>::InvalidMessagesProof,
 			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_proof_fails_when_relayer_is_unable_to_pay_for_dispatch() {
+		run_test(|| {
+			TestMessageDispatchPayment::reject_payments();
+			assert_noop!(
+				Module::<TestRuntime>::receive_messages_proof(
+					Origin::signed(1),
+					Ok(vec![Message {
+						key: MessageKey {
+							lane_id: TEST_LANE_ID,
+							nonce: 1
+						},
+						data: MessageData {
+							payload: PAYLOAD_TO_QUEUE,
+							fee: 0,
+						},
+					}]),
+					PAYLOAD_TO_QUEUE.1,
+				),
+				Error::<TestRuntime, DefaultInstance>::FailedToWithdrawDispatchFee,
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_queues_message_if_weight_is_not_enough_to_process_immediately() {
+		run_test(|| {
+			// weight of delivery tx is not enough to process message imediately
+			// => it is queued
+			let key = MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 1,
+			};
+			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
+				Origin::signed(1),
+				Ok(vec![Message {
+					key: key.clone(),
+					data: MessageData {
+						payload: REGULAR_PAYLOAD,
+						fee: 0,
+					},
+				}]),
+				REGULAR_PAYLOAD.1 - 1,
+			));
+
+			assert!(InboundMessages::<TestRuntime>::contains_key(&key));
+			assert!(TestMessageDispatchPayment::is_fee_paid(1, 1));
+		});
+	}
+
+	#[test]
+	fn receive_messages_processes_message_if_weight_is_enough() {
+		run_test(|| {
+			// weight of delivery tx is enough to process message imediately
+			// => it is NOT queued
+			let key = MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 1,
+			};
+			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
+				Origin::signed(1),
+				Ok(vec![Message {
+					key: key.clone(),
+					data: MessageData {
+						payload: REGULAR_PAYLOAD,
+						fee: 0,
+					},
+				}]),
+				REGULAR_PAYLOAD.1,
+			));
+
+			assert!(!InboundMessages::<TestRuntime>::contains_key(&key));
+			assert!(TestMessageDispatchPayment::is_fee_paid(1, 0));
+		});
+	}
+
+	#[test]
+	fn receive_messages_processes_queued_messages_if_weight_is_enough() {
+		run_test(|| {
+			// weight is not enough to process messages => they're queued
+			let key1 = MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 1,
+			};
+			let key2 = MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 2,
+			};
+			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
+				Origin::signed(1),
+				Ok(vec![
+					Message {
+						key: key1.clone(),
+						data: MessageData {
+							payload: REGULAR_PAYLOAD,
+							fee: 0
+						},
+					},
+					Message {
+						key: key2.clone(),
+						data: MessageData {
+							payload: REGULAR_PAYLOAD,
+							fee: 0
+						},
+					}
+				]),
+				0,
+			));
+
+			assert!(InboundMessages::<TestRuntime>::contains_key(&key1));
+			assert!(InboundMessages::<TestRuntime>::contains_key(&key2));
+
+			let key3 = MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 3,
+			};
+			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
+				Origin::signed(1),
+				Ok(vec![Message {
+					key: key3.clone(),
+					data: MessageData {
+						payload: REGULAR_PAYLOAD,
+						fee: 0
+					},
+				}]),
+				REGULAR_PAYLOAD.1 * 3,
+			));
+
+			assert!(!InboundMessages::<TestRuntime>::contains_key(&key1));
+			assert!(!InboundMessages::<TestRuntime>::contains_key(&key2));
+			assert!(!InboundMessages::<TestRuntime>::contains_key(&key3));
 		});
 	}
 
@@ -592,7 +839,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Module::<TestRuntime>::receive_message_receiving_proof(Origin::signed(1), Err(()),),
-				"Rejected by TestHeaderChain"
+				Error::<TestRuntime, DefaultInstance>::InvalidMessagesReceivingProof,
 			);
 		});
 	}
@@ -616,32 +863,35 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Module::<TestRuntime>::receive_message_processing_proof(Origin::signed(1), Err(()),),
-				"Rejected by TestHeaderChain"
+				Error::<TestRuntime, DefaultInstance>::InvalidMessagesProcessingProof,
 			);
 		});
 	}
 
 	#[test]
-	fn queued_messages_are_processed_from_on_initialize() {
+	fn messages_are_processed_from_on_initialize() {
 		run_test(|| {
-			let key = MessageKey { lane_id: TEST_LANE_ID, nonce: 1 };
+			let key = MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 1,
+			};
 			Module::<TestRuntime>::receive_messages_proof(
 				Origin::signed(1),
 				Ok(vec![Message {
 					key: key.clone(),
-					payload: PAYLOAD_TO_QUEUE_AT_0,
+					data: MessageData {
+						payload: REGULAR_PAYLOAD,
+						fee: 0,
+					},
 				}]),
-				<TestRuntime as frame_system::Trait>::MaximumBlockWeight::get(),
-			).unwrap();
+				0,
+			)
+			.unwrap();
 			assert!(InboundMessages::<TestRuntime>::contains_key(&key));
 
-			let mut storage = ByWeightDispatcherRuntimeStorage::<TestRuntime, DefaultInstance>::default();
-			storage.append_unprocessed_lane(TEST_LANE_ID);
+			Module::<TestRuntime, DefaultInstance>::on_initialize(1);
 
-			System::<TestRuntime>::set_block_number(1);
-			Module::<TestRuntime>::on_initialize(1);
 			assert!(!InboundMessages::<TestRuntime>::contains_key(&key));
-			assert!(storage.take_next_unprocessed_lane().is_none());
 		});
 	}
 }

@@ -16,10 +16,10 @@
 
 //! Primitives of message lane module, that are used on the target chain.
 
-use crate::{Message, MessageResult};
+use crate::{Message, MessageNonce, MessageResult};
 
-use frame_support::{Parameter, weights::Weight};
-use sp_std::fmt::Debug;
+use frame_support::{weights::Weight, Parameter};
+use sp_std::{fmt::Debug, prelude::*};
 
 /// Source chain API. Used by target chain, to verify source chain proofs.
 ///
@@ -86,13 +86,16 @@ pub trait QueuedMessageDispatch<Payload> {
 	/// Called to process queued messages.
 	///
 	/// Returns number of processed queued messages and weight 'spent' on that.
-	fn dispatch(&mut self) -> (u64, Weight);
+	fn dispatch(&mut self) -> (MessageNonce, Weight);
 }
 
 /// Message dispatch payment. It is called as a part of message-delivery transaction. Delivery
 /// transaction submitter (message relay account) pays for the messages dispatch (probably
 /// in advance).
 pub trait MessageDispatchPayment<AccountId> {
+	/// Error type.
+	type Error: Debug + Into<&'static str>;
+
 	/// Write-off fee for dispatching messages of given cumulative weight.
-	fn pay_dispatch_fee(payer: &AccountId, weight: Weight);
+	fn pay_dispatch_fee(payer: &AccountId, weight: Weight) -> Result<(), Self::Error>;
 }

@@ -17,12 +17,13 @@
 //! Everything about incoming messages receival.
 
 use bp_message_lane::{
-	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, MessageResult,
-	target_chain::MessageDispatch,
+	target_chain::MessageDispatch, InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce,
+	MessageResult,
 };
-use frame_support::weights::Weight;
+use frame_support::RuntimeDebug;
 
 /// Result of message receiving.
+#[derive(RuntimeDebug, PartialEq)]
 pub enum ReceiveMessageResult {
 	/// Message is invalid/duplicate.
 	Invalid,
@@ -30,6 +31,17 @@ pub enum ReceiveMessageResult {
 	Processed,
 	/// Message is valid, but has been queued for processing later.
 	Queued,
+}
+
+impl ReceiveMessageResult {
+	/// Returns true if message is valid.
+	#[cfg(test)]
+	pub fn is_valid(&self) -> bool {
+		match *self {
+			ReceiveMessageResult::Processed | ReceiveMessageResult::Queued => true,
+			_ => false,
+		}
+	}
 }
 
 /// Inbound lane storage.
@@ -62,12 +74,6 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	/// Create new inbound lane backed by given storage.
 	pub fn new(storage: S) -> Self {
 		InboundLane { storage }
-	}
-
-	/// Returns storage reference.
-	#[cfg(test)]
-	pub fn storage(&self) -> &S {
-		&self.storage
 	}
 
 	/// Receive new message.
@@ -121,9 +127,8 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	/// Stops processing either when all messages are processed, or when processor returns
 	/// MessageResult::NotProcessed.
 	///
-	/// Returns empty-lane flag and weight of all processed messages.
-	pub fn process_messages(&mut self, processor: &mut impl MessageDispatch<S::Payload, S::MessageFee>) -> (bool, Weight) {
-		let mut total_weight = 0;
+	/// Returns empty-lane flag.
+	pub fn process_messages(&mut self, processor: &mut impl MessageDispatch<S::Payload, S::MessageFee>) -> bool {
 		let mut anything_processed = false;
 		let mut data = self.storage.data();
 		while data.oldest_unprocessed_nonce <= data.latest_received_nonce {
@@ -141,9 +146,8 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			};
 
 			let process_result = processor.dispatch(message);
-			match process_result {
-				MessageResult::Processed(weight) => total_weight += weight,
-				MessageResult::NotProcessed(_) => break,
+			if let MessageResult::NotProcessed(_) = process_result {
+				break;
 			}
 
 			self.storage.remove_message(&nonce);
@@ -157,7 +161,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			self.storage.set_data(data);
 		}
 
-		(is_empty_lane, total_weight)
+		is_empty_lane
 	}
 }
 
@@ -167,15 +171,20 @@ mod tests {
 	use crate::{
 		inbound_lane,
 		mock::{
-			run_test, TestMessageProcessor, TestPayload, TestRuntime, PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID,
+			message_data, run_test, TestMessageDispatch, TestMessageFee, TestPayload, TestRuntime, MAX_ALLOWED_WEIGHT,
+			PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID,
 		},
 	};
+	use frame_support::weights::Weight;
 
 	#[test]
 	fn fails_to_receive_message_with_incorrect_nonce() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(!lane.receive_message(10, REGULAR_PAYLOAD, &mut TestMessageProcessor));
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(MAX_ALLOWED_WEIGHT);
+			assert!(!lane
+				.receive_message(10, message_data(REGULAR_PAYLOAD), &mut dispatch)
+				.is_valid());
 			assert!(lane.storage.message(&10).is_none());
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 		});
@@ -185,9 +194,14 @@ mod tests {
 	fn correct_message_is_queued_if_some_other_messages_are_queued() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(lane.receive_message(1, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(MAX_ALLOWED_WEIGHT);
+			assert!(lane
+				.receive_message(1, message_data(PAYLOAD_TO_QUEUE), &mut dispatch)
+				.is_valid());
 			assert!(lane.storage.message(&1).is_some());
-			assert!(lane.receive_message(2, REGULAR_PAYLOAD, &mut TestMessageProcessor));
+			assert!(lane
+				.receive_message(2, message_data(REGULAR_PAYLOAD), &mut dispatch)
+				.is_valid());
 			assert!(lane.storage.message(&2).is_some());
 			assert_eq!(lane.storage.data().latest_received_nonce, 2);
 		});
@@ -197,7 +211,10 @@ mod tests {
 	fn correct_message_is_queued_if_processor_wants_to_queue() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(lane.receive_message(1, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(MAX_ALLOWED_WEIGHT);
+			assert!(lane
+				.receive_message(1, message_data(PAYLOAD_TO_QUEUE), &mut dispatch)
+				.is_valid());
 			assert!(lane.storage.message(&1).is_some());
 			assert_eq!(lane.storage.data().latest_received_nonce, 1);
 		});
@@ -207,7 +224,10 @@ mod tests {
 	fn correct_message_is_not_queued_if_processed_instantly() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(lane.receive_message(1, REGULAR_PAYLOAD, &mut TestMessageProcessor));
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(MAX_ALLOWED_WEIGHT);
+			assert!(lane
+				.receive_message(1, message_data(REGULAR_PAYLOAD), &mut dispatch)
+				.is_valid());
 			assert!(lane.storage.message(&1).is_none());
 			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 2);
 			assert_eq!(lane.storage.data().latest_received_nonce, 1);
@@ -218,8 +238,9 @@ mod tests {
 	fn process_message_does_nothing_when_lane_is_empty() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(MAX_ALLOWED_WEIGHT);
 			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 1);
-			lane.process_messages(&mut TestMessageProcessor);
+			lane.process_messages(&mut dispatch);
 			assert_eq!(lane.storage.data().oldest_unprocessed_nonce, 1);
 		});
 	}
@@ -229,21 +250,45 @@ mod tests {
 		run_test(|| {
 			pub struct QueueByNonce(MessageNonce);
 
-			impl MessageDispatch<TestPayload> for QueueByNonce {
-				fn on_message_received(&mut self, message: Message<TestPayload>) -> MessageResult<TestPayload> {
+			impl MessageDispatch<TestPayload, TestMessageFee> for QueueByNonce {
+				fn with_allowed_weight(_: Weight) -> Self {
+					unreachable!()
+				}
+
+				fn weight_left(&self) -> Weight {
+					MAX_ALLOWED_WEIGHT
+				}
+
+				fn dispatch_weight(&self, message: &Message<TestPayload, TestMessageFee>) -> Weight {
+					message.data.payload.1
+				}
+
+				fn dispatch(
+					&mut self,
+					message: Message<TestPayload, TestMessageFee>,
+				) -> MessageResult<TestPayload, TestMessageFee> {
 					if message.key.nonce == self.0 {
 						MessageResult::NotProcessed(message)
 					} else {
-						MessageResult::Processed(message.payload.1)
+						MessageResult::Processed(message.data.payload.1)
 					}
 				}
 			}
 
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(lane.receive_message(1, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
-			assert!(lane.receive_message(2, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
-			assert!(lane.receive_message(3, PAYLOAD_TO_QUEUE, &mut TestMessageProcessor));
-			assert!(lane.receive_message(4, REGULAR_PAYLOAD, &mut TestMessageProcessor));
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(MAX_ALLOWED_WEIGHT);
+			assert!(lane
+				.receive_message(1, message_data(PAYLOAD_TO_QUEUE), &mut dispatch)
+				.is_valid());
+			assert!(lane
+				.receive_message(2, message_data(PAYLOAD_TO_QUEUE), &mut dispatch)
+				.is_valid());
+			assert!(lane
+				.receive_message(3, message_data(PAYLOAD_TO_QUEUE), &mut dispatch)
+				.is_valid());
+			assert!(lane
+				.receive_message(4, message_data(REGULAR_PAYLOAD), &mut dispatch)
+				.is_valid());
 
 			assert!(lane.storage.message(&1).is_some());
 			assert!(lane.storage.message(&2).is_some());

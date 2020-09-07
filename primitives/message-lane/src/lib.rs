@@ -23,7 +23,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::{Decode, Encode};
-use frame_support::{RuntimeDebug, weights::Weight};
+use frame_support::{weights::Weight, RuntimeDebug};
 use sp_api::decl_runtime_apis;
 use sp_std::prelude::*;
 
@@ -35,6 +35,9 @@ pub type LaneId = [u8; 4];
 
 /// Message nonce. Valid messages will never have 0 nonce.
 pub type MessageNonce = u64;
+
+/// Message id as a tuple.
+pub type MessageId = (LaneId, MessageNonce);
 
 /// Message key (unique message identifier) as it is stored in the storage.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -64,6 +67,7 @@ pub struct Message<Payload, Fee> {
 }
 
 /// Message processing result.
+#[derive(RuntimeDebug, PartialEq)]
 pub enum MessageResult<Payload, Fee> {
 	/// Message has been processed and should not be queued.
 	Processed(Weight),
@@ -71,8 +75,26 @@ pub enum MessageResult<Payload, Fee> {
 	NotProcessed(Message<Payload, Fee>),
 }
 
+impl<Payload, Fee> MessageResult<Payload, Fee> {
+	/// Return number of processed messages (0 or 1).
+	pub fn messages_processed(&self) -> MessageNonce {
+		match *self {
+			MessageResult::Processed(_) => 1,
+			MessageResult::NotProcessed(_) => 0,
+		}
+	}
+
+	/// Return weight spent on message processing.
+	pub fn weight_spent(&self) -> Weight {
+		match *self {
+			MessageResult::Processed(weight) => weight,
+			MessageResult::NotProcessed(_) => 0,
+		}
+	}
+}
+
 /// Inbound lane data.
-#[derive(Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq)]
 pub struct InboundLaneData {
 	/// Nonce of oldest message that we haven't processed yet. May point to not-yet-received message if
 	/// lane is currently empty.
@@ -92,7 +114,7 @@ impl Default for InboundLaneData {
 }
 
 /// Outbound lane data.
-#[derive(Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq)]
 pub struct OutboundLaneData {
 	/// Nonce of oldest message that we haven't yet pruned. May point to not-yet-generated message if
 	/// all sent messages are already pruned.

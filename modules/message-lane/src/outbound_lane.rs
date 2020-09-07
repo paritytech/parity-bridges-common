@@ -33,7 +33,7 @@ pub trait OutboundLaneStorage {
 	fn set_data(&mut self, data: OutboundLaneData);
 	/// Returns saved outbound message payload.
 	#[cfg(test)]
-	fn message(&self, nonce: &MessageNonce) -> Option<Self::Payload>;
+	fn message(&self, nonce: &MessageNonce) -> Option<MessageData<Self::Payload, Self::MessageFee>>;
 	/// Save outbound message in the storage.
 	fn save_message(&mut self, nonce: MessageNonce, message_data: MessageData<Self::Payload, Self::MessageFee>);
 	/// Remove outbound message from the storage.
@@ -128,7 +128,7 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 mod tests {
 	use super::*;
 	use crate::{
-		mock::{run_test, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID},
+		mock::{message_data, run_test, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID},
 		outbound_lane,
 	};
 
@@ -137,7 +137,7 @@ mod tests {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 0);
-			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 1);
+			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 1);
 			assert!(lane.storage.message(&1).is_some());
 			assert_eq!(lane.storage.data().latest_generated_nonce, 1);
 		});
@@ -147,9 +147,9 @@ mod tests {
 	fn confirm_receival_works() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 1);
-			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 2);
-			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 3);
+			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 1);
+			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 2);
+			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 3);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 			assert_eq!(lane.confirm_receival(3), Some((1, 3)));
@@ -162,9 +162,9 @@ mod tests {
 	fn confirm_receival_rejects_nonce_lesser_than_latest_received() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 			assert_eq!(lane.confirm_receival(3), Some((1, 3)));
@@ -182,9 +182,9 @@ mod tests {
 	fn confirm_receival_rejects_nonce_larger_than_last_generated() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 			assert_eq!(lane.confirm_receival(10), None);
@@ -197,9 +197,9 @@ mod tests {
 	fn confirm_processing_works() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 1);
-			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 2);
-			assert_eq!(lane.send_message(REGULAR_PAYLOAD), 3);
+			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 1);
+			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 2);
+			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 3);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_processed_nonce, 0);
 			assert_eq!(lane.confirm_receival(3), Some((1, 3)));
@@ -215,9 +215,9 @@ mod tests {
 	fn confirm_processing_rejects_nonce_lesser_than_latest_processed() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_processed_nonce, 0);
 			assert_eq!(lane.confirm_receival(3), Some((1, 3)));
@@ -236,9 +236,9 @@ mod tests {
 	fn confirm_processing_rejects_nonce_larger_than_last_received() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_processed_nonce, 0);
 			assert_eq!(lane.confirm_processing(2), None);
@@ -255,9 +255,9 @@ mod tests {
 			assert_eq!(lane.prune_messages(100), 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
 			// when nothing is confirmed, nothing is pruned
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
-			lane.send_message(REGULAR_PAYLOAD);
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
+			lane.send_message(message_data(REGULAR_PAYLOAD));
 			assert_eq!(lane.prune_messages(100), 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
 			// after confirmation, some messages are received

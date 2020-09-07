@@ -1,4 +1,4 @@
-/*// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2020 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -14,424 +14,323 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Message scheduler definitions and utilities.
+//! Message dispatcher that only cares about weights.
 
-use crate::{Trait, UnprocessedInboundLanes};
+use crate::{Module, QueuedInboundLanes, Trait};
 
-use bp_message_lane::{LaneId, Message, MessageResult, MessageDispatch, ProcessQueuedMessages};
-use frame_support::{
-	storage::StorageValue,
-	traits::{Get, Instance},
-	weights::Weight,
-};
+use bp_message_dispatch::MessageDispatch as WrappedMessageDispatch;
+use bp_message_lane::{target_chain::MessageDispatch, LaneId, Message, MessageId, MessageNonce, MessageResult};
+use bp_runtime::InstanceId;
+use frame_support::{RuntimeDebug, storage::StorageValue, traits::Instance, weights::Weight};
 use sp_std::marker::PhantomData;
 
-/// Something that can estimate message dispatch weight.
-pub trait OnWeightedMessageReceived<Payload>: MessageDispatch<Payload> {
-	/// Return upper-bound of message dispatch weight.
-	fn dispatch_weight(&self, payload: &Message<Payload>) -> Weight;
+/// By-weight message dispatch storage.
+pub trait ByWeightMessageDispatchStorage {
+	/// Append message lane to the end of the queue.
+	fn enqueue_lane(&mut self, lane: LaneId);
+	/// Return next queued message lane, removing it from the queue.
+	fn take_next_queued_lane(&mut self) -> Option<LaneId>;
 }
 
-/// By-weight dispatcher storage.
-pub trait ByWeightDispatcherStorage {
-	/// Appends given lane to the end of unprocessed lanes queue.
-	fn append_unprocessed_lane(&mut self, lane: LaneId);
-	/// Take next unprocessed lane from the queue.
-	fn take_next_unprocessed_lane(&mut self) -> Option<LaneId>;
-}
-
-/// Weight limits traits.
-pub trait WeightLimits {
-	/// Returns current weight.
-	fn current(&self) -> Weight;
-	/// Returns maximal weight that we may try to fit in.
-	fn max(&self) -> Weight;
-	// TODO: should be max extrinsic weight, not block weight
-	/// Returns maximal weight of message that may ever be processed.
-	fn absolute_max(&self) -> Weight;
-}
-
-/// Message dispatcher that tries to dispatch message immediately if it fits current block.
-/// If not, message is queued.
-pub struct ByWeightDispatcher<Payload, Storage, Dispatcher, Limits> {
+/// Message dispatcher that only cares about weights. If message fits within
+/// allowed weight, it is dispatched immediately. Otherwise, message is queued
+/// using message-lane module storage and will be processed later.
+#[derive(RuntimeDebug)]
+pub struct ByWeightMessageDispatch<T, I, WrappedDispatch, Storage> {
 	storage: Storage,
-	dispatcher: Dispatcher,
-	limits: Limits,
-	force_next_message_dispatch: bool,
-	_phantom: PhantomData<Payload>,
+	instance: InstanceId,
+	weight: Weight,
+	_phantom: PhantomData<(T, I, WrappedDispatch)>,
 }
 
-impl<Payload, Storage, Dispatcher, Limits> ByWeightDispatcher<Payload, Storage, Dispatcher, Limits> {
-	/// Creates new dispatcher.
-	pub fn new(storage: Storage, dispatcher: Dispatcher, limits: Limits) -> Self {
-		ByWeightDispatcher {
+impl<T, I, WrappedDispatch, Storage> ByWeightMessageDispatch<T, I, WrappedDispatch, Storage>
+where
+	T: Trait<I>,
+	I: Instance,
+	WrappedDispatch: WrappedMessageDispatch<MessageId, Message = T::Payload>,
+	Storage: ByWeightMessageDispatchStorage,
+{
+	/// Create new by-weight dispatch given bridge instance id and allowed weight.
+	pub fn new(storage: Storage, instance: InstanceId, weight: Weight) -> Self {
+		ByWeightMessageDispatch {
 			storage,
-			dispatcher,
-			limits,
-			force_next_message_dispatch: false,
+			instance,
+			weight,
 			_phantom: Default::default(),
 		}
 	}
 
-	/// Force dispatcher to dispatch next message immediately.
-	pub fn force_next_message_dispatch(mut self) -> Self {
-		self.force_next_message_dispatch = true;
-		self
+	/// Returns weight that is left.
+	pub fn weight_left(&self) -> Weight {
+		self.weight
 	}
-}
 
-impl<Payload, Storage, Dispatcher, Limits> MessageDispatch<Payload>
-	for ByWeightDispatcher<Payload, Storage, Dispatcher, Limits>
-where
-	Storage: ByWeightDispatcherStorage,
-	Dispatcher: OnWeightedMessageReceived<Payload>,
-	Limits: WeightLimits,
-{
-	fn on_message_received(&mut self, message: Message<Payload>) -> MessageResult<Payload> {
-		let weight = self.dispatcher.dispatch_weight(&message);
-		if weight > self.limits.absolute_max() {
-			return MessageResult::Processed(0);
+	/// Returns weight required to dispatch given message.
+	pub fn dispatch_weight(&self, message: &Message<T::Payload, T::MessageFee>) -> Weight {
+		WrappedDispatch::dispatch_weight(&message.data.payload)
+	}
+
+	/// If there's enough weight left, dispatch the message. Otherwise, enqueue it
+	/// for later processal.
+	pub fn dispatch(
+		&mut self,
+		message: Message<T::Payload, T::MessageFee>,
+	) -> MessageResult<T::Payload, T::MessageFee> {
+		let dispatch_weight = self.dispatch_weight(&message);
+		if dispatch_weight > self.weight {
+			self.storage.enqueue_lane(message.key.lane_id);
+			return MessageResult::NotProcessed(message);
 		}
 
-		if !self.force_next_message_dispatch {
-			let weight_left = self.limits.max().saturating_sub(self.limits.current());
-			if weight > weight_left {
-				self.storage.append_unprocessed_lane(message.key.lane_id);
-				return MessageResult::NotProcessed(message);
+		MessageResult::Processed(self.dispatch_unchecked(message))
+	}
+
+	/// Dispatch queued messages until there's enough weight left. If `force_first_message` is
+	/// true, then the first message is processed even if it doesn't fit available weight.
+	pub fn dispatch_queued(&mut self, force_first_message: bool) -> (MessageNonce, Weight) {
+		let mut dispatcher = ByWeightQueuedMessageDispatch {
+			outer: self,
+			force_next_message: force_first_message,
+			messages_processed: 0,
+			weight_spent: 0,
+		};
+
+		while let Some(lane) = dispatcher.outer.storage.take_next_queued_lane() {
+			let is_empty_lane = Module::<T, I>::process_lane_messages(&lane, &mut dispatcher);
+
+			if !is_empty_lane {
+				// lane is enqueued internally, during dispatch() call
+				break;
 			}
 		}
 
-		self.force_next_message_dispatch = false;
-		match self.dispatcher.on_message_received(message) {
-			MessageResult::Processed(weight) => MessageResult::Processed(weight),
-			MessageResult::NotProcessed(message) => {
-				self.storage.append_unprocessed_lane(message.key.lane_id);
-				MessageResult::NotProcessed(message)
-			},
-		}
+		(dispatcher.messages_processed, dispatcher.weight_spent)
+	}
+
+	/// Dispatch message without any checks.
+	fn dispatch_unchecked(&mut self, message: Message<T::Payload, T::MessageFee>) -> Weight {
+		let weight_spent = WrappedDispatch::dispatch(
+			self.instance,
+			(message.key.lane_id, message.key.nonce),
+			message.data.payload,
+		);
+		self.weight = self.weight.saturating_sub(weight_spent);
+		weight_spent
 	}
 }
 
-/// Runtime-based storage implementation.
-#[derive(Debug)]
-pub struct ByWeightDispatcherRuntimeStorage<T, I> {
-	_phantom: PhantomData<(T, I)>,
+/// Queued message dispatcher that is processing messages while they fit within given weight limit.
+struct ByWeightQueuedMessageDispatch<'a, T, I, WrappedDispatch, Storage> {
+	outer: &'a mut ByWeightMessageDispatch<T, I, WrappedDispatch, Storage>,
+	force_next_message: bool,
+	messages_processed: MessageNonce,
+	weight_spent: Weight,
 }
 
-impl<T, I> Default for ByWeightDispatcherRuntimeStorage<T, I> {
-	fn default() -> Self {
-		ByWeightDispatcherRuntimeStorage {
-			_phantom: Default::default(),
-		}
-	}
-}
-
-impl<T: Trait<I>, I: Instance> ByWeightDispatcherStorage for ByWeightDispatcherRuntimeStorage<T, I> {
-	fn append_unprocessed_lane(&mut self, lane_id: LaneId) {
-		UnprocessedInboundLanes::<I>::append(lane_id)
-	}
-
-	fn take_next_unprocessed_lane(&mut self) -> Option<LaneId> {
-		UnprocessedInboundLanes::<I>::mutate(|lanes| if lanes.is_empty() { None } else { Some(lanes.remove(0)) })
-	}
-}
-
-/// Storage that saves and returns nothing
-#[derive(Debug)]
-pub struct ByWeightDispatcherDumpStorage;
-
-impl ByWeightDispatcherStorage for ByWeightDispatcherDumpStorage {
-	fn append_unprocessed_lane(&mut self, _lane: LaneId) {}
-
-	fn take_next_unprocessed_lane(&mut self) -> Option<LaneId> {
-		None
-	}
-}
-
-/// Runtime weight limits.
-#[derive(Debug)]
-pub struct ByWeightDispatcherRuntimeLimits<T, I> {
-	_phantom: PhantomData<(T, I)>,
-}
-
-impl<T, I> Default for ByWeightDispatcherRuntimeLimits<T, I> {
-	fn default() -> Self {
-		ByWeightDispatcherRuntimeLimits {
-			_phantom: Default::default(),
-		}
-	}
-}
-
-impl<T: Trait<I>, I: Instance> WeightLimits for ByWeightDispatcherRuntimeLimits<T, I> {
-	fn current(&self) -> Weight {
-		frame_system::Module::<T>::block_weight().total()
-	}
-
-	fn max(&self) -> Weight {
-		T::MaximumBlockWeight::get()
-	}
-
-	fn absolute_max(&self) -> Weight {
-		self.max()
-	}
-}
-
-/// Weight limits with custom max value.
-#[derive(Debug)]
-pub struct ByWeightDispatcherCustomLimits<T, I> {
-	max: Weight,
-	_phantom: PhantomData<(T, I)>,
-}
-
-impl<T, I> ByWeightDispatcherCustomLimits<T, I> {
-	/// Create weight limits with custom max.
-	pub fn new(max: Weight) -> Self {
-		ByWeightDispatcherCustomLimits {
-			max,
-			_phantom: Default::default(),
-		}
-	}
-}
-
-impl<T: Trait<I>, I: Instance> WeightLimits for ByWeightDispatcherCustomLimits<T, I> {
-	fn current(&self) -> Weight {
-		frame_system::Module::<T>::block_weight().total()
-	}
-
-	fn max(&self) -> Weight {
-		self.max
-	}
-
-	fn absolute_max(&self) -> Weight {
-		T::MaximumBlockWeight::get()
-	}
-}
-
-/// Queued messages processor that is using `process_scheduled_messages` and 10%
-/// of maximal block weight to process queued messages during block initialization.
-pub struct ByWeightQueuedMessagesProcessor<T, I> {
-	_phantom: PhantomData<(T, I)>,
-}
-
-impl<T, I> Default for ByWeightQueuedMessagesProcessor<T, I> {
-	fn default() -> Self {
-		ByWeightQueuedMessagesProcessor { _phantom: Default::default() }
-	}
-}
-
-impl<T: Trait<I>, I: Instance> ProcessQueuedMessages<T::Payload> for ByWeightQueuedMessagesProcessor<T, I>
+impl<'a, T, I, WrappedDispatch, Storage> MessageDispatch<T::Payload, T::MessageFee>
+	for ByWeightQueuedMessageDispatch<'a, T, I, WrappedDispatch, Storage>
 where
-	T::MessageDispatch: OnWeightedMessageReceived<T::Payload>,
+	T: Trait<I>,
+	I: Instance,
+	WrappedDispatch: WrappedMessageDispatch<MessageId, Message = T::Payload>,
+	Storage: ByWeightMessageDispatchStorage,
 {
-	fn process_queued_messages(&mut self) -> Weight {
-		process_scheduled_messages(
-			ByWeightDispatcherRuntimeStorage::<T, I>::default(),
-			ByWeightDispatcherCustomLimits::<T, I>::new(T::MaximumBlockWeight::get() / 10),
-			T::MessageDispatch::default(),
-			crate::Module::<T, I>::process_lane_messages,
-		)
+	fn with_allowed_weight(_weight: Weight) -> Self {
+		unreachable!("only created manually; qed")
+	}
+
+	fn weight_left(&self) -> Weight {
+		self.outer.weight
+	}
+
+	fn dispatch_weight(&self, message: &Message<T::Payload, T::MessageFee>) -> Weight {
+		self.outer.dispatch_weight(message)
+	}
+
+	fn dispatch(&mut self, message: Message<T::Payload, T::MessageFee>) -> MessageResult<T::Payload, T::MessageFee> {
+		let message_result = if !self.force_next_message {
+			self.outer.dispatch(message)
+		} else {
+			self.force_next_message = false;
+			MessageResult::Processed(self.outer.dispatch_unchecked(message))
+		};
+		self.weight_spent = self.weight_spent.saturating_add(message_result.weight_spent());
+		message_result
 	}
 }
 
-/// Process as much scheduled messages, as possible given scheduler parameters and
-/// current block state. This function will always process at least one message if
-/// there are any queued messages in the storage.
-///
-/// The function tries to processes **all** messages of first queued lane. Then it
-/// proceeds to the next lane. If it fails to process all lane messages in single
-/// call, lane is moved to the end of scheduled lanes queue.
-///
-/// **CAUTION**: previous paragraph implies that if underlying dispatcher isn't
-/// processing message for any reason, then all other non-empty lanes would be blocked at
-/// least during this call. So combining this function with implementations of
-/// `MessageDispatch` that have its own logic of message processing, could lead
-/// to significant delays in message dispatch.
-pub fn process_scheduled_messages<Payload, Limits, Dispatcher, ProcessLaneMessages>(
-	mut storage: impl ByWeightDispatcherStorage,
-	limits: Limits,
-	dispatcher: Dispatcher,
-	process_lane_messages: ProcessLaneMessages,
-) -> Weight where
-	Limits: WeightLimits,
-	Dispatcher: OnWeightedMessageReceived<Payload>,
-	ProcessLaneMessages:
-		Fn(&LaneId, &mut ByWeightDispatcher<Payload, ByWeightDispatcherDumpStorage, Dispatcher, Limits>) -> (bool, Weight),
-{
-	let mut total_weight = 0;
-	let mut dispatcher =
-		ByWeightDispatcher::new(ByWeightDispatcherDumpStorage, dispatcher, limits).force_next_message_dispatch();
-	while let Some(lane) = storage.take_next_unprocessed_lane() {
-		let (is_empty_lane, lane_weight) = process_lane_messages(&lane, &mut dispatcher);
-		total_weight += lane_weight;
+/// By-weight message dispatch runtime-backed storage.
+#[derive(RuntimeDebug)]
+pub struct ByWeightMessageDispatchRuntimeStorage<T, I> {
+	_phantom: PhantomData<(T, I)>,
+}
 
-		if !is_empty_lane {
-			storage.append_unprocessed_lane(lane);
-			break;
+impl<T: Trait<I>, I: Instance> Default for ByWeightMessageDispatchRuntimeStorage<T, I> {
+	fn default() -> Self {
+		ByWeightMessageDispatchRuntimeStorage {
+			_phantom: Default::default(),
 		}
 	}
+}
 
-	total_weight
+impl<T: Trait<I>, I: Instance> ByWeightMessageDispatchStorage for ByWeightMessageDispatchRuntimeStorage<T, I> {
+	fn enqueue_lane(&mut self, lane: LaneId) {
+		QueuedInboundLanes::<I>::append(lane);
+	}
+
+	fn take_next_queued_lane(&mut self) -> Option<LaneId> {
+		QueuedInboundLanes::<I>::mutate(|lanes| if lanes.is_empty() { None } else { Some(lanes.remove(0)) })
+	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::inbound_lane;
-	use crate::inbound_lane::InboundLaneStorage;
-	use crate::mock::{run_test, TestMessageProcessor, TestPayload, TestRuntime, PAYLOAD_TO_QUEUE, REGULAR_PAYLOAD, TEST_LANE_ID};
+	use crate::inbound_lane::ReceiveMessageResult;
+	use crate::mock::{
+		run_test, TestMessageDispatch, TestMessageFee, TestPayload, TestRuntime, REGULAR_PAYLOAD, TEST_INSTANCE_ID,
+		TEST_LANE_ID,
+	};
+	use crate::{inbound_lane, DefaultInstance, InboundMessages};
 
-	use frame_support::weights::DispatchClass;
+	use bp_message_lane::{MessageData, MessageKey};
+	use frame_support::StorageMap;
 
-	const CURRENT_WEIGHT: Weight = 1000;
-	const HEAVY_PAYLOAD: TestPayload = (0, 800);
-
-	fn dispatcher() -> ByWeightDispatcher<
-		TestPayload,
-		ByWeightDispatcherRuntimeStorage<TestRuntime, crate::DefaultInstance>,
-		TestMessageProcessor,
-		ByWeightDispatcherRuntimeLimits<TestRuntime, crate::DefaultInstance>,
-	> {
-		ByWeightDispatcher::new(
-			ByWeightDispatcherRuntimeStorage::default(),
-			TestMessageProcessor,
-			ByWeightDispatcherRuntimeLimits::default(),
-		)
+	fn message() -> Message<TestPayload, TestMessageFee> {
+		Message {
+			key: MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 1,
+			},
+			data: MessageData {
+				payload: REGULAR_PAYLOAD,
+				fee: 0,
+			},
+		}
 	}
 
 	#[test]
-	fn by_weight_dispatcher_process_message_immediately_if_it_fits() {
+	fn available_weight_is_decreased_with_every_dispatch() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			let mut dispatcher = dispatcher();
-			assert!(lane.receive_message(1, REGULAR_PAYLOAD, &mut dispatcher));
-			assert_eq!(lane.storage().data().latest_received_nonce, 1);
-			assert_eq!(lane.storage().data().oldest_unprocessed_nonce, 2);
-			assert_eq!(dispatcher.storage.take_next_unprocessed_lane(), None);
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(REGULAR_PAYLOAD.1 * 10 + 42);
+			assert_eq!(
+				dispatch.dispatch(message()),
+				MessageResult::Processed(REGULAR_PAYLOAD.1)
+			);
+			assert_eq!(dispatch.weight_left(), REGULAR_PAYLOAD.1 * 9 + 42);
+			assert_eq!(
+				dispatch.dispatch(message()),
+				MessageResult::Processed(REGULAR_PAYLOAD.1)
+			);
+			assert_eq!(dispatch.weight_left(), REGULAR_PAYLOAD.1 * 8 + 42);
 		});
 	}
 
 	#[test]
-	fn by_weight_dispatcher_enqueues_message_if_it_doesnt_fit() {
+	fn dispatch_weight_returns_correct_weight() {
 		run_test(|| {
-			frame_system::Module::<TestRuntime>::register_extra_weight_unchecked(CURRENT_WEIGHT, DispatchClass::Normal);
-
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			let mut dispatcher = dispatcher();
-			assert!(lane.receive_message(1, HEAVY_PAYLOAD, &mut dispatcher));
-			assert_eq!(lane.storage().data().latest_received_nonce, 1);
-			assert_eq!(lane.storage().data().oldest_unprocessed_nonce, 1);
-			assert_eq!(dispatcher.storage.take_next_unprocessed_lane(), Some(TEST_LANE_ID));
+			assert_eq!(
+				TestMessageDispatch::with_allowed_weight(0).dispatch_weight(&message()),
+				REGULAR_PAYLOAD.1,
+			);
 		});
 	}
 
 	#[test]
-	fn by_weight_dispatcher_enqueues_message_if_it_is_not_processed_by_backend() {
+	fn by_weight_is_not_processing_message_if_not_enough_weight_left() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			let mut dispatcher = dispatcher();
-			assert!(lane.receive_message(1, PAYLOAD_TO_QUEUE, &mut dispatcher));
-			assert_eq!(lane.storage().data().latest_received_nonce, 1);
-			assert_eq!(lane.storage().data().oldest_unprocessed_nonce, 1);
-			assert_eq!(dispatcher.storage.take_next_unprocessed_lane(), Some(TEST_LANE_ID));
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(REGULAR_PAYLOAD.1 - 1);
+			assert_eq!(dispatch.dispatch(message()), MessageResult::NotProcessed(message()));
+			assert_eq!(dispatch.weight_left(), REGULAR_PAYLOAD.1 - 1);
 		});
 	}
 
 	#[test]
-	fn process_scheduled_messages_always_processing_at_least_one_message() {
+	fn queued_by_weight_is_processing_at_least_one_message() {
 		run_test(|| {
-			frame_system::Module::<TestRuntime>::register_extra_weight_unchecked(1000, DispatchClass::Normal);
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(REGULAR_PAYLOAD.1 - 1);
+			let mut inbound_lane = inbound_lane::<TestRuntime, DefaultInstance>(TEST_LANE_ID);
+			assert_eq!(
+				inbound_lane.receive_message(1, message().data, &mut dispatch),
+				ReceiveMessageResult::Queued,
+			);
+			assert_eq!(QueuedInboundLanes::<DefaultInstance>::get(), vec![TEST_LANE_ID]);
 
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			let mut dispatcher = dispatcher();
-			assert!(lane.receive_message(1, HEAVY_PAYLOAD, &mut dispatcher));
-			assert!(lane.receive_message(2, HEAVY_PAYLOAD, &mut dispatcher));
-			assert_eq!(lane.storage().data().latest_received_nonce, 2);
-			assert_eq!(lane.storage().data().oldest_unprocessed_nonce, 1);
+			let mut dispatch = ByWeightMessageDispatch::<TestRuntime, DefaultInstance, TestMessageDispatch, _>::new(
+				ByWeightMessageDispatchRuntimeStorage::<TestRuntime, DefaultInstance>::default(),
+				TEST_INSTANCE_ID,
+				REGULAR_PAYLOAD.1 - 1,
+			);
+			dispatch.dispatch_queued(true);
 
-			process_scheduled_messages(
-				ByWeightDispatcherRuntimeStorage::<TestRuntime, crate::DefaultInstance>::default(),
-				ByWeightDispatcherRuntimeLimits::<TestRuntime, crate::DefaultInstance>::default(),
-				TestMessageProcessor,
-				crate::Module::<TestRuntime, crate::DefaultInstance>::process_lane_messages,
+			assert_eq!(QueuedInboundLanes::<DefaultInstance>::get(), Vec::<LaneId>::new());
+		});
+	}
+
+	#[test]
+	fn queued_by_weight_is_processing_as_much_messages_as_possible() {
+		run_test(|| {
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(0);
+			let mut inbound_lane = inbound_lane::<TestRuntime, DefaultInstance>(TEST_LANE_ID);
+			assert_eq!(
+				inbound_lane.receive_message(1, message().data, &mut dispatch),
+				ReceiveMessageResult::Queued
+			);
+			assert_eq!(
+				inbound_lane.receive_message(2, message().data, &mut dispatch),
+				ReceiveMessageResult::Queued
+			);
+			assert_eq!(
+				inbound_lane.receive_message(3, message().data, &mut dispatch),
+				ReceiveMessageResult::Queued
+			);
+			assert_eq!(
+				inbound_lane.receive_message(4, message().data, &mut dispatch),
+				ReceiveMessageResult::Queued
 			);
 
-			assert_eq!(lane.storage().data().latest_received_nonce, 2);
-			assert_eq!(lane.storage().data().oldest_unprocessed_nonce, 2);
-		});
-	}
+			assert!(InboundMessages::<TestRuntime>::contains_key(&MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 1
+			}));
+			assert!(InboundMessages::<TestRuntime>::contains_key(&MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 2
+			}));
+			assert!(InboundMessages::<TestRuntime>::contains_key(&MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 3
+			}));
+			assert!(InboundMessages::<TestRuntime>::contains_key(&MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 4
+			}));
+			assert_eq!(QueuedInboundLanes::<DefaultInstance>::get(), vec![TEST_LANE_ID]);
 
-	#[test]
-	fn process_scheduled_messages_works_with_custom_limits() {
-		run_test(|| {
-			frame_system::Module::<TestRuntime>::register_extra_weight_unchecked(CURRENT_WEIGHT, DispatchClass::Normal);
-
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			let mut dispatcher = dispatcher();
-			assert!(lane.receive_message(1, HEAVY_PAYLOAD, &mut dispatcher));
-			assert!(lane.receive_message(2, HEAVY_PAYLOAD, &mut dispatcher));
-			assert_eq!(lane.storage().data().latest_received_nonce, 2);
-			assert_eq!(lane.storage().data().oldest_unprocessed_nonce, 1);
-
-			process_scheduled_messages(
-				ByWeightDispatcherRuntimeStorage::<TestRuntime, crate::DefaultInstance>::default(),
-				ByWeightDispatcherCustomLimits::<TestRuntime, crate::DefaultInstance>::new(CURRENT_WEIGHT + HEAVY_PAYLOAD.1 * 2),
-				TestMessageProcessor,
-				crate::Module::<TestRuntime, crate::DefaultInstance>::process_lane_messages,
+			let mut dispatch = ByWeightMessageDispatch::<TestRuntime, DefaultInstance, TestMessageDispatch, _>::new(
+				ByWeightMessageDispatchRuntimeStorage::<TestRuntime, DefaultInstance>::default(),
+				TEST_INSTANCE_ID,
+				REGULAR_PAYLOAD.1 * 4 - 1,
 			);
+			dispatch.dispatch_queued(true);
 
-			assert_eq!(lane.storage().data().latest_received_nonce, 2);
-			assert_eq!(lane.storage().data().oldest_unprocessed_nonce, 3);
-		});
-	}
-
-	#[test]
-	fn process_scheduled_messages_is_able_to_serve_several_lanes() {
-		run_test(|| {
-			frame_system::Module::<TestRuntime>::register_extra_weight_unchecked(CURRENT_WEIGHT, DispatchClass::Normal);
-
-			const TEST_LANE_ID_2: LaneId = [0, 0, 0, 2];
-			const TEST_LANE_ID_3: LaneId = [0, 0, 0, 3];
-
-			let mut dispatcher = dispatcher();
-
-			let mut lane1 = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(lane1.receive_message(1, HEAVY_PAYLOAD, &mut dispatcher));
-			assert!(lane1.receive_message(2, HEAVY_PAYLOAD, &mut dispatcher));
-			assert_eq!(lane1.storage().data().latest_received_nonce, 2);
-			assert_eq!(lane1.storage().data().oldest_unprocessed_nonce, 1);
-
-			let mut lane2 = inbound_lane::<TestRuntime, _>(TEST_LANE_ID_2);
-			assert!(lane2.receive_message(1, HEAVY_PAYLOAD, &mut dispatcher));
-			assert!(lane2.receive_message(2, HEAVY_PAYLOAD, &mut dispatcher));
-			assert!(lane2.receive_message(3, HEAVY_PAYLOAD, &mut dispatcher));
-			assert_eq!(lane2.storage().data().latest_received_nonce, 3);
-			assert_eq!(lane2.storage().data().oldest_unprocessed_nonce, 1);
-
-			let mut lane3 = inbound_lane::<TestRuntime, _>(TEST_LANE_ID_3);
-			assert!(lane3.receive_message(1, HEAVY_PAYLOAD, &mut dispatcher));
-			assert!(lane3.receive_message(2, HEAVY_PAYLOAD, &mut dispatcher));
-			assert_eq!(lane3.storage().data().latest_received_nonce, 2);
-			assert_eq!(lane3.storage().data().oldest_unprocessed_nonce, 1);
-
-			process_scheduled_messages(
-				ByWeightDispatcherRuntimeStorage::<TestRuntime, crate::DefaultInstance>::default(),
-				ByWeightDispatcherCustomLimits::<TestRuntime, crate::DefaultInstance>::new(CURRENT_WEIGHT + HEAVY_PAYLOAD.1 * 6),
-				TestMessageProcessor,
-				crate::Module::<TestRuntime, crate::DefaultInstance>::process_lane_messages,
-			);
-
-			assert_eq!(lane1.storage().data().latest_received_nonce, 2);
-			assert_eq!(lane1.storage().data().oldest_unprocessed_nonce, 3);
-
-			assert_eq!(lane2.storage().data().latest_received_nonce, 3);
-			assert_eq!(lane2.storage().data().oldest_unprocessed_nonce, 4);
-
-			assert_eq!(lane3.storage().data().latest_received_nonce, 2);
-			assert_eq!(lane3.storage().data().oldest_unprocessed_nonce, 2);
-
-			assert_eq!(dispatcher.storage.take_next_unprocessed_lane(), Some(TEST_LANE_ID_3));
-			assert_eq!(dispatcher.storage.take_next_unprocessed_lane(), None);
+			assert!(!InboundMessages::<TestRuntime>::contains_key(&MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 1
+			}));
+			assert!(!InboundMessages::<TestRuntime>::contains_key(&MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 2
+			}));
+			assert!(!InboundMessages::<TestRuntime>::contains_key(&MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 3
+			}));
+			assert!(InboundMessages::<TestRuntime>::contains_key(&MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 4
+			}));
+			assert_eq!(QueuedInboundLanes::<DefaultInstance>::get(), vec![TEST_LANE_ID]);
 		});
 	}
 }
-*/
