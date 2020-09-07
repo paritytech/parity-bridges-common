@@ -21,11 +21,14 @@ use crate::{Module, QueuedInboundLanes, Trait};
 use bp_message_dispatch::MessageDispatch as WrappedMessageDispatch;
 use bp_message_lane::{target_chain::MessageDispatch, LaneId, Message, MessageId, MessageNonce, MessageResult};
 use bp_runtime::InstanceId;
-use frame_support::{RuntimeDebug, storage::StorageValue, traits::Instance, weights::Weight};
+use frame_support::{RuntimeDebug, storage::StorageValue, traits::{Get, Instance}, weights::Weight};
 use sp_std::marker::PhantomData;
 
 /// By-weight message dispatch storage.
 pub trait ByWeightMessageDispatchStorage {
+	/// Returns absolute maximum weight of single message. All messages that have weight above this
+	/// limit are immediately dropped (during dispatch).
+	fn max_dispatch_weight(&self) -> Weight;
 	/// Append message lane to the end of the queue.
 	fn enqueue_lane(&mut self, lane: LaneId);
 	/// Return next queued message lane, removing it from the queue.
@@ -77,6 +80,10 @@ where
 		message: Message<T::Payload, T::MessageFee>,
 	) -> MessageResult<T::Payload, T::MessageFee> {
 		let dispatch_weight = self.dispatch_weight(&message);
+		if dispatch_weight > self.storage.max_dispatch_weight() {
+			return MessageResult::Processed(0);
+		}
+
 		if dispatch_weight > self.weight {
 			self.storage.enqueue_lane(message.key.lane_id);
 			return MessageResult::NotProcessed(message);
@@ -174,6 +181,10 @@ impl<T: Trait<I>, I: Instance> Default for ByWeightMessageDispatchRuntimeStorage
 }
 
 impl<T: Trait<I>, I: Instance> ByWeightMessageDispatchStorage for ByWeightMessageDispatchRuntimeStorage<T, I> {
+	fn max_dispatch_weight(&self) -> Weight {
+		<T as frame_system::Trait>::MaximumExtrinsicWeight::get()
+	}
+
 	fn enqueue_lane(&mut self, lane: LaneId) {
 		QueuedInboundLanes::<I>::append(lane);
 	}
@@ -188,8 +199,8 @@ mod tests {
 	use super::*;
 	use crate::inbound_lane::ReceiveMessageResult;
 	use crate::mock::{
-		run_test, TestMessageDispatch, TestMessageFee, TestPayload, TestRuntime, REGULAR_PAYLOAD, TEST_INSTANCE_ID,
-		TEST_LANE_ID,
+		run_test, TestMessageDispatch, TestMessageFee, TestPayload, TestRuntime, MAX_ALLOWED_WEIGHT, REGULAR_PAYLOAD,
+		TEST_INSTANCE_ID, TEST_LANE_ID,
 	};
 	use crate::{inbound_lane, DefaultInstance, InboundMessages};
 
@@ -331,6 +342,17 @@ mod tests {
 				nonce: 4
 			}));
 			assert_eq!(QueuedInboundLanes::<DefaultInstance>::get(), vec![TEST_LANE_ID]);
+		});
+	}
+
+	#[test]
+	fn too_heavy_message_is_rejected() {
+		run_test(|| {
+			let mut dispatch = TestMessageDispatch::with_allowed_weight(REGULAR_PAYLOAD.1);
+			let mut message = message();
+			message.data.payload.1 = MAX_ALLOWED_WEIGHT;
+			assert_eq!(dispatch.dispatch(message), MessageResult::Processed(0));
+			assert_eq!(dispatch.weight_left(), REGULAR_PAYLOAD.1);
 		});
 	}
 }
