@@ -46,22 +46,22 @@ services:
         BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
 
-  bridge-node-alice: &bridge-node
+  rialto-bridge-node-alice: &rialto-bridge-node
     build:
       context: .
       dockerfile: ./Bridge.Dockerfile
       args:
         BRIDGE_HASH: ${NODE_BRIDGE_HASH:-master}
-        PROJECT: bridge-node
+        PROJECT: rialto-bridge-node
 
-  bridge-node-bob:
-    <<: *bridge-node
+  rialto-bridge-node-bob:
+    <<: *rialto-bridge-node
 
-  bridge-node-charlie:
-    <<: *bridge-node
+  rialto-bridge-node-charlie:
+    <<: *rialto-bridge-node
 
-  bridge-node-dave:
-    <<: *bridge-node
+  rialto-bridge-node-dave:
+    <<: *rialto-bridge-node
 
-  bridge-node-eve:
-    <<: *bridge-node
+  rialto-bridge-node-eve:
+    <<: *rialto-bridge-node

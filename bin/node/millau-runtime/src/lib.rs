@@ -112,8 +112,8 @@ impl_opaque_keys! {
 
 /// This runtime version.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("bridge-node"),
-	impl_name: create_runtime_str!("bridge-node"),
+	spec_name: create_runtime_str!("millau-runtime"),
+	impl_name: create_runtime_str!("millau-runtime"),
 	authoring_version: 1,
 	spec_version: 1,
 	impl_version: 1,

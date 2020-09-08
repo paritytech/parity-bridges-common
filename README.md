@@ -170,7 +170,7 @@ First you'll need to build the bridge node and relay. This can be done as follow
 
 ```bash
 # In `parity-bridges-common` folder
-cargo build -p bridge-node
+cargo build -p rialto-bridge-node
 cargo build -p ethereum-poa-relay
 ```
 
@@ -204,7 +204,7 @@ chains it must be run last.
 ```bash
 # In `parity-bridges-common` folder
 ./scripts/run-openethereum-node.sh
-./scripts/run-bridge-node.sh
+./scripts/run-rialto-bridge-node.sh
 ./scripts/run-eth2sub-relay.sh
 ```
 At this point you should see the relayer submitting blocks from the Ethereum chain
@@ -221,7 +221,7 @@ docker build . -t bridge-relay-dev
 You can also build and run the Substrate based node as follows:
 
 ```bash
-docker build . -t bridge-node-dev --build-arg PROJECT=bridge-node
+docker build . -t bridge-node-dev --build-arg PROJECT=rialto-bridge-node
 ```
 
 To run the Substrate node you can do the following:
@@ -248,15 +248,15 @@ docker run -it poa-relay
 ```
 
 By default the relayer is configured to connect to OpenEthereum `--dev` chain node and Substrate
-`bridge-node` running in `--dev` mode.
+`rialto-bridge-node` running in `--dev` mode.
 
-To build the `bridge-node`:
+To build the `rialto-bridge-node`:
 ```bash
 docker build \
   https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/deployments/rialto/Bridge.Dockerfile \
-  -t bridge-node \
-  --build-arg PROJECT=bridge-node
-docker run -it bridge-node --dev
+  -t rialto-bridge-node \
+  --build-arg PROJECT=rialto-bridge-node
+docker run -it rialto-bridge-node --dev
 ```
 
 And to build `OpenEthereum` with bridge support:

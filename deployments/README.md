@@ -12,8 +12,8 @@
   - `BRIDGE_HASH` - commit hash within that repo (can also be a branch or tag)
   - `ETHEREUM_REPO` - git repository of the OpenEthereum client
   - `ETHEREUM_HASH` - commit hash within that repo (can also be a branch or tag)
-  - `PROJECT` - a project to build withing bridges repo (`bridge-node` or `ethereum-poa-relay`
-    currently)
+  - `PROJECT` - a project to build withing bridges repo (`rialto-bridge-node` or
+    `ethereum-poa-relay` currently)
 
   You can however uncomment `ADD` commands within the docker files to build
   an image from your local sources.
