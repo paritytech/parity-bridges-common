@@ -676,12 +676,12 @@ dependencies = [
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-eth-poa",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures 0.3.5",
  "jsonrpc-core",
  "log",
+ "millau-runtime",
  "pallet-message-lane-rpc",
  "rialto-runtime",
  "sc-basic-authorship",
@@ -3437,6 +3437,53 @@ dependencies = [
 ]
 
 [[package]]
+name = "millau-bridge-node"
+version = "0.1.0"
+dependencies = [
+ "bridge-node",
+]
+
+[[package]]
+name = "millau-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-message-lane",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-bridge-call-dispatch",
+ "pallet-grandpa",
+ "pallet-message-lane",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-staking",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+ "substrate-wasm-builder-runner",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4997,6 +5044,13 @@ name = "retain_mut"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e005d658ad26eacc2b6c506dfde519f4e277e328d0eb3379ca61647d70a8f531"
+
+[[package]]
+name = "rialto-bridge-node"
+version = "0.1.0"
+dependencies = [
+ "bridge-node",
+]
 
 [[package]]
 name = "rialto-runtime"

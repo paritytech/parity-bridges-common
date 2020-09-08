@@ -1,7 +1,9 @@
 [workspace]
 
 members = [
-	"bin/node/node",
+	"bin/node/millau-node",
+	"bin/node/rialto-node",
+	"bin/node/millau-runtime",
 	"bin/node/rialto-runtime",
 	"modules/call-dispatch",
 	"modules/substrate",
