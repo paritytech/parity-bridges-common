@@ -39,8 +39,9 @@ WORKDIR /parity-bridges-common
 ARG BRIDGE_REPO=https://github.com/paritytech/parity-bridges-common
 RUN git clone $BRIDGE_REPO /parity-bridges-common && git checkout master
 
+# TODO: remove || true once PR is merged? Reason: if branch has new projects (rialto-bridge-node) and master has no this project yet (it has bridge-node), build fails
 ARG PROJECT=ethereum-poa-relay
-RUN cargo build --release --verbose -p ${PROJECT}
+RUN cargo build --release --verbose -p ${PROJECT} || true
 
 # Then switch to expected branch and re-build only the stuff that changed.
 ARG BRIDGE_HASH=master
