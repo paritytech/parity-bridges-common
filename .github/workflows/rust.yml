@@ -81,12 +81,12 @@ jobs:
           command:                 clippy
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all-targets -- -D warnings
-      - name:                      Check benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
+      - name:                      Check Rialto benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
-          args:                    --manifest-path ./bin/node/node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+          args:                    --manifest-path ./bin/node/rialto-node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
 
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
