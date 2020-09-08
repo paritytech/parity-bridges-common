@@ -1,8 +1,5 @@
 FROM node:12 as build-deps
 
-ENV SUBSTRATE_PROVIDER wss://wss.rialto.brucke.link
-ENV ETHEREUM_PROVIDER http://rpc.rialto.brucke.link:8545
-ENV EXPECTED_ETHEREUM_NETWORK_ID 105
 
 # install tools and dependencies
 RUN set -eux; \
