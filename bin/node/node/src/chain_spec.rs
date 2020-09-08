@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use grandpa_primitives::AuthorityId as GrandpaId;
 use rialto_runtime::{
 	AccountId, AuraConfig, BalancesConfig, BridgeKovanConfig, BridgeRialtoConfig, GenesisConfig, GrandpaConfig,
 	SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
-use grandpa_primitives::AuthorityId as GrandpaId;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};

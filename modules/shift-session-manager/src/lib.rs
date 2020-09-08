@@ -19,11 +19,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{decl_storage, decl_module};
+use frame_support::{decl_module, decl_storage};
 use sp_std::prelude::*;
 
 /// The module configuration trait.
-pub trait Trait: pallet_session::Trait { }
+pub trait Trait: pallet_session::Trait {}
 
 decl_module! {
 	/// Shift session manager pallet.
@@ -51,12 +51,11 @@ impl<T: Trait> pallet_session::SessionManager<T::ValidatorId> for Module<T> {
 		// in our 'local storage'.
 		// then for every session we select (deterministically) 2/3 of these initial
 		// validators to serve validators of new session
-		let available_validators = InitialValidators::<T>::get()
-			.unwrap_or_else(|| {
-				let validators = <pallet_session::Module<T>>::validators();
-				InitialValidators::<T>::put(validators.clone());
-				validators
-			});
+		let available_validators = InitialValidators::<T>::get().unwrap_or_else(|| {
+			let validators = <pallet_session::Module<T>>::validators();
+			InitialValidators::<T>::put(validators.clone());
+			validators
+		});
 
 		Some(Self::select_validators(session_index, &available_validators))
 	}
@@ -87,21 +86,22 @@ impl<T: Trait> Module<T> {
 
 #[cfg(test)]
 mod tests {
-	use sp_core::H256;
+	use super::*;
 	use frame_support::sp_io::TestExternalities;
 	use frame_support::sp_runtime::{
-		testing::{Header, UintAuthorityId}, traits::{BlakeTwo256, ConvertInto, IdentityLookup},
+		testing::{Header, UintAuthorityId},
+		traits::{BlakeTwo256, ConvertInto, IdentityLookup},
 		Perbill, RuntimeAppPublic,
 	};
 	use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
-	use super::*;
+	use sp_core::H256;
 
 	type AccountId = u64;
 
 	#[derive(Clone, Eq, PartialEq)]
 	pub struct TestRuntime;
 
-	impl_outer_origin!{
+	impl_outer_origin! {
 		pub enum Origin for TestRuntime {}
 	}
 
@@ -166,17 +166,15 @@ mod tests {
 
 		fn on_genesis_session<Ks: sp_runtime::traits::OpaqueKeys>(_validators: &[(AccountId, Ks)]) {}
 
-		fn on_new_session<Ks: sp_runtime::traits::OpaqueKeys>(
-			_: bool,
-			_: &[(AccountId, Ks)],
-			_: &[(AccountId, Ks)],
-		) {}
+		fn on_new_session<Ks: sp_runtime::traits::OpaqueKeys>(_: bool, _: &[(AccountId, Ks)], _: &[(AccountId, Ks)]) {}
 
 		fn on_disabled(_: usize) {}
 	}
 
 	fn new_test_ext() -> TestExternalities {
-		let mut t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+		let mut t = frame_system::GenesisConfig::default()
+			.build_storage::<TestRuntime>()
+			.unwrap();
 		pallet_session::GenesisConfig::<TestRuntime> {
 			keys: vec![
 				(1, 1, UintAuthorityId(1)),
@@ -185,7 +183,9 @@ mod tests {
 				(4, 4, UintAuthorityId(4)),
 				(5, 5, UintAuthorityId(5)),
 			],
-		}.assimilate_storage(&mut t).unwrap();
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
 		TestExternalities::new(t)
 	}
 
@@ -195,34 +195,19 @@ mod tests {
 			let all_accs = vec![1, 2, 3, 4, 5];
 
 			// at least 1 validator is selected
-			assert_eq!(
-				Module::<TestRuntime>::select_validators(0, &[1]),
-				vec![1],
-			);
+			assert_eq!(Module::<TestRuntime>::select_validators(0, &[1]), vec![1],);
 
 			// at session#0, shift is also 0
-			assert_eq!(
-				Module::<TestRuntime>::select_validators(0, &all_accs),
-				vec![1, 2, 3],
-			);
+			assert_eq!(Module::<TestRuntime>::select_validators(0, &all_accs), vec![1, 2, 3],);
 
 			// at session#1, shift is also 1
-			assert_eq!(
-				Module::<TestRuntime>::select_validators(1, &all_accs),
-				vec![2, 3, 4],
-			);
+			assert_eq!(Module::<TestRuntime>::select_validators(1, &all_accs), vec![2, 3, 4],);
 
 			// at session#3, we're wrapping
-			assert_eq!(
-				Module::<TestRuntime>::select_validators(3, &all_accs),
-				vec![4, 5, 1],
-			);
+			assert_eq!(Module::<TestRuntime>::select_validators(3, &all_accs), vec![4, 5, 1],);
 
 			// at session#5, we're starting from the beginning again
-			assert_eq!(
-				Module::<TestRuntime>::select_validators(5, &all_accs),
-				vec![1, 2, 3],
-			);
+			assert_eq!(Module::<TestRuntime>::select_validators(5, &all_accs), vec![1, 2, 3],);
 		});
 	}
 }
