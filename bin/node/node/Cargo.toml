@@ -158,3 +158,6 @@ millau = [
 rialto = [
 	"rialto-runtime",
 ]
+runtime-benchmarks = [
+	"rialto-runtime/runtime-benchmarks",
+]
