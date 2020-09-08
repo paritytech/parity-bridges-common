@@ -21,7 +21,8 @@ RUN update-ca-certificates && \
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV LAST_RUST_UPDATE 2020-06-22
 
-RUN rustup update stable && \
+RUN rustup toolchain uninstall stable && \
+	rustup update stable && \
 	rustup install nightly && \
 	rustup target add wasm32-unknown-unknown --toolchain nightly
 
