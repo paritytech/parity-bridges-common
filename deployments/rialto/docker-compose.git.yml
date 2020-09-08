@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: ./OpenEthereum.Dockerfile
       args:
-        ETHEREUM_HASH: ${ETHEREUM_HASH:-4fecaa56da067e4c62aee76a6afb6be52754c1cf}
+        ETHEREUM_HASH: ${ETHEREUM_HASH:-344991dbba2bc8657b00916f0e4b029c66f159e8}
         BRIDGE_HASH: ${ETH_BRIDGE_HASH:-master}
 
   poa-node-bertha:
