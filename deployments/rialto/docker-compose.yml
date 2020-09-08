@@ -215,3 +215,9 @@ services:
       - "4567:4567"
     depends_on:
       - grafana-dashboard
+  front-end:
+    build:
+      context: .
+      dockerfile: ./Front-end.Dockerfile
+    ports:
+      - "80:80"
