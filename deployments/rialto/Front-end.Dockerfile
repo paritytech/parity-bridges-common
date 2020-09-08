@@ -9,6 +9,9 @@ RUN set -eux; \
 RUN cd /usr/src/ && git clone https://github.com/paritytech/bridge-ui.git
 WORKDIR /usr/src/bridge-ui
 RUN yarn
+ENV SUBSTRATE_PROVIDER wss://wss.rialto.brucke.link
+ENV ETHEREUM_PROVIDER http://rpc.rialto.brucke.link:8545
+ENV EXPECTED_ETHEREUM_NETWORK_ID 105
 RUN yarn build:docker
 
 # Stage 2 - the production environment
