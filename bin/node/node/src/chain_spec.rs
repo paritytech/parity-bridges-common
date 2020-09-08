@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bridge_node_runtime::{
+use rialto_runtime::{
 	AccountId, AuraConfig, BalancesConfig, BridgeKovanConfig, BridgeRialtoConfig, GenesisConfig, GrandpaConfig,
 	SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
@@ -169,16 +169,16 @@ fn testnet_genesis(
 
 fn load_rialto_bridge_config() -> Option<BridgeRialtoConfig> {
 	Some(BridgeRialtoConfig {
-		initial_header: bridge_node_runtime::rialto::genesis_header(),
+		initial_header: rialto_runtime::rialto::genesis_header(),
 		initial_difficulty: 0.into(),
-		initial_validators: bridge_node_runtime::rialto::genesis_validators(),
+		initial_validators: rialto_runtime::rialto::genesis_validators(),
 	})
 }
 
 fn load_kovan_bridge_config() -> Option<BridgeKovanConfig> {
 	Some(BridgeKovanConfig {
-		initial_header: bridge_node_runtime::kovan::genesis_header(),
+		initial_header: rialto_runtime::kovan::genesis_header(),
 		initial_difficulty: 0.into(),
-		initial_validators: bridge_node_runtime::kovan::genesis_validators(),
+		initial_validators: rialto_runtime::kovan::genesis_validators(),
 	})
 }

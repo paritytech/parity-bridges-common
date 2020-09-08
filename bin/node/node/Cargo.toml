@@ -19,9 +19,9 @@ log = "0.4.11"
 pallet-message-lane-rpc = { version = "0.1.0", path = "../../../modules/message-lane/rpc" }
 structopt = "0.3.17"
 
-[dependencies.bridge-node-runtime]
+[dependencies.rialto-runtime]
 version = "0.1.0"
-path = "../runtime"
+path = "../rialto-runtime"
 default-features = false
 features = ["std"]
 
@@ -149,5 +149,5 @@ git = "https://github.com/paritytech/substrate.git"
 [features]
 default = []
 runtime-benchmarks = [
-	"bridge-node-runtime/runtime-benchmarks",
+	"rialto-runtime/runtime-benchmarks",
 ]

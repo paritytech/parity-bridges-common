@@ -677,13 +677,13 @@ name = "bridge-node"
 version = "0.1.0"
 dependencies = [
  "bp-eth-poa",
- "bridge-node-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures 0.3.5",
  "jsonrpc-core",
  "log",
  "pallet-message-lane-rpc",
+ "rialto-runtime",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -706,51 +706,6 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "vergen",
-]
-
-[[package]]
-name = "bridge-node-runtime"
-version = "0.1.0"
-dependencies = [
- "bp-currency-exchange",
- "bp-eth-poa",
- "bp-header-chain",
- "bp-message-lane",
- "frame-benchmarking",
- "frame-executive",
- "frame-support",
- "frame-system",
- "frame-system-rpc-runtime-api",
- "hex-literal 0.3.1",
- "libsecp256k1",
- "pallet-aura",
- "pallet-balances",
- "pallet-bridge-call-dispatch",
- "pallet-bridge-currency-exchange",
- "pallet-bridge-eth-poa",
- "pallet-grandpa",
- "pallet-message-lane",
- "pallet-randomness-collective-flip",
- "pallet-session",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "serde",
- "sp-api",
- "sp-block-builder",
- "sp-consensus-aura",
- "sp-core",
- "sp-inherents",
- "sp-io",
- "sp-offchain",
- "sp-runtime",
- "sp-session",
- "sp-staking",
- "sp-std",
- "sp-transaction-pool",
- "sp-version",
- "substrate-wasm-builder-runner",
 ]
 
 [[package]]
@@ -1345,12 +1300,12 @@ dependencies = [
 name = "ethereum-contract-builtin"
 version = "0.1.0"
 dependencies = [
- "bridge-node-runtime",
  "ethereum-types",
  "finality-grandpa",
  "hex",
  "log",
  "parity-scale-codec",
+ "rialto-runtime",
  "sc-finality-grandpa",
  "sp-blockchain",
  "sp-core",
@@ -1369,7 +1324,6 @@ dependencies = [
  "backoff",
  "bp-currency-exchange",
  "bp-eth-poa",
- "bridge-node-runtime",
  "clap",
  "env_logger",
  "ethabi",
@@ -1389,6 +1343,7 @@ dependencies = [
  "parity-crypto",
  "parity-scale-codec",
  "parking_lot 0.11.0",
+ "rialto-runtime",
  "rustc-hex",
  "serde",
  "serde_json",
@@ -5042,6 +4997,51 @@ name = "retain_mut"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e005d658ad26eacc2b6c506dfde519f4e277e328d0eb3379ca61647d70a8f531"
+
+[[package]]
+name = "rialto-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-currency-exchange",
+ "bp-eth-poa",
+ "bp-header-chain",
+ "bp-message-lane",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "libsecp256k1",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-bridge-call-dispatch",
+ "pallet-bridge-currency-exchange",
+ "pallet-bridge-eth-poa",
+ "pallet-grandpa",
+ "pallet-message-lane",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-staking",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+ "substrate-wasm-builder-runner",
+]
 
 [[package]]
 name = "ring"

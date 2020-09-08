@@ -2,7 +2,7 @@
 
 members = [
 	"bin/node/node",
-	"bin/node/runtime",
+	"bin/node/rialto-runtime",
 	"modules/call-dispatch",
 	"modules/substrate",
 	"modules/ethereum",

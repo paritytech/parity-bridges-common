@@ -13,7 +13,7 @@ PoA chains to Substrate. We're working on expanding this functionality in the fu
 ## Contents
 - [Installation](#installation)
 - [Project Layout](#project-layout)
-- [Bridge Node Runtime](#bridge-node-runtime)
+- [Rialto Runtime](#rialto-runtime)
 - [Ethereum Node](#ethereum-node)
 - [Bridge Relay](#bridge-relay)
 - [Running the Bridge](#running-the-bridge)
@@ -60,7 +60,7 @@ the `relays` which are used to pass messages between chains.
 │  └── substrate         // 🚧 WIP 🚧
 ```
 
-## Bridge Node Runtime
+## Rialto Runtime
 The node runtime consists of several runtime modules, however not all of them are used at the same
 time. When running an Ethereum PoA to Substrate bridge the modules required are the Ethereum module
 and the currency exchange module. When running a Substrate to Substrate bridge the Substrate and
