@@ -43,10 +43,7 @@ fn writing_to_storage_works() {
 	run_test(|| {
 		let mut storage = PalletStorage::<TestRuntime>::new();
 		let header = <TestRuntime as frame_system::Trait>::Header::new_from_number(1);
-		let imported_header = ImportedHeader {
-			header: header.clone(),
-			is_finalized: false,
-		};
+		let imported_header = ImportedHeader::new(header.clone(), false, false);
 		storage.write_header(&imported_header);
 
 		let hash = header.hash();

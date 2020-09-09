@@ -244,13 +244,13 @@ mod tests {
 		let mut imported_headers = vec![];
 		let genesis = TestHeader::new_from_number(0);
 		<BestFinalized<TestRuntime>>::put(&genesis);
-		storage.write_header(&ImportedHeader::new(genesis.clone(), true));
+		storage.write_header(&ImportedHeader::new(genesis.clone(), false, true));
 		imported_headers.push(genesis);
 
 		for (num, finalized) in headers {
 			let mut h = TestHeader::new_from_number(num);
 			h.parent_hash = imported_headers.last().unwrap().hash();
-			storage.write_header(&ImportedHeader::new(h.clone(), finalized));
+			storage.write_header(&ImportedHeader::new(h.clone(), false, finalized));
 			imported_headers.push(h);
 		}
 
@@ -293,11 +293,7 @@ mod tests {
 			let header = TestHeader::new_from_number(1);
 			<BestFinalized<TestRuntime>>::put(&header);
 
-			let imported_header = ImportedHeader {
-				header: header.clone(),
-				is_finalized: true,
-			};
-
+			let imported_header = ImportedHeader::new(header.clone(), false, false);
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
 
 			assert_err!(
@@ -315,11 +311,7 @@ mod tests {
 			let parent_hash = parent.hash();
 			<BestFinalized<TestRuntime>>::put(&parent);
 
-			let imported_header = ImportedHeader {
-				header: parent,
-				is_finalized: true,
-			};
-
+			let imported_header = ImportedHeader::new(parent.clone(), false, true);
 			<ImportedHeaders<TestRuntime>>::insert(parent_hash, &imported_header);
 
 			let mut header = TestHeader::new_from_number(2);
@@ -459,8 +451,8 @@ mod tests {
 				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
 			};
 
-			// assert!(Verifier::import_header(&mut storage, &header, Some(&[4, 2])).is_ok());
 			assert!(Verifier::import_header(&mut storage, &header).is_ok());
+			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
 
 			// Make sure we marked the our headers as finalized
 			assert!(

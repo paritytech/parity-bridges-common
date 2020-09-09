@@ -219,6 +219,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	fn import_unfinalized_header(&mut self, header: T::Header) {
 		let h = ImportedHeader {
 			header,
+			requires_justification: false,
 			is_finalized: false,
 		};
 
