@@ -233,7 +233,7 @@ pub async fn run<P: MessageRace>(
 				).fail_if_connection_error(FailedClient::Target)?;
 			},
 
-			// proof generation and submittal
+			// proof generation and submission
 			proof = source_generate_proof => {
 				source_client_is_online = process_future_result(
 					proof,
