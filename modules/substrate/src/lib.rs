@@ -76,19 +76,40 @@ decl_module! {
 
 		/// Import a signed Substrate header into the runtime.
 		///
-		/// Will check for finality proofs, and if available finalize any already imported
-		/// headers which are finalized by the newly imported header.
+		/// This will perform some basic checks to make sure it is fine to
+		/// import into the runtime. However, it does not perform any checks
+		/// related to finality.
 		#[weight = 0]
 		pub fn import_signed_header(
 			origin,
 			header: T::Header,
-			finality_proof: Option<Vec<u8>>,
 		) -> dispatch::DispatchResult {
 			let _ = ensure_signed(origin)?;
 
 			let mut storage = PalletStorage::<T>::new();
 			let _ =
-				verifier::Verifier::import_header(&mut storage, &header, None).map_err(|_| <Error<T>>::InvalidHeader)?;
+				verifier::Verifier::import_header(&mut storage, &header).map_err(|_| <Error<T>>::InvalidHeader)?;
+
+			Ok(())
+		}
+
+		/// Import a finalty proof for a particular header.
+		///
+		/// This will take care of finalizing any already imported headers
+		/// which get finalized when importing this particular proof, as well
+		/// as updating the current and next validator sets.
+		#[weight = 0]
+		pub fn finalized_header(
+			origin,
+			hash: Hash<T::Header>,
+			finality_proof: Vec<u8>,
+		) -> dispatch::DispatchResult {
+			let _ = ensure_signed(origin)?;
+
+			let mut storage = PalletStorage::<T>::new();
+			let _ =
+				verifier::Verifier::verify_finality(&mut storage, hash, &finality_proof)
+				.map_err(|_| <Error<T>>::UnfinalizedHeader)?;
 
 			Ok(())
 		}
@@ -113,6 +134,9 @@ pub trait BridgeStorage {
 	///
 	/// Returns None if there are no finalized headers.
 	fn best_finalized_header(&self) -> Option<Self::Header>;
+
+	/// Update the best finalized header the pallet knows of.
+	fn update_best_finalized(&self, header: &Self::Header);
 
 	/// Check if a particular header is known to the pallet.
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
@@ -161,6 +185,10 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 	fn best_finalized_header(&self) -> Option<T::Header> {
 		<BestFinalized<T>>::get()
+	}
+
+	fn update_best_finalized(&self, header: &T::Header) {
+		<BestFinalized<T>>::put(header)
 	}
 
 	fn header_exists(&self, hash: Hash<T::Header>) -> bool {

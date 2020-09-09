@@ -34,6 +34,8 @@ pub enum ImportError {
 	OldHeader,
 	/// This header has already been imported by the pallet.
 	HeaderAlreadyExists,
+	/// This header has never been imported by the pallet.
+	UnknownHeader,
 	/// We're missing a parent for this header.
 	MissingParent,
 	/// We were unable to prove finality for this header.
@@ -47,14 +49,12 @@ pub enum ImportError {
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.
-pub trait ChainVerifier<S, H> {
+pub trait ChainVerifier<S, H: HeaderT> {
 	/// Import a header to the pallet.
-	fn import_header(storage: &mut S, header: &H, finality_proof: Option<FinalityProof>) -> Result<(), ImportError>;
+	fn import_header(storage: &mut S, header: &H) -> Result<(), ImportError>;
 
 	/// Verify that the given header has been finalized and is part of the canonical chain.
-	///
-	/// Returns a list of headers which got finalized by the given header.
-	fn verify_finality(storage: &mut S, header: &H, proof: FinalityProof) -> Result<Vec<H>, ImportError>;
+	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), ImportError>;
 }
 
 /// Used to verify imported headers and their finality status.
@@ -66,7 +66,7 @@ where
 	S: BridgeStorage<Header = H>,
 	H: HeaderT,
 {
-	fn import_header(storage: &mut S, header: &H, finality_proof: Option<FinalityProof>) -> Result<(), ImportError> {
+	fn import_header(storage: &mut S, header: &H) -> Result<(), ImportError> {
 		let highest_finalized = storage.best_finalized_header().expect("TODO");
 		if header.number() < highest_finalized.number() {
 			return Err(ImportError::OldHeader);
@@ -86,44 +86,55 @@ where
 		//
 		// This defaults to 0, should it maybe be an Option?
 		let scheduled_change_height = storage.scheduled_set_change().height;
-		if *header.number() == scheduled_change_height && finality_proof.is_some() {
-			// Maybe pass the scheduled_change in here so we don't have to query storage later
-			let finalized_headers = Self::verify_finality(
-				storage,
-				header,
-				finality_proof.expect("Checked for `finality_proof` before entering if-block"),
-			)?;
 
-			// TODO: Would need to prune blocks from the non-canonical chain at some point
-			for header in finalized_headers.iter() {
-				storage.write_header(&ImportedHeader::new(header.clone(), true));
-			}
-
-			return Ok(());
-		}
+		// Here we'll mark that a header requires justification
+		// Not sure if we want to add it to a seperate queue just yet
+		// Might make sense to add it to a double map, where the first key could
+		// be the headers that require justification
+		let requires_justification = *header.number() == scheduled_change_height;
+		let is_finalized = false;
 
 		// Don't like having to take ownership of header...
-		storage.write_header(&ImportedHeader::new(header.clone(), false));
+		storage.write_header(&ImportedHeader::new(
+			header.clone(),
+			requires_justification,
+			is_finalized,
+		));
 
 		Ok(())
 	}
 
-	fn verify_finality(storage: &mut S, header: &H, proof: FinalityProof) -> Result<Vec<H>, ImportError> {
+	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), ImportError> {
+		let header = storage
+			.get_header_by_hash(hash)
+			.ok_or(ImportError::UnknownHeader)?
+			.header;
 		let current_authority_set = storage.current_authority_set();
 
+		// Q: If this goes through OK is that enough assurance that we're at the
+		// correct "current_authority_set"?
 		let is_finalized = prove_finality(&header, &current_authority_set, proof);
 		if !is_finalized {
 			return Err(ImportError::UnfinalizedHeader);
 		}
 
 		let last_finalized = storage.best_finalized_header().expect("TODO");
-		if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
+		let finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
 			let current_set_id = current_authority_set.set_id;
-			update_authority_set(storage, header, current_set_id)?;
-			Ok(ancestors)
+			update_authority_set(storage, &header, current_set_id)?;
+			ancestors
 		} else {
-			Err(ImportError::AncestryCheckFailed)
+			return Err(ImportError::AncestryCheckFailed);
+		};
+
+		// TODO: Would need to prune blocks from the non-canonical chain at some point
+		for header in finalized_headers.iter() {
+			storage.write_header(&ImportedHeader::new(header.clone(), false, true));
 		}
+
+		storage.update_best_finalized(finalized_headers.last().expect("TODO"));
+
+		Ok(())
 	}
 }
 
@@ -254,10 +265,7 @@ mod tests {
 			<BestFinalized<TestRuntime>>::put(&parent);
 
 			let header = TestHeader::new_from_number(1);
-			assert_err!(
-				Verifier::import_header(&mut storage, &header, None),
-				ImportError::OldHeader
-			);
+			assert_err!(Verifier::import_header(&mut storage, &header), ImportError::OldHeader);
 		})
 	}
 
@@ -272,7 +280,7 @@ mod tests {
 			let header = TestHeader::new_from_number(2);
 
 			assert_err!(
-				Verifier::import_header(&mut storage, &header, None),
+				Verifier::import_header(&mut storage, &header),
 				ImportError::MissingParent
 			);
 		})
@@ -293,7 +301,7 @@ mod tests {
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
 
 			assert_err!(
-				Verifier::import_header(&mut storage, &header, None),
+				Verifier::import_header(&mut storage, &header),
 				ImportError::HeaderAlreadyExists
 			);
 		})
@@ -316,7 +324,7 @@ mod tests {
 
 			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = parent_hash;
-			assert_ok!(Verifier::import_header(&mut storage, &header, None));
+			assert_ok!(Verifier::import_header(&mut storage, &header));
 
 			let stored_header = storage.get_header_by_hash(header.hash());
 			assert!(stored_header.is_some());
@@ -451,7 +459,8 @@ mod tests {
 				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
 			};
 
-			assert!(Verifier::import_header(&mut storage, &header, Some(&[4, 2])).is_ok());
+			// assert!(Verifier::import_header(&mut storage, &header, Some(&[4, 2])).is_ok());
+			assert!(Verifier::import_header(&mut storage, &header).is_ok());
 
 			// Make sure we marked the our headers as finalized
 			assert!(

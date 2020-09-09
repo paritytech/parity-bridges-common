@@ -49,12 +49,17 @@ impl<N> ScheduledChange<N> {
 #[derive(Default, Encode, Decode, Clone, RuntimeDebug, PartialEq)]
 pub struct ImportedHeader<H: HeaderT> {
 	pub header: H,
+	pub requires_justification: bool,
 	pub is_finalized: bool,
 }
 
 impl<H: HeaderT> ImportedHeader<H> {
-	pub fn new(header: H, is_finalized: bool) -> Self {
-		Self { header, is_finalized }
+	pub fn new(header: H, requires_justification: bool, is_finalized: bool) -> Self {
+		Self {
+			header,
+			requires_justification,
+			is_finalized,
+		}
 	}
 }
 
