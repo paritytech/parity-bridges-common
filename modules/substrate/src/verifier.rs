@@ -533,4 +533,23 @@ mod tests {
 			);
 		})
 	}
+
+	#[ignore]
+	#[test]
+	fn does_not_import_future_justification() {
+		run_test(|| {
+			// Another thing we want to test is that we don't import a justification for a future
+			// set. If we haven't imported the justification for N, we should not be allowed
+			// to import the justification for N+2 until we receive the one for N.
+			//
+			// [G] <- [N-1] <- [N] <- [N+1] <- [N+2]
+			//                  |                |- Also needs justification
+			//                  |- Scheduled change here, needs justification
+			//
+			// Leaving this as a glorified TODO until we can actually verifiy finality proofs, since
+			// I think that's going to affect this check.
+
+			todo!()
+		})
+	}
 }
