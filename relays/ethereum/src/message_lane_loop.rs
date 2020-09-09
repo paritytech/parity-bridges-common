@@ -287,15 +287,10 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 			}
 		}
 
-		if target_client_is_online {
-			target_client_is_online = false;
-
-			if target_state_required {
+		if target_client_is_online && target_state_required {
 				log::debug!(target: "bridge", "Asking {} node about its state", P::TARGET_NAME);
 				target_state.set(target_client.state().fuse());
-			} else {
-				target_client_is_online = true;
-			}
+				target_client_is_online = false;
 		}
 	}
 }
