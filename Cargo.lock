@@ -741,6 +741,7 @@ dependencies = [
  "pallet-message-lane",
  "pallet-randomness-collective-flip",
  "pallet-session",
+ "pallet-shift-session-manager",
  "pallet-substrate-bridge",
  "pallet-sudo",
  "pallet-timestamp",
@@ -4093,6 +4094,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-shift-session-manager"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-session",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
@@ -4103,9 +4118,11 @@ dependencies = [
  "hash-db",
  "parity-scale-codec",
  "serde",
+ "sp-core",
  "sp-finality-grandpa",
  "sp-io",
  "sp-runtime",
+ "sp-state-machine",
  "sp-std",
  "sp-trie",
 ]
