@@ -285,18 +285,33 @@ pub async fn run<P: MessageRace>(
 		if source_client_is_online {
 			source_client_is_online = false;
 
-			if let Some(nonces_range) = strategy.select_nonces_to_deliver(&race_state) {
+			let nonces_to_deliver = race_state
+				.source_state
+				.as_ref()
+				.and_then(|source_state| strategy
+					.select_nonces_to_deliver(&race_state)
+					.map(|nonces_range| (
+						source_state.best_self.clone(),
+						nonces_range,
+					))
+				);
+
+			if let Some((at_block, nonces_range)) = nonces_to_deliver {
 				log::debug!(
 					target: "bridge",
 					"Asking {} to prove nonces in range {:?}",
 					P::source_name(),
 					nonces_range,
 				);
-				let at_block = race_state.source_state.as_ref().expect("TODO").best_self.clone();
 				source_generate_proof.set(race_source.generate_proof(at_block, nonces_range).fuse());
 			} else if source_latest_nonce_required {
 				log::debug!(target: "bridge", "Asking {} about latest generated message nonce", P::source_name());
-				let at_block = race_state.source_state.as_ref().expect("TODO").best_self.clone();
+				let at_block = race_state
+					.source_state
+					.as_ref()
+					.expect("source_latest_nonce_required is only true when source_state is Some; qed")
+					.best_self
+					.clone();
 				source_latest_nonce.set(race_source.latest_nonce(at_block).fuse());
 			} else {
 				source_client_is_online = true;
@@ -321,7 +336,12 @@ pub async fn run<P: MessageRace>(
 			}
 			if target_latest_nonce_required {
 				log::debug!(target: "bridge", "Asking {} about latest nonce", P::target_name());
-				let at_block = race_state.target_state.as_ref().expect("TODO").best_self.clone();
+				let at_block = race_state
+					.target_state
+					.as_ref()
+					.expect("target_latest_nonce_required is only true when target_state is Some; qed")
+					.best_self
+					.clone();
 				target_latest_nonce.set(race_target.latest_nonce(at_block).fuse());
 			} else {
 				target_client_is_online = true;
