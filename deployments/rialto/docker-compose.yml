@@ -220,8 +220,8 @@ services:
       context: .
       dockerfile: ./Front-end.Dockerfile
       args:
-        SUBSTRATE_PROVIDER: ${UI_SUBSTRATE_PROVIDER:-ws://localhost:9933}
-        ETHEREUM_PROVIDER: ${UI_ETHEREUM_PROVIDER:-http://localhost:8545}
+        SUBSTRATE_PROVIDER: ${UI_SUBSTRATE_PROVIDER:-ws://bridge-node-alice:9944}
+        ETHEREUM_PROVIDER: ${UI_ETHEREUM_PROVIDER:-http://poa-node-arthur:8545}
         EXPECTED_ETHEREUM_NETWORK_ID: ${UI_EXPECTED_ETHEREUM_NETWORK_ID:-105}
 
     ports:
