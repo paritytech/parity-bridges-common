@@ -185,11 +185,10 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			return;
 		}
 
-		while self
+		while let Some(true) = self
 			.source_queue
 			.front()
 			.map(|(_, source_nonce)| *source_nonce <= nonce)
-			.unwrap_or(false)
 		{
 			self.source_queue.pop_front();
 		}
