@@ -4102,7 +4102,9 @@ version = "0.1.0"
 dependencies = [
  "hash-db",
  "serde",
+ "sp-core",
  "sp-runtime",
+ "sp-state-machine",
  "sp-trie",
 ]
 
