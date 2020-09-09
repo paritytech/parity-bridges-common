@@ -219,9 +219,9 @@ services:
     build:
       context: .
       dockerfile: ./Front-end.Dockerfile
-      environment:
-        SUBSTRATE_PROVIDER:  ${UI_SUBSTRATE_PROVIDER:-ws://localhost:9933}
-        ETHEREUM_PROVIDER: ${UI_ETHEREUM_PROVIDER:-http://localhost:8545}	      
-        EXPECTED_ETHEREUM_NETWORK_ID: 105
+    environment:
+      SUBSTRATE_PROVIDER: ${UI_SUBSTRATE_PROVIDER:-ws://localhost:9933}
+      ETHEREUM_PROVIDER: ${UI_ETHEREUM_PROVIDER:-http://localhost:8545}
+      EXPECTED_ETHEREUM_NETWORK_ID: 105
     ports:
       - "8080:80"
