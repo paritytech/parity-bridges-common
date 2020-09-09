@@ -27,7 +27,7 @@
 
 use crate::verifier::ChainVerifier;
 use bp_substrate::{AuthoritySet, ImportedHeader, ScheduledChange};
-use frame_support::{decl_error, decl_module, decl_storage, dispatch};
+use frame_support::{decl_error, decl_module, decl_storage, dispatch, traits::Get};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, prelude::*};
@@ -44,7 +44,13 @@ mod tests;
 type Hash<T> = <T as HeaderT>::Hash;
 type Number<T> = <T as HeaderT>::Number;
 
-pub trait Trait: frame_system::Trait {}
+pub struct DummyConfig;
+
+pub trait Trait: frame_system::Trait {
+	type InitialHeader: Get<Self::Header>;
+	type ValidatorsConfiguration: Get<AuthoritySet>;
+	type NextScheduledChange: Get<ScheduledChange<Self::BlockNumber>>;
+}
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
@@ -58,6 +64,16 @@ decl_storage! {
 		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change.
 		NextScheduledChange: ScheduledChange<Number<T::Header>>;
+	}
+	add_extra_genesis {
+		config(initial_header): Option<T::Header>;
+		// config(initial_authority_set): Option<AuthoritySet>;
+		// config(first_scheduled_change): ScheduledChange<Number<T::Header>>;
+		build(|config| {
+			assert!(config.initial_header.is_some(), "Need initial header");
+			// assert!(config.initial_authority_set.is_some(), "Need initial header");
+			// assert!(config.initial_header.is_some(), "Need initial header");
+		})
 	}
 }
 
