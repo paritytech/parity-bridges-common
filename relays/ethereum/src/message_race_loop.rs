@@ -11,7 +11,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-//! Message confirm (either receiving or processing) race within one-way message lane.
+//! Loop that is serving single race within message lane. This could be
+//! message delivery race, receiving confirmations race or processing
+//! confirmations race.
+//!
+//! The idea of the race is simple - we have `nonce`-s on source and target
+//! nodes. We're trying to prove that the source node has this nonce (and
+//! associated data - like messages, lane state, etc) to the terget node by
+//! generating and submitting proof.
 
 // Until there'll be actual message-lane in the runtime.
 #![allow(dead_code)]
