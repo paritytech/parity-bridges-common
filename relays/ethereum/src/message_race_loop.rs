@@ -112,8 +112,8 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
 		nonce: MessageNonce,
 		race_state: &mut RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof>,
 	);
-	/// Should return `Some(_)` with if we need to deliver proof of given nonces from
-	/// source to target node.
+	/// Should return `Some(nonces)` if we need to deliver proof of `nonces` (and associated
+	/// data) from source to target node.
 	fn select_nonces_to_deliver(
 		&mut self,
 		race_state: &RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof>,
