@@ -172,10 +172,6 @@ impl ProcessFutureResult {
 }
 
 /// Process result of the future from a client.
-///
-/// Returns bool which means whether or not the client we're interacting with
-/// is online. In this context what online means is that the client is currently not
-/// handling any other requests that we've previously sent.
 pub(crate) fn process_future_result<TResult, TError, TGoOfflineFuture>(
 	result: Result<TResult, TError>,
 	retry_backoff: &mut ExponentialBackoff,
