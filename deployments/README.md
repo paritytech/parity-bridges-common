@@ -107,7 +107,7 @@ dashboard can be accessed at `http://localhost:9090`. The Grafana dashboard can 
 
 Here is an example `.env` file which is used for production deployments and network updates. For
 security reasons it is not kept as part of version control. When deploying the network this
-file should be correctly populated and kept in the [`rialto`](./rialto) folder. The `UI_*` variables let you define the urls of the nodes that the user interface will connect to. Per default, it will connect to the local substrate and ethereum nodes, using their default RPC port.
+file should be correctly populated and kept in the [`rialto`](./rialto) folder. The `UI_*_PROVIDER` variables let you define the urls of the nodes that the user interface will connect to. Per default, it will connect to the local substrate and ethereum nodes, using their default RPC port. UI_EXPECTED_ETHEREUM_NETWORK_ID should be set to the ethereum network id. This is used by the user interface to prevent users from connecting their Metamask account to another network.
 
 ```bash
 GRAFANA_ADMIN_PASS=admin_pass
@@ -122,6 +122,7 @@ NODE_BRIDGE_HASH=00698187dcabbd6836e7b5339c03c38d1d80efed
 RELAY_BRIDGE_HASH=00698187dcabbd6836e7b5339c03c38d1d80efed
 UI_SUBSTRATE_PROVIDER=ws://localhost:9933
 UI_ETHEREUM_PROVIDER=http://localhost:8545
+UI_EXPECTED_ETHEREUM_NETWORK_ID=105
 ```
 
 ### UI
