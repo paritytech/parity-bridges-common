@@ -1,6 +1,5 @@
 FROM node:12 as build-deps
 
-
 # install tools and dependencies
 RUN set -eux; \
 	apt-get install -y git
@@ -9,9 +8,16 @@ RUN set -eux; \
 RUN cd /usr/src/ && git clone https://github.com/paritytech/bridge-ui.git
 WORKDIR /usr/src/bridge-ui
 RUN yarn
-ENV SUBSTRATE_PROVIDER wss://wss.rialto.brucke.link
-ENV ETHEREUM_PROVIDER http://rpc.rialto.brucke.link:8545
-ENV EXPECTED_ETHEREUM_NETWORK_ID 105
+ARG SUBSTRATE_PROVIDER
+ARG ETHEREUM_PROVIDER
+ARG EXPECTED_ETHEREUM_NETWORK_ID
+
+ENV SUBSTRATE_PROVIDER $SUBSTRATE_PROVIDER
+ENV ETHEREUM_PROVIDER $ETHEREUM_PROVIDER
+ENV EXPECTED_ETHEREUM_NETWORK_ID $EXPECTED_ETHEREUM_NETWORK_ID
+
+RUN echo $SUBSTRATE_PROVIDER
+RUN echo $ETHEREUM_PROVIDER
 RUN yarn build:docker
 
 # Stage 2 - the production environment
