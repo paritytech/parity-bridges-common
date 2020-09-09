@@ -17,9 +17,8 @@ RUN update-ca-certificates && \
 	curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 ENV PATH="/root/.cargo/bin:${PATH}"
-ENV LAST_RUST_UPDATE="2020-08-17"
-RUN rustup toolchain uninstall stable && \
-	rustup update stable && \
+ENV LAST_RUST_UPDATE="2020-09-09"
+RUN rustup update stable && \
 	rustup install nightly && \
 	rustup target add wasm32-unknown-unknown --toolchain nightly
 
