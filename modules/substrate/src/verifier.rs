@@ -239,7 +239,7 @@ mod tests {
 
 	fn write_headers<S: BridgeStorage<Header = TestHeader>>(
 		storage: &mut S,
-		headers: Vec<(u64, bool)>,
+		headers: Vec<(u64, bool)>, // TODO: Add option for marking as needs justification
 	) -> Vec<TestHeader> {
 		let mut imported_headers = vec![];
 		let genesis = TestHeader::new_from_number(0);
@@ -469,5 +469,68 @@ mod tests {
 			);
 			assert!(storage.get_header_by_hash(header.hash()).unwrap().is_finalized);
 		});
+	}
+
+	#[test]
+	fn allows_importing_justification_at_block_past_scheduled_change() {
+		run_test(|| {
+			// Basically we want to make sure that we can continue importing headers
+			// into the pallet and still have the ability to finalize headers at a later
+			// point in time.
+			//
+			// [G] <- [N-1] <- [N] <- [N+1] <- [N+2]
+			//                  |                |- Import justification for N here
+			//                  |- Scheduled change here, needs justification
+
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let headers = vec![(1, false)];
+			let imported_headers = write_headers(&mut storage, headers);
+
+			// This is header N
+			let mut header = TestHeader::new_from_number(3);
+			header.parent_hash = imported_headers[1].hash();
+
+			// Schedule a change at height N
+			let set_id = 1;
+			let height = *header.number();
+			let authorities = vec![(1, 1)];
+			let change = schedule_next_change(authorities, set_id, height);
+			storage.schedule_next_set_change(change);
+
+			// Need to ensure that header at N signals a change
+			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+				next_authorities: get_authorities(vec![(1, 1)]),
+				delay: 0,
+			});
+
+			header.digest = Digest::<TestHash> {
+				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+			};
+
+			// Import header N, should be marked as needing a justification
+			assert!(Verifier::import_header(&mut storage, &header).is_ok());
+
+			// Now we want to import some headers which are past N
+			let mut child = TestHeader::new_from_number(*header.number() + 1);
+			child.parent_hash = header.hash();
+			assert!(Verifier::import_header(&mut storage, &child).is_ok());
+
+			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
+			grandchild.parent_hash = child.hash();
+			assert!(Verifier::import_header(&mut storage, &grandchild).is_ok());
+
+			// Even though we're a few headers ahead we should still be able to import
+			// a justification for header N
+			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
+			assert!(storage.get_header_by_hash(header.hash()).unwrap().is_finalized);
+
+			// Make sure we marked the parent of the header at N as finalized
+			assert!(
+				storage
+					.get_header_by_hash(imported_headers[1].hash())
+					.unwrap()
+					.is_finalized
+			);
+		})
 	}
 }
