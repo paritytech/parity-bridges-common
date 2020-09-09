@@ -285,16 +285,11 @@ pub async fn run<P: MessageRace>(
 		if source_client_is_online {
 			source_client_is_online = false;
 
-			let nonces_to_deliver = race_state
-				.source_state
-				.as_ref()
-				.and_then(|source_state| strategy
+			let nonces_to_deliver = race_state.source_state.as_ref().and_then(|source_state| {
+				strategy
 					.select_nonces_to_deliver(&race_state)
-					.map(|nonces_range| (
-						source_state.best_self.clone(),
-						nonces_range,
-					))
-				);
+					.map(|nonces_range| (source_state.best_self.clone(), nonces_range))
+			});
 
 			if let Some((at_block, nonces_range)) = nonces_to_deliver {
 				log::debug!(
