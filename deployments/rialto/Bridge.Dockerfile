@@ -81,7 +81,6 @@ ENV HEALTH=$HEALTH
 HEALTHCHECK --interval=2m --timeout=10s \
   CMD curl -f $HEALTH || exit 1
 
-EXPOSE 9944 9933
 
 ENV PROJECT=$PROJECT
 ENTRYPOINT ["/home/user/bridge-entrypoint.sh"]
