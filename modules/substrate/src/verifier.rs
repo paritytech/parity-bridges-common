@@ -46,6 +46,8 @@ pub enum ImportError {
 	///
 	/// This will typically have to do with missing authority set change signals.
 	MissingConsensusDigest,
+	/// Trying to prematurely import a justification
+	PrematureJustification,
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.
@@ -81,22 +83,11 @@ where
 			return Err(ImportError::MissingParent);
 		}
 
-		// A block at this height should come with a justification and signal a new
-		// authority set. We'll want to make sure it is valid
-		//
-		// This defaults to 0, should it maybe be an Option?
-		let scheduled_change_height = storage.scheduled_set_change().height;
-
-		// Here we'll mark that a header requires justification
-		// Not sure if we want to add it to a seperate queue just yet
-		// Might make sense to add it to a double map, where the first key could
-		// be the headers that require justification
-		let requires_justification = *header.number() == scheduled_change_height;
+		// We don't need the justification right away, but we should note it.
+		let requires_justification = find_scheduled_change(header).is_some();
 		let is_finalized = false;
-
-		// Don't like having to take ownership of header...
 		storage.write_header(&ImportedHeader::new(
-			header.clone(),
+			header.clone(), // Don't like having to take ownership of header...
 			requires_justification,
 			is_finalized,
 		));
@@ -105,14 +96,13 @@ where
 	}
 
 	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), ImportError> {
+		// Make sure that we've previously imported this header
 		let header = storage
 			.get_header_by_hash(hash)
 			.ok_or(ImportError::UnknownHeader)?
 			.header;
-		let current_authority_set = storage.current_authority_set();
 
-		// Q: If this goes through OK is that enough assurance that we're at the
-		// correct "current_authority_set"?
+		let current_authority_set = storage.current_authority_set();
 		let is_finalized = prove_finality(&header, &current_authority_set, proof);
 		if !is_finalized {
 			return Err(ImportError::UnfinalizedHeader);
@@ -120,6 +110,22 @@ where
 
 		let last_finalized = storage.best_finalized_header().expect("TODO");
 		let finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
+			// TODO: I know this is a bit hacky with the redundant storage reads, but I'm just
+			// trying to get something that works to better understand how do change validator sets
+			// properly
+			let requires_justification = ancestors
+				.iter()
+				.skip(1) // Skip header we're trying to finalize since we know it requires_justification
+				.map(|a| storage.get_header_by_hash(a.hash()).unwrap())
+				.find(|h| h.requires_justification == true);
+
+			if requires_justification.is_some() {
+				// This means that we're trying to import a justification for the child
+				// of a header which is still missing a justification. We must reject
+				// this header.
+				return Err(ImportError::PrematureJustification);
+			}
+
 			let current_set_id = current_authority_set.set_id;
 			update_authority_set(storage, &header, current_set_id)?;
 			ancestors
@@ -128,8 +134,17 @@ where
 		};
 
 		// TODO: Would need to prune blocks from the non-canonical chain at some point
+		let is_finalized = true;
+		let requires_justification = false;
 		for header in finalized_headers.iter() {
-			storage.write_header(&ImportedHeader::new(header.clone(), false, true));
+			// Q: Does storaging two headers with the same hash cause any problems?
+			// Basically I want to update what's already in storage, since all of these
+			// headers have previously been imported
+			storage.write_header(&ImportedHeader::new(
+				header.clone(),
+				requires_justification,
+				is_finalized,
+			));
 		}
 
 		storage.update_best_finalized(finalized_headers.last().expect("TODO"));
@@ -480,7 +495,7 @@ mod tests {
 			//
 			// [G] <- [N-1] <- [N] <- [N+1] <- [N+2]
 			//                  |                |- Import justification for N here
-			//                  |- Scheduled change here, needs justification
+			//                  |- Enacted change here, needs justification
 
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let headers = vec![(1, false)];
@@ -507,8 +522,17 @@ mod tests {
 				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
 			};
 
-			// Import header N, should be marked as needing a justification
+			// Import header N
 			assert!(Verifier::import_header(&mut storage, &header).is_ok());
+
+			// Header N should be marked as needing a justification
+			assert_eq!(
+				storage
+					.get_header_by_hash(header.hash())
+					.unwrap()
+					.requires_justification,
+				true
+			);
 
 			// Now we want to import some headers which are past N
 			let mut child = TestHeader::new_from_number(*header.number() + 1);
@@ -522,7 +546,12 @@ mod tests {
 			// Even though we're a few headers ahead we should still be able to import
 			// a justification for header N
 			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
-			assert!(storage.get_header_by_hash(header.hash()).unwrap().is_finalized);
+
+			let finalized_header = storage.get_header_by_hash(header.hash()).unwrap();
+			assert!(finalized_header.is_finalized);
+
+			// Make sure that we're not marked as needing a justification anymore
+			assert_eq!(finalized_header.requires_justification, false);
 
 			// Make sure we marked the parent of the header at N as finalized
 			assert!(
@@ -534,7 +563,6 @@ mod tests {
 		})
 	}
 
-	#[ignore]
 	#[test]
 	fn does_not_import_future_justification() {
 		run_test(|| {
@@ -544,12 +572,93 @@ mod tests {
 			//
 			// [G] <- [N-1] <- [N] <- [N+1] <- [N+2]
 			//                  |                |- Also needs justification
-			//                  |- Scheduled change here, needs justification
+			//                  |- Enacted change here, needs justification
 			//
-			// Leaving this as a glorified TODO until we can actually verifiy finality proofs, since
-			// I think that's going to affect this check.
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let headers = vec![(1, false)];
+			let imported_headers = write_headers(&mut storage, headers);
 
-			todo!()
+			// This is header N
+			let mut header = TestHeader::new_from_number(3);
+			header.parent_hash = imported_headers[1].hash();
+
+			// Schedule a change at height N
+			let set_id = 1;
+			let height = *header.number();
+			let authorities = vec![(1, 1)];
+			let change = schedule_next_change(authorities, set_id, height);
+			storage.schedule_next_set_change(change);
+
+			// Need to ensure that header at N signals a change
+			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+				next_authorities: get_authorities(vec![(1, 1)]),
+				delay: 2,
+			});
+
+			header.digest = Digest::<TestHash> {
+				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+			};
+
+			// Import header N
+			assert!(Verifier::import_header(&mut storage, &header).is_ok());
+
+			// Header N should be marked as needing a justification
+			assert_eq!(
+				storage
+					.get_header_by_hash(header.hash())
+					.unwrap()
+					.requires_justification,
+				true
+			);
+
+			// Now we want to import some headers which are past N
+			let mut child = TestHeader::new_from_number(*header.number() + 1);
+			child.parent_hash = header.hash();
+			assert!(Verifier::import_header(&mut storage, &child).is_ok());
+
+			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
+			grandchild.parent_hash = child.hash();
+			dbg!(grandchild.hash());
+
+			// Need to ensure that header at N+2 signals a change
+			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+				next_authorities: get_authorities(vec![(1, 1)]),
+				delay: 2,
+			});
+
+			grandchild.digest = Digest::<TestHash> {
+				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+			};
+
+			// Import header N+2
+			assert!(Verifier::import_header(&mut storage, &grandchild).is_ok());
+
+			// Header N+2 should be marked as needing a justification
+			assert_eq!(
+				storage
+					.get_header_by_hash(grandchild.hash())
+					.unwrap()
+					.requires_justification,
+				true
+			);
+
+			// Now let's try to finalize N+2, this should fail since we haven't yet
+			// imported the justification for N
+			assert!(Verifier::verify_finality(&mut storage, grandchild.hash(), &[4, 2]).is_err());
+
+			// Let's import the correct justification now, which is for header N
+			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
+
+			// Now N is marked as finalized and doesn't require a justification anymore
+			let header = storage.get_header_by_hash(header.hash()).unwrap();
+			assert!(header.is_finalized);
+			assert_eq!(header.requires_justification, false);
+
+			// Now we're allowed to finalized N+2
+			assert!(Verifier::verify_finality(&mut storage, grandchild.hash(), &[4, 2]).is_ok());
+			let grandchild = storage.get_header_by_hash(grandchild.hash()).unwrap();
+			assert!(grandchild.is_finalized);
+			assert_eq!(grandchild.requires_justification, false);
 		})
 	}
 }

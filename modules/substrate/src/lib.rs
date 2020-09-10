@@ -47,9 +47,9 @@ type Number<T> = <T as HeaderT>::Number;
 pub struct DummyConfig;
 
 pub trait Trait: frame_system::Trait {
-	type InitialHeader: Get<Self::Header>;
-	type ValidatorsConfiguration: Get<AuthoritySet>;
-	type NextScheduledChange: Get<ScheduledChange<Self::BlockNumber>>;
+	// type InitialHeader: Get<Self::Header>;
+	// type ValidatorsConfiguration: Get<AuthoritySet>;
+	// type NextScheduledChange: Get<ScheduledChange<Self::BlockNumber>>;
 }
 
 decl_storage! {
@@ -66,14 +66,14 @@ decl_storage! {
 		NextScheduledChange: ScheduledChange<Number<T::Header>>;
 	}
 	add_extra_genesis {
-		config(initial_header): Option<T::Header>;
+		// config(initial_header): Option<T::Header>;
 		// config(initial_authority_set): Option<AuthoritySet>;
 		// config(first_scheduled_change): ScheduledChange<Number<T::Header>>;
-		build(|config| {
-			assert!(config.initial_header.is_some(), "Need initial header");
+		// build(|config| {
+			// assert!(config.initial_header.is_some(), "Need initial header");
 			// assert!(config.initial_authority_set.is_some(), "Need initial header");
 			// assert!(config.initial_header.is_some(), "Need initial header");
-		})
+		// })
 	}
 }
 
@@ -175,6 +175,9 @@ pub trait BridgeStorage {
 
 	/// Schedule a Grandpa authority set change in the future.
 	fn schedule_next_set_change(&self, next_change: ScheduledChange<<Self::Header as HeaderT>::Number>);
+
+	// fn needs_justification(&mut self) -> <Self::Header as HeaderT>::Hash;
+	// fn update_needs_justification(&mut self, hash: <Self::Header as HeaderT>::Hash);
 
 	/// Helper function to store an unfinalized header.
 	#[cfg(test)]
