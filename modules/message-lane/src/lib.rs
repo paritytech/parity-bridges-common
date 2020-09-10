@@ -157,7 +157,11 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 		let received_range = lane.confirm_receival(latest_received_nonce);
 
 		if let Some(received_range) = received_range {
-			Self::deposit_event(RawEvent::MessagesDelivered(*lane_id, received_range.0, received_range.1));
+			Self::deposit_event(RawEvent::MessagesDelivered(
+				*lane_id,
+				received_range.0,
+				received_range.1,
+			));
 		}
 	}
 
@@ -170,7 +174,11 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 		let processed_range = lane.confirm_processing(latest_processed_nonce);
 
 		if let Some(processed_range) = processed_range {
-			Self::deposit_event(RawEvent::MessagesProcessed(*lane_id, processed_range.0, processed_range.1));
+			Self::deposit_event(RawEvent::MessagesProcessed(
+				*lane_id,
+				processed_range.0,
+				processed_range.1,
+			));
 		}
 	}
 }
