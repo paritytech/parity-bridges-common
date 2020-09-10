@@ -79,4 +79,4 @@ git = "https://github.com/paritytech/substrate.git"
 
 [dependencies.rialto-runtime]
 version = "0.1.0"
-path = "../../bin/node/rialto-runtime"
+path = "../../bin/rialto-runtime"

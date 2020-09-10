@@ -86,7 +86,7 @@ jobs:
         with:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
-          args:                    --manifest-path ./bin/node/rialto-node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+          args:                    --manifest-path ./bin/rialto-node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
 
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
