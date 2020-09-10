@@ -47,8 +47,6 @@ pub trait TargetHeaderChain<Payload> {
 	/// 1MB. BTC nodes aren't accepting transactions that are larger than 1MB, so relayer
 	/// will be unable to craft valid transaction => this (and all subsequent) messages will
 	/// never be delivered.
-	///
-	/// Should return weight that the submitter must pay for delivering and processing
 	fn verify_message(payload: &Payload) -> Result<(), Self::Error>;
 
 	/// Verify messages receiving proof and return lane && nonce of the latest recevied message.
