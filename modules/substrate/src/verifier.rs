@@ -69,7 +69,10 @@ where
 	H: HeaderT,
 {
 	fn import_header(storage: &mut S, header: &H) -> Result<(), ImportError> {
-		let highest_finalized = storage.best_finalized_header().expect("TODO");
+		let highest_finalized = storage.best_finalized_header().expect(
+			"A finalized header must have
+			been provided in the pallet configuration",
+		);
 		if header.number() < highest_finalized.number() {
 			return Err(ImportError::OldHeader);
 		}
@@ -108,7 +111,11 @@ where
 			return Err(ImportError::UnfinalizedHeader);
 		}
 
-		let last_finalized = storage.best_finalized_header().expect("TODO");
+		let last_finalized = storage.best_finalized_header().expect(
+			"A finalized header must have
+			been provided in the pallet configuration",
+		);
+
 		let finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
 			// TODO: I know this is a bit hacky with the redundant storage reads, but I'm just
 			// trying to get something that works to better understand how do change validator sets
@@ -133,7 +140,6 @@ where
 			return Err(ImportError::AncestryCheckFailed);
 		};
 
-		// TODO: Would need to prune blocks from the non-canonical chain at some point
 		let is_finalized = true;
 		let requires_justification = false;
 		for header in finalized_headers.iter() {
@@ -147,7 +153,10 @@ where
 			));
 		}
 
-		storage.update_best_finalized(finalized_headers.last().expect("TODO"));
+		storage.update_best_finalized(finalized_headers.last().expect(
+			"We just iterated through
+			these headers, therefore the last header must exist",
+		));
 
 		Ok(())
 	}

@@ -58,7 +58,6 @@ decl_storage! {
 		// Maybe make this a HeaderId?
 		BestFinalized: Option<T::Header>;
 		/// Headers which have been imported into the pallet.
-		// Maybe made a HeaderId?
 		ImportedHeaders: map hasher(identity) T::Hash => Option<ImportedHeader<T::Header>>;
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;
