@@ -18,11 +18,14 @@
 
 use core::default::Default;
 use parity_scale_codec::{Decode, Encode};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::traits::Header as HeaderT;
 use sp_runtime::RuntimeDebug;
 
 #[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct AuthoritySet {
 	pub authorities: AuthorityList,
 	pub set_id: SetId,
@@ -34,7 +37,7 @@ impl AuthoritySet {
 	}
 }
 
-#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq)]
+#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
 pub struct ScheduledChange<N> {
 	pub authority_set: AuthoritySet,
 	pub height: N,

@@ -242,6 +242,11 @@ version = "0.1.0"
 default-features = false
 path = "../../../primitives/message-lane"
 
+[dependencies.bp-substrate]
+version = "0.1.0"
+default-features = false
+path = "../../../primitives/substrate"
+
 # Dev Dependencies
 
 [dev-dependencies.libsecp256k1]

@@ -44,13 +44,7 @@ mod tests;
 type Hash<T> = <T as HeaderT>::Hash;
 type Number<T> = <T as HeaderT>::Number;
 
-pub struct DummyConfig;
-
-pub trait Trait: frame_system::Trait {
-	// type InitialHeader: Get<Self::Header>;
-	// type ValidatorsConfiguration: Get<AuthoritySet>;
-	// type NextScheduledChange: Get<ScheduledChange<Self::BlockNumber>>;
-}
+pub trait Trait: frame_system::Trait {}
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
@@ -65,14 +59,45 @@ decl_storage! {
 		NextScheduledChange: ScheduledChange<Number<T::Header>>;
 	}
 	add_extra_genesis {
-		// config(initial_header): Option<T::Header>;
-		// config(initial_authority_set): Option<AuthoritySet>;
-		// config(first_scheduled_change): ScheduledChange<Number<T::Header>>;
-		// build(|config| {
-			// assert!(config.initial_header.is_some(), "Need initial header");
-			// assert!(config.initial_authority_set.is_some(), "Need initial header");
-			// assert!(config.initial_header.is_some(), "Need initial header");
-		// })
+		config(initial_header): Option<T::Header>;
+		config(initial_authority_list): sp_finality_grandpa::AuthorityList;
+		config(initial_set_id): sp_finality_grandpa::SetId;
+		config(first_scheduled_change): Option<ScheduledChange<Number<T::Header>>>;
+		build(|config| {
+			assert!(
+				config.initial_header.is_some(),
+				"An initial header is needed."
+			);
+			assert!(
+				config.initial_authority_list.is_empty(),
+				"An initial authority list is needed."
+			);
+			assert!(config.initial_set_id != 0, "An initial set ID is needed.");
+			assert!(
+				config.first_scheduled_change.is_some(),
+				"An initial authority set change is needed"
+			);
+
+			let initial_header = config
+				.initial_header
+				.clone()
+				.expect("Asserted that this was Some");
+			<BestFinalized<T>>::put(&initial_header);
+			<ImportedHeaders<T>>::insert(
+				initial_header.hash(),
+				ImportedHeader::new(initial_header, false, true),
+			);
+
+			let authority_set =
+				AuthoritySet::new(config.initial_authority_list.clone(), config.initial_set_id);
+			CurrentAuthoritySet::put(authority_set);
+
+			let first_scheduled_change = config
+				.first_scheduled_change
+				.clone()
+				.expect("Asserted that this was Some");
+			<NextScheduledChange<T>>::put(first_scheduled_change);
+		})
 	}
 }
 

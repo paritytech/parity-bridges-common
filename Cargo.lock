@@ -677,6 +677,7 @@ name = "bp-substrate"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
+ "serde",
  "sp-finality-grandpa",
  "sp-runtime",
 ]
@@ -725,6 +726,7 @@ dependencies = [
  "bp-eth-poa",
  "bp-header-chain",
  "bp-message-lane",
+ "bp-substrate",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
