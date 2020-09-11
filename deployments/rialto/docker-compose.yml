@@ -95,6 +95,7 @@ services:
 
   rialto-bridge-node-alice: &rialto-bridge-node
     image: paritytech/rialto-bridge-node
+    container_name: bridge-node-alice
     entrypoint:
       - /home/user/rialto-bridge-node
       - --execution=Native
@@ -115,6 +116,7 @@ services:
 
   rialto-bridge-node-bob:
     <<: *rialto-bridge-node
+    container_name: bridge-node-bob
     entrypoint:
       - /home/user/rialto-bridge-node
       - --execution=Native
@@ -131,6 +133,7 @@ services:
 
   rialto-bridge-node-charlie:
     <<: *rialto-bridge-node
+    container_name: bridge-node-charlie
     environment:
       <<: *bridge-env
       VIRTUAL_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
@@ -152,6 +155,7 @@ services:
 
   rialto-bridge-node-dave:
     <<: *rialto-bridge-node
+    container_name: bridge-node-dave
     entrypoint:
       - /home/user/rialto-bridge-node
       - --execution=Native
@@ -167,6 +171,7 @@ services:
 
   rialto-bridge-node-eve:
     <<: *rialto-bridge-node
+    container_name: bridge-node-eve
     entrypoint:
       - /home/user/rialto-bridge-node
       - --execution=Native
