@@ -53,11 +53,11 @@ services:
       - poa-node-arthur
       - poa-node-bertha
       - poa-node-carlos
-      - rialto-bridge-node-alice
-      - rialto-bridge-node-bob
-      - rialto-bridge-node-charlie
-      - rialto-bridge-node-dave
-      - rialto-bridge-node-eve
+      - bridge-node-alice
+      - bridge-node-bob
+      - bridge-node-charlie
+      - bridge-node-dave
+      - bridge-node-eve
 
   poa-exchange-tx-generator:
     image: paritytech/ethereum-poa-relay
