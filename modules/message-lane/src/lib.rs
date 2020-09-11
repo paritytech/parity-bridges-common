@@ -75,7 +75,7 @@ decl_storage! {
 }
 
 decl_event!(
-	pub enum Event<T, I=DefaultInstance> where
+	pub enum Event<T, I = DefaultInstance> where
 		<T as frame_system::Trait>::AccountId,
 	{
 		/// Message has been accepted and is waiting to be delivered.
