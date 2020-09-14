@@ -17,7 +17,7 @@
 //!
 //! The idea of the race is simple - we have `nonce`-s on source and target
 //! nodes. We're trying to prove that the source node has this nonce (and
-//! associated data - like messages, lane state, etc) to the terget node by
+//! associated data - like messages, lane state, etc) to the target node by
 //! generating and submitting proof.
 
 // Until there'll be actual message-lane in the runtime.
