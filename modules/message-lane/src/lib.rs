@@ -62,7 +62,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	// General types
 
 	/// They overarching event type.
-	type Event: From<Event> + Into<<Self as frame_system::Trait>::Event>;
+	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Trait>::Event>;
 	/// Message payload.
 	type Payload: Parameter;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
@@ -87,9 +87,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Source header chain, as it is represented on target chain.
 	type SourceHeaderChain: SourceHeaderChain<Self::Payload, Self::MessageFee>;
 	/// Message dispatch.
-	type MessageDispatch: MessageDispatch<Self::Payload, Self::MessageFee>;
-	/// Queued message dispatch.
-	type QueuedMessageDispatch: QueuedMessageDispatch<Self::Payload>;
+	type MessageDispatch: MessageDispatch<Self::Payload>;
 	/// Message dispatch payment.
 	type MessageDispatchPayment: MessageDispatchPayment<Self::AccountId>;
 }
@@ -102,9 +100,6 @@ type MessagesProofOf<T, I> = <<T as Trait<I>>::SourceHeaderChain as SourceHeader
 /// Shortcut to messages receiving proof type for Trait.
 type MessagesReceivingProofOf<T, I> =
 	<<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::Payload>>::MessagesReceivingProof;
-/// Shortcut to messages processing proof type for Trait.
-type MessagesProcessingProofOf<T, I> =
-	<<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::Payload>>::MessagesProcessingProof;
 
 decl_error! {
 	pub enum Error for Module<T: Trait<I>, I: Instance> {
@@ -120,8 +115,6 @@ decl_error! {
 		InvalidMessagesProof,
 		/// Invalid messages receiving proof has been submitted.
 		InvalidMessagesReceivingProof,
-		/// Invalid messages processing proof has been submitted.
-		InvalidMessagesProcessingProof,
 	}
 }
 
@@ -144,13 +137,15 @@ decl_storage! {
 }
 
 decl_event!(
-	pub enum Event {
+	pub enum Event<T, I = DefaultInstance> where
+		<T as frame_system::Trait>::AccountId,
+	{
 		/// Message has been accepted and is waiting to be delivered.
 		MessageAccepted(LaneId, MessageNonce),
-		/// Messages in the inclusive range have been delivered to the bridged chain.
+		/// Messages in the inclusive range have been delivered and processed by the bridged chain.
 		MessagesDelivered(LaneId, MessageNonce, MessageNonce),
-		/// Messages in the inclusive range have been processed by the bridged chain.
-		MessagesProcessed(LaneId, MessageNonce, MessageNonce),
+		/// Phantom member, never used.
+		Dummy(PhantomData<(AccountId, I)>),
 	}
 );
 
@@ -361,55 +356,6 @@ decl_module! {
 
 			Ok(())
 		}
-
-		/// Receive messages processing proof from bridged chain.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-		pub fn receive_message_processing_proof(origin, proof: MessagesProcessingProofOf<T, I>) -> DispatchResult {
-			let _ = ensure_signed(origin)?;
-			let (lane_id, nonce) = T::TargetHeaderChain::verify_messages_processing_proof(proof).map_err(|err| {
-				frame_support::debug::trace!(
-					target: "runtime",
-					"Rejecting invalid proof of messages processing: {:?}",
-					err,
-				);
-
-				Error::<T, I>::InvalidMessagesProcessingProof
-			})?;
-
-			let mut lane = outbound_lane::<T, I>(lane_id);
-			let processed_range = lane.confirm_processing(nonce);
-			if let Some(processed_range) = processed_range {
-				Self::deposit_event(Event::MessagesProcessed(lane_id, processed_range.0, processed_range.1));
-			}
-
-			frame_support::debug::trace!(
-				target: "runtime",
-				"Received proof of processing messages up to (and including) {} at lane {:?}",
-				nonce,
-				lane_id,
-			);
-
-			Ok(())
-		}
-	}
-}
-
-impl<T: Trait<I>, I: Instance> Module<T, I> {
-	// =========================================================================================
-	// === Exposed mutables ====================================================================
-	// =========================================================================================
-
-	/// Process stored lane messages.
-	///
-	/// Stops processing either when all messages are processed, or when processor returns
-	/// MessageResult::NotProcessed.
-	///
-	/// Returns empty-lane flag.
-	pub fn process_lane_messages(
-		lane_id: &LaneId,
-		processor: &mut impl MessageDispatch<T::Payload, T::MessageFee>,
-	) -> bool {
-		inbound_lane::<T, I>(*lane_id).process_messages(processor)
 	}
 }
 
@@ -449,30 +395,6 @@ impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<
 
 	fn set_data(&mut self, data: InboundLaneData) {
 		InboundLanes::<I>::insert(&self.lane_id, data)
-	}
-
-	fn message(&self, nonce: &MessageNonce) -> Option<MessageData<T::Payload, T::MessageFee>> {
-		InboundMessages::<T, I>::get(MessageKey {
-			lane_id: self.lane_id,
-			nonce: *nonce,
-		})
-	}
-
-	fn save_message(&mut self, nonce: MessageNonce, message_data: MessageData<T::Payload, T::MessageFee>) {
-		InboundMessages::<T, I>::insert(
-			MessageKey {
-				lane_id: self.lane_id,
-				nonce,
-			},
-			message_data,
-		);
-	}
-
-	fn remove_message(&mut self, nonce: &MessageNonce) {
-		InboundMessages::<T, I>::remove(MessageKey {
-			lane_id: self.lane_id,
-			nonce: *nonce,
-		});
 	}
 }
 

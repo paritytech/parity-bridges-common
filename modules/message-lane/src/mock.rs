@@ -14,13 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::by_weight_dispatch::{ByWeightMessageDispatch, ByWeightMessageDispatchRuntimeStorage};
 use crate::{DefaultInstance, Trait};
 
-use bp_message_dispatch::MessageDispatch as WrappedMessageDispatch;
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
-	target_chain::{MessageDispatch, MessageDispatchPayment, QueuedMessageDispatch, SourceHeaderChain},
+	target_chain::{MessageDispatch, MessageDispatchPayment, SourceHeaderChain},
 	LaneId, Message, MessageData, MessageId, MessageNonce, MessageResult,
 };
 use bp_runtime::InstanceId;
@@ -46,7 +44,7 @@ mod message_lane {
 impl_outer_event! {
 	pub enum TestEvent for TestRuntime {
 		frame_system<T>,
-		message_lane,
+		message_lane<T>,
 	}
 }
 
@@ -104,9 +102,7 @@ impl Trait for TestRuntime {
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
 
 	type SourceHeaderChain = TestSourceHeaderChain;
-	type MessageDispatch = TestMessageDispatch;
-	type QueuedMessageDispatch = TestQueuedMessageDispatch;
-	type MessageDispatchPayment = TestMessageDispatchPayment;
+	type MessageDispatch = ();
 }
 
 /// Max(total weight of all messages across all tests).
@@ -121,14 +117,11 @@ pub const TEST_INSTANCE_ID: InstanceId = *b"test";
 /// Lane that we're using in tests.
 pub const TEST_LANE_ID: LaneId = [0, 0, 0, 1];
 
-/// Regular message payload that is not PAYLOAD_TO_QUEUE.
+/// Regular message payload.
 pub const REGULAR_PAYLOAD: TestPayload = (0, 50);
 
 /// Payload that is rejected by `TestTargetHeaderChain`.
 pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = (1, 50);
-
-/// All messages with this payload are queued by TestMessageProcessor.
-pub const PAYLOAD_TO_QUEUE: TestPayload = (42, 50);
 
 /// Target header chain that is used in tests.
 #[derive(Debug, Default)]
@@ -224,130 +217,6 @@ impl SourceHeaderChain<TestPayload, TestMessageFee> for TestSourceHeaderChain {
 		proof: Self::MessagesProof,
 	) -> Result<Vec<Message<TestPayload, TestMessageFee>>, Self::Error> {
 		proof.map_err(|_| TEST_ERROR)
-	}
-}
-
-/// Message dispatch that is passing all messages to ByWeightMessageDispatch. The only exceptions are
-/// messages with PAYLOAD_TO_QUEUE payload, that are queued instead. And messages
-#[derive(Debug)]
-pub struct TestMessageDispatch {
-	by_weight: ByWeightMessageDispatch<
-		TestRuntime,
-		DefaultInstance,
-		Self,
-		ByWeightMessageDispatchRuntimeStorage<TestRuntime, DefaultInstance>,
-	>,
-}
-
-impl WrappedMessageDispatch<MessageId> for TestMessageDispatch {
-	type Message = TestPayload;
-
-	fn dispatch_weight(message: &Self::Message) -> Weight {
-		message.1
-	}
-
-	fn dispatch(_bridge: InstanceId, _id: MessageId, message: Self::Message) -> Weight {
-		message.1
-	}
-}
-
-impl MessageDispatch<TestPayload, TestMessageFee> for TestMessageDispatch {
-	fn with_allowed_weight(weight: Weight) -> Self {
-		TestMessageDispatch {
-			by_weight: ByWeightMessageDispatch::new(
-				ByWeightMessageDispatchRuntimeStorage::<TestRuntime, DefaultInstance>::default(),
-				TEST_INSTANCE_ID,
-				weight,
-			),
-		}
-	}
-
-	fn weight_left(&self) -> Weight {
-		self.by_weight.weight_left()
-	}
-
-	fn dispatch_weight(&self, message: &Message<TestPayload, TestMessageFee>) -> Weight {
-		self.by_weight.dispatch_weight(message)
-	}
-
-	fn dispatch(
-		&mut self,
-		message: Message<TestPayload, TestMessageFee>,
-	) -> MessageResult<TestPayload, TestMessageFee> {
-		if message.data.payload == PAYLOAD_TO_QUEUE {
-			MessageResult::NotProcessed(message)
-		} else {
-			self.by_weight.dispatch(message)
-		}
-	}
-}
-
-/// Queued message dispatch that is used in tests.
-#[derive(Debug)]
-pub struct TestQueuedMessageDispatch {
-	force_first_message: bool,
-	by_weight: ByWeightMessageDispatch<
-		TestRuntime,
-		DefaultInstance,
-		TestMessageDispatch,
-		ByWeightMessageDispatchRuntimeStorage<TestRuntime, DefaultInstance>,
-	>,
-}
-
-impl QueuedMessageDispatch<TestPayload> for TestQueuedMessageDispatch {
-	fn with_allowed_weight(weight: Weight) -> Self {
-		Self {
-			force_first_message: false,
-			by_weight: ByWeightMessageDispatch::new(
-				ByWeightMessageDispatchRuntimeStorage::<TestRuntime, DefaultInstance>::default(),
-				TEST_INSTANCE_ID,
-				weight,
-			),
-		}
-	}
-
-	fn with_any_weight() -> Self {
-		Self {
-			force_first_message: true,
-			by_weight: ByWeightMessageDispatch::new(
-				ByWeightMessageDispatchRuntimeStorage::<TestRuntime, DefaultInstance>::default(),
-				TEST_INSTANCE_ID,
-				MAX_ALLOWED_WEIGHT,
-			),
-		}
-	}
-
-	fn dispatch(&mut self) -> (MessageNonce, Weight) {
-		self.by_weight.dispatch_queued(self.force_first_message)
-	}
-}
-
-/// Message verifier that is used in tests.
-#[derive(Debug)]
-pub struct TestMessageDispatchPayment;
-
-impl TestMessageDispatchPayment {
-	/// Reject all payments.
-	pub fn reject_payments() {
-		frame_support::storage::unhashed::put(b":reject-dispatch-fee:", &true);
-	}
-
-	/// Returns true if given fee has been paid by given relayer.
-	pub fn is_fee_paid(payer: AccountId, weight: Weight) -> bool {
-		frame_support::storage::unhashed::get(b":dispatch-fee:") == Some((payer, weight))
-	}
-}
-
-impl MessageDispatchPayment<AccountId> for TestMessageDispatchPayment {
-	type Error = &'static str;
-
-	fn pay_dispatch_fee(payer: &AccountId, weight: Weight) -> Result<(), Self::Error> {
-		if frame_support::storage::unhashed::get(b":reject-dispatch-fee:") == Some(true) {
-			return Err(TEST_ERROR);
-		}
-
-		frame_support::storage::unhashed::put(b":dispatch-fee:", &(payer, weight));
-		Ok(())
 	}
 }
 
