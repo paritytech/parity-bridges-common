@@ -58,11 +58,6 @@ pub trait SourceClient<P: MessageLane>: Clone {
 		&self,
 		id: SourceHeaderIdOf<P>,
 	) -> Result<(SourceHeaderIdOf<P>, P::MessageNonce), Self::Error>;
-	/// Get nonce of the latest message, which processing has been confirmed by the target chain.
-	async fn latest_confirmed_processed_nonce(
-		&self,
-		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, P::MessageNonce), Self::Error>;
 
 	/// Prove messages in inclusive range [begin; end].
 	async fn prove_messages(
@@ -93,11 +88,6 @@ pub trait TargetClient<P: MessageLane>: Clone {
 
 	/// Get nonce of latest received message.
 	async fn latest_received_nonce(
-		&self,
-		id: TargetHeaderIdOf<P>,
-	) -> Result<(TargetHeaderIdOf<P>, P::MessageNonce), Self::Error>;
-	/// Get nonce of latest processed message.
-	async fn latest_processed_nonce(
 		&self,
 		id: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, P::MessageNonce), Self::Error>;
@@ -403,7 +393,6 @@ pub(crate) mod tests {
 		source_state: SourceClientState<TestMessageLane>,
 		source_latest_generated_nonce: TestMessageNonce,
 		source_latest_confirmed_received_nonce: TestMessageNonce,
-		source_latest_confirmed_processed_nonce: TestMessageNonce,
 		submitted_messages_receiving_proofs: Vec<TestMessagesReceivingProof>,
 		is_target_fails: bool,
 		is_target_reconnected: bool,
@@ -459,15 +448,6 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			Ok((id, data.source_latest_confirmed_received_nonce))
-		}
-
-		async fn latest_confirmed_processed_nonce(
-			&self,
-			id: SourceHeaderIdOf<TestMessageLane>,
-		) -> Result<(SourceHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
-			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
-			Ok((id, data.source_latest_confirmed_processed_nonce))
 		}
 
 		async fn prove_messages(
@@ -535,15 +515,6 @@ pub(crate) mod tests {
 			if data.is_target_fails {
 				return Err(TestError::Connection);
 			}
-			Ok((id, data.target_latest_received_nonce))
-		}
-
-		async fn latest_processed_nonce(
-			&self,
-			id: TargetHeaderIdOf<TestMessageLane>,
-		) -> Result<(TargetHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
-			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
 			Ok((id, data.target_latest_received_nonce))
 		}
 
