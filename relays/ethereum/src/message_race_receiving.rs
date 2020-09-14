@@ -103,8 +103,18 @@ where
 		&self,
 		at_block: TargetHeaderIdOf<P>,
 		nonces: RangeInclusive<P::MessageNonce>,
-	) -> Result<(TargetHeaderIdOf<P>, RangeInclusive<P::MessageNonce>, P::MessagesReceivingProof), Self::Error> {
-		self.client.prove_messages_receiving(at_block).await.map(|(at_block, proof)| (at_block, nonces, proof))
+	) -> Result<
+		(
+			TargetHeaderIdOf<P>,
+			RangeInclusive<P::MessageNonce>,
+			P::MessagesReceivingProof,
+		),
+		Self::Error,
+	> {
+		self.client
+			.prove_messages_receiving(at_block)
+			.await
+			.map(|(at_block, proof)| (at_block, nonces, proof))
 	}
 }
 

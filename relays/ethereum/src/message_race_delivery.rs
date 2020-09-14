@@ -174,7 +174,8 @@ impl<SHN, SHH, THN, THH, Nonce: Default, Proof> DeliveryStrategy<SHN, SHH, THN, 
 impl<SHN, SHH, THN, THH, Nonce, Proof> RaceStrategy<HeaderId<SHH, SHN>, HeaderId<THH, THN>, Nonce, Proof>
 	for DeliveryStrategy<SHN, SHH, THN, THH, Nonce, Proof>
 where
-	SHN: Ord,
+	SHH: Clone,
+	SHN: Clone + Ord,
 	Nonce: Clone + Copy + From<u32> + Ord + std::ops::Add<Output = Nonce> + One + Zero,
 {
 	fn is_empty(&self) -> bool {
@@ -260,7 +261,7 @@ where
 
 			// if queue is empty, we don't need to prove anything
 			let (first_queued_at, first_queued_nonce) = match self.source_queue.front() {
-				Some((first_queued_at, first_queued_nonce)) => (first_queued_at.clone(), *first_queued_nonce),
+				Some((first_queued_at, first_queued_nonce)) => ((*first_queued_at).clone(), *first_queued_nonce),
 				None => break,
 			};
 

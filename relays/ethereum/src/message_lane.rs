@@ -33,7 +33,15 @@ pub trait MessageLane {
 	const TARGET_NAME: &'static str;
 
 	/// Message nonce type.
-	type MessageNonce: Clone + Copy + Debug + Default + From<u32> + Ord + std::ops::Add<Output = Self::MessageNonce> + One + Zero;
+	type MessageNonce: Clone
+		+ Copy
+		+ Debug
+		+ Default
+		+ From<u32>
+		+ Ord
+		+ std::ops::Add<Output = Self::MessageNonce>
+		+ One
+		+ Zero;
 
 	/// Messages proof.
 	type MessagesProof: Clone;
