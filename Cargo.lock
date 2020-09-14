@@ -676,14 +676,14 @@ dependencies = [
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-eth-poa",
- "bridge-node-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures 0.3.5",
  "jsonrpc-core",
  "log",
+ "millau-runtime",
  "pallet-message-lane-rpc",
+ "rialto-runtime",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -706,52 +706,6 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "vergen",
-]
-
-[[package]]
-name = "bridge-node-runtime"
-version = "0.1.0"
-dependencies = [
- "bp-currency-exchange",
- "bp-eth-poa",
- "bp-header-chain",
- "bp-message-lane",
- "frame-benchmarking",
- "frame-executive",
- "frame-support",
- "frame-system",
- "frame-system-rpc-runtime-api",
- "hex-literal 0.3.1",
- "libsecp256k1",
- "pallet-aura",
- "pallet-balances",
- "pallet-bridge-call-dispatch",
- "pallet-bridge-currency-exchange",
- "pallet-bridge-eth-poa",
- "pallet-grandpa",
- "pallet-message-lane",
- "pallet-randomness-collective-flip",
- "pallet-session",
- "pallet-shift-session-manager",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "serde",
- "sp-api",
- "sp-block-builder",
- "sp-consensus-aura",
- "sp-core",
- "sp-inherents",
- "sp-io",
- "sp-offchain",
- "sp-runtime",
- "sp-session",
- "sp-staking",
- "sp-std",
- "sp-transaction-pool",
- "sp-version",
- "substrate-wasm-builder-runner",
 ]
 
 [[package]]
@@ -1346,12 +1300,12 @@ dependencies = [
 name = "ethereum-contract-builtin"
 version = "0.1.0"
 dependencies = [
- "bridge-node-runtime",
  "ethereum-types",
  "finality-grandpa",
  "hex",
  "log",
  "parity-scale-codec",
+ "rialto-runtime",
  "sc-finality-grandpa",
  "sp-blockchain",
  "sp-core",
@@ -1370,7 +1324,6 @@ dependencies = [
  "backoff",
  "bp-currency-exchange",
  "bp-eth-poa",
- "bridge-node-runtime",
  "clap",
  "env_logger",
  "ethabi",
@@ -1390,6 +1343,7 @@ dependencies = [
  "parity-crypto",
  "parity-scale-codec",
  "parking_lot 0.11.0",
+ "rialto-runtime",
  "rustc-hex",
  "serde",
  "serde_json",
@@ -1398,7 +1352,7 @@ dependencies = [
  "sp-runtime",
  "substrate-prometheus-endpoint",
  "sysinfo",
- "time 0.2.17",
+ "time 0.2.19",
  "web3",
 ]
 
@@ -3483,6 +3437,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "millau-bridge-node"
+version = "0.1.0"
+dependencies = [
+ "bridge-node",
+]
+
+[[package]]
+name = "millau-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-message-lane",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-bridge-call-dispatch",
+ "pallet-grandpa",
+ "pallet-message-lane",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-shift-session-manager",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-staking",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+ "substrate-wasm-builder-runner",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5059,6 +5061,59 @@ name = "retain_mut"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e005d658ad26eacc2b6c506dfde519f4e277e328d0eb3379ca61647d70a8f531"
+
+[[package]]
+name = "rialto-bridge-node"
+version = "0.1.0"
+dependencies = [
+ "bridge-node",
+]
+
+[[package]]
+name = "rialto-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-currency-exchange",
+ "bp-eth-poa",
+ "bp-header-chain",
+ "bp-message-lane",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "libsecp256k1",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-bridge-call-dispatch",
+ "pallet-bridge-currency-exchange",
+ "pallet-bridge-eth-poa",
+ "pallet-grandpa",
+ "pallet-message-lane",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-shift-session-manager",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-staking",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+ "substrate-wasm-builder-runner",
+]
 
 [[package]]
 name = "ring"
@@ -7447,9 +7502,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.17"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca7ec98a72285d12e0febb26f0847b12d54be24577618719df654c66cadab55d"
+checksum = "80c1a1fd93112fc50b11c43a1def21f926be3c18884fad676ea879572da070a1"
 dependencies = [
  "const_fn",
  "libc",
