@@ -71,7 +71,7 @@ pub trait LaneMessageVerifier<Submitter, Payload, Fee> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
-	/// Verify message payload and return Ok(()) if message is valid and should be sent over lane.
+	/// Verify message payload and return Ok(()) if message is valid and allowed to be sent over the lane.
 	fn verify_message(
 		submitter: &Submitter,
 		delivery_and_dispatch_fee: &Fee,
