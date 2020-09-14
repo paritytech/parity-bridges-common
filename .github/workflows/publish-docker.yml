@@ -16,10 +16,10 @@ jobs:
     strategy:
       matrix:
         project:
-          - bridge-node
+          - rialto-bridge-node
           - ethereum-poa-relay
         include:
-          - project: bridge-node
+          - project: rialto-bridge-node
             healthcheck: http://localhost:9933/health
           - project: ethereum-poa-relay
             healthcheck: http://localhost:9616/metrics
