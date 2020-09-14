@@ -314,7 +314,7 @@ decl_module! {
 				weight_left,
 			);
 
-			// ok - we have processed or queued all bundled messages. But what if relayer acts aggressivly
+			// ok - we have processed or queued all bundled messages. But what if relayer acts aggressively
 			// (i.e. `max_dispatch_weight` is larger than `messages_dispatch_weight`), or if some messages
 			// have been queued? Then we may have some capacity left from `max_dispatch_weight`.
 			// => let's not waste it and try to process queued messages
