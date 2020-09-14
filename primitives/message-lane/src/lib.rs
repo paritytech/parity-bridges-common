@@ -76,14 +76,6 @@ pub enum MessageResult<Payload, Fee> {
 }
 
 impl<Payload, Fee> MessageResult<Payload, Fee> {
-	/// Return number of processed messages (0 or 1).
-	pub fn messages_processed(&self) -> MessageNonce {
-		match *self {
-			MessageResult::Processed(_) => 1,
-			MessageResult::NotProcessed(_) => 0,
-		}
-	}
-
 	/// Return weight spent on message processing.
 	pub fn weight_spent(&self) -> Weight {
 		match *self {
