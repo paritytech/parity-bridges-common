@@ -1352,7 +1352,7 @@ dependencies = [
  "sp-runtime",
  "substrate-prometheus-endpoint",
  "sysinfo",
- "time 0.2.17",
+ "time 0.2.19",
  "web3",
 ]
 
@@ -7502,9 +7502,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.17"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca7ec98a72285d12e0febb26f0847b12d54be24577618719df654c66cadab55d"
+checksum = "80c1a1fd93112fc50b11c43a1def21f926be3c18884fad676ea879572da070a1"
 dependencies = [
  "const_fn",
  "libc",
