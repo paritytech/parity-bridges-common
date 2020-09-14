@@ -38,6 +38,7 @@ impl AuthoritySet {
 }
 
 #[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct ScheduledChange<N> {
 	pub authority_set: AuthoritySet,
 	pub height: N,

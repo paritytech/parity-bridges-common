@@ -27,7 +27,7 @@
 
 use crate::verifier::ChainVerifier;
 use bp_substrate::{AuthoritySet, ImportedHeader, ScheduledChange};
-use frame_support::{decl_error, decl_module, decl_storage, dispatch, traits::Get};
+use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, prelude::*};
@@ -69,10 +69,9 @@ decl_storage! {
 				"An initial header is needed."
 			);
 			assert!(
-				config.initial_authority_list.is_empty(),
+				!config.initial_authority_list.is_empty(),
 				"An initial authority list is needed."
 			);
-			assert!(config.initial_set_id != 0, "An initial set ID is needed.");
 			assert!(
 				config.first_scheduled_change.is_some(),
 				"An initial authority set change is needed"
@@ -125,6 +124,7 @@ decl_module! {
 			header: T::Header,
 		) -> dispatch::DispatchResult {
 			let _ = ensure_signed(origin)?;
+			frame_support::debug::trace!(target: "sub-bridge", "Got header {:?}", header);
 
 			let mut storage = PalletStorage::<T>::new();
 			let _ =
@@ -145,6 +145,7 @@ decl_module! {
 			finality_proof: Vec<u8>,
 		) -> dispatch::DispatchResult {
 			let _ = ensure_signed(origin)?;
+			frame_support::debug::trace!(target: "sub-bridge", "Got header hash {:?}", hash);
 
 			let mut storage = PalletStorage::<T>::new();
 			let _ =
@@ -200,10 +201,6 @@ pub trait BridgeStorage {
 	/// Schedule a Grandpa authority set change in the future.
 	fn schedule_next_set_change(&self, next_change: ScheduledChange<<Self::Header as HeaderT>::Number>);
 
-	// fn needs_justification(&mut self) -> <Self::Header as HeaderT>::Hash;
-	// fn update_needs_justification(&mut self, hash: <Self::Header as HeaderT>::Hash);
-
-	/// Helper function to store an unfinalized header.
 	#[cfg(test)]
 	fn import_unfinalized_header(&mut self, header: Self::Header);
 }

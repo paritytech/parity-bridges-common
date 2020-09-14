@@ -423,7 +423,7 @@ construct_runtime!(
 		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
-		BridgeSubstrate: pallet_substrate_bridge::{Module, Call, Config},
+		BridgeSubstrate: pallet_substrate_bridge::{Module, Call, Config<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
