@@ -17,8 +17,7 @@
 //! One-way message lane types. Within single one-way lane we have three 'races' where we try to:
 //!
 //! 1) relay new messages from source to target node;
-//! 2) relay proof-of-receiving from target to source node;
-//! 3) relay proof-of-processing from target no source node.
+//! 2) relay proof-of-receiving from target to source node.
 
 use crate::utils::HeaderId;
 
@@ -47,8 +46,6 @@ pub trait MessageLane {
 	type MessagesProof: Clone;
 	/// Messages receiving proof.
 	type MessagesReceivingProof: Clone;
-	/// Messages processing proof.
-	type MessagesProcessingProof: Clone;
 
 	/// Number of the source header.
 	type SourceHeaderNumber: Clone + Debug + Default + Ord + PartialEq;
