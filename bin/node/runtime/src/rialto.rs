@@ -134,7 +134,7 @@ mod tests {
 	fn genesis_hash_matches() {
 		assert_eq!(
 			genesis_header().compute_hash(),
-			hex!("9ff57c7fa155853586382022f0982b71c51fa313a0942f8c456300896643e890").into(),
+			hex!("1468e1a0fa20d30025a5a0f87e1cced4fdc393b84b7d2850b11ca5863db482cb").into(),
 		);
 	}
 
