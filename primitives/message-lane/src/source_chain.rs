@@ -38,7 +38,7 @@ pub trait TargetHeaderChain<Payload> {
 	/// Verify message payload before we accept it.
 	///
 	/// **CAUTION**: this is very important function. Incorrect implementation may lead
-	/// to stucked lanes and/or relayers loses.
+	/// to stuck lanes and/or relayers loses.
 	///
 	/// The proper implementation must ensure that the delivery-transaction with this
 	/// payload would (at least) be accepted into target chain transaction pool AND
