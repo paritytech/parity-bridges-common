@@ -108,6 +108,11 @@ dashboard can be accessed at `http://localhost:9090`. The Grafana dashboard can 
 Here is an example `.env` file which is used for production deployments and network updates. For
 security reasons it is not kept as part of version control. When deploying the network this
 file should be correctly populated and kept in the [`rialto`](./rialto) folder.
+The `UI_SUBSTRATE_PROVIDER` variable lets you define the url of the Substrate node that the user interface
+will connect to. `UI_ETHEREUM_PROVIDER` is used only as a guidance for users to connect
+Metamask to the right Ethereum network. `UI_EXPECTED_ETHEREUM_NETWORK_ID`  is used by
+the user interface as a fail safe to prevent users from connecting their Metamask extension to an
+unexpected network.
 
 ```bash
 GRAFANA_ADMIN_PASS=admin_pass
@@ -120,6 +125,9 @@ BRIDGE_HASH=880291a9dd3988a05b8d71cc4fd1488dea2903e1
 ETH_BRIDGE_HASH=6cf4e2b5929fe5bd1b0f75aecd045b9f4ced9075
 NODE_BRIDGE_HASH=00698187dcabbd6836e7b5339c03c38d1d80efed
 RELAY_BRIDGE_HASH=00698187dcabbd6836e7b5339c03c38d1d80efed
+UI_SUBSTRATE_PROVIDER=ws://localhost:9944
+UI_ETHEREUM_PROVIDER=http://localhost:8545
+UI_EXPECTED_ETHEREUM_NETWORK_ID=105
 ```
 
 ### UI
