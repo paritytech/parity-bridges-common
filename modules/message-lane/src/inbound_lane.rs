@@ -61,7 +61,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		data.latest_received_nonce = nonce;
 		self.storage.set_data(data);
 
-		P::on_message_received(Message {
+		P::dispatch(Message {
 			key: MessageKey {
 				lane_id: self.storage.id(),
 				nonce,
@@ -78,14 +78,14 @@ mod tests {
 	use super::*;
 	use crate::{
 		inbound_lane,
-		mock::{message_data, run_test, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID},
+		mock::{message_data, run_test, TestMessageDispatch, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID},
 	};
 
 	#[test]
 	fn fails_to_receive_message_with_incorrect_nonce() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(!lane.receive_message::<()>(10, message_data(REGULAR_PAYLOAD)));
+			assert!(!lane.receive_message::<TestMessageDispatch>(10, message_data(REGULAR_PAYLOAD)));
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 		});
 	}
@@ -94,7 +94,7 @@ mod tests {
 	fn correct_message_is_processed_instantly() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(lane.receive_message::<()>(1, message_data(REGULAR_PAYLOAD)));
+			assert!(lane.receive_message::<TestMessageDispatch>(1, message_data(REGULAR_PAYLOAD)));
 			assert_eq!(lane.storage.data().latest_received_nonce, 1);
 		});
 	}

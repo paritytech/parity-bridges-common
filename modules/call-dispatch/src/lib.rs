@@ -86,11 +86,7 @@ decl_module! {
 impl<T: Trait> MessageDispatch<T::MessageId> for Module<T> {
 	type Message = (SpecVersion, Weight, <T as Trait>::Call);
 
-	fn dispatch_weight(message: &Self::Message) -> Weight {
-		message.1
-	}
-
-	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Self::Message) -> Weight {
+	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Self::Message) {
 		let (spec_version, weight, call) = message;
 
 		// verify spec version

@@ -18,7 +18,7 @@
 
 use crate::Message;
 
-use frame_support::Parameter;
+use frame_support::{Parameter, weights::Weight};
 use sp_std::{fmt::Debug, prelude::*};
 
 /// Source chain API. Used by target chain, to verify source chain proofs.
@@ -42,13 +42,15 @@ pub trait SourceHeaderChain<Payload, Fee> {
 
 /// Called when inbound message is received.
 pub trait MessageDispatch<Payload, Fee> {
+	/// Estimate dispatch weight.
+	///
+	/// This function must: (1) be instant and (2) return correct upper bound
+	/// of dispatch weight.
+	fn dispatch_weight(message: &Message<Payload, Fee>) -> Weight;
+
 	/// Called when inbound message is received.
 	///
 	/// It is up to the implementers of this trait to determine whether the message
 	/// is invalid (i.e. improperly encoded, has too large weight, ...) or not.
-	fn on_message_received(message: Message<Payload, Fee>);
-}
-
-impl<Payload, Fee> MessageDispatch<Payload, Fee> for () {
-	fn on_message_received(_message: Message<Payload, Fee>) {}
+	fn dispatch(message: Message<Payload, Fee>);
 }

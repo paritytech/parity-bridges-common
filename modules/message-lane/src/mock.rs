@@ -18,7 +18,7 @@ use crate::Trait;
 
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
-	target_chain::SourceHeaderChain,
+	target_chain::{MessageDispatch, SourceHeaderChain},
 	LaneId, Message, MessageData, MessageNonce,
 };
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
@@ -101,7 +101,7 @@ impl Trait for TestRuntime {
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
 
 	type SourceHeaderChain = TestSourceHeaderChain;
-	type MessageDispatch = ();
+	type MessageDispatch = TestMessageDispatch;
 }
 
 /// Error that is returned by all test implementations.
@@ -211,6 +211,18 @@ impl SourceHeaderChain<TestPayload, TestMessageFee> for TestSourceHeaderChain {
 	) -> Result<Vec<Message<TestPayload, TestMessageFee>>, Self::Error> {
 		proof.map_err(|_| TEST_ERROR)
 	}
+}
+
+/// Source header chain that is used in tests.
+#[derive(Debug)]
+pub struct TestMessageDispatch;
+
+impl MessageDispatch<TestPayload, TestMessageFee> for TestMessageDispatch {
+	fn dispatch_weight(message: &Message<TestPayload, TestMessageFee>) -> Weight {
+		message.data.payload.1
+	}
+
+	fn dispatch(_message: Message<TestPayload, TestMessageFee>) {}
 }
 
 /// Return message data with valid fee for given payload.

@@ -25,8 +25,7 @@
 //!
 //! Once message is sent, its progress can be tracked by looking at module events.
 //! The assigned nonce is reported using `MessageAccepted` event. When message is
-//! accepted by the bridged chain, `MessagesDelivered` is fired. When message is
-//! processedby the bridged chain, `MessagesProcessed` by the bridged chain.
+//! delivered to the the bridged chain, it is reported using `MessagesDelivered` event.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -39,7 +38,7 @@ use bp_message_lane::{
 	InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, sp_runtime::DispatchResult, traits::Get, Parameter, StorageMap,
+	decl_error, decl_event, decl_module, decl_storage, sp_runtime::DispatchResult, traits::Get, weights::Weight, Parameter, StorageMap,
 };
 use frame_system::ensure_signed;
 use sp_std::{marker::PhantomData, prelude::*};
@@ -49,6 +48,10 @@ mod outbound_lane;
 
 #[cfg(test)]
 mod mock;
+
+// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+/// Upper bound of delivery transaction weight.
+const DELIVERY_BASE_WEIGHT: Weight = 0;
 
 /// The module configuration trait
 pub trait Trait<I = DefaultInstance>: frame_system::Trait {
@@ -100,10 +103,10 @@ decl_error! {
 		MessageRejectedByLaneVerifier,
 		/// Submitter has failed to pay fee for delivering and dispatching messages.
 		FailedToWithdrawMessageFee,
-		/// Relayer has failed to pay dispatch fee for relayed messages.
-		FailedToWithdrawDispatchFee,
 		/// Invalid messages has been submitted.
 		InvalidMessagesProof,
+		/// Invalid messages dispatch weight has been declared by the relayer.
+		InvalidMessagesDispatchWeight,
 		/// Invalid messages receiving proof has been submitted.
 		InvalidMessagesReceivingProof,
 	}
@@ -215,8 +218,12 @@ decl_module! {
 		}
 
 		/// Receive messages proof from bridged chain.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-		pub fn receive_messages_proof(origin, proof: MessagesProofOf<T, I>) -> DispatchResult {
+		#[weight = DELIVERY_BASE_WEIGHT + dispatch_weight]
+		pub fn receive_messages_proof(
+			origin,
+			proof: MessagesProofOf<T, I>,
+			dispatch_weight: Weight,
+		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 
 			// verify messages proof && convert proof into messages
@@ -229,6 +236,25 @@ decl_module! {
 
 				Error::<T, I>::InvalidMessagesProof
 			})?;
+
+			// verify that relayer is paying actual dispatch weight
+			//
+			// strict equality is used here, because we do not want relayer to declare more weight than
+			// it is necessary => blocking other transactions from being included into this block
+			let actual_dispatch_weight: Weight = messages
+				.iter()
+				.map(T::MessageDispatch::dispatch_weight)
+				.sum();
+			if dispatch_weight != actual_dispatch_weight {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Rejecting messages proof because of dispatch weight mismatch: declared={}, expected={}",
+					dispatch_weight,
+					actual_dispatch_weight,
+				);
+
+				Err(Error::<T, I>::InvalidMessagesDispatchWeight)?;
+			}
 
 			// dispatch messages
 			let total_messages = messages.len();
@@ -489,6 +515,7 @@ mod tests {
 						fee: 0,
 					},
 				}]),
+				REGULAR_PAYLOAD.1,
 			));
 
 			assert_eq!(
@@ -499,10 +526,33 @@ mod tests {
 	}
 
 	#[test]
+	fn receive_messages_proof_rejects_invalid_dispatch_weight() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::receive_messages_proof(
+					Origin::signed(1),
+					Ok(vec![Message {
+						key: MessageKey {
+							lane_id: TEST_LANE_ID,
+							nonce: 1,
+						},
+						data: MessageData {
+							payload: REGULAR_PAYLOAD,
+							fee: 0,
+						},
+					}]),
+					REGULAR_PAYLOAD.1 - 1,
+				),
+				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDispatchWeight,
+			);
+		});
+	}
+
+	#[test]
 	fn receive_messages_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime, DefaultInstance>::receive_messages_proof(Origin::signed(1), Err(()),),
+				Module::<TestRuntime, DefaultInstance>::receive_messages_proof(Origin::signed(1), Err(()), 0),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesProof,
 			);
 		});
