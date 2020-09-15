@@ -29,7 +29,6 @@ tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate.git"
 
-
 [features]
 default = ["std"]
 std = [
