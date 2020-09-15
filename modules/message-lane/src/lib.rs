@@ -21,7 +21,7 @@
 //! 3) the messages are stored in the storage;
 //! 4) external component (relay) delivers messages to bridged chain;
 //! 5) messages are processed in order (ordered by assigned nonce);
-//! 6) relay may send proof-of-receiving and proof-of-processing back to this chain.
+//! 6) relay may send proof-of-delivery back to this chain.
 //!
 //! Once message is sent, its progress can be tracked by looking at module events.
 //! The assigned nonce is reported using `MessageAccepted` event. When message is
@@ -91,9 +91,9 @@ type MessagesProofOf<T, I> = <<T as Trait<I>>::SourceHeaderChain as SourceHeader
 	<T as Trait<I>>::Payload,
 	<T as Trait<I>>::MessageFee,
 >>::MessagesProof;
-/// Shortcut to messages receiving proof type for Trait.
-type MessagesReceivingProofOf<T, I> =
-	<<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::Payload>>::MessagesReceivingProof;
+/// Shortcut to messages delivery proof type for Trait.
+type MessagesDeliveryProofOf<T, I> =
+	<<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::Payload>>::MessagesDeliveryProof;
 
 decl_error! {
 	pub enum Error for Module<T: Trait<I>, I: Instance> {
@@ -107,8 +107,8 @@ decl_error! {
 		InvalidMessagesProof,
 		/// Invalid messages dispatch weight has been declared by the relayer.
 		InvalidMessagesDispatchWeight,
-		/// Invalid messages receiving proof has been submitted.
-		InvalidMessagesReceivingProof,
+		/// Invalid messages delivery proof has been submitted.
+		InvalidMessagesDeliveryProof,
 	}
 }
 
@@ -276,18 +276,18 @@ decl_module! {
 			Ok(())
 		}
 
-		/// Receive messages receiving proof from bridged chain.
+		/// Receive messages delivery proof from bridged chain.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-		pub fn receive_message_receiving_proof(origin, proof: MessagesReceivingProofOf<T, I>) -> DispatchResult {
+		pub fn receive_messages_delivery_proof(origin, proof: MessagesDeliveryProofOf<T, I>) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
-			let (lane_id, nonce) = T::TargetHeaderChain::verify_messages_receiving_proof(proof).map_err(|err| {
+			let (lane_id, nonce) = T::TargetHeaderChain::verify_messages_delivery_proof(proof).map_err(|err| {
 				frame_support::debug::trace!(
 					target: "runtime",
-					"Rejecting invalid proof of messages receiving: {:?}",
+					"Rejecting invalid messages delivery proof: {:?}",
 					err,
 				);
 
-				Error::<T, I>::InvalidMessagesReceivingProof
+				Error::<T, I>::InvalidMessagesDeliveryProof
 			})?;
 
 			let mut lane = outbound_lane::<T, I>(lane_id);
@@ -298,7 +298,7 @@ decl_module! {
 
 			frame_support::debug::trace!(
 				target: "runtime",
-				"Received proof of receiving messages up to (and including) {} at lane {:?}",
+				"Received messages delivery proof up to (and including) {} at lane {:?}",
 				nonce,
 				lane_id,
 			);
@@ -431,11 +431,11 @@ mod tests {
 		assert!(TestMessageDeliveryAndDispatchPayment::is_fee_paid(1, REGULAR_PAYLOAD.1));
 	}
 
-	fn receive_message_receiving_proof() {
+	fn receive_messages_delivery_proof() {
 		System::<TestRuntime>::set_block_number(1);
 		System::<TestRuntime>::reset_events();
 
-		assert_ok!(Module::<TestRuntime>::receive_message_receiving_proof(
+		assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
 			Origin::signed(1),
 			Ok((TEST_LANE_ID, 1)),
 		));
@@ -559,10 +559,10 @@ mod tests {
 	}
 
 	#[test]
-	fn receive_messages_receiving_proof_works() {
+	fn receive_messages_delivery_proof_works() {
 		run_test(|| {
 			send_regular_message();
-			receive_message_receiving_proof();
+			receive_messages_delivery_proof();
 
 			assert_eq!(
 				OutboundLanes::<DefaultInstance>::get(&TEST_LANE_ID).latest_received_nonce,
@@ -572,11 +572,11 @@ mod tests {
 	}
 
 	#[test]
-	fn receive_messages_receiving_proof_rejects_invalid_proof() {
+	fn receive_messages_delivery_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::receive_message_receiving_proof(Origin::signed(1), Err(()),),
-				Error::<TestRuntime, DefaultInstance>::InvalidMessagesReceivingProof,
+				Module::<TestRuntime>::receive_messages_delivery_proof(Origin::signed(1), Err(()),),
+				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDeliveryProof,
 			);
 		});
 	}

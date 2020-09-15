@@ -39,10 +39,6 @@ use sp_runtime::DispatchResult;
 /// Spec version type.
 pub type SpecVersion = u32;
 
-// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Weight of single deposit_event() call.
-const DEPOSIT_EVENT_WEIGHT: Weight = 0;
-
 /// The module configuration trait.
 pub trait Trait: frame_system::Trait {
 	/// The overarching event type.
@@ -86,6 +82,10 @@ decl_module! {
 impl<T: Trait> MessageDispatch<T::MessageId> for Module<T> {
 	type Message = (SpecVersion, Weight, <T as Trait>::Call);
 
+	fn dispatch_weight(message: &Self::Message) -> Weight {
+		message.1
+	}
+
 	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Self::Message) {
 		let (spec_version, weight, call) = message;
 
@@ -106,7 +106,7 @@ impl<T: Trait> MessageDispatch<T::MessageId> for Module<T> {
 				expected_version,
 				spec_version,
 			));
-			return DEPOSIT_EVENT_WEIGHT;
+			return;
 		}
 
 		// verify weight
@@ -123,7 +123,7 @@ impl<T: Trait> MessageDispatch<T::MessageId> for Module<T> {
 				weight,
 			);
 			Self::deposit_event(Event::<T>::MessageWeightMismatch(bridge, id, expected_weight, weight));
-			return DEPOSIT_EVENT_WEIGHT;
+			return;
 		}
 
 		// finally dispatch message
@@ -131,9 +131,11 @@ impl<T: Trait> MessageDispatch<T::MessageId> for Module<T> {
 		let dispatch_result = call.dispatch(frame_system::RawOrigin::Signed(origin_account).into());
 		let actual_call_weight = extract_actual_weight(&dispatch_result, &dispatch_info);
 		frame_support::debug::trace!(
-			"Message {:?}/{:?} has been dispatched. Result: {:?}",
+			"Message {:?}/{:?} has been dispatched. Weight: {} of {}. Result: {:?}",
 			bridge,
 			id,
+			actual_call_weight,
+			weight,
 			dispatch_result,
 		);
 
@@ -142,8 +144,6 @@ impl<T: Trait> MessageDispatch<T::MessageId> for Module<T> {
 			id,
 			dispatch_result.map(drop).map_err(|e| e.error),
 		));
-
-		actual_call_weight + DEPOSIT_EVENT_WEIGHT
 	}
 }
 

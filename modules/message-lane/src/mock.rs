@@ -123,8 +123,7 @@ pub struct TestTargetHeaderChain;
 impl TargetHeaderChain<TestPayload> for TestTargetHeaderChain {
 	type Error = &'static str;
 
-	type MessagesReceivingProof = Result<(LaneId, MessageNonce), ()>;
-	type MessagesProcessingProof = Result<(LaneId, MessageNonce), ()>;
+	type MessagesDeliveryProof = Result<(LaneId, MessageNonce), ()>;
 
 	fn verify_message(payload: &TestPayload) -> Result<(), Self::Error> {
 		if *payload == PAYLOAD_REJECTED_BY_TARGET_CHAIN {
@@ -134,14 +133,8 @@ impl TargetHeaderChain<TestPayload> for TestTargetHeaderChain {
 		}
 	}
 
-	fn verify_messages_receiving_proof(
-		proof: Self::MessagesReceivingProof,
-	) -> Result<(LaneId, MessageNonce), Self::Error> {
-		proof.map_err(|_| TEST_ERROR)
-	}
-
-	fn verify_messages_processing_proof(
-		proof: Self::MessagesProcessingProof,
+	fn verify_messages_delivery_proof(
+		proof: Self::MessagesDeliveryProof,
 	) -> Result<(LaneId, MessageNonce), Self::Error> {
 		proof.map_err(|_| TEST_ERROR)
 	}

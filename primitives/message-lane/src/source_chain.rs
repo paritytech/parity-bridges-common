@@ -31,9 +31,7 @@ pub trait TargetHeaderChain<Payload> {
 	type Error: Debug + Into<&'static str>;
 
 	/// Proof that messages have been received by target chain.
-	type MessagesReceivingProof: Parameter;
-	/// Proof that messages have been processed by target chain.
-	type MessagesProcessingProof: Parameter;
+	type MessagesDeliveryProof: Parameter;
 
 	/// Verify message payload before we accept it.
 	///
@@ -49,13 +47,9 @@ pub trait TargetHeaderChain<Payload> {
 	/// never be delivered.
 	fn verify_message(payload: &Payload) -> Result<(), Self::Error>;
 
-	/// Verify messages receiving proof and return lane && nonce of the latest recevied message.
-	fn verify_messages_receiving_proof(
-		proof: Self::MessagesReceivingProof,
-	) -> Result<(LaneId, MessageNonce), Self::Error>;
-	/// Verify messages processing proof and return lane && nonce of the latest processed message.
-	fn verify_messages_processing_proof(
-		proof: Self::MessagesProcessingProof,
+	/// Verify messages delivery proof and return lane && nonce of the latest recevied message.
+	fn verify_messages_delivery_proof(
+		proof: Self::MessagesDeliveryProof,
 	) -> Result<(LaneId, MessageNonce), Self::Error>;
 }
 
