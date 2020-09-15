@@ -65,8 +65,6 @@ decl_storage! {
 	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as MessageLane {
 		/// Map of lane id => inbound lane data.
 		InboundLanes: map hasher(blake2_128_concat) LaneId => InboundLaneData;
-		/// All stored (unprocessed) inbound messages.
-		InboundMessages: map hasher(blake2_128_concat) MessageKey => Option<T::Payload>;
 		/// Map of lane id => outbound lane data.
 		OutboundLanes: map hasher(blake2_128_concat) LaneId => OutboundLaneData;
 		/// All queued outbound messages.
