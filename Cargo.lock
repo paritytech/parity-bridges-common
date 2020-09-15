@@ -4102,11 +4102,16 @@ dependencies = [
 name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
+ "finality-grandpa",
+ "frame-support",
  "hash-db",
- "serde",
+ "parity-scale-codec",
  "sp-core",
+ "sp-finality-grandpa",
+ "sp-keyring",
  "sp-runtime",
  "sp-state-machine",
+ "sp-std",
  "sp-trie",
 ]
 
