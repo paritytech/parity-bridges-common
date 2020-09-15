@@ -21,7 +21,7 @@ use crate::{LaneId, MessageNonce};
 use frame_support::Parameter;
 use sp_std::fmt::Debug;
 
-/// Target chain API. Used by source chain, to verify target chain proofs.
+/// Target chain API. Used by source chain to verify target chain proofs.
 ///
 /// All implementations of this trait should only work with finalized data that
 /// can't change. Wrong implementation may lead to invalid lane states (i.e. lane
