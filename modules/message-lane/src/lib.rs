@@ -254,7 +254,7 @@ decl_module! {
 					actual_dispatch_weight,
 				);
 
-				Err(Error::<T, I>::InvalidMessagesDispatchWeight)?;
+				return Err(Error::<T, I>::InvalidMessagesDispatchWeight.into());
 			}
 
 			// dispatch messages
