@@ -18,7 +18,7 @@
 
 use crate::Message;
 
-use frame_support::{Parameter, weights::Weight};
+use frame_support::{weights::Weight, Parameter};
 use sp_std::{fmt::Debug, prelude::*};
 
 /// Source chain API. Used by target chain, to verify source chain proofs.

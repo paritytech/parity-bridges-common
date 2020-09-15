@@ -38,7 +38,8 @@ use bp_message_lane::{
 	InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, sp_runtime::DispatchResult, traits::Get, weights::Weight, Parameter, StorageMap,
+	decl_error, decl_event, decl_module, decl_storage, sp_runtime::DispatchResult, traits::Get, weights::Weight,
+	Parameter, StorageMap,
 };
 use frame_system::ensure_signed;
 use sp_std::{marker::PhantomData, prelude::*};
