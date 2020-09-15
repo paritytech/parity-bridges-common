@@ -65,11 +65,11 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 		nonce
 	}
 
-	/// Confirm message receival.
+	/// Confirm messages delivery.
 	///
 	/// Returns `None` if confirmation is wrong/duplicate.
 	/// Returns `Some` with inclusive ranges of message nonces that have been received.
-	pub fn confirm_receival(&mut self, latest_received_nonce: MessageNonce) -> Option<(MessageNonce, MessageNonce)> {
+	pub fn confirm_delivery(&mut self, latest_received_nonce: MessageNonce) -> Option<(MessageNonce, MessageNonce)> {
 		let mut data = self.storage.data();
 		if latest_received_nonce <= data.latest_received_nonce || latest_received_nonce > data.latest_generated_nonce {
 			return None;
@@ -125,7 +125,7 @@ mod tests {
 	}
 
 	#[test]
-	fn confirm_receival_works() {
+	fn confirm_delivery_works() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 1);
@@ -133,14 +133,14 @@ mod tests {
 			assert_eq!(lane.send_message(message_data(REGULAR_PAYLOAD)), 3);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
-			assert_eq!(lane.confirm_receival(3), Some((1, 3)));
+			assert_eq!(lane.confirm_delivery(3), Some((1, 3)));
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
 		});
 	}
 
 	#[test]
-	fn confirm_receival_rejects_nonce_lesser_than_latest_received() {
+	fn confirm_delivery_rejects_nonce_lesser_than_latest_received() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			lane.send_message(message_data(REGULAR_PAYLOAD));
@@ -148,19 +148,19 @@ mod tests {
 			lane.send_message(message_data(REGULAR_PAYLOAD));
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
-			assert_eq!(lane.confirm_receival(3), Some((1, 3)));
-			assert_eq!(lane.confirm_receival(3), None);
+			assert_eq!(lane.confirm_delivery(3), Some((1, 3)));
+			assert_eq!(lane.confirm_delivery(3), None);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
 
-			assert_eq!(lane.confirm_receival(2), None);
+			assert_eq!(lane.confirm_delivery(2), None);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
 		});
 	}
 
 	#[test]
-	fn confirm_receival_rejects_nonce_larger_than_last_generated() {
+	fn confirm_delivery_rejects_nonce_larger_than_last_generated() {
 		run_test(|| {
 			let mut lane = outbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			lane.send_message(message_data(REGULAR_PAYLOAD));
@@ -168,7 +168,7 @@ mod tests {
 			lane.send_message(message_data(REGULAR_PAYLOAD));
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
-			assert_eq!(lane.confirm_receival(10), None);
+			assert_eq!(lane.confirm_delivery(10), None);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 		});
@@ -188,11 +188,11 @@ mod tests {
 			assert_eq!(lane.prune_messages(100), 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
 			// after confirmation, some messages are received
-			assert_eq!(lane.confirm_receival(2), Some((1, 2)));
+			assert_eq!(lane.confirm_delivery(2), Some((1, 2)));
 			assert_eq!(lane.prune_messages(100), 2);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 3);
 			// after last message is confirmed, everything is pruned
-			assert_eq!(lane.confirm_receival(3), Some((3, 3)));
+			assert_eq!(lane.confirm_delivery(3), Some((3, 3)));
 			assert_eq!(lane.prune_messages(100), 1);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 4);
 		});

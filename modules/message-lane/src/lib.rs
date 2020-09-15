@@ -291,7 +291,7 @@ decl_module! {
 			})?;
 
 			let mut lane = outbound_lane::<T, I>(lane_id);
-			let received_range = lane.confirm_receival(nonce);
+			let received_range = lane.confirm_delivery(nonce);
 			if let Some(received_range) = received_range {
 				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, received_range.0, received_range.1));
 			}
