@@ -14,14 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{DefaultInstance, Trait};
+use crate::Trait;
 
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
-	target_chain::{MessageDispatch, MessageDispatchPayment, SourceHeaderChain},
-	LaneId, Message, MessageData, MessageId, MessageNonce, MessageResult,
+	target_chain::SourceHeaderChain,
+	LaneId, Message, MessageData, MessageNonce,
 };
-use bp_runtime::InstanceId;
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
@@ -105,14 +104,8 @@ impl Trait for TestRuntime {
 	type MessageDispatch = ();
 }
 
-/// Max(total weight of all messages across all tests).
-pub const MAX_ALLOWED_WEIGHT: Weight = 0xFFFFFFFFFFFFFFFF;
-
 /// Error that is returned by all test implementations.
 pub const TEST_ERROR: &str = "Test error";
-
-/// Instance id we're using in tests.
-pub const TEST_INSTANCE_ID: InstanceId = *b"test";
 
 /// Lane that we're using in tests.
 pub const TEST_LANE_ID: LaneId = [0, 0, 0, 1];

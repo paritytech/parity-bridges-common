@@ -23,7 +23,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::{Decode, Encode};
-use frame_support::{weights::Weight, RuntimeDebug};
+use frame_support::RuntimeDebug;
 use sp_api::decl_runtime_apis;
 use sp_std::prelude::*;
 
@@ -67,7 +67,7 @@ pub struct Message<Payload, Fee> {
 }
 
 /// Inbound lane data.
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq)]
+#[derive(Default, Encode, Decode, Clone, RuntimeDebug, PartialEq)]
 pub struct InboundLaneData {
 	/// Nonce of latest message that we have received from bridged chain.
 	pub latest_received_nonce: MessageNonce,
