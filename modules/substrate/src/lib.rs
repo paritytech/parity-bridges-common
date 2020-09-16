@@ -45,8 +45,8 @@ pub trait Trait: frame_system::Trait {}
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
-		/// Best finalized header.
-		BestFinalized: Option<T::Header>;
+		/// Hash of the best finalized header.
+		BestFinalized: T::Hash;
 		/// Headers which have been imported into the pallet.
 		ImportedHeaders: map hasher(identity) T::Hash => Option<ImportedHeader<T::Header>>;
 		/// The current Grandpa Authority set.
@@ -77,7 +77,7 @@ decl_storage! {
 				.initial_header
 				.clone()
 				.expect("Asserted that this was Some");
-			<BestFinalized<T>>::put(&initial_header);
+			<BestFinalized<T>>::put(initial_header.hash());
 			<ImportedHeaders<T>>::insert(
 				initial_header.hash(),
 				ImportedHeader::new(initial_header, false, true),
@@ -162,12 +162,10 @@ pub trait BridgeStorage {
 	fn write_header(&mut self, header: &ImportedHeader<Self::Header>);
 
 	/// Get the best finalized header the pallet knows of.
-	///
-	/// Returns None if there are no finalized headers.
-	fn best_finalized_header(&self) -> Option<Self::Header>;
+	fn best_finalized_header(&self) -> ImportedHeader<Self::Header>;
 
 	/// Update the best finalized header the pallet knows of.
-	fn update_best_finalized(&self, header: &Self::Header);
+	fn update_best_finalized(&self, hash: <Self::Header as HeaderT>::Hash);
 
 	/// Check if a particular header is known to the pallet.
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
@@ -213,12 +211,14 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
-	fn best_finalized_header(&self) -> Option<T::Header> {
-		<BestFinalized<T>>::get()
+	fn best_finalized_header(&self) -> ImportedHeader<T::Header> {
+		let hash = <BestFinalized<T>>::get();
+		self.get_header_by_hash(hash)
+			.expect("A finalized header was added at genesis, therefore this must always exist")
 	}
 
-	fn update_best_finalized(&self, header: &T::Header) {
-		<BestFinalized<T>>::put(header)
+	fn update_best_finalized(&self, hash: Hash<T::Header>) {
+		<BestFinalized<T>>::put(hash)
 	}
 
 	fn header_exists(&self, hash: Hash<T::Header>) -> bool {

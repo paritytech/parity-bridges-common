@@ -71,11 +71,9 @@ where
 	H: HeaderT,
 {
 	fn import_header(storage: &mut S, header: H) -> Result<(), ImportError> {
-		let highest_finalized = storage
-			.best_finalized_header()
-			.expect("A finalized header must have been provided during genesis.");
+		let best_finalized = storage.best_finalized_header().header;
 
-		if header.number() < highest_finalized.number() {
+		if header.number() < best_finalized.number() {
 			return Err(ImportError::OldHeader);
 		}
 
@@ -109,10 +107,7 @@ where
 			return Err(ImportError::UnfinalizedHeader);
 		}
 
-		let last_finalized = storage
-			.best_finalized_header()
-			.expect("A finalized header must have been provided during genesis.");
-
+		let last_finalized = storage.best_finalized_header().header;
 		let finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
 			// TODO: I know this is a bit hacky with the redundant storage reads, but I'm just
 			// trying to get something that works to better understand how do change validator sets
@@ -150,7 +145,8 @@ where
 		storage.update_best_finalized(
 			finalized_headers
 				.last()
-				.expect("We just iterated through these headers, therefore the last header must exist"),
+				.expect("We just iterated through these headers, therefore the last header must exist")
+				.hash(),
 		);
 
 		Ok(())
@@ -263,7 +259,7 @@ mod tests {
 	) -> Vec<TestHeader> {
 		let mut imported_headers = vec![];
 		let genesis = TestHeader::new_from_number(0);
-		<BestFinalized<TestRuntime>>::put(&genesis);
+		<BestFinalized<TestRuntime>>::put(genesis.hash());
 		storage.write_header(&ImportedHeader::new(genesis.clone(), false, true));
 		imported_headers.push(genesis);
 
@@ -282,7 +278,7 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let parent = TestHeader::new_from_number(5);
-			<BestFinalized<TestRuntime>>::put(&parent);
+			<BestFinalized<TestRuntime>>::put(parent.hash());
 
 			let header = TestHeader::new_from_number(1);
 			assert_err!(Verifier::import_header(&mut storage, header), ImportError::OldHeader);
@@ -294,7 +290,7 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let parent = TestHeader::new_from_number(1);
-			<BestFinalized<TestRuntime>>::put(&parent);
+			<BestFinalized<TestRuntime>>::put(parent.hash());
 
 			// By default the parent is `0x00`
 			let header = TestHeader::new_from_number(2);
@@ -311,7 +307,7 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let header = TestHeader::new_from_number(1);
-			<BestFinalized<TestRuntime>>::put(&header);
+			<BestFinalized<TestRuntime>>::put(header.hash());
 
 			let imported_header = ImportedHeader::new(header.clone(), false, false);
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
@@ -329,7 +325,7 @@ mod tests {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let parent = TestHeader::new_from_number(1);
 			let parent_hash = parent.hash();
-			<BestFinalized<TestRuntime>>::put(&parent);
+			<BestFinalized<TestRuntime>>::put(parent.hash());
 
 			let imported_header = ImportedHeader::new(parent.clone(), false, true);
 			<ImportedHeaders<TestRuntime>>::insert(parent_hash, &imported_header);
