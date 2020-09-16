@@ -617,7 +617,6 @@ mod tests {
 
 			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
 			grandchild.parent_hash = child.hash();
-			dbg!(grandchild.hash());
 
 			// Need to ensure that header at N+2 signals a change
 			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
