@@ -57,6 +57,9 @@ pub enum CallOrigin<SourceChainAccountPublic, TargetChainAccountPublic, TargetCh
 	/// the single deployed instance of the messages bridge (message-lane, ...) module.
 	/// It is assumed that this account is not controlled by anyone and has zero balance
 	/// (unless someone would make transfer by mistake?).
+	/// If we trust the source chain to allow sending calls with that origin in case they originate from source chain `root` account (default implementation),
+	/// `BridgeAccount` represents the source-chain-root origin on the target chain and can be used to send and authorize
+	/// "control plane" messages between the two runtimes. 
 	BridgeAccount,
 	/// Call is originated from account, identified by `TargetChainAccountPublic`. The proof
 	/// that the `SourceChainAccountPublic` controls `TargetChainAccountPublic` is the
