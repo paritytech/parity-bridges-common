@@ -112,7 +112,7 @@ where
 		let last_finalized = storage.best_finalized_header();
 		let mut finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
 			// Skip header we're trying to finalize since we know it `requires_justification`
-			let requires_justification = ancestors.iter().skip(1).find(|h| h.requires_justification == true);
+			let requires_justification = ancestors.iter().skip(1).find(|h| h.requires_justification);
 
 			// This means that we're trying to import a justification for the child
 			// of a header which is still missing a justification. We must reject
@@ -329,7 +329,7 @@ mod tests {
 			let parent_hash = parent.hash();
 			<BestFinalized<TestRuntime>>::put(parent.hash());
 
-			let imported_header = ImportedHeader::new(parent.clone(), false, true);
+			let imported_header = ImportedHeader::new(parent, false, true);
 			<ImportedHeaders<TestRuntime>>::insert(parent_hash, &imported_header);
 
 			let mut header = TestHeader::new_from_number(2);
