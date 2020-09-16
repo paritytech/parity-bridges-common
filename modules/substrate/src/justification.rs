@@ -164,7 +164,7 @@ where
 	}
 
 	fn best_chain_containing(&self, _block: Header::Hash) -> Option<(Header::Hash, Header::Number)> {
-		None
+		unreachable!("is only used during voting; qed")
 	}
 }
 
