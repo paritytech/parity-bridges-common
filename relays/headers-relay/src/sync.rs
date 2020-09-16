@@ -277,7 +277,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 pub mod tests {
 	use super::*;
 	use crate::headers::tests::{header, id};
-	use crate::sync_loop_tests::{TestHeadersSyncPipeline, TestHash, TestNumber};
+	use crate::sync_loop_tests::{TestHash, TestHeadersSyncPipeline, TestNumber};
 	use crate::sync_types::HeaderStatus;
 	use relay_utils::HeaderId;
 

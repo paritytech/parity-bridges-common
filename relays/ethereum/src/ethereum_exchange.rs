@@ -36,7 +36,7 @@ use exchange_relay::exchange::{
 	TransactionProofPipeline,
 };
 use exchange_relay::exchange_loop::{run as run_loop, InMemoryStorage};
-use relay_utils::{HeaderId, metrics::MetricsParams};
+use relay_utils::{metrics::MetricsParams, HeaderId};
 use rialto_runtime::exchange::EthereumTransactionInclusionProof;
 use std::time::Duration;
 

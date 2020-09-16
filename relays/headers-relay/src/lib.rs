@@ -20,8 +20,8 @@
 #![recursion_limit = "1024"]
 
 pub mod headers;
+pub mod sync;
+pub mod sync_loop;
 pub mod sync_loop_metrics;
 pub mod sync_loop_tests;
-pub mod sync_loop;
 pub mod sync_types;
-pub mod sync;

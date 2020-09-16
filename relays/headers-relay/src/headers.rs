@@ -778,7 +778,7 @@ fn queued_incomplete_header<Id: Clone + Eq + std::hash::Hash, T>(
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::sync_loop_tests::{TestHeaderId, TestHeadersSyncPipeline, TestHeader, TestNumber, TestHash};
+	use crate::sync_loop_tests::{TestHash, TestHeader, TestHeaderId, TestHeadersSyncPipeline, TestNumber};
 	use crate::sync_types::QueuedHeader;
 
 	pub(crate) fn header(number: TestNumber) -> QueuedHeader<TestHeadersSyncPipeline> {

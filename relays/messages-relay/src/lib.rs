@@ -19,7 +19,7 @@
 // required for futures::select!
 #![recursion_limit = "1024"]
 
-pub mod message_lane_loop;
 pub mod message_lane;
+pub mod message_lane_loop;
 pub mod message_race_delivery;
 pub mod message_race_loop;

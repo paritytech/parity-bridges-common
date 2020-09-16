@@ -25,7 +25,8 @@ use crate::rpc::SubstrateRpc;
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{
-	GrandpaJustification, Hash, SubstrateSyncHeader as Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
+	GrandpaJustification, Hash, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
+	SubstrateSyncHeader as Header,
 };
 
 use async_trait::async_trait;

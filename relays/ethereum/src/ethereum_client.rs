@@ -692,17 +692,20 @@ mod tests {
 	}
 
 	fn header(number: SubstrateBlockNumber) -> QueuedSubstrateHeader {
-		QueuedSubstrateHeader::new(SubstrateHeader::new(
-			number,
-			Default::default(),
-			Default::default(),
-			if number == 0 {
-				Default::default()
-			} else {
-				header(number - 1).id().1
-			},
-			Default::default(),
-		).into())
+		QueuedSubstrateHeader::new(
+			SubstrateHeader::new(
+				number,
+				Default::default(),
+				Default::default(),
+				if number == 0 {
+					Default::default()
+				} else {
+					header(number - 1).id().1
+				},
+				Default::default(),
+			)
+			.into(),
+		)
 	}
 
 	#[test]

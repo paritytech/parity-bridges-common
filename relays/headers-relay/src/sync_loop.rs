@@ -22,8 +22,9 @@ use async_trait::async_trait;
 use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
 use relay_utils::{
+	format_ids, interval,
 	metrics::{start as metrics_start, GlobalMetrics, MetricsParams},
-	format_ids, interval, process_future_result, retry_backoff, MaybeConnectionError, StringifiedMaybeConnectionError,
+	process_future_result, retry_backoff, MaybeConnectionError, StringifiedMaybeConnectionError,
 };
 use std::{
 	collections::HashSet,

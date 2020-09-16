@@ -17,7 +17,9 @@
 //! Ethereum PoA -> Substrate synchronization.
 
 use crate::ethereum_client::{EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient};
-use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, EthereumSyncHeader as Header, QueuedEthereumHeader, Receipt};
+use crate::ethereum_types::{
+	EthereumHeaderId, EthereumHeadersSyncPipeline, EthereumSyncHeader as Header, QueuedEthereumHeader, Receipt,
+};
 use crate::instances::BridgeInstance;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
