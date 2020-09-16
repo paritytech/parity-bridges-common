@@ -80,9 +80,8 @@ struct HeaderCompletion<Completion> {
 	pub completion: Completion,
 }
 
-impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
-	/// Returns new QueuedHeaders.
-	pub fn new() -> Self {
+impl<P: HeadersSyncPipeline> Default for QueuedHeaders<P> {
+	fn default() -> Self {
 		QueuedHeaders {
 			maybe_orphan: HeadersQueue::new(),
 			orphan: HeadersQueue::new(),
@@ -98,7 +97,9 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			prune_border: Zero::zero(),
 		}
 	}
+}
 
+impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 	/// Returns prune border.
 	#[cfg(test)]
 	pub fn prune_border(&self) -> P::Number {

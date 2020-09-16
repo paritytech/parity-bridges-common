@@ -118,8 +118,8 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 		let mut stall_countdown = None;
 		let mut last_update_time = Instant::now();
 
-		let mut metrics_global = GlobalMetrics::new();
-		let mut metrics_sync = SyncLoopMetrics::new();
+		let mut metrics_global = GlobalMetrics::default();
+		let mut metrics_sync = SyncLoopMetrics::default();
 		let metrics_enabled = metrics_params.is_some();
 		metrics_start(
 			format!("{}_to_{}_Sync", P::SOURCE_NAME, P::TARGET_NAME),

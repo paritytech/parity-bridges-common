@@ -67,7 +67,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 	/// Creates new headers synchronizer.
 	pub fn new(params: HeadersSyncParams) -> Self {
 		HeadersSync {
-			headers: QueuedHeaders::new(),
+			headers: QueuedHeaders::default(),
 			params,
 			source_best_number: None,
 			target_best_header: None,

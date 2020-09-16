@@ -36,9 +36,8 @@ impl Metrics for SyncLoopMetrics {
 	}
 }
 
-impl SyncLoopMetrics {
-	/// Creates sync loop metrics.
-	pub fn new() -> Self {
+impl Default for SyncLoopMetrics {
+	fn default() -> Self {
 		SyncLoopMetrics {
 			best_block_numbers: GaugeVec::new(
 				Opts::new("best_block_numbers", "Best block numbers on source and target nodes"),
@@ -52,7 +51,9 @@ impl SyncLoopMetrics {
 			.expect("metric is static and thus valid; qed"),
 		}
 	}
+}
 
+impl SyncLoopMetrics {
 	/// Update metrics.
 	pub fn update<P: HeadersSyncPipeline>(&mut self, sync: &HeadersSync<P>) {
 		let headers = sync.headers();

@@ -36,9 +36,8 @@ impl Metrics for ExchangeLoopMetrics {
 	}
 }
 
-impl ExchangeLoopMetrics {
-	/// Creates sync loop metrics.
-	pub fn new() -> Self {
+impl Default for ExchangeLoopMetrics {
+	fn default() -> Self {
 		ExchangeLoopMetrics {
 			best_block_numbers: GaugeVec::new(
 				Opts::new("best_block_numbers", "Best finalized block numbers"),
@@ -54,7 +53,9 @@ impl ExchangeLoopMetrics {
 			.expect("metric is static and thus valid; qed"),
 		}
 	}
+}
 
+impl ExchangeLoopMetrics {
 	/// Update metrics when single block is relayed.
 	pub fn update<P: TransactionProofPipeline>(
 		&mut self,

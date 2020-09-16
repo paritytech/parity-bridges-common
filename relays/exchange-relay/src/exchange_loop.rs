@@ -97,8 +97,8 @@ pub fn run<P: TransactionProofPipeline>(
 		let mut state = storage.state();
 		let mut current_finalized_block = None;
 
-		let mut metrics_global = GlobalMetrics::new();
-		let mut metrics_exch = ExchangeLoopMetrics::new();
+		let mut metrics_global = GlobalMetrics::default();
+		let mut metrics_exch = ExchangeLoopMetrics::default();
 		let metrics_enabled = metrics_params.is_some();
 		metrics_start(
 			format!("{}_to_{}_Exchange", P::SOURCE_NAME, P::TARGET_NAME),
