@@ -19,10 +19,10 @@ use crate::message_lane_loop::{
 	TargetClientState,
 };
 use crate::message_race_loop::{MessageRace, RaceState, RaceStrategy, SourceClient, TargetClient};
-use crate::utils::FailedClient;
 
 use async_trait::async_trait;
 use futures::stream::FusedStream;
+use relay_utils::FailedClient;
 use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive, time::Duration};
 
 /// Maximal number of messages to relay in single transaction.

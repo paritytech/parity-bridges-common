@@ -16,6 +16,9 @@
 
 //! Relaying messages over message lanes.
 
+// required for futures::select!
+#![recursion_limit = "1024"]
+
 pub mod message_lane_loop;
 pub mod message_lane;
 pub mod message_race_delivery;

@@ -20,8 +20,7 @@
 //! 2) relay proof-of-receiving from target to source node;
 //! 3) relay proof-of-processing from target no source node.
 
-use crate::utils::HeaderId;
-
+use relay_utils::HeaderId;
 use std::fmt::Debug;
 
 /// One-way message lane.

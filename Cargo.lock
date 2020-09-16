@@ -3471,6 +3471,14 @@ dependencies = [
 [[package]]
 name = "messages-relay"
 version = "0.1.0"
+dependencies = [
+ "async-std",
+ "async-trait",
+ "futures 0.3.5",
+ "log",
+ "parking_lot 0.11.0",
+ "relay-utils",
+]
 
 [[package]]
 name = "millau-bridge-node"
