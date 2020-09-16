@@ -93,13 +93,18 @@ services:
       - "9618:9616"
     depends_on: *all-nodes
 
-  bridge-node-alice: &bridge-node
-    image: paritytech/bridge-node
+  bridge-node-alice: &rialto-bridge-node
+    image: paritytech/rialto-bridge-node
+    hostname: rialto-bridge-node-alice
+    networks:
+      default:
+        aliases:
+          - rialto-bridge-node-alice
     entrypoint:
-      - /home/user/bridge-node
+      - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/bridge-node-bob/tcp/30333/p2p/12D3KooWSEpHJj29HEzgPFcRYVc5X3sEuP3KgiUoqJNCet51NiMX
+      - --bootnodes=/dns4/rialto-bridge-node-bob/tcp/30333/p2p/12D3KooWSEpHJj29HEzgPFcRYVc5X3sEuP3KgiUoqJNCet51NiMX
       - --alice
       - --node-key=79cf382988364291a7968ae7825c01f68c50d679796a8983237d07fe0ccf363b
       - --rpc-cors=all
@@ -114,12 +119,17 @@ services:
       - "9944:9944"
 
   bridge-node-bob:
-    <<: *bridge-node
+    <<: *rialto-bridge-node
+    hostname: rialto-bridge-node-bob
+    networks:
+      default:
+        aliases:
+          - rialto-bridge-node-bob
     entrypoint:
-      - /home/user/bridge-node
+      - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bootnodes=/dns4/rialto-bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --bob
       - --node-key=4f9d0146dd9b7b3bf5a8089e3880023d1df92057f89e96e07bb4d8c2ead75bbd
       - --rpc-cors=all
@@ -130,7 +140,12 @@ services:
       - "10044:9944"
 
   bridge-node-charlie:
-    <<: *bridge-node
+    <<: *rialto-bridge-node
+    hostname: rialto-bridge-node-charlie
+    networks:
+      default:
+        aliases:
+          - rialto-bridge-node-charlie
     environment:
       <<: *bridge-env
       VIRTUAL_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
@@ -138,10 +153,10 @@ services:
       LETSENCRYPT_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
     entrypoint:
-      - /home/user/bridge-node
+      - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bootnodes=/dns4/rialto-bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --charlie
       - --rpc-cors=all
       - --unsafe-rpc-external
@@ -151,12 +166,17 @@ services:
       - "10144:9944"
 
   bridge-node-dave:
-    <<: *bridge-node
+    <<: *rialto-bridge-node
+    hostname: rialto-bridge-node-dave
+    networks:
+      default:
+        aliases:
+          - rialto-bridge-node-dave
     entrypoint:
-      - /home/user/bridge-node
+      - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bootnodes=/dns4/rialto-bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --dave
       - --rpc-cors=all
       - --unsafe-rpc-external
@@ -166,12 +186,17 @@ services:
       - "10244:9944"
 
   bridge-node-eve:
-    <<: *bridge-node
+    <<: *rialto-bridge-node
+    hostname: rialto-bridge-node-eve
+    networks:
+      default:
+        aliases:
+          - rialto-bridge-node-eve
     entrypoint:
-      - /home/user/bridge-node
+      - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bootnodes=/dns4/rialto-bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --eve
       - --rpc-cors=all
       - --unsafe-rpc-external
@@ -215,3 +240,14 @@ services:
       - "4567:4567"
     depends_on:
       - grafana-dashboard
+
+  front-end:
+    build:
+      context: .
+      dockerfile: ./Front-end.Dockerfile
+      args:
+        SUBSTRATE_PROVIDER: ${UI_SUBSTRATE_PROVIDER:-ws://localhost:9944}
+        ETHEREUM_PROVIDER: ${UI_ETHEREUM_PROVIDER:-http://localhost:8545}
+        EXPECTED_ETHEREUM_NETWORK_ID: ${UI_EXPECTED_ETHEREUM_NETWORK_ID:-105}
+    ports:
+      - "8080:80"

@@ -1,5 +1,5 @@
 [package]
-name = "bridge-node-runtime"
+name = "millau-runtime"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
@@ -15,12 +15,6 @@ package = "parity-scale-codec"
 version = "1.3.1"
 default-features = false
 features = ["derive"]
-
-[dependencies.libsecp256k1]
-optional = true
-version = "0.3.4"
-default-features = false
-features = ["hmac"]
 
 [dependencies.serde]
 version = "1.0.115"
@@ -40,30 +34,15 @@ tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
-[dependencies.pallet-bridge-eth-poa]
-version = "0.1.0"
-default-features = false
-path = "../../../modules/ethereum"
-
 [dependencies.pallet-bridge-call-dispatch]
 version = "0.1.0"
 default-features = false
-path = "../../../modules/call-dispatch"
-
-[dependencies.pallet-bridge-currency-exchange]
-version = "0.1.0"
-default-features = false
-path = "../../../modules/currency-exchange"
-
-[dependencies.pallet-substrate-bridge]
-version = "0.1.0"
-default-features = false
-path = "../../../modules/substrate"
+path = "../../modules/call-dispatch"
 
 [dependencies.pallet-message-lane]
 version = "0.1.0"
 default-features = false
-path = "../../../modules/message-lane"
+path = "../../modules/message-lane"
 
 [dependencies.frame-support]
 version = "2.0.0-rc6"
@@ -83,16 +62,16 @@ tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
-[dependencies.pallet-shift-session-manager]
-version = "0.1.0"
-default-features = false
-path = "../../../modules/shift-session-manager"
-
 [dependencies.pallet-sudo]
 version = "2.0.0-rc6"
 tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
+
+[dependencies.pallet-shift-session-manager]
+version = "0.1.0"
+default-features = false
+path = "../../modules/shift-session-manager"
 
 [dependencies.pallet-session]
 version = "2.0.0-rc6"
@@ -150,12 +129,6 @@ default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-core]
-version = "2.0.0-rc6"
-tag = 'v2.0.0-rc6'
-default-features = false
-git = "https://github.com/paritytech/substrate/"
-
-[dependencies.sp-finality-grandpa]
 version = "2.0.0-rc6"
 tag = 'v2.0.0-rc6'
 default-features = false
@@ -222,43 +195,17 @@ tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
-[dependencies.bp-currency-exchange]
-version = "0.1.0"
-default-features = false
-path = "../../../primitives/currency-exchange"
-
-[dependencies.bp-eth-poa]
-version = "0.1.0"
-default-features = false
-path = "../../../primitives/ethereum-poa"
-
 [dependencies.bp-header-chain]
 version = "0.1.0"
 default-features = false
-path = "../../../primitives/header-chain"
+path = "../../primitives/header-chain"
 
 [dependencies.bp-message-lane]
 version = "0.1.0"
 default-features = false
-path = "../../../primitives/message-lane"
-
-[dependencies.bp-substrate]
-version = "0.1.0"
-default-features = false
-path = "../../../primitives/substrate"
+path = "../../primitives/message-lane"
 
 # Dev Dependencies
-
-[dev-dependencies.libsecp256k1]
-version = "0.3.4"
-default-features = false
-features = ["hmac"]
-
-[dev-dependencies.bp-eth-poa]
-version = "0.1.0"
-default-features = false
-features = ["std"]
-path = "../../../primitives/ethereum-poa"
 
 [build-dependencies.wasm-builder-runner]
 version = "1.0.5"
@@ -269,8 +216,6 @@ git = "https://github.com/paritytech/substrate/"
 [features]
 default = ["std"]
 std = [
-	"bp-currency-exchange/std",
-	"bp-eth-poa/std",
 	"bp-message-lane/std",
 	"codec/std",
 	"frame-benchmarking/std",
@@ -281,8 +226,6 @@ std = [
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-bridge-call-dispatch/std",
-	"pallet-bridge-currency-exchange/std",
-	"pallet-bridge-eth-poa/std",
 	"pallet-grandpa/std",
 	"pallet-randomness-collective-flip/std",
 	"pallet-shift-session-manager/std",
@@ -307,8 +250,5 @@ runtime-benchmarks = [
 	"frame-benchmarking",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"libsecp256k1",
-	"pallet-bridge-currency-exchange/runtime-benchmarks",
-	"pallet-bridge-eth-poa/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]

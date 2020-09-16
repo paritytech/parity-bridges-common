@@ -686,14 +686,14 @@ dependencies = [
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-eth-poa",
- "bridge-node-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures 0.3.5",
  "jsonrpc-core",
  "log",
+ "millau-runtime",
  "pallet-message-lane-rpc",
+ "rialto-runtime",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -716,55 +716,6 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "vergen",
-]
-
-[[package]]
-name = "bridge-node-runtime"
-version = "0.1.0"
-dependencies = [
- "bp-currency-exchange",
- "bp-eth-poa",
- "bp-header-chain",
- "bp-message-lane",
- "bp-substrate",
- "frame-benchmarking",
- "frame-executive",
- "frame-support",
- "frame-system",
- "frame-system-rpc-runtime-api",
- "hex-literal 0.3.1",
- "libsecp256k1",
- "pallet-aura",
- "pallet-balances",
- "pallet-bridge-call-dispatch",
- "pallet-bridge-currency-exchange",
- "pallet-bridge-eth-poa",
- "pallet-grandpa",
- "pallet-message-lane",
- "pallet-randomness-collective-flip",
- "pallet-session",
- "pallet-shift-session-manager",
- "pallet-substrate-bridge",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "serde",
- "sp-api",
- "sp-block-builder",
- "sp-consensus-aura",
- "sp-core",
- "sp-finality-grandpa",
- "sp-inherents",
- "sp-io",
- "sp-offchain",
- "sp-runtime",
- "sp-session",
- "sp-staking",
- "sp-std",
- "sp-transaction-pool",
- "sp-version",
- "substrate-wasm-builder-runner",
 ]
 
 [[package]]
@@ -1359,12 +1310,12 @@ dependencies = [
 name = "ethereum-contract-builtin"
 version = "0.1.0"
 dependencies = [
- "bridge-node-runtime",
  "ethereum-types",
  "finality-grandpa",
  "hex",
  "log",
  "parity-scale-codec",
+ "rialto-runtime",
  "sc-finality-grandpa",
  "sp-blockchain",
  "sp-core",
@@ -1383,7 +1334,6 @@ dependencies = [
  "backoff",
  "bp-currency-exchange",
  "bp-eth-poa",
- "bridge-node-runtime",
  "clap",
  "env_logger",
  "ethabi",
@@ -1403,6 +1353,7 @@ dependencies = [
  "parity-crypto",
  "parity-scale-codec",
  "parking_lot 0.11.0",
+ "rialto-runtime",
  "rustc-hex",
  "serde",
  "serde_json",
@@ -1411,7 +1362,7 @@ dependencies = [
  "sp-runtime",
  "substrate-prometheus-endpoint",
  "sysinfo",
- "time 0.2.17",
+ "time 0.2.19",
  "web3",
 ]
 
@@ -3496,6 +3447,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "millau-bridge-node"
+version = "0.1.0"
+dependencies = [
+ "bridge-node",
+]
+
+[[package]]
+name = "millau-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-message-lane",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-bridge-call-dispatch",
+ "pallet-grandpa",
+ "pallet-message-lane",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-shift-session-manager",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-staking",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+ "substrate-wasm-builder-runner",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4115,6 +4114,7 @@ version = "0.1.0"
 dependencies = [
  "bp-header-chain",
  "bp-substrate",
+ "finality-grandpa",
  "frame-support",
  "frame-system",
  "hash-db",
@@ -4123,6 +4123,7 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-io",
+ "sp-keyring",
  "sp-runtime",
  "sp-state-machine",
  "sp-std",
@@ -5080,6 +5081,61 @@ name = "retain_mut"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e005d658ad26eacc2b6c506dfde519f4e277e328d0eb3379ca61647d70a8f531"
+
+[[package]]
+name = "rialto-bridge-node"
+version = "0.1.0"
+dependencies = [
+ "bridge-node",
+]
+
+[[package]]
+name = "rialto-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-currency-exchange",
+ "bp-eth-poa",
+ "bp-header-chain",
+ "bp-message-lane",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "libsecp256k1",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-bridge-call-dispatch",
+ "pallet-bridge-currency-exchange",
+ "pallet-bridge-eth-poa",
+ "pallet-grandpa",
+ "pallet-message-lane",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-shift-session-manager",
+ "pallet-substrate-bridge",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-staking",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+ "substrate-wasm-builder-runner",
+]
 
 [[package]]
 name = "ring"
@@ -6175,9 +6231,9 @@ checksum = "f638d531eccd6e23b980caf34876660d38e265409d8e99b397ab71eb3612fad0"
 
 [[package]]
 name = "serde"
-version = "1.0.115"
+version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e54c9a88f2da7238af84b5101443f0c0d0a3bbdc455e34a5c9497b1903ed55d5"
+checksum = "96fe57af81d28386a513cbc6858332abc6117cfdb5999647c6444b8f43a370a5"
 dependencies = [
  "serde_derive",
 ]
@@ -6194,9 +6250,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.115"
+version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "609feed1d0a73cc36a0182a840a9b37b4a82f0b1150369f0536a9e3f2a31dc48"
+checksum = "f630a6370fd8e457873b4bd2ffdae75408bc291ba72be773772a4c2a065d9ae8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7468,9 +7524,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.17"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca7ec98a72285d12e0febb26f0847b12d54be24577618719df654c66cadab55d"
+checksum = "80c1a1fd93112fc50b11c43a1def21f926be3c18884fad676ea879572da070a1"
 dependencies = [
  "const_fn",
  "libc",

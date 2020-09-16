@@ -38,6 +38,7 @@ use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, prelude::*};
 
+mod justification;
 mod storage_proof;
 mod verifier;
 

@@ -10,8 +10,9 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 [dependencies]
 bp-header-chain = { path = "../../primitives/header-chain", default-features = false }
 bp-substrate = { path = "../../primitives/substrate", default-features = false }
-serde = { version = "1.0", optional = true }
+finality-grandpa = { version = "0.12.3", default-features = false }
 hash-db = { version = "0.15.2", default-features = false }
+serde = { version = "1.0", optional = true }
 
 # Substrate Based Dependencies
 
@@ -31,7 +32,7 @@ git = "https://github.com/paritytech/substrate/"
 version = "2.0.0-rc6"
 tag = 'v2.0.0-rc6'
 default-features = false
-git = "https://github.com/paritytech/substrate.git"
+git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-runtime]
 version = "2.0.0-rc6"
@@ -68,6 +69,12 @@ tag = 'v2.0.0-rc6'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
+[dev-dependencies.sp-keyring]
+version = "2.0.0-rc6"
+tag = 'v2.0.0-rc6'
+default-features = false
+git = "https://github.com/paritytech/substrate/"
+
 [dev-dependencies.sp-state-machine]
 version = "0.8.0-rc6"
 tag = 'v2.0.0-rc6'
@@ -77,8 +84,10 @@ git = "https://github.com/paritytech/substrate/"
 [features]
 default = ["std"]
 std = [
+	"finality-grandpa/std",
 	"frame-support/std",
 	"frame-system/std",
+	"parity-scale-codec/std",
 	"serde",
 	"sp-finality-grandpa/std",
 	"sp-runtime/std",
