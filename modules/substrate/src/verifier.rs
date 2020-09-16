@@ -96,10 +96,7 @@ where
 
 	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), ImportError> {
 		// Make sure that we've previously imported this header
-		let header = storage
-			.get_header_by_hash(hash)
-			.ok_or(ImportError::UnknownHeader)?
-			.header;
+		let header = storage.get_header_by_hash(hash).ok_or(ImportError::UnknownHeader)?;
 
 		let current_authority_set = storage.current_authority_set();
 		let is_finalized = prove_finality(&header, &current_authority_set, proof);
@@ -107,15 +104,11 @@ where
 			return Err(ImportError::UnfinalizedHeader);
 		}
 
-		let last_finalized = storage.best_finalized_header().header;
-		let finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
-			// TODO: I know this is a bit hacky with the redundant storage reads, but I'm just
-			// trying to get something that works to better understand how do change validator sets
-			// properly
+		let last_finalized = storage.best_finalized_header();
+		let mut finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
 			let requires_justification = ancestors
 				.iter()
 				.skip(1) // Skip header we're trying to finalize since we know it requires_justification
-				.map(|a| storage.get_header_by_hash(a.hash()).unwrap())
 				.find(|h| h.requires_justification == true);
 
 			// This means that we're trying to import a justification for the child
@@ -126,35 +119,34 @@ where
 			}
 
 			let current_set_id = current_authority_set.set_id;
-			update_authority_set(storage, &header, current_set_id)?;
+			update_authority_set(storage, &header.header, current_set_id)?;
 			ancestors
 		} else {
 			return Err(ImportError::AncestryCheckFailed);
 		};
 
-		let is_finalized = true;
-		let requires_justification = false;
-		for header in finalized_headers.iter() {
-			storage.write_header(&ImportedHeader::new(
-				header.clone(),
-				requires_justification,
-				is_finalized,
-			));
+		for header in finalized_headers.iter_mut() {
+			// TODO: Maybe mutate() storage?
+			header.is_finalized = true;
+			header.requires_justification = false;
+			storage.write_header(header);
 		}
 
-		storage.update_best_finalized(
-			finalized_headers
-				.last()
-				.expect("We just iterated through these headers, therefore the last header must exist")
-				.hash(),
-		);
+		let best_finalized = finalized_headers
+			.last()
+			.expect("We just iterated through these headers, therefore the last header must exist");
+		storage.update_best_finalized((*best_finalized).hash());
 
 		Ok(())
 	}
 }
 
 // Returns the lineage of headers from (ancestor, child]
-fn are_ancestors<S, H>(storage: &S, ancestor: H, child: H) -> Option<Vec<H>>
+fn are_ancestors<S, H>(
+	storage: &S,
+	ancestor: ImportedHeader<H>,
+	child: ImportedHeader<H>,
+) -> Option<Vec<ImportedHeader<H>>>
 where
 	S: BridgeStorage<Header = H>,
 	H: HeaderT,
@@ -171,7 +163,7 @@ where
 		let parent = storage.get_header_by_hash(*current_header.parent_hash());
 		ancestors.push(current_header);
 		current_header = match parent {
-			Some(h) => h.header,
+			Some(h) => h,
 			None => return None,
 		}
 	}
