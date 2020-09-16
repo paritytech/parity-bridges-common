@@ -269,8 +269,9 @@ mod tests {
 	fn fails_to_import_old_header() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let parent = TestHeader::new_from_number(5);
-			<BestFinalized<TestRuntime>>::put(parent.hash());
+			let parent = ImportedHeader::new(TestHeader::new_from_number(5), false, false);
+			storage.write_header(&parent);
+			storage.update_best_finalized(parent.hash());
 
 			let header = TestHeader::new_from_number(1);
 			assert_err!(Verifier::import_header(&mut storage, header), ImportError::OldHeader);
@@ -281,8 +282,9 @@ mod tests {
 	fn fails_to_import_header_without_parent() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let parent = TestHeader::new_from_number(1);
-			<BestFinalized<TestRuntime>>::put(parent.hash());
+			let parent = ImportedHeader::new(TestHeader::new_from_number(1), false, false);
+			storage.write_header(&parent);
+			storage.update_best_finalized(parent.hash());
 
 			// By default the parent is `0x00`
 			let header = TestHeader::new_from_number(2);
