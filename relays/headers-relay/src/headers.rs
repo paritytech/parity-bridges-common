@@ -784,7 +784,7 @@ pub(crate) mod tests {
 
 	pub(crate) fn header(number: TestNumber) -> QueuedHeader<TestHeadersSyncPipeline> {
 		QueuedHeader::new(TestHeader {
-			number: number.into(),
+			number,
 			hash: hash(number),
 			parent_hash: hash(number - 1),
 		})
