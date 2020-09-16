@@ -18,7 +18,7 @@ use crate::BridgeStorage;
 use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange};
 use sp_finality_grandpa::{ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
-use sp_runtime::traits::Header as HeaderT;
+use sp_runtime::traits::{CheckedAdd, Header as HeaderT};
 use sp_std::{prelude::Vec, vec};
 
 /// The finality proof used by the pallet.
@@ -48,6 +48,8 @@ pub enum ImportError {
 	MissingConsensusDigest,
 	/// Trying to prematurely import a justification
 	PrematureJustification,
+	/// The height of the next authority set change overflowed.
+	ScheduledHeightOverflow,
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.
@@ -69,10 +71,10 @@ where
 	H: HeaderT,
 {
 	fn import_header(storage: &mut S, header: &H) -> Result<(), ImportError> {
-		let highest_finalized = storage.best_finalized_header().expect(
-			"A finalized header must have
-			been provided in the pallet configuration",
-		);
+		let highest_finalized = storage
+			.best_finalized_header()
+			.expect("A finalized header must have been provided during genesis.");
+
 		if header.number() < highest_finalized.number() {
 			return Err(ImportError::OldHeader);
 		}
@@ -111,10 +113,9 @@ where
 			return Err(ImportError::UnfinalizedHeader);
 		}
 
-		let last_finalized = storage.best_finalized_header().expect(
-			"A finalized header must have
-			been provided in the pallet configuration",
-		);
+		let last_finalized = storage
+			.best_finalized_header()
+			.expect("A finalized header must have been provided during genesis.");
 
 		let finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
 			// TODO: I know this is a bit hacky with the redundant storage reads, but I'm just
@@ -126,10 +127,10 @@ where
 				.map(|a| storage.get_header_by_hash(a.hash()).unwrap())
 				.find(|h| h.requires_justification == true);
 
+			// This means that we're trying to import a justification for the child
+			// of a header which is still missing a justification. We must reject
+			// this header.
 			if requires_justification.is_some() {
-				// This means that we're trying to import a justification for the child
-				// of a header which is still missing a justification. We must reject
-				// this header.
 				return Err(ImportError::PrematureJustification);
 			}
 
@@ -143,9 +144,6 @@ where
 		let is_finalized = true;
 		let requires_justification = false;
 		for header in finalized_headers.iter() {
-			// Q: Does storaging two headers with the same hash cause any problems?
-			// Basically I want to update what's already in storage, since all of these
-			// headers have previously been imported
 			storage.write_header(&ImportedHeader::new(
 				header.clone(),
 				requires_justification,
@@ -153,10 +151,11 @@ where
 			));
 		}
 
-		storage.update_best_finalized(finalized_headers.last().expect(
-			"We just iterated through
-			these headers, therefore the last header must exist",
-		));
+		storage.update_best_finalized(
+			finalized_headers
+				.last()
+				.expect("We just iterated through these headers, therefore the last header must exist"),
+		);
 
 		Ok(())
 	}
@@ -201,8 +200,9 @@ where
 			set_id,
 		};
 
-		// Maybe do some overflow checks here?
-		let height = *header.number() + scheduled_change.delay;
+		let height = (*header.number())
+			.checked_add(&scheduled_change.delay)
+			.ok_or(ImportError::ScheduledHeightOverflow)?;
 		let scheduled_change = ScheduledChange::new(authority_set, height);
 
 		let new_set = storage.scheduled_set_change().authority_set;
