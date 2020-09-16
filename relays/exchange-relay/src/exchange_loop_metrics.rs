@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::exchange::{BlockNumberOf, RelayedBlockTransactions, TransactionProofPipeline};
-use crate::metrics::{register, Counter, CounterVec, GaugeVec, Metrics, Opts, Registry, U64};
+use relay_utils::metrics::{register, Counter, CounterVec, GaugeVec, Metrics, Opts, Registry, U64};
 
 /// Exchange transactions relay metrics.
 pub struct ExchangeLoopMetrics {

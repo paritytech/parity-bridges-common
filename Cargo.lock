@@ -1330,13 +1330,16 @@ dependencies = [
  "ethabi-contract",
  "ethabi-derive",
  "ethereum-tx-sign",
+ "exchange-relay",
  "frame-system",
  "futures 0.3.5",
+ "headers-relay",
  "hex",
  "hex-literal 0.3.1",
  "jsonrpsee",
  "linked-hash-map",
  "log",
+ "messages-relay",
  "node-primitives",
  "num-traits",
  "pallet-transaction-payment",
@@ -1391,6 +1394,20 @@ name = "event-listener"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "829694371bd7bbc6aee17c4ff624aad8bf9f4dc06c6f9f6071eaa08c89530d10"
+
+[[package]]
+name = "exchange-relay"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "async-trait",
+ "backoff",
+ "futures 0.3.5",
+ "log",
+ "num-traits",
+ "parking_lot 0.11.0",
+ "relay-utils",
+]
 
 [[package]]
 name = "exit-future"
@@ -2118,6 +2135,10 @@ dependencies = [
  "ahash 0.3.8",
  "autocfg 1.0.0",
 ]
+
+[[package]]
+name = "headers-relay"
+version = "0.1.0"
 
 [[package]]
 name = "heck"
@@ -3435,6 +3456,10 @@ dependencies = [
  "rand_core 0.5.1",
  "zeroize",
 ]
+
+[[package]]
+name = "messages-relay"
+version = "0.1.0"
 
 [[package]]
 name = "millau-bridge-node"
@@ -5025,6 +5050,18 @@ name = "regex-syntax"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26412eb97c6b088a6997e05f69403a802a92d520de2f8e63c2b65f9e0f47c4e8"
+
+[[package]]
+name = "relay-utils"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "backoff",
+ "futures 0.3.5",
+ "log",
+ "substrate-prometheus-endpoint",
+ "sysinfo",
+]
 
 [[package]]
 name = "remove_dir_all"

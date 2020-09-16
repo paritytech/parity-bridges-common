@@ -20,11 +20,14 @@ ethabi = "12.0"
 ethabi-contract = "11.0"
 ethabi-derive = "12.0"
 ethereum-tx-sign = "3.0"
+exchange-relay = { path = "../exchange-relay" }
 futures = "0.3.5"
+headers-relay = { path = "../headers-relay" }
 hex = "0.4"
 hex-literal = "0.3"
 linked-hash-map = "0.5.3"
 log = "0.4.11"
+messages-relay = { path = "../messages-relay" }
 num-traits = "0.2"
 parity-crypto = { version = "0.6", features = ["publickey"] }
 parking_lot = "0.11.0"
