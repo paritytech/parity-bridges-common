@@ -124,7 +124,6 @@ impl Default for GlobalMetrics {
 	}
 }
 
-
 impl GlobalMetrics {
 	/// Update metrics.
 	pub fn update(&mut self) {
