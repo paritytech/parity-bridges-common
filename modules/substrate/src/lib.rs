@@ -188,9 +188,6 @@ pub trait BridgeStorage {
 
 	/// Schedule a Grandpa authority set change in the future.
 	fn schedule_next_set_change(&self, next_change: ScheduledChange<<Self::Header as HeaderT>::Number>);
-
-	#[cfg(test)]
-	fn import_unfinalized_header(&mut self, header: Self::Header);
 }
 
 /// Used to interact with the pallet storage in a more abstract way.
@@ -243,16 +240,5 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 	fn schedule_next_set_change(&self, next_change: ScheduledChange<Number<T::Header>>) {
 		<NextScheduledChange<T>>::put(next_change)
-	}
-
-	#[cfg(test)]
-	fn import_unfinalized_header(&mut self, header: T::Header) {
-		let h = ImportedHeader {
-			header,
-			requires_justification: false,
-			is_finalized: false,
-		};
-
-		self.write_header(&h);
 	}
 }

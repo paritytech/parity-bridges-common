@@ -71,7 +71,7 @@ where
 	H: HeaderT,
 {
 	fn import_header(storage: &mut S, header: H) -> Result<(), ImportError> {
-		let best_finalized = storage.best_finalized_header().header;
+		let best_finalized = storage.best_finalized_header();
 
 		if header.number() < best_finalized.number() {
 			return Err(ImportError::OldHeader);
@@ -106,10 +106,8 @@ where
 
 		let last_finalized = storage.best_finalized_header();
 		let mut finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
-			let requires_justification = ancestors
-				.iter()
-				.skip(1) // Skip header we're trying to finalize since we know it requires_justification
-				.find(|h| h.requires_justification == true);
+			// Skip header we're trying to finalize since we know it `requires_justification`
+			let requires_justification = ancestors.iter().skip(1).find(|h| h.requires_justification == true);
 
 			// This means that we're trying to import a justification for the child
 			// of a header which is still missing a justification. We must reject
@@ -228,6 +226,10 @@ mod tests {
 	type TestHash = <TestHeader as HeaderT>::Hash;
 	type TestNumber = <TestHeader as HeaderT>::Number;
 
+	fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
+		ImportedHeader::new(TestHeader::new_from_number(num), false, false)
+	}
+
 	fn get_authorities(authorities: Vec<(u64, u64)>) -> AuthorityList {
 		authorities
 			.iter()
@@ -245,9 +247,10 @@ mod tests {
 		ScheduledChange::new(authority_set, height)
 	}
 
+	// Useful for quickly writing a chain of headers to storage
 	fn write_headers<S: BridgeStorage<Header = TestHeader>>(
 		storage: &mut S,
-		headers: Vec<(u64, bool)>, // TODO: Add option for marking as needs justification
+		headers: Vec<(u64, bool, bool)>,
 	) -> Vec<TestHeader> {
 		let mut imported_headers = vec![];
 		let genesis = TestHeader::new_from_number(0);
@@ -255,10 +258,10 @@ mod tests {
 		storage.write_header(&ImportedHeader::new(genesis.clone(), false, true));
 		imported_headers.push(genesis);
 
-		for (num, finalized) in headers {
+		for (num, reqs_just, finalized) in headers {
 			let mut h = TestHeader::new_from_number(num);
 			h.parent_hash = imported_headers.last().unwrap().hash();
-			storage.write_header(&ImportedHeader::new(h.clone(), false, finalized));
+			storage.write_header(&ImportedHeader::new(h.clone(), reqs_just, finalized));
 			imported_headers.push(h);
 		}
 
@@ -269,7 +272,7 @@ mod tests {
 	fn fails_to_import_old_header() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let parent = ImportedHeader::new(TestHeader::new_from_number(5), false, false);
+			let parent = unfinalized_header(5);
 			storage.write_header(&parent);
 			storage.update_best_finalized(parent.hash());
 
@@ -282,7 +285,7 @@ mod tests {
 	fn fails_to_import_header_without_parent() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let parent = ImportedHeader::new(TestHeader::new_from_number(1), false, false);
+			let parent = unfinalized_header(1);
 			storage.write_header(&parent);
 			storage.update_best_finalized(parent.hash());
 
@@ -341,23 +344,23 @@ mod tests {
 			let mut headers = vec![];
 			let num_headers = 4;
 
-			let mut header = TestHeader::new_from_number(0);
+			let mut header = unfinalized_header(0);
 			headers.push(header.clone());
-			storage.import_unfinalized_header(header);
+			storage.write_header(&header);
 
 			for i in 1..num_headers {
-				header = TestHeader::new_from_number(i as u64);
-				header.parent_hash = headers[i - 1].hash();
+				header = unfinalized_header(i as u64);
+				header.header.parent_hash = headers[i - 1].hash();
 				headers.push(header);
-				storage.import_unfinalized_header(headers[i].clone());
+				storage.write_header(&headers[i]);
 			}
 
 			for header in headers.iter().take(num_headers) {
 				assert!(storage.header_exists(header.hash()));
 			}
 
-			let ancestor = ImportedHeader::new(headers.remove(0), false, false);
-			let child = ImportedHeader::new(headers.pop().unwrap(), false, false);
+			let ancestor = headers.remove(0);
+			let child = headers.pop().unwrap();
 			let ancestors = are_ancestors(&storage, ancestor, child);
 			assert!(ancestors.is_some());
 			assert_eq!(ancestors.unwrap().len(), num_headers - 1);
@@ -371,15 +374,15 @@ mod tests {
 			let mut headers = vec![];
 			let num_headers = 4;
 
-			let mut header = TestHeader::new_from_number(0);
+			let mut header = unfinalized_header(0);
 			headers.push(header.clone());
-			storage.import_unfinalized_header(header);
+			storage.write_header(&header);
 
 			for i in 1..num_headers {
-				header = TestHeader::new_from_number(i as u64);
-				header.parent_hash = headers[i - 1].hash();
+				header = unfinalized_header(i as u64);
+				header.header.parent_hash = headers[i - 1].hash();
 				headers.push(header);
-				storage.import_unfinalized_header(headers[i].clone());
+				storage.write_header(&headers[i]);
 			}
 
 			for header in headers.iter().take(num_headers) {
@@ -389,7 +392,7 @@ mod tests {
 			let mut bad_ancestor = TestHeader::new_from_number(0);
 			bad_ancestor.parent_hash = [1u8; 32].into();
 			let bad_ancestor = ImportedHeader::new(bad_ancestor, false, false);
-			let child = ImportedHeader::new(headers.pop().unwrap(), false, false);
+			let child = headers.pop().unwrap();
 			let ancestors = are_ancestors(&storage, bad_ancestor, child);
 			assert!(ancestors.is_none());
 		})
@@ -441,7 +444,7 @@ mod tests {
 	fn correctly_verifies_and_finalizes_chain_of_headers() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let headers = vec![(1, false), (2, false)];
+			let headers = vec![(1, false, false), (2, false, false)];
 			let imported_headers = write_headers(&mut storage, headers);
 
 			let mut header = TestHeader::new_from_number(3);
@@ -494,7 +497,7 @@ mod tests {
 			//                  |- Enacted change here, needs justification
 
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let headers = vec![(1, false)];
+			let headers = vec![(1, false, false)];
 			let imported_headers = write_headers(&mut storage, headers);
 
 			// This is header N
@@ -571,7 +574,7 @@ mod tests {
 			//                  |- Enacted change here, needs justification
 			//
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let headers = vec![(1, false)];
+			let headers = vec![(1, false, false)];
 			let imported_headers = write_headers(&mut storage, headers);
 
 			// This is header N
