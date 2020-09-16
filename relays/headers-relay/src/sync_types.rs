@@ -98,8 +98,7 @@ pub trait SourceHeader<Hash, Number> {
 }
 
 /// Header how it's stored in the synchronization queue.
-#[derive(Clone, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Clone, Debug, PartialEq)]
 pub struct QueuedHeader<P: HeadersSyncPipeline>(Arc<QueuedHeaderData<P>>);
 
 impl<P: HeadersSyncPipeline> QueuedHeader<P> {
@@ -128,8 +127,7 @@ impl<P: HeadersSyncPipeline> Deref for QueuedHeader<P> {
 }
 
 /// Header how it's stored in the synchronization queue.
-#[derive(Clone, Debug, Default)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct QueuedHeaderData<P: HeadersSyncPipeline> {
 	header: P::Header,
 	extra: Option<P::Extra>,

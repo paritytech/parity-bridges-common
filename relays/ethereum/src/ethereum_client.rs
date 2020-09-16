@@ -21,17 +21,16 @@ use crate::ethereum_types::{
 use crate::rpc::{Ethereum, EthereumRpc};
 use crate::rpc_errors::{EthereumNodeError, RpcError};
 use crate::substrate_types::{GrandpaJustification, Hash as SubstrateHash, QueuedSubstrateHeader, SubstrateHeaderId};
-use crate::sync_types::SubmittedHeaders;
-use crate::utils::{HeaderId, MaybeConnectionError};
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
 use ethabi::FunctionOutputDecoder;
+use headers_relay::sync_types::SubmittedHeaders;
 use jsonrpsee::raw::RawClient;
 use jsonrpsee::transport::http::HttpTransportClient;
 use jsonrpsee::Client;
 use parity_crypto::publickey::KeyPair;
-
+use relay_utils::{HeaderId, MaybeConnectionError};
 use std::collections::HashSet;
 
 // to encode/decode contract calls
@@ -477,7 +476,7 @@ impl HeadersBatch {
 
 	/// Encodes all headers. If header is not present an empty vector will be returned.
 	pub fn encode(&self) -> [Vec<u8>; HEADERS_BATCH] {
-		let encode = |h: &QueuedSubstrateHeader| h.header().encode();
+		let encode = |h: &QueuedSubstrateHeader| h.header().0.encode();
 		let headers = self.headers();
 		[
 			headers[0].map(encode).unwrap_or_default(),
@@ -703,7 +702,7 @@ mod tests {
 				header(number - 1).id().1
 			},
 			Default::default(),
-		))
+		).into())
 	}
 
 	#[test]
@@ -776,10 +775,10 @@ mod tests {
 		assert_eq!(
 			headers.encode(),
 			[
-				header(1).header().encode(),
-				header(2).header().encode(),
-				header(3).header().encode(),
-				header(4).header().encode(),
+				header(1).header().0.encode(),
+				header(2).header().0.encode(),
+				header(3).header().0.encode(),
+				header(4).header().0.encode(),
 			]
 		);
 	}

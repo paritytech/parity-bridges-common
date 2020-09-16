@@ -17,20 +17,22 @@
 //! Ethereum PoA -> Substrate synchronization.
 
 use crate::ethereum_client::{EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient};
-use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, Header, QueuedEthereumHeader, Receipt};
+use crate::ethereum_types::{EthereumHeaderId, EthereumHeadersSyncPipeline, EthereumSyncHeader as Header, QueuedEthereumHeader, Receipt};
 use crate::instances::BridgeInstance;
-use crate::metrics::MetricsParams;
 use crate::rpc::{EthereumRpc, SubstrateRpc};
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{
 	SubmitEthereumHeaders, SubstrateConnectionParams, SubstrateRpcClient, SubstrateSigningParams,
 };
 use crate::substrate_types::into_substrate_ethereum_header;
-use crate::sync::{HeadersSyncParams, TargetTransactionMode};
-use crate::sync_loop::{SourceClient, TargetClient};
-use crate::sync_types::{SourceHeader, SubmittedHeaders};
 
 use async_trait::async_trait;
+use headers_relay::{
+	sync::{HeadersSyncParams, TargetTransactionMode},
+	sync_loop::{SourceClient, TargetClient},
+	sync_types::{SourceHeader, SubmittedHeaders},
+};
+use relay_utils::metrics::MetricsParams;
 use web3::types::H256;
 
 use std::fmt::Debug;
@@ -95,11 +97,11 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	}
 
 	async fn header_by_hash(&self, hash: H256) -> Result<Header, Self::Error> {
-		self.client.header_by_hash(hash).await
+		self.client.header_by_hash(hash).await.map(Into::into)
 	}
 
 	async fn header_by_number(&self, number: u64) -> Result<Header, Self::Error> {
-		self.client.header_by_number(number).await
+		self.client.header_by_number(number).await.map(Into::into)
 	}
 
 	async fn header_completion(&self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, Option<()>), Self::Error> {
@@ -112,7 +114,7 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 		header: QueuedEthereumHeader,
 	) -> Result<(EthereumHeaderId, Vec<Receipt>), Self::Error> {
 		self.client
-			.transaction_receipts(id, header.header().transactions.clone())
+			.transaction_receipts(id, header.header().0.transactions.clone())
 			.await
 	}
 }
@@ -172,7 +174,7 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 		// logs bloom here, but it may give us false positives (when authorities
 		// source is contract, we never need any logs)
 		let id = header.header().id();
-		let sub_eth_header = into_substrate_ethereum_header(header.header());
+		let sub_eth_header = into_substrate_ethereum_header(&header.header().0);
 		Ok((id, self.client.ethereum_receipts_required(sub_eth_header).await?))
 	}
 }
@@ -199,7 +201,7 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 	let source = EthereumHeadersSource::new(eth_client);
 	let target = SubstrateHeadersTarget::new(sub_client, sign_sub_transactions, sub_sign);
 
-	crate::sync_loop::run(
+	headers_relay::sync_loop::run(
 		source,
 		consts::ETHEREUM_TICK_INTERVAL,
 		target,

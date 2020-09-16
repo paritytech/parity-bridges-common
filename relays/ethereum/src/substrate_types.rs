@@ -17,10 +17,10 @@
 use crate::ethereum_types::{
 	Header as EthereumHeader, Receipt as EthereumReceipt, HEADER_ID_PROOF as ETHEREUM_HEADER_ID_PROOF,
 };
-use crate::sync_types::{HeadersSyncPipeline, QueuedHeader, SourceHeader};
-use crate::utils::HeaderId;
 
 use codec::Encode;
+use headers_relay::sync_types::{HeadersSyncPipeline, QueuedHeader, SourceHeader};
+use relay_utils::HeaderId;
 
 pub use bp_eth_poa::{
 	Address, Bloom, Bytes, Header as SubstrateEthereumHeader, LogEntry as SubstrateEthereumLogEntry,
@@ -35,6 +35,10 @@ pub type Number = rialto_runtime::BlockNumber;
 
 /// Substrate header type.
 pub type Header = rialto_runtime::Header;
+
+/// Substrate header type used in headers sync.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SubstrateSyncHeader(pub Header);
 
 /// Substrate signed block type.
 pub type SignedBlock = rialto_runtime::SignedBlock;
@@ -59,22 +63,28 @@ impl HeadersSyncPipeline for SubstrateHeadersSyncPipeline {
 
 	type Hash = rialto_runtime::Hash;
 	type Number = rialto_runtime::BlockNumber;
-	type Header = Header;
+	type Header = SubstrateSyncHeader;
 	type Extra = ();
 	type Completion = GrandpaJustification;
 
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
-		source.header().encode().len()
+		source.header().0.encode().len()
 	}
 }
 
-impl SourceHeader<rialto_runtime::Hash, rialto_runtime::BlockNumber> for Header {
+impl From<Header> for SubstrateSyncHeader {
+	fn from(header: Header) -> Self {
+		Self(header)
+	}
+}
+
+impl SourceHeader<rialto_runtime::Hash, rialto_runtime::BlockNumber> for SubstrateSyncHeader {
 	fn id(&self) -> SubstrateHeaderId {
-		HeaderId(self.number, self.hash())
+		HeaderId(self.0.number, self.0.hash())
 	}
 
 	fn parent_id(&self) -> SubstrateHeaderId {
-		HeaderId(self.number - 1, self.parent_hash)
+		HeaderId(self.0.number - 1, self.0.parent_hash)
 	}
 }
 

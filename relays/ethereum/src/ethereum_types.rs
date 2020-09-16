@@ -15,9 +15,10 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts};
-use crate::sync_types::{HeadersSyncPipeline, QueuedHeader, SourceHeader};
-use crate::utils::HeaderId;
+
 use codec::Encode;
+use headers_relay::sync_types::{HeadersSyncPipeline, QueuedHeader, SourceHeader};
+use relay_utils::HeaderId;
 
 pub use web3::types::{Address, Bytes, CallRequest, H256, U128, U256, U64};
 
@@ -33,6 +34,10 @@ pub type Transaction = web3::types::Transaction;
 
 /// Ethereum header type.
 pub type Header = web3::types::Block<H256>;
+
+/// Ethereum header type used in headers sync.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EthereumSyncHeader(pub Header);
 
 /// Ethereum header with transactions type.
 pub type HeaderWithTransactions = web3::types::Block<Transaction>;
@@ -60,27 +65,33 @@ impl HeadersSyncPipeline for EthereumHeadersSyncPipeline {
 
 	type Hash = H256;
 	type Number = u64;
-	type Header = Header;
+	type Header = EthereumSyncHeader;
 	type Extra = Vec<Receipt>;
 	type Completion = ();
 
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
-		into_substrate_ethereum_header(source.header()).encode().len()
+		into_substrate_ethereum_header(&source.header().0).encode().len()
 			+ into_substrate_ethereum_receipts(source.extra())
 				.map(|extra| extra.encode().len())
 				.unwrap_or(0)
 	}
 }
 
-impl SourceHeader<H256, u64> for Header {
+impl From<Header> for EthereumSyncHeader {
+	fn from(header: Header) -> Self {
+		Self(header)
+	}
+}
+
+impl SourceHeader<H256, u64> for EthereumSyncHeader {
 	fn id(&self) -> EthereumHeaderId {
 		HeaderId(
-			self.number.expect(HEADER_ID_PROOF).as_u64(),
-			self.hash.expect(HEADER_ID_PROOF),
+			self.0.number.expect(HEADER_ID_PROOF).as_u64(),
+			self.0.hash.expect(HEADER_ID_PROOF),
 		)
 	}
 
 	fn parent_id(&self) -> EthereumHeaderId {
-		HeaderId(self.number.expect(HEADER_ID_PROOF).as_u64() - 1, self.parent_hash)
+		HeaderId(self.0.number.expect(HEADER_ID_PROOF).as_u64() - 1, self.0.parent_hash)
 	}
 }
