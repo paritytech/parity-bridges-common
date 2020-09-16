@@ -124,7 +124,7 @@ decl_module! {
 
 			let mut storage = PalletStorage::<T>::new();
 			let _ =
-				verifier::Verifier::import_header(&mut storage, &header).map_err(|_| <Error<T>>::InvalidHeader)?;
+				verifier::Verifier::import_header(&mut storage, header).map_err(|_| <Error<T>>::InvalidHeader)?;
 
 			Ok(())
 		}

@@ -55,7 +55,7 @@ pub enum ImportError {
 /// A trait for verifying whether a header is valid for a particular blockchain.
 pub trait ChainVerifier<S, H: HeaderT> {
 	/// Import a header to the pallet.
-	fn import_header(storage: &mut S, header: &H) -> Result<(), ImportError>;
+	fn import_header(storage: &mut S, header: H) -> Result<(), ImportError>;
 
 	/// Verify that the given header has been finalized and is part of the canonical chain.
 	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), ImportError>;
@@ -70,7 +70,7 @@ where
 	S: BridgeStorage<Header = H>,
 	H: HeaderT,
 {
-	fn import_header(storage: &mut S, header: &H) -> Result<(), ImportError> {
+	fn import_header(storage: &mut S, header: H) -> Result<(), ImportError> {
 		let highest_finalized = storage
 			.best_finalized_header()
 			.expect("A finalized header must have been provided during genesis.");
@@ -89,13 +89,9 @@ where
 		}
 
 		// We don't need the justification right away, but we should note it.
-		let requires_justification = find_scheduled_change(header).is_some();
+		let requires_justification = find_scheduled_change(&header).is_some();
 		let is_finalized = false;
-		storage.write_header(&ImportedHeader::new(
-			header.clone(), // Don't like having to take ownership of header...
-			requires_justification,
-			is_finalized,
-		));
+		storage.write_header(&ImportedHeader::new(header, requires_justification, is_finalized));
 
 		Ok(())
 	}
@@ -289,7 +285,7 @@ mod tests {
 			<BestFinalized<TestRuntime>>::put(&parent);
 
 			let header = TestHeader::new_from_number(1);
-			assert_err!(Verifier::import_header(&mut storage, &header), ImportError::OldHeader);
+			assert_err!(Verifier::import_header(&mut storage, header), ImportError::OldHeader);
 		})
 	}
 
@@ -304,7 +300,7 @@ mod tests {
 			let header = TestHeader::new_from_number(2);
 
 			assert_err!(
-				Verifier::import_header(&mut storage, &header),
+				Verifier::import_header(&mut storage, header),
 				ImportError::MissingParent
 			);
 		})
@@ -321,7 +317,7 @@ mod tests {
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
 
 			assert_err!(
-				Verifier::import_header(&mut storage, &header),
+				Verifier::import_header(&mut storage, header),
 				ImportError::HeaderAlreadyExists
 			);
 		})
@@ -340,7 +336,7 @@ mod tests {
 
 			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = parent_hash;
-			assert_ok!(Verifier::import_header(&mut storage, &header));
+			assert_ok!(Verifier::import_header(&mut storage, header.clone()));
 
 			let stored_header = storage.get_header_by_hash(header.hash());
 			assert!(stored_header.is_some());
@@ -475,7 +471,7 @@ mod tests {
 				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
 			};
 
-			assert!(Verifier::import_header(&mut storage, &header).is_ok());
+			assert!(Verifier::import_header(&mut storage, header.clone()).is_ok());
 			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
 
 			// Make sure we marked the our headers as finalized
@@ -532,7 +528,7 @@ mod tests {
 			};
 
 			// Import header N
-			assert!(Verifier::import_header(&mut storage, &header).is_ok());
+			assert!(Verifier::import_header(&mut storage, header.clone()).is_ok());
 
 			// Header N should be marked as needing a justification
 			assert_eq!(
@@ -546,11 +542,11 @@ mod tests {
 			// Now we want to import some headers which are past N
 			let mut child = TestHeader::new_from_number(*header.number() + 1);
 			child.parent_hash = header.hash();
-			assert!(Verifier::import_header(&mut storage, &child).is_ok());
+			assert!(Verifier::import_header(&mut storage, child.clone()).is_ok());
 
 			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
 			grandchild.parent_hash = child.hash();
-			assert!(Verifier::import_header(&mut storage, &grandchild).is_ok());
+			assert!(Verifier::import_header(&mut storage, grandchild).is_ok());
 
 			// Even though we're a few headers ahead we should still be able to import
 			// a justification for header N
@@ -609,7 +605,7 @@ mod tests {
 			};
 
 			// Import header N
-			assert!(Verifier::import_header(&mut storage, &header).is_ok());
+			assert!(Verifier::import_header(&mut storage, header.clone()).is_ok());
 
 			// Header N should be marked as needing a justification
 			assert_eq!(
@@ -623,7 +619,7 @@ mod tests {
 			// Now we want to import some headers which are past N
 			let mut child = TestHeader::new_from_number(*header.number() + 1);
 			child.parent_hash = header.hash();
-			assert!(Verifier::import_header(&mut storage, &child).is_ok());
+			assert!(Verifier::import_header(&mut storage, child.clone()).is_ok());
 
 			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
 			grandchild.parent_hash = child.hash();
@@ -640,7 +636,7 @@ mod tests {
 			};
 
 			// Import header N+2
-			assert!(Verifier::import_header(&mut storage, &grandchild).is_ok());
+			assert!(Verifier::import_header(&mut storage, grandchild.clone()).is_ok());
 
 			// Header N+2 should be marked as needing a justification
 			assert_eq!(
