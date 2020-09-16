@@ -801,7 +801,7 @@ pub(crate) mod tests {
 	#[test]
 	fn total_headers_works() {
 		// total headers just sums up number of headers in every queue
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue.maybe_orphan.entry(1).or_default().insert(
 			hash(1),
 			QueuedHeader::<TestHeadersSyncPipeline>::new(Default::default()),
@@ -836,7 +836,7 @@ pub(crate) mod tests {
 	#[test]
 	fn best_queued_number_works() {
 		// initially there are headers in MaybeOrphan queue only
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue.maybe_orphan.entry(1).or_default().insert(
 			hash(1),
 			QueuedHeader::<TestHeadersSyncPipeline>::new(Default::default()),
@@ -885,7 +885,7 @@ pub(crate) mod tests {
 	#[test]
 	fn status_works() {
 		// all headers are unknown initially
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		assert_eq!(queue.status(&id(10)), HeaderStatus::Unknown);
 		// and status is read from the KnownHeaders
 		queue
@@ -899,7 +899,7 @@ pub(crate) mod tests {
 	#[test]
 	fn header_works() {
 		// initially we have oldest header #10
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue.maybe_orphan.entry(10).or_default().insert(hash(1), header(100));
 		assert_eq!(
 			queue.header(HeaderStatus::MaybeOrphan).unwrap().header().hash,
@@ -922,7 +922,7 @@ pub(crate) mod tests {
 	#[test]
 	fn header_response_works() {
 		// when parent is Synced, we insert to MaybeExtra
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -932,7 +932,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeExtra);
 
 		// when parent is Ready, we insert to MaybeExtra
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -942,7 +942,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeExtra);
 
 		// when parent is Receipts, we insert to MaybeExtra
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -952,7 +952,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeExtra);
 
 		// when parent is MaybeExtra, we insert to MaybeExtra
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -962,7 +962,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeExtra);
 
 		// when parent is Orphan, we insert to Orphan
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -972,7 +972,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::Orphan);
 
 		// when parent is MaybeOrphan, we insert to MaybeOrphan
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -982,7 +982,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeOrphan);
 
 		// when parent is unknown, we insert to MaybeOrphan
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue.header_response(header(101).header().clone());
 		assert_eq!(queue.status(&id(101)), HeaderStatus::MaybeOrphan);
 	}
@@ -996,7 +996,7 @@ pub(crate) mod tests {
 		// #98 in MaybeExtra
 		// #97 in Receipts
 		// #96 in Ready
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -1053,7 +1053,7 @@ pub(crate) mod tests {
 		// #101 in Orphan
 		// #102 in MaybeOrphan
 		// #103 in Orphan
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(101)
@@ -1095,7 +1095,7 @@ pub(crate) mod tests {
 		// #102 in MaybeOrphan
 		// and we have asked for MaybeOrphan status of #100.parent (i.e. #99)
 		// and the response is: YES, #99 is known to the Substrate runtime
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -1140,7 +1140,7 @@ pub(crate) mod tests {
 		// #101 in MaybeOrphan
 		// and we have asked for MaybeOrphan status of #100.parent (i.e. #99)
 		// and the response is: NO, #99 is NOT known to the Substrate runtime
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -1172,7 +1172,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn positive_maybe_extra_response_works() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -1188,7 +1188,7 @@ pub(crate) mod tests {
 	#[test]
 	fn negative_maybe_extra_response_works() {
 		// when parent header is complete
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -1217,7 +1217,7 @@ pub(crate) mod tests {
 	#[test]
 	fn receipts_response_works() {
 		// when parent header is complete
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -1245,7 +1245,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn header_submitted_works() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(100)
@@ -1259,7 +1259,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn incomplete_header_works() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 
 		// nothing to complete if queue is empty
 		assert_eq!(queue.incomplete_header(), None);
@@ -1282,7 +1282,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn completion_response_works() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue.incomplete_headers.insert(id(100), None);
 		queue.incomplete_headers.insert(id(200), Some(Instant::now()));
 
@@ -1309,7 +1309,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn header_completed_works() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue.completion_data.insert(id(100), 100_100);
 
 		// when unknown header is completed
@@ -1323,7 +1323,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn incomplete_headers_response_works() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 
 		// when we have already submitted #101 and #102 is ready
 		queue
@@ -1370,7 +1370,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn is_parent_incomplete_works() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 
 		// when we do not know header itself
 		assert_eq!(queue.is_parent_incomplete(&id(50)), false);
@@ -1416,7 +1416,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn prune_works() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 		queue
 			.known_headers
 			.entry(105)
@@ -1487,7 +1487,7 @@ pub(crate) mod tests {
 
 	#[test]
 	fn incomplete_headers_are_still_incomplete_after_advance() {
-		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::new();
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
 
 		// relay#1 knows that header#100 is incomplete && it has headers 101..104 in incomplete queue
 		queue.incomplete_headers.insert(id(100), None);
