@@ -15,8 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bridge_node_runtime::{
-	AccountId, AuraConfig, BalancesConfig, BridgeKovanConfig, BridgeRialtoConfig, BridgeSubstrateConfig, GenesisConfig,
-	GrandpaConfig, SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	AccountId, AuraConfig, BalancesConfig, BridgeKovanConfig, BridgeRialtoConfig, GenesisConfig, GrandpaConfig,
+	SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -154,7 +154,6 @@ fn testnet_genesis(
 		}),
 		pallet_bridge_eth_poa_Instance1: load_rialto_bridge_config(),
 		pallet_bridge_eth_poa_Instance2: load_kovan_bridge_config(),
-		pallet_substrate_bridge: load_substrate_bridge_config(),
 		pallet_grandpa: Some(GrandpaConfig {
 			authorities: Vec::new(),
 		}),
@@ -181,14 +180,5 @@ fn load_kovan_bridge_config() -> Option<BridgeKovanConfig> {
 		initial_header: bridge_node_runtime::kovan::genesis_header(),
 		initial_difficulty: 0.into(),
 		initial_validators: bridge_node_runtime::kovan::genesis_validators(),
-	})
-}
-
-fn load_substrate_bridge_config() -> Option<BridgeSubstrateConfig> {
-	Some(BridgeSubstrateConfig {
-		initial_header: Some(bridge_node_runtime::substrate::genesis_header()),
-		initial_authority_list: bridge_node_runtime::substrate::initial_authority_set().authorities,
-		initial_set_id: bridge_node_runtime::substrate::initial_authority_set().set_id,
-		first_scheduled_change: Some(bridge_node_runtime::substrate::first_scheduled_change()),
 	})
 }
