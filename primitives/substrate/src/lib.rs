@@ -65,6 +65,18 @@ impl<H: HeaderT> ImportedHeader<H> {
 			is_finalized,
 		}
 	}
+
+	pub fn hash(&self) -> H::Hash {
+		self.header.hash()
+	}
+
+	pub fn parent_hash(&self) -> &H::Hash {
+		self.header.parent_hash()
+	}
+
+	pub fn number(&self) -> &H::Number {
+		self.header.number()
+	}
 }
 
 pub fn prove_finality<H>(_header: &H, _set: &AuthoritySet, _justification: &[u8]) -> bool {
