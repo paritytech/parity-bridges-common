@@ -354,8 +354,8 @@ mod tests {
 				assert!(storage.header_exists(header.hash()));
 			}
 
-			let ancestor = headers.remove(0);
-			let child = headers.pop().unwrap();
+			let ancestor = ImportedHeader::new(headers.remove(0), false, false);
+			let child = ImportedHeader::new(headers.pop().unwrap(), false, false);
 			let ancestors = are_ancestors(&storage, ancestor, child);
 			assert!(ancestors.is_some());
 			assert_eq!(ancestors.unwrap().len(), num_headers - 1);
@@ -386,7 +386,8 @@ mod tests {
 
 			let mut bad_ancestor = TestHeader::new_from_number(0);
 			bad_ancestor.parent_hash = [1u8; 32].into();
-			let child = headers.pop().unwrap();
+			let bad_ancestor = ImportedHeader::new(bad_ancestor, false, false);
+			let child = ImportedHeader::new(headers.pop().unwrap(), false, false);
 			let ancestors = are_ancestors(&storage, bad_ancestor, child);
 			assert!(ancestors.is_none());
 		})
