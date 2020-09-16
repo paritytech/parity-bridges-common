@@ -16,10 +16,16 @@
 
 //! Substrate Bridge Pallet
 //!
-//! This pallet is an on-chain light client for chains which have a notion of finality. It's main
-//! jobs are to verify that a header is valid and that is has been finalized correctly. In doing so
-//! it will form a sparse header-chain of finalized headers which can be trusted checkpoints for
-//! other applications.
+//! This pallet is an on-chain light client for chains which have a notion of finality.
+//!
+//! It has a simple interface for achieving this. First it can import headers to the runtime
+//! storage. During this it will check the validity of the headers and ensure they don't conflict
+//! with any existing headers (e.g they're on a different finalized chain). Secondly it can finalize
+//! an already imported header (and its ancestors) given a valid Grandpa justification.
+//!
+//! With these two functions the pallet is able to form a "source of truth" for what headers have
+//! been finalized on a given Substrate chain. This can be a useful source of info for other
+//! higher-level applications.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Runtime-generated enums
