@@ -35,7 +35,7 @@ pub struct HeadersSyncParams {
 	/// Target transactions mode.
 	pub target_tx_mode: TargetTransactionMode,
 }
-
+/*
 impl HeadersSyncParams {
 	/// Default parameters for syncing Ethereum headers.
 	pub fn ethereum_sync_default() -> Self {
@@ -67,7 +67,7 @@ impl HeadersSyncParams {
 		}
 	}
 }
-
+*/
 /// Target transaction mode.
 #[derive(Debug, PartialEq, Clone)]
 pub enum TargetTransactionMode {
@@ -308,13 +308,13 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 #[cfg(test)]
 pub mod tests {
 	use super::*;
-	use crate::ethereum_types::{EthereumHeadersSyncPipeline, H256};
 	use crate::headers::tests::{header, id};
+	use crate::sync_loop_tests::{TestHeadersSyncPipeline, TestHash, TestNumber};
 	use crate::sync_types::HeaderStatus;
-	use crate::utils::HeaderId;
+	use relay_utils::HeaderId;
 
-	fn side_hash(number: u64) -> H256 {
-		H256::from_low_u64_le(1000 + number)
+	fn side_hash(number: TestNumber) -> TestHash {
+		1000 + number
 	}
 
 	pub fn default_sync_params() -> HeadersSyncParams {
@@ -330,7 +330,7 @@ pub mod tests {
 
 	#[test]
 	fn select_new_header_to_download_works() {
-		let mut eth_sync = HeadersSync::<EthereumHeadersSyncPipeline>::new(default_sync_params());
+		let mut eth_sync = HeadersSync::<TestHeadersSyncPipeline>::new(default_sync_params());
 
 		// both best && target headers are unknown
 		assert_eq!(eth_sync.select_new_header_to_download(), None);
@@ -366,7 +366,7 @@ pub mod tests {
 
 	#[test]
 	fn select_new_header_to_download_works_with_empty_queue() {
-		let mut eth_sync = HeadersSync::<EthereumHeadersSyncPipeline>::new(default_sync_params());
+		let mut eth_sync = HeadersSync::<TestHeadersSyncPipeline>::new(default_sync_params());
 		eth_sync.source_best_header_number_response(100);
 
 		// when queue is not empty => everything goes as usually
@@ -489,7 +489,7 @@ pub mod tests {
 
 	#[test]
 	fn pruning_happens_on_target_best_header_response() {
-		let mut eth_sync = HeadersSync::<EthereumHeadersSyncPipeline>::new(default_sync_params());
+		let mut eth_sync = HeadersSync::<TestHeadersSyncPipeline>::new(default_sync_params());
 		eth_sync.params.prune_depth = 50;
 		eth_sync.target_best_header_response(id(100));
 		assert_eq!(eth_sync.headers.prune_border(), 50);

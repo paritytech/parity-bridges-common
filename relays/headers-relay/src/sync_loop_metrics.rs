@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::metrics::{register, GaugeVec, Metrics, Opts, Registry, U64};
 use crate::sync::HeadersSync;
 use crate::sync_types::{HeaderStatus, HeadersSyncPipeline};
 
 use num_traits::Zero;
+use relay_utils::metrics::{register, GaugeVec, Metrics, Opts, Registry, U64};
 
 /// Headers sync metrics.
 pub struct SyncLoopMetrics {

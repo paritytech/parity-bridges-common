@@ -16,6 +16,9 @@
 
 //! Relaying headers.
 
+// required for futures::select!
+#![recursion_limit = "1024"]
+
 pub mod headers;
 pub mod sync_loop_metrics;
 pub mod sync_loop_tests;

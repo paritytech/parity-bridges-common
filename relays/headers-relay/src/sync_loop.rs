@@ -14,17 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::metrics::{start as metrics_start, GlobalMetrics, MetricsParams};
 use crate::sync::HeadersSyncParams;
 use crate::sync_loop_metrics::SyncLoopMetrics;
 use crate::sync_types::{HeaderIdOf, HeaderStatus, HeadersSyncPipeline, QueuedHeader, SubmittedHeaders};
-use crate::utils::{
-	format_ids, interval, process_future_result, retry_backoff, MaybeConnectionError, StringifiedMaybeConnectionError,
-};
 
 use async_trait::async_trait;
 use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
+use relay_utils::{
+	metrics::{start as metrics_start, GlobalMetrics, MetricsParams},
+	format_ids, interval, process_future_result, retry_backoff, MaybeConnectionError, StringifiedMaybeConnectionError,
+};
 use std::{
 	collections::HashSet,
 	future::Future,

@@ -14,8 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::utils::{format_ids, HeaderId};
-
+use relay_utils::{format_ids, HeaderId};
 use std::{ops::Deref, sync::Arc};
 
 /// Ethereum header synchronization status.
