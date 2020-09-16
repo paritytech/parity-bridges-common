@@ -38,9 +38,6 @@ mod verifier;
 #[cfg(test)]
 mod mock;
 
-#[cfg(test)]
-mod tests;
-
 type Hash<T> = <T as HeaderT>::Hash;
 type Number<T> = <T as HeaderT>::Number;
 
@@ -49,7 +46,6 @@ pub trait Trait: frame_system::Trait {}
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
 		/// Best finalized header.
-		// Maybe make this a HeaderId?
 		BestFinalized: Option<T::Header>;
 		/// Headers which have been imported into the pallet.
 		ImportedHeaders: map hasher(identity) T::Hash => Option<ImportedHeader<T::Header>>;
@@ -152,12 +148,6 @@ decl_module! {
 				verifier::Verifier::verify_finality(&mut storage, hash, &finality_proof)
 				.map_err(|_| <Error<T>>::UnfinalizedHeader)?;
 
-			Ok(())
-		}
-
-		// TODO: Remove this
-		#[weight = 0]
-		pub fn test(origin) -> dispatch::DispatchResult {
 			Ok(())
 		}
 	}
