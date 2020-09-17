@@ -31,7 +31,6 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use crate::verifier::ChainVerifier;
 use bp_substrate::{AuthoritySet, ImportedHeader, ScheduledChange};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
@@ -124,9 +123,12 @@ decl_module! {
 			let _ = ensure_signed(origin)?;
 			frame_support::debug::trace!(target: "sub-bridge", "Got header {:?}", header);
 
-			let mut storage = PalletStorage::<T>::new();
+			let mut verifier = verifier::Verifier {
+				storage: PalletStorage::<T>::new(),
+			};
+
 			let _ =
-				verifier::Verifier::import_header(&mut storage, header).map_err(|_| <Error<T>>::InvalidHeader)?;
+				verifier.import_header(header).map_err(|_| <Error<T>>::InvalidHeader)?;
 
 			Ok(())
 		}
@@ -146,9 +148,12 @@ decl_module! {
 			let _ = ensure_signed(origin)?;
 			frame_support::debug::trace!(target: "sub-bridge", "Got header hash {:?}", hash);
 
-			let mut storage = PalletStorage::<T>::new();
-			let _ =
-				verifier::Verifier::verify_finality(&mut storage, hash, &finality_proof)
+			let mut verifier = verifier::Verifier {
+				storage: PalletStorage::<T>::new(),
+			};
+
+			let _ = verifier
+				.verify_finality(hash, &finality_proof)
 				.map_err(|_| <Error<T>>::UnfinalizedHeader)?;
 
 			Ok(())

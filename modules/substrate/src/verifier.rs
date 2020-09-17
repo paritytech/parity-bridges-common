@@ -65,36 +65,33 @@ pub enum FinalizationError {
 	MissingConsensusDigest,
 }
 
-/// A trait for verifying whether a header is valid for a particular blockchain.
-pub trait ChainVerifier<S, H: HeaderT> {
-	/// Import a header to the pallet.
-	fn import_header(storage: &mut S, header: H) -> Result<(), ImportError>;
-
-	/// Verify that the given header has been finalized and is part of the canonical chain.
-	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), FinalizationError>;
-}
-
 /// Used to verify imported headers and their finality status.
 #[derive(Debug)]
-pub struct Verifier;
+pub struct Verifier<S> {
+	pub storage: S,
+}
 
-impl<S, H> ChainVerifier<S, H> for Verifier
+impl<S, H> Verifier<S>
 where
 	S: BridgeStorage<Header = H>,
 	H: HeaderT,
 {
-	fn import_header(storage: &mut S, header: H) -> Result<(), ImportError> {
-		let best_finalized = storage.best_finalized_header();
+	/// Import a header to the pallet.
+	///
+	/// Will perform some basic checks to make sure that this header doesn't break any assumptions
+	/// such as being on a different finalized fork.
+	pub fn import_header(&mut self, header: H) -> Result<(), ImportError> {
+		let best_finalized = self.storage.best_finalized_header();
 
 		if header.number() < best_finalized.number() {
 			return Err(ImportError::OldHeader);
 		}
 
-		if storage.header_exists(header.hash()) {
+		if self.storage.header_exists(header.hash()) {
 			return Err(ImportError::HeaderAlreadyExists);
 		}
 
-		let parent_header = storage.header_by_hash(*header.parent_hash());
+		let parent_header = self.storage.header_by_hash(*header.parent_hash());
 		if parent_header.is_none() {
 			return Err(ImportError::MissingParent);
 		}
@@ -102,51 +99,59 @@ where
 		// We don't need the justification right away, but we should note it.
 		let requires_justification = find_scheduled_change(&header).is_some();
 		let is_finalized = false;
-		storage.write_header(&ImportedHeader::new(header, requires_justification, is_finalized));
+		self.storage
+			.write_header(&ImportedHeader::new(header, requires_justification, is_finalized));
 
 		Ok(())
 	}
 
-	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), FinalizationError> {
+	/// Verify the finality of a previously imported header using the given Grandpa finality proofs.
+	///
+	/// Will also enact authority set changes if they get trigged by the newly finalized header.
+	pub fn verify_finality(&mut self, hash: H::Hash, proof: FinalityProof) -> Result<(), FinalizationError> {
 		// Make sure that we've previously imported this header
-		let header = storage.header_by_hash(hash).ok_or(FinalizationError::UnknownHeader)?;
+		let header = self
+			.storage
+			.header_by_hash(hash)
+			.ok_or(FinalizationError::UnknownHeader)?;
 
-		let current_authority_set = storage.current_authority_set();
+		let current_authority_set = self.storage.current_authority_set();
 		let is_finalized = prove_finality(&header, &current_authority_set, proof);
 		if !is_finalized {
 			return Err(FinalizationError::UnfinalizedHeader);
 		}
 
-		let last_finalized = storage.best_finalized_header();
-		let mut finalized_headers = if let Some(ancestors) = are_ancestors(storage, last_finalized, header.clone()) {
-			// Skip header we're trying to finalize since we know it `requires_justification`
-			let requires_justification = ancestors.iter().skip(1).find(|h| h.requires_justification);
+		let last_finalized = self.storage.best_finalized_header();
+		let mut finalized_headers =
+			if let Some(ancestors) = are_ancestors(&self.storage, last_finalized, header.clone()) {
+				// Skip header we're trying to finalize since we know it `requires_justification`
+				let requires_justification = ancestors.iter().skip(1).find(|h| h.requires_justification);
 
-			// This means that we're trying to import a justification for the child
-			// of a header which is still missing a justification. We must reject
-			// this justification.
-			if requires_justification.is_some() {
-				return Err(FinalizationError::PrematureJustification);
-			}
+				// This means that we're trying to import a justification for the child
+				// of a header which is still missing a justification. We must reject
+				// this justification.
+				if requires_justification.is_some() {
+					return Err(FinalizationError::PrematureJustification);
+				}
 
-			let current_set_id = current_authority_set.set_id;
-			update_authority_set(storage, &header.header, current_set_id)?;
-			ancestors
-		} else {
-			return Err(FinalizationError::AncestryCheckFailed);
-		};
+				let current_set_id = current_authority_set.set_id;
+				update_authority_set(&mut self.storage, &header.header, current_set_id)?;
+				ancestors
+			} else {
+				return Err(FinalizationError::AncestryCheckFailed);
+			};
 
 		for header in finalized_headers.iter_mut() {
 			// TODO: Maybe mutate() storage?
 			header.is_finalized = true;
 			header.requires_justification = false;
-			storage.write_header(header);
+			self.storage.write_header(header);
 		}
 
 		let best_finalized = finalized_headers
 			.last()
 			.expect("We just iterated through these headers, therefore the last header must exist");
-		storage.update_best_finalized((*best_finalized).hash());
+		self.storage.update_best_finalized((*best_finalized).hash());
 
 		Ok(())
 	}
