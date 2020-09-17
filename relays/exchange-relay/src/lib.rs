@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Relaying currency-exchange application specific data.
+//! Relaying [`currency-exchange`](../pallet_bridge_currency_exchange/index.html) application
+//! specific data. Currency exchange application allows exchanging tokens between bridged chains.
+//! This module provides entrypoints for crafting and submitting (single and multiple)
+//! proof-of-exchange-at-source-chain transaction(s) to target chain.
 
 pub mod exchange;
 pub mod exchange_loop;

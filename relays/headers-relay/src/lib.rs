@@ -14,7 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Relaying headers.
+//! Relaying source chain headers to target chain. This module provides entrypoint
+//! that starts reading new headers from source chain and submit these headers as
+//! module/contract transactions to the source chain. Module/contract on the target
+//! chain is a light-client of the source chain. All other trustless bridge
+//! applications are built using this light-client, so running headers-relay is
+//! essential for running all other bridge applications.
 
 // required for futures::select!
 #![recursion_limit = "1024"]
