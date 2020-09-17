@@ -20,9 +20,9 @@
 // TODO: remove on actual use
 #![allow(dead_code)]
 
+use codec::Decode;
 use finality_grandpa::{voter_set::VoterSet, Chain, Error as GrandpaError};
 use frame_support::RuntimeDebug;
-use parity_scale_codec::Decode;
 use sp_finality_grandpa::{AuthorityId, AuthoritySignature, SetId};
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
@@ -117,7 +117,7 @@ where
 
 /// GRANDPA justification of the bridged chain
 #[derive(Decode, RuntimeDebug)]
-#[cfg_attr(test, derive(parity_scale_codec::Encode))]
+#[cfg_attr(test, derive(codec::Encode))]
 struct GrandpaJustification<Header: HeaderT> {
 	round: u64,
 	commit: finality_grandpa::Commit<Header::Hash, Header::Number, AuthoritySignature, AuthorityId>,
@@ -172,7 +172,7 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use parity_scale_codec::Encode;
+	use codec::Encode;
 	use sp_core::H256;
 	use sp_keyring::Ed25519Keyring;
 	use sp_runtime::traits::BlakeTwo256;
