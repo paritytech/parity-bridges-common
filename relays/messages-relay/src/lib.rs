@@ -23,6 +23,7 @@
 
 // required for futures::select!
 #![recursion_limit = "1024"]
+#![warn(missing_docs)]
 
 pub mod message_lane;
 pub mod message_lane_loop;

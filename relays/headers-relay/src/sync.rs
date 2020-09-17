@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Headers synchronization context. This structure wraps headers queue and is
+//! able to choose: which headers to read from the source chain? Which headers
+//! to submit to the target chain? The context makes decisions basing on parameters
+//! passed using `HeadersSyncParams` structure.
+
 use crate::headers::QueuedHeaders;
 use crate::sync_types::{HeaderIdOf, HeaderStatus, HeadersSyncPipeline, QueuedHeader};
 use num_traits::{One, Saturating, Zero};

@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Headers queue - the intermediate buffer that is filled when headers are read
+//! from the source chain. Headers are removed from the queue once they became
+//! known to the target chain. Inside, there are several sub-queues, where headers
+//! may stay until source/target chain state isn't updated. When header reach
+//! `ready` sub-queue, it may be submitted to the target chain.
+
 use crate::sync_types::{HeaderIdOf, HeaderStatus, HeadersSyncPipeline, QueuedHeader, SourceHeader};
 
 use linked_hash_map::LinkedHashMap;
@@ -32,7 +38,7 @@ type KnownHeaders<P> =
 /// We're trying to fetch completion data for single header at this interval.
 const RETRY_FETCH_COMPLETION_INTERVAL: Duration = Duration::from_secs(20);
 
-/// Ethereum headers queue.
+/// Headers queue.
 #[derive(Debug)]
 pub struct QueuedHeaders<P: HeadersSyncPipeline> {
 	/// Headers that are received from source node, but we (native sync code) have

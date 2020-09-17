@@ -19,6 +19,8 @@
 //! This module provides entrypoints for crafting and submitting (single and multiple)
 //! proof-of-exchange-at-source-chain transaction(s) to target chain.
 
+#![warn(missing_docs)]
+
 pub mod exchange;
 pub mod exchange_loop;
 pub mod exchange_loop_metrics;

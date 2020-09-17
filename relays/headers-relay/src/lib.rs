@@ -23,6 +23,7 @@
 
 // required for futures::select!
 #![recursion_limit = "1024"]
+#![warn(missing_docs)]
 
 pub mod headers;
 pub mod sync;

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Entrypoint for running headers synchronization loop.
+
 use crate::sync::HeadersSyncParams;
 use crate::sync_loop_metrics::SyncLoopMetrics;
 use crate::sync_types::{HeaderIdOf, HeaderStatus, HeadersSyncPipeline, QueuedHeader, SubmittedHeaders};

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Metrics for currency-exchange relay loop.
+
 use crate::exchange::{BlockNumberOf, RelayedBlockTransactions, TransactionProofPipeline};
 use relay_utils::metrics::{register, Counter, CounterVec, GaugeVec, Metrics, Opts, Registry, U64};
 
