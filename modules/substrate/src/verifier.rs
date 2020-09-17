@@ -133,7 +133,7 @@ where
 
 		let last_finalized = self.storage.best_finalized_header();
 		let mut finalized_headers =
-			if let Some(ancestors) = are_ancestors(&self.storage, last_finalized, header.clone()) {
+			if let Some(ancestors) = headers_between(&self.storage, last_finalized, header.clone()) {
 				// Skip header we're trying to finalize since we know it `requires_justification`
 				let requires_justification = ancestors.iter().skip(1).find(|h| h.requires_justification);
 
@@ -167,8 +167,8 @@ where
 	}
 }
 
-// Returns the lineage of headers from (ancestor, child]
-fn are_ancestors<S, H>(
+// Returns the lineage of headers between [child, ancestor)
+fn headers_between<S, H>(
 	storage: &S,
 	ancestor: ImportedHeader<H>,
 	child: ImportedHeader<H>,
@@ -182,7 +182,7 @@ where
 
 	while ancestor.hash() != current_header.hash() {
 		// We've gotten to the same height and we're not related
-		if ancestor.number() == current_header.number() {
+		if ancestor.number() >= current_header.number() {
 			return None;
 		}
 
@@ -283,26 +283,30 @@ mod tests {
 	fn write_headers<S: BridgeStorage<Header = TestHeader>>(
 		storage: &mut S,
 		headers: Vec<(u64, bool, bool)>,
-	) -> Vec<TestHeader> {
+	) -> Vec<ImportedHeader<TestHeader>> {
 		let mut imported_headers = vec![];
-		let genesis = TestHeader::new_from_number(0);
-		<BestFinalized<TestRuntime>>::put(genesis.hash());
-		storage.write_header(&ImportedHeader {
-			header: genesis.clone(),
+		let genesis = ImportedHeader {
+			header: TestHeader::new_from_number(0),
 			requires_justification: false,
 			is_finalized: true,
-		});
+		};
+
+		<BestFinalized<TestRuntime>>::put(genesis.hash());
+		storage.write_header(&genesis);
 		imported_headers.push(genesis);
 
 		for (num, requires_justification, is_finalized) in headers {
 			let mut h = TestHeader::new_from_number(num);
 			h.parent_hash = imported_headers.last().unwrap().hash();
-			storage.write_header(&ImportedHeader {
-				header: h.clone(),
+
+			let header = ImportedHeader {
+				header: h,
 				requires_justification,
 				is_finalized,
-			});
-			imported_headers.push(h);
+			};
+
+			storage.write_header(&header);
+			imported_headers.push(header);
 		}
 
 		imported_headers
@@ -389,29 +393,20 @@ mod tests {
 	fn related_headers_are_ancestors() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let mut headers = vec![];
-			let num_headers = 4;
 
-			let mut header = unfinalized_header(0);
-			headers.push(header.clone());
-			storage.write_header(&header);
+			let headers = vec![(1, false, false), (2, false, false), (3, false, false)];
+			let mut imported_headers = write_headers(&mut storage, headers);
 
-			for i in 1..num_headers {
-				header = unfinalized_header(i as u64);
-				header.header.parent_hash = headers[i - 1].hash();
-				headers.push(header);
-				storage.write_header(&headers[i]);
-			}
-
-			for header in headers.iter().take(num_headers) {
+			for header in imported_headers.iter() {
 				assert!(storage.header_exists(header.hash()));
 			}
 
-			let ancestor = headers.remove(0);
-			let child = headers.pop().unwrap();
-			let ancestors = are_ancestors(&storage, ancestor, child);
+			let ancestor = imported_headers.remove(0);
+			let child = imported_headers.pop().unwrap();
+			let ancestors = headers_between(&storage, ancestor, child);
+
 			assert!(ancestors.is_some());
-			assert_eq!(ancestors.unwrap().len(), num_headers - 1);
+			assert_eq!(ancestors.unwrap().len(), 3);
 		})
 	}
 
@@ -419,24 +414,15 @@ mod tests {
 	fn unrelated_headers_are_not_ancestors() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let mut headers = vec![];
-			let num_headers = 4;
 
-			let mut header = unfinalized_header(0);
-			headers.push(header.clone());
-			storage.write_header(&header);
-
-			for i in 1..num_headers {
-				header = unfinalized_header(i as u64);
-				header.header.parent_hash = headers[i - 1].hash();
-				headers.push(header);
-				storage.write_header(&headers[i]);
-			}
-
-			for header in headers.iter().take(num_headers) {
+			let headers = vec![(1, false, false), (2, false, false), (3, false, false)];
+			let mut imported_headers = write_headers(&mut storage, headers);
+			for header in imported_headers.iter() {
 				assert!(storage.header_exists(header.hash()));
 			}
 
+			// Need to give it a different parent_hash or else it'll be
+			// related to our test genesis header
 			let mut bad_ancestor = TestHeader::new_from_number(0);
 			bad_ancestor.parent_hash = [1u8; 32].into();
 			let bad_ancestor = ImportedHeader {
@@ -445,8 +431,33 @@ mod tests {
 				is_finalized: false,
 			};
 
-			let child = headers.pop().unwrap();
-			let ancestors = are_ancestors(&storage, bad_ancestor, child);
+			let child = imported_headers.pop().unwrap();
+			let ancestors = headers_between(&storage, bad_ancestor, child.clone());
+			assert!(ancestors.is_none());
+		})
+	}
+
+	#[test]
+	fn ancestor_newer_than_child_is_not_related() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+
+			let headers = vec![(1, false, false), (2, false, false), (3, false, false)];
+			let mut imported_headers = write_headers(&mut storage, headers);
+			for header in imported_headers.iter() {
+				assert!(storage.header_exists(header.hash()));
+			}
+
+			// What if we have an "ancestor" that's newer than child?
+			let new_ancestor = TestHeader::new_from_number(5);
+			let new_ancestor = ImportedHeader {
+				header: new_ancestor,
+				requires_justification: false,
+				is_finalized: false,
+			};
+
+			let child = imported_headers.pop().unwrap();
+			let ancestors = headers_between(&storage, new_ancestor, child.clone());
 			assert!(ancestors.is_none());
 		})
 	}
