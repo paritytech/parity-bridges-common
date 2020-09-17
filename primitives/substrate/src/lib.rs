@@ -85,20 +85,13 @@ impl<H: HeaderT> ImportedHeader<H> {
 			is_finalized,
 		}
 	}
+}
 
-	/// Get the hash of this header.
-	pub fn hash(&self) -> H::Hash {
-		self.header.hash()
-	}
+impl<H> core::ops::Deref for ImportedHeader<H> {
+	type Target = H;
 
-	/// Get the hash of the parent header.
-	pub fn parent_hash(&self) -> &H::Hash {
-		self.header.parent_hash()
-	}
-
-	/// Get the number of this header.
-	pub fn number(&self) -> &H::Number {
-		self.header.number()
+	fn deref(&self) -> &H {
+		&self.header
 	}
 }
 
