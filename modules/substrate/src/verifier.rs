@@ -223,9 +223,9 @@ mod tests {
 	use super::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, ImportedHeaders, PalletStorage};
+	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
-	use parity_scale_codec::Encode;
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
 	use sp_runtime::testing::UintAuthorityId;
 	use sp_runtime::{Digest, DigestItem};
