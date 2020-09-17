@@ -38,7 +38,14 @@ pub type Header = rialto_runtime::Header;
 
 /// Substrate header type used in headers sync.
 #[derive(Clone, Debug, PartialEq)]
-pub struct SubstrateSyncHeader(pub Header);
+pub struct SubstrateSyncHeader(Header);
+
+impl std::ops::Deref for SubstrateSyncHeader {
+	type Target = Header;
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
 
 /// Substrate signed block type.
 pub type SignedBlock = rialto_runtime::SignedBlock;
@@ -68,7 +75,7 @@ impl HeadersSyncPipeline for SubstrateHeadersSyncPipeline {
 	type Completion = GrandpaJustification;
 
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
-		source.header().0.encode().len()
+		source.header().encode().len()
 	}
 }
 
@@ -80,11 +87,11 @@ impl From<Header> for SubstrateSyncHeader {
 
 impl SourceHeader<rialto_runtime::Hash, rialto_runtime::BlockNumber> for SubstrateSyncHeader {
 	fn id(&self) -> SubstrateHeaderId {
-		HeaderId(self.0.number, self.0.hash())
+		HeaderId(self.number, self.hash())
 	}
 
 	fn parent_id(&self) -> SubstrateHeaderId {
-		HeaderId(self.0.number - 1, self.0.parent_hash)
+		HeaderId(self.number - 1, self.parent_hash)
 	}
 }
 

@@ -37,7 +37,14 @@ pub type Header = web3::types::Block<H256>;
 
 /// Ethereum header type used in headers sync.
 #[derive(Clone, Debug, PartialEq)]
-pub struct EthereumSyncHeader(pub Header);
+pub struct EthereumSyncHeader(Header);
+
+impl std::ops::Deref for EthereumSyncHeader {
+	type Target = Header;
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
 
 /// Ethereum header with transactions type.
 pub type HeaderWithTransactions = web3::types::Block<Transaction>;
@@ -70,7 +77,7 @@ impl HeadersSyncPipeline for EthereumHeadersSyncPipeline {
 	type Completion = ();
 
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
-		into_substrate_ethereum_header(&source.header().0).encode().len()
+		into_substrate_ethereum_header(source.header()).encode().len()
 			+ into_substrate_ethereum_receipts(source.extra())
 				.map(|extra| extra.encode().len())
 				.unwrap_or(0)
@@ -86,12 +93,12 @@ impl From<Header> for EthereumSyncHeader {
 impl SourceHeader<H256, u64> for EthereumSyncHeader {
 	fn id(&self) -> EthereumHeaderId {
 		HeaderId(
-			self.0.number.expect(HEADER_ID_PROOF).as_u64(),
-			self.0.hash.expect(HEADER_ID_PROOF),
+			self.number.expect(HEADER_ID_PROOF).as_u64(),
+			self.hash.expect(HEADER_ID_PROOF),
 		)
 	}
 
 	fn parent_id(&self) -> EthereumHeaderId {
-		HeaderId(self.0.number.expect(HEADER_ID_PROOF).as_u64() - 1, self.0.parent_hash)
+		HeaderId(self.number.expect(HEADER_ID_PROOF).as_u64() - 1, self.parent_hash)
 	}
 }

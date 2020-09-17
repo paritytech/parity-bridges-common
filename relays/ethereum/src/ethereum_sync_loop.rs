@@ -116,7 +116,7 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 		header: QueuedEthereumHeader,
 	) -> Result<(EthereumHeaderId, Vec<Receipt>), Self::Error> {
 		self.client
-			.transaction_receipts(id, header.header().0.transactions.clone())
+			.transaction_receipts(id, header.header().transactions.clone())
 			.await
 	}
 }
@@ -176,7 +176,7 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 		// logs bloom here, but it may give us false positives (when authorities
 		// source is contract, we never need any logs)
 		let id = header.header().id();
-		let sub_eth_header = into_substrate_ethereum_header(&header.header().0);
+		let sub_eth_header = into_substrate_ethereum_header(header.header());
 		Ok((id, self.client.ethereum_receipts_required(sub_eth_header).await?))
 	}
 }

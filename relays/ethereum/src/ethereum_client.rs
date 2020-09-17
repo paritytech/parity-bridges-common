@@ -476,7 +476,7 @@ impl HeadersBatch {
 
 	/// Encodes all headers. If header is not present an empty vector will be returned.
 	pub fn encode(&self) -> [Vec<u8>; HEADERS_BATCH] {
-		let encode = |h: &QueuedSubstrateHeader| h.header().0.encode();
+		let encode = |h: &QueuedSubstrateHeader| h.header().encode();
 		let headers = self.headers();
 		[
 			headers[0].map(encode).unwrap_or_default(),
@@ -778,10 +778,10 @@ mod tests {
 		assert_eq!(
 			headers.encode(),
 			[
-				header(1).header().0.encode(),
-				header(2).header().0.encode(),
-				header(3).header().0.encode(),
-				header(4).header().0.encode(),
+				header(1).header().encode(),
+				header(2).header().encode(),
+				header(3).header().encode(),
+				header(4).header().encode(),
 			]
 		);
 	}
