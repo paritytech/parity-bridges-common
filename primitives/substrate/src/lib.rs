@@ -70,7 +70,7 @@ impl<N> ScheduledChange<N> {
 /// does not need to be finalized explictly, but instead may be finalized
 /// implicitly when one of its children gets finalized.
 #[derive(Default, Encode, Decode, Clone, RuntimeDebug, PartialEq)]
-pub struct ImportedHeader<H: HeaderT> {
+pub struct ImportedHeader<H> {
 	pub header: H,
 	pub requires_justification: bool,
 	pub is_finalized: bool,
