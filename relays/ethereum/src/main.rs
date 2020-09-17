@@ -267,8 +267,6 @@ fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncPara
 		sync_params: HeadersSyncParams {
 			max_future_headers_to_download: MAX_FUTURE_HEADERS_TO_DOWNLOAD,
 			max_headers_in_submitted_status: MAX_SUBMITTED_HEADERS,
-			// since we always have single Substrate header in separate Ethereum transaction,
-			// all max_**_in_single_submit aren't important here
 			max_headers_in_single_submit: 4,
 			max_headers_size_in_single_submit: std::usize::MAX,
 			prune_depth: PRUNE_DEPTH,
