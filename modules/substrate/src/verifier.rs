@@ -42,22 +42,27 @@ pub enum ImportError {
 	OldHeader,
 	/// This header has already been imported by the pallet.
 	HeaderAlreadyExists,
-	/// This header has never been imported by the pallet.
-	UnknownHeader,
 	/// We're missing a parent for this header.
 	MissingParent,
+}
+
+/// Errors which can happen while verifying a headers finality.
+#[derive(Debug, PartialEq)]
+pub enum FinalizationError {
+	/// This header has never been imported by the pallet.
+	UnknownHeader,
 	/// We were unable to prove finality for this header.
 	UnfinalizedHeader,
+	/// Trying to prematurely import a justification
+	PrematureJustification,
 	/// We failed to verify this header's ancestry.
 	AncestryCheckFailed,
+	/// The height of the next authority set change overflowed.
+	ScheduledHeightOverflow,
 	/// The header is missing digests related to consensus events.
 	///
 	/// This will typically have to do with missing authority set change signals.
 	MissingConsensusDigest,
-	/// Trying to prematurely import a justification
-	PrematureJustification,
-	/// The height of the next authority set change overflowed.
-	ScheduledHeightOverflow,
 }
 
 /// A trait for verifying whether a header is valid for a particular blockchain.
@@ -66,7 +71,7 @@ pub trait ChainVerifier<S, H: HeaderT> {
 	fn import_header(storage: &mut S, header: H) -> Result<(), ImportError>;
 
 	/// Verify that the given header has been finalized and is part of the canonical chain.
-	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), ImportError>;
+	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), FinalizationError>;
 }
 
 /// Used to verify imported headers and their finality status.
@@ -102,14 +107,14 @@ where
 		Ok(())
 	}
 
-	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), ImportError> {
+	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), FinalizationError> {
 		// Make sure that we've previously imported this header
-		let header = storage.header_by_hash(hash).ok_or(ImportError::UnknownHeader)?;
+		let header = storage.header_by_hash(hash).ok_or(FinalizationError::UnknownHeader)?;
 
 		let current_authority_set = storage.current_authority_set();
 		let is_finalized = prove_finality(&header, &current_authority_set, proof);
 		if !is_finalized {
-			return Err(ImportError::UnfinalizedHeader);
+			return Err(FinalizationError::UnfinalizedHeader);
 		}
 
 		let last_finalized = storage.best_finalized_header();
@@ -121,14 +126,14 @@ where
 			// of a header which is still missing a justification. We must reject
 			// this justification.
 			if requires_justification.is_some() {
-				return Err(ImportError::PrematureJustification);
+				return Err(FinalizationError::PrematureJustification);
 			}
 
 			let current_set_id = current_authority_set.set_id;
 			update_authority_set(storage, &header.header, current_set_id)?;
 			ancestors
 		} else {
-			return Err(ImportError::AncestryCheckFailed);
+			return Err(FinalizationError::AncestryCheckFailed);
 		};
 
 		for header in finalized_headers.iter_mut() {
@@ -177,7 +182,7 @@ where
 	Some(ancestors)
 }
 
-fn update_authority_set<S, H>(storage: &mut S, header: &H, current_set_id: SetId) -> Result<(), ImportError>
+fn update_authority_set<S, H>(storage: &mut S, header: &H, current_set_id: SetId) -> Result<(), FinalizationError>
 where
 	S: BridgeStorage<Header = H>,
 	H: HeaderT,
@@ -192,7 +197,7 @@ where
 
 		let height = (*header.number())
 			.checked_add(&scheduled_change.delay)
-			.ok_or(ImportError::ScheduledHeightOverflow)?;
+			.ok_or(FinalizationError::ScheduledHeightOverflow)?;
 		let scheduled_change = ScheduledChange::new(authority_set, height);
 
 		let new_set = storage.scheduled_set_change().authority_set;
@@ -201,7 +206,7 @@ where
 
 		Ok(())
 	} else {
-		Err(ImportError::MissingConsensusDigest)
+		Err(FinalizationError::MissingConsensusDigest)
 	}
 }
 
