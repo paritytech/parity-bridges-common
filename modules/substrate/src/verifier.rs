@@ -14,10 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! The verifier's role is two-fold. First, it is what responsible for verifying that a header
-//! which is submitted to be imported can be and is imported. Secondly, it is also responsible for
-//! checking that a given finality proof does finalize a header, and that anything related to that
-//! is updated correctly (e.g the authority set, best finalized header).
+//! The verifier's role is to check the validity of headers being imported, and also determine if
+//! they can be finalized.
+//!
+//! When importing headers it performs checks to ensure that no invariants are broken (like
+//! importing the same header twice). When it imports finality proofs it will ensure that the proof
+//! has been signed off by the correct Grandpa authorities, and also enact any authority set changes
+//! of required.
 
 use crate::BridgeStorage;
 use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange};
@@ -116,7 +119,7 @@ where
 
 			// This means that we're trying to import a justification for the child
 			// of a header which is still missing a justification. We must reject
-			// this header.
+			// this justification.
 			if requires_justification.is_some() {
 				return Err(ImportError::PrematureJustification);
 			}
