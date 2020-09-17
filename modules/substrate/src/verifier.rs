@@ -295,7 +295,8 @@ mod tests {
 			storage.update_best_finalized(parent.hash());
 
 			let header = TestHeader::new_from_number(1);
-			assert_err!(Verifier::import_header(&mut storage, header), ImportError::OldHeader);
+			let mut verifier = Verifier { storage };
+			assert_err!(verifier.import_header(header), ImportError::OldHeader);
 		})
 	}
 
@@ -310,34 +311,30 @@ mod tests {
 			// By default the parent is `0x00`
 			let header = TestHeader::new_from_number(2);
 
-			assert_err!(
-				Verifier::import_header(&mut storage, header),
-				ImportError::MissingParent
-			);
+			let mut verifier = Verifier { storage };
+			assert_err!(verifier.import_header(header), ImportError::MissingParent);
 		})
 	}
 
 	#[test]
 	fn fails_to_import_header_twice() {
 		run_test(|| {
-			let mut storage = PalletStorage::<TestRuntime>::new();
+			let storage = PalletStorage::<TestRuntime>::new();
 			let header = TestHeader::new_from_number(1);
 			<BestFinalized<TestRuntime>>::put(header.hash());
 
 			let imported_header = ImportedHeader::new(header.clone(), false, false);
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
 
-			assert_err!(
-				Verifier::import_header(&mut storage, header),
-				ImportError::HeaderAlreadyExists
-			);
+			let mut verifier = Verifier { storage };
+			assert_err!(verifier.import_header(header), ImportError::HeaderAlreadyExists);
 		})
 	}
 
 	#[test]
 	fn succesfully_imports_valid_but_unfinalized_header() {
 		run_test(|| {
-			let mut storage = PalletStorage::<TestRuntime>::new();
+			let storage = PalletStorage::<TestRuntime>::new();
 			let parent = TestHeader::new_from_number(1);
 			let parent_hash = parent.hash();
 			<BestFinalized<TestRuntime>>::put(parent.hash());
@@ -347,7 +344,10 @@ mod tests {
 
 			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = parent_hash;
-			assert_ok!(Verifier::import_header(&mut storage, header.clone()));
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+			assert_ok!(verifier.import_header(header.clone()));
 
 			let stored_header = storage.header_by_hash(header.hash());
 			assert!(stored_header.is_some());
@@ -483,8 +483,11 @@ mod tests {
 				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
 			};
 
-			assert!(Verifier::import_header(&mut storage, header.clone()).is_ok());
-			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+			assert!(verifier.import_header(header.clone()).is_ok());
+			assert!(verifier.verify_finality(header.hash(), &[4, 2]).is_ok());
 
 			// Make sure we marked the our headers as finalized
 			assert!(storage.header_by_hash(imported_headers[1].hash()).unwrap().is_finalized);
@@ -530,7 +533,10 @@ mod tests {
 			};
 
 			// Import header N
-			assert!(Verifier::import_header(&mut storage, header.clone()).is_ok());
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+			assert!(verifier.import_header(header.clone()).is_ok());
 
 			// Header N should be marked as needing a justification
 			assert_eq!(
@@ -541,15 +547,15 @@ mod tests {
 			// Now we want to import some headers which are past N
 			let mut child = TestHeader::new_from_number(*header.number() + 1);
 			child.parent_hash = header.hash();
-			assert!(Verifier::import_header(&mut storage, child.clone()).is_ok());
+			assert!(verifier.import_header(child.clone()).is_ok());
 
 			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
 			grandchild.parent_hash = child.hash();
-			assert!(Verifier::import_header(&mut storage, grandchild).is_ok());
+			assert!(verifier.import_header(grandchild).is_ok());
 
 			// Even though we're a few headers ahead we should still be able to import
 			// a justification for header N
-			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
+			assert!(verifier.verify_finality(header.hash(), &[4, 2]).is_ok());
 
 			let finalized_header = storage.header_by_hash(header.hash()).unwrap();
 			assert!(finalized_header.is_finalized);
@@ -599,7 +605,10 @@ mod tests {
 			};
 
 			// Import header N
-			assert!(Verifier::import_header(&mut storage, header.clone()).is_ok());
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+			assert!(verifier.import_header(header.clone()).is_ok());
 
 			// Header N should be marked as needing a justification
 			assert_eq!(
@@ -610,7 +619,7 @@ mod tests {
 			// Now we want to import some headers which are past N
 			let mut child = TestHeader::new_from_number(*header.number() + 1);
 			child.parent_hash = header.hash();
-			assert!(Verifier::import_header(&mut storage, child.clone()).is_ok());
+			assert!(verifier.import_header(child.clone()).is_ok());
 
 			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
 			grandchild.parent_hash = child.hash();
@@ -626,7 +635,7 @@ mod tests {
 			};
 
 			// Import header N+2
-			assert!(Verifier::import_header(&mut storage, grandchild.clone()).is_ok());
+			assert!(verifier.import_header(grandchild.clone()).is_ok());
 
 			// Header N+2 should be marked as needing a justification
 			assert_eq!(
@@ -639,10 +648,10 @@ mod tests {
 
 			// Now let's try to finalize N+2, this should fail since we haven't yet
 			// imported the justification for N
-			assert!(Verifier::verify_finality(&mut storage, grandchild.hash(), &[4, 2]).is_err());
+			assert!(verifier.verify_finality(grandchild.hash(), &[4, 2]).is_err());
 
 			// Let's import the correct justification now, which is for header N
-			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
+			assert!(verifier.verify_finality(header.hash(), &[4, 2]).is_ok());
 
 			// Now N is marked as finalized and doesn't require a justification anymore
 			let header = storage.header_by_hash(header.hash()).unwrap();
@@ -650,7 +659,7 @@ mod tests {
 			assert_eq!(header.requires_justification, false);
 
 			// Now we're allowed to finalized N+2
-			assert!(Verifier::verify_finality(&mut storage, grandchild.hash(), &[4, 2]).is_ok());
+			assert!(verifier.verify_finality(grandchild.hash(), &[4, 2]).is_ok());
 			let grandchild = storage.header_by_hash(grandchild.hash()).unwrap();
 			assert!(grandchild.is_finalized);
 			assert_eq!(grandchild.requires_justification, false);

@@ -199,7 +199,7 @@ pub trait BridgeStorage {
 }
 
 /// Used to interact with the pallet storage in a more abstract way.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct PalletStorage<T>(PhantomData<T>);
 
 impl<T> PalletStorage<T> {
