@@ -26,7 +26,7 @@ use crate::BridgeStorage;
 use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange};
 use sp_finality_grandpa::{ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
-use sp_runtime::traits::{CheckedAdd, Header as HeaderT};
+use sp_runtime::traits::{CheckedAdd, Header as HeaderT, One};
 use sp_std::{prelude::Vec, vec};
 
 /// The finality proof used by the pallet.
@@ -44,6 +44,8 @@ pub enum ImportError {
 	HeaderAlreadyExists,
 	/// We're missing a parent for this header.
 	MissingParent,
+	/// The number of the header does not follow its parent's number.
+	InvalidChildNumber,
 }
 
 /// Errors which can happen while verifying a headers finality.
@@ -91,9 +93,14 @@ where
 			return Err(ImportError::HeaderAlreadyExists);
 		}
 
-		let parent_header = self.storage.header_by_hash(*header.parent_hash());
-		if parent_header.is_none() {
-			return Err(ImportError::MissingParent);
+		let parent_header = self
+			.storage
+			.header_by_hash(*header.parent_hash())
+			.ok_or(ImportError::MissingParent)?;
+
+		let parent_number = *parent_header.number();
+		if parent_number + One::one() != *header.number() {
+			return Err(ImportError::InvalidChildNumber);
 		}
 
 		// We don't need the justification right away, but we should note it.
@@ -540,7 +547,7 @@ mod tests {
 			let imported_headers = write_headers(&mut storage, headers);
 
 			// This is header N
-			let mut header = TestHeader::new_from_number(3);
+			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = imported_headers[1].hash();
 
 			// Schedule a change at height N
@@ -612,7 +619,7 @@ mod tests {
 			let imported_headers = write_headers(&mut storage, headers);
 
 			// This is header N
-			let mut header = TestHeader::new_from_number(3);
+			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = imported_headers[1].hash();
 
 			// Schedule a change at height N
