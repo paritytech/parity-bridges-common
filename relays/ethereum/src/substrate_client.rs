@@ -21,7 +21,7 @@ use crate::rpc_errors::RpcError;
 use crate::substrate_types::{Hash, Header as SubstrateHeader, Number, SignedBlock as SignedSubstrateBlock};
 
 use async_trait::async_trait;
-use bp_eth_poa::Header as SubstrateEthereumHeader;
+use bp_eth_poa::AuraHeader as SubstrateEthereumHeader;
 use codec::{Decode, Encode};
 use headers_relay::sync_types::SubmittedHeaders;
 use jsonrpsee::raw::RawClient;
