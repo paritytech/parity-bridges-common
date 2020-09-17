@@ -148,18 +148,20 @@ type MessageDeliveryStrategy<P> = DeliveryStrategy<
 
 /// Nonces delivery strategy.
 #[derive(Debug)]
-pub struct DeliveryStrategy<SHN, SHH, THN, THH, Nonce, Proof> {
+pub struct DeliveryStrategy<SourceHeaderNumber, SourceHeaderHash, TargetHeaderNumber, TargetHeaderHash, Nonce, Proof> {
 	/// All queued nonces.
-	source_queue: VecDeque<(HeaderId<SHH, SHN>, Nonce)>,
+	source_queue: VecDeque<(HeaderId<SourceHeaderHash, SourceHeaderNumber>, Nonce)>,
 	/// Best nonce known to target node.
 	target_nonce: Nonce,
 	/// Max nonces to relay in single transaction.
 	max_nonces_to_relay_in_single_tx: Nonce,
 	/// Unused generic types dump.
-	_phantom: PhantomData<(THN, THH, Proof)>,
+	_phantom: PhantomData<(TargetHeaderNumber, TargetHeaderHash, Proof)>,
 }
 
-impl<SHN, SHH, THN, THH, Nonce: Default, Proof> DeliveryStrategy<SHN, SHH, THN, THH, Nonce, Proof> {
+impl<SourceHeaderNumber, SourceHeaderHash, TargetHeaderNumber, TargetHeaderHash, Nonce: Default, Proof>
+	DeliveryStrategy<SourceHeaderNumber, SourceHeaderHash, TargetHeaderNumber, TargetHeaderHash, Nonce, Proof>
+{
 	/// Create new delivery strategy.
 	pub fn new(max_nonces_to_relay_in_single_tx: Nonce) -> Self {
 		DeliveryStrategy {
@@ -171,18 +173,23 @@ impl<SHN, SHH, THN, THH, Nonce: Default, Proof> DeliveryStrategy<SHN, SHH, THN, 
 	}
 }
 
-impl<SHN, SHH, THN, THH, Nonce, Proof> RaceStrategy<HeaderId<SHH, SHN>, HeaderId<THH, THN>, Nonce, Proof>
-	for DeliveryStrategy<SHN, SHH, THN, THH, Nonce, Proof>
+impl<SourceHeaderNumber, SourceHeaderHash, TargetHeaderNumber, TargetHeaderHash, Nonce, Proof>
+	RaceStrategy<
+		HeaderId<SourceHeaderHash, SourceHeaderNumber>,
+		HeaderId<TargetHeaderHash, TargetHeaderNumber>,
+		Nonce,
+		Proof,
+	> for DeliveryStrategy<SourceHeaderNumber, SourceHeaderHash, TargetHeaderNumber, TargetHeaderHash, Nonce, Proof>
 where
-	SHH: Clone,
-	SHN: Clone + Ord,
+	SourceHeaderHash: Clone,
+	SourceHeaderNumber: Clone + Ord,
 	Nonce: Clone + Copy + From<u32> + Ord + std::ops::Add<Output = Nonce> + One + Zero,
 {
 	fn is_empty(&self) -> bool {
 		self.source_queue.is_empty()
 	}
 
-	fn source_nonce_updated(&mut self, at_block: HeaderId<SHH, SHN>, nonce: Nonce) {
+	fn source_nonce_updated(&mut self, at_block: HeaderId<SourceHeaderHash, SourceHeaderNumber>, nonce: Nonce) {
 		if nonce <= self.target_nonce {
 			return;
 		}
@@ -199,7 +206,12 @@ where
 	fn target_nonce_updated(
 		&mut self,
 		nonce: Nonce,
-		race_state: &mut RaceState<HeaderId<SHH, SHN>, HeaderId<THH, THN>, Nonce, Proof>,
+		race_state: &mut RaceState<
+			HeaderId<SourceHeaderHash, SourceHeaderNumber>,
+			HeaderId<TargetHeaderHash, TargetHeaderNumber>,
+			Nonce,
+			Proof,
+		>,
 	) {
 		if nonce < self.target_nonce {
 			return;
@@ -236,7 +248,12 @@ where
 
 	fn select_nonces_to_deliver(
 		&mut self,
-		race_state: &RaceState<HeaderId<SHH, SHN>, HeaderId<THH, THN>, Nonce, Proof>,
+		race_state: &RaceState<
+			HeaderId<SourceHeaderHash, SourceHeaderNumber>,
+			HeaderId<TargetHeaderHash, TargetHeaderNumber>,
+			Nonce,
+			Proof,
+		>,
 	) -> Option<RangeInclusive<Nonce>> {
 		// if we have already selected nonces that we want to submit, do nothing
 		if race_state.nonces_to_submit.is_some() {
