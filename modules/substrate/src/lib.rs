@@ -68,22 +68,20 @@ decl_storage! {
 		config(first_scheduled_change): Option<ScheduledChange<Number<T::Header>>>;
 		build(|config| {
 			assert!(
-				config.initial_header.is_some(),
-				"An initial header is needed."
-			);
-			assert!(
 				!config.initial_authority_list.is_empty(),
 				"An initial authority list is needed."
-			);
-			assert!(
-				config.first_scheduled_change.is_some(),
-				"An initial authority set change is needed"
 			);
 
 			let initial_header = config
 				.initial_header
 				.clone()
-				.expect("Asserted that this was Some");
+				.expect("An initial header is needed");
+
+			let first_scheduled_change = config
+				.first_scheduled_change
+				.as_ref()
+				.expect("An initial authority set is needed");
+
 			<BestFinalized<T>>::put(initial_header.hash());
 			<ImportedHeaders<T>>::insert(
 				initial_header.hash(),
@@ -94,10 +92,6 @@ decl_storage! {
 				AuthoritySet::new(config.initial_authority_list.clone(), config.initial_set_id);
 			CurrentAuthoritySet::put(authority_set);
 
-			let first_scheduled_change = config
-				.first_scheduled_change
-				.clone()
-				.expect("Asserted that this was Some");
 			<NextScheduledChange<T>>::put(first_scheduled_change);
 		})
 	}
