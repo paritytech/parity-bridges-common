@@ -23,7 +23,6 @@ use parity_scale_codec::{Decode, Encode};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, SetId};
-use sp_runtime::traits::Header as HeaderT;
 use sp_runtime::RuntimeDebug;
 
 /// A Grandpa Authority List and ID.
@@ -54,12 +53,6 @@ pub struct ScheduledChange<N> {
 	pub height: N,
 }
 
-impl<N> ScheduledChange<N> {
-	pub fn new(authority_set: AuthoritySet, height: N) -> Self {
-		Self { authority_set, height }
-	}
-}
-
 /// A more useful representation of a header for storage purposes.
 ///
 /// Keeps track of two important fields aside from the header. First,
@@ -74,17 +67,6 @@ pub struct ImportedHeader<H> {
 	pub header: H,
 	pub requires_justification: bool,
 	pub is_finalized: bool,
-}
-
-impl<H: HeaderT> ImportedHeader<H> {
-	/// Create a new ImportedHeader.
-	pub fn new(header: H, requires_justification: bool, is_finalized: bool) -> Self {
-		Self {
-			header,
-			requires_justification,
-			is_finalized,
-		}
-	}
 }
 
 impl<H> core::ops::Deref for ImportedHeader<H> {

@@ -84,7 +84,11 @@ decl_storage! {
 			<BestFinalized<T>>::put(initial_header.hash());
 			<ImportedHeaders<T>>::insert(
 				initial_header.hash(),
-				ImportedHeader::new(initial_header, false, true),
+				ImportedHeader {
+					header: initial_header,
+					requires_justification: false,
+					is_finalized: true,
+				},
 			);
 
 			let authority_set =

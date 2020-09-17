@@ -99,8 +99,11 @@ where
 		// We don't need the justification right away, but we should note it.
 		let requires_justification = find_scheduled_change(&header).is_some();
 		let is_finalized = false;
-		self.storage
-			.write_header(&ImportedHeader::new(header, requires_justification, is_finalized));
+		self.storage.write_header(&ImportedHeader {
+			header,
+			requires_justification,
+			is_finalized,
+		});
 
 		Ok(())
 	}
@@ -203,7 +206,7 @@ where
 		let height = (*header.number())
 			.checked_add(&scheduled_change.delay)
 			.ok_or(FinalizationError::ScheduledHeightOverflow)?;
-		let scheduled_change = ScheduledChange::new(authority_set, height);
+		let scheduled_change = ScheduledChange { authority_set, height };
 
 		let new_set = storage.scheduled_set_change().authority_set;
 		storage.update_current_authority_set(new_set);
@@ -245,7 +248,11 @@ mod tests {
 	type TestNumber = <TestHeader as HeaderT>::Number;
 
 	fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
-		ImportedHeader::new(TestHeader::new_from_number(num), false, false)
+		ImportedHeader {
+			header: TestHeader::new_from_number(num),
+			requires_justification: false,
+			is_finalized: false,
+		}
 	}
 
 	fn get_authorities(authorities: Vec<(u64, u64)>) -> AuthorityList {
@@ -262,7 +269,7 @@ mod tests {
 	) -> ScheduledChange<TestNumber> {
 		let authorities = get_authorities(authorities);
 		let authority_set = AuthoritySet::new(authorities, set_id);
-		ScheduledChange::new(authority_set, height)
+		ScheduledChange { authority_set, height }
 	}
 
 	// Useful for quickly writing a chain of headers to storage
@@ -273,13 +280,21 @@ mod tests {
 		let mut imported_headers = vec![];
 		let genesis = TestHeader::new_from_number(0);
 		<BestFinalized<TestRuntime>>::put(genesis.hash());
-		storage.write_header(&ImportedHeader::new(genesis.clone(), false, true));
+		storage.write_header(&ImportedHeader {
+			header: genesis.clone(),
+			requires_justification: false,
+			is_finalized: true,
+		});
 		imported_headers.push(genesis);
 
-		for (num, reqs_just, finalized) in headers {
+		for (num, requires_justification, is_finalized) in headers {
 			let mut h = TestHeader::new_from_number(num);
 			h.parent_hash = imported_headers.last().unwrap().hash();
-			storage.write_header(&ImportedHeader::new(h.clone(), reqs_just, finalized));
+			storage.write_header(&ImportedHeader {
+				header: h.clone(),
+				requires_justification,
+				is_finalized,
+			});
 			imported_headers.push(h);
 		}
 
@@ -323,7 +338,11 @@ mod tests {
 			let header = TestHeader::new_from_number(1);
 			<BestFinalized<TestRuntime>>::put(header.hash());
 
-			let imported_header = ImportedHeader::new(header.clone(), false, false);
+			let imported_header = ImportedHeader {
+				header: header.clone(),
+				requires_justification: false,
+				is_finalized: false,
+			};
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
 
 			let mut verifier = Verifier { storage };
@@ -339,7 +358,11 @@ mod tests {
 			let parent_hash = parent.hash();
 			<BestFinalized<TestRuntime>>::put(parent.hash());
 
-			let imported_header = ImportedHeader::new(parent, false, true);
+			let imported_header = ImportedHeader {
+				header: parent,
+				requires_justification: false,
+				is_finalized: true,
+			};
 			<ImportedHeaders<TestRuntime>>::insert(parent_hash, &imported_header);
 
 			let mut header = TestHeader::new_from_number(2);
@@ -409,7 +432,12 @@ mod tests {
 
 			let mut bad_ancestor = TestHeader::new_from_number(0);
 			bad_ancestor.parent_hash = [1u8; 32].into();
-			let bad_ancestor = ImportedHeader::new(bad_ancestor, false, false);
+			let bad_ancestor = ImportedHeader {
+				header: bad_ancestor,
+				requires_justification: false,
+				is_finalized: false,
+			};
+
 			let child = headers.pop().unwrap();
 			let ancestors = are_ancestors(&storage, bad_ancestor, child);
 			assert!(ancestors.is_none());
