@@ -115,6 +115,7 @@ decl_module! {
 		/// This will perform some basic checks to make sure it is fine to
 		/// import into the runtime. However, it does not perform any checks
 		/// related to finality.
+		// TODO: Update weights [#78]
 		#[weight = 0]
 		pub fn import_signed_header(
 			origin,
@@ -135,8 +136,9 @@ decl_module! {
 		/// This will take care of finalizing any already imported headers
 		/// which get finalized when importing this particular proof, as well
 		/// as updating the current and next validator sets.
+		// TODO: Update weights [#78]
 		#[weight = 0]
-		pub fn finalized_header(
+		pub fn finalize_header(
 			origin,
 			hash: Hash<T::Header>,
 			finality_proof: Vec<u8>,
@@ -174,7 +176,7 @@ pub trait BridgeStorage {
 	/// Get a specific header by its hash.
 	///
 	/// Returns None if it is not known to the pallet.
-	fn get_header_by_hash(&self, hash: <Self::Header as HeaderT>::Hash) -> Option<ImportedHeader<Self::Header>>;
+	fn header_by_hash(&self, hash: <Self::Header as HeaderT>::Hash) -> Option<ImportedHeader<Self::Header>>;
 
 	/// Get the current Grandpa authority set.
 	fn current_authority_set(&self) -> AuthoritySet;
@@ -211,7 +213,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 	fn best_finalized_header(&self) -> ImportedHeader<T::Header> {
 		let hash = <BestFinalized<T>>::get();
-		self.get_header_by_hash(hash)
+		self.header_by_hash(hash)
 			.expect("A finalized header was added at genesis, therefore this must always exist")
 	}
 
@@ -220,10 +222,10 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	}
 
 	fn header_exists(&self, hash: Hash<T::Header>) -> bool {
-		self.get_header_by_hash(hash).is_some()
+		self.header_by_hash(hash).is_some()
 	}
 
-	fn get_header_by_hash(&self, hash: Hash<T::Header>) -> Option<ImportedHeader<T::Header>> {
+	fn header_by_hash(&self, hash: Hash<T::Header>) -> Option<ImportedHeader<T::Header>> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 

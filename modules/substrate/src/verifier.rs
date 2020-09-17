@@ -86,7 +86,7 @@ where
 			return Err(ImportError::HeaderAlreadyExists);
 		}
 
-		let parent_header = storage.get_header_by_hash(*header.parent_hash());
+		let parent_header = storage.header_by_hash(*header.parent_hash());
 		if parent_header.is_none() {
 			return Err(ImportError::MissingParent);
 		}
@@ -101,7 +101,7 @@ where
 
 	fn verify_finality(storage: &mut S, hash: H::Hash, proof: FinalityProof) -> Result<(), ImportError> {
 		// Make sure that we've previously imported this header
-		let header = storage.get_header_by_hash(hash).ok_or(ImportError::UnknownHeader)?;
+		let header = storage.header_by_hash(hash).ok_or(ImportError::UnknownHeader)?;
 
 		let current_authority_set = storage.current_authority_set();
 		let is_finalized = prove_finality(&header, &current_authority_set, proof);
@@ -163,7 +163,7 @@ where
 			return None;
 		}
 
-		let parent = storage.get_header_by_hash(*current_header.parent_hash());
+		let parent = storage.header_by_hash(*current_header.parent_hash());
 		ancestors.push(current_header);
 		current_header = match parent {
 			Some(h) => h,
@@ -336,7 +336,7 @@ mod tests {
 			header.parent_hash = parent_hash;
 			assert_ok!(Verifier::import_header(&mut storage, header.clone()));
 
-			let stored_header = storage.get_header_by_hash(header.hash());
+			let stored_header = storage.header_by_hash(header.hash());
 			assert!(stored_header.is_some());
 			assert_eq!(stored_header.unwrap().is_finalized, false);
 		})
@@ -474,19 +474,9 @@ mod tests {
 			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
 
 			// Make sure we marked the our headers as finalized
-			assert!(
-				storage
-					.get_header_by_hash(imported_headers[1].hash())
-					.unwrap()
-					.is_finalized
-			);
-			assert!(
-				storage
-					.get_header_by_hash(imported_headers[2].hash())
-					.unwrap()
-					.is_finalized
-			);
-			assert!(storage.get_header_by_hash(header.hash()).unwrap().is_finalized);
+			assert!(storage.header_by_hash(imported_headers[1].hash()).unwrap().is_finalized);
+			assert!(storage.header_by_hash(imported_headers[2].hash()).unwrap().is_finalized);
+			assert!(storage.header_by_hash(header.hash()).unwrap().is_finalized);
 		});
 	}
 
@@ -531,10 +521,7 @@ mod tests {
 
 			// Header N should be marked as needing a justification
 			assert_eq!(
-				storage
-					.get_header_by_hash(header.hash())
-					.unwrap()
-					.requires_justification,
+				storage.header_by_hash(header.hash()).unwrap().requires_justification,
 				true
 			);
 
@@ -551,19 +538,14 @@ mod tests {
 			// a justification for header N
 			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
 
-			let finalized_header = storage.get_header_by_hash(header.hash()).unwrap();
+			let finalized_header = storage.header_by_hash(header.hash()).unwrap();
 			assert!(finalized_header.is_finalized);
 
 			// Make sure that we're not marked as needing a justification anymore
 			assert_eq!(finalized_header.requires_justification, false);
 
 			// Make sure we marked the parent of the header at N as finalized
-			assert!(
-				storage
-					.get_header_by_hash(imported_headers[1].hash())
-					.unwrap()
-					.is_finalized
-			);
+			assert!(storage.header_by_hash(imported_headers[1].hash()).unwrap().is_finalized);
 		})
 	}
 
@@ -608,10 +590,7 @@ mod tests {
 
 			// Header N should be marked as needing a justification
 			assert_eq!(
-				storage
-					.get_header_by_hash(header.hash())
-					.unwrap()
-					.requires_justification,
+				storage.header_by_hash(header.hash()).unwrap().requires_justification,
 				true
 			);
 
@@ -639,7 +618,7 @@ mod tests {
 			// Header N+2 should be marked as needing a justification
 			assert_eq!(
 				storage
-					.get_header_by_hash(grandchild.hash())
+					.header_by_hash(grandchild.hash())
 					.unwrap()
 					.requires_justification,
 				true
@@ -653,13 +632,13 @@ mod tests {
 			assert!(Verifier::verify_finality(&mut storage, header.hash(), &[4, 2]).is_ok());
 
 			// Now N is marked as finalized and doesn't require a justification anymore
-			let header = storage.get_header_by_hash(header.hash()).unwrap();
+			let header = storage.header_by_hash(header.hash()).unwrap();
 			assert!(header.is_finalized);
 			assert_eq!(header.requires_justification, false);
 
 			// Now we're allowed to finalized N+2
 			assert!(Verifier::verify_finality(&mut storage, grandchild.hash(), &[4, 2]).is_ok());
-			let grandchild = storage.get_header_by_hash(grandchild.hash()).unwrap();
+			let grandchild = storage.header_by_hash(grandchild.hash()).unwrap();
 			assert!(grandchild.is_finalized);
 			assert_eq!(grandchild.requires_justification, false);
 		})
