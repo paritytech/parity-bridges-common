@@ -28,5 +28,5 @@
 pub mod message_lane;
 pub mod message_lane_loop;
 pub mod message_race_delivery;
-pub mod message_race_receiving;
 pub mod message_race_loop;
+pub mod message_race_receiving;
