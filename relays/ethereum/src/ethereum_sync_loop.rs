@@ -83,7 +83,7 @@ pub struct EthereumSyncParams {
 /// Ethereum synchronization pipeline.
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct EthereumHeadersSyncPipeline;
+struct EthereumHeadersSyncPipeline;
 
 impl HeadersSyncPipeline for EthereumHeadersSyncPipeline {
 	const SOURCE_NAME: &'static str = "Ethereum";
