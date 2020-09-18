@@ -30,6 +30,7 @@ mod error;
 mod rpc;
 mod sign;
 
+pub use crate::client::Client as RpcClient;
 pub use crate::error::{Error, Result};
 pub use crate::sign::{sign_and_submit_transaction, SigningParams};
 
@@ -85,6 +86,6 @@ pub trait Client: 'static + Send + Sync + Clone {
 }
 
 /// Create new Ethereum RPC client.
-pub fn new(params: ConnectionParams) -> impl Client {
+pub fn new(params: ConnectionParams) -> RpcClient {
 	crate::client::Client::new(params)
 }
