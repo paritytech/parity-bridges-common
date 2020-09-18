@@ -16,6 +16,8 @@
 
 //! Tools to interact with (Open) Ethereum node using RPC methods.
 
+#![warn(missing_docs)]
+
 use crate::types::{
 	Address, Bytes, CallRequest, Header, HeaderWithTransactions, Receipt, SignedRawTx, Transaction, TransactionHash,
 	H256, U256,

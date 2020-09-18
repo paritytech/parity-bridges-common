@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Common types that are used in relay <-> Ethereum node communications.
+
 use headers_relay::sync_types::SourceHeader;
 
 pub use web3::types::{Address, Bytes, CallRequest, H256, U128, U256, U64};
