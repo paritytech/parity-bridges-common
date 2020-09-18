@@ -65,6 +65,8 @@ pub enum FinalizationError {
 	///
 	/// This will typically have to do with missing authority set change signals.
 	MissingConsensusDigest,
+	/// This header is older than our latest finalized block, thus not useful.
+	OldHeader,
 }
 
 /// Used to verify imported headers and their finality status.
@@ -125,15 +127,27 @@ where
 			.header_by_hash(hash)
 			.ok_or(FinalizationError::UnknownHeader)?;
 
+		// We don't want to finalize an ancestor of an already finalized
+		// header, this would be inconsistent
+		let last_finalized = self.storage.best_finalized_header();
+		if header.number() <= last_finalized.number() {
+			return Err(FinalizationError::OldHeader);
+		}
+
 		let current_authority_set = self.storage.current_authority_set();
 		let is_finalized = prove_finality(&header, &current_authority_set, proof);
 		if !is_finalized {
 			return Err(FinalizationError::UnfinalizedHeader);
 		}
 
-		let last_finalized = self.storage.best_finalized_header();
 		let mut finalized_headers =
 			if let Some(ancestors) = headers_between(&self.storage, last_finalized, header.clone()) {
+				// Since we only try and finalize headers with a height strictly greater
+				// than `best_finalized` if `headers_between` returns Some we must have
+				// at least one element. If we don't something's gone wrong, so best
+				// to die before we write to storage.
+				assert!(ancestors.len() >= 1);
+
 				// Skip header we're trying to finalize since we know it `requires_justification`
 				let requires_justification = ancestors.iter().skip(1).find(|h| h.requires_justification);
 
@@ -160,7 +174,7 @@ where
 
 		let best_finalized = finalized_headers
 			.last()
-			.expect("We just iterated through these headers, therefore the last header must exist");
+			.expect("Asserted that `ancestors` (now `last_finalized`) had at least one element.");
 		self.storage.update_best_finalized((*best_finalized).hash());
 
 		Ok(())
@@ -539,6 +553,51 @@ mod tests {
 			assert!(storage.header_by_hash(imported_headers[1].hash()).unwrap().is_finalized);
 			assert!(storage.header_by_hash(imported_headers[2].hash()).unwrap().is_finalized);
 			assert!(storage.header_by_hash(header.hash()).unwrap().is_finalized);
+		});
+	}
+
+	#[test]
+	fn importing_finality_proof_for_already_finalized_header_doesnt_work() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let mut genesis = TestHeader::new_from_number(0);
+
+			// The details here don't matter, we just need to make sure that this
+			// header has scheduled a change
+			let set_id = 0;
+			let height = 2;
+			let authorities = vec![(1, 1)];
+			let change = schedule_next_change(authorities, set_id, height);
+			storage.schedule_next_set_change(change);
+
+			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+				next_authorities: get_authorities(vec![(1, 1)]),
+				delay: 0,
+			});
+
+			genesis.digest = Digest::<TestHash> {
+				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+			};
+
+			let genesis = ImportedHeader {
+				header: genesis,
+				requires_justification: false,
+				is_finalized: true,
+			};
+
+			// Make sure that genesis is the best finalized header
+			<BestFinalized<TestRuntime>>::put(genesis.hash());
+			storage.write_header(&genesis);
+
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+
+			// Now we want to try and import it again to see what happens
+			assert_eq!(
+				verifier.verify_finality(genesis.hash(), &[4, 2]).unwrap_err(),
+				FinalizationError::OldHeader
+			);
 		});
 	}
 
