@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Headers queue - the intermediate buffer that is filled when headers are read
-//! from the source chain. Headers are removed from the queue once they became
+//! from the source chain. Headers are removed from the queue once they become
 //! known to the target chain. Inside, there are several sub-queues, where headers
 //! may stay until source/target chain state isn't updated. When header reach
 //! `ready` sub-queue, it may be submitted to the target chain.
