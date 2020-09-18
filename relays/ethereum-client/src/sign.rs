@@ -21,7 +21,7 @@ use parity_crypto::publickey::KeyPair;
 
 /// Ethereum signing params.
 #[derive(Clone, Debug)]
-pub struct EthereumSigningParams {
+pub struct SigningParams {
 	/// Ethereum chain id.
 	pub chain_id: u64,
 	/// Ethereum transactions signer.
@@ -30,9 +30,9 @@ pub struct EthereumSigningParams {
 	pub gas_price: U256,
 }
 
-impl Default for EthereumSigningParams {
+impl Default for SigningParams {
 	fn default() -> Self {
-		EthereumSigningParams {
+		SigningParams {
 			chain_id: 0x11, // Parity dev chain
 			// account that has a lot of ether when we run instant seal engine
 			// address: 0x00a329c0648769a73afac7f9381e08fb43dbea72
@@ -49,8 +49,8 @@ impl Default for EthereumSigningParams {
 
 /// Sign and submit tranaction using given Ethereum client.
 pub async fn sign_and_submit_transaction(
-	client: impl Client,
-	params: &EthereumSigningParams,
+	client: &impl Client,
+	params: &SigningParams,
 	contract_address: Option<Address>,
 	nonce: Option<U256>,
 	double_gas: bool,

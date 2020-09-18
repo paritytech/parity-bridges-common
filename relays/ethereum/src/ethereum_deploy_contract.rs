@@ -14,9 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::ethereum_client::{
-	bridge_contract, EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient, EthereumSigningParams,
-};
+use crate::ethereum_client::{bridge_contract, EthereumHighLevelRpc};
 use crate::instances::BridgeInstance;
 use crate::rpc::SubstrateRpc;
 use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
@@ -24,6 +22,7 @@ use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, S
 
 use codec::{Decode, Encode};
 use num_traits::Zero;
+use relay_ethereum_client::{ConnectionParams as EthereumConnectionParams, Client as EthereumClient, SigningParams as EthereumSigningParams};
 use relay_utils::HeaderId;
 
 /// Ethereum synchronization parameters.
@@ -63,7 +62,7 @@ pub fn run(params: EthereumDeployContractParams) {
 	} = params;
 
 	let result = local_pool.run_until(async move {
-		let eth_client = EthereumRpcClient::new(eth_params);
+		let eth_client = relay_ethereum_client::new(eth_params);
 		let sub_client = SubstrateRpcClient::new(sub_params, instance).await?;
 
 		let (initial_header_id, initial_header) = prepare_initial_header(&sub_client, sub_initial_header).await?;
@@ -137,7 +136,7 @@ async fn prepare_initial_authorities_set(
 
 /// Deploy bridge contract to Ethereum chain.
 async fn deploy_bridge_contract(
-	eth_client: &EthereumRpcClient,
+	eth_client: &impl EthereumClient,
 	params: &EthereumSigningParams,
 	contract_code: Vec<u8>,
 	initial_header: Vec<u8>,

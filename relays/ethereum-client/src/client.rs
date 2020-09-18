@@ -27,6 +27,7 @@ use jsonrpsee::transport::http::HttpTransportClient;
 use jsonrpsee::Client as RpcClient;
 
 /// The client used to interact with an Ethereum node through RPC.
+#[derive(Clone)]
 pub struct Client {
 	client: RpcClient,
 }

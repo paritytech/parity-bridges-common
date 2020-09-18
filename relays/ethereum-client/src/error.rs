@@ -17,6 +17,7 @@
 //! Ethereum node RPC errors.
 
 use jsonrpsee::client::RequestError;
+use relay_utils::MaybeConnectionError;
 
 /// Result type used by Ethereum client.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -44,6 +45,12 @@ pub enum Error {
 impl From<RequestError> for Error {
 	fn from(error: RequestError) -> Self {
 		Error::Request(error)
+	}
+}
+
+impl MaybeConnectionError for Error {
+	fn is_connection_error(&self) -> bool {
+		matches!(*self, Error::Request(RequestError::TransportError(_)))
 	}
 }
 

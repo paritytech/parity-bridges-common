@@ -30,7 +30,7 @@ mod rpc;
 mod sign;
 
 pub use crate::error::{Error, Result};
-pub use crate::sign::{EthereumSigningParams, sign_and_submit_transaction};
+pub use crate::sign::{SigningParams, sign_and_submit_transaction};
 
 pub mod types;
 
@@ -53,8 +53,10 @@ impl Default for ConnectionParams {
 }
 
 /// The API for the supported Ethereum RPC methods.
+///
+/// Cloning client is a lightweight operation that only clones internal references.
 #[async_trait]
-pub trait Client {
+pub trait Client: 'static + Send + Sync + Clone {
 	/// Estimate gas usage for the given call.
 	async fn estimate_gas(&self, call_request: CallRequest) -> Result<U256>;
 	/// Retrieve number of the best known block from the Ethereum node.
