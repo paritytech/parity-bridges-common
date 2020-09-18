@@ -34,7 +34,7 @@ use headers_relay::{
 };
 use relay_ethereum_client::{
 	types::{HeaderId as EthereumHeaderId, Receipt, SyncHeader as Header},
-	Client as EthereumRpcClient, ConnectionParams as EthereumConnectionParams,
+	Client as EthereumClient, ConnectionParams as EthereumConnectionParams,
 };
 use relay_utils::metrics::MetricsParams;
 use web3::types::H256;
@@ -119,7 +119,7 @@ impl<Client> EthereumHeadersSource<Client> {
 }
 
 #[async_trait]
-impl<Client: EthereumRpcClient> SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource<Client> {
+impl<Client: EthereumClient> SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource<Client> {
 	type Error = RpcError;
 
 	async fn best_block_number(&self) -> Result<u64, Self::Error> {

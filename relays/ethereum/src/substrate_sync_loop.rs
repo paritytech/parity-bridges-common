@@ -33,7 +33,7 @@ use headers_relay::{
 	sync_types::{SourceHeader, SubmittedHeaders},
 };
 use relay_ethereum_client::{
-	types::Address, Client as EthereumRpcClient, ConnectionParams as EthereumConnectionParams,
+	types::Address, Client as EthereumClient, ConnectionParams as EthereumConnectionParams,
 	SigningParams as EthereumSigningParams,
 };
 use relay_utils::metrics::MetricsParams;
@@ -144,7 +144,7 @@ impl<Client> EthereumHeadersTarget<Client> {
 }
 
 #[async_trait]
-impl<Client: EthereumRpcClient> TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget<Client> {
+impl<Client: EthereumClient> TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget<Client> {
 	type Error = RpcError;
 
 	async fn best_header_id(&self) -> Result<SubstrateHeaderId, Self::Error> {
