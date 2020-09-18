@@ -146,7 +146,7 @@ where
 				// than `best_finalized` if `headers_between` returns Some we must have
 				// at least one element. If we don't something's gone wrong, so best
 				// to die before we write to storage.
-				assert!(ancestors.len() >= 1);
+				assert_eq!(ancestors.is_empty(), false);
 
 				// Skip header we're trying to finalize since we know it `requires_justification`
 				let requires_justification = ancestors.iter().skip(1).find(|h| h.requires_justification);
@@ -589,9 +589,7 @@ mod tests {
 			<BestFinalized<TestRuntime>>::put(genesis.hash());
 			storage.write_header(&genesis);
 
-			let mut verifier = Verifier {
-				storage: storage.clone(),
-			};
+			let mut verifier = Verifier { storage };
 
 			// Now we want to try and import it again to see what happens
 			assert_eq!(
