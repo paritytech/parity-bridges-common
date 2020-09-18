@@ -87,7 +87,7 @@ where
 	pub fn import_header(&mut self, header: H) -> Result<(), ImportError> {
 		let best_finalized = self.storage.best_finalized_header();
 
-		if header.number() < best_finalized.number() {
+		if header.number() <= best_finalized.number() {
 			return Err(ImportError::OldHeader);
 		}
 
@@ -371,7 +371,7 @@ mod tests {
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
 
 			let mut verifier = Verifier { storage };
-			assert_err!(verifier.import_header(header), ImportError::HeaderAlreadyExists);
+			assert_err!(verifier.import_header(header), ImportError::OldHeader);
 		})
 	}
 
