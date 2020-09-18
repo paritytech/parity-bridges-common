@@ -1306,7 +1306,6 @@ dependencies = [
  "ethabi",
  "ethabi-contract",
  "ethabi-derive",
- "ethereum-tx-sign",
  "exchange-relay",
  "frame-system",
  "futures 0.3.5",
@@ -1331,7 +1330,6 @@ dependencies = [
  "sp-runtime",
  "substrate-prometheus-endpoint",
  "time 0.2.19",
- "web3",
 ]
 
 [[package]]

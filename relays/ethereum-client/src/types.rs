@@ -25,6 +25,9 @@ pub use web3::types::{Address, Bytes, CallRequest, H256, U128, U256, U64};
 pub const HEADER_ID_PROOF: &str = "checked on retrieval; qed";
 
 /// Ethereum transaction hash type.
+pub type HeaderHash = H256;
+
+/// Ethereum transaction hash type.
 pub type TransactionHash = H256;
 
 /// Ethereum transaction type.

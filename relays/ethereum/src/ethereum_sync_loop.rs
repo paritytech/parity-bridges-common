@@ -33,11 +33,10 @@ use headers_relay::{
 	sync_types::{HeadersSyncPipeline, QueuedHeader, SourceHeader, SubmittedHeaders},
 };
 use relay_ethereum_client::{
-	types::{HeaderId as EthereumHeaderId, Receipt, SyncHeader as Header},
+	types::{HeaderHash, HeaderId as EthereumHeaderId, Receipt, SyncHeader as Header},
 	Client as EthereumClient, ConnectionParams as EthereumConnectionParams,
 };
 use relay_utils::metrics::MetricsParams;
-use web3::types::H256;
 
 use std::fmt::Debug;
 use std::{collections::HashSet, time::Duration};
@@ -89,7 +88,7 @@ impl HeadersSyncPipeline for EthereumHeadersSyncPipeline {
 	const SOURCE_NAME: &'static str = "Ethereum";
 	const TARGET_NAME: &'static str = "Substrate";
 
-	type Hash = H256;
+	type Hash = HeaderHash;
 	type Number = u64;
 	type Header = Header;
 	type Extra = Vec<Receipt>;
@@ -126,7 +125,7 @@ impl<Client: EthereumClient> SourceClient<EthereumHeadersSyncPipeline> for Ether
 		self.client.best_block_number().await.map_err(Into::into)
 	}
 
-	async fn header_by_hash(&self, hash: H256) -> Result<Header, Self::Error> {
+	async fn header_by_hash(&self, hash: HeaderHash) -> Result<Header, Self::Error> {
 		self.client
 			.header_by_hash(hash)
 			.await
