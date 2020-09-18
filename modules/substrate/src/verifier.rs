@@ -432,7 +432,7 @@ mod tests {
 			};
 
 			let child = imported_headers.pop().unwrap();
-			let ancestors = headers_between(&storage, bad_ancestor, child.clone());
+			let ancestors = headers_between(&storage, bad_ancestor, child);
 			assert!(ancestors.is_none());
 		})
 	}
@@ -457,7 +457,7 @@ mod tests {
 			};
 
 			let child = imported_headers.pop().unwrap();
-			let ancestors = headers_between(&storage, new_ancestor, child.clone());
+			let ancestors = headers_between(&storage, new_ancestor, child);
 			assert!(ancestors.is_none());
 		})
 	}
