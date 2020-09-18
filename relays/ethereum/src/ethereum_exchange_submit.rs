@@ -22,7 +22,7 @@ use bp_eth_poa::{
 };
 use relay_ethereum_client::{
 	types::{CallRequest, U256},
-	ConnectionParams as EthereumConnectionParams, Client as EthereumRpcClient, SigningParams as EthereumSigningParams,
+	Client as EthereumRpcClient, ConnectionParams as EthereumConnectionParams, SigningParams as EthereumSigningParams,
 };
 use rialto_runtime::exchange::LOCK_FUNDS_ADDRESS;
 

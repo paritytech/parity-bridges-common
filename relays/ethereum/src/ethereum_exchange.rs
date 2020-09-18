@@ -33,11 +33,10 @@ use exchange_relay::exchange::{
 use exchange_relay::exchange_loop::{run as run_loop, InMemoryStorage};
 use relay_ethereum_client::{
 	types::{
-		HEADER_ID_PROOF,
 		HeaderId as EthereumHeaderId, HeaderWithTransactions as EthereumHeaderWithTransactions,
-		Transaction as EthereumTransaction, TransactionHash as EthereumTransactionHash, H256,
+		Transaction as EthereumTransaction, TransactionHash as EthereumTransactionHash, H256, HEADER_ID_PROOF,
 	},
-	ConnectionParams as EthereumConnectionParams, Client as EthereumClient,
+	Client as EthereumClient, ConnectionParams as EthereumConnectionParams,
 };
 use relay_utils::{metrics::MetricsParams, HeaderId};
 use rialto_runtime::exchange::EthereumTransactionInclusionProof;

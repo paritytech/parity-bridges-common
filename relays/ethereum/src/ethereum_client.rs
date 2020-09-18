@@ -22,12 +22,9 @@ use codec::{Decode, Encode};
 use ethabi::FunctionOutputDecoder;
 use headers_relay::sync_types::SubmittedHeaders;
 use relay_ethereum_client::{
-	types::{
-		Address, CallRequest, HeaderId as EthereumHeaderId, Receipt,
-		H256, U256,
-	},
-	Client as EthereumClient, SigningParams as EthereumSigningParams, Error as EthereumNodeError,
 	sign_and_submit_transaction,
+	types::{Address, CallRequest, HeaderId as EthereumHeaderId, Receipt, H256, U256},
+	Client as EthereumClient, Error as EthereumNodeError, SigningParams as EthereumSigningParams,
 };
 use relay_utils::{HeaderId, MaybeConnectionError};
 use std::collections::HashSet;
@@ -217,14 +214,9 @@ impl<T: EthereumClient> EthereumHighLevelRpc for T {
 		double_gas: bool,
 		encoded_call: Vec<u8>,
 	) -> RpcResult<()> {
-		sign_and_submit_transaction(
-			self,
-			params,
-			contract_address,
-			nonce,
-			double_gas,
-			encoded_call
-		).await.map_err(Into::into)
+		sign_and_submit_transaction(self, params, contract_address, nonce, double_gas, encoded_call)
+			.await
+			.map_err(Into::into)
 	}
 
 	async fn transaction_receipts(

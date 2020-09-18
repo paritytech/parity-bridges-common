@@ -17,9 +17,8 @@
 //! Tools to interact with (Open) Ethereum node using RPC methods.
 
 use crate::types::{
-	Address, Bytes, CallRequest, Header,
-	HeaderWithTransactions, Receipt, SignedRawTx, Transaction,
-	TransactionHash, H256, U256,
+	Address, Bytes, CallRequest, Header, HeaderWithTransactions, Receipt, SignedRawTx, Transaction, TransactionHash,
+	H256, U256,
 };
 
 use async_trait::async_trait;
@@ -30,7 +29,7 @@ mod rpc;
 mod sign;
 
 pub use crate::error::{Error, Result};
-pub use crate::sign::{SigningParams, sign_and_submit_transaction};
+pub use crate::sign::{sign_and_submit_transaction, SigningParams};
 
 pub mod types;
 

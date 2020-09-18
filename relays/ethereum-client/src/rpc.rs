@@ -22,9 +22,7 @@
 #![allow(unused_variables)]
 
 use crate::types::{
-	Address, Bytes, CallRequest, Header,
-	HeaderWithTransactions, Receipt, Transaction,
-	TransactionHash, H256, U256, U64,
+	Address, Bytes, CallRequest, Header, HeaderWithTransactions, Receipt, Transaction, TransactionHash, H256, U256, U64,
 };
 
 jsonrpsee::rpc_api! {

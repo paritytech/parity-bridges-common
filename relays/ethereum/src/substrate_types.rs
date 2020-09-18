@@ -26,7 +26,6 @@ use relay_ethereum_client::types::{
 	Header as EthereumHeader, Receipt as EthereumReceipt, HEADER_ID_PROOF as ETHEREUM_HEADER_ID_PROOF,
 };
 
-
 /// Substrate header hash.
 pub type Hash = rialto_runtime::Hash;
 

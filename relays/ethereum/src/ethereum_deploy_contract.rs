@@ -22,7 +22,9 @@ use crate::substrate_types::{Hash as SubstrateHash, Header as SubstrateHeader, S
 
 use codec::{Decode, Encode};
 use num_traits::Zero;
-use relay_ethereum_client::{ConnectionParams as EthereumConnectionParams, Client as EthereumClient, SigningParams as EthereumSigningParams};
+use relay_ethereum_client::{
+	Client as EthereumClient, ConnectionParams as EthereumConnectionParams, SigningParams as EthereumSigningParams,
+};
 use relay_utils::HeaderId;
 
 /// Ethereum synchronization parameters.

@@ -33,8 +33,7 @@ use headers_relay::{
 	sync_types::{SourceHeader, SubmittedHeaders},
 };
 use relay_ethereum_client::{
-	types::Address,
-	ConnectionParams as EthereumConnectionParams, Client as EthereumRpcClient,
+	types::Address, Client as EthereumRpcClient, ConnectionParams as EthereumConnectionParams,
 	SigningParams as EthereumSigningParams,
 };
 use relay_utils::metrics::MetricsParams;

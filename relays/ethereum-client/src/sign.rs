@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{Client, Result};
 use crate::types::{Address, CallRequest, U256};
+use crate::{Client, Result};
 
 use parity_crypto::publickey::KeyPair;
 

@@ -33,10 +33,8 @@ use headers_relay::{
 	sync_types::{HeadersSyncPipeline, QueuedHeader, SourceHeader, SubmittedHeaders},
 };
 use relay_ethereum_client::{
-	types::{
-		HeaderId as EthereumHeaderId, SyncHeader as Header, Receipt,
-	},
-	ConnectionParams as EthereumConnectionParams, Client as EthereumRpcClient,
+	types::{HeaderId as EthereumHeaderId, Receipt, SyncHeader as Header},
+	Client as EthereumRpcClient, ConnectionParams as EthereumConnectionParams,
 };
 use relay_utils::metrics::MetricsParams;
 use web3::types::H256;
@@ -129,11 +127,19 @@ impl<Client: EthereumRpcClient> SourceClient<EthereumHeadersSyncPipeline> for Et
 	}
 
 	async fn header_by_hash(&self, hash: H256) -> Result<Header, Self::Error> {
-		self.client.header_by_hash(hash).await.map(Into::into).map_err(Into::into)
+		self.client
+			.header_by_hash(hash)
+			.await
+			.map(Into::into)
+			.map_err(Into::into)
 	}
 
 	async fn header_by_number(&self, number: u64) -> Result<Header, Self::Error> {
-		self.client.header_by_number(number).await.map(Into::into).map_err(Into::into)
+		self.client
+			.header_by_number(number)
+			.await
+			.map(Into::into)
+			.map_err(Into::into)
 	}
 
 	async fn header_completion(&self, id: EthereumHeaderId) -> Result<(EthereumHeaderId, Option<()>), Self::Error> {

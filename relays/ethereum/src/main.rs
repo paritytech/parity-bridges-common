@@ -249,13 +249,14 @@ fn ethereum_sync_params(matches: &clap::ArgMatches) -> Result<EthereumSyncParams
 fn substrate_sync_params(matches: &clap::ArgMatches) -> Result<SubstrateSyncParams, String> {
 	use crate::substrate_sync_loop::consts::*;
 
-	let eth_contract_address: relay_ethereum_client::types::Address = if let Some(eth_contract) = matches.value_of("eth-contract") {
-		eth_contract.parse().map_err(|e| format!("{}", e))?
-	} else {
-		"731a10897d267e19b34503ad902d0a29173ba4b1"
-			.parse()
-			.expect("address is hardcoded, thus valid; qed")
-	};
+	let eth_contract_address: relay_ethereum_client::types::Address =
+		if let Some(eth_contract) = matches.value_of("eth-contract") {
+			eth_contract.parse().map_err(|e| format!("{}", e))?
+		} else {
+			"731a10897d267e19b34503ad902d0a29173ba4b1"
+				.parse()
+				.expect("address is hardcoded, thus valid; qed")
+		};
 
 	let params = SubstrateSyncParams {
 		sub_params: substrate_connection_params(matches)?,
@@ -312,7 +313,10 @@ fn ethereum_deploy_contract_params(matches: &clap::ArgMatches) -> Result<Ethereu
 
 fn ethereum_exchange_submit_params(matches: &clap::ArgMatches) -> Result<EthereumExchangeSubmitParams, String> {
 	let eth_nonce = if let Some(eth_nonce) = matches.value_of("eth-nonce") {
-		Some(relay_ethereum_client::types::U256::from_dec_str(&eth_nonce).map_err(|e| format!("Failed to parse eth-nonce: {}", e))?)
+		Some(
+			relay_ethereum_client::types::U256::from_dec_str(&eth_nonce)
+				.map_err(|e| format!("Failed to parse eth-nonce: {}", e))?,
+		)
 	} else {
 		None
 	};

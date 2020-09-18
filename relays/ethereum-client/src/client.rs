@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{ConnectionParams, Error, Client as ClientT, Result};
-use crate::types::{
-	Address, Bytes, CallRequest, Header, HeaderWithTransactions, Receipt, SignedRawTx, Transaction,
-	TransactionHash, H256, U256,
-};
 use crate::rpc::Ethereum;
+use crate::types::{
+	Address, Bytes, CallRequest, Header, HeaderWithTransactions, Receipt, SignedRawTx, Transaction, TransactionHash,
+	H256, U256,
+};
+use crate::{Client as ClientT, ConnectionParams, Error, Result};
 
 use async_trait::async_trait;
 use jsonrpsee::raw::RawClient;
