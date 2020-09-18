@@ -17,7 +17,7 @@
 //! Headers queue - the intermediate buffer that is filled when headers are read
 //! from the source chain. Headers are removed from the queue once they become
 //! known to the target chain. Inside, there are several sub-queues, where headers
-//! may stay until source/target chain state isn't updated. When header reach
+//! may stay until source/target chain state isn't updated. When a header reaches the
 //! `ready` sub-queue, it may be submitted to the target chain.
 
 use crate::sync_types::{HeaderIdOf, HeaderStatus, HeadersSyncPipeline, QueuedHeader, SourceHeader};
