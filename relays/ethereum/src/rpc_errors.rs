@@ -77,7 +77,7 @@ impl From<ethabi::Error> for RpcError {
 
 impl MaybeConnectionError for RpcError {
 	fn is_connection_error(&self) -> bool {
-		match *self {
+		match self {
 			RpcError::Request(RequestError::TransportError(_)) => true,
 			RpcError::Ethereum(ref error) => error.is_connection_error(),
 			_ => false,
