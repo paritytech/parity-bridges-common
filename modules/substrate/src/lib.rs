@@ -58,7 +58,10 @@ decl_storage! {
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change.
-		NextScheduledChange: ScheduledChange<Number<T::Header>>;
+		///
+		// Grandpa doesn't require there to always be a pending change. In fact, most of the time
+		// there will be no pending change available.
+		NextScheduledChange: Option<ScheduledChange<Number<T::Header>>>;
 	}
 	add_extra_genesis {
 		config(initial_header): Option<T::Header>;
@@ -76,11 +79,6 @@ decl_storage! {
 				.clone()
 				.expect("An initial header is needed");
 
-			let first_scheduled_change = config
-				.first_scheduled_change
-				.as_ref()
-				.expect("An initial authority set is needed");
-
 			<BestFinalized<T>>::put(initial_header.hash());
 			<ImportedHeaders<T>>::insert(
 				initial_header.hash(),
@@ -95,7 +93,12 @@ decl_storage! {
 				AuthoritySet::new(config.initial_authority_list.clone(), config.initial_set_id);
 			CurrentAuthoritySet::put(authority_set);
 
-			<NextScheduledChange<T>>::put(first_scheduled_change);
+			let change = config.first_scheduled_change.clone();
+			if change.is_some() {
+				<NextScheduledChange<T>>::put(
+					change.expect("Checked that we have a set change before entering block"),
+				);
+			}
 		})
 	}
 }
@@ -195,8 +198,11 @@ pub trait BridgeStorage {
 	/// Should only be updated when a scheduled change has been triggered.
 	fn update_current_authority_set(&self, new_set: AuthoritySet);
 
+	/// Replace the current authority set with the next scheduled set.
+	fn enact_authority_set(&mut self);
+
 	/// Get the next scheduled Grandpa authority set change.
-	fn scheduled_set_change(&self) -> ScheduledChange<<Self::Header as HeaderT>::Number>;
+	fn scheduled_set_change(&self) -> Option<ScheduledChange<<Self::Header as HeaderT>::Number>>;
 
 	/// Schedule a Grandpa authority set change in the future.
 	fn schedule_next_set_change(&self, next_change: ScheduledChange<<Self::Header as HeaderT>::Number>);
@@ -246,7 +252,12 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		CurrentAuthoritySet::put(new_set)
 	}
 
-	fn scheduled_set_change(&self) -> ScheduledChange<Number<T::Header>> {
+	fn enact_authority_set(&mut self) {
+		let new_set = <NextScheduledChange<T>>::take().expect("TODO").authority_set;
+		self.update_current_authority_set(new_set)
+	}
+
+	fn scheduled_set_change(&self) -> Option<ScheduledChange<Number<T::Header>>> {
 		<NextScheduledChange<T>>::get()
 	}
 
