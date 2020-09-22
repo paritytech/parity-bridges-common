@@ -169,13 +169,18 @@ where
 			return Err(FinalizationError::UnfinalizedHeader);
 		}
 
+		frame_support::debug::trace!(target: "sub-bridge", "Checking ancestry for headers between {:?} and {:?}", last_finalized, header);
 		let mut finalized_headers =
 			if let Some(ancestors) = headers_between(&self.storage, last_finalized, header.clone()) {
 				// Since we only try and finalize headers with a height strictly greater
 				// than `best_finalized` if `headers_between` returns Some we must have
 				// at least one element. If we don't something's gone wrong, so best
 				// to die before we write to storage.
-				assert_eq!(ancestors.is_empty(), false);
+				assert_eq!(
+					ancestors.is_empty(),
+					false,
+					"Empty ancestry list returned from `headers_between()`",
+				);
 
 				// Check if any of our ancestors `requires_justification` a.k.a schedule authority
 				// set changes. If they're still waiting to be finalized we must reject this
