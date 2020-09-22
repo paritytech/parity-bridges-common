@@ -158,7 +158,7 @@ decl_module! {
 			};
 
 			let _ = verifier
-				.verify_finality(hash, finality_proof.into())
+				.import_finality_proof(hash, finality_proof.into())
 				.map_err(|_| <Error<T>>::UnfinalizedHeader)?;
 
 			Ok(())

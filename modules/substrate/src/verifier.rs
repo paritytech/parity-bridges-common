@@ -23,7 +23,7 @@
 //! if required.
 
 use crate::BridgeStorage;
-use bp_substrate::{prove_finality, AuthoritySet, ImportedHeader, ScheduledChange};
+use bp_substrate::{check_finality_proof, AuthoritySet, ImportedHeader, ScheduledChange};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::{CheckedAdd, Header as HeaderT, One};
@@ -161,7 +161,7 @@ where
 	/// Verify that a previously imported header can be finalized with the given Grandpa finality
 	/// proof. If the header enacts an authority set change the change will be applied once the
 	/// header has been finalized.
-	pub fn verify_finality(&mut self, hash: H::Hash, proof: FinalityProof) -> Result<(), FinalizationError> {
+	pub fn import_finality_proof(&mut self, hash: H::Hash, proof: FinalityProof) -> Result<(), FinalizationError> {
 		// Make sure that we've previously imported this header
 		let header = self
 			.storage
@@ -176,7 +176,7 @@ where
 		}
 
 		let current_authority_set = self.storage.current_authority_set();
-		let is_finalized = prove_finality(&header, &current_authority_set, &proof.0);
+		let is_finalized = check_finality_proof(&header, &current_authority_set, &proof.0);
 		if !is_finalized {
 			return Err(FinalizationError::UnfinalizedHeader);
 		}
@@ -514,7 +514,7 @@ mod tests {
 			};
 
 			assert_ok!(verifier.import_header(header.clone()));
-			assert_ok!(verifier.verify_finality(header.hash(), vec![4, 2].into()));
+			assert_ok!(verifier.import_finality_proof(header.hash(), vec![4, 2].into()));
 			assert_eq!(storage.best_finalized_header().header, header);
 		})
 	}
@@ -533,7 +533,7 @@ mod tests {
 				storage: storage.clone(),
 			};
 			assert!(verifier.import_header(header.clone()).is_ok());
-			assert!(verifier.verify_finality(header.hash(), vec![4, 2].into()).is_ok());
+			assert!(verifier.import_finality_proof(header.hash(), vec![4, 2].into()).is_ok());
 
 			// Make sure we marked the our headers as finalized
 			assert!(storage.header_by_hash(imported_headers[1].hash()).unwrap().is_finalized);
@@ -573,7 +573,7 @@ mod tests {
 			};
 
 			assert_ok!(verifier.import_header(header.clone()));
-			assert_ok!(verifier.verify_finality(header.hash(), vec![4, 2].into()));
+			assert_ok!(verifier.import_finality_proof(header.hash(), vec![4, 2].into()));
 			assert_eq!(storage.best_finalized_header().header, header);
 
 			// Make sure that we have updated the set now that we've finalized our header
@@ -601,7 +601,9 @@ mod tests {
 
 			// Now we want to try and import it again to see what happens
 			assert_eq!(
-				verifier.verify_finality(genesis.hash(), vec![4, 2].into()).unwrap_err(),
+				verifier
+					.import_finality_proof(genesis.hash(), vec![4, 2].into())
+					.unwrap_err(),
 				FinalizationError::OldHeader
 			);
 		});
@@ -659,7 +661,7 @@ mod tests {
 
 			// Even though we're a few headers ahead we should still be able to import
 			// a justification for header N
-			assert!(verifier.verify_finality(header.hash(), vec![4, 2].into()).is_ok());
+			assert!(verifier.import_finality_proof(header.hash(), vec![4, 2].into()).is_ok());
 
 			// Some checks to make sure that our header has been correctly finalized
 			let finalized_header = storage.header_by_hash(header.hash()).unwrap();
