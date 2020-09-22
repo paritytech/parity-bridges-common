@@ -167,6 +167,7 @@ decl_module! {
 }
 
 /// Expected interface for interacting with bridge pallet storage.
+// TODO: This should be split into its own less-Substrate-dependent crate
 pub trait BridgeStorage {
 	/// The header type being used by the pallet.
 	type Header: HeaderT;

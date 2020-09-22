@@ -117,7 +117,7 @@ where
 		// need to act on it right away (we'll update the set once this header gets finalized), but
 		// we need to make a note of it.
 		//
-		// Note: This assumes that we can only have one authority set change pending at a time.
+		// TODO: This assumes that we can only have one authority set change pending at a time.
 		// This is not strictly true as Grandpa may schedule multiple changes on a given chain
 		// if the "next next" change is scheduled after the "delay" period of the "next" change
 		let requires_justification = if let Some(change) = self.storage.scheduled_set_change() {
