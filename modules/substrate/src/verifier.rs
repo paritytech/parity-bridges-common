@@ -223,10 +223,7 @@ where
 			self.storage.write_header(header);
 		}
 
-		let best_finalized = finalized_headers
-			.first()
-			.expect("Asserted that `ancestors` (now `last_finalized`) had at least one element.");
-		self.storage.update_best_finalized((*best_finalized).hash());
+		self.storage.update_best_finalized(hash);
 
 		Ok(())
 	}
