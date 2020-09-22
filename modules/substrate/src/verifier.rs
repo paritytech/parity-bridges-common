@@ -179,7 +179,7 @@ where
 
 				// Check if any of our ancestors `requires_justification` a.k.a schedule authority
 				// set changes. If they're still waiting to be finalized we must reject this
-				// justification.
+				// justification. We don't include our current header in this check.
 				//
 				// We do this because it is important to to import justifications _in order_,
 				// otherwise we risk finalizing headers on competing chains.
@@ -215,7 +215,7 @@ where
 	}
 }
 
-// Returns the lineage of headers between [child, ancestor)
+/// Returns the lineage of headers between [child, ancestor)
 fn headers_between<S, H>(
 	storage: &S,
 	ancestor: ImportedHeader<H>,
