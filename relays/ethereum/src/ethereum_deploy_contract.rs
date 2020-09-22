@@ -64,7 +64,7 @@ pub fn run(params: EthereumDeployContractParams) {
 	} = params;
 
 	let result = local_pool.run_until(async move {
-		let eth_client = relay_ethereum_client::new(eth_params);
+		let eth_client = EthereumClient::new(eth_params);
 		let sub_client = SubstrateRpcClient::new(sub_params, instance).await?;
 
 		let (initial_header_id, initial_header) = prepare_initial_header(&sub_client, sub_initial_header).await?;
@@ -138,7 +138,7 @@ async fn prepare_initial_authorities_set(
 
 /// Deploy bridge contract to Ethereum chain.
 async fn deploy_bridge_contract(
-	eth_client: &impl EthereumClient,
+	eth_client: &EthereumClient,
 	params: &EthereumSigningParams,
 	contract_code: Vec<u8>,
 	initial_header: Vec<u8>,

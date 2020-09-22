@@ -87,7 +87,7 @@ pub trait EthereumHighLevelRpc {
 }
 
 #[async_trait]
-impl<T: EthereumClient> EthereumHighLevelRpc for T {
+impl EthereumHighLevelRpc for EthereumClient {
 	async fn best_substrate_block(&self, contract_address: Address) -> RpcResult<SubstrateHeaderId> {
 		let (encoded_call, call_decoder) = bridge_contract::functions::best_known_header::call();
 		let call_request = CallRequest {
@@ -345,15 +345,15 @@ trait HeadersSubmitter {
 }
 
 /// Implementation of Substrate headers submitter that sends headers to running Ethereum node.
-struct EthereumHeadersSubmitter<Client> {
-	client: Client,
+struct EthereumHeadersSubmitter {
+	client: EthereumClient,
 	params: EthereumSigningParams,
 	contract_address: Address,
 	nonce: U256,
 }
 
 #[async_trait]
-impl<Client: EthereumClient> HeadersSubmitter for EthereumHeadersSubmitter<Client> {
+impl HeadersSubmitter for EthereumHeadersSubmitter {
 	async fn is_headers_incomplete(&self, headers: &HeadersBatch) -> RpcResult<usize> {
 		let [h1, h2, h3, h4] = headers.encode();
 		let (encoded_call, call_decoder) = bridge_contract::functions::is_incomplete_headers::call(h1, h2, h3, h4);

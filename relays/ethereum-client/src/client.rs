@@ -19,9 +19,8 @@ use crate::types::{
 	Address, Bytes, CallRequest, Header, HeaderWithTransactions, Receipt, SignedRawTx, Transaction, TransactionHash,
 	H256, U256,
 };
-use crate::{Client as ClientT, ConnectionParams, Error, Result};
+use crate::{ConnectionParams, Error, Result};
 
-use async_trait::async_trait;
 use jsonrpsee::raw::RawClient;
 use jsonrpsee::transport::http::HttpTransportClient;
 use jsonrpsee::Client as RpcClient;
@@ -44,17 +43,19 @@ impl Client {
 	}
 }
 
-#[async_trait]
-impl ClientT for Client {
-	async fn estimate_gas(&self, call_request: CallRequest) -> Result<U256> {
+impl Client {
+	/// Estimate gas usage for the given call.
+	pub async fn estimate_gas(&self, call_request: CallRequest) -> Result<U256> {
 		Ok(Ethereum::estimate_gas(&self.client, call_request).await?)
 	}
 
-	async fn best_block_number(&self) -> Result<u64> {
+	/// Retrieve number of the best known block from the Ethereum node.
+	pub async fn best_block_number(&self) -> Result<u64> {
 		Ok(Ethereum::block_number(&self.client).await?.as_u64())
 	}
 
-	async fn header_by_number(&self, block_number: u64) -> Result<Header> {
+	/// Retrieve number of the best known block from the Ethereum node.
+	pub async fn header_by_number(&self, block_number: u64) -> Result<Header> {
 		let get_full_tx_objects = false;
 		let header = Ethereum::get_block_by_number(&self.client, block_number, get_full_tx_objects).await?;
 		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
@@ -63,7 +64,8 @@ impl ClientT for Client {
 		}
 	}
 
-	async fn header_by_hash(&self, hash: H256) -> Result<Header> {
+	/// Retrieve block header by its hash from Ethereum node.
+	pub async fn header_by_hash(&self, hash: H256) -> Result<Header> {
 		let get_full_tx_objects = false;
 		let header = Ethereum::get_block_by_hash(&self.client, hash, get_full_tx_objects).await?;
 		match header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some() {
@@ -72,7 +74,8 @@ impl ClientT for Client {
 		}
 	}
 
-	async fn header_by_number_with_transactions(&self, number: u64) -> Result<HeaderWithTransactions> {
+	/// Retrieve block header and its transactions by its number from Ethereum node.
+	pub async fn header_by_number_with_transactions(&self, number: u64) -> Result<HeaderWithTransactions> {
 		let get_full_tx_objects = true;
 		let header = Ethereum::get_block_by_number_with_transactions(&self.client, number, get_full_tx_objects).await?;
 
@@ -89,7 +92,8 @@ impl ClientT for Client {
 		Ok(header)
 	}
 
-	async fn header_by_hash_with_transactions(&self, hash: H256) -> Result<HeaderWithTransactions> {
+	/// Retrieve block header and its transactions by its hash from Ethereum node.
+	pub async fn header_by_hash_with_transactions(&self, hash: H256) -> Result<HeaderWithTransactions> {
 		let get_full_tx_objects = true;
 		let header = Ethereum::get_block_by_hash_with_transactions(&self.client, hash, get_full_tx_objects).await?;
 
@@ -106,26 +110,33 @@ impl ClientT for Client {
 		Ok(header)
 	}
 
-	async fn transaction_by_hash(&self, hash: H256) -> Result<Option<Transaction>> {
+	/// Retrieve transaction by its hash from Ethereum node.
+	pub async fn transaction_by_hash(&self, hash: H256) -> Result<Option<Transaction>> {
 		Ok(Ethereum::transaction_by_hash(&self.client, hash).await?)
 	}
 
-	async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt> {
+	/// Retrieve transaction receipt by transaction hash.
+	pub async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt> {
 		Ok(Ethereum::get_transaction_receipt(&self.client, transaction_hash).await?)
 	}
 
-	async fn account_nonce(&self, address: Address) -> Result<U256> {
+	/// Get the nonce of the given account.
+	pub async fn account_nonce(&self, address: Address) -> Result<U256> {
 		Ok(Ethereum::get_transaction_count(&self.client, address).await?)
 	}
 
-	async fn submit_transaction(&self, signed_raw_tx: SignedRawTx) -> Result<TransactionHash> {
+	/// Submit an Ethereum transaction.
+	///
+	/// The transaction must already be signed before sending it through this method.
+	pub async fn submit_transaction(&self, signed_raw_tx: SignedRawTx) -> Result<TransactionHash> {
 		let transaction = Bytes(signed_raw_tx);
 		let tx_hash = Ethereum::submit_transaction(&self.client, transaction).await?;
 		log::trace!(target: "bridge", "Sent transaction to Ethereum node: {:?}", tx_hash);
 		Ok(tx_hash)
 	}
 
-	async fn eth_call(&self, call_transaction: CallRequest) -> Result<Bytes> {
+	/// Call Ethereum smart contract.
+	pub async fn eth_call(&self, call_transaction: CallRequest) -> Result<Bytes> {
 		Ok(Ethereum::call(&self.client, call_transaction).await?)
 	}
 }

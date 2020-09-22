@@ -54,7 +54,7 @@ pub fn run(params: EthereumExchangeSubmitParams) {
 	} = params;
 
 	let result: Result<_, String> = local_pool.run_until(async move {
-		let eth_client = relay_ethereum_client::new(eth_params);
+		let eth_client = EthereumClient::new(eth_params);
 
 		let eth_signer_address = eth_sign.signer.address();
 		let sub_recipient_encoded = sub_recipient;

@@ -49,7 +49,7 @@ impl Default for SigningParams {
 
 /// Sign and submit tranaction using given Ethereum client.
 pub async fn sign_and_submit_transaction(
-	client: &impl Client,
+	client: &Client,
 	params: &SigningParams,
 	contract_address: Option<Address>,
 	nonce: Option<U256>,

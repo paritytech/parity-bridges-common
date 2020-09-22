@@ -106,19 +106,19 @@ impl HeadersSyncPipeline for EthereumHeadersSyncPipeline {
 pub type QueuedEthereumHeader = QueuedHeader<EthereumHeadersSyncPipeline>;
 
 /// Ethereum client as headers source.
-struct EthereumHeadersSource<Client> {
+struct EthereumHeadersSource {
 	/// Ethereum node client.
-	client: Client,
+	client: EthereumClient,
 }
 
-impl<Client> EthereumHeadersSource<Client> {
-	fn new(client: Client) -> Self {
+impl EthereumHeadersSource {
+	fn new(client: EthereumClient) -> Self {
 		Self { client }
 	}
 }
 
 #[async_trait]
-impl<Client: EthereumClient> SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource<Client> {
+impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type Error = RpcError;
 
 	async fn best_block_number(&self) -> Result<u64, Self::Error> {
@@ -227,7 +227,7 @@ pub fn run(params: EthereumSyncParams) -> Result<(), RpcError> {
 		instance,
 	} = params;
 
-	let eth_client = relay_ethereum_client::new(eth_params);
+	let eth_client = EthereumClient::new(eth_params);
 	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params, instance).await })?;
 
 	let sign_sub_transactions = match sync_params.target_tx_mode {

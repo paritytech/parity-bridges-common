@@ -124,17 +124,17 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 }
 
 /// Ethereum client as Substrate headers target.
-struct EthereumHeadersTarget<Client> {
+struct EthereumHeadersTarget {
 	/// Ethereum node client.
-	client: Client,
+	client: EthereumClient,
 	/// Bridge contract address.
 	contract: Address,
 	/// Ethereum signing params.
 	sign_params: EthereumSigningParams,
 }
 
-impl<Client> EthereumHeadersTarget<Client> {
-	fn new(client: Client, contract: Address, sign_params: EthereumSigningParams) -> Self {
+impl EthereumHeadersTarget {
+	fn new(client: EthereumClient, contract: Address, sign_params: EthereumSigningParams) -> Self {
 		Self {
 			client,
 			contract,
@@ -144,7 +144,7 @@ impl<Client> EthereumHeadersTarget<Client> {
 }
 
 #[async_trait]
-impl<Client: EthereumClient> TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget<Client> {
+impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = RpcError;
 
 	async fn best_header_id(&self) -> Result<SubstrateHeaderId, Self::Error> {
@@ -195,7 +195,7 @@ pub fn run(params: SubstrateSyncParams) -> Result<(), RpcError> {
 		instance,
 	} = params;
 
-	let eth_client = relay_ethereum_client::new(eth_params);
+	let eth_client = EthereumClient::new(eth_params);
 	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params, instance).await })?;
 
 	let target = EthereumHeadersTarget::new(eth_client, eth_contract_address, eth_sign);

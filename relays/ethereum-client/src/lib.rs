@@ -18,19 +18,12 @@
 
 #![warn(missing_docs)]
 
-use crate::types::{
-	Address, Bytes, CallRequest, Header, HeaderWithTransactions, Receipt, SignedRawTx, Transaction, TransactionHash,
-	H256, U256,
-};
-
-use async_trait::async_trait;
-
 mod client;
 mod error;
 mod rpc;
 mod sign;
 
-pub use crate::client::Client as RpcClient;
+pub use crate::client::Client;
 pub use crate::error::{Error, Result};
 pub use crate::sign::{sign_and_submit_transaction, SigningParams};
 
@@ -52,40 +45,4 @@ impl Default for ConnectionParams {
 			port: 8545,
 		}
 	}
-}
-
-/// The API for the supported Ethereum RPC methods.
-///
-/// Cloning client is a lightweight operation that only clones internal references.
-#[async_trait]
-pub trait Client: 'static + Send + Sync + Clone {
-	/// Estimate gas usage for the given call.
-	async fn estimate_gas(&self, call_request: CallRequest) -> Result<U256>;
-	/// Retrieve number of the best known block from the Ethereum node.
-	async fn best_block_number(&self) -> Result<u64>;
-	/// Retrieve block header by its number from Ethereum node.
-	async fn header_by_number(&self, block_number: u64) -> Result<Header>;
-	/// Retrieve block header by its hash from Ethereum node.
-	async fn header_by_hash(&self, hash: H256) -> Result<Header>;
-	/// Retrieve block header and its transactions by its number from Ethereum node.
-	async fn header_by_number_with_transactions(&self, block_number: u64) -> Result<HeaderWithTransactions>;
-	/// Retrieve block header and its transactions by its hash from Ethereum node.
-	async fn header_by_hash_with_transactions(&self, hash: H256) -> Result<HeaderWithTransactions>;
-	/// Retrieve transaction by its hash from Ethereum node.
-	async fn transaction_by_hash(&self, hash: H256) -> Result<Option<Transaction>>;
-	/// Retrieve transaction receipt by transaction hash.
-	async fn transaction_receipt(&self, transaction_hash: H256) -> Result<Receipt>;
-	/// Get the nonce of the given account.
-	async fn account_nonce(&self, address: Address) -> Result<U256>;
-	/// Submit an Ethereum transaction.
-	///
-	/// The transaction must already be signed before sending it through this method.
-	async fn submit_transaction(&self, signed_raw_tx: SignedRawTx) -> Result<TransactionHash>;
-	/// Submit a call to an Ethereum smart contract.
-	async fn eth_call(&self, call_transaction: CallRequest) -> Result<Bytes>;
-}
-
-/// Create new Ethereum RPC client.
-pub fn new(params: ConnectionParams) -> RpcClient {
-	crate::client::Client::new(params)
 }

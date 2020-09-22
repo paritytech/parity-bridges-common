@@ -121,12 +121,12 @@ impl SourceTransaction for EthereumSourceTransaction {
 }
 
 /// Ethereum node as transactions proof source.
-struct EthereumTransactionsSource<Client> {
-	client: Client,
+struct EthereumTransactionsSource {
+	client: EthereumClient,
 }
 
 #[async_trait]
-impl<Client: EthereumClient> SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource<Client> {
+impl SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource {
 	type Error = RpcError;
 
 	async fn tick(&self) {
@@ -282,7 +282,7 @@ fn run_single_transaction_relay(params: EthereumExchangeParams, eth_tx_hash: H25
 	} = params;
 
 	let result = local_pool.run_until(async move {
-		let eth_client = relay_ethereum_client::new(eth_params);
+		let eth_client = EthereumClient::new(eth_params);
 		let sub_client = SubstrateRpcClient::new(sub_params, instance).await?;
 
 		let source = EthereumTransactionsSource { client: eth_client };
@@ -325,7 +325,7 @@ fn run_auto_transactions_relay_loop(params: EthereumExchangeParams, eth_start_wi
 	} = params;
 
 	let do_run_loop = move || -> Result<(), String> {
-		let eth_client = relay_ethereum_client::new(eth_params);
+		let eth_client = EthereumClient::new(eth_params);
 		let sub_client = async_std::task::block_on(SubstrateRpcClient::new(sub_params, instance))
 			.map_err(|err| format!("Error starting Substrate client: {:?}", err))?;
 
