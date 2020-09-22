@@ -16,6 +16,7 @@
 
 //! Primitives for the Substrate light client (a.k.a bridge) pallet.
 
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use core::default::Default;
@@ -26,46 +27,44 @@ use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::RuntimeDebug;
 
 /// A Grandpa Authority List and ID.
-///
-/// The list contains the authorities for the current round, while the
-/// set id is a monotonic identifier of the current authority set.
 #[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct AuthoritySet {
+	/// List of Grandpa authorities for the current round.
 	pub authorities: AuthorityList,
+	/// Monotonic identifier of the current Grandpa authority set.
 	pub set_id: SetId,
 }
 
 impl AuthoritySet {
+	/// Create a new Grandpa Authority Set.
 	pub fn new(authorities: AuthorityList, set_id: SetId) -> Self {
 		Self { authorities, set_id }
 	}
 }
 
 /// Keeps track of when the next Grandpa authority set change will occur.
-///
-/// The authority set stored here is expected to be enacted at a block height
-/// of N, assuming we get a valid justification for the header at N.
 #[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct ScheduledChange<N> {
+	/// The authority set that will be used once this change is enacted.
 	pub authority_set: AuthoritySet,
+	/// The block height at which the authority set should be enacted.
+	///
+	/// Note: It will only be enacted once a header at this height is finalized.
 	pub height: N,
 }
 
 /// A more useful representation of a header for storage purposes.
-///
-/// Keeps track of two important fields aside from the header. First,
-/// if the header requires a Grandpa justification. This is required
-/// for headers which signal new authority set changes.
-///
-/// Secondly, whether or not this header has been finalized. A header
-/// does not need to be finalized explictly, but instead may be finalized
-/// implicitly when one of its children gets finalized.
 #[derive(Default, Encode, Decode, Clone, RuntimeDebug, PartialEq)]
 pub struct ImportedHeader<H> {
+	/// A plain Substrate header.
 	pub header: H,
+	/// Does this header enact a new authority set change. If it does
+	/// then it will require a justification.
 	pub requires_justification: bool,
+	/// Has this header been finalized, either explicitly via a justification,
+	/// or implicitly via one of its children getting finalized.
 	pub is_finalized: bool,
 }
 
