@@ -198,7 +198,9 @@ pub trait BridgeStorage {
 	fn update_current_authority_set(&self, new_set: AuthoritySet);
 
 	/// Replace the current authority set with the next scheduled set.
-	fn enact_authority_set(&mut self);
+	///
+	/// Returns an error if there is no scheduled authority set to enact.
+	fn enact_authority_set(&mut self) -> Result<(), ()>;
 
 	/// Get the next scheduled Grandpa authority set change.
 	fn scheduled_set_change(&self) -> Option<ScheduledChange<<Self::Header as HeaderT>::Number>>;
@@ -251,9 +253,15 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		CurrentAuthoritySet::put(new_set)
 	}
 
-	fn enact_authority_set(&mut self) {
-		let new_set = <NextScheduledChange<T>>::take().expect("TODO").authority_set;
-		self.update_current_authority_set(new_set)
+	fn enact_authority_set(&mut self) -> Result<(), ()> {
+		if <NextScheduledChange<T>>::exists() {
+			let new_set = <NextScheduledChange<T>>::take()
+				.expect("Ensured that entry existed in storage")
+				.authority_set;
+			Ok(self.update_current_authority_set(new_set))
+		} else {
+			Err(())
+		}
 	}
 
 	fn scheduled_set_change(&self) -> Option<ScheduledChange<Number<T::Header>>> {

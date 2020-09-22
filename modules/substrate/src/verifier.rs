@@ -214,7 +214,11 @@ where
 		// new authority set change. When we finalize the header we need to update the current
 		// authority set.
 		if header.requires_justification {
-			self.storage.enact_authority_set();
+			// If we are unable to enact an authority set it means our storage entry for scheduled
+			// changes is missing. Best to crash since this is likely a bug.
+			let _ = self.storage.enact_authority_set().expect(
+				"Headers must only be marked as `requires_justification` if there's a scheduled change in storage.",
+			);
 		}
 
 		for header in finalized_headers.iter_mut() {
