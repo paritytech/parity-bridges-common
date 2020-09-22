@@ -280,15 +280,12 @@ mod tests {
 	use super::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, ImportedHeaders, PalletStorage};
-	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
 	use sp_runtime::testing::UintAuthorityId;
-	use sp_runtime::{Digest, DigestItem};
 
 	type TestHeader = <TestRuntime as frame_system::Trait>::Header;
-	type TestHash = <TestHeader as HeaderT>::Hash;
 	type TestNumber = <TestHeader as HeaderT>::Number;
 
 	fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
@@ -675,107 +672,6 @@ mod tests {
 			// Since our header was supposed to enact a new authority set change when it got
 			// finalized let's make sure that the authority set actually changed
 			assert_eq!(storage.current_authority_set(), change.authority_set);
-		})
-	}
-
-	// Authority set changes need to be applied _in order_. This means that if we have header N
-	// marked as needing a justification (since it enacts a set change) we *must not* allow a header
-	// at a higher height (i.e one of its childen) to import their justification.
-	//
-	// We need to wait until we finalize N before we can finalize N+2.
-	//
-	// [G] <- [N-1] <- [N] <- [N+1] <- [N+2]
-	//                  |                |- Also enacts change, needs justification
-	//                  |- Enacts change, needs justification
-	#[ignore]
-	#[test]
-	fn does_not_import_future_justification() {
-		run_test(|| {
-			let mut storage = PalletStorage::<TestRuntime>::new();
-			let headers = vec![(1, false, false)];
-			let imported_headers = write_headers(&mut storage, headers);
-
-			// This is header N
-			let mut header = TestHeader::new_from_number(2);
-			header.parent_hash = imported_headers[1].hash();
-
-			// Schedule a change at height N. This will require that header N has a justification
-			let set_id = 1;
-			let height = *header.number();
-			let authorities = vec![(1, 1)];
-			let change = schedule_next_change(authorities, set_id, height);
-			storage.schedule_next_set_change(change.clone());
-
-			// Let's use header N to schedule a change at height N+2. This will make it so that
-			// header N+2 will require a justification
-			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
-				next_authorities: get_authorities(vec![(2, 1)]),
-				delay: 2,
-			});
-
-			header.digest = Digest::<TestHash> {
-				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
-			};
-
-			// Import header N
-			let mut verifier = Verifier {
-				storage: storage.clone(),
-			};
-			assert!(verifier.import_header(header.clone()).is_ok());
-
-			// Header N should be marked as needing a justification
-			assert_eq!(
-				storage.header_by_hash(header.hash()).unwrap().requires_justification,
-				true
-			);
-
-			// Now we want to import some headers which are past N
-			let mut child = TestHeader::new_from_number(*header.number() + 1);
-			child.parent_hash = header.hash();
-			assert!(verifier.import_header(child.clone()).is_ok());
-
-			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
-			grandchild.parent_hash = child.hash();
-
-			// Import header N+2
-			assert!(verifier.import_header(grandchild.clone()).is_ok());
-
-			// Header N+2 should be marked as needing a justification
-			//
-			// FIXME: This fails right now since we assume that we can only have one pending change
-			// at a time. The header gets imported correctly but we don't think it needs a
-			// justification since we don't check that it enacts a change.
-			assert_eq!(
-				storage
-					.header_by_hash(grandchild.hash())
-					.unwrap()
-					.requires_justification,
-				true
-			);
-
-			// Now let's try to finalize N+2, this should fail since we haven't yet
-			// imported the justification for N
-			assert!(verifier.verify_finality(grandchild.hash(), vec![4, 2].into()).is_err());
-
-			// Let's import the correct justification now, which is for header N
-			assert!(verifier.verify_finality(header.hash(), vec![4, 2].into()).is_ok());
-
-			// Now N is marked as finalized and doesn't require a justification anymore
-			let header = storage.header_by_hash(header.hash()).unwrap();
-			assert!(header.is_finalized);
-			assert_eq!(header.requires_justification, false);
-
-			// Let's make sure that finalizing N enacted our change correctly
-			assert_eq!(storage.current_authority_set(), change.authority_set);
-
-			// Now we're allowed to finalized N+2
-			assert!(verifier.verify_finality(grandchild.hash(), vec![4, 2].into()).is_ok());
-			let grandchild = storage.header_by_hash(grandchild.hash()).unwrap();
-			assert!(grandchild.is_finalized);
-			assert_eq!(grandchild.requires_justification, false);
-
-			// TODO: Finalizing N+2 should also enact a new change
-			// assert_eq!(storage.current_authority_set(), change.authority_set);
 		})
 	}
 }
