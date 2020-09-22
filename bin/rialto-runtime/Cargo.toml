@@ -55,11 +55,6 @@ version = "0.1.0"
 default-features = false
 path = "../../modules/currency-exchange"
 
-[dependencies.pallet-substrate-bridge]
-version = "0.1.0"
-default-features = false
-path = "../../modules/substrate"
-
 [dependencies.pallet-message-lane]
 version = "0.1.0"
 default-features = false
@@ -150,12 +145,6 @@ default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-core]
-version = "2.0.0-rc6"
-tag = 'v2.0.0-rc6'
-default-features = false
-git = "https://github.com/paritytech/substrate/"
-
-[dependencies.sp-finality-grandpa]
 version = "2.0.0-rc6"
 tag = 'v2.0.0-rc6'
 default-features = false
