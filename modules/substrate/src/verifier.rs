@@ -33,7 +33,19 @@ use sp_std::{prelude::Vec, vec};
 ///
 /// For a Substrate based chain using Grandpa this will
 /// be an encoded Grandpa Justification.
-pub type FinalityProof<'a> = &'a [u8];
+pub struct FinalityProof(Vec<u8>);
+
+impl From<&[u8]> for FinalityProof {
+	fn from(proof: &[u8]) -> Self {
+		Self(proof.to_vec())
+	}
+}
+
+impl From<Vec<u8>> for FinalityProof {
+	fn from(proof: Vec<u8>) -> Self {
+		Self(proof)
+	}
+}
 
 /// Errors which can happen while importing a header.
 #[derive(Debug, PartialEq)]
@@ -164,7 +176,7 @@ where
 		}
 
 		let current_authority_set = self.storage.current_authority_set();
-		let is_finalized = prove_finality(&header, &current_authority_set, proof);
+		let is_finalized = prove_finality(&header, &current_authority_set, &proof.0);
 		if !is_finalized {
 			return Err(FinalizationError::UnfinalizedHeader);
 		}
@@ -504,7 +516,7 @@ mod tests {
 			};
 
 			assert_ok!(verifier.import_header(header.clone()));
-			assert_ok!(verifier.verify_finality(header.hash(), &[4, 2]));
+			assert_ok!(verifier.verify_finality(header.hash(), vec![4, 2].into()));
 			assert_eq!(storage.best_finalized_header().header, header);
 		})
 	}
@@ -523,7 +535,7 @@ mod tests {
 				storage: storage.clone(),
 			};
 			assert!(verifier.import_header(header.clone()).is_ok());
-			assert!(verifier.verify_finality(header.hash(), &[4, 2]).is_ok());
+			assert!(verifier.verify_finality(header.hash(), vec![4, 2].into()).is_ok());
 
 			// Make sure we marked the our headers as finalized
 			assert!(storage.header_by_hash(imported_headers[1].hash()).unwrap().is_finalized);
@@ -563,7 +575,7 @@ mod tests {
 			};
 
 			assert_ok!(verifier.import_header(header.clone()));
-			assert_ok!(verifier.verify_finality(header.hash(), &[4, 2]));
+			assert_ok!(verifier.verify_finality(header.hash(), vec![4, 2].into()));
 			assert_eq!(storage.best_finalized_header().header, header);
 
 			// Make sure that we have updated the set now that we've finalized our header
@@ -591,7 +603,7 @@ mod tests {
 
 			// Now we want to try and import it again to see what happens
 			assert_eq!(
-				verifier.verify_finality(genesis.hash(), &[4, 2]).unwrap_err(),
+				verifier.verify_finality(genesis.hash(), vec![4, 2].into()).unwrap_err(),
 				FinalizationError::OldHeader
 			);
 		});
@@ -649,7 +661,7 @@ mod tests {
 
 			// Even though we're a few headers ahead we should still be able to import
 			// a justification for header N
-			assert!(verifier.verify_finality(header.hash(), &[4, 2]).is_ok());
+			assert!(verifier.verify_finality(header.hash(), vec![4, 2].into()).is_ok());
 
 			// Some checks to make sure that our header has been correctly finalized
 			let finalized_header = storage.header_by_hash(header.hash()).unwrap();
@@ -743,10 +755,10 @@ mod tests {
 
 			// Now let's try to finalize N+2, this should fail since we haven't yet
 			// imported the justification for N
-			assert!(verifier.verify_finality(grandchild.hash(), &[4, 2]).is_err());
+			assert!(verifier.verify_finality(grandchild.hash(), vec![4, 2].into()).is_err());
 
 			// Let's import the correct justification now, which is for header N
-			assert!(verifier.verify_finality(header.hash(), &[4, 2]).is_ok());
+			assert!(verifier.verify_finality(header.hash(), vec![4, 2].into()).is_ok());
 
 			// Now N is marked as finalized and doesn't require a justification anymore
 			let header = storage.header_by_hash(header.hash()).unwrap();
@@ -757,7 +769,7 @@ mod tests {
 			assert_eq!(storage.current_authority_set(), change.authority_set);
 
 			// Now we're allowed to finalized N+2
-			assert!(verifier.verify_finality(grandchild.hash(), &[4, 2]).is_ok());
+			assert!(verifier.verify_finality(grandchild.hash(), vec![4, 2].into()).is_ok());
 			let grandchild = storage.header_by_hash(grandchild.hash()).unwrap();
 			assert!(grandchild.is_finalized);
 			assert_eq!(grandchild.requires_justification, false);
