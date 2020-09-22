@@ -134,8 +134,9 @@ decl_module! {
 				storage: PalletStorage::<T>::new(),
 			};
 
-			let _ =
-				verifier.import_header(header).map_err(|_| <Error<T>>::InvalidHeader)?;
+			let _ = verifier
+				.import_header(header)
+				.map_err(|_| <Error<T>>::InvalidHeader)?;
 
 			Ok(())
 		}
