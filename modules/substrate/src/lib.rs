@@ -93,12 +93,9 @@ decl_storage! {
 				AuthoritySet::new(config.initial_authority_list.clone(), config.initial_set_id);
 			CurrentAuthoritySet::put(authority_set);
 
-			let change = config.first_scheduled_change.clone();
-			if change.is_some() {
-				<NextScheduledChange<T>>::put(
-					change.expect("Checked that we have a set change before entering block"),
-				);
-			}
+			if let Some(ref change) = config.first_scheduled_change {
+				<NextScheduledChange<T>>::put(change);
+			};
 		})
 	}
 }
