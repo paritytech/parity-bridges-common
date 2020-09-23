@@ -39,7 +39,7 @@ use sc_service::PartialComponents;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
-		"Bridge Node".into()
+		"Rialto Bridge Node".into()
 	}
 
 	fn impl_version() -> String {
@@ -47,7 +47,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn description() -> String {
-		"Bridge Node".into()
+		"Rialto Bridge Node".into()
 	}
 
 	fn author() -> String {
@@ -63,7 +63,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn executable_name() -> String {
-		"bridge-node".into()
+		"rialto-bridge-node".into()
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {

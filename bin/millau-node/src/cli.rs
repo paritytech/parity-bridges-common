@@ -14,17 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Millau bridge node.
+use sc_cli::RunCmd;
+use structopt::StructOpt;
 
-#![warn(missing_docs)]
+#[derive(Debug, StructOpt)]
+pub struct Cli {
+	#[structopt(subcommand)]
+	pub subcommand: Option<Subcommand>,
 
-mod chain_spec;
-#[macro_use]
-mod service;
-mod cli;
-mod command;
+	#[structopt(flatten)]
+	pub run: RunCmd,
+}
 
-/// Run the Millau Node
-fn main() -> sc_cli::Result<()> {
-	command::run()
+/// Possible subcommands of the main binary.
+#[derive(Debug, StructOpt)]
+pub enum Subcommand {
+	/// A set of base subcommands handled by `sc_cli`.
+	#[structopt(flatten)]
+	Base(sc_cli::Subcommand),
+
+	/// The custom benchmark subcommmand benchmarking runtime pallets.
+	#[structopt(name = "benchmark", about = "Benchmark runtime pallets.")]
+	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 }

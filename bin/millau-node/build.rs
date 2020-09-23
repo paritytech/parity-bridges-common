@@ -14,17 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Millau bridge node.
+use vergen::{generate_cargo_keys, ConstantsFlags};
 
-#![warn(missing_docs)]
+const ERROR_MSG: &str = "Failed to generate metadata files";
 
-mod chain_spec;
-#[macro_use]
-mod service;
-mod cli;
-mod command;
+fn main() {
+	generate_cargo_keys(ConstantsFlags::SHA_SHORT).expect(ERROR_MSG);
 
-/// Run the Millau Node
-fn main() -> sc_cli::Result<()> {
-	command::run()
+	build_script_utils::rerun_if_git_head_changed();
 }

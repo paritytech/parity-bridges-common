@@ -15,6 +15,10 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use grandpa_primitives::AuthorityId as GrandpaId;
+use millau_runtime::{
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, SessionConfig, SessionKeys, Signature,
+	SudoConfig, SystemConfig, WASM_BINARY,
+};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
