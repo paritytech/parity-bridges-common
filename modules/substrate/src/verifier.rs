@@ -22,8 +22,10 @@
 //! has been signed off by the correct Grandpa authorities, and also enact any authority set changes
 //! if required.
 
-use crate::storage::{check_finality_proof, AuthoritySet, ImportedHeader, ScheduledChange};
+use crate::justification::verify_justification;
+use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
 use crate::BridgeStorage;
+use finality_grandpa::voter_set::VoterSet;
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::{CheckedAdd, Header as HeaderT, One};
@@ -75,6 +77,12 @@ pub enum FinalizationError {
 	AncestryCheckFailed,
 	/// This header is older than our latest finalized block, thus not useful.
 	OldHeader,
+	/// The given justification was not able to finalize the given header.
+	///
+	/// There are several reasons why this might happen, such as the justification being
+	/// signed by the wrong authority set, being given alongside an unexpected header,
+	/// or failing ancestry checks.
+	InvalidJustification,
 }
 
 /// Used to verify imported headers and their finality status.
@@ -87,6 +95,7 @@ impl<S, H> Verifier<S>
 where
 	S: BridgeStorage<Header = H>,
 	H: HeaderT,
+	H::Number: finality_grandpa::BlockNumberOps,
 {
 	/// Import a header to the pallet.
 	///
@@ -176,10 +185,13 @@ where
 		}
 
 		let current_authority_set = self.storage.current_authority_set();
-		let is_finalized = check_finality_proof(&header, &current_authority_set, &proof.0);
-		if !is_finalized {
-			return Err(FinalizationError::UnfinalizedHeader);
-		}
+		let _is_finalized = verify_justification::<H>(
+			(hash, *header.number()),
+			current_authority_set.set_id,
+			VoterSet::new(current_authority_set.authorities).expect("TODO"),
+			&proof.0,
+		)
+		.map_err(|_| FinalizationError::InvalidJustification)?;
 
 		frame_support::debug::trace!(target: "sub-bridge", "Checking ancestry for headers between {:?} and {:?}", last_finalized, header);
 		let mut finalized_headers =

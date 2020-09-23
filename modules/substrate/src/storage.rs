@@ -72,8 +72,3 @@ impl<H> core::ops::Deref for ImportedHeader<H> {
 		&self.header
 	}
 }
-
-/// Prove that the given header was finalized by the given authority set.
-pub fn check_finality_proof<H>(_header: &H, _set: &AuthoritySet, _justification: &[u8]) -> bool {
-	true
-}

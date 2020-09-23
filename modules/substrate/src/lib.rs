@@ -32,10 +32,13 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
+use codec::Codec;
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
-use sp_runtime::traits::Header as HeaderT;
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_runtime::traits::{
+	Header as HeaderT, MaybeDisplay, MaybeMallocSizeOf, MaybeSerializeDeserialize, Member, SimpleBitOps,
+};
+use sp_std::{fmt::Debug, marker::PhantomData, prelude::*};
 
 mod justification;
 mod storage;
@@ -48,7 +51,34 @@ mod mock;
 type Hash<T> = <T as HeaderT>::Hash;
 type Number<T> = <T as HeaderT>::Number;
 
-pub trait Trait: frame_system::Trait {}
+// trait FooHash {}
+// impl<T> FooHash for T where
+// 	T: Member
+// 		+ MaybeSerializeDeserialize
+// 		+ Debug
+// 		+ sp_std::hash::Hash
+// 		+ Ord
+// 		+ Copy
+// 		+ MaybeDisplay
+// 		+ Default
+// 		+ SimpleBitOps
+// 		+ Codec
+// 		+ AsRef<[u8]>
+// 		+ AsMut<[u8]>
+// 		+ MaybeMallocSizeOf
+// {
+// }
+
+pub trait Trait: frame_system::Trait {
+	type BridgedBlockNumber: finality_grandpa::BlockNumberOps;
+	type BridgedBlockHash; //: FooHash;
+	type BridgedBlockHasher;
+	type BridgedHeader: HeaderT<
+		Number = Self::BridgedBlockNumber,
+		Hash = Self::BridgedBlockHash,
+		Hashing = Self::BridgedBlockHasher,
+	>;
+}
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
