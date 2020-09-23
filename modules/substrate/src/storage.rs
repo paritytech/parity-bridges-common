@@ -14,13 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Primitives for the Substrate light client (a.k.a bridge) pallet.
+//! Storage primitives for the Substrate light client (a.k.a bridge) pallet.
 
-#![warn(missing_docs)]
-#![cfg_attr(not(feature = "std"), no_std)]
-
+use codec::{Decode, Encode};
 use core::default::Default;
-use parity_scale_codec::{Decode, Encode};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, SetId};

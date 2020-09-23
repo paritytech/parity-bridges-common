@@ -31,13 +31,14 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use bp_substrate::{AuthoritySet, ImportedHeader, ScheduledChange};
+use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, prelude::*};
 
 mod justification;
+mod storage;
 mod storage_proof;
 mod verifier;
 
@@ -58,7 +59,6 @@ decl_storage! {
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change.
-		///
 		// Grandpa doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
 		NextScheduledChange: Option<ScheduledChange<Number<T::Header>>>;

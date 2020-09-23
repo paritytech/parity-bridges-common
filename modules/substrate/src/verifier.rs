@@ -22,8 +22,8 @@
 //! has been signed off by the correct Grandpa authorities, and also enact any authority set changes
 //! if required.
 
+use crate::storage::{check_finality_proof, AuthoritySet, ImportedHeader, ScheduledChange};
 use crate::BridgeStorage;
-use bp_substrate::{check_finality_proof, AuthoritySet, ImportedHeader, ScheduledChange};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::{CheckedAdd, Header as HeaderT, One};

@@ -652,16 +652,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-substrate"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "serde",
- "sp-finality-grandpa",
- "sp-runtime",
-]
-
-[[package]]
 name = "bridge-node"
 version = "0.1.0"
 dependencies = [
@@ -4131,7 +4121,6 @@ name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
- "bp-substrate",
  "finality-grandpa",
  "frame-support",
  "frame-system",
