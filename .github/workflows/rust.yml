@@ -60,15 +60,10 @@ jobs:
         shell:                     bash
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
+        # Clippy runs `cargo check` so don't run it on nightly
+        if:                        matrix.toolchain == 'stable'
         with:
           command:                 check
-          toolchain:               ${{ matrix.toolchain }}
-          args:                    --all  --verbose
-## Test stage
-      - name:                      Testing rust-${{ matrix.toolchain }}
-        uses:                      actions-rs/cargo@master
-        with:
-          command:                 test
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
       - name:                      Add clippy
@@ -81,6 +76,14 @@ jobs:
           command:                 clippy
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all-targets -- -D warnings
+
+## Test stage
+      - name:                      Testing rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 test
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --all  --verbose
       - name:                      Check Rialto benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
