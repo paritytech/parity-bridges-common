@@ -23,6 +23,9 @@ jobs:
           - stable
           #- beta
           - nightly
+        node:
+          - rialto-node
+          - millau-node
     runs-on:                       self-hosted
     container:
       image:                       paritytech/ci-linux:production
@@ -81,12 +84,12 @@ jobs:
           command:                 clippy
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all-targets -- -D warnings
-      - name:                      Check Rialto benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
+      - name:                      Check ${{ matrix.node }} benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
-          args:                    --manifest-path ./bin/rialto-node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+          args:                    --manifest-path ./bin/${{ matrix.node }}/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
 
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
@@ -100,7 +103,7 @@ jobs:
         if:                        github.ref == 'refs/heads/master'
         run:                       |
           mkdir -p ./artifacts;
-          mv -v $CARGO_TARGET_DIR/release/rialto-bridge-node ./artifacts/;
+          mv -v $CARGO_TARGET_DIR/release/${{ matrix.node }}-node ./artifacts/;
           mv -v $CARGO_TARGET_DIR/release/ethereum-poa-relay ./artifacts/;
         shell:                     bash
       - name:                      Upload artifacts
