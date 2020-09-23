@@ -42,6 +42,7 @@ pub enum BridgeInstance {
 }
 
 impl BridgeInstance {
+	/// Used to build a `Call` for importing signed headers to a Substrate runtime.
 	pub fn build_signed_header_call(&self, headers: Vec<QueuedEthereumHeader>) -> Call {
 		match *self {
 			Self::TestPoA => {
@@ -77,6 +78,7 @@ impl BridgeInstance {
 		}
 	}
 
+	/// Used to build a `Call` for importing an unsigned header to a Substrate runtime.
 	pub fn build_unsigned_header_call(&self, header: QueuedEthereumHeader) -> Call {
 		match *self {
 			Self::TestPoA => {
@@ -98,6 +100,7 @@ impl BridgeInstance {
 		}
 	}
 
+	/// Used to build a `Call` for importing peer transactions to a Substrate runtime.
 	pub fn build_currency_exchange_call(&self, proof: Proof) -> Call {
 		match *self {
 			Self::TestPoA => {

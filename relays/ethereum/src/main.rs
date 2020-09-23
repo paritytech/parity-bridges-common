@@ -23,8 +23,8 @@ mod ethereum_exchange_submit;
 mod ethereum_sync_loop;
 mod instances;
 mod rialto_client;
-mod substrate_sync_loop;
 mod rpc_errors;
+mod substrate_sync_loop;
 mod substrate_types;
 
 use ethereum_deploy_contract::EthereumDeployContractParams;
@@ -36,8 +36,8 @@ use hex_literal::hex;
 use instances::BridgeInstance;
 use parity_crypto::publickey::{KeyPair, Secret};
 use relay_utils::metrics::MetricsParams;
-use substrate_sync_loop::SubstrateSyncParams;
 use sp_core::crypto::Pair;
+use substrate_sync_loop::SubstrateSyncParams;
 
 use headers_relay::sync::HeadersSyncParams;
 use relay_ethereum_client::{ConnectionParams as EthereumConnectionParams, SigningParams as EthereumSigningParams};

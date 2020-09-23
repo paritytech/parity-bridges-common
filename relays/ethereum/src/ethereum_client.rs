@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::substrate_sync_loop::QueuedRialtoHeader;
 use crate::rpc_errors::RpcError;
+use crate::substrate_sync_loop::QueuedRialtoHeader;
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
