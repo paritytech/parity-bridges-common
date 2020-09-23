@@ -145,7 +145,6 @@ git = "https://github.com/paritytech/substrate.git"
 
 [features]
 default = []
-# TODO
-# runtime-benchmarks = [
-# 	"rialto-runtime/runtime-benchmarks",
-# ]
+runtime-benchmarks = [
+	"millau-runtime/runtime-benchmarks",
+]
