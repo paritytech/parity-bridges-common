@@ -40,7 +40,7 @@ use relay_substrate_client::{
 use relay_utils::metrics::MetricsParams;
 
 use std::fmt::Debug;
-use std::{collections::HashSet, time::Duration};
+use std::{collections::HashSet, sync::Arc, time::Duration};
 
 pub mod consts {
 	use super::*;
@@ -77,7 +77,7 @@ pub struct EthereumSyncParams {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Instance of the bridge pallet being synchronized.
-	pub instance: BridgeInstance,
+	pub instance: Arc<dyn BridgeInstance>,
 }
 
 /// Ethereum synchronization pipeline.
@@ -164,8 +164,8 @@ struct SubstrateHeadersTarget {
 	sign_transactions: bool,
 	/// Substrate signing params.
 	sign_params: RialtoSigningParams,
-	///
-	bridge_instance: BridgeInstance,
+	/// Bridge instance used in eth2sub sync.
+	bridge_instance: Arc<dyn BridgeInstance>,
 }
 
 impl SubstrateHeadersTarget {
@@ -173,7 +173,7 @@ impl SubstrateHeadersTarget {
 		client: SubstrateClient<Rialto>,
 		sign_transactions: bool,
 		sign_params: RialtoSigningParams,
-		bridge_instance: BridgeInstance,
+		bridge_instance: Arc<dyn BridgeInstance>,
 	) -> Self {
 		Self {
 			client,
@@ -200,8 +200,11 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 		&self,
 		headers: Vec<QueuedEthereumHeader>,
 	) -> SubmittedHeaders<EthereumHeaderId, Self::Error> {
-		let (sign_params, bridge_instance, sign_transactions) =
-			(self.sign_params.clone(), self.bridge_instance, self.sign_transactions);
+		let (sign_params, bridge_instance, sign_transactions) = (
+			self.sign_params.clone(),
+			self.bridge_instance.clone(),
+			self.sign_transactions,
+		);
 		self.client
 			.submit_ethereum_headers(sign_params, bridge_instance, headers, sign_transactions)
 			.await

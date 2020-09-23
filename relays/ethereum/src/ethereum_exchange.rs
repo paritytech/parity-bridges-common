@@ -41,7 +41,7 @@ use relay_substrate_client::{
 };
 use relay_utils::{metrics::MetricsParams, HeaderId};
 use rialto_runtime::exchange::EthereumTransactionInclusionProof;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 /// Interval at which we ask Ethereum node for updates.
 const ETHEREUM_TICK_INTERVAL: Duration = Duration::from_secs(10);
@@ -71,7 +71,7 @@ pub struct EthereumExchangeParams {
 	/// Metrics parameters.
 	pub metrics_params: Option<MetricsParams>,
 	/// Instance of the bridge pallet being synchronized.
-	pub instance: BridgeInstance,
+	pub instance: Arc<dyn BridgeInstance>,
 }
 
 /// Ethereum to Substrate exchange pipeline.
@@ -204,7 +204,7 @@ impl SourceClient<EthereumToSubstrateExchange> for EthereumTransactionsSource {
 struct SubstrateTransactionsTarget {
 	client: SubstrateClient<Rialto>,
 	sign_params: RialtoSigningParams,
-	bridge_instance: BridgeInstance,
+	bridge_instance: Arc<dyn BridgeInstance>,
 }
 
 #[async_trait]
@@ -256,7 +256,7 @@ impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
 	}
 
 	async fn submit_transaction_proof(&self, proof: EthereumTransactionInclusionProof) -> Result<(), Self::Error> {
-		let (sign_params, bridge_instance) = (self.sign_params.clone(), self.bridge_instance);
+		let (sign_params, bridge_instance) = (self.sign_params.clone(), self.bridge_instance.clone());
 		self.client
 			.submit_exchange_transaction_proof(sign_params, bridge_instance, proof)
 			.await

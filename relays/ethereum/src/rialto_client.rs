@@ -29,7 +29,7 @@ use relay_substrate_client::{
 };
 use relay_utils::HeaderId;
 use sp_core::{crypto::Pair, Bytes};
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::Arc};
 
 const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "RialtoHeaderApi_is_import_requires_receipts";
 const ETH_API_IS_KNOWN_BLOCK: &str = "RialtoHeaderApi_is_known_block";
@@ -113,7 +113,7 @@ pub trait SubmitEthereumHeaders {
 	async fn submit_ethereum_headers(
 		&self,
 		params: RialtoSigningParams,
-		instance: BridgeInstance,
+		instance: Arc<dyn BridgeInstance>,
 		headers: Vec<QueuedEthereumHeader>,
 		sign_transactions: bool,
 	) -> SubmittedHeaders<EthereumHeaderId, RpcError>;
@@ -122,14 +122,14 @@ pub trait SubmitEthereumHeaders {
 	async fn submit_signed_ethereum_headers(
 		&self,
 		params: RialtoSigningParams,
-		instance: BridgeInstance,
+		instance: Arc<dyn BridgeInstance>,
 		headers: Vec<QueuedEthereumHeader>,
 	) -> SubmittedHeaders<EthereumHeaderId, RpcError>;
 
 	/// Submits unsigned Ethereum header to Substrate runtime.
 	async fn submit_unsigned_ethereum_headers(
 		&self,
-		instance: BridgeInstance,
+		instance: Arc<dyn BridgeInstance>,
 		headers: Vec<QueuedEthereumHeader>,
 	) -> SubmittedHeaders<EthereumHeaderId, RpcError>;
 }
@@ -139,7 +139,7 @@ impl SubmitEthereumHeaders for SubstrateClient<Rialto> {
 	async fn submit_ethereum_headers(
 		&self,
 		params: RialtoSigningParams,
-		instance: BridgeInstance,
+		instance: Arc<dyn BridgeInstance>,
 		headers: Vec<QueuedEthereumHeader>,
 		sign_transactions: bool,
 	) -> SubmittedHeaders<EthereumHeaderId, RpcError> {
@@ -153,7 +153,7 @@ impl SubmitEthereumHeaders for SubstrateClient<Rialto> {
 	async fn submit_signed_ethereum_headers(
 		&self,
 		params: RialtoSigningParams,
-		instance: BridgeInstance,
+		instance: Arc<dyn BridgeInstance>,
 		headers: Vec<QueuedEthereumHeader>,
 	) -> SubmittedHeaders<EthereumHeaderId, RpcError> {
 		let ids = headers.iter().map(|header| header.id()).collect();
@@ -187,7 +187,7 @@ impl SubmitEthereumHeaders for SubstrateClient<Rialto> {
 
 	async fn submit_unsigned_ethereum_headers(
 		&self,
-		instance: BridgeInstance,
+		instance: Arc<dyn BridgeInstance>,
 		headers: Vec<QueuedEthereumHeader>,
 	) -> SubmittedHeaders<EthereumHeaderId, RpcError> {
 		let mut ids = headers.iter().map(|header| header.id()).collect::<VecDeque<_>>();
@@ -228,7 +228,7 @@ pub trait SubmitEthereumExchangeTransactionProof {
 	async fn submit_exchange_transaction_proof(
 		&self,
 		params: RialtoSigningParams,
-		instance: BridgeInstance,
+		instance: Arc<dyn BridgeInstance>,
 		proof: rialto_runtime::exchange::EthereumTransactionInclusionProof,
 	) -> RpcResult<()>;
 }
@@ -251,7 +251,7 @@ impl SubmitEthereumExchangeTransactionProof for SubstrateClient<Rialto> {
 	async fn submit_exchange_transaction_proof(
 		&self,
 		params: RialtoSigningParams,
-		instance: BridgeInstance,
+		instance: Arc<dyn BridgeInstance>,
 		proof: rialto_runtime::exchange::EthereumTransactionInclusionProof,
 	) -> RpcResult<()> {
 		let account_id = params.signer.public().as_array_ref().clone().into();

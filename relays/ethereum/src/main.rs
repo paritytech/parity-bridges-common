@@ -33,7 +33,7 @@ use ethereum_exchange_submit::EthereumExchangeSubmitParams;
 use ethereum_sync_loop::EthereumSyncParams;
 use headers_relay::sync::TargetTransactionMode;
 use hex_literal::hex;
-use instances::BridgeInstance;
+use instances::{BridgeInstance, Kovan, TestPoA};
 use parity_crypto::publickey::{KeyPair, Secret};
 use relay_utils::metrics::MetricsParams;
 use sp_core::crypto::Pair;
@@ -44,7 +44,7 @@ use relay_ethereum_client::{ConnectionParams as EthereumConnectionParams, Signin
 use relay_substrate_client::{
 	rialto::SigningParams as RialtoSigningParams, ConnectionParams as SubstrateConnectionParams,
 };
-use std::io::Write;
+use std::{io::Write, sync::Arc};
 
 fn main() {
 	initialize();
@@ -413,11 +413,11 @@ fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<MetricsParams>, S
 	Ok(Some(metrics_params))
 }
 
-fn instance_params(matches: &clap::ArgMatches) -> Result<BridgeInstance, String> {
+fn instance_params(matches: &clap::ArgMatches) -> Result<Arc<dyn BridgeInstance>, String> {
 	let instance = if let Some(instance) = matches.value_of("sub-pallet-instance") {
 		match instance.to_lowercase().as_str() {
-			"rialto" => BridgeInstance::TestPoA,
-			"kovan" => BridgeInstance::Kovan,
+			"rialto" => Arc::new(TestPoA) as Arc<dyn BridgeInstance>,
+			"kovan" => Arc::new(Kovan),
 			_ => return Err("Unsupported bridge pallet instance".to_string()),
 		}
 	} else {
