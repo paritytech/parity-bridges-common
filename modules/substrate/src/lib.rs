@@ -258,7 +258,9 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 			let new_set = <NextScheduledChange<T>>::take()
 				.expect("Ensured that entry existed in storage")
 				.authority_set;
-			Ok(self.update_current_authority_set(new_set))
+			self.update_current_authority_set(new_set);
+
+			Ok(())
 		} else {
 			Err(())
 		}
