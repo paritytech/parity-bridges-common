@@ -33,12 +33,20 @@ const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
 
 /// Substrate client type.
-#[derive(Debug)]
 pub struct Client<C: Chain> {
 	/// Substrate RPC client.
 	client: RpcClient,
 	/// Genesis block hash.
 	genesis_hash: C::Hash,
+}
+
+#[cfg(feature = "std")]
+impl<C: Chain> std::fmt::Debug for Client<C> {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		f.debug_struct("Client")
+			.field("genesis_hash", &self.genesis_hash)
+			.finish()
+	}
 }
 
 impl<C: Chain> Client<C> {
