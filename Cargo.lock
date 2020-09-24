@@ -717,6 +717,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-millau"
+version = "0.1.0"
+dependencies = [
+ "sp-api",
+ "sp-core",
+ "sp-std",
+]
+
+[[package]]
+name = "bp-rialto"
+version = "0.1.0"
+dependencies = [
+ "sp-api",
+ "sp-core",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-runtime"
 version = "0.1.0"
 dependencies = [
@@ -3522,6 +3540,7 @@ version = "0.1.0"
 dependencies = [
  "bp-header-chain",
  "bp-message-lane",
+ "bp-millau",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -5298,6 +5317,8 @@ dependencies = [
  "bp-eth-poa",
  "bp-header-chain",
  "bp-message-lane",
+ "bp-millau",
+ "bp-rialto",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -7738,6 +7759,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-rialto",
  "futures 0.3.5",
  "headers-relay",
  "log",
