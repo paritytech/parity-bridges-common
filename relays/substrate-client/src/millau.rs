@@ -16,12 +16,7 @@
 
 //! Types used to connect to the Millau-Substrate chain.
 
-use crate::chain::{Chain, TransactionSignScheme};
-use crate::client::Client;
-
-use codec::Encode;
-use sp_core::Pair;
-use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
+use crate::chain::Chain;
 
 /// Millau chain definition.
 pub type Millau = millau_runtime::Runtime;
