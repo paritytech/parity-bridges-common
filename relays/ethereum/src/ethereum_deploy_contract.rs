@@ -24,7 +24,7 @@ use relay_ethereum_client::{
 };
 use relay_substrate_client::{
 	rialto::{HeaderId as RialtoHeaderId, Rialto},
-	Client as SubstrateClient, ConnectionParams as SubstrateConnectionParams,
+	Client as SubstrateClient, ConnectionParams as SubstrateConnectionParams, OpaqueGrandpaAuthoritiesSet,
 };
 use relay_utils::HeaderId;
 
@@ -125,7 +125,7 @@ async fn prepare_initial_authorities_set(
 	sub_client: &SubstrateClient<Rialto>,
 	sub_initial_header_hash: rialto_runtime::Hash,
 	sub_initial_authorities_set: Option<Vec<u8>>,
-) -> Result<Vec<u8>, String> {
+) -> Result<OpaqueGrandpaAuthoritiesSet, String> {
 	let initial_authorities_set = match sub_initial_authorities_set {
 		Some(initial_authorities_set) => Ok(initial_authorities_set),
 		None => sub_client.grandpa_authorities_set(sub_initial_header_hash).await,

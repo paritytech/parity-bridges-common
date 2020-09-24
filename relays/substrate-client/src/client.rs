@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Substrate node client.
+
 use crate::chain::Chain;
 use crate::rpc::Substrate;
 use crate::{ConnectionParams, Result};
@@ -27,7 +29,11 @@ use sp_core::Bytes;
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 
+/// Opaque GRANDPA authorities set.
+pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
+
 /// Substrate client type.
+#[derive(Debug)]
 pub struct Client<C: Chain> {
 	/// Substrate RPC client.
 	client: RpcClient,
@@ -103,8 +109,7 @@ where
 	}
 
 	/// Get the GRANDPA authority set at given block.
-	//pub async fn grandpa_authorities_set(&self, block: C::Hash) -> Result<GrandpaAuthorityList> {
-	pub async fn grandpa_authorities_set(&self, block: C::Hash) -> Result<Vec<u8>> {
+	pub async fn grandpa_authorities_set(&self, block: C::Hash) -> Result<OpaqueGrandpaAuthoritiesSet> {
 		let call = SUB_API_GRANDPA_AUTHORITIES.to_string();
 		let data = Bytes(Vec::new());
 

@@ -30,7 +30,7 @@ pub mod millau;
 pub mod rialto;
 
 pub use crate::chain::{Chain, TransactionSignScheme};
-pub use crate::client::Client;
+pub use crate::client::{Client, OpaqueGrandpaAuthoritiesSet};
 pub use crate::error::{Error, Result};
 
 #[cfg(feature = "millau")]
