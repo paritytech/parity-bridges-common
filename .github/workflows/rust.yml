@@ -70,6 +70,8 @@ jobs:
         if:                        matrix.toolchain == 'nightly'
         run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
       - name:                      Clippy
+        env:
+          SKIP_WASM_BUILD:         1
         uses:                      actions-rs/cargo@master
         if:                        matrix.toolchain == 'nightly'
         with:
