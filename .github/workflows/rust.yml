@@ -30,6 +30,7 @@ jobs:
         - /cache:/cache
     env:
       RUST_BACKTRACE:              full
+      SKIP_WASM_BUILD:             1
       SCCACHE_REDIS:               redis://172.17.0.1/0
       SCCACHE_IDLE_TIMEOUT:        0
       CMAKE_C_COMPILER_LAUNCHER:   sccache
@@ -70,8 +71,6 @@ jobs:
         if:                        matrix.toolchain == 'nightly'
         run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
       - name:                      Clippy
-        env:
-          SKIP_WASM_BUILD:         1
         uses:                      actions-rs/cargo@master
         if:                        matrix.toolchain == 'nightly'
         with:
