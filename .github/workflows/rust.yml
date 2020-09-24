@@ -30,7 +30,6 @@ jobs:
         - /cache:/cache
     env:
       RUST_BACKTRACE:              full
-      SKIP_WASM_BUILD:             1
       SCCACHE_REDIS:               redis://172.17.0.1/0
       SCCACHE_IDLE_TIMEOUT:        0
       CMAKE_C_COMPILER_LAUNCHER:   sccache
@@ -67,16 +66,6 @@ jobs:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
-      - name:                      Add clippy
-        if:                        matrix.toolchain == 'nightly'
-        run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
-      - name:                      Clippy
-        uses:                      actions-rs/cargo@master
-        if:                        matrix.toolchain == 'nightly'
-        with:
-          command:                 clippy
-          toolchain:               ${{ matrix.toolchain }}
-          args:                    --all-targets -- -D warnings
 
 ## Test stage
       - name:                      Testing rust-${{ matrix.toolchain }}
@@ -91,6 +80,18 @@ jobs:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
           args:                    --manifest-path ./bin/rialto-node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+
+## Run Clippy Linter
+      - name:                      Add clippy
+        if:                        matrix.toolchain == 'nightly'
+        run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
+      - name:                      Clippy
+        uses:                      actions-rs/cargo@master
+        if:                        matrix.toolchain == 'nightly'
+        with:
+          command:                 clippy
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --all-targets -- -D warnings
 
 ## Build stage
       - name:                      Building rust-${{ matrix.toolchain }}
