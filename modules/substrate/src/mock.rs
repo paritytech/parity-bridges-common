@@ -68,7 +68,14 @@ impl frame_system::Trait for TestRuntime {
 	type SystemWeightInfo = ();
 }
 
-impl Trait for TestRuntime {}
+impl Trait for TestRuntime {
+	type BridgedBlockNumber = u64;
+	type BridgedBlockHash = H256;
+	type BridgedBlockHasher = BlakeTwo256;
+	type BridgedHeader = Header;
+	// TODO: Figure out why this doesn't work
+	// type BridgedHeader = sp_runtime::generic::Header<Self::BridgedBlockNumber, Self::BridgedBlockHash>;
+}
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)

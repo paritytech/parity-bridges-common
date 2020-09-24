@@ -56,7 +56,6 @@ pub trait Trait: frame_system::Trait {
 	type BridgedBlockNumber: Member
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ HashT
 		+ sp_std::hash::Hash
 		+ Copy
 		+ MaybeDisplay
@@ -68,7 +67,6 @@ pub trait Trait: frame_system::Trait {
 	type BridgedBlockHash: Member
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ HashT
 		+ sp_std::hash::Hash
 		+ Ord
 		+ Copy

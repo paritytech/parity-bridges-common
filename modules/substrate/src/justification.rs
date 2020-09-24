@@ -114,10 +114,14 @@ where
 	Ok(())
 }
 
-/// GRANDPA justification of the bridged chain
+/// A Grandpa Justification is a proof that a given header was finalized
+/// at a certain height and with a certain set of authorities.
+///
+/// This particular proof is used to prove that headers on a bridged chain
+/// (so not our chain) have been finalized correctly.
 #[derive(Decode, RuntimeDebug)]
 #[cfg_attr(test, derive(codec::Encode))]
-struct GrandpaJustification<Header: HeaderT> {
+pub(crate) struct GrandpaJustification<Header: HeaderT> {
 	round: u64,
 	commit: finality_grandpa::Commit<Header::Hash, Header::Number, AuthoritySignature, AuthorityId>,
 	votes_ancestries: Vec<Header>,
@@ -169,10 +173,11 @@ where
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
 	use super::*;
 	use codec::Encode;
 	use sp_core::H256;
+	use sp_finality_grandpa::AuthorityList;
 	use sp_keyring::Ed25519Keyring;
 	use sp_runtime::traits::BlakeTwo256;
 
@@ -180,6 +185,7 @@ mod tests {
 	const TEST_GRANDPA_SET_ID: SetId = 1;
 
 	type TestHeader = sp_runtime::generic::Header<u64, BlakeTwo256>;
+	type HeaderId = (H256, u64);
 
 	fn header(index: u8) -> TestHeader {
 		TestHeader::new(
@@ -195,11 +201,11 @@ mod tests {
 		)
 	}
 
-	fn header_id(index: u8) -> (H256, u64) {
+	fn header_id(index: u8) -> HeaderId {
 		(header(index).hash(), index as _)
 	}
 
-	fn authorities_set() -> VoterSet<AuthorityId> {
+	pub(crate) fn voter_set() -> VoterSet<AuthorityId> {
 		VoterSet::new(vec![
 			(Ed25519Keyring::Alice.public().into(), 1),
 			(Ed25519Keyring::Bob.public().into(), 1),
@@ -208,17 +214,19 @@ mod tests {
 		.unwrap()
 	}
 
-	fn signed_precommit(
+	pub(crate) fn signed_precommit(
 		signer: Ed25519Keyring,
-		target: (H256, u64),
+		target: HeaderId,
+		round: u64,
+		set_id: SetId,
 	) -> finality_grandpa::SignedPrecommit<H256, u64, AuthoritySignature, AuthorityId> {
 		let precommit = finality_grandpa::Precommit {
 			target_hash: target.0,
 			target_number: target.1,
 		};
 		let encoded = sp_finality_grandpa::localized_payload(
-			TEST_GRANDPA_ROUND,
-			TEST_GRANDPA_SET_ID,
+			round,
+			set_id,
 			&finality_grandpa::Message::Precommit(precommit.clone()),
 		);
 		let signature = signer.sign(&encoded[..]).into();
@@ -229,16 +237,64 @@ mod tests {
 		}
 	}
 
-	fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
+	pub(crate) fn make_justification_for_header(
+		header_index: u8,
+		round: u64,
+		set_id: SetId,
+		authorities: &AuthorityList,
+	) -> GrandpaJustification<TestHeader> {
+		let (target_hash, target_number) = header_id(header_index);
+		let mut precommits = vec![];
+		let mut votes_ancestries = vec![];
+
+		// I'm using the name header for all the voters since it doesn't matter as long
+		// as they all vote on blocks _ahead_ of the one we're interested in finalizing
+		for (id, _weight) in authorities {
+			dbg!(&id);
+			let signer = extract_keyring(&id);
+			let precommit = signed_precommit(signer, header_id(header_index + 1), round, set_id);
+			precommits.push(precommit);
+			votes_ancestries.push(header(header_index + 1));
+		}
+
+		GrandpaJustification {
+			round: TEST_GRANDPA_ROUND,
+			commit: finality_grandpa::Commit {
+				target_hash,
+				target_number,
+				precommits,
+			},
+			votes_ancestries,
+		}
+	}
+	// TODO: Remove comment
+	// A justification is made up of Commits. A Commit is made up from a series
+	// of PreCommits. PreCommits are made up from a series of PreVotes.
+	pub(crate) fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
 		GrandpaJustification {
 			round: TEST_GRANDPA_ROUND,
 			commit: finality_grandpa::Commit {
 				target_hash: header_id(1).0,
 				target_number: header_id(1).1,
 				precommits: vec![
-					signed_precommit(Ed25519Keyring::Alice, header_id(2)),
-					signed_precommit(Ed25519Keyring::Bob, header_id(3)),
-					signed_precommit(Ed25519Keyring::Charlie, header_id(4)),
+					signed_precommit(
+						Ed25519Keyring::Alice,
+						header_id(2),
+						TEST_GRANDPA_ROUND,
+						TEST_GRANDPA_SET_ID,
+					),
+					signed_precommit(
+						Ed25519Keyring::Bob,
+						header_id(3),
+						TEST_GRANDPA_ROUND,
+						TEST_GRANDPA_SET_ID,
+					),
+					signed_precommit(
+						Ed25519Keyring::Charlie,
+						header_id(4),
+						TEST_GRANDPA_ROUND,
+						TEST_GRANDPA_SET_ID,
+					),
 				],
 			},
 			votes_ancestries: vec![header(2), header(3), header(4)],
@@ -248,7 +304,7 @@ mod tests {
 	#[test]
 	fn justification_with_invalid_encoding_rejected() {
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, authorities_set(), &[],),
+			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &[],),
 			Err(Error::JustificationDecode),
 		);
 	}
@@ -259,7 +315,7 @@ mod tests {
 			verify_justification::<TestHeader>(
 				header_id(2),
 				TEST_GRANDPA_SET_ID,
-				authorities_set(),
+				voter_set(),
 				&make_justification_for_header_1().encode(),
 			),
 			Err(Error::InvalidJustificationTarget),
@@ -272,12 +328,7 @@ mod tests {
 		justification.commit.precommits.clear();
 
 		assert_eq!(
-			verify_justification::<TestHeader>(
-				header_id(1),
-				TEST_GRANDPA_SET_ID,
-				authorities_set(),
-				&justification.encode(),
-			),
+			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
 			Err(Error::InvalidJustificationCommit),
 		);
 	}
@@ -288,12 +339,7 @@ mod tests {
 		justification.commit.precommits[0].signature = Default::default();
 
 		assert_eq!(
-			verify_justification::<TestHeader>(
-				header_id(1),
-				TEST_GRANDPA_SET_ID,
-				authorities_set(),
-				&justification.encode(),
-			),
+			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
 			Err(Error::InvalidAuthoritySignature),
 		);
 	}
@@ -304,12 +350,7 @@ mod tests {
 		justification.votes_ancestries.push(header(10));
 
 		assert_eq!(
-			verify_justification::<TestHeader>(
-				header_id(1),
-				TEST_GRANDPA_SET_ID,
-				authorities_set(),
-				&justification.encode(),
-			),
+			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
 			Err(Error::InvalidPrecommitAncestries),
 		);
 	}
@@ -320,8 +361,35 @@ mod tests {
 			verify_justification::<TestHeader>(
 				header_id(1),
 				TEST_GRANDPA_SET_ID,
-				authorities_set(),
+				voter_set(),
 				&make_justification_for_header_1().encode(),
+			),
+			Ok(()),
+		);
+	}
+
+	pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
+		let mut raw_public = [0; 32];
+		raw_public.copy_from_slice(id.as_ref());
+		Ed25519Keyring::from_raw_public(raw_public).unwrap()
+	}
+
+	#[test]
+	fn valid_justification_accepted_for_another_header() {
+		use sp_runtime::testing::UintAuthorityId;
+		let authority_list: AuthorityList = vec![(1, 1)]
+			.iter()
+			.map(|(id, weight)| (UintAuthorityId(*id).to_public_key::<AuthorityId>(), *weight))
+			.collect();
+		let justification =
+			make_justification_for_header(1, TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &authority_list).encode();
+
+		assert_eq!(
+			verify_justification::<TestHeader>(
+				header_id(1),
+				TEST_GRANDPA_SET_ID,
+				VoterSet::new(authority_list).expect("TODO"),
+				&justification,
 			),
 			Ok(()),
 		);

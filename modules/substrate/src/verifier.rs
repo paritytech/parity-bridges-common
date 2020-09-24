@@ -35,6 +35,7 @@ use sp_std::{prelude::Vec, vec};
 ///
 /// For a Substrate based chain using Grandpa this will
 /// be an encoded Grandpa Justification.
+#[derive(Debug)]
 pub struct FinalityProof(Vec<u8>);
 
 impl From<&[u8]> for FinalityProof {
@@ -185,6 +186,8 @@ where
 		}
 
 		let current_authority_set = self.storage.current_authority_set();
+		// dbg!(&proof);
+		dbg!(&current_authority_set);
 		let _is_finalized = verify_justification::<H>(
 			(hash, *header.number()),
 			current_authority_set.set_id,
@@ -291,8 +294,10 @@ fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::justification::tests::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, ImportedHeaders, PalletStorage};
+	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
@@ -521,12 +526,38 @@ mod tests {
 			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = imported_headers[1].hash();
 
+			use sp_keyring::Ed25519Keyring;
+
+			// TODO: Would it be better for me to store VoterSets, or simply
+			// keep the AuthorityList I have now?
+			let authorities = vec![
+				(Ed25519Keyring::Alice.public().into(), 1),
+				(Ed25519Keyring::Bob.public().into(), 1),
+				(Ed25519Keyring::Charlie.public().into(), 1),
+			];
+
+			let authority_set = AuthoritySet { authorities, set_id: 1 };
+			storage.update_current_authority_set(authority_set);
+
+			let new_authorities = vec![(Ed25519Keyring::Alice.public().into(), 1)];
+			let authority_set = AuthoritySet {
+				authorities: new_authorities,
+				set_id: 2,
+			};
+			let scheduled_change = ScheduledChange {
+				authority_set,
+				height: 1,
+			};
+			storage.schedule_next_set_change(scheduled_change);
+
 			let mut verifier = Verifier {
 				storage: storage.clone(),
 			};
 
+			let justification = make_justification_for_header_1().encode();
+
 			assert_ok!(verifier.import_header(header.clone()));
-			assert_ok!(verifier.import_finality_proof(header.hash(), vec![4, 2].into()));
+			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
 			assert_eq!(storage.best_finalized_header().header, header);
 		})
 	}
