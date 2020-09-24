@@ -4125,6 +4125,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hash-db",
+ "num-traits",
  "parity-scale-codec",
  "serde",
  "sp-core",

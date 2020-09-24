@@ -32,13 +32,15 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
-use codec::Codec;
+use codec::{Codec, EncodeLike};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch};
 use frame_system::ensure_signed;
+use num_traits::AsPrimitive;
 use sp_runtime::traits::{
-	Header as HeaderT, MaybeDisplay, MaybeMallocSizeOf, MaybeSerializeDeserialize, Member, SimpleBitOps,
+	AtLeast32BitUnsigned, Hash as HashT, Header as HeaderT, MaybeDisplay, MaybeMallocSizeOf, MaybeSerializeDeserialize,
+	Member, SimpleBitOps,
 };
-use sp_std::{fmt::Debug, marker::PhantomData, prelude::*};
+use sp_std::{fmt::Debug, marker::PhantomData, prelude::*, str::FromStr};
 
 mod justification;
 mod storage;
@@ -48,56 +50,58 @@ mod verifier;
 #[cfg(test)]
 mod mock;
 
-type Hash<T> = <T as HeaderT>::Hash;
-type Number<T> = <T as HeaderT>::Number;
-
-// trait FooHash {}
-// impl<T> FooHash for T where
-// 	T: Member
-// 		+ MaybeSerializeDeserialize
-// 		+ Debug
-// 		+ sp_std::hash::Hash
-// 		+ Ord
-// 		+ Copy
-// 		+ MaybeDisplay
-// 		+ Default
-// 		+ SimpleBitOps
-// 		+ Codec
-// 		+ AsRef<[u8]>
-// 		+ AsMut<[u8]>
-// 		+ MaybeMallocSizeOf
-// {
-// }
-
+// TODO: There's gotta be a better way to fulfil the idea of what
+// a Substrate header should be...
 pub trait Trait: frame_system::Trait {
-	type BridgedBlockNumber: finality_grandpa::BlockNumberOps;
-	type BridgedBlockHash; //: FooHash;
-	type BridgedBlockHasher;
-	type BridgedHeader: HeaderT<
-		Number = Self::BridgedBlockNumber,
-		Hash = Self::BridgedBlockHash,
-		Hashing = Self::BridgedBlockHasher,
-	>;
+	type BridgedBlockNumber: Member
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ HashT
+		+ sp_std::hash::Hash
+		+ Copy
+		+ MaybeDisplay
+		+ AtLeast32BitUnsigned
+		+ Codec
+		+ FromStr
+		+ MaybeMallocSizeOf
+		+ AsPrimitive<usize>;
+	type BridgedBlockHash: Member
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ HashT
+		+ sp_std::hash::Hash
+		+ Ord
+		+ Copy
+		+ MaybeDisplay
+		+ Default
+		+ SimpleBitOps
+		+ Codec
+		+ AsRef<[u8]>
+		+ AsMut<[u8]>
+		+ MaybeMallocSizeOf
+		+ EncodeLike;
+	type BridgedBlockHasher: HashT;
+	type BridgedHeader: HeaderT<Number = Self::BridgedBlockNumber, Hash = Self::BridgedBlockHash>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
 		/// Hash of the best finalized header.
-		BestFinalized: T::Hash;
+		BestFinalized: T::BridgedBlockHash;
 		/// Headers which have been imported into the pallet.
-		ImportedHeaders: map hasher(identity) T::Hash => Option<ImportedHeader<T::Header>>;
+		ImportedHeaders: map hasher(identity) T::BridgedBlockHash => Option<ImportedHeader<T::BridgedHeader>>;
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change.
 		// Grandpa doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
-		NextScheduledChange: Option<ScheduledChange<Number<T::Header>>>;
+		NextScheduledChange: Option<ScheduledChange<T::BridgedBlockNumber>>;
 	}
 	add_extra_genesis {
-		config(initial_header): Option<T::Header>;
+		config(initial_header): Option<T::BridgedHeader>;
 		config(initial_authority_list): sp_finality_grandpa::AuthorityList;
 		config(initial_set_id): sp_finality_grandpa::SetId;
-		config(first_scheduled_change): Option<ScheduledChange<Number<T::Header>>>;
+		config(first_scheduled_change): Option<ScheduledChange<T::BridgedBlockNumber>>;
 		build(|config| {
 			assert!(
 				!config.initial_authority_list.is_empty(),
@@ -152,7 +156,7 @@ decl_module! {
 		#[weight = 0]
 		pub fn import_signed_header(
 			origin,
-			header: T::Header,
+			header: T::BridgedHeader,
 		) -> dispatch::DispatchResult {
 			let _ = ensure_signed(origin)?;
 			frame_support::debug::trace!(target: "sub-bridge", "Got header {:?}", header);
@@ -177,7 +181,7 @@ decl_module! {
 		#[weight = 0]
 		pub fn finalize_header(
 			origin,
-			hash: Hash<T::Header>,
+			hash: T::BridgedBlockHash,
 			finality_proof: Vec<u8>,
 		) -> dispatch::DispatchResult {
 			let _ = ensure_signed(origin)?;
@@ -250,28 +254,28 @@ impl<T> PalletStorage<T> {
 }
 
 impl<T: Trait> BridgeStorage for PalletStorage<T> {
-	type Header = T::Header;
+	type Header = T::BridgedHeader;
 
-	fn write_header(&mut self, header: &ImportedHeader<T::Header>) {
+	fn write_header(&mut self, header: &ImportedHeader<T::BridgedHeader>) {
 		let hash = header.header.hash();
 		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
-	fn best_finalized_header(&self) -> ImportedHeader<T::Header> {
+	fn best_finalized_header(&self) -> ImportedHeader<T::BridgedHeader> {
 		let hash = <BestFinalized<T>>::get();
 		self.header_by_hash(hash)
 			.expect("A finalized header was added at genesis, therefore this must always exist")
 	}
 
-	fn update_best_finalized(&self, hash: Hash<T::Header>) {
+	fn update_best_finalized(&self, hash: T::BridgedBlockHash) {
 		<BestFinalized<T>>::put(hash)
 	}
 
-	fn header_exists(&self, hash: Hash<T::Header>) -> bool {
+	fn header_exists(&self, hash: T::BridgedBlockHash) -> bool {
 		<ImportedHeaders<T>>::contains_key(hash)
 	}
 
-	fn header_by_hash(&self, hash: Hash<T::Header>) -> Option<ImportedHeader<T::Header>> {
+	fn header_by_hash(&self, hash: T::BridgedBlockHash) -> Option<ImportedHeader<T::BridgedHeader>> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
@@ -296,11 +300,11 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		}
 	}
 
-	fn scheduled_set_change(&self) -> Option<ScheduledChange<Number<T::Header>>> {
+	fn scheduled_set_change(&self) -> Option<ScheduledChange<T::BridgedBlockNumber>> {
 		<NextScheduledChange<T>>::get()
 	}
 
-	fn schedule_next_set_change(&self, next_change: ScheduledChange<Number<T::Header>>) {
+	fn schedule_next_set_change(&self, next_change: ScheduledChange<T::BridgedBlockNumber>) {
 		<NextScheduledChange<T>>::put(next_change)
 	}
 }
