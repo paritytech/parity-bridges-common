@@ -42,7 +42,7 @@ pub struct Client<C: Chain> {
 
 impl<C: Chain> std::fmt::Debug for Client<C> {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		f.debug_struct("Client")
+		fmt.debug_struct("Client")
 			.field("genesis_hash", &self.genesis_hash)
 			.finish()
 	}
