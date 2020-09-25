@@ -70,8 +70,6 @@ pub enum ImportError {
 pub enum FinalizationError {
 	/// This header has never been imported by the pallet.
 	UnknownHeader,
-	/// We were unable to prove finality for this header.
-	UnfinalizedHeader,
 	/// Trying to prematurely import a justification
 	PrematureJustification,
 	/// We failed to verify this header's ancestry.
@@ -186,16 +184,18 @@ where
 		}
 
 		let current_authority_set = self.storage.current_authority_set();
-		// dbg!(&proof);
-		dbg!(&current_authority_set);
+		let voter_set = VoterSet::new(current_authority_set.authorities).expect(
+			"This only fails if we have an invalid list of authorities. Since we
+			got this from storage it should always be valid, otherwise we have a bug.",
+		);
 		let _is_finalized = verify_justification::<H>(
 			(hash, *header.number()),
 			current_authority_set.set_id,
-			VoterSet::new(current_authority_set.authorities).expect("TODO"),
+			voter_set,
 			&proof.0,
 		)
 		.map_err(|_| FinalizationError::InvalidJustification)?;
-		frame_support::debug::trace!(target: "sub-bridge", "Recieved valid justification for {:?}", header);
+		frame_support::debug::trace!(target: "sub-bridge", "Received valid justification for {:?}", header);
 
 		frame_support::debug::trace!(target: "sub-bridge", "Checking ancestry for headers between {:?} and {:?}", last_finalized, header);
 		let mut finalized_headers =
@@ -302,8 +302,7 @@ mod tests {
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
-	use sp_finality_grandpa::{AuthorityId, AuthorityList};
-	use sp_runtime::testing::UintAuthorityId;
+	use sp_finality_grandpa::{AuthorityId, SetId};
 
 	fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
 		ImportedHeader {
@@ -312,12 +311,13 @@ mod tests {
 			is_finalized: false,
 		}
 	}
+
 	fn schedule_next_change(
-		authorities: Vec<(u64, u64)>,
-		set_id: u64,
+		authorities: Vec<AuthorityId>,
+		set_id: SetId,
 		height: TestNumber,
 	) -> ScheduledChange<TestNumber> {
-		let authorities = get_authorities(authorities);
+		let authorities = authorities.into_iter().map(|id| (id, 1u64)).collect();
 		let authority_set = AuthoritySet::new(authorities, set_id);
 		ScheduledChange { authority_set, height }
 	}
@@ -506,7 +506,7 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let headers = vec![(1, false, false)];
-			let imported_headers = write_headers(&mut storage, headers);
+			let _imported_headers = write_headers(&mut storage, headers);
 
 			// Nothing special about this header, yet Grandpa may have created a justification
 			// for it since it does that periodically
@@ -575,7 +575,7 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let headers = vec![(1, false, false)];
-			let imported_headers = write_headers(&mut storage, headers);
+			let _imported_headers = write_headers(&mut storage, headers);
 
 			let set_id = 1;
 			let authorities = authority_list();
@@ -592,7 +592,7 @@ mod tests {
 			// Schedule a change at the height of our header
 			let set_id = 2;
 			let height = *header.number();
-			let authorities = vec![(2, 1)]; // TODO: Maybe change
+			let authorities = vec![alice()];
 			let change = schedule_next_change(authorities, set_id, height);
 			storage.schedule_next_set_change(change.clone());
 
@@ -672,7 +672,7 @@ mod tests {
 			// Schedule a change at height N
 			let set_id = 2;
 			let height = *header.number();
-			let authorities = vec![(1, 1)];
+			let authorities = vec![alice()];
 			let change = schedule_next_change(authorities, set_id, height);
 			storage.schedule_next_set_change(change.clone());
 

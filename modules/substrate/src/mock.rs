@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Mock Runtime for Substrate Pallet Testing.
+//!
+//! Includes some useful testing utilities in the `helpers` module.
+
 #![cfg(test)]
 
 use crate::Trait;
@@ -86,20 +90,12 @@ pub mod helpers {
 	use finality_grandpa::voter_set::VoterSet;
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
 	use sp_keyring::Ed25519Keyring;
-	use sp_runtime::testing::UintAuthorityId;
 	use sp_runtime::traits::Header as HeaderT;
 
 	pub type TestHeader = <TestRuntime as frame_system::Trait>::Header;
 	pub type TestNumber = <TestHeader as HeaderT>::Number;
 	pub type TestHash = <TestHeader as HeaderT>::Hash;
 	pub type HeaderId = (TestHash, TestNumber);
-
-	pub fn get_authorities(authorities: Vec<(u64, u64)>) -> AuthorityList {
-		authorities
-			.iter()
-			.map(|(id, weight)| (UintAuthorityId(*id).to_public_key::<AuthorityId>(), *weight))
-			.collect()
-	}
 
 	pub fn test_header(num: TestNumber) -> TestHeader {
 		let mut header = TestHeader::new_from_number(num);
@@ -127,10 +123,18 @@ pub mod helpers {
 	}
 
 	pub fn authority_list() -> AuthorityList {
-		vec![
-			(Ed25519Keyring::Alice.public().into(), 1),
-			(Ed25519Keyring::Bob.public().into(), 1),
-			(Ed25519Keyring::Charlie.public().into(), 1),
-		]
+		vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
+	}
+
+	pub fn alice() -> AuthorityId {
+		Ed25519Keyring::Alice.public().into()
+	}
+
+	pub fn bob() -> AuthorityId {
+		Ed25519Keyring::Bob.public().into()
+	}
+
+	pub fn charlie() -> AuthorityId {
+		Ed25519Keyring::Charlie.public().into()
 	}
 }
