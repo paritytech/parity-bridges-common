@@ -16,11 +16,18 @@
 
 //! Types used to connect to the Millau-Substrate chain.
 
-use crate::chain::Chain;
+use relay_substrate_client::Chain;
 
 /// Millau chain definition.
-pub type Millau = millau_runtime::Runtime;
+#[derive(Debug, Clone, Copy)]
+pub struct Millau;
 
 impl Chain for Millau {
+	type BlockNumber = millau_runtime::BlockNumber;
+	type Hash = millau_runtime::Hash;
+	type Header = millau_runtime::Header;
+	type AccountId = millau_runtime::AccountId;
+	type Index = millau_runtime::Index;
 	type SignedBlock = millau_runtime::SignedBlock;
+	type Call = rialto_runtime::Call;
 }

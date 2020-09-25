@@ -41,9 +41,8 @@ use substrate_sync_loop::SubstrateSyncParams;
 
 use headers_relay::sync::HeadersSyncParams;
 use relay_ethereum_client::{ConnectionParams as EthereumConnectionParams, SigningParams as EthereumSigningParams};
-use relay_substrate_client::{
-	rialto::SigningParams as RialtoSigningParams, ConnectionParams as SubstrateConnectionParams,
-};
+use relay_rialto_client::SigningParams as RialtoSigningParams;
+use relay_substrate_client::ConnectionParams as SubstrateConnectionParams;
 use std::{io::Write, sync::Arc};
 
 fn main() {

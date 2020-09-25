@@ -26,7 +26,7 @@ use relay_ethereum_client::{
 	types::{Address, CallRequest, HeaderId as EthereumHeaderId, Receipt, H256, U256},
 	Client as EthereumClient, Error as EthereumNodeError, SigningParams as EthereumSigningParams,
 };
-use relay_substrate_client::rialto::HeaderId as RialtoHeaderId;
+use relay_rialto_client::HeaderId as RialtoHeaderId;
 use relay_utils::{HeaderId, MaybeConnectionError};
 use sp_runtime::Justification;
 use std::collections::HashSet;

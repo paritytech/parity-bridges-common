@@ -23,8 +23,8 @@ use bp_eth_poa::AuraHeader as SubstrateEthereumHeader;
 use codec::{Decode, Encode};
 use headers_relay::sync_types::SubmittedHeaders;
 use relay_ethereum_client::types::HeaderId as EthereumHeaderId;
+use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{
-	rialto::{Rialto, SigningParams as RialtoSigningParams},
 	Client as SubstrateClient, TransactionSignScheme,
 };
 use relay_utils::HeaderId;

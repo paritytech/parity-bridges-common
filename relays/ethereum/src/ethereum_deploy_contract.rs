@@ -22,8 +22,8 @@ use num_traits::Zero;
 use relay_ethereum_client::{
 	Client as EthereumClient, ConnectionParams as EthereumConnectionParams, SigningParams as EthereumSigningParams,
 };
+use relay_rialto_client::{HeaderId as RialtoHeaderId, Rialto};
 use relay_substrate_client::{
-	rialto::{HeaderId as RialtoHeaderId, Rialto},
 	Client as SubstrateClient, ConnectionParams as SubstrateConnectionParams, OpaqueGrandpaAuthoritiesSet,
 };
 use relay_utils::HeaderId;

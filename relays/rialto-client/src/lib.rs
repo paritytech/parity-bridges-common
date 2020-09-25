@@ -16,11 +16,9 @@
 
 //! Types used to connect to the Rialto-Substrate chain.
 
-use crate::chain::{Chain, TransactionSignScheme};
-use crate::client::Client;
-
 use codec::Encode;
 use headers_relay::sync_types::SourceHeader;
+use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use sp_core::Pair;
 use sp_runtime::{
 	generic::SignedPayload,
@@ -31,10 +29,17 @@ use sp_runtime::{
 pub type HeaderId = relay_utils::HeaderId<rialto_runtime::Hash, rialto_runtime::BlockNumber>;
 
 /// Rialto chain definition
-pub type Rialto = rialto_runtime::Runtime;
+#[derive(Debug, Clone, Copy)]
+pub struct Rialto;
 
 impl Chain for Rialto {
+	type BlockNumber = rialto_runtime::BlockNumber;
+	type Hash = rialto_runtime::Hash;
+	type Header = rialto_runtime::Header;
+	type AccountId = rialto_runtime::AccountId;
+	type Index = rialto_runtime::Index;
 	type SignedBlock = rialto_runtime::SignedBlock;
+	type Call = rialto_runtime::Call;
 }
 
 impl TransactionSignScheme for Rialto {
@@ -45,19 +50,19 @@ impl TransactionSignScheme for Rialto {
 	fn sign_transaction(
 		client: &Client<Self>,
 		signer: &Self::AccountKeyPair,
-		signer_nonce: <Self::Chain as frame_system::Trait>::Index,
-		call: <Self::Chain as frame_system::Trait>::Call,
+		signer_nonce: <Self::Chain as Chain>::Index,
+		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(
 			call,
 			(
-				frame_system::CheckSpecVersion::<Rialto>::new(),
-				frame_system::CheckTxVersion::<Rialto>::new(),
-				frame_system::CheckGenesis::<Rialto>::new(),
-				frame_system::CheckEra::<Rialto>::from(sp_runtime::generic::Era::Immortal),
-				frame_system::CheckNonce::<Rialto>::from(signer_nonce),
-				frame_system::CheckWeight::<Rialto>::new(),
-				pallet_transaction_payment::ChargeTransactionPayment::<Rialto>::from(0),
+				frame_system::CheckSpecVersion::<rialto_runtime::Runtime>::new(),
+				frame_system::CheckTxVersion::<rialto_runtime::Runtime>::new(),
+				frame_system::CheckGenesis::<rialto_runtime::Runtime>::new(),
+				frame_system::CheckEra::<rialto_runtime::Runtime>::from(sp_runtime::generic::Era::Immortal),
+				frame_system::CheckNonce::<rialto_runtime::Runtime>::from(signer_nonce),
+				frame_system::CheckWeight::<rialto_runtime::Runtime>::new(),
+				pallet_transaction_payment::ChargeTransactionPayment::<rialto_runtime::Runtime>::from(0),
 			),
 			(
 				rialto_runtime::VERSION.spec_version,

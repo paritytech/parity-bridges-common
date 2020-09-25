@@ -33,8 +33,8 @@ use relay_ethereum_client::{
 	types::{HeaderHash, HeaderId as EthereumHeaderId, Receipt, SyncHeader as Header},
 	Client as EthereumClient, ConnectionParams as EthereumConnectionParams,
 };
+use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{
-	rialto::{Rialto, SigningParams as RialtoSigningParams},
 	Client as SubstrateClient, ConnectionParams as SubstrateConnectionParams,
 };
 use relay_utils::metrics::MetricsParams;
