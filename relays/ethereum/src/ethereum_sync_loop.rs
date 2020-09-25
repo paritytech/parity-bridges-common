@@ -34,9 +34,7 @@ use relay_ethereum_client::{
 	Client as EthereumClient, ConnectionParams as EthereumConnectionParams,
 };
 use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
-use relay_substrate_client::{
-	Client as SubstrateClient, ConnectionParams as SubstrateConnectionParams,
-};
+use relay_substrate_client::{Client as SubstrateClient, ConnectionParams as SubstrateConnectionParams};
 use relay_utils::metrics::MetricsParams;
 
 use std::fmt::Debug;

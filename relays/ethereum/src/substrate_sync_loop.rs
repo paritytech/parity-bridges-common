@@ -31,9 +31,7 @@ use relay_ethereum_client::{
 	SigningParams as EthereumSigningParams,
 };
 use relay_rialto_client::{HeaderId as RialtoHeaderId, Rialto, SyncHeader as RialtoSyncHeader};
-use relay_substrate_client::{
-	Client as SubstrateClient, ConnectionParams as SubstrateConnectionParams,
-};
+use relay_substrate_client::{Client as SubstrateClient, ConnectionParams as SubstrateConnectionParams};
 use relay_utils::metrics::MetricsParams;
 use sp_runtime::Justification;
 
