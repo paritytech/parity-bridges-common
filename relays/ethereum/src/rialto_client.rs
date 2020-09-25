@@ -31,10 +31,10 @@ use relay_utils::HeaderId;
 use sp_core::{crypto::Pair, Bytes};
 use std::{collections::VecDeque, sync::Arc};
 
-const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "RialtoHeaderApi_is_import_requires_receipts";
-const ETH_API_IS_KNOWN_BLOCK: &str = "RialtoHeaderApi_is_known_block";
-const ETH_API_BEST_BLOCK: &str = "RialtoHeaderApi_best_block";
-const ETH_API_BEST_FINALIZED_BLOCK: &str = "RialtoHeaderApi_finalized_block";
+const ETH_API_IMPORT_REQUIRES_RECEIPTS: &str = "RialtoPoAHeaderApi_is_import_requires_receipts";
+const ETH_API_IS_KNOWN_BLOCK: &str = "RialtoPoAHeaderApi_is_known_block";
+const ETH_API_BEST_BLOCK: &str = "RialtoPoAHeaderApi_best_block";
+const ETH_API_BEST_FINALIZED_BLOCK: &str = "RialtoPoAHeaderApi_finalized_block";
 const EXCH_API_FILTER_TRANSACTION_PROOF: &str = "RialtoCurrencyExchangeApi_filter_transaction_proof";
 
 type RpcResult<T> = std::result::Result<T, RpcError>;

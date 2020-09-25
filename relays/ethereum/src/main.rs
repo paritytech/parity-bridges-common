@@ -33,7 +33,7 @@ use ethereum_exchange_submit::EthereumExchangeSubmitParams;
 use ethereum_sync_loop::EthereumSyncParams;
 use headers_relay::sync::TargetTransactionMode;
 use hex_literal::hex;
-use instances::{BridgeInstance, Kovan, TestPoA};
+use instances::{BridgeInstance, Kovan, RialtoPoA};
 use parity_crypto::publickey::{KeyPair, Secret};
 use relay_utils::metrics::MetricsParams;
 use sp_core::crypto::Pair;
@@ -416,7 +416,7 @@ fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<MetricsParams>, S
 fn instance_params(matches: &clap::ArgMatches) -> Result<Arc<dyn BridgeInstance>, String> {
 	let instance = if let Some(instance) = matches.value_of("sub-pallet-instance") {
 		match instance.to_lowercase().as_str() {
-			"rialto" => Arc::new(TestPoA) as Arc<dyn BridgeInstance>,
+			"rialto" => Arc::new(RialtoPoA) as Arc<dyn BridgeInstance>,
 			"kovan" => Arc::new(Kovan),
 			_ => return Err("Unsupported bridge pallet instance".to_string()),
 		}
