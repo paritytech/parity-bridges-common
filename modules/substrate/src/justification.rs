@@ -205,13 +205,22 @@ pub(crate) mod tests {
 		(header(index).hash(), index as _)
 	}
 
+	fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
+		let mut raw_public = [0; 32];
+		raw_public.copy_from_slice(id.as_ref());
+		Ed25519Keyring::from_raw_public(raw_public).unwrap()
+	}
+
 	pub(crate) fn voter_set() -> VoterSet<AuthorityId> {
-		VoterSet::new(vec![
+		VoterSet::new(authority_list()).unwrap()
+	}
+
+	pub(crate) fn authority_list() -> AuthorityList {
+		vec![
 			(Ed25519Keyring::Alice.public().into(), 1),
 			(Ed25519Keyring::Bob.public().into(), 1),
 			(Ed25519Keyring::Charlie.public().into(), 1),
-		])
-		.unwrap()
+		]
 	}
 
 	pub(crate) fn signed_precommit(
@@ -247,10 +256,9 @@ pub(crate) mod tests {
 		let mut precommits = vec![];
 		let mut votes_ancestries = vec![];
 
-		// I'm using the name header for all the voters since it doesn't matter as long
+		// I'm using the same header for all the voters since it doesn't matter as long
 		// as they all vote on blocks _ahead_ of the one we're interested in finalizing
 		for (id, _weight) in authorities {
-			dbg!(&id);
 			let signer = extract_keyring(&id);
 			let precommit = signed_precommit(signer, header_id(header_index + 1), round, set_id);
 			precommits.push(precommit);
@@ -258,7 +266,7 @@ pub(crate) mod tests {
 		}
 
 		GrandpaJustification {
-			round: TEST_GRANDPA_ROUND,
+			round,
 			commit: finality_grandpa::Commit {
 				target_hash,
 				target_number,
@@ -267,38 +275,9 @@ pub(crate) mod tests {
 			votes_ancestries,
 		}
 	}
-	// TODO: Remove comment
-	// A justification is made up of Commits. A Commit is made up from a series
-	// of PreCommits. PreCommits are made up from a series of PreVotes.
+
 	pub(crate) fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
-		GrandpaJustification {
-			round: TEST_GRANDPA_ROUND,
-			commit: finality_grandpa::Commit {
-				target_hash: header_id(1).0,
-				target_number: header_id(1).1,
-				precommits: vec![
-					signed_precommit(
-						Ed25519Keyring::Alice,
-						header_id(2),
-						TEST_GRANDPA_ROUND,
-						TEST_GRANDPA_SET_ID,
-					),
-					signed_precommit(
-						Ed25519Keyring::Bob,
-						header_id(3),
-						TEST_GRANDPA_ROUND,
-						TEST_GRANDPA_SET_ID,
-					),
-					signed_precommit(
-						Ed25519Keyring::Charlie,
-						header_id(4),
-						TEST_GRANDPA_ROUND,
-						TEST_GRANDPA_SET_ID,
-					),
-				],
-			},
-			votes_ancestries: vec![header(2), header(3), header(4)],
-		}
+		make_justification_for_header(1u8, TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &authority_list())
 	}
 
 	#[test]
@@ -363,33 +342,6 @@ pub(crate) mod tests {
 				TEST_GRANDPA_SET_ID,
 				voter_set(),
 				&make_justification_for_header_1().encode(),
-			),
-			Ok(()),
-		);
-	}
-
-	pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
-		let mut raw_public = [0; 32];
-		raw_public.copy_from_slice(id.as_ref());
-		Ed25519Keyring::from_raw_public(raw_public).unwrap()
-	}
-
-	#[test]
-	fn valid_justification_accepted_for_another_header() {
-		use sp_runtime::testing::UintAuthorityId;
-		let authority_list: AuthorityList = vec![(1, 1)]
-			.iter()
-			.map(|(id, weight)| (UintAuthorityId(*id).to_public_key::<AuthorityId>(), *weight))
-			.collect();
-		let justification =
-			make_justification_for_header(1, TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &authority_list).encode();
-
-		assert_eq!(
-			verify_justification::<TestHeader>(
-				header_id(1),
-				TEST_GRANDPA_SET_ID,
-				VoterSet::new(authority_list).expect("TODO"),
-				&justification,
 			),
 			Ok(()),
 		);

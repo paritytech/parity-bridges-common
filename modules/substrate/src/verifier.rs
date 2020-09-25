@@ -526,35 +526,21 @@ mod tests {
 			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = imported_headers[1].hash();
 
-			use sp_keyring::Ed25519Keyring;
-
-			// TODO: Would it be better for me to store VoterSets, or simply
-			// keep the AuthorityList I have now?
-			let authorities = vec![
-				(Ed25519Keyring::Alice.public().into(), 1),
-				(Ed25519Keyring::Bob.public().into(), 1),
-				(Ed25519Keyring::Charlie.public().into(), 1),
-			];
-
-			let authority_set = AuthoritySet { authorities, set_id: 1 };
+			let set_id = 1;
+			let authorities = authority_list();
+			let authority_set = AuthoritySet {
+				authorities: authorities.clone(),
+				set_id,
+			};
 			storage.update_current_authority_set(authority_set);
 
-			let new_authorities = vec![(Ed25519Keyring::Alice.public().into(), 1)];
-			let authority_set = AuthoritySet {
-				authorities: new_authorities,
-				set_id: 2,
-			};
-			let scheduled_change = ScheduledChange {
-				authority_set,
-				height: 1,
-			};
-			storage.schedule_next_set_change(scheduled_change);
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
 
 			let mut verifier = Verifier {
 				storage: storage.clone(),
 			};
-
-			let justification = make_justification_for_header_1().encode();
 
 			assert_ok!(verifier.import_header(header.clone()));
 			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
@@ -572,11 +558,25 @@ mod tests {
 			let mut header = TestHeader::new_from_number(3);
 			header.parent_hash = imported_headers[2].hash();
 
+			let set_id = 1;
+			let authorities = authority_list();
+			let authority_set = AuthoritySet {
+				authorities: authorities.clone(),
+				set_id,
+			};
+			storage.update_current_authority_set(authority_set);
+
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
+
 			let mut verifier = Verifier {
 				storage: storage.clone(),
 			};
 			assert!(verifier.import_header(header.clone()).is_ok());
-			assert!(verifier.import_finality_proof(header.hash(), vec![4, 2].into()).is_ok());
+			assert!(verifier
+				.import_finality_proof(header.hash(), justification.into())
+				.is_ok());
 
 			// Make sure we marked the our headers as finalized
 			assert!(storage.header_by_hash(imported_headers[1].hash()).unwrap().is_finalized);
@@ -595,19 +595,23 @@ mod tests {
 			let headers = vec![(1, false, false)];
 			let imported_headers = write_headers(&mut storage, headers);
 
-			let set_id = 0;
-			let authorities = get_authorities(vec![(1, 1)]);
-			let initial_authority_set = AuthoritySet::new(authorities, set_id);
+			let set_id = 1;
+			let authorities = authority_list();
+			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
 			storage.update_current_authority_set(initial_authority_set);
 
 			// This header enacts an authority set change upon finalization
 			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = imported_headers[1].hash();
 
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
+
 			// Schedule a change at the height of our header
-			let set_id = 1;
+			let set_id = 2;
 			let height = *header.number();
-			let authorities = vec![(2, 1)];
+			let authorities = vec![(2, 1)]; // TODO: Maybe change
 			let change = schedule_next_change(authorities, set_id, height);
 			storage.schedule_next_set_change(change.clone());
 
@@ -616,7 +620,7 @@ mod tests {
 			};
 
 			assert_ok!(verifier.import_header(header.clone()));
-			assert_ok!(verifier.import_finality_proof(header.hash(), vec![4, 2].into()));
+			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
 			assert_eq!(storage.best_finalized_header().header, header);
 
 			// Make sure that we have updated the set now that we've finalized our header
@@ -670,12 +674,23 @@ mod tests {
 			let headers = vec![(1, false, false)];
 			let imported_headers = write_headers(&mut storage, headers);
 
+			// Set up our initial authority set
+			let set_id = 1;
+			let authorities = authority_list();
+			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			storage.update_current_authority_set(initial_authority_set);
+
 			// This is header N
 			let mut header = TestHeader::new_from_number(2);
 			header.parent_hash = imported_headers[1].hash();
 
+			// Since we want to finalize N we need a justification for it
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
+
 			// Schedule a change at height N
-			let set_id = 1;
+			let set_id = 2;
 			let height = *header.number();
 			let authorities = vec![(1, 1)];
 			let change = schedule_next_change(authorities, set_id, height);
@@ -704,7 +719,9 @@ mod tests {
 
 			// Even though we're a few headers ahead we should still be able to import
 			// a justification for header N
-			assert!(verifier.import_finality_proof(header.hash(), vec![4, 2].into()).is_ok());
+			assert!(verifier
+				.import_finality_proof(header.hash(), justification.into())
+				.is_ok());
 
 			// Some checks to make sure that our header has been correctly finalized
 			let finalized_header = storage.header_by_hash(header.hash()).unwrap();
