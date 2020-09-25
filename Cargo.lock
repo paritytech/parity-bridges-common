@@ -639,8 +639,10 @@ dependencies = [
 name = "bp-message-lane"
 version = "0.1.0"
 dependencies = [
+ "frame-support",
  "parity-scale-codec",
  "sp-api",
+ "sp-std",
 ]
 
 [[package]]
@@ -4048,7 +4050,9 @@ dependencies = [
 name = "pallet-message-lane"
 version = "0.1.0"
 dependencies = [
+ "bp-message-dispatch",
  "bp-message-lane",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
