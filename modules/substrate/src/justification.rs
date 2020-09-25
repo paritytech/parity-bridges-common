@@ -223,7 +223,7 @@ pub(crate) mod tests {
 			let signer = extract_keyring(&id);
 			let precommit = signed_precommit(signer, header_id(header_index + 1), round, set_id);
 			precommits.push(precommit);
-			votes_ancestries.push(header((header_index + 1).into()));
+			votes_ancestries.push(test_header((header_index + 1).into()));
 		}
 
 		GrandpaJustification {
@@ -287,7 +287,7 @@ pub(crate) mod tests {
 	#[test]
 	fn justification_with_invalid_precommit_ancestry() {
 		let mut justification = make_justification_for_header_1();
-		justification.votes_ancestries.push(header(10));
+		justification.votes_ancestries.push(test_header(10));
 
 		assert_eq!(
 			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),

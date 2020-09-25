@@ -101,19 +101,19 @@ pub mod helpers {
 			.collect()
 	}
 
-	pub fn header(num: TestNumber) -> TestHeader {
-		let mut test_header = TestHeader::new_from_number(num);
-		test_header.parent_hash = if num == 0 {
+	pub fn test_header(num: TestNumber) -> TestHeader {
+		let mut header = TestHeader::new_from_number(num);
+		header.parent_hash = if num == 0 {
 			Default::default()
 		} else {
-			header(num - 1).hash()
+			test_header(num - 1).hash()
 		};
 
-		test_header
+		header
 	}
 
 	pub fn header_id(index: u8) -> HeaderId {
-		(header(index.into()).hash(), index as _)
+		(test_header(index.into()).hash(), index as _)
 	}
 
 	pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {

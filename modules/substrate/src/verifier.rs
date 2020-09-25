@@ -307,7 +307,7 @@ mod tests {
 
 	fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
 		ImportedHeader {
-			header: TestHeader::new_from_number(num),
+			header: test_header(num),
 			requires_justification: false,
 			is_finalized: false,
 		}
@@ -329,7 +329,7 @@ mod tests {
 	) -> Vec<ImportedHeader<TestHeader>> {
 		let mut imported_headers = vec![];
 		let genesis = ImportedHeader {
-			header: TestHeader::new_from_number(0),
+			header: test_header(0),
 			requires_justification: false,
 			is_finalized: true,
 		};
@@ -339,11 +339,8 @@ mod tests {
 		imported_headers.push(genesis);
 
 		for (num, requires_justification, is_finalized) in headers {
-			let mut h = TestHeader::new_from_number(num);
-			h.parent_hash = imported_headers.last().unwrap().hash();
-
 			let header = ImportedHeader {
-				header: h,
+				header: test_header(num),
 				requires_justification,
 				is_finalized,
 			};
@@ -363,7 +360,7 @@ mod tests {
 			storage.write_header(&parent);
 			storage.update_best_finalized(parent.hash());
 
-			let header = TestHeader::new_from_number(1);
+			let header = test_header(1);
 			let mut verifier = Verifier { storage };
 			assert_err!(verifier.import_header(header), ImportError::OldHeader);
 		})
@@ -389,7 +386,7 @@ mod tests {
 	fn fails_to_import_header_twice() {
 		run_test(|| {
 			let storage = PalletStorage::<TestRuntime>::new();
-			let header = TestHeader::new_from_number(1);
+			let header = test_header(1);
 			<BestFinalized<TestRuntime>>::put(header.hash());
 
 			let imported_header = ImportedHeader {
@@ -408,7 +405,7 @@ mod tests {
 	fn succesfully_imports_valid_but_unfinalized_header() {
 		run_test(|| {
 			let storage = PalletStorage::<TestRuntime>::new();
-			let parent = TestHeader::new_from_number(1);
+			let parent = test_header(1);
 			let parent_hash = parent.hash();
 			<BestFinalized<TestRuntime>>::put(parent.hash());
 
@@ -419,8 +416,7 @@ mod tests {
 			};
 			<ImportedHeaders<TestRuntime>>::insert(parent_hash, &imported_header);
 
-			let mut header = TestHeader::new_from_number(2);
-			header.parent_hash = parent_hash;
+			let header = test_header(2);
 			let mut verifier = Verifier {
 				storage: storage.clone(),
 			};
@@ -466,7 +462,7 @@ mod tests {
 
 			// Need to give it a different parent_hash or else it'll be
 			// related to our test genesis header
-			let mut bad_ancestor = TestHeader::new_from_number(0);
+			let mut bad_ancestor = test_header(0);
 			bad_ancestor.parent_hash = [1u8; 32].into();
 			let bad_ancestor = ImportedHeader {
 				header: bad_ancestor,
@@ -492,7 +488,7 @@ mod tests {
 			}
 
 			// What if we have an "ancestor" that's newer than child?
-			let new_ancestor = TestHeader::new_from_number(5);
+			let new_ancestor = test_header(5);
 			let new_ancestor = ImportedHeader {
 				header: new_ancestor,
 				requires_justification: false,
@@ -514,8 +510,7 @@ mod tests {
 
 			// Nothing special about this header, yet Grandpa may have created a justification
 			// for it since it does that periodically
-			let mut header = TestHeader::new_from_number(2);
-			header.parent_hash = imported_headers[1].hash();
+			let header = test_header(2);
 
 			let set_id = 1;
 			let authorities = authority_list();
@@ -543,9 +538,7 @@ mod tests {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let headers = vec![(1, false, false), (2, false, false)];
 			let imported_headers = write_headers(&mut storage, headers);
-
-			let mut header = TestHeader::new_from_number(3);
-			header.parent_hash = imported_headers[2].hash();
+			let header = test_header(3);
 
 			let set_id = 1;
 			let authorities = authority_list();
@@ -590,8 +583,7 @@ mod tests {
 			storage.update_current_authority_set(initial_authority_set);
 
 			// This header enacts an authority set change upon finalization
-			let mut header = TestHeader::new_from_number(2);
-			header.parent_hash = imported_headers[1].hash();
+			let header = test_header(2);
 
 			let grandpa_round = 1;
 			let justification =
@@ -621,7 +613,7 @@ mod tests {
 	fn importing_finality_proof_for_already_finalized_header_doesnt_work() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let genesis = TestHeader::new_from_number(0);
+			let genesis = test_header(0);
 
 			let genesis = ImportedHeader {
 				header: genesis,
@@ -670,8 +662,7 @@ mod tests {
 			storage.update_current_authority_set(initial_authority_set);
 
 			// This is header N
-			let mut header = TestHeader::new_from_number(2);
-			header.parent_hash = imported_headers[1].hash();
+			let header = test_header(2);
 
 			// Since we want to finalize N we need a justification for it
 			let grandpa_round = 1;
@@ -698,12 +689,10 @@ mod tests {
 			);
 
 			// Now we want to import some headers which are past N
-			let mut child = TestHeader::new_from_number(*header.number() + 1);
-			child.parent_hash = header.hash();
+			let child = test_header(*header.number() + 1);
 			assert!(verifier.import_header(child.clone()).is_ok());
 
-			let mut grandchild = TestHeader::new_from_number(*child.number() + 1);
-			grandchild.parent_hash = child.hash();
+			let grandchild = test_header(*child.number() + 1);
 			assert!(verifier.import_header(grandchild).is_ok());
 
 			// Even though we're a few headers ahead we should still be able to import
