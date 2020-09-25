@@ -122,6 +122,6 @@ impl SourceHeader<rialto_runtime::Hash, rialto_runtime::BlockNumber> for SyncHea
 	}
 
 	fn parent_id(&self) -> HeaderId {
-		relay_utils::HeaderId(*self.number(), *self.parent_hash())
+		relay_utils::HeaderId(*self.number() - 1, *self.parent_hash())
 	}
 }
