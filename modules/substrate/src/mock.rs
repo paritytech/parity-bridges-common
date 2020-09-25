@@ -73,12 +73,10 @@ impl frame_system::Trait for TestRuntime {
 }
 
 impl Trait for TestRuntime {
-	type BridgedBlockNumber = u64;
-	type BridgedBlockHash = H256;
-	type BridgedBlockHasher = BlakeTwo256;
-	type BridgedHeader = Header;
-	// TODO: Figure out why this doesn't work
-	// type BridgedHeader = sp_runtime::generic::Header<Self::BridgedBlockNumber, Self::BridgedBlockHash>;
+	type BridgedHeader = <Self as frame_system::Trait>::Header;
+	type BridgedBlockNumber = <Self as frame_system::Trait>::BlockNumber;
+	type BridgedBlockHash = <Self as frame_system::Trait>::Hash;
+	type BridgedBlockHasher = <Self as frame_system::Trait>::Hashing;
 }
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
@@ -90,11 +88,10 @@ pub mod helpers {
 	use finality_grandpa::voter_set::VoterSet;
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
 	use sp_keyring::Ed25519Keyring;
-	use sp_runtime::traits::Header as HeaderT;
 
-	pub type TestHeader = <TestRuntime as frame_system::Trait>::Header;
-	pub type TestNumber = <TestHeader as HeaderT>::Number;
-	pub type TestHash = <TestHeader as HeaderT>::Hash;
+	pub type TestHeader = <TestRuntime as Trait>::BridgedHeader;
+	pub type TestNumber = <TestRuntime as Trait>::BridgedBlockNumber;
+	pub type TestHash = <TestRuntime as Trait>::BridgedBlockHash;
 	pub type HeaderId = (TestHash, TestNumber);
 
 	pub fn test_header(num: TestNumber) -> TestHeader {
