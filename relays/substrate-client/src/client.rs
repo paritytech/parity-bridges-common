@@ -40,7 +40,6 @@ pub struct Client<C: Chain> {
 	genesis_hash: C::Hash,
 }
 
-#[cfg(feature = "std")]
 impl<C: Chain> std::fmt::Debug for Client<C> {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
 		f.debug_struct("Client")
