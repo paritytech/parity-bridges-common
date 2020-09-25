@@ -164,7 +164,7 @@ struct SubstrateHeadersTarget {
 	sign_transactions: bool,
 	/// Substrate signing params.
 	sign_params: RialtoSigningParams,
-	/// Bridge instance used in eth2sub sync.
+	/// Bridge instance used in Ethereum to Substrate sync.
 	bridge_instance: Arc<dyn BridgeInstance>,
 }
 
