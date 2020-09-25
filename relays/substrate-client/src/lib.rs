@@ -23,21 +23,9 @@ mod client;
 mod error;
 mod rpc;
 
-#[cfg(feature = "millau")]
-pub mod millau;
-
-#[cfg(feature = "rialto")]
-pub mod rialto;
-
 pub use crate::chain::{Chain, TransactionSignScheme};
 pub use crate::client::{Client, OpaqueGrandpaAuthoritiesSet};
 pub use crate::error::{Error, Result};
-
-#[cfg(feature = "millau")]
-pub use crate::millau::Millau;
-
-#[cfg(feature = "rialto")]
-pub use crate::rialto::Rialto;
 
 /// Substrate connection params.
 #[derive(Debug, Clone)]
