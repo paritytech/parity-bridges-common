@@ -50,9 +50,19 @@ mod verifier;
 #[cfg(test)]
 mod mock;
 
-// TODO: There's gotta be a better way to fulfil the idea of what
-// a Substrate header should be...
 pub trait Trait: frame_system::Trait {
+	/// A type that fulfulls the abstract idea of what a Substrate header is.
+	// See here for more info:
+	// https://crates.parity.io/sp_runtime/traits/trait.Header.html
+	type BridgedHeader: HeaderT<Number = Self::BridgedBlockNumber, Hash = Self::BridgedBlockHash>;
+
+	/// A type that fulfills the abstract idea of what a Substrate block number is.
+	// Constraits come from the associated Number type of `sp_runtime::traits::Header`
+	// See here for more info:
+	// https://crates.parity.io/sp_runtime/traits/trait.Header.html#associatedtype.Number
+	//
+	// Note that the `AsPrimitive<usize>` trait is required by the Grandpa justification
+	// verifier, and is not usually part of a Substrate Header's Number type.
 	type BridgedBlockNumber: Member
 		+ MaybeSerializeDeserialize
 		+ Debug
@@ -64,6 +74,11 @@ pub trait Trait: frame_system::Trait {
 		+ FromStr
 		+ MaybeMallocSizeOf
 		+ AsPrimitive<usize>;
+
+	/// A type that fulfills the abstract idea of what a Substrate hash is.
+	// Constraits come from the associated Hash type of `sp_runtime::traits::Header`
+	// See here for more info:
+	// https://crates.parity.io/sp_runtime/traits/trait.Header.html#associatedtype.Hash
 	type BridgedBlockHash: Member
 		+ MaybeSerializeDeserialize
 		+ Debug
@@ -78,8 +93,13 @@ pub trait Trait: frame_system::Trait {
 		+ AsMut<[u8]>
 		+ MaybeMallocSizeOf
 		+ EncodeLike;
+
+	/// A type that fulfills the abstract idea of what a Substrate hasher (a type
+	/// that produces hashes) is.
+	// Constraits come from the associated Hashing type of `sp_runtime::traits::Header`
+	// See here for more info:
+	// https://crates.parity.io/sp_runtime/traits/trait.Header.html#associatedtype.Hashing
 	type BridgedBlockHasher: HashT;
-	type BridgedHeader: HeaderT<Number = Self::BridgedBlockNumber, Hash = Self::BridgedBlockHash>;
 }
 
 decl_storage! {
