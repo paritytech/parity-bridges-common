@@ -80,3 +80,57 @@ impl Trait for TestRuntime {
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
 }
+
+pub mod helpers {
+	use super::*;
+	use finality_grandpa::voter_set::VoterSet;
+	use sp_finality_grandpa::{AuthorityId, AuthorityList};
+	use sp_keyring::Ed25519Keyring;
+	use sp_runtime::testing::UintAuthorityId;
+	use sp_runtime::traits::Header as HeaderT;
+
+	pub type TestHeader = <TestRuntime as frame_system::Trait>::Header;
+	pub type TestNumber = <TestHeader as HeaderT>::Number;
+	pub type TestHash = <TestHeader as HeaderT>::Hash;
+	pub type HeaderId = (TestHash, TestNumber);
+
+	pub fn get_authorities(authorities: Vec<(u64, u64)>) -> AuthorityList {
+		authorities
+			.iter()
+			.map(|(id, weight)| (UintAuthorityId(*id).to_public_key::<AuthorityId>(), *weight))
+			.collect()
+	}
+
+	pub fn header(num: TestNumber) -> TestHeader {
+		let mut test_header = TestHeader::new_from_number(num);
+		test_header.parent_hash = if num == 0 {
+			Default::default()
+		} else {
+			header(num - 1).hash()
+		};
+
+		test_header
+	}
+
+	pub fn header_id(index: u8) -> HeaderId {
+		(header(index.into()).hash(), index as _)
+	}
+
+	pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
+		let mut raw_public = [0; 32];
+		raw_public.copy_from_slice(id.as_ref());
+		Ed25519Keyring::from_raw_public(raw_public).unwrap()
+	}
+
+	pub fn voter_set() -> VoterSet<AuthorityId> {
+		VoterSet::new(authority_list()).unwrap()
+	}
+
+	pub fn authority_list() -> AuthorityList {
+		vec![
+			(Ed25519Keyring::Alice.public().into(), 1),
+			(Ed25519Keyring::Bob.public().into(), 1),
+			(Ed25519Keyring::Charlie.public().into(), 1),
+		]
+	}
+}

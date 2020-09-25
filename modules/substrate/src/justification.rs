@@ -175,53 +175,14 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
+	use crate::mock::helpers::*;
 	use codec::Encode;
 	use sp_core::H256;
 	use sp_finality_grandpa::AuthorityList;
 	use sp_keyring::Ed25519Keyring;
-	use sp_runtime::traits::BlakeTwo256;
 
 	const TEST_GRANDPA_ROUND: u64 = 1;
 	const TEST_GRANDPA_SET_ID: SetId = 1;
-
-	type TestHeader = sp_runtime::generic::Header<u64, BlakeTwo256>;
-	type HeaderId = (H256, u64);
-
-	fn header(index: u8) -> TestHeader {
-		TestHeader::new(
-			index as _,
-			Default::default(),
-			Default::default(),
-			if index == 0 {
-				Default::default()
-			} else {
-				header(index - 1).hash()
-			},
-			Default::default(),
-		)
-	}
-
-	fn header_id(index: u8) -> HeaderId {
-		(header(index).hash(), index as _)
-	}
-
-	fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
-		let mut raw_public = [0; 32];
-		raw_public.copy_from_slice(id.as_ref());
-		Ed25519Keyring::from_raw_public(raw_public).unwrap()
-	}
-
-	pub(crate) fn voter_set() -> VoterSet<AuthorityId> {
-		VoterSet::new(authority_list()).unwrap()
-	}
-
-	pub(crate) fn authority_list() -> AuthorityList {
-		vec![
-			(Ed25519Keyring::Alice.public().into(), 1),
-			(Ed25519Keyring::Bob.public().into(), 1),
-			(Ed25519Keyring::Charlie.public().into(), 1),
-		]
-	}
 
 	pub(crate) fn signed_precommit(
 		signer: Ed25519Keyring,
@@ -262,7 +223,7 @@ pub(crate) mod tests {
 			let signer = extract_keyring(&id);
 			let precommit = signed_precommit(signer, header_id(header_index + 1), round, set_id);
 			precommits.push(precommit);
-			votes_ancestries.push(header(header_index + 1));
+			votes_ancestries.push(header((header_index + 1).into()));
 		}
 
 		GrandpaJustification {

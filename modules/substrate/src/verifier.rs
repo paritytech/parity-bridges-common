@@ -195,6 +195,7 @@ where
 			&proof.0,
 		)
 		.map_err(|_| FinalizationError::InvalidJustification)?;
+		frame_support::debug::trace!(target: "sub-bridge", "Recieved valid justification for {:?}", header);
 
 		frame_support::debug::trace!(target: "sub-bridge", "Checking ancestry for headers between {:?} and {:?}", last_finalized, header);
 		let mut finalized_headers =
@@ -295,6 +296,7 @@ fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::
 mod tests {
 	use super::*;
 	use crate::justification::tests::*;
+	use crate::mock::helpers::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, ImportedHeaders, PalletStorage};
 	use codec::Encode;
@@ -303,9 +305,6 @@ mod tests {
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
 	use sp_runtime::testing::UintAuthorityId;
 
-	type TestHeader = <TestRuntime as frame_system::Trait>::Header;
-	type TestNumber = <TestHeader as HeaderT>::Number;
-
 	fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
 		ImportedHeader {
 			header: TestHeader::new_from_number(num),
@@ -313,14 +312,6 @@ mod tests {
 			is_finalized: false,
 		}
 	}
-
-	fn get_authorities(authorities: Vec<(u64, u64)>) -> AuthorityList {
-		authorities
-			.iter()
-			.map(|(id, weight)| (UintAuthorityId(*id).to_public_key::<AuthorityId>(), *weight))
-			.collect()
-	}
-
 	fn schedule_next_change(
 		authorities: Vec<(u64, u64)>,
 		set_id: u64,
@@ -528,12 +519,10 @@ mod tests {
 
 			let set_id = 1;
 			let authorities = authority_list();
-			let authority_set = AuthoritySet {
-				authorities: authorities.clone(),
-				set_id,
-			};
+			let authority_set = AuthoritySet::new(authorities.clone(), set_id);
 			storage.update_current_authority_set(authority_set);
 
+			// We'll need this justification to finalize the header
 			let grandpa_round = 1;
 			let justification =
 				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
