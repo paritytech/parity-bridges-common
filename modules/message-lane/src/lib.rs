@@ -239,14 +239,11 @@ decl_module! {
 			})?;
 
 			// verify that relayer is paying actual dispatch weight
-			//
-			// strict equality is used here, because we do not want relayer to declare more weight than
-			// it is necessary => blocking other transactions from being included into this block
 			let actual_dispatch_weight: Weight = messages
 				.iter()
 				.map(T::MessageDispatch::dispatch_weight)
 				.sum();
-			if dispatch_weight != actual_dispatch_weight {
+			if dispatch_weight < actual_dispatch_weight {
 				frame_support::debug::trace!(
 					target: "runtime",
 					"Rejecting messages proof because of dispatch weight mismatch: declared={}, expected={}",
