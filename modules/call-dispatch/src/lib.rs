@@ -46,10 +46,6 @@ use sp_std::{marker::PhantomData, prelude::*};
 /// Spec version type.
 pub type SpecVersion = u32;
 
-// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Weight of single deposit_event() call.
-const DEPOSIT_EVENT_WEIGHT: Weight = 0;
-
 /// Origin of the call on the target chain.
 #[derive(RuntimeDebug, Encode, Decode, Clone)]
 pub enum CallOrigin<SourceChainAccountPublic, TargetChainAccountPublic, TargetChainSignature> {
@@ -150,7 +146,7 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 	>;
 
 	fn dispatch_weight(message: &Self::Message) -> Weight {
-		message.1
+		message.weight
 	}
 
 	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Self::Message) {
@@ -214,7 +210,7 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 						target_signature,
 					);
 					Self::deposit_event(RawEvent::MessageSignatureMismatch(bridge, id));
-					return DEPOSIT_EVENT_WEIGHT;
+					return;
 				}
 
 				target_account
@@ -230,7 +226,7 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			bridge,
 			id,
 			actual_call_weight,
-			weight,
+			message.weight,
 			dispatch_result,
 		);
 
