@@ -20,4 +20,3 @@ frame-system = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://githu
 sp-core = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://github.com/paritytech/substrate.git" }
 sp-runtime = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://github.com/paritytech/substrate.git" }
 sp-std = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://github.com/paritytech/substrate.git" }
-
