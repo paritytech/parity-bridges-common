@@ -19,8 +19,9 @@
 //! 1) relay new messages from source to target node;
 //! 2) relay proof-of-delivery from target to source node.
 
-use crate::utils::HeaderId;
+use relay_utils::HeaderId;
 
+use num_traits::{One, Zero};
 use std::fmt::Debug;
 
 /// One-way message lane.
@@ -31,10 +32,20 @@ pub trait MessageLane {
 	const TARGET_NAME: &'static str;
 
 	/// Message nonce type.
-	type MessageNonce: Clone + Copy + Debug + Default + From<u32> + Ord + std::ops::Add<Output = Self::MessageNonce>;
+	type MessageNonce: Clone
+		+ Copy
+		+ Debug
+		+ Default
+		+ From<u32>
+		+ Ord
+		+ std::ops::Add<Output = Self::MessageNonce>
+		+ One
+		+ Zero;
 
 	/// Messages proof.
 	type MessagesProof: Clone;
+	/// Messages receiving proof.
+	type MessagesReceivingProof: Clone;
 
 	/// Number of the source header.
 	type SourceHeaderNumber: Clone + Debug + Default + Ord + PartialEq;

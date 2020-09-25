@@ -286,27 +286,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-stream"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3670df70cbc01729f901f94c887814b3c68db038aad1329a418bae178bc5295c"
-dependencies = [
- "async-stream-impl",
- "futures-core",
-]
-
-[[package]]
-name = "async-stream-impl"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3548b8efc9f8e8a5a0a2808c5bd8451a9031b9e5b879a79590304ae928b0a70"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "async-task"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -672,6 +651,16 @@ version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
  "sp-io",
+]
+
+[[package]]
+name = "bp-substrate"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "serde",
+ "sp-finality-grandpa",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -1321,9 +1310,7 @@ version = "0.1.0"
 dependencies = [
  "ansi_term 0.12.1",
  "async-std",
- "async-stream",
  "async-trait",
- "backoff",
  "bp-currency-exchange",
  "bp-eth-poa",
  "clap",
@@ -1331,31 +1318,30 @@ dependencies = [
  "ethabi",
  "ethabi-contract",
  "ethabi-derive",
- "ethereum-tx-sign",
+ "exchange-relay",
  "frame-system",
  "futures 0.3.5",
+ "headers-relay",
  "hex",
  "hex-literal 0.3.1",
  "jsonrpsee",
- "linked-hash-map",
  "log",
+ "messages-relay",
  "node-primitives",
  "num-traits",
  "pallet-transaction-payment",
  "parity-crypto",
  "parity-scale-codec",
- "parking_lot 0.11.0",
+ "relay-ethereum-client",
+ "relay-utils",
  "rialto-runtime",
- "rustc-hex",
  "serde",
  "serde_json",
  "sp-core",
  "sp-keyring",
  "sp-runtime",
  "substrate-prometheus-endpoint",
- "sysinfo",
- "time 0.2.19",
- "web3",
+ "time 0.2.20",
 ]
 
 [[package]]
@@ -1393,6 +1379,20 @@ name = "event-listener"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "829694371bd7bbc6aee17c4ff624aad8bf9f4dc06c6f9f6071eaa08c89530d10"
+
+[[package]]
+name = "exchange-relay"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "async-trait",
+ "backoff",
+ "futures 0.3.5",
+ "log",
+ "num-traits",
+ "parking_lot 0.11.0",
+ "relay-utils",
+]
 
 [[package]]
 name = "exit-future"
@@ -2119,6 +2119,21 @@ checksum = "34f595585f103464d8d2f6e9864682d74c1601fed5e07d62b1c9058dba8246fb"
 dependencies = [
  "ahash 0.3.8",
  "autocfg 1.0.0",
+]
+
+[[package]]
+name = "headers-relay"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "async-trait",
+ "backoff",
+ "futures 0.3.5",
+ "linked-hash-map",
+ "log",
+ "num-traits",
+ "parking_lot 0.11.0",
+ "relay-utils",
 ]
 
 [[package]]
@@ -3439,6 +3454,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "messages-relay"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "async-trait",
+ "futures 0.3.5",
+ "log",
+ "num-traits",
+ "parking_lot 0.11.0",
+ "relay-utils",
+]
+
+[[package]]
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
@@ -4106,11 +4134,21 @@ dependencies = [
 name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
+ "bp-substrate",
+ "finality-grandpa",
+ "frame-support",
+ "frame-system",
  "hash-db",
+ "parity-scale-codec",
  "serde",
  "sp-core",
+ "sp-finality-grandpa",
+ "sp-io",
+ "sp-keyring",
  "sp-runtime",
  "sp-state-machine",
+ "sp-std",
  "sp-trie",
 ]
 
@@ -5029,6 +5067,33 @@ name = "regex-syntax"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26412eb97c6b088a6997e05f69403a802a92d520de2f8e63c2b65f9e0f47c4e8"
+
+[[package]]
+name = "relay-ethereum-client"
+version = "0.1.0"
+dependencies = [
+ "ethereum-tx-sign",
+ "headers-relay",
+ "hex",
+ "jsonrpsee",
+ "log",
+ "parity-crypto",
+ "parity-scale-codec",
+ "relay-utils",
+ "web3",
+]
+
+[[package]]
+name = "relay-utils"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "backoff",
+ "futures 0.3.5",
+ "log",
+ "substrate-prometheus-endpoint",
+ "sysinfo",
+]
 
 [[package]]
 name = "remove_dir_all"
@@ -7059,9 +7124,9 @@ checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 
 [[package]]
 name = "standback"
-version = "0.2.9"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0437cfb83762844799a60e1e3b489d5ceb6a650fbacb86437badc1b6d87b246"
+checksum = "33a71ea1ea5f8747d1af1979bfb7e65c3a025a70609f04ceb78425bc5adad8e6"
 dependencies = [
  "version_check",
 ]
@@ -7506,9 +7571,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.19"
+version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80c1a1fd93112fc50b11c43a1def21f926be3c18884fad676ea879572da070a1"
+checksum = "0d4953c513c9bf1b97e9cdd83f11d60c4b0a83462880a360d80d96953a953fee"
 dependencies = [
  "const_fn",
  "libc",

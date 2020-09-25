@@ -23,7 +23,7 @@
 //!
 //! This module helps by preparing the correct `Call`s for each of the different pallet instances.
 
-use crate::ethereum_types::QueuedEthereumHeader;
+use crate::ethereum_sync_loop::QueuedEthereumHeader;
 use crate::substrate_types::{into_substrate_ethereum_header, into_substrate_ethereum_receipts};
 
 use rialto_runtime::exchange::EthereumTransactionInclusionProof as Proof;
@@ -53,7 +53,7 @@ impl BridgeInstance for Rialto {
 				.into_iter()
 				.map(|header| {
 					(
-						into_substrate_ethereum_header(header.header()),
+						into_substrate_ethereum_header(&header.header()),
 						into_substrate_ethereum_receipts(header.extra()),
 					)
 				})
@@ -65,7 +65,7 @@ impl BridgeInstance for Rialto {
 
 	fn build_unsigned_header_call(&self, header: QueuedEthereumHeader) -> Call {
 		let pallet_call = rialto_runtime::BridgeEthPoACall::import_unsigned_header(
-			into_substrate_ethereum_header(header.header()),
+			into_substrate_ethereum_header(&header.header()),
 			into_substrate_ethereum_receipts(header.extra()),
 		);
 

@@ -16,23 +16,27 @@
 
 //! Substrate -> Ethereum synchronization.
 
-use crate::ethereum_client::{
-	EthereumConnectionParams, EthereumHighLevelRpc, EthereumRpcClient, EthereumSigningParams,
-};
-use crate::ethereum_types::Address;
+use crate::ethereum_client::EthereumHighLevelRpc;
 use crate::instances::BridgeInstance;
-use crate::metrics::MetricsParams;
 use crate::rpc::SubstrateRpc;
 use crate::rpc_errors::RpcError;
 use crate::substrate_client::{SubstrateConnectionParams, SubstrateRpcClient};
 use crate::substrate_types::{
-	GrandpaJustification, Hash, Header, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
+	GrandpaJustification, Hash, Number, QueuedSubstrateHeader, SubstrateHeaderId, SubstrateHeadersSyncPipeline,
+	SubstrateSyncHeader as Header,
 };
-use crate::sync::HeadersSyncParams;
-use crate::sync_loop::{SourceClient, TargetClient};
-use crate::sync_types::{SourceHeader, SubmittedHeaders};
 
 use async_trait::async_trait;
+use headers_relay::{
+	sync::HeadersSyncParams,
+	sync_loop::{SourceClient, TargetClient},
+	sync_types::{SourceHeader, SubmittedHeaders},
+};
+use relay_ethereum_client::{
+	types::Address, Client as EthereumClient, ConnectionParams as EthereumConnectionParams,
+	SigningParams as EthereumSigningParams,
+};
+use relay_utils::metrics::MetricsParams;
 
 use std::fmt::Debug;
 use std::{collections::HashSet, time::Duration};
@@ -92,11 +96,11 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 	}
 
 	async fn header_by_hash(&self, hash: Hash) -> Result<Header, Self::Error> {
-		self.client.header_by_hash(hash).await
+		self.client.header_by_hash(hash).await.map(Into::into)
 	}
 
 	async fn header_by_number(&self, number: Number) -> Result<Header, Self::Error> {
-		self.client.header_by_number(number).await
+		self.client.header_by_number(number).await.map(Into::into)
 	}
 
 	async fn header_completion(
@@ -122,7 +126,7 @@ impl SourceClient<SubstrateHeadersSyncPipeline> for SubstrateHeadersSource {
 /// Ethereum client as Substrate headers target.
 struct EthereumHeadersTarget {
 	/// Ethereum node client.
-	client: EthereumRpcClient,
+	client: EthereumClient,
 	/// Bridge contract address.
 	contract: Address,
 	/// Ethereum signing params.
@@ -130,7 +134,7 @@ struct EthereumHeadersTarget {
 }
 
 impl EthereumHeadersTarget {
-	fn new(client: EthereumRpcClient, contract: Address, sign_params: EthereumSigningParams) -> Self {
+	fn new(client: EthereumClient, contract: Address, sign_params: EthereumSigningParams) -> Self {
 		Self {
 			client,
 			contract,
@@ -191,13 +195,13 @@ pub fn run(params: SubstrateSyncParams) -> Result<(), RpcError> {
 		instance,
 	} = params;
 
-	let eth_client = EthereumRpcClient::new(eth_params);
+	let eth_client = EthereumClient::new(eth_params);
 	let sub_client = async_std::task::block_on(async { SubstrateRpcClient::new(sub_params, instance).await })?;
 
 	let target = EthereumHeadersTarget::new(eth_client, eth_contract_address, eth_sign);
 	let source = SubstrateHeadersSource::new(sub_client);
 
-	crate::sync_loop::run(
+	headers_relay::sync_loop::run(
 		source,
 		consts::SUBSTRATE_TICK_INTERVAL,
 		target,
