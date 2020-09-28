@@ -1417,7 +1417,6 @@ dependencies = [
  "headers-relay",
  "hex",
  "hex-literal 0.3.1",
- "jsonrpsee",
  "log",
  "messages-relay",
  "node-primitives",
@@ -1426,6 +1425,8 @@ dependencies = [
  "parity-crypto",
  "parity-scale-codec",
  "relay-ethereum-client",
+ "relay-rialto-client",
+ "relay-substrate-client",
  "relay-utils",
  "rialto-runtime",
  "serde",
@@ -5175,6 +5176,39 @@ dependencies = [
  "parity-scale-codec",
  "relay-utils",
  "web3",
+]
+
+[[package]]
+name = "relay-rialto-client"
+version = "0.1.0"
+dependencies = [
+ "frame-system",
+ "headers-relay",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "relay-utils",
+ "rialto-runtime",
+ "sp-core",
+ "sp-keyring",
+ "sp-runtime",
+]
+
+[[package]]
+name = "relay-substrate-client"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "headers-relay",
+ "jsonrpsee",
+ "log",
+ "num-traits",
+ "parity-scale-codec",
+ "relay-utils",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
