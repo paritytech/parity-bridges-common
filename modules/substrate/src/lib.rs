@@ -104,7 +104,7 @@ pub trait Trait: frame_system::Trait {
 	// Constraits come from the associated Hashing type of `sp_runtime::traits::Header`
 	// See here for more info:
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html#associatedtype.Hashing
-	type BridgedBlockHasher: HashT;
+	type BridgedBlockHasher: HashT<Output = Self::BridgedBlockHash>;
 }
 
 decl_storage! {
