@@ -18,9 +18,10 @@ use crate::Trait;
 
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
-	target_chain::{MessageDispatch, SourceHeaderChain},
+	target_chain::{DispatchMessage, MessageDispatch, SourceHeaderChain},
 	LaneId, Message, MessageData, MessageNonce,
 };
+use codec::Encode;
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
@@ -92,10 +93,14 @@ parameter_types! {
 
 impl Trait for TestRuntime {
 	type Event = TestEvent;
-	type Payload = TestPayload;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 
-	type MessageFee = TestMessageFee;
+	type OutboundPayload = TestPayload;
+	type OutboundMessageFee = TestMessageFee;
+
+	type InboundPayload = TestPayload;
+	type InboundMessageFee = TestMessageFee;
+
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
@@ -194,14 +199,12 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 #[derive(Debug)]
 pub struct TestSourceHeaderChain;
 
-impl SourceHeaderChain<TestPayload, TestMessageFee> for TestSourceHeaderChain {
+impl SourceHeaderChain<TestMessageFee> for TestSourceHeaderChain {
 	type Error = &'static str;
 
-	type MessagesProof = Result<Vec<Message<TestPayload, TestMessageFee>>, ()>;
+	type MessagesProof = Result<Vec<Message<TestMessageFee>>, ()>;
 
-	fn verify_messages_proof(
-		proof: Self::MessagesProof,
-	) -> Result<Vec<Message<TestPayload, TestMessageFee>>, Self::Error> {
+	fn verify_messages_proof(proof: Self::MessagesProof) -> Result<Vec<Message<TestMessageFee>>, Self::Error> {
 		proof.map_err(|_| TEST_ERROR)
 	}
 }
@@ -210,17 +213,22 @@ impl SourceHeaderChain<TestPayload, TestMessageFee> for TestSourceHeaderChain {
 #[derive(Debug)]
 pub struct TestMessageDispatch;
 
-impl MessageDispatch<TestPayload, TestMessageFee> for TestMessageDispatch {
-	fn dispatch_weight(message: &Message<TestPayload, TestMessageFee>) -> Weight {
-		message.data.payload.1
+impl MessageDispatch<TestMessageFee> for TestMessageDispatch {
+	type DispatchPayload = TestPayload;
+
+	fn dispatch_weight(message: &DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
+		message.data.payload.as_ref().unwrap().1
 	}
 
-	fn dispatch(_message: Message<TestPayload, TestMessageFee>) {}
+	fn dispatch(_message: DispatchMessage<TestPayload, TestMessageFee>) {}
 }
 
 /// Return message data with valid fee for given payload.
-pub fn message_data(payload: TestPayload) -> MessageData<TestPayload, TestMessageFee> {
-	MessageData { payload, fee: 1 }
+pub fn message_data(payload: TestPayload) -> MessageData<TestMessageFee> {
+	MessageData {
+		payload: payload.encode(),
+		fee: 1,
+	}
 }
 
 /// Run message lane test.
