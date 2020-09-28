@@ -18,39 +18,39 @@ jsonrpc-derive = "14.2.1"
 # Substrate Based Dependencies
 
 [dependencies.sc-client-api]
-version = "2.0.0-rc6"
-tag = 'v2.0.0-rc6'
+version = "2.0.0"
+tag = 'v2.0.0'
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-blockchain]
-version = "2.0.0-rc6"
-tag = 'v2.0.0-rc6'
+version = "2.0.0"
+tag = 'v2.0.0'
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-core]
-version = "2.0.0-rc6"
-tag = 'v2.0.0-rc6'
+version = "2.0.0"
+tag = 'v2.0.0'
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-runtime]
-version = "2.0.0-rc6"
-tag = 'v2.0.0-rc6'
+version = "2.0.0"
+tag = 'v2.0.0'
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-state-machine]
-version = "0.8.0-rc6"
-tag = 'v2.0.0-rc6'
+version = "0.8.0"
+tag = 'v2.0.0'
 git = "https://github.com/paritytech/substrate/"
 
 [dependencies.sp-trie]
-version = "2.0.0-rc6"
-tag = 'v2.0.0-rc6'
+version = "2.0.0"
+tag = 'v2.0.0'
 git = "https://github.com/paritytech/substrate/"
 
 [dev-dependencies]
 async-std = "1.6.2"
 
 [dev-dependencies.substrate-test-runtime-client]
-version = "2.0.0-rc6"
-tag = 'v2.0.0-rc6'
+version = "2.0.0"
+tag = 'v2.0.0'
 git = "https://github.com/paritytech/substrate/"
