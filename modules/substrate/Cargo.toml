@@ -12,7 +12,7 @@ bp-header-chain = { path = "../../primitives/header-chain", default-features = f
 finality-grandpa = { version = "0.12.3", default-features = false }
 hash-db = { version = "0.15.2", default-features = false }
 serde = { version = "1.0", optional = true }
-num-traits = {version = "0.2", default-features = false }
+num-traits = { version = "0.2", default-features = false }
 
 [dependencies.codec]
 package = "parity-scale-codec"
