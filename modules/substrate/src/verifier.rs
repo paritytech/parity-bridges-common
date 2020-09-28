@@ -29,13 +29,14 @@ use finality_grandpa::voter_set::VoterSet;
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::{CheckedAdd, Header as HeaderT, One};
+use sp_runtime::RuntimeDebug;
 use sp_std::{prelude::Vec, vec};
 
 /// The finality proof used by the pallet.
 ///
 /// For a Substrate based chain using Grandpa this will
 /// be an encoded Grandpa Justification.
-#[derive(Debug)]
+#[derive(RuntimeDebug)]
 pub struct FinalityProof(Vec<u8>);
 
 impl From<&[u8]> for FinalityProof {
@@ -51,7 +52,7 @@ impl From<Vec<u8>> for FinalityProof {
 }
 
 /// Errors which can happen while importing a header.
-#[derive(Debug, PartialEq)]
+#[derive(RuntimeDebug, PartialEq)]
 pub enum ImportError {
 	/// This header is older than our latest finalized block, thus not useful.
 	OldHeader,
@@ -66,7 +67,7 @@ pub enum ImportError {
 }
 
 /// Errors which can happen while verifying a headers finality.
-#[derive(Debug, PartialEq)]
+#[derive(RuntimeDebug, PartialEq)]
 pub enum FinalizationError {
 	/// This header has never been imported by the pallet.
 	UnknownHeader,
@@ -85,7 +86,7 @@ pub enum FinalizationError {
 }
 
 /// Used to verify imported headers and their finality status.
-#[derive(Debug)]
+#[derive(RuntimeDebug)]
 pub struct Verifier<S> {
 	pub storage: S,
 }
