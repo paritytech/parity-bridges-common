@@ -188,7 +188,7 @@ where
 			"This only fails if we have an invalid list of authorities. Since we
 			got this from storage it should always be valid, otherwise we have a bug.",
 		);
-		let _is_finalized = verify_justification::<H>(
+		verify_justification::<H>(
 			(hash, *header.number()),
 			current_authority_set.set_id,
 			voter_set,
