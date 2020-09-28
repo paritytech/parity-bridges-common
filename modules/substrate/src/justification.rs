@@ -128,6 +128,7 @@ pub(crate) struct GrandpaJustification<Header: HeaderT> {
 }
 
 /// A utility trait implementing `finality_grandpa::Chain` using a given set of headers.
+#[derive(RuntimeDebug)]
 struct AncestryChain<Header: HeaderT> {
 	ancestry: BTreeMap<Header::Hash, Header::Hash>,
 }
@@ -208,22 +209,32 @@ pub(crate) mod tests {
 	}
 
 	pub(crate) fn make_justification_for_header(
-		header_index: u8,
+		header: &TestHeader,
 		round: u64,
 		set_id: SetId,
 		authorities: &AuthorityList,
 	) -> GrandpaJustification<TestHeader> {
-		let (target_hash, target_number) = header_id(header_index);
+		let (target_hash, target_number) = (header.hash(), *header.number());
 		let mut precommits = vec![];
 		let mut votes_ancestries = vec![];
+
+		// We want to make sure that the header included in the vote ancestries
+		// is actually related to our target header
+		let mut precommit_header = test_header(target_number + 1);
+		precommit_header.parent_hash = target_hash;
 
 		// I'm using the same header for all the voters since it doesn't matter as long
 		// as they all vote on blocks _ahead_ of the one we're interested in finalizing
 		for (id, _weight) in authorities {
 			let signer = extract_keyring(&id);
-			let precommit = signed_precommit(signer, header_id(header_index + 1), round, set_id);
+			let precommit = signed_precommit(
+				signer,
+				(precommit_header.hash(), *precommit_header.number()),
+				round,
+				set_id,
+			);
 			precommits.push(precommit);
-			votes_ancestries.push(test_header((header_index + 1).into()));
+			votes_ancestries.push(precommit_header.clone());
 		}
 
 		GrandpaJustification {
@@ -238,7 +249,12 @@ pub(crate) mod tests {
 	}
 
 	pub(crate) fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
-		make_justification_for_header(1u8, TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &authority_list())
+		make_justification_for_header(
+			&test_header(1),
+			TEST_GRANDPA_ROUND,
+			TEST_GRANDPA_SET_ID,
+			&authority_list(),
+		)
 	}
 
 	#[test]
