@@ -70,7 +70,9 @@ unlicensed = "deny"
 # List of explictly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.7 short identifier (+ optional exception)].
-allow = []
+allow = [
+	"BlueOak-1.0.0"
+]
 # List of explictly disallowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.7 short identifier (+ optional exception)].
