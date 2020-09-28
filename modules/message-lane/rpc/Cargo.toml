@@ -11,9 +11,9 @@ bp-runtime = { path = "../../../primitives/runtime" }
 bp-message-lane = { path = "../../../primitives/message-lane" }
 derive_more = "0.99.2"
 futures = { version = "0.3.5", features = ["compat"] }
-jsonrpc-core = "14.2.0"
-jsonrpc-core-client = "14.2.0"
-jsonrpc-derive = "14.2.1"
+jsonrpc-core = "15.0.0"
+jsonrpc-core-client = "15.0.0"
+jsonrpc-derive = "15.0.0"
 
 # Substrate Based Dependencies
 
