@@ -19,7 +19,7 @@ use crate::Trait;
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
 	target_chain::{DispatchMessage, MessageDispatch, SourceHeaderChain},
-	LaneId, Message, MessageData, MessageNonce,
+	LaneId, Message, MessageData, MessageKey, MessageNonce,
 };
 use codec::Encode;
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
@@ -217,10 +217,24 @@ impl MessageDispatch<TestMessageFee> for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
 
 	fn dispatch_weight(message: &DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
-		message.data.payload.as_ref().unwrap().1
+		match message.data.payload.as_ref() {
+			Ok(payload) => payload.1,
+			Err(_) => 0,
+		}
 	}
 
 	fn dispatch(_message: DispatchMessage<TestPayload, TestMessageFee>) {}
+}
+
+/// Return test lane message with given nonce and payload.
+pub fn message(nonce: MessageNonce, payload: TestPayload) -> Message<TestMessageFee> {
+	Message {
+		key: MessageKey {
+			lane_id: TEST_LANE_ID,
+			nonce,
+		},
+		data: message_data(payload),
+	}
 }
 
 /// Return message data with valid fee for given payload.

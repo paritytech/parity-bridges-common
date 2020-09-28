@@ -403,10 +403,9 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 mod tests {
 	use super::*;
 	use crate::mock::{
-		run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestRuntime,
+		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestRuntime,
 		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
 	};
-	use bp_message_lane::Message;
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Module as System, Phase};
 
@@ -509,16 +508,7 @@ mod tests {
 		run_test(|| {
 			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
 				Origin::signed(1),
-				Ok(vec![Message {
-					key: MessageKey {
-						lane_id: TEST_LANE_ID,
-						nonce: 1,
-					},
-					data: MessageData {
-						payload: REGULAR_PAYLOAD.encode(),
-						fee: 0,
-					},
-				}]),
+				Ok(vec![message(1, REGULAR_PAYLOAD)]),
 				REGULAR_PAYLOAD.1,
 			));
 
@@ -535,16 +525,7 @@ mod tests {
 			assert_noop!(
 				Module::<TestRuntime>::receive_messages_proof(
 					Origin::signed(1),
-					Ok(vec![Message {
-						key: MessageKey {
-							lane_id: TEST_LANE_ID,
-							nonce: 1,
-						},
-						data: MessageData {
-							payload: REGULAR_PAYLOAD.encode(),
-							fee: 0,
-						},
-					}]),
+					Ok(vec![message(1, REGULAR_PAYLOAD)]),
 					REGULAR_PAYLOAD.1 - 1,
 				),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDispatchWeight,
@@ -581,6 +562,48 @@ mod tests {
 			assert_noop!(
 				Module::<TestRuntime>::receive_messages_delivery_proof(Origin::signed(1), Err(()),),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDeliveryProof,
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_accepts_single_message_with_invalid_payload() {
+		run_test(|| {
+			let mut invalid_message = message(1, REGULAR_PAYLOAD);
+			invalid_message.data.payload = Vec::new();
+
+			assert_ok!(Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
+				Origin::signed(1),
+				Ok(vec![invalid_message]),
+				0, // weight may be zero in this case (all messages are improperly encoded)
+			),);
+
+			assert_eq!(
+				InboundLanes::<DefaultInstance>::get(&TEST_LANE_ID).latest_received_nonce,
+				1,
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_accepts_batch_with_message_with_invalid_payload() {
+		run_test(|| {
+			let mut invalid_message = message(2, REGULAR_PAYLOAD);
+			invalid_message.data.payload = Vec::new();
+
+			assert_ok!(Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
+				Origin::signed(1),
+				Ok(vec![
+					message(1, REGULAR_PAYLOAD),
+					invalid_message,
+					message(3, REGULAR_PAYLOAD),
+				]),
+				REGULAR_PAYLOAD.1 + REGULAR_PAYLOAD.1,
+			),);
+
+			assert_eq!(
+				InboundLanes::<DefaultInstance>::get(&TEST_LANE_ID).latest_received_nonce,
+				3,
 			);
 		});
 	}
