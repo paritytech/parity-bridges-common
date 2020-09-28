@@ -33,7 +33,10 @@
 
 use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
 use codec::{Codec, EncodeLike};
-use frame_support::{decl_error, decl_module, decl_storage, dispatch};
+use frame_support::{
+	decl_error, decl_module, decl_storage,
+	dispatch::{DispatchResult, Parameter},
+};
 use frame_system::ensure_signed;
 use num_traits::AsPrimitive;
 use sp_runtime::traits::{
@@ -54,7 +57,7 @@ pub trait Trait: frame_system::Trait {
 	/// A type that fulfills the abstract idea of what a Substrate header is.
 	// See here for more info:
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html
-	type BridgedHeader: HeaderT<Number = Self::BridgedBlockNumber, Hash = Self::BridgedBlockHash>;
+	type BridgedHeader: Parameter + HeaderT<Number = Self::BridgedBlockNumber, Hash = Self::BridgedBlockHash>;
 
 	/// A type that fulfills the abstract idea of what a Substrate block number is.
 	// Constraits come from the associated Number type of `sp_runtime::traits::Header`
@@ -63,7 +66,8 @@ pub trait Trait: frame_system::Trait {
 	//
 	// Note that the `AsPrimitive<usize>` trait is required by the Grandpa justification
 	// verifier, and is not usually part of a Substrate Header's Number type.
-	type BridgedBlockNumber: Member
+	type BridgedBlockNumber: Parameter
+		+ Member
 		+ MaybeSerializeDeserialize
 		+ Debug
 		+ sp_std::hash::Hash
@@ -79,7 +83,8 @@ pub trait Trait: frame_system::Trait {
 	// Constraits come from the associated Hash type of `sp_runtime::traits::Header`
 	// See here for more info:
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html#associatedtype.Hash
-	type BridgedBlockHash: Member
+	type BridgedBlockHash: Parameter
+		+ Member
 		+ MaybeSerializeDeserialize
 		+ Debug
 		+ sp_std::hash::Hash
@@ -175,7 +180,7 @@ decl_module! {
 		pub fn import_signed_header(
 			origin,
 			header: T::BridgedHeader,
-		) -> dispatch::DispatchResult {
+		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 			frame_support::debug::trace!(target: "sub-bridge", "Got header {:?}", header);
 
@@ -201,7 +206,7 @@ decl_module! {
 			origin,
 			hash: T::BridgedBlockHash,
 			finality_proof: Vec<u8>,
-		) -> dispatch::DispatchResult {
+		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 			frame_support::debug::trace!(target: "sub-bridge", "Got header hash {:?}", hash);
 
