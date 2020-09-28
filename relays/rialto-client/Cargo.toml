@@ -17,8 +17,8 @@ rialto-runtime = { path = "../../bin/rialto-runtime" }
 
 # Substrate Dependencies
 
-frame-system = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://github.com/paritytech/substrate.git" }
-pallet-transaction-payment = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://github.com/paritytech/substrate.git" }
-sp-core = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://github.com/paritytech/substrate.git" }
-sp-keyring = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://github.com/paritytech/substrate.git" }
-sp-runtime = { version = "2.0.0-rc6", tag = 'v2.0.0-rc6', git = "https://github.com/paritytech/substrate.git" }
+frame-system = { version = "2.0.0", tag = 'v2.0.0', git = "https://github.com/paritytech/substrate.git" }
+pallet-transaction-payment = { version = "2.0.0", tag = 'v2.0.0', git = "https://github.com/paritytech/substrate.git" }
+sp-core = { version = "2.0.0", tag = 'v2.0.0', git = "https://github.com/paritytech/substrate.git" }
+sp-keyring = { version = "2.0.0", tag = 'v2.0.0', git = "https://github.com/paritytech/substrate.git" }
+sp-runtime = { version = "2.0.0", tag = 'v2.0.0', git = "https://github.com/paritytech/substrate.git" }
