@@ -64,6 +64,10 @@ pub enum ImportError {
 	InvalidChildNumber,
 	/// The height of the next authority set change overflowed.
 	ScheduledHeightOverflow,
+	/// Received an authority set which was invalid in some way, such as
+	/// the authority weights being empty or overflowing the `AuthorityWeight`
+	/// type.
+	InvalidAuthoritySet,
 }
 
 /// Errors which can happen while verifying a headers finality.
@@ -135,6 +139,21 @@ where
 			// Since we don't currently have a pending authority set change let's check if the header
 			// contains a log indicating when the next change should be.
 			if let Some(change) = find_scheduled_change(&header) {
+				let mut total_weight = 0u64;
+
+				// We need to make sure that we don't overflow the `AuthorityWeight` type.
+				for (_id, weight) in &change.next_authorities {
+					total_weight = total_weight
+						.checked_add(*weight)
+						.ok_or(ImportError::InvalidAuthoritySet)?;
+				}
+
+				// If none of the authorities have a weight associated with them the
+				// set is essentially empty. We don't want that.
+				if total_weight == 0 {
+					return Err(ImportError::InvalidAuthoritySet);
+				}
+
 				let next_set = AuthoritySet {
 					authorities: change.next_authorities,
 					set_id: self.storage.current_authority_set().set_id + 1,
@@ -503,6 +522,36 @@ mod tests {
 	}
 
 	#[test]
+	fn doesnt_import_header_which_schedules_change_with_invalid_authority_set() {
+		use sp_runtime::{Digest, DigestItem};
+
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let headers = vec![(1, false, false)];
+			let _imported_headers = write_headers(&mut storage, headers);
+			let mut header = test_header(2);
+
+			// This is an *invalid* authority set because the combined weight of the
+			// authorities is greater than `u64::MAX`
+			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+				next_authorities: vec![(alice(), u64::MAX), (bob(), u64::MAX)],
+				delay: 0,
+			});
+
+			header.digest = Digest::<TestHash> {
+				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+			};
+
+			let mut verifier = Verifier { storage };
+
+			assert_eq!(
+				verifier.import_header(header).unwrap_err(),
+				ImportError::InvalidAuthoritySet
+			);
+		})
+	}
+
+	#[test]
 	fn finalizes_header_which_doesnt_enact_or_schedule_a_new_authority_set() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
@@ -520,8 +569,7 @@ mod tests {
 
 			// We'll need this justification to finalize the header
 			let grandpa_round = 1;
-			let justification =
-				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
+			let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
 
 			let mut verifier = Verifier {
 				storage: storage.clone(),
@@ -550,8 +598,7 @@ mod tests {
 			storage.update_current_authority_set(authority_set);
 
 			let grandpa_round = 1;
-			let justification =
-				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
+			let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
 
 			let mut verifier = Verifier {
 				storage: storage.clone(),
@@ -587,8 +634,7 @@ mod tests {
 			let header = test_header(2);
 
 			let grandpa_round = 1;
-			let justification =
-				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
+			let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
 
 			// Schedule a change at the height of our header
 			let set_id = 2;
@@ -667,8 +713,7 @@ mod tests {
 
 			// Since we want to finalize N we need a justification for it
 			let grandpa_round = 1;
-			let justification =
-				make_justification_for_header(*header.number() as u8, grandpa_round, set_id, &authorities).encode();
+			let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
 
 			// Schedule a change at height N
 			let set_id = 2;
