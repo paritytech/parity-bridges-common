@@ -51,7 +51,7 @@ mod verifier;
 mod mock;
 
 pub trait Trait: frame_system::Trait {
-	/// A type that fulfulls the abstract idea of what a Substrate header is.
+	/// A type that fulfills the abstract idea of what a Substrate header is.
 	// See here for more info:
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html
 	type BridgedHeader: HeaderT<Number = Self::BridgedBlockNumber, Hash = Self::BridgedBlockHash>;
