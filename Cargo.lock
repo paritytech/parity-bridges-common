@@ -2629,7 +2629,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#99fb015dd9d678392dab8e90efdbd9b4a6b82fd9"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#8e7fe826517a21c99e7868e056b793e5c6749fce"
 dependencies = [
  "async-std",
  "bs58",
@@ -2656,7 +2656,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#99fb015dd9d678392dab8e90efdbd9b4a6b82fd9"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#8e7fe826517a21c99e7868e056b793e5c6749fce"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -8085,7 +8085,7 @@ version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bfd5b7557925ce778ff9b9ef90e3ade34c524b5ff10e239c69a42d546d2af56"
 dependencies = [
- "rand 0.7.3",
+ "rand 0.3.23",
 ]
 
 [[package]]
