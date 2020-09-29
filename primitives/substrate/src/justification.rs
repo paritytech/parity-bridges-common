@@ -185,69 +185,6 @@ pub mod tests {
 	const TEST_GRANDPA_ROUND: u64 = 1;
 	const TEST_GRANDPA_SET_ID: SetId = 1;
 
-	pub fn signed_precommit(
-		signer: Ed25519Keyring,
-		target: HeaderId,
-		round: u64,
-		set_id: SetId,
-	) -> finality_grandpa::SignedPrecommit<H256, u64, AuthoritySignature, AuthorityId> {
-		let precommit = finality_grandpa::Precommit {
-			target_hash: target.0,
-			target_number: target.1,
-		};
-		let encoded = sp_finality_grandpa::localized_payload(
-			round,
-			set_id,
-			&finality_grandpa::Message::Precommit(precommit.clone()),
-		);
-		let signature = signer.sign(&encoded[..]).into();
-		finality_grandpa::SignedPrecommit {
-			precommit,
-			signature,
-			id: signer.public().into(),
-		}
-	}
-
-	pub fn make_justification_for_header(
-		header: &Header,
-		round: u64,
-		set_id: SetId,
-		authorities: &[(AuthorityId, AuthorityWeight)],
-	) -> GrandpaJustification<Header> {
-		let (target_hash, target_number) = (header.hash(), *header.number());
-		let mut precommits = vec![];
-		let mut votes_ancestries = vec![];
-
-		// We want to make sure that the header included in the vote ancestries
-		// is actually related to our target header
-		let mut precommit_header = test_header(target_number + 1);
-		precommit_header.parent_hash = target_hash;
-
-		// I'm using the same header for all the voters since it doesn't matter as long
-		// as they all vote on blocks _ahead_ of the one we're interested in finalizing
-		for (id, _weight) in authorities.iter() {
-			let signer = extract_keyring(&id);
-			let precommit = signed_precommit(
-				signer,
-				(precommit_header.hash(), *precommit_header.number()),
-				round,
-				set_id,
-			);
-			precommits.push(precommit);
-			votes_ancestries.push(precommit_header.clone());
-		}
-
-		GrandpaJustification {
-			round,
-			commit: finality_grandpa::Commit {
-				target_hash,
-				target_number,
-				precommits,
-			},
-			votes_ancestries,
-		}
-	}
-
 	fn make_justification_for_header_1() -> GrandpaJustification<Header> {
 		make_justification_for_header(
 			&test_header(1),
