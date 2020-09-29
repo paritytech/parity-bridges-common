@@ -179,7 +179,7 @@ pub(crate) mod tests {
 	use crate::mock::helpers::*;
 	use codec::Encode;
 	use sp_core::H256;
-	use sp_finality_grandpa::AuthorityList;
+	use sp_finality_grandpa::{AuthorityId, AuthorityWeight};
 	use sp_keyring::Ed25519Keyring;
 
 	const TEST_GRANDPA_ROUND: u64 = 1;
@@ -212,7 +212,7 @@ pub(crate) mod tests {
 		header: &TestHeader,
 		round: u64,
 		set_id: SetId,
-		authorities: &[AuthorityList],
+		authorities: &[(AuthorityId, AuthorityWeight)],
 	) -> GrandpaJustification<TestHeader> {
 		let (target_hash, target_number) = (header.hash(), *header.number());
 		let mut precommits = vec![];
@@ -225,7 +225,7 @@ pub(crate) mod tests {
 
 		// I'm using the same header for all the voters since it doesn't matter as long
 		// as they all vote on blocks _ahead_ of the one we're interested in finalizing
-		for (id, _weight) in authorities {
+		for (id, _weight) in authorities.iter() {
 			let signer = extract_keyring(&id);
 			let precommit = signed_precommit(
 				signer,
