@@ -66,6 +66,11 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
 	/// for it.
 	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
+	/// Maximal number of messages in the 'unconfirmed' state at inbound lane. Unconfirmed
+	/// message at inbound lane is the message that has been: sent, delivered and dispatched.
+	/// Its delivery confirmation is still pending. This limit is introduced to bound maximal
+	/// number of relayers-ids in the inbound lane state.
+	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 	type OutboundPayload: Parameter;
@@ -76,15 +81,21 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type InboundPayload: Decode;
 	/// Message fee type of inbound messages. This fee is paid on the bridged chain.
 	type InboundMessageFee: Decode;
+	/// Identifier of relayer that deliver messages to this chain. Relayer reward is paid on the bridged chain.
+	type InboundRelayer: Parameter;
 
 	// Types that are used by outbound_lane (on source chain).
 
 	/// Target header chain.
-	type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload>;
+	type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload, Self::AccountId>;
 	/// Message payload verifier.
 	type LaneMessageVerifier: LaneMessageVerifier<Self::AccountId, Self::OutboundPayload, Self::OutboundMessageFee>;
 	/// Message delivery payment.
-	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<Self::AccountId, Self::OutboundMessageFee>;
+	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
+		Self::AccountId,
+		Self::AccountId,
+		Self::OutboundMessageFee,
+	>;
 
 	// Types that are used by inbound_lane (on target chain).
 
@@ -98,8 +109,10 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 type MessagesProofOf<T, I> =
 	<<T as Trait<I>>::SourceHeaderChain as SourceHeaderChain<<T as Trait<I>>::InboundMessageFee>>::MessagesProof;
 /// Shortcut to messages delivery proof type for Trait.
-type MessagesDeliveryProofOf<T, I> =
-	<<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<<T as Trait<I>>::OutboundPayload>>::MessagesDeliveryProof;
+type MessagesDeliveryProofOf<T, I> = <<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<
+	<T as Trait<I>>::OutboundPayload,
+	<T as frame_system::Trait>::AccountId,
+>>::MessagesDeliveryProof;
 
 decl_error! {
 	pub enum Error for Module<T: Trait<I>, I: Instance> {
@@ -121,7 +134,7 @@ decl_error! {
 decl_storage! {
 	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as MessageLane {
 		/// Map of lane id => inbound lane data.
-		InboundLanes: map hasher(blake2_128_concat) LaneId => InboundLaneData;
+		InboundLanes: map hasher(blake2_128_concat) LaneId => InboundLaneData<T::InboundRelayer>;
 		/// Map of lane id => outbound lane data.
 		OutboundLanes: map hasher(blake2_128_concat) LaneId => OutboundLaneData;
 		/// All queued outbound messages.
@@ -227,13 +240,14 @@ decl_module! {
 		#[weight = DELIVERY_BASE_WEIGHT + dispatch_weight]
 		pub fn receive_messages_proof(
 			origin,
+			relayer_id: T::InboundRelayer,
 			proof: MessagesProofOf<T, I>,
 			dispatch_weight: Weight,
 		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 
 			// verify messages proof && convert proof into messages
-			let messages = T::SourceHeaderChain::verify_messages_proof(proof).map_err(|err| {
+			let messages = T::SourceHeaderChain::verify_and_decode_messages_proof(proof).map_err(|err| {
 				frame_support::debug::trace!(
 					target: "runtime",
 					"Rejecting invalid messages proof: {:?}",
@@ -243,13 +257,15 @@ decl_module! {
 				Error::<T, I>::InvalidMessagesProof
 			})?;
 
-			// try to decode message payloads
-			let messages: Vec<_> = messages.into_iter().map(Into::into).collect();
-
 			// verify that relayer is paying actual dispatch weight
 			let actual_dispatch_weight: Weight = messages
-				.iter()
-				.map(T::MessageDispatch::dispatch_weight)
+				.values()
+				.map(|lane_messages| lane_messages
+					.messages
+					.iter()
+					.map(T::MessageDispatch::dispatch_weight)
+					.sum::<Weight>()
+				)
 				.sum();
 			if dispatch_weight < actual_dispatch_weight {
 				frame_support::debug::trace!(
@@ -262,13 +278,31 @@ decl_module! {
 				return Err(Error::<T, I>::InvalidMessagesDispatchWeight.into());
 			}
 
-			// dispatch messages
-			let total_messages = messages.len();
+			// dispatch messages and (optionally) update lane(s) state(s)
+			let mut total_messages = 0;
 			let mut valid_messages = 0;
-			for message in messages {
-				let mut lane = inbound_lane::<T, I>(message.key.lane_id);
-				if lane.receive_message::<T::MessageDispatch>(message.key.nonce, message.data) {
-					valid_messages += 1;
+			for (lane_id, lane_data) in messages {
+				let mut lane = inbound_lane::<T, I>(lane_id);
+
+				if let Some(lane_state) = lane_data.lane_state {
+					let updated_latest_confirmed_nonce = lane.receive_state_update(lane_state);
+					if let Some(updated_latest_confirmed_nonce) = updated_latest_confirmed_nonce {
+						frame_support::debug::trace!(
+							target: "runtime",
+							"Received lane {:?} state update: latest_confirmed_nonce={}",
+							lane_id,
+							updated_latest_confirmed_nonce,
+						);
+					}
+				}
+
+				for message in lane_data.messages {
+					debug_assert_eq!(message.key.lane_id, lane_id);
+
+					total_messages += 1;
+					if lane.receive_message::<T::MessageDispatch>(relayer_id.clone(), message.key.nonce, message.data) {
+						valid_messages += 1;
+					}
 				}
 			}
 
@@ -286,7 +320,7 @@ decl_module! {
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn receive_messages_delivery_proof(origin, proof: MessagesDeliveryProofOf<T, I>) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
-			let (lane_id, nonce) = T::TargetHeaderChain::verify_messages_delivery_proof(proof).map_err(|err| {
+			let (lane_id, lane_data) = T::TargetHeaderChain::verify_messages_delivery_proof(proof).map_err(|err| {
 				frame_support::debug::trace!(
 					target: "runtime",
 					"Rejecting invalid messages delivery proof: {:?}",
@@ -296,16 +330,33 @@ decl_module! {
 				Error::<T, I>::InvalidMessagesDeliveryProof
 			})?;
 
+			// mark messages as delivered
 			let mut lane = outbound_lane::<T, I>(lane_id);
-			let received_range = lane.confirm_delivery(nonce);
+			let received_range = lane.confirm_delivery(lane_data.latest_received_nonce);
 			if let Some(received_range) = received_range {
 				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, received_range.0, received_range.1));
+
+				// reward relayers that have delivered messages
+				// this loop is bounded by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
+				for (nonce, relayer) in lane_data.relayers {
+					// we may receive the same confirmation multiple times
+					if nonce < received_range.0 {
+						continue;
+					}
+
+					let message_data = OutboundMessages::<T, I>::get(MessageKey {
+						lane_id,
+						nonce,
+					}).expect("message is just confirmed; we never prune unconfirmed messages; qed");
+
+					<T as Trait<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(&relayer, &message_data.fee);
+				}
 			}
 
 			frame_support::debug::trace!(
 				target: "runtime",
 				"Received messages delivery proof up to (and including) {} at lane {:?}",
-				nonce,
+				lane_data.latest_received_nonce,
 				lane_id,
 			);
 
@@ -318,6 +369,7 @@ decl_module! {
 fn inbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
 	InboundLane::new(RuntimeInboundLaneStorage {
 		lane_id,
+		cached_data: None,
 		_phantom: Default::default(),
 	})
 }
@@ -331,24 +383,38 @@ fn outbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<Runt
 }
 
 /// Runtime inbound lane storage.
-struct RuntimeInboundLaneStorage<T, I = DefaultInstance> {
+struct RuntimeInboundLaneStorage<T: Trait<I>, I = DefaultInstance> {
 	lane_id: LaneId,
-	_phantom: PhantomData<(T, I)>,
+	cached_data: Option<InboundLaneData<T::InboundRelayer>>,
+	_phantom: PhantomData<I>,
 }
 
 impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
 	type MessageFee = T::InboundMessageFee;
+	type Relayer = T::InboundRelayer;
 
 	fn id(&self) -> LaneId {
 		self.lane_id
 	}
 
-	fn data(&self) -> InboundLaneData {
-		InboundLanes::<I>::get(&self.lane_id)
+	fn max_unconfirmed_messages(&self) -> MessageNonce {
+		T::MaxUnconfirmedMessagesAtInboundLane::get()
 	}
 
-	fn set_data(&mut self, data: InboundLaneData) {
-		InboundLanes::<I>::insert(&self.lane_id, data)
+	fn data(&mut self) -> InboundLaneData<T::InboundRelayer> {
+		match self.cached_data.clone() {
+			Some(data) => data,
+			None => {
+				let data = InboundLanes::<T, I>::get(&self.lane_id);
+				self.cached_data = Some(data.clone());
+				data
+			}
+		}
+	}
+
+	fn set_data(&mut self, data: InboundLaneData<T::InboundRelayer>) {
+		self.cached_data = Some(data.clone());
+		InboundLanes::<T, I>::insert(&self.lane_id, data)
 	}
 }
 
@@ -403,8 +469,8 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestRuntime,
-		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
+		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesProof, TestRuntime,
+		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER,
 	};
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Module as System, Phase};
@@ -440,7 +506,13 @@ mod tests {
 
 		assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
 			Origin::signed(1),
-			Ok((TEST_LANE_ID, 1)),
+			Ok((
+				TEST_LANE_ID,
+				InboundLaneData {
+					latest_received_nonce: 1,
+					..Default::default()
+				}
+			)),
 		));
 
 		assert_eq!(
@@ -508,13 +580,49 @@ mod tests {
 		run_test(|| {
 			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
 				Origin::signed(1),
-				Ok(vec![message(1, REGULAR_PAYLOAD)]),
+				TEST_RELAYER,
+				Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+				REGULAR_PAYLOAD.1,
+			));
+
+			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).latest_received_nonce, 1);
+		});
+	}
+
+	#[test]
+	fn receive_messages_proof_updates_confirmed_message_nonce() {
+		run_test(|| {
+			// say we have received 10 messages && last confirmed message is 8
+			InboundLanes::<TestRuntime, DefaultInstance>::insert(
+				TEST_LANE_ID,
+				InboundLaneData {
+					latest_confirmed_nonce: 8,
+					latest_received_nonce: 10,
+					relayers: vec![(9, TEST_RELAYER), (10, TEST_RELAYER + 1)].into_iter().collect(),
+				},
+			);
+
+			// message proof includes outbound lane state with latest confirmed message updated to 9
+			let mut message_proof: TestMessagesProof = Ok(vec![message(11, REGULAR_PAYLOAD)]).into();
+			message_proof.result.as_mut().unwrap()[0].1.lane_state = Some(OutboundLaneData {
+				latest_received_nonce: 9,
+				..Default::default()
+			});
+
+			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
+				Origin::signed(1),
+				TEST_RELAYER,
+				message_proof,
 				REGULAR_PAYLOAD.1,
 			));
 
 			assert_eq!(
-				InboundLanes::<DefaultInstance>::get(TEST_LANE_ID).latest_received_nonce,
-				1
+				InboundLanes::<TestRuntime>::get(TEST_LANE_ID),
+				InboundLaneData {
+					relayers: vec![(10, TEST_RELAYER + 1), (11, TEST_RELAYER)].into_iter().collect(),
+					latest_received_nonce: 11,
+					latest_confirmed_nonce: 9,
+				},
 			);
 		});
 	}
@@ -525,7 +633,8 @@ mod tests {
 			assert_noop!(
 				Module::<TestRuntime>::receive_messages_proof(
 					Origin::signed(1),
-					Ok(vec![message(1, REGULAR_PAYLOAD)]),
+					TEST_RELAYER,
+					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
 					REGULAR_PAYLOAD.1 - 1,
 				),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDispatchWeight,
@@ -537,7 +646,12 @@ mod tests {
 	fn receive_messages_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime, DefaultInstance>::receive_messages_proof(Origin::signed(1), Err(()), 0),
+				Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
+					Origin::signed(1),
+					TEST_RELAYER,
+					Err(()).into(),
+					0,
+				),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesProof,
 			);
 		});
@@ -553,6 +667,66 @@ mod tests {
 				OutboundLanes::<DefaultInstance>::get(&TEST_LANE_ID).latest_received_nonce,
 				1,
 			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_delivery_proof_rewards_relayers() {
+		run_test(|| {
+			assert_ok!(Module::<TestRuntime>::send_message(
+				Origin::signed(1),
+				TEST_LANE_ID,
+				REGULAR_PAYLOAD,
+				1000,
+			));
+			assert_ok!(Module::<TestRuntime>::send_message(
+				Origin::signed(1),
+				TEST_LANE_ID,
+				REGULAR_PAYLOAD,
+				2000,
+			));
+
+			// this reports delivery of message 1 => reward is paid to TEST_RELAYER
+			assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
+				Origin::signed(1),
+				Ok((
+					TEST_LANE_ID,
+					InboundLaneData {
+						relayers: vec![(1, TEST_RELAYER)].into_iter().collect(),
+						latest_received_nonce: 1,
+						..Default::default()
+					}
+				)),
+			));
+			assert!(TestMessageDeliveryAndDispatchPayment::is_reward_paid(
+				TEST_RELAYER,
+				1000
+			));
+			assert!(!TestMessageDeliveryAndDispatchPayment::is_reward_paid(
+				TEST_RELAYER + 1,
+				2000
+			));
+
+			// this reports delivery of both message 1 and message 2 => reward is paid only to TEST_RELAYER+1
+			assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
+				Origin::signed(1),
+				Ok((
+					TEST_LANE_ID,
+					InboundLaneData {
+						relayers: vec![(1, TEST_RELAYER), (2, TEST_RELAYER + 1)].into_iter().collect(),
+						latest_received_nonce: 2,
+						..Default::default()
+					}
+				)),
+			));
+			assert!(!TestMessageDeliveryAndDispatchPayment::is_reward_paid(
+				TEST_RELAYER,
+				1000
+			));
+			assert!(TestMessageDeliveryAndDispatchPayment::is_reward_paid(
+				TEST_RELAYER + 1,
+				2000
+			));
 		});
 	}
 
@@ -574,14 +748,12 @@ mod tests {
 
 			assert_ok!(Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
 				Origin::signed(1),
-				Ok(vec![invalid_message]),
+				TEST_RELAYER,
+				Ok(vec![invalid_message]).into(),
 				0, // weight may be zero in this case (all messages are improperly encoded)
 			),);
 
-			assert_eq!(
-				InboundLanes::<DefaultInstance>::get(&TEST_LANE_ID).latest_received_nonce,
-				1,
-			);
+			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).latest_received_nonce, 1,);
 		});
 	}
 
@@ -593,18 +765,17 @@ mod tests {
 
 			assert_ok!(Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
 				Origin::signed(1),
+				TEST_RELAYER,
 				Ok(vec![
 					message(1, REGULAR_PAYLOAD),
 					invalid_message,
 					message(3, REGULAR_PAYLOAD),
-				]),
+				])
+				.into(),
 				REGULAR_PAYLOAD.1 + REGULAR_PAYLOAD.1,
 			),);
 
-			assert_eq!(
-				InboundLanes::<DefaultInstance>::get(&TEST_LANE_ID).latest_received_nonce,
-				3,
-			);
+			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).latest_received_nonce, 3,);
 		});
 	}
 }
