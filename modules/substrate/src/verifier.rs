@@ -22,18 +22,15 @@
 //! has been signed off by the correct Grandpa authorities, and also enact any authority set changes
 //! if required.
 
+use crate::justification::verify_justification;
 use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
 use crate::BridgeStorage;
-use bp_substrate::justification::verify_justification;
 use finality_grandpa::voter_set::VoterSet;
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::{CheckedAdd, Header as HeaderT, One};
 use sp_runtime::RuntimeDebug;
 use sp_std::{prelude::Vec, vec};
-
-#[cfg(tests)]
-use bp_substrate::justification::tests;
 
 /// The finality proof used by the pallet.
 ///
@@ -318,19 +315,14 @@ fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::
 #[cfg(test)]
 mod tests {
 	use super::*;
-	// use crate::mock::helpers::*;
+	use crate::justification::tests::*;
+	use crate::mock::helpers::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, ImportedHeaders, PalletStorage};
-	use bp_substrate::justification::tests::make_justification_for_header;
-	use bp_substrate::test_helpers::*;
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
 	use sp_finality_grandpa::{AuthorityId, SetId};
-
-	type TestHeader = <TestRuntime as crate::Trait>::BridgedHeader;
-	type TestNumber = <TestRuntime as crate::Trait>::BridgedBlockNumber;
-	type TestHash = <TestRuntime as crate::Trait>::BridgedBlockHash;
 
 	fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
 		ImportedHeader {
