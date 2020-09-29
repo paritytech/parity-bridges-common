@@ -16,4 +16,4 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod justification;
+pub mod justification;
