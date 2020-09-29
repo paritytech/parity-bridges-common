@@ -129,10 +129,13 @@ pub const REGULAR_PAYLOAD: TestPayload = (0, 50);
 /// Payload that is rejected by `TestTargetHeaderChain`.
 pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = (1, 50);
 
+/// Vec of proved messages, grouped by lane.
+pub type MessagesByLaneVec = Vec<(LaneId, ProvedLaneMessages<Message<TestMessageFee>>)>;
+
 /// Test messages proof.
 #[derive(Debug, Encode, Decode, Clone, PartialEq, Eq)]
 pub struct TestMessagesProof {
-	pub result: Result<Vec<(LaneId, ProvedLaneMessages<Message<TestMessageFee>>)>, ()>,
+	pub result: Result<MessagesByLaneVec, ()>,
 }
 
 impl From<Result<Vec<Message<TestMessageFee>>, ()>> for TestMessagesProof {
