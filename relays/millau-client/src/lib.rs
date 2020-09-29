@@ -35,7 +35,7 @@ impl Chain for Millau {
 	type AccountId = millau_runtime::AccountId;
 	type Index = millau_runtime::Index;
 	type SignedBlock = millau_runtime::SignedBlock;
-	type Call = rialto_runtime::Call;
+	type Call = millau_runtime::Call;
 }
 
 /// Millau header type used in headers sync.

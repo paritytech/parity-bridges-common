@@ -575,20 +575,20 @@ impl_runtime_apis! {
 	}
 
 	impl bp_millau::MillauHeaderApi<Block> for Runtime {
-		fn best_block() -> (BlockNumber, Hash) {
-			unimplemented!()
+		fn best_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
 		}
 
-		fn finalized_block() -> (BlockNumber, Hash) {
-			unimplemented!()
+		fn finalized_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
 		}
 
-		fn incomplete_headers() -> Vec<(BlockNumber, Hash)> {
-			unimplemented!()
+		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
+			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
 		}
 
-		fn is_known_block(_hash: Hash) -> bool {
-			unimplemented!()
+		fn is_known_block(_hash: bp_millau::Hash) -> bool {
+			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
 		}
 	}
 

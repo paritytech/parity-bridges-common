@@ -15,6 +15,10 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+// RuntimeApi generated functions
+#![allow(clippy::too_many_arguments)]
+// Runtime-generated DecodeLimit::decode_all_With_depth_limit
+#![allow(clippy::unnecessary_mut_passed)]
 
 use sp_std::prelude::*;
 

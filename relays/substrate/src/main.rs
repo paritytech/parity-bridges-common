@@ -18,12 +18,13 @@
 
 #![warn(missing_docs)]
 
-use relay_substrate_client::{rialto::SigningParams as RialtoSigningParams, ConnectionParams};
+use relay_rialto_client::SigningParams as RialtoSigningParams;
+use relay_substrate_client::ConnectionParams;
 
 /// Millau node client.
-pub type MillauClient = relay_substrate_client::Client<relay_substrate_client::Millau>;
+pub type MillauClient = relay_substrate_client::Client<relay_millau_client::Millau>;
 /// Rialto node client.
-pub type RialtoClient = relay_substrate_client::Client<relay_substrate_client::Rialto>;
+pub type RialtoClient = relay_substrate_client::Client<relay_rialto_client::Rialto>;
 
 mod cli;
 mod millau_headers_to_rialto;

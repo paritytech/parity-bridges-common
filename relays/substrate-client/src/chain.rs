@@ -97,13 +97,13 @@ pub trait TransactionSignScheme {
 }
 
 /// Header type used by the chain.
-pub type HeaderOf<C> = <C as frame_system::Trait>::Header;
+pub type HeaderOf<C> = <C as Chain>::Header;
 
 /// Hash type used by the chain.
-pub type HashOf<C> = <C as frame_system::Trait>::Hash;
+pub type HashOf<C> = <C as Chain>::Hash;
 
 /// Block number used by the chain.
-pub type BlockNumberOf<C> = <C as frame_system::Trait>::BlockNumber;
+pub type BlockNumberOf<C> = <C as Chain>::BlockNumber;
 
 impl<Block> BlockWithJustification for SignedBlock<Block> {
 	fn justification(&self) -> Option<&Justification> {

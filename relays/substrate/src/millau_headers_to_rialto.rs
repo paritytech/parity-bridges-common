@@ -25,12 +25,9 @@ use headers_relay::{
 	sync_loop::TargetClient,
 	sync_types::{HeadersSyncPipeline, QueuedHeader, SubmittedHeaders},
 };
-use relay_substrate_client::{
-	headers_source::HeadersSource,
-	millau::{HeaderId as MillauHeaderId, Millau, SyncHeader as MillauSyncHeader},
-	rialto::SigningParams as RialtoSigningParams,
-	BlockNumberOf, Error as SubstrateError, HashOf,
-};
+use relay_millau_client::{HeaderId as MillauHeaderId, Millau, SyncHeader as MillauSyncHeader};
+use relay_rialto_client::SigningParams as RialtoSigningParams;
+use relay_substrate_client::{headers_source::HeadersSource, BlockNumberOf, Error as SubstrateError, HashOf};
 use sp_runtime::Justification;
 use std::{collections::HashSet, time::Duration};
 
@@ -70,19 +67,19 @@ impl TargetClient<MillauHeadersToRialto> for RialtoTargetClient {
 	type Error = SubstrateError;
 
 	async fn best_header_id(&self) -> Result<MillauHeaderId, Self::Error> {
-		unimplemented!()
+		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/209")
 	}
 
 	async fn is_known_header(&self, _id: MillauHeaderId) -> Result<(MillauHeaderId, bool), Self::Error> {
-		unimplemented!()
+		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/209")
 	}
 
 	async fn submit_headers(&self, _headers: Vec<QueuedMillauHeader>) -> SubmittedHeaders<MillauHeaderId, Self::Error> {
-		unimplemented!()
+		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/209")
 	}
 
 	async fn incomplete_headers_ids(&self) -> Result<HashSet<MillauHeaderId>, Self::Error> {
-		unimplemented!()
+		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/209")
 	}
 
 	#[allow(clippy::unit_arg)]
@@ -91,11 +88,11 @@ impl TargetClient<MillauHeadersToRialto> for RialtoTargetClient {
 		_id: MillauHeaderId,
 		_completion: Justification,
 	) -> Result<MillauHeaderId, Self::Error> {
-		unimplemented!()
+		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/209")
 	}
 
 	async fn requires_extra(&self, _header: QueuedMillauHeader) -> Result<(MillauHeaderId, bool), Self::Error> {
-		unimplemented!()
+		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/209")
 	}
 }
 
