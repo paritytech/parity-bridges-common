@@ -60,6 +60,9 @@ default-features = false
 git = "https://github.com/paritytech/substrate/"
 
 # Dev Dependencies
+# [dev-dependencies]
+# bp-substrate = { path = "../../primitives/substrate", default-features = false }
+
 [dev-dependencies.sp-io]
 version = "2.0.0"
 tag = 'v2.0.0'

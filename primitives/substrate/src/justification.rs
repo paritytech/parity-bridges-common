@@ -121,7 +121,7 @@ where
 /// (so not our chain) have been finalized correctly.
 #[derive(Decode, RuntimeDebug)]
 #[cfg_attr(test, derive(codec::Encode))]
-pub(crate) struct GrandpaJustification<Header: HeaderT> {
+pub struct GrandpaJustification<Header: HeaderT> {
 	round: u64,
 	commit: finality_grandpa::Commit<Header::Hash, Header::Number, AuthoritySignature, AuthorityId>,
 	votes_ancestries: Vec<Header>,
@@ -174,7 +174,7 @@ where
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
 	use super::*;
 	use crate::test_helpers::*;
 	use codec::Encode;
@@ -185,7 +185,7 @@ pub(crate) mod tests {
 	const TEST_GRANDPA_ROUND: u64 = 1;
 	const TEST_GRANDPA_SET_ID: SetId = 1;
 
-	pub(crate) fn signed_precommit(
+	pub fn signed_precommit(
 		signer: Ed25519Keyring,
 		target: HeaderId,
 		round: u64,
@@ -208,7 +208,7 @@ pub(crate) mod tests {
 		}
 	}
 
-	pub(crate) fn make_justification_for_header(
+	pub fn make_justification_for_header(
 		header: &Header,
 		round: u64,
 		set_id: SetId,
@@ -248,7 +248,7 @@ pub(crate) mod tests {
 		}
 	}
 
-	pub(crate) fn make_justification_for_header_1() -> GrandpaJustification<Header> {
+	fn make_justification_for_header_1() -> GrandpaJustification<Header> {
 		make_justification_for_header(
 			&test_header(1),
 			TEST_GRANDPA_ROUND,
