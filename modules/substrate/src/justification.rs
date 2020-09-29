@@ -212,7 +212,7 @@ pub(crate) mod tests {
 		header: &TestHeader,
 		round: u64,
 		set_id: SetId,
-		authorities: &AuthorityList,
+		authorities: &[AuthorityList],
 	) -> GrandpaJustification<TestHeader> {
 		let (target_hash, target_number) = (header.hash(), *header.number());
 		let mut precommits = vec![];
