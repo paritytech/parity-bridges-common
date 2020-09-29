@@ -12,6 +12,7 @@ codec = { package = "parity-scale-codec", version = "1.3.1", default-features = 
 # Bridge dependencies
 
 bp-message-lane = { path = "../../primitives/message-lane", default-features = false }
+bp-runtime = { path = "../../primitives/runtime", default-features = false }
 
 # Substrate Dependencies
 
@@ -28,6 +29,7 @@ sp-io = "2.0"
 default = ["std"]
 std = [
 	"bp-message-lane/std",
+	"bp-runtime/std",
 	"codec/std",
 	"frame-support/std",
 	"frame-system/std",

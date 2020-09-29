@@ -23,7 +23,10 @@
 use bp_runtime::Chain;
 use frame_support::RuntimeDebug;
 use sp_core::Hasher as HasherT;
-use sp_runtime::traits::BlakeTwo256;
+use sp_runtime::{
+	traits::{BlakeTwo256, IdentifyAccount, Verify},
+	MultiSignature, MultiSigner,
+};
 use sp_std::prelude::*;
 
 /// Block number type used in Rialto.
@@ -48,6 +51,19 @@ impl Chain for Rialto {
 	type Hasher = Hasher;
 	type Header = Header;
 }
+
+/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
+pub type Signature = MultiSignature;
+
+/// Some way of identifying an account on the chain. We intentionally make it equivalent
+/// to the public key of our transaction signing scheme.
+pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+
+/// Public key of the chain account that may be used to verify signatures.
+pub type AccountSigner = MultiSigner;
+
+/// Balance of an account.
+pub type Balance = u128;
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Rialto headers from the Bridge Pallet instance.
