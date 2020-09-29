@@ -732,6 +732,7 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "sp-finality-grandpa",
+ "sp-keyring",
  "sp-runtime",
  "sp-std",
 ]

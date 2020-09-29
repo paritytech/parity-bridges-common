@@ -42,6 +42,14 @@ tag = 'v2.0.0'
 default-features = false
 git = "https://github.com/paritytech/substrate/"
 
+# Dev Dependencies
+
+[dev-dependencies.sp-keyring]
+version = "2.0.0"
+tag = 'v2.0.0'
+default-features = false
+git = "https://github.com/paritytech/substrate/"
+
 [features]
 default = ["std"]
 std = [

@@ -176,11 +176,11 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
 	use super::*;
-	use crate::mock::helpers::*;
+	use crate::test_helpers::*;
 	use codec::Encode;
-	use sp_core::H256;
 	use sp_finality_grandpa::{AuthorityId, AuthorityWeight};
 	use sp_keyring::Ed25519Keyring;
+	use sp_runtime::testing::{Header, H256};
 
 	const TEST_GRANDPA_ROUND: u64 = 1;
 	const TEST_GRANDPA_SET_ID: SetId = 1;
@@ -209,11 +209,11 @@ pub(crate) mod tests {
 	}
 
 	pub(crate) fn make_justification_for_header(
-		header: &TestHeader,
+		header: &Header,
 		round: u64,
 		set_id: SetId,
 		authorities: &[(AuthorityId, AuthorityWeight)],
-	) -> GrandpaJustification<TestHeader> {
+	) -> GrandpaJustification<Header> {
 		let (target_hash, target_number) = (header.hash(), *header.number());
 		let mut precommits = vec![];
 		let mut votes_ancestries = vec![];
@@ -248,7 +248,7 @@ pub(crate) mod tests {
 		}
 	}
 
-	pub(crate) fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
+	pub(crate) fn make_justification_for_header_1() -> GrandpaJustification<Header> {
 		make_justification_for_header(
 			&test_header(1),
 			TEST_GRANDPA_ROUND,
@@ -260,7 +260,7 @@ pub(crate) mod tests {
 	#[test]
 	fn justification_with_invalid_encoding_rejected() {
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &[],),
+			verify_justification::<Header>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &[],),
 			Err(Error::JustificationDecode),
 		);
 	}
@@ -268,7 +268,7 @@ pub(crate) mod tests {
 	#[test]
 	fn justification_with_invalid_target_rejected() {
 		assert_eq!(
-			verify_justification::<TestHeader>(
+			verify_justification::<Header>(
 				header_id(2),
 				TEST_GRANDPA_SET_ID,
 				voter_set(),
@@ -284,7 +284,7 @@ pub(crate) mod tests {
 		justification.commit.precommits.clear();
 
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
+			verify_justification::<Header>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
 			Err(Error::InvalidJustificationCommit),
 		);
 	}
@@ -295,7 +295,7 @@ pub(crate) mod tests {
 		justification.commit.precommits[0].signature = Default::default();
 
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
+			verify_justification::<Header>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
 			Err(Error::InvalidAuthoritySignature),
 		);
 	}
@@ -306,7 +306,7 @@ pub(crate) mod tests {
 		justification.votes_ancestries.push(test_header(10));
 
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
+			verify_justification::<Header>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
 			Err(Error::InvalidPrecommitAncestries),
 		);
 	}
@@ -314,7 +314,7 @@ pub(crate) mod tests {
 	#[test]
 	fn valid_justification_accepted() {
 		assert_eq!(
-			verify_justification::<TestHeader>(
+			verify_justification::<Header>(
 				header_id(1),
 				TEST_GRANDPA_SET_ID,
 				voter_set(),
