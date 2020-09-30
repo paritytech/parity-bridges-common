@@ -20,13 +20,21 @@
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
+use sp_core::Hasher as HasherT;
+use sp_runtime::traits::BlakeTwo256;
 use sp_std::prelude::*;
 
 /// Block number type used in Millau.
 pub type BlockNumber = u32;
 
 /// Hash type used in Millau.
-pub type Hash = sp_core::H256;
+pub type Hash = <BlakeTwo256 as HasherT>::Out;
+
+/// The type of the thing that produces hashes Millau.
+pub type Hasher = BlakeTwo256;
+
+/// The header type used by Millau.
+pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Millau headers from the Bridge Pallet instance.
@@ -43,7 +51,9 @@ sp_api::decl_runtime_apis! {
 		fn finalized_block() -> (BlockNumber, Hash);
 		/// Returns numbers and hashes of headers that require finality proofs.
 		fn incomplete_headers() -> Vec<(BlockNumber, Hash)>;
-		/// Returns true if header is known to the runtime.
+		/// Returns true if the header is known to the runtime.
 		fn is_known_block(hash: Hash) -> bool;
+		/// Returns true if the header is considered finalized by the runtime.
+		fn is_finalized_block(hash: Hash) -> bool;
 	}
 }
