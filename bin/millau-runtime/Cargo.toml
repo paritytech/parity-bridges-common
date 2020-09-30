@@ -14,6 +14,7 @@ serde = { version = "1.0.115", optional = true, features = ["derive"] }
 # Bridge dependencies
 
 bp-message-lane = { path = "../../primitives/message-lane", default-features = false }
+bp-millau = { path = "../../primitives/millau", default-features = false }
 pallet-bridge-call-dispatch = { path = "../../modules/call-dispatch", default-features = false }
 pallet-message-lane = { path = "../../modules/message-lane", default-features = false }
 pallet-shift-session-manager = { path = "../../modules/shift-session-manager", default-features = false }
@@ -51,6 +52,7 @@ wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "1.
 default = ["std"]
 std = [
 	"bp-message-lane/std",
+	"bp-millau/std",
 	"codec/std",
 	"frame-executive/std",
 	"frame-support/std",
