@@ -15,7 +15,6 @@ serde = { version = "1.0", optional = true }
 
 # Bridge dependencies
 
-bp-header-chain = { path = "../../primitives/header-chain", default-features = false }
 bp-substrate = { path = "../../primitives/substrate", default-features = false }
 
 # Substrate Dependencies
@@ -36,7 +35,6 @@ sp-state-machine = "0.8"
 [features]
 default = ["std"]
 std = [
-	"bp-header-chain/std",
 	"bp-substrate/std",
 	"codec/std",
 	"finality-grandpa/std",

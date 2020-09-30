@@ -740,9 +740,7 @@ version = "0.1.0"
 dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
- "futures 0.3.5",
  "jsonrpc-core 15.0.0",
- "log",
  "millau-runtime",
  "pallet-message-lane-rpc",
  "rialto-runtime",
@@ -753,7 +751,6 @@ dependencies = [
  "sc-consensus-aura",
  "sc-executor",
  "sc-finality-grandpa",
- "sc-network",
  "sc-rpc",
  "sc-service",
  "sc-transaction-pool",
@@ -763,7 +760,6 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-inherents",
  "sp-runtime",
- "sp-transaction-pool",
  "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
@@ -3521,14 +3517,11 @@ dependencies = [
 name = "millau-runtime"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
  "bp-message-lane",
- "frame-benchmarking",
  "frame-executive",
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "hex-literal 0.3.1",
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-call-dispatch",
@@ -3547,11 +3540,9 @@ dependencies = [
  "sp-consensus-aura",
  "sp-core",
  "sp-inherents",
- "sp-io",
  "sp-offchain",
  "sp-runtime",
  "sp-session",
- "sp-staking",
  "sp-std",
  "sp-transaction-pool",
  "sp-version",
@@ -4040,7 +4031,6 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.1",
  "libsecp256k1",
  "parity-scale-codec",
  "serde",
@@ -4093,9 +4083,7 @@ dependencies = [
 name = "pallet-message-lane"
 version = "0.1.0"
 dependencies = [
- "bp-message-dispatch",
  "bp-message-lane",
- "bp-runtime",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -4177,7 +4165,6 @@ dependencies = [
 name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
  "bp-substrate",
  "finality-grandpa",
  "frame-support",
@@ -5266,7 +5253,6 @@ dependencies = [
  "sp-offchain",
  "sp-runtime",
  "sp-session",
- "sp-staking",
  "sp-std",
  "sp-transaction-pool",
  "sp-version",

@@ -9,9 +9,9 @@ repository = "https://github.com/paritytech/parity-bridges-common/"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
-futures = "0.3.5"
+#futures = "0.3.5"
 jsonrpc-core = "15.0.0"
-log = "0.4.11"
+#log = "0.4.11"
 structopt = "0.3.17"
 
 # Bridge dependencies
@@ -31,7 +31,6 @@ sc-consensus = "0.8"
 sc-consensus-aura = "0.8"
 sc-executor = "0.8"
 sc-finality-grandpa = "0.8"
-sc-network = "0.8"
 sc-service = "0.8"
 sc-rpc = "2.0"
 sc-transaction-pool = "2.0"
@@ -41,7 +40,6 @@ sp-core = "2.0"
 sp-inherents = "2.0"
 sp-finality-grandpa = "2.0"
 sp-runtime = "2.0"
-sp-transaction-pool = "2.0"
 substrate-frame-rpc-system = "2.0"
 
 [build-dependencies]

@@ -25,5 +25,4 @@ sp-finality-grandpa = "2.0"
 sp-runtime = "2.0"
 
 [dev-dependencies]
-hex = "0.4"
 sp-core = "2.0"
