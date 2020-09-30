@@ -106,13 +106,14 @@ where
 	/// Will perform some basic checks to make sure that this header doesn't break any assumptions
 	/// such as being on a different finalized fork.
 	pub fn import_header(&mut self, header: H) -> Result<(), ImportError> {
+		let hash = header.hash();
 		let best_finalized = self.storage.best_finalized_header();
 
 		if header.number() <= best_finalized.number() {
 			return Err(ImportError::OldHeader);
 		}
 
-		if self.storage.header_exists(header.hash()) {
+		if self.storage.header_exists(hash) {
 			return Err(ImportError::HeaderAlreadyExists);
 		}
 
@@ -176,12 +177,15 @@ where
 			}
 		};
 
-		let is_finalized = false;
 		self.storage.write_header(&ImportedHeader {
 			header,
 			requires_justification,
-			is_finalized,
+			is_finalized: false,
 		});
+
+		// Since we're not dealing with forks at the moment we know that
+		// the header we just got will be the one at the best height
+		self.storage.update_best_header(hash);
 
 		Ok(())
 	}
@@ -442,9 +446,11 @@ mod tests {
 			};
 			assert_ok!(verifier.import_header(header.clone()));
 
-			let stored_header = storage.header_by_hash(header.hash());
-			assert!(stored_header.is_some());
-			assert_eq!(stored_header.unwrap().is_finalized, false);
+			let stored_header = storage
+				.header_by_hash(header.hash())
+				.expect("Should have been imported successfully");
+			assert_eq!(stored_header.is_finalized, false);
+			assert_eq!(stored_header, storage.best_header());
 		})
 	}
 
