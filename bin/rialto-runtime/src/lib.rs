@@ -574,24 +574,6 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_millau::MillauHeaderApi<Block> for Runtime {
-		fn best_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
-			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
-		}
-
-		fn finalized_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
-			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
-		}
-
-		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
-			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
-		}
-
-		fn is_known_block(_hash: bp_millau::Hash) -> bool {
-			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
-		}
-	}
-
 	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
 		fn validate_transaction(
 			source: TransactionSource,

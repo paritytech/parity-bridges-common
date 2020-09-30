@@ -38,7 +38,7 @@ use sp_runtime::traits::{
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature, MultiSigner,
+	ApplyExtrinsicResult, MultiSignature,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -54,6 +54,7 @@ pub use frame_support::{
 };
 
 pub use pallet_balances::Call as BalancesCall;
+pub use pallet_substrate_bridge::Call as BridgeSubstrateCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
 #[cfg(any(feature = "std", test))]
@@ -217,15 +218,6 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
-impl pallet_bridge_call_dispatch::Trait for Runtime {
-	type Event = Event;
-	type MessageId = (bp_message_lane::LaneId, bp_message_lane::MessageNonce);
-	type Call = Call;
-	type SourceChainAccountPublic = MultiSigner;
-	type TargetChainAccountPublic = MultiSigner;
-	type TargetChainSignature = MultiSignature;
-}
-
 impl pallet_grandpa::Trait for Runtime {
 	type Event = Event;
 	type Call = Call;
@@ -308,6 +300,16 @@ impl pallet_session::Trait for Runtime {
 	type WeightInfo = ();
 }
 
+// You might be wondering: "Why not just take the config values from the Millau (this) runtime?".
+// We're taking them from the Millau primitives to show that this pallet can be configured
+// with any arbirary Header, Hash, etc. as long as it conforms to the pallet rules.
+impl pallet_substrate_bridge::Trait for Runtime {
+	type BridgedHeader = bp_millau::Header;
+	type BridgedBlockNumber = bp_millau::BlockNumber;
+	type BridgedBlockHash = bp_millau::Hash;
+	type BridgedBlockHasher = bp_millau::Hasher;
+}
+
 impl pallet_shift_session_manager::Trait for Runtime {}
 
 construct_runtime!(
@@ -316,7 +318,8 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
+		// TODO: Add Config for BridgeSubstrate
+		BridgeSubstrate: pallet_substrate_bridge::{Module, Call, Storage},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
@@ -477,6 +480,30 @@ impl_runtime_apis! {
 			// defined our key owner proof type as a bottom type (i.e. a type
 			// with no values).
 			None
+		}
+	}
+
+	impl bp_millau::MillauHeaderApi<Block> for Runtime {
+		fn best_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+			let header = BridgeSubstrate::best_header();
+			(header.number, header.hash())
+		}
+
+		fn finalized_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+			let header = BridgeSubstrate::best_finalized();
+			(header.number, header.hash())
+		}
+
+		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
+			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
+		}
+
+		fn is_known_block(hash: bp_millau::Hash) -> bool {
+			BridgeSubstrate::is_known_header(hash)
+		}
+
+		fn is_finalized_block(hash: bp_millau::Hash) -> bool {
+			BridgeSubstrate::is_finalized_header(hash)
 		}
 	}
 }

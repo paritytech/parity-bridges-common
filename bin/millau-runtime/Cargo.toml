@@ -18,6 +18,7 @@ bp-millau = { path = "../../primitives/millau", default-features = false }
 pallet-bridge-call-dispatch = { path = "../../modules/call-dispatch", default-features = false }
 pallet-message-lane = { path = "../../modules/message-lane", default-features = false }
 pallet-shift-session-manager = { path = "../../modules/shift-session-manager", default-features = false }
+pallet-substrate-bridge = { path = "../../modules/substrate", default-features = false }
 
 # Substrate Dependencies
 

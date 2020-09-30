@@ -19,7 +19,6 @@ bp-currency-exchange = { path = "../../primitives/currency-exchange", default-fe
 bp-eth-poa = { path = "../../primitives/ethereum-poa", default-features = false }
 bp-header-chain = { path = "../../primitives/header-chain", default-features = false }
 bp-message-lane = { path = "../../primitives/message-lane", default-features = false }
-bp-millau = { path = "../../primitives/millau", default-features = false }
 bp-rialto = { path = "../../primitives/rialto", default-features = false }
 pallet-bridge-eth-poa = { path = "../../modules/ethereum", default-features = false }
 pallet-bridge-call-dispatch = { path = "../../modules/call-dispatch", default-features = false }
@@ -68,7 +67,6 @@ std = [
 	"bp-eth-poa/std",
 	"bp-header-chain/std",
 	"bp-message-lane/std",
-	"bp-millau/std",
 	"bp-rialto/std",
 	"codec/std",
 	"frame-benchmarking/std",
