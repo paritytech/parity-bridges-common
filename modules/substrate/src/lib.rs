@@ -109,6 +109,8 @@ pub trait Trait: frame_system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
+		/// Hash of the header at the highest known height.
+		BestHeader: T::BridgedBlockHash;
 		/// Hash of the best finalized header.
 		BestFinalized: T::BridgedBlockHash;
 		/// Headers which have been imported into the pallet.
@@ -223,6 +225,44 @@ decl_module! {
 	}
 }
 
+impl<T: Trait> Module<T> {
+	/// Get the highest header that the pallet knows of.
+	// In a future where we support forks this could be a Vec of headers
+	// since we may have multiple headers at the same height.
+	pub fn best_header() -> T::BridgedHeader {
+		PalletStorage::<T>::new().best_header().header
+	}
+
+	/// Get the best finalized header the pallet knows of.
+	///
+	/// Since this has been finalized correctly a user of the bridge
+	/// pallet should be confident that any transactions that were
+	/// included in this or any previous header will not be reverted.
+	pub fn best_finalized() -> T::BridgedHeader {
+		PalletStorage::<T>::new().best_finalized_header().header
+	}
+
+	/// Check if a particular header is known to the bridge pallet.
+	pub fn is_known_header(hash: T::BridgedBlockHash) -> bool {
+		PalletStorage::<T>::new().header_exists(hash)
+	}
+
+	/// Check if a particular header is finalized.
+	///
+	/// Will return false if the header is not known to the pallet.
+	// One thing worth noting here is that this approach won't work well
+	// once we track forks since there could be an older header on a
+	// different fork which isn't an ancestor of our best finalized header.
+	pub fn is_finalized_header(hash: T::BridgedBlockHash) -> bool {
+		let storage = PalletStorage::<T>::new();
+		if let Some(header) = storage.header_by_hash(hash) {
+			header.number() <= storage.best_finalized_header().number()
+		} else {
+			false
+		}
+	}
+}
+
 /// Expected interface for interacting with bridge pallet storage.
 // TODO: This should be split into its own less-Substrate-dependent crate
 pub trait BridgeStorage {
@@ -231,6 +271,12 @@ pub trait BridgeStorage {
 
 	/// Write a header to storage.
 	fn write_header(&mut self, header: &ImportedHeader<Self::Header>);
+
+	/// Get the header at the highest known height.
+	fn best_header(&self) -> ImportedHeader<Self::Header>;
+
+	/// Update the header at the highest height.
+	fn update_best_header(&mut self, hash: <Self::Header as HeaderT>::Hash);
 
 	/// Get the best finalized header the pallet knows of.
 	fn best_finalized_header(&self) -> ImportedHeader<Self::Header>;
@@ -282,6 +328,17 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	fn write_header(&mut self, header: &ImportedHeader<T::BridgedHeader>) {
 		let hash = header.header.hash();
 		<ImportedHeaders<T>>::insert(hash, header);
+	}
+
+	fn best_header(&self) -> ImportedHeader<Self::Header> {
+		// TODO: Actually write this in the GenesisConfig
+		let hash = <BestHeader<T>>::get();
+		self.header_by_hash(hash)
+			.expect("A header must have been written at genesis, therefore this must always exist")
+	}
+
+	fn update_best_header(&mut self, hash: T::BridgedBlockHash) {
+		<BestHeader<T>>::put(hash)
 	}
 
 	fn best_finalized_header(&self) -> ImportedHeader<T::BridgedHeader> {
