@@ -9,8 +9,6 @@ update_configs:
       - match:
           dependency_name: "sc-*"
       - match:
-          dependency_name: "node-*"
-      - match:
           dependency_name: "substrate-*"
       - match:
           dependency_name: "frame-*"
