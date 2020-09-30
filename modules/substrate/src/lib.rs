@@ -138,6 +138,7 @@ decl_storage! {
 				.clone()
 				.expect("An initial header is needed");
 
+			<BestHeader<T>>::put(initial_header.hash());
 			<BestFinalized<T>>::put(initial_header.hash());
 			<ImportedHeaders<T>>::insert(
 				initial_header.hash(),
@@ -331,7 +332,6 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	}
 
 	fn best_header(&self) -> ImportedHeader<Self::Header> {
-		// TODO: Actually write this in the GenesisConfig
 		let hash = <BestHeader<T>>::get();
 		self.header_by_hash(hash)
 			.expect("A header must have been written at genesis, therefore this must always exist")
