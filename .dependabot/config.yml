@@ -14,9 +14,6 @@ update_configs:
           dependency_name: "frame-*"
       - match:
           dependency_name: "pallet-*"
-      - match:
-          dependency_name: "async-std"
-          version_requirement: "1.6.x"
     automerged_updates:
       - match:
           update_type: "all"
