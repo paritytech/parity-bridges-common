@@ -717,6 +717,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-millau"
+version = "0.1.0"
+dependencies = [
+ "sp-api",
+ "sp-core",
+ "sp-std",
+]
+
+[[package]]
+name = "bp-rialto"
+version = "0.1.0"
+dependencies = [
+ "sp-api",
+ "sp-core",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-runtime"
 version = "0.1.0"
 dependencies = [
@@ -1626,7 +1644,7 @@ dependencies = [
  "frame-system",
  "linregress",
  "parity-scale-codec",
- "paste",
+ "paste 0.1.18",
  "sp-api",
  "sp-io",
  "sp-runtime",
@@ -1692,7 +1710,7 @@ dependencies = [
  "log",
  "once_cell 1.4.1",
  "parity-scale-codec",
- "paste",
+ "paste 0.1.18",
  "serde",
  "smallvec 1.4.2",
  "sp-arithmetic",
@@ -3503,6 +3521,7 @@ version = "0.1.0"
 dependencies = [
  "bp-header-chain",
  "bp-message-lane",
+ "bp-millau",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -4548,6 +4567,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0520af26d4cf99643dbbe093a61507922b57232d9978d8491fdc8f7b44573c8c"
+
+[[package]]
 name = "paste-impl"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5169,6 +5194,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-millau-client"
+version = "0.1.0"
+dependencies = [
+ "frame-system",
+ "headers-relay",
+ "millau-runtime",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-runtime",
+]
+
+[[package]]
 name = "relay-rialto-client"
 version = "0.1.0"
 dependencies = [
@@ -5188,6 +5226,7 @@ dependencies = [
 name = "relay-substrate-client"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "frame-support",
  "frame-system",
  "headers-relay",
@@ -5243,6 +5282,8 @@ dependencies = [
  "bp-eth-poa",
  "bp-header-chain",
  "bp-message-lane",
+ "bp-millau",
+ "bp-rialto",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -6999,7 +7040,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "parity-util-mem",
- "paste",
+ "paste 0.1.18",
  "rand 0.7.3",
  "serde",
  "sp-application-crypto",
@@ -7419,6 +7460,26 @@ dependencies = [
  "log",
  "prometheus",
  "tokio 0.2.22",
+]
+
+[[package]]
+name = "substrate-relay"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "async-trait",
+ "bp-rialto",
+ "futures 0.3.5",
+ "headers-relay",
+ "log",
+ "messages-relay",
+ "parity-scale-codec",
+ "paste 1.0.1",
+ "relay-millau-client",
+ "relay-rialto-client",
+ "relay-substrate-client",
+ "sp-runtime",
+ "structopt",
 ]
 
 [[package]]
