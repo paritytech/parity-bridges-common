@@ -20,7 +20,6 @@ pallet-shift-session-manager = { path = "../../modules/shift-session-manager", d
 
 # Substrate Dependencies
 
-#frame-benchmarking = { version = "2.0", default-features = false, optional = true }
 frame-executive = { version = "2.0", default-features = false }
 frame-support = { version = "2.0", default-features = false }
 frame-system = { version = "2.0", default-features = false }
