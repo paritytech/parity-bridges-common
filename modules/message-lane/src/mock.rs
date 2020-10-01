@@ -14,7 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_message_lane::LaneId;
+use crate::Trait;
+
+use bp_message_lane::{
+	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
+	target_chain::{DispatchMessage, MessageDispatch, SourceHeaderChain},
+	LaneId, Message, MessageData, MessageKey, MessageNonce,
+};
+use codec::Encode;
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
@@ -23,10 +30,9 @@ use sp_runtime::{
 	Perbill,
 };
 
-use crate::Trait;
-
 pub type AccountId = u64;
-pub type TestPayload = u64;
+pub type TestPayload = (u64, Weight);
+pub type TestMessageFee = u64;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
@@ -69,11 +75,11 @@ impl frame_system::Trait for TestRuntime {
 	type DbWeight = ();
 	type BlockExecutionWeight = ();
 	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = ();
+	type MaximumExtrinsicWeight = MaximumBlockWeight;
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type MaximumBlockLength = MaximumBlockLength;
 	type Version = ();
-	type ModuleToIndex = ();
+	type PalletInfo = ();
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -87,18 +93,163 @@ parameter_types! {
 
 impl Trait for TestRuntime {
 	type Event = TestEvent;
-	type Payload = TestPayload;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
-	type OnMessageReceived = ();
+
+	type OutboundPayload = TestPayload;
+	type OutboundMessageFee = TestMessageFee;
+
+	type InboundPayload = TestPayload;
+	type InboundMessageFee = TestMessageFee;
+
+	type TargetHeaderChain = TestTargetHeaderChain;
+	type LaneMessageVerifier = TestLaneMessageVerifier;
+	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
+
+	type SourceHeaderChain = TestSourceHeaderChain;
+	type MessageDispatch = TestMessageDispatch;
 }
+
+/// Error that is returned by all test implementations.
+pub const TEST_ERROR: &str = "Test error";
 
 /// Lane that we're using in tests.
 pub const TEST_LANE_ID: LaneId = [0, 0, 0, 1];
 
 /// Regular message payload.
-pub const REGULAR_PAYLOAD: TestPayload = 0;
+pub const REGULAR_PAYLOAD: TestPayload = (0, 50);
+
+/// Payload that is rejected by `TestTargetHeaderChain`.
+pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = (1, 50);
+
+/// Target header chain that is used in tests.
+#[derive(Debug, Default)]
+pub struct TestTargetHeaderChain;
+
+impl TargetHeaderChain<TestPayload> for TestTargetHeaderChain {
+	type Error = &'static str;
+
+	type MessagesDeliveryProof = Result<(LaneId, MessageNonce), ()>;
+
+	fn verify_message(payload: &TestPayload) -> Result<(), Self::Error> {
+		if *payload == PAYLOAD_REJECTED_BY_TARGET_CHAIN {
+			Err(TEST_ERROR)
+		} else {
+			Ok(())
+		}
+	}
+
+	fn verify_messages_delivery_proof(
+		proof: Self::MessagesDeliveryProof,
+	) -> Result<(LaneId, MessageNonce), Self::Error> {
+		proof.map_err(|_| TEST_ERROR)
+	}
+}
+
+/// Lane message verifier that is used in tests.
+#[derive(Debug, Default)]
+pub struct TestLaneMessageVerifier;
+
+impl LaneMessageVerifier<AccountId, TestPayload, TestMessageFee> for TestLaneMessageVerifier {
+	type Error = &'static str;
+
+	fn verify_message(
+		_submitter: &AccountId,
+		delivery_and_dispatch_fee: &TestMessageFee,
+		_lane: &LaneId,
+		_payload: &TestPayload,
+	) -> Result<(), Self::Error> {
+		if *delivery_and_dispatch_fee != 0 {
+			Ok(())
+		} else {
+			Err(TEST_ERROR)
+		}
+	}
+}
+
+/// Message fee payment system that is used in tests.
+#[derive(Debug, Default)]
+pub struct TestMessageDeliveryAndDispatchPayment;
+
+impl TestMessageDeliveryAndDispatchPayment {
+	/// Reject all payments.
+	pub fn reject_payments() {
+		frame_support::storage::unhashed::put(b":reject-message-fee:", &true);
+	}
+
+	/// Returns true if given fee has been paid by given relayer.
+	pub fn is_fee_paid(submitter: AccountId, fee: TestMessageFee) -> bool {
+		frame_support::storage::unhashed::get(b":message-fee:") == Some((submitter, fee))
+	}
+}
+
+impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessageDeliveryAndDispatchPayment {
+	type Error = &'static str;
+
+	fn pay_delivery_and_dispatch_fee(submitter: &AccountId, fee: &TestMessageFee) -> Result<(), Self::Error> {
+		if frame_support::storage::unhashed::get(b":reject-message-fee:") == Some(true) {
+			return Err(TEST_ERROR);
+		}
+
+		frame_support::storage::unhashed::put(b":message-fee:", &(submitter, fee));
+		Ok(())
+	}
+}
+
+/// Source header chain that is used in tests.
+#[derive(Debug)]
+pub struct TestSourceHeaderChain;
+
+impl SourceHeaderChain<TestMessageFee> for TestSourceHeaderChain {
+	type Error = &'static str;
+
+	type MessagesProof = Result<Vec<Message<TestMessageFee>>, ()>;
+
+	fn verify_messages_proof(proof: Self::MessagesProof) -> Result<Vec<Message<TestMessageFee>>, Self::Error> {
+		proof.map_err(|_| TEST_ERROR)
+	}
+}
+
+/// Source header chain that is used in tests.
+#[derive(Debug)]
+pub struct TestMessageDispatch;
+
+impl MessageDispatch<TestMessageFee> for TestMessageDispatch {
+	type DispatchPayload = TestPayload;
+
+	fn dispatch_weight(message: &DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
+		match message.data.payload.as_ref() {
+			Ok(payload) => payload.1,
+			Err(_) => 0,
+		}
+	}
+
+	fn dispatch(_message: DispatchMessage<TestPayload, TestMessageFee>) {}
+}
+
+/// Return test lane message with given nonce and payload.
+pub fn message(nonce: MessageNonce, payload: TestPayload) -> Message<TestMessageFee> {
+	Message {
+		key: MessageKey {
+			lane_id: TEST_LANE_ID,
+			nonce,
+		},
+		data: message_data(payload),
+	}
+}
+
+/// Return message data with valid fee for given payload.
+pub fn message_data(payload: TestPayload) -> MessageData<TestMessageFee> {
+	MessageData {
+		payload: payload.encode(),
+		fee: 1,
+	}
+}
 
 /// Run message lane test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	sp_io::TestExternalities::new(Default::default()).execute_with(test)
+	let t = frame_system::GenesisConfig::default()
+		.build_storage::<TestRuntime>()
+		.unwrap();
+	let mut ext = sp_io::TestExternalities::new(t);
+	ext.execute_with(test)
 }

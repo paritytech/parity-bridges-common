@@ -88,7 +88,7 @@ version = "0.8.0-rc6"
 tag = 'v2.0.0-rc6'
 git = "https://github.com/paritytech/substrate.git"
 
-[dependencies.grandpa-primitives]
+[dependencies.sp-finality-grandpa]
 package = "sp-finality-grandpa"
 version = "2.0.0-rc6"
 tag = 'v2.0.0-rc6'
@@ -145,6 +145,7 @@ git = "https://github.com/paritytech/substrate.git"
 
 [features]
 default = []
-runtime-benchmarks = [
-	"millau-runtime/runtime-benchmarks",
-]
+# TODO
+# runtime-benchmarks = [
+# 	"millau-runtime/runtime-benchmarks",
+# ]
