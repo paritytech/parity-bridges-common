@@ -113,6 +113,11 @@ decl_storage! {
 		BestHeader: T::BridgedBlockHash;
 		/// Hash of the best finalized header.
 		BestFinalized: T::BridgedBlockHash;
+		/// A header which enacts an authority set change and therefore
+		/// requires a Grandpa justification.
+		// Since we won't always have an authority set change scheduled we
+		// won't always have a header which needs a justification.
+		RequiresJustification: Option<T::BridgedBlockHash>;
 		/// Headers which have been imported into the pallet.
 		ImportedHeaders: map hasher(identity) T::BridgedBlockHash => Option<ImportedHeader<T::BridgedHeader>>;
 		/// The current Grandpa Authority set.
@@ -262,6 +267,16 @@ impl<T: Trait> Module<T> {
 			false
 		}
 	}
+
+	pub fn requires_justification() -> Option<T::BridgedHeader> {
+		let storage = PalletStorage::<T>::new();
+		let hash = storage.unfinalized_header()?;
+		let imported_header = storage.header_by_hash(hash).expect(
+			"We write a header to storage before marking it as unfinalized, therefore
+			this must always exist if we got an unfinalized header hash.",
+		);
+		Some(imported_header.header)
+	}
 }
 
 /// Expected interface for interacting with bridge pallet storage.
@@ -287,6 +302,16 @@ pub trait BridgeStorage {
 
 	/// Check if a particular header is known to the pallet.
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
+
+	/// Return a header which requires a justification. A header will require
+	/// a justification when it enacts an new authority set.
+	fn unfinalized_header(&self) -> Option<<Self::Header as HeaderT>::Hash>;
+
+	/// Mark a header as eventually requiring a justification.
+	fn update_unfinalized_header(&mut self, hash: <Self::Header as HeaderT>::Hash);
+
+	/// Mark that we have received a justification for a header which required one.
+	fn clear_unfinalized_header(&mut self);
 
 	/// Get a specific header by its hash.
 	///
@@ -357,6 +382,18 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 	fn header_by_hash(&self, hash: T::BridgedBlockHash) -> Option<ImportedHeader<T::BridgedHeader>> {
 		<ImportedHeaders<T>>::get(hash)
+	}
+
+	fn unfinalized_header(&self) -> Option<T::BridgedBlockHash> {
+		<RequiresJustification<T>>::get()
+	}
+
+	fn update_unfinalized_header(&mut self, hash: <Self::Header as HeaderT>::Hash) {
+		<RequiresJustification<T>>::put(hash);
+	}
+
+	fn clear_unfinalized_header(&mut self) {
+		<RequiresJustification<T>>::take();
 	}
 
 	fn current_authority_set(&self) -> AuthoritySet {
