@@ -302,7 +302,7 @@ impl pallet_session::Trait for Runtime {
 
 // You might be wondering: "Why not just take the config values from the Millau (this) runtime?".
 // We're taking them from the Millau primitives to show that this pallet can be configured
-// with any arbirary Header, Hash, etc. as long as it conforms to the pallet rules.
+// with any arbitrary Header, Hash, etc. as long as it conforms to the pallet rules.
 impl pallet_substrate_bridge::Trait for Runtime {
 	type BridgedHeader = bp_millau::Header;
 	type BridgedBlockNumber = bp_millau::BlockNumber;
