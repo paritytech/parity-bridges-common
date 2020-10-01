@@ -495,7 +495,13 @@ impl_runtime_apis! {
 		}
 
 		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
-			unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/368")
+			// Since the pallet doesn't accept multiple scheduled changes right now
+			// we can only have one header requiring a justification at any time.
+			if let Some(header) = BridgeSubstrate::requires_justification() {
+				vec![(header.number, header.hash())]
+			} else {
+				vec![]
+			}
 		}
 
 		fn is_known_block(hash: bp_millau::Hash) -> bool {
