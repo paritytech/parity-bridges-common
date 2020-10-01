@@ -15,8 +15,8 @@ structopt = "0.3.17"
 
 # Bridge dependencies
 
-pallet-message-lane-rpc = { path = "../../modules/message-lane/rpc" }
-rialto-runtime = { path = "../rialto-runtime" }
+pallet-message-lane-rpc = { path = "../../../modules/message-lane/rpc" }
+rialto-runtime = { path = "../runtime" }
 
 # Substrate Dependencies
 

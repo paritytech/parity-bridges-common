@@ -15,7 +15,7 @@ structopt = "0.3.17"
 
 # Bridge dependencies
 
-millau-runtime = { path = "../millau-runtime" }
+millau-runtime = { path = "../runtime" }
 
 # Substrate Dependencies
 
