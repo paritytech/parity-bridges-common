@@ -91,13 +91,13 @@ jobs:
         with:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
-          args:                    --manifest-path ./bin/rialto-node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+          args:                    --manifest-path ./bin/rialto/node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
       - name:                      Check Millau benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
-          args:                    --manifest-path ./bin/millau-node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+          args:                    --manifest-path ./bin/millau/node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
 
 ## Build Stage
       - name:                      Building rust-${{ matrix.toolchain }}
