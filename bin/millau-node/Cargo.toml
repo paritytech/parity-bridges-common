@@ -16,8 +16,6 @@ structopt = "0.3.17"
 # Bridge dependencies
 
 millau-runtime = { path = "../millau-runtime" }
-# pallet-message-lane-rpc = { path = "../../modules/message-lane/rpc" }
-# rialto-runtime = { path = "../rialto-runtime" }
 
 # Substrate Dependencies
 
@@ -48,7 +46,7 @@ vergen = "3.1.0"
 
 [features]
 default = []
-# TODO
-# runtime-benchmarks = [
-# 	"millau-runtime/runtime-benchmarks",
-# ]
+runtime-benchmarks = [
+	# TODO
+	# "millau-runtime/runtime-benchmarks",
+]

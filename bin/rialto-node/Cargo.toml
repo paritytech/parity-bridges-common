@@ -15,7 +15,6 @@ structopt = "0.3.17"
 
 # Bridge dependencies
 
-# millau-runtime = { path = "../millau-runtime", optional = true }
 pallet-message-lane-rpc = { path = "../../modules/message-lane/rpc" }
 rialto-runtime = { path = "../rialto-runtime" }
 
