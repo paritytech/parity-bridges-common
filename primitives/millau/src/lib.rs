@@ -30,7 +30,7 @@ pub type BlockNumber = u32;
 /// Hash type used in Millau.
 pub type Hash = <BlakeTwo256 as HasherT>::Out;
 
-/// The type of the thing that produces hashes Millau.
+/// The type of an object that can produce hashes on Millau.
 pub type Hasher = BlakeTwo256;
 
 /// The header type used by Millau.
