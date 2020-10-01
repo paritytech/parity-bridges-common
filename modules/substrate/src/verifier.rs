@@ -213,8 +213,8 @@ where
 
 		let current_authority_set = self.storage.current_authority_set();
 		let voter_set = VoterSet::new(current_authority_set.authorities).expect(
-			"This only fails if we have an invalid list of authorities. Since we
-			got this from storage it should always be valid, otherwise we have a bug.",
+			"We verified the correctness of the authority list during header import,
+			before writing them to storage. This must always be valid.",
 		);
 		verify_justification::<H>(
 			(hash, *header.number()),
