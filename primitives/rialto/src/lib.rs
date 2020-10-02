@@ -20,13 +20,21 @@
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
+use sp_core::Hasher as HasherT;
+use sp_runtime::traits::BlakeTwo256;
 use sp_std::prelude::*;
 
 /// Block number type used in Rialto.
 pub type BlockNumber = u32;
 
 /// Hash type used in Rialto.
-pub type Hash = sp_core::H256;
+pub type Hash = <BlakeTwo256 as HasherT>::Out;
+
+/// The type of an object that can produce hashes on Rialto.
+pub type Hasher = BlakeTwo256;
+
+/// The header type used by Rialto.
+pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Rialto headers from the Bridge Pallet instance.

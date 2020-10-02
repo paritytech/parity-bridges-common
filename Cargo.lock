@@ -725,6 +725,7 @@ version = "0.1.0"
 dependencies = [
  "sp-api",
  "sp-core",
+ "sp-runtime",
  "sp-std",
 ]
 
@@ -3521,6 +3522,7 @@ version = "0.1.0"
 dependencies = [
  "bp-message-lane",
  "bp-millau",
+ "bp-rialto",
  "frame-executive",
  "frame-support",
  "frame-system",
