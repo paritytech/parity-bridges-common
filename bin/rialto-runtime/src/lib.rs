@@ -414,6 +414,13 @@ impl pallet_session::Trait for Runtime {
 	type WeightInfo = ();
 }
 
+impl pallet_substrate_bridge::Trait for Runtime {
+	type BridgedHeader = bp_millau::Header;
+	type BridgedBlockNumber = bp_millau::BlockNumber;
+	type BridgedBlockHash = bp_millau::Hash;
+	type BridgedBlockHasher = bp_millau::Hasher;
+}
+
 impl pallet_shift_session_manager::Trait for Runtime {}
 
 construct_runtime!(
@@ -426,6 +433,8 @@ construct_runtime!(
 		BridgeKovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
 		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
+		// TODO: Add Config for BridgeMillau
+		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
@@ -559,6 +568,36 @@ impl_runtime_apis! {
 
 		fn is_known_block(hash: bp_eth_poa::H256) -> bool {
 			BridgeKovan::is_known_block(hash)
+		}
+	}
+
+	impl bp_millau::MillauHeaderApi<Block> for Runtime {
+		fn best_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+			let header = BridgeMillau::best_header();
+			(header.number, header.hash())
+		}
+
+		fn finalized_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+			let header = BridgeMillau::best_finalized();
+			(header.number, header.hash())
+		}
+
+		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
+			// Since the pallet doesn't accept multiple scheduled changes right now
+			// we can only have one header requiring a justification at any time.
+			if let Some(header) = BridgeMillau::requires_justification() {
+				vec![(header.number, header.hash())]
+			} else {
+				vec![]
+			}
+		}
+
+		fn is_known_block(hash: bp_millau::Hash) -> bool {
+			BridgeMillau::is_known_header(hash)
+		}
+
+		fn is_finalized_block(hash: bp_millau::Hash) -> bool {
+			BridgeMillau::is_finalized_header(hash)
 		}
 	}
 
