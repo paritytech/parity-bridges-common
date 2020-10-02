@@ -489,18 +489,18 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_millau::MillauHeaderApi<Block> for Runtime {
-		fn best_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+	impl bp_rialto::RialtoHeaderApi<Block> for Runtime {
+		fn best_block() -> (bp_rialto::BlockNumber, bp_rialto::Hash) {
 			let header = BridgeRialto::best_header();
 			(header.number, header.hash())
 		}
 
-		fn finalized_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+		fn finalized_block() -> (bp_rialto::BlockNumber, bp_rialto::Hash) {
 			let header = BridgeRialto::best_finalized();
 			(header.number, header.hash())
 		}
 
-		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
+		fn incomplete_headers() -> Vec<(bp_rialto::BlockNumber, bp_rialto::Hash)> {
 			// Since the pallet doesn't accept multiple scheduled changes right now
 			// we can only have one header requiring a justification at any time.
 			if let Some(header) = BridgeRialto::requires_justification() {
@@ -510,11 +510,11 @@ impl_runtime_apis! {
 			}
 		}
 
-		fn is_known_block(hash: bp_millau::Hash) -> bool {
+		fn is_known_block(hash: bp_rialto::Hash) -> bool {
 			BridgeRialto::is_known_header(hash)
 		}
 
-		fn is_finalized_block(hash: bp_millau::Hash) -> bool {
+		fn is_finalized_block(hash: bp_rialto::Hash) -> bool {
 			BridgeRialto::is_finalized_header(hash)
 		}
 	}

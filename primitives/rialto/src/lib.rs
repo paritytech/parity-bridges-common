@@ -50,8 +50,13 @@ sp_api::decl_runtime_apis! {
 		/// Returns number and hash of the best finalized block known to the bridge module.
 		fn finalized_block() -> (BlockNumber, Hash);
 		/// Returns numbers and hashes of headers that require finality proofs.
+		///
+		/// An empty response means that there are no headers which currently require a
+		/// finality proof.
 		fn incomplete_headers() -> Vec<(BlockNumber, Hash)>;
-		/// Returns true if header is known to the runtime.
+		/// Returns true if the header is known to the runtime.
 		fn is_known_block(hash: Hash) -> bool;
+		/// Returns true if the header is considered finalized by the runtime.
+		fn is_finalized_block(hash: Hash) -> bool;
 	}
 }
