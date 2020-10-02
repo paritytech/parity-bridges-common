@@ -38,7 +38,7 @@ use sp_runtime::traits::{
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,
+	ApplyExtrinsicResult, MultiSignature, MultiSigner,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -217,6 +217,14 @@ impl frame_system::Trait for Runtime {
 impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
+impl pallet_bridge_call_dispatch::Trait for Runtime {
+	type Event = Event;
+	type MessageId = (bp_message_lane::LaneId, bp_message_lane::MessageNonce);
+	type Call = Call;
+	type SourceChainAccountPublic = MultiSigner;
+	type TargetChainAccountPublic = MultiSigner;
+	type TargetChainSignature = MultiSignature;
+}
 
 impl pallet_grandpa::Trait for Runtime {
 	type Event = Event;
@@ -320,6 +328,7 @@ construct_runtime!(
 	{
 		// TODO: Add Config for BridgeSubstrate
 		BridgeSubstrate: pallet_substrate_bridge::{Module, Call, Storage},
+		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
