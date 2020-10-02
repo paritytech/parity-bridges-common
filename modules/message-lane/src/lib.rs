@@ -347,7 +347,7 @@ decl_module! {
 					let message_data = OutboundMessages::<T, I>::get(MessageKey {
 						lane_id,
 						nonce,
-					}).expect("message is just confirmed; we never prune unconfirmed messages; qed");
+					}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
 
 					<T as Trait<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(&relayer, &message_data.fee);
 				}
