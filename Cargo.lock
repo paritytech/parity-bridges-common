@@ -5206,12 +5206,15 @@ dependencies = [
 name = "relay-utils"
 version = "0.1.0"
 dependencies = [
+ "ansi_term 0.12.1",
  "async-std",
  "backoff",
+ "env_logger",
  "futures 0.3.5",
  "log",
  "substrate-prometheus-endpoint",
  "sysinfo",
+ "time 0.2.22",
 ]
 
 [[package]]
@@ -7482,6 +7485,7 @@ dependencies = [
  "relay-millau-client",
  "relay-rialto-client",
  "relay-substrate-client",
+ "relay-utils",
  "sp-runtime",
  "structopt",
 ]
