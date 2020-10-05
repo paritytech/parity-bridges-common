@@ -43,13 +43,13 @@ use relay_utils::{
 use std::{fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
 
 /// Source client trait.
-#[async_trait(?Send)]
-pub trait SourceClient<P: MessageLane>: Clone {
+#[async_trait]
+pub trait SourceClient<P: MessageLane>: Clone + Send + Sync {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
 
 	/// Try to reconnect to source node.
-	fn reconnect(self) -> Self;
+	async fn reconnect(self) -> Self;
 
 	/// Returns state of the client.
 	async fn state(&self) -> Result<SourceClientState<P>, Self::Error>;
@@ -77,17 +77,17 @@ pub trait SourceClient<P: MessageLane>: Clone {
 		&self,
 		generated_at_block: TargetHeaderIdOf<P>,
 		proof: P::MessagesReceivingProof,
-	) -> Result<RangeInclusive<P::MessageNonce>, Self::Error>;
+	) -> Result<(), Self::Error>;
 }
 
 /// Target client trait.
-#[async_trait(?Send)]
-pub trait TargetClient<P: MessageLane>: Clone {
+#[async_trait]
+pub trait TargetClient<P: MessageLane>: Clone + Send + Sync {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
 
 	/// Try to reconnect to source node.
-	fn reconnect(self) -> Self;
+	async fn reconnect(self) -> Self;
 
 	/// Returns state of the client.
 	async fn state(&self) -> Result<TargetClientState<P>, Self::Error>;
@@ -195,10 +195,10 @@ pub fn run<P: MessageLane>(
 				Err(failed_client) => {
 					async_std::task::sleep(reconnect_delay).await;
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Source {
-						source_client = source_client.reconnect();
+						source_client = source_client.reconnect().await;
 					}
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
-						target_client = target_client.reconnect();
+						target_client = target_client.reconnect().await;
 					}
 				}
 			}
@@ -419,6 +419,7 @@ pub(crate) mod tests {
 		}
 	}
 
+	#[derive(Clone)]
 	pub struct TestMessageLane;
 
 	impl MessageLane for TestMessageLane {
@@ -455,14 +456,14 @@ pub(crate) mod tests {
 	#[derive(Clone)]
 	pub struct TestSourceClient {
 		data: Arc<Mutex<TestClientData>>,
-		tick: Arc<dyn Fn(&mut TestClientData)>,
+		tick: Arc<dyn Fn(&mut TestClientData) + Send + Sync>,
 	}
 
-	#[async_trait(?Send)]
+	#[async_trait]
 	impl SourceClient<TestMessageLane> for TestSourceClient {
 		type Error = TestError;
 
-		fn reconnect(self) -> Self {
+		async fn reconnect(self) -> Self {
 			{
 				let mut data = self.data.lock();
 				(self.tick)(&mut *data);
@@ -520,26 +521,26 @@ pub(crate) mod tests {
 			&self,
 			_generated_at_block: TargetHeaderIdOf<TestMessageLane>,
 			proof: TestMessagesReceivingProof,
-		) -> Result<RangeInclusive<TestMessageNonce>, Self::Error> {
+		) -> Result<(), Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			data.submitted_messages_receiving_proofs.push(proof);
 			data.source_latest_confirmed_received_nonce = proof;
-			Ok(proof..=proof)
+			Ok(())
 		}
 	}
 
 	#[derive(Clone)]
 	pub struct TestTargetClient {
 		data: Arc<Mutex<TestClientData>>,
-		tick: Arc<dyn Fn(&mut TestClientData)>,
+		tick: Arc<dyn Fn(&mut TestClientData) + Send + Sync>,
 	}
 
-	#[async_trait(?Send)]
+	#[async_trait]
 	impl TargetClient<TestMessageLane> for TestTargetClient {
 		type Error = TestError;
 
-		fn reconnect(self) -> Self {
+		async fn reconnect(self) -> Self {
 			{
 				let mut data = self.data.lock();
 				(self.tick)(&mut *data);
@@ -597,8 +598,8 @@ pub(crate) mod tests {
 
 	fn run_loop_test(
 		data: TestClientData,
-		source_tick: Arc<dyn Fn(&mut TestClientData)>,
-		target_tick: Arc<dyn Fn(&mut TestClientData)>,
+		source_tick: Arc<dyn Fn(&mut TestClientData) + Send + Sync>,
+		target_tick: Arc<dyn Fn(&mut TestClientData) + Send + Sync>,
 		exit_signal: impl Future<Output = ()>,
 	) -> TestClientData {
 		async_std::task::block_on(async {

@@ -16,6 +16,7 @@
 
 //! Deal with CLI args of substrate-to-substrate relay.
 
+use bp_message_lane::LaneId;
 use structopt::StructOpt;
 
 /// Parse relay CLI args.
@@ -38,6 +39,41 @@ pub enum Command {
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
+	MillauMessagesToRialto {
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		rialto_sign: RialtoSigningParams,
+		#[structopt(flatten)]
+		prometheus_params: PrometheusParams,
+		/// Hex-encoded id of lane that should be served by relay.
+		#[structopt(long)]
+		lane: HexLaneId,
+	},
+}
+
+/// Lane id.
+#[derive(Debug)]
+pub struct HexLaneId(LaneId);
+
+impl From<HexLaneId> for LaneId {
+	fn from(lane_id: HexLaneId) -> LaneId {
+		lane_id.0
+	}
+}
+
+impl std::str::FromStr for HexLaneId {
+	type Err = hex::FromHexError;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		let mut lane_id = LaneId::default();
+		hex::decode_to_slice(s, &mut lane_id)?;
+		Ok(HexLaneId(lane_id))
+	}
 }
 
 /// Prometheus metrics params.

@@ -28,6 +28,12 @@ mod chain;
 /// Call-dispatch module prefix.
 pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/call-dispatch";
 
+/// Bridge-with-Rialto instance id.
+pub const RIALTO_BRIDGE_INSTANCE: InstanceId = *b"rlto";
+
+/// Bridge-with-Millau instance id.
+pub const MILLAU_BRIDGE_INSTANCE: InstanceId = *b"mllu";
+
 /// Id of deployed module instance. We have a bunch of pallets that may be used in
 /// different bridges. E.g. message-lane pallet may be deployed twice in the same
 /// runtime to bridge ThisChain with Chain1 and Chain2. Sometimes we need to be able

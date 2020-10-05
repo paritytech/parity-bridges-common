@@ -62,7 +62,7 @@ type SourceClientState<P> = ClientState<<P as MessageRace>::SourceHeaderId, <P a
 type TargetClientState<P> = ClientState<<P as MessageRace>::TargetHeaderId, <P as MessageRace>::SourceHeaderId>;
 
 /// One of message lane clients, which is source client for the race.
-#[async_trait(?Send)]
+#[async_trait]
 pub trait SourceClient<P: MessageRace> {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
@@ -81,7 +81,7 @@ pub trait SourceClient<P: MessageRace> {
 }
 
 /// One of message lane clients, which is target client for the race.
-#[async_trait(?Send)]
+#[async_trait]
 pub trait TargetClient<P: MessageRace> {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;

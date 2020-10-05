@@ -25,7 +25,7 @@ use num_traits::{One, Zero};
 use std::fmt::Debug;
 
 /// One-way message lane.
-pub trait MessageLane {
+pub trait MessageLane: Clone + Send + Sync {
 	/// Name of the messages source.
 	const SOURCE_NAME: &'static str;
 	/// Name of the messages target.
@@ -33,6 +33,8 @@ pub trait MessageLane {
 
 	/// Message nonce type.
 	type MessageNonce: Clone
+		+ Send
+		+ Sync
 		+ Copy
 		+ Debug
 		+ Default
@@ -44,19 +46,19 @@ pub trait MessageLane {
 		+ Zero;
 
 	/// Messages proof.
-	type MessagesProof: Clone;
+	type MessagesProof: Clone + Send + Sync;
 	/// Messages receiving proof.
-	type MessagesReceivingProof: Clone;
+	type MessagesReceivingProof: Clone + Send + Sync;
 
 	/// Number of the source header.
-	type SourceHeaderNumber: Clone + Debug + Default + Ord + PartialEq + Into<u64>;
+	type SourceHeaderNumber: Clone + Debug + Ord + PartialEq + Into<u64> + Send + Sync;
 	/// Hash of the source header.
-	type SourceHeaderHash: Clone + Debug + Default + PartialEq;
+	type SourceHeaderHash: Clone + Debug + Default + PartialEq + Send + Sync;
 
 	/// Number of the target header.
-	type TargetHeaderNumber: Clone + Debug + Default + Ord + PartialEq + Into<u64>;
+	type TargetHeaderNumber: Clone + Debug + Ord + PartialEq + Into<u64> + Send + Sync;
 	/// Hash of the target header.
-	type TargetHeaderHash: Clone + Debug + Default + PartialEq;
+	type TargetHeaderHash: Clone + Debug + Default + PartialEq + Send + Sync;
 }
 
 /// Source header id within given one-way message lane.

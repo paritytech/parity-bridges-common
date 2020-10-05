@@ -17,15 +17,18 @@
 //! Substrate node client.
 
 use crate::chain::Chain;
-use crate::rpc::Substrate;
+use crate::rpc::{Substrate, SubstrateMessageLane};
 use crate::{ConnectionParams, Result};
 
+use bp_message_lane::{LaneId, MessageNonce};
+use bp_runtime::InstanceId;
 use jsonrpsee::common::DeserializeOwned;
 use jsonrpsee::raw::RawClient;
 use jsonrpsee::transport::ws::WsTransportClient;
 use jsonrpsee::Client as RpcClient;
 use num_traits::Zero;
 use sp_core::Bytes;
+use std::ops::RangeInclusive;
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 
@@ -34,13 +37,21 @@ pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
 
 /// Substrate client type.
 ///
-/// Cloning Client is a cheap operation.
-#[derive(Clone)]
+/// Cloning `Client` is a cheap operation.
 pub struct Client<C: Chain> {
 	/// Substrate RPC client.
 	client: RpcClient,
 	/// Genesis block hash.
 	genesis_hash: C::Hash,
+}
+
+impl<C: Chain> Clone for Client<C> {
+	fn clone(&self) -> Self {
+		Client {
+			client: self.client.clone(),
+			genesis_hash: self.genesis_hash,
+		}
+	}
 }
 
 impl<C: Chain> std::fmt::Debug for Client<C> {
@@ -74,6 +85,11 @@ where
 	/// Return hash of the genesis block.
 	pub fn genesis_hash(&self) -> &C::Hash {
 		&self.genesis_hash
+	}
+
+	/// Return hash of the best finalized block.
+	pub async fn best_finalized_header_hash(&self) -> Result<C::Hash> {
+		Ok(Substrate::<C, _, _>::chain_get_finalized_head(&self.client).await?)
 	}
 
 	/// Returns the best Substrate header.
@@ -132,6 +148,38 @@ where
 	/// Execute runtime call at given block.
 	pub async fn state_call(&self, method: String, data: Bytes, at_block: Option<C::Hash>) -> Result<Bytes> {
 		Substrate::<C, _, _>::state_call(&self.client, method, data, at_block)
+			.await
+			.map_err(Into::into)
+	}
+
+	/// Returns proof-of-message(s) in given inclusive range.
+	pub async fn prove_messages(
+		&self,
+		instance: InstanceId,
+		lane: LaneId,
+		range: RangeInclusive<MessageNonce>,
+		at_block: C::Hash,
+	) -> Result<Bytes> {
+		SubstrateMessageLane::<C, _, _>::prove_messages(
+			&self.client,
+			instance,
+			lane,
+			*range.start(),
+			*range.end(),
+			Some(at_block),
+		)
+		.await
+		.map_err(Into::into)
+	}
+
+	/// Returns proof-of-message(s) delivery.
+	pub async fn prove_messages_delivery(
+		&self,
+		instance: InstanceId,
+		lane: LaneId,
+		at_block: C::Hash,
+	) -> Result<Bytes> {
+		SubstrateMessageLane::<C, _, _>::prove_messages_delivery(&self.client, instance, lane, Some(at_block))
 			.await
 			.map_err(Into::into)
 	}

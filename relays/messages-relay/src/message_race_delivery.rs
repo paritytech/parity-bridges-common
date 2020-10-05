@@ -84,7 +84,7 @@ struct MessageDeliveryRaceSource<P: MessageLane, C> {
 	_phantom: PhantomData<P>,
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl<P, C> SourceClient<MessageDeliveryRace<P>> for MessageDeliveryRaceSource<P, C>
 where
 	P: MessageLane,
@@ -121,7 +121,7 @@ struct MessageDeliveryRaceTarget<P: MessageLane, C> {
 	_phantom: PhantomData<P>,
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl<P, C> TargetClient<MessageDeliveryRace<P>> for MessageDeliveryRaceTarget<P, C>
 where
 	P: MessageLane,

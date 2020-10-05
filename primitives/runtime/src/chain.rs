@@ -36,6 +36,7 @@ pub trait Chain {
 		+ MaybeSerializeDeserialize
 		+ sp_std::hash::Hash
 		+ Copy
+		+ Default
 		+ MaybeDisplay
 		+ AtLeast32BitUnsigned
 		+ FromStr

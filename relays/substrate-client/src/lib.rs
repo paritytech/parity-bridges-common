@@ -30,6 +30,9 @@ pub use crate::client::{Client, OpaqueGrandpaAuthoritiesSet};
 pub use crate::error::{Error, Result};
 pub use bp_runtime::{BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf};
 
+/// Header id used by the chain.
+pub type HeaderIdOf<C> = relay_utils::HeaderId<HashOf<C>, BlockNumberOf<C>>;
+
 /// Substrate-over-websocket connection params.
 #[derive(Debug, Clone)]
 pub struct ConnectionParams {
