@@ -36,3 +36,6 @@ jobs:
         with:
           command:      fmt
           args:         --all -- --check
+## Cargo check stage
+      - name:           Cargo spellcheck
+        run:            cargo spellcheck check
