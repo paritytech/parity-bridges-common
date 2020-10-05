@@ -460,13 +460,24 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			.cloned()
 			.collect::<Vec<_>>();
 		for just_completed_header in just_completed_headers {
-			move_header_descendants::<P>(
-				&mut [&mut self.incomplete],
-				&mut self.ready,
-				&mut self.known_headers,
-				HeaderStatus::Ready,
+			// sub2eth rejects H if H.Parent is incomplete
+			// sub2sub accepts headers like that
+			// => let's check if there are some descendants in the synced queue
+			let move_origins = select_header_descendants(
+				&[&self.submitted],
 				&just_completed_header,
 			);
+
+			let move_origins = move_origins.into_iter().chain(std::iter::once(just_completed_header));
+			for move_origin in move_origins {
+				move_header_descendants::<P>(
+					&mut [&mut self.incomplete],
+					&mut self.ready,
+					&mut self.known_headers,
+					HeaderStatus::Ready,
+					&move_origin,
+				);
+			}
 
 			log::debug!(
 				target: "bridge",
@@ -651,6 +662,40 @@ fn move_header<P: HeadersSyncPipeline>(
 	set_header_status::<P>(known_headers, id, destination_status);
 
 	Some(parent_id)
+}
+
+/// Select all descendants of given header from given queues.
+fn select_header_descendants<P: HeadersSyncPipeline>(
+	queues: &[&HeadersQueue<P>],
+	id: &HeaderIdOf<P>,
+) -> Vec<HeaderIdOf<P>> {
+	let mut origins = Vec::new();
+	let mut current_number = id.0 + One::one();
+	let mut current_parents = HashSet::new();
+	current_parents.insert(id.1);
+
+	while !current_parents.is_empty() {
+		let mut next_parents = HashSet::new();
+		for queue in queues {
+			let headers_at_current_number = match queue.get(&current_number) {
+				Some(headers_at_current_number) => headers_at_current_number,
+				None => continue,
+			};
+
+			for header_with_current_number in headers_at_current_number.values() {
+				if current_parents.contains(&header_with_current_number.header().parent_id().1) {
+					let id = header_with_current_number.header().id();
+					next_parents.insert(id.1);
+					origins.push(id);
+				}
+			}
+		}
+
+		current_number = current_number + One::one();
+		std::mem::swap(&mut current_parents, &mut next_parents);
+	}
+
+	origins
 }
 
 /// Move all descendant headers from the source to destination queue.

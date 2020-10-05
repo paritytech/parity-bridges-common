@@ -7521,6 +7521,7 @@ dependencies = [
  "relay-rialto-client",
  "relay-substrate-client",
  "relay-utils",
+ "sp-core",
  "sp-runtime",
  "structopt",
 ]

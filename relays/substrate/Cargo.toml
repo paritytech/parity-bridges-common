@@ -24,6 +24,7 @@ relay-rialto-client = { path = "../rialto-client" }
 relay-substrate-client = { path = "../substrate-client" }
 relay-utils = { path = "../utils" }
 
-# Substrate dependencies
+# Substrate Dependencies
 
+sp-core = "2.0"
 sp-runtime = "2.0"
