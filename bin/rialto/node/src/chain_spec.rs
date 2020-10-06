@@ -169,9 +169,9 @@ fn testnet_genesis(
 
 fn load_rialto_bridge_config() -> Option<BridgeRialtoConfig> {
 	Some(BridgeRialtoConfig {
-		initial_header: rialto_runtime::rialto::genesis_header(),
+		initial_header: rialto_runtime::rialto_poa::genesis_header(),
 		initial_difficulty: 0.into(),
-		initial_validators: rialto_runtime::rialto::genesis_validators(),
+		initial_validators: rialto_runtime::rialto_poa::genesis_validators(),
 	})
 }
 

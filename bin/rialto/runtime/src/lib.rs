@@ -33,7 +33,7 @@ pub mod exchange;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benches;
 pub mod kovan;
-pub mod rialto;
+pub mod rialto_poa;
 
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
@@ -228,10 +228,10 @@ impl pallet_aura::Trait for Runtime {
 
 type Rialto = pallet_bridge_eth_poa::Instance1;
 impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
-	type AuraConfiguration = rialto::BridgeAuraConfiguration;
-	type FinalityVotesCachingInterval = rialto::FinalityVotesCachingInterval;
-	type ValidatorsConfiguration = rialto::BridgeValidatorsConfiguration;
-	type PruningStrategy = rialto::PruningStrategy;
+	type AuraConfiguration = rialto_poa::BridgeAuraConfiguration;
+	type FinalityVotesCachingInterval = rialto_poa::FinalityVotesCachingInterval;
+	type ValidatorsConfiguration = rialto_poa::BridgeValidatorsConfiguration;
+	type PruningStrategy = rialto_poa::PruningStrategy;
 	type OnHeadersSubmitted = ();
 }
 
@@ -247,7 +247,7 @@ impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 type RialtoCurrencyExchange = pallet_bridge_currency_exchange::Instance1;
 impl pallet_bridge_currency_exchange::Trait<RialtoCurrencyExchange> for Runtime {
 	type OnTransactionSubmitted = ();
-	type PeerBlockchain = rialto::RialtoBlockchain;
+	type PeerBlockchain = rialto_poa::RialtoBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
 	type RecipientsMap = bp_currency_exchange::IdentityRecipients<AccountId>;
 	type Amount = Balance;
