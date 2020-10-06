@@ -14,21 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Relaying [`message-lane`](../pallet_message_lane/index.html) application specific
-//! data. Message lane allows sending arbitrary messages between bridged chains. This
-//! module provides entrypoint that starts reading messages from given message lane
-//! of source chain and submits proof-of-message-at-source-chain transactions to the
-//! target chain. Additionaly, proofs-of-messages-delivery are sent back from the
-//! target chain to the source chain.
+use vergen::{generate_cargo_keys, ConstantsFlags};
 
-// required for futures::select!
-#![recursion_limit = "1024"]
-#![warn(missing_docs)]
+const ERROR_MSG: &str = "Failed to generate metadata files";
 
-mod metrics;
+fn main() {
+	generate_cargo_keys(ConstantsFlags::SHA_SHORT).expect(ERROR_MSG);
 
-pub mod message_lane;
-pub mod message_lane_loop;
-pub mod message_race_delivery;
-pub mod message_race_loop;
-pub mod message_race_receiving;
+	build_script_utils::rerun_if_git_head_changed();
+}

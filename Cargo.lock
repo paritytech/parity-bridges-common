@@ -362,9 +362,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.40"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "687c230d85c0a52504709705fc8a53e4a692b83a2184f03dae73e38e1e93a783"
+checksum = "b246867b8b3b6ae56035f1eb1ed557c1d8eae97f0d53696138a50fa0e3a3b8c0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -735,38 +735,6 @@ version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
  "sp-io",
-]
-
-[[package]]
-name = "bridge-node"
-version = "0.1.0"
-dependencies = [
- "frame-benchmarking",
- "frame-benchmarking-cli",
- "jsonrpc-core 15.0.0",
- "millau-runtime",
- "pallet-message-lane-rpc",
- "rialto-runtime",
- "sc-basic-authorship",
- "sc-cli",
- "sc-client-api",
- "sc-consensus",
- "sc-consensus-aura",
- "sc-executor",
- "sc-finality-grandpa",
- "sc-rpc",
- "sc-service",
- "sc-transaction-pool",
- "sp-consensus",
- "sp-consensus-aura",
- "sp-core",
- "sp-finality-grandpa",
- "sp-inherents",
- "sp-runtime",
- "structopt",
- "substrate-build-script-utils",
- "substrate-frame-rpc-system",
- "vergen",
 ]
 
 [[package]]
@@ -1531,9 +1499,9 @@ checksum = "5c85295147490b8fcf2ea3d104080a105a8b2c63f9c319e82c02d8e952388919"
 
 [[package]]
 name = "fdlimit"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47bc6e222b8349b2bd0acb85a1d16d22852376b3ceed2a7f09c2692c3d8a78d0"
+checksum = "2c4c9e43643f5a3be4ca5b67d26b98031ff9db6806c3440ae32e02e3ceac3f1b"
 dependencies = [
  "libc",
 ]
@@ -3502,7 +3470,9 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-message-lane",
  "futures 0.3.5",
+ "hex",
  "log",
  "num-traits",
  "parking_lot 0.11.0",
@@ -3513,7 +3483,30 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
- "bridge-node",
+ "frame-benchmarking",
+ "frame-benchmarking-cli",
+ "jsonrpc-core 15.0.0",
+ "millau-runtime",
+ "sc-basic-authorship",
+ "sc-cli",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-consensus-aura",
+ "sc-executor",
+ "sc-finality-grandpa",
+ "sc-rpc",
+ "sc-service",
+ "sc-transaction-pool",
+ "sp-consensus",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-inherents",
+ "sp-runtime",
+ "structopt",
+ "substrate-build-script-utils",
+ "substrate-frame-rpc-system",
+ "vergen",
 ]
 
 [[package]]
@@ -5210,12 +5203,15 @@ dependencies = [
 name = "relay-utils"
 version = "0.1.0"
 dependencies = [
+ "ansi_term 0.12.1",
  "async-std",
  "backoff",
+ "env_logger",
  "futures 0.3.5",
  "log",
  "substrate-prometheus-endpoint",
  "sysinfo",
+ "time 0.2.22",
 ]
 
 [[package]]
@@ -5237,7 +5233,31 @@ checksum = "e005d658ad26eacc2b6c506dfde519f4e277e328d0eb3379ca61647d70a8f531"
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
- "bridge-node",
+ "frame-benchmarking",
+ "frame-benchmarking-cli",
+ "jsonrpc-core 15.0.0",
+ "pallet-message-lane-rpc",
+ "rialto-runtime",
+ "sc-basic-authorship",
+ "sc-cli",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-consensus-aura",
+ "sc-executor",
+ "sc-finality-grandpa",
+ "sc-rpc",
+ "sc-service",
+ "sc-transaction-pool",
+ "sp-consensus",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-inherents",
+ "sp-runtime",
+ "structopt",
+ "substrate-build-script-utils",
+ "substrate-frame-rpc-system",
+ "vergen",
 ]
 
 [[package]]
@@ -6427,9 +6447,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.57"
+version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "164eacbdb13512ec2745fb09d51fd5b22b0d65ed294a1dcf7285a360c80a675c"
+checksum = "a230ea9107ca2220eea9d46de97eddcb04cd00e92d13dda78e478dd33fa82bd4"
 dependencies = [
  "itoa",
  "ryu",
@@ -7487,6 +7507,7 @@ dependencies = [
  "relay-millau-client",
  "relay-rialto-client",
  "relay-substrate-client",
+ "relay-utils",
  "sp-runtime",
  "structopt",
 ]
