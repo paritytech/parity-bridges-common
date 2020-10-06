@@ -36,8 +36,9 @@ use async_trait::async_trait;
 use bp_message_lane::LaneId;
 use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
 use relay_utils::{
+	interval,
 	metrics::{start as metrics_start, GlobalMetrics, MetricsParams},
-	interval, process_future_result, retry_backoff, FailedClient, MaybeConnectionError,
+	process_future_result, retry_backoff, FailedClient, MaybeConnectionError,
 };
 use std::{fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
 
@@ -137,6 +138,7 @@ pub struct ClientsState<P: MessageLane> {
 }
 
 /// Run message lane service loop.
+#[allow(clippy::too_many_arguments)]
 pub fn run<P: MessageLane>(
 	lane: LaneId,
 	mut source_client: impl SourceClient<P>,
@@ -156,7 +158,12 @@ pub fn run<P: MessageLane>(
 		let metrics_msg = MessageLaneLoopMetrics::default();
 		let metrics_enabled = metrics_params.is_some();
 		metrics_start(
-			format!("{}_to_{}_MessageLoop/{}", P::SOURCE_NAME, P::TARGET_NAME, hex::encode(lane)),
+			format!(
+				"{}_to_{}_MessageLoop/{}",
+				P::SOURCE_NAME,
+				P::TARGET_NAME,
+				hex::encode(lane)
+			),
 			metrics_params,
 			&metrics_global,
 			&metrics_msg,
@@ -169,8 +176,16 @@ pub fn run<P: MessageLane>(
 				target_client.clone(),
 				target_tick,
 				stall_timeout,
-				if metrics_enabled { Some(&mut metrics_global) } else { None },
-				if metrics_enabled { Some(metrics_msg.clone()) } else { None },
+				if metrics_enabled {
+					Some(&mut metrics_global)
+				} else {
+					None
+				},
+				if metrics_enabled {
+					Some(metrics_msg.clone())
+				} else {
+					None
+				},
 				exit_signal.clone(),
 			)
 			.await;
@@ -199,6 +214,7 @@ pub fn run<P: MessageLane>(
 }
 
 /// Run one-way message delivery loop until connection with target or source node is lost, or exit signal is received.
+#[allow(clippy::too_many_arguments)]
 async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: TargetClient<P>>(
 	source_client: SC,
 	source_tick: Duration,

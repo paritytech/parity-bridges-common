@@ -49,11 +49,8 @@ impl Default for MessageLaneLoopMetrics {
 				&["type"],
 			)
 			.expect("metric is static and thus valid; qed"),
-			lane_state_nonces: GaugeVec::new(
-				Opts::new("lane_state_nonces", "Nonces of the lane state"),
-				&["type"],
-			)
-			.expect("metric is static and thus valid; qed"),
+			lane_state_nonces: GaugeVec::new(Opts::new("lane_state_nonces", "Nonces of the lane state"), &["type"])
+				.expect("metric is static and thus valid; qed"),
 		}
 	}
 }
