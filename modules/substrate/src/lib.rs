@@ -268,6 +268,10 @@ impl<T: Trait> Module<T> {
 		}
 	}
 
+	/// Return the latest header which enacts an authority set change
+	/// and still needs a finality proof.
+	///
+	/// Will return None if there are no headers which are missing finality proofs.
 	pub fn requires_justification() -> Option<T::BridgedHeader> {
 		let storage = PalletStorage::<T>::new();
 		let hash = storage.unfinalized_header()?;
