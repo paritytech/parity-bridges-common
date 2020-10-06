@@ -237,7 +237,7 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 		Ok(())
 	}
 
-	fn pay_relayer_reward(relayer: &AccountId, fee: &TestMessageFee) {
+	fn pay_relayer_reward(_confirmation_relayer: &AccountId, relayer: &AccountId, fee: &TestMessageFee) {
 		let key = (b":relayer-reward:", relayer, fee).encode();
 		frame_support::storage::unhashed::put(&key, &true);
 	}

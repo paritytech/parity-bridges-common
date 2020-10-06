@@ -318,7 +318,7 @@ decl_module! {
 		/// Receive messages delivery proof from bridged chain.
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn receive_messages_delivery_proof(origin, proof: MessagesDeliveryProofOf<T, I>) -> DispatchResult {
-			let _ = ensure_signed(origin)?;
+			let confirmation_relayer = ensure_signed(origin)?;
 			let (lane_id, lane_data) = T::TargetHeaderChain::verify_messages_delivery_proof(proof).map_err(|err| {
 				frame_support::debug::trace!(
 					target: "runtime",
@@ -348,7 +348,11 @@ decl_module! {
 						nonce,
 					}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
 
-					<T as Trait<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(&relayer, &message_data.fee);
+					<T as Trait<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
+						&confirmation_relayer,
+						&relayer,
+						&message_data.fee,
+					);
 				}
 			}
 

@@ -96,5 +96,5 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	fn pay_delivery_and_dispatch_fee(submitter: &AccountId, fee: &Balance) -> Result<(), Self::Error>;
 
 	/// Pay reward for delivering message to the given relayer account.
-	fn pay_relayer_reward(relayer: &AccountId, reward: &Balance);
+	fn pay_relayer_reward(confirmation_relayer: &AccountId, relayer: &AccountId, reward: &Balance);
 }
