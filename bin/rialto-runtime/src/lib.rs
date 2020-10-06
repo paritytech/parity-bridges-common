@@ -433,7 +433,6 @@ construct_runtime!(
 		BridgeKovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
 		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
-		// TODO: Add Config for BridgeMillau
 		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},

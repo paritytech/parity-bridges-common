@@ -323,7 +323,6 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		// TODO: Add Config for BridgeRialto
 		BridgeRialto: pallet_substrate_bridge::{Module, Call, Storage},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
