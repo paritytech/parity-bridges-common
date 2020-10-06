@@ -3483,6 +3483,7 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "bp-rialto",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpc-core 15.0.0",
@@ -3538,6 +3539,7 @@ dependencies = [
  "sp-block-builder",
  "sp-consensus-aura",
  "sp-core",
+ "sp-finality-grandpa",
  "sp-inherents",
  "sp-offchain",
  "sp-runtime",

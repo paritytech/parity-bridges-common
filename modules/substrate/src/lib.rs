@@ -46,7 +46,7 @@ use sp_runtime::traits::{
 use sp_std::{fmt::Debug, marker::PhantomData, prelude::*, str::FromStr};
 
 mod justification;
-mod storage;
+pub mod storage; // TODO: Figure out
 mod storage_proof;
 mod verifier;
 
