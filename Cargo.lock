@@ -3500,7 +3500,9 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-message-lane",
  "futures 0.3.5",
+ "hex",
  "log",
  "num-traits",
  "parking_lot 0.11.0",
