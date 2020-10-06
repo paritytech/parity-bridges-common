@@ -91,10 +91,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Message payload verifier.
 	type LaneMessageVerifier: LaneMessageVerifier<Self::AccountId, Self::OutboundPayload, Self::OutboundMessageFee>;
 	/// Message delivery payment.
-	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
-		Self::AccountId,
-		Self::OutboundMessageFee,
-	>;
+	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<Self::AccountId, Self::OutboundMessageFee>;
 
 	// Types that are used by inbound_lane (on target chain).
 
