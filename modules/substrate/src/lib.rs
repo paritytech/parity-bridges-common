@@ -312,10 +312,9 @@ pub trait BridgeStorage {
 	fn unfinalized_header(&self) -> Option<<Self::Header as HeaderT>::Hash>;
 
 	/// Mark a header as eventually requiring a justification.
-	fn update_unfinalized_header(&mut self, hash: <Self::Header as HeaderT>::Hash);
-
-	/// Mark that we have received a justification for a header which required one.
-	fn clear_unfinalized_header(&mut self);
+	///
+	/// If None is passed the storage item is cleared.
+	fn update_unfinalized_header(&mut self, hash: Option<<Self::Header as HeaderT>::Hash>);
 
 	/// Get a specific header by its hash.
 	///
@@ -392,12 +391,12 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<RequiresJustification<T>>::get()
 	}
 
-	fn update_unfinalized_header(&mut self, hash: <Self::Header as HeaderT>::Hash) {
-		<RequiresJustification<T>>::put(hash);
-	}
-
-	fn clear_unfinalized_header(&mut self) {
-		<RequiresJustification<T>>::take();
+	fn update_unfinalized_header(&mut self, hash: Option<<Self::Header as HeaderT>::Hash>) {
+		if let Some(hash) = hash {
+			<RequiresJustification<T>>::put(hash);
+		} else {
+			<RequiresJustification<T>>::kill();
+		}
 	}
 
 	fn current_authority_set(&self) -> AuthoritySet {

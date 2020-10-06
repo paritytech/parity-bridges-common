@@ -184,7 +184,7 @@ where
 		});
 
 		if requires_justification {
-			self.storage.update_unfinalized_header(hash);
+			self.storage.update_unfinalized_header(Some(hash));
 		}
 
 		// Since we're not dealing with forks at the moment we know that
@@ -264,7 +264,8 @@ where
 				"Headers must only be marked as `requires_justification` if there's a scheduled change in storage.",
 			);
 
-			self.storage.clear_unfinalized_header();
+			// Clear the storage entry since we got a justification
+			self.storage.update_unfinalized_header(None);
 		}
 
 		for header in finalized_headers.iter_mut() {
