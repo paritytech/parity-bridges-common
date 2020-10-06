@@ -87,8 +87,8 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			return false;
 		}
 
-		// if there are more unconfirmed messages that we may accept, reject this message
-		if self.storage.max_unconfirmed_messages() == data.relayers.len() as MessageNonce {
+		// if there are more unconfirmed messages than we may accept, reject this message
+		if self.storage.max_unconfirmed_messages() <= data.relayers.len() as MessageNonce {
 			return false;
 		}
 
