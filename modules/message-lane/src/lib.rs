@@ -93,7 +93,6 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Message delivery payment.
 	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
 		Self::AccountId,
-		Self::AccountId,
 		Self::OutboundMessageFee,
 	>;
 

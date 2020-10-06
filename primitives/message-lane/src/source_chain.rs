@@ -87,14 +87,14 @@ pub trait LaneMessageVerifier<Submitter, Payload, Fee> {
 /// So to be sure that any non-altruist relayer would agree to deliver message, submitter
 /// should set `delivery_and_dispatch_fee` to at least (equialent of): sum of fees from (2)
 /// to (4) above, plus some interest for the relayer.
-pub trait MessageDeliveryAndDispatchPayment<SubmitterId, RelayerId, Balance> {
+pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
 	/// Withhold/write-off delivery_and_dispatch_fee from submitter account to
 	/// some relayers-fund account.
-	fn pay_delivery_and_dispatch_fee(submitter: &SubmitterId, fee: &Balance) -> Result<(), Self::Error>;
+	fn pay_delivery_and_dispatch_fee(submitter: &AccountId, fee: &Balance) -> Result<(), Self::Error>;
 
 	/// Pay reward for delivering message to the given relayer account.
-	fn pay_relayer_reward(relayer: &RelayerId, reward: &Balance);
+	fn pay_relayer_reward(relayer: &AccountId, reward: &Balance);
 }
