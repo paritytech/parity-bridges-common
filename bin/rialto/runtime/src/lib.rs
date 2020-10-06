@@ -227,8 +227,8 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
-type Rialto = pallet_bridge_eth_poa::Instance1;
-impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
+type RialtoPoA = pallet_bridge_eth_poa::Instance1;
+impl pallet_bridge_eth_poa::Trait<RialtoPoA> for Runtime {
 	type AuraConfiguration = rialto_poa::BridgeAuraConfiguration;
 	type FinalityVotesCachingInterval = rialto_poa::FinalityVotesCachingInterval;
 	type ValidatorsConfiguration = rialto_poa::BridgeValidatorsConfiguration;
@@ -430,7 +430,7 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		BridgeRialto: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
+		BridgeRialtoPoA: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
 		BridgeKovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
 		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
@@ -533,21 +533,21 @@ impl_runtime_apis! {
 
 	impl bp_eth_poa::RialtoPoAHeaderApi<Block> for Runtime {
 		fn best_block() -> (u64, bp_eth_poa::H256) {
-			let best_block = BridgeRialto::best_block();
+			let best_block = BridgeRialtoPoA::best_block();
 			(best_block.number, best_block.hash)
 		}
 
 		fn finalized_block() -> (u64, bp_eth_poa::H256) {
-			let finalized_block = BridgeRialto::finalized_block();
+			let finalized_block = BridgeRialtoPoA::finalized_block();
 			(finalized_block.number, finalized_block.hash)
 		}
 
 		fn is_import_requires_receipts(header: bp_eth_poa::AuraHeader) -> bool {
-			BridgeRialto::is_import_requires_receipts(header)
+			BridgeRialtoPoA::is_import_requires_receipts(header)
 		}
 
 		fn is_known_block(hash: bp_eth_poa::H256) -> bool {
-			BridgeRialto::is_known_block(hash)
+			BridgeRialtoPoA::is_known_block(hash)
 		}
 	}
 
