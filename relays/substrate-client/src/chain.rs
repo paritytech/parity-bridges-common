@@ -16,51 +16,22 @@
 
 use crate::client::Client;
 
+use bp_runtime::Chain as ChainBase;
 use frame_support::Parameter;
 use jsonrpsee::common::{DeserializeOwned, Serialize};
 use sp_core::Pair;
 use sp_runtime::{
 	generic::SignedBlock,
 	traits::{
-		AtLeast32Bit, AtLeast32BitUnsigned, Bounded, CheckEqual, Dispatchable, Header as HeaderT, MaybeDisplay,
-		MaybeMallocSizeOf, MaybeSerialize, MaybeSerializeDeserialize, Member, SimpleBitOps,
+		AtLeast32Bit, Dispatchable, MaybeDisplay,
+		MaybeSerialize, MaybeSerializeDeserialize, Member,
 	},
 	Justification,
 };
 use sp_std::fmt::Debug;
 
 /// Substrate-based chain from minimal relay-client point of view.
-pub trait Chain {
-	/// The block number type used by the runtime.
-	type BlockNumber: Parameter
-		+ Member
-		+ MaybeSerializeDeserialize
-		+ Debug
-		+ MaybeDisplay
-		+ AtLeast32BitUnsigned
-		+ Default
-		+ Bounded
-		+ Copy
-		+ sp_std::hash::Hash
-		+ sp_std::str::FromStr
-		+ MaybeMallocSizeOf;
-	/// The output of the `Hashing` function.
-	type Hash: Parameter
-		+ Member
-		+ MaybeSerializeDeserialize
-		+ Debug
-		+ MaybeDisplay
-		+ SimpleBitOps
-		+ Ord
-		+ Default
-		+ Copy
-		+ CheckEqual
-		+ sp_std::hash::Hash
-		+ AsRef<[u8]>
-		+ AsMut<[u8]>
-		+ MaybeMallocSizeOf;
-	/// The block header.
-	type Header: Parameter + HeaderT<Number = Self::BlockNumber, Hash = Self::Hash>;
+pub trait Chain: ChainBase {
 	/// The user account identifier type for the runtime.
 	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 	/// Account index (aka nonce) type. This stores the number of previous transactions associated
@@ -97,13 +68,13 @@ pub trait TransactionSignScheme {
 }
 
 /// Header type used by the chain.
-pub type HeaderOf<C> = <C as Chain>::Header;
+pub type HeaderOf<C> = bp_runtime::HeaderOf<C>;
 
 /// Hash type used by the chain.
-pub type HashOf<C> = <C as Chain>::Hash;
+pub type HashOf<C> = bp_runtime::HashOf<C>;
 
 /// Block number used by the chain.
-pub type BlockNumberOf<C> = <C as Chain>::BlockNumber;
+pub type BlockNumberOf<C> = bp_runtime::BlockNumberOf<C>;
 
 impl<Block> BlockWithJustification for SignedBlock<Block> {
 	fn justification(&self) -> Option<&Justification> {

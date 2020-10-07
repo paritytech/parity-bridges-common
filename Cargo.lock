@@ -733,8 +733,12 @@ dependencies = [
 name = "bp-runtime"
 version = "0.1.0"
 dependencies = [
+ "frame-support",
+ "num-traits",
  "parity-scale-codec",
  "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -4164,6 +4168,7 @@ dependencies = [
 name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "finality-grandpa",
  "frame-support",
  "frame-system",
@@ -5186,6 +5191,7 @@ name = "relay-substrate-client"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "headers-relay",
