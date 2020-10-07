@@ -16,8 +16,9 @@
 
 //! Configuration parameters for the Rialto Substrate chain.
 
-use bp_rialto::{BlockNumber, Header};
-use pallet_substrate_bridge::{AuthoritySet, ScheduledChange};
+use bp_rialto::Header;
+use hex_literal::hex;
+use pallet_substrate_bridge::AuthoritySet;
 use sp_core::crypto::Public;
 use sp_finality_grandpa::AuthorityId;
 use sp_std::vec;
@@ -25,13 +26,18 @@ use sp_std::vec;
 /// The first header known to the pallet.
 ///
 /// Note that this does not need to be the genesis header of the Rialto
-/// chain since the pallet may start at any arbirary header.
+/// chain since the pallet may start at any arbitrary header.
+// To get this we first need to call the `chain_getBlockHash` RPC method, and then
+// we can use the result from that and call the `chain_getBlock` RPC method to get
+// the rest of the info.
+//
+// In this case we've grabbed the genesis block of the Rialto Substrate chain.
 pub fn initial_header() -> Header {
 	Header {
 		parent_hash: Default::default(),
 		number: Default::default(),
-		state_root: Default::default(),
-		extrinsics_root: Default::default(),
+		state_root: hex!("8fc2e3a8216b9f70fe2bc6804febb3f5192cb4046db5d546d1ad499a29bbbf27").into(),
+		extrinsics_root: hex!("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314").into(),
 		digest: Default::default(),
 	}
 }
@@ -42,19 +48,10 @@ pub fn initial_header() -> Header {
 /// pallet can be configured to start from any height.
 pub fn initial_authority_set() -> AuthoritySet {
 	let set_id = 0;
-	let authorities = vec![(AuthorityId::from_slice(&[1; 32]), 1)];
+	let authorities = vec![
+		(AuthorityId::from_slice(&[1; 32]), 1),
+		(AuthorityId::from_slice(&[2; 32]), 1),
+		(AuthorityId::from_slice(&[3; 32]), 1),
+	];
 	AuthoritySet::new(authorities, set_id)
-}
-
-/// The first authority set change that the pallet should be aware of.
-pub fn first_scheduled_change() -> ScheduledChange<BlockNumber> {
-	let set_id = 1;
-	let authorities = vec![(AuthorityId::from_slice(&[2; 32]), 1)];
-	let first_change = AuthoritySet::new(authorities, set_id);
-
-	let height = 3;
-	ScheduledChange {
-		authority_set: first_change,
-		height,
-	}
 }
