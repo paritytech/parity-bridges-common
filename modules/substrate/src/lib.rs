@@ -31,7 +31,7 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
+use crate::storage::ImportedHeader;
 use codec::{Codec, EncodeLike};
 use frame_support::{
 	decl_error, decl_module, decl_storage,
@@ -45,8 +45,11 @@ use sp_runtime::traits::{
 };
 use sp_std::{fmt::Debug, marker::PhantomData, prelude::*, str::FromStr};
 
+// Re-export since the node uses these when configuring genesis
+pub use storage::{AuthoritySet, ScheduledChange};
+
 mod justification;
-pub mod storage; // TODO: Figure out
+mod storage;
 mod storage_proof;
 mod verifier;
 

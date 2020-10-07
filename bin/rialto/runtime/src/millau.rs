@@ -17,7 +17,7 @@
 //! Configuration parameters for the Millau Substrate chain.
 
 use bp_rialto::{BlockNumber, Header};
-use pallet_substrate_bridge::storage::{AuthoritySet, ScheduledChange};
+use pallet_substrate_bridge::{AuthoritySet, ScheduledChange};
 use sp_core::crypto::Public;
 use sp_finality_grandpa::AuthorityId;
 use sp_std::vec;
