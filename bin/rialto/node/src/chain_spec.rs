@@ -189,6 +189,6 @@ fn load_millau_bridge_config() -> Option<BridgeMillauConfig> {
 		initial_header: Some(rialto_runtime::millau::initial_header()),
 		initial_authority_list: rialto_runtime::millau::initial_authority_set().authorities,
 		initial_set_id: rialto_runtime::millau::initial_authority_set().set_id,
-		first_scheduled_change: Some(rialto_runtime::millau::first_scheduled_change()),
+		first_scheduled_change: None,
 	})
 }

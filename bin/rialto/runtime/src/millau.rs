@@ -16,8 +16,8 @@
 
 //! Configuration parameters for the Millau Substrate chain.
 
-use bp_rialto::{BlockNumber, Header};
-use pallet_substrate_bridge::{AuthoritySet, ScheduledChange};
+use bp_rialto::Header;
+use pallet_substrate_bridge::AuthoritySet;
 use sp_core::crypto::Public;
 use sp_finality_grandpa::AuthorityId;
 use sp_std::vec;
@@ -25,7 +25,7 @@ use sp_std::vec;
 /// The first header known to the pallet.
 ///
 /// Note that this does not need to be the genesis header of the Millau
-/// chain since the pallet may start at any arbirary header.
+/// chain since the pallet may start at any arbitrary header.
 pub fn initial_header() -> Header {
 	Header {
 		parent_hash: Default::default(),
@@ -44,17 +44,4 @@ pub fn initial_authority_set() -> AuthoritySet {
 	let set_id = 0;
 	let authorities = vec![(AuthorityId::from_slice(&[1; 32]), 1)];
 	AuthoritySet::new(authorities, set_id)
-}
-
-/// The first authority set change that the pallet should be aware of.
-pub fn first_scheduled_change() -> ScheduledChange<BlockNumber> {
-	let set_id = 1;
-	let authorities = vec![(AuthorityId::from_slice(&[2; 32]), 1)];
-	let first_change = AuthoritySet::new(authorities, set_id);
-
-	let height = 3;
-	ScheduledChange {
-		authority_set: first_change,
-		height,
-	}
 }
