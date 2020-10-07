@@ -61,7 +61,7 @@ pub(crate) type BridgedHeader<T> = HeaderOf<<T as Trait>::BridgedChain>;
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
 		/// Hash of the header at the highest known height.
-		BestHeader: T::BridgedBlockHash;
+		BestHeader: BridgedBlockHash<T>;
 		/// Hash of the best finalized header.
 		BestFinalized: BridgedBlockHash<T>;
 		/// A header which enacts an authority set change and therefore
@@ -186,7 +186,7 @@ impl<T: Trait> Module<T> {
 	/// Get the highest header that the pallet knows of.
 	// In a future where we support forks this could be a Vec of headers
 	// since we may have multiple headers at the same height.
-	pub fn best_header() -> T::BridgedHeader {
+	pub fn best_header() -> BridgedHeader<T> {
 		PalletStorage::<T>::new().best_header().header
 	}
 
@@ -195,12 +195,12 @@ impl<T: Trait> Module<T> {
 	/// Since this has been finalized correctly a user of the bridge
 	/// pallet should be confident that any transactions that were
 	/// included in this or any previous header will not be reverted.
-	pub fn best_finalized() -> T::BridgedHeader {
+	pub fn best_finalized() -> BridgedHeader<T> {
 		PalletStorage::<T>::new().best_finalized_header().header
 	}
 
 	/// Check if a particular header is known to the bridge pallet.
-	pub fn is_known_header(hash: T::BridgedBlockHash) -> bool {
+	pub fn is_known_header(hash: BridgedBlockHash<T>) -> bool {
 		PalletStorage::<T>::new().header_exists(hash)
 	}
 
@@ -210,7 +210,7 @@ impl<T: Trait> Module<T> {
 	// One thing worth noting here is that this approach won't work well
 	// once we track forks since there could be an older header on a
 	// different fork which isn't an ancestor of our best finalized header.
-	pub fn is_finalized_header(hash: T::BridgedBlockHash) -> bool {
+	pub fn is_finalized_header(hash: BridgedBlockHash<T>) -> bool {
 		let storage = PalletStorage::<T>::new();
 		if let Some(header) = storage.header_by_hash(hash) {
 			header.number() <= storage.best_finalized_header().number()
@@ -223,7 +223,7 @@ impl<T: Trait> Module<T> {
 	/// and still needs a finality proof.
 	///
 	/// Will return None if there are no headers which are missing finality proofs.
-	pub fn requires_justification() -> Option<T::BridgedHeader> {
+	pub fn requires_justification() -> Option<BridgedHeader<T>> {
 		let storage = PalletStorage::<T>::new();
 		let hash = storage.unfinalized_header()?;
 		let imported_header = storage.header_by_hash(hash).expect(
@@ -338,7 +338,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
-	fn unfinalized_header(&self) -> Option<T::BridgedBlockHash> {
+	fn unfinalized_header(&self) -> Option<BridgedBlockHash<T>> {
 		<RequiresJustification<T>>::get()
 	}
 
