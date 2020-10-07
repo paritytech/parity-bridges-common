@@ -21,7 +21,7 @@
 use codec::{Decode, Encode};
 use sp_io::hashing::blake2_256;
 
-pub use chain::{Chain, BlockNumberOf, HashOf, HasherOf, HeaderOf};
+pub use chain::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 
 mod chain;
 

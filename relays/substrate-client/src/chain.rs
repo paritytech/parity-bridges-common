@@ -22,10 +22,7 @@ use jsonrpsee::common::{DeserializeOwned, Serialize};
 use sp_core::Pair;
 use sp_runtime::{
 	generic::SignedBlock,
-	traits::{
-		AtLeast32Bit, Dispatchable, MaybeDisplay,
-		MaybeSerialize, MaybeSerializeDeserialize, Member,
-	},
+	traits::{AtLeast32Bit, Dispatchable, MaybeDisplay, MaybeSerialize, MaybeSerializeDeserialize, Member},
 	Justification,
 };
 use sp_std::fmt::Debug;

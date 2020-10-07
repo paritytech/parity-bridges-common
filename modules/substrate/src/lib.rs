@@ -32,11 +32,8 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
-use bp_runtime::{Chain, BlockNumberOf, HashOf, HeaderOf};
-use frame_support::{
-	decl_error, decl_module, decl_storage,
-	dispatch::DispatchResult,
-};
+use bp_runtime::{BlockNumberOf, Chain, HashOf, HeaderOf};
+use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, prelude::*};

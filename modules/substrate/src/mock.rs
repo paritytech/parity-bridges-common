@@ -92,8 +92,8 @@ pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 }
 
 pub mod helpers {
-	use crate::{BridgedBlockNumber, BridgedBlockHash, BridgedHeader};
 	use super::*;
+	use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader};
 	use finality_grandpa::voter_set::VoterSet;
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
 	use sp_keyring::Ed25519Keyring;
