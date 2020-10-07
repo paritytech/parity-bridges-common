@@ -64,15 +64,6 @@ pub trait TransactionSignScheme {
 	) -> Self::SignedTransaction;
 }
 
-/// Header type used by the chain.
-pub type HeaderOf<C> = bp_runtime::HeaderOf<C>;
-
-/// Hash type used by the chain.
-pub type HashOf<C> = bp_runtime::HashOf<C>;
-
-/// Block number used by the chain.
-pub type BlockNumberOf<C> = bp_runtime::BlockNumberOf<C>;
-
 impl<Block> BlockWithJustification for SignedBlock<Block> {
 	fn justification(&self) -> Option<&Justification> {
 		self.justification.as_ref()
