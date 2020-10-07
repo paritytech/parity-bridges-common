@@ -40,7 +40,7 @@ use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::traits::{
-	BlakeTwo256, Block as BlockT, IdentifyAccount, IdentityLookup, NumberFor, OpaqueKeys, Saturating, Verify,
+	Block as BlockT, IdentifyAccount, IdentityLookup, NumberFor, OpaqueKeys, Saturating, Verify,
 };
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
@@ -93,7 +93,7 @@ pub type Index = u32;
 pub type Hash = bp_rialto::Hash;
 
 /// Hashing algorithm used by the chain.
-pub type Hashing = BlakeTwo256;
+pub type Hashing = bp_rialto::Hasher;
 
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
@@ -418,10 +418,7 @@ impl pallet_session::Trait for Runtime {
 }
 
 impl pallet_substrate_bridge::Trait for Runtime {
-	type BridgedHeader = bp_millau::Header;
-	type BridgedBlockNumber = bp_millau::BlockNumber;
-	type BridgedBlockHash = bp_millau::Hash;
-	type BridgedBlockHasher = bp_millau::Hasher;
+	type BridgedChain = bp_millau::Millau;
 }
 
 impl pallet_shift_session_manager::Trait for Runtime {}

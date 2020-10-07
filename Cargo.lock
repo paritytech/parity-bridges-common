@@ -713,6 +713,8 @@ dependencies = [
 name = "bp-millau"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
+ "frame-support",
  "sp-api",
  "sp-core",
  "sp-runtime",
@@ -723,6 +725,8 @@ dependencies = [
 name = "bp-rialto"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
+ "frame-support",
  "sp-api",
  "sp-core",
  "sp-runtime",
@@ -4173,7 +4177,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hash-db",
- "num-traits",
  "parity-scale-codec",
  "serde",
  "sp-core",
