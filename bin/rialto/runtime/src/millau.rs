@@ -48,6 +48,12 @@ pub fn initial_header() -> Header {
 /// pallet can be configured to start from any height.
 pub fn initial_authority_set() -> AuthoritySet {
 	let set_id = 0;
-	let authorities = vec![(AuthorityId::from_slice(&[1; 32]), 1)];
+	let authorities = vec![
+		(AuthorityId::from_slice(&hex!("88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee")), 1),
+		(AuthorityId::from_slice(&hex!("d17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae69")), 1),
+		(AuthorityId::from_slice(&hex!("439660b36c6c03afafca027b910b4fecf99801834c62a5e6006f27d978de234f")), 1),
+		(AuthorityId::from_slice(&hex!("5e639b43e0052c47447dac87d6fd2b6ec50bdd4d0f614e4299c665249bbd09d9")), 1),
+		(AuthorityId::from_slice(&hex!("1dfe3e22cc0d45c70779c1095f7489a8ef3cf52d62fbd8c2fa38c9f1723502b5")), 1),
+	];
 	AuthoritySet::new(authorities, set_id)
 }
