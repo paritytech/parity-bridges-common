@@ -17,6 +17,7 @@
 //! Configuration parameters for the Millau Substrate chain.
 
 use bp_rialto::Header;
+use hex_literal::hex;
 use pallet_substrate_bridge::AuthoritySet;
 use sp_core::crypto::Public;
 use sp_finality_grandpa::AuthorityId;
@@ -26,12 +27,17 @@ use sp_std::vec;
 ///
 /// Note that this does not need to be the genesis header of the Millau
 /// chain since the pallet may start at any arbitrary header.
+// To get this we first need to call the `chain_getBlockHash` RPC method, and then
+// we can use the result from that and call the `chain_getBlock` RPC method to get
+// the rest of the info.
+//
+// In this case we've grabbed the genesis block of the Millau Substrate chain.
 pub fn initial_header() -> Header {
 	Header {
 		parent_hash: Default::default(),
 		number: Default::default(),
-		state_root: Default::default(),
-		extrinsics_root: Default::default(),
+		state_root: hex!("bb65e8ba99408ebfefea9d28f74403d41da6858fa075c51fcc71dc383455c530").into(),
+		extrinsics_root: hex!("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314").into(),
 		digest: Default::default(),
 	}
 }
