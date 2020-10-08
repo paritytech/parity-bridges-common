@@ -1,0 +1,29 @@
+version: '3.5'
+services:
+  relay-millau-headers-to-rialto:
+    build:
+      context: .
+      dockerfile: ../Bridge.Dockerfile
+      args:
+        BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
+        PROJECT: substrate-relay
+
+  bridge-node-alice: &millau-bridge-node
+    build:
+      context: .
+      dockerfile: ../Bridge.Dockerfile
+      args:
+        BRIDGE_HASH: ${NODE_BRIDGE_HASH:-master}
+        PROJECT: millau-bridge-node
+
+  bridge-node-bob:
+    <<: *millau-bridge-node
+
+  bridge-node-charlie:
+    <<: *millau-bridge-node
+
+  bridge-node-dave:
+    <<: *millau-bridge-node
+
+  bridge-node-eve:
+    <<: *millau-bridge-node

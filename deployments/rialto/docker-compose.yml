@@ -251,3 +251,8 @@ services:
         EXPECTED_ETHEREUM_NETWORK_ID: ${UI_EXPECTED_ETHEREUM_NETWORK_ID:-105}
     ports:
       - "8080:80"
+
+networks:
+  default:
+    external:
+      name: bridge-deployments

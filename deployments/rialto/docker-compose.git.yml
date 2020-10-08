@@ -17,7 +17,7 @@ services:
   relay-eth2sub:
     build:
       context: .
-      dockerfile: ./Bridge.Dockerfile
+      dockerfile: ../Bridge.Dockerfile
       args:
         BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
@@ -25,7 +25,7 @@ services:
   poa-exchange-tx-generator:
     build:
       context: .
-      dockerfile: ./Bridge.Dockerfile
+      dockerfile: ../Bridge.Dockerfile
       args:
         BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
@@ -33,7 +33,7 @@ services:
   relay-eth-exchange-sub:
     build:
       context: .
-      dockerfile: ./Bridge.Dockerfile
+      dockerfile: ../Bridge.Dockerfile
       args:
         BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
@@ -41,7 +41,7 @@ services:
   relay-sub2eth:
     build:
       context: .
-      dockerfile: ./Bridge.Dockerfile
+      dockerfile: ../Bridge.Dockerfile
       args:
         BRIDGE_HASH: ${RELAY_BRIDGE_HASH:-master}
         PROJECT: ethereum-poa-relay
@@ -49,7 +49,7 @@ services:
   bridge-node-alice: &rialto-bridge-node
     build:
       context: .
-      dockerfile: ./Bridge.Dockerfile
+      dockerfile: ../Bridge.Dockerfile
       args:
         BRIDGE_HASH: ${NODE_BRIDGE_HASH:-master}
         PROJECT: rialto-bridge-node

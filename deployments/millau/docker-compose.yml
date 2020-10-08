@@ -1,0 +1,139 @@
+version: '3.5'
+services:
+  relay-millau-headers-to-rialto:
+    image: paritytech/substrate-relay
+    entrypoint: /config/relay-millau-headers-to-rialto-entrypoint.sh
+    volumes:
+      - ./bridge-config:/config
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "9616:9616"
+    depends_on: &all-nodes
+      - bridge-node-alice
+      - bridge-node-bob
+      - bridge-node-charlie
+      - bridge-node-dave
+      - bridge-node-eve
+
+  bridge-node-alice: &millau-bridge-node
+    image: paritytech/millau-bridge-node
+    hostname: millau-bridge-node-alice
+    networks:
+      default:
+        aliases:
+          - millau-bridge-node-alice
+    entrypoint:
+      - /home/user/millau-bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/millau-bridge-node-bob/tcp/30333/p2p/12D3KooWM5LFR5ne4yTQ4sBSXJ75M4bDo2MAhAW2GhL3i8fe5aRb
+      - --alice
+      - --node-key=0f900c89f4e626f4a217302ab8c7d213737d00627115f318ad6fb169717ac8e0
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    volumes:
+      - ./bridge-config:/config
+    environment: &bridge-env
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace
+    ports:
+      - "9933:9933"
+      - "9944:9944"
+
+  bridge-node-bob:
+    <<: *millau-bridge-node
+    hostname: millau-bridge-node-bob
+    networks:
+      default:
+        aliases:
+          - millau-bridge-node-alice
+    entrypoint:
+      - /home/user/millau-bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/millau-bridge-node-alice/tcp/30333/p2p/12D3KooWFqiV73ipQ1jpfVmCfLqBCp8G9PLH3zPkY9EhmdrSGA4H
+      - --bob
+      - --node-key=db383639ff2905d79f8e936fd5dc4416ef46b514b2f83823ec3c42753d7557bb
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10033:9933"
+      - "10044:9944"
+
+  bridge-node-charlie:
+    <<: *millau-bridge-node
+    hostname: millau-bridge-node-charlie
+    networks:
+      default:
+        aliases:
+          - millau-bridge-node-alice
+    entrypoint:
+      - /home/user/millau-bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/millau-bridge-node-alice/tcp/30333/p2p/12D3KooWFqiV73ipQ1jpfVmCfLqBCp8G9PLH3zPkY9EhmdrSGA4H
+      - --charlie
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10133:9933"
+      - "10144:9944"
+
+  bridge-node-dave:
+    <<: *millau-bridge-node
+    hostname: millau-bridge-node-dave
+    networks:
+      default:
+        aliases:
+          - millau-bridge-node-dave
+    entrypoint:
+      - /home/user/millau-bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/millau-bridge-node-alice/tcp/30333/p2p/12D3KooWFqiV73ipQ1jpfVmCfLqBCp8G9PLH3zPkY9EhmdrSGA4H
+      - --dave
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10233:9933"
+      - "10244:9944"
+
+  bridge-node-eve:
+    <<: *millau-bridge-node
+    hostname: millau-bridge-node-eve
+    networks:
+      default:
+        aliases:
+          - millau-bridge-node-eve
+      default:
+        aliases:
+          - millau-bridge-node-eve
+    entrypoint:
+      - /home/user/millau-bridge-node
+      - --execution=Native
+      - --chain=local
+      - --bootnodes=/dns4/millau-bridge-node-alice/tcp/30333/p2p/12D3KooWFqiV73ipQ1jpfVmCfLqBCp8G9PLH3zPkY9EhmdrSGA4H
+      - --eve
+      - --rpc-cors=all
+      - --unsafe-rpc-external
+      - --unsafe-ws-external
+    ports:
+      - "10333:9933"
+      - "10344:9944"
+
+  prometheus-metrics:
+    image: prom/prometheus:v2.20.1
+    volumes:
+      - ./dashboard/prometheus/:/etc/prometheus/
+    ports:
+      - "9090:9090"
+    depends_on: *all-nodes
+
+networks:
+  default:
+    external:
+      name: bridge-deployments
