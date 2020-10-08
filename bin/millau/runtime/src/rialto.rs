@@ -17,7 +17,6 @@
 //! Configuration parameters for the Rialto Substrate chain.
 
 use bp_rialto::Header;
-use hex_literal::hex;
 use pallet_substrate_bridge::AuthoritySet;
 use sp_core::crypto::Public;
 use sp_finality_grandpa::AuthorityId;
