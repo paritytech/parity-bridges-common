@@ -34,7 +34,7 @@ use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
 
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
-	target_chain::{MessageDispatch, SourceHeaderChain},
+	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
 use codec::{Decode, Encode};
@@ -243,15 +243,16 @@ decl_module! {
 			let _ = ensure_signed(origin)?;
 
 			// verify messages proof && convert proof into messages
-			let messages = T::SourceHeaderChain::verify_and_decode_messages_proof(proof).map_err(|err| {
-				frame_support::debug::trace!(
-					target: "runtime",
-					"Rejecting invalid messages proof: {:?}",
-					err,
-				);
+			let messages = verify_and_decode_messages_proof::<T::SourceHeaderChain, T::InboundMessageFee, T::InboundPayload>(proof)
+				.map_err(|err| {
+					frame_support::debug::trace!(
+						target: "runtime",
+						"Rejecting invalid messages proof: {:?}",
+						err,
+					);
 
-				Error::<T, I>::InvalidMessagesProof
-			})?;
+					Error::<T, I>::InvalidMessagesProof
+				})?;
 
 			// verify that relayer is paying actual dispatch weight
 			let actual_dispatch_weight: Weight = messages
@@ -463,6 +464,26 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 			nonce: *nonce,
 		});
 	}
+}
+
+/// Verify messages proof and return proved messages with decoded payload.
+fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, DispatchPayload: Decode>(
+	proof: Chain::MessagesProof,
+) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Chain::Error> {
+	Chain::verify_messages_proof(proof).map(|messages_by_lane| {
+		messages_by_lane
+			.into_iter()
+			.map(|(lane, lane_data)| {
+				(
+					lane,
+					ProvedLaneMessages {
+						lane_state: lane_data.lane_state,
+						messages: lane_data.messages.into_iter().map(Into::into).collect(),
+					},
+				)
+			})
+			.collect()
+	})
 }
 
 #[cfg(test)]

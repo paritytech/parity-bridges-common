@@ -70,26 +70,6 @@ pub trait SourceHeaderChain<Fee> {
 	/// Messages vector is required to be sorted by nonce within each lane. Out-of-order
 	/// messages will be rejected.
 	fn verify_messages_proof(proof: Self::MessagesProof) -> Result<ProvedMessages<Message<Fee>>, Self::Error>;
-
-	/// Verify messages proof and return proved messages with decoded payload.
-	fn verify_and_decode_messages_proof<DispatchPayload: Decode>(
-		proof: Self::MessagesProof,
-	) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Self::Error> {
-		Self::verify_messages_proof(proof).map(|messages_by_lane| {
-			messages_by_lane
-				.into_iter()
-				.map(|(lane, lane_data)| {
-					(
-						lane,
-						ProvedLaneMessages {
-							lane_state: lane_data.lane_state,
-							messages: lane_data.messages.into_iter().map(Into::into).collect(),
-						},
-					)
-				})
-				.collect()
-		})
-	}
 }
 
 /// Called when inbound message is received.
