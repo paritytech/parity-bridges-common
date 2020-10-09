@@ -537,6 +537,8 @@ mod tests {
 			//
 			// We'll need to make sure that once we finalize one we
 			// don't allow finalization of the other one
+			//
+			// We'll also need to keep track of multiple authority set changes
 			todo!()
 		})
 	}
