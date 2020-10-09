@@ -32,6 +32,8 @@ use std::{
 
 type HeadersQueue<P> =
 	BTreeMap<<P as HeadersSyncPipeline>::Number, HashMap<<P as HeadersSyncPipeline>::Hash, QueuedHeader<P>>>;
+type SyncedChildren<P> =
+	BTreeMap<<P as HeadersSyncPipeline>::Number, HashMap<<P as HeadersSyncPipeline>::Hash, HashSet<HeaderIdOf<P>>>>;
 type KnownHeaders<P> =
 	BTreeMap<<P as HeadersSyncPipeline>::Number, HashMap<<P as HeadersSyncPipeline>::Hash, HeaderStatus>>;
 
@@ -63,6 +65,9 @@ pub struct QueuedHeaders<P: HeadersSyncPipeline> {
 	/// Headers that are (we believe) currently submitted to target node by our,
 	/// not-yet mined transactions.
 	submitted: HeadersQueue<P>,
+	/// Synced headers childrens. We need it to support case when header is synced, but some of
+	/// its parents are incomplete.
+	synced_children: SyncedChildren<P>,
 	/// Pointers to all headers that we ever seen and we believe we can touch in the future.
 	known_headers: KnownHeaders<P>,
 	/// Headers that are waiting for completion data from source node. Mapped (and auto-sorted
@@ -96,6 +101,7 @@ impl<P: HeadersSyncPipeline> Default for QueuedHeaders<P> {
 			ready: HeadersQueue::new(),
 			incomplete: HeadersQueue::new(),
 			submitted: HeadersQueue::new(),
+			synced_children: SyncedChildren::<P>::new(),
 			known_headers: KnownHeaders::<P>::new(),
 			incomplete_headers: LinkedHashMap::new(),
 			completion_data: LinkedHashMap::new(),
@@ -419,13 +425,17 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 				self.header_synced(&new_incomplete_header);
 			}
 
-			move_header_descendants::<P>(
-				&mut [&mut self.ready, &mut self.submitted],
-				&mut self.incomplete,
-				&mut self.known_headers,
-				HeaderStatus::Incomplete,
-				&new_incomplete_header,
-			);
+			let move_origins = select_synced_children::<P>(&self.synced_children, &new_incomplete_header);
+			let move_origins = move_origins.into_iter().chain(std::iter::once(new_incomplete_header));
+			for move_origin in move_origins {
+				move_header_descendants::<P>(
+					&mut [&mut self.ready, &mut self.submitted],
+					&mut self.incomplete,
+					&mut self.known_headers,
+					HeaderStatus::Incomplete,
+					&move_origin,
+				);
+			}
 
 			if make_header_incomplete {
 				log::debug!(
@@ -461,13 +471,9 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			.collect::<Vec<_>>();
 		for just_completed_header in just_completed_headers {
 			// sub2eth rejects H if H.Parent is incomplete
-			// sub2sub accepts headers like that
-			// => let's check if there are some descendants in the synced queue
-			let move_origins = select_header_descendants(
-				&[&self.submitted],
-				&just_completed_header,
-			);
-
+			// sub2sub allows 'syncing' headers like that
+			// => let's check if there are some synced children of just completed header
+			let move_origins = select_synced_children::<P>(&self.synced_children, &just_completed_header);
 			let move_origins = move_origins.into_iter().chain(std::iter::once(just_completed_header));
 			for move_origin in move_origins {
 				move_header_descendants::<P>(
@@ -525,6 +531,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		prune_queue(&mut self.ready, prune_border);
 		prune_queue(&mut self.submitted, prune_border);
 		prune_queue(&mut self.incomplete, prune_border);
+		prune_synced_children::<P>(&mut self.synced_children, prune_border);
 		prune_known_headers::<P>(&mut self.known_headers, prune_border);
 		self.prune_border = prune_border;
 	}
@@ -538,6 +545,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		self.ready.clear();
 		self.incomplete.clear();
 		self.submitted.clear();
+		self.synced_children.clear();
 		self.known_headers.clear();
 		self.best_synced_number = Zero::zero();
 		self.prune_border = Zero::zero();
@@ -579,6 +587,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		// queues
 		let mut current = *id;
 		let mut id_processed = false;
+		let mut previous_current = None;
 		loop {
 			let header = match self.status(&current) {
 				HeaderStatus::Unknown => break,
@@ -593,8 +602,36 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			}
 			.expect("header has a given status; given queue has the header; qed");
 
+			// remember ids of all current header' children
+			let synced_children_entry = self
+				.synced_children
+				.entry(current.0)
+				.or_default()
+				.entry(current.1)
+				.or_default();
+			let all_queues = [
+				&self.maybe_orphan, &self.orphan, &self.maybe_extra, &self.extra, &self.ready,
+				&self.incomplete, &self.submitted,
+			];
+			for queue in &all_queues {
+				let children_from_queue = queue
+					.get(&(*&current.0 + One::one()))
+					.map(|potential_children| potential_children
+						.values()
+						.filter(|potential_child| potential_child.header().parent_id() == current)
+						.map(|child| child.id())
+						.collect::<Vec<_>>()
+					)
+					.unwrap_or_default();
+				synced_children_entry.extend(children_from_queue);
+			}
+			if let Some(previous_current) = previous_current {
+				synced_children_entry.insert(previous_current);
+			}
+
 			set_header_status::<P>(&mut self.known_headers, &current, HeaderStatus::Synced);
 
+			previous_current = Some(current);
 			current = header.parent_id();
 			id_processed = true;
 		}
@@ -664,40 +701,6 @@ fn move_header<P: HeadersSyncPipeline>(
 	Some(parent_id)
 }
 
-/// Select all descendants of given header from given queues.
-fn select_header_descendants<P: HeadersSyncPipeline>(
-	queues: &[&HeadersQueue<P>],
-	id: &HeaderIdOf<P>,
-) -> Vec<HeaderIdOf<P>> {
-	let mut origins = Vec::new();
-	let mut current_number = id.0 + One::one();
-	let mut current_parents = HashSet::new();
-	current_parents.insert(id.1);
-
-	while !current_parents.is_empty() {
-		let mut next_parents = HashSet::new();
-		for queue in queues {
-			let headers_at_current_number = match queue.get(&current_number) {
-				Some(headers_at_current_number) => headers_at_current_number,
-				None => continue,
-			};
-
-			for header_with_current_number in headers_at_current_number.values() {
-				if current_parents.contains(&header_with_current_number.header().parent_id().1) {
-					let id = header_with_current_number.header().id();
-					next_parents.insert(id.1);
-					origins.push(id);
-				}
-			}
-		}
-
-		current_number = current_number + One::one();
-		std::mem::swap(&mut current_parents, &mut next_parents);
-	}
-
-	origins
-}
-
 /// Move all descendant headers from the source to destination queue.
 fn move_header_descendants<P: HeadersSyncPipeline>(
 	source_queues: &mut [&mut HeadersQueue<P>],
@@ -751,6 +754,35 @@ fn move_header_descendants<P: HeadersSyncPipeline>(
 	}
 }
 
+/// Selects (recursive) all synced children of given header.
+fn select_synced_children<P: HeadersSyncPipeline>(
+	synced_children: &SyncedChildren<P>,
+	id: &HeaderIdOf<P>,
+) -> Vec<HeaderIdOf<P>> {
+	let mut result = Vec::new();
+	let mut current_parents = HashSet::new();
+	current_parents.insert(*id);
+
+	while !current_parents.is_empty() {
+		let mut next_parents = HashSet::new();
+		for current_parent in &current_parents {
+			let current_parent_synced_children = synced_children
+				.get(&current_parent.0)
+				.and_then(|by_number_entry| by_number_entry.get(&current_parent.1));
+			if let Some(current_parent_synced_children) = current_parent_synced_children {
+				for current_parent_synced_child in current_parent_synced_children {
+					result.push(*current_parent_synced_child);
+					next_parents.insert(*current_parent_synced_child);
+				}
+			}
+		}
+
+		let _ = std::mem::replace(&mut current_parents, next_parents);
+	}
+
+	result
+}
+
 /// Return oldest header from the queue.
 fn oldest_header<P: HeadersSyncPipeline>(queue: &HeadersQueue<P>) -> Option<&QueuedHeader<P>> {
 	queue.values().flat_map(|h| h.values()).next()
@@ -775,6 +807,11 @@ fn oldest_headers<P: HeadersSyncPipeline>(
 
 /// Forget all headers with number less than given.
 fn prune_queue<P: HeadersSyncPipeline>(queue: &mut HeadersQueue<P>, prune_border: P::Number) {
+	*queue = queue.split_off(&prune_border);
+}
+
+/// Forget all entries with number less than given.
+fn prune_synced_children<P: HeadersSyncPipeline>(queue: &mut SyncedChildren<P>, prune_border: P::Number) {
 	*queue = queue.split_off(&prune_border);
 }
 
@@ -1095,6 +1132,13 @@ pub(crate) mod tests {
 			.known_headers
 			.values()
 			.all(|s| s.values().all(|s| *s == HeaderStatus::Synced)));
+
+		// children of synced headers are stored
+		assert_eq!(vec![id(97)], queue.synced_children[&96][&hash(96)].iter().cloned().collect::<Vec<_>>());
+		assert_eq!(vec![id(98)], queue.synced_children[&97][&hash(97)].iter().cloned().collect::<Vec<_>>());
+		assert_eq!(vec![id(99)], queue.synced_children[&98][&hash(98)].iter().cloned().collect::<Vec<_>>());
+		assert_eq!(vec![id(100)], queue.synced_children[&99][&hash(99)].iter().cloned().collect::<Vec<_>>());
+		assert_eq!(0, queue.synced_children[&100][&hash(100)].len());
 	}
 
 	#[test]
@@ -1508,6 +1552,8 @@ pub(crate) mod tests {
 			.or_default()
 			.insert(hash(100), HeaderStatus::Ready);
 		queue.ready.entry(100).or_default().insert(hash(100), header(100));
+		queue.synced_children.entry(100).or_default().insert(hash(100), vec![id(101)].into_iter().collect());
+		queue.synced_children.entry(102).or_default().insert(hash(102), vec![id(102)].into_iter().collect());
 
 		queue.prune(102);
 
@@ -1517,6 +1563,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.orphan.len(), 1);
 		assert_eq!(queue.maybe_orphan.len(), 1);
 		assert_eq!(queue.incomplete.len(), 1);
+		assert_eq!(queue.synced_children.len(), 1);
 		assert_eq!(queue.known_headers.len(), 4);
 
 		queue.prune(110);
@@ -1527,6 +1574,7 @@ pub(crate) mod tests {
 		assert_eq!(queue.orphan.len(), 0);
 		assert_eq!(queue.maybe_orphan.len(), 0);
 		assert_eq!(queue.incomplete.len(), 0);
+		assert_eq!(queue.synced_children.len(), 0);
 		assert_eq!(queue.known_headers.len(), 0);
 
 		queue.header_response(header(109).header().clone());
@@ -1581,5 +1629,36 @@ pub(crate) mod tests {
 		assert_eq!(queue.status(&id(102)), HeaderStatus::Synced);
 		assert_eq!(queue.status(&id(103)), HeaderStatus::Incomplete);
 		assert_eq!(queue.status(&id(104)), HeaderStatus::Incomplete);
+	}
+
+	#[test]
+	fn incomplete_headers_response_moves_synced_headers() {
+		let mut queue = QueuedHeaders::<TestHeadersSyncPipeline>::default();
+
+		// we have submitted two headers - 100 and 101. 102 is ready
+		queue.submitted.entry(100).or_default().insert(hash(100), header(100));
+		queue.submitted.entry(101).or_default().insert(hash(101), header(101));
+		queue.ready.entry(102).or_default().insert(hash(102), header(102));
+		queue.known_headers.entry(100).or_default().insert(hash(100), HeaderStatus::Submitted);
+		queue.known_headers.entry(101).or_default().insert(hash(101), HeaderStatus::Submitted);
+		queue.known_headers.entry(102).or_default().insert(hash(102), HeaderStatus::Ready);
+
+		// both headers are accepted
+		queue.target_best_header_response(&id(101));
+
+		// but header 100 is incomplete
+		queue.incomplete_headers_response(vec![id(100)].into_iter().collect());
+		assert_eq!(queue.status(&id(100)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(101)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(102)), HeaderStatus::Incomplete);
+		assert!(queue.incomplete_headers.contains_key(&id(100)));
+		assert!(queue.incomplete[&102].contains_key(&hash(102)));
+
+		// when header 100 is completed, 101 is synced and 102 is ready
+		queue.incomplete_headers_response(HashSet::new());
+		assert_eq!(queue.status(&id(100)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(101)), HeaderStatus::Synced);
+		assert_eq!(queue.status(&id(102)), HeaderStatus::Ready);
+		assert!(queue.ready[&102].contains_key(&hash(102)));
 	}
 }
