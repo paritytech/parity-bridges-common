@@ -493,7 +493,7 @@ mod tests {
 	}
 
 	#[test]
-	fn correctly_updates_the_best_header_given_better_headers() {
+	fn correctly_updates_the_best_header_given_a_better_header() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 
