@@ -610,18 +610,24 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 				.entry(current.1)
 				.or_default();
 			let all_queues = [
-				&self.maybe_orphan, &self.orphan, &self.maybe_extra, &self.extra, &self.ready,
-				&self.incomplete, &self.submitted,
+				&self.maybe_orphan,
+				&self.orphan,
+				&self.maybe_extra,
+				&self.extra,
+				&self.ready,
+				&self.incomplete,
+				&self.submitted,
 			];
 			for queue in &all_queues {
 				let children_from_queue = queue
-					.get(&(*&current.0 + One::one()))
-					.map(|potential_children| potential_children
-						.values()
-						.filter(|potential_child| potential_child.header().parent_id() == current)
-						.map(|child| child.id())
-						.collect::<Vec<_>>()
-					)
+					.get(&(current.0 + One::one()))
+					.map(|potential_children| {
+						potential_children
+							.values()
+							.filter(|potential_child| potential_child.header().parent_id() == current)
+							.map(|child| child.id())
+							.collect::<Vec<_>>()
+					})
 					.unwrap_or_default();
 				synced_children_entry.extend(children_from_queue);
 			}
@@ -1134,10 +1140,34 @@ pub(crate) mod tests {
 			.all(|s| s.values().all(|s| *s == HeaderStatus::Synced)));
 
 		// children of synced headers are stored
-		assert_eq!(vec![id(97)], queue.synced_children[&96][&hash(96)].iter().cloned().collect::<Vec<_>>());
-		assert_eq!(vec![id(98)], queue.synced_children[&97][&hash(97)].iter().cloned().collect::<Vec<_>>());
-		assert_eq!(vec![id(99)], queue.synced_children[&98][&hash(98)].iter().cloned().collect::<Vec<_>>());
-		assert_eq!(vec![id(100)], queue.synced_children[&99][&hash(99)].iter().cloned().collect::<Vec<_>>());
+		assert_eq!(
+			vec![id(97)],
+			queue.synced_children[&96][&hash(96)]
+				.iter()
+				.cloned()
+				.collect::<Vec<_>>()
+		);
+		assert_eq!(
+			vec![id(98)],
+			queue.synced_children[&97][&hash(97)]
+				.iter()
+				.cloned()
+				.collect::<Vec<_>>()
+		);
+		assert_eq!(
+			vec![id(99)],
+			queue.synced_children[&98][&hash(98)]
+				.iter()
+				.cloned()
+				.collect::<Vec<_>>()
+		);
+		assert_eq!(
+			vec![id(100)],
+			queue.synced_children[&99][&hash(99)]
+				.iter()
+				.cloned()
+				.collect::<Vec<_>>()
+		);
 		assert_eq!(0, queue.synced_children[&100][&hash(100)].len());
 	}
 
@@ -1552,8 +1582,16 @@ pub(crate) mod tests {
 			.or_default()
 			.insert(hash(100), HeaderStatus::Ready);
 		queue.ready.entry(100).or_default().insert(hash(100), header(100));
-		queue.synced_children.entry(100).or_default().insert(hash(100), vec![id(101)].into_iter().collect());
-		queue.synced_children.entry(102).or_default().insert(hash(102), vec![id(102)].into_iter().collect());
+		queue
+			.synced_children
+			.entry(100)
+			.or_default()
+			.insert(hash(100), vec![id(101)].into_iter().collect());
+		queue
+			.synced_children
+			.entry(102)
+			.or_default()
+			.insert(hash(102), vec![id(102)].into_iter().collect());
 
 		queue.prune(102);
 
@@ -1639,9 +1677,21 @@ pub(crate) mod tests {
 		queue.submitted.entry(100).or_default().insert(hash(100), header(100));
 		queue.submitted.entry(101).or_default().insert(hash(101), header(101));
 		queue.ready.entry(102).or_default().insert(hash(102), header(102));
-		queue.known_headers.entry(100).or_default().insert(hash(100), HeaderStatus::Submitted);
-		queue.known_headers.entry(101).or_default().insert(hash(101), HeaderStatus::Submitted);
-		queue.known_headers.entry(102).or_default().insert(hash(102), HeaderStatus::Ready);
+		queue
+			.known_headers
+			.entry(100)
+			.or_default()
+			.insert(hash(100), HeaderStatus::Submitted);
+		queue
+			.known_headers
+			.entry(101)
+			.or_default()
+			.insert(hash(101), HeaderStatus::Submitted);
+		queue
+			.known_headers
+			.entry(102)
+			.or_default()
+			.insert(hash(102), HeaderStatus::Ready);
 
 		// both headers are accepted
 		queue.target_best_header_response(&id(101));
