@@ -123,7 +123,7 @@ where
 		match submit_transaction_result {
 			Ok(_) => SubmittedHeaders {
 				submitted: vec![id],
-				incomplete: Vec::new(), // TODO: need new API for this or we may submit invalid transactions
+				incomplete: Vec::new(),
 				rejected: Vec::new(),
 				fatal_error: None,
 			},
