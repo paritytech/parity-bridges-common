@@ -32,7 +32,7 @@ use millau_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
-use sc_finality_grandpa::{SharedVoterState, FinalityProofProvider as GrandpaFinalityProofProvider};
+use sc_finality_grandpa::{FinalityProofProvider as GrandpaFinalityProofProvider, SharedVoterState};
 use sc_finality_grandpa_rpc::GrandpaRpcHandler;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
@@ -161,8 +161,8 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let telemetry_connection_sinks = sc_service::TelemetryConnectionSinks::default();
 
 	let rpc_extensions_builder = {
-		use sc_rpc::DenyUnsafe;
 		use sc_finality_grandpa_rpc::GrandpaApi;
+		use sc_rpc::DenyUnsafe;
 		use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
 		let client = client.clone();
@@ -170,8 +170,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 		let justification_stream = grandpa_link.justification_stream();
 		let shared_authority_set = grandpa_link.shared_authority_set().clone();
-		let finality_proof_provider =
-			GrandpaFinalityProofProvider::new_for_service(backend.clone(), client.clone());
+		let finality_proof_provider = GrandpaFinalityProofProvider::new_for_service(backend.clone(), client.clone());
 
 		Box::new(move |_, subscription_executor| {
 			let shared_voter_state = SharedVoterState::empty();
@@ -182,17 +181,13 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 				pool.clone(),
 				DenyUnsafe::No,
 			)));
-			io.extend_with(
-				GrandpaApi::to_delegate(
-					GrandpaRpcHandler::new(
-						shared_authority_set.clone(),
-						shared_voter_state,
-						justification_stream.clone(),
-						subscription_executor,
-						finality_proof_provider.clone(),
-					)
-				)
-			);
+			io.extend_with(GrandpaApi::to_delegate(GrandpaRpcHandler::new(
+				shared_authority_set.clone(),
+				shared_voter_state,
+				justification_stream.clone(),
+				subscription_executor,
+				finality_proof_provider.clone(),
+			)));
 
 			io
 		})
