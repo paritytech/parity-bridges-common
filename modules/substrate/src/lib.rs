@@ -49,11 +49,6 @@ mod verifier;
 #[cfg(test)]
 mod mock;
 
-pub trait Trait: frame_system::Trait {
-	/// Chain that we are bridging here.
-	type BridgedChain: Chain;
-}
-
 /// Block number of the bridged chain.
 pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Trait>::BridgedChain>;
 /// Block hash of the bridged chain.
@@ -61,10 +56,20 @@ pub(crate) type BridgedBlockHash<T> = HashOf<<T as Trait>::BridgedChain>;
 /// Header of the bridged chain.
 pub(crate) type BridgedHeader<T> = HeaderOf<<T as Trait>::BridgedChain>;
 
+pub trait Trait: frame_system::Trait {
+	/// Chain that we are bridging here.
+	type BridgedChain: Chain;
+}
+
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
+		/// The number of the highest block(s) we know of.
+		ChainTipHeight: BridgedBlockNumber<T>;
 		/// Hash of the header at the highest known height.
-		BestHeader: BridgedBlockHash<T>;
+		///
+		/// If there are multiple headers at the same "best" height
+		/// this will contain all of their hashes.
+		BestHeader: Vec<BridgedBlockHash<T>>;
 		/// Hash of the best finalized header.
 		BestFinalized: BridgedBlockHash<T>;
 		/// A header which enacts an authority set change and therefore
@@ -96,11 +101,13 @@ decl_storage! {
 				.initial_header
 				.clone()
 				.expect("An initial header is needed");
+			let initial_hash = initial_header.hash();
 
-			<BestHeader<T>>::put(initial_header.hash());
-			<BestFinalized<T>>::put(initial_header.hash());
+			<ChainTipHeight<T>>::put(initial_header.number());
+			<BestHeader<T>>::put(vec![initial_hash]);
+			<BestFinalized<T>>::put(initial_hash);
 			<ImportedHeaders<T>>::insert(
-				initial_header.hash(),
+				initial_hash,
 				ImportedHeader {
 					header: initial_header,
 					requires_justification: false,
@@ -187,10 +194,12 @@ decl_module! {
 
 impl<T: Trait> Module<T> {
 	/// Get the highest header that the pallet knows of.
-	// In a future where we support forks this could be a Vec of headers
-	// since we may have multiple headers at the same height.
-	pub fn best_header() -> BridgedHeader<T> {
-		PalletStorage::<T>::new().best_header().header
+	pub fn best_header() -> Vec<BridgedHeader<T>> {
+		PalletStorage::<T>::new()
+			.best_header()
+			.into_iter()
+			.map(|i| i.header)
+			.collect()
 	}
 
 	/// Get the best finalized header the pallet knows of.
@@ -247,7 +256,7 @@ pub trait BridgeStorage {
 	fn write_header(&mut self, header: &ImportedHeader<Self::Header>);
 
 	/// Get the header at the highest known height.
-	fn best_header(&self) -> ImportedHeader<Self::Header>;
+	fn best_header(&self) -> Vec<ImportedHeader<Self::Header>>;
 
 	/// Update the header at the highest height.
 	fn update_best_header(&mut self, hash: <Self::Header as HeaderT>::Hash);
@@ -309,18 +318,31 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	type Header = BridgedHeader<T>;
 
 	fn write_header(&mut self, header: &ImportedHeader<BridgedHeader<T>>) {
-		let hash = header.header.hash();
+		let hash = header.hash();
+		let current_height = header.number();
+		let best_height = <ChainTipHeight<T>>::get();
+
+		if *current_height == best_height {
+			<BestHeader<T>>::append(hash);
+		} else if *current_height > best_height {
+			<BestHeader<T>>::kill();
+			<BestHeader<T>>::append(hash);
+			<ChainTipHeight<T>>::put(current_height);
+		}
+
 		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
-	fn best_header(&self) -> ImportedHeader<BridgedHeader<T>> {
-		let hash = <BestHeader<T>>::get();
-		self.header_by_hash(hash)
-			.expect("A header must have been written at genesis, therefore this must always exist")
+	fn best_header(&self) -> Vec<ImportedHeader<BridgedHeader<T>>> {
+		let proof = "A header must have been written at genesis, therefore this must always exist";
+		<BestHeader<T>>::get()
+			.iter()
+			.map(|h| self.header_by_hash(*h).expect(proof))
+			.collect()
 	}
 
 	fn update_best_header(&mut self, hash: BridgedBlockHash<T>) {
-		<BestHeader<T>>::put(hash)
+		<BestHeader<T>>::append(hash)
 	}
 
 	fn best_finalized_header(&self) -> ImportedHeader<BridgedHeader<T>> {

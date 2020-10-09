@@ -189,7 +189,7 @@ where
 
 		// Since we're not dealing with forks at the moment we know that
 		// the header we just got will be the one at the best height
-		self.storage.update_best_header(hash);
+		// self.storage.update_best_header(hash);
 
 		Ok(())
 	}
@@ -329,7 +329,7 @@ mod tests {
 	use crate::justification::tests::*;
 	use crate::mock::helpers::*;
 	use crate::mock::*;
-	use crate::{BestFinalized, ImportedHeaders, PalletStorage};
+	use crate::{BestFinalized, ChainTipHeight, ImportedHeaders, PalletStorage};
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
@@ -457,7 +457,87 @@ mod tests {
 				.header_by_hash(header.hash())
 				.expect("Should have been imported successfully");
 			assert_eq!(stored_header.is_finalized, false);
-			assert_eq!(stored_header, storage.best_header());
+			assert_eq!(stored_header, storage.best_header()[0]);
+		})
+	}
+
+	#[test]
+	fn successfully_imports_two_different_headers_at_same_height() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+
+			// We want to write the genesis header to storage
+			let _ = write_headers(&mut storage, vec![]);
+
+			// Both of these headers have the genesis header as their parent
+			let header_on_fork1 = test_header(1);
+			let mut header_on_fork2 = test_header(1);
+
+			// We need to change _something_ to make it a different header
+			header_on_fork2.state_root = [1; 32].into();
+
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+
+			// It should be fine to import both
+			assert_ok!(verifier.import_header(header_on_fork1.clone()));
+			assert_ok!(verifier.import_header(header_on_fork2.clone()));
+
+			// We should have two headers marked as being the best since they're
+			// both at the same height
+			let best_headers: Vec<TestHeader> = storage.best_header().into_iter().map(|i| i.header).collect();
+			assert_eq!(best_headers, vec![header_on_fork1, header_on_fork2]);
+			assert_eq!(<ChainTipHeight<TestRuntime>>::get(), 1);
+		})
+	}
+
+	#[test]
+	fn correctly_updates_the_best_header_given_better_headers() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+
+			// Write two headers at the same height to storage.
+			let imported_headers = write_headers(&mut storage, vec![(1, false, false), (1, false, false)]);
+
+			// The headers we manually imported should have been marked as the best
+			// upon writing to storage. Let's confirm that.
+			assert_eq!(storage.best_header(), imported_headers.get(1..).unwrap());
+
+			// Now let's build something at a better height.
+			let mut better_header = test_header(2);
+			better_header.parent_hash = imported_headers[1].hash();
+
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+			assert_ok!(verifier.import_header(better_header.clone()));
+
+			// Since `better_header` is the only one at height = 2 we should only have
+			// a single "best header" now.
+			let best_header: Vec<TestHeader> = storage.best_header().into_iter().map(|i| i.header).collect();
+			assert_eq!(best_header, vec![better_header]);
+			assert_eq!(<ChainTipHeight<TestRuntime>>::get(), 2);
+		})
+	}
+
+	#[ignore]
+	#[test]
+	fn imports_two_headers_that_require_justifications_on_different_forks() {
+		run_test(|| {
+			//
+			// [G] <- [] <- [R]
+			//   \-- [R]
+			//
+			// It is fine to import these headers since we don't know which
+			// one will end up being finalized just yet
+			//
+			// It's also fine since they're not "competing" in the sense
+			// that they're not related to each other
+			//
+			// We'll need to make sure that once we finalize one we
+			// don't allow finalization of the other one
+			todo!()
 		})
 	}
 
