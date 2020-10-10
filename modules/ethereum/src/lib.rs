@@ -326,6 +326,25 @@ pub trait PruningStrategy: Default {
 	fn pruning_upper_bound(&mut self, best_number: u64, best_finalized_number: u64) -> u64;
 }
 
+/// Header Timestamp
+pub trait HeaderTimestamp {
+	/// Is a header timestamp ahead of the current on-chain timestamp
+	///
+	/// Check whether 'timestamp' is ahead (i.e greater than) the current on-chain
+	/// timestamp. If so, return 'true', 'false' otherwise.
+	fn header_is_ahead(&self, timestamp: u64) -> bool;
+}
+
+/// HeaderTimestamp implementation for the empty type.
+///
+/// This implementation will allow a runtime without the timestamp pallet to use
+/// the empty type as it's HeaderTimestamp associated type.
+impl HeaderTimestamp for () {
+	fn header_is_ahead(&self, _: u64) -> bool {
+		false
+	}
+}
+
 /// Callbacks for header submission rewards/penalties.
 pub trait OnHeadersSubmitted<AccountId> {
 	/// Called when valid headers have been submitted.
@@ -366,6 +385,8 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type FinalityVotesCachingInterval: Get<Option<u64>>;
 	/// Headers pruning strategy.
 	type PruningStrategy: PruningStrategy;
+	/// Header Timestamp
+	type HeaderTimestamp: HeaderTimestamp;
 
 	/// Handler for headers submission result.
 	type OnHeadersSubmitted: OnHeadersSubmitted<Self::AccountId>;

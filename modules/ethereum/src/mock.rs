@@ -83,6 +83,7 @@ impl Trait for TestRuntime {
 	type ValidatorsConfiguration = TestValidatorsConfiguration;
 	type FinalityVotesCachingInterval = TestFinalityVotesCachingInterval;
 	type PruningStrategy = KeepSomeHeadersBehindBest;
+	type HeaderTimestamp = ();
 	type OnHeadersSubmitted = ();
 }
 
