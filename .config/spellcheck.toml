@@ -18,7 +18,7 @@ lang = "en_US"
 
 # Additional search paths, which take presedence over the default
 # os specific search dirs, searched in order, defaults last
-search_dirs = ["hunspell/"]
+search_dirs = ["./hunspell/"]
 
 # Adds additional dictionaries, can be specified as
 # absolute paths or relative in the search dirs (in this order).
