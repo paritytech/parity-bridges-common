@@ -326,20 +326,20 @@ pub trait PruningStrategy: Default {
 	fn pruning_upper_bound(&mut self, best_number: u64, best_finalized_number: u64) -> u64;
 }
 
-/// Header Timestamp
-pub trait HeaderTimestamp: Default {
-	/// Is a header timestamp ahead of the current on-chain timestamp
+/// ChainTime represents the runtime on-chain time
+pub trait ChainTime: Default {
+	/// Is a header timestamp ahead of the current on-chain time.
 	///
 	/// Check whether 'timestamp' is ahead (i.e greater than) the current on-chain
-	/// timestamp. If so, return 'true', 'false' otherwise.
+	/// time. If so, return 'true', 'false' otherwise.
 	fn header_is_ahead(&self, timestamp: u64) -> bool;
 }
 
-/// HeaderTimestamp implementation for the empty type.
+/// ChainTime implementation for the empty type.
 ///
 /// This implementation will allow a runtime without the timestamp pallet to use
-/// the empty type as it's HeaderTimestamp associated type.
-impl HeaderTimestamp for () {
+/// the empty type as it's ChainTime associated type.
+impl ChainTime for () {
 	fn header_is_ahead(&self, _: u64) -> bool {
 		false
 	}
@@ -385,8 +385,8 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type FinalityVotesCachingInterval: Get<Option<u64>>;
 	/// Headers pruning strategy.
 	type PruningStrategy: PruningStrategy;
-	/// Header Timestamp
-	type HeaderTimestamp: HeaderTimestamp;
+	/// ChainTime is a provider for the runtime on-chain time
+	type ChainTime: ChainTime;
 
 	/// Handler for headers submission result.
 	type OnHeadersSubmitted: OnHeadersSubmitted<Self::AccountId>;
@@ -406,7 +406,7 @@ decl_module! {
 				&T::ValidatorsConfiguration::get(),
 				None,
 				header,
-				&T::HeaderTimestamp::default(),
+				&T::ChainTime::default(),
 				receipts,
 			).map_err(|e| e.msg())?;
 		}
@@ -428,7 +428,7 @@ decl_module! {
 				&T::ValidatorsConfiguration::get(),
 				Some(submitter.clone()),
 				headers_with_receipts,
-				&T::HeaderTimestamp::default(),
+				&T::ChainTime::default(),
 				&mut finalized_headers,
 			);
 
@@ -554,7 +554,7 @@ impl<T: Trait<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Mod
 					&T::ValidatorsConfiguration::get(),
 					&pool_configuration(),
 					header,
-					&T::HeaderTimestamp::default(),
+					&T::ChainTime::default(),
 					receipts.as_ref(),
 				);
 

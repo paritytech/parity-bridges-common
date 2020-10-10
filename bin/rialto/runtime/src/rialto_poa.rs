@@ -23,8 +23,8 @@ use bp_header_chain::BaseHeaderChain;
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
 use pallet_bridge_eth_poa::{
-	AuraConfiguration, HeaderTimestamp as THeaderTimestamp, PruningStrategy as TPruningStrategy,
-	ValidatorsConfiguration, ValidatorsSource,
+	AuraConfiguration, ChainTime as TChainTime, PruningStrategy as TPruningStrategy, ValidatorsConfiguration,
+	ValidatorsSource,
 };
 use sp_std::prelude::*;
 
@@ -110,11 +110,11 @@ impl TPruningStrategy for PruningStrategy {
 	}
 }
 
-/// Header timestamp verification
+/// ChainTime provider
 #[derive(Default)]
-pub struct HeaderTimestamp;
+pub struct ChainTime;
 
-impl THeaderTimestamp for HeaderTimestamp {
+impl TChainTime for ChainTime {
 	fn header_is_ahead(&self, timestamp: u64) -> bool {
 		let now = super::Timestamp::now();
 		if timestamp > now {

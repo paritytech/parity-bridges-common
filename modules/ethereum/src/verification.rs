@@ -16,7 +16,7 @@
 
 use crate::error::Error;
 use crate::validators::{Validators, ValidatorsConfiguration};
-use crate::{AuraConfiguration, HeaderTimestamp, ImportContext, PoolConfiguration, ScheduledChange, Storage};
+use crate::{AuraConfiguration, ChainTime, ImportContext, PoolConfiguration, ScheduledChange, Storage};
 use bp_eth_poa::{
 	public_to_address, step_validator, Address, AuraHeader, HeaderId, Receipt, SealedEmptyStep, H256, H520, U128, U256,
 };
@@ -46,20 +46,20 @@ pub fn is_importable_header<S: Storage>(storage: &S, header: &AuraHeader) -> Res
 /// Try accept unsigned aura header into transaction pool.
 ///
 /// Returns required and provided tags.
-pub fn accept_aura_header_into_pool<S: Storage, HT: HeaderTimestamp>(
+pub fn accept_aura_header_into_pool<S: Storage, CT: ChainTime>(
 	storage: &S,
 	config: &AuraConfiguration,
 	validators_config: &ValidatorsConfiguration,
 	pool_config: &PoolConfiguration,
 	header: &AuraHeader,
-	timestamp: &HT,
+	chain_time: &CT,
 	receipts: Option<&Vec<Receipt>>,
 ) -> Result<(Vec<TransactionTag>, Vec<TransactionTag>), Error> {
 	// check if we can verify further
 	let (header_id, _) = is_importable_header(storage, header)?;
 
 	// we can always do contextless checks
-	contextless_checks(config, header, timestamp)?;
+	contextless_checks(config, header, chain_time)?;
 
 	// we want to avoid having same headers twice in the pool
 	// => we're strict about receipts here - if we need them, we require receipts to be Some,
@@ -154,15 +154,15 @@ pub fn accept_aura_header_into_pool<S: Storage, HT: HeaderTimestamp>(
 }
 
 /// Verify header by Aura rules.
-pub fn verify_aura_header<S: Storage, HT: HeaderTimestamp>(
+pub fn verify_aura_header<S: Storage, CT: ChainTime>(
 	storage: &S,
 	config: &AuraConfiguration,
 	submitter: Option<S::Submitter>,
 	header: &AuraHeader,
-	timestamp: &HT,
+	chain_time: &CT,
 ) -> Result<ImportContext<S::Submitter>, Error> {
 	// let's do the lightest check first
-	contextless_checks(config, header, timestamp)?;
+	contextless_checks(config, header, chain_time)?;
 
 	// the rest of checks requires access to the parent header
 	let context = storage.import_context(submitter, &header.parent_hash).ok_or_else(|| {
@@ -182,10 +182,10 @@ pub fn verify_aura_header<S: Storage, HT: HeaderTimestamp>(
 }
 
 /// Perform basic checks that only require header itself.
-fn contextless_checks<HT: HeaderTimestamp>(
+fn contextless_checks<CT: ChainTime>(
 	config: &AuraConfiguration,
 	header: &AuraHeader,
-	timestamp: &HT,
+	chain_time: &CT,
 ) -> Result<(), Error> {
 	let expected_seal_fields = expected_header_seal_fields(config, header);
 	if header.seal.len() != expected_seal_fields {
@@ -213,7 +213,7 @@ fn contextless_checks<HT: HeaderTimestamp>(
 		return Err(Error::TimestampOverflow);
 	}
 
-	if timestamp.header_is_ahead(header.timestamp) {
+	if chain_time.header_is_ahead(header.timestamp) {
 		return Err(Error::HeaderTimestampIsAhead);
 	}
 

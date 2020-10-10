@@ -234,7 +234,7 @@ impl pallet_bridge_eth_poa::Trait<RialtoPoA> for Runtime {
 	type FinalityVotesCachingInterval = rialto_poa::FinalityVotesCachingInterval;
 	type ValidatorsConfiguration = rialto_poa::BridgeValidatorsConfiguration;
 	type PruningStrategy = rialto_poa::PruningStrategy;
-	type HeaderTimestamp = rialto_poa::HeaderTimestamp;
+	type ChainTime = rialto_poa::ChainTime;
 	type OnHeadersSubmitted = ();
 }
 
@@ -244,7 +244,7 @@ impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 	type FinalityVotesCachingInterval = kovan::FinalityVotesCachingInterval;
 	type ValidatorsConfiguration = kovan::BridgeValidatorsConfiguration;
 	type PruningStrategy = kovan::PruningStrategy;
-	type HeaderTimestamp = kovan::HeaderTimestamp;
+	type ChainTime = kovan::ChainTime;
 	type OnHeadersSubmitted = ();
 }
 
