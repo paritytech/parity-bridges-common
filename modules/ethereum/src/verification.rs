@@ -16,7 +16,7 @@
 
 use crate::error::Error;
 use crate::validators::{Validators, ValidatorsConfiguration};
-use crate::{AuraConfiguration, ImportContext, PoolConfiguration, ScheduledChange, Storage};
+use crate::{AuraConfiguration, HeaderTimestamp, ImportContext, PoolConfiguration, ScheduledChange, Storage};
 use bp_eth_poa::{
 	public_to_address, step_validator, Address, AuraHeader, HeaderId, Receipt, SealedEmptyStep, H256, H520, U128, U256,
 };
@@ -46,19 +46,20 @@ pub fn is_importable_header<S: Storage>(storage: &S, header: &AuraHeader) -> Res
 /// Try accept unsigned aura header into transaction pool.
 ///
 /// Returns required and provided tags.
-pub fn accept_aura_header_into_pool<S: Storage>(
+pub fn accept_aura_header_into_pool<S: Storage, HT: HeaderTimestamp>(
 	storage: &S,
 	config: &AuraConfiguration,
 	validators_config: &ValidatorsConfiguration,
 	pool_config: &PoolConfiguration,
 	header: &AuraHeader,
+	timestamp: &HT,
 	receipts: Option<&Vec<Receipt>>,
 ) -> Result<(Vec<TransactionTag>, Vec<TransactionTag>), Error> {
 	// check if we can verify further
 	let (header_id, _) = is_importable_header(storage, header)?;
 
 	// we can always do contextless checks
-	contextless_checks(config, header)?;
+	contextless_checks(config, header, timestamp)?;
 
 	// we want to avoid having same headers twice in the pool
 	// => we're strict about receipts here - if we need them, we require receipts to be Some,
@@ -153,14 +154,15 @@ pub fn accept_aura_header_into_pool<S: Storage>(
 }
 
 /// Verify header by Aura rules.
-pub fn verify_aura_header<S: Storage>(
+pub fn verify_aura_header<S: Storage, HT: HeaderTimestamp>(
 	storage: &S,
 	config: &AuraConfiguration,
 	submitter: Option<S::Submitter>,
 	header: &AuraHeader,
+	timestamp: &HT,
 ) -> Result<ImportContext<S::Submitter>, Error> {
 	// let's do the lightest check first
-	contextless_checks(config, header)?;
+	contextless_checks(config, header, timestamp)?;
 
 	// the rest of checks requires access to the parent header
 	let context = storage.import_context(submitter, &header.parent_hash).ok_or_else(|| {
@@ -180,7 +182,11 @@ pub fn verify_aura_header<S: Storage>(
 }
 
 /// Perform basic checks that only require header itself.
-fn contextless_checks(config: &AuraConfiguration, header: &AuraHeader) -> Result<(), Error> {
+fn contextless_checks<HT: HeaderTimestamp>(
+	config: &AuraConfiguration,
+	header: &AuraHeader,
+	timestamp: &HT,
+) -> Result<(), Error> {
 	let expected_seal_fields = expected_header_seal_fields(config, header);
 	if header.seal.len() != expected_seal_fields {
 		return Err(Error::InvalidSealArity);
@@ -205,6 +211,10 @@ fn contextless_checks(config: &AuraConfiguration, header: &AuraHeader) -> Result
 	// => let's only do an overflow check
 	if header.timestamp > i32::max_value() as u64 {
 		return Err(Error::TimestampOverflow);
+	}
+
+	if timestamp.header_is_ahead(header.timestamp) {
+		return Err(Error::HeaderTimestampIsAhead);
 	}
 
 	Ok(())
@@ -381,7 +391,7 @@ mod tests {
 	fn verify_with_config(config: &AuraConfiguration, header: &AuraHeader) -> Result<ImportContext<AccountId>, Error> {
 		run_test_with_genesis(genesis(), TOTAL_VALIDATORS, |_| {
 			let storage = BridgeStorage::<TestRuntime>::new();
-			verify_aura_header(&storage, &config, None, header)
+			verify_aura_header(&storage, &config, None, header, &())
 		})
 	}
 
@@ -414,6 +424,7 @@ mod tests {
 				&validators_config,
 				&pool_configuration(),
 				&header,
+				&(),
 				receipts.as_ref(),
 			)
 		})

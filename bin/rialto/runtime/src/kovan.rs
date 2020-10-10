@@ -136,6 +136,7 @@ impl BridgePruningStrategy for PruningStrategy {
 }
 
 /// Header timestamp verification
+#[derive(Default)]
 pub struct HeaderTimestamp;
 
 impl BridgeHeaderTimestamp for HeaderTimestamp {

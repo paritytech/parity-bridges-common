@@ -327,7 +327,7 @@ pub trait PruningStrategy: Default {
 }
 
 /// Header Timestamp
-pub trait HeaderTimestamp {
+pub trait HeaderTimestamp: Default {
 	/// Is a header timestamp ahead of the current on-chain timestamp
 	///
 	/// Check whether 'timestamp' is ahead (i.e greater than) the current on-chain
@@ -406,6 +406,7 @@ decl_module! {
 				&T::ValidatorsConfiguration::get(),
 				None,
 				header,
+				&T::HeaderTimestamp::default(),
 				receipts,
 			).map_err(|e| e.msg())?;
 		}
@@ -427,6 +428,7 @@ decl_module! {
 				&T::ValidatorsConfiguration::get(),
 				Some(submitter.clone()),
 				headers_with_receipts,
+				&T::HeaderTimestamp::default(),
 				&mut finalized_headers,
 			);
 
@@ -552,6 +554,7 @@ impl<T: Trait<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Mod
 					&T::ValidatorsConfiguration::get(),
 					&pool_configuration(),
 					header,
+					&T::HeaderTimestamp::default(),
 					receipts.as_ref(),
 				);
 

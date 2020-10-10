@@ -111,6 +111,7 @@ impl TPruningStrategy for PruningStrategy {
 }
 
 /// Header timestamp verification
+#[derive(Default)]
 pub struct HeaderTimestamp;
 
 impl THeaderTimestamp for HeaderTimestamp {
