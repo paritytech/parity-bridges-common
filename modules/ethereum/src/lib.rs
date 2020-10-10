@@ -44,6 +44,8 @@ mod benchmarking;
 
 #[cfg(test)]
 mod mock;
+#[cfg(test)]
+mod mock_chain_time;
 
 #[cfg(any(feature = "runtime-benchmarks", test))]
 pub mod test_utils;
