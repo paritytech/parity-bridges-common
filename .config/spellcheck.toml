@@ -27,7 +27,7 @@ search_dirs = ["./hunspell/"]
 # Refer to `man 5 hunspell`
 # or https://www.systutorials.com/docs/linux/man/4-hunspell/#lbAE
 # on how to define a custom dictionary file.
-extra_dictionaries = ["./hunspell/parity-dictionary.dic"]
+extra_dictionaries = ["./hunspell/en_US.dic"]
 
 [Hunspell.quirks]
 # Transforms words that are provided by the tokenizer
