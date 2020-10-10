@@ -18,7 +18,7 @@ lang = "en_US"
 
 # Additional search paths, which take presedence over the default
 # os specific search dirs, searched in order, defaults last
-search_dirs = ["./hunspell/"]
+search_dirs = ["../hunspell/"]
 
 # Adds additional dictionaries, can be specified as
 # absolute paths or relative in the search dirs (in this order).
@@ -27,7 +27,7 @@ search_dirs = ["./hunspell/"]
 # Refer to `man 5 hunspell`
 # or https://www.systutorials.com/docs/linux/man/4-hunspell/#lbAE
 # on how to define a custom dictionary file.
-extra_dictionaries = ["./hunspell/en_US.dic"]
+# extra_dictionaries = ["./hunspell/en_US.dic"]
 
 [Hunspell.quirks]
 # Transforms words that are provided by the tokenizer
