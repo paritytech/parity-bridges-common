@@ -36,6 +36,9 @@ jobs:
         with:
           command:      fmt
           args:         --all -- --check
-## Cargo check stage
+## Install cargo-spellcheck stage
+      - name:           Install spellcheck
+        run:            cargo install cargo-spellcheck
+## Check source code with cargo-spellcheck
       - name:           Cargo spellcheck
         run:            cargo spellcheck check
