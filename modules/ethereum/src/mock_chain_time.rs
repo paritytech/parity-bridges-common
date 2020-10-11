@@ -107,10 +107,6 @@ pub struct ConstChainTime;
 impl ChainTime for ConstChainTime {
 	fn header_is_ahead(&self, timestamp: u64) -> bool {
 		let now = i32::max_value() as u64 / 2;
-		if timestamp > now {
-			true
-		} else {
-			false
-		}
+		timestamp > now
 	}
 }

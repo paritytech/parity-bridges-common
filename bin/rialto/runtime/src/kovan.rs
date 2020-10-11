@@ -142,11 +142,7 @@ pub struct ChainTime;
 impl BridgeChainTime for ChainTime {
 	fn header_is_ahead(&self, timestamp: u64) -> bool {
 		let now = super::Timestamp::now();
-		if timestamp > now {
-			true
-		} else {
-			false
-		}
+		timestamp > now
 	}
 }
 
