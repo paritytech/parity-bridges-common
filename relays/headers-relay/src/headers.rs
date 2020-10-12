@@ -531,7 +531,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		prune_queue(&mut self.ready, prune_border);
 		prune_queue(&mut self.submitted, prune_border);
 		prune_queue(&mut self.incomplete, prune_border);
-		prune_synced_children::<P>(&mut self.synced_children, prune_border);
+		self.synced_children = self.synced_children.split_off(&prune_border);
 		prune_known_headers::<P>(&mut self.known_headers, prune_border);
 		self.prune_border = prune_border;
 	}
@@ -813,11 +813,6 @@ fn oldest_headers<P: HeadersSyncPipeline>(
 
 /// Forget all headers with number less than given.
 fn prune_queue<P: HeadersSyncPipeline>(queue: &mut HeadersQueue<P>, prune_border: P::Number) {
-	*queue = queue.split_off(&prune_border);
-}
-
-/// Forget all entries with number less than given.
-fn prune_synced_children<P: HeadersSyncPipeline>(queue: &mut SyncedChildren<P>, prune_border: P::Number) {
 	*queue = queue.split_off(&prune_border);
 }
 
