@@ -135,8 +135,8 @@ impl BridgePruningStrategy for PruningStrategy {
 	}
 }
 
-/// ChainTime provider
-#[derive(Default)]
+/// PoA Header timestamp verification against `Timestamp` pallet.
+#[derive(Default, RuntimeDebug)]
 pub struct ChainTime;
 
 impl BridgeChainTime for ChainTime {
