@@ -44,8 +44,6 @@ mod benchmarking;
 
 #[cfg(test)]
 mod mock;
-#[cfg(test)]
-mod mock_chain_time;
 
 #[cfg(any(feature = "runtime-benchmarks", test))]
 pub mod test_utils;
@@ -332,9 +330,9 @@ pub trait PruningStrategy: Default {
 pub trait ChainTime: Default {
 	/// Is a header timestamp ahead of the current on-chain time.
 	///
-	/// Check whether 'timestamp' is ahead (i.e greater than) the current on-chain
-	/// time. If so, return 'true', 'false' otherwise.
-	fn header_is_ahead(&self, timestamp: u64) -> bool;
+	/// Check whether `timestamp` is ahead (i.e greater than) the current on-chain
+	/// time. If so, return `true`, `false` otherwise.
+	fn is_timestamp_ahead(&self, timestamp: u64) -> bool;
 }
 
 /// ChainTime implementation for the empty type.
@@ -342,7 +340,7 @@ pub trait ChainTime: Default {
 /// This implementation will allow a runtime without the timestamp pallet to use
 /// the empty type as it's ChainTime associated type.
 impl ChainTime for () {
-	fn header_is_ahead(&self, _: u64) -> bool {
+	fn is_timestamp_ahead(&self, _: u64) -> bool {
 		false
 	}
 }
@@ -387,7 +385,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type FinalityVotesCachingInterval: Get<Option<u64>>;
 	/// Headers pruning strategy.
 	type PruningStrategy: PruningStrategy;
-	/// ChainTime is a provider for the runtime on-chain time
+	/// Header timestamp verification against current on-chain time.
 	type ChainTime: ChainTime;
 
 	/// Handler for headers submission result.

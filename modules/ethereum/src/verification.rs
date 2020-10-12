@@ -213,7 +213,7 @@ fn contextless_checks<CT: ChainTime>(
 		return Err(Error::TimestampOverflow);
 	}
 
-	if chain_time.header_is_ahead(header.timestamp) {
+	if chain_time.is_timestamp_ahead(header.timestamp) {
 		return Err(Error::HeaderTimestampIsAhead);
 	}
 
@@ -368,9 +368,9 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		insert_header, run_test_with_genesis, test_aura_config, validator, validator_address, validators_addresses,
-		validators_change_receipt, AccountId, HeaderBuilder, TestRuntime, GAS_LIMIT,
+		validators_change_receipt, AccountId, ConstChainTime, HeaderBuilder, TestChainTimeRuntime, TestRuntime,
+		GAS_LIMIT,
 	};
-	use crate::mock_chain_time::{ConstChainTime, TestChainTimeRuntime};
 	use crate::validators::ValidatorsSource;
 	use crate::DefaultInstance;
 	use crate::{
@@ -578,7 +578,7 @@ mod tests {
 	fn verifies_chain_time() {
 		// header is behind
 		let header = HeaderBuilder::with_parent(&genesis())
-			.timestamp(i32::min_value() as u64)
+			.timestamp(i32::max_value() as u64 / 2 - 100)
 			.sign_by(&validator(1));
 		assert_ne!(chain_time_verify(&header), Err(Error::HeaderTimestampIsAhead));
 

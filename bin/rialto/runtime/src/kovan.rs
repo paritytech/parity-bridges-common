@@ -140,7 +140,7 @@ impl BridgePruningStrategy for PruningStrategy {
 pub struct ChainTime;
 
 impl BridgeChainTime for ChainTime {
-	fn header_is_ahead(&self, timestamp: u64) -> bool {
+	fn is_timestamp_ahead(&self, timestamp: u64) -> bool {
 		let now = super::Timestamp::now();
 		timestamp > now
 	}

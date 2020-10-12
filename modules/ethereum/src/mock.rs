@@ -18,7 +18,7 @@ pub use crate::test_utils::{insert_header, validator_utils::*, validators_change
 pub use bp_eth_poa::signatures::secret_to_address;
 
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
-use crate::{AuraConfiguration, GenesisConfig, PruningStrategy, Trait};
+use crate::{AuraConfiguration, GenesisConfig, PruningStrategy, Trait, ChainTime};
 use bp_eth_poa::{Address, AuraHeader, H256, U256};
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use secp256k1::SecretKey;
@@ -32,6 +32,9 @@ pub type AccountId = u64;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
+
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct TestChainTimeRuntime;
 
 impl_outer_origin! {
 	pub enum Origin for TestRuntime where system = frame_system {}
@@ -72,6 +75,34 @@ impl frame_system::Trait for TestRuntime {
 	type SystemWeightInfo = ();
 }
 
+impl frame_system::Trait for TestChainTimeRuntime {
+	type Origin = Origin;
+	type Index = u64;
+	type Call = ();
+	type BlockNumber = u64;
+	type Hash = H256;
+	type Hashing = BlakeTwo256;
+	type AccountId = AccountId;
+	type Lookup = IdentityLookup<Self::AccountId>;
+	type Header = SubstrateHeader;
+	type Event = ();
+	type BlockHashCount = BlockHashCount;
+	type MaximumBlockWeight = MaximumBlockWeight;
+	type DbWeight = ();
+	type BlockExecutionWeight = ();
+	type ExtrinsicBaseWeight = ();
+	type MaximumExtrinsicWeight = ();
+	type AvailableBlockRatio = AvailableBlockRatio;
+	type MaximumBlockLength = MaximumBlockLength;
+	type Version = ();
+	type PalletInfo = ();
+	type AccountData = ();
+	type OnNewAccount = ();
+	type OnKilledAccount = ();
+	type BaseCallFilter = ();
+	type SystemWeightInfo = ();
+}
+
 parameter_types! {
 	pub const TestFinalityVotesCachingInterval: Option<u64> = Some(16);
 	pub TestAuraConfiguration: AuraConfiguration = test_aura_config();
@@ -84,6 +115,15 @@ impl Trait for TestRuntime {
 	type FinalityVotesCachingInterval = TestFinalityVotesCachingInterval;
 	type PruningStrategy = KeepSomeHeadersBehindBest;
 	type ChainTime = ();
+	type OnHeadersSubmitted = ();
+}
+
+impl Trait for TestChainTimeRuntime {
+	type AuraConfiguration = TestAuraConfiguration;
+	type ValidatorsConfiguration = TestValidatorsConfiguration;
+	type FinalityVotesCachingInterval = TestFinalityVotesCachingInterval;
+	type PruningStrategy = KeepSomeHeadersBehindBest;
+	type ChainTime = ConstChainTime;
 	type OnHeadersSubmitted = ();
 }
 
@@ -167,5 +207,16 @@ impl Default for KeepSomeHeadersBehindBest {
 impl PruningStrategy for KeepSomeHeadersBehindBest {
 	fn pruning_upper_bound(&mut self, best_number: u64, _: u64) -> u64 {
 		best_number.saturating_sub(self.0)
+	}
+}
+
+/// Constant chain time
+#[derive(Default)]
+pub struct ConstChainTime;
+
+impl ChainTime for ConstChainTime {
+	fn is_timestamp_ahead(&self, timestamp: u64) -> bool {
+		let now = i32::max_value() as u64 / 2;
+		timestamp > now
 	}
 }

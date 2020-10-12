@@ -31,6 +31,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 /// we have NOT imported.
 /// Returns error if fatal error has occured during import. Some valid headers may be
 /// imported in this case.
+/// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/415)
 #[allow(clippy::too_many_arguments)]
 pub fn import_headers<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 	storage: &mut S,
@@ -82,6 +83,7 @@ pub type FinalizedHeaders<S> = Vec<(HeaderId, Option<<S as Storage>::Submitter>)
 /// has returned true.
 ///
 /// Returns imported block id and list of all finalized headers.
+/// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/415)
 #[allow(clippy::too_many_arguments)]
 pub fn import_header<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 	storage: &mut S,
