@@ -602,7 +602,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 			}
 			.expect("header has a given status; given queue has the header; qed");
 
-			// remember ids of all current header' children
+			// remember ids of all the children of the current header
 			let synced_children_entry = self
 				.synced_children
 				.entry(current.0)
