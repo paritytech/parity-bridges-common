@@ -31,13 +31,6 @@ use sp_core::Bytes;
 use sp_runtime::{DeserializeOwned, Justification};
 use std::{collections::HashSet, marker::PhantomData};
 
-/// Substrate client as Substrate headers target.
-pub struct SubstrateHeadersTarget<C: Chain, P, M> {
-	client: Client<C>,
-	tx_maker: M,
-	_marker: PhantomData<(P, M)>,
-}
-
 /// Substrate transactions maker.
 #[async_trait]
 pub trait SubstrateTransactionMaker<C: Chain, P: HeadersSyncPipeline>: Send + Sync {
@@ -56,6 +49,13 @@ pub trait SubstrateTransactionMaker<C: Chain, P: HeadersSyncPipeline>: Send + Sy
 		id: HeaderIdOf<P>,
 		completion: Justification,
 	) -> Result<Self::SignedTransaction, SubstrateError>;
+}
+
+/// Substrate client as Substrate headers target.
+pub struct SubstrateHeadersTarget<C: Chain, P, M> {
+	client: Client<C>,
+	tx_maker: M,
+	_marker: PhantomData<(P, M)>,
 }
 
 impl<C: Chain, P, M> SubstrateHeadersTarget<C, P, M> {
