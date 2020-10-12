@@ -368,8 +368,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		insert_header, run_test_with_genesis, test_aura_config, validator, validator_address, validators_addresses,
-		validators_change_receipt, AccountId, ConstChainTime, HeaderBuilder, TestChainTimeRuntime, TestRuntime,
-		GAS_LIMIT,
+		validators_change_receipt, AccountId, ConstChainTime, HeaderBuilder, TestRuntime, GAS_LIMIT,
 	};
 	use crate::validators::ValidatorsSource;
 	use crate::DefaultInstance;
@@ -392,20 +391,12 @@ mod tests {
 	fn verify_with_config(config: &AuraConfiguration, header: &AuraHeader) -> Result<ImportContext<AccountId>, Error> {
 		run_test_with_genesis(genesis(), TOTAL_VALIDATORS, |_| {
 			let storage = BridgeStorage::<TestRuntime>::new();
-			verify_aura_header(&storage, &config, None, header, &())
+			verify_aura_header(&storage, &config, None, header, &ConstChainTime::default())
 		})
 	}
 
 	fn default_verify(header: &AuraHeader) -> Result<ImportContext<AccountId>, Error> {
 		verify_with_config(&test_aura_config(), header)
-	}
-
-	fn chain_time_verify(header: &AuraHeader) -> Result<ImportContext<AccountId>, Error> {
-		run_test_with_genesis(genesis(), TOTAL_VALIDATORS, |_| {
-			let storage = BridgeStorage::<TestChainTimeRuntime>::new();
-			let config = test_aura_config();
-			verify_aura_header(&storage, &config, None, header, &ConstChainTime::default())
-		})
 	}
 
 	fn default_accept_into_pool(
@@ -580,19 +571,19 @@ mod tests {
 		let header = HeaderBuilder::with_parent(&genesis())
 			.timestamp(i32::max_value() as u64 / 2 - 100)
 			.sign_by(&validator(1));
-		assert_ne!(chain_time_verify(&header), Err(Error::HeaderTimestampIsAhead));
+		assert_ne!(default_verify(&header), Err(Error::HeaderTimestampIsAhead));
 
 		// header is ahead
 		let header = HeaderBuilder::with_parent(&genesis())
 			.timestamp(i32::max_value() as u64 / 2 + 100)
 			.sign_by(&validator(1));
-		assert_eq!(chain_time_verify(&header), Err(Error::HeaderTimestampIsAhead));
+		assert_eq!(default_verify(&header), Err(Error::HeaderTimestampIsAhead));
 
 		// header has same timestamp as ConstChainTime
 		let header = HeaderBuilder::with_parent(&genesis())
 			.timestamp(i32::max_value() as u64 / 2)
 			.sign_by(&validator(1));
-		assert_ne!(chain_time_verify(&header), Err(Error::HeaderTimestampIsAhead));
+		assert_ne!(default_verify(&header), Err(Error::HeaderTimestampIsAhead));
 	}
 
 	#[test]

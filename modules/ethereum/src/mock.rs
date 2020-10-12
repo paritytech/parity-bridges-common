@@ -33,9 +33,6 @@ pub type AccountId = u64;
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
 
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct TestChainTimeRuntime;
-
 impl_outer_origin! {
 	pub enum Origin for TestRuntime where system = frame_system {}
 }
@@ -75,34 +72,6 @@ impl frame_system::Trait for TestRuntime {
 	type SystemWeightInfo = ();
 }
 
-impl frame_system::Trait for TestChainTimeRuntime {
-	type Origin = Origin;
-	type Index = u64;
-	type Call = ();
-	type BlockNumber = u64;
-	type Hash = H256;
-	type Hashing = BlakeTwo256;
-	type AccountId = AccountId;
-	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = SubstrateHeader;
-	type Event = ();
-	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
-	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = ();
-	type AvailableBlockRatio = AvailableBlockRatio;
-	type MaximumBlockLength = MaximumBlockLength;
-	type Version = ();
-	type PalletInfo = ();
-	type AccountData = ();
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type BaseCallFilter = ();
-	type SystemWeightInfo = ();
-}
-
 parameter_types! {
 	pub const TestFinalityVotesCachingInterval: Option<u64> = Some(16);
 	pub TestAuraConfiguration: AuraConfiguration = test_aura_config();
@@ -110,15 +79,6 @@ parameter_types! {
 }
 
 impl Trait for TestRuntime {
-	type AuraConfiguration = TestAuraConfiguration;
-	type ValidatorsConfiguration = TestValidatorsConfiguration;
-	type FinalityVotesCachingInterval = TestFinalityVotesCachingInterval;
-	type PruningStrategy = KeepSomeHeadersBehindBest;
-	type ChainTime = ();
-	type OnHeadersSubmitted = ();
-}
-
-impl Trait for TestChainTimeRuntime {
 	type AuraConfiguration = TestAuraConfiguration;
 	type ValidatorsConfiguration = TestValidatorsConfiguration;
 	type FinalityVotesCachingInterval = TestFinalityVotesCachingInterval;
