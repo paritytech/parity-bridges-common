@@ -55,7 +55,7 @@ pub trait SubstrateTransactionMaker<C: Chain, P: HeadersSyncPipeline>: Send + Sy
 pub struct SubstrateHeadersTarget<C: Chain, P, M> {
 	client: Client<C>,
 	tx_maker: M,
-	_marker: PhantomData<(P, M)>,
+	_marker: PhantomData<P>,
 }
 
 impl<C: Chain, P, M> SubstrateHeadersTarget<C, P, M> {
