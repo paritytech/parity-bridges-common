@@ -61,13 +61,23 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 
 		data.latest_confirmed_nonce = outbound_lane_data.latest_received_nonce;
+		/// Firstly, remove all of the records where higher nonce <= new confirmed nonce
 		while data
 			.relayers
 			.front()
-			.map(|(nonce, _)| *nonce <= data.latest_confirmed_nonce)
+			.map(|(_, nonce_high, _)| *nonce_high <= data.latest_confirmed_nonce)
 			.unwrap_or(false)
 		{
 			data.relayers.pop_front();
+		}
+		/// Secondly, update all of the records with lower nonce equal to new confirmed nonce
+		for relayer in data.relayers.iter_mut() {
+			let (nonce_low, _, _) = relayer;
+			if *nonce_low <= data.latest_confirmed_nonce {
+				relayer.0 = data.latest_confirmed_nonce;
+			} else {
+				break;
+			}
 		}
 
 		self.storage.set_data(data);
@@ -93,7 +103,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 
 		data.latest_received_nonce = nonce;
-		data.relayers.push_back((nonce, relayer));
+		data.relayers.push_back((nonce, nonce, relayer));
 		self.storage.set_data(data);
 
 		P::dispatch(DispatchMessage {
@@ -113,9 +123,11 @@ mod tests {
 	use super::*;
 	use crate::{
 		inbound_lane,
-		mock::{message_data, run_test, TestMessageDispatch, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER},
+		mock::{message_data, run_test, TestMessageDispatch, TestRuntime, AccountId, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER},
 		DefaultInstance, RuntimeInboundLaneStorage,
 	};
+	const TEST_RELAYER_A: AccountId = TEST_RELAYER;
+	const TEST_RELAYER_B: AccountId = TEST_RELAYER + 1;
 
 	fn receive_regular_message(
 		lane: &mut InboundLane<RuntimeInboundLaneStorage<TestRuntime, DefaultInstance>>,
@@ -178,7 +190,7 @@ mod tests {
 			assert_eq!(lane.storage.data().latest_confirmed_nonce, 0);
 			assert_eq!(
 				lane.storage.data().relayers,
-				vec![(1, TEST_RELAYER), (2, TEST_RELAYER), (3, TEST_RELAYER)]
+				vec![(1, 1, TEST_RELAYER), (2, 2, TEST_RELAYER), (3, 3, TEST_RELAYER)]
 			);
 
 			assert_eq!(
@@ -189,7 +201,7 @@ mod tests {
 				Some(2),
 			);
 			assert_eq!(lane.storage.data().latest_confirmed_nonce, 2);
-			assert_eq!(lane.storage.data().relayers, vec![(3, TEST_RELAYER)]);
+			assert_eq!(lane.storage.data().relayers, vec![(3, 3, TEST_RELAYER)]);
 
 			assert_eq!(
 				lane.receive_state_update(OutboundLaneData {
@@ -200,6 +212,32 @@ mod tests {
 			);
 			assert_eq!(lane.storage.data().latest_confirmed_nonce, 3);
 			assert_eq!(lane.storage.data().relayers, vec![]);
+		});
+	}
+
+	#[test]
+	fn receive_status_update_works_with_batches_from_relayers() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut seed_storage_data = lane.storage.data();
+			// Prepare data
+			seed_storage_data.latest_confirmed_nonce = 0;
+			seed_storage_data.latest_received_nonce = 5;
+			seed_storage_data.relayers.push_back((1, 1, TEST_RELAYER));
+			// Simulate messages batch (2, 3, 4) from relayer #2
+			seed_storage_data.relayers.push_back((2, 4, TEST_RELAYER + 1));
+			seed_storage_data.relayers.push_back((5, 5, TEST_RELAYER + 2));
+			lane.storage.set_data(seed_storage_data);
+			// Check
+			assert_eq!(
+				lane.receive_state_update(OutboundLaneData {
+					latest_received_nonce: 3,
+					..Default::default()
+				}),
+				Some(3),
+			);
+			assert_eq!(lane.storage.data().latest_confirmed_nonce, 3);
+			assert_eq!(lane.storage.data().relayers, vec![(3, 4, TEST_RELAYER + 1), (5, 5, TEST_RELAYER + 2)]);
 		});
 	}
 

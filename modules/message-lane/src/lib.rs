@@ -335,22 +335,24 @@ decl_module! {
 
 				// reward relayers that have delivered messages
 				// this loop is bounded by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
-				for (nonce, relayer) in lane_data.relayers {
-					// we may receive the same confirmation multiple times
-					if nonce < received_range.0 {
-						continue;
+				for (nonce_low, nonce_high, relayer) in lane_data.relayers {
+					for nonce in nonce_low..nonce_high + 1 {
+						// we may receive the same confirmation multiple times
+						if nonce_high < received_range.0 {
+							continue;
+						}
+
+						let message_data = OutboundMessages::<T, I>::get(MessageKey {
+							lane_id,
+							nonce,
+						}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
+
+						<T as Trait<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
+							&confirmation_relayer,
+							&relayer,
+							&message_data.fee,
+						);
 					}
-
-					let message_data = OutboundMessages::<T, I>::get(MessageKey {
-						lane_id,
-						nonce,
-					}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
-
-					<T as Trait<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
-						&confirmation_relayer,
-						&relayer,
-						&message_data.fee,
-					);
 				}
 			}
 
@@ -619,7 +621,7 @@ mod tests {
 				InboundLaneData {
 					latest_confirmed_nonce: 8,
 					latest_received_nonce: 10,
-					relayers: vec![(9, TEST_RELAYER), (10, TEST_RELAYER + 1)].into_iter().collect(),
+					relayers: vec![(9, 9, TEST_RELAYER), (10, 10, TEST_RELAYER + 1)].into_iter().collect(),
 				},
 			);
 
@@ -640,7 +642,7 @@ mod tests {
 			assert_eq!(
 				InboundLanes::<TestRuntime>::get(TEST_LANE_ID),
 				InboundLaneData {
-					relayers: vec![(10, TEST_RELAYER + 1), (11, TEST_RELAYER)].into_iter().collect(),
+					relayers: vec![(10, 10, TEST_RELAYER + 1), (11, 11, TEST_RELAYER)].into_iter().collect(),
 					latest_received_nonce: 11,
 					latest_confirmed_nonce: 9,
 				},
@@ -713,7 +715,7 @@ mod tests {
 				Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
-						relayers: vec![(1, TEST_RELAYER)].into_iter().collect(),
+						relayers: vec![(1, 1, TEST_RELAYER)].into_iter().collect(),
 						latest_received_nonce: 1,
 						..Default::default()
 					}
@@ -734,7 +736,7 @@ mod tests {
 				Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
-						relayers: vec![(1, TEST_RELAYER), (2, TEST_RELAYER + 1)].into_iter().collect(),
+						relayers: vec![(1, 1, TEST_RELAYER), (2, 2, TEST_RELAYER + 1)].into_iter().collect(),
 						latest_received_nonce: 2,
 						..Default::default()
 					}
