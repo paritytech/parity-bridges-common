@@ -69,7 +69,7 @@ decl_storage! {
 		///
 		/// If there are multiple headers at the same "best" height
 		/// this will contain all of their hashes.
-		BestHeader: Vec<BridgedBlockHash<T>>;
+		BestHeaders: Vec<BridgedBlockHash<T>>;
 		/// Hash of the best finalized header.
 		BestFinalized: BridgedBlockHash<T>;
 		/// A header which enacts an authority set change and therefore
@@ -104,7 +104,7 @@ decl_storage! {
 			let initial_hash = initial_header.hash();
 
 			<ChainTipHeight<T>>::put(initial_header.number());
-			<BestHeader<T>>::put(vec![initial_hash]);
+			<BestHeaders<T>>::put(vec![initial_hash]);
 			<BestFinalized<T>>::put(initial_hash);
 			<ImportedHeaders<T>>::insert(
 				initial_hash,
@@ -193,10 +193,10 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-	/// Get the highest header that the pallet knows of.
-	pub fn best_header() -> Vec<BridgedHeader<T>> {
+	/// Get the highest header(s) that the pallet knows of.
+	pub fn best_headers() -> Vec<BridgedHeader<T>> {
 		PalletStorage::<T>::new()
-			.best_header()
+			.best_headers()
 			.into_iter()
 			.map(|i| i.header)
 			.collect()
@@ -255,11 +255,11 @@ pub trait BridgeStorage {
 	/// Write a header to storage.
 	fn write_header(&mut self, header: &ImportedHeader<Self::Header>);
 
-	/// Get the header at the highest known height.
-	fn best_header(&self) -> Vec<ImportedHeader<Self::Header>>;
+	/// Get the header(s) at the highest known height.
+	fn best_headers(&self) -> Vec<ImportedHeader<Self::Header>>;
 
-	/// Update the header at the highest height.
-	fn update_best_header(&mut self, hash: <Self::Header as HeaderT>::Hash);
+	/// Update the header(s) at the highest height.
+	fn update_best_headers(&mut self, hash: <Self::Header as HeaderT>::Hash);
 
 	/// Get the best finalized header the pallet knows of.
 	fn best_finalized_header(&self) -> ImportedHeader<Self::Header>;
@@ -323,26 +323,26 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		let best_height = <ChainTipHeight<T>>::get();
 
 		if *current_height == best_height {
-			<BestHeader<T>>::append(hash);
+			<BestHeaders<T>>::append(hash);
 		} else if *current_height > best_height {
-			<BestHeader<T>>::kill();
-			<BestHeader<T>>::append(hash);
+			<BestHeaders<T>>::kill();
+			<BestHeaders<T>>::append(hash);
 			<ChainTipHeight<T>>::put(current_height);
 		}
 
 		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
-	fn best_header(&self) -> Vec<ImportedHeader<BridgedHeader<T>>> {
+	fn best_headers(&self) -> Vec<ImportedHeader<BridgedHeader<T>>> {
 		let proof = "A header must have been written at genesis, therefore this must always exist";
-		<BestHeader<T>>::get()
+		<BestHeaders<T>>::get()
 			.iter()
 			.map(|h| self.header_by_hash(*h).expect(proof))
 			.collect()
 	}
 
-	fn update_best_header(&mut self, hash: BridgedBlockHash<T>) {
-		<BestHeader<T>>::append(hash)
+	fn update_best_headers(&mut self, hash: BridgedBlockHash<T>) {
+		<BestHeaders<T>>::append(hash)
 	}
 
 	fn best_finalized_header(&self) -> ImportedHeader<BridgedHeader<T>> {

@@ -55,11 +55,13 @@ sp_api::decl_runtime_apis! {
 	/// This API is implemented by runtimes that are bridging with Millau chain, not the
 	/// Millau runtime itself.
 	pub trait MillauHeaderApi {
-		/// Returns number and hash of the best block known to the bridge module.
+		/// Returns number and hash of the best blocks known to the bridge module.
+		///
+		/// Will return multiple headers if there are many headers at the same "best" height.
 		///
 		/// The caller should only submit an `import_header` transaction that makes
 		/// (or leads to making) other header the best one.
-		fn best_block() -> (BlockNumber, Hash);
+		fn best_blocks() -> Vec<(BlockNumber, Hash)>;
 		/// Returns number and hash of the best finalized block known to the bridge module.
 		fn finalized_block() -> (BlockNumber, Hash);
 		/// Returns numbers and hashes of headers that require finality proofs.

@@ -572,9 +572,8 @@ impl_runtime_apis! {
 	}
 
 	impl bp_millau::MillauHeaderApi<Block> for Runtime {
-		fn best_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
-			let header = BridgeMillau::best_header();
-			(header.number, header.hash())
+		fn best_blocks() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
+			BridgeMillau::best_headers().iter().map(|header| (header.number, header.hash())).collect()
 		}
 
 		fn finalized_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
@@ -583,8 +582,8 @@ impl_runtime_apis! {
 		}
 
 		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
-			// Since the pallet doesn't accept multiple scheduled changes right now
-			// we can only have one header requiring a justification at any time.
+			// Since the pallet doesn't accept multiple scheduled changes we can only have one
+			// header requiring a justification at any time.
 			if let Some(header) = BridgeMillau::requires_justification() {
 				vec![(header.number, header.hash())]
 			} else {
