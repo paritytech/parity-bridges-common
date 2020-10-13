@@ -621,7 +621,9 @@ mod tests {
 				InboundLaneData {
 					latest_confirmed_nonce: 8,
 					latest_received_nonce: 10,
-					relayers: vec![(9, 9, TEST_RELAYER), (10, 10, TEST_RELAYER + 1)].into_iter().collect(),
+					relayers: vec![(9, 9, TEST_RELAYER), (10, 10, TEST_RELAYER + 1)]
+						.into_iter()
+						.collect(),
 				},
 			);
 
@@ -642,7 +644,9 @@ mod tests {
 			assert_eq!(
 				InboundLanes::<TestRuntime>::get(TEST_LANE_ID),
 				InboundLaneData {
-					relayers: vec![(10, 10, TEST_RELAYER + 1), (11, 11, TEST_RELAYER)].into_iter().collect(),
+					relayers: vec![(10, 10, TEST_RELAYER + 1), (11, 11, TEST_RELAYER)]
+						.into_iter()
+						.collect(),
 					latest_received_nonce: 11,
 					latest_confirmed_nonce: 9,
 				},
@@ -736,7 +740,9 @@ mod tests {
 				Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
-						relayers: vec![(1, 1, TEST_RELAYER), (2, 2, TEST_RELAYER + 1)].into_iter().collect(),
+						relayers: vec![(1, 1, TEST_RELAYER), (2, 2, TEST_RELAYER + 1)]
+							.into_iter()
+							.collect(),
 						latest_received_nonce: 2,
 						..Default::default()
 					}
