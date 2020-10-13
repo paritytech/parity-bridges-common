@@ -21,7 +21,7 @@ use bp_header_chain::BaseHeaderChain;
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
 use pallet_bridge_eth_poa::{
-	AuraConfiguration, ChainTime as BridgeChainTime, PruningStrategy as BridgePruningStrategy, ValidatorsConfiguration,
+	AuraConfiguration, ChainTime as TChainTime, PruningStrategy as BridgePruningStrategy, ValidatorsConfiguration,
 	ValidatorsSource,
 };
 use sp_std::prelude::*;
@@ -139,7 +139,7 @@ impl BridgePruningStrategy for PruningStrategy {
 #[derive(Default, RuntimeDebug)]
 pub struct ChainTime;
 
-impl BridgeChainTime for ChainTime {
+impl TChainTime for ChainTime {
 	fn is_timestamp_ahead(&self, timestamp: u64) -> bool {
 		let now = super::Timestamp::now();
 		timestamp > now

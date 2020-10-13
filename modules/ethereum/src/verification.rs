@@ -376,8 +376,9 @@ mod tests {
 		pool_configuration, BridgeStorage, FinalizedBlock, Headers, HeadersByNumber, NextValidatorsSetId,
 		ScheduledChanges, ValidatorsSet, ValidatorsSets,
 	};
-	use bp_eth_poa::{compute_merkle_root, rlp_encode, TransactionOutcome, H520};
+	use bp_eth_poa::{compute_merkle_root, rlp_encode, TransactionOutcome, H520, U256};
 	use frame_support::{StorageMap, StorageValue};
+	use hex_literal::hex;
 	use secp256k1::SecretKey;
 	use sp_runtime::transaction_validity::TransactionTag;
 
@@ -567,11 +568,34 @@ mod tests {
 
 	#[test]
 	fn verifies_chain_time() {
+		// expected import context after verification
+		let expect = ImportContext::<AccountId> {
+			submitter: None,
+			parent_hash: hex!("6e41bff05578fc1db17f6816117969b07d2217f1f9039d8116a82764335991d3").into(),
+			parent_header: genesis(),
+			parent_total_difficulty: U256::zero(),
+			parent_scheduled_change: None,
+			validators_set_id: 0,
+			validators_set: ValidatorsSet {
+				validators: vec![
+					hex!("dc5b20847f43d67928f49cd4f85d696b5a7617b5").into(),
+					hex!("897df33a7b3c62ade01e22c13d48f98124b4480f").into(),
+					hex!("05c987b34c6ef74e0c7e69c6e641120c24164c2d").into(),
+				],
+				signal_block: None,
+				enact_block: HeaderId {
+					number: 0,
+					hash: hex!("6e41bff05578fc1db17f6816117969b07d2217f1f9039d8116a82764335991d3").into(),
+				},
+			},
+			last_signal_block: None,
+		};
+
 		// header is behind
 		let header = HeaderBuilder::with_parent(&genesis())
 			.timestamp(i32::max_value() as u64 / 2 - 100)
 			.sign_by(&validator(1));
-		assert_ne!(default_verify(&header), Err(Error::HeaderTimestampIsAhead));
+		assert_eq!(default_verify(&header).unwrap(), expect);
 
 		// header is ahead
 		let header = HeaderBuilder::with_parent(&genesis())
@@ -583,7 +607,7 @@ mod tests {
 		let header = HeaderBuilder::with_parent(&genesis())
 			.timestamp(i32::max_value() as u64 / 2)
 			.sign_by(&validator(1));
-		assert_ne!(default_verify(&header), Err(Error::HeaderTimestampIsAhead));
+		assert_eq!(default_verify(&header).unwrap(), expect);
 	}
 
 	#[test]

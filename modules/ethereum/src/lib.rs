@@ -338,7 +338,7 @@ pub trait ChainTime: Default {
 /// ChainTime implementation for the empty type.
 ///
 /// This implementation will allow a runtime without the timestamp pallet to use
-/// the empty type as it's ChainTime associated type.
+/// the empty type as its ChainTime associated type.
 impl ChainTime for () {
 	fn is_timestamp_ahead(&self, _: u64) -> bool {
 		false
