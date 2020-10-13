@@ -217,6 +217,36 @@ mod tests {
 	}
 
 	#[test]
+	fn fails_to_receive_messages_above_max_limit_per_lane() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let max_nonce = <TestRuntime as crate::Trait>::MaxUnconfirmedMessagesAtInboundLane::get();
+			for current_nonce in 1..max_nonce {
+				receive_regular_message(&mut lane, current_nonce);
+			}
+			assert_eq!(false, lane.receive_message::<TestMessageDispatch>(TEST_RELAYER, max_nonce + 1, message_data(REGULAR_PAYLOAD).into()));
+		});
+	}
+
+	#[test]
+	fn correctly_receives_following_messages_from_two_relayers() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert!(lane.receive_message::<TestMessageDispatch>(TEST_RELAYER_A , 1, message_data(REGULAR_PAYLOAD).into()));
+			assert!(lane.receive_message::<TestMessageDispatch>(TEST_RELAYER_B , 2, message_data(REGULAR_PAYLOAD).into()));
+		});
+	}
+
+	#[test]
+	fn correctly_receives_same_messages_from_two_relayers() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert!(lane.receive_message::<TestMessageDispatch>(TEST_RELAYER_A , 1, message_data(REGULAR_PAYLOAD).into()));
+			assert_eq!(false, lane.receive_message::<TestMessageDispatch>(TEST_RELAYER_B , 1, message_data(REGULAR_PAYLOAD).into()));
+		});
+	}
+
+	#[test]
 	fn correct_message_is_processed_instantly() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
