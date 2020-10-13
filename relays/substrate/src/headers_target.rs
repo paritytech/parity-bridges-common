@@ -29,61 +29,62 @@ use relay_substrate_client::{Chain, Client, Error as SubstrateError};
 use relay_utils::HeaderId;
 use sp_core::Bytes;
 use sp_runtime::{DeserializeOwned, Justification};
-use std::{collections::HashSet, marker::PhantomData};
+use std::collections::HashSet;
 
-/// Substrate transactions maker.
+/// Headers sync pipeline for Substrate <-> Substrate relays.
 #[async_trait]
-pub trait SubstrateTransactionMaker<C: Chain, P: HeadersSyncPipeline>: Send + Sync {
+pub trait SubstrateHeadersSyncPipeline: HeadersSyncPipeline {
+	/// Name of the `best_block` runtime method.
+	const BEST_BLOCK_METHOD: &'static str;
+	/// Name of the `is_known_block` runtime method.
+	const IS_KNOWN_BLOCK_METHOD: &'static str;
+	/// Name of the `incomplete_headers` runtime method.
+	const INCOMPLETE_HEADERS_METHOD: &'static str;
+
 	/// Signed transaction type.
 	type SignedTransaction: Send + Sync + Encode;
 
 	/// Make submit header transaction.
 	async fn make_submit_header_transaction(
 		&self,
-		header: QueuedHeader<P>,
+		header: QueuedHeader<Self>,
 	) -> Result<Self::SignedTransaction, SubstrateError>;
 
-	/// Submit completion data for header.
+	/// Make completion transaction for the header.
 	async fn make_complete_header_transaction(
 		&self,
-		id: HeaderIdOf<P>,
+		id: HeaderIdOf<Self>,
 		completion: Justification,
 	) -> Result<Self::SignedTransaction, SubstrateError>;
 }
 
 /// Substrate client as Substrate headers target.
-pub struct SubstrateHeadersTarget<C: Chain, P, M> {
+pub struct SubstrateHeadersTarget<C: Chain, P> {
 	client: Client<C>,
-	tx_maker: M,
-	_marker: PhantomData<P>,
+	pipeline: P,
 }
 
-impl<C: Chain, P, M> SubstrateHeadersTarget<C, P, M> {
+impl<C: Chain, P> SubstrateHeadersTarget<C, P> {
 	/// Create new Substrate headers target.
-	pub fn new(client: Client<C>, tx_maker: M) -> Self {
-		SubstrateHeadersTarget {
-			client,
-			tx_maker,
-			_marker: Default::default(),
-		}
+	pub fn new(client: Client<C>, pipeline: P) -> Self {
+		SubstrateHeadersTarget { client, pipeline }
 	}
 }
 
 #[async_trait]
-impl<C, P, M> TargetClient<P> for SubstrateHeadersTarget<C, P, M>
+impl<C, P> TargetClient<P> for SubstrateHeadersTarget<C, P>
 where
 	C: Chain,
 	C::Header: DeserializeOwned,
 	C::Index: DeserializeOwned,
 	P::Number: Decode,
 	P::Hash: Decode + Encode,
-	P: HeadersSyncPipeline<Completion = Justification, Extra = ()>,
-	M: SubstrateTransactionMaker<C, P>,
+	P: SubstrateHeadersSyncPipeline<Completion = Justification, Extra = ()>,
 {
 	type Error = SubstrateError;
 
 	async fn best_header_id(&self) -> Result<HeaderIdOf<P>, Self::Error> {
-		let call = format!("{}HeaderApi_best_block", P::SOURCE_NAME);
+		let call = P::BEST_BLOCK_METHOD.into();
 		let data = Bytes(Vec::new());
 
 		let encoded_response = self.client.state_call(call, data, None).await?;
@@ -95,7 +96,7 @@ where
 	}
 
 	async fn is_known_header(&self, id: HeaderIdOf<P>) -> Result<(HeaderIdOf<P>, bool), Self::Error> {
-		let call = format!("{}HeaderApi_is_known_block", P::SOURCE_NAME);
+		let call = P::IS_KNOWN_BLOCK_METHOD.into();
 		let data = Bytes(id.1.encode());
 
 		let encoded_response = self.client.state_call(call, data, None).await?;
@@ -115,7 +116,7 @@ where
 		let header = headers.remove(0);
 		let id = header.id();
 		let submit_transaction_result = self
-			.tx_maker
+			.pipeline
 			.make_submit_header_transaction(header)
 			.and_then(|tx| self.client.submit_extrinsic(Bytes(tx.encode())))
 			.await;
@@ -137,7 +138,7 @@ where
 	}
 
 	async fn incomplete_headers_ids(&self) -> Result<HashSet<HeaderIdOf<P>>, Self::Error> {
-		let call = format!("{}HeaderApi_incomplete_headers", P::SOURCE_NAME);
+		let call = P::INCOMPLETE_HEADERS_METHOD.into();
 		let data = Bytes(Vec::new());
 
 		let encoded_response = self.client.state_call(call, data, None).await?;
@@ -156,7 +157,7 @@ where
 		id: HeaderIdOf<P>,
 		completion: Justification,
 	) -> Result<HeaderIdOf<P>, Self::Error> {
-		let tx = self.tx_maker.make_complete_header_transaction(id, completion).await?;
+		let tx = self.pipeline.make_complete_header_transaction(id, completion).await?;
 		self.client.submit_extrinsic(Bytes(tx.encode())).await?;
 		Ok(id)
 	}

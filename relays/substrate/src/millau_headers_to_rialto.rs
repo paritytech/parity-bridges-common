@@ -17,11 +17,12 @@
 //! Millau-to-Rialto headers sync entrypoint.
 
 use crate::{
-	headers_target::{SubstrateHeadersTarget, SubstrateTransactionMaker},
+	headers_target::{SubstrateHeadersSyncPipeline, SubstrateHeadersTarget},
 	MillauClient, RialtoClient,
 };
 
 use async_trait::async_trait;
+use bp_millau::{BEST_MILLAU_BLOCK_METHOD, INCOMPLETE_MILLAU_HEADERS_METHOD, IS_KNOWN_MILLAU_BLOCK_METHOD};
 use codec::Encode;
 use headers_relay::{
 	sync::{HeadersSyncParams, TargetTransactionMode},
@@ -37,8 +38,11 @@ use sp_runtime::Justification;
 use std::time::Duration;
 
 /// Millau-to-Rialto headers pipeline.
-#[derive(Debug, Clone, Copy)]
-struct MillauHeadersToRialto;
+#[derive(Debug, Clone)]
+struct MillauHeadersToRialto {
+	client: RialtoClient,
+	sign: RialtoSigningParams,
+}
 
 impl HeadersSyncPipeline for MillauHeadersToRialto {
 	const SOURCE_NAME: &'static str = "Millau";
@@ -55,23 +59,12 @@ impl HeadersSyncPipeline for MillauHeadersToRialto {
 	}
 }
 
-/// Millau header in-the-queue.
-type QueuedMillauHeader = QueuedHeader<MillauHeadersToRialto>;
-
-/// Millau node as headers source.
-type MillauSourceClient = HeadersSource<Millau, MillauHeadersToRialto>;
-
-/// Rialto node as headers target.
-type RialtoTargetClient = SubstrateHeadersTarget<Rialto, MillauHeadersToRialto, RialtoTransactionMaker>;
-
-/// Rialto transaction maker.
-struct RialtoTransactionMaker {
-	client: RialtoClient,
-	sign: RialtoSigningParams,
-}
-
 #[async_trait]
-impl SubstrateTransactionMaker<Rialto, MillauHeadersToRialto> for RialtoTransactionMaker {
+impl SubstrateHeadersSyncPipeline for MillauHeadersToRialto {
+	const BEST_BLOCK_METHOD: &'static str = BEST_MILLAU_BLOCK_METHOD;
+	const IS_KNOWN_BLOCK_METHOD: &'static str = IS_KNOWN_MILLAU_BLOCK_METHOD;
+	const INCOMPLETE_HEADERS_METHOD: &'static str = INCOMPLETE_MILLAU_HEADERS_METHOD;
+
 	type SignedTransaction = <Rialto as TransactionSignScheme>::SignedTransaction;
 
 	async fn make_submit_header_transaction(
@@ -97,6 +90,16 @@ impl SubstrateTransactionMaker<Rialto, MillauHeadersToRialto> for RialtoTransact
 		Ok(transaction)
 	}
 }
+
+/// Millau header in-the-queue.
+type QueuedMillauHeader = QueuedHeader<MillauHeadersToRialto>;
+
+/// Millau node as headers source.
+type MillauSourceClient = HeadersSource<Millau, MillauHeadersToRialto>;
+
+/// Rialto node as headers target.
+type RialtoTargetClient = SubstrateHeadersTarget<Rialto, MillauHeadersToRialto>;
+
 /// Run Millau-to-Rialto headers sync.
 pub fn run(
 	millau_client: MillauClient,
@@ -120,7 +123,7 @@ pub fn run(
 		millau_tick,
 		RialtoTargetClient::new(
 			rialto_client.clone(),
-			RialtoTransactionMaker {
+			MillauHeadersToRialto {
 				client: rialto_client,
 				sign: rialto_sign,
 			},
