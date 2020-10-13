@@ -533,28 +533,6 @@ mod tests {
 		})
 	}
 
-	#[ignore]
-	#[test]
-	fn imports_two_headers_that_require_justifications_on_different_forks() {
-		run_test(|| {
-			//
-			// [G] <- [] <- [R]
-			//   \-- [R]
-			//
-			// It is fine to import these headers since we don't know which
-			// one will end up being finalized just yet
-			//
-			// It's also fine since they're not "competing" in the sense
-			// that they're not related to each other
-			//
-			// We'll need to make sure that once we finalize one we
-			// don't allow finalization of the other one
-			//
-			// We'll also need to keep track of multiple authority set changes
-			todo!()
-		})
-	}
-
 	#[test]
 	fn related_headers_are_ancestors() {
 		run_test(|| {
