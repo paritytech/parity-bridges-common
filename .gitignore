@@ -1,6 +1,7 @@
 **/target/
 **/.env
 **/.env2
+**/rust-toolchain
 
 **/*.rs.bk
 
