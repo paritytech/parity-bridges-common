@@ -79,7 +79,10 @@ pub struct InboundLaneData<RelayerId> {
 	/// 2) all incoming messages are rejected if `proof-of(outbound-lane.state).latest_received_nonce` is
 	///    equal to `this.latest_confirmed_nonce`.
 	/// Given what is said above, all nonces in this queue are in range (latest_confirmed_nonce; latest_received_nonce].
-	pub relayers: VecDeque<(MessageNonce, RelayerId)>,
+	/// Also, when a relayer sends a single message, both of MessageNonces are the same.
+	/// When relayer sends messages in a batch, the first arg is the lowest nonce, second arg the highest nonce.
+	/// Multiple dispatches from the same relayer one are allowed.
+	pub relayers: VecDeque<(MessageNonce, MessageNonce, RelayerId)>,
 	/// Nonce of latest message that we have received from bridged chain.
 	pub latest_received_nonce: MessageNonce,
 	/// Nonce of latest message that has been confirmed to the bridged chain.
