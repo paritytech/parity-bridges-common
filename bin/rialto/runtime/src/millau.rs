@@ -36,7 +36,7 @@ pub fn initial_header() -> Header {
 	Header {
 		parent_hash: Default::default(),
 		number: Default::default(),
-		state_root: hex!("748d77f5bb7a10aa964179fb313bdacbf935c6404b883810b62f569dba485844").into(),
+		state_root: hex!("16a41dda8ad36293def1a9abbc2d5c449d03c90855bdd1fd39a98029032f3035").into(),
 		extrinsics_root: hex!("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314").into(),
 		digest: Default::default(),
 	}
