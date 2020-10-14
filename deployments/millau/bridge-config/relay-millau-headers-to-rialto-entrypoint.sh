@@ -3,10 +3,7 @@ set -xeu
 
 sleep 3
 curl -v http://millau-bridge-node-alice:9933/health
-curl -v http://millau-bridge-node-bob:9933/health
-curl -v http://millau-bridge-node-charlie:9933/health
-curl -v http://millau-bridge-node-dave:9933/health
-curl -v http://millau-bridge-node-eve:9933/health
+curl -v http://rialto-bridge-node-alice:9933/health
 
 /home/user/substrate-relay millau-headers-to-rialto \
 	--millau-host millau-bridge-node-alice \
