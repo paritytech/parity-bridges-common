@@ -10,8 +10,8 @@ curl -v http://millau-bridge-node-eve:9933/health
 
 /home/user/substrate-relay millau-headers-to-rialto \
 	--millau-host millau-bridge-node-alice \
-	--millau-port 9933 \
+	--millau-port 9944 \
 	--rialto-host rialto-bridge-node-alice \
-	--rialto-port 9933 \
+	--rialto-port 9944 \
 	--rialto-signer //Alice \
 	--prometheus-host=0.0.0.0
