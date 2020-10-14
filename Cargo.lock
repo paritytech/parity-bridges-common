@@ -7595,6 +7595,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-millau",
  "bp-rialto",
  "futures 0.3.6",
  "headers-relay",
@@ -7606,6 +7607,7 @@ dependencies = [
  "relay-rialto-client",
  "relay-substrate-client",
  "relay-utils",
+ "sp-core",
  "sp-runtime",
  "structopt",
 ]
