@@ -33,7 +33,8 @@ pub mod exchange;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benches;
 pub mod kovan;
-pub mod rialto;
+pub mod millau;
+pub mod rialto_poa;
 
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
@@ -61,6 +62,7 @@ pub use frame_support::{
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_currency_exchange::Call as BridgeCurrencyExchangeCall;
 pub use pallet_bridge_eth_poa::Call as BridgeEthPoACall;
+pub use pallet_substrate_bridge::Call as BridgeMillauCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
 #[cfg(any(feature = "std", test))]
@@ -227,12 +229,13 @@ impl pallet_aura::Trait for Runtime {
 	type AuthorityId = AuraId;
 }
 
-type Rialto = pallet_bridge_eth_poa::Instance1;
-impl pallet_bridge_eth_poa::Trait<Rialto> for Runtime {
-	type AuraConfiguration = rialto::BridgeAuraConfiguration;
-	type FinalityVotesCachingInterval = rialto::FinalityVotesCachingInterval;
-	type ValidatorsConfiguration = rialto::BridgeValidatorsConfiguration;
-	type PruningStrategy = rialto::PruningStrategy;
+type RialtoPoA = pallet_bridge_eth_poa::Instance1;
+impl pallet_bridge_eth_poa::Trait<RialtoPoA> for Runtime {
+	type AuraConfiguration = rialto_poa::BridgeAuraConfiguration;
+	type FinalityVotesCachingInterval = rialto_poa::FinalityVotesCachingInterval;
+	type ValidatorsConfiguration = rialto_poa::BridgeValidatorsConfiguration;
+	type PruningStrategy = rialto_poa::PruningStrategy;
+	type ChainTime = rialto_poa::ChainTime;
 	type OnHeadersSubmitted = ();
 }
 
@@ -242,13 +245,14 @@ impl pallet_bridge_eth_poa::Trait<Kovan> for Runtime {
 	type FinalityVotesCachingInterval = kovan::FinalityVotesCachingInterval;
 	type ValidatorsConfiguration = kovan::BridgeValidatorsConfiguration;
 	type PruningStrategy = kovan::PruningStrategy;
+	type ChainTime = kovan::ChainTime;
 	type OnHeadersSubmitted = ();
 }
 
 type RialtoCurrencyExchange = pallet_bridge_currency_exchange::Instance1;
 impl pallet_bridge_currency_exchange::Trait<RialtoCurrencyExchange> for Runtime {
 	type OnTransactionSubmitted = ();
-	type PeerBlockchain = rialto::RialtoBlockchain;
+	type PeerBlockchain = rialto_poa::RialtoBlockchain;
 	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
 	type RecipientsMap = bp_currency_exchange::IdentityRecipients<AccountId>;
 	type Amount = Balance;
@@ -427,11 +431,11 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		BridgeRialto: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
+		BridgeRialtoPoA: pallet_bridge_eth_poa::<Instance1>::{Module, Call, Config, Storage, ValidateUnsigned},
 		BridgeKovan: pallet_bridge_eth_poa::<Instance2>::{Module, Call, Config, Storage, ValidateUnsigned},
 		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
-		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage},
+		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
@@ -530,21 +534,21 @@ impl_runtime_apis! {
 
 	impl bp_eth_poa::RialtoPoAHeaderApi<Block> for Runtime {
 		fn best_block() -> (u64, bp_eth_poa::H256) {
-			let best_block = BridgeRialto::best_block();
+			let best_block = BridgeRialtoPoA::best_block();
 			(best_block.number, best_block.hash)
 		}
 
 		fn finalized_block() -> (u64, bp_eth_poa::H256) {
-			let finalized_block = BridgeRialto::finalized_block();
+			let finalized_block = BridgeRialtoPoA::finalized_block();
 			(finalized_block.number, finalized_block.hash)
 		}
 
 		fn is_import_requires_receipts(header: bp_eth_poa::AuraHeader) -> bool {
-			BridgeRialto::is_import_requires_receipts(header)
+			BridgeRialtoPoA::is_import_requires_receipts(header)
 		}
 
 		fn is_known_block(hash: bp_eth_poa::H256) -> bool {
-			BridgeRialto::is_known_block(hash)
+			BridgeRialtoPoA::is_known_block(hash)
 		}
 	}
 

@@ -10,11 +10,11 @@ repository = "https://github.com/paritytech/parity-bridges-common/"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
-jsonrpc-core = "15.0.0"
-structopt = "0.3.17"
+jsonrpc-core = "15.1.0"
+structopt = "0.3.19"
 
 # Bridge dependencies
-
+bp-rialto = { path = "../../../primitives/rialto" }
 millau-runtime = { path = "../runtime" }
 
 # Substrate Dependencies
@@ -28,6 +28,7 @@ sc-consensus = "0.8"
 sc-consensus-aura = "0.8"
 sc-executor = "0.8"
 sc-finality-grandpa = "0.8"
+sc-finality-grandpa-rpc = "0.8"
 sc-service = "0.8"
 sc-rpc = "2.0"
 sc-transaction-pool = "2.0"
