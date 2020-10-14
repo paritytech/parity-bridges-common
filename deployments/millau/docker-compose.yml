@@ -8,7 +8,7 @@ services:
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
-      - "9616:9616"
+      - "19616:9616"
     depends_on: &all-nodes
       - bridge-node-alice
       - bridge-node-bob
@@ -38,8 +38,8 @@ services:
     environment: &bridge-env
       RUST_LOG: runtime=trace,rpc=debug,txpool=trace
     ports:
-      - "9933:9933"
-      - "9944:9944"
+      - "19933:9933"
+      - "19944:9944"
 
   bridge-node-bob:
     <<: *millau-bridge-node
@@ -47,7 +47,7 @@ services:
     networks:
       default:
         aliases:
-          - millau-bridge-node-alice
+          - millau-bridge-node-bob
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
@@ -59,8 +59,8 @@ services:
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
-      - "10033:9933"
-      - "10044:9944"
+      - "20033:9933"
+      - "20044:9944"
 
   bridge-node-charlie:
     <<: *millau-bridge-node
@@ -68,7 +68,7 @@ services:
     networks:
       default:
         aliases:
-          - millau-bridge-node-alice
+          - millau-bridge-node-charlie
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
@@ -79,8 +79,8 @@ services:
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
-      - "10133:9933"
-      - "10144:9944"
+      - "20133:9933"
+      - "20144:9944"
 
   bridge-node-dave:
     <<: *millau-bridge-node
@@ -99,16 +99,13 @@ services:
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
-      - "10233:9933"
-      - "10244:9944"
+      - "20233:9933"
+      - "20244:9944"
 
   bridge-node-eve:
     <<: *millau-bridge-node
     hostname: millau-bridge-node-eve
     networks:
-      default:
-        aliases:
-          - millau-bridge-node-eve
       default:
         aliases:
           - millau-bridge-node-eve
@@ -122,15 +119,15 @@ services:
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
-      - "10333:9933"
-      - "10344:9944"
+      - "20333:9933"
+      - "20344:9944"
 
   prometheus-metrics:
     image: prom/prometheus:v2.20.1
     volumes:
       - ./dashboard/prometheus/:/etc/prometheus/
     ports:
-      - "9090:9090"
+      - "19090:9090"
     depends_on: *all-nodes
 
 networks:

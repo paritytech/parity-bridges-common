@@ -63,7 +63,7 @@ fi
 docker-compose $COMPOSE_EXTENSION build
 
 # Stop the proxy cause otherwise the network can't be stopped
-cd ./proxy
+cd ../proxy
 docker-compose down
 cd -
 
