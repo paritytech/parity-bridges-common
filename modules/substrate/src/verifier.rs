@@ -924,4 +924,89 @@ mod tests {
 			assert_ok!(verifier.import_header(child.clone()));
 		})
 	}
+
+	#[ignore]
+	#[test]
+	fn checks_if_nando_knows_what_were_supposed_to_handle() {
+		run_test(|| {
+			// Legend:
+			//    S|N: Schedules change in N blocks
+			//    E: Enacts change
+			//    F: Finalized
+			//    Order: Import order
+			//      FN: Finality proof imported for header N
+			//
+			//  Note: We assume 1 is `last_finalized` at start
+			// ---
+			//
+			// [1] <- [2: F]
+			//   \ [2']
+			//
+			// Order: 1, 2, 2', F2, F2'
+			//
+			// Not allowed to finalize 2'
+			// Can't import finality proof since not ancestor of 2
+			//
+			// ---
+			//
+			//   / [2: S|1] <- [3]
+			// [1] <- [2'] <- [3']
+			//
+			// Order: 1, 2, 3, 2', 3'
+			//
+			// We should not be allowed to import 3
+			//	 Ancestor requires justification since it schedules a change
+			// It should be fine to import 2', and 3'
+			//
+			// ---
+			//
+			//   / [2: S|1] <- [3]
+			// [1] <- [2': S|1] <- [3']
+			//
+			// Order: 1, 2, 2', 3, 3'
+			//
+			// Should not be allowed to import 3 or 3'
+			// Will resolve fork depending on which finality proof for {2|2'} we get first
+			// If we get a proof for 2, how do we prevent 3' from being imported?
+			//    We're blocked by the scheduled change
+			//    Also check if newly imported blocks are ancestors of `last_finalized`?
+			//
+			// ---
+			//
+			// [1] <- [2: S|1, F] <- [3: E] <- [4]
+			//
+			// Order: 1, 2, F2, 3, 4
+			//
+			// Since 3 enacts a change, should we wait for it to be finalized
+			// before allowing 4 to be imported?
+			//
+			// ---
+			//
+			//                  / [3': E] <- [4']
+			// [1] <- [2: S|1, F] <- [3: E] <- [4]
+			//
+			// Order: 1, 2, F2, 3, 4, 3', 4'
+			//
+			// Only allow import of {3, 3'} after we get F2
+			// Fork will resolve once we get finality proof for {3|3'}
+			// Should we be allowed to import {4|4'}?
+			//
+			// ---
+			//
+			// [1] <- [2: F] <- [3]
+			//   \ [2'] <- [3']
+			//
+			// Order: 1, 2, 2', F2, 3, 3'
+			//
+			// Allowed to import 3
+			// Should not be allowed to import 3'
+			//   Will need to check ancestry with `last_finalized` upon import
+			// In current impl we'd be allowed to import 3', but we'd never finalize anything
+			// on that fork
+			//
+			// ---
+			//
+			todo!()
+		})
+	}
 }
