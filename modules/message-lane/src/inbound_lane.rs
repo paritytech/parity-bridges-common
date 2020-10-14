@@ -20,13 +20,14 @@ use bp_message_lane::{
 	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 	InboundLaneData, LaneId, MessageKey, MessageNonce, OutboundLaneData,
 };
+use sp_std::prelude::PartialEq;
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
 	/// Delivery and dispatch fee type on source chain.
 	type MessageFee;
 	/// Id of relayer on source chain.
-	type Relayer;
+	type Relayer: PartialEq;
 
 	/// Lane id.
 	fn id(&self) -> LaneId;
@@ -61,7 +62,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 
 		data.latest_confirmed_nonce = outbound_lane_data.latest_received_nonce;
-		/// Firstly, remove all of the records where higher nonce <= new confirmed nonce
+		// Firstly, remove all of the records where higher nonce <= new confirmed nonce
 		while data
 			.relayers
 			.front()
@@ -70,14 +71,15 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		{
 			data.relayers.pop_front();
 		}
-		/// Secondly, update all of the records with lower nonce equal to new confirmed nonce
-		for relayer in data.relayers.iter_mut() {
-			let (nonce_low, _, _) = relayer;
-			if *nonce_low <= data.latest_confirmed_nonce {
-				relayer.0 = data.latest_confirmed_nonce;
-			} else {
-				break;
-			}
+		// Secondly, update the next record with lower nonce equal to new confirmed nonce if needed.
+		// Note: There will be max. 1 record to update as we don't allow messages from relayers to overlap.
+		if data
+			.relayers
+			.front()
+			.map(|(nonce_low, _, _)| *nonce_low <= data.latest_confirmed_nonce)
+			.unwrap_or(false)
+		{
+			data.relayers.front_mut().unwrap().0 = data.latest_confirmed_nonce + 1;
 		}
 
 		self.storage.set_data(data);
@@ -103,7 +105,18 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 
 		data.latest_received_nonce = nonce;
-		data.relayers.push_back((nonce, nonce, relayer));
+
+		if data
+			.relayers
+			.back()
+			.map(|(_, _, last_relayer)| *last_relayer == relayer)
+			.unwrap_or(false)
+		{
+			data.relayers.back_mut().unwrap().1 = nonce;
+		} else {
+			data.relayers.push_back((nonce, nonce, relayer));
+		}
+
 		self.storage.set_data(data);
 
 		P::dispatch(DispatchMessage {
@@ -191,10 +204,7 @@ mod tests {
 			receive_regular_message(&mut lane, 2);
 			receive_regular_message(&mut lane, 3);
 			assert_eq!(lane.storage.data().latest_confirmed_nonce, 0);
-			assert_eq!(
-				lane.storage.data().relayers,
-				vec![(1, 1, TEST_RELAYER), (2, 2, TEST_RELAYER), (3, 3, TEST_RELAYER)]
-			);
+			assert_eq!(lane.storage.data().relayers, vec![(1, 3, TEST_RELAYER)]);
 
 			assert_eq!(
 				lane.receive_state_update(OutboundLaneData {
@@ -242,7 +252,7 @@ mod tests {
 			assert_eq!(lane.storage.data().latest_confirmed_nonce, 3);
 			assert_eq!(
 				lane.storage.data().relayers,
-				vec![(3, 4, TEST_RELAYER + 1), (5, 5, TEST_RELAYER + 2)]
+				vec![(4, 4, TEST_RELAYER + 1), (5, 5, TEST_RELAYER + 2)]
 			);
 		});
 	}
@@ -293,6 +303,32 @@ mod tests {
 				2,
 				message_data(REGULAR_PAYLOAD).into()
 			));
+		});
+	}
+
+	#[test]
+	fn correctly_receives_following_messages_from_two_relayers_alternately() {
+		run_test(|| {
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			assert!(lane.receive_message::<TestMessageDispatch>(
+				TEST_RELAYER_A,
+				1,
+				message_data(REGULAR_PAYLOAD).into()
+			));
+			assert!(lane.receive_message::<TestMessageDispatch>(
+				TEST_RELAYER_B,
+				2,
+				message_data(REGULAR_PAYLOAD).into()
+			));
+			assert!(lane.receive_message::<TestMessageDispatch>(
+				TEST_RELAYER_A,
+				3,
+				message_data(REGULAR_PAYLOAD).into()
+			));
+			assert_eq!(
+				lane.storage.data().relayers,
+				vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B), (3, 3, TEST_RELAYER_A)]
+			);
 		});
 	}
 
