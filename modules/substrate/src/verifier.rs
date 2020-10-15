@@ -946,50 +946,49 @@ mod tests {
 			//
 			// Not allowed to finalize 2'
 			// Can't import finality proof since not ancestor of 2
+			//    If F2' was valid for some reason that chain is doomed anyways
+			//    (competing finalized forks)
 			//
 			// ---
 			//
-			//   / [2: S|1] <- [3]
+			// [1] <- [2: S|1] <- [3: E] <- [4]
+			//
+			// Order: 1, 2, 3, 4
+			//
+			// Not allowed to import 4
+			//    Waiting on justification for ancestor, 3
+			//
+			// ---
+			//
+			//   / [2: S|0] <- [3]
 			// [1] <- [2'] <- [3']
 			//
 			// Order: 1, 2, 3, 2', 3'
 			//
 			// We should not be allowed to import 3
-			//	 Ancestor requires justification since it schedules a change
+			//    Ancestor requires justification since it enacts a change
 			// It should be fine to import 2', and 3'
 			//
 			// ---
 			//
-			//   / [2: S|1] <- [3]
-			// [1] <- [2': S|1] <- [3']
+			//   / [2: S|0] <- [3]
+			// [1] <- [2': S|0] <- [3']
 			//
 			// Order: 1, 2, 2', 3, 3'
 			//
 			// Should not be allowed to import 3 or 3'
+			//    Ancestor enacts an authority set change
 			// Will resolve fork depending on which finality proof for {2|2'} we get first
-			// If we get a proof for 2, how do we prevent 3' from being imported?
-			//    We're blocked by the scheduled change
-			//    Also check if newly imported blocks are ancestors of `last_finalized`?
-			//
-			// ---
-			//
-			// [1] <- [2: S|1, F] <- [3: E] <- [4]
-			//
-			// Order: 1, 2, F2, 3, 4
-			//
-			// Since 3 enacts a change, should we wait for it to be finalized
-			// before allowing 4 to be imported?
 			//
 			// ---
 			//
 			//                  / [3': E] <- [4']
-			// [1] <- [2: S|1, F] <- [3: E] <- [4]
+			// [1] <- [2: S|1] <- [3: E] <- [4]
 			//
-			// Order: 1, 2, F2, 3, 4, 3', 4'
+			// Order: 1, 2, 3, 4, 3', 4'
 			//
-			// Only allow import of {3, 3'} after we get F2
-			// Fork will resolve once we get finality proof for {3|3'}
-			// Should we be allowed to import {4|4'}?
+			// Not allowed to import {4, 4'}
+			//    Need to wait for finality proof for {3|3'}
 			//
 			// ---
 			//
@@ -1003,9 +1002,7 @@ mod tests {
 			//   Will need to check ancestry with `last_finalized` upon import
 			// In current impl we'd be allowed to import 3', but we'd never finalize anything
 			// on that fork
-			//
-			// ---
-			//
+
 			todo!()
 		})
 	}
