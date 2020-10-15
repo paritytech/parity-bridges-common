@@ -298,23 +298,6 @@ mod tests {
 	}
 
 	#[test]
-	fn correctly_receives_following_messages_from_two_relayers() {
-		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			assert!(lane.receive_message::<TestMessageDispatch>(
-				TEST_RELAYER_A,
-				1,
-				message_data(REGULAR_PAYLOAD).into()
-			));
-			assert!(lane.receive_message::<TestMessageDispatch>(
-				TEST_RELAYER_B,
-				2,
-				message_data(REGULAR_PAYLOAD).into()
-			));
-		});
-	}
-
-	#[test]
 	fn correctly_receives_following_messages_from_two_relayers_alternately() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
@@ -341,7 +324,7 @@ mod tests {
 	}
 
 	#[test]
-	fn correctly_receives_same_messages_from_two_relayers() {
+	fn rejects_same_message_from_two_different_relayers() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			assert!(lane.receive_message::<TestMessageDispatch>(
