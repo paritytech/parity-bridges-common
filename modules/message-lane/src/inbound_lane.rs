@@ -143,19 +143,21 @@ mod tests {
 	use crate::{
 		inbound_lane,
 		mock::{
-			message_data, run_test, AccountId, TestMessageDispatch, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID,
-			TEST_RELAYER,
+			message_data, run_test, TestMessageDispatch, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A,
+			TEST_RELAYER_B, TEST_RELAYER_C,
 		},
 		DefaultInstance, RuntimeInboundLaneStorage,
 	};
-	const TEST_RELAYER_A: AccountId = TEST_RELAYER;
-	const TEST_RELAYER_B: AccountId = TEST_RELAYER + 1;
 
 	fn receive_regular_message(
 		lane: &mut InboundLane<RuntimeInboundLaneStorage<TestRuntime, DefaultInstance>>,
 		nonce: MessageNonce,
 	) {
-		assert!(lane.receive_message::<TestMessageDispatch>(TEST_RELAYER, nonce, message_data(REGULAR_PAYLOAD).into()));
+		assert!(lane.receive_message::<TestMessageDispatch>(
+			TEST_RELAYER_A,
+			nonce,
+			message_data(REGULAR_PAYLOAD).into()
+		));
 	}
 
 	#[test]
@@ -210,7 +212,7 @@ mod tests {
 			receive_regular_message(&mut lane, 2);
 			receive_regular_message(&mut lane, 3);
 			assert_eq!(lane.storage.data().latest_confirmed_nonce, 0);
-			assert_eq!(lane.storage.data().relayers, vec![(1, 3, TEST_RELAYER)]);
+			assert_eq!(lane.storage.data().relayers, vec![(1, 3, TEST_RELAYER_A)]);
 
 			assert_eq!(
 				lane.receive_state_update(OutboundLaneData {
@@ -220,7 +222,7 @@ mod tests {
 				Some(2),
 			);
 			assert_eq!(lane.storage.data().latest_confirmed_nonce, 2);
-			assert_eq!(lane.storage.data().relayers, vec![(3, 3, TEST_RELAYER)]);
+			assert_eq!(lane.storage.data().relayers, vec![(3, 3, TEST_RELAYER_A)]);
 
 			assert_eq!(
 				lane.receive_state_update(OutboundLaneData {
@@ -242,10 +244,10 @@ mod tests {
 			// Prepare data
 			seed_storage_data.latest_confirmed_nonce = 0;
 			seed_storage_data.latest_received_nonce = 5;
-			seed_storage_data.relayers.push_back((1, 1, TEST_RELAYER));
+			seed_storage_data.relayers.push_back((1, 1, TEST_RELAYER_A));
 			// Simulate messages batch (2, 3, 4) from relayer #2
-			seed_storage_data.relayers.push_back((2, 4, TEST_RELAYER + 1));
-			seed_storage_data.relayers.push_back((5, 5, TEST_RELAYER + 2));
+			seed_storage_data.relayers.push_back((2, 4, TEST_RELAYER_B));
+			seed_storage_data.relayers.push_back((5, 5, TEST_RELAYER_C));
 			lane.storage.set_data(seed_storage_data);
 			// Check
 			assert_eq!(
@@ -258,7 +260,7 @@ mod tests {
 			assert_eq!(lane.storage.data().latest_confirmed_nonce, 3);
 			assert_eq!(
 				lane.storage.data().relayers,
-				vec![(4, 4, TEST_RELAYER + 1), (5, 5, TEST_RELAYER + 2)]
+				vec![(4, 4, TEST_RELAYER_B), (5, 5, TEST_RELAYER_C)]
 			);
 		});
 	}
@@ -268,7 +270,7 @@ mod tests {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			assert!(!lane.receive_message::<TestMessageDispatch>(
-				TEST_RELAYER,
+				TEST_RELAYER_A,
 				10,
 				message_data(REGULAR_PAYLOAD).into()
 			));
@@ -287,7 +289,7 @@ mod tests {
 			assert_eq!(
 				false,
 				lane.receive_message::<TestMessageDispatch>(
-					TEST_RELAYER,
+					TEST_RELAYER_A,
 					max_nonce + 1,
 					message_data(REGULAR_PAYLOAD).into()
 				)

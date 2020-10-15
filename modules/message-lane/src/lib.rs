@@ -493,7 +493,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{
 		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesProof, TestRuntime,
-		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER,
+		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Module as System, Phase};
@@ -603,7 +603,7 @@ mod tests {
 		run_test(|| {
 			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
 				Origin::signed(1),
-				TEST_RELAYER,
+				TEST_RELAYER_A,
 				Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
 				REGULAR_PAYLOAD.1,
 			));
@@ -621,7 +621,7 @@ mod tests {
 				InboundLaneData {
 					latest_confirmed_nonce: 8,
 					latest_received_nonce: 10,
-					relayers: vec![(9, 9, TEST_RELAYER), (10, 10, TEST_RELAYER + 1)]
+					relayers: vec![(9, 9, TEST_RELAYER_A), (10, 10, TEST_RELAYER_B)]
 						.into_iter()
 						.collect(),
 				},
@@ -636,7 +636,7 @@ mod tests {
 
 			assert_ok!(Module::<TestRuntime>::receive_messages_proof(
 				Origin::signed(1),
-				TEST_RELAYER,
+				TEST_RELAYER_A,
 				message_proof,
 				REGULAR_PAYLOAD.1,
 			));
@@ -644,7 +644,7 @@ mod tests {
 			assert_eq!(
 				InboundLanes::<TestRuntime>::get(TEST_LANE_ID),
 				InboundLaneData {
-					relayers: vec![(10, 10, TEST_RELAYER + 1), (11, 11, TEST_RELAYER)]
+					relayers: vec![(10, 10, TEST_RELAYER_B), (11, 11, TEST_RELAYER_A)]
 						.into_iter()
 						.collect(),
 					latest_received_nonce: 11,
@@ -660,7 +660,7 @@ mod tests {
 			assert_noop!(
 				Module::<TestRuntime>::receive_messages_proof(
 					Origin::signed(1),
-					TEST_RELAYER,
+					TEST_RELAYER_A,
 					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
 					REGULAR_PAYLOAD.1 - 1,
 				),
@@ -675,7 +675,7 @@ mod tests {
 			assert_noop!(
 				Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
 					Origin::signed(1),
-					TEST_RELAYER,
+					TEST_RELAYER_A,
 					Err(()).into(),
 					0,
 				),
@@ -713,34 +713,34 @@ mod tests {
 				2000,
 			));
 
-			// this reports delivery of message 1 => reward is paid to TEST_RELAYER
+			// this reports delivery of message 1 => reward is paid to TEST_RELAYER_A
 			assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
 				Origin::signed(1),
 				Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
-						relayers: vec![(1, 1, TEST_RELAYER)].into_iter().collect(),
+						relayers: vec![(1, 1, TEST_RELAYER_A)].into_iter().collect(),
 						latest_received_nonce: 1,
 						..Default::default()
 					}
 				)),
 			));
 			assert!(TestMessageDeliveryAndDispatchPayment::is_reward_paid(
-				TEST_RELAYER,
+				TEST_RELAYER_A,
 				1000
 			));
 			assert!(!TestMessageDeliveryAndDispatchPayment::is_reward_paid(
-				TEST_RELAYER + 1,
+				TEST_RELAYER_B,
 				2000
 			));
 
-			// this reports delivery of both message 1 and message 2 => reward is paid only to TEST_RELAYER+1
+			// this reports delivery of both message 1 and message 2 => reward is paid only to TEST_RELAYER_B
 			assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
 				Origin::signed(1),
 				Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
-						relayers: vec![(1, 1, TEST_RELAYER), (2, 2, TEST_RELAYER + 1)]
+						relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
 							.into_iter()
 							.collect(),
 						latest_received_nonce: 2,
@@ -749,11 +749,11 @@ mod tests {
 				)),
 			));
 			assert!(!TestMessageDeliveryAndDispatchPayment::is_reward_paid(
-				TEST_RELAYER,
+				TEST_RELAYER_A,
 				1000
 			));
 			assert!(TestMessageDeliveryAndDispatchPayment::is_reward_paid(
-				TEST_RELAYER + 1,
+				TEST_RELAYER_B,
 				2000
 			));
 		});
@@ -777,7 +777,7 @@ mod tests {
 
 			assert_ok!(Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
 				Origin::signed(1),
-				TEST_RELAYER,
+				TEST_RELAYER_A,
 				Ok(vec![invalid_message]).into(),
 				0, // weight may be zero in this case (all messages are improperly encoded)
 			),);
@@ -794,7 +794,7 @@ mod tests {
 
 			assert_ok!(Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
 				Origin::signed(1),
-				TEST_RELAYER,
+				TEST_RELAYER_A,
 				Ok(vec![
 					message(1, REGULAR_PAYLOAD),
 					invalid_message,

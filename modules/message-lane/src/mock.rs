@@ -115,7 +115,13 @@ impl Trait for TestRuntime {
 }
 
 /// Account id of test relayer.
-pub const TEST_RELAYER: AccountId = 100;
+pub const TEST_RELAYER_A: AccountId = 100;
+
+/// Account id additional test relayer - B.
+pub const TEST_RELAYER_B: AccountId = 101;
+
+/// Account id additional test relayer - C.
+pub const TEST_RELAYER_C: AccountId = 102;
 
 /// Error that is returned by all test implementations.
 pub const TEST_ERROR: &str = "Test error";
