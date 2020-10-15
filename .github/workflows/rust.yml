@@ -22,7 +22,7 @@ jobs:
         toolchain:
           - stable
           #- beta
-          - nightly
+          - nightly-2020-10-04
     runs-on:                       self-hosted
     container:
       image:                       paritytech/ci-linux:production
@@ -75,11 +75,11 @@ jobs:
 
 ## Linting Stage
       - name:                      Add clippy
-        if:                        matrix.toolchain == 'nightly'
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
         run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
       - name:                      Clippy
         uses:                      actions-rs/cargo@master
-        if:                        matrix.toolchain == 'nightly'
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
         with:
           command:                 clippy
           toolchain:               ${{ matrix.toolchain }}
