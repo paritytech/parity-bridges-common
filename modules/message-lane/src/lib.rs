@@ -338,10 +338,7 @@ decl_module! {
 				for (nonce_low, nonce_high, relayer) in lane_data.relayers {
 					let nonce_begin = sp_std::cmp::max(nonce_low, received_range.0);
 					let nonce_end = sp_std::cmp::min(nonce_high, received_range.1);
-					// don't proceed if this messages entry is ahead of received range.
-					if nonce_low > nonce_end {
-						continue;
-					}
+					// loop won't proceed if current entry is ahead of received range (begin > end).
 					for nonce in nonce_begin..nonce_end + 1 {
 						let message_data = OutboundMessages::<T, I>::get(MessageKey {
 							lane_id,
