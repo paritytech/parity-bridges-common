@@ -79,7 +79,10 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			.map(|(nonce_low, _, _)| *nonce_low <= data.latest_confirmed_nonce)
 			.unwrap_or(false)
 		{
-			data.relayers.front_mut().unwrap().0 = data.latest_confirmed_nonce + 1;
+			data.relayers
+				.front_mut()
+				.expect("already ensured front relayer exists in preceding check")
+				.0 = data.latest_confirmed_nonce + 1;
 		}
 
 		self.storage.set_data(data);
@@ -112,7 +115,10 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			.map(|(_, _, last_relayer)| *last_relayer == relayer)
 			.unwrap_or(false)
 		{
-			data.relayers.back_mut().unwrap().1 = nonce;
+			data.relayers
+				.back_mut()
+				.expect("already ensured back relayer exists in preceding check")
+				.1 = nonce;
 		} else {
 			data.relayers.push_back((nonce, nonce, relayer));
 		}
