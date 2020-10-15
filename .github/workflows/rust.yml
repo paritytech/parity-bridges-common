@@ -44,6 +44,12 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
+      - name:                      Install Toolchain
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
+        run:                       rustup toolchain add ${{ matrix.toolchain }}
+      - name:                      Add WASM Utilities
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
+        run:                       rustup target add wasm32-unknown-unknown --toolchain ${{ matrix.toolchain }}
       - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
         run:                       ./scripts/ci-cache.sh "${{ github.head_ref }}" "${{ matrix.toolchain }}"
       - name:                      Cache checking
