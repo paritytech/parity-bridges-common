@@ -283,13 +283,17 @@ mod tests {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			let max_nonce = <TestRuntime as crate::Trait>::MaxUnconfirmedMessagesAtInboundLane::get();
-			for current_nonce in 1..max_nonce {
-				receive_regular_message(&mut lane, current_nonce);
+			for current_nonce in 1..max_nonce + 1 {
+				assert!(lane.receive_message::<TestMessageDispatch>(
+					TEST_RELAYER_A + current_nonce,
+					current_nonce,
+					message_data(REGULAR_PAYLOAD).into()
+				));
 			}
 			assert_eq!(
 				false,
 				lane.receive_message::<TestMessageDispatch>(
-					TEST_RELAYER_A,
+					TEST_RELAYER_A + max_nonce + 1,
 					max_nonce + 1,
 					message_data(REGULAR_PAYLOAD).into()
 				)
