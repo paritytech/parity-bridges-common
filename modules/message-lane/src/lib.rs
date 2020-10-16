@@ -238,7 +238,7 @@ decl_module! {
 	}
 }
 
-impl <T: Trait<I>, I: Instance> Module<T, I> {
+impl<T: Trait<I>, I: Instance> Module<T, I> {
 	// Exposed mutables.
 
 	/// Send message over lane.
@@ -263,38 +263,33 @@ impl <T: Trait<I>, I: Instance> Module<T, I> {
 		})?;
 
 		// now let's enforce any additional lane rules
-		T::LaneMessageVerifier::verify_message(
-			&submitter,
-			&delivery_and_dispatch_fee,
-			&lane_id,
-			&payload,
-		).map_err(|err| {
-			frame_support::debug::trace!(
-				target: "runtime",
-				"Message to lane {:?} is rejected by lane verifier: {:?}",
-				lane_id,
-				err,
-			);
+		T::LaneMessageVerifier::verify_message(&submitter, &delivery_and_dispatch_fee, &lane_id, &payload).map_err(
+			|err| {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Message to lane {:?} is rejected by lane verifier: {:?}",
+					lane_id,
+					err,
+				);
 
-			Error::<T, I>::MessageRejectedByLaneVerifier
-		})?;
+				Error::<T, I>::MessageRejectedByLaneVerifier
+			},
+		)?;
 
 		// let's withdraw delivery and dispatch fee from submitter
-		T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
-			&submitter,
-			&delivery_and_dispatch_fee,
-		).map_err(|err| {
-			frame_support::debug::trace!(
-				target: "runtime",
-				"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
-				lane_id,
-				submitter,
-				delivery_and_dispatch_fee,
-				err,
-			);
+		T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(&submitter, &delivery_and_dispatch_fee)
+			.map_err(|err| {
+				frame_support::debug::trace!(
+					target: "runtime",
+					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
+					lane_id,
+					submitter,
+					delivery_and_dispatch_fee,
+					err,
+				);
 
-			Error::<T, I>::FailedToWithdrawMessageFee
-		})?;
+				Error::<T, I>::FailedToWithdrawMessageFee
+			})?;
 
 		// finally, save message in outbound storage and emit event
 		let mut lane = outbound_lane::<T, I>(lane_id);
