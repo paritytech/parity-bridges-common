@@ -51,7 +51,7 @@ enum Type {
 	Finality,
 }
 
-fn create_chain<S>(storage: &mut S, chain: &mut Vec<Type>)
+fn create_chain<S>(storage: &mut S, chain: &mut Vec<(Type, Result<(), ()>)>)
 where
 	S: BridgeStorage<Header = TestHeader> + Clone,
 {
@@ -61,7 +61,7 @@ where
 		storage: storage.clone(),
 	};
 
-	if let Type::Header(g_num, g_fork, None, None) = chain.remove(0) {
+	if let (Type::Header(g_num, g_fork, None, None), _) = chain.remove(0) {
 		let genesis = test_header(g_num.into());
 		map.insert(g_fork, vec![genesis.clone()]);
 
@@ -78,7 +78,7 @@ where
 
 	for h in chain {
 		match h {
-			Type::Header(num, fork_id, does_fork, _) => {
+			(Type::Header(num, fork_id, does_fork, _), expected_result) => {
 				// If we've never seen this fork before
 				if !map.contains_key(&fork_id) {
 					// Let's get the info about where to start the fork
@@ -95,7 +95,9 @@ where
 						header.state_root = [*fork_id as u8; 32].into();
 
 						// Try and import into storage
-						match verifier.import_header(header.clone()) {
+						let res = verifier.import_header(header.clone()).map_err(|_| ());
+						assert_eq!(res, *expected_result);
+						match res {
 							Ok(_) => {
 								// Let's mark the header down in a new fork
 								map.insert(*fork_id, vec![header]);
@@ -121,7 +123,9 @@ where
 					header.state_root = [*fork_id as u8; 32].into();
 
 					// Try and import into storage
-					let res = verifier.import_header(header.clone());
+					// TODO: Should check errors
+					let res = verifier.import_header(header.clone()).map_err(|_| ());
+					assert_eq!(res, *expected_result);
 					match res {
 						Ok(_) => {
 							map.get_mut(&fork_id).unwrap().push(header);
@@ -132,17 +136,13 @@ where
 					}
 				}
 			}
-			Type::Finality => todo!(),
+			(Type::Finality, _expected_result) => todo!(),
 		}
 	}
 
 	for (key, value) in map.iter() {
 		println!("{}: {:#?}", key, value);
 	}
-
-	// Check storage
-	let best_headers: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
-	dbg!(best_headers);
 }
 
 #[test]
@@ -151,15 +151,19 @@ fn fork_test_importing_headers_with_new_method() {
 		let mut storage = PalletStorage::<TestRuntime>::new();
 
 		let mut chain = vec![
-			Type::Header(1, 1, None, None),
-			Type::Header(2, 1, None, None),
-			Type::Header(2, 2, Some((1, 1)), None),
-			Type::Header(3, 1, None, None),
-			Type::Header(3, 3, Some((2, 2)), None),
-			Type::Header(4, 3, None, None),
+			(Type::Header(1, 1, None, None), Ok(())),
+			(Type::Header(2, 1, None, None), Ok(())),
+			(Type::Header(2, 2, Some((1, 1)), None), Ok(())),
+			(Type::Header(3, 1, None, None), Ok(())),
+			(Type::Header(3, 3, Some((2, 2)), None), Ok(())),
+			// (Type::Header(4, 3, None, None), Ok(())),
 		];
 
 		create_chain(&mut storage, &mut chain);
+
+		// Can do checks on storage afterwards
+		let best_headers: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
+		dbg!(best_headers);
 		panic!()
 	})
 }
