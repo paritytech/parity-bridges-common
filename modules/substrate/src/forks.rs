@@ -27,12 +27,14 @@
 //!
 //! Order: Import order
 
+use crate::justification::tests::*;
 use crate::mock::helpers::*;
 use crate::mock::*;
-use crate::storage::ImportedHeader;
+use crate::storage::{AuthoritySet, ImportedHeader};
 use crate::verifier::*;
 use crate::BridgeStorage;
-use crate::{BestFinalized, PalletStorage};
+use crate::{BestFinalized, ChainTipHeight, PalletStorage};
+use codec::Encode;
 use frame_support::{StorageMap, StorageValue};
 
 use std::collections::BTreeMap;
@@ -48,7 +50,7 @@ type ScheduledChangeAt = Option<u32>;
 #[derive(Debug)]
 enum Type {
 	Header(u32, ForkId, ForksAt, ScheduledChangeAt),
-	Finality,
+	Finality(TestNumber, ForkId),
 }
 
 fn create_chain<S>(storage: &mut S, chain: &mut Vec<(Type, Result<(), ()>)>)
@@ -75,6 +77,12 @@ where
 		<BestFinalized<TestRuntime>>::put(genesis.hash());
 		storage.write_header(&genesis);
 	}
+
+	// Maybe also move this to an init() helper
+	let set_id = 1;
+	let authorities = authority_list();
+	let authority_set = AuthoritySet::new(authorities.clone(), set_id);
+	storage.update_current_authority_set(authority_set);
 
 	for h in chain {
 		match h {
@@ -136,7 +144,31 @@ where
 					}
 				}
 			}
-			(Type::Finality, _expected_result) => todo!(),
+			(Type::Finality(num, fork_id), expected_result) => {
+				let header = map[fork_id]
+					.iter()
+					.find(|h| h.number == *num)
+					.expect("Trying to finalize block that doesn't exist");
+
+				// TODO: Tests pass when I create multiple justifications even though I don't change
+				// these, is that a problem?
+				let grandpa_round = 1;
+				let set_id = 1;
+				let authorities = authority_list();
+				let justification =
+					make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+
+				let res = verifier
+					.import_finality_proof(header.hash(), justification.into())
+					.map_err(|_| ());
+				assert_eq!(res, *expected_result);
+				match res {
+					Ok(_) => {}
+					Err(_) => {
+						eprintln!("Unable to import finality proof for header ({:?}, {:?})", num, fork_id);
+					}
+				}
+			}
 		}
 	}
 
@@ -146,7 +178,22 @@ where
 }
 
 #[test]
-fn fork_test_importing_headers_with_new_method() {
+fn fork_can_import_headers_on_same_fork() {
+	run_test(|| {
+		let mut storage = PalletStorage::<TestRuntime>::new();
+
+		let mut chain = vec![
+			(Type::Header(1, 1, None, None), Ok(())),
+			(Type::Header(2, 1, None, None), Ok(())),
+			(Type::Header(3, 1, None, None), Ok(())),
+		];
+
+		create_chain(&mut storage, &mut chain);
+	})
+}
+
+#[test]
+fn fork_can_import_headers_on_different_forks() {
 	run_test(|| {
 		let mut storage = PalletStorage::<TestRuntime>::new();
 
@@ -156,14 +203,28 @@ fn fork_test_importing_headers_with_new_method() {
 			(Type::Header(2, 2, Some((1, 1)), None), Ok(())),
 			(Type::Header(3, 1, None, None), Ok(())),
 			(Type::Header(3, 3, Some((2, 2)), None), Ok(())),
-			// (Type::Header(4, 3, None, None), Ok(())),
 		];
 
 		create_chain(&mut storage, &mut chain);
 
-		// Can do checks on storage afterwards
 		let best_headers: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
-		dbg!(best_headers);
-		panic!()
+		assert_eq!(best_headers.len(), 2);
+		assert_eq!(<ChainTipHeight<TestRuntime>>::get(), 3);
+	})
+}
+
+#[test]
+fn fork_can_import_finality_proof() {
+	run_test(|| {
+		let mut storage = PalletStorage::<TestRuntime>::new();
+
+		let mut chain = vec![
+			(Type::Header(1, 1, None, None), Ok(())),
+			(Type::Header(2, 1, None, None), Ok(())),
+			(Type::Finality(2, 1), Ok(())),
+		];
+
+		create_chain(&mut storage, &mut chain);
+		assert_eq!(storage.best_finalized_header().header.number, 3);
 	})
 }
