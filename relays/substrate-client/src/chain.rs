@@ -16,56 +16,34 @@
 
 use crate::client::Client;
 
+use bp_runtime::Chain as ChainBase;
 use frame_support::Parameter;
 use jsonrpsee::common::{DeserializeOwned, Serialize};
 use sp_core::Pair;
-use sp_runtime::traits::{
-	AtLeast32Bit, AtLeast32BitUnsigned, Bounded, CheckEqual, Dispatchable, Header as HeaderT, MaybeDisplay,
-	MaybeMallocSizeOf, MaybeSerialize, MaybeSerializeDeserialize, Member, SimpleBitOps,
+use sp_runtime::{
+	generic::SignedBlock,
+	traits::{AtLeast32Bit, Dispatchable, MaybeDisplay, MaybeSerialize, MaybeSerializeDeserialize, Member},
+	Justification,
 };
 use sp_std::fmt::Debug;
 
 /// Substrate-based chain from minimal relay-client point of view.
-pub trait Chain {
-	/// The block number type used by the runtime.
-	type BlockNumber: Parameter
-		+ Member
-		+ MaybeSerializeDeserialize
-		+ Debug
-		+ MaybeDisplay
-		+ AtLeast32BitUnsigned
-		+ Default
-		+ Bounded
-		+ Copy
-		+ sp_std::hash::Hash
-		+ sp_std::str::FromStr
-		+ MaybeMallocSizeOf;
-	/// The output of the `Hashing` function.
-	type Hash: Parameter
-		+ Member
-		+ MaybeSerializeDeserialize
-		+ Debug
-		+ MaybeDisplay
-		+ SimpleBitOps
-		+ Ord
-		+ Default
-		+ Copy
-		+ CheckEqual
-		+ sp_std::hash::Hash
-		+ AsRef<[u8]>
-		+ AsMut<[u8]>
-		+ MaybeMallocSizeOf;
-	/// The block header.
-	type Header: Parameter + HeaderT<Number = Self::BlockNumber, Hash = Self::Hash>;
+pub trait Chain: ChainBase {
 	/// The user account identifier type for the runtime.
 	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 	/// Account index (aka nonce) type. This stores the number of previous transactions associated
 	/// with a sender account.
 	type Index: Parameter + Member + MaybeSerialize + Debug + Default + MaybeDisplay + AtLeast32Bit + Copy;
 	/// Block type.
-	type SignedBlock: Member + Serialize + DeserializeOwned;
+	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification;
 	/// The aggregated `Call` type.
 	type Call: Dispatchable + Debug;
+}
+
+/// Block with justification.
+pub trait BlockWithJustification {
+	/// Return block justification, if known.
+	fn justification(&self) -> Option<&Justification>;
 }
 
 /// Substrate-based chain transactions signing scheme.
@@ -84,4 +62,10 @@ pub trait TransactionSignScheme {
 		signer_nonce: <Self::Chain as Chain>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction;
+}
+
+impl<Block> BlockWithJustification for SignedBlock<Block> {
+	fn justification(&self) -> Option<&Justification> {
+		self.justification.as_ref()
+	}
 }
