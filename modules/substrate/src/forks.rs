@@ -36,6 +36,8 @@ use crate::BridgeStorage;
 use crate::{BestFinalized, ChainTipHeight, PalletStorage};
 use codec::Encode;
 use frame_support::{StorageMap, StorageValue};
+use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
+use sp_runtime::{Digest, DigestItem};
 
 use std::collections::BTreeMap;
 
@@ -86,7 +88,7 @@ where
 
 	for h in chain {
 		match h {
-			(Type::Header(num, fork_id, does_fork, _), expected_result) => {
+			(Type::Header(num, fork_id, does_fork, schedules_change), expected_result) => {
 				// If we've never seen this fork before
 				if !map.contains_key(&fork_id) {
 					// Let's get the info about where to start the fork
@@ -102,9 +104,17 @@ where
 						header.parent_hash = parent.hash();
 						header.state_root = [*fork_id as u8; 32].into();
 
+						if let Some(delay) = schedules_change {
+							header.digest = change_log(*delay as u64);
+						}
+
 						// Try and import into storage
 						let res = verifier.import_header(header.clone()).map_err(|_| ());
-						assert_eq!(res, *expected_result);
+						assert_eq!(
+							res, *expected_result,
+							"Expected {:?} while importing header {}",
+							*expected_result, *num
+						);
 						match res {
 							Ok(_) => {
 								// Let's mark the header down in a new fork
@@ -130,10 +140,18 @@ where
 					// different forks have different hashes
 					header.state_root = [*fork_id as u8; 32].into();
 
+					if let Some(delay) = schedules_change {
+						header.digest = change_log(*delay as u64);
+					}
+
 					// Try and import into storage
 					// TODO: Should check errors
 					let res = verifier.import_header(header.clone()).map_err(|_| ());
-					assert_eq!(res, *expected_result);
+					assert_eq!(
+						res, *expected_result,
+						"Expected {:?} while importing header {}",
+						*expected_result, *num
+					);
 					match res {
 						Ok(_) => {
 							map.get_mut(&fork_id).unwrap().push(header);
@@ -161,7 +179,11 @@ where
 				let res = verifier
 					.import_finality_proof(header.hash(), justification.into())
 					.map_err(|_| ());
-				assert_eq!(res, *expected_result);
+				assert_eq!(
+					res, *expected_result,
+					"Expected {:?} while importing finality proof for header {}",
+					*expected_result, *num
+				);
 				match res {
 					Ok(_) => {}
 					Err(_) => {
@@ -174,6 +196,17 @@ where
 
 	for (key, value) in map.iter() {
 		println!("{}: {:#?}", key, value);
+	}
+}
+
+fn change_log(delay: u64) -> Digest<TestHash> {
+	let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+		next_authorities: vec![(alice(), 1), (bob(), 1)],
+		delay,
+	});
+
+	Digest::<TestHash> {
+		logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
 	}
 }
 
@@ -225,6 +258,37 @@ fn fork_can_import_finality_proof() {
 		];
 
 		create_chain(&mut storage, &mut chain);
-		assert_eq!(storage.best_finalized_header().header.number, 3);
+		assert_eq!(storage.best_finalized_header().header.number, 2);
+	})
+}
+
+#[test]
+fn fork_can_import_header_which_schedules_set_change() {
+	run_test(|| {
+		let mut storage = PalletStorage::<TestRuntime>::new();
+
+		let mut chain = vec![
+			(Type::Header(1, 1, None, None), Ok(())),
+			(Type::Header(2, 1, None, Some(0)), Ok(())),
+		];
+
+		create_chain(&mut storage, &mut chain);
+	})
+}
+
+#[test]
+fn fork_does_not_import_headers_past_once_which_enacts_a_change() {
+	run_test(|| {
+		let mut storage = PalletStorage::<TestRuntime>::new();
+
+		let mut chain = vec![
+			(Type::Header(1, 1, None, None), Ok(())),
+			(Type::Header(2, 1, None, Some(0)), Ok(())),
+			(Type::Header(3, 1, None, None), Err(())),
+			(Type::Finality(2, 1), Ok(())),
+			(Type::Header(3, 1, None, None), Ok(())),
+		];
+
+		create_chain(&mut storage, &mut chain);
 	})
 }
