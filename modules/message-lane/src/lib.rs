@@ -147,82 +147,6 @@ decl_module! {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
 
-		/// Send message over lane.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-		pub fn send_message(
-			origin,
-			lane_id: LaneId,
-			payload: T::OutboundPayload,
-			delivery_and_dispatch_fee: T::OutboundMessageFee,
-		) -> DispatchResult {
-			let submitter = ensure_signed(origin)?;
-
-			// let's first check if message can be delivered to target chain
-			T::TargetHeaderChain::verify_message(&payload).map_err(|err| {
-				frame_support::debug::trace!(
-					target: "runtime",
-					"Message to lane {:?} is rejected by target chain: {:?}",
-					lane_id,
-					err,
-				);
-
-				Error::<T, I>::MessageRejectedByChainVerifier
-			})?;
-
-			// now let's enforce any additional lane rules
-			T::LaneMessageVerifier::verify_message(
-				&submitter,
-				&delivery_and_dispatch_fee,
-				&lane_id,
-				&payload,
-			).map_err(|err| {
-				frame_support::debug::trace!(
-					target: "runtime",
-					"Message to lane {:?} is rejected by lane verifier: {:?}",
-					lane_id,
-					err,
-				);
-
-				Error::<T, I>::MessageRejectedByLaneVerifier
-			})?;
-
-			// let's withdraw delivery and dispatch fee from submitter
-			T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
-				&submitter,
-				&delivery_and_dispatch_fee,
-			).map_err(|err| {
-				frame_support::debug::trace!(
-					target: "runtime",
-					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
-					lane_id,
-					submitter,
-					delivery_and_dispatch_fee,
-					err,
-				);
-
-				Error::<T, I>::FailedToWithdrawMessageFee
-			})?;
-
-			// finally, save message in outbound storage and emit event
-			let mut lane = outbound_lane::<T, I>(lane_id);
-			let nonce = lane.send_message(MessageData {
-				payload: payload.encode(),
-				fee: delivery_and_dispatch_fee,
-			});
-			lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
-
-			frame_support::debug::trace!(
-				target: "runtime",
-				"Accepted message {} to lane {:?}",
-				nonce,
-				lane_id,
-			);
-
-			Self::deposit_event(RawEvent::MessageAccepted(lane_id, nonce));
-
-			Ok(())
-		}
-
 		/// Receive messages proof from bridged chain.
 		#[weight = DELIVERY_BASE_WEIGHT + dispatch_weight]
 		pub fn receive_messages_proof(
@@ -311,6 +235,85 @@ decl_module! {
 
 			Ok(())
 		}
+	}
+}
+
+impl <T: Trait<I>, I: Instance> Module<T, I> {
+	// Exposed mutables.
+
+	/// Send message over lane.
+	pub fn send_message(
+		origin: T::Origin,
+		lane_id: LaneId,
+		payload: T::OutboundPayload,
+		delivery_and_dispatch_fee: T::OutboundMessageFee,
+	) -> DispatchResult {
+		let submitter = ensure_signed(origin)?;
+
+		// let's first check if message can be delivered to target chain
+		T::TargetHeaderChain::verify_message(&payload).map_err(|err| {
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Message to lane {:?} is rejected by target chain: {:?}",
+				lane_id,
+				err,
+			);
+
+			Error::<T, I>::MessageRejectedByChainVerifier
+		})?;
+
+		// now let's enforce any additional lane rules
+		T::LaneMessageVerifier::verify_message(
+			&submitter,
+			&delivery_and_dispatch_fee,
+			&lane_id,
+			&payload,
+		).map_err(|err| {
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Message to lane {:?} is rejected by lane verifier: {:?}",
+				lane_id,
+				err,
+			);
+
+			Error::<T, I>::MessageRejectedByLaneVerifier
+		})?;
+
+		// let's withdraw delivery and dispatch fee from submitter
+		T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
+			&submitter,
+			&delivery_and_dispatch_fee,
+		).map_err(|err| {
+			frame_support::debug::trace!(
+				target: "runtime",
+				"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
+				lane_id,
+				submitter,
+				delivery_and_dispatch_fee,
+				err,
+			);
+
+			Error::<T, I>::FailedToWithdrawMessageFee
+		})?;
+
+		// finally, save message in outbound storage and emit event
+		let mut lane = outbound_lane::<T, I>(lane_id);
+		let nonce = lane.send_message(MessageData {
+			payload: payload.encode(),
+			fee: delivery_and_dispatch_fee,
+		});
+		lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
+
+		frame_support::debug::trace!(
+			target: "runtime",
+			"Accepted message {} to lane {:?}",
+			nonce,
+			lane_id,
+		);
+
+		Self::deposit_event(RawEvent::MessageAccepted(lane_id, nonce));
+
+		Ok(())
 	}
 }
 
