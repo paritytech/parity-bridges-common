@@ -29,9 +29,11 @@
 
 use crate::mock::helpers::*;
 use crate::mock::*;
+use crate::storage::ImportedHeader;
 use crate::verifier::*;
 use crate::BridgeStorage;
-use crate::PalletStorage;
+use crate::{BestFinalized, PalletStorage};
+use frame_support::{StorageMap, StorageValue};
 
 use std::collections::BTreeMap;
 
@@ -51,13 +53,27 @@ enum Type {
 
 fn create_chain<S>(storage: &mut S, chain: &mut Vec<Type>)
 where
-	S: BridgeStorage<Header = TestHeader>,
+	S: BridgeStorage<Header = TestHeader> + Clone,
 {
 	let mut map = BTreeMap::new();
 
+	let mut verifier = Verifier {
+		storage: storage.clone(),
+	};
+
 	if let Type::Header(g_num, g_fork, None, None) = chain.remove(0) {
 		let genesis = test_header(g_num.into());
-		map.insert(g_fork, vec![genesis]);
+		map.insert(g_fork, vec![genesis.clone()]);
+
+		// Bootstrap stuff, maybe move out of this function
+		let genesis = ImportedHeader {
+			header: genesis,
+			requires_justification: false,
+			is_finalized: true,
+		};
+
+		<BestFinalized<TestRuntime>>::put(genesis.hash());
+		storage.write_header(&genesis);
 	}
 
 	for h in chain {
@@ -68,22 +84,32 @@ where
 					// Let's get the info about where to start the fork
 					if let Some((parent_num, forked_from_id)) = does_fork {
 						let fork = &*map.get(&forked_from_id).unwrap();
-						let parent = fork.iter().find(|h| h.number == *parent_num).unwrap();
+						let parent = fork
+							.iter()
+							.find(|h| h.number == *parent_num)
+							.expect("Trying to fork on a parent which doesn't exist");
 
 						// TODO: Handle numbers better
 						let mut header = test_header(*num as u64);
 						header.parent_hash = parent.hash();
 						header.state_root = [*fork_id as u8; 32].into();
 
-						// Start a new fork
-						map.insert(*fork_id, vec![header]);
+						// Try and import into storage
+						match verifier.import_header(header.clone()) {
+							Ok(_) => {
+								// Let's mark the header down in a new fork
+								map.insert(*fork_id, vec![header]);
+							}
+							Err(_) => {
+								eprintln!("Unable to import header ({:?}, {:?})", num, fork_id);
+							}
+						}
 					}
 				} else {
-					// We've seen this fork before, just append
+					// We've seen this fork before so let's append our new header to it
 					let parent_hash = {
 						let fork = &*map.get(&fork_id).unwrap();
-						let parent = fork.last().unwrap();
-						parent.hash()
+						fork.last().unwrap().hash()
 					};
 
 					// TODO: Handle numbers better here
@@ -94,7 +120,16 @@ where
 					// different forks have different hashes
 					header.state_root = [*fork_id as u8; 32].into();
 
-					map.get_mut(&fork_id).unwrap().push(header);
+					// Try and import into storage
+					let res = verifier.import_header(header.clone());
+					match res {
+						Ok(_) => {
+							map.get_mut(&fork_id).unwrap().push(header);
+						}
+						Err(_) => {
+							eprintln!("Unable to import header ({:?}, {:?})", num, fork_id);
+						}
+					}
 				}
 			}
 			Type::Finality => todo!(),
@@ -104,6 +139,10 @@ where
 	for (key, value) in map.iter() {
 		println!("{}: {:#?}", key, value);
 	}
+
+	// Check storage
+	let best_headers: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
+	dbg!(best_headers);
 }
 
 #[test]
@@ -114,8 +153,10 @@ fn fork_test_importing_headers_with_new_method() {
 		let mut chain = vec![
 			Type::Header(1, 1, None, None),
 			Type::Header(2, 1, None, None),
-			Type::Header(3, 2, Some((2, 1)), None),
+			Type::Header(2, 2, Some((1, 1)), None),
 			Type::Header(3, 1, None, None),
+			Type::Header(3, 3, Some((2, 2)), None),
+			Type::Header(4, 3, None, None),
 		];
 
 		create_chain(&mut storage, &mut chain);
