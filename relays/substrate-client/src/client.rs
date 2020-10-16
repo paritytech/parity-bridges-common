@@ -22,7 +22,7 @@ use crate::{ConnectionParams, Result};
 
 use jsonrpsee::common::DeserializeOwned;
 use jsonrpsee::raw::RawClient;
-use jsonrpsee::transport::http::HttpTransportClient;
+use jsonrpsee::transport::ws::WsTransportClient;
 use jsonrpsee::Client as RpcClient;
 use num_traits::Zero;
 use sp_core::Bytes;
@@ -33,6 +33,9 @@ const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
 
 /// Substrate client type.
+///
+/// Cloning Client is a cheap operation.
+#[derive(Clone)]
 pub struct Client<C: Chain> {
 	/// Substrate RPC client.
 	client: RpcClient,
@@ -49,10 +52,10 @@ impl<C: Chain> std::fmt::Debug for Client<C> {
 }
 
 impl<C: Chain> Client<C> {
-	/// Returns client that is able to call RPCs on Substrate node.
+	/// Returns client that is able to call RPCs on Substrate node over websocket connection.
 	pub async fn new(params: ConnectionParams) -> Result<Self> {
-		let uri = format!("http://{}:{}", params.host, params.port);
-		let transport = HttpTransportClient::new(&uri);
+		let uri = format!("ws://{}:{}", params.host, params.port);
+		let transport = WsTransportClient::new(&uri).await?;
 		let raw_client = RawClient::new(transport);
 		let client: RpcClient = raw_client.into();
 

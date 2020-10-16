@@ -1,14 +1,15 @@
 [workspace]
 
 members = [
-	"bin/millau-node",
-	"bin/rialto-node",
-	"bin/millau-runtime",
-	"bin/rialto-runtime",
+	"bin/millau/node",
+	"bin/rialto/node",
+	"bin/millau/runtime",
+	"bin/rialto/runtime",
 	"modules/call-dispatch",
 	"modules/substrate",
 	"modules/ethereum",
 	"modules/ethereum-contract/builtin",
 	"modules/currency-exchange",
 	"relays/ethereum",
+	"relays/substrate",
 ]

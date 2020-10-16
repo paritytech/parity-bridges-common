@@ -14,7 +14,7 @@ on:
     - cron:                        '0 0 * * 0'
 jobs:
 
-## Check stage
+## Check Stage
   check-test-build:
     name:                          Check, test and build
     strategy:
@@ -22,7 +22,7 @@ jobs:
         toolchain:
           - stable
           #- beta
-          - nightly
+          - nightly-2020-10-04
     runs-on:                       self-hosted
     container:
       image:                       paritytech/ci-linux:production
@@ -44,6 +44,12 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
+      - name:                      Install Toolchain
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
+        run:                       rustup toolchain add ${{ matrix.toolchain }}
+      - name:                      Add WASM Utilities
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
+        run:                       rustup target add wasm32-unknown-unknown --toolchain ${{ matrix.toolchain }}
       - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
         run:                       ./scripts/ci-cache.sh "${{ github.head_ref }}" "${{ matrix.toolchain }}"
       - name:                      Cache checking
@@ -64,31 +70,42 @@ jobs:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
-## Test stage
+
+## Test Stage
       - name:                      Testing rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
           command:                 test
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
+
+## Linting Stage
       - name:                      Add clippy
-        if:                        matrix.toolchain == 'nightly'
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
         run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
       - name:                      Clippy
         uses:                      actions-rs/cargo@master
-        if:                        matrix.toolchain == 'nightly'
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
         with:
           command:                 clippy
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all-targets -- -D warnings
+
+## Check Node Benchmarks
       - name:                      Check Rialto benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
           command:                 check
           toolchain:               ${{ matrix.toolchain }}
-          args:                    --manifest-path ./bin/rialto-node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+          args:                    --manifest-path ./bin/rialto/node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
+      - name:                      Check Millau benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 check
+          toolchain:               ${{ matrix.toolchain }}
+          args:                    --manifest-path ./bin/millau/node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
 
-## Build stage
+## Build Stage
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         if:                        github.ref == 'refs/heads/master'
@@ -101,6 +118,7 @@ jobs:
         run:                       |
           mkdir -p ./artifacts;
           mv -v $CARGO_TARGET_DIR/release/rialto-bridge-node ./artifacts/;
+          mv -v $CARGO_TARGET_DIR/release/millau-bridge-node ./artifacts/;
           mv -v $CARGO_TARGET_DIR/release/ethereum-poa-relay ./artifacts/;
         shell:                     bash
       - name:                      Upload artifacts
