@@ -73,16 +73,11 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 		// Secondly, update the next record with lower nonce equal to new confirmed nonce if needed.
 		// Note: There will be max. 1 record to update as we don't allow messages from relayers to overlap.
-		if data
-			.relayers
-			.front()
-			.map(|(nonce_low, _, _)| *nonce_low <= data.latest_confirmed_nonce)
-			.unwrap_or(false)
-		{
-			data.relayers
-				.front_mut()
-				.expect("already ensured front relayer exists in preceding check")
-				.0 = data.latest_confirmed_nonce + 1;
+		match data.relayers.front_mut() {
+			Some((nonce_low, _, _)) if *nonce_low < data.latest_confirmed_nonce => {
+				*nonce_low = data.latest_confirmed_nonce + 1;
+			}
+			_ => {}
 		}
 
 		self.storage.set_data(data);
@@ -109,17 +104,14 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 
 		data.latest_received_nonce = nonce;
 
-		if data
-			.relayers
-			.back()
-			.map(|(_, _, last_relayer)| *last_relayer == relayer)
-			.unwrap_or(false)
-		{
-			data.relayers
-				.back_mut()
-				.expect("already ensured back relayer exists in preceding check")
-				.1 = nonce;
-		} else {
+		let push_new = match data.relayers.back_mut() {
+			Some((_, nonce_high, last_relayer)) if last_relayer == &relayer => {
+				*nonce_high = nonce;
+				false
+			}
+			_ => true,
+		};
+		if push_new {
 			data.relayers.push_back((nonce, nonce, relayer));
 		}
 
