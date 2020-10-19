@@ -57,7 +57,7 @@ pub struct SubstrateHeadersToSubstrateMaintain<P: SubstrateHeadersSyncPipeline, 
 struct Justifications<P: SubstrateHeadersSyncPipeline> {
 	/// Justifications stream.
 	stream: JustificationsSubscription,
-	/// Justifications that we have read from the stream but have not send to the
+	/// Justifications that we have read from the stream but have not sent to the
 	/// target node, because their targets were still not synced.
 	queue: VecDeque<(HeaderIdOf<P>, Justification)>,
 }
