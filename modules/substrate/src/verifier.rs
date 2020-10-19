@@ -72,6 +72,9 @@ pub enum ImportError {
 	///
 	/// This can happen if an ancestor is supposed to enact an authority set change.
 	AwaitingFinalityProof,
+	/// This header schedules an authority set change even though we're still waiting
+	/// for an old authority set change to be enacted on this fork.
+	PendingAuthoritySetChange,
 }
 
 /// Errors which can happen while verifying a headers finality.
@@ -139,15 +142,20 @@ where
 		// time. While this is not strictly true of Grandpa (it can have multiple pending changes,
 		// even across forks), this assumption simplifies our tracking of authority set changes.
 		let mut signal_hash = parent_header.signal_hash;
+		let scheduled_change = find_scheduled_change(&header);
 
 		// Check if our fork is expecting an authority set change
 		let requires_justification = if let Some(hash) = signal_hash {
-			if let Some(change) = self.storage.scheduled_set_change(hash) {
-				if *header.number() > change.height {
+			if let Some(pending_change) = self.storage.scheduled_set_change(hash) {
+				if scheduled_change.is_some() {
+					return Err(ImportError::PendingAuthoritySetChange);
+				}
+
+				if *header.number() > pending_change.height {
 					return Err(ImportError::AwaitingFinalityProof);
 				}
 
-				change.height == *header.number()
+				pending_change.height == *header.number()
 			} else {
 				// I don't think we should be allowed to get here
 				// If the header indicates that there's a scheduled change there should be one in
@@ -157,7 +165,7 @@ where
 		} else {
 			// Since we don't currently have a pending authority set change let's check if the header
 			// contains a log indicating when the next change should be.
-			if let Some(change) = find_scheduled_change(&header) {
+			if let Some(change) = scheduled_change {
 				let mut total_weight = 0u64;
 
 				for (_id, weight) in &change.next_authorities {
@@ -873,83 +881,6 @@ mod tests {
 			// Since our header was supposed to enact a new authority set change when it got
 			// finalized let's make sure that the authority set actually changed
 			assert_eq!(storage.current_authority_set(), change.authority_set);
-		})
-	}
-
-	// Grandpa can have multiple authority set changes pending on the same fork. However, tracking
-	// these across forks becomes quite complicated. To simplify our life we've decided to only
-	// allow _one_ pending authority set change at any point in time. If we get a header which
-	// schedules another set change we must wait until the previous change has been enacted (via the
-	// import of a finality proof for a header at that height).
-	//
-	// [G] <- [N] <- [N+1]
-	//         |       | Schedules an authority set change
-	//         |- Enacts change, needs justification
-	#[test]
-	fn rejects_multiple_headers_which_schedule_authority_set_changes() {
-		run_test(|| {
-			let mut storage = PalletStorage::<TestRuntime>::new();
-			let imported_headers = write_headers(&mut storage, vec![]);
-
-			// Set up our initial authority set
-			let set_id = 1;
-			let authorities = authority_list();
-			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
-			storage.update_current_authority_set(initial_authority_set);
-
-			// This is header N
-			let header = test_header(1);
-
-			// Schedule a change at height N. This will require that header N has a justification
-			let set_id = 1;
-			let height = *header.number();
-			let authorities = vec![alice()];
-			let change = schedule_next_change(authorities, set_id, height);
-			storage.schedule_next_set_change(imported_headers[0].clone().hash(), change.clone());
-
-			// Import header N
-			let mut verifier = Verifier {
-				storage: storage.clone(),
-			};
-			assert_ok!(verifier.import_header(header.clone()));
-
-			// Header N should be marked as needing a justification
-			assert_eq!(
-				storage.header_by_hash(header.hash()).unwrap().requires_justification,
-				true
-			);
-
-			// Now we want to try and import a header past N
-			let mut child = test_header(*header.number() + 1);
-
-			// Let's use header N+1 to schedule an an authority set change.
-			let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
-				next_authorities: vec![(bob(), 1)],
-				delay: 1,
-			});
-
-			child.digest = Digest::<TestHash> {
-				logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
-			};
-
-			// Since we still have the pending change scheduled for height N we're not allowed to
-			// schedule any more changes until that gets enacted.
-			assert_eq!(
-				verifier.import_header(child.clone()),
-				Err(ImportError::AwaitingFinalityProof)
-			);
-
-			// Let's enact the pending authority set by importing the justification for header N
-			let grandpa_round = 1;
-			let justification =
-				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
-			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
-
-			// Let's make sure that finalizing N enacted our change correctly
-			assert_eq!(storage.current_authority_set(), change.authority_set);
-
-			// Now we're allowed to import N+1
-			assert_ok!(verifier.import_header(child.clone()));
 		})
 	}
 }

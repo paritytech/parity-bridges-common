@@ -305,6 +305,29 @@ fn fork_waits_for_finality_proof_before_importing_header_past_one_which_enacts_a
 	})
 }
 
+// Order: 1, 2, F2, 3
+//
+// [1] <- [2: S|1] <- [3: S|0]
+//
+// Grandpa can have multiple authority set changes pending on the same fork. However, to simplify
+// our life we've decided to only allow _one_ pending authority set change at any point in time.
+#[test]
+fn fork_does_not_allow_multiple_scheduled_changes_on_the_same_fork() {
+	run_test(|| {
+		let mut storage = PalletStorage::<TestRuntime>::new();
+
+		let mut chain = vec![
+			(Type::Header(1, 1, None, None), Ok(())),
+			(Type::Header(2, 1, None, Some(1)), Ok(())),
+			(Type::Header(3, 1, None, Some(0)), Err(())),
+			(Type::Finality(2, 1), Ok(())),
+			(Type::Header(3, 1, None, Some(0)), Ok(())),
+		];
+
+		create_chain(&mut storage, &mut chain);
+	})
+}
+
 // Order: 1, 2, 2', 3', F2, 3, 4'
 //
 //   / [2': S|1] <- [3'] <- [4']
@@ -401,7 +424,7 @@ fn fork_does_not_allow_importing_on_different_fork_past_finalized_header() {
 //                  / [3': E] <- [4']
 // [1] <- [2: S|1] <- [3: E] <- [4]
 //
-// Not allowed to import {4, 4'}
+// Not allowed to import {4|4'}
 #[test]
 fn fork_can_track_scheduled_changes_across_forks() {
 	run_test(|| {
