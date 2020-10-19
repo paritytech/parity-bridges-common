@@ -185,7 +185,6 @@ where
 			};
 
 			// decode justification target
-			// TODO: move justification decode to primitives && decode at Client fn
 			let target = pallet_substrate_bridge::decode_justification_target::<Header>(&justification);
 			let target = match target {
 				Ok((target_hash, target_number)) => HeaderId(target_number.into(), target_hash.into()),
