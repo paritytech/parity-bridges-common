@@ -63,7 +63,7 @@ struct Justifications<P: SubstrateHeadersSyncPipeline> {
 }
 
 impl<P: SubstrateHeadersSyncPipeline, C: Chain> SubstrateHeadersToSubstrateMaintain<P, C> {
-	/// Create new maitnain procedure.
+	/// Create new maintain procedure.
 	pub fn new(pipeline: P, target_client: Client<C>, justifications: JustificationsSubscription) -> Self {
 		SubstrateHeadersToSubstrateMaintain {
 			pipeline,
