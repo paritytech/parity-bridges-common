@@ -234,21 +234,11 @@ fn change_log(delay: u64) -> Digest<TestHash> {
 	}
 }
 
-#[test]
-fn fork_can_import_headers_on_same_fork() {
-	run_test(|| {
-		let mut storage = PalletStorage::<TestRuntime>::new();
-
-		let mut chain = vec![
-			(Type::Header(1, 1, None, None), Ok(())),
-			(Type::Header(2, 1, None, None), Ok(())),
-			(Type::Header(3, 1, None, None), Ok(())),
-		];
-
-		create_chain(&mut storage, &mut chain);
-	})
-}
-
+// Order: 1, 2, 2', 3, 3''
+//
+//          / [3'']
+//    / [2']
+// [1] <- [2] <- [3]
 #[test]
 fn fork_can_import_headers_on_different_forks() {
 	run_test(|| {
@@ -270,43 +260,12 @@ fn fork_can_import_headers_on_different_forks() {
 	})
 }
 
-#[test]
-fn fork_can_import_finality_proof() {
-	run_test(|| {
-		let mut storage = PalletStorage::<TestRuntime>::new();
-
-		let mut chain = vec![
-			(Type::Header(1, 1, None, None), Ok(())),
-			(Type::Header(2, 1, None, None), Ok(())),
-			(Type::Finality(2, 1), Ok(())),
-		];
-
-		create_chain(&mut storage, &mut chain);
-		assert_eq!(storage.best_finalized_header().header.number, 2);
-	})
-}
-
-#[test]
-fn fork_can_import_header_which_schedules_set_change() {
-	run_test(|| {
-		let mut storage = PalletStorage::<TestRuntime>::new();
-
-		let mut chain = vec![
-			(Type::Header(1, 1, None, None), Ok(())),
-			(Type::Header(2, 1, None, Some(0)), Ok(())),
-		];
-
-		create_chain(&mut storage, &mut chain);
-	})
-}
-
 // Order: 1, 2, 2', F2, F2'
 //
 // [1] <- [2: F]
 //   \ [2']
 //
 // Not allowed to finalize 2'
-//
 #[test]
 fn fork_does_not_allow_competing_finality_proofs() {
 	run_test(|| {
