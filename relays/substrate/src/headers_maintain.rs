@@ -121,7 +121,7 @@ where
 		);
 
 		// Select justification to submit to the target node. We're submitting at most one justification
-		// on every maintain call. So maintain rate directly affects finalization rate. Please
+		// on every maintain call. So maintain rate directly affects finalization rate.
 		let justification_to_submit = poll_fn(|context| {
 			// read justifications from the stream and push to the queue
 			justifications.read_from_stream::<C::Header>(context);
