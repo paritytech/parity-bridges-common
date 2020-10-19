@@ -288,6 +288,10 @@ fn fork_does_not_allow_competing_finality_proofs() {
 // [1] <- [2: S|0] <- [3]
 //
 // Not allowed to import 3 until we get F2
+//
+// Note: Grandpa would technically allow 3 to be imported as long as it didn't try and enact an
+// authority set change. However, since we expect finality proofs to be imported quickly we've
+// decided to simplify our import process and disallow header imports until we get a finality proof.
 #[test]
 fn fork_waits_for_finality_proof_before_importing_header_past_one_which_enacts_a_change() {
 	run_test(|| {
