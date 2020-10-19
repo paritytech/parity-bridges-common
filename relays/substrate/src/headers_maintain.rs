@@ -57,13 +57,13 @@ pub struct SubstrateHeadersToSubstrateMaintain<P: SubstrateHeadersSyncPipeline, 
 struct Justifications<P: SubstrateHeadersSyncPipeline> {
 	/// Justifications stream.
 	stream: JustificationsSubscription,
-	/// Justifications that we have read from the stream but have not send to the
+	/// Justifications that we have read from the stream but have not sent to the
 	/// target node, because their targets were still not synced.
 	queue: VecDeque<(HeaderIdOf<P>, Justification)>,
 }
 
 impl<P: SubstrateHeadersSyncPipeline, C: Chain> SubstrateHeadersToSubstrateMaintain<P, C> {
-	/// Create new maitnain procedure.
+	/// Create new maintain procedure.
 	pub fn new(pipeline: P, target_client: Client<C>, justifications: JustificationsSubscription) -> Self {
 		SubstrateHeadersToSubstrateMaintain {
 			pipeline,
