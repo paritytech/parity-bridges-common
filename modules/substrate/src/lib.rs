@@ -85,9 +85,11 @@ decl_storage! {
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change.
+		///
+		/// Signal Block => Change
 		// Grandpa doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
-		NextScheduledChange: Option<ScheduledChange<BridgedBlockNumber<T>>>;
+		NextScheduledChange: map hasher(identity) BridgedBlockHash<T> => Option<ScheduledChange<BridgedBlockNumber<T>>>;
 	}
 	add_extra_genesis {
 		config(initial_header): Option<BridgedHeader<T>>;
@@ -115,6 +117,7 @@ decl_storage! {
 					header: initial_header,
 					requires_justification: false,
 					is_finalized: true,
+					signal_hash: None,
 				},
 			);
 
@@ -123,7 +126,7 @@ decl_storage! {
 			CurrentAuthoritySet::put(authority_set);
 
 			if let Some(ref change) = config.first_scheduled_change {
-				<NextScheduledChange<T>>::put(change);
+				<NextScheduledChange<T>>::insert(initial_hash, change);
 			};
 		})
 	}
@@ -298,13 +301,22 @@ pub trait BridgeStorage {
 	/// Replace the current authority set with the next scheduled set.
 	///
 	/// Returns an error if there is no scheduled authority set to enact.
-	fn enact_authority_set(&mut self) -> Result<(), ()>;
+	fn enact_authority_set(&mut self, signal_hash: <Self::Header as HeaderT>::Hash) -> Result<(), ()>;
 
 	/// Get the next scheduled Grandpa authority set change.
-	fn scheduled_set_change(&self) -> Option<ScheduledChange<<Self::Header as HeaderT>::Number>>;
+	fn scheduled_set_change(
+		&self,
+		signal_hash: <Self::Header as HeaderT>::Hash,
+	) -> Option<ScheduledChange<<Self::Header as HeaderT>::Number>>;
 
 	/// Schedule a Grandpa authority set change in the future.
-	fn schedule_next_set_change(&self, next_change: ScheduledChange<<Self::Header as HeaderT>::Number>);
+	///
+	/// Takes the hash of the header which scheduled this particular change.
+	fn schedule_next_set_change(
+		&self,
+		signal_hash: <Self::Header as HeaderT>::Hash,
+		next_change: ScheduledChange<<Self::Header as HeaderT>::Number>,
+	);
 }
 
 /// Used to interact with the pallet storage in a more abstract way.
@@ -386,9 +398,9 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		CurrentAuthoritySet::put(new_set)
 	}
 
-	fn enact_authority_set(&mut self) -> Result<(), ()> {
-		if <NextScheduledChange<T>>::exists() {
-			let new_set = <NextScheduledChange<T>>::take()
+	fn enact_authority_set(&mut self, signal_hash: BridgedBlockHash<T>) -> Result<(), ()> {
+		if <NextScheduledChange<T>>::contains_key(signal_hash) {
+			let new_set = <NextScheduledChange<T>>::take(signal_hash)
 				.expect("Ensured that entry existed in storage")
 				.authority_set;
 			self.update_current_authority_set(new_set);
@@ -399,11 +411,15 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		}
 	}
 
-	fn scheduled_set_change(&self) -> Option<ScheduledChange<BridgedBlockNumber<T>>> {
-		<NextScheduledChange<T>>::get()
+	fn scheduled_set_change(&self, signal_hash: BridgedBlockHash<T>) -> Option<ScheduledChange<BridgedBlockNumber<T>>> {
+		<NextScheduledChange<T>>::get(signal_hash)
 	}
 
-	fn schedule_next_set_change(&self, next_change: ScheduledChange<BridgedBlockNumber<T>>) {
-		<NextScheduledChange<T>>::put(next_change)
+	fn schedule_next_set_change(
+		&self,
+		signal_hash: BridgedBlockHash<T>,
+		next_change: ScheduledChange<BridgedBlockNumber<T>>,
+	) {
+		<NextScheduledChange<T>>::insert(signal_hash, next_change)
 	}
 }

@@ -56,9 +56,9 @@ use crate::mock::*;
 use crate::storage::{AuthoritySet, ImportedHeader};
 use crate::verifier::*;
 use crate::BridgeStorage;
-use crate::{BestFinalized, ChainTipHeight, PalletStorage};
+use crate::{BestFinalized, ChainTipHeight, NextScheduledChange, PalletStorage};
 use codec::Encode;
-use frame_support::{StorageMap, StorageValue};
+use frame_support::{IterableStorageMap, StorageValue};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::{Digest, DigestItem};
 
@@ -97,6 +97,7 @@ where
 			header: genesis,
 			requires_justification: false,
 			is_finalized: true,
+			signal_hash: None,
 		};
 
 		<BestFinalized<TestRuntime>>::put(genesis.hash());
@@ -135,8 +136,8 @@ where
 						let res = verifier.import_header(header.clone()).map_err(|_| ());
 						assert_eq!(
 							res, *expected_result,
-							"Expected {:?} while importing header {}",
-							*expected_result, *num
+							"Expected {:?} while importing header ({}, {})",
+							*expected_result, *num, *fork_id,
 						);
 						match res {
 							Ok(_) => {
@@ -172,8 +173,8 @@ where
 					let res = verifier.import_header(header.clone()).map_err(|_| ());
 					assert_eq!(
 						res, *expected_result,
-						"Expected {:?} while importing header {}",
-						*expected_result, *num
+						"Expected {:?} while importing header ({}, {})",
+						*expected_result, *num, *fork_id,
 					);
 					match res {
 						Ok(_) => {
@@ -323,32 +324,13 @@ fn fork_does_not_allow_competing_finality_proofs() {
 	})
 }
 
-// Order: 1, 2, 3, 4
+// Order: 1, 2, 3, F2, 3
 //
-// [1] <- [2: S|1] <- [3: E] <- [4]
+// [1] <- [2: S|0] <- [3]
 //
-// Not allowed to import 4
+// Not allowed to import 3 until we get F2
 #[test]
-// FIXME: This fails
-fn fork_does_not_allow_importing_past_header_which_enacts_change() {
-	run_test(|| {
-		let mut storage = PalletStorage::<TestRuntime>::new();
-
-		let mut chain = vec![
-			(Type::Header(1, 1, None, None), Ok(())),
-			(Type::Header(2, 1, None, Some(1)), Ok(())),
-			(Type::Header(3, 1, None, None), Ok(())),
-			(Type::Header(4, 1, None, None), Err(())),
-		];
-
-		create_chain(&mut storage, &mut chain);
-	})
-}
-
-// TODO: This is basically a duplicate of the above
-#[test]
-// FIXME: This fails
-fn fork_does_not_import_headers_past_once_which_enacts_a_change() {
+fn fork_waits_for_finality_proof_before_importing_header_past_one_which_enacts_a_change() {
 	run_test(|| {
 		let mut storage = PalletStorage::<TestRuntime>::new();
 
@@ -364,20 +346,15 @@ fn fork_does_not_import_headers_past_once_which_enacts_a_change() {
 	})
 }
 
-// Order: 1, 2, 2', 3, 3'
+// Order: 1, 2, 2', 3', F2, 3, 4'
 //
-//   / [2: S|0] <- [3]
-// [1] <- [2': S|0] <- [3']
+//   / [2': S|1] <- [3'] <- [4']
+// [1] <- [2: S|0] <- [3]
 //
 //
-// Should not be allowed to import 3 or 3'
-//    Ancestor enacts an authority set change
-// Will resolve fork depending on which finality proof for {2|2'} we get first
-//
-// NOTE: The test above is basically a duplicate of the above two tests, maybe
-// just keep this one
+// Not allowed to import 3 or 4'
+// Can only import 3 after we get the finality proof for 2
 #[test]
-// FIXME: This fails
 fn fork_does_not_allow_importing_past_header_that_enacts_changes_on_forks() {
 	run_test(|| {
 		let mut storage = PalletStorage::<TestRuntime>::new();
@@ -385,12 +362,24 @@ fn fork_does_not_allow_importing_past_header_that_enacts_changes_on_forks() {
 		let mut chain = vec![
 			(Type::Header(1, 1, None, None), Ok(())),
 			(Type::Header(2, 1, None, Some(0)), Ok(())),
-			(Type::Header(2, 2, Some((1, 1)), Some(0)), Ok(())),
+			(Type::Header(2, 2, Some((1, 1)), Some(1)), Ok(())),
 			(Type::Header(3, 1, None, None), Err(())),
-			(Type::Header(3, 2, None, None), Err(())),
+			(Type::Header(3, 2, None, None), Ok(())),
+			(Type::Finality(2, 1), Ok(())),
+			(Type::Header(3, 1, None, None), Ok(())),
+			(Type::Header(4, 2, None, None), Err(())),
 		];
 
 		create_chain(&mut storage, &mut chain);
+
+		// Since we can't query the map directly to check if we applied the right authority set
+		// change (we don't know the header hash of 2) we need to get a little clever.
+		let mut next_change = <NextScheduledChange<TestRuntime>>::iter();
+		let (_, scheduled_change_on_fork) = next_change.next().unwrap();
+		assert_eq!(scheduled_change_on_fork.height, 3);
+
+		// Sanity check to make sure we enacted the change on the canonical change
+		assert_eq!(next_change.next(), None);
 	})
 }
 
@@ -402,7 +391,6 @@ fn fork_does_not_allow_importing_past_header_that_enacts_changes_on_forks() {
 // Not allowed to import 3
 // Fine to import 2' and 3'
 #[test]
-// FIXME: This fails
 fn fork_allows_importing_on_different_fork_while_waiting_for_finality_proof() {
 	run_test(|| {
 		let mut storage = PalletStorage::<TestRuntime>::new();
@@ -456,7 +444,6 @@ fn fork_does_not_allow_importing_on_different_fork_past_finalized_header() {
 //
 // Not allowed to import {4, 4'}
 #[test]
-// FIXME: This fails
 fn fork_can_track_scheduled_changes_across_forks() {
 	run_test(|| {
 		let mut storage = PalletStorage::<TestRuntime>::new();

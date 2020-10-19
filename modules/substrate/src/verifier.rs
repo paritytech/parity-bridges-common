@@ -68,10 +68,10 @@ pub enum ImportError {
 	/// the authority weights being empty or overflowing the `AuthorityWeight`
 	/// type.
 	InvalidAuthoritySet,
-	/// This header schedules an authority set change even though we're still waiting
-	/// for an old authority set change to be enacted.
-	// TODO: Might not need this
-	PendingAuthoritySetChange,
+	/// This header is not allowed to be imported since an ancestor requires a finality proof.
+	///
+	/// This can happen if an ancestor is supposed to enact an authority set change.
+	AwaitingFinalityProof,
 }
 
 /// Errors which can happen while verifying a headers finality.
@@ -135,18 +135,31 @@ where
 		// need to act on it right away (we'll update the set once this header gets finalized), but
 		// we need to make a note of it.
 		//
-		// Note: This assumes that we can only have one authority set change pending at a time.
-		// While this is not strictly true of Grandpa (it can have multiple pending changes, even
-		// across forks), this assumption simplifies our tracking of authority set changes.
-		let requires_justification = if let Some(change) = self.storage.scheduled_set_change() {
-			change.height == *header.number()
+		// Note: This assumes that we can only have one authority set change pending per fork at a
+		// time. While this is not strictly true of Grandpa (it can have multiple pending changes,
+		// even across forks), this assumption simplifies our tracking of authority set changes.
+		let mut signal_hash = parent_header.signal_hash;
+
+		// Check if our fork is expecting an authority set change
+		let requires_justification = if let Some(hash) = signal_hash {
+			if let Some(change) = self.storage.scheduled_set_change(hash) {
+				if *header.number() > change.height {
+					return Err(ImportError::AwaitingFinalityProof);
+				}
+
+				change.height == *header.number()
+			} else {
+				// I don't think we should be allowed to get here
+				// If the header indicates that there's a scheduled change there should be one in
+				// storage, otherwise we've messed up somewhere
+				unreachable!()
+			}
 		} else {
 			// Since we don't currently have a pending authority set change let's check if the header
 			// contains a log indicating when the next change should be.
 			if let Some(change) = find_scheduled_change(&header) {
 				let mut total_weight = 0u64;
 
-				// We need to make sure that we don't overflow the `AuthorityWeight` type.
 				for (_id, weight) in &change.next_authorities {
 					total_weight = total_weight
 						.checked_add(*weight)
@@ -167,12 +180,21 @@ where
 				let height = (*header.number())
 					.checked_add(&change.delay)
 					.ok_or(ImportError::ScheduledHeightOverflow)?;
+
 				let scheduled_change = ScheduledChange {
 					authority_set: next_set,
 					height,
 				};
 
-				self.storage.schedule_next_set_change(scheduled_change);
+				// We got an authority set at this block, so we should update the header
+				// which scheduled a change, and the height at which the change is
+				// going to be enacted for any headers on this fork.
+				//
+				// Since we schedule a chang we get to dictate when the next
+				// change height is on this fork
+				signal_hash = Some(header.hash());
+
+				self.storage.schedule_next_set_change(header.hash(), scheduled_change);
 
 				// If the delay is 0 this header will enact the change it signaled
 				height == *header.number()
@@ -185,6 +207,7 @@ where
 			header,
 			requires_justification,
 			is_finalized: false,
+			signal_hash,
 		});
 
 		if requires_justification {
@@ -264,9 +287,12 @@ where
 		if header.requires_justification {
 			// If we are unable to enact an authority set it means our storage entry for scheduled
 			// changes is missing. Best to crash since this is likely a bug.
-			let _ = self.storage.enact_authority_set().expect(
-				"Headers must only be marked as `requires_justification` if there's a scheduled change in storage.",
-			);
+			let _ = self
+				.storage
+				.enact_authority_set(header.signal_hash.expect("TODO"))
+				.expect(
+					"Headers must only be marked as `requires_justification` if there's a scheduled change in storage.",
+				);
 
 			// Clear the storage entry since we got a justification
 			self.storage.update_unfinalized_header(None);
@@ -275,6 +301,7 @@ where
 		for header in finalized_headers.iter_mut() {
 			header.is_finalized = true;
 			header.requires_justification = false;
+			header.signal_hash = None;
 			self.storage.write_header(header);
 		}
 
@@ -345,6 +372,7 @@ mod tests {
 			header: test_header(num),
 			requires_justification: false,
 			is_finalized: false,
+			signal_hash: None,
 		}
 	}
 
@@ -368,6 +396,7 @@ mod tests {
 			header: test_header(0),
 			requires_justification: false,
 			is_finalized: true,
+			signal_hash: None,
 		};
 
 		<BestFinalized<TestRuntime>>::put(genesis.hash());
@@ -379,6 +408,7 @@ mod tests {
 				header: test_header(num),
 				requires_justification,
 				is_finalized,
+				signal_hash: None,
 			};
 
 			storage.write_header(&header);
@@ -429,6 +459,7 @@ mod tests {
 				header: header.clone(),
 				requires_justification: false,
 				is_finalized: false,
+				signal_hash: None,
 			};
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
 
@@ -449,6 +480,7 @@ mod tests {
 				header: parent,
 				requires_justification: false,
 				is_finalized: true,
+				signal_hash: None,
 			};
 			<ImportedHeaders<TestRuntime>>::insert(parent_hash, &imported_header);
 
@@ -566,6 +598,7 @@ mod tests {
 				header: bad_ancestor,
 				requires_justification: false,
 				is_finalized: false,
+				signal_hash: None,
 			};
 
 			let child = imported_headers.pop().unwrap();
@@ -591,6 +624,7 @@ mod tests {
 				header: new_ancestor,
 				requires_justification: false,
 				is_finalized: false,
+				signal_hash: None,
 			};
 
 			let child = imported_headers.pop().unwrap();
@@ -699,7 +733,7 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let headers = vec![(1, false, false)];
-			let _imported_headers = write_headers(&mut storage, headers);
+			let imported_headers = write_headers(&mut storage, headers);
 
 			let set_id = 1;
 			let authorities = authority_list();
@@ -717,7 +751,7 @@ mod tests {
 			let height = *header.number();
 			let authorities = vec![alice()];
 			let change = schedule_next_change(authorities, set_id, height);
-			storage.schedule_next_set_change(change.clone());
+			storage.schedule_next_set_change(imported_headers[0].clone().hash(), change.clone());
 
 			let mut verifier = Verifier {
 				storage: storage.clone(),
@@ -745,6 +779,7 @@ mod tests {
 				header: genesis,
 				requires_justification: false,
 				is_finalized: true,
+				signal_hash: None,
 			};
 
 			// Make sure that genesis is the best finalized header
@@ -799,7 +834,7 @@ mod tests {
 			let height = *header.number();
 			let authorities = vec![alice()];
 			let change = schedule_next_change(authorities, set_id, height);
-			storage.schedule_next_set_change(change.clone());
+			storage.schedule_next_set_change(imported_headers[0].clone().hash(), change.clone());
 
 			// Import header N
 			let mut verifier = Verifier {
@@ -854,7 +889,7 @@ mod tests {
 	fn rejects_multiple_headers_which_schedule_authority_set_changes() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let _imported_headers = write_headers(&mut storage, vec![]);
+			let imported_headers = write_headers(&mut storage, vec![]);
 
 			// Set up our initial authority set
 			let set_id = 1;
@@ -870,7 +905,7 @@ mod tests {
 			let height = *header.number();
 			let authorities = vec![alice()];
 			let change = schedule_next_change(authorities, set_id, height);
-			storage.schedule_next_set_change(change.clone());
+			storage.schedule_next_set_change(imported_headers[0].clone().hash(), change.clone());
 
 			// Import header N
 			let mut verifier = Verifier {
@@ -901,7 +936,7 @@ mod tests {
 			// schedule any more changes until that gets enacted.
 			assert_eq!(
 				verifier.import_header(child.clone()),
-				Err(ImportError::PendingAuthoritySetChange)
+				Err(ImportError::AwaitingFinalityProof)
 			);
 
 			// Let's enact the pending authority set by importing the justification for header N
