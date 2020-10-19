@@ -22,7 +22,7 @@
 //! essential for running all other bridge applications.
 
 // required for futures::select!
-#![recursion_limit = "2048"]
+#![recursion_limit = "1024"]
 #![warn(missing_docs)]
 
 pub mod headers;
