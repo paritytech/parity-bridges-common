@@ -43,7 +43,7 @@ use frame_support::{
 	Parameter, StorageMap,
 };
 use frame_system::ensure_signed;
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
 mod inbound_lane;
 mod outbound_lane;
@@ -370,7 +370,7 @@ decl_module! {
 fn inbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
 	InboundLane::new(RuntimeInboundLaneStorage {
 		lane_id,
-		cached_data: None,
+		cached_data: RefCell::new(None),
 		_phantom: Default::default(),
 	})
 }
@@ -386,7 +386,7 @@ fn outbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<Runt
 /// Runtime inbound lane storage.
 struct RuntimeInboundLaneStorage<T: Trait<I>, I = DefaultInstance> {
 	lane_id: LaneId,
-	cached_data: Option<InboundLaneData<T::InboundRelayer>>,
+	cached_data: RefCell<Option<InboundLaneData<T::InboundRelayer>>>,
 	_phantom: PhantomData<I>,
 }
 
@@ -402,19 +402,27 @@ impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<
 		T::MaxUnconfirmedMessagesAtInboundLane::get()
 	}
 
-	fn data(&mut self) -> InboundLaneData<T::InboundRelayer> {
-		match self.cached_data.clone() {
+	fn data(&self) -> InboundLaneData<T::InboundRelayer> {
+		match self.cached_data.clone().into_inner() {
 			Some(data) => data,
 			None => {
 				let data = InboundLanes::<T, I>::get(&self.lane_id);
-				self.cached_data = Some(data.clone());
+				*self.cached_data.try_borrow_mut().expect(
+					"we're in the single-threaded environment;\
+						we have no recursive boorows;
+						qed",
+				) = Some(data.clone());
 				data
 			}
 		}
 	}
 
 	fn set_data(&mut self, data: InboundLaneData<T::InboundRelayer>) {
-		self.cached_data = Some(data.clone());
+		*self.cached_data.try_borrow_mut().expect(
+			"we're in the single-threaded environment;\
+				we have no recursive boorows;
+				qed",
+		) = Some(data.clone());
 		InboundLanes::<T, I>::insert(&self.lane_id, data)
 	}
 }

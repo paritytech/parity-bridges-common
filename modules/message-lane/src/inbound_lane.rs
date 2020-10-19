@@ -33,7 +33,7 @@ pub trait InboundLaneStorage {
 	/// Return maximal number of unconfirmed messages in inbound lane.
 	fn max_unconfirmed_messages(&self) -> MessageNonce;
 	/// Get lane data from the storage.
-	fn data(&mut self) -> InboundLaneData<Self::Relayer>;
+	fn data(&self) -> InboundLaneData<Self::Relayer>;
 	/// Update lane data in the storage.
 	fn set_data(&mut self, data: InboundLaneData<Self::Relayer>);
 }
