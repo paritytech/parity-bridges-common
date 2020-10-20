@@ -333,16 +333,25 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	type Header = BridgedHeader<T>;
 
 	fn write_header(&mut self, header: &ImportedHeader<BridgedHeader<T>>) {
+		use core::cmp::Ordering;
+
 		let hash = header.hash();
 		let current_height = header.number();
 		let best_height = <ChainTipHeight<T>>::get();
 
-		if *current_height == best_height {
-			<BestHeaders<T>>::append(hash);
-		} else if *current_height > best_height {
-			<BestHeaders<T>>::kill();
-			<BestHeaders<T>>::append(hash);
-			<ChainTipHeight<T>>::put(current_height);
+		match current_height.cmp(&best_height) {
+			Ordering::Equal => {
+				<BestHeaders<T>>::append(hash);
+			}
+			Ordering::Greater => {
+				<BestHeaders<T>>::kill();
+				<BestHeaders<T>>::append(hash);
+				<ChainTipHeight<T>>::put(current_height);
+			}
+			Ordering::Less => {
+				// This is fine. We can still have a valid header, but it might just be on a
+				// different fork and at a lower height than the "best" overall header.
+			}
 		}
 
 		<ImportedHeaders<T>>::insert(hash, header);
