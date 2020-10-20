@@ -54,7 +54,7 @@ impl From<Vec<u8>> for FinalityProof {
 /// Errors which can happen while importing a header.
 #[derive(RuntimeDebug, PartialEq)]
 pub enum ImportError {
-	/// This header is older than our latest finalized block, thus not useful.
+	/// This header is at the same height or older than our latest finalized block, thus not useful.
 	OldHeader,
 	/// This header has already been imported by the pallet.
 	HeaderAlreadyExists,
@@ -86,7 +86,7 @@ pub enum FinalizationError {
 	PrematureJustification,
 	/// We failed to verify this header's ancestry.
 	AncestryCheckFailed,
-	/// This header is older than our latest finalized block, thus not useful.
+	/// This header is at the same height or older than our latest finalized block, thus not useful.
 	OldHeader,
 	/// The given justification was not able to finalize the given header.
 	///

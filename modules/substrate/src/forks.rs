@@ -49,9 +49,10 @@
 //!
 //! ## Example Import 3
 //!
-//! (Type::Finality(2, 1), Err(()))
+//! (Type::Finality(2, 1), Err(FinalizationError::OldHeader.into()))
 //!
-//! Import a finality proof for header 2 on fork 1. This finalty proof should fail to be imported.
+//! Import a finality proof for header 2 on fork 1. This finalty proof should fail to be imported
+//! because the header is an old header.
 
 use crate::justification::tests::*;
 use crate::mock::{helpers::*, *};
@@ -120,7 +121,7 @@ fn fork_does_not_allow_competing_finality_proofs() {
 			(Type::Header(2, 1, None, None), Ok(())),
 			(Type::Header(2, 2, Some((1, 1)), None), Ok(())),
 			(Type::Finality(2, 1), Ok(())),
-			(Type::Finality(2, 2), Err(())),
+			(Type::Finality(2, 2), Err(FinalizationError::OldHeader.into())),
 		];
 
 		create_chain(&mut storage, &mut chain);
@@ -144,7 +145,10 @@ fn fork_waits_for_finality_proof_before_importing_header_past_one_which_enacts_a
 		let mut chain = vec![
 			(Type::Header(1, 1, None, None), Ok(())),
 			(Type::Header(2, 1, None, Some(0)), Ok(())),
-			(Type::Header(3, 1, None, None), Err(())),
+			(
+				Type::Header(3, 1, None, None),
+				Err(ImportError::AwaitingFinalityProof.into()),
+			),
 			(Type::Finality(2, 1), Ok(())),
 			(Type::Header(3, 1, None, None), Ok(())),
 		];
@@ -167,7 +171,10 @@ fn fork_does_not_allow_multiple_scheduled_changes_on_the_same_fork() {
 		let mut chain = vec![
 			(Type::Header(1, 1, None, None), Ok(())),
 			(Type::Header(2, 1, None, Some(1)), Ok(())),
-			(Type::Header(3, 1, None, Some(0)), Err(())),
+			(
+				Type::Header(3, 1, None, Some(0)),
+				Err(ImportError::PendingAuthoritySetChange.into()),
+			),
 			(Type::Finality(2, 1), Ok(())),
 			(Type::Header(3, 1, None, Some(0)), Ok(())),
 		];
@@ -221,11 +228,17 @@ fn fork_does_not_allow_importing_past_header_that_enacts_changes_on_forks() {
 			(Type::Header(1, 1, None, None), Ok(())),
 			(Type::Header(2, 1, None, Some(0)), Ok(())),
 			(Type::Header(2, 2, Some((1, 1)), Some(1)), Ok(())),
-			(Type::Header(3, 1, None, None), Err(())),
+			(
+				Type::Header(3, 1, None, None),
+				Err(ImportError::AwaitingFinalityProof.into()),
+			),
 			(Type::Header(3, 2, None, None), Ok(())),
 			(Type::Finality(2, 1), Ok(())),
 			(Type::Header(3, 1, None, None), Ok(())),
-			(Type::Header(4, 2, None, None), Err(())),
+			(
+				Type::Header(4, 2, None, None),
+				Err(ImportError::AwaitingFinalityProof.into()),
+			),
 		];
 
 		create_chain(&mut storage, &mut chain);
@@ -256,7 +269,10 @@ fn fork_allows_importing_on_different_fork_while_waiting_for_finality_proof() {
 		let mut chain = vec![
 			(Type::Header(1, 1, None, None), Ok(())),
 			(Type::Header(2, 1, None, Some(0)), Ok(())),
-			(Type::Header(3, 1, None, None), Err(())),
+			(
+				Type::Header(3, 1, None, None),
+				Err(ImportError::AwaitingFinalityProof.into()),
+			),
 			(Type::Header(2, 2, Some((1, 1)), None), Ok(())),
 			(Type::Header(3, 2, None, None), Ok(())),
 		];
@@ -308,13 +324,37 @@ fn fork_can_track_scheduled_changes_across_forks() {
 			(Type::Header(1, 1, None, None), Ok(())),
 			(Type::Header(2, 1, None, Some(1)), Ok(())),
 			(Type::Header(3, 1, None, None), Ok(())),
-			(Type::Header(4, 1, None, None), Err(())),
+			(
+				Type::Header(4, 1, None, None),
+				Err(ImportError::AwaitingFinalityProof.into()),
+			),
 			(Type::Header(3, 2, Some((2, 1)), None), Ok(())),
-			(Type::Header(4, 2, None, None), Err(())),
+			(
+				Type::Header(4, 2, None, None),
+				Err(ImportError::AwaitingFinalityProof.into()),
+			),
 		];
 
 		create_chain(&mut storage, &mut chain);
 	})
+}
+
+#[derive(Debug, PartialEq)]
+enum TestError {
+	Import(ImportError),
+	Finality(FinalizationError),
+}
+
+impl From<ImportError> for TestError {
+	fn from(e: ImportError) -> Self {
+		TestError::Import(e)
+	}
+}
+
+impl From<FinalizationError> for TestError {
+	fn from(e: FinalizationError) -> Self {
+		TestError::Finality(e)
+	}
 }
 
 // Builds a fork-aware representation of a blockchain given a list of headers.
@@ -324,7 +364,7 @@ fn fork_can_track_scheduled_changes_across_forks() {
 //
 // The first header in the list will be used as the genesis header and will be manually imported
 // into storage.
-fn create_chain<S>(storage: &mut S, chain: &mut Vec<(Type, Result<(), ()>)>)
+fn create_chain<S>(storage: &mut S, chain: &mut Vec<(Type, Result<(), TestError>)>)
 where
 	S: BridgeStorage<Header = TestHeader> + Clone,
 {
@@ -356,11 +396,11 @@ where
 						}
 
 						// Try and import into storage
-						let res = verifier.import_header(header.clone()).map_err(|_| ());
+						let res = verifier.import_header(header.clone()).map_err(TestError::Import);
 						assert_eq!(
 							res, *expected_result,
-							"Expected {:?} while importing header ({}, {})",
-							*expected_result, *num, *fork_id,
+							"Expected {:?} while importing header ({}, {}), got {:?}",
+							*expected_result, *num, *fork_id, res,
 						);
 
 						// Let's mark the header down in a new fork
@@ -386,13 +426,11 @@ where
 						header.digest = change_log(*delay);
 					}
 
-					// Try and import into storage
-					// TODO: Should check errors
-					let res = verifier.import_header(header.clone()).map_err(|_| ());
+					let res = verifier.import_header(header.clone()).map_err(TestError::Import);
 					assert_eq!(
 						res, *expected_result,
-						"Expected {:?} while importing header ({}, {})",
-						*expected_result, *num, *fork_id,
+						"Expected {:?} while importing header ({}, {}), got {:?}",
+						*expected_result, *num, *fork_id, res,
 					);
 
 					if res.is_ok() {
@@ -416,12 +454,11 @@ where
 
 				let res = verifier
 					.import_finality_proof(header.hash(), justification.into())
-					.map_err(|_| ());
-
+					.map_err(TestError::Finality);
 				assert_eq!(
 					res, *expected_result,
-					"Expected {:?} while importing finality proof for header ({}, {})",
-					*expected_result, *num, *fork_id,
+					"Expected {:?} while importing finality proof for header ({}, {}), got {:?}",
+					*expected_result, *num, *fork_id, res,
 				);
 			}
 		}
