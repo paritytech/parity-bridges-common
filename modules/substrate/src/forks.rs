@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Tests for checking that behaviour of importing header and finality
-//! proofs works correctly, especially around forking conditions.
+//! Tests for checking that behaviour of importing headers and finality proofs works correctly.
+//!
+//! The tests are built around the idea that we will be importing headers on different forks and we
+//! should be able to check that we're correctly importing headers, scheduling changes, and
+//! finalizing headers across different forks.
 //!
 //! Each test is depicted using beautiful ASCII art. The symbols used in the tests are the
 //! following:
@@ -39,9 +42,9 @@
 //!
 //! ## Example Import 2
 //!
-//! (Type::Header(2, 2, Some((3, 1)), Some(0)), Ok(()))
+//! (Type::Header(4, 2, Some((3, 1)), Some(0)), Ok(()))
 //!
-//! Import header 2 on fork 2. This header starts a new fork from header 3 on fork 1. It also
+//! Import header 4 on fork 2. This header starts a new fork from header 3 on fork 1. It also
 //! schedules a change with a delay of 0 blocks. It should be succesfully imported.
 //!
 //! ## Example Import 3
@@ -64,51 +67,34 @@ use sp_runtime::{Digest, DigestItem};
 
 use std::collections::BTreeMap;
 
-type ForkId = u32;
+type ForkId = u64;
+type Delay = u64;
 
-// (Parent Num, ForkId)
+// Indicates when to start a new fork. The first item in the tuple
+// will be the parent header of the header starting this fork.
 type ForksAt = Option<(TestNumber, ForkId)>;
-
-// Delay, not block number
-type ScheduledChangeAt = Option<u32>;
+type ScheduledChangeAt = Option<Delay>;
 
 #[derive(Debug)]
 enum Type {
-	Header(u32, ForkId, ForksAt, ScheduledChangeAt),
+	Header(TestNumber, ForkId, ForksAt, ScheduledChangeAt),
 	Finality(TestNumber, ForkId),
 }
 
+// Takes a list of headers and finality proof operations which will be applied in order. The
+// expected outcome for each operation is also required.
+//
+// The first header in the list will be used as the genesis header and will be manually imported
+// into storage.
 fn create_chain<S>(storage: &mut S, chain: &mut Vec<(Type, Result<(), ()>)>)
 where
 	S: BridgeStorage<Header = TestHeader> + Clone,
 {
 	let mut map = BTreeMap::new();
-
 	let mut verifier = Verifier {
 		storage: storage.clone(),
 	};
-
-	if let (Type::Header(g_num, g_fork, None, None), _) = chain.remove(0) {
-		let genesis = test_header(g_num.into());
-		map.insert(g_fork, vec![genesis.clone()]);
-
-		// Bootstrap stuff, maybe move out of this function
-		let genesis = ImportedHeader {
-			header: genesis,
-			requires_justification: false,
-			is_finalized: true,
-			signal_hash: None,
-		};
-
-		<BestFinalized<TestRuntime>>::put(genesis.hash());
-		storage.write_header(&genesis);
-	}
-
-	// Maybe also move this to an init() helper
-	let set_id = 1;
-	let authorities = authority_list();
-	let authority_set = AuthoritySet::new(authorities.clone(), set_id);
-	storage.update_current_authority_set(authority_set);
+	initialize_genesis(storage, &mut map, chain.remove(0).0);
 
 	for h in chain {
 		match h {
@@ -123,13 +109,12 @@ where
 							.find(|h| h.number == *parent_num)
 							.expect("Trying to fork on a parent which doesn't exist");
 
-						// TODO: Handle numbers better
-						let mut header = test_header(*num as u64);
+						let mut header = test_header(*num);
 						header.parent_hash = parent.hash();
 						header.state_root = [*fork_id as u8; 32].into();
 
 						if let Some(delay) = schedules_change {
-							header.digest = change_log(*delay as u64);
+							header.digest = change_log(*delay);
 						}
 
 						// Try and import into storage
@@ -139,14 +124,10 @@ where
 							"Expected {:?} while importing header ({}, {})",
 							*expected_result, *num, *fork_id,
 						);
-						match res {
-							Ok(_) => {
-								// Let's mark the header down in a new fork
-								map.insert(*fork_id, vec![header]);
-							}
-							Err(_) => {
-								eprintln!("Unable to import header ({:?}, {:?})", num, fork_id);
-							}
+
+						// Let's mark the header down in a new fork
+						if res.is_ok() {
+							map.insert(*fork_id, vec![header]);
 						}
 					}
 				} else {
@@ -156,8 +137,7 @@ where
 						fork.last().unwrap().hash()
 					};
 
-					// TODO: Handle numbers better here
-					let mut header = test_header(*num as u64);
+					let mut header = test_header(*num);
 					header.parent_hash = parent_hash;
 
 					// Doing this to make sure headers at the same height but on
@@ -165,7 +145,7 @@ where
 					header.state_root = [*fork_id as u8; 32].into();
 
 					if let Some(delay) = schedules_change {
-						header.digest = change_log(*delay as u64);
+						header.digest = change_log(*delay);
 					}
 
 					// Try and import into storage
@@ -176,13 +156,9 @@ where
 						"Expected {:?} while importing header ({}, {})",
 						*expected_result, *num, *fork_id,
 					);
-					match res {
-						Ok(_) => {
-							map.get_mut(&fork_id).unwrap().push(header);
-						}
-						Err(_) => {
-							eprintln!("Unable to import header ({:?}, {:?})", num, fork_id);
-						}
+
+					if res.is_ok() {
+						map.get_mut(&fork_id).unwrap().push(header);
 					}
 				}
 			}
@@ -203,17 +179,12 @@ where
 				let res = verifier
 					.import_finality_proof(header.hash(), justification.into())
 					.map_err(|_| ());
+
 				assert_eq!(
 					res, *expected_result,
-					"Expected {:?} while importing finality proof for header {}",
-					*expected_result, *num
+					"Expected {:?} while importing finality proof for header ({}, {})",
+					*expected_result, *num, *fork_id,
 				);
-				match res {
-					Ok(_) => {}
-					Err(_) => {
-						eprintln!("Unable to import finality proof for header ({:?}, {:?})", num, fork_id);
-					}
-				}
 			}
 		}
 	}
@@ -221,6 +192,33 @@ where
 	for (key, value) in map.iter() {
 		println!("{}: {:#?}", key, value);
 	}
+}
+
+fn initialize_genesis<S>(storage: &mut S, map: &mut BTreeMap<TestNumber, Vec<TestHeader>>, genesis: Type)
+where
+	S: BridgeStorage<Header = TestHeader>,
+{
+	if let Type::Header(g_num, g_fork, None, None) = genesis {
+		let genesis = test_header(g_num.into());
+		map.insert(g_fork, vec![genesis.clone()]);
+
+		let genesis = ImportedHeader {
+			header: genesis,
+			requires_justification: false,
+			is_finalized: true,
+			signal_hash: None,
+		};
+
+		<BestFinalized<TestRuntime>>::put(genesis.hash());
+		storage.write_header(&genesis);
+	} else {
+		panic!("Unexpected genesis block format {:#?}", genesis)
+	}
+
+	let set_id = 1;
+	let authorities = authority_list();
+	let authority_set = AuthoritySet::new(authorities.clone(), set_id);
+	storage.update_current_authority_set(authority_set);
 }
 
 fn change_log(delay: u64) -> Digest<TestHash> {
