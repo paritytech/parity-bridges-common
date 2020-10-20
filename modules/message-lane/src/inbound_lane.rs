@@ -282,10 +282,20 @@ mod tests {
 					message_data(REGULAR_PAYLOAD).into()
 				));
 			}
+			// Fails to dispatch new message from different than latest relayer.
 			assert_eq!(
 				false,
 				lane.receive_message::<TestMessageDispatch>(
 					TEST_RELAYER_A + max_nonce + 1,
+					max_nonce + 1,
+					message_data(REGULAR_PAYLOAD).into()
+				)
+			);
+			// Fails to dispatch new messages from latest relayer. Prevents griefing attacks.
+			assert_eq!(
+				false,
+				lane.receive_message::<TestMessageDispatch>(
+					TEST_RELAYER_A + max_nonce,
 					max_nonce + 1,
 					message_data(REGULAR_PAYLOAD).into()
 				)
