@@ -398,15 +398,13 @@ fn fork_allows_importing_on_different_fork_while_waiting_for_finality_proof() {
 //   / [2'] <- [3']
 // [1] <- [2: F] <- [3]
 //
-// Allowed to import 3
-// Should not be allowed to import 3'
-//   Will need to check ancestry with `last_finalized` upon import
-// In current impl we'd be allowed to import 3', but we'd never finalize anything
-// on that fork
+// In our current implementation we're allowed to keep building on fork 2 for as long as our hearts'
+// content. However, we'll never be able to finalize anything on that fork. We'd have to check for
+// ancestry with `best_finalized` on every import which will get expensive.
 //
-// NOTE: I don't think we should allow importing 3'
+// I think this is fine as long as we run pruning every so often to clean up these dead forks.
 #[test]
-fn fork_does_not_allow_importing_on_different_fork_past_finalized_header() {
+fn fork_allows_importing_on_different_fork_past_finalized_header() {
 	run_test(|| {
 		let mut storage = PalletStorage::<TestRuntime>::new();
 
@@ -416,7 +414,7 @@ fn fork_does_not_allow_importing_on_different_fork_past_finalized_header() {
 			(Type::Header(2, 2, Some((1, 1)), None), Ok(())),
 			(Type::Finality(2, 1), Ok(())),
 			(Type::Header(3, 1, None, None), Ok(())),
-			(Type::Header(3, 2, None, None), Ok(())), // I think this should be an Err...
+			(Type::Header(3, 2, None, None), Ok(())),
 		];
 
 		create_chain(&mut storage, &mut chain);
