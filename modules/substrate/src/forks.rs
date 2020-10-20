@@ -198,9 +198,9 @@ fn initialize_genesis<S>(storage: &mut S, map: &mut BTreeMap<TestNumber, Vec<Tes
 where
 	S: BridgeStorage<Header = TestHeader>,
 {
-	if let Type::Header(g_num, g_fork, None, None) = genesis {
-		let genesis = test_header(g_num.into());
-		map.insert(g_fork, vec![genesis.clone()]);
+	if let Type::Header(num, fork_id, None, None) = genesis {
+		let genesis = test_header(num);
+		map.insert(fork_id, vec![genesis.clone()]);
 
 		let genesis = ImportedHeader {
 			header: genesis,
@@ -217,7 +217,7 @@ where
 
 	let set_id = 1;
 	let authorities = authority_list();
-	let authority_set = AuthoritySet::new(authorities.clone(), set_id);
+	let authority_set = AuthoritySet::new(authorities, set_id);
 	storage.update_current_authority_set(authority_set);
 }
 
