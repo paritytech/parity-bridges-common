@@ -134,8 +134,8 @@ where
 			return Err(ImportError::InvalidChildNumber);
 		}
 
-		// This header requires a justification since it enacts an authority set change. We don't
-		// need to act on it right away (we'll update the set once this header gets finalized), but
+		// A header requires a justification if it enacts an authority set change. We don't
+		// need to act on it right away (we'll update the set once the header gets finalized), but
 		// we need to make a note of it.
 		//
 		// Note: This assumes that we can only have one authority set change pending per fork at a
@@ -157,10 +157,9 @@ where
 
 				pending_change.height == *header.number()
 			} else {
-				// I don't think we should be allowed to get here
-				// If the header indicates that there's a scheduled change there should be one in
-				// storage, otherwise we've messed up somewhere
-				unreachable!()
+				let proof = "If the header has a signal hash it means there's an accompanying set
+							change in storage, therefore this branch should never be reached.";
+				unreachable!(proof)
 			}
 		} else {
 			// Since we don't currently have a pending authority set change let's check if the header
@@ -194,15 +193,10 @@ where
 					height,
 				};
 
-				// We got an authority set at this block, so we should update the header
-				// which scheduled a change, and the height at which the change is
-				// going to be enacted for any headers on this fork.
-				//
-				// Since we schedule a chang we get to dictate when the next
-				// change height is on this fork
-				signal_hash = Some(header.hash());
-
-				self.storage.schedule_next_set_change(header.hash(), scheduled_change);
+				// Note: It's important that the signal hash is updated if a header schedules a
+				// change or else we end up with inconsistencies in other places.
+				signal_hash = Some(hash);
+				self.storage.schedule_next_set_change(hash, scheduled_change);
 
 				// If the delay is 0 this header will enact the change it signaled
 				height == *header.number()
@@ -285,14 +279,19 @@ where
 		// new authority set change. When we finalize the header we need to update the current
 		// authority set.
 		if header.requires_justification {
+			let signal_hash_proof = "When we import a header we only mark it as
+			`requires_justification` if we have checked that it contains a signal hash. Therefore
+			this must always be valid.";
+
+			let enact_set_proof =
+				"Headers must only be marked as `requires_justification` if there's a scheduled change in storage.";
+
 			// If we are unable to enact an authority set it means our storage entry for scheduled
 			// changes is missing. Best to crash since this is likely a bug.
 			let _ = self
 				.storage
-				.enact_authority_set(header.signal_hash.expect("TODO"))
-				.expect(
-					"Headers must only be marked as `requires_justification` if there's a scheduled change in storage.",
-				);
+				.enact_authority_set(header.signal_hash.expect(signal_hash_proof))
+				.expect(enact_set_proof);
 		}
 
 		for header in finalized_headers.iter_mut() {
