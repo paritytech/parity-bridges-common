@@ -409,8 +409,7 @@ impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<
 				let data = InboundLanes::<T, I>::get(&self.lane_id);
 				*self.cached_data.try_borrow_mut().expect(
 					"we're in the single-threaded environment;\
-						we have no recursive boorows;
-						qed",
+						we have no recursive borrows; qed",
 				) = Some(data.clone());
 				data
 			}
@@ -420,8 +419,7 @@ impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<
 	fn set_data(&mut self, data: InboundLaneData<T::InboundRelayer>) {
 		*self.cached_data.try_borrow_mut().expect(
 			"we're in the single-threaded environment;\
-				we have no recursive boorows;
-				qed",
+				we have no recursive borrows; qed",
 		) = Some(data.clone());
 		InboundLanes::<T, I>::insert(&self.lane_id, data)
 	}
