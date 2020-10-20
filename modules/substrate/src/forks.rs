@@ -54,17 +54,14 @@
 //! Import a finality proof for header 2 on fork 1. This finalty proof should fail to be imported.
 
 use crate::justification::tests::*;
-use crate::mock::helpers::*;
-use crate::mock::*;
+use crate::mock::{helpers::*, *};
 use crate::storage::{AuthoritySet, ImportedHeader};
 use crate::verifier::*;
-use crate::BridgeStorage;
-use crate::{BestFinalized, ChainTipHeight, NextScheduledChange, PalletStorage};
+use crate::{BestFinalized, BridgeStorage, ChainTipHeight, NextScheduledChange, PalletStorage};
 use codec::Encode;
 use frame_support::{IterableStorageMap, StorageValue};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::{Digest, DigestItem};
-
 use std::collections::BTreeMap;
 
 type ForkId = u64;
@@ -79,157 +76,6 @@ type ScheduledChangeAt = Option<Delay>;
 enum Type {
 	Header(TestNumber, ForkId, ForksAt, ScheduledChangeAt),
 	Finality(TestNumber, ForkId),
-}
-
-// Takes a list of headers and finality proof operations which will be applied in order. The
-// expected outcome for each operation is also required.
-//
-// The first header in the list will be used as the genesis header and will be manually imported
-// into storage.
-fn create_chain<S>(storage: &mut S, chain: &mut Vec<(Type, Result<(), ()>)>)
-where
-	S: BridgeStorage<Header = TestHeader> + Clone,
-{
-	let mut map = BTreeMap::new();
-	let mut verifier = Verifier {
-		storage: storage.clone(),
-	};
-	initialize_genesis(storage, &mut map, chain.remove(0).0);
-
-	for h in chain {
-		match h {
-			(Type::Header(num, fork_id, does_fork, schedules_change), expected_result) => {
-				// If we've never seen this fork before
-				if !map.contains_key(&fork_id) {
-					// Let's get the info about where to start the fork
-					if let Some((parent_num, forked_from_id)) = does_fork {
-						let fork = &*map.get(&forked_from_id).unwrap();
-						let parent = fork
-							.iter()
-							.find(|h| h.number == *parent_num)
-							.expect("Trying to fork on a parent which doesn't exist");
-
-						let mut header = test_header(*num);
-						header.parent_hash = parent.hash();
-						header.state_root = [*fork_id as u8; 32].into();
-
-						if let Some(delay) = schedules_change {
-							header.digest = change_log(*delay);
-						}
-
-						// Try and import into storage
-						let res = verifier.import_header(header.clone()).map_err(|_| ());
-						assert_eq!(
-							res, *expected_result,
-							"Expected {:?} while importing header ({}, {})",
-							*expected_result, *num, *fork_id,
-						);
-
-						// Let's mark the header down in a new fork
-						if res.is_ok() {
-							map.insert(*fork_id, vec![header]);
-						}
-					}
-				} else {
-					// We've seen this fork before so let's append our new header to it
-					let parent_hash = {
-						let fork = &*map.get(&fork_id).unwrap();
-						fork.last().unwrap().hash()
-					};
-
-					let mut header = test_header(*num);
-					header.parent_hash = parent_hash;
-
-					// Doing this to make sure headers at the same height but on
-					// different forks have different hashes
-					header.state_root = [*fork_id as u8; 32].into();
-
-					if let Some(delay) = schedules_change {
-						header.digest = change_log(*delay);
-					}
-
-					// Try and import into storage
-					// TODO: Should check errors
-					let res = verifier.import_header(header.clone()).map_err(|_| ());
-					assert_eq!(
-						res, *expected_result,
-						"Expected {:?} while importing header ({}, {})",
-						*expected_result, *num, *fork_id,
-					);
-
-					if res.is_ok() {
-						map.get_mut(&fork_id).unwrap().push(header);
-					}
-				}
-			}
-			(Type::Finality(num, fork_id), expected_result) => {
-				let header = map[fork_id]
-					.iter()
-					.find(|h| h.number == *num)
-					.expect("Trying to finalize block that doesn't exist");
-
-				// TODO: Tests pass when I create multiple justifications even though I don't change
-				// these, is that a problem?
-				let grandpa_round = 1;
-				let set_id = 1;
-				let authorities = authority_list();
-				let justification =
-					make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
-
-				let res = verifier
-					.import_finality_proof(header.hash(), justification.into())
-					.map_err(|_| ());
-
-				assert_eq!(
-					res, *expected_result,
-					"Expected {:?} while importing finality proof for header ({}, {})",
-					*expected_result, *num, *fork_id,
-				);
-			}
-		}
-	}
-
-	for (key, value) in map.iter() {
-		println!("{}: {:#?}", key, value);
-	}
-}
-
-fn initialize_genesis<S>(storage: &mut S, map: &mut BTreeMap<TestNumber, Vec<TestHeader>>, genesis: Type)
-where
-	S: BridgeStorage<Header = TestHeader>,
-{
-	if let Type::Header(num, fork_id, None, None) = genesis {
-		let genesis = test_header(num);
-		map.insert(fork_id, vec![genesis.clone()]);
-
-		let genesis = ImportedHeader {
-			header: genesis,
-			requires_justification: false,
-			is_finalized: true,
-			signal_hash: None,
-		};
-
-		<BestFinalized<TestRuntime>>::put(genesis.hash());
-		storage.write_header(&genesis);
-	} else {
-		panic!("Unexpected genesis block format {:#?}", genesis)
-	}
-
-	let set_id = 1;
-	let authorities = authority_list();
-	let authority_set = AuthoritySet::new(authorities, set_id);
-	storage.update_current_authority_set(authority_set);
-}
-
-fn change_log(delay: u64) -> Digest<TestHash> {
-	let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
-		next_authorities: vec![(alice(), 1), (bob(), 1)],
-		delay,
-	});
-
-	Digest::<TestHash> {
-		logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
-	}
 }
 
 // Order: 1, 2, 2', 3, 3''
@@ -469,4 +315,157 @@ fn fork_can_track_scheduled_changes_across_forks() {
 
 		create_chain(&mut storage, &mut chain);
 	})
+}
+
+// Builds a fork-aware representation of a blockchain given a list of headers.
+//
+// Takes a list of headers and finality proof operations which will be applied in order. The
+// expected outcome for each operation is also required.
+//
+// The first header in the list will be used as the genesis header and will be manually imported
+// into storage.
+fn create_chain<S>(storage: &mut S, chain: &mut Vec<(Type, Result<(), ()>)>)
+where
+	S: BridgeStorage<Header = TestHeader> + Clone,
+{
+	let mut map = BTreeMap::new();
+	let mut verifier = Verifier {
+		storage: storage.clone(),
+	};
+	initialize_genesis(storage, &mut map, chain.remove(0).0);
+
+	for h in chain {
+		match h {
+			(Type::Header(num, fork_id, does_fork, schedules_change), expected_result) => {
+				// If we've never seen this fork before
+				if !map.contains_key(&fork_id) {
+					// Let's get the info about where to start the fork
+					if let Some((parent_num, forked_from_id)) = does_fork {
+						let fork = &*map.get(&forked_from_id).unwrap();
+						let parent = fork
+							.iter()
+							.find(|h| h.number == *parent_num)
+							.expect("Trying to fork on a parent which doesn't exist");
+
+						let mut header = test_header(*num);
+						header.parent_hash = parent.hash();
+						header.state_root = [*fork_id as u8; 32].into();
+
+						if let Some(delay) = schedules_change {
+							header.digest = change_log(*delay);
+						}
+
+						// Try and import into storage
+						let res = verifier.import_header(header.clone()).map_err(|_| ());
+						assert_eq!(
+							res, *expected_result,
+							"Expected {:?} while importing header ({}, {})",
+							*expected_result, *num, *fork_id,
+						);
+
+						// Let's mark the header down in a new fork
+						if res.is_ok() {
+							map.insert(*fork_id, vec![header]);
+						}
+					}
+				} else {
+					// We've seen this fork before so let's append our new header to it
+					let parent_hash = {
+						let fork = &*map.get(&fork_id).unwrap();
+						fork.last().unwrap().hash()
+					};
+
+					let mut header = test_header(*num);
+					header.parent_hash = parent_hash;
+
+					// Doing this to make sure headers at the same height but on
+					// different forks have different hashes
+					header.state_root = [*fork_id as u8; 32].into();
+
+					if let Some(delay) = schedules_change {
+						header.digest = change_log(*delay);
+					}
+
+					// Try and import into storage
+					// TODO: Should check errors
+					let res = verifier.import_header(header.clone()).map_err(|_| ());
+					assert_eq!(
+						res, *expected_result,
+						"Expected {:?} while importing header ({}, {})",
+						*expected_result, *num, *fork_id,
+					);
+
+					if res.is_ok() {
+						map.get_mut(&fork_id).unwrap().push(header);
+					}
+				}
+			}
+			(Type::Finality(num, fork_id), expected_result) => {
+				let header = map[fork_id]
+					.iter()
+					.find(|h| h.number == *num)
+					.expect("Trying to finalize block that doesn't exist");
+
+				// TODO: Tests pass when I create multiple justifications even though I don't change
+				// these, is that a problem?
+				let grandpa_round = 1;
+				let set_id = 1;
+				let authorities = authority_list();
+				let justification =
+					make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+
+				let res = verifier
+					.import_finality_proof(header.hash(), justification.into())
+					.map_err(|_| ());
+
+				assert_eq!(
+					res, *expected_result,
+					"Expected {:?} while importing finality proof for header ({}, {})",
+					*expected_result, *num, *fork_id,
+				);
+			}
+		}
+	}
+
+	for (key, value) in map.iter() {
+		println!("{}: {:#?}", key, value);
+	}
+}
+
+fn initialize_genesis<S>(storage: &mut S, map: &mut BTreeMap<TestNumber, Vec<TestHeader>>, genesis: Type)
+where
+	S: BridgeStorage<Header = TestHeader>,
+{
+	if let Type::Header(num, fork_id, None, None) = genesis {
+		let genesis = test_header(num);
+		map.insert(fork_id, vec![genesis.clone()]);
+
+		let genesis = ImportedHeader {
+			header: genesis,
+			requires_justification: false,
+			is_finalized: true,
+			signal_hash: None,
+		};
+
+		<BestFinalized<TestRuntime>>::put(genesis.hash());
+		storage.write_header(&genesis);
+	} else {
+		panic!("Unexpected genesis block format {:#?}", genesis)
+	}
+
+	let set_id = 1;
+	let authorities = authority_list();
+	let authority_set = AuthoritySet::new(authorities, set_id);
+	storage.update_current_authority_set(authority_set);
+}
+
+fn change_log(delay: u64) -> Digest<TestHash> {
+	let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+		next_authorities: vec![(alice(), 1), (bob(), 1)],
+		delay,
+	});
+
+	Digest::<TestHash> {
+		logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+	}
 }
