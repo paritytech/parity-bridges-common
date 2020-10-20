@@ -250,7 +250,7 @@ where
 		}
 
 		// if we know that the header is already synced (it is known to the target node), let's
-		// select it for submission
+		// select it for submission. We still may select better justification on the next iteration.
 		if sync.headers().status(&target) == HeaderStatus::Synced {
 			selected_justification = Some((target, justification));
 			continue;
