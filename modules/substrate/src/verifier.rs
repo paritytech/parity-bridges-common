@@ -740,13 +740,20 @@ mod tests {
 		});
 	}
 
-	#[ignore]
 	#[test]
 	fn updates_authority_set_upon_finalizing_header_which_enacts_change() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let headers = vec![(1, false, false)];
-			let imported_headers = write_headers(&mut storage, headers);
+			let genesis_hash = write_headers(&mut storage, vec![])[0].hash();
+
+			// We want this header to indicate that there's an upcoming set change on this fork
+			let parent = ImportedHeader {
+				header: test_header(1),
+				requires_justification: false,
+				is_finalized: false,
+				signal_hash: Some(genesis_hash),
+			};
+			storage.write_header(&parent);
 
 			let set_id = 1;
 			let authorities = authority_list();
@@ -764,14 +771,12 @@ mod tests {
 			let height = *header.number();
 			let authorities = vec![alice()];
 			let change = schedule_next_change(authorities, set_id, height);
-			storage.schedule_next_set_change(imported_headers[0].clone().hash(), change.clone());
+			storage.schedule_next_set_change(genesis_hash, change.clone());
 
 			let mut verifier = Verifier {
 				storage: storage.clone(),
 			};
 
-			// TODO: I think this is failing because we never write to any of the parent headers
-			// that this fork has a scheduled change
 			assert_ok!(verifier.import_header(header.clone()));
 			assert_eq!(storage.unfinalized_header(), Some(header.hash()));
 
