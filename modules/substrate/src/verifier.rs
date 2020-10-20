@@ -395,6 +395,7 @@ mod tests {
 	}
 
 	// Useful for quickly writing a chain of headers to storage
+	// Input is expected in the form: vec![(num, requires_justification, is_finalized)]
 	fn write_headers<S: BridgeStorage<Header = TestHeader>>(
 		storage: &mut S,
 		headers: Vec<(u64, bool, bool)>,
@@ -424,6 +425,16 @@ mod tests {
 		}
 
 		imported_headers
+	}
+
+	// Given a block number will generate a chain of headers which don't require justification and
+	// are not considered to be finalized.
+	fn write_default_headers<S: BridgeStorage<Header = TestHeader>>(
+		storage: &mut S,
+		headers: Vec<u64>,
+	) -> Vec<ImportedHeader<TestHeader>> {
+		let headers = headers.iter().map(|num| (*num, false, false)).collect();
+		write_headers(storage, headers)
 	}
 
 	#[test]
@@ -543,7 +554,7 @@ mod tests {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 
 			// Write two headers at the same height to storage.
-			let imported_headers = write_headers(&mut storage, vec![(1, false, false), (1, false, false)]);
+			let imported_headers = write_default_headers(&mut storage, vec![1, 1]);
 
 			// The headers we manually imported should have been marked as the best
 			// upon writing to storage. Let's confirm that.
@@ -570,9 +581,7 @@ mod tests {
 	fn related_headers_are_ancestors() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-
-			let headers = vec![(1, false, false), (2, false, false), (3, false, false)];
-			let mut imported_headers = write_headers(&mut storage, headers);
+			let mut imported_headers = write_default_headers(&mut storage, vec![1, 2, 3]);
 
 			for header in imported_headers.iter() {
 				assert!(storage.header_exists(header.hash()));
@@ -592,8 +601,7 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 
-			let headers = vec![(1, false, false), (2, false, false), (3, false, false)];
-			let mut imported_headers = write_headers(&mut storage, headers);
+			let mut imported_headers = write_default_headers(&mut storage, vec![1, 2, 3]);
 			for header in imported_headers.iter() {
 				assert!(storage.header_exists(header.hash()));
 			}
@@ -620,8 +628,7 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 
-			let headers = vec![(1, false, false), (2, false, false), (3, false, false)];
-			let mut imported_headers = write_headers(&mut storage, headers);
+			let mut imported_headers = write_default_headers(&mut storage, vec![1, 2, 3]);
 			for header in imported_headers.iter() {
 				assert!(storage.header_exists(header.hash()));
 			}
@@ -645,8 +652,7 @@ mod tests {
 	fn doesnt_import_header_which_schedules_change_with_invalid_authority_set() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let headers = vec![(1, false, false)];
-			let _imported_headers = write_headers(&mut storage, headers);
+			let _imported_headers = write_default_headers(&mut storage, vec![1]);
 			let mut header = test_header(2);
 
 			// This is an *invalid* authority set because the combined weight of the
@@ -673,8 +679,7 @@ mod tests {
 	fn finalizes_header_which_doesnt_enact_or_schedule_a_new_authority_set() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let headers = vec![(1, false, false)];
-			let _imported_headers = write_headers(&mut storage, headers);
+			let _imported_headers = write_default_headers(&mut storage, vec![1]);
 
 			// Nothing special about this header, yet Grandpa may have created a justification
 			// for it since it does that periodically
@@ -703,8 +708,7 @@ mod tests {
 	fn correctly_verifies_and_finalizes_chain_of_headers() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let headers = vec![(1, false, false), (2, false, false)];
-			let imported_headers = write_headers(&mut storage, headers);
+			let imported_headers = write_default_headers(&mut storage, vec![1, 2]);
 			let header = test_header(3);
 
 			let set_id = 1;
