@@ -21,13 +21,16 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bp_runtime::Chain;
-use frame_support::RuntimeDebug;
+use frame_support::{weights::Weight, RuntimeDebug};
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature, MultiSigner,
 };
 use sp_std::prelude::*;
+
+/// Maximal weight of single Rialto extrinsic.
+pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = 1_300_000_000_000;
 
 /// Block number type used in Rialto.
 pub type BlockNumber = u32;

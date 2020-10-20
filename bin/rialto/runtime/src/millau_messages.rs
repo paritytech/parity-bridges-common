@@ -16,70 +16,102 @@
 
 //! Everything required to serve Millau <-> Rialto message lanes.
 
-use bp_message_dispatch::MessageDispatch as _;
+use bridge_runtime_common::messages;
+
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, TargetHeaderChain},
-	target_chain::{DispatchMessage, MessageDispatch, ProvedMessages, SourceHeaderChain},
+	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce,
 };
-use codec::{Compact, Decode, Input};
+use bp_runtime::InstanceId;
+use bridge_runtime_common::messages::MessageBridge;
 use frame_support::{
 	weights::{Weight, WeightToFeePolynomial},
 	RuntimeDebug,
 };
-use sp_std::vec::Vec;
 use sp_trie::StorageProof;
 
-/// Millau bridge instance id.
-pub const INSTANCE: bp_runtime::InstanceId = *b"mllu";
-
-/// Encoded Call of Millau chain.
-pub type OpaqueMillauCall = Vec<u8>;
+/// Minimal relayer interest rate (in percents).
+const RELAYER_INTEREST_PERCENT: u32 = 10;
 
 /// Message payload for Rialto -> Millau messages.
-pub type ToMillauMessagePayload = pallet_bridge_call_dispatch::MessagePayload<
-	bp_rialto::AccountSigner,
-	bp_millau::AccountSigner,
-	bp_millau::Signature,
-	OpaqueMillauCall,
->;
-
-/// Call origin for Millau -> Rialto messages.
-pub type FromMillauMessageCallOrigin =
-	pallet_bridge_call_dispatch::CallOrigin<bp_millau::AccountSigner, bp_rialto::AccountSigner, bp_rialto::Signature>;
+pub type ToMillauMessagePayload = messages::source::FromThisChainMessagePayload<WithMillauMessageBridge>;
 
 /// Message payload for Millau -> Rialto messages.
-pub struct FromMillauMessagePayload(
-	pallet_bridge_call_dispatch::MessagePayload<
-		bp_millau::AccountSigner,
-		bp_rialto::AccountSigner,
-		bp_rialto::Signature,
-		crate::Call,
-	>,
-);
+pub type FromMillauMessagePayload = messages::target::FromBridgedChainMessagePayload<WithMillauMessageBridge>;
 
-impl Decode for FromMillauMessagePayload {
-	fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
-		// for bridged chain our Calls are opaque - they're encoded to Vec<u8> by submitter
-		// => skip encoded vec length here before decoding Call
-		let spec_version = pallet_bridge_call_dispatch::SpecVersion::decode(input)?;
-		let weight = Weight::decode(input)?;
-		let origin = FromMillauMessageCallOrigin::decode(input)?;
-		let _skipped_length = Compact::<u32>::decode(input)?;
-		let call = crate::Call::decode(input)?;
+/// Call-dispatch based message dispatch for Millau -> Rialto messages.
+pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
+	WithMillauMessageBridge,
+	crate::Runtime,
+	pallet_bridge_call_dispatch::DefaultInstance,
+>;
 
-		Ok(FromMillauMessagePayload(pallet_bridge_call_dispatch::MessagePayload {
-			spec_version,
-			weight,
-			origin,
-			call,
-		}))
+/// Millau <-> Rialto message bridge.
+#[derive(RuntimeDebug, Clone, Copy)]
+pub struct WithMillauMessageBridge;
+
+impl MessageBridge for WithMillauMessageBridge {
+	const INSTANCE: InstanceId = *b"mllu";
+
+	type ThisChain = Rialto;
+	type BridgedChain = Millau;
+
+	fn maximal_dispatch_weight_of_message_on_bridged_chain() -> Weight {
+		// we don't want to relay too large messages + keep reserve for future upgrades
+		bp_millau::MAXIMUM_EXTRINSIC_WEIGHT / 2
+	}
+
+	fn weight_of_delivery_transaction() -> Weight {
+		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
+	}
+
+	fn weight_of_delivery_confirmation_transaction_on_this_chain() -> Weight {
+		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
+	}
+
+	fn weight_of_reward_confirmation_transaction_on_target_chain() -> Weight {
+		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
+	}
+
+	fn this_weight_to_balance(weight: Weight) -> bp_rialto::Balance {
+		<crate::Runtime as pallet_transaction_payment::Trait>::WeightToFee::calc(&weight)
+	}
+
+	fn bridged_weight_to_balance(weight: Weight) -> bp_millau::Balance {
+		// we're using the same weights in both chains now
+		<crate::Runtime as pallet_transaction_payment::Trait>::WeightToFee::calc(&weight)
+	}
+
+	fn this_chain_balance_to_bridged_chain_balance(this_balance: bp_rialto::Balance) -> bp_millau::Balance {
+		// 1:1 conversion that will probably change in the future
+		this_balance
 	}
 }
 
 /// Millau chain from message lane point of view.
 #[derive(RuntimeDebug, Clone, Copy)]
+pub struct Rialto;
+
+impl messages::ChainWithMessageLanes for Rialto {
+	type Signer = bp_rialto::AccountSigner;
+	type Signature = bp_rialto::Signature;
+	type Call = crate::Call;
+	type Weight = Weight;
+	type Balance = bp_rialto::Balance;
+}
+
+/// Millau chain from message lane point of view.
+#[derive(RuntimeDebug, Clone, Copy)]
 pub struct Millau;
+
+impl messages::ChainWithMessageLanes for Millau {
+	type Signer = bp_millau::AccountSigner;
+	type Signature = bp_millau::Signature;
+	type Call = (); // unknown to us
+	type Weight = Weight;
+	type Balance = bp_millau::Balance;
+}
 
 impl TargetHeaderChain<ToMillauMessagePayload, bp_rialto::AccountId> for Millau {
 	type Error = &'static str;
@@ -90,7 +122,7 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_rialto::AccountId> for Millau 
 	type MessagesDeliveryProof = (bp_millau::Hash, StorageProof, LaneId);
 
 	fn verify_message(payload: &ToMillauMessagePayload) -> Result<(), Self::Error> {
-		if payload.weight > dynamic::maximal_dispatch_weight_of_millau_message() {
+		if payload.weight > WithMillauMessageBridge::maximal_dispatch_weight_of_message_on_bridged_chain() {
 			return Err("Too large weight declared");
 		}
 
@@ -113,22 +145,15 @@ impl LaneMessageVerifier<bp_rialto::AccountId, ToMillauMessagePayload, bp_rialto
 		_lane: &LaneId,
 		payload: &ToMillauMessagePayload,
 	) -> Result<(), Self::Error> {
-		// compute all components of total fee in Millau tokens
-		let millau_delivery_base_fee = dynamic::millau_weight_to_fee(dynamic::millau_delivery_base_weight());
-		let millau_dispatch_fee = dynamic::millau_weight_to_fee(payload.weight);
-		let millau_confirmation_fee = dynamic::rialto_balance_into_millau_balance(
-			<crate::Runtime as pallet_transaction_payment::Trait>::WeightToFee::calc(
-				&dynamic::rialto_confirmation_weight(),
-			),
-		);
-
-		// compute total expected fee and add relayers interest (10%)
-		let millau_minimal_fee = millau_delivery_base_fee + millau_dispatch_fee + millau_confirmation_fee;
-		let millau_minimal_expected_fee = millau_minimal_fee + millau_minimal_fee / 10;
+		let minimal_fee_in_millau_tokens = messages::source::estimate_message_dispatch_and_delivery_fee::<
+			WithMillauMessageBridge,
+		>(payload, RELAYER_INTEREST_PERCENT)
+		.ok_or(|| "Overflow when computing minimal required message delivery and dispatch fee")?;
 
 		// compare with actual fee paid
-		let millau_actual_fee = dynamic::rialto_balance_into_millau_balance(*delivery_and_dispatch_fee);
-		if millau_actual_fee < millau_minimal_expected_fee {
+		let actual_fee_in_millau_tokens =
+			WithMillauMessageBridge::this_chain_balance_to_bridged_chain_balance(*delivery_and_dispatch_fee);
+		if actual_fee_in_millau_tokens < minimal_fee_in_millau_tokens {
 			return Err("Too low fee paid");
 		}
 
@@ -149,63 +174,5 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 		_proof: Self::MessagesProof,
 	) -> Result<ProvedMessages<Message<bp_millau::Balance>>, Self::Error> {
 		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/397")
-	}
-}
-
-/// Call-dispatch based message dispatch for Millau -> Rialto messages.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct FromMillauMessageDispatch;
-
-impl MessageDispatch<bp_millau::Balance> for FromMillauMessageDispatch {
-	type DispatchPayload = FromMillauMessagePayload;
-
-	fn dispatch_weight(message: &DispatchMessage<Self::DispatchPayload, bp_millau::Balance>) -> Weight {
-		message
-			.data
-			.payload
-			.as_ref()
-			.map(|payload| payload.0.weight)
-			.unwrap_or(0)
-	}
-
-	fn dispatch(message: DispatchMessage<Self::DispatchPayload, bp_millau::Balance>) {
-		if let Ok(payload) = message.data.payload {
-			pallet_bridge_call_dispatch::Module::<crate::Runtime>::dispatch(
-				INSTANCE,
-				(message.key.lane_id, message.key.nonce),
-				payload.0,
-			);
-		}
-	}
-}
-
-mod dynamic {
-	use frame_support::weights::{Weight, WeightToFeePolynomial};
-
-	/// Maximal dispatch weight of the call we are able to dispatch.
-	pub fn maximal_dispatch_weight_of_millau_message() -> Weight {
-		// this should be maximal weight on Millau minus millau_delivery_base_weight()
-		// or even less to support future upgrardes
-		1_000_000_000_000 - millau_delivery_base_weight()
-	}
-
-	/// Return maximal weight of delivery confirmation transaction on Rialto chain.
-	pub fn rialto_confirmation_weight() -> Weight {
-		1_000_000
-	}
-
-	/// Return maximal base weight of delivery transaction on Millau chain.
-	pub fn millau_delivery_base_weight() -> Weight {
-		1_000_000
-	}
-
-	/// Estimate cost (in Millau tokens) of dispatching call with given weight on Millau chain.
-	pub fn millau_weight_to_fee(weight: Weight) -> bp_millau::Balance {
-		<crate::Runtime as pallet_transaction_payment::Trait>::WeightToFee::calc(&weight)
-	}
-
-	/// Convert from Rialto to Millau fee tokens.
-	pub fn rialto_balance_into_millau_balance(balance: bp_rialto::Balance) -> bp_millau::Balance {
-		balance * 10
 	}
 }

@@ -41,7 +41,7 @@ use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as G
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::traits::{Block as BlockT, IdentityLookup, NumberFor, OpaqueKeys, Saturating};
+use sp_runtime::traits::{Block as BlockT, IdentityLookup, NumberFor, OpaqueKeys};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
@@ -157,9 +157,7 @@ parameter_types! {
 	pub const MaximumBlockWeight: Weight = 2_000_000_000_000;
 	pub const ExtrinsicBaseWeight: Weight = 10_000_000;
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
-	/// Assume 10% of weight for average on_initialize calls.
-	pub MaximumExtrinsicWeight: Weight = AvailableBlockRatio::get()
-		.saturating_sub(Perbill::from_percent(10)) * MaximumBlockWeight::get();
+	pub MaximumExtrinsicWeight: Weight = bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT;
 	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
 	pub const Version: RuntimeVersion = VERSION;
 	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight {
@@ -428,7 +426,7 @@ impl pallet_shift_session_manager::Trait for Runtime {}
 
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_message_lane::MessageNonce = 8;
-	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce = 16;
+	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce = 0;
 }
 
 impl pallet_message_lane::Trait for Runtime {

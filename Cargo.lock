@@ -767,6 +767,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bridge-runtime-common"
+version = "0.1.0"
+dependencies = [
+ "bp-message-dispatch",
+ "bp-message-lane",
+ "bp-runtime",
+ "frame-support",
+ "pallet-bridge-call-dispatch",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+ "sp-trie",
+]
+
+[[package]]
 name = "bs58"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5332,6 +5347,7 @@ dependencies = [
  "bp-millau",
  "bp-rialto",
  "bp-runtime",
+ "bridge-runtime-common",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
