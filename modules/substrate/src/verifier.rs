@@ -218,14 +218,6 @@ where
 			signal_hash,
 		});
 
-		if requires_justification {
-			self.storage.update_unfinalized_header(Some(hash));
-		}
-
-		// Since we're not dealing with forks at the moment we know that
-		// the header we just got will be the one at the best height
-		// self.storage.update_best_header(hash);
-
 		Ok(())
 	}
 
@@ -301,9 +293,6 @@ where
 				.expect(
 					"Headers must only be marked as `requires_justification` if there's a scheduled change in storage.",
 				);
-
-			// Clear the storage entry since we got a justification
-			self.storage.update_unfinalized_header(None);
 		}
 
 		for header in finalized_headers.iter_mut() {
@@ -778,14 +767,15 @@ mod tests {
 			};
 
 			assert_ok!(verifier.import_header(header.clone()));
-			assert_eq!(storage.unfinalized_header(), Some(header.hash()));
+			assert_eq!(storage.unfinalized_headers().len(), 1);
+			assert_eq!(storage.unfinalized_headers()[0], header.hash());
 
 			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
 			assert_eq!(storage.best_finalized_header().header, header);
 
 			// Make sure that we have updated the set now that we've finalized our header
 			assert_eq!(storage.current_authority_set(), change.authority_set);
-			assert_eq!(storage.unfinalized_header(), None);
+			assert!(storage.unfinalized_headers().is_empty());
 		})
 	}
 

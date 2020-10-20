@@ -330,6 +330,34 @@ fn fork_does_not_allow_multiple_scheduled_changes_on_the_same_fork() {
 	})
 }
 
+// Order: 1, 2, 2'
+//
+//   / [2': S|0]
+// [1] <- [2: S|0]
+//
+// Both 2 and 2' should be marked as needing justifications since they enact changes.
+#[test]
+fn fork_correctly_tracks_which_headers_require_finality_proofs() {
+	run_test(|| {
+		use sp_runtime::traits::Header as HeaderT;
+		let mut storage = PalletStorage::<TestRuntime>::new();
+
+		let mut chain = vec![
+			(Type::Header(1, 1, None, None), Ok(())),
+			(Type::Header(2, 1, None, Some(0)), Ok(())),
+			(Type::Header(2, 2, Some((1, 1)), Some(0)), Ok(())),
+		];
+
+		create_chain(&mut storage, &mut chain);
+
+		let hashes = storage.unfinalized_headers();
+		assert_eq!(hashes.len(), 2);
+		assert!(hashes[0] != hashes[1]);
+		assert_eq!(*storage.header_by_hash(hashes[0]).unwrap().number(), 2);
+		assert_eq!(*storage.header_by_hash(hashes[1]).unwrap().number(), 2);
+	})
+}
+
 // Order: 1, 2, 2', 3', F2, 3, 4'
 //
 //   / [2': S|1] <- [3'] <- [4']

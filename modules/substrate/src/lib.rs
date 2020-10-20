@@ -75,18 +75,17 @@ decl_storage! {
 		BestHeaders: Vec<BridgedBlockHash<T>>;
 		/// Hash of the best finalized header.
 		BestFinalized: BridgedBlockHash<T>;
-		/// A header which enacts an authority set change and therefore
-		/// requires a Grandpa justification.
-		// Since we won't always have an authority set change scheduled we
-		// won't always have a header which needs a justification.
-		RequiresJustification: Option<BridgedBlockHash<T>>;
+		/// The set of headers which enact an authority set change and therefore
+		/// require a Grandpa justification.
+		RequiresJustification: map hasher(identity) BridgedBlockHash<T> => ();
 		/// Headers which have been imported into the pallet.
 		ImportedHeaders: map hasher(identity) BridgedBlockHash<T> => Option<ImportedHeader<BridgedHeader<T>>>;
 		/// The current Grandpa Authority set.
 		CurrentAuthoritySet: AuthoritySet;
-		/// The next scheduled authority set change.
+		/// The next scheduled authority set change for a given fork.
 		///
-		/// Signal Block => Change
+		/// The fork is indicated by the header which _signals_ the change (key in the mapping).
+		/// Note that this is different than a header which _enacts_ a change.
 		// Grandpa doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
 		NextScheduledChange: map hasher(identity) BridgedBlockHash<T> => Option<ScheduledChange<BridgedBlockNumber<T>>>;
@@ -237,18 +236,19 @@ impl<T: Trait> Module<T> {
 		}
 	}
 
-	/// Return the latest header which enacts an authority set change
-	/// and still needs a finality proof.
+	/// Returns a list of headers which require finality proofs.
 	///
-	/// Will return None if there are no headers which are missing finality proofs.
-	pub fn requires_justification() -> Option<BridgedHeader<T>> {
+	/// These headers require proofs because they enact authority set changes.
+	pub fn requires_justification() -> Vec<BridgedHeader<T>> {
 		let storage = PalletStorage::<T>::new();
-		let hash = storage.unfinalized_header()?;
-		let imported_header = storage.header_by_hash(hash).expect(
-			"We write a header to storage before marking it as unfinalized, therefore
-			this must always exist if we got an unfinalized header hash.",
-		);
-		Some(imported_header.header)
+		let hashes = storage.unfinalized_headers();
+		let proof = "We write a header to storage before marking it as unfinalized, therefore \
+		             this must always exist if we got an unfinalized header hash.";
+		hashes
+			.iter()
+			.map(|hash| storage.header_by_hash(*hash).expect(proof))
+			.map(|imported_header| imported_header.header)
+			.collect()
 	}
 }
 
@@ -276,14 +276,10 @@ pub trait BridgeStorage {
 	/// Check if a particular header is known to the pallet.
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
 
-	/// Return a header which requires a justification. A header will require
-	/// a justification when it enacts an new authority set.
-	fn unfinalized_header(&self) -> Option<<Self::Header as HeaderT>::Hash>;
-
-	/// Mark a header as eventually requiring a justification.
+	/// Returns a list of headers which require justifications.
 	///
-	/// If None is passed the storage item is cleared.
-	fn update_unfinalized_header(&mut self, hash: Option<<Self::Header as HeaderT>::Hash>);
+	/// A header will require a justification if it enacts a new authority set.
+	fn unfinalized_headers(&self) -> Vec<<Self::Header as HeaderT>::Hash>;
 
 	/// Get a specific header by its hash.
 	///
@@ -354,6 +350,10 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 			}
 		}
 
+		if header.requires_justification {
+			<RequiresJustification<T>>::insert(hash, ());
+		}
+
 		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
@@ -376,7 +376,11 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	}
 
 	fn update_best_finalized(&self, hash: BridgedBlockHash<T>) {
-		<BestFinalized<T>>::put(hash)
+		if <RequiresJustification<T>>::contains_key(hash) {
+			<RequiresJustification<T>>::remove(hash);
+		}
+
+		<BestFinalized<T>>::put(hash);
 	}
 
 	fn header_exists(&self, hash: BridgedBlockHash<T>) -> bool {
@@ -387,16 +391,8 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
-	fn unfinalized_header(&self) -> Option<BridgedBlockHash<T>> {
-		<RequiresJustification<T>>::get()
-	}
-
-	fn update_unfinalized_header(&mut self, hash: Option<<Self::Header as HeaderT>::Hash>) {
-		if let Some(hash) = hash {
-			<RequiresJustification<T>>::put(hash);
-		} else {
-			<RequiresJustification<T>>::kill();
-		}
+	fn unfinalized_headers(&self) -> Vec<BridgedBlockHash<T>> {
+		<RequiresJustification<T>>::iter().map(|(k, _)| k).collect()
 	}
 
 	fn current_authority_set(&self) -> AuthoritySet {

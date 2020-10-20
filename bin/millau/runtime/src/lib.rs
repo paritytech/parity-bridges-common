@@ -499,13 +499,7 @@ impl_runtime_apis! {
 		}
 
 		fn incomplete_headers() -> Vec<(bp_rialto::BlockNumber, bp_rialto::Hash)> {
-			// Since the pallet doesn't accept multiple scheduled changes we can only have one
-			// header requiring a justification at any time.
-			if let Some(header) = BridgeRialto::requires_justification() {
-				vec![(header.number, header.hash())]
-			} else {
-				vec![]
-			}
+			BridgeRialto::requires_justification().iter().map(|h| (h.number, h.hash())).collect()
 		}
 
 		fn is_known_block(hash: bp_rialto::Hash) -> bool {

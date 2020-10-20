@@ -582,13 +582,7 @@ impl_runtime_apis! {
 		}
 
 		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
-			// Since the pallet doesn't accept multiple scheduled changes we can only have one
-			// header requiring a justification at any time.
-			if let Some(header) = BridgeMillau::requires_justification() {
-				vec![(header.number, header.hash())]
-			} else {
-				vec![]
-			}
+			BridgeMillau::requires_justification().iter().map(|h| (h.number, h.hash())).collect()
 		}
 
 		fn is_known_block(hash: bp_millau::Hash) -> bool {
