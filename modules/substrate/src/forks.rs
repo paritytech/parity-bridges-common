@@ -99,7 +99,7 @@ fn fork_can_import_headers_on_different_forks() {
 
 		create_chain(&mut storage, &mut chain);
 
-		let best_headers: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
+		let best_headers = storage.best_headers();
 		assert_eq!(best_headers.len(), 2);
 		assert_eq!(<BestHeight<TestRuntime>>::get(), 3);
 	})

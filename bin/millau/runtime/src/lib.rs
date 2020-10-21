@@ -490,7 +490,7 @@ impl_runtime_apis! {
 
 	impl bp_rialto::RialtoHeaderApi<Block> for Runtime {
 		fn best_blocks() -> Vec<(bp_rialto::BlockNumber, bp_rialto::Hash)> {
-			BridgeRialto::best_headers().iter().map(|header| (header.number, header.hash())).collect()
+			BridgeRialto::best_headers()
 		}
 
 		fn finalized_block() -> (bp_rialto::BlockNumber, bp_rialto::Hash) {

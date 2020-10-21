@@ -499,7 +499,7 @@ mod tests {
 				.header_by_hash(header.hash())
 				.expect("Should have been imported successfully");
 			assert_eq!(stored_header.is_finalized, false);
-			assert_eq!(stored_header, storage.best_headers()[0]);
+			assert_eq!(stored_header.hash(), storage.best_headers()[0].1);
 		})
 	}
 
@@ -528,8 +528,10 @@ mod tests {
 
 			// We should have two headers marked as being the best since they're
 			// both at the same height
-			let best_headers: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
-			assert_eq!(best_headers, vec![header_on_fork1, header_on_fork2]);
+			let best_headers = storage.best_headers();
+			assert_eq!(best_headers.len(), 2);
+			assert_eq!(best_headers[0], (*header_on_fork1.number(), header_on_fork1.hash()));
+			assert_eq!(best_headers[1], (*header_on_fork2.number(), header_on_fork2.hash()));
 			assert_eq!(<BestHeight<TestRuntime>>::get(), 1);
 		})
 	}
@@ -544,7 +546,8 @@ mod tests {
 
 			// The headers we manually imported should have been marked as the best
 			// upon writing to storage. Let's confirm that.
-			assert_eq!(storage.best_headers(), imported_headers.get(1..).unwrap());
+			assert_eq!(storage.best_headers().len(), 2);
+			assert_eq!(<BestHeight<TestRuntime>>::get(), 1);
 
 			// Now let's build something at a better height.
 			let mut better_header = test_header(2);
@@ -557,8 +560,9 @@ mod tests {
 
 			// Since `better_header` is the only one at height = 2 we should only have
 			// a single "best header" now.
-			let best_header: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
-			assert_eq!(best_header, vec![better_header]);
+			let best_headers = storage.best_headers();
+			assert_eq!(best_headers.len(), 1);
+			assert_eq!(best_headers[0], (*better_header.number(), better_header.hash()));
 			assert_eq!(<BestHeight<TestRuntime>>::get(), 2);
 		})
 	}

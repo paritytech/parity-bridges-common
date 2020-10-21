@@ -199,12 +199,8 @@ decl_module! {
 
 impl<T: Trait> Module<T> {
 	/// Get the highest header(s) that the pallet knows of.
-	pub fn best_headers() -> Vec<BridgedHeader<T>> {
-		PalletStorage::<T>::new()
-			.best_headers()
-			.into_iter()
-			.map(|i| i.header)
-			.collect()
+	pub fn best_headers() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
+		PalletStorage::<T>::new().best_headers()
 	}
 
 	/// Get the best finalized header the pallet knows of.
@@ -262,7 +258,7 @@ pub trait BridgeStorage {
 	fn write_header(&mut self, header: &ImportedHeader<Self::Header>);
 
 	/// Get the header(s) at the highest known height.
-	fn best_headers(&self) -> Vec<ImportedHeader<Self::Header>>;
+	fn best_headers(&self) -> Vec<(<Self::Header as HeaderT>::Number, <Self::Header as HeaderT>::Hash)>;
 
 	/// Get the best finalized header the pallet knows of.
 	fn best_finalized_header(&self) -> ImportedHeader<Self::Header>;
@@ -358,11 +354,11 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
-	fn best_headers(&self) -> Vec<ImportedHeader<BridgedHeader<T>>> {
-		let proof = "A header must have been written at genesis, therefore this must always exist";
+	fn best_headers(&self) -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
+		let best_height = <BestHeight<T>>::get();
 		<BestHeaders<T>>::get()
 			.iter()
-			.map(|h| self.header_by_hash(*h).expect(proof))
+			.map(|hash| (best_height, *hash))
 			.collect()
 	}
 

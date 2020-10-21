@@ -574,7 +574,7 @@ impl_runtime_apis! {
 
 	impl bp_millau::MillauHeaderApi<Block> for Runtime {
 		fn best_blocks() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
-			BridgeMillau::best_headers().iter().map(|header| (header.number, header.hash())).collect()
+			BridgeMillau::best_headers()
 		}
 
 		fn finalized_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
