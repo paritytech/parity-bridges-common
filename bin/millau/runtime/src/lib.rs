@@ -499,7 +499,7 @@ impl_runtime_apis! {
 		}
 
 		fn incomplete_headers() -> Vec<(bp_rialto::BlockNumber, bp_rialto::Hash)> {
-			BridgeRialto::requires_justification().iter().map(|h| (h.number, h.hash())).collect()
+			BridgeRialto::require_justifications().iter().map(|h| (h.number, h.hash())).collect()
 		}
 
 		fn is_known_block(hash: bp_rialto::Hash) -> bool {

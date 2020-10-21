@@ -582,7 +582,7 @@ impl_runtime_apis! {
 		}
 
 		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
-			BridgeMillau::requires_justification().iter().map(|h| (h.number, h.hash())).collect()
+			BridgeMillau::require_justifications().iter().map(|h| (h.number, h.hash())).collect()
 		}
 
 		fn is_known_block(hash: bp_millau::Hash) -> bool {

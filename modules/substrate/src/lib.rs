@@ -239,9 +239,9 @@ impl<T: Trait> Module<T> {
 	/// Returns a list of headers which require finality proofs.
 	///
 	/// These headers require proofs because they enact authority set changes.
-	pub fn requires_justification() -> Vec<BridgedHeader<T>> {
+	pub fn require_justifications() -> Vec<BridgedHeader<T>> {
 		let storage = PalletStorage::<T>::new();
-		let hashes = storage.unfinalized_headers();
+		let hashes = storage.missing_justifications();
 		let proof = "We write a header to storage before marking it as unfinalized, therefore \
 		             this must always exist if we got an unfinalized header hash.";
 		hashes
@@ -276,7 +276,7 @@ pub trait BridgeStorage {
 	/// Returns a list of headers which require justifications.
 	///
 	/// A header will require a justification if it enacts a new authority set.
-	fn unfinalized_headers(&self) -> Vec<<Self::Header as HeaderT>::Hash>;
+	fn missing_justifications(&self) -> Vec<<Self::Header as HeaderT>::Hash>;
 
 	/// Get a specific header by its hash.
 	///
@@ -384,7 +384,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
-	fn unfinalized_headers(&self) -> Vec<BridgedBlockHash<T>> {
+	fn missing_justifications(&self) -> Vec<BridgedBlockHash<T>> {
 		<RequiresJustification<T>>::iter().map(|(k, _)| k).collect()
 	}
 
