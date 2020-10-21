@@ -29,6 +29,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod rialto;
+pub mod rialto_messages;
 
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
@@ -316,6 +317,32 @@ impl pallet_substrate_bridge::Trait for Runtime {
 
 impl pallet_shift_session_manager::Trait for Runtime {}
 
+parameter_types! {
+	pub const MaxMessagesToPruneAtOnce: bp_message_lane::MessageNonce = 8;
+	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce = 128;
+}
+
+impl pallet_message_lane::Trait for Runtime {
+	type Event = Event;
+	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
+
+	type OutboundPayload = crate::rialto_messages::ToRialtoMessagePayload;
+	type OutboundMessageFee = Balance;
+
+	type InboundPayload = crate::rialto_messages::FromRialtoMessagePayload;
+	type InboundMessageFee = bp_rialto::Balance;
+	type InboundRelayer = bp_rialto::AccountId;
+
+	type TargetHeaderChain = crate::rialto_messages::Rialto;
+	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
+	type MessageDeliveryAndDispatchPayment =
+		pallet_message_lane::instant_payments::InstantCurrencyPayments<AccountId, pallet_balances::Module<Runtime>>;
+
+	type SourceHeaderChain = crate::rialto_messages::Rialto;
+	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -323,6 +350,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		BridgeRialto: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
+		BridgeRialtoMessageLane: pallet_message_lane::{Module, Call, Event<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},

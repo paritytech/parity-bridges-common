@@ -21,6 +21,7 @@
 
 use bp_message_dispatch::MessageDispatch as _;
 use bp_message_lane::{
+	source_chain::LaneMessageVerifier,
 	target_chain::{DispatchMessage, MessageDispatch},
 	LaneId, MessageNonce,
 };
@@ -28,12 +29,15 @@ use bp_runtime::InstanceId;
 use codec::{Compact, Decode, Input};
 use frame_support::RuntimeDebug;
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul};
-use sp_std::vec::Vec;
+use sp_std::{cmp::PartialOrd, vec::Vec};
 
 /// Bidirectional message bridge.
 pub trait MessageBridge {
 	/// Instance id of this bridge.
 	const INSTANCE: InstanceId;
+
+	/// Relayer interest (in percents).
+	const RELAYER_INTEREST_PERCENT: u32;
 
 	/// This chain in context of message bridge.
 	type ThisChain: ChainWithMessageLanes;
@@ -68,6 +72,8 @@ pub trait MessageBridge {
 
 /// Chain that has `message-lane` and `call-dispatch` modules.
 pub trait ChainWithMessageLanes {
+	/// Accound id on the chain.
+	type AccountId;
 	/// Public key of the chain account that may be used to verify signatures.
 	type Signer: Decode;
 	/// Signature type used on the chain.
@@ -77,11 +83,12 @@ pub trait ChainWithMessageLanes {
 	/// Type of weight that is used on the chain.
 	type Weight: From<frame_support::weights::Weight>;
 	/// Type of balances that is used on the chain.
-	type Balance: CheckedAdd + CheckedDiv + CheckedMul + From<u32>;
+	type Balance: CheckedAdd + CheckedDiv + CheckedMul + PartialOrd + From<u32> + Copy;
 }
 
 pub(crate) type ThisChain<B> = <B as MessageBridge>::ThisChain;
 pub(crate) type BridgedChain<B> = <B as MessageBridge>::BridgedChain;
+pub(crate) type AccountIdOf<C> = <C as ChainWithMessageLanes>::AccountId;
 pub(crate) type WeightOf<C> = <C as ChainWithMessageLanes>::Weight;
 pub(crate) type BalanceOf<C> = <C as ChainWithMessageLanes>::Balance;
 pub(crate) type CallOf<C> = <C as ChainWithMessageLanes>::Call;
@@ -100,6 +107,40 @@ pub mod source {
 		<BridgedChain<B> as ChainWithMessageLanes>::Signature,
 		BridgedChainOpaqueCall,
 	>;
+
+	/// Message verifier that requires submitter to pay minimal delivery and dispatch fee.
+	#[derive(RuntimeDebug)]
+	pub struct FromThisChainMessageVerifier<B>(sp_std::marker::PhantomData<B>);
+
+	impl<B: MessageBridge> LaneMessageVerifier<
+		AccountIdOf<ThisChain<B>>,
+		FromThisChainMessagePayload<B>,
+		BalanceOf<ThisChain<B>>,
+	> for FromThisChainMessageVerifier<B> {
+		type Error = &'static str;
+
+		fn verify_message(
+			_submitter: &AccountIdOf<ThisChain<B>>,
+			delivery_and_dispatch_fee: &BalanceOf<ThisChain<B>>,
+			_lane: &LaneId,
+			payload: &FromThisChainMessagePayload<B>,
+		) -> Result<(), Self::Error> {
+			let minimal_fee_in_bridged_tokens = estimate_message_dispatch_and_delivery_fee::<B>(
+				payload,
+				B::RELAYER_INTEREST_PERCENT,
+			).ok_or("Overflow when computing minimal required message delivery and dispatch fee")?;
+
+			// compare with actual fee paid
+			let actual_fee_in_bridged_tokens = B::this_chain_balance_to_bridged_chain_balance(
+				*delivery_and_dispatch_fee,
+			);
+			if actual_fee_in_bridged_tokens < minimal_fee_in_bridged_tokens {
+				return Err("Too low fee paid");
+			}
+
+			Ok(())
+		}
+	}
 
 	/// Estimate delivery and dispatch fee that must be paid for delivering a message to the Bridged chain.
 	///

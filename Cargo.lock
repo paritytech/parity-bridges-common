@@ -3586,6 +3586,8 @@ dependencies = [
  "bp-message-lane",
  "bp-millau",
  "bp-rialto",
+ "bp-runtime",
+ "bridge-runtime-common",
  "frame-executive",
  "frame-support",
  "frame-system",
@@ -3616,6 +3618,7 @@ dependencies = [
  "sp-session",
  "sp-std",
  "sp-transaction-pool",
+ "sp-trie",
  "sp-version",
  "substrate-wasm-builder-runner",
 ]

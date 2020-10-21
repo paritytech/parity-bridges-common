@@ -426,7 +426,7 @@ impl pallet_shift_session_manager::Trait for Runtime {}
 
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_message_lane::MessageNonce = 8;
-	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce = 0;
+	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce = 128;
 }
 
 impl pallet_message_lane::Trait for Runtime {
@@ -442,7 +442,7 @@ impl pallet_message_lane::Trait for Runtime {
 	type InboundRelayer = bp_millau::AccountId;
 
 	type TargetHeaderChain = crate::millau_messages::Millau;
-	type LaneMessageVerifier = crate::millau_messages::Millau;
+	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type MessageDeliveryAndDispatchPayment =
 		pallet_message_lane::instant_payments::InstantCurrencyPayments<AccountId, pallet_balances::Module<Runtime>>;
 

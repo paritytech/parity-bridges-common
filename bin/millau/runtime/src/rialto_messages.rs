@@ -31,37 +31,37 @@ use frame_support::{
 };
 use sp_trie::StorageProof;
 
-/// Message payload for Rialto -> Millau messages.
-pub type ToMillauMessagePayload = messages::source::FromThisChainMessagePayload<WithMillauMessageBridge>;
-
-/// Message verifier for Rialto -> Millau messages.
-pub type ToMillauMessageVerifier = messages::source::FromThisChainMessageVerifier<WithMillauMessageBridge>;
-
 /// Message payload for Millau -> Rialto messages.
-pub type FromMillauMessagePayload = messages::target::FromBridgedChainMessagePayload<WithMillauMessageBridge>;
+pub type ToRialtoMessagePayload = messages::source::FromThisChainMessagePayload<WithRialtoMessageBridge>;
 
-/// Call-dispatch based message dispatch for Millau -> Rialto messages.
-pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
-	WithMillauMessageBridge,
+/// Message verifier for Millau -> Rialto messages.
+pub type ToRialtoMessageVerifier = messages::source::FromThisChainMessageVerifier<WithRialtoMessageBridge>;
+
+/// Message payload for Rialto -> Millau messages.
+pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload<WithRialtoMessageBridge>;
+
+/// Call-dispatch based message dispatch for Rialto -> Millau messages.
+pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
+	WithRialtoMessageBridge,
 	crate::Runtime,
 	pallet_bridge_call_dispatch::DefaultInstance,
 >;
 
 /// Millau <-> Rialto message bridge.
 #[derive(RuntimeDebug, Clone, Copy)]
-pub struct WithMillauMessageBridge;
+pub struct WithRialtoMessageBridge;
 
-impl MessageBridge for WithMillauMessageBridge {
-	const INSTANCE: InstanceId = *b"mllu";
+impl MessageBridge for WithRialtoMessageBridge {
+	const INSTANCE: InstanceId = *b"rlto";
 
 	const RELAYER_INTEREST_PERCENT: u32 = 10;
 
-	type ThisChain = Rialto;
-	type BridgedChain = Millau;
+	type ThisChain = Millau;
+	type BridgedChain = Rialto;
 
 	fn maximal_dispatch_weight_of_message_on_bridged_chain() -> Weight {
 		// we don't want to relay too large messages + keep reserve for future upgrades
-		bp_millau::MAXIMUM_EXTRINSIC_WEIGHT / 2
+		bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT / 2
 	}
 
 	fn weight_of_delivery_transaction() -> Weight {
@@ -91,19 +91,6 @@ impl MessageBridge for WithMillauMessageBridge {
 	}
 }
 
-/// Rialto chain from message lane point of view.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct Rialto;
-
-impl messages::ChainWithMessageLanes for Rialto {
-	type AccountId = bp_rialto::AccountId;
-	type Signer = bp_rialto::AccountSigner;
-	type Signature = bp_rialto::Signature;
-	type Call = crate::Call;
-	type Weight = Weight;
-	type Balance = bp_rialto::Balance;
-}
-
 /// Millau chain from message lane point of view.
 #[derive(RuntimeDebug, Clone, Copy)]
 pub struct Millau;
@@ -112,21 +99,34 @@ impl messages::ChainWithMessageLanes for Millau {
 	type AccountId = bp_millau::AccountId;
 	type Signer = bp_millau::AccountSigner;
 	type Signature = bp_millau::Signature;
-	type Call = (); // unknown to us
+	type Call = crate::Call;
 	type Weight = Weight;
 	type Balance = bp_millau::Balance;
 }
 
-impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau {
+/// Rialto chain from message lane point of view.
+#[derive(RuntimeDebug, Clone, Copy)]
+pub struct Rialto;
+
+impl messages::ChainWithMessageLanes for Rialto {
+	type AccountId = bp_rialto::AccountId;
+	type Signer = bp_rialto::AccountSigner;
+	type Signature = bp_rialto::Signature;
+	type Call = (); // unknown to us
+	type Weight = Weight;
+	type Balance = bp_rialto::Balance;
+}
+
+impl TargetHeaderChain<ToRialtoMessagePayload, bp_rialto::AccountId> for Rialto {
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;
 	// - the storage proof or one or several keys;
 	// - id of the lane we prove state of.
-	type MessagesDeliveryProof = (bp_millau::Hash, StorageProof, LaneId);
+	type MessagesDeliveryProof = (bp_rialto::Hash, StorageProof, LaneId);
 
-	fn verify_message(payload: &ToMillauMessagePayload) -> Result<(), Self::Error> {
-		if payload.weight > WithMillauMessageBridge::maximal_dispatch_weight_of_message_on_bridged_chain() {
+	fn verify_message(payload: &ToRialtoMessagePayload) -> Result<(), Self::Error> {
+		if payload.weight > WithRialtoMessageBridge::maximal_dispatch_weight_of_message_on_bridged_chain() {
 			return Err("Too large weight declared");
 		}
 
@@ -135,23 +135,23 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 
 	fn verify_messages_delivery_proof(
 		_proof: Self::MessagesDeliveryProof,
-	) -> Result<(LaneId, InboundLaneData<bp_millau::AccountId>), Self::Error> {
+	) -> Result<(LaneId, InboundLaneData<bp_rialto::AccountId>), Self::Error> {
 		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/397")
 	}
 }
 
-impl SourceHeaderChain<bp_millau::Balance> for Millau {
+impl SourceHeaderChain<bp_rialto::Balance> for Rialto {
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;
 	// - the storage proof or one or several keys;
 	// - id of the lane we prove messages for;
 	// - inclusive range of messages nonces that are proved.
-	type MessagesProof = (bp_millau::Hash, StorageProof, LaneId, MessageNonce, MessageNonce);
+	type MessagesProof = (bp_rialto::Hash, StorageProof, LaneId, MessageNonce, MessageNonce);
 
 	fn verify_messages_proof(
 		_proof: Self::MessagesProof,
-	) -> Result<ProvedMessages<Message<bp_millau::Balance>>, Self::Error> {
+	) -> Result<ProvedMessages<Message<bp_rialto::Balance>>, Self::Error> {
 		unimplemented!("https://github.com/paritytech/parity-bridges-common/issues/397")
 	}
 }
