@@ -88,10 +88,14 @@ where
 		let data = Bytes(Vec::new());
 
 		let encoded_response = self.client.state_call(call, data, None).await?;
-		let decoded_response: (P::Number, P::Hash) =
+		let decoded_response: Vec<(P::Number, P::Hash)> =
 			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?;
 
-		let best_header_id = HeaderId(decoded_response.0, decoded_response.1);
+		let best_header = decoded_response.last().expect(
+			"Substrate pallet always ensures there's at
+		     least one best header.",
+		);
+		let best_header_id = HeaderId(best_header.0, best_header.1);
 		Ok(best_header_id)
 	}
 

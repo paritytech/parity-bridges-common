@@ -22,7 +22,7 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use bp_millau::{BEST_MILLAU_BLOCK_METHOD, INCOMPLETE_MILLAU_HEADERS_METHOD, IS_KNOWN_MILLAU_BLOCK_METHOD};
+use bp_millau::{BEST_MILLAU_BLOCKS_METHOD, INCOMPLETE_MILLAU_HEADERS_METHOD, IS_KNOWN_MILLAU_BLOCK_METHOD};
 use codec::Encode;
 use headers_relay::{
 	sync::{HeadersSyncParams, TargetTransactionMode},
@@ -61,7 +61,7 @@ impl HeadersSyncPipeline for MillauHeadersToRialto {
 
 #[async_trait]
 impl SubstrateHeadersSyncPipeline for MillauHeadersToRialto {
-	const BEST_BLOCK_METHOD: &'static str = BEST_MILLAU_BLOCK_METHOD;
+	const BEST_BLOCK_METHOD: &'static str = BEST_MILLAU_BLOCKS_METHOD;
 	const IS_KNOWN_BLOCK_METHOD: &'static str = IS_KNOWN_MILLAU_BLOCK_METHOD;
 	const INCOMPLETE_HEADERS_METHOD: &'static str = INCOMPLETE_MILLAU_HEADERS_METHOD;
 
