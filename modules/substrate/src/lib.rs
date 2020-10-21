@@ -306,7 +306,7 @@ pub trait BridgeStorage {
 	///
 	/// Takes the hash of the header which scheduled this particular change.
 	fn schedule_next_set_change(
-		&self,
+		&mut self,
 		signal_hash: <Self::Header as HeaderT>::Hash,
 		next_change: ScheduledChange<<Self::Header as HeaderT>::Number>,
 	);
@@ -414,7 +414,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	}
 
 	fn schedule_next_set_change(
-		&self,
+		&mut self,
 		signal_hash: BridgedBlockHash<T>,
 		next_change: ScheduledChange<BridgedBlockNumber<T>>,
 	) {
