@@ -161,8 +161,10 @@ fn fork_waits_for_finality_proof_before_importing_header_past_one_which_enacts_a
 //
 // [1] <- [2: S|1] <- [3: S|0]
 //
-// Grandpa can have multiple authority set changes pending on the same fork. However, to simplify
-// our life we've decided to only allow _one_ pending authority set change at any point in time.
+// Grandpa can have multiple authority set changes pending on the same fork. However, we've decided
+// to introduce a limit of _one_ pending authority set change per fork in order to simplify pallet
+// logic and to prevent DoS attacks if Grandpa finality were to temporarily stall for a long time
+// (we'd have to perform a lot of expensive ancestry checks to catch back up).
 #[test]
 fn fork_does_not_allow_multiple_scheduled_changes_on_the_same_fork() {
 	run_test(|| {
