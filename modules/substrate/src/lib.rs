@@ -264,9 +264,6 @@ pub trait BridgeStorage {
 	/// Get the header(s) at the highest known height.
 	fn best_headers(&self) -> Vec<ImportedHeader<Self::Header>>;
 
-	/// Update the header(s) at the highest height.
-	fn update_best_headers(&mut self, hash: <Self::Header as HeaderT>::Hash);
-
 	/// Get the best finalized header the pallet knows of.
 	fn best_finalized_header(&self) -> ImportedHeader<Self::Header>;
 
@@ -363,10 +360,6 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 			.iter()
 			.map(|h| self.header_by_hash(*h).expect(proof))
 			.collect()
-	}
-
-	fn update_best_headers(&mut self, hash: BridgedBlockHash<T>) {
-		<BestHeaders<T>>::append(hash)
 	}
 
 	fn best_finalized_header(&self) -> ImportedHeader<BridgedHeader<T>> {
