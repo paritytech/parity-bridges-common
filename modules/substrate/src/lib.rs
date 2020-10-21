@@ -67,7 +67,7 @@ pub trait Trait: frame_system::Trait {
 decl_storage! {
 	trait Store for Module<T: Trait> as SubstrateBridge {
 		/// The number of the highest block(s) we know of.
-		ChainTipHeight: BridgedBlockNumber<T>;
+		BestHeight: BridgedBlockNumber<T>;
 		/// Hash of the header at the highest known height.
 		///
 		/// If there are multiple headers at the same "best" height
@@ -107,7 +107,7 @@ decl_storage! {
 				.expect("An initial header is needed");
 			let initial_hash = initial_header.hash();
 
-			<ChainTipHeight<T>>::put(initial_header.number());
+			<BestHeight<T>>::put(initial_header.number());
 			<BestHeaders<T>>::put(vec![initial_hash]);
 			<BestFinalized<T>>::put(initial_hash);
 			<ImportedHeaders<T>>::insert(
@@ -330,7 +330,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 		let hash = header.hash();
 		let current_height = header.number();
-		let best_height = <ChainTipHeight<T>>::get();
+		let best_height = <BestHeight<T>>::get();
 
 		match current_height.cmp(&best_height) {
 			Ordering::Equal => {
@@ -339,7 +339,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 			Ordering::Greater => {
 				<BestHeaders<T>>::kill();
 				<BestHeaders<T>>::append(hash);
-				<ChainTipHeight<T>>::put(current_height);
+				<BestHeight<T>>::put(current_height);
 			}
 			Ordering::Less => {
 				// This is fine. We can still have a valid header, but it might just be on a

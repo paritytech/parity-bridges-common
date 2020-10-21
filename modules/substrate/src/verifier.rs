@@ -354,7 +354,7 @@ mod tests {
 	use crate::justification::tests::*;
 	use crate::mock::helpers::*;
 	use crate::mock::*;
-	use crate::{BestFinalized, ChainTipHeight, ImportedHeaders, PalletStorage};
+	use crate::{BestFinalized, BestHeight, ImportedHeaders, PalletStorage};
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
@@ -530,7 +530,7 @@ mod tests {
 			// both at the same height
 			let best_headers: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
 			assert_eq!(best_headers, vec![header_on_fork1, header_on_fork2]);
-			assert_eq!(<ChainTipHeight<TestRuntime>>::get(), 1);
+			assert_eq!(<BestHeight<TestRuntime>>::get(), 1);
 		})
 	}
 
@@ -559,7 +559,7 @@ mod tests {
 			// a single "best header" now.
 			let best_header: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
 			assert_eq!(best_header, vec![better_header]);
-			assert_eq!(<ChainTipHeight<TestRuntime>>::get(), 2);
+			assert_eq!(<BestHeight<TestRuntime>>::get(), 2);
 		})
 	}
 

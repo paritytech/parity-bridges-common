@@ -58,7 +58,7 @@ use crate::justification::tests::*;
 use crate::mock::{helpers::*, *};
 use crate::storage::{AuthoritySet, ImportedHeader};
 use crate::verifier::*;
-use crate::{BestFinalized, BridgeStorage, ChainTipHeight, NextScheduledChange, PalletStorage};
+use crate::{BestFinalized, BestHeight, BridgeStorage, NextScheduledChange, PalletStorage};
 use codec::Encode;
 use frame_support::{IterableStorageMap, StorageValue};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
@@ -101,7 +101,7 @@ fn fork_can_import_headers_on_different_forks() {
 
 		let best_headers: Vec<TestHeader> = storage.best_headers().into_iter().map(|i| i.header).collect();
 		assert_eq!(best_headers.len(), 2);
-		assert_eq!(<ChainTipHeight<TestRuntime>>::get(), 3);
+		assert_eq!(<BestHeight<TestRuntime>>::get(), 3);
 	})
 }
 
