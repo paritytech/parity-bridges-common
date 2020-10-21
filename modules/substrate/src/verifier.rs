@@ -146,21 +146,19 @@ where
 
 		// Check if our fork is expecting an authority set change
 		let requires_justification = if let Some(hash) = signal_hash {
-			if let Some(pending_change) = self.storage.scheduled_set_change(hash) {
-				if scheduled_change.is_some() {
-					return Err(ImportError::PendingAuthoritySetChange);
-				}
+			let proof = "If the header has a signal hash it means there's an accompanying set
+							change in storage, therefore this must always be valid.";
+			let pending_change = self.storage.scheduled_set_change(hash).expect(proof);
 
-				if *header.number() > pending_change.height {
-					return Err(ImportError::AwaitingFinalityProof);
-				}
-
-				pending_change.height == *header.number()
-			} else {
-				let proof = "If the header has a signal hash it means there's an accompanying set
-							change in storage, therefore this branch should never be reached.";
-				unreachable!(proof)
+			if scheduled_change.is_some() {
+				return Err(ImportError::PendingAuthoritySetChange);
 			}
+
+			if *header.number() > pending_change.height {
+				return Err(ImportError::AwaitingFinalityProof);
+			}
+
+			pending_change.height == *header.number()
 		} else {
 			// Since we don't currently have a pending authority set change let's check if the header
 			// contains a log indicating when the next change should be.
