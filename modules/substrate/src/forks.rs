@@ -203,7 +203,7 @@ fn fork_correctly_tracks_which_headers_require_finality_proofs() {
 
 		create_chain(&mut storage, &mut chain);
 
-		let hashes = storage.unfinalized_headers();
+		let hashes = storage.missing_justifications();
 		assert_eq!(hashes.len(), 2);
 		assert!(hashes[0] != hashes[1]);
 		assert_eq!(*storage.header_by_hash(hashes[0]).unwrap().number(), 2);
