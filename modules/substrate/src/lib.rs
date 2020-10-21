@@ -349,6 +349,10 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 		if header.requires_justification {
 			<RequiresJustification<T>>::insert(hash, ());
+		} else {
+			if <RequiresJustification<T>>::contains_key(hash) {
+				<RequiresJustification<T>>::remove(hash);
+			}
 		}
 
 		<ImportedHeaders<T>>::insert(hash, header);
@@ -369,10 +373,6 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	}
 
 	fn update_best_finalized(&self, hash: BridgedBlockHash<T>) {
-		if <RequiresJustification<T>>::contains_key(hash) {
-			<RequiresJustification<T>>::remove(hash);
-		}
-
 		<BestFinalized<T>>::put(hash);
 	}
 
