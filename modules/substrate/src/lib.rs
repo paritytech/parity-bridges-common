@@ -397,16 +397,10 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 	}
 
 	fn enact_authority_set(&mut self, signal_hash: BridgedBlockHash<T>) -> Result<(), ()> {
-		if <NextScheduledChange<T>>::contains_key(signal_hash) {
-			let new_set = <NextScheduledChange<T>>::take(signal_hash)
-				.expect("Ensured that entry existed in storage")
-				.authority_set;
-			self.update_current_authority_set(new_set);
+		let new_set = <NextScheduledChange<T>>::take(signal_hash).ok_or(())?.authority_set;
+		self.update_current_authority_set(new_set);
 
-			Ok(())
-		} else {
-			Err(())
-		}
+		Ok(())
 	}
 
 	fn scheduled_set_change(&self, signal_hash: BridgedBlockHash<T>) -> Option<ScheduledChange<BridgedBlockNumber<T>>> {
