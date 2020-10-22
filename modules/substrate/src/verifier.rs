@@ -769,7 +769,7 @@ mod tests {
 
 			assert_ok!(verifier.import_header(header.clone()));
 			assert_eq!(storage.missing_justifications().len(), 1);
-			assert_eq!(storage.missing_justifications()[0], header.hash());
+			assert_eq!(storage.missing_justifications()[0].1, header.hash());
 
 			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
 			assert_eq!(storage.best_finalized_header().header, header);

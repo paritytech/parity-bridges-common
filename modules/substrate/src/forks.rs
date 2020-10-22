@@ -194,7 +194,6 @@ fn fork_does_not_allow_multiple_scheduled_changes_on_the_same_fork() {
 #[test]
 fn fork_correctly_tracks_which_headers_require_finality_proofs() {
 	run_test(|| {
-		use sp_runtime::traits::Header as HeaderT;
 		let mut storage = PalletStorage::<TestRuntime>::new();
 
 		let mut chain = vec![
@@ -205,11 +204,12 @@ fn fork_correctly_tracks_which_headers_require_finality_proofs() {
 
 		create_chain(&mut storage, &mut chain);
 
-		let hashes = storage.missing_justifications();
-		assert_eq!(hashes.len(), 2);
-		assert!(hashes[0] != hashes[1]);
-		assert_eq!(*storage.header_by_hash(hashes[0]).unwrap().number(), 2);
-		assert_eq!(*storage.header_by_hash(hashes[1]).unwrap().number(), 2);
+		// Note, we're working with HeaderIds here (Number, Hash)
+		let header_ids = storage.missing_justifications();
+		assert_eq!(header_ids.len(), 2);
+		assert!(header_ids[0].1 != header_ids[1].1);
+		assert_eq!(header_ids[0].0, 2);
+		assert_eq!(header_ids[1].0, 2);
 	})
 }
 

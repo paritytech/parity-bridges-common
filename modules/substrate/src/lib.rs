@@ -75,9 +75,9 @@ decl_storage! {
 		BestHeaders: Vec<BridgedBlockHash<T>>;
 		/// Hash of the best finalized header.
 		BestFinalized: BridgedBlockHash<T>;
-		/// The set of headers which enact an authority set change and therefore
+		/// The set of header IDs (number, hash) which enact an authority set change and therefore
 		/// require a Grandpa justification.
-		RequiresJustification: map hasher(identity) BridgedBlockHash<T> => ();
+		RequiresJustification: map hasher(identity) BridgedBlockHash<T> => BridgedBlockNumber<T>;
 		/// Headers which have been imported into the pallet.
 		ImportedHeaders: map hasher(identity) BridgedBlockHash<T> => Option<ImportedHeader<BridgedHeader<T>>>;
 		/// The current Grandpa Authority set.
@@ -235,16 +235,8 @@ impl<T: Trait> Module<T> {
 	/// Returns a list of headers which require finality proofs.
 	///
 	/// These headers require proofs because they enact authority set changes.
-	pub fn require_justifications() -> Vec<BridgedHeader<T>> {
-		let storage = PalletStorage::<T>::new();
-		let hashes = storage.missing_justifications();
-		let proof = "We write a header to storage before marking it as unfinalized, therefore \
-		             this must always exist if we got an unfinalized header hash.";
-		hashes
-			.iter()
-			.map(|hash| storage.header_by_hash(*hash).expect(proof))
-			.map(|imported_header| imported_header.header)
-			.collect()
+	pub fn require_justifications() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
+		PalletStorage::<T>::new().missing_justifications()
 	}
 }
 
@@ -272,7 +264,7 @@ pub trait BridgeStorage {
 	/// Returns a list of headers which require justifications.
 	///
 	/// A header will require a justification if it enacts a new authority set.
-	fn missing_justifications(&self) -> Vec<<Self::Header as HeaderT>::Hash>;
+	fn missing_justifications(&self) -> Vec<(<Self::Header as HeaderT>::Number, <Self::Header as HeaderT>::Hash)>;
 
 	/// Get a specific header by its hash.
 	///
@@ -344,7 +336,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		}
 
 		if header.requires_justification {
-			<RequiresJustification<T>>::insert(hash, ());
+			<RequiresJustification<T>>::insert(hash, current_height);
 		} else if <RequiresJustification<T>>::contains_key(hash) {
 			<RequiresJustification<T>>::remove(hash);
 		}
@@ -378,8 +370,10 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
-	fn missing_justifications(&self) -> Vec<BridgedBlockHash<T>> {
-		<RequiresJustification<T>>::iter().map(|(k, _)| k).collect()
+	fn missing_justifications(&self) -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
+		<RequiresJustification<T>>::iter()
+			.map(|(hash, num)| (num, hash))
+			.collect()
 	}
 
 	fn current_authority_set(&self) -> AuthoritySet {
