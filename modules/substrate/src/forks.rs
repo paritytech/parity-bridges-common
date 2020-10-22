@@ -446,8 +446,10 @@ where
 					.find(|h| h.number == *num)
 					.expect("Trying to finalize block that doesn't exist");
 
-				// TODO: Tests pass when I create multiple justifications even though I don't change
-				// these, is that a problem?
+				// This is technically equivocating (accepting the same justification on the same
+				// `grandpa_round`).
+				//
+				// See for more: https://github.com/paritytech/parity-bridges-common/issues/430
 				let grandpa_round = 1;
 				let set_id = 1;
 				let authorities = authority_list();
