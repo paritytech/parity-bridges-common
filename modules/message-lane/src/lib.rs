@@ -71,8 +71,8 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// dispatched. Its delivery confirmation is still pending. This limit is introduced to bound
 	/// maximal number of relayers-ids in the inbound lane state.
 	///
-	/// "Message" in this context does not necessarily mean individual message, but instead
-	/// continuous range of indivdual messages, that are delivered by single relayer. So if relayer#1
+	/// "Message" in this context does not necessarily mean an individual message, but instead
+	/// continuous range of individual messages, that are delivered by single relayer. So if relayer#1
 	/// has submitted delivery transaction#1 with individual messages [1; 2] and then delivery
 	/// transaction#2 with individual messages [3; 4], this would be treated as single "Message" and
 	/// would occupy single unit of `MaxUnconfirmedMessagesAtInboundLane` limit.
