@@ -38,7 +38,7 @@ pub trait MessageBridge {
 	const INSTANCE: InstanceId;
 
 	/// Relayer interest (in percents).
-	const RELAYER_INTEREST_PERCENT: u32;
+	const RELAYER_FEE_PERCENT: u32;
 
 	/// This chain in context of message bridge.
 	type ThisChain: ChainWithMessageLanes;
@@ -131,7 +131,7 @@ pub mod source {
 			payload: &FromThisChainMessagePayload<B>,
 		) -> Result<(), Self::Error> {
 			let minimal_fee_in_bridged_tokens =
-				estimate_message_dispatch_and_delivery_fee::<B>(payload, B::RELAYER_INTEREST_PERCENT)
+				estimate_message_dispatch_and_delivery_fee::<B>(payload, B::RELAYER_FEE_PERCENT)
 					.ok_or("Overflow when computing minimal required message delivery and dispatch fee")?;
 
 			// compare with actual fee paid
@@ -151,7 +151,7 @@ pub mod source {
 	/// Returns `None` if overflow has happened.
 	pub fn estimate_message_dispatch_and_delivery_fee<B: MessageBridge>(
 		payload: &FromThisChainMessagePayload<B>,
-		relayer_interest_percent: u32,
+		relayer_fee_percent: u32,
 	) -> Option<BalanceOf<BridgedChain<B>>> {
 		// the fee (in Bridged tokens) of all transactions that are made on the Bridged chain
 		let delivery_fee = B::bridged_weight_to_balance(B::weight_of_delivery_transaction());
@@ -176,7 +176,7 @@ pub mod source {
 			// unlikely and should be treated as an error
 			// => let's do multiplication first
 			fee
-				.checked_mul(&relayer_interest_percent.into())
+				.checked_mul(&relayer_fee_percent.into())
 				.and_then(|interest| interest.checked_div(&100u32.into()))
 				.and_then(|interest| fee.checked_add(&interest)))
 	}
@@ -286,7 +286,7 @@ mod tests {
 
 	impl MessageBridge for OnThisChainBridge {
 		const INSTANCE: InstanceId = *b"this";
-		const RELAYER_INTEREST_PERCENT: u32 = 10;
+		const RELAYER_FEE_PERCENT: u32 = 10;
 
 		type ThisChain = ThisChain;
 		type BridgedChain = BridgedChain;
@@ -325,7 +325,7 @@ mod tests {
 
 	impl MessageBridge for OnBridgedChainBridge {
 		const INSTANCE: InstanceId = *b"brdg";
-		const RELAYER_INTEREST_PERCENT: u32 = 20;
+		const RELAYER_FEE_PERCENT: u32 = 20;
 
 		type ThisChain = BridgedChain;
 		type BridgedChain = ThisChain;
@@ -510,7 +510,7 @@ mod tests {
 		assert_eq!(
 			source::estimate_message_dispatch_and_delivery_fee::<OnThisChainBridge>(
 				&payload,
-				OnThisChainBridge::RELAYER_INTEREST_PERCENT,
+				OnThisChainBridge::RELAYER_FEE_PERCENT,
 			),
 			Some(BridgedChainBalance(EXPECTED_MINIMAL_FEE)),
 		);

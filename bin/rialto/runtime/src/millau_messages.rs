@@ -54,7 +54,7 @@ pub struct WithMillauMessageBridge;
 impl MessageBridge for WithMillauMessageBridge {
 	const INSTANCE: InstanceId = *b"mllu";
 
-	const RELAYER_INTEREST_PERCENT: u32 = 10;
+	const RELAYER_FEE_PERCENT: u32 = 10;
 
 	type ThisChain = Rialto;
 	type BridgedChain = Millau;
