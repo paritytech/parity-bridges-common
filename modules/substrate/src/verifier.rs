@@ -354,7 +354,7 @@ mod tests {
 	use crate::justification::tests::*;
 	use crate::mock::helpers::*;
 	use crate::mock::*;
-	use crate::{BestFinalized, BestHeight, ImportedHeaders, PalletStorage};
+	use crate::{BestFinalized, BestHeight, HeaderId, ImportedHeaders, PalletStorage};
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
@@ -499,7 +499,7 @@ mod tests {
 				.header_by_hash(header.hash())
 				.expect("Should have been imported successfully");
 			assert_eq!(stored_header.is_finalized, false);
-			assert_eq!(stored_header.hash(), storage.best_headers()[0].1);
+			assert_eq!(stored_header.hash(), storage.best_headers()[0].hash);
 		})
 	}
 
@@ -530,8 +530,20 @@ mod tests {
 			// both at the same height
 			let best_headers = storage.best_headers();
 			assert_eq!(best_headers.len(), 2);
-			assert_eq!(best_headers[0], (*header_on_fork1.number(), header_on_fork1.hash()));
-			assert_eq!(best_headers[1], (*header_on_fork2.number(), header_on_fork2.hash()));
+			assert_eq!(
+				best_headers[0],
+				HeaderId {
+					number: *header_on_fork1.number(),
+					hash: header_on_fork1.hash()
+				}
+			);
+			assert_eq!(
+				best_headers[1],
+				HeaderId {
+					number: *header_on_fork2.number(),
+					hash: header_on_fork2.hash()
+				}
+			);
 			assert_eq!(<BestHeight<TestRuntime>>::get(), 1);
 		})
 	}
@@ -562,7 +574,13 @@ mod tests {
 			// a single "best header" now.
 			let best_headers = storage.best_headers();
 			assert_eq!(best_headers.len(), 1);
-			assert_eq!(best_headers[0], (*better_header.number(), better_header.hash()));
+			assert_eq!(
+				best_headers[0],
+				HeaderId {
+					number: *better_header.number(),
+					hash: better_header.hash()
+				}
+			);
 			assert_eq!(<BestHeight<TestRuntime>>::get(), 2);
 		})
 	}
@@ -769,7 +787,7 @@ mod tests {
 
 			assert_ok!(verifier.import_header(header.clone()));
 			assert_eq!(storage.missing_justifications().len(), 1);
-			assert_eq!(storage.missing_justifications()[0].1, header.hash());
+			assert_eq!(storage.missing_justifications()[0].hash, header.hash());
 
 			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
 			assert_eq!(storage.best_finalized_header().header, header);

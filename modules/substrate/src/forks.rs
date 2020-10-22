@@ -204,12 +204,11 @@ fn fork_correctly_tracks_which_headers_require_finality_proofs() {
 
 		create_chain(&mut storage, &mut chain);
 
-		// Note, we're working with HeaderIds here (Number, Hash)
 		let header_ids = storage.missing_justifications();
 		assert_eq!(header_ids.len(), 2);
-		assert!(header_ids[0].1 != header_ids[1].1);
-		assert_eq!(header_ids[0].0, 2);
-		assert_eq!(header_ids[1].0, 2);
+		assert!(header_ids[0].hash != header_ids[1].hash);
+		assert_eq!(header_ids[0].number, 2);
+		assert_eq!(header_ids[1].number, 2);
 	})
 }
 

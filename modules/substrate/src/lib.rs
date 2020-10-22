@@ -36,6 +36,7 @@ use bp_runtime::{BlockNumberOf, Chain, HashOf, HeaderOf};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
+use sp_runtime::RuntimeDebug;
 use sp_std::{marker::PhantomData, prelude::*};
 
 // Re-export since the node uses these when configuring genesis
@@ -58,6 +59,15 @@ pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Trait>::BridgedChain
 pub(crate) type BridgedBlockHash<T> = HashOf<<T as Trait>::BridgedChain>;
 /// Header of the bridged chain.
 pub(crate) type BridgedHeader<T> = HeaderOf<<T as Trait>::BridgedChain>;
+
+/// A convenience type identifying headers.
+#[derive(RuntimeDebug, PartialEq)]
+pub struct HeaderId<H: HeaderT> {
+	/// The block number of the header.
+	pub number: H::Number,
+	/// The hash of the header.
+	pub hash: H::Hash,
+}
 
 pub trait Trait: frame_system::Trait {
 	/// Chain that we are bridging here.
@@ -200,7 +210,11 @@ decl_module! {
 impl<T: Trait> Module<T> {
 	/// Get the highest header(s) that the pallet knows of.
 	pub fn best_headers() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
-		PalletStorage::<T>::new().best_headers()
+		PalletStorage::<T>::new()
+			.best_headers()
+			.iter()
+			.map(|id| (id.number, id.hash))
+			.collect()
 	}
 
 	/// Get the best finalized header the pallet knows of.
@@ -236,7 +250,11 @@ impl<T: Trait> Module<T> {
 	///
 	/// These headers require proofs because they enact authority set changes.
 	pub fn require_justifications() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
-		PalletStorage::<T>::new().missing_justifications()
+		PalletStorage::<T>::new()
+			.missing_justifications()
+			.iter()
+			.map(|id| (id.number, id.hash))
+			.collect()
 	}
 }
 
@@ -250,7 +268,7 @@ pub trait BridgeStorage {
 	fn write_header(&mut self, header: &ImportedHeader<Self::Header>);
 
 	/// Get the header(s) at the highest known height.
-	fn best_headers(&self) -> Vec<(<Self::Header as HeaderT>::Number, <Self::Header as HeaderT>::Hash)>;
+	fn best_headers(&self) -> Vec<HeaderId<Self::Header>>;
 
 	/// Get the best finalized header the pallet knows of.
 	fn best_finalized_header(&self) -> ImportedHeader<Self::Header>;
@@ -264,7 +282,7 @@ pub trait BridgeStorage {
 	/// Returns a list of headers which require justifications.
 	///
 	/// A header will require a justification if it enacts a new authority set.
-	fn missing_justifications(&self) -> Vec<(<Self::Header as HeaderT>::Number, <Self::Header as HeaderT>::Hash)>;
+	fn missing_justifications(&self) -> Vec<HeaderId<Self::Header>>;
 
 	/// Get a specific header by its hash.
 	///
@@ -344,11 +362,11 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
-	fn best_headers(&self) -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
-		let best_height = <BestHeight<T>>::get();
+	fn best_headers(&self) -> Vec<HeaderId<BridgedHeader<T>>> {
+		let number = <BestHeight<T>>::get();
 		<BestHeaders<T>>::get()
 			.iter()
-			.map(|hash| (best_height, *hash))
+			.map(|hash| HeaderId { number, hash: *hash })
 			.collect()
 	}
 
@@ -370,9 +388,9 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<ImportedHeaders<T>>::get(hash)
 	}
 
-	fn missing_justifications(&self) -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
+	fn missing_justifications(&self) -> Vec<HeaderId<BridgedHeader<T>>> {
 		<RequiresJustification<T>>::iter()
-			.map(|(hash, num)| (num, hash))
+			.map(|(hash, number)| HeaderId { number, hash })
 			.collect()
 	}
 
