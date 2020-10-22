@@ -131,8 +131,7 @@ pub mod source {
 			payload: &FromThisChainMessagePayload<B>,
 		) -> Result<(), Self::Error> {
 			let minimal_fee_in_bridged_tokens =
-				estimate_message_dispatch_and_delivery_fee::<B>(payload, B::RELAYER_FEE_PERCENT)
-					.ok_or("Overflow when computing minimal required message delivery and dispatch fee")?;
+				estimate_message_dispatch_and_delivery_fee::<B>(payload, B::RELAYER_FEE_PERCENT)?;
 
 			// compare with actual fee paid
 			let actual_fee_in_bridged_tokens =
@@ -152,7 +151,7 @@ pub mod source {
 	pub fn estimate_message_dispatch_and_delivery_fee<B: MessageBridge>(
 		payload: &FromThisChainMessagePayload<B>,
 		relayer_fee_percent: u32,
-	) -> Option<BalanceOf<BridgedChain<B>>> {
+	) -> Result<BalanceOf<BridgedChain<B>>, &'static str> {
 		// the fee (in Bridged tokens) of all transactions that are made on the Bridged chain
 		let delivery_fee = B::bridged_weight_to_balance(B::weight_of_delivery_transaction());
 		let dispatch_fee = B::bridged_weight_to_balance(payload.weight.into());
@@ -178,7 +177,8 @@ pub mod source {
 			fee
 				.checked_mul(&relayer_fee_percent.into())
 				.and_then(|interest| interest.checked_div(&100u32.into()))
-				.and_then(|interest| fee.checked_add(&interest)))
+				.and_then(|interest| fee.checked_add(&interest))
+		).ok_or("Overflow when computing minimal required message delivery and dispatch fee")
 	}
 }
 
@@ -512,7 +512,7 @@ mod tests {
 				&payload,
 				OnThisChainBridge::RELAYER_FEE_PERCENT,
 			),
-			Some(BridgedChainBalance(EXPECTED_MINIMAL_FEE)),
+			Ok(BridgedChainBalance(EXPECTED_MINIMAL_FEE)),
 		);
 
 		// and now check that the verifier checks the fee
