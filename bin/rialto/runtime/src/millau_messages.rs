@@ -127,7 +127,7 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 
 	fn verify_message(payload: &ToMillauMessagePayload) -> Result<(), Self::Error> {
 		if payload.weight > WithMillauMessageBridge::maximal_dispatch_weight_of_message_on_bridged_chain() {
-			return Err("Too large weight declared");
+			return Err("Payload has weight larger than maximum allowed weight");
 		}
 
 		Ok(())
