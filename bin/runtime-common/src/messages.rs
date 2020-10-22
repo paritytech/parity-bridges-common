@@ -82,7 +82,7 @@ pub trait ChainWithMessageLanes {
 	/// Call type on the chain.
 	type Call: Decode;
 	/// Type of weight that is used on the chain. This would almost always be a regular
-	/// `frame_support::weight::Weight`. But since meaining of weight on different chains
+	/// `frame_support::weight::Weight`. But since the meaning of weight on different chains
 	/// may be different, the `WeightOf<>` construct is used to avoid confusion between
 	/// different weights.
 	type Weight: From<frame_support::weights::Weight>;
