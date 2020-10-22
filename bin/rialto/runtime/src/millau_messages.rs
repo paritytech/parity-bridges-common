@@ -144,7 +144,7 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;
-	// - the storage proof or one or several keys;
+	// - the storage proof of one or several keys;
 	// - id of the lane we prove messages for;
 	// - inclusive range of messages nonces that are proved.
 	type MessagesProof = (bp_millau::Hash, StorageProof, LaneId, MessageNonce, MessageNonce);
