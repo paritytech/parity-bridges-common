@@ -52,7 +52,7 @@ pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDi
 pub struct WithMillauMessageBridge;
 
 impl MessageBridge for WithMillauMessageBridge {
-	const INSTANCE: InstanceId = *b"mllu";
+	const INSTANCE: InstanceId = *b"mlau";
 
 	const RELAYER_FEE_PERCENT: u32 = 10;
 
