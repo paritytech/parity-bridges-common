@@ -170,15 +170,16 @@ pub mod source {
 			.and_then(|fee| fee.checked_add(&delivery_confirmation_fee));
 
 		// before returning, add extra fee that is paid to the relayer (relayer interest)
-		minimal_fee.and_then(|fee|
+		minimal_fee
+			.and_then(|fee|
 			// having message with fee that is near the `Balance::MAX_VALUE` of the chain is
 			// unlikely and should be treated as an error
 			// => let's do multiplication first
 			fee
 				.checked_mul(&relayer_fee_percent.into())
 				.and_then(|interest| interest.checked_div(&100u32.into()))
-				.and_then(|interest| fee.checked_add(&interest))
-		).ok_or("Overflow when computing minimal required message delivery and dispatch fee")
+				.and_then(|interest| fee.checked_add(&interest)))
+			.ok_or("Overflow when computing minimal required message delivery and dispatch fee")
 	}
 }
 
