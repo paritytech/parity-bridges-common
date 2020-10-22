@@ -121,13 +121,13 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;
-	// - the storage proof or one or several keys;
+	// - the storage proof of one or several keys;
 	// - id of the lane we prove state of.
 	type MessagesDeliveryProof = (bp_millau::Hash, StorageProof, LaneId);
 
 	fn verify_message(payload: &ToMillauMessagePayload) -> Result<(), Self::Error> {
 		if payload.weight > WithMillauMessageBridge::maximal_dispatch_weight_of_message_on_bridged_chain() {
-			return Err("Too large weight declared");
+			return Err("Payload has weight larger than maximum allowed weight");
 		}
 
 		Ok(())
@@ -144,7 +144,7 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;
-	// - the storage proof or one or several keys;
+	// - the storage proof of one or several keys;
 	// - id of the lane we prove messages for;
 	// - inclusive range of messages nonces that are proved.
 	type MessagesProof = (bp_millau::Hash, StorageProof, LaneId, MessageNonce, MessageNonce);
