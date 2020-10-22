@@ -121,7 +121,7 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;
-	// - the storage proof or one or several keys;
+	// - the storage proof of one or several keys;
 	// - id of the lane we prove state of.
 	type MessagesDeliveryProof = (bp_millau::Hash, StorageProof, LaneId);
 
