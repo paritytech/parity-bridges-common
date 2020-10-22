@@ -145,12 +145,19 @@ where
 		&self,
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<P::MessageNonce>,
+		include_outbound_lane_state: bool,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<P::MessageNonce>, P::MessagesProof), Self::Error> {
 		// TODO: after https://github.com/paritytech/parity-bridges-common/pull/385 (optionally) include
 		// outbound lane state proof here
 		let proof = self
 			.client
-			.prove_messages(self.instance, self.lane, nonces.clone(), id.1)
+			.prove_messages(
+				self.instance,
+				self.lane,
+				nonces.clone(),
+				include_outbound_lane_state,
+				id.1,
+			)
 			.await?;
 		let proof = (id.1, self.lane, *nonces.start(), *nonces.end(), proof);
 		Ok((id, nonces, proof))

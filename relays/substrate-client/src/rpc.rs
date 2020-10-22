@@ -52,6 +52,7 @@ jsonrpsee::rpc_api! {
 			lane: LaneId,
 			begin: MessageNonce,
 			end: MessageNonce,
+			include_outbound_lane_state: bool,
 			block: Option<C::Hash>,
 		) -> Bytes;
 

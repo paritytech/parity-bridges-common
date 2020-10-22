@@ -126,6 +126,23 @@ where
 		Ok((id, latest_received_nonce))
 	}
 
+	async fn latest_confirmed_received_nonce(
+		&self,
+		id: TargetHeaderIdOf<P>,
+	) -> Result<(TargetHeaderIdOf<P>, P::MessageNonce), Self::Error> {
+		let encoded_response = self
+			.client
+			.state_call(
+				"OutboundLaneApi_latest_confirmed_nonce".into(), // TODO: need to support instances
+				Bytes(self.lane.encode()),
+				Some(id.1),
+			)
+			.await?;
+		let latest_received_nonce: P::MessageNonce =
+			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?;
+		Ok((id, latest_received_nonce))
+	}
+
 	async fn prove_messages_receiving(
 		&self,
 		id: TargetHeaderIdOf<P>,

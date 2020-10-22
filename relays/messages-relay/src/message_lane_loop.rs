@@ -70,6 +70,7 @@ pub trait SourceClient<P: MessageLane>: Clone + Send + Sync {
 		&self,
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<P::MessageNonce>,
+		include_outbound_lane_state: bool,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<P::MessageNonce>, P::MessagesProof), Self::Error>;
 
 	/// Submit messages receiving proof.
@@ -94,6 +95,11 @@ pub trait TargetClient<P: MessageLane>: Clone + Send + Sync {
 
 	/// Get nonce of latest received message.
 	async fn latest_received_nonce(
+		&self,
+		id: TargetHeaderIdOf<P>,
+	) -> Result<(TargetHeaderIdOf<P>, P::MessageNonce), Self::Error>;
+	/// Get nonce of latest confirmed message.
+	async fn latest_confirmed_received_nonce(
 		&self,
 		id: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, P::MessageNonce), Self::Error>;
@@ -506,6 +512,7 @@ pub(crate) mod tests {
 			&self,
 			id: SourceHeaderIdOf<TestMessageLane>,
 			nonces: RangeInclusive<TestMessageNonce>,
+			include_outbound_lane_state: bool,
 		) -> Result<
 			(
 				SourceHeaderIdOf<TestMessageLane>,
@@ -568,6 +575,18 @@ pub(crate) mod tests {
 				return Err(TestError::Connection);
 			}
 			Ok((id, data.target_latest_received_nonce))
+		}
+
+		async fn latest_confirmed_received_nonce(
+			&self,
+			id: TargetHeaderIdOf<TestMessageLane>,
+		) -> Result<(TargetHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
+			let mut data = self.data.lock();
+			(self.tick)(&mut *data);
+			if data.is_target_fails {
+				return Err(TestError::Connection);
+			}
+			Ok((id, data.source_latest_confirmed_received_nonce))
 		}
 
 		async fn prove_messages_receiving(

@@ -158,6 +158,7 @@ where
 		instance: InstanceId,
 		lane: LaneId,
 		range: RangeInclusive<MessageNonce>,
+		include_outbound_lane_state: bool,
 		at_block: C::Hash,
 	) -> Result<Bytes> {
 		SubstrateMessageLane::<C, _, _>::prove_messages(
@@ -166,6 +167,7 @@ where
 			lane,
 			*range.start(),
 			*range.end(),
+			include_outbound_lane_state,
 			Some(at_block),
 		)
 		.await
