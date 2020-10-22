@@ -345,10 +345,8 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 
 		if header.requires_justification {
 			<RequiresJustification<T>>::insert(hash, ());
-		} else {
-			if <RequiresJustification<T>>::contains_key(hash) {
-				<RequiresJustification<T>>::remove(hash);
-			}
+		} else if <RequiresJustification<T>>::contains_key(hash) {
+			<RequiresJustification<T>>::remove(hash);
 		}
 
 		<ImportedHeaders<T>>::insert(hash, header);
