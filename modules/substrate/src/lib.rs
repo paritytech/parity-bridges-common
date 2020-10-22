@@ -120,23 +120,32 @@ decl_storage! {
 			<BestHeight<T>>::put(initial_header.number());
 			<BestHeaders<T>>::put(vec![initial_hash]);
 			<BestFinalized<T>>::put(initial_hash);
+
+			let authority_set =
+				AuthoritySet::new(config.initial_authority_list.clone(), config.initial_set_id);
+			CurrentAuthoritySet::put(authority_set);
+
+			let mut signal_hash = None;
+			if let Some(ref change) = config.first_scheduled_change {
+				assert!(
+					change.height > *initial_header.number(),
+					"Changes must be scheduled past initial header."
+				);
+
+				signal_hash = Some(initial_hash);
+				<NextScheduledChange<T>>::insert(initial_hash, change);
+			};
+
 			<ImportedHeaders<T>>::insert(
 				initial_hash,
 				ImportedHeader {
 					header: initial_header,
 					requires_justification: false,
 					is_finalized: true,
-					signal_hash: None,
+					signal_hash,
 				},
 			);
 
-			let authority_set =
-				AuthoritySet::new(config.initial_authority_list.clone(), config.initial_set_id);
-			CurrentAuthoritySet::put(authority_set);
-
-			if let Some(ref change) = config.first_scheduled_change {
-				<NextScheduledChange<T>>::insert(initial_hash, change);
-			};
 		})
 	}
 }
