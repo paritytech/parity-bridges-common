@@ -91,9 +91,11 @@ where
 		let decoded_response: Vec<(P::Number, P::Hash)> =
 			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?;
 
-		let best_header = decoded_response.last().ok_or(SubstrateError::ResponseParseFailed(
-			"Parsed an empty list of headers, we should always have at least one.".into(),
-		))?;
+		let best_header = decoded_response.last().ok_or_else(|| {
+			SubstrateError::ResponseParseFailed(
+				"Parsed an empty list of headers, we should always have at least one.".into(),
+			)
+		})?;
 		let best_header_id = HeaderId(best_header.0, best_header.1);
 		Ok(best_header_id)
 	}
