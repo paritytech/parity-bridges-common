@@ -29,8 +29,13 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
-/// Maximal weight of single Rialto extrinsic.
-pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = 1_300_000_000_000;
+/// Maximal weight of single Millau block.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2_000_000_000_000;
+/// Portion of block reserved for regular transactions.
+pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
+/// Maximal weight of single Millau extrinsic (65% of maximum block weight = 75% for regular
+/// transactions minus 10% for initialization).
+pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
 
 /// Block number type used in Rialto.
 pub type BlockNumber = u32;

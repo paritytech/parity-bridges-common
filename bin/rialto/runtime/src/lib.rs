@@ -154,9 +154,9 @@ pub fn native_version() -> NativeVersion {
 
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 250;
-	pub const MaximumBlockWeight: Weight = 2_000_000_000_000;
+	pub const MaximumBlockWeight: Weight = bp_rialto::MAXIMUM_BLOCK_WEIGHT;
 	pub const ExtrinsicBaseWeight: Weight = 10_000_000;
-	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
+	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(bp_rialto::AVAILABLE_BLOCK_RATIO);
 	pub MaximumExtrinsicWeight: Weight = bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT;
 	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
 	pub const Version: RuntimeVersion = VERSION;
