@@ -51,7 +51,7 @@ mod verifier;
 mod mock;
 
 #[cfg(test)]
-mod forks;
+mod fork_tests;
 
 /// Block number of the bridged chain.
 pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Trait>::BridgedChain>;
