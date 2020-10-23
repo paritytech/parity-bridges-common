@@ -159,6 +159,7 @@ where
 		let mut nonces_end = None;
 		let mut i = Zero::zero();
 
+		// https://github.com/paritytech/parity-bridges-common/issues/433
 		// TODO: instead of limiting number of messages by number, provide custom limit callback here.
 		// In delivery race it'll be weight-based callback. In receiving race it'll be unlimited callback.
 

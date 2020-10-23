@@ -266,6 +266,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		// There's additional condition in the message delivery race: target would reject messages
 		// if there are too much unconfirmed messages at the inbound lane.
 
+		// https://github.com/paritytech/parity-bridges-common/issues/432
 		// TODO: message lane loop works with finalized blocks only, but we're submitting transactions that
 		// are updating best block (which may not be finalized yet). So all decisions that are made below
 		// may be outdated. This needs to be changed - all logic here bust be built on top of best blocks.
@@ -288,7 +289,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 				);
 
 				return None;
-			},
+			}
 			_ => (),
 		}
 
@@ -305,6 +306,8 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		let latest_confirmed_nonce_at_target = target_nonces.confirmed_nonce.expect(CONFIRMED_NONCE_PROOF);
 		let outbound_state_proof_required = latest_confirmed_nonce_at_target < latest_confirmed_nonce_at_source;
 
+		// https://github.com/paritytech/parity-bridges-common/issues/432
+		// https://github.com/paritytech/parity-bridges-common/issues/433
 		// TODO: number of messages must be no larger than:
 		// `max_unconfirmed_nonces_at_target - (latest_received_nonce_at_target - latest_confirmed_nonce_at_target)`
 

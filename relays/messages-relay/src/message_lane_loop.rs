@@ -717,10 +717,7 @@ pub(crate) mod tests {
 			exit_receiver.into_future().map(|(_, _)| ()),
 		);
 
-		assert_eq!(
-			result.submitted_messages_proofs,
-			vec![(1..=1, None)],
-		);
+		assert_eq!(result.submitted_messages_proofs, vec![(1..=1, None)],);
 	}
 
 	#[test]
@@ -768,7 +765,8 @@ pub(crate) mod tests {
 
 		assert_eq!(
 			result.submitted_messages_proofs,
-			vec![(1..=4, None), (5..=8, Some(4)), (9..=10, None)],);
+			vec![(1..=4, None), (5..=8, Some(4)), (9..=10, None)],
+		);
 		assert!(!result.submitted_messages_receiving_proofs.is_empty());
 	}
 }
