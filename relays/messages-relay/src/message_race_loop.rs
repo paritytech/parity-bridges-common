@@ -20,9 +20,6 @@
 //! associated data - like messages, lane state, etc) to the target node by
 //! generating and submitting proof.
 
-// Until there'll be actual message-lane in the runtime.
-#![allow(dead_code)]
-
 use crate::message_lane_loop::ClientState;
 
 use async_trait::async_trait;
@@ -62,7 +59,7 @@ type SourceClientState<P> = ClientState<<P as MessageRace>::SourceHeaderId, <P a
 type TargetClientState<P> = ClientState<<P as MessageRace>::TargetHeaderId, <P as MessageRace>::SourceHeaderId>;
 
 /// Nonces on the race client.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ClientNonces<MessageNonce> {
 	/// Latest nonce that is known to the client.
 	pub latest_nonce: MessageNonce,

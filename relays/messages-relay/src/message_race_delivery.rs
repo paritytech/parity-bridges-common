@@ -27,6 +27,7 @@ use futures::{
 	future::{FutureExt, TryFutureExt},
 	stream::FusedStream,
 };
+use num_traits::CheckedSub;
 use relay_utils::FailedClient;
 use std::{marker::PhantomData, ops::RangeInclusive, time::Duration};
 
@@ -41,6 +42,7 @@ pub async fn run<P: MessageLane>(
 	target_state_updates: impl FusedStream<Item = TargetClientState<P>>,
 	stall_timeout: Duration,
 	metrics_msg: Option<MessageLaneLoopMetrics>,
+	max_unconfirmed_nonces_at_target: P::MessageNonce,
 ) -> Result<(), FailedClient> {
 	crate::message_race_loop::run(
 		MessageDeliveryRaceSource {
@@ -57,6 +59,9 @@ pub async fn run<P: MessageLane>(
 		target_state_updates,
 		stall_timeout,
 		MessageDeliveryStrategy::<P> {
+			max_unconfirmed_nonces_at_target,
+			source_nonces: None,
+			target_nonces: None,
 			strategy: BasicStrategy::new(MAX_MESSAGES_TO_RELAY_IN_SINGLE_TX.into()),
 		},
 	)
@@ -208,6 +213,12 @@ where
 
 /// Messages delivery strategy.
 struct MessageDeliveryStrategy<P: MessageLane> {
+	/// Maximal unconfirmed nonces at target client.
+	max_unconfirmed_nonces_at_target: P::MessageNonce,
+	/// Latest nonces from the source client.
+	source_nonces: Option<ClientNonces<P::MessageNonce>>,
+	/// Target nonces from the source client.
+	target_nonces: Option<ClientNonces<P::MessageNonce>>,
 	/// Basic delivery strategy.
 	strategy: BasicStrategy<
 		<P as MessageLane>::SourceHeaderNumber,
@@ -227,6 +238,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 	}
 
 	fn source_nonces_updated(&mut self, at_block: SourceHeaderIdOf<P>, nonces: ClientNonces<P::MessageNonce>) {
+		self.source_nonces = Some(nonces.clone());
 		self.strategy.source_nonces_updated(at_block, nonces)
 	}
 
@@ -235,6 +247,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		nonces: ClientNonces<P::MessageNonce>,
 		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>,
 	) {
+		self.target_nonces = Some(nonces.clone());
 		self.strategy.target_nonces_updated(nonces, race_state)
 	}
 
@@ -242,6 +255,59 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		&mut self,
 		race_state: &RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>,
 	) -> Option<(RangeInclusive<P::MessageNonce>, bool)> {
-		self.strategy.select_nonces_to_deliver(race_state)
+		const CONFIRMED_NONCE_PROOF: &str = "\
+			ClientNonces are crafted by MessageDeliveryRace(Source|Target);\
+			MessageDeliveryRace(Source|Target) always fills confirmed_nonce field;\
+			qed";
+
+		let source_nonces = self.source_nonces.as_ref()?;
+		let target_nonces = self.target_nonces.as_ref()?;
+
+		// There's additional condition in the message delivery race: target would reject messages
+		// if there are too much unconfirmed messages at the inbound lane.
+
+		// TODO: message lane loop works with finalized blocks only, but we're submitting transactions that
+		// are updating best block (which may not be finalized yet). So all decisions that are made below
+		// may be outdated. This needs to be changed - all logic here bust be built on top of best blocks.
+
+		// The receiving race is responsible to deliver confirmations back to the source chain. So if
+		// there's a lot of unconfirmed messages, let's wait until it'll be able to do its job.
+		let latest_received_nonce_at_target = target_nonces.latest_nonce;
+		let latest_confirmed_nonce_at_source = source_nonces.confirmed_nonce.expect(CONFIRMED_NONCE_PROOF);
+		let confirmatins_missing = latest_received_nonce_at_target.checked_sub(&latest_confirmed_nonce_at_source);
+		match confirmatins_missing {
+			Some(confirmatins_missing) if confirmatins_missing > self.max_unconfirmed_nonces_at_target => {
+				log::debug!(
+					target: "bridge",
+					"Cannot deliver any more messages from {} to {}. Too many unconfirmed nonces at target: target.latest_received={:?}, source.latest_confirmed={:?}, max={:?}",
+					MessageDeliveryRace::<P>::source_name(),
+					MessageDeliveryRace::<P>::target_name(),
+					latest_received_nonce_at_target,
+					latest_confirmed_nonce_at_source,
+					self.max_unconfirmed_nonces_at_target,
+				);
+
+				return None;
+			},
+			_ => (),
+		}
+
+		// If we're here, then the confirmations race did it job && sending side now knows that messages
+		// have been delivered. Now let's select nonces that we want to deliver.
+		let selected_nonces = self.strategy.select_nonces_to_deliver(race_state)?.0;
+
+		// Ok - we have new nonces to deliver. But target may still reject new messages, because we haven't
+		// notified it that (some) messages have been confirmed. So we may want to include updated
+		// `source.latest_confirmed` in the proof.
+		//
+		// Important note: we're including outbound state lane proof whenever there are unconfirmed nonces
+		// on the target chain. Other strategy is to include it only if it's absolutely necessary.
+		let latest_confirmed_nonce_at_target = target_nonces.confirmed_nonce.expect(CONFIRMED_NONCE_PROOF);
+		let outbound_state_proof_required = latest_confirmed_nonce_at_target < latest_confirmed_nonce_at_source;
+
+		// TODO: number of messages must be no larger than:
+		// `max_unconfirmed_nonces_at_target - (latest_received_nonce_at_target - latest_confirmed_nonce_at_target)`
+
+		Some((selected_nonces, outbound_state_proof_required))
 	}
 }

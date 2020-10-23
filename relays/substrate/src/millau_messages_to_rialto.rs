@@ -130,7 +130,14 @@ pub fn run(
 	let stall_timeout = Duration::from_secs(5 * 60);
 
 	messages_relay::message_lane_loop::run(
-		lane,
+		messages_relay::message_lane_loop::Params {
+			lane,
+			source_tick: millau_tick,
+			target_tick: rialto_tick,
+			reconnect_delay,
+			stall_timeout,
+			max_unconfirmed_nonces_at_target: 100, // TODO: use constant from primitives
+		},
 		MillauSourceClient::new(
 			millau_client.clone(),
 			MillauTransactionMaker {
@@ -140,7 +147,6 @@ pub fn run(
 			lane,
 			RIALTO_BRIDGE_INSTANCE,
 		),
-		millau_tick,
 		RialtoTargetClient::new(
 			rialto_client.clone(),
 			RialtoTransactionMaker {
@@ -150,9 +156,6 @@ pub fn run(
 			lane,
 			MILLAU_BRIDGE_INSTANCE,
 		),
-		rialto_tick,
-		reconnect_delay,
-		stall_timeout,
 		metrics_params,
 		futures::future::pending(),
 	);

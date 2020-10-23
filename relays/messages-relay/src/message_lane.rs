@@ -21,7 +21,7 @@
 
 use relay_utils::HeaderId;
 
-use num_traits::{One, Zero};
+use num_traits::{CheckedSub, One, Zero};
 use std::fmt::Debug;
 
 /// One-way message lane.
@@ -41,6 +41,7 @@ pub trait MessageLane: Clone + Send + Sync {
 		+ From<u32>
 		+ Into<u64>
 		+ Ord
+		+ CheckedSub
 		+ std::ops::Add<Output = Self::MessageNonce>
 		+ One
 		+ Zero;

@@ -158,6 +158,10 @@ where
 		let best_header_at_target = &race_state.target_state.as_ref()?.best_peer;
 		let mut nonces_end = None;
 		let mut i = Zero::zero();
+
+		// TODO: instead of limiting number of messages by number, provide custom limit callback here.
+		// In delivery race it'll be weight-based callback. In receiving race it'll be unlimited callback.
+
 		while i < self.max_nonces_to_relay_in_single_tx {
 			let nonce = nonces_begin + i;
 
@@ -261,7 +265,7 @@ mod tests {
 	fn selected_nonces_are_dropped_on_target_nonce_update() {
 		let mut state = RaceState::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new(4);
-		state.nonces_to_submit = Some((header_id(1), 5..=10, 5..=10));
+		state.nonces_to_submit = Some((header_id(1), 5..=10, (5..=10, None)));
 		strategy.target_nonces_updated(nonces(7), &mut state);
 		assert!(state.nonces_to_submit.is_some());
 		strategy.target_nonces_updated(nonces(10), &mut state);
@@ -283,7 +287,7 @@ mod tests {
 	fn nothing_is_selected_if_something_is_already_selected() {
 		let mut state = RaceState::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new(4);
-		state.nonces_to_submit = Some((header_id(1), 1..=10, 1..=10));
+		state.nonces_to_submit = Some((header_id(1), 1..=10, (1..=10, None)));
 		strategy.source_nonces_updated(header_id(1), nonces(10));
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 	}
