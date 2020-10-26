@@ -28,6 +28,8 @@
 // =====================================================================================
 // =====================================================================================
 
+use bp_message_lane::{LaneId, MessageNonce};
+use bp_runtime::{InstanceId, MILLAU_BRIDGE_INSTANCE};
 use rialto_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
@@ -35,6 +37,7 @@ pub use sc_executor::NativeExecutor;
 use sc_finality_grandpa::{FinalityProofProvider as GrandpaFinalityProofProvider, SharedVoterState};
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
+use sp_core::storage::StorageKey;
 use sp_inherents::InherentDataProviders;
 use std::sync::Arc;
 use std::time::Duration;
@@ -161,8 +164,9 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 	let rpc_extensions_builder = {
 		use sc_rpc::DenyUnsafe;
+		use pallet_message_lane_rpc::{MessageLaneApi, MessageLaneRpcHandler};
 		use substrate_frame_rpc_system::{FullSystem, SystemApi};
-
+		let backend = backend.clone();
 		let client = client.clone();
 		let pool = transaction_pool.clone();
 
@@ -172,6 +176,10 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 				client.clone(),
 				pool.clone(),
 				DenyUnsafe::No,
+			)));
+			io.extend_with(MessageLaneApi::to_delegate(MessageLaneRpcHandler::new(
+				backend.clone(),
+				Arc::new(RialtoMessageLaneKeys),
 			)));
 
 			io
@@ -345,4 +353,30 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 	network_starter.start_network();
 
 	Ok(task_manager)
+}
+
+/// Rialto runtime from message-lane RPC point of view.
+struct RialtoMessageLaneKeys;
+
+impl pallet_message_lane_rpc::Runtime for RialtoMessageLaneKeys {
+	fn message_key(&self, instance: &InstanceId, lane: &LaneId, nonce: MessageNonce) -> Option<StorageKey> {
+		match *instance {
+			MILLAU_BRIDGE_INSTANCE => Some(rialto_runtime::millau_messages::message_key(lane, nonce)),
+			_ => None,
+		}
+	}
+
+	fn outbound_lane_data_key(&self, instance: &InstanceId, lane: &LaneId) -> Option<StorageKey> {
+		match *instance {
+			MILLAU_BRIDGE_INSTANCE => Some(rialto_runtime::millau_messages::outbound_lane_data_key(lane)),
+			_ => None,
+		}
+	}
+
+	fn inbound_lane_data_key(&self, instance: &InstanceId, lane: &LaneId) -> Option<StorageKey> {
+		match *instance {
+			MILLAU_BRIDGE_INSTANCE => Some(rialto_runtime::millau_messages::inbound_lane_data_key(lane)),
+			_ => None,
+		}
+	}
 }
