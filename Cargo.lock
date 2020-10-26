@@ -7663,6 +7663,7 @@ dependencies = [
  "headers-relay",
  "log",
  "messages-relay",
+ "pallet-substrate-bridge",
  "parity-scale-codec",
  "paste 1.0.2",
  "relay-millau-client",
@@ -7834,9 +7835,9 @@ dependencies = [
 
 [[package]]
 name = "time-macros"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ae9b6e9f095bc105e183e3cd493d72579be3181ad4004fceb01adbe9eecab2d"
+checksum = "957e9c6e26f12cb6d0dd7fc776bb67a706312e7299aed74c8dd5b17ebb27e2f1"
 dependencies = [
  "proc-macro-hack",
  "time-macros-impl",
