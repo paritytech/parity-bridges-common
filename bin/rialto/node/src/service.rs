@@ -163,8 +163,8 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let telemetry_connection_sinks = sc_service::TelemetryConnectionSinks::default();
 
 	let rpc_extensions_builder = {
-		use sc_rpc::DenyUnsafe;
 		use pallet_message_lane_rpc::{MessageLaneApi, MessageLaneRpcHandler};
+		use sc_rpc::DenyUnsafe;
 		use substrate_frame_rpc_system::{FullSystem, SystemApi};
 		let backend = backend.clone();
 		let client = client.clone();

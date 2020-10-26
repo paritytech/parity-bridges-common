@@ -26,8 +26,9 @@ use bp_message_lane::{
 use bp_runtime::InstanceId;
 use bridge_runtime_common::messages::{self, MessageBridge};
 use frame_support::{
+	storage::generator::StorageMap,
 	weights::{Weight, WeightToFeePolynomial},
-	RuntimeDebug, storage::generator::StorageMap,
+	RuntimeDebug,
 };
 use pallet_message_lane::{DefaultInstance, InboundLanes, OutboundLanes, OutboundMessages};
 use sp_core::storage::StorageKey;
