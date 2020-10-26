@@ -1,6 +1,6 @@
 version: '3.5'
 services:
-  bridge-node-alice: &rialto-bridge-node
+  rialto-node-alice: &rialto-bridge-node
     image: paritytech/rialto-bridge-node
     entrypoint:
       - /home/user/rialto-bridge-node
@@ -20,7 +20,7 @@ services:
       - "9933:9933"
       - "9944:9944"
 
-  bridge-node-bob:
+  rialto-node-bob:
     <<: *rialto-bridge-node
     entrypoint:
       - /home/user/rialto-bridge-node
@@ -36,7 +36,7 @@ services:
       - "10033:9933"
       - "10044:9944"
 
-  bridge-node-charlie:
+  rialto-node-charlie:
     <<: *rialto-bridge-node
     environment:
       <<: *bridge-env
@@ -53,7 +53,7 @@ services:
       - "10133:9933"
       - "10144:9944"
 
-  bridge-node-dave:
+  rialto-node-dave:
     <<: *rialto-bridge-node
     environment:
       <<: *bridge-env
@@ -70,7 +70,7 @@ services:
       - "10233:9933"
       - "10244:9944"
 
-  bridge-node-eve:
+  rialto-node-eve:
     <<: *rialto-bridge-node
     environment:
       <<: *bridge-env

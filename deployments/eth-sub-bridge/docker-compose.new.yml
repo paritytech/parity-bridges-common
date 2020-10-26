@@ -13,11 +13,11 @@ services:
       - poa-node-arthur
       - poa-node-bertha
       - poa-node-carlos
-      - bridge-node-alice
-      - bridge-node-bob
-      - bridge-node-charlie
-      - bridge-node-dave
-      - bridge-node-eve
+      - rialto-node-alice
+      - rialto-node-bob
+      - rialto-node-charlie
+      - rialto-node-dave
+      - rialto-node-eve
 
   prometheus-metrics:
     image: prom/prometheus:v2.20.1
