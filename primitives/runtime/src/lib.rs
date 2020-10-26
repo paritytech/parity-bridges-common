@@ -25,6 +25,9 @@ pub use chain::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 
 mod chain;
 
+/// Use this when something must be shared among all instances.
+pub const NO_INSTANCE_ID: InstanceId = [0, 0, 0, 0];
+
 /// Call-dispatch module prefix.
 pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/call-dispatch";
 
@@ -32,7 +35,10 @@ pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/call-dispatch";
 pub const RIALTO_BRIDGE_INSTANCE: InstanceId = *b"rlto";
 
 /// Bridge-with-Millau instance id.
-pub const MILLAU_BRIDGE_INSTANCE: InstanceId = *b"mllu";
+pub const MILLAU_BRIDGE_INSTANCE: InstanceId = *b"mlau";
+
+/// Message-lane module prefix.
+pub const MESSAGE_LANE_MODULE_PREFIX: &[u8] = b"pallet-bridge/message-lane";
 
 /// Id of deployed module instance. We have a bunch of pallets that may be used in
 /// different bridges. E.g. message-lane pallet may be deployed twice in the same
