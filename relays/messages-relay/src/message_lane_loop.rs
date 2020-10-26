@@ -783,10 +783,10 @@ pub(crate) mod tests {
 			exit_receiver.into_future().map(|(_, _)| ()),
 		);
 
-		assert_eq!(
-			result.submitted_messages_proofs,
-			vec![(1..=4, None), (5..=8, Some(4)), (9..=10, Some(8))],
-		);
+		assert_eq!(result.submitted_messages_proofs[0], (1..=4, None));
+		assert_eq!(result.submitted_messages_proofs[1], (5..=8, Some(4)));
+		// we may stop relayer earlier than reward confirmation will come
+		assert_eq!(result.submitted_messages_proofs[2].0, 9..=10);
 		assert!(!result.submitted_messages_receiving_proofs.is_empty());
 	}
 }
