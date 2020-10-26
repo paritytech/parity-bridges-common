@@ -114,7 +114,8 @@ where
 		let encoded_response = self
 			.client
 			.state_call(
-				"OutboundLaneApi_latest_generated_nonce".into(), // TODO: need to support instances
+				// TODO: https://github.com/paritytech/parity-bridges-common/issues/457
+				"OutboundLaneApi_latest_generated_nonce".into(),
 				Bytes(self.lane.encode()),
 				Some(id.1),
 			)
@@ -131,7 +132,8 @@ where
 		let encoded_response = self
 			.client
 			.state_call(
-				"OutboundLaneApi_latest_received_nonce".into(), // TODO: need to support instances
+				// TODO: https://github.com/paritytech/parity-bridges-common/issues/457
+				"OutboundLaneApi_latest_received_nonce".into(),
 				Bytes(self.lane.encode()),
 				Some(id.1),
 			)
