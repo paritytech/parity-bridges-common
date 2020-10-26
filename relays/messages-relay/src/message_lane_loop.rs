@@ -65,7 +65,7 @@ pub trait SourceClient<P: MessageLane>: Clone + Send + Sync {
 	type Error: std::fmt::Debug + MaybeConnectionError;
 
 	/// Try to reconnect to source node.
-	async fn reconnect(self) -> Self;
+	async fn reconnect(self) -> Result<Self, Self::Error>;
 
 	/// Returns state of the client.
 	async fn state(&self) -> Result<SourceClientState<P>, Self::Error>;
@@ -104,7 +104,7 @@ pub trait TargetClient<P: MessageLane>: Clone + Send + Sync {
 	type Error: std::fmt::Debug + MaybeConnectionError;
 
 	/// Try to reconnect to source node.
-	async fn reconnect(self) -> Self;
+	async fn reconnect(self) -> Result<Self, Self::Error>;
 
 	/// Returns state of the client.
 	async fn state(&self) -> Result<TargetClientState<P>, Self::Error>;
@@ -207,15 +207,41 @@ pub fn run<P: MessageLane>(
 
 			match result {
 				Ok(()) => break,
-				Err(failed_client) => {
+				Err(failed_client) => loop {
 					async_std::task::sleep(params.reconnect_delay).await;
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Source {
-						source_client = source_client.reconnect().await;
+						source_client = match source_client.clone().reconnect().await {
+							Ok(source_client) => source_client,
+							Err(error) => {
+								log::warn!(
+									target: "bridge",
+									"Failed to reconnect {}. Going to retry in {}s: {:?}",
+									P::SOURCE_NAME,
+									params.reconnect_delay.as_secs(),
+									error,
+								);
+								continue;
+							}
+						}
 					}
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
-						target_client = target_client.reconnect().await;
+						target_client = match target_client.clone().reconnect().await {
+							Ok(target_client) => target_client,
+							Err(error) => {
+								log::warn!(
+									target: "bridge",
+									"Failed to reconnect {}. Going to retry in {}s: {:?}",
+									P::TARGET_NAME,
+									params.reconnect_delay.as_secs(),
+									error,
+								);
+								continue;
+							}
+						}
 					}
-				}
+
+					break;
+				},
 			}
 
 			log::debug!(
@@ -418,17 +444,11 @@ pub(crate) mod tests {
 	pub type TestTargetHeaderHash = u64;
 
 	#[derive(Debug)]
-	pub enum TestError {
-		Logic,
-		Connection,
-	}
+	pub struct TestError;
 
 	impl MaybeConnectionError for TestError {
 		fn is_connection_error(&self) -> bool {
-			match *self {
-				TestError::Logic => false,
-				TestError::Connection => true,
-			}
+			true
 		}
 	}
 
@@ -477,20 +497,20 @@ pub(crate) mod tests {
 	impl SourceClient<TestMessageLane> for TestSourceClient {
 		type Error = TestError;
 
-		async fn reconnect(self) -> Self {
+		async fn reconnect(self) -> Result<Self, Self::Error> {
 			{
 				let mut data = self.data.lock();
 				(self.tick)(&mut *data);
 				data.is_source_reconnected = true;
 			}
-			self
+			Ok(self)
 		}
 
 		async fn state(&self) -> Result<SourceClientState<TestMessageLane>, Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_source_fails {
-				return Err(TestError::Connection);
+				return Err(TestError);
 			}
 			Ok(data.source_state.clone())
 		}
@@ -502,7 +522,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_source_fails {
-				return Err(TestError::Connection);
+				return Err(TestError);
 			}
 			Ok((id, data.source_latest_generated_nonce))
 		}
@@ -568,20 +588,20 @@ pub(crate) mod tests {
 	impl TargetClient<TestMessageLane> for TestTargetClient {
 		type Error = TestError;
 
-		async fn reconnect(self) -> Self {
+		async fn reconnect(self) -> Result<Self, Self::Error> {
 			{
 				let mut data = self.data.lock();
 				(self.tick)(&mut *data);
 				data.is_target_reconnected = true;
 			}
-			self
+			Ok(self)
 		}
 
 		async fn state(&self) -> Result<TargetClientState<TestMessageLane>, Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
-				return Err(TestError::Connection);
+				return Err(TestError);
 			}
 			Ok(data.target_state.clone())
 		}
@@ -593,7 +613,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
-				return Err(TestError::Connection);
+				return Err(TestError);
 			}
 			Ok((id, data.target_latest_received_nonce))
 		}
@@ -605,7 +625,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
-				return Err(TestError::Connection);
+				return Err(TestError);
 			}
 			Ok((id, data.target_latest_confirmed_received_nonce))
 		}
@@ -626,7 +646,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
-				return Err(TestError::Connection);
+				return Err(TestError);
 			}
 			data.target_state.best_self =
 				HeaderId(data.target_state.best_self.0 + 1, data.target_state.best_self.1 + 1);
@@ -765,7 +785,7 @@ pub(crate) mod tests {
 
 		assert_eq!(
 			result.submitted_messages_proofs,
-			vec![(1..=4, None), (5..=8, Some(4)), (9..=10, None)],
+			vec![(1..=4, None), (5..=8, Some(4)), (9..=10, Some(8))],
 		);
 		assert!(!result.submitted_messages_receiving_proofs.is_empty());
 	}

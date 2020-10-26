@@ -39,6 +39,8 @@ pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
 ///
 /// Cloning `Client` is a cheap operation.
 pub struct Client<C: Chain> {
+	/// Client connection params.
+	params: ConnectionParams,
 	/// Substrate RPC client.
 	client: RpcClient,
 	/// Genesis block hash.
@@ -48,6 +50,7 @@ pub struct Client<C: Chain> {
 impl<C: Chain> Clone for Client<C> {
 	fn clone(&self) -> Self {
 		Client {
+			params: self.params.clone(),
 			client: self.client.clone(),
 			genesis_hash: self.genesis_hash,
 		}
@@ -65,15 +68,33 @@ impl<C: Chain> std::fmt::Debug for Client<C> {
 impl<C: Chain> Client<C> {
 	/// Returns client that is able to call RPCs on Substrate node over websocket connection.
 	pub async fn new(params: ConnectionParams) -> Result<Self> {
-		let uri = format!("ws://{}:{}", params.host, params.port);
-		let transport = WsTransportClient::new(&uri).await?;
-		let raw_client = RawClient::new(transport);
-		let client: RpcClient = raw_client.into();
+		let client = Self::build_client(params.clone()).await?;
 
 		let number: C::BlockNumber = Zero::zero();
 		let genesis_hash = Substrate::<C, _, _>::chain_get_block_hash(&client, number).await?;
 
-		Ok(Self { client, genesis_hash })
+		Ok(Self {
+			params,
+			client,
+			genesis_hash,
+		})
+	}
+
+	/// Reopen client connection.
+	pub async fn reconnect(self) -> Result<Self> {
+		Ok(Self {
+			params: self.params.clone(),
+			client: Self::build_client(self.params).await?,
+			genesis_hash: self.genesis_hash,
+		})
+	}
+
+	/// Build client to use in connection.
+	async fn build_client(params: ConnectionParams) -> Result<RpcClient> {
+		let uri = format!("ws://{}:{}", params.host, params.port);
+		let transport = WsTransportClient::new(&uri).await?;
+		let raw_client = RawClient::new(transport);
+		Ok(raw_client.into())
 	}
 }
 

@@ -101,8 +101,10 @@ where
 {
 	type Error = SubstrateError;
 
-	async fn reconnect(self) -> Self {
-		unimplemented!("TODO")
+	async fn reconnect(mut self) -> Result<Self, Self::Error> {
+		let new_client = self.client.clone().reconnect().await?;
+		self.client = new_client;
+		Ok(self)
 	}
 
 	async fn state(&self) -> Result<TargetClientState<P>, Self::Error> {
