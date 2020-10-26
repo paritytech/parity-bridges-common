@@ -767,6 +767,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bridge-runtime-common"
+version = "0.1.0"
+dependencies = [
+ "bp-message-dispatch",
+ "bp-message-lane",
+ "bp-runtime",
+ "frame-support",
+ "pallet-bridge-call-dispatch",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+ "sp-trie",
+]
+
+[[package]]
 name = "bs58"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3571,6 +3586,8 @@ dependencies = [
  "bp-message-lane",
  "bp-millau",
  "bp-rialto",
+ "bp-runtime",
+ "bridge-runtime-common",
  "frame-executive",
  "frame-support",
  "frame-system",
@@ -3601,6 +3618,7 @@ dependencies = [
  "sp-session",
  "sp-std",
  "sp-transaction-pool",
+ "sp-trie",
  "sp-version",
  "substrate-wasm-builder-runner",
 ]
@@ -4141,6 +4159,7 @@ name = "pallet-message-lane"
 version = "0.1.0"
 dependencies = [
  "bp-message-lane",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -5346,9 +5365,12 @@ dependencies = [
  "bp-currency-exchange",
  "bp-eth-poa",
  "bp-header-chain",
+ "bp-message-dispatch",
  "bp-message-lane",
  "bp-millau",
  "bp-rialto",
+ "bp-runtime",
+ "bridge-runtime-common",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -5384,6 +5406,7 @@ dependencies = [
  "sp-session",
  "sp-std",
  "sp-transaction-pool",
+ "sp-trie",
  "sp-version",
  "substrate-wasm-builder-runner",
 ]
