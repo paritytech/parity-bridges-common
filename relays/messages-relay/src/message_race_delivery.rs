@@ -220,15 +220,17 @@ struct MessageDeliveryStrategy<P: MessageLane> {
 	/// Target nonces from the source client.
 	target_nonces: Option<ClientNonces<P::MessageNonce>>,
 	/// Basic delivery strategy.
-	strategy: BasicStrategy<
-		<P as MessageLane>::SourceHeaderNumber,
-		<P as MessageLane>::SourceHeaderHash,
-		<P as MessageLane>::TargetHeaderNumber,
-		<P as MessageLane>::TargetHeaderHash,
-		<P as MessageLane>::MessageNonce,
-		<P as MessageLane>::MessagesProof,
-	>,
+	strategy: MessageDeliveryStrategyBase<P>,
 }
+
+type MessageDeliveryStrategyBase<P> = BasicStrategy<
+	<P as MessageLane>::SourceHeaderNumber,
+	<P as MessageLane>::SourceHeaderHash,
+	<P as MessageLane>::TargetHeaderNumber,
+	<P as MessageLane>::TargetHeaderHash,
+	<P as MessageLane>::MessageNonce,
+	<P as MessageLane>::MessagesProof,
+>;
 
 impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>
 	for MessageDeliveryStrategy<P>
