@@ -6,7 +6,7 @@ services:
       - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/rialto-bridge-node-bob/tcp/30333/p2p/12D3KooWSEpHJj29HEzgPFcRYVc5X3sEuP3KgiUoqJNCet51NiMX
+      - --bootnodes=/dns4/rialto-node-bob/tcp/30333/p2p/12D3KooWSEpHJj29HEzgPFcRYVc5X3sEuP3KgiUoqJNCet51NiMX
       - --alice
       - --node-key=79cf382988364291a7968ae7825c01f68c50d679796a8983237d07fe0ccf363b
       - --rpc-cors=all
@@ -26,7 +26,7 @@ services:
       - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/rialto-bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bootnodes=/dns4/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --bob
       - --node-key=4f9d0146dd9b7b3bf5a8089e3880023d1df92057f89e96e07bb4d8c2ead75bbd
       - --rpc-cors=all
@@ -44,7 +44,7 @@ services:
       - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/rialto-bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bootnodes=/dns4/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --charlie
       - --rpc-cors=all
       - --unsafe-rpc-external
@@ -61,7 +61,7 @@ services:
       - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/rialto-bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bootnodes=/dns4/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --dave
       - --rpc-cors=all
       - --unsafe-rpc-external
@@ -78,7 +78,7 @@ services:
       - /home/user/rialto-bridge-node
       - --execution=Native
       - --chain=local
-      - --bootnodes=/dns4/rialto-bridge-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
+      - --bootnodes=/dns4/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --eve
       - --rpc-cors=all
       - --unsafe-rpc-external
