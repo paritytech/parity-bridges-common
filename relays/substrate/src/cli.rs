@@ -54,7 +54,7 @@ pub enum Command {
 		#[structopt(long, possible_values = &ToRialtoMessage::variants())]
 		message: ToRialtoMessage,
 		/// Delivery and dispatch fee.
-		#[structopt(long, possible_values = &ToRialtoMessage::variants())]
+		#[structopt(long)]
 		fee: bp_millau::Balance,
 	},
 }
