@@ -65,42 +65,6 @@ services:
       - "9618:9616"
     depends_on: *all-nodes
 
-  prometheus-metrics:
-    image: prom/prometheus:v2.20.1
-    volumes:
-      - ./dashboard/prometheus/:/etc/prometheus/
-    ports:
-      - "9090:9090"
-    depends_on: *all-nodes
-
-  grafana-dashboard:
-    image: grafana/grafana:7.1.3
-    environment:
-      VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
-      VIRTUAL_PORT: 3000
-      LETSENCRYPT_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
-      LETSENCRYPT_EMAIL: admin@parity.io
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASS:-admin}
-      GF_SERVER_ROOT_URL: ${GRAFANA_SERVER_ROOT_URL}
-      GF_SERVER_DOMAIN: ${GRAFANA_SERVER_DOMAIN}
-    volumes:
-      - ./dashboard/grafana/provisioning/:/etc/grafana/provisioning/
-    ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus-metrics
-
-  grafana-matrix-notifier:
-    build:
-      context: .
-      dockerfile: ./GrafanaMatrix.Dockerfile
-    volumes:
-      - ./dashboard/grafana-matrix:/config
-    ports:
-      - "4567:4567"
-    depends_on:
-      - grafana-dashboard
-
   front-end:
     build:
       context: .
@@ -111,3 +75,18 @@ services:
         EXPECTED_ETHEREUM_NETWORK_ID: ${UI_EXPECTED_ETHEREUM_NETWORK_ID:-105}
     ports:
       - "8080:80"
+
+  # Note: These are being overridden from the top level `monitoring` compose file.
+  prometheus-metrics:
+    volumes:
+      - ./dashboard/prometheus/:/etc/prometheus/
+    depends_on: *all-nodes
+
+  grafana-dashboard:
+    volumes:
+       - ./dashboard/grafana/provisioning/:/etc/grafana/provisioning/
+    environment:
+      VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
+      LETSENCRYPT_EMAIL: admin@parity.io
