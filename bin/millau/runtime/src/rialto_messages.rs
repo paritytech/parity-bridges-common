@@ -48,7 +48,7 @@ pub fn outbound_lane_data_key(lane: &LaneId) -> StorageKey {
 
 /// Storage key of the Rialto -> Millau message lane state in the runtime storage.
 pub fn inbound_lane_data_key(lane: &LaneId) -> StorageKey {
-	StorageKey(InboundLanes::<Runtime>::storage_map_final_key(*lane))
+	StorageKey(InboundLanes::<Runtime, DefaultInstance>::storage_map_final_key(*lane))
 }
 
 /// Message payload for Millau -> Rialto messages.
