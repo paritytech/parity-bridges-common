@@ -164,6 +164,34 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let telemetry_connection_sinks = sc_service::TelemetryConnectionSinks::default();
 
 	let rpc_extensions_builder = {
+		// This struct is here to ease update process.
+
+		/// Millau runtime from message-lane RPC point of view.
+		struct MillauMessageLaneKeys;
+
+		impl pallet_message_lane_rpc::Runtime for MillauMessageLaneKeys {
+			fn message_key(&self, instance: &InstanceId, lane: &LaneId, nonce: MessageNonce) -> Option<StorageKey> {
+				match *instance {
+					RIALTO_BRIDGE_INSTANCE => Some(millau_runtime::rialto_messages::message_key(lane, nonce)),
+					_ => None,
+				}
+			}
+
+			fn outbound_lane_data_key(&self, instance: &InstanceId, lane: &LaneId) -> Option<StorageKey> {
+				match *instance {
+					RIALTO_BRIDGE_INSTANCE => Some(millau_runtime::rialto_messages::outbound_lane_data_key(lane)),
+					_ => None,
+				}
+			}
+
+			fn inbound_lane_data_key(&self, instance: &InstanceId, lane: &LaneId) -> Option<StorageKey> {
+				match *instance {
+					RIALTO_BRIDGE_INSTANCE => Some(millau_runtime::rialto_messages::inbound_lane_data_key(lane)),
+					_ => None,
+				}
+			}
+		}
+
 		use pallet_message_lane_rpc::{MessageLaneApi, MessageLaneRpcHandler};
 		use sc_finality_grandpa_rpc::GrandpaApi;
 		use sc_rpc::DenyUnsafe;
@@ -369,30 +397,4 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 	network_starter.start_network();
 
 	Ok(task_manager)
-}
-
-/// Millau runtime from message-lane RPC point of view.
-struct MillauMessageLaneKeys;
-
-impl pallet_message_lane_rpc::Runtime for MillauMessageLaneKeys {
-	fn message_key(&self, instance: &InstanceId, lane: &LaneId, nonce: MessageNonce) -> Option<StorageKey> {
-		match *instance {
-			RIALTO_BRIDGE_INSTANCE => Some(millau_runtime::rialto_messages::message_key(lane, nonce)),
-			_ => None,
-		}
-	}
-
-	fn outbound_lane_data_key(&self, instance: &InstanceId, lane: &LaneId) -> Option<StorageKey> {
-		match *instance {
-			RIALTO_BRIDGE_INSTANCE => Some(millau_runtime::rialto_messages::outbound_lane_data_key(lane)),
-			_ => None,
-		}
-	}
-
-	fn inbound_lane_data_key(&self, instance: &InstanceId, lane: &LaneId) -> Option<StorageKey> {
-		match *instance {
-			RIALTO_BRIDGE_INSTANCE => Some(millau_runtime::rialto_messages::inbound_lane_data_key(lane)),
-			_ => None,
-		}
-	}
 }
