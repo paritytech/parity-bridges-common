@@ -61,7 +61,7 @@ pub enum Command {
 
 arg_enum! {
 	#[derive(Debug)]
-	/// All possible messages that may be delivered from to Rialto chain.
+	/// All possible messages that may be delivered to the Rialto chain.
 	pub enum ToRialtoMessage {
 		Remark,
 	}
