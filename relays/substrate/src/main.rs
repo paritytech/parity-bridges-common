@@ -33,6 +33,7 @@ pub type MillauClient = relay_substrate_client::Client<Millau>;
 pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 
 mod cli;
+mod headers_maintain;
 mod headers_target;
 mod millau_headers_to_rialto;
 
@@ -68,7 +69,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				rialto_sign.rialto_signer_password.as_deref(),
 			)
 			.map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))?;
-			millau_headers_to_rialto::run(millau_client, rialto_client, rialto_sign, prometheus_params.into());
+			millau_headers_to_rialto::run(millau_client, rialto_client, rialto_sign, prometheus_params.into()).await;
 		}
 		cli::Command::SubmitMillauToRialtoMessage {
 			millau,
