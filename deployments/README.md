@@ -1,11 +1,64 @@
 # Bridge Deployments
 
-### General notes
+## Requirements
+Make sure to install `docker` and `docker-compose` to be able to run and test bridge deployments.
+
+## Networks
+One of the building blocks we use for our deployments are _networks_. A network is a collection of
+homogenous nodes. We have Docker Compose files for each network that we want to bridge. Each of
+the compose files found in the `./networks` folder is able to independently spin up a network like
+so:
+
+```bash
+docker-compose -f ./networks/docker-compose.rialto.yml up
+```
+
+After running this command we would have a network of several nodes producing blocks.
+
+## Bridges
+A _bridge_ is a way for several _networks_ to connect to one another. Bridge deployments have their
+own Docker Compose files which can be found in the `./bridges` folder. These Compose files typically
+contain bridge relayers, which are services external to blockchain nodes, and other components such
+as testing infrastructure, or front-end code.
+
+Unlike the network Compose files, these *cannot* be deployed on their own. They must be combined
+with different networks. In the following sections we'll cover how to run different bridge networks.
+Note that for the following deployments we should be at the root of the `deployments` folder.
+
+### Ethereum PoA to Rialto Substrate
+In order to sync headers and transactions between an Ethereum PoA network and the Rialto network we
+can use the following Compose command:
+
+```bash
+docker-compose -f ./bridges/eth-poa-sub/docker-compose.yml \
+               -f ./networks/docker-compose.rialto.yml \
+               -f ./networks/docker-compose.eth-poa.yml \
+               -f ./monitoring/docker-compose.yml up
+```
+
+### Rialto Substrate to Millau Substrate
+We can sync between the Rialto and Millau networks in a similar fashion.
+
+```bash
+docker-compose -f ./bridges/rialto-millau/docker-compose.yml \
+               -f ./networks/docker-compose.rialto.yml \
+               -f ./networks/docker-compose.millau.yml \
+               -f ./monitoring/docker-compose.yml up
+```
+
+The two differences here are:
+1. We're using the `rialto-millau` bridge compose file instead of `eth-poa-sub`
+2. We're using the `millau` network compose file instead of the `eth-poa` one
+
+### Adding Deployments
+TODO
+
+## General Notes
 
 - Substrate authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`, `Ferdie`.
 - Ethereum authorities are named: `Arthur`, `Bertha`, `Carlos`.
 - `Dockerfile`s are designed to build & run nodes & relay by fetching the sources
-  from a git repo.
+  from a Git repo.
 
   You can configure commit hashes using docker build arguments:
   - `BRIDGE_REPO` - git repository of the bridge node & relay code
@@ -18,31 +71,11 @@
   You can however uncomment `ADD` commands within the docker files to build
   an image from your local sources.
 
-### Requirements
-
-Make sure to install `docker` and `docker-compose` to be able to run & test
-bridges deployments locally.
-
-### Polkadot.js UI
-
-To teach the UI decode our custom types used in the pallet, go to: `Settings -> Developer`
-and import the [`./types.json`](./types.json)
-
-## Rialto
-
-`Rialto` is a test bridge network deployment between a test Ethereum PoA network and
-test Substrate network.
-Its main purpose is to make sure that basic PoA<>Substrate bridge operation works.
-The network is being reset every now and then without a warning.
-
-### Docker-Compose Deployment
-
-To run a full network with two-way bridge functionality and cross-chain transfers you
-may use the `docker-compose.yml` file in the [`rialto`](./rialto) folder. This will pull
-images from the Docker Hub for all the components.
+### Docker Compose Usage
+If you're not familiar with how to use `docker-compose` here are some useful commands you'll need
+when interacting with the bridge deployments:
 
 ```bash
-cd rialto
 docker-compose pull   # Get the latest images from the Docker Hub
 docker-compose build  # This is going to build images
 docker-compose up     # Start all the nodes
@@ -50,7 +83,18 @@ docker-compose up -d  # Start the nodes in detached mode.
 docker-compose down   # Stop the network.
 ```
 
-### Docker-Compose and Git Deployment
+Note that for the you'll need to add the appropriate `-f` arguments that were mentioned in the
+[Bridges](#bridges) section.
+
+
+### Polkadot.js UI
+
+To teach the UI decode our custom types used in the pallet, go to: `Settings -> Developer`
+and import the [`./types.json`](./types.json)
+
+
+## Docker-Compose and Git Deployment
+TODO: Update this section
 
 It is also possible to avoid using images from the Docker Hub and instead build
 containers from GitHub. This can be done using an override file for Docker Compose. To
@@ -134,10 +178,6 @@ UI_EXPECTED_ETHEREUM_NETWORK_ID=105
 
 Use [wss://rialto.bridges.test-installations.parity.io/](https://polkadot.js.org/apps/)
 as a custom endpoint for [https://polkadot.js.org/apps/](https://polkadot.js.org/apps/).
-
-## Kovan -> Westend
-
-???
 
 ## Scripts
 
