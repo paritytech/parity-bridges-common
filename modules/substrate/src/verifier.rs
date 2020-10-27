@@ -146,9 +146,9 @@ where
 
 		// Check if our fork is expecting an authority set change
 		let requires_justification = if let Some(hash) = signal_hash {
-			let proof = "If the header has a signal hash it means there's an accompanying set
+			const PROOF: &str = "If the header has a signal hash it means there's an accompanying set
 							change in storage, therefore this must always be valid.";
-			let pending_change = self.storage.scheduled_set_change(hash).expect(proof);
+			let pending_change = self.storage.scheduled_set_change(hash).expect(PROOF);
 
 			if scheduled_change.is_some() {
 				return Err(ImportError::PendingAuthoritySetChange);
@@ -277,19 +277,19 @@ where
 		// new authority set change. When we finalize the header we need to update the current
 		// authority set.
 		if header.requires_justification {
-			let signal_hash_proof = "When we import a header we only mark it as
+			const SIGNAL_HASH_PROOF: &str = "When we import a header we only mark it as
 			`requires_justification` if we have checked that it contains a signal hash. Therefore
 			this must always be valid.";
 
-			let enact_set_proof =
+			const ENACT_SET_PROOF: &str =
 				"Headers must only be marked as `requires_justification` if there's a scheduled change in storage.";
 
 			// If we are unable to enact an authority set it means our storage entry for scheduled
 			// changes is missing. Best to crash since this is likely a bug.
 			let _ = self
 				.storage
-				.enact_authority_set(header.signal_hash.expect(signal_hash_proof))
-				.expect(enact_set_proof);
+				.enact_authority_set(header.signal_hash.expect(SIGNAL_HASH_PROOF))
+				.expect(ENACT_SET_PROOF);
 		}
 
 		for header in finalized_headers.iter_mut() {
