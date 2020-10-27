@@ -5,7 +5,6 @@ version: '3.5'
 services:
   # We provide an override for this particular node since this is a public facing
   # node which we use to connect from things like Polkadot JS Apps.
-  # TODO: Check that this override is done correctly (check order of -f files)
   rialto-node-charlie:
     environment:
       VIRTUAL_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
