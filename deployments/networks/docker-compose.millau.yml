@@ -38,6 +38,8 @@ services:
 
   millau-node-charlie:
     <<: *millau-bridge-node
+    environment:
+      <<: *bridge-env
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
@@ -53,6 +55,8 @@ services:
 
   millau-node-dave:
     <<: *millau-bridge-node
+    environment:
+      <<: *bridge-env
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
@@ -68,6 +72,8 @@ services:
 
   millau-node-eve:
     <<: *millau-bridge-node
+    environment:
+      <<: *bridge-env
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
