@@ -3551,11 +3551,14 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "bp-message-lane",
  "bp-rialto",
+ "bp-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpc-core 15.1.0",
  "millau-runtime",
+ "pallet-message-lane-rpc",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -5331,6 +5334,8 @@ checksum = "e005d658ad26eacc2b6c506dfde519f4e277e328d0eb3379ca61647d70a8f531"
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "bp-message-lane",
+ "bp-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpc-core 15.1.0",
