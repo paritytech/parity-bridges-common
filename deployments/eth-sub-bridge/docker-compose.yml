@@ -16,7 +16,7 @@ services:
     image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-eth2sub-entrypoint.sh
     volumes:
-      - ./bridge-config:/config
+      - ./scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
@@ -35,7 +35,7 @@ services:
     image: paritytech/ethereum-poa-relay
     entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
     volumes:
-      - ./bridge-config:/config
+      - ./scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
       EXCHANGE_GEN_MIN_AMOUNT_FINNEY: ${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1}
@@ -47,7 +47,7 @@ services:
     image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-eth-exchange-sub-entrypoint.sh
     volumes:
-      - ./bridge-config:/config
+      - ./scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
@@ -58,7 +58,7 @@ services:
     image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-sub2eth-entrypoint.sh
     volumes:
-      - ./bridge-config:/config
+      - ./scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:

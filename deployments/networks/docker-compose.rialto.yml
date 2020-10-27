@@ -12,8 +12,6 @@ services:
       - --rpc-cors=all
       - --unsafe-rpc-external
       - --unsafe-ws-external
-    volumes:
-      - ./bridge-config:/config
     environment: &bridge-env
       RUST_LOG: runtime=trace,rpc=debug,txpool=trace
     ports:
