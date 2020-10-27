@@ -29,6 +29,7 @@ jobs:
       volumes:
         - /cache:/cache
     env:
+      WASM_BUILD_TOOLCHAIN:        nightly-2020-10-04
       RUST_BACKTRACE:              full
       SCCACHE_REDIS:               redis://172.17.0.1/0
       SCCACHE_IDLE_TIMEOUT:        0
