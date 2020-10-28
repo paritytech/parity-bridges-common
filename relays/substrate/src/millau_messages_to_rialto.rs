@@ -144,7 +144,7 @@ pub fn run(
 			target_tick: rialto_tick,
 			reconnect_delay,
 			stall_timeout,
-			max_unconfirmed_nonces_at_target: 100, // TODO: use constant from primitives
+			max_unconfirmed_nonces_at_target: bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
 		},
 		MillauSourceClient::new(
 			millau_client.clone(),

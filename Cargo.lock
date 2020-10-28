@@ -734,6 +734,7 @@ dependencies = [
 name = "bp-millau"
 version = "0.1.0"
 dependencies = [
+ "bp-message-lane",
  "bp-runtime",
  "frame-support",
  "sp-api",
@@ -746,6 +747,7 @@ dependencies = [
 name = "bp-rialto"
 version = "0.1.0"
 dependencies = [
+ "bp-message-lane",
  "bp-runtime",
  "frame-support",
  "sp-api",
