@@ -464,7 +464,7 @@ construct_runtime!(
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
 		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
-		BridgeRialtoMessageLane: pallet_message_lane::{Module, Call, Event<T>},
+		BridgeMillauMessageLane: pallet_message_lane::{Module, Call, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
@@ -707,29 +707,29 @@ impl_runtime_apis! {
 	impl bp_message_lane::OutboundLaneApi<Block> for Runtime {
 		fn messages_dispatch_weight(lane: bp_message_lane::LaneId, begin: bp_message_lane::MessageNonce, end: bp_message_lane::MessageNonce) -> Weight {
 			(begin..=end)
-				.filter_map(|nonce| BridgeRialtoMessageLane::outbound_message_payload(lane, nonce))
+				.filter_map(|nonce| BridgeMillauMessageLane::outbound_message_payload(lane, nonce))
 				.filter_map(|encoded_payload| millau_messages::ToMillauMessagePayload::decode(&mut &encoded_payload[..]).ok())
 				.map(|decoded_payload| decoded_payload.weight)
 				.fold(0, |sum, weight| sum.saturating_add(weight))
 		}
 
 		fn latest_received_nonce(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
-			BridgeRialtoMessageLane::outbound_latest_received_nonce(lane)
+			BridgeMillauMessageLane::outbound_latest_received_nonce(lane)
 		}
 
 		fn latest_generated_nonce(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
-			BridgeRialtoMessageLane::outbound_latest_generated_nonce(lane)
+			BridgeMillauMessageLane::outbound_latest_generated_nonce(lane)
 		}
 	}
 
 	// TODO: runtime should support several chains (https://github.com/paritytech/parity-bridges-common/issues/457)
 	impl bp_message_lane::InboundLaneApi<Block> for Runtime {
 		fn latest_received_nonce(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
-			BridgeRialtoMessageLane::inbound_latest_received_nonce(lane)
+			BridgeMillauMessageLane::inbound_latest_received_nonce(lane)
 		}
 
 		fn latest_confirmed_nonce(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
-			BridgeRialtoMessageLane::inbound_latest_confirmed_nonce(lane)
+			BridgeMillauMessageLane::inbound_latest_confirmed_nonce(lane)
 		}
 	}
 
