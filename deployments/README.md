@@ -50,6 +50,10 @@ The two differences here are:
 1. We're using the `rialto-millau` bridge compose file instead of `eth-poa-sub`
 2. We're using the `millau` network compose file instead of the `eth-poa` one
 
+One thing worth noting is that we have a _monitoring_ Compose file. This adds support for Prometheus
+and Grafana. We cover these in more details in the [Monitoring](#monitoring) section. At the moment
+the monitoring Compose file is _not_ optional, and must be included for bridge deployments.
+
 ### Adding Deployments
 We need two main things when adding a new deployment. First, the new network which we want to
 bridge. A compose file for the network should be added in the `/networks/` folder. Secondly we'll
