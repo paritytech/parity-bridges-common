@@ -156,7 +156,7 @@ where
 			.client
 			.prove_messages_delivery(self.instance, self.lane, id.1)
 			.await?;
-		let proof = (id.1, proof.into(), self.lane);
+		let proof = (id.1, proof, self.lane);
 		Ok((id, proof))
 	}
 

@@ -37,7 +37,10 @@ use std::{ops::RangeInclusive, time::Duration};
 ///
 /// - cumulative dispatch-weight of messages in the batch;
 /// - proof that we'll actually submit to the Rialto node.
-type FromMillauMessagesProof = (Weight, (HashOf<Millau>, StorageProof, LaneId, MessageNonce, MessageNonce));
+type FromMillauMessagesProof = (
+	Weight,
+	(HashOf<Millau>, StorageProof, LaneId, MessageNonce, MessageNonce),
+);
 /// Rialto -> Millau messages receiving proof.
 type FromRialtoMessagesReceivingProof = (HashOf<Rialto>, StorageProof, LaneId);
 
@@ -111,7 +114,9 @@ impl SubstrateTargetTransactionMaker<Rialto, MillauMessagesToRialto> for RialtoT
 		let (dispatch_weight, proof) = proof;
 		let account_id = self.sign.signer.public().as_array_ref().clone().into();
 		let nonce = self.client.next_account_index(account_id).await?;
-		let call = rialto_runtime::MessageLaneCall::receive_messages_proof(self.relayer_id.clone(), proof, dispatch_weight).into();
+		let call =
+			rialto_runtime::MessageLaneCall::receive_messages_proof(self.relayer_id.clone(), proof, dispatch_weight)
+				.into();
 		let transaction = Rialto::sign_transaction(&self.client, &self.sign.signer, nonce, call);
 		Ok(transaction)
 	}
