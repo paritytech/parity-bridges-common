@@ -51,7 +51,19 @@ The two differences here are:
 2. We're using the `millau` network compose file instead of the `eth-poa` one
 
 ### Adding Deployments
-TODO
+We need two main things when adding a new deployment. First, the new network which we want to
+bridge. A compose file for the network should be added in the `/networks/` folder. Secondly we'll
+need a new bridge compose file in `./bridges/`. This should configure the bridge relayer nodes
+correctly for the two networks, and add any additional components needed for the deployment.
+
+In general, we can deploy the bridge using `docker-compose up` in the following way:
+
+```bash
+docker-compose -f <bridge>.yml \
+               -f <network_1>.yml \
+               -f <network_2>.yml \
+               -f <monitoring>.yml up
+```
 
 ## General Notes
 
@@ -71,6 +83,17 @@ TODO
   You can however uncomment `ADD` commands within the docker files to build
   an image from your local sources.
 
+### Docker Usage
+When the network is running you can query logs from individual nodes using:
+```bash
+docker logs rialto_poa-node-bertha_1 -f
+```
+
+To kill all left over containers and start the network from scratch next time:
+```bash
+docker ps -a --format "{{.ID}}" | xargs docker rm # This removes all containers!
+```
+
 ### Docker Compose Usage
 If you're not familiar with how to use `docker-compose` here are some useful commands you'll need
 when interacting with the bridge deployments:
@@ -84,8 +107,16 @@ docker-compose down   # Stop the network.
 ```
 
 Note that for the you'll need to add the appropriate `-f` arguments that were mentioned in the
-[Bridges](#bridges) section.
+[Bridges](#bridges) section. You can read more about using multiple Compose files
+[here](https://docs.docker.com/compose/extends/#multiple-compose-files). One thing worth noting is
+that the _order_ the compose files are specified in matters. A different order will result in a
+different configuration.
 
+You can sanity check the final config like so:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.override.yml config > docker-compose.merged.yml
+```
 
 ### Polkadot.js UI
 
@@ -105,25 +136,10 @@ cd rialto
 docker-compose -f docker-compose.yml -f docker-compose.git.yml build
 ```
 The order in which you specify the compose files matters, so make sure the Git override file
-comes after the base one. If you want a sanity check of the resulting compose file you may
-do the following:
-
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.git.yml config > docker-compose.merged.yml
-```
+comes after the base one.
 
 Note that this is going to take a _very long_ time to build, since it has to build multiple
 Rust projects from scratch.
-
-When the network is running you can query logs from individual nodes using:
-```bash
-docker logs rialto_poa-node-bertha_1 -f
-```
-
-To kill all left over containers and start the network from scratch next time:
-```bash
-docker ps -a --format "{{.ID}}" | xargs docker rm # This removes all containers!
-```
 
 ### Network Updates
 
