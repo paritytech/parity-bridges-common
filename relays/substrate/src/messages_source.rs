@@ -22,6 +22,7 @@ use async_trait::async_trait;
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::InstanceId;
 use codec::{Decode, Encode};
+use frame_support::weights::Weight;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{ClientState, SourceClient, SourceClientState},
@@ -30,6 +31,7 @@ use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, Hea
 use relay_utils::HeaderId;
 use sp_core::Bytes;
 use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
+use sp_trie::StorageProof;
 use std::{marker::PhantomData, ops::RangeInclusive};
 
 /// Substrate client as Substrate messages source.
@@ -89,7 +91,7 @@ where
 	<C::Header as HeaderT>::Number: Into<u64>,
 	P: MessageLane<
 		MessageNonce = MessageNonce,
-		MessagesProof = (HashOf<C>, LaneId, MessageNonce, MessageNonce, Bytes),
+		MessagesProof = (Weight, (HashOf<C>, StorageProof, LaneId, MessageNonce, MessageNonce)),
 		SourceHeaderNumber = <C::Header as HeaderT>::Number,
 		SourceHeaderHash = <C::Header as HeaderT>::Hash,
 	>,
@@ -151,7 +153,7 @@ where
 		nonces: RangeInclusive<P::MessageNonce>,
 		include_outbound_lane_state: bool,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<P::MessageNonce>, P::MessagesProof), Self::Error> {
-		let proof = self
+		let (weight, proof) = self
 			.client
 			.prove_messages(
 				self.instance,
@@ -161,8 +163,8 @@ where
 				id.1,
 			)
 			.await?;
-		let proof = (id.1, self.lane, *nonces.start(), *nonces.end(), proof);
-		Ok((id, nonces, proof))
+		let proof = (id.1, proof, self.lane, *nonces.start(), *nonces.end());
+		Ok((id, nonces, (weight, proof)))
 	}
 
 	async fn submit_messages_receiving_proof(

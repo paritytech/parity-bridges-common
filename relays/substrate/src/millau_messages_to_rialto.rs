@@ -23,18 +23,23 @@ use crate::{MillauClient, RialtoClient};
 use async_trait::async_trait;
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::{MILLAU_BRIDGE_INSTANCE, RIALTO_BRIDGE_INSTANCE};
+use frame_support::weights::Weight;
 use messages_relay::message_lane::MessageLane;
 use relay_millau_client::{HeaderId as MillauHeaderId, Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{HeaderId as RialtoHeaderId, Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{BlockNumberOf, Error as SubstrateError, HashOf, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
-use sp_core::Bytes;
+use sp_core::Pair;
+use sp_trie::StorageProof;
 use std::{ops::RangeInclusive, time::Duration};
 
-/// Millau -> Rialto messages proof.
-type FromMillauMessagesProof = (HashOf<Millau>, LaneId, MessageNonce, MessageNonce, Bytes);
+/// Millau -> Rialto messages proof:
+///
+/// - cumulative dispatch-weight of messages in the batch;
+/// - proof that we'll actually submit to the Rialto node.
+type FromMillauMessagesProof = (Weight, (HashOf<Millau>, StorageProof, LaneId, MessageNonce, MessageNonce));
 /// Rialto -> Millau messages receiving proof.
-type FromRialtoMessagesReceivingProof = (HashOf<Rialto>, LaneId, Bytes);
+type FromRialtoMessagesReceivingProof = (HashOf<Rialto>, StorageProof, LaneId);
 
 /// Millau-to-Rialto messages pipeline.
 #[derive(Debug, Clone, Copy)]
@@ -72,15 +77,13 @@ impl SubstrateSourceTransactionMaker<Millau, MillauMessagesToRialto> for MillauT
 	async fn make_messages_receiving_proof_transaction(
 		&self,
 		_generated_at_block: RialtoHeaderId,
-		_proof: FromRialtoMessagesReceivingProof,
+		proof: FromRialtoMessagesReceivingProof,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
-		// TODO:
-		// let account_id = self.sign.signer.public().as_array_ref().clone().into();
-		// let nonce = self.client.next_account_index(account_id).await?;
-		// let call = MessageLaneCall::receive_messages_delivery_proof(proof, dispatch_weight).into();
-		// let transaction = Rialto::sign_transaction(&self.client, &self.sign.signer, nonce, call);
-		// Ok(transaction)
-		unimplemented!("TODO")
+		let account_id = self.sign.signer.public().as_array_ref().clone().into();
+		let nonce = self.client.next_account_index(account_id).await?;
+		let call = millau_runtime::MessageLaneCall::receive_messages_delivery_proof(proof).into();
+		let transaction = Millau::sign_transaction(&self.client, &self.sign.signer, nonce, call);
+		Ok(transaction)
 	}
 }
 
@@ -91,27 +94,26 @@ type RialtoTargetClient = SubstrateMessagesTarget<Rialto, MillauMessagesToRialto
 #[derive(Clone)]
 struct RialtoTransactionMaker {
 	client: RialtoClient,
+	relayer_id: bp_millau::AccountId,
 	sign: RialtoSigningParams,
 }
 
 #[async_trait]
 impl SubstrateTargetTransactionMaker<Rialto, MillauMessagesToRialto> for RialtoTransactionMaker {
-	type SignedTransaction = <Millau as TransactionSignScheme>::SignedTransaction;
+	type SignedTransaction = <Rialto as TransactionSignScheme>::SignedTransaction;
 
 	async fn make_messages_delivery_transaction(
 		&self,
 		_generated_at_header: MillauHeaderId,
 		_nonces: RangeInclusive<MessageNonce>,
-		_proof: FromMillauMessagesProof,
+		proof: FromMillauMessagesProof,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
-		// TODO:
-		// let account_id = self.sign.signer.public().as_array_ref().clone().into();
-		// let nonce = self.client.next_account_index(account_id).await?;
-		// let dispatch_weight = unimplemented!("TODO");
-		// let call = MessageLaneCall::receive_messages_proof(proof, dispatch_weight).into();
-		// let transaction = Rialto::sign_transaction(&self.client, &self.sign.signer, nonce, call);
-		// Ok(transaction)
-		unimplemented!("TODO")
+		let (dispatch_weight, proof) = proof;
+		let account_id = self.sign.signer.public().as_array_ref().clone().into();
+		let nonce = self.client.next_account_index(account_id).await?;
+		let call = rialto_runtime::MessageLaneCall::receive_messages_proof(self.relayer_id.clone(), proof, dispatch_weight).into();
+		let transaction = Rialto::sign_transaction(&self.client, &self.sign.signer, nonce, call);
+		Ok(transaction)
 	}
 }
 
@@ -128,6 +130,7 @@ pub fn run(
 	let rialto_tick = Duration::from_secs(5);
 	let reconnect_delay = Duration::from_secs(10);
 	let stall_timeout = Duration::from_secs(5 * 60);
+	let relayer_id = millau_sign.signer.public().as_array_ref().clone().into();
 
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
@@ -151,6 +154,7 @@ pub fn run(
 			rialto_client.clone(),
 			RialtoTransactionMaker {
 				client: rialto_client,
+				relayer_id,
 				sign: rialto_sign,
 			},
 			lane,

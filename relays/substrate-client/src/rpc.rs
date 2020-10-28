@@ -25,6 +25,7 @@ use crate::chain::Chain;
 
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::InstanceId;
+use frame_support::weights::Weight;
 use sp_core::Bytes;
 
 jsonrpsee::rpc_api! {
@@ -54,7 +55,7 @@ jsonrpsee::rpc_api! {
 			end: MessageNonce,
 			include_outbound_lane_state: bool,
 			block: Option<C::Hash>,
-		) -> Bytes;
+		) -> (Weight, Bytes);
 
 		#[rpc(method = "messageLane_proveMessagesDelivery", positional_params)]
 		fn prove_messages_delivery(

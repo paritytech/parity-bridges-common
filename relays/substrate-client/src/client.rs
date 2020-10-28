@@ -18,16 +18,19 @@
 
 use crate::chain::Chain;
 use crate::rpc::{Substrate, SubstrateMessageLane};
-use crate::{ConnectionParams, Result};
+use crate::{ConnectionParams, Error, Result};
 
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::InstanceId;
+use codec::Decode;
+use frame_support::weights::Weight;
 use jsonrpsee::common::DeserializeOwned;
 use jsonrpsee::raw::RawClient;
 use jsonrpsee::transport::ws::WsTransportClient;
 use jsonrpsee::{client::Subscription, Client as RpcClient};
 use num_traits::Zero;
 use sp_core::Bytes;
+use sp_trie::StorageProof;
 use std::ops::RangeInclusive;
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
@@ -184,8 +187,8 @@ where
 		range: RangeInclusive<MessageNonce>,
 		include_outbound_lane_state: bool,
 		at_block: C::Hash,
-	) -> Result<Bytes> {
-		SubstrateMessageLane::<C, _, _>::prove_messages(
+	) -> Result<(Weight, StorageProof)> {
+		let (dispatch_weight, encoded_trie_nodes) = SubstrateMessageLane::<C, _, _>::prove_messages(
 			&self.client,
 			instance,
 			lane,
@@ -195,7 +198,10 @@ where
 			Some(at_block),
 		)
 		.await
-		.map_err(Into::into)
+		.map_err(Error::Request)?;
+		let decoded_trie_nodes: Vec<Vec<u8>> = Decode::decode(&mut &encoded_trie_nodes[..])
+			.map_err(Error::ResponseParseFailed)?;
+		Ok((dispatch_weight, StorageProof::new(decoded_trie_nodes)))
 	}
 
 	/// Returns proof-of-message(s) delivery.
@@ -204,10 +210,18 @@ where
 		instance: InstanceId,
 		lane: LaneId,
 		at_block: C::Hash,
-	) -> Result<Bytes> {
-		SubstrateMessageLane::<C, _, _>::prove_messages_delivery(&self.client, instance, lane, Some(at_block))
-			.await
-			.map_err(Into::into)
+	) -> Result<StorageProof> {
+		let encoded_trie_nodes = SubstrateMessageLane::<C, _, _>::prove_messages_delivery(
+			&self.client,
+			instance,
+			lane,
+			Some(at_block),
+		)
+		.await
+		.map_err(Error::Request)?;
+		let decoded_trie_nodes: Vec<Vec<u8>> = Decode::decode(&mut &encoded_trie_nodes[..])
+			.map_err(Error::ResponseParseFailed)?;
+		Ok(StorageProof::new(decoded_trie_nodes))
 	}
 
 	/// Return new justifications stream.

@@ -37,3 +37,4 @@ rialto-runtime = { path = "../../bin/rialto/runtime" }
 frame-support = "2.0"
 sp-core = "2.0"
 sp-runtime = "2.0"
+sp-trie = "2.0"

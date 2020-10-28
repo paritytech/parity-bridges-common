@@ -31,6 +31,7 @@ use messages_relay::{
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf};
 use sp_core::Bytes;
 use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
+use sp_trie::StorageProof;
 use std::{marker::PhantomData, ops::RangeInclusive};
 
 /// Substrate client as Substrate messages target.
@@ -91,7 +92,7 @@ where
 	<C::Header as HeaderT>::Number: Into<u64>,
 	P: MessageLane<
 		MessageNonce = MessageNonce,
-		MessagesReceivingProof = (HashOf<C>, LaneId, Bytes),
+		MessagesReceivingProof = (HashOf<C>, StorageProof, LaneId),
 		TargetHeaderNumber = <C::Header as HeaderT>::Number,
 		TargetHeaderHash = <C::Header as HeaderT>::Hash,
 	>,
@@ -155,7 +156,7 @@ where
 			.client
 			.prove_messages_delivery(self.instance, self.lane, id.1)
 			.await?;
-		let proof = (id.1, self.lane, proof);
+		let proof = (id.1, proof.into(), self.lane);
 		Ok((id, proof))
 	}
 

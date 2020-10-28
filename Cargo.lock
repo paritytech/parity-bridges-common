@@ -5302,6 +5302,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-std",
+ "sp-trie",
 ]
 
 [[package]]
@@ -7688,6 +7689,7 @@ dependencies = [
  "rialto-runtime",
  "sp-core",
  "sp-runtime",
+ "sp-trie",
  "structopt",
 ]
 
