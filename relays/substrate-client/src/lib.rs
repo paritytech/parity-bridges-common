@@ -23,6 +23,7 @@ mod client;
 mod error;
 mod rpc;
 
+pub mod guard;
 pub mod headers_source;
 
 pub use crate::chain::{BlockWithJustification, Chain, TransactionSignScheme};
