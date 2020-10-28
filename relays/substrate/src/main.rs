@@ -111,7 +111,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				lane.into(),
 				prometheus_params.into(),
 			);
-		},
+		}
 		cli::Command::SubmitMillauToRialtoMessage {
 			millau,
 			millau_sign,
