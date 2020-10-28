@@ -67,24 +67,12 @@ docker-compose -f <bridge>.yml \
 
 ## General Notes
 
-- Substrate authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`, `Ferdie`.
-- Ethereum authorities are named: `Arthur`, `Bertha`, `Carlos`.
-- `Dockerfile`s are designed to build & run nodes & relay by fetching the sources
-  from a Git repo.
-
-  You can configure commit hashes using docker build arguments:
-  - `BRIDGE_REPO` - git repository of the bridge node & relay code
-  - `BRIDGE_HASH` - commit hash within that repo (can also be a branch or tag)
-  - `ETHEREUM_REPO` - git repository of the OpenEthereum client
-  - `ETHEREUM_HASH` - commit hash within that repo (can also be a branch or tag)
-  - `PROJECT` - a project to build withing bridges repo (`rialto-bridge-node` or
-    `ethereum-poa-relay` currently)
-
-  You can however uncomment `ADD` commands within the docker files to build
-  an image from your local sources.
+Substrate authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`, `Ferdie`.
+Ethereum authorities are named: `Arthur`, `Bertha`, `Carlos`.
 
 ### Docker Usage
 When the network is running you can query logs from individual nodes using:
+
 ```bash
 docker logs rialto_poa-node-bertha_1 -f
 ```
@@ -118,7 +106,7 @@ You can sanity check the final config like so:
 docker-compose -f docker-compose.yml -f docker-compose.override.yml config > docker-compose.merged.yml
 ```
 
-## Docker-Compose and Git Deployment
+## Docker and Git Deployment
 It is also possible to avoid using images from the Docker Hub and instead build
 containers from Git. There are two ways to build the images this way.
 
@@ -126,12 +114,28 @@ containers from Git. There are two ways to build the images this way.
 If we want to use our local repo to build images at a particular commit we can do the following:
 
 ```bash
-docker build . -f Bridge.Dockerfile -t local/<project_you're_building> --build-arg=<project>_HASH=<commit_hash>
+docker build . -f ./Bridge.Dockerfile -t local/<project_you're_building> --build-arg=<project>_HASH=<commit_hash>
 ```
 
-This will build a local image of a particular component (can be a node or a relayer, see
-[General Notes](#general-notes) for details) with a tag of `local/<project_you're_building>`. This
-tag can be used in Docker Compose files.
+This will build a local image of a particular component with a tag of
+`local/<project_you're_building>`. This tag can be used in Docker Compose files.
+
+You can configure the build using using Docker
+[build
+arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg).
+Here are the arguments currently supported:
+  - `BRIDGE_REPO`: Git repository of the bridge node and relay code
+  - `BRIDGE_HASH`: Commit hash within that repo (can also be a branch or tag)
+  - `ETHEREUM_REPO`: Git repository of the OpenEthereum client
+  - `ETHEREUM_HASH`: Commit hash within that repo (can also be a branch or tag)
+  - `PROJECT`: Project to build withing bridges repo. Can be one of:
+    - `rialto-bridge-node`
+    - `millau-bridge-node`
+    - `ethereum-poa-relay`
+    - `substrate-relay`
+
+You can also uncomment `ADD` commands within the docker files to build an image from your local
+sources.
 
 2. GitHub Actions
 We have a nightly job which runs and publishes Docker images for the different nodes and relayers to
