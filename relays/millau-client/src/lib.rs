@@ -108,14 +108,6 @@ impl std::fmt::Debug for SigningParams {
 	}
 }
 
-impl Default for SigningParams {
-	fn default() -> Self {
-		SigningParams {
-			signer: sp_keyring::AccountKeyring::Alice.pair(),
-		}
-	}
-}
-
 /// Millau header type used in headers sync.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SyncHeader(millau_runtime::Header);

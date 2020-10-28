@@ -55,6 +55,7 @@ pub use frame_support::{
 };
 
 pub use pallet_balances::Call as BalancesCall;
+pub use pallet_message_lane::Call as MessageLaneCall;
 pub use pallet_substrate_bridge::Call as BridgeSubstrateCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
@@ -516,9 +517,8 @@ impl_runtime_apis! {
 	}
 
 	impl bp_rialto::RialtoHeaderApi<Block> for Runtime {
-		fn best_block() -> (bp_rialto::BlockNumber, bp_rialto::Hash) {
-			let header = BridgeRialto::best_header();
-			(header.number, header.hash())
+		fn best_blocks() -> Vec<(bp_rialto::BlockNumber, bp_rialto::Hash)> {
+			BridgeRialto::best_headers()
 		}
 
 		fn finalized_block() -> (bp_rialto::BlockNumber, bp_rialto::Hash) {
@@ -527,13 +527,7 @@ impl_runtime_apis! {
 		}
 
 		fn incomplete_headers() -> Vec<(bp_rialto::BlockNumber, bp_rialto::Hash)> {
-			// Since the pallet doesn't accept multiple scheduled changes right now
-			// we can only have one header requiring a justification at any time.
-			if let Some(header) = BridgeRialto::requires_justification() {
-				vec![(header.number, header.hash())]
-			} else {
-				vec![]
-			}
+			BridgeRialto::require_justifications()
 		}
 
 		fn is_known_block(hash: bp_rialto::Hash) -> bool {

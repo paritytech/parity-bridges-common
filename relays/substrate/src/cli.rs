@@ -17,7 +17,7 @@
 //! Deal with CLI args of substrate-to-substrate relay.
 
 use bp_message_lane::LaneId;
-use structopt::StructOpt;
+use structopt::{clap::arg_enum, StructOpt};
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
@@ -39,6 +39,7 @@ pub enum Command {
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
+	/// Serve given lane of Millau -> Rialto messages.
 	MillauMessagesToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
@@ -54,6 +55,32 @@ pub enum Command {
 		#[structopt(long)]
 		lane: HexLaneId,
 	},
+	/// Submit message to given Rialto -> Millau lane.
+	SubmitMillauToRialtoMessage {
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		rialto_sign: RialtoSigningParams,
+		/// Hex-encoded lane id.
+		#[structopt(long)]
+		lane: HexLaneId,
+		/// Message type.
+		#[structopt(long, possible_values = &ToRialtoMessage::variants())]
+		message: ToRialtoMessage,
+		/// Delivery and dispatch fee.
+		#[structopt(long)]
+		fee: bp_millau::Balance,
+	},
+}
+
+arg_enum! {
+	#[derive(Debug)]
+	/// All possible messages that may be delivered to the Rialto chain.
+	pub enum ToRialtoMessage {
+		Remark,
+	}
 }
 
 /// Lane id.

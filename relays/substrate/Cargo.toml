@@ -23,13 +23,17 @@ bp-runtime = { path = "../../primitives/runtime" }
 bp-rialto = { path = "../../primitives/rialto" }
 headers-relay = { path = "../headers-relay" }
 messages-relay = { path = "../messages-relay" }
+millau-runtime = { path = "../../bin/millau/runtime" }
+pallet-bridge-call-dispatch = { path = "../../modules/call-dispatch" }
 pallet-substrate-bridge = { path = "../../modules/substrate" }
 relay-millau-client = { path = "../millau-client" }
 relay-rialto-client = { path = "../rialto-client" }
 relay-substrate-client = { path = "../substrate-client" }
 relay-utils = { path = "../utils" }
+rialto-runtime = { path = "../../bin/rialto/runtime" }
 
 # Substrate Dependencies
 
+frame-support = "2.0"
 sp-core = "2.0"
 sp-runtime = "2.0"
