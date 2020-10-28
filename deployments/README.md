@@ -118,30 +118,36 @@ You can sanity check the final config like so:
 docker-compose -f docker-compose.yml -f docker-compose.override.yml config > docker-compose.merged.yml
 ```
 
-### Polkadot.js UI
-
-To teach the UI decode our custom types used in the pallet, go to: `Settings -> Developer`
-and import the [`./types.json`](./types.json)
-
-
 ## Docker-Compose and Git Deployment
-TODO: Update this section
-
 It is also possible to avoid using images from the Docker Hub and instead build
-containers from GitHub. This can be done using an override file for Docker Compose. To
-build the containers you can do the following:
+containers from Git. There are two ways to build the images this way.
+
+1. Local Repo
+If we want to use our local repo to build images at a particular commit we can do the following:
 
 ```bash
-cd rialto
-docker-compose -f docker-compose.yml -f docker-compose.git.yml build
+docker build . -f Bridge.Dockerfile -t local/<project_you're_building> --build-arg=<project>_HASH=<commit_hash>
 ```
-The order in which you specify the compose files matters, so make sure the Git override file
-comes after the base one.
 
-Note that this is going to take a _very long_ time to build, since it has to build multiple
-Rust projects from scratch.
+This will build a local image of a particular component (can be a node or a relayer, see
+[General Notes](#general-notes) for details) with a tag of `local/<project_you're_building>`. This
+tag can be used in Docker Compose files.
+
+2. GitHub Actions
+We have a nightly job which runs and publishes Docker images for the different nodes and relayers to
+the [ParityTech Docker Hub](https://hub.docker.com/u/paritytech) organization. These images are used
+for our ephemeral (temporary) test networks. Additionally, any time a tag in the form of `v*` is
+pushed to GitHub the publishing job is run. This will build all the components (nodes, relayers) and
+publish them.
+
+With images built using either method, all you have to do to use them in a deployment is change the
+`image` field in the existing Docker Compose files to point to the tag of the image you want to use.
+
+In the existing Docker Compose files you can then replace the `image` field with the images you just
+built.
 
 ### Network Updates
+TODO: Update this to not talk about Git updates
 
 You can update the network using the [`update.sh`](./rialto/update.sh) script. If you run it
 _without_ the `WITH_GIT` environment variable set it will default to using the latest images from the
@@ -194,6 +200,11 @@ UI_EXPECTED_ETHEREUM_NETWORK_ID=105
 
 Use [wss://rialto.bridges.test-installations.parity.io/](https://polkadot.js.org/apps/)
 as a custom endpoint for [https://polkadot.js.org/apps/](https://polkadot.js.org/apps/).
+
+### Polkadot.js UI
+
+To teach the UI decode our custom types used in the pallet, go to: `Settings -> Developer`
+and import the [`./types.json`](./types.json)
 
 ## Scripts
 
