@@ -784,9 +784,12 @@ pub(crate) mod tests {
 			exit_receiver.into_future().map(|(_, _)| ()),
 		);
 
-		assert_eq!(result.submitted_messages_proofs[0], (1..=4, None));
-		assert_eq!(result.submitted_messages_proofs[1], (5..=8, Some(4)));
-		// we may stop relayer earlier than reward confirmation will come
+		// there are no strict restrictions on when reward confirmation should come
+		// (because `max_unconfirmed_nonces_at_target` is `100` in tests and this confirmation
+		// depends on the state of both clients)
+		// => we do not check it here
+		assert_eq!(result.submitted_messages_proofs[0].0, 1..=4);
+		assert_eq!(result.submitted_messages_proofs[1].0, 5..=8);
 		assert_eq!(result.submitted_messages_proofs[2].0, 9..=10);
 		assert!(!result.submitted_messages_receiving_proofs.is_empty());
 	}
