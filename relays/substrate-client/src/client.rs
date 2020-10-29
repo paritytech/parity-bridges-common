@@ -16,12 +16,13 @@
 
 //! Substrate node client.
 
-use crate::chain::Chain;
+use crate::chain::{Chain, ChainWithBalances};
 use crate::error::Error;
 use crate::rpc::Substrate;
 use crate::{ConnectionParams, Result};
 
 use codec::Decode;
+use frame_system::AccountInfo;
 use jsonrpsee::common::DeserializeOwned;
 use jsonrpsee::raw::RawClient;
 use jsonrpsee::transport::ws::WsTransportClient;
@@ -123,14 +124,18 @@ impl<C: Chain> Client<C> {
 	///
 	/// May panic if called on the chain that is not storing `frame_balances::AccountData`
 	/// in the `frame_system::Account` storage map.
-	pub async fn free_native_balance(&self, account: C::AccountId) -> Result<C::NativeBalance> {
-		let storage_key = C::account_data_storage_key(&account);
+	pub async fn free_native_balance(&self, account: C::AccountId) -> Result<C::NativeBalance>
+	where
+		C: ChainWithBalances,
+	{
+		let storage_key = C::account_info_storage_key(&account);
 		let encoded_account_data = Substrate::<C, _, _>::get_storage(&self.client, storage_key)
 			.await?
 			.ok_or(Error::AccountDoesNotExist)?;
-		let decoded_account_data = AccountData::<C::NativeBalance>::decode(&mut &encoded_account_data.0[..])
-			.map_err(Error::ResponseParseFailed)?;
-		Ok(decoded_account_data.free)
+		let decoded_account_data =
+			AccountInfo::<C::Index, AccountData<C::NativeBalance>>::decode(&mut &encoded_account_data.0[..])
+				.map_err(Error::ResponseParseFailed)?;
+		Ok(decoded_account_data.data.free)
 	}
 
 	/// Get the nonce of the given Substrate account.

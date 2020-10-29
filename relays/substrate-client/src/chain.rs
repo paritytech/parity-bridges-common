@@ -44,13 +44,16 @@ pub trait Chain: ChainBase {
 	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification;
 	/// The aggregated `Call` type.
 	type Call: Dispatchable + Debug;
+}
+
+/// Substrate-based chain with `frame_system::Trait::AccountData` set to
+/// the `pallet_balances::AccountData<NativeBalance>`.
+pub trait ChainWithBalances: Chain {
 	/// Balance of an account in native tokens.
 	type NativeBalance: Parameter + Member + DeserializeOwned + Clone + Copy + CheckedSub + PartialOrd + Zero;
 
-	/// Return runtime storage key for that is storing `pallet_balances::AccountData` of given account.
-	///
-	/// Would panic if chain uses different format to store account data.
-	fn account_data_storage_key(account_id: &Self::AccountId) -> StorageKey;
+	/// Return runtime storage key for getting `frame_system::AccountInfo` of given account.
+	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey;
 }
 
 /// Block with justification.

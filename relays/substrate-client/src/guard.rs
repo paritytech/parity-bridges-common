@@ -17,7 +17,7 @@
 //! Module provides a set of guard functions that are running in background threads
 //! and are aborting process if some condition fails.
 
-use crate::{Chain, Client};
+use crate::{Chain, ChainWithBalances, Client};
 
 use async_trait::async_trait;
 use num_traits::CheckedSub;
@@ -29,7 +29,7 @@ use std::{
 
 /// Guards environment.
 #[async_trait]
-pub trait Environment<C: Chain>: Send + Sync + 'static {
+pub trait Environment<C: ChainWithBalances>: Send + Sync + 'static {
 	/// Return current runtime version.
 	async fn runtime_version(&mut self) -> Result<RuntimeVersion, String>;
 	/// Return free native balance of the account on the chain.
@@ -50,7 +50,7 @@ pub trait Environment<C: Chain>: Send + Sync + 'static {
 }
 
 /// Abort when runtime spec version is different from specified.
-pub fn abort_on_spec_version_change<C: Chain>(mut env: impl Environment<C>, expected_spec_version: u32) {
+pub fn abort_on_spec_version_change<C: ChainWithBalances>(mut env: impl Environment<C>, expected_spec_version: u32) {
 	async_std::task::spawn(async move {
 		loop {
 			let actual_spec_version = env.runtime_version().await;
@@ -82,7 +82,7 @@ pub fn abort_on_spec_version_change<C: Chain>(mut env: impl Environment<C>, expe
 
 /// Abort if, during a 24 hours, free balance of given account is decreased at least by given value.
 /// Other components may increase (or decrease) balance of account and it WILL affect logic of the guard.
-pub fn abort_when_account_balance_decreased<C: Chain>(
+pub fn abort_when_account_balance_decreased<C: ChainWithBalances>(
 	mut env: impl Environment<C>,
 	account_id: C::AccountId,
 	maximal_decrease: C::NativeBalance,
@@ -150,7 +150,7 @@ fn conditions_check_delay<C: Chain>() -> Duration {
 }
 
 #[async_trait]
-impl<C: Chain> Environment<C> for Client<C> {
+impl<C: ChainWithBalances> Environment<C> for Client<C> {
 	async fn runtime_version(&mut self) -> Result<RuntimeVersion, String> {
 		Client::<C>::runtime_version(self).await.map_err(|e| e.to_string())
 	}
@@ -189,9 +189,12 @@ mod tests {
 		type Index = u32;
 		type SignedBlock = ();
 		type Call = ();
+	}
+
+	impl ChainWithBalances for TestChain {
 		type NativeBalance = u32;
 
-		fn account_data_storage_key(_account_id: &u32) -> sp_core::storage::StorageKey {
+		fn account_info_storage_key(_account_id: &u32) -> sp_core::storage::StorageKey {
 			unreachable!()
 		}
 	}
