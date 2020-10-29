@@ -39,11 +39,13 @@ use bp_message_lane::{
 };
 use codec::{Decode, Encode};
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, traits::Get, weights::{DispatchClass, Weight},
+	decl_error, decl_event, decl_module, decl_storage,
+	traits::Get,
+	weights::{DispatchClass, Weight},
 	Parameter, StorageMap,
 };
-use frame_system::{RawOrigin, ensure_signed};
-use sp_runtime::{DispatchResult, traits::BadOrigin};
+use frame_system::{ensure_signed, RawOrigin};
+use sp_runtime::{traits::BadOrigin, DispatchResult};
 use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
 mod inbound_lane;
