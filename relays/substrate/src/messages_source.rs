@@ -186,7 +186,6 @@ where
 	}
 }
 
-/// Read client state.
 pub async fn read_client_state<SelfChain, BridgedHeaderHash, BridgedHeaderNumber>(
 	self_client: &Client<SelfChain>,
 	bridged_chain_name: &str,
