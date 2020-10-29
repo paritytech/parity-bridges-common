@@ -114,6 +114,7 @@ pub trait TargetClient<P: MessageLane>: Clone + Send + Sync {
 		&self,
 		id: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, P::MessageNonce), Self::Error>;
+
 	/// Get nonce of latest confirmed message.
 	async fn latest_confirmed_received_nonce(
 		&self,
