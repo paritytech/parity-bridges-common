@@ -34,6 +34,11 @@ use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
 use sp_trie::StorageProof;
 use std::{marker::PhantomData, ops::RangeInclusive};
 
+/// Intermediate message proof returned by the source Substrate node. Includes everything
+/// required to submit to the target node: cumulative dispatch weight of bundled messages and
+/// the proof itself.
+pub type SubstrateMessagesProof<C> = (Weight, (HashOf<C>, StorageProof, LaneId, MessageNonce, MessageNonce));
+
 /// Substrate client as Substrate messages source.
 pub struct SubstrateMessagesSource<C: Chain, P, M> {
 	client: Client<C>,
@@ -91,7 +96,7 @@ where
 	<C::Header as HeaderT>::Number: Into<u64>,
 	P: MessageLane<
 		MessageNonce = MessageNonce,
-		MessagesProof = (Weight, (HashOf<C>, StorageProof, LaneId, MessageNonce, MessageNonce)),
+		MessagesProof = SubstrateMessagesProof<C>,
 		SourceHeaderNumber = <C::Header as HeaderT>::Number,
 		SourceHeaderHash = <C::Header as HeaderT>::Hash,
 	>,
