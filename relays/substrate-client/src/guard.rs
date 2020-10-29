@@ -20,9 +20,12 @@
 use crate::{Chain, Client};
 
 use async_trait::async_trait;
-use num_traits::{CheckedSub, Zero};
+use num_traits::CheckedSub;
 use sp_version::RuntimeVersion;
-use std::time::{Duration, Instant};
+use std::{
+	collections::VecDeque,
+	time::{Duration, Instant},
+};
 
 /// Guards environment.
 #[async_trait]
@@ -87,23 +90,44 @@ pub fn abort_when_account_balance_decreased<C: Chain>(
 	const DAY: Duration = Duration::from_secs(60 * 60 * 24);
 
 	async_std::task::spawn(async move {
-		let mut interval_start = env.now();
-		let mut start_balance = None;
-		let mut last_balance = None;
+		let mut balances = VecDeque::new();
 
 		loop {
-			// if 24 hours have passed, start new interval
 			let current_time = env.now();
-			let duration_since_start = current_time.duration_since(interval_start);
-			if duration_since_start > DAY {
-				interval_start = current_time;
-				start_balance = last_balance;
+
+			// remember balances that are beyound 24h border
+			let time_border = current_time - DAY;
+			while balances.front().map(|(time, _)| *time < time_border).unwrap_or(false) {
+				balances.pop_front();
 			}
 
 			// read balance of the account
 			let current_balance = env.free_native_balance(account_id.clone()).await;
-			let current_balance = match current_balance {
-				Ok(current_balance) => Some(current_balance),
+
+			// remember balance and check difference
+			match current_balance {
+				Ok(current_balance) => {
+					// remember balance
+					balances.push_back((current_time, current_balance));
+
+					// check if difference between current and oldest balance is too large
+					let (oldest_time, oldest_balance) =
+						balances.front().expect("pushed to queue couple of lines above; qed");
+					let balances_difference = oldest_balance.checked_sub(&current_balance);
+					if balances_difference > Some(maximal_decrease) {
+						log::error!(
+							target: "bridge-guard",
+							"Balance of {} account {:?} has decreased from {:?} to {:?} in {} minutes. Aborting relay",
+							C::NAME,
+							account_id,
+							oldest_balance,
+							current_balance,
+							current_time.duration_since(*oldest_time).as_secs() / 60,
+						);
+
+						env.abort().await;
+					}
+				}
 				Err(error) => {
 					log::warn!(
 						target: "bridge-guard",
@@ -112,34 +136,8 @@ pub fn abort_when_account_balance_decreased<C: Chain>(
 						account_id,
 						error,
 					);
-
-					last_balance
 				}
 			};
-
-			// if this is the first balance we were able to read, just continue
-			last_balance = current_balance;
-			if start_balance.is_none() {
-				start_balance = current_balance;
-			}
-
-			// check balance difference
-			if let (Some(start_balance), Some(current_balance)) = (start_balance, current_balance) {
-				let difference = start_balance.checked_sub(&current_balance).unwrap_or_else(Zero::zero);
-				if difference > maximal_decrease {
-					log::error!(
-						target: "bridge-guard",
-						"Balance of {} account {:?} has decreased from {:?} to {:?} in {} minutes. Aborting relay",
-						C::NAME,
-						account_id,
-						start_balance,
-						current_balance,
-						duration_since_start.as_secs() / 60,
-					);
-
-					env.abort().await;
-				}
-			}
 
 			env.sleep(conditions_check_delay::<C>()).await;
 		}
