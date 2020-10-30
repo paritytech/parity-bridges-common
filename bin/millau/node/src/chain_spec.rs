@@ -177,10 +177,10 @@ fn load_rialto_bridge_config() -> Option<BridgeRialtoConfig> {
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use millau_runtime::BuildStorage;
 	use sp_core::traits::Externalities;
 	use sp_state_machine::BasicExternalities;
-	use super::*;
 
 	#[test]
 	fn local_testnet_genesis_match() {
