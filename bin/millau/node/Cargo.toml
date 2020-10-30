@@ -44,6 +44,10 @@ sp-finality-grandpa = "2.0"
 sp-runtime = "2.0"
 substrate-frame-rpc-system = "2.0"
 
+[dev-dependencies]
+bp-millau = { path = "../../../primitives/millau" }
+sp-state-machine = "0.8.0"
+
 [build-dependencies]
 build-script-utils = { package = "substrate-build-script-utils", version = "2.0" }
 frame-benchmarking-cli = "2.0"

@@ -736,6 +736,7 @@ version = "0.1.0"
 dependencies = [
  "bp-runtime",
  "frame-support",
+ "hex-literal 0.3.1",
  "sp-api",
  "sp-core",
  "sp-runtime",
@@ -3552,6 +3553,7 @@ name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
  "bp-message-lane",
+ "bp-millau",
  "bp-rialto",
  "bp-runtime",
  "frame-benchmarking",
@@ -3576,6 +3578,7 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-inherents",
  "sp-runtime",
+ "sp-state-machine",
  "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",

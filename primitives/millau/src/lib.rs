@@ -22,6 +22,7 @@
 
 use bp_runtime::Chain;
 use frame_support::{weights::Weight, RuntimeDebug};
+use hex_literal::hex;
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
@@ -107,4 +108,13 @@ sp_api::decl_runtime_apis! {
 		/// Returns true if the header is considered finalized by the runtime.
 		fn is_finalized_block(hash: Hash) -> bool;
 	}
+}
+
+/// Returns state root of genesis block of Millau local testnet.
+///
+/// This function shall never be used from Millau runtime. Otherwise it won't be removed
+/// by compiler and will change runtime code. Changing runtime code would lead to
+/// `state_root` change.
+pub fn local_testnet_genesis_state_root() -> Hash {
+	hex!("64d2f3e667e15e84fc71631d8baa9dcc5637fd9e1a5ad85470191f53c6940df3").into()
 }

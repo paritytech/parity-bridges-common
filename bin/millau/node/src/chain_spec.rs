@@ -174,3 +174,22 @@ fn load_rialto_bridge_config() -> Option<BridgeRialtoConfig> {
 		first_scheduled_change: None,
 	})
 }
+
+#[cfg(test)]
+mod tests {
+	use millau_runtime::BuildStorage;
+	use sp_core::traits::Externalities;
+	use sp_state_machine::BasicExternalities;
+	use super::*;
+
+	#[test]
+	fn local_testnet_genesis_match() {
+		let chain_spec = Alternative::LocalTestnet.load().unwrap();
+		let genesis_storage = chain_spec.build_storage().unwrap();
+		let mut ext = BasicExternalities::new(genesis_storage);
+		let mut storage_root = millau_runtime::Hash::default();
+		storage_root.as_mut().copy_from_slice(&ext.storage_root());
+
+		assert_eq!(storage_root, bp_millau::local_testnet_genesis_state_root());
+	}
+}
