@@ -281,9 +281,9 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		// there's a lot of unconfirmed messages, let's wait until it'll be able to do its job.
 		let latest_received_nonce_at_target = target_nonces.latest_nonce;
 		let latest_confirmed_nonce_at_source = source_nonces.confirmed_nonce.expect(CONFIRMED_NONCE_PROOF);
-		let confirmatins_missing = latest_received_nonce_at_target.checked_sub(&latest_confirmed_nonce_at_source);
-		match confirmatins_missing {
-			Some(confirmatins_missing) if confirmatins_missing > self.max_unconfirmed_nonces_at_target => {
+		let confirmations_missing = latest_received_nonce_at_target.checked_sub(&latest_confirmed_nonce_at_source);
+		match confirmations_missing {
+			Some(confirmations_missing) if confirmations_missing > self.max_unconfirmed_nonces_at_target => {
 				log::debug!(
 					target: "bridge",
 					"Cannot deliver any more messages from {} to {}. Too many unconfirmed nonces at target: target.latest_received={:?}, source.latest_confirmed={:?}, max={:?}",
