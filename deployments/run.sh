@@ -30,7 +30,7 @@ case "$1" in
 esac
 
 MONITORING=' -f ./monitoring/docker-compose.yml '
-COMPOSE_COMMAND=$BRIDGE$NETWORKS$MONITORING
+COMPOSE_ARGS=$BRIDGE$NETWORKS$MONITORING
 BRIDGE_PATH="./bridges/$1"
 
 # Read and source variables from .env file so we can use them here
@@ -40,7 +40,20 @@ if [ ! -z ${MATRIX_ACCESS_TOKEN+x} ]; then
 	sed -i '' -e "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./monitoring/grafana-matrix/config.yml
 fi
 
-# If we got a second argument indicating that we should update the deployment
+# First check is to see if we have a second argument (since it's optional in this script)
+if [ -n "${2-}" ] && [ "$2" == "stop" ]; then
+
+	if [ ! -z ${WITH_PROXY+x} ]; then
+		cd ./reverse-proxy
+		docker-compose down
+		cd -
+	fi
+
+	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS down
+
+	exit 0
+fi
+
 if [ -n "${2-}" ] && [ "$2" == "update" ]; then
 
 	# Stop the proxy cause otherwise the network can't be stopped
@@ -48,18 +61,13 @@ if [ -n "${2-}" ] && [ "$2" == "update" ]; then
 	docker-compose down
 	cd -
 
-	docker-compose $COMPOSE_COMMAND pull
-	docker-compose $COMPOSE_COMMAND down
-	docker-compose $COMPOSE_COMMAND build
-fi
-
-if [ -n "${2-}" ] && [ "$2" == "stop" ]; then
-	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_COMMAND down
-	exit 0
+	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS pull
+	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS down
+	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS build
 fi
 
 # Compose looks for .env files in the the current directory by default, we don't want that
-docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_COMMAND up -d
+docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS up -d
 
 # Restart the proxy
 if [ ! -z ${WITH_PROXY+x} ]; then
