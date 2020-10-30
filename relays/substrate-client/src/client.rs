@@ -121,9 +121,6 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Return native tokens balance of the account.
-	///
-	/// May panic if called on the chain that is not storing `frame_balances::AccountData`
-	/// in the `frame_system::Account` storage map.
 	pub async fn free_native_balance(&self, account: C::AccountId) -> Result<C::NativeBalance>
 	where
 		C: ChainWithBalances,
