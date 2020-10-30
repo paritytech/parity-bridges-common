@@ -19,9 +19,9 @@ services:
   grafana-matrix-notifier:
     build:
       context: .
-      dockerfile: ./GrafanaMatrix.Dockerfile
+      dockerfile: ./monitoring/GrafanaMatrix.Dockerfile
     volumes:
-      - ./grafana-matrix:/config
+      - ./monitoring/grafana-matrix:/config
     ports:
       - "4567:4567"
     depends_on:

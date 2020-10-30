@@ -7,8 +7,6 @@ services:
       - --config=/config/poa-node-config
       - --node-key=arthur
       - --engine-signer=0x005e714f896a8b7cede9d38688c1a81de72a58e4
-    volumes:
-      - ./poa-config:/config
     environment:
       RUST_LOG: rpc=trace,txqueue=trace,bridge-builtin=trace
     ports:

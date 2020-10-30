@@ -4,7 +4,7 @@ services:
     image: paritytech/substrate-relay
     entrypoint: /config/relay-millau-headers-to-rialto-entrypoint.sh
     volumes:
-      - ./scripts:/config
+      - ./bridges/rialto-millau/scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
@@ -18,5 +18,5 @@ services:
 
   prometheus-metrics:
     volumes:
-      - ./dashboard/prometheus/:/etc/prometheus/
+      - ./bridges/rialto-millau/dashboard/prometheus/:/etc/prometheus/
     depends_on: *all-nodes
