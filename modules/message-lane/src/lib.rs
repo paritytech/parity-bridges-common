@@ -182,7 +182,7 @@ decl_module! {
 		/// Halt all pallet operations. Operations may be resumed using `resume_operations` call.
 		///
 		/// May only be called either by root, or by `ModuleOwner`.
-		#[weight = (0, DispatchClass::Operational)]
+		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
 		pub fn halt_operations(origin) {
 			ensure_owner_or_root::<T, I>(origin)?;
 			IsHalted::<I>::put(true);
@@ -191,7 +191,7 @@ decl_module! {
 		/// Resume all pallet operations. May be called even if pallet is halted.
 		///
 		/// May only be called either by root, or by `ModuleOwner`.
-		#[weight = (0, DispatchClass::Operational)]
+		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
 		pub fn resume_operations(origin) {
 			ensure_owner_or_root::<T, I>(origin)?;
 			IsHalted::<I>::put(false);
