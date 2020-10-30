@@ -73,6 +73,8 @@ pub struct ClientNonces<MessageNonce> {
 pub trait SourceClient<P: MessageRace> {
 	/// Type of error this clients returns.
 	type Error: std::fmt::Debug + MaybeConnectionError;
+	/// Additional proof parameters required to generate proof.
+	type ProofParameters;
 
 	/// Return nonces that are known to the source client.
 	async fn nonces(
@@ -84,7 +86,7 @@ pub trait SourceClient<P: MessageRace> {
 		&self,
 		at_block: P::SourceHeaderId,
 		nonces: RangeInclusive<P::MessageNonce>,
-		additional_proof_required: bool,
+		proof_parameters: Self::ProofParameters,
 	) -> Result<(P::SourceHeaderId, RangeInclusive<P::MessageNonce>, P::Proof), Self::Error>;
 }
 
@@ -110,6 +112,9 @@ pub trait TargetClient<P: MessageRace> {
 
 /// Race strategy.
 pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
+	/// Additional proof parameters required to generate proof.
+	type ProofParameters;
+
 	/// Should return true if nothing has to be synced.
 	fn is_empty(&self) -> bool;
 	/// Called when nonces are updated at source node of the race.
@@ -122,11 +127,11 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
 	);
 	/// Should return `Some(nonces)` if we need to deliver proof of `nonces` (and associated
 	/// data) from source to target node.
-	/// The bool flag will be passed as `additional_proof_required` argument to the `generate_proof`.
+	/// Additionally, parameters required to generate proof are returned.
 	fn select_nonces_to_deliver(
 		&mut self,
 		race_state: &RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof>,
-	) -> Option<(RangeInclusive<MessageNonce>, bool)>;
+	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)>;
 }
 
 /// State of the race.
@@ -142,13 +147,19 @@ pub struct RaceState<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> {
 }
 
 /// Run race loop until connection with target or source node is lost.
-pub async fn run<P: MessageRace>(
-	race_source: impl SourceClient<P>,
+pub async fn run<P: MessageRace, SC: SourceClient<P>>(
+	race_source: SC,
 	race_source_updated: impl FusedStream<Item = SourceClientState<P>>,
 	race_target: impl TargetClient<P>,
 	race_target_updated: impl FusedStream<Item = TargetClientState<P>>,
 	stall_timeout: Duration,
-	mut strategy: impl RaceStrategy<P::SourceHeaderId, P::TargetHeaderId, P::MessageNonce, P::Proof>,
+	mut strategy: impl RaceStrategy<
+		P::SourceHeaderId,
+		P::TargetHeaderId,
+		P::MessageNonce,
+		P::Proof,
+		ProofParameters = SC::ProofParameters,
+	>,
 ) -> Result<(), FailedClient> {
 	let mut race_state = RaceState::default();
 	let mut stall_countdown = Instant::now();
@@ -297,12 +308,12 @@ pub async fn run<P: MessageRace>(
 			let nonces_to_deliver = race_state.source_state.as_ref().and_then(|source_state| {
 				strategy
 					.select_nonces_to_deliver(&race_state)
-					.map(|(nonces_range, additional_proof_required)| {
-						(source_state.best_self.clone(), nonces_range, additional_proof_required)
+					.map(|(nonces_range, proof_parameters)| {
+						(source_state.best_self.clone(), nonces_range, proof_parameters)
 					})
 			});
 
-			if let Some((at_block, nonces_range, additional_proof_required)) = nonces_to_deliver {
+			if let Some((at_block, nonces_range, proof_parameters)) = nonces_to_deliver {
 				log::debug!(
 					target: "bridge",
 					"Asking {} to prove nonces in range {:?}",
@@ -311,7 +322,7 @@ pub async fn run<P: MessageRace>(
 				);
 				source_generate_proof.set(
 					race_source
-						.generate_proof(at_block, nonces_range, additional_proof_required)
+						.generate_proof(at_block, nonces_range, proof_parameters)
 						.fuse(),
 				);
 			} else if source_nonces_required {

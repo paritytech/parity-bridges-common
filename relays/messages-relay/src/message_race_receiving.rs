@@ -98,6 +98,7 @@ where
 	C: MessageLaneTargetClient<P>,
 {
 	type Error = C::Error;
+	type ProofParameters = ();
 
 	async fn nonces(
 		&self,
@@ -124,7 +125,7 @@ where
 		&self,
 		at_block: TargetHeaderIdOf<P>,
 		nonces: RangeInclusive<P::MessageNonce>,
-		_additional_proof_required: bool,
+		_proof_parameters: (),
 	) -> Result<
 		(
 			TargetHeaderIdOf<P>,

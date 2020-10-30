@@ -101,6 +101,7 @@ where
 	C: MessageLaneSourceClient<P>,
 {
 	type Error = C::Error;
+	type ProofParameters = bool;
 
 	async fn nonces(
 		&self,
@@ -140,10 +141,11 @@ where
 		&self,
 		at_block: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<P::MessageNonce>,
-		additional_proof_required: bool,
+		proof_parameters: Self::ProofParameters,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<P::MessageNonce>, P::MessagesProof), Self::Error> {
+		let outbound_state_proof_required = proof_parameters;
 		self.client
-			.prove_messages(at_block, nonces, additional_proof_required)
+			.prove_messages(at_block, nonces, outbound_state_proof_required)
 			.await
 	}
 }
@@ -235,6 +237,8 @@ type MessageDeliveryStrategyBase<P> = BasicStrategy<
 impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>
 	for MessageDeliveryStrategy<P>
 {
+	type ProofParameters = bool;
+
 	fn is_empty(&self) -> bool {
 		self.strategy.is_empty()
 	}
@@ -256,7 +260,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 	fn select_nonces_to_deliver(
 		&mut self,
 		race_state: &RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessageNonce, P::MessagesProof>,
-	) -> Option<(RangeInclusive<P::MessageNonce>, bool)> {
+	) -> Option<(RangeInclusive<P::MessageNonce>, Self::ProofParameters)> {
 		const CONFIRMED_NONCE_PROOF: &str = "\
 			ClientNonces are crafted by MessageDeliveryRace(Source|Target);\
 			MessageDeliveryRace(Source|Target) always fills confirmed_nonce field;\

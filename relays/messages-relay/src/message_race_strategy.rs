@@ -62,6 +62,8 @@ where
 	SourceHeaderNumber: Clone + Ord,
 	Nonce: Clone + Copy + From<u32> + Ord + std::ops::Add<Output = Nonce> + One + Zero,
 {
+	type ProofParameters = ();
+
 	fn is_empty(&self) -> bool {
 		self.source_queue.is_empty()
 	}
@@ -139,7 +141,7 @@ where
 			Nonce,
 			Proof,
 		>,
-	) -> Option<(RangeInclusive<Nonce>, bool)> {
+	) -> Option<(RangeInclusive<Nonce>, Self::ProofParameters)> {
 		// if we have already selected nonces that we want to submit, do nothing
 		if race_state.nonces_to_submit.is_some() {
 			return None;
@@ -189,7 +191,7 @@ where
 			i = i + One::one();
 		}
 
-		nonces_end.map(|nonces_end| (RangeInclusive::new(nonces_begin, nonces_end), false))
+		nonces_end.map(|nonces_end| (RangeInclusive::new(nonces_begin, nonces_end), ()))
 	}
 }
 
@@ -315,9 +317,9 @@ mod tests {
 			best_self: header_id(0),
 			best_peer: header_id(4),
 		});
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some((1..=4, false)));
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some((1..=4, ())));
 		strategy.target_nonces_updated(nonces(4), &mut state);
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some((5..=6, false)));
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some((5..=6, ())));
 		strategy.target_nonces_updated(nonces(6), &mut state);
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 
@@ -325,7 +327,7 @@ mod tests {
 			best_self: header_id(0),
 			best_peer: header_id(5),
 		});
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some((7..=8, false)));
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some((7..=8, ())));
 		strategy.target_nonces_updated(nonces(8), &mut state);
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 	}
