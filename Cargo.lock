@@ -2776,7 +2776,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#8e7fe826517a21c99e7868e056b793e5c6749fce"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#1597b09c4a9140cd0f1320948c7a8fb237af58fb"
 dependencies = [
  "async-std",
  "async-tls 0.6.0",
@@ -2808,7 +2808,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#8e7fe826517a21c99e7868e056b793e5c6749fce"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#1597b09c4a9140cd0f1320948c7a8fb237af58fb"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -4179,11 +4179,13 @@ dependencies = [
  "bp-message-lane",
  "bp-runtime",
  "derive_more",
+ "frame-support",
  "futures 0.3.7",
  "jsonrpc-core 15.1.0",
  "jsonrpc-core-client",
  "jsonrpc-derive",
  "sc-client-api",
+ "sp-api",
  "sp-blockchain",
  "sp-core",
  "sp-runtime",
@@ -5259,9 +5261,11 @@ dependencies = [
  "frame-system",
  "headers-relay",
  "millau-runtime",
+ "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "sp-core",
  "sp-runtime",
 ]
 
@@ -7662,12 +7666,17 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-message-lane",
  "bp-millau",
  "bp-rialto",
+ "frame-support",
  "futures 0.3.7",
  "headers-relay",
+ "hex",
  "log",
  "messages-relay",
+ "millau-runtime",
+ "pallet-bridge-call-dispatch",
  "pallet-substrate-bridge",
  "parity-scale-codec",
  "paste 1.0.2",
@@ -7675,6 +7684,7 @@ dependencies = [
  "relay-rialto-client",
  "relay-substrate-client",
  "relay-utils",
+ "rialto-runtime",
  "sp-core",
  "sp-runtime",
  "structopt",
@@ -7682,9 +7692,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasm-builder-runner"
-version = "1.0.6"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2a965994514ab35d3893e9260245f2947fd1981cdd4fffd2c6e6d1a9ce02e6a"
+checksum = "54cab12167e32b38a62c5ea5825aa0874cde315f907a46aad2b05aa8ef3d862f"
 
 [[package]]
 name = "subtle"
