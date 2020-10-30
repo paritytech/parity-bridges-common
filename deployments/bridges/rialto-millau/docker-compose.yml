@@ -17,9 +17,6 @@ services:
       - millau-node-eve
 
   prometheus-metrics:
-    image: prom/prometheus:v2.20.1
     volumes:
       - ./dashboard/prometheus/:/etc/prometheus/
-    ports:
-      - "9090:9090"
     depends_on: *all-nodes
