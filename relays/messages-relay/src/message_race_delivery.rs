@@ -286,7 +286,8 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			Some(confirmations_missing) if confirmations_missing > self.max_unconfirmed_nonces_at_target => {
 				log::debug!(
 					target: "bridge",
-					"Cannot deliver any more messages from {} to {}. Too many unconfirmed nonces at target: target.latest_received={:?}, source.latest_confirmed={:?}, max={:?}",
+					"Cannot deliver any more messages from {} to {}. Too many unconfirmed nonces \
+					at target: target.latest_received={:?}, source.latest_confirmed={:?}, max={:?}",
 					MessageDeliveryRace::<P>::source_name(),
 					MessageDeliveryRace::<P>::target_name(),
 					latest_received_nonce_at_target,
