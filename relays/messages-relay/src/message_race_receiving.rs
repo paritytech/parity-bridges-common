@@ -121,11 +121,12 @@ where
 		})
 	}
 
+	#[allow(clippy::unit_arg)]
 	async fn generate_proof(
 		&self,
 		at_block: TargetHeaderIdOf<P>,
 		nonces: RangeInclusive<P::MessageNonce>,
-		_proof_parameters: (),
+		_proof_parameters: Self::ProofParameters,
 	) -> Result<
 		(
 			TargetHeaderIdOf<P>,
