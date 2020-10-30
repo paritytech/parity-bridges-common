@@ -33,7 +33,7 @@ pub trait Chain: ChainBase {
 	/// Chain name.
 	const NAME: &'static str;
 	/// Average block interval.
-	/// 
+	///
 	/// How often blocks are produced on that chain. It's suggested to set this value to match the block time of the chain.
 	const AVERAGE_BLOCK_INTERVAL: Duration;
 
