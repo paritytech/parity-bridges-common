@@ -180,6 +180,18 @@ decl_module! {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
 
+		/// Change `ModuleOwner`.
+		///
+		/// May only be called either by root, or by `ModuleOwner`.
+		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
+		pub fn set_owner(origin, new_owner: Option<T::AccountId>) {
+			ensure_owner_or_root::<T, I>(origin)?;
+			match new_owner {
+				Some(new_owner) => ModuleOwner::<T, I>::put(new_owner),
+				None => ModuleOwner::<T, I>::kill(),
+			}
+		}
+
 		/// Halt all pallet operations. Operations may be resumed using `resume_operations` call.
 		///
 		/// May only be called either by root, or by `ModuleOwner`.
@@ -642,6 +654,31 @@ mod tests {
 				topics: vec![],
 			}],
 		);
+	}
+
+	#[test]
+	fn pallet_owner_may_change_owner() {
+		run_test(|| {
+			ModuleOwner::<TestRuntime>::put(2);
+
+			assert_ok!(Module::<TestRuntime>::set_owner(Origin::root(), Some(1)));
+			assert_noop!(
+				Module::<TestRuntime>::halt_operations(Origin::signed(2)),
+				DispatchError::BadOrigin,
+			);
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::root()));
+
+			assert_ok!(Module::<TestRuntime>::set_owner(Origin::signed(1), None));
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(2)),
+				DispatchError::BadOrigin,
+			);
+			assert_ok!(Module::<TestRuntime>::resume_operations(Origin::root()));
+		});
 	}
 
 	#[test]
