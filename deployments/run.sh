@@ -53,6 +53,11 @@ if [ -n "${2-}" ] && [ "$2" == "update" ]; then
 	docker-compose $COMPOSE_COMMAND build
 fi
 
+if [ -n "${2-}" ] && [ "$2" == "stop" ]; then
+	docker-compose --env-file $BRIDGE_PATH/.env $COMPOSE_COMMAND down
+	exit 0
+fi
+
 # Compose looks for .env files in the the current directory by default, we don't want that
 docker-compose --env-file $BRIDGE_PATH/.env $COMPOSE_COMMAND up -d
 
