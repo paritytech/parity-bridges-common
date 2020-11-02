@@ -22,43 +22,7 @@ contain bridge relayers, which are services external to blockchain nodes, and ot
 as testing infrastructure, or front-end code.
 
 Unlike the network Compose files, these *cannot* be deployed on their own. They must be combined
-with different networks. In the following sections we'll cover how to run different bridge networks.
-Note that for the following deployments we should be at the root of the `deployments` folder.
-
-### Ethereum PoA to Rialto Substrate
-In order to sync headers and transactions between an Ethereum PoA network and the Rialto network we
-can use the following Compose command:
-
-```bash
-docker-compose -f ./bridges/eth-poa-sub/docker-compose.yml \
-               -f ./networks/docker-compose.rialto.yml \
-               -f ./networks/docker-compose.eth-poa.yml \
-               -f ./monitoring/docker-compose.yml up
-```
-
-### Rialto Substrate to Millau Substrate
-We can sync between the Rialto and Millau networks in a similar fashion.
-
-```bash
-docker-compose -f ./bridges/rialto-millau/docker-compose.yml \
-               -f ./networks/docker-compose.rialto.yml \
-               -f ./networks/docker-compose.millau.yml \
-               -f ./monitoring/docker-compose.yml up
-```
-
-The two differences here are:
-1. We're using the `rialto-millau` bridge compose file instead of `eth-poa-sub`
-2. We're using the `millau` network compose file instead of the `eth-poa` one
-
-One thing worth noting is that we have a _monitoring_ Compose file. This adds support for Prometheus
-and Grafana. We cover these in more details in the [Monitoring](#monitoring) section. At the moment
-the monitoring Compose file is _not_ optional, and must be included for bridge deployments.
-
-### Adding Deployments
-We need two main things when adding a new deployment. First, the new network which we want to
-bridge. A compose file for the network should be added in the `/networks/` folder. Secondly we'll
-need a new bridge compose file in `./bridges/`. This should configure the bridge relayer nodes
-correctly for the two networks, and add any additional components needed for the deployment.
+with different networks.
 
 In general, we can deploy the bridge using `docker-compose up` in the following way:
 
@@ -68,6 +32,49 @@ docker-compose -f <bridge>.yml \
                -f <network_2>.yml \
                -f <monitoring>.yml up
 ```
+
+If you want to see how the Compose commands are actually run, check out the source code of the
+[`./run.sh`](./run.sh).
+
+One thing worth noting is that we have a _monitoring_ Compose file. This adds support for Prometheus
+and Grafana. We cover these in more details in the [Monitoring](#monitoring) section. At the moment
+the monitoring Compose file is _not_ optional, and must be included for bridge deployments.
+
+### Running and Updating Deployments
+We currently support two bridge deployments
+1. Ethereum PoA to Rialto Substrate
+2. Rialto Substrate to Millau Substrate
+
+These networks can be deployed using our [`./run.sh`](./run.sh) script. We need to call the script
+from the root of the `deployments` folder since it assumes that for some paths.
+
+The first argument it takes is the name of the bridge you want to run. Right now we only support two
+networks: `eth-poa-sub` and `rialto-millau`.
+
+```bash
+./run.sh eth-poa-sub
+```
+
+If you add a second `update` argument to the script it will pull the latest images from Docker Hub
+and restart the deployment.
+
+```bash
+./run.sh rialto-millau update
+```
+
+You can also bring down a deployment using the script with the `stop` argument.
+
+```bash
+./run.sh eth-poa-sub stop
+```
+
+### Adding Deployments
+We need two main things when adding a new deployment. First, the new network which we want to
+bridge. A compose file for the network should be added in the `/networks/` folder. Secondly we'll
+need a new bridge Compose file in `./bridges/`. This should configure the bridge relayer nodes
+correctly for the two networks, and add any additional components needed for the deployment. If you
+want you can also add support in the `./run` script for the new deployment. While recommended it's
+not strictly required.
 
 ## General Notes
 
@@ -114,8 +121,8 @@ docker-compose -f docker-compose.yml -f docker-compose.override.yml config > doc
 It is also possible to avoid using images from the Docker Hub and instead build
 containers from Git. There are two ways to build the images this way.
 
-1. Local Repo
-If we want to use our local repo to build images at a particular commit we can do the following:
+### Git Repo
+We can use commits and branches on GitHub to build local Docker images by running the following:
 
 ```bash
 docker build . -f ./Bridge.Dockerfile -t local/<project_you're_building> --build-arg=<project>_HASH=<commit_hash>
@@ -124,9 +131,12 @@ docker build . -f ./Bridge.Dockerfile -t local/<project_you're_building> --build
 This will build a local image of a particular component with a tag of
 `local/<project_you're_building>`. This tag can be used in Docker Compose files.
 
+It is also possible to build from your local copy of the repo (useful if you're testing changes).
+You can run the above command but using the Dockerfile at the top level of the
+`parity-bridges-common` repo instead.
+
 You can configure the build using using Docker
-[build
-arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg).
+[build arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg).
 Here are the arguments currently supported:
   - `BRIDGE_REPO`: Git repository of the bridge node and relay code
   - `BRIDGE_HASH`: Commit hash within that repo (can also be a branch or tag)
@@ -138,10 +148,7 @@ Here are the arguments currently supported:
     - `ethereum-poa-relay`
     - `substrate-relay`
 
-You can also uncomment `ADD` commands within the docker files to build an image from your local
-sources.
-
-2. GitHub Actions
+### GitHub Actions
 We have a nightly job which runs and publishes Docker images for the different nodes and relayers to
 the [ParityTech Docker Hub](https://hub.docker.com/u/paritytech) organization. These images are used
 for our ephemeral (temporary) test networks. Additionally, any time a tag in the form of `v*` is
@@ -153,22 +160,6 @@ With images built using either method, all you have to do to use them in a deplo
 
 In the existing Docker Compose files you can then replace the `image` field with the images you just
 built.
-
-## Running and Updating Deployments
-If you get tired of typing those long Compose commands you can use our handy [`./run`](./run)
-script. The first argument it takes is the name of the bridge you want to run. Right now we only
-support two networks: `eth-poa-sub` and `rialto-millau`.
-
-```bash
-./run eth-poa-sub
-```
-
-If you add a second `update` argument to the script it will pull the latest images from Docker Hub
-and restart the deployment.
-
-```bash
-./run rialto-millau update
-```
 
 ### Monitoring
 [Prometheus](https://prometheus.io/) is used by the bridge relay to monitor information such as system
@@ -201,7 +192,6 @@ GRAFANA_ADMIN_PASS=admin_pass
 GRAFANA_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/
 GRAFANA_SERVER_DOMAIN=server.domain.io
 MATRIX_ACCESS_TOKEN="access-token"
-WITH_GIT=1   # Optional
 WITH_PROXY=1 # Optional
 UI_SUBSTRATE_PROVIDER=ws://localhost:9944
 UI_ETHEREUM_PROVIDER=http://localhost:8545
