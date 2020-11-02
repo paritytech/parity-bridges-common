@@ -138,7 +138,7 @@ where
 			.client
 			.state_call(
 				// TODO: https://github.com/paritytech/parity-bridges-common/issues/457
-				"OutboundLaneApi_latest_confirmed_nonce".into(),
+				"OutboundLaneApi_latest_received_nonce".into(),
 				Bytes(self.lane.encode()),
 				Some(id.1),
 			)
