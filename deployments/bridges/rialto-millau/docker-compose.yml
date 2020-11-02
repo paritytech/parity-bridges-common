@@ -15,6 +15,12 @@ services:
       - millau-node-charlie
       - millau-node-dave
       - millau-node-eve
+      - rialto-node-alice
+      - rialto-node-bob
+      - rialto-node-charlie
+      - rialto-node-dave
+      - rialto-node-eve
+
 
   prometheus-metrics:
     volumes:
