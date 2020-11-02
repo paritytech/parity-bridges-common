@@ -2,7 +2,7 @@
 
 # Script used for running and updating bridge deployments.
 #
-# To deploy a network you can run this script with the name of the network you want to run
+# To deploy a network you can run this script with the name of the network you want to run.
 #
 # `./run.sh eth-poa-sub`
 #
@@ -10,28 +10,40 @@
 # argument after the bridge name.
 #
 # `./run.sh rialto-millau update`
+#
+# Once you've stopped having fun with your deployment you can take it down with:
+#
+# `./run.sh rialto-millau stop`
 
 set -xeu
+
+RIALTO=' -f ./networks/docker-compose.rialto.yml'
+MILLAU=' -f ./networks/docker-compose.millau.yml'
+ETH_POA=' -f ./networks/docker-compose.eth-poa.yml'
+MONITORING=' -f ./monitoring/docker-compose.yml'
 
 BRIDGE=''
 NETWORKS=''
 case "$1" in
 	eth-poa-sub)
-		BRIDGE=' -f ./bridges/eth-poa-sub/docker-compose.yml '
-		NETWORKS=' -f ./networks/docker-compose.rialto.yml '
-		NETWORKS+=' -f ./networks/docker-compose.eth-poa.yml '
+		BRIDGE=' -f ./bridges/eth-poa-sub/docker-compose.yml'
+		NETWORKS+=${RIALTO}
+		NETWORKS+=${ETH_POA}
 		;;
 	rialto-millau)
-		BRIDGE=' -f ./bridges/rialto-millau/docker-compose.yml '
-		NETWORKS=' -f ./networks/docker-compose.rialto.yml '
-		NETWORKS+=' -f ./networks/docker-compose.millau.yml '
+		BRIDGE='-f ./bridges/rialto-millau/docker-compose.yml'
+		NETWORKS+=${RIALTO}
+		NETWORKS+=${MILLAU}
 		;;
 	*) echo "Invalid parameter: $1 (expected eth-poa-sub/rialto-millau)"; exit 1;;
 esac
 
-MONITORING=' -f ./monitoring/docker-compose.yml '
-COMPOSE_ARGS=$BRIDGE$NETWORKS$MONITORING
+COMPOSE_FILES=$BRIDGE$NETWORKS$MONITORING
 BRIDGE_PATH="./bridges/$1"
+
+# Compose looks for .env files in the the current directory by default, we don't want that
+COMPOSE_ARGS="--project-directory . --env-file "
+COMPOSE_ARGS+=$BRIDGE_PATH/.env
 
 # Read and source variables from .env file so we can use them here
 grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY $BRIDGE_PATH/.env > .env2 && . ./.env2 && rm .env2
@@ -49,7 +61,7 @@ if [ -n "${2-}" ] && [ "$2" == "stop" ]; then
 		cd -
 	fi
 
-	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS down
+	docker-compose $COMPOSE_ARGS $COMPOSE_FILES down
 
 	exit 0
 fi
@@ -57,19 +69,21 @@ fi
 if [ -n "${2-}" ] && [ "$2" == "update" ]; then
 
 	# Stop the proxy cause otherwise the network can't be stopped
-	cd ./reverse-proxy
-	docker-compose down
-	cd -
+	if [ ! -z ${WITH_PROXY+x} ]; then
+		cd ./reverse-proxy
+		docker-compose down
+		cd -
+	fi
 
-	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS pull
-	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS down
-	docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS build
+
+	docker-compose $COMPOSE_ARGS $COMPOSE_FILES pull
+	docker-compose $COMPOSE_ARGS $COMPOSE_FILES down
+	docker-compose $COMPOSE_ARGS $COMPOSE_FILES build
 fi
 
-# Compose looks for .env files in the the current directory by default, we don't want that
-docker-compose --project-directory . --env-file $BRIDGE_PATH/.env $COMPOSE_ARGS up -d
+docker-compose $COMPOSE_ARGS $COMPOSE_FILES up -d
 
-# Restart the proxy
+# Start the proxy if needed
 if [ ! -z ${WITH_PROXY+x} ]; then
 	cd ./reverse-proxy
 	docker-compose up -d
