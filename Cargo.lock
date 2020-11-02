@@ -2778,7 +2778,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#8e7fe826517a21c99e7868e056b793e5c6749fce"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#1597b09c4a9140cd0f1320948c7a8fb237af58fb"
 dependencies = [
  "async-std",
  "async-tls 0.6.0",
@@ -2810,7 +2810,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-proc-macros"
 version = "1.0.0"
-source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#8e7fe826517a21c99e7868e056b793e5c6749fce"
+source = "git+https://github.com/svyatonik/jsonrpsee.git?branch=shared-client-in-rpc-api#1597b09c4a9140cd0f1320948c7a8fb237af58fb"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -3923,9 +3923,9 @@ dependencies = [
 
 [[package]]
 name = "num-traits"
-version = "0.2.12"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac267bcc07f48ee5f8935ab0d24f316fb722d7a1292e2913f0cc196b29ffd611"
+checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
 dependencies = [
  "autocfg 1.0.1",
  "libm",
@@ -4168,6 +4168,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "parity-scale-codec",
+ "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -4181,11 +4182,13 @@ dependencies = [
  "bp-message-lane",
  "bp-runtime",
  "derive_more",
+ "frame-support",
  "futures 0.3.7",
  "jsonrpc-core 15.1.0",
  "jsonrpc-core-client",
  "jsonrpc-derive",
  "sc-client-api",
+ "sp-api",
  "sp-blockchain",
  "sp-core",
  "sp-runtime",
