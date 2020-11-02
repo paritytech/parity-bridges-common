@@ -28,7 +28,7 @@ use headers_relay::{
 };
 use num_traits::Saturating;
 use relay_substrate_client::{headers_source::HeadersSource, BlockNumberOf, Chain, Client, HashOf};
-use sp_runtime::{DeserializeOwned, Justification};
+use sp_runtime::Justification;
 use std::marker::PhantomData;
 
 /// Substrate-to-Substrate headers pipeline.
@@ -106,9 +106,8 @@ pub async fn run<SourceChain, TargetChain, P>(
 	>,
 	P::Header: SourceHeader<HashOf<SourceChain>, BlockNumberOf<SourceChain>>,
 	SourceChain: Clone + Chain,
-	SourceChain::Header: DeserializeOwned + Into<P::Header>,
-	SourceChain::Index: DeserializeOwned,
-	BlockNumberOf<SourceChain>: Saturating + Into<u64>,
+	SourceChain::Header: Into<P::Header>,
+	BlockNumberOf<SourceChain>: Into<u64> + Saturating,
 	TargetChain: Clone + Chain,
 {
 	let source_justifications = match source_client.clone().subscribe_justifications().await {
