@@ -288,7 +288,8 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::millau_headers_to_rialto::{sync_params, MillauHeadersToRialto};
+	use crate::headers_pipeline::sync_params;
+	use crate::millau_headers_to_rialto::MillauHeadersToRialto;
 
 	fn parent_hash(index: u8) -> bp_millau::Hash {
 		if index == 1 {
