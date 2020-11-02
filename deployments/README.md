@@ -158,9 +158,6 @@ publish them.
 With images built using either method, all you have to do to use them in a deployment is change the
 `image` field in the existing Docker Compose files to point to the tag of the image you want to use.
 
-In the existing Docker Compose files you can then replace the `image` field with the images you just
-built.
-
 ### Monitoring
 [Prometheus](https://prometheus.io/) is used by the bridge relay to monitor information such as system
 resource use, and block data (e.g the best blocks it knows about). In order to visualize this data
