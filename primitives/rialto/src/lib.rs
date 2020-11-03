@@ -60,7 +60,7 @@ impl Chain for Rialto {
 	type Header = Header;
 }
 
-/// Name of the `RialtoHeaderApi::best_block` runtime method.
+/// Name of the `RialtoHeaderApi::best_blocks` runtime method.
 pub const BEST_RIALTO_BLOCKS_METHOD: &str = "RialtoHeaderApi_best_blocks";
 /// Name of the `RialtoHeaderApi::finalized_block` runtime method.
 pub const FINALIZED_RIALTO_BLOCK_METHOD: &str = "RialtoHeaderApi_finalized_block";
