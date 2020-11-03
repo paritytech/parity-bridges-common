@@ -470,3 +470,57 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 		<NextScheduledChange<T>>::insert(signal_hash, next_change)
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::mock::helpers::*;
+	use crate::mock::{run_test, Origin, TestRuntime};
+	use frame_support::{assert_noop, assert_ok};
+	use sp_runtime::DispatchError;
+
+	#[test]
+	fn only_root_origin_can_initialize_pallet() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::initialize(Origin::signed(1), test_header(1), authority_list(), 1, None,),
+				DispatchError::BadOrigin,
+			);
+
+			assert_ok!(Module::<TestRuntime>::initialize(
+				Origin::root(),
+				test_header(1),
+				authority_list(),
+				1,
+				None,
+			));
+		})
+	}
+
+	#[test]
+	fn storage_entries_are_correctly_initialized() {
+		run_test(|| {
+			let header = test_header(1);
+			assert_ok!(Module::<TestRuntime>::initialize(
+				Origin::root(),
+				header.clone(),
+				authority_list(),
+				1,
+				None,
+			));
+
+			let storage = PalletStorage::<TestRuntime>::new();
+
+			assert!(storage.header_exists(header.hash()));
+			assert_eq!(
+				storage.best_headers()[0],
+				crate::HeaderId {
+					number: *header.number(),
+					hash: header.hash()
+				}
+			);
+			assert_eq!(storage.best_finalized_header().hash(), header.hash());
+			assert_eq!(storage.current_authority_set().authorities, authority_list());
+		})
+	}
+}
