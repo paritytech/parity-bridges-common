@@ -776,6 +776,7 @@ dependencies = [
  "frame-support",
  "pallet-bridge-call-dispatch",
  "pallet-message-lane",
+ "pallet-substrate-bridge",
  "parity-scale-codec",
  "sp-runtime",
  "sp-std",

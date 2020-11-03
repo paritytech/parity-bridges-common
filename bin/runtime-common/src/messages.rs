@@ -23,14 +23,14 @@
 use bp_message_dispatch::MessageDispatch as _;
 use bp_message_lane::{
 	source_chain::LaneMessageVerifier,
-	target_chain::{DispatchMessage, MessageDispatch},
-	LaneId, MessageNonce,
+	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
+	LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
 use bp_runtime::InstanceId;
 use codec::{Compact, Decode, Input};
 use frame_support::{traits::Instance, RuntimeDebug};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul};
-use sp_std::{cmp::PartialOrd, marker::PhantomData, vec::Vec};
+use sp_std::{cmp::PartialOrd, collections::btree_map::BTreeMap, marker::PhantomData, vec::Vec};
 use sp_trie::StorageProof;
 
 /// Bidirectional message bridge.
@@ -90,7 +90,7 @@ pub trait ChainWithMessageLanes {
 	/// different weights.
 	type Weight: From<frame_support::weights::Weight>;
 	/// Type of balances that is used on the chain.
-	type Balance: CheckedAdd + CheckedDiv + CheckedMul + PartialOrd + From<u32> + Copy;
+	type Balance: Decode + CheckedAdd + CheckedDiv + CheckedMul + PartialOrd + From<u32> + Copy;
 
 	/// Instance of the message-lane pallet.
 	type MessageLaneInstance: Instance;
@@ -105,6 +105,7 @@ pub(crate) type SignatureOf<C> = <C as ChainWithMessageLanes>::Signature;
 pub(crate) type WeightOf<C> = <C as ChainWithMessageLanes>::Weight;
 pub(crate) type BalanceOf<C> = <C as ChainWithMessageLanes>::Balance;
 pub(crate) type CallOf<C> = <C as ChainWithMessageLanes>::Call;
+pub(crate) type MessageLaneInstanceOf<C> = <C as ChainWithMessageLanes>::MessageLaneInstance;
 
 /// Sub-module that is declaring types required for processing This -> Bridged chain messages.
 pub mod source {
@@ -287,6 +288,67 @@ pub mod target {
 				);
 			}
 		}
+	}
+
+	/// Verify proof of Bridged -> This chain messages.
+	pub fn verify_messages_proof<B: MessageBridge, ThisRuntime>(
+		proof: FromBridgedChainMessagesProof<B>,
+	) -> Result<ProvedMessages<Message<BalanceOf<BridgedChain<B>>>>, &'static str>
+	where
+		ThisRuntime: pallet_substrate_bridge::Trait,
+		ThisRuntime: pallet_message_lane::Trait<MessageLaneInstanceOf<BridgedChain<B>>>,
+		HashOf<BridgedChain<B>>: Into<
+			bp_runtime::HashOf<<ThisRuntime as pallet_substrate_bridge::Trait>::BridgedChain>
+		>,
+	{
+		let (bridged_header_hash, bridged_storage_proof, lane, begin, end) = proof;
+		pallet_substrate_bridge::Module::<ThisRuntime>::parse_finalized_storage_proof(
+			bridged_header_hash.into(),
+			bridged_storage_proof,
+			|storage| {
+				// Read messages first. All messages that are claimed to be in the proof must
+				// be in the proof. So any error in `read_value`, or even missing value is fatal.
+				//
+				// Mind that we allow proofs with no messages if outbound lane state is proved.
+				let mut messages = Vec::with_capacity(end.checked_sub(begin).unwrap_or(0) as _);
+				for nonce in begin..=end {
+					let message_key = MessageKey { lane_id: lane, nonce };
+					let storage_message_key = pallet_message_lane::storage_keys::message_key::<ThisRuntime, MessageLaneInstanceOf<BridgedChain<B>>>(&lane, nonce);
+					let raw_message_data = storage
+						.read_value(storage_message_key.0.as_ref())
+						.map_err(|_| "Failed to read message from storage proof")?
+						.ok_or("Message is missing from the messages proof")?;
+					let message_data = MessageData::<BalanceOf<BridgedChain<B>>>::decode(&mut &raw_message_data[..]).map_err(|_| "Failed to decode message from the proof")?;
+					messages.push(Message {
+						key: message_key,
+						data: message_data,
+					});
+				}
+
+				// Now let's check if proof contains outbound lane state proof. It is optional, so we
+				// simply ignore `read_value` errors and missing value.
+				let mut proved_lane_messages = ProvedLaneMessages {
+					lane_state: None,
+					messages,
+				};
+				let storage_outbound_lane_data_key = pallet_message_lane::storage_keys::outbound_lane_data_key::<MessageLaneInstanceOf<BridgedChain<B>>>(&lane);
+				let raw_outbound_lane_data = storage.read_value(storage_outbound_lane_data_key.0.as_ref());
+				if let Ok(Some(raw_outbound_lane_data)) = raw_outbound_lane_data {
+					proved_lane_messages.lane_state = Some(OutboundLaneData::decode(&mut &raw_outbound_lane_data[..]).map_err(|_| "Failed to decode outbound lane data from the proof")?);
+				}
+
+				// Now we may actually check if the proof is empty or not.
+				if proved_lane_messages.lane_state.is_none() && proved_lane_messages.messages.is_empty() {
+					return Err("Messages proof is empty");
+				}
+
+				// We only support single lane messages in this schema
+				let mut proved_messages = BTreeMap::new();
+				proved_messages.insert(lane, proved_lane_messages);
+
+				Ok(proved_messages)
+			}
+		).map_err(|err| <&'static str>::from(err))?
 	}
 }
 
