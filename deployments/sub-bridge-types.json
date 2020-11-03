@@ -1,0 +1,20 @@
+{
+  "BridgedBlockHash": "H256",
+  "BridgedBlockHasher": "BlakeTwo256",
+  "BridgedBlockNumber": "u32",
+  "BridgedHeader": "Header",
+  "ImportedHeader": {
+    "header": "BridgedHeader",
+    "requires_justification": "bool",
+    "is_finalized": "bool",
+    "signal_hash": "Option<BridgedBlockHash>"
+  },
+  "AuthoritySet": {
+    "authorities": "AuthorityList",
+    "set_id": "SetId"
+  },
+  "ScheduledChange": {
+    "authority_set": "AuthoritySet",
+    "height": "BridgedBlockNumber"
+  }
+}
