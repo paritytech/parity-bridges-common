@@ -7683,6 +7683,7 @@ dependencies = [
  "log",
  "messages-relay",
  "millau-runtime",
+ "num-traits",
  "pallet-bridge-call-dispatch",
  "pallet-substrate-bridge",
  "parity-scale-codec",
