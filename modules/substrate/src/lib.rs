@@ -34,7 +34,7 @@
 use crate::storage::ImportedHeader;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HeaderOf};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult};
-use frame_system::ensure_signed;
+use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::traits::Header as HeaderT;
 use sp_runtime::RuntimeDebug;
 use sp_std::{marker::PhantomData, prelude::*};
@@ -201,6 +201,7 @@ decl_module! {
 		/// This function is only allowed to be called from a trusted origin and writes to storage
 		/// with practically no checks in terms of the validity of the data. It is important that
 		/// you ensure that valid data is being passed in.
+		// TODO: Update weights [#78]
 		#[weight = 0]
 		pub fn initialize(
 			origin,
@@ -209,8 +210,7 @@ decl_module! {
 			set_id: sp_finality_grandpa::SetId,
 			scheduled_change: Option<ScheduledChange<BridgedBlockNumber<T>>>,
 		) {
-			// TODO: Ensure Root
-			let _ = ensure_signed(origin)?;
+			let _ = ensure_root(origin)?;
 			initialize_bridge::<T>(header, authority_list, set_id, scheduled_change);
 		}
 	}
