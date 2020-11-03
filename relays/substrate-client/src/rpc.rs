@@ -26,7 +26,11 @@ use crate::chain::Chain;
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::InstanceId;
 use frame_support::weights::Weight;
-use sp_core::Bytes;
+use sp_core::{
+	storage::{StorageData, StorageKey},
+	Bytes,
+};
+use sp_version::RuntimeVersion;
 
 jsonrpsee::rpc_api! {
 	pub(crate) Substrate<C: Chain> {
@@ -44,6 +48,10 @@ jsonrpsee::rpc_api! {
 		fn author_submit_extrinsic(extrinsic: Bytes) -> C::Hash;
 		#[rpc(method = "state_call", positional_params)]
 		fn state_call(method: String, data: Bytes, at_block: Option<C::Hash>) -> Bytes;
+		#[rpc(method = "state_getStorage", positional_params)]
+		fn get_storage(key: StorageKey) -> Option<StorageData>;
+		#[rpc(method = "state_getRuntimeVersion", positional_params)]
+		fn runtime_version() -> RuntimeVersion;
 	}
 
 	pub(crate) SubstrateMessageLane<C: Chain> {

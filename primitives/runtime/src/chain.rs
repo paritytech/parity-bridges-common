@@ -23,7 +23,7 @@ use sp_runtime::traits::{
 use sp_std::str::FromStr;
 
 /// Minimal Substrate-based chain representation that may be used from no_std environment.
-pub trait Chain {
+pub trait Chain: Send + Sync + 'static {
 	/// A type that fulfills the abstract idea of what a Substrate block number is.
 	// Constraits come from the associated Number type of `sp_runtime::traits::Header`
 	// See here for more info:
@@ -71,7 +71,7 @@ pub trait Chain {
 	/// A type that fulfills the abstract idea of what a Substrate header is.
 	// See here for more info:
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html
-	type Header: Parameter + HeaderT<Number = Self::BlockNumber, Hash = Self::Hash>;
+	type Header: Parameter + HeaderT<Number = Self::BlockNumber, Hash = Self::Hash> + MaybeSerializeDeserialize;
 }
 
 /// Block number used by the chain.

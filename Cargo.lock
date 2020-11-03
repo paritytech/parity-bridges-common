@@ -5261,6 +5261,7 @@ dependencies = [
 name = "relay-millau-client"
 version = "0.1.0"
 dependencies = [
+ "frame-support",
  "frame-system",
  "headers-relay",
  "millau-runtime",
@@ -5277,6 +5278,7 @@ dependencies = [
 name = "relay-rialto-client"
 version = "0.1.0"
 dependencies = [
+ "frame-support",
  "frame-system",
  "headers-relay",
  "pallet-transaction-payment",
@@ -5293,21 +5295,26 @@ dependencies = [
 name = "relay-substrate-client"
 version = "0.1.0"
 dependencies = [
+ "async-std",
  "async-trait",
  "bp-message-lane",
  "bp-runtime",
  "frame-support",
  "frame-system",
+ "futures 0.3.7",
  "headers-relay",
  "jsonrpsee",
  "log",
  "num-traits",
+ "pallet-balances",
  "parity-scale-codec",
+ "rand 0.7.3",
  "relay-utils",
  "sp-core",
  "sp-runtime",
  "sp-std",
  "sp-trie",
+ "sp-version",
 ]
 
 [[package]]
@@ -7683,6 +7690,7 @@ dependencies = [
  "log",
  "messages-relay",
  "millau-runtime",
+ "num-traits",
  "pallet-bridge-call-dispatch",
  "pallet-substrate-bridge",
  "parity-scale-codec",
