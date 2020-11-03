@@ -117,37 +117,13 @@ decl_storage! {
 				.initial_header
 				.clone()
 				.expect("An initial header is needed");
-			let initial_hash = initial_header.hash();
 
-			<BestHeight<T>>::put(initial_header.number());
-			<BestHeaders<T>>::put(vec![initial_hash]);
-			<BestFinalized<T>>::put(initial_hash);
-
-			let authority_set =
-				AuthoritySet::new(config.initial_authority_list.clone(), config.initial_set_id);
-			CurrentAuthoritySet::put(authority_set);
-
-			let mut signal_hash = None;
-			if let Some(ref change) = config.first_scheduled_change {
-				assert!(
-					change.height > *initial_header.number(),
-					"Changes must be scheduled past initial header."
-				);
-
-				signal_hash = Some(initial_hash);
-				<NextScheduledChange<T>>::insert(initial_hash, change);
-			};
-
-			<ImportedHeaders<T>>::insert(
-				initial_hash,
-				ImportedHeader {
-					header: initial_header,
-					requires_justification: false,
-					is_finalized: true,
-					signal_hash,
-				},
+			initialize_bridge::<T>(
+				initial_header,
+				config.initial_authority_list.clone(),
+				config.initial_set_id,
+				config.first_scheduled_change.clone(),
 			);
-
 		})
 	}
 }
@@ -215,6 +191,28 @@ decl_module! {
 
 			Ok(())
 		}
+
+		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
+		///
+		/// The initial configuration provided does not need to be the genesis header of the bridged
+		/// chain, it can be any arbirary header. You can also provide the next scheduled set change
+		/// if it is already know.
+		///
+		/// This function is only allowed to be called from a trusted origin and writes to storage
+		/// with practically no checks in terms of the validity of the data. It is important that
+		/// you ensure that valid data is being passed in.
+		#[weight = 0]
+		pub fn initialize(
+			origin,
+			header: BridgedHeader<T>,
+			authority_list: sp_finality_grandpa::AuthorityList,
+			set_id: sp_finality_grandpa::SetId,
+			scheduled_change: Option<ScheduledChange<BridgedBlockNumber<T>>>,
+		) {
+			// TODO: Ensure Root
+			let _ = ensure_signed(origin)?;
+			initialize_bridge::<T>(header, authority_list, set_id, scheduled_change);
+		}
 	}
 }
 
@@ -267,6 +265,45 @@ impl<T: Trait> Module<T> {
 			.map(|id| (id.number, id.hash))
 			.collect()
 	}
+}
+
+// Since this writes to storage with no real checks this should only be used in functions that were
+// called by a trusted origin.
+fn initialize_bridge<T: Trait>(
+	header: BridgedHeader<T>,
+	authority_list: sp_finality_grandpa::AuthorityList,
+	set_id: sp_finality_grandpa::SetId,
+	scheduled_change: Option<ScheduledChange<BridgedBlockNumber<T>>>,
+) {
+	let initial_hash = header.hash();
+
+	let mut signal_hash = None;
+	if let Some(ref change) = scheduled_change {
+		assert!(
+			change.height > *header.number(),
+			"Changes must be scheduled past initial header."
+		);
+
+		signal_hash = Some(initial_hash);
+		<NextScheduledChange<T>>::insert(initial_hash, change);
+	};
+
+	<BestHeight<T>>::put(header.number());
+	<BestHeaders<T>>::put(vec![initial_hash]);
+	<BestFinalized<T>>::put(initial_hash);
+
+	let authority_set = AuthoritySet::new(authority_list, set_id);
+	CurrentAuthoritySet::put(authority_set);
+
+	<ImportedHeaders<T>>::insert(
+		initial_hash,
+		ImportedHeader {
+			header,
+			requires_justification: false,
+			is_finalized: true,
+			signal_hash,
+		},
+	);
 }
 
 /// Expected interface for interacting with bridge pallet storage.
