@@ -48,10 +48,10 @@ We currently support two bridge deployments
 These networks can be deployed using our [`./run.sh`](./run.sh) script.
 
 The first argument it takes is the name of the bridge you want to run. Right now we only support two
-networks: `eth-poa-sub` and `rialto-millau`.
+networks: `poa-rialto` and `rialto-millau`.
 
 ```bash
-./run.sh eth-poa-sub
+./run.sh poa-rialto
 ```
 
 If you add a second `update` argument to the script it will pull the latest images from Docker Hub
@@ -64,7 +64,7 @@ and restart the deployment.
 You can also bring down a deployment using the script with the `stop` argument.
 
 ```bash
-./run.sh eth-poa-sub stop
+./run.sh poa-rialto stop
 ```
 
 ### Adding Deployments

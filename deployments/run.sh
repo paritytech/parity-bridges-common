@@ -4,7 +4,7 @@
 #
 # To deploy a network you can run this script with the name of the network you want to run.
 #
-# `./run.sh eth-poa-sub`
+# `./run.sh poa-rialto`
 #
 # To update a deployment to use the latest images available from the Docker Hub add the `update`
 # argument after the bridge name.
@@ -28,8 +28,8 @@ MONITORING=' -f ./monitoring/docker-compose.yml'
 BRIDGE=''
 NETWORKS=''
 case "$1" in
-	eth-poa-sub)
-		BRIDGE=' -f ./bridges/eth-poa-sub/docker-compose.yml'
+	poa-rialto)
+		BRIDGE=' -f ./bridges/poa-rialto/docker-compose.yml'
 		NETWORKS+=${RIALTO}
 		NETWORKS+=${ETH_POA}
 		;;
@@ -38,7 +38,7 @@ case "$1" in
 		NETWORKS+=${RIALTO}
 		NETWORKS+=${MILLAU}
 		;;
-	*) echo "Invalid parameter: $1 (expected eth-poa-sub/rialto-millau)"; exit 1;;
+	*) echo "Invalid parameter: $1 (expected poa-rialto/rialto-millau)"; exit 1;;
 esac
 
 COMPOSE_FILES=$BRIDGE$NETWORKS$MONITORING

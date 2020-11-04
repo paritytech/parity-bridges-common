@@ -6,7 +6,7 @@ services:
   # We override these nodes to make sure we have the correct chain config for this network.
   poa-node-arthur: &poa-node
     volumes:
-      - ./bridges/eth-poa-sub/poa-config:/config
+      - ./bridges/poa-rialto/poa-config:/config
   poa-node-bertha:
       <<: *poa-node
   poa-node-carlos:
@@ -25,7 +25,7 @@ services:
     image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-poa2rialto-entrypoint.sh
     volumes:
-      - ./bridges/eth-poa-sub/scripts:/config
+      - ./bridges/poa-rialto/scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
@@ -44,7 +44,7 @@ services:
     image: paritytech/ethereum-poa-relay
     entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
     volumes:
-      - ./bridges/eth-poa-sub/scripts:/config
+      - ./bridges/poa-rialto/scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
       EXCHANGE_GEN_MIN_AMOUNT_FINNEY: ${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1}
@@ -56,7 +56,7 @@ services:
     image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-poa-exchange-rialto-entrypoint.sh
     volumes:
-      - ./bridges/eth-poa-sub/scripts:/config
+      - ./bridges/poa-rialto/scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
@@ -67,7 +67,7 @@ services:
     image: paritytech/ethereum-poa-relay
     entrypoint: /config/relay-rialto2poa-entrypoint.sh
     volumes:
-      - ./bridges/eth-poa-sub/scripts:/config
+      - ./bridges/poa-rialto/scripts:/config
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
@@ -77,7 +77,7 @@ services:
   front-end:
     build:
       context: .
-      dockerfile: ./bridges/eth-poa-sub/Front-end.Dockerfile
+      dockerfile: ./bridges/poa-rialto/Front-end.Dockerfile
       args:
         SUBSTRATE_PROVIDER: ${UI_SUBSTRATE_PROVIDER:-ws://localhost:9944}
         ETHEREUM_PROVIDER: ${UI_ETHEREUM_PROVIDER:-http://localhost:8545}
@@ -88,12 +88,12 @@ services:
   # Note: These are being overridden from the top level `monitoring` compose file.
   prometheus-metrics:
     volumes:
-      - ./bridges/eth-poa-sub/dashboard/prometheus/:/etc/prometheus/
+      - ./bridges/poa-rialto/dashboard/prometheus/:/etc/prometheus/
     depends_on: *all-nodes
 
   grafana-dashboard:
     volumes:
-       - ./bridges/eth-poa-sub/dashboard/grafana/provisioning/:/etc/grafana/provisioning/
+       - ./bridges/poa-rialto/dashboard/grafana/provisioning/:/etc/grafana/provisioning/
     environment:
       VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
       VIRTUAL_PORT: 3000
