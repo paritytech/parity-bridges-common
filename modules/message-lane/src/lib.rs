@@ -461,7 +461,7 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 /// maps are not using any Runtime-specific data in the keys.
 ///
 /// On the other side, passing correct instance is required. So if proof has been crafted by the
-/// Instance1, you should verify it using Instance1. This is inconvinient if you're using different
+/// Instance1, you should verify it using Instance1. This is inconvenient if you're using different
 /// instances on different sides of the bridge. I.e. in Runtime1 it is Instance2, but on Runtime2
 /// it is Instance42. But there's no other way, but to craft this key manually (which is what I'm
 /// trying to avoid here) - by using strings like "Instance2", "OutboundMessages", etc.
