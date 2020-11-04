@@ -468,7 +468,7 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{helpers::test_header, run_test, TestRuntime};
+	use crate::mock::{helpers::unfinalized_header, run_test, TestRuntime};
 	use frame_support::{assert_noop, assert_ok};
 
 	#[test]
@@ -489,16 +489,15 @@ mod tests {
 	fn parse_finalized_storage_proof_rejects_proof_on_unfinalized_header() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let header = test_header(1);
-			storage.write_header(&ImportedHeader {
-				header: header.clone(),
-				requires_justification: false,
-				is_finalized: false,
-				signal_hash: None,
-			});
+			let header = unfinalized_header(1);
+			storage.write_header(&header);
 
 			assert_noop!(
-				Module::<TestRuntime>::parse_finalized_storage_proof(header.hash(), StorageProof::new(vec![]), |_| (),),
+				Module::<TestRuntime>::parse_finalized_storage_proof(
+					header.header.hash(),
+					StorageProof::new(vec![]),
+					|_| (),
+				),
 				Error::<TestRuntime>::UnfinalizedHeader,
 			);
 		});
@@ -509,18 +508,13 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 			let (state_root, storage_proof) = storage_proof::tests::craft_valid_storage_proof();
-			let mut header = test_header(1);
-			header.set_state_root(state_root);
-
-			storage.write_header(&ImportedHeader {
-				header: header.clone(),
-				requires_justification: false,
-				is_finalized: true,
-				signal_hash: None,
-			});
+			let mut header = unfinalized_header(1);
+			header.is_finalized = true;
+			header.header.set_state_root(state_root);
+			storage.write_header(&header);
 
 			assert_ok!(
-				Module::<TestRuntime>::parse_finalized_storage_proof(header.hash(), storage_proof, |_| (),),
+				Module::<TestRuntime>::parse_finalized_storage_proof(header.header.hash(), storage_proof, |_| (),),
 				(),
 			);
 		});
