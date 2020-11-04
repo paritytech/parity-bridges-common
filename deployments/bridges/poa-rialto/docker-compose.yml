@@ -23,9 +23,9 @@ services:
 
   relay-poa2rialto:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /config/relay-poa2rialto-entrypoint.sh
+    entrypoint: /entrypoints/relay-poa2rialto-entrypoint.sh
     volumes:
-      - ./bridges/poa-rialto/scripts:/config
+      - ./bridges/poa-rialto/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
@@ -42,9 +42,9 @@ services:
 
   poa-exchange-tx-generator:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /config/poa-exchange-tx-generator-entrypoint.sh
+    entrypoint: /entrypoints/poa-exchange-tx-generator-entrypoint.sh
     volumes:
-      - ./bridges/poa-rialto/scripts:/config
+      - ./bridges/poa-rialto/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace
       EXCHANGE_GEN_MIN_AMOUNT_FINNEY: ${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1}
@@ -54,9 +54,9 @@ services:
 
   relay-poa-exchange-rialto:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /config/relay-poa-exchange-rialto-entrypoint.sh
+    entrypoint: /entrypoints/relay-poa-exchange-rialto-entrypoint.sh
     volumes:
-      - ./bridges/poa-rialto/scripts:/config
+      - ./bridges/poa-rialto/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
@@ -65,9 +65,9 @@ services:
 
   relay-rialto2poa:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /config/relay-rialto2poa-entrypoint.sh
+    entrypoint: /entrypoints/relay-rialto2poa-entrypoint.sh
     volumes:
-      - ./bridges/poa-rialto/scripts:/config
+      - ./bridges/poa-rialto/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:

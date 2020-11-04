@@ -2,9 +2,9 @@ version: '3.5'
 services:
   relay-millau-headers-to-rialto:
     image: paritytech/substrate-relay
-    entrypoint: /config/relay-millau-headers-to-rialto-entrypoint.sh
+    entrypoint: /entrypoints/relay-millau-headers-to-rialto-entrypoint.sh
     volumes:
-      - ./bridges/rialto-millau/scripts:/config
+      - ./bridges/rialto-millau/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
