@@ -21,9 +21,9 @@ services:
       LETSENCRYPT_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
 
-  relay-poa2rialto:
+  relay-headers-poa-to-rialto:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /entrypoints/relay-poa2rialto-entrypoint.sh
+    entrypoint: /entrypoints/relay-headers-poa-to-rialto-entrypoint.sh
     volumes:
       - ./bridges/poa-rialto/entrypoints:/entrypoints
     environment:
@@ -63,9 +63,9 @@ services:
       - "9716:9616"
     depends_on: *all-nodes
 
-  relay-rialto2poa:
+  relay-headers-rialto-to-poa:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /entrypoints/relay-rialto2poa-entrypoint.sh
+    entrypoint: /entrypoints/relay-headers-rialto-to-poa-entrypoint.sh
     volumes:
       - ./bridges/poa-rialto/entrypoints:/entrypoints
     environment:

@@ -1,8 +1,8 @@
 version: '3.5'
 services:
-  relay-millau-headers-to-rialto:
+  relay-headers-millau-to-rialto:
     image: paritytech/substrate-relay
-    entrypoint: /entrypoints/relay-millau-headers-to-rialto-entrypoint.sh
+    entrypoint: /entrypoints/relay-headers-millau-to-rialto-entrypoint.sh
     volumes:
       - ./bridges/rialto-millau/entrypoints:/entrypoints
     environment:
