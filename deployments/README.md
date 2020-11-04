@@ -1,13 +1,13 @@
 # Bridge Deployments
 
 ## Requirements
-Make sure to install `docker` and `docker-compose` to be able to run and test bridge deployments. All commands must be invoked with `./deployments/` as the current working directory because the paths in Docker Compose files are relative.
+Make sure to install `docker` and `docker-compose` to be able to run and test bridge deployments.
 
 ## Networks
 One of the building blocks we use for our deployments are _networks_. A network is a collection of
-homogenous blockchain nodes. We have Docker Compose files for each network that we want to bridge. Each of
-the compose files found in the `./networks` folder is able to independently spin up a network like
-so:
+homogenous blockchain nodes. We have Docker Compose files for each network that we want to bridge.
+Each of the compose files found in the `./networks` folder is able to independently spin up a
+network like so:
 
 ```bash
 docker-compose -f ./networks/rialto.yml up
@@ -177,8 +177,8 @@ security reasons it is not kept as part of version control. When deploying a net
 file should be correctly populated and kept in the appropriate [`bridges`](`./bridges`) deployment
 folder.
 
-The `UI_SUBSTRATE_PROVIDER` variable lets you define the url of the Substrate node that the user interface
-will connect to. `UI_ETHEREUM_PROVIDER` is used only as a guidance for users to connect
+The `UI_SUBSTRATE_PROVIDER` variable lets you define the url of the Substrate node that the user
+interface will connect to. `UI_ETHEREUM_PROVIDER` is used only as a guidance for users to connect
 Metamask to the right Ethereum network. `UI_EXPECTED_ETHEREUM_NETWORK_ID`  is used by
 the user interface as a fail safe to prevent users from connecting their Metamask extension to an
 unexpected network.
