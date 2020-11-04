@@ -199,7 +199,8 @@ decl_module! {
 			init_data: InitializationData<BridgedHeader<T>>,
 		) {
 			let _ = ensure_root(origin)?;
-			ensure!(IsInitialized::get() == false, <Error<T>>::AlreadyInitialized);
+			let init_allowed = !IsInitialized::get();
+			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
 			initialize_bridge::<T>(init_data);
 		}
 	}
@@ -512,9 +513,8 @@ mod tests {
 	#[test]
 	fn storage_entries_are_correctly_initialized() {
 		run_test(|| {
-			let header = test_header(1);
 			let init_data = InitializationData {
-				header: header.clone(),
+				header: test_header(1),
 				authority_list: authority_list(),
 				set_id: 1,
 				scheduled_change: None,
