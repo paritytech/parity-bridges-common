@@ -1,11 +1,11 @@
 # Bridge Deployments
 
 ## Requirements
-Make sure to install `docker` and `docker-compose` to be able to run and test bridge deployments.
+Make sure to install `docker` and `docker-compose` to be able to run and test bridge deployments. All commands must be invoked with `./deployments/` as the current working directory because the paths in Docker Compose files are relative.
 
 ## Networks
 One of the building blocks we use for our deployments are _networks_. A network is a collection of
-homogenous nodes. We have Docker Compose files for each network that we want to bridge. Each of
+homogenous blockchain nodes. We have Docker Compose files for each network that we want to bridge. Each of
 the compose files found in the `./networks` folder is able to independently spin up a network like
 so:
 
@@ -19,7 +19,7 @@ After running this command we would have a network of several nodes producing bl
 A _bridge_ is a way for several _networks_ to connect to one another. Bridge deployments have their
 own Docker Compose files which can be found in the `./bridges` folder. These Compose files typically
 contain bridge relayers, which are services external to blockchain nodes, and other components such
-as testing infrastructure, or front-end code.
+as testing infrastructure, or user interfaces.
 
 Unlike the network Compose files, these *cannot* be deployed on their own. They must be combined
 with different networks.
