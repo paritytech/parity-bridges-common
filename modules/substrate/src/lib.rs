@@ -33,6 +33,7 @@
 
 use crate::storage::ImportedHeader;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HeaderOf};
+use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult};
 use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::traits::Header as HeaderT;
@@ -71,6 +72,17 @@ pub struct HeaderId<H: HeaderT> {
 	pub hash: H::Hash,
 }
 
+/// Data required for initializing the bridge pallet.
+///
+/// The bridge needs to know where to start its sync from, and this provides that initial context.
+#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
+pub struct InitializationData<H: HeaderT> {
+	header: H,
+	authority_list: sp_finality_grandpa::AuthorityList,
+	set_id: sp_finality_grandpa::SetId,
+	scheduled_change: Option<ScheduledChange<H::Number>>,
+}
+
 pub trait Trait: frame_system::Trait {
 	/// Chain that we are bridging here.
 	type BridgedChain: Chain;
@@ -103,27 +115,11 @@ decl_storage! {
 		NextScheduledChange: map hasher(identity) BridgedBlockHash<T> => Option<ScheduledChange<BridgedBlockNumber<T>>>;
 	}
 	add_extra_genesis {
-		config(initial_header): Option<BridgedHeader<T>>;
-		config(initial_authority_list): sp_finality_grandpa::AuthorityList;
-		config(initial_set_id): sp_finality_grandpa::SetId;
-		config(first_scheduled_change): Option<ScheduledChange<BridgedBlockNumber<T>>>;
+		config(init_data): Option<InitializationData<BridgedHeader<T>>>;
 		build(|config| {
-			assert!(
-				!config.initial_authority_list.is_empty(),
-				"An initial authority list is needed."
-			);
-
-			let initial_header = config
-				.initial_header
-				.clone()
-				.expect("An initial header is needed");
-
-			initialize_bridge::<T>(
-				initial_header,
-				config.initial_authority_list.clone(),
-				config.initial_set_id,
-				config.first_scheduled_change.clone(),
-			);
+			if let Some(init_data) = config.init_data.clone() {
+				initialize_bridge::<T>(init_data);
+			}
 		})
 	}
 }
@@ -201,17 +197,14 @@ decl_module! {
 		/// This function is only allowed to be called from a trusted origin and writes to storage
 		/// with practically no checks in terms of the validity of the data. It is important that
 		/// you ensure that valid data is being passed in.
-		// TODO: Update weights [#78]
+		//TODO: Update weights [#78]
 		#[weight = 0]
 		pub fn initialize(
 			origin,
-			header: BridgedHeader<T>,
-			authority_list: sp_finality_grandpa::AuthorityList,
-			set_id: sp_finality_grandpa::SetId,
-			scheduled_change: Option<ScheduledChange<BridgedBlockNumber<T>>>,
+			init_data: InitializationData<BridgedHeader<T>>,
 		) {
 			let _ = ensure_root(origin)?;
-			initialize_bridge::<T>(header, authority_list, set_id, scheduled_change);
+			initialize_bridge::<T>(init_data);
 		}
 	}
 }
@@ -269,12 +262,14 @@ impl<T: Trait> Module<T> {
 
 // Since this writes to storage with no real checks this should only be used in functions that were
 // called by a trusted origin.
-fn initialize_bridge<T: Trait>(
-	header: BridgedHeader<T>,
-	authority_list: sp_finality_grandpa::AuthorityList,
-	set_id: sp_finality_grandpa::SetId,
-	scheduled_change: Option<ScheduledChange<BridgedBlockNumber<T>>>,
-) {
+fn initialize_bridge<T: Trait>(init_params: InitializationData<BridgedHeader<T>>) {
+	let InitializationData {
+		header,
+		authority_list,
+		set_id,
+		scheduled_change,
+	} = init_params;
+
 	let initial_hash = header.hash();
 
 	let mut signal_hash = None;
@@ -482,18 +477,19 @@ mod tests {
 	#[test]
 	fn only_root_origin_can_initialize_pallet() {
 		run_test(|| {
+			let init_data = InitializationData {
+				header: test_header(1),
+				authority_list: authority_list(),
+				set_id: 1,
+				scheduled_change: None,
+			};
+
 			assert_noop!(
-				Module::<TestRuntime>::initialize(Origin::signed(1), test_header(1), authority_list(), 1, None,),
+				Module::<TestRuntime>::initialize(Origin::signed(1), init_data.clone()),
 				DispatchError::BadOrigin,
 			);
 
-			assert_ok!(Module::<TestRuntime>::initialize(
-				Origin::root(),
-				test_header(1),
-				authority_list(),
-				1,
-				None,
-			));
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data));
 		})
 	}
 
@@ -501,26 +497,27 @@ mod tests {
 	fn storage_entries_are_correctly_initialized() {
 		run_test(|| {
 			let header = test_header(1);
-			assert_ok!(Module::<TestRuntime>::initialize(
-				Origin::root(),
-				header.clone(),
-				authority_list(),
-				1,
-				None,
-			));
+			let init_data = InitializationData {
+				header: header.clone(),
+				authority_list: authority_list(),
+				set_id: 1,
+				scheduled_change: None,
+			};
+
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
 
 			let storage = PalletStorage::<TestRuntime>::new();
 
-			assert!(storage.header_exists(header.hash()));
+			assert!(storage.header_exists(init_data.header.hash()));
 			assert_eq!(
 				storage.best_headers()[0],
 				crate::HeaderId {
-					number: *header.number(),
-					hash: header.hash()
+					number: *init_data.header.number(),
+					hash: init_data.header.hash()
 				}
 			);
-			assert_eq!(storage.best_finalized_header().hash(), header.hash());
-			assert_eq!(storage.current_authority_set().authorities, authority_list());
+			assert_eq!(storage.best_finalized_header().hash(), init_data.header.hash());
+			assert_eq!(storage.current_authority_set().authorities, init_data.authority_list);
 		})
 	}
 }
