@@ -10,7 +10,7 @@ the compose files found in the `./networks` folder is able to independently spin
 so:
 
 ```bash
-docker-compose -f ./networks/docker-compose.rialto.yml up
+docker-compose -f ./networks/rialto.yml up
 ```
 
 After running this command we would have a network of several nodes producing blocks.
