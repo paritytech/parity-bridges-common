@@ -17,6 +17,9 @@
 
 set -xeu
 
+# Since the Compose commands are using relative paths we need to `cd` into the `deployments` folder.
+cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd
+
 RIALTO=' -f ./networks/docker-compose.rialto.yml'
 MILLAU=' -f ./networks/docker-compose.millau.yml'
 ETH_POA=' -f ./networks/docker-compose.eth-poa.yml'
