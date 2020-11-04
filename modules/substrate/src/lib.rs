@@ -34,7 +34,7 @@
 use crate::storage::ImportedHeader;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HeaderOf};
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult};
+use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure};
 use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::traits::Header as HeaderT;
 use sp_runtime::RuntimeDebug;
@@ -113,6 +113,11 @@ decl_storage! {
 		// Grandpa doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
 		NextScheduledChange: map hasher(identity) BridgedBlockHash<T> => Option<ScheduledChange<BridgedBlockNumber<T>>>;
+		/// Whether or not the bridge has been initialized.
+		///
+		/// This is important to know to ensure that we don't try and initialize the bridge twice
+		/// and create an inconsistent genesis state.
+		IsInitialized: bool;
 	}
 	add_extra_genesis {
 		config(init_data): Option<InitializationData<BridgedHeader<T>>>;
@@ -130,6 +135,8 @@ decl_error! {
 		InvalidHeader,
 		/// This header has not been finalized.
 		UnfinalizedHeader,
+		/// The pallet has already been initialized.
+		AlreadyInitialized,
 	}
 }
 
@@ -204,6 +211,7 @@ decl_module! {
 			init_data: InitializationData<BridgedHeader<T>>,
 		) {
 			let _ = ensure_root(origin)?;
+			ensure!(IsInitialized::get() == false, <Error<T>>::AlreadyInitialized);
 			initialize_bridge::<T>(init_data);
 		}
 	}
@@ -299,6 +307,8 @@ fn initialize_bridge<T: Trait>(init_params: InitializationData<BridgedHeader<T>>
 			signal_hash,
 		},
 	);
+
+	IsInitialized::put(true);
 }
 
 /// Expected interface for interacting with bridge pallet storage.
@@ -494,6 +504,24 @@ mod tests {
 	}
 
 	#[test]
+	fn can_only_initialize_pallet_once() {
+		run_test(|| {
+			let init_data = InitializationData {
+				header: test_header(1),
+				authority_list: authority_list(),
+				set_id: 1,
+				scheduled_change: None,
+			};
+
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
+			assert_noop!(
+				Module::<TestRuntime>::initialize(Origin::root(), init_data,),
+				<Error<TestRuntime>>::AlreadyInitialized,
+			);
+		})
+	}
+
+	#[test]
 	fn storage_entries_are_correctly_initialized() {
 		run_test(|| {
 			let header = test_header(1);
@@ -508,6 +536,7 @@ mod tests {
 
 			let storage = PalletStorage::<TestRuntime>::new();
 
+			assert!(IsInitialized::get());
 			assert!(storage.header_exists(init_data.header.hash()));
 			assert_eq!(
 				storage.best_headers()[0],
