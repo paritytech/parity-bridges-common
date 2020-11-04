@@ -33,7 +33,6 @@
 
 use crate::storage::ImportedHeader;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HeaderOf};
-use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure};
 use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::traits::Header as HeaderT;
@@ -41,7 +40,7 @@ use sp_runtime::RuntimeDebug;
 use sp_std::{marker::PhantomData, prelude::*};
 
 // Re-export since the node uses these when configuring genesis
-pub use storage::{AuthoritySet, ScheduledChange};
+pub use storage::{AuthoritySet, InitializationData, ScheduledChange};
 
 pub use justification::decode_justification_target;
 
@@ -70,17 +69,6 @@ pub struct HeaderId<H: HeaderT> {
 	pub number: H::Number,
 	/// The hash of the header.
 	pub hash: H::Hash,
-}
-
-/// Data required for initializing the bridge pallet.
-///
-/// The bridge needs to know where to start its sync from, and this provides that initial context.
-#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
-pub struct InitializationData<H: HeaderT> {
-	header: H,
-	authority_list: sp_finality_grandpa::AuthorityList,
-	set_id: sp_finality_grandpa::SetId,
-	scheduled_change: Option<ScheduledChange<H::Number>>,
 }
 
 pub trait Trait: frame_system::Trait {
