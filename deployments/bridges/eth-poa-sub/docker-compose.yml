@@ -21,9 +21,9 @@ services:
       LETSENCRYPT_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
 
-  relay-eth2sub:
+  relay-poa2rialto:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /config/relay-eth2sub-entrypoint.sh
+    entrypoint: /config/relay-poa2rialto-entrypoint.sh
     volumes:
       - ./bridges/eth-poa-sub/scripts:/config
     environment:
@@ -52,9 +52,9 @@ services:
       EXCHANGE_GEN_MAX_SUBMIT_DELAY_S: ${EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-60}
     depends_on: *all-nodes
 
-  relay-eth-exchange-sub:
+  relay-poa-exchange-rialto:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /config/relay-eth-exchange-sub-entrypoint.sh
+    entrypoint: /config/relay-poa-exchange-rialto-entrypoint.sh
     volumes:
       - ./bridges/eth-poa-sub/scripts:/config
     environment:
@@ -63,9 +63,9 @@ services:
       - "9716:9616"
     depends_on: *all-nodes
 
-  relay-sub2eth:
+  relay-rialto2poa:
     image: paritytech/ethereum-poa-relay
-    entrypoint: /config/relay-sub2eth-entrypoint.sh
+    entrypoint: /config/relay-rialto2poa-entrypoint.sh
     volumes:
       - ./bridges/eth-poa-sub/scripts:/config
     environment:
