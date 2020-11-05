@@ -158,6 +158,8 @@ fn testnet_genesis(
 		pallet_substrate_bridge: Some(BridgeRialtoConfig {
 			// We'll initialize the pallet with a dispatchable instead.
 			init_data: None,
+			owner: None,
+			is_halted: true,
 		}),
 		pallet_sudo: Some(SudoConfig { key: root_key }),
 		pallet_session: Some(SessionConfig {
