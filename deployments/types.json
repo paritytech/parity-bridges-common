@@ -39,7 +39,7 @@
 	"difficulty": "u64",
 	"seal": "Vec<Bytes>"
   },
-  "ScheduledChange": {
+  "AuraScheduledChange": {
 	"validators": "Vec<Address>",
 	"prev_signal_block": "Option<HeaderId>"
   },
@@ -47,5 +47,23 @@
 	  "validators": "Vec<Address>",
 	  "signal_block": "Option<HeaderId>",
 	  "enact_block": "HeaderId"
+  },
+  "BridgedBlockHash": "H256",
+  "BridgedBlockHasher": "BlakeTwo256",
+  "BridgedBlockNumber": "u32",
+  "BridgedHeader": "Header",
+  "ImportedHeader": {
+    "header": "BridgedHeader",
+    "requires_justification": "bool",
+    "is_finalized": "bool",
+    "signal_hash": "Option<BridgedBlockHash>"
+  },
+  "AuthoritySet": {
+    "authorities": "AuthorityList",
+    "set_id": "SetId"
+  },
+  "ScheduledChange": {
+    "authority_set": "AuthoritySet",
+    "height": "BridgedBlockNumber"
   }
 }
