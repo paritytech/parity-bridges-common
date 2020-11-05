@@ -34,16 +34,16 @@
 use crate::storage::ImportedHeader;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use frame_support::{
-	decl_error, decl_module, decl_storage, dispatch::DispatchResult, traits::Get, weights::DispatchClass,
+	decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get, weights::DispatchClass,
 };
-use frame_system::{ensure_signed, RawOrigin};
+use frame_system::{ensure_root, ensure_signed, RawOrigin};
 use sp_runtime::traits::Header as HeaderT;
 use sp_runtime::{traits::BadOrigin, RuntimeDebug};
 use sp_std::{marker::PhantomData, prelude::*};
 use sp_trie::StorageProof;
 
 // Re-export since the node uses these when configuring genesis
-pub use storage::{AuthoritySet, ScheduledChange};
+pub use storage::{AuthoritySet, InitializationData, ScheduledChange};
 
 pub use justification::decode_justification_target;
 pub use storage_proof::StorageProofChecker;
@@ -107,6 +107,11 @@ decl_storage! {
 		// Grandpa doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
 		NextScheduledChange: map hasher(identity) BridgedBlockHash<T> => Option<ScheduledChange<BridgedBlockNumber<T>>>;
+		/// Whether or not the bridge has been initialized.
+		///
+		/// This is important to know to ensure that we don't try and initialize the bridge twice
+		/// and create an inconsistent genesis state.
+		IsInitialized: bool;
 		/// Optional pallet owner.
 		///
 		/// Pallet owner has a right to halt all pallet operations and then resume it. If it is
@@ -118,51 +123,11 @@ decl_storage! {
 		IsHalted get(fn is_halted) config(): bool;
 	}
 	add_extra_genesis {
-		config(initial_header): Option<BridgedHeader<T>>;
-		config(initial_authority_list): sp_finality_grandpa::AuthorityList;
-		config(initial_set_id): sp_finality_grandpa::SetId;
-		config(first_scheduled_change): Option<ScheduledChange<BridgedBlockNumber<T>>>;
+		config(init_data): Option<InitializationData<BridgedHeader<T>>>;
 		build(|config| {
-			assert!(
-				!config.initial_authority_list.is_empty(),
-				"An initial authority list is needed."
-			);
-
-			let initial_header = config
-				.initial_header
-				.clone()
-				.expect("An initial header is needed");
-			let initial_hash = initial_header.hash();
-
-			<BestHeight<T>>::put(initial_header.number());
-			<BestHeaders<T>>::put(vec![initial_hash]);
-			<BestFinalized<T>>::put(initial_hash);
-
-			let authority_set =
-				AuthoritySet::new(config.initial_authority_list.clone(), config.initial_set_id);
-			CurrentAuthoritySet::put(authority_set);
-
-			let mut signal_hash = None;
-			if let Some(ref change) = config.first_scheduled_change {
-				assert!(
-					change.height > *initial_header.number(),
-					"Changes must be scheduled past initial header."
-				);
-
-				signal_hash = Some(initial_hash);
-				<NextScheduledChange<T>>::insert(initial_hash, change);
-			};
-
-			<ImportedHeaders<T>>::insert(
-				initial_hash,
-				ImportedHeader {
-					header: initial_header,
-					requires_justification: false,
-					is_finalized: true,
-					signal_hash,
-				},
-			);
-
+			if let Some(init_data) = config.init_data.clone() {
+				initialize_bridge::<T>(init_data);
+			}
 		})
 	}
 }
@@ -175,6 +140,8 @@ decl_error! {
 		UnfinalizedHeader,
 		/// The header is unknown.
 		UnknownHeader,
+		/// The pallet has already been initialized.
+		AlreadyInitialized,
 		/// The storage proof doesn't contains storage root. So it is invalid for given header.
 		StorageRootMismatch,
 		/// Error when trying to fetch storage value from the proof.
@@ -239,6 +206,27 @@ decl_module! {
 				.map_err(|_| <Error<T>>::UnfinalizedHeader)?;
 
 			Ok(())
+		}
+
+		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
+		///
+		/// The initial configuration provided does not need to be the genesis header of the bridged
+		/// chain, it can be any arbirary header. You can also provide the next scheduled set change
+		/// if it is already know.
+		///
+		/// This function is only allowed to be called from a trusted origin and writes to storage
+		/// with practically no checks in terms of the validity of the data. It is important that
+		/// you ensure that valid data is being passed in.
+		//TODO: Update weights [#78]
+		#[weight = 0]
+		pub fn initialize(
+			origin,
+			init_data: InitializationData<BridgedHeader<T>>,
+		) {
+			let _ = ensure_root(origin)?;
+			let init_allowed = !IsInitialized::get();
+			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
+			initialize_bridge::<T>(init_data);
 		}
 
 		/// Change `ModuleOwner`.
@@ -361,6 +349,49 @@ fn ensure_operational<T: Trait>() -> Result<(), Error<T>> {
 	} else {
 		Ok(())
 	}
+}
+
+/// Since this writes to storage with no real checks this should only be used in functions that were
+/// called by a trusted origin.
+fn initialize_bridge<T: Trait>(init_params: InitializationData<BridgedHeader<T>>) {
+	let InitializationData {
+		header,
+		authority_list,
+		set_id,
+		scheduled_change,
+	} = init_params;
+
+	let initial_hash = header.hash();
+
+	let mut signal_hash = None;
+	if let Some(ref change) = scheduled_change {
+		assert!(
+			change.height > *header.number(),
+			"Changes must be scheduled past initial header."
+		);
+
+		signal_hash = Some(initial_hash);
+		<NextScheduledChange<T>>::insert(initial_hash, change);
+	};
+
+	<BestHeight<T>>::put(header.number());
+	<BestHeaders<T>>::put(vec![initial_hash]);
+	<BestFinalized<T>>::put(initial_hash);
+
+	let authority_set = AuthoritySet::new(authority_list, set_id);
+	CurrentAuthoritySet::put(authority_set);
+
+	<ImportedHeaders<T>>::insert(
+		initial_hash,
+		ImportedHeader {
+			header,
+			requires_justification: false,
+			is_finalized: true,
+			signal_hash,
+		},
+	);
+
+	IsInitialized::put(true);
 }
 
 /// Expected interface for interacting with bridge pallet storage.
@@ -531,60 +562,74 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{
-		helpers::{test_header, unfinalized_header},
-		run_test, Origin, TestRuntime,
-	};
+	use crate::mock::helpers::{authority_list, test_header, unfinalized_header};
+	use crate::mock::{run_test, Origin, TestRuntime};
 	use frame_support::{assert_noop, assert_ok};
 	use sp_runtime::DispatchError;
 
 	#[test]
-	fn parse_finalized_storage_proof_rejects_proof_on_unknown_header() {
+	fn only_root_origin_can_initialize_pallet() {
 		run_test(|| {
+			let init_data = InitializationData {
+				header: test_header(1),
+				authority_list: authority_list(),
+				set_id: 1,
+				scheduled_change: None,
+			};
+
 			assert_noop!(
-				Module::<TestRuntime>::parse_finalized_storage_proof(
-					Default::default(),
-					StorageProof::new(vec![]),
-					|_| (),
-				),
-				Error::<TestRuntime>::UnknownHeader,
+				Module::<TestRuntime>::initialize(Origin::signed(1), init_data.clone()),
+				DispatchError::BadOrigin,
 			);
-		});
+
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data));
+		})
 	}
 
 	#[test]
-	fn parse_finalized_storage_proof_rejects_proof_on_unfinalized_header() {
+	fn can_only_initialize_pallet_once() {
 		run_test(|| {
-			let mut storage = PalletStorage::<TestRuntime>::new();
-			let header = unfinalized_header(1);
-			storage.write_header(&header);
+			let init_data = InitializationData {
+				header: test_header(1),
+				authority_list: authority_list(),
+				set_id: 1,
+				scheduled_change: None,
+			};
 
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
 			assert_noop!(
-				Module::<TestRuntime>::parse_finalized_storage_proof(
-					header.header.hash(),
-					StorageProof::new(vec![]),
-					|_| (),
-				),
-				Error::<TestRuntime>::UnfinalizedHeader,
+				Module::<TestRuntime>::initialize(Origin::root(), init_data,),
+				<Error<TestRuntime>>::AlreadyInitialized,
 			);
-		});
+		})
 	}
 
 	#[test]
-	fn parse_finalized_storage_accepts_valid_proof() {
+	fn storage_entries_are_correctly_initialized() {
 		run_test(|| {
-			let mut storage = PalletStorage::<TestRuntime>::new();
-			let (state_root, storage_proof) = storage_proof::tests::craft_valid_storage_proof();
-			let mut header = unfinalized_header(1);
-			header.is_finalized = true;
-			header.header.set_state_root(state_root);
-			storage.write_header(&header);
+			let init_data = InitializationData {
+				header: test_header(1),
+				authority_list: authority_list(),
+				set_id: 1,
+				scheduled_change: None,
+			};
 
-			assert_ok!(
-				Module::<TestRuntime>::parse_finalized_storage_proof(header.header.hash(), storage_proof, |_| (),),
-				(),
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
+
+			let storage = PalletStorage::<TestRuntime>::new();
+
+			assert!(IsInitialized::get());
+			assert!(storage.header_exists(init_data.header.hash()));
+			assert_eq!(
+				storage.best_headers()[0],
+				crate::HeaderId {
+					number: *init_data.header.number(),
+					hash: init_data.header.hash()
+				}
 			);
-		});
+			assert_eq!(storage.best_finalized_header().hash(), init_data.header.hash());
+			assert_eq!(storage.current_authority_set().authorities, init_data.authority_list);
+		})
 	}
 
 	#[test]
@@ -660,5 +705,54 @@ mod tests {
 				Error::<TestRuntime>::Halted,
 			);
 		})
+	}
+
+	#[test]
+	fn parse_finalized_storage_proof_rejects_proof_on_unknown_header() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::parse_finalized_storage_proof(
+					Default::default(),
+					StorageProof::new(vec![]),
+					|_| (),
+				),
+				Error::<TestRuntime>::UnknownHeader,
+			);
+		});
+	}
+
+	#[test]
+	fn parse_finalized_storage_proof_rejects_proof_on_unfinalized_header() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let header = unfinalized_header(1);
+			storage.write_header(&header);
+
+			assert_noop!(
+				Module::<TestRuntime>::parse_finalized_storage_proof(
+					header.header.hash(),
+					StorageProof::new(vec![]),
+					|_| (),
+				),
+				Error::<TestRuntime>::UnfinalizedHeader,
+			);
+		});
+	}
+
+	#[test]
+	fn parse_finalized_storage_accepts_valid_proof() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let (state_root, storage_proof) = storage_proof::tests::craft_valid_storage_proof();
+			let mut header = unfinalized_header(1);
+			header.is_finalized = true;
+			header.header.set_state_root(state_root);
+			storage.write_header(&header);
+
+			assert_ok!(
+				Module::<TestRuntime>::parse_finalized_storage_proof(header.header.hash(), storage_proof, |_| (),),
+				(),
+			);
+		});
 	}
 }
