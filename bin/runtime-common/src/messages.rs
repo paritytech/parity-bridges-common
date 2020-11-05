@@ -297,9 +297,8 @@ pub mod target {
 	where
 		ThisRuntime: pallet_substrate_bridge::Trait,
 		ThisRuntime: pallet_message_lane::Trait<MessageLaneInstanceOf<BridgedChain<B>>>,
-		HashOf<BridgedChain<B>>: Into<
-			bp_runtime::HashOf<<ThisRuntime as pallet_substrate_bridge::Trait>::BridgedChain>
-		>,
+		HashOf<BridgedChain<B>>:
+			Into<bp_runtime::HashOf<<ThisRuntime as pallet_substrate_bridge::Trait>::BridgedChain>>,
 	{
 		let (bridged_header_hash, bridged_storage_proof, lane, begin, end) = proof;
 		pallet_substrate_bridge::Module::<ThisRuntime>::parse_finalized_storage_proof(
@@ -313,12 +312,16 @@ pub mod target {
 				let mut messages = Vec::with_capacity(end.checked_sub(begin).unwrap_or(0) as _);
 				for nonce in begin..=end {
 					let message_key = MessageKey { lane_id: lane, nonce };
-					let storage_message_key = pallet_message_lane::storage_keys::message_key::<ThisRuntime, MessageLaneInstanceOf<BridgedChain<B>>>(&lane, nonce);
+					let storage_message_key = pallet_message_lane::storage_keys::message_key::<
+						ThisRuntime,
+						MessageLaneInstanceOf<BridgedChain<B>>,
+					>(&lane, nonce);
 					let raw_message_data = storage
 						.read_value(storage_message_key.0.as_ref())
 						.map_err(|_| "Failed to read message from storage proof")?
 						.ok_or("Message is missing from the messages proof")?;
-					let message_data = MessageData::<BalanceOf<BridgedChain<B>>>::decode(&mut &raw_message_data[..]).map_err(|_| "Failed to decode message from the proof")?;
+					let message_data = MessageData::<BalanceOf<BridgedChain<B>>>::decode(&mut &raw_message_data[..])
+						.map_err(|_| "Failed to decode message from the proof")?;
 					messages.push(Message {
 						key: message_key,
 						data: message_data,
@@ -331,10 +334,15 @@ pub mod target {
 					lane_state: None,
 					messages,
 				};
-				let storage_outbound_lane_data_key = pallet_message_lane::storage_keys::outbound_lane_data_key::<MessageLaneInstanceOf<BridgedChain<B>>>(&lane);
+				let storage_outbound_lane_data_key = pallet_message_lane::storage_keys::outbound_lane_data_key::<
+					MessageLaneInstanceOf<BridgedChain<B>>,
+				>(&lane);
 				let raw_outbound_lane_data = storage.read_value(storage_outbound_lane_data_key.0.as_ref());
 				if let Ok(Some(raw_outbound_lane_data)) = raw_outbound_lane_data {
-					proved_lane_messages.lane_state = Some(OutboundLaneData::decode(&mut &raw_outbound_lane_data[..]).map_err(|_| "Failed to decode outbound lane data from the proof")?);
+					proved_lane_messages.lane_state = Some(
+						OutboundLaneData::decode(&mut &raw_outbound_lane_data[..])
+							.map_err(|_| "Failed to decode outbound lane data from the proof")?,
+					);
 				}
 
 				// Now we may actually check if the proof is empty or not.
@@ -347,8 +355,9 @@ pub mod target {
 				proved_messages.insert(lane, proved_lane_messages);
 
 				Ok(proved_messages)
-			}
-		).map_err(|err| <&'static str>::from(err))?
+			},
+		)
+		.map_err(|err| <&'static str>::from(err))?
 	}
 }
 
