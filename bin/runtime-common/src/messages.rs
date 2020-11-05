@@ -309,7 +309,7 @@ pub mod target {
 				// be in the proof. So any error in `read_value`, or even missing value is fatal.
 				//
 				// Mind that we allow proofs with no messages if outbound lane state is proved.
-				let mut messages = Vec::with_capacity(end.checked_sub(begin).unwrap_or(0) as _);
+				let mut messages = Vec::with_capacity(end.saturating_sub(begin) as _);
 				for nonce in begin..=end {
 					let message_key = MessageKey { lane_id: lane, nonce };
 					let storage_message_key = pallet_message_lane::storage_keys::message_key::<
@@ -357,7 +357,7 @@ pub mod target {
 				Ok(proved_messages)
 			},
 		)
-		.map_err(|err| <&'static str>::from(err))?
+		.map_err(<&'static str>::from)?
 	}
 }
 
