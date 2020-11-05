@@ -148,7 +148,7 @@ decl_storage! {
 		/// `None`, then there are no direct ways to halt/resume pallet operations, but other
 		/// runtime methods may still be used to do that (i.e. democracy::referendum to update halt
 		/// flag directly or call the `halt_operations`).
-		pub ModuleOwner get(fn module_owner) config(): Option<T::AccountId>;
+		pub ModuleOwner get(fn module_owner): Option<T::AccountId>;
 		/// If true, all pallet transactions are failed immediately.
 		pub IsHalted get(fn is_halted) config(): bool;
 		/// Map of lane id => inbound lane data.
@@ -160,6 +160,12 @@ decl_storage! {
 	}
 	add_extra_genesis {
 		config(phantom): sp_std::marker::PhantomData<I>;
+		config(owner): Option<T::AccountId>;
+		build(|config| {
+			if let Some(ref owner) = config.owner {
+				<ModuleOwner<T, I>>::put(owner);
+			}
+		})
 	}
 }
 
