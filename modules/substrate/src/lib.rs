@@ -33,10 +33,12 @@
 
 use crate::storage::ImportedHeader;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
-use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult};
-use frame_system::ensure_signed;
+use frame_support::{
+	decl_error, decl_module, decl_storage, dispatch::DispatchResult, traits::Get, weights::DispatchClass,
+};
+use frame_system::{ensure_signed, RawOrigin};
 use sp_runtime::traits::Header as HeaderT;
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{traits::BadOrigin, RuntimeDebug};
 use sp_std::{marker::PhantomData, prelude::*};
 use sp_trie::StorageProof;
 
@@ -105,6 +107,15 @@ decl_storage! {
 		// Grandpa doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
 		NextScheduledChange: map hasher(identity) BridgedBlockHash<T> => Option<ScheduledChange<BridgedBlockNumber<T>>>;
+		/// Optional pallet owner.
+		///
+		/// Pallet owner has a right to halt all pallet operations and then resume it. If it is
+		/// `None`, then there are no direct ways to halt/resume pallet operations, but other
+		/// runtime methods may still be used to do that (i.e. democracy::referendum to update halt
+		/// flag directly or call the `halt_operations`).
+		ModuleOwner get(fn module_owner) config(): Option<T::AccountId>;
+		/// If true, all pallet transactions are failed immediately.
+		IsHalted get(fn is_halted) config(): bool;
 	}
 	add_extra_genesis {
 		config(initial_header): Option<BridgedHeader<T>>;
@@ -168,6 +179,8 @@ decl_error! {
 		StorageRootMismatch,
 		/// Error when trying to fetch storage value from the proof.
 		StorageValueUnavailable,
+		/// All pallet operations are halted.
+		Halted,
 	}
 }
 
@@ -186,6 +199,7 @@ decl_module! {
 			origin,
 			header: BridgedHeader<T>,
 		) -> DispatchResult {
+			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
 			frame_support::debug::trace!(target: "sub-bridge", "Got header {:?}", header);
 
@@ -212,6 +226,7 @@ decl_module! {
 			hash: BridgedBlockHash<T>,
 			finality_proof: Vec<u8>,
 		) -> DispatchResult {
+			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
 			frame_support::debug::trace!(target: "sub-bridge", "Got header hash {:?}", hash);
 
@@ -224,6 +239,36 @@ decl_module! {
 				.map_err(|_| <Error<T>>::UnfinalizedHeader)?;
 
 			Ok(())
+		}
+
+		/// Change `ModuleOwner`.
+		///
+		/// May only be called either by root, or by `ModuleOwner`.
+		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
+		pub fn set_owner(origin, new_owner: Option<T::AccountId>) {
+			ensure_owner_or_root::<T>(origin)?;
+			match new_owner {
+				Some(new_owner) => ModuleOwner::<T>::put(new_owner),
+				None => ModuleOwner::<T>::kill(),
+			}
+		}
+
+		/// Halt all pallet operations. Operations may be resumed using `resume_operations` call.
+		///
+		/// May only be called either by root, or by `ModuleOwner`.
+		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
+		pub fn halt_operations(origin) {
+			ensure_owner_or_root::<T>(origin)?;
+			IsHalted::put(true);
+		}
+
+		/// Resume all pallet operations. May be called even if pallet is halted.
+		///
+		/// May only be called either by root, or by `ModuleOwner`.
+		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
+		pub fn resume_operations(origin) {
+			ensure_owner_or_root::<T>(origin)?;
+			IsHalted::put(false);
 		}
 	}
 }
@@ -297,6 +342,24 @@ impl<T: Trait> Module<T> {
 		let storage_proof_checker =
 			StorageProofChecker::new(*header.state_root(), storage_proof).map_err(Error::<T>::from)?;
 		Ok(parse(storage_proof_checker))
+	}
+}
+
+/// Ensure that the origin is either root, or `ModuleOwner`.
+fn ensure_owner_or_root<T: Trait>(origin: T::Origin) -> Result<(), BadOrigin> {
+	match origin.into() {
+		Ok(RawOrigin::Root) => Ok(()),
+		Ok(RawOrigin::Signed(ref signer)) if Some(signer) == <Module<T>>::module_owner().as_ref() => Ok(()),
+		_ => Err(BadOrigin),
+	}
+}
+
+/// Ensure that the pallet is in operational mode (not halted).
+fn ensure_operational<T: Trait>() -> Result<(), Error<T>> {
+	if IsHalted::get() {
+		Err(<Error<T>>::Halted)
+	} else {
+		Ok(())
 	}
 }
 
@@ -468,8 +531,12 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{helpers::unfinalized_header, run_test, TestRuntime};
+	use crate::mock::{
+		helpers::{test_header, unfinalized_header},
+		run_test, Origin, TestRuntime,
+	};
 	use frame_support::{assert_noop, assert_ok};
+	use sp_runtime::DispatchError;
 
 	#[test]
 	fn parse_finalized_storage_proof_rejects_proof_on_unknown_header() {
@@ -518,5 +585,80 @@ mod tests {
 				(),
 			);
 		});
+	}
+
+	#[test]
+	fn pallet_owner_may_change_owner() {
+		run_test(|| {
+			ModuleOwner::<TestRuntime>::put(2);
+
+			assert_ok!(Module::<TestRuntime>::set_owner(Origin::root(), Some(1)));
+			assert_noop!(
+				Module::<TestRuntime>::halt_operations(Origin::signed(2)),
+				DispatchError::BadOrigin,
+			);
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::root()));
+
+			assert_ok!(Module::<TestRuntime>::set_owner(Origin::signed(1), None));
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(2)),
+				DispatchError::BadOrigin,
+			);
+			assert_ok!(Module::<TestRuntime>::resume_operations(Origin::root()));
+		});
+	}
+
+	#[test]
+	fn pallet_may_be_halted_by_root() {
+		run_test(|| {
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::root()));
+			assert_ok!(Module::<TestRuntime>::resume_operations(Origin::root()));
+		});
+	}
+
+	#[test]
+	fn pallet_may_be_halted_by_owner() {
+		run_test(|| {
+			ModuleOwner::<TestRuntime>::put(2);
+
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::signed(2)));
+			assert_ok!(Module::<TestRuntime>::resume_operations(Origin::signed(2)));
+
+			assert_noop!(
+				Module::<TestRuntime>::halt_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::signed(2)));
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+		});
+	}
+
+	#[test]
+	fn pallet_rejects_transactions_if_halted() {
+		run_test(|| {
+			IsHalted::put(true);
+
+			assert_noop!(
+				Module::<TestRuntime>::import_signed_header(Origin::signed(1), test_header(1)),
+				Error::<TestRuntime>::Halted,
+			);
+
+			assert_noop!(
+				Module::<TestRuntime>::finalize_header(Origin::signed(1), test_header(1).hash(), vec![]),
+				Error::<TestRuntime>::Halted,
+			);
+		})
 	}
 }
