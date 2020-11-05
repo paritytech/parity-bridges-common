@@ -109,6 +109,7 @@ where
 
 		if let Some(metrics_msg) = self.metrics_msg.as_ref() {
 			metrics_msg.update_source_latest_generated_nonce::<P>(latest_generated_nonce);
+			metrics_msg.update_source_latest_confirmed_nonce::<P>(latest_confirmed_nonce);
 		}
 
 		Ok((
