@@ -734,6 +734,7 @@ dependencies = [
 name = "bp-millau"
 version = "0.1.0"
 dependencies = [
+ "bp-message-lane",
  "bp-runtime",
  "frame-support",
  "sp-api",
@@ -746,6 +747,7 @@ dependencies = [
 name = "bp-rialto"
 version = "0.1.0"
 dependencies = [
+ "bp-message-lane",
  "bp-runtime",
  "frame-support",
  "sp-api",
@@ -775,6 +777,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "pallet-bridge-call-dispatch",
+ "pallet-message-lane",
  "parity-scale-codec",
  "sp-runtime",
  "sp-std",
@@ -4165,6 +4168,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "frame-system",
+ "hex-literal 0.3.1",
  "parity-scale-codec",
  "serde",
  "sp-core",
@@ -5268,6 +5272,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-keyring",
  "sp-runtime",
 ]
 
@@ -5294,6 +5299,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-message-lane",
  "bp-runtime",
  "frame-support",
  "frame-system",
@@ -5308,6 +5314,8 @@ dependencies = [
  "relay-utils",
  "sp-core",
  "sp-runtime",
+ "sp-std",
+ "sp-trie",
  "sp-version",
 ]
 
@@ -7676,6 +7684,7 @@ dependencies = [
  "bp-message-lane",
  "bp-millau",
  "bp-rialto",
+ "bp-runtime",
  "frame-support",
  "futures 0.3.7",
  "headers-relay",
@@ -7695,6 +7704,7 @@ dependencies = [
  "rialto-runtime",
  "sp-core",
  "sp-runtime",
+ "sp-trie",
  "structopt",
 ]
 
