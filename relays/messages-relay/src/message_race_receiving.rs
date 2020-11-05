@@ -104,21 +104,17 @@ where
 		&self,
 		at_block: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, ClientNonces<P::MessageNonce>), Self::Error> {
-		let result = self.client.latest_received_nonce(at_block).await;
+		let (at_block, latest_received_nonce) = self.client.latest_received_nonce(at_block).await?;
 		if let Some(metrics_msg) = self.metrics_msg.as_ref() {
-			if let Ok((_, target_latest_received_nonce)) = result.as_ref() {
-				metrics_msg.update_target_latest_received_nonce::<P>(*target_latest_received_nonce);
-			}
+			metrics_msg.update_target_latest_received_nonce::<P>(latest_received_nonce);
 		}
-		result.map(|(at_block, latest_received_nonce)| {
-			(
-				at_block,
-				ClientNonces {
-					latest_nonce: latest_received_nonce,
-					confirmed_nonce: None,
-				},
-			)
-		})
+		Ok((
+			at_block,
+			ClientNonces {
+				latest_nonce: latest_received_nonce,
+				confirmed_nonce: None,
+			},
+		))
 	}
 
 	#[allow(clippy::unit_arg)]
@@ -161,21 +157,17 @@ where
 		&self,
 		at_block: SourceHeaderIdOf<P>,
 	) -> Result<(SourceHeaderIdOf<P>, ClientNonces<P::MessageNonce>), Self::Error> {
-		let result = self.client.latest_confirmed_received_nonce(at_block).await;
+		let (at_block, latest_confirmed_nonce) = self.client.latest_confirmed_received_nonce(at_block).await?;
 		if let Some(metrics_msg) = self.metrics_msg.as_ref() {
-			if let Ok((_, source_latest_confirmed_nonce)) = result.as_ref() {
-				metrics_msg.update_source_latest_confirmed_nonce::<P>(*source_latest_confirmed_nonce);
-			}
+			metrics_msg.update_source_latest_confirmed_nonce::<P>(latest_confirmed_nonce);
 		}
-		result.map(|(at_block, latest_confirmed_received_nonce)| {
-			(
-				at_block,
-				ClientNonces {
-					latest_nonce: latest_confirmed_received_nonce,
-					confirmed_nonce: None,
-				},
-			)
-		})
+		Ok((
+			at_block,
+			ClientNonces {
+				latest_nonce: latest_confirmed_nonce,
+				confirmed_nonce: None,
+			},
+		))
 	}
 
 	async fn submit_proof(

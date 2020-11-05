@@ -23,10 +23,7 @@ use crate::message_race_strategy::BasicStrategy;
 use crate::metrics::MessageLaneLoopMetrics;
 
 use async_trait::async_trait;
-use futures::{
-	future::{FutureExt, TryFutureExt},
-	stream::FusedStream,
-};
+use futures::stream::FusedStream;
 use num_traits::CheckedSub;
 use relay_utils::FailedClient;
 use std::{marker::PhantomData, ops::RangeInclusive, time::Duration};
@@ -107,34 +104,20 @@ where
 		&self,
 		at_block: SourceHeaderIdOf<P>,
 	) -> Result<(SourceHeaderIdOf<P>, ClientNonces<P::MessageNonce>), Self::Error> {
-		let result = self
-			.client
-			.latest_generated_nonce(at_block)
-			.and_then(|(at_block, latest_generated_nonce)| {
-				self.client
-					.latest_confirmed_received_nonce(at_block)
-					.map(move |result| {
-						result.map(|(at_block, latest_confirmed_nonce)| {
-							(at_block, latest_generated_nonce, latest_confirmed_nonce)
-						})
-					})
-			})
-			.await;
+		let (at_block, latest_generated_nonce) = self.client.latest_generated_nonce(at_block).await?;
+		let (at_block, latest_confirmed_nonce) = self.client.latest_confirmed_received_nonce(at_block).await?;
+
 		if let Some(metrics_msg) = self.metrics_msg.as_ref() {
-			if let Ok((_, source_latest_generated_nonce, _)) = result.as_ref() {
-				metrics_msg.update_source_latest_generated_nonce::<P>(*source_latest_generated_nonce);
-			}
+			metrics_msg.update_source_latest_generated_nonce::<P>(latest_generated_nonce);
 		}
 
-		result.map(|(at_block, latest_generated_nonce, latest_confirmed_nonce)| {
-			(
-				at_block,
-				ClientNonces {
-					latest_nonce: latest_generated_nonce,
-					confirmed_nonce: Some(latest_confirmed_nonce),
-				},
-			)
-		})
+		Ok((
+			at_block,
+			ClientNonces {
+				latest_nonce: latest_generated_nonce,
+				confirmed_nonce: Some(latest_confirmed_nonce),
+			},
+		))
 	}
 
 	async fn generate_proof(
@@ -169,36 +152,21 @@ where
 		&self,
 		at_block: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, ClientNonces<P::MessageNonce>), Self::Error> {
-		let result = self
-			.client
-			.latest_received_nonce(at_block)
-			.and_then(|(at_block, latest_received_nonce)| {
-				self.client
-					.latest_confirmed_received_nonce(at_block)
-					.map(move |result| {
-						result.map(|(at_block, latest_confirmed_nonce)| {
-							(at_block, latest_received_nonce, latest_confirmed_nonce)
-						})
-					})
-			})
-			.await;
+		let (at_block, latest_received_nonce) = self.client.latest_received_nonce(at_block).await?;
+		let (at_block, latest_confirmed_nonce) = self.client.latest_confirmed_received_nonce(at_block).await?;
 
 		if let Some(metrics_msg) = self.metrics_msg.as_ref() {
-			if let Ok((_, target_latest_received_nonce, target_latest_confirmed_nonce)) = result.as_ref() {
-				metrics_msg.update_target_latest_received_nonce::<P>(*target_latest_received_nonce);
-				metrics_msg.update_target_latest_confirmed_nonce::<P>(*target_latest_confirmed_nonce);
-			}
+			metrics_msg.update_target_latest_received_nonce::<P>(latest_received_nonce);
+			metrics_msg.update_target_latest_confirmed_nonce::<P>(latest_confirmed_nonce);
 		}
 
-		result.map(|(at_block, latest_received_nonce, latest_confirmed_nonce)| {
-			(
-				at_block,
-				ClientNonces {
-					latest_nonce: latest_received_nonce,
-					confirmed_nonce: Some(latest_confirmed_nonce),
-				},
-			)
-		})
+		Ok((
+			at_block,
+			ClientNonces {
+				latest_nonce: latest_received_nonce,
+				confirmed_nonce: Some(latest_confirmed_nonce),
+			},
+		))
 	}
 
 	async fn submit_proof(
