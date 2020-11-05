@@ -1,7 +1,9 @@
 # Bridge Deployments
 
 ## Requirements
-Make sure to install `docker` and `docker-compose` to be able to run and test bridge deployments.
+Make sure to install `docker` and `docker-compose` to be able to run and test bridge deployments. If
+for whatever reason you can't or don't want to use Docker, you can find some scripts for running the
+bridge [here](https://github.com/svyatonik/parity-bridges-common.test).
 
 ## Networks
 One of the building blocks we use for our deployments are _networks_. A network is a collection of
