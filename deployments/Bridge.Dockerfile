@@ -72,7 +72,7 @@ ARG PROJECT=ethereum-poa-relay
 ARG HEALTH=http://localhost:9616/metrics
 
 COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
-COPY --chown=user:user --from=builder /parity-bridges-common/deployments/scripts/bridge-entrypoint.sh ./
+COPY --chown=user:user --from=builder /parity-bridges-common/deployments/local-scripts/bridge-entrypoint.sh ./
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
