@@ -401,7 +401,7 @@ where
 {
 	let now_time = Instant::now();
 
-	let need_update = now_time.duration_since(prev_time) > Duration::from_secs(10);
+	let need_update = now_time.saturating_duration_since(prev_time) > Duration::from_secs(10);
 	if !need_update {
 		return prev_time;
 	}
