@@ -69,7 +69,10 @@ where
 	}
 
 	fn best_at_source(&self) -> Nonce {
-		self.source_queue.back().map(|(_, nonce)| *nonce).unwrap_or_else(Zero::zero)
+		self.source_queue
+			.back()
+			.map(|(_, nonce)| *nonce)
+			.unwrap_or_else(Zero::zero)
 	}
 
 	fn best_at_target(&self) -> Nonce {

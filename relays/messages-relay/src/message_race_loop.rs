@@ -397,12 +397,7 @@ impl<SourceHeaderId, TargetHeaderId, MessageNonce, Proof> Default
 fn print_race_progress<P, S>(prev_time: Instant, strategy: &S) -> Instant
 where
 	P: MessageRace,
-	S: RaceStrategy<
-		P::SourceHeaderId,
-		P::TargetHeaderId,
-		P::MessageNonce,
-		P::Proof,
-	>,
+	S: RaceStrategy<P::SourceHeaderId, P::TargetHeaderId, P::MessageNonce, P::Proof>,
 {
 	let now_time = Instant::now();
 
