@@ -188,6 +188,5 @@ fn load_millau_bridge_config() -> Option<BridgeMillauConfig> {
 	Some(BridgeMillauConfig {
 		init_data: Some(rialto_runtime::millau::init_data()),
 		owner: Some([0; 32].into()),
-		is_halted: false,
 	})
 }

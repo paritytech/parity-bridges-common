@@ -115,14 +115,12 @@ decl_storage! {
 		/// flag directly or call the `halt_operations`).
 		ModuleOwner get(fn module_owner): Option<T::AccountId>;
 		/// If true, all pallet transactions are failed immediately.
-		IsHalted get(fn is_halted) config(): bool;
+		IsHalted get(fn is_halted): bool;
 	}
 	add_extra_genesis {
 		config(owner): Option<T::AccountId>;
 		config(init_data): Option<InitializationData<BridgedHeader<T>>>;
 		build(|config| {
-			IsHalted::put(config.is_halted);
-
 			if let Some(ref owner) = config.owner {
 				<ModuleOwner<T>>::put(owner);
 			}
@@ -364,6 +362,7 @@ fn initialize_bridge<T: Trait>(init_params: InitializationData<BridgedHeader<T>>
 		authority_list,
 		set_id,
 		scheduled_change,
+		is_halted,
 	} = init_params;
 
 	let initial_hash = header.hash();
@@ -395,6 +394,8 @@ fn initialize_bridge<T: Trait>(init_params: InitializationData<BridgedHeader<T>>
 			signal_hash,
 		},
 	);
+
+	IsHalted::put(is_halted);
 }
 
 /// Expected interface for interacting with bridge pallet storage.
