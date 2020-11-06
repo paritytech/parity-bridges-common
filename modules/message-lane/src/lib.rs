@@ -194,8 +194,14 @@ decl_module! {
 		pub fn set_owner(origin, new_owner: Option<T::AccountId>) {
 			ensure_owner_or_root::<T, I>(origin)?;
 			match new_owner {
-				Some(new_owner) => ModuleOwner::<T, I>::put(new_owner),
-				None => ModuleOwner::<T, I>::kill(),
+				Some(new_owner) => {
+					ModuleOwner::<T, I>::put(&new_owner);
+					frame_support::debug::info!(target: "runtime", "Setting pallet Owner to: {:?}", new_owner);
+				},
+				None => {
+					ModuleOwner::<T, I>::kill();
+					frame_support::debug::info!(target: "runtime", "Removed Owner of pallet.");
+				},
 			}
 		}
 
@@ -206,6 +212,7 @@ decl_module! {
 		pub fn halt_operations(origin) {
 			ensure_owner_or_root::<T, I>(origin)?;
 			IsHalted::<I>::put(true);
+			frame_support::debug::warn!(target: "runtime", "Stopping pallet operations.");
 		}
 
 		/// Resume all pallet operations. May be called even if pallet is halted.
@@ -215,6 +222,7 @@ decl_module! {
 		pub fn resume_operations(origin) {
 			ensure_owner_or_root::<T, I>(origin)?;
 			IsHalted::<I>::put(false);
+			frame_support::debug::info!(target: "runtime", "Resuming pallet operations.");
 		}
 
 		/// Send message over lane.

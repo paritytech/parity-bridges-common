@@ -230,7 +230,12 @@ decl_module! {
 			ensure_owner_or_root::<T>(origin)?;
 			let init_allowed = !<BestFinalized<T>>::exists();
 			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
-			initialize_bridge::<T>(init_data);
+			initialize_bridge::<T>(init_data.clone());
+
+			frame_support::debug::info!(
+				target: "sub-bridge",
+				"Pallet has been initialized with the following parameters: {:?}", init_data
+			);
 		}
 
 		/// Change `ModuleOwner`.
@@ -240,8 +245,14 @@ decl_module! {
 		pub fn set_owner(origin, new_owner: Option<T::AccountId>) {
 			ensure_owner_or_root::<T>(origin)?;
 			match new_owner {
-				Some(new_owner) => ModuleOwner::<T>::put(new_owner),
-				None => ModuleOwner::<T>::kill(),
+				Some(new_owner) => {
+					ModuleOwner::<T>::put(&new_owner);
+					frame_support::debug::info!(target: "sub-bridge", "Setting pallet Owner to: {:?}", new_owner);
+				},
+				None => {
+					ModuleOwner::<T>::kill();
+					frame_support::debug::info!(target: "sub-bridge", "Removed Owner of pallet.");
+				},
 			}
 		}
 
@@ -252,6 +263,7 @@ decl_module! {
 		pub fn halt_operations(origin) {
 			ensure_owner_or_root::<T>(origin)?;
 			IsHalted::put(true);
+			frame_support::debug::warn!(target: "sub-bridge", "Stopping pallet operations.");
 		}
 
 		/// Resume all pallet operations. May be called even if pallet is halted.
@@ -261,6 +273,7 @@ decl_module! {
 		pub fn resume_operations(origin) {
 			ensure_owner_or_root::<T>(origin)?;
 			IsHalted::put(false);
+			frame_support::debug::info!(target: "sub-bridge", "Resuming pallet operations.");
 		}
 	}
 }
