@@ -579,6 +579,7 @@ mod tests {
 				authority_list: authority_list(),
 				set_id: 1,
 				scheduled_change: None,
+				is_halted: false,
 			};
 
 			assert_noop!(
@@ -601,6 +602,7 @@ mod tests {
 				authority_list: authority_list(),
 				set_id: 1,
 				scheduled_change: None,
+				is_halted: false,
 			};
 
 			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
@@ -616,6 +618,7 @@ mod tests {
 			);
 			assert_eq!(storage.best_finalized_header().hash(), init_data.header.hash());
 			assert_eq!(storage.current_authority_set().authorities, init_data.authority_list);
+			assert_eq!(IsHalted::get(), false);
 		})
 	}
 
