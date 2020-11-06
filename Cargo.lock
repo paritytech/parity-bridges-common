@@ -5368,6 +5368,7 @@ dependencies = [
  "sc-consensus-aura",
  "sc-executor",
  "sc-finality-grandpa",
+ "sc-finality-grandpa-rpc",
  "sc-rpc",
  "sc-service",
  "sc-transaction-pool",
