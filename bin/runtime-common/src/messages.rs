@@ -30,7 +30,7 @@ use bp_runtime::InstanceId;
 use codec::{Compact, Decode, Input};
 use frame_support::{traits::Instance, RuntimeDebug};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul};
-use sp_std::{cmp::PartialOrd, collections::btree_map::BTreeMap, marker::PhantomData, vec::Vec};
+use sp_std::{cmp::PartialOrd, marker::PhantomData, vec::Vec};
 use sp_trie::StorageProof;
 
 /// Bidirectional message bridge.
@@ -300,7 +300,7 @@ pub mod target {
 		HashOf<BridgedChain<B>>:
 			Into<bp_runtime::HashOf<<ThisRuntime as pallet_substrate_bridge::Trait>::BridgedChain>>,
 	{
-		let (bridged_header_hash, bridged_storage_proof, lane, begin, end) = proof;
+		let (bridged_header_hash, bridged_storage_proof, lane_id, begin, end) = proof;
 		pallet_substrate_bridge::Module::<ThisRuntime>::parse_finalized_storage_proof(
 			bridged_header_hash.into(),
 			bridged_storage_proof,
@@ -311,11 +311,11 @@ pub mod target {
 				// Mind that we allow proofs with no messages if outbound lane state is proved.
 				let mut messages = Vec::with_capacity(end.saturating_sub(begin) as _);
 				for nonce in begin..=end {
-					let message_key = MessageKey { lane_id: lane, nonce };
+					let message_key = MessageKey { lane_id, nonce };
 					let storage_message_key = pallet_message_lane::storage_keys::message_key::<
 						ThisRuntime,
 						MessageLaneInstanceOf<BridgedChain<B>>,
-					>(&lane, nonce);
+					>(&lane_id, nonce);
 					let raw_message_data = storage
 						.read_value(storage_message_key.0.as_ref())
 						.map_err(|_| "Failed to read message from storage proof")?
@@ -336,7 +336,7 @@ pub mod target {
 				};
 				let storage_outbound_lane_data_key = pallet_message_lane::storage_keys::outbound_lane_data_key::<
 					MessageLaneInstanceOf<BridgedChain<B>>,
-				>(&lane);
+				>(&lane_id);
 				let raw_outbound_lane_data = storage.read_value(storage_outbound_lane_data_key.0.as_ref());
 				if let Ok(Some(raw_outbound_lane_data)) = raw_outbound_lane_data {
 					proved_lane_messages.lane_state = Some(
@@ -351,8 +351,8 @@ pub mod target {
 				}
 
 				// We only support single lane messages in this schema
-				let mut proved_messages = BTreeMap::new();
-				proved_messages.insert(lane, proved_lane_messages);
+				let mut proved_messages = ProvedMessages::new();
+				proved_messages.insert(lane_id, proved_lane_messages);
 
 				Ok(proved_messages)
 			},
