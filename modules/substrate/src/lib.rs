@@ -34,7 +34,7 @@
 use crate::storage::ImportedHeader;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use frame_support::{
-	decl_error, decl_module, decl_storage, dispatch::DispatchResult, traits::Get, weights::DispatchClass,
+	decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get, weights::DispatchClass,
 };
 use frame_system::{ensure_signed, RawOrigin};
 use sp_runtime::traits::Header as HeaderT;
@@ -150,6 +150,8 @@ decl_error! {
 		StorageValueUnavailable,
 		/// All pallet operations are halted.
 		Halted,
+		/// The pallet has already been initialized.
+		AlreadyInitialized,
 	}
 }
 
@@ -219,9 +221,6 @@ decl_module! {
 		/// This function is only allowed to be called from a trusted origin and writes to storage
 		/// with practically no checks in terms of the validity of the data. It is important that
 		/// you ensure that valid data is being passed in.
-		///
-		/// There's also nothing stopping Owner or Root from calling this function twice (which
-		/// would be bad). Ensure this isn't the case before submitting the call.
 		//TODO: Update weights [#78]
 		#[weight = 0]
 		pub fn initialize(
@@ -229,6 +228,8 @@ decl_module! {
 			init_data: InitializationData<BridgedHeader<T>>,
 		) {
 			ensure_owner_or_root::<T>(origin)?;
+			let init_allowed = !<BestFinalized<T>>::exists();
+			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
 			initialize_bridge::<T>(init_data);
 		}
 
@@ -589,6 +590,8 @@ mod tests {
 
 			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
 
+			// Reset storage so we can initialize the pallet again
+			BestFinalized::<TestRuntime>::kill();
 			ModuleOwner::<TestRuntime>::put(2);
 			assert_ok!(Module::<TestRuntime>::initialize(Origin::signed(2), init_data));
 		})
@@ -619,6 +622,25 @@ mod tests {
 			assert_eq!(storage.best_finalized_header().hash(), init_data.header.hash());
 			assert_eq!(storage.current_authority_set().authorities, init_data.authority_list);
 			assert_eq!(IsHalted::get(), false);
+		})
+	}
+
+	#[test]
+	fn init_can_only_initialize_pallet_once() {
+		run_test(|| {
+			let init_data = InitializationData {
+				header: test_header(1),
+				authority_list: authority_list(),
+				set_id: 1,
+				scheduled_change: None,
+				is_halted: false,
+			};
+
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
+			assert_noop!(
+				Module::<TestRuntime>::initialize(Origin::root(), init_data),
+				<Error<TestRuntime>>::AlreadyInitialized
+			);
 		})
 	}
 
