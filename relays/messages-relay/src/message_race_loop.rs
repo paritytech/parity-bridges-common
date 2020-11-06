@@ -305,20 +305,21 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>>(
 		if source_client_is_online {
 			source_client_is_online = false;
 
-			let nonces_to_deliver = race_state.source_state.as_ref().and_then(|source_state| {
+			let nonces_to_deliver = race_state.target_state.as_ref().and_then(|target_state| {
 				strategy
 					.select_nonces_to_deliver(&race_state)
 					.map(|(nonces_range, proof_parameters)| {
-						(source_state.best_self.clone(), nonces_range, proof_parameters)
+						(target_state.best_peer.clone(), nonces_range, proof_parameters)
 					})
 			});
 
 			if let Some((at_block, nonces_range, proof_parameters)) = nonces_to_deliver {
 				log::debug!(
 					target: "bridge",
-					"Asking {} to prove nonces in range {:?}",
+					"Asking {} to prove nonces in range {:?} at block {:?}",
 					P::source_name(),
 					nonces_range,
+					at_block,
 				);
 				source_generate_proof.set(
 					race_source
