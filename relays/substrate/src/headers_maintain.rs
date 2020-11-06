@@ -63,7 +63,9 @@ struct Justifications<P: SubstrateHeadersSyncPipeline> {
 	queue: VecDeque<(HeaderIdOf<P>, Justification)>,
 }
 
-impl<P: SubstrateHeadersSyncPipeline, SourceChain, TargetChain: Chain> SubstrateHeadersToSubstrateMaintain<P, SourceChain, TargetChain> {
+impl<P: SubstrateHeadersSyncPipeline, SourceChain, TargetChain: Chain>
+	SubstrateHeadersToSubstrateMaintain<P, SourceChain, TargetChain>
+{
 	/// Create new maintain procedure.
 	pub fn new(pipeline: P, target_client: Client<TargetChain>, justifications: JustificationsSubscription) -> Self {
 		SubstrateHeadersToSubstrateMaintain {
