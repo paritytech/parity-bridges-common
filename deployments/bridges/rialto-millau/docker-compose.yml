@@ -1,5 +1,21 @@
 version: '3.5'
 services:
+  # We provide overrides for these particular nodes since they are public facing
+  # nodes which we use to connect from things like Polkadot JS Apps.
+  rialto-node-charlie:
+    environment:
+      VIRTUAL_HOST: wss.rialto.brucke.link
+      VIRTUAL_PORT: 9944
+      LETSENCRYPT_HOST: wss.rialto.brucke.link
+      LETSENCRYPT_EMAIL: admin@parity.io
+
+  millau-node-charlie:
+    environment:
+      VIRTUAL_HOST: wss.millau.brucke.link
+      VIRTUAL_PORT: 9944
+      LETSENCRYPT_HOST: wss.millau.brucke.link
+      LETSENCRYPT_EMAIL: admin@parity.io
+
   relay-headers-millau-to-rialto:
     image: paritytech/substrate-relay
     entrypoint: /entrypoints/relay-headers-millau-to-rialto-entrypoint.sh
