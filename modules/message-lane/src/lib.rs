@@ -196,11 +196,11 @@ decl_module! {
 			match new_owner {
 				Some(new_owner) => {
 					ModuleOwner::<T, I>::put(&new_owner);
-					frame_support::debug::info!(target: "runtime", "Setting pallet Owner to: {:?}", new_owner);
+					frame_support::debug::info!("Setting pallet Owner to: {:?}", new_owner);
 				},
 				None => {
 					ModuleOwner::<T, I>::kill();
-					frame_support::debug::info!(target: "runtime", "Removed Owner of pallet.");
+					frame_support::debug::info!("Removed Owner of pallet.");
 				},
 			}
 		}
@@ -212,7 +212,7 @@ decl_module! {
 		pub fn halt_operations(origin) {
 			ensure_owner_or_root::<T, I>(origin)?;
 			IsHalted::<I>::put(true);
-			frame_support::debug::warn!(target: "runtime", "Stopping pallet operations.");
+			frame_support::debug::warn!("Stopping pallet operations.");
 		}
 
 		/// Resume all pallet operations. May be called even if pallet is halted.
@@ -222,7 +222,7 @@ decl_module! {
 		pub fn resume_operations(origin) {
 			ensure_owner_or_root::<T, I>(origin)?;
 			IsHalted::<I>::put(false);
-			frame_support::debug::info!(target: "runtime", "Resuming pallet operations.");
+			frame_support::debug::info!("Resuming pallet operations.");
 		}
 
 		/// Send message over lane.
@@ -239,7 +239,6 @@ decl_module! {
 			// let's first check if message can be delivered to target chain
 			T::TargetHeaderChain::verify_message(&payload).map_err(|err| {
 				frame_support::debug::trace!(
-					target: "runtime",
 					"Message to lane {:?} is rejected by target chain: {:?}",
 					lane_id,
 					err,
@@ -256,7 +255,6 @@ decl_module! {
 				&payload,
 			).map_err(|err| {
 				frame_support::debug::trace!(
-					target: "runtime",
 					"Message to lane {:?} is rejected by lane verifier: {:?}",
 					lane_id,
 					err,
@@ -271,7 +269,6 @@ decl_module! {
 				&delivery_and_dispatch_fee,
 			).map_err(|err| {
 				frame_support::debug::trace!(
-					target: "runtime",
 					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
 					lane_id,
 					submitter,
@@ -291,7 +288,6 @@ decl_module! {
 			lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 
 			frame_support::debug::trace!(
-				target: "runtime",
 				"Accepted message {} to lane {:?}",
 				nonce,
 				lane_id,
@@ -317,7 +313,6 @@ decl_module! {
 			let messages = verify_and_decode_messages_proof::<T::SourceHeaderChain, T::InboundMessageFee, T::InboundPayload>(proof)
 				.map_err(|err| {
 					frame_support::debug::trace!(
-						target: "runtime",
 						"Rejecting invalid messages proof: {:?}",
 						err,
 					);
@@ -337,7 +332,6 @@ decl_module! {
 				.sum();
 			if dispatch_weight < actual_dispatch_weight {
 				frame_support::debug::trace!(
-					target: "runtime",
 					"Rejecting messages proof because of dispatch weight mismatch: declared={}, expected={}",
 					dispatch_weight,
 					actual_dispatch_weight,
@@ -356,7 +350,6 @@ decl_module! {
 					let updated_latest_confirmed_nonce = lane.receive_state_update(lane_state);
 					if let Some(updated_latest_confirmed_nonce) = updated_latest_confirmed_nonce {
 						frame_support::debug::trace!(
-							target: "runtime",
 							"Received lane {:?} state update: latest_confirmed_nonce={}",
 							lane_id,
 							updated_latest_confirmed_nonce,
@@ -375,7 +368,6 @@ decl_module! {
 			}
 
 			frame_support::debug::trace!(
-				target: "runtime",
 				"Received messages: total={}, valid={}",
 				total_messages,
 				valid_messages,
@@ -392,7 +384,6 @@ decl_module! {
 			let confirmation_relayer = ensure_signed(origin)?;
 			let (lane_id, lane_data) = T::TargetHeaderChain::verify_messages_delivery_proof(proof).map_err(|err| {
 				frame_support::debug::trace!(
-					target: "runtime",
 					"Rejecting invalid messages delivery proof: {:?}",
 					err,
 				);
@@ -428,7 +419,6 @@ decl_module! {
 			}
 
 			frame_support::debug::trace!(
-				target: "runtime",
 				"Received messages delivery proof up to (and including) {} at lane {:?}",
 				lane_data.latest_received_nonce,
 				lane_id,

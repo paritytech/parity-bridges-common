@@ -172,7 +172,7 @@ decl_module! {
 		) -> DispatchResult {
 			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
-			frame_support::debug::trace!(target: "sub-bridge", "Got header {:?}", header);
+			frame_support::debug::trace!("Got header {:?}", header);
 
 			let mut verifier = verifier::Verifier {
 				storage: PalletStorage::<T>::new(),
@@ -199,7 +199,7 @@ decl_module! {
 		) -> DispatchResult {
 			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
-			frame_support::debug::trace!(target: "sub-bridge", "Got header hash {:?}", hash);
+			frame_support::debug::trace!("Got header hash {:?}", hash);
 
 			let mut verifier = verifier::Verifier {
 				storage: PalletStorage::<T>::new(),
@@ -233,7 +233,6 @@ decl_module! {
 			initialize_bridge::<T>(init_data.clone());
 
 			frame_support::debug::info!(
-				target: "sub-bridge",
 				"Pallet has been initialized with the following parameters: {:?}", init_data
 			);
 		}
@@ -247,11 +246,11 @@ decl_module! {
 			match new_owner {
 				Some(new_owner) => {
 					ModuleOwner::<T>::put(&new_owner);
-					frame_support::debug::info!(target: "sub-bridge", "Setting pallet Owner to: {:?}", new_owner);
+					frame_support::debug::info!("Setting pallet Owner to: {:?}", new_owner);
 				},
 				None => {
 					ModuleOwner::<T>::kill();
-					frame_support::debug::info!(target: "sub-bridge", "Removed Owner of pallet.");
+					frame_support::debug::info!("Removed Owner of pallet.");
 				},
 			}
 		}
@@ -263,7 +262,7 @@ decl_module! {
 		pub fn halt_operations(origin) {
 			ensure_owner_or_root::<T>(origin)?;
 			IsHalted::put(true);
-			frame_support::debug::warn!(target: "sub-bridge", "Stopping pallet operations.");
+			frame_support::debug::warn!("Stopping pallet operations.");
 		}
 
 		/// Resume all pallet operations. May be called even if pallet is halted.
@@ -273,7 +272,7 @@ decl_module! {
 		pub fn resume_operations(origin) {
 			ensure_owner_or_root::<T>(origin)?;
 			IsHalted::put(false);
-			frame_support::debug::info!(target: "sub-bridge", "Resuming pallet operations.");
+			frame_support::debug::info!("Resuming pallet operations.");
 		}
 	}
 }
