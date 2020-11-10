@@ -37,6 +37,16 @@ services:
       - rialto-node-dave
       - rialto-node-eve
 
+  relay-headers-rialto-to-millau:
+    image: paritytech/substrate-relay
+    entrypoint: /entrypoints/relay-headers-rialto-to-millau-entrypoint.sh
+    volumes:
+      - ./bridges/rialto-millau/entrypoints:/entrypoints
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "9716:9616"
+    depends_on: *all-nodes
 
   prometheus-metrics:
     volumes:
