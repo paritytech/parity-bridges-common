@@ -136,5 +136,6 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 		// when there's nothing scheduled
 		// on ephemeral chains, it is ok to start with genesis
 		scheduled_change: None,
+		is_halted: false,
 	})
 }
