@@ -1,0 +1,9 @@
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'millau_headers_to_rialto_relay_node'
+
+    # Override the global default and scrape targets from this job every 15 seconds.
+    scrape_interval: 15s
+
+    static_configs:
+      - targets: ['relay-millau-headers-to-rialto:9616']
