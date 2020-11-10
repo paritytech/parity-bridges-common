@@ -16,8 +16,8 @@ services:
       LETSENCRYPT_HOST: wss.millau.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
 
-  relay-headers-millau-to-rialto:
-    image: paritytech/substrate-relay
+  relay-headers-millau-to-rialto: &sub-bridge-relay
+    image: local/substrate-relay
     entrypoint: /entrypoints/relay-headers-millau-to-rialto-entrypoint.sh
     volumes:
       - ./bridges/rialto-millau/entrypoints:/entrypoints
@@ -38,15 +38,10 @@ services:
       - rialto-node-eve
 
   relay-headers-rialto-to-millau:
-    image: paritytech/substrate-relay
+    <<: *sub-bridge-relay
     entrypoint: /entrypoints/relay-headers-rialto-to-millau-entrypoint.sh
-    volumes:
-      - ./bridges/rialto-millau/entrypoints:/entrypoints
-    environment:
-      RUST_LOG: rpc=trace,bridge=trace
     ports:
       - "9716:9616"
-    depends_on: *all-nodes
 
   prometheus-metrics:
     volumes:
