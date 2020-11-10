@@ -64,7 +64,7 @@ pub async fn initialize<SourceChain: Chain, TargetChain: Chain>(
 	}
 }
 
-/// Craft ans submit initialization transaction, returning any error that may occur.
+/// Craft and submit initialization transaction, returning any error that may occur.
 async fn do_initialize<SourceChain: Chain, TargetChain: Chain>(
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
@@ -132,9 +132,9 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 		header: initial_header,
 		authority_list: initial_authorities_set,
 		set_id: initial_authorities_set_id.unwrap_or(0),
-		// there may be multiple scheduled changes, so on real chains we should select proper moment,
-		// when there's nothing scheduled
-		// on ephemeral chains, it is ok to start with genesis
+		// There may be multiple scheduled changes, so on real chains we should select proper
+		// moment, when there's nothing scheduled. On ephemeral (temporary) chains, it is ok to
+		// start with genesis.
 		scheduled_change: None,
 		is_halted: false,
 	})
