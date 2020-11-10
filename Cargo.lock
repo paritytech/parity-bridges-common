@@ -7723,6 +7723,7 @@ dependencies = [
  "relay-utils",
  "rialto-runtime",
  "sp-core",
+ "sp-finality-grandpa",
  "sp-runtime",
  "sp-trie",
  "structopt",
