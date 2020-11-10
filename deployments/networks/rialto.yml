@@ -13,7 +13,7 @@ services:
       - --unsafe-rpc-external
       - --unsafe-ws-external
     environment: &bridge-env
-      RUST_LOG: runtime=trace,rpc=debug,txpool=trace
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,pallet_substrate_bridge=trace
     ports:
       - "9933:9933"
       - "9944:9944"
