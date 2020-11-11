@@ -90,6 +90,7 @@ pub trait SourceClient<P: MessageLane>: Clone + Send + Sync {
 	/// Returns mapping of message nonces, generated on this client, to their weights.
 	async fn generated_messages_weights(
 		&self,
+		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
 	) -> Result<MessageWeightsMap, Self::Error>;
 
@@ -552,6 +553,7 @@ pub(crate) mod tests {
 
 		async fn generated_messages_weights(
 			&self,
+			_id: SourceHeaderIdOf<TestMessageLane>,
 			nonces: RangeInclusive<MessageNonce>,
 		) -> Result<MessageWeightsMap, Self::Error> {
 			Ok(nonces.map(|nonce| (nonce, 1)).collect())

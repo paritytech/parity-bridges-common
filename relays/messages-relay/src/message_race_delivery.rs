@@ -119,7 +119,7 @@ where
 
 		let new_nonces = if latest_generated_nonce > prev_latest_nonce {
 			self.client
-				.generated_messages_weights(prev_latest_nonce + 1..=latest_generated_nonce)
+				.generated_messages_weights(at_block.clone(), prev_latest_nonce + 1..=latest_generated_nonce)
 				.await?
 		} else {
 			BTreeMap::new()

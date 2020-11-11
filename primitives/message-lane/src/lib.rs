@@ -129,7 +129,7 @@ decl_runtime_apis! {
 		/// Returns dispatch weight of all messages in given inclusive range.
 		///
 		/// If some (or all) messages are missing from the storage, they'll also will
-		/// be missing from the resulting vector.
+		/// be missing from the resulting vector. The vector is ordered by the nonce.
 		fn messages_dispatch_weight(
 			lane: LaneId,
 			begin: MessageNonce,

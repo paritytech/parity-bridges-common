@@ -153,9 +153,35 @@ where
 
 	async fn generated_messages_weights(
 		&self,
+		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
 	) -> Result<MessageWeightsMap, Self::Error> {
-		unimplemented!("TODO")
+		let encoded_response = self
+			.client
+			.state_call(
+				// TODO: https://github.com/paritytech/parity-bridges-common/issues/457
+				"OutboundLaneApi_messages_dispatch_weight".into(),
+				Bytes((self.lane, nonces.start(), nonces.end()).encode()),
+				Some(id.1),
+			)
+			.await?;
+		let weights: Vec<(MessageNonce, Weight)> =
+			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?;
+
+		let mut expected_nonce = *nonces.start();
+		let mut weights_map = MessageWeightsMap::new();
+		for (nonce, weight) in weights {
+			if nonce != expected_nonce {
+				return Err(SubstrateError::Custom(format!(
+					"Unexpected nonce in messages_dispatch_weight call result. Expected {}, got {}",
+					expected_nonce, nonce
+				)));
+			}
+
+			weights_map.insert(nonce, weight);
+			expected_nonce += 1;
+		}
+		Ok(weights_map)
 	}
 
 	async fn prove_messages(
