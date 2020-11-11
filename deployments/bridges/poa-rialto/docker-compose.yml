@@ -40,14 +40,6 @@ services:
       - rialto-node-dave
       - rialto-node-eve
 
-  poa-exchange-tx-generator:
-    <<: *eth-poa-relay
-    entrypoint: /entrypoints/poa-exchange-tx-generator-entrypoint.sh
-    environment:
-      EXCHANGE_GEN_MIN_AMOUNT_FINNEY: ${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1}
-      EXCHANGE_GEN_MAX_AMOUNT_FINNEY: ${EXCHANGE_GEN_MAX_AMOUNT_FINNEY:-100000}
-      EXCHANGE_GEN_MAX_SUBMIT_DELAY_S: ${EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-60}
-
   relay-poa-exchange-rialto:
     <<: *eth-poa-relay
     entrypoint: /entrypoints/relay-poa-exchange-rialto-entrypoint.sh
@@ -58,7 +50,20 @@ services:
     <<: *eth-poa-relay
     entrypoint: /entrypoints/relay-headers-rialto-to-poa-entrypoint.sh
     ports:
-      - "9618:9616"
+      - "9816:9616"
+
+  poa-exchange-tx-generator:
+    <<: *eth-poa-relay
+    entrypoint: /entrypoints/poa-exchange-tx-generator-entrypoint.sh
+    environment:
+      EXCHANGE_GEN_MIN_AMOUNT_FINNEY: ${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1}
+      EXCHANGE_GEN_MAX_AMOUNT_FINNEY: ${EXCHANGE_GEN_MAX_AMOUNT_FINNEY:-100000}
+      EXCHANGE_GEN_MAX_SUBMIT_DELAY_S: ${EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-60}
+    ports:
+      - "9916:9616"
+    depends_on:
+      - relay-headers-poa-to-rialto
+      - relay-headers-rialto-to-poa
 
   front-end:
     build:
