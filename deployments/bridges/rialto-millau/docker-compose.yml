@@ -43,6 +43,23 @@ services:
     ports:
       - "9716:9616"
 
+  relay-messages-millau-to-rialto:
+    <<: *sub-bridge-relay
+    entrypoint: /entrypoints/relay-messages-millau-to-rialto-entrypoint.sh
+    ports:
+      - "9816:9616"
+    depends_on:
+      - relay-headers-millau-to-rialto
+      - relay-headers-rialto-to-millau
+
+  relay-messages-millau-to-rialto-generator:
+    <<: *sub-bridge-relay
+    entrypoint: /entrypoints/relay-messages-generator-entrypoint.sh
+    ports:
+      - "9916:9616"
+    depends_on:
+      - relay-messages-millau-to-rialto
+
   prometheus-metrics:
     volumes:
       - ./bridges/rialto-millau/dashboard/prometheus/:/etc/prometheus/
