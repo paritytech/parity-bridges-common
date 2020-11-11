@@ -64,6 +64,15 @@ pub struct Params {
 /// Messages weights map.
 pub type MessageWeightsMap = BTreeMap<MessageNonce, Weight>;
 
+/// Message delivery race proof parameters.
+#[derive(Debug, PartialEq)]
+pub struct MessageProofParameters {
+	/// Include outbound lane state proof?
+	pub outbound_state_proof_required: bool,
+	/// Cumulative dispatch weight of messages that we're building proof for.
+	pub dispatch_weight: Weight,
+}
+
 /// Source client trait.
 #[async_trait]
 pub trait SourceClient<P: MessageLane>: Clone + Send + Sync {
@@ -99,7 +108,7 @@ pub trait SourceClient<P: MessageLane>: Clone + Send + Sync {
 		&self,
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
-		include_outbound_lane_state: bool,
+		proof_parameters: MessageProofParameters,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), Self::Error>;
 
 	/// Submit messages receiving proof.
@@ -563,7 +572,7 @@ pub(crate) mod tests {
 			&self,
 			id: SourceHeaderIdOf<TestMessageLane>,
 			nonces: RangeInclusive<MessageNonce>,
-			include_outbound_lane_state: bool,
+			proof_parameters: MessageProofParameters,
 		) -> Result<
 			(
 				SourceHeaderIdOf<TestMessageLane>,
@@ -579,7 +588,7 @@ pub(crate) mod tests {
 				nonces.clone(),
 				(
 					nonces,
-					if include_outbound_lane_state {
+					if proof_parameters.outbound_state_proof_required {
 						Some(data.source_latest_confirmed_received_nonce)
 					} else {
 						None

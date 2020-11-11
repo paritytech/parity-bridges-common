@@ -25,7 +25,7 @@ use codec::{Decode, Encode};
 use frame_support::weights::Weight;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
-	message_lane_loop::{ClientState, MessageWeightsMap, SourceClient, SourceClientState},
+	message_lane_loop::{ClientState, MessageProofParameters, MessageWeightsMap, SourceClient, SourceClientState},
 };
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf};
 use relay_utils::HeaderId;
@@ -188,20 +188,20 @@ where
 		&self,
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
-		include_outbound_lane_state: bool,
+		proof_parameters: MessageProofParameters,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), Self::Error> {
-		let (weight, proof) = self
+		let proof = self
 			.client
 			.prove_messages(
 				self.instance,
 				self.lane,
 				nonces.clone(),
-				include_outbound_lane_state,
+				proof_parameters.outbound_state_proof_required,
 				id.1,
 			)
 			.await?;
 		let proof = (id.1, proof, self.lane, *nonces.start(), *nonces.end());
-		Ok((id, nonces, (weight, proof)))
+		Ok((id, nonces, (proof_parameters.dispatch_weight, proof)))
 	}
 
 	async fn submit_messages_receiving_proof(

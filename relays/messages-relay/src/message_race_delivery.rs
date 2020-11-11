@@ -15,7 +15,7 @@
 
 use crate::message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf};
 use crate::message_lane_loop::{
-	MessageWeightsMap, SourceClient as MessageLaneSourceClient, SourceClientState,
+	MessageProofParameters, MessageWeightsMap, SourceClient as MessageLaneSourceClient, SourceClientState,
 	TargetClient as MessageLaneTargetClient, TargetClientState,
 };
 use crate::message_race_loop::{
@@ -102,7 +102,7 @@ where
 {
 	type Error = C::Error;
 	type NoncesRange = MessageWeightsMap;
-	type ProofParameters = bool;
+	type ProofParameters = MessageProofParameters;
 
 	async fn nonces(
 		&self,
@@ -140,9 +140,8 @@ where
 		nonces: RangeInclusive<MessageNonce>,
 		proof_parameters: Self::ProofParameters,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), Self::Error> {
-		let outbound_state_proof_required = proof_parameters;
 		self.client
-			.prove_messages(at_block, nonces, outbound_state_proof_required)
+			.prove_messages(at_block, nonces, proof_parameters)
 			.await
 	}
 }
@@ -222,7 +221,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 	for MessageDeliveryStrategy<P>
 {
 	type SourceNoncesRange = MessageWeightsMap;
-	type ProofParameters = bool;
+	type ProofParameters = MessageProofParameters;
 
 	fn is_empty(&self) -> bool {
 		self.strategy.is_empty()
@@ -363,7 +362,13 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			})?
 			.0;
 
-		Some((selected_nonces, outbound_state_proof_required))
+		Some((
+			selected_nonces,
+			MessageProofParameters {
+				outbound_state_proof_required,
+				dispatch_weight: selected_weight,
+			},
+		))
 	}
 }
 
@@ -435,6 +440,13 @@ mod tests {
 		(race_state, race_strategy)
 	}
 
+	fn proof_parameters(state_required: bool, weight: Weight) -> MessageProofParameters {
+		MessageProofParameters {
+			outbound_state_proof_required: state_required,
+			dispatch_weight: weight,
+		}
+	}
+
 	#[test]
 	fn weights_map_works_as_nonces_range() {
 		fn build_map(range: RangeInclusive<MessageNonce>) -> MessageWeightsMap {
@@ -458,7 +470,7 @@ mod tests {
 		let (state, mut strategy) = prepare_strategy();
 
 		// both sides are ready to relay new messages
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=23), false)));
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=23), proof_parameters(false, 4))));
 	}
 
 	#[test]
@@ -480,7 +492,7 @@ mod tests {
 		// to target to prune rewards queue
 		let prev_confirmed_nonce_at_source = strategy.source_nonces.as_ref().unwrap().confirmed_nonce.unwrap();
 		strategy.target_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=23), true)));
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=23), proof_parameters(true, 4))));
 	}
 
 	#[test]
@@ -489,7 +501,7 @@ mod tests {
 
 		// not all queued messages may fit in the batch, because batch has max weight
 		strategy.max_messages_weight_in_single_batch = 3;
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=22), false)));
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=22), proof_parameters(false, 3))));
 	}
 
 	#[test]
@@ -501,6 +513,6 @@ mod tests {
 		let prev_confirmed_nonce_at_source = strategy.source_nonces.as_ref().unwrap().confirmed_nonce.unwrap();
 		strategy.source_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
 		strategy.target_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=22), false)));
+		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=22), proof_parameters(false, 3))));
 	}
 }
