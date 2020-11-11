@@ -1,15 +1,17 @@
 #!/bin/bash
 set -xeu
 
-curl -v http://millau-node-alice:9933/health
-curl -v http://rialto-node-alice:9933/health
+curl -v http://millau-node-bob:9933/health
+curl -v http://rialto-node-bob:9933/health
+
+MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
 
 /home/user/substrate-relay millau-messages-to-rialto \
-	--lane 00000000 \
-	--millau-host millau-node-alice \
+	--lane $MESSAGE_LANE \
+	--millau-host millau-node-bob \
 	--millau-port 9944 \
-	--millau-signer //Alice \
-	--rialto-host rialto-node-alice \
+	--millau-signer //Bob \
+	--rialto-host rialto-node-bob \
 	--rialto-port 9944 \
-	--rialto-signer //Alice \
+	--rialto-signer //Bob \
 	--prometheus-host=0.0.0.0
