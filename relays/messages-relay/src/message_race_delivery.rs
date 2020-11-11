@@ -59,7 +59,7 @@ pub async fn run<P: MessageLane>(
 		MessageDeliveryStrategy::<P> {
 			max_unconfirmed_nonces_at_target: params.max_unconfirmed_nonces_at_target,
 			max_messages_weight_in_single_batch: params.max_messages_weight_in_single_batch,
-			source_nonces: None,
+			latest_confirmed_nonce_at_source: None,
 			target_nonces: None,
 			strategy: BasicStrategy::new(),
 		},
@@ -197,8 +197,8 @@ struct MessageDeliveryStrategy<P: MessageLane> {
 	max_unconfirmed_nonces_at_target: MessageNonce,
 	/// Maximal cumulative messages weight in the single delivery transaction.
 	max_messages_weight_in_single_batch: Weight,
-	/// Latest nonces from the source client.
-	source_nonces: Option<SourceClientNonces<MessageWeightsMap>>, // TODO: do not clone entire `SourceClientNonces`
+	/// Latest confirmed nonce at the source client.
+	latest_confirmed_nonce_at_source: Option<MessageNonce>,
 	/// Target nonces from the source client.
 	target_nonces: Option<TargetClientNonces>,
 	/// Basic delivery strategy.
@@ -237,7 +237,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		at_block: SourceHeaderIdOf<P>,
 		nonces: SourceClientNonces<Self::SourceNoncesRange>,
 	) {
-		self.source_nonces = Some(nonces.clone()); // TODO: do we need to clone?
+		self.latest_confirmed_nonce_at_source = nonces.confirmed_nonce;
 		self.strategy.source_nonces_updated(at_block, nonces)
 	}
 
@@ -259,7 +259,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			MessageDeliveryRace(Source|Target) always fills confirmed_nonce field;\
 			qed";
 
-		let source_nonces = self.source_nonces.as_ref()?;
+		let latest_confirmed_nonce_at_source = self.latest_confirmed_nonce_at_source?;
 		let target_nonces = self.target_nonces.as_ref()?;
 
 		// There's additional condition in the message delivery race: target would reject messages
@@ -273,7 +273,6 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		// The receiving race is responsible to deliver confirmations back to the source chain. So if
 		// there's a lot of unconfirmed messages, let's wait until it'll be able to do its job.
 		let latest_received_nonce_at_target = target_nonces.latest_nonce;
-		let latest_confirmed_nonce_at_source = source_nonces.confirmed_nonce.expect(CONFIRMED_NONCE_PROOF);
 		let confirmations_missing = latest_received_nonce_at_target.checked_sub(latest_confirmed_nonce_at_source);
 		match confirmations_missing {
 			Some(confirmations_missing) if confirmations_missing >= self.max_unconfirmed_nonces_at_target => {
@@ -416,10 +415,7 @@ mod tests {
 		let mut race_strategy = TestStrategy {
 			max_unconfirmed_nonces_at_target: 4,
 			max_messages_weight_in_single_batch: 4,
-			source_nonces: Some(SourceClientNonces {
-				new_nonces: vec![(20, 1), (21, 1), (22, 1), (23, 1)].into_iter().collect(),
-				confirmed_nonce: Some(19),
-			}),
+			latest_confirmed_nonce_at_source: Some(19),
 			target_nonces: Some(TargetClientNonces {
 				latest_nonce: 19,
 				confirmed_nonce: Some(19),
@@ -427,9 +423,13 @@ mod tests {
 			strategy: BasicStrategy::new(),
 		};
 
-		race_strategy
-			.strategy
-			.source_nonces_updated(header_id(1), race_strategy.source_nonces.clone().unwrap());
+		race_strategy.strategy.source_nonces_updated(
+			header_id(1),
+			SourceClientNonces {
+				new_nonces: vec![(20, 1), (21, 1), (22, 1), (23, 1)].into_iter().collect(),
+				confirmed_nonce: Some(19),
+			},
+		);
 		race_strategy
 			.strategy
 			.target_nonces_updated(race_strategy.target_nonces.clone().unwrap(), &mut race_state);
@@ -479,7 +479,7 @@ mod tests {
 
 		// if there are already `max_unconfirmed_nonces_at_target` messages on target,
 		// we need to wait until confirmations will be delivered by receiving race
-		strategy.source_nonces.as_mut().unwrap().confirmed_nonce =
+		strategy.latest_confirmed_nonce_at_source =
 			Some(strategy.target_nonces.as_ref().unwrap().latest_nonce - strategy.max_unconfirmed_nonces_at_target);
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 	}
@@ -490,7 +490,7 @@ mod tests {
 
 		// if there are new confirmed nonces on source, we want to relay this information
 		// to target to prune rewards queue
-		let prev_confirmed_nonce_at_source = strategy.source_nonces.as_ref().unwrap().confirmed_nonce.unwrap();
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
 		strategy.target_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
 		assert_eq!(
 			strategy.select_nonces_to_deliver(&state),
@@ -516,8 +516,8 @@ mod tests {
 
 		// 1 delivery confirmation from target to source is still missing, so we may only
 		// relay 3 new messages
-		let prev_confirmed_nonce_at_source = strategy.source_nonces.as_ref().unwrap().confirmed_nonce.unwrap();
-		strategy.source_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
+		strategy.latest_confirmed_nonce_at_source = Some(prev_confirmed_nonce_at_source - 1);
 		strategy.target_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
 		assert_eq!(
 			strategy.select_nonces_to_deliver(&state),
