@@ -12,7 +12,7 @@ services:
       - --rpc-cors=all
       - --unsafe-rpc-external
       - --unsafe-ws-external
-    environment: &bridge-env
+    environment:
       RUST_LOG: runtime=trace,rpc=debug,txpool=trace,pallet_substrate_bridge=trace
     ports:
       - "19933:9933"
@@ -36,8 +36,6 @@ services:
 
   millau-node-charlie:
     <<: *millau-bridge-node
-    environment:
-      <<: *bridge-env
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
@@ -53,8 +51,6 @@ services:
 
   millau-node-dave:
     <<: *millau-bridge-node
-    environment:
-      <<: *bridge-env
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
@@ -70,8 +66,6 @@ services:
 
   millau-node-eve:
     <<: *millau-bridge-node
-    environment:
-      <<: *bridge-env
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
