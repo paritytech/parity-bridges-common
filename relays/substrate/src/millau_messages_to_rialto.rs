@@ -143,8 +143,10 @@ pub fn run(
 			target_tick: rialto_tick,
 			reconnect_delay,
 			stall_timeout,
-			max_unconfirmed_nonces_at_target: bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
-			max_messages_weight_in_single_batch: bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT,
+			delivery_params: messages_relay::message_lane_loop::MessageDeliveryParams {
+				max_unconfirmed_nonces_at_target: bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+				max_messages_weight_in_single_batch: bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT,
+			},
 		},
 		MillauSourceClient::new(
 			millau_client.clone(),

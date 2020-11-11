@@ -92,13 +92,7 @@ where
 		let best_header_at_target = &race_state.target_state.as_ref()?.best_peer;
 		let mut nonces_end = None;
 
-		loop {
-			// if queue is empty, we don't need to prove anything
-			let (queued_at, queued_range) = match self.source_queue.pop_front() {
-				Some((queued_at, queued_range)) => (queued_at, queued_range),
-				None => break,
-			};
-
+		while let Some((queued_at, queued_range)) = self.source_queue.pop_front() {
 			// select (sub) range to deliver
 			let queued_range_begin = queued_range.begin();
 			let queued_range_end = queued_range.end();

@@ -15,8 +15,8 @@
 
 use crate::message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf};
 use crate::message_lane_loop::{
-	MessageProofParameters, MessageWeightsMap, SourceClient as MessageLaneSourceClient, SourceClientState,
-	TargetClient as MessageLaneTargetClient, TargetClientState,
+	MessageDeliveryParams, MessageProofParameters, MessageWeightsMap, SourceClient as MessageLaneSourceClient,
+	SourceClientState, TargetClient as MessageLaneTargetClient, TargetClientState,
 };
 use crate::message_race_loop::{
 	MessageRace, NoncesRange, RaceState, RaceStrategy, SourceClient, SourceClientNonces, TargetClient,
@@ -40,8 +40,7 @@ pub async fn run<P: MessageLane>(
 	target_state_updates: impl FusedStream<Item = TargetClientState<P>>,
 	stall_timeout: Duration,
 	metrics_msg: Option<MessageLaneLoopMetrics>,
-	max_unconfirmed_nonces_at_target: MessageNonce,
-	max_messages_weight_in_single_batch: Weight,
+	params: MessageDeliveryParams,
 ) -> Result<(), FailedClient> {
 	crate::message_race_loop::run(
 		MessageDeliveryRaceSource {
@@ -58,8 +57,8 @@ pub async fn run<P: MessageLane>(
 		target_state_updates,
 		stall_timeout,
 		MessageDeliveryStrategy::<P> {
-			max_unconfirmed_nonces_at_target,
-			max_messages_weight_in_single_batch,
+			max_unconfirmed_nonces_at_target: params.max_unconfirmed_nonces_at_target,
+			max_messages_weight_in_single_batch: params.max_messages_weight_in_single_batch,
 			source_nonces: None,
 			target_nonces: None,
 			strategy: BasicStrategy::new(),
@@ -140,9 +139,7 @@ where
 		nonces: RangeInclusive<MessageNonce>,
 		proof_parameters: Self::ProofParameters,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), Self::Error> {
-		self.client
-			.prove_messages(at_block, nonces, proof_parameters)
-			.await
+		self.client.prove_messages(at_block, nonces, proof_parameters).await
 	}
 }
 
@@ -470,7 +467,10 @@ mod tests {
 		let (state, mut strategy) = prepare_strategy();
 
 		// both sides are ready to relay new messages
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=23), proof_parameters(false, 4))));
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=23), proof_parameters(false, 4)))
+		);
 	}
 
 	#[test]
@@ -492,7 +492,10 @@ mod tests {
 		// to target to prune rewards queue
 		let prev_confirmed_nonce_at_source = strategy.source_nonces.as_ref().unwrap().confirmed_nonce.unwrap();
 		strategy.target_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=23), proof_parameters(true, 4))));
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=23), proof_parameters(true, 4)))
+		);
 	}
 
 	#[test]
@@ -501,7 +504,10 @@ mod tests {
 
 		// not all queued messages may fit in the batch, because batch has max weight
 		strategy.max_messages_weight_in_single_batch = 3;
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=22), proof_parameters(false, 3))));
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=22), proof_parameters(false, 3)))
+		);
 	}
 
 	#[test]
@@ -513,6 +519,9 @@ mod tests {
 		let prev_confirmed_nonce_at_source = strategy.source_nonces.as_ref().unwrap().confirmed_nonce.unwrap();
 		strategy.source_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
 		strategy.target_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
-		assert_eq!(strategy.select_nonces_to_deliver(&state), Some(((20..=22), proof_parameters(false, 3))));
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=22), proof_parameters(false, 3)))
+		);
 	}
 }

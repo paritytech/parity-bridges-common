@@ -53,11 +53,18 @@ pub struct Params {
 	pub reconnect_delay: Duration,
 	/// The loop will auto-restart if there has been no updates during this period.
 	pub stall_timeout: Duration,
+	/// Message delivery race parameters.
+	pub delivery_params: MessageDeliveryParams,
+}
+
+/// Message delivery race parameters.
+#[derive(Debug, Clone)]
+pub struct MessageDeliveryParams {
 	/// Message delivery race will stop delivering messages if there are `max_unconfirmed_nonces_at_target`
 	/// unconfirmed nonces on the target node. The race would continue once they're confirmed by the
 	/// receiving race.
 	pub max_unconfirmed_nonces_at_target: MessageNonce,
-	/// TODO
+	/// Maximal cumulative dispatch weight of relayed messages in single delivery transaction.
 	pub max_messages_weight_in_single_batch: Weight,
 }
 
@@ -311,8 +318,7 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 		delivery_target_state_receiver,
 		params.stall_timeout,
 		metrics_msg.clone(),
-		params.max_unconfirmed_nonces_at_target,
-		params.max_messages_weight_in_single_batch,
+		params.delivery_params,
 	)
 	.fuse();
 
