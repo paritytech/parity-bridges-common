@@ -424,6 +424,7 @@ mod tests {
 	#[test]
 	#[should_panic]
 	fn select_nonces_to_deliver_panics_if_selector_returns_empty_range() {
+		#[allow(clippy::reversed_empty_ranges)]
 		run_panic_test_for_incorrect_selector(|_| Some(2..=1))
 	}
 
