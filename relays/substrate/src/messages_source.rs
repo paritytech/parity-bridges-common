@@ -25,7 +25,7 @@ use codec::{Decode, Encode};
 use frame_support::weights::Weight;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
-	message_lane_loop::{ClientState, SourceClient, SourceClientState},
+	message_lane_loop::{ClientState, MessageWeightsMap, SourceClient, SourceClientState},
 };
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf};
 use relay_utils::HeaderId;
@@ -95,7 +95,6 @@ where
 	C::Index: DeserializeOwned,
 	<C::Header as HeaderT>::Number: Into<u64>,
 	P: MessageLane<
-		MessageNonce = MessageNonce,
 		MessagesProof = SubstrateMessagesProof<C>,
 		SourceHeaderNumber = <C::Header as HeaderT>::Number,
 		SourceHeaderHash = <C::Header as HeaderT>::Hash,
@@ -150,6 +149,13 @@ where
 		let latest_received_nonce: MessageNonce =
 			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?;
 		Ok((id, latest_received_nonce))
+	}
+
+	async fn generated_messages_weights(
+		&self,
+		nonces: RangeInclusive<MessageNonce>,
+	) -> Result<MessageWeightsMap, Self::Error> {
+		unimplemented!("TODO")
 	}
 
 	async fn prove_messages(

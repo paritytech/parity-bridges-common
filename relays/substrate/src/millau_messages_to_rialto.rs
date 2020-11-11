@@ -52,7 +52,6 @@ impl MessageLane for MillauMessagesToRialto {
 	const SOURCE_NAME: &'static str = "Millau";
 	const TARGET_NAME: &'static str = "Rialto";
 
-	type MessageNonce = MessageNonce;
 	type MessagesProof = FromMillauMessagesProof;
 	type MessagesReceivingProof = FromRialtoMessagesReceivingProof;
 
@@ -145,6 +144,7 @@ pub fn run(
 			reconnect_delay,
 			stall_timeout,
 			max_unconfirmed_nonces_at_target: bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+			max_messages_weight_in_single_batch: bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT,
 		},
 		MillauSourceClient::new(
 			millau_client.clone(),

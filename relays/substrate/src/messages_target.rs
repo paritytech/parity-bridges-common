@@ -91,7 +91,6 @@ where
 	C::Index: DeserializeOwned,
 	<C::Header as HeaderT>::Number: Into<u64>,
 	P: MessageLane<
-		MessageNonce = MessageNonce,
 		MessagesReceivingProof = (HashOf<C>, StorageProof, LaneId),
 		TargetHeaderNumber = <C::Header as HeaderT>::Number,
 		TargetHeaderHash = <C::Header as HeaderT>::Hash,
