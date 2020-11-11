@@ -119,7 +119,7 @@ where
 	async fn latest_generated_nonce(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, P::MessageNonce), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -129,7 +129,7 @@ where
 				Some(id.1),
 			)
 			.await?;
-		let latest_generated_nonce: P::MessageNonce =
+		let latest_generated_nonce: MessageNonce =
 			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?;
 		Ok((id, latest_generated_nonce))
 	}
@@ -137,7 +137,7 @@ where
 	async fn latest_confirmed_received_nonce(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, P::MessageNonce), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -147,7 +147,7 @@ where
 				Some(id.1),
 			)
 			.await?;
-		let latest_received_nonce: P::MessageNonce =
+		let latest_received_nonce: MessageNonce =
 			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?;
 		Ok((id, latest_received_nonce))
 	}
@@ -155,9 +155,9 @@ where
 	async fn prove_messages(
 		&self,
 		id: SourceHeaderIdOf<P>,
-		nonces: RangeInclusive<P::MessageNonce>,
+		nonces: RangeInclusive<MessageNonce>,
 		include_outbound_lane_state: bool,
-	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<P::MessageNonce>, P::MessagesProof), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), Self::Error> {
 		let (weight, proof) = self
 			.client
 			.prove_messages(

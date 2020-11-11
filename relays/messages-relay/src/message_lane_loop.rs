@@ -30,18 +30,19 @@ use crate::message_race_receiving::run as run_message_receiving_race;
 use crate::metrics::MessageLaneLoopMetrics;
 
 use async_trait::async_trait;
-use bp_message_lane::LaneId;
+use bp_message_lane::{LaneId, MessageNonce};
+use frame_support::weights::Weight;
 use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
 use relay_utils::{
 	interval,
 	metrics::{start as metrics_start, GlobalMetrics, MetricsParams},
 	process_future_result, retry_backoff, FailedClient, MaybeConnectionError,
 };
-use std::{fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
+use std::{collections::BTreeMap, fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
 
 /// Message lane loop configuration params.
 #[derive(Debug, Clone)]
-pub struct Params<MessageNonce> {
+pub struct Params {
 	/// Id of lane this loop is servicing.
 	pub lane: LaneId,
 	/// Interval at which we ask target node about its updates.
@@ -56,7 +57,12 @@ pub struct Params<MessageNonce> {
 	/// unconfirmed nonces on the target node. The race would continue once they're confirmed by the
 	/// receiving race.
 	pub max_unconfirmed_nonces_at_target: MessageNonce,
+	/// TODO
+	pub max_messages_weight_in_single_batch: Weight,
 }
+
+/// Messages weights map.
+pub type MessageWeightsMap = BTreeMap<MessageNonce, Weight>;
 
 /// Source client trait.
 #[async_trait]
@@ -74,20 +80,26 @@ pub trait SourceClient<P: MessageLane>: Clone + Send + Sync {
 	async fn latest_generated_nonce(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, P::MessageNonce), Self::Error>;
+	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error>;
 	/// Get nonce of the latest message, which receiving has been confirmed by the target chain.
 	async fn latest_confirmed_received_nonce(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, P::MessageNonce), Self::Error>;
+	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error>;
+
+	/// Returns mapping of message nonces, generated on this client, to their weights.
+	async fn generated_messages_weights(
+		&self,
+		nonces: RangeInclusive<MessageNonce>,
+	) -> Result<MessageWeightsMap, Self::Error>;
 
 	/// Prove messages in inclusive range [begin; end].
 	async fn prove_messages(
 		&self,
 		id: SourceHeaderIdOf<P>,
-		nonces: RangeInclusive<P::MessageNonce>,
+		nonces: RangeInclusive<MessageNonce>,
 		include_outbound_lane_state: bool,
-	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<P::MessageNonce>, P::MessagesProof), Self::Error>;
+	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), Self::Error>;
 
 	/// Submit messages receiving proof.
 	async fn submit_messages_receiving_proof(
@@ -113,13 +125,13 @@ pub trait TargetClient<P: MessageLane>: Clone + Send + Sync {
 	async fn latest_received_nonce(
 		&self,
 		id: TargetHeaderIdOf<P>,
-	) -> Result<(TargetHeaderIdOf<P>, P::MessageNonce), Self::Error>;
+	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), Self::Error>;
 
 	/// Get nonce of latest confirmed message.
 	async fn latest_confirmed_received_nonce(
 		&self,
 		id: TargetHeaderIdOf<P>,
-	) -> Result<(TargetHeaderIdOf<P>, P::MessageNonce), Self::Error>;
+	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), Self::Error>;
 
 	/// Prove messages receiving at given block.
 	async fn prove_messages_receiving(
@@ -131,9 +143,9 @@ pub trait TargetClient<P: MessageLane>: Clone + Send + Sync {
 	async fn submit_messages_proof(
 		&self,
 		generated_at_header: SourceHeaderIdOf<P>,
-		nonces: RangeInclusive<P::MessageNonce>,
+		nonces: RangeInclusive<MessageNonce>,
 		proof: P::MessagesProof,
-	) -> Result<RangeInclusive<P::MessageNonce>, Self::Error>;
+	) -> Result<RangeInclusive<MessageNonce>, Self::Error>;
 }
 
 /// State of the client.
@@ -162,7 +174,7 @@ pub struct ClientsState<P: MessageLane> {
 
 /// Run message lane service loop.
 pub fn run<P: MessageLane>(
-	params: Params<P::MessageNonce>,
+	params: Params,
 	mut source_client: impl SourceClient<P>,
 	mut target_client: impl TargetClient<P>,
 	metrics_params: Option<MetricsParams>,
@@ -257,7 +269,7 @@ pub fn run<P: MessageLane>(
 
 /// Run one-way message delivery loop until connection with target or source node is lost, or exit signal is received.
 async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: TargetClient<P>>(
-	params: Params<P::MessageNonce>,
+	params: Params,
 	source_client: SC,
 	target_client: TC,
 	mut metrics_global: Option<&mut GlobalMetrics>,
@@ -290,6 +302,7 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 		params.stall_timeout,
 		metrics_msg.clone(),
 		params.max_unconfirmed_nonces_at_target,
+		params.max_messages_weight_in_single_batch,
 	)
 	.fuse();
 
@@ -430,13 +443,15 @@ pub(crate) mod tests {
 	use relay_utils::HeaderId;
 	use std::sync::Arc;
 
-	pub fn header_id(number: TestSourceHeaderNumber) -> HeaderId<TestSourceHeaderNumber, TestSourceHeaderHash> {
+	pub fn header_id(number: TestSourceHeaderNumber) -> TestSourceHeaderId {
 		HeaderId(number, number)
 	}
 
-	pub type TestMessageNonce = u64;
-	pub type TestMessagesProof = (RangeInclusive<TestMessageNonce>, Option<TestMessageNonce>);
-	pub type TestMessagesReceivingProof = TestMessageNonce;
+	pub type TestSourceHeaderId = HeaderId<TestSourceHeaderNumber, TestSourceHeaderHash>;
+	pub type TestTargetHeaderId = HeaderId<TestTargetHeaderNumber, TestTargetHeaderHash>;
+
+	pub type TestMessagesProof = (RangeInclusive<MessageNonce>, Option<MessageNonce>);
+	pub type TestMessagesReceivingProof = MessageNonce;
 
 	pub type TestSourceHeaderNumber = u64;
 	pub type TestSourceHeaderHash = u64;
@@ -460,8 +475,6 @@ pub(crate) mod tests {
 		const SOURCE_NAME: &'static str = "TestSource";
 		const TARGET_NAME: &'static str = "TestTarget";
 
-		type MessageNonce = TestMessageNonce;
-
 		type MessagesProof = TestMessagesProof;
 		type MessagesReceivingProof = TestMessagesReceivingProof;
 
@@ -477,14 +490,14 @@ pub(crate) mod tests {
 		is_source_fails: bool,
 		is_source_reconnected: bool,
 		source_state: SourceClientState<TestMessageLane>,
-		source_latest_generated_nonce: TestMessageNonce,
-		source_latest_confirmed_received_nonce: TestMessageNonce,
+		source_latest_generated_nonce: MessageNonce,
+		source_latest_confirmed_received_nonce: MessageNonce,
 		submitted_messages_receiving_proofs: Vec<TestMessagesReceivingProof>,
 		is_target_fails: bool,
 		is_target_reconnected: bool,
 		target_state: SourceClientState<TestMessageLane>,
-		target_latest_received_nonce: TestMessageNonce,
-		target_latest_confirmed_received_nonce: TestMessageNonce,
+		target_latest_received_nonce: MessageNonce,
+		target_latest_confirmed_received_nonce: MessageNonce,
 		submitted_messages_proofs: Vec<TestMessagesProof>,
 	}
 
@@ -519,7 +532,7 @@ pub(crate) mod tests {
 		async fn latest_generated_nonce(
 			&self,
 			id: SourceHeaderIdOf<TestMessageLane>,
-		) -> Result<(SourceHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
+		) -> Result<(SourceHeaderIdOf<TestMessageLane>, MessageNonce), Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_source_fails {
@@ -531,21 +544,28 @@ pub(crate) mod tests {
 		async fn latest_confirmed_received_nonce(
 			&self,
 			id: SourceHeaderIdOf<TestMessageLane>,
-		) -> Result<(SourceHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
+		) -> Result<(SourceHeaderIdOf<TestMessageLane>, MessageNonce), Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			Ok((id, data.source_latest_confirmed_received_nonce))
 		}
 
+		async fn generated_messages_weights(
+			&self,
+			nonces: RangeInclusive<MessageNonce>,
+		) -> Result<MessageWeightsMap, Self::Error> {
+			Ok(nonces.map(|nonce| (nonce, 1)).collect())
+		}
+
 		async fn prove_messages(
 			&self,
 			id: SourceHeaderIdOf<TestMessageLane>,
-			nonces: RangeInclusive<TestMessageNonce>,
+			nonces: RangeInclusive<MessageNonce>,
 			include_outbound_lane_state: bool,
 		) -> Result<
 			(
 				SourceHeaderIdOf<TestMessageLane>,
-				RangeInclusive<TestMessageNonce>,
+				RangeInclusive<MessageNonce>,
 				TestMessagesProof,
 			),
 			Self::Error,
@@ -610,7 +630,7 @@ pub(crate) mod tests {
 		async fn latest_received_nonce(
 			&self,
 			id: TargetHeaderIdOf<TestMessageLane>,
-		) -> Result<(TargetHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
+		) -> Result<(TargetHeaderIdOf<TestMessageLane>, MessageNonce), Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
@@ -622,7 +642,7 @@ pub(crate) mod tests {
 		async fn latest_confirmed_received_nonce(
 			&self,
 			id: TargetHeaderIdOf<TestMessageLane>,
-		) -> Result<(TargetHeaderIdOf<TestMessageLane>, TestMessageNonce), Self::Error> {
+		) -> Result<(TargetHeaderIdOf<TestMessageLane>, MessageNonce), Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
@@ -641,9 +661,9 @@ pub(crate) mod tests {
 		async fn submit_messages_proof(
 			&self,
 			_generated_at_header: SourceHeaderIdOf<TestMessageLane>,
-			nonces: RangeInclusive<TestMessageNonce>,
+			nonces: RangeInclusive<MessageNonce>,
 			proof: TestMessagesProof,
-		) -> Result<RangeInclusive<TestMessageNonce>, Self::Error> {
+		) -> Result<RangeInclusive<MessageNonce>, Self::Error> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
@@ -683,8 +703,9 @@ pub(crate) mod tests {
 					source_tick: Duration::from_millis(100),
 					target_tick: Duration::from_millis(100),
 					reconnect_delay: Duration::from_millis(0),
-					stall_timeout: Duration::from_millis(60),
-					max_unconfirmed_nonces_at_target: 100,
+					stall_timeout: Duration::from_millis(60 * 1000),
+					max_unconfirmed_nonces_at_target: 4,
+					max_messages_weight_in_single_batch: 4,
 				},
 				source_client,
 				target_client,
@@ -743,8 +764,6 @@ pub(crate) mod tests {
 
 	#[test]
 	fn message_lane_loop_works() {
-		// with this configuration, target client must first sync headers [1; 10] and
-		// then submit proof-of-messages [0; 10] at once
 		let (exit_sender, exit_receiver) = unbounded();
 		let result = run_loop_test(
 			TestClientData {
@@ -762,18 +781,22 @@ pub(crate) mod tests {
 			},
 			Arc::new(|_: &mut TestClientData| {}),
 			Arc::new(move |data: &mut TestClientData| {
-				// syncing source headers -> target chain (by one)
-				if data.target_state.best_peer.0 < data.source_state.best_self.0 {
-					data.target_state.best_peer =
-						HeaderId(data.target_state.best_peer.0 + 1, data.target_state.best_peer.0 + 1);
-				}
 				// syncing source headers -> target chain (all at once)
+				if data.target_state.best_peer.0 < data.source_state.best_self.0 {
+					data.target_state.best_peer = data.source_state.best_self;
+				}
+				// syncing target headers -> source chain (all at once)
 				if data.source_state.best_peer.0 < data.target_state.best_self.0 {
 					data.source_state.best_peer = data.target_state.best_self;
 				}
-				// if target has received all messages => increase target block so that confirmations may be sent
-				if data.target_latest_received_nonce == 10 {
+				// if target has received messages batch => increase blocks so that confirmations may be sent
+				if data.target_latest_received_nonce == 4
+					|| data.target_latest_received_nonce == 8
+					|| data.target_latest_received_nonce == 10
+				{
 					data.target_state.best_self =
+						HeaderId(data.target_state.best_self.0 + 1, data.target_state.best_self.0 + 1);
+					data.source_state.best_self =
 						HeaderId(data.source_state.best_self.0 + 1, data.source_state.best_self.0 + 1);
 				}
 				// if source has received all messages receiving confirmations => increase source block so that confirmations may be sent
