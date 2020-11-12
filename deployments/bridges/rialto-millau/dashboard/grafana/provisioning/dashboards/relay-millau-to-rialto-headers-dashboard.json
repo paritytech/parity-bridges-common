@@ -301,7 +301,7 @@
       "pluginVersion": "7.1.3",
       "targets": [
         {
-          "expr": "avg_over_time(Rialto_to_Substrate_Exchange_process_cpu_usage_percentage[1m])",
+          "expr": "avg_over_time(Millau_to_Rialto_Sync_process_cpu_usage_percentage[1m])",
           "instant": true,
           "interval": "",
           "legendFormat": "",
