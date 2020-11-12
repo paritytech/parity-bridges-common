@@ -388,9 +388,8 @@ impl NoncesRange for MessageWeightsMap {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::message_lane_loop::{
-		tests::{header_id, TestMessageLane, TestMessagesProof, TestSourceHeaderId, TestTargetHeaderId},
-		ClientState,
+	use crate::message_lane_loop::tests::{
+		header_id, TestMessageLane, TestMessagesProof, TestSourceHeaderId, TestTargetHeaderId,
 	};
 
 	type TestRaceState = RaceState<TestSourceHeaderId, TestTargetHeaderId, TestMessagesProof>;
@@ -398,14 +397,9 @@ mod tests {
 
 	fn prepare_strategy() -> (TestRaceState, TestStrategy) {
 		let mut race_state = RaceState {
-			source_state: Some(ClientState {
-				best_self: header_id(1),
-				best_peer: header_id(1),
-			}),
-			target_state: Some(ClientState {
-				best_self: header_id(1),
-				best_peer: header_id(1),
-			}),
+			best_finalized_source_header_id_at_source: Some(header_id(1)),
+			best_finalized_source_header_id_at_best_target: Some(header_id(1)),
+			best_target_header_id: Some(header_id(1)),
 			nonces_to_submit: None,
 			nonces_submitted: None,
 		};
