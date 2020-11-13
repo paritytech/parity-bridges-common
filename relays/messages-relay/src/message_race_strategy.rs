@@ -112,6 +112,10 @@ where
 						range_to_requeue.begin() <= range_to_requeue.end()
 							&& range_to_requeue.begin() >= queued_range_begin
 							&& range_to_requeue.end() == queued_range_end,
+						"Incorrect implementation of internal `selector` function. Expected original\
+						range {:?} to end with returned range {:?}",
+						queued_range_begin..=queued_range_end,
+						range_to_requeue,
 					);
 
 					if range_to_requeue.begin() != queued_range_begin {
