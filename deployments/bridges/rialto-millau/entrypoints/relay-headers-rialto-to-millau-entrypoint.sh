@@ -12,6 +12,8 @@ curl -v http://rialto-node-alice:9933/health
 	--rialto-port 9944 \
 	--millau-signer //Alice \
 
+# Give chain a little bit of time to process initialization transaction
+sleep 6
 /home/user/substrate-relay rialto-headers-to-millau \
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
