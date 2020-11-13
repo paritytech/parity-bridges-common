@@ -75,10 +75,10 @@ pub const INCOMPLETE_RIALTO_HEADERS_METHOD: &str = "RialtoHeaderApi_incomplete_h
 
 /// Name of the `ToRialtoOutboundLaneApi::messages_dispatch_weight` runtime method.
 pub const TO_RIALTO_MESSAGES_DISPATCH_WEIGHT_METHOD: &str = "ToRialtoOutboundLaneApi_messages_dispatch_weight";
-/// Name of the `ToRialtoOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "ToRialtoOutboundLaneApi_latest_received_nonce";
 /// Name of the `ToRialtoOutboundLaneApi::latest_generated_nonce` runtime method.
 pub const TO_RIALTO_LATEST_GENERATED_NONCE_METHOD: &str = "ToRialtoOutboundLaneApi_latest_generated_nonce";
+/// Name of the `ToRialtoOutboundLaneApi::latest_received_nonce` runtime method.
+pub const TO_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "ToRialtoOutboundLaneApi_latest_received_nonce";
 
 /// Name of the `FromRialtoInboundLaneApi::latest_received_nonce` runtime method.
 pub const FROM_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "FromRialtoInboundLaneApi_latest_received_nonce";

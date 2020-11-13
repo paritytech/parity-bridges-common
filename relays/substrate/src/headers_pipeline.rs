@@ -16,10 +16,7 @@
 
 //! Substrate-to-Substrate headers sync entrypoint.
 
-use crate::{
-	headers_maintain::SubstrateHeadersToSubstrateMaintain,
-	headers_target::SubstrateHeadersTarget,
-};
+use crate::{headers_maintain::SubstrateHeadersToSubstrateMaintain, headers_target::SubstrateHeadersTarget};
 
 use async_trait::async_trait;
 use codec::Encode;
@@ -28,7 +25,9 @@ use headers_relay::{
 	sync_types::{HeaderIdOf, HeadersSyncPipeline, QueuedHeader, SourceHeader},
 };
 use num_traits::Saturating;
-use relay_substrate_client::{headers_source::HeadersSource, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf};
+use relay_substrate_client::{
+	headers_source::HeadersSource, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
+};
 use sp_runtime::Justification;
 use std::marker::PhantomData;
 
