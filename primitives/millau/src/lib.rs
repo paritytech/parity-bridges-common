@@ -100,7 +100,7 @@ sp_api::decl_runtime_apis! {
 		/// (or leads to making) other header the best one.
 		fn best_blocks() -> Vec<(BlockNumber, Hash)>;
 		/// Returns number and hash of the best finalized block known to the bridge module.
-		fn finalized_block() -> (BlockNumber, Hash);
+		fn finalized_block() -> Option<(BlockNumber, Hash)>;
 		/// Returns numbers and hashes of headers that require finality proofs.
 		///
 		/// An empty response means that there are no headers which currently require a
