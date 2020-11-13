@@ -466,7 +466,7 @@ mod tests {
 		const BEST_AT_TARGET: u64 = 8;
 
 		// target node only knows about source' BEST_AT_TARGET block
-		// source node has BEST_AT_SOURCE > BEST_AT_SOURCE block
+		// source node has BEST_AT_SOURCE > BEST_AT_TARGET block
 		let mut race_state = RaceState::<_, _, ()> {
 			source_state: Some(ClientState {
 				best_self: HeaderId(BEST_AT_SOURCE, BEST_AT_SOURCE),
