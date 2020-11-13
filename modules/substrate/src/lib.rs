@@ -289,11 +289,14 @@ impl<T: Trait> Module<T> {
 
 	/// Get the best finalized header the pallet knows of.
 	///
+	/// Returns None if there is no best header. This can only happen
+	/// if the pallet has not been initialized yet.
+	///
 	/// Since this has been finalized correctly a user of the bridge
 	/// pallet should be confident that any transactions that were
 	/// included in this or any previous header will not be reverted.
-	pub fn best_finalized() -> BridgedHeader<T> {
-		PalletStorage::<T>::new().best_finalized_header().header
+	pub fn best_finalized() -> Option<BridgedHeader<T>> {
+		PalletStorage::<T>::new().best_finalized_header().map(|h| h.header)
 	}
 
 	/// Check if a particular header is known to the bridge pallet.
@@ -424,7 +427,10 @@ pub trait BridgeStorage {
 	fn best_headers(&self) -> Vec<HeaderId<Self::Header>>;
 
 	/// Get the best finalized header the pallet knows of.
-	fn best_finalized_header(&self) -> ImportedHeader<Self::Header>;
+	///
+	/// Returns None if there is no best header. This can only happen if the pallet
+	/// has not been initialized yet.
+	fn best_finalized_header(&self) -> Option<ImportedHeader<Self::Header>>;
 
 	/// Update the best finalized header the pallet knows of.
 	fn update_best_finalized(&self, hash: <Self::Header as HeaderT>::Hash);
@@ -524,10 +530,9 @@ impl<T: Trait> BridgeStorage for PalletStorage<T> {
 			.collect()
 	}
 
-	fn best_finalized_header(&self) -> ImportedHeader<BridgedHeader<T>> {
+	fn best_finalized_header(&self) -> Option<ImportedHeader<BridgedHeader<T>>> {
 		let hash = <BestFinalized<T>>::get();
 		self.header_by_hash(hash)
-			.expect("A finalized header was added at genesis, therefore this must always exist")
 	}
 
 	fn update_best_finalized(&self, hash: BridgedBlockHash<T>) {
@@ -620,6 +625,9 @@ mod tests {
 				is_halted: false,
 			};
 
+			assert!(Module::<TestRuntime>::best_headers().is_empty());
+			assert!(Module::<TestRuntime>::best_finalized().is_none());
+
 			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
 
 			let storage = PalletStorage::<TestRuntime>::new();
@@ -631,7 +639,7 @@ mod tests {
 					hash: init_data.header.hash()
 				}
 			);
-			assert_eq!(storage.best_finalized_header().hash(), init_data.header.hash());
+			assert_eq!(storage.best_finalized_header().unwrap().hash(), init_data.header.hash());
 			assert_eq!(storage.current_authority_set().authorities, init_data.authority_list);
 			assert_eq!(IsHalted::get(), false);
 		})
