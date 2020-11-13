@@ -286,11 +286,9 @@ where
 
 	// If we don't have a best header it means the Substrate bridge pallet hasn't been initialized
 	// yet. Otherwise we expect to always have one.
-	let best_header_id = decoded_response
+	decoded_response
 		.map(|(num, hash)| HeaderId(num, hash))
-		.ok_or(SubstrateError::UninitializedBridgePallet);
-
-	best_header_id
+		.ok_or(SubstrateError::UninitializedBridgePallet)
 }
 
 #[cfg(test)]
