@@ -50,7 +50,7 @@
         "frequency": "5m",
         "handler": 1,
         "message": "",
-        "name": "Rialto Block Difference > 5 (TODO: change eth2sub)",
+        "name": "Header Sync Difference > 5 (Rialto to Millau)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -558,7 +558,7 @@
         "for": "3m",
         "frequency": "5m",
         "handler": 1,
-        "name": "No New Blocks (TODO: change eth2sub)",
+        "name": "No New Headers (Rialto to Millau)",
         "noDataState": "no_data",
         "notifications": []
       },
