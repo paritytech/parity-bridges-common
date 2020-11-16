@@ -12,8 +12,8 @@ services:
       - --rpc-cors=all
       - --unsafe-rpc-external
       - --unsafe-ws-external
-    environment: &bridge-env
-      RUST_LOG: runtime=trace,rpc=debug,txpool=trace
+    environment:
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,pallet_substrate_bridge=trace
     ports:
       - "9933:9933"
       - "9944:9944"
@@ -36,8 +36,6 @@ services:
 
   rialto-node-charlie:
     <<: *rialto-bridge-node
-    environment:
-      <<: *bridge-env
     entrypoint:
       - /home/user/rialto-bridge-node
       - --execution=Native
@@ -53,8 +51,6 @@ services:
 
   rialto-node-dave:
     <<: *rialto-bridge-node
-    environment:
-      <<: *bridge-env
     entrypoint:
       - /home/user/rialto-bridge-node
       - --execution=Native
@@ -70,8 +66,6 @@ services:
 
   rialto-node-eve:
     <<: *rialto-bridge-node
-    environment:
-      <<: *bridge-env
     entrypoint:
       - /home/user/rialto-bridge-node
       - --execution=Native
