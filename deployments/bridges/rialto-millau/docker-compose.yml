@@ -60,6 +60,13 @@ services:
     depends_on:
       - relay-messages-millau-to-rialto
 
+  grafana-dashboard:
+    environment:
+      VIRTUAL_HOST: grafana.millau.brucke.link,grafana.rialto.brucke.link
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: grafana.millau.brucke.link,grafana.rialto.brucke.link
+      LETSENCRYPT_EMAIL: admin@parity.io
+
   prometheus-metrics:
     volumes:
       - ./bridges/rialto-millau/dashboard/prometheus/:/etc/prometheus/
