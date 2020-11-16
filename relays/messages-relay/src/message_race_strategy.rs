@@ -59,7 +59,6 @@ where
 
 	/// Should return `Some(nonces)` if we need to deliver proof of `nonces` (and associated
 	/// data) from source to target node.
-	/// Additionally, parameters required to generate proof are returned.
 	///
 	/// The `selector` function receives range of nonces and should return `None` if the whole
 	/// range needs to be delivered. If there are some nonces in the range that can't be delivered
@@ -74,7 +73,7 @@ where
 			Proof,
 		>,
 		mut selector: impl FnMut(SourceNoncesRange) -> Option<SourceNoncesRange>,
-	) -> Option<(RangeInclusive<MessageNonce>, ())> {
+	) -> Option<RangeInclusive<MessageNonce>> {
 		// if we have already selected nonces that we want to submit, do nothing
 		if race_state.nonces_to_submit.is_some() {
 			return None;
@@ -130,7 +129,7 @@ where
 			}
 		}
 
-		nonces_end.map(|nonces_end| (RangeInclusive::new(self.target_nonce + 1, nonces_end), ()))
+		nonces_end.map(|nonces_end| RangeInclusive::new(self.target_nonce + 1, nonces_end))
 	}
 }
 
@@ -233,7 +232,7 @@ where
 			Proof,
 		>,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
-		self.select_nonces_to_deliver_with_selector(race_state, |_| None)
+		self.select_nonces_to_deliver_with_selector(race_state, |_| None).map(|range| (range, ()))
 	}
 }
 
@@ -406,7 +405,7 @@ mod tests {
 		});
 		assert_eq!(
 			strategy.select_nonces_to_deliver_with_selector(&state, |_| Some(50..=100)),
-			Some((1..=49, ())),
+			Some(1..=49),
 		);
 	}
 

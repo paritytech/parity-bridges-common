@@ -121,7 +121,7 @@ where
 				.generated_messages_weights(at_block.clone(), prev_latest_nonce + 1..=latest_generated_nonce)
 				.await?
 		} else {
-			BTreeMap::new()
+			MessageWeightsMap::new()
 		};
 
 		Ok((
@@ -301,7 +301,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		let latest_confirmed_nonce_at_target = target_nonces.confirmed_nonce.expect(CONFIRMED_NONCE_PROOF);
 		let outbound_state_proof_required = latest_confirmed_nonce_at_target < latest_confirmed_nonce_at_source;
 
-		// If we're here, then the confirmations race did it job && sending side now knows that messages
+		// If we're here, then the confirmations race did its job && sending side now knows that messages
 		// have been delivered. Now let's select nonces that we want to deliver.
 		//
 		// We may deliver at most:
@@ -355,8 +355,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 				} else {
 					Some(to_requeue)
 				}
-			})?
-			.0;
+			})?;
 
 		Some((
 			selected_nonces,
