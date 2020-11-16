@@ -232,7 +232,8 @@ where
 			Proof,
 		>,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
-		self.select_nonces_to_deliver_with_selector(race_state, |_| None).map(|range| (range, ()))
+		self.select_nonces_to_deliver_with_selector(race_state, |_| None)
+			.map(|range| (range, ()))
 	}
 }
 
