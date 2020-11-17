@@ -5,8 +5,8 @@ set -xeu
 HEAD_REF=$1
 TOOLCHAIN=$2
 
-echo "/cache/$HEAD_REF/$TOOLCHAIN" >> $CARGO_HOME
-echo "/cache/$HEAD_REF/$TOOLCHAIN" >> $CARGO_TARGET_DIR
+echo "/cache/$HEAD_REF/$TOOLCHAIN/" >> $CARGO_HOME
+echo "/cache/$HEAD_REF/$TOOLCHAIN/" >> $CARGO_TARGET_DIR
 
 
 
