@@ -35,7 +35,6 @@ jobs:
       SCCACHE_IDLE_TIMEOUT:        0
       CMAKE_C_COMPILER_LAUNCHER:   sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
-      CARGO_HOME:                  "/cache/${{ github.head_ref }}/${{ matrix.toolchain }}/"
       CARGO_TARGET_DIR:            "/cache/${{ github.head_ref }}/${{ matrix.toolchain }}/"
     steps:
       - name:                      Cancel Previous Runs
@@ -51,7 +50,7 @@ jobs:
         run:                       rustup toolchain add nightly-2020-10-04
       - name:                      Add WASM Utilities
         run:                       rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-04
-      - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
+      - name:                      Configure CARGO_TARGET_DIR
         shell:                     bash
         run:                       |
           echo $CARGO_TARGET_DIR;
