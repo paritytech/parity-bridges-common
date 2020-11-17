@@ -281,14 +281,11 @@ where
 	let data = Bytes(Vec::new());
 
 	let encoded_response = client.state_call(call, data, None).await?;
-	let decoded_response: Option<(P::Number, P::Hash)> =
+	let decoded_response: (P::Number, P::Hash) =
 		Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?;
 
-	// If we don't have a best header it means the Substrate bridge pallet hasn't been initialized
-	// yet. Otherwise we expect to always have one.
-	decoded_response
-		.map(|(num, hash)| HeaderId(num, hash))
-		.ok_or(SubstrateError::UninitializedBridgePallet)
+	let best_header_id = HeaderId(decoded_response.0, decoded_response.1);
+	Ok(best_header_id)
 }
 
 #[cfg(test)]
