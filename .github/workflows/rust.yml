@@ -35,6 +35,7 @@ jobs:
       SCCACHE_IDLE_TIMEOUT:        0
       CMAKE_C_COMPILER_LAUNCHER:   sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      CARGO_TARGET_DIR:            "/cache/${{ github.head_ref }}/${{ matrix.toolchain }}/"
     steps:
       - name:                      Cancel Previous Runs
         uses:                      styfle/cancel-workflow-action@0.4.1
@@ -49,16 +50,17 @@ jobs:
         run:                       rustup toolchain add nightly-2020-10-04
       - name:                      Add WASM Utilities
         run:                       rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-04
-      - name:                      Configure CARGO_HOME & CARGO_TARGET_DIR
-        run:                       ./scripts/ci-cache.sh "${{ github.head_ref }}" "${{ matrix.toolchain }}"
+      - name:                      Configure CARGO_TARGET_DIR
+        shell:                     bash
+        run:                       ./scripts/ci-cache.sh
       - name:                      Cache checking
         if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
         continue-on-error:         true
         run:                       |
-            echo "Copy cache from master";
-            apt update&&apt install rsync -y;
-            # TODO add rsync in docker
-            rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/ || true;
+          echo "Copy cache from master";
+          apt update&&apt install rsync -y;
+          # TODO add rsync in docker
+          rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/ || true;
         shell:                     bash
       - name:                      Sccache stats
         run:                       sccache --show-stats
