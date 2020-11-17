@@ -23,12 +23,15 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::{Decode, Encode};
-use frame_support::{weights::Weight, RuntimeDebug};
+use frame_support::RuntimeDebug;
 use sp_api::decl_runtime_apis;
 use sp_std::{collections::vec_deque::VecDeque, prelude::*};
 
 pub mod source_chain;
 pub mod target_chain;
+
+// Weight is reexported to avoid additional frame-support dependencies in message-lane related crates.
+pub use frame_support::weights::Weight;
 
 /// Lane identifier.
 pub type LaneId = [u8; 4];

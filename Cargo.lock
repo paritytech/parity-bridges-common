@@ -3561,7 +3561,6 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-message-lane",
- "frame-support",
  "futures 0.3.7",
  "hex",
  "log",

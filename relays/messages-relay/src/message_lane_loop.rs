@@ -30,8 +30,7 @@ use crate::message_race_receiving::run as run_message_receiving_race;
 use crate::metrics::MessageLaneLoopMetrics;
 
 use async_trait::async_trait;
-use bp_message_lane::{LaneId, MessageNonce};
-use frame_support::weights::Weight;
+use bp_message_lane::{LaneId, MessageNonce, Weight};
 use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
 use relay_utils::{
 	interval,

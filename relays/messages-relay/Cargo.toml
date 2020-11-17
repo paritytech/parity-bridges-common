@@ -17,7 +17,3 @@ parking_lot = "0.11.0"
 
 bp-message-lane = { path = "../../primitives/message-lane" }
 relay-utils = { path = "../utils" }
-
-# Substrate Dependencies
-
-frame-support = "2.0"

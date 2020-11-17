@@ -26,8 +26,7 @@ use crate::message_race_strategy::BasicStrategy;
 use crate::metrics::MessageLaneLoopMetrics;
 
 use async_trait::async_trait;
-use bp_message_lane::MessageNonce;
-use frame_support::weights::Weight;
+use bp_message_lane::{MessageNonce, Weight};
 use futures::stream::FusedStream;
 use relay_utils::FailedClient;
 use std::{collections::BTreeMap, marker::PhantomData, ops::RangeInclusive, time::Duration};
