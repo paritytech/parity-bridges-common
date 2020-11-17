@@ -114,10 +114,7 @@ where
 	/// such as being on a different finalized fork.
 	pub fn import_header(&mut self, header: H) -> Result<(), ImportError> {
 		let hash = header.hash();
-		let best_finalized = self.storage.best_finalized_header().expect(
-			"The dispatchable which calls this function is not allowed to be called
-			unless the pallet has been initialized. Therefore this must always exist.",
-		);
+		let best_finalized = self.storage.best_finalized_header();
 
 		if header.number() <= best_finalized.number() {
 			return Err(ImportError::OldHeader);
@@ -228,10 +225,7 @@ where
 
 		// We don't want to finalize an ancestor of an already finalized
 		// header, this would be inconsistent
-		let last_finalized = self.storage.best_finalized_header().expect(
-			"The dispatchable which calls this function is not allowed to be called
-			unless the pallet has been initialized. Therefore this must always exist.",
-		);
+		let last_finalized = self.storage.best_finalized_header();
 		if header.number() <= last_finalized.number() {
 			return Err(FinalizationError::OldHeader);
 		}
@@ -705,7 +699,7 @@ mod tests {
 
 			assert_ok!(verifier.import_header(header.clone()));
 			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
-			assert_eq!(storage.best_finalized_header().unwrap().header, header);
+			assert_eq!(storage.best_finalized_header().header, header);
 		})
 	}
 
@@ -741,7 +735,7 @@ mod tests {
 			assert!(storage.header_by_hash(header.hash()).unwrap().is_finalized);
 
 			// Make sure the header at the highest height is the best finalized
-			assert_eq!(storage.best_finalized_header().unwrap().header, header);
+			assert_eq!(storage.best_finalized_header().header, header);
 		});
 	}
 
@@ -787,7 +781,7 @@ mod tests {
 			assert_eq!(storage.missing_justifications()[0].hash, header.hash());
 
 			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
-			assert_eq!(storage.best_finalized_header().unwrap().header, header);
+			assert_eq!(storage.best_finalized_header().header, header);
 
 			// Make sure that we have updated the set now that we've finalized our header
 			assert_eq!(storage.current_authority_set(), change.authority_set);
