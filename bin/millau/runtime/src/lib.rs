@@ -522,8 +522,9 @@ impl_runtime_apis! {
 			BridgeRialto::best_headers()
 		}
 
-		fn finalized_block() -> Option<(bp_rialto::BlockNumber, bp_rialto::Hash)> {
-			BridgeRialto::best_finalized().map(|h| (h.number, h.hash()))
+		fn finalized_block() -> (bp_rialto::BlockNumber, bp_rialto::Hash) {
+			let header = BridgeRialto::best_finalized();
+			(header.number, header.hash())
 		}
 
 		fn incomplete_headers() -> Vec<(bp_rialto::BlockNumber, bp_rialto::Hash)> {

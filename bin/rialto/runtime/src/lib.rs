@@ -606,8 +606,9 @@ impl_runtime_apis! {
 			BridgeMillau::best_headers()
 		}
 
-		fn finalized_block() -> Option<(bp_millau::BlockNumber, bp_millau::Hash)> {
-			BridgeMillau::best_finalized().map(|h| (h.number, h.hash()))
+		fn finalized_block() -> (bp_millau::BlockNumber, bp_millau::Hash) {
+			let header = BridgeMillau::best_finalized();
+			(header.number, header.hash())
 		}
 
 		fn incomplete_headers() -> Vec<(bp_millau::BlockNumber, bp_millau::Hash)> {
