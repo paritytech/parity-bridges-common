@@ -3564,7 +3564,6 @@ dependencies = [
  "futures 0.3.7",
  "hex",
  "log",
- "num-traits",
  "parking_lot 0.11.0",
  "relay-utils",
 ]
@@ -4203,13 +4202,11 @@ dependencies = [
  "bp-message-lane",
  "bp-runtime",
  "derive_more",
- "frame-support",
  "futures 0.3.7",
  "jsonrpc-core 15.1.0",
  "jsonrpc-core-client",
  "jsonrpc-derive",
  "sc-client-api",
- "sp-api",
  "sp-blockchain",
  "sp-core",
  "sp-runtime",
@@ -4633,9 +4630,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba7ae1a2180ed02ddfdb5ab70c70d596a26dd642e097bb6fe78b1bde8588ed97"
+checksum = "7151b083b0664ed58ed669fcdd92f01c3d2fdbf10af4931a301474950b52bfa9"
 
 [[package]]
 name = "paste-impl"
@@ -7716,7 +7713,7 @@ dependencies = [
  "pallet-bridge-call-dispatch",
  "pallet-substrate-bridge",
  "parity-scale-codec",
- "paste 1.0.2",
+ "paste 1.0.3",
  "relay-millau-client",
  "relay-rialto-client",
  "relay-substrate-client",

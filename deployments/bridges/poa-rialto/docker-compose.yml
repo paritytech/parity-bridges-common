@@ -21,7 +21,7 @@ services:
       LETSENCRYPT_HOST: rialto.bridges.test-installations.parity.io,wss.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
 
-  relay-headers-poa-to-rialto:
+  relay-headers-poa-to-rialto: &eth-poa-relay
     image: paritytech/ethereum-poa-relay
     entrypoint: /entrypoints/relay-headers-poa-to-rialto-entrypoint.sh
     volumes:
@@ -40,39 +40,30 @@ services:
       - rialto-node-dave
       - rialto-node-eve
 
+  relay-poa-exchange-rialto:
+    <<: *eth-poa-relay
+    entrypoint: /entrypoints/relay-poa-exchange-rialto-entrypoint.sh
+    ports:
+      - "9716:9616"
+
+  relay-headers-rialto-to-poa:
+    <<: *eth-poa-relay
+    entrypoint: /entrypoints/relay-headers-rialto-to-poa-entrypoint.sh
+    ports:
+      - "9816:9616"
+
   poa-exchange-tx-generator:
-    image: paritytech/ethereum-poa-relay
+    <<: *eth-poa-relay
     entrypoint: /entrypoints/poa-exchange-tx-generator-entrypoint.sh
-    volumes:
-      - ./bridges/poa-rialto/entrypoints:/entrypoints
     environment:
-      RUST_LOG: rpc=trace,bridge=trace
       EXCHANGE_GEN_MIN_AMOUNT_FINNEY: ${EXCHANGE_GEN_MIN_AMOUNT_FINNEY:-1}
       EXCHANGE_GEN_MAX_AMOUNT_FINNEY: ${EXCHANGE_GEN_MAX_AMOUNT_FINNEY:-100000}
       EXCHANGE_GEN_MAX_SUBMIT_DELAY_S: ${EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-60}
-    depends_on: *all-nodes
-
-  relay-poa-exchange-rialto:
-    image: paritytech/ethereum-poa-relay
-    entrypoint: /entrypoints/relay-poa-exchange-rialto-entrypoint.sh
-    volumes:
-      - ./bridges/poa-rialto/entrypoints:/entrypoints
-    environment:
-      RUST_LOG: rpc=trace,bridge=trace
     ports:
-      - "9716:9616"
-    depends_on: *all-nodes
-
-  relay-headers-rialto-to-poa:
-    image: paritytech/ethereum-poa-relay
-    entrypoint: /entrypoints/relay-headers-rialto-to-poa-entrypoint.sh
-    volumes:
-      - ./bridges/poa-rialto/entrypoints:/entrypoints
-    environment:
-      RUST_LOG: rpc=trace,bridge=trace
-    ports:
-      - "9618:9616"
-    depends_on: *all-nodes
+      - "9916:9616"
+    depends_on:
+      - relay-headers-poa-to-rialto
+      - relay-headers-rialto-to-poa
 
   front-end:
     build:

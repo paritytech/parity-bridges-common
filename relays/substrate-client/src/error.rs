@@ -38,6 +38,8 @@ pub enum Error {
 	UninitializedBridgePallet,
 	/// Account does not exist on the chain.
 	AccountDoesNotExist,
+	/// Custom logic error.
+	Custom(String),
 }
 
 impl From<WsNewDnsError> for Error {
@@ -72,6 +74,7 @@ impl ToString for Error {
 			Self::ResponseParseFailed(e) => e.what().to_string(),
 			Self::UninitializedBridgePallet => "The Substrate bridge pallet has not been initialized yet.".into(),
 			Self::AccountDoesNotExist => "Account does not exist on the chain".into(),
+			Self::Custom(e) => e.clone(),
 		}
 	}
 }

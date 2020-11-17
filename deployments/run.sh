@@ -52,7 +52,7 @@ COMPOSE_ARGS+=$BRIDGE_PATH/.env
 grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY $BRIDGE_PATH/.env > .env2 && . ./.env2 && rm .env2
 
 if [ ! -z ${MATRIX_ACCESS_TOKEN+x} ]; then
-	sed -i '' -e "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./monitoring/grafana-matrix/config.yml
+	sed -i "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./monitoring/grafana-matrix/config.yml
 fi
 
 # First check is to see if we have a second argument (since it's optional in this script)
