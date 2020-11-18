@@ -18,279 +18,63 @@
   "links": [],
   "panels": [
     {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                5
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "min"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "5m",
-        "handler": 1,
-        "message": "",
-        "name": "Synced Header Difference is Over 5 (Ethereum PoA to Rialto)",
-        "noDataState": "no_data",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "Prometheus",
-      "description": "Shows how many headers behind the target chain is from the source chain.",
+      "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "fill": 1,
-      "fillGradient": 0,
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 7,
+        "w": 7,
         "x": 0,
         "y": 0
       },
-      "hiddenSeries": false,
-      "id": 14,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
       },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "percentage": false,
       "pluginVersion": "7.1.3",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
-          "expr": "max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"}) - max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"target\"})",
-          "format": "table",
-          "instant": false,
+          "expr": "Ethereum_to_Substrate_Exchange_best_block_numbers",
+          "instant": true,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "Best {{type}} block",
           "refId": "A"
         }
       ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 5
-        }
-      ],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
-      "title": "Difference Between Source and Target Headers",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                5
-              ],
-              "type": "lt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "2m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "min"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "3m",
-        "frequency": "5m",
-        "handler": 1,
-        "name": "No New Headers (Ethereum PoA to Rialto)",
-        "noDataState": "no_data",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "description": "How many headers has the relay synced from the source node in the last 2 mins?",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "hiddenSeries": false,
-      "id": 16,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.3",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "max_over_time(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"}[2m])-min_over_time(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"}[2m])",
-          "interval": "",
-          "legendFormat": "Number of Ethereum PoA Headers Synced on Rialto",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "lt",
-          "value": 5
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Headers Synced on Rialto (Last 2 Mins)",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "title": "Best finalized blocks",
+      "type": "stat"
     },
     {
       "datasource": "Prometheus",
@@ -315,71 +99,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 6,
-        "x": 18,
+        "h": 7,
+        "w": 5,
+        "x": 7,
         "y": 0
       },
       "id": 12,
-      "options": {
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "pluginVersion": "7.1.0",
-      "targets": [
-        {
-          "expr": "avg_over_time(Ethereum_to_Substrate_Sync_process_cpu_usage_percentage[1m])",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Relay process CPU usage (1 CPU = 100)",
-      "type": "gauge"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": null
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
-      "id": 2,
-      "interval": "5s",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -397,18 +122,16 @@
       "pluginVersion": "7.1.3",
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_best_block_numbers",
-          "format": "time_series",
+          "expr": "Ethereum_to_Substrate_Exchange_processed_blocks",
           "instant": true,
           "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Best Known Header on {{node}} Node",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Best Blocks according to Relay",
+      "title": "Number of processed blocks since last restart",
       "type": "stat"
     },
     {
@@ -417,20 +140,20 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 6,
         "x": 12,
-        "y": 8
+        "y": 0
       },
       "hiddenSeries": false,
       "id": 6,
@@ -457,7 +180,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_system_average_load",
+          "expr": "Ethereum_to_Substrate_Exchange_system_average_load",
           "interval": "",
           "legendFormat": "Average system load in last {{over}}",
           "refId": "A"
@@ -514,6 +237,7 @@
     },
     {
       "datasource": "Prometheus",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -535,12 +259,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 6,
         "x": 18,
-        "y": 8
+        "y": 0
       },
-      "id": 12,
+      "id": 8,
       "options": {
         "orientation": "auto",
         "reduceOptions": {
@@ -556,8 +280,7 @@
       "pluginVersion": "7.1.3",
       "targets": [
         {
-          "expr": "avg_over_time(Ethereum_to_Substrate_Sync_process_cpu_usage_percentage[1m])",
-          "instant": true,
+          "expr": "Ethereum_to_Substrate_Exchange_process_cpu_usage_percentage",
           "interval": "",
           "legendFormat": "1 CPU = 100",
           "refId": "A"
@@ -565,12 +288,11 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Relay Process CPU Usage ",
+      "title": "Relay Process CPU Usage",
       "type": "gauge"
     },
     {
       "datasource": "Prometheus",
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -595,11 +317,13 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 7
       },
-      "id": 4,
+      "id": 14,
       "options": {
-        "displayMode": "gradient",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -608,22 +332,22 @@
           "fields": "",
           "values": false
         },
-        "showUnfilled": true
+        "textMode": "auto"
       },
       "pluginVersion": "7.1.3",
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_blocks_in_state",
+          "expr": "Ethereum_to_Substrate_Exchange_processed_transactions",
           "instant": true,
           "interval": "",
-          "legendFormat": "{{state}}",
+          "legendFormat": "{{type}} transactions",
           "refId": "A"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Queued Headers in Relay",
-      "type": "bargauge"
+      "title": "Number of processed transactions since last restart",
+      "type": "stat"
     },
     {
       "aliasColors": {},
@@ -631,10 +355,10 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "links": []
         },
         "overrides": []
       },
@@ -644,7 +368,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 9
       },
       "hiddenSeries": false,
       "id": 10,
@@ -671,7 +395,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_process_memory_usage_bytes / 1024 / 1024",
+          "expr": "Ethereum_to_Substrate_Exchange_process_memory_usage_bytes / 1024 / 1024",
           "interval": "",
           "legendFormat": "Process memory, MB",
           "refId": "A"
@@ -744,7 +468,7 @@
     ]
   },
   "timezone": "",
-  "title": "Ethereum PoA to Rialto Header Sync Dashboard",
-  "uid": "relay-poa-to-rialto-headers",
+  "title": "Ethereum PoA to Rialto Exchange Dashboard",
+  "uid": "relay-poa-to-rialto-exchange",
   "version": 1
 }
