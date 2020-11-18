@@ -50,7 +50,7 @@
         "frequency": "5m",
         "handler": 1,
         "message": "",
-        "name": "Synced Header Difference is Over 5 (Ethereum PoA to Rialto)",
+        "name": "Synced Header Difference is Over 5 (Rialto to Millau)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -99,7 +99,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"}) - max(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"target\"})",
+          "expr": "max(Rialto_to_Millau_Sync_best_block_numbers{node=\"source\"}) - max(Rialto_to_Millau_Sync_best_block_numbers{node=\"target\"})",
           "format": "table",
           "instant": false,
           "interval": "",
@@ -188,7 +188,7 @@
         "for": "3m",
         "frequency": "5m",
         "handler": 1,
-        "name": "No New Headers (Ethereum PoA to Rialto)",
+        "name": "No New Headers (Rialto to Millau)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -237,9 +237,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max_over_time(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"}[2m])-min_over_time(Ethereum_to_Substrate_Sync_best_block_numbers{node=\"source\"}[2m])",
+          "expr": "max_over_time(Rialto_to_Millau_Sync_best_block_numbers{node=\"source\"}[2m])-min_over_time(Rialto_to_Millau_Sync_best_block_numbers{node=\"source\"}[2m])",
           "interval": "",
-          "legendFormat": "Number of Ethereum PoA Headers Synced on Rialto",
+          "legendFormat": "Number of Rialto Headers Synced on Millau",
           "refId": "A"
         }
       ],
@@ -255,7 +255,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Headers Synced on Rialto (Last 2 Mins)",
+      "title": "Headers Synced on Millau (Last 2 Mins)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -291,62 +291,6 @@
         "align": false,
         "alignLevel": null
       }
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "id": 12,
-      "options": {
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "pluginVersion": "7.1.0",
-      "targets": [
-        {
-          "expr": "avg_over_time(Ethereum_to_Substrate_Sync_process_cpu_usage_percentage[1m])",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Relay process CPU usage (1 CPU = 100)",
-      "type": "gauge"
     },
     {
       "datasource": "Prometheus",
@@ -397,7 +341,7 @@
       "pluginVersion": "7.1.3",
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_best_block_numbers",
+          "expr": "Rialto_to_Millau_Sync_best_block_numbers",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -457,7 +401,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_system_average_load",
+          "expr": "Rialto_to_Millau_Sync_system_average_load",
           "interval": "",
           "legendFormat": "Average system load in last {{over}}",
           "refId": "A"
@@ -556,7 +500,7 @@
       "pluginVersion": "7.1.3",
       "targets": [
         {
-          "expr": "avg_over_time(Ethereum_to_Substrate_Sync_process_cpu_usage_percentage[1m])",
+          "expr": "avg_over_time(Rialto_to_Millau_Sync_process_cpu_usage_percentage[1m])",
           "instant": true,
           "interval": "",
           "legendFormat": "1 CPU = 100",
@@ -613,7 +557,7 @@
       "pluginVersion": "7.1.3",
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_blocks_in_state",
+          "expr": "Rialto_to_Millau_Sync_blocks_in_state",
           "instant": true,
           "interval": "",
           "legendFormat": "{{state}}",
@@ -671,7 +615,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Ethereum_to_Substrate_Sync_process_memory_usage_bytes / 1024 / 1024",
+          "expr": "Rialto_to_Millau_Sync_process_memory_usage_bytes / 1024 / 1024",
           "interval": "",
           "legendFormat": "Process memory, MB",
           "refId": "A"
@@ -744,7 +688,7 @@
     ]
   },
   "timezone": "",
-  "title": "Ethereum PoA to Rialto Header Sync Dashboard",
-  "uid": "relay-poa-to-rialto-headers",
+  "title": "Rialto to Millau Header Sync Dashboard",
+  "uid": "relay-rialto-to-millau-headers",
   "version": 1
 }
