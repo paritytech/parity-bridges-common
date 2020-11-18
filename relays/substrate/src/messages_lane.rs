@@ -21,7 +21,7 @@ use messages_relay::message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderId
 use relay_substrate_client::Error as SubstrateError;
 use std::ops::RangeInclusive;
 
-/// Headers sync pipeline for Substrate <-> Substrate relays.
+/// Message sync pipeline for Substrate <-> Substrate relays.
 #[async_trait]
 pub trait SubstrateMessageLane: MessageLane {
 	/// Name of the runtime method that returns dispatch weight of outbound messages at the source chain.
