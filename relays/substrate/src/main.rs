@@ -289,7 +289,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 						spec_version: millau_runtime::VERSION.spec_version,
 						weight: rialto_call_weight,
 						origin: CallOrigin::RealAccount(
-							millau_sender_public.into(),
+							millau_sender_public,
 							rialto_origin_public.into(),
 							rialto_origin_signature.into(),
 						),
