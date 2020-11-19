@@ -412,15 +412,22 @@ mod tests {
 		sp_io::TestExternalities::new(t)
 	}
 
-	fn prepare_bridge_message(
+	fn prepare_message(
+		origin: CallOrigin<TestAccountPublic, TestAccountPublic, TestSignature>,
 		call: Call,
 	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
 		MessagePayload {
 			spec_version: TEST_SPEC_VERSION,
 			weight: TEST_WEIGHT,
-			origin: CallOrigin::BridgeAccount,
+			origin,
 			call,
 		}
+	}
+
+	fn prepare_bridge_message(
+		call: Call,
+	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
+		prepare_message(CallOrigin::BridgeAccount, call)
 	}
 
 	#[test]
@@ -546,6 +553,30 @@ mod tests {
 	}
 
 	#[test]
+	fn should_dispatch_bridge_message_from_derived_origin() {
+		new_test_ext().execute_with(|| {
+			let id = [0; 4];
+			let source_public = TestAccountPublic(1);
+			let origin = derive_target_account_id(*b"test", source_public.clone());
+
+			let call = Call::System(<frame_system::Call<TestRuntime>>::remark(vec![]));
+			let message = prepare_message(CallOrigin::DerivedAccount(source_public), call);
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(origin, id, message);
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageDispatched(origin, id, Ok(()))),
+					topics: vec![],
+				}],
+			);
+		})
+	}
+
+	#[test]
 	fn dispatch_supports_different_accounts() {
 		fn dispatch_suicide(call_origin: CallOrigin<TestAccountPublic, TestAccountPublic, TestSignature>) {
 			let origin = b"ethb".to_owned();
@@ -585,8 +616,8 @@ mod tests {
 	}
 
 	#[test]
-	fn origin_is_checked_when_verify_sending_message() {
-		let mut message = prepare_bridge_message(Call::System(<frame_system::Call<TestRuntime>>::suicide()));
+	fn origin_is_checked_when_verifying_sending_message_using_bridge_account() {
+		let message = prepare_bridge_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![])));
 
 		// when message is sent by root, CallOrigin::BridgeAccount is allowed
 		assert!(matches!(
@@ -599,9 +630,15 @@ mod tests {
 			verify_sending_message(Origin::from(RawOrigin::Signed(1)), &message),
 			Err(BadOrigin)
 		));
+	}
+
+	#[test]
+	fn origin_is_checked_when_verifying_sending_message_using_real_account() {
+		let call = Call::System(<frame_system::Call<TestRuntime>>::remark(vec![]));
+		let origin = CallOrigin::RealAccount(TestAccountPublic(2), TestAccountPublic(2), TestSignature(2));
+		let message = prepare_message(origin, call);
 
 		// when message is sent by root, CallOrigin::RealAccount is not allowed
-		message.origin = CallOrigin::RealAccount(TestAccountPublic(2), TestAccountPublic(2), TestSignature(2));
 		assert!(matches!(
 			verify_sending_message(Origin::from(RawOrigin::Root), &message),
 			Err(BadOrigin)
@@ -617,6 +654,32 @@ mod tests {
 		assert!(matches!(
 			verify_sending_message(Origin::from(RawOrigin::Signed(2)), &message),
 			Ok(Some(2))
+		));
+	}
+
+	#[test]
+	fn origin_is_checked_when_verifying_sending_message_using_derived_account() {
+		let source_public = TestAccountPublic(1);
+		let origin = CallOrigin::DerivedAccount(source_public);
+		let call = Call::System(<frame_system::Call<TestRuntime>>::remark(vec![]));
+		let message = prepare_message(origin, call);
+
+		// Sending a message from the expected origin account works
+		assert!(matches!(
+			verify_sending_message(Origin::from(RawOrigin::Signed(1)), &message),
+			Ok(Some(1))
+		));
+
+		// If we send a message from a different account, it is rejected
+		assert!(matches!(
+			verify_sending_message(Origin::from(RawOrigin::Signed(2)), &message),
+			Err(BadOrigin)
+		));
+
+		// If we try and send the message from Root, it is also rejected
+		assert!(matches!(
+			verify_sending_message(Origin::from(RawOrigin::Root), &message),
+			Err(BadOrigin)
 		));
 	}
 }
