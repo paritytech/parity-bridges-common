@@ -52,11 +52,20 @@ pub type InstanceId = [u8; 4];
 /// exchange, message dispatch and other modules.
 ///
 /// The account is not supposed to actually exists on the chain, or to have any funds.
-/// It is only used to
 pub fn bridge_account_id<AccountId>(bridge: InstanceId, module_prefix: &[u8]) -> AccountId
 where
 	AccountId: Decode + Default,
 {
 	let entropy = (module_prefix, bridge).using_encoded(blake2_256);
 	AccountId::decode(&mut &entropy[..]).unwrap_or_default()
+}
+
+/// Derive an account ID on this chain from a foreign account ID.
+pub fn derive_target_account_id<Public, AccountId>(bridge: InstanceId, source_public: Public) -> AccountId
+where
+	Public: Encode,
+	AccountId: Encode + Decode + Default,
+{
+	let target = (bridge, source_public).using_encoded(blake2_256);
+	AccountId::decode(&mut &target[..]).unwrap_or_default()
 }

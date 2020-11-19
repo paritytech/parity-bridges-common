@@ -25,7 +25,7 @@
 #![warn(missing_docs)]
 
 use bp_message_dispatch::{MessageDispatch, Weight};
-use bp_runtime::{bridge_account_id, InstanceId, CALL_DISPATCH_MODULE_PREFIX};
+use bp_runtime::{bridge_account_id, derive_target_account_id, InstanceId, CALL_DISPATCH_MODULE_PREFIX};
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_event, decl_module, decl_storage,
@@ -69,6 +69,16 @@ pub enum CallOrigin<SourceChainAccountPublic, TargetChainAccountPublic, TargetCh
 	/// `SourceChainAccountPublic` account. This can be done through the use of
 	/// `verify_sending_message()`.
 	RealAccount(SourceChainAccountPublic, TargetChainAccountPublic, TargetChainSignature),
+
+	/// Call originates from an account ID on _this_ chain which was derived from an account ID on
+	/// the _source_ chain.
+	///
+	/// Note that the derived account will (probably) not to have a private key on this chain.
+	///
+	/// For example, if Alice and Bob are on Chain A, and Alice wants to `transfer` funds to Bob's
+	/// account on Chain B, she could send funds to Bob's address on A, which would then be derived
+	/// into Bob's address on Chain B (without Bob having to generate an account on B explicitly).
+	DerivedAccount(SourceChainAccountPublic),
 }
 
 /// Message payload type used by call-dispatch module.
@@ -219,6 +229,7 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 
 				target_account
 			}
+			CallOrigin::DerivedAccount(source_public) => derive_target_account_id(bridge, source_public),
 		};
 
 		// finally dispatch message
@@ -270,6 +281,13 @@ where
 				return Err(BadOrigin);
 			}
 
+			Ok(Some(this_chain_account_id))
+		}
+		CallOrigin::DerivedAccount(ref this_account_public) => {
+			let this_chain_account_id = ensure_signed(sender_origin)?;
+			if this_chain_account_id != this_account_public.clone().into_account() {
+				return Err(BadOrigin);
+			}
 			Ok(Some(this_chain_account_id))
 		}
 	}
