@@ -51,7 +51,8 @@ pub enum CallOrigin<SourceChainAccountPublic, TargetChainAccountPublic, TargetCh
 	///
 	/// This account represents a single deployed instance of a pallet (e.g `pallet-message-lane`).
 	/// Since this account does not have a private key it is not controlled by anyone. While this
-	/// account _should_ have a zero balance, there is nothing stopping someone from sending funds to it.
+	/// account _should_ have a zero balance, there is nothing stopping someone from sending funds
+	/// to it.
 	///
 	/// If we trust the source chain to allow sending calls with that origin in case they originate
 	/// from source chain `root` account (default implementation), `BridgeAccount` represents the
@@ -73,11 +74,10 @@ pub enum CallOrigin<SourceChainAccountPublic, TargetChainAccountPublic, TargetCh
 	/// Call originates from an account ID on _this_ chain which was derived from an account ID on
 	/// the _source_ chain.
 	///
-	/// Note that the derived account will (probably) not to have a private key on this chain.
+	/// This is useful if you need a way to represent foreign accounts on this chain for call
+	/// dispatch purposes.
 	///
-	/// For example, if Alice and Bob are on Chain A, and Alice wants to `transfer` funds to Bob's
-	/// account on Chain B, she could send funds to Bob's address on A, which would then be derived
-	/// into Bob's address on Chain B (without Bob having to generate an account on B explicitly).
+	/// Note that the derived account will (probably) not to have a private key on this chain.
 	DerivedAccount(SourceChainAccountPublic),
 }
 
@@ -457,9 +457,12 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			let origin = b"ethb".to_owned();
 			let id = [0; 4];
-			let mut message =
-				prepare_bridge_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
-			message.origin = CallOrigin::RealAccount(TestAccountPublic(2), TestAccountPublic(2), TestSignature(1));
+
+			let call_origin = CallOrigin::RealAccount(TestAccountPublic(2), TestAccountPublic(2), TestSignature(1));
+			let message = prepare_message(
+				call_origin,
+				Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])),
+			);
 
 			System::set_block_number(1);
 			CallDispatch::dispatch(origin, id, message);
@@ -581,8 +584,7 @@ mod tests {
 		fn dispatch_suicide(call_origin: CallOrigin<TestAccountPublic, TestAccountPublic, TestSignature>) {
 			let origin = b"ethb".to_owned();
 			let id = [0; 4];
-			let mut message = prepare_bridge_message(Call::System(<frame_system::Call<TestRuntime>>::suicide()));
-			message.origin = call_origin;
+			let message = prepare_message(call_origin, Call::System(<frame_system::Call<TestRuntime>>::suicide()));
 
 			System::set_block_number(1);
 			CallDispatch::dispatch(origin, id, message);
