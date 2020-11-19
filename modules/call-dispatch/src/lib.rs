@@ -16,12 +16,10 @@
 
 //! Runtime module which takes care of dispatching messages received over the bridge.
 //!
-//! The messages are interpreted directly as runtime `Call`s, we attempt to decode
-//! them and then dispatch as usualy.
-//! To prevent compatibility issues, the calls have to include `spec_version` as well
-//! which is being checked before dispatch.
-//!
-//! In case of succesful dispatch event is emitted.
+//! The messages are interpreted directly as runtime `Call`. We attempt to decode
+//! them and then dispatch as usual. To prevent compatibility issues, the Calls have
+//! to include a `spec_version`. This will be checked before dispatch. In the case of
+//! a succesful dispatch an event is emitted.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
@@ -46,23 +44,30 @@ use sp_std::{marker::PhantomData, prelude::*};
 /// Spec version type.
 pub type SpecVersion = u32;
 
-/// Origin of the call on the target chain.
+/// Origin of a Call when it is dispatched on this (a.k.a target) chain.
 #[derive(RuntimeDebug, Encode, Decode, Clone, PartialEq, Eq)]
 pub enum CallOrigin<SourceChainAccountPublic, TargetChainAccountPublic, TargetChainSignature> {
-	/// Call is originated from bridge account, which is (designed to be) specific to
-	/// the single deployed instance of the messages bridge (message-lane, ...) module.
-	/// It is assumed that this account is not controlled by anyone and has zero balance
-	/// (unless someone would make transfer by mistake?).
+	/// Call originates from an account "controlled" by a pallet.
+	///
+	/// This account represents a single deployed instance of a pallet (e.g `pallet-message-lane`).
+	/// Since this account does not have a private key it is not controlled by anyone. While this
+	/// account _should_ have a zero balance, there is nothing stopping someone from sending funds to it.
+	///
 	/// If we trust the source chain to allow sending calls with that origin in case they originate
 	/// from source chain `root` account (default implementation), `BridgeAccount` represents the
 	/// source-chain-root origin on the target chain and can be used to send and authorize
 	/// "control plane" messages between the two runtimes.
 	BridgeAccount,
-	/// Call is originated from account, identified by `TargetChainAccountPublic`. The proof
-	/// that the `SourceChainAccountPublic` controls `TargetChainAccountPublic` is the
-	/// `TargetChainSignature` over `(Call, SourceChainAccountPublic).encode()`.
-	/// The source chain must ensure that the message is sent by the owner of
-	/// `SourceChainAccountPublic` account (use the `fn verify_sending_message()`).
+
+	/// Call originates from an account controlled by a private key on this chain.
+	///
+	/// The account can be identified by `TargetChainAccountPublic`. The proof that the
+	/// `SourceChainAccountPublic` controls `TargetChainAccountPublic` is the `TargetChainSignature`
+	/// over `(Call, SourceChainAccountPublic).encode()`.
+	///
+	/// Note: The source chain must ensure that the message is sent by the owner of the
+	/// `SourceChainAccountPublic` account. This can be done through the use of
+	/// `verify_sending_message()`.
 	RealAccount(SourceChainAccountPublic, TargetChainAccountPublic, TargetChainSignature),
 }
 
@@ -106,8 +111,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as CallDispatch {
-	}
+	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as CallDispatch {}
 }
 
 decl_event!(
