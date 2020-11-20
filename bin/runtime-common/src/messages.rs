@@ -614,7 +614,7 @@ mod tests {
 		let message_on_bridged_chain = source::FromThisChainMessagePayload::<OnBridgedChainBridge> {
 			spec_version: 1,
 			weight: 100,
-			origin: pallet_bridge_call_dispatch::CallOrigin::BridgeAccount,
+			origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
 			call: ThisChainCall::Transfer.encode(),
 		}
 		.encode();
@@ -628,7 +628,7 @@ mod tests {
 			target::FromBridgedChainDecodedMessagePayload::<OnThisChainBridge> {
 				spec_version: 1,
 				weight: 100,
-				origin: pallet_bridge_call_dispatch::CallOrigin::BridgeAccount,
+				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
 				call: ThisChainCall::Transfer,
 			}
 		);
@@ -642,7 +642,7 @@ mod tests {
 		let payload = source::FromThisChainMessagePayload::<OnThisChainBridge> {
 			spec_version: 1,
 			weight: 100,
-			origin: pallet_bridge_call_dispatch::CallOrigin::BridgeAccount,
+			origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
 			call: vec![42],
 		};
 
