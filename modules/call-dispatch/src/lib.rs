@@ -25,7 +25,7 @@
 #![warn(missing_docs)]
 
 use bp_message_dispatch::{MessageDispatch, Weight};
-use bp_runtime::{bridge_account_id, derive_target_account_id, InstanceId, CALL_DISPATCH_MODULE_PREFIX};
+use bp_runtime::{derive_target_account_id, InstanceId};
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_event, decl_module, decl_storage,
@@ -36,54 +36,48 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed, RawOrigin};
 use sp_runtime::{
-	traits::{BadOrigin, IdentifyAccount, Verify},
+	traits::{BadOrigin, IdentifyAccount, MaybeDisplay, MaybeSerializeDeserialize, Member, Verify},
 	DispatchResult,
 };
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::{fmt::Debug, marker::PhantomData, prelude::*};
 
 /// Spec version type.
 pub type SpecVersion = u32;
 
-/// Origin of a Call when it is dispatched on this (a.k.a target) chain.
+/// Origin of a Call when it is dispatched on the target chain.
 #[derive(RuntimeDebug, Encode, Decode, Clone, PartialEq, Eq)]
-pub enum CallOrigin<SourceChainAccountPublic, TargetChainAccountPublic, TargetChainSignature> {
-	/// Call originates from an account "controlled" by a pallet.
+pub enum CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature> {
+	/// Call originates from the Root origin on the source chain.
 	///
-	/// This account represents a single deployed instance of a pallet (e.g `pallet-message-lane`).
-	/// Since this account does not have a private key it is not controlled by anyone. While this
-	/// account _should_ have a zero balance, there is nothing stopping someone from sending funds
-	/// to it.
-	///
-	/// If we trust the source chain to allow sending calls with that origin in case they originate
-	/// from source chain `root` account (default implementation), `BridgeAccount` represents the
-	/// source-chain-root origin on the target chain and can be used to send and authorize
-	/// "control plane" messages between the two runtimes.
-	BridgeAccount,
+	/// This is useful if the target chain needs some way of knowing that a call came from a
+	/// priviledged origin on the source chain (maybe to allow a configuration change for example).
+	SourceRoot,
 
-	/// Call originates from an account controlled by a private key on this chain.
+	/// Call originates from an account controlled by a private key on the target chain.
 	///
 	/// The account can be identified by `TargetChainAccountPublic`. The proof that the
-	/// `SourceChainAccountPublic` controls `TargetChainAccountPublic` is the `TargetChainSignature`
-	/// over `(Call, SourceChainAccountPublic).encode()`.
+	/// `SourceChainAccountId` controls `TargetChainAccountPublic` is the `TargetChainSignature`
+	/// over `(Call, SourceChainAccountId).encode()`.
 	///
 	/// Note: The source chain must ensure that the message is sent by the owner of the
 	/// `SourceChainAccountPublic` account. This can be done through the use of
 	/// `verify_sending_message()`.
-	RealAccount(SourceChainAccountPublic, TargetChainAccountPublic, TargetChainSignature),
+	TargetAccount(SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature),
 
-	/// Call originates from an account ID on _this_ chain which was derived from an account ID on
-	/// the _source_ chain.
+	/// Call originates from an account ID on the _target_ chain which was derived from an account
+	/// ID on the _source_ chain.
 	///
 	/// This is useful if you need a way to represent foreign accounts on this chain for call
 	/// dispatch purposes.
 	///
-	/// Note that the derived account will (probably) not to have a private key on this chain.
-	DerivedAccount(SourceChainAccountPublic),
+	/// Note that the derived account does not need to have a private key on the target chain. This
+	/// origin can therefore represent proxies, pallets, etc. as well as "regular" accounts.
+	SourceAccount(SourceChainAccountId),
 }
 
 /// Message payload type used by call-dispatch module.
 #[derive(RuntimeDebug, Encode, Decode, Clone, PartialEq, Eq)]
-pub struct MessagePayload<SourceChainAccountPublic, TargetChainAccountPublic, TargetChainSignature, Call> {
+pub struct MessagePayload<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature, Call> {
 	/// Runtime specification version. We only dispatch messages that have the same
 	/// runtime version. Otherwise we risk to misinterpret encoded calls.
 	pub spec_version: SpecVersion,
@@ -91,7 +85,7 @@ pub struct MessagePayload<SourceChainAccountPublic, TargetChainAccountPublic, Ta
 	/// static weight, the call is not dispatched.
 	pub weight: Weight,
 	/// Call origin to be used during dispatch.
-	pub origin: CallOrigin<SourceChainAccountPublic, TargetChainAccountPublic, TargetChainSignature>,
+	pub origin: CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature>,
 	/// The call itself.
 	pub call: Call,
 }
@@ -104,8 +98,8 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// event with this id + dispatch result. Could be e.g. (LaneId, MessageNonce) if
 	/// it comes from message-lane module.
 	type MessageId: Parameter;
-	/// Type of account public key on source chain.
-	type SourceChainAccountPublic: Parameter;
+	/// Type of account ID on source chain.
+	type SourceChainAccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 	/// Type of account public key on target chain.
 	type TargetChainAccountPublic: Parameter + IdentifyAccount<AccountId = Self::AccountId>;
 	/// Type of signature that may prove that the message has been signed by
@@ -153,7 +147,7 @@ decl_module! {
 
 impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 	type Message = MessagePayload<
-		T::SourceChainAccountPublic,
+		T::SourceChainAccountId,
 		T::TargetChainAccountPublic,
 		T::TargetChainSignature,
 		<T as Trait<I>>::Call,
@@ -208,11 +202,11 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 
 		// prepare dispatch origin
 		let origin_account = match message.origin {
-			CallOrigin::BridgeAccount => bridge_account_id(bridge, CALL_DISPATCH_MODULE_PREFIX),
-			CallOrigin::RealAccount(source_public, target_public, target_signature) => {
+			CallOrigin::SourceRoot => derive_target_account_id(bridge, T::SourceChainAccountId::default()),
+			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
 				let mut signed_message = Vec::new();
 				message.call.encode_to(&mut signed_message);
-				source_public.encode_to(&mut signed_message);
+				source_account_id.encode_to(&mut signed_message);
 
 				let target_account = target_public.into_account();
 				if !target_signature.verify(&signed_message[..], &target_account) {
@@ -229,7 +223,7 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 
 				target_account
 			}
-			CallOrigin::DerivedAccount(source_public) => derive_target_account_id(bridge, source_public),
+			CallOrigin::SourceAccount(source_account_id) => derive_target_account_id(bridge, source_account_id),
 		};
 
 		// finally dispatch message
@@ -253,42 +247,42 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 	}
 }
 
-/// Verify payload of the message at the sending side.
+/// Verify payload of the message on the source (a.k.a sending) side.
 pub fn verify_sending_message<
-	ThisChainOuterOrigin,
-	ThisChainAccountId,
+	SourceChainOuterOrigin,
+	SourceChainAccountId,
 	SourceChainAccountPublic,
 	TargetChainAccountPublic,
 	TargetChainSignature,
 	Call,
 >(
-	sender_origin: ThisChainOuterOrigin,
+	sender_origin: SourceChainOuterOrigin,
 	message: &MessagePayload<TargetChainAccountPublic, SourceChainAccountPublic, TargetChainSignature, Call>,
-) -> Result<Option<ThisChainAccountId>, BadOrigin>
+) -> Result<Option<SourceChainAccountId>, BadOrigin>
 where
-	ThisChainOuterOrigin: Into<Result<RawOrigin<ThisChainAccountId>, ThisChainOuterOrigin>>,
-	TargetChainAccountPublic: Clone + IdentifyAccount<AccountId = ThisChainAccountId>,
-	ThisChainAccountId: PartialEq,
+	SourceChainOuterOrigin: Into<Result<RawOrigin<SourceChainAccountId>, SourceChainOuterOrigin>>,
+	TargetChainAccountPublic: Clone + IdentifyAccount<AccountId = SourceChainAccountId>,
+	SourceChainAccountId: PartialEq,
 {
 	match message.origin {
-		CallOrigin::BridgeAccount => {
+		CallOrigin::SourceRoot => {
 			ensure_root(sender_origin)?;
 			Ok(None)
 		}
-		CallOrigin::RealAccount(ref this_account_public, _, _) => {
-			let this_chain_account_id = ensure_signed(sender_origin)?;
-			if this_chain_account_id != this_account_public.clone().into_account() {
+		CallOrigin::TargetAccount(ref source_account_id, _, _) => {
+			let source_chain_signer = ensure_signed(sender_origin)?;
+			if source_chain_signer != source_account_id.clone().into_account() {
 				return Err(BadOrigin);
 			}
 
-			Ok(Some(this_chain_account_id))
+			Ok(Some(source_chain_signer))
 		}
-		CallOrigin::DerivedAccount(ref this_account_public) => {
-			let this_chain_account_id = ensure_signed(sender_origin)?;
-			if this_chain_account_id != this_account_public.clone().into_account() {
+		CallOrigin::SourceAccount(ref source_account_id) => {
+			let source_chain_signer = ensure_signed(sender_origin)?;
+			if source_chain_signer != source_account_id.clone().into_account() {
 				return Err(BadOrigin);
 			}
-			Ok(Some(this_chain_account_id))
+			Ok(Some(source_chain_signer))
 		}
 	}
 }
@@ -427,7 +421,7 @@ mod tests {
 	fn prepare_bridge_message(
 		call: Call,
 	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
-		prepare_message(CallOrigin::BridgeAccount, call)
+		prepare_message(CallOrigin::SourceRoot, call)
 	}
 
 	#[test]
@@ -458,7 +452,7 @@ mod tests {
 			let origin = b"ethb".to_owned();
 			let id = [0; 4];
 
-			let call_origin = CallOrigin::RealAccount(TestAccountPublic(2), TestAccountPublic(2), TestSignature(1));
+			let call_origin = CallOrigin::TargetAccount(TestAccountPublic(2), TestAccountPublic(2), TestSignature(1));
 			let message = prepare_message(
 				call_origin,
 				Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])),
@@ -563,7 +557,7 @@ mod tests {
 			let origin = derive_target_account_id(*b"test", source_public.clone());
 
 			let call = Call::System(<frame_system::Call<TestRuntime>>::remark(vec![]));
-			let message = prepare_message(CallOrigin::DerivedAccount(source_public), call);
+			let message = prepare_message(CallOrigin::SourceAccount(source_public), call);
 
 			System::set_block_number(1);
 			CallDispatch::dispatch(origin, id, message);
@@ -602,7 +596,7 @@ mod tests {
 			assert_eq!(System::account_nonce(bridge_account_id), 1);
 
 			// kill real account
-			dispatch_suicide(CallOrigin::RealAccount(
+			dispatch_suicide(CallOrigin::TargetAccount(
 				TestAccountPublic(real_account_id),
 				TestAccountPublic(real_account_id),
 				TestSignature(real_account_id),
@@ -611,7 +605,7 @@ mod tests {
 			assert_eq!(System::account_nonce(bridge_account_id), 1);
 
 			// kill bridge account
-			dispatch_suicide(CallOrigin::BridgeAccount);
+			dispatch_suicide(CallOrigin::SourceRoot);
 			assert_eq!(System::account_nonce(real_account_id), 0);
 			assert_eq!(System::account_nonce(bridge_account_id), 0);
 		});
@@ -637,10 +631,10 @@ mod tests {
 	#[test]
 	fn origin_is_checked_when_verifying_sending_message_using_real_account() {
 		let call = Call::System(<frame_system::Call<TestRuntime>>::remark(vec![]));
-		let origin = CallOrigin::RealAccount(TestAccountPublic(2), TestAccountPublic(2), TestSignature(2));
+		let origin = CallOrigin::TargetAccount(TestAccountPublic(2), TestAccountPublic(2), TestSignature(2));
 		let message = prepare_message(origin, call);
 
-		// when message is sent by root, CallOrigin::RealAccount is not allowed
+		// when message is sent by root, CallOrigin::TargetAccount is not allowed
 		assert!(matches!(
 			verify_sending_message(Origin::from(RawOrigin::Root), &message),
 			Err(BadOrigin)
@@ -652,7 +646,7 @@ mod tests {
 			Err(BadOrigin)
 		));
 
-		// when message is sent real account, it is allowed to have origin CallOrigin::RealAccount
+		// when message is sent real account, it is allowed to have origin CallOrigin::TargetAccount
 		assert!(matches!(
 			verify_sending_message(Origin::from(RawOrigin::Signed(2)), &message),
 			Ok(Some(2))
@@ -662,7 +656,7 @@ mod tests {
 	#[test]
 	fn origin_is_checked_when_verifying_sending_message_using_derived_account() {
 		let source_public = TestAccountPublic(1);
-		let origin = CallOrigin::DerivedAccount(source_public);
+		let origin = CallOrigin::SourceAccount(source_public);
 		let call = Call::System(<frame_system::Call<TestRuntime>>::remark(vec![]));
 		let message = prepare_message(origin, call);
 

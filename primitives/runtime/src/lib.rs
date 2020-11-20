@@ -50,8 +50,6 @@ pub type InstanceId = [u8; 4];
 /// The `module_prefix` (arbitrary slice) may be used to generate module-level
 /// "system" account, so you could have separate "system" accounts for currency
 /// exchange, message dispatch and other modules.
-///
-/// The account is not supposed to actually exists on the chain, or to have any funds.
 pub fn bridge_account_id<AccountId>(bridge: InstanceId, module_prefix: &[u8]) -> AccountId
 where
 	AccountId: Decode + Default,
@@ -61,11 +59,14 @@ where
 }
 
 /// Derive an account ID on this chain from a foreign account ID.
-pub fn derive_target_account_id<Public, AccountId>(bridge: InstanceId, source_public: Public) -> AccountId
+pub fn derive_target_account_id<SourceAccountId, TargetAccountId>(
+	bridge: InstanceId,
+	source_account_id: SourceAccountId,
+) -> TargetAccountId
 where
-	Public: Encode,
-	AccountId: Encode + Decode + Default,
+	SourceAccountId: Encode + Decode + Default,
+	TargetAccountId: Encode + Decode + Default,
 {
-	let target = (bridge, source_public).using_encoded(blake2_256);
-	AccountId::decode(&mut &target[..]).unwrap_or_default()
+	let target = (bridge, source_account_id).using_encoded(blake2_256);
+	TargetAccountId::decode(&mut &target[..]).unwrap_or_default()
 }
