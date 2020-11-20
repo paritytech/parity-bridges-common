@@ -288,7 +288,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					MessagePayload {
 						spec_version: millau_runtime::VERSION.spec_version,
 						weight: rialto_call_weight,
-						origin: CallOrigin::RealAccount(
+						origin: CallOrigin::TargetAccount(
 							millau_sender_public,
 							rialto_origin_public.into(),
 							rialto_origin_signature.into(),
