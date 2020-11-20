@@ -297,7 +297,7 @@ mod tests {
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, IdentityLookup},
-		DispatchError, Perbill,
+		Perbill,
 	};
 
 	type AccountId = u64;
