@@ -277,7 +277,7 @@ impl pallet_bridge_call_dispatch::Trait for Runtime {
 	type Event = Event;
 	type MessageId = (bp_message_lane::LaneId, bp_message_lane::MessageNonce);
 	type Call = Call;
-	type SourceChainAccountPublic = MultiSigner;
+	type SourceChainAccountId = MultiSigner;
 	type TargetChainAccountPublic = MultiSigner;
 	type TargetChainSignature = MultiSignature;
 }
