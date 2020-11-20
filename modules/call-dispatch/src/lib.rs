@@ -606,46 +606,6 @@ mod tests {
 		})
 	}
 
-	// #[test]
-	// fn dispatch_supports_different_accounts() {
-	// 	use super::bp_runtime::{bridge_account_id, CALL_DISPATCH_MODULE_PREFIX};
-
-	// 	fn dispatch_suicide(call_origin: CallOrigin<AccountId, TestAccountPublic, TestSignature>) {
-	// 		let origin = b"ethb".to_owned();
-	// 		let id = [0; 4];
-	// 		let message = prepare_message(call_origin, Call::System(<frame_system::Call<TestRuntime>>::suicide()));
-
-	// 		System::set_block_number(1);
-	// 		CallDispatch::dispatch(origin, id, message);
-	// 	}
-
-	// 	new_test_ext().execute_with(|| {
-	// 		// 'create' real account
-	// 		let real_account_id = 1;
-	// 		System::inc_account_nonce(real_account_id);
-	// 		// 'create' bridge account
-	// 		let bridge_account_id: AccountId = bridge_account_id(*b"ethb", CALL_DISPATCH_MODULE_PREFIX);
-	// 		System::inc_account_nonce(bridge_account_id);
-
-	// 		assert_eq!(System::account_nonce(real_account_id), 1);
-	// 		assert_eq!(System::account_nonce(bridge_account_id), 1);
-
-	// 		// kill real account
-	// 		dispatch_suicide(CallOrigin::TargetAccount(
-	// 			real_account_id,
-	// 			TestAccountPublic(real_account_id),
-	// 			TestSignature(real_account_id),
-	// 		));
-	// 		assert_eq!(System::account_nonce(real_account_id), 0);
-	// 		assert_eq!(System::account_nonce(bridge_account_id), 1);
-
-	// 		// kill bridge account
-	// 		dispatch_suicide(CallOrigin::SourceRoot);
-	// 		assert_eq!(System::account_nonce(real_account_id), 0);
-	// 		assert_eq!(System::account_nonce(bridge_account_id), 0);
-	// 	});
-	// }
-
 	#[test]
 	fn origin_is_checked_when_verifying_sending_message_using_source_root_account() {
 		let call = Call::System(<frame_system::Call<TestRuntime>>::remark(vec![]));
