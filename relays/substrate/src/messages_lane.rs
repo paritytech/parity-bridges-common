@@ -81,7 +81,9 @@ pub struct SubstrateMessageLaneToSubstrate<Source: Chain, SourceSignParams, Targ
 	pub(crate) relayer_id_at_source: Source::AccountId,
 }
 
-impl<Source: Chain, SourceSignParams: Clone, Target: Chain, TargetSignParams: Clone> Clone for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams> {
+impl<Source: Chain, SourceSignParams: Clone, Target: Chain, TargetSignParams: Clone> Clone
+	for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams>
+{
 	fn clone(&self) -> Self {
 		Self {
 			source_client: self.source_client.clone(),
@@ -93,12 +95,13 @@ impl<Source: Chain, SourceSignParams: Clone, Target: Chain, TargetSignParams: Cl
 	}
 }
 
-impl<Source: Chain, SourceSignParams, Target: Chain, TargetSignParams> MessageLane for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams>
-	where
-		SourceSignParams: Clone + Send + Sync + 'static,
-		TargetSignParams: Clone + Send + Sync + 'static,
-		BlockNumberOf<Source>: BlockNumberBase,
-		BlockNumberOf<Target>: BlockNumberBase,
+impl<Source: Chain, SourceSignParams, Target: Chain, TargetSignParams> MessageLane
+	for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams>
+where
+	SourceSignParams: Clone + Send + Sync + 'static,
+	TargetSignParams: Clone + Send + Sync + 'static,
+	BlockNumberOf<Source>: BlockNumberBase,
+	BlockNumberOf<Target>: BlockNumberBase,
 {
 	const SOURCE_NAME: &'static str = Source::NAME;
 	const TARGET_NAME: &'static str = Target::NAME;

@@ -312,7 +312,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			millau_client
 				.submit_extrinsic(Bytes(signed_millau_call.encode()))
 				.await?;
-		},
+		}
 		cli::Command::RialtoMessagesToMillau {
 			rialto,
 			rialto_sign,

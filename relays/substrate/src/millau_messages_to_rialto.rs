@@ -74,9 +74,12 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 		let (dispatch_weight, proof) = proof;
 		let account_id = self.target_sign.signer.public().as_array_ref().clone().into();
 		let nonce = self.target_client.next_account_index(account_id).await?;
-		let call =
-			rialto_runtime::MessageLaneCall::receive_messages_proof(self.relayer_id_at_source.clone(), proof, dispatch_weight)
-				.into();
+		let call = rialto_runtime::MessageLaneCall::receive_messages_proof(
+			self.relayer_id_at_source.clone(),
+			proof,
+			dispatch_weight,
+		)
+		.into();
 		let transaction = Rialto::sign_transaction(&self.target_client, &self.target_sign.signer, nonce, call);
 		Ok(transaction)
 	}
