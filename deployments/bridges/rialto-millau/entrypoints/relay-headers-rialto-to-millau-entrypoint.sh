@@ -10,7 +10,7 @@ curl -v http://rialto-node-alice:9933/health
 	--millau-port 9944 \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
-	--millau-signer //Alice \
+	--millau-signer //Alice
 
 # Give chain a little bit of time to process initialization transaction
 sleep 6
@@ -19,5 +19,5 @@ sleep 6
 	--millau-port 9944 \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
-	--millau-signer //Alice \
+	--millau-signer //Charlie \
 	--prometheus-host=0.0.0.0

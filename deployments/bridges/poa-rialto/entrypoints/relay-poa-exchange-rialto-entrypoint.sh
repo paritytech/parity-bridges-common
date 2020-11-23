@@ -11,5 +11,6 @@ curl -v http://rialto-node-charlie:9933/health
 
 /home/user/ethereum-poa-relay eth-exchange-sub \
 	--sub-host rialto-node-alice \
+	--sub-signer //Bob \
 	--eth-host poa-node-arthur \
 	--prometheus-host=0.0.0.0
