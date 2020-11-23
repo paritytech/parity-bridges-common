@@ -256,17 +256,15 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 pub fn verify_message_origin<
 	SourceChainOuterOrigin,
 	SourceChainAccountId,
-	SourceChainAccountPublic,
 	TargetChainAccountPublic,
 	TargetChainSignature,
 	Call,
 >(
 	sender_origin: SourceChainOuterOrigin,
-	message: &MessagePayload<TargetChainAccountPublic, SourceChainAccountPublic, TargetChainSignature, Call>,
+	message: &MessagePayload<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature, Call>,
 ) -> Result<Option<SourceChainAccountId>, BadOrigin>
 where
 	SourceChainOuterOrigin: Into<Result<RawOrigin<SourceChainAccountId>, SourceChainOuterOrigin>>,
-	TargetChainAccountPublic: Clone + IdentifyAccount<AccountId = SourceChainAccountId>,
 	SourceChainAccountId: PartialEq,
 {
 	match message.origin {
@@ -276,7 +274,7 @@ where
 		}
 		CallOrigin::TargetAccount(ref source_account_id, _, _) => {
 			let source_chain_signer = ensure_signed(sender_origin)?;
-			if source_chain_signer != source_account_id.clone().into_account() {
+			if source_chain_signer != *source_account_id {
 				return Err(BadOrigin);
 			}
 
@@ -284,7 +282,7 @@ where
 		}
 		CallOrigin::SourceAccount(ref source_account_id) => {
 			let source_chain_signer = ensure_signed(sender_origin)?;
-			if source_chain_signer != source_account_id.clone().into_account() {
+			if source_chain_signer != *source_account_id {
 				return Err(BadOrigin);
 			}
 			Ok(Some(source_chain_signer))
@@ -297,7 +295,6 @@ mod tests {
 	use super::*;
 	use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 	use frame_system::{EventRecord, Phase};
-	use serde::{Deserialize, Serialize};
 	use sp_core::H256;
 	use sp_runtime::{
 		testing::Header,
@@ -310,25 +307,6 @@ mod tests {
 	type System = frame_system::Module<TestRuntime>;
 
 	type MessageId = [u8; 4];
-
-	// These derives are a bit gross but we need all of them to ensure we fit into Substrate's
-	// definition of what an `AccountId` is
-	#[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, Default, PartialOrd, Ord, Serialize, Deserialize)]
-	pub struct TestAccountId(AccountId);
-
-	impl IdentifyAccount for TestAccountId {
-		type AccountId = AccountId;
-
-		fn into_account(self) -> AccountId {
-			self.0
-		}
-	}
-
-	impl std::fmt::Display for TestAccountId {
-		fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-			write!(f, "{}", self.0)
-		}
-	}
 
 	#[derive(Debug, Encode, Decode, Clone, PartialEq, Eq)]
 	pub struct TestAccountPublic(AccountId);
@@ -415,7 +393,7 @@ mod tests {
 	impl Trait for TestRuntime {
 		type Event = TestEvent;
 		type MessageId = MessageId;
-		type SourceChainAccountId = TestAccountId;
+		type SourceChainAccountId = <TestRuntime as frame_system::Trait>::AccountId;
 		type TargetChainAccountPublic = TestAccountPublic;
 		type TargetChainSignature = TestSignature;
 		type Call = Call;
@@ -432,7 +410,7 @@ mod tests {
 	}
 
 	fn prepare_message(
-		origin: CallOrigin<TestAccountId, TestAccountPublic, TestSignature>,
+		origin: CallOrigin<AccountId, TestAccountPublic, TestSignature>,
 		call: Call,
 	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
 		MessagePayload {
@@ -452,14 +430,14 @@ mod tests {
 	fn prepare_target_message(
 		call: Call,
 	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
-		let origin = CallOrigin::TargetAccount(TestAccountId(1), TestAccountPublic(1), TestSignature(1));
+		let origin = CallOrigin::TargetAccount(1, TestAccountPublic(1), TestSignature(1));
 		prepare_message(origin, call)
 	}
 
 	fn prepare_source_message(
 		call: Call,
 	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
-		let origin = CallOrigin::SourceAccount(TestAccountId(1));
+		let origin = CallOrigin::SourceAccount(1);
 		prepare_message(origin, call)
 	}
 
@@ -524,7 +502,7 @@ mod tests {
 			let bridge = b"ethb".to_owned();
 			let id = [0; 4];
 
-			let call_origin = CallOrigin::TargetAccount(TestAccountId(1), TestAccountPublic(1), TestSignature(99));
+			let call_origin = CallOrigin::TargetAccount(1, TestAccountPublic(1), TestSignature(99));
 			let message = prepare_message(
 				call_origin,
 				Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])),
