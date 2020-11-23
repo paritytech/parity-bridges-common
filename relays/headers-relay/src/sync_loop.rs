@@ -126,6 +126,7 @@ pub fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 	metrics_params: Option<MetricsParams>,
 	exit_signal: impl Future<Output = ()>,
 ) {
+	#![allow(unused_variables)] // this is to suppress weird errors from clippy
 	let mut local_pool = futures::executor::LocalPool::new();
 	let mut progress_context = (Instant::now(), None, None);
 
