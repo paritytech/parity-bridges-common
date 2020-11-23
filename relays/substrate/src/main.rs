@@ -26,6 +26,7 @@ use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{ConnectionParams, TransactionSignScheme};
 use relay_utils::initialize::initialize_relay;
 use sp_core::{Bytes, Pair};
+use sp_runtime::traits::IdentifyAccount;
 
 /// Millau node client.
 pub type MillauClient = relay_substrate_client::Client<Millau>;
@@ -289,7 +290,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 						spec_version: millau_runtime::VERSION.spec_version,
 						weight: rialto_call_weight,
 						origin: CallOrigin::TargetAccount(
-							millau_sender_public,
+							millau_sender_public.into_account(),
 							rialto_origin_public.into(),
 							rialto_origin_signature.into(),
 						),

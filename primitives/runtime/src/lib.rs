@@ -58,15 +58,40 @@ where
 	AccountId::decode(&mut &entropy[..]).unwrap_or_default()
 }
 
-/// Derive an account ID on this chain from a foreign account ID.
-pub fn derive_target_account_id<SourceAccountId, TargetAccountId>(
-	bridge: InstanceId,
-	source_account_id: SourceAccountId,
-) -> TargetAccountId
+/// A trait used to map AccountIds from a source chain to those on a target chain.
+pub trait AccountIdConverter<S, T> {
+	/// Convert the source chain AccountId to a target chain AccountId.
+	///
+	/// A context can be optionally provided in order to provide extra entropy when deriving the
+	/// target account IDs.
+	fn convert(context: Option<&[u8]>, id: S) -> T;
+}
+
+/// A converter which returns the input AccountId.
+///
+/// Useful for chains where AccountIds are the same, or for testing.
+pub struct IdentityAccountIdConverter<AccountId>(core::marker::PhantomData<AccountId>);
+
+impl<AccountId> AccountIdConverter<AccountId, AccountId> for IdentityAccountIdConverter<AccountId> {
+	fn convert(_context: Option<&[u8]>, id: AccountId) -> AccountId {
+		id
+	}
+}
+
+/// Convert AccountIds from the source chain to those on the target chain using a single pass of the
+/// Blake2 hashing algorithm.
+pub struct Blake2AccountIdConverter<SourceAccountId, TargetAccountId>(
+	core::marker::PhantomData<(SourceAccountId, TargetAccountId)>,
+);
+
+impl<SourceAccountId, TargetAccountId> AccountIdConverter<SourceAccountId, TargetAccountId>
+	for Blake2AccountIdConverter<SourceAccountId, TargetAccountId>
 where
 	SourceAccountId: Encode + Decode + Default,
 	TargetAccountId: Encode + Decode + Default,
 {
-	let target = (bridge, source_account_id).using_encoded(blake2_256);
-	TargetAccountId::decode(&mut &target[..]).unwrap_or_default()
+	fn convert(context: Option<&[u8]>, id: SourceAccountId) -> TargetAccountId {
+		let target = (context, id).using_encoded(blake2_256);
+		TargetAccountId::decode(&mut &target[..]).unwrap_or_default()
+	}
 }

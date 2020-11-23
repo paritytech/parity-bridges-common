@@ -280,6 +280,8 @@ impl pallet_bridge_call_dispatch::Trait for Runtime {
 	type SourceChainAccountId = bp_millau::AccountId;
 	type TargetChainAccountPublic = MultiSigner;
 	type TargetChainSignature = MultiSignature;
+	type AccountIdConverter =
+		bp_runtime::Blake2AccountIdConverter<Self::SourceChainAccountId, <Self as frame_system::Trait>::AccountId>;
 }
 
 pub struct DepositInto;

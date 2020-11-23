@@ -25,7 +25,7 @@
 #![warn(missing_docs)]
 
 use bp_message_dispatch::{MessageDispatch, Weight};
-use bp_runtime::{derive_target_account_id, InstanceId};
+use bp_runtime::{AccountIdConverter, InstanceId};
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_event, decl_module, decl_storage,
@@ -115,6 +115,8 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 			Origin = <Self as frame_system::Trait>::Origin,
 			PostInfo = frame_support::dispatch::PostDispatchInfo,
 		>;
+	/// A type which converts source chain AccountIds into target chain AccountIds.
+	type AccountIdConverter: AccountIdConverter<Self::SourceChainAccountId, Self::AccountId>;
 }
 
 decl_storage! {
@@ -205,7 +207,11 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 
 		// prepare dispatch origin
 		let origin_account = match message.origin {
-			CallOrigin::SourceRoot => derive_target_account_id(bridge, T::SourceChainAccountId::default()),
+			CallOrigin::SourceRoot => {
+				let root_prefix: [u8; 4] = *b"root";
+				let context = ([&bridge[..], &root_prefix[..]]).concat();
+				T::AccountIdConverter::convert(Some(&context), T::SourceChainAccountId::default())
+			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
 				let mut signed_message = Vec::new();
 				message.call.encode_to(&mut signed_message);
@@ -226,7 +232,9 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 
 				target_account
 			}
-			CallOrigin::SourceAccount(source_account_id) => derive_target_account_id(bridge, source_account_id),
+			CallOrigin::SourceAccount(source_account_id) => {
+				T::AccountIdConverter::convert(Some(&bridge), source_account_id)
+			}
 		};
 
 		// finally dispatch message
@@ -400,6 +408,7 @@ mod tests {
 		type TargetChainAccountPublic = TestAccountPublic;
 		type TargetChainSignature = TestSignature;
 		type Call = Call;
+		type AccountIdConverter = bp_runtime::IdentityAccountIdConverter<AccountId>;
 	}
 
 	const TEST_SPEC_VERSION: SpecVersion = 0;
