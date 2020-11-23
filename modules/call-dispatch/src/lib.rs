@@ -51,24 +51,27 @@ pub type SpecVersion = u32;
 /// `verify_message_origin()` function.
 #[derive(RuntimeDebug, Encode, Decode, Clone, PartialEq, Eq)]
 pub enum CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature> {
-	/// Call originates from the Root origin on the source chain.
+	/// Call is sent by the Root origin on the source chain. On the target chain it is dispatched
+	/// from a derived account.
 	///
-	/// This is useful if the target chain needs some way of knowing that a call came from a
-	/// priviledged origin on the source chain (maybe to allow a configuration change for example).
+	/// The derived account represents the source Root account on the target chain. This is useful
+	/// if the target chain needs some way of knowing that a call came from a priviledged origin on
+	/// the source chain (maybe to allow a configuration change for example).
 	SourceRoot,
 
-	/// Call originates from an account controlled by a private key on the target chain.
+	/// Call is sent by `SourceChainAccountId` on the source chain. On the target chain it is
+	/// dispatched from an account controlled by a private key on the target chain.
 	///
 	/// The account can be identified by `TargetChainAccountPublic`. The proof that the
 	/// `SourceChainAccountId` controls `TargetChainAccountPublic` is the `TargetChainSignature`
 	/// over `(Call, SourceChainAccountId).encode()`.
 	TargetAccount(SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature),
 
-	/// Call originates from an account ID on the _target_ chain which was derived from an account
-	/// ID on the _source_ chain.
+	/// Call is sent by the `SourceChainAccountId` on the source chain. On the target chain it is
+	/// dispatched from a derived account ID.
 	///
-	/// This is useful if you need a way to represent foreign accounts on this chain for call
-	/// dispatch purposes.
+	/// The account ID on the target chain is derived from the source account ID This is useful if
+	/// you need a way to represent foreign accounts on this chain for call dispatch purposes.
 	///
 	/// Note that the derived account does not need to have a private key on the target chain. This
 	/// origin can therefore represent proxies, pallets, etc. as well as "regular" accounts.
@@ -393,7 +396,7 @@ mod tests {
 	impl Trait for TestRuntime {
 		type Event = TestEvent;
 		type MessageId = MessageId;
-		type SourceChainAccountId = <TestRuntime as frame_system::Trait>::AccountId;
+		type SourceChainAccountId = AccountId;
 		type TargetChainAccountPublic = TestAccountPublic;
 		type TargetChainSignature = TestSignature;
 		type Call = Call;
