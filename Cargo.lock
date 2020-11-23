@@ -374,9 +374,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.41"
+version = "0.1.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b246867b8b3b6ae56035f1eb1ed557c1d8eae97f0d53696138a50fa0e3a3b8c0"
+checksum = "8d3a45e77e34375a7923b1e8febb049bb011f064714a8e17a1a616fef01da13d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -736,11 +736,19 @@ version = "0.1.0"
 dependencies = [
  "bp-message-lane",
  "bp-runtime",
+ "fixed-hash 0.6.1",
  "frame-support",
+ "hash256-std-hasher",
+ "impl-codec",
+ "impl-serde 0.3.1",
+ "parity-util-mem",
+ "serde",
  "sp-api",
  "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
+ "sp-trie",
 ]
 
 [[package]]
@@ -1342,9 +1350,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54532e3223c5af90a6a757c90b5c5521564b07e5e7a958681bcd2afad421cdcd"
+checksum = "f26ecb66b4bdca6c1409b40fb255eefc2bd4f6d135dab3c3124f80ffa2a9661e"
 dependencies = [
  "atty",
  "humantime 2.0.1",
@@ -1453,7 +1461,7 @@ dependencies = [
  "bp-currency-exchange",
  "bp-eth-poa",
  "clap",
- "env_logger 0.8.1",
+ "env_logger 0.8.2",
  "ethabi",
  "ethabi-contract",
  "ethabi-derive",
@@ -1480,7 +1488,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "substrate-prometheus-endpoint",
- "time 0.2.22",
+ "time 0.2.23",
 ]
 
 [[package]]
@@ -5345,9 +5353,10 @@ dependencies = [
  "env_logger 0.7.1",
  "futures 0.3.7",
  "log",
+ "num-traits",
  "substrate-prometheus-endpoint",
  "sysinfo",
- "time 0.2.22",
+ "time 0.2.23",
 ]
 
 [[package]]
@@ -7871,9 +7880,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.22"
+version = "0.2.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55b7151c9065e80917fbf285d9a5d1432f60db41d170ccafc749a136b41a93af"
+checksum = "bcdaeea317915d59b2b4cd3b5efcd156c309108664277793f5351700c02ce98b"
 dependencies = [
  "const_fn",
  "libc",
