@@ -114,7 +114,7 @@ pub mod source {
 
 	/// Message payload for This -> Bridged chain messages.
 	pub type FromThisChainMessagePayload<B> = pallet_bridge_call_dispatch::MessagePayload<
-		SignerOf<ThisChain<B>>,
+		AccountIdOf<ThisChain<B>>,
 		SignerOf<BridgedChain<B>>,
 		SignatureOf<BridgedChain<B>>,
 		BridgedChainOpaqueCall,
@@ -238,14 +238,14 @@ pub mod target {
 
 	/// Call origin for Bridged -> This chain messages.
 	pub type FromBridgedChainMessageCallOrigin<B> = pallet_bridge_call_dispatch::CallOrigin<
-		SignerOf<BridgedChain<B>>,
+		AccountIdOf<BridgedChain<B>>,
 		SignerOf<ThisChain<B>>,
 		SignatureOf<ThisChain<B>>,
 	>;
 
 	/// Decoded Bridged -> This message payload.
 	pub type FromBridgedChainDecodedMessagePayload<B> = pallet_bridge_call_dispatch::MessagePayload<
-		SignerOf<BridgedChain<B>>,
+		AccountIdOf<BridgedChain<B>>,
 		SignerOf<ThisChain<B>>,
 		SignatureOf<ThisChain<B>>,
 		CallOf<ThisChain<B>>,
