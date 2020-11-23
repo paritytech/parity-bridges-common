@@ -275,7 +275,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			};
 			let rialto_call_weight = rialto_call.get_dispatch_info().weight;
 
-			let millau_sender_public = millau_sign.signer.public();
+			let millau_sender_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
 			let rialto_origin_public = rialto_sign.signer.public();
 
 			let mut rialto_origin_signature_message = Vec::new();
@@ -290,7 +290,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 						spec_version: millau_runtime::VERSION.spec_version,
 						weight: rialto_call_weight,
 						origin: CallOrigin::RealAccount(
-							millau_sender_public.into(),
+							millau_sender_public,
 							rialto_origin_public.into(),
 							rialto_origin_signature.into(),
 						),
@@ -302,7 +302,9 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			let signed_millau_call = Millau::sign_transaction(
 				&millau_client,
 				&millau_sign.signer,
-				millau_client.next_account_index(millau_sender_public.into()).await?,
+				millau_client
+					.next_account_index(millau_sign.signer.public().clone().into())
+					.await?,
 				millau_call,
 			);
 

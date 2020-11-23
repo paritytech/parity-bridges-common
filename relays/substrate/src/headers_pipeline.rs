@@ -24,10 +24,10 @@ use headers_relay::{
 	sync::{HeadersSyncParams, TargetTransactionMode},
 	sync_types::{HeaderIdOf, HeadersSyncPipeline, QueuedHeader, SourceHeader},
 };
-use num_traits::Saturating;
 use relay_substrate_client::{
 	headers_source::HeadersSource, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
 };
+use relay_utils::BlockNumberBase;
 use sp_runtime::Justification;
 use std::marker::PhantomData;
 
@@ -88,7 +88,7 @@ impl<SourceChain, SourceSyncHeader, TargetChain, TargetSign> HeadersSyncPipeline
 	for SubstrateHeadersToSubstrate<SourceChain, SourceSyncHeader, TargetChain, TargetSign>
 where
 	SourceChain: Clone + Chain,
-	BlockNumberOf<SourceChain>: Saturating + Into<u64>,
+	BlockNumberOf<SourceChain>: BlockNumberBase,
 	SourceSyncHeader:
 		SourceHeader<HashOf<SourceChain>, BlockNumberOf<SourceChain>> + std::ops::Deref<Target = SourceChain::Header>,
 	TargetChain: Clone + Chain,
@@ -136,7 +136,7 @@ pub async fn run<SourceChain, TargetChain, P>(
 	P::Header: SourceHeader<HashOf<SourceChain>, BlockNumberOf<SourceChain>>,
 	SourceChain: Clone + Chain,
 	SourceChain::Header: Into<P::Header>,
-	BlockNumberOf<SourceChain>: Into<u64> + Saturating,
+	BlockNumberOf<SourceChain>: BlockNumberBase,
 	TargetChain: Clone + Chain,
 {
 	let source_justifications = match source_client.clone().subscribe_justifications().await {

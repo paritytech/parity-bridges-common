@@ -60,12 +60,15 @@ services:
     depends_on:
       - relay-messages-millau-to-rialto
 
+  # Note: These are being overridden from the top level `monitoring` compose file.
   grafana-dashboard:
     environment:
       VIRTUAL_HOST: grafana.millau.brucke.link,grafana.rialto.brucke.link
       VIRTUAL_PORT: 3000
       LETSENCRYPT_HOST: grafana.millau.brucke.link,grafana.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
+    volumes:
+       - ./bridges/rialto-millau/dashboard/grafana/provisioning/:/etc/grafana/provisioning/
 
   prometheus-metrics:
     volumes:
