@@ -54,6 +54,7 @@ pub use frame_support::{
 	StorageValue,
 };
 
+pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_message_lane::Call as MessageLaneCall;
 pub use pallet_substrate_bridge::Call as BridgeRialtoCall;
@@ -540,8 +541,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	// TODO: runtime should support several chains (https://github.com/paritytech/parity-bridges-common/issues/457)
-	impl bp_message_lane::OutboundLaneApi<Block> for Runtime {
+	impl bp_rialto::ToRialtoOutboundLaneApi<Block> for Runtime {
 		fn messages_dispatch_weight(
 			lane: bp_message_lane::LaneId,
 			begin: bp_message_lane::MessageNonce,
@@ -566,8 +566,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	// TODO: runtime should support several chains (https://github.com/paritytech/parity-bridges-common/issues/457)
-	impl bp_message_lane::InboundLaneApi<Block> for Runtime {
+	impl bp_rialto::FromRialtoInboundLaneApi<Block> for Runtime {
 		fn latest_received_nonce(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
 			BridgeRialtoMessageLane::inbound_latest_received_nonce(lane)
 		}
