@@ -18,8 +18,8 @@
 //! All payments are instant.
 
 use bp_message_lane::source_chain::MessageDeliveryAndDispatchPayment;
-use bp_runtime::{bridge_account_id, MESSAGE_LANE_MODULE_PREFIX, NO_INSTANCE_ID};
-use codec::Decode;
+use bp_runtime::{derive_account_id, SourceAccount, NO_INSTANCE_ID};
+use codec::{Decode, Encode};
 use frame_support::traits::{Currency as CurrencyT, ExistenceRequirement};
 use sp_std::fmt::Debug;
 
@@ -33,7 +33,7 @@ impl<AccountId, Currency> MessageDeliveryAndDispatchPayment<AccountId, Currency:
 	for InstantCurrencyPayments<AccountId, Currency>
 where
 	Currency: CurrencyT<AccountId>,
-	AccountId: Debug + Default + Decode,
+	AccountId: Debug + Default + Encode + Decode,
 {
 	type Error = &'static str;
 
@@ -70,6 +70,7 @@ where
 
 /// Return account id of shared relayers-fund account that is storing all fees
 /// paid by submitters, until they're claimed by relayers.
-fn relayers_fund_account<AccountId: Default + Decode>() -> AccountId {
-	bridge_account_id(NO_INSTANCE_ID, MESSAGE_LANE_MODULE_PREFIX)
+fn relayers_fund_account<AccountId: Default + Encode + Decode>() -> AccountId {
+	let encoded_id = derive_account_id::<AccountId>(NO_INSTANCE_ID, SourceAccount::Account(AccountId::default()));
+	AccountId::decode(&mut &encoded_id[..]).unwrap_or_default()
 }
