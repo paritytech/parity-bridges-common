@@ -107,21 +107,21 @@ is not recommended, because this may lead to nonces conflict.
 
 Following accounts are used when `poa-rialto` bridge is running:
 
-- Rialto' `Alice` signs relay transactions with new Rialto-PoA headers;
-- Rialto' `Bob` signs relay transactions with Rialto-PoA -> Rialto currency exchange proofs.
-- Rialto-PoA' `Arthur`: signs relay transactions with new Rialto headers;
-- Rialto-PoA' `Bertha`: signs currency exchange transactions.
+- Rialto's `Alice` signs relay transactions with new Rialto-PoA headers;
+- Rialto's `Bob` signs relay transactions with Rialto-PoA -> Rialto currency exchange proofs.
+- Rialto-PoA's `Arthur`: signs relay transactions with new Rialto headers;
+- Rialto-PoA's `Bertha`: signs currency exchange transactions.
 
 Following accounts are used when `rialto-millau` bridge is running:
 
-- Millau' `Charlie` signs relay transactions with new Rialto headers;
-- Rialto' `Charlie` signs relay transactions with new Millau headers;
-- Millau' `Dave` signs Millau transactions with messages to Rialto;
-- Rialto' `Dave` signs Rialto transactions with messages to Millau;
-- Millau' `Eve` signs relay transactions with message delivery confirmations from Rialto to Millau;
-- Rialto' `Eve` signs relay transactions with messages from Millau to Rialto;
-- Millau' `Ferdie` signs relay transactions with messages from Rialto to Millau;
-- Rialto' `Ferdie` signs relay transactions with message delivery confirmations from Millau to Rialto.
+- Millau's `Charlie` signs relay transactions with new Rialto headers;
+- Rialto's `Charlie` signs relay transactions with new Millau headers;
+- Millau's `Dave` signs Millau transactions with messages to Rialto;
+- Rialto's `Dave` signs Rialto transactions with messages to Millau;
+- Millau's `Eve` signs relay transactions with message delivery confirmations from Rialto to Millau;
+- Rialto's `Eve` signs relay transactions with messages from Millau to Rialto;
+- Millau's `Ferdie` signs relay transactions with messages from Rialto to Millau;
+- Rialto's `Ferdie` signs relay transactions with message delivery confirmations from Millau to Rialto.
 
 ### Docker Usage
 When the network is running you can query logs from individual nodes using:
