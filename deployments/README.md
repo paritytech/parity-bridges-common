@@ -96,7 +96,7 @@ and PoA relays. Example:
 ./substrate-relay rialto-headers-to-millau \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
-	--millau-host millau-node-alexander \
+	--millau-host millau-node-alice \
 	--millau-port 9944 \
 	--rialto-signer //Harry \
 	--prometheus-host=0.0.0.0
