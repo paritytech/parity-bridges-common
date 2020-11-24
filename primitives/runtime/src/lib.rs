@@ -19,6 +19,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
+use sp_core::hash::H256;
 use sp_io::hashing::blake2_256;
 
 pub use chain::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
@@ -56,6 +57,32 @@ where
 {
 	let entropy = (module_prefix, bridge).using_encoded(blake2_256);
 	AccountId::decode(&mut &entropy[..]).unwrap_or_default()
+}
+
+/// Type of accounts on the source chain.
+pub enum SourceAccount<T> {
+	/// An account that belongs to Root (priviledged origin).
+	Root,
+	/// A non-priviledged account.
+	///
+	/// The embedded account ID may or may not have a private key depending on the "owner" of the
+	/// account (private key, pallet, proxy, etc.).
+	Account(T),
+}
+
+/// Derive an account ID from a foreign account ID.
+///
+/// This function returns an encoded Blake2 hash. It is the responsibility of the caller to ensure
+/// this can be succesfully decoded into an AccountId.
+pub fn derive_account_id<AccountId>(bridge_id: InstanceId, id: SourceAccount<AccountId>) -> H256
+where
+	AccountId: Encode,
+{
+	match id {
+		SourceAccount::Root => ("root", bridge_id).using_encoded(blake2_256),
+		SourceAccount::Account(id) => ("account", bridge_id, id).using_encoded(blake2_256),
+	}
+	.into()
 }
 
 /// A trait used to map AccountIds from a source chain to those on a target chain.

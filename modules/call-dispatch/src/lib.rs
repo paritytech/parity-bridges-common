@@ -25,7 +25,7 @@
 #![warn(missing_docs)]
 
 use bp_message_dispatch::{MessageDispatch, Weight};
-use bp_runtime::{AccountIdConverter, InstanceId};
+use bp_runtime::{derive_account_id, AccountIdConverter, InstanceId, SourceAccount};
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_event, decl_module, decl_storage,
@@ -208,9 +208,8 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 		// prepare dispatch origin
 		let origin_account = match message.origin {
 			CallOrigin::SourceRoot => {
-				let root_prefix: [u8; 4] = *b"root";
-				let context = ([&bridge[..], &root_prefix[..]]).concat();
-				T::AccountIdConverter::convert(Some(&context), T::SourceChainAccountId::default())
+				let encoded_id = derive_account_id::<T::SourceChainAccountId>(bridge, SourceAccount::Root);
+				T::AccountId::decode(&mut &encoded_id[..]).expect("TODO")
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
 				let mut signed_message = Vec::new();
@@ -233,7 +232,8 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				target_account
 			}
 			CallOrigin::SourceAccount(source_account_id) => {
-				T::AccountIdConverter::convert(Some(&bridge), source_account_id)
+				let encoded_id = derive_account_id(bridge, SourceAccount::Account(source_account_id));
+				T::AccountId::decode(&mut &encoded_id[..]).expect("TODO")
 			}
 		};
 
