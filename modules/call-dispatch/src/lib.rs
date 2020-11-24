@@ -28,7 +28,7 @@ use bp_message_dispatch::{MessageDispatch, Weight};
 use bp_runtime::{derive_account_id, InstanceId, SourceAccount};
 use codec::{Decode, Encode};
 use frame_support::{
-	decl_event, decl_module, decl_storage,
+	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::{Dispatchable, Parameter},
 	traits::Get,
 	weights::{extract_actual_weight, GetDispatchInfo},
@@ -37,7 +37,7 @@ use frame_support::{
 use frame_system::{ensure_root, ensure_signed, RawOrigin};
 use sp_runtime::{
 	traits::{BadOrigin, IdentifyAccount, MaybeDisplay, MaybeSerializeDeserialize, Member, Verify},
-	DispatchResult,
+	DispatchError, DispatchResult,
 };
 use sp_std::{fmt::Debug, marker::PhantomData, prelude::*};
 
@@ -121,6 +121,14 @@ decl_storage! {
 	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as CallDispatch {}
 }
 
+decl_error! {
+	#[allow(missing_docs)]
+	pub enum Error for Module<T: Trait<I>, I: Instance> {
+		/// Failed to decode payload into a valid account ID.
+		InvalidAccountId,
+	}
+}
+
 decl_event!(
 	pub enum Event<T, I = DefaultInstance> where
 		<T as Trait<I>>::MessageId
@@ -135,6 +143,8 @@ decl_event!(
 		MessageSignatureMismatch(InstanceId, MessageId),
 		/// Message has been dispatched with given result.
 		MessageDispatched(InstanceId, MessageId, DispatchResult),
+		/// No target AccountId could be used to dispatch the message.
+		InvalidAccountId(InstanceId, MessageId, DispatchError),
 		/// Phantom member, never used.
 		Dummy(PhantomData<I>),
 	}
@@ -145,6 +155,8 @@ decl_module! {
 	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
+
+		type Error = Error<T, I>;
 	}
 }
 
@@ -207,7 +219,14 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 		let origin_account = match message.origin {
 			CallOrigin::SourceRoot => {
 				let encoded_id = derive_account_id::<T::SourceChainAccountId>(bridge, SourceAccount::Root);
-				T::AccountId::decode(&mut &encoded_id[..]).expect("TODO")
+				match T::AccountId::decode(&mut &encoded_id[..]) {
+					Ok(id) => id,
+					Err(_) => {
+						let error = <Error<T, I>>::InvalidAccountId.into();
+						Self::deposit_event(RawEvent::InvalidAccountId(bridge, id, error));
+						return;
+					}
+				}
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
 				let mut signed_message = Vec::new();
@@ -231,7 +250,14 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			}
 			CallOrigin::SourceAccount(source_account_id) => {
 				let encoded_id = derive_account_id(bridge, SourceAccount::Account(source_account_id));
-				T::AccountId::decode(&mut &encoded_id[..]).expect("TODO")
+				match T::AccountId::decode(&mut &encoded_id[..]) {
+					Ok(id) => id,
+					Err(_) => {
+						let error = <Error<T, I>>::InvalidAccountId.into();
+						Self::deposit_event(RawEvent::InvalidAccountId(bridge, id, error));
+						return;
+					}
+				}
 			}
 		};
 
