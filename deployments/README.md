@@ -47,7 +47,7 @@ We currently support two bridge deployments
 1. Ethereum PoA to Rialto Substrate
 2. Rialto Substrate to Millau Substrate
 
-These networks can be deployed using our [`./run.sh`](./run.sh) script.
+These bridges can be deployed using our [`./run.sh`](./run.sh) script.
 
 The first argument it takes is the name of the bridge you want to run. Right now we only support two
 bridges: `poa-rialto` and `rialto-millau`.
@@ -96,7 +96,7 @@ and PoA relays. Example:
 ./substrate-relay rialto-headers-to-millau \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
-	--millau-host millau-node-alexander \
+	--millau-host millau-node-alice \
 	--millau-port 9944 \
 	--rialto-signer //Harry \
 	--prometheus-host=0.0.0.0
