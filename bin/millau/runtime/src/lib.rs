@@ -228,8 +228,6 @@ impl pallet_bridge_call_dispatch::Trait for Runtime {
 	type SourceChainAccountId = bp_rialto::AccountId;
 	type TargetChainAccountPublic = MultiSigner;
 	type TargetChainSignature = MultiSignature;
-	type AccountIdConverter =
-		bp_runtime::Blake2AccountIdConverter<Self::SourceChainAccountId, <Self as frame_system::Trait>::AccountId>;
 }
 
 impl pallet_grandpa::Trait for Runtime {

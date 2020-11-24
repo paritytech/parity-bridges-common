@@ -25,7 +25,7 @@
 #![warn(missing_docs)]
 
 use bp_message_dispatch::{MessageDispatch, Weight};
-use bp_runtime::{derive_account_id, AccountIdConverter, InstanceId, SourceAccount};
+use bp_runtime::{derive_account_id, InstanceId, SourceAccount};
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_event, decl_module, decl_storage,
@@ -115,8 +115,6 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 			Origin = <Self as frame_system::Trait>::Origin,
 			PostInfo = frame_support::dispatch::PostDispatchInfo,
 		>;
-	/// A type which converts source chain AccountIds into target chain AccountIds.
-	type AccountIdConverter: AccountIdConverter<Self::SourceChainAccountId, Self::AccountId>;
 }
 
 decl_storage! {
@@ -408,7 +406,6 @@ mod tests {
 		type TargetChainAccountPublic = TestAccountPublic;
 		type TargetChainSignature = TestSignature;
 		type Call = Call;
-		type AccountIdConverter = bp_runtime::IdentityAccountIdConverter<AccountId>;
 	}
 
 	const TEST_SPEC_VERSION: SpecVersion = 0;
