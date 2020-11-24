@@ -47,18 +47,6 @@ pub const MESSAGE_LANE_MODULE_PREFIX: &[u8] = b"pallet-bridge/message-lane";
 /// to identify deployed instance dynamically. This type is used for that.
 pub type InstanceId = [u8; 4];
 
-/// Returns id of account that acts as "system" account of given bridge instance.
-/// The `module_prefix` (arbitrary slice) may be used to generate module-level
-/// "system" account, so you could have separate "system" accounts for currency
-/// exchange, message dispatch and other modules.
-pub fn bridge_account_id<AccountId>(bridge: InstanceId, module_prefix: &[u8]) -> AccountId
-where
-	AccountId: Decode + Default,
-{
-	let entropy = (module_prefix, bridge).using_encoded(blake2_256);
-	AccountId::decode(&mut &entropy[..]).unwrap_or_default()
-}
-
 /// Type of accounts on the source chain.
 pub enum SourceAccount<T> {
 	/// An account that belongs to Root (priviledged origin).
