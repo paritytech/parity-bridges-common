@@ -83,13 +83,13 @@ Rialto authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`.
 Rialto-PoA authorities are named: `Arthur`, `Bertha`, `Carlos`.
 Millau authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`.
 
-Both authorities and following accounts have enough funds on corresponding Substrate chains:
+Both authorities and following accounts have enough funds (for test purposes) on corresponding Substrate chains:
 
 - on Rialto: `Ferdie`, `George`, `Harry`.
 - on Millau: `Ferdie`, `George`, `Harry`.
 
 Names of accounts on Substrate (Rialto and Millau) chains may be prefixed with `//` and used as
-seeds for the `sr25519` keys. This seed may also be used in the signer argument in substrate
+seeds for the `sr25519` keys. This seed may also be used in the signer argument in Substrate
 and PoA relays. Example:
 
 ```bash
