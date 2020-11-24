@@ -47,7 +47,7 @@ We currently support two bridge deployments
 1. Ethereum PoA to Rialto Substrate
 2. Rialto Substrate to Millau Substrate
 
-These networks can be deployed using our [`./run.sh`](./run.sh) script.
+These bridges can be deployed using our [`./run.sh`](./run.sh) script.
 
 The first argument it takes is the name of the bridge you want to run. Right now we only support two
 bridges: `poa-rialto` and `rialto-millau`.
