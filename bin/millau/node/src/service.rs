@@ -28,16 +28,16 @@
 // =====================================================================================
 // =====================================================================================
 
-use std::sync::Arc;
-use std::time::Duration;
-use sc_client_api::{ExecutorProvider, RemoteBackend};
 use millau_runtime::{self, opaque::Block, RuntimeApi};
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
-use sp_inherents::InherentDataProviders;
+use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
-use sp_consensus_aura::sr25519::{AuthorityPair as AuraPair};
 use sc_finality_grandpa::SharedVoterState;
+use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
+use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
+use sp_inherents::InherentDataProviders;
+use std::sync::Arc;
+use std::time::Duration;
 
 // Our native executor instance.
 native_executor_instance!(
@@ -51,20 +51,27 @@ type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
-pub fn new_partial(config: &Configuration) -> Result<sc_service::PartialComponents<
-	FullClient, FullBackend, FullSelectChain,
-	sp_consensus::DefaultImportQueue<Block, FullClient>,
-	sc_transaction_pool::FullPool<Block, FullClient>,
-	(
-		sc_consensus_aura::AuraBlockImport<
-			Block,
-			FullClient,
-			sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
-			AuraPair
-		>,
-		sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>
-	)
->, ServiceError> {
+pub fn new_partial(
+	config: &Configuration,
+) -> Result<
+	sc_service::PartialComponents<
+		FullClient,
+		FullBackend,
+		FullSelectChain,
+		sp_consensus::DefaultImportQueue<Block, FullClient>,
+		sc_transaction_pool::FullPool<Block, FullClient>,
+		(
+			sc_consensus_aura::AuraBlockImport<
+				Block,
+				FullClient,
+				sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
+				AuraPair,
+			>,
+			sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
+		),
+	>,
+	ServiceError,
+> {
 	let inherent_data_providers = sp_inherents::InherentDataProviders::new();
 
 	let (client, backend, keystore_container, task_manager) =
@@ -80,13 +87,11 @@ pub fn new_partial(config: &Configuration) -> Result<sc_service::PartialComponen
 		client.clone(),
 	);
 
-	let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
-		client.clone(), &(client.clone() as Arc<_>), select_chain.clone(),
-	)?;
+	let (grandpa_block_import, grandpa_link) =
+		sc_finality_grandpa::block_import(client.clone(), &(client.clone() as Arc<_>), select_chain.clone())?;
 
-	let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
-		grandpa_block_import.clone(), client.clone(),
-	);
+	let aura_block_import =
+		sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(grandpa_block_import.clone(), client.clone());
 
 	let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _, _>(
 		sc_consensus_aura::slot_duration(&*client)?,
@@ -100,8 +105,14 @@ pub fn new_partial(config: &Configuration) -> Result<sc_service::PartialComponen
 	)?;
 
 	Ok(sc_service::PartialComponents {
-		client, backend, task_manager, import_queue, keystore_container,
-		select_chain, transaction_pool,inherent_data_providers,
+		client,
+		backend,
+		task_manager,
+		import_queue,
+		keystore_container,
+		select_chain,
+		transaction_pool,
+		inherent_data_providers,
 		other: (aura_block_import, grandpa_link),
 	})
 }
@@ -109,8 +120,14 @@ pub fn new_partial(config: &Configuration) -> Result<sc_service::PartialComponen
 /// Builds a new service for a full client.
 pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
-		client, backend, mut task_manager, import_queue, keystore_container,
-		select_chain, transaction_pool, inherent_data_providers,
+		client,
+		backend,
+		mut task_manager,
+		import_queue,
+		keystore_container,
+		select_chain,
+		transaction_pool,
+		inherent_data_providers,
 		other: (block_import, grandpa_link),
 	} = new_partial(&config)?;
 
@@ -127,7 +144,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 	if config.offchain_worker.enabled {
 		sc_service::build_offchain_workers(
-			&config, backend.clone(), task_manager.spawn_handle(), client.clone(), network.clone(),
+			&config,
+			backend.clone(),
+			task_manager.spawn_handle(),
+			client.clone(),
+			network.clone(),
 		);
 	}
 
@@ -221,7 +242,10 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 		rpc_extensions_builder,
 		on_demand: None,
 		remote_blockchain: None,
-		backend, network_status_sinks, system_rpc_tx, config,
+		backend,
+		network_status_sinks,
+		system_rpc_tx,
+		config,
 	})?;
 
 	if role.is_authority() {
@@ -232,10 +256,9 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			prometheus_registry.as_ref(),
 		);
 
-		let can_author_with =
-			sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
+		let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
-		let aura = sc_consensus_aura::start_aura::<_, _, _, _, _, AuraPair, _, _, _,_>(
+		let aura = sc_consensus_aura::start_aura::<_, _, _, _, _, AuraPair, _, _, _, _>(
 			sc_consensus_aura::slot_duration(&*client)?,
 			client.clone(),
 			select_chain,
@@ -291,10 +314,9 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 		// the GRANDPA voter task is considered infallible, i.e.
 		// if it fails we take down the service with it.
-		task_manager.spawn_essential_handle().spawn_blocking(
-			"grandpa-voter",
-			sc_finality_grandpa::run_grandpa_voter(grandpa_config)?
-		);
+		task_manager
+			.spawn_essential_handle()
+			.spawn_blocking("grandpa-voter", sc_finality_grandpa::run_grandpa_voter(grandpa_config)?);
 	} else {
 		sc_finality_grandpa::setup_disabled_grandpa(network)?;
 	}
@@ -318,11 +340,8 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 		on_demand.clone(),
 	));
 
-	let (grandpa_block_import, _) = sc_finality_grandpa::block_import(
-		client.clone(),
-		&(client.clone() as Arc<_>),
-		select_chain.clone(),
-	)?;
+	let (grandpa_block_import, _) =
+		sc_finality_grandpa::block_import(client.clone(), &(client.clone() as Arc<_>), select_chain.clone())?;
 
 	let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _, _>(
 		sc_consensus_aura::slot_duration(&*client)?,
@@ -348,7 +367,11 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 	if config.offchain_worker.enabled {
 		sc_service::build_offchain_workers(
-			&config, backend.clone(), task_manager.spawn_handle(), client.clone(), network.clone(),
+			&config,
+			backend.clone(),
+			task_manager.spawn_handle(),
+			client.clone(),
+			network.clone(),
 		);
 	}
 
@@ -366,9 +389,9 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 		network,
 		network_status_sinks,
 		system_rpc_tx,
-	 })?;
+	})?;
 
-	 network_starter.start_network();
+	network_starter.start_network();
 
-	 Ok(task_manager)
+	Ok(task_manager)
 }
