@@ -711,6 +711,7 @@ dependencies = [
 name = "bp-kusama"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "frame-support",
  "sp-api",
  "sp-core",
@@ -759,6 +760,7 @@ dependencies = [
 name = "bp-polkadot"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "frame-support",
  "sp-api",
  "sp-core",
