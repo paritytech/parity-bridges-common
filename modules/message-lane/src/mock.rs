@@ -22,7 +22,7 @@ use bp_message_lane::{
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce,
 };
 use codec::{Decode, Encode};
-use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{impl_outer_event, impl_outer_origin, ord_parameter_types, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
@@ -94,6 +94,10 @@ parameter_types! {
 	pub const MaxUnconfirmedMessagesAtInboundLane: u64 = 16;
 }
 
+ord_parameter_types! {
+	pub const RelayerFundAccount: AccountId = AccountId::default();
+}
+
 impl Trait for TestRuntime {
 	type Event = TestEvent;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
@@ -105,6 +109,8 @@ impl Trait for TestRuntime {
 	type InboundPayload = TestPayload;
 	type InboundMessageFee = TestMessageFee;
 	type InboundRelayer = TestRelayer;
+
+	type RelayerFundAccount = RelayerFundAccount;
 
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
@@ -234,7 +240,11 @@ impl TestMessageDeliveryAndDispatchPayment {
 impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessageDeliveryAndDispatchPayment {
 	type Error = &'static str;
 
-	fn pay_delivery_and_dispatch_fee(submitter: &AccountId, fee: &TestMessageFee) -> Result<(), Self::Error> {
+	fn pay_delivery_and_dispatch_fee(
+		submitter: &AccountId,
+		fee: &TestMessageFee,
+		_relayer_fund_account: &AccountId,
+	) -> Result<(), Self::Error> {
 		if frame_support::storage::unhashed::get(b":reject-message-fee:") == Some(true) {
 			return Err(TEST_ERROR);
 		}
@@ -243,7 +253,12 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 		Ok(())
 	}
 
-	fn pay_relayer_reward(_confirmation_relayer: &AccountId, relayer: &AccountId, fee: &TestMessageFee) {
+	fn pay_relayer_reward(
+		_confirmation_relayer: &AccountId,
+		relayer: &AccountId,
+		fee: &TestMessageFee,
+		_relayer_fund_account: &AccountId,
+	) {
 		let key = (b":relayer-reward:", relayer, fee).encode();
 		frame_support::storage::unhashed::put(&key, &true);
 	}

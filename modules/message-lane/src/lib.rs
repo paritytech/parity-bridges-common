@@ -95,6 +95,12 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Identifier of relayer that deliver messages to this chain. Relayer reward is paid on the bridged chain.
 	type InboundRelayer: Parameter;
 
+	/// AccountId of the shared relayer fund account.
+	///
+	/// This account stores all the fees paid by submitters. Relayers are able to claim these
+	/// funds as at their convenience.
+	type RelayerFundAccount: Get<Self::AccountId>;
+
 	// Types that are used by outbound_lane (on source chain).
 
 	/// Target header chain.
@@ -267,6 +273,7 @@ decl_module! {
 			T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
 				&submitter,
 				&delivery_and_dispatch_fee,
+				&T::RelayerFundAccount::get(),
 			).map_err(|err| {
 				frame_support::debug::trace!(
 					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
@@ -396,6 +403,7 @@ decl_module! {
 			let received_range = lane.confirm_delivery(lane_data.latest_received_nonce);
 			if let Some(received_range) = received_range {
 				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, received_range.0, received_range.1));
+				let relayer_fund_account = T::RelayerFundAccount::get();
 
 				// reward relayers that have delivered messages
 				// this loop is bounded by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
@@ -413,6 +421,7 @@ decl_module! {
 							&confirmation_relayer,
 							&relayer,
 							&message_data.fee,
+							&relayer_fund_account,
 						);
 					}
 				}

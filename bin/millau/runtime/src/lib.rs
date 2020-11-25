@@ -35,7 +35,7 @@ use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as G
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::traits::{Block as BlockT, IdentityLookup, NumberFor, OpaqueKeys};
+use sp_runtime::traits::{Block as BlockT, Convert, IdentityLookup, NumberFor, OpaqueKeys};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
@@ -48,7 +48,7 @@ use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime, ord_parameter_types, parameter_types,
 	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, Randomness},
 	weights::{IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
@@ -326,6 +326,14 @@ parameter_types! {
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce = bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
 }
 
+ord_parameter_types! {
+	// We're doing this to make sure we use an AccountId that nobody owns.
+	pub const RelayerFundAccount: AccountId = bp_millau::AccountIdConverter::convert(bp_runtime::derive_account_id(
+		bp_runtime::NO_INSTANCE_ID,
+		bp_runtime::SourceAccount::Account(AccountId::default()),
+	));
+}
+
 impl pallet_message_lane::Trait for Runtime {
 	type Event = Event;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
@@ -337,6 +345,8 @@ impl pallet_message_lane::Trait for Runtime {
 	type InboundPayload = crate::rialto_messages::FromRialtoMessagePayload;
 	type InboundMessageFee = bp_rialto::Balance;
 	type InboundRelayer = bp_rialto::AccountId;
+
+	type RelayerFundAccount = RelayerFundAccount;
 
 	type TargetHeaderChain = crate::rialto_messages::Rialto;
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;

@@ -235,7 +235,6 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			}
 			CallOrigin::SourceAccount(source_account_id) => {
 				let encoded_id = derive_account_id(bridge, SourceAccount::Account(source_account_id));
-				dbg!(&encoded_id);
 				T::AccountIdConverter::convert(encoded_id)
 			}
 		};
