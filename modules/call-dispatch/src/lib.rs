@@ -28,7 +28,7 @@ use bp_message_dispatch::{MessageDispatch, Weight};
 use bp_runtime::{derive_account_id, InstanceId, SourceAccount};
 use codec::{Decode, Encode};
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
+	decl_event, decl_module, decl_storage,
 	dispatch::{Dispatchable, Parameter},
 	traits::Get,
 	weights::{extract_actual_weight, GetDispatchInfo},
@@ -36,8 +36,8 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed, RawOrigin};
 use sp_runtime::{
-	traits::{BadOrigin, IdentifyAccount, MaybeDisplay, MaybeSerializeDeserialize, Member, Verify},
-	DispatchError, DispatchResult,
+	traits::{BadOrigin, Convert, IdentifyAccount, MaybeDisplay, MaybeSerializeDeserialize, Member, Verify},
+	DispatchResult,
 };
 use sp_std::{fmt::Debug, marker::PhantomData, prelude::*};
 
@@ -115,18 +115,14 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 			Origin = <Self as frame_system::Trait>::Origin,
 			PostInfo = frame_support::dispatch::PostDispatchInfo,
 		>;
+	/// A type which can be turned into an AccountId from a 256-bit hash.
+	///
+	/// Used when deriving target chain AccountIds from source chain AccountIds.
+	type AccountIdConverter: sp_runtime::traits::Convert<sp_core::hash::H256, Self::AccountId>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as CallDispatch {}
-}
-
-decl_error! {
-	#[allow(missing_docs)]
-	pub enum Error for Module<T: Trait<I>, I: Instance> {
-		/// Failed to decode payload into a valid account ID.
-		InvalidAccountId,
-	}
 }
 
 decl_event!(
@@ -143,10 +139,8 @@ decl_event!(
 		MessageSignatureMismatch(InstanceId, MessageId),
 		/// Message has been dispatched with given result.
 		MessageDispatched(InstanceId, MessageId, DispatchResult),
-		/// No target AccountId could be used to dispatch the message.
-		InvalidAccountId(InstanceId, MessageId, DispatchError),
-		/// Phantom member, never used.
-		Dummy(PhantomData<I>),
+		/// Phantom member, never used. Needed to handle multiple pallet instances.
+		_Dummy(PhantomData<I>),
 	}
 );
 
@@ -155,8 +149,6 @@ decl_module! {
 	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
-
-		type Error = Error<T, I>;
 	}
 }
 
@@ -219,14 +211,7 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 		let origin_account = match message.origin {
 			CallOrigin::SourceRoot => {
 				let encoded_id = derive_account_id::<T::SourceChainAccountId>(bridge, SourceAccount::Root);
-				match T::AccountId::decode(&mut &encoded_id[..]) {
-					Ok(id) => id,
-					Err(_) => {
-						let error = <Error<T, I>>::InvalidAccountId.into();
-						Self::deposit_event(RawEvent::InvalidAccountId(bridge, id, error));
-						return;
-					}
-				}
+				T::AccountIdConverter::convert(encoded_id)
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
 				let mut signed_message = Vec::new();
@@ -250,14 +235,8 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			}
 			CallOrigin::SourceAccount(source_account_id) => {
 				let encoded_id = derive_account_id(bridge, SourceAccount::Account(source_account_id));
-				match T::AccountId::decode(&mut &encoded_id[..]) {
-					Ok(id) => id,
-					Err(_) => {
-						let error = <Error<T, I>>::InvalidAccountId.into();
-						Self::deposit_event(RawEvent::InvalidAccountId(bridge, id, error));
-						return;
-					}
-				}
+				dbg!(&encoded_id);
+				T::AccountIdConverter::convert(encoded_id)
 			}
 		};
 
@@ -365,6 +344,14 @@ mod tests {
 		}
 	}
 
+	pub struct AccountIdConverter;
+
+	impl sp_runtime::traits::Convert<H256, AccountId> for AccountIdConverter {
+		fn convert(hash: H256) -> AccountId {
+			hash.to_low_u64_ne()
+		}
+	}
+
 	#[derive(Clone, Eq, PartialEq)]
 	pub struct TestRuntime;
 
@@ -432,6 +419,7 @@ mod tests {
 		type TargetChainAccountPublic = TestAccountPublic;
 		type TargetChainSignature = TestSignature;
 		type Call = Call;
+		type AccountIdConverter = AccountIdConverter;
 	}
 
 	const TEST_SPEC_VERSION: SpecVersion = 0;
