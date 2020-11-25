@@ -26,7 +26,7 @@ pub struct SyncHeader<Header>(Header);
 
 impl<Header> SyncHeader<Header> {
 	/// Extracts wrapped header from self.
-	pub fn extract(self) -> Header {
+	pub fn into_inner(self) -> Header {
 		self.0
 	}
 }
