@@ -14,34 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Types used to connect to the Kusama chain.
+//! Types used to connect to the Polkadot chain.
 
 use relay_substrate_client::{Chain, ChainBase};
 use std::time::Duration;
 
-/// Kusama header id.
-pub type HeaderId = relay_utils::HeaderId<bp_kusama::Hash, bp_kusama::BlockNumber>;
+/// Polkadot header id.
+pub type HeaderId = relay_utils::HeaderId<bp_polkadot::Hash, bp_polkadot::BlockNumber>;
 
-/// Kusama chain definition
+/// Polkadot chain definition
 #[derive(Debug, Clone, Copy)]
-pub struct Kusama;
+pub struct Polkadot;
 
-impl ChainBase for Kusama {
-	type BlockNumber = bp_kusama::BlockNumber;
-	type Hash = bp_kusama::Hash;
-	type Hasher = bp_kusama::Hasher;
-	type Header = bp_kusama::Header;
+impl ChainBase for Polkadot {
+	type BlockNumber = bp_polkadot::BlockNumber;
+	type Hash = bp_polkadot::Hash;
+	type Hasher = bp_polkadot::Hasher;
+	type Header = bp_polkadot::Header;
 }
 
-impl Chain for Kusama {
-	const NAME: &'static str = "Kusama";
+impl Chain for Polkadot {
+	const NAME: &'static str = "Polkadot";
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
-	type AccountId = bp_kusama::AccountId;
-	type Index = bp_kusama::Nonce;
-	type SignedBlock = bp_kusama::SignedBlock;
+	type AccountId = bp_polkadot::AccountId;
+	type Index = bp_polkadot::Nonce;
+	type SignedBlock = bp_polkadot::SignedBlock;
 	type Call = ();
 }
 
-/// Kusama header type used in headers sync.
-pub type SyncHeader = relay_substrate_client::SyncHeader<bp_kusama::Header>;
+/// Polkadot header type used in headers sync.
+pub type SyncHeader = relay_substrate_client::SyncHeader<bp_polkadot::Header>;

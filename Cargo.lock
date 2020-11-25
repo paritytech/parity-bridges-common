@@ -756,6 +756,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-polkadot"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "sp-api",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "bp-rialto"
 version = "0.1.0"
 dependencies = [
@@ -5276,6 +5286,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-polkadot-client"
+version = "0.1.0"
+dependencies = [
+ "bp-polkadot",
+ "frame-support",
+ "frame-system",
+ "headers-relay",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
+ "sp-keyring",
+ "sp-runtime",
+]
+
+[[package]]
 name = "relay-rialto-client"
 version = "0.1.0"
 dependencies = [
@@ -7745,6 +7772,7 @@ dependencies = [
  "bp-kusama",
  "bp-message-lane",
  "bp-millau",
+ "bp-polkadot",
  "bp-rialto",
  "bp-runtime",
  "frame-support",
@@ -7761,6 +7789,7 @@ dependencies = [
  "paste 1.0.3",
  "relay-kusama-client",
  "relay-millau-client",
+ "relay-polkadot-client",
  "relay-rialto-client",
  "relay-substrate-client",
  "relay-utils",
