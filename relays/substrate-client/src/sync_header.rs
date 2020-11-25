@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use headers_relay::sync_types::SourceHeader;
-use num_traits::One;
+use num_traits::{CheckedSub, One};
 use relay_utils::HeaderId;
 use sp_runtime::traits::Header as HeaderT;
 
@@ -51,6 +51,11 @@ impl<Header: HeaderT> SourceHeader<Header::Hash, Header::Number> for SyncHeader<
 	}
 
 	fn parent_id(&self) -> HeaderId<Header::Hash, Header::Number> {
-		relay_utils::HeaderId(*self.number() - One::one(), *self.parent_hash())
+		relay_utils::HeaderId(
+			self.number()
+				.checked_sub(&One::one())
+				.expect("should never be called for genesis header"),
+			*self.parent_hash(),
+		)
 	}
 }
