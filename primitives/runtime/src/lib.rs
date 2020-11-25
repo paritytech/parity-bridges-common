@@ -65,6 +65,10 @@ pub enum SourceAccount<T> {
 ///
 /// The `bridge_id` is used to provide extra entropy when producing account IDs. This helps prevent
 /// AccountId collisions between different bridges on a single target chain.
+///
+/// Note: If the same `bridge_id` is used across different chains (for example, if one source chain
+/// is bridged to multiple target chains), then all the derived accounts would be the same across
+/// the different chains. This could negatively impact users' privacy across chains.
 pub fn derive_account_id<AccountId>(bridge_id: InstanceId, id: SourceAccount<AccountId>) -> H256
 where
 	AccountId: Encode,
