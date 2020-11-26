@@ -395,8 +395,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>>(
 						.submit_proof(at_block.clone(), nonces_range.clone(), proof.clone())
 						.fuse(),
 				);
-			}
-			if target_nonces_required {
+			} else if target_nonces_required {
 				log::debug!(target: "bridge", "Asking {} about message nonces", P::target_name());
 				let at_block = race_state
 					.best_target_header_id
