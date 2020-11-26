@@ -47,10 +47,10 @@ We currently support two bridge deployments
 1. Ethereum PoA to Rialto Substrate
 2. Rialto Substrate to Millau Substrate
 
-These networks can be deployed using our [`./run.sh`](./run.sh) script.
+These bridges can be deployed using our [`./run.sh`](./run.sh) script.
 
 The first argument it takes is the name of the bridge you want to run. Right now we only support two
-networks: `poa-rialto` and `rialto-millau`.
+bridges: `poa-rialto` and `rialto-millau`.
 
 ```bash
 ./run.sh poa-rialto
@@ -79,8 +79,49 @@ not strictly required.
 
 ## General Notes
 
-Substrate authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`, `Ferdie`.
-Ethereum authorities are named: `Arthur`, `Bertha`, `Carlos`.
+Rialto authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`.
+Rialto-PoA authorities are named: `Arthur`, `Bertha`, `Carlos`.
+Millau authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`.
+
+Both authorities and following accounts have enough funds (for test purposes) on corresponding Substrate chains:
+
+- on Rialto: `Ferdie`, `George`, `Harry`.
+- on Millau: `Ferdie`, `George`, `Harry`.
+
+Names of accounts on Substrate (Rialto and Millau) chains may be prefixed with `//` and used as
+seeds for the `sr25519` keys. This seed may also be used in the signer argument in Substrate
+and PoA relays. Example:
+
+```bash
+./substrate-relay rialto-headers-to-millau \
+	--rialto-host rialto-node-alice \
+	--rialto-port 9944 \
+	--millau-host millau-node-alice \
+	--millau-port 9944 \
+	--rialto-signer //Harry \
+	--prometheus-host=0.0.0.0
+```
+
+Some accounts are used by bridge components. Using these accounts to sign other transactions
+is not recommended, because this may lead to nonces conflict.
+
+Following accounts are used when `poa-rialto` bridge is running:
+
+- Rialto's `Alice` signs relay transactions with new Rialto-PoA headers;
+- Rialto's `Bob` signs relay transactions with Rialto-PoA -> Rialto currency exchange proofs.
+- Rialto-PoA's `Arthur`: signs relay transactions with new Rialto headers;
+- Rialto-PoA's `Bertha`: signs currency exchange transactions.
+
+Following accounts are used when `rialto-millau` bridge is running:
+
+- Millau's `Charlie` signs relay transactions with new Rialto headers;
+- Rialto's `Charlie` signs relay transactions with new Millau headers;
+- Millau's `Dave` signs Millau transactions which contain messages for Rialto;
+- Rialto's `Dave` signs Rialto transactions which contain messages for Millau;
+- Millau's `Eve` signs relay transactions with message delivery confirmations from Rialto to Millau;
+- Rialto's `Eve` signs relay transactions with messages from Millau to Rialto;
+- Millau's `Ferdie` signs relay transactions with messages from Rialto to Millau;
+- Rialto's `Ferdie` signs relay transactions with message delivery confirmations from Millau to Rialto.
 
 ### Docker Usage
 When the network is running you can query logs from individual nodes using:
