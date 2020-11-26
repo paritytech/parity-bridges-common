@@ -334,7 +334,15 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>>(
 					async_std::task::sleep,
 					|| format!("Error submitting proof {}", P::target_name()),
 				).fail_if_connection_error(FailedClient::Target)?;
-			}
+			},
+
+			// when we're ready to retry request
+			_ = source_go_offline_future => {
+				source_client_is_online = true;
+			},
+			_ = target_go_offline_future => {
+				target_client_is_online = true;
+			},
 		}
 
 		progress_context = print_race_progress::<P, _>(progress_context, &strategy);
