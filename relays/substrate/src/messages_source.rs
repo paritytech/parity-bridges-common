@@ -318,7 +318,7 @@ mod tests {
 	fn make_message_weights_map_fails_if_mid_messages_are_missing() {
 		assert!(matches!(
 			make_message_weights_map::<relay_rialto_client::Rialto>(vec![(1, 0), (3, 0)], 1..=3),
-			Err(SubstrateError::Custom(_)),
+			Err(SubstrateError::Custom(_))
 		));
 	}
 
@@ -326,7 +326,7 @@ mod tests {
 	fn make_message_weights_map_fails_if_tail_messages_are_missing() {
 		assert!(matches!(
 			make_message_weights_map::<relay_rialto_client::Rialto>(vec![(1, 0), (2, 0)], 1..=3),
-			Err(SubstrateError::Custom(_)),
+			Err(SubstrateError::Custom(_))
 		));
 	}
 
@@ -334,7 +334,7 @@ mod tests {
 	fn make_message_weights_map_fails_if_all_messages_are_missing() {
 		assert!(matches!(
 			make_message_weights_map::<relay_rialto_client::Rialto>(vec![], 1..=3),
-			Err(SubstrateError::Custom(_)),
+			Err(SubstrateError::Custom(_))
 		));
 	}
 }
