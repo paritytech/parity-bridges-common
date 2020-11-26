@@ -144,9 +144,14 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, Proof> {
 	/// Should return true if nothing has to be synced.
 	fn is_empty(&self) -> bool;
 	/// Return best nonce at source node.
-	fn best_at_source(&self) -> MessageNonce;
+	///
+	/// `Some` is returned only if we are sure that the value is greater or equal
+	/// than the result of `best_at_target`.
+	fn best_at_source(&self) -> Option<MessageNonce>;
 	/// Return best nonce at target node.
-	fn best_at_target(&self) -> MessageNonce;
+	///
+	/// May return `None` if value is yet unknown.
+	fn best_at_target(&self) -> Option<MessageNonce>;
 
 	/// Called when nonces are updated at source node of the race.
 	fn source_nonces_updated(&mut self, at_block: SourceHeaderId, nonces: SourceClientNonces<Self::SourceNoncesRange>);
@@ -358,6 +363,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>>(
 			source_client_is_online = false;
 
 			let nonces_to_deliver = select_nonces_to_deliver(&race_state, &mut strategy);
+			let best_at_source = strategy.best_at_source();
 
 			if let Some((at_block, nonces_range, proof_parameters)) = nonces_to_deliver {
 				log::debug!(
@@ -372,7 +378,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>>(
 						.generate_proof(at_block, nonces_range, proof_parameters)
 						.fuse(),
 				);
-			} else if source_nonces_required {
+			} else if source_nonces_required && best_at_source.is_some() {
 				log::debug!(target: "bridge", "Asking {} about message nonces", P::source_name());
 				let at_block = race_state
 					.best_finalized_source_header_id_at_source
@@ -382,7 +388,11 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>>(
 						best_finalized_source_header_id_at_source is Some; qed",
 					)
 					.clone();
-				source_nonces.set(race_source.nonces(at_block, strategy.best_at_source()).fuse());
+				source_nonces.set(
+					race_source
+						.nonces(at_block, best_at_source.expect("guaranteed by if condition; qed"))
+						.fuse(),
+				);
 			} else {
 				source_client_is_online = true;
 			}
