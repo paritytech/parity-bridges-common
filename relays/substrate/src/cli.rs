@@ -149,6 +149,7 @@ arg_enum! {
 	/// All possible messages that may be delivered to the Rialto chain.
 	pub enum ToRialtoMessage {
 		Remark,
+		Transfer,
 	}
 }
 

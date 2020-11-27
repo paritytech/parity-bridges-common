@@ -13,7 +13,7 @@ services:
       - --unsafe-rpc-external
       - --unsafe-ws-external
     environment:
-      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,pallet_substrate_bridge=trace
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,pallet_substrate_bridge=trace,pallet_bridge_call_dispatch=trace,pallet_message_lane=trace,pallet_balances=trace
     ports:
       - "19933:9933"
       - "19944:9944"

@@ -274,6 +274,11 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					.as_bytes()
 					.to_vec(),
 				)),
+				cli::ToRialtoMessage::Transfer => {
+					let recipient = bp_rialto::AccountId::default();
+					let amount: bp_rialto::Balance = 1234567;
+					rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
+				}
 			};
 			let rialto_call_weight = rialto_call.get_dispatch_info().weight;
 
