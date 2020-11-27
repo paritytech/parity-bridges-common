@@ -23,8 +23,8 @@ do
 	/home/user/substrate-relay submit-millau-to-rialto-message \
 		--millau-host millau-node-bob \
 		--millau-port 9944 \
-		--millau-signer //Bob \
-		--rialto-signer //Bob \
+		--millau-signer //Dave \
+		--rialto-signer //Dave \
 		--lane $MESSAGE_LANE \
 		--message $MESSAGE \
 		--fee 100000000

@@ -11,8 +11,8 @@ MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
 	--lane $MESSAGE_LANE \
 	--millau-host millau-node-bob \
 	--millau-port 9944 \
-	--millau-signer //Bob \
+	--millau-signer //Eve \
 	--rialto-host rialto-node-bob \
 	--rialto-port 9944 \
-	--rialto-signer //Bob \
+	--rialto-signer //Eve \
 	--prometheus-host=0.0.0.0

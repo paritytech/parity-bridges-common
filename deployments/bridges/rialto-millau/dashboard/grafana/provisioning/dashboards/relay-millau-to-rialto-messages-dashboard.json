@@ -207,6 +207,41 @@
 		}
 	  },
 	  {
+		"alert": {
+			"alertRuleTags": {},
+			"conditions": [
+				{
+					"evaluator": {
+						"params": [
+							1
+						],
+						"type": "lt"
+					},
+					"operator": {
+						"type": "and"
+					},
+					"query": {
+						"params": [
+							"B",
+							"5m",
+							"now"
+						]
+					},
+					"reducer": {
+						"params": [],
+						"type": "max"
+					},
+					"type": "query"
+				}
+			],
+			"executionErrorState": "alerting",
+			"for": "5m",
+			"frequency": "1m",
+			"handler": 1,
+			"name": "Messages generated at Millau are not detected by relay",
+			"noDataState": "no_data",
+			"notifications": []
+		},
 		"aliasColors": {},
 		"bars": false,
 		"dashLength": 10,
@@ -257,7 +292,14 @@
 			"interval": "",
 			"legendFormat": "{{type}}",
 			"refId": "A"
-		  }
+			},
+			{
+				"expr": "max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_generated\"}[5m]) - min_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_generated\"}[5m])",
+				"hide": true,
+				"interval": "",
+				"legendFormat": "Messages generated in last 5 minutes",
+				"refId": "B"
+			}
 		],
 		"thresholds": [],
 		"timeFrom": null,
