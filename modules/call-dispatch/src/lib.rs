@@ -510,7 +510,7 @@ mod tests {
 				vec![EventRecord {
 					phase: Phase::Initialization,
 					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageWeightMismatch(
-						bridge, id, 1305000, 0,
+						bridge, id, 1973000, 0,
 					)),
 					topics: vec![],
 				}],
