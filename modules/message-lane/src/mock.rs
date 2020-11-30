@@ -22,7 +22,7 @@ use bp_message_lane::{
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce,
 };
 use codec::{Decode, Encode};
-use frame_support::{impl_outer_event, impl_outer_origin, ord_parameter_types, parameter_types, weights::Weight};
+use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
@@ -35,6 +35,14 @@ pub type AccountId = u64;
 pub type TestPayload = (u64, Weight);
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
+
+pub struct AccountIdConverter;
+
+impl sp_runtime::traits::Convert<H256, AccountId> for AccountIdConverter {
+	fn convert(hash: H256) -> AccountId {
+		hash.to_low_u64_ne()
+	}
+}
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
@@ -94,10 +102,6 @@ parameter_types! {
 	pub const MaxUnconfirmedMessagesAtInboundLane: u64 = 16;
 }
 
-ord_parameter_types! {
-	pub const RelayerFundAccount: AccountId = AccountId::default();
-}
-
 impl Trait for TestRuntime {
 	type Event = TestEvent;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
@@ -110,7 +114,7 @@ impl Trait for TestRuntime {
 	type InboundMessageFee = TestMessageFee;
 	type InboundRelayer = TestRelayer;
 
-	type RelayerFundAccount = RelayerFundAccount;
+	type AccountIdConverter = AccountIdConverter;
 
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;

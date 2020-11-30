@@ -79,3 +79,13 @@ where
 	}
 	.into()
 }
+
+/// Derive the account ID of the shared relayer fund account.
+///
+/// This account is used to collect fees for relayers that are passing messages across the bridge.
+///
+/// The account ID can be the same across different instances of `message-lane` if the same
+/// `bridge_id` is used.
+pub fn derive_relayer_fund_account_id(bridge_id: InstanceId) -> H256 {
+	("relayer-fund-account", bridge_id).using_encoded(blake2_256).into()
+}
