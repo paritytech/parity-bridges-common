@@ -1028,7 +1028,7 @@ fn pool_configuration() -> PoolConfiguration {
 }
 
 /// Return iterator of given header ancestors.
-fn ancestry<'a, S: Storage>(storage: &'a S, mut parent_hash: H256) -> impl Iterator<Item = (H256, AuraHeader)> + 'a {
+fn ancestry<S: Storage>(storage: &'_ S, mut parent_hash: H256) -> impl Iterator<Item = (H256, AuraHeader)> + '_ {
 	sp_std::iter::from_fn(move || {
 		let (header, _) = storage.header(&parent_hash)?;
 		if header.number == 0 {
