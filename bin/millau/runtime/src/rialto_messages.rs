@@ -93,9 +93,8 @@ impl MessageBridge for WithRialtoMessageBridge {
 		let upper_limit = bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT / 2;
 
 		// given Rialto chain parameters (`TransactionByteFee`, `WeightToFee`, `FeeMultiplierUpdate`),
-		// the minimal weight of the message may be computed as message.length() + minimal extrinsic weight
-		let message_payload_length_weight = Weight::try_from(message_payload.len()).unwrap_or(Weight::MAX);
-		let lower_limit = message_payload_length_weight.saturating_add(bp_rialto::BASE_EXTRINSIC_WEIGHT);
+		// the minimal weight of the message may be computed as message.length()
+		let lower_limit = Weight::try_from(message_payload.len()).unwrap_or(Weight::MAX);
 
 		lower_limit..=upper_limit
 	}

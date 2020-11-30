@@ -92,10 +92,9 @@ impl MessageBridge for WithMillauMessageBridge {
 		// we don't want to relay too large messages + keep reserve for future upgrades
 		let upper_limit = bp_millau::MAXIMUM_EXTRINSIC_WEIGHT / 2;
 
-		// given Millau chain parameters (`TransactionByteFee`, `WeightToFee`, `FeeMultiplierUpdate`),
-		// the minimal weight of the message may be computed as message.len() + minimal extrinsic weight
-		let message_payload_length_weight = Weight::try_from(message_payload.len()).unwrap_or(Weight::MAX);
-		let lower_limit = message_payload_length_weight.saturating_add(bp_millau::BASE_EXTRINSIC_WEIGHT);
+		// given Rialto chain parameters (`TransactionByteFee`, `WeightToFee`, `FeeMultiplierUpdate`),
+		// the minimal weight of the message may be computed as message.length()
+		let lower_limit = Weight::try_from(message_payload.len()).unwrap_or(Weight::MAX);
 
 		lower_limit..=upper_limit
 	}

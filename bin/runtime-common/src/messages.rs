@@ -50,6 +50,11 @@ pub trait MessageBridge {
 	///
 	/// If message is being sent with the weight that is out of this range, then it
 	/// should be rejected.
+	///
+	/// Weights returned from this function shall not include transaction overhead
+	/// (like weight of signature and signed extensions verification), because they're
+	/// already accounted by the `weight_of_delivery_transaction`. So this function should
+	/// return pure call dispatch weights range.
 	fn weight_limits_of_message_on_bridged_chain(
 		message_payload: &[u8],
 	) -> RangeInclusive<WeightOf<BridgedChain<Self>>>;
