@@ -29,7 +29,6 @@ jobs:
       volumes:
         - /cache:/cache
     env:
-      WASM_BUILD_TOOLCHAIN:        nightly-2020-10-04
       RUST_BACKTRACE:              full
       SCCACHE_REDIS:               redis://172.17.0.1/0
       SCCACHE_IDLE_TIMEOUT:        0
@@ -47,9 +46,10 @@ jobs:
           fetch-depth:             5
           submodules:              recursive
       - name:                      Install Toolchain
-        run:                       rustup toolchain add nightly-2020-10-04
+        if:                        matrix.toolchain == 'nightly-2020-10-04'
+        run:                       rustup toolchain add ${{ matrix.toolchain }}
       - name:                      Add WASM Utilities
-        run:                       rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-04
+        run:                       rustup target add wasm32-unknown-unknown --toolchain nightly
       - name:                      Configure CARGO_TARGET_DIR
         shell:                     bash
         run:                       ./scripts/ci-cache.sh
