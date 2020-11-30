@@ -430,9 +430,7 @@ mod tests {
 		type ThisChain = ThisChain;
 		type BridgedChain = BridgedChain;
 
-		fn weight_limits_of_message_on_bridged_chain(
-			_message_payload: &[u8],
-		) -> RangeInclusive<Weight> {
+		fn weight_limits_of_message_on_bridged_chain(_message_payload: &[u8]) -> RangeInclusive<Weight> {
 			unreachable!()
 		}
 
@@ -471,9 +469,7 @@ mod tests {
 		type ThisChain = BridgedChain;
 		type BridgedChain = ThisChain;
 
-		fn weight_limits_of_message_on_bridged_chain(
-			_message_payload: &[u8],
-		) -> RangeInclusive<Weight> {
+		fn weight_limits_of_message_on_bridged_chain(_message_payload: &[u8]) -> RangeInclusive<Weight> {
 			unreachable!()
 		}
 

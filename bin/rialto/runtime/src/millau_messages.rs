@@ -88,9 +88,7 @@ impl MessageBridge for WithMillauMessageBridge {
 	type ThisChain = Rialto;
 	type BridgedChain = Millau;
 
-	fn weight_limits_of_message_on_bridged_chain(
-		message_payload: &[u8],
-	) -> RangeInclusive<Weight> {
+	fn weight_limits_of_message_on_bridged_chain(message_payload: &[u8]) -> RangeInclusive<Weight> {
 		// we don't want to relay too large messages + keep reserve for future upgrades
 		let upper_limit = bp_millau::MAXIMUM_EXTRINSIC_WEIGHT / 2;
 
