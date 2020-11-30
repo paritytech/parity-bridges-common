@@ -1069,30 +1069,33 @@ pub(crate) mod tests {
 	}
 
 	fn example_header_with_failed_receipt() -> AuraHeader {
-		let mut header = AuraHeader::default();
-		header.number = 3;
-		header.transactions_root = compute_merkle_root(vec![example_tx()].into_iter());
-		header.receipts_root = compute_merkle_root(vec![example_tx_receipt(false)].into_iter());
-		header.parent_hash = example_header().compute_hash();
-		header
+		AuraHeader {
+			number: 3,
+			transactions_root: compute_merkle_root(vec![example_tx()].into_iter()),
+			receipts_root: compute_merkle_root(vec![example_tx_receipt(false)].into_iter()),
+			parent_hash: example_header().compute_hash(),
+			..Default::default()
+		}
 	}
 
 	fn example_header() -> AuraHeader {
-		let mut header = AuraHeader::default();
-		header.number = 2;
-		header.transactions_root = compute_merkle_root(vec![example_tx()].into_iter());
-		header.receipts_root = compute_merkle_root(vec![example_tx_receipt(true)].into_iter());
-		header.parent_hash = example_header_parent().compute_hash();
-		header
+		AuraHeader {
+			number: 2,
+			transactions_root: compute_merkle_root(vec![example_tx()].into_iter()),
+			receipts_root: compute_merkle_root(vec![example_tx_receipt(true)].into_iter()),
+			parent_hash: example_header_parent().compute_hash(),
+			..Default::default()
+		}
 	}
 
 	fn example_header_parent() -> AuraHeader {
-		let mut header = AuraHeader::default();
-		header.number = 1;
-		header.transactions_root = compute_merkle_root(vec![example_tx()].into_iter());
-		header.receipts_root = compute_merkle_root(vec![example_tx_receipt(true)].into_iter());
-		header.parent_hash = genesis().compute_hash();
-		header
+		AuraHeader {
+			number: 1,
+			transactions_root: compute_merkle_root(vec![example_tx()].into_iter()),
+			receipts_root: compute_merkle_root(vec![example_tx_receipt(true)].into_iter()),
+			parent_hash: genesis().compute_hash(),
+			..Default::default()
+		}
 	}
 
 	fn with_headers_to_prune<T>(f: impl Fn(BridgeStorage<TestRuntime>) -> T) -> T {
