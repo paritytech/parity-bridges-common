@@ -75,6 +75,9 @@ pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
 /// Maximal weight of single Millau extrinsic (65% of maximum block weight = 75% for regular
 /// transactions minus 10% for initialization).
 pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
+/// The base weight of any extrinsic processed by the runtime, independent of the
+/// logic of that extrinsic. (Signature verification, nonce increment, fee, etc...)
+pub const BASE_EXTRINSIC_WEIGHT: Weight = 10_000_000;
 
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 1024;
