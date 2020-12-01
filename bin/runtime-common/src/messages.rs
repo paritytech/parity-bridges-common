@@ -806,6 +806,11 @@ mod tests {
 		}
 	}
 
+	#[allow(clippy::reversed_empty_ranges)]
+	fn no_messages_range() -> RangeInclusive<MessageNonce> {
+		1..=0
+	}
+
 	#[test]
 	fn messages_proof_is_rejected_if_there_are_too_many_messages() {
 		assert_eq!(
@@ -864,14 +869,13 @@ mod tests {
 
 	#[test]
 	fn message_proof_is_rejected_if_outbound_lane_state_decode_fails() {
-		#[allow(clippy::reversed_empty_ranges)]
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
 				(Default::default(), StorageProof::new(vec![]), Default::default(), 1, 0),
 				10,
 				|_, _| Ok(TestMessageProofParser {
 					failing: true,
-					messages: 1..=0,
+					messages: no_messages_range(),
 					outbound_lane_data: Some(OutboundLaneData {
 						oldest_unpruned_nonce: 1,
 						latest_received_nonce: 1,
@@ -885,14 +889,13 @@ mod tests {
 
 	#[test]
 	fn message_proof_is_rejected_if_it_is_empty() {
-		#[allow(clippy::reversed_empty_ranges)]
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
 				(Default::default(), StorageProof::new(vec![]), Default::default(), 1, 0),
 				10,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,
-					messages: 1..=0,
+					messages: no_messages_range(),
 					outbound_lane_data: None,
 				}),
 			),
@@ -902,14 +905,13 @@ mod tests {
 
 	#[test]
 	fn non_empty_message_proof_without_messages_is_accepted() {
-		#[allow(clippy::reversed_empty_ranges)]
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
 				(Default::default(), StorageProof::new(vec![]), Default::default(), 1, 0),
 				10,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,
-					messages: 1..=0,
+					messages: no_messages_range(),
 					outbound_lane_data: Some(OutboundLaneData {
 						oldest_unpruned_nonce: 1,
 						latest_received_nonce: 1,
