@@ -864,6 +864,7 @@ mod tests {
 
 	#[test]
 	fn message_proof_is_rejected_if_outbound_lane_state_decode_fails() {
+		#[allow(clippy::reversed_empty_ranges)]
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
 				(Default::default(), StorageProof::new(vec![]), Default::default(), 1, 0),
@@ -884,6 +885,7 @@ mod tests {
 
 	#[test]
 	fn message_proof_is_rejected_if_it_is_empty() {
+		#[allow(clippy::reversed_empty_ranges)]
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
 				(Default::default(), StorageProof::new(vec![]), Default::default(), 1, 0),
@@ -900,6 +902,7 @@ mod tests {
 
 	#[test]
 	fn non_empty_message_proof_without_messages_is_accepted() {
+		#[allow(clippy::reversed_empty_ranges)]
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
 				(Default::default(), StorageProof::new(vec![]), Default::default(), 1, 0),
@@ -960,7 +963,7 @@ mod tests {
 							nonce: 1
 						},
 						data: MessageData {
-							payload: (1 as MessageNonce).encode(),
+							payload: 1u64.encode(),
 							fee: BridgedChainBalance(0)
 						},
 					}],
