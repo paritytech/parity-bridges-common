@@ -10,7 +10,7 @@ set -eu
 # Max delay before submitting transactions (s)
 MAX_SUBMIT_DELAY_S=${MSG_EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-30}
 MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
-MESSAGE=${MSG_EXCHANGE_MESSAGE:-Remark}
+FERDIE_ADDR=5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL
 
 while true
 do
@@ -19,27 +19,63 @@ do
 	echo "Sleeping $SUBMIT_DELAY_S seconds..."
 	sleep $SUBMIT_DELAY_S
 
-	echo "Sending Remark from Millau to Rialto"
+	echo "Sending Remark from Millau to Rialto using Target Origin"
 	/home/user/substrate-relay submit-millau-to-rialto-message \
 		--millau-host millau-node-bob \
 		--millau-port 9944 \
 		--millau-signer //Dave \
 		--rialto-signer //Dave \
 		--lane $MESSAGE_LANE \
-		--message $MESSAGE \
-		--fee 100000000
+		--fee 100000000 \
+		--origin Target \
+		remark
 
 	SUBMIT_DELAY_S=`shuf -i 0-$MAX_SUBMIT_DELAY_S -n 1`
 	echo "Sleeping $SUBMIT_DELAY_S seconds..."
 	sleep $SUBMIT_DELAY_S
 
-	echo "Sending Transfer from Millau to Rialto"
+	echo "Sending Transfer from Millau to Rialto using Target Origin"
 	/home/user/substrate-relay submit-millau-to-rialto-message \
 		--millau-host millau-node-bob \
 		--millau-port 9944 \
 		--millau-signer //Dave \
 		--rialto-signer //Dave \
 		--lane $MESSAGE_LANE \
-		--message Transfer \
-		--fee 1000000000
+		--fee 1000000000 \
+		--origin Target \
+		transfer \
+		--amount 1000000000000 \
+		--recipient $FERDIE_ADDR
+
+	SUBMIT_DELAY_S=`shuf -i 0-$MAX_SUBMIT_DELAY_S -n 1`
+	echo "Sleeping $SUBMIT_DELAY_S seconds..."
+	sleep $SUBMIT_DELAY_S
+
+	echo "Sending Remark from Millau to Rialto using Source Origin"
+	/home/user/substrate-relay submit-millau-to-rialto-message \
+		--millau-host millau-node-bob \
+		--millau-port 9944 \
+		--millau-signer //Dave \
+		--rialto-signer //Dave \
+		--lane $MESSAGE_LANE \
+		--fee 100000000 \
+		--origin Source \
+		remark
+
+	SUBMIT_DELAY_S=`shuf -i 0-$MAX_SUBMIT_DELAY_S -n 1`
+	echo "Sleeping $SUBMIT_DELAY_S seconds..."
+	sleep $SUBMIT_DELAY_S
+
+	echo "Sending Transfer from Millau to Rialto using Source Origin"
+	/home/user/substrate-relay submit-millau-to-rialto-message \
+		--millau-host millau-node-bob \
+		--millau-port 9944 \
+		--millau-signer //Dave \
+		--rialto-signer //Dave \
+		--lane $MESSAGE_LANE \
+		--fee 1000000000 \
+		--origin Source \
+		transfer \
+		--amount 1000000000000 \
+		--recipient $FERDIE_ADDR
 done
