@@ -121,6 +121,7 @@ impl Alternative {
 							get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 							get_account_id_from_seed::<sr25519::Public>("George//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
+							derived_dave_account_id(),
 						],
 						true,
 					)
@@ -190,4 +191,19 @@ fn load_kovan_bridge_config() -> BridgeKovanConfig {
 		initial_difficulty: 0.into(),
 		initial_validators: rialto_runtime::kovan::genesis_validators(),
 	}
+}
+
+// We use this to get the account on Rialto (target) which is derived from Millau's (source) Dave
+// account. We do this so we can fund the derived account on Rialto at Genesis to it can pay
+// transaction fees. The reason we can use Rialto's Dave for the `millau_account_id` is because
+// they're both derived from the same seed phrase.
+//
+// In case you need it, the derived account ID is: 5Hg7WQyk8C1FmPzxY3xSjR7S6zZZC5sAL35vMr6NpW17jBhQ
+//
+// Note that this should only be used for testing.
+fn derived_dave_account_id() -> AccountId {
+	use sp_runtime::traits::Convert;
+	let millau_account_id = get_account_id_from_seed::<sr25519::Public>("Dave");
+	let encoded_id = bp_runtime::derive_account_id(*b"mlau", bp_runtime::SourceAccount::Account(millau_account_id));
+	bp_rialto::AccountIdConverter::convert(encoded_id)
 }
