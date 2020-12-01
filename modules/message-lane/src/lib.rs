@@ -71,16 +71,20 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
 	/// for it.
 	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
-	/// Maximal number of "messages" (see note below) in the 'unconfirmed' state at inbound lane.
-	/// Unconfirmed message at inbound lane is the message that has been: sent, delivered and
-	/// dispatched. Its delivery confirmation is still pending. This limit is introduced to bound
-	/// maximal number of relayers-ids in the inbound lane state.
+	/// Maximal number of unrewarded relayer entries at inbound lane. Unrewarded means that the
+	/// relayer has delivered messages, but either confirmations haven't been delivered back to the
+	/// source chain, or we haven't received reward confirmations yet.
 	///
-	/// "Message" in this context does not necessarily mean an individual message, but instead
-	/// continuous range of individual messages, that are delivered by single relayer. So if relayer#1
-	/// has submitted delivery transaction#1 with individual messages [1; 2] and then delivery
-	/// transaction#2 with individual messages [3; 4], this would be treated as single "Message" and
-	/// would occupy single unit of `MaxUnconfirmedMessagesAtInboundLane` limit.
+	/// This constant limits maximal number of entries in the `InboundLaneData::relayers`. Keep
+	/// in mind that the same relayer account may take several (non-consecutive) entries in this
+	/// set.
+	type MaxUnrewardedRelayerEntriesAtInboundLane: Get<MessageNonce>;
+	/// Maximal number of unconfirmed messages at inbound lane. Unconfirmed means that the
+	/// message has been delivered, but either confirmations haven't been delivered back to the
+	/// source chain, or we haven't received reward confirmations for these messages yet.
+	///
+	/// This constant limits difference between last message from last entry of the
+	/// `InboundLaneData::relayers` and first message at the first entry.
 	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
@@ -548,6 +552,10 @@ impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<
 
 	fn id(&self) -> LaneId {
 		self.lane_id
+	}
+
+	fn max_unrewarded_relayer_entries(&self) -> MessageNonce {
+		T::MaxUnrewardedRelayerEntriesAtInboundLane::get()
 	}
 
 	fn max_unconfirmed_messages(&self) -> MessageNonce {

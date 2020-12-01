@@ -322,12 +322,16 @@ impl pallet_shift_session_manager::Trait for Runtime {}
 
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_message_lane::MessageNonce = 8;
-	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce = bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_message_lane::MessageNonce =
+		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
+	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
+		bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
 }
 
 impl pallet_message_lane::Trait for Runtime {
 	type Event = Event;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
 	type OutboundPayload = crate::rialto_messages::ToRialtoMessagePayload;
