@@ -22,9 +22,13 @@
 
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::Chain;
-use frame_support::{RuntimeDebug, weights::Weight};
+use frame_support::{weights::Weight, RuntimeDebug};
 use sp_core::Hasher as HasherT;
-use sp_runtime::{generic, MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic, traits::{Verify, BlakeTwo256, IdentifyAccount}};
+use sp_runtime::{
+	generic,
+	traits::{BlakeTwo256, IdentifyAccount, Verify},
+	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic,
+};
 use sp_std::prelude::*;
 
 /// Block number type used in Kusama.
