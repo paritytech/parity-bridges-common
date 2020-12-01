@@ -581,8 +581,8 @@ impl_runtime_apis! {
 			BridgeRialtoMessageLane::inbound_latest_confirmed_nonce(lane)
 		}
 
-		fn unrewarded_relayer_entries(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
-			BridgeRialtoMessageLane::inbound_unrewarded_relayer_entries(lane)
+		fn unrewarded_relayers_state(lane: bp_message_lane::LaneId) -> bp_message_lane::UnrewardedRelayersState {
+			BridgeRialtoMessageLane::inbound_unrewarded_relayers_state(lane)
 		}
 	}
 }

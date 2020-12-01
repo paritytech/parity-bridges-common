@@ -744,8 +744,8 @@ impl_runtime_apis! {
 			BridgeMillauMessageLane::inbound_latest_confirmed_nonce(lane)
 		}
 
-		fn unrewarded_relayer_entries(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
-			BridgeMillauMessageLane::inbound_unrewarded_relayer_entries(lane)
+		fn unrewarded_relayers_state(lane: bp_message_lane::LaneId) -> bp_message_lane::UnrewardedRelayersState {
+			BridgeMillauMessageLane::inbound_unrewarded_relayers_state(lane)
 		}
 	}
 

@@ -467,9 +467,15 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 		InboundLanes::<T, I>::get(&lane).latest_confirmed_nonce
 	}
 
-	/// Get number of occupied unrewarded relayer entries.
-	pub fn inbound_unrewarded_relayer_entries(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
-		InboundLanes::<T, I>::get(&lane).relayers.len() as _
+	/// Get state of unrewarded relayers set.
+	pub fn inbound_unrewarded_relayers_state(
+		lane: bp_message_lane::LaneId,
+	) -> bp_message_lane::UnrewardedRelayersState {
+		let relayers = InboundLanes::<T, I>::get(&lane).relayers;
+		bp_message_lane::UnrewardedRelayersState {
+			unrewarded_relayer_entries: relayers.len() as _,
+			messages_in_oldest_entry: relayers.front().map(|(begin, end, _)| 1 + end - begin).unwrap_or(0),
+		}
 	}
 }
 
@@ -674,6 +680,7 @@ mod tests {
 		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesProof, TestRuntime,
 		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
+	use bp_message_lane::UnrewardedRelayersState;
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Module as System, Phase};
 	use hex_literal::hex;
@@ -910,8 +917,11 @@ mod tests {
 				},
 			);
 			assert_eq!(
-				Module::<TestRuntime>::inbound_unrewarded_relayer_entries(TEST_LANE_ID),
-				2,
+				Module::<TestRuntime>::inbound_unrewarded_relayers_state(TEST_LANE_ID),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 2,
+					messages_in_oldest_entry: 1,
+				},
 			);
 
 			// message proof includes outbound lane state with latest confirmed message updated to 9
@@ -939,8 +949,11 @@ mod tests {
 				},
 			);
 			assert_eq!(
-				Module::<TestRuntime>::inbound_unrewarded_relayer_entries(TEST_LANE_ID),
-				2,
+				Module::<TestRuntime>::inbound_unrewarded_relayers_state(TEST_LANE_ID),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 2,
+					messages_in_oldest_entry: 1,
+				},
 			);
 		});
 	}

@@ -20,7 +20,7 @@
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bp_message_lane::{LaneId, MessageNonce};
+use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{weights::Weight, RuntimeDebug};
 use sp_core::Hasher as HasherT;
@@ -86,6 +86,8 @@ pub const TO_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "ToRialtoOutboundLaneAp
 pub const FROM_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "FromRialtoInboundLaneApi_latest_received_nonce";
 /// Name of the `FromRialtoInboundLaneApi::latest_onfirmed_nonce` runtime method.
 pub const FROM_RIALTO_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromRialtoInboundLaneApi_latest_confirmed_nonce";
+/// Name of the `FromRialtoInboundLaneApi::unrewarded_relayers_state` runtime method.
+pub const FROM_RIALTO_UNREWARDED_RELAYERS_STATE: &str = "FromRialtoInboundLaneApi_unrewarded_relayers_state";
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -164,7 +166,7 @@ sp_api::decl_runtime_apis! {
 		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 		/// Nonce of latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
-		/// Number of occupied unrewarded relayer entries.
-		fn unrewarded_relayer_entries(lane: LaneId) -> MessageNonce;
+		/// State of the unrewarded relayers set at given lane.
+		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
 	}
 }
