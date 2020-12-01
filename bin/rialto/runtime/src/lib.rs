@@ -743,6 +743,10 @@ impl_runtime_apis! {
 		fn latest_confirmed_nonce(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
 			BridgeMillauMessageLane::inbound_latest_confirmed_nonce(lane)
 		}
+
+		fn unrewarded_relayer_entries(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
+			BridgeMillauMessageLane::inbound_unrewarded_relayer_entries(lane)
+		}
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]

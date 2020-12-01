@@ -466,6 +466,11 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	pub fn inbound_latest_confirmed_nonce(lane: LaneId) -> MessageNonce {
 		InboundLanes::<T, I>::get(&lane).latest_confirmed_nonce
 	}
+
+	/// Get number of occupied unrewarded relayer entries.
+	pub fn inbound_unrewarded_relayer_entries(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
+		InboundLanes::<T, I>::get(&lane).relayers.len() as _
+	}
 }
 
 /// Getting storage keys for messages and lanes states. These keys are normally used when building
@@ -904,6 +909,10 @@ mod tests {
 						.collect(),
 				},
 			);
+			assert_eq!(
+				Module::<TestRuntime>::inbound_unrewarded_relayer_entries(TEST_LANE_ID),
+				2,
+			);
 
 			// message proof includes outbound lane state with latest confirmed message updated to 9
 			let mut message_proof: TestMessagesProof = Ok(vec![message(11, REGULAR_PAYLOAD)]).into();
@@ -928,6 +937,10 @@ mod tests {
 					latest_received_nonce: 11,
 					latest_confirmed_nonce: 9,
 				},
+			);
+			assert_eq!(
+				Module::<TestRuntime>::inbound_unrewarded_relayer_entries(TEST_LANE_ID),
+				2,
 			);
 		});
 	}

@@ -164,5 +164,7 @@ sp_api::decl_runtime_apis! {
 		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 		/// Nonce of latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
+		/// Number of occupied unrewarded relayer entries.
+		fn unrewarded_relayer_entries(lane: LaneId) -> MessageNonce;
 	}
 }
