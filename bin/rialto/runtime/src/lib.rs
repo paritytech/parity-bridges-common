@@ -435,6 +435,7 @@ parameter_types! {
 		bp_rialto::MAX_MESSAGES_IN_DELIVERY_TRANSACTION;
 }
 
+pub(crate) type WithMillauMessageLaneInstance = pallet_message_lane::DefaultInstance;
 impl pallet_message_lane::Trait for Runtime {
 	type Event = Event;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
@@ -807,12 +808,32 @@ impl_runtime_apis! {
 				}
 			}
 
+			use pallet_message_lane::benchmarking::{
+				Module as MessageLaneBench,
+				Trait as MessageLaneTrait,
+				MessageParams as MessageLaneMessageParams,
+			};
+
+			impl MessageLaneTrait<WithMillauMessageLaneInstance> for Runtime {
+				fn prepare_message(
+					_params: MessageLaneMessageParams,
+				) -> (millau_messages::ToMillauMessagePayload, Balance) {
+					unimplemented!("TODO")
+				}
+			}
+
 			add_benchmark!(params, batches, pallet_bridge_eth_poa, BridgeKovan);
 			add_benchmark!(
 				params,
 				batches,
 				pallet_bridge_currency_exchange,
 				BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>
+			);
+			add_benchmark!(
+				params,
+				batches,
+				pallet_message_lane,
+				MessageLaneBench::<Runtime, WithMillauMessageLaneInstance>
 			);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }

@@ -45,6 +45,7 @@ use frame_support::{
 	Parameter, StorageMap,
 };
 use frame_system::{ensure_signed, RawOrigin};
+use num_traits::Zero;
 use sp_runtime::{traits::BadOrigin, DispatchResult};
 use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
@@ -52,6 +53,9 @@ mod inbound_lane;
 mod outbound_lane;
 
 pub mod instant_payments;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -71,9 +75,8 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// They overarching event type.
 	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Trait>::Event>;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
-	/// whenever outbound lane is updated - i.e. when new message is sent, or receival is
-	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
-	/// for it.
+	/// whenever new message is sent. The reason is that if you want to use lane, you should
+	/// be ready to pay for its maintenance.
 	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
 	/// Maximal number of "messages" (see note below) in the 'unconfirmed' state at inbound lane.
 	/// Unconfirmed message at inbound lane is the message that has been: sent, delivered and
@@ -95,7 +98,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 	type OutboundPayload: Parameter;
 	/// Message fee type of outbound messages. This fee is paid on this chain.
-	type OutboundMessageFee: Parameter;
+	type OutboundMessageFee: Parameter + Zero;
 
 	/// Payload type of inbound messages. This payload is dispatched on this chain.
 	type InboundPayload: Decode;
