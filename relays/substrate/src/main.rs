@@ -281,46 +281,24 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				}
 			};
 
-			dbg!(&rialto_call);
-
 			let rialto_call_weight = rialto_call.get_dispatch_info().weight;
 			let millau_sender_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
 			let millau_account_id: bp_millau::AccountId = millau_sender_public.into_account();
 			let rialto_origin_public = rialto_sign.signer.public();
 
 			let payload = match origin {
-				cli::Origins::Root => {
-					use sp_runtime::traits::Convert;
-					let encoded_id = bp_runtime::derive_account_id::<bp_millau::AccountId>(
-						*b"mlau",
-						bp_runtime::SourceAccount::Root,
-					);
-					let expected_derived_root = bp_rialto::AccountIdConverter::convert(encoded_id);
-					dbg!(expected_derived_root);
-
-					MessagePayload {
-						spec_version: rialto_runtime::VERSION.spec_version,
-						weight: rialto_call_weight,
-						origin: CallOrigin::SourceRoot,
-						call: rialto_call.encode(),
-					}
-				}
-				cli::Origins::Source => {
-					use sp_runtime::traits::Convert;
-					let encoded_id = bp_runtime::derive_account_id(
-						*b"mlau",
-						bp_runtime::SourceAccount::Account(millau_account_id.clone()),
-					);
-					let expected_derived_account = bp_rialto::AccountIdConverter::convert(encoded_id);
-					dbg!(expected_derived_account);
-
-					MessagePayload {
-						spec_version: rialto_runtime::VERSION.spec_version,
-						weight: rialto_call_weight,
-						origin: CallOrigin::SourceAccount(millau_account_id),
-						call: rialto_call.encode(),
-					}
-				}
+				cli::Origins::Root => MessagePayload {
+					spec_version: rialto_runtime::VERSION.spec_version,
+					weight: rialto_call_weight,
+					origin: CallOrigin::SourceRoot,
+					call: rialto_call.encode(),
+				},
+				cli::Origins::Source => MessagePayload {
+					spec_version: rialto_runtime::VERSION.spec_version,
+					weight: rialto_call_weight,
+					origin: CallOrigin::SourceAccount(millau_account_id),
+					call: rialto_call.encode(),
+				},
 				cli::Origins::Target => {
 					let mut rialto_origin_signature_message = Vec::new();
 					rialto_call.encode_to(&mut rialto_origin_signature_message);
@@ -339,8 +317,6 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					}
 				}
 			};
-
-			dbg!(&payload);
 
 			let millau_call = millau_runtime::Call::BridgeRialtoMessageLane(
 				millau_runtime::MessageLaneCall::send_message(lane.into(), payload, fee),
