@@ -39,7 +39,7 @@ pub const MILLAU_BRIDGE_INSTANCE: InstanceId = *b"mlau";
 pub const POLKADOT_BRIDGE_INSTANCE: InstanceId = *b"pdot";
 
 /// Bridge-with-Kusama instance id.
-pub const KUSAMA_BRIDGE_INSTANCE: InstanceId = *b"kusm";
+pub const KUSAMA_BRIDGE_INSTANCE: InstanceId = *b"ksma";
 
 /// Call-dispatch module prefix.
 pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/call-dispatch";
