@@ -210,9 +210,10 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 		// prepare dispatch origin
 		let origin_account = match message.origin {
 			CallOrigin::SourceRoot => {
-				let encoded_id = derive_account_id::<T::SourceChainAccountId>(bridge, SourceAccount::Root);
-				frame_support::debug::trace!("Encoded Root Account: {:?}", &encoded_id);
-				T::AccountIdConverter::convert(encoded_id)
+				let hex_id = derive_account_id::<T::SourceChainAccountId>(bridge, SourceAccount::Root);
+				let target_id = T::AccountIdConverter::convert(hex_id);
+				frame_support::debug::trace!("Root Account: {:?}", &target_id);
+				target_id
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
 				let mut signed_message = Vec::new();
@@ -236,9 +237,10 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				target_account
 			}
 			CallOrigin::SourceAccount(source_account_id) => {
-				let encoded_id = derive_account_id(bridge, SourceAccount::Account(source_account_id));
-				frame_support::debug::trace!("Encoded Source Account: {:?}", &encoded_id);
-				T::AccountIdConverter::convert(encoded_id)
+				let hex_id = derive_account_id(bridge, SourceAccount::Account(source_account_id));
+				let target_id = T::AccountIdConverter::convert(hex_id);
+				frame_support::debug::trace!("Source Account: {:?}", &target_id);
+				target_id
 			}
 		};
 
