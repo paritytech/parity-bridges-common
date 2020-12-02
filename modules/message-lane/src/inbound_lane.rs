@@ -100,7 +100,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 
 		// if there are more unrewarded relayer entries than we may accept, reject this message
-		if self.storage.max_unrewarded_relayer_entries() <= data.relayers.len() as MessageNonce {
+		if data.relayers.len() as MessageNonce >= self.storage.max_unrewarded_relayer_entries() {
 			return false;
 		}
 
