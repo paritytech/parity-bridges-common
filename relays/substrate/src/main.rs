@@ -289,7 +289,22 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			let rialto_origin_public = rialto_sign.signer.public();
 
 			let payload = match origin {
-				cli::Origins::Root => unimplemented!(),
+				cli::Origins::Root => {
+					use sp_runtime::traits::Convert;
+					let encoded_id = bp_runtime::derive_account_id::<bp_millau::AccountId>(
+						*b"mlau",
+						bp_runtime::SourceAccount::Root,
+					);
+					let expected_derived_root = bp_rialto::AccountIdConverter::convert(encoded_id);
+					dbg!(expected_derived_root);
+
+					MessagePayload {
+						spec_version: rialto_runtime::VERSION.spec_version,
+						weight: rialto_call_weight,
+						origin: CallOrigin::SourceRoot,
+						call: rialto_call.encode(),
+					}
+				}
 				cli::Origins::Source => {
 					use sp_runtime::traits::Convert;
 					let encoded_id = bp_runtime::derive_account_id(

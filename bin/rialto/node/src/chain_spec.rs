@@ -122,6 +122,7 @@ impl Alternative {
 							get_account_id_from_seed::<sr25519::Public>("George//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
 							derived_dave_account_id(),
+							derived_root_account_id(),
 						],
 						true,
 					)
@@ -205,5 +206,17 @@ fn derived_dave_account_id() -> AccountId {
 	use sp_runtime::traits::Convert;
 	let millau_account_id = get_account_id_from_seed::<sr25519::Public>("Dave");
 	let encoded_id = bp_runtime::derive_account_id(*b"mlau", bp_runtime::SourceAccount::Account(millau_account_id));
+	bp_rialto::AccountIdConverter::convert(encoded_id)
+}
+
+// We use this to get the derived Root account on the Rialto (target) chain. We can then endow it
+// some funds at Genesis so that it can pay for transaction fees.
+//
+// In case you need it, the root account ID is: 5HYYwXQvxhgdcBYs6kzqfK1HW6M3UF3Kh4YM7j288yiqbhnt
+//
+// Note that this should only be used for testing.
+fn derived_root_account_id() -> AccountId {
+	use sp_runtime::traits::Convert;
+	let encoded_id = bp_runtime::derive_account_id::<AccountId>(*b"mlau", bp_runtime::SourceAccount::Root);
 	bp_rialto::AccountIdConverter::convert(encoded_id)
 }
