@@ -87,7 +87,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// would occupy single unit of `MaxUnconfirmedMessagesAtInboundLane` limit.
 	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 	/// Maximal number of messages in single delivery transaction. This directly affects the base
-	/// weight of thedelivery transaction.
+	/// weight of the delivery transaction.
 	///
 	/// All transactions that deliver more messages than this number, are rejected.
 	type MaxMessagesInDeliveryTransaction: Get<MessageNonce>;
