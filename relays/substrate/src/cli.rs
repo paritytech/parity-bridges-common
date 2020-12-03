@@ -107,6 +107,7 @@ pub enum Command {
 		/// Message type.
 		#[structopt(subcommand)]
 		message: ToRialtoMessage,
+		/// The origin to use when dispatching the message on the target chain.
 		#[structopt(long, possible_values = &Origins::variants())]
 		origin: Origins,
 	},
