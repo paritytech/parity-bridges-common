@@ -138,7 +138,7 @@ decl_event!(
 		/// Message signature mismatch.
 		MessageSignatureMismatch(InstanceId, MessageId),
 		/// Message has been dispatched with given result.
-		MessageDispatched(DispatchResult),
+		MessageDispatched(InstanceId, MessageId, DispatchResult),
 		/// Phantom member, never used. Needed to handle multiple pallet instances.
 		_Dummy(PhantomData<I>),
 	}
@@ -261,6 +261,8 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 		);
 
 		Self::deposit_event(RawEvent::MessageDispatched(
+			bridge,
+			id,
 			dispatch_result.map(drop).map_err(|e| e.error),
 		));
 	}
