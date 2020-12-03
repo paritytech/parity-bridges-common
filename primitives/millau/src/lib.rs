@@ -80,6 +80,9 @@ pub const MAXIMUM_BLOCK_SIZE: u32 = 2 * 1024 * 1024;
 /// Maximal size of single normal Millau extrinsic (75% of maximal block size).
 pub const MAXIMUM_EXTRINSIC_SIZE: u32 = MAXIMUM_BLOCK_SIZE / 100 * AVAILABLE_BLOCK_RATIO;
 
+// TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
+/// Maximal number of messages in single delivery transaction.
+pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 1024;
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 1024;
 
