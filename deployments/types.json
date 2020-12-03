@@ -65,5 +65,10 @@
   "ScheduledChange": {
     "authority_set": "AuthoritySet",
     "height": "BridgedBlockNumber"
-  }
+  },
+  "Id": "[u8; 4]",
+  "InstanceId": "Id",
+  "LaneId": "Id",
+  "MessageNonce": "u64",
+  "MessageId": "(Id, u64)"
 }
