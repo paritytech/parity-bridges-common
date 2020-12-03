@@ -158,7 +158,7 @@ impl messages::ChainWithMessageLanes for Rialto {
 	type MessageLaneInstance = pallet_message_lane::DefaultInstance;
 }
 
-const BAD_ORIGIN: &'static str = "Unable to match the source origin to expected target origin.";
+const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
 
 impl TargetHeaderChain<ToRialtoMessagePayload, bp_rialto::AccountId> for Rialto {
 	type Error = &'static str;

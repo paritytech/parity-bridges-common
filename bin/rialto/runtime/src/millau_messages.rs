@@ -158,7 +158,7 @@ impl messages::ChainWithMessageLanes for Millau {
 	type MessageLaneInstance = pallet_message_lane::DefaultInstance;
 }
 
-const BAD_ORIGIN: &'static str = "Unable to match the source origin to expected target origin.";
+const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
 
 impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau {
 	type Error = &'static str;
