@@ -179,10 +179,7 @@ impl TargetHeaderChain<ToRialtoMessagePayload, bp_rialto::AccountId> for Rialto 
 
 		// Do the dispatch-specific check. We know that Rialto uses `CallDispatch`,
 		// so we verify the message accordingly.
-		pallet_bridge_call_dispatch::verify_message_origin(
-			sender,
-			payload
-		).map_err(|_| BAD_ORIGIN)?;
+		pallet_bridge_call_dispatch::verify_message_origin(sender, payload).map_err(|_| BAD_ORIGIN)?;
 
 		Ok(())
 	}
@@ -219,15 +216,15 @@ mod tests {
 	fn should_disallow_root_calls_from_regular_accounts() {
 		// when
 		let result = Rialto::verify_message(
-			&Sender::Signed(hex_literal::hex!(
-				"0102030405060708091011121314151601020304050607080910111213141516"
-			).into()),
+			&Sender::Signed(
+				hex_literal::hex!("0102030405060708091011121314151601020304050607080910111213141516").into(),
+			),
 			&ToRialtoMessagePayload {
 				spec_version: Default::default(),
 				weight: 0,
 				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
 				call: Default::default(),
-			}
+			},
 		);
 
 		// then

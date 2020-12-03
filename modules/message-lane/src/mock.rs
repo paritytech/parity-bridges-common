@@ -17,9 +17,7 @@
 use crate::Trait;
 
 use bp_message_lane::{
-	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain, Sender
-	},
+	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, Sender, TargetHeaderChain},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce,
 };
@@ -186,10 +184,7 @@ impl TargetHeaderChain<TestPayload, TestRelayer> for TestTargetHeaderChain {
 
 	type MessagesDeliveryProof = Result<(LaneId, InboundLaneData<TestRelayer>), ()>;
 
-	fn verify_message(
-		_sender: &Sender<TestRelayer>,
-		payload: &TestPayload,
-	) -> Result<(), Self::Error> {
+	fn verify_message(_sender: &Sender<TestRelayer>, payload: &TestPayload) -> Result<(), Self::Error> {
 		if *payload == PAYLOAD_REJECTED_BY_TARGET_CHAIN {
 			Err(TEST_ERROR)
 		} else {
@@ -237,9 +232,7 @@ impl TestMessageDeliveryAndDispatchPayment {
 
 	/// Returns true if given fee has been paid by given submitter.
 	pub fn is_fee_paid(submitter: AccountId, fee: TestMessageFee) -> bool {
-		frame_support::storage::unhashed::get(b":message-fee:") == Some(
-			(Sender::Signed(submitter), fee)
-		)
+		frame_support::storage::unhashed::get(b":message-fee:") == Some((Sender::Signed(submitter), fee))
 	}
 
 	/// Returns true if given relayer has been rewarded with given balance. The reward-paid flag is
