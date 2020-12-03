@@ -609,13 +609,13 @@ mod tests {
 
 		// When message is sent by Root, CallOrigin::SourceRoot is allowed
 		assert!(matches!(
-			verify_message_origin(RawOrigin::Root, &message),
+			verify_message_origin(&RawOrigin::Root, &message),
 			Ok(None)
 		));
 
 		// when message is sent by some real account, CallOrigin::SourceRoot is not allowed
 		assert!(matches!(
-			verify_message_origin(RawOrigin::Signed(1), &message),
+			verify_message_origin(&RawOrigin::Signed(1), &message),
 			Err(BadOrigin)
 		));
 	}
@@ -627,20 +627,20 @@ mod tests {
 
 		// When message is sent by Root, CallOrigin::TargetAccount is not allowed
 		assert!(matches!(
-			verify_message_origin(RawOrigin::Root, &message),
+			verify_message_origin(&RawOrigin::Root, &message),
 			Err(BadOrigin)
 		));
 
 		// When message is sent by some other account, it is rejected
 		assert!(matches!(
-			verify_message_origin(RawOrigin::Signed(2), &message),
+			verify_message_origin(&RawOrigin::Signed(2), &message),
 			Err(BadOrigin)
 		));
 
 		// When message is sent by a real account, it is allowed to have origin
 		// CallOrigin::TargetAccount
 		assert!(matches!(
-			verify_message_origin(RawOrigin::Signed(1), &message),
+			verify_message_origin(&RawOrigin::Signed(1), &message),
 			Ok(Some(1))
 		));
 	}
@@ -652,19 +652,19 @@ mod tests {
 
 		// Sending a message from the expected origin account works
 		assert!(matches!(
-			verify_message_origin(RawOrigin::Signed(1), &message),
+			verify_message_origin(&RawOrigin::Signed(1), &message),
 			Ok(Some(1))
 		));
 
 		// If we send a message from a different account, it is rejected
 		assert!(matches!(
-			verify_message_origin(RawOrigin::Signed(2), &message),
+			verify_message_origin(&RawOrigin::Signed(2), &message),
 			Err(BadOrigin)
 		));
 
 		// If we try and send the message from Root, it is also rejected
 		assert!(matches!(
-			verify_message_origin(RawOrigin::Root, &message),
+			verify_message_origin(&RawOrigin::Root, &message),
 			Err(BadOrigin)
 		));
 	}

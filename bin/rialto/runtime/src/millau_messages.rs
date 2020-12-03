@@ -177,7 +177,7 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 
 		// Do the dispatch-specific check. We know that Millau uses `CallDispatch`,
 		// so we verify the message accordingly.
-		let account_id = pallet_bridge_call_dispatch::verify_message_origin(
+		pallet_bridge_call_dispatch::verify_message_origin(
 			sender,
 			payload
 		).map_err(|_| "Unable to match the source origin to expected target origin.")?;
@@ -206,5 +206,15 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 		max_messages: MessageNonce,
 	) -> Result<ProvedMessages<Message<bp_millau::Balance>>, Self::Error> {
 		messages::target::verify_messages_proof::<WithMillauMessageBridge, Runtime>(proof, max_messages)
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn should_verify_target_origin() {
+		assert_eq!(true, false);
 	}
 }

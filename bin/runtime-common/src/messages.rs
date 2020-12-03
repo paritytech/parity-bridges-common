@@ -755,7 +755,7 @@ mod tests {
 		// and now check that the verifier checks the fee
 		assert!(
 			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&ThisChainAccountId(0),
+				&Sender::Signed(ThisChainAccountId(0)),
 				&ThisChainBalance(1),
 				&*b"test",
 				&payload,
@@ -764,7 +764,7 @@ mod tests {
 		);
 		assert!(
 			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&ThisChainAccountId(0),
+				&Sender::Signed(ThisChainAccountId(0)),
 				&ThisChainBalance(1_000_000),
 				&*b"test",
 				&payload,
