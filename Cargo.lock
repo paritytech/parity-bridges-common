@@ -769,6 +769,7 @@ dependencies = [
  "bp-message-lane",
  "bp-runtime",
  "frame-support",
+ "hash-db",
  "pallet-bridge-call-dispatch",
  "pallet-message-lane",
  "pallet-substrate-bridge",
