@@ -19,7 +19,7 @@
 use crate::Runtime;
 
 use bp_message_lane::{
-	source_chain::TargetHeaderChain,
+	source_chain::{Sender, TargetHeaderChain},
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce,
 };
@@ -166,11 +166,21 @@ impl TargetHeaderChain<ToRialtoMessagePayload, bp_rialto::AccountId> for Rialto 
 	// - id of the lane we prove state of.
 	type MessagesDeliveryProof = ToRialtoMessagesDeliveryProof;
 
-	fn verify_message(payload: &ToRialtoMessagePayload) -> Result<(), Self::Error> {
+	fn verify_message(
+		sender: &Sender<bp_rialto::AccountId>,
+		payload: &ToRialtoMessagePayload,
+	) -> Result<(), Self::Error> {
 		let weight_limits = WithRialtoMessageBridge::weight_limits_of_message_on_bridged_chain(&payload.call);
 		if !weight_limits.contains(&payload.weight) {
 			return Err("Incorrect message weight declared");
 		}
+
+		// Do the dispatch-specific check. We know that Rialto uses `CallDispatch`,
+		// so we verify the message accordingly.
+		pallet_bridge_call_dispatch::verify_message_origin(
+			sender,
+			payload
+		).map_err(|_| "Unable to match the source origin to expected target origin.")?;
 
 		Ok(())
 	}

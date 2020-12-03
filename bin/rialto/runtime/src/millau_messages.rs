@@ -19,7 +19,7 @@
 use crate::Runtime;
 
 use bp_message_lane::{
-	source_chain::TargetHeaderChain,
+	source_chain::{TargetHeaderChain, Sender},
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce,
 };
@@ -166,11 +166,21 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 	// - id of the lane we prove state of.
 	type MessagesDeliveryProof = ToMillauMessagesDeliveryProof;
 
-	fn verify_message(payload: &ToMillauMessagePayload) -> Result<(), Self::Error> {
+	fn verify_message(
+		sender: &Sender<bp_millau::AccountId>,
+		payload: &ToMillauMessagePayload,
+	) -> Result<(), Self::Error> {
 		let weight_limits = WithMillauMessageBridge::weight_limits_of_message_on_bridged_chain(&payload.call);
 		if !weight_limits.contains(&payload.weight) {
 			return Err("Incorrect message weight declared");
 		}
+
+		// Do the dispatch-specific check. We know that Millau uses `CallDispatch`,
+		// so we verify the message accordingly.
+		let account_id = pallet_bridge_call_dispatch::verify_message_origin(
+			sender,
+			payload
+		).map_err(|_| "Unable to match the source origin to expected target origin.")?;
 
 		Ok(())
 	}

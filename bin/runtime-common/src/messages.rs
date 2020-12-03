@@ -22,7 +22,7 @@
 
 use bp_message_dispatch::MessageDispatch as _;
 use bp_message_lane::{
-	source_chain::LaneMessageVerifier,
+	source_chain::{LaneMessageVerifier, Sender},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
@@ -151,7 +151,7 @@ pub mod source {
 		type Error = &'static str;
 
 		fn verify_message(
-			_submitter: &AccountIdOf<ThisChain<B>>,
+			_submitter: &Sender<AccountIdOf<ThisChain<B>>>,
 			delivery_and_dispatch_fee: &BalanceOf<ThisChain<B>>,
 			_lane: &LaneId,
 			payload: &FromThisChainMessagePayload<B>,
