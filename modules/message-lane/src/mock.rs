@@ -238,7 +238,7 @@ impl TestMessageDeliveryAndDispatchPayment {
 	/// Returns true if given fee has been paid by given submitter.
 	pub fn is_fee_paid(submitter: AccountId, fee: TestMessageFee) -> bool {
 		frame_support::storage::unhashed::get(b":message-fee:") == Some(
-			(Origin::Signed(submitter), fee)
+			(Sender::Signed(submitter), fee)
 		)
 	}
 

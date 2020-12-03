@@ -158,6 +158,8 @@ impl messages::ChainWithMessageLanes for Millau {
 	type MessageLaneInstance = pallet_message_lane::DefaultInstance;
 }
 
+const BAD_ORIGIN: &'static str = "Unable to match the source origin to expected target origin.";
+
 impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau {
 	type Error = &'static str;
 	// The proof is:
@@ -180,7 +182,7 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 		pallet_bridge_call_dispatch::verify_message_origin(
 			sender,
 			payload
-		).map_err(|_| "Unable to match the source origin to expected target origin.")?;
+		).map_err(|_| BAD_ORIGIN)?;
 
 		Ok(())
 	}
@@ -214,7 +216,21 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn should_verify_target_origin() {
-		assert_eq!(true, false);
+	fn should_disallow_root_calls_from_regular_accounts() {
+		// when
+		let result = Millau::verify_message(
+			&Sender::Signed(hex_literal::hex!(
+				"0102030405060708091011121314151601020304050607080910111213141516"
+			).into()),
+			&ToMillauMessagePayload {
+				spec_version: Default::default(),
+				weight: 0,
+				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
+				call: Default::default(),
+			}
+		);
+
+		// then
+		assert_eq!(result, Err(BAD_ORIGIN));
 	}
 }
