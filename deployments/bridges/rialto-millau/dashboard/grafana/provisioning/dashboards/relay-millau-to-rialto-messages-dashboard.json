@@ -246,7 +246,7 @@
     "bars": false,
     "dashLength": 10,
     "dashes": false,
-    "datasource": null,
+    "datasource": "Prometheus",
     "fieldConfig": {
       "defaults": {
       "custom": {}
@@ -347,7 +347,7 @@
     "bars": false,
     "dashLength": 10,
     "dashes": false,
-    "datasource": null,
+    "datasource": "Prometheus",
     "fieldConfig": {
       "defaults": {
       "custom": {}
@@ -476,7 +476,7 @@
     "bars": false,
     "dashLength": 10,
     "dashes": false,
-    "datasource": null,
+    "datasource": "Prometheus",
     "fieldConfig": {
       "defaults": {
       "custom": {}
@@ -615,7 +615,7 @@
     "bars": false,
     "dashLength": 10,
     "dashes": false,
-    "datasource": null,
+    "datasource": "Prometheus",
     "fieldConfig": {
       "defaults": {
       "custom": {}
@@ -752,7 +752,7 @@
     "bars": false,
     "dashLength": 10,
     "dashes": false,
-    "datasource": null,
+    "datasource": "Prometheus",
     "fieldConfig": {
       "defaults": {
       "custom": {}
@@ -896,7 +896,7 @@
       "expr": "avg_over_time(Millau_to_Rialto_MessageLane_00000000_process_cpu_usage_percentage[1m])",
       "instant": true,
       "interval": "",
-      "legendFormat": "",
+      "legendFormat": "1 CPU = 100",
       "refId": "A"
       }
     ],
