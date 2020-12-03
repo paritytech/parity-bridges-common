@@ -129,6 +129,7 @@ pub fn run(
 			delivery_params: messages_relay::message_lane_loop::MessageDeliveryParams {
 				max_unrewarded_relayer_entries_at_target: bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
 				max_unconfirmed_nonces_at_target: bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+				max_messages_in_single_batch: bp_rialto::MAX_MESSAGES_IN_DELIVERY_TRANSACTION,
 				// TODO: subtract base weight of delivery from this when it'll be known
 				// https://github.com/paritytech/parity-bridges-common/issues/78
 				max_messages_weight_in_single_batch: bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT,

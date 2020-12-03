@@ -58,6 +58,7 @@ pub async fn run<P: MessageLane>(
 		MessageDeliveryStrategy::<P> {
 			max_unrewarded_relayer_entries_at_target: params.max_unrewarded_relayer_entries_at_target,
 			max_unconfirmed_nonces_at_target: params.max_unconfirmed_nonces_at_target,
+			max_messages_in_single_batch: params.max_messages_in_single_batch,
 			max_messages_weight_in_single_batch: params.max_messages_weight_in_single_batch,
 			latest_confirmed_nonce_at_source: None,
 			target_nonces: None,
@@ -213,6 +214,8 @@ struct MessageDeliveryStrategy<P: MessageLane> {
 	max_unrewarded_relayer_entries_at_target: MessageNonce,
 	/// Maximal unconfirmed nonces at target client.
 	max_unconfirmed_nonces_at_target: MessageNonce,
+	/// Maximal number of messages in the single delivery transaction.
+	max_messages_in_single_batch: MessageNonce,
 	/// Maximal cumulative messages weight in the single delivery transaction.
 	max_messages_weight_in_single_batch: Weight,
 	/// Latest confirmed nonce at the source client.
@@ -355,6 +358,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			.checked_sub(future_confirmed_nonce_at_target)
 			.and_then(|diff| self.max_unconfirmed_nonces_at_target.checked_sub(diff))
 			.unwrap_or_default();
+		let max_nonces = std::cmp::min(max_nonces, self.max_messages_in_single_batch);
 		let max_messages_weight_in_single_batch = self.max_messages_weight_in_single_batch;
 		let mut selected_weight: Weight = 0;
 		let mut selected_count: MessageNonce = 0;
@@ -442,6 +446,7 @@ mod tests {
 		let mut race_strategy = TestStrategy {
 			max_unrewarded_relayer_entries_at_target: 4,
 			max_unconfirmed_nonces_at_target: 4,
+			max_messages_in_single_batch: 4,
 			max_messages_weight_in_single_batch: 4,
 			latest_confirmed_nonce_at_source: Some(19),
 			target_nonces: Some(TargetClientNonces {
@@ -600,7 +605,19 @@ mod tests {
 	}
 
 	#[test]
-	fn message_delivery_strategy_limits_batch_by_messages_count() {
+	fn message_delivery_strategy_limits_batch_by_messages_count_when_there_is_upper_limit() {
+		let (state, mut strategy) = prepare_strategy();
+
+		// not all queued messages may fit in the batch, because batch has max number of messages limit
+		strategy.max_messages_in_single_batch = 3;
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=22), proof_parameters(false, 3)))
+		);
+	}
+
+	#[test]
+	fn message_delivery_strategy_limits_batch_by_messages_count_when_there_are_unconfirmed_nonces() {
 		let (state, mut strategy) = prepare_strategy();
 
 		// 1 delivery confirmation from target to source is still missing, so we may only
