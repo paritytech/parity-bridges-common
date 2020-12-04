@@ -14,7 +14,8 @@ The bridge is built from various components. Here is a quick overview of the imp
 
 ### Header Sync
 A light client of the source chain built into the target chain's runtime. It is a single a FRAME
-pallet.
+pallet. It provides a "source of truth" about the source chain headers which have been finalized.
+This is useful for higher level applications.
 
 ### Headers Relayer
 A standalone application connected to both chains. It submits every source chain header it sees to
@@ -46,17 +47,19 @@ could be that the incoming header is on different finalized fork).
 
 When importing a header the pallet will also be checking headers for Grandpa authority set changes.
 Substrate headers contain logs which signal when the next authority set change is supposed to
-occur.
-
+occur. As a rule, Grandpa authorities can only finalize blocks up to the authority set change block.
 
 The second dispatachable is used to import a Grandpa justification with the expectation that it can
-finalize a header that the pallet had previously imported.
+finalize a header that the pallet had previously imported. When importing a finality proof we
+require the hash of a header which the pallet has previously imported through the first dispatchable
+we talked about. We then verify the justification. This verification is done using basically a
+copy-paste of the Grandpa finality justification code from Substrate.
 
+If we find that the justification given for the current header was indeed valid ....
 
-
-With this pallet the target chain is able to form a "source of truth" for what headers have
-been finalized on a the source chain. This can be a useful source of info for other higher-level
-applications.
+After verifying that a justification for a given header is valid, we then see if the newly finalized
+header enacts an authority set change. A header enacts an authority set change if its block number
+equals the one from an authority set change signal log we recieved while importing a header.
 
 ### Message Delivery
 
@@ -72,7 +75,6 @@ applications.
 
 ## Application Flow
 
-The user of the source chain is able to trigger action on the
 
 ## Pallets
 NOTE: This is from the old README
