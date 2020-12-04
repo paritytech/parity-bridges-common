@@ -815,10 +815,36 @@ impl_runtime_apis! {
 			};
 
 			impl MessageLaneTrait<WithMillauMessageLaneInstance> for Runtime {
+				fn endow_account(account: &Self::AccountId) {
+					pallet_balances::Module::<Runtime>::make_free_balance_be(
+						account,
+						1_000_000_000_000,
+					);
+				}
+
 				fn prepare_message(
-					_params: MessageLaneMessageParams,
+					params: MessageLaneMessageParams,
 				) -> (millau_messages::ToMillauMessagePayload, Balance) {
-					unimplemented!("TODO")
+					use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
+					use bridge_runtime_common::messages;
+					use pallet_message_lane::benchmarking::WORST_MESSAGE_SIZE_FACTOR;
+
+					let max_message_size = messages::source::maximal_message_size::<WithMillauMessageBridge>();
+					let message_size = match params.size_factor {
+						0 => 1,
+						factor => max_message_size / WORST_MESSAGE_SIZE_FACTOR
+							* sp_std::cmp::min(factor, WORST_MESSAGE_SIZE_FACTOR),
+					};
+					let message_payload = vec![0; message_size as usize];
+					let dispatch_origin = pallet_bridge_call_dispatch::CallOrigin::SourceAccount(Default::default());
+
+					let message = ToMillauMessagePayload {
+						spec_version: 0,
+						weight: message_size as _,
+						origin: dispatch_origin,
+						call: message_payload,
+					};
+					(message, 1_000_000_000)
 				}
 			}
 

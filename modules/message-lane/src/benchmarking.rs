@@ -43,6 +43,8 @@ pub struct MessageParams {
 
 /// Trait that must be implemented by runtime.
 pub trait Trait<I: Instance>: crate::Trait<I> {
+	/// Create given account and give it enough balance for test purposes.
+	fn endow_account(account: &Self::AccountId);
 	/// Prepare message to send over lane.
 	fn prepare_message(params: MessageParams) -> (Self::OutboundPayload, Self::OutboundMessageFee);
 }
@@ -53,14 +55,15 @@ benchmarks_instance! {
 	// Benchmark `send_message` extrinsic with the worst possible conditions:
 	// * outbound lane already has state, so it needs to be read and decoded;
 	// * relayers fund account does not exists (in practice it needs to exist in production environment);
-	// * message size is maximal for the target chain;
-	// * maximal number of messages is pruned.
+	// * maximal number of messages is being pruned during the call;
+	// * message size is maximal for the target chain.
 	send_message_worst_case {
 		let i in 1..100;
 		let n in WORST_MESSAGE_SIZE_FACTOR..WORST_MESSAGE_SIZE_FACTOR+1;
 
 		let lane_id = bench_lane_id();
 		let sender = account("sender", i, SEED);
+		T::endow_account(&sender);
 
 		// 'send' messages that are to be pruned when our message is sent
 		for _nonce in 1..=T::MaxMessagesToPruneAtOnce::get() {
@@ -78,7 +81,10 @@ fn bench_lane_id() -> LaneId {
 
 fn send_regular_message<T: Trait<I>, I: Instance>() {
 	let mut outbound_lane = crate::outbound_lane::<T, I>(bench_lane_id());
-	outbound_lane.send_message(MessageData { payload: vec![], fee: Zero::zero() });
+	outbound_lane.send_message(MessageData {
+		payload: vec![],
+		fee: Zero::zero(),
+	});
 }
 
 fn confirm_message_delivery<T: Trait<I>, I: Instance>(nonce: MessageNonce) {
