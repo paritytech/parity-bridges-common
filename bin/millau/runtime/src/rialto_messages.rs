@@ -19,7 +19,7 @@
 use crate::Runtime;
 
 use bp_message_lane::{
-	source_chain::{Sender, TargetHeaderChain},
+	source_chain::TargetHeaderChain,
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce,
 };
@@ -158,8 +158,6 @@ impl messages::ChainWithMessageLanes for Rialto {
 	type MessageLaneInstance = pallet_message_lane::DefaultInstance;
 }
 
-const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
-
 impl TargetHeaderChain<ToRialtoMessagePayload, bp_rialto::AccountId> for Rialto {
 	type Error = &'static str;
 	// The proof is:
@@ -168,18 +166,11 @@ impl TargetHeaderChain<ToRialtoMessagePayload, bp_rialto::AccountId> for Rialto 
 	// - id of the lane we prove state of.
 	type MessagesDeliveryProof = ToRialtoMessagesDeliveryProof;
 
-	fn verify_message(
-		sender: &Sender<bp_rialto::AccountId>,
-		payload: &ToRialtoMessagePayload,
-	) -> Result<(), Self::Error> {
+	fn verify_message(payload: &ToRialtoMessagePayload) -> Result<(), Self::Error> {
 		let weight_limits = WithRialtoMessageBridge::weight_limits_of_message_on_bridged_chain(&payload.call);
 		if !weight_limits.contains(&payload.weight) {
 			return Err("Incorrect message weight declared");
 		}
-
-		// Do the dispatch-specific check. We know that Rialto uses `CallDispatch`,
-		// so we verify the message accordingly.
-		pallet_bridge_call_dispatch::verify_message_origin(sender, payload).map_err(|_| BAD_ORIGIN)?;
 
 		Ok(())
 	}
@@ -205,29 +196,5 @@ impl SourceHeaderChain<bp_rialto::Balance> for Rialto {
 		max_messages: MessageNonce,
 	) -> Result<ProvedMessages<Message<bp_rialto::Balance>>, Self::Error> {
 		messages::target::verify_messages_proof::<WithRialtoMessageBridge, Runtime>(proof, max_messages)
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn should_disallow_root_calls_from_regular_accounts() {
-		// when
-		let result = Rialto::verify_message(
-			&Sender::Signed(
-				hex_literal::hex!("0102030405060708091011121314151601020304050607080910111213141516").into(),
-			),
-			&ToRialtoMessagePayload {
-				spec_version: Default::default(),
-				weight: 0,
-				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
-				call: Default::default(),
-			},
-		);
-
-		// then
-		assert_eq!(result, Err(BAD_ORIGIN));
 	}
 }

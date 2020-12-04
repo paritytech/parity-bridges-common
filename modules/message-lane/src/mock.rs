@@ -184,7 +184,7 @@ impl TargetHeaderChain<TestPayload, TestRelayer> for TestTargetHeaderChain {
 
 	type MessagesDeliveryProof = Result<(LaneId, InboundLaneData<TestRelayer>), ()>;
 
-	fn verify_message(_sender: &Sender<TestRelayer>, payload: &TestPayload) -> Result<(), Self::Error> {
+	fn verify_message(payload: &TestPayload) -> Result<(), Self::Error> {
 		if *payload == PAYLOAD_REJECTED_BY_TARGET_CHAIN {
 			Err(TEST_ERROR)
 		} else {

@@ -19,7 +19,7 @@
 use crate::Runtime;
 
 use bp_message_lane::{
-	source_chain::{Sender, TargetHeaderChain},
+	source_chain::TargetHeaderChain,
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce,
 };
@@ -158,8 +158,6 @@ impl messages::ChainWithMessageLanes for Millau {
 	type MessageLaneInstance = pallet_message_lane::DefaultInstance;
 }
 
-const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
-
 impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau {
 	type Error = &'static str;
 	// The proof is:
@@ -168,19 +166,11 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 	// - id of the lane we prove state of.
 	type MessagesDeliveryProof = ToMillauMessagesDeliveryProof;
 
-	fn verify_message(
-		sender: &Sender<bp_millau::AccountId>,
-		payload: &ToMillauMessagePayload,
-	) -> Result<(), Self::Error> {
+	fn verify_message(payload: &ToMillauMessagePayload) -> Result<(), Self::Error> {
 		let weight_limits = WithMillauMessageBridge::weight_limits_of_message_on_bridged_chain(&payload.call);
 		if !weight_limits.contains(&payload.weight) {
 			return Err("Incorrect message weight declared");
 		}
-
-		// Do the dispatch-specific check. We know that Millau uses `CallDispatch`,
-		// so we verify the message accordingly.
-		pallet_bridge_call_dispatch::verify_message_origin(sender, payload).map_err(|_| BAD_ORIGIN)?;
-
 		Ok(())
 	}
 
@@ -205,29 +195,5 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 		max_messages: MessageNonce,
 	) -> Result<ProvedMessages<Message<bp_millau::Balance>>, Self::Error> {
 		messages::target::verify_messages_proof::<WithMillauMessageBridge, Runtime>(proof, max_messages)
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn should_disallow_root_calls_from_regular_accounts() {
-		// when
-		let result = Millau::verify_message(
-			&Sender::Signed(
-				hex_literal::hex!("0102030405060708091011121314151601020304050607080910111213141516").into(),
-			),
-			&ToMillauMessagePayload {
-				spec_version: Default::default(),
-				weight: 0,
-				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
-				call: Default::default(),
-			},
-		);
-
-		// then
-		assert_eq!(result, Err(BAD_ORIGIN));
 	}
 }

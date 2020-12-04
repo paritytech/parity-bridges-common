@@ -251,7 +251,7 @@ decl_module! {
 			let submitter = origin.into().map_err(|_| BadOrigin)?;
 
 			// let's first check if message can be delivered to target chain
-			T::TargetHeaderChain::verify_message(&submitter, &payload)
+			T::TargetHeaderChain::verify_message(&payload)
 				.map_err(|err| {
 					frame_support::debug::trace!(
 						"Message to lane {:?} is rejected by target chain: {:?}",
