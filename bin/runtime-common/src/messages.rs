@@ -149,9 +149,9 @@ pub mod source {
 	pub(crate) const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
 	pub(crate) const TOO_LOW_FEE: &str = "Provided fee is below minimal threshold required by the lane.";
 
-	impl<B>
-		LaneMessageVerifier<AccountIdOf<ThisChain<B>>, FromThisChainMessagePayload<B>, BalanceOf<ThisChain<B>>>
-		for FromThisChainMessageVerifier<B> where
+	impl<B> LaneMessageVerifier<AccountIdOf<ThisChain<B>>, FromThisChainMessagePayload<B>, BalanceOf<ThisChain<B>>>
+		for FromThisChainMessageVerifier<B>
+	where
 		B: MessageBridge,
 		AccountIdOf<ThisChain<B>>: PartialEq + Clone,
 	{
@@ -165,8 +165,7 @@ pub mod source {
 		) -> Result<(), Self::Error> {
 			// Do the dispatch-specific check. We know that Millau uses `CallDispatch`,
 			// so we verify the message accordingly.
-			pallet_bridge_call_dispatch::verify_message_origin(submitter, payload)
-				.map_err(|_| BAD_ORIGIN)?;
+			pallet_bridge_call_dispatch::verify_message_origin(submitter, payload).map_err(|_| BAD_ORIGIN)?;
 
 			let minimal_fee_in_bridged_tokens =
 				estimate_message_dispatch_and_delivery_fee::<B>(payload, B::RELAYER_FEE_PERCENT)?;
