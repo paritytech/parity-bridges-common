@@ -861,7 +861,7 @@ mod tests {
 				spec_version: 1,
 				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT,
 				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
-				call: vec![0; maximal_message_size::<OnThisChainBridge>() + 1],
+				call: vec![0; source::maximal_message_size::<OnThisChainBridge>() as usize + 1],
 			},)
 			.is_err()
 		);
@@ -876,7 +876,7 @@ mod tests {
 				spec_version: 1,
 				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT,
 				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
-				call: vec![0; maximal_message_size::<OnThisChainBridge>()],
+				call: vec![0; source::maximal_message_size::<OnThisChainBridge>() as _],
 			},),
 			Ok(()),
 		);
