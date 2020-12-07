@@ -14,6 +14,7 @@ SHARED_ARGS="--millau-host millau-node-bob \
 	--millau-port 9944 \
 	--millau-signer //Dave \
 	--rialto-signer //Dave"
+SEND_MESSAGE="/home/user/substrate-relay submit-millau-to-rialto-message $SHARED_ARGS"
 FERDIE_ADDR=5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL
 
 # Sleep a bit between messages
@@ -27,8 +28,7 @@ while true
 do
 	rand_sleep
 	echo "Sending Remark from Millau to Rialto using Target Origin"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		$SHARED_ARGS \
+	$SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--fee 100000000 \
 		--origin Target \
@@ -36,8 +36,7 @@ do
 
 	rand_sleep
 	echo "Sending Transfer from Millau to Rialto using Target Origin"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		$SHARED_ARGS \
+	 $SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--fee 1000000000 \
 		--origin Target \
@@ -47,8 +46,7 @@ do
 
 	rand_sleep
 	echo "Sending Remark from Millau to Rialto using Source Origin"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		$SHARED_ARGS \
+	 $SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--fee 100000000 \
 		--origin Source \
@@ -56,8 +54,7 @@ do
 
 	rand_sleep
 	echo "Sending Transfer from Millau to Rialto using Source Origin"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		$SHARED_ARGS \
+	 $SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--fee 1000000000 \
 		--origin Source \
