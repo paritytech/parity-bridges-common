@@ -8,9 +8,11 @@ Notation:
 - [Kusama] ... - Interaction happens on Kusama (i.e. the user interacts with Kusama chain)
 - [Polkadot] ... - Interaction happens on Polkadot
 
+Basic Scenarios
+===========================
 
 Scenario 1: Kusama's Alice receiving & spending DOTs.
-===========================
+---------------------------
 
 Kusama's Alice (kAlice) receives 5 DOTs from Polkadot's Bob (pBob) and sends half of them to
 kCharlie.
@@ -24,25 +26,35 @@ UI challenges:
 
 
 Scenario 2: Kusama's Alice nominating validators with her DOTs.
+---------------------------
+
+
+Scenario 3: Kusama Treasury receiving & spending DOTs.
+---------------------------
+
+
+Extra scenarios
 ===========================
 
+Scenario 4: Kusama's Alice setting up 1-of-2 multi-sig to spend from either Kusama or Polkadot
+---------------------------
 
-Scenario 3: Kusama Treasury receing & spending DOTs.
+Scenario 5: Kusama Treasury staking & nominating validators with DOTs.
+---------------------------
+
+Scenario 6: Kusama Treasury voting in Polkadot's democracy proposal.
+---------------------------
+
+Potentially interesting scenarios
 ===========================
 
-Scenario 4: Kusama Treasury staking & nominating validators with DOTs.
-===========================
+Scenario 7: Polkadot's Bob spending his DOTs by using Kusama chain.
+---------------------------
 
-Scenario 5: Kusama Treasury voting in Polkadot's democracy proposal.
-===========================
-
-More hipothetical scenarios?
-
-Scenario 6: Polkadot's Bob spending his DOTs by using Kusama chain.
-===========================
 We can assume he holds KSM. Problem: he can pay fees, but can't really send (sign) a transaction?
 Shall we support some kind of dispatcher?
 
-Scenario 7: Kusama Governance taking over Kusama's Alice DOT holdings.
-===========================
+Scenario 8: Kusama Governance taking over Kusama's Alice DOT holdings.
+---------------------------
+
 We use `SourceRoot` call to transfer her's DOTs to Kusama treasury.
