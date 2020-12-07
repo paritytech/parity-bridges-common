@@ -96,6 +96,9 @@ pub const INCOMPLETE_POLKADOT_HEADERS_METHOD: &str = "PolkadotHeaderApi_incomple
 /// Maximal weight of single Polkadot extrinsic.
 pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = 725_000_000_000;
 
+// TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
+/// Maximal number of messages in single delivery transaction.
+pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
 // TODO: should be selected keeping in mind: finality delay on both chains + reward payout cost + messages throughput.
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
