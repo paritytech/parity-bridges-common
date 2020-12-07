@@ -150,7 +150,9 @@ pub enum Command {
 /// All possible messages that may be delivered to the Rialto chain.
 #[derive(StructOpt, Debug)]
 pub enum ToRialtoMessage {
+	/// Make an on-chain remark (comment).
 	Remark,
+	/// Transfer the specified `amount` of native tokens to a particular `recipient`.
 	Transfer {
 		#[structopt(long)]
 		recipient: bp_rialto::AccountId,
