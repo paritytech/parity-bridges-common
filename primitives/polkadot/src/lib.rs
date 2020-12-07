@@ -93,8 +93,16 @@ pub const IS_KNOWN_POLKADOT_BLOCK_METHOD: &str = "PolkadotHeaderApi_is_known_blo
 /// Name of the `PolkadotHeaderApi::incomplete_headers` runtime method.
 pub const INCOMPLETE_POLKADOT_HEADERS_METHOD: &str = "PolkadotHeaderApi_incomplete_headers";
 
-/// Maximal weight of single Polkadot extrinsic.
-pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = 725_000_000_000;
+// TODO: Double check all these consts
+/// Maximal weight of single Polkadot block.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2_000_000_000_000;
+/// Portion of block reserved for regular transactions.
+pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
+/// Maximal weight of single Polkadot extrinsic (65% of maximum block weight = 75% for regular
+/// transactions minus 10% for initialization).
+pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
+/// Maximal size of Polkadot block.
+pub const MAXIMUM_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
 
 // TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.

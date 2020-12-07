@@ -93,8 +93,16 @@ pub const IS_KNOWN_KUSAMA_BLOCK_METHOD: &str = "KusamaHeaderApi_is_known_block";
 /// Name of the `KusamaHeaderApi::incomplete_headers` runtime method.
 pub const INCOMPLETE_KUSAMA_HEADERS_METHOD: &str = "KusamaHeaderApi_incomplete_headers";
 
-/// Maximal weight of single Kusama extrinsic.
-pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = 725_000_000_000;
+// TODO: Double check all these consts
+/// Maximal weight of single Kusama block.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2_000_000_000_000;
+/// Portion of block reserved for regular transactions.
+pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
+/// Maximal weight of single Kusama extrinsic (65% of maximum block weight = 75% for regular
+/// transactions minus 10% for initialization).
+pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
+/// Maximal size of Kusama block.
+pub const MAXIMUM_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
 
 // TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
