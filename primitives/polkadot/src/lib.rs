@@ -64,6 +64,15 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// The balance of an account on Polkadot.
 pub type Balance = u128;
 
+/// Convert a 256-bit hash into an AccountId.
+pub struct AccountIdConverter;
+
+impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverter {
+	fn convert(hash: sp_core::H256) -> AccountId {
+		hash.to_fixed_bytes().into()
+	}
+}
+
 /// Polkadot chain.
 #[derive(RuntimeDebug)]
 pub struct Polkadot;
