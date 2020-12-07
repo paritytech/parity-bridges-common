@@ -59,7 +59,6 @@ benchmarks_instance! {
 	// * message size is maximal for the target chain.
 	send_message_worst_case {
 		let i in 1..100;
-		let n in WORST_MESSAGE_SIZE_FACTOR..WORST_MESSAGE_SIZE_FACTOR+1;
 
 		let lane_id = bench_lane_id();
 		let sender = account("sender", i, SEED);
@@ -71,7 +70,7 @@ benchmarks_instance! {
 		}
 		confirm_message_delivery::<T, I>(T::MaxMessagesToPruneAtOnce::get());
 
-		let (payload, fee) = T::prepare_message(MessageParams { size_factor: n });
+		let (payload, fee) = T::prepare_message(MessageParams { size_factor: WORST_MESSAGE_SIZE_FACTOR });
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 }
 
