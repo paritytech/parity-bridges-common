@@ -18,8 +18,94 @@ Kusama's Alice (kAlice) receives 5 DOTs from Polkadot's Bob (pBob) and sends hal
 kCharlie.
 
 1. Generate kAlice's DOT address (`p(kAlice)`)
+See: `bp_runtime::derive_account_id(b["pdot"], kAlice)`
+See:
+```
+let hash = bp_polkadot::derive_kusama_account_id(kAlice);
+let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
+```
+
 2. [Polkadot] pBob transfers 5 DOTs to `p(kAlice)`
+  1. Creates & Signs a transaction with `Transfer(..)`
+  2. It is included in block.
+  3. kAlice observers Polkadot chain to see her balance updated.
+
 3. [Kusama] kAlice sends 2.5 DOTs to `p(kCharlie)`
+  1. Alice prepars:
+    `let call = polkadot::Call::Balances(polkadot::Balances::Transfer(p(kCharlie), 2.5DOT)).encode()`
+    `let weight = call.get_dispatch_info().weight;`
+  2. Alice prepares Kusama transaction:
+    ```
+    kusama::Call::MessageLane::<Instance=Polkadot>::send_message(
+      lane_id,? // dot-transfer-lane (truncated to 4bytes)
+      payload: MessagePayload {
+        spec_version, // Get from current polkadot runtime (kind of hardcoded)
+        weight: weight // Alice should know the exact dispatch weight of the call on the target
+                // source verifies: at least to cover call.length() and below max weight
+        call: call, // simply bytes, we don't know anything about that on the source chain
+        origin: CallOrigin::SourceAccount(kAlice),
+      },
+      delivery_and_dispatch_fee: {
+        (single_message_delivery_weight
+          + convert_target_weight_to_source_weight(weight) // source weight = X * target weight
+          + confirmation_transaction_weight
+        ) * weight_to_fee + relayers_fee
+      }, // ?
+    )
+    ```
+  3. Alice sends Kusama transaction with the above `Call` and pays regular fees.
+  4. The transaction is included in block `B1`
+
+  -- Syncing headers
+  5. Relayer sees that `B1` has not yet been delivered to the target chain.
+    https://github.com/paritytech/parity-bridges-common/blob/8b327a94595c4a6fae6d7866e24ecf2390501e32/relays/headers-relay/src/sync_loop.rs#L199
+  6. Relayer prepares transaction which delivers `B1` and with all of the missing ancestors to the
+     target chain (one header per transaction).
+     TODO add an issue: The relayer could use `utils.batch`
+     TODO add an issue: use unsigned transactions to deliver headers.
+  7. Polkadot on-chain Kusama LC learns about `B1` block.
+     - it's stored in the on-chain storage.
+
+  -- Syncing finality
+  8. Relayer is subscribed to finality events on Kusama.
+     Relayer get's a finality notification for `B3`
+  9. The header sync informs the targe tchain about `B1..B3` blocks (see point 6)
+  9. Relayer learns about missing finalization of `B1..B3` on the target chain
+    https://github.com/paritytech/parity-bridges-common/blob/8b327a94595c4a6fae6d7866e24ecf2390501e32/relays/substrate/src/headers_maintain.rs#L107
+  10. Relayer submits justification for B3 to the target chain (`finalize_header`)
+    See #421 for multiple authority set changes support in Relayer (i.e. what block the target chain
+    expects, not only what I have).
+    Relayer is doing two things:
+      - syncing on demand
+      - and syncing as notifications come
+  11. Polkadot learns about finality of `B1`.
+
+  -- Syncing messages
+  12. The relayer checks the on-chain storage (last finalized header on the source, best header on
+      the target):
+    - Kusama outbound lane
+    - Polkadot inbound lane
+    Lanes contains `latest_generated_nonce` and `latest_received_nonce` respectively.
+    The relayer syncs messages between that range.
+  13. The relayer gets a proof for every message in that range (RPC of message lanes module)
+  14. Creates message deliver transaction (but it has weight & size limit and count limit)
+      - count limit - just to make the loop of delivery code bounded
+      ```
+      receive_message_proof(
+        relayer_id, // account id of the source chain
+        proof, // messages + proofs (hash of source blokc `B1`, nonces, lane_id + storage proof)
+        dispatch_weight // relayer declares how much it will take to dispatch all messages in that
+        transaction,
+      )
+      ```
+
+
+  ...
+
+    TODO: RuntimeAPI to help with `delivery_and_dispatch_fee` (there is a function)
+    `get_fee(dispatch_weight)`
+    See: `runtime_common::messages::estimate_message_dispatch_and_delivery_fee`
+
 
 UI challenges:
 - The UI should warn before (or prevent) sending to `k(kCharlie)`!
