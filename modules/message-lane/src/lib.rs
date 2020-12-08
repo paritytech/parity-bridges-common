@@ -65,11 +65,11 @@ const DELIVERY_OVERHEAD_WEIGHT: Weight = 0;
 const SINGLE_MESSAGE_DELIVERY_WEIGHT: Weight = 0;
 
 /// The module configuration trait
-pub trait Trait<I = DefaultInstance>: frame_system::Trait {
+pub trait Config<I = DefaultInstance>: frame_system::Config {
 	// General types
 
 	/// They overarching event type.
-	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Trait>::Event>;
+	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
 	/// whenever outbound lane is updated - i.e. when new message is sent, or receival is
 	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
@@ -130,17 +130,17 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type MessageDispatch: MessageDispatch<Self::InboundMessageFee, DispatchPayload = Self::InboundPayload>;
 }
 
-/// Shortcut to messages proof type for Trait.
+/// Shortcut to messages proof type for Config.
 type MessagesProofOf<T, I> =
-	<<T as Trait<I>>::SourceHeaderChain as SourceHeaderChain<<T as Trait<I>>::InboundMessageFee>>::MessagesProof;
-/// Shortcut to messages delivery proof type for Trait.
-type MessagesDeliveryProofOf<T, I> = <<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<
-	<T as Trait<I>>::OutboundPayload,
-	<T as frame_system::Trait>::AccountId,
+	<<T as Config<I>>::SourceHeaderChain as SourceHeaderChain<<T as Config<I>>::InboundMessageFee>>::MessagesProof;
+/// Shortcut to messages delivery proof type for Config.
+type MessagesDeliveryProofOf<T, I> = <<T as Config<I>>::TargetHeaderChain as TargetHeaderChain<
+	<T as Config<I>>::OutboundPayload,
+	<T as frame_system::Config>::AccountId,
 >>::MessagesDeliveryProof;
 
 decl_error! {
-	pub enum Error for Module<T: Trait<I>, I: Instance> {
+	pub enum Error for Module<T: Config<I>, I: Instance> {
 		/// All pallet operations are halted.
 		Halted,
 		/// Message has been treated as invalid by chain verifier.
@@ -159,7 +159,7 @@ decl_error! {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as MessageLane {
+	trait Store for Module<T: Config<I>, I: Instance = DefaultInstance> as MessageLane {
 		/// Optional pallet owner.
 		///
 		/// Pallet owner has a right to halt all pallet operations and then resume it. If it is
@@ -189,7 +189,7 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T, I = DefaultInstance> where
-		<T as frame_system::Trait>::AccountId,
+		<T as frame_system::Config>::AccountId,
 	{
 		/// Message has been accepted and is waiting to be delivered.
 		MessageAccepted(LaneId, MessageNonce),
@@ -201,7 +201,7 @@ decl_event!(
 );
 
 decl_module! {
-	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
 
@@ -439,7 +439,7 @@ decl_module! {
 							nonce,
 						}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
 
-						<T as Trait<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
+						<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
 							&confirmation_relayer,
 							&relayer,
 							&message_data.fee,
@@ -460,7 +460,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait<I>, I: Instance> Module<T, I> {
+impl<T: Config<I>, I: Instance> Module<T, I> {
 	/// Get payload of given outbound message.
 	pub fn outbound_message_payload(lane: LaneId, nonce: MessageNonce) -> Option<MessagePayload> {
 		OutboundMessages::<T, I>::get(MessageKey { lane_id: lane, nonce }).map(|message_data| message_data.payload)
@@ -517,7 +517,7 @@ pub mod storage_keys {
 	use sp_core::storage::StorageKey;
 
 	/// Storage key of the outbound message in the runtime storage.
-	pub fn message_key<T: Trait<I>, I: Instance>(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
+	pub fn message_key<T: Config<I>, I: Instance>(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
 		let message_key = MessageKey { lane_id: *lane, nonce };
 		let raw_storage_key = OutboundMessages::<T, I>::storage_map_final_key(message_key);
 		StorageKey(raw_storage_key)
@@ -529,13 +529,13 @@ pub mod storage_keys {
 	}
 
 	/// Storage key of the inbound message lane state in the runtime storage.
-	pub fn inbound_lane_data_key<T: Trait<I>, I: Instance>(lane: &LaneId) -> StorageKey {
+	pub fn inbound_lane_data_key<T: Config<I>, I: Instance>(lane: &LaneId) -> StorageKey {
 		StorageKey(InboundLanes::<T, I>::storage_map_final_key(*lane))
 	}
 }
 
 /// Ensure that the origin is either root, or `ModuleOwner`.
-fn ensure_owner_or_root<T: Trait<I>, I: Instance>(origin: T::Origin) -> Result<(), BadOrigin> {
+fn ensure_owner_or_root<T: Config<I>, I: Instance>(origin: T::Origin) -> Result<(), BadOrigin> {
 	match origin.into() {
 		Ok(RawOrigin::Root) => Ok(()),
 		Ok(RawOrigin::Signed(ref signer)) if Some(signer) == Module::<T, I>::module_owner().as_ref() => Ok(()),
@@ -544,7 +544,7 @@ fn ensure_owner_or_root<T: Trait<I>, I: Instance>(origin: T::Origin) -> Result<(
 }
 
 /// Ensure that the pallet is in operational mode (not halted).
-fn ensure_operational<T: Trait<I>, I: Instance>() -> Result<(), Error<T, I>> {
+fn ensure_operational<T: Config<I>, I: Instance>() -> Result<(), Error<T, I>> {
 	if IsHalted::<I>::get() {
 		Err(Error::<T, I>::Halted)
 	} else {
@@ -553,7 +553,7 @@ fn ensure_operational<T: Trait<I>, I: Instance>() -> Result<(), Error<T, I>> {
 }
 
 /// Creates new inbound lane object, backed by runtime storage.
-fn inbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
+fn inbound_lane<T: Config<I>, I: Instance>(lane_id: LaneId) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
 	InboundLane::new(RuntimeInboundLaneStorage {
 		lane_id,
 		cached_data: RefCell::new(None),
@@ -562,7 +562,7 @@ fn inbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> InboundLane<Runtim
 }
 
 /// Creates new outbound lane object, backed by runtime storage.
-fn outbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
+fn outbound_lane<T: Config<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
 	OutboundLane::new(RuntimeOutboundLaneStorage {
 		lane_id,
 		_phantom: Default::default(),
@@ -570,13 +570,13 @@ fn outbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<Runt
 }
 
 /// Runtime inbound lane storage.
-struct RuntimeInboundLaneStorage<T: Trait<I>, I = DefaultInstance> {
+struct RuntimeInboundLaneStorage<T: Config<I>, I = DefaultInstance> {
 	lane_id: LaneId,
 	cached_data: RefCell<Option<InboundLaneData<T::InboundRelayer>>>,
 	_phantom: PhantomData<I>,
 }
 
-impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
+impl<T: Config<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
 	type MessageFee = T::InboundMessageFee;
 	type Relayer = T::InboundRelayer;
 
@@ -621,7 +621,7 @@ struct RuntimeOutboundLaneStorage<T, I = DefaultInstance> {
 	_phantom: PhantomData<(T, I)>,
 }
 
-impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorage<T, I> {
+impl<T: Config<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorage<T, I> {
 	type MessageFee = T::OutboundMessageFee;
 
 	fn id(&self) -> LaneId {
@@ -687,7 +687,7 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 ///
 /// This account stores all the fees paid by submitters. Relayers are able to claim these
 /// funds as at their convenience.
-fn relayer_fund_account_id<T: Trait<I>, I: Instance>() -> T::AccountId {
+fn relayer_fund_account_id<T: Config<I>, I: Instance>() -> T::AccountId {
 	use sp_runtime::traits::Convert;
 	let encoded_id = bp_runtime::derive_relayer_fund_account_id(bp_runtime::NO_INSTANCE_ID);
 	T::AccountIdConverter::convert(encoded_id)
