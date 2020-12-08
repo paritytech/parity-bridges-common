@@ -18,7 +18,7 @@ pub use crate::test_utils::{insert_header, validator_utils::*, validators_change
 pub use bp_eth_poa::signatures::secret_to_address;
 
 use crate::validators::{ValidatorsConfiguration, ValidatorsSource};
-use crate::{AuraConfiguration, ChainTime, GenesisConfig, PruningStrategy, Config};
+use crate::{AuraConfiguration, ChainTime, Config, GenesisConfig, PruningStrategy};
 use bp_eth_poa::{Address, AuraHeader, H256, U256};
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use secp256k1::SecretKey;

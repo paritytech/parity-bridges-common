@@ -27,7 +27,7 @@
 use crate::finality::FinalityVotes;
 use crate::validators::CHANGE_EVENT_HASH;
 use crate::verification::calculate_score;
-use crate::{HeaderToImport, Storage, Config};
+use crate::{Config, HeaderToImport, Storage};
 
 use bp_eth_poa::{
 	rlp_encode,
