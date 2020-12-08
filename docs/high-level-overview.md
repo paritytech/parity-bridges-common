@@ -34,24 +34,24 @@ A standalone application handling delivery of the messages from source chain to 
 ## Components
 
 ### Header Sync
-The header sync pallet is an on-chain light client for chains which use Grandpa finality. It is part
+The header sync pallet is an on-chain light client for chains which use GRANDPA finality. It is part
 of the target chain's runtime, and accepts headers from the source chain. Its main goals are to
-accept valid headers, track Grandpa finality set changes, and verify Grandpa finality proofs.
+accept valid headers, track GRANDPA finality set changes, and verify GRANDPA finality proofs.
 
 The pallet has a simple interface consisting of two dispatchables. The first dispatchable accepts
 headers from the source chain and checks their validity. It performs checks to make sure that the
 incoming header doesn't conflict with headers the pallet already knows about (a possible conflict
 could be that the incoming header is on different finalized fork).
 
-When importing a header the pallet will also be checking headers for Grandpa authority set changes.
+When importing a header the pallet will also be checking headers for GRANDPA authority set changes.
 Substrate headers contain logs which signal when the next authority set change is supposed to
-occur. As a rule, Grandpa authorities can only finalize blocks up to the authority set change block.
+occur. As a rule, GRANDPA authorities can only finalize blocks up to the authority set change block.
 
-The second dispatachable is used to import a Grandpa justification with the expectation that it can
+The second dispatachable is used to import a GRANDPA justification with the expectation that it can
 finalize a header that the pallet had previously imported. When importing a finality proof we
 require the hash of a header which the pallet has previously imported through the first dispatchable
 we talked about. We then verify the justification. This verification is done using basically a
-copy-paste of the Grandpa finality justification code from Substrate.
+copy-paste of the GRANDPA finality justification code from Substrate.
 
 If we find that the justification given for the current header was indeed valid ....
 

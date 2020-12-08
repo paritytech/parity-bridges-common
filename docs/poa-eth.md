@@ -50,7 +50,7 @@ are being worked on as well.
 ## Ethereum Node
 On the Ethereum side of things, we require two things. First, a Solidity smart contract to track the
 Substrate headers which have been submitted to the bridge (by the relay), and a built-in contract to
-be able to verify that headers have been finalized by the Grandpa finality gadget. Together this
+be able to verify that headers have been finalized by the GRANDPA finality gadget. Together this
 allows the Ethereum PoA chain to verify the integrity and finality of incoming Substrate headers.
 
 The Solidity smart contract is not part of this repo, but can be found
