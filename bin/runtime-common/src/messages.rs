@@ -166,8 +166,8 @@ pub mod source {
 			_lane: &LaneId,
 			payload: &FromThisChainMessagePayload<B>,
 		) -> Result<(), Self::Error> {
-			// Do the dispatch-specific check. We know that Millau uses `CallDispatch`,
-			// so we verify the message accordingly.
+			// Do the dispatch-specific check. We assume that the target chain uses
+			// `CallDispatch`, so we verify the message accordingly.
 			pallet_bridge_call_dispatch::verify_message_origin(submitter, payload).map_err(|_| BAD_ORIGIN)?;
 
 			let minimal_fee_in_bridged_tokens =
