@@ -203,9 +203,9 @@ struct DeliveryRaceTargetNoncesData {
 	/// Latest nonce that we know: (1) has been delivered to us (2) has been confirmed
 	/// back to the source node (by confirmations race) and (3) relayer has received
 	/// reward for (and this has been confirmed by the message delivery race).
-	pub confirmed_nonce: MessageNonce,
+	confirmed_nonce: MessageNonce,
 	/// State of the unrewarded relayers set at the target node.
-	pub unrewarded_relayers: UnrewardedRelayersState,
+	unrewarded_relayers: UnrewardedRelayersState,
 }
 
 /// Messages delivery strategy.
