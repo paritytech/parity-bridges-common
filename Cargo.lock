@@ -4127,9 +4127,11 @@ version = "0.1.0"
 dependencies = [
  "bp-message-lane",
  "bp-runtime",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex-literal 0.3.1",
+ "num-traits",
  "parity-scale-codec",
  "serde",
  "sp-core",
