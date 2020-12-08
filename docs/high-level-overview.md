@@ -34,13 +34,25 @@ A standalone application handling delivery of the messages from source chain to 
 ## Processes
 
 ### Substrate (GRANDPA) Header Sync
-The header sync pallet is an on-chain light client for chains which use GRANDPA finality. It is part
-of the target chain's runtime, and accepts headers from the source chain. Its main goals are to
-accept valid headers, track GRANDPA finality set changes, and verify GRANDPA finality proofs.
+The header sync pallet (`pallet-substrate-bridge`) is an on-chain light client for chains which use
+GRANDPA finality. It is part of the target chain's runtime, and accepts headers from the source
+chain. Its main goals are to accept valid headers, track GRANDPA finality set changes, and verify
+GRANDPA finality proofs (a.k.a justifications).
 
-<add clarification about block production, i.e. what we don't validate (compared to regular client)>
-<the pallet is reponsible for tracking canonical chain, but may include forks up until they are
-finalized>
+The pallet does not care about what block production mechanism is used for the source chain
+(e.g Aura or BABE) as long as it uses the GRANDPA finality gadget. Due to this it is possible for
+the pallet to import (but not necessarily finalize) headers which are _not_ valid according to the
+source chain's block production mechanism.
+
+The pallet has support for tracking forks and uses the longest chain rule to determine what the
+canonical chain is. The pallet allows headers to be imported on a different fork from the canonical
+one as long as the headers being imported don't conflict with already finalized headers (for
+example, it will not allow importing a header at a lower height than the best finalized header).
+
+When tracking authority set changes, the pallet - unlike the full GRANDPA protocol - does not
+support tracking multiple authority set changes across forks. Each fork can have at most one pending
+authority set change. This is done to prevent DoS attacks if GRANDPA on the source chain were to
+stall for a long time (the pallet would have to do a lot of expensive ancestry checks to catch up).
 
 <add info about the API exposed for other pallets>
 
