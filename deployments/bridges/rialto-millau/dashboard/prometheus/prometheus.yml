@@ -16,3 +16,8 @@ scrape_configs:
     scrape_interval: 15s
     static_configs:
       - targets: ['relay-messages-millau-to-rialto:9616']
+
+  - job_name: 'rialto_to_millau_messages_relay_node'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['relay-messages-rialto-to-millau:9616']

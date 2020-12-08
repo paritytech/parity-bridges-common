@@ -54,11 +54,28 @@ services:
 
   relay-messages-millau-to-rialto-generator:
     <<: *sub-bridge-relay
-    entrypoint: /entrypoints/relay-messages-generator-entrypoint.sh
+    entrypoint: /entrypoints/relay-messages-to-rialto-generator-entrypoint.sh
     ports:
       - "9916:9616"
     depends_on:
       - relay-messages-millau-to-rialto
+
+  relay-messages-rialto-to-millau:
+    <<: *sub-bridge-relay
+    entrypoint: /entrypoints/relay-messages-rialto-to-millau-entrypoint.sh
+    ports:
+      - "10016:9616"
+    depends_on:
+      - relay-headers-millau-to-rialto
+      - relay-headers-rialto-to-millau
+
+  relay-messages-rialto-to-millau-generator:
+    <<: *sub-bridge-relay
+    entrypoint: /entrypoints/relay-messages-to-millau-generator-entrypoint.sh
+    ports:
+      - "10116:9616"
+    depends_on:
+      - relay-messages-rialto-to-millau
 
   # Note: These are being overridden from the top level `monitoring` compose file.
   grafana-dashboard:
