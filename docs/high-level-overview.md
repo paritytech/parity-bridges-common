@@ -1,7 +1,6 @@
 # High-Level Bridge Documentation
 
 ## Purpose
-
 Trustless connecting between two Substrate-based chains using GRANDPA finality.
 
 ## Overview
@@ -13,7 +12,7 @@ interaction with the source and target chains switched.
 The bridge is built from various components. Here is a quick overview of the important ones.
 
 ### Header Sync
-A light client of the source chain built into the target chain's runtime. It is a single a FRAME
+A light client of the source chain built into the target chain's runtime. It is a single FRAME
 pallet. It provides a "source of truth" about the source chain headers which have been finalized.
 This is useful for higher level applications.
 
@@ -31,7 +30,6 @@ A FRAME pallet responsible for interpreting the payload of delivered messages.
 
 ### Message Relayer
 A standalone application handling delivery of the messages from source chain to the target chain.
-
 
 ## Components
 
@@ -65,128 +63,44 @@ equals the one from an authority set change signal log we recieved while importi
 
 <TODO>Details of the message lanes delivery protocol</TODO>
 - delivery confirmations
+- configurability of dispatch mechanism
+- inbound/outbound lanes
+- races
 
 ### Message Dispatch
+The message dispatch pallet (`pallet-bridge-call-dispatch`) is used to perform the actions specified
+by messages which have come over the bridge. For Substrate-based chains this means interpreting the
+source chain's message as a `Call` on the target chain.
 
-<TODO>Details of dispatching mechanism - `Call:decode`</TODO>
-
-<TODO>CallOrigin description</TODO>
-
-
-## Application Flow
-
-
-## Pallets
-NOTE: This is from the old README
-
-### Ethereum Bridge Runtime Module
-The main job of this runtime module is to keep track of useful information an Ethereum PoA chain
-which has been submitted by a bridge relayer. This includes:
-
-  - Ethereum headers and their status (e.g are they the best header, are they finalized, etc.)
-  - Current validator set, and upcoming validator sets
-
-This runtime module has more responsibilties than simply storing headers and validator sets. It is
-able to perform checks on the incoming headers to verify their general integrity, as well as whether
-or not they've been finalized by the authorities on the PoA chain.
-
-This module is laid out as so:
+An example `Call` on the source chain would look something like this:
 
 ```
-├── ethereum
-│  └── src
-│     ├── error.rs        // Runtime error handling
-│     ├── finality.rs     // Manage finality operations
-│     ├── import.rs       // Import new Ethereum headers
-│     ├── lib.rs          // Store headers and validator set info
-│     ├── validators.rs   // Track current and future PoA validator sets
-│     └── verification.rs // Verify validity of incoming Ethereum headers
+target_runtime::Call::Balances(target_runtime::pallet_balances::Call::transfer(recipient, amount))
 ```
 
-### Currency Exchange Runtime Module
-The currency exchange module is used to faciliate cross-chain funds transfers. It works by accepting
-a transaction which proves that funds were locked on one chain, and releases a corresponding amount
-of funds on the recieving chain.
+When sending a `Call` it must first be SCALE encoded. When a message is recieved the inbound
+message lane on the target chain will try and decode the message payload into a `Call`. If succesful
+the message is added to a list of messages. Messages from this list will be dispatched after we
+check that their fees have been covered.
 
-For example: Alice would like to send funds from chain A to chain B. What she would do is send a
-transaction to chain A indicating that she would like to send funds to an address on chain B. This
-transaction would contain the amount of funds she would like to send, as well as the address of the
-recipient on chain B. These funds would now be locked on chain A. Once the block containing this
-"locked-funds" transaction is finalized it can be relayed to chain B. Chain B will verify that this
-transaction was included in a finalized block on chain A, and if successful deposit funds into the
-recipient account on chain B.
+When dispatching messages there are three Origins which can be used by the target chain:
+1. Root Origin
+2. Source Origin
+3. Target Origin
 
-Chain B would need a way to convert from a foreign currency to its local currency. How this is done
-is left to the runtime developer for chain B.
+Senders of a message can indicate which one of the three origins they would like to dispatch their
+message with. However, there are restrictions on who/what is allowed to dispatch messages with a
+particular origin.
 
-This module is one example of how an on-chain light client can be used to prove a particular action
-was taken on a foreign chain. In particular it enables transfers of the foreign chain's native
-currency, but more sophisticated modules such as ERC20 token transfers or arbitrary message transfers
-are being worked on as well.
+The Root origin represents the source chain's Root account on the target chain. This origin can can
+only be dispatched on the target chain if the "send message" request was made by the Root origin of
+the source chain - otherwise the message will fail to be dispatched.
 
-### Substrate Bridge Runtime Module
-👷 Under Construction 👷‍♀️
+The Source origin represents an account without a private key on the target chain. This is useful
+for representing things such as proxies or pallets. This account will be generated/derived using the
+account ID of the sender on the source chain.
 
-
-## Ethereum Node
-On the Ethereum side of things, we require two things. First, a Solidity smart contract to track the
-Substrate headers which have been submitted to the bridge (by the relay), and a built-in contract to
-be able to verify that headers have been finalized by the Grandpa finality gadget. Together this
-allows the Ethereum PoA chain to verify the integrity and finality of incoming Substrate headers.
-
-The Solidity smart contract is not part of this repo, but can be found
-[here](https://github.com/svyatonik/substrate-bridge-sol/blob/master/substrate-bridge.sol) if you're
-curious. We have the contract ABI in the `ethereum/relays/res` directory.
-
-
-## Rialto Runtime
-The node runtime consists of several runtime modules, however not all of them are used at the same
-time. When running an Ethereum PoA to Substrate bridge the modules required are the Ethereum module
-and the currency exchange module. When running a Substrate to Substrate bridge the Substrate and
-currency exchange modules are required.
-
-Below is a brief description of each of the runtime modules.
-
-
-## Bridge Relay
-The bridge relay is responsible for syncing the chains which are being bridged, and passing messages
-between them. The current implementation of the relay supportings syncing and interacting with
-Ethereum PoA and Substrate chains.
-
-The folder structure of the bridge relay is as follows:
-
-```
-├── relays
-│  ├── ethereum
-│  │  ├── res
-│  │  │  └── ...
-│  │  └── src
-│  │     ├── ethereum_client.rs          // Interface for Ethereum RPC
-│  │     ├── ethereum_deploy_contract.rs // Utility for deploying bridge contract to Ethereum
-│  │     ├── ethereum_exchange.rs        // Relay proof of PoA -> Substrate exchange transactions
-│  │     ├── ethereum_sync_loop.rs       // Sync headers from Ethereum, submit to Substrate
-│  │     ├── ethereum_types.rs           // Useful Ethereum types
-│  │     ├── exchange.rs                 // Relay proof of exchange transactions
-│  │     ├── headers.rs                  // Track synced and incoming block headers
-│  │     ├── main.rs                     // Entry point to binary
-│  │     ├── substrate_client.rs         // Interface for Substrate RPC
-│  │     ├── substrate_sync_loop.rs      // Sync headers from Substrate, submit to Ethereum
-│  │     ├── substrate_types.rs          // Useful Ethereum types
-│  │     ├── sync.rs                     // Sync configuration and helpers
-│  │     ├── sync_loop.rs                // Header synchronization between source and target chains
-│  │     ├── sync_types.rs               // Useful sync types
-│  │     └── utils.rs                    // General utilities
-```
-
-
-------------------
-
-
-
-
-
-Readiness of components.
- - call filtering missing
- - weight benchmarks missing
- -
-
+The Target origin represents an account with a private key on the target chain. The sender on the
+source chain needs to prove ownership of this account by using their target chain private key to
+sign: `(Call, SourceChainAccountId).encode()`. This will be included in the message payload and
+verified by the target chain before dispatch.
