@@ -31,6 +31,26 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
+// TODO: Double check all these consts
+/// Maximal weight of single Polkadot block.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2_000_000_000_000;
+/// Portion of block reserved for regular transactions.
+pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
+/// Maximal weight of single Polkadot extrinsic (65% of maximum block weight = 75% for regular
+/// transactions minus 10% for initialization).
+pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
+/// Maximal size of Polkadot block.
+pub const MAXIMUM_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
+/// Maximal size of single normal Polkadot extrinsic (75% of maximal block size).
+pub const MAXIMUM_EXTRINSIC_SIZE: u32 = MAXIMUM_BLOCK_SIZE / 100 * AVAILABLE_BLOCK_RATIO;
+
+// TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
+/// Maximal number of messages in single delivery transaction.
+pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
+// TODO: should be selected keeping in mind: finality delay on both chains + reward payout cost + messages throughput.
+/// Maximal number of unconfirmed messages at inbound lane.
+pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
+
 /// Block number type used in Polkadot.
 pub type BlockNumber = u32;
 
@@ -92,26 +112,6 @@ pub const FINALIZED_POLKADOT_BLOCK_METHOD: &str = "PolkadotHeaderApi_finalized_b
 pub const IS_KNOWN_POLKADOT_BLOCK_METHOD: &str = "PolkadotHeaderApi_is_known_block";
 /// Name of the `PolkadotHeaderApi::incomplete_headers` runtime method.
 pub const INCOMPLETE_POLKADOT_HEADERS_METHOD: &str = "PolkadotHeaderApi_incomplete_headers";
-
-// TODO: Double check all these consts
-/// Maximal weight of single Polkadot block.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2_000_000_000_000;
-/// Portion of block reserved for regular transactions.
-pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
-/// Maximal weight of single Polkadot extrinsic (65% of maximum block weight = 75% for regular
-/// transactions minus 10% for initialization).
-pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
-/// Maximal size of Polkadot block.
-pub const MAXIMUM_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
-/// Maximal size of single normal Polkadot extrinsic (75% of maximal block size).
-pub const MAXIMUM_EXTRINSIC_SIZE: u32 = MAXIMUM_BLOCK_SIZE / 100 * AVAILABLE_BLOCK_RATIO;
-
-// TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
-/// Maximal number of messages in single delivery transaction.
-pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
-// TODO: should be selected keeping in mind: finality delay on both chains + reward payout cost + messages throughput.
-/// Maximal number of unconfirmed messages at inbound lane.
-pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Polkadot headers from the Bridge Pallet instance.

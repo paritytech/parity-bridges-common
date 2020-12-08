@@ -31,6 +31,26 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
+// TODO: Double check all these consts
+/// Maximal weight of single Kusama block.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2_000_000_000_000;
+/// Portion of block reserved for regular transactions.
+pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
+/// Maximal weight of single Kusama extrinsic (65% of maximum block weight = 75% for regular
+/// transactions minus 10% for initialization).
+pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
+/// Maximal size of Kusama block.
+pub const MAXIMUM_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
+/// Maximal size of single normal Kusama extrinsic (75% of maximal block size).
+pub const MAXIMUM_EXTRINSIC_SIZE: u32 = MAXIMUM_BLOCK_SIZE / 100 * AVAILABLE_BLOCK_RATIO;
+
+// TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
+/// Maximal number of messages in single delivery transaction.
+pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
+// TODO: should be selected keeping in mind: finality delay on both chains + reward payout cost + messages throughput.
+/// Maximal number of unconfirmed messages at inbound lane.
+pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
+
 /// Block number type used in Kusama.
 pub type BlockNumber = u32;
 
@@ -92,26 +112,6 @@ pub const FINALIZED_KUSAMA_BLOCK_METHOD: &str = "KusamaHeaderApi_finalized_block
 pub const IS_KNOWN_KUSAMA_BLOCK_METHOD: &str = "KusamaHeaderApi_is_known_block";
 /// Name of the `KusamaHeaderApi::incomplete_headers` runtime method.
 pub const INCOMPLETE_KUSAMA_HEADERS_METHOD: &str = "KusamaHeaderApi_incomplete_headers";
-
-// TODO: Double check all these consts
-/// Maximal weight of single Kusama block.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2_000_000_000_000;
-/// Portion of block reserved for regular transactions.
-pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
-/// Maximal weight of single Kusama extrinsic (65% of maximum block weight = 75% for regular
-/// transactions minus 10% for initialization).
-pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
-/// Maximal size of Kusama block.
-pub const MAXIMUM_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
-/// Maximal size of single normal Kusama extrinsic (75% of maximal block size).
-pub const MAXIMUM_EXTRINSIC_SIZE: u32 = MAXIMUM_BLOCK_SIZE / 100 * AVAILABLE_BLOCK_RATIO;
-
-// TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
-/// Maximal number of messages in single delivery transaction.
-pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
-// TODO: should be selected keeping in mind: finality delay on both chains + reward payout cost + messages throughput.
-/// Maximal number of unconfirmed messages at inbound lane.
-pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Kusama headers from the Bridge Pallet instance.
