@@ -161,7 +161,7 @@ parameter_types! {
 	pub const ExtrinsicBaseWeight: Weight = 10_000_000;
 	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(bp_rialto::AVAILABLE_BLOCK_RATIO);
 	pub MaximumExtrinsicWeight: Weight = bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT;
-	pub const MaximumBlockLength: u32 = 5 * 1024 * 1024;
+	pub const MaximumBlockLength: u32 = bp_rialto::MAXIMUM_BLOCK_SIZE;
 	pub const Version: RuntimeVersion = VERSION;
 	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
@@ -429,13 +429,20 @@ impl pallet_shift_session_manager::Trait for Runtime {}
 
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_message_lane::MessageNonce = 8;
-	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce = bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_message_lane::MessageNonce =
+		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
+	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
+		bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+	pub const MaxMessagesInDeliveryTransaction: bp_message_lane::MessageNonce =
+		bp_rialto::MAX_MESSAGES_IN_DELIVERY_TRANSACTION;
 }
 
 impl pallet_message_lane::Trait for Runtime {
 	type Event = Event;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
+	type MaxMessagesInDeliveryTransaction = MaxMessagesInDeliveryTransaction;
 
 	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;
 	type OutboundMessageFee = Balance;
@@ -738,6 +745,10 @@ impl_runtime_apis! {
 
 		fn latest_confirmed_nonce(lane: bp_message_lane::LaneId) -> bp_message_lane::MessageNonce {
 			BridgeMillauMessageLane::inbound_latest_confirmed_nonce(lane)
+		}
+
+		fn unrewarded_relayers_state(lane: bp_message_lane::LaneId) -> bp_message_lane::UnrewardedRelayersState {
+			BridgeMillauMessageLane::inbound_unrewarded_relayers_state(lane)
 		}
 	}
 

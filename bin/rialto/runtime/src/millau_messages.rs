@@ -30,6 +30,7 @@ use frame_support::{
 	RuntimeDebug,
 };
 use sp_core::storage::StorageKey;
+use sp_std::{convert::TryFrom, ops::RangeInclusive};
 
 /// Storage key of the Rialto -> Millau message in the runtime storage.
 pub fn message_key(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
@@ -87,9 +88,19 @@ impl MessageBridge for WithMillauMessageBridge {
 	type ThisChain = Rialto;
 	type BridgedChain = Millau;
 
-	fn maximal_dispatch_weight_of_message_on_bridged_chain() -> Weight {
+	fn maximal_extrinsic_size_on_target_chain() -> u32 {
+		bp_millau::MAXIMUM_EXTRINSIC_SIZE
+	}
+
+	fn weight_limits_of_message_on_bridged_chain(message_payload: &[u8]) -> RangeInclusive<Weight> {
 		// we don't want to relay too large messages + keep reserve for future upgrades
-		bp_millau::MAXIMUM_EXTRINSIC_WEIGHT / 2
+		let upper_limit = bp_millau::MAXIMUM_EXTRINSIC_WEIGHT / 2;
+
+		// given Millau chain parameters (`TransactionByteFee`, `WeightToFee`, `FeeMultiplierUpdate`),
+		// the minimal weight of the message may be computed as message.length()
+		let lower_limit = Weight::try_from(message_payload.len()).unwrap_or(Weight::MAX);
+
+		lower_limit..=upper_limit
 	}
 
 	fn weight_of_delivery_transaction() -> Weight {
@@ -160,11 +171,7 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 	type MessagesDeliveryProof = ToMillauMessagesDeliveryProof;
 
 	fn verify_message(payload: &ToMillauMessagePayload) -> Result<(), Self::Error> {
-		if payload.weight > WithMillauMessageBridge::maximal_dispatch_weight_of_message_on_bridged_chain() {
-			return Err("Payload has weight larger than maximum allowed weight");
-		}
-
-		Ok(())
+		messages::source::verify_chain_message::<WithMillauMessageBridge>(payload)
 	}
 
 	fn verify_messages_delivery_proof(
@@ -185,7 +192,8 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 
 	fn verify_messages_proof(
 		proof: Self::MessagesProof,
+		max_messages: MessageNonce,
 	) -> Result<ProvedMessages<Message<bp_millau::Balance>>, Self::Error> {
-		messages::target::verify_messages_proof::<WithMillauMessageBridge, Runtime>(proof)
+		messages::target::verify_messages_proof::<WithMillauMessageBridge, Runtime>(proof, max_messages)
 	}
 }

@@ -57,8 +57,12 @@ pub mod instant_payments;
 mod mock;
 
 // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Upper bound of delivery transaction weight.
-const DELIVERY_BASE_WEIGHT: Weight = 0;
+/// Weight of message delivery without any code that is touching messages.
+const DELIVERY_OVERHEAD_WEIGHT: Weight = 0;
+// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+/// Single-message delivery weight. This shall not include message dispatch weight and
+/// any delivery transaction code that is not specific to this message.
+const SINGLE_MESSAGE_DELIVERY_WEIGHT: Weight = 0;
 
 /// The module configuration trait
 pub trait Trait<I = DefaultInstance>: frame_system::Trait {
@@ -71,17 +75,26 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
 	/// for it.
 	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
-	/// Maximal number of "messages" (see note below) in the 'unconfirmed' state at inbound lane.
-	/// Unconfirmed message at inbound lane is the message that has been: sent, delivered and
-	/// dispatched. Its delivery confirmation is still pending. This limit is introduced to bound
-	/// maximal number of relayers-ids in the inbound lane state.
+	/// Maximal number of unrewarded relayer entries at inbound lane. Unrewarded means that the
+	/// relayer has delivered messages, but either confirmations haven't been delivered back to the
+	/// source chain, or we haven't received reward confirmations yet.
 	///
-	/// "Message" in this context does not necessarily mean an individual message, but instead
-	/// continuous range of individual messages, that are delivered by single relayer. So if relayer#1
-	/// has submitted delivery transaction#1 with individual messages [1; 2] and then delivery
-	/// transaction#2 with individual messages [3; 4], this would be treated as single "Message" and
-	/// would occupy single unit of `MaxUnconfirmedMessagesAtInboundLane` limit.
+	/// This constant limits maximal number of entries in the `InboundLaneData::relayers`. Keep
+	/// in mind that the same relayer account may take several (non-consecutive) entries in this
+	/// set.
+	type MaxUnrewardedRelayerEntriesAtInboundLane: Get<MessageNonce>;
+	/// Maximal number of unconfirmed messages at inbound lane. Unconfirmed means that the
+	/// message has been delivered, but either confirmations haven't been delivered back to the
+	/// source chain, or we haven't received reward confirmations for these messages yet.
+	///
+	/// This constant limits difference between last message from last entry of the
+	/// `InboundLaneData::relayers` and first message at the first entry.
 	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
+	/// Maximal number of messages in single delivery transaction. This directly affects the base
+	/// weight of the delivery transaction.
+	///
+	/// All transactions that deliver more messages than this number, are rejected.
+	type MaxMessagesInDeliveryTransaction: Get<MessageNonce>;
 
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 	type OutboundPayload: Parameter;
@@ -305,7 +318,13 @@ decl_module! {
 		}
 
 		/// Receive messages proof from bridged chain.
-		#[weight = DELIVERY_BASE_WEIGHT + dispatch_weight]
+		#[weight = DELIVERY_OVERHEAD_WEIGHT
+			.saturating_add(
+				T::MaxMessagesInDeliveryTransaction::get()
+					.saturating_mul(SINGLE_MESSAGE_DELIVERY_WEIGHT)
+			)
+			.saturating_add(*dispatch_weight)
+		]
 		pub fn receive_messages_proof(
 			origin,
 			relayer_id: T::InboundRelayer,
@@ -316,7 +335,11 @@ decl_module! {
 			let _ = ensure_signed(origin)?;
 
 			// verify messages proof && convert proof into messages
-			let messages = verify_and_decode_messages_proof::<T::SourceHeaderChain, T::InboundMessageFee, T::InboundPayload>(proof)
+			let messages = verify_and_decode_messages_proof::<
+				T::SourceHeaderChain,
+				T::InboundMessageFee,
+				T::InboundPayload,
+			>(proof, T::MaxMessagesInDeliveryTransaction::get())
 				.map_err(|err| {
 					frame_support::debug::trace!(
 						"Rejecting invalid messages proof: {:?}",
@@ -462,6 +485,17 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	pub fn inbound_latest_confirmed_nonce(lane: LaneId) -> MessageNonce {
 		InboundLanes::<T, I>::get(&lane).latest_confirmed_nonce
 	}
+
+	/// Get state of unrewarded relayers set.
+	pub fn inbound_unrewarded_relayers_state(
+		lane: bp_message_lane::LaneId,
+	) -> bp_message_lane::UnrewardedRelayersState {
+		let relayers = InboundLanes::<T, I>::get(&lane).relayers;
+		bp_message_lane::UnrewardedRelayersState {
+			unrewarded_relayer_entries: relayers.len() as _,
+			messages_in_oldest_entry: relayers.front().map(|(begin, end, _)| 1 + end - begin).unwrap_or(0),
+		}
+	}
 }
 
 /// Getting storage keys for messages and lanes states. These keys are normally used when building
@@ -550,6 +584,10 @@ impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<
 		self.lane_id
 	}
 
+	fn max_unrewarded_relayer_entries(&self) -> MessageNonce {
+		T::MaxUnrewardedRelayerEntriesAtInboundLane::get()
+	}
+
 	fn max_unconfirmed_messages(&self) -> MessageNonce {
 		T::MaxUnconfirmedMessagesAtInboundLane::get()
 	}
@@ -627,8 +665,9 @@ impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorag
 /// Verify messages proof and return proved messages with decoded payload.
 fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, DispatchPayload: Decode>(
 	proof: Chain::MessagesProof,
+	max_messages: MessageNonce,
 ) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Chain::Error> {
-	Chain::verify_messages_proof(proof).map(|messages_by_lane| {
+	Chain::verify_messages_proof(proof, max_messages).map(|messages_by_lane| {
 		messages_by_lane
 			.into_iter()
 			.map(|(lane, lane_data)| {
@@ -661,6 +700,7 @@ mod tests {
 		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesProof, TestRuntime,
 		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
+	use bp_message_lane::UnrewardedRelayersState;
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Module as System, Phase};
 	use hex_literal::hex;
@@ -896,6 +936,13 @@ mod tests {
 						.collect(),
 				},
 			);
+			assert_eq!(
+				Module::<TestRuntime>::inbound_unrewarded_relayers_state(TEST_LANE_ID),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 2,
+					messages_in_oldest_entry: 1,
+				},
+			);
 
 			// message proof includes outbound lane state with latest confirmed message updated to 9
 			let mut message_proof: TestMessagesProof = Ok(vec![message(11, REGULAR_PAYLOAD)]).into();
@@ -919,6 +966,13 @@ mod tests {
 						.collect(),
 					latest_received_nonce: 11,
 					latest_confirmed_nonce: 9,
+				},
+			);
+			assert_eq!(
+				Module::<TestRuntime>::inbound_unrewarded_relayers_state(TEST_LANE_ID),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 2,
+					messages_in_oldest_entry: 1,
 				},
 			);
 		});
