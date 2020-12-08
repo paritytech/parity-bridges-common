@@ -12,7 +12,7 @@ interaction with the source and target chains switched.
 The bridge is built from various components. Here is a quick overview of the important ones.
 
 ### Header Sync
-A light client of the source chain built into the target chain's runtime. It is a single a FRAME
+A light client of the source chain built into the target chain's runtime. It is a single FRAME
 pallet. It provides a "source of truth" about the source chain headers which have been finalized.
 This is useful for higher level applications.
 
@@ -88,7 +88,7 @@ When dispatching messages there are three Origins which can be used by the targe
 2. Source Origin
 3. Target Origin
 
-Senders of a messge can indicate which one of the three origins they would like to dispatch their
+Senders of a message can indicate which one of the three origins they would like to dispatch their
 message with. However, there are restrictions on who/what is allowed to dispatch messages with a
 particular origin.
 

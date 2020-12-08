@@ -58,7 +58,7 @@ Substrate based chains.
                 +---------------+
 
 The Millau chain must be able to accept Rialto headers and verify their integrity. It does this by
-using a runtime module designed to track Gradpa finality. Since two blockchains can't interact
+using a runtime module designed to track GRANDPA finality. Since two blockchains can't interact
 directly they need an external service, called a relayer, to communicate. The relayer will subscribe
 to new Rialto headers via RPC and submit them to the Millau chain for verification.
 
