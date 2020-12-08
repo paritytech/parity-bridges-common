@@ -61,7 +61,7 @@ pub struct Params {
 pub struct MessageDeliveryParams {
 	/// Maximal number of unconfirmed relayer entries at the inbound lane. If there's that number of entries
 	/// in the `InboundLaneData::relayers` set, all new messages will be rejected until reward payment will
-	/// be proved (by incouding outbound lane state to the message delivery transaction).
+	/// be proved (by including outbound lane state to the message delivery transaction).
 	pub max_unrewarded_relayer_entries_at_target: MessageNonce,
 	/// Message delivery race will stop delivering messages if there are `max_unconfirmed_nonces_at_target`
 	/// unconfirmed nonces on the target node. The race would continue once they're confirmed by the
