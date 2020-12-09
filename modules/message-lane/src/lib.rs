@@ -45,6 +45,7 @@ use frame_support::{
 	Parameter, StorageMap,
 };
 use frame_system::{ensure_signed, RawOrigin};
+use num_traits::Zero;
 use sp_runtime::{traits::BadOrigin, DispatchResult};
 use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
@@ -52,6 +53,9 @@ mod inbound_lane;
 mod outbound_lane;
 
 pub mod instant_payments;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -71,9 +75,8 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// They overarching event type.
 	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
-	/// whenever outbound lane is updated - i.e. when new message is sent, or receival is
-	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
-	/// for it.
+	/// whenever new message is sent. The reason is that if you want to use lane, you should
+	/// be ready to pay for its maintenance.
 	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
 	/// Maximal number of unrewarded relayer entries at inbound lane. Unrewarded means that the
 	/// relayer has delivered messages, but either confirmations haven't been delivered back to the
@@ -99,7 +102,7 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 	type OutboundPayload: Parameter;
 	/// Message fee type of outbound messages. This fee is paid on this chain.
-	type OutboundMessageFee: Parameter;
+	type OutboundMessageFee: Parameter + Zero;
 
 	/// Payload type of inbound messages. This payload is dispatched on this chain.
 	type InboundPayload: Decode;
@@ -252,18 +255,19 @@ decl_module! {
 			delivery_and_dispatch_fee: T::OutboundMessageFee,
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
-			let submitter = ensure_signed(origin)?;
+			let submitter = origin.into().map_err(|_| BadOrigin)?;
 
 			// let's first check if message can be delivered to target chain
-			T::TargetHeaderChain::verify_message(&payload).map_err(|err| {
-				frame_support::debug::trace!(
-					"Message to lane {:?} is rejected by target chain: {:?}",
-					lane_id,
-					err,
-				);
+			T::TargetHeaderChain::verify_message(&payload)
+				.map_err(|err| {
+					frame_support::debug::trace!(
+						"Message to lane {:?} is rejected by target chain: {:?}",
+						lane_id,
+						err,
+					);
 
-				Error::<T, I>::MessageRejectedByChainVerifier
-			})?;
+					Error::<T, I>::MessageRejectedByChainVerifier
+				})?;
 
 			// now let's enforce any additional lane rules
 			T::LaneMessageVerifier::verify_message(

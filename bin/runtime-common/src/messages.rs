@@ -22,7 +22,7 @@
 
 use bp_message_dispatch::MessageDispatch as _;
 use bp_message_lane::{
-	source_chain::LaneMessageVerifier,
+	source_chain::{LaneMessageVerifier, Sender},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
@@ -149,29 +149,43 @@ pub mod source {
 	#[derive(RuntimeDebug)]
 	pub struct FromThisChainMessageVerifier<B>(PhantomData<B>);
 
-	impl<B: MessageBridge>
-		LaneMessageVerifier<AccountIdOf<ThisChain<B>>, FromThisChainMessagePayload<B>, BalanceOf<ThisChain<B>>>
+	pub(crate) const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
+	pub(crate) const TOO_LOW_FEE: &str = "Provided fee is below minimal threshold required by the lane.";
+
+	impl<B> LaneMessageVerifier<AccountIdOf<ThisChain<B>>, FromThisChainMessagePayload<B>, BalanceOf<ThisChain<B>>>
 		for FromThisChainMessageVerifier<B>
+	where
+		B: MessageBridge,
+		AccountIdOf<ThisChain<B>>: PartialEq + Clone,
 	{
 		type Error = &'static str;
 
 		fn verify_message(
-			_submitter: &AccountIdOf<ThisChain<B>>,
+			submitter: &Sender<AccountIdOf<ThisChain<B>>>,
 			delivery_and_dispatch_fee: &BalanceOf<ThisChain<B>>,
 			_lane: &LaneId,
 			payload: &FromThisChainMessagePayload<B>,
 		) -> Result<(), Self::Error> {
+			// Do the dispatch-specific check. We assume that the target chain uses
+			// `CallDispatch`, so we verify the message accordingly.
+			pallet_bridge_call_dispatch::verify_message_origin(submitter, payload).map_err(|_| BAD_ORIGIN)?;
+
 			let minimal_fee_in_bridged_tokens =
 				estimate_message_dispatch_and_delivery_fee::<B>(payload, B::RELAYER_FEE_PERCENT)?;
 
 			// compare with actual fee paid
 			let actual_fee_in_bridged_tokens = B::this_balance_to_bridged_balance(*delivery_and_dispatch_fee);
 			if actual_fee_in_bridged_tokens < minimal_fee_in_bridged_tokens {
-				return Err("Too low fee paid");
+				return Err(TOO_LOW_FEE);
 			}
 
 			Ok(())
 		}
+	}
+
+	/// Return maximal message size of This -> Bridged chain message.
+	pub fn maximal_message_size<B: MessageBridge>() -> u32 {
+		B::maximal_extrinsic_size_on_target_chain() / 3 * 2
 	}
 
 	/// Do basic Bridged-chain specific verification of This -> Bridged chain message.
@@ -197,7 +211,7 @@ pub mod source {
 		// is enormously large, it should be several dozens/hundreds of bytes. The delivery
 		// transaction also contains signatures and signed extensions. Because of this, we reserve
 		// 1/3 of the the maximal extrinsic weight for this data.
-		if payload.call.len() > B::maximal_extrinsic_size_on_target_chain() as usize * 2 / 3 {
+		if payload.call.len() > maximal_message_size::<B>() as usize {
 			return Err("The message is too large to be sent over the lane");
 		}
 
@@ -634,7 +648,7 @@ mod tests {
 		}
 	}
 
-	#[derive(Debug, PartialEq, Decode, Encode)]
+	#[derive(Debug, PartialEq, Decode, Encode, Clone)]
 	struct ThisChainAccountId(u32);
 	#[derive(Debug, PartialEq, Decode, Encode)]
 	struct ThisChainSigner(u32);
@@ -775,6 +789,8 @@ mod tests {
 		);
 	}
 
+	const TEST_LANE_ID: &LaneId = b"test";
+
 	#[test]
 	fn message_fee_is_checked_by_verifier() {
 		const EXPECTED_MINIMAL_FEE: u32 = 2640;
@@ -797,20 +813,91 @@ mod tests {
 		);
 
 		// and now check that the verifier checks the fee
-		assert!(
+		assert_eq!(
 			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&ThisChainAccountId(0),
+				&Sender::Root,
 				&ThisChainBalance(1),
-				&*b"test",
+				&TEST_LANE_ID,
 				&payload,
-			)
-			.is_err(),
+			),
+			Err(source::TOO_LOW_FEE)
 		);
 		assert!(
 			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&ThisChainAccountId(0),
+				&Sender::Root,
 				&ThisChainBalance(1_000_000),
-				&*b"test",
+				&TEST_LANE_ID,
+				&payload,
+			)
+			.is_ok(),
+		);
+	}
+
+	#[test]
+	fn should_disallow_root_calls_from_regular_accounts() {
+		// payload of the This -> Bridged chain message
+		let payload = source::FromThisChainMessagePayload::<OnThisChainBridge> {
+			spec_version: 1,
+			weight: 100,
+			origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
+			call: vec![42],
+		};
+
+		// and now check that the verifier checks the fee
+		assert_eq!(
+			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
+				&Sender::Signed(ThisChainAccountId(0)),
+				&ThisChainBalance(1_000_000),
+				&TEST_LANE_ID,
+				&payload,
+			),
+			Err(source::BAD_ORIGIN)
+		);
+		assert_eq!(
+			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
+				&Sender::None,
+				&ThisChainBalance(1_000_000),
+				&TEST_LANE_ID,
+				&payload,
+			),
+			Err(source::BAD_ORIGIN)
+		);
+		assert!(
+			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
+				&Sender::Root,
+				&ThisChainBalance(1_000_000),
+				&TEST_LANE_ID,
+				&payload,
+			)
+			.is_ok(),
+		);
+	}
+
+	#[test]
+	fn should_verify_source_and_target_origin_matching() {
+		// payload of the This -> Bridged chain message
+		let payload = source::FromThisChainMessagePayload::<OnThisChainBridge> {
+			spec_version: 1,
+			weight: 100,
+			origin: pallet_bridge_call_dispatch::CallOrigin::SourceAccount(ThisChainAccountId(1)),
+			call: vec![42],
+		};
+
+		// and now check that the verifier checks the fee
+		assert_eq!(
+			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
+				&Sender::Signed(ThisChainAccountId(0)),
+				&ThisChainBalance(1_000_000),
+				&TEST_LANE_ID,
+				&payload,
+			),
+			Err(source::BAD_ORIGIN)
+		);
+		assert!(
+			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
+				&Sender::Signed(ThisChainAccountId(1)),
+				&ThisChainBalance(1_000_000),
+				&TEST_LANE_ID,
 				&payload,
 			)
 			.is_ok(),
@@ -856,7 +943,7 @@ mod tests {
 				spec_version: 1,
 				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT,
 				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
-				call: vec![0; BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE as usize * 2 / 3 + 1],
+				call: vec![0; source::maximal_message_size::<OnThisChainBridge>() as usize + 1],
 			},)
 			.is_err()
 		);
@@ -871,7 +958,7 @@ mod tests {
 				spec_version: 1,
 				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT,
 				origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
-				call: vec![0; BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE as usize * 2 / 3],
+				call: vec![0; source::maximal_message_size::<OnThisChainBridge>() as _],
 			},),
 			Ok(()),
 		);

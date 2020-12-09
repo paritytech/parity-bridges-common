@@ -711,6 +711,7 @@ name = "bp-message-lane"
 version = "0.1.0"
 dependencies = [
  "frame-support",
+ "frame-system",
  "parity-scale-codec",
  "sp-std",
 ]
@@ -4124,9 +4125,11 @@ version = "0.1.0"
 dependencies = [
  "bp-message-lane",
  "bp-runtime",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex-literal 0.3.1",
+ "num-traits",
  "parity-scale-codec",
  "serde",
  "sp-core",
@@ -5394,6 +5397,7 @@ name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
  "bp-message-lane",
+ "bp-rialto",
  "bp-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
