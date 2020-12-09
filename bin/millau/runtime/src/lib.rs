@@ -31,6 +31,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 pub mod rialto_messages;
 
 use codec::Decode;
+use frame_system::limits;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -50,7 +51,7 @@ use sp_version::RuntimeVersion;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, Randomness},
-	weights::{IdentityFee, RuntimeDbWeight, Weight},
+	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
 
@@ -147,6 +148,10 @@ pub fn native_version() -> NativeVersion {
 	}
 }
 
+const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
+const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
+
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 250;
 	pub const MaximumBlockWeight: Weight = bp_millau::MAXIMUM_BLOCK_WEIGHT;
@@ -159,6 +164,27 @@ parameter_types! {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
 		write: 200_000_000, // ~0.2 ms = 200 µs
 	};
+
+	pub RuntimeBlockLength: limits::BlockLength = limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	pub RuntimeBlockWeights: limits::BlockWeights = limits::BlockWeights::builder()
+		// .base_block(BlockExecutionWeight::get()) // That's the default value
+		// .for_class(DispatchClass::all(), |w| w.base_extrinsic = ExtrinsicBaseWeight::get()) // That's a default as well.
+				// Allowance for Normal class
+		.for_class(DispatchClass::Normal, |weights| {
+					weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+		})
+				// Allowance for Operational class
+		.for_class(DispatchClass::Operational, |weights| {
+					weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
+					// Extra reserved space for Operational class
+					weights.reserved = Some(
+					  MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT
+					);
+				})
+				// By default Mandatory class is not limited at all.
+				// This parameter is used to derive maximal size of a single extrinsic.
+		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+		.build_or_panic();
 }
 
 impl frame_system::Config for Runtime {
@@ -186,24 +212,6 @@ impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	/// Maximum number of block number to block hash mappings to keep (oldest pruned first).
 	type BlockHashCount = BlockHashCount;
-	/// Maximum weight of each block.
-	type MaximumBlockWeight = MaximumBlockWeight;
-	/// The weight of database operations that the runtime can invoke.
-	type DbWeight = DbWeight;
-	/// The weight of the overhead invoked on the block import process, independent of the
-	/// extrinsics included in that block.
-	type BlockExecutionWeight = ();
-	/// The base weight of any extrinsic processed by the runtime, independent of the
-	/// logic of that extrinsic. (Signature verification, nonce increment, fee, etc...)
-	type ExtrinsicBaseWeight = ExtrinsicBaseWeight;
-	/// The maximum weight that a single extrinsic of `Normal` dispatch class can have,
-	/// idependent of the logic of that extrinsics. (Roughly max block weight - average on
-	/// initialize cost).
-	type MaximumExtrinsicWeight = MaximumExtrinsicWeight;
-	/// Maximum size of all encoded transactions (in bytes) that are allowed in one block.
-	type MaximumBlockLength = MaximumBlockLength;
-	/// Portion of the block weight that is available to all normal transactions.
-	type AvailableBlockRatio = AvailableBlockRatio;
 	/// Version of the runtime.
 	type Version = Version;
 	/// Provides information about the pallet setup in the runtime.
@@ -217,6 +225,12 @@ impl frame_system::Config for Runtime {
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = ();
+	/// boop
+	type BlockWeights = RuntimeBlockWeights;
+	/// boop
+	type BlockLength = RuntimeBlockLength;
+	/// The weight of database operations that the runtime can invoke.
+	type DbWeight = DbWeight;
 }
 
 impl pallet_aura::Config for Runtime {
