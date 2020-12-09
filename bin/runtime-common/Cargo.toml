@@ -23,7 +23,9 @@ pallet-substrate-bridge = { path = "../../modules/substrate", default-features =
 # Substrate dependencies
 
 frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+sp-state-machine = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false, optional = true }
 sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 
@@ -39,7 +41,14 @@ std = [
 	"pallet-bridge-call-dispatch/std",
 	"pallet-message-lane/std",
 	"pallet-substrate-bridge/std",
+	"sp-core/std",
 	"sp-runtime/std",
+	"sp-state-machine/std",
 	"sp-std/std",
 	"sp-trie/std",
+]
+runtime-benchmarks = [
+	"pallet-message-lane/runtime-benchmarks",
+	"pallet-substrate-bridge/runtime-benchmarks",
+	"sp-state-machine",
 ]

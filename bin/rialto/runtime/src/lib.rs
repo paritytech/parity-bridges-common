@@ -819,9 +819,14 @@ impl_runtime_apis! {
 				Module as MessageLaneBench,
 				Trait as MessageLaneTrait,
 				MessageParams as MessageLaneMessageParams,
+				MessageProofParams as MessageLaneMessageProofParams,
 			};
 
 			impl MessageLaneTrait<WithMillauMessageLaneInstance> for Runtime {
+				fn bridged_relayer_id() -> Self::InboundRelayer {
+					Default::default()
+				}
+
 				fn endow_account(account: &Self::AccountId) {
 					pallet_balances::Module::<Runtime>::make_free_balance_be(
 						account,
@@ -829,7 +834,7 @@ impl_runtime_apis! {
 					);
 				}
 
-				fn prepare_message(
+				fn prepare_outbound_message(
 					params: MessageLaneMessageParams,
 				) -> (millau_messages::ToMillauMessagePayload, Balance) {
 					use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
@@ -852,6 +857,56 @@ impl_runtime_apis! {
 						call: message_payload,
 					};
 					(message, 1_000_000_000)
+				}
+
+				fn prepare_message_proof(
+					params: MessageLaneMessageProofParams,
+				) -> (millau_messages::FromMillauMessagesProof, Weight) {
+					use crate::millau_messages::{Millau, WithMillauMessageBridge};
+					use bridge_runtime_common::{
+						messages::ChainWithMessageLanes,
+						messages_benchmarking::prepare_message_proof,
+					};
+					use codec::Encode;
+					use frame_support::weights::GetDispatchInfo;
+					use sp_runtime::traits::Header;
+
+					let call = Call::System(SystemCall::remark(vec![]));
+					let call_weight = call.get_dispatch_info().weight;
+					let encoded_call = call.encode();
+
+					prepare_message_proof::<WithMillauMessageBridge, bp_millau::Hasher, Runtime, _, _, _>(
+						params,
+						|message_key| pallet_message_lane::storage_keys::message_key::<
+							Runtime,
+							<Millau as ChainWithMessageLanes>::MessageLaneInstance,
+						>(
+							&message_key.lane_id, message_key.nonce,
+						).0,
+						|lane_id| pallet_message_lane::storage_keys::outbound_lane_data_key::<
+							<Millau as ChainWithMessageLanes>::MessageLaneInstance,
+						>(
+							&lane_id,
+						).0,
+						|state_root| bp_millau::Header::new(
+							0,
+							Default::default(),
+							state_root,
+							Default::default(),
+							Default::default(),
+						),
+						call_weight,
+						pallet_bridge_call_dispatch::MessagePayload {
+							spec_version: VERSION.spec_version,
+							weight: call_weight,
+							origin: pallet_bridge_call_dispatch::CallOrigin::<
+								bp_millau::AccountId,
+								MultiSigner,
+								Signature,
+							>::SourceRoot, // TODO: should be signature instead
+							call: encoded_call,
+						}.encode(),
+					)
 				}
 			}
 

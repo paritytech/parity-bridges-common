@@ -811,7 +811,9 @@ dependencies = [
  "pallet-message-lane",
  "pallet-substrate-bridge",
  "parity-scale-codec",
+ "sp-core",
  "sp-runtime",
+ "sp-state-machine",
  "sp-std",
  "sp-trie",
 ]
