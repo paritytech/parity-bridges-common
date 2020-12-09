@@ -3561,7 +3561,7 @@ name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
  "bp-message-lane",
- "bp-rialto",
+ "bp-millau",
  "bp-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
