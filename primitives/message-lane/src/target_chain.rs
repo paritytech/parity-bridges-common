@@ -52,6 +52,20 @@ pub struct DispatchMessage<DispatchPayload, Fee> {
 	pub data: DispatchMessageData<DispatchPayload, Fee>,
 }
 
+
+DispatchMessage {
+	key,
+	data: DispatchMessageData {
+		payload: Ok(MessagePayload {
+			spec_version,
+			weight,
+			origin,
+			call: Ok(), -> enum Call,
+		}),
+		fee,
+	}
+}
+
 /// Source chain API. Used by target chain, to verify source chain proofs.
 ///
 /// All implementations of this trait should only work with finalized data that

@@ -381,6 +381,8 @@ pub mod target {
 
 		fn dispatch(message: DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>) {
 			if let Ok(payload) = message.data.payload {
+				let vec: Vec<u8> = payload.call;
+				let call: Result<Call, _> = Decode::decode(&mut &*vec);
 				pallet_bridge_call_dispatch::Module::<ThisRuntime, ThisCallDispatchInstance>::dispatch(
 					B::INSTANCE,
 					(message.key.lane_id, message.key.nonce),

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>Flow Chart of Alice DOT transfer</title>
+	</head>
+	<body>
+		<div class="mermaid">
+			sequenceDiagram
+			participant kAlice
+			participant Kusama Runtime
+			participant Header/Finality Relayer
+			participant Message Relayer
+			Alice->>John: Hello John, how are you?
+			John-->>Alice: Great!
+		</div>
+		<script src="https://cdn.jsdelivr.net/npm/mermaid@8.8.4/dist/mermaid.min.js"></script>
+		<script>mermaid.initialize({startOnLoad: true})</script>
+	</body>
+</html>

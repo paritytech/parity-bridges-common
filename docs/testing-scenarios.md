@@ -88,16 +88,60 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
     Lanes contains `latest_generated_nonce` and `latest_received_nonce` respectively.
     The relayer syncs messages between that range.
   13. The relayer gets a proof for every message in that range (RPC of message lanes module)
-  14. Creates message deliver transaction (but it has weight & size limit and count limit)
+  14. Creates message delivery transaction (but it has weight & size limit and count limit)
       - count limit - just to make the loop of delivery code bounded
       ```
       receive_message_proof(
         relayer_id, // account id of the source chain
-        proof, // messages + proofs (hash of source blokc `B1`, nonces, lane_id + storage proof)
-        dispatch_weight // relayer declares how much it will take to dispatch all messages in that
-        transaction,
+        proof, // messages + proofs (hash of source block `B1`, nonces, lane_id + storage proof)
+        dispatch_weight // relayer declares how much it will take to dispatch all messages in that transaction,
       )
       ```
+      The `proof` can also contain an update of outbound lane
+      state of source chain, which indicates the delivery
+      confirmation of these messages and reward payment,
+      so that the target chain can truncate it's unpayed rewards vector.
+
+      The target chain stores `relayer_ids` that delivered messages,
+      because the relayer can generate a storage proof, that
+      they did deliver those messages.
+      The reward is being is being payed on the source chain
+      and we inform the target chain about that fact, so
+      it can prune these `relayer_ids`.
+
+      It's totally fine if there is no messages, and we only include the reward payment proof
+      when calling that function.
+
+      TODO: in case we can't decode the dispatch payload, we don't even post an event, but we do
+      in case of `spec_version` mismatch for instance.
+
+      TODO: consider defering `Call::decode` up until we know that the `spec_version`
+      is correct
+      or fail to decode `MessagePayload` type in case `spec_version` mismatch.
+
+      TODO: Replay protection in case of CallOrigin::TargetAccount.
+      Currently the assumption is that `source_account_id` and `target_account_id` is controlled by
+      the same person. Target users should NEVER sign anything if asked by source chain users.
+    15. 🥳 the message is now delivered & dispatched on the target chain.
+    16. The relayer now needs to confirm the delivery to claim her's reward.
+    17. The relayer creates a transaction on the source chain with call:
+    ```
+    receive_messages_delivery_proof(
+      proof, // hash of the finalized target chain block, lane_id, storage proof
+    )
+    ```
+    TODO: Check if InboundLaneData needs `latest_*_nonce` - potentially this could be extracted
+    from `relayers` vector (min nonce and max nonce from that vector).
+
+    TODO: Re-think relayers strategy of confirmations, to align their incentives (currently they
+    confirm whatever they see on-chain, so they might not get any rewards for such delivery,
+    however they might be unblocking the lane (i.e. delivering more messages in the future)).
+
+    TODO: Relayer fund account & relayer account that receives the rewards should always have
+    balance above Existential Deposit (ED).
+
+    TODO: Releayers could withdraw the acumualted rewards instead of having them transfered right
+    away.
 
 
   ...
