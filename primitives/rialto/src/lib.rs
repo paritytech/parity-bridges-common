@@ -20,12 +20,12 @@
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bp_message_lane::{LaneId, MessageNonce};
+use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{weights::Weight, RuntimeDebug};
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
-	traits::{BlakeTwo256, IdentifyAccount, Verify},
+	traits::{BlakeTwo256, Convert, IdentifyAccount, Verify},
 	MultiSignature, MultiSigner,
 };
 use sp_std::prelude::*;
@@ -45,6 +45,8 @@ pub const MAXIMUM_EXTRINSIC_SIZE: u32 = MAXIMUM_BLOCK_SIZE / 100 * AVAILABLE_BLO
 // TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
 pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
+/// Maximal number of unrewarded relayer entries at inbound lane.
+pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 128;
 
@@ -91,6 +93,8 @@ pub const TO_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "ToRialtoOutboundLaneAp
 pub const FROM_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "FromRialtoInboundLaneApi_latest_received_nonce";
 /// Name of the `FromRialtoInboundLaneApi::latest_onfirmed_nonce` runtime method.
 pub const FROM_RIALTO_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromRialtoInboundLaneApi_latest_confirmed_nonce";
+/// Name of the `FromRialtoInboundLaneApi::unrewarded_relayers_state` runtime method.
+pub const FROM_RIALTO_UNREWARDED_RELAYERS_STATE: &str = "FromRialtoInboundLaneApi_unrewarded_relayers_state";
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -108,10 +112,23 @@ pub type Balance = u128;
 /// Convert a 256-bit hash into an AccountId.
 pub struct AccountIdConverter;
 
-impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverter {
+impl Convert<sp_core::H256, AccountId> for AccountIdConverter {
 	fn convert(hash: sp_core::H256) -> AccountId {
 		hash.to_fixed_bytes().into()
 	}
+}
+
+// We use this to get the account on Rialto (target) which is derived from Millau's (source)
+// account. We do this so we can fund the derived account on Rialto at Genesis to it can pay
+// transaction fees.
+//
+// The reason we can use the same `AccountId` type for both chains is because they share the same
+// development seed phrase.
+//
+// Note that this should only be used for testing.
+pub fn derive_account_from_millau_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
+	let encoded_id = bp_runtime::derive_account_id(*b"mlau", id);
+	AccountIdConverter::convert(encoded_id)
 }
 
 sp_api::decl_runtime_apis! {
@@ -169,5 +186,7 @@ sp_api::decl_runtime_apis! {
 		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 		/// Nonce of latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
+		/// State of the unrewarded relayers set at given lane.
+		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
 	}
 }

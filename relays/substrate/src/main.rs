@@ -21,6 +21,7 @@
 use codec::Encode;
 use frame_support::weights::GetDispatchInfo;
 use pallet_bridge_call_dispatch::{CallOrigin, MessagePayload};
+use relay_kusama_client::Kusama;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{ConnectionParams, TransactionSignScheme};
@@ -28,6 +29,8 @@ use relay_utils::initialize::initialize_relay;
 use sp_core::{Bytes, Pair};
 use sp_runtime::traits::IdentifyAccount;
 
+/// Kusama node client.
+pub type KusamaClient = relay_substrate_client::Client<Kusama>;
 /// Millau node client.
 pub type MillauClient = relay_substrate_client::Client<Millau>;
 /// Rialto node client.
@@ -245,6 +248,8 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			lane,
 			message,
 			fee,
+			origin,
+			..
 		} => {
 			let millau_client = MillauClient::new(ConnectionParams {
 				host: millau.millau_host,
@@ -274,33 +279,51 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					.as_bytes()
 					.to_vec(),
 				)),
+				cli::ToRialtoMessage::Transfer { recipient, amount } => {
+					rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
+				}
 			};
-			let rialto_call_weight = rialto_call.get_dispatch_info().weight;
 
+			let rialto_call_weight = rialto_call.get_dispatch_info().weight;
 			let millau_sender_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
 			let millau_account_id: bp_millau::AccountId = millau_sender_public.into_account();
 			let rialto_origin_public = rialto_sign.signer.public();
 
-			let mut rialto_origin_signature_message = Vec::new();
-			rialto_call.encode_to(&mut rialto_origin_signature_message);
-			millau_account_id.encode_to(&mut rialto_origin_signature_message);
-			let rialto_origin_signature = rialto_sign.signer.sign(&rialto_origin_signature_message);
+			let payload = match origin {
+				cli::Origins::Root => MessagePayload {
+					spec_version: rialto_runtime::VERSION.spec_version,
+					weight: rialto_call_weight,
+					origin: CallOrigin::SourceRoot,
+					call: rialto_call.encode(),
+				},
+				cli::Origins::Source => MessagePayload {
+					spec_version: rialto_runtime::VERSION.spec_version,
+					weight: rialto_call_weight,
+					origin: CallOrigin::SourceAccount(millau_account_id),
+					call: rialto_call.encode(),
+				},
+				cli::Origins::Target => {
+					let mut rialto_origin_signature_message = Vec::new();
+					rialto_call.encode_to(&mut rialto_origin_signature_message);
+					millau_account_id.encode_to(&mut rialto_origin_signature_message);
+					let rialto_origin_signature = rialto_sign.signer.sign(&rialto_origin_signature_message);
 
-			let millau_call =
-				millau_runtime::Call::BridgeRialtoMessageLane(millau_runtime::MessageLaneCall::send_message(
-					lane.into(),
 					MessagePayload {
 						spec_version: rialto_runtime::VERSION.spec_version,
 						weight: rialto_call_weight,
 						origin: CallOrigin::TargetAccount(
-							millau_account_id,
+							millau_account_id.clone(),
 							rialto_origin_public.into(),
 							rialto_origin_signature.into(),
 						),
 						call: rialto_call.encode(),
-					},
-					fee,
-				));
+					}
+				}
+			};
+
+			let millau_call = millau_runtime::Call::BridgeRialtoMessageLane(
+				millau_runtime::MessageLaneCall::send_message(lane.into(), payload, fee),
+			);
 
 			let signed_millau_call = Millau::sign_transaction(
 				&millau_client,

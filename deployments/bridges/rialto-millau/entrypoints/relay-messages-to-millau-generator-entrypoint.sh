@@ -19,12 +19,12 @@ do
 	echo "Sleeping $SUBMIT_DELAY_S seconds..."
 	sleep $SUBMIT_DELAY_S
 
-	echo "Sending message from Millau to Rialto"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		--millau-host millau-node-bob \
-		--millau-port 9944 \
-		--millau-signer //Dave \
+	echo "Sending message from Rialto to Millau"
+	/home/user/substrate-relay submit-rialto-to-millau-message \
+		--rialto-host rialto-node-bob \
+		--rialto-port 9944 \
 		--rialto-signer //Dave \
+		--millau-signer //Dave \
 		--lane $MESSAGE_LANE \
 		--message $MESSAGE \
 		--fee 100000000

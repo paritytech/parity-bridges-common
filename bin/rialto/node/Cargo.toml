@@ -11,12 +11,13 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
 jsonrpc-core = "15.1.0"
-structopt = "0.3.20"
+structopt = "0.3.21"
 
 # Bridge dependencies
 
 bp-message-lane = { path = "../../../primitives/message-lane" }
 bp-runtime = { path = "../../../primitives/runtime" }
+bp-rialto = { path = "../../../primitives/rialto" }
 pallet-message-lane-rpc = { path = "../../../modules/message-lane/rpc" }
 rialto-runtime = { path = "../runtime" }
 
