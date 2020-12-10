@@ -805,6 +805,7 @@ impl_runtime_apis! {
 			use pallet_message_lane::benchmarking::{
 				Module as MessageLaneBench,
 				Config as MessageLaneConfig,
+				MessageDeliveryProofParams as MessageLaneMessageDeliveryProofParams,
 				MessageParams as MessageLaneMessageParams,
 				MessageProofParams as MessageLaneMessageProofParams,
 			};
@@ -812,6 +813,10 @@ impl_runtime_apis! {
 			impl MessageLaneConfig<WithMillauMessageLaneInstance> for Runtime {
 				fn bridged_relayer_id() -> Self::InboundRelayer {
 					Default::default()
+				}
+
+				fn account_balance(account: &Self::AccountId) -> Self::OutboundMessageFee {
+					pallet_balances::Module::<Runtime>::free_balance(account)
 				}
 
 				fn endow_account(account: &Self::AccountId) {
@@ -914,6 +919,34 @@ impl_runtime_apis! {
 							),
 							call: call.encode(),
 						}.encode(),
+					)
+				}
+
+				fn prepare_message_delivery_proof(
+					params: MessageLaneMessageDeliveryProofParams<Self::AccountId>,
+				) -> millau_messages::FromMillauMessagesDeliveryProof {
+					use crate::millau_messages::{Millau, WithMillauMessageBridge};
+					use bridge_runtime_common::{
+						messages::ChainWithMessageLanes,
+						messages_benchmarking::prepare_message_delivery_proof,
+					};
+					use sp_runtime::traits::Header;
+
+					prepare_message_delivery_proof::<WithMillauMessageBridge, bp_millau::Hasher, Runtime, _, _>(
+						params,
+						|lane_id| pallet_message_lane::storage_keys::inbound_lane_data_key::<
+							Runtime,
+							<Millau as ChainWithMessageLanes>::MessageLaneInstance,
+						>(
+							&lane_id,
+						).0,
+						|state_root| bp_millau::Header::new(
+							0,
+							Default::default(),
+							state_root,
+							Default::default(),
+							Default::default(),
+						),
 					)
 				}
 			}
