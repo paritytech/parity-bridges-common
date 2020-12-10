@@ -31,7 +31,7 @@ pub const WORST_MESSAGE_SIZE_FACTOR: u32 = 1000;
 const SEED: u32 = 0;
 
 /// Module we're benchmarking here.
-pub struct Module<T: Trait<I>, I: crate::Instance>(crate::Module<T, I>);
+pub struct Module<T: Config<I>, I: crate::Instance>(crate::Module<T, I>);
 
 /// Benchmark-specific message parameters.
 pub struct MessageParams {
@@ -42,7 +42,7 @@ pub struct MessageParams {
 }
 
 /// Trait that must be implemented by runtime.
-pub trait Trait<I: Instance>: crate::Trait<I> {
+pub trait Config<I: Instance>: crate::Config<I> {
 	/// Create given account and give it enough balance for test purposes.
 	fn endow_account(account: &Self::AccountId);
 	/// Prepare message to send over lane.
@@ -78,7 +78,7 @@ fn bench_lane_id() -> LaneId {
 	*b"test"
 }
 
-fn send_regular_message<T: Trait<I>, I: Instance>() {
+fn send_regular_message<T: Config<I>, I: Instance>() {
 	let mut outbound_lane = crate::outbound_lane::<T, I>(bench_lane_id());
 	outbound_lane.send_message(MessageData {
 		payload: vec![],
@@ -86,7 +86,7 @@ fn send_regular_message<T: Trait<I>, I: Instance>() {
 	});
 }
 
-fn confirm_message_delivery<T: Trait<I>, I: Instance>(nonce: MessageNonce) {
+fn confirm_message_delivery<T: Config<I>, I: Instance>(nonce: MessageNonce) {
 	let mut outbound_lane = crate::outbound_lane::<T, I>(bench_lane_id());
 	assert!(outbound_lane.confirm_delivery(nonce).is_some());
 }
