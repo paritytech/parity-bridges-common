@@ -54,30 +54,21 @@ support tracking multiple authority set changes across forks. Each fork can have
 authority set change. This is done to prevent DoS attacks if GRANDPA on the source chain were to
 stall for a long time (the pallet would have to do a lot of expensive ancestry checks to catch up).
 
-<add info about the API exposed for other pallets>
+The pallet has a simple interface consisting of two dispatchables:
 
-<a bullet list of things that the pallet performs>
+1. `import_signed_header()`
+2. `finalize_header()`
 
-The pallet has a simple interface consisting of two dispatchables. The first dispatchable accepts
-headers from the source chain and checks their validity. It performs checks to make sure that the
-incoming header doesn't conflict with headers the pallet already knows about (a possible conflict
-could be that the incoming header is on different finalized fork).
+The `import_signed_header()` dispatchable does the following checks:
+  - Has the header has already been imported?
+  - Does the header extend a known fork?
+  - Does the header signal an authority set change?
+  - Does the header enact an authority set change?
 
-When importing a header the pallet will also be checking headers for GRANDPA authority set changes.
-Substrate headers contain logs which signal when the next authority set change is supposed to
-occur. As a rule, GRANDPA authorities can only finalize blocks up to the authority set change block.
-
-The second dispatchable is used to import a GRANDPA justification with the expectation that it can
-finalize a header that the pallet had previously imported. When importing a finality proof we
-require the hash of a header which the pallet has previously imported through the first dispatchable
-we talked about. We then verify the justification. This verification is done using basically a
-copy-paste of the GRANDPA finality justification code from Substrate.
-
-If we find that the justification given for the current header was indeed valid ....
-
-After verifying that a justification for a given header is valid, we then see if the newly finalized
-header enacts an authority set change. A header enacts an authority set change if its block number
-equals the one from an authority set change signal log we received while importing a header.
+The `finalize_header()` dispatchable does the following checks:
+  - Have we previously imported this header?
+  - Is the given justification valid for the given header?
+  - Does the given header enact an authority set change?
 
 #### Relayer strategy
 
@@ -117,12 +108,12 @@ An example `Call` of the target chain would look something like this:
 target_runtime::Call::Balances(target_runtime::pallet_balances::Call::transfer(recipient, amount))
 ```
 
-When sending a `Call` it must first be SCALE encoded and then sent to the source chain.
-The `Call` is then delivered by the message lane delivery mechanism from the source chain to the
-target chain.
-When a message is received the inbound message lane on the target chain will try and decode the message payload into a `Call` enum. If it's successful it will be dispatched after we
-check that the weight of the call does not exceed the weight declared by the sender. The relayer pays fees
-for executing the transaction on the target chain, but her costs should be covered by the sender on the
+When sending a `Call` it must first be SCALE encoded and then sent to the source chain. The `Call`
+is then delivered by the message lane delivery mechanism from the source chain to the target chain.
+When a message is received the inbound message lane on the target chain will try and decode the
+message payload into a `Call` enum. If it's successful it will be dispatched after wecheck that the
+weight of the call does not exceed the weight declared by the sender. The relayer pays fees for
+executing the transaction on the target chain, but her costs should be covered by the sender on the
 source chain.
 
 When dispatching messages there are three Origins which can be used by the target chain:
@@ -138,8 +129,10 @@ The Root origin represents the source chain's Root account on the target chain. 
 only be dispatched on the target chain if the "send message" request was made by the Root origin of
 the source chain - otherwise the message will fail to be dispatched.
 
-The Source origin represents an account without a private key on the target chain. This account will be generated/derived using the account ID of the sender on the source chain. We don't necessarily require the source account id to be associated with a private key on the source chain either. This is useful
-for representing things such as source chain proxies or pallets.
+The Source origin represents an account without a private key on the target chain. This account will
+be generated/derived using the account ID of the sender on the source chain. We don't necessarily
+require the source account id to be associated with a private key on the source chain either. This
+is useful for representing things such as source chain proxies or pallets.
 
 The Target origin represents an account with a private key on the target chain. The sender on the
 source chain needs to prove ownership of this account by using their target chain private key to
