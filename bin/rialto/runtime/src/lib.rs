@@ -831,11 +831,11 @@ impl_runtime_apis! {
 
 			use pallet_message_lane::benchmarking::{
 				Module as MessageLaneBench,
-				Trait as MessageLaneTrait,
+				Config as MessageLaneConfig,
 				MessageParams as MessageLaneMessageParams,
 			};
 
-			impl MessageLaneTrait<WithMillauMessageLaneInstance> for Runtime {
+			impl MessageLaneConfig<WithMillauMessageLaneInstance> for Runtime {
 				fn endow_account(account: &Self::AccountId) {
 					pallet_balances::Module::<Runtime>::make_free_balance_be(
 						account,
