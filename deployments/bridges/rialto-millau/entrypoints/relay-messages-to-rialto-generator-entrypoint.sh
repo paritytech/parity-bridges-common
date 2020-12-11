@@ -67,8 +67,7 @@ do
 
 	rand_sleep
 	echo "Sending Remark from Millau to Rialto using Root Origin"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		$SHARED_ROOT_ARGS \
+	$SEND_ROOT_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--fee 100000000 \
 		--origin Root \
@@ -76,8 +75,7 @@ do
 
 	rand_sleep
 	echo "Sending Transfer from Millau to Rialto using Root Origin"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		$SHARED_ROOT_ARGS \
+	$SEND_ROOT_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--fee 1000000000 \
 		--origin Root \
