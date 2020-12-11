@@ -46,10 +46,12 @@ where
 				Currency::transfer(submitter, relayer_fund_account, *fee, ExistenceRequirement::AllowDeath)
 					.map_err(Into::into)
 			}
-			Sender::Root | Sender::None => {
-				// fixme: we might want to add root account id to this struct.
-				Err("Root and None account is not allowed to send regular messages.")
+			Sender::Root => {
+				// Root doesn't pay fees for messages at the moment. If we add a Root Account ID
+				// to the struct we could charge that account for transfer fees.
+				Ok(())
 			}
+			Sender::None => Err("None account is not allowed to send regular messages."),
 		}
 	}
 
