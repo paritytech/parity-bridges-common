@@ -805,6 +805,7 @@ dependencies = [
  "bp-message-dispatch",
  "bp-message-lane",
  "bp-runtime",
+ "ed25519-dalek",
  "frame-support",
  "hash-db",
  "pallet-bridge-call-dispatch",

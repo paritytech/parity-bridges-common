@@ -865,7 +865,7 @@ impl_runtime_apis! {
 					use crate::millau_messages::{Millau, WithMillauMessageBridge};
 					use bridge_runtime_common::{
 						messages::ChainWithMessageLanes,
-						messages_benchmarking::prepare_message_proof,
+						messages_benchmarking::{ed25519_sign, prepare_message_proof},
 					};
 					use codec::Encode;
 					use frame_support::weights::GetDispatchInfo;
@@ -873,7 +873,16 @@ impl_runtime_apis! {
 
 					let call = Call::System(SystemCall::remark(vec![]));
 					let call_weight = call.get_dispatch_info().weight;
-					let encoded_call = call.encode();
+
+					let millau_account_id: bp_millau::AccountId = Default::default();
+					let (rialto_raw_public, rialto_raw_signature) = ed25519_sign(
+						&call,
+						&millau_account_id,
+					);
+					let rialto_public = MultiSigner::Ed25519(sp_core::ed25519::Public::from_raw(rialto_raw_public));
+					let rialto_signature = MultiSignature::Ed25519(sp_core::ed25519::Signature::from_raw(
+						rialto_raw_signature,
+					));
 
 					prepare_message_proof::<WithMillauMessageBridge, bp_millau::Hasher, Runtime, _, _, _>(
 						params,
@@ -903,8 +912,12 @@ impl_runtime_apis! {
 								bp_millau::AccountId,
 								MultiSigner,
 								Signature,
-							>::SourceRoot, // TODO: should be signature instead
-							call: encoded_call,
+							>::TargetAccount(
+								millau_account_id,
+								rialto_public,
+								rialto_signature,
+							),
+							call: call.encode(),
 						}.encode(),
 					)
 				}
