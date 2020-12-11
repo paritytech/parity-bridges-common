@@ -83,43 +83,6 @@ pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 /// Represents the portion of a block that will be used by Normal extrinsics.
 pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
-/// Get a struct which defines the weight limits and values used during extrinsic execution.
-pub fn runtime_block_weights() -> frame_system::limits::BlockWeights {
-	frame_system::limits::BlockWeights::builder()
-		// Allowance for Normal class
-		.for_class(DispatchClass::Normal, |weights| {
-			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
-		})
-		// Allowance for Operational class
-		.for_class(DispatchClass::Operational, |weights| {
-			weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
-			// Extra reserved space for Operational class
-			weights.reserved = Some(MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
-		})
-		// By default Mandatory class is not limited at all.
-		// This parameter is used to derive maximal size of a single extrinsic.
-		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
-		.build_or_panic()
-}
-
-/// Get the maximum weight (compute time) that a Normal extrinsic on the Millau chain can use.
-pub fn max_extrinsic_weight() -> Weight {
-	runtime_block_weights()
-		.get(DispatchClass::Normal)
-		.max_extrinsic
-		.unwrap_or(Weight::MAX)
-}
-
-/// Get a struct which tracks the length in bytes for each extrinsic class in a Millau block.
-pub fn runtime_block_length() -> frame_system::limits::BlockLength {
-	frame_system::limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO)
-}
-
-/// Get the maximum length in bytes that a Normal extrinsic on the Millau chain requires.
-pub fn max_extrinsic_size() -> u32 {
-	*runtime_block_length().max.get(DispatchClass::Normal)
-}
-
 // TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
 pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 1024;
@@ -195,6 +158,44 @@ impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverte
 		hash.to_fixed_bytes().into()
 	}
 }
+
+/// Get a struct which defines the weight limits and values used during extrinsic execution.
+pub fn runtime_block_weights() -> frame_system::limits::BlockWeights {
+	frame_system::limits::BlockWeights::builder()
+		// Allowance for Normal class
+		.for_class(DispatchClass::Normal, |weights| {
+			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+		})
+		// Allowance for Operational class
+		.for_class(DispatchClass::Operational, |weights| {
+			weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
+			// Extra reserved space for Operational class
+			weights.reserved = Some(MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+		})
+		// By default Mandatory class is not limited at all.
+		// This parameter is used to derive maximal size of a single extrinsic.
+		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+		.build_or_panic()
+}
+
+/// Get the maximum weight (compute time) that a Normal extrinsic on the Millau chain can use.
+pub fn max_extrinsic_weight() -> Weight {
+	runtime_block_weights()
+		.get(DispatchClass::Normal)
+		.max_extrinsic
+		.unwrap_or(Weight::MAX)
+}
+
+/// Get a struct which tracks the length in bytes for each extrinsic class in a Millau block.
+pub fn runtime_block_length() -> frame_system::limits::BlockLength {
+	frame_system::limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO)
+}
+
+/// Get the maximum length in bytes that a Normal extrinsic on the Millau chain requires.
+pub fn max_extrinsic_size() -> u32 {
+	*runtime_block_length().max.get(DispatchClass::Normal)
+}
+
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Millau headers from the Bridge Pallet instance.
 	///
