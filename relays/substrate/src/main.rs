@@ -97,6 +97,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 							&rialto_client,
 							&rialto_sign.signer,
 							rialto_signer_next_index,
+							// TODO: Should this be `rialto_runtime`?
 							millau_runtime::SudoCall::sudo(Box::new(
 								rialto_runtime::BridgeMillauCall::initialize(initialization_data).into(),
 							))
@@ -325,6 +326,12 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				millau_runtime::MessageLaneCall::send_message(lane.into(), payload, fee),
 			);
 
+			let millau_call = if let cli::Origins::Root = origin {
+				millau_runtime::Call::Sudo(millau_runtime::SudoCall::sudo(Box::new(millau_call)))
+			} else {
+				millau_call
+			};
+
 			let signed_millau_call = Millau::sign_transaction(
 				&millau_client,
 				&millau_sign.signer,
@@ -459,6 +466,12 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			let rialto_call = rialto_runtime::Call::BridgeMillauMessageLane(
 				rialto_runtime::MessageLaneCall::send_message(lane.into(), payload, fee),
 			);
+
+			let rialto_call = if let cli::Origins::Root = origin {
+				rialto_runtime::Call::Sudo(rialto_runtime::SudoCall::sudo(Box::new(rialto_call)))
+			} else {
+				rialto_call
+			};
 
 			let signed_rialto_call = Rialto::sign_transaction(
 				&rialto_client,
