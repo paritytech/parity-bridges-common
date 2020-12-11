@@ -156,43 +156,16 @@ pub fn native_version() -> NativeVersion {
 	}
 }
 
-const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
-const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
-const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
-
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 250;
-	pub const MaximumBlockWeight: Weight = bp_rialto::MAXIMUM_BLOCK_WEIGHT;
-	pub const ExtrinsicBaseWeight: Weight = 10_000_000;
-	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(bp_rialto::AVAILABLE_BLOCK_RATIO);
-	pub MaximumExtrinsicWeight: Weight = bp_rialto::MAXIMUM_EXTRINSIC_WEIGHT;
-	pub const MaximumBlockLength: u32 = bp_rialto::MAXIMUM_BLOCK_SIZE;
 	pub const Version: RuntimeVersion = VERSION;
 	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
 		write: 200_000_000, // ~0.2 ms = 200 µs
 	};
 
-	pub RuntimeBlockLength: limits::BlockLength = limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-	pub RuntimeBlockWeights: limits::BlockWeights = limits::BlockWeights::builder()
-		// .base_block(BlockExecutionWeight::get()) // That's the default value
-		// .for_class(DispatchClass::all(), |w| w.base_extrinsic = ExtrinsicBaseWeight::get()) // That's a default as well.
-				// Allowance for Normal class
-		.for_class(DispatchClass::Normal, |weights| {
-					weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
-		})
-				// Allowance for Operational class
-		.for_class(DispatchClass::Operational, |weights| {
-					weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
-					// Extra reserved space for Operational class
-					weights.reserved = Some(
-					  MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT
-					);
-				})
-				// By default Mandatory class is not limited at all.
-				// This parameter is used to derive maximal size of a single extrinsic.
-		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
-		.build_or_panic();
+	pub RuntimeBlockLength: limits::BlockLength = bp_rialto::runtime_block_length();
+	pub RuntimeBlockWeights: limits::BlockWeights = bp_rialto::runtime_block_weights();
 }
 
 impl frame_system::Config for Runtime {
