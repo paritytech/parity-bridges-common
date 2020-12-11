@@ -48,8 +48,6 @@ pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// Get a struct which defines the weight limits and values used during extrinsic execution.
 pub fn runtime_block_weights() -> frame_system::limits::BlockWeights {
 	frame_system::limits::BlockWeights::builder()
-		// .base_block(BlockExecutionWeight::get()) // That's the default value
-		// .for_class(DispatchClass::all(), |w| w.base_extrinsic = ExtrinsicBaseWeight::get()) // That's a default as well.
 		// Allowance for Normal class
 		.for_class(DispatchClass::Normal, |weights| {
 			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
