@@ -23,11 +23,11 @@
 				Bridge Relayer->>+Rialto: What's the best Millau header you know about?
 				Rialto-->>-Bridge Relayer: I only know about 4.
 				Bridge Relayer->>Rialto: Cool, here is Millau header 5 [`submit_signed_header()`].
-				Bridge Relayer->>+Rialto: How about last finalized Millau header you know about?
+				Bridge Relayer->>+Rialto: What's the best finalized Millau header you know about?
 				Rialto-->>-Bridge Relayer: I only know about 3.
 				Bridge Relayer->>+Millau: Do you have a finality proof for 4..5?
 				Millau-->>-Bridge Relayer: Yes I do, here it is.
-				Bridge Relayer->>Rialto: Here is the finality proof for 4..5 [`finalize_header()`].
+				Bridge Relayer->>Rialto: Here is the finality proof for 5 [`finalize_header()`].
 			end
 			rect rgb(218, 195, 244)
 				Bridge Relayer->>+Millau: Do you have any messages for me to deliver (at 5)?
