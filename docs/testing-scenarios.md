@@ -129,14 +129,13 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
 15. The relayer creates a message delivery transaction (but it has weight, size, and count limits).
 
    The count limit is there to make the loop of delivery code bounded.
-
-    ```rust
-    receive_message_proof(
+   ```rust
+   receive_message_proof(
       relayer_id,     // account id of the source chain
       proof,          // messages + proofs (hash of source block `B1`, nonces, lane_id + storage proof)
       dispatch_weight // relayer declares how much it will take to dispatch all messages in that transaction,
     )
-    ```
+   ```
 
     The `proof` can also contain an update of outbound lane state of source chain, which indicates
     the delivery confirmation of these messages and reward payment, so that the target chain can
