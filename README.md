@@ -118,13 +118,14 @@ last.
 
 ```bash
 # In `parity-bridges-common` folder
-./scripts/run-rialto-bridge-node.sh
-./scripts/run-millau-bridge-node.sh
-./scripts/run-millau-to-rialto-relay.sh
+./deployments/local-scripts/run-rialto-bridge-node.sh
+./deployments/local-scripts/run-millau-bridge-node.sh
+./deployments/local-scripts/run-millau-to-rialto-relay.sh
+./deployments/local-scripts/run-rialto-to-millau-relay.sh
 ```
 
 At this point you should see the relayer submitting blocks from the Millau Substrate chain to the
-Rialto Substrate chain.
+Rialto Substrate chain and vice-versa.
 
 ### Local Docker Build
 If you want to make a Docker container using your local source files you can run the following
