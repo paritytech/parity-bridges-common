@@ -11,9 +11,9 @@ interaction. That's to say, we will only talk about syncing headers and messages
 chain to a _target_ chain. This is because the two-sided interaction is really just the one-sided
 interaction with the source and target chains switched.
 
-To understand the full interaction with the bridge, take a look at [testing
-scenarios](./testing-scenarios.md) document. It describes potential use cases and describes how
-each of the layers outlined below is involved.
+To understand the full interaction with the bridge, take a look at the
+[testing scenarios](./testing-scenarios.md) document. It describes potential use cases and describes
+how each of the layers outlined below is involved.
 
 The bridge is built from various components. Here is a quick overview of the important ones.
 
@@ -72,67 +72,68 @@ Referer to the [pallet documentation](../modules/substrate/src/lib.rs) for more 
 
 #### Header Relayer strategy
 
-There is currently no reward strategy for the relayers at all, nor they need to be staked or
-registered on-chain.
-We consider the header sync to be essential part of the bridge and the incentivisation should be
-happening on the higher layers.
+There is currently no reward strategy for the relayers at all. They also are not required to be
+staked or registered on-chain, unlike in other bridge designs. We consider the header sync to be
+an essential part of the bridge and the incentivisation should be happening on the higher layers.
 
-The idea is to use unsigned transactions for headers delivery, so that de-duplication can be done
-on the transaction pool level and there is no extra costs involved for the message relayers
-to run an additional header relayer.
+At the moment, signed transactions are the only way to submit headers to the header sync pallet.
+However, in the future we would like to use  unsigned transactions for headers delivery. This will
+allow transaction de-duplication to be done at the transaction pool level and also remove the cost
+for message relayers to run header relayers.
 
 ### Message Passing
 
 Once header sync is maintained, the target side of the bridge can receive and verify proofs about
-events happening on the source chain, or it's internal state. On top of this, we build a
-message passing protocol, which consists of two parts described in following chapters:
-message delivery and message dispatch.
+events happening on the source chain, or its internal state. On top of this, we built a message
+passing protocol which consists of two parts described in following sections: message delivery and
+message dispatch.
 
 #### Message Lanes Delivery
 
-Message delivery pallet is responsible for queueing up messages and delivering (and dispatching)
-them in order on the target chain. The pallet supports multiple lanes (channels) where messages can
-be added. Messages in the same lane MUST be delivered in the same ordered they were queued up,
-but messages in different lanes are independent from each other. Every lane can be
-considered completetly separately from others and they make progress in parallel. Different lanes
-can be configured to validated messages differently (higher rewards, specific payload, etc) and may
-be associated with particular "user application" build on top of the bridge.
+The [Message delivery pallet](../modules/message-lane/src/lib.rs) is responsible for queueing up
+messages and delivering them in order on the target chain. It also dispatches messages, but we will
+cover that in the next section.
 
-Message delivery protocol does not care about the payload it transports and can be coupled
-with arbitrary message dispatch mechanism that will interpret and execute the payload if delivery
-conditions are met. Each delivery on the target chain is confirmed back to the source chain, by the
-relayer, so that she can collect the reward for delivering these messages.
+The pallet supports multiple lanes (channels) where messages can be added. Every lane can be
+considered completely independent from others, which allows them to make progress in parallel.
+Different lanes can be configured to validated messages differently (e.g higher rewards, specific
+types of payload, etc.) and may be associated with particular "user application" built on top of the
+bridge. Note that messages in the same lane MUST be delivered _in the same order_ they were queued
+up.
 
-Users of the pallet add their messages to an "Outbound lane". When a block is finalized, message
-relayers are responsible for reading the current queue of messages and submitting some (or all) of
-them to the "inbound lane" of the target chain. Each message has a `nonce` associated with it, which
-serves as the ordering of messages, the inbound lane stores last delivered nonce to prevent
-replaying messages. To succesfuly deliver the message to the inbound lane on target chain, the
-relayer has to present a storage proof of that message being part of the outbound lane on the
-source chain.
+The message delivery protocol does not care about the payload it transports and can be coupled
+with an arbitrary message dispatch mechanism that will interpret and execute the payload if delivery
+conditions are met. Each delivery on the target chain is confirmed back to the source chain by the
+relayer. This is so that she can collect the reward for delivering these messages.
+
+Users of the pallet add their messages to an "outbound lane" on the source chain. When a block is
+finalized message relayers are responsible for reading the current queue of messages and submitting
+some (or all) of them to the "inbound lane" of the target chain. Each message has a `nonce`
+associated with it, which serves as the ordering of messages. The inbound lane stores the last
+delivered nonce to prevent replaying messages. To succesfuly deliver the message to the inbound lane
+on target chain the relayer has to present present a storage proof which shows that the message was
+part of the outbound lane on the source chain.
 
 During delivery of messages they are immediately dispatched on the target chain and the relayer is
-required to declare the right `weight` to cater for all messages dispatch and pay all required fees
-of the target chain. To make sure the relayer is incentivised to do so, on the source chain:
-- the user provides declared dispatch weight of the payload
-- the pallet calculate expected fee on the target chain, based on the declared weight
-- the pallet converts target fee into source tokens (based on the price oracle) and reserves
+required to declare the correct `weight` to cater for all messages dispatch and pay all required
+fees of the target chain. To make sure the relayer is incentivised to do so, on the source chain:
+- the user provides a declared dispatch weight of the payload
+- the pallet calculates the expected fee on the target chain based on the declared weight
+- the pallet converts the target fee into source tokens (based on a price oracle) and reserves
   enough tokens to cover for the delivery, dispatch, confirmation and additional relayers reward.
 
-If the declared weight turns out to be too low on the target chain, the message is delivered, but
+If the declared weight turns out to be too low on the target chain the message is delivered but
 it immediately fails to dispatch. The fee and reward is collected by the relayer upon confirmation
 of delivery.
 
 Due to the fact that message lanes require delivery confirmation transactions, they also strictly
 require bi-directional header sync (i.e. you can't use message delivery with one-way header sync).
 
-
 #### Dispatching Messages
 
-The message dispatch pallet ([`pallet-bridge-call-dispatch`](../modules/call-dispatch/src/lib.rs))
-is used to perform the actions specified by messages which have come over the bridge.
-For Substrate-based chains this means interpreting the source chain's message as a `Call` on
-the target chain.
+The [Message dispatch pallet](../modules/call-dispatch/src/lib.rs) is used to perform the actions
+specified by messages which have come over the bridge. For Substrate-based chains this means
+interpreting the source chain's message as a `Call` on the target chain.
 
 An example `Call` of the target chain would look something like this:
 
@@ -143,7 +144,7 @@ target_runtime::Call::Balances(target_runtime::pallet_balances::Call::transfer(r
 When sending a `Call` it must first be SCALE encoded and then sent to the source chain. The `Call`
 is then delivered by the message lane delivery mechanism from the source chain to the target chain.
 When a message is received the inbound message lane on the target chain will try and decode the
-message payload into a `Call` enum. If it's successful it will be dispatched after wecheck that the
+message payload into a `Call` enum. If it's successful it will be dispatched after we check that the
 weight of the call does not exceed the weight declared by the sender. The relayer pays fees for
 executing the transaction on the target chain, but her costs should be covered by the sender on the
 source chain.
