@@ -35,19 +35,19 @@ let hash = bp_polkadot::derive_kusama_account_id(kAlice);
 let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
 ```
 
-2. [Polkadot] pBob transfers 5 DOTs to `p(kAlice)`
+1. [Polkadot] pBob transfers 5 DOTs to `p(kAlice)`
    1. Creates & Signs a transaction with `Call::Transfer(..)`
-   2. It is included in block.
-   3. kAlice observers Polkadot chain to see her balance at `p(kAlice)` updated.
+   1. It is included in block.
+   1. kAlice observers Polkadot chain to see her balance at `p(kAlice)` updated.
 
-3. [Kusama] kAlice sends 2.5 DOTs to `p(kCharlie)`
+1. [Kusama] kAlice sends 2.5 DOTs to `p(kCharlie)`
    1. kAlice prepares:
       ```rust
         let call = polkadot::Call::Balances(polkadot::Balances::Transfer(p(kCharlie), 2.5DOT)).encode();
         let weight = call.get_dispatch_info().weight;
       ```
 
-   2. kAlice prepares Kusama transaction:
+   1. kAlice prepares Kusama transaction:
       ```rust
       kusama::Call::MessageLane::<Instance=Polkadot>::send_message(
         // dot-transfer-lane (truncated to 4bytes)
@@ -77,34 +77,34 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
       )
       ```
 
-   3. [Kusama] kAlice sends Kusama transaction with the above `Call` and pays regular fees. The
+   1. [Kusama] kAlice sends Kusama transaction with the above `Call` and pays regular fees. The
       dispatch additionally reservers target-chain delivery and dispatch fees (including relayer's
       reward).
 
-4. [Kusama] kAlice's transaction is included in block `B1`
+1. [Kusama] kAlice's transaction is included in block `B1`
 
 ### Syncing headers loop
 
-5. Relayer sees that `B1` has not yet been delivered to the target chain.
+1. Relayer sees that `B1` has not yet been delivered to the target chain.
    [Sync loop code](https://github.com/paritytech/parity-bridges-common/blob/8b327a94595c4a6fae6d7866e24ecf2390501e32/relays/headers-relay/src/sync_loop.rs#L199).
 
-6. Relayer prepares transaction which delivers `B1` and with all of the missing
+1. Relayer prepares transaction which delivers `B1` and with all of the missing
    ancestors to the target chain (one header per transaction).
 
-7. After the transaction is succesfully dispatched the Polkadot on-chain light client of the Kusama
+1. After the transaction is succesfully dispatched the Polkadot on-chain light client of the Kusama
    chain learns about block `B1` - it is stored in the on-chain storage.
 
 ### Syncing finality loop
 
-8. Relayer is subscribed to finality events on Kusama. Relayer gets a finality notification for
+1. Relayer is subscribed to finality events on Kusama. Relayer gets a finality notification for
    block `B3`.
 
-9. The header sync informs the target chain about `B1..B3` blocks (see point 6).
+1. The header sync informs the target chain about `B1..B3` blocks (see point 6).
 
-10. Relayer learns about missing finalization of `B1..B3` on the target chain, see
+1. Relayer learns about missing finalization of `B1..B3` on the target chain, see
    [finality maintenance code](https://github.com/paritytech/parity-bridges-common/blob/8b327a94595c4a6fae6d7866e24ecf2390501e32/relays/substrate/src/headers_maintain.rs#L107).
 
-11. Relayer submits justification for `B3` to the target chain (`finalize_header`).
+1. Relayer submits justification for `B3` to the target chain (`finalize_header`).
     See [#421](https://github.com/paritytech/parity-bridges-common/issues/421) for multiple
     authority set changes support in Relayer (i.e. what block the target chain expects, not only
     what I have).
@@ -113,20 +113,20 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
     - syncing on demand (what blocks miss finality)
     - and syncing as notifications are received (recently finalized on-chain)
 
-12. Eventually Polkadot on-chain light client of Kusama learns about finality of `B1`.
+1. Eventually Polkadot on-chain light client of Kusama learns about finality of `B1`.
 
 ### Syncing messages loop
 
-13. The relayer checks the on-chain storage (last finalized header on the source, best header on the
+1. The relayer checks the on-chain storage (last finalized header on the source, best header on the
     target):
     - Kusama outbound lane
     - Polkadot inbound lane
     Lanes contains `latest_generated_nonce` and `latest_received_nonce` respectively. The relayer
     syncs messages between that range.
 
-14. The relayer gets a proof for every message in that range (using the RPC of message lanes module)
+1. The relayer gets a proof for every message in that range (using the RPC of message lanes module)
 
-15. The relayer creates a message delivery transaction (but it has weight, size, and count limits).
+1. The relayer creates a message delivery transaction (but it has weight, size, and count limits).
     The count limit is there to make the loop of delivery code bounded.
      ```rust
      receive_message_proof(
@@ -146,12 +146,12 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
     It's totally fine if there are no messages, and we only include the reward payment proof
     when calling that function.
 
-17. 🥳 the message is now delivered and dispatched on the target chain!
+1. 🥳 the message is now delivered and dispatched on the target chain!
 
-18. The relayer now needs to confirm the delivery to claim her payment and reward on the source
+1. The relayer now needs to confirm the delivery to claim her payment and reward on the source
     chain.
 
-19. The relayer creates a transaction on the source chain with call:
+1. The relayer creates a transaction on the source chain with call:
 
   ```rust
   receive_messages_delivery_proof(
