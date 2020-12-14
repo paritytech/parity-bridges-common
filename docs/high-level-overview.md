@@ -97,9 +97,9 @@ cover that in the next section.
 The pallet supports multiple lanes (channels) where messages can be added. Every lane can be
 considered completely independent from others, which allows them to make progress in parallel.
 Different lanes can be configured to validated messages differently (e.g higher rewards, specific
-types of payload, etc.) and may be associated with particular "user application" built on top of the
-bridge. Note that messages in the same lane MUST be delivered _in the same order_ they were queued
-up.
+types of payload, etc.) and may be associated with a particular "user application" built on top of
+the bridge. Note that messages in the same lane MUST be delivered _in the same order_ they were
+queued up.
 
 The message delivery protocol does not care about the payload it transports and can be coupled
 with an arbitrary message dispatch mechanism that will interpret and execute the payload if delivery
