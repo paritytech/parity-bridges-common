@@ -45,6 +45,7 @@ and external processes called relayers. A bridge chain is one that is able to fo
 of a foreign chain independently. For example, consider the case below where we want to bridge two
 Substrate based chains.
 
+```
 +---------------+                 +---------------+
 |               |                 |               |
 |     Rialto    |                 |    Millau     |
@@ -56,6 +57,7 @@ Substrate based chains.
         +-----> | Bridge Relay  | <-------+
                 |               |
                 +---------------+
+```
 
 The Millau chain must be able to accept Rialto headers and verify their integrity. It does this by
 using a runtime module designed to track GRANDPA finality. Since two blockchains can't interact
