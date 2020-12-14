@@ -47,11 +47,11 @@ where
 					.map_err(Into::into)
 			}
 			Sender::Root => {
-				// Root doesn't pay fees for messages at the moment. If we add a Root Account ID
-				// to the struct we could charge that account for transfer fees.
-				Ok(())
+				Err("Sending messages from Root account is not supported yet. See GitHub issue #559 for more.")
 			}
-			Sender::None => Err("None account is not allowed to send regular messages."),
+			Sender::None => {
+				Err("Sending messages from None account is not supported yet. See GitHub issue #559 for more.")
+			}
 		}
 	}
 
