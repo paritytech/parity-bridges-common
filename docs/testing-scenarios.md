@@ -35,12 +35,12 @@ let hash = bp_polkadot::derive_kusama_account_id(kAlice);
 let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
 ```
 
-1. [Polkadot] pBob transfers 5 DOTs to `p(kAlice)`
+2. [Polkadot] pBob transfers 5 DOTs to `p(kAlice)`
    1. Creates & Signs a transaction with `Call::Transfer(..)`
    1. It is included in block.
    1. kAlice observers Polkadot chain to see her balance at `p(kAlice)` updated.
 
-2. [Kusama] kAlice sends 2.5 DOTs to `p(kCharlie)`
+3. [Kusama] kAlice sends 2.5 DOTs to `p(kCharlie)`
    1. kAlice prepares:
       ```rust
         let call = polkadot::Call::Balances(polkadot::Balances::Transfer(p(kCharlie), 2.5DOT)).encode();
@@ -81,11 +81,11 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
       dispatch additionally reservers target-chain delivery and dispatch fees (including relayer's
       reward).
 
-3. [Kusama] kAlice's transaction is included in block `B1`
+4. [Kusama] kAlice's transaction is included in block `B1`
 
 ### Syncing headers loop
 
-4. Relayer sees that `B1` has not yet been delivered to the target chain.
+5. Relayer sees that `B1` has not yet been delivered to the target chain.
    [Sync loop code](https://github.com/paritytech/parity-bridges-common/blob/8b327a94595c4a6fae6d7866e24ecf2390501e32/relays/headers-relay/src/sync_loop.rs#L199).
 
 1. Relayer prepares transaction which delivers `B1` and with all of the missing
@@ -96,7 +96,7 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
 
 ### Syncing finality loop
 
-7. Relayer is subscribed to finality events on Kusama. Relayer gets a finality notification for
+8. Relayer is subscribed to finality events on Kusama. Relayer gets a finality notification for
    block `B3`.
 
 1. The header sync informs the target chain about `B1..B3` blocks (see point 6).
@@ -117,7 +117,7 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
 
 ### Syncing messages loop
 
-12. The relayer checks the on-chain storage (last finalized header on the source, best header on the
+13. The relayer checks the on-chain storage (last finalized header on the source, best header on the
     target):
     - Kusama outbound lane
     - Polkadot inbound lane
