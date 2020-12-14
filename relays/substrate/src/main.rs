@@ -97,8 +97,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 							&rialto_client,
 							&rialto_sign.signer,
 							rialto_signer_next_index,
-							// TODO: Should this be `rialto_runtime`?
-							millau_runtime::SudoCall::sudo(Box::new(
+							rialto_runtime::SudoCall::sudo(Box::new(
 								rialto_runtime::BridgeMillauCall::initialize(initialization_data).into(),
 							))
 							.into(),
