@@ -44,6 +44,8 @@ A standalone application handling delivery of the messages from source chain to 
 
 ## Processes
 
+High level sequence charts of the process can be found in [a separate document](./high-level.html).
+
 ### Substrate (GRANDPA) Header Sync
 
 The header sync pallet (`pallet-substrate-bridge`) is an on-chain light client for chains which use
@@ -70,9 +72,14 @@ Referer to the [pallet documentation](../modules/substrate/src/lib.rs) for more 
 
 #### Header Relayer strategy
 
-The header relayers
-- Weight costs
-- Fee payments
+There is currently no reward strategy for the relayers at all, nor they need to be staked or
+registered on-chain.
+We consider the header sync to be essential part of the bridge and the incentivisation should be
+happening on the higher layers.
+
+The idea is to use unsigned transactions for headers delivery, so that de-duplication can be done
+on the transaction pool level and there is no extra costs involved for the message relayers
+to run an additional header relayer.
 
 ### Message Passing
 
@@ -83,22 +90,42 @@ message delivery and message dispatch.
 
 #### Message Lanes Delivery
 
-<TODO>Details of the message lanes delivery protocol</TODO>
-- it doesn't care about payload, configurability of dispatch mechanism
-- ordered within lane
-- lanes independent
-- relayers not strictly bound to a lane
-- delivery confirmations
-- inbound/outbound lanes
-- Message Lane strictly require bi-directional header sync (due to confirmations)
-- Lanes are like channels
-- describe races from relayer
--
-- How weight is calculated
-- Who is paying fees:
--   transaction execution
--   dispatch
--   delivery cost
+Message delivery pallet is responsible for queueing up messages and delivering (and dispatching)
+them in order on the target chain. The pallet supports multiple lanes (channels) where messages can
+be added. Messages in the same lane MUST be delivered in the same ordered they were queued up,
+but messages in different lanes are independent from each other. Every lane can be
+considered completetly separately from others and they make progress in parallel. Different lanes
+can be configured to validated messages differently (higher rewards, specific payload, etc) and may
+be associated with particular "user application" build on top of the bridge.
+
+Message delivery protocol does not care about the payload it transports and can be coupled
+with arbitrary message dispatch mechanism that will interpret and execute the payload if delivery
+conditions are met. Each delivery on the target chain is confirmed back to the source chain, by the
+relayer, so that she can collect the reward for delivering these messages.
+
+Users of the pallet add their messages to an "Outbound lane". When a block is finalized, message
+relayers are responsible for reading the current queue of messages and submitting some (or all) of
+them to the "inbound lane" of the target chain. Each message has a `nonce` associated with it, which
+serves as the ordering of messages, the inbound lane stores last delivered nonce to prevent
+replaying messages. To succesfuly deliver the message to the inbound lane on target chain, the
+relayer has to present a storage proof of that message being part of the outbound lane on the
+source chain.
+
+During delivery of messages they are immediately dispatched on the target chain and the relayer is
+required to declare the right `weight` to cater for all messages dispatch and pay all required fees
+of the target chain. To make sure the relayer is incentivised to do so, on the source chain:
+- the user provides declared dispatch weight of the payload
+- the pallet calculate expected fee on the target chain, based on the declared weight
+- the pallet converts target fee into source tokens (based on the price oracle) and reserves
+  enough tokens to cover for the delivery, dispatch, confirmation and additional relayers reward.
+
+If the declared weight turns out to be too low on the target chain, the message is delivered, but
+it immediately fails to dispatch. The fee and reward is collected by the relayer upon confirmation
+of delivery.
+
+Due to the fact that message lanes require delivery confirmation transactions, they also strictly
+require bi-directional header sync (i.e. you can't use message delivery with one-way header sync).
+
 
 #### Dispatching Messages
 
