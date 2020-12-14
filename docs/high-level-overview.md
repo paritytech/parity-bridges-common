@@ -1,39 +1,51 @@
 # High-Level Bridge Documentation
 
 ## Purpose
+
 Trustless connecting between two Substrate-based chains using GRANDPA finality.
 
 ## Overview
+
 Even though we support two-way bridging, the documentation will generally talk about a one-sided
 interaction. That's to say, we will only talk about syncing headers and messages from a _source_
 chain to a _target_ chain. This is because the two-sided interaction is really just the one-sided
 interaction with the source and target chains switched.
 
+To understand the full interaction with the bridge, take a look at [testing
+scenarios](./testing-scenarios.md) document. It describes potential use cases and describes how
+each of the layers outlined below is involved.
+
 The bridge is built from various components. Here is a quick overview of the important ones.
 
 ### Header Sync
+
 A light client of the source chain built into the target chain's runtime. It is a single FRAME
 pallet. It provides a "source of truth" about the source chain headers which have been finalized.
 This is useful for higher level applications.
 
 ### Headers Relayer
+
 A standalone application connected to both chains. It submits every source chain header it sees to
 the target chain through RPC.
 
 ### Message Delivery
+
 A FRAME pallet built on top of the header sync pallet. It allows users to submit messages to the
 source chain, which are to be delivered to the target chain. The delivery protocol doesn't care
 about the payload more than it has to. Handles replay protection and message ordering.
 
 ### Message Dispatch
+
 A FRAME pallet responsible for interpreting the payload of delivered messages.
 
 ### Message Relayer
+
 A standalone application handling delivery of the messages from source chain to the target chain.
 
 ## Processes
 
 ### Substrate (GRANDPA) Header Sync
+
 The header sync pallet (`pallet-substrate-bridge`) is an on-chain light client for chains which use
 GRANDPA finality. It is part of the target chain's runtime, and accepts headers from the source
 chain. Its main goals are to accept valid headers, track GRANDPA finality set changes, and verify
@@ -54,32 +66,23 @@ support tracking multiple authority set changes across forks. Each fork can have
 authority set change. This is done to prevent DoS attacks if GRANDPA on the source chain were to
 stall for a long time (the pallet would have to do a lot of expensive ancestry checks to catch up).
 
-The pallet has a simple interface consisting of two dispatchables:
+Referer to the [pallet documentation](../modules/substrate/src/lib.rs) for more details.
 
-1. `import_signed_header()`
-2. `finalize_header()`
+#### Header Relayer strategy
 
-The `import_signed_header()` dispatchable does the following checks:
-  - Has the header has already been imported?
-  - Does the header extend a known fork?
-  - Does the header signal an authority set change?
-  - Does the header enact an authority set change?
-
-The `finalize_header()` dispatchable does the following checks:
-  - Have we previously imported this header?
-  - Is the given justification valid for the given header?
-  - Does the given header enact an authority set change?
-
-#### Relayer strategy
-
-TODO
+The header relayers
 - Weight costs
 - Fee payments
 
 ### Message Passing
 
+Once header sync is maintained, the target side of the bridge can receive and verify proofs about
+events happening on the source chain, or it's internal state. On top of this, we build a
+message passing protocol, which consists of two parts described in following chapters:
+message delivery and message dispatch.
 
 #### Message Lanes Delivery
+
 <TODO>Details of the message lanes delivery protocol</TODO>
 - it doesn't care about payload, configurability of dispatch mechanism
 - ordered within lane
@@ -98,13 +101,15 @@ TODO
 -   delivery cost
 
 #### Dispatching Messages
-The message dispatch pallet (`pallet-bridge-call-dispatch`) is used to perform the actions specified
-by messages which have come over the bridge. For Substrate-based chains this means interpreting the
-source chain's message as a `Call` on the target chain.
+
+The message dispatch pallet ([`pallet-bridge-call-dispatch`](../modules/call-dispatch/src/lib.rs))
+is used to perform the actions specified by messages which have come over the bridge.
+For Substrate-based chains this means interpreting the source chain's message as a `Call` on
+the target chain.
 
 An example `Call` of the target chain would look something like this:
 
-```
+```rust
 target_runtime::Call::Balances(target_runtime::pallet_balances::Call::transfer(recipient, amount))
 ```
 
@@ -138,3 +143,7 @@ The Target origin represents an account with a private key on the target chain. 
 source chain needs to prove ownership of this account by using their target chain private key to
 sign: `(Call, SourceChainAccountId).encode()`. This will be included in the message payload and
 verified by the target chain before dispatch.
+
+See [`CallOrigin` documentation](../modules/call-dispatch/src/lib.rs) for more details.
+
+#### Message Relayers Strategy

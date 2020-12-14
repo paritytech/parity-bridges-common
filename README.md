@@ -62,6 +62,9 @@ using a runtime module designed to track GRANDPA finality. Since two blockchains
 directly they need an external service, called a relayer, to communicate. The relayer will subscribe
 to new Rialto headers via RPC and submit them to the Millau chain for verification.
 
+Take a look at [Bridge High Level Documentation](./docs/high-level-overview.md) for more in-depth
+description of the bridge interaction.
+
 ## Project Layout
 Here's an overview of how the project is laid out. The main bits are the `node`, which is the actual
 "blockchain", the `modules` which are used to build the blockchain's logic (a.k.a the runtime) and
@@ -90,6 +93,11 @@ the `relays` which are used to pass messages between chains.
 
 To run the Bridge you need to be able to connect the bridge relay node to the RPC interface of nodes
 on each side of the bridge (source and target chain).
+
+There are 3 ways to run the bridge, described below:
+ - building & running from source,
+ - building or using Docker images for each individual component,
+ - running a Docker Compose setup (recommended).
 
 ### Building
 
@@ -139,6 +147,7 @@ docker run -it local/substrate-relay
 Notice that the `docker run` command will accept all the normal Substrate flags. For local
 development you should at minimum run with the `--dev` flag or else no blocks will be produced.
 
-### Full Network Docker Setup
+### Full Network Docker Compose Setup
+
 For a more sophisticated deployment which includes bidirectional header sync, message passing,
 monitoring dashboards, etc. see the [Deployments README](./deployments/README.md).

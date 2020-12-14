@@ -1,5 +1,8 @@
 In the scenarios, for simplicity, we call the chains Kusama (KSM token) and Polkadot (DOT token),
 but they should be applicable to any other chains.
+The first scenario has detailed description about the entire process (also see the
+[sequence diagram](./scenario1.html)), other scenarios only contain a simplified interaction,
+focusing on things that are unique for that particular scenario.
 
 Notation:
 - kX - user X interacting with Kusama chain.
@@ -11,7 +14,7 @@ Notation:
 Basic Scenarios
 ===========================
 
-Scenario 1: Kusama's Alice receiving & spending DOTs.
+Scenario 1: Kusama's Alice receiving & spending DOTs
 ---------------------------
 
 Kusama's Alice (kAlice) receives 5 DOTs from Polkadot's Bob (pBob) and sends half of them to
@@ -100,7 +103,7 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
       - and syncing as notifications are received (recently finalized on-chain)
   1. Eventually Polkadot on-chain light client of Kusama learns about finality of `B1`.
 
-**Syncing messages loop**
+### Syncing messages loop
 
   12. The relayer checks the on-chain storage (last finalized header on the source,
       best header on the target):
@@ -143,10 +146,11 @@ let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
     ```
 
 ### UI challenges
+
 - The UI should warn before (or prevent) sending to `k(kCharlie)`!
 
 
-Scenario 2: Kusama's Alice nominating validators with her DOTs.
+Scenario 2: Kusama's Alice nominating validators with her DOTs
 ---------------------------
 
 kAlice receives 10 DOTs from pBob and nominates `p(pCharlie)` and `p(pDave)`.
@@ -158,7 +162,7 @@ kAlice receives 10 DOTs from pBob and nominates `p(pCharlie)` and `p(pDave)`.
   - `staking::Nominate(vec![p(pCharlie)])` to nominate pCharlie using the controller account.
 
 
-Scenario 3: Kusama Treasury receiving & spending DOTs.
+Scenario 3: Kusama Treasury receiving & spending DOTs
 ---------------------------
 
 pBob sends 15 DOTs to Kusama Treasury which Kusama Governance decides to transfer to kCharlie.
@@ -181,24 +185,23 @@ Assuming `p(pAlice)` has at least 7 DOTs already.
 3. [Kusama] Transfer 2 DOTs to `p(kAlice)` from the multisig:
    - Send `multisig::as_multi_threshold_1(vec![p(pAlice)], balances::Transfer(p(kAlice), 2))`
 
-Scenario 5: Kusama Treasury staking & nominating validators with DOTs.
+Scenario 5: Kusama Treasury staking & nominating validators with DOTs
 ---------------------------
 
-Scenario 6: Kusama Treasury voting in Polkadot's democracy proposal.
+Scenario 6: Kusama Treasury voting in Polkadot's democracy proposal
 ---------------------------
 
 Potentially interesting scenarios
 ===========================
 
-Scenario 7: Polkadot's Bob spending his DOTs by using Kusama chain.
+Scenario 7: Polkadot's Bob spending his DOTs by using Kusama chain
 ---------------------------
 
 We can assume he holds KSM. Problem: he can pay fees, but can't really send (sign) a transaction?
 Shall we support some kind of dispatcher?
 
-Scenario 8: Kusama Governance taking over Kusama's Alice DOT holdings.
+Scenario 8: Kusama Governance taking over Kusama's Alice DOT holdings
 ---------------------------
 
-We use `SourceRoot` call to transfer her's DOTs to Kusama treasury. We could instead allow
-`root` to send as `CallOrigin::SourceAccount`.
-`
+We use `SourceRoot` call to transfer her's DOTs to Kusama treasury. Source chain root
+should also be able to send messages as `CallOrigin::SourceAccount(Alice)` though.
