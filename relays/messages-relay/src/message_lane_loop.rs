@@ -80,7 +80,7 @@ pub struct MessageDeliveryParams {
 pub struct MessageWeights {
 	/// Message dispatch weight.
 	pub weight: Weight,
-	/// Message size.
+	/// Message size (number of bytes in encoded payload).
 	pub size: usize,
 }
 

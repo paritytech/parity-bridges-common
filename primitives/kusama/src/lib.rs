@@ -122,7 +122,7 @@ sp_api::decl_runtime_apis! {
 	/// This API is implemented by runtimes that are sending messages to Kusama chain, not the
 	/// Kusama runtime itself.
 	pub trait ToKusamaOutboundLaneApi {
-		/// Returns dispatch weight and size of all messages in given inclusive range.
+		/// Returns total dispatch weight and encoded payload size of all messages in given inclusive range.
 		///
 		/// If some (or all) messages are missing from the storage, they'll also will
 		/// be missing from the resulting vector. The vector is ordered by the nonce.
