@@ -239,7 +239,7 @@ benchmarks_instance! {
 	receive_multiple_messages_proof_with_outbound_lane_state {
 		let i in 1..T::MaxMessagesInDeliveryTransaction::get()
 			.try_into()
-			.expect("too large MaxMessagesInDeliveryTransaction");
+			.expect("Value of MaxMessagesInDeliveryTransaction is too large");
 
 		let relayer_id_on_source = T::bridged_relayer_id();
 		let relayer_id_on_target = account("relayer", 0, SEED);
