@@ -290,12 +290,6 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			let rialto_origin_public = rialto_sign.signer.public();
 
 			let payload = match origin {
-				cli::Origins::Root => MessagePayload {
-					spec_version: rialto_runtime::VERSION.spec_version,
-					weight: rialto_call_weight,
-					origin: CallOrigin::SourceRoot,
-					call: rialto_call.encode(),
-				},
 				cli::Origins::Source => MessagePayload {
 					spec_version: rialto_runtime::VERSION.spec_version,
 					weight: rialto_call_weight,
@@ -324,12 +318,6 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			let millau_call = millau_runtime::Call::BridgeRialtoMessageLane(
 				millau_runtime::MessageLaneCall::send_message(lane.into(), payload, fee),
 			);
-
-			let millau_call = if let cli::Origins::Root = origin {
-				millau_runtime::Call::Sudo(millau_runtime::SudoCall::sudo(Box::new(millau_call)))
-			} else {
-				millau_call
-			};
 
 			let signed_millau_call = Millau::sign_transaction(
 				&millau_client,
@@ -431,12 +419,6 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			let millau_origin_public = millau_sign.signer.public();
 
 			let payload = match origin {
-				cli::Origins::Root => MessagePayload {
-					spec_version: millau_runtime::VERSION.spec_version,
-					weight: millau_call_weight,
-					origin: CallOrigin::SourceRoot,
-					call: millau_call.encode(),
-				},
 				cli::Origins::Source => MessagePayload {
 					spec_version: millau_runtime::VERSION.spec_version,
 					weight: millau_call_weight,
@@ -465,12 +447,6 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			let rialto_call = rialto_runtime::Call::BridgeMillauMessageLane(
 				rialto_runtime::MessageLaneCall::send_message(lane.into(), payload, fee),
 			);
-
-			let rialto_call = if let cli::Origins::Root = origin {
-				rialto_runtime::Call::Sudo(rialto_runtime::SudoCall::sudo(Box::new(rialto_call)))
-			} else {
-				rialto_call
-			};
 
 			let signed_rialto_call = Rialto::sign_transaction(
 				&rialto_client,

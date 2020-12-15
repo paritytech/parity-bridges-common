@@ -182,7 +182,6 @@ arg_enum! {
 	#[derive(Debug)]
 	/// The origin to use when dispatching the message on the target chain.
 	pub enum Origins {
-		Root,
 		Target,
 		Source,
 	}
