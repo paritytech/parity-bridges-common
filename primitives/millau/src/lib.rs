@@ -190,7 +190,7 @@ pub fn max_extrinsic_weight() -> Weight {
 
 /// Get a struct which tracks the length in bytes for each extrinsic class in a Millau block.
 pub fn runtime_block_length() -> frame_system::limits::BlockLength {
-	frame_system::limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO)
+	frame_system::limits::BlockLength::max_with_normal_ratio(2 * 1024 * 1024, NORMAL_DISPATCH_RATIO)
 }
 
 /// Get the maximum length in bytes that a Normal extrinsic on the Millau chain requires.
