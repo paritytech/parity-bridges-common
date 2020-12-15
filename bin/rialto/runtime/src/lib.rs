@@ -706,13 +706,13 @@ impl_runtime_apis! {
 			lane: bp_message_lane::LaneId,
 			begin: bp_message_lane::MessageNonce,
 			end: bp_message_lane::MessageNonce,
-		) -> Vec<(bp_message_lane::MessageNonce, Weight)> {
+		) -> Vec<(bp_message_lane::MessageNonce, Weight, u32)> {
 			(begin..=end).filter_map(|nonce| {
 				let encoded_payload = BridgeMillauMessageLane::outbound_message_payload(lane, nonce)?;
 				let decoded_payload = millau_messages::ToMillauMessagePayload::decode(
 					&mut &encoded_payload[..]
 				).ok()?;
-				Some((nonce, decoded_payload.weight))
+				Some((nonce, decoded_payload.weight, encoded_payload.len() as _))
 			})
 			.collect()
 		}
@@ -817,7 +817,7 @@ impl_runtime_apis! {
 				}
 
 				fn prepare_message(
-					params: MessageLaneMessageParams,
+					params: MessageLaneMessageParams<Self::AccountId>,
 				) -> (millau_messages::ToMillauMessagePayload, Balance) {
 					use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 					use bridge_runtime_common::messages;
@@ -830,7 +830,9 @@ impl_runtime_apis! {
 							* sp_std::cmp::min(factor, WORST_MESSAGE_SIZE_FACTOR),
 					};
 					let message_payload = vec![0; message_size as usize];
-					let dispatch_origin = pallet_bridge_call_dispatch::CallOrigin::SourceAccount(Default::default());
+					let dispatch_origin = pallet_bridge_call_dispatch::CallOrigin::SourceAccount(
+						params.sender_account,
+					);
 
 					let message = ToMillauMessagePayload {
 						spec_version: 0,

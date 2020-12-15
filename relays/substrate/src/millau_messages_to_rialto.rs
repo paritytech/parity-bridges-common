@@ -133,6 +133,8 @@ pub fn run(
 				// TODO: subtract base weight of delivery from this when it'll be known
 				// https://github.com/paritytech/parity-bridges-common/issues/78
 				max_messages_weight_in_single_batch: bp_rialto::max_extrinsic_weight(),
+				// 2/3 is reserved for proofs and tx overhead
+				max_messages_size_in_single_batch: bp_rialto::max_extrinsic_size() as usize / 3,
 			},
 		},
 		MillauSourceClient::new(millau_client, lane.clone(), lane_id, RIALTO_BRIDGE_INSTANCE),
