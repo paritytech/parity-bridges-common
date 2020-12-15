@@ -869,6 +869,7 @@ impl_runtime_apis! {
 					};
 					use codec::Encode;
 					use frame_support::weights::GetDispatchInfo;
+					use pallet_message_lane::storage_keys;
 					use sp_runtime::traits::Header;
 
 					let call = Call::System(SystemCall::remark(vec![]));
@@ -884,26 +885,30 @@ impl_runtime_apis! {
 						rialto_raw_signature,
 					));
 
+					let make_millau_message_key = |message_key| storage_keys::message_key::<
+						Runtime,
+						<Millau as ChainWithMessageLanes>::MessageLaneInstance,
+					>(
+						&message_key.lane_id, message_key.nonce,
+					).0;
+					let make_millau_outbound_lane_data_key = |lane_id| storage_keys::outbound_lane_data_key::<
+						<Millau as ChainWithMessageLanes>::MessageLaneInstance,
+					>(
+						&lane_id,
+					).0;
+					let make_millau_header = |state_root| bp_millau::Header::new(
+						0,
+						Default::default(),
+						state_root,
+						Default::default(),
+						Default::default(),
+					);
+
 					prepare_message_proof::<WithMillauMessageBridge, bp_millau::Hasher, Runtime, _, _, _>(
 						params,
-						|message_key| pallet_message_lane::storage_keys::message_key::<
-							Runtime,
-							<Millau as ChainWithMessageLanes>::MessageLaneInstance,
-						>(
-							&message_key.lane_id, message_key.nonce,
-						).0,
-						|lane_id| pallet_message_lane::storage_keys::outbound_lane_data_key::<
-							<Millau as ChainWithMessageLanes>::MessageLaneInstance,
-						>(
-							&lane_id,
-						).0,
-						|state_root| bp_millau::Header::new(
-							0,
-							Default::default(),
-							state_root,
-							Default::default(),
-							Default::default(),
-						),
+						make_millau_message_key,
+						make_millau_outbound_lane_data_key,
+						make_millau_header,
 						call_weight,
 						pallet_bridge_call_dispatch::MessagePayload {
 							spec_version: VERSION.spec_version,
