@@ -25,7 +25,7 @@ mod millau_hash;
 use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
-	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, Weight},
+	weights::{constants::WEIGHT_PER_MILLIS, DispatchClass, Weight},
 	RuntimeDebug,
 };
 use sp_core::Hasher as HasherT;
@@ -73,8 +73,8 @@ impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
 
 /// Maximum weight of single Millau block.
 ///
-/// This represents two seconds of compute assuming a target block time of six seconds.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
+/// This represents 0.1 seconds of compute assuming a target block time of six seconds.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 10 * WEIGHT_PER_MILLIS;
 
 /// Represents the average portion of a block's weight that will be used by an
 /// `on_initialize()` runtime call.
