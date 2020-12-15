@@ -122,7 +122,6 @@ impl Alternative {
 							get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 							get_account_id_from_seed::<sr25519::Public>("George//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
-							derive_account_from_rialto_id(bp_runtime::SourceAccount::Root),
 							derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
 								get_account_id_from_seed::<sr25519::Public>("Dave"),
 							)),
@@ -186,14 +185,5 @@ fn derived_dave_account_is_as_expected() {
 	assert_eq!(
 		derived.to_string(),
 		"5G81vRqUUysQGtN5aEThD5UsLdt4rZWSbVLkjuZzLHadp8ZD".to_string()
-	);
-}
-
-#[test]
-fn derived_root_account_is_as_expected() {
-	let root: AccountId = derive_account_from_rialto_id(bp_runtime::SourceAccount::Root);
-	assert_eq!(
-		root.to_string(),
-		"5CWBgRan9wpqeyCR86Gx1TUQpUEypoYcyNjrMCwcAE76qiZM".to_string()
 	);
 }
