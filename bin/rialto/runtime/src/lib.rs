@@ -206,9 +206,9 @@ impl frame_system::Config for Runtime {
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = ();
-	/// boop
+	/// Block and extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
-	/// boop
+	/// The maximum length of a block (in bytes).
 	type BlockLength = RuntimeBlockLength;
 	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = DbWeight;
