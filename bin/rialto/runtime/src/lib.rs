@@ -863,6 +863,7 @@ impl_runtime_apis! {
 					params: MessageLaneMessageProofParams,
 				) -> (millau_messages::FromMillauMessagesProof, Weight) {
 					use crate::millau_messages::{Millau, WithMillauMessageBridge};
+					use bp_message_lane::MessageKey;
 					use bridge_runtime_common::{
 						messages::ChainWithMessageLanes,
 						messages_benchmarking::{ed25519_sign, prepare_message_proof},
@@ -885,7 +886,7 @@ impl_runtime_apis! {
 						rialto_raw_signature,
 					));
 
-					let make_millau_message_key = |message_key| storage_keys::message_key::<
+					let make_millau_message_key = |message_key: MessageKey| storage_keys::message_key::<
 						Runtime,
 						<Millau as ChainWithMessageLanes>::MessageLaneInstance,
 					>(
