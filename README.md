@@ -151,19 +151,21 @@ development you should at minimum run with the `--dev` flag or else no blocks wi
 Then we need to initialize and run the relayer:
 
 ```bash
-docker run --network=host -it paritytech/substrate-relay initialize-rialto-headers-bridge-in-millau \
-	--millau-host localhost \
-	--millau-port 9945 \
-	--rialto-host localhost \
-	--rialto-port 9944 \
-	--millau-signer //Alice
+docker run --network=host -it \
+        paritytech/substrate-relay initialize-rialto-headers-bridge-in-millau \
+        --millau-host localhost \
+        --millau-port 9945 \
+        --rialto-host localhost \
+        --rialto-port 9944 \
+        --millau-signer //Alice
 
-docker run --network=host -it paritytech/substrate-relay rialto-headers-to-millau \
-	--millau-host localhost \
-	--millau-port 9945 \
-	--rialto-host localhost \
-	--rialto-port 9944 \
-	--millau-signer //Bob \
+docker run --network=host -it \
+        paritytech/substrate-relay rialto-headers-to-millau \
+        --millau-host localhost \
+        --millau-port 9945 \
+        --rialto-host localhost \
+        --rialto-port 9944 \
+        --millau-signer //Bob \
 ```
 
 You should now see the relayer submitting headers from the Millau chain to the Rialto chain.
