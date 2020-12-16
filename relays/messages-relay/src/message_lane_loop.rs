@@ -30,7 +30,7 @@ use crate::message_race_receiving::run as run_message_receiving_race;
 use crate::metrics::MessageLaneLoopMetrics;
 
 use async_trait::async_trait;
-use bp_message_lane::{LaneId, MessageNonce, Weight};
+use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
 use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
 use relay_utils::{
 	interval,
@@ -59,6 +59,10 @@ pub struct Params {
 /// Message delivery race parameters.
 #[derive(Debug, Clone)]
 pub struct MessageDeliveryParams {
+	/// Maximal number of unconfirmed relayer entries at the inbound lane. If there's that number of entries
+	/// in the `InboundLaneData::relayers` set, all new messages will be rejected until reward payment will
+	/// be proved (by including outbound lane state to the message delivery transaction).
+	pub max_unrewarded_relayer_entries_at_target: MessageNonce,
 	/// Message delivery race will stop delivering messages if there are `max_unconfirmed_nonces_at_target`
 	/// unconfirmed nonces on the target node. The race would continue once they're confirmed by the
 	/// receiving race.
@@ -67,10 +71,21 @@ pub struct MessageDeliveryParams {
 	pub max_messages_in_single_batch: MessageNonce,
 	/// Maximal cumulative dispatch weight of relayed messages in single delivery transaction.
 	pub max_messages_weight_in_single_batch: Weight,
+	/// Maximal cumulative size of relayed messages in single delivery transaction.
+	pub max_messages_size_in_single_batch: usize,
+}
+
+/// Message weights.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MessageWeights {
+	/// Message dispatch weight.
+	pub weight: Weight,
+	/// Message size (number of bytes in encoded payload).
+	pub size: usize,
 }
 
 /// Messages weights map.
-pub type MessageWeightsMap = BTreeMap<MessageNonce, Weight>;
+pub type MessageWeightsMap = BTreeMap<MessageNonce, MessageWeights>;
 
 /// Message delivery race proof parameters.
 #[derive(Debug, PartialEq)]
@@ -153,6 +168,11 @@ pub trait TargetClient<P: MessageLane>: Clone + Send + Sync {
 		&self,
 		id: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), Self::Error>;
+	/// Get state of unrewarded relayers set at the inbound lane.
+	async fn unrewarded_relayers_state(
+		&self,
+		id: TargetHeaderIdOf<P>,
+	) -> Result<(TargetHeaderIdOf<P>, UnrewardedRelayersState), Self::Error>;
 
 	/// Prove messages receiving at given block.
 	async fn prove_messages_receiving(
@@ -577,7 +597,9 @@ pub(crate) mod tests {
 			_id: SourceHeaderIdOf<TestMessageLane>,
 			nonces: RangeInclusive<MessageNonce>,
 		) -> Result<MessageWeightsMap, Self::Error> {
-			Ok(nonces.map(|nonce| (nonce, 1)).collect())
+			Ok(nonces
+				.map(|nonce| (nonce, MessageWeights { weight: 1, size: 1 }))
+				.collect())
 		}
 
 		async fn prove_messages(
@@ -662,6 +684,19 @@ pub(crate) mod tests {
 			Ok((id, data.target_latest_received_nonce))
 		}
 
+		async fn unrewarded_relayers_state(
+			&self,
+			id: TargetHeaderIdOf<TestMessageLane>,
+		) -> Result<(TargetHeaderIdOf<TestMessageLane>, UnrewardedRelayersState), Self::Error> {
+			Ok((
+				id,
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 0,
+					messages_in_oldest_entry: 0,
+				},
+			))
+		}
+
 		async fn latest_confirmed_received_nonce(
 			&self,
 			id: TargetHeaderIdOf<TestMessageLane>,
@@ -728,9 +763,11 @@ pub(crate) mod tests {
 					reconnect_delay: Duration::from_millis(0),
 					stall_timeout: Duration::from_millis(60 * 1000),
 					delivery_params: MessageDeliveryParams {
+						max_unrewarded_relayer_entries_at_target: 4,
 						max_unconfirmed_nonces_at_target: 4,
 						max_messages_in_single_batch: 4,
 						max_messages_weight_in_single_batch: 4,
+						max_messages_size_in_single_batch: 4,
 					},
 				},
 				source_client,

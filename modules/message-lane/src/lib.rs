@@ -45,6 +45,7 @@ use frame_support::{
 	Parameter, StorageMap,
 };
 use frame_system::{ensure_signed, RawOrigin};
+use num_traits::Zero;
 use sp_runtime::{traits::BadOrigin, DispatchResult};
 use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
@@ -52,6 +53,9 @@ mod inbound_lane;
 mod outbound_lane;
 
 pub mod instant_payments;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -65,26 +69,29 @@ const DELIVERY_OVERHEAD_WEIGHT: Weight = 0;
 const SINGLE_MESSAGE_DELIVERY_WEIGHT: Weight = 0;
 
 /// The module configuration trait
-pub trait Trait<I = DefaultInstance>: frame_system::Trait {
+pub trait Config<I = DefaultInstance>: frame_system::Config {
 	// General types
 
 	/// They overarching event type.
-	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Trait>::Event>;
+	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
-	/// whenever outbound lane is updated - i.e. when new message is sent, or receival is
-	/// confirmed. The reason is that if you want to use lane, you should be ready to pay
-	/// for it.
+	/// whenever new message is sent. The reason is that if you want to use lane, you should
+	/// be ready to pay for its maintenance.
 	type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
-	/// Maximal number of "messages" (see note below) in the 'unconfirmed' state at inbound lane.
-	/// Unconfirmed message at inbound lane is the message that has been: sent, delivered and
-	/// dispatched. Its delivery confirmation is still pending. This limit is introduced to bound
-	/// maximal number of relayers-ids in the inbound lane state.
+	/// Maximal number of unrewarded relayer entries at inbound lane. Unrewarded means that the
+	/// relayer has delivered messages, but either confirmations haven't been delivered back to the
+	/// source chain, or we haven't received reward confirmations yet.
 	///
-	/// "Message" in this context does not necessarily mean an individual message, but instead
-	/// continuous range of individual messages, that are delivered by single relayer. So if relayer#1
-	/// has submitted delivery transaction#1 with individual messages [1; 2] and then delivery
-	/// transaction#2 with individual messages [3; 4], this would be treated as single "Message" and
-	/// would occupy single unit of `MaxUnconfirmedMessagesAtInboundLane` limit.
+	/// This constant limits maximal number of entries in the `InboundLaneData::relayers`. Keep
+	/// in mind that the same relayer account may take several (non-consecutive) entries in this
+	/// set.
+	type MaxUnrewardedRelayerEntriesAtInboundLane: Get<MessageNonce>;
+	/// Maximal number of unconfirmed messages at inbound lane. Unconfirmed means that the
+	/// message has been delivered, but either confirmations haven't been delivered back to the
+	/// source chain, or we haven't received reward confirmations for these messages yet.
+	///
+	/// This constant limits difference between last message from last entry of the
+	/// `InboundLaneData::relayers` and first message at the first entry.
 	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 	/// Maximal number of messages in single delivery transaction. This directly affects the base
 	/// weight of the delivery transaction.
@@ -95,7 +102,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 	type OutboundPayload: Parameter;
 	/// Message fee type of outbound messages. This fee is paid on this chain.
-	type OutboundMessageFee: Parameter;
+	type OutboundMessageFee: Parameter + Zero;
 
 	/// Payload type of inbound messages. This payload is dispatched on this chain.
 	type InboundPayload: Decode;
@@ -126,17 +133,17 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type MessageDispatch: MessageDispatch<Self::InboundMessageFee, DispatchPayload = Self::InboundPayload>;
 }
 
-/// Shortcut to messages proof type for Trait.
+/// Shortcut to messages proof type for Config.
 type MessagesProofOf<T, I> =
-	<<T as Trait<I>>::SourceHeaderChain as SourceHeaderChain<<T as Trait<I>>::InboundMessageFee>>::MessagesProof;
-/// Shortcut to messages delivery proof type for Trait.
-type MessagesDeliveryProofOf<T, I> = <<T as Trait<I>>::TargetHeaderChain as TargetHeaderChain<
-	<T as Trait<I>>::OutboundPayload,
-	<T as frame_system::Trait>::AccountId,
+	<<T as Config<I>>::SourceHeaderChain as SourceHeaderChain<<T as Config<I>>::InboundMessageFee>>::MessagesProof;
+/// Shortcut to messages delivery proof type for Config.
+type MessagesDeliveryProofOf<T, I> = <<T as Config<I>>::TargetHeaderChain as TargetHeaderChain<
+	<T as Config<I>>::OutboundPayload,
+	<T as frame_system::Config>::AccountId,
 >>::MessagesDeliveryProof;
 
 decl_error! {
-	pub enum Error for Module<T: Trait<I>, I: Instance> {
+	pub enum Error for Module<T: Config<I>, I: Instance> {
 		/// All pallet operations are halted.
 		Halted,
 		/// Message has been treated as invalid by chain verifier.
@@ -155,7 +162,7 @@ decl_error! {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as MessageLane {
+	trait Store for Module<T: Config<I>, I: Instance = DefaultInstance> as MessageLane {
 		/// Optional pallet owner.
 		///
 		/// Pallet owner has a right to halt all pallet operations and then resume it. If it is
@@ -185,7 +192,7 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T, I = DefaultInstance> where
-		<T as frame_system::Trait>::AccountId,
+		<T as frame_system::Config>::AccountId,
 	{
 		/// Message has been accepted and is waiting to be delivered.
 		MessageAccepted(LaneId, MessageNonce),
@@ -197,7 +204,7 @@ decl_event!(
 );
 
 decl_module! {
-	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
 
@@ -248,18 +255,19 @@ decl_module! {
 			delivery_and_dispatch_fee: T::OutboundMessageFee,
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
-			let submitter = ensure_signed(origin)?;
+			let submitter = origin.into().map_err(|_| BadOrigin)?;
 
 			// let's first check if message can be delivered to target chain
-			T::TargetHeaderChain::verify_message(&payload).map_err(|err| {
-				frame_support::debug::trace!(
-					"Message to lane {:?} is rejected by target chain: {:?}",
-					lane_id,
-					err,
-				);
+			T::TargetHeaderChain::verify_message(&payload)
+				.map_err(|err| {
+					frame_support::debug::trace!(
+						"Message to lane {:?} is rejected by target chain: {:?}",
+						lane_id,
+						err,
+					);
 
-				Error::<T, I>::MessageRejectedByChainVerifier
-			})?;
+					Error::<T, I>::MessageRejectedByChainVerifier
+				})?;
 
 			// now let's enforce any additional lane rules
 			T::LaneMessageVerifier::verify_message(
@@ -435,7 +443,7 @@ decl_module! {
 							nonce,
 						}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
 
-						<T as Trait<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
+						<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
 							&confirmation_relayer,
 							&relayer,
 							&message_data.fee,
@@ -456,7 +464,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait<I>, I: Instance> Module<T, I> {
+impl<T: Config<I>, I: Instance> Module<T, I> {
 	/// Get payload of given outbound message.
 	pub fn outbound_message_payload(lane: LaneId, nonce: MessageNonce) -> Option<MessagePayload> {
 		OutboundMessages::<T, I>::get(MessageKey { lane_id: lane, nonce }).map(|message_data| message_data.payload)
@@ -481,6 +489,17 @@ impl<T: Trait<I>, I: Instance> Module<T, I> {
 	pub fn inbound_latest_confirmed_nonce(lane: LaneId) -> MessageNonce {
 		InboundLanes::<T, I>::get(&lane).latest_confirmed_nonce
 	}
+
+	/// Get state of unrewarded relayers set.
+	pub fn inbound_unrewarded_relayers_state(
+		lane: bp_message_lane::LaneId,
+	) -> bp_message_lane::UnrewardedRelayersState {
+		let relayers = InboundLanes::<T, I>::get(&lane).relayers;
+		bp_message_lane::UnrewardedRelayersState {
+			unrewarded_relayer_entries: relayers.len() as _,
+			messages_in_oldest_entry: relayers.front().map(|(begin, end, _)| 1 + end - begin).unwrap_or(0),
+		}
+	}
 }
 
 /// Getting storage keys for messages and lanes states. These keys are normally used when building
@@ -502,7 +521,7 @@ pub mod storage_keys {
 	use sp_core::storage::StorageKey;
 
 	/// Storage key of the outbound message in the runtime storage.
-	pub fn message_key<T: Trait<I>, I: Instance>(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
+	pub fn message_key<T: Config<I>, I: Instance>(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
 		let message_key = MessageKey { lane_id: *lane, nonce };
 		let raw_storage_key = OutboundMessages::<T, I>::storage_map_final_key(message_key);
 		StorageKey(raw_storage_key)
@@ -514,13 +533,13 @@ pub mod storage_keys {
 	}
 
 	/// Storage key of the inbound message lane state in the runtime storage.
-	pub fn inbound_lane_data_key<T: Trait<I>, I: Instance>(lane: &LaneId) -> StorageKey {
+	pub fn inbound_lane_data_key<T: Config<I>, I: Instance>(lane: &LaneId) -> StorageKey {
 		StorageKey(InboundLanes::<T, I>::storage_map_final_key(*lane))
 	}
 }
 
 /// Ensure that the origin is either root, or `ModuleOwner`.
-fn ensure_owner_or_root<T: Trait<I>, I: Instance>(origin: T::Origin) -> Result<(), BadOrigin> {
+fn ensure_owner_or_root<T: Config<I>, I: Instance>(origin: T::Origin) -> Result<(), BadOrigin> {
 	match origin.into() {
 		Ok(RawOrigin::Root) => Ok(()),
 		Ok(RawOrigin::Signed(ref signer)) if Some(signer) == Module::<T, I>::module_owner().as_ref() => Ok(()),
@@ -529,7 +548,7 @@ fn ensure_owner_or_root<T: Trait<I>, I: Instance>(origin: T::Origin) -> Result<(
 }
 
 /// Ensure that the pallet is in operational mode (not halted).
-fn ensure_operational<T: Trait<I>, I: Instance>() -> Result<(), Error<T, I>> {
+fn ensure_operational<T: Config<I>, I: Instance>() -> Result<(), Error<T, I>> {
 	if IsHalted::<I>::get() {
 		Err(Error::<T, I>::Halted)
 	} else {
@@ -538,16 +557,21 @@ fn ensure_operational<T: Trait<I>, I: Instance>() -> Result<(), Error<T, I>> {
 }
 
 /// Creates new inbound lane object, backed by runtime storage.
-fn inbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
-	InboundLane::new(RuntimeInboundLaneStorage {
+fn inbound_lane<T: Config<I>, I: Instance>(lane_id: LaneId) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
+	InboundLane::new(inbound_lane_storage::<T, I>(lane_id))
+}
+
+/// Creates new runtime inbound lane storage.
+fn inbound_lane_storage<T: Config<I>, I: Instance>(lane_id: LaneId) -> RuntimeInboundLaneStorage<T, I> {
+	RuntimeInboundLaneStorage {
 		lane_id,
 		cached_data: RefCell::new(None),
 		_phantom: Default::default(),
-	})
+	}
 }
 
 /// Creates new outbound lane object, backed by runtime storage.
-fn outbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
+fn outbound_lane<T: Config<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
 	OutboundLane::new(RuntimeOutboundLaneStorage {
 		lane_id,
 		_phantom: Default::default(),
@@ -555,18 +579,22 @@ fn outbound_lane<T: Trait<I>, I: Instance>(lane_id: LaneId) -> OutboundLane<Runt
 }
 
 /// Runtime inbound lane storage.
-struct RuntimeInboundLaneStorage<T: Trait<I>, I = DefaultInstance> {
+struct RuntimeInboundLaneStorage<T: Config<I>, I = DefaultInstance> {
 	lane_id: LaneId,
 	cached_data: RefCell<Option<InboundLaneData<T::InboundRelayer>>>,
 	_phantom: PhantomData<I>,
 }
 
-impl<T: Trait<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
+impl<T: Config<I>, I: Instance> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
 	type MessageFee = T::InboundMessageFee;
 	type Relayer = T::InboundRelayer;
 
 	fn id(&self) -> LaneId {
 		self.lane_id
+	}
+
+	fn max_unrewarded_relayer_entries(&self) -> MessageNonce {
+		T::MaxUnrewardedRelayerEntriesAtInboundLane::get()
 	}
 
 	fn max_unconfirmed_messages(&self) -> MessageNonce {
@@ -602,7 +630,7 @@ struct RuntimeOutboundLaneStorage<T, I = DefaultInstance> {
 	_phantom: PhantomData<(T, I)>,
 }
 
-impl<T: Trait<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorage<T, I> {
+impl<T: Config<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStorage<T, I> {
 	type MessageFee = T::OutboundMessageFee;
 
 	fn id(&self) -> LaneId {
@@ -668,7 +696,7 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 ///
 /// This account stores all the fees paid by submitters. Relayers are able to claim these
 /// funds as at their convenience.
-fn relayer_fund_account_id<T: Trait<I>, I: Instance>() -> T::AccountId {
+fn relayer_fund_account_id<T: Config<I>, I: Instance>() -> T::AccountId {
 	use sp_runtime::traits::Convert;
 	let encoded_id = bp_runtime::derive_relayer_fund_account_id(bp_runtime::NO_INSTANCE_ID);
 	T::AccountIdConverter::convert(encoded_id)
@@ -681,6 +709,7 @@ mod tests {
 		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesProof, TestRuntime,
 		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
+	use bp_message_lane::UnrewardedRelayersState;
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Module as System, Phase};
 	use hex_literal::hex;
@@ -916,6 +945,13 @@ mod tests {
 						.collect(),
 				},
 			);
+			assert_eq!(
+				Module::<TestRuntime>::inbound_unrewarded_relayers_state(TEST_LANE_ID),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 2,
+					messages_in_oldest_entry: 1,
+				},
+			);
 
 			// message proof includes outbound lane state with latest confirmed message updated to 9
 			let mut message_proof: TestMessagesProof = Ok(vec![message(11, REGULAR_PAYLOAD)]).into();
@@ -939,6 +975,13 @@ mod tests {
 						.collect(),
 					latest_received_nonce: 11,
 					latest_confirmed_nonce: 9,
+				},
+			);
+			assert_eq!(
+				Module::<TestRuntime>::inbound_unrewarded_relayers_state(TEST_LANE_ID),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 2,
+					messages_in_oldest_entry: 1,
 				},
 			);
 		});

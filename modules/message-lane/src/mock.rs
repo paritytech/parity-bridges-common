@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::Trait;
+use crate::Config;
 
 use bp_message_lane::{
-	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
+	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, Sender, TargetHeaderChain},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce,
 };
@@ -69,7 +69,7 @@ parameter_types! {
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-impl frame_system::Trait for TestRuntime {
+impl frame_system::Config for TestRuntime {
 	type Origin = Origin;
 	type Index = u64;
 	type Call = ();
@@ -81,13 +81,6 @@ impl frame_system::Trait for TestRuntime {
 	type Header = SubstrateHeader;
 	type Event = TestEvent;
 	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
-	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = MaximumBlockWeight;
-	type AvailableBlockRatio = AvailableBlockRatio;
-	type MaximumBlockLength = MaximumBlockLength;
 	type Version = ();
 	type PalletInfo = ();
 	type AccountData = ();
@@ -95,17 +88,22 @@ impl frame_system::Trait for TestRuntime {
 	type OnKilledAccount = ();
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
+	type BlockWeights = ();
+	type BlockLength = ();
+	type DbWeight = ();
 }
 
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: u64 = 10;
-	pub const MaxUnconfirmedMessagesAtInboundLane: u64 = 16;
+	pub const MaxUnrewardedRelayerEntriesAtInboundLane: u64 = 16;
+	pub const MaxUnconfirmedMessagesAtInboundLane: u64 = 32;
 	pub const MaxMessagesInDeliveryTransaction: u64 = 128;
 }
 
-impl Trait for TestRuntime {
+impl Config for TestRuntime {
 	type Event = TestEvent;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 	type MaxMessagesInDeliveryTransaction = MaxMessagesInDeliveryTransaction;
 
@@ -207,7 +205,7 @@ impl LaneMessageVerifier<AccountId, TestPayload, TestMessageFee> for TestLaneMes
 	type Error = &'static str;
 
 	fn verify_message(
-		_submitter: &AccountId,
+		_submitter: &Sender<AccountId>,
 		delivery_and_dispatch_fee: &TestMessageFee,
 		_lane: &LaneId,
 		_payload: &TestPayload,
@@ -232,7 +230,7 @@ impl TestMessageDeliveryAndDispatchPayment {
 
 	/// Returns true if given fee has been paid by given submitter.
 	pub fn is_fee_paid(submitter: AccountId, fee: TestMessageFee) -> bool {
-		frame_support::storage::unhashed::get(b":message-fee:") == Some((submitter, fee))
+		frame_support::storage::unhashed::get(b":message-fee:") == Some((Sender::Signed(submitter), fee))
 	}
 
 	/// Returns true if given relayer has been rewarded with given balance. The reward-paid flag is
@@ -247,7 +245,7 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 	type Error = &'static str;
 
 	fn pay_delivery_and_dispatch_fee(
-		submitter: &AccountId,
+		submitter: &Sender<AccountId>,
 		fee: &TestMessageFee,
 		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {

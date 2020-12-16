@@ -30,11 +30,12 @@ use codec::{Decode, Encode};
 use frame_support::{
 	decl_event, decl_module, decl_storage,
 	dispatch::{Dispatchable, Parameter},
+	ensure,
 	traits::Get,
 	weights::{extract_actual_weight, GetDispatchInfo},
 	RuntimeDebug,
 };
-use frame_system::{ensure_root, ensure_signed, RawOrigin};
+use frame_system::RawOrigin;
 use sp_runtime::{
 	traits::{BadOrigin, Convert, IdentifyAccount, MaybeDisplay, MaybeSerializeDeserialize, Member, Verify},
 	DispatchResult,
@@ -94,9 +95,9 @@ pub struct MessagePayload<SourceChainAccountId, TargetChainAccountPublic, Target
 }
 
 /// The module configuration trait.
-pub trait Trait<I = DefaultInstance>: frame_system::Trait {
+pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// The overarching event type.
-	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Trait>::Event>;
+	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 	/// Id of the message. Whenever message is passed to the dispatch module, it emits
 	/// event with this id + dispatch result. Could be e.g. (LaneId, MessageNonce) if
 	/// it comes from message-lane module.
@@ -112,7 +113,7 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 	type Call: Parameter
 		+ GetDispatchInfo
 		+ Dispatchable<
-			Origin = <Self as frame_system::Trait>::Origin,
+			Origin = <Self as frame_system::Config>::Origin,
 			PostInfo = frame_support::dispatch::PostDispatchInfo,
 		>;
 	/// A type which can be turned into an AccountId from a 256-bit hash.
@@ -122,12 +123,12 @@ pub trait Trait<I = DefaultInstance>: frame_system::Trait {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait<I>, I: Instance = DefaultInstance> as CallDispatch {}
+	trait Store for Module<T: Config<I>, I: Instance = DefaultInstance> as CallDispatch {}
 }
 
 decl_event!(
 	pub enum Event<T, I = DefaultInstance> where
-		<T as Trait<I>>::MessageId
+		<T as Config<I>>::MessageId
 	{
 		/// Message has been rejected by dispatcher because of spec version mismatch.
 		/// Last two arguments are: expected and passed spec version.
@@ -146,18 +147,18 @@ decl_event!(
 
 decl_module! {
 	/// Call Dispatch FRAME Pallet.
-	pub struct Module<T: Trait<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
 	}
 }
 
-impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
+impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 	type Message = MessagePayload<
 		T::SourceChainAccountId,
 		T::TargetChainAccountPublic,
 		T::TargetChainSignature,
-		<T as Trait<I>>::Call,
+		<T as Config<I>>::Call,
 	>;
 
 	fn dispatch_weight(message: &Self::Message) -> Weight {
@@ -167,7 +168,7 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Self::Message) {
 		// verify spec version
 		// (we want it to be the same, because otherwise we may decode Call improperly)
-		let expected_version = <T as frame_system::Trait>::Version::get().spec_version;
+		let expected_version = <T as frame_system::Config>::Version::get().spec_version;
 		if message.spec_version != expected_version {
 			frame_support::debug::trace!(
 				"Message {:?}/{:?}: spec_version mismatch. Expected {:?}, got {:?}",
@@ -210,8 +211,10 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 		// prepare dispatch origin
 		let origin_account = match message.origin {
 			CallOrigin::SourceRoot => {
-				let encoded_id = derive_account_id::<T::SourceChainAccountId>(bridge, SourceAccount::Root);
-				T::AccountIdConverter::convert(encoded_id)
+				let hex_id = derive_account_id::<T::SourceChainAccountId>(bridge, SourceAccount::Root);
+				let target_id = T::AccountIdConverter::convert(hex_id);
+				frame_support::debug::trace!("Root Account: {:?}", &target_id);
+				target_id
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
 				let mut signed_message = Vec::new();
@@ -231,18 +234,24 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 					return;
 				}
 
+				frame_support::debug::trace!("Target Account: {:?}", &target_account);
 				target_account
 			}
 			CallOrigin::SourceAccount(source_account_id) => {
-				let encoded_id = derive_account_id(bridge, SourceAccount::Account(source_account_id));
-				T::AccountIdConverter::convert(encoded_id)
+				let hex_id = derive_account_id(bridge, SourceAccount::Account(source_account_id));
+				let target_id = T::AccountIdConverter::convert(hex_id);
+				frame_support::debug::trace!("Source Account: {:?}", &target_id);
+				target_id
 			}
 		};
 
 		// finally dispatch message
 		let origin = RawOrigin::Signed(origin_account).into();
+
+		frame_support::debug::trace!("Message being dispatched is: {:?}", &message.call);
 		let dispatch_result = message.call.dispatch(origin);
 		let actual_call_weight = extract_actual_weight(&dispatch_result, &dispatch_info);
+
 		frame_support::debug::trace!(
 			"Message {:?}/{:?} has been dispatched. Weight: {} of {}. Result: {:?}",
 			bridge,
@@ -266,39 +275,31 @@ impl<T: Trait<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 /// For example, if a message is sent from a "regular" account on the source chain it will not be
 /// allowed to be dispatched as Root on the target chain. This is a useful check to do on the source
 /// chain _before_ sending a message whose dispatch will be rejected on the target chain.
-pub fn verify_message_origin<
-	SourceChainOuterOrigin,
-	SourceChainAccountId,
-	TargetChainAccountPublic,
-	TargetChainSignature,
-	Call,
->(
-	sender_origin: SourceChainOuterOrigin,
+pub fn verify_message_origin<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature, Call>(
+	sender_origin: &RawOrigin<SourceChainAccountId>,
 	message: &MessagePayload<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature, Call>,
 ) -> Result<Option<SourceChainAccountId>, BadOrigin>
 where
-	SourceChainOuterOrigin: Into<Result<RawOrigin<SourceChainAccountId>, SourceChainOuterOrigin>>,
-	SourceChainAccountId: PartialEq,
+	SourceChainAccountId: PartialEq + Clone,
 {
 	match message.origin {
 		CallOrigin::SourceRoot => {
-			ensure_root(sender_origin)?;
+			ensure!(sender_origin == &RawOrigin::Root, BadOrigin);
 			Ok(None)
 		}
 		CallOrigin::TargetAccount(ref source_account_id, _, _) => {
-			let source_chain_signer = ensure_signed(sender_origin)?;
-			if source_chain_signer != *source_account_id {
-				return Err(BadOrigin);
-			}
-
-			Ok(Some(source_chain_signer))
+			ensure!(
+				sender_origin == &RawOrigin::Signed(source_account_id.clone()),
+				BadOrigin
+			);
+			Ok(Some(source_account_id.clone()))
 		}
 		CallOrigin::SourceAccount(ref source_account_id) => {
-			let source_chain_signer = ensure_signed(sender_origin)?;
-			if source_chain_signer != *source_account_id {
-				return Err(BadOrigin);
-			}
-			Ok(Some(source_chain_signer))
+			ensure!(
+				sender_origin == &RawOrigin::Signed(source_account_id.clone()),
+				BadOrigin
+			);
+			Ok(Some(source_account_id.clone()))
 		}
 	}
 }
@@ -383,7 +384,7 @@ mod tests {
 		pub const AvailableBlockRatio: Perbill = Perbill::one();
 	}
 
-	impl frame_system::Trait for TestRuntime {
+	impl frame_system::Config for TestRuntime {
 		type Origin = Origin;
 		type Index = u64;
 		type Call = Call;
@@ -395,13 +396,6 @@ mod tests {
 		type Header = Header;
 		type Event = TestEvent;
 		type BlockHashCount = BlockHashCount;
-		type MaximumBlockWeight = MaximumBlockWeight;
-		type DbWeight = ();
-		type BlockExecutionWeight = ();
-		type ExtrinsicBaseWeight = ();
-		type MaximumExtrinsicWeight = ();
-		type AvailableBlockRatio = AvailableBlockRatio;
-		type MaximumBlockLength = MaximumBlockLength;
 		type Version = ();
 		type PalletInfo = ();
 		type AccountData = ();
@@ -409,9 +403,12 @@ mod tests {
 		type OnKilledAccount = ();
 		type BaseCallFilter = ();
 		type SystemWeightInfo = ();
+		type BlockWeights = ();
+		type BlockLength = ();
+		type DbWeight = ();
 	}
 
-	impl Trait for TestRuntime {
+	impl Config for TestRuntime {
 		type Event = TestEvent;
 		type MessageId = MessageId;
 		type SourceChainAccountId = AccountId;
@@ -434,7 +431,7 @@ mod tests {
 	fn prepare_message(
 		origin: CallOrigin<AccountId, TestAccountPublic, TestSignature>,
 		call: Call,
-	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
+	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
 		MessagePayload {
 			spec_version: TEST_SPEC_VERSION,
 			weight: TEST_WEIGHT,
@@ -445,20 +442,20 @@ mod tests {
 
 	fn prepare_root_message(
 		call: Call,
-	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
+	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
 		prepare_message(CallOrigin::SourceRoot, call)
 	}
 
 	fn prepare_target_message(
 		call: Call,
-	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
+	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
 		let origin = CallOrigin::TargetAccount(1, TestAccountPublic(1), TestSignature(1));
 		prepare_message(origin, call)
 	}
 
 	fn prepare_source_message(
 		call: Call,
-	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Trait>::MessageId>>::Message {
+	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
 		let origin = CallOrigin::SourceAccount(1);
 		prepare_message(origin, call)
 	}
@@ -617,14 +614,11 @@ mod tests {
 		let message = prepare_root_message(call);
 
 		// When message is sent by Root, CallOrigin::SourceRoot is allowed
-		assert!(matches!(
-			verify_message_origin(Origin::from(RawOrigin::Root), &message),
-			Ok(None)
-		));
+		assert!(matches!(verify_message_origin(&RawOrigin::Root, &message), Ok(None)));
 
 		// when message is sent by some real account, CallOrigin::SourceRoot is not allowed
 		assert!(matches!(
-			verify_message_origin(Origin::from(RawOrigin::Signed(1)), &message),
+			verify_message_origin(&RawOrigin::Signed(1), &message),
 			Err(BadOrigin)
 		));
 	}
@@ -636,20 +630,20 @@ mod tests {
 
 		// When message is sent by Root, CallOrigin::TargetAccount is not allowed
 		assert!(matches!(
-			verify_message_origin(Origin::from(RawOrigin::Root), &message),
+			verify_message_origin(&RawOrigin::Root, &message),
 			Err(BadOrigin)
 		));
 
 		// When message is sent by some other account, it is rejected
 		assert!(matches!(
-			verify_message_origin(Origin::from(RawOrigin::Signed(2)), &message),
+			verify_message_origin(&RawOrigin::Signed(2), &message),
 			Err(BadOrigin)
 		));
 
 		// When message is sent by a real account, it is allowed to have origin
 		// CallOrigin::TargetAccount
 		assert!(matches!(
-			verify_message_origin(Origin::from(RawOrigin::Signed(1)), &message),
+			verify_message_origin(&RawOrigin::Signed(1), &message),
 			Ok(Some(1))
 		));
 	}
@@ -661,19 +655,19 @@ mod tests {
 
 		// Sending a message from the expected origin account works
 		assert!(matches!(
-			verify_message_origin(Origin::from(RawOrigin::Signed(1)), &message),
+			verify_message_origin(&RawOrigin::Signed(1), &message),
 			Ok(Some(1))
 		));
 
 		// If we send a message from a different account, it is rejected
 		assert!(matches!(
-			verify_message_origin(Origin::from(RawOrigin::Signed(2)), &message),
+			verify_message_origin(&RawOrigin::Signed(2), &message),
 			Err(BadOrigin)
 		));
 
 		// If we try and send the message from Root, it is also rejected
 		assert!(matches!(
-			verify_message_origin(Origin::from(RawOrigin::Root), &message),
+			verify_message_origin(&RawOrigin::Root, &message),
 			Err(BadOrigin)
 		));
 	}

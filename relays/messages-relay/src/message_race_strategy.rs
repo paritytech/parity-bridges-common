@@ -57,6 +57,14 @@ where
 		}
 	}
 
+	/// Mutable reference to source queue to use in tests.
+	#[cfg(test)]
+	pub(crate) fn source_queue_mut(
+		&mut self,
+	) -> &mut VecDeque<(HeaderId<SourceHeaderHash, SourceHeaderNumber>, SourceNoncesRange)> {
+		&mut self.source_queue
+	}
+
 	/// Should return `Some(nonces)` if we need to deliver proof of `nonces` (and associated
 	/// data) from source to target node.
 	///
@@ -145,6 +153,7 @@ where
 {
 	type SourceNoncesRange = SourceNoncesRange;
 	type ProofParameters = ();
+	type TargetNoncesData = ();
 
 	fn is_empty(&self) -> bool {
 		self.source_queue.is_empty()
@@ -185,7 +194,7 @@ where
 
 	fn target_nonces_updated(
 		&mut self,
-		nonces: TargetClientNonces,
+		nonces: TargetClientNonces<()>,
 		race_state: &mut RaceState<
 			HeaderId<SourceHeaderHash, SourceHeaderNumber>,
 			HeaderId<TargetHeaderHash, TargetHeaderNumber>,
@@ -269,10 +278,10 @@ mod tests {
 		}
 	}
 
-	fn target_nonces(latest_nonce: MessageNonce) -> TargetClientNonces {
+	fn target_nonces(latest_nonce: MessageNonce) -> TargetClientNonces<()> {
 		TargetClientNonces {
 			latest_nonce,
-			confirmed_nonce: None,
+			nonces_data: (),
 		}
 	}
 

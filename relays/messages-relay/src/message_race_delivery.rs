@@ -26,7 +26,7 @@ use crate::message_race_strategy::BasicStrategy;
 use crate::metrics::MessageLaneLoopMetrics;
 
 use async_trait::async_trait;
-use bp_message_lane::{MessageNonce, Weight};
+use bp_message_lane::{MessageNonce, UnrewardedRelayersState, Weight};
 use futures::stream::FusedStream;
 use relay_utils::FailedClient;
 use std::{collections::BTreeMap, marker::PhantomData, ops::RangeInclusive, time::Duration};
@@ -56,9 +56,11 @@ pub async fn run<P: MessageLane>(
 		target_state_updates,
 		stall_timeout,
 		MessageDeliveryStrategy::<P> {
+			max_unrewarded_relayer_entries_at_target: params.max_unrewarded_relayer_entries_at_target,
 			max_unconfirmed_nonces_at_target: params.max_unconfirmed_nonces_at_target,
 			max_messages_in_single_batch: params.max_messages_in_single_batch,
 			max_messages_weight_in_single_batch: params.max_messages_weight_in_single_batch,
+			max_messages_size_in_single_batch: params.max_messages_size_in_single_batch,
 			latest_confirmed_nonce_at_source: None,
 			target_nonces: None,
 			strategy: BasicStrategy::new(),
@@ -157,13 +159,15 @@ where
 	C: MessageLaneTargetClient<P>,
 {
 	type Error = C::Error;
+	type TargetNoncesData = DeliveryRaceTargetNoncesData;
 
 	async fn nonces(
 		&self,
 		at_block: TargetHeaderIdOf<P>,
-	) -> Result<(TargetHeaderIdOf<P>, TargetClientNonces), Self::Error> {
+	) -> Result<(TargetHeaderIdOf<P>, TargetClientNonces<DeliveryRaceTargetNoncesData>), Self::Error> {
 		let (at_block, latest_received_nonce) = self.client.latest_received_nonce(at_block).await?;
 		let (at_block, latest_confirmed_nonce) = self.client.latest_confirmed_received_nonce(at_block).await?;
+		let (at_block, unrewarded_relayers) = self.client.unrewarded_relayers_state(at_block).await?;
 
 		if let Some(metrics_msg) = self.metrics_msg.as_ref() {
 			metrics_msg.update_target_latest_received_nonce::<P>(latest_received_nonce);
@@ -174,7 +178,10 @@ where
 			at_block,
 			TargetClientNonces {
 				latest_nonce: latest_received_nonce,
-				confirmed_nonce: Some(latest_confirmed_nonce),
+				nonces_data: DeliveryRaceTargetNoncesData {
+					confirmed_nonce: latest_confirmed_nonce,
+					unrewarded_relayers,
+				},
 			},
 		))
 	}
@@ -191,18 +198,33 @@ where
 	}
 }
 
+/// Additional nonces data from the target client used by message delivery race.
+#[derive(Debug, Clone)]
+struct DeliveryRaceTargetNoncesData {
+	/// Latest nonce that we know: (1) has been delivered to us (2) has been confirmed
+	/// back to the source node (by confirmations race) and (3) relayer has received
+	/// reward for (and this has been confirmed by the message delivery race).
+	confirmed_nonce: MessageNonce,
+	/// State of the unrewarded relayers set at the target node.
+	unrewarded_relayers: UnrewardedRelayersState,
+}
+
 /// Messages delivery strategy.
 struct MessageDeliveryStrategy<P: MessageLane> {
+	/// Maximal unrewarded relayer entries at target client.
+	max_unrewarded_relayer_entries_at_target: MessageNonce,
 	/// Maximal unconfirmed nonces at target client.
 	max_unconfirmed_nonces_at_target: MessageNonce,
 	/// Maximal number of messages in the single delivery transaction.
 	max_messages_in_single_batch: MessageNonce,
 	/// Maximal cumulative messages weight in the single delivery transaction.
 	max_messages_weight_in_single_batch: Weight,
+	/// Maximal messages size in the single delivery transaction.
+	max_messages_size_in_single_batch: usize,
 	/// Latest confirmed nonce at the source client.
 	latest_confirmed_nonce_at_source: Option<MessageNonce>,
 	/// Target nonces from the source client.
-	target_nonces: Option<TargetClientNonces>,
+	target_nonces: Option<TargetClientNonces<DeliveryRaceTargetNoncesData>>,
 	/// Basic delivery strategy.
 	strategy: MessageDeliveryStrategyBase<P>,
 }
@@ -221,6 +243,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 {
 	type SourceNoncesRange = MessageWeightsMap;
 	type ProofParameters = MessageProofParameters;
+	type TargetNoncesData = DeliveryRaceTargetNoncesData;
 
 	fn is_empty(&self) -> bool {
 		self.strategy.is_empty()
@@ -245,22 +268,23 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 
 	fn target_nonces_updated(
 		&mut self,
-		nonces: TargetClientNonces,
+		nonces: TargetClientNonces<DeliveryRaceTargetNoncesData>,
 		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
 	) {
 		self.target_nonces = Some(nonces.clone());
-		self.strategy.target_nonces_updated(nonces, race_state)
+		self.strategy.target_nonces_updated(
+			TargetClientNonces {
+				latest_nonce: nonces.latest_nonce,
+				nonces_data: (),
+			},
+			race_state,
+		)
 	}
 
 	fn select_nonces_to_deliver(
 		&mut self,
 		race_state: &RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
-		const CONFIRMED_NONCE_PROOF: &str = "\
-			ClientNonces are crafted by MessageDeliveryRace(Source|Target);\
-			MessageDeliveryRace(Source|Target) always fills confirmed_nonce field;\
-			qed";
-
 		let latest_confirmed_nonce_at_source = self.latest_confirmed_nonce_at_source?;
 		let target_nonces = self.target_nonces.as_ref()?;
 
@@ -295,8 +319,27 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		//
 		// Important note: we're including outbound state lane proof whenever there are unconfirmed nonces
 		// on the target chain. Other strategy is to include it only if it's absolutely necessary.
-		let latest_confirmed_nonce_at_target = target_nonces.confirmed_nonce.expect(CONFIRMED_NONCE_PROOF);
+		let latest_confirmed_nonce_at_target = target_nonces.nonces_data.confirmed_nonce;
 		let outbound_state_proof_required = latest_confirmed_nonce_at_target < latest_confirmed_nonce_at_source;
+
+		// The target node would also reject messages if there are too many entries in the
+		// "unrewarded relayers" set. If we are unable to prove new rewards to the target node, then
+		// we should wait for confirmations race.
+		let unrewarded_relayer_entries_limit_reached =
+			target_nonces.nonces_data.unrewarded_relayers.unrewarded_relayer_entries
+				>= self.max_unrewarded_relayer_entries_at_target;
+		if unrewarded_relayer_entries_limit_reached {
+			// so there are already too many unrewarded relayer entries in the set
+			//
+			// => check if we can prove enough rewards. If not, we should wait for more rewards to be paid
+			let number_of_rewards_being_proved =
+				latest_confirmed_nonce_at_source.saturating_sub(latest_confirmed_nonce_at_target);
+			let enough_rewards_being_proved = number_of_rewards_being_proved
+				>= target_nonces.nonces_data.unrewarded_relayers.messages_in_oldest_entry;
+			if !enough_rewards_being_proved {
+				return None;
+			}
+		}
 
 		// If we're here, then the confirmations race did its job && sending side now knows that messages
 		// have been delivered. Now let's select nonces that we want to deliver.
@@ -320,7 +363,9 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			.unwrap_or_default();
 		let max_nonces = std::cmp::min(max_nonces, self.max_messages_in_single_batch);
 		let max_messages_weight_in_single_batch = self.max_messages_weight_in_single_batch;
+		let max_messages_size_in_single_batch = self.max_messages_size_in_single_batch;
 		let mut selected_weight: Weight = 0;
+		let mut selected_size: usize = 0;
 		let mut selected_count: MessageNonce = 0;
 
 		let selected_nonces = self
@@ -329,10 +374,43 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 				let to_requeue = range
 					.into_iter()
 					.skip_while(|(_, weight)| {
+						// Since we (hopefully) have some reserves in `max_messages_weight_in_single_batch`
+						// and `max_messages_size_in_single_batch`, we may still try to submit transaction
+						// with single message if message overflows these limits. The worst case would be if
+						// transaction will be rejected by the target runtime, but at least we have tried.
+
 						// limit messages in the batch by weight
-						let new_selected_weight = match selected_weight.checked_add(*weight) {
+						let new_selected_weight = match selected_weight.checked_add(weight.weight) {
 							Some(new_selected_weight) if new_selected_weight <= max_messages_weight_in_single_batch => {
 								new_selected_weight
+							}
+							new_selected_weight if selected_count == 0 => {
+								log::warn!(
+									target: "bridge",
+									"Going to submit message delivery transaction with declared dispatch \
+									weight {:?} that overflows maximal configured weight {}",
+									new_selected_weight,
+									max_messages_weight_in_single_batch,
+								);
+								new_selected_weight.unwrap_or(Weight::MAX)
+							}
+							_ => return false,
+						};
+
+						// limit messages in the batch by size
+						let new_selected_size = match selected_size.checked_add(weight.size) {
+							Some(new_selected_size) if new_selected_size <= max_messages_size_in_single_batch => {
+								new_selected_size
+							}
+							new_selected_size if selected_count == 0 => {
+								log::warn!(
+									target: "bridge",
+									"Going to submit message delivery transaction with message \
+									size {:?} that overflows maximal configured size {}",
+									new_selected_size,
+									max_messages_size_in_single_batch,
+								);
+								new_selected_size.unwrap_or(usize::MAX)
 							}
 							_ => return false,
 						};
@@ -344,6 +422,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 						}
 
 						selected_weight = new_selected_weight;
+						selected_size = new_selected_size;
 						selected_count = new_selected_count;
 						true
 					})
@@ -387,8 +466,9 @@ impl NoncesRange for MessageWeightsMap {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::message_lane_loop::tests::{
-		header_id, TestMessageLane, TestMessagesProof, TestSourceHeaderId, TestTargetHeaderId,
+	use crate::message_lane_loop::{
+		tests::{header_id, TestMessageLane, TestMessagesProof, TestSourceHeaderId, TestTargetHeaderId},
+		MessageWeights,
 	};
 
 	type TestRaceState = RaceState<TestSourceHeaderId, TestTargetHeaderId, TestMessagesProof>;
@@ -404,13 +484,21 @@ mod tests {
 		};
 
 		let mut race_strategy = TestStrategy {
+			max_unrewarded_relayer_entries_at_target: 4,
 			max_unconfirmed_nonces_at_target: 4,
 			max_messages_in_single_batch: 4,
 			max_messages_weight_in_single_batch: 4,
+			max_messages_size_in_single_batch: 4,
 			latest_confirmed_nonce_at_source: Some(19),
 			target_nonces: Some(TargetClientNonces {
 				latest_nonce: 19,
-				confirmed_nonce: Some(19),
+				nonces_data: DeliveryRaceTargetNoncesData {
+					confirmed_nonce: 19,
+					unrewarded_relayers: UnrewardedRelayersState {
+						unrewarded_relayer_entries: 0,
+						messages_in_oldest_entry: 0,
+					},
+				},
 			}),
 			strategy: BasicStrategy::new(),
 		};
@@ -418,13 +506,24 @@ mod tests {
 		race_strategy.strategy.source_nonces_updated(
 			header_id(1),
 			SourceClientNonces {
-				new_nonces: vec![(20, 1), (21, 1), (22, 1), (23, 1)].into_iter().collect(),
+				new_nonces: vec![
+					(20, MessageWeights { weight: 1, size: 1 }),
+					(21, MessageWeights { weight: 1, size: 1 }),
+					(22, MessageWeights { weight: 1, size: 1 }),
+					(23, MessageWeights { weight: 1, size: 1 }),
+				]
+				.into_iter()
+				.collect(),
 				confirmed_nonce: Some(19),
 			},
 		);
-		race_strategy
-			.strategy
-			.target_nonces_updated(race_strategy.target_nonces.clone().unwrap(), &mut race_state);
+		race_strategy.strategy.target_nonces_updated(
+			TargetClientNonces {
+				latest_nonce: 19,
+				nonces_data: (),
+			},
+			&mut race_state,
+		);
 
 		(race_state, race_strategy)
 	}
@@ -439,7 +538,17 @@ mod tests {
 	#[test]
 	fn weights_map_works_as_nonces_range() {
 		fn build_map(range: RangeInclusive<MessageNonce>) -> MessageWeightsMap {
-			range.map(|idx| (idx, idx)).collect()
+			range
+				.map(|idx| {
+					(
+						idx,
+						MessageWeights {
+							weight: idx,
+							size: idx as _,
+						},
+					)
+				})
+				.collect()
 		}
 
 		let map = build_map(20..=30);
@@ -483,7 +592,58 @@ mod tests {
 		// if there are new confirmed nonces on source, we want to relay this information
 		// to target to prune rewards queue
 		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
-		strategy.target_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
+		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=23), proof_parameters(true, 4)))
+		);
+	}
+
+	#[test]
+	fn message_delivery_strategy_selects_nothing_if_there_are_too_many_unrewarded_relayers() {
+		let (state, mut strategy) = prepare_strategy();
+
+		// if there are already `max_unrewarded_relayer_entries_at_target` entries at target,
+		// we need to wait until rewards will be paid
+		{
+			let mut unrewarded_relayers = &mut strategy.target_nonces.as_mut().unwrap().nonces_data.unrewarded_relayers;
+			unrewarded_relayers.unrewarded_relayer_entries = strategy.max_unrewarded_relayer_entries_at_target;
+			unrewarded_relayers.messages_in_oldest_entry = 4;
+		}
+		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
+	}
+
+	#[test]
+	fn message_delivery_strategy_selects_nothing_if_proved_rewards_is_not_enough_to_remove_oldest_unrewarded_entry() {
+		let (state, mut strategy) = prepare_strategy();
+
+		// if there are already `max_unrewarded_relayer_entries_at_target` entries at target,
+		// we need to prove at least `messages_in_oldest_entry` rewards
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
+		{
+			let mut nonces_data = &mut strategy.target_nonces.as_mut().unwrap().nonces_data;
+			nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
+			let mut unrewarded_relayers = &mut nonces_data.unrewarded_relayers;
+			unrewarded_relayers.unrewarded_relayer_entries = strategy.max_unrewarded_relayer_entries_at_target;
+			unrewarded_relayers.messages_in_oldest_entry = 4;
+		}
+		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
+	}
+
+	#[test]
+	fn message_delivery_strategy_includes_outbound_state_proof_if_proved_rewards_is_enough() {
+		let (state, mut strategy) = prepare_strategy();
+
+		// if there are already `max_unrewarded_relayer_entries_at_target` entries at target,
+		// we need to prove at least `messages_in_oldest_entry` rewards
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
+		{
+			let mut nonces_data = &mut strategy.target_nonces.as_mut().unwrap().nonces_data;
+			nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 3;
+			let mut unrewarded_relayers = &mut nonces_data.unrewarded_relayers;
+			unrewarded_relayers.unrewarded_relayer_entries = strategy.max_unrewarded_relayer_entries_at_target;
+			unrewarded_relayers.messages_in_oldest_entry = 3;
+		}
 		assert_eq!(
 			strategy.select_nonces_to_deliver(&state),
 			Some(((20..=23), proof_parameters(true, 4)))
@@ -499,6 +659,42 @@ mod tests {
 		assert_eq!(
 			strategy.select_nonces_to_deliver(&state),
 			Some(((20..=22), proof_parameters(false, 3)))
+		);
+	}
+
+	#[test]
+	fn message_delivery_strategy_accepts_single_message_even_if_its_weight_overflows_maximal_weight() {
+		let (state, mut strategy) = prepare_strategy();
+
+		// first message doesn't fit in the batch, because it has weight (10) that overflows max weight (4)
+		strategy.strategy.source_queue_mut()[0].1.get_mut(&20).unwrap().weight = 10;
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=20), proof_parameters(false, 10)))
+		);
+	}
+
+	#[test]
+	fn message_delivery_strategy_limits_batch_by_messages_size() {
+		let (state, mut strategy) = prepare_strategy();
+
+		// not all queued messages may fit in the batch, because batch has max weight
+		strategy.max_messages_size_in_single_batch = 3;
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=22), proof_parameters(false, 3)))
+		);
+	}
+
+	#[test]
+	fn message_delivery_strategy_accepts_single_message_even_if_its_weight_overflows_maximal_size() {
+		let (state, mut strategy) = prepare_strategy();
+
+		// first message doesn't fit in the batch, because it has weight (10) that overflows max weight (4)
+		strategy.strategy.source_queue_mut()[0].1.get_mut(&20).unwrap().size = 10;
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=20), proof_parameters(false, 1)))
 		);
 	}
 
@@ -522,7 +718,7 @@ mod tests {
 		// relay 3 new messages
 		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
 		strategy.latest_confirmed_nonce_at_source = Some(prev_confirmed_nonce_at_source - 1);
-		strategy.target_nonces.as_mut().unwrap().confirmed_nonce = Some(prev_confirmed_nonce_at_source - 1);
+		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
 		assert_eq!(
 			strategy.select_nonces_to_deliver(&state),
 			Some(((20..=22), proof_parameters(false, 3)))
