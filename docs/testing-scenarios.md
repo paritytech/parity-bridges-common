@@ -22,18 +22,18 @@ Kusama's Alice (kAlice) receives 5 DOTs from Polkadot's Bob (pBob) and sends hal
 kCharlie.
 
 1. Generate kAlice's DOT address (`p(kAlice)`).
-See function:
+   See function:
 
-```rust
-bp_runtime::derive_account_id(b"pdot", kAlice)
-```
+   ```rust
+   bp_runtime::derive_account_id(b"pdot", kAlice)
+   ```
 
-or:
+   or:
 
-```rust
-let hash = bp_polkadot::derive_kusama_account_id(kAlice);
-let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
-```
+   ```rust
+   let hash = bp_polkadot::derive_kusama_account_id(kAlice);
+   let p_kAlice = bp_polkadot::AccountIdConverter::convert(hash);
+   ```
 
 2. [Polkadot] pBob transfers 5 DOTs to `p(kAlice)`
    1. Creates & Signs a transaction with `Call::Transfer(..)`
