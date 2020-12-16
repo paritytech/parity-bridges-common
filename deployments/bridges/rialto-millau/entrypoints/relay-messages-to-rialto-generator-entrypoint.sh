@@ -10,12 +10,13 @@ set -eu
 # Max delay before submitting transactions (s)
 MAX_SUBMIT_DELAY_S=${MSG_EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-30}
 MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
-SHARED_ARGS="--millau-host millau-node-bob \
-	--millau-port 9944 \
-	--millau-signer //Dave \
-	--rialto-signer //Dave"
-SEND_MESSAGE="/home/user/substrate-relay submit-millau-to-rialto-message $SHARED_ARGS"
 FERDIE_ADDR=5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL
+
+SHARED_CMD=" /home/user/substrate-relay submit-millau-to-rialto-message"
+SHARED_HOST="--millau-host millau-node-bob --millau-port 9944"
+DAVE_SIGNER="--rialto-signer //Dave --millau-signer //Dave"
+
+SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $DAVE_SIGNER"
 
 # Sleep a bit between messages
 rand_sleep() {
@@ -58,26 +59,6 @@ do
 		--lane $MESSAGE_LANE \
 		--fee 1000000000 \
 		--origin Source \
-		transfer \
-		--amount 1000000000000 \
-		--recipient $FERDIE_ADDR
-
-	rand_sleep
-	echo "Sending Remark from Millau to Rialto using Root Origin"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		$SHARED_ARGS \
-		--lane $MESSAGE_LANE \
-		--fee 100000000 \
-		--origin Root \
-		remark
-
-	rand_sleep
-	echo "Sending Transfer from Millau to Rialto using Root Origin"
-	/home/user/substrate-relay submit-millau-to-rialto-message \
-		$SHARED_ARGS \
-		--lane $MESSAGE_LANE \
-		--fee 1000000000 \
-		--origin Root \
 		transfer \
 		--amount 1000000000000 \
 		--recipient $FERDIE_ADDR
