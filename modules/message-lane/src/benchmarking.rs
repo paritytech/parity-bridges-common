@@ -33,14 +33,16 @@ pub const WORST_MESSAGE_SIZE_FACTOR: u32 = 1000;
 const SEED: u32 = 0;
 
 /// Module we're benchmarking here.
-pub struct Module<T: Trait<I>, I: crate::Instance>(crate::Module<T, I>);
+pub struct Module<T: Config<I>, I: crate::Instance>(crate::Module<T, I>);
 
 /// Benchmark-specific message parameters.
-pub struct MessageParams {
+pub struct MessageParams<ThisAccountId> {
 	/// Size factor of the message payload. Message payload grows with every factor
 	/// increment. Zero is the smallest possible message and the `WORST_MESSAGE_SIZE_FACTOR` is
 	/// largest possible message.
 	pub size_factor: u32,
+	/// Message sender account.
+	pub sender_account: ThisAccountId,
 }
 
 /// Benchmark-specific message proof parameters.
@@ -54,13 +56,15 @@ pub struct MessageProofParams {
 }
 
 /// Trait that must be implemented by runtime.
-pub trait Trait<I: Instance>: crate::Trait<I> {
+pub trait Config<I: Instance>: crate::Config<I> {
 	/// Return id of relayer account at the bridged chain.
 	fn bridged_relayer_id() -> Self::InboundRelayer;
 	/// Create given account and give it enough balance for test purposes.
 	fn endow_account(account: &Self::AccountId);
 	/// Prepare message to send over lane.
-	fn prepare_outbound_message(params: MessageParams) -> (Self::OutboundPayload, Self::OutboundMessageFee);
+	fn prepare_outbound_message(
+		params: MessageParams<Self::AccountId>,
+	) -> (Self::OutboundPayload, Self::OutboundMessageFee);
 	/// Prepare messages proof to receive by the module.
 	fn prepare_message_proof(
 		params: MessageProofParams,
@@ -95,7 +99,10 @@ benchmarks_instance! {
 		}
 		confirm_message_delivery::<T, I>(T::MaxMessagesToPruneAtOnce::get());
 
-		let (payload, fee) = T::prepare_outbound_message(MessageParams { size_factor: WORST_MESSAGE_SIZE_FACTOR });
+		let (payload, fee) = T::prepare_outbound_message(MessageParams {
+			size_factor: WORST_MESSAGE_SIZE_FACTOR,
+			sender_account: sender.clone(),
+		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
 		assert_eq!(
@@ -273,7 +280,7 @@ fn bench_lane_id() -> LaneId {
 	*b"test"
 }
 
-fn send_regular_message<T: Trait<I>, I: Instance>() {
+fn send_regular_message<T: Config<I>, I: Instance>() {
 	let mut outbound_lane = outbound_lane::<T, I>(bench_lane_id());
 	outbound_lane.send_message(MessageData {
 		payload: vec![],
@@ -281,12 +288,12 @@ fn send_regular_message<T: Trait<I>, I: Instance>() {
 	});
 }
 
-fn confirm_message_delivery<T: Trait<I>, I: Instance>(nonce: MessageNonce) {
+fn confirm_message_delivery<T: Config<I>, I: Instance>(nonce: MessageNonce) {
 	let mut outbound_lane = outbound_lane::<T, I>(bench_lane_id());
 	assert!(outbound_lane.confirm_delivery(nonce).is_some());
 }
 
-fn receive_messages<T: Trait<I>, I: Instance>(nonce: MessageNonce) {
+fn receive_messages<T: Config<I>, I: Instance>(nonce: MessageNonce) {
 	let mut inbound_lane_storage = inbound_lane_storage::<T, I>(bench_lane_id());
 	inbound_lane_storage.set_data(InboundLaneData {
 		relayers: vec![(1, nonce, T::bridged_relayer_id())].into_iter().collect(),

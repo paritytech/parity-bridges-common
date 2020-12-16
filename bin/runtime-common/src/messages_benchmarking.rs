@@ -70,7 +70,7 @@ pub fn prepare_message_proof<B, H, R, MM, ML, MH>(
 where
 	B: MessageBridge,
 	H: Hasher,
-	R: pallet_substrate_bridge::Trait,
+	R: pallet_substrate_bridge::Config,
 	<R::BridgedChain as bp_runtime::Chain>::Hash: Into<HashOf<BridgedChain<B>>>,
 	MM: Fn(MessageKey) -> Vec<u8>,
 	ML: Fn(LaneId) -> Vec<u8>,
