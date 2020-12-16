@@ -42,36 +42,6 @@ use serde::{Deserialize, Serialize};
 
 pub use millau_hash::MillauHash;
 
-/// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
-#[derive(PartialEq, Eq, Clone, Copy, RuntimeDebug)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct BlakeTwoAndKeccak256;
-
-impl sp_core::Hasher for BlakeTwoAndKeccak256 {
-	type Out = MillauHash;
-	type StdHasher = hash256_std_hasher::Hash256StdHasher;
-	const LENGTH: usize = 64;
-
-	fn hash(s: &[u8]) -> Self::Out {
-		let mut combined_hash = MillauHash::default();
-		combined_hash.as_mut()[..32].copy_from_slice(&sp_io::hashing::blake2_256(s));
-		combined_hash.as_mut()[32..].copy_from_slice(&sp_io::hashing::keccak_256(s));
-		combined_hash
-	}
-}
-
-impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
-	type Output = MillauHash;
-
-	fn trie_root(input: Vec<(Vec<u8>, Vec<u8>)>) -> Self::Output {
-		Layout::<BlakeTwoAndKeccak256>::trie_root(input)
-	}
-
-	fn ordered_trie_root(input: Vec<Vec<u8>>) -> Self::Output {
-		Layout::<BlakeTwoAndKeccak256>::ordered_trie_root(input)
-	}
-}
-
 /// Maximum weight of single Millau block.
 ///
 /// This represents 0.1 seconds of compute assuming a target block time of six seconds.
@@ -106,40 +76,6 @@ pub type Hasher = BlakeTwoAndKeccak256;
 /// The header type used by Millau.
 pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
 
-/// Millau chain.
-#[derive(RuntimeDebug)]
-pub struct Millau;
-
-impl Chain for Millau {
-	type BlockNumber = BlockNumber;
-	type Hash = Hash;
-	type Hasher = Hasher;
-	type Header = Header;
-}
-
-/// Name of the `MillauHeaderApi::best_block` runtime method.
-pub const BEST_MILLAU_BLOCKS_METHOD: &str = "MillauHeaderApi_best_blocks";
-/// Name of the `MillauHeaderApi::finalized_block` runtime method.
-pub const FINALIZED_MILLAU_BLOCK_METHOD: &str = "MillauHeaderApi_finalized_block";
-/// Name of the `MillauHeaderApi::is_known_block` runtime method.
-pub const IS_KNOWN_MILLAU_BLOCK_METHOD: &str = "MillauHeaderApi_is_known_block";
-/// Name of the `MillauHeaderApi::incomplete_headers` runtime method.
-pub const INCOMPLETE_MILLAU_HEADERS_METHOD: &str = "MillauHeaderApi_incomplete_headers";
-
-/// Name of the `ToMillauOutboundLaneApi::messages_dispatch_weight` runtime method.
-pub const TO_MILLAU_MESSAGES_DISPATCH_WEIGHT_METHOD: &str = "ToMillauOutboundLaneApi_messages_dispatch_weight";
-/// Name of the `ToMillauOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_MILLAU_LATEST_RECEIVED_NONCE_METHOD: &str = "ToMillauOutboundLaneApi_latest_received_nonce";
-/// Name of the `ToMillauOutboundLaneApi::latest_generated_nonce` runtime method.
-pub const TO_MILLAU_LATEST_GENERATED_NONCE_METHOD: &str = "ToMillauOutboundLaneApi_latest_generated_nonce";
-
-/// Name of the `FromMillauInboundLaneApi::latest_received_nonce` runtime method.
-pub const FROM_MILLAU_LATEST_RECEIVED_NONCE_METHOD: &str = "FromMillauInboundLaneApi_latest_received_nonce";
-/// Name of the `FromMillauInboundLaneApi::latest_onfirmed_nonce` runtime method.
-pub const FROM_MILLAU_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromMillauInboundLaneApi_latest_confirmed_nonce";
-/// Name of the `FromMillauInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_MILLAU_UNREWARDED_RELAYERS_STATE: &str = "FromMillauInboundLaneApi_unrewarded_relayers_state";
-
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
 
@@ -152,6 +88,47 @@ pub type AccountSigner = MultiSigner;
 
 /// Balance of an account.
 pub type Balance = u64;
+
+/// Millau chain.
+#[derive(RuntimeDebug)]
+pub struct Millau;
+
+impl Chain for Millau {
+	type BlockNumber = BlockNumber;
+	type Hash = Hash;
+	type Hasher = Hasher;
+	type Header = Header;
+}
+
+/// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
+#[derive(PartialEq, Eq, Clone, Copy, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct BlakeTwoAndKeccak256;
+
+impl sp_core::Hasher for BlakeTwoAndKeccak256 {
+	type Out = MillauHash;
+	type StdHasher = hash256_std_hasher::Hash256StdHasher;
+	const LENGTH: usize = 64;
+
+	fn hash(s: &[u8]) -> Self::Out {
+		let mut combined_hash = MillauHash::default();
+		combined_hash.as_mut()[..32].copy_from_slice(&sp_io::hashing::blake2_256(s));
+		combined_hash.as_mut()[32..].copy_from_slice(&sp_io::hashing::keccak_256(s));
+		combined_hash
+	}
+}
+
+impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
+	type Output = MillauHash;
+
+	fn trie_root(input: Vec<(Vec<u8>, Vec<u8>)>) -> Self::Output {
+		Layout::<BlakeTwoAndKeccak256>::trie_root(input)
+	}
+
+	fn ordered_trie_root(input: Vec<Vec<u8>>) -> Self::Output {
+		Layout::<BlakeTwoAndKeccak256>::ordered_trie_root(input)
+	}
+}
 
 /// Convert a 256-bit hash into an AccountId.
 pub struct AccountIdConverter;
@@ -211,6 +188,29 @@ pub fn runtime_block_length() -> frame_system::limits::BlockLength {
 pub fn max_extrinsic_size() -> u32 {
 	*runtime_block_length().max.get(DispatchClass::Normal)
 }
+
+/// Name of the `MillauHeaderApi::best_block` runtime method.
+pub const BEST_MILLAU_BLOCKS_METHOD: &str = "MillauHeaderApi_best_blocks";
+/// Name of the `MillauHeaderApi::finalized_block` runtime method.
+pub const FINALIZED_MILLAU_BLOCK_METHOD: &str = "MillauHeaderApi_finalized_block";
+/// Name of the `MillauHeaderApi::is_known_block` runtime method.
+pub const IS_KNOWN_MILLAU_BLOCK_METHOD: &str = "MillauHeaderApi_is_known_block";
+/// Name of the `MillauHeaderApi::incomplete_headers` runtime method.
+pub const INCOMPLETE_MILLAU_HEADERS_METHOD: &str = "MillauHeaderApi_incomplete_headers";
+
+/// Name of the `ToMillauOutboundLaneApi::messages_dispatch_weight` runtime method.
+pub const TO_MILLAU_MESSAGES_DISPATCH_WEIGHT_METHOD: &str = "ToMillauOutboundLaneApi_messages_dispatch_weight";
+/// Name of the `ToMillauOutboundLaneApi::latest_received_nonce` runtime method.
+pub const TO_MILLAU_LATEST_RECEIVED_NONCE_METHOD: &str = "ToMillauOutboundLaneApi_latest_received_nonce";
+/// Name of the `ToMillauOutboundLaneApi::latest_generated_nonce` runtime method.
+pub const TO_MILLAU_LATEST_GENERATED_NONCE_METHOD: &str = "ToMillauOutboundLaneApi_latest_generated_nonce";
+
+/// Name of the `FromMillauInboundLaneApi::latest_received_nonce` runtime method.
+pub const FROM_MILLAU_LATEST_RECEIVED_NONCE_METHOD: &str = "FromMillauInboundLaneApi_latest_received_nonce";
+/// Name of the `FromMillauInboundLaneApi::latest_onfirmed_nonce` runtime method.
+pub const FROM_MILLAU_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromMillauInboundLaneApi_latest_confirmed_nonce";
+/// Name of the `FromMillauInboundLaneApi::unrewarded_relayers_state` runtime method.
+pub const FROM_MILLAU_UNREWARDED_RELAYERS_STATE: &str = "FromMillauInboundLaneApi_unrewarded_relayers_state";
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Millau headers from the Bridge Pallet instance.
