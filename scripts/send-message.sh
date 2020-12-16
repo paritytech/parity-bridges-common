@@ -33,5 +33,5 @@ case "$1" in
 			--amount 100000000000000 \
 			--recipient 5DZvVvd1udr61vL7Xks17TFQ4fi9NiagYLaBobnbPCP14ewA \
 		;;
-	*) exit 1;;
+	*) echo "A message type is require. Supported messages: remark, transfer."; exit 1;;
 esac
