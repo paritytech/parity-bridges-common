@@ -30,10 +30,10 @@ jobs:
         - /cache:/cache
     env:
       RUST_BACKTRACE:              full
-      SCCACHE_REDIS:               redis://172.17.0.1/0
-      SCCACHE_IDLE_TIMEOUT:        0
-      CMAKE_C_COMPILER_LAUNCHER:   sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      #SCCACHE_REDIS:               redis://172.17.0.1/0
+      #SCCACHE_IDLE_TIMEOUT:        0
+      #CMAKE_C_COMPILER_LAUNCHER:   sccache
+      #CMAKE_CXX_COMPILER_LAUNCHER: sccache
       CARGO_TARGET_DIR:            "/cache/${{ github.head_ref }}/${{ matrix.toolchain }}/"
     steps:
       - name:                      Cancel Previous Runs
@@ -57,9 +57,9 @@ jobs:
           # TODO add rsync in docker
           rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/ || true;
         shell:                     bash
-      - name:                      Sccache stats
-        run:                       sccache --show-stats
-        shell:                     bash
+        #- name:                      Sccache stats
+        #run:                       sccache --show-stats
+        #shell:                     bash
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
