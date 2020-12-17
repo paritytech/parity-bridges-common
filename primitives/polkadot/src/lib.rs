@@ -22,32 +22,37 @@
 
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::Chain;
-use frame_support::{weights::Weight, RuntimeDebug};
+use frame_support::{weights::{Weight, constants::WEIGHT_PER_SECOND}, RuntimeDebug};
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic,
+	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic, Perbill,
 };
 use sp_std::prelude::*;
 
 // TODO: Double check all these consts
 /// Maximal weight of single Polkadot block.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2_000_000_000_000;
-/// Portion of block reserved for regular transactions.
-pub const AVAILABLE_BLOCK_RATIO: u32 = 75;
-/// Maximal weight of single Polkadot extrinsic (65% of maximum block weight = 75% for regular
-/// transactions minus 10% for initialization).
-pub const MAXIMUM_EXTRINSIC_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT / 100 * (AVAILABLE_BLOCK_RATIO as Weight - 10);
-/// Maximal size of Polkadot block.
-pub const MAXIMUM_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
-/// Maximal size of single normal Polkadot extrinsic (75% of maximal block size).
-pub const MAXIMUM_EXTRINSIC_SIZE: u32 = MAXIMUM_BLOCK_SIZE / 100 * AVAILABLE_BLOCK_RATIO;
+///
+/// This represents two seconds of compute assuming a target block time of six seconds.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
+
+/// Represents the average portion of a block's weight that will be used by an
+/// `on_initialize()` runtime call.
+pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
+
+/// Represents the portion of a block that will be used by Normal extrinsics.
+pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 // TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
 pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
-// TODO: should be selected keeping in mind: finality delay on both chains + reward payout cost + messages throughput.
+
+/// Maximal number of unrewarded relayer entries at inbound lane.
+pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
+
+// TODO: should be selected keeping in mind:
+// finality delay on both chains + reward payout cost + messages throughput.
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
 
@@ -84,15 +89,6 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 /// The balance of an account on Polkadot.
 pub type Balance = u128;
 
-/// Convert a 256-bit hash into an AccountId.
-pub struct AccountIdConverter;
-
-impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverter {
-	fn convert(hash: sp_core::H256) -> AccountId {
-		hash.to_fixed_bytes().into()
-	}
-}
-
 /// Polkadot chain.
 #[derive(RuntimeDebug)]
 pub struct Polkadot;
@@ -102,6 +98,58 @@ impl Chain for Polkadot {
 	type Hash = Hash;
 	type Hasher = Hasher;
 	type Header = Header;
+}
+
+/// Convert a 256-bit hash into an AccountId.
+pub struct AccountIdConverter;
+
+impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverter {
+	fn convert(hash: sp_core::H256) -> AccountId {
+		hash.to_fixed_bytes().into()
+	}
+}
+
+/// Get a struct which defines the weight limits and values used during extrinsic execution.
+pub fn runtime_block_weights() -> frame_system::limits::BlockWeights {
+	// frame_system::limits::BlockWeights::builder()
+	// 	// Allowance for Normal class
+	// 	.for_class(DispatchClass::Normal, |weights| {
+	// 		weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+	// 	})
+	// 	// Allowance for Operational class
+	// 	.for_class(DispatchClass::Operational, |weights| {
+	// 		weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
+	// 		// Extra reserved space for Operational class
+	// 		weights.reserved = Some(MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+	// 	})
+	// 	// By default Mandatory class is not limited at all.
+	// 	// This parameter is used to derive maximal size of a single extrinsic.
+	// 	.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+	// 	.build_or_panic()
+
+	todo!()
+}
+
+/// Get the maximum weight (compute time) that a Normal extrinsic on the Millau chain can use.
+pub fn max_extrinsic_weight() -> Weight {
+	// runtime_block_weights()
+	// 	.get(DispatchClass::Normal)
+	// 	.max_extrinsic
+	// 	.unwrap_or(Weight::MAX)
+
+	todo!()
+}
+
+/// Get a struct which tracks the length in bytes for each extrinsic class in a Millau block.
+pub fn runtime_block_length() -> frame_system::limits::BlockLength {
+	// frame_system::limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO)
+	todo!()
+}
+
+/// Get the maximum length in bytes that a Normal extrinsic on the Millau chain requires.
+pub fn max_extrinsic_size() -> u32 {
+	// *runtime_block_length().max.get(DispatchClass::Normal)
+	todo!()
 }
 
 /// Name of the `PolkadotHeaderApi::best_blocks` runtime method.
