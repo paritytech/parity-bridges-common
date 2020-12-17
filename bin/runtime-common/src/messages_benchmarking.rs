@@ -155,7 +155,7 @@ pub fn prepare_message_delivery_proof<B, H, R, ML, MH>(
 where
 	B: MessageBridge,
 	H: Hasher,
-	R: pallet_substrate_bridge::Trait,
+	R: pallet_substrate_bridge::Config,
 	<R::BridgedChain as bp_runtime::Chain>::Hash: Into<HashOf<BridgedChain<B>>>,
 	ML: Fn(LaneId) -> Vec<u8>,
 	MH: Fn(H::Out) -> <R::BridgedChain as bp_runtime::Chain>::Header,
