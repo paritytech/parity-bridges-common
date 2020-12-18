@@ -438,7 +438,7 @@ benchmarks_instance! {
 		// chain, but we're more interested in additional weight/message than in max weight
 		let i in 1..T::MaxUnconfirmedMessagesAtInboundLane::get()
 			.try_into()
-			.expect("too large MaxUnconfirmedMessagesAtInboundLane");
+			.expect("Value of MaxUnconfirmedMessagesAtInboundLane is too large ");
 
 		let relayers_fund_id = relayer_fund_account_id::<T, I>();
 		let confirmation_relayer_id = account("relayer", 0, SEED);
