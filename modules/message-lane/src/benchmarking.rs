@@ -404,7 +404,7 @@ benchmarks_instance! {
 		// chain, but we're more interested in additional weight/message than in max weight
 		let i in 1..T::MaxUnrewardedRelayerEntriesAtInboundLane::get()
 			.try_into()
-			.expect("too large MaxUnrewardedRelayerEntriesAtInboundLane");
+			.expect("Value of MaxUnrewardedRelayerEntriesAtInboundLane is too large");
 
 		let relayers_fund_id = relayer_fund_account_id::<T, I>();
 		let relayer_id: T::AccountId = account("relayer", 0, SEED);
