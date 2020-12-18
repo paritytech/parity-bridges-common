@@ -248,7 +248,7 @@ benchmarks_instance! {
 		);
 	}
 
-	// Benchmark `receive_messages_delivery_proof` extrinsic with fllowing conditions:
+	// Benchmark `receive_messages_delivery_proof` extrinsic with following conditions:
 	// * single relayer is rewarded for relaying two messages;
 	// * relayer account does not exist (in practice it needs to exist in production environment).
 	//
