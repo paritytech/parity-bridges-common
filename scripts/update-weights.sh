@@ -14,4 +14,4 @@ cargo run --manifest-path=bin/rialto/node/Cargo.toml --release --features=runtim
 	--wasm-execution=Interpreted \
 	--heap-pages=4096 \
 	--output=./modules/message-lane/src/weights.rs \
-	--template=./.maintain/weight-template.hbs
+	--template=./.maintain/rialto-weight-template.hbs
