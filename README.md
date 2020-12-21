@@ -193,6 +193,6 @@ monitoring dashboards, etc. see the [Deployments README](./deployments/README.md
 
 ## Community
 
-If you are interested in information exchange and development of Polkadot related bridges please feel free to join the [Polkadot Bridges](#bridges:web3.foundation) Element channel.
+If you are interested in information exchange and development of Polkadot related bridges please feel free to join the [Polkadot Bridges](https://app.element.io/#/room/#bridges:web3.foundation) Element channel.
 
-The [Substrate Technical](#substrate-technical:matrix.org) Element channel is most suited for discussions regarding Substrate itself.
+The [Substrate Technical](https://app.element.io/#/room/#substrate-technical:matrix.org) Element channel is most suited for discussions regarding Substrate itself.
