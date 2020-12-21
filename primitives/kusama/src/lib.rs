@@ -22,30 +22,14 @@
 
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::Chain;
-use frame_support::{
-	weights::{constants::WEIGHT_PER_SECOND, Weight},
-	RuntimeDebug,
-};
+use frame_support::{weights::Weight, RuntimeDebug};
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic, Perbill,
+	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic,
 };
 use sp_std::prelude::*;
-
-// TODO: Double check all these consts
-/// Maximal weight of single Rialto block.
-///
-/// This represents two seconds of compute assuming a target block time of six seconds.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
-
-/// Represents the average portion of a block's weight that will be used by an
-/// `on_initialize()` runtime call.
-pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
-
-/// Represents the portion of a block that will be used by Normal extrinsics.
-pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 // TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
@@ -110,49 +94,6 @@ impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverte
 	fn convert(hash: sp_core::H256) -> AccountId {
 		hash.to_fixed_bytes().into()
 	}
-}
-
-/// Get a struct which defines the weight limits and values used during extrinsic execution.
-pub fn runtime_block_weights() -> frame_system::limits::BlockWeights {
-	// frame_system::limits::BlockWeights::builder()
-	// 	// Allowance for Normal class
-	// 	.for_class(DispatchClass::Normal, |weights| {
-	// 		weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
-	// 	})
-	// 	// Allowance for Operational class
-	// 	.for_class(DispatchClass::Operational, |weights| {
-	// 		weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
-	// 		// Extra reserved space for Operational class
-	// 		weights.reserved = Some(MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
-	// 	})
-	// 	// By default Mandatory class is not limited at all.
-	// 	// This parameter is used to derive maximal size of a single extrinsic.
-	// 	.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
-	// 	.build_or_panic()
-
-	todo!()
-}
-
-/// Get the maximum weight (compute time) that a Normal extrinsic on the Millau chain can use.
-pub fn max_extrinsic_weight() -> Weight {
-	// runtime_block_weights()
-	// 	.get(DispatchClass::Normal)
-	// 	.max_extrinsic
-	// 	.unwrap_or(Weight::MAX)
-
-	todo!()
-}
-
-/// Get a struct which tracks the length in bytes for each extrinsic class in a Millau block.
-pub fn runtime_block_length() -> frame_system::limits::BlockLength {
-	// frame_system::limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO)
-	todo!()
-}
-
-/// Get the maximum length in bytes that a Normal extrinsic on the Millau chain requires.
-pub fn max_extrinsic_size() -> u32 {
-	// *runtime_block_length().max.get(DispatchClass::Normal)
-	todo!()
 }
 
 /// Name of the `KusamaHeaderApi::best_blocks` runtime method.
