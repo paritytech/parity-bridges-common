@@ -45,7 +45,7 @@ use frame_support::{
 	Parameter, StorageMap,
 };
 use frame_system::{ensure_signed, RawOrigin};
-use num_traits::Zero;
+use num_traits::{SaturatingAdd, Zero};
 use sp_runtime::{traits::BadOrigin, DispatchResult};
 use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
@@ -92,17 +92,15 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	///
 	/// This constant limits difference between last message from last entry of the
 	/// `InboundLaneData::relayers` and first message at the first entry.
-	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
-	/// Maximal number of messages in single delivery transaction. This directly affects the base
-	/// weight of the delivery transaction.
 	///
-	/// All transactions that deliver more messages than this number, are rejected.
-	type MaxMessagesInDeliveryTransaction: Get<MessageNonce>;
+	/// There is no point of making this parameter lesser than MaxUnrewardedRelayerEntriesAtInboundLane,
+	/// because then maximal number of relayer entries will be limited by maximal number of messages.
+	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 	type OutboundPayload: Parameter;
 	/// Message fee type of outbound messages. This fee is paid on this chain.
-	type OutboundMessageFee: Parameter + Zero;
+	type OutboundMessageFee: From<u32> + Parameter + SaturatingAdd + Zero;
 
 	/// Payload type of inbound messages. This payload is dispatched on this chain.
 	type InboundPayload: Decode;
@@ -322,17 +320,16 @@ decl_module! {
 		}
 
 		/// Receive messages proof from bridged chain.
-		#[weight = DELIVERY_OVERHEAD_WEIGHT
-			.saturating_add(
-				T::MaxMessagesInDeliveryTransaction::get()
-					.saturating_mul(SINGLE_MESSAGE_DELIVERY_WEIGHT)
-			)
+		#[weight = messages_count
+			.saturating_mul(SINGLE_MESSAGE_DELIVERY_WEIGHT)
+			.saturating_add(DELIVERY_OVERHEAD_WEIGHT)
 			.saturating_add(*dispatch_weight)
 		]
 		pub fn receive_messages_proof(
 			origin,
 			relayer_id: T::InboundRelayer,
 			proof: MessagesProofOf<T, I>,
+			messages_count: MessageNonce,
 			dispatch_weight: Weight,
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
@@ -343,7 +340,7 @@ decl_module! {
 				T::SourceHeaderChain,
 				T::InboundMessageFee,
 				T::InboundPayload,
-			>(proof, T::MaxMessagesInDeliveryTransaction::get())
+			>(proof, messages_count)
 				.map_err(|err| {
 					frame_support::debug::trace!(
 						"Rejecting invalid messages proof: {:?}",
@@ -429,24 +426,30 @@ decl_module! {
 			let received_range = lane.confirm_delivery(lane_data.latest_received_nonce);
 			if let Some(received_range) = received_range {
 				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, received_range.0, received_range.1));
-				let relayer_fund_account = relayer_fund_account_id::<T, I>();
 
 				// reward relayers that have delivered messages
-				// this loop is bounded by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
+				// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
+				let relayer_fund_account = relayer_fund_account_id::<T, I>();
 				for (nonce_low, nonce_high, relayer) in lane_data.relayers {
 					let nonce_begin = sp_std::cmp::max(nonce_low, received_range.0);
 					let nonce_end = sp_std::cmp::min(nonce_high, received_range.1);
+
 					// loop won't proceed if current entry is ahead of received range (begin > end).
+					// this loop is bound by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
+					let mut relayer_fee: T::OutboundMessageFee = Zero::zero();
 					for nonce in nonce_begin..nonce_end + 1 {
 						let message_data = OutboundMessages::<T, I>::get(MessageKey {
 							lane_id,
 							nonce,
 						}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
+						relayer_fee = relayer_fee.saturating_add(&message_data.fee);
+					}
 
+					if !relayer_fee.is_zero() {
 						<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
 							&confirmation_relayer,
 							&relayer,
-							&message_data.fee,
+							&relayer_fee,
 							&relayer_fund_account,
 						);
 					}
@@ -674,9 +677,9 @@ impl<T: Config<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStora
 /// Verify messages proof and return proved messages with decoded payload.
 fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, DispatchPayload: Decode>(
 	proof: Chain::MessagesProof,
-	max_messages: MessageNonce,
+	messages_count: MessageNonce,
 ) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Chain::Error> {
-	Chain::verify_messages_proof(proof, max_messages).map(|messages_by_lane| {
+	Chain::verify_messages_proof(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
 			.into_iter()
 			.map(|(lane, lane_data)| {
@@ -846,6 +849,7 @@ mod tests {
 					Origin::signed(1),
 					TEST_RELAYER_A,
 					Ok(vec![message(2, REGULAR_PAYLOAD)]).into(),
+					1,
 					REGULAR_PAYLOAD.1,
 				),
 				Error::<TestRuntime, DefaultInstance>::Halted,
@@ -924,6 +928,7 @@ mod tests {
 				Origin::signed(1),
 				TEST_RELAYER_A,
 				Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+				1,
 				REGULAR_PAYLOAD.1,
 			));
 
@@ -964,6 +969,7 @@ mod tests {
 				Origin::signed(1),
 				TEST_RELAYER_A,
 				message_proof,
+				1,
 				REGULAR_PAYLOAD.1,
 			));
 
@@ -995,6 +1001,7 @@ mod tests {
 					Origin::signed(1),
 					TEST_RELAYER_A,
 					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+					1,
 					REGULAR_PAYLOAD.1 - 1,
 				),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDispatchWeight,
@@ -1010,6 +1017,7 @@ mod tests {
 					Origin::signed(1),
 					TEST_RELAYER_A,
 					Err(()).into(),
+					1,
 					0,
 				),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesProof,
@@ -1112,6 +1120,7 @@ mod tests {
 				Origin::signed(1),
 				TEST_RELAYER_A,
 				Ok(vec![invalid_message]).into(),
+				1,
 				0, // weight may be zero in this case (all messages are improperly encoded)
 			),);
 
@@ -1134,6 +1143,7 @@ mod tests {
 					message(3, REGULAR_PAYLOAD),
 				])
 				.into(),
+				3,
 				REGULAR_PAYLOAD.1 + REGULAR_PAYLOAD.1,
 			),);
 
