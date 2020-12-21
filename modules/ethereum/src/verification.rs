@@ -232,7 +232,10 @@ fn contextual_checks<Submitter>(
 	let parent_step = context.parent_header().step().ok_or(Error::MissingStep)?;
 
 	// Ensure header is from the step after context.
-	if header_step == parent_step || (header.number >= config.validate_step_transition && header_step <= parent_step) {
+	if header_step == parent_step {
+		return Err(Error::DoubleVote);
+	}
+	if header.number >= config.validate_step_transition && header_step < parent_step {
 		return Err(Error::DoubleVote);
 	}
 
