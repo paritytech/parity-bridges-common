@@ -11,85 +11,21 @@ RUN cargo chef prepare --recipe-path recipe.json
 # This second stage is where the dependencies actually get built.
 # The reason we split it from the first stage is so that the `COPY . .`
 # step doesn't blow our cache.
-FROM ubuntu:xenial AS cacher
+FROM bridge-deps AS cacher
 WORKDIR /parity-bridges-common
-
-# show backtraces
-ENV RUST_BACKTRACE 1
-ENV LAST_DEPS_UPDATE 2020-06-22
-
-# install tools and dependencies
-# TODO: Check if we need all these deps (e.g jq)
-RUN set -eux; \
-	apt-get update && \
-	apt-get install -y file curl jq ca-certificates && \
-	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
-
-ENV LAST_CERTS_UPDATE 2020-06-22
-
-RUN update-ca-certificates && \
-	curl https://sh.rustup.rs -sSf | sh -s -- -y
-
-ENV PATH="/root/.cargo/bin:${PATH}"
-ENV LAST_RUST_UPDATE 2020-11-30
-
-RUN rustup update stable && \
-	rustup install nightly && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly
-
-RUN rustc -vV && \
-    cargo -V && \
-    gcc -v && \
-    g++ -v && \
-    cmake --version
-
 RUN cargo install cargo-chef
 
-# Build our dependencies
 COPY --from=planner /parity-bridges-common/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # In this third stage we go ahead and build the actual binary we want.
 # This should be fairly quick since the dependencies are being built and
 # cached in the previous stage.
-FROM ubuntu:xenial as builder
+FROM bridge-deps as builder
 WORKDIR /parity-bridges-common
-
-# show backtraces
-ENV RUST_BACKTRACE 1
-
-ENV LAST_DEPS_UPDATE 2020-06-22
-
-# install tools and dependencies
-# TODO: Check if we need all these deps (e.g jq)
-RUN set -eux; \
-	apt-get update && \
-	apt-get install -y file curl jq ca-certificates && \
-	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
-
-ENV LAST_CERTS_UPDATE 2020-06-22
-
-RUN update-ca-certificates && \
-	curl https://sh.rustup.rs -sSf | sh -s -- -y
-
-ENV PATH="/root/.cargo/bin:${PATH}"
-ENV LAST_RUST_UPDATE 2020-11-30
-
-RUN rustup update stable && \
-	rustup install nightly && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly
-
-RUN rustc -vV && \
-    cargo -V && \
-    gcc -v && \
-    g++ -v && \
-    cmake --version
-
 RUN cargo install cargo-chef
 
 COPY . /parity-bridges-common
-
-# Copy over the cached dependencies
 COPY --from=cacher /parity-bridges-common/target target
 COPY --from=cacher $CARGO_HOME $CARGO_HOME
 
