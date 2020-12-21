@@ -235,6 +235,7 @@ fn contextual_checks<Submitter>(
 	if header_step == parent_step {
 		return Err(Error::DoubleVote);
 	}
+	#[allow(clippy::suspicious-operation-groupings)]
 	if header.number >= config.validate_step_transition && header_step < parent_step {
 		return Err(Error::DoubleVote);
 	}
