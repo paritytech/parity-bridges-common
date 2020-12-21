@@ -30,7 +30,7 @@ use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic, Perbill
+	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic, Perbill,
 };
 use sp_std::prelude::*;
 

@@ -28,6 +28,7 @@ use frame_support::{
 	weights::{constants::WEIGHT_PER_MILLIS, DispatchClass, Weight},
 	RuntimeDebug,
 };
+use frame_system::limits;
 use sp_core::Hasher as HasherT;
 use sp_runtime::traits::Convert;
 use sp_runtime::{
@@ -152,9 +153,10 @@ pub fn derive_account_from_rialto_id(id: bp_runtime::SourceAccount<AccountId>) -
 	AccountIdConverter::convert(encoded_id)
 }
 
-/// Get a struct which defines the weight limits and values used during extrinsic execution.
-pub fn runtime_block_weights() -> frame_system::limits::BlockWeights {
-	frame_system::limits::BlockWeights::builder()
+frame_support::parameter_types! {
+	pub BlockLength: limits::BlockLength =
+		limits::BlockLength::max_with_normal_ratio(2 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	pub BlockWeights: limits::BlockWeights = limits::BlockWeights::builder()
 		// Allowance for Normal class
 		.for_class(DispatchClass::Normal, |weights| {
 			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
@@ -168,25 +170,20 @@ pub fn runtime_block_weights() -> frame_system::limits::BlockWeights {
 		// By default Mandatory class is not limited at all.
 		// This parameter is used to derive maximal size of a single extrinsic.
 		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
-		.build_or_panic()
+		.build_or_panic();
 }
 
 /// Get the maximum weight (compute time) that a Normal extrinsic on the Millau chain can use.
 pub fn max_extrinsic_weight() -> Weight {
-	runtime_block_weights()
+	BlockWeights::get()
 		.get(DispatchClass::Normal)
 		.max_extrinsic
 		.unwrap_or(Weight::MAX)
 }
 
-/// Get a struct which tracks the length in bytes for each extrinsic class in a Millau block.
-pub fn runtime_block_length() -> frame_system::limits::BlockLength {
-	frame_system::limits::BlockLength::max_with_normal_ratio(2 * 1024 * 1024, NORMAL_DISPATCH_RATIO)
-}
-
 /// Get the maximum length in bytes that a Normal extrinsic on the Millau chain requires.
 pub fn max_extrinsic_size() -> u32 {
-	*runtime_block_length().max.get(DispatchClass::Normal)
+	*BlockLength::get().max.get(DispatchClass::Normal)
 }
 
 /// Name of the `MillauHeaderApi::best_block` runtime method.

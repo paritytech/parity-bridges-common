@@ -22,7 +22,10 @@
 
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::Chain;
-use frame_support::{weights::{Weight, constants::WEIGHT_PER_SECOND}, RuntimeDebug};
+use frame_support::{
+	weights::{constants::WEIGHT_PER_SECOND, Weight},
+	RuntimeDebug,
+};
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	generic,
