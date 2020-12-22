@@ -104,15 +104,11 @@ impl MessageBridge for WithRialtoMessageBridge {
 	}
 
 	fn weight_of_delivery_transaction() -> Weight {
-		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
+		bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT
 	}
 
 	fn weight_of_delivery_confirmation_transaction_on_this_chain() -> Weight {
-		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
-	}
-
-	fn weight_of_reward_confirmation_transaction_on_target_chain() -> Weight {
-		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
+		bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT
 	}
 
 	fn this_weight_to_this_balance(weight: Weight) -> bp_millau::Balance {

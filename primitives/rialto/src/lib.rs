@@ -52,6 +52,20 @@ pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 128;
 
+/// Maximal weight of single message delivery transaction on Rialto chain.
+///
+/// This value is a result of `pallet_message_lane::Module::receive_messages_proof` weight formula computation
+/// for the case when single message is delivered. The result then must be rounded up to account possible future
+/// runtime upgrades.
+pub const MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_000_000_000;
+
+/// Maximal weight of single message delivery confirmation transaction on Rialto chain.
+///
+/// This value is a result of `pallet_message_lane::Module::receive_messages_delivery_proof` weight formula computation
+/// for the case when single message is confirmed. The result then must be rounded up to account possible future
+/// runtime upgrades.
+pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = 2_000_000_000;
+
 /// Block number type used in Rialto.
 pub type BlockNumber = u32;
 

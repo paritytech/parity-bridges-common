@@ -1026,7 +1026,10 @@ mod tests {
 
 	#[test]
 	fn ensure_rialto_message_lane_weights_are_correct() {
-		pallet_message_lane::ensure_weights_are_correct::<pallet_message_lane::weights::RialtoWeight<Runtime>>();
+		pallet_message_lane::ensure_weights_are_correct::<pallet_message_lane::weights::RialtoWeight<Runtime>>(
+			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+		);
 	}
 
 	#[test]

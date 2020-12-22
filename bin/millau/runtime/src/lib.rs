@@ -594,3 +594,17 @@ impl_runtime_apis! {
 		}
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn ensure_millau_message_lane_weights_are_correct() {
+		// TODO: https://github.com/paritytech/parity-bridges-common/issues/390
+		pallet_message_lane::ensure_weights_are_correct::<pallet_message_lane::weights::RialtoWeight<Runtime>>(
+			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+		);
+	}
+}
