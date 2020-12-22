@@ -195,7 +195,7 @@ monitoring dashboards, etc. see the [Deployments README](./deployments/README.md
 
 Main hangout for the community is [Element](element.io). Element (formerly Riot) is a chat server
 like, for example, Discord. Most discussions around Polkadot and Substrate happen
-in various Element 'rooms' (channels). So, joining Element might be a good idea, anyway.
+in various Element "rooms" (channels). So, joining Element might be a good idea, anyway.
 
 If you are interested in information exchange and development of Polkadot related bridges please
 feel free to join the [Polkadot Bridges](https://app.element.io/#/room/#bridges:web3.foundation)
