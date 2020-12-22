@@ -42,7 +42,7 @@ do
 		--fee 1000000000 \
 		--origin Target \
 		transfer \
-		--amount 1000000000000 \
+		--amount 1000000000 \
 		--recipient $FERDIE_ADDR
 
 	rand_sleep
@@ -60,6 +60,6 @@ do
 		--fee 1000000000 \
 		--origin Source \
 		transfer \
-		--amount 1000000000000 \
+		--amount 1000000000 \
 		--recipient $FERDIE_ADDR
 done
