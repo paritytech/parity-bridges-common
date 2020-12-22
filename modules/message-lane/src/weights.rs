@@ -36,7 +36,7 @@
 // --output=./modules/message-lane/src/weights.rs
 // --template=./.maintain/rialto-weight-template.hbs
 
-#![allow(clippy)]
+#![allow(clippy::all)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
