@@ -26,6 +26,12 @@
 //! Once message is sent, its progress can be tracked by looking at module events.
 //! The assigned nonce is reported using `MessageAccepted` event. When message is
 //! delivered to the the bridged chain, it is reported using `MessagesDelivered` event.
+//!
+//! **IMPORTANT NOTE**: after generating weights (custom `WeighInfo` implementation) for
+//! your runtime (where this module is plugged to), please add test for these weights.
+//! The test should call the `ensure_weights_are_correct` function from this module.
+//! If this test fails with your weights, then either weights are computed incorrectly,
+//! or some benchmarks assumptions are broken for your runtime.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -63,14 +69,6 @@ pub mod benchmarking;
 #[cfg(test)]
 mod mock;
 
-// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Weight of message delivery without any code that is touching messages.
-const DELIVERY_OVERHEAD_WEIGHT: Weight = 0;
-// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Single-message delivery weight. This shall not include message dispatch weight and
-/// any delivery transaction code that is not specific to this message.
-const SINGLE_MESSAGE_DELIVERY_WEIGHT: Weight = 0;
-
 /// The module configuration trait
 pub trait Config<I = DefaultInstance>: frame_system::Config {
 	// General types
@@ -78,7 +76,7 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// They overarching event type.
 	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 	/// Benchmarks results from runtime we're plugged into.
-	type WeightInfo: WeightInfo;
+	type WeightInfo: WeightInfoEx;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
 	/// whenever new message is sent. The reason is that if you want to use lane, you should
 	/// be ready to pay for its maintenance.
@@ -135,6 +133,66 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// Message dispatch.
 	type MessageDispatch: MessageDispatch<Self::InboundMessageFee, DispatchPayload = Self::InboundPayload>;
 }
+
+/// Extended weight info.
+pub trait WeightInfoEx: WeightInfo {
+	/// Returns weight overhead of message delivery transaction (`receive_messages_proof`).
+	fn receive_messages_proof_overhead() -> Weight {
+		let weight_of_two_messages_and_two_tx_overheads = Self::receive_single_message_proof().saturating_mul(2);
+		let weight_of_two_messages_and_single_tx_overhead = Self::receive_two_messages_proof();
+		weight_of_two_messages_and_two_tx_overheads.saturating_sub(weight_of_two_messages_and_single_tx_overhead)
+	}
+
+	/// Returns weight that needs to be accounted when receiving given number of messages with message
+	/// delivery transaction (`receive_messages_proof`).
+	fn receive_messages_proof_messages_overhead(messages: MessageNonce) -> Weight {
+		let weight_of_two_messages_and_single_tx_overhead = Self::receive_two_messages_proof();
+		let weight_of_single_message_and_single_tx_overhead = Self::receive_single_message_proof();
+		weight_of_two_messages_and_single_tx_overhead
+			.saturating_sub(weight_of_single_message_and_single_tx_overhead)
+			.saturating_mul(messages as Weight)
+	}
+
+	/// Returns weight that needs to be accounted when message delivery transaction (`receive_messages_proof`)
+	/// is carrying outbound lane state proof.
+	fn receive_messages_proof_outbound_lane_state_overhead() -> Weight {
+		let weight_of_single_message_and_lane_state = Self::receive_single_message_proof_with_outbound_lane_state();
+		let weight_of_single_message = Self::receive_single_message_proof();
+		weight_of_single_message_and_lane_state.saturating_sub(weight_of_single_message)
+	}
+
+	/// Returns weight overhead of delivery confirmation transaction (`receive_messages_delivery_proof`).
+	fn receive_messages_delivery_proof_overhead() -> Weight {
+		let weight_of_two_messages_and_two_tx_overheads =
+			Self::receive_delivery_proof_for_single_message().saturating_mul(2);
+		let weight_of_two_messages_and_single_tx_overhead =
+			Self::receive_delivery_proof_for_two_messages_by_single_relayer();
+		weight_of_two_messages_and_two_tx_overheads.saturating_sub(weight_of_two_messages_and_single_tx_overhead)
+	}
+
+	/// Returns weight that needs to be accounted when receiving confirmations for given number of
+	/// messages with delivery confirmation transaction (`receive_messages_delivery_proof`).
+	fn receive_messages_delivery_proof_messages_overhead(messages: MessageNonce) -> Weight {
+		let weight_of_two_messages = Self::receive_delivery_proof_for_two_messages_by_single_relayer();
+		let weight_of_single_message = Self::receive_delivery_proof_for_single_message();
+		weight_of_two_messages
+			.saturating_sub(weight_of_single_message)
+			.saturating_mul(messages as Weight)
+	}
+
+	/// Returns weight that needs to be accounted when receiving confirmations for given number of
+	/// relayers entries with delivery confirmation transaction (`receive_messages_delivery_proof`).
+	fn receive_messages_delivery_proof_relayers_overhead(relayers: MessageNonce) -> Weight {
+		let weight_of_two_messages_by_two_relayers = Self::receive_delivery_proof_for_two_messages_by_two_relayers();
+		let weight_of_two_messages_by_single_relayer =
+			Self::receive_delivery_proof_for_two_messages_by_single_relayer();
+		weight_of_two_messages_by_two_relayers
+			.saturating_sub(weight_of_two_messages_by_single_relayer)
+			.saturating_mul(relayers as Weight)
+	}
+}
+
+impl<T: WeightInfo> WeightInfoEx for T {}
 
 /// Shortcut to messages proof type for Config.
 type MessagesProofOf<T, I> =
@@ -252,7 +310,10 @@ decl_module! {
 		}
 
 		/// Send message over lane.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		///
+		/// The weight of the call assumes that the largest possible message is sent in
+		/// worst possible environment.
+		#[weight = T::WeightInfo::send_message_worst_case()]
 		pub fn send_message(
 			origin,
 			lane_id: LaneId,
@@ -327,9 +388,13 @@ decl_module! {
 		}
 
 		/// Receive messages proof from bridged chain.
-		#[weight = messages_count
-			.saturating_mul(SINGLE_MESSAGE_DELIVERY_WEIGHT)
-			.saturating_add(DELIVERY_OVERHEAD_WEIGHT)
+		///
+		/// The weight of the call assumes that the transaction always brings outbound lane
+		/// state update. Because of that, the submitter (relayer) has no benefit of not including
+		/// this data in the transaction, so reward confirmations lags should be minimal.
+		#[weight = T::WeightInfo::receive_messages_proof_overhead()
+			.saturating_add(T::WeightInfo::receive_messages_proof_outbound_lane_state_overhead())
+			.saturating_add(T::WeightInfo::receive_messages_proof_messages_overhead(*messages_count))
 			.saturating_add(*dispatch_weight)
 		]
 		pub fn receive_messages_proof(
@@ -414,7 +479,14 @@ decl_module! {
 		}
 
 		/// Receive messages delivery proof from bridged chain.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		#[weight = T::WeightInfo::receive_messages_delivery_proof_overhead()
+			.saturating_add(T::WeightInfo::receive_messages_delivery_proof_messages_overhead(
+				relayers_state.total_messages
+			))
+			.saturating_add(T::WeightInfo::receive_messages_delivery_proof_relayers_overhead(
+				relayers_state.unrewarded_relayer_entries
+			))
+		]
 		pub fn receive_messages_delivery_proof(
 			origin,
 			proof: MessagesDeliveryProofOf<T, I>,
@@ -523,6 +595,19 @@ impl<T: Config<I>, I: Instance> Module<T, I> {
 			total_messages: total_unrewarded_messages(&relayers),
 		}
 	}
+}
+
+/// Ensure that weights from `WeightInfo` implementation are looking correct.
+pub fn ensure_weights_are_correct<W: WeightInfoEx>() {
+	assert_ne!(W::send_message_worst_case(), 0);
+
+	assert_ne!(W::receive_messages_proof_overhead(), 0);
+	assert_ne!(W::receive_messages_proof_messages_overhead(1), 0);
+	assert_ne!(W::receive_messages_proof_outbound_lane_state_overhead(), 0);
+
+	assert_ne!(W::receive_messages_delivery_proof_overhead(), 0);
+	assert_ne!(W::receive_messages_delivery_proof_messages_overhead(1), 0);
+	assert_ne!(W::receive_messages_delivery_proof_relayers_overhead(1), 0);
 }
 
 /// Getting storage keys for messages and lanes states. These keys are normally used when building
