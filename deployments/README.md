@@ -164,18 +164,15 @@ It is also possible to avoid using images from the Docker Hub and instead build
 containers from Git. There are two ways to build the images this way.
 
 ### Git Repo
-We can use commits and branches on GitHub to build local Docker images by running the following:
+If you have cloned the bridges repo you can build local Docker images by running the following
+command at the top level of the repo:
 
 ```bash
-docker build . -f ./Bridge.Dockerfile -t local/<project_you're_building> --build-arg=<project>_HASH=<commit_hash>
+docker build . -t local/<project_you're_building> --build-arg=<project>
 ```
 
 This will build a local image of a particular component with a tag of
 `local/<project_you're_building>`. This tag can be used in Docker Compose files.
-
-It is also possible to build from your local copy of the repo (useful if you're testing changes).
-You can run the above command but using the Dockerfile at the top level of the
-`parity-bridges-common` repo instead.
 
 You can configure the build using using Docker
 [build arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg).
