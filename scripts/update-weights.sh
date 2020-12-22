@@ -2,8 +2,6 @@
 
 # Run this script from root of the repo
 
-# TODO: Interpreted must be changed to compiled after updating Substrate reference
-
 cargo run --manifest-path=bin/rialto/node/Cargo.toml --release --features=runtime-benchmarks -- benchmark \
 	--chain=local \
 	--steps=50 \
@@ -11,7 +9,7 @@ cargo run --manifest-path=bin/rialto/node/Cargo.toml --release --features=runtim
 	--pallet=pallet_message_lane \
 	--extrinsic=* \
 	--execution=wasm \
-	--wasm-execution=Interpreted \
+	--wasm-execution=Compiled \
 	--heap-pages=4096 \
 	--output=./modules/message-lane/src/weights.rs \
 	--template=./.maintain/rialto-weight-template.hbs
