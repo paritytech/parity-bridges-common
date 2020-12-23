@@ -17,7 +17,9 @@
 use crate::Config;
 
 use bp_message_lane::{
-	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, Sender, TargetHeaderChain},
+	source_chain::{
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, Sender, TargetHeaderChain,
+	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce,
 };
@@ -256,14 +258,15 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 		Ok(())
 	}
 
-	fn pay_relayer_reward(
+	fn pay_relayers_rewards(
 		_confirmation_relayer: &AccountId,
-		relayer: &AccountId,
-		fee: &TestMessageFee,
+		relayers_rewards: RelayersRewards<AccountId, TestMessageFee>,
 		_relayer_fund_account: &AccountId,
 	) {
-		let key = (b":relayer-reward:", relayer, fee).encode();
-		frame_support::storage::unhashed::put(&key, &true);
+		for (relayer, reward) in relayers_rewards {
+			let key = (b":relayer-reward:", relayer, reward.reward).encode();
+			frame_support::storage::unhashed::put(&key, &true);
+		}
 	}
 }
 

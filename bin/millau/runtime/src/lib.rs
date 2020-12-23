@@ -309,6 +309,9 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+
+	// TODO: https://github.com/paritytech/parity-bridges-common/pull/598
+	pub GetDeliveryConfirmationTransactionFee: Balance = 0;
 }
 
 impl pallet_message_lane::Config for Runtime {
@@ -330,8 +333,11 @@ impl pallet_message_lane::Config for Runtime {
 
 	type TargetHeaderChain = crate::rialto_messages::Rialto;
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
-	type MessageDeliveryAndDispatchPayment =
-		pallet_message_lane::instant_payments::InstantCurrencyPayments<AccountId, pallet_balances::Module<Runtime>>;
+	type MessageDeliveryAndDispatchPayment = pallet_message_lane::instant_payments::InstantCurrencyPayments<
+		AccountId,
+		pallet_balances::Module<Runtime>,
+		GetDeliveryConfirmationTransactionFee,
+	>;
 
 	type SourceHeaderChain = crate::rialto_messages::Rialto;
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
