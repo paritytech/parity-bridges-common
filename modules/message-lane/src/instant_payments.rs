@@ -110,7 +110,7 @@ fn pay_relayers_rewards<AccountId, Balance, Currency>(
 	Balance: Debug + AtLeast32BitUnsigned + From<MessageNonce> + Copy,
 	Currency: InstantCurrency<AccountId, Balance>,
 {
-	// reward every relayer, excepting `confirmation_relayer`
+	// reward every relayer except `confirmation_relayer`
 	let mut confirmation_relayer_reward = Balance::zero();
 	for (relayer, reward) in relayers_rewards {
 		let mut relayer_reward = reward.reward;
