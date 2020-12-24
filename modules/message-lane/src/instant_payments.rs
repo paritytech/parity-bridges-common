@@ -190,6 +190,9 @@ mod tests {
 	type TestAccountId = u64;
 	type TestBalance = u64;
 
+	const RELAYER_1: TestAccountId = 1;
+	const RELAYER_2: TestAccountId = 2;
+	const RELAYER_3: TestAccountId = 3;
 	const RELAYERS_FUND_ACCOUNT: TestAccountId = 10;
 
 	struct TestCurrency {
@@ -213,37 +216,41 @@ mod tests {
 		}
 	}
 
+	fn relayers_rewards() -> RelayersRewards<TestAccountId, TestBalance> {
+		vec![
+			(
+				RELAYER_1,
+				RelayerRewards {
+					reward: 100,
+					messages: 2,
+				},
+			),
+			(
+				RELAYER_2,
+				RelayerRewards {
+					reward: 100,
+					messages: 3,
+				},
+			),
+		]
+		.into_iter()
+		.collect()
+	}
+
 	#[test]
 	fn confirmation_relayer_is_rewarded_if_it_has_also_delivered_messages() {
 		let mut currency = TestCurrency::new();
 		pay_relayers_rewards(
 			&mut currency,
-			&2,
-			vec![
-				(
-					1,
-					RelayerRewards {
-						reward: 100,
-						messages: 2,
-					},
-				),
-				(
-					2,
-					RelayerRewards {
-						reward: 100,
-						messages: 3,
-					},
-				),
-			]
-			.into_iter()
-			.collect(),
+			&RELAYER_2,
+			relayers_rewards(),
 			&RELAYERS_FUND_ACCOUNT,
 			10,
 		);
 
 		let balances = currency.balances.into_inner();
-		assert_eq!(balances[&1], 80);
-		assert_eq!(balances[&2], 120);
+		assert_eq!(balances[&RELAYER_1], 80);
+		assert_eq!(balances[&RELAYER_2], 120);
 	}
 
 	#[test]
@@ -251,33 +258,16 @@ mod tests {
 		let mut currency = TestCurrency::new();
 		pay_relayers_rewards(
 			&mut currency,
-			&3,
-			vec![
-				(
-					1,
-					RelayerRewards {
-						reward: 100,
-						messages: 2,
-					},
-				),
-				(
-					2,
-					RelayerRewards {
-						reward: 100,
-						messages: 3,
-					},
-				),
-			]
-			.into_iter()
-			.collect(),
+			&RELAYER_3,
+			relayers_rewards(),
 			&RELAYERS_FUND_ACCOUNT,
 			10,
 		);
 
 		let balances = currency.balances.into_inner();
-		assert_eq!(balances[&1], 80);
-		assert_eq!(balances[&2], 70);
-		assert_eq!(balances[&3], 50);
+		assert_eq!(balances[&RELAYER_1], 80);
+		assert_eq!(balances[&RELAYER_2], 70);
+		assert_eq!(balances[&RELAYER_3], 50);
 	}
 
 	#[test]
@@ -285,32 +275,15 @@ mod tests {
 		let mut currency = TestCurrency::new();
 		pay_relayers_rewards(
 			&mut currency,
-			&3,
-			vec![
-				(
-					1,
-					RelayerRewards {
-						reward: 100,
-						messages: 2,
-					},
-				),
-				(
-					2,
-					RelayerRewards {
-						reward: 100,
-						messages: 3,
-					},
-				),
-			]
-			.into_iter()
-			.collect(),
+			&RELAYER_3,
+			relayers_rewards(),
 			&RELAYERS_FUND_ACCOUNT,
 			1000,
 		);
 
 		let balances = currency.balances.into_inner();
-		assert!(!balances.contains_key(&1));
-		assert!(!balances.contains_key(&2));
-		assert_eq!(balances[&3], 200);
+		assert!(!balances.contains_key(&RELAYER_1));
+		assert!(!balances.contains_key(&RELAYER_2));
+		assert_eq!(balances[&RELAYER_3], 200);
 	}
 }
