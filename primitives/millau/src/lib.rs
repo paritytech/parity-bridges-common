@@ -26,7 +26,7 @@ use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
 	weights::{constants::WEIGHT_PER_MILLIS, DispatchClass, Weight},
-	RuntimeDebug,
+	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
 use sp_core::Hasher as HasherT;
@@ -235,7 +235,20 @@ sp_api::decl_runtime_apis! {
 	///
 	/// This API is implemented by runtimes that are sending messages to Millau chain, not the
 	/// Millau runtime itself.
-	pub trait ToMillauOutboundLaneApi {
+	pub trait ToMillauOutboundLaneApi<OutboundMessageFee: Parameter, OutboundPayload: Parameter> {
+		/// Estimate message delivery and dispatch fee that needs to be paid by the sender on
+		/// this chain.
+		///
+		/// Returns `None` if message is too expensive to be sent to Millau from this chain.
+		///
+		/// Please keep in mind that this method returns lowest message fee required for message
+		/// to be accepted to the lane. It may be good idea to pay a bit over this price to account
+		/// future exchange rate changes and guarantee that relayer would deliver your message
+		/// to the target chain.
+		fn estimate_message_delivery_and_dispatch_fee(
+			lane_id: LaneId,
+			payload: OutboundPayload,
+		) -> Option<OutboundMessageFee>;
 		/// Returns total dispatch weight and encoded payload size of all messages in given inclusive range.
 		///
 		/// If some (or all) messages are missing from the storage, they'll also will
