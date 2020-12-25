@@ -152,6 +152,9 @@ pub const IS_KNOWN_RIALTO_BLOCK_METHOD: &str = "RialtoHeaderApi_is_known_block";
 /// Name of the `RialtoHeaderApi::incomplete_headers` runtime method.
 pub const INCOMPLETE_RIALTO_HEADERS_METHOD: &str = "RialtoHeaderApi_incomplete_headers";
 
+/// Name of the `ToRialtoOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
+pub const TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
+	"ToRialtoOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToRialtoOutboundLaneApi::messages_dispatch_weight` runtime method.
 pub const TO_RIALTO_MESSAGES_DISPATCH_WEIGHT_METHOD: &str = "ToRialtoOutboundLaneApi_messages_dispatch_weight";
 /// Name of the `ToRialtoOutboundLaneApi::latest_generated_nonce` runtime method.

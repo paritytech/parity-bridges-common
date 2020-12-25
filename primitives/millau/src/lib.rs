@@ -191,6 +191,9 @@ pub const IS_KNOWN_MILLAU_BLOCK_METHOD: &str = "MillauHeaderApi_is_known_block";
 /// Name of the `MillauHeaderApi::incomplete_headers` runtime method.
 pub const INCOMPLETE_MILLAU_HEADERS_METHOD: &str = "MillauHeaderApi_incomplete_headers";
 
+/// Name of the `ToMillauOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
+pub const TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD: &str =
+	"ToMillauOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToMillauOutboundLaneApi::messages_dispatch_weight` runtime method.
 pub const TO_MILLAU_MESSAGES_DISPATCH_WEIGHT_METHOD: &str = "ToMillauOutboundLaneApi_messages_dispatch_weight";
 /// Name of the `ToMillauOutboundLaneApi::latest_received_nonce` runtime method.
