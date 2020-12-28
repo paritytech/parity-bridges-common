@@ -26,33 +26,45 @@
 //! Once message is sent, its progress can be tracked by looking at module events.
 //! The assigned nonce is reported using `MessageAccepted` event. When message is
 //! delivered to the the bridged chain, it is reported using `MessagesDelivered` event.
+//!
+//! **IMPORTANT NOTE**: after generating weights (custom `WeighInfo` implementation) for
+//! your runtime (where this module is plugged to), please add test for these weights.
+//! The test should call the `ensure_weights_are_correct` function from this module.
+//! If this test fails with your weights, then either weights are computed incorrectly,
+//! or some benchmarks assumptions are broken for your runtime.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use crate::weights_ext::{ensure_weights_are_correct, WeightInfoExt};
+
 use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
+use crate::weights::WeightInfo;
 
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
-	InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
+	total_unrewarded_messages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, MessagePayload,
+	OutboundLaneData, UnrewardedRelayersState,
 };
 use codec::{Decode, Encode};
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
+	decl_error, decl_event, decl_module, decl_storage, ensure,
 	traits::Get,
 	weights::{DispatchClass, Weight},
 	Parameter, StorageMap,
 };
 use frame_system::{ensure_signed, RawOrigin};
-use num_traits::Zero;
+use num_traits::{SaturatingAdd, Zero};
 use sp_runtime::{traits::BadOrigin, DispatchResult};
 use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
 mod inbound_lane;
 mod outbound_lane;
+mod weights_ext;
 
 pub mod instant_payments;
+pub mod weights;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -60,20 +72,14 @@ pub mod benchmarking;
 #[cfg(test)]
 mod mock;
 
-// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Weight of message delivery without any code that is touching messages.
-const DELIVERY_OVERHEAD_WEIGHT: Weight = 0;
-// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Single-message delivery weight. This shall not include message dispatch weight and
-/// any delivery transaction code that is not specific to this message.
-const SINGLE_MESSAGE_DELIVERY_WEIGHT: Weight = 0;
-
 /// The module configuration trait
 pub trait Config<I = DefaultInstance>: frame_system::Config {
 	// General types
 
 	/// They overarching event type.
 	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
+	/// Benchmarks results from runtime we're plugged into.
+	type WeightInfo: WeightInfoExt;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
 	/// whenever new message is sent. The reason is that if you want to use lane, you should
 	/// be ready to pay for its maintenance.
@@ -92,12 +98,15 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	///
 	/// This constant limits difference between last message from last entry of the
 	/// `InboundLaneData::relayers` and first message at the first entry.
+	///
+	/// There is no point of making this parameter lesser than MaxUnrewardedRelayerEntriesAtInboundLane,
+	/// because then maximal number of relayer entries will be limited by maximal number of messages.
 	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 	type OutboundPayload: Parameter;
 	/// Message fee type of outbound messages. This fee is paid on this chain.
-	type OutboundMessageFee: Parameter + Zero;
+	type OutboundMessageFee: From<u32> + Parameter + SaturatingAdd + Zero;
 
 	/// Payload type of inbound messages. This payload is dispatched on this chain.
 	type InboundPayload: Decode;
@@ -153,6 +162,8 @@ decl_error! {
 		InvalidMessagesDispatchWeight,
 		/// Invalid messages delivery proof has been submitted.
 		InvalidMessagesDeliveryProof,
+		/// The relayer has declared invalid unrewarded relayers state in the `receive_messages_delivery_proof` call.
+		InvalidUnrewardedRelayersState,
 	}
 }
 
@@ -242,7 +253,10 @@ decl_module! {
 		}
 
 		/// Send message over lane.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		///
+		/// The weight of the call assumes that the largest possible message is sent in
+		/// worst possible environment.
+		#[weight = T::WeightInfo::send_message_worst_case()]
 		pub fn send_message(
 			origin,
 			lane_id: LaneId,
@@ -317,9 +331,13 @@ decl_module! {
 		}
 
 		/// Receive messages proof from bridged chain.
-		#[weight = messages_count
-			.saturating_mul(SINGLE_MESSAGE_DELIVERY_WEIGHT)
-			.saturating_add(DELIVERY_OVERHEAD_WEIGHT)
+		///
+		/// The weight of the call assumes that the transaction always brings outbound lane
+		/// state update. Because of that, the submitter (relayer) has no benefit of not including
+		/// this data in the transaction, so reward confirmations lags should be minimal.
+		#[weight = T::WeightInfo::receive_messages_proof_overhead()
+			.saturating_add(T::WeightInfo::receive_messages_proof_outbound_lane_state_overhead())
+			.saturating_add(T::WeightInfo::receive_messages_proof_messages_overhead(*messages_count))
 			.saturating_add(*dispatch_weight)
 		]
 		pub fn receive_messages_proof(
@@ -404,8 +422,19 @@ decl_module! {
 		}
 
 		/// Receive messages delivery proof from bridged chain.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-		pub fn receive_messages_delivery_proof(origin, proof: MessagesDeliveryProofOf<T, I>) -> DispatchResult {
+		#[weight = T::WeightInfo::receive_messages_delivery_proof_overhead()
+			.saturating_add(T::WeightInfo::receive_messages_delivery_proof_messages_overhead(
+				relayers_state.total_messages
+			))
+			.saturating_add(T::WeightInfo::receive_messages_delivery_proof_relayers_overhead(
+				relayers_state.unrewarded_relayer_entries
+			))
+		]
+		pub fn receive_messages_delivery_proof(
+			origin,
+			proof: MessagesDeliveryProofOf<T, I>,
+			relayers_state: UnrewardedRelayersState,
+		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
 
 			let confirmation_relayer = ensure_signed(origin)?;
@@ -418,29 +447,43 @@ decl_module! {
 				Error::<T, I>::InvalidMessagesDeliveryProof
 			})?;
 
+			// verify that the relayer has declared correct `lane_data::relayers` state
+			// (we only care about total number of entries and messages, because this affects call weight)
+			ensure!(
+				total_unrewarded_messages(&lane_data.relayers) == relayers_state.total_messages
+					&& lane_data.relayers.len() as MessageNonce == relayers_state.unrewarded_relayer_entries,
+				Error::<T, I>::InvalidUnrewardedRelayersState
+			);
+
 			// mark messages as delivered
 			let mut lane = outbound_lane::<T, I>(lane_id);
 			let received_range = lane.confirm_delivery(lane_data.latest_received_nonce);
 			if let Some(received_range) = received_range {
 				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, received_range.0, received_range.1));
-				let relayer_fund_account = relayer_fund_account_id::<T, I>();
 
 				// reward relayers that have delivered messages
-				// this loop is bounded by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
+				// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
+				let relayer_fund_account = relayer_fund_account_id::<T, I>();
 				for (nonce_low, nonce_high, relayer) in lane_data.relayers {
 					let nonce_begin = sp_std::cmp::max(nonce_low, received_range.0);
 					let nonce_end = sp_std::cmp::min(nonce_high, received_range.1);
+
 					// loop won't proceed if current entry is ahead of received range (begin > end).
+					// this loop is bound by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
+					let mut relayer_fee: T::OutboundMessageFee = Zero::zero();
 					for nonce in nonce_begin..nonce_end + 1 {
 						let message_data = OutboundMessages::<T, I>::get(MessageKey {
 							lane_id,
 							nonce,
 						}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
+						relayer_fee = relayer_fee.saturating_add(&message_data.fee);
+					}
 
+					if !relayer_fee.is_zero() {
 						<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
 							&confirmation_relayer,
 							&relayer,
-							&message_data.fee,
+							&relayer_fee,
 							&relayer_fund_account,
 						);
 					}
@@ -492,6 +535,7 @@ impl<T: Config<I>, I: Instance> Module<T, I> {
 		bp_message_lane::UnrewardedRelayersState {
 			unrewarded_relayer_entries: relayers.len() as _,
 			messages_in_oldest_entry: relayers.front().map(|(begin, end, _)| 1 + end - begin).unwrap_or(0),
+			total_messages: total_unrewarded_messages(&relayers),
 		}
 	}
 }
@@ -745,8 +789,9 @@ mod tests {
 				InboundLaneData {
 					latest_received_nonce: 1,
 					..Default::default()
-				}
+				},
 			)),
+			Default::default(),
 		));
 
 		assert_eq!(
@@ -854,8 +899,9 @@ mod tests {
 						InboundLaneData {
 							latest_received_nonce: 1,
 							..Default::default()
-						}
+						},
 					)),
+					Default::default(),
 				),
 				Error::<TestRuntime, DefaultInstance>::Halted,
 			);
@@ -946,6 +992,7 @@ mod tests {
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 2,
 					messages_in_oldest_entry: 1,
+					total_messages: 2,
 				},
 			);
 
@@ -979,6 +1026,7 @@ mod tests {
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 2,
 					messages_in_oldest_entry: 1,
+					total_messages: 2,
 				},
 			);
 		});
@@ -1056,6 +1104,11 @@ mod tests {
 						..Default::default()
 					}
 				)),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 1,
+					total_messages: 1,
+					..Default::default()
+				},
 			));
 			assert!(TestMessageDeliveryAndDispatchPayment::is_reward_paid(
 				TEST_RELAYER_A,
@@ -1079,6 +1132,11 @@ mod tests {
 						..Default::default()
 					}
 				)),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 2,
+					total_messages: 2,
+					..Default::default()
+				},
 			));
 			assert!(!TestMessageDeliveryAndDispatchPayment::is_reward_paid(
 				TEST_RELAYER_A,
@@ -1095,8 +1153,59 @@ mod tests {
 	fn receive_messages_delivery_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::receive_messages_delivery_proof(Origin::signed(1), Err(()),),
+				Module::<TestRuntime>::receive_messages_delivery_proof(Origin::signed(1), Err(()), Default::default(),),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDeliveryProof,
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_delivery_proof_rejects_proof_if_declared_relayers_state_is_invalid() {
+		run_test(|| {
+			// when number of relayers entires is invalid
+			assert_noop!(
+				Module::<TestRuntime>::receive_messages_delivery_proof(
+					Origin::signed(1),
+					Ok((
+						TEST_LANE_ID,
+						InboundLaneData {
+							relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
+								.into_iter()
+								.collect(),
+							latest_received_nonce: 2,
+							..Default::default()
+						}
+					)),
+					UnrewardedRelayersState {
+						unrewarded_relayer_entries: 1,
+						total_messages: 2,
+						..Default::default()
+					},
+				),
+				Error::<TestRuntime, DefaultInstance>::InvalidUnrewardedRelayersState,
+			);
+
+			// when number of messages is invalid
+			assert_noop!(
+				Module::<TestRuntime>::receive_messages_delivery_proof(
+					Origin::signed(1),
+					Ok((
+						TEST_LANE_ID,
+						InboundLaneData {
+							relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
+								.into_iter()
+								.collect(),
+							latest_received_nonce: 2,
+							..Default::default()
+						}
+					)),
+					UnrewardedRelayersState {
+						unrewarded_relayer_entries: 2,
+						total_messages: 1,
+						..Default::default()
+					},
+				),
+				Error::<TestRuntime, DefaultInstance>::InvalidUnrewardedRelayersState,
 			);
 		});
 	}

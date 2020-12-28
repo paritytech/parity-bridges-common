@@ -37,7 +37,6 @@ pub mod millau_messages;
 pub mod rialto_poa;
 
 use codec::Decode;
-use frame_system::limits;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -163,9 +162,6 @@ parameter_types! {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
 		write: 200_000_000, // ~0.2 ms = 200 µs
 	};
-
-	pub RuntimeBlockLength: limits::BlockLength = bp_rialto::runtime_block_length();
-	pub RuntimeBlockWeights: limits::BlockWeights = bp_rialto::runtime_block_weights();
 }
 
 impl frame_system::Config for Runtime {
@@ -207,9 +203,9 @@ impl frame_system::Config for Runtime {
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = ();
 	/// Block and extrinsics weights: base values and limits.
-	type BlockWeights = RuntimeBlockWeights;
+	type BlockWeights = bp_rialto::BlockWeights;
 	/// The maximum length of a block (in bytes).
-	type BlockLength = RuntimeBlockLength;
+	type BlockLength = bp_rialto::BlockLength;
 	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = DbWeight;
 }
@@ -425,6 +421,7 @@ parameter_types! {
 pub(crate) type WithMillauMessageLaneInstance = pallet_message_lane::DefaultInstance;
 impl pallet_message_lane::Config for Runtime {
 	type Event = Event;
+	type WeightInfo = pallet_message_lane::weights::RialtoWeight<Runtime>;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
@@ -802,6 +799,7 @@ impl_runtime_apis! {
 			use pallet_message_lane::benchmarking::{
 				Module as MessageLaneBench,
 				Config as MessageLaneConfig,
+				MessageDeliveryProofParams as MessageLaneMessageDeliveryProofParams,
 				MessageParams as MessageLaneMessageParams,
 				MessageProofParams as MessageLaneMessageProofParams,
 			};
@@ -809,6 +807,10 @@ impl_runtime_apis! {
 			impl MessageLaneConfig<WithMillauMessageLaneInstance> for Runtime {
 				fn bridged_relayer_id() -> Self::InboundRelayer {
 					Default::default()
+				}
+
+				fn account_balance(account: &Self::AccountId) -> Self::OutboundMessageFee {
+					pallet_balances::Module::<Runtime>::free_balance(account)
 				}
 
 				fn endow_account(account: &Self::AccountId) {
@@ -913,6 +915,34 @@ impl_runtime_apis! {
 						}.encode(),
 					)
 				}
+
+				fn prepare_message_delivery_proof(
+					params: MessageLaneMessageDeliveryProofParams<Self::AccountId>,
+				) -> millau_messages::FromMillauMessagesDeliveryProof {
+					use crate::millau_messages::{Millau, WithMillauMessageBridge};
+					use bridge_runtime_common::{
+						messages::ChainWithMessageLanes,
+						messages_benchmarking::prepare_message_delivery_proof,
+					};
+					use sp_runtime::traits::Header;
+
+					prepare_message_delivery_proof::<WithMillauMessageBridge, bp_millau::Hasher, Runtime, _, _>(
+						params,
+						|lane_id| pallet_message_lane::storage_keys::inbound_lane_data_key::<
+							Runtime,
+							<Millau as ChainWithMessageLanes>::MessageLaneInstance,
+						>(
+							&lane_id,
+						).0,
+						|state_root| bp_millau::Header::new(
+							0,
+							Default::default(),
+							state_root,
+							Default::default(),
+							Default::default(),
+						),
+					)
+				}
 			}
 
 			add_benchmark!(params, batches, pallet_bridge_eth_poa, BridgeKovan);
@@ -973,6 +1003,11 @@ mod tests {
 				initial_amount + total_issuance_change,
 			);
 		});
+	}
+
+	#[test]
+	fn ensure_rialto_message_lane_weights_are_correct() {
+		pallet_message_lane::ensure_weights_are_correct::<pallet_message_lane::weights::RialtoWeight<Runtime>>();
 	}
 
 	#[test]
