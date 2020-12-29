@@ -56,6 +56,9 @@ where
 	type Error = Error;
 
 	async fn best_block_number(&self) -> Result<P::Number, Self::Error> {
+		// we **CAN** continue to relay headers if source node is out of sync, because
+		// target node may be missing headers that are already available at the source
+
 		Ok(*self.client.best_header().await?.number())
 	}
 

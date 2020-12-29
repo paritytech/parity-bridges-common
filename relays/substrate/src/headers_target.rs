@@ -57,6 +57,10 @@ where
 	type Error = SubstrateError;
 
 	async fn best_header_id(&self) -> Result<HeaderIdOf<P>, Self::Error> {
+		// we can't continue to relay headers if target node is out of sync, because
+		// it may have already received (some of) headers that we're going to relay
+		self.client.ensure_synced().await?;
+
 		let call = P::BEST_BLOCK_METHOD.into();
 		let data = Bytes(Vec::new());
 

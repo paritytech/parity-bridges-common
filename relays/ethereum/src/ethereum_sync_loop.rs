@@ -121,6 +121,9 @@ impl SourceClient<EthereumHeadersSyncPipeline> for EthereumHeadersSource {
 	type Error = RpcError;
 
 	async fn best_block_number(&self) -> Result<u64, Self::Error> {
+		// we **CAN** continue to relay headers if Ethereum node is out of sync, because
+		// Substrate node may be missing headers that are already available at the Ethereum
+
 		self.client.best_block_number().await.map_err(Into::into)
 	}
 
@@ -187,6 +190,10 @@ impl TargetClient<EthereumHeadersSyncPipeline> for SubstrateHeadersTarget {
 	type Error = RpcError;
 
 	async fn best_header_id(&self) -> Result<EthereumHeaderId, Self::Error> {
+		// we can't continue to relay headers if Substrate node is out of sync, because
+		// it may have already received (some of) headers that we're going to relay
+		self.client.ensure_synced().await?;
+
 		self.client.best_ethereum_block().await
 	}
 

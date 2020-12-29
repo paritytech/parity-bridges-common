@@ -122,6 +122,10 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 	type Error = RpcError;
 
 	async fn best_header_id(&self) -> Result<RialtoHeaderId, Self::Error> {
+		// we can't continue to relay headers if Ethereum node is out of sync, because
+		// it may have already received (some of) headers that we're going to relay
+		self.client.ensure_synced().await?;
+
 		self.client.best_substrate_block(self.contract).await
 	}
 

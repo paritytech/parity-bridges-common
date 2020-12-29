@@ -231,6 +231,10 @@ impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
 	}
 
 	async fn best_finalized_header_id(&self) -> Result<EthereumHeaderId, Self::Error> {
+		// we can't continue to relay exchange proofs if Substrate node is out of sync, because
+		// it may have already received (some of) proofs that we're going to relay
+		self.client.ensure_synced().await?;
+
 		self.client.best_ethereum_finalized_block().await
 	}
 
