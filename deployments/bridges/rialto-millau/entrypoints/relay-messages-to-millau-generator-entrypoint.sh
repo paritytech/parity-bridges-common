@@ -31,7 +31,6 @@ do
 	echo "Sending Remark from Rialto to Millau using Target Origin"
 	$SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
-		--fee 100000000 \
 		--origin Target \
 		remark
 
@@ -39,7 +38,6 @@ do
 	echo "Sending Transfer from Rialto to Millau using Target Origin"
 	 $SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
-		--fee 1000000000 \
 		--origin Target \
 		transfer \
 		--amount 1000000000 \
@@ -49,7 +47,6 @@ do
 	echo "Sending Remark from Rialto to Millau using Source Origin"
 	 $SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
-		--fee 100000000 \
 		--origin Source \
 		remark
 
@@ -57,7 +54,6 @@ do
 	echo "Sending Transfer from Rialto to Millau using Source Origin"
 	 $SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
-		--fee 1000000000 \
 		--origin Source \
 		transfer \
 		--amount 1000000000 \
