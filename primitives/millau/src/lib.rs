@@ -25,7 +25,7 @@ mod millau_hash;
 use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
-	weights::{constants::WEIGHT_PER_MILLIS, DispatchClass, Weight},
+	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, Weight},
 	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
