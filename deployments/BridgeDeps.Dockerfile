@@ -6,7 +6,6 @@ FROM ubuntu:xenial
 
 ENV LAST_DEPS_UPDATE 2020-12-21
 
-# TODO: Check if we need all these deps (e.g jq)
 RUN set -eux; \
 	apt-get update && \
 	apt-get install -y curl ca-certificates && \
