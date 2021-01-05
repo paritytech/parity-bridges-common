@@ -9,7 +9,7 @@ ENV LAST_DEPS_UPDATE 2020-12-21
 # TODO: Check if we need all these deps (e.g jq)
 RUN set -eux; \
 	apt-get update && \
-	apt-get install -y file curl jq ca-certificates && \
+	apt-get install -y curl ca-certificates && \
 	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
 
 ENV LAST_CERTS_UPDATE 2020-12-21
