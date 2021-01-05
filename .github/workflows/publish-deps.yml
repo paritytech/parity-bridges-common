@@ -7,8 +7,8 @@ on:
     paths-ignore:
       - 'README.md'
       - diagrams/
-  schedule:                                         # Weekly build
-    - cron:                                         '0 0 * * 0'
+  schedule:                                         # Nightly build
+    - cron:                                         '0 0 * * *'
 jobs:
 ## Publish to Docker hub
   publish:
