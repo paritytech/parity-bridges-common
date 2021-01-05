@@ -1,5 +1,12 @@
-# NOTE Customize the binary that is being built by providing `PROJECT` build-arg.
-# E.g. docker build --build-arg PROJECT=ethereum-poa-relay ...
+# Builds images used by the bridge.
+#
+# In particular, it can be used to build Substrate nodes and bridge relayers. The binary that gets
+# built can be specified with the `PROJECT` build-arg. For example, to build the `substrate-relay`
+# you would do the following:
+#
+# `docker build . -t local/substrate-relay --build-arg=PROJECT=substrate-relay`
+#
+# See the `deployments/README.md` for all the available `PROJECT` values.
 
 # This first stage prepares our dependencies to be built by `cargo-chef`.
 FROM rust as planner
