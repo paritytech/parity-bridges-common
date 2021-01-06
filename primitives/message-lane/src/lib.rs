@@ -100,14 +100,13 @@ impl<RelayerId> Default for InboundLaneData<RelayerId> {
 impl<RelayerId> InboundLaneData<RelayerId> {
 	/// Nonce of latest message that we have received from bridged chain.
 	pub fn latest_received_nonce(&self) -> MessageNonce {
-		self.relayers.back()
-			.map(|(_, last_nonce, _)| last_nonce)
-			.unwrap_or(0)
+		self.relayers.back().map(|(_, last_nonce, _)| last_nonce).unwrap_or(0)
 	}
 
 	/// Nonce of latest message that has been confirmed to the bridged chain.
 	pub fn latest_confirmed_nonce(&self) -> MessageNonce {
-		self.relayers.front()
+		self.relayers
+			.front()
 			.map(|(first_nonce, ..)| first_nonce.saturating_sub(1))
 			.unwrap_or(0)
 	}
