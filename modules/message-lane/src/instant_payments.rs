@@ -45,9 +45,7 @@ where
 {
 	type Error = &'static str;
 
-	fn initialize(
-		relayer_fund_account: &T::AccountId,
-	) -> usize {
+	fn initialize(relayer_fund_account: &T::AccountId) -> usize {
 		assert!(
 			frame_system::Module::<T>::account_exists(relayer_fund_account),
 			"The relayer fund account ({:?}) must exist for the message lanes pallet to work correctly.",
@@ -75,7 +73,8 @@ where
 			*fee,
 			// it's fine for the submitter to go below Existential Deposit and die.
 			ExistenceRequirement::AllowDeath,
-		).map_err(Into::into)
+		)
+		.map_err(Into::into)
 	}
 
 	fn pay_relayer_reward(

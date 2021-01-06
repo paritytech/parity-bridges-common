@@ -114,7 +114,7 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	///
 	/// For instance you may ensure that particular required accounts or storage items are present.
 	/// Returns the number of storage reads performed.
-	fn initialize(
-		_relayer_fund_account: &AccountId,
-	) -> usize { 0 }
+	fn initialize(_relayer_fund_account: &AccountId) -> usize {
+		0
+	}
 }

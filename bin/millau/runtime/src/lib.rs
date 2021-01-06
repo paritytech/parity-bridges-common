@@ -334,10 +334,11 @@ impl pallet_message_lane::Config for Runtime {
 
 	type TargetHeaderChain = crate::rialto_messages::Rialto;
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
-	type MessageDeliveryAndDispatchPayment =
-		pallet_message_lane::instant_payments::InstantCurrencyPayments<
-			Runtime, pallet_balances::Module<Runtime>, RootAccountForPayments
-		>;
+	type MessageDeliveryAndDispatchPayment = pallet_message_lane::instant_payments::InstantCurrencyPayments<
+		Runtime,
+		pallet_balances::Module<Runtime>,
+		RootAccountForPayments,
+	>;
 
 	type SourceHeaderChain = crate::rialto_messages::Rialto;
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;

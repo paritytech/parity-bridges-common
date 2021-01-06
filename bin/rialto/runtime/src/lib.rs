@@ -441,10 +441,11 @@ impl pallet_message_lane::Config for Runtime {
 
 	type TargetHeaderChain = crate::millau_messages::Millau;
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
-	type MessageDeliveryAndDispatchPayment =
-		pallet_message_lane::instant_payments::InstantCurrencyPayments<
-			Runtime, pallet_balances::Module<Runtime>, RootAccountForPayments,
-		>;
+	type MessageDeliveryAndDispatchPayment = pallet_message_lane::instant_payments::InstantCurrencyPayments<
+		Runtime,
+		pallet_balances::Module<Runtime>,
+		RootAccountForPayments,
+	>;
 
 	type SourceHeaderChain = crate::millau_messages::Millau;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
