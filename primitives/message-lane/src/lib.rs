@@ -80,25 +80,36 @@ pub struct InboundLaneData<RelayerId> {
 	/// 1) all incoming messages are rejected if they're missing corresponding `proof-of(outbound-lane.state)`;
 	/// 2) all incoming messages are rejected if `proof-of(outbound-lane.state).latest_received_nonce` is
 	///    equal to `this.latest_confirmed_nonce`.
-	/// Given what is said above, all nonces in this queue are in range (latest_confirmed_nonce; latest_received_nonce].
+	/// Given what is said above, all nonces in this queue are in range:
+	/// `(Self::latest_confirmed_nonce(); Self::latest_received_nonce()]`.
 	///
 	/// When a relayer sends a single message, both of MessageNonces are the same.
 	/// When relayer sends messages in a batch, the first arg is the lowest nonce, second arg the highest nonce.
 	/// Multiple dispatches from the same relayer one are allowed.
 	pub relayers: VecDeque<(MessageNonce, MessageNonce, RelayerId)>,
-	/// Nonce of latest message that we have received from bridged chain.
-	pub latest_received_nonce: MessageNonce,
-	/// Nonce of latest message that has been confirmed to the bridged chain.
-	pub latest_confirmed_nonce: MessageNonce,
 }
 
 impl<RelayerId> Default for InboundLaneData<RelayerId> {
 	fn default() -> Self {
 		InboundLaneData {
 			relayers: VecDeque::new(),
-			latest_received_nonce: 0,
-			latest_confirmed_nonce: 0,
 		}
+	}
+}
+
+impl<RelayerId> InboundLaneData<RelayerId> {
+	/// Nonce of latest message that we have received from bridged chain.
+	pub fn latest_received_nonce(&self) -> MessageNonce {
+		self.relayers.back()
+			.map(|(_, last_nonce, _)| last_nonce)
+			.unwrap_or(0)
+	}
+
+	/// Nonce of latest message that has been confirmed to the bridged chain.
+	pub fn latest_confirmed_nonce(&self) -> MessageNonce {
+		self.relayers.front()
+			.map(|(first_nonce, ..)| first_nonce.saturating_sub(1))
+			.unwrap_or(0)
 	}
 }
 
