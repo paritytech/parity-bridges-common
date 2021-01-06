@@ -549,8 +549,9 @@ impl<T: Config<I>, I: Instance> Module<T, I> {
 
 	/// AccountId of the shared relayer fund account.
 	///
-	/// This account stores all the fees paid by submitters. Relayers are able to claim these
-	/// funds as at their convenience.
+	/// This account is passed to `MessageDeliveryAndDispatchPayment` trait, and depending
+	/// on the implementation it can be used to store relayers rewards.
+	/// See [InstantCurrencyPayments] for a concrete implementation.
 	pub fn relayer_fund_account_id() -> T::AccountId {
 		use sp_runtime::traits::Convert;
 		let encoded_id = bp_runtime::derive_relayer_fund_account_id(bp_runtime::NO_INSTANCE_ID);
