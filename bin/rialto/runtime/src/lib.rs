@@ -443,7 +443,7 @@ impl pallet_message_lane::Config for Runtime {
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type MessageDeliveryAndDispatchPayment =
 		pallet_message_lane::instant_payments::InstantCurrencyPayments<
-			AccountId, pallet_balances::Module<Runtime>, RootAccountForPayments,
+			Runtime, pallet_balances::Module<Runtime>, RootAccountForPayments,
 		>;
 
 	type SourceHeaderChain = crate::millau_messages::Millau;

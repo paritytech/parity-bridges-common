@@ -216,12 +216,10 @@ decl_module! {
 
 		/// Ensure runtime invariants.
 		fn on_runtime_upgrade() -> Weight {
-			assert!(
-				frame_system::Module::<T>::account_exists(&Self::relayer_fund_account_id()),
-				"The relayer fund account ({:?}) must exist for the message lanes pallet to work correctly.",
-				Self::relayer_fund_account_id(),
+			let reads = T::MessageDeliveryAndDispatchPayment::initialize(
+				&Self::relayer_fund_account_id()
 			);
-			T::DbWeight::get().reads(1)
+			T::DbWeight::get().reads(reads as u64)
 		}
 
 		/// Change `ModuleOwner`.

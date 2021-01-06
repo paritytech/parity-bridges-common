@@ -336,7 +336,7 @@ impl pallet_message_lane::Config for Runtime {
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
 	type MessageDeliveryAndDispatchPayment =
 		pallet_message_lane::instant_payments::InstantCurrencyPayments<
-			AccountId, pallet_balances::Module<Runtime>, RootAccountForPayments
+			Runtime, pallet_balances::Module<Runtime>, RootAccountForPayments
 		>;
 
 	type SourceHeaderChain = crate::rialto_messages::Rialto;
