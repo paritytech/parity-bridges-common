@@ -15,24 +15,35 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Implementation of `MessageDeliveryAndDispatchPayment` trait on top of `Currency` trait.
-//! All payments are instant.
+//!
+//! The payment is first transferred to a special `relayers-fund` account and only transferred
+//! to the actual relayer in case confirmation is received.
 
 use bp_message_lane::source_chain::{MessageDeliveryAndDispatchPayment, Sender};
 use codec::Encode;
-use frame_support::traits::{Currency as CurrencyT, ExistenceRequirement};
+use frame_support::traits::{Currency as CurrencyT, ExistenceRequirement, Get};
 use sp_std::fmt::Debug;
 
-/// Instant message payments made in given currency. Until claimed, fee is stored in special
-/// 'relayers-fund' account.
-pub struct InstantCurrencyPayments<AccountId, Currency> {
-	_phantom: sp_std::marker::PhantomData<(AccountId, Currency)>,
+/// Instant message payments made in given currency.
+///
+/// The balance is initally reserved in a special `relayers-fund` account, and transferred
+/// to the relayer when message delivery is confirmed.
+///
+/// NOTE The `relayers-fund` account must always exist i.e. be over Existential Deposit (ED; the
+/// pallet enforces that) to make sure that even if the message cost is below ED it is still payed
+/// to the relayer account.
+/// NOTE It's within relayer's interest to keep their balance above ED as well, to make sure they
+/// can receive the payment.
+pub struct InstantCurrencyPayments<AccountId, Currency, RootAccount> {
+	_phantom: sp_std::marker::PhantomData<(AccountId, Currency, RootAccount)>,
 }
 
-impl<AccountId, Currency> MessageDeliveryAndDispatchPayment<AccountId, Currency::Balance>
-	for InstantCurrencyPayments<AccountId, Currency>
+impl<AccountId, Currency, RootAccount> MessageDeliveryAndDispatchPayment<AccountId, Currency::Balance>
+	for InstantCurrencyPayments<AccountId, Currency, RootAccount>
 where
 	Currency: CurrencyT<AccountId>,
 	AccountId: Debug + Default + Encode,
+	RootAccount: Get<Option<AccountId>>,
 {
 	type Error = &'static str;
 
@@ -41,18 +52,21 @@ where
 		fee: &Currency::Balance,
 		relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {
-		match submitter {
-			Sender::Signed(submitter) => {
-				Currency::transfer(submitter, relayer_fund_account, *fee, ExistenceRequirement::AllowDeath)
-					.map_err(Into::into)
-			}
-			Sender::Root => {
-				Err("Sending messages from Root account is not supported yet. See GitHub issue #559 for more.")
-			}
-			Sender::None => {
-				Err("Sending messages from None account is not supported yet. See GitHub issue #559 for more.")
-			}
-		}
+		let root_account = RootAccount::get();
+		let account = match submitter {
+			Sender::Signed(submitter) => submitter,
+			Sender::Root | Sender::None => root_account
+				.as_ref()
+				.ok_or("Sending messages using Root or None origin is disallowed.")?,
+		};
+
+		Currency::transfer(
+			account,
+			relayer_fund_account,
+			*fee,
+			// it's fine for the submitter to go below Existential Deposit and die.
+			ExistenceRequirement::AllowDeath,
+		).map_err(Into::into)
 	}
 
 	fn pay_relayer_reward(
@@ -65,7 +79,8 @@ where
 			&relayer_fund_account,
 			relayer,
 			*reward,
-			ExistenceRequirement::AllowDeath,
+			// the relayer fund account must stay above ED (needs to be pre-funded)
+			ExistenceRequirement::KeepAlive,
 		);
 
 		// we can't actually do anything here, because rewards are paid as a part of unrelated transaction
