@@ -4198,6 +4198,7 @@ dependencies = [
 name = "pallet-finality-verifier"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
