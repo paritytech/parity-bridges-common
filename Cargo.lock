@@ -4195,6 +4195,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-finality-verifier"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-grandpa"
 version = "2.0.0"
 source = "git+https://github.com/paritytech/substrate.git?branch=master#264cfcf8e199ed049ec4cd56c3abcaf8d6bbc7c6"
