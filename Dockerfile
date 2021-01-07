@@ -1,47 +1,48 @@
-FROM ubuntu:xenial AS builder
-# NOTE Customize the binary that is being built by providing `PROJECT` build-arg.
-# E.g. docker build --build-arg PROJECT=ethereum-poa-relay ...
+# Builds images used by the bridge.
+#
+# In particular, it can be used to build Substrate nodes and bridge relayers. The binary that gets
+# built can be specified with the `PROJECT` build-arg. For example, to build the `substrate-relay`
+# you would do the following:
+#
+# `docker build . -t local/substrate-relay --build-arg=PROJECT=substrate-relay`
+#
+# See the `deployments/README.md` for all the available `PROJECT` values.
 
-# show backtraces
-ENV RUST_BACKTRACE 1
-
-ENV LAST_DEPS_UPDATE 2020-06-22
-
-# install tools and dependencies
-RUN set -eux; \
-	apt-get update && \
-	apt-get install -y file curl jq ca-certificates && \
-	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
-
-ENV LAST_CERTS_UPDATE 2020-06-22
-
-RUN update-ca-certificates && \
-	curl https://sh.rustup.rs -sSf | sh -s -- -y
-
-ENV PATH="/root/.cargo/bin:${PATH}"
-ENV LAST_RUST_UPDATE 2020-11-30
-
-RUN rustup update stable && \
-	rustup install nightly && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly
-
-RUN rustc -vV && \
-    cargo -V && \
-    gcc -v && \
-    g++ -v && \
-    cmake --version
-
+# This first stage prepares our dependencies to be built by `cargo-chef`.
+FROM rust as planner
 WORKDIR /parity-bridges-common
+RUN cargo install cargo-chef
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-### Build locally
-ADD . /parity-bridges-common
+# This second stage is where the dependencies actually get built.
+# The reason we split it from the first stage is so that the `COPY . .`
+# step doesn't blow our cache.
+FROM hcastano/bridge-deps AS cacher
+WORKDIR /parity-bridges-common
+RUN cargo install cargo-chef
+
+COPY --from=planner /parity-bridges-common/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# In this third stage we go ahead and build the actual binary we want.
+# This should be fairly quick since the dependencies are being built and
+# cached in the previous stage.
+FROM hcastano/bridge-deps as builder
+WORKDIR /parity-bridges-common
+RUN cargo install cargo-chef
+
+COPY . /parity-bridges-common
+COPY --from=cacher /parity-bridges-common/target target
+COPY --from=cacher $CARGO_HOME $CARGO_HOME
 
 ARG PROJECT=ethereum-poa-relay
-
 RUN cargo build --release --verbose -p ${PROJECT}
 RUN strip ./target/release/${PROJECT}
 
-FROM ubuntu:xenial
+# In this final stage we copy over the final binary and do some checks
+# to make sure that everything looks good.
+FROM ubuntu:xenial as runtime
 
 # show backtraces
 ENV RUST_BACKTRACE 1
