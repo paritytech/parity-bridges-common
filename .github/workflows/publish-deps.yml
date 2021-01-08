@@ -34,7 +34,7 @@ jobs:
         with:
           username:                                 ${{ secrets.DOCKER_USER }}
           password:                                 ${{ secrets.DOCKER_PASSWORD }}
-          repository:                               paritytech/parity-bridges-common
+          repository:                               paritytech/bridge-dependencies
           dockerfile:                               deployments/BridgeDeps.Dockerfile
           tag_with_ref:                             true
           tag_with_sha:                             true
