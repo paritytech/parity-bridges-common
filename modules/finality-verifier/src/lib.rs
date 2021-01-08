@@ -21,34 +21,26 @@
 #![allow(clippy::large_enum_variant)]
 
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
-use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult};
+use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, Parameter};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 
 /// Header of the bridged chain.
 pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
-trait AncestryChecker {
-	type Chain: Chain;
-	type Proof;
-
-	fn are_ancestors(
-		ancestor: <Self::Chain as Chain>::Header,
-		child: <Self::Chain as Chain>::Header,
-		proof: Self::Proof,
-	) -> bool;
+pub trait AncestryChecker<H, P> {
+	fn are_ancestors(ancestor: H, child: H, proof: P) -> bool;
 }
 
-trait HeaderChain {
-	type Chain: Chain;
-
-	fn best_finalized() -> <Self::Chain as Chain>::Header;
+pub trait HeaderChain<H> {
+	fn best_finalized() -> H;
 }
 
 pub trait Config: frame_system::Config {
 	type BridgedChain: Chain;
-	type HeaderChain: HeaderChain;
-	type AncestryChecker: AncestryChecker;
+	type HeaderChain: HeaderChain<<Self::BridgedChain as Chain>::Header>;
+	type AncestryChecker: AncestryChecker<<Self::BridgedChain as Chain>::Header, Self::AncestryProof>;
+	type AncestryProof: Parameter;
 }
 
 decl_storage! {
@@ -70,7 +62,7 @@ decl_module! {
 			origin,
 			finality_target: BridgedHeader<T>,
 			justification: Vec<u8>,
-			ancestry_proof: Vec<T::Hash>,
+			ancestry_proof: T::AncestryProof,
 		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 
