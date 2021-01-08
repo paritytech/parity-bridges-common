@@ -1219,7 +1219,10 @@ mod tests {
 				0, // weight may be zero in this case (all messages are improperly encoded)
 			),);
 
-			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).last_delivered_nonce(), 1,);
+			assert_eq!(
+				InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).last_delivered_nonce(),
+				1,
+			);
 		});
 	}
 
@@ -1242,7 +1245,10 @@ mod tests {
 				REGULAR_PAYLOAD.1 + REGULAR_PAYLOAD.1,
 			),);
 
-			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).last_delivered_nonce(), 3,);
+			assert_eq!(
+				InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).last_delivered_nonce(),
+				3,
+			);
 		});
 	}
 
