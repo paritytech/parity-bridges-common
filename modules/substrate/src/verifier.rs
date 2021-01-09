@@ -23,8 +23,10 @@
 //! if required.
 
 use crate::justification::verify_justification;
-use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
+use crate::storage::{ImportedHeader, ScheduledChange};
 use crate::BridgeStorage;
+
+use bp_header_chain::AuthoritySet;
 use finality_grandpa::voter_set::VoterSet;
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;

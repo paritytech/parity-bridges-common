@@ -610,6 +610,9 @@ name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
+ "serde",
+ "sp-finality-grandpa",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -4198,11 +4201,16 @@ dependencies = [
 name = "pallet-finality-verifier"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-runtime",
+ "finality-grandpa",
  "frame-support",
  "frame-system",
+ "pallet-substrate-bridge",
  "parity-scale-codec",
  "serde",
+ "sp-finality-grandpa",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -4317,6 +4325,7 @@ dependencies = [
 name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-runtime",
  "finality-grandpa",
  "frame-support",

@@ -56,9 +56,10 @@
 
 use crate::justification::tests::*;
 use crate::mock::{helpers::*, *};
-use crate::storage::{AuthoritySet, ImportedHeader};
+use crate::storage::ImportedHeader;
 use crate::verifier::*;
 use crate::{BestFinalized, BestHeight, BridgeStorage, NextScheduledChange, PalletStorage};
+use bp_header_chain::AuthoritySet;
 use codec::Encode;
 use frame_support::{IterableStorageMap, StorageValue};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
