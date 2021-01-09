@@ -22,6 +22,7 @@
 
 use bp_header_chain::{AncestryChecker, HeaderChain};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
+use finality_grandpa::voter_set::VoterSet;
 use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, Parameter};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
@@ -63,13 +64,14 @@ decl_module! {
 			let _ = ensure_signed(origin)?;
 
 			let authority_set = T::HeaderChain::authority_set();
+			let voter_set = VoterSet::new(authority_set.authorities).expect("TODO");
 			let set_id = 1;
 
 			let header_id = (finality_target.hash(), *finality_target.number());
 			verify_justification::<BridgedHeader<T>>(
 				header_id,
 				set_id,
-				authority_set,
+				voter_set,
 				&justification
 			)
 			.map_err(|_| <Error<T>>::InvalidJustification)?;
@@ -91,8 +93,8 @@ impl<T: Config> Module<T> {
 // TODO: Use real `justification` code
 fn verify_justification<Header: HeaderT>(
 	_finalized_target: (Header::Hash, Header::Number),
-	_authorities_set_id: u8,        // SetId,
-	_authorities_set: AuthoritySet, // VoterSet<AuthorityId>,
+	_authorities_set_id: sp_finality_grandpa::SetId,
+	_authorities_set: VoterSet<sp_finality_grandpa::AuthorityId>,
 	_raw_justification: &[u8],
 ) -> Result<(), ()> {
 	todo!()
