@@ -20,21 +20,17 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
+use bp_header_chain::{AncestryChecker, HeaderChain};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, Parameter};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 
+#[cfg(test)]
+mod mock;
+
 /// Header of the bridged chain.
 pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
-
-pub trait AncestryChecker<H, P> {
-	fn are_ancestors(ancestor: H, child: H, proof: P) -> bool;
-}
-
-pub trait HeaderChain<H> {
-	fn best_finalized() -> H;
-}
 
 pub trait Config: frame_system::Config {
 	type BridgedChain: Chain;
@@ -66,7 +62,17 @@ decl_module! {
 		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 
-			verify_justification().map_err(|_| <Error<T>>::InvalidJustification)?;
+			let authority_set = T::HeaderChain::authority_set();
+			let set_id = 1;
+
+			let header_id = (finality_target.hash(), *finality_target.number());
+			verify_justification::<BridgedHeader<T>>(
+				header_id,
+				set_id,
+				authority_set,
+				&justification
+			)
+			.map_err(|_| <Error<T>>::InvalidJustification)?;
 
 			let best_finalized = T::HeaderChain::best_finalized();
 			T::AncestryChecker::are_ancestors(best_finalized, finality_target, ancestry_proof);
@@ -82,6 +88,26 @@ impl<T: Config> Module<T> {
 	}
 }
 
-fn verify_justification() -> Result<(), ()> {
+// TODO: Use real `justification` code
+fn verify_justification<Header: HeaderT>(
+	_finalized_target: (Header::Hash, Header::Number),
+	_authorities_set_id: u8,        // SetId,
+	_authorities_set: AuthoritySet, // VoterSet<AuthorityId>,
+	_raw_justification: &[u8],
+) -> Result<(), ()> {
 	todo!()
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::mock::{run_test, Origin, TestRuntime};
+
+	#[test]
+	fn pallet_owner_may_change_owner() {
+		run_test(|| {
+			// ModuleOwner::<TestRuntime>::put(2);
+			todo!()
+		})
+	}
 }

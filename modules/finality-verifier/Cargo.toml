@@ -14,6 +14,7 @@ serde = { version = "1.0", optional = true }
 # Bridge Dependencies
 
 bp-runtime = { path = "../../primitives/runtime", default-features = false }
+bp-header-chain = { path = "../../primitives/header-chain", default-features = false }
 
 # Substrate Dependencies
 
@@ -22,9 +23,15 @@ frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 
+[dev-dependencies]
+sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+pallet-substrate-bridge = { path = "../../modules/substrate", default-features = false }
+
 [features]
 default = ["std"]
 std = [
+	"bp-runtime/std",
+	"bp-header-chain/std",
 	"codec/std",
 	"frame-support/std",
 	"frame-system/std",
