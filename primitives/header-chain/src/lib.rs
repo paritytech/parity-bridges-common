@@ -19,10 +19,14 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::{Codec, Decode, Encode, EncodeLike};
 use core::clone::Clone;
 use core::cmp::Eq;
+use core::default::Default;
 use core::fmt::Debug;
-use parity_scale_codec::{Codec, EncodeLike};
+use serde::{Deserialize, Serialize};
+use sp_finality_grandpa::{AuthorityList, SetId};
+use sp_runtime::RuntimeDebug;
 
 /// A type that can be used as a parameter in a dispatchable function.
 ///
@@ -30,15 +34,48 @@ use parity_scale_codec::{Codec, EncodeLike};
 pub trait Parameter: Codec + EncodeLike + Clone + Eq + Debug {}
 impl<T> Parameter for T where T: Codec + EncodeLike + Clone + Eq + Debug {}
 
-/// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
-pub trait BaseHeaderChain {
-	/// Transaction type.
-	type Transaction: Parameter;
-	/// Transaction inclusion proof type.
-	type TransactionInclusionProof: Parameter;
+/// A GRANDPA Authority List and ID.
+#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct AuthoritySet {
+	/// List of GRANDPA authorities for the current round.
+	pub authorities: AuthorityList,
+	/// Monotonic identifier of the current GRANDPA authority set.
+	pub set_id: SetId,
+}
 
-	/// Verify that transaction is a part of given block.
-	///
-	/// Returns Some(transaction) if proof is valid and None otherwise.
-	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction>;
+impl AuthoritySet {
+	/// Create a new GRANDPA Authority Set.
+	pub fn new(authorities: AuthorityList, set_id: SetId) -> Self {
+		Self { authorities, set_id }
+	}
+}
+
+/// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
+pub trait HeaderChain<H> {
+	/// Get the best finalized header known to the header chain.
+	fn best_finalized() -> H;
+
+	/// Get the best authority set known to the header chain.
+	fn authority_set() -> AuthoritySet;
+}
+
+impl HeaderChain<()> for () {
+	fn best_finalized() -> () {
+		()
+	}
+
+	fn authority_set() -> AuthoritySet {
+		unimplemented!()
+	}
+}
+
+pub trait AncestryChecker<H, P> {
+	fn are_ancestors(ancestor: H, child: H, proof: P) -> bool;
+}
+
+impl AncestryChecker<(), ()> for () {
+	fn are_ancestors(_ancestor: (), _child: (), _proof: ()) -> bool {
+		true
+	}
 }
