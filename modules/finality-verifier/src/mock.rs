@@ -15,18 +15,14 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_runtime::Chain;
-use codec::{Decode, Encode};
-use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use sp_runtime::{
-	testing::{Header as SubstrateHeader, H256},
+	testing::{Header, H256},
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
 
 pub type AccountId = u64;
-pub type TestPayload = (u64, Weight);
-pub type TestMessageFee = u64;
-pub type TestRelayer = u64;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
@@ -51,7 +47,7 @@ impl frame_system::Config for TestRuntime {
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = SubstrateHeader;
+	type Header = Header;
 	type Event = ();
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
@@ -61,12 +57,14 @@ impl frame_system::Config for TestRuntime {
 	type OnKilledAccount = ();
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
+	type DbWeight = ();
 	type BlockWeights = ();
 	type BlockLength = ();
-	type DbWeight = ();
 }
 
-parameter_types! {}
+impl pallet_substrate_bridge::Config for TestRuntime {
+	type BridgedChain = TestBridgedChain;
+}
 
 impl crate::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
@@ -89,16 +87,11 @@ impl Chain for TestBridgedChain {
 pub struct Checker<H, P>(std::marker::PhantomData<(H, P)>);
 
 impl<H, P> crate::AncestryChecker<H, P> for Checker<H, P> {
-	fn are_ancestors(ancestor: H, child: H, proof: P) -> bool {
+	fn are_ancestors(_ancestor: H, _child: H, _proof: P) -> bool {
 		true
 	}
 }
 
-/// Run message lane test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	let t = frame_system::GenesisConfig::default()
-		.build_storage::<TestRuntime>()
-		.unwrap();
-	let mut ext = sp_io::TestExternalities::new(t);
-	ext.execute_with(test)
+	sp_io::TestExternalities::new(Default::default()).execute_with(test)
 }

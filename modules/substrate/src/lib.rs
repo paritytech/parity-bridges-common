@@ -353,9 +353,9 @@ impl<T: Config> Module<T> {
 	}
 }
 
-impl<T: Config> bp_header_chain::HeaderChain<()> for Module<T> {
-	fn best_finalized() -> () {
-		()
+impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>> for Module<T> {
+	fn best_finalized() -> BridgedHeader<T> {
+		unimplemented!()
 	}
 
 	fn authority_set() -> AuthoritySet {

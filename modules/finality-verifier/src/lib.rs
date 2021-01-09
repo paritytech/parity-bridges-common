@@ -103,13 +103,10 @@ fn verify_justification<Header: HeaderT>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, Origin, TestRuntime};
+	use crate::mock::run_test;
 
 	#[test]
-	fn pallet_owner_may_change_owner() {
-		run_test(|| {
-			// ModuleOwner::<TestRuntime>::put(2);
-			todo!()
-		})
+	fn it_works() {
+		run_test(|| todo!())
 	}
 }
