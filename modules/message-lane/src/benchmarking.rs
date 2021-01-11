@@ -173,7 +173,7 @@ benchmarks_instance! {
 	// * message size is 16KB.
 	//
 	// With single KB of message size, the weight of the call is increased (roughly) by
-	// `(send_16_kb_message_worst_case - send_1_kb_message_worst_case) / 16`.
+	// `(send_16_kb_message_worst_case - send_1_kb_message_worst_case) / 15`.
 	send_16_kb_message_worst_case {
 		let lane_id = bench_lane_id();
 		let sender = account("sender", 0, SEED);
