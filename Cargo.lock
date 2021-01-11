@@ -613,6 +613,7 @@ dependencies = [
  "serde",
  "sp-finality-grandpa",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

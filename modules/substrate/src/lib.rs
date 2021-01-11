@@ -355,11 +355,33 @@ impl<T: Config> Module<T> {
 
 impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>> for Module<T> {
 	fn best_finalized() -> BridgedHeader<T> {
-		unimplemented!()
+		PalletStorage::<T>::new().best_finalized_header().header
 	}
 
 	fn authority_set() -> AuthoritySet {
-		unimplemented!()
+		PalletStorage::<T>::new().current_authority_set()
+	}
+
+	fn import_header(header: BridgedHeader<T>) -> Result<(), ()> {
+		let mut verifier = verifier::Verifier {
+			storage: PalletStorage::<T>::new(),
+		};
+
+		let _ = verifier.import_header(header).map_err(|_| ())?;
+
+		Ok(())
+	}
+
+	fn import_finality_proof(header: BridgedHeader<T>, finality_proof: Vec<u8>) -> Result<(), ()> {
+		let mut verifier = verifier::Verifier {
+			storage: PalletStorage::<T>::new(),
+		};
+
+		let _ = verifier
+			.import_finality_proof(header.hash(), finality_proof.into())
+			.map_err(|_| ())?;
+
+		Ok(())
 	}
 }
 

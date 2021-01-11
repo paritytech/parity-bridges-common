@@ -23,7 +23,7 @@
 use bp_header_chain::{AncestryChecker, HeaderChain};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, Parameter};
+use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, traits::Get, Parameter};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 
@@ -36,8 +36,11 @@ pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 pub trait Config: frame_system::Config {
 	type BridgedChain: Chain;
 	type HeaderChain: HeaderChain<<Self::BridgedChain as Chain>::Header>;
-	type AncestryChecker: AncestryChecker<<Self::BridgedChain as Chain>::Header, Self::AncestryProof>;
-	type AncestryProof: Parameter;
+	type AncestryChecker: AncestryChecker<
+		<Self::BridgedChain as Chain>::Header,
+		Vec<<Self::BridgedChain as Chain>::Header>,
+	>;
+	type AncestryProof: Parameter + Get<Vec<<Self::BridgedChain as Chain>::Header>>;
 }
 
 decl_storage! {
@@ -59,7 +62,7 @@ decl_module! {
 			origin,
 			finality_target: BridgedHeader<T>,
 			justification: Vec<u8>,
-			ancestry_proof: T::AncestryProof,
+			ancestry_proof: Vec<BridgedHeader<T>>, // T::AncestryProof,
 		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 
@@ -77,9 +80,27 @@ decl_module! {
 			.map_err(|_| <Error<T>>::InvalidJustification)?;
 
 			let best_finalized = T::HeaderChain::best_finalized();
-			T::AncestryChecker::are_ancestors(best_finalized, finality_target, ancestry_proof);
+			T::AncestryChecker::are_ancestors(&best_finalized, &finality_target, &ancestry_proof);
 
-			todo!("Write known good headers to storage.")
+			// If for whatever reason we are unable to fully import headers and the corresponding
+			// finality proof we want to avoid writing to the base pallet storage
+			use frame_support::storage::{with_transaction, TransactionOutcome};
+			with_transaction(|| {
+				// TODO: We should probably bound this
+				for header in ancestry_proof {
+					if T::HeaderChain::import_header(header).is_err() {
+						return TransactionOutcome::Rollback(())
+					}
+				}
+
+				if T::HeaderChain::import_finality_proof(finality_target, justification).is_err() {
+					return TransactionOutcome::Rollback(())
+				}
+
+				TransactionOutcome::Commit(())
+			});
+
+			Ok(())
 		}
 	}
 }
