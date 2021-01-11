@@ -18,7 +18,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 # This second stage is where the dependencies actually get built.
 # The reason we split it from the first stage is so that the `COPY . .`
 # step doesn't blow our cache.
-FROM hcastano/bridge-deps AS cacher
+FROM paritytech/bridge-dependencies AS cacher
 WORKDIR /parity-bridges-common
 RUN cargo install cargo-chef
 
@@ -28,11 +28,11 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # In this third stage we go ahead and build the actual binary we want.
 # This should be fairly quick since the dependencies are being built and
 # cached in the previous stage.
-FROM hcastano/bridge-deps as builder
+FROM paritytech/bridge-dependencies as builder
 WORKDIR /parity-bridges-common
 RUN cargo install cargo-chef
 
-COPY . /parity-bridges-common
+COPY . .
 COPY --from=cacher /parity-bridges-common/target target
 COPY --from=cacher $CARGO_HOME $CARGO_HOME
 
