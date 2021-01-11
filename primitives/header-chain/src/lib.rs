@@ -24,9 +24,11 @@ use core::clone::Clone;
 use core::cmp::Eq;
 use core::default::Default;
 use core::fmt::Debug;
+#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::RuntimeDebug;
+use sp_std::prelude::Vec;
 
 /// A type that can be used as a parameter in a dispatchable function.
 ///
@@ -51,6 +53,20 @@ impl AuthoritySet {
 	}
 }
 
+// Used by `currency-exchange`, maybe rename or remove?
+/// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
+pub trait BaseHeaderChain {
+	/// Transaction type.
+	type Transaction: Parameter;
+	/// Transaction inclusion proof type.
+	type TransactionInclusionProof: Parameter;
+
+	/// Verify that transaction is a part of given block.
+	///
+	/// Returns Some(transaction) if proof is valid and None otherwise.
+	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction>;
+}
+
 /// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
 pub trait HeaderChain<H> {
 	/// Get the best finalized header known to the header chain.
@@ -58,6 +74,9 @@ pub trait HeaderChain<H> {
 
 	/// Get the best authority set known to the header chain.
 	fn authority_set() -> AuthoritySet;
+
+	fn import_header(header: H) -> Result<(), ()>;
+	fn import_finality_proof(header: H, finality_proof: Vec<u8>) -> Result<(), ()>;
 }
 
 impl HeaderChain<()> for () {
@@ -68,14 +87,21 @@ impl HeaderChain<()> for () {
 	fn authority_set() -> AuthoritySet {
 		unimplemented!()
 	}
+
+	fn import_header(_header: ()) -> Result<(), ()> {
+		unimplemented!()
+	}
+	fn import_finality_proof(_header: (), _finality_proof: Vec<u8>) -> Result<(), ()> {
+		unimplemented!()
+	}
 }
 
 pub trait AncestryChecker<H, P> {
-	fn are_ancestors(ancestor: H, child: H, proof: P) -> bool;
+	fn are_ancestors(ancestor: &H, child: &H, proof: &P) -> bool;
 }
 
 impl AncestryChecker<(), ()> for () {
-	fn are_ancestors(_ancestor: (), _child: (), _proof: ()) -> bool {
+	fn are_ancestors(_ancestor: &(), _child: &(), _proof: &()) -> bool {
 		true
 	}
 }
