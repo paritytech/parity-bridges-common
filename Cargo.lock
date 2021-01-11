@@ -4212,6 +4212,7 @@ dependencies = [
  "serde",
  "sp-finality-grandpa",
  "sp-io",
+ "sp-keyring",
  "sp-runtime",
  "sp-std",
 ]

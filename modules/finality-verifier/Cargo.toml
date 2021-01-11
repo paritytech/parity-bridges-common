@@ -26,8 +26,9 @@ sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "ma
 sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 
 [dev-dependencies]
-sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 pallet-substrate-bridge = { path = "../../modules/substrate", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
 [features]
 default = ["std"]

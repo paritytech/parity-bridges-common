@@ -67,6 +67,7 @@ decl_module! {
 			let _ = ensure_signed(origin)?;
 
 			let authority_set = T::HeaderChain::authority_set();
+
 			let voter_set = VoterSet::new(authority_set.authorities).expect("TODO");
 			let set_id = 1;
 
@@ -118,16 +119,60 @@ fn verify_justification<Header: HeaderT>(
 	_authorities_set: VoterSet<sp_finality_grandpa::AuthorityId>,
 	_raw_justification: &[u8],
 ) -> Result<(), ()> {
-	todo!()
+	Ok(())
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::run_test;
+	use crate::mock::{run_test, Origin, TestRuntime};
+	use frame_support::assert_ok;
+	use sp_finality_grandpa::{AuthorityId, AuthorityList};
+	use sp_keyring::Ed25519Keyring;
+
+	// TODO: Get these from a shared place since `pallet_substrate_bridge` also uses them
+	pub type TestHeader = BridgedHeader<TestRuntime>;
+
+	pub fn alice() -> AuthorityId {
+		Ed25519Keyring::Alice.public().into()
+	}
 
 	#[test]
 	fn it_works() {
-		run_test(|| todo!())
+		run_test(|| {
+			let finality_target = TestHeader::new_from_number(1);
+			let init_data = pallet_substrate_bridge::InitializationData {
+				header: finality_target.clone(),
+				authority_list: vec![(alice(), 1)],
+				set_id: 1,
+				scheduled_change: None,
+				is_halted: false,
+			};
+
+			assert_ok!(pallet_substrate_bridge::Module::<TestRuntime>::initialize(
+				Origin::root(),
+				init_data.clone()
+			));
+
+			let justification = vec![1u8];
+			let ancestry_proof = vec![finality_target.clone()];
+
+			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
+				Origin::signed(1),
+				finality_target.clone(),
+				justification,
+				ancestry_proof,
+			));
+
+			assert_eq!(
+				pallet_substrate_bridge::Module::<TestRuntime>::best_headers(),
+				vec![(*finality_target.number(), finality_target.hash())]
+			);
+
+			assert_eq!(
+				pallet_substrate_bridge::Module::<TestRuntime>::best_finalized(),
+				finality_target
+			);
+		})
 	}
 }

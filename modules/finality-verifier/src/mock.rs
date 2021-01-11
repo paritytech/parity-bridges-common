@@ -69,7 +69,7 @@ impl pallet_substrate_bridge::Config for TestRuntime {
 impl crate::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type HeaderChain = pallet_substrate_bridge::Module<TestRuntime>;
-	type AncestryChecker = Checker<<Self::BridgedChain as Chain>::Header, ()>;
+	type AncestryChecker = Checker<<Self::BridgedChain as Chain>::Header, Vec<<Self::BridgedChain as Chain>::Header>>;
 	type AncestryProof = ();
 }
 
@@ -87,7 +87,7 @@ impl Chain for TestBridgedChain {
 pub struct Checker<H, P>(std::marker::PhantomData<(H, P)>);
 
 impl<H, P> crate::AncestryChecker<H, P> for Checker<H, P> {
-	fn are_ancestors(_ancestor: H, _child: H, _proof: P) -> bool {
+	fn are_ancestors(_ancestor: &H, _child: &H, _proof: &P) -> bool {
 		true
 	}
 }
