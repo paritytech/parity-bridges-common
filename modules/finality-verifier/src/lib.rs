@@ -30,6 +30,12 @@ use sp_runtime::traits::Header as HeaderT;
 #[cfg(test)]
 mod mock;
 
+/// Block number of the bridged chain.
+pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
+/// Block hash of the bridged chain.
+pub(crate) type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
+/// Hasher of the bridged chain.
+pub(crate) type BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
 /// Header of the bridged chain.
 pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
@@ -69,7 +75,7 @@ decl_module! {
 			let authority_set = T::HeaderChain::authority_set();
 
 			let voter_set = VoterSet::new(authority_set.authorities).expect("TODO");
-			let set_id = 1;
+			let set_id = authority_set.set_id;
 
 			let header_id = (finality_target.hash(), *finality_target.number());
 			verify_justification::<BridgedHeader<T>>(
@@ -126,21 +132,29 @@ fn verify_justification<Header: HeaderT>(
 mod tests {
 	use super::*;
 	use crate::mock::{run_test, Origin, TestRuntime};
+	use bp_header_chain::test_helpers::*;
 	use frame_support::assert_ok;
-	use sp_finality_grandpa::{AuthorityId, AuthorityList};
-	use sp_keyring::Ed25519Keyring;
 
 	// TODO: Get these from a shared place since `pallet_substrate_bridge` also uses them
 	pub type TestHeader = BridgedHeader<TestRuntime>;
+	pub type TestNumber = BridgedBlockNumber<TestRuntime>;
+	pub type TestHash = BridgedBlockHash<TestRuntime>;
 
-	pub fn alice() -> AuthorityId {
-		Ed25519Keyring::Alice.public().into()
+	pub fn test_header(num: TestNumber) -> TestHeader {
+		let mut header = TestHeader::new_from_number(num);
+		header.parent_hash = if num == 0 {
+			Default::default()
+		} else {
+			test_header(num - 1).hash()
+		};
+
+		header
 	}
 
 	#[test]
 	fn it_works() {
 		run_test(|| {
-			let finality_target = TestHeader::new_from_number(1);
+			let finality_target = test_header(1);
 			let init_data = pallet_substrate_bridge::InitializationData {
 				header: finality_target.clone(),
 				authority_list: vec![(alice(), 1)],

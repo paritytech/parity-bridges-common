@@ -59,6 +59,7 @@ use crate::mock::{helpers::*, *};
 use crate::storage::ImportedHeader;
 use crate::verifier::*;
 use crate::{BestFinalized, BestHeight, BridgeStorage, NextScheduledChange, PalletStorage};
+use bp_header_chain::test_helpers::*;
 use bp_header_chain::AuthoritySet;
 use codec::Encode;
 use frame_support::{IterableStorageMap, StorageValue};
