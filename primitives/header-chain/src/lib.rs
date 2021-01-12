@@ -24,7 +24,7 @@ use core::clone::Clone;
 use core::cmp::Eq;
 use core::fmt::Debug;
 
-mod justification;
+pub mod justification;
 
 /// A type that can be used as a parameter in a dispatchable function.
 ///

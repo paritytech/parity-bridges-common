@@ -183,18 +183,20 @@ where
 }
 
 // #[cfg(features = "std")]
+// #[cfg(test)]
 pub mod test_helpers {
 	use super::*;
 	// use crate::mock::helpers::*;
 	use codec::Encode;
 	use sp_core::H256;
-	use sp_finality_grandpa::{AuthorityId, AuthorityWeight};
+	use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight};
 	use sp_keyring::Ed25519Keyring;
 	use sp_runtime::traits::{One, Zero};
 
-	const TEST_GRANDPA_ROUND: u64 = 1;
-	const TEST_GRANDPA_SET_ID: SetId = 1;
+	pub const TEST_GRANDPA_ROUND: u64 = 1;
+	pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
+	// TODO: Get this from elsewhere
 	pub fn test_header<H: HeaderT>(number: H::Number) -> H {
 		let mut header = H::new(
 			number,
@@ -277,19 +279,44 @@ pub mod test_helpers {
 		}
 	}
 
-	// TODO: Get from elsewhere
+	// TODO: Get these from shared module instead of copy-pasting
+	pub fn header_id<H: HeaderT>(index: u8) -> (H::Hash, H::Number) {
+		(test_header::<H>(index.into()).hash(), index.into())
+	}
+
 	pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
 		let mut raw_public = [0; 32];
 		raw_public.copy_from_slice(id.as_ref());
 		Ed25519Keyring::from_raw_public(raw_public).unwrap()
+	}
+
+	pub fn voter_set() -> VoterSet<AuthorityId> {
+		VoterSet::new(authority_list()).unwrap()
+	}
+
+	pub fn authority_list() -> AuthorityList {
+		vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
+	}
+
+	pub fn alice() -> AuthorityId {
+		Ed25519Keyring::Alice.public().into()
+	}
+
+	pub fn bob() -> AuthorityId {
+		Ed25519Keyring::Bob.public().into()
+	}
+
+	pub fn charlie() -> AuthorityId {
+		Ed25519Keyring::Charlie.public().into()
 	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	// use crate::mock::helpers::*;
+	use crate::justification::test_helpers::*;
 	use codec::Encode;
+	// use pallet_substrate_bridge::authority_list;
 
 	type TestHeader = sp_runtime::testing::Header;
 
@@ -305,7 +332,7 @@ mod tests {
 	#[test]
 	fn justification_with_invalid_encoding_rejected() {
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &[],),
+			verify_justification::<TestHeader>(header_id::<TestHeader>(1), TEST_GRANDPA_SET_ID, voter_set(), &[],),
 			Err(Error::JustificationDecode),
 		);
 	}
@@ -314,7 +341,7 @@ mod tests {
 	fn justification_with_invalid_target_rejected() {
 		assert_eq!(
 			verify_justification::<TestHeader>(
-				header_id(2),
+				header_id::<TestHeader>(2),
 				TEST_GRANDPA_SET_ID,
 				voter_set(),
 				&make_justification_for_header_1().encode(),
@@ -329,7 +356,12 @@ mod tests {
 		justification.commit.precommits.clear();
 
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
+			verify_justification::<TestHeader>(
+				header_id::<TestHeader>(1),
+				TEST_GRANDPA_SET_ID,
+				voter_set(),
+				&justification.encode(),
+			),
 			Err(Error::InvalidJustificationCommit),
 		);
 	}
@@ -340,7 +372,12 @@ mod tests {
 		justification.commit.precommits[0].signature = Default::default();
 
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
+			verify_justification::<TestHeader>(
+				header_id::<TestHeader>(1),
+				TEST_GRANDPA_SET_ID,
+				voter_set(),
+				&justification.encode(),
+			),
 			Err(Error::InvalidAuthoritySignature),
 		);
 	}
@@ -351,7 +388,12 @@ mod tests {
 		justification.votes_ancestries.push(test_header(10));
 
 		assert_eq!(
-			verify_justification::<TestHeader>(header_id(1), TEST_GRANDPA_SET_ID, voter_set(), &justification.encode(),),
+			verify_justification::<TestHeader>(
+				header_id::<TestHeader>(1),
+				TEST_GRANDPA_SET_ID,
+				voter_set(),
+				&justification.encode(),
+			),
 			Err(Error::InvalidPrecommitAncestries),
 		);
 	}
@@ -360,7 +402,7 @@ mod tests {
 	fn valid_justification_accepted() {
 		assert_eq!(
 			verify_justification::<TestHeader>(
-				header_id(1),
+				header_id::<TestHeader>(1),
 				TEST_GRANDPA_SET_ID,
 				voter_set(),
 				&make_justification_for_header_1().encode(),
