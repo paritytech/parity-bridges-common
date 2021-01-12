@@ -130,7 +130,7 @@ where
 /// (so not our chain) have been finalized correctly.
 #[derive(Decode, RuntimeDebug)]
 #[cfg_attr(test, derive(codec::Encode))]
-pub(crate) struct GrandpaJustification<Header: HeaderT> {
+pub struct GrandpaJustification<Header: HeaderT> {
 	round: u64,
 	commit: finality_grandpa::Commit<Header::Hash, Header::Number, AuthoritySignature, AuthorityId>,
 	votes_ancestries: Vec<Header>,
@@ -182,61 +182,58 @@ where
 	}
 }
 
-#[cfg(test)]
-pub(crate) mod tests {
+// #[cfg(features = "std")]
+pub mod test_helpers {
 	use super::*;
-	use crate::mock::helpers::*;
+	// use crate::mock::helpers::*;
 	use codec::Encode;
 	use sp_core::H256;
 	use sp_finality_grandpa::{AuthorityId, AuthorityWeight};
 	use sp_keyring::Ed25519Keyring;
+	use sp_runtime::traits::{One, Zero};
 
 	const TEST_GRANDPA_ROUND: u64 = 1;
 	const TEST_GRANDPA_SET_ID: SetId = 1;
 
-	pub(crate) fn signed_precommit(
-		signer: Ed25519Keyring,
-		target: HeaderId,
-		round: u64,
-		set_id: SetId,
-	) -> finality_grandpa::SignedPrecommit<H256, u64, AuthoritySignature, AuthorityId> {
-		let precommit = finality_grandpa::Precommit {
-			target_hash: target.0,
-			target_number: target.1,
-		};
-		let encoded = sp_finality_grandpa::localized_payload(
-			round,
-			set_id,
-			&finality_grandpa::Message::Precommit(precommit.clone()),
+	pub fn test_header<H: HeaderT>(number: H::Number) -> H {
+		let mut header = H::new(
+			number,
+			Default::default(),
+			Default::default(),
+			Default::default(),
+			Default::default(),
 		);
-		let signature = signer.sign(&encoded[..]).into();
-		finality_grandpa::SignedPrecommit {
-			precommit,
-			signature,
-			id: signer.public().into(),
-		}
+		let parent_hash = if number == Zero::zero() {
+			Default::default()
+		} else {
+			test_header::<H>(number - One::one()).hash()
+		};
+
+		header.set_parent_hash(parent_hash);
+
+		header
 	}
 
-	pub(crate) fn make_justification_for_header(
-		header: &TestHeader,
+	pub fn make_justification_for_header<H: HeaderT>(
+		header: &H,
 		round: u64,
 		set_id: SetId,
 		authorities: &[(AuthorityId, AuthorityWeight)],
-	) -> GrandpaJustification<TestHeader> {
+	) -> GrandpaJustification<H> {
 		let (target_hash, target_number) = (header.hash(), *header.number());
 		let mut precommits = vec![];
 		let mut votes_ancestries = vec![];
 
 		// We want to make sure that the header included in the vote ancestries
 		// is actually related to our target header
-		let mut precommit_header = test_header(target_number + 1);
-		precommit_header.parent_hash = target_hash;
+		let mut precommit_header = test_header::<H>(target_number + One::one());
+		precommit_header.set_parent_hash(target_hash);
 
 		// I'm using the same header for all the voters since it doesn't matter as long
 		// as they all vote on blocks _ahead_ of the one we're interested in finalizing
 		for (id, _weight) in authorities.iter() {
 			let signer = extract_keyring(&id);
-			let precommit = signed_precommit(
+			let precommit = signed_precommit::<H>(
 				signer,
 				(precommit_header.hash(), *precommit_header.number()),
 				round,
@@ -257,7 +254,46 @@ pub(crate) mod tests {
 		}
 	}
 
-	pub(crate) fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
+	fn signed_precommit<H: HeaderT>(
+		signer: Ed25519Keyring,
+		target: (H::Hash, H::Number),
+		round: u64,
+		set_id: SetId,
+	) -> finality_grandpa::SignedPrecommit<H::Hash, H::Number, AuthoritySignature, AuthorityId> {
+		let precommit = finality_grandpa::Precommit {
+			target_hash: target.0,
+			target_number: target.1,
+		};
+		let encoded = sp_finality_grandpa::localized_payload(
+			round,
+			set_id,
+			&finality_grandpa::Message::Precommit(precommit.clone()),
+		);
+		let signature = signer.sign(&encoded[..]).into();
+		finality_grandpa::SignedPrecommit {
+			precommit,
+			signature,
+			id: signer.public().into(),
+		}
+	}
+
+	// TODO: Get from elsewhere
+	pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
+		let mut raw_public = [0; 32];
+		raw_public.copy_from_slice(id.as_ref());
+		Ed25519Keyring::from_raw_public(raw_public).unwrap()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	// use crate::mock::helpers::*;
+	use codec::Encode;
+
+	type TestHeader = sp_runtime::testing::Header;
+
+	fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
 		make_justification_for_header(
 			&test_header(1),
 			TEST_GRANDPA_ROUND,

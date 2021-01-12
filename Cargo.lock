@@ -609,7 +609,14 @@ dependencies = [
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
+ "finality-grandpa",
+ "frame-support",
  "parity-scale-codec",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
