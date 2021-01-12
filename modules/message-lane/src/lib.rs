@@ -26,8 +26,16 @@
 //! Once message is sent, its progress can be tracked by looking at module events.
 //! The assigned nonce is reported using `MessageAccepted` event. When message is
 //! delivered to the the bridged chain, it is reported using `MessagesDelivered` event.
+//!
+//! **IMPORTANT NOTE**: after generating weights (custom `WeighInfo` implementation) for
+//! your runtime (where this module is plugged to), please add test for these weights.
+//! The test should call the `ensure_weights_are_correct` function from this module.
+//! If this test fails with your weights, then either weights are computed incorrectly,
+//! or some benchmarks assumptions are broken for your runtime.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+
+pub use crate::weights_ext::{ensure_weights_are_correct, WeightInfoExt};
 
 use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
@@ -53,6 +61,7 @@ use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
 mod inbound_lane;
 mod outbound_lane;
+mod weights_ext;
 
 pub mod instant_payments;
 pub mod weights;
@@ -63,14 +72,6 @@ pub mod benchmarking;
 #[cfg(test)]
 mod mock;
 
-// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Weight of message delivery without any code that is touching messages.
-const DELIVERY_OVERHEAD_WEIGHT: Weight = 0;
-// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
-/// Single-message delivery weight. This shall not include message dispatch weight and
-/// any delivery transaction code that is not specific to this message.
-const SINGLE_MESSAGE_DELIVERY_WEIGHT: Weight = 0;
-
 /// The module configuration trait
 pub trait Config<I = DefaultInstance>: frame_system::Config {
 	// General types
@@ -78,7 +79,7 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// They overarching event type.
 	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 	/// Benchmarks results from runtime we're plugged into.
-	type WeightInfo: WeightInfo;
+	type WeightInfo: WeightInfoExt;
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
 	/// whenever new message is sent. The reason is that if you want to use lane, you should
 	/// be ready to pay for its maintenance.
@@ -213,6 +214,14 @@ decl_module! {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
 
+		/// Ensure runtime invariants.
+		fn on_runtime_upgrade() -> Weight {
+			let reads = T::MessageDeliveryAndDispatchPayment::initialize(
+				&Self::relayer_fund_account_id()
+			);
+			T::DbWeight::get().reads(reads as u64)
+		}
+
 		/// Change `ModuleOwner`.
 		///
 		/// May only be called either by root, or by `ModuleOwner`.
@@ -252,7 +261,10 @@ decl_module! {
 		}
 
 		/// Send message over lane.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		///
+		/// The weight of the call assumes that the largest possible message is sent in
+		/// worst possible environment.
+		#[weight = T::WeightInfo::send_message_worst_case()]
 		pub fn send_message(
 			origin,
 			lane_id: LaneId,
@@ -294,7 +306,7 @@ decl_module! {
 			T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
 				&submitter,
 				&delivery_and_dispatch_fee,
-				&relayer_fund_account_id::<T, I>(),
+				&Self::relayer_fund_account_id(),
 			).map_err(|err| {
 				frame_support::debug::trace!(
 					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
@@ -327,9 +339,13 @@ decl_module! {
 		}
 
 		/// Receive messages proof from bridged chain.
-		#[weight = messages_count
-			.saturating_mul(SINGLE_MESSAGE_DELIVERY_WEIGHT)
-			.saturating_add(DELIVERY_OVERHEAD_WEIGHT)
+		///
+		/// The weight of the call assumes that the transaction always brings outbound lane
+		/// state update. Because of that, the submitter (relayer) has no benefit of not including
+		/// this data in the transaction, so reward confirmations lags should be minimal.
+		#[weight = T::WeightInfo::receive_messages_proof_overhead()
+			.saturating_add(T::WeightInfo::receive_messages_proof_outbound_lane_state_overhead())
+			.saturating_add(T::WeightInfo::receive_messages_proof_messages_overhead(*messages_count))
 			.saturating_add(*dispatch_weight)
 		]
 		pub fn receive_messages_proof(
@@ -414,7 +430,14 @@ decl_module! {
 		}
 
 		/// Receive messages delivery proof from bridged chain.
-		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
+		#[weight = T::WeightInfo::receive_messages_delivery_proof_overhead()
+			.saturating_add(T::WeightInfo::receive_messages_delivery_proof_messages_overhead(
+				relayers_state.total_messages
+			))
+			.saturating_add(T::WeightInfo::receive_messages_delivery_proof_relayers_overhead(
+				relayers_state.unrewarded_relayer_entries
+			))
+		]
 		pub fn receive_messages_delivery_proof(
 			origin,
 			proof: MessagesDeliveryProofOf<T, I>,
@@ -469,7 +492,7 @@ decl_module! {
 
 			// if some new messages have been confirmed, reward relayers
 			if !relayers_rewards.is_empty() {
-				let relayer_fund_account = relayer_fund_account_id::<T, I>();
+				let relayer_fund_account = Self::relayer_fund_account_id();
 				<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayers_rewards(
 					&confirmation_relayer,
 					relayers_rewards,
@@ -524,6 +547,17 @@ impl<T: Config<I>, I: Instance> Module<T, I> {
 			messages_in_oldest_entry: relayers.front().map(|(begin, end, _)| 1 + end - begin).unwrap_or(0),
 			total_messages: total_unrewarded_messages(&relayers),
 		}
+	}
+
+	/// AccountId of the shared relayer fund account.
+	///
+	/// This account is passed to `MessageDeliveryAndDispatchPayment` trait, and depending
+	/// on the implementation it can be used to store relayers rewards.
+	/// See [InstantCurrencyPayments] for a concrete implementation.
+	pub fn relayer_fund_account_id() -> T::AccountId {
+		use sp_runtime::traits::Convert;
+		let encoded_id = bp_runtime::derive_relayer_fund_account_id(bp_runtime::NO_INSTANCE_ID);
+		T::AccountIdConverter::convert(encoded_id)
 	}
 }
 
@@ -715,16 +749,6 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 			})
 			.collect()
 	})
-}
-
-/// AccountId of the shared relayer fund account.
-///
-/// This account stores all the fees paid by submitters. Relayers are able to claim these
-/// funds as at their convenience.
-fn relayer_fund_account_id<T: Config<I>, I: Instance>() -> T::AccountId {
-	use sp_runtime::traits::Convert;
-	let encoded_id = bp_runtime::derive_relayer_fund_account_id(bp_runtime::NO_INSTANCE_ID);
-	T::AccountIdConverter::convert(encoded_id)
 }
 
 #[cfg(test)]

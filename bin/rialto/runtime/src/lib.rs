@@ -36,6 +36,9 @@ pub mod kovan;
 pub mod millau_messages;
 pub mod rialto_poa;
 
+use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
+
+use bridge_runtime_common::messages::{source::estimate_message_dispatch_and_delivery_fee, MessageBridge};
 use codec::Decode;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
@@ -416,9 +419,9 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
 		bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
-
 	// TODO: https://github.com/paritytech/parity-bridges-common/pull/598
 	pub GetDeliveryConfirmationTransactionFee: Balance = 0;
+	pub const RootAccountForPayments: Option<AccountId> = None;
 }
 
 pub(crate) type WithMillauMessageLaneInstance = pallet_message_lane::DefaultInstance;
@@ -441,9 +444,10 @@ impl pallet_message_lane::Config for Runtime {
 	type TargetHeaderChain = crate::millau_messages::Millau;
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = pallet_message_lane::instant_payments::InstantCurrencyPayments<
-		AccountId,
+		Runtime,
 		pallet_balances::Module<Runtime>,
 		GetDeliveryConfirmationTransactionFee,
+		RootAccountForPayments,
 	>;
 
 	type SourceHeaderChain = crate::millau_messages::Millau;
@@ -701,7 +705,17 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_millau::ToMillauOutboundLaneApi<Block> for Runtime {
+	impl bp_millau::ToMillauOutboundLaneApi<Block, Balance, ToMillauMessagePayload> for Runtime {
+		fn estimate_message_delivery_and_dispatch_fee(
+			_lane_id: bp_message_lane::LaneId,
+			payload: ToMillauMessagePayload,
+		) -> Option<Balance> {
+			estimate_message_dispatch_and_delivery_fee::<WithMillauMessageBridge>(
+				&payload,
+				WithMillauMessageBridge::RELAYER_FEE_PERCENT,
+			).ok()
+		}
+
 		fn messages_dispatch_weight(
 			lane: bp_message_lane::LaneId,
 			begin: bp_message_lane::MessageNonce,
@@ -1009,6 +1023,11 @@ mod tests {
 				initial_amount + total_issuance_change,
 			);
 		});
+	}
+
+	#[test]
+	fn ensure_rialto_message_lane_weights_are_correct() {
+		pallet_message_lane::ensure_weights_are_correct::<pallet_message_lane::weights::RialtoWeight<Runtime>>();
 	}
 
 	#[test]
