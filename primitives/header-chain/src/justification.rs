@@ -192,26 +192,6 @@ pub mod test_helpers {
 	pub const TEST_GRANDPA_ROUND: u64 = 1;
 	pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
-	// TODO: Get this from elsewhere
-	pub fn test_header<H: HeaderT>(number: H::Number) -> H {
-		let mut header = H::new(
-			number,
-			Default::default(),
-			Default::default(),
-			Default::default(),
-			Default::default(),
-		);
-		let parent_hash = if number == Zero::zero() {
-			Default::default()
-		} else {
-			test_header::<H>(number - One::one()).hash()
-		};
-
-		header.set_parent_hash(parent_hash);
-
-		header
-	}
-
 	pub fn make_justification_for_header<H: HeaderT>(
 		header: &H,
 		round: u64,
@@ -276,6 +256,25 @@ pub mod test_helpers {
 	}
 
 	// TODO: Get these from shared module instead of copy-pasting
+	pub fn test_header<H: HeaderT>(number: H::Number) -> H {
+		let mut header = H::new(
+			number,
+			Default::default(),
+			Default::default(),
+			Default::default(),
+			Default::default(),
+		);
+		let parent_hash = if number == Zero::zero() {
+			Default::default()
+		} else {
+			test_header::<H>(number - One::one()).hash()
+		};
+
+		header.set_parent_hash(parent_hash);
+
+		header
+	}
+
 	pub fn header_id<H: HeaderT>(index: u8) -> (H::Hash, H::Number) {
 		(test_header::<H>(index.into()).hash(), index.into())
 	}
