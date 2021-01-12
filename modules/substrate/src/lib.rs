@@ -45,10 +45,10 @@ use sp_trie::StorageProof;
 // Re-export since the node uses these when configuring genesis
 pub use storage::{AuthoritySet, InitializationData, ScheduledChange};
 
-pub use justification::decode_justification_target;
+#[cfg(test)]
+pub use mock::helpers::{authority_list, header_id, voter_set};
 pub use storage_proof::StorageProofChecker;
 
-mod justification;
 mod storage;
 mod storage_proof;
 mod verifier;

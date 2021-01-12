@@ -19,7 +19,7 @@
 //! Adapted copy of substrate/client/finality-grandpa/src/justification.rs. If origin
 //! will ever be moved to the sp_finality_grandpa, we should reuse that implementation.
 
-use codec::Decode;
+use codec::{Decode, Encode};
 use finality_grandpa::{voter_set::VoterSet, Chain, Error as GrandpaError};
 use frame_support::RuntimeDebug;
 use sp_finality_grandpa::{AuthorityId, AuthoritySignature, SetId};
@@ -128,8 +128,7 @@ where
 ///
 /// This particular proof is used to prove that headers on a bridged chain
 /// (so not our chain) have been finalized correctly.
-#[derive(Decode, RuntimeDebug)]
-#[cfg_attr(test, derive(codec::Encode))]
+#[derive(Encode, Decode, RuntimeDebug)]
 pub struct GrandpaJustification<Header: HeaderT> {
 	round: u64,
 	commit: finality_grandpa::Commit<Header::Hash, Header::Number, AuthoritySignature, AuthorityId>,
@@ -182,13 +181,10 @@ where
 	}
 }
 
-// #[cfg(features = "std")]
+#[cfg(any(test, features = "std"))]
 // #[cfg(test)]
 pub mod test_helpers {
 	use super::*;
-	// use crate::mock::helpers::*;
-	use codec::Encode;
-	use sp_core::H256;
 	use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight};
 	use sp_keyring::Ed25519Keyring;
 	use sp_runtime::traits::{One, Zero};
@@ -316,7 +312,6 @@ mod tests {
 	use super::*;
 	use crate::justification::test_helpers::*;
 	use codec::Encode;
-	// use pallet_substrate_bridge::authority_list;
 
 	type TestHeader = sp_runtime::testing::Header;
 

@@ -19,9 +19,6 @@ sp-finality-grandpa = { git = "https://github.com/paritytech/substrate.git", bra
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 
-# [dev-dependencies]
-# pallet-substrate-bridge = { path = "../../modules/substrate" }
-
 [features]
 default = ["std"]
 std = [

@@ -4321,6 +4321,7 @@ dependencies = [
 name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-runtime",
  "finality-grandpa",
  "frame-support",
@@ -7839,6 +7840,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-header-chain",
  "bp-kusama",
  "bp-message-lane",
  "bp-millau",

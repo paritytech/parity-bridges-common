@@ -54,11 +54,11 @@
 //! Import a finality proof for header 2 on fork 1. This finalty proof should fail to be imported
 //! because the header is an old header.
 
-use crate::justification::tests::*;
 use crate::mock::{helpers::*, *};
 use crate::storage::{AuthoritySet, ImportedHeader};
 use crate::verifier::*;
 use crate::{BestFinalized, BestHeight, BridgeStorage, NextScheduledChange, PalletStorage};
+use bp_header_chain::justification::test_helpers::make_justification_for_header;
 use codec::Encode;
 use frame_support::{IterableStorageMap, StorageValue};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
@@ -452,8 +452,7 @@ where
 				let grandpa_round = 1;
 				let set_id = 1;
 				let authorities = authority_list();
-				let justification =
-					make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+				let justification = make_justification_for_header(header, grandpa_round, set_id, &authorities).encode();
 
 				let res = verifier
 					.import_finality_proof(header.hash(), justification.into())
