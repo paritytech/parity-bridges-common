@@ -106,6 +106,8 @@ impl AncestryChecker<(), ()> for () {
 	}
 }
 
+// #[cfg(tests)]
+#[cfg(feature = "std")]
 pub mod test_helpers {
 	use finality_grandpa::voter_set::VoterSet;
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
