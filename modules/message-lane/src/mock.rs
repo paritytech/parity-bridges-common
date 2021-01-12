@@ -34,6 +34,7 @@ use sp_runtime::{
 use std::collections::BTreeMap;
 
 pub type AccountId = u64;
+pub type Balance = u64;
 pub type TestPayload = (u64, Weight);
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
@@ -56,6 +57,7 @@ mod message_lane {
 impl_outer_event! {
 	pub enum TestEvent for TestRuntime {
 		frame_system<T>,
+		pallet_balances<T>,
 		message_lane<T>,
 	}
 }
@@ -85,7 +87,7 @@ impl frame_system::Config for TestRuntime {
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = ();
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type BaseCallFilter = ();
@@ -93,6 +95,20 @@ impl frame_system::Config for TestRuntime {
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
+}
+
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 1;
+}
+
+impl pallet_balances::Config for TestRuntime {
+	type MaxLocks = ();
+	type Balance = Balance;
+	type DustRemoval = ();
+	type Event = TestEvent;
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = frame_system::Module<TestRuntime>;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -124,6 +140,9 @@ impl Config for TestRuntime {
 	type SourceHeaderChain = TestSourceHeaderChain;
 	type MessageDispatch = TestMessageDispatch;
 }
+
+/// Account that has balance to use in tests.
+pub const ENDOWED_ACCOUNT: AccountId = 0xDEAD;
 
 /// Account id of test relayer.
 pub const TEST_RELAYER_A: AccountId = 100;
@@ -328,9 +347,14 @@ pub fn message_data(payload: TestPayload) -> MessageData<TestMessageFee> {
 
 /// Run message lane test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	let t = frame_system::GenesisConfig::default()
+	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<TestRuntime>()
 		.unwrap();
+	pallet_balances::GenesisConfig::<TestRuntime> {
+		balances: vec![(ENDOWED_ACCOUNT, 1_000_000)],
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(test)
 }

@@ -24,7 +24,7 @@ use bp_message_lane::{
 use codec::Encode;
 use frame_support::traits::{Currency as CurrencyT, ExistenceRequirement, Get};
 use num_traits::Zero;
-use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchResult};
+use sp_runtime::traits::Saturating;
 use sp_std::fmt::Debug;
 
 /// Instant message payments made in given currency. Until claimed, fee is stored in special
@@ -70,8 +70,7 @@ where
 		relayers_rewards: RelayersRewards<AccountId, Currency::Balance>,
 		relayer_fund_account: &AccountId,
 	) {
-		pay_relayers_rewards(
-			&mut CurrencyAdapter::<AccountId, Currency>(Default::default()),
+		pay_relayers_rewards::<Currency, _>(
 			confirmation_relayer,
 			relayers_rewards,
 			relayer_fund_account,
@@ -80,38 +79,19 @@ where
 	}
 }
 
-/// Shortened currency trait used from instant payments.
-trait InstantCurrency<AccountId, Balance> {
-	/// Transfer some free balance between accounts.
-	fn transfer(&mut self, source: &AccountId, dest: &AccountId, value: Balance) -> DispatchResult;
-}
-
-/// Currency adapter.
-struct CurrencyAdapter<AccountId, Currency>(sp_std::marker::PhantomData<(AccountId, Currency)>);
-
-impl<AccountId, Currency> InstantCurrency<AccountId, Currency::Balance> for CurrencyAdapter<AccountId, Currency>
-where
-	Currency: CurrencyT<AccountId>,
-{
-	fn transfer(&mut self, source: &AccountId, dest: &AccountId, value: Currency::Balance) -> DispatchResult {
-		Currency::transfer(source, dest, value, ExistenceRequirement::AllowDeath)
-	}
-}
-
 /// Pay rewards to given relayers, optionally rewarding confirmation relayer.
-fn pay_relayers_rewards<AccountId, Balance, Currency>(
-	currency: &mut Currency,
+fn pay_relayers_rewards<Currency, AccountId>(
 	confirmation_relayer: &AccountId,
-	relayers_rewards: RelayersRewards<AccountId, Balance>,
+	relayers_rewards: RelayersRewards<AccountId, Currency::Balance>,
 	relayer_fund_account: &AccountId,
-	confirmation_fee: Balance,
+	confirmation_fee: Currency::Balance,
 ) where
 	AccountId: Debug + Default + Encode + PartialEq,
-	Balance: Debug + AtLeast32BitUnsigned + From<MessageNonce> + Copy,
-	Currency: InstantCurrency<AccountId, Balance>,
+	Currency: CurrencyT<AccountId>,
+	Currency::Balance: From<u64>,
 {
 	// reward every relayer except `confirmation_relayer`
-	let mut confirmation_relayer_reward = Balance::zero();
+	let mut confirmation_relayer_reward = Currency::Balance::zero();
 	for (relayer, reward) in relayers_rewards {
 		let mut relayer_reward = reward.reward;
 
@@ -134,34 +114,32 @@ fn pay_relayers_rewards<AccountId, Balance, Currency>(
 			continue;
 		}
 
-		pay_relayer_reward(currency, relayer_fund_account, &relayer, relayer_reward);
+		pay_relayer_reward::<Currency, _>(relayer_fund_account, &relayer, relayer_reward);
 	}
 
 	// finally - pay reward to confirmation relayer
-	pay_relayer_reward(
-		currency,
-		relayer_fund_account,
-		confirmation_relayer,
-		confirmation_relayer_reward,
-	);
+	pay_relayer_reward::<Currency, _>(relayer_fund_account, confirmation_relayer, confirmation_relayer_reward);
 }
 
 /// Transfer funds from relayers fund account to given relayer.
-fn pay_relayer_reward<AccountId, Balance, Currency>(
-	currency: &mut Currency,
+fn pay_relayer_reward<Currency, AccountId>(
 	relayer_fund_account: &AccountId,
 	relayer_account: &AccountId,
-	reward: Balance,
+	reward: Currency::Balance,
 ) where
 	AccountId: Debug,
-	Balance: Debug + Zero + Copy,
-	Currency: InstantCurrency<AccountId, Balance>,
+	Currency: CurrencyT<AccountId>,
 {
 	if reward.is_zero() {
 		return;
 	}
 
-	let pay_result = currency.transfer(relayer_fund_account, relayer_account, reward);
+	let pay_result = Currency::transfer(
+		relayer_fund_account,
+		relayer_account,
+		reward,
+		ExistenceRequirement::AllowDeath,
+	);
 
 	// we can't actually do anything here, because rewards are paid as a part of unrelated transaction
 	match pay_result {
@@ -184,37 +162,15 @@ fn pay_relayer_reward<AccountId, Balance, Currency>(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::mock::{run_test, AccountId as TestAccountId, Balance as TestBalance, TestRuntime};
 	use bp_message_lane::source_chain::RelayerRewards;
-	use std::{cell::RefCell, collections::HashMap};
 
-	type TestAccountId = u64;
-	type TestBalance = u64;
+	type Balances = pallet_balances::Module<TestRuntime>;
 
 	const RELAYER_1: TestAccountId = 1;
 	const RELAYER_2: TestAccountId = 2;
 	const RELAYER_3: TestAccountId = 3;
-	const RELAYERS_FUND_ACCOUNT: TestAccountId = 10;
-
-	struct TestCurrency {
-		balances: RefCell<HashMap<TestAccountId, TestBalance>>,
-	}
-
-	impl TestCurrency {
-		fn new() -> Self {
-			TestCurrency {
-				balances: RefCell::new(vec![(RELAYERS_FUND_ACCOUNT, 1_000)].into_iter().collect()),
-			}
-		}
-	}
-
-	impl InstantCurrency<TestAccountId, TestBalance> for TestCurrency {
-		fn transfer(&mut self, source: &TestAccountId, dest: &TestAccountId, value: TestBalance) -> DispatchResult {
-			let mut balances = self.balances.borrow_mut();
-			*balances.entry(*source).or_default() -= value;
-			*balances.entry(*dest).or_default() += value;
-			Ok(())
-		}
-	}
+	const RELAYERS_FUND_ACCOUNT: TestAccountId = crate::mock::ENDOWED_ACCOUNT;
 
 	fn relayers_rewards() -> RelayersRewards<TestAccountId, TestBalance> {
 		vec![
@@ -239,51 +195,33 @@ mod tests {
 
 	#[test]
 	fn confirmation_relayer_is_rewarded_if_it_has_also_delivered_messages() {
-		let mut currency = TestCurrency::new();
-		pay_relayers_rewards(
-			&mut currency,
-			&RELAYER_2,
-			relayers_rewards(),
-			&RELAYERS_FUND_ACCOUNT,
-			10,
-		);
+		run_test(|| {
+			pay_relayers_rewards::<Balances, _>(&RELAYER_2, relayers_rewards(), &RELAYERS_FUND_ACCOUNT, 10);
 
-		let balances = currency.balances.into_inner();
-		assert_eq!(balances[&RELAYER_1], 80);
-		assert_eq!(balances[&RELAYER_2], 120);
+			assert_eq!(Balances::free_balance(&RELAYER_1), 80);
+			assert_eq!(Balances::free_balance(&RELAYER_2), 120);
+		});
 	}
 
 	#[test]
 	fn confirmation_relayer_is_rewarded_if_it_has_not_delivered_any_delivered_messages() {
-		let mut currency = TestCurrency::new();
-		pay_relayers_rewards(
-			&mut currency,
-			&RELAYER_3,
-			relayers_rewards(),
-			&RELAYERS_FUND_ACCOUNT,
-			10,
-		);
+		run_test(|| {
+			pay_relayers_rewards::<Balances, _>(&RELAYER_3, relayers_rewards(), &RELAYERS_FUND_ACCOUNT, 10);
 
-		let balances = currency.balances.into_inner();
-		assert_eq!(balances[&RELAYER_1], 80);
-		assert_eq!(balances[&RELAYER_2], 70);
-		assert_eq!(balances[&RELAYER_3], 50);
+			assert_eq!(Balances::free_balance(&RELAYER_1), 80);
+			assert_eq!(Balances::free_balance(&RELAYER_2), 70);
+			assert_eq!(Balances::free_balance(&RELAYER_3), 50);
+		});
 	}
 
 	#[test]
 	fn only_confirmation_relayer_is_rewarded_if_confirmation_fee_has_significantly_increased() {
-		let mut currency = TestCurrency::new();
-		pay_relayers_rewards(
-			&mut currency,
-			&RELAYER_3,
-			relayers_rewards(),
-			&RELAYERS_FUND_ACCOUNT,
-			1000,
-		);
+		run_test(|| {
+			pay_relayers_rewards::<Balances, _>(&RELAYER_3, relayers_rewards(), &RELAYERS_FUND_ACCOUNT, 1000);
 
-		let balances = currency.balances.into_inner();
-		assert!(!balances.contains_key(&RELAYER_1));
-		assert!(!balances.contains_key(&RELAYER_2));
-		assert_eq!(balances[&RELAYER_3], 200);
+			assert_eq!(Balances::free_balance(&RELAYER_1), 0);
+			assert_eq!(Balances::free_balance(&RELAYER_2), 0);
+			assert_eq!(Balances::free_balance(&RELAYER_3), 200);
+		});
 	}
 }
