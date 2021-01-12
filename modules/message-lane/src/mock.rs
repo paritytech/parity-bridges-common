@@ -23,6 +23,7 @@ use bp_message_lane::{
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce,
 };
+use bp_runtime::Size;
 use codec::{Decode, Encode};
 use frame_support::{impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
 use sp_core::H256;
@@ -35,7 +36,8 @@ use std::collections::BTreeMap;
 
 pub type AccountId = u64;
 pub type Balance = u64;
-pub type TestPayload = (u64, Weight);
+#[derive(Decode, Encode, Clone, Debug, PartialEq, Eq)]
+pub struct TestPayload(pub u64, pub Weight);
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
 
@@ -141,6 +143,12 @@ impl Config for TestRuntime {
 	type MessageDispatch = TestMessageDispatch;
 }
 
+impl Size for TestPayload {
+	fn size_hint(&self) -> u32 {
+		16
+	}
+}
+
 /// Account that has balance to use in tests.
 pub const ENDOWED_ACCOUNT: AccountId = 0xDEAD;
 
@@ -160,10 +168,10 @@ pub const TEST_ERROR: &str = "Test error";
 pub const TEST_LANE_ID: LaneId = [0, 0, 0, 1];
 
 /// Regular message payload.
-pub const REGULAR_PAYLOAD: TestPayload = (0, 50);
+pub const REGULAR_PAYLOAD: TestPayload = TestPayload(0, 50);
 
 /// Payload that is rejected by `TestTargetHeaderChain`.
-pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = (1, 50);
+pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = TestPayload(1, 50);
 
 /// Vec of proved messages, grouped by lane.
 pub type MessagesByLaneVec = Vec<(LaneId, ProvedLaneMessages<Message<TestMessageFee>>)>;
