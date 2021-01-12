@@ -55,9 +55,9 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	/// Receive state of the corresponding outbound lane.
 	pub fn receive_state_update(&mut self, outbound_lane_data: OutboundLaneData) -> Option<MessageNonce> {
 		let mut data = self.storage.data();
-		let last_received_nonce = data.last_delivered_nonce();
+		let last_delivered_nonce = data.last_delivered_nonce();
 
-		if outbound_lane_data.latest_received_nonce > last_received_nonce {
+		if outbound_lane_data.latest_received_nonce > last_delivered_nonce {
 			// this is something that should never happen if proofs are correct
 			return None;
 		}

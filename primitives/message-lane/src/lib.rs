@@ -92,8 +92,14 @@ pub struct InboundLaneData<RelayerId> {
 	/// Multiple dispatches from the same relayer are allowed.
 	pub relayers: VecDeque<(MessageNonce, MessageNonce, RelayerId)>,
 
-	/// Nonce of the last message which delivery to this (target) chain has been confirmed back
-	/// on the source chain.
+	/// Nonce of the last message that
+	/// a) has been delivered to the target (this) chain and
+	/// b) the delivery has been confirmed on the source chain
+	///
+	/// that the target chain knows of.
+	///
+	/// This value is updated indirectly when an `OutboundLane` state of the source
+	/// chain is received alongside with new messages delivery.
 	pub last_confirmed_nonce: MessageNonce,
 }
 
