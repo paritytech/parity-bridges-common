@@ -31,6 +31,8 @@ use sp_runtime::traits::{One, Zero};
 pub const TEST_GRANDPA_ROUND: u64 = 1;
 pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
+/// Get a valid Grandpa justification for a header given a Grandpa round, authority set ID, and
+/// authority list.
 pub fn make_justification_for_header<H: HeaderT>(
 	header: &H,
 	round: u64,
@@ -91,6 +93,9 @@ fn signed_precommit<H: HeaderT>(
 	}
 }
 
+/// Get a header for testing.
+///
+/// The correct parent hash will be used if given a non-zero header.
 pub fn test_header<H: HeaderT>(number: H::Number) -> H {
 	let mut header = H::new(
 		number,
@@ -108,32 +113,39 @@ pub fn test_header<H: HeaderT>(number: H::Number) -> H {
 	header
 }
 
+/// Convenience function for generating a Header ID at a given block number.
 pub fn header_id<H: HeaderT>(index: u8) -> (H::Hash, H::Number) {
 	(test_header::<H>(index.into()).hash(), index.into())
 }
 
+/// Get the identity of a test account given an ED25519 Public key.
 pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
 	let mut raw_public = [0; 32];
 	raw_public.copy_from_slice(id.as_ref());
 	Ed25519Keyring::from_raw_public(raw_public).unwrap()
 }
 
+/// Get a valid set of voters for a Grandpa round.
 pub fn voter_set() -> VoterSet<AuthorityId> {
 	VoterSet::new(authority_list()).unwrap()
 }
 
+/// Convenience function to get a list of Grandpa authorities.
 pub fn authority_list() -> AuthorityList {
 	vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
 }
 
+/// Get the Public key of the Alice test account.
 pub fn alice() -> AuthorityId {
 	Ed25519Keyring::Alice.public().into()
 }
 
+/// Get the Public key of the Bob test account.
 pub fn bob() -> AuthorityId {
 	Ed25519Keyring::Bob.public().into()
 }
 
+/// Get the Public key of the Charlie test account.
 pub fn charlie() -> AuthorityId {
 	Ed25519Keyring::Charlie.public().into()
 }
