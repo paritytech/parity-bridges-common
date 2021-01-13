@@ -13,8 +13,8 @@ finality-grandpa = { version = "0.12.3", default-features = false }
 
 # Substrate Dependencies
 
-sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "master", optional = true }
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 
@@ -22,9 +22,7 @@ sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master
 default = ["std"]
 std = [
 	"codec/std",
-	"finality-grandpa/std",
 	"serde/std",
-	"sp-keyring",
 	"sp-finality-grandpa/std",
 	"sp-runtime/std",
 	"sp-std/std",
