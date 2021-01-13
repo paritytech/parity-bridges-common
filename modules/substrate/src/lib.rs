@@ -609,8 +609,7 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::helpers::{test_header, unfinalized_header};
-	use crate::mock::{run_test, Origin, TestRuntime};
+	use crate::mock::{run_test, test_header, unfinalized_header, Origin, TestRuntime};
 	use bp_test_utils::authority_list;
 	use frame_support::{assert_noop, assert_ok};
 	use sp_runtime::DispatchError;

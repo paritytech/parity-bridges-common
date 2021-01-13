@@ -91,7 +91,6 @@ fn signed_precommit<H: HeaderT>(
 	}
 }
 
-// TODO: Get these from shared module instead of copy-pasting
 pub fn test_header<H: HeaderT>(number: H::Number) -> H {
 	let mut header = H::new(
 		number,
@@ -100,14 +99,11 @@ pub fn test_header<H: HeaderT>(number: H::Number) -> H {
 		Default::default(),
 		Default::default(),
 	);
-	// TODO: Fix
-	let parent_hash = if number == Zero::zero() {
-		Default::default()
-	} else {
-		test_header::<H>(number - One::one()).hash()
-	};
 
-	header.set_parent_hash(parent_hash);
+	if number != Zero::zero() {
+		let parent_hash = test_header::<H>(number - One::one()).hash();
+		header.set_parent_hash(parent_hash);
+	}
 
 	header
 }

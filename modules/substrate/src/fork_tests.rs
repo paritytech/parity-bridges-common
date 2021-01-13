@@ -54,7 +54,7 @@
 //! Import a finality proof for header 2 on fork 1. This finalty proof should fail to be imported
 //! because the header is an old header.
 
-use crate::mock::{helpers::*, *};
+use crate::mock::*;
 use crate::storage::{AuthoritySet, ImportedHeader};
 use crate::verifier::*;
 use crate::{BestFinalized, BestHeight, BridgeStorage, NextScheduledChange, PalletStorage};

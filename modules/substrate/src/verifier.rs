@@ -351,7 +351,6 @@ fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::helpers::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, BestHeight, HeaderId, ImportedHeaders, PalletStorage};
 	use bp_test_utils::{alice, authority_list, bob, make_justification_for_header};

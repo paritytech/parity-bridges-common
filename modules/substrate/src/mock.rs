@@ -16,11 +16,11 @@
 
 //! Mock Runtime for Substrate Pallet Testing.
 //!
-//! Includes some useful testing utilities in the `helpers` module.
+//! Includes some useful testing types and functions.
 
 #![cfg(test)]
 
-use crate::Config;
+use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config};
 use bp_runtime::Chain;
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use sp_runtime::{
@@ -30,6 +30,9 @@ use sp_runtime::{
 };
 
 pub type AccountId = u64;
+pub type TestHeader = BridgedHeader<TestRuntime>;
+pub type TestNumber = BridgedBlockNumber<TestRuntime>;
+pub type TestHash = BridgedBlockHash<TestRuntime>;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
@@ -88,32 +91,16 @@ pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
 }
 
-pub mod helpers {
-	use super::*;
-	use crate::storage::ImportedHeader;
-	use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader};
+pub fn test_header(num: TestNumber) -> TestHeader {
+	// We wrap the call to avoid explicit type annotations in our tests
+	bp_test_utils::test_header(num)
+}
 
-	pub type TestHeader = BridgedHeader<TestRuntime>;
-	pub type TestNumber = BridgedBlockNumber<TestRuntime>;
-	pub type TestHash = BridgedBlockHash<TestRuntime>;
-
-	pub fn test_header(num: TestNumber) -> TestHeader {
-		let mut header = TestHeader::new_from_number(num);
-		header.parent_hash = if num == 0 {
-			Default::default()
-		} else {
-			test_header(num - 1).hash()
-		};
-
-		header
-	}
-
-	pub fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
-		ImportedHeader {
-			header: test_header(num),
-			requires_justification: false,
-			is_finalized: false,
-			signal_hash: None,
-		}
+pub fn unfinalized_header(num: u64) -> crate::storage::ImportedHeader<TestHeader> {
+	crate::storage::ImportedHeader {
+		header: test_header(num),
+		requires_justification: false,
+		is_finalized: false,
+		signal_hash: None,
 	}
 }
