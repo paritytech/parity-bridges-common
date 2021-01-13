@@ -49,6 +49,7 @@ pub use justification::decode_justification_target;
 pub use storage_proof::StorageProofChecker;
 
 mod justification;
+mod pruning;
 mod storage;
 mod storage_proof;
 mod verifier;
@@ -208,6 +209,29 @@ decl_module! {
 			let _ = verifier
 				.import_finality_proof(hash, finality_proof.into())
 				.map_err(|_| <Error<T>>::UnfinalizedHeader)?;
+
+			Ok(())
+		}
+
+		// TODO: Update weights [#78]
+		#[weight = 0]
+		pub fn prune_old_headers(
+			origin,
+			header_hash: BridgedBlockHash<T>,
+			ancestry_limit: u32,
+		) -> DispatchResult {
+			// TODO [ToDr] Parametrize.
+			const MIN_HEADERS_TO_KEEP: u32 = 1024;
+
+			ensure_operational::<T>()?;
+			let _ = ensure_signed(origin)?;
+
+			pruning::prune_ancestry(
+				MIN_HEADERS_TO_KEEP,
+				PalletStorage::<T>::new(),
+				header_hash,
+				ancestry_limit,
+			).map_err(|_| <Error<T>>::InvalidHeader)?;
 
 			Ok(())
 		}
@@ -488,6 +512,15 @@ pub trait BridgeStorage {
 		signal_hash: <Self::Header as HeaderT>::Hash,
 		next_change: ScheduledChange<<Self::Header as HeaderT>::Number>,
 	);
+
+	/// Removes given list of old headers.
+	///
+	/// Note the caller has to ensure the header hashes are not recent, in particular
+	/// that they are not the best finalized or known headers.
+	fn remove_old_headers(
+		&mut self,
+		headers: &[<Self::Header as HeaderT>::Hash],
+	);
 }
 
 /// Used to interact with the pallet storage in a more abstract way.
@@ -605,6 +638,16 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 		next_change: ScheduledChange<BridgedBlockNumber<T>>,
 	) {
 		<NextScheduledChange<T>>::insert(signal_hash, next_change)
+	}
+
+	fn remove_old_headers(
+		&mut self,
+		headers: &[<Self::Header as HeaderT>::Hash],
+	) {
+		for hash in headers {
+			<ImportedHeaders::<T>>::remove(hash);
+			<RequiresJustification::<T>>::remove(hash);
+		}
 	}
 }
 
