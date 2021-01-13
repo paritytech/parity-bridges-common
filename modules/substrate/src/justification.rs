@@ -186,7 +186,6 @@ where
 pub(crate) mod tests {
 	use super::*;
 	use crate::mock::helpers::*;
-	use bp_header_chain::test_helpers::{authority_list, extract_keyring, voter_set};
 	use codec::Encode;
 	use sp_core::H256;
 	use sp_finality_grandpa::{AuthorityId, AuthorityWeight};

@@ -105,35 +105,3 @@ impl AncestryChecker<(), ()> for () {
 		true
 	}
 }
-
-pub mod test_helpers {
-	use finality_grandpa::voter_set::VoterSet;
-	use sp_finality_grandpa::{AuthorityId, AuthorityList};
-	use sp_keyring::Ed25519Keyring;
-
-	pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
-		let mut raw_public = [0; 32];
-		raw_public.copy_from_slice(id.as_ref());
-		Ed25519Keyring::from_raw_public(raw_public).unwrap()
-	}
-
-	pub fn voter_set() -> VoterSet<AuthorityId> {
-		VoterSet::new(authority_list()).unwrap()
-	}
-
-	pub fn authority_list() -> AuthorityList {
-		vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
-	}
-
-	pub fn alice() -> AuthorityId {
-		Ed25519Keyring::Alice.public().into()
-	}
-
-	pub fn bob() -> AuthorityId {
-		Ed25519Keyring::Bob.public().into()
-	}
-
-	pub fn charlie() -> AuthorityId {
-		Ed25519Keyring::Charlie.public().into()
-	}
-}

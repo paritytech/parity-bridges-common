@@ -357,7 +357,6 @@ mod tests {
 	use crate::mock::helpers::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, BestHeight, HeaderId, ImportedHeaders, PalletStorage};
-	use bp_header_chain::test_helpers::*;
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
