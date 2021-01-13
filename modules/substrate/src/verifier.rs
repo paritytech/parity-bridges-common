@@ -354,7 +354,7 @@ mod tests {
 	use crate::mock::helpers::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, BestHeight, HeaderId, ImportedHeaders, PalletStorage};
-	use bp_test_utils::make_justification_for_header;
+	use bp_test_utils::{alice, authority_list, bob, make_justification_for_header};
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};

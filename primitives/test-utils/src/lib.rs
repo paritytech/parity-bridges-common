@@ -100,6 +100,7 @@ pub fn test_header<H: HeaderT>(number: H::Number) -> H {
 		Default::default(),
 		Default::default(),
 	);
+	// TODO: Fix
 	let parent_hash = if number == Zero::zero() {
 		Default::default()
 	} else {

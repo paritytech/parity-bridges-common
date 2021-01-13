@@ -45,8 +45,6 @@ use sp_trie::StorageProof;
 // Re-export since the node uses these when configuring genesis
 pub use storage::{AuthoritySet, InitializationData, ScheduledChange};
 
-#[cfg(test)]
-pub use mock::helpers::{authority_list, header_id, voter_set};
 pub use storage_proof::StorageProofChecker;
 
 mod storage;
@@ -611,8 +609,9 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::helpers::{authority_list, test_header, unfinalized_header};
+	use crate::mock::helpers::{test_header, unfinalized_header};
 	use crate::mock::{run_test, Origin, TestRuntime};
+	use bp_test_utils::authority_list;
 	use frame_support::{assert_noop, assert_ok};
 	use sp_runtime::DispatchError;
 

@@ -31,7 +31,6 @@ sp-trie = { git = "https://github.com/paritytech/substrate.git", branch = "maste
 bp-test-utils = {path = "../../primitives/test-utils" }
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sp-state-machine = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
 [features]

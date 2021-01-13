@@ -4345,7 +4345,6 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-io",
- "sp-keyring",
  "sp-runtime",
  "sp-state-machine",
  "sp-std",
