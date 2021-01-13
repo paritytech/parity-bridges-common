@@ -609,6 +609,7 @@ dependencies = [
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
+ "bp-test-utils",
  "finality-grandpa",
  "frame-support",
  "parity-scale-codec",
@@ -712,6 +713,17 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "bp-test-utils"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "finality-grandpa",
+ "sp-finality-grandpa",
+ "sp-keyring",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -4323,6 +4335,7 @@ version = "0.1.0"
 dependencies = [
  "bp-header-chain",
  "bp-runtime",
+ "bp-test-utils",
  "finality-grandpa",
  "frame-support",
  "frame-system",
