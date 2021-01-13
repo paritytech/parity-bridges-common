@@ -130,9 +130,11 @@ where
 /// (so not our chain) have been finalized correctly.
 #[derive(Encode, Decode, RuntimeDebug)]
 pub struct GrandpaJustification<Header: HeaderT> {
-	// TODO: Check visibility
+	/// The round (voting period) this justification is valid for.
 	pub round: u64,
+	/// The set of votes for the chain which is to be finalized.
 	pub commit: finality_grandpa::Commit<Header::Hash, Header::Number, AuthoritySignature, AuthorityId>,
+	/// A proof that the chain of blocks in the commit are related to each other.
 	pub votes_ancestries: Vec<Header>,
 }
 
