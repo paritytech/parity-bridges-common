@@ -517,10 +517,7 @@ pub trait BridgeStorage {
 	///
 	/// Note the caller has to ensure the header hashes are not recent, in particular
 	/// that they are not the best finalized or known headers.
-	fn remove_old_headers(
-		&mut self,
-		headers: &[<Self::Header as HeaderT>::Hash],
-	);
+	fn remove_old_headers(&mut self, headers: &[<Self::Header as HeaderT>::Hash]);
 }
 
 /// Used to interact with the pallet storage in a more abstract way.
@@ -640,13 +637,10 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 		<NextScheduledChange<T>>::insert(signal_hash, next_change)
 	}
 
-	fn remove_old_headers(
-		&mut self,
-		headers: &[<Self::Header as HeaderT>::Hash],
-	) {
+	fn remove_old_headers(&mut self, headers: &[<Self::Header as HeaderT>::Hash]) {
 		for hash in headers {
-			<ImportedHeaders::<T>>::remove(hash);
-			<RequiresJustification::<T>>::remove(hash);
+			<ImportedHeaders<T>>::remove(hash);
+			<RequiresJustification<T>>::remove(hash);
 		}
 	}
 }

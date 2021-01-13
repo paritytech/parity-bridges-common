@@ -51,7 +51,8 @@ pub fn prune_ancestry<S, H>(
 	mut storage: S,
 	latest_hash: H::Hash,
 	ancestry_limit: u32,
-) -> Result<usize, PruneError> where
+) -> Result<usize, PruneError>
+where
 	H: traits::Header,
 	S: BridgeStorage<Header = H>,
 {
@@ -61,8 +62,7 @@ pub fn prune_ancestry<S, H>(
 
 	let best_finalized_header = storage.best_finalized_header();
 	let best_finalized_number = best_finalized_header.header.number();
-	let is_old_enough = best_finalized_number.saturating_sub(*header.number())
-		> min_headers_to_keep.into();
+	let is_old_enough = best_finalized_number.saturating_sub(*header.number()) > min_headers_to_keep.into();
 	ensure!(is_old_enough, PruneError::TooRecent);
 
 	// traverse the ancestry and collect header hashes to remove.
