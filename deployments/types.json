@@ -70,5 +70,9 @@
   "InstanceId": "Id",
   "LaneId": "Id",
   "MessageNonce": "u64",
-  "MessageId": "(Id, u64)"
+  "MessageId": "(Id, u64)",
+  "MessageKey": {
+    "lane_id": "LaneId",
+    "nonce:": "MessageNonce"
+  }
 }

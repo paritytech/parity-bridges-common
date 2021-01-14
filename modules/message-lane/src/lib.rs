@@ -465,7 +465,8 @@ decl_module! {
 			// mark messages as delivered
 			let mut lane = outbound_lane::<T, I>(lane_id);
 			let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
-			let received_range = lane.confirm_delivery(lane_data.latest_received_nonce);
+			let last_delivered_nonce = lane_data.last_delivered_nonce();
+			let received_range = lane.confirm_delivery(last_delivered_nonce);
 			if let Some(received_range) = received_range {
 				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, received_range.0, received_range.1));
 
@@ -501,7 +502,7 @@ decl_module! {
 
 			frame_support::debug::trace!(
 				"Received messages delivery proof up to (and including) {} at lane {:?}",
-				lane_data.latest_received_nonce,
+				last_delivered_nonce,
 				lane_id,
 			);
 
@@ -528,12 +529,12 @@ impl<T: Config<I>, I: Instance> Module<T, I> {
 
 	/// Get nonce of latest received message at given inbound lane.
 	pub fn inbound_latest_received_nonce(lane: LaneId) -> MessageNonce {
-		InboundLanes::<T, I>::get(&lane).latest_received_nonce
+		InboundLanes::<T, I>::get(&lane).last_delivered_nonce()
 	}
 
 	/// Get nonce of latest confirmed message at given inbound lane.
 	pub fn inbound_latest_confirmed_nonce(lane: LaneId) -> MessageNonce {
-		InboundLanes::<T, I>::get(&lane).latest_confirmed_nonce
+		InboundLanes::<T, I>::get(&lane).last_confirmed_nonce
 	}
 
 	/// Get state of unrewarded relayers set.
@@ -797,7 +798,7 @@ mod tests {
 			Ok((
 				TEST_LANE_ID,
 				InboundLaneData {
-					latest_received_nonce: 1,
+					last_confirmed_nonce: 1,
 					..Default::default()
 				},
 			)),
@@ -907,7 +908,7 @@ mod tests {
 					Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
-							latest_received_nonce: 1,
+							last_confirmed_nonce: 1,
 							..Default::default()
 						},
 					)),
@@ -979,7 +980,7 @@ mod tests {
 				REGULAR_PAYLOAD.1,
 			));
 
-			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).latest_received_nonce, 1);
+			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).last_delivered_nonce(), 1);
 		});
 	}
 
@@ -990,8 +991,7 @@ mod tests {
 			InboundLanes::<TestRuntime, DefaultInstance>::insert(
 				TEST_LANE_ID,
 				InboundLaneData {
-					latest_confirmed_nonce: 8,
-					latest_received_nonce: 10,
+					last_confirmed_nonce: 8,
 					relayers: vec![(9, 9, TEST_RELAYER_A), (10, 10, TEST_RELAYER_B)]
 						.into_iter()
 						.collect(),
@@ -1024,11 +1024,10 @@ mod tests {
 			assert_eq!(
 				InboundLanes::<TestRuntime>::get(TEST_LANE_ID),
 				InboundLaneData {
+					last_confirmed_nonce: 9,
 					relayers: vec![(10, 10, TEST_RELAYER_B), (11, 11, TEST_RELAYER_A)]
 						.into_iter()
 						.collect(),
-					latest_received_nonce: 11,
-					latest_confirmed_nonce: 9,
 				},
 			);
 			assert_eq!(
@@ -1110,7 +1109,6 @@ mod tests {
 					TEST_LANE_ID,
 					InboundLaneData {
 						relayers: vec![(1, 1, TEST_RELAYER_A)].into_iter().collect(),
-						latest_received_nonce: 1,
 						..Default::default()
 					}
 				)),
@@ -1138,7 +1136,6 @@ mod tests {
 						relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
 							.into_iter()
 							.collect(),
-						latest_received_nonce: 2,
 						..Default::default()
 					}
 				)),
@@ -1182,7 +1179,6 @@ mod tests {
 							relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
 								.into_iter()
 								.collect(),
-							latest_received_nonce: 2,
 							..Default::default()
 						}
 					)),
@@ -1205,7 +1201,6 @@ mod tests {
 							relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
 								.into_iter()
 								.collect(),
-							latest_received_nonce: 2,
 							..Default::default()
 						}
 					)),
@@ -1234,7 +1229,10 @@ mod tests {
 				0, // weight may be zero in this case (all messages are improperly encoded)
 			),);
 
-			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).latest_received_nonce, 1,);
+			assert_eq!(
+				InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).last_delivered_nonce(),
+				1,
+			);
 		});
 	}
 
@@ -1257,7 +1255,10 @@ mod tests {
 				REGULAR_PAYLOAD.1 + REGULAR_PAYLOAD.1,
 			),);
 
-			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).latest_received_nonce, 3,);
+			assert_eq!(
+				InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).last_delivered_nonce(),
+				3,
+			);
 		});
 	}
 
