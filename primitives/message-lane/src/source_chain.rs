@@ -30,7 +30,7 @@ pub type RelayersRewards<AccountId, Balance> = BTreeMap<AccountId, RelayerReward
 /// Single relayer rewards.
 #[derive(RuntimeDebug, Default)]
 pub struct RelayerRewards<Balance> {
-	/// Total rewards that are needs to be paid to the relayer.
+	/// Total rewards that are to be paid to the relayer.
 	pub reward: Balance,
 	/// Total number of messages relayed by this relayer.
 	pub messages: MessageNonce,
