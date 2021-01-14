@@ -1,3 +1,9 @@
+# Compose file for quickly spinning up a local instance of the Rialto Substrate network.
+#
+# Note that the Rialto network is only used for testing, so the configuration settings you see here
+# are *not* recommended for a production environment.
+#
+# For example, you should not keep your `node-key` in version control, or publicly expose RPC ports.
 version: '3.5'
 services:
   rialto-node-alice: &rialto-bridge-node
