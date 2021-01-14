@@ -371,7 +371,7 @@ impl<P: HeadersSyncPipeline> QueuedHeaders<P> {
 		//
 		// instead, we're moving entry to the end of the queue, so that completion data won't be
 		// refetched instantly
-		if let Some(_) = self.incomplete_headers.remove(id) {
+		if self.incomplete_headers.remove(id).is_some() {
 			log::debug!(
 				target: "bridge",
 				"Received completion data from {} for header: {:?}",
