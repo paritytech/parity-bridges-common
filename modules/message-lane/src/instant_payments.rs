@@ -166,7 +166,6 @@ fn pay_relayer_reward<Currency, AccountId>(
 		ExistenceRequirement::KeepAlive,
 	);
 
-	// we can't actually do anything here, because rewards are paid as a part of unrelated transaction
 	match pay_result {
 		Ok(_) => frame_support::debug::trace!(
 			target: "runtime",
