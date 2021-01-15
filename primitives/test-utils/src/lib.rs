@@ -16,7 +16,7 @@
 
 //! Utilities for testing runtime code.
 //!
-//! Unlike other crates in the `primitives` folder, this crate is does *not* need to compile in a
+//! Unlike other crates in the `primitives` folder, this crate does *not* need to compile in a
 //! `no_std` environment. This is fine because this code should only be used, as the name implies,
 //! in tests.
 
