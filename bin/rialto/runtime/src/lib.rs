@@ -165,6 +165,7 @@ parameter_types! {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
 		write: 200_000_000, // ~0.2 ms = 200 µs
 	};
+	pub const SS58Prefix: u8 = 84;
 }
 
 impl frame_system::Config for Runtime {
@@ -211,6 +212,8 @@ impl frame_system::Config for Runtime {
 	type BlockLength = bp_rialto::BlockLength;
 	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = DbWeight;
+	/// The designated SS58 prefix of this chain.
+	type SS58Prefix = SS58Prefix;
 }
 
 impl pallet_aura::Config for Runtime {
@@ -419,6 +422,8 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
 		bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+	// TODO: https://github.com/paritytech/parity-bridges-common/pull/598
+	pub GetDeliveryConfirmationTransactionFee: Balance = 0;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 }
 
@@ -444,6 +449,7 @@ impl pallet_message_lane::Config for Runtime {
 	type MessageDeliveryAndDispatchPayment = pallet_message_lane::instant_payments::InstantCurrencyPayments<
 		Runtime,
 		pallet_balances::Module<Runtime>,
+		GetDeliveryConfirmationTransactionFee,
 		RootAccountForPayments,
 	>;
 
@@ -463,7 +469,7 @@ construct_runtime!(
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
 		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
-		BridgeMillauMessageLane: pallet_message_lane::{Module, Call, Event<T>},
+		BridgeMillauMessageLane: pallet_message_lane::{Module, Call, Storage, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
@@ -813,6 +819,8 @@ impl_runtime_apis! {
 				}
 			}
 
+			use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
+			use bridge_runtime_common::messages;
 			use pallet_message_lane::benchmarking::{
 				Module as MessageLaneBench,
 				Config as MessageLaneConfig,
@@ -822,6 +830,10 @@ impl_runtime_apis! {
 			};
 
 			impl MessageLaneConfig<WithMillauMessageLaneInstance> for Runtime {
+				fn maximal_message_size() -> u32 {
+					messages::source::maximal_message_size::<WithMillauMessageBridge>()
+				}
+
 				fn bridged_relayer_id() -> Self::InboundRelayer {
 					Default::default()
 				}
@@ -840,24 +852,14 @@ impl_runtime_apis! {
 				fn prepare_outbound_message(
 					params: MessageLaneMessageParams<Self::AccountId>,
 				) -> (millau_messages::ToMillauMessagePayload, Balance) {
-					use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
-					use bridge_runtime_common::messages;
-					use pallet_message_lane::benchmarking::WORST_MESSAGE_SIZE_FACTOR;
-
-					let max_message_size = messages::source::maximal_message_size::<WithMillauMessageBridge>();
-					let message_size = match params.size_factor {
-						0 => 1,
-						factor => max_message_size / WORST_MESSAGE_SIZE_FACTOR
-							* sp_std::cmp::min(factor, WORST_MESSAGE_SIZE_FACTOR),
-					};
-					let message_payload = vec![0; message_size as usize];
+					let message_payload = vec![0; params.size as usize];
 					let dispatch_origin = pallet_bridge_call_dispatch::CallOrigin::SourceAccount(
 						params.sender_account,
 					);
 
 					let message = ToMillauMessagePayload {
 						spec_version: 0,
-						weight: message_size as _,
+						weight: params.size as _,
 						origin: dispatch_origin,
 						call: message_payload,
 					};

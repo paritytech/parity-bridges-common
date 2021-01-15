@@ -30,6 +30,8 @@ use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::Vec;
 
+pub mod justification;
+
 /// A type that can be used as a parameter in a dispatchable function.
 ///
 /// When using `decl_module` all arguments for call functions must implement this trait.

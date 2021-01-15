@@ -46,10 +46,8 @@ use sp_trie::StorageProof;
 // Re-export since the node uses these when configuring genesis
 pub use storage::{InitializationData, ScheduledChange};
 
-pub use justification::decode_justification_target;
 pub use storage_proof::StorageProofChecker;
 
-mod justification;
 mod storage;
 mod storage_proof;
 mod verifier;
@@ -173,15 +171,21 @@ decl_module! {
 		) -> DispatchResult {
 			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
-			frame_support::debug::trace!("Got header {:?}", header);
+			let hash = header.hash();
+			frame_support::debug::trace!("Going to import header {:?}: {:?}", hash, header);
 
 			let mut verifier = verifier::Verifier {
 				storage: PalletStorage::<T>::new(),
 			};
 
 			let _ = verifier
-				.import_header(header)
-				.map_err(|_| <Error<T>>::InvalidHeader)?;
+				.import_header(hash, header)
+				.map_err(|e| {
+					frame_support::debug::error!("Failed to import header {:?}: {:?}", hash, e);
+					<Error<T>>::InvalidHeader
+				})?;
+
+			frame_support::debug::trace!("Successfully imported header: {:?}", hash);
 
 			Ok(())
 		}
@@ -200,7 +204,7 @@ decl_module! {
 		) -> DispatchResult {
 			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
-			frame_support::debug::trace!("Got header hash {:?}", hash);
+			frame_support::debug::trace!("Going to finalize header: {:?}", hash);
 
 			let mut verifier = verifier::Verifier {
 				storage: PalletStorage::<T>::new(),
@@ -208,7 +212,12 @@ decl_module! {
 
 			let _ = verifier
 				.import_finality_proof(hash, finality_proof.into())
-				.map_err(|_| <Error<T>>::UnfinalizedHeader)?;
+				.map_err(|e| {
+					frame_support::debug::error!("Failed to finalize header {:?}: {:?}", hash, e);
+					<Error<T>>::UnfinalizedHeader
+				})?;
+
+			frame_support::debug::trace!("Successfully finalized header: {:?}", hash);
 
 			Ok(())
 		}
@@ -367,7 +376,7 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>> for Module<T> {
 			storage: PalletStorage::<T>::new(),
 		};
 
-		let _ = verifier.import_header(header).map_err(|_| ())?;
+		let _ = verifier.import_header(header.hash(), header).map_err(|_| ())?;
 
 		Ok(())
 	}
@@ -644,8 +653,8 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::helpers::{authority_list, test_header, unfinalized_header};
-	use crate::mock::{run_test, Origin, TestRuntime};
+	use crate::mock::{run_test, test_header, unfinalized_header, Origin, TestRuntime};
+	use bp_test_utils::authority_list;
 	use frame_support::{assert_noop, assert_ok};
 	use sp_runtime::DispatchError;
 
