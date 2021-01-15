@@ -30,6 +30,12 @@ use sp_runtime::traits::Header as HeaderT;
 #[cfg(test)]
 mod mock;
 
+/// Block number of the bridged chain.
+pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
+/// Block hash of the bridged chain.
+pub(crate) type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
+/// Hasher of the bridged chain.
+pub(crate) type BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
 /// Header of the bridged chain.
 pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
@@ -125,25 +131,21 @@ fn verify_justification<Header: HeaderT>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, Origin, TestRuntime};
+	use crate::mock::{run_test, test_header, Origin, TestRuntime};
+	use bp_test_utils::{alice, authority_list, bob, make_justification_for_header};
 	use frame_support::assert_ok;
 	use sp_finality_grandpa::{AuthorityId, AuthorityList};
-	use sp_keyring::Ed25519Keyring;
-
-	// TODO: Get these from a shared place since `pallet_substrate_bridge` also uses them
-	pub type TestHeader = BridgedHeader<TestRuntime>;
-
-	pub fn alice() -> AuthorityId {
-		Ed25519Keyring::Alice.public().into()
-	}
 
 	#[test]
 	fn it_works() {
 		run_test(|| {
-			let finality_target = TestHeader::new_from_number(1);
+			let genesis = test_header(0);
+			let header1 = test_header(1);
+			let header2 = test_header(2);
+
 			let init_data = pallet_substrate_bridge::InitializationData {
-				header: finality_target.clone(),
-				authority_list: vec![(alice(), 1)],
+				header: genesis,
+				authority_list: vec![(alice(), 1), (bob(), 1)],
 				set_id: 1,
 				scheduled_change: None,
 				is_halted: false,
@@ -155,7 +157,10 @@ mod tests {
 			));
 
 			let justification = vec![1u8];
-			let ancestry_proof = vec![finality_target.clone()];
+			let ancestry_proof = vec![header1.clone(), header2.clone()];
+
+			// Just a wee rename
+			let finality_target = header2;
 
 			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
 				Origin::signed(1),

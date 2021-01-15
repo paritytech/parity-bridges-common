@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config};
 use bp_runtime::Chain;
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use sp_runtime::{
@@ -23,6 +24,9 @@ use sp_runtime::{
 };
 
 pub type AccountId = u64;
+pub type TestHeader = BridgedHeader<TestRuntime>;
+pub type TestNumber = BridgedBlockNumber<TestRuntime>;
+pub type TestHash = BridgedBlockHash<TestRuntime>;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
@@ -95,4 +99,9 @@ impl<H, P> crate::AncestryChecker<H, P> for Checker<H, P> {
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
+}
+
+pub fn test_header(num: TestNumber) -> TestHeader {
+	// We wrap the call to avoid explicit type annotations in our tests
+	bp_test_utils::test_header(num)
 }

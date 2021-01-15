@@ -26,9 +26,10 @@ sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "ma
 sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 
 [dev-dependencies]
-pallet-substrate-bridge = { path = "../../modules/substrate", default-features = false }
+bp-test-utils = {path = "../../primitives/test-utils" }
+pallet-substrate-bridge = { path = "../../modules/substrate" }
 sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+
 
 [features]
 default = ["std"]
@@ -39,7 +40,6 @@ std = [
 	"finality-grandpa/std",
 	"frame-support/std",
 	"frame-system/std",
-	"pallet-substrate-bridge/std",
 	"serde",
 	"sp-finality-grandpa/std",
 	"sp-runtime/std",
