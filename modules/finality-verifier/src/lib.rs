@@ -20,7 +20,7 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use bp_header_chain::{AncestryChecker, HeaderChain};
+use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, traits::Get, Parameter};
@@ -118,23 +118,12 @@ impl<T: Config> Module<T> {
 	}
 }
 
-// TODO: Use real `justification` code
-fn verify_justification<Header: HeaderT>(
-	_finalized_target: (Header::Hash, Header::Number),
-	_authorities_set_id: sp_finality_grandpa::SetId,
-	_authorities_set: VoterSet<sp_finality_grandpa::AuthorityId>,
-	_raw_justification: &[u8],
-) -> Result<(), ()> {
-	Ok(())
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use crate::mock::{run_test, test_header, Origin, TestRuntime};
 	use bp_test_utils::{alice, authority_list, bob, make_justification_for_header};
 	use frame_support::assert_ok;
-	use sp_finality_grandpa::{AuthorityId, AuthorityList};
 
 	#[test]
 	fn it_works() {

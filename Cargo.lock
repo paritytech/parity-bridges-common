@@ -4236,7 +4236,6 @@ dependencies = [
  "pallet-substrate-bridge",
  "parity-scale-codec",
  "serde",
- "sp-finality-grandpa",
  "sp-io",
  "sp-runtime",
  "sp-std",
