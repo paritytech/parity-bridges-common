@@ -24,6 +24,7 @@
 
 use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
 use crate::BridgeStorage;
+
 use bp_header_chain::justification::verify_justification;
 use finality_grandpa::voter_set::VoterSet;
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
@@ -574,6 +575,39 @@ mod tests {
 				}
 			);
 			assert_eq!(<BestHeight<TestRuntime>>::get(), 2);
+		})
+	}
+
+	#[test]
+	fn doesnt_write_best_header_twice_upon_finalization() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let _imported_headers = write_default_headers(&mut storage, vec![1]);
+
+			let set_id = 1;
+			let authorities = authority_list();
+			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			storage.update_current_authority_set(initial_authority_set);
+
+			// Let's import our header
+			let header = test_header(2);
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+			assert_ok!(verifier.import_header(header.hash(), header.clone()));
+
+			// Our header should be the only best header we have
+			assert_eq!(storage.best_headers()[0].hash, header.hash());
+			assert_eq!(storage.best_headers().len(), 1);
+
+			// Now lets finalize our best header
+			let grandpa_round = 1;
+			let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
+
+			// Our best header should only appear once in the list of best headers
+			assert_eq!(storage.best_headers()[0].hash, header.hash());
+			assert_eq!(storage.best_headers().len(), 1);
 		})
 	}
 
