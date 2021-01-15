@@ -315,6 +315,8 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+	// TODO: https://github.com/paritytech/parity-bridges-common/pull/598
+	pub GetDeliveryConfirmationTransactionFee: Balance = 0;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 }
 
@@ -340,6 +342,7 @@ impl pallet_message_lane::Config for Runtime {
 	type MessageDeliveryAndDispatchPayment = pallet_message_lane::instant_payments::InstantCurrencyPayments<
 		Runtime,
 		pallet_balances::Module<Runtime>,
+		GetDeliveryConfirmationTransactionFee,
 		RootAccountForPayments,
 	>;
 
@@ -354,7 +357,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		BridgeRialto: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
-		BridgeRialtoMessageLane: pallet_message_lane::{Module, Call, Event<T>},
+		BridgeRialtoMessageLane: pallet_message_lane::{Module, Call, Storage, Event<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},

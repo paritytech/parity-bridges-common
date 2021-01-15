@@ -422,6 +422,8 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
 		bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+	// TODO: https://github.com/paritytech/parity-bridges-common/pull/598
+	pub GetDeliveryConfirmationTransactionFee: Balance = 0;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 }
 
@@ -447,6 +449,7 @@ impl pallet_message_lane::Config for Runtime {
 	type MessageDeliveryAndDispatchPayment = pallet_message_lane::instant_payments::InstantCurrencyPayments<
 		Runtime,
 		pallet_balances::Module<Runtime>,
+		GetDeliveryConfirmationTransactionFee,
 		RootAccountForPayments,
 	>;
 
@@ -466,7 +469,7 @@ construct_runtime!(
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
 		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
-		BridgeMillauMessageLane: pallet_message_lane::{Module, Call, Event<T>},
+		BridgeMillauMessageLane: pallet_message_lane::{Module, Call, Storage, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
