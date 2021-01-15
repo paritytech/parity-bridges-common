@@ -315,8 +315,9 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
-	// TODO: https://github.com/paritytech/parity-bridges-common/pull/598
-	pub GetDeliveryConfirmationTransactionFee: Balance = 0;
+	// `IdentityFee` is used by Millau => we may use weight directly
+	pub const GetDeliveryConfirmationTransactionFee: Balance =
+		bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT as _;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 }
 
