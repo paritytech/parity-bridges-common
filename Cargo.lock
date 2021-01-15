@@ -609,7 +609,15 @@ dependencies = [
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
+ "bp-test-utils",
+ "finality-grandpa",
+ "frame-support",
  "parity-scale-codec",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -705,6 +713,17 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "bp-test-utils"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "finality-grandpa",
+ "sp-finality-grandpa",
+ "sp-keyring",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -4315,7 +4334,9 @@ dependencies = [
 name = "pallet-substrate-bridge"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-runtime",
+ "bp-test-utils",
  "finality-grandpa",
  "frame-support",
  "frame-system",
@@ -4325,7 +4346,6 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-io",
- "sp-keyring",
  "sp-runtime",
  "sp-state-machine",
  "sp-std",
@@ -7833,6 +7853,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-header-chain",
  "bp-kusama",
  "bp-message-lane",
  "bp-millau",
