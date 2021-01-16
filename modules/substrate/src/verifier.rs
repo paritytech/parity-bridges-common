@@ -546,8 +546,23 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 
+			// We want to write the genesis header to storage
+			let _ = write_headers(&mut storage, vec![]);
+
 			// Write two headers at the same height to storage.
-			let imported_headers = write_default_headers(&mut storage, vec![1, 1]);
+			let best_header = test_header(1);
+			let mut also_best_header = test_header(1);
+
+			// We need to change _something_ to make it a different header
+			also_best_header.state_root = [1; 32].into();
+
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+
+			// It should be fine to import both
+			assert_ok!(verifier.import_header(best_header.hash(), best_header.clone()));
+			assert_ok!(verifier.import_header(also_best_header.hash(), also_best_header.clone()));
 
 			// The headers we manually imported should have been marked as the best
 			// upon writing to storage. Let's confirm that.
@@ -556,11 +571,8 @@ mod tests {
 
 			// Now let's build something at a better height.
 			let mut better_header = test_header(2);
-			better_header.parent_hash = imported_headers[1].hash();
+			better_header.parent_hash = best_header.hash();
 
-			let mut verifier = Verifier {
-				storage: storage.clone(),
-			};
 			assert_ok!(verifier.import_header(better_header.hash(), better_header.clone()));
 
 			// Since `better_header` is the only one at height = 2 we should only have
