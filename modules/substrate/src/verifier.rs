@@ -562,7 +562,7 @@ mod tests {
 
 			// It should be fine to import both
 			assert_ok!(verifier.import_header(best_header.hash(), best_header.clone()));
-			assert_ok!(verifier.import_header(also_best_header.hash(), also_best_header.clone()));
+			assert_ok!(verifier.import_header(also_best_header.hash(), also_best_header));
 
 			// The headers we manually imported should have been marked as the best
 			// upon writing to storage. Let's confirm that.
