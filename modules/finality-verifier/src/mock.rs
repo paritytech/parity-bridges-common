@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config};
+use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader};
 use bp_runtime::Chain;
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use sp_runtime::{
@@ -91,9 +91,13 @@ impl Chain for TestBridgedChain {
 #[derive(Debug)]
 pub struct Checker<H, P>(std::marker::PhantomData<(H, P)>);
 
-impl<H, P> crate::AncestryChecker<H, P> for Checker<H, P> {
-	fn are_ancestors(_ancestor: &H, _child: &H, _proof: &P) -> bool {
-		true
+impl<H> crate::AncestryChecker<H, Vec<H>> for Checker<H, Vec<H>> {
+	fn are_ancestors(_ancestor: &H, _child: &H, proof: &Vec<H>) -> bool {
+		if proof.len() == 0 {
+			false
+		} else {
+			true
+		}
 	}
 }
 

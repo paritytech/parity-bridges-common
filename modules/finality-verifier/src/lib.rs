@@ -23,7 +23,7 @@
 use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, traits::Get, Parameter};
+use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get, Parameter};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 
@@ -55,7 +55,11 @@ decl_storage! {
 
 decl_error! {
 	pub enum Error for Module<T: Config> {
+		/// The given justification is invalid for the given header.
 		InvalidJustification,
+		/// The given ancestry proof is unable to verify that the child and ancestor headers are
+		/// related.
+		InvalidAncestryProof,
 	}
 }
 
@@ -73,13 +77,11 @@ decl_module! {
 			let _ = ensure_signed(origin)?;
 
 			let authority_set = T::HeaderChain::authority_set();
-
 			let voter_set = VoterSet::new(authority_set.authorities).expect("TODO");
-			let set_id = 1;
+			let set_id = authority_set.set_id;
 
-			let header_id = (finality_target.hash(), *finality_target.number());
 			verify_justification::<BridgedHeader<T>>(
-				header_id,
+				(finality_target.hash(), *finality_target.number()),
 				set_id,
 				voter_set,
 				&justification
@@ -87,7 +89,10 @@ decl_module! {
 			.map_err(|_| <Error<T>>::InvalidJustification)?;
 
 			let best_finalized = T::HeaderChain::best_finalized();
-			T::AncestryChecker::are_ancestors(&best_finalized, &finality_target, &ancestry_proof);
+			ensure!(
+				T::AncestryChecker::are_ancestors(&best_finalized, &finality_target, &ancestry_proof),
+				<Error<T>>::InvalidAncestryProof
+			);
 
 			// If for whatever reason we are unable to fully import headers and the corresponding
 			// finality proof we want to avoid writing to the base pallet storage
@@ -124,12 +129,30 @@ mod tests {
 	use crate::mock::{run_test, test_header, Origin, TestRuntime};
 	use bp_test_utils::{authority_list, make_justification_for_header};
 	use codec::Encode;
-	use frame_support::assert_ok;
+	use frame_support::{assert_err, assert_ok};
+
+	fn initialize_substrate_bridge() {
+		let genesis = test_header(0);
+
+		let init_data = pallet_substrate_bridge::InitializationData {
+			header: genesis,
+			authority_list: authority_list(),
+			set_id: 1,
+			scheduled_change: None,
+			is_halted: false,
+		};
+
+		assert_ok!(pallet_substrate_bridge::Module::<TestRuntime>::initialize(
+			Origin::root(),
+			init_data
+		));
+	}
 
 	#[test]
-	fn it_works() {
+	fn succesfully_imports_header_with_valid_finality_and_ancestry_proofs() {
 		run_test(|| {
-			let genesis = test_header(0);
+			initialize_substrate_bridge();
+
 			let child = test_header(1);
 			let header = test_header(2);
 
@@ -138,19 +161,6 @@ mod tests {
 			let justification =
 				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
 			let ancestry_proof = vec![child.clone(), header.clone()];
-
-			let init_data = pallet_substrate_bridge::InitializationData {
-				header: genesis,
-				authority_list: authority_list(),
-				set_id,
-				scheduled_change: None,
-				is_halted: false,
-			};
-
-			assert_ok!(pallet_substrate_bridge::Module::<TestRuntime>::initialize(
-				Origin::root(),
-				init_data.clone()
-			));
 
 			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
 				Origin::signed(1),
@@ -166,6 +176,51 @@ mod tests {
 			);
 
 			assert_eq!(pallet_substrate_bridge::Module::<TestRuntime>::best_finalized(), header);
+		})
+	}
+
+	#[test]
+	fn does_not_import_header_with_invalid_finality_proof() {
+		run_test(|| {
+			initialize_substrate_bridge();
+
+			let child = test_header(1);
+			let header = test_header(2);
+
+			let justification = [1u8; 32].encode();
+			let ancestry_proof = vec![child.clone(), header.clone()];
+
+			assert_err!(
+				Module::<TestRuntime>::submit_finality_proof(
+					Origin::signed(1),
+					header.clone(),
+					justification,
+					ancestry_proof,
+				),
+				<Error<TestRuntime>>::InvalidJustification
+			);
+		})
+	}
+
+	#[test]
+	fn does_not_import_header_with_invalid_ancestry_proof() {
+		run_test(|| {
+			initialize_substrate_bridge();
+
+			let header = test_header(2);
+
+			let set_id = 1;
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
+
+			// For testing, we've made it so that an empty ancestry proof is invalid
+			let ancestry_proof = vec![];
+
+			assert_err!(
+				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
+				<Error<TestRuntime>>::InvalidAncestryProof
+			);
 		})
 	}
 }
