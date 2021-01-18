@@ -59,6 +59,10 @@ decl_error! {
 		/// The given ancestry proof is unable to verify that the child and ancestor headers are
 		/// related.
 		InvalidAncestryProof,
+		/// Failed to write a header to the underlying header chain.
+		FailedToWriteHeader,
+		/// Failed to write finality proof to the underlying header chain.
+		FailedToWriteFinalityProof,
 	}
 }
 
@@ -100,16 +104,16 @@ decl_module! {
 				// TODO: We should probably bound this
 				for header in ancestry_proof {
 					if T::HeaderChain::import_header(header).is_err() {
-						return TransactionOutcome::Rollback(())
+						return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteHeader))
 					}
 				}
 
 				if T::HeaderChain::import_finality_proof(finality_target, justification).is_err() {
-					return TransactionOutcome::Rollback(())
+					return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteFinalityProof))
 				}
 
-				TransactionOutcome::Commit(())
-			});
+				TransactionOutcome::Commit(Ok(()))
+			})?;
 
 			Ok(())
 		}
