@@ -55,7 +55,6 @@ impl AuthoritySet {
 	}
 }
 
-// Used by `currency-exchange`, maybe rename or remove?
 /// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
 pub trait BaseHeaderChain {
 	/// Transaction type.
@@ -77,28 +76,36 @@ pub trait HeaderChain<H> {
 	/// Get the best authority set known to the header chain.
 	fn authority_set() -> AuthoritySet;
 
+	/// Write the given header to the underlying pallet storage.
 	fn import_header(header: H) -> Result<(), ()>;
+
+	/// Submit a valid finality proof for the given header to the underlying pallet storage.
+	///
+	/// This will finalize the given header and enact any authority set changes if required.
 	fn import_finality_proof(header: H, finality_proof: Vec<u8>) -> Result<(), ()>;
 }
 
 impl HeaderChain<()> for () {
-	fn best_finalized() -> () {
-		()
-	}
+	fn best_finalized() {}
 
 	fn authority_set() -> AuthoritySet {
-		unimplemented!()
+		AuthoritySet::default()
 	}
 
+	#[allow(clippy::result_unit_err)]
 	fn import_header(_header: ()) -> Result<(), ()> {
-		unimplemented!()
+		Ok(())
 	}
+
+	#[allow(clippy::result_unit_err)]
 	fn import_finality_proof(_header: (), _finality_proof: Vec<u8>) -> Result<(), ()> {
-		unimplemented!()
+		Ok(())
 	}
 }
 
+/// A trait for checking if a given child header is a direct decendant of an ancestor.
 pub trait AncestryChecker<H, P> {
+	/// Is the child header a decendant of the ancestor header?
 	fn are_ancestors(ancestor: &H, child: &H, proof: &P) -> bool;
 }
 
