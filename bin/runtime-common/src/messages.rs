@@ -396,6 +396,10 @@ pub mod target {
 	}
 
 	/// Verify proof of Bridged -> This chain messages.
+	///
+	/// The `messages_count` argument verification (sane limits) is supposed to be made
+	/// outside of this function. This function only verifies that the proof declares exactly
+	/// `messages_count` messages.
 	pub fn verify_messages_proof<B: MessageBridge, ThisRuntime>(
 		proof: FromBridgedChainMessagesProof<B>,
 		messages_count: MessageNonce,
@@ -497,11 +501,18 @@ pub mod target {
 		let (bridged_header_hash, bridged_storage_proof, lane_id, begin, end) = proof;
 
 		// receiving proofs where end < begin is ok (if proof includes outbound lane state)
-		// => hence unwrap_or(0)
-		let messages_in_the_proof = end.checked_sub(begin).and_then(|diff| diff.checked_add(1)).unwrap_or(0);
-		if messages_in_the_proof != messages_count {
-			return Err(MessageProofError::MessagesCountMismatch);
-		}
+		let messages_in_the_proof = if let Some(nonces_difference) = end.checked_sub(begin) {
+			// let's check that the user (relayer) has passed correct `messages_count`
+			// (this bounds maximal capacity of messages vec below)
+			let messages_in_the_proof = nonces_difference.saturating_add(1);
+			if messages_in_the_proof != messages_count {
+				return Err(MessageProofError::MessagesCountMismatch);
+			}
+
+			messages_in_the_proof
+		} else {
+			0
+		};
 
 		let parser = build_parser(bridged_header_hash, bridged_storage_proof)?;
 
@@ -509,7 +520,7 @@ pub mod target {
 		// be in the proof. So any error in `read_value`, or even missing value is fatal.
 		//
 		// Mind that we allow proofs with no messages if outbound lane state is proved.
-		let mut messages = Vec::with_capacity(end.saturating_sub(begin) as _);
+		let mut messages = Vec::with_capacity(messages_in_the_proof as _);
 		for nonce in begin..=end {
 			let message_key = MessageKey { lane_id, nonce };
 			let raw_message_data = parser
@@ -1181,6 +1192,58 @@ mod tests {
 			)]
 			.into_iter()
 			.collect()),
+		);
+	}
+
+	#[test]
+	fn verify_messages_proof_with_parser_does_not_panic_if_messages_count_mismatches() {
+		assert_eq!(
+			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
+				(
+					Default::default(),
+					StorageProof::new(vec![]),
+					Default::default(),
+					0,
+					u64::MAX
+				),
+				0,
+				|_, _| Ok(TestMessageProofParser {
+					failing: false,
+					messages: 0..=u64::MAX,
+					outbound_lane_data: Some(OutboundLaneData {
+						oldest_unpruned_nonce: 1,
+						latest_received_nonce: 1,
+						latest_generated_nonce: 1,
+					}),
+				}),
+			),
+			Err(target::MessageProofError::MessagesCountMismatch),
+		);
+	}
+
+	#[test]
+	#[should_panic]
+	fn verify_messages_proof_with_parser_panic_if_too_many_messages_declared() {
+		let _ = target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
+			(
+				Default::default(),
+				StorageProof::new(vec![]),
+				Default::default(),
+				0,
+				u64::MAX,
+			),
+			u64::MAX,
+			|_, _| {
+				Ok(TestMessageProofParser {
+					failing: false,
+					messages: 0..=u64::MAX,
+					outbound_lane_data: Some(OutboundLaneData {
+						oldest_unpruned_nonce: 1,
+						latest_received_nonce: 1,
+						latest_generated_nonce: 1,
+					}),
+				})
+			},
 		);
 	}
 }

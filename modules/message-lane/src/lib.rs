@@ -457,7 +457,8 @@ decl_module! {
 			// verify that the relayer has declared correct `lane_data::relayers` state
 			// (we only care about total number of entries and messages, because this affects call weight)
 			ensure!(
-				total_unrewarded_messages(&lane_data.relayers) == relayers_state.total_messages
+				total_unrewarded_messages(&lane_data.relayers)
+					.unwrap_or(MessageNonce::MAX) == relayers_state.total_messages
 					&& lane_data.relayers.len() as MessageNonce == relayers_state.unrewarded_relayer_entries,
 				Error::<T, I>::InvalidUnrewardedRelayersState
 			);
@@ -545,7 +546,7 @@ impl<T: Config<I>, I: Instance> Module<T, I> {
 		bp_message_lane::UnrewardedRelayersState {
 			unrewarded_relayer_entries: relayers.len() as _,
 			messages_in_oldest_entry: relayers.front().map(|(begin, end, _)| 1 + end - begin).unwrap_or(0),
-			total_messages: total_unrewarded_messages(&relayers),
+			total_messages: total_unrewarded_messages(&relayers).unwrap_or(MessageNonce::MAX),
 		}
 	}
 
@@ -735,6 +736,8 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 	proof: Chain::MessagesProof,
 	messages_count: MessageNonce,
 ) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Chain::Error> {
+	// `receive_messages_proof` weight formula guarantees that the `message_count` is sane.
+	// (tx with too many messages will be rejected from the pool)
 	Chain::verify_messages_proof(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
 			.into_iter()

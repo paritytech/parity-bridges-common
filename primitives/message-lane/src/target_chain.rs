@@ -72,6 +72,10 @@ pub trait SourceHeaderChain<Fee> {
 	///
 	/// Messages vector is required to be sorted by nonce within each lane. Out-of-order
 	/// messages will be rejected.
+	///
+	/// The `messages_count` argument verification (sane limits) is supposed to be made
+	/// outside of this function. This function only verifies that the proof declares exactly
+	/// `messages_count` messages.
 	fn verify_messages_proof(
 		proof: Self::MessagesProof,
 		messages_count: MessageNonce,
