@@ -150,12 +150,6 @@ decl_module! {
 	}
 }
 
-impl<T: Config> Module<T> {
-	pub fn bar() {
-		todo!()
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
