@@ -85,20 +85,22 @@ pub trait HeaderChain<H> {
 	fn import_finality_proof(header: H, finality_proof: Vec<u8>) -> Result<(), ()>;
 }
 
-impl HeaderChain<()> for () {
-	fn best_finalized() {}
+impl<H: Default> HeaderChain<H> for () {
+	fn best_finalized() -> H {
+		H::default()
+	}
 
 	fn authority_set() -> AuthoritySet {
 		AuthoritySet::default()
 	}
 
 	#[allow(clippy::result_unit_err)]
-	fn import_header(_header: ()) -> Result<(), ()> {
+	fn import_header(_header: H) -> Result<(), ()> {
 		Ok(())
 	}
 
 	#[allow(clippy::result_unit_err)]
-	fn import_finality_proof(_header: (), _finality_proof: Vec<u8>) -> Result<(), ()> {
+	fn import_finality_proof(_header: H, _finality_proof: Vec<u8>) -> Result<(), ()> {
 		Ok(())
 	}
 }
@@ -109,8 +111,8 @@ pub trait AncestryChecker<H, P> {
 	fn are_ancestors(ancestor: &H, child: &H, proof: &P) -> bool;
 }
 
-impl AncestryChecker<(), ()> for () {
-	fn are_ancestors(_ancestor: &(), _child: &(), _proof: &()) -> bool {
+impl<H, P> AncestryChecker<H, P> for () {
+	fn are_ancestors(_ancestor: &H, _child: &H, _proof: &P) -> bool {
 		true
 	}
 }
