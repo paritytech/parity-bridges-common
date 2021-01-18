@@ -122,20 +122,27 @@ impl<T: Config> Module<T> {
 mod tests {
 	use super::*;
 	use crate::mock::{run_test, test_header, Origin, TestRuntime};
-	use bp_test_utils::{alice, authority_list, bob, make_justification_for_header};
+	use bp_test_utils::{authority_list, make_justification_for_header};
+	use codec::Encode;
 	use frame_support::assert_ok;
 
 	#[test]
 	fn it_works() {
 		run_test(|| {
 			let genesis = test_header(0);
-			let header1 = test_header(1);
-			let header2 = test_header(2);
+			let child = test_header(1);
+			let header = test_header(2);
+
+			let set_id = 1;
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
+			let ancestry_proof = vec![child.clone(), header.clone()];
 
 			let init_data = pallet_substrate_bridge::InitializationData {
 				header: genesis,
-				authority_list: vec![(alice(), 1), (bob(), 1)],
-				set_id: 1,
+				authority_list: authority_list(),
+				set_id,
 				scheduled_change: None,
 				is_halted: false,
 			};
@@ -145,28 +152,20 @@ mod tests {
 				init_data.clone()
 			));
 
-			let justification = vec![1u8];
-			let ancestry_proof = vec![header1.clone(), header2.clone()];
-
-			// Just a wee rename
-			let finality_target = header2;
-
 			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
 				Origin::signed(1),
-				finality_target.clone(),
+				header.clone(),
 				justification,
 				ancestry_proof,
 			));
 
+			// TODO: Remove [0] once #653 is merged
 			assert_eq!(
-				pallet_substrate_bridge::Module::<TestRuntime>::best_headers(),
-				vec![(*finality_target.number(), finality_target.hash())]
+				pallet_substrate_bridge::Module::<TestRuntime>::best_headers()[0],
+				(*header.number(), header.hash())
 			);
 
-			assert_eq!(
-				pallet_substrate_bridge::Module::<TestRuntime>::best_finalized(),
-				finality_target
-			);
+			assert_eq!(pallet_substrate_bridge::Module::<TestRuntime>::best_finalized(), header);
 		})
 	}
 }
