@@ -46,6 +46,7 @@ pub trait Config: frame_system::Config {
 		<Self::BridgedChain as Chain>::Header,
 		Vec<<Self::BridgedChain as Chain>::Header>,
 	>;
+	type MaxHeadersInSingleProof: Get<u8>;
 }
 
 decl_storage! {
@@ -63,6 +64,8 @@ decl_error! {
 		FailedToWriteHeader,
 		/// Failed to write finality proof to the underlying header chain.
 		FailedToWriteFinalityProof,
+		/// The given ancestry proof is too large to be verified in a single transaction.
+		OversizedAncestryProof,
 	}
 }
 
@@ -78,6 +81,12 @@ decl_module! {
 			ancestry_proof: Vec<BridgedHeader<T>>,
 		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
+
+			dbg!(ancestry_proof.len());
+			ensure!(
+				ancestry_proof.len() <= T::MaxHeadersInSingleProof::get() as usize,
+				<Error<T>>::OversizedAncestryProof
+			);
 
 			let authority_set = T::HeaderChain::authority_set();
 			let voter_set = VoterSet::new(authority_set.authorities).expect("TODO");
@@ -101,7 +110,6 @@ decl_module! {
 			// finality proof we want to avoid writing to the base pallet storage
 			use frame_support::storage::{with_transaction, TransactionOutcome};
 			with_transaction(|| {
-				// TODO: We should probably bound this
 				for header in ancestry_proof {
 					if T::HeaderChain::import_header(header).is_err() {
 						return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteHeader))
@@ -223,6 +231,27 @@ mod tests {
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
 				<Error<TestRuntime>>::InvalidAncestryProof
+			);
+		})
+	}
+
+	#[test]
+	fn disallows_ancestry_proofs_which_are_too_large() {
+		run_test(|| {
+			initialize_substrate_bridge();
+
+			let header = test_header(1);
+			let justification = [1u8; 32].encode();
+
+			let mut ancestry_proof = vec![];
+			let max_len = <TestRuntime as Config>::MaxHeadersInSingleProof::get();
+			for i in 1..=max_len + 1 {
+				ancestry_proof.push(test_header(i as _));
+			}
+
+			assert_err!(
+				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
+				<Error<TestRuntime>>::OversizedAncestryProof
 			);
 		})
 	}
