@@ -60,6 +60,8 @@ decl_error! {
 		/// The given ancestry proof is unable to verify that the child and ancestor headers are
 		/// related.
 		InvalidAncestryProof,
+		/// The authority set from the underlying header chain is invalid.
+		InvalidAuthoritySet,
 		/// Failed to write a header to the underlying header chain.
 		FailedToWriteHeader,
 		/// Failed to write finality proof to the underlying header chain.
@@ -82,14 +84,14 @@ decl_module! {
 		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 
-			dbg!(ancestry_proof.len());
 			ensure!(
 				ancestry_proof.len() <= T::MaxHeadersInSingleProof::get() as usize,
 				<Error<T>>::OversizedAncestryProof
 			);
 
 			let authority_set = T::HeaderChain::authority_set();
-			let voter_set = VoterSet::new(authority_set.authorities).expect("TODO");
+			let voter_set =
+				VoterSet::new(authority_set.authorities).ok_or(<Error<T>>::InvalidAuthoritySet)?;
 			let set_id = authority_set.set_id;
 
 			verify_justification::<BridgedHeader<T>>(
@@ -252,6 +254,38 @@ mod tests {
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
 				<Error<TestRuntime>>::OversizedAncestryProof
+			);
+		})
+	}
+
+	#[test]
+	fn disallows_invalid_authority_set() {
+		run_test(|| {
+			use bp_test_utils::{alice, bob};
+
+			let genesis = test_header(0);
+
+			let invalid_authority_list = vec![(alice(), u64::MAX), (bob(), u64::MAX)];
+			let init_data = pallet_substrate_bridge::InitializationData {
+				header: genesis,
+				authority_list: invalid_authority_list,
+				set_id: 1,
+				scheduled_change: None,
+				is_halted: false,
+			};
+
+			assert_ok!(pallet_substrate_bridge::Module::<TestRuntime>::initialize(
+				Origin::root(),
+				init_data
+			));
+
+			let header = test_header(1);
+			let justification = [1u8; 32].encode();
+			let ancestry_proof = vec![];
+
+			assert_err!(
+				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
+				<Error<TestRuntime>>::InvalidAuthoritySet
 			);
 		})
 	}
