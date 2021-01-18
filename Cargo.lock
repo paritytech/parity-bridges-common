@@ -4256,6 +4256,7 @@ dependencies = [
  "jsonrpc-core 15.1.0",
  "jsonrpc-core-client",
  "jsonrpc-derive",
+ "log",
  "sc-client-api",
  "sp-blockchain",
  "sp-core",

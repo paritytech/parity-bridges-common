@@ -34,6 +34,14 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 
+/// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
+/// Rialto chain. This mostly depends on number of entries (and their density) in the storage trie.
+/// Some reserve is reserved to account future chain growth.
+pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
+
+/// Maximal size of encoded (using `Encode::encode()`) account id.
+pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
+
 /// Maximal weight of single Rialto block.
 ///
 /// This represents two seconds of compute assuming a target block time of six seconds.
@@ -253,5 +261,21 @@ sp_api::decl_runtime_apis! {
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
 		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use sp_runtime::codec::Encode;
+
+	#[test]
+	fn maximal_account_size_does_not_overflow_constant() {
+		assert!(
+			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE as usize >= AccountId::default().encode().len(),
+			"Actual maximal size of encoded AccountId ({}) overflows expected ({})",
+			AccountId::default().encode().len(),
+			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+		);
 	}
 }
