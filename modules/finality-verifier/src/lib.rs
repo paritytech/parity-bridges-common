@@ -46,7 +46,6 @@ pub trait Config: frame_system::Config {
 		<Self::BridgedChain as Chain>::Header,
 		Vec<<Self::BridgedChain as Chain>::Header>,
 	>;
-	type AncestryProof: Parameter + Get<Vec<<Self::BridgedChain as Chain>::Header>>;
 }
 
 decl_storage! {
@@ -72,7 +71,7 @@ decl_module! {
 			origin,
 			finality_target: BridgedHeader<T>,
 			justification: Vec<u8>,
-			ancestry_proof: Vec<BridgedHeader<T>>, // T::AncestryProof,
+			ancestry_proof: Vec<BridgedHeader<T>>,
 		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 

@@ -75,7 +75,6 @@ impl crate::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type HeaderChain = pallet_substrate_bridge::Module<TestRuntime>;
 	type AncestryChecker = Checker<<Self::BridgedChain as Chain>::Header, Vec<<Self::BridgedChain as Chain>::Header>>;
-	type AncestryProof = ();
 }
 
 #[derive(Debug)]
