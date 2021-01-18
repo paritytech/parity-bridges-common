@@ -55,8 +55,8 @@ impl AuthoritySet {
 	}
 }
 
-/// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
-pub trait BaseHeaderChain {
+/// base trait for verifying transaction inclusion proofs.
+pub trait TransactionVerifier {
 	/// Transaction type.
 	type Transaction: Parameter;
 	/// Transaction inclusion proof type.
