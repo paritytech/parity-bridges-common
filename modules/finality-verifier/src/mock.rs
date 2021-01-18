@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader};
-use bp_runtime::Chain;
+use crate::{BridgedHeader, Config};
+use bp_runtime::{BlockNumberOf, Chain};
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use sp_runtime::{
 	testing::{Header, H256},
@@ -25,8 +25,7 @@ use sp_runtime::{
 
 pub type AccountId = u64;
 pub type TestHeader = BridgedHeader<TestRuntime>;
-pub type TestNumber = BridgedBlockNumber<TestRuntime>;
-pub type TestHash = BridgedBlockHash<TestRuntime>;
+pub type TestNumber = BlockNumberOf<<TestRuntime as Config>::BridgedChain>;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;

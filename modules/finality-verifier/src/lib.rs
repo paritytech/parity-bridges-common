@@ -21,21 +21,15 @@
 #![allow(clippy::large_enum_variant)]
 
 use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
-use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
+use bp_runtime::{Chain, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get, Parameter};
+use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 
 #[cfg(test)]
 mod mock;
 
-/// Block number of the bridged chain.
-pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
-/// Block hash of the bridged chain.
-pub(crate) type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
-/// Hasher of the bridged chain.
-pub(crate) type BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
 /// Header of the bridged chain.
 pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
@@ -248,7 +242,7 @@ mod tests {
 			let mut ancestry_proof = vec![];
 			let max_len = <TestRuntime as Config>::MaxHeadersInSingleProof::get();
 			for i in 1..=max_len + 1 {
-				ancestry_proof.push(test_header(i as _));
+				ancestry_proof.push(test_header(i as u64));
 			}
 
 			assert_err!(
