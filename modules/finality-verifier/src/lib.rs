@@ -15,6 +15,18 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Substrate Finality Verifier Pallet
+//!
+//! The goal of this pallet is to provide a safe interface for writing finalized headers to an
+//! external pallet which tracks headers and finality proofs. By safe, we mean that only headers
+//! whose finality has been verified will be written to the underlying pallet.
+//!
+//! By verifying the finality of headers before writing them to storage we prevent DoS vectors in
+//! which unfinalized headers get written to storage even if they don't have a chance of being
+//! finalized in the future (such as in the case where a different fork gets finalized).
+//!
+//! The underlying pallet used for storage is assumed to be a pallet which tracks headers and
+//! GRANDPA authority set changes. This information is used during the verification of GRANDPA
+//! finality proofs.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Runtime-generated enums
@@ -33,13 +45,20 @@ mod mock;
 /// Header of the bridged chain.
 pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
+/// The module configuration trait.
 pub trait Config: frame_system::Config {
+	/// The chain we are bridging to here.
 	type BridgedChain: Chain;
+	/// The pallet which we will use as our underlying storage mechanism.
 	type HeaderChain: HeaderChain<<Self::BridgedChain as Chain>::Header>;
+	/// The type through which we will verify that a given header is related to the last
+	/// finalized header in our storage pallet.
 	type AncestryChecker: AncestryChecker<
 		<Self::BridgedChain as Chain>::Header,
 		Vec<<Self::BridgedChain as Chain>::Header>,
 	>;
+	/// The maximum length of headers we can have in a single ancestry proof. This prevents
+	/// unbounded iteration when verifying proofs.
 	type MaxHeadersInSingleProof: Get<u8>;
 }
 
@@ -69,8 +88,15 @@ decl_module! {
 	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
+		/// Verify a header is finalized according to the given finality proof.
+		///
+		/// Will use the underlying storage pallet to fetch information about the current
+		/// authorities and best finalized header in order to verify that the header is finalized.
+		///
+		/// If successful in verification, it will write the headers to the underlying storage
+		/// pallet as well as import the valid finality proof.
 		#[weight = 0]
-		fn submit_finality_proof(
+		pub fn submit_finality_proof(
 			origin,
 			finality_target: BridgedHeader<T>,
 			justification: Vec<u8>,
