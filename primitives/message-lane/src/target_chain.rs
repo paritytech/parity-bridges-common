@@ -16,7 +16,7 @@
 
 //! Primitives of message lane module, that are used on the target chain.
 
-use crate::{LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData};
+use crate::{LaneId, Message, MessageData, MessageKey, OutboundLaneData};
 
 use codec::{Decode, Encode, Error as CodecError};
 use frame_support::{weights::Weight, Parameter, RuntimeDebug};
@@ -78,7 +78,7 @@ pub trait SourceHeaderChain<Fee> {
 	/// `messages_count` messages.
 	fn verify_messages_proof(
 		proof: Self::MessagesProof,
-		messages_count: MessageNonce,
+		messages_count: u32,
 	) -> Result<ProvedMessages<Message<Fee>>, Self::Error>;
 }
 

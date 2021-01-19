@@ -350,14 +350,14 @@ decl_module! {
 		/// this data in the transaction, so reward confirmations lags should be minimal.
 		#[weight = T::WeightInfo::receive_messages_proof_overhead()
 			.saturating_add(T::WeightInfo::receive_messages_proof_outbound_lane_state_overhead())
-			.saturating_add(T::WeightInfo::receive_messages_proof_messages_overhead(*messages_count))
+			.saturating_add(T::WeightInfo::receive_messages_proof_messages_overhead(MessageNonce::from(*messages_count)))
 			.saturating_add(*dispatch_weight)
 		]
 		pub fn receive_messages_proof(
 			origin,
 			relayer_id: T::InboundRelayer,
 			proof: MessagesProofOf<T, I>,
-			messages_count: MessageNonce,
+			messages_count: u32,
 			dispatch_weight: Weight,
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
@@ -365,7 +365,7 @@ decl_module! {
 
 			// reject transactions that are declaring too many messages
 			ensure!(
-				messages_count <= T::MaxUnconfirmedMessagesAtInboundLane::get(),
+				MessageNonce::from(messages_count) <= T::MaxUnconfirmedMessagesAtInboundLane::get(),
 				Error::<T, I>::TooManyMessagesInTheProof
 			);
 
@@ -746,7 +746,7 @@ impl<T: Config<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStora
 /// Verify messages proof and return proved messages with decoded payload.
 fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, DispatchPayload: Decode>(
 	proof: Chain::MessagesProof,
-	messages_count: MessageNonce,
+	messages_count: u32,
 ) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Chain::Error> {
 	// `receive_messages_proof` weight formula and `MaxUnconfirmedMessagesAtInboundLane` check
 	// guarantees that the `message_count` is sane and Vec<Messagae> may be allocated.
@@ -1097,7 +1097,7 @@ mod tests {
 					Origin::signed(1),
 					TEST_RELAYER_A,
 					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
-					u64::MAX,
+					u32::MAX,
 					0,
 				),
 				Error::<TestRuntime, DefaultInstance>::TooManyMessagesInTheProof,

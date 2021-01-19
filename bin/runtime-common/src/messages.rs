@@ -402,7 +402,7 @@ pub mod target {
 	/// `messages_count` messages.
 	pub fn verify_messages_proof<B: MessageBridge, ThisRuntime>(
 		proof: FromBridgedChainMessagesProof<B>,
-		messages_count: MessageNonce,
+		messages_count: u32,
 	) -> Result<ProvedMessages<Message<BalanceOf<BridgedChain<B>>>>, &'static str>
 	where
 		ThisRuntime: pallet_substrate_bridge::Config,
@@ -491,7 +491,7 @@ pub mod target {
 	/// Verify proof of Bridged -> This chain messages using given message proof parser.
 	pub(crate) fn verify_messages_proof_with_parser<B: MessageBridge, BuildParser, Parser>(
 		proof: FromBridgedChainMessagesProof<B>,
-		messages_count: MessageNonce,
+		messages_count: u32,
 		build_parser: BuildParser,
 	) -> Result<ProvedMessages<Message<BalanceOf<BridgedChain<B>>>>, MessageProofError>
 	where
@@ -505,7 +505,7 @@ pub mod target {
 			// let's check that the user (relayer) has passed correct `messages_count`
 			// (this bounds maximal capacity of messages vec below)
 			let messages_in_the_proof = nonces_difference.saturating_add(1);
-			if messages_in_the_proof != messages_count {
+			if messages_in_the_proof != MessageNonce::from(messages_count) {
 				return Err(MessageProofError::MessagesCountMismatch);
 			}
 
@@ -1218,32 +1218,6 @@ mod tests {
 				}),
 			),
 			Err(target::MessageProofError::MessagesCountMismatch),
-		);
-	}
-
-	#[test]
-	#[should_panic]
-	fn verify_messages_proof_with_parser_panic_if_too_many_messages_declared() {
-		let _ = target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-			(
-				Default::default(),
-				StorageProof::new(vec![]),
-				Default::default(),
-				0,
-				u64::MAX,
-			),
-			u64::MAX,
-			|_, _| {
-				Ok(TestMessageProofParser {
-					failing: false,
-					messages: 0..=u64::MAX,
-					outbound_lane_data: Some(OutboundLaneData {
-						oldest_unpruned_nonce: 1,
-						latest_received_nonce: 1,
-						latest_generated_nonce: 1,
-					}),
-				})
-			},
 		);
 	}
 }
