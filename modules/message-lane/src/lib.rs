@@ -749,7 +749,7 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 	messages_count: u32,
 ) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Chain::Error> {
 	// `receive_messages_proof` weight formula and `MaxUnconfirmedMessagesAtInboundLane` check
-	// guarantees that the `message_count` is sane and Vec<Messagae> may be allocated.
+	// guarantees that the `message_count` is sane and Vec<Message> may be allocated.
 	// (tx with too many messages will either be rejected from the pool, or will fail earlier)
 	Chain::verify_messages_proof(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
