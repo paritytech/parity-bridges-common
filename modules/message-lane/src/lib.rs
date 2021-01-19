@@ -101,6 +101,10 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	///
 	/// There is no point of making this parameter lesser than MaxUnrewardedRelayerEntriesAtInboundLane,
 	/// because then maximal number of relayer entries will be limited by maximal number of messages.
+	///
+	/// This value also represents maximal number of messages in single delivery transaction. Transaction
+	/// that is declaring more messages than this value, will be rejected. Even if these messages are
+	/// from different lanes.
 	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
@@ -156,6 +160,8 @@ decl_error! {
 		MessageRejectedByLaneVerifier,
 		/// Submitter has failed to pay fee for delivering and dispatching messages.
 		FailedToWithdrawMessageFee,
+		/// The transaction brings too many messages.
+		TooManyMessagesInTheProof,
 		/// Invalid messages has been submitted.
 		InvalidMessagesProof,
 		/// Invalid messages dispatch weight has been declared by the relayer.
@@ -356,6 +362,12 @@ decl_module! {
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
 			let _ = ensure_signed(origin)?;
+
+			// reject transactions that are declaring too many messages
+			ensure!(
+				messages_count <= T::MaxUnconfirmedMessagesAtInboundLane::get(),
+				Error::<T, I>::TooManyMessagesInTheProof
+			);
 
 			// verify messages proof && convert proof into messages
 			let messages = verify_and_decode_messages_proof::<
@@ -736,8 +748,9 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 	proof: Chain::MessagesProof,
 	messages_count: MessageNonce,
 ) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Chain::Error> {
-	// `receive_messages_proof` weight formula guarantees that the `message_count` is sane.
-	// (tx with too many messages will be rejected from the pool)
+	// `receive_messages_proof` weight formula and `MaxUnconfirmedMessagesAtInboundLane` check
+	// guarantees that the `message_count` is sane and Vec<Messagae> may be allocated.
+	// (tx with too many messages will either be rejected from the pool, or will fail earlier)
 	Chain::verify_messages_proof(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
 			.into_iter()
@@ -1072,6 +1085,22 @@ mod tests {
 					0,
 				),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesProof,
+			);
+		});
+	}
+
+	#[test]
+	fn receive_messages_proof_rejects_proof_with_too_many_messages() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
+					Origin::signed(1),
+					TEST_RELAYER_A,
+					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+					u64::MAX,
+					0,
+				),
+				Error::<TestRuntime, DefaultInstance>::TooManyMessagesInTheProof,
 			);
 		});
 	}
