@@ -77,11 +77,13 @@ pub trait HeaderChain<H> {
 	fn authority_set() -> AuthoritySet;
 
 	/// Write the given header to the underlying pallet storage.
+	#[allow(clippy::result_unit_err)]
 	fn import_header(header: H) -> Result<(), ()>;
 
 	/// Submit a valid finality proof for the given header to the underlying pallet storage.
 	///
 	/// This will finalize the given header and enact any authority set changes if required.
+	#[allow(clippy::result_unit_err)]
 	fn import_finality_proof(header: H, finality_proof: Vec<u8>) -> Result<(), ()>;
 }
 

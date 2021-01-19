@@ -187,7 +187,7 @@ mod tests {
 			let grandpa_round = 1;
 			let justification =
 				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
-			let ancestry_proof = vec![child.clone(), header.clone()];
+			let ancestry_proof = vec![child, header.clone()];
 
 			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
 				Origin::signed(1),
@@ -215,15 +215,10 @@ mod tests {
 			let header = test_header(2);
 
 			let justification = [1u8; 32].encode();
-			let ancestry_proof = vec![child.clone(), header.clone()];
+			let ancestry_proof = vec![child, header.clone()];
 
 			assert_err!(
-				Module::<TestRuntime>::submit_finality_proof(
-					Origin::signed(1),
-					header.clone(),
-					justification,
-					ancestry_proof,
-				),
+				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
 				<Error<TestRuntime>>::InvalidJustification
 			);
 		})

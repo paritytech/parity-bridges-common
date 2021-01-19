@@ -96,11 +96,7 @@ pub struct Checker<H, P>(std::marker::PhantomData<(H, P)>);
 
 impl<H> crate::AncestryChecker<H, Vec<H>> for Checker<H, Vec<H>> {
 	fn are_ancestors(_ancestor: &H, _child: &H, proof: &Vec<H>) -> bool {
-		if proof.len() == 0 {
-			false
-		} else {
-			true
-		}
+		!proof.is_empty()
 	}
 }
 
