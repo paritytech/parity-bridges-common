@@ -196,10 +196,9 @@ mod tests {
 				ancestry_proof,
 			));
 
-			// TODO: Remove [0] once #653 is merged
 			assert_eq!(
-				pallet_substrate_bridge::Module::<TestRuntime>::best_headers()[0],
-				(*header.number(), header.hash())
+				pallet_substrate_bridge::Module::<TestRuntime>::best_headers(),
+				vec![(*header.number(), header.hash())]
 			);
 
 			assert_eq!(pallet_substrate_bridge::Module::<TestRuntime>::best_finalized(), header);
