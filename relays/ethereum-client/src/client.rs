@@ -48,9 +48,7 @@ impl Client {
 		let raw_client = RawClient::new(transport);
 		raw_client.into()
 	}
-}
 
-impl Client {
 	/// Reopen client connection.
 	pub fn reconnect(mut self) -> Self {
 		self.client = Self::build_client(&self.params);
