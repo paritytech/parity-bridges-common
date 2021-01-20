@@ -22,11 +22,12 @@ use crate::exchange::{
 };
 use crate::exchange_loop_metrics::ExchangeLoopMetrics;
 
+use backoff::backoff::Backoff;
 use futures::{future::FutureExt, select};
 use num_traits::One;
 use relay_utils::{
 	metrics::{start as metrics_start, GlobalMetrics, MetricsParams},
-	FailedClient,
+	retry_backoff, FailedClient, MaybeConnectionError,
 };
 use std::future::Future;
 
@@ -130,6 +131,7 @@ async fn run_until_connection_lost<P: TransactionProofPipeline>(
 	metrics_exch: Option<ExchangeLoopMetrics>,
 	exit_signal: impl Future<Output = ()>,
 ) -> Result<(), FailedClient> {
+	let mut retry_backoff = retry_backoff();
 	let mut state = storage.state();
 	let mut current_finalized_block = None;
 
@@ -138,7 +140,7 @@ async fn run_until_connection_lost<P: TransactionProofPipeline>(
 	futures::pin_mut!(exit_signal);
 
 	loop {
-		run_loop_iteration(
+		let iteration_result = run_loop_iteration(
 			&mut storage,
 			&source_client,
 			&target_client,
@@ -146,15 +148,31 @@ async fn run_until_connection_lost<P: TransactionProofPipeline>(
 			&mut current_finalized_block,
 			metrics_exch.as_ref(),
 		)
-		.await?;
+		.await;
 
 		if let Some(ref metrics_global) = metrics_global {
 			metrics_global.update().await;
 		}
 
-		select! {
-			_ = source_client.tick().fuse() => {},
-			_ = exit_signal => return Ok(()),
+		if let Err((is_connection_error, failed_client)) = iteration_result {
+			if is_connection_error {
+				return Err(failed_client);
+			}
+
+			let retry_timeout = retry_backoff
+				.next_backoff()
+				.unwrap_or(relay_utils::relay_loop::RECONNECT_DELAY);
+			select! {
+				_ = async_std::task::sleep(retry_timeout).fuse() => {},
+				_ = exit_signal => return Ok(()),
+			}
+		} else {
+			retry_backoff.reset();
+
+			select! {
+				_ = source_client.tick().fuse() => {},
+				_ = exit_signal => return Ok(()),
+			}
 		}
 	}
 }
@@ -167,7 +185,7 @@ async fn run_loop_iteration<P: TransactionProofPipeline>(
 	state: &mut TransactionProofsRelayState<BlockNumberOf<P>>,
 	current_finalized_block: &mut Option<(P::Block, RelayedBlockTransactions)>,
 	exchange_loop_metrics: Option<&ExchangeLoopMetrics>,
-) -> Result<(), FailedClient> {
+) -> Result<(), (bool, FailedClient)> {
 	let best_finalized_header_id = match target_client.best_finalized_header_id().await {
 		Ok(best_finalized_header_id) => {
 			log::debug!(
@@ -189,7 +207,7 @@ async fn run_loop_iteration<P: TransactionProofPipeline>(
 				err,
 			);
 
-			return Err(FailedClient::Target);
+			return Err((err.is_connection_error(), FailedClient::Target));
 		}
 	};
 
@@ -225,7 +243,7 @@ async fn run_loop_iteration<P: TransactionProofPipeline>(
 				}
 				Err((failed_client, relayed_transactions)) => {
 					*current_finalized_block = Some((block, relayed_transactions));
-					return Err(failed_client);
+					return Err((true, failed_client));
 				}
 			}
 		}
@@ -251,7 +269,7 @@ async fn run_loop_iteration<P: TransactionProofPipeline>(
 						err,
 					);
 
-					return Err(FailedClient::Source);
+					return Err((err.is_connection_error(), FailedClient::Source));
 				}
 			}
 		}
