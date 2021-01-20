@@ -4,7 +4,7 @@
 # the various components in the bridge repo, such as nodes and relayers.
 FROM ubuntu:xenial
 
-ENV LAST_DEPS_UPDATE 2021-01-20
+ENV LAST_DEPS_UPDATE 2020-12-21
 
 RUN set -eux; \
 	apt-get update && \
@@ -17,7 +17,7 @@ RUN update-ca-certificates && \
 	curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 ENV PATH="/root/.cargo/bin:${PATH}"
-ENV LAST_RUST_UPDATE 2021-01-20
+ENV LAST_RUST_UPDATE 2020-12-21
 
 RUN rustup update stable && \
 	rustup install nightly && \
