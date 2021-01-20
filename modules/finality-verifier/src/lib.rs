@@ -161,6 +161,7 @@ pub mod pallet {
 
 #[cfg(test)]
 mod tests {
+	use super::pallet::*;
 	use super::*;
 	use crate::mock::{run_test, test_header, Origin, TestRuntime};
 	use bp_test_utils::{authority_list, make_justification_for_header};
