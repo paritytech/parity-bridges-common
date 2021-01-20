@@ -9,9 +9,7 @@ on:
       - diagrams/
   schedule:                                         # Nightly build
     - cron:                                         '0 1 * * *'
-  pull_request:
-    branches:
-      - master
+
 jobs:
 ## Publish to Docker hub
   publish:
