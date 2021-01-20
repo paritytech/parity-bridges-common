@@ -134,6 +134,16 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 			Origin = <Self as frame_system::Config>::Origin,
 			PostInfo = frame_support::dispatch::PostDispatchInfo,
 		>;
+	/// The type that is used to wrap the `Self::Call` when it is moved over bridge.
+	///
+	/// The idea behind this is to avoid `Call` conversion/decoding until we'll be sure
+	/// that all other stuff (like `spec_version`) is ok. If we would try to decode
+	/// `Call` which has been encoded using previous `spec_version`, then we might end
+	/// up with decoding error, instead of `MessageVersionSpecMismatch`.
+	///
+	/// The `Encode` implementation should match `Encode` implementation of the actual
+	/// `Call`, that (may) have been used to produce signature for `CallOrigin::TargetAccount`.
+	type EncodedCall: Decode + Encode + Into<Result<<Self as Config<I>>::Call, ()>>;
 	/// A type which can be turned into an AccountId from a 256-bit hash.
 	///
 	/// Used when deriving target chain AccountIds from source chain AccountIds.
@@ -158,6 +168,8 @@ decl_event!(
 		MessageSignatureMismatch(InstanceId, MessageId),
 		/// Message has been dispatched with given result.
 		MessageDispatched(InstanceId, MessageId, DispatchResult),
+		/// We have failed to decode Call from the message.
+		MessageCallDecodeFailed(InstanceId, MessageId),
 		/// Phantom member, never used. Needed to handle multiple pallet instances.
 		_Dummy(PhantomData<I>),
 	}
@@ -172,12 +184,8 @@ decl_module! {
 }
 
 impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
-	type Message = MessagePayload<
-		T::SourceChainAccountId,
-		T::TargetChainAccountPublic,
-		T::TargetChainSignature,
-		<T as Config<I>>::Call,
-	>;
+	type Message =
+		MessagePayload<T::SourceChainAccountId, T::TargetChainAccountPublic, T::TargetChainSignature, T::EncodedCall>;
 
 	fn dispatch_weight(message: &Self::Message) -> Weight {
 		message.weight
@@ -200,28 +208,6 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				id,
 				expected_version,
 				message.spec_version,
-			));
-			return;
-		}
-
-		// verify weight
-		// (we want passed weight to be at least equal to pre-dispatch weight of the call
-		// because otherwise Calls may be dispatched at lower price)
-		let dispatch_info = message.call.get_dispatch_info();
-		let expected_weight = dispatch_info.weight;
-		if message.weight < expected_weight {
-			frame_support::debug::trace!(
-				"Message {:?}/{:?}: passed weight is too low. Expected at least {:?}, got {:?}",
-				bridge,
-				id,
-				expected_weight,
-				message.weight,
-			);
-			Self::deposit_event(RawEvent::MessageWeightMismatch(
-				bridge,
-				id,
-				expected_weight,
-				message.weight,
 			));
 			return;
 		}
@@ -263,11 +249,43 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			}
 		};
 
+		// now that we have everything checked, let's decode the call
+		let call = match message.call.into() {
+			Ok(call) => call,
+			Err(_) => {
+				frame_support::debug::trace!("Failed to decode Call from message {:?}/{:?}", bridge, id,);
+				Self::deposit_event(RawEvent::MessageCallDecodeFailed(bridge, id));
+				return;
+			}
+		};
+
+		// verify weight
+		// (we want passed weight to be at least equal to pre-dispatch weight of the call
+		// because otherwise Calls may be dispatched at lower price)
+		let dispatch_info = call.get_dispatch_info();
+		let expected_weight = dispatch_info.weight;
+		if message.weight < expected_weight {
+			frame_support::debug::trace!(
+				"Message {:?}/{:?}: passed weight is too low. Expected at least {:?}, got {:?}",
+				bridge,
+				id,
+				expected_weight,
+				message.weight,
+			);
+			Self::deposit_event(RawEvent::MessageWeightMismatch(
+				bridge,
+				id,
+				expected_weight,
+				message.weight,
+			));
+			return;
+		}
+
 		// finally dispatch message
 		let origin = RawOrigin::Signed(origin_account).into();
 
-		frame_support::debug::trace!("Message being dispatched is: {:?}", &message.call);
-		let dispatch_result = message.call.dispatch(origin);
+		frame_support::debug::trace!("Message being dispatched is: {:?}", &call);
+		let dispatch_result = call.dispatch(origin);
 		let actual_call_weight = extract_actual_weight(&dispatch_result, &dispatch_info);
 
 		frame_support::debug::trace!(
@@ -434,7 +452,17 @@ mod tests {
 		type TargetChainAccountPublic = TestAccountPublic;
 		type TargetChainSignature = TestSignature;
 		type Call = Call;
+		type EncodedCall = EncodedCall;
 		type AccountIdConverter = AccountIdConverter;
+	}
+
+	#[derive(Decode, Encode)]
+	pub struct EncodedCall(Vec<u8>);
+
+	impl From<EncodedCall> for Result<Call, ()> {
+		fn from(call: EncodedCall) -> Result<Call, ()> {
+			Call::decode(&mut &call.0[..]).map_err(drop)
+		}
 	}
 
 	const TEST_SPEC_VERSION: SpecVersion = 0;
@@ -455,7 +483,7 @@ mod tests {
 			spec_version: TEST_SPEC_VERSION,
 			weight: TEST_WEIGHT,
 			origin,
-			call,
+			call: EncodedCall(call.encode()),
 		}
 	}
 
@@ -554,6 +582,30 @@ mod tests {
 				vec![EventRecord {
 					phase: Phase::Initialization,
 					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageSignatureMismatch(bridge, id)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn should_fail_on_call_decode() {
+		new_test_ext().execute_with(|| {
+			let bridge = b"ethb".to_owned();
+			let id = [0; 4];
+
+			let mut message =
+				prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
+			message.call.0 = vec![];
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(bridge, id, message);
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageCallDecodeFailed(bridge, id)),
 					topics: vec![],
 				}],
 			);
