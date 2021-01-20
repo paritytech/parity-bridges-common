@@ -48,7 +48,7 @@ pub use millau_hash::MillauHash;
 /// Some reserve is reserved to account future chain growth.
 pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 
-/// Maximal size of encoded (using `Encode::encode()`) account id.
+/// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
 pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 
 /// Maximum weight of single Millau block.
