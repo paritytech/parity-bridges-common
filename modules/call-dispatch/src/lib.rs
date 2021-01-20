@@ -238,6 +238,9 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				let mut signed_message = Vec::new();
 				message.call.encode_to(&mut signed_message);
 				source_account_id.encode_to(&mut signed_message);
+				// prohibit signature reuse across bridges and spec versions
+				message.spec_version.encode_to(&mut signed_message);
+				bridge.encode_to(&mut signed_message);
 
 				let target_account = target_public.into_account();
 				if !target_signature.verify(&signed_message[..], &target_account) {
