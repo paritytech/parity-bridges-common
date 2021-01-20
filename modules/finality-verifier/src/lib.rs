@@ -35,59 +35,52 @@
 use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
 use bp_runtime::{Chain, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get};
+use frame_support::{ensure, traits::Get};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 
 #[cfg(test)]
 mod mock;
 
-/// Header of the bridged chain.
-pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
+#[frame_support::pallet]
+pub mod pallet {
+	use super::*;
+	use frame_support::pallet_prelude::*;
+	use frame_system::pallet_prelude::*;
 
-/// The module configuration trait.
-pub trait Config: frame_system::Config {
-	/// The chain we are bridging to here.
-	type BridgedChain: Chain;
-	/// The pallet which we will use as our underlying storage mechanism.
-	type HeaderChain: HeaderChain<<Self::BridgedChain as Chain>::Header>;
-	/// The type through which we will verify that a given header is related to the last
-	/// finalized header in our storage pallet.
-	type AncestryChecker: AncestryChecker<
-		<Self::BridgedChain as Chain>::Header,
-		Vec<<Self::BridgedChain as Chain>::Header>,
-	>;
-	/// The maximum length of headers we can have in a single ancestry proof. This prevents
-	/// unbounded iteration when verifying proofs.
-	type MaxHeadersInSingleProof: Get<u8>;
-}
+	/// Header of the bridged chain.
+	pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
-decl_storage! {
-	trait Store for Module<T: Config> as FinalityVerifier {}
-}
+	#[pallet::config]
+	pub trait Config: frame_system::Config {
+		/// The chain we are bridging to here.
+		type BridgedChain: Chain;
 
-decl_error! {
-	pub enum Error for Module<T: Config> {
-		/// The given justification is invalid for the given header.
-		InvalidJustification,
-		/// The given ancestry proof is unable to verify that the child and ancestor headers are
-		/// related.
-		InvalidAncestryProof,
-		/// The authority set from the underlying header chain is invalid.
-		InvalidAuthoritySet,
-		/// Failed to write a header to the underlying header chain.
-		FailedToWriteHeader,
-		/// Failed to write finality proof to the underlying header chain.
-		FailedToWriteFinalityProof,
-		/// The given ancestry proof is too large to be verified in a single transaction.
-		OversizedAncestryProof,
+		/// The pallet which we will use as our underlying storage mechanism.
+		type HeaderChain: HeaderChain<<Self::BridgedChain as Chain>::Header>;
+
+		/// The type through which we will verify that a given header is related to the last
+		/// finalized header in our storage pallet.
+		type AncestryChecker: AncestryChecker<
+			<Self::BridgedChain as Chain>::Header,
+			Vec<<Self::BridgedChain as Chain>::Header>,
+		>;
+
+		/// The maximum length of headers we can have in a single ancestry proof. This prevents
+		/// unbounded iteration when verifying proofs.
+		#[pallet::constant]
+		type MaxHeadersInSingleProof: Get<u8>;
 	}
-}
 
-decl_module! {
-	pub struct Module<T: Config> for enum Call where origin: T::Origin {
-		type Error = Error<T>;
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T>(PhantomData<T>);
 
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
 		/// Verify a header is finalized according to the given finality proof.
 		///
 		/// Will use the underlying storage pallet to fetch information about the current
@@ -95,13 +88,13 @@ decl_module! {
 		///
 		/// If successful in verification, it will write the headers to the underlying storage
 		/// pallet as well as import the valid finality proof.
-		#[weight = 0]
+		#[pallet::weight(0)]
 		pub fn submit_finality_proof(
-			origin,
+			origin: OriginFor<T>,
 			finality_target: BridgedHeader<T>,
 			justification: Vec<u8>,
 			ancestry_proof: Vec<BridgedHeader<T>>,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let _ = ensure_signed(origin)?;
 
 			ensure!(
@@ -110,15 +103,14 @@ decl_module! {
 			);
 
 			let authority_set = T::HeaderChain::authority_set();
-			let voter_set =
-				VoterSet::new(authority_set.authorities).ok_or(<Error<T>>::InvalidAuthoritySet)?;
+			let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T>>::InvalidAuthoritySet)?;
 			let set_id = authority_set.set_id;
 
 			verify_justification::<BridgedHeader<T>>(
 				(finality_target.hash(), *finality_target.number()),
 				set_id,
 				voter_set,
-				&justification
+				&justification,
 			)
 			.map_err(|_| <Error<T>>::InvalidJustification)?;
 
@@ -134,19 +126,36 @@ decl_module! {
 			with_transaction(|| {
 				for header in ancestry_proof {
 					if T::HeaderChain::import_header(header).is_err() {
-						return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteHeader))
+						return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteHeader));
 					}
 				}
 
 				if T::HeaderChain::import_finality_proof(finality_target, justification).is_err() {
-					return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteFinalityProof))
+					return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteFinalityProof));
 				}
 
 				TransactionOutcome::Commit(Ok(()))
 			})?;
 
-			Ok(())
+			Ok(().into())
 		}
+	}
+
+	#[pallet::error]
+	pub enum Error<T> {
+		/// The given justification is invalid for the given header.
+		InvalidJustification,
+		/// The given ancestry proof is unable to verify that the child and ancestor headers are
+		/// related.
+		InvalidAncestryProof,
+		/// The authority set from the underlying header chain is invalid.
+		InvalidAuthoritySet,
+		/// Failed to write a header to the underlying header chain.
+		FailedToWriteHeader,
+		/// Failed to write finality proof to the underlying header chain.
+		FailedToWriteFinalityProof,
+		/// The given ancestry proof is too large to be verified in a single transaction.
+		OversizedAncestryProof,
 	}
 }
 
@@ -296,5 +305,11 @@ mod tests {
 				<Error<TestRuntime>>::InvalidAuthoritySet
 			);
 		})
+	}
+
+	#[test]
+	fn print_metadata() {
+		println!("{:#?}", TestRuntime::metadata());
+		panic!()
 	}
 }
