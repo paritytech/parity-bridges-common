@@ -56,7 +56,7 @@ impl AuthoritySet {
 }
 
 /// base trait for verifying transaction inclusion proofs.
-pub trait TransactionVerifier {
+pub trait InclusionProofVerifier {
 	/// Transaction type.
 	type Transaction: Parameter;
 	/// Transaction inclusion proof type.
