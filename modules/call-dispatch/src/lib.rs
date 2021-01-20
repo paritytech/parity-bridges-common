@@ -148,6 +148,8 @@ decl_event!(
 	pub enum Event<T, I = DefaultInstance> where
 		<T as Config<I>>::MessageId
 	{
+		/// Message has been rejected before reaching dispatch.
+		MessageRejected(InstanceId, MessageId),
 		/// Message has been rejected by dispatcher because of spec version mismatch.
 		/// Last two arguments are: expected and passed spec version.
 		MessageVersionSpecMismatch(InstanceId, MessageId, SpecVersion, SpecVersion),
@@ -168,6 +170,14 @@ decl_module! {
 	pub struct Module<T: Config<I>, I: Instance = DefaultInstance> for enum Call where origin: T::Origin {
 		/// Deposit one of this module's events by using the default implementation.
 		fn deposit_event() = default;
+	}
+}
+
+impl<T: Config<I>, I: Instance> Module<T, I> {
+	/// Note message that has been rejected before reaching dispatch.
+	pub fn note_rejected_message(bridge: InstanceId, id: T::MessageId) {
+		frame_support::debug::trace!("Message {:?}/{:?}: rejected before actual dispatch", bridge, id,);
+		Self::deposit_event(RawEvent::MessageRejected(bridge, id));
 	}
 }
 
@@ -554,6 +564,26 @@ mod tests {
 				vec![EventRecord {
 					phase: Phase::Initialization,
 					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageSignatureMismatch(bridge, id)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn should_emit_event_for_rejected_messages() {
+		new_test_ext().execute_with(|| {
+			let bridge = b"ethb".to_owned();
+			let id = [0; 4];
+
+			System::set_block_number(1);
+			CallDispatch::note_rejected_message(bridge, id);
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageRejected(bridge, id)),
 					topics: vec![],
 				}],
 			);

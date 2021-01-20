@@ -364,7 +364,9 @@ pub mod target {
 		for FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCallDispatchInstance>
 	where
 		ThisCallDispatchInstance: frame_support::traits::Instance,
-		ThisRuntime: pallet_bridge_call_dispatch::Config<ThisCallDispatchInstance>,
+		ThisRuntime: pallet_bridge_call_dispatch::Config<ThisCallDispatchInstance, MessageId = (LaneId, MessageNonce)>,
+		<ThisRuntime as pallet_bridge_call_dispatch::Config<ThisCallDispatchInstance>>::Event:
+			From<pallet_bridge_call_dispatch::RawEvent<(LaneId, MessageNonce), ThisCallDispatchInstance>>,
 		pallet_bridge_call_dispatch::Module<ThisRuntime, ThisCallDispatchInstance>:
 			bp_message_dispatch::MessageDispatch<
 				(LaneId, MessageNonce),
@@ -385,11 +387,17 @@ pub mod target {
 		}
 
 		fn dispatch(message: DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>) {
+			let message_id = (message.key.lane_id, message.key.nonce);
 			if let Ok(payload) = message.data.payload {
 				pallet_bridge_call_dispatch::Module::<ThisRuntime, ThisCallDispatchInstance>::dispatch(
 					B::INSTANCE,
-					(message.key.lane_id, message.key.nonce),
+					message_id,
 					payload.0,
+				);
+			} else {
+				pallet_bridge_call_dispatch::Module::<ThisRuntime, ThisCallDispatchInstance>::note_rejected_message(
+					B::INSTANCE,
+					message_id,
 				);
 			}
 		}
