@@ -624,9 +624,9 @@ dependencies = [
  "finality-grandpa",
  "frame-support",
  "parity-scale-codec",
+ "serde",
  "sp-core",
  "sp-finality-grandpa",
- "sp-keyring",
  "sp-runtime",
  "sp-std",
 ]
@@ -3709,6 +3709,7 @@ dependencies = [
  "frame-benchmarking-cli",
  "jsonrpc-core 15.1.0",
  "millau-runtime",
+ "pallet-message-lane",
  "pallet-message-lane-rpc",
  "sc-basic-authorship",
  "sc-cli",
@@ -4235,6 +4236,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-finality-verifier"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-runtime",
+ "bp-test-utils",
+ "finality-grandpa",
+ "frame-support",
+ "frame-system",
+ "pallet-substrate-bridge",
+ "parity-scale-codec",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-grandpa"
 version = "2.0.1"
 source = "git+https://github.com/paritytech/substrate.git?branch=master#8b3e4c86bc5a86570a3091e470011604fb46d324"
@@ -4286,6 +4305,7 @@ dependencies = [
  "jsonrpc-core 15.1.0",
  "jsonrpc-core-client",
  "jsonrpc-derive",
+ "log",
  "sc-client-api",
  "sp-blockchain",
  "sp-core",
@@ -5482,6 +5502,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpc-core 15.1.0",
+ "pallet-message-lane",
  "pallet-message-lane-rpc",
  "rialto-runtime",
  "sc-basic-authorship",
