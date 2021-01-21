@@ -308,12 +308,12 @@ where
 		Ok(())
 	}
 
-	/// Import a finalized header.
+	/// Import a finalized header without checking if this is true.
 	///
-	/// This function assumes that all the given header hash already been proven to be valid and
-	/// finalized. Using this assumption it will write them directly to storage with minimal checks.
-	/// That means it's of great importance that this function *not* called with any headers
-	/// whose finality has not been checked, otherwise you risk bricking your bridge.
+	/// This function assumes that all the given header has already been proven to be valid and
+	/// finalized. Using this assumption it will write them to storage with minimal checks. That
+	/// means it's of great importance that this function *not* called with any headers whose
+	/// finality has not been checked, otherwise you risk bricking your bridge.
 	///
 	/// One thing this function does do for you is GRANDPA authority set handoffs. However, since it
 	/// does not do verification on the incoming header it will assume that the authority set change
