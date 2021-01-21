@@ -34,15 +34,6 @@ impl_outer_origin! {
 	pub enum Origin for TestRuntime where system = frame_system {}
 }
 
-use crate::pallet as pallet_finality_verifier;
-
-type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<(), (), (), ()>;
-
-frame_support::impl_runtime_metadata!(
-	for TestRuntime with modules where Extrinsic = UncheckedExtrinsic
-		pallet_finality_verifier::Module as FinalityVerifier { index 0 } with Storage Call,
-);
-
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
 	pub const MaximumBlockWeight: Weight = 1024;
