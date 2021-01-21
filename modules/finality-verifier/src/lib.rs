@@ -77,8 +77,6 @@ decl_error! {
 		InvalidAuthoritySet,
 		/// Failed to write a header to the underlying header chain.
 		FailedToWriteHeader,
-		/// Failed to write finality proof to the underlying header chain.
-		FailedToWriteFinalityProof,
 		/// The given ancestry proof is too large to be verified in a single transaction.
 		OversizedAncestryProof,
 	}
@@ -136,10 +134,6 @@ decl_module! {
 					if T::HeaderChain::import_header(header).is_err() {
 						return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteHeader))
 					}
-				}
-
-				if T::HeaderChain::import_finality_proof(finality_target, justification).is_err() {
-					return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteFinalityProof))
 				}
 
 				TransactionOutcome::Commit(Ok(()))

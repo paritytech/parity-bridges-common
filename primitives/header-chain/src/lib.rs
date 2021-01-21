@@ -28,7 +28,6 @@ use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, SetId};
 use sp_runtime::RuntimeDebug;
-use sp_std::prelude::Vec;
 
 pub mod justification;
 
@@ -77,14 +76,10 @@ pub trait HeaderChain<H> {
 	fn authority_set() -> AuthoritySet;
 
 	/// Write the given header to the underlying pallet storage.
+	///
+	/// It is assumed that this header has been finalized.
 	#[allow(clippy::result_unit_err)]
 	fn import_header(header: H) -> Result<(), ()>;
-
-	/// Submit a valid finality proof for the given header to the underlying pallet storage.
-	///
-	/// This will finalize the given header and enact any authority set changes if required.
-	#[allow(clippy::result_unit_err)]
-	fn import_finality_proof(header: H, finality_proof: Vec<u8>) -> Result<(), ()>;
 }
 
 impl<H: Default> HeaderChain<H> for () {
@@ -98,11 +93,6 @@ impl<H: Default> HeaderChain<H> for () {
 
 	#[allow(clippy::result_unit_err)]
 	fn import_header(_header: H) -> Result<(), ()> {
-		Ok(())
-	}
-
-	#[allow(clippy::result_unit_err)]
-	fn import_finality_proof(_header: H, _finality_proof: Vec<u8>) -> Result<(), ()> {
 		Ok(())
 	}
 }
