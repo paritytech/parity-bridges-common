@@ -972,7 +972,7 @@ mod tests {
 
 			let set_id = 1;
 			let authorities = authority_list();
-			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			let initial_authority_set = AuthoritySet::new(authorities, set_id);
 			storage.update_current_authority_set(initial_authority_set);
 
 			let next_set_id = 2;
@@ -1020,7 +1020,7 @@ mod tests {
 
 			let set_id = 1;
 			let authorities = authority_list();
-			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			let initial_authority_set = AuthoritySet::new(authorities, set_id);
 			storage.update_current_authority_set(initial_authority_set);
 
 			let next_set_id = 2;
@@ -1048,7 +1048,7 @@ mod tests {
 			};
 
 			// Let's import our test header
-			assert_ok!(verifier.import_header_unchecked(schedules_change.clone()));
+			assert_ok!(verifier.import_header_unchecked(schedules_change));
 			assert_ok!(verifier.import_header_unchecked(header.clone()));
 
 			// Make sure that our header is the best finalized
