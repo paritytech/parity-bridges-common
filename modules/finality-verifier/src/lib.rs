@@ -307,10 +307,4 @@ mod tests {
 			);
 		})
 	}
-
-	#[test]
-	fn print_metadata() {
-		println!("{:#?}", TestRuntime::metadata());
-		panic!()
-	}
 }
