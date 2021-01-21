@@ -300,6 +300,10 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					let mut rialto_origin_signature_message = Vec::new();
 					rialto_call.encode_to(&mut rialto_origin_signature_message);
 					millau_account_id.encode_to(&mut rialto_origin_signature_message);
+					rialto_runtime::VERSION
+						.spec_version
+						.encode_to(&mut rialto_origin_signature_message);
+					bp_runtime::MILLAU_BRIDGE_INSTANCE.encode_to(&mut rialto_origin_signature_message);
 					let rialto_origin_signature = rialto_sign.signer.sign(&rialto_origin_signature_message);
 
 					MessagePayload {
@@ -448,6 +452,11 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					let mut millau_origin_signature_message = Vec::new();
 					millau_call.encode_to(&mut millau_origin_signature_message);
 					rialto_account_id.encode_to(&mut millau_origin_signature_message);
+					millau_runtime::VERSION
+						.spec_version
+						.encode_to(&mut millau_origin_signature_message);
+					bp_runtime::RIALTO_BRIDGE_INSTANCE.encode_to(&mut millau_origin_signature_message);
+
 					let millau_origin_signature = millau_sign.signer.sign(&millau_origin_signature_message);
 
 					MessagePayload {
