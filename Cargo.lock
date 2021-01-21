@@ -624,9 +624,9 @@ dependencies = [
  "finality-grandpa",
  "frame-support",
  "parity-scale-codec",
+ "serde",
  "sp-core",
  "sp-finality-grandpa",
- "sp-keyring",
  "sp-runtime",
  "sp-std",
 ]
@@ -4228,6 +4228,24 @@ dependencies = [
  "frame-system",
  "hex-literal 0.3.1",
  "libsecp256k1",
+ "parity-scale-codec",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-finality-verifier"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-runtime",
+ "bp-test-utils",
+ "finality-grandpa",
+ "frame-support",
+ "frame-system",
+ "pallet-substrate-bridge",
  "parity-scale-codec",
  "serde",
  "sp-io",
