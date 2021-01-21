@@ -242,9 +242,13 @@ where
 			&proof.0,
 		)
 		.map_err(|_| FinalizationError::InvalidJustification)?;
-		frame_support::debug::trace!(target: "sub-bridge", "Received valid justification for {:?}", header);
+		frame_support::debug::trace!("Received valid justification for {:?}", header);
 
-		frame_support::debug::trace!(target: "sub-bridge", "Checking ancestry for headers between {:?} and {:?}", last_finalized, header);
+		frame_support::debug::trace!(
+			"Checking ancestry for headers between {:?} and {:?}",
+			last_finalized,
+			header
+		);
 		let mut finalized_headers =
 			if let Some(ancestors) = headers_between(&self.storage, last_finalized, header.clone()) {
 				// Since we only try and finalize headers with a height strictly greater
@@ -300,6 +304,77 @@ where
 		}
 
 		self.storage.update_best_finalized(hash);
+
+		Ok(())
+	}
+
+	/// Import a finalized header.
+	///
+	/// This function assumes that all the given header hash already been proven to be valid and
+	/// finalized. Using this assumption it will write them directly to storage with minimal checks.
+	/// That means it's of great importance that this function *not* called with any headers
+	/// whose finality has not been checked, otherwise you risk bricking your bridge.
+	///
+	/// One thing this function does do for you is GRANDPA authority set handoffs. However, since it
+	/// does not do verification on the incoming header it will assume that the authority set change
+	/// signals in the digest are well formed.
+	pub fn import_header_unchecked(&mut self, header: H) -> Result<(), ImportError> {
+		// Since we want to use the existing storage infrastructure we need to indicate the fork
+		// that we're on. Since we assume that everything in this function is on the same fork we'll
+		// just write everything to a dummy fork.
+		let dummy_fork_hash = H::Hash::default();
+
+		// If we have a pending change in storage let's check if the current header enacts it.
+		let enact_change = if let Some(pending_change) = self.storage.scheduled_set_change(dummy_fork_hash) {
+			pending_change.height == *header.number()
+		} else {
+			// We don't have a scheduled change in storage at the moment. Let's check if the current
+			// header signals an authority set change.
+			if let Some(change) = find_scheduled_change(&header) {
+				let next_set = AuthoritySet {
+					authorities: change.next_authorities,
+					set_id: self.storage.current_authority_set().set_id + 1,
+				};
+
+				let height = (*header.number())
+					.checked_add(&change.delay)
+					.ok_or(ImportError::ScheduledHeightOverflow)?;
+
+				let scheduled_change = ScheduledChange {
+					authority_set: next_set,
+					height,
+				};
+
+				self.storage.schedule_next_set_change(dummy_fork_hash, scheduled_change);
+
+				// If the delay is 0 this header will enact the change it signaled
+				height == *header.number()
+			} else {
+				false
+			}
+		};
+
+		if enact_change {
+			const ENACT_SET_PROOF: &str =
+				"We only set `enact_change` as `true` if we are sure that there is a scheduled
+				authority set change in storage. Therefore, it must exist.";
+
+			// If we are unable to enact an authority set it means our storage entry for scheduled
+			// changes is missing. Best to crash since this is likely a bug.
+			let _ = self
+				.storage
+				.enact_authority_set(dummy_fork_hash)
+				.expect(ENACT_SET_PROOF);
+		}
+
+		self.storage.update_best_finalized(header.hash());
+
+		self.storage.write_header(&ImportedHeader {
+			header,
+			requires_justification: false,
+			is_finalized: true,
+			signal_hash: None,
+		});
 
 		Ok(())
 	}
@@ -863,5 +938,128 @@ mod tests {
 				FinalizationError::OldHeader
 			);
 		});
+	}
+
+	#[test]
+	fn importing_unchecked_headers_works() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let _ = write_default_headers(&mut storage, vec![1]);
+
+			let child = test_header(2);
+			let header = test_header(3);
+
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+
+			assert_ok!(verifier.import_header_unchecked(child.clone()));
+			assert_ok!(verifier.import_header_unchecked(header.clone()));
+
+			assert!(storage.header_by_hash(child.hash()).unwrap().is_finalized);
+			assert!(storage.header_by_hash(header.hash()).unwrap().is_finalized);
+
+			assert_eq!(storage.best_finalized_header().header, header);
+			assert_eq!(storage.best_headers()[0].hash, header.hash());
+		})
+	}
+
+	#[test]
+	fn importing_unchecked_headers_enacts_new_authority_set() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let _ = write_default_headers(&mut storage, vec![1]);
+
+			let set_id = 1;
+			let authorities = authority_list();
+			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			storage.update_current_authority_set(initial_authority_set);
+
+			let next_set_id = 2;
+			let next_authorities = vec![(alice(), 1), (bob(), 1)];
+
+			// Need this to indicate that our header signals an authority set change
+			let digest = {
+				let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+					next_authorities: next_authorities.clone(),
+					delay: 0,
+				});
+
+				Digest::<TestHash> {
+					logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+				}
+			};
+
+			let mut header = test_header(2);
+			header.digest = digest;
+
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+
+			// Let's import our test header
+			assert_ok!(verifier.import_header_unchecked(header.clone()));
+
+			// Make sure that our header is the best finalized
+			assert_eq!(storage.best_finalized_header().header, header);
+			assert_eq!(storage.best_headers()[0].hash, header.hash());
+
+			// Make sure that the authority set actually changed upon importing our header
+			assert_eq!(
+				storage.current_authority_set(),
+				AuthoritySet::new(next_authorities, next_set_id),
+			);
+		})
+	}
+
+	#[test]
+	fn importing_unchecked_headers_enacts_new_authority_set_from_old_header() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let _ = write_default_headers(&mut storage, vec![1]);
+
+			let set_id = 1;
+			let authorities = authority_list();
+			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			storage.update_current_authority_set(initial_authority_set);
+
+			let next_set_id = 2;
+			let next_authorities = vec![(alice(), 1), (bob(), 1)];
+
+			// Need this to indicate that our header signals an authority set change. However, the
+			// change doesn't happen until the next block.
+			let digest = {
+				let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+					next_authorities: next_authorities.clone(),
+					delay: 1,
+				});
+
+				Digest::<TestHash> {
+					logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+				}
+			};
+
+			let mut schedules_change = test_header(2);
+			schedules_change.digest = digest;
+			let header = test_header(3);
+
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+
+			// Let's import our test header
+			assert_ok!(verifier.import_header_unchecked(schedules_change.clone()));
+			assert_ok!(verifier.import_header_unchecked(header.clone()));
+
+			// Make sure that our header is the best finalized
+			assert_eq!(storage.best_finalized_header().header, header);
+			assert_eq!(storage.best_headers()[0].hash, header.hash());
+
+			// Make sure that the authority set actually changed upon importing our header
+			assert_eq!(
+				storage.current_authority_set(),
+				AuthoritySet::new(next_authorities, next_set_id),
+			);
+		})
 	}
 }
