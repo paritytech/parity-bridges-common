@@ -28,7 +28,7 @@ use frame_system::RawOrigin;
 use sp_std::{collections::btree_map::BTreeMap, convert::TryInto, ops::RangeInclusive, prelude::*};
 
 /// Fee paid by submitter for single message delivery.
-const MESSAGE_FEE: u32 = 1_000_000;
+pub const MESSAGE_FEE: u64 = 10_000_000_000;
 
 const SEED: u32 = 0;
 
@@ -395,14 +395,8 @@ benchmarks_instance! {
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer1_id.clone()), proof, relayers_state)
 	verify {
-		assert_eq!(
-			T::account_balance(&relayer1_id),
-			relayer1_balance + MESSAGE_FEE.into(),
-		);
-		assert_eq!(
-			T::account_balance(&relayer2_id),
-			relayer2_balance + MESSAGE_FEE.into(),
-		);
+		ensure_relayer_rewarded::<T, I>(&relayer1_id, &relayer1_balance);
+		ensure_relayer_rewarded::<T, I>(&relayer2_id, &relayer2_balance);
 	}
 
 	//
@@ -554,10 +548,7 @@ benchmarks_instance! {
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer_id.clone()), proof, relayers_state)
 	verify {
-		assert_eq!(
-			T::account_balance(&relayer_id),
-			relayer_balance + (MESSAGE_FEE * i).into(),
-		);
+		ensure_relayer_rewarded::<T, I>(&relayer_id, &relayer_balance);
 	}
 
 	// Benchmark `receive_messages_delivery_proof` extrinsic where every relayer delivers single messages.
@@ -603,10 +594,7 @@ benchmarks_instance! {
 	}: receive_messages_delivery_proof(RawOrigin::Signed(confirmation_relayer_id), proof, relayers_state)
 	verify {
 		for (relayer_id, prev_balance) in relayers {
-			assert_eq!(
-				T::account_balance(&relayer_id),
-				prev_balance + MESSAGE_FEE.into(),
-			);
+			ensure_relayer_rewarded::<T, I>(&relayer_id, &prev_balance);
 		}
 	}
 }
@@ -634,4 +622,14 @@ fn receive_messages<T: Config<I>, I: Instance>(nonce: MessageNonce) {
 		relayers: vec![(1, nonce, T::bridged_relayer_id())].into_iter().collect(),
 		last_confirmed_nonce: 0,
 	});
+}
+
+fn ensure_relayer_rewarded<T: Config<I>, I: Instance>(relayer_id: &T::AccountId, old_balance: &T::OutboundMessageFee) {
+	let new_balance = T::account_balance(relayer_id);
+	assert!(
+		new_balance > *old_balance,
+		"Relayer haven't received reward for relaying message: old balance = {:?}, new balance = {:?}",
+		old_balance,
+		new_balance,
+	);
 }
