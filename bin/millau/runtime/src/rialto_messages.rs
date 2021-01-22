@@ -77,7 +77,7 @@ pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDi
 >;
 
 /// Millau <-> Rialto message bridge.
-#[derive(RuntimeDebug, Clone, Copy)]
+#[derive(RuntimeDebug, Clone, Copy, Eq, PartialEq)]
 pub struct WithRialtoMessageBridge;
 
 impl MessageBridge for WithRialtoMessageBridge {

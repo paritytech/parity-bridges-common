@@ -32,7 +32,7 @@ use pallet_message_lane::benchmarking::{MessageDeliveryProofParams, MessageProof
 use sp_core::Hasher;
 use sp_runtime::traits::Header;
 use sp_std::prelude::*;
-use sp_trie::{record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, StorageProof, TrieMut};
+use sp_trie::{record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, TrieMut};
 
 /// Generate ed25519 signature to be used in `pallet_brdige_call_dispatch::CallOrigin::TargetAccount`.
 ///
@@ -132,9 +132,9 @@ where
 	pallet_substrate_bridge::initialize_for_benchmarks::<R>(bridged_header);
 
 	(
-		(
+		FromBridgedChainMessagesProof(
 			bridged_header_hash.into(),
-			StorageProof::new(storage_proof),
+			storage_proof,
 			params.lane,
 			*params.message_nonces.start(),
 			*params.message_nonces.end(),
@@ -183,9 +183,9 @@ where
 	let bridged_header_hash = bridged_header.hash();
 	pallet_substrate_bridge::initialize_for_benchmarks::<R>(bridged_header);
 
-	(
+	FromBridgedChainMessagesDeliveryProof(
 		bridged_header_hash.into(),
-		StorageProof::new(storage_proof),
+		storage_proof,
 		params.lane,
 	)
 }

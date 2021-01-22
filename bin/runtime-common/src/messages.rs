@@ -26,17 +26,17 @@ use bp_message_lane::{
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
-use bp_runtime::InstanceId;
+use bp_runtime::{InstanceId, Size};
 use codec::{Compact, Decode, Encode, Input};
 use frame_support::{traits::Instance, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use pallet_substrate_bridge::StorageProofChecker;
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul};
-use sp_std::{cmp::PartialOrd, marker::PhantomData, ops::RangeInclusive, vec::Vec};
+use sp_std::{fmt::Debug, cmp::PartialOrd, convert::TryFrom, marker::PhantomData, ops::RangeInclusive, vec::Vec};
 use sp_trie::StorageProof;
 
 /// Bidirectional message bridge.
-pub trait MessageBridge {
+pub trait MessageBridge: Eq {
 	/// Instance id of this bridge.
 	const INSTANCE: InstanceId;
 
@@ -83,7 +83,7 @@ pub trait MessageBridge {
 /// Chain that has `message-lane` and `call-dispatch` modules.
 pub trait ChainWithMessageLanes {
 	/// Hash used in the chain.
-	type Hash: Decode;
+	type Hash: Clone + Debug + Encode + Eq + Decode;
 	/// Accound id on the chain.
 	type AccountId: Encode + Decode;
 	/// Public key of the chain account that may be used to verify signatures.
@@ -114,6 +114,9 @@ pub(crate) type WeightOf<C> = <C as ChainWithMessageLanes>::Weight;
 pub(crate) type BalanceOf<C> = <C as ChainWithMessageLanes>::Balance;
 pub(crate) type CallOf<C> = <C as ChainWithMessageLanes>::Call;
 pub(crate) type MessageLaneInstanceOf<C> = <C as ChainWithMessageLanes>::MessageLaneInstance;
+
+/// Raw storage proof type (just raw trie nodes).
+type RawStorageProof = Vec<Vec<u8>>;
 
 /// Compute weight of transaction at runtime where:
 ///
@@ -160,7 +163,18 @@ pub mod source {
 	/// - hash of finalized header;
 	/// - storage proof of inbound lane state;
 	/// - lane id.
-	pub type FromBridgedChainMessagesDeliveryProof<B> = (HashOf<BridgedChain<B>>, StorageProof, LaneId);
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug)]
+	pub struct FromBridgedChainMessagesDeliveryProof<B: MessageBridge>(
+		pub HashOf<BridgedChain<B>>,
+		pub RawStorageProof,
+		pub LaneId,
+	);
+
+	impl<B: MessageBridge> Size for FromBridgedChainMessagesDeliveryProof<B> {
+		fn size_hint(&self) -> u32 {
+			u32::try_from(self.1.iter().fold(0usize, |sum, node| sum.saturating_add(node.len()))).unwrap_or(u32::MAX)
+		}
+	}
 
 	/// 'Parsed' message delivery proof - inbound lane id and its state.
 	pub type ParsedMessagesDeliveryProofFromBridgedChain<B> = (LaneId, InboundLaneData<AccountIdOf<ThisChain<B>>>);
@@ -282,10 +296,10 @@ pub mod source {
 		HashOf<BridgedChain<B>>:
 			Into<bp_runtime::HashOf<<ThisRuntime as pallet_substrate_bridge::Config>::BridgedChain>>,
 	{
-		let (bridged_header_hash, bridged_storage_proof, lane) = proof;
+		let FromBridgedChainMessagesDeliveryProof(bridged_header_hash, bridged_storage_proof, lane) = proof;
 		pallet_substrate_bridge::Module::<ThisRuntime>::parse_finalized_storage_proof(
 			bridged_header_hash.into(),
-			bridged_storage_proof,
+			StorageProof::new(bridged_storage_proof),
 			|storage| {
 				// Messages delivery proof is just proof of single storage key read => any error
 				// is fatal.
@@ -332,13 +346,20 @@ pub mod target {
 	/// - storage proof of messages and (optionally) outbound lane state;
 	/// - lane id;
 	/// - nonces (inclusive range) of messages which are included in this proof.
-	pub type FromBridgedChainMessagesProof<B> = (
-		HashOf<BridgedChain<B>>,
-		StorageProof,
-		LaneId,
-		MessageNonce,
-		MessageNonce,
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug)]
+	pub struct FromBridgedChainMessagesProof<B: MessageBridge>(
+		pub HashOf<BridgedChain<B>>,
+		pub RawStorageProof,
+		pub LaneId,
+		pub MessageNonce,
+		pub MessageNonce,
 	);
+
+	impl<B: MessageBridge> Size for FromBridgedChainMessagesProof<B> {
+		fn size_hint(&self) -> u32 {
+			u32::try_from(self.1.iter().fold(0usize, |sum, node| sum.saturating_add(node.len()))).unwrap_or(u32::MAX)
+		}
+	}
 
 	/// Message payload for Bridged -> This messages.
 	pub struct FromBridgedChainMessagePayload<B: MessageBridge>(pub(crate) FromBridgedChainDecodedMessagePayload<B>);
@@ -433,7 +454,7 @@ pub mod target {
 			|bridged_header_hash, bridged_storage_proof| {
 				pallet_substrate_bridge::Module::<ThisRuntime>::parse_finalized_storage_proof(
 					bridged_header_hash.into(),
-					bridged_storage_proof,
+					StorageProof::new(bridged_storage_proof),
 					|storage_adapter| storage_adapter,
 				)
 				.map(|storage| StorageProofCheckerAdapter::<_, B, ThisRuntime> {
@@ -512,10 +533,10 @@ pub mod target {
 		build_parser: BuildParser,
 	) -> Result<ProvedMessages<Message<BalanceOf<BridgedChain<B>>>>, MessageProofError>
 	where
-		BuildParser: FnOnce(HashOf<BridgedChain<B>>, StorageProof) -> Result<Parser, MessageProofError>,
+		BuildParser: FnOnce(HashOf<BridgedChain<B>>, RawStorageProof) -> Result<Parser, MessageProofError>,
 		Parser: MessageProofParser,
 	{
-		let (bridged_header_hash, bridged_storage_proof, lane_id, begin, end) = proof;
+		let FromBridgedChainMessagesProof(bridged_header_hash, bridged_storage_proof, lane_id, begin, end) = proof;
 
 		// receiving proofs where end < begin is ok (if proof includes outbound lane state)
 		let messages_in_the_proof = if let Some(nonces_difference) = end.checked_sub(begin) {
