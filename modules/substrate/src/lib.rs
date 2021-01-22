@@ -944,8 +944,8 @@ mod tests {
 			let child = test_header(2);
 			let header = test_header(3);
 
-			assert_ok!(Module::<TestRuntime>::append_finalized_chain(child.clone()));
-			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header.clone()));
+			let header_chain = vec![child.clone(), header.clone()];
+			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header_chain));
 
 			assert!(storage.header_by_hash(child.hash()).unwrap().is_finalized);
 			assert!(storage.header_by_hash(header.hash()).unwrap().is_finalized);
@@ -970,7 +970,7 @@ mod tests {
 			header.digest = fork_tests::change_log(0);
 
 			// Let's import our test header
-			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header.clone()));
+			assert_ok!(Module::<TestRuntime>::append_finalized_chain(vec![header.clone()]));
 
 			// Make sure that our header is the best finalized
 			assert_eq!(storage.best_finalized_header().header, header);
@@ -1000,8 +1000,8 @@ mod tests {
 			let header = test_header(3);
 
 			// Let's import our test headers
-			assert_ok!(Module::<TestRuntime>::append_finalized_chain(schedules_change.clone()));
-			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header.clone()));
+			let header_chain = vec![schedules_change.clone(), header.clone()];
+			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header_chain));
 
 			// Make sure that our header is the best finalized
 			assert_eq!(storage.best_finalized_header().header, header);
