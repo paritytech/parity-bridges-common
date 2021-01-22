@@ -388,18 +388,11 @@ pub mod target {
 
 		fn dispatch(message: DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>) {
 			let message_id = (message.key.lane_id, message.key.nonce);
-			if let Ok(payload) = message.data.payload {
-				pallet_bridge_call_dispatch::Module::<ThisRuntime, ThisCallDispatchInstance>::dispatch(
-					B::INSTANCE,
-					message_id,
-					payload.0,
-				);
-			} else {
-				pallet_bridge_call_dispatch::Module::<ThisRuntime, ThisCallDispatchInstance>::note_rejected_message(
-					B::INSTANCE,
-					message_id,
-				);
-			}
+			pallet_bridge_call_dispatch::Module::<ThisRuntime, ThisCallDispatchInstance>::dispatch(
+				B::INSTANCE,
+				message_id,
+				message.data.payload.map_err(drop).map(|payload| payload.0),
+			);
 		}
 	}
 
