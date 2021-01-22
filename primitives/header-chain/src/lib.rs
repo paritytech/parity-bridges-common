@@ -79,8 +79,7 @@ pub trait HeaderChain<H> {
 	///
 	/// It is assumed that each header in this chain been finalized, and that the given headers are
 	/// in order (e.g vec![header_1, header_2, ..., header_n]).
-	#[allow(clippy::result_unit_err)]
-	fn append_finalized_chain(headers: impl IntoIterator<Item = H>) -> Result<(), ()>;
+	fn append_finalized_chain(headers: impl IntoIterator<Item = H>);
 }
 
 impl<H: Default> HeaderChain<H> for () {
@@ -92,10 +91,7 @@ impl<H: Default> HeaderChain<H> for () {
 		AuthoritySet::default()
 	}
 
-	#[allow(clippy::result_unit_err)]
-	fn append_finalized_chain(_headers: impl IntoIterator<Item = H>) -> Result<(), ()> {
-		Ok(())
-	}
+	fn append_finalized_chain(_headers: impl IntoIterator<Item = H>) {}
 }
 
 /// A trait for checking if a given child header is a direct decendant of an ancestor.

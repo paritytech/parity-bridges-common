@@ -39,10 +39,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, RawOrigin};
 use sp_runtime::traits::Header as HeaderT;
-use sp_runtime::{
-	traits::{BadOrigin, CheckedAdd},
-	RuntimeDebug,
-};
+use sp_runtime::{traits::BadOrigin, RuntimeDebug};
 use sp_std::{marker::PhantomData, prelude::*};
 use sp_trie::StorageProof;
 
@@ -374,14 +371,12 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>> for Module<T> {
 		PalletStorage::<T>::new().current_authority_set()
 	}
 
-	fn append_finalized_chain(headers: impl IntoIterator<Item = BridgedHeader<T>>) -> Result<(), ()> {
+	fn append_finalized_chain(headers: impl IntoIterator<Item = BridgedHeader<T>>) {
 		let mut storage = PalletStorage::<T>::new();
 
 		for header in headers.into_iter() {
-			let _ = import_header_unchecked::<_, T>(&mut storage, header)?;
+			import_header_unchecked::<_, T>(&mut storage, header);
 		}
-
-		Ok(())
 	}
 }
 
@@ -395,7 +390,7 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>> for Module<T> {
 /// One thing this function does do for you is GRANDPA authority set handoffs. However, since it
 /// does not do verification on the incoming header it will assume that the authority set change
 /// signals in the digest are well formed.
-fn import_header_unchecked<S, T>(storage: &mut S, header: BridgedHeader<T>) -> Result<(), ()>
+fn import_header_unchecked<S, T>(storage: &mut S, header: BridgedHeader<T>)
 where
 	S: BridgeStorage<Header = BridgedHeader<T>>,
 	T: Config,
@@ -417,8 +412,7 @@ where
 				set_id: storage.current_authority_set().set_id + 1,
 			};
 
-			let height = (*header.number()).checked_add(&change.delay).ok_or(())?;
-
+			let height = *header.number() + change.delay;
 			let scheduled_change = ScheduledChange {
 				authority_set: next_set,
 				height,
@@ -450,8 +444,6 @@ where
 		is_finalized: true,
 		signal_hash: None,
 	});
-
-	Ok(())
 }
 
 /// Ensure that the origin is either root, or `ModuleOwner`.
@@ -945,7 +937,7 @@ mod tests {
 			let header = test_header(3);
 
 			let header_chain = vec![child.clone(), header.clone()];
-			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header_chain));
+			Module::<TestRuntime>::append_finalized_chain(header_chain);
 
 			assert!(storage.header_by_hash(child.hash()).unwrap().is_finalized);
 			assert!(storage.header_by_hash(header.hash()).unwrap().is_finalized);
@@ -970,7 +962,7 @@ mod tests {
 			header.digest = fork_tests::change_log(0);
 
 			// Let's import our test header
-			assert_ok!(Module::<TestRuntime>::append_finalized_chain(vec![header.clone()]));
+			Module::<TestRuntime>::append_finalized_chain(vec![header.clone()]);
 
 			// Make sure that our header is the best finalized
 			assert_eq!(storage.best_finalized_header().header, header);
@@ -1001,7 +993,7 @@ mod tests {
 
 			// Let's import our test headers
 			let header_chain = vec![schedules_change.clone(), header.clone()];
-			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header_chain));
+			Module::<TestRuntime>::append_finalized_chain(header_chain);
 
 			// Make sure that our header is the best finalized
 			assert_eq!(storage.best_finalized_header().header, header);
