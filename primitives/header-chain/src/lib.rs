@@ -75,11 +75,12 @@ pub trait HeaderChain<H> {
 	/// Get the best authority set known to the header chain.
 	fn authority_set() -> AuthoritySet;
 
-	/// Write the given header to the underlying pallet storage.
+	/// Write a finalized chain of headers to the underlying pallet storage.
 	///
-	/// It is assumed that this header has been finalized.
+	/// It is assumed that each header in this chain been finalized, and that the given headers are
+	/// in order (e.g vec![header_1, header_2, ..., header_n]).
 	#[allow(clippy::result_unit_err)]
-	fn import_header(header: H) -> Result<(), ()>;
+	fn append_finalized_chain(headers: impl IntoIterator<Item = H>) -> Result<(), ()>;
 }
 
 impl<H: Default> HeaderChain<H> for () {
@@ -92,7 +93,7 @@ impl<H: Default> HeaderChain<H> for () {
 	}
 
 	#[allow(clippy::result_unit_err)]
-	fn import_header(_header: H) -> Result<(), ()> {
+	fn append_finalized_chain(_headers: impl IntoIterator<Item = H>) -> Result<(), ()> {
 		Ok(())
 	}
 }

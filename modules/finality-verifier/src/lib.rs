@@ -126,17 +126,16 @@ decl_module! {
 				<Error<T>>::InvalidAncestryProof
 			);
 
-			// If for whatever reason we are unable to fully import headers and the corresponding
-			// finality proof we want to avoid writing to the base pallet storage
+			// If for whatever reason we are unable to fully import the chain of headers we want to
+			// avoid writing to the base pallet storage.
 			use frame_support::storage::{with_transaction, TransactionOutcome};
 			with_transaction(|| {
-				for header in ancestry_proof {
-					if T::HeaderChain::import_header(header).is_err() {
-						return TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteHeader))
-					}
+				// Note that this won't work if we ever change the `ancestry_proof` format to be
+				// sparse since this expects a contiguous set of finalized headers.
+				match T::HeaderChain::append_finalized_chain(ancestry_proof) {
+					Ok(_) => TransactionOutcome::Commit(Ok(())),
+					Err(_) => TransactionOutcome::Rollback(Err(<Error<T>>::FailedToWriteHeader)),
 				}
-
-				TransactionOutcome::Commit(Ok(()))
 			})?;
 
 			Ok(())
