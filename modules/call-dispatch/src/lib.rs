@@ -65,7 +65,7 @@ pub enum CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainS
 	///
 	/// The account can be identified by `TargetChainAccountPublic`. The proof that the
 	/// `SourceChainAccountId` controls `TargetChainAccountPublic` is the `TargetChainSignature`
-	/// over `(Call, SourceChainAccountId).encode()`.
+	/// over `(Call, SourceChainAccountId, TargetChainSpecVersion, SourceChainInstanceId).encode()`.
 	///
 	/// NOTE sending messages using this origin (or any other) does not have replay protection!
 	/// The assumption is that both the source account and the target account is controlled by

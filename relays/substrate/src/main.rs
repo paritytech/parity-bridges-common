@@ -526,3 +526,76 @@ async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: En
 		Decode::decode(&mut &encoded_response.0[..]).map_err(relay_substrate_client::Error::ResponseParseFailed)?;
 	Ok(decoded_response)
 }
+
+#[cfg(test)]
+mod tests {
+	use codec::Encode;
+	use sp_core::Pair;
+	use sp_runtime::traits::{IdentifyAccount, Verify};
+
+	macro_rules! call_for_runtime {
+		($runtime:tt) => {
+			$runtime::Call::System($runtime::SystemCall::remark(
+				std::format!(
+					"Unix time: {}",
+					std::time::SystemTime::now()
+						.duration_since(std::time::SystemTime::UNIX_EPOCH)
+						.unwrap_or_default()
+						.as_secs(),
+				)
+				.as_bytes()
+				.to_vec()
+			))
+		}
+	}
+
+	#[test]
+	fn millau_signature_is_valid_on_rialto() {
+		let millau_sign = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
+
+		let call = call_for_runtime!(rialto_runtime);
+
+		let millau_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
+		let millau_account_id: bp_millau::AccountId = millau_public.into_account();
+
+		// The `CallOrigin::TargetAccount` private key ownership proof is a signature
+		// over this message.
+		let mut message = Vec::new();
+		call.encode_to(&mut message);
+		millau_account_id.encode_to(&mut message);
+		rialto_runtime::VERSION.spec_version.encode_to(&mut message);
+		bp_runtime::MILLAU_BRIDGE_INSTANCE.encode_to(&mut message);
+
+		// Signature which is send as part of the message payload to 'rialto'
+		let rialto_sign = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
+		let signature = rialto_sign.signer.sign(&message);
+
+		// Verify sigature on 'rialto'
+		assert!(signature.verify(&message[..], &rialto_sign.signer.public()));
+	}
+
+	#[test]
+	fn rialto_signature_is_valid_on_millau() {
+		let rialto_sign = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
+
+		let call = call_for_runtime!(millau_runtime);
+
+		let rialto_public: bp_rialto::AccountSigner = rialto_sign.signer.public().clone().into();
+		let rialto_account_id: bp_rialto::AccountId = rialto_public.into_account();
+
+		// The `CallOrigin::TargetAccount` private key ownership proof is a signature
+		// over this message.
+		let mut message = Vec::new();
+		call.encode_to(&mut message);
+		rialto_account_id.encode_to(&mut message);
+		millau_runtime::VERSION.spec_version.encode_to(&mut message);
+		bp_runtime::RIALTO_BRIDGE_INSTANCE.encode_to(&mut message);
+
+		// Signature which is send as part of the message payload to 'millau'
+		let millau_sign = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
+		let signature = millau_sign.signer.sign(&message);
+
+		// Verify sigature on 'millau'
+		assert!(signature.verify(&message[..], &millau_sign.signer.public()));
+	}
+}
