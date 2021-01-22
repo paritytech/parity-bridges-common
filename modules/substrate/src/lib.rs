@@ -83,6 +83,8 @@ pub trait Config: frame_system::Config {
 
 decl_storage! {
 	trait Store for Module<T: Config> as SubstrateBridge {
+		/// Hash of the header used to bootstrap the pallet.
+		InitialHash: BridgedBlockHash<T>;
 		/// The number of the highest block(s) we know of.
 		BestHeight: BridgedBlockNumber<T>;
 		/// Hash of the header at the highest known height.
@@ -396,9 +398,9 @@ where
 	T: Config,
 {
 	// Since we want to use the existing storage infrastructure we need to indicate the fork
-	// that we're on. Since we assume that everything in this function is on the same fork we'll
-	// just write everything to a dummy fork.
-	let dummy_fork_hash = <BridgedBlockHash<T>>::default();
+	// that we're on. We will assume that since we are using the unchecked import there are no
+	// forks, and can indicate that by using the first imported header's "fork".
+	let dummy_fork_hash = <InitialHash<T>>::get();
 
 	// If we have a pending change in storage let's check if the current header enacts it.
 	let enact_change = if let Some(pending_change) = storage.scheduled_set_change(dummy_fork_hash) {
@@ -500,6 +502,7 @@ fn initialize_bridge<T: Config>(init_params: InitializationData<BridgedHeader<T>
 		<NextScheduledChange<T>>::insert(initial_hash, change);
 	};
 
+	<InitialHash<T>>::put(initial_hash);
 	<BestHeight<T>>::put(header.number());
 	<BestHeaders<T>>::put(vec![initial_hash]);
 	<BestFinalized<T>>::put(initial_hash);
