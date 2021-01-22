@@ -1006,4 +1006,42 @@ mod tests {
 			);
 		})
 	}
+
+	#[test]
+	fn importing_unchecked_header_can_enact_set_change_scheduled_at_genesis() {
+		run_test(|| {
+			let storage = PalletStorage::<TestRuntime>::new();
+
+			let next_authorities = vec![(alice(), 1)];
+			let next_set_id = 2;
+			let next_authority_set = AuthoritySet::new(next_authorities.clone(), next_set_id);
+
+			let first_scheduled_change = ScheduledChange {
+				authority_set: next_authority_set,
+				height: 2,
+			};
+
+			let init_data = InitializationData {
+				header: test_header(1),
+				authority_list: authority_list(),
+				set_id: 1,
+				scheduled_change: Some(first_scheduled_change),
+				is_halted: false,
+			};
+
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
+
+			// We are expecting an authority set change at height 2, so this header should enact
+			// that upon being imported.
+			let header = test_header(2);
+			let header_chain = vec![header.clone()];
+			Module::<TestRuntime>::append_finalized_chain(header_chain);
+
+			// Make sure that the authority set actually changed upon importing our header
+			assert_eq!(
+				storage.current_authority_set(),
+				AuthoritySet::new(next_authorities, next_set_id),
+			);
+		})
+	}
 }
