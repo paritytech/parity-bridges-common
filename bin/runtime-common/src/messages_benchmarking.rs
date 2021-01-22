@@ -32,7 +32,7 @@ use pallet_message_lane::benchmarking::{MessageDeliveryProofParams, MessageProof
 use sp_core::Hasher;
 use sp_runtime::traits::Header;
 use sp_std::prelude::*;
-use sp_trie::{read_trie_value_with, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, StorageProof, TrieMut};
+use sp_trie::{record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, StorageProof, TrieMut};
 
 /// Generate ed25519 signature to be used in `pallet_brdige_call_dispatch::CallOrigin::TargetAccount`.
 ///
@@ -117,14 +117,13 @@ where
 			storage_keys.push(storage_key);
 		}
 	}
+	root = insert_dummy_keys(root, &mut mdb, params.size);
 
 	// generate storage proof to be delivered to This chain
 	let mut proof_recorder = Recorder::<H::Out>::new();
-	for storage_key in storage_keys {
-		read_trie_value_with::<Layout<H>, _, _>(&mdb, &root, &storage_key, &mut proof_recorder)
-			.map_err(|_| "read_trie_value_with has failed")
-			.expect("read_trie_value_with should not fail in benchmarks");
-	}
+	record_all_keys::<Layout<H>, _>(&mdb, &root, &mut proof_recorder)
+		.map_err(|_| "record_all_keys has failed")
+		.expect("record_all_keys should not fail in benchmarks");
 	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
 
 	// prepare Bridged chain header and insert it into the Substrate pallet
@@ -170,12 +169,13 @@ where
 			.map_err(|_| "TrieMut::insert has failed")
 			.expect("TrieMut::insert should not fail in benchmarks");
 	}
+	root = insert_dummy_keys(root, &mut mdb, params.size);
 
 	// generate storage proof to be delivered to This chain
 	let mut proof_recorder = Recorder::<H::Out>::new();
-	read_trie_value_with::<Layout<H>, _, _>(&mdb, &root, &storage_key, &mut proof_recorder)
-		.map_err(|_| "read_trie_value_with has failed")
-		.expect("read_trie_value_with should not fail in benchmarks");
+	record_all_keys::<Layout<H>, _>(&mdb, &root, &mut proof_recorder)
+		.map_err(|_| "record_all_keys has failed")
+		.expect("record_all_keys should not fail in benchmarks");
 	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
 
 	// prepare Bridged chain header and insert it into the Substrate pallet
@@ -188,4 +188,30 @@ where
 		StorageProof::new(storage_proof),
 		params.lane,
 	)
+}
+
+/// Populate trie with dummy keys until trie has at least given size.
+fn insert_dummy_keys<H: Hasher>(
+	mut root: H::Out,
+	mdb: &mut MemoryDB<H>,
+	minimal_trie_size: u32,
+) -> H::Out {
+	let mut key_index = 0;
+	loop {
+		let size = mdb.clone().drain().values().map(|(node, _)| node.len()).sum::<usize>();
+		if size > minimal_trie_size as _ {
+			return root;
+		}
+
+		let mut trie = TrieDBMut::<H>::from_existing(mdb, &mut root)
+			.map_err(|_| "TrieDBMut::from_existing has failed")
+			.expect("TrieDBMut::from_existing should not fail in benchmarks");
+		for _ in 0..64 {
+			trie.insert(&key_index.encode(), &[42u8])
+				.map_err(|_| "TrieMut::insert has failed")
+				.expect("TrieMut::insert should not fail in benchmarks");
+			key_index += 1;
+		}
+		trie.commit();
+	}
 }
