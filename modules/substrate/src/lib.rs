@@ -707,13 +707,23 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, test_header, unfinalized_header, Origin, TestHash, TestNumber, TestRuntime};
+	use crate::mock::{run_test, test_header, unfinalized_header, Origin, TestRuntime};
 	use bp_header_chain::HeaderChain;
 	use bp_test_utils::{alice, authority_list, bob};
-	use codec::Encode;
 	use frame_support::{assert_noop, assert_ok};
-	use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
-	use sp_runtime::{Digest, DigestItem, DispatchError};
+	use sp_runtime::DispatchError;
+
+	fn init_pallet() -> Result<(), DispatchError> {
+		let init_data = InitializationData {
+			header: test_header(1),
+			authority_list: authority_list(),
+			set_id: 1,
+			scheduled_change: None,
+			is_halted: false,
+		};
+
+		Module::<TestRuntime>::initialize(Origin::root(), init_data.clone())
+	}
 
 	#[test]
 	fn init_root_or_owner_origin_can_initialize_pallet() {
@@ -736,7 +746,7 @@ mod tests {
 			// Reset storage so we can initialize the pallet again
 			BestFinalized::<TestRuntime>::kill();
 			ModuleOwner::<TestRuntime>::put(2);
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::signed(2), init_data));
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::signed(2), init_data.clone()));
 		})
 	}
 
@@ -917,17 +927,8 @@ mod tests {
 	#[test]
 	fn importing_unchecked_headers_works() {
 		run_test(|| {
+			init_pallet().unwrap();
 			let storage = PalletStorage::<TestRuntime>::new();
-
-			let init_data = InitializationData {
-				header: test_header(1),
-				authority_list: authority_list(),
-				set_id: 1,
-				scheduled_change: None,
-				is_halted: false,
-			};
-
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
 
 			let child = test_header(2);
 			let header = test_header(3);
@@ -946,40 +947,16 @@ mod tests {
 	#[test]
 	fn importing_unchecked_headers_enacts_new_authority_set() {
 		run_test(|| {
+			init_pallet().unwrap();
 			let storage = PalletStorage::<TestRuntime>::new();
-
-			let init_data = InitializationData {
-				header: test_header(1),
-				authority_list: authority_list(),
-				set_id: 1,
-				scheduled_change: None,
-				is_halted: false,
-			};
-
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
-
-			let set_id = 1;
-			let authorities = authority_list();
-			let initial_authority_set = AuthoritySet::new(authorities, set_id);
-			storage.update_current_authority_set(initial_authority_set);
 
 			let next_set_id = 2;
 			let next_authorities = vec![(alice(), 1), (bob(), 1)];
 
-			// Need this to indicate that our header signals an authority set change
-			let digest = {
-				let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
-					next_authorities: next_authorities.clone(),
-					delay: 0,
-				});
-
-				Digest::<TestHash> {
-					logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
-				}
-			};
-
+			// Need to update the header digest to indicate that our header signals an authority set
+			// change. The change will be enacted when we import our header.
 			let mut header = test_header(2);
-			header.digest = digest;
+			header.digest = fork_tests::change_log(0);
 
 			// Let's import our test header
 			assert_ok!(Module::<TestRuntime>::import_header(header.clone()));
@@ -999,41 +976,16 @@ mod tests {
 	#[test]
 	fn importing_unchecked_headers_enacts_new_authority_set_from_old_header() {
 		run_test(|| {
+			init_pallet().unwrap();
 			let storage = PalletStorage::<TestRuntime>::new();
-
-			let init_data = InitializationData {
-				header: test_header(1),
-				authority_list: authority_list(),
-				set_id: 1,
-				scheduled_change: None,
-				is_halted: false,
-			};
-
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
-
-			let set_id = 1;
-			let authorities = authority_list();
-			let initial_authority_set = AuthoritySet::new(authorities, set_id);
-			storage.update_current_authority_set(initial_authority_set);
 
 			let next_set_id = 2;
 			let next_authorities = vec![(alice(), 1), (bob(), 1)];
 
-			// Need this to indicate that our header signals an authority set change. However, the
-			// change doesn't happen until the next block.
-			let digest = {
-				let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
-					next_authorities: next_authorities.clone(),
-					delay: 1,
-				});
-
-				Digest::<TestHash> {
-					logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
-				}
-			};
-
+			// Need to update the header digest to indicate that our header signals an authority set
+			// change. However, the change doesn't happen until the next block.
 			let mut schedules_change = test_header(2);
-			schedules_change.digest = digest;
+			schedules_change.digest = fork_tests::change_log(1);
 			let header = test_header(3);
 
 			// Let's import our test headers
