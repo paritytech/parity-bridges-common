@@ -728,7 +728,7 @@ mod tests {
 			is_halted: false,
 		};
 
-		Module::<TestRuntime>::initialize(Origin::root(), init_data.clone())
+		Module::<TestRuntime>::initialize(Origin::root(), init_data)
 	}
 
 	#[test]
@@ -752,7 +752,7 @@ mod tests {
 			// Reset storage so we can initialize the pallet again
 			BestFinalized::<TestRuntime>::kill();
 			ModuleOwner::<TestRuntime>::put(2);
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::signed(2), init_data.clone()));
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::signed(2), init_data));
 		})
 	}
 
@@ -995,7 +995,7 @@ mod tests {
 			let header = test_header(3);
 
 			// Let's import our test headers
-			let header_chain = vec![schedules_change.clone(), header.clone()];
+			let header_chain = vec![schedules_change, header.clone()];
 			Module::<TestRuntime>::append_finalized_chain(header_chain);
 
 			// Make sure that our header is the best finalized
@@ -1032,12 +1032,11 @@ mod tests {
 				is_halted: false,
 			};
 
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data));
 
 			// We are expecting an authority set change at height 2, so this header should enact
 			// that upon being imported.
-			let header = test_header(2);
-			let header_chain = vec![header.clone()];
+			let header_chain = vec![test_header(2)];
 			Module::<TestRuntime>::append_finalized_chain(header_chain);
 
 			// Make sure that the authority set actually changed upon importing our header
