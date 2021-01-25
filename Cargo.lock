@@ -7901,6 +7901,7 @@ dependencies = [
  "millau-runtime",
  "num-traits",
  "pallet-bridge-call-dispatch",
+ "pallet-message-lane",
  "pallet-substrate-bridge",
  "parity-scale-codec",
  "paste 1.0.4",
