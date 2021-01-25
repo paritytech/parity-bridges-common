@@ -611,14 +611,12 @@ where
 	AccountId: codec::Encode,
 	SpecVersion: codec::Encode,
 {
-	let proof = pallet_bridge_call_dispatch::account_ownership_proof(
+	pallet_bridge_call_dispatch::account_ownership_proof(
 		rialto_call,
 		millau_account_id,
 		rialto_spec_version,
 		bp_runtime::MILLAU_BRIDGE_INSTANCE,
-	);
-
-	proof
+	)
 }
 
 #[cfg(test)]
