@@ -35,7 +35,12 @@
 use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
 use bp_runtime::{Chain, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get};
+use frame_support::{
+	decl_error, decl_module, decl_storage,
+	dispatch::{DispatchError, DispatchResult},
+	ensure,
+	traits::Get,
+};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
 
@@ -50,7 +55,7 @@ pub trait Config: frame_system::Config {
 	/// The chain we are bridging to here.
 	type BridgedChain: Chain;
 	/// The pallet which we will use as our underlying storage mechanism.
-	type HeaderChain: HeaderChain<<Self::BridgedChain as Chain>::Header>;
+	type HeaderChain: HeaderChain<<Self::BridgedChain as Chain>::Header, DispatchError>;
 	/// The type through which we will verify that a given header is related to the last
 	/// finalized header in our storage pallet.
 	type AncestryChecker: AncestryChecker<
@@ -128,7 +133,8 @@ decl_module! {
 
 			// Note that this won't work if we ever change the `ancestry_proof` format to be
 			// sparse since this expects a contiguous set of finalized headers.
-			T::HeaderChain::append_finalized_chain(ancestry_proof);
+			let _ =
+				T::HeaderChain::append_finalized_chain(ancestry_proof).map_err(|_| <Error<T>>::FailedToWriteHeader)?;
 
 			Ok(())
 		}

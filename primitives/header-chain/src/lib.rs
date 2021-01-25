@@ -68,7 +68,7 @@ pub trait InclusionProofVerifier {
 }
 
 /// A base trait for pallets which want to keep track of a full set of headers from a bridged chain.
-pub trait HeaderChain<H> {
+pub trait HeaderChain<H, E> {
 	/// Get the best finalized header known to the header chain.
 	fn best_finalized() -> H;
 
@@ -79,10 +79,13 @@ pub trait HeaderChain<H> {
 	///
 	/// It is assumed that each header in this chain been finalized, and that the given headers are
 	/// in order (e.g vec![header_1, header_2, ..., header_n]).
-	fn append_finalized_chain(headers: impl IntoIterator<Item = H>);
+	///
+	/// This function should fail if the first header is not a child of the current best finalized
+	/// header known to the underlying pallet storage.
+	fn append_finalized_chain(headers: impl IntoIterator<Item = H>) -> Result<(), E>;
 }
 
-impl<H: Default> HeaderChain<H> for () {
+impl<H: Default, E> HeaderChain<H, E> for () {
 	fn best_finalized() -> H {
 		H::default()
 	}
@@ -91,7 +94,9 @@ impl<H: Default> HeaderChain<H> for () {
 		AuthoritySet::default()
 	}
 
-	fn append_finalized_chain(_headers: impl IntoIterator<Item = H>) {}
+	fn append_finalized_chain(_headers: impl IntoIterator<Item = H>) -> Result<(), E> {
+		Ok(())
+	}
 }
 
 /// A trait for checking if a given child header is a direct decendant of an ancestor.

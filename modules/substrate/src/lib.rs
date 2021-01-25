@@ -153,6 +153,8 @@ decl_error! {
 		Halted,
 		/// The pallet has already been initialized.
 		AlreadyInitialized,
+		/// The given header is not a decendent of a particular header.
+		NotDecendent,
 	}
 }
 
@@ -364,7 +366,7 @@ impl<T: Config> Module<T> {
 	}
 }
 
-impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>> for Module<T> {
+impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>, sp_runtime::DispatchError> for Module<T> {
 	fn best_finalized() -> BridgedHeader<T> {
 		PalletStorage::<T>::new().best_finalized_header().header
 	}
@@ -373,12 +375,26 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>> for Module<T> {
 		PalletStorage::<T>::new().current_authority_set()
 	}
 
-	fn append_finalized_chain(headers: impl IntoIterator<Item = BridgedHeader<T>>) {
+	fn append_finalized_chain(
+		headers: impl IntoIterator<Item = BridgedHeader<T>>,
+	) -> Result<(), sp_runtime::DispatchError> {
 		let mut storage = PalletStorage::<T>::new();
 
-		for header in headers.into_iter() {
+		let mut header_iter = headers.into_iter().peekable();
+		let first_header = header_iter.peek().ok_or(Error::<T>::NotDecendent)?;
+		let best_finalized = storage.best_finalized_header().header;
+
+		// Quick ancestry check to make sure we're not writing complete nonsense to storage
+		ensure!(
+			best_finalized.hash() == *first_header.parent_hash(),
+			Error::<T>::NotDecendent,
+		);
+
+		for header in header_iter {
 			import_header_unchecked::<_, T>(&mut storage, header);
 		}
+
+		Ok(())
 	}
 }
 
@@ -940,13 +956,29 @@ mod tests {
 			let header = test_header(3);
 
 			let header_chain = vec![child.clone(), header.clone()];
-			Module::<TestRuntime>::append_finalized_chain(header_chain);
+			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header_chain));
 
 			assert!(storage.header_by_hash(child.hash()).unwrap().is_finalized);
 			assert!(storage.header_by_hash(header.hash()).unwrap().is_finalized);
 
 			assert_eq!(storage.best_finalized_header().header, header);
 			assert_eq!(storage.best_headers()[0].hash, header.hash());
+		})
+	}
+
+	#[test]
+	fn prevents_unchecked_header_import_if_headers_are_unrelated() {
+		run_test(|| {
+			init_pallet().unwrap();
+
+			// Pallet is expecting test_header(2) as the child
+			let not_a_child = test_header(3);
+			let header_chain = vec![not_a_child.clone()];
+
+			assert_noop!(
+				Module::<TestRuntime>::append_finalized_chain(header_chain),
+				Error::<TestRuntime>::NotDecendent,
+			);
 		})
 	}
 
@@ -965,7 +997,7 @@ mod tests {
 			header.digest = fork_tests::change_log(0);
 
 			// Let's import our test header
-			Module::<TestRuntime>::append_finalized_chain(vec![header.clone()]);
+			assert_ok!(Module::<TestRuntime>::append_finalized_chain(vec![header.clone()]));
 
 			// Make sure that our header is the best finalized
 			assert_eq!(storage.best_finalized_header().header, header);
@@ -996,7 +1028,7 @@ mod tests {
 
 			// Let's import our test headers
 			let header_chain = vec![schedules_change, header.clone()];
-			Module::<TestRuntime>::append_finalized_chain(header_chain);
+			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header_chain));
 
 			// Make sure that our header is the best finalized
 			assert_eq!(storage.best_finalized_header().header, header);
@@ -1037,7 +1069,7 @@ mod tests {
 			// We are expecting an authority set change at height 2, so this header should enact
 			// that upon being imported.
 			let header_chain = vec![test_header(2)];
-			Module::<TestRuntime>::append_finalized_chain(header_chain);
+			assert_ok!(Module::<TestRuntime>::append_finalized_chain(header_chain));
 
 			// Make sure that the authority set actually changed upon importing our header
 			assert_eq!(
