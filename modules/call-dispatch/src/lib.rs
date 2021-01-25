@@ -235,15 +235,11 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				target_id
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
-				let mut signed_message = Vec::new();
-				message.call.encode_to(&mut signed_message);
-				source_account_id.encode_to(&mut signed_message);
-				// prohibit signature reuse across bridges and spec versions
-				message.spec_version.encode_to(&mut signed_message);
-				bridge.encode_to(&mut signed_message);
+				let proof =
+					account_ownership_proof(message.call.clone(), source_account_id, message.spec_version, bridge);
 
 				let target_account = target_public.into_account();
-				if !target_signature.verify(&signed_message[..], &target_account) {
+				if !target_signature.verify(&proof[..], &target_account) {
 					frame_support::debug::trace!(
 						"Message {:?}/{:?}: origin proof is invalid. Expected account: {:?} from signature: {:?}",
 						bridge,
@@ -323,6 +319,32 @@ where
 			Ok(Some(source_account_id.clone()))
 		}
 	}
+}
+
+/// Proof account ownership on the target chain.
+///
+/// The byte vector returned by this function will be signed with a target chain account
+/// private key. This way, the owner of `source_account_id` on the source chain proves that
+/// the target chain account private key is also under his control.
+pub fn account_ownership_proof<Call, AccountId, SpecVersion, InstanceId>(
+	call: Call,
+	source_account_id: AccountId,
+	target_spec_version: SpecVersion,
+	source_instance_id: InstanceId,
+) -> Vec<u8>
+where
+	Call: Encode,
+	AccountId: Encode,
+	SpecVersion: Encode,
+	InstanceId: Encode,
+{
+	let mut proof = Vec::new();
+	call.encode_to(&mut proof);
+	source_account_id.encode_to(&mut proof);
+	target_spec_version.encode_to(&mut proof);
+	source_instance_id.encode_to(&mut proof);
+
+	proof
 }
 
 #[cfg(test)]
