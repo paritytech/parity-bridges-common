@@ -153,8 +153,8 @@ decl_error! {
 		Halted,
 		/// The pallet has already been initialized.
 		AlreadyInitialized,
-		/// The given header is not a decendent of a particular header.
-		NotDecendent,
+		/// The given header is not a descendant of a particular header.
+		NotDescendant,
 	}
 }
 
@@ -381,13 +381,13 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>, sp_runtime::Dispa
 		let mut storage = PalletStorage::<T>::new();
 
 		let mut header_iter = headers.into_iter().peekable();
-		let first_header = header_iter.peek().ok_or(Error::<T>::NotDecendent)?;
+		let first_header = header_iter.peek().ok_or(Error::<T>::NotDescendant)?;
 		let best_finalized = storage.best_finalized_header().header;
 
 		// Quick ancestry check to make sure we're not writing complete nonsense to storage
 		ensure!(
 			best_finalized.hash() == *first_header.parent_hash(),
-			Error::<T>::NotDecendent,
+			Error::<T>::NotDescendant,
 		);
 
 		for header in header_iter {
@@ -977,7 +977,7 @@ mod tests {
 
 			assert_noop!(
 				Module::<TestRuntime>::append_finalized_chain(header_chain),
-				Error::<TestRuntime>::NotDecendent,
+				Error::<TestRuntime>::NotDescendant,
 			);
 		})
 	}

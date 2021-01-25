@@ -99,9 +99,9 @@ impl<H: Default, E> HeaderChain<H, E> for () {
 	}
 }
 
-/// A trait for checking if a given child header is a direct decendant of an ancestor.
+/// A trait for checking if a given child header is a direct descendant of an ancestor.
 pub trait AncestryChecker<H, P> {
-	/// Is the child header a decendant of the ancestor header?
+	/// Is the child header a descendant of the ancestor header?
 	fn are_ancestors(ancestor: &H, child: &H, proof: &P) -> bool;
 }
 
