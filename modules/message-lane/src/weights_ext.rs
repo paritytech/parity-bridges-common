@@ -33,6 +33,8 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 	assert_ne!(W::receive_messages_proof_messages_overhead(1), 0);
 	assert_ne!(W::receive_messages_proof_outbound_lane_state_overhead(), 0);
 
+	// TODO: this formula is outdated (doesn't include proof-size factor)
+
 	let actual_max_single_message_delivery_tx_weight = W::receive_messages_proof_overhead()
 		.checked_add(W::receive_messages_proof_messages_overhead(1))
 		.expect("weights are too large")
@@ -71,9 +73,10 @@ pub trait WeightInfoExt: WeightInfo {
 
 	/// Returns weight that needs to be accounted when message of given size is sent (`send_message`).
 	fn send_message_size_overhead(message_size: u32) -> Weight {
-		let message_size_in_kb = (1024u64 + message_size as u64) / 1024;
-		let single_kb_weight = (Self::send_16_kb_message_worst_case() - Self::send_1_kb_message_worst_case()) / 15;
-		message_size_in_kb * single_kb_weight
+		let message_size_in_quarter_kb = (256u64 + message_size as u64) / 256;
+		let quarter_kb_weight = (Self::send_16_kb_message_worst_case() - Self::send_1_kb_message_worst_case())
+			/ (15 * 4);
+		message_size_in_quarter_kb * quarter_kb_weight
 	}
 
 	/// Returns weight overhead of message delivery transaction (`receive_messages_proof`).
@@ -140,9 +143,10 @@ pub trait WeightInfoExt: WeightInfo {
 	/// relayer must pay when it relays proof of given size (even if cost based on other parameters
 	/// is less than that cost).
 	fn storage_proof_size_overhead(proof_size: u32) -> Weight {
-		let proof_size_in_kb = (1024u64 + proof_size as u64) / 1024;
-		let single_kb_weight = (Self::receive_single_message_proof_16_kb() - Self::receive_single_message_proof()) / 15;
-		proof_size_in_kb * single_kb_weight
+		let proof_size_in_quarter_kb = (256u64 + proof_size as u64) / 256;
+		let quarter_kb_weight = (Self::receive_single_message_proof_16_kb() - Self::receive_single_message_proof())
+			/ (15 * 4);
+		proof_size_in_quarter_kb * quarter_kb_weight
 	}
 }
 
