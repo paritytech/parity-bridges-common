@@ -973,7 +973,7 @@ mod tests {
 
 			// Pallet is expecting test_header(2) as the child
 			let not_a_child = test_header(3);
-			let header_chain = vec![not_a_child.clone()];
+			let header_chain = vec![not_a_child];
 
 			assert_noop!(
 				Module::<TestRuntime>::append_finalized_chain(header_chain),
