@@ -130,6 +130,20 @@ pub trait WeightInfoExt: WeightInfo {
 			.saturating_sub(weight_of_two_messages_by_single_relayer)
 			.saturating_mul(relayers as Weight)
 	}
+
+	/// Returns weight that needs to be accounted when storage proof of given size is recieved (either in
+	/// `receive_messages_proof` or `receive_messages_delivery_proof`).
+	///
+	/// **IMPORTANT**: this overhead is already included in the 'base' transaction cost - e.g. proof
+	/// size depends on messages count or number of entries in the unrewarded relayers set. So this
+	/// shouldn't be added to cost of transaction, but instead should act as a minimal cost that the
+	/// relayer must pay when it relays proof of given size (even if cost based on other parameters
+	/// is less than that cost).
+	fn storage_proof_size_overhead(proof_size: u32) -> Weight {
+		let proof_size_in_kb = (1024u64 + proof_size as u64) / 1024;
+		let single_kb_weight = (Self::receive_single_message_proof_16_kb() - Self::receive_single_message_proof()) / 15;
+		proof_size_in_kb * single_kb_weight
+	}
 }
 
 impl<T: WeightInfo> WeightInfoExt for T {}

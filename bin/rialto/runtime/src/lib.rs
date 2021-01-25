@@ -835,10 +835,6 @@ impl_runtime_apis! {
 					messages::source::maximal_message_size::<WithMillauMessageBridge>()
 				}
 
-				fn maximal_proof_size() -> u32 {
-					bp_rialto::max_extrinsic_size()
-				}
-
 				fn bridged_relayer_id() -> Self::InboundRelayer {
 					Default::default()
 				}
@@ -942,7 +938,7 @@ impl_runtime_apis! {
 
 				fn prepare_message_delivery_proof(
 					params: MessageLaneMessageDeliveryProofParams<Self::AccountId>,
-				) -> millau_messages::FromMillauMessagesDeliveryProof {
+				) -> millau_messages::ToMillauMessagesDeliveryProof {
 					use crate::millau_messages::{Millau, WithMillauMessageBridge};
 					use bridge_runtime_common::{
 						messages::ChainWithMessageLanes,

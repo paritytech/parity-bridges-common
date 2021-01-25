@@ -71,11 +71,11 @@ pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDi
 >;
 
 /// Messages proof for Millau -> Rialto messages.
-pub type FromMillauMessagesProof = messages::target::FromBridgedChainMessagesProof<WithMillauMessageBridge>;
+pub type FromMillauMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_millau::Hash>;
 
 /// Messages delivery proof for Rialto -> Millau messages.
-pub type FromMillauMessagesDeliveryProof =
-	messages::source::FromBridgedChainMessagesDeliveryProof<WithMillauMessageBridge>;
+pub type ToMillauMessagesDeliveryProof =
+	messages::source::FromBridgedChainMessagesDeliveryProof<bp_millau::Hash>;
 
 /// Millau <-> Rialto message bridge.
 #[derive(RuntimeDebug, Clone, Copy, Eq, PartialEq)]
@@ -183,7 +183,7 @@ impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau 
 	// - hash of the header this proof has been created with;
 	// - the storage proof of one or several keys;
 	// - id of the lane we prove state of.
-	type MessagesDeliveryProof = FromMillauMessagesDeliveryProof;
+	type MessagesDeliveryProof = ToMillauMessagesDeliveryProof;
 
 	fn verify_message(payload: &ToMillauMessagePayload) -> Result<(), Self::Error> {
 		messages::source::verify_chain_message::<WithMillauMessageBridge>(payload)

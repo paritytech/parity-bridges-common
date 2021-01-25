@@ -64,10 +64,10 @@ pub type ToRialtoMessageVerifier = messages::source::FromThisChainMessageVerifie
 pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload<WithRialtoMessageBridge>;
 
 /// Messages proof for Rialto -> Millau messages.
-type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<WithRialtoMessageBridge>;
+type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_rialto::Hash>;
 
 /// Messages delivery proof for Millau -> Rialto messages.
-type ToRialtoMessagesDeliveryProof = messages::source::FromBridgedChainMessagesDeliveryProof<WithRialtoMessageBridge>;
+type ToRialtoMessagesDeliveryProof = messages::source::FromBridgedChainMessagesDeliveryProof<bp_rialto::Hash>;
 
 /// Call-dispatch based message dispatch for Rialto -> Millau messages.
 pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDispatch<

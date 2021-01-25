@@ -7875,6 +7875,7 @@ dependencies = [
  "bp-polkadot",
  "bp-rialto",
  "bp-runtime",
+ "bridge-runtime-common",
  "frame-support",
  "futures 0.3.12",
  "headers-relay",

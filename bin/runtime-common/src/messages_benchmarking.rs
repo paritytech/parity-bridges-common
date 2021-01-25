@@ -69,7 +69,7 @@ pub fn prepare_message_proof<B, H, R, MM, ML, MH>(
 	make_bridged_header: MH,
 	message_dispatch_weight: Weight,
 	message_payload: MessagePayload,
-) -> (FromBridgedChainMessagesProof<B>, Weight)
+) -> (FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>, Weight)
 where
 	B: MessageBridge,
 	H: Hasher,
@@ -150,7 +150,7 @@ pub fn prepare_message_delivery_proof<B, H, R, ML, MH>(
 	params: MessageDeliveryProofParams<AccountIdOf<ThisChain<B>>>,
 	make_bridged_inbound_lane_data_key: ML,
 	make_bridged_header: MH,
-) -> FromBridgedChainMessagesDeliveryProof<B>
+) -> FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChain<B>>>
 where
 	B: MessageBridge,
 	H: Hasher,
