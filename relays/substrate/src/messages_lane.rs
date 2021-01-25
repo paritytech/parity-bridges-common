@@ -145,6 +145,15 @@ pub fn select_delivery_transaction_limits<W: pallet_message_lane::WeightInfoExt>
 		max_unconfirmed_messages_at_inbound_lane,
 	);
 
+	assert!(
+		max_number_of_messages > 0,
+		"Relay should fit at least one message in every delivery transaction",
+	);
+	assert!(
+		weight_for_messages_dispatch >= max_extrinsic_weight / 2,
+		"Relay shall be able to deliver messages with dispatch weight = max_extrinsic_weight / 2",
+	);
+
 	(max_number_of_messages, weight_for_messages_dispatch)
 }
 
@@ -156,14 +165,17 @@ mod tests {
 
 	#[test]
 	fn select_delivery_transaction_limits_works() {
+		let (max_count, max_weight) = select_delivery_transaction_limits::<RialtoToMillauMessageLaneWeights>(
+			bp_rialto::max_extrinsic_weight(),
+			bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
+		);
 		assert_eq!(
-			select_delivery_transaction_limits::<RialtoToMillauMessageLaneWeights>(
-				bp_rialto::max_extrinsic_weight(),
-				bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
-			),
+			(max_count, max_weight),
 			// We don't actually care about these values, so feel free to update them whenever test
 			// fails. The only thing to do before that is to ensure that new values looks sane: i.e. weight
 			// reserved for messages dispatch allows dispatch of non-trivial messages.
+			//
+			// Any significant change in this values should attract additional attention.
 			(1024, 866_583_333_334),
 		);
 	}
