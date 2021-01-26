@@ -596,12 +596,12 @@ impl_runtime_apis! {
 	}
 }
 
-/// Proof Rialto account ownership from Millau.
+/// Rialto account ownership digest from Millau.
 ///
 /// The byte vector returned by this function should be signed with a Rialto account private key.
 /// This way, the owner of `millau_account_id` on Millau proves that the Rialto account private key
 /// is also under his control.
-pub fn rialto_account_ownership_proof<Call, AccountId, SpecVersion>(
+pub fn rialto_account_ownership_digest<Call, AccountId, SpecVersion>(
 	rialto_call: Call,
 	millau_account_id: AccountId,
 	rialto_spec_version: SpecVersion,
@@ -611,7 +611,7 @@ where
 	AccountId: codec::Encode,
 	SpecVersion: codec::Encode,
 {
-	pallet_bridge_call_dispatch::account_ownership_proof(
+	pallet_bridge_call_dispatch::account_ownership_digest(
 		rialto_call,
 		millau_account_id,
 		rialto_spec_version,

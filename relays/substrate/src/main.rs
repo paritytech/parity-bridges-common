@@ -297,13 +297,13 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					call: rialto_call.encode(),
 				},
 				cli::Origins::Target => {
-					let proof = millau_runtime::rialto_account_ownership_proof(
+					let digest = millau_runtime::rialto_account_ownership_digest(
 						rialto_call.clone(),
 						millau_account_id.clone(),
 						rialto_runtime::VERSION.spec_version,
 					);
 
-					let proof_signature = rialto_sign.signer.sign(&proof);
+					let digest_signature = rialto_sign.signer.sign(&digest);
 
 					MessagePayload {
 						spec_version: rialto_runtime::VERSION.spec_version,
@@ -311,7 +311,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 						origin: CallOrigin::TargetAccount(
 							millau_account_id,
 							rialto_origin_public.into(),
-							proof_signature.into(),
+							digest_signature.into(),
 						),
 						call: rialto_call.encode(),
 					}
@@ -448,13 +448,13 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					call: millau_call.encode(),
 				},
 				cli::Origins::Target => {
-					let proof = rialto_runtime::millau_account_ownership_proof(
+					let digest = rialto_runtime::millau_account_ownership_digest(
 						millau_call.clone(),
 						rialto_account_id.clone(),
 						millau_runtime::VERSION.spec_version,
 					);
 
-					let proof_signature = millau_sign.signer.sign(&proof);
+					let digest_signature = millau_sign.signer.sign(&digest);
 
 					MessagePayload {
 						spec_version: millau_runtime::VERSION.spec_version,
@@ -462,7 +462,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 						origin: CallOrigin::TargetAccount(
 							rialto_account_id,
 							millau_origin_public.into(),
-							proof_signature.into(),
+							digest_signature.into(),
 						),
 						call: millau_call.encode(),
 					}
@@ -538,16 +538,16 @@ mod tests {
 		let millau_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
 		let millau_account_id: bp_millau::AccountId = millau_public.into_account();
 
-		let proof = millau_runtime::rialto_account_ownership_proof(
+		let digest = millau_runtime::rialto_account_ownership_digest(
 			call,
 			millau_account_id,
 			rialto_runtime::VERSION.spec_version,
 		);
 
 		let rialto_signer = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
-		let signature = rialto_signer.signer.sign(&proof);
+		let signature = rialto_signer.signer.sign(&digest);
 
-		assert!(signature.verify(&proof[..], &rialto_signer.signer.public()));
+		assert!(signature.verify(&digest[..], &rialto_signer.signer.public()));
 	}
 
 	#[test]
@@ -559,15 +559,15 @@ mod tests {
 		let rialto_public: bp_rialto::AccountSigner = rialto_sign.signer.public().clone().into();
 		let rialto_account_id: bp_rialto::AccountId = rialto_public.into_account();
 
-		let proof = rialto_runtime::millau_account_ownership_proof(
+		let digest = rialto_runtime::millau_account_ownership_digest(
 			call,
 			rialto_account_id,
 			millau_runtime::VERSION.spec_version,
 		);
 
 		let millau_signer = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
-		let signature = millau_signer.signer.sign(&proof);
+		let signature = millau_signer.signer.sign(&digest);
 
-		assert!(signature.verify(&proof[..], &millau_signer.signer.public()));
+		assert!(signature.verify(&digest[..], &millau_signer.signer.public()));
 	}
 }

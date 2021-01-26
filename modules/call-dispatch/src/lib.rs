@@ -235,11 +235,11 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				target_id
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
-				let proof =
-					account_ownership_proof(message.call.clone(), source_account_id, message.spec_version, bridge);
+				let digest =
+					account_ownership_digest(message.call.clone(), source_account_id, message.spec_version, bridge);
 
 				let target_account = target_public.into_account();
-				if !target_signature.verify(&proof[..], &target_account) {
+				if !target_signature.verify(&digest[..], &target_account) {
 					frame_support::debug::trace!(
 						"Message {:?}/{:?}: origin proof is invalid. Expected account: {:?} from signature: {:?}",
 						bridge,
@@ -321,12 +321,12 @@ where
 	}
 }
 
-/// Proof target account ownership from the source chain.
+/// Target account ownership digest from the source chain.
 ///
 /// The byte vector returned by this function will be signed with a target chain account
 /// private key. This way, the owner of `source_account_id` on the source chain proves that
 /// the target chain account private key is also under his control.
-pub fn account_ownership_proof<Call, AccountId, SpecVersion, BridgeId>(
+pub fn account_ownership_digest<Call, AccountId, SpecVersion, BridgeId>(
 	call: Call,
 	source_account_id: AccountId,
 	target_spec_version: SpecVersion,
