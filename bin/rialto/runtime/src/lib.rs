@@ -420,11 +420,12 @@ impl pallet_shift_session_manager::Config for Runtime {}
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_message_lane::MessageNonce = 8;
 	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_message_lane::MessageNonce =
-		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
+		bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
 		bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
-	// TODO: https://github.com/paritytech/parity-bridges-common/pull/598
-	pub GetDeliveryConfirmationTransactionFee: Balance = 0;
+	// `IdentityFee` is used by Rialto => we may use weight directly
+	pub const GetDeliveryConfirmationTransactionFee: Balance =
+		bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT as _;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 }
 
@@ -985,6 +986,29 @@ impl_runtime_apis! {
 	}
 }
 
+/// Millau account ownership digest from Rialto.
+///
+/// The byte vector returned by this function should be signed with a Millau account private key.
+/// This way, the owner of `rialto_account_id` on Rialto proves that the 'millau' account private key
+/// is also under his control.
+pub fn millau_account_ownership_digest<Call, AccountId, SpecVersion>(
+	millau_call: &Call,
+	rialto_account_id: AccountId,
+	millau_spec_version: SpecVersion,
+) -> sp_std::vec::Vec<u8>
+where
+	Call: codec::Encode,
+	AccountId: codec::Encode,
+	SpecVersion: codec::Encode,
+{
+	pallet_bridge_call_dispatch::account_ownership_digest(
+		millau_call,
+		rialto_account_id,
+		millau_spec_version,
+		bp_runtime::RIALTO_BRIDGE_INSTANCE,
+	)
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -1027,7 +1051,10 @@ mod tests {
 
 	#[test]
 	fn ensure_rialto_message_lane_weights_are_correct() {
-		pallet_message_lane::ensure_weights_are_correct::<pallet_message_lane::weights::RialtoWeight<Runtime>>();
+		pallet_message_lane::ensure_weights_are_correct::<pallet_message_lane::weights::RialtoWeight<Runtime>>(
+			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+		);
 	}
 
 	#[test]

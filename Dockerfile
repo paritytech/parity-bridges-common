@@ -11,7 +11,7 @@
 # This first stage prepares our dependencies to be built by `cargo-chef`.
 FROM rust as planner
 WORKDIR /parity-bridges-common
-RUN cargo install cargo-chef
+RUN cargo install cargo-chef --version 0.1.13
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -20,7 +20,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 # step doesn't blow our cache.
 FROM paritytech/bridge-dependencies AS cacher
 WORKDIR /parity-bridges-common
-RUN cargo install cargo-chef
+RUN cargo install cargo-chef --version 0.1.13
 
 COPY --from=planner /parity-bridges-common/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -30,7 +30,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # cached in the previous stage.
 FROM paritytech/bridge-dependencies as builder
 WORKDIR /parity-bridges-common
-RUN cargo install cargo-chef
+RUN cargo install cargo-chef --version 0.1.13
 
 COPY . .
 COPY --from=cacher /parity-bridges-common/target target
