@@ -5467,6 +5467,7 @@ version = "0.1.0"
 dependencies = [
  "ansi_term 0.12.1",
  "async-std",
+ "async-trait",
  "backoff",
  "env_logger 0.8.2",
  "futures 0.3.12",
