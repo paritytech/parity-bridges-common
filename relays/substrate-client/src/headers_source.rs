@@ -58,10 +58,8 @@ impl<C: Chain, P> Clone for HeadersSource<C, P> {
 impl<C: Chain, P: HeadersSyncPipeline> RelayClient for HeadersSource<C, P> {
 	type Error = Error;
 
-	async fn reconnect(mut self) -> Result<Self, Error> {
-		let new_client = self.client.clone().reconnect().await?;
-		self.client = new_client;
-		Ok(self)
+	async fn reconnect(&mut self) -> Result<(), Error> {
+		self.client.reconnect().await
 	}
 }
 

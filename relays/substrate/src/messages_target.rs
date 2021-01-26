@@ -74,10 +74,8 @@ impl<C: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesTarget<C, P> 
 impl<C: Chain, P: SubstrateMessageLane> RelayClient for SubstrateMessagesTarget<C, P> {
 	type Error = SubstrateError;
 
-	async fn reconnect(mut self) -> Result<Self, SubstrateError> {
-		let new_client = self.client.clone().reconnect().await?;
-		self.client = new_client;
-		Ok(self)
+	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
+		self.client.reconnect().await
 	}
 }
 

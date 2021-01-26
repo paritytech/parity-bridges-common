@@ -129,9 +129,9 @@ struct EthereumTransactionsSource {
 impl RelayClient for EthereumTransactionsSource {
 	type Error = RpcError;
 
-	async fn reconnect(mut self) -> Result<Self, RpcError> {
-		self.client = self.client.clone().reconnect();
-		Ok(self)
+	async fn reconnect(&mut self) -> Result<(), RpcError> {
+		self.client.reconnect();
+		Ok(())
 	}
 }
 
@@ -219,10 +219,8 @@ struct SubstrateTransactionsTarget {
 impl RelayClient for SubstrateTransactionsTarget {
 	type Error = RpcError;
 
-	async fn reconnect(mut self) -> Result<Self, RpcError> {
-		let new_client = self.client.clone().reconnect().await?;
-		self.client = new_client;
-		Ok(self)
+	async fn reconnect(&mut self) -> Result<(), RpcError> {
+		Ok(self.client.reconnect().await?)
 	}
 }
 

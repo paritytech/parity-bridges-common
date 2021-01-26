@@ -29,7 +29,7 @@ pub trait Client: Clone + Send + Sync {
 	type Error: Debug + MaybeConnectionError;
 
 	/// Try to reconnect to source node.
-	async fn reconnect(self) -> Result<Self, Self::Error>;
+	async fn reconnect(&mut self) -> Result<(), Self::Error>;
 }
 
 /// Run relay loop.
@@ -57,8 +57,8 @@ pub fn run<SC: Client, TC: Client, R, F>(
 				Err(failed_client) => loop {
 					async_std::task::sleep(reconnect_delay).await;
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Source {
-						source_client = match source_client.clone().reconnect().await {
-							Ok(source_client) => source_client,
+						match source_client.reconnect().await {
+							Ok(()) => (),
 							Err(error) => {
 								log::warn!(
 									target: "bridge",
@@ -71,8 +71,8 @@ pub fn run<SC: Client, TC: Client, R, F>(
 						}
 					}
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
-						target_client = match target_client.clone().reconnect().await {
-							Ok(target_client) => target_client,
+						match target_client.reconnect().await {
+							Ok(()) => (),
 							Err(error) => {
 								log::warn!(
 									target: "bridge",

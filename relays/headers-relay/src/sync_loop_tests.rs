@@ -140,7 +140,7 @@ impl Source {
 impl RelayClient for Source {
 	type Error = TestError;
 
-	async fn reconnect(self) -> Result<Self, TestError> {
+	async fn reconnect(&mut self) -> Result<(), TestError> {
 		unimplemented!()
 	}
 }
@@ -240,7 +240,7 @@ impl Target {
 impl RelayClient for Target {
 	type Error = TestError;
 
-	async fn reconnect(self) -> Result<Self, TestError> {
+	async fn reconnect(&mut self) -> Result<(), TestError> {
 		unimplemented!()
 	}
 }

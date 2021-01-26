@@ -50,9 +50,8 @@ impl Client {
 	}
 
 	/// Reopen client connection.
-	pub fn reconnect(mut self) -> Self {
+	pub fn reconnect(&mut self) {
 		self.client = Self::build_client(&self.params);
-		self
 	}
 
 	/// Estimate gas usage for the given call.

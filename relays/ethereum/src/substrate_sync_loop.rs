@@ -122,9 +122,9 @@ impl EthereumHeadersTarget {
 impl RelayClient for EthereumHeadersTarget {
 	type Error = RpcError;
 
-	async fn reconnect(mut self) -> Result<Self, RpcError> {
-		self.client = self.client.clone().reconnect();
-		Ok(self)
+	async fn reconnect(&mut self) -> Result<(), RpcError> {
+		self.client.reconnect();
+		Ok(())
 	}
 }
 

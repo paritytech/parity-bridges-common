@@ -497,13 +497,13 @@ pub(crate) mod tests {
 	impl RelayClient for TestSourceClient {
 		type Error = TestError;
 
-		async fn reconnect(self) -> Result<Self, TestError> {
+		async fn reconnect(&mut self) -> Result<(), TestError> {
 			{
 				let mut data = self.data.lock();
 				(self.tick)(&mut *data);
 				data.is_source_reconnected = true;
 			}
-			Ok(self)
+			Ok(())
 		}
 	}
 
@@ -601,13 +601,13 @@ pub(crate) mod tests {
 	impl RelayClient for TestTargetClient {
 		type Error = TestError;
 
-		async fn reconnect(self) -> Result<Self, TestError> {
+		async fn reconnect(&mut self) -> Result<(), TestError> {
 			{
 				let mut data = self.data.lock();
 				(self.tick)(&mut *data);
 				data.is_target_reconnected = true;
 			}
-			Ok(self)
+			Ok(())
 		}
 	}
 

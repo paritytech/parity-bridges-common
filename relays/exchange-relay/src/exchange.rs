@@ -560,8 +560,8 @@ pub(crate) mod tests {
 	impl RelayClient for TestTransactionsSource {
 		type Error = TestError;
 
-		async fn reconnect(self) -> Result<Self, TestError> {
-			Ok(self)
+		async fn reconnect(&mut self) -> Result<(), TestError> {
+			Ok(())
 		}
 	}
 
@@ -627,8 +627,8 @@ pub(crate) mod tests {
 	impl RelayClient for TestTransactionsTarget {
 		type Error = TestError;
 
-		async fn reconnect(self) -> Result<Self, TestError> {
-			Ok(self)
+		async fn reconnect(&mut self) -> Result<(), TestError> {
+			Ok(())
 		}
 	}
 
