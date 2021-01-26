@@ -17,6 +17,7 @@
 //! Message lane pallet benchmarking.
 
 use crate::{inbound_lane::InboundLaneStorage, inbound_lane_storage, outbound_lane, Call, Instance};
+use crate::weights_ext::DELIVERED_MESSAGE_SIZE;
 
 use bp_message_lane::{
 	source_chain::TargetHeaderChain, target_chain::SourceHeaderChain, InboundLaneData, LaneId, MessageData,
@@ -37,8 +38,9 @@ pub struct Module<T: Config<I>, I: crate::Instance>(crate::Module<T, I>);
 
 /// Proof size requirements.
 pub enum ProofSize {
-	/// The proof is expected to be minimal.
-	Minimal,
+	/// The proof is expected to be minimal. If value size may be changed, then it is expected to
+	/// have given size.
+	Minimal(u32),
 	/// The proof is expected to have at least given size and grow by increasing number of trie nodes
 	/// included in the prof.
 	HasExtraNodes(u32),
@@ -233,7 +235,7 @@ benchmarks_instance! {
 			lane: bench_lane_id(),
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(DELIVERED_MESSAGE_SIZE),
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -264,7 +266,7 @@ benchmarks_instance! {
 			lane: bench_lane_id(),
 			message_nonces: 21..=22,
 			outbound_lane_data: None,
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(DELIVERED_MESSAGE_SIZE),
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 2, dispatch_weight)
 	verify {
@@ -299,7 +301,7 @@ benchmarks_instance! {
 				latest_received_nonce: 20,
 				latest_generated_nonce: 21,
 			}),
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(DELIVERED_MESSAGE_SIZE),
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -400,7 +402,7 @@ benchmarks_instance! {
 				relayers: vec![(1, 1, relayer_id.clone())].into_iter().collect(),
 				last_confirmed_nonce: 0,
 			},
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(0),
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer_id.clone()), proof, relayers_state)
 	verify {
@@ -438,7 +440,7 @@ benchmarks_instance! {
 				relayers: vec![(1, 2, relayer_id.clone())].into_iter().collect(),
 				last_confirmed_nonce: 0,
 			},
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(0),
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer_id.clone()), proof, relayers_state)
 	verify {
@@ -481,7 +483,7 @@ benchmarks_instance! {
 				].into_iter().collect(),
 				last_confirmed_nonce: 0,
 			},
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(0),
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer1_id.clone()), proof, relayers_state)
 	verify {
@@ -548,7 +550,7 @@ benchmarks_instance! {
 			lane: bench_lane_id(),
 			message_nonces: 21..=(20 + i as MessageNonce),
 			outbound_lane_data: None,
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(DELIVERED_MESSAGE_SIZE),
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
@@ -665,7 +667,7 @@ benchmarks_instance! {
 				latest_received_nonce: 20,
 				latest_generated_nonce: 21,
 			}),
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(0),
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
@@ -714,7 +716,7 @@ benchmarks_instance! {
 				relayers: vec![(1, i as MessageNonce, relayer_id.clone())].into_iter().collect(),
 				last_confirmed_nonce: 0,
 			},
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(0),
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer_id.clone()), proof, relayers_state)
 	verify {
@@ -760,7 +762,7 @@ benchmarks_instance! {
 					.collect(),
 				last_confirmed_nonce: 0,
 			},
-			size: ProofSize::Minimal,
+			size: ProofSize::Minimal(0),
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(confirmation_relayer_id), proof, relayers_state)
 	verify {

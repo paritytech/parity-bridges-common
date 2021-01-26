@@ -828,6 +828,7 @@ impl_runtime_apis! {
 				MessageDeliveryProofParams as MessageLaneMessageDeliveryProofParams,
 				MessageParams as MessageLaneMessageParams,
 				MessageProofParams as MessageLaneMessageProofParams,
+				ProofSize as MessageLaneProofSize,
 			};
 
 			impl MessageLaneConfig<WithMillauMessageLaneInstance> for Runtime {
@@ -881,6 +882,10 @@ impl_runtime_apis! {
 					use pallet_message_lane::storage_keys;
 					use sp_runtime::traits::Header;
 
+					let remark = match params.size {
+						MessageLaneProofSize::Minimal(ref size) => vec![0u8; *size as _],
+						_ => vec![],
+					};
 					let call = Call::System(SystemCall::remark(vec![]));
 					let call_weight = call.get_dispatch_info().weight;
 

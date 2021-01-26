@@ -197,7 +197,7 @@ fn grow_trie<H: Hasher>(
 	trie_size: ProofSize,
 ) -> H::Out {
 	let (iterations, leaf_size, minimal_trie_size) = match trie_size {
-		ProofSize::Minimal => return root,
+		ProofSize::Minimal(_) => return root,
 		ProofSize::HasLargeLeaf(size) => (1, size, size),
 		ProofSize::HasExtraNodes(size) => (8, 1, size),
 	};
