@@ -65,7 +65,7 @@ pub enum CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainS
 	///
 	/// The account can be identified by `TargetChainAccountPublic`. The proof that the
 	/// `SourceChainAccountId` controls `TargetChainAccountPublic` is the `TargetChainSignature`
-	/// over `(Call, SourceChainAccountId, TargetChainSpecVersion, SourceChainInstanceId).encode()`.
+	/// over `(Call, SourceChainAccountId, TargetChainSpecVersion, SourceChainBridgeId).encode()`.
 	///
 	/// NOTE sending messages using this origin (or any other) does not have replay protection!
 	/// The assumption is that both the source account and the target account is controlled by
@@ -321,22 +321,22 @@ where
 	}
 }
 
-/// Proof account ownership on the target chain.
+/// Proof target account ownership from the source chain.
 ///
 /// The byte vector returned by this function will be signed with a target chain account
 /// private key. This way, the owner of `source_account_id` on the source chain proves that
 /// the target chain account private key is also under his control.
-pub fn account_ownership_proof<Call, AccountId, SpecVersion, InstanceId>(
+pub fn account_ownership_proof<Call, AccountId, SpecVersion, BridgeId>(
 	call: Call,
 	source_account_id: AccountId,
 	target_spec_version: SpecVersion,
-	source_instance_id: InstanceId,
+	source_instance_id: BridgeId,
 ) -> Vec<u8>
 where
 	Call: Encode,
 	AccountId: Encode,
 	SpecVersion: Encode,
-	InstanceId: Encode,
+	BridgeId: Encode,
 {
 	let mut proof = Vec::new();
 	call.encode_to(&mut proof);

@@ -529,27 +529,11 @@ mod tests {
 	use sp_core::Pair;
 	use sp_runtime::traits::{IdentifyAccount, Verify};
 
-	macro_rules! call_for_runtime {
-		($runtime:tt) => {
-			$runtime::Call::System($runtime::SystemCall::remark(
-				std::format!(
-					"Unix time: {}",
-					std::time::SystemTime::now()
-						.duration_since(std::time::SystemTime::UNIX_EPOCH)
-						.unwrap_or_default()
-						.as_secs(),
-				)
-				.as_bytes()
-				.to_vec()
-			))
-		}
-	}
-
 	#[test]
 	fn millau_signature_is_valid_on_rialto() {
 		let millau_sign = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
 
-		let call = call_for_runtime!(rialto_runtime);
+		let call = rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(vec![]));
 
 		let millau_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
 		let millau_account_id: bp_millau::AccountId = millau_public.into_account();
@@ -560,17 +544,17 @@ mod tests {
 			rialto_runtime::VERSION.spec_version,
 		);
 
-		let rialto_sign = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
-		let signature = rialto_sign.signer.sign(&proof);
+		let rialto_signer = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
+		let signature = rialto_signer.signer.sign(&proof);
 
-		assert!(signature.verify(&proof[..], &rialto_sign.signer.public()));
+		assert!(signature.verify(&proof[..], &rialto_signer.signer.public()));
 	}
 
 	#[test]
 	fn rialto_signature_is_valid_on_millau() {
 		let rialto_sign = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
 
-		let call = call_for_runtime!(millau_runtime);
+		let call = millau_runtime::Call::System(millau_runtime::SystemCall::remark(vec![]));
 
 		let rialto_public: bp_rialto::AccountSigner = rialto_sign.signer.public().clone().into();
 		let rialto_account_id: bp_rialto::AccountId = rialto_public.into_account();
@@ -581,9 +565,9 @@ mod tests {
 			millau_runtime::VERSION.spec_version,
 		);
 
-		let millau_sign = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
-		let signature = millau_sign.signer.sign(&proof);
+		let millau_signer = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
+		let signature = millau_signer.signer.sign(&proof);
 
-		assert!(signature.verify(&proof[..], &millau_sign.signer.public()));
+		assert!(signature.verify(&proof[..], &millau_signer.signer.public()));
 	}
 }

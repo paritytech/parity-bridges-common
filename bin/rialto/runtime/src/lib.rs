@@ -985,10 +985,10 @@ impl_runtime_apis! {
 	}
 }
 
-/// Proof account ownership on 'millau'.
+/// Proof Millau account ownership from Rialto.
 ///
-/// The byte vector returned by this function will be signed with a 'millau' account private key.
-/// This way, the owner of `rialto_account_id` on 'rialto' proves that the 'millau' account private key
+/// The byte vector returned by this function should be signed with a Millau account private key.
+/// This way, the owner of `rialto_account_id` on Rialto proves that the 'millau' account private key
 /// is also under his control.
 pub fn millau_account_ownership_proof<Call, AccountId, SpecVersion>(
 	millau_call: Call,
