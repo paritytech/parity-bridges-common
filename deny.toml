@@ -50,8 +50,12 @@ notice = "warn"
 ignore = [
 	# yaml-rust < clap. Not feasible to upgrade and also not possible to trigger in practice.
 	"RUSTSEC-2018-0006",
-   # raw-cpuid is a dep of cranelift-native. Not feasible to upgrade.
-    "RUSTSEC-2021-0013"    
+<<<<<<< HEAD
+=======
+	# We need to wait until Substrate updates their `wasmtime` dependency to fix this.
+	# TODO: See issue #676: https://github.com/paritytech/parity-bridges-common/issues/676
+	"RUSTSEC-2021-0013"
+>>>>>>> upstream/master
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
