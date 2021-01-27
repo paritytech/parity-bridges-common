@@ -18,7 +18,7 @@
 
 use crate::weights::WeightInfo;
 
-use bp_message_lane::MessageNonce;
+use bp_message_lane::{MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Size;
 use frame_support::weights::Weight;
 
@@ -80,6 +80,14 @@ pub trait WeightInfoExt: WeightInfo {
 
 	// Functions that are directly mapped to extrinsics weights.
 
+	/// Weight of message send extrinsic.
+	fn send_message_weight(message: &impl Size) -> Weight {
+		let transaction_overhead = Self::send_message_overhead();
+		let message_size_overhead = Self::send_message_size_overhead(message.size_hint());
+
+		transaction_overhead.saturating_add(message_size_overhead)
+	}
+
 	/// Weight of message delivery extrinsic.
 	fn receive_messages_proof_weight(proof: &impl Size, messages_count: u32, dispatch_weight: Weight) -> Weight {
 		// basic components of extrinsic weight
@@ -102,6 +110,24 @@ pub trait WeightInfoExt: WeightInfo {
 			.saturating_add(outbound_state_delivery_weight)
 			.saturating_add(messages_delivery_weight)
 			.saturating_add(messages_dispatch_weight)
+			.saturating_add(proof_size_overhead)
+	}
+
+	/// Weight of confirmation delivery extrinsic.
+	fn receive_messages_delivery_proof_weight(proof: &impl Size, relayers_state: &UnrewardedRelayersState) -> Weight {
+		// basic components of extrinsic weight
+		let transaction_overhead = Self::receive_messages_delivery_proof_overhead();
+		let messages_overhead = Self::receive_messages_delivery_proof_messages_overhead(relayers_state.total_messages);
+		let relayers_overhead =
+			Self::receive_messages_delivery_proof_relayers_overhead(relayers_state.unrewarded_relayer_entries);
+
+		// proof size overhead weight
+		let actual_proof_size = proof.size_hint();
+		let proof_size_overhead = Self::storage_proof_size_overhead(actual_proof_size);
+
+		transaction_overhead
+			.saturating_add(messages_overhead)
+			.saturating_add(relayers_overhead)
 			.saturating_add(proof_size_overhead)
 	}
 

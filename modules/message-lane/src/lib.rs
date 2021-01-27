@@ -267,9 +267,7 @@ decl_module! {
 		}
 
 		/// Send message over lane.
-		#[weight = T::WeightInfo::send_message_overhead()
-			.saturating_add(T::WeightInfo::send_message_size_overhead(Size::size_hint(payload)))
-		]
+		#[weight = T::WeightInfo::send_message_weight(payload)]
 		pub fn send_message(
 			origin,
 			lane_id: LaneId,
@@ -351,18 +349,7 @@ decl_module! {
 		/// The weight of the call assumes that the transaction always brings outbound lane
 		/// state update. Because of that, the submitter (relayer) has no benefit of not including
 		/// this data in the transaction, so reward confirmations lags should be minimal.
-		#[weight = T::WeightInfo::receive_messages_proof_overhead()
-			.saturating_add(
-				sp_std::cmp::max(
-					T::WeightInfo::receive_messages_proof_outbound_lane_state_overhead()
-						.saturating_add(T::WeightInfo::receive_messages_proof_messages_overhead(
-							MessageNonce::from(*messages_count)
-						)),
-					T::WeightInfo::storage_proof_size_overhead(Size::size_hint(proof))
-				)
-			)
-			.saturating_add(*dispatch_weight)
-		]
+		#[weight = T::WeightInfo::receive_messages_proof_weight(proof, *messages_count, *dispatch_weight)]
 		pub fn receive_messages_proof(
 			origin,
 			relayer_id: T::InboundRelayer,
@@ -451,17 +438,7 @@ decl_module! {
 		}
 
 		/// Receive messages delivery proof from bridged chain.
-		#[weight = T::WeightInfo::receive_messages_delivery_proof_overhead()
-			.saturating_add(
-				sp_std::cmp::max(
-					T::WeightInfo::receive_messages_delivery_proof_messages_overhead(relayers_state.total_messages)
-						.saturating_add(T::WeightInfo::receive_messages_delivery_proof_relayers_overhead(
-							relayers_state.unrewarded_relayer_entries
-						)),
-					T::WeightInfo::storage_proof_size_overhead(Size::size_hint(proof)),
-				)
-			)
-		]
+		#[weight = T::WeightInfo::receive_messages_delivery_proof_weight(proof, relayers_state)]
 		pub fn receive_messages_delivery_proof(
 			origin,
 			proof: MessagesDeliveryProofOf<T, I>,
