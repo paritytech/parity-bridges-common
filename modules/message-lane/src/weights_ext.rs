@@ -93,8 +93,8 @@ pub trait WeightInfoExt: WeightInfo {
 		// basic components of extrinsic weight
 		let transaction_overhead = Self::receive_messages_proof_overhead();
 		let outbound_state_delivery_weight = Self::receive_messages_proof_outbound_lane_state_overhead();
-		let messages_delivery_weight = Self::receive_messages_proof_outbound_lane_state_overhead().saturating_add(
-			Self::receive_messages_proof_messages_overhead(MessageNonce::from(messages_count)),
+		let messages_delivery_weight = Self::receive_messages_proof_messages_overhead(
+			MessageNonce::from(messages_count)
 		);
 		let messages_dispatch_weight = dispatch_weight;
 
