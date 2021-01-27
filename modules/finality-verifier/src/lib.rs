@@ -80,13 +80,16 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Verify a header is finalized according to the given finality proof.
+		/// Verify a target header is finalized according to the given finality proof.
 		///
 		/// Will use the underlying storage pallet to fetch information about the current
 		/// authorities and best finalized header in order to verify that the header is finalized.
 		///
-		/// If successful in verification, it will write the headers to the underlying storage
-		/// pallet as well as import the valid finality proof.
+		/// If successful in verification, it will write the header as well as its ancestors (from
+		/// the given `ancestry_proof`) to the underlying storage pallet.
+		///
+		/// Note that the expected format for `ancestry_proof` is a continguous list of finalized
+		/// headers containing (current_best_finalized_header, finality_target]
 		#[pallet::weight(0)]
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,
