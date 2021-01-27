@@ -32,7 +32,7 @@ use frame_support::{traits::Instance, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use pallet_substrate_bridge::StorageProofChecker;
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul};
-use sp_std::{fmt::Debug, cmp::PartialOrd, convert::TryFrom, marker::PhantomData, ops::RangeInclusive, vec::Vec};
+use sp_std::{cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData, ops::RangeInclusive, vec::Vec};
 use sp_trie::StorageProof;
 
 /// Bidirectional message bridge.
@@ -1230,13 +1230,7 @@ mod tests {
 	fn verify_messages_proof_with_parser_does_not_panic_if_messages_count_mismatches() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof(
-					Default::default(),
-					vec![],
-					Default::default(),
-					0,
-					u64::MAX
-				),
+				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 0, u64::MAX),
 				0,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,

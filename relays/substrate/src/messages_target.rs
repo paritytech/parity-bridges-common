@@ -37,7 +37,10 @@ use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
 use std::ops::RangeInclusive;
 
 /// Message receiving proof returned by the target Substrate node.
-pub type SubstrateMessagesReceivingProof<C> = (UnrewardedRelayersState, FromBridgedChainMessagesDeliveryProof<HashOf<C>>);
+pub type SubstrateMessagesReceivingProof<C> = (
+	UnrewardedRelayersState,
+	FromBridgedChainMessagesDeliveryProof<HashOf<C>>,
+);
 
 /// Substrate client as Substrate messages target.
 pub struct SubstrateMessagesTarget<C: Chain, P> {

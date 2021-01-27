@@ -183,19 +183,11 @@ where
 	let bridged_header_hash = bridged_header.hash();
 	pallet_substrate_bridge::initialize_for_benchmarks::<R>(bridged_header);
 
-	FromBridgedChainMessagesDeliveryProof(
-		bridged_header_hash.into(),
-		storage_proof,
-		params.lane,
-	)
+	FromBridgedChainMessagesDeliveryProof(bridged_header_hash.into(), storage_proof, params.lane)
 }
 
 /// Populate trie with dummy keys+values until trie has at least given size.
-fn grow_trie<H: Hasher>(
-	mut root: H::Out,
-	mdb: &mut MemoryDB<H>,
-	trie_size: ProofSize,
-) -> H::Out {
+fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: ProofSize) -> H::Out {
 	let (iterations, leaf_size, minimal_trie_size) = match trie_size {
 		ProofSize::Minimal(_) => return root,
 		ProofSize::HasLargeLeaf(size) => (1, size, size),

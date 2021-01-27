@@ -35,7 +35,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use crate::weights_ext::{EXPECTED_DEFAULT_MESSAGE_LENGTH, ensure_weights_are_correct, WeightInfoExt};
+pub use crate::weights_ext::{ensure_weights_are_correct, WeightInfoExt, EXPECTED_DEFAULT_MESSAGE_LENGTH};
 
 use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
@@ -784,8 +784,9 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof, TestMessagesProof, TestPayload,
-		TestRuntime, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
+		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof,
+		TestMessagesProof, TestPayload, TestRuntime, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
+		TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_message_lane::UnrewardedRelayersState;
 	use frame_support::{assert_noop, assert_ok};
@@ -1205,7 +1206,11 @@ mod tests {
 	fn receive_messages_delivery_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::receive_messages_delivery_proof(Origin::signed(1), TestMessagesDeliveryProof(Err(())), Default::default(),),
+				Module::<TestRuntime>::receive_messages_delivery_proof(
+					Origin::signed(1),
+					TestMessagesDeliveryProof(Err(())),
+					Default::default(),
+				),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDeliveryProof,
 			);
 		});

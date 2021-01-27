@@ -106,8 +106,11 @@ impl MessageBridge for WithRialtoMessageBridge {
 	}
 
 	fn weight_of_delivery_transaction(message_payload: &[u8]) -> Weight {
-		let message_payload_len = u32::try_from(message_payload.len()).map(Into::into).unwrap_or(Weight::MAX);
-		let extra_bytes_in_payload = message_payload_len.saturating_sub(pallet_message_lane::EXPECTED_DEFAULT_MESSAGE_LENGTH.into());
+		let message_payload_len = u32::try_from(message_payload.len())
+			.map(Into::into)
+			.unwrap_or(Weight::MAX);
+		let extra_bytes_in_payload =
+			message_payload_len.saturating_sub(pallet_message_lane::EXPECTED_DEFAULT_MESSAGE_LENGTH.into());
 		messages::transaction_weight_without_multiplier(
 			bp_rialto::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
 			message_payload_len.saturating_add(bp_millau::EXTRA_STORAGE_PROOF_SIZE as _),

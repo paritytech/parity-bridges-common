@@ -16,8 +16,8 @@
 
 //! Message lane pallet benchmarking.
 
-use crate::{inbound_lane::InboundLaneStorage, inbound_lane_storage, outbound_lane, Call, Instance};
 use crate::weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH;
+use crate::{inbound_lane::InboundLaneStorage, inbound_lane_storage, outbound_lane, Call, Instance};
 
 use bp_message_lane::{
 	source_chain::TargetHeaderChain, target_chain::SourceHeaderChain, InboundLaneData, LaneId, MessageData,

@@ -76,14 +76,7 @@ pub trait WeightInfoExt: WeightInfo {
 	/// factors that may increase proof size: (1) the message size may be larger than predefined
 	/// and (2) relayer may add extra trie nodes to the proof. So if proof size is larger than
 	/// this value, we're going to charge relayer for that.
-	fn expected_single_message_delivery_proof_size() -> u32;
-
-	/// Size of proof that is already included in the confirmation delivery weight.
-	///
-	/// The message submitter (at source chain) has already covered this cost. But relayer may
-	/// increase proof size by adding extra trie nodes to the proof. So if proof size is larger than
-	/// this value, we're going to charge relayer for that.
-	fn expected_single_message_confirmation_proof_size() -> u32;
+	fn expected_extra_storage_proof_size() -> u32;
 
 	// Functions that are directly mapped to extrinsics weights.
 
@@ -92,18 +85,18 @@ pub trait WeightInfoExt: WeightInfo {
 		// basic components of extrinsic weight
 		let transaction_overhead = Self::receive_messages_proof_overhead();
 		let outbound_state_delivery_weight = Self::receive_messages_proof_outbound_lane_state_overhead();
-		let messages_delivery_weight = Self::receive_messages_proof_outbound_lane_state_overhead()
-			.saturating_add(Self::receive_messages_proof_messages_overhead(MessageNonce::from(messages_count)));
+		let messages_delivery_weight = Self::receive_messages_proof_outbound_lane_state_overhead().saturating_add(
+			Self::receive_messages_proof_messages_overhead(MessageNonce::from(messages_count)),
+		);
 		let messages_dispatch_weight = dispatch_weight;
 
 		// proof size overhead weight
 		let expected_proof_size = EXPECTED_DEFAULT_MESSAGE_LENGTH
 			.saturating_mul(messages_count.saturating_sub(1))
-			.saturating_add(Self::expected_single_message_delivery_proof_size());
+			.saturating_add(Self::expected_extra_storage_proof_size());
 		let actual_proof_size = proof.size_hint();
-		let proof_size_overhead = Self::storage_proof_size_overhead(
-			actual_proof_size.saturating_sub(expected_proof_size)
-		);
+		let proof_size_overhead =
+			Self::storage_proof_size_overhead(actual_proof_size.saturating_sub(expected_proof_size));
 
 		transaction_overhead
 			.saturating_add(outbound_state_delivery_weight)
@@ -122,8 +115,7 @@ pub trait WeightInfoExt: WeightInfo {
 	/// Returns weight that needs to be accounted when message of given size is sent (`send_message`).
 	fn send_message_size_overhead(message_size: u32) -> Weight {
 		let message_size_in_bytes = (256u64 + message_size as u64) / 256;
-		let byte_weight = (Self::send_16_kb_message_worst_case() - Self::send_1_kb_message_worst_case())
-			/ (15 * 1024);
+		let byte_weight = (Self::send_16_kb_message_worst_case() - Self::send_1_kb_message_worst_case()) / (15 * 1024);
 		message_size_in_bytes * byte_weight
 	}
 
@@ -192,20 +184,20 @@ pub trait WeightInfoExt: WeightInfo {
 	/// is less than that cost).
 	fn storage_proof_size_overhead(proof_size: u32) -> Weight {
 		let proof_size_in_bytes = proof_size as Weight;
-		let byte_weight = (Self::receive_single_message_proof_16_kb() - Self::receive_single_message_proof())
-			/ (15 * 1024);
+		let byte_weight =
+			(Self::receive_single_message_proof_16_kb() - Self::receive_single_message_proof()) / (15 * 1024);
 		proof_size_in_bytes * byte_weight
 	}
 }
 
-impl<T: WeightInfo> WeightInfoExt for T {
-	// TODO: remove me
-
-	fn expected_single_message_delivery_proof_size() -> u32 {
-		1024
+impl WeightInfoExt for () {
+	fn expected_extra_storage_proof_size() -> u32 {
+		bp_rialto::EXTRA_STORAGE_PROOF_SIZE
 	}
+}
 
-	fn expected_single_message_confirmation_proof_size() -> u32 {
-		1024
+impl<T: frame_system::Config> WeightInfoExt for crate::weights::RialtoWeight<T> {
+	fn expected_extra_storage_proof_size() -> u32 {
+		bp_rialto::EXTRA_STORAGE_PROOF_SIZE
 	}
 }

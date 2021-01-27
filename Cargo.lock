@@ -4262,6 +4262,7 @@ name = "pallet-message-lane"
 version = "0.1.0"
 dependencies = [
  "bp-message-lane",
+ "bp-rialto",
  "bp-runtime",
  "frame-benchmarking",
  "frame-support",

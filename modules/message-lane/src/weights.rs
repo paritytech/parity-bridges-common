@@ -36,12 +36,14 @@
 // --output=./modules/message-lane/src/weights.rs
 // --template=./.maintain/rialto-weight-template.hbs
 
-
 #![allow(clippy::all)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+	traits::Get,
+	weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_message_lane.
@@ -57,13 +59,13 @@ pub trait WeightInfo {
 	fn receive_delivery_proof_for_single_message() -> Weight;
 	fn receive_delivery_proof_for_two_messages_by_single_relayer() -> Weight;
 	fn receive_delivery_proof_for_two_messages_by_two_relayers() -> Weight;
-	fn send_messages_of_various_lengths(i: u32, ) -> Weight;
-	fn receive_multiple_messages_proof(i: u32, ) -> Weight;
-	fn receive_message_proofs_with_extra_nodes(i: u32, ) -> Weight;
-	fn receive_message_proofs_with_large_leaf(i: u32, ) -> Weight;
-	fn receive_multiple_messages_proof_with_outbound_lane_state(i: u32, ) -> Weight;
-	fn receive_delivery_proof_for_multiple_messages_by_single_relayer(i: u32, ) -> Weight;
-	fn receive_delivery_proof_for_multiple_messages_by_multiple_relayers(i: u32, ) -> Weight;
+	fn send_messages_of_various_lengths(i: u32) -> Weight;
+	fn receive_multiple_messages_proof(i: u32) -> Weight;
+	fn receive_message_proofs_with_extra_nodes(i: u32) -> Weight;
+	fn receive_message_proofs_with_large_leaf(i: u32) -> Weight;
+	fn receive_multiple_messages_proof_with_outbound_lane_state(i: u32) -> Weight;
+	fn receive_delivery_proof_for_multiple_messages_by_single_relayer(i: u32) -> Weight;
+	fn receive_delivery_proof_for_multiple_messages_by_multiple_relayers(i: u32) -> Weight;
 }
 
 /// Weights for pallet_message_lane using the Rialto node and recommended hardware.
@@ -124,44 +126,44 @@ impl<T: frame_system::Config> WeightInfo for RialtoWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(8 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
-	fn send_messages_of_various_lengths(i: u32, ) -> Weight {
+	fn send_messages_of_various_lengths(i: u32) -> Weight {
 		(77_300_000 as Weight)
 			.saturating_add((3_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
-	fn receive_multiple_messages_proof(i: u32, ) -> Weight {
+	fn receive_multiple_messages_proof(i: u32) -> Weight {
 		(0 as Weight)
 			.saturating_add((124_649_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn receive_message_proofs_with_extra_nodes(i: u32, ) -> Weight {
+	fn receive_message_proofs_with_extra_nodes(i: u32) -> Weight {
 		(456_258_000 as Weight)
 			.saturating_add((10_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn receive_message_proofs_with_large_leaf(i: u32, ) -> Weight {
+	fn receive_message_proofs_with_large_leaf(i: u32) -> Weight {
 		(112_698_000 as Weight)
 			.saturating_add((7_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn receive_multiple_messages_proof_with_outbound_lane_state(i: u32, ) -> Weight {
+	fn receive_multiple_messages_proof_with_outbound_lane_state(i: u32) -> Weight {
 		(0 as Weight)
 			.saturating_add((128_968_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn receive_delivery_proof_for_multiple_messages_by_single_relayer(i: u32, ) -> Weight {
+	fn receive_delivery_proof_for_multiple_messages_by_single_relayer(i: u32) -> Weight {
 		(108_619_000 as Weight)
 			.saturating_add((7_609_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().reads((1 as Weight).saturating_mul(i as Weight)))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
-	fn receive_delivery_proof_for_multiple_messages_by_multiple_relayers(i: u32, ) -> Weight {
+	fn receive_delivery_proof_for_multiple_messages_by_multiple_relayers(i: u32) -> Weight {
 		(72_748_000 as Weight)
 			.saturating_add((55_238_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
@@ -228,44 +230,44 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(8 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
 	}
-	fn send_messages_of_various_lengths(i: u32, ) -> Weight {
+	fn send_messages_of_various_lengths(i: u32) -> Weight {
 		(77_300_000 as Weight)
 			.saturating_add((3_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(12 as Weight))
 	}
-	fn receive_multiple_messages_proof(i: u32, ) -> Weight {
+	fn receive_multiple_messages_proof(i: u32) -> Weight {
 		(0 as Weight)
 			.saturating_add((124_649_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
-	fn receive_message_proofs_with_extra_nodes(i: u32, ) -> Weight {
+	fn receive_message_proofs_with_extra_nodes(i: u32) -> Weight {
 		(456_258_000 as Weight)
 			.saturating_add((10_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
-	fn receive_message_proofs_with_large_leaf(i: u32, ) -> Weight {
+	fn receive_message_proofs_with_large_leaf(i: u32) -> Weight {
 		(112_698_000 as Weight)
 			.saturating_add((7_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
-	fn receive_multiple_messages_proof_with_outbound_lane_state(i: u32, ) -> Weight {
+	fn receive_multiple_messages_proof_with_outbound_lane_state(i: u32) -> Weight {
 		(0 as Weight)
 			.saturating_add((128_968_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
-	fn receive_delivery_proof_for_multiple_messages_by_single_relayer(i: u32, ) -> Weight {
+	fn receive_delivery_proof_for_multiple_messages_by_single_relayer(i: u32) -> Weight {
 		(108_619_000 as Weight)
 			.saturating_add((7_609_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
 			.saturating_add(RocksDbWeight::get().reads((1 as Weight).saturating_mul(i as Weight)))
 			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
 	}
-	fn receive_delivery_proof_for_multiple_messages_by_multiple_relayers(i: u32, ) -> Weight {
+	fn receive_delivery_proof_for_multiple_messages_by_multiple_relayers(i: u32) -> Weight {
 		(72_748_000 as Weight)
 			.saturating_add((55_238_000 as Weight).saturating_mul(i as Weight))
 			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
