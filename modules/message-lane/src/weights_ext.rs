@@ -140,7 +140,7 @@ pub trait WeightInfoExt: WeightInfo {
 
 	/// Returns weight that needs to be accounted when message of given size is sent (`send_message`).
 	fn send_message_size_overhead(message_size: u32) -> Weight {
-		let message_size_in_bytes = (256u64 + message_size as u64) / 256;
+		let message_size_in_bytes = message_size;
 		let byte_weight = (Self::send_16_kb_message_worst_case() - Self::send_1_kb_message_worst_case()) / (15 * 1024);
 		message_size_in_bytes * byte_weight
 	}
