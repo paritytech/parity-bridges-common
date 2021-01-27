@@ -21,6 +21,7 @@
 use codec::Encode;
 use sp_core::hash::H256;
 use sp_io::hashing::blake2_256;
+use sp_std::convert::TryFrom;
 
 pub use chain::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 
@@ -103,4 +104,10 @@ pub trait Size {
 	/// This function should be lightweight. The result should not necessary be absolutely
 	/// accurate.
 	fn size_hint(&self) -> u32;
+}
+
+impl Size for usize {
+	fn size_hint(&self) -> u32 {
+		u32::try_from(*self).unwrap_or(u32::MAX)
+	}
 }
