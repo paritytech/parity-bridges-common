@@ -107,13 +107,14 @@ impl MessageBridge for WithMillauMessageBridge {
 	}
 
 	fn weight_of_delivery_transaction(message_payload: &[u8]) -> Weight {
+		let message_payload_len = u32::try_from(message_payload.len()).map(Into::into).unwrap_or(Weight::MAX);
+		let extra_bytes_in_payload = message_payload_len.saturating_sub(pallet_message_lane::EXPECTED_DEFAULT_MESSAGE_LENGTH.into());
 		messages::transaction_weight_without_multiplier(
 			bp_millau::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
-			u32::try_from(message_payload.len())
-				.map(Into::into)
-				.unwrap_or(Weight::MAX)
-				.saturating_add(bp_rialto::EXTRA_STORAGE_PROOF_SIZE as _),
-			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT,
+			message_payload_len.saturating_add(bp_rialto::EXTRA_STORAGE_PROOF_SIZE as _),
+			extra_bytes_in_payload
+				.saturating_mul(bp_millau::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT)
+				.saturating_add(bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT),
 		)
 	}
 

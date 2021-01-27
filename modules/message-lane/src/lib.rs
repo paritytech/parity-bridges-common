@@ -35,7 +35,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use crate::weights_ext::{ensure_weights_are_correct, WeightInfoExt};
+pub use crate::weights_ext::{EXPECTED_DEFAULT_MESSAGE_LENGTH, ensure_weights_are_correct, WeightInfoExt};
 
 use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};

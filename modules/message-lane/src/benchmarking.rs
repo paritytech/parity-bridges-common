@@ -17,7 +17,7 @@
 //! Message lane pallet benchmarking.
 
 use crate::{inbound_lane::InboundLaneStorage, inbound_lane_storage, outbound_lane, Call, Instance};
-use crate::weights_ext::DELIVERED_MESSAGE_SIZE;
+use crate::weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH;
 
 use bp_message_lane::{
 	source_chain::TargetHeaderChain, target_chain::SourceHeaderChain, InboundLaneData, LaneId, MessageData,
@@ -235,7 +235,7 @@ benchmarks_instance! {
 			lane: bench_lane_id(),
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
-			size: ProofSize::Minimal(DELIVERED_MESSAGE_SIZE),
+			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -266,7 +266,7 @@ benchmarks_instance! {
 			lane: bench_lane_id(),
 			message_nonces: 21..=22,
 			outbound_lane_data: None,
-			size: ProofSize::Minimal(DELIVERED_MESSAGE_SIZE),
+			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 2, dispatch_weight)
 	verify {
@@ -301,7 +301,7 @@ benchmarks_instance! {
 				latest_received_nonce: 20,
 				latest_generated_nonce: 21,
 			}),
-			size: ProofSize::Minimal(DELIVERED_MESSAGE_SIZE),
+			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -550,7 +550,7 @@ benchmarks_instance! {
 			lane: bench_lane_id(),
 			message_nonces: 21..=(20 + i as MessageNonce),
 			outbound_lane_data: None,
-			size: ProofSize::Minimal(DELIVERED_MESSAGE_SIZE),
+			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),

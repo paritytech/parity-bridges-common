@@ -886,7 +886,7 @@ impl_runtime_apis! {
 						MessageLaneProofSize::Minimal(ref size) => vec![0u8; *size as _],
 						_ => vec![],
 					};
-					let call = Call::System(SystemCall::remark(vec![]));
+					let call = Call::System(SystemCall::remark(remark));
 					let call_weight = call.get_dispatch_info().weight;
 
 					let millau_account_id: bp_millau::AccountId = Default::default();
@@ -1076,3 +1076,43 @@ mod tests {
 		});
 	}
 }
+/*
+
+TransactionCost = (BaseCost + PerByteCost + AdjustedPerByteCost) + DispatchCost
+
+DeliveryTransactionCost.DispatchCost = BaseDipspatchCost + OutboundStateDeliveryCost + MessagesDeliveryCost + MessagesDispatchWeight + ExtraProofCost.
+hardcoded:
+	BaseDipspatchCost
+	OutboundStateDeliveryCost
+	SingleMessageDeliveryCost
+	MessagesDispatchWeight
+from params:
+	MessagesDeliveryCost = messages_count * SingleMessageDeliveryCost
+	MessagesDispatchWeight
+	ExtraProofCost = Cost(ProofSize - ExpectedProofSize)
+		where
+			ProofSize = proof.size_hint()
+			ExpectedProofSize = EXTRA_STORAGE_PROOF_SIZE + messages_count * MESSAGE_SIZE_FROM_BENCHMARKS
+
+SingleMessageDeliveryCost = cost of adding another message of MESSAGE_SIZE_FROM_BENCHMARKS size to already existing proof (that includes EXTRA_STORAGE_PROOF_SIZE).
+
+
+
+
+We know approximate value of MessageProof.Size in SendTansactionCost, so
+
+DeliveryTransactionCost = 
+
+In message send transaction:
+1) we know exact message size, so we may charge submitter for
+
+
+
+1. single message proof size = message size + proof size overhead (what's called EXTRA_STORAGE_PROOF_SIZE in the code)
+2. submitter pays for "single message proof"
+
+If proof has several messages, then expected proof size = EXTRA_STORAGE_PROOF_SIZE + Sum(message size)
+
+3. relayer must pay everything above
+
+*/

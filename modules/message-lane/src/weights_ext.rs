@@ -23,7 +23,7 @@ use bp_runtime::Size;
 use frame_support::weights::Weight;
 
 /// Size of the message being delivered in benchmarks.
-pub const DELIVERED_MESSAGE_SIZE: u32 = 1024;
+pub const EXPECTED_DEFAULT_MESSAGE_LENGTH: u32 = 128;
 
 /// Ensure that weights from `WeightInfoExt` implementation are looking correct.
 pub fn ensure_weights_are_correct<W: WeightInfoExt>(
@@ -97,7 +97,7 @@ pub trait WeightInfoExt: WeightInfo {
 		let messages_dispatch_weight = dispatch_weight;
 
 		// proof size overhead weight
-		let expected_proof_size = DELIVERED_MESSAGE_SIZE
+		let expected_proof_size = EXPECTED_DEFAULT_MESSAGE_LENGTH
 			.saturating_mul(messages_count.saturating_sub(1))
 			.saturating_add(Self::expected_single_message_delivery_proof_size());
 		let actual_proof_size = proof.size_hint();
