@@ -382,11 +382,10 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>, sp_runtime::Dispa
 
 		let mut header_iter = headers.into_iter().peekable();
 		let first_header = header_iter.peek().ok_or(Error::<T>::NotDescendant)?;
-		let best_finalized = storage.best_finalized_header().header;
 
 		// Quick ancestry check to make sure we're not writing complete nonsense to storage
 		ensure!(
-			best_finalized.hash() == *first_header.parent_hash(),
+			<BestFinalized<T>>::get() == *first_header.parent_hash(),
 			Error::<T>::NotDescendant,
 		);
 
