@@ -729,13 +729,13 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, test_header, unfinalized_header, Origin, TestRuntime};
+	use crate::mock::{run_test, test_header, unfinalized_header, Origin, TestHeader, TestRuntime};
 	use bp_header_chain::HeaderChain;
 	use bp_test_utils::{alice, authority_list, bob};
 	use frame_support::{assert_noop, assert_ok};
 	use sp_runtime::DispatchError;
 
-	fn init_pallet() -> Result<(), DispatchError> {
+	fn init_with_origin(origin: Origin) -> Result<InitializationData<TestHeader>, DispatchError> {
 		let init_data = InitializationData {
 			header: test_header(1),
 			authority_list: authority_list(),
@@ -744,49 +744,29 @@ mod tests {
 			is_halted: false,
 		};
 
-		Module::<TestRuntime>::initialize(Origin::root(), init_data)
+		Module::<TestRuntime>::initialize(origin, init_data.clone()).map(|_| init_data)
 	}
 
 	#[test]
 	fn init_root_or_owner_origin_can_initialize_pallet() {
 		run_test(|| {
-			let init_data = InitializationData {
-				header: test_header(1),
-				authority_list: authority_list(),
-				set_id: 1,
-				scheduled_change: None,
-				is_halted: false,
-			};
-
-			assert_noop!(
-				Module::<TestRuntime>::initialize(Origin::signed(1), init_data.clone()),
-				DispatchError::BadOrigin,
-			);
-
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
+			assert_noop!(init_with_origin(Origin::signed(1)), DispatchError::BadOrigin);
+			assert_ok!(init_with_origin(Origin::root()));
 
 			// Reset storage so we can initialize the pallet again
 			BestFinalized::<TestRuntime>::kill();
 			ModuleOwner::<TestRuntime>::put(2);
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::signed(2), init_data));
+			assert_ok!(init_with_origin(Origin::signed(2)));
 		})
 	}
 
 	#[test]
 	fn init_storage_entries_are_correctly_initialized() {
 		run_test(|| {
-			let init_data = InitializationData {
-				header: test_header(1),
-				authority_list: authority_list(),
-				set_id: 1,
-				scheduled_change: None,
-				is_halted: false,
-			};
-
 			assert!(Module::<TestRuntime>::best_headers().is_empty());
 			assert_eq!(Module::<TestRuntime>::best_finalized(), test_header(0));
 
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
+			let init_data = init_with_origin(Origin::root()).unwrap();
 
 			let storage = PalletStorage::<TestRuntime>::new();
 			assert!(storage.header_exists(init_data.header.hash()));
@@ -806,17 +786,9 @@ mod tests {
 	#[test]
 	fn init_can_only_initialize_pallet_once() {
 		run_test(|| {
-			let init_data = InitializationData {
-				header: test_header(1),
-				authority_list: authority_list(),
-				set_id: 1,
-				scheduled_change: None,
-				is_halted: false,
-			};
-
-			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data.clone()));
+			assert_ok!(init_with_origin(Origin::root()));
 			assert_noop!(
-				Module::<TestRuntime>::initialize(Origin::root(), init_data),
+				init_with_origin(Origin::root()),
 				<Error<TestRuntime>>::AlreadyInitialized
 			);
 		})
@@ -949,7 +921,7 @@ mod tests {
 	#[test]
 	fn importing_unchecked_headers_works() {
 		run_test(|| {
-			init_pallet().unwrap();
+			init_with_origin(Origin::root()).unwrap();
 			let storage = PalletStorage::<TestRuntime>::new();
 
 			let child = test_header(2);
@@ -969,7 +941,7 @@ mod tests {
 	#[test]
 	fn prevents_unchecked_header_import_if_headers_are_unrelated() {
 		run_test(|| {
-			init_pallet().unwrap();
+			init_with_origin(Origin::root()).unwrap();
 
 			// Pallet is expecting test_header(2) as the child
 			let not_a_child = test_header(3);
@@ -985,7 +957,7 @@ mod tests {
 	#[test]
 	fn importing_unchecked_headers_enacts_new_authority_set() {
 		run_test(|| {
-			init_pallet().unwrap();
+			init_with_origin(Origin::root()).unwrap();
 			let storage = PalletStorage::<TestRuntime>::new();
 
 			let next_set_id = 2;
@@ -1014,7 +986,7 @@ mod tests {
 	#[test]
 	fn importing_unchecked_headers_enacts_new_authority_set_from_old_header() {
 		run_test(|| {
-			init_pallet().unwrap();
+			init_with_origin(Origin::root()).unwrap();
 			let storage = PalletStorage::<TestRuntime>::new();
 
 			let next_set_id = 2;
