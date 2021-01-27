@@ -607,5 +607,24 @@ mod tests {
 			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT,
 			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
 		);
+		
+		// TODO: expose function from bp_runtime_common
+		let max_incoming_message_size = bp_millau::max_extrinsic_size() / 3 * 2 + bp_millau::EXTRA_STORAGE_PROOF_SIZE;
+		let extra_incoming_message_size = (bp_millau::max_extrinsic_size() / 3 * 2)
+			.saturating_sub(pallet_message_lane::EXPECTED_DEFAULT_MESSAGE_LENGTH.into()) as u64;
+		pallet_message_lane::ensure_able_to_receive_messages::<pallet_message_lane::weights::RialtoWeight<Runtime>>(
+			bp_millau::max_extrinsic_size(),
+			bp_millau::max_extrinsic_weight(),
+			max_incoming_message_size,
+			bridge_runtime_common::messages::transaction_weight_without_multiplier(
+				bp_millau::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+				max_incoming_message_size as _,
+				extra_incoming_message_size
+					.saturating_mul(bp_millau::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT)
+					.saturating_add(bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT),
+			),
+			// TODO: expose function from bp_runtime_common
+			bp_millau::max_extrinsic_weight() / 2,
+		);
 	}
 }

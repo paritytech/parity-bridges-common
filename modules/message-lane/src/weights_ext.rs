@@ -30,14 +30,17 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 	expected_single_regular_message_delivery_tx_weight: Weight,
 	expected_messages_delivery_confirmation_tx_weight: Weight,
 ) {
+	// verify `send_message` weight components
 	assert_ne!(W::send_message_overhead(), 0);
 	assert_ne!(W::send_message_size_overhead(0), 0);
 
+	// verify `receive_messages_proof` weight components
 	assert_ne!(W::receive_messages_proof_overhead(), 0);
 	assert_ne!(W::receive_messages_proof_messages_overhead(1), 0);
 	assert_ne!(W::receive_messages_proof_outbound_lane_state_overhead(), 0);
 	assert_ne!(W::storage_proof_size_overhead(1), 0);
 
+	// verify that the hardcoded value covers `receive_messages_proof` weight
 	let actual_single_regular_message_delivery_tx_weight = W::receive_messages_proof_weight(
 		&((EXPECTED_DEFAULT_MESSAGE_LENGTH + W::expected_extra_storage_proof_size()) as usize),
 		1,
@@ -50,10 +53,13 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 		expected_single_regular_message_delivery_tx_weight,
 	);
 
+	// verify `receive_messages_delivery_proof` weight components
 	assert_ne!(W::receive_messages_delivery_proof_overhead(), 0);
 	assert_ne!(W::receive_messages_delivery_proof_messages_overhead(1), 0);
 	assert_ne!(W::receive_messages_delivery_proof_relayers_overhead(1), 0);
+	assert_ne!(W::storage_proof_size_overhead(1), 0);
 
+	// verify that the hardcoded value covers `receive_messages_delivery_proof` weight
 	let actual_messages_delivery_confirmation_tx_weight = W::receive_messages_delivery_proof_weight(
 		&(W::expected_extra_storage_proof_size() as usize),
 		&UnrewardedRelayersState {
@@ -67,6 +73,45 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 		"Messages delivery confirmation transaction weight {} is larger than expected weight {}",
 		actual_messages_delivery_confirmation_tx_weight,
 		expected_messages_delivery_confirmation_tx_weight,
+	);
+}
+
+/// Ensure that we're able to receive maximal messages from other chains.
+pub fn ensure_able_to_receive_messages<W: WeightInfoExt>(
+	max_extrinsic_size: u32,
+	max_extrinsic_weight: Weight,
+	max_incoming_message_proof_size: u32,
+	// This is a base weight (which includes cost of tx itself, per-byte cost, adjusted per-byte cost) of single
+	// message delivery transaction that brings `max_incoming_message_proof_size` proof.
+	max_incoming_message_proof_base_weight: Weight,
+	max_incoming_message_dispatch_weight: Weight,
+) {
+	// verify that we're able to receive proof of maximal-size message
+	// (the check assumes that all call arguments, except from `proof`, and all signed extensions would fit in 1KB)
+	const SIGNED_EXTENSIONS_SIZE: u32 = 1024;
+	let max_delivery_transaction_size = max_incoming_message_proof_size.saturating_add(SIGNED_EXTENSIONS_SIZE);
+	assert!(
+		max_delivery_transaction_size <= max_extrinsic_size,
+		"Size of maximal message delivery transaction {} + {} is larger than maximal possible transaction size {}",
+		max_incoming_message_proof_size,
+		SIGNED_EXTENSIONS_SIZE,
+		max_extrinsic_size,
+	);
+
+	// verify that we're able to receive proof of maximal-size message with maximal dispatch weight
+	let max_delivery_transaction_dispatch_weight = W::receive_messages_proof_weight(
+		&((max_incoming_message_proof_size + W::expected_extra_storage_proof_size()) as usize),
+		1,
+		max_incoming_message_dispatch_weight,
+	);
+	let max_delivery_transaction_weight = max_incoming_message_proof_base_weight
+		.saturating_add(max_delivery_transaction_dispatch_weight);
+	assert!(
+		max_delivery_transaction_weight <= max_extrinsic_weight,
+		"Weight of maximal message delivery transaction {} + {} is larger than maximal possible transaction size {}",
+		max_delivery_transaction_weight,
+		max_delivery_transaction_dispatch_weight,
+		max_extrinsic_weight,
 	);
 }
 
