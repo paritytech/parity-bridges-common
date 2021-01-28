@@ -185,6 +185,6 @@ fn derived_dave_account_is_as_expected() {
 	let derived: AccountId = derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(dave));
 	assert_eq!(
 		derived.to_string(),
-		"5H4H82RaZGACXNhntuWS4Sh3m7nwSojfU5QFTHQmnmi292gQ".to_string()
+		"5DNW6UVnb7TN6wX5KwXtDYR3Eccecbdzuw89HqjyNfkzce6J".to_string()
 	);
 }
