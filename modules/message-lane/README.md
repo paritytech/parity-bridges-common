@@ -1,6 +1,6 @@
 # Message Lane Module
 
-The Message Lane Module is used to deliver messages from source to target chain.
+The Message Lane Module is used to deliver messages from source to target chain. Message is (almost) opaque to the module and the final goal is to hand message to the message dispatch mechanism.
 
 ## Overview
 
@@ -28,15 +28,15 @@ The main assumptions behind weight formulas is:
 
 The weight formula is:
 ```
-Weight = BaseWeight + MessageSize * MessageByteSendWeight
+Weight = BaseWeight + MessageSizeInKilobytes * MessageKiloByteSendWeight
 ```
 
 Where:
 
-| Component               | How it is computed?                                                          | Description                                                                                                                                  |
-|-------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| `SendMessageOverhead`   | `send_minimal_message_worst_case`                                            | Weight of sending minimal (0 bytes) message                    |
-| `MessageByteSendWeight` | `(send_16_kb_message_worst_case - send_1_kb_message_worst_case)/(15 * 1024)` | Weight of sending every additional byte of the message |
+| Component                   | How it is computed?                                                          | Description                                                                                                                                  |
+|-----------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| `SendMessageOverhead`       | `send_minimal_message_worst_case`                                            | Weight of sending minimal (0 bytes) message                    |
+| `MessageKiloByteSendWeight` | `(send_16_kb_message_worst_case - send_1_kb_message_worst_case)/15` | Weight of sending every additional kilobyte of the message |
 
 ### Weight of `receive_messages_proof` call
 
@@ -95,3 +95,33 @@ Weight = BaseWeight + OutboundStateDeliveryWeight + MessageDeliveryWeight + Max(
 So we have `1/2` of maximal extrinsic weight to cover these components. `BaseWeight`, `OutboundStateDeliveryWeight` and `MessageDeliveryWeight` are determined using benchmarks and are hardcoded into runtime. Adequate relayer would only include required trie nodes into the proof. So if message size would be maximal (`2/3` of `MaximalExtrinsicSize`), then the extra proof size would be `MaximalExtrinsicSize / 3 * 2 - EXPECTED_DEFAULT_MESSAGE_LENGTH`.
 
 Both conditions are verified by `pallet_message_lane::ensure_weights_are_correct` and `pallet_message_lane::ensure_able_to_receive_messages` functions, which must be called from every runtime' tests.
+
+### Weight of `receive_messages_delivery_proof` call
+
+#### Related benchmarks
+
+| Benchmark                                                   | Description                                                                              |
+|-------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| `receive_delivery_proof_for_single_message`                 | Receives proof of single message delivery                                                |
+| `receive_delivery_proof_for_two_messages_by_single_relayer` | Receives proof of two messages delivery. Both messages are delivered by the same relayer |
+| `receive_delivery_proof_for_two_messages_by_two_relayers`   | Receives proof of two messages delivery. Messages are delivered by different relayers    |
+
+#### Weight formula
+
+The weight formula is:
+```
+Weight = BaseWeight + MessagesCount * MessageConfirmationWeight + RelayersCount * RelayerRewardWeight + Max(0, ActualProofSize - ExpectedProofSize) * ProofByteDeliveryWeight
+```
+
+Where:
+
+| Component                 | How it is computed?                                                                                                   | Description                                                                                                                                                                                             |
+|---------------------------|-----------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `BaseWeight`              | `2*receive_delivery_proof_for_single_message - receive_delivery_proof_for_two_messages_by_single_relayer`             | Weight of receiving and parsing minimal delivery proof                                                                                                                                                  |
+| `MessageDeliveryWeight`   | `receive_delivery_proof_for_two_messages_by_single_relayer - receive_delivery_proof_for_single_message`               | Weight of confirming every additional message                                                                                                                                                           |
+| `MessagesCount`           |                                                                                                                       | Provided by relayer                                                                                                                                                                                     |
+| `RelayerRewardWeight`     | `receive_delivery_proof_for_two_messages_by_two_relayers - receive_delivery_proof_for_two_messages_by_single_relayer` | Weight of rewarding every additional relayer                                                                                                                                                            |
+| `RelayersCount`           |                                                                                                                       | Provided by relayer                                                                                                                                                                                     |
+| `ActualProofSize`         |                                                                                                                       | Provided by relayer                                                                                                                                                                                     |
+| `ExpectedProofSize`       | `EXTRA_STORAGE_PROOF_SIZE`                                                                                            | Size of proof that we are expecting                                                                                                                                                                     |
+| `ProofByteDeliveryWeight` | `(receive_single_message_proof_16_kb - receive_single_message_proof_1_kb) / (15 * 1024)`                              | Weight of processing every additional proof byte over `ExpectedProofSize` limit. We're using the same formula, as for message delivery, because proof mechanism is assumed to be the same in both cases |
