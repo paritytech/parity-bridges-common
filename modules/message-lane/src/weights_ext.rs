@@ -104,8 +104,8 @@ pub fn ensure_able_to_receive_messages<W: WeightInfoExt>(
 		1,
 		max_incoming_message_dispatch_weight,
 	);
-	let max_delivery_transaction_weight = max_incoming_message_proof_base_weight
-		.saturating_add(max_delivery_transaction_dispatch_weight);
+	let max_delivery_transaction_weight =
+		max_incoming_message_proof_base_weight.saturating_add(max_delivery_transaction_dispatch_weight);
 	assert!(
 		max_delivery_transaction_weight <= max_extrinsic_weight,
 		"Weight of maximal message delivery transaction {} + {} is larger than maximal possible transaction size {}",
@@ -140,9 +140,8 @@ pub trait WeightInfoExt: WeightInfo {
 		// basic components of extrinsic weight
 		let transaction_overhead = Self::receive_messages_proof_overhead();
 		let outbound_state_delivery_weight = Self::receive_messages_proof_outbound_lane_state_overhead();
-		let messages_delivery_weight = Self::receive_messages_proof_messages_overhead(
-			MessageNonce::from(messages_count)
-		);
+		let messages_delivery_weight =
+			Self::receive_messages_proof_messages_overhead(MessageNonce::from(messages_count));
 		let messages_dispatch_weight = dispatch_weight;
 
 		// proof size overhead weight
@@ -169,8 +168,10 @@ pub trait WeightInfoExt: WeightInfo {
 			Self::receive_messages_delivery_proof_relayers_overhead(relayers_state.unrewarded_relayer_entries);
 
 		// proof size overhead weight
+		let expected_proof_size = Self::expected_extra_storage_proof_size();
 		let actual_proof_size = proof.size_hint();
-		let proof_size_overhead = Self::storage_proof_size_overhead(actual_proof_size);
+		let proof_size_overhead =
+			Self::storage_proof_size_overhead(actual_proof_size.saturating_sub(expected_proof_size));
 
 		transaction_overhead
 			.saturating_add(messages_overhead)
