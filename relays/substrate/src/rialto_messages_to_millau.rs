@@ -16,7 +16,7 @@
 
 //! Rialto-to-Millau messages sync entrypoint.
 
-use crate::messages_lane::{SubstrateMessageLane, SubstrateMessageLaneToSubstrate};
+use crate::messages_lane::{select_delivery_transaction_limits, SubstrateMessageLane, SubstrateMessageLaneToSubstrate};
 use crate::messages_source::SubstrateMessagesSource;
 use crate::messages_target::SubstrateMessagesTarget;
 use crate::{MillauClient, RialtoClient};
@@ -81,7 +81,7 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 		let call = millau_runtime::MessageLaneCall::receive_messages_proof(
 			self.relayer_id_at_source.clone(),
 			proof,
-			messages_count,
+			messages_count as _,
 			dispatch_weight,
 		)
 		.into();
@@ -105,7 +105,6 @@ pub fn run(
 	lane_id: LaneId,
 	metrics_params: Option<MetricsParams>,
 ) {
-	let reconnect_delay = Duration::from_secs(10);
 	let stall_timeout = Duration::from_secs(5 * 60);
 	let relayer_id_at_rialto = rialto_sign.signer.public().as_array_ref().clone().into();
 
@@ -123,20 +122,18 @@ pub fn run(
 		lane.relayer_id_at_source,
 	);
 
-	// TODO: these two parameters need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
-	// the rough idea is to reserve some portion (1/3?) of max extrinsic weight for delivery tx overhead + messages
-	// overhead
-	// this must be tuned mostly with `max_messages_in_single_batch`, but `max_messages_weight_in_single_batch` also
-	// needs to be updated (subtract tx overhead)
-	let max_messages_in_single_batch = 1024;
-	let max_messages_weight_in_single_batch = bp_rialto::max_extrinsic_weight();
+	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
+		select_delivery_transaction_limits::<pallet_message_lane::weights::RialtoWeight<rialto_runtime::Runtime>>(
+			bp_rialto::max_extrinsic_weight(),
+			bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
+		);
 
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
 			lane: lane_id,
 			source_tick: Rialto::AVERAGE_BLOCK_INTERVAL,
 			target_tick: Millau::AVERAGE_BLOCK_INTERVAL,
-			reconnect_delay,
+			reconnect_delay: relay_utils::relay_loop::RECONNECT_DELAY,
 			stall_timeout,
 			delivery_params: messages_relay::message_lane_loop::MessageDeliveryParams {
 				max_unrewarded_relayer_entries_at_target: bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,

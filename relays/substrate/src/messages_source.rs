@@ -32,7 +32,7 @@ use messages_relay::{
 	},
 };
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf};
-use relay_utils::{BlockNumberBase, HeaderId};
+use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
 use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
 use sp_trie::StorageProof;
@@ -75,6 +75,15 @@ impl<C: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesSource<C, P> 
 }
 
 #[async_trait]
+impl<C: Chain, P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<C, P> {
+	type Error = SubstrateError;
+
+	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
+		self.client.reconnect().await
+	}
+}
+
+#[async_trait]
 impl<C, P> SourceClient<P> for SubstrateMessagesSource<C, P>
 where
 	C: Chain,
@@ -89,15 +98,7 @@ where
 	P::TargetHeaderNumber: Decode,
 	P::TargetHeaderHash: Decode,
 {
-	type Error = SubstrateError;
-
-	async fn reconnect(mut self) -> Result<Self, Self::Error> {
-		let new_client = self.client.clone().reconnect().await?;
-		self.client = new_client;
-		Ok(self)
-	}
-
-	async fn state(&self) -> Result<SourceClientState<P>, Self::Error> {
+	async fn state(&self) -> Result<SourceClientState<P>, SubstrateError> {
 		// we can't continue to deliver confirmations if source node is out of sync, because
 		// it may have already received confirmations that we're going to deliver
 		self.client.ensure_synced().await?;
@@ -112,7 +113,7 @@ where
 	async fn latest_generated_nonce(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -129,7 +130,7 @@ where
 	async fn latest_confirmed_received_nonce(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -147,7 +148,7 @@ where
 		&self,
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Result<MessageWeightsMap, Self::Error> {
+	) -> Result<MessageWeightsMap, SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -168,7 +169,7 @@ where
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
 		proof_parameters: MessageProofParameters,
-	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), SubstrateError> {
 		let proof = self
 			.client
 			.prove_messages(
@@ -187,7 +188,7 @@ where
 		&self,
 		generated_at_block: TargetHeaderIdOf<P>,
 		proof: P::MessagesReceivingProof,
-	) -> Result<(), Self::Error> {
+	) -> Result<(), SubstrateError> {
 		let tx = self
 			.lane
 			.make_messages_receiving_proof_transaction(generated_at_block, proof)

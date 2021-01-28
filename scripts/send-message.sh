@@ -15,7 +15,6 @@ case "$1" in
 			--millau-signer //Dave \
 			--rialto-signer //Dave \
 			--lane 00000000 \
-			--fee 100000000 \
 			--origin Target \
 			remark \
 		;;
@@ -27,7 +26,6 @@ case "$1" in
 			--millau-signer //Dave \
 			--rialto-signer //Dave \
 			--lane 00000000 \
-			--fee 1000000000 \
 			--origin Target \
 			transfer \
 			--amount 100000000000000 \

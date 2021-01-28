@@ -81,6 +81,20 @@ impl<P: SubstrateHeadersSyncPipeline, SourceChain, TargetChain: Chain>
 }
 
 #[async_trait]
+impl<P: SubstrateHeadersSyncPipeline, SourceChain, TargetChain: Chain> Clone
+	for SubstrateHeadersToSubstrateMaintain<P, SourceChain, TargetChain>
+{
+	fn clone(&self) -> Self {
+		SubstrateHeadersToSubstrateMaintain {
+			pipeline: self.pipeline.clone(),
+			target_client: self.target_client.clone(),
+			justifications: self.justifications.clone(),
+			_marker: Default::default(),
+		}
+	}
+}
+
+#[async_trait]
 impl<P, SourceChain, TargetChain> SyncMaintain<P> for SubstrateHeadersToSubstrateMaintain<P, SourceChain, TargetChain>
 where
 	SourceChain: Chain,
@@ -190,7 +204,7 @@ where
 			};
 
 			// decode justification target
-			let target = pallet_substrate_bridge::decode_justification_target::<SourceHeader>(&justification);
+			let target = bp_header_chain::justification::decode_justification_target::<SourceHeader>(&justification);
 			let target = match target {
 				Ok((target_hash, target_number)) => HeaderId(target_number.into(), target_hash.into()),
 				Err(error) => {

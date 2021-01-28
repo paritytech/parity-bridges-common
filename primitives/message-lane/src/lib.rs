@@ -74,31 +74,62 @@ pub struct Message<Fee> {
 /// Inbound lane data.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct InboundLaneData<RelayerId> {
-	/// Identifiers of relayers and messages that they have delivered (ordered by message nonce).
-	/// It is guaranteed to have at most N entries, where N is configured at module level. If
-	/// there are N entries in this vec, then:
+	/// Identifiers of relayers and messages that they have delivered to this lane (ordered by message nonce).
+	///
+	/// This serves as a helper storage item, to allow the source chain to easily pay rewards
+	/// to the relayers who succesfuly delivered messages to the target chain (inbound lane).
+	///
+	/// It is guaranteed to have at most N entries, where N is configured at the module level.
+	/// If there are N entries in this vec, then:
 	/// 1) all incoming messages are rejected if they're missing corresponding `proof-of(outbound-lane.state)`;
-	/// 2) all incoming messages are rejected if `proof-of(outbound-lane.state).latest_received_nonce` is
-	///    equal to `this.latest_confirmed_nonce`.
-	/// Given what is said above, all nonces in this queue are in range (latest_confirmed_nonce; latest_received_nonce].
+	/// 2) all incoming messages are rejected if `proof-of(outbound-lane.state).last_delivered_nonce` is
+	///    equal to `self.last_confirmed_nonce`.
+	/// Given what is said above, all nonces in this queue are in range:
+	/// `(self.last_confirmed_nonce; self.last_delivered_nonce()]`.
 	///
 	/// When a relayer sends a single message, both of MessageNonces are the same.
 	/// When relayer sends messages in a batch, the first arg is the lowest nonce, second arg the highest nonce.
-	/// Multiple dispatches from the same relayer one are allowed.
+	/// Multiple dispatches from the same relayer are allowed.
 	pub relayers: VecDeque<(MessageNonce, MessageNonce, RelayerId)>,
-	/// Nonce of latest message that we have received from bridged chain.
-	pub latest_received_nonce: MessageNonce,
-	/// Nonce of latest message that has been confirmed to the bridged chain.
-	pub latest_confirmed_nonce: MessageNonce,
+
+	/// Nonce of the last message that
+	/// a) has been delivered to the target (this) chain and
+	/// b) the delivery has been confirmed on the source chain
+	///
+	/// that the target chain knows of.
+	///
+	/// This value is updated indirectly when an `OutboundLane` state of the source
+	/// chain is received alongside with new messages delivery.
+	pub last_confirmed_nonce: MessageNonce,
 }
 
 impl<RelayerId> Default for InboundLaneData<RelayerId> {
 	fn default() -> Self {
 		InboundLaneData {
 			relayers: VecDeque::new(),
-			latest_received_nonce: 0,
-			latest_confirmed_nonce: 0,
+			last_confirmed_nonce: 0,
 		}
+	}
+}
+
+impl<RelayerId> InboundLaneData<RelayerId> {
+	/// Returns approximate size of the struct, given number of entries in the `relayers` set and
+	/// size of each entry.
+	///
+	/// Returns `None` if size overflows `u32` limits.
+	pub fn encoded_size_hint(relayer_id_encoded_size: u32, relayers_entries: u32) -> Option<u32> {
+		let message_nonce_size = 8;
+		let relayers_entry_size = relayer_id_encoded_size.checked_add(2 * message_nonce_size)?;
+		let relayers_size = relayers_entries.checked_mul(relayers_entry_size)?;
+		relayers_size.checked_add(message_nonce_size)
+	}
+
+	/// Nonce of the last message that has been delivered to this (target) chain.
+	pub fn last_delivered_nonce(&self) -> MessageNonce {
+		self.relayers
+			.back()
+			.map(|(_, last_nonce, _)| *last_nonce)
+			.unwrap_or(self.last_confirmed_nonce)
 	}
 }
 
@@ -138,11 +169,54 @@ impl Default for OutboundLaneData {
 }
 
 /// Returns total number of messages in the `InboundLaneData::relayers` vector.
+///
+/// Returns `None` if there are more messages that `MessageNonce` may fit (i.e. `MessageNonce + 1`).
 pub fn total_unrewarded_messages<RelayerId>(
 	relayers: &VecDeque<(MessageNonce, MessageNonce, RelayerId)>,
-) -> MessageNonce {
+) -> Option<MessageNonce> {
 	match (relayers.front(), relayers.back()) {
-		(Some((begin, _, _)), Some((_, end, _))) => end.checked_sub(*begin).and_then(|d| d.checked_add(1)).unwrap_or(0),
-		_ => 0,
+		(Some((begin, _, _)), Some((_, end, _))) => {
+			if let Some(difference) = end.checked_sub(*begin) {
+				difference.checked_add(1)
+			} else {
+				Some(0)
+			}
+		}
+		_ => Some(0),
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn total_unrewarded_messages_does_not_overflow() {
+		assert_eq!(
+			total_unrewarded_messages(
+				&vec![(0, 0, 1), (MessageNonce::MAX, MessageNonce::MAX, 2)]
+					.into_iter()
+					.collect()
+			),
+			None,
+		);
+	}
+
+	#[test]
+	fn inbound_lane_data_returns_correct_hint() {
+		let expected_size = InboundLaneData::<u8>::encoded_size_hint(1, 13);
+		let actual_size = InboundLaneData {
+			relayers: (1u8..=13u8).map(|i| (i as _, i as _, i)).collect(),
+			last_confirmed_nonce: 13,
+		}
+		.encode()
+		.len();
+		let difference = (expected_size.unwrap() as f64 - actual_size as f64).abs();
+		assert!(
+			difference / (std::cmp::min(actual_size, expected_size.unwrap() as usize) as f64) < 0.1,
+			"Too large difference between actual ({}) and expected ({:?}) inbound lane data size",
+			actual_size,
+			expected_size,
+		);
 	}
 }

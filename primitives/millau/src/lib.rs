@@ -26,7 +26,7 @@ use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, Weight},
-	RuntimeDebug,
+	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
 use sp_core::Hasher as HasherT;
@@ -42,6 +42,14 @@ use sp_trie::{trie_types::Layout, TrieConfiguration};
 use serde::{Deserialize, Serialize};
 
 pub use millau_hash::MillauHash;
+
+/// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
+/// Millau chain. This mostly depends on number of entries (and their density) in the storage trie.
+/// Some reserve is reserved to account future chain growth.
+pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
+
+/// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
+pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 
 /// Maximum weight of single Millau block.
 ///
@@ -60,6 +68,20 @@ pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 1024;
 
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 1024;
+
+/// Maximal weight of single message delivery transaction on Millau chain.
+///
+/// This value is a result of `pallet_message_lane::Module::receive_messages_proof` weight formula computation
+/// for the case when single message is delivered. The result then must be rounded up to account possible future
+/// runtime upgrades.
+pub const MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_500_000_000;
+
+/// Maximal weight of single message delivery confirmation transaction on Millau chain.
+///
+/// This value is a result of `pallet_message_lane::Module::receive_messages_delivery_proof` weight formula computation
+/// for the case when single message is confirmed. The result then must be rounded up to account possible future
+/// runtime upgrades.
+pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = 2_000_000_000;
 
 /// Block number type used in Millau.
 pub type BlockNumber = u64;
@@ -191,6 +213,9 @@ pub const IS_KNOWN_MILLAU_BLOCK_METHOD: &str = "MillauHeaderApi_is_known_block";
 /// Name of the `MillauHeaderApi::incomplete_headers` runtime method.
 pub const INCOMPLETE_MILLAU_HEADERS_METHOD: &str = "MillauHeaderApi_incomplete_headers";
 
+/// Name of the `ToMillauOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
+pub const TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD: &str =
+	"ToMillauOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToMillauOutboundLaneApi::messages_dispatch_weight` runtime method.
 pub const TO_MILLAU_MESSAGES_DISPATCH_WEIGHT_METHOD: &str = "ToMillauOutboundLaneApi_messages_dispatch_weight";
 /// Name of the `ToMillauOutboundLaneApi::latest_received_nonce` runtime method.
@@ -235,7 +260,20 @@ sp_api::decl_runtime_apis! {
 	///
 	/// This API is implemented by runtimes that are sending messages to Millau chain, not the
 	/// Millau runtime itself.
-	pub trait ToMillauOutboundLaneApi {
+	pub trait ToMillauOutboundLaneApi<OutboundMessageFee: Parameter, OutboundPayload: Parameter> {
+		/// Estimate message delivery and dispatch fee that needs to be paid by the sender on
+		/// this chain.
+		///
+		/// Returns `None` if message is too expensive to be sent to Millau from this chain.
+		///
+		/// Please keep in mind that this method returns lowest message fee required for message
+		/// to be accepted to the lane. It may be good idea to pay a bit over this price to account
+		/// future exchange rate changes and guarantee that relayer would deliver your message
+		/// to the target chain.
+		fn estimate_message_delivery_and_dispatch_fee(
+			lane_id: LaneId,
+			payload: OutboundPayload,
+		) -> Option<OutboundMessageFee>;
 		/// Returns total dispatch weight and encoded payload size of all messages in given inclusive range.
 		///
 		/// If some (or all) messages are missing from the storage, they'll also will
@@ -262,5 +300,21 @@ sp_api::decl_runtime_apis! {
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
 		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use sp_runtime::codec::Encode;
+
+	#[test]
+	fn maximal_account_size_does_not_overflow_constant() {
+		assert!(
+			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE as usize >= AccountId::default().encode().len(),
+			"Actual maximal size of encoded AccountId ({}) overflows expected ({})",
+			AccountId::default().encode().len(),
+			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+		);
 	}
 }

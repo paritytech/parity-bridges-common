@@ -18,13 +18,13 @@
 
 #![warn(missing_docs)]
 
-use codec::Encode;
+use codec::{Decode, Encode};
 use frame_support::weights::GetDispatchInfo;
 use pallet_bridge_call_dispatch::{CallOrigin, MessagePayload};
 use relay_kusama_client::Kusama;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
-use relay_substrate_client::{ConnectionParams, TransactionSignScheme};
+use relay_substrate_client::{Chain, ConnectionParams, TransactionSignScheme};
 use relay_utils::initialize::initialize_relay;
 use sp_core::{Bytes, Pair};
 use sp_runtime::traits::IdentifyAccount;
@@ -297,10 +297,13 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					call: rialto_call.encode(),
 				},
 				cli::Origins::Target => {
-					let mut rialto_origin_signature_message = Vec::new();
-					rialto_call.encode_to(&mut rialto_origin_signature_message);
-					millau_account_id.encode_to(&mut rialto_origin_signature_message);
-					let rialto_origin_signature = rialto_sign.signer.sign(&rialto_origin_signature_message);
+					let digest = millau_runtime::rialto_account_ownership_digest(
+						&rialto_call,
+						millau_account_id.clone(),
+						rialto_runtime::VERSION.spec_version,
+					);
+
+					let digest_signature = rialto_sign.signer.sign(&digest);
 
 					MessagePayload {
 						spec_version: rialto_runtime::VERSION.spec_version,
@@ -308,15 +311,34 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 						origin: CallOrigin::TargetAccount(
 							millau_account_id,
 							rialto_origin_public.into(),
-							rialto_origin_signature.into(),
+							digest_signature.into(),
 						),
 						call: rialto_call.encode(),
 					}
 				}
 			};
 
+			let lane = lane.into();
+			let fee = match fee {
+				Some(fee) => fee,
+				None => match estimate_message_delivery_and_dispatch_fee(
+					&millau_client,
+					bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
+					lane,
+					payload.clone(),
+				)
+				.await
+				{
+					Ok(Some(fee)) => fee,
+					Ok(None) => return Err("Failed to estimate message fee. Message is too heavy?".into()),
+					Err(error) => return Err(format!("Failed to estimate message fee: {:?}", error)),
+				},
+			};
+
+			log::info!(target: "bridge", "Sending message to Rialto. Fee: {}", fee);
+
 			let millau_call = millau_runtime::Call::BridgeRialtoMessageLane(
-				millau_runtime::MessageLaneCall::send_message(lane.into(), payload, fee),
+				millau_runtime::MessageLaneCall::send_message(lane, payload, fee),
 			);
 
 			let signed_millau_call = Millau::sign_transaction(
@@ -426,10 +448,13 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					call: millau_call.encode(),
 				},
 				cli::Origins::Target => {
-					let mut millau_origin_signature_message = Vec::new();
-					millau_call.encode_to(&mut millau_origin_signature_message);
-					rialto_account_id.encode_to(&mut millau_origin_signature_message);
-					let millau_origin_signature = millau_sign.signer.sign(&millau_origin_signature_message);
+					let digest = rialto_runtime::millau_account_ownership_digest(
+						&millau_call,
+						rialto_account_id.clone(),
+						millau_runtime::VERSION.spec_version,
+					);
+
+					let digest_signature = millau_sign.signer.sign(&digest);
 
 					MessagePayload {
 						spec_version: millau_runtime::VERSION.spec_version,
@@ -437,15 +462,34 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 						origin: CallOrigin::TargetAccount(
 							rialto_account_id,
 							millau_origin_public.into(),
-							millau_origin_signature.into(),
+							digest_signature.into(),
 						),
 						call: millau_call.encode(),
 					}
 				}
 			};
 
+			let lane = lane.into();
+			let fee = match fee {
+				Some(fee) => fee,
+				None => match estimate_message_delivery_and_dispatch_fee(
+					&rialto_client,
+					bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
+					lane,
+					payload.clone(),
+				)
+				.await
+				{
+					Ok(Some(fee)) => fee,
+					Ok(None) => return Err("Failed to estimate message fee. Message is too heavy?".into()),
+					Err(error) => return Err(format!("Failed to estimate message fee: {:?}", error)),
+				},
+			};
+
+			log::info!(target: "bridge", "Sending message to Millau. Fee: {}", fee);
+
 			let rialto_call = rialto_runtime::Call::BridgeMillauMessageLane(
-				rialto_runtime::MessageLaneCall::send_message(lane.into(), payload, fee),
+				rialto_runtime::MessageLaneCall::send_message(lane, payload, fee),
 			);
 
 			let signed_rialto_call = Rialto::sign_transaction(
@@ -464,4 +508,66 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 	}
 
 	Ok(())
+}
+
+async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: Encode>(
+	client: &relay_substrate_client::Client<C>,
+	estimate_fee_method: &str,
+	lane: bp_message_lane::LaneId,
+	payload: P,
+) -> Result<Option<Fee>, relay_substrate_client::Error> {
+	let encoded_response = client
+		.state_call(estimate_fee_method.into(), (lane, payload).encode().into(), None)
+		.await?;
+	let decoded_response: Option<Fee> =
+		Decode::decode(&mut &encoded_response.0[..]).map_err(relay_substrate_client::Error::ResponseParseFailed)?;
+	Ok(decoded_response)
+}
+
+#[cfg(test)]
+mod tests {
+	use sp_core::Pair;
+	use sp_runtime::traits::{IdentifyAccount, Verify};
+
+	#[test]
+	fn millau_signature_is_valid_on_rialto() {
+		let millau_sign = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
+
+		let call = rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(vec![]));
+
+		let millau_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
+		let millau_account_id: bp_millau::AccountId = millau_public.into_account();
+
+		let digest = millau_runtime::rialto_account_ownership_digest(
+			&call,
+			millau_account_id,
+			rialto_runtime::VERSION.spec_version,
+		);
+
+		let rialto_signer = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
+		let signature = rialto_signer.signer.sign(&digest);
+
+		assert!(signature.verify(&digest[..], &rialto_signer.signer.public()));
+	}
+
+	#[test]
+	fn rialto_signature_is_valid_on_millau() {
+		let rialto_sign = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
+
+		let call = millau_runtime::Call::System(millau_runtime::SystemCall::remark(vec![]));
+
+		let rialto_public: bp_rialto::AccountSigner = rialto_sign.signer.public().clone().into();
+		let rialto_account_id: bp_rialto::AccountId = rialto_public.into_account();
+
+		let digest = rialto_runtime::millau_account_ownership_digest(
+			&call,
+			rialto_account_id,
+			millau_runtime::VERSION.spec_version,
+		);
+
+		let millau_signer = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
+		let signature = millau_signer.signer.sign(&digest);
+
+		assert!(signature.verify(&digest[..], &millau_signer.signer.public()));
+	}
 }
