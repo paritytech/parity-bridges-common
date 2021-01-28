@@ -40,7 +40,7 @@ pub enum ProofSize {
 	/// The proof is expected to be minimal.
 	Minimal,
 	/// The proof is expected to have at least given size and grow by increasing number of trie nodes
-	/// included in the prof.
+	/// included in the proof.
 	HasExtraNodes(u32),
 	/// The proof is expected to have at least given size and grow by increasing value that is stored
 	/// in the trie.
