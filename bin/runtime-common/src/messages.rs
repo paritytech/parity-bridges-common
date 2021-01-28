@@ -218,7 +218,7 @@ pub mod source {
 
 	/// Return maximal message size of This -> Bridged chain message.
 	pub fn maximal_message_size<B: MessageBridge>() -> u32 {
-		B::maximal_extrinsic_size_on_target_chain() / 3 * 2
+		super::target::maximal_incoming_message_size(B::maximal_extrinsic_size_on_target_chain())
 	}
 
 	/// Do basic Bridged-chain specific verification of This -> Bridged chain message.
@@ -431,6 +431,16 @@ pub mod target {
 				);
 			}
 		}
+	}
+
+	/// Return maximal dispatch weight of the message we're able to receive.
+	pub fn maximal_incoming_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
+		maximal_extrinsic_weight / 2
+	}
+
+	/// Return maximal message size given maximal extrinsic size.
+	pub fn maximal_incoming_message_size(maximal_extrinsic_size: u32) -> u32 {
+		maximal_extrinsic_size / 3 * 2
 	}
 
 	/// Verify proof of Bridged -> This chain messages.

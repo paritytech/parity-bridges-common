@@ -129,8 +129,8 @@ pub fn ensure_able_to_receive_confirmation<W: WeightInfoExt>(
 	max_incoming_delivery_proof_base_weight: Weight,
 ) {
 	// verify that we're able to receive confirmation of maximal-size
-	let max_confirmation_transaction_size = max_inbound_lane_data_proof_size_from_peer_chain
-		.saturating_add(SIGNED_EXTENSIONS_SIZE);
+	let max_confirmation_transaction_size =
+		max_inbound_lane_data_proof_size_from_peer_chain.saturating_add(SIGNED_EXTENSIONS_SIZE);
 	assert!(
 		max_confirmation_transaction_size <= max_extrinsic_size,
 		"Size of maximal message delivery confirmation transaction {} + {} is larger than maximal possible transaction size {}",

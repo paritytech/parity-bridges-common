@@ -94,7 +94,7 @@ impl MessageBridge for WithMillauMessageBridge {
 
 	fn weight_limits_of_message_on_bridged_chain(message_payload: &[u8]) -> RangeInclusive<Weight> {
 		// we don't want to relay too large messages + keep reserve for future upgrades
-		let upper_limit = bp_millau::max_extrinsic_weight() / 2;
+		let upper_limit = messages::target::maximal_incoming_message_dispatch_weight(bp_millau::max_extrinsic_weight());
 
 		// given Millau chain parameters (`TransactionByteFee`, `WeightToFee`, `FeeMultiplierUpdate`),
 		// the minimal weight of the message may be computed as message.length()
