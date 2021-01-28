@@ -125,3 +125,9 @@ Where:
 | `ActualProofSize`         |                                                                                                                       | Provided by relayer                                                                                                                                                                                     |
 | `ExpectedProofSize`       | `EXTRA_STORAGE_PROOF_SIZE`                                                                                            | Size of proof that we are expecting                                                                                                                                                                     |
 | `ProofByteDeliveryWeight` | `(receive_single_message_proof_16_kb - receive_single_message_proof_1_kb) / (15 * 1024)`                              | Weight of processing every additional proof byte over `ExpectedProofSize` limit. We're using the same formula, as for message delivery, because proof mechanism is assumed to be the same in both cases |
+
+#### Why we're always able to craft `receive_messages_delivery_proof` transaction?
+
+There can be at most `<PeerRuntime as pallet_message_lane::Config>::MaxUnconfirmedMessagesAtInboundLane` messages and at most `<PeerRuntime as pallet_message_lane::Config>::MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers in the single delivery confirmation transaction.
+
+We're checking that this transaction may be crafted in the `pallet_message_lane::ensure_able_to_receive_confirmation` function, which must be called from every runtime' tests.

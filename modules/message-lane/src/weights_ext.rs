@@ -25,6 +25,10 @@ use frame_support::weights::Weight;
 /// Size of the message being delivered in benchmarks.
 pub const EXPECTED_DEFAULT_MESSAGE_LENGTH: u32 = 128;
 
+/// We assume that size of signed extensions on all our chains and size of all 'small' arguments of calls
+/// we're checking here would fit 1KB.
+const SIGNED_EXTENSIONS_SIZE: u32 = 1024;
+
 /// Ensure that weights from `WeightInfoExt` implementation are looking correct.
 pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 	expected_single_regular_message_delivery_tx_weight: Weight,
@@ -76,8 +80,8 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 	);
 }
 
-/// Ensure that we're able to receive maximal messages from other chains.
-pub fn ensure_able_to_receive_messages<W: WeightInfoExt>(
+/// Ensure that we're able to receive maximal (by-size and by-weight) message from other chain.
+pub fn ensure_able_to_receive_message<W: WeightInfoExt>(
 	max_extrinsic_size: u32,
 	max_extrinsic_weight: Weight,
 	max_incoming_message_proof_size: u32,
@@ -87,8 +91,6 @@ pub fn ensure_able_to_receive_messages<W: WeightInfoExt>(
 	max_incoming_message_dispatch_weight: Weight,
 ) {
 	// verify that we're able to receive proof of maximal-size message
-	// (the check assumes that all call arguments, except from `proof`, and all signed extensions would fit in 1KB)
-	const SIGNED_EXTENSIONS_SIZE: u32 = 1024;
 	let max_delivery_transaction_size = max_incoming_message_proof_size.saturating_add(SIGNED_EXTENSIONS_SIZE);
 	assert!(
 		max_delivery_transaction_size <= max_extrinsic_size,
@@ -108,9 +110,51 @@ pub fn ensure_able_to_receive_messages<W: WeightInfoExt>(
 		max_incoming_message_proof_base_weight.saturating_add(max_delivery_transaction_dispatch_weight);
 	assert!(
 		max_delivery_transaction_weight <= max_extrinsic_weight,
-		"Weight of maximal message delivery transaction {} + {} is larger than maximal possible transaction size {}",
+		"Weight of maximal message delivery transaction {} + {} is larger than maximal possible transaction weight {}",
 		max_delivery_transaction_weight,
 		max_delivery_transaction_dispatch_weight,
+		max_extrinsic_weight,
+	);
+}
+
+/// Ensure that we're able to receive maximal confirmation from other chain.
+pub fn ensure_able_to_receive_confirmation<W: WeightInfoExt>(
+	max_extrinsic_size: u32,
+	max_extrinsic_weight: Weight,
+	max_inbound_lane_data_proof_size_from_peer_chain: u32,
+	max_unrewarded_relayer_entries_at_peer_inbound_lane: MessageNonce,
+	max_unconfirmed_messages_at_inbound_lane: MessageNonce,
+	// This is a base weight (which includes cost of tx itself, per-byte cost, adjusted per-byte cost) of single
+	// confirmation transaction that brings `max_inbound_lane_data_proof_size_from_peer_chain` proof.
+	max_incoming_delivery_proof_base_weight: Weight,
+) {
+	// verify that we're able to receive confirmation of maximal-size
+	let max_confirmation_transaction_size = max_inbound_lane_data_proof_size_from_peer_chain
+		.saturating_add(SIGNED_EXTENSIONS_SIZE);
+	assert!(
+		max_confirmation_transaction_size <= max_extrinsic_size,
+		"Size of maximal message delivery confirmation transaction {} + {} is larger than maximal possible transaction size {}",
+		max_inbound_lane_data_proof_size_from_peer_chain,
+		SIGNED_EXTENSIONS_SIZE,
+		max_extrinsic_size,
+	);
+
+	// verify that we're able to reward maximal number of relayers that have delivered maximal number of messages
+	let max_confirmation_transaction_dispatch_weight = W::receive_messages_delivery_proof_weight(
+		&(max_inbound_lane_data_proof_size_from_peer_chain as usize),
+		&UnrewardedRelayersState {
+			unrewarded_relayer_entries: max_unrewarded_relayer_entries_at_peer_inbound_lane,
+			total_messages: max_unconfirmed_messages_at_inbound_lane,
+			..Default::default()
+		},
+	);
+	let max_confirmation_transaction_weight =
+		max_incoming_delivery_proof_base_weight.saturating_add(max_confirmation_transaction_dispatch_weight);
+	assert!(
+		max_confirmation_transaction_weight <= max_extrinsic_weight,
+		"Weight of maximal confirmation transaction {} + {} is larger than maximal possible transaction weight {}",
+		max_incoming_delivery_proof_base_weight,
+		max_confirmation_transaction_dispatch_weight,
 		max_extrinsic_weight,
 	);
 }
