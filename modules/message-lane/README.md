@@ -78,7 +78,6 @@ Where:
 
 We have following checks in `send_message` transaction on the source chain:
 - message size should be less than or equal to `2/3` of maximal extrinsic size on the target chain;
-#TODO: right now dispatch weight includes per-byte weight - see `weight_limits_of_message_on_bridged_chain`. Is that correct?
 - message dispatch weight should be less than or equal to the `1/2` of maximal extrinsic dispatch weight on the target chain.
 
 Delivery transaction is an encoded delivery call and signed extensions. So we have `1/3` of maximal extrinsic size reserved for:
