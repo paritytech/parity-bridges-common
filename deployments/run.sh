@@ -90,7 +90,7 @@ if [ ! -z ${MATRIX_ACCESS_TOKEN+x} ]; then
   sed -i "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./monitoring/grafana-matrix/config.yml
 fi
 
-# First check is to see if we have a second argument (since it's optional in this script)
+# Check the sub-command, perhaps we just mean to stop the network instead of starting it.
 if [ "$SUB_COMMAND" == "stop" ]; then
 
   if [ ! -z ${WITH_PROXY+x} ]; then
@@ -104,6 +104,7 @@ if [ "$SUB_COMMAND" == "stop" ]; then
   exit 0
 fi
 
+# See if we want to update the docker images before starting the network.
 if [ "$SUB_COMMAND" == "update" ]; then
 
   # Stop the proxy cause otherwise the network can't be stopped
