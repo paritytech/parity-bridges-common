@@ -276,6 +276,18 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			}
 		};
 
+		// filter the call
+		if !T::CallFilter::filter(&call) {
+			frame_support::debug::trace!(
+				"Message {:?}/{:?}: the call ({:?}) is rejected by filter",
+				bridge,
+				id,
+				call,
+			);
+			Self::deposit_event(RawEvent::MessageCallRejected(bridge, id));
+			return;
+		}
+
 		// verify weight
 		// (we want passed weight to be at least equal to pre-dispatch weight of the call
 		// because otherwise Calls may be dispatched at lower price)
@@ -295,18 +307,6 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				expected_weight,
 				message.weight,
 			));
-			return;
-		}
-
-		// filter the call
-		if !T::CallFilter::filter(&call) {
-			frame_support::debug::trace!(
-				"Message {:?}/{:?}: the call ({:?}) is rejected by filter",
-				bridge,
-				id,
-				call,
-			);
-			Self::deposit_event(RawEvent::MessageCallRejected(bridge, id));
 			return;
 		}
 
