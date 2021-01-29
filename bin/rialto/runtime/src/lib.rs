@@ -415,6 +415,18 @@ impl pallet_substrate_bridge::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 }
 
+parameter_types! {
+	// TODO: Choose a more realistic value for this
+	pub const MaxHeadersInSingleProof: u8 = 5;
+}
+
+impl pallet_finality_verifier::Config for Runtime {
+	type BridgedChain = bp_millau::Millau;
+	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
+	type AncestryChecker = (); // TODO: Have a real implementation
+	type MaxHeadersInSingleProof = MaxHeadersInSingleProof;
+}
+
 impl pallet_shift_session_manager::Config for Runtime {}
 
 parameter_types! {
@@ -470,6 +482,7 @@ construct_runtime!(
 		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
 		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
+		BridgeFinalityVerifier: pallet_finality_verifier::{Module, Call},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		BridgeMillauMessageLane: pallet_message_lane::{Module, Call, Storage, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},

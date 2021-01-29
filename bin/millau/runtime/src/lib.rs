@@ -308,6 +308,18 @@ impl pallet_substrate_bridge::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 }
 
+parameter_types! {
+	// TODO: Choose a more realistic value for this
+	pub const MaxHeadersInSingleProof: u8 = 5;
+}
+
+impl pallet_finality_verifier::Config for Runtime {
+	type BridgedChain = bp_rialto::Rialto;
+	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
+	type AncestryChecker = (); // TODO: Have a real implementation
+	type MaxHeadersInSingleProof = MaxHeadersInSingleProof;
+}
+
 impl pallet_shift_session_manager::Config for Runtime {}
 
 parameter_types! {
@@ -361,6 +373,7 @@ construct_runtime!(
 		BridgeRialto: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeRialtoMessageLane: pallet_message_lane::{Module, Call, Storage, Event<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
+		BridgeFinalityVerifier: pallet_finality_verifier::{Module, Call},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},

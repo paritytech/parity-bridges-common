@@ -38,9 +38,13 @@ use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::DispatchError, ensure, traits::Get};
 use frame_system::ensure_signed;
 use sp_runtime::traits::Header as HeaderT;
+use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
+
+// Re-export in crate namespace for `construct_runtime!`
+pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
