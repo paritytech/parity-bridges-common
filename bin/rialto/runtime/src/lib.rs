@@ -416,8 +416,12 @@ impl pallet_substrate_bridge::Config for Runtime {
 }
 
 parameter_types! {
-	// TODO: Choose a more realistic value for this
-	pub const MaxHeadersInSingleProof: u8 = 5;
+	// One hundred and fifty old headers is ~15 mins (assuming a target block time of 6s). This
+	// should give the relayer enough time to get a justification for a header.
+	//
+	// Since the ancestry checker we're using doesn't need to access to storage for verification
+	// this can be fairly high.
+	pub const MaxHeadersInSingleProof: u8 = 150;
 }
 
 impl pallet_finality_verifier::Config for Runtime {
