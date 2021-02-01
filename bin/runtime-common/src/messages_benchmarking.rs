@@ -32,7 +32,9 @@ use pallet_message_lane::benchmarking::{MessageDeliveryProofParams, MessageProof
 use sp_core::Hasher;
 use sp_runtime::traits::Header;
 use sp_std::prelude::*;
-use sp_trie::{record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, TrieMut};
+use sp_trie::{
+	read_trie_value_with, record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, StorageProof, TrieMut,
+};
 
 /// Generate ed25519 signature to be used in `pallet_brdige_call_dispatch::CallOrigin::TargetAccount`.
 ///
@@ -190,6 +192,39 @@ where
 fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: ProofSize) -> H::Out {
 	let (iterations, leaf_size, minimal_trie_size) = match trie_size {
 		ProofSize::Minimal(_) => return root,
+		ProofSize::HasLargeLeaf(size) => (1, size, size),
+		ProofSize::HasExtraNodes(size) => (8, 1, size),
+	};
+
+	let mut key_index = 0;
+	loop {
+		// generate storage proof to be delivered to This chain
+		let mut proof_recorder = Recorder::<H::Out>::new();
+		record_all_keys::<Layout<H>, _>(mdb, &root, &mut proof_recorder)
+			.map_err(|_| "record_all_keys has failed")
+			.expect("record_all_keys should not fail in benchmarks");
+		let size: usize = proof_recorder.drain().into_iter().map(|n| n.data.len()).sum();
+		if size > minimal_trie_size as _ {
+			return root;
+		}
+
+		let mut trie = TrieDBMut::<H>::from_existing(mdb, &mut root)
+			.map_err(|_| "TrieDBMut::from_existing has failed")
+			.expect("TrieDBMut::from_existing should not fail in benchmarks");
+		for _ in 0..iterations {
+			trie.insert(&key_index.encode(), &vec![42u8; leaf_size as _])
+				.map_err(|_| "TrieMut::insert has failed")
+				.expect("TrieMut::insert should not fail in benchmarks");
+			key_index += 1;
+		}
+		trie.commit();
+	}
+}
+
+/// Populate trie with dummy keys+values until trie has (approximately) at least given size.
+fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: ProofSize) -> H::Out {
+	let (iterations, leaf_size, minimal_trie_size) = match trie_size {
+		ProofSize::Minimal => return root,
 		ProofSize::HasLargeLeaf(size) => (1, size, size),
 		ProofSize::HasExtraNodes(size) => (8, 1, size),
 	};

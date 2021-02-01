@@ -215,6 +215,7 @@ impl pallet_bridge_call_dispatch::Config for Runtime {
 	type Event = Event;
 	type MessageId = (bp_message_lane::LaneId, bp_message_lane::MessageNonce);
 	type Call = Call;
+	type EncodedCall = crate::rialto_messages::FromRialtoEncodedCall;
 	type SourceChainAccountId = bp_rialto::AccountId;
 	type TargetChainAccountPublic = MultiSigner;
 	type TargetChainSignature = MultiSignature;
@@ -594,6 +595,29 @@ impl_runtime_apis! {
 			BridgeRialtoMessageLane::inbound_unrewarded_relayers_state(lane)
 		}
 	}
+}
+
+/// Rialto account ownership digest from Millau.
+///
+/// The byte vector returned by this function should be signed with a Rialto account private key.
+/// This way, the owner of `millau_account_id` on Millau proves that the Rialto account private key
+/// is also under his control.
+pub fn rialto_account_ownership_digest<Call, AccountId, SpecVersion>(
+	rialto_call: &Call,
+	millau_account_id: AccountId,
+	rialto_spec_version: SpecVersion,
+) -> sp_std::vec::Vec<u8>
+where
+	Call: codec::Encode,
+	AccountId: codec::Encode,
+	SpecVersion: codec::Encode,
+{
+	pallet_bridge_call_dispatch::account_ownership_digest(
+		rialto_call,
+		millau_account_id,
+		rialto_spec_version,
+		bp_runtime::MILLAU_BRIDGE_INSTANCE,
+	)
 }
 
 #[cfg(test)]

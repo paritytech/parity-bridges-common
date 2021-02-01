@@ -444,10 +444,7 @@ benchmarks_instance! {
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer_id.clone()), proof, relayers_state)
 	verify {
-		assert_eq!(
-			T::account_balance(&relayer_id),
-			relayer_balance + (MESSAGE_FEE * 2).into(),
-		);
+		ensure_relayer_rewarded::<T, I>(&relayer_id, &relayer_balance);
 	}
 
 	// Benchmark `receive_messages_delivery_proof` extrinsic with following conditions:
