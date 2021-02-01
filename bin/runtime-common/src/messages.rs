@@ -36,7 +36,7 @@ use sp_std::{cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData,
 use sp_trie::StorageProof;
 
 /// Bidirectional message bridge.
-pub trait MessageBridge: Eq {
+pub trait MessageBridge {
 	/// Instance id of this bridge.
 	const INSTANCE: InstanceId;
 

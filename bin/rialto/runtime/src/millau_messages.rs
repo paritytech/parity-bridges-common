@@ -80,7 +80,7 @@ pub type FromMillauMessagesProof = messages::target::FromBridgedChainMessagesPro
 pub type ToMillauMessagesDeliveryProof = messages::source::FromBridgedChainMessagesDeliveryProof<bp_millau::Hash>;
 
 /// Millau <-> Rialto message bridge.
-#[derive(RuntimeDebug, Clone, Copy, Eq, PartialEq)]
+#[derive(RuntimeDebug, Clone, Copy)]
 pub struct WithMillauMessageBridge;
 
 impl MessageBridge for WithMillauMessageBridge {
