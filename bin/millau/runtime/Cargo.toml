@@ -14,6 +14,7 @@ serde = { version = "1.0.118", optional = true, features = ["derive"] }
 
 # Bridge dependencies
 
+bp-header-chain = { path = "../../../primitives/header-chain", default-features = false }
 bp-message-lane = { path = "../../../primitives/message-lane", default-features = false }
 bp-millau = { path = "../../../primitives/millau", default-features = false }
 bp-rialto = { path = "../../../primitives/rialto", default-features = false }
@@ -59,6 +60,7 @@ wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "2.
 [features]
 default = ["std"]
 std = [
+	"bp-header-chain/std",
 	"bp-message-lane/std",
 	"bp-millau/std",
 	"bp-rialto/std",

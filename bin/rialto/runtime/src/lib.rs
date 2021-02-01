@@ -423,7 +423,7 @@ parameter_types! {
 impl pallet_finality_verifier::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
-	type AncestryChecker = (); // TODO: Have a real implementation
+	type AncestryChecker = bp_header_chain::LinearAncestryChecker;
 	type MaxHeadersInSingleProof = MaxHeadersInSingleProof;
 }
 
