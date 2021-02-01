@@ -525,10 +525,7 @@ mod tests {
 
 	impl Filter<Call> for TestCallFilter {
 		fn filter(call: &Call) -> bool {
-			match *call {
-				Call::System(frame_system::Call::fill_block(_)) => false,
-				_ => true,
-			}
+			!matches!(*call,Call::System(frame_system::Call::fill_block(_)))
 		}
 	}
 
