@@ -5,11 +5,11 @@
 version: '3.5'
 services:
   prometheus-metrics:
-    image: scratch
+    image: alpine
 
   grafana-dashboard:
-    image: scratch
+    image: alpine
 
   grafana-matrix-notifier:
-    image: scratch
+    image: alpine
 
