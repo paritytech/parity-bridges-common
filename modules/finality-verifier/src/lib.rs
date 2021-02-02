@@ -218,12 +218,7 @@ mod tests {
 			let ancestry_proof = vec![child, header.clone()];
 
 			assert_err!(
-				Module::<TestRuntime>::submit_finality_proof(
-					Origin::signed(1),
-					header,
-					justification,
-					ancestry_proof,
-				),
+				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
 				<Error<TestRuntime>>::InvalidJustification
 			);
 		})
