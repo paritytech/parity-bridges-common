@@ -120,30 +120,24 @@ pub struct LinearAncestryChecker;
 impl<H: HeaderT> AncestryChecker<H, Vec<H>> for LinearAncestryChecker {
 	fn are_ancestors(ancestor: &H, child: &H, proof: &Vec<H>) -> bool {
 		// You can't be your own parent
-		if ancestor == child {
+		if proof.len() < 2 {
 			return false;
 		}
 
 		// Let's make sure that the given headers are actually in the proof
-		if let Some(first) = proof.first() {
-			if first != ancestor {
-				return false;
-			}
-		} else {
-			return false;
-		};
+		match proof.first() {
+			Some(first) if first == ancestor => {}
+			_ => return false,
+		}
 
-		if let Some(last) = proof.last() {
-			if last != child {
-				return false;
-			}
-		} else {
-			return false;
-		};
+		match proof.last() {
+			Some(last) if last == child => {}
+			_ => return false,
+		}
 
 		// Now we actually check the proof
-		for i in (1..proof.len()).rev() {
-			if proof[i - 1].hash() != *proof[i].parent_hash() {
+		for i in 1..proof.len() {
+			if &proof[i - 1].hash() != proof[i].parent_hash() {
 				return false;
 			}
 		}
