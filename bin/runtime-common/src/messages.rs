@@ -1047,7 +1047,7 @@ mod tests {
 	fn messages_proof_is_rejected_if_declared_less_than_actual_number_of_messages() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, TestMessageProofParser>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 10),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
 				5,
 				|_, _| unreachable!(),
 			),
@@ -1059,7 +1059,7 @@ mod tests {
 	fn messages_proof_is_rejected_if_declared_more_than_actual_number_of_messages() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, TestMessageProofParser>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 10),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
 				15,
 				|_, _| unreachable!(),
 			),
@@ -1071,7 +1071,7 @@ mod tests {
 	fn message_proof_is_rejected_if_build_parser_fails() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, TestMessageProofParser>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 10),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
 				10,
 				|_, _| Err(target::MessageProofError::Custom("test")),
 			),
@@ -1083,7 +1083,7 @@ mod tests {
 	fn message_proof_is_rejected_if_required_message_is_missing() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 10),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
 				10,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,
@@ -1099,7 +1099,7 @@ mod tests {
 	fn message_proof_is_rejected_if_message_decode_fails() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 10),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
 				10,
 				|_, _| Ok(TestMessageProofParser {
 					failing: true,
@@ -1115,7 +1115,7 @@ mod tests {
 	fn message_proof_is_rejected_if_outbound_lane_state_decode_fails() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 0),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 0),
 				0,
 				|_, _| Ok(TestMessageProofParser {
 					failing: true,
@@ -1135,7 +1135,7 @@ mod tests {
 	fn message_proof_is_rejected_if_it_is_empty() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 0),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 0),
 				0,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,
@@ -1151,7 +1151,7 @@ mod tests {
 	fn non_empty_message_proof_without_messages_is_accepted() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 0),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 0),
 				0,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,
@@ -1183,7 +1183,7 @@ mod tests {
 	fn non_empty_message_proof_is_accepted() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 1, 1),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 1),
 				1,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,
@@ -1224,7 +1224,7 @@ mod tests {
 	fn verify_messages_proof_with_parser_does_not_panic_if_messages_count_mismatches() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof(Default::default(), vec![], Default::default(), 0, u64::MAX),
+				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 0, u64::MAX),
 				0,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,
