@@ -5521,6 +5521,7 @@ dependencies = [
  "parity-scale-codec 1.3.6",
  "rand 0.7.3",
  "relay-utils",
+ "sc-rpc-api",
  "sp-core",
  "sp-runtime",
  "sp-std",
