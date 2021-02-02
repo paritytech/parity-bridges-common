@@ -266,6 +266,7 @@ impl pallet_bridge_call_dispatch::Config for Runtime {
 	type Event = Event;
 	type MessageId = (bp_message_lane::LaneId, bp_message_lane::MessageNonce);
 	type Call = Call;
+	type CallFilter = ();
 	type EncodedCall = crate::millau_messages::FromMillauEncodedCall;
 	type SourceChainAccountId = bp_millau::AccountId;
 	type TargetChainAccountPublic = MultiSigner;
@@ -847,7 +848,7 @@ impl_runtime_apis! {
 				fn endow_account(account: &Self::AccountId) {
 					pallet_balances::Module::<Runtime>::make_free_balance_be(
 						account,
-						1_000_000_000_000,
+						Balance::MAX / 100,
 					);
 				}
 
@@ -865,7 +866,7 @@ impl_runtime_apis! {
 						origin: dispatch_origin,
 						call: message_payload,
 					};
-					(message, 1_000_000_000)
+					(message, pallet_message_lane::benchmarking::MESSAGE_FEE.into())
 				}
 
 				fn prepare_message_proof(
