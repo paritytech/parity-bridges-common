@@ -204,7 +204,7 @@ mod tests {
 	}
 
 	#[test]
-	fn rejects_ancestry_with_validator_set_transition() {
+	fn rejects_justification_that_skips_authority_set_transition() {
 		run_test(|| {
 			initialize_substrate_bridge();
 
