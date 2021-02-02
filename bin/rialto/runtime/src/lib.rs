@@ -394,7 +394,7 @@ impl pallet_sudo::Config for Runtime {
 }
 
 parameter_types! {
-	pub const Period: BlockNumber = 4;
+	pub const Period: BlockNumber = bp_rialto::SESSION_LENGTH;
 	pub const Offset: BlockNumber = 0;
 }
 
@@ -417,12 +417,9 @@ impl pallet_substrate_bridge::Config for Runtime {
 }
 
 parameter_types! {
-	// One hundred and fifty old headers is ~15 mins (assuming a target block time of 6s). This
-	// should give the relayer enough time to get a justification for a header.
-	//
-	// Since the ancestry checker we're using doesn't need to access to storage for verification
-	// this can be fairly high.
-	pub const MaxHeadersInSingleProof: u8 = 150;
+	// We'll use the length of a session on the bridged chain as our bound since GRANDPA is
+	// guaranteed to produce a justification every session.
+	pub const MaxHeadersInSingleProof: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
 }
 
 impl pallet_finality_verifier::Config for Runtime {

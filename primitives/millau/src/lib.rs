@@ -83,6 +83,21 @@ pub const MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_500_000_000;
 /// runtime upgrades.
 pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = 2_000_000_000;
 
+/// The length of a session (how often authorities change) on Millau measured in of number of blocks.
+pub const SESSION_LENGTH: BlockNumber = 5 * time_units::MINUTES;
+
+pub mod time_units {
+	use super::BlockNumber;
+
+	pub const MILLISECS_PER_BLOCK: u64 = 6000;
+	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
+
+	// These time units are defined in number of blocks.
+	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+	pub const HOURS: BlockNumber = MINUTES * 60;
+	pub const DAYS: BlockNumber = HOURS * 24;
+}
+
 /// Block number type used in Millau.
 pub type BlockNumber = u64;
 
