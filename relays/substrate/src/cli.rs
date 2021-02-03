@@ -162,6 +162,10 @@ pub enum ToRialtoMessage {
 		#[structopt(long)]
 		amount: bp_rialto::Balance,
 	},
+	/// TODO
+	MaximalSizeRemark,
+	/// TODO
+	MaximalWeightFillBlock,
 }
 
 /// All possible messages that may be delivered to the Millau chain.
@@ -176,6 +180,10 @@ pub enum ToMillauMessage {
 		#[structopt(long)]
 		amount: bp_millau::Balance,
 	},
+	/// TODO
+	MaximalSizeRemark,
+	/// TODO
+	MaximalWeightFillBlock,
 }
 
 arg_enum! {

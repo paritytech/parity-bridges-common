@@ -57,7 +57,7 @@ use frame_support::{
 	weights::{DispatchClass, Weight},
 	Parameter, StorageMap,
 };
-use frame_system::{ensure_signed, RawOrigin};
+use frame_system::{ensure_root, ensure_signed, RawOrigin};
 use num_traits::{SaturatingAdd, Zero};
 use sp_runtime::{traits::BadOrigin, DispatchResult};
 use sp_std::{cell::RefCell, cmp::PartialOrd, marker::PhantomData, prelude::*};
@@ -514,6 +514,11 @@ decl_module! {
 			);
 
 			Ok(())
+		}
+
+		#[weight = *weight]
+		pub fn fill_block(origin, weight: Weight) {
+			ensure_root(origin)?;
 		}
 	}
 }
