@@ -3788,6 +3788,7 @@ dependencies = [
 name = "millau-runtime"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-message-lane",
  "bp-millau",
  "bp-rialto",
@@ -3801,6 +3802,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-call-dispatch",
+ "pallet-finality-verifier",
  "pallet-grandpa",
  "pallet-message-lane",
  "pallet-randomness-collective-flip",
@@ -4295,6 +4297,7 @@ dependencies = [
  "finality-grandpa",
  "frame-support",
  "frame-system",
+ "num-traits",
  "pallet-substrate-bridge",
  "parity-scale-codec 1.3.6",
  "serde",
@@ -5624,6 +5627,7 @@ dependencies = [
  "pallet-bridge-call-dispatch",
  "pallet-bridge-currency-exchange",
  "pallet-bridge-eth-poa",
+ "pallet-finality-verifier",
  "pallet-grandpa",
  "pallet-message-lane",
  "pallet-randomness-collective-flip",
