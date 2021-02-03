@@ -178,7 +178,13 @@ where
 			.await?
 			.iter_nodes()
 			.collect();
-		let proof = FromBridgedChainMessagesProof(id.1, proof, self.lane_id, *nonces.start(), *nonces.end());
+		let proof = FromBridgedChainMessagesProof {
+			bridged_header_hash: id.1,
+			storage_proof: proof,
+			lane: self.lane_id,
+			nonces_start: *nonces.start(),
+			nonces_end: *nonces.end(),
+		};
 		Ok((id, nonces, (proof_parameters.dispatch_weight, proof)))
 	}
 

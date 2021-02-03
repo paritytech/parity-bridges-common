@@ -165,7 +165,11 @@ where
 			.client
 			.prove_messages_delivery(self.instance, self.lane_id, id.1)
 			.await?;
-		let proof = FromBridgedChainMessagesDeliveryProof(id.1, proof, self.lane_id);
+		let proof = FromBridgedChainMessagesDeliveryProof {
+			bridged_header_hash: id.1,
+			storage_proof: proof,
+			lane: self.lane_id,
+		};
 		Ok((id, (relayers_state, proof)))
 	}
 

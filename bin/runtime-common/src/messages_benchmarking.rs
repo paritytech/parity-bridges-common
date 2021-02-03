@@ -132,13 +132,13 @@ where
 	pallet_substrate_bridge::initialize_for_benchmarks::<R>(bridged_header);
 
 	(
-		FromBridgedChainMessagesProof(
-			bridged_header_hash.into(),
+		FromBridgedChainMessagesProof {
+			bridged_header_hash: bridged_header_hash.into(),
 			storage_proof,
-			params.lane,
-			*params.message_nonces.start(),
-			*params.message_nonces.end(),
-		),
+			lane: params.lane,
+			nonces_start: *params.message_nonces.start(),
+			nonces_end: *params.message_nonces.end(),
+		},
 		message_dispatch_weight
 			.checked_mul(message_count)
 			.expect("too many messages requested by benchmark"),
@@ -183,7 +183,11 @@ where
 	let bridged_header_hash = bridged_header.hash();
 	pallet_substrate_bridge::initialize_for_benchmarks::<R>(bridged_header);
 
-	FromBridgedChainMessagesDeliveryProof(bridged_header_hash.into(), storage_proof, params.lane)
+	FromBridgedChainMessagesDeliveryProof {
+		bridged_header_hash: bridged_header_hash.into(),
+		storage_proof,
+		lane: params.lane,
+	}
 }
 
 /// Populate trie with dummy keys+values until trie has at least given size.

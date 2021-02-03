@@ -164,15 +164,20 @@ pub mod source {
 	/// - storage proof of inbound lane state;
 	/// - lane id.
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug)]
-	pub struct FromBridgedChainMessagesDeliveryProof<BridgedBlockHash>(
-		pub BridgedBlockHash,
-		pub RawStorageProof,
-		pub LaneId,
-	);
+	pub struct FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
+		pub bridged_header_hash: BridgedHeaderHash,
+		pub storage_proof: RawStorageProof,
+		pub lane: LaneId,
+	}
 
-	impl<BridgedBlockHash> Size for FromBridgedChainMessagesDeliveryProof<BridgedBlockHash> {
+	impl<BridgedHeaderHash> Size for FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 		fn size_hint(&self) -> u32 {
-			u32::try_from(self.1.iter().fold(0usize, |sum, node| sum.saturating_add(node.len()))).unwrap_or(u32::MAX)
+			u32::try_from(
+				self.storage_proof
+					.iter()
+					.fold(0usize, |sum, node| sum.saturating_add(node.len())),
+			)
+			.unwrap_or(u32::MAX)
 		}
 	}
 
@@ -296,10 +301,14 @@ pub mod source {
 		HashOf<BridgedChain<B>>:
 			Into<bp_runtime::HashOf<<ThisRuntime as pallet_substrate_bridge::Config>::BridgedChain>>,
 	{
-		let FromBridgedChainMessagesDeliveryProof(bridged_header_hash, bridged_storage_proof, lane) = proof;
+		let FromBridgedChainMessagesDeliveryProof {
+			bridged_header_hash,
+			storage_proof,
+			lane,
+		} = proof;
 		pallet_substrate_bridge::Module::<ThisRuntime>::parse_finalized_storage_proof(
 			bridged_header_hash.into(),
-			StorageProof::new(bridged_storage_proof),
+			StorageProof::new(storage_proof),
 			|storage| {
 				// Messages delivery proof is just proof of single storage key read => any error
 				// is fatal.
@@ -347,17 +356,22 @@ pub mod target {
 	/// - lane id;
 	/// - nonces (inclusive range) of messages which are included in this proof.
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug)]
-	pub struct FromBridgedChainMessagesProof<BridgedBlockHash>(
-		pub BridgedBlockHash,
-		pub RawStorageProof,
-		pub LaneId,
-		pub MessageNonce,
-		pub MessageNonce,
-	);
+	pub struct FromBridgedChainMessagesProof<BridgedHeaderHash> {
+		pub bridged_header_hash: BridgedHeaderHash,
+		pub storage_proof: RawStorageProof,
+		pub lane: LaneId,
+		pub nonces_start: MessageNonce,
+		pub nonces_end: MessageNonce,
+	}
 
-	impl<BridgedBlockHash> Size for FromBridgedChainMessagesProof<BridgedBlockHash> {
+	impl<BridgedHeaderHash> Size for FromBridgedChainMessagesProof<BridgedHeaderHash> {
 		fn size_hint(&self) -> u32 {
-			u32::try_from(self.1.iter().fold(0usize, |sum, node| sum.saturating_add(node.len()))).unwrap_or(u32::MAX)
+			u32::try_from(
+				self.storage_proof
+					.iter()
+					.fold(0usize, |sum, node| sum.saturating_add(node.len())),
+			)
+			.unwrap_or(u32::MAX)
 		}
 	}
 
@@ -527,10 +541,16 @@ pub mod target {
 		BuildParser: FnOnce(HashOf<BridgedChain<B>>, RawStorageProof) -> Result<Parser, MessageProofError>,
 		Parser: MessageProofParser,
 	{
-		let FromBridgedChainMessagesProof(bridged_header_hash, bridged_storage_proof, lane_id, begin, end) = proof;
+		let FromBridgedChainMessagesProof {
+			bridged_header_hash,
+			storage_proof,
+			lane,
+			nonces_start,
+			nonces_end,
+		} = proof;
 
 		// receiving proofs where end < begin is ok (if proof includes outbound lane state)
-		let messages_in_the_proof = if let Some(nonces_difference) = end.checked_sub(begin) {
+		let messages_in_the_proof = if let Some(nonces_difference) = nonces_end.checked_sub(nonces_start) {
 			// let's check that the user (relayer) has passed correct `messages_count`
 			// (this bounds maximal capacity of messages vec below)
 			let messages_in_the_proof = nonces_difference.saturating_add(1);
@@ -543,15 +563,15 @@ pub mod target {
 			0
 		};
 
-		let parser = build_parser(bridged_header_hash, bridged_storage_proof)?;
+		let parser = build_parser(bridged_header_hash, storage_proof)?;
 
 		// Read messages first. All messages that are claimed to be in the proof must
 		// be in the proof. So any error in `read_value`, or even missing value is fatal.
 		//
 		// Mind that we allow proofs with no messages if outbound lane state is proved.
 		let mut messages = Vec::with_capacity(messages_in_the_proof as _);
-		for nonce in begin..=end {
-			let message_key = MessageKey { lane_id, nonce };
+		for nonce in nonces_start..=nonces_end {
+			let message_key = MessageKey { lane_id: lane, nonce };
 			let raw_message_data = parser
 				.read_raw_message(&message_key)
 				.ok_or(MessageProofError::MissingRequiredMessage)?;
@@ -569,7 +589,7 @@ pub mod target {
 			lane_state: None,
 			messages,
 		};
-		let raw_outbound_lane_data = parser.read_raw_outbound_lane_data(&lane_id);
+		let raw_outbound_lane_data = parser.read_raw_outbound_lane_data(&lane);
 		if let Some(raw_outbound_lane_data) = raw_outbound_lane_data {
 			proved_lane_messages.lane_state = Some(
 				OutboundLaneData::decode(&mut &raw_outbound_lane_data[..])
@@ -584,7 +604,7 @@ pub mod target {
 
 		// We only support single lane messages in this schema
 		let mut proved_messages = ProvedMessages::new();
-		proved_messages.insert(lane_id, proved_lane_messages);
+		proved_messages.insert(lane, proved_lane_messages);
 
 		Ok(proved_messages)
 	}
@@ -1043,11 +1063,21 @@ mod tests {
 		1..=0
 	}
 
+	fn messages_proof(nonces_end: MessageNonce) -> target::FromBridgedChainMessagesProof<()> {
+		target::FromBridgedChainMessagesProof {
+			bridged_header_hash: (),
+			storage_proof: vec![],
+			lane: Default::default(),
+			nonces_start: 1,
+			nonces_end,
+		}
+	}
+
 	#[test]
 	fn messages_proof_is_rejected_if_declared_less_than_actual_number_of_messages() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, TestMessageProofParser>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
+				messages_proof(10),
 				5,
 				|_, _| unreachable!(),
 			),
@@ -1059,7 +1089,7 @@ mod tests {
 	fn messages_proof_is_rejected_if_declared_more_than_actual_number_of_messages() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, TestMessageProofParser>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
+				messages_proof(10),
 				15,
 				|_, _| unreachable!(),
 			),
@@ -1071,7 +1101,7 @@ mod tests {
 	fn message_proof_is_rejected_if_build_parser_fails() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, TestMessageProofParser>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
+				messages_proof(10),
 				10,
 				|_, _| Err(target::MessageProofError::Custom("test")),
 			),
@@ -1082,15 +1112,13 @@ mod tests {
 	#[test]
 	fn message_proof_is_rejected_if_required_message_is_missing() {
 		assert_eq!(
-			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
-				10,
-				|_, _| Ok(TestMessageProofParser {
+			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(messages_proof(10), 10, |_, _| Ok(
+				TestMessageProofParser {
 					failing: false,
 					messages: 1..=5,
 					outbound_lane_data: None,
-				}),
-			),
+				}
+			),),
 			Err(target::MessageProofError::MissingRequiredMessage),
 		);
 	}
@@ -1098,15 +1126,13 @@ mod tests {
 	#[test]
 	fn message_proof_is_rejected_if_message_decode_fails() {
 		assert_eq!(
-			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 10),
-				10,
-				|_, _| Ok(TestMessageProofParser {
+			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(messages_proof(10), 10, |_, _| Ok(
+				TestMessageProofParser {
 					failing: true,
 					messages: 1..=10,
 					outbound_lane_data: None,
-				}),
-			),
+				}
+			),),
 			Err(target::MessageProofError::FailedToDecodeMessage),
 		);
 	}
@@ -1114,10 +1140,8 @@ mod tests {
 	#[test]
 	fn message_proof_is_rejected_if_outbound_lane_state_decode_fails() {
 		assert_eq!(
-			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 0),
-				0,
-				|_, _| Ok(TestMessageProofParser {
+			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(messages_proof(0), 0, |_, _| Ok(
+				TestMessageProofParser {
 					failing: true,
 					messages: no_messages_range(),
 					outbound_lane_data: Some(OutboundLaneData {
@@ -1125,8 +1149,8 @@ mod tests {
 						latest_received_nonce: 1,
 						latest_generated_nonce: 1,
 					}),
-				}),
-			),
+				}
+			),),
 			Err(target::MessageProofError::FailedToDecodeOutboundLaneState),
 		);
 	}
@@ -1134,15 +1158,13 @@ mod tests {
 	#[test]
 	fn message_proof_is_rejected_if_it_is_empty() {
 		assert_eq!(
-			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 0),
-				0,
-				|_, _| Ok(TestMessageProofParser {
+			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(messages_proof(0), 0, |_, _| Ok(
+				TestMessageProofParser {
 					failing: false,
 					messages: no_messages_range(),
 					outbound_lane_data: None,
-				}),
-			),
+				}
+			),),
 			Err(target::MessageProofError::Empty),
 		);
 	}
@@ -1150,10 +1172,8 @@ mod tests {
 	#[test]
 	fn non_empty_message_proof_without_messages_is_accepted() {
 		assert_eq!(
-			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 0),
-				0,
-				|_, _| Ok(TestMessageProofParser {
+			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(messages_proof(0), 0, |_, _| Ok(
+				TestMessageProofParser {
 					failing: false,
 					messages: no_messages_range(),
 					outbound_lane_data: Some(OutboundLaneData {
@@ -1161,8 +1181,8 @@ mod tests {
 						latest_received_nonce: 1,
 						latest_generated_nonce: 1,
 					}),
-				}),
-			),
+				}
+			),),
 			Ok(vec![(
 				Default::default(),
 				ProvedLaneMessages {
@@ -1182,10 +1202,8 @@ mod tests {
 	#[test]
 	fn non_empty_message_proof_is_accepted() {
 		assert_eq!(
-			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 1, 1),
-				1,
-				|_, _| Ok(TestMessageProofParser {
+			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(messages_proof(1), 1, |_, _| Ok(
+				TestMessageProofParser {
 					failing: false,
 					messages: 1..=1,
 					outbound_lane_data: Some(OutboundLaneData {
@@ -1193,8 +1211,8 @@ mod tests {
 						latest_received_nonce: 1,
 						latest_generated_nonce: 1,
 					}),
-				}),
-			),
+				}
+			),),
 			Ok(vec![(
 				Default::default(),
 				ProvedLaneMessages {
@@ -1224,7 +1242,7 @@ mod tests {
 	fn verify_messages_proof_with_parser_does_not_panic_if_messages_count_mismatches() {
 		assert_eq!(
 			target::verify_messages_proof_with_parser::<OnThisChainBridge, _, _>(
-				target::FromBridgedChainMessagesProof((), vec![], Default::default(), 0, u64::MAX),
+				messages_proof(u64::MAX),
 				0,
 				|_, _| Ok(TestMessageProofParser {
 					failing: false,
