@@ -83,7 +83,7 @@ pub trait MessageBridge {
 /// Chain that has `message-lane` and `call-dispatch` modules.
 pub trait ChainWithMessageLanes {
 	/// Hash used in the chain.
-	type Hash: Clone + Debug + Encode + Eq + Decode;
+	type Hash: Decode;
 	/// Accound id on the chain.
 	type AccountId: Encode + Decode;
 	/// Public key of the chain account that may be used to verify signatures.
