@@ -168,7 +168,7 @@ If you have cloned the bridges repo you can build local Docker images by running
 command at the top level of the repo:
 
 ```bash
-docker build . -t local/<project_you're_building> --build-arg=<project>
+docker build . -t local/<project_you're_building> --build-arg=PROJECT=<project>
 ```
 
 This will build a local image of a particular component with a tag of

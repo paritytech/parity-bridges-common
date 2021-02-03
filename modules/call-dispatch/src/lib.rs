@@ -31,7 +31,7 @@ use frame_support::{
 	decl_event, decl_module, decl_storage,
 	dispatch::{Dispatchable, Parameter},
 	ensure,
-	traits::Get,
+	traits::{Filter, Get},
 	weights::{extract_actual_weight, GetDispatchInfo},
 	RuntimeDebug,
 };
@@ -134,15 +134,17 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 			Origin = <Self as frame_system::Config>::Origin,
 			PostInfo = frame_support::dispatch::PostDispatchInfo,
 		>;
+	/// Pre-dispatch filter for incoming calls.
+	///
+	/// The pallet will filter all incoming calls right before they're dispatched. If this filter
+	/// rejects the call, special event (`Event::MessageCallRejected`) is emitted.
+	type CallFilter: Filter<<Self as Config<I>>::Call>;
 	/// The type that is used to wrap the `Self::Call` when it is moved over bridge.
 	///
 	/// The idea behind this is to avoid `Call` conversion/decoding until we'll be sure
 	/// that all other stuff (like `spec_version`) is ok. If we would try to decode
 	/// `Call` which has been encoded using previous `spec_version`, then we might end
 	/// up with decoding error, instead of `MessageVersionSpecMismatch`.
-	///
-	/// The `Encode` implementation should match `Encode` implementation of the actual
-	/// `Call`, that (may) have been used to produce signature for `CallOrigin::TargetAccount`.
 	type EncodedCall: Decode + Encode + Into<Result<<Self as Config<I>>::Call, ()>>;
 	/// A type which can be turned into an AccountId from a 256-bit hash.
 	///
@@ -172,6 +174,8 @@ decl_event!(
 		MessageDispatched(InstanceId, MessageId, DispatchResult),
 		/// We have failed to decode Call from the message.
 		MessageCallDecodeFailed(InstanceId, MessageId),
+		/// The call from the message has been rejected by the call filter.
+		MessageCallRejected(InstanceId, MessageId),
 		/// Phantom member, never used. Needed to handle multiple pallet instances.
 		_Dummy(PhantomData<I>),
 	}
@@ -224,6 +228,16 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			return;
 		}
 
+		// now that we have spec version checked, let's decode the call
+		let call = match message.call.into() {
+			Ok(call) => call,
+			Err(_) => {
+				frame_support::debug::trace!("Failed to decode Call from message {:?}/{:?}", bridge, id,);
+				Self::deposit_event(RawEvent::MessageCallDecodeFailed(bridge, id));
+				return;
+			}
+		};
+
 		// prepare dispatch origin
 		let origin_account = match message.origin {
 			CallOrigin::SourceRoot => {
@@ -233,7 +247,7 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				target_id
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
-				let digest = account_ownership_digest(&message.call, source_account_id, message.spec_version, bridge);
+				let digest = account_ownership_digest(&call, source_account_id, message.spec_version, bridge);
 
 				let target_account = target_public.into_account();
 				if !target_signature.verify(&digest[..], &target_account) {
@@ -259,15 +273,17 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			}
 		};
 
-		// now that we have everything checked, let's decode the call
-		let call = match message.call.into() {
-			Ok(call) => call,
-			Err(_) => {
-				frame_support::debug::trace!("Failed to decode Call from message {:?}/{:?}", bridge, id,);
-				Self::deposit_event(RawEvent::MessageCallDecodeFailed(bridge, id));
-				return;
-			}
-		};
+		// filter the call
+		if !T::CallFilter::filter(&call) {
+			frame_support::debug::trace!(
+				"Message {:?}/{:?}: the call ({:?}) is rejected by filter",
+				bridge,
+				id,
+				call,
+			);
+			Self::deposit_event(RawEvent::MessageCallRejected(bridge, id));
+			return;
+		}
 
 		// verify weight
 		// (we want passed weight to be at least equal to pre-dispatch weight of the call
@@ -488,6 +504,7 @@ mod tests {
 		type TargetChainAccountPublic = TestAccountPublic;
 		type TargetChainSignature = TestSignature;
 		type Call = Call;
+		type CallFilter = TestCallFilter;
 		type EncodedCall = EncodedCall;
 		type AccountIdConverter = AccountIdConverter;
 	}
@@ -498,6 +515,14 @@ mod tests {
 	impl From<EncodedCall> for Result<Call, ()> {
 		fn from(call: EncodedCall) -> Result<Call, ()> {
 			Call::decode(&mut &call.0[..]).map_err(drop)
+		}
+	}
+
+	pub struct TestCallFilter;
+
+	impl Filter<Call> for TestCallFilter {
+		fn filter(call: &Call) -> bool {
+			!matches!(*call, Call::System(frame_system::Call::fill_block(_)))
 		}
 	}
 
@@ -662,6 +687,31 @@ mod tests {
 				vec![EventRecord {
 					phase: Phase::Initialization,
 					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageCallDecodeFailed(bridge, id)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn should_emit_event_for_rejected_calls() {
+		new_test_ext().execute_with(|| {
+			let bridge = b"ethb".to_owned();
+			let id = [0; 4];
+
+			let call = Call::System(<frame_system::Call<TestRuntime>>::fill_block(Perbill::from_percent(75)));
+			let weight = call.get_dispatch_info().weight;
+			let mut message = prepare_root_message(call);
+			message.weight = weight;
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(bridge, id, Ok(message));
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageCallRejected(bridge, id)),
 					topics: vec![],
 				}],
 			);
