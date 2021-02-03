@@ -795,6 +795,7 @@ mod tests {
 				},
 			}
 		);
+		assert_eq!(Ok(ThisChainCall::Transfer), message_on_this_chain.call.into());
 	}
 
 	const TEST_LANE_ID: &LaneId = b"test";
