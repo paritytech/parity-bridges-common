@@ -142,7 +142,10 @@ pub mod pallet {
 				<Error<T>>::FailedToWriteHeader
 			})?;
 
-			frame_support::debug::info!("Succesfully imported finalized header chain!");
+			frame_support::debug::info!(
+				"Succesfully imported finalized header chain for target header {:?}!",
+				finality_target
+			);
 
 			Ok(().into())
 		}
