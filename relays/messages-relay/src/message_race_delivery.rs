@@ -28,8 +28,17 @@ use crate::metrics::MessageLaneLoopMetrics;
 use async_trait::async_trait;
 use bp_message_lane::{MessageNonce, UnrewardedRelayersState, Weight};
 use futures::stream::FusedStream;
+use num_traits::Saturating;
 use relay_utils::FailedClient;
-use std::{collections::BTreeMap, marker::PhantomData, ops::RangeInclusive, time::Duration};
+use std::{
+	collections::{BTreeMap, VecDeque},
+	marker::PhantomData,
+	ops::RangeInclusive,
+	time::Duration,
+};
+
+/// Maximal number of 'obsolete' entries in the `MessageDeliveryStrategy::latest_confirmed_nonces_at_source`.
+const MAX_OBSOLETE_CONFIRMED_NONCES_ENTRIES_TO_KEEP: u32 = 128;
 
 /// Run message delivery race.
 pub async fn run<P: MessageLane>(
@@ -61,7 +70,7 @@ pub async fn run<P: MessageLane>(
 			max_messages_in_single_batch: params.max_messages_in_single_batch,
 			max_messages_weight_in_single_batch: params.max_messages_weight_in_single_batch,
 			max_messages_size_in_single_batch: params.max_messages_size_in_single_batch,
-			latest_confirmed_nonce_at_source: None,
+			latest_confirmed_nonces_at_source: VecDeque::new(),
 			target_nonces: None,
 			strategy: BasicStrategy::new(),
 		},
@@ -221,8 +230,8 @@ struct MessageDeliveryStrategy<P: MessageLane> {
 	max_messages_weight_in_single_batch: Weight,
 	/// Maximal messages size in the single delivery transaction.
 	max_messages_size_in_single_batch: usize,
-	/// Latest confirmed nonce at the source client.
-	latest_confirmed_nonce_at_source: Option<MessageNonce>,
+	/// Latest confirmed nonces at the source client + the header id where we have first met this nonce.
+	latest_confirmed_nonces_at_source: VecDeque<(SourceHeaderIdOf<P>, MessageNonce)>,
 	/// Target nonces from the source client.
 	target_nonces: Option<TargetClientNonces<DeliveryRaceTargetNoncesData>>,
 	/// Basic delivery strategy.
@@ -262,7 +271,17 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		at_block: SourceHeaderIdOf<P>,
 		nonces: SourceClientNonces<Self::SourceNoncesRange>,
 	) {
-		self.latest_confirmed_nonce_at_source = nonces.confirmed_nonce;
+		if let Some(confirmed_nonce) = nonces.confirmed_nonce {
+			let is_confirmed_nonce_updated = self
+				.latest_confirmed_nonces_at_source
+				.back()
+				.map(|(_, prev_nonce)| *prev_nonce != confirmed_nonce)
+				.unwrap_or(true);
+			if is_confirmed_nonce_updated {
+				self.latest_confirmed_nonces_at_source
+					.push_back((at_block.clone(), confirmed_nonce));
+			}
+		}
 		self.strategy.source_nonces_updated(at_block, nonces)
 	}
 
@@ -271,6 +290,25 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		nonces: TargetClientNonces<DeliveryRaceTargetNoncesData>,
 		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
 	) {
+		// remove obsolete entries from `latest_confirmed_nonces_at_source`. We'll leave some reserve here
+		// for the case if target chain reorgs. In case of long reorgs, the race may stuck, but will be
+		// auto-restarted.
+		if let Some(ref best_finalized_source_header_id_at_best_target) =
+			race_state.best_finalized_source_header_id_at_best_target
+		{
+			let oldest_header_number_to_keep = best_finalized_source_header_id_at_best_target
+				.0
+				.saturating_sub(MAX_OBSOLETE_CONFIRMED_NONCES_ENTRIES_TO_KEEP.into());
+			while self
+				.latest_confirmed_nonces_at_source
+				.front()
+				.map(|(id, _)| id.0 < oldest_header_number_to_keep)
+				.unwrap_or(false)
+			{
+				self.latest_confirmed_nonces_at_source.pop_front();
+			}
+		}
+
 		self.target_nonces = Some(nonces.clone());
 		self.strategy.target_nonces_updated(
 			TargetClientNonces {
@@ -285,7 +323,14 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		&mut self,
 		race_state: &RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
-		let latest_confirmed_nonce_at_source = self.latest_confirmed_nonce_at_source?;
+		let best_finalized_source_header_id_at_best_target =
+			race_state.best_finalized_source_header_id_at_best_target.clone()?;
+		let latest_confirmed_nonce_at_source = self
+			.latest_confirmed_nonces_at_source
+			.iter()
+			.take_while(|(id, _)| id.0 <= best_finalized_source_header_id_at_best_target.0)
+			.last()
+			.map(|(_, nonce)| *nonce)?;
 		let target_nonces = self.target_nonces.as_ref()?;
 
 		// There's additional condition in the message delivery race: target would reject messages
@@ -489,7 +534,7 @@ mod tests {
 			max_messages_in_single_batch: 4,
 			max_messages_weight_in_single_batch: 4,
 			max_messages_size_in_single_batch: 4,
-			latest_confirmed_nonce_at_source: Some(19),
+			latest_confirmed_nonces_at_source: vec![(header_id(1), 19)].into_iter().collect(),
 			target_nonces: Some(TargetClientNonces {
 				latest_nonce: 19,
 				nonces_data: DeliveryRaceTargetNoncesData {
@@ -581,8 +626,12 @@ mod tests {
 
 		// if there are already `max_unconfirmed_nonces_at_target` messages on target,
 		// we need to wait until confirmations will be delivered by receiving race
-		strategy.latest_confirmed_nonce_at_source =
-			Some(strategy.target_nonces.as_ref().unwrap().latest_nonce - strategy.max_unconfirmed_nonces_at_target);
+		strategy.latest_confirmed_nonces_at_source = vec![(
+			header_id(1),
+			strategy.target_nonces.as_ref().unwrap().latest_nonce - strategy.max_unconfirmed_nonces_at_target,
+		)]
+		.into_iter()
+		.collect();
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 	}
 
@@ -592,7 +641,7 @@ mod tests {
 
 		// if there are new confirmed nonces on source, we want to relay this information
 		// to target to prune rewards queue
-		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonces_at_source.back().unwrap().1;
 		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
 		assert_eq!(
 			strategy.select_nonces_to_deliver(&state),
@@ -620,7 +669,7 @@ mod tests {
 
 		// if there are already `max_unrewarded_relayer_entries_at_target` entries at target,
 		// we need to prove at least `messages_in_oldest_entry` rewards
-		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonces_at_source.back().unwrap().1;
 		{
 			let mut nonces_data = &mut strategy.target_nonces.as_mut().unwrap().nonces_data;
 			nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
@@ -637,7 +686,7 @@ mod tests {
 
 		// if there are already `max_unrewarded_relayer_entries_at_target` entries at target,
 		// we need to prove at least `messages_in_oldest_entry` rewards
-		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonces_at_source.back().unwrap().1;
 		{
 			let mut nonces_data = &mut strategy.target_nonces.as_mut().unwrap().nonces_data;
 			nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 3;
@@ -717,12 +766,101 @@ mod tests {
 
 		// 1 delivery confirmation from target to source is still missing, so we may only
 		// relay 3 new messages
-		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonce_at_source.unwrap();
-		strategy.latest_confirmed_nonce_at_source = Some(prev_confirmed_nonce_at_source - 1);
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonces_at_source.back().unwrap().1;
+		strategy.latest_confirmed_nonces_at_source = vec![(header_id(1), prev_confirmed_nonce_at_source - 1)]
+			.into_iter()
+			.collect();
 		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
 		assert_eq!(
 			strategy.select_nonces_to_deliver(&state),
 			Some(((20..=22), proof_parameters(false, 3)))
 		);
+	}
+
+	#[test]
+	fn message_delivery_strategy_waits_for_confirmed_nonce_header_to_appear_on_target() {
+		// 1 delivery confirmation from target to source is still missing, so we may deliver
+		// reward confirmation with our message delivery transaction. But the problem is that
+		// the reward has been paid at header 2 && this header is still unknown to target node.
+		//
+		// => so we can't deliver more than 3 messages
+		let (mut state, mut strategy) = prepare_strategy();
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonces_at_source.back().unwrap().1;
+		strategy.latest_confirmed_nonces_at_source = vec![
+			(header_id(1), prev_confirmed_nonce_at_source - 1),
+			(header_id(2), prev_confirmed_nonce_at_source),
+		]
+		.into_iter()
+		.collect();
+		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
+		state.best_finalized_source_header_id_at_best_target = Some(header_id(1));
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=22), proof_parameters(false, 3)))
+		);
+
+		// the same situation, but the header 2 is known to the target node, so we may deliver reward confirmation
+		let (mut state, mut strategy) = prepare_strategy();
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonces_at_source.back().unwrap().1;
+		strategy.latest_confirmed_nonces_at_source = vec![
+			(header_id(1), prev_confirmed_nonce_at_source - 1),
+			(header_id(2), prev_confirmed_nonce_at_source),
+		]
+		.into_iter()
+		.collect();
+		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
+		state.best_finalized_source_header_id_at_source = Some(header_id(2));
+		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=23), proof_parameters(true, 4)))
+		);
+	}
+
+	#[test]
+	fn latest_confirmed_nonces_at_source_are_pruned() {
+		let (mut state, mut strategy) = prepare_strategy();
+		let make_source_nonces = |message_nonce, confirmed_nonce| SourceClientNonces {
+			new_nonces: vec![(message_nonce, MessageWeights { weight: 1, size: 1 })]
+				.into_iter()
+				.collect(),
+			confirmed_nonce: Some(confirmed_nonce),
+		};
+		let target_nonces = TargetClientNonces {
+			latest_nonce: 19,
+			nonces_data: DeliveryRaceTargetNoncesData {
+				confirmed_nonce: 19,
+				unrewarded_relayers: UnrewardedRelayersState::default(),
+			},
+		};
+
+		strategy.source_nonces_updated(header_id(1024), make_source_nonces(24, 20));
+		// try the same entry to ensure that it is ignored
+		let id1024 = header_id(1024u64);
+		let id_not_pruning = header_id(1024u64 + u64::from(MAX_OBSOLETE_CONFIRMED_NONCES_ENTRIES_TO_KEEP));
+		let id_pruning = header_id(1024u64 + u64::from(MAX_OBSOLETE_CONFIRMED_NONCES_ENTRIES_TO_KEEP) + 1);
+		strategy.source_nonces_updated(id1024, make_source_nonces(24, 20));
+		strategy.source_nonces_updated(id_not_pruning, make_source_nonces(25, 21));
+		strategy.source_nonces_updated(id_pruning, make_source_nonces(26, 22));
+		assert_eq!(strategy.latest_confirmed_nonces_at_source.len(), 4);
+
+		// when header 1024 appears on target, we drop first entry
+		let mut expected = vec![(id1024, 20u64), (id_not_pruning, 21u64), (id_pruning, 22u64)]
+			.into_iter()
+			.collect::<VecDeque<_>>();
+		state.best_finalized_source_header_id_at_best_target = Some(id1024);
+		strategy.target_nonces_updated(target_nonces.clone(), &mut state);
+		assert_eq!(strategy.latest_confirmed_nonces_at_source, expected);
+
+		// when header 1024+MAX_OBSOLETE_CONFIRMED_NONCES_ENTRIES_TO_KEEP appears on target, nothing is dropped
+		state.best_finalized_source_header_id_at_best_target = Some(id_not_pruning);
+		strategy.target_nonces_updated(target_nonces.clone(), &mut state);
+		assert_eq!(strategy.latest_confirmed_nonces_at_source, expected);
+
+		// and then finally 1024 is dropped
+		state.best_finalized_source_header_id_at_best_target = Some(id_pruning);
+		strategy.target_nonces_updated(target_nonces, &mut state);
+		expected.pop_front();
+		assert_eq!(strategy.latest_confirmed_nonces_at_source, expected);
 	}
 }
