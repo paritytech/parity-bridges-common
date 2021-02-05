@@ -90,9 +90,7 @@ impl<H: Default, E> HeaderChain<H, E> for () {
 		AuthoritySet::default()
 	}
 
-	fn append_header(_header: H) {
-		()
-	}
+	fn append_header(_header: H) {}
 }
 
 /// A trait for checking if a given child header is a direct descendant of an ancestor.
