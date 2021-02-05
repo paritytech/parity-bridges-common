@@ -21,7 +21,7 @@ use crate::message_race_loop::{NoncesRange, RaceState, RaceStrategy, SourceClien
 
 use bp_message_lane::MessageNonce;
 use relay_utils::HeaderId;
-use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive};
+use std::{collections::VecDeque, fmt::Debug, marker::PhantomData, ops::RangeInclusive};
 
 /// Nonces delivery strategy.
 #[derive(Debug)]
@@ -35,8 +35,10 @@ pub struct BasicStrategy<
 > {
 	/// All queued nonces.
 	source_queue: VecDeque<(HeaderId<SourceHeaderHash, SourceHeaderNumber>, SourceNoncesRange)>,
-	/// Best nonce known to target node. `None` if it has not been received yet.
-	target_nonce: Option<MessageNonce>,
+	/// Best nonce known to target node (at its best finalized block). `None` if it has not been received yet.
+	finalized_target_nonce: Option<MessageNonce>,
+	/// Best nonce known to target node (at its best block). `None` if it has not been received yet.
+	best_target_nonce: Option<MessageNonce>,
 	/// Unused generic types dump.
 	_phantom: PhantomData<(TargetHeaderNumber, TargetHeaderHash, Proof)>,
 }
@@ -52,7 +54,8 @@ where
 	pub fn new() -> Self {
 		BasicStrategy {
 			source_queue: VecDeque::new(),
-			target_nonce: None,
+			finalized_target_nonce: None,
+			best_target_nonce: None,
 			_phantom: Default::default(),
 		}
 	}
@@ -83,7 +86,7 @@ where
 		mut selector: impl FnMut(SourceNoncesRange) -> Option<SourceNoncesRange>,
 	) -> Option<RangeInclusive<MessageNonce>> {
 		// if we do not know best nonce at target node, we can't select anything
-		let target_nonce = self.target_nonce?;
+		let target_nonce = self.best_target_nonce?;
 
 		// if we have already selected nonces that we want to submit, do nothing
 		if race_state.nonces_to_submit.is_some() {
@@ -147,9 +150,12 @@ impl<SourceHeaderNumber, SourceHeaderHash, TargetHeaderNumber, TargetHeaderHash,
 	RaceStrategy<HeaderId<SourceHeaderHash, SourceHeaderNumber>, HeaderId<TargetHeaderHash, TargetHeaderNumber>, Proof>
 	for BasicStrategy<SourceHeaderNumber, SourceHeaderHash, TargetHeaderNumber, TargetHeaderHash, SourceNoncesRange, Proof>
 where
-	SourceHeaderHash: Clone,
-	SourceHeaderNumber: Clone + Ord,
-	SourceNoncesRange: NoncesRange,
+	SourceHeaderHash: Clone + Debug,
+	SourceHeaderNumber: Clone + Ord + Debug,
+	SourceNoncesRange: NoncesRange + Debug,
+	TargetHeaderHash: Debug,
+	TargetHeaderNumber: Debug,
+	Proof: Debug,
 {
 	type SourceNoncesRange = SourceNoncesRange;
 	type ProofParameters = ();
@@ -161,15 +167,15 @@ where
 
 	fn best_at_source(&self) -> Option<MessageNonce> {
 		let best_in_queue = self.source_queue.back().map(|(_, range)| range.end());
-		match (best_in_queue, self.target_nonce) {
-			(Some(best_in_queue), Some(target_nonce)) if best_in_queue > target_nonce => Some(best_in_queue),
-			(_, Some(target_nonce)) => Some(target_nonce),
+		match (best_in_queue, self.best_target_nonce) {
+			(Some(best_in_queue), Some(best_target_nonce)) if best_in_queue > best_target_nonce => Some(best_in_queue),
+			(_, Some(best_target_nonce)) => Some(best_target_nonce),
 			(_, None) => None,
 		}
 	}
 
 	fn best_at_target(&self) -> Option<MessageNonce> {
-		self.target_nonce
+		self.best_target_nonce
 	}
 
 	fn source_nonces_updated(
@@ -181,7 +187,7 @@ where
 			.source_queue
 			.back()
 			.map(|(_, range)| range.end())
-			.or(self.target_nonce)
+			.or(self.best_target_nonce)
 			.unwrap_or_default();
 		self.source_queue.extend(
 			nonces
@@ -192,7 +198,14 @@ where
 		)
 	}
 
-	fn target_nonces_updated(
+	fn best_target_nonces_updated(&mut self, nonces: TargetClientNonces<()>) {
+		self.best_target_nonce = Some(std::cmp::max(
+			self.best_target_nonce.unwrap_or(nonces.latest_nonce),
+			nonces.latest_nonce,
+		));
+	}
+
+	fn finalized_target_nonces_updated(
 		&mut self,
 		nonces: TargetClientNonces<()>,
 		race_state: &mut RaceState<
@@ -203,8 +216,13 @@ where
 	) {
 		let nonce = nonces.latest_nonce;
 
-		if let Some(target_nonce) = self.target_nonce {
-			if nonce < target_nonce {
+		self.best_target_nonce = Some(std::cmp::max(
+			self.best_target_nonce.unwrap_or(nonces.latest_nonce),
+			nonces.latest_nonce,
+		));
+
+		if let Some(finalized_target_nonce) = self.finalized_target_nonce {
+			if nonce < finalized_target_nonce {
 				return;
 			}
 		}
@@ -238,7 +256,7 @@ where
 			race_state.nonces_submitted = None;
 		}
 
-		self.target_nonce = Some(nonce);
+		self.finalized_target_nonce = Some(nonce);
 	}
 
 	fn select_nonces_to_deliver(
@@ -299,7 +317,8 @@ mod tests {
 		assert_eq!(strategy.best_at_source(), None);
 		strategy.source_nonces_updated(header_id(1), source_nonces(1..=5));
 		assert_eq!(strategy.best_at_source(), None);
-		strategy.target_nonces_updated(target_nonces(10), &mut Default::default());
+		strategy.best_target_nonces_updated(target_nonces(10));
+		strategy.finalized_target_nonces_updated(target_nonces(10), &mut Default::default());
 		assert_eq!(strategy.source_queue, vec![]);
 		assert_eq!(strategy.best_at_source(), Some(10));
 	}
@@ -307,7 +326,7 @@ mod tests {
 	#[test]
 	fn source_nonce_is_never_lower_than_known_target_nonce() {
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
-		strategy.target_nonces_updated(target_nonces(10), &mut Default::default());
+		strategy.best_target_nonces_updated(target_nonces(10));
 		strategy.source_nonces_updated(header_id(1), source_nonces(1..=5));
 		assert_eq!(strategy.source_queue, vec![]);
 	}
@@ -324,11 +343,11 @@ mod tests {
 	#[test]
 	fn target_nonce_is_never_lower_than_latest_known_target_nonce() {
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
-		assert_eq!(strategy.target_nonce, None);
-		strategy.target_nonces_updated(target_nonces(10), &mut Default::default());
-		assert_eq!(strategy.target_nonce, Some(10));
-		strategy.target_nonces_updated(target_nonces(5), &mut Default::default());
-		assert_eq!(strategy.target_nonce, Some(10));
+		assert_eq!(strategy.best_target_nonce, None);
+		strategy.finalized_target_nonces_updated(target_nonces(10), &mut Default::default());
+		assert_eq!(strategy.finalized_target_nonce, Some(10));
+		strategy.finalized_target_nonces_updated(target_nonces(5), &mut Default::default());
+		assert_eq!(strategy.finalized_target_nonce, Some(10));
 	}
 
 	#[test]
@@ -338,9 +357,11 @@ mod tests {
 		strategy.source_nonces_updated(header_id(2), source_nonces(6..=10));
 		strategy.source_nonces_updated(header_id(3), source_nonces(11..=15));
 		strategy.source_nonces_updated(header_id(4), source_nonces(16..=20));
-		strategy.target_nonces_updated(target_nonces(15), &mut Default::default());
+		strategy.best_target_nonces_updated(target_nonces(15));
+		strategy.finalized_target_nonces_updated(target_nonces(15), &mut Default::default());
 		assert_eq!(strategy.source_queue, vec![(header_id(4), 16..=20)]);
-		strategy.target_nonces_updated(target_nonces(17), &mut Default::default());
+		strategy.best_target_nonces_updated(target_nonces(17));
+		strategy.finalized_target_nonces_updated(target_nonces(17), &mut Default::default());
 		assert_eq!(strategy.source_queue, vec![(header_id(4), 18..=20)]);
 	}
 
@@ -349,9 +370,11 @@ mod tests {
 		let mut state = RaceState::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
 		state.nonces_to_submit = Some((header_id(1), 5..=10, (5..=10, None)));
-		strategy.target_nonces_updated(target_nonces(7), &mut state);
+		strategy.best_target_nonces_updated(target_nonces(7));
+		strategy.finalized_target_nonces_updated(target_nonces(7), &mut state);
 		assert!(state.nonces_to_submit.is_some());
-		strategy.target_nonces_updated(target_nonces(10), &mut state);
+		strategy.best_target_nonces_updated(target_nonces(10));
+		strategy.finalized_target_nonces_updated(target_nonces(10), &mut state);
 		assert!(state.nonces_to_submit.is_none());
 	}
 
@@ -360,9 +383,9 @@ mod tests {
 		let mut state = RaceState::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
 		state.nonces_submitted = Some(5..=10);
-		strategy.target_nonces_updated(target_nonces(7), &mut state);
+		strategy.finalized_target_nonces_updated(target_nonces(7), &mut state);
 		assert!(state.nonces_submitted.is_some());
-		strategy.target_nonces_updated(target_nonces(10), &mut state);
+		strategy.finalized_target_nonces_updated(target_nonces(10), &mut state);
 		assert!(state.nonces_submitted.is_none());
 	}
 
@@ -371,7 +394,7 @@ mod tests {
 		let mut state = RaceState::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
 		state.nonces_to_submit = Some((header_id(1), 1..=10, (1..=10, None)));
-		strategy.target_nonces_updated(target_nonces(0), &mut state);
+		strategy.finalized_target_nonces_updated(target_nonces(0), &mut state);
 		strategy.source_nonces_updated(header_id(1), source_nonces(1..=10));
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 	}
@@ -381,7 +404,7 @@ mod tests {
 		let mut state = RaceState::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
 		state.nonces_submitted = Some(1..=10);
-		strategy.target_nonces_updated(target_nonces(0), &mut state);
+		strategy.finalized_target_nonces_updated(target_nonces(0), &mut state);
 		strategy.source_nonces_updated(header_id(1), source_nonces(1..=10));
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 	}
@@ -390,7 +413,8 @@ mod tests {
 	fn select_nonces_to_deliver_works() {
 		let mut state = RaceState::<_, _, TestMessagesProof>::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
-		strategy.target_nonces_updated(target_nonces(0), &mut state);
+		strategy.best_target_nonces_updated(target_nonces(0));
+		strategy.finalized_target_nonces_updated(target_nonces(0), &mut state);
 		strategy.source_nonces_updated(header_id(1), source_nonces(1..=1));
 		strategy.source_nonces_updated(header_id(2), source_nonces(2..=2));
 		strategy.source_nonces_updated(header_id(3), source_nonces(3..=6));
@@ -398,12 +422,14 @@ mod tests {
 
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(4));
 		assert_eq!(strategy.select_nonces_to_deliver(&state), Some((1..=6, ())));
-		strategy.target_nonces_updated(target_nonces(6), &mut state);
+		strategy.best_target_nonces_updated(target_nonces(6));
+		strategy.finalized_target_nonces_updated(target_nonces(6), &mut state);
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(5));
 		assert_eq!(strategy.select_nonces_to_deliver(&state), Some((7..=8, ())));
-		strategy.target_nonces_updated(target_nonces(8), &mut state);
+		strategy.best_target_nonces_updated(target_nonces(6));
+		strategy.finalized_target_nonces_updated(target_nonces(8), &mut state);
 		assert_eq!(strategy.select_nonces_to_deliver(&state), None);
 	}
 
@@ -411,7 +437,8 @@ mod tests {
 	fn select_nonces_to_deliver_able_to_split_ranges_with_selector() {
 		let mut state = RaceState::<_, _, TestMessagesProof>::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
-		strategy.target_nonces_updated(target_nonces(0), &mut state);
+		strategy.best_target_nonces_updated(target_nonces(0));
+		strategy.finalized_target_nonces_updated(target_nonces(0), &mut state);
 		strategy.source_nonces_updated(header_id(1), source_nonces(1..=100));
 
 		state.best_finalized_source_header_id_at_source = Some(header_id(1));
@@ -430,7 +457,8 @@ mod tests {
 		let mut state = RaceState::<_, _, TestMessagesProof>::default();
 		let mut strategy = BasicStrategy::<TestMessageLane>::new();
 		strategy.source_nonces_updated(header_id(1), source_nonces(1..=100));
-		strategy.target_nonces_updated(target_nonces(50), &mut state);
+		strategy.best_target_nonces_updated(target_nonces(50));
+		strategy.finalized_target_nonces_updated(target_nonces(50), &mut state);
 		state.best_finalized_source_header_id_at_source = Some(header_id(1));
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(1));
 		state.best_target_header_id = Some(header_id(1));

@@ -628,7 +628,7 @@ mod tests {
 
 		assert!(signature.verify(&digest[..], &millau_signer.signer.public()));
 	}
-
+/*
 	#[test]
 	fn maximal_size_remark_to_millau_is_generated_correctly() {
 		let max_extrinsic_size = bp_millau::max_extrinsic_size();
@@ -643,14 +643,14 @@ mod tests {
 	#[test]
 	fn maximal_weight_fill_block_to_millau_is_generated_correctly() {
 		let max_extrinsic_weight = bp_millau::max_extrinsic_weight();
-		let call: millau_runtime::Call = prepare_maximal_weight_fill_block(bp_millau::MAXIMUM_BLOCK_WEIGHT, max_extrinsic_weight).into();
+		let call: millau_runtime::Call = prepare_maximal_weight_fill_block(max_extrinsic_weight).into();
 		assert_eq!(
 			call.get_dispatch_info().weight,
 			bridge_runtime_common::messages::target::maximal_incoming_message_dispatch_weight(max_extrinsic_weight),
 			"Something has changed in Call dispatch weight. The message should be fixed",
 		);
 	}
-/*
+
 	#[test]
 	fn maximal_size_remark_to_rialto_is_generated_correctly() {
 	}

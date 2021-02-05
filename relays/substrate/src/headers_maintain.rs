@@ -255,6 +255,8 @@ fn select_justification<P>(
 where
 	P: SubstrateHeadersSyncPipeline<Completion = Justification>,
 {
+log::debug!(target: "bridge", "=== queue: {:?}", queue);
+
 	let mut selected_justification = None;
 	while let Some((target, justification)) = queue.pop_front() {
 		// if we're waiting for this justification, report it
@@ -279,7 +281,7 @@ where
 		queue.push_back((target, justification));
 		break;
 	}
-
+log::debug!(target: "bridge", "=== selected: {:?} queue: {:?}", selected_justification, queue);
 	selected_justification
 }
 
