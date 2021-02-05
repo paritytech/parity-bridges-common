@@ -407,17 +407,20 @@ impl pallet_substrate_bridge::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 }
 
-parameter_types! {
+use core::convert::TryInto;
+frame_support::ord_parameter_types! {
 	// We'll use the length of a session on the bridged chain as our bound since GRANDPA is
 	// guaranteed to produce a justification every session.
-	pub const MaxHeadersInSingleProof: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
+	pub const MaxElementsInSingleProof: Option<u32> =
+		Some(bp_millau::SESSION_LENGTH.try_into().unwrap_or(u32::MAX));
 }
 
 impl pallet_finality_verifier::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
+	type AncestryProof = Vec<bp_millau::Header>;
 	type AncestryChecker = bp_header_chain::LinearAncestryChecker;
-	type MaxHeadersInSingleProof = MaxHeadersInSingleProof;
+	type MaxElementsInSingleProof = MaxElementsInSingleProof;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}

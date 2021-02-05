@@ -303,14 +303,15 @@ impl pallet_substrate_bridge::Config for Runtime {
 parameter_types! {
 	// We'll use the length of a session on the bridged chain as our bound since GRANDPA is
 	// guaranteed to produce a justification every session.
-	pub const MaxHeadersInSingleProof: bp_rialto::BlockNumber = bp_rialto::SESSION_LENGTH;
+	pub const MaxElementsInSingleProof: Option<u32> = Some(bp_rialto::SESSION_LENGTH);
 }
 
 impl pallet_finality_verifier::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
+	type AncestryProof = Vec<bp_rialto::Header>;
 	type AncestryChecker = bp_header_chain::LinearAncestryChecker;
-	type MaxHeadersInSingleProof = MaxHeadersInSingleProof;
+	type MaxElementsInSingleProof = MaxElementsInSingleProof;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}

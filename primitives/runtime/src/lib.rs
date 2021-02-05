@@ -111,7 +111,7 @@ pub trait Size {
 	fn size_hint(&self) -> u32;
 }
 
-impl<T> Size for Vec<T> {
+impl<T> Size for sp_std::vec::Vec<T> {
 	fn size_hint(&self) -> u32 {
 		use core::convert::TryFrom;
 		u32::try_from(self.len()).unwrap_or(u32::MAX)
