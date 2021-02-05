@@ -77,9 +77,10 @@ pub mod pallet {
 
 		/// The maximum length of elements we can have in a single ancestry proof.
 		///
-		/// It is an optional field since some proof types might not be concered about the length of
-		/// the proof when verifying ancestry, whereas for other verification time may grow with the
-		/// size of the proof (which if left unbounded would be bad).
+		/// It is an optional field since some ancestry proof types may require iterating through
+		/// the proof during verification. If left unbounded, this could be problematic. On the
+		/// other hand, some proof structures may not care about a maximum length, in which case
+		/// this does not need to be used.
 		#[pallet::constant]
 		type MaxElementsInSingleProof: Get<Option<u32>>;
 	}
@@ -94,14 +95,11 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Verify a target header is finalized according to the given finality proof.
 		///
-		/// Will use the underlying storage pallet to fetch information about the current
+		/// It will use the underlying storage pallet to fetch information about the current
 		/// authorities and best finalized header in order to verify that the header is finalized.
 		///
-		/// If successful in verification, it will write the header as well as its ancestors (from
-		/// the given `ancestry_proof`) to the underlying storage pallet.
-		///
-		/// Note that the expected format for `ancestry_proof` is a continguous list of finalized
-		/// headers containing (current_best_finalized_header, finality_target]
+		/// If successful in verification, it will write the target header to the underlying storage
+		/// pallet.
 		#[pallet::weight(0)]
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,
@@ -157,7 +155,7 @@ pub mod pallet {
 		InvalidAuthoritySet,
 		/// Failed to write a header to the underlying header chain.
 		FailedToWriteHeader,
-		/// The given ancestry proof is too large to be verified in a single transaction.
+		/// The given ancestry proof is too large to be verified efficiently.
 		OversizedAncestryProof,
 	}
 }
