@@ -110,3 +110,10 @@ pub trait Size {
 	/// accurate.
 	fn size_hint(&self) -> u32;
 }
+
+impl<T> Size for Vec<T> {
+	fn size_hint(&self) -> u32 {
+		use core::convert::TryFrom;
+		u32::try_from(self.len()).unwrap_or(u32::MAX)
+	}
+}
