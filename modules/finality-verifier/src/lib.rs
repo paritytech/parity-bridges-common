@@ -37,7 +37,6 @@ use bp_runtime::{Chain, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::DispatchError, ensure, traits::Get};
 use frame_system::ensure_signed;
-use num_traits::AsPrimitive;
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::vec::Vec;
 

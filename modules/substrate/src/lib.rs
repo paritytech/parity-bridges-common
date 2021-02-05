@@ -375,33 +375,8 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>, sp_runtime::Dispa
 		PalletStorage::<T>::new().current_authority_set()
 	}
 
-	// TODO: Will want to change this to only write a single finalized header instead of a chain of
-	// headers. This is because certain proof types (like MMRs) will not contain a contiguous set of
-	// headers
-	fn append_finalized_chain(
-		headers: impl IntoIterator<Item = BridgedHeader<T>>,
-	) -> Result<(), sp_runtime::DispatchError> {
-		let mut storage = PalletStorage::<T>::new();
-
-		let mut header_iter = headers.into_iter().peekable();
-		let first_header = header_iter.peek().ok_or(Error::<T>::NotDescendant)?;
-
-		// Quick ancestry check to make sure we're not writing complete nonsense to storage
-		ensure!(
-			<BestFinalized<T>>::get() == *first_header.parent_hash(),
-			Error::<T>::NotDescendant,
-		);
-
-		for header in header_iter {
-			import_header_unchecked::<_, T>(&mut storage, header);
-		}
-
-		Ok(())
-	}
-
 	fn append_header(header: BridgedHeader<T>) {
-		let mut storage = PalletStorage::<T>::new();
-		import_header_unchecked::<_, T>(&mut storage, header);
+		import_header_unchecked::<_, T>(&mut PalletStorage::<T>::new(), header);
 	}
 }
 
