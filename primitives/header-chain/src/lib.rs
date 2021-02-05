@@ -85,6 +85,9 @@ pub trait HeaderChain<H, E> {
 	/// This function should fail if the first header is not a child of the current best finalized
 	/// header known to the underlying pallet storage.
 	fn append_finalized_chain(headers: impl IntoIterator<Item = H>) -> Result<(), E>;
+
+	/// TODO: This is a replacement for append_finalized_chain()
+	fn append_header(header: H);
 }
 
 impl<H: Default, E> HeaderChain<H, E> for () {
@@ -98,6 +101,10 @@ impl<H: Default, E> HeaderChain<H, E> for () {
 
 	fn append_finalized_chain(_headers: impl IntoIterator<Item = H>) -> Result<(), E> {
 		Ok(())
+	}
+
+	fn append_header(_header: H) {
+		()
 	}
 }
 

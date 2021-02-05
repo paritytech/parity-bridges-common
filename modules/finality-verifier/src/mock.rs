@@ -77,7 +77,8 @@ parameter_types! {
 impl crate::pallet::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type HeaderChain = pallet_substrate_bridge::Module<TestRuntime>;
-	type AncestryChecker = Checker<<Self::BridgedChain as Chain>::Header, Vec<<Self::BridgedChain as Chain>::Header>>;
+	type AncestryProof = Vec<<Self::BridgedChain as Chain>::Header>;
+	type AncestryChecker = Checker<<Self::BridgedChain as Chain>::Header, Self::AncestryProof>;
 	type MaxHeadersInSingleProof = MaxHeadersInSingleProof;
 }
 
