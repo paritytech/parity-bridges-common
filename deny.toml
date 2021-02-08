@@ -55,7 +55,10 @@ ignore = [
 	"RUSTSEC-2021-0013",
 	# We need to wait until Substrate updates their `libp2p` dependency to fix this.
 	# TODO: See issue #681: https://github.com/paritytech/parity-bridges-common/issues/681
-	"RUSTSEC-2020-0123"
+	"RUSTSEC-2020-0123",
+	# We need to wait until Substrate updates their `hyper` dependency to fix this.
+	# TODO: See issue #710: https://github.com/paritytech/parity-bridges-common/issues/681
+	"RUSTSEC-2021-0020",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
