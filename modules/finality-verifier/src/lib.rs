@@ -33,7 +33,6 @@
 #![allow(clippy::large_enum_variant)]
 
 use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
-use bp_runtime::Size;
 use bp_runtime::{Chain, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::DispatchError, ensure, traits::Get};
@@ -69,7 +68,7 @@ pub mod pallet {
 		///
 		/// Will be used by the ancestry checker to verify that the header being finalized is
 		/// related to the best finalized header in storage.
-		type AncestryProof: Parameter + Size;
+		type AncestryProof: Parameter;
 
 		/// The type through which we will verify that a given header is related to the last
 		/// finalized header in our storage pallet.
@@ -110,7 +109,7 @@ pub mod pallet {
 			let _ = ensure_signed(origin)?;
 
 			if let Some(max_len) = T::MaxElementsInSingleProof::get() {
-				let proof_len = Size::size_hint(&ancestry_proof);
+				let proof_len = T::AncestryChecker::proof_size(&ancestry_proof);
 				frame_support::debug::trace!("Got an ancestry proof of length {:?}", proof_len);
 				ensure!(proof_len < max_len.as_(), <Error<T>>::OversizedAncestryProof);
 			};

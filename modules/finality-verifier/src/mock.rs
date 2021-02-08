@@ -99,6 +99,10 @@ impl<H> bp_header_chain::AncestryChecker<H, Vec<H>> for Checker<H, Vec<H>> {
 	fn are_ancestors(_ancestor: &H, _child: &H, proof: &Vec<H>) -> bool {
 		!proof.is_empty()
 	}
+
+	fn proof_size(proof: &Vec<H>) -> usize {
+		proof.len()
+	}
 }
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
