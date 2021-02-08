@@ -141,6 +141,8 @@ pub fn run(
 		relayer_id_at_source: relayer_id_at_rialto,
 	};
 
+	// 2/3 is reserved for proofs and tx overhead
+	let max_messages_size_in_single_batch = bp_millau::max_extrinsic_size() as usize / 3;
 	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
 		select_delivery_transaction_limits::<pallet_message_lane::weights::RialtoWeight<rialto_runtime::Runtime>>(
 			bp_millau::max_extrinsic_weight(),
@@ -149,12 +151,14 @@ pub fn run(
 
 	log::info!(
 		target: "bridge",
-		"Starting Rialto -> Millau messages relay.\r\n\t\
-			Rialto relayer account id: {:?}\r\n\t\
-			Max messages in single transaction: {}\r\n\t\
+		"Starting Rialto -> Millau messages relay.\n\t\
+			Rialto relayer account id: {:?}\n\t\
+			Max messages in single transaction: {}\n\t\
+			Max messages size in single transaction: {}\n\t\
 			Max messages weight in single transaction: {}",
 		lane.relayer_id_at_source,
 		max_messages_in_single_batch,
+		max_messages_size_in_single_batch,
 		max_messages_weight_in_single_batch,
 	);
 
@@ -170,8 +174,7 @@ pub fn run(
 				max_unconfirmed_nonces_at_target: bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
-				// 2/3 is reserved for proofs and tx overhead
-				max_messages_size_in_single_batch: bp_millau::max_extrinsic_size() as usize / 3,
+				max_messages_size_in_single_batch,
 			},
 		},
 		RialtoSourceClient::new(rialto_client, lane.clone(), lane_id, MILLAU_BRIDGE_INSTANCE),
