@@ -198,14 +198,7 @@ where
 		)
 	}
 
-	fn best_target_nonces_updated(&mut self, nonces: TargetClientNonces<()>) {
-		self.best_target_nonce = Some(std::cmp::max(
-			self.best_target_nonce.unwrap_or(nonces.latest_nonce),
-			nonces.latest_nonce,
-		));
-	}
-
-	fn finalized_target_nonces_updated(
+	fn best_target_nonces_updated(
 		&mut self,
 		nonces: TargetClientNonces<()>,
 		race_state: &mut RaceState<
@@ -216,13 +209,8 @@ where
 	) {
 		let nonce = nonces.latest_nonce;
 
-		self.best_target_nonce = Some(std::cmp::max(
-			self.best_target_nonce.unwrap_or(nonces.latest_nonce),
-			nonces.latest_nonce,
-		));
-
-		if let Some(finalized_target_nonce) = self.finalized_target_nonce {
-			if nonce < finalized_target_nonce {
+		if let Some(best_target_nonce) = self.best_target_nonce {
+			if nonce < best_target_nonce {
 				return;
 			}
 		}
@@ -256,6 +244,27 @@ where
 			race_state.nonces_submitted = None;
 		}
 
+		self.best_target_nonce = Some(std::cmp::max(
+			self.best_target_nonce.unwrap_or(nonces.latest_nonce),
+			nonce,
+		));
+	}
+
+	fn finalized_target_nonces_updated(
+		&mut self,
+		nonces: TargetClientNonces<()>,
+		_race_state: &mut RaceState<
+			HeaderId<SourceHeaderHash, SourceHeaderNumber>,
+			HeaderId<TargetHeaderHash, TargetHeaderNumber>,
+			Proof,
+		>,
+	) {
+		let nonce = nonces.latest_nonce;
+
+		self.best_target_nonce = Some(std::cmp::max(
+			self.best_target_nonce.unwrap_or(nonces.latest_nonce),
+			nonces.latest_nonce,
+		));
 		self.finalized_target_nonce = Some(nonce);
 	}
 

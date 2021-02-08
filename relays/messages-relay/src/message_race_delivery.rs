@@ -299,7 +299,11 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		self.strategy.source_nonces_updated(at_block, nonces)
 	}
 
-	fn best_target_nonces_updated(&mut self, nonces: TargetClientNonces<DeliveryRaceTargetNoncesData>) {
+	fn best_target_nonces_updated(
+		&mut self,
+		nonces: TargetClientNonces<DeliveryRaceTargetNoncesData>,
+		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
+	) {
 		// best target nonces must always be ge than 
 		let mut target_nonces = self.target_nonces.take().unwrap_or_else(|| nonces.clone());
 		target_nonces.nonces_data = nonces.nonces_data.clone();
@@ -309,10 +313,13 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		);
 		self.target_nonces = Some(target_nonces);
 
-		self.strategy.best_target_nonces_updated(TargetClientNonces {
-			latest_nonce: nonces.latest_nonce,
-			nonces_data: (),
-		})
+		self.strategy.best_target_nonces_updated(
+			TargetClientNonces {
+				latest_nonce: nonces.latest_nonce,
+				nonces_data: (),
+			},
+			race_state,
+		)
 	}
 
 	fn finalized_target_nonces_updated(

@@ -162,7 +162,11 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>: Debug {
 	/// Called when nonces are updated at source node of the race.
 	fn source_nonces_updated(&mut self, at_block: SourceHeaderId, nonces: SourceClientNonces<Self::SourceNoncesRange>);
 	/// Called when best nonces are updated at target node of the race.
-	fn best_target_nonces_updated(&mut self, nonces: TargetClientNonces<Self::TargetNoncesData>);
+	fn best_target_nonces_updated(
+		&mut self,
+		nonces: TargetClientNonces<Self::TargetNoncesData>,
+		race_state: &mut RaceState<SourceHeaderId, TargetHeaderId, Proof>,
+	);
 	/// Called when finalized nonces are updated at target node of the race.
 	fn finalized_target_nonces_updated(
 		&mut self,
@@ -314,7 +318,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 						);
 
 						let prev_best_at_target = strategy.best_at_target();
-						strategy.best_target_nonces_updated(nonces);
+						strategy.best_target_nonces_updated(nonces, &mut race_state);
 						if strategy.best_at_target() != prev_best_at_target {
 							stall_countdown = Instant::now();
 						}
