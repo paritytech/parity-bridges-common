@@ -569,7 +569,7 @@ mod tests {
 
 		// target node only knows about source' BEST_AT_TARGET block
 		// source node has BEST_AT_SOURCE > BEST_AT_TARGET block
-		let mut race_state = RaceState::<_, _, ()> {
+		let race_state = RaceState::<_, _, ()> {
 			best_finalized_source_header_id_at_source: Some(HeaderId(BEST_AT_SOURCE, BEST_AT_SOURCE)),
 			best_finalized_source_header_id_at_best_target: Some(HeaderId(BEST_AT_TARGET, BEST_AT_TARGET)),
 			best_target_header_id: Some(HeaderId(0, 0)),
