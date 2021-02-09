@@ -69,14 +69,21 @@ pub mod pallet {
 		pub fn dispatch_call(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			let _ = ensure_signed(origin)?;
 
-			let window_start_block = Self::current_window_start();
 			let current_block_number = <frame_system::Module<T>>::block_number();
-			let elapsed_time = current_block_number - window_start_block;
+			let elapsed_time = current_block_number - Self::current_window_start();
 
-			if elapsed_time >= T::WindowLength::get() {
-				// Set current window to previous window
-				// reset current window stats
-			}
+			// Check if we've exceeded our window length since last time we ran
+			let elapsed_time = if elapsed_time >= T::WindowLength::get() {
+				// Bump the window start block to the next window
+				<CurrentWindowStart<T>>::mutate(|start| *start += T::WindowLength::get());
+				<PreviousWindowReqCount<T>>::put(Self::current_request_count());
+				<CurrentWindowReqCount<T>>::put(0);
+
+				// Need to re-calculate our elapsed time
+				current_block_number - Self::current_window_start()
+			} else {
+				elapsed_time
+			};
 
 			let prev_count: T::BlockNumber = Self::previous_request_count().into();
 			let curr_count: T::BlockNumber = Self::current_request_count().into();
