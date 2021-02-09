@@ -79,7 +79,6 @@ impl crate::pallet::Config for TestRuntime {
 	type HeaderChain = pallet_substrate_bridge::Module<TestRuntime>;
 	type AncestryProof = Vec<<Self::BridgedChain as Chain>::Header>;
 	type AncestryChecker = Checker<<Self::BridgedChain as Chain>::Header, Self::AncestryProof>;
-	type MaxElementsInSingleProof = MaxElementsInSingleProof;
 }
 
 #[derive(Debug)]
@@ -98,10 +97,6 @@ pub struct Checker<H, P>(std::marker::PhantomData<(H, P)>);
 impl<H> bp_header_chain::AncestryChecker<H, Vec<H>> for Checker<H, Vec<H>> {
 	fn are_ancestors(_ancestor: &H, _child: &H, proof: &Vec<H>) -> bool {
 		!proof.is_empty()
-	}
-
-	fn proof_size(proof: &Vec<H>) -> usize {
-		proof.len()
 	}
 }
 

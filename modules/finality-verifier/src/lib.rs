@@ -35,9 +35,8 @@
 use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
 use bp_runtime::{Chain, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{dispatch::DispatchError, ensure, traits::Get};
+use frame_support::{dispatch::DispatchError, ensure};
 use frame_system::ensure_signed;
-use num_traits::AsPrimitive;
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::vec::Vec;
 
@@ -73,15 +72,6 @@ pub mod pallet {
 		/// The type through which we will verify that a given header is related to the last
 		/// finalized header in our storage pallet.
 		type AncestryChecker: AncestryChecker<<Self::BridgedChain as Chain>::Header, Self::AncestryProof>;
-
-		/// The maximum length of elements we can have in a single ancestry proof.
-		///
-		/// It is an optional field since some ancestry proof types may require iterating through
-		/// the proof during verification. If left unbounded, this could be problematic. On the
-		/// other hand, some proof structures may not care about a maximum length, in which case
-		/// this does not need to be used.
-		#[pallet::constant]
-		type MaxElementsInSingleProof: Get<Option<u32>>;
 	}
 
 	#[pallet::pallet]
@@ -107,12 +97,6 @@ pub mod pallet {
 			ancestry_proof: T::AncestryProof,
 		) -> DispatchResultWithPostInfo {
 			let _ = ensure_signed(origin)?;
-
-			if let Some(max_len) = T::MaxElementsInSingleProof::get() {
-				let proof_len = T::AncestryChecker::proof_size(&ancestry_proof);
-				frame_support::debug::trace!("Got an ancestry proof of length {:?}", proof_len);
-				ensure!(proof_len < max_len.as_(), <Error<T>>::OversizedAncestryProof);
-			};
 
 			frame_support::debug::trace!("Going to try and finalize header {:?}", finality_target);
 
@@ -154,8 +138,6 @@ pub mod pallet {
 		InvalidAuthoritySet,
 		/// Failed to write a header to the underlying header chain.
 		FailedToWriteHeader,
-		/// The given ancestry proof is too large to be verified efficiently.
-		OversizedAncestryProof,
 	}
 }
 
@@ -271,27 +253,6 @@ mod tests {
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
 				<Error<TestRuntime>>::InvalidAncestryProof
-			);
-		})
-	}
-
-	#[test]
-	fn disallows_ancestry_proofs_which_are_too_large() {
-		run_test(|| {
-			initialize_substrate_bridge();
-
-			let header = test_header(1);
-			let justification = [1u8; 32].encode();
-
-			let mut ancestry_proof = vec![];
-			let max_len = <TestRuntime as Config>::MaxElementsInSingleProof::get().unwrap();
-			for i in 1..=max_len + 1 {
-				ancestry_proof.push(test_header(i as u64));
-			}
-
-			assert_err!(
-				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
-				<Error<TestRuntime>>::OversizedAncestryProof
 			);
 		})
 	}

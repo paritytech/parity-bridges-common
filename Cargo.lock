@@ -4297,7 +4297,6 @@ dependencies = [
  "finality-grandpa",
  "frame-support",
  "frame-system",
- "num-traits",
  "pallet-substrate-bridge",
  "parity-scale-codec 1.3.6",
  "serde",

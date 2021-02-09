@@ -97,20 +97,11 @@ impl<H: Default, E> HeaderChain<H, E> for () {
 pub trait AncestryChecker<H, P> {
 	/// Is the child header a descendant of the ancestor header?
 	fn are_ancestors(ancestor: &H, child: &H, proof: &P) -> bool;
-
-	/// The number of elements that the ancestry proof contains.
-	///
-	/// May be used to prevent long proofs from being verified in the runtime.
-	fn proof_size(proof: &P) -> usize;
 }
 
 impl<H, P> AncestryChecker<H, P> for () {
 	fn are_ancestors(_ancestor: &H, _child: &H, _proof: &P) -> bool {
 		true
-	}
-
-	fn proof_size(_proof: &P) -> usize {
-		0
 	}
 }
 
@@ -144,10 +135,6 @@ impl<H: HeaderT> AncestryChecker<H, Vec<H>> for LinearAncestryChecker {
 		}
 
 		true
-	}
-
-	fn proof_size(proof: &Vec<H>) -> usize {
-		proof.len()
 	}
 }
 
