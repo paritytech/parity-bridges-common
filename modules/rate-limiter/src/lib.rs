@@ -72,6 +72,9 @@ pub mod pallet {
 			let current_block_number = <frame_system::Module<T>>::block_number();
 			let elapsed_time = current_block_number - Self::current_window_start();
 
+			dbg!(current_block_number);
+			dbg!(elapsed_time);
+
 			// Check if we've exceeded our window length since last time we ran
 			let elapsed_time = if elapsed_time >= T::WindowLength::get() {
 				// Bump the window start block to the next window
@@ -80,15 +83,21 @@ pub mod pallet {
 				<CurrentWindowReqCount<T>>::put(0);
 
 				// Need to re-calculate our elapsed time
-				current_block_number - Self::current_window_start()
+				dbg!(current_block_number - Self::current_window_start())
 			} else {
 				elapsed_time
 			};
 
-			let prev_count: T::BlockNumber = Self::previous_request_count().into();
-			let curr_count: T::BlockNumber = Self::current_request_count().into();
-			let request_count: <T as frame_system::Config>::BlockNumber =
-				prev_count * ((T::WindowLength::get() - elapsed_time) / T::WindowLength::get()) + curr_count;
+			let previous_count: T::BlockNumber = Self::previous_request_count().into();
+			let current_count: T::BlockNumber = Self::current_request_count().into();
+
+			dbg!(previous_count);
+			dbg!(current_count);
+
+			let request_count: T::BlockNumber =
+				previous_count * ((T::WindowLength::get() - elapsed_time) / T::WindowLength::get()) + current_count;
+
+			dbg!(request_count);
 
 			ensure!(
 				request_count < T::MaxRequests::get().into(),
@@ -129,16 +138,99 @@ mod tests {
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 
-	fn tick() {
+	fn next_block() {
 		let current_number = frame_system::Module::<TestRuntime>::block_number();
 		frame_system::Module::<TestRuntime>::set_block_number(current_number + 1);
 	}
 
+	//pub const WindowLength: u32 = 2;
+	//pub const MaxRequests: u32 = 2;
+
 	#[test]
 	fn it_works() {
 		run_test(|| {
-			tick();
+			next_block();
 			assert_eq!(frame_system::Module::<TestRuntime>::block_number(), 1);
 		})
+	}
+
+	#[test]
+	fn allows_requests_when_under_limit() {
+		run_test(|| {
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+		})
+	}
+
+	#[test]
+	fn disallows_requests_after_limit_is_hit() {
+		run_test(|| {
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+			assert_err!(
+				Module::<TestRuntime>::dispatch_call(Origin::signed(1)),
+				<Error<TestRuntime>>::TooManyRequests
+			);
+		})
+	}
+
+	#[test]
+	fn disallows_requests_after_limit_is_hit_across_different_blocks() {
+		run_test(|| {
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+			assert_err!(
+				Module::<TestRuntime>::dispatch_call(Origin::signed(1)),
+				<Error<TestRuntime>>::TooManyRequests
+			);
+		})
+	}
+
+	#[test]
+	fn transitions_between_windows() {
+		run_test(|| {
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+			next_block();
+
+			next_block();
+
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+		})
+	}
+
+	#[ignore]
+	#[test]
+	fn transitions_between_multiple_missed_windows() {
+		run_test(|| {
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+			next_block();
+
+			next_block();
+			next_block();
+
+			next_block();
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+			assert_ok!(Module::<TestRuntime>::dispatch_call(Origin::signed(1)));
+		})
+	}
+
+	#[ignore]
+	#[test]
+	fn template() {
+		run_test(|| {})
 	}
 }

@@ -66,7 +66,7 @@ impl frame_system::Config for TestRuntime {
 }
 
 parameter_types! {
-	pub const WindowLength: u32 = 3;
+	pub const WindowLength: u32 = 2;
 	pub const MaxRequests: u32 = 2;
 }
 
