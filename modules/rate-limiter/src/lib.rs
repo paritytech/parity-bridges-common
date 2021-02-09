@@ -40,14 +40,12 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// The length of time over which requests should be tracked.
-		// TODO: Maybe don't use T::BlockNumber for the request count
 		#[pallet::constant]
-		type WindowLength: Get<<Self as frame_system::Config>::BlockNumber>;
+		type WindowLength: Get<Self::BlockNumber>;
 
 		/// The maximum number of requests allowed in a given WindowLength.
-		// TODO: Maybe don't use T::BlockNumber for the request count
 		#[pallet::constant]
-		type MaxRequests: Get<<Self as frame_system::Config>::BlockNumber>;
+		type MaxRequests: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -85,7 +83,10 @@ pub mod pallet {
 			let request_count: <T as frame_system::Config>::BlockNumber =
 				prev_count * ((T::WindowLength::get() - elapsed_time) / T::WindowLength::get()) + curr_count;
 
-			ensure!(request_count < T::MaxRequests::get(), <Error<T>>::TooManyRequests);
+			ensure!(
+				request_count < T::MaxRequests::get().into(),
+				<Error<T>>::TooManyRequests
+			);
 
 			<CurrentWindowReqCount<T>>::mutate(|count| *count += 1);
 
