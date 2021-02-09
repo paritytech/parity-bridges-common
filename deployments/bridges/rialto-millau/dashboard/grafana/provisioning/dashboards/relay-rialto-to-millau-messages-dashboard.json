@@ -443,23 +443,23 @@
       {
         "evaluator": {
         "params": [
-          10
+          1
         ],
-        "type": "gt"
+        "type": "lt"
         },
         "operator": {
         "type": "and"
         },
         "query": {
         "params": [
-          "A",
-          "5m",
+          "B",
+          "1m",
           "now"
         ]
         },
         "reducer": {
         "params": [],
-        "type": "min"
+        "type": "sum"
         },
         "type": "query"
       }
@@ -468,7 +468,7 @@
       "for": "5m",
       "frequency": "1m",
       "handler": 1,
-      "name": "Too many undelivered messages",
+      "name": "Messages from Rialto to Millau are not being delivered",
       "noDataState": "no_data",
       "notifications": []
     },
@@ -524,6 +524,12 @@
       "interval": "",
       "legendFormat": "Undelivered messages at Millau",
       "refId": "A"
+      },
+      {
+        "expr": "increase(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[1m])",
+        "interval": "",
+        "legendFormat": "Messages delivered to Millau in last 1m",
+        "refId": "B"
       }
     ],
     "thresholds": [
@@ -531,8 +537,8 @@
       "colorMode": "critical",
       "fill": true,
       "line": true,
-      "op": "gt",
-      "value": 10
+      "op": "lt",
+      "value": 1
       }
     ],
     "timeFrom": null,
