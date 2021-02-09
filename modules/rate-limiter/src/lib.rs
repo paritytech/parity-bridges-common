@@ -22,7 +22,7 @@
 
 use frame_support::{dispatch::DispatchError, ensure, traits::Get};
 use frame_system::ensure_signed;
-use sp_runtime::traits::Header as HeaderT;
+use sp_runtime::traits::{Header as HeaderT, One};
 use sp_std::vec::Vec;
 
 // #[cfg(test)]
@@ -40,12 +40,14 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// The length of time over which requests should be tracked.
+		// TODO: Maybe don't use T::BlockNumber for the request count
 		#[pallet::constant]
-		type WindowLength: Get<u32>;
+		type WindowLength: Get<<Self as frame_system::Config>::BlockNumber>;
 
 		/// The maximum number of requests allowed in a given WindowLength.
+		// TODO: Maybe don't use T::BlockNumber for the request count
 		#[pallet::constant]
-		type MaxRequests: Get<u32>;
+		type MaxRequests: Get<<Self as frame_system::Config>::BlockNumber>;
 	}
 
 	#[pallet::pallet]
@@ -54,6 +56,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: T::BlockNumber) -> frame_support::weights::Weight {
+			// Could update `elapsed_time` here
 			todo!()
 		}
 
@@ -67,6 +70,25 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn dispatch_call(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			let _ = ensure_signed(origin)?;
+
+			let window_start_block = Self::current_window_start();
+			let current_block_number = <frame_system::Module<T>>::block_number();
+			let elapsed_time = current_block_number - window_start_block;
+
+			if elapsed_time >= T::WindowLength::get() {
+				// Set current window to previous window
+				// reset current window stats
+			}
+
+			let prev_count: T::BlockNumber = Self::previous_request_count().into();
+			let curr_count: T::BlockNumber = Self::current_request_count().into();
+			let request_count: <T as frame_system::Config>::BlockNumber =
+				prev_count * ((T::WindowLength::get() - elapsed_time) / T::WindowLength::get()) + curr_count;
+
+			ensure!(request_count < T::MaxRequests::get(), <Error<T>>::TooManyRequests);
+
+			<CurrentWindowReqCount<T>>::mutate(|count| *count += 1);
+
 			Ok(().into())
 		}
 	}
@@ -76,6 +98,20 @@ pub mod pallet {
 		/// There are too many requests for the current window to handle.
 		TooManyRequests,
 	}
+
+	/// The number of requests in the previous window.
+	#[pallet::storage]
+	#[pallet::getter(fn previous_request_count)]
+	pub(super) type PreviousWindowReqCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	/// The number of requests in the current window.
+	#[pallet::storage]
+	#[pallet::getter(fn current_request_count)]
+	pub(super) type CurrentWindowReqCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn current_window_start)]
+	pub(super) type CurrentWindowStart<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
 }
 
 #[cfg(test)]
