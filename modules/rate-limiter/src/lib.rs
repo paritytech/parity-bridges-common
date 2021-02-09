@@ -25,8 +25,8 @@ use frame_system::ensure_signed;
 use sp_runtime::traits::{Header as HeaderT, One};
 use sp_std::vec::Vec;
 
-// #[cfg(test)]
-// mod mock;
+#[cfg(test)]
+mod mock;
 
 // Re-export in crate namespace for `construct_runtime!`
 pub use pallet::*;
@@ -125,12 +125,20 @@ pub mod pallet {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, test_header, Origin, TestRuntime};
+	use crate::mock::{run_test, Origin, TestRuntime};
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 
+	fn tick() {
+		let current_number = frame_system::Module::<TestRuntime>::block_number();
+		frame_system::Module::<TestRuntime>::set_block_number(current_number + 1);
+	}
+
 	#[test]
 	fn it_works() {
-		run_test(|| {})
+		run_test(|| {
+			tick();
+			assert_eq!(frame_system::Module::<TestRuntime>::block_number(), 1);
+		})
 	}
 }
