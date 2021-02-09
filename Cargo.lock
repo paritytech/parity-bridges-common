@@ -4381,6 +4381,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-rate-limiter"
+version = "0.1.0"
+dependencies = [
+ "bp-test-utils",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec 1.3.6",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-session"
 version = "2.0.1"
 source = "git+https://github.com/paritytech/substrate.git?branch=master#0b0d124d5f9be89f614f2be8e9da038fcb9f540e"
