@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate as rate_limiter;
 use crate::*;
 
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};

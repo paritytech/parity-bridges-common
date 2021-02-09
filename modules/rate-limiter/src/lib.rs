@@ -20,10 +20,8 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use frame_support::{dispatch::DispatchError, ensure, traits::Get};
+use frame_support::{ensure, traits::Get};
 use frame_system::ensure_signed;
-use sp_runtime::traits::{Header as HeaderT, One};
-use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -135,7 +133,6 @@ pub mod pallet {
 mod tests {
 	use super::*;
 	use crate::mock::{run_test, Origin, TestRuntime};
-	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 
 	fn next_block() {
