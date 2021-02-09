@@ -734,7 +734,7 @@
         },
         "query": {
         "params": [
-          "A",
+          "B",
           "5m",
           "now"
         ]
@@ -750,7 +750,7 @@
       "for": "5m",
       "frequency": "1m",
       "handler": 1,
-      "name": "Too many unconfirmed rewards",
+      "name": "Rewards are not being confirmed",
       "noDataState": "no_data",
       "notifications": []
     },
@@ -804,6 +804,12 @@
       "interval": "",
       "legendFormat": "Unconfirmed rewards at Millau",
       "refId": "A"
+      },
+      {
+        "expr": "(scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m])) - scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_confirmed\"}[2m]))) * (max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) > bool min_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]))",
+        "interval": "",
+        "legendFormat": "Unconfirmed rewards at Millau (zero if no messages are not being delivered)",
+        "refId": "B"
       }
     ],
     "thresholds": [
