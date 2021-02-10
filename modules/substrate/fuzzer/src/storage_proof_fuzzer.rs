@@ -66,7 +66,8 @@ fn main() {
             }
             let input_vec: Vec<(Vec<u8>, Vec<u8>)> = data;
             let unique_input_vec = transform_into_unique(input_vec);
-            let (root, craft_known_storage_proof) = craft_known_storage_proof(unique_input_vec.clone());            let checker = <StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof.clone()).unwrap();
+            let (root, craft_known_storage_proof) = craft_known_storage_proof(unique_input_vec.clone());
+            let checker = <StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof.clone()).unwrap();
             for key_value_pair in unique_input_vec {
                     println!("Reading value for pair {:?}", key_value_pair);
                     assert_eq!(checker.read_value(&key_value_pair.0), Ok(Some(key_value_pair.1.clone())));
