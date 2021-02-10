@@ -167,6 +167,7 @@ pub mod source {
 	pub struct FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 		/// Hash of the bridge header the proof is for.
 		pub bridged_header_hash: BridgedHeaderHash,
+		/// Storage trie proof generated for [`Self::bridged_header_hash`].
 		pub storage_proof: RawStorageProof,
 		pub lane: LaneId,
 	}
