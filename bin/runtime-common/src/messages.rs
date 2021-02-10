@@ -365,6 +365,7 @@ pub mod target {
 		/// A storage trie proof of messages being delivered.
 		pub storage_proof: RawStorageProof,
 		pub lane: LaneId,
+		/// Nonce of the first message being delivered.
 		pub nonces_start: MessageNonce,
 		pub nonces_end: MessageNonce,
 	}
