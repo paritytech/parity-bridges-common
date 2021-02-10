@@ -360,6 +360,7 @@ pub mod target {
 	/// - nonces (inclusive range) of messages which are included in this proof.
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug)]
 	pub struct FromBridgedChainMessagesProof<BridgedHeaderHash> {
+		/// Hash of the finalized bridged header the proof is for.
 		pub bridged_header_hash: BridgedHeaderHash,
 		pub storage_proof: RawStorageProof,
 		pub lane: LaneId,
