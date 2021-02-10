@@ -808,7 +808,7 @@
       {
         "expr": "(scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m])) - scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_confirmed\"}[2m]))) * (max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) > bool min_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]))",
         "interval": "",
-        "legendFormat": "Unconfirmed rewards at Rialto (zero if no messages are not being delivered)",
+        "legendFormat": "Unconfirmed rewards at Rialto (zero if messages are not being delivered to Rialto)",
         "refId": "B"
       }
     ],
