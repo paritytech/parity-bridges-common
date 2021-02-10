@@ -367,6 +367,7 @@ pub mod target {
 		pub lane: LaneId,
 		/// Nonce of the first message being delivered.
 		pub nonces_start: MessageNonce,
+		/// Nonce of the last message being delivered.
 		pub nonces_end: MessageNonce,
 	}
 
