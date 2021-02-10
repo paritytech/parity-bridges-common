@@ -165,6 +165,7 @@ pub mod source {
 	/// - lane id.
 	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug)]
 	pub struct FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
+		/// Hash of the bridge header the proof is for.
 		pub bridged_header_hash: BridgedHeaderHash,
 		pub storage_proof: RawStorageProof,
 		pub lane: LaneId,
