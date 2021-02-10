@@ -362,6 +362,7 @@ pub mod target {
 	pub struct FromBridgedChainMessagesProof<BridgedHeaderHash> {
 		/// Hash of the finalized bridged header the proof is for.
 		pub bridged_header_hash: BridgedHeaderHash,
+		/// A storage trie proof of messages being delivered.
 		pub storage_proof: RawStorageProof,
 		pub lane: LaneId,
 		pub nonces_start: MessageNonce,
