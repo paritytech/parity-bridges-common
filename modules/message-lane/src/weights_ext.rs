@@ -19,7 +19,7 @@
 use crate::weights::WeightInfo;
 
 use bp_message_lane::{MessageNonce, UnrewardedRelayersState};
-use bp_runtime::Size;
+use bp_runtime::{PreComputedSize, Size};
 use frame_support::weights::Weight;
 
 /// Size of the message being delivered in benchmarks.
@@ -46,7 +46,7 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 
 	// verify that the hardcoded value covers `receive_messages_proof` weight
 	let actual_single_regular_message_delivery_tx_weight = W::receive_messages_proof_weight(
-		&((EXPECTED_DEFAULT_MESSAGE_LENGTH + W::expected_extra_storage_proof_size()) as usize),
+		&PreComputedSize((EXPECTED_DEFAULT_MESSAGE_LENGTH + W::expected_extra_storage_proof_size()) as usize),
 		1,
 		0,
 	);
@@ -65,7 +65,7 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 
 	// verify that the hardcoded value covers `receive_messages_delivery_proof` weight
 	let actual_messages_delivery_confirmation_tx_weight = W::receive_messages_delivery_proof_weight(
-		&(W::expected_extra_storage_proof_size() as usize),
+		&PreComputedSize(W::expected_extra_storage_proof_size() as usize),
 		&UnrewardedRelayersState {
 			unrewarded_relayer_entries: 1,
 			total_messages: 1,
@@ -102,7 +102,7 @@ pub fn ensure_able_to_receive_message<W: WeightInfoExt>(
 
 	// verify that we're able to receive proof of maximal-size message with maximal dispatch weight
 	let max_delivery_transaction_dispatch_weight = W::receive_messages_proof_weight(
-		&((max_incoming_message_proof_size + W::expected_extra_storage_proof_size()) as usize),
+		&PreComputedSize((max_incoming_message_proof_size + W::expected_extra_storage_proof_size()) as usize),
 		1,
 		max_incoming_message_dispatch_weight,
 	);
@@ -141,7 +141,7 @@ pub fn ensure_able_to_receive_confirmation<W: WeightInfoExt>(
 
 	// verify that we're able to reward maximal number of relayers that have delivered maximal number of messages
 	let max_confirmation_transaction_dispatch_weight = W::receive_messages_delivery_proof_weight(
-		&(max_inbound_lane_data_proof_size_from_peer_chain as usize),
+		&PreComputedSize(max_inbound_lane_data_proof_size_from_peer_chain as usize),
 		&UnrewardedRelayersState {
 			unrewarded_relayer_entries: max_unrewarded_relayer_entries_at_peer_inbound_lane,
 			total_messages: max_unconfirmed_messages_at_inbound_lane,

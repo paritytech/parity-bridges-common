@@ -112,8 +112,11 @@ pub trait Size {
 	fn size_hint(&self) -> u32;
 }
 
-impl Size for usize {
+/// Pre-computed size.
+pub struct PreComputedSize(pub usize);
+
+impl Size for PreComputedSize {
 	fn size_hint(&self) -> u32 {
-		u32::try_from(*self).unwrap_or(u32::MAX)
+		u32::try_from(self.0).unwrap_or(u32::MAX)
 	}
 }
