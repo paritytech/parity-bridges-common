@@ -169,6 +169,7 @@ pub mod source {
 		pub bridged_header_hash: BridgedHeaderHash,
 		/// Storage trie proof generated for [`Self::bridged_header_hash`].
 		pub storage_proof: RawStorageProof,
+		/// Lane id of which messages were delivered and the proof is for.
 		pub lane: LaneId,
 	}
 
