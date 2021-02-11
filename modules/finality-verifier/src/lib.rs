@@ -87,7 +87,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: T::BlockNumber) -> frame_support::weights::Weight {
-			<RequestCount<T>>::mutate(|count| count.saturating_sub(1));
+			<RequestCount<T>>::mutate(|count| *count = count.saturating_sub(1));
 
 			(0 as Weight)
 				.saturating_add(T::DbWeight::get().reads(1 as Weight))
@@ -113,6 +113,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let _ = ensure_signed(origin)?;
 
+			dbg!(Self::request_count());
 			ensure!(
 				Self::request_count() < T::MaxRequests::get(),
 				<Error<T>>::TooManyRequests
@@ -198,6 +199,26 @@ mod tests {
 			Origin::root(),
 			init_data
 		));
+	}
+
+	fn submit_finality_proof() -> frame_support::dispatch::DispatchResultWithPostInfo {
+		let child = test_header(1);
+		let header = test_header(2);
+
+		let set_id = 1;
+		let grandpa_round = 1;
+		let justification = make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
+		let ancestry_proof = vec![child, header.clone()];
+
+		Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header.clone(), justification, ancestry_proof)
+	}
+
+	fn next_block() {
+		use frame_support::traits::OnInitialize;
+
+		let current_number = frame_system::Module::<TestRuntime>::block_number();
+		frame_system::Module::<TestRuntime>::set_block_number(current_number + 1);
+		let _ = Module::<TestRuntime>::on_initialize(current_number);
 	}
 
 	#[test]
@@ -320,6 +341,57 @@ mod tests {
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
 				<Error<TestRuntime>>::InvalidAuthoritySet
 			);
+		})
+	}
+
+	#[test]
+	fn disallows_imports_once_limit_is_hit_in_single_block() {
+		run_test(|| {
+			initialize_substrate_bridge();
+			assert_ok!(submit_finality_proof());
+			assert_ok!(submit_finality_proof());
+			assert_err!(submit_finality_proof(), <Error<TestRuntime>>::TooManyRequests);
+		})
+	}
+
+	#[test]
+	fn allows_request_after_new_block_has_started() {
+		run_test(|| {
+			initialize_substrate_bridge();
+			assert_ok!(submit_finality_proof());
+			assert_ok!(submit_finality_proof());
+
+			next_block();
+			assert_ok!(submit_finality_proof());
+		})
+	}
+
+	#[test]
+	fn disallows_imports_once_limit_is_hit_across_different_blocks() {
+		run_test(|| {
+			initialize_substrate_bridge();
+			assert_ok!(submit_finality_proof());
+			assert_ok!(submit_finality_proof());
+
+			next_block();
+			assert_ok!(submit_finality_proof());
+			assert_err!(submit_finality_proof(), <Error<TestRuntime>>::TooManyRequests);
+		})
+	}
+
+	#[test]
+	fn allows_max_requests_after_long_time_with_no_activity() {
+		run_test(|| {
+			initialize_substrate_bridge();
+			assert_ok!(submit_finality_proof());
+			assert_ok!(submit_finality_proof());
+
+			next_block();
+			next_block();
+
+			next_block();
+			assert_ok!(submit_finality_proof());
+			assert_ok!(submit_finality_proof());
 		})
 	}
 }
