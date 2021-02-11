@@ -210,7 +210,7 @@ mod tests {
 		let justification = make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
 		let ancestry_proof = vec![child, header.clone()];
 
-		Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header.clone(), justification, ancestry_proof)
+		Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof)
 	}
 
 	fn next_block() {
@@ -226,22 +226,9 @@ mod tests {
 		run_test(|| {
 			initialize_substrate_bridge();
 
-			let child = test_header(1);
+			assert_ok!(submit_finality_proof());
+
 			let header = test_header(2);
-
-			let set_id = 1;
-			let grandpa_round = 1;
-			let justification =
-				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
-			let ancestry_proof = vec![child, header.clone()];
-
-			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
-				Origin::signed(1),
-				header.clone(),
-				justification,
-				ancestry_proof,
-			));
-
 			assert_eq!(
 				pallet_substrate_bridge::Module::<TestRuntime>::best_headers(),
 				vec![(*header.number(), header.hash())]
