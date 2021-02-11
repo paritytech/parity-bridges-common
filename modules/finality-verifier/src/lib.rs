@@ -72,13 +72,28 @@ pub mod pallet {
 		/// The type through which we will verify that a given header is related to the last
 		/// finalized header in our storage pallet.
 		type AncestryChecker: AncestryChecker<<Self::BridgedChain as Chain>::Header, Self::AncestryProof>;
+
+		/// The upper bound on the number of requests allowed by the pallet.
+		///
+		/// Once this bound is reached the pallet will not allow any dispatchables to be called
+		/// until the request count has decreased.
+		#[pallet::constant]
+		type MaxRequests: Get<u32>;
 	}
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(_n: T::BlockNumber) -> frame_support::weights::Weight {
+			<RequestCount<T>>::mutate(|count| count.saturating_sub(1));
+
+			(0 as Weight)
+				.saturating_add(T::DbWeight::get().reads(1 as Weight))
+				.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		}
+	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -97,6 +112,12 @@ pub mod pallet {
 			ancestry_proof: T::AncestryProof,
 		) -> DispatchResultWithPostInfo {
 			let _ = ensure_signed(origin)?;
+
+			ensure!(
+				Self::request_count() < T::MaxRequests::get(),
+				<Error<T>>::TooManyRequests
+			);
+			<RequestCount<T>>::mutate(|count| *count += 1);
 
 			frame_support::debug::trace!("Going to try and finalize header {:?}", finality_target);
 
@@ -127,6 +148,17 @@ pub mod pallet {
 		}
 	}
 
+	/// The current number of requests for calling dispatchables.
+	///
+	/// If the `RequestCount` hits `MaxRequests`, no more calls will be allowed to the pallet until
+	/// the request capacity is increased.
+	///
+	/// The `RequestCount` is decreased by one at the beginning of every block. This is to ensure
+	/// that the pallet can always make progress.
+	#[pallet::storage]
+	#[pallet::getter(fn request_count)]
+	pub(super) type RequestCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The given justification is invalid for the given header.
@@ -138,6 +170,8 @@ pub mod pallet {
 		InvalidAuthoritySet,
 		/// Failed to write a header to the underlying header chain.
 		FailedToWriteHeader,
+		/// There are too many requests for the current window to handle.
+		TooManyRequests,
 	}
 }
 
