@@ -89,9 +89,9 @@ pub mod pallet {
 		fn on_initialize(_n: T::BlockNumber) -> frame_support::weights::Weight {
 			<RequestCount<T>>::mutate(|count| *count = count.saturating_sub(1));
 
-			(0 as Weight)
-				.saturating_add(T::DbWeight::get().reads(1 as Weight))
-				.saturating_add(T::DbWeight::get().writes(1 as Weight))
+			(0_u64)
+				.saturating_add(T::DbWeight::get().reads(1))
+				.saturating_add(T::DbWeight::get().writes(1))
 		}
 	}
 
@@ -113,7 +113,6 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let _ = ensure_signed(origin)?;
 
-			dbg!(Self::request_count());
 			ensure!(
 				Self::request_count() < T::MaxRequests::get(),
 				<Error<T>>::TooManyRequests
