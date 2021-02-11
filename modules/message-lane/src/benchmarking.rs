@@ -115,8 +115,6 @@ benchmarks_instance! {
 	// Benchmarks that are used directly by the runtime.
 	//
 
-
-
 	// Benchmark `send_message` extrinsic with the worst possible conditions:
 	// * outbound lane already has state, so it needs to be read and decoded;
 	// * relayers fund account does not exists (in practice it needs to exist in production environment);
