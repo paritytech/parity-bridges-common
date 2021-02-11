@@ -42,6 +42,7 @@ pub use crate::weights_ext::{
 
 use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
+use crate::weights::WeightInfo;
 
 use bp_message_lane::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, TargetHeaderChain},
@@ -352,7 +353,7 @@ decl_module! {
 		}
 
 		/// Pay additional fee for the message.
-		#[weight = 0] // TODO
+		#[weight = T::WeightInfo::increase_message_fee()]
 		pub fn increase_message_fee(
 			origin,
 			lane_id: LaneId,
