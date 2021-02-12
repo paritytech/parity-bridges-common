@@ -267,8 +267,8 @@ impl<P: MessageLane> std::fmt::Debug for MessageDeliveryStrategy<P> {
 				&self.max_messages_size_in_single_batch,
 			)
 			.field(
-				"latest_confirmed_noncs_at_source",
-				&self.latest_confirmed_nonce_at_source,
+				"latest_confirmed_nonces_at_source",
+				&self.latest_confirmed_nonces_at_source,
 			)
 			.field("target_nonces", &self.target_nonces)
 			.field("strategy", &self.strategy)
