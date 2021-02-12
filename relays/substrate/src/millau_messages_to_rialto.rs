@@ -142,12 +142,6 @@ pub fn run(
 		relayer_id_at_source: relayer_id_at_millau,
 	};
 
-	log::info!(
-		target: "bridge",
-		"Starting Millau -> Rialto messages relay. Millau relayer account id: {:?}",
-		lane.relayer_id_at_source,
-	);
-
 	// 2/3 is reserved for proofs and tx overhead
 	let max_messages_size_in_single_batch = bp_rialto::max_extrinsic_size() as usize / 3;
 	// TODO: use Millau weights after https://github.com/paritytech/parity-bridges-common/issues/390

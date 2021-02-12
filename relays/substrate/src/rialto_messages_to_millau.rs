@@ -142,12 +142,6 @@ pub fn run(
 		relayer_id_at_source: relayer_id_at_rialto,
 	};
 
-	log::info!(
-		target: "bridge",
-		"Starting Rialto -> Millau messages relay. Rialto relayer account id: {:?}",
-		lane.relayer_id_at_source,
-	);
-
 	// 2/3 is reserved for proofs and tx overhead
 	let max_messages_size_in_single_batch = bp_millau::max_extrinsic_size() as usize / 3;
 	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
