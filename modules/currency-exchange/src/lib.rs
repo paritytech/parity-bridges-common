@@ -213,7 +213,7 @@ mod tests {
 	use super::*;
 	use bp_currency_exchange::LockFundsTransaction;
 	use frame_support::{assert_noop, assert_ok, construct_runtime, parameter_types, weights::Weight};
-    use sp_core::H256;
+	use sp_core::H256;
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, IdentityLookup},

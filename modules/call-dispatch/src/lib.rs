@@ -630,7 +630,9 @@ mod tests {
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageSignatureMismatch(bridge, id)),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageSignatureMismatch(
+						bridge, id
+					)),
 					topics: vec![],
 				}],
 			);
@@ -674,7 +676,9 @@ mod tests {
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageCallDecodeFailed(bridge, id)),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageCallDecodeFailed(
+						bridge, id
+					)),
 					topics: vec![],
 				}],
 			);
@@ -720,7 +724,11 @@ mod tests {
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(bridge, id, Ok(()))),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(
+						bridge,
+						id,
+						Ok(())
+					)),
 					topics: vec![],
 				}],
 			);
@@ -743,7 +751,11 @@ mod tests {
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(bridge, id, Ok(()))),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(
+						bridge,
+						id,
+						Ok(())
+					)),
 					topics: vec![],
 				}],
 			);
@@ -766,7 +778,11 @@ mod tests {
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(bridge, id, Ok(()))),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(
+						bridge,
+						id,
+						Ok(())
+					)),
 					topics: vec![],
 				}],
 			);

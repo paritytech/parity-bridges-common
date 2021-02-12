@@ -821,9 +821,9 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, run_test, Origin, Event as TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof,
-		TestMessagesProof, TestPayload, TestRuntime, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
-		TEST_RELAYER_A, TEST_RELAYER_B,
+		message, run_test, Event as TestEvent, Origin, TestMessageDeliveryAndDispatchPayment,
+		TestMessagesDeliveryProof, TestMessagesProof, TestPayload, TestRuntime, PAYLOAD_REJECTED_BY_TARGET_CHAIN,
+		REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_message_lane::UnrewardedRelayersState;
 	use frame_support::{assert_noop, assert_ok};
