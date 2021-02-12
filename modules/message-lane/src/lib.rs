@@ -174,9 +174,10 @@ decl_error! {
 		InvalidMessagesDeliveryProof,
 		/// The relayer has declared invalid unrewarded relayers state in the `receive_messages_delivery_proof` call.
 		InvalidUnrewardedRelayersState,
-		/// The message someone is trying to work with (i.e. increase fee) is either already-delivered, or
-		/// not-yet-sent.
-		InactiveMessage,
+		/// The message someone is trying to work with (i.e. increase fee) is already-delivered.
+		MessageIsAlreadyDelivered,
+		/// The message someone is trying to work with (i.e. increase fee) is not yet sent.
+		MessageIsNotYetSent
 	}
 }
 
@@ -366,10 +367,8 @@ decl_module! {
 			// if someone tries to pay for not-yet-sent message, we're rejeting this intention, or
 			// we're risking to have mess in the storage
 			let lane = outbound_lane::<T, I>(lane_id);
-			ensure!(
-				nonce > lane.data().latest_received_nonce && nonce <= lane.data().latest_generated_nonce,
-				Error::<T, I>::InactiveMessage
-			);
+			ensure!(nonce > lane.data().latest_received_nonce, Error::<T, I>::MessageIsAlreadyDelivered);
+			ensure!(nonce <= lane.data().latest_generated_nonce, Error::<T, I>::MessageIsNotYetSent);
 
 			// withdraw additional fee from submitter
 			let submitter = origin.into().map_err(|_| BadOrigin)?;
@@ -1409,7 +1408,7 @@ mod tests {
 
 			assert_noop!(
 				Module::<TestRuntime, DefaultInstance>::increase_message_fee(Origin::signed(1), TEST_LANE_ID, 1, 100,),
-				Error::<TestRuntime, DefaultInstance>::InactiveMessage,
+				Error::<TestRuntime, DefaultInstance>::MessageIsAlreadyDelivered,
 			);
 		});
 	}
@@ -1419,7 +1418,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Module::<TestRuntime, DefaultInstance>::increase_message_fee(Origin::signed(1), TEST_LANE_ID, 1, 100,),
-				Error::<TestRuntime, DefaultInstance>::InactiveMessage,
+				Error::<TestRuntime, DefaultInstance>::MessageIsNotYetSent,
 			);
 		});
 	}
