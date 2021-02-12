@@ -618,7 +618,7 @@ name = "bp-currency-exchange"
 version = "0.1.0"
 dependencies = [
  "frame-support",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "sp-api",
  "sp-std",
 ]
@@ -635,9 +635,9 @@ dependencies = [
  "impl-serde",
  "libsecp256k1",
  "parity-bytes",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "plain_hasher",
- "primitive-types 0.8.0",
+ "primitive-types 0.9.0",
  "rlp 0.5.0",
  "serde",
  "serde-big-array",
@@ -655,7 +655,7 @@ dependencies = [
  "bp-test-utils",
  "finality-grandpa",
  "frame-support",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "serde",
  "sp-core",
  "sp-finality-grandpa",
@@ -682,7 +682,7 @@ name = "bp-message-dispatch"
 version = "0.1.0"
 dependencies = [
  "bp-runtime",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
 ]
 
 [[package]]
@@ -692,7 +692,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "frame-system",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "sp-std",
 ]
 
@@ -706,7 +706,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hash256-std-hasher",
- "impl-codec 0.4.2",
+ "impl-codec 0.5.0",
  "impl-serde",
  "parity-util-mem",
  "serde",
@@ -752,7 +752,7 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "num-traits",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -783,7 +783,7 @@ dependencies = [
  "pallet-bridge-call-dispatch",
  "pallet-message-lane",
  "pallet-substrate-bridge",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "sp-core",
  "sp-runtime",
  "sp-state-machine",
@@ -1637,7 +1637,7 @@ dependencies = [
  "finality-grandpa",
  "hex",
  "log",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "rialto-runtime",
  "sc-finality-grandpa",
  "sp-blockchain",
@@ -1671,7 +1671,7 @@ dependencies = [
  "messages-relay",
  "num-traits",
  "pallet-transaction-payment",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "relay-ethereum-client",
  "relay-rialto-client",
  "relay-substrate-client",
@@ -3876,7 +3876,7 @@ dependencies = [
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "serde",
  "sp-api",
  "sp-block-builder",
@@ -4311,7 +4311,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "frame-system",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -4327,7 +4327,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "serde",
  "sp-core",
  "sp-io",
@@ -4345,7 +4345,7 @@ dependencies = [
  "frame-system",
  "hex-literal 0.3.1",
  "libsecp256k1",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "serde",
  "sp-io",
  "sp-runtime",
@@ -4363,7 +4363,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-substrate-bridge",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "serde",
  "sp-io",
  "sp-runtime",
@@ -4404,7 +4404,7 @@ dependencies = [
  "hex-literal 0.3.1",
  "num-traits",
  "pallet-balances",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "serde",
  "sp-core",
  "sp-io",
@@ -4472,7 +4472,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-session",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "sp-core",
  "sp-runtime",
  "sp-staking",
@@ -4490,7 +4490,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hash-db",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "serde",
  "sp-core",
  "sp-finality-grandpa",
@@ -4597,7 +4597,6 @@ dependencies = [
  "arrayvec 0.5.2",
  "bitvec 0.17.4",
  "byte-slice-cast 0.3.5",
- "parity-scale-codec-derive 1.2.2",
  "serde",
 ]
 
@@ -4610,20 +4609,8 @@ dependencies = [
  "arrayvec 0.5.2",
  "bitvec 0.20.1",
  "byte-slice-cast 1.0.0",
- "parity-scale-codec-derive 2.0.0",
+ "parity-scale-codec-derive",
  "serde",
-]
-
-[[package]]
-name = "parity-scale-codec-derive"
-version = "1.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "198db82bb1c18fc00176004462dd809b2a6d851669550aa17af6dacd21ae0c14"
-dependencies = [
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -5550,7 +5537,7 @@ dependencies = [
  "jsonrpsee",
  "libsecp256k1",
  "log",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "relay-utils",
  "web3",
 ]
@@ -5564,7 +5551,7 @@ dependencies = [
  "frame-system",
  "headers-relay",
  "pallet-transaction-payment",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -5581,7 +5568,7 @@ dependencies = [
  "headers-relay",
  "millau-runtime",
  "pallet-transaction-payment",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -5598,7 +5585,7 @@ dependencies = [
  "frame-system",
  "headers-relay",
  "pallet-transaction-payment",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -5614,7 +5601,7 @@ dependencies = [
  "frame-system",
  "headers-relay",
  "pallet-transaction-payment",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "relay-substrate-client",
  "relay-utils",
  "rialto-runtime",
@@ -5639,7 +5626,7 @@ dependencies = [
  "log",
  "num-traits",
  "pallet-balances",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "rand 0.7.3",
  "relay-utils",
  "sc-rpc-api",
@@ -5755,7 +5742,7 @@ dependencies = [
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "serde",
  "sp-api",
  "sp-block-builder",
@@ -8058,7 +8045,7 @@ dependencies = [
  "pallet-bridge-call-dispatch",
  "pallet-message-lane",
  "pallet-substrate-bridge",
- "parity-scale-codec 1.3.6",
+ "parity-scale-codec 2.0.0",
  "paste 1.0.4",
  "relay-kusama-client",
  "relay-millau-client",
