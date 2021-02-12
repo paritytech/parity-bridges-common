@@ -60,7 +60,16 @@ fn main() {
 
 async fn run_command(command: cli::Command) -> Result<(), String> {
 	match command {
-		cli::Command::InitializeMillauHeadersBridgeInRialto {
+		cli::Command::InitBridge(arg) => run_init_bridge(arg).await,
+		cli::Command::RelayHeaders(arg) => run_relay_headers(arg).await,
+		cli::Command::RelayMessages(arg) => run_relay_messages(arg).await,
+		cli::Command::SendMessage(arg) => run_send_message(arg).await,
+	}
+}
+
+async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
+	match command {
+		cli::InitBridge::MillauToRialto {
 			millau,
 			rialto,
 			rialto_sign,
@@ -76,11 +85,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				port: rialto.rialto_port,
 			})
 			.await?;
-			let rialto_sign = RialtoSigningParams::from_suri(
-				&rialto_sign.rialto_signer,
-				rialto_sign.rialto_signer_password.as_deref(),
-			)
-			.map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))?;
+			let rialto_sign = rialto_sign.parse()?;
 			let rialto_signer_next_index = rialto_client
 				.next_account_index(rialto_sign.signer.public().into())
 				.await?;
@@ -108,30 +113,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			)
 			.await;
 		}
-		cli::Command::MillauHeadersToRialto {
-			millau,
-			rialto,
-			rialto_sign,
-			prometheus_params,
-		} => {
-			let millau_client = MillauClient::new(ConnectionParams {
-				host: millau.millau_host,
-				port: millau.millau_port,
-			})
-			.await?;
-			let rialto_client = RialtoClient::new(ConnectionParams {
-				host: rialto.rialto_host,
-				port: rialto.rialto_port,
-			})
-			.await?;
-			let rialto_sign = RialtoSigningParams::from_suri(
-				&rialto_sign.rialto_signer,
-				rialto_sign.rialto_signer_password.as_deref(),
-			)
-			.map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))?;
-			millau_headers_to_rialto::run(millau_client, rialto_client, rialto_sign, prometheus_params.into()).await;
-		}
-		cli::Command::InitializeRialtoHeadersBridgeInMillau {
+		cli::InitBridge::RialtoToMillau {
 			rialto,
 			millau,
 			millau_sign,
@@ -179,7 +161,32 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 			)
 			.await;
 		}
-		cli::Command::RialtoHeadersToMillau {
+	}
+	Ok(())
+}
+
+async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
+	match command {
+		cli::RelayHeaders::MillauToRialto {
+			millau,
+			rialto,
+			rialto_sign,
+			prometheus_params,
+		} => {
+			let millau_client = MillauClient::new(ConnectionParams {
+				host: millau.millau_host,
+				port: millau.millau_port,
+			})
+			.await?;
+			let rialto_client = RialtoClient::new(ConnectionParams {
+				host: rialto.rialto_host,
+				port: rialto.rialto_port,
+			})
+			.await?;
+			let rialto_sign = rialto_sign.parse()?;
+			millau_headers_to_rialto::run(millau_client, rialto_client, rialto_sign, prometheus_params.into()).await;
+		}
+		cli::RelayHeaders::RialtoToMillau {
 			rialto,
 			millau,
 			millau_sign,
@@ -203,7 +210,13 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 
 			rialto_headers_to_millau::run(rialto_client, millau_client, millau_sign, prometheus_params.into()).await;
 		}
-		cli::Command::MillauMessagesToRialto {
+	}
+	Ok(())
+}
+
+async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
+	match command {
+		cli::RelayMessages::MillauToRialto {
 			millau,
 			millau_sign,
 			rialto,
@@ -226,11 +239,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				port: rialto.rialto_port,
 			})
 			.await?;
-			let rialto_sign = RialtoSigningParams::from_suri(
-				&rialto_sign.rialto_signer,
-				rialto_sign.rialto_signer_password.as_deref(),
-			)
-			.map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))?;
+			let rialto_sign = rialto_sign.parse()?;
 
 			millau_messages_to_rialto::run(
 				millau_client,
@@ -240,8 +249,48 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				lane.into(),
 				prometheus_params.into(),
 			);
-		}
-		cli::Command::SubmitMillauToRialtoMessage {
+		},
+		cli::RelayMessages::RialtoToMillau {
+			rialto,
+			rialto_sign,
+			millau,
+			millau_sign,
+			prometheus_params,
+			lane,
+		} => {
+			let rialto_client = RialtoClient::new(ConnectionParams {
+				host: rialto.rialto_host,
+				port: rialto.rialto_port,
+			})
+			.await?;
+			let rialto_sign = rialto_sign.parse()?;
+			let millau_client = MillauClient::new(ConnectionParams {
+				host: millau.millau_host,
+				port: millau.millau_port,
+			})
+			.await?;
+			let millau_sign = MillauSigningParams::from_suri(
+				&millau_sign.millau_signer,
+				millau_sign.millau_signer_password.as_deref(),
+			)
+			.map_err(|e| format!("Failed to parse millau-signer: {:?}", e))?;
+
+			rialto_messages_to_millau::run(
+				rialto_client,
+				rialto_sign,
+				millau_client,
+				millau_sign,
+				lane.into(),
+				prometheus_params.into(),
+			);
+		},
+	}
+	Ok(())
+}
+
+async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
+	match command {
+		cli::SendMessage::MillauToRialto {
 			millau,
 			millau_sign,
 			rialto_sign,
@@ -261,12 +310,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				millau_sign.millau_signer_password.as_deref(),
 			)
 			.map_err(|e| format!("Failed to parse millau-signer: {:?}", e))?;
-			let rialto_sign = RialtoSigningParams::from_suri(
-				&rialto_sign.rialto_signer,
-				rialto_sign.rialto_signer_password.as_deref(),
-			)
-			.map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))?;
-
+			let rialto_sign = rialto_sign.parse()?;
 			let rialto_call = match message {
 				cli::ToRialtoMessage::Remark => rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(
 					format!(
@@ -354,45 +398,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				.submit_extrinsic(Bytes(signed_millau_call.encode()))
 				.await?;
 		}
-		cli::Command::RialtoMessagesToMillau {
-			rialto,
-			rialto_sign,
-			millau,
-			millau_sign,
-			prometheus_params,
-			lane,
-		} => {
-			let rialto_client = RialtoClient::new(ConnectionParams {
-				host: rialto.rialto_host,
-				port: rialto.rialto_port,
-			})
-			.await?;
-			let rialto_sign = RialtoSigningParams::from_suri(
-				&rialto_sign.rialto_signer,
-				rialto_sign.rialto_signer_password.as_deref(),
-			)
-			.map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))?;
-			let millau_client = MillauClient::new(ConnectionParams {
-				host: millau.millau_host,
-				port: millau.millau_port,
-			})
-			.await?;
-			let millau_sign = MillauSigningParams::from_suri(
-				&millau_sign.millau_signer,
-				millau_sign.millau_signer_password.as_deref(),
-			)
-			.map_err(|e| format!("Failed to parse millau-signer: {:?}", e))?;
-
-			rialto_messages_to_millau::run(
-				rialto_client,
-				rialto_sign,
-				millau_client,
-				millau_sign,
-				lane.into(),
-				prometheus_params.into(),
-			);
-		}
-		cli::Command::SubmitRialtoToMillauMessage {
+		cli::SendMessage::RialtoToMillau {
 			rialto,
 			rialto_sign,
 			millau_sign,
@@ -506,7 +512,6 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				.await?;
 		}
 	}
-
 	Ok(())
 }
 
@@ -522,6 +527,16 @@ async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: En
 	let decoded_response: Option<Fee> =
 		Decode::decode(&mut &encoded_response.0[..]).map_err(relay_substrate_client::Error::ResponseParseFailed)?;
 	Ok(decoded_response)
+}
+
+impl crate::cli::RialtoSigningParams {
+	/// Parse CLI parameters into typed signing params.
+	pub fn parse(self) -> Result<RialtoSigningParams, String> {
+		RialtoSigningParams::from_suri(
+			&self.rialto_signer,
+			self.rialto_signer_password.as_deref(),
+		).map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))
+	}
 }
 
 #[cfg(test)]

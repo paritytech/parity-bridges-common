@@ -30,19 +30,16 @@ pub fn parse_args() -> Command {
 #[derive(StructOpt)]
 #[structopt(about = "Substrate-to-Substrate relay")]
 pub enum Command {
-	/// Initialize Millau headers bridge in Rialto.
-	InitializeMillauHeadersBridgeInRialto {
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
-		#[structopt(flatten)]
-		millau_bridge_params: MillauBridgeInitializationParams,
-	},
+	RelayHeaders(RelayHeaders),
+	RelayMessages(RelayMessages),
+	InitBridge(InitBridge),
+	SendMessage(SendMessage),
+}
+
+#[derive(StructOpt)]
+pub enum RelayHeaders {
 	/// Relay Millau headers to Rialto.
-	MillauHeadersToRialto {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -51,20 +48,9 @@ pub enum Command {
 		rialto_sign: RialtoSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
-	},
-	/// Initialize Rialto headers bridge in Millau.
-	InitializeRialtoHeadersBridgeInMillau {
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
-		#[structopt(flatten)]
-		rialto_bridge_params: RialtoBridgeInitializationParams,
 	},
 	/// Relay Rialto headers to Millau.
-	RialtoHeadersToMillau {
+	RialtoToMillau {
 		#[structopt(flatten)]
 		rialto: RialtoConnectionParams,
 		#[structopt(flatten)]
@@ -74,8 +60,12 @@ pub enum Command {
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
+}
+
+#[derive(StructOpt)]
+pub enum RelayMessages {
 	/// Serve given lane of Millau -> Rialto messages.
-	MillauMessagesToRialto {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -90,8 +80,54 @@ pub enum Command {
 		#[structopt(long)]
 		lane: HexLaneId,
 	},
+	/// Serve given lane of Rialto -> Millau messages.
+	RialtoToMillau {
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		rialto_sign: RialtoSigningParams,
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		prometheus_params: PrometheusParams,
+		/// Hex-encoded id of lane that should be served by relay.
+		#[structopt(long)]
+		lane: HexLaneId,
+	},
+}
+
+#[derive(StructOpt)]
+pub enum InitBridge {
+	/// Initialize Millau headers bridge in Rialto.
+	MillauToRialto {
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		rialto_sign: RialtoSigningParams,
+		#[structopt(flatten)]
+		millau_bridge_params: MillauBridgeInitializationParams,
+	},
+	/// Initialize Rialto headers bridge in Millau.
+	RialtoToMillau {
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		rialto_bridge_params: RialtoBridgeInitializationParams,
+	},
+}
+
+#[derive(StructOpt)]
+pub enum SendMessage {
 	/// Submit message to given Millau -> Rialto lane.
-	SubmitMillauToRialtoMessage {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -111,24 +147,8 @@ pub enum Command {
 		#[structopt(long, possible_values = &Origins::variants())]
 		origin: Origins,
 	},
-	/// Serve given lane of Rialto -> Millau messages.
-	RialtoMessagesToMillau {
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
-		#[structopt(flatten)]
-		prometheus_params: PrometheusParams,
-		/// Hex-encoded id of lane that should be served by relay.
-		#[structopt(long)]
-		lane: HexLaneId,
-	},
 	/// Submit message to given Rialto -> Millau lane.
-	SubmitRialtoToMillauMessage {
+	RialtoToMillau {
 		#[structopt(flatten)]
 		rialto: RialtoConnectionParams,
 		#[structopt(flatten)]
