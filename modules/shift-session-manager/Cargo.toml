@@ -20,6 +20,7 @@ sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master
 [dev-dependencies]
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+serde = "1.0"
 
 [features]
 default = ["std"]
