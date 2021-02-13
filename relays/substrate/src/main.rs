@@ -240,17 +240,9 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let millau_sign = millau_sign.parse()?;
 			let rialto_sign = rialto_sign.parse()?;
 			let rialto_call = match message {
-				cli::ToRialtoMessage::Remark => rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(
-					format!(
-						"Unix time: {}",
-						std::time::SystemTime::now()
-							.duration_since(std::time::SystemTime::UNIX_EPOCH)
-							.unwrap_or_default()
-							.as_secs(),
-					)
-					.as_bytes()
-					.to_vec(),
-				)),
+				cli::ToRialtoMessage::Remark => rialto_runtime::Call::System(
+					rialto_runtime::SystemCall::remark(remark_payload())
+				),
 				cli::ToRialtoMessage::Transfer { recipient, amount } => {
 					rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
 				}
@@ -261,51 +253,37 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let millau_account_id: bp_millau::AccountId = millau_sender_public.into_account();
 			let rialto_origin_public = rialto_sign.signer.public();
 
-			let payload = match origin {
-				cli::Origins::Source => MessagePayload {
-					spec_version: rialto_runtime::VERSION.spec_version,
-					weight: rialto_call_weight,
-					origin: CallOrigin::SourceAccount(millau_account_id),
-					call: rialto_call.encode(),
-				},
-				cli::Origins::Target => {
-					let digest = millau_runtime::rialto_account_ownership_digest(
-						&rialto_call,
-						millau_account_id.clone(),
-						rialto_runtime::VERSION.spec_version,
-					);
+			let payload = MessagePayload {
+				spec_version: rialto_runtime::VERSION.spec_version,
+				weight: rialto_call_weight,
+				origin: match origin {
+					cli::Origins::Source => CallOrigin::SourceAccount(millau_account_id),
+					cli::Origins::Target => {
+						let digest = millau_runtime::rialto_account_ownership_digest(
+							&rialto_call,
+							millau_account_id.clone(),
+							rialto_runtime::VERSION.spec_version,
+						);
 
-					let digest_signature = rialto_sign.signer.sign(&digest);
+						let digest_signature = rialto_sign.signer.sign(&digest);
 
-					MessagePayload {
-						spec_version: rialto_runtime::VERSION.spec_version,
-						weight: rialto_call_weight,
-						origin: CallOrigin::TargetAccount(
+						CallOrigin::TargetAccount(
 							millau_account_id,
 							rialto_origin_public.into(),
 							digest_signature.into(),
-						),
-						call: rialto_call.encode(),
+						)
 					}
-				}
+				},
+				call: rialto_call.encode(),
 			};
 
 			let lane = lane.into();
-			let fee = match fee {
-				Some(fee) => fee,
-				None => match estimate_message_delivery_and_dispatch_fee(
-					&millau_client,
-					bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
-					lane,
-					payload.clone(),
-				)
-				.await
-				{
-					Ok(Some(fee)) => fee,
-					Ok(None) => return Err("Failed to estimate message fee. Message is too heavy?".into()),
-					Err(error) => return Err(format!("Failed to estimate message fee: {:?}", error)),
-				},
-			};
+			let fee = get_fee(fee, || estimate_message_delivery_and_dispatch_fee(
+				&millau_client,
+				bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
+				lane,
+				payload.clone(),
+			)).await?;
 
 			log::info!(target: "bridge", "Sending message to Rialto. Fee: {}", fee);
 
@@ -341,17 +319,9 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let millau_sign = millau_sign.parse()?;
 
 			let millau_call = match message {
-				cli::ToMillauMessage::Remark => millau_runtime::Call::System(millau_runtime::SystemCall::remark(
-					format!(
-						"Unix time: {}",
-						std::time::SystemTime::now()
-							.duration_since(std::time::SystemTime::UNIX_EPOCH)
-							.unwrap_or_default()
-							.as_secs(),
-					)
-					.as_bytes()
-					.to_vec(),
-				)),
+				cli::ToMillauMessage::Remark => millau_runtime::Call::System(
+					millau_runtime::SystemCall::remark(remark_payload())
+				),
 				cli::ToMillauMessage::Transfer { recipient, amount } => {
 					millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient, amount))
 				}
@@ -362,51 +332,37 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let rialto_account_id: bp_rialto::AccountId = rialto_sender_public.into_account();
 			let millau_origin_public = millau_sign.signer.public();
 
-			let payload = match origin {
-				cli::Origins::Source => MessagePayload {
+			let payload = MessagePayload {
 					spec_version: millau_runtime::VERSION.spec_version,
 					weight: millau_call_weight,
-					origin: CallOrigin::SourceAccount(rialto_account_id),
+					origin: match origin {
+						cli::Origins::Source => CallOrigin::SourceAccount(rialto_account_id),
+						cli::Origins::Target => {
+							let digest = rialto_runtime::millau_account_ownership_digest(
+								&millau_call,
+								rialto_account_id.clone(),
+								millau_runtime::VERSION.spec_version,
+							);
+
+							let digest_signature = millau_sign.signer.sign(&digest);
+
+							CallOrigin::TargetAccount(
+								rialto_account_id,
+								millau_origin_public.into(),
+								digest_signature.into(),
+							)
+						}
+					},
 					call: millau_call.encode(),
-				},
-				cli::Origins::Target => {
-					let digest = rialto_runtime::millau_account_ownership_digest(
-						&millau_call,
-						rialto_account_id.clone(),
-						millau_runtime::VERSION.spec_version,
-					);
-
-					let digest_signature = millau_sign.signer.sign(&digest);
-
-					MessagePayload {
-						spec_version: millau_runtime::VERSION.spec_version,
-						weight: millau_call_weight,
-						origin: CallOrigin::TargetAccount(
-							rialto_account_id,
-							millau_origin_public.into(),
-							digest_signature.into(),
-						),
-						call: millau_call.encode(),
-					}
-				}
 			};
 
 			let lane = lane.into();
-			let fee = match fee {
-				Some(fee) => fee,
-				None => match estimate_message_delivery_and_dispatch_fee(
-					&rialto_client,
-					bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
-					lane,
-					payload.clone(),
-				)
-				.await
-				{
-					Ok(Some(fee)) => fee,
-					Ok(None) => return Err("Failed to estimate message fee. Message is too heavy?".into()),
-					Err(error) => return Err(format!("Failed to estimate message fee: {:?}", error)),
-				},
-			};
+			let fee = get_fee(fee, || estimate_message_delivery_and_dispatch_fee(
+				&rialto_client,
+				bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
+				lane,
+				payload.clone(),
+			)).await?;
 
 			log::info!(target: "bridge", "Sending message to Millau. Fee: {}", fee);
 
@@ -443,6 +399,34 @@ async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: En
 	let decoded_response: Option<Fee> =
 		Decode::decode(&mut &encoded_response.0[..]).map_err(relay_substrate_client::Error::ResponseParseFailed)?;
 	Ok(decoded_response)
+}
+
+fn remark_payload() -> Vec<u8> {
+	format!(
+		"Unix time: {}",
+		std::time::SystemTime::now()
+		.duration_since(std::time::SystemTime::UNIX_EPOCH)
+		.unwrap_or_default()
+		.as_secs(),
+	)
+		.as_bytes()
+		.to_vec()
+}
+
+async fn get_fee<Fee, F, R, E>(fee: Option<Fee>, f: F) -> Result<Fee, String> where
+	Fee: Decode,
+	F: FnOnce() -> R,
+	R: std::future::Future<Output = Result<Option<Fee>, E>>,
+	E: std::fmt::Debug,
+{
+	match fee {
+		Some(fee) => Ok(fee),
+		None => match f().await {
+			Ok(Some(fee)) => Ok(fee),
+			Ok(None) => Err("Failed to estimate message fee. Message is too heavy?".into()),
+			Err(error) => Err(format!("Failed to estimate message fee: {:?}", error)),
+		}
+	}
 }
 
 impl crate::cli::RialtoSigningParams {
