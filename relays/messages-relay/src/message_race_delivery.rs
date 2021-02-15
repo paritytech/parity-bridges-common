@@ -844,7 +844,6 @@ mod tests {
 		]
 		.into_iter()
 		.collect();
-
 		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(1));
 		assert_eq!(
