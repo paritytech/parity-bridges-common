@@ -22,6 +22,7 @@ use bp_message_lane::{
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
+	Parameter as MessageLaneParameter,
 };
 use bp_runtime::Size;
 use codec::{Decode, Encode};
@@ -30,7 +31,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
 	traits::{BlakeTwo256, IdentityLookup},
-	Perbill,
+	FixedU128, Perbill,
 };
 use std::collections::BTreeMap;
 
@@ -118,11 +119,28 @@ parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: u64 = 10;
 	pub const MaxUnrewardedRelayerEntriesAtInboundLane: u64 = 16;
 	pub const MaxUnconfirmedMessagesAtInboundLane: u64 = 32;
+	pub storage TokenConversionRate: FixedU128 = 1.into();
+}
+
+#[derive(Debug, Clone, Encode, Decode, PartialEq, Eq)]
+pub enum TestMessageLaneParameter {
+	TokenConversionRate(FixedU128),
+}
+
+impl MessageLaneParameter for TestMessageLaneParameter {
+	fn save(&self) {
+		match *self {
+			TestMessageLaneParameter::TokenConversionRate(conversion_rate) => {
+				TokenConversionRate::set(&conversion_rate)
+			}
+		}
+	}
 }
 
 impl Config for TestRuntime {
 	type Event = TestEvent;
 	type WeightInfo = ();
+	type Parameter = TestMessageLaneParameter;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
