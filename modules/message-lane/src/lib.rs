@@ -288,7 +288,7 @@ decl_module! {
 		///
 		/// May only be called either by root, or by `ModuleOwner`.
 		///
-		/// The weight is: single read for permissions check +
+		/// The weight is: single read for permissions check + 2 writes for parameter value and event.
 		#[weight = (T::DbWeight::get().reads_writes(1, 2), DispatchClass::Operational)]
 		pub fn update_pallet_parameter(origin, parameter: T::Parameter) {
 			ensure_owner_or_root::<T, I>(origin)?;
