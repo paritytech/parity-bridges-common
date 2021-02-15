@@ -30,9 +30,9 @@ pub trait MessageLane: Clone + Send + Sync {
 	const TARGET_NAME: &'static str;
 
 	/// Messages proof.
-	type MessagesProof: Debug + Clone + Send + Sync;
+	type MessagesProof: Clone + Debug + Send + Sync;
 	/// Messages receiving proof.
-	type MessagesReceivingProof: Debug + Clone + Send + Sync;
+	type MessagesReceivingProof: Clone + Debug + Send + Sync;
 
 	/// Number of the source header.
 	type SourceHeaderNumber: BlockNumberBase;

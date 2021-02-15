@@ -249,12 +249,27 @@ type MessageDeliveryStrategyBase<P> = BasicStrategy<
 impl<P: MessageLane> std::fmt::Debug for MessageDeliveryStrategy<P> {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
 		fmt.debug_struct("MessageDeliveryStrategy")
-			.field("max_unrewarded_relayer_entries_at_target", &self.max_unrewarded_relayer_entries_at_target)
-			.field("max_unconfirmed_nonces_at_target", &self.max_unconfirmed_nonces_at_target)
+			.field(
+				"max_unrewarded_relayer_entries_at_target",
+				&self.max_unrewarded_relayer_entries_at_target,
+			)
+			.field(
+				"max_unconfirmed_nonces_at_target",
+				&self.max_unconfirmed_nonces_at_target,
+			)
 			.field("max_messages_in_single_batch", &self.max_messages_in_single_batch)
-			.field("max_messages_weight_in_single_batch", &self.max_messages_weight_in_single_batch)
-			.field("max_messages_size_in_single_batch", &self.max_messages_size_in_single_batch)
-			.field("latest_confirmed_nonces_at_source", &self.latest_confirmed_nonces_at_source)
+			.field(
+				"max_messages_weight_in_single_batch",
+				&self.max_messages_weight_in_single_batch,
+			)
+			.field(
+				"max_messages_size_in_single_batch",
+				&self.max_messages_size_in_single_batch,
+			)
+			.field(
+				"latest_confirmed_nonces_at_source",
+				&self.latest_confirmed_nonces_at_source,
+			)
 			.field("target_nonces", &self.target_nonces)
 			.field("strategy", &self.strategy)
 			.finish()
@@ -304,13 +319,10 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		nonces: TargetClientNonces<DeliveryRaceTargetNoncesData>,
 		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
 	) {
-		// best target nonces must always be ge than 
+		// best target nonces must always be ge than finalized target nonces
 		let mut target_nonces = self.target_nonces.take().unwrap_or_else(|| nonces.clone());
 		target_nonces.nonces_data = nonces.nonces_data.clone();
-		target_nonces.latest_nonce = std::cmp::max(
-			target_nonces.latest_nonce,
-			nonces.latest_nonce,
-		);
+		target_nonces.latest_nonce = std::cmp::max(target_nonces.latest_nonce, nonces.latest_nonce);
 		self.target_nonces = Some(target_nonces);
 
 		self.strategy.best_target_nonces_updated(
@@ -342,10 +354,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 		}
 
 		if let Some(ref mut target_nonces) = self.target_nonces {
-			target_nonces.latest_nonce = std::cmp::max(
-				target_nonces.latest_nonce,
-				nonces.latest_nonce,
-			);
+			target_nonces.latest_nonce = std::cmp::max(target_nonces.latest_nonce, nonces.latest_nonce);
 		}
 
 		self.strategy.finalized_target_nonces_updated(
@@ -607,8 +616,12 @@ mod tests {
 			latest_nonce: 19,
 			nonces_data: (),
 		};
-		race_strategy.strategy.best_target_nonces_updated(target_nonces.clone());
-		race_strategy.strategy.finalized_target_nonces_updated(target_nonces, &mut race_state);
+		race_strategy
+			.strategy
+			.best_target_nonces_updated(target_nonces.clone(), &mut race_state);
+		race_strategy
+			.strategy
+			.finalized_target_nonces_updated(target_nonces, &mut race_state);
 
 		(race_state, race_strategy)
 	}
@@ -813,6 +826,47 @@ mod tests {
 		assert_eq!(
 			strategy.select_nonces_to_deliver(&state),
 			Some(((20..=22), proof_parameters(false, 3)))
+		);
+	}
+
+	#[test]
+	fn message_delivery_strategy_waits_for_confirmed_nonce_header_to_appear_on_target() {
+		// 1 delivery confirmation from target to source is still missing, so we may deliver
+		// reward confirmation with our message delivery transaction. But the problem is that
+		// the reward has been paid at header 2 && this header is still unknown to target node.
+		//
+		// => so we can't deliver more than 3 messages
+		let (mut state, mut strategy) = prepare_strategy();
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonces_at_source.back().unwrap().1;
+		strategy.latest_confirmed_nonces_at_source = vec![
+			(header_id(1), prev_confirmed_nonce_at_source - 1),
+			(header_id(2), prev_confirmed_nonce_at_source),
+		]
+		.into_iter()
+		.collect();
+
+		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
+		state.best_finalized_source_header_id_at_best_target = Some(header_id(1));
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=22), proof_parameters(false, 3)))
+		);
+
+		// the same situation, but the header 2 is known to the target node, so we may deliver reward confirmation
+		let (mut state, mut strategy) = prepare_strategy();
+		let prev_confirmed_nonce_at_source = strategy.latest_confirmed_nonces_at_source.back().unwrap().1;
+		strategy.latest_confirmed_nonces_at_source = vec![
+			(header_id(1), prev_confirmed_nonce_at_source - 1),
+			(header_id(2), prev_confirmed_nonce_at_source),
+		]
+		.into_iter()
+		.collect();
+		strategy.target_nonces.as_mut().unwrap().nonces_data.confirmed_nonce = prev_confirmed_nonce_at_source - 1;
+		state.best_finalized_source_header_id_at_source = Some(header_id(2));
+		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
+		assert_eq!(
+			strategy.select_nonces_to_deliver(&state),
+			Some(((20..=23), proof_parameters(true, 4)))
 		);
 	}
 

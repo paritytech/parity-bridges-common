@@ -265,6 +265,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 				if let Some(target_state) = target_state {
 					let is_target_best_state_updated = race_state.best_target_header_id.as_ref()
 						!= Some(&target_state.best_self);
+
 					if is_target_best_state_updated {
 						target_best_nonces_required = true;
 						race_state.best_target_header_id = Some(target_state.best_self);
@@ -486,7 +487,10 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 				let at_block = race_state
 					.best_finalized_target_header_id
 					.as_ref()
-					.expect("target_finalized_nonces_required is only true when best_finalized_target_header_id is Some; qed")
+					.expect(
+						"target_finalized_nonces_required is only true when\
+						best_finalized_target_header_id is Some; qed",
+					)
 					.clone();
 				target_finalized_nonces.set(race_target.nonces(at_block, true).fuse());
 			} else {
