@@ -26,13 +26,29 @@ pub fn parse_args() -> Command {
 	Command::from_args()
 }
 
-/// Substrate-to-Substrate relay CLI args.
+/// Substrate-to-Substrate bridge utilities.
 #[derive(StructOpt)]
 #[structopt(about = "Substrate-to-Substrate relay")]
 pub enum Command {
+	/// Start headers relay between two chains.
+	///
+	/// The on-chain bridge component should have been already initialized with
+	/// `init-bridge` sub-command.
 	RelayHeaders(RelayHeaders),
+	/// Start messages relay between two chains.
+	///
+	/// Ties up to `MessageLane` pallets on both chains and starts relaying messages.
+	/// Requires the header relay to be already running.
 	RelayMessages(RelayMessages),
+	/// Initialize on-chain bridge pallet with current header data.
+	///
+	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
 	InitBridge(InitBridge),
+	/// Send custom message over the bridge.
+	///
+	/// Allows interacting with the bridge by sending messages over `MessageLane` component.
+	/// The message is being sent to the source chain, delivered to the target chain and dispatched
+	/// there.
 	SendMessage(SendMessage),
 }
 
@@ -201,6 +217,9 @@ pub enum ToMillauMessage {
 arg_enum! {
 	#[derive(Debug)]
 	/// The origin to use when dispatching the message on the target chain.
+	///
+	/// - `Target` uses account existing on the target chain (requires target private key).
+	/// - `Origin` ses account derived from the source-chain account.
 	pub enum Origins {
 		Target,
 		Source,
