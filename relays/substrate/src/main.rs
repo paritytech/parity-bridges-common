@@ -278,22 +278,29 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					)
 					.as_bytes()
 					.to_vec(),
-				).into(),
-				cli::ToRialtoMessage::Transfer { recipient, amount } => {
-					rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
-				},
-				cli::ToRialtoMessage::MaximalSizeRemark => rialto_runtime::SystemCall::remark(
-					vec![42u8; compute_maximal_size_of_remark(
-						bp_millau::max_extrinsic_size(),
-						bp_rialto::max_extrinsic_size(),
-					) as _],
-				).into(),
-				cli::ToRialtoMessage::MaximalWeightFillBlock => pallet_message_lane::Call::fill_block(
-					compute_maximal_dispatch_weight(bp_rialto::max_extrinsic_weight())
-				).into()
+				)
+				.into(),
+				cli::ToRialtoMessage::Transfer {
+					ref recipient,
+					ref amount,
+				} => rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient.clone(), *amount)),
+				cli::ToRialtoMessage::MaximalSizeRemark => rialto_runtime::SystemCall::remark(vec![
+					42u8;
+					compute_maximal_size_of_remark(bp_millau::max_extrinsic_size(), bp_rialto::max_extrinsic_size(),)
+						as _
+				])
+				.into(),
+				cli::ToRialtoMessage::MaximalWeightRemark => {
+					rialto_runtime::SystemCall::remark(b"MaximalWeightRemark".to_vec()).into()
+				}
 			};
 
-			let rialto_call_weight = rialto_call.get_dispatch_info().weight;
+			let rialto_call_weight = match message {
+				cli::ToRialtoMessage::MaximalWeightRemark => {
+					compute_maximal_dispatch_weight(bp_rialto::max_extrinsic_weight())
+				}
+				_ => rialto_call.get_dispatch_info().weight,
+			};
 			let millau_sender_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
 			let millau_account_id: bp_millau::AccountId = millau_sender_public.into_account();
 			let rialto_origin_public = rialto_sign.signer.public();
@@ -439,21 +446,27 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 					.as_bytes()
 					.to_vec(),
 				)),
-				cli::ToMillauMessage::Transfer { recipient, amount } => {
-					millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient, amount))
-				},
-				cli::ToMillauMessage::MaximalSizeRemark => millau_runtime::SystemCall::remark(
-					vec![42u8; compute_maximal_size_of_remark(
-						bp_rialto::max_extrinsic_size(),
-						bp_millau::max_extrinsic_size(),
-					) as _],
-				).into(),
-				cli::ToMillauMessage::MaximalWeightFillBlock => pallet_message_lane::Call::fill_block(
-					compute_maximal_dispatch_weight(bp_millau::max_extrinsic_weight())
-				).into()
+				cli::ToMillauMessage::Transfer {
+					ref recipient,
+					ref amount,
+				} => millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient.clone(), *amount)),
+				cli::ToMillauMessage::MaximalSizeRemark => millau_runtime::SystemCall::remark(vec![
+					42u8;
+					compute_maximal_size_of_remark(bp_rialto::max_extrinsic_size(), bp_millau::max_extrinsic_size(),)
+						as _
+				])
+				.into(),
+				cli::ToMillauMessage::MaximalWeightRemark => {
+					millau_runtime::SystemCall::remark(b"MaximalWeightRemark".to_vec()).into()
+				}
 			};
 
-			let millau_call_weight = millau_call.get_dispatch_info().weight;
+			let millau_call_weight = match message {
+				cli::ToMillauMessage::MaximalWeightRemark => {
+					compute_maximal_dispatch_weight(bp_millau::max_extrinsic_weight())
+				}
+				_ => millau_call.get_dispatch_info().weight,
+			};
 			let rialto_sender_public: bp_rialto::AccountSigner = rialto_sign.signer.public().clone().into();
 			let rialto_account_id: bp_rialto::AccountId = rialto_sender_public.into_account();
 			let millau_origin_public = millau_sign.signer.public();
@@ -542,16 +555,12 @@ async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: En
 	Ok(decoded_response)
 }
 
-fn compute_maximal_size_of_remark(
-	maximal_source_extrinsic_size: u32,
-	maximal_target_extrinsic_size: u32,
-) -> u32 {
+fn compute_maximal_size_of_remark(maximal_source_extrinsic_size: u32, maximal_target_extrinsic_size: u32) -> u32 {
 	// assume that both signed extensions and other arguments fit 1KB
 	let service_tx_bytes_on_source_chain = 1024;
 	let maximal_source_extrinsic_size = maximal_source_extrinsic_size - service_tx_bytes_on_source_chain;
-	let maximal_call_size = bridge_runtime_common::messages::target::maximal_incoming_message_size(
-		maximal_target_extrinsic_size
-	);
+	let maximal_call_size =
+		bridge_runtime_common::messages::target::maximal_incoming_message_size(maximal_target_extrinsic_size);
 	let maximal_call_size = if maximal_call_size > maximal_source_extrinsic_size {
 		maximal_source_extrinsic_size
 	} else {
@@ -570,9 +579,9 @@ fn compute_maximal_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use sp_core::Pair;
 	use sp_runtime::traits::{IdentifyAccount, Verify};
-	use super::*;
 
 	#[test]
 	fn millau_signature_is_valid_on_rialto() {
@@ -621,10 +630,8 @@ mod tests {
 		use bp_message_lane::source_chain::TargetHeaderChain;
 		use rialto_runtime::millau_messages::Millau;
 
-		let maximal_remark_size = compute_maximal_size_of_remark(
-			bp_rialto::max_extrinsic_size(),
-			bp_millau::max_extrinsic_size()
-		);
+		let maximal_remark_size =
+			compute_maximal_size_of_remark(bp_rialto::max_extrinsic_size(), bp_millau::max_extrinsic_size());
 
 		let call: millau_runtime::Call = millau_runtime::SystemCall::remark(vec![42; maximal_remark_size as _]).into();
 		let payload = pallet_bridge_call_dispatch::MessagePayload {
@@ -635,7 +642,8 @@ mod tests {
 		};
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
 
-		let call: millau_runtime::Call = millau_runtime::SystemCall::remark(vec![42; (maximal_remark_size + 1) as _]).into();
+		let call: millau_runtime::Call =
+			millau_runtime::SystemCall::remark(vec![42; (maximal_remark_size + 1) as _]).into();
 		let payload = pallet_bridge_call_dispatch::MessagePayload {
 			spec_version: Default::default(),
 			weight: call.get_dispatch_info().weight,
@@ -656,25 +664,24 @@ mod tests {
 	}
 
 	#[test]
-	fn maximal_weight_fill_block_to_millau_is_generated_correctly() {
+	fn maximal_weight_remark_to_millau_is_generated_correctly() {
 		use bp_message_lane::source_chain::TargetHeaderChain;
 		use rialto_runtime::millau_messages::Millau;
 
 		let maximal_dispatch_weight = compute_maximal_dispatch_weight(bp_millau::max_extrinsic_weight());
+		let call: millau_runtime::Call = rialto_runtime::SystemCall::remark(vec![]).into();
 
-		let call: millau_runtime::Call = pallet_message_lane::Call::fill_block(maximal_dispatch_weight).into();
 		let payload = pallet_bridge_call_dispatch::MessagePayload {
 			spec_version: Default::default(),
-			weight: call.get_dispatch_info().weight,
+			weight: maximal_dispatch_weight,
 			origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
 			call: call.encode(),
 		};
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
 
-		let call: millau_runtime::Call = pallet_message_lane::Call::fill_block(maximal_dispatch_weight + 1).into();
 		let payload = pallet_bridge_call_dispatch::MessagePayload {
 			spec_version: Default::default(),
-			weight: call.get_dispatch_info().weight,
+			weight: maximal_dispatch_weight + 1,
 			origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
 			call: call.encode(),
 		};
@@ -687,20 +694,19 @@ mod tests {
 		use millau_runtime::rialto_messages::Rialto;
 
 		let maximal_dispatch_weight = compute_maximal_dispatch_weight(bp_rialto::max_extrinsic_weight());
+		let call: rialto_runtime::Call = millau_runtime::SystemCall::remark(vec![]).into();
 
-		let call: rialto_runtime::Call = pallet_message_lane::Call::fill_block(maximal_dispatch_weight).into();
 		let payload = pallet_bridge_call_dispatch::MessagePayload {
 			spec_version: Default::default(),
-			weight: call.get_dispatch_info().weight,
+			weight: maximal_dispatch_weight,
 			origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
 			call: call.encode(),
 		};
 		assert_eq!(Rialto::verify_message(&payload), Ok(()));
 
-		let call: rialto_runtime::Call = pallet_message_lane::Call::fill_block(maximal_dispatch_weight + 1).into();
 		let payload = pallet_bridge_call_dispatch::MessagePayload {
 			spec_version: Default::default(),
-			weight: call.get_dispatch_info().weight,
+			weight: maximal_dispatch_weight + 1,
 			origin: pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
 			call: call.encode(),
 		};

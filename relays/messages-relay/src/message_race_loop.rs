@@ -577,7 +577,7 @@ mod tests {
 
 		// target node only knows about source' BEST_AT_TARGET block
 		// source node has BEST_AT_SOURCE > BEST_AT_TARGET block
-		let race_state = RaceState::<_, _, ()> {
+		let mut race_state = RaceState::<_, _, ()> {
 			best_finalized_source_header_id_at_source: Some(HeaderId(BEST_AT_SOURCE, BEST_AT_SOURCE)),
 			best_finalized_source_header_id_at_best_target: Some(HeaderId(BEST_AT_TARGET, BEST_AT_TARGET)),
 			best_target_header_id: Some(HeaderId(0, 0)),
@@ -600,14 +600,8 @@ mod tests {
 				latest_nonce: 5u64,
 				nonces_data: (),
 			},
-		);
-		/*strategy.finalized_target_nonces_updated(
-			TargetClientNonces {
-				latest_nonce: 5u64,
-				nonces_data: (),
-			},
 			&mut race_state,
-		);*/
+		);
 
 		// the proof will be generated on source, but using BEST_AT_TARGET block
 		assert_eq!(

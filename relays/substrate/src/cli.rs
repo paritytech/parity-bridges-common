@@ -153,7 +153,7 @@ pub enum Command {
 /// All possible messages that may be delivered to the Rialto chain.
 #[derive(StructOpt, Debug)]
 pub enum ToRialtoMessage {
-	/// Make an on-chain remark (comment).
+	/// Make a small on-chain remark (comment).
 	Remark,
 	/// Transfer the specified `amount` of native tokens to a particular `recipient`.
 	Transfer {
@@ -162,16 +162,18 @@ pub enum ToRialtoMessage {
 		#[structopt(long)]
 		amount: bp_rialto::Balance,
 	},
-	/// TODO
+	/// Make an on-chain remark (comment). The size of remark is the maximal possible size, that can be
+	/// transferred over the bridge.
 	MaximalSizeRemark,
-	/// TODO
-	MaximalWeightFillBlock,
+	/// Make an on-chain remark (comment). The declared dispatch weight of the message is the maximal possible
+	/// weight that can be transferred over the bridge.
+	MaximalWeightRemark,
 }
 
 /// All possible messages that may be delivered to the Millau chain.
 #[derive(StructOpt, Debug)]
 pub enum ToMillauMessage {
-	/// Make an on-chain remark (comment).
+	/// Make a small on-chain remark (comment).
 	Remark,
 	/// Transfer the specified `amount` of native tokens to a particular `recipient`.
 	Transfer {
@@ -180,10 +182,12 @@ pub enum ToMillauMessage {
 		#[structopt(long)]
 		amount: bp_millau::Balance,
 	},
-	/// TODO
+	/// Make an on-chain remark (comment). The size of remark is the maximal possible size, that can be
+	/// transferred over the bridge.
 	MaximalSizeRemark,
-	/// TODO
-	MaximalWeightFillBlock,
+	/// Make an on-chain remark (comment). The declared dispatch weight of the message is the maximal possible
+	/// weight that can be transferred over the bridge.
+	MaximalWeightRemark,
 }
 
 arg_enum! {

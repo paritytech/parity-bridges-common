@@ -571,10 +571,6 @@ decl_module! {
 
 			Ok(())
 		}
-
-		#[weight = *weight]
-		pub fn fill_block(_origin, weight: Weight) {
-		}
 	}
 }
 

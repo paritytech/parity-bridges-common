@@ -176,7 +176,7 @@ mod tests {
 			// reserved for messages dispatch allows dispatch of non-trivial messages.
 			//
 			// Any significant change in this values should attract additional attention.
-			(921, 216_583_333_334),
+			(955, 216_583_333_334),
 		);
 	}
 }
