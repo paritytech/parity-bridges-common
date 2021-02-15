@@ -37,10 +37,12 @@ fn craft_known_storage_proof(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> (H256, Stora
 	log::info!("Storage proof vec {:?}", storage_proof_vec);
 	let backend = <InMemoryBackend<Blake2Hasher>>::from(storage_proof_vec);
 	let root = backend.storage_root(std::iter::empty()).0;
-	let vector_element_proof = StorageProof::new(prove_read(
-			backend,
-			input_vec.iter().map(|x| x.0.as_slice())
-	).unwrap().iter_nodes().collect());
+	let vector_element_proof = StorageProof::new(
+		prove_read(backend, input_vec.iter().map(|x| x.0.as_slice()))
+			.unwrap()
+			.iter_nodes()
+			.collect(),
+	);
 	(root, vector_element_proof)
 }
 
@@ -63,17 +65,17 @@ fn run_fuzzer() {
 		}
 		let unique_input_vec = transform_into_unique(input_vec);
 		let (root, craft_known_storage_proof) = craft_known_storage_proof(unique_input_vec.clone());
-		let checker = <StorageProofChecker<Blake2Hasher>>::new(
-			root,
-			craft_known_storage_proof.clone()
-		).expect("Valid proof passed; qed");
+		let checker = <StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof.clone())
+			.expect("Valid proof passed; qed");
 		for key_value_pair in unique_input_vec {
 			log::info!("Reading value for pair {:?}", key_value_pair);
-			assert_eq!(checker.read_value(&key_value_pair.0), Ok(Some(key_value_pair.1.clone())));
+			assert_eq!(
+				checker.read_value(&key_value_pair.0),
+				Ok(Some(key_value_pair.1.clone()))
+			);
 		}
 	})
 }
-
 
 fn main() {
 	env_logger::init();
