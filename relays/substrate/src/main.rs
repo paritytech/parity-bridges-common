@@ -197,7 +197,7 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 				lane.into(),
 				prometheus_params.into(),
 			);
-		},
+		}
 		cli::RelayMessages::RialtoToMillau {
 			rialto,
 			rialto_sign,
@@ -219,7 +219,7 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 				lane.into(),
 				prometheus_params.into(),
 			);
-		},
+		}
 	}
 	Ok(())
 }
@@ -241,17 +241,18 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let rialto_sign = rialto_sign.parse()?;
 			let rialto_call = message.into_call();
 
-			let payload = millau_to_rialto_message_payload(
-				&millau_sign, &rialto_sign, &rialto_call, origin
-			);
+			let payload = millau_to_rialto_message_payload(&millau_sign, &rialto_sign, &rialto_call, origin);
 
 			let lane = lane.into();
-			let fee = get_fee(fee, || estimate_message_delivery_and_dispatch_fee(
-				&millau_client,
-				bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
-				lane,
-				payload.clone(),
-			)).await?;
+			let fee = get_fee(fee, || {
+				estimate_message_delivery_and_dispatch_fee(
+					&millau_client,
+					bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
+					lane,
+					payload.clone(),
+				)
+			})
+			.await?;
 
 			log::info!(target: "bridge", "Sending message to Rialto. Fee: {}", fee);
 
@@ -287,17 +288,18 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let millau_sign = millau_sign.parse()?;
 			let millau_call = message.into_call();
 
-			let payload = rialto_to_millau_message_payload(
-				&rialto_sign, &millau_sign, &millau_call, origin
-			);
+			let payload = rialto_to_millau_message_payload(&rialto_sign, &millau_sign, &millau_call, origin);
 
 			let lane = lane.into();
-			let fee = get_fee(fee, || estimate_message_delivery_and_dispatch_fee(
-				&rialto_client,
-				bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
-				lane,
-				payload.clone(),
-			)).await?;
+			let fee = get_fee(fee, || {
+				estimate_message_delivery_and_dispatch_fee(
+					&rialto_client,
+					bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
+					lane,
+					payload.clone(),
+				)
+			})
+			.await?;
 
 			log::info!(target: "bridge", "Sending message to Millau. Fee: {}", fee);
 
@@ -340,12 +342,12 @@ fn remark_payload() -> Vec<u8> {
 	format!(
 		"Unix time: {}",
 		std::time::SystemTime::now()
-		.duration_since(std::time::SystemTime::UNIX_EPOCH)
-		.unwrap_or_default()
-		.as_secs(),
+			.duration_since(std::time::SystemTime::UNIX_EPOCH)
+			.unwrap_or_default()
+			.as_secs(),
 	)
-		.as_bytes()
-		.to_vec()
+	.as_bytes()
+	.to_vec()
 }
 
 fn rialto_to_millau_message_payload(
@@ -373,11 +375,7 @@ fn rialto_to_millau_message_payload(
 
 				let digest_signature = millau_sign.signer.sign(&digest);
 
-				CallOrigin::TargetAccount(
-					rialto_account_id,
-					millau_origin_public.into(),
-					digest_signature.into(),
-				)
+				CallOrigin::TargetAccount(rialto_account_id, millau_origin_public.into(), digest_signature.into())
 			}
 		},
 		call: millau_call.encode(),
@@ -409,18 +407,15 @@ fn millau_to_rialto_message_payload(
 
 				let digest_signature = rialto_sign.signer.sign(&digest);
 
-				CallOrigin::TargetAccount(
-					millau_account_id,
-					rialto_origin_public.into(),
-					digest_signature.into(),
-				)
+				CallOrigin::TargetAccount(millau_account_id, rialto_origin_public.into(), digest_signature.into())
 			}
 		},
 		call: rialto_call.encode(),
 	}
 }
 
-async fn get_fee<Fee, F, R, E>(fee: Option<Fee>, f: F) -> Result<Fee, String> where
+async fn get_fee<Fee, F, R, E>(fee: Option<Fee>, f: F) -> Result<Fee, String>
+where
 	Fee: Decode,
 	F: FnOnce() -> R,
 	R: std::future::Future<Output = Result<Option<Fee>, E>>,
@@ -432,27 +427,23 @@ async fn get_fee<Fee, F, R, E>(fee: Option<Fee>, f: F) -> Result<Fee, String> wh
 			Ok(Some(fee)) => Ok(fee),
 			Ok(None) => Err("Failed to estimate message fee. Message is too heavy?".into()),
 			Err(error) => Err(format!("Failed to estimate message fee: {:?}", error)),
-		}
+		},
 	}
 }
 
 impl crate::cli::RialtoSigningParams {
 	/// Parse CLI parameters into typed signing params.
 	pub fn parse(self) -> Result<RialtoSigningParams, String> {
-		RialtoSigningParams::from_suri(
-			&self.rialto_signer,
-			self.rialto_signer_password.as_deref(),
-		).map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))
+		RialtoSigningParams::from_suri(&self.rialto_signer, self.rialto_signer_password.as_deref())
+			.map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))
 	}
 }
 
 impl crate::cli::MillauSigningParams {
 	/// Parse CLI parameters into typed signing params.
 	pub fn parse(self) -> Result<MillauSigningParams, String> {
-		MillauSigningParams::from_suri(
-			&self.millau_signer,
-			self.millau_signer_password.as_deref(),
-		).map_err(|e| format!("Failed to parse millau-signer: {:?}", e))
+		MillauSigningParams::from_suri(&self.millau_signer, self.millau_signer_password.as_deref())
+			.map_err(|e| format!("Failed to parse millau-signer: {:?}", e))
 	}
 }
 
@@ -462,7 +453,8 @@ impl crate::cli::MillauConnectionParams {
 		MillauClient::new(ConnectionParams {
 			host: self.millau_host,
 			port: self.millau_port,
-		}).await
+		})
+		.await
 	}
 }
 impl crate::cli::RialtoConnectionParams {
@@ -471,7 +463,8 @@ impl crate::cli::RialtoConnectionParams {
 		RialtoClient::new(ConnectionParams {
 			host: self.rialto_host,
 			port: self.rialto_port,
-		}).await
+		})
+		.await
 	}
 }
 
@@ -479,9 +472,9 @@ impl crate::cli::ToRialtoMessage {
 	/// Convert CLI call request into runtime `Call` instance.
 	pub fn into_call(self) -> rialto_runtime::Call {
 		match self {
-			cli::ToRialtoMessage::Remark => rialto_runtime::Call::System(
-				rialto_runtime::SystemCall::remark(remark_payload())
-			),
+			cli::ToRialtoMessage::Remark => {
+				rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(remark_payload()))
+			}
 			cli::ToRialtoMessage::Transfer { recipient, amount } => {
 				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
 			}
@@ -493,9 +486,9 @@ impl crate::cli::ToMillauMessage {
 	/// Convert CLI call request into runtime `Call` instance.
 	pub fn into_call(self) -> millau_runtime::Call {
 		match self {
-			cli::ToMillauMessage::Remark => millau_runtime::Call::System(
-				millau_runtime::SystemCall::remark(remark_payload())
-			),
+			cli::ToMillauMessage::Remark => {
+				millau_runtime::Call::System(millau_runtime::SystemCall::remark(remark_payload()))
+			}
 			cli::ToMillauMessage::Transfer { recipient, amount } => {
 				millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient, amount))
 			}
