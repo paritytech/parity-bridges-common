@@ -335,7 +335,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				},
 			};
 
-			log::info!(target: "bridge", "Sending message to Rialto. Fee: {}", fee);
+			log::info!(target: "bridge", "Sending message to Rialto. Weight: {}. Fee: {}", rialto_call_weight, fee);
 
 			let millau_call = millau_runtime::Call::BridgeRialtoMessageLane(
 				millau_runtime::MessageLaneCall::send_message(lane, payload, fee),
@@ -486,7 +486,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 				},
 			};
 
-			log::info!(target: "bridge", "Sending message to Millau. Fee: {}", fee);
+			log::info!(target: "bridge", "Sending message to Millau. Weight: {}. Fee: {}", millau_call_weight, fee);
 
 			let rialto_call = rialto_runtime::Call::BridgeMillauMessageLane(
 				rialto_runtime::MessageLaneCall::send_message(lane, payload, fee),
