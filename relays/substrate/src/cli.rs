@@ -219,7 +219,7 @@ arg_enum! {
 	/// The origin to use when dispatching the message on the target chain.
 	///
 	/// - `Target` uses account existing on the target chain (requires target private key).
-	/// - `Origin` ses account derived from the source-chain account.
+	/// - `Origin` uses account derived from the source-chain account.
 	pub enum Origins {
 		Target,
 		Source,
