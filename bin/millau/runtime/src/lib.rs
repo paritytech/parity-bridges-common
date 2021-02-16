@@ -360,6 +360,7 @@ impl pallet_message_lane::Config for Runtime {
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
 }
 
+#[allow(clippy::from_over_into)]
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
