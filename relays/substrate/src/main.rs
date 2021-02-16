@@ -569,8 +569,7 @@ fn compute_maximal_size_of_remark(maximal_source_extrinsic_size: u32, maximal_ta
 
 	// bytes in remark Call encoding that are used to encode everything except arguments
 	let service_bytes = 1 + 1 + 4;
-	let argument_bytes = maximal_call_size - service_bytes;
-	argument_bytes
+	maximal_call_size - service_bytes;
 }
 
 fn compute_maximal_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
