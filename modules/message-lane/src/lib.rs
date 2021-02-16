@@ -843,7 +843,7 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessageLaneParameter,
+		message, run_test, Event as TestEvent, Origin, TestMessageDeliveryAndDispatchPayment, TestMessageLaneParameter,
 		TestMessagesDeliveryProof, TestMessagesProof, TestPayload, TestRuntime, TokenConversionRate,
 		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
@@ -873,7 +873,7 @@ mod tests {
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::message_lane(RawEvent::MessageAccepted(TEST_LANE_ID, 1)),
+				event: TestEvent::pallet_message_lane(RawEvent::MessageAccepted(TEST_LANE_ID, 1)),
 				topics: vec![],
 			}],
 		);
@@ -902,7 +902,7 @@ mod tests {
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::message_lane(RawEvent::MessagesDelivered(TEST_LANE_ID, 1, 1)),
+				event: TestEvent::pallet_message_lane(RawEvent::MessagesDelivered(TEST_LANE_ID, 1, 1)),
 				topics: vec![],
 			}],
 		);
@@ -982,7 +982,7 @@ mod tests {
 				System::<TestRuntime>::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::message_lane(RawEvent::ParameterUpdated(parameter)),
+					event: TestEvent::pallet_message_lane(RawEvent::ParameterUpdated(parameter)),
 					topics: vec![],
 				}],
 			);
@@ -1006,7 +1006,7 @@ mod tests {
 				System::<TestRuntime>::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::message_lane(RawEvent::ParameterUpdated(parameter)),
+					event: TestEvent::pallet_message_lane(RawEvent::ParameterUpdated(parameter)),
 					topics: vec![],
 				}],
 			);
