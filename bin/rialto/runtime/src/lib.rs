@@ -23,6 +23,8 @@
 #![allow(clippy::large_enum_variant)]
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
+// From construct_runtime macro
+#![allow(clippy::from_over_into)]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -467,7 +469,6 @@ impl pallet_message_lane::Config for Runtime {
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
 }
 
-#[allow(clippy::from_over_into)]
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
