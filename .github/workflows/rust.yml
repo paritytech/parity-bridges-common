@@ -22,7 +22,7 @@ jobs:
         toolchain:
           - stable
           #- beta
-          - nightly-2020-12-17
+          - nightly
     runs-on:                       self-hosted
     container:
       image:                       paritytech/ci-linux:production
@@ -35,7 +35,6 @@ jobs:
       CMAKE_C_COMPILER_LAUNCHER:   sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
       CARGO_TARGET_DIR:            "/cache/${{ github.head_ref }}/${{ matrix.toolchain }}/"
-      WASM_BUILD_TOOLCHAIN:        nightly-2020-12-17
     steps:
       - name:                      Cancel Previous Runs
         uses:                      styfle/cancel-workflow-action@0.4.1
@@ -49,10 +48,6 @@ jobs:
       - name:                      Configure CARGO_TARGET_DIR
         shell:                     bash
         run:                       ./scripts/ci-cache.sh
-      - name:                      Install Toolchain
-        run:                       rustup toolchain add nightly-2020-12-17
-      - name:                      Add WASM Utilities
-        run:                       rustup target add wasm32-unknown-unknown --toolchain nightly-2020-12-17
       - name:                      Cache checking
         if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
         continue-on-error:         true
@@ -82,11 +77,11 @@ jobs:
 
 ## Linting Stage
       - name:                      Add clippy
-        if:                        matrix.toolchain == 'nightly-2020-12-17'
+        if:                        matrix.toolchain == 'nightly'
         run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
       - name:                      Clippy
         uses:                      actions-rs/cargo@master
-        if:                        matrix.toolchain == 'nightly-2020-12-17'
+        if:                        matrix.toolchain == 'nightly'
         with:
           command:                 clippy
           toolchain:               ${{ matrix.toolchain }}
