@@ -23,6 +23,8 @@
 #![allow(clippy::large_enum_variant)]
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
+// From construct_runtime macro
+#![allow(clippy::from_over_into)]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -300,11 +302,20 @@ impl pallet_substrate_bridge::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 }
 
+parameter_types! {
+	// This is a pretty unscientific cap.
+	//
+	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
+	// call per block.
+	pub const MaxRequests: u32 = 50;
+}
+
 impl pallet_finality_verifier::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
 	type AncestryProof = Vec<bp_rialto::Header>;
 	type AncestryChecker = bp_header_chain::LinearAncestryChecker;
+	type MaxRequests = MaxRequests;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}
@@ -364,7 +375,7 @@ construct_runtime!(
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-		Aura: pallet_aura::{Module, Config<T>, Inherent},
+		Aura: pallet_aura::{Module, Config<T>},
 		Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},

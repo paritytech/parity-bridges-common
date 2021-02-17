@@ -12,7 +12,7 @@ MAX_SUBMIT_DELAY_S=${MSG_EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-30}
 MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
 FERDIE_ADDR=5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL
 
-SHARED_CMD=" /home/user/substrate-relay submit-millau-to-rialto-message"
+SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto"
 SHARED_HOST="--millau-host millau-node-bob --millau-port 9944"
 DAVE_SIGNER="--rialto-signer //Dave --millau-signer //Dave"
 
