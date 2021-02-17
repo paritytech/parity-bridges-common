@@ -84,7 +84,7 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 	/// Benchmarks results from runtime we're plugged into.
 	type WeightInfo: WeightInfoExt;
-	/// Pallet parameteri that is opaque to the pallet itself, but may be used by the runtime
+	/// Pallet parameter that is opaque to the pallet itself, but may be used by the runtime
 	/// for integrating the pallet.
 	///
 	/// All pallet parameters may only be updated either by the root, or by the pallet owner.
