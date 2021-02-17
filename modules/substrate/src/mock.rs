@@ -20,6 +20,9 @@
 
 #![cfg(test)]
 
+// From construct_runtime macro
+#![allow(clippy::from_over_into)]
+
 use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config};
 use bp_runtime::Chain;
 use frame_support::{parameter_types, weights::Weight};
