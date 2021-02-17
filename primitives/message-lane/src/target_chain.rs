@@ -18,6 +18,7 @@
 
 use crate::{LaneId, Message, MessageData, MessageKey, OutboundLaneData};
 
+use bp_runtime::Size;
 use codec::{Decode, Encode, Error as CodecError};
 use frame_support::{weights::Weight, Parameter, RuntimeDebug};
 use sp_std::{collections::btree_map::BTreeMap, fmt::Debug, prelude::*};
@@ -63,7 +64,7 @@ pub trait SourceHeaderChain<Fee> {
 
 	/// Proof that messages are sent from source chain. This may also include proof
 	/// of corresponding outbound lane states.
-	type MessagesProof: Parameter;
+	type MessagesProof: Parameter + Size;
 
 	/// Verify messages proof and return proved messages.
 	///
@@ -127,4 +128,33 @@ impl<DispatchPayload: Decode, Fee> From<MessageData<Fee>> for DispatchMessageDat
 			fee: data.fee,
 		}
 	}
+}
+
+/// Structure that may be used in place of `SourceHeaderChain` and `MessageDispatch` on chains,
+/// where inbound messages are forbidden.
+pub struct ForbidInboundMessages;
+
+/// Error message that is used in `ForbidOutboundMessages` implementation.
+const ALL_INBOUND_MESSAGES_REJECTED: &str = "This chain is configured to reject all inbound messages";
+
+impl<Fee> SourceHeaderChain<Fee> for ForbidInboundMessages {
+	type Error = &'static str;
+	type MessagesProof = ();
+
+	fn verify_messages_proof(
+		_proof: Self::MessagesProof,
+		_messages_count: u32,
+	) -> Result<ProvedMessages<Message<Fee>>, Self::Error> {
+		Err(ALL_INBOUND_MESSAGES_REJECTED)
+	}
+}
+
+impl<Fee> MessageDispatch<Fee> for ForbidInboundMessages {
+	type DispatchPayload = ();
+
+	fn dispatch_weight(_message: &DispatchMessage<Self::DispatchPayload, Fee>) -> Weight {
+		Weight::MAX
+	}
+
+	fn dispatch(_message: DispatchMessage<Self::DispatchPayload, Fee>) {}
 }

@@ -23,6 +23,8 @@
 #![allow(clippy::large_enum_variant)]
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
+// From construct_runtime macro
+#![allow(clippy::from_over_into)]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -407,11 +409,20 @@ impl pallet_substrate_bridge::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 }
 
+parameter_types! {
+	// This is a pretty unscientific cap.
+	//
+	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
+	// call per block.
+	pub const MaxRequests: u32 = 50;
+}
+
 impl pallet_finality_verifier::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
 	type AncestryProof = Vec<bp_millau::Header>;
 	type AncestryChecker = bp_header_chain::LinearAncestryChecker;
+	type MaxRequests = MaxRequests;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}
@@ -475,7 +486,7 @@ construct_runtime!(
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-		Aura: pallet_aura::{Module, Config<T>, Inherent},
+		Aura: pallet_aura::{Module, Config<T>},
 		Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
@@ -829,6 +840,7 @@ impl_runtime_apis! {
 				MessageDeliveryProofParams as MessageLaneMessageDeliveryProofParams,
 				MessageParams as MessageLaneMessageParams,
 				MessageProofParams as MessageLaneMessageProofParams,
+				ProofSize as MessageLaneProofSize,
 			};
 
 			impl MessageLaneConfig<WithMillauMessageLaneInstance> for Runtime {
@@ -882,7 +894,11 @@ impl_runtime_apis! {
 					use pallet_message_lane::storage_keys;
 					use sp_runtime::traits::Header;
 
-					let call = Call::System(SystemCall::remark(vec![]));
+					let remark = match params.size {
+						MessageLaneProofSize::Minimal(ref size) => vec![0u8; *size as _],
+						_ => vec![],
+					};
+					let call = Call::System(SystemCall::remark(remark));
 					let call_weight = call.get_dispatch_info().weight;
 
 					let millau_account_id: bp_millau::AccountId = Default::default();
@@ -939,7 +955,7 @@ impl_runtime_apis! {
 
 				fn prepare_message_delivery_proof(
 					params: MessageLaneMessageDeliveryProofParams<Self::AccountId>,
-				) -> millau_messages::FromMillauMessagesDeliveryProof {
+				) -> millau_messages::ToMillauMessagesDeliveryProof {
 					use crate::millau_messages::{Millau, WithMillauMessageBridge};
 					use bridge_runtime_common::{
 						messages::ChainWithMessageLanes,
@@ -1013,6 +1029,7 @@ where
 mod tests {
 	use super::*;
 	use bp_currency_exchange::DepositInto;
+	use bridge_runtime_common::messages;
 
 	fn run_deposit_into_test(test: impl Fn(AccountId) -> Balance) {
 		let mut ext: sp_io::TestExternalities = SystemConfig::default().build_storage::<Runtime>().unwrap().into();
@@ -1051,9 +1068,44 @@ mod tests {
 
 	#[test]
 	fn ensure_rialto_message_lane_weights_are_correct() {
-		pallet_message_lane::ensure_weights_are_correct::<pallet_message_lane::weights::RialtoWeight<Runtime>>(
+		type Weights = pallet_message_lane::weights::RialtoWeight<Runtime>;
+
+		pallet_message_lane::ensure_weights_are_correct::<Weights>(
 			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT,
 			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+		);
+
+		let max_incoming_message_proof_size = bp_millau::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
+			messages::target::maximal_incoming_message_size(bp_rialto::max_extrinsic_size()),
+		);
+		pallet_message_lane::ensure_able_to_receive_message::<Weights>(
+			bp_rialto::max_extrinsic_size(),
+			bp_rialto::max_extrinsic_weight(),
+			max_incoming_message_proof_size,
+			bridge_runtime_common::messages::transaction_weight_without_multiplier(
+				bp_rialto::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+				max_incoming_message_proof_size as _,
+				0,
+			),
+			messages::target::maximal_incoming_message_dispatch_weight(bp_rialto::max_extrinsic_weight()),
+		);
+
+		let max_incoming_inbound_lane_data_proof_size = bp_message_lane::InboundLaneData::<()>::encoded_size_hint(
+			bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+			bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE as _,
+		)
+		.unwrap_or(u32::MAX);
+		pallet_message_lane::ensure_able_to_receive_confirmation::<Weights>(
+			bp_rialto::max_extrinsic_size(),
+			bp_rialto::max_extrinsic_weight(),
+			max_incoming_inbound_lane_data_proof_size,
+			bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
+			bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+			bridge_runtime_common::messages::transaction_weight_without_multiplier(
+				bp_rialto::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+				max_incoming_inbound_lane_data_proof_size as _,
+				0,
+			),
 		);
 	}
 

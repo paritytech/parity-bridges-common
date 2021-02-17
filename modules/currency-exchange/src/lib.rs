@@ -210,9 +210,12 @@ fn prepare_deposit_details<T: Config<I>, I: Instance>(
 
 #[cfg(test)]
 mod tests {
+	// From construct_runtime macro
+	#![allow(clippy::from_over_into)]
+
 	use super::*;
 	use bp_currency_exchange::LockFundsTransaction;
-	use frame_support::{assert_noop, assert_ok, impl_outer_origin, parameter_types, weights::Weight};
+	use frame_support::{assert_noop, assert_ok, construct_runtime, parameter_types, weights::Weight};
 	use sp_core::H256;
 	use sp_runtime::{
 		testing::Header,
@@ -313,11 +316,19 @@ mod tests {
 		}
 	}
 
-	#[derive(Clone, Eq, PartialEq)]
-	pub struct TestRuntime;
+	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
+	type Block = frame_system::mocking::MockBlock<TestRuntime>;
+	use crate as pallet_bridge_currency_exchange;
 
-	impl_outer_origin! {
-		pub enum Origin for TestRuntime where system = frame_system {}
+	construct_runtime! {
+		pub enum TestRuntime where
+			Block = Block,
+			NodeBlock = Block,
+			UncheckedExtrinsic = UncheckedExtrinsic,
+		{
+			System: frame_system::{Module, Call, Config, Storage, Event<T>},
+			Exchange: pallet_bridge_currency_exchange::{Module},
+		}
 	}
 
 	parameter_types! {
@@ -330,7 +341,7 @@ mod tests {
 	impl frame_system::Config for TestRuntime {
 		type Origin = Origin;
 		type Index = u64;
-		type Call = ();
+		type Call = Call;
 		type BlockNumber = u64;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
@@ -340,7 +351,7 @@ mod tests {
 		type Event = ();
 		type BlockHashCount = BlockHashCount;
 		type Version = ();
-		type PalletInfo = ();
+		type PalletInfo = PalletInfo;
 		type AccountData = ();
 		type OnNewAccount = ();
 		type OnKilledAccount = ();
@@ -361,8 +372,6 @@ mod tests {
 		type CurrencyConverter = DummyCurrencyConverter;
 		type DepositInto = DummyDepositInto;
 	}
-
-	type Exchange = Module<TestRuntime>;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
 		let t = frame_system::GenesisConfig::default()

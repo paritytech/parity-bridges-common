@@ -61,8 +61,7 @@ impl MaybeConnectionError for Error {
 	fn is_connection_error(&self) -> bool {
 		matches!(
 			*self,
-			Error::Request(RequestError::TransportError(_))
-				| Error::ClientNotSynced(_)
+			Error::Request(RequestError::TransportError(_)) | Error::ClientNotSynced(_)
 		)
 	}
 }
@@ -78,7 +77,7 @@ impl ToString for Error {
 		match self {
 			Self::WsConnectionError(e) => e.to_string(),
 			Self::Request(e) => e.to_string(),
-			Self::ResponseParseFailed(e) => e.what().to_string(),
+			Self::ResponseParseFailed(e) => e.to_string(),
 			Self::UninitializedBridgePallet => "The Substrate bridge pallet has not been initialized yet.".into(),
 			Self::AccountDoesNotExist => "Account does not exist on the chain".into(),
 			Self::ClientNotSynced(health) => format!("Substrate client is not synced: {}", health),
