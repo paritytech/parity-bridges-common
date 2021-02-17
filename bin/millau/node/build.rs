@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use vergen::{generate_cargo_keys, ConstantsFlags};
+use vergen::{gen, ConstantsFlags};
 
 const ERROR_MSG: &str = "Failed to generate metadata files";
 
 fn main() {
-	generate_cargo_keys(ConstantsFlags::SHA_SHORT).expect(ERROR_MSG);
+	gen(ConstantsFlags::SHA_SHORT).expect(ERROR_MSG);
 
 	build_script_utils::rerun_if_git_head_changed();
 }
