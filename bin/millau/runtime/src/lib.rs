@@ -148,7 +148,7 @@ parameter_types! {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
 		write: 200_000_000, // ~0.2 ms = 200 µs
 	};
-	pub const SS58Prefix: u8 = 42;
+	pub const SS58Prefix: u8 = 60;
 }
 
 impl frame_system::Config for Runtime {
