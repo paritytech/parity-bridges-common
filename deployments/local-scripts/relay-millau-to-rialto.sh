@@ -6,7 +6,7 @@
 # and `run-millau-node.sh).
 
 RUST_LOG=bridge=debug \
-./target/debug/substrate-relay initialize-millau-headers-bridge-in-rialto \
+./target/debug/substrate-relay init-bridge millau-to-rialto \
 	--millau-host localhost \
 	--millau-port 9945 \
 	--rialto-host localhost \
@@ -15,7 +15,7 @@ RUST_LOG=bridge=debug \
 
 sleep 5
 RUST_LOG=bridge=debug \
-./target/debug/substrate-relay millau-headers-to-rialto \
+./target/debug/substrate-relay relay-headers millau-to-rialto \
 	--millau-host localhost \
 	--millau-port 9945 \
 	--rialto-host localhost \
