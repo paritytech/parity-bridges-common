@@ -26,23 +26,38 @@ pub fn parse_args() -> Command {
 	Command::from_args()
 }
 
-/// Substrate-to-Substrate relay CLI args.
+/// Substrate-to-Substrate bridge utilities.
 #[derive(StructOpt)]
 #[structopt(about = "Substrate-to-Substrate relay")]
 pub enum Command {
-	/// Initialize Millau headers bridge in Rialto.
-	InitializeMillauHeadersBridgeInRialto {
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
-		#[structopt(flatten)]
-		millau_bridge_params: MillauBridgeInitializationParams,
-	},
+	/// Start headers relay between two chains.
+	///
+	/// The on-chain bridge component should have been already initialized with
+	/// `init-bridge` sub-command.
+	RelayHeaders(RelayHeaders),
+	/// Start messages relay between two chains.
+	///
+	/// Ties up to `MessageLane` pallets on both chains and starts relaying messages.
+	/// Requires the header relay to be already running.
+	RelayMessages(RelayMessages),
+	/// Initialize on-chain bridge pallet with current header data.
+	///
+	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
+	InitBridge(InitBridge),
+	/// Send custom message over the bridge.
+	///
+	/// Allows interacting with the bridge by sending messages over `MessageLane` component.
+	/// The message is being sent to the source chain, delivered to the target chain and dispatched
+	/// there.
+	SendMessage(SendMessage),
+	/// Print maximal possible dispatch weight and size of call arguments, that may be sent over the bridge.
+	PrintMessageLimits(PrintMessageLimits),
+}
+
+#[derive(StructOpt)]
+pub enum RelayHeaders {
 	/// Relay Millau headers to Rialto.
-	MillauHeadersToRialto {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -51,20 +66,9 @@ pub enum Command {
 		rialto_sign: RialtoSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
-	},
-	/// Initialize Rialto headers bridge in Millau.
-	InitializeRialtoHeadersBridgeInMillau {
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
-		#[structopt(flatten)]
-		rialto_bridge_params: RialtoBridgeInitializationParams,
 	},
 	/// Relay Rialto headers to Millau.
-	RialtoHeadersToMillau {
+	RialtoToMillau {
 		#[structopt(flatten)]
 		rialto: RialtoConnectionParams,
 		#[structopt(flatten)]
@@ -74,8 +78,12 @@ pub enum Command {
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
+}
+
+#[derive(StructOpt)]
+pub enum RelayMessages {
 	/// Serve given lane of Millau -> Rialto messages.
-	MillauMessagesToRialto {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -90,8 +98,54 @@ pub enum Command {
 		#[structopt(long)]
 		lane: HexLaneId,
 	},
+	/// Serve given lane of Rialto -> Millau messages.
+	RialtoToMillau {
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		rialto_sign: RialtoSigningParams,
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		prometheus_params: PrometheusParams,
+		/// Hex-encoded id of lane that should be served by relay.
+		#[structopt(long)]
+		lane: HexLaneId,
+	},
+}
+
+#[derive(StructOpt)]
+pub enum InitBridge {
+	/// Initialize Millau headers bridge in Rialto.
+	MillauToRialto {
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		rialto_sign: RialtoSigningParams,
+		#[structopt(flatten)]
+		millau_bridge_params: MillauBridgeInitializationParams,
+	},
+	/// Initialize Rialto headers bridge in Millau.
+	RialtoToMillau {
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		rialto_bridge_params: RialtoBridgeInitializationParams,
+	},
+}
+
+#[derive(StructOpt)]
+pub enum SendMessage {
 	/// Submit message to given Millau -> Rialto lane.
-	SubmitMillauToRialtoMessage {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -111,24 +165,8 @@ pub enum Command {
 		#[structopt(long, possible_values = &Origins::variants())]
 		origin: Origins,
 	},
-	/// Serve given lane of Rialto -> Millau messages.
-	RialtoMessagesToMillau {
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
-		#[structopt(flatten)]
-		prometheus_params: PrometheusParams,
-		/// Hex-encoded id of lane that should be served by relay.
-		#[structopt(long)]
-		lane: HexLaneId,
-	},
 	/// Submit message to given Rialto -> Millau lane.
-	SubmitRialtoToMillauMessage {
+	RialtoToMillau {
 		#[structopt(flatten)]
 		rialto: RialtoConnectionParams,
 		#[structopt(flatten)]
@@ -150,6 +188,14 @@ pub enum Command {
 	},
 }
 
+#[derive(StructOpt)]
+pub enum PrintMessageLimits {
+	/// Print maximal possible dispatch weight and size of call arguments, that may be sent from Millau to Rialto.
+	MillauToRialto,
+	/// Print maximal possible dispatch weight and size of call arguments, that may be sent from Rialto to Millau.
+	RialtoToMillau,
+}
+
 /// All possible messages that may be delivered to the Rialto chain.
 #[derive(StructOpt, Debug)]
 pub enum ToRialtoMessage {
@@ -162,12 +208,6 @@ pub enum ToRialtoMessage {
 		#[structopt(long)]
 		amount: bp_rialto::Balance,
 	},
-	/// Make an on-chain remark (comment). The size of remark is the maximal possible size, that can be
-	/// transferred over the bridge.
-	MaximalSizeRemark,
-	/// Make an on-chain remark (comment). The declared dispatch weight of the message is the maximal possible
-	/// weight that can be transferred over the bridge.
-	MaximalWeightRemark,
 }
 
 /// All possible messages that may be delivered to the Millau chain.
@@ -182,17 +222,14 @@ pub enum ToMillauMessage {
 		#[structopt(long)]
 		amount: bp_millau::Balance,
 	},
-	/// Make an on-chain remark (comment). The size of remark is the maximal possible size, that can be
-	/// transferred over the bridge.
-	MaximalSizeRemark,
-	/// Make an on-chain remark (comment). The declared dispatch weight of the message is the maximal possible
-	/// weight that can be transferred over the bridge.
-	MaximalWeightRemark,
 }
 
 arg_enum! {
 	#[derive(Debug)]
 	/// The origin to use when dispatching the message on the target chain.
+	///
+	/// - `Target` uses account existing on the target chain (requires target private key).
+	/// - `Origin` uses account derived from the source-chain account.
 	pub enum Origins {
 		Target,
 		Source,

@@ -7,7 +7,7 @@ curl -v http://rialto-node-bob:9933/health
 
 MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
 
-/home/user/substrate-relay rialto-messages-to-millau \
+/home/user/substrate-relay relay-messages rialto-to-millau \
 	--lane $MESSAGE_LANE \
 	--rialto-host rialto-node-bob \
 	--rialto-port 9944 \
