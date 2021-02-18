@@ -41,8 +41,8 @@ jobs:
         run:                       rustup toolchain add $NIGHTLY
       - name:                      Add WASM Utilities
         run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY 
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v1.2.0
+      - name:                      Rust Cache
+        uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
@@ -99,8 +99,8 @@ jobs:
         run:                       rustup toolchain add $NIGHTLY
       - name:                      Add WASM Utilities
         run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY 
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v1.2.0
+      - name:                      Rust Cache
+        uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         if:                        github.ref == 'refs/heads/master'
@@ -146,11 +146,11 @@ jobs:
         run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
       - name:                      Add clippy
         run:                       rustup component add clippy --toolchain $NIGHTLY
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v1.2.0
+      - name:                      Rust Cache
+        uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Clippy
         uses:                      actions-rs/cargo@master
         with:
           command:                 clippy
-          toolchain:               nightly #if necessary, specify the version
+          toolchain:               nightly #if necessary, specify the version, nightly-2020-10-04, etc.
           args:                    --all-targets -- -D warnings
