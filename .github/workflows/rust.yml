@@ -124,13 +124,13 @@ jobs:
           path:                    artifacts/
  
  ## Linting Stage
-   clippy:
-     name:                          Clippy
-     runs-on:                       ubuntu-latest
-     env:
-       RUST_BACKTRACE:              full
-       NIGHTLY:                     nightly #if necessary, specify the version 
-     steps:
+  clippy:
+    name:                          Clippy
+    runs-on:                       ubuntu-latest
+    env:
+      RUST_BACKTRACE:              full
+      NIGHTLY:                     nightly #if necessary, specify the version
+    steps:
       - name:                      Cancel Previous Runs
         uses:                      styfle/cancel-workflow-action@0.4.1
         with:
@@ -146,6 +146,8 @@ jobs:
         run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
       - name:                      Add clippy
         run:                       rustup component add clippy --toolchain $NIGHTLY
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v1.2.0
       - name:                      Clippy
         uses:                      actions-rs/cargo@master
         with:
