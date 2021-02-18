@@ -15,26 +15,18 @@ on:
 jobs:
 
 ## Check Stage
-  check-test-build:
-    name:                          Check, test and build
+  check-test:
+    name:                          Check and test
     strategy:
       matrix:
         toolchain:
           - stable
           #- beta
-          - nightly
-    runs-on:                       self-hosted
-    container:
-      image:                       paritytech/ci-linux:production
-      volumes:
-        - /cache:/cache
+          - nightly                
+    runs-on:                       ubuntu-latest
     env:
       RUST_BACKTRACE:              full
-      SCCACHE_REDIS:               redis://172.17.0.1/0
-      SCCACHE_IDLE_TIMEOUT:        0
-      CMAKE_C_COMPILER_LAUNCHER:   sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
-      CARGO_TARGET_DIR:            "/cache/${{ github.head_ref }}/${{ matrix.toolchain }}/"
+      NIGHTLY:                     nightly #if necessary, specify the version, nightly-2020-10-04, etc.
     steps:
       - name:                      Cancel Previous Runs
         uses:                      styfle/cancel-workflow-action@0.4.1
@@ -45,21 +37,12 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
-      - name:                      Configure CARGO_TARGET_DIR
-        shell:                     bash
-        run:                       ./scripts/ci-cache.sh
-      - name:                      Cache checking
-        if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
-        continue-on-error:         true
-        run:                       |
-          echo "Copy cache from master";
-          apt update&&apt install rsync -y;
-          # TODO add rsync in docker
-          rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/ || true;
-        shell:                     bash
-      - name:                      Sccache stats
-        run:                       sccache --show-stats
-        shell:                     bash
+      - name:                      Install Toolchain
+        run:                       rustup toolchain add $NIGHTLY
+      - name:                      Add WASM Utilities
+        run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY 
+      - name:                      Rust Cache
+        uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
@@ -74,18 +57,6 @@ jobs:
           command:                 test
           toolchain:               ${{ matrix.toolchain }}
           args:                    --all  --verbose
-
-## Linting Stage
-      - name:                      Add clippy
-        if:                        matrix.toolchain == 'nightly'
-        run:                       rustup component add clippy --toolchain ${{ matrix.toolchain }}
-      - name:                      Clippy
-        uses:                      actions-rs/cargo@master
-        if:                        matrix.toolchain == 'nightly'
-        with:
-          command:                 clippy
-          toolchain:               ${{ matrix.toolchain }}
-          args:                    --all-targets -- -D warnings
 
 ## Check Node Benchmarks
       - name:                      Check Rialto benchmarks runtime ${{ matrix.platform }} rust-${{ matrix.toolchain }}
@@ -102,13 +73,41 @@ jobs:
           args:                    --manifest-path ./bin/millau/node/Cargo.toml --no-default-features --features runtime-benchmarks --verbose
 
 ## Build Stage
+  build:
+    name:                          Build
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          #- beta
+          - nightly
+    runs-on:                       ubuntu-latest
+    env:
+      RUST_BACKTRACE:              full
+      NIGHTLY:                     nightly #if necessary, specify the version, nightly-2020-10-04, etc.
+    steps:
+      - name:                      Cancel Previous Runs
+        uses:                      styfle/cancel-workflow-action@0.4.1
+        with:
+          access_token:            ${{ github.token }}
+      - name:                      Checkout sources & submodules
+        uses:                      actions/checkout@master
+        with:
+          fetch-depth:             5
+          submodules:              recursive
+      - name:                      Install Toolchain
+        run:                       rustup toolchain add $NIGHTLY
+      - name:                      Add WASM Utilities
+        run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY 
+      - name:                      Rust Cache
+        uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         if:                        github.ref == 'refs/heads/master'
         with:
           command:                 build
           toolchain:               ${{ matrix.toolchain }}
-          args:                    --all --release --verbose
+          args:                    --all --verbose
       - name:                      Prepare artifacts
         if:                        github.ref == 'refs/heads/master'
         run:                       |
@@ -123,3 +122,35 @@ jobs:
         with:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
+ 
+ ## Linting Stage
+  clippy:
+    name:                          Clippy
+    runs-on:                       ubuntu-latest
+    env:
+      RUST_BACKTRACE:              full
+      NIGHTLY:                     nightly #if necessary, specify the version, nightly-2020-10-04, etc.
+    steps:
+      - name:                      Cancel Previous Runs
+        uses:                      styfle/cancel-workflow-action@0.4.1
+        with:
+          access_token:            ${{ github.token }}
+      - name:                      Checkout sources & submodules
+        uses:                      actions/checkout@master
+        with:
+          fetch-depth:             5
+          submodules:              recursive
+      - name:                      Install Toolchain
+        run:                       rustup toolchain add $NIGHTLY
+      - name:                      Add WASM Utilities
+        run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
+      - name:                      Add clippy
+        run:                       rustup component add clippy --toolchain $NIGHTLY
+      - name:                      Rust Cache
+        uses:                      Swatinem/rust-cache@v1.2.0
+      - name:                      Clippy
+        uses:                      actions-rs/cargo@master
+        with:
+          command:                 clippy
+          toolchain:               nightly #if necessary, specify the version, nightly-2020-10-04, etc.
+          args:                    --all-targets -- -D warnings
