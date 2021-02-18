@@ -152,5 +152,5 @@ jobs:
         uses:                      actions-rs/cargo@master
         with:
           command:                 clippy
-          toolchain:               $NIGHTLY
+          toolchain:               ${{ NIGHTLY }}
           args:                    --all-targets -- -D warnings
