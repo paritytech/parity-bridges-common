@@ -107,7 +107,7 @@ jobs:
         with:
           command:                 build
           toolchain:               ${{ matrix.toolchain }}
-          args:                    --all --release --verbose
+          args:                    --all --verbose
       - name:                      Prepare artifacts
         if:                        github.ref == 'refs/heads/master'
         run:                       |
