@@ -22,11 +22,11 @@ jobs:
         toolchain:
           - stable
           #- beta
-          - nightly
+          - nightly                
     runs-on:                       ubuntu-latest
     env:
       RUST_BACKTRACE:              full
-      NIGHTLY:                     nightly #if necessary, specify the version
+      NIGHTLY:                     nightly #if necessary, specify the version, nightly-2020-10-04, etc.
     steps:
       - name:                      Cancel Previous Runs
         uses:                      styfle/cancel-workflow-action@0.4.1
@@ -129,7 +129,6 @@ jobs:
     runs-on:                       ubuntu-latest
     env:
       RUST_BACKTRACE:              full
-      NIGHTLY:                     nightly #if necessary, specify the version
     steps:
       - name:                      Cancel Previous Runs
         uses:                      styfle/cancel-workflow-action@0.4.1
@@ -152,5 +151,5 @@ jobs:
         uses:                      actions-rs/cargo@master
         with:
           command:                 clippy
-          toolchain:               ${{ NIGHTLY }}
+          toolchain:               nightly #if necessary, specify the version
           args:                    --all-targets -- -D warnings
