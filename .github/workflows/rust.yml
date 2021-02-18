@@ -23,18 +23,18 @@ jobs:
           - stable
           #- beta
           - nightly
-    runs-on:                       self-hosted
+    runs-on:                       ubuntu-latest
     container:
       image:                       paritytech/ci-linux:production
-      volumes:
-        - /cache:/cache
+      #volumes:
+      #  - /cache:/cache
     env:
       RUST_BACKTRACE:              full
-      SCCACHE_REDIS:               redis://172.17.0.1/0
-      SCCACHE_IDLE_TIMEOUT:        0
-      CMAKE_C_COMPILER_LAUNCHER:   sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
-      CARGO_TARGET_DIR:            "/cache/${{ github.head_ref }}/${{ matrix.toolchain }}/"
+      #SCCACHE_REDIS:               redis://172.17.0.1/0
+      #SCCACHE_IDLE_TIMEOUT:        0
+      #CMAKE_C_COMPILER_LAUNCHER:   sccache
+      #CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      #CARGO_TARGET_DIR:            "/cache/${{ github.head_ref }}/${{ matrix.toolchain }}/"
     steps:
       - name:                      Cancel Previous Runs
         uses:                      styfle/cancel-workflow-action@0.4.1
@@ -45,21 +45,21 @@ jobs:
         with:
           fetch-depth:             5
           submodules:              recursive
-      - name:                      Configure CARGO_TARGET_DIR
-        shell:                     bash
-        run:                       ./scripts/ci-cache.sh
-      - name:                      Cache checking
-        if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
-        continue-on-error:         true
-        run:                       |
-          echo "Copy cache from master";
-          apt update&&apt install rsync -y;
+      #- name:                      Configure CARGO_TARGET_DIR
+      #  shell:                     bash
+      #  run:                       ./scripts/ci-cache.sh
+      #- name:                      Cache checking
+      #  if:                        github.event_name == 'pull_request' && github.event.action == 'opened' || github.event.action == 'reopened'
+      #  continue-on-error:         true
+      #  run:                       |
+      #    echo "Copy cache from master";
+      #    apt update&&apt install rsync -y;
           # TODO add rsync in docker
-          rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/ || true;
-        shell:                     bash
-      - name:                      Sccache stats
-        run:                       sccache --show-stats
-        shell:                     bash
+      #    rsync -aq /cache/${{ matrix.toolchain }}/ $CARGO_TARGET_DIR/ || true;
+      #  shell:                     bash
+      #- name:                      Sccache stats
+      #  run:                       sccache --show-stats
+      #  shell:                     bash
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
