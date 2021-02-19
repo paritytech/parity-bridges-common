@@ -1,4 +1,4 @@
-## Helpers for Message Lane Module integration
+# Helpers for Message Lane Module integration
 
 The `messages` module of this crate contains a bunch of helpers for integrating Message Lane Module into your runtime. Basic pre-requisites of these helpers are:
 - we're going to bridge Substrate-based chain with Substrate-based chain;
@@ -9,7 +9,7 @@ The `messages` module of this crate contains a bunch of helpers for integrating 
 - all proofs in the Message Lane Module transactions are based on the storage proofs from the Bridged Chain: storage proof of the outbound message (value from the `pallet_message_lane::Store::MessagePayload` map), storage proof of the outbound lane state (value from the `pallet_message_lane::Store::OutboundLanes` map) and storage proof of the inbound lane state (value from the `pallet_message_lane::Store::InboundLanes` map);
 - storage proofs are built at the finalized headers of the corresponding chain, so all Message Lane transactions that are accepting proofs are verifying header proofs using finalized Bridge Chain headers from Substrate Headers Module;
 
-### `MessageBridge` trait
+## `MessageBridge` trait
 
 The essence of your integration will be a struct that implements a `MessageBridge` trait. Let's review every method and its possible implementation here:
 
@@ -30,7 +30,7 @@ The essence of your integration will be a struct that implements a `MessageBridg
 
 - `MessageBridge::bridged_balance_to_this_balance`: this may be the easiest method to implement and the hardest to maintain at the same time. If you don't have any automatic methods to determine conversion rate, then you'll probably need to maintain it by yourself (by updating conversion rate, stored in runtime storage). This means that if you're too late with update, then you risk to accept messages with lower-than-expected fee. So it may be wise to has some reserve in this conversion rate, even if that means larger delivery and dispatch fees.
 
-### `ChainWithMessageLanes` trait
+## `ChainWithMessageLanes` trait
 
 Apart from its methods, `MessageBridge` also has two associated types that need to implement `ChainWithMessageLanes` trait. One is for This Chain and the other is for the Bridged Chain. The trait is quite a simple and can easily be implemented - you just need to specify types used at the corresponding chain. There are two exceptions, though. Both may be changed in the future. Here they are:
 
@@ -38,7 +38,7 @@ Apart from its methods, `MessageBridge` also has two associated types that need 
 
 - `ChainWithMessageLanes::MessageLaneInstance`: this is used to compute runtime storage keys. There may be several instances of Message Lane pallet, included in the Runtime. Every instance stores messages and these messages stored under different keys. When we are verifying storage proofs from the Bridged Chain, we should know which instance we're talking to. This is fine, but there's significant inconvenience with that - This Chain runtime must have the same Message Lane pallet instance. This not necessarily mean that we should use the same instance on both chains - this instance may be used to bridge with other chain/instance, or may not be used at all.
 
-### Helpers for using at the Source Chain
+## Helpers for using at the Source Chain
 
 The helpers for the Source Chain reside in the `source` submodule of the `messages` module. The structs are: `FromThisChainMessagePayload`, `FromBridgedChainMessagesDeliveryProof`, `FromThisChainMessageVerifier`. And the helper functions are: `maximal_message_size`, `verify_chain_message`, `verify_messages_delivery_proof` and `estimate_message_dispatch_and_delivery_fee`.
 
@@ -58,7 +58,7 @@ The helpers for the Source Chain reside in the `source` submodule of the `messag
 1) that the message size is less than or equal to the 2/3 of maximal extrinsic size at the Target Chain. We leave 1/3 for signed extras and for the storage proof overhead;
 2) that the message dispatch weight is less than or equal to the 1/2 of maximal normal extrinsic weight at the Target Chain. We leave 1/2 for for the delivery transaction overhead.
 
-### Helpers for using at the Target Chain
+## Helpers for using at the Target Chain
 
 The helpers for the Source Chain reside in the `target` submodule of the `messages` module. The structs are: `FromBridgedChainMessagePayload`, `FromBridgedChainMessagesProof`, `FromBridgedChainMessagesProof`. And the helper functions are: `maximal_incoming_message_dispatch_weight`, `maximal_incoming_message_size` and `verify_messages_proof`.
 
