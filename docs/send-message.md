@@ -118,7 +118,7 @@ to send a message, you have to control an account private key on both, the sourc
 the target chain. Those accounts are specified using the `--millau-signer` and `--rialto-signer`
 arguments in the example above. 
 
-Message delivery and dispatch requires a fee to be payed. In the example above, we have not 
+Message delivery and dispatch requires a fee to be paid. In the example above, we have not 
 specified the `--fee` argument. Hence, the fee will be estimated automatically. Note that
 in order to pay the fee, the message sender account has to have sufficient funds available.
 
