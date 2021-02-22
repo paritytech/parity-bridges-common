@@ -29,7 +29,7 @@ use sp_trie::StorageProof;
 use std::collections::HashMap;
 
 fn craft_known_storage_proof(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> (H256, StorageProof) {
-	let mut storage_proof_vec = Vec::new();
+	let mut storage_proof_vec = vec![];
 	storage_proof_vec.push((
 		None,
 		input_vec.iter().map(|x| (x.0.clone(), Some(x.1.clone()))).collect(),
@@ -60,12 +60,12 @@ fn transform_into_unique(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> Vec<(Vec<u8>, Ve
 
 fn run_fuzzer() {
 	fuzz!(|input_vec: Vec<(Vec<u8>, Vec<u8>)>| {
-		if input_vec.len() < 1 {
+		if input_vec.is_empty() {
 			return;
 		}
 		let unique_input_vec = transform_into_unique(input_vec);
 		let (root, craft_known_storage_proof) = craft_known_storage_proof(unique_input_vec.clone());
-		let checker = <StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof.clone())
+		let checker = <StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof)
 			.expect("Valid proof passed; qed");
 		for key_value_pair in unique_input_vec {
 			log::info!("Reading value for pair {:?}", key_value_pair);
