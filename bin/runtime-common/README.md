@@ -7,7 +7,7 @@ The [`messages`](./src/messages.rs) module of this crate contains a bunch of hel
 - the messages sent over the bridge are dispatched using [call dispatch module](../../modules/call-dispatch/README.md);
 - the messages are `pallet_bridge_call_dispatch::MessagePayload` structures, where `call` field is encoded `Call` of the target chain. So the `Call` is opaque to the [message lane module](../../modules/message-lane/README.md) instance at the source chain. It is pre-encoded by the message submitter;
 - all proofs in the [message lane module](../../modules/message-lane/README.md) transactions are based on the storage proofs from the bridged chain: storage proof of the outbound message (value from the `pallet_message_lane::Store::MessagePayload` map), storage proof of the outbound lane state (value from the `pallet_message_lane::Store::OutboundLanes` map) and storage proof of the inbound lane state (value from the `pallet_message_lane::Store::InboundLanes` map);
-- storage proofs are built at the finalized headers of the corresponding chain, so all message lane transactions that are accepting proofs are verifying header proofs using finalized bridge chain headers from Substrate bridge module.
+- storage proofs are built at the finalized headers of the corresponding chain. So all message lane transactions with proofs are verifying storage proofs against finalized chain headers from Substrate bridge module.
 
 **IMPORTANT NOTE**: after reading this document, you may refer to our test runtimes ([rialto_messages.rs](../millau/runtime/src/rialto_messages.rs) and/or [millau_messages.rs](../rialto/runtime/src/millau_messages.rs)) to see how to use these helpers.
 
@@ -15,7 +15,7 @@ The [`messages`](./src/messages.rs) module of this crate contains a bunch of hel
 
 The essence of your integration will be a struct that implements a `MessageBridge` trait. Let's review every method and give some implementation  hints here:
 
-- `MessageBridge::maximal_extrinsic_size_on_target_chain`: you will need to return maximal extrinsic size of the target chain from this function. This may be the constant that is updated when your runtime is upgraded, or you may use the [message lane parameters functionality](../../modules/message-lane/README.md#Non-Essential-Functionality) to allow pallet owner to update this value more frequently (you may also want to use this functionality for all constants that are used in all `MessageBridge` trait methods described below).
+- `MessageBridge::maximal_extrinsic_size_on_target_chain`: you will need to return maximal extrinsic size of the target chain from this function. This may be the constant that is updated when your runtime is upgraded, or you may use the [message lane parameters functionality](../../modules/message-lane/README.md#Non-Essential-Functionality) to allow pallet owner to update this value more frequently (you may also want to use this functionality for all constants that are used in other methods described below).
 
 - `MessageBridge::weight_limits_of_message_on_bridged_chain`: you'll need to return range of dispatch weights that the outbound message may take at the target chain. Please keep in mind that our helpers assume that the message is an encoded call of the target chain. But we never decode this call at the source chain. So you can't simply get dispatch weight from pre-dispatch information. Instead there are two options to prepare this range: if you know which calls are to be sent over your bridge, then you may just return weight ranges for these particular calls. Otherwise, if you're going to accept all kind of calls, you may just return range `[0; maximal incoming message dispatch weight]`. If you choose the latter, then you shall remember that the delivery transaction itself has some weight, so you can't accept messages with weight equal to maximal weight of extrinsic at the target chain. In our test chains, we reject all messages that have declared dispatch weight larger than 50% of the maximal bridged extrinsic weight.
 
@@ -44,7 +44,7 @@ Apart from its methods, `MessageBridge` also has two associated types that need 
 
 The helpers for the Source Chain reside in the `source` submodule of the [`messages`](./src/messages.rs) module. The structs are: `FromThisChainMessagePayload`, `FromBridgedChainMessagesDeliveryProof`, `FromThisChainMessageVerifier`. And the helper functions are: `maximal_message_size`, `verify_chain_message`, `verify_messages_delivery_proof` and `estimate_message_dispatch_and_delivery_fee`.
 
-`FromThisChainMessagePayload` is a message that sender sends through our bridge. It is the `pallet_bridge_call_dispatch::MessagePayload`, where `call` field is encoded target chain call. So at this chain we don't see internals of this call - we jsut know its size.
+`FromThisChainMessagePayload` is a message that sender sends through our bridge. It is the `pallet_bridge_call_dispatch::MessagePayload`, where `call` field is encoded target chain call. So at this chain we don't see internals of this call - we just know its size.
 
 `FromThisChainMessageVerifier` is an implementation of `bp_message_lane::LaneMessageVerifier`. It has following checks in its `verify_message` method:
 1) it'll verify that the used outbound lane is enabled in our runtime;
@@ -54,11 +54,11 @@ The helpers for the Source Chain reside in the `source` submodule of the [`messa
 
 `estimate_message_dispatch_and_delivery_fee` returns minimal fee that the submitter needs to pay for sending given message. The fee includes: payment for the delivery transaction at the target chain, payment for delivery confirmation transaction on this chain, payment for `Call` dispatch at the target chain and relayer interest.
 
-`FromBridgedChainMessagesDeliveryProof` holds the lane id and the storage proof of this inbound lane state at the bridged chain. This also holds the hash of the target chain header, that was used to generate this storage proof. The proof is verified by the `verify_messages_delivery_proof`, which simply checks that the target chain header is finalized (using Substrate Headers Pallet) and then reads the inbound lane state from the proof.
+`FromBridgedChainMessagesDeliveryProof` holds the lane id and the storage proof of this inbound lane state at the bridged chain. This also holds the hash of the target chain header, that was used to generate this storage proof. The proof is verified by the `verify_messages_delivery_proof`, which simply checks that the target chain header is finalized (using Substrate bridge module) and then reads the inbound lane state from the proof.
 
 `verify_chain_message` function check that the message may be delivered to the bridged chain. There are two main checks:
-1) that the message size is less than or equal to the 2/3 of maximal extrinsic size at the target chain. We leave 1/3 for signed extras and for the storage proof overhead;
-2) that the message dispatch weight is less than or equal to the 1/2 of maximal normal extrinsic weight at the target chain. We leave 1/2 for for the delivery transaction overhead.
+1) that the message size is less than or equal to the `2/3` of maximal extrinsic size at the target chain. We leave `1/3` for signed extras and for the storage proof overhead;
+2) that the message dispatch weight is less than or equal to the `1/2` of maximal normal extrinsic weight at the target chain. We leave `1/2` for for the delivery transaction overhead.
 
 ## Helpers for using at the Target Chain
 
