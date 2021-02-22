@@ -308,9 +308,9 @@ where
 			return Ok(ExplicitOrMaximal::Maximal);
 		}
 
-		return V::from_str(s)
+		V::from_str(s)
 			.map(ExplicitOrMaximal::Explicit)
-			.map_err(|e| format!("Failed to parse '{:?}'. Expected 'max' or explicit value", e));
+			.map_err(|e| format!("Failed to parse '{:?}'. Expected 'max' or explicit value", e))
 	}
 }
 
