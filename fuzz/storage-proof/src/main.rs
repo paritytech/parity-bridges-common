@@ -29,7 +29,7 @@ use sp_trie::StorageProof;
 use std::collections::HashMap;
 
 fn craft_known_storage_proof(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> (H256, StorageProof) {
-	let mut storage_proof_vec = vec![(
+	let storage_proof_vec = vec![(
 		None,
 		input_vec.iter().map(|x| (x.0.clone(), Some(x.1.clone()))).collect(),
 	)];
