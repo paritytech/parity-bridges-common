@@ -23,12 +23,12 @@ pallet-substrate-bridge = { path = "../../modules/substrate", default-features =
 
 # Substrate dependencies
 
-frame-support = { git = "https://github.com/paritytech/substrate.git", default-features = false , branch = "td-ss58-debug" }
-sp-core = { git = "https://github.com/paritytech/substrate.git", default-features = false , branch = "td-ss58-debug" }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", default-features = false , branch = "td-ss58-debug" }
-sp-state-machine = { git = "https://github.com/paritytech/substrate.git", default-features = false, optional = true , branch = "td-ss58-debug" }
-sp-std = { git = "https://github.com/paritytech/substrate.git", default-features = false , branch = "td-ss58-debug" }
-sp-trie = { git = "https://github.com/paritytech/substrate.git", default-features = false , branch = "td-ss58-debug" }
+frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+sp-state-machine = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false, optional = true }
+sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+sp-trie = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 
 [features]
 default = ["std"]

@@ -42,8 +42,8 @@ rialto-runtime = { path = "../../bin/rialto/runtime" }
 
 # Substrate Dependencies
 
-frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
-sp-finality-grandpa = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
-sp-trie = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
+frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-finality-grandpa = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-trie = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
