@@ -158,7 +158,7 @@ parameter_types! {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
 		write: 200_000_000, // ~0.2 ms = 200 µs
 	};
-	pub const SS58Prefix: u8 = 84;
+	pub const SS58Prefix: u8 = 48;
 }
 
 impl frame_system::Config for Runtime {
@@ -443,6 +443,7 @@ pub(crate) type WithMillauMessageLaneInstance = pallet_message_lane::DefaultInst
 impl pallet_message_lane::Config for Runtime {
 	type Event = Event;
 	type WeightInfo = pallet_message_lane::weights::RialtoWeight<Runtime>;
+	type Parameter = millau_messages::RialtoToMillauMessageLaneParameter;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;

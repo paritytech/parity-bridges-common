@@ -1575,8 +1575,8 @@ dependencies = [
 
 [[package]]
 name = "ethabi"
-version = "13.0.0"
-source = "git+https://github.com/paritytech/ethabi.git?branch=td-eth-types-11#ad5a3679047a9d2302f7ce3e37a96e4d50d4c496"
+version = "14.0.0"
+source = "git+https://github.com/paritytech/ethabi.git?branch=td-eth-types-11#fe76a0547de3785e40215da7aa10b334e7a6e553"
 dependencies = [
  "anyhow",
  "ethereum-types",
@@ -1591,12 +1591,12 @@ dependencies = [
 [[package]]
 name = "ethabi-contract"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/ethabi.git?branch=td-eth-types-11#ad5a3679047a9d2302f7ce3e37a96e4d50d4c496"
+source = "git+https://github.com/paritytech/ethabi.git?branch=td-eth-types-11#fe76a0547de3785e40215da7aa10b334e7a6e553"
 
 [[package]]
 name = "ethabi-derive"
-version = "13.0.0"
-source = "git+https://github.com/paritytech/ethabi.git?branch=td-eth-types-11#ad5a3679047a9d2302f7ce3e37a96e4d50d4c496"
+version = "14.0.0"
+source = "git+https://github.com/paritytech/ethabi.git?branch=td-eth-types-11#fe76a0547de3785e40215da7aa10b334e7a6e553"
 dependencies = [
  "anyhow",
  "ethabi",

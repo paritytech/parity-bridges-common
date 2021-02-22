@@ -150,7 +150,7 @@ parameter_types! {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
 		write: 200_000_000, // ~0.2 ms = 200 µs
 	};
-	pub const SS58Prefix: u8 = 86;
+	pub const SS58Prefix: u8 = 60;
 }
 
 impl frame_system::Config for Runtime {
@@ -336,6 +336,7 @@ impl pallet_message_lane::Config for Runtime {
 	type Event = Event;
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/390
 	type WeightInfo = pallet_message_lane::weights::RialtoWeight<Runtime>;
+	type Parameter = rialto_messages::MillauToRialtoMessageLaneParameter;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;

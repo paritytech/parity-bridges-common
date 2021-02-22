@@ -46,6 +46,8 @@ services:
   relay-messages-millau-to-rialto:
     <<: *sub-bridge-relay
     entrypoint: /entrypoints/relay-messages-millau-to-rialto-entrypoint.sh
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace,jsonrpsee=trace,soketto=trace
     ports:
       - "9816:9616"
     depends_on:
@@ -55,6 +57,8 @@ services:
   relay-messages-millau-to-rialto-generator:
     <<: *sub-bridge-relay
     entrypoint: /entrypoints/relay-messages-to-rialto-generator-entrypoint.sh
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace,jsonrpsee=trace,soketto=trace
     ports:
       - "9916:9616"
     depends_on:

@@ -93,7 +93,7 @@ seeds for the `sr25519` keys. This seed may also be used in the signer argument 
 and PoA relays. Example:
 
 ```bash
-./substrate-relay rialto-headers-to-millau \
+./substrate-relay relay-headers rialto-to-millau \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
 	--millau-host millau-node-alice \
