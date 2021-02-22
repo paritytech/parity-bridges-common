@@ -29,11 +29,10 @@ use sp_trie::StorageProof;
 use std::collections::HashMap;
 
 fn craft_known_storage_proof(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> (H256, StorageProof) {
-	let mut storage_proof_vec = vec![];
-	storage_proof_vec.push((
+	let mut storage_proof_vec = vec![(
 		None,
 		input_vec.iter().map(|x| (x.0.clone(), Some(x.1.clone()))).collect(),
-	));
+	)];
 	log::info!("Storage proof vec {:?}", storage_proof_vec);
 	let backend = <InMemoryBackend<Blake2Hasher>>::from(storage_proof_vec);
 	let root = backend.storage_root(std::iter::empty()).0;
