@@ -21,9 +21,9 @@ bp-message-lane = { path = "../../../primitives/message-lane" }
 
 # Substrate Dependencies
 
-sc-client-api = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-state-machine = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-trie = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sc-client-api = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
+sp-state-machine = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
+sp-trie = { git = "https://github.com/paritytech/substrate.git", branch = "td-ss58-debug" }
