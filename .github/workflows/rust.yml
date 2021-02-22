@@ -22,7 +22,7 @@ jobs:
         toolchain:
           - stable
           #- beta
-          - nightly                
+          - nightly
     runs-on:                       ubuntu-latest
     env:
       RUST_BACKTRACE:              full
@@ -40,7 +40,7 @@ jobs:
       - name:                      Install Toolchain
         run:                       rustup toolchain add $NIGHTLY
       - name:                      Add WASM Utilities
-        run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY 
+        run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
       - name:                      Rust Cache
         uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Checking rust-${{ matrix.toolchain }}
@@ -53,6 +53,7 @@ jobs:
 ## Test Stage
       - name:                      Testing rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
+        if:                        matrix.toolchain == 'nightly'
         with:
           command:                 test
           toolchain:               ${{ matrix.toolchain }}
@@ -98,7 +99,7 @@ jobs:
       - name:                      Install Toolchain
         run:                       rustup toolchain add $NIGHTLY
       - name:                      Add WASM Utilities
-        run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY 
+        run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
       - name:                      Rust Cache
         uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Building rust-${{ matrix.toolchain }}
@@ -123,7 +124,7 @@ jobs:
         with:
           name:                    ${{ matrix.toolchain }}.zip
           path:                    artifacts/
- 
+
  ## Linting Stage
   clippy:
     name:                          Clippy
