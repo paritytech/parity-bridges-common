@@ -53,7 +53,7 @@ jobs:
 ## Test Stage
       - name:                      Testing rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
-        if:                        matrix.toolchain == 'nightly'
+        if:                        matrix.toolchain == 'stable'
         with:
           command:                 test
           toolchain:               ${{ matrix.toolchain }}
