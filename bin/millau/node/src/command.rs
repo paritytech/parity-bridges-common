@@ -69,6 +69,11 @@ impl SubstrateCli for Cli {
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
 	let cli = Cli::from_args();
+	// make sure to set correct crypto version.
+	sp_core::crypto::set_default_ss58_version(
+		sp_core::crypto::Ss58AddressFormat::Custom(millau_runtime::SS58Prefix::get())
+	);
+
 
 	match &cli.subcommand {
 		Some(Subcommand::Benchmark(cmd)) => {
