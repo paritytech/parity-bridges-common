@@ -9,7 +9,7 @@ trim_trailing_whitespace=true
 max_line_length=100
 insert_final_newline=true
 
-[*.{yml,md,yaml}]
+[*.{yml,md,yaml,sh}]
 indent_style=space
 indent_size=2
 tab_width=8

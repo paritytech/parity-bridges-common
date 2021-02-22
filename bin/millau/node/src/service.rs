@@ -33,6 +33,7 @@ use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
 use sc_finality_grandpa::SharedVoterState;
+use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_inherents::InherentDataProviders;
@@ -73,6 +74,9 @@ pub fn new_partial(
 	>,
 	ServiceError,
 > {
+	if config.keystore_remote.is_some() {
+		return Err(ServiceError::Other("Remote Keystores are not supported.".to_string()));
+	}
 	let inherent_data_providers = sp_inherents::InherentDataProviders::new();
 
 	let (client, backend, keystore_container, task_manager) =
@@ -83,6 +87,7 @@ pub fn new_partial(
 
 	let transaction_pool = sc_transaction_pool::BasicPool::new_full(
 		config.transaction_pool.clone(),
+		config.role.is_authority().into(),
 		config.prometheus_registry(),
 		task_manager.spawn_handle(),
 		client.clone(),
@@ -118,6 +123,13 @@ pub fn new_partial(
 	})
 }
 
+fn remote_keystore(_url: &str) -> Result<Arc<LocalKeystore>, &'static str> {
+	// FIXME: here would the concrete keystore be built,
+	//        must return a concrete type (NOT `LocalKeystore`) that
+	//        implements `CryptoStore` and `SyncCryptoStore`
+	Err("Remote Keystore not supported.")
+}
+
 /// Builds a new service for a full client.
 pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
@@ -125,12 +137,24 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		backend,
 		mut task_manager,
 		import_queue,
-		keystore_container,
+		mut keystore_container,
 		select_chain,
 		transaction_pool,
 		inherent_data_providers,
 		other: (block_import, grandpa_link),
 	} = new_partial(&config)?;
+
+	if let Some(url) = &config.keystore_remote {
+		match remote_keystore(url) {
+			Ok(k) => keystore_container.set_remote_keystore(k),
+			Err(e) => {
+				return Err(ServiceError::Other(format!(
+					"Error hooking up remote keystore for {}: {}",
+					url, e
+				)))
+			}
+		};
+	}
 
 	config
 		.network
@@ -164,7 +188,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	let name = config.network.node_name.clone();
 	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
-	let telemetry_connection_sinks = sc_service::TelemetryConnectionSinks::default();
 
 	let rpc_extensions_builder = {
 		use bp_message_lane::{LaneId, MessageNonce};
@@ -211,11 +234,12 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 
 		let justification_stream = grandpa_link.justification_stream();
 		let shared_authority_set = grandpa_link.shared_authority_set().clone();
-		let finality_proof_provider = GrandpaFinalityProofProvider::new_for_service(backend.clone(), client.clone());
+		let shared_voter_state = sc_finality_grandpa::SharedVoterState::empty();
+
+		let finality_proof_provider =
+			GrandpaFinalityProofProvider::new_for_service(backend.clone(), Some(shared_authority_set.clone()));
 
 		Box::new(move |_, subscription_executor| {
-			let shared_voter_state = SharedVoterState::empty();
-
 			let mut io = jsonrpc_core::IoHandler::default();
 			io.extend_with(SystemApi::to_delegate(FullSystem::new(
 				client.clone(),
@@ -224,7 +248,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			)));
 			io.extend_with(GrandpaApi::to_delegate(GrandpaRpcHandler::new(
 				shared_authority_set.clone(),
-				shared_voter_state,
+				shared_voter_state.clone(),
 				justification_stream.clone(),
 				subscription_executor,
 				finality_proof_provider.clone(),
@@ -238,13 +262,12 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		})
 	};
 
-	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+	let (_rpc_handlers, telemetry_connection_notifier) = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
 		network: network.clone(),
 		client: client.clone(),
 		keystore: keystore_container.sync_keystore(),
 		task_manager: &mut task_manager,
 		transaction_pool: transaction_pool.clone(),
-		telemetry_connection_sinks: telemetry_connection_sinks.clone(),
 		rpc_extensions_builder,
 		on_demand: None,
 		remote_blockchain: None,
@@ -312,7 +335,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			config: grandpa_config,
 			link: grandpa_link,
 			network,
-			telemetry_on_connect: Some(telemetry_connection_sinks.on_connect_stream()),
+			telemetry_on_connect: telemetry_connection_notifier.map(|x| x.on_connect_stream()),
 			voting_rule: sc_finality_grandpa::VotingRulesBuilder::default().build(),
 			prometheus_registry,
 			shared_voter_state: SharedVoterState::empty(),
@@ -352,9 +375,12 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
 	let (grandpa_block_import, _) =
 		sc_finality_grandpa::block_import(client.clone(), &(client.clone() as Arc<_>), select_chain)?;
 
+	let aura_block_import =
+		sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(grandpa_block_import.clone(), client.clone());
+
 	let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _, _>(
 		sc_consensus_aura::slot_duration(&*client)?,
-		grandpa_block_import.clone(),
+		aura_block_import,
 		Some(Box::new(grandpa_block_import)),
 		client.clone(),
 		InherentDataProviders::new(),
@@ -390,7 +416,6 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
 		task_manager: &mut task_manager,
 		on_demand: Some(on_demand),
 		rpc_extensions_builder: Box::new(|_, _| ()),
-		telemetry_connection_sinks: sc_service::TelemetryConnectionSinks::default(),
 		config,
 		client,
 		keystore: keystore_container.sync_keystore(),

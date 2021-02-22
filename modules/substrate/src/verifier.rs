@@ -22,9 +22,10 @@
 //! has been signed off by the correct GRANDPA authorities, and also enact any authority set changes
 //! if required.
 
-use crate::justification::verify_justification;
-use crate::storage::{AuthoritySet, ImportedHeader, ScheduledChange};
+use crate::storage::{ImportedHeader, ScheduledChange};
 use crate::BridgeStorage;
+
+use bp_header_chain::{justification::verify_justification, AuthoritySet};
 use finality_grandpa::voter_set::VoterSet;
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::generic::OpaqueDigestItemId;
@@ -112,8 +113,7 @@ where
 	///
 	/// Will perform some basic checks to make sure that this header doesn't break any assumptions
 	/// such as being on a different finalized fork.
-	pub fn import_header(&mut self, header: H) -> Result<(), ImportError> {
-		let hash = header.hash();
+	pub fn import_header(&mut self, hash: H::Hash, header: H) -> Result<(), ImportError> {
 		let best_finalized = self.storage.best_finalized_header();
 
 		if header.number() <= best_finalized.number() {
@@ -242,9 +242,13 @@ where
 			&proof.0,
 		)
 		.map_err(|_| FinalizationError::InvalidJustification)?;
-		frame_support::debug::trace!(target: "sub-bridge", "Received valid justification for {:?}", header);
+		frame_support::debug::trace!("Received valid justification for {:?}", header);
 
-		frame_support::debug::trace!(target: "sub-bridge", "Checking ancestry for headers between {:?} and {:?}", last_finalized, header);
+		frame_support::debug::trace!(
+			"Checking ancestry for headers between {:?} and {:?}",
+			last_finalized,
+			header
+		);
 		let mut finalized_headers =
 			if let Some(ancestors) = headers_between(&self.storage, last_finalized, header.clone()) {
 				// Since we only try and finalize headers with a height strictly greater
@@ -335,7 +339,7 @@ where
 	Some(ancestors)
 }
 
-fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
+pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
 	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
 
 	let filter_log = |log: ConsensusLog<H::Number>| match log {
@@ -351,10 +355,9 @@ fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::justification::tests::*;
-	use crate::mock::helpers::*;
 	use crate::mock::*;
 	use crate::{BestFinalized, BestHeight, HeaderId, ImportedHeaders, PalletStorage};
+	use bp_test_utils::{alice, authority_list, bob, make_justification_for_header};
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
@@ -424,7 +427,7 @@ mod tests {
 
 			let header = test_header(1);
 			let mut verifier = Verifier { storage };
-			assert_err!(verifier.import_header(header), ImportError::OldHeader);
+			assert_err!(verifier.import_header(header.hash(), header), ImportError::OldHeader);
 		})
 	}
 
@@ -440,7 +443,10 @@ mod tests {
 			let header = TestHeader::new_from_number(2);
 
 			let mut verifier = Verifier { storage };
-			assert_err!(verifier.import_header(header), ImportError::MissingParent);
+			assert_err!(
+				verifier.import_header(header.hash(), header),
+				ImportError::MissingParent
+			);
 		})
 	}
 
@@ -460,7 +466,7 @@ mod tests {
 			<ImportedHeaders<TestRuntime>>::insert(header.hash(), &imported_header);
 
 			let mut verifier = Verifier { storage };
-			assert_err!(verifier.import_header(header), ImportError::OldHeader);
+			assert_err!(verifier.import_header(header.hash(), header), ImportError::OldHeader);
 		})
 	}
 
@@ -484,7 +490,7 @@ mod tests {
 			let mut verifier = Verifier {
 				storage: storage.clone(),
 			};
-			assert_ok!(verifier.import_header(header.clone()));
+			assert_ok!(verifier.import_header(header.hash(), header.clone()));
 
 			let stored_header = storage
 				.header_by_hash(header.hash())
@@ -514,8 +520,8 @@ mod tests {
 			};
 
 			// It should be fine to import both
-			assert_ok!(verifier.import_header(header_on_fork1.clone()));
-			assert_ok!(verifier.import_header(header_on_fork2.clone()));
+			assert_ok!(verifier.import_header(header_on_fork1.hash(), header_on_fork1.clone()));
+			assert_ok!(verifier.import_header(header_on_fork2.hash(), header_on_fork2.clone()));
 
 			// We should have two headers marked as being the best since they're
 			// both at the same height
@@ -544,8 +550,23 @@ mod tests {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
 
+			// We want to write the genesis header to storage
+			let _ = write_headers(&mut storage, vec![]);
+
 			// Write two headers at the same height to storage.
-			let imported_headers = write_default_headers(&mut storage, vec![1, 1]);
+			let best_header = test_header(1);
+			let mut also_best_header = test_header(1);
+
+			// We need to change _something_ to make it a different header
+			also_best_header.state_root = [1; 32].into();
+
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+
+			// It should be fine to import both
+			assert_ok!(verifier.import_header(best_header.hash(), best_header.clone()));
+			assert_ok!(verifier.import_header(also_best_header.hash(), also_best_header));
 
 			// The headers we manually imported should have been marked as the best
 			// upon writing to storage. Let's confirm that.
@@ -554,12 +575,9 @@ mod tests {
 
 			// Now let's build something at a better height.
 			let mut better_header = test_header(2);
-			better_header.parent_hash = imported_headers[1].hash();
+			better_header.parent_hash = best_header.hash();
 
-			let mut verifier = Verifier {
-				storage: storage.clone(),
-			};
-			assert_ok!(verifier.import_header(better_header.clone()));
+			assert_ok!(verifier.import_header(better_header.hash(), better_header.clone()));
 
 			// Since `better_header` is the only one at height = 2 we should only have
 			// a single "best header" now.
@@ -573,6 +591,39 @@ mod tests {
 				}
 			);
 			assert_eq!(<BestHeight<TestRuntime>>::get(), 2);
+		})
+	}
+
+	#[test]
+	fn doesnt_write_best_header_twice_upon_finalization() {
+		run_test(|| {
+			let mut storage = PalletStorage::<TestRuntime>::new();
+			let _imported_headers = write_default_headers(&mut storage, vec![1]);
+
+			let set_id = 1;
+			let authorities = authority_list();
+			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			storage.update_current_authority_set(initial_authority_set);
+
+			// Let's import our header
+			let header = test_header(2);
+			let mut verifier = Verifier {
+				storage: storage.clone(),
+			};
+			assert_ok!(verifier.import_header(header.hash(), header.clone()));
+
+			// Our header should be the only best header we have
+			assert_eq!(storage.best_headers()[0].hash, header.hash());
+			assert_eq!(storage.best_headers().len(), 1);
+
+			// Now lets finalize our best header
+			let grandpa_round = 1;
+			let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
+
+			// Our best header should only appear once in the list of best headers
+			assert_eq!(storage.best_headers()[0].hash, header.hash());
+			assert_eq!(storage.best_headers().len(), 1);
 		})
 	}
 
@@ -668,7 +719,7 @@ mod tests {
 			let mut verifier = Verifier { storage };
 
 			assert_eq!(
-				verifier.import_header(header).unwrap_err(),
+				verifier.import_header(header.hash(), header).unwrap_err(),
 				ImportError::InvalidAuthoritySet
 			);
 		})
@@ -697,7 +748,7 @@ mod tests {
 				storage: storage.clone(),
 			};
 
-			assert_ok!(verifier.import_header(header.clone()));
+			assert_ok!(verifier.import_header(header.hash(), header.clone()));
 			assert_ok!(verifier.import_finality_proof(header.hash(), justification.into()));
 			assert_eq!(storage.best_finalized_header().header, header);
 		})
@@ -724,7 +775,7 @@ mod tests {
 			let mut verifier = Verifier {
 				storage: storage.clone(),
 			};
-			assert!(verifier.import_header(header.clone()).is_ok());
+			assert!(verifier.import_header(header.hash(), header.clone()).is_ok());
 			assert!(verifier
 				.import_finality_proof(header.hash(), justification.into())
 				.is_ok());
@@ -776,7 +827,7 @@ mod tests {
 				storage: storage.clone(),
 			};
 
-			assert_ok!(verifier.import_header(header.clone()));
+			assert_ok!(verifier.import_header(header.hash(), header.clone()));
 			assert_eq!(storage.missing_justifications().len(), 1);
 			assert_eq!(storage.missing_justifications()[0].hash, header.hash());
 

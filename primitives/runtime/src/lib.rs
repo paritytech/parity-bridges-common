@@ -21,6 +21,7 @@
 use codec::Encode;
 use sp_core::hash::H256;
 use sp_io::hashing::blake2_256;
+use sp_std::convert::TryFrom;
 
 pub use chain::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 
@@ -46,6 +47,12 @@ pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/call-dispatch";
 
 /// Message-lane module prefix.
 pub const MESSAGE_LANE_MODULE_PREFIX: &[u8] = b"pallet-bridge/message-lane";
+
+/// A unique prefix for entropy when generating cross-chain account IDs.
+pub const ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/account";
+
+/// A unique prefix for entropy when generating a cross-chain account ID for the Root account.
+pub const ROOT_ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/root";
 
 /// Id of deployed module instance. We have a bunch of pallets that may be used in
 /// different bridges. E.g. message-lane pallet may be deployed twice in the same
@@ -80,8 +87,8 @@ where
 	AccountId: Encode,
 {
 	match id {
-		SourceAccount::Root => ("root", bridge_id).using_encoded(blake2_256),
-		SourceAccount::Account(id) => ("account", bridge_id, id).using_encoded(blake2_256),
+		SourceAccount::Root => (ROOT_ACCOUNT_DERIVATION_PREFIX, bridge_id).using_encoded(blake2_256),
+		SourceAccount::Account(id) => (ACCOUNT_DERIVATION_PREFIX, bridge_id, id).using_encoded(blake2_256),
 	}
 	.into()
 }
@@ -103,4 +110,19 @@ pub trait Size {
 	/// This function should be lightweight. The result should not necessary be absolutely
 	/// accurate.
 	fn size_hint(&self) -> u32;
+}
+
+impl Size for () {
+	fn size_hint(&self) -> u32 {
+		0
+	}
+}
+
+/// Pre-computed size.
+pub struct PreComputedSize(pub usize);
+
+impl Size for PreComputedSize {
+	fn size_hint(&self) -> u32 {
+		u32::try_from(self.0).unwrap_or(u32::MAX)
+	}
 }

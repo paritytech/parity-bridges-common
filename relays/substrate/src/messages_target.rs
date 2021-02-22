@@ -24,20 +24,23 @@ use crate::messages_source::read_client_state;
 use async_trait::async_trait;
 use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::InstanceId;
+use bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof;
 use codec::{Decode, Encode};
 use messages_relay::{
 	message_lane::{SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{TargetClient, TargetClientState},
 };
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf};
-use relay_utils::BlockNumberBase;
+use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase};
 use sp_core::Bytes;
 use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
-use sp_trie::StorageProof;
 use std::ops::RangeInclusive;
 
 /// Message receiving proof returned by the target Substrate node.
-pub type SubstrateMessagesReceivingProof<C> = (UnrewardedRelayersState, (HashOf<C>, StorageProof, LaneId));
+pub type SubstrateMessagesReceivingProof<C> = (
+	UnrewardedRelayersState,
+	FromBridgedChainMessagesDeliveryProof<HashOf<C>>,
+);
 
 /// Substrate client as Substrate messages target.
 pub struct SubstrateMessagesTarget<C: Chain, P> {
@@ -71,6 +74,15 @@ impl<C: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesTarget<C, P> 
 }
 
 #[async_trait]
+impl<C: Chain, P: SubstrateMessageLane> RelayClient for SubstrateMessagesTarget<C, P> {
+	type Error = SubstrateError;
+
+	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
+		self.client.reconnect().await
+	}
+}
+
+#[async_trait]
 impl<C, P> TargetClient<P> for SubstrateMessagesTarget<C, P>
 where
 	C: Chain,
@@ -85,15 +97,11 @@ where
 	P::SourceHeaderNumber: Decode,
 	P::SourceHeaderHash: Decode,
 {
-	type Error = SubstrateError;
+	async fn state(&self) -> Result<TargetClientState<P>, SubstrateError> {
+		// we can't continue to deliver messages if target node is out of sync, because
+		// it may have already received (some of) messages that we're going to deliver
+		self.client.ensure_synced().await?;
 
-	async fn reconnect(mut self) -> Result<Self, Self::Error> {
-		let new_client = self.client.clone().reconnect().await?;
-		self.client = new_client;
-		Ok(self)
-	}
-
-	async fn state(&self) -> Result<TargetClientState<P>, Self::Error> {
 		read_client_state::<_, P::SourceHeaderHash, P::SourceHeaderNumber>(
 			&self.client,
 			P::BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET,
@@ -104,7 +112,7 @@ where
 	async fn latest_received_nonce(
 		&self,
 		id: TargetHeaderIdOf<P>,
-	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), Self::Error> {
+	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -121,7 +129,7 @@ where
 	async fn latest_confirmed_received_nonce(
 		&self,
 		id: TargetHeaderIdOf<P>,
-	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), Self::Error> {
+	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -138,7 +146,7 @@ where
 	async fn unrewarded_relayers_state(
 		&self,
 		id: TargetHeaderIdOf<P>,
-	) -> Result<(TargetHeaderIdOf<P>, UnrewardedRelayersState), Self::Error> {
+	) -> Result<(TargetHeaderIdOf<P>, UnrewardedRelayersState), SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -155,13 +163,17 @@ where
 	async fn prove_messages_receiving(
 		&self,
 		id: TargetHeaderIdOf<P>,
-	) -> Result<(TargetHeaderIdOf<P>, P::MessagesReceivingProof), Self::Error> {
+	) -> Result<(TargetHeaderIdOf<P>, P::MessagesReceivingProof), SubstrateError> {
 		let (id, relayers_state) = self.unrewarded_relayers_state(id).await?;
 		let proof = self
 			.client
 			.prove_messages_delivery(self.instance, self.lane_id, id.1)
 			.await?;
-		let proof = (id.1, proof, self.lane_id);
+		let proof = FromBridgedChainMessagesDeliveryProof {
+			bridged_header_hash: id.1,
+			storage_proof: proof,
+			lane: self.lane_id,
+		};
 		Ok((id, (relayers_state, proof)))
 	}
 
@@ -170,7 +182,7 @@ where
 		generated_at_header: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
 		proof: P::MessagesProof,
-	) -> Result<RangeInclusive<MessageNonce>, Self::Error> {
+	) -> Result<RangeInclusive<MessageNonce>, SubstrateError> {
 		let tx = self
 			.lane
 			.make_messages_delivery_transaction(generated_at_header, nonces.clone(), proof)

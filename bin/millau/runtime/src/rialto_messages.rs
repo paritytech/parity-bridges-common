@@ -21,16 +21,24 @@ use crate::Runtime;
 use bp_message_lane::{
 	source_chain::TargetHeaderChain,
 	target_chain::{ProvedMessages, SourceHeaderChain},
-	InboundLaneData, LaneId, Message, MessageNonce,
+	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessageLaneParameter,
 };
 use bp_runtime::{InstanceId, RIALTO_BRIDGE_INSTANCE};
 use bridge_runtime_common::messages::{self, ChainWithMessageLanes, MessageBridge};
+use codec::{Decode, Encode};
 use frame_support::{
-	weights::{Weight, WeightToFeePolynomial},
+	parameter_types,
+	weights::{DispatchClass, Weight, WeightToFeePolynomial},
 	RuntimeDebug,
 };
 use sp_core::storage::StorageKey;
+use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{convert::TryFrom, ops::RangeInclusive};
+
+parameter_types! {
+	/// Rialto to Millau conversion rate. Initially we treat both tokens as equal.
+	storage RialtoToMillauConversionRate: FixedU128 = 1.into();
+}
 
 /// Storage key of the Millau -> Rialto message in the runtime storage.
 pub fn message_key(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
@@ -63,11 +71,14 @@ pub type ToRialtoMessageVerifier = messages::source::FromThisChainMessageVerifie
 /// Message payload for Rialto -> Millau messages.
 pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload<WithRialtoMessageBridge>;
 
+/// Encoded Millau Call as it comes from Rialto.
+pub type FromRialtoEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<WithRialtoMessageBridge>;
+
 /// Messages proof for Rialto -> Millau messages.
-type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<WithRialtoMessageBridge>;
+type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_rialto::Hash>;
 
 /// Messages delivery proof for Millau -> Rialto messages.
-type ToRialtoMessagesDeliveryProof = messages::source::FromBridgedChainMessagesDeliveryProof<WithRialtoMessageBridge>;
+type ToRialtoMessagesDeliveryProof = messages::source::FromBridgedChainMessagesDeliveryProof<bp_rialto::Hash>;
 
 /// Call-dispatch based message dispatch for Rialto -> Millau messages.
 pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
@@ -92,27 +103,44 @@ impl MessageBridge for WithRialtoMessageBridge {
 		bp_rialto::max_extrinsic_size()
 	}
 
-	fn weight_limits_of_message_on_bridged_chain(message_payload: &[u8]) -> RangeInclusive<Weight> {
+	fn weight_limits_of_message_on_bridged_chain(_message_payload: &[u8]) -> RangeInclusive<Weight> {
 		// we don't want to relay too large messages + keep reserve for future upgrades
-		let upper_limit = bp_rialto::max_extrinsic_weight() / 2;
+		let upper_limit = messages::target::maximal_incoming_message_dispatch_weight(bp_rialto::max_extrinsic_weight());
 
-		// given Rialto chain parameters (`TransactionByteFee`, `WeightToFee`, `FeeMultiplierUpdate`),
-		// the minimal weight of the message may be computed as message.length()
-		let lower_limit = Weight::try_from(message_payload.len()).unwrap_or(Weight::MAX);
+		// we're charging for payload bytes in `WithRialtoMessageBridge::weight_of_delivery_transaction` function
+		//
+		// this bridge may be used to deliver all kind of messages, so we're not making any assumptions about
+		// minimal dispatch weight here
 
-		lower_limit..=upper_limit
+		0..=upper_limit
 	}
 
-	fn weight_of_delivery_transaction() -> Weight {
-		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
+	fn weight_of_delivery_transaction(message_payload: &[u8]) -> Weight {
+		let message_payload_len = u32::try_from(message_payload.len())
+			.map(Into::into)
+			.unwrap_or(Weight::MAX);
+		let extra_bytes_in_payload =
+			message_payload_len.saturating_sub(pallet_message_lane::EXPECTED_DEFAULT_MESSAGE_LENGTH.into());
+		messages::transaction_weight_without_multiplier(
+			bp_rialto::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+			message_payload_len.saturating_add(bp_millau::EXTRA_STORAGE_PROOF_SIZE as _),
+			extra_bytes_in_payload
+				.saturating_mul(bp_rialto::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT)
+				.saturating_add(bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT),
+		)
 	}
 
 	fn weight_of_delivery_confirmation_transaction_on_this_chain() -> Weight {
-		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
-	}
+		let inbounded_data_size: Weight =
+			InboundLaneData::<bp_rialto::AccountId>::encoded_size_hint(bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE, 1)
+				.map(Into::into)
+				.unwrap_or(Weight::MAX);
 
-	fn weight_of_reward_confirmation_transaction_on_target_chain() -> Weight {
-		0 // TODO: https://github.com/paritytech/parity-bridges-common/issues/391
+		messages::transaction_weight_without_multiplier(
+			bp_millau::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+			inbounded_data_size.saturating_add(bp_rialto::EXTRA_STORAGE_PROOF_SIZE as _),
+			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+		)
 	}
 
 	fn this_weight_to_this_balance(weight: Weight) -> bp_millau::Balance {
@@ -125,8 +153,8 @@ impl MessageBridge for WithRialtoMessageBridge {
 	}
 
 	fn bridged_balance_to_this_balance(bridged_balance: bp_rialto::Balance) -> bp_millau::Balance {
-		// 1:1 conversion that will probably change in the future
-		bridged_balance as _
+		bp_millau::Balance::try_from(RialtoToMillauConversionRate::get().saturating_mul_int(bridged_balance))
+			.unwrap_or(bp_millau::Balance::MAX)
 	}
 }
 
@@ -144,6 +172,16 @@ impl messages::ChainWithMessageLanes for Millau {
 	type Balance = bp_millau::Balance;
 
 	type MessageLaneInstance = pallet_message_lane::DefaultInstance;
+}
+
+impl messages::ThisChainWithMessageLanes for Millau {
+	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
+		*lane == LaneId::default()
+	}
+
+	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
+		MessageNonce::MAX
+	}
 }
 
 /// Rialto chain from message lane point of view.
@@ -192,8 +230,25 @@ impl SourceHeaderChain<bp_rialto::Balance> for Rialto {
 
 	fn verify_messages_proof(
 		proof: Self::MessagesProof,
-		messages_count: MessageNonce,
+		messages_count: u32,
 	) -> Result<ProvedMessages<Message<bp_rialto::Balance>>, Self::Error> {
 		messages::target::verify_messages_proof::<WithRialtoMessageBridge, Runtime>(proof, messages_count)
+	}
+}
+
+/// Millau -> Rialto message lane pallet parameters.
+#[derive(RuntimeDebug, Clone, Encode, Decode, PartialEq, Eq)]
+pub enum MillauToRialtoMessageLaneParameter {
+	/// The conversion formula we use is: `MillauTokens = RialtoTokens * conversion_rate`.
+	RialtoToMillauConversionRate(FixedU128),
+}
+
+impl MessageLaneParameter for MillauToRialtoMessageLaneParameter {
+	fn save(&self) {
+		match *self {
+			MillauToRialtoMessageLaneParameter::RialtoToMillauConversionRate(ref conversion_rate) => {
+				RialtoToMillauConversionRate::set(conversion_rate)
+			}
+		}
 	}
 }

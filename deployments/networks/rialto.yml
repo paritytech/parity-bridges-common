@@ -1,3 +1,10 @@
+# Compose file for quickly spinning up a local instance of the Rialto Substrate network.
+#
+# Note that the Rialto network is only used for testing, so the configuration settings you see here
+# are *not* recommended for a production environment.
+#
+# For example, do *not* keep your `node-key` in version control, and unless you're _really_ sure you
+# want to provide public access to your nodes do *not* publicly expose RPC methods.
 version: '3.5'
 services:
   rialto-node-alice: &rialto-bridge-node
@@ -30,6 +37,8 @@ services:
       - --rpc-cors=all
       - --unsafe-rpc-external
       - --unsafe-ws-external
+    environment:
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,pallet_substrate_bridge=trace,pallet_bridge_call_dispatch=trace,pallet_message_lane=trace,jsonrpc_ws_server=trace,parity_ws=trace
     ports:
       - "10033:9933"
       - "10044:9944"

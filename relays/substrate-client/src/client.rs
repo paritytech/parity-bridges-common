@@ -89,12 +89,9 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Reopen client connection.
-	pub async fn reconnect(self) -> Result<Self> {
-		Ok(Self {
-			params: self.params.clone(),
-			client: Self::build_client(self.params).await?,
-			genesis_hash: self.genesis_hash,
-		})
+	pub async fn reconnect(&mut self) -> Result<()> {
+		self.client = Self::build_client(self.params.clone()).await?;
+		Ok(())
 	}
 
 	/// Build client to use in connection.
@@ -107,6 +104,17 @@ impl<C: Chain> Client<C> {
 }
 
 impl<C: Chain> Client<C> {
+	/// Returns true if client is connected to at least one peer and is in synced state.
+	pub async fn ensure_synced(&self) -> Result<()> {
+		let health = Substrate::<C, _, _>::system_health(&self.client).await?;
+		let is_synced = !health.is_syncing && (!health.should_have_peers || health.peers > 0);
+		if is_synced {
+			Ok(())
+		} else {
+			Err(Error::ClientNotSynced(health))
+		}
+	}
+
 	/// Return hash of the genesis block.
 	pub fn genesis_hash(&self) -> &C::Hash {
 		&self.genesis_hash
@@ -237,14 +245,14 @@ impl<C: Chain> Client<C> {
 		instance: InstanceId,
 		lane: LaneId,
 		at_block: C::Hash,
-	) -> Result<StorageProof> {
+	) -> Result<Vec<Vec<u8>>> {
 		let encoded_trie_nodes =
 			SubstrateMessageLane::<C, _, _>::prove_messages_delivery(&self.client, instance, lane, Some(at_block))
 				.await
 				.map_err(Error::Request)?;
 		let decoded_trie_nodes: Vec<Vec<u8>> =
 			Decode::decode(&mut &encoded_trie_nodes[..]).map_err(Error::ResponseParseFailed)?;
-		Ok(StorageProof::new(decoded_trie_nodes))
+		Ok(decoded_trie_nodes)
 	}
 
 	/// Return new justifications stream.

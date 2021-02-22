@@ -86,6 +86,9 @@ impl<T: Config> Module<T> {
 
 #[cfg(test)]
 mod tests {
+	// From construct_runtime macro
+	#![allow(clippy::from_over_into)]
+
 	use super::*;
 	use frame_support::sp_io::TestExternalities;
 	use frame_support::sp_runtime::{
@@ -93,16 +96,23 @@ mod tests {
 		traits::{BlakeTwo256, ConvertInto, IdentityLookup},
 		Perbill, RuntimeAppPublic,
 	};
-	use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
+	use frame_support::{parameter_types, weights::Weight, BasicExternalities};
 	use sp_core::H256;
 
 	type AccountId = u64;
 
-	#[derive(Clone, Eq, PartialEq)]
-	pub struct TestRuntime;
+	type Block = frame_system::mocking::MockBlock<TestRuntime>;
+	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
-	impl_outer_origin! {
-		pub enum Origin for TestRuntime {}
+	frame_support::construct_runtime! {
+		pub enum TestRuntime where
+			Block = Block,
+			NodeBlock = Block,
+			UncheckedExtrinsic = UncheckedExtrinsic,
+		{
+			System: frame_system::{Module, Call, Config, Storage, Event<T>},
+			Session: pallet_session::{Module},
+		}
 	}
 
 	parameter_types! {
@@ -115,7 +125,7 @@ mod tests {
 	impl frame_system::Config for TestRuntime {
 		type Origin = Origin;
 		type Index = u64;
-		type Call = ();
+		type Call = Call;
 		type BlockNumber = u64;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
@@ -125,7 +135,7 @@ mod tests {
 		type Event = ();
 		type BlockHashCount = BlockHashCount;
 		type Version = ();
-		type PalletInfo = ();
+		type PalletInfo = PalletInfo;
 		type AccountData = ();
 		type OnNewAccount = ();
 		type OnKilledAccount = ();
@@ -172,17 +182,24 @@ mod tests {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<TestRuntime>()
 			.unwrap();
-		pallet_session::GenesisConfig::<TestRuntime> {
-			keys: vec![
-				(1, 1, UintAuthorityId(1)),
-				(2, 2, UintAuthorityId(2)),
-				(3, 3, UintAuthorityId(3)),
-				(4, 4, UintAuthorityId(4)),
-				(5, 5, UintAuthorityId(5)),
-			],
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
+
+		let keys = vec![
+			(1, 1, UintAuthorityId(1)),
+			(2, 2, UintAuthorityId(2)),
+			(3, 3, UintAuthorityId(3)),
+			(4, 4, UintAuthorityId(4)),
+			(5, 5, UintAuthorityId(5)),
+		];
+
+		BasicExternalities::execute_with_storage(&mut t, || {
+			for (ref k, ..) in &keys {
+				frame_system::Module::<TestRuntime>::inc_providers(k);
+			}
+		});
+
+		pallet_session::GenesisConfig::<TestRuntime> { keys }
+			.assimilate_storage(&mut t)
+			.unwrap();
 		TestExternalities::new(t)
 	}
 

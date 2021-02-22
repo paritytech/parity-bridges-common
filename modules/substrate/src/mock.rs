@@ -16,13 +16,15 @@
 
 //! Mock Runtime for Substrate Pallet Testing.
 //!
-//! Includes some useful testing utilities in the `helpers` module.
+//! Includes some useful testing types and functions.
 
 #![cfg(test)]
+// From construct_runtime macro
+#![allow(clippy::from_over_into)]
 
-use crate::Config;
+use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config};
 use bp_runtime::Chain;
-use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
+use frame_support::{parameter_types, weights::Weight};
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, IdentityLookup},
@@ -30,12 +32,24 @@ use sp_runtime::{
 };
 
 pub type AccountId = u64;
+pub type TestHeader = BridgedHeader<TestRuntime>;
+pub type TestNumber = BridgedBlockNumber<TestRuntime>;
+pub type TestHash = BridgedBlockHash<TestRuntime>;
 
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct TestRuntime;
+type Block = frame_system::mocking::MockBlock<TestRuntime>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
-impl_outer_origin! {
-	pub enum Origin for TestRuntime where system = frame_system {}
+use crate as pallet_substrate;
+
+frame_support::construct_runtime! {
+	pub enum TestRuntime where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic,
+	{
+		System: frame_system::{Module, Call, Config, Storage, Event<T>},
+		Substrate: pallet_substrate::{Module, Call},
+	}
 }
 
 parameter_types! {
@@ -48,7 +62,7 @@ parameter_types! {
 impl frame_system::Config for TestRuntime {
 	type Origin = Origin;
 	type Index = u64;
-	type Call = ();
+	type Call = Call;
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
@@ -58,7 +72,7 @@ impl frame_system::Config for TestRuntime {
 	type Event = ();
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
-	type PalletInfo = ();
+	type PalletInfo = PalletInfo;
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
@@ -88,66 +102,16 @@ pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
 }
 
-pub mod helpers {
-	use super::*;
-	use crate::storage::ImportedHeader;
-	use crate::{BridgedBlockHash, BridgedBlockNumber, BridgedHeader};
-	use finality_grandpa::voter_set::VoterSet;
-	use sp_finality_grandpa::{AuthorityId, AuthorityList};
-	use sp_keyring::Ed25519Keyring;
+pub fn test_header(num: TestNumber) -> TestHeader {
+	// We wrap the call to avoid explicit type annotations in our tests
+	bp_test_utils::test_header(num)
+}
 
-	pub type TestHeader = BridgedHeader<TestRuntime>;
-	pub type TestNumber = BridgedBlockNumber<TestRuntime>;
-	pub type TestHash = BridgedBlockHash<TestRuntime>;
-	pub type HeaderId = (TestHash, TestNumber);
-
-	pub fn test_header(num: TestNumber) -> TestHeader {
-		let mut header = TestHeader::new_from_number(num);
-		header.parent_hash = if num == 0 {
-			Default::default()
-		} else {
-			test_header(num - 1).hash()
-		};
-
-		header
-	}
-
-	pub fn unfinalized_header(num: u64) -> ImportedHeader<TestHeader> {
-		ImportedHeader {
-			header: test_header(num),
-			requires_justification: false,
-			is_finalized: false,
-			signal_hash: None,
-		}
-	}
-
-	pub fn header_id(index: u8) -> HeaderId {
-		(test_header(index.into()).hash(), index as _)
-	}
-
-	pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
-		let mut raw_public = [0; 32];
-		raw_public.copy_from_slice(id.as_ref());
-		Ed25519Keyring::from_raw_public(raw_public).unwrap()
-	}
-
-	pub fn voter_set() -> VoterSet<AuthorityId> {
-		VoterSet::new(authority_list()).unwrap()
-	}
-
-	pub fn authority_list() -> AuthorityList {
-		vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
-	}
-
-	pub fn alice() -> AuthorityId {
-		Ed25519Keyring::Alice.public().into()
-	}
-
-	pub fn bob() -> AuthorityId {
-		Ed25519Keyring::Bob.public().into()
-	}
-
-	pub fn charlie() -> AuthorityId {
-		Ed25519Keyring::Charlie.public().into()
+pub fn unfinalized_header(num: u64) -> crate::storage::ImportedHeader<TestHeader> {
+	crate::storage::ImportedHeader {
+		header: test_header(num),
+		requires_justification: false,
+		is_finalized: false,
+		signal_hash: None,
 	}
 }

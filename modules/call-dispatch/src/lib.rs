@@ -31,7 +31,7 @@ use frame_support::{
 	decl_event, decl_module, decl_storage,
 	dispatch::{Dispatchable, Parameter},
 	ensure,
-	traits::Get,
+	traits::{Filter, Get},
 	weights::{extract_actual_weight, GetDispatchInfo},
 	RuntimeDebug,
 };
@@ -65,7 +65,7 @@ pub enum CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainS
 	///
 	/// The account can be identified by `TargetChainAccountPublic`. The proof that the
 	/// `SourceChainAccountId` controls `TargetChainAccountPublic` is the `TargetChainSignature`
-	/// over `(Call, SourceChainAccountId).encode()`.
+	/// over `(Call, SourceChainAccountId, TargetChainSpecVersion, SourceChainBridgeId).encode()`.
 	///
 	/// NOTE sending messages using this origin (or any other) does not have replay protection!
 	/// The assumption is that both the source account and the target account is controlled by
@@ -134,6 +134,18 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 			Origin = <Self as frame_system::Config>::Origin,
 			PostInfo = frame_support::dispatch::PostDispatchInfo,
 		>;
+	/// Pre-dispatch filter for incoming calls.
+	///
+	/// The pallet will filter all incoming calls right before they're dispatched. If this filter
+	/// rejects the call, special event (`Event::MessageCallRejected`) is emitted.
+	type CallFilter: Filter<<Self as Config<I>>::Call>;
+	/// The type that is used to wrap the `Self::Call` when it is moved over bridge.
+	///
+	/// The idea behind this is to avoid `Call` conversion/decoding until we'll be sure
+	/// that all other stuff (like `spec_version`) is ok. If we would try to decode
+	/// `Call` which has been encoded using previous `spec_version`, then we might end
+	/// up with decoding error, instead of `MessageVersionSpecMismatch`.
+	type EncodedCall: Decode + Encode + Into<Result<<Self as Config<I>>::Call, ()>>;
 	/// A type which can be turned into an AccountId from a 256-bit hash.
 	///
 	/// Used when deriving target chain AccountIds from source chain AccountIds.
@@ -148,6 +160,8 @@ decl_event!(
 	pub enum Event<T, I = DefaultInstance> where
 		<T as Config<I>>::MessageId
 	{
+		/// Message has been rejected before reaching dispatch.
+		MessageRejected(InstanceId, MessageId),
 		/// Message has been rejected by dispatcher because of spec version mismatch.
 		/// Last two arguments are: expected and passed spec version.
 		MessageVersionSpecMismatch(InstanceId, MessageId, SpecVersion, SpecVersion),
@@ -158,6 +172,10 @@ decl_event!(
 		MessageSignatureMismatch(InstanceId, MessageId),
 		/// Message has been dispatched with given result.
 		MessageDispatched(InstanceId, MessageId, DispatchResult),
+		/// We have failed to decode Call from the message.
+		MessageCallDecodeFailed(InstanceId, MessageId),
+		/// The call from the message has been rejected by the call filter.
+		MessageCallRejected(InstanceId, MessageId),
 		/// Phantom member, never used. Needed to handle multiple pallet instances.
 		_Dummy(PhantomData<I>),
 	}
@@ -172,18 +190,24 @@ decl_module! {
 }
 
 impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
-	type Message = MessagePayload<
-		T::SourceChainAccountId,
-		T::TargetChainAccountPublic,
-		T::TargetChainSignature,
-		<T as Config<I>>::Call,
-	>;
+	type Message =
+		MessagePayload<T::SourceChainAccountId, T::TargetChainAccountPublic, T::TargetChainSignature, T::EncodedCall>;
 
 	fn dispatch_weight(message: &Self::Message) -> Weight {
 		message.weight
 	}
 
-	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Self::Message) {
+	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Result<Self::Message, ()>) {
+		// emit special even if message has been rejected by external component
+		let message = match message {
+			Ok(message) => message,
+			Err(_) => {
+				frame_support::debug::trace!("Message {:?}/{:?}: rejected before actual dispatch", bridge, id);
+				Self::deposit_event(RawEvent::MessageRejected(bridge, id));
+				return;
+			}
+		};
+
 		// verify spec version
 		// (we want it to be the same, because otherwise we may decode Call improperly)
 		let expected_version = <T as frame_system::Config>::Version::get().spec_version;
@@ -204,27 +228,15 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			return;
 		}
 
-		// verify weight
-		// (we want passed weight to be at least equal to pre-dispatch weight of the call
-		// because otherwise Calls may be dispatched at lower price)
-		let dispatch_info = message.call.get_dispatch_info();
-		let expected_weight = dispatch_info.weight;
-		if message.weight < expected_weight {
-			frame_support::debug::trace!(
-				"Message {:?}/{:?}: passed weight is too low. Expected at least {:?}, got {:?}",
-				bridge,
-				id,
-				expected_weight,
-				message.weight,
-			);
-			Self::deposit_event(RawEvent::MessageWeightMismatch(
-				bridge,
-				id,
-				expected_weight,
-				message.weight,
-			));
-			return;
-		}
+		// now that we have spec version checked, let's decode the call
+		let call = match message.call.into() {
+			Ok(call) => call,
+			Err(_) => {
+				frame_support::debug::trace!("Failed to decode Call from message {:?}/{:?}", bridge, id,);
+				Self::deposit_event(RawEvent::MessageCallDecodeFailed(bridge, id));
+				return;
+			}
+		};
 
 		// prepare dispatch origin
 		let origin_account = match message.origin {
@@ -235,12 +247,10 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 				target_id
 			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
-				let mut signed_message = Vec::new();
-				message.call.encode_to(&mut signed_message);
-				source_account_id.encode_to(&mut signed_message);
+				let digest = account_ownership_digest(&call, source_account_id, message.spec_version, bridge);
 
 				let target_account = target_public.into_account();
-				if !target_signature.verify(&signed_message[..], &target_account) {
+				if !target_signature.verify(&digest[..], &target_account) {
 					frame_support::debug::trace!(
 						"Message {:?}/{:?}: origin proof is invalid. Expected account: {:?} from signature: {:?}",
 						bridge,
@@ -263,11 +273,45 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
 			}
 		};
 
+		// filter the call
+		if !T::CallFilter::filter(&call) {
+			frame_support::debug::trace!(
+				"Message {:?}/{:?}: the call ({:?}) is rejected by filter",
+				bridge,
+				id,
+				call,
+			);
+			Self::deposit_event(RawEvent::MessageCallRejected(bridge, id));
+			return;
+		}
+
+		// verify weight
+		// (we want passed weight to be at least equal to pre-dispatch weight of the call
+		// because otherwise Calls may be dispatched at lower price)
+		let dispatch_info = call.get_dispatch_info();
+		let expected_weight = dispatch_info.weight;
+		if message.weight < expected_weight {
+			frame_support::debug::trace!(
+				"Message {:?}/{:?}: passed weight is too low. Expected at least {:?}, got {:?}",
+				bridge,
+				id,
+				expected_weight,
+				message.weight,
+			);
+			Self::deposit_event(RawEvent::MessageWeightMismatch(
+				bridge,
+				id,
+				expected_weight,
+				message.weight,
+			));
+			return;
+		}
+
 		// finally dispatch message
 		let origin = RawOrigin::Signed(origin_account).into();
 
-		frame_support::debug::trace!("Message being dispatched is: {:?}", &message.call);
-		let dispatch_result = message.call.dispatch(origin);
+		frame_support::debug::trace!("Message being dispatched is: {:?}", &call);
+		let dispatch_result = call.dispatch(origin);
 		let actual_call_weight = extract_actual_weight(&dispatch_result, &dispatch_info);
 
 		frame_support::debug::trace!(
@@ -322,10 +366,39 @@ where
 	}
 }
 
+/// Target account ownership digest from the source chain.
+///
+/// The byte vector returned by this function will be signed with a target chain account
+/// private key. This way, the owner of `source_account_id` on the source chain proves that
+/// the target chain account private key is also under his control.
+pub fn account_ownership_digest<Call, AccountId, SpecVersion, BridgeId>(
+	call: &Call,
+	source_account_id: AccountId,
+	target_spec_version: SpecVersion,
+	source_instance_id: BridgeId,
+) -> Vec<u8>
+where
+	Call: Encode,
+	AccountId: Encode,
+	SpecVersion: Encode,
+	BridgeId: Encode,
+{
+	let mut proof = Vec::new();
+	call.encode_to(&mut proof);
+	source_account_id.encode_to(&mut proof);
+	target_spec_version.encode_to(&mut proof);
+	source_instance_id.encode_to(&mut proof);
+
+	proof
+}
+
 #[cfg(test)]
 mod tests {
+	// From construct_runtime macro
+	#![allow(clippy::from_over_into)]
+
 	use super::*;
-	use frame_support::{impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, weights::Weight};
+	use frame_support::{parameter_types, weights::Weight};
 	use frame_system::{EventRecord, Phase};
 	use sp_core::H256;
 	use sp_runtime::{
@@ -335,9 +408,6 @@ mod tests {
 	};
 
 	type AccountId = u64;
-	type CallDispatch = Module<TestRuntime>;
-	type System = frame_system::Module<TestRuntime>;
-
 	type MessageId = [u8; 4];
 
 	#[derive(Debug, Encode, Decode, Clone, PartialEq, Eq)]
@@ -370,28 +440,19 @@ mod tests {
 		}
 	}
 
-	#[derive(Clone, Eq, PartialEq)]
-	pub struct TestRuntime;
+	type Block = frame_system::mocking::MockBlock<TestRuntime>;
+	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
-	mod call_dispatch {
-		pub use crate::Event;
-	}
+	use crate as call_dispatch;
 
-	impl_outer_event! {
-		pub enum TestEvent for TestRuntime {
-			frame_system<T>,
-			call_dispatch<T>,
-		}
-	}
-
-	impl_outer_origin! {
-		pub enum Origin for TestRuntime where system = frame_system {}
-	}
-
-	impl_outer_dispatch! {
-		pub enum Call for TestRuntime where origin: Origin {
-			frame_system::System,
-			call_dispatch::CallDispatch,
+	frame_support::construct_runtime! {
+		pub enum TestRuntime where
+			Block = Block,
+			NodeBlock = Block,
+			UncheckedExtrinsic = UncheckedExtrinsic,
+		{
+			System: frame_system::{Module, Call, Config, Storage, Event<T>},
+			CallDispatch: call_dispatch::{Module, Call, Event<T>},
 		}
 	}
 
@@ -412,10 +473,10 @@ mod tests {
 		type AccountId = AccountId;
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
-		type Event = TestEvent;
+		type Event = Event;
 		type BlockHashCount = BlockHashCount;
 		type Version = ();
-		type PalletInfo = ();
+		type PalletInfo = PalletInfo;
 		type AccountData = ();
 		type OnNewAccount = ();
 		type OnKilledAccount = ();
@@ -428,13 +489,32 @@ mod tests {
 	}
 
 	impl Config for TestRuntime {
-		type Event = TestEvent;
+		type Event = Event;
 		type MessageId = MessageId;
 		type SourceChainAccountId = AccountId;
 		type TargetChainAccountPublic = TestAccountPublic;
 		type TargetChainSignature = TestSignature;
 		type Call = Call;
+		type CallFilter = TestCallFilter;
+		type EncodedCall = EncodedCall;
 		type AccountIdConverter = AccountIdConverter;
+	}
+
+	#[derive(Decode, Encode)]
+	pub struct EncodedCall(Vec<u8>);
+
+	impl From<EncodedCall> for Result<Call, ()> {
+		fn from(call: EncodedCall) -> Result<Call, ()> {
+			Call::decode(&mut &call.0[..]).map_err(drop)
+		}
+	}
+
+	pub struct TestCallFilter;
+
+	impl Filter<Call> for TestCallFilter {
+		fn filter(call: &Call) -> bool {
+			!matches!(*call, Call::System(frame_system::Call::fill_block(_)))
+		}
 	}
 
 	const TEST_SPEC_VERSION: SpecVersion = 0;
@@ -455,7 +535,7 @@ mod tests {
 			spec_version: TEST_SPEC_VERSION,
 			weight: TEST_WEIGHT,
 			origin,
-			call,
+			call: EncodedCall(call.encode()),
 		}
 	}
 
@@ -491,13 +571,13 @@ mod tests {
 			message.spec_version = BAD_SPEC_VERSION;
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, message);
+			CallDispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageVersionSpecMismatch(
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageVersionSpecMismatch(
 						bridge,
 						id,
 						TEST_SPEC_VERSION,
@@ -519,13 +599,13 @@ mod tests {
 			message.weight = 0;
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, message);
+			CallDispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageWeightMismatch(
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageWeightMismatch(
 						bridge, id, 1973000, 0,
 					)),
 					topics: vec![],
@@ -547,13 +627,86 @@ mod tests {
 			);
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, message);
+			CallDispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageSignatureMismatch(bridge, id)),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageSignatureMismatch(
+						bridge, id
+					)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn should_emit_event_for_rejected_messages() {
+		new_test_ext().execute_with(|| {
+			let bridge = b"ethb".to_owned();
+			let id = [0; 4];
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(bridge, id, Err(()));
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageRejected(bridge, id)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn should_fail_on_call_decode() {
+		new_test_ext().execute_with(|| {
+			let bridge = b"ethb".to_owned();
+			let id = [0; 4];
+
+			let mut message =
+				prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
+			message.call.0 = vec![];
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(bridge, id, Ok(message));
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageCallDecodeFailed(
+						bridge, id
+					)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn should_emit_event_for_rejected_calls() {
+		new_test_ext().execute_with(|| {
+			let bridge = b"ethb".to_owned();
+			let id = [0; 4];
+
+			let call = Call::System(<frame_system::Call<TestRuntime>>::fill_block(Perbill::from_percent(75)));
+			let weight = call.get_dispatch_info().weight;
+			let mut message = prepare_root_message(call);
+			message.weight = weight;
+
+			System::set_block_number(1);
+			CallDispatch::dispatch(bridge, id, Ok(message));
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageCallRejected(bridge, id)),
 					topics: vec![],
 				}],
 			);
@@ -568,13 +721,17 @@ mod tests {
 			let message = prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, message);
+			CallDispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageDispatched(bridge, id, Ok(()))),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(
+						bridge,
+						id,
+						Ok(())
+					)),
 					topics: vec![],
 				}],
 			);
@@ -591,13 +748,17 @@ mod tests {
 			let message = prepare_target_message(call);
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, message);
+			CallDispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageDispatched(bridge, id, Ok(()))),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(
+						bridge,
+						id,
+						Ok(())
+					)),
 					topics: vec![],
 				}],
 			);
@@ -614,13 +775,17 @@ mod tests {
 			let message = prepare_source_message(call);
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, message);
+			CallDispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::call_dispatch(Event::<TestRuntime>::MessageDispatched(bridge, id, Ok(()))),
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(
+						bridge,
+						id,
+						Ok(())
+					)),
 					topics: vec![],
 				}],
 			);

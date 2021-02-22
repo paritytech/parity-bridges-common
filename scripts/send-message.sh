@@ -9,7 +9,7 @@
 case "$1" in
 	remark)
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
-		./target/debug/substrate-relay submit-millau-to-rialto-message \
+		./target/debug/substrate-relay send-message millau-to-rialto \
 			--millau-host localhost \
 			--millau-port 20044 \
 			--millau-signer //Dave \
@@ -20,7 +20,7 @@ case "$1" in
 		;;
 	transfer)
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
-		./target/debug/substrate-relay submit-millau-to-rialto-message \
+		./target/debug/substrate-relay send-message millau-to-rialto \
 			--millau-host localhost \
 			--millau-port 20044 \
 			--millau-signer //Dave \

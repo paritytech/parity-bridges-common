@@ -9,6 +9,7 @@ on:
       - diagrams/
   schedule:                                         # Nightly build
     - cron:                                         '0 1 * * *'
+
 jobs:
 ## Publish to Docker hub
   publish:
@@ -29,7 +30,7 @@ jobs:
             healthcheck: http://localhost:9616/metrics
           - project: substrate-relay
             healthcheck: http://localhost:9616/metrics
-    runs-on:                                        self-hosted
+    runs-on:                                        ubuntu-latest
     container:
       image:                                        docker:git
     steps:

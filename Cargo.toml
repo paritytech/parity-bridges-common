@@ -9,6 +9,7 @@ members = [
 	"modules/substrate",
 	"modules/ethereum",
 	"modules/ethereum-contract/builtin",
+	"modules/finality-verifier",
 	"modules/currency-exchange",
 	"relays/ethereum",
 	"relays/substrate",

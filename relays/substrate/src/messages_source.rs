@@ -23,6 +23,7 @@ use crate::messages_lane::SubstrateMessageLane;
 use async_trait::async_trait;
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::InstanceId;
+use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::{Decode, Encode};
 use frame_support::weights::Weight;
 use messages_relay::{
@@ -32,16 +33,15 @@ use messages_relay::{
 	},
 };
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf};
-use relay_utils::{BlockNumberBase, HeaderId};
+use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
 use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
-use sp_trie::StorageProof;
 use std::ops::RangeInclusive;
 
 /// Intermediate message proof returned by the source Substrate node. Includes everything
 /// required to submit to the target node: cumulative dispatch weight of bundled messages and
 /// the proof itself.
-pub type SubstrateMessagesProof<C> = (Weight, (HashOf<C>, StorageProof, LaneId, MessageNonce, MessageNonce));
+pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
 
 /// Substrate client as Substrate messages source.
 pub struct SubstrateMessagesSource<C: Chain, P> {
@@ -75,6 +75,15 @@ impl<C: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesSource<C, P> 
 }
 
 #[async_trait]
+impl<C: Chain, P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<C, P> {
+	type Error = SubstrateError;
+
+	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
+		self.client.reconnect().await
+	}
+}
+
+#[async_trait]
 impl<C, P> SourceClient<P> for SubstrateMessagesSource<C, P>
 where
 	C: Chain,
@@ -89,15 +98,11 @@ where
 	P::TargetHeaderNumber: Decode,
 	P::TargetHeaderHash: Decode,
 {
-	type Error = SubstrateError;
+	async fn state(&self) -> Result<SourceClientState<P>, SubstrateError> {
+		// we can't continue to deliver confirmations if source node is out of sync, because
+		// it may have already received confirmations that we're going to deliver
+		self.client.ensure_synced().await?;
 
-	async fn reconnect(mut self) -> Result<Self, Self::Error> {
-		let new_client = self.client.clone().reconnect().await?;
-		self.client = new_client;
-		Ok(self)
-	}
-
-	async fn state(&self) -> Result<SourceClientState<P>, Self::Error> {
 		read_client_state::<_, P::TargetHeaderHash, P::TargetHeaderNumber>(
 			&self.client,
 			P::BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE,
@@ -108,7 +113,7 @@ where
 	async fn latest_generated_nonce(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -125,7 +130,7 @@ where
 	async fn latest_confirmed_received_nonce(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -143,7 +148,7 @@ where
 		&self,
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Result<MessageWeightsMap, Self::Error> {
+	) -> Result<MessageWeightsMap, SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -164,7 +169,7 @@ where
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
 		proof_parameters: MessageProofParameters,
-	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), Self::Error> {
+	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), SubstrateError> {
 		let proof = self
 			.client
 			.prove_messages(
@@ -174,8 +179,16 @@ where
 				proof_parameters.outbound_state_proof_required,
 				id.1,
 			)
-			.await?;
-		let proof = (id.1, proof, self.lane_id, *nonces.start(), *nonces.end());
+			.await?
+			.iter_nodes()
+			.collect();
+		let proof = FromBridgedChainMessagesProof {
+			bridged_header_hash: id.1,
+			storage_proof: proof,
+			lane: self.lane_id,
+			nonces_start: *nonces.start(),
+			nonces_end: *nonces.end(),
+		};
 		Ok((id, nonces, (proof_parameters.dispatch_weight, proof)))
 	}
 
@@ -183,7 +196,7 @@ where
 		&self,
 		generated_at_block: TargetHeaderIdOf<P>,
 		proof: P::MessagesReceivingProof,
-	) -> Result<(), Self::Error> {
+	) -> Result<(), SubstrateError> {
 		let tx = self
 			.lane
 			.make_messages_receiving_proof_transaction(generated_at_block, proof)

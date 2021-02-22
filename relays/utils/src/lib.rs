@@ -29,6 +29,7 @@ pub const CONNECTION_ERROR_DELAY: Duration = Duration::from_secs(10);
 
 pub mod initialize;
 pub mod metrics;
+pub mod relay_loop;
 
 /// Block number traits shared by all chains that relay is able to serve.
 pub trait BlockNumberBase:
@@ -82,7 +83,7 @@ macro_rules! bail_on_error {
 		match $result {
 			(client, Ok(result)) => (client, result),
 			(client, Err(error)) => return (client, Err(error)),
-			}
+		}
 	};
 }
 
@@ -93,7 +94,7 @@ macro_rules! bail_on_arg_error {
 		match $result {
 			Ok(result) => result,
 			Err(error) => return ($client, Err(error)),
-			}
+		}
 	};
 }
 

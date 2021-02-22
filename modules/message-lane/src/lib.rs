@@ -35,16 +35,20 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use crate::weights_ext::{ensure_weights_are_correct, WeightInfoExt};
+pub use crate::weights_ext::{
+	ensure_able_to_receive_confirmation, ensure_able_to_receive_message, ensure_weights_are_correct, WeightInfoExt,
+	EXPECTED_DEFAULT_MESSAGE_LENGTH,
+};
 
 use crate::inbound_lane::{InboundLane, InboundLaneStorage};
 use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
+use crate::weights::WeightInfo;
 
 use bp_message_lane::{
-	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
+	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, TargetHeaderChain},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	total_unrewarded_messages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, MessagePayload,
-	OutboundLaneData, UnrewardedRelayersState,
+	OutboundLaneData, Parameter as MessageLaneParameter, UnrewardedRelayersState,
 };
 use bp_runtime::Size;
 use codec::{Decode, Encode};
@@ -57,7 +61,7 @@ use frame_support::{
 use frame_system::{ensure_signed, RawOrigin};
 use num_traits::{SaturatingAdd, Zero};
 use sp_runtime::{traits::BadOrigin, DispatchResult};
-use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
+use sp_std::{cell::RefCell, cmp::PartialOrd, marker::PhantomData, prelude::*};
 
 mod inbound_lane;
 mod outbound_lane;
@@ -80,6 +84,12 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	type Event: From<Event<Self, I>> + Into<<Self as frame_system::Config>::Event>;
 	/// Benchmarks results from runtime we're plugged into.
 	type WeightInfo: WeightInfoExt;
+	/// Pallet parameter that is opaque to the pallet itself, but may be used by the runtime
+	/// for integrating the pallet.
+	///
+	/// All pallet parameters may only be updated either by the root, or by the pallet owner.
+	type Parameter: MessageLaneParameter;
+
 	/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
 	/// whenever new message is sent. The reason is that if you want to use lane, you should
 	/// be ready to pay for its maintenance.
@@ -101,12 +111,16 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	///
 	/// There is no point of making this parameter lesser than MaxUnrewardedRelayerEntriesAtInboundLane,
 	/// because then maximal number of relayer entries will be limited by maximal number of messages.
+	///
+	/// This value also represents maximal number of messages in single delivery transaction. Transaction
+	/// that is declaring more messages than this value, will be rejected. Even if these messages are
+	/// from different lanes.
 	type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 
 	/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 	type OutboundPayload: Parameter + Size;
 	/// Message fee type of outbound messages. This fee is paid on this chain.
-	type OutboundMessageFee: From<u32> + Parameter + SaturatingAdd + Zero;
+	type OutboundMessageFee: Default + From<u64> + PartialOrd + Parameter + SaturatingAdd + Zero;
 
 	/// Payload type of inbound messages. This payload is dispatched on this chain.
 	type InboundPayload: Decode;
@@ -156,6 +170,8 @@ decl_error! {
 		MessageRejectedByLaneVerifier,
 		/// Submitter has failed to pay fee for delivering and dispatching messages.
 		FailedToWithdrawMessageFee,
+		/// The transaction brings too many messages.
+		TooManyMessagesInTheProof,
 		/// Invalid messages has been submitted.
 		InvalidMessagesProof,
 		/// Invalid messages dispatch weight has been declared by the relayer.
@@ -164,6 +180,10 @@ decl_error! {
 		InvalidMessagesDeliveryProof,
 		/// The relayer has declared invalid unrewarded relayers state in the `receive_messages_delivery_proof` call.
 		InvalidUnrewardedRelayersState,
+		/// The message someone is trying to work with (i.e. increase fee) is already-delivered.
+		MessageIsAlreadyDelivered,
+		/// The message someone is trying to work with (i.e. increase fee) is not yet sent.
+		MessageIsNotYetSent
 	}
 }
 
@@ -197,9 +217,13 @@ decl_storage! {
 }
 
 decl_event!(
-	pub enum Event<T, I = DefaultInstance> where
-		<T as frame_system::Config>::AccountId,
+	pub enum Event<T, I = DefaultInstance>
+	where
+		AccountId = <T as frame_system::Config>::AccountId,
+		Parameter = <T as Config<I>>::Parameter,
 	{
+		/// Pallet parameter has been updated.
+		ParameterUpdated(Parameter),
 		/// Message has been accepted and is waiting to be delivered.
 		MessageAccepted(LaneId, MessageNonce),
 		/// Messages in the inclusive range have been delivered and processed by the bridged chain.
@@ -260,10 +284,20 @@ decl_module! {
 			frame_support::debug::info!("Resuming pallet operations.");
 		}
 
+		/// Update pallet parameter.
+		///
+		/// May only be called either by root, or by `ModuleOwner`.
+		///
+		/// The weight is: single read for permissions check + 2 writes for parameter value and event.
+		#[weight = (T::DbWeight::get().reads_writes(1, 2), DispatchClass::Operational)]
+		pub fn update_pallet_parameter(origin, parameter: T::Parameter) {
+			ensure_owner_or_root::<T, I>(origin)?;
+			parameter.save();
+			Self::deposit_event(RawEvent::ParameterUpdated(parameter));
+		}
+
 		/// Send message over lane.
-		#[weight = T::WeightInfo::send_message_overhead()
-			.saturating_add(T::WeightInfo::send_message_size_overhead(Size::size_hint(payload)))
-		]
+		#[weight = T::WeightInfo::send_message_weight(payload)]
 		pub fn send_message(
 			origin,
 			lane_id: LaneId,
@@ -286,10 +320,12 @@ decl_module! {
 				})?;
 
 			// now let's enforce any additional lane rules
+			let mut lane = outbound_lane::<T, I>(lane_id);
 			T::LaneMessageVerifier::verify_message(
 				&submitter,
 				&delivery_and_dispatch_fee,
 				&lane_id,
+				&lane.data(),
 				&payload,
 			).map_err(|err| {
 				frame_support::debug::trace!(
@@ -319,20 +355,73 @@ decl_module! {
 			})?;
 
 			// finally, save message in outbound storage and emit event
-			let mut lane = outbound_lane::<T, I>(lane_id);
+			let encoded_payload = payload.encode();
+			let encoded_payload_len = encoded_payload.len();
 			let nonce = lane.send_message(MessageData {
-				payload: payload.encode(),
+				payload: encoded_payload,
 				fee: delivery_and_dispatch_fee,
 			});
 			lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 
 			frame_support::debug::trace!(
-				"Accepted message {} to lane {:?}",
+				"Accepted message {} to lane {:?}. Message size: {:?}",
 				nonce,
 				lane_id,
+				encoded_payload_len,
 			);
 
 			Self::deposit_event(RawEvent::MessageAccepted(lane_id, nonce));
+
+			Ok(())
+		}
+
+		/// Pay additional fee for the message.
+		#[weight = T::WeightInfo::increase_message_fee()]
+		pub fn increase_message_fee(
+			origin,
+			lane_id: LaneId,
+			nonce: MessageNonce,
+			additional_fee: T::OutboundMessageFee,
+		) -> DispatchResult {
+			// if someone tries to pay for already-delivered message, we're rejecting this intention
+			// (otherwise this additional fee will be locked forever in relayers fund)
+			//
+			// if someone tries to pay for not-yet-sent message, we're rejeting this intention, or
+			// we're risking to have mess in the storage
+			let lane = outbound_lane::<T, I>(lane_id);
+			ensure!(nonce > lane.data().latest_received_nonce, Error::<T, I>::MessageIsAlreadyDelivered);
+			ensure!(nonce <= lane.data().latest_generated_nonce, Error::<T, I>::MessageIsNotYetSent);
+
+			// withdraw additional fee from submitter
+			let submitter = origin.into().map_err(|_| BadOrigin)?;
+			T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
+				&submitter,
+				&additional_fee,
+				&Self::relayer_fund_account_id(),
+			).map_err(|err| {
+				frame_support::debug::trace!(
+					"Submitter {:?} can't pay additional fee {:?} for the message {:?}/{:?}: {:?}",
+					submitter,
+					additional_fee,
+					lane_id,
+					nonce,
+					err,
+				);
+
+				Error::<T, I>::FailedToWithdrawMessageFee
+			})?;
+
+			// and finally update fee in the storage
+			let message_key = MessageKey { lane_id, nonce };
+			OutboundMessages::<T, I>::mutate(message_key, |message_data| {
+				// saturating_add is fine here - overflow here means that someone controls all
+				// chain funds, which shouldn't ever happen + `pay_delivery_and_dispatch_fee`
+				// above will fail before we reach here
+				let message_data = message_data
+					.as_mut()
+					.expect("the message is sent and not yet delivered; so it is in the storage; qed");
+				message_data.fee = message_data.fee.saturating_add(&additional_fee);
+			});
 
 			Ok(())
 		}
@@ -342,20 +431,22 @@ decl_module! {
 		/// The weight of the call assumes that the transaction always brings outbound lane
 		/// state update. Because of that, the submitter (relayer) has no benefit of not including
 		/// this data in the transaction, so reward confirmations lags should be minimal.
-		#[weight = T::WeightInfo::receive_messages_proof_overhead()
-			.saturating_add(T::WeightInfo::receive_messages_proof_outbound_lane_state_overhead())
-			.saturating_add(T::WeightInfo::receive_messages_proof_messages_overhead(*messages_count))
-			.saturating_add(*dispatch_weight)
-		]
+		#[weight = T::WeightInfo::receive_messages_proof_weight(proof, *messages_count, *dispatch_weight)]
 		pub fn receive_messages_proof(
 			origin,
 			relayer_id: T::InboundRelayer,
 			proof: MessagesProofOf<T, I>,
-			messages_count: MessageNonce,
+			messages_count: u32,
 			dispatch_weight: Weight,
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
 			let _ = ensure_signed(origin)?;
+
+			// reject transactions that are declaring too many messages
+			ensure!(
+				MessageNonce::from(messages_count) <= T::MaxUnconfirmedMessagesAtInboundLane::get(),
+				Error::<T, I>::TooManyMessagesInTheProof
+			);
 
 			// verify messages proof && convert proof into messages
 			let messages = verify_and_decode_messages_proof::<
@@ -379,9 +470,9 @@ decl_module! {
 					.messages
 					.iter()
 					.map(T::MessageDispatch::dispatch_weight)
-					.sum::<Weight>()
+					.fold(0, |sum, weight| sum.saturating_add(&weight))
 				)
-				.sum();
+				.fold(0, |sum, weight| sum.saturating_add(weight));
 			if dispatch_weight < actual_dispatch_weight {
 				frame_support::debug::trace!(
 					"Rejecting messages proof because of dispatch weight mismatch: declared={}, expected={}",
@@ -429,14 +520,7 @@ decl_module! {
 		}
 
 		/// Receive messages delivery proof from bridged chain.
-		#[weight = T::WeightInfo::receive_messages_delivery_proof_overhead()
-			.saturating_add(T::WeightInfo::receive_messages_delivery_proof_messages_overhead(
-				relayers_state.total_messages
-			))
-			.saturating_add(T::WeightInfo::receive_messages_delivery_proof_relayers_overhead(
-				relayers_state.unrewarded_relayer_entries
-			))
-		]
+		#[weight = T::WeightInfo::receive_messages_delivery_proof_weight(proof, relayers_state)]
 		pub fn receive_messages_delivery_proof(
 			origin,
 			proof: MessagesDeliveryProofOf<T, I>,
@@ -457,45 +541,48 @@ decl_module! {
 			// verify that the relayer has declared correct `lane_data::relayers` state
 			// (we only care about total number of entries and messages, because this affects call weight)
 			ensure!(
-				total_unrewarded_messages(&lane_data.relayers) == relayers_state.total_messages
+				total_unrewarded_messages(&lane_data.relayers)
+					.unwrap_or(MessageNonce::MAX) == relayers_state.total_messages
 					&& lane_data.relayers.len() as MessageNonce == relayers_state.unrewarded_relayer_entries,
 				Error::<T, I>::InvalidUnrewardedRelayersState
 			);
 
 			// mark messages as delivered
 			let mut lane = outbound_lane::<T, I>(lane_id);
+			let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
 			let last_delivered_nonce = lane_data.last_delivered_nonce();
 			let received_range = lane.confirm_delivery(last_delivered_nonce);
 			if let Some(received_range) = received_range {
 				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, received_range.0, received_range.1));
 
-				// reward relayers that have delivered messages
+				// remember to reward relayers that have delivered messages
 				// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
-				let relayer_fund_account = Self::relayer_fund_account_id();
 				for (nonce_low, nonce_high, relayer) in lane_data.relayers {
 					let nonce_begin = sp_std::cmp::max(nonce_low, received_range.0);
 					let nonce_end = sp_std::cmp::min(nonce_high, received_range.1);
 
 					// loop won't proceed if current entry is ahead of received range (begin > end).
 					// this loop is bound by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
-					let mut relayer_fee: T::OutboundMessageFee = Zero::zero();
+					let mut relayer_reward = relayers_rewards.entry(relayer).or_default();
 					for nonce in nonce_begin..nonce_end + 1 {
 						let message_data = OutboundMessages::<T, I>::get(MessageKey {
 							lane_id,
 							nonce,
 						}).expect("message was just confirmed; we never prune unconfirmed messages; qed");
-						relayer_fee = relayer_fee.saturating_add(&message_data.fee);
-					}
-
-					if !relayer_fee.is_zero() {
-						<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayer_reward(
-							&confirmation_relayer,
-							&relayer,
-							&relayer_fee,
-							&relayer_fund_account,
-						);
+						relayer_reward.reward = relayer_reward.reward.saturating_add(&message_data.fee);
+						relayer_reward.messages += 1;
 					}
 				}
+			}
+
+			// if some new messages have been confirmed, reward relayers
+			if !relayers_rewards.is_empty() {
+				let relayer_fund_account = Self::relayer_fund_account_id();
+				<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayers_rewards(
+					&confirmation_relayer,
+					relayers_rewards,
+					&relayer_fund_account,
+				);
 			}
 
 			frame_support::debug::trace!(
@@ -543,7 +630,7 @@ impl<T: Config<I>, I: Instance> Module<T, I> {
 		bp_message_lane::UnrewardedRelayersState {
 			unrewarded_relayer_entries: relayers.len() as _,
 			messages_in_oldest_entry: relayers.front().map(|(begin, end, _)| 1 + end - begin).unwrap_or(0),
-			total_messages: total_unrewarded_messages(&relayers),
+			total_messages: total_unrewarded_messages(&relayers).unwrap_or(MessageNonce::MAX),
 		}
 	}
 
@@ -731,8 +818,11 @@ impl<T: Config<I>, I: Instance> OutboundLaneStorage for RuntimeOutboundLaneStora
 /// Verify messages proof and return proved messages with decoded payload.
 fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, DispatchPayload: Decode>(
 	proof: Chain::MessagesProof,
-	messages_count: MessageNonce,
+	messages_count: u32,
 ) -> Result<ProvedMessages<DispatchMessage<DispatchPayload, Fee>>, Chain::Error> {
+	// `receive_messages_proof` weight formula and `MaxUnconfirmedMessagesAtInboundLane` check
+	// guarantees that the `message_count` is sane and Vec<Message> may be allocated.
+	// (tx with too many messages will either be rejected from the pool, or will fail earlier)
 	Chain::verify_messages_proof(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
 			.into_iter()
@@ -753,7 +843,8 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, run_test, Origin, TestEvent, TestMessageDeliveryAndDispatchPayment, TestMessagesProof, TestRuntime,
+		message, run_test, Event as TestEvent, Origin, TestMessageDeliveryAndDispatchPayment, TestMessageLaneParameter,
+		TestMessagesDeliveryProof, TestMessagesProof, TestPayload, TestRuntime, TokenConversionRate,
 		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_message_lane::UnrewardedRelayersState;
@@ -762,9 +853,13 @@ mod tests {
 	use hex_literal::hex;
 	use sp_runtime::DispatchError;
 
-	fn send_regular_message() {
+	fn get_ready_for_events() {
 		System::<TestRuntime>::set_block_number(1);
 		System::<TestRuntime>::reset_events();
+	}
+
+	fn send_regular_message() {
+		get_ready_for_events();
 
 		assert_ok!(Module::<TestRuntime>::send_message(
 			Origin::signed(1),
@@ -778,7 +873,7 @@ mod tests {
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::message_lane(RawEvent::MessageAccepted(TEST_LANE_ID, 1)),
+				event: TestEvent::pallet_message_lane(RawEvent::MessageAccepted(TEST_LANE_ID, 1)),
 				topics: vec![],
 			}],
 		);
@@ -793,13 +888,13 @@ mod tests {
 
 		assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
 			Origin::signed(1),
-			Ok((
+			TestMessagesDeliveryProof(Ok((
 				TEST_LANE_ID,
 				InboundLaneData {
 					last_confirmed_nonce: 1,
 					..Default::default()
 				},
-			)),
+			))),
 			Default::default(),
 		));
 
@@ -807,7 +902,7 @@ mod tests {
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::message_lane(RawEvent::MessagesDelivered(TEST_LANE_ID, 1, 1)),
+				event: TestEvent::pallet_message_lane(RawEvent::MessagesDelivered(TEST_LANE_ID, 1, 1)),
 				topics: vec![],
 			}],
 		);
@@ -872,6 +967,101 @@ mod tests {
 	}
 
 	#[test]
+	fn pallet_parameter_may_be_updated_by_root() {
+		run_test(|| {
+			get_ready_for_events();
+
+			let parameter = TestMessageLaneParameter::TokenConversionRate(10.into());
+			assert_ok!(Module::<TestRuntime>::update_pallet_parameter(
+				Origin::root(),
+				parameter.clone(),
+			));
+
+			assert_eq!(TokenConversionRate::get(), 10.into());
+			assert_eq!(
+				System::<TestRuntime>::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::pallet_message_lane(RawEvent::ParameterUpdated(parameter)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn pallet_parameter_may_be_updated_by_owner() {
+		run_test(|| {
+			ModuleOwner::<TestRuntime>::put(2);
+			get_ready_for_events();
+
+			let parameter = TestMessageLaneParameter::TokenConversionRate(10.into());
+			assert_ok!(Module::<TestRuntime>::update_pallet_parameter(
+				Origin::signed(2),
+				parameter.clone(),
+			));
+
+			assert_eq!(TokenConversionRate::get(), 10.into());
+			assert_eq!(
+				System::<TestRuntime>::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::pallet_message_lane(RawEvent::ParameterUpdated(parameter)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn pallet_parameter_cant_be_updated_by_arbitrary_submitter() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::update_pallet_parameter(
+					Origin::signed(2),
+					TestMessageLaneParameter::TokenConversionRate(10.into()),
+				),
+				DispatchError::BadOrigin,
+			);
+
+			ModuleOwner::<TestRuntime>::put(2);
+
+			assert_noop!(
+				Module::<TestRuntime>::update_pallet_parameter(
+					Origin::signed(1),
+					TestMessageLaneParameter::TokenConversionRate(10.into()),
+				),
+				DispatchError::BadOrigin,
+			);
+		});
+	}
+
+	#[test]
+	fn fixed_u128_works_as_i_think() {
+		// this test is here just to be sure that conversion rate may be represented with FixedU128
+		run_test(|| {
+			use sp_runtime::{FixedPointNumber, FixedU128};
+
+			// 1:1 conversion that we use by default for testnets
+			let rialto_token = 1u64;
+			let rialto_token_in_millau_tokens = TokenConversionRate::get().saturating_mul_int(rialto_token);
+			assert_eq!(rialto_token_in_millau_tokens, 1);
+
+			// let's say conversion rate is 1:1.7
+			let conversion_rate = FixedU128::saturating_from_rational(170, 100);
+			let rialto_tokens = 100u64;
+			let rialto_tokens_in_millau_tokens = conversion_rate.saturating_mul_int(rialto_tokens);
+			assert_eq!(rialto_tokens_in_millau_tokens, 170);
+
+			// let's say conversion rate is 1:0.25
+			let conversion_rate = FixedU128::saturating_from_rational(25, 100);
+			let rialto_tokens = 100u64;
+			let rialto_tokens_in_millau_tokens = conversion_rate.saturating_mul_int(rialto_tokens);
+			assert_eq!(rialto_tokens_in_millau_tokens, 25);
+		});
+	}
+
+	#[test]
 	fn pallet_rejects_transactions_if_halted() {
 		run_test(|| {
 			// send message first to be able to check that delivery_proof fails later
@@ -903,13 +1093,13 @@ mod tests {
 			assert_noop!(
 				Module::<TestRuntime>::receive_messages_delivery_proof(
 					Origin::signed(1),
-					Ok((
+					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
 							last_confirmed_nonce: 1,
 							..Default::default()
 						},
-					)),
+					))),
 					Default::default(),
 				),
 				Error::<TestRuntime, DefaultInstance>::Halted,
@@ -1072,6 +1262,22 @@ mod tests {
 	}
 
 	#[test]
+	fn receive_messages_proof_rejects_proof_with_too_many_messages() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
+					Origin::signed(1),
+					TEST_RELAYER_A,
+					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+					u32::MAX,
+					0,
+				),
+				Error::<TestRuntime, DefaultInstance>::TooManyMessagesInTheProof,
+			);
+		});
+	}
+
+	#[test]
 	fn receive_messages_delivery_proof_works() {
 		run_test(|| {
 			send_regular_message();
@@ -1103,13 +1309,13 @@ mod tests {
 			// this reports delivery of message 1 => reward is paid to TEST_RELAYER_A
 			assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
 				Origin::signed(1),
-				Ok((
+				TestMessagesDeliveryProof(Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
 						relayers: vec![(1, 1, TEST_RELAYER_A)].into_iter().collect(),
 						..Default::default()
 					}
-				)),
+				))),
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 1,
 					total_messages: 1,
@@ -1128,7 +1334,7 @@ mod tests {
 			// this reports delivery of both message 1 and message 2 => reward is paid only to TEST_RELAYER_B
 			assert_ok!(Module::<TestRuntime>::receive_messages_delivery_proof(
 				Origin::signed(1),
-				Ok((
+				TestMessagesDeliveryProof(Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
 						relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
@@ -1136,7 +1342,7 @@ mod tests {
 							.collect(),
 						..Default::default()
 					}
-				)),
+				))),
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 2,
 					total_messages: 2,
@@ -1158,7 +1364,11 @@ mod tests {
 	fn receive_messages_delivery_proof_rejects_invalid_proof() {
 		run_test(|| {
 			assert_noop!(
-				Module::<TestRuntime>::receive_messages_delivery_proof(Origin::signed(1), Err(()), Default::default(),),
+				Module::<TestRuntime>::receive_messages_delivery_proof(
+					Origin::signed(1),
+					TestMessagesDeliveryProof(Err(())),
+					Default::default(),
+				),
 				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDeliveryProof,
 			);
 		});
@@ -1171,7 +1381,7 @@ mod tests {
 			assert_noop!(
 				Module::<TestRuntime>::receive_messages_delivery_proof(
 					Origin::signed(1),
-					Ok((
+					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
 							relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
@@ -1179,7 +1389,7 @@ mod tests {
 								.collect(),
 							..Default::default()
 						}
-					)),
+					))),
 					UnrewardedRelayersState {
 						unrewarded_relayer_entries: 1,
 						total_messages: 2,
@@ -1193,7 +1403,7 @@ mod tests {
 			assert_noop!(
 				Module::<TestRuntime>::receive_messages_delivery_proof(
 					Origin::signed(1),
-					Ok((
+					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
 							relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
@@ -1201,7 +1411,7 @@ mod tests {
 								.collect(),
 							..Default::default()
 						}
-					)),
+					))),
 					UnrewardedRelayersState {
 						unrewarded_relayer_entries: 2,
 						total_messages: 1,
@@ -1288,5 +1498,78 @@ mod tests {
 			storage_keys::inbound_lane_data_key::<TestRuntime, DefaultInstance>(&*b"test").0,
 			hex!("87f1ffe31b52878f09495ca7482df1a4e5f83cf83f2127eb47afdc35d6e43fab44a8995dd50b6657a037a7839304535b74657374").to_vec(),
 		);
+	}
+
+	#[test]
+	fn actual_dispatch_weight_does_not_overlow() {
+		run_test(|| {
+			let message1 = message(1, TestPayload(0, Weight::MAX / 2));
+			let message2 = message(2, TestPayload(0, Weight::MAX / 2));
+			let message3 = message(2, TestPayload(0, Weight::MAX / 2));
+
+			assert_noop!(
+				Module::<TestRuntime, DefaultInstance>::receive_messages_proof(
+					Origin::signed(1),
+					TEST_RELAYER_A,
+					// this may cause overflow if source chain storage is invalid
+					Ok(vec![message1, message2, message3]).into(),
+					3,
+					100,
+				),
+				Error::<TestRuntime, DefaultInstance>::InvalidMessagesDispatchWeight,
+			);
+		});
+	}
+
+	#[test]
+	fn increase_message_fee_fails_if_message_is_already_delivered() {
+		run_test(|| {
+			send_regular_message();
+			receive_messages_delivery_proof();
+
+			assert_noop!(
+				Module::<TestRuntime, DefaultInstance>::increase_message_fee(Origin::signed(1), TEST_LANE_ID, 1, 100,),
+				Error::<TestRuntime, DefaultInstance>::MessageIsAlreadyDelivered,
+			);
+		});
+	}
+
+	#[test]
+	fn increase_message_fee_fails_if_message_is_not_yet_sent() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime, DefaultInstance>::increase_message_fee(Origin::signed(1), TEST_LANE_ID, 1, 100,),
+				Error::<TestRuntime, DefaultInstance>::MessageIsNotYetSent,
+			);
+		});
+	}
+
+	#[test]
+	fn increase_message_fee_fails_if_submitter_cant_pay_additional_fee() {
+		run_test(|| {
+			send_regular_message();
+
+			TestMessageDeliveryAndDispatchPayment::reject_payments();
+
+			assert_noop!(
+				Module::<TestRuntime, DefaultInstance>::increase_message_fee(Origin::signed(1), TEST_LANE_ID, 1, 100,),
+				Error::<TestRuntime, DefaultInstance>::FailedToWithdrawMessageFee,
+			);
+		});
+	}
+
+	#[test]
+	fn increase_message_fee_succeeds() {
+		run_test(|| {
+			send_regular_message();
+
+			assert_ok!(Module::<TestRuntime, DefaultInstance>::increase_message_fee(
+				Origin::signed(1),
+				TEST_LANE_ID,
+				1,
+				100,
+			),);
+			assert!(TestMessageDeliveryAndDispatchPayment::is_fee_paid(1, 100));
+		});
 	}
 }

@@ -23,6 +23,8 @@
 #![allow(clippy::large_enum_variant)]
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
+// From construct_runtime macro
+#![allow(clippy::from_over_into)]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -132,15 +134,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	transaction_version: 1,
 };
 
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
-
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-// These time units are defined in number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
-
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
 pub fn native_version() -> NativeVersion {
@@ -157,7 +150,7 @@ parameter_types! {
 		read: 60_000_000, // ~0.06 ms = ~60 µs
 		write: 200_000_000, // ~0.2 ms = 200 µs
 	};
-	pub const SS58Prefix: u8 = 86;
+	pub const SS58Prefix: u8 = 60;
 }
 
 impl frame_system::Config for Runtime {
@@ -215,6 +208,8 @@ impl pallet_bridge_call_dispatch::Config for Runtime {
 	type Event = Event;
 	type MessageId = (bp_message_lane::LaneId, bp_message_lane::MessageNonce);
 	type Call = Call;
+	type CallFilter = ();
+	type EncodedCall = crate::rialto_messages::FromRialtoEncodedCall;
 	type SourceChainAccountId = bp_rialto::AccountId;
 	type TargetChainAccountPublic = MultiSigner;
 	type TargetChainSignature = MultiSignature;
@@ -234,7 +229,7 @@ impl pallet_grandpa::Config for Runtime {
 }
 
 parameter_types! {
-	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
+	pub const MinimumPeriod: u64 = bp_millau::SLOT_DURATION / 2;
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -285,7 +280,7 @@ impl pallet_sudo::Config for Runtime {
 
 parameter_types! {
 	/// Authorities are changing every 5 minutes.
-	pub const Period: BlockNumber = 5 * MINUTES;
+	pub const Period: BlockNumber = bp_millau::SESSION_LENGTH;
 	pub const Offset: BlockNumber = 0;
 }
 
@@ -307,6 +302,22 @@ impl pallet_substrate_bridge::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 }
 
+parameter_types! {
+	// This is a pretty unscientific cap.
+	//
+	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
+	// call per block.
+	pub const MaxRequests: u32 = 50;
+}
+
+impl pallet_finality_verifier::Config for Runtime {
+	type BridgedChain = bp_rialto::Rialto;
+	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
+	type AncestryProof = Vec<bp_rialto::Header>;
+	type AncestryChecker = bp_header_chain::LinearAncestryChecker;
+	type MaxRequests = MaxRequests;
+}
+
 impl pallet_shift_session_manager::Config for Runtime {}
 
 parameter_types! {
@@ -315,6 +326,9 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_message_lane::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+	// `IdentityFee` is used by Millau => we may use weight directly
+	pub const GetDeliveryConfirmationTransactionFee: Balance =
+		bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT as _;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 }
 
@@ -322,6 +336,7 @@ impl pallet_message_lane::Config for Runtime {
 	type Event = Event;
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/390
 	type WeightInfo = pallet_message_lane::weights::RialtoWeight<Runtime>;
+	type Parameter = rialto_messages::MillauToRialtoMessageLaneParameter;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
@@ -340,6 +355,7 @@ impl pallet_message_lane::Config for Runtime {
 	type MessageDeliveryAndDispatchPayment = pallet_message_lane::instant_payments::InstantCurrencyPayments<
 		Runtime,
 		pallet_balances::Module<Runtime>,
+		GetDeliveryConfirmationTransactionFee,
 		RootAccountForPayments,
 	>;
 
@@ -356,10 +372,11 @@ construct_runtime!(
 		BridgeRialto: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeRialtoMessageLane: pallet_message_lane::{Module, Call, Storage, Event<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
+		BridgeFinalityVerifier: pallet_finality_verifier::{Module, Call},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-		Aura: pallet_aura::{Module, Config<T>, Inherent},
+		Aura: pallet_aura::{Module, Config<T>},
 		Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
@@ -589,5 +606,78 @@ impl_runtime_apis! {
 		fn unrewarded_relayers_state(lane: bp_message_lane::LaneId) -> bp_message_lane::UnrewardedRelayersState {
 			BridgeRialtoMessageLane::inbound_unrewarded_relayers_state(lane)
 		}
+	}
+}
+
+/// Rialto account ownership digest from Millau.
+///
+/// The byte vector returned by this function should be signed with a Rialto account private key.
+/// This way, the owner of `millau_account_id` on Millau proves that the Rialto account private key
+/// is also under his control.
+pub fn rialto_account_ownership_digest<Call, AccountId, SpecVersion>(
+	rialto_call: &Call,
+	millau_account_id: AccountId,
+	rialto_spec_version: SpecVersion,
+) -> sp_std::vec::Vec<u8>
+where
+	Call: codec::Encode,
+	AccountId: codec::Encode,
+	SpecVersion: codec::Encode,
+{
+	pallet_bridge_call_dispatch::account_ownership_digest(
+		rialto_call,
+		millau_account_id,
+		rialto_spec_version,
+		bp_runtime::MILLAU_BRIDGE_INSTANCE,
+	)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use bridge_runtime_common::messages;
+
+	#[test]
+	fn ensure_millau_message_lane_weights_are_correct() {
+		// TODO: https://github.com/paritytech/parity-bridges-common/issues/390
+		type Weights = pallet_message_lane::weights::RialtoWeight<Runtime>;
+
+		pallet_message_lane::ensure_weights_are_correct::<Weights>(
+			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+		);
+
+		let max_incoming_message_proof_size = bp_rialto::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
+			messages::target::maximal_incoming_message_size(bp_millau::max_extrinsic_size()),
+		);
+		pallet_message_lane::ensure_able_to_receive_message::<Weights>(
+			bp_millau::max_extrinsic_size(),
+			bp_millau::max_extrinsic_weight(),
+			max_incoming_message_proof_size,
+			bridge_runtime_common::messages::transaction_weight_without_multiplier(
+				bp_millau::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+				max_incoming_message_proof_size as _,
+				0,
+			),
+			messages::target::maximal_incoming_message_dispatch_weight(bp_millau::max_extrinsic_weight()),
+		);
+
+		let max_incoming_inbound_lane_data_proof_size = bp_message_lane::InboundLaneData::<()>::encoded_size_hint(
+			bp_millau::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+			bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE as _,
+		)
+		.unwrap_or(u32::MAX);
+		pallet_message_lane::ensure_able_to_receive_confirmation::<Weights>(
+			bp_millau::max_extrinsic_size(),
+			bp_millau::max_extrinsic_weight(),
+			max_incoming_inbound_lane_data_proof_size,
+			bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
+			bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+			bridge_runtime_common::messages::transaction_weight_without_multiplier(
+				bp_millau::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+				max_incoming_inbound_lane_data_proof_size as _,
+				0,
+			),
+		);
 	}
 }

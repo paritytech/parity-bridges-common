@@ -21,7 +21,7 @@
 use bp_currency_exchange::{
 	CurrencyConverter, DepositInto, Error as ExchangeError, MaybeLockFundsTransaction, RecipientsMap,
 };
-use bp_header_chain::BaseHeaderChain;
+use bp_header_chain::InclusionProofVerifier;
 use frame_support::{decl_error, decl_module, decl_storage, ensure};
 use sp_runtime::DispatchResult;
 
@@ -39,10 +39,10 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// Handler for transaction submission result.
 	type OnTransactionSubmitted: OnTransactionSubmitted<Self::AccountId>;
 	/// Represents the blockchain that we'll be exchanging currency with.
-	type PeerBlockchain: BaseHeaderChain;
+	type PeerBlockchain: InclusionProofVerifier;
 	/// Peer blockchain transaction parser.
 	type PeerMaybeLockFundsTransaction: MaybeLockFundsTransaction<
-		Transaction = <Self::PeerBlockchain as BaseHeaderChain>::Transaction,
+		Transaction = <Self::PeerBlockchain as InclusionProofVerifier>::Transaction,
 	>;
 	/// Map between blockchains recipients.
 	type RecipientsMap: RecipientsMap<
@@ -89,7 +89,7 @@ decl_module! {
 		#[weight = 0] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn import_peer_transaction(
 			origin,
-			proof: <<T as Config<I>>::PeerBlockchain as BaseHeaderChain>::TransactionInclusionProof,
+			proof: <<T as Config<I>>::PeerBlockchain as InclusionProofVerifier>::TransactionInclusionProof,
 		) -> DispatchResult {
 			let submitter = frame_system::ensure_signed(origin)?;
 
@@ -134,7 +134,9 @@ decl_storage! {
 impl<T: Config<I>, I: Instance> Module<T, I> {
 	/// Returns true if currency exchange module is able to import given transaction proof in
 	/// its current state.
-	pub fn filter_transaction_proof(proof: &<T::PeerBlockchain as BaseHeaderChain>::TransactionInclusionProof) -> bool {
+	pub fn filter_transaction_proof(
+		proof: &<T::PeerBlockchain as InclusionProofVerifier>::TransactionInclusionProof,
+	) -> bool {
 		if let Err(err) = prepare_deposit_details::<T, I>(proof) {
 			frame_support::debug::trace!(
 				target: "runtime",
@@ -180,7 +182,7 @@ struct DepositDetails<T: Config<I>, I: Instance> {
 /// Verify and parse transaction proof, preparing everything required for importing
 /// this transaction proof.
 fn prepare_deposit_details<T: Config<I>, I: Instance>(
-	proof: &<<T as Config<I>>::PeerBlockchain as BaseHeaderChain>::TransactionInclusionProof,
+	proof: &<<T as Config<I>>::PeerBlockchain as InclusionProofVerifier>::TransactionInclusionProof,
 ) -> Result<DepositDetails<T, I>, Error<T, I>> {
 	// ensure that transaction is included in finalized block that we know of
 	let transaction = <T as Config<I>>::PeerBlockchain::verify_transaction_inclusion_proof(proof)
@@ -208,9 +210,12 @@ fn prepare_deposit_details<T: Config<I>, I: Instance>(
 
 #[cfg(test)]
 mod tests {
+	// From construct_runtime macro
+	#![allow(clippy::from_over_into)]
+
 	use super::*;
 	use bp_currency_exchange::LockFundsTransaction;
-	use frame_support::{assert_noop, assert_ok, impl_outer_origin, parameter_types, weights::Weight};
+	use frame_support::{assert_noop, assert_ok, construct_runtime, parameter_types, weights::Weight};
 	use sp_core::H256;
 	use sp_runtime::{
 		testing::Header,
@@ -239,7 +244,7 @@ mod tests {
 
 	pub struct DummyBlockchain;
 
-	impl BaseHeaderChain for DummyBlockchain {
+	impl InclusionProofVerifier for DummyBlockchain {
 		type Transaction = RawTransaction;
 		type TransactionInclusionProof = (bool, RawTransaction);
 
@@ -311,11 +316,19 @@ mod tests {
 		}
 	}
 
-	#[derive(Clone, Eq, PartialEq)]
-	pub struct TestRuntime;
+	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
+	type Block = frame_system::mocking::MockBlock<TestRuntime>;
+	use crate as pallet_bridge_currency_exchange;
 
-	impl_outer_origin! {
-		pub enum Origin for TestRuntime where system = frame_system {}
+	construct_runtime! {
+		pub enum TestRuntime where
+			Block = Block,
+			NodeBlock = Block,
+			UncheckedExtrinsic = UncheckedExtrinsic,
+		{
+			System: frame_system::{Module, Call, Config, Storage, Event<T>},
+			Exchange: pallet_bridge_currency_exchange::{Module},
+		}
 	}
 
 	parameter_types! {
@@ -328,7 +341,7 @@ mod tests {
 	impl frame_system::Config for TestRuntime {
 		type Origin = Origin;
 		type Index = u64;
-		type Call = ();
+		type Call = Call;
 		type BlockNumber = u64;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
@@ -338,7 +351,7 @@ mod tests {
 		type Event = ();
 		type BlockHashCount = BlockHashCount;
 		type Version = ();
-		type PalletInfo = ();
+		type PalletInfo = PalletInfo;
 		type AccountData = ();
 		type OnNewAccount = ();
 		type OnKilledAccount = ();
@@ -359,8 +372,6 @@ mod tests {
 		type CurrencyConverter = DummyCurrencyConverter;
 		type DepositInto = DummyDepositInto;
 	}
-
-	type Exchange = Module<TestRuntime>;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
 		let t = frame_system::GenesisConfig::default()

@@ -54,11 +54,12 @@
 //! Import a finality proof for header 2 on fork 1. This finalty proof should fail to be imported
 //! because the header is an old header.
 
-use crate::justification::tests::*;
-use crate::mock::{helpers::*, *};
-use crate::storage::{AuthoritySet, ImportedHeader};
+use crate::mock::*;
+use crate::storage::ImportedHeader;
 use crate::verifier::*;
 use crate::{BestFinalized, BestHeight, BridgeStorage, NextScheduledChange, PalletStorage};
+use bp_header_chain::AuthoritySet;
+use bp_test_utils::{alice, authority_list, bob, make_justification_for_header};
 use codec::Encode;
 use frame_support::{IterableStorageMap, StorageValue};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
@@ -397,7 +398,9 @@ where
 						}
 
 						// Try and import into storage
-						let res = verifier.import_header(header.clone()).map_err(TestError::Import);
+						let res = verifier
+							.import_header(header.hash(), header.clone())
+							.map_err(TestError::Import);
 						assert_eq!(
 							res, *expected_result,
 							"Expected {:?} while importing header ({}, {}), got {:?}",
@@ -427,7 +430,9 @@ where
 						header.digest = change_log(*delay);
 					}
 
-					let res = verifier.import_header(header.clone()).map_err(TestError::Import);
+					let res = verifier
+						.import_header(header.hash(), header.clone())
+						.map_err(TestError::Import);
 					assert_eq!(
 						res, *expected_result,
 						"Expected {:?} while importing header ({}, {}), got {:?}",
@@ -452,8 +457,7 @@ where
 				let grandpa_round = 1;
 				let set_id = 1;
 				let authorities = authority_list();
-				let justification =
-					make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+				let justification = make_justification_for_header(header, grandpa_round, set_id, &authorities).encode();
 
 				let res = verifier
 					.import_finality_proof(header.hash(), justification.into())
@@ -499,7 +503,7 @@ where
 	storage.update_current_authority_set(authority_set);
 }
 
-fn change_log(delay: u64) -> Digest<TestHash> {
+pub(crate) fn change_log(delay: u64) -> Digest<TestHash> {
 	let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
 		next_authorities: vec![(alice(), 1), (bob(), 1)],
 		delay,

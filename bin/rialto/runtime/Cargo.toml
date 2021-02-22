@@ -8,10 +8,10 @@ repository = "https://github.com/paritytech/parity-bridges-common/"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "1.3.1", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 hex-literal = "0.3"
 libsecp256k1 = { version = "0.3.4", optional = true, default-features = false, features = ["hmac"] }
-serde = { version = "1.0.118", optional = true, features = ["derive"] }
+serde = { version = "1.0.123", optional = true, features = ["derive"] }
 
 # Bridge dependencies
 
@@ -27,6 +27,7 @@ bridge-runtime-common = { path = "../../runtime-common", default-features = fals
 pallet-bridge-eth-poa = { path = "../../../modules/ethereum", default-features = false }
 pallet-bridge-call-dispatch = { path = "../../../modules/call-dispatch", default-features = false }
 pallet-bridge-currency-exchange = { path = "../../../modules/currency-exchange", default-features = false }
+pallet-finality-verifier = { path = "../../../modules/finality-verifier", default-features = false }
 pallet-substrate-bridge = { path = "../../../modules/substrate", default-features = false }
 pallet-message-lane = { path = "../../../modules/message-lane", default-features = false }
 pallet-shift-session-manager = { path = "../../../modules/shift-session-manager", default-features = false }
@@ -90,6 +91,7 @@ std = [
 	"pallet-bridge-eth-poa/std",
 	"pallet-bridge-call-dispatch/std",
 	"pallet-bridge-currency-exchange/std",
+	"pallet-finality-verifier/std",
 	"pallet-grandpa/std",
 	"pallet-message-lane/std",
 	"pallet-randomness-collective-flip/std",
