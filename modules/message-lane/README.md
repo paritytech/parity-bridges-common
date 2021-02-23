@@ -40,8 +40,9 @@ now.
 
 We assume that there are external, offchain actors, called relayers, that are submitting module
 related transactions to both target and source chains. The pallet itself has no assumptions about
-relayers incentivization scheme, but it has some callbacks for paying rewards. See [Integrating
-Message Lane Module into runtime](#Integrating-Message-Lane-Module-into-runtime) for details.
+relayers incentivization scheme, but it has some callbacks for paying rewards. See
+[Integrating Message Lane Module into runtime](#Integrating-Message-Lane-Module-into-runtime)
+for details.
 
 Eventually, some relayer would notice this message in the "undelivered" state and it would decide to
 deliver this message. Relayer then crafts `receive_messages_proof()` transaction (aka delivery
