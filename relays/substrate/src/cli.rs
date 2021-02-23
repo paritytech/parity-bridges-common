@@ -17,6 +17,7 @@
 //! Deal with CLI args of substrate-to-substrate relay.
 
 use bp_message_lane::LaneId;
+use frame_support::weights::Weight;
 use sp_core::Bytes;
 use sp_finality_grandpa::SetId as GrandpaAuthoritiesSetId;
 use structopt::{clap::arg_enum, StructOpt};
@@ -26,23 +27,36 @@ pub fn parse_args() -> Command {
 	Command::from_args()
 }
 
-/// Substrate-to-Substrate relay CLI args.
+/// Substrate-to-Substrate bridge utilities.
 #[derive(StructOpt)]
 #[structopt(about = "Substrate-to-Substrate relay")]
 pub enum Command {
-	/// Initialize Millau headers bridge in Rialto.
-	InitializeMillauHeadersBridgeInRialto {
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
-		#[structopt(flatten)]
-		millau_bridge_params: MillauBridgeInitializationParams,
-	},
+	/// Start headers relay between two chains.
+	///
+	/// The on-chain bridge component should have been already initialized with
+	/// `init-bridge` sub-command.
+	RelayHeaders(RelayHeaders),
+	/// Start messages relay between two chains.
+	///
+	/// Ties up to `MessageLane` pallets on both chains and starts relaying messages.
+	/// Requires the header relay to be already running.
+	RelayMessages(RelayMessages),
+	/// Initialize on-chain bridge pallet with current header data.
+	///
+	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
+	InitBridge(InitBridge),
+	/// Send custom message over the bridge.
+	///
+	/// Allows interacting with the bridge by sending messages over `MessageLane` component.
+	/// The message is being sent to the source chain, delivered to the target chain and dispatched
+	/// there.
+	SendMessage(SendMessage),
+}
+
+#[derive(StructOpt)]
+pub enum RelayHeaders {
 	/// Relay Millau headers to Rialto.
-	MillauHeadersToRialto {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -51,20 +65,9 @@ pub enum Command {
 		rialto_sign: RialtoSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
-	},
-	/// Initialize Rialto headers bridge in Millau.
-	InitializeRialtoHeadersBridgeInMillau {
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
-		#[structopt(flatten)]
-		rialto_bridge_params: RialtoBridgeInitializationParams,
 	},
 	/// Relay Rialto headers to Millau.
-	RialtoHeadersToMillau {
+	RialtoToMillau {
 		#[structopt(flatten)]
 		rialto: RialtoConnectionParams,
 		#[structopt(flatten)]
@@ -74,8 +77,12 @@ pub enum Command {
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
+}
+
+#[derive(StructOpt)]
+pub enum RelayMessages {
 	/// Serve given lane of Millau -> Rialto messages.
-	MillauMessagesToRialto {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -90,8 +97,54 @@ pub enum Command {
 		#[structopt(long)]
 		lane: HexLaneId,
 	},
+	/// Serve given lane of Rialto -> Millau messages.
+	RialtoToMillau {
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		rialto_sign: RialtoSigningParams,
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		prometheus_params: PrometheusParams,
+		/// Hex-encoded id of lane that should be served by relay.
+		#[structopt(long)]
+		lane: HexLaneId,
+	},
+}
+
+#[derive(StructOpt)]
+pub enum InitBridge {
+	/// Initialize Millau headers bridge in Rialto.
+	MillauToRialto {
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		rialto_sign: RialtoSigningParams,
+		#[structopt(flatten)]
+		millau_bridge_params: MillauBridgeInitializationParams,
+	},
+	/// Initialize Rialto headers bridge in Millau.
+	RialtoToMillau {
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		rialto_bridge_params: RialtoBridgeInitializationParams,
+	},
+}
+
+#[derive(StructOpt)]
+pub enum SendMessage {
 	/// Submit message to given Millau -> Rialto lane.
-	SubmitMillauToRialtoMessage {
+	MillauToRialto {
 		#[structopt(flatten)]
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
@@ -101,6 +154,9 @@ pub enum Command {
 		/// Hex-encoded lane id.
 		#[structopt(long)]
 		lane: HexLaneId,
+		/// Dispatch weight of the message. If not passed, determined automatically.
+		#[structopt(long)]
+		dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
 		/// Delivery and dispatch fee. If not passed, determined automatically.
 		#[structopt(long)]
 		fee: Option<bp_millau::Balance>,
@@ -111,24 +167,8 @@ pub enum Command {
 		#[structopt(long, possible_values = &Origins::variants())]
 		origin: Origins,
 	},
-	/// Serve given lane of Rialto -> Millau messages.
-	RialtoMessagesToMillau {
-		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
-		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
-		#[structopt(flatten)]
-		millau: MillauConnectionParams,
-		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
-		#[structopt(flatten)]
-		prometheus_params: PrometheusParams,
-		/// Hex-encoded id of lane that should be served by relay.
-		#[structopt(long)]
-		lane: HexLaneId,
-	},
 	/// Submit message to given Rialto -> Millau lane.
-	SubmitRialtoToMillauMessage {
+	RialtoToMillau {
 		#[structopt(flatten)]
 		rialto: RialtoConnectionParams,
 		#[structopt(flatten)]
@@ -138,6 +178,9 @@ pub enum Command {
 		/// Hex-encoded lane id.
 		#[structopt(long)]
 		lane: HexLaneId,
+		/// Dispatch weight of the message. If not passed, determined automatically.
+		#[structopt(long)]
+		dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
 		/// Delivery and dispatch fee. If not passed, determined automatically.
 		#[structopt(long)]
 		fee: Option<bp_rialto::Balance>,
@@ -154,7 +197,11 @@ pub enum Command {
 #[derive(StructOpt, Debug)]
 pub enum ToRialtoMessage {
 	/// Make an on-chain remark (comment).
-	Remark,
+	Remark {
+		/// Remark size. If not passed, small UTF8-encoded string is generated by relay as remark.
+		#[structopt(long)]
+		remark_size: Option<ExplicitOrMaximal<usize>>,
+	},
 	/// Transfer the specified `amount` of native tokens to a particular `recipient`.
 	Transfer {
 		#[structopt(long)]
@@ -168,7 +215,11 @@ pub enum ToRialtoMessage {
 #[derive(StructOpt, Debug)]
 pub enum ToMillauMessage {
 	/// Make an on-chain remark (comment).
-	Remark,
+	Remark {
+		/// Size of the remark. If not passed, small UTF8-encoded string is generated by relay as remark.
+		#[structopt(long)]
+		remark_size: Option<ExplicitOrMaximal<usize>>,
+	},
 	/// Transfer the specified `amount` of native tokens to a particular `recipient`.
 	Transfer {
 		#[structopt(long)]
@@ -181,6 +232,9 @@ pub enum ToMillauMessage {
 arg_enum! {
 	#[derive(Debug)]
 	/// The origin to use when dispatching the message on the target chain.
+	///
+	/// - `Target` uses account existing on the target chain (requires target private key).
+	/// - `Origin` uses account derived from the source-chain account.
 	pub enum Origins {
 		Target,
 		Source,
@@ -231,6 +285,32 @@ impl From<PrometheusParams> for Option<relay_utils::metrics::MetricsParams> {
 		} else {
 			None
 		}
+	}
+}
+
+/// Either explicit or maximal allowed value.
+#[derive(Debug)]
+pub enum ExplicitOrMaximal<V> {
+	/// User has explicitly specified argument value.
+	Explicit(V),
+	/// Maximal allowed value for this argument.
+	Maximal,
+}
+
+impl<V: std::str::FromStr> std::str::FromStr for ExplicitOrMaximal<V>
+where
+	V::Err: std::fmt::Debug,
+{
+	type Err = String;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		if s.to_lowercase() == "max" {
+			return Ok(ExplicitOrMaximal::Maximal);
+		}
+
+		V::from_str(s)
+			.map(ExplicitOrMaximal::Explicit)
+			.map_err(|e| format!("Failed to parse '{:?}'. Expected 'max' or explicit value", e))
 	}
 }
 
