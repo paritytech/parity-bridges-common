@@ -141,7 +141,7 @@ pub mod pallet {
 				<Error<T>>::InvalidAncestryProof
 			);
 
-			T::HeaderChain::append_header(finality_target);
+			let _ = T::HeaderChain::append_header(finality_target)?;
 			frame_support::debug::info!("Succesfully imported finalized header with hash {:?}!", hash);
 
 			Ok(().into())
