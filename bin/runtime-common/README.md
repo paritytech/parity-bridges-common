@@ -9,7 +9,7 @@ message lane module into your runtime. Basic prerequisites of these helpers are:
 - the messages sent over the bridge are dispatched using
   [call dispatch module](../../modules/call-dispatch/README.md);
 - the messages are `pallet_bridge_call_dispatch::MessagePayload` structures, where `call` field is
-  encoded `Call` of the target chain. So the `Call` is opaque to the
+  encoded `Call` of the target chain. This means that the `Call` is opaque to the
   [message lane module](../../modules/message-lane/README.md) instance at the source chain.
   It is pre-encoded by the message submitter;
 - all proofs in the [message lane module](../../modules/message-lane/README.md) transactions are
@@ -25,10 +25,16 @@ message lane module into your runtime. Basic prerequisites of these helpers are:
 ([rialto_messages.rs](../millau/runtime/src/rialto_messages.rs) and/or
 [millau_messages.rs](../rialto/runtime/src/millau_messages.rs)) to see how to use these helpers.
 
+## Contents
+- [`MessageBridge` Trait](#messagebridge-trait)
+- [`ChainWithMessageLanes` Trait ](#chainwithmessagelanes-trait)
+- [Helpers for the Source Chain](#helpers-for-the-source-chain)
+- [Helpers for the Target Chain](#helpers-for-the-target-chain)
+
 ## `MessageBridge` Trait
 
 The essence of your integration will be a struct that implements a `MessageBridge` trait. Let's
-review every method and give some implementation  hints here:
+review every method and give some implementation hints here:
 
 - `MessageBridge::maximal_extrinsic_size_on_target_chain`: you will need to return the maximal
   extrinsic size of the target chain from this function. This may be the constant that is updated
@@ -51,14 +57,18 @@ review every method and give some implementation  hints here:
 
 - `MessageBridge::weight_of_delivery_transaction`: you will need to return the maximal weight of the
   delivery transaction that delivers a given message to the target chain. There are three main
-  things to notice: 1) weight, returned from this function is then used to compute the fee that the
+  things to notice:
+
+  1. weight, returned from this function is then used to compute the fee that the
   message sender needs to pay for the delivery transaction. So it shall not be a simple dispatch
   weight of delivery call - it should be the "weight" of the transaction itself, including per-byte
-  "weight", "weight" of signed extras and etc.  2) the delivery transaction brings storage proof of
+  "weight", "weight" of signed extras and etc.
+  1. the delivery transaction brings storage proof of
   the message, not the message itself. So your transaction will include extra bytes. We suggest
   computing the size of single empty value storage proof at the source chain, increase this value a
   bit and hardcode it in the source chain runtime code. This size then must be added to the size of
-  payload and included in the weight computation; 3) before implementing this function, please take
+  payload and included in the weight computation;
+  1. before implementing this function, please take
   a look at the
   [weight formula of delivery transaction](../../modules/message-lane/README.md#Weight-of-receive_messages_proof-call).
   It adds some extra weight for every additional byte of the proof (everything above
@@ -106,7 +116,7 @@ are:
   instance. This does not necessarily mean that we should use the same instance on both chains -
   this instance may be used to bridge with another chain/instance, or may not be used at all.
 
-## Helpers for using at the Source Chain
+## Helpers for the Source Chain
 
 The helpers for the Source Chain reside in the `source` submodule of the
 [`messages`](./src/messages.rs) module. The structs are: `FromThisChainMessagePayload`,
@@ -120,21 +130,19 @@ at this chain we don't see internals of this call - we just know its size.
 
 `FromThisChainMessageVerifier` is an implementation of `bp_message_lane::LaneMessageVerifier`. It
 has following checks in its `verify_message` method:
-1. it'll verify that the used outbound lane is
-enabled in our runtime;
 
-1. it'll reject messages if there are too many undelivered outbound messages
-at this lane. The sender need to wait while relayers will do their work before sending the message
-again;
+1. it'll verify that the used outbound lane is enabled in our runtime;
 
-1. it'll reject a message if it has the wrong dispatch origin declared. Like if the submitter
-is not the root of this chain, but it tries to dispatch the message at the target chain using
-`pallet_bridge_call_dispatch::CallOrigin::SourceRoot` origin. Or he has provided wrong signature in
-the `pallet_bridge_call_dispatch::CallOrigin::TargetAccount` origin;
+1. it'll reject messages if there are too many undelivered outbound messages at this lane. The
+   sender need to wait while relayers will do their work before sending the message again;
 
-1. it'll reject a message if
-the delivery and dispatch fee that the submitter wants to pay is lesser than the fee that is
-computed using the `estimate_message_dispatch_and_delivery_fee` function.
+1. it'll reject a message if it has the wrong dispatch origin declared. Like if the submitter is not
+   the root of this chain, but it tries to dispatch the message at the target chain using
+   `pallet_bridge_call_dispatch::CallOrigin::SourceRoot` origin. Or he has provided wrong signature
+   in the `pallet_bridge_call_dispatch::CallOrigin::TargetAccount` origin;
+
+1. it'll reject a message if the delivery and dispatch fee that the submitter wants to pay is lesser
+   than the fee that is computed using the `estimate_message_dispatch_and_delivery_fee` function.
 
 `estimate_message_dispatch_and_delivery_fee` returns a minimal fee that the submitter needs to pay
 for sending a given message. The fee includes: payment for the delivery transaction at the target
@@ -150,13 +158,13 @@ was used to generate this storage proof. The proof is verified by the
 `verify_chain_message` function checks that the message may be delivered to the bridged chain. There
 are two main checks:
 
-1. that the message size is less than or equal to the `2/3` of maximal
-extrinsic size at the target chain. We leave `1/3` for signed extras and for the storage proof
-overhead;
-1. that the message dispatch weight is less than or equal to the `1/2` of maximal normal
-extrinsic weight at the target chain. We leave `1/2` for the delivery transaction overhead.
+1. that the message size is less than or equal to the `2/3` of maximal extrinsic size at the target
+   chain. We leave `1/3` for signed extras and for the storage proof overhead;
 
-## Helpers for using at the Target Chain
+1. that the message dispatch weight is less than or equal to the `1/2` of maximal normal extrinsic
+   weight at the target chain. We leave `1/2` for the delivery transaction overhead.
+
+## Helpers for the Target Chain
 
 The helpers for the target chain reside in the `target` submodule of the
 [`messages`](./src/messages.rs) module. The structs are: `FromBridgedChainMessagePayload`,

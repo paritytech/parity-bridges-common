@@ -4,6 +4,13 @@ The message lane module is used to deliver messages from source chain to target 
 (almost) opaque to the module and the final goal is to hand message to the message dispatch
 mechanism.
 
+## Contents
+- [Overview](#overview)
+- [Message Workflow](#message-workflow)
+- [Integrating Message Lane Module into Runtime](#integrating-message-lane-module-into-runtime)
+- [Non-Essential Functionality](#non-essential-functionality)
+- [Weights of Module Extrinsics](#weights-of-module-extrinsics)
+
 ## Overview
 
 Message lane is an unidirectional channel, where messages are sent from source chain to the target
@@ -134,8 +141,7 @@ transferred between submitter, 'relayers fund' and relayers accounts. Other impl
 more or less sophisticated techniques - the whole relayers incentivization scheme is not a part of
 the message lane module.
 
-### I have a Message Lane Module in my Runtime, but I Want to Reject all Outbound Messages. What
-shall I do?
+### I have a Message Lane Module in my Runtime, but I Want to Reject all Outbound Messages. What shall I do?
 
 You should be looking at the `bp_message_lane::source_chain::ForbidOutboundMessages` structure
 [`bp_message_lane::source_chain`](../../primitives/message-lane/src/source_chain.rs). It implements
@@ -236,7 +242,7 @@ The main assumptions behind weight formulas is:
 - whenever possible, relayer tries to minimize cost of its transactions. So e.g. even though sender
   always pays for delivering outbound lane state proof, relayer may not include it in the delivery
   transaction (unless message lane module on target chain requires that);
-- weight formula should incentivize relayer to not to submit any redundand data in the extrinsics
+- weight formula should incentivize relayer to not to submit any redundant data in the extrinsics
   arguments;
 - the extrinsic shall never be executing slower (i.e. has larger actual weight) than defined by the
   formula.
@@ -288,7 +294,10 @@ has slightly larger impact on performance than increasing values stored in leafs
 
 The weight formula is:
 ```
-Weight = BaseWeight + OutboundStateDeliveryWeight + MessagesCount * MessageDeliveryWeight + MessagesDispatchWeight + Max(0, ActualProofSize - ExpectedProofSize) * ProofByteDeliveryWeight
+Weight = BaseWeight + OutboundStateDeliveryWeight
+       + MessagesCount * MessageDeliveryWeight
+       + MessagesDispatchWeight
+       + Max(0, ActualProofSize - ExpectedProofSize) * ProofByteDeliveryWeight
 ```
 
 Where:

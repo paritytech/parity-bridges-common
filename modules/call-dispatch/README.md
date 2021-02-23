@@ -2,17 +2,17 @@
 
 The call dispatch module has a single internal (only callable by other runtime modules) entry point
 for dispatching encoded calls (`pallet_bridge_call_dispatch::Module::dispatch`). Every dispatch
-(successful or not) emits a corresponding module event. The module has no any call-related
+(successful or not) emits a corresponding module event. The module doesn't have any call-related
 requirements - they may come from the bridged chain over some message lane, or they may be crafted
 locally. But in this document we'll mostly talk about this module in the context of bridges.
 
 Every message that is being dispatched has three main characteristics:
-- `bridge` is the 4-bytes identifier of the bridge where this message comes from. The may be the
+- `bridge` is the 4-bytes identifier of the bridge where this message comes from. This may be the
   identifier of the bridged chain (like `b"rlto"` for messages coming from `Rialto`), or the
   identifier of the bridge itself (`b"rimi"` for `Rialto` <-> `Millau` bridge);
 - `id` is the unique id of the message within the given bridge. For messages coming from the
-  [message lane module](../message-lane/README.md), it may worth to use a tuple `(LaneId,
-  MessageNonce)` to identify a message;
+  [message lane module](../message-lane/README.md), it may worth to use a tuple
+  `(LaneId, MessageNonce)` to identify a message;
 - `message` is the `pallet_bridge_call_dispatch::MessagePayload` structure. The `call` field is set
   to the (potentially) encoded `Call` of this chain.
 
@@ -48,12 +48,14 @@ module events set:
   dispatched it. The dispatch may still fail, though - that's why we are including the dispatch
   result in the event payload.
 
-When we talk about module in context of bridges, these events are helping in following cases: 1)
-when the message submitter has access to the state of both chains and wants to monitor what has
-happened with his message. Then he could use the message id (that he gets from the
-[message lane module events](../message-lane/README.md#General-Information)) to filter events of
-call dispatch module at the target chain && actually see what has happened with his message; 2) when
-the message submitter only has access to the source chain state (for example, when sender is the
-runtime module at the source chain). In this case, your bridge may have additional mechanism to
-deliver dispatch proofs (which are storage proof of module events) back to the source chain, thus
-allowing the submitter to see what has happened with his messages.
+When we talk about module in context of bridges, these events are helping in following cases:
+
+1. when the message submitter has access to the state of both chains and wants to monitor what has
+   happened with his message. Then he could use the message id (that he gets from the
+   [message lane module events](../message-lane/README.md#General-Information)) to filter events of
+   call dispatch module at the target chain and actually see what has happened with his message;
+
+1. when the message submitter only has access to the source chain state (for example, when sender is
+   the runtime module at the source chain). In this case, your bridge may have additional mechanism
+   to deliver dispatch proofs (which are storage proof of module events) back to the source chain,
+   thus allowing the submitter to see what has happened with his messages.
