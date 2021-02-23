@@ -9,8 +9,8 @@ on:
       - v*
     paths-ignore:
       - '**/README.md'
-      - diagrams/
-      - docs/
+      - diagrams/*
+      - docs/*
   schedule:                        # Weekly build
     - cron:                        '0 0 * * 0'
 jobs:
