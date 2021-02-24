@@ -18,6 +18,7 @@
 
 #![warn(missing_docs)]
 
+use cli::EncodeCall;
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_call_dispatch::{CallOrigin, MessagePayload};
@@ -64,6 +65,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 		cli::Command::RelayHeaders(arg) => run_relay_headers(arg).await,
 		cli::Command::RelayMessages(arg) => run_relay_messages(arg).await,
 		cli::Command::SendMessage(arg) => run_send_message(arg).await,
+		cli::Command::EncodeCall(arg) => run_encode_call(arg).await,
 	}
 }
 
@@ -336,6 +338,30 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 
 			rialto_client.submit_extrinsic(Bytes(signed_rialto_call)).await?;
 		}
+	}
+	Ok(())
+}
+
+async fn run_encode_call(call: EncodeCall) -> Result<(), String> {
+	match call {
+		EncodeCall::Rialto { call } => {
+			let call = call.into_call();
+			log::info!(
+				target: "bridge",
+				"Encoding Rialto call: {:?}\n",
+				call
+			);
+			println!("\n0x{}", hex::encode(&call.encode()));
+		},
+		EncodeCall::Millau { call } => {
+			let call = call.into_call();
+			log::info!(
+				target: "bridge",
+				"Encoding Millau call: {:?}\n",
+				call
+			);
+			println!("0x{}", hex::encode(&call.encode()));
+		},
 	}
 	Ok(())
 }

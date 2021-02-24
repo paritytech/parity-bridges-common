@@ -51,8 +51,14 @@ pub enum Command {
 	/// The message is being sent to the source chain, delivered to the target chain and dispatched
 	/// there.
 	SendMessage(SendMessage),
+	/// Generate SCALE-encoded Call for choosen network.
+	///
+	/// The call can be used either as message payload or can be wrapped into a transaction
+	/// and executed on the chain directly.
+	EncodeCall(EncodeCall),
 }
 
+/// Start headers relayer process.
 #[derive(StructOpt)]
 pub enum RelayHeaders {
 	/// Relay Millau headers to Rialto.
@@ -79,6 +85,7 @@ pub enum RelayHeaders {
 	},
 }
 
+/// Start message relayer process.
 #[derive(StructOpt)]
 pub enum RelayMessages {
 	/// Serve given lane of Millau -> Rialto messages.
@@ -115,6 +122,7 @@ pub enum RelayMessages {
 	},
 }
 
+/// Initialize bridge pallet.
 #[derive(StructOpt)]
 pub enum InitBridge {
 	/// Initialize Millau headers bridge in Rialto.
@@ -141,6 +149,7 @@ pub enum InitBridge {
 	},
 }
 
+/// Send bridge message.
 #[derive(StructOpt)]
 pub enum SendMessage {
 	/// Submit message to given Millau -> Rialto lane.
@@ -190,6 +199,21 @@ pub enum SendMessage {
 		/// The origin to use when dispatching the message on the target chain.
 		#[structopt(long, possible_values = &Origins::variants())]
 		origin: Origins,
+	},
+}
+
+/// A call to encode.
+#[derive(StructOpt)]
+pub enum EncodeCall {
+	/// Encode Rialto's Call.
+	Rialto {
+		#[structopt(flatten)]
+		call: ToRialtoMessage,
+	},
+	/// Encode Millau's Call.
+	Millau {
+		#[structopt(flatten)]
+		call: ToMillauMessage,
 	},
 }
 
