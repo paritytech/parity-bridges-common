@@ -383,12 +383,8 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>, sp_runtime::Dispa
 	fn append_header(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
 		// We do a quick check here to ensure that our header chain is making progress and isn't
 		// "travelling back in time" (which would be indicative of something bad, e.g a hard-fork).
-		//
-		// Note: It is valid for GRANDPA to finalize the same header twice as long as it is
-		// finalized in different rounds. This is why we don't check for a strictly greater-than
-		// relationship here.
 		let best_finalized = PalletStorage::<T>::new().best_finalized_header().header;
-		ensure!(best_finalized.number() <= header.number(), <Error<T>>::ConflictingFork);
+		ensure!(best_finalized.number() < header.number(), <Error<T>>::ConflictingFork);
 		import_header_unchecked::<_, T>(&mut PalletStorage::<T>::new(), header);
 
 		Ok(())
