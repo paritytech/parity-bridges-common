@@ -31,6 +31,7 @@ pub struct Cli {
 pub enum Subcommand {
 	/// Key management cli utilities
 	Key(sc_cli::KeySubcommand),
+
 	/// Verify a signature for a message, provided on STDIN, with a given (public or secret) key.
 	Verify(sc_cli::VerifyCmd),
 
