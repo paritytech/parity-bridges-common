@@ -18,7 +18,6 @@
 
 #![warn(missing_docs)]
 
-use cli::EncodeCall;
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_call_dispatch::{CallOrigin, MessagePayload};
@@ -342,9 +341,9 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 	Ok(())
 }
 
-async fn run_encode_call(call: EncodeCall) -> Result<(), String> {
+async fn run_encode_call(call: cli::EncodeCall) -> Result<(), String> {
 	match call {
-		EncodeCall::Rialto { call } => {
+		cli::EncodeCall::Rialto { call } => {
 			let call = call.into_call();
 			log::info!(
 				target: "bridge",
@@ -353,7 +352,7 @@ async fn run_encode_call(call: EncodeCall) -> Result<(), String> {
 			);
 			println!("\n0x{}", hex::encode(&call.encode()));
 		},
-		EncodeCall::Millau { call } => {
+		cli::EncodeCall::Millau { call } => {
 			let call = call.into_call();
 			log::info!(
 				target: "bridge",
@@ -362,6 +361,43 @@ async fn run_encode_call(call: EncodeCall) -> Result<(), String> {
 			);
 			println!("0x{}", hex::encode(&call.encode()));
 		},
+		cli::EncodeCall::RialtoToMillauMessagePayload {
+			message,
+			weight,
+			sender,
+		} => {
+			let spec_version = millau_runtime::VERSION.spec_version;
+			let origin = CallOrigin::<_, bp_millau::AccountSigner, bp_millau::Signature>
+				::SourceAccount(sender);
+			let call = message.into_call().encode();
+
+			let payload = MessagePayload { spec_version, weight, origin, call };
+			log::info!(
+				target: "bridge",
+				"Message payload: {:?}",
+				payload,
+			);
+			println!("0x{}", hex::encode(&payload.encode()));
+		},
+		cli::EncodeCall::MillauToRialtoMessagePayload {
+			message,
+			weight,
+			sender,
+		} => {
+			let spec_version = rialto_runtime::VERSION.spec_version;
+			let origin = CallOrigin::<_, bp_rialto::AccountSigner, bp_rialto::Signature>
+				::SourceAccount(sender);
+			let call = message.into_call().encode();
+
+			let payload = MessagePayload { spec_version, weight, origin, call };
+			log::info!(
+				target: "bridge",
+				"Message payload: {:?}",
+				payload,
+			);
+			println!("0x{}", hex::encode(&payload.encode()));
+		},
+
 	}
 	Ok(())
 }

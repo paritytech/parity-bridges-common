@@ -215,6 +215,28 @@ pub enum EncodeCall {
 		#[structopt(flatten)]
 		call: ToMillauMessage,
 	},
+	/// Message Payload of Rialto to Millau call.
+	RialtoToMillauMessagePayload {
+		#[structopt(flatten)]
+		message: ToMillauMessage,
+		/// Declared weight of the dispatch cost on the target chain.
+		#[structopt(long)]
+		weight: Weight,
+		/// Account that will send the payload.
+		#[structopt(long)]
+		sender: bp_rialto::AccountId,
+	},
+	/// Message Payload of Millau to Rialto call.
+	MillauToRialtoMessagePayload {
+		#[structopt(flatten)]
+		message: ToRialtoMessage,
+		/// Declared weight of the dispatch cost on the target chain.
+		#[structopt(long)]
+		weight: Weight,
+		/// Account that will send the payload.
+		#[structopt(long)]
+		sender: bp_millau::AccountId,
+	},
 }
 
 /// All possible messages that may be delivered to the Rialto chain.
