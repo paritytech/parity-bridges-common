@@ -156,9 +156,7 @@ pub fn run() -> sc_cli::Result<()> {
 		}
 		Some(Subcommand::Inspect(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
-			runner.sync_run(|config| {
-				cmd.run::<Block, RuntimeApi, service::Executor>(config)
-			})
+			runner.sync_run(|config| cmd.run::<Block, RuntimeApi, service::Executor>(config))
 		}
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
