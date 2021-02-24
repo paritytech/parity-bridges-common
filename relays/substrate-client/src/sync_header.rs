@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use finality_relay::SourceHeader as FinalitySourceHeader;
 use headers_relay::sync_types::SourceHeader;
 use num_traits::{CheckedSub, One};
 use relay_utils::HeaderId;
@@ -47,7 +48,7 @@ impl<Header> From<Header> for SyncHeader<Header> {
 
 impl<Header: HeaderT> SourceHeader<Header::Hash, Header::Number> for SyncHeader<Header> {
 	fn id(&self) -> HeaderId<Header::Hash, Header::Number> {
-		relay_utils::HeaderId(*self.number(), self.hash())
+		relay_utils::HeaderId(*self.0.number(), self.hash())
 	}
 
 	fn parent_id(&self) -> HeaderId<Header::Hash, Header::Number> {
@@ -57,5 +58,15 @@ impl<Header: HeaderT> SourceHeader<Header::Hash, Header::Number> for SyncHeader<
 				.expect("should never be called for genesis header"),
 			*self.parent_hash(),
 		)
+	}
+}
+
+impl<Header: HeaderT> FinalitySourceHeader<Header::Number> for SyncHeader<Header> {
+	fn number(&self) -> Header::Number {
+		*self.0.number()
+	}
+
+	fn is_mandatory(&self) -> bool {
+		unimplemented!("TODO")
 	}
 }
