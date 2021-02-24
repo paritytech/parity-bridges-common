@@ -8,8 +8,9 @@ on:
     tags:
       - v*
     paths-ignore:
-      - 'README.md'
-      - diagrams/
+      - '**/README.md'
+      - diagrams/*
+      - docs/*
   schedule:                        # Weekly build
     - cron:                        '0 0 * * 0'
 jobs:
