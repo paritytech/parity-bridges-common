@@ -33,6 +33,13 @@ use std::{collections::VecDeque, pin::Pin, time::{Duration, Instant}};
 pub struct FinalitySyncParams {
 	/// Interval at which we check updates on both clients. Normally should be larger than
 	/// `min(source_block_time, target_block_time)`.
+	///
+	/// This parameter may be used to limit transactions rate. Increase the value && you'll get
+	/// rare updates => sparse headers => potential slow down of bridge applications, but pallet storage
+	/// won't be super large. Decrease the value to near `source_block_time` and you'll get
+	/// transaction for (almost) every block of the source chain => all source headers will be known
+	/// to the target chain => bridge applications will run faster, but pallet storage may explode
+	/// (but if pruning is there, then it's fine).
 	pub tick: Duration,
 	/// Timeout before we treat our transactions as lost.
 	pub stall_timeout: Duration,
