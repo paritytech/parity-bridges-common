@@ -20,7 +20,7 @@ use async_trait::async_trait;
 use backoff::backoff::Backoff;
 use futures::{Future, FutureExt, Stream, StreamExt, select};
 use headers_relay::sync_loop_metrics::SyncLoopMetrics;
-use num_traits::One;
+use num_traits::{One, Saturating};
 use relay_utils::{
 	metrics::{start as metrics_start, GlobalMetrics, MetricsParams},
 	relay_loop::Client as RelayClient,
@@ -136,6 +136,7 @@ where
 		match *self {
 			Error::Source(ref error) if error.is_connection_error() => Err(FailedClient::Source),
 			Error::Target(ref error) if error.is_connection_error() => Err(FailedClient::Target),
+			Error::Stalled => Err(FailedClient::Both),
 			_ => Ok(()),
 		}
 	}
@@ -161,11 +162,18 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 	let exit_signal = exit_signal.fuse();
 	futures::pin_mut!(exit_signal);
 
-	let mut finality_proofs_stream = Box::pin(source_client.finality_proofs().await.map_err(|_error| {
-		// TODO: log error here
+	let mut finality_proofs_stream = Box::pin(source_client.finality_proofs().await.map_err(|error| {
+		log::error!(
+			target: "bridge",
+			"Failed to subscribe to {} justifications: {:?}. Going to reconnect",
+			P::SOURCE_NAME,
+			error,
+		);
+
 		FailedClient::Source
 	})?);
 
+	let mut progress = (Instant::now(), None);
 	let mut retry_backoff = retry_backoff();
 	let mut last_transaction = None;
 	loop {
@@ -173,6 +181,7 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 		let iteration_result = run_loop_iteration(
 			&source_client,
 			&target_client,
+			&mut progress,
 			&mut finality_proofs_stream,
 			&sync_params,
 			&metrics_sync,
@@ -211,6 +220,7 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 async fn run_loop_iteration<P, SC, TC>(
 	source_client: &SC,
 	target_client: &TC,
+	progress: &mut (Instant, Option<P::Number>),
 	finality_proofs_stream: &mut Pin<Box<SC::FinalityProofsStream>>,
 	sync_params: &FinalitySyncParams,
 	metrics_sync: &Option<SyncLoopMetrics>,
@@ -228,6 +238,7 @@ where
 		metrics_sync.update_best_block_at_source(best_number_at_source);
 		metrics_sync.update_best_block_at_target(best_number_at_target);
 	}
+	*progress = print_sync_progress::<P>(*progress, best_number_at_source, best_number_at_target);
 
 	// if we have already submitted header, then we just need to wait for it
 	// if we're waiting too much, then we believe our transaction has been lost and restart sync
@@ -235,6 +246,13 @@ where
 		if best_number_at_target >= last_transaction.submitted_header_number {
 			// transaction has been mined && we an continue
 		} else if last_transaction.time.elapsed() > sync_params.stall_timeout {
+			log::error!(
+				target: "bridge",
+				"Finality synchronization from {} to {} has stalled. Going to restart",
+				P::SOURCE_NAME,
+				P::TARGET_NAME,
+			);
+
 			return Err(Error::Stalled);
 		} else {
 			return Ok(Some(last_transaction));
@@ -254,6 +272,15 @@ where
 				time: Instant::now(),
 				submitted_header_number: header.number(),
 			};
+
+			log::debug!(
+				target: "bridge",
+				"Going to submit finality proof of {} header #{:?} to {}",
+				P::SOURCE_NAME,
+				new_transaction.submitted_header_number,
+				P::TARGET_NAME,
+			);
+
 			target_client.submit_finality_proof(header, justification).await.map_err(Error::Target)?;
 			Ok(Some(new_transaction))
 		},
@@ -276,6 +303,16 @@ where
 	let mut selected_finality_proof = None;
 	let mut unjustified_headers = VecDeque::new();
 
+	// warn that iteration may take a while just to show some progress
+	if best_number_at_source.saturating_sub(best_number_at_target) > 1024.into() {
+		log::debug!(
+			target: "bridge",
+			"Synchronization loop iteration may take a while: synced {:?} of {:?} headers",
+			best_number_at_target,
+			best_number_at_source,
+		);
+	}
+
 	// read missing headers. if we see that the header schedules GRANDPA change, we need to
 	// submit this header
 	let mut header_number = best_number_at_target;
@@ -297,6 +334,8 @@ where
 
 		header_number = header_number + One::one();
 	}
+
+	// TODO: store last N justifications between iterations to be able to sync faster after we'll reach the tip of the chain?
 
 	// read all proofs from the stream, probably selecting updated proof that we're going to submit
 	loop {
@@ -348,4 +387,31 @@ fn prune_unjustified_headers<P: FinalitySyncPipeline>(
 			None
 		},
 	}
+}
+
+fn print_sync_progress<P: FinalitySyncPipeline>(
+	progress_context: (Instant, Option<P::Number>),
+	best_number_at_source: P::Number,
+	best_number_at_target: P::Number,
+) -> (Instant, Option<P::Number>) {
+	let (prev_time, prev_best_number_at_target) = progress_context;
+	let now = Instant::now();
+
+	let need_update = now - prev_time > Duration::from_secs(10)
+		|| prev_best_number_at_target
+			.map(|prev_best_number_at_target| best_number_at_target
+				.saturating_sub(prev_best_number_at_target) > 10.into()
+			).unwrap_or(true);
+		
+	if !need_update {
+		return (prev_time, prev_best_number_at_target);
+	}
+
+	log::info!(
+		target: "bridge",
+		"Synced {:?} of {:?} headers",
+		best_number_at_target,
+		best_number_at_source,
+	);
+	(now, Some(best_number_at_target))
 }
