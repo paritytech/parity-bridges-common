@@ -350,7 +350,8 @@ async fn run_encode_call(call: cli::EncodeCall) -> Result<(), String> {
 				"Encoding Rialto call: {:?}\n",
 				call
 			);
-			println!("\n0x{}", hex::encode(&call.encode()));
+			println!("\nCall Weight: {}", call.get_dispatch_info().weight);
+			println!("\nEncoded Call: 0x{}", hex::encode(&call.encode()));
 		},
 		cli::EncodeCall::Millau { call } => {
 			let call = call.into_call();
@@ -359,7 +360,8 @@ async fn run_encode_call(call: cli::EncodeCall) -> Result<(), String> {
 				"Encoding Millau call: {:?}\n",
 				call
 			);
-			println!("0x{}", hex::encode(&call.encode()));
+			println!("\nCall Weight: {}", call.get_dispatch_info().weight);
+			println!("Encoded Call: 0x{}", hex::encode(&call.encode()));
 		},
 		cli::EncodeCall::RialtoToMillauMessagePayload {
 			message,
