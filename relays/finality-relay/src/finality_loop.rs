@@ -264,10 +264,10 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 	}
 }
 
-async fn run_loop_iteration<'a, P, SC, TC>(
+async fn run_loop_iteration<P, SC, TC>(
 	source_client: &SC,
 	target_client: &TC,
-	state: FinalityLoopState<'a, P, SC::FinalityProofsStream>,
+	state: FinalityLoopState<'_, P, SC::FinalityProofsStream>,
 	sync_params: &FinalitySyncParams,
 	metrics_sync: &Option<SyncLoopMetrics>,
 ) -> Result<Option<Transaction<P::Number>>, Error<P, SC::Error, TC::Error>>
