@@ -18,23 +18,25 @@
 
 #![cfg(test)]
 
-use crate::{FinalityProof, FinalitySyncPipeline, SourceHeader};
 use crate::finality_loop::{
-	FinalityProofs, FinalitySyncParams, SourceClient, TargetClient, UnjustifiedHeaders,
-	prune_recent_finality_proofs, prune_unjustified_headers, run,
+	prune_recent_finality_proofs, prune_unjustified_headers, run, FinalityProofs, FinalitySyncParams, SourceClient,
+	TargetClient, UnjustifiedHeaders,
 };
+use crate::{FinalityProof, FinalitySyncPipeline, SourceHeader};
 
 use async_trait::async_trait;
 use futures::{FutureExt, Stream, StreamExt};
 use parking_lot::Mutex;
-use relay_utils::{MaybeConnectionError, relay_loop::Client as RelayClient};
+use relay_utils::{relay_loop::Client as RelayClient, MaybeConnectionError};
 use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
 type IsMandatory = bool;
 type TestNumber = u64;
 
 #[derive(Debug, Clone)]
-enum TestError { NonConnection }
+enum TestError {
+	NonConnection,
+}
 
 impl MaybeConnectionError for TestError {
 	fn is_connection_error(&self) -> bool {
@@ -118,7 +120,10 @@ impl SourceClient<TestFinalitySyncPipeline> for TestSourceClient {
 	) -> Result<(TestSourceHeader, Option<TestFinalityProof>), TestError> {
 		let mut data = self.data.lock();
 		(self.on_method_call)(&mut *data);
-		data.source_headers.get(&number).cloned().ok_or_else(|| TestError::NonConnection)
+		data.source_headers
+			.get(&number)
+			.cloned()
+			.ok_or_else(|| TestError::NonConnection)
 	}
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, TestError> {
@@ -175,7 +180,9 @@ fn run_sync_loop(state_function: impl Fn(&mut ClientsData) -> bool + Send + Sync
 			(8, (TestSourceHeader(true, 8), Some(TestFinalityProof(Some(8))))),
 			(9, (TestSourceHeader(false, 9), Some(TestFinalityProof(Some(9))))),
 			(10, (TestSourceHeader(false, 10), None)),
-		].into_iter().collect(),
+		]
+		.into_iter()
+		.collect(),
 		source_proofs: vec![TestFinalityProof(Some(12)), TestFinalityProof(Some(14))],
 
 		target_best_block_number: 5,
@@ -195,7 +202,13 @@ fn run_sync_loop(state_function: impl Fn(&mut ClientsData) -> bool + Send + Sync
 		stall_timeout: Duration::from_secs(1),
 	};
 
-	run(source_client, target_client, sync_params, None, exit_receiver.into_future().map(|(_, _)| ()));
+	run(
+		source_client,
+		target_client,
+		sync_params,
+		None,
+		exit_receiver.into_future().map(|(_, _)| ()),
+	);
 
 	let clients_data = clients_data.lock().clone();
 	clients_data
@@ -216,11 +229,15 @@ fn finality_sync_loop_works() {
 		if data.target_best_block_number == 9 {
 			data.source_best_block_number = 17;
 			data.source_headers.insert(11, (TestSourceHeader(false, 12), None));
-			data.source_headers.insert(12, (TestSourceHeader(false, 12), Some(TestFinalityProof(Some(12)))));
+			data.source_headers
+				.insert(12, (TestSourceHeader(false, 12), Some(TestFinalityProof(Some(12)))));
 			data.source_headers.insert(13, (TestSourceHeader(false, 13), None));
-			data.source_headers.insert(14, (TestSourceHeader(false, 14), Some(TestFinalityProof(Some(14)))));
-			data.source_headers.insert(15, (TestSourceHeader(false, 15), Some(TestFinalityProof(None))));
-			data.source_headers.insert(16, (TestSourceHeader(false, 16), Some(TestFinalityProof(Some(16)))));
+			data.source_headers
+				.insert(14, (TestSourceHeader(false, 14), Some(TestFinalityProof(Some(14)))));
+			data.source_headers
+				.insert(15, (TestSourceHeader(false, 15), Some(TestFinalityProof(None))));
+			data.source_headers
+				.insert(16, (TestSourceHeader(false, 16), Some(TestFinalityProof(Some(16)))));
 			data.source_headers.insert(17, (TestSourceHeader(false, 17), None));
 		}
 
@@ -245,7 +262,9 @@ fn prune_unjustified_headers_works() {
 		TestSourceHeader(false, 15),
 		TestSourceHeader(false, 17),
 		TestSourceHeader(false, 19),
-	].into_iter().collect();
+	]
+	.into_iter()
+	.collect();
 
 	// when header is in the collection
 	let mut unjustified_headers = original_unjustified_headers.clone();
@@ -257,7 +276,6 @@ fn prune_unjustified_headers_works() {
 		&original_unjustified_headers.clone().make_contiguous()[1..],
 		unjustified_headers.make_contiguous(),
 	);
-
 
 	// when there's no header in the collection
 	let mut unjustified_headers = original_unjustified_headers.clone();
@@ -276,7 +294,7 @@ fn prune_unjustified_headers_works() {
 		prune_unjustified_headers::<TestFinalitySyncPipeline>(19, &mut unjustified_headers),
 		Some(TestSourceHeader(false, 19)),
 	);
-	
+
 	assert_eq!(
 		&original_unjustified_headers.clone().make_contiguous()[5..],
 		unjustified_headers.make_contiguous(),
@@ -302,7 +320,9 @@ fn prune_recent_finality_proofs_works() {
 		(15, TestFinalityProof(Some(15))),
 		(17, TestFinalityProof(Some(17))),
 		(19, TestFinalityProof(Some(19))),
-	].into_iter().collect();
+	]
+	.into_iter()
+	.collect();
 
 	// when there's proof for justified header in the deque
 	let mut recent_finality_proofs = original_recent_finality_proofs.clone();

@@ -22,8 +22,8 @@ use async_trait::async_trait;
 use codec::Encode;
 use finality_relay::{FinalitySyncParams, FinalitySyncPipeline};
 use relay_substrate_client::{
-	finality_source::{FinalitySource, Justification}, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
-	SyncHeader,
+	finality_source::{FinalitySource, Justification},
+	BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf, SyncHeader,
 };
 use relay_utils::BlockNumberBase;
 use std::{fmt::Debug, marker::PhantomData};
@@ -56,9 +56,7 @@ pub struct SubstrateFinalityToSubstrate<SourceChain, TargetChain: Chain, TargetS
 	_marker: PhantomData<SourceChain>,
 }
 
-impl<SourceChain, TargetChain: Chain, TargetSign>
-	SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>
-{
+impl<SourceChain, TargetChain: Chain, TargetSign> SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign> {
 	/// Create new Substrate-to-Substrate headers pipeline.
 	pub fn new(target_client: Client<TargetChain>, target_sign: TargetSign) -> Self {
 		SubstrateFinalityToSubstrate {
@@ -114,10 +112,7 @@ pub async fn run<SourceChain, TargetChain, P>(
 		FinalitySource::new(source_client),
 		SubstrateFinalityTarget::new(target_client, pipeline),
 		FinalitySyncParams {
-			tick: std::cmp::max(
-				SourceChain::AVERAGE_BLOCK_INTERVAL,
-				TargetChain::AVERAGE_BLOCK_INTERVAL,
-			),
+			tick: std::cmp::max(SourceChain::AVERAGE_BLOCK_INTERVAL, TargetChain::AVERAGE_BLOCK_INTERVAL),
 			recent_finality_proofs_limit: 4096,
 			stall_timeout: std::time::Duration::from_secs(60), // TODO: STALL_TIMEOUT,
 		},

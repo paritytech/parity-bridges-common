@@ -25,7 +25,7 @@
 use crate::storage::{ImportedHeader, ScheduledChange};
 use crate::BridgeStorage;
 
-use bp_header_chain::{justification::verify_justification, AuthoritySet, find_grandpa_authorities_scheduled_change};
+use bp_header_chain::{find_grandpa_authorities_scheduled_change, justification::verify_justification, AuthoritySet};
 use finality_grandpa::voter_set::VoterSet;
 use sp_runtime::traits::{CheckedAdd, Header as HeaderT, One};
 use sp_runtime::RuntimeDebug;
@@ -346,7 +346,7 @@ mod tests {
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
-	use sp_finality_grandpa::{AuthorityId, ConsensusLog, GRANDPA_ENGINE_ID, SetId};
+	use sp_finality_grandpa::{AuthorityId, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 	use sp_runtime::{Digest, DigestItem};
 
 	fn schedule_next_change(

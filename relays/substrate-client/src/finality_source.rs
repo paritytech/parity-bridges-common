@@ -23,7 +23,7 @@ use crate::sync_header::SyncHeader;
 
 use async_trait::async_trait;
 use finality_relay::{FinalityProof, FinalitySyncPipeline, SourceClient, SourceHeader};
-use futures::stream::{Stream, StreamExt, unfold};
+use futures::stream::{unfold, Stream, StreamExt};
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_runtime::traits::Header as HeaderT;
 use std::{marker::PhantomData, pin::Pin};
@@ -41,7 +41,6 @@ impl<Header> Justification<Header> {
 		self.raw_justification
 	}
 }
-
 
 impl<Header> FinalityProof<Header::Number> for Justification<Header>
 where
@@ -119,10 +118,13 @@ where
 		let signed_block = self.client.get_block(Some(header_hash)).await?;
 		Ok((
 			signed_block.header().into(),
-			signed_block.justification().cloned().map(|raw_justification| Justification {
-				raw_justification,
-				_phantom: Default::default(),
-			}),
+			signed_block
+				.justification()
+				.cloned()
+				.map(|raw_justification| Justification {
+					raw_justification,
+					_phantom: Default::default(),
+				}),
 		))
 	}
 
@@ -139,6 +141,7 @@ where
 					subscription,
 				))
 			},
-		).boxed())
+		)
+		.boxed())
 	}
 }

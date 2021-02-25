@@ -23,7 +23,9 @@ use num_traits::{CheckedSub, Zero};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{
 	generic::SignedBlock,
-	traits::{AtLeast32Bit, Block as BlockT, Dispatchable, MaybeDisplay, MaybeSerialize, MaybeSerializeDeserialize, Member},
+	traits::{
+		AtLeast32Bit, Block as BlockT, Dispatchable, MaybeDisplay, MaybeSerialize, MaybeSerializeDeserialize, Member,
+	},
 	Justification,
 };
 use std::{fmt::Debug, time::Duration};

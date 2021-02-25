@@ -19,7 +19,7 @@
 //! are still submitted to the target node, but are treated as auxiliary data as we are not trying
 //! to submit all source headers to the target node.
 
-pub use crate::finality_loop::{FinalitySyncParams, SourceClient, TargetClient, run};
+pub use crate::finality_loop::{run, FinalitySyncParams, SourceClient, TargetClient};
 
 use std::fmt::Debug;
 

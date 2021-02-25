@@ -24,8 +24,8 @@ mod error;
 mod rpc;
 mod sync_header;
 
-pub mod guard;
 pub mod finality_source;
+pub mod guard;
 pub mod headers_source;
 
 pub use crate::chain::{BlockWithJustification, Chain, ChainWithBalances, TransactionSignScheme};

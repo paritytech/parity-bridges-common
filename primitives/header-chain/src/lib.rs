@@ -26,9 +26,9 @@ use core::default::Default;
 use core::fmt::Debug;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_finality_grandpa::{AuthorityList, ConsensusLog, GRANDPA_ENGINE_ID, SetId};
-use sp_runtime::{generic::OpaqueDigestItemId, traits::Header as HeaderT};
+use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::RuntimeDebug;
+use sp_runtime::{generic::OpaqueDigestItemId, traits::Header as HeaderT};
 use sp_std::vec::Vec;
 
 pub mod justification;

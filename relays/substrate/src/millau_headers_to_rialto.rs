@@ -28,8 +28,7 @@ use relay_substrate_client::{finality_source::Justification, Error as SubstrateE
 use sp_core::Pair;
 
 /// Millau-to-Rialto finality sync pipeline.
-pub(crate) type MillauFinalityToRialto =
-	SubstrateFinalityToSubstrate<Millau, Rialto, RialtoSigningParams>;
+pub(crate) type MillauFinalityToRialto = SubstrateFinalityToSubstrate<Millau, Rialto, RialtoSigningParams>;
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
@@ -48,7 +47,8 @@ impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
 			header.into_inner(),
 			proof.into_inner(),
 			(),
-		).into();
+		)
+		.into();
 		let transaction = Rialto::sign_transaction(&self.target_client, &self.target_sign.signer, nonce, call);
 		Ok(transaction)
 	}

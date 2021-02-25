@@ -22,8 +22,8 @@ use crate::finality_pipeline::SubstrateFinalitySyncPipeline;
 
 use async_trait::async_trait;
 use codec::{Decode, Encode};
-use futures::TryFutureExt;
 use finality_relay::TargetClient;
+use futures::TryFutureExt;
 use relay_substrate_client::{Chain, Client, Error as SubstrateError};
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::Bytes;
@@ -68,15 +68,17 @@ where
 	P: SubstrateFinalitySyncPipeline,
 {
 	async fn best_finalized_source_block_number(&self) -> Result<P::Number, SubstrateError> {
-		Ok(crate::messages_source::read_client_state::<C, P::Hash, P::Number>(&self.client, P::BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET)
-			.await?
-			.best_finalized_peer_at_best_self
-			.0)
+		Ok(crate::messages_source::read_client_state::<C, P::Hash, P::Number>(
+			&self.client,
+			P::BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET,
+		)
+		.await?
+		.best_finalized_peer_at_best_self
+		.0)
 	}
 
 	async fn submit_finality_proof(&self, header: P::Header, proof: P::FinalityProof) -> Result<(), SubstrateError> {
-		self
-			.pipeline
+		self.pipeline
 			.make_submit_finality_proof_transaction(header, proof)
 			.and_then(|tx| self.client.submit_extrinsic(Bytes(tx.encode())))
 			.await
