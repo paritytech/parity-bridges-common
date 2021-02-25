@@ -40,17 +40,12 @@ mod cli;
 mod finality_pipeline;
 mod finality_target;
 mod headers_initialize;
-mod headers_maintain;
-mod headers_pipeline;
-mod headers_target;
 mod messages_lane;
 mod messages_source;
 mod messages_target;
 mod millau_finality_to_rialto;
-mod millau_headers_to_rialto;
 mod millau_messages_to_rialto;
 mod rialto_finality_to_millau;
-mod rialto_headers_to_millau;
 mod rialto_messages_to_millau;
 
 fn main() {
@@ -145,34 +140,6 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				},
 			)
 			.await;
-		}
-	}
-	Ok(())
-}
-
-async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
-	match command {
-		cli::RelayHeaders::MillauToRialto {
-			millau,
-			rialto,
-			rialto_sign,
-			prometheus_params,
-		} => {
-			let millau_client = millau.into_client().await?;
-			let rialto_client = rialto.into_client().await?;
-			let rialto_sign = rialto_sign.parse()?;
-			millau_headers_to_rialto::run(millau_client, rialto_client, rialto_sign, prometheus_params.into()).await;
-		}
-		cli::RelayHeaders::RialtoToMillau {
-			rialto,
-			millau,
-			millau_sign,
-			prometheus_params,
-		} => {
-			let rialto_client = rialto.into_client().await?;
-			let millau_client = millau.into_client().await?;
-			let millau_sign = millau_sign.parse()?;
-			rialto_headers_to_millau::run(rialto_client, millau_client, millau_sign, prometheus_params.into()).await;
 		}
 	}
 	Ok(())
