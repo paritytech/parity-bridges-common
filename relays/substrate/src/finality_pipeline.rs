@@ -26,7 +26,15 @@ use relay_substrate_client::{
 	BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf, SyncHeader,
 };
 use relay_utils::BlockNumberBase;
-use std::{fmt::Debug, marker::PhantomData};
+use std::{fmt::Debug, marker::PhantomData, time::Duration};
+
+/// Default synchronization loop timeout.
+const STALL_TIMEOUT: Duration = Duration::from_secs(120);
+/// Default limit of recent finality proofs.
+///
+/// Finality delay of 4096 blocks is unlikely to happen in practice in
+/// Substrate+GRANDPA based chains (good to know).
+const RECENT_FINALITY_PROOFS_LIMIT: usize = 4096;
 
 /// Headers sync pipeline for Substrate <-> Substrate relays.
 #[async_trait]
@@ -113,8 +121,8 @@ pub async fn run<SourceChain, TargetChain, P>(
 		SubstrateFinalityTarget::new(target_client, pipeline),
 		FinalitySyncParams {
 			tick: std::cmp::max(SourceChain::AVERAGE_BLOCK_INTERVAL, TargetChain::AVERAGE_BLOCK_INTERVAL),
-			recent_finality_proofs_limit: 4096,
-			stall_timeout: std::time::Duration::from_secs(60), // TODO: STALL_TIMEOUT,
+			recent_finality_proofs_limit: RECENT_FINALITY_PROOFS_LIMIT,
+			stall_timeout: STALL_TIMEOUT,
 		},
 		metrics_params,
 		futures::future::pending(),

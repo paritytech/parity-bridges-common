@@ -402,13 +402,15 @@ where
 
 	// see if we can improve finality by using recent finality proofs
 	if !unjustified_headers.is_empty() && !recent_finality_proofs.is_empty() {
+		const NOT_EMPTY_PROOF: &str = "we have checked that the deque is not empty; qed";
+
 		// we need proofs for headers in range unjustified_range_begin..=unjustified_range_end
-		let unjustified_range_begin = unjustified_headers.front().expect("TODO").number();
-		let unjustified_range_end = unjustified_headers.back().expect("TODO").number();
+		let unjustified_range_begin = unjustified_headers.front().expect(NOT_EMPTY_PROOF).number();
+		let unjustified_range_end = unjustified_headers.back().expect(NOT_EMPTY_PROOF).number();
 
 		// we have proofs for headers in range buffered_range_begin..=buffered_range_end
-		let buffered_range_begin = recent_finality_proofs.front().expect("TODO").0;
-		let buffered_range_end = recent_finality_proofs.back().expect("TODO").0;
+		let buffered_range_begin = recent_finality_proofs.front().expect(NOT_EMPTY_PROOF).0;
+		let buffered_range_end = recent_finality_proofs.back().expect(NOT_EMPTY_PROOF).0;
 
 		// we have two ranges => find intersection and take last available proof from this intersection
 		let intersection_begin = std::cmp::max(unjustified_range_begin, buffered_range_begin);
