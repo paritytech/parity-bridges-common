@@ -75,7 +75,7 @@ struct TestFinalityProof(Option<TestNumber>);
 
 impl FinalityProof<TestNumber> for TestFinalityProof {
 	fn target_header_number(&self) -> Option<TestNumber> {
-		self.0.clone()
+		self.0
 	}
 }
 
@@ -123,7 +123,7 @@ impl SourceClient<TestFinalitySyncPipeline> for TestSourceClient {
 		data.source_headers
 			.get(&number)
 			.cloned()
-			.ok_or_else(|| TestError::NonConnection)
+			.ok_or(TestError::NonConnection)
 	}
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, TestError> {
@@ -307,7 +307,7 @@ fn prune_unjustified_headers_works() {
 		None,
 	);
 	assert_eq!(
-		&original_unjustified_headers.clone().make_contiguous()[5..],
+		&original_unjustified_headers.make_contiguous()[5..],
 		unjustified_headers.make_contiguous(),
 	);
 }
@@ -360,7 +360,7 @@ fn prune_recent_finality_proofs_works() {
 	let mut recent_finality_proofs = original_recent_finality_proofs.clone();
 	prune_recent_finality_proofs::<TestFinalitySyncPipeline>(20, &mut recent_finality_proofs, 2);
 	assert_eq!(
-		&original_recent_finality_proofs.clone().make_contiguous()[5..],
+		&original_recent_finality_proofs.make_contiguous()[5..],
 		recent_finality_proofs.make_contiguous(),
 	);
 }
