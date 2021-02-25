@@ -47,7 +47,7 @@ impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
 		let call = rialto_runtime::FinalityBridgeMillauCall::submit_finality_proof(
 			header.into_inner(),
 			proof.into_inner(),
-			vec![], // TODO: ()
+			(),
 		).into();
 		let transaction = Rialto::sign_transaction(&self.target_client, &self.target_sign.signer, nonce, call);
 		Ok(transaction)
