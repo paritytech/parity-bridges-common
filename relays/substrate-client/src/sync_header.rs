@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use bp_header_chain::find_grandpa_authorities_scheduled_change;
 use finality_relay::SourceHeader as FinalitySourceHeader;
 use headers_relay::sync_types::SourceHeader;
 use num_traits::{CheckedSub, One};
@@ -67,6 +68,6 @@ impl<Header: HeaderT> FinalitySourceHeader<Header::Number> for SyncHeader<Header
 	}
 
 	fn is_mandatory(&self) -> bool {
-		unimplemented!("TODO")
+		find_grandpa_authorities_scheduled_change(&self.0).is_some()
 	}
 }

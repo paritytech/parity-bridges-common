@@ -25,10 +25,8 @@
 use crate::storage::{ImportedHeader, ScheduledChange};
 use crate::BridgeStorage;
 
-use bp_header_chain::{justification::verify_justification, AuthoritySet};
+use bp_header_chain::{justification::verify_justification, AuthoritySet, find_grandpa_authorities_scheduled_change};
 use finality_grandpa::voter_set::VoterSet;
-use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
-use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::{CheckedAdd, Header as HeaderT, One};
 use sp_runtime::RuntimeDebug;
 use sp_std::{prelude::Vec, vec};
@@ -142,7 +140,7 @@ where
 		// time. While this is not strictly true of GRANDPA (it can have multiple pending changes,
 		// even across forks), this assumption simplifies our tracking of authority set changes.
 		let mut signal_hash = parent_header.signal_hash;
-		let scheduled_change = find_scheduled_change(&header);
+		let scheduled_change = find_grandpa_authorities_scheduled_change(&header);
 
 		// Check if our fork is expecting an authority set change
 		let requires_justification = if let Some(hash) = signal_hash {
@@ -337,19 +335,6 @@ where
 	}
 
 	Some(ancestors)
-}
-
-pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
-	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
-
-	let filter_log = |log: ConsensusLog<H::Number>| match log {
-		ConsensusLog::ScheduledChange(change) => Some(change),
-		_ => None,
-	};
-
-	// find the first consensus digest with the right ID which converts to
-	// the right kind of consensus log.
-	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
 }
 
 #[cfg(test)]
