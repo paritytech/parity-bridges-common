@@ -346,7 +346,7 @@ mod tests {
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
 	use frame_support::{StorageMap, StorageValue};
-	use sp_finality_grandpa::{AuthorityId, SetId};
+	use sp_finality_grandpa::{AuthorityId, ConsensusLog, GRANDPA_ENGINE_ID, SetId};
 	use sp_runtime::{Digest, DigestItem};
 
 	fn schedule_next_change(

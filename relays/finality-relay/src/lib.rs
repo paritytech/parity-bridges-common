@@ -24,6 +24,7 @@ pub use crate::finality_loop::{FinalitySyncParams, SourceClient, TargetClient, r
 use std::fmt::Debug;
 
 mod finality_loop;
+mod finality_loop_tests;
 
 /// Finality proofs synchronization pipeline.
 pub trait FinalitySyncPipeline: Clone + Debug + Send + Sync {

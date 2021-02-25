@@ -129,9 +129,9 @@ pub fn run<P: FinalitySyncPipeline>(
 }
 
 /// Unjustified headers container. Ordered by header number.
-type UnjustifiedHeaders<P> = VecDeque<<P as FinalitySyncPipeline>::Header>;
+pub(crate) type UnjustifiedHeaders<P> = VecDeque<<P as FinalitySyncPipeline>::Header>;
 /// Finality proofs container. Ordered by target header number.
-type FinalityProofs<P> = VecDeque<(<P as FinalitySyncPipeline>::Number, <P as FinalitySyncPipeline>::FinalityProof)>;
+pub(crate) type FinalityProofs<P> = VecDeque<(<P as FinalitySyncPipeline>::Number, <P as FinalitySyncPipeline>::FinalityProof)>;
 
 /// Error that may happen inside finality synchronization loop.
 #[derive(Debug)]
@@ -330,15 +330,13 @@ where
 	let mut selected_finality_proof = None;
 	let mut unjustified_headers = VecDeque::new();
 
-	// warn that iteration may take a while just to show some progress
-	if best_number_at_source.saturating_sub(best_number_at_target) > 1024.into() {
-		log::debug!(
-			target: "bridge",
-			"Synchronization loop iteration may take a while: only synced {:?} of {:?} headers",
-			best_number_at_target,
-			best_number_at_source,
-		);
-	}
+	// to see that the loop is progressing
+	log::trace!(
+		target: "bridge",
+		"Cosidering range of headers ({:?}; {:?}]",
+		best_number_at_target,
+		best_number_at_source,
+	);
 
 	// read missing headers. if we see that the header schedules GRANDPA change, we need to
 	// submit this header
@@ -437,7 +435,7 @@ where
 	Ok(selected_finality_proof)
 }
 
-fn prune_unjustified_headers<P: FinalitySyncPipeline>(
+pub(crate) fn prune_unjustified_headers<P: FinalitySyncPipeline>(
 	justified_header_number: P::Number,
 	unjustified_headers: &mut UnjustifiedHeaders<P>,
 ) -> Option<P::Header> {
@@ -449,7 +447,7 @@ fn prune_unjustified_headers<P: FinalitySyncPipeline>(
 	)
 }
 
-fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
+pub(crate) fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
 	justified_header_number: P::Number,
 	recent_finality_proofs: &mut FinalityProofs<P>,
 	recent_finality_proofs_limit: usize,
