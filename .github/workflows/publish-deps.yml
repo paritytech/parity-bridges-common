@@ -15,7 +15,7 @@ jobs:
 ## Publish to Docker hub
   publish:
     name:                                           Publishing
-    runs-on:                                        ubuntu-latest
+    runs-on:                                        self-hosted
     container:
       image:                                        docker:git
     steps:
