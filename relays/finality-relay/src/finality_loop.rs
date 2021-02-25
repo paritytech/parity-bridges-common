@@ -180,6 +180,18 @@ struct Transaction<Number> {
 	pub submitted_header_number: Number,
 }
 
+/// Finality synchronization loop state.
+struct FinalityLoopState<'a, P: FinalitySyncPipeline, FinalityProofsStream> {
+	/// Synchronization loop progress.
+	progress: &'a mut (Instant, Option<P::Number>),
+	/// Finality proofs stream.
+	finality_proofs_stream: &'a mut Pin<Box<FinalityProofsStream>>,
+	/// Recent finality proofs that we have read from the stream.
+	recent_finality_proofs: &'a mut FinalityProofs<P>,
+	/// Last transaction that we have submitted to the target node.
+	last_transaction: Option<Transaction<P::Number>>,
+}
+
 async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 	source_client: impl SourceClient<P>,
 	target_client: impl TargetClient<P>,
@@ -206,17 +218,20 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 	let mut progress = (Instant::now(), None);
 	let mut retry_backoff = retry_backoff();
 	let mut last_transaction = None;
+
 	loop {
 		// run loop iteration
 		let iteration_result = run_loop_iteration(
 			&source_client,
 			&target_client,
-			&mut progress,
-			&mut finality_proofs_stream,
-			&mut recent_finality_proofs,
+			FinalityLoopState {
+				progress: &mut progress,
+				finality_proofs_stream: &mut finality_proofs_stream,
+				recent_finality_proofs: &mut recent_finality_proofs,
+				last_transaction: last_transaction.clone(),
+			},
 			&sync_params,
 			&metrics_sync,
-			last_transaction.clone(),
 		)
 		.await;
 
@@ -249,15 +264,12 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 	}
 }
 
-async fn run_loop_iteration<P, SC, TC>(
+async fn run_loop_iteration<'a, P, SC, TC>(
 	source_client: &SC,
 	target_client: &TC,
-	progress: &mut (Instant, Option<P::Number>),
-	finality_proofs_stream: &mut Pin<Box<SC::FinalityProofsStream>>,
-	recent_finality_proofs: &mut FinalityProofs<P>,
+	state: FinalityLoopState<'a, P, SC::FinalityProofsStream>,
 	sync_params: &FinalitySyncParams,
 	metrics_sync: &Option<SyncLoopMetrics>,
-	last_transaction: Option<Transaction<P::Number>>,
 ) -> Result<Option<Transaction<P::Number>>, Error<P, SC::Error, TC::Error>>
 where
 	P: FinalitySyncPipeline,
@@ -277,11 +289,11 @@ where
 		metrics_sync.update_best_block_at_source(best_number_at_source);
 		metrics_sync.update_best_block_at_target(best_number_at_target);
 	}
-	*progress = print_sync_progress::<P>(*progress, best_number_at_source, best_number_at_target);
+	*state.progress = print_sync_progress::<P>(*state.progress, best_number_at_source, best_number_at_target);
 
 	// if we have already submitted header, then we just need to wait for it
 	// if we're waiting too much, then we believe our transaction has been lost and restart sync
-	if let Some(last_transaction) = last_transaction {
+	if let Some(last_transaction) = state.last_transaction {
 		if best_number_at_target >= last_transaction.submitted_header_number {
 			// transaction has been mined && we an continue
 		} else if last_transaction.time.elapsed() > sync_params.stall_timeout {
@@ -302,8 +314,8 @@ where
 	match select_header_to_submit(
 		source_client,
 		target_client,
-		finality_proofs_stream,
-		recent_finality_proofs,
+		state.finality_proofs_stream,
+		state.recent_finality_proofs,
 		best_number_at_source,
 		best_number_at_target,
 		sync_params,

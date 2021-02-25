@@ -49,7 +49,7 @@ where
 	fn target_header_number(&self) -> Option<Header::Number> {
 		bp_header_chain::justification::decode_justification_target::<Header>(&self.raw_justification)
 			.ok()
-			.map(|(_, number)| number.into())
+			.map(|(_, number)| number)
 	}
 }
 
