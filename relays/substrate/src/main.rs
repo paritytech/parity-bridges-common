@@ -18,7 +18,6 @@
 
 #![warn(missing_docs)]
 
-use std::fmt::Debug;
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_call_dispatch::{CallOrigin, MessagePayload};
@@ -29,6 +28,7 @@ use relay_substrate_client::{Chain, ConnectionParams, TransactionSignScheme};
 use relay_utils::initialize::initialize_relay;
 use sp_core::{Bytes, Pair};
 use sp_runtime::traits::IdentifyAccount;
+use std::fmt::Debug;
 
 /// Kusama node client.
 pub type KusamaClient = relay_substrate_client::Client<Kusama>;
@@ -349,23 +349,22 @@ async fn run_encode_call(call: cli::EncodeCall) -> Result<(), String> {
 			let call = call.into_call()?;
 
 			println!("{:?}", HexBytes::encode(&call));
-		},
+		}
 		cli::EncodeCall::Millau { call } => {
 			let call = call.into_call()?;
 
 			println!("{:?}", HexBytes::encode(&call));
-		},
+		}
 		cli::EncodeCall::RialtoToMillauPayload { payload } => {
 			let payload = payload.into_payload()?;
 
 			println!("{:?}", HexBytes::encode(&payload));
-		},
+		}
 		cli::EncodeCall::MillauToRialtoPayload { payload } => {
 			let payload = payload.into_payload()?;
 
 			println!("{:?}", HexBytes::encode(&payload));
-		},
-
+		}
 	}
 	Ok(())
 }
@@ -382,10 +381,11 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 				bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
 				lane,
 				payload,
-			).await?;
+			)
+			.await?;
 
 			println!("Fee: {:?}", fee);
-		},
+		}
 		cli::EstimateFee::MillauToRialto { millau, lane, payload } => {
 			let client = millau.into_client().await?;
 			let lane = lane.into();
@@ -395,11 +395,12 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 				&client,
 				bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
 				lane,
-				payload
-			).await?;
+				payload,
+			)
+			.await?;
 
 			println!("Fee: {:?}", fee);
-		},
+		}
 	}
 
 	Ok(())
@@ -440,20 +441,36 @@ fn message_payload<SAccountId, TPublic, TSignature>(
 	weight: Weight,
 	origin: CallOrigin<SAccountId, TPublic, TSignature>,
 	call: &impl Encode,
-) -> MessagePayload<SAccountId, TPublic, TSignature, Vec<u8>> where
+) -> MessagePayload<SAccountId, TPublic, TSignature, Vec<u8>>
+where
 	SAccountId: Encode + Debug,
 	TPublic: Encode + Debug,
 	TSignature: Encode + Debug,
 {
 	// Display nicely formatted call.
-	let payload = MessagePayload { spec_version, weight, origin, call: HexBytes::encode(call) };
+	let payload = MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call: HexBytes::encode(call),
+	};
 
 	log::info!(target: "bridge", "Created Message Payload: {:#?}", payload);
 	log::info!(target: "bridge", "Encoded Message Payload: {:?}", HexBytes::encode(&payload));
 
 	// re-pack to return `Vec<u8>`
-	let MessagePayload { spec_version, weight, origin, call } = payload;
-	MessagePayload { spec_version, weight, origin, call: call.0 }
+	let MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call,
+	} = payload;
+	MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call: call.0,
+	}
 }
 
 fn rialto_to_millau_message_payload(
@@ -584,15 +601,12 @@ fn compute_maximal_message_arguments_size(
 
 impl crate::cli::MillauToRialtoMessagePayload {
 	/// Parse the CLI parameters and construct message payload.
-	pub fn into_payload(self) -> Result<
-		MessagePayload<bp_rialto::AccountId, bp_rialto::AccountSigner, bp_rialto::Signature, Vec<u8>>,
-		String
-	> {
+	pub fn into_payload(
+		self,
+	) -> Result<MessagePayload<bp_rialto::AccountId, bp_rialto::AccountSigner, bp_rialto::Signature, Vec<u8>>, String> {
 		match self {
-			Self::Raw { data } => {
-				MessagePayload::decode(&mut &*data.0)
-					.map_err(|e| format!("Failed to decode Millau's MessagePayload: {:?}", e))
-			},
+			Self::Raw { data } => MessagePayload::decode(&mut &*data.0)
+				.map_err(|e| format!("Failed to decode Millau's MessagePayload: {:?}", e)),
 			Self::Message { message, sender } => {
 				let spec_version = rialto_runtime::VERSION.spec_version;
 				let origin = CallOrigin::SourceAccount(sender);
@@ -600,22 +614,19 @@ impl crate::cli::MillauToRialtoMessagePayload {
 				let weight = call.get_dispatch_info().weight;
 
 				Ok(message_payload(spec_version, weight, origin, &call))
-			},
+			}
 		}
 	}
 }
 
 impl crate::cli::RialtoToMillauMessagePayload {
 	/// Parse the CLI parameters and construct message payload.
-	pub fn into_payload(self) -> Result<
-		MessagePayload<bp_millau::AccountId, bp_millau::AccountSigner, bp_millau::Signature, Vec<u8>>,
-		String,
-	> {
+	pub fn into_payload(
+		self,
+	) -> Result<MessagePayload<bp_millau::AccountId, bp_millau::AccountSigner, bp_millau::Signature, Vec<u8>>, String> {
 		match self {
-			Self::Raw { data } => {
-				MessagePayload::decode(&mut &*data.0)
-					.map_err(|e| format!("Failed to decode Rialto's MessagePayload: {:?}", e))
-			},
+			Self::Raw { data } => MessagePayload::decode(&mut &*data.0)
+				.map_err(|e| format!("Failed to decode Rialto's MessagePayload: {:?}", e)),
 			Self::Message { message, sender } => {
 				let spec_version = millau_runtime::VERSION.spec_version;
 				let origin = CallOrigin::SourceAccount(sender);
@@ -623,7 +634,7 @@ impl crate::cli::RialtoToMillauMessagePayload {
 				let weight = call.get_dispatch_info().weight;
 
 				Ok(message_payload(spec_version, weight, origin, &call))
-			},
+			}
 		}
 	}
 }
@@ -670,8 +681,7 @@ impl crate::cli::ToRialtoMessage {
 	pub fn into_call(self) -> Result<rialto_runtime::Call, String> {
 		let call = match self {
 			cli::ToRialtoMessage::Raw { data } => {
-				Decode::decode(&mut &*data.0)
-					.map_err(|e| format!("Unable to decode message: {:#?}", e))?
+				Decode::decode(&mut &*data.0).map_err(|e| format!("Unable to decode message: {:#?}", e))?
 			}
 			cli::ToRialtoMessage::Remark { remark_size } => {
 				rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(remark_payload(
@@ -700,8 +710,7 @@ impl crate::cli::ToMillauMessage {
 	pub fn into_call(self) -> Result<millau_runtime::Call, String> {
 		let call = match self {
 			cli::ToMillauMessage::Raw { data } => {
-				Decode::decode(&mut &*data.0)
-					.map_err(|e| format!("Unable to decode message: {:#?}", e))?
+				Decode::decode(&mut &*data.0).map_err(|e| format!("Unable to decode message: {:#?}", e))?
 			}
 			cli::ToMillauMessage::Remark { remark_size } => {
 				millau_runtime::Call::System(millau_runtime::SystemCall::remark(remark_payload(
