@@ -383,7 +383,7 @@ fn prune_unjustified_headers<P: FinalitySyncPipeline>(
 			Some(justified_header)
 		},
 		Err(position) => {
-			*unjustified_headers = unjustified_headers.split_off(position + 1);
+			*unjustified_headers = unjustified_headers.split_off(position);
 			None
 		},
 	}
