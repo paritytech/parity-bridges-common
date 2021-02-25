@@ -68,6 +68,10 @@ where
 	P: SubstrateFinalitySyncPipeline,
 {
 	async fn best_finalized_source_block_number(&self) -> Result<P::Number, SubstrateError> {
+		// we can't continue to relay finality if target node is out of sync, because
+		// it may have already received (some of) headers that we're going to relay
+		self.client.ensure_synced().await?;
+
 		Ok(crate::messages_source::read_client_state::<C, P::Hash, P::Number>(
 			&self.client,
 			P::BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET,
