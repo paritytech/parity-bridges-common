@@ -256,7 +256,7 @@ fn finality_sync_loop_works() {
 
 #[test]
 fn prune_unjustified_headers_works() {
-	let original_unjustified_headers: UnjustifiedHeaders<TestFinalitySyncPipeline> = vec![
+	let mut original_unjustified_headers: UnjustifiedHeaders<TestFinalitySyncPipeline> = vec![
 		TestSourceHeader(false, 10),
 		TestSourceHeader(false, 13),
 		TestSourceHeader(false, 15),
@@ -314,7 +314,7 @@ fn prune_unjustified_headers_works() {
 
 #[test]
 fn prune_recent_finality_proofs_works() {
-	let original_recent_finality_proofs: FinalityProofs<TestFinalitySyncPipeline> = vec![
+	let mut original_recent_finality_proofs: FinalityProofs<TestFinalitySyncPipeline> = vec![
 		(10, TestFinalityProof(Some(10))),
 		(13, TestFinalityProof(Some(13))),
 		(15, TestFinalityProof(Some(15))),
