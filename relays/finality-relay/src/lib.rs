@@ -38,7 +38,7 @@ pub trait FinalitySyncPipeline: Clone + Debug + Send + Sync {
 	type Number: relay_utils::BlockNumberBase;
 	/// Type of header that we're syncing.
 	type Header: SourceHeader<Self::Number>;
-	/// Finality proog type.
+	/// Finality proof type.
 	type FinalityProof: FinalityProof<Self::Number>;
 }
 

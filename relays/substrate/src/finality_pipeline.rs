@@ -118,6 +118,7 @@ pub async fn run<SourceChain, TargetChain, P>(
 				SourceChain::AVERAGE_BLOCK_INTERVAL,
 				TargetChain::AVERAGE_BLOCK_INTERVAL,
 			),
+			recent_finality_proofs_limit: 4096,
 			stall_timeout: std::time::Duration::from_secs(60), // TODO: STALL_TIMEOUT,
 		},
 		metrics_params,

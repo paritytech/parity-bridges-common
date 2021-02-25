@@ -41,6 +41,16 @@ pub struct FinalitySyncParams {
 	/// to the target chain => bridge applications will run faster, but pallet storage may explode
 	/// (but if pruning is there, then it's fine).
 	pub tick: Duration,
+	/// Number of finality proofs to keep in internal buffer between loop wakeups.
+	///
+	/// While in "major syncing" state, we still read finality proofs from the stream. They're stored
+	/// in the internal buffer between loop wakeups. When we're close to the tip of the chain, we may
+	/// met finality delays if headers are not finalized frequently. So instead of waiting for next
+	/// finality proof to appear in the stream, we may use existing proof from that buffer.
+	pub recent_finality_proofs_limit: usize,
+	/// Number of recent finality proofs to keep.
+	///
+	/// When we're in "major syncing" state, we still read finality proofs from the stream and 
 	/// Timeout before we treat our transactions as lost.
 	pub stall_timeout: Duration,
 }
@@ -48,7 +58,8 @@ pub struct FinalitySyncParams {
 /// Source client used in finality synchronization loop.
 #[async_trait]
 pub trait SourceClient<P: FinalitySyncPipeline>: RelayClient {
-	/// Stream of new finality proofs.
+	/// Stream of new finality proofs. The stream is allowed to miss proofs for some
+	/// headers, even if those headers are mandatory.
 	type FinalityProofsStream: Stream<Item = P::FinalityProof>;
 
 	/// Get best finalized block number.
@@ -119,6 +130,8 @@ pub fn run<P: FinalitySyncPipeline>(
 
 /// Unjustified headers container. Ordered by header number.
 type UnjustifiedHeaders<P> = VecDeque<<P as FinalitySyncPipeline>::Header>;
+/// Finality proofs container. Ordered by target header number.
+type FinalityProofs<P> = VecDeque<(<P as FinalitySyncPipeline>::Number, <P as FinalitySyncPipeline>::FinalityProof)>;
 
 /// Error that may happen inside finality synchronization loop.
 #[derive(Debug)]
@@ -179,6 +192,7 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 
 		FailedClient::Source
 	})?);
+	let mut recent_finality_proofs = VecDeque::new();
 
 	let mut progress = (Instant::now(), None);
 	let mut retry_backoff = retry_backoff();
@@ -190,6 +204,7 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 			&target_client,
 			&mut progress,
 			&mut finality_proofs_stream,
+			&mut recent_finality_proofs,
 			&sync_params,
 			&metrics_sync,
 			last_transaction.clone(),
@@ -229,6 +244,7 @@ async fn run_loop_iteration<P, SC, TC>(
 	target_client: &TC,
 	progress: &mut (Instant, Option<P::Number>),
 	finality_proofs_stream: &mut Pin<Box<SC::FinalityProofsStream>>,
+	recent_finality_proofs: &mut FinalityProofs<P>,
 	sync_params: &FinalitySyncParams,
 	metrics_sync: &Option<SyncLoopMetrics>,
 	last_transaction: Option<Transaction<P::Number>>,
@@ -271,8 +287,10 @@ where
 		source_client,
 		target_client,
 		finality_proofs_stream,
+		recent_finality_proofs,
 		best_number_at_source,
 		best_number_at_target,
+		sync_params,
 	).await? {
 		Some((header, justification)) => {
 			let new_transaction = Transaction {
@@ -299,8 +317,10 @@ async fn select_header_to_submit<P, SC, TC>(
 	source_client: &SC,
 	_target_client: &TC,
 	finality_proofs_stream: &mut Pin<Box<SC::FinalityProofsStream>>,
+	recent_finality_proofs: &mut FinalityProofs<P>,
 	best_number_at_source: P::Number,
 	best_number_at_target: P::Number,
+	sync_params: &FinalitySyncParams,
 ) -> Result<Option<(P::Header, P::FinalityProof)>, Error<P, SC::Error, TC::Error>>
 where
 	P: FinalitySyncPipeline,
@@ -314,7 +334,7 @@ where
 	if best_number_at_source.saturating_sub(best_number_at_target) > 1024.into() {
 		log::debug!(
 			target: "bridge",
-			"Synchronization loop iteration may take a while: synced {:?} of {:?} headers",
+			"Synchronization loop iteration may take a while: only synced {:?} of {:?} headers",
 			best_number_at_target,
 			best_number_at_source,
 		);
@@ -324,13 +344,20 @@ where
 	// submit this header
 	let mut header_number = best_number_at_target + One::one();
 	while header_number <= best_number_at_source {
-		let (header, finality_proof) = source_client.header_and_finality_proof_by_number(header_number).await.map_err(Error::Source)?;
+		let (header, finality_proof) = source_client
+			.header_and_finality_proof_by_number(header_number)
+			.await
+			.map_err(Error::Source)?;
 		let is_mandatory = header.is_mandatory();
 
 		match (is_mandatory, finality_proof) {
-			(true, Some(finality_proof)) => return Ok(Some((header, finality_proof))),
+			(true, Some(finality_proof)) => {
+				log::trace!(target: "bridge", "Header {:?} is mandatory", header_number);
+				return Ok(Some((header, finality_proof)));
+			},
 			(true, None) => return Err(Error::MissingMandatoryFinalityProof(header.number())),
 			(false, Some(finality_proof)) => {
+				log::trace!(target: "bridge", "Header {:?} has persistent finality proof", header_number);
 				selected_finality_proof = Some((header, finality_proof));
 				prune_unjustified_headers::<P>(header_number, &mut unjustified_headers);
 			},
@@ -342,7 +369,34 @@ where
 		header_number = header_number + One::one();
 	}
 
-	// TODO: store last N justifications between iterations to be able to sync faster after we'll reach the tip of the chain?
+	// see if we can improve finality by using recent finality proofs
+	if !unjustified_headers.is_empty() && !recent_finality_proofs.is_empty() {
+		// we need proofs for headers in range unjustified_range_begin..=unjustified_range_end
+		let unjustified_range_begin = unjustified_headers.front().expect("TODO").number();
+		let unjustified_range_end = unjustified_headers.back().expect("TODO").number();
+
+		// we have proofs for headers in range buffered_range_begin..=buffered_range_end
+		let buffered_range_begin = recent_finality_proofs.front().expect("TODO").0;
+		let buffered_range_end = recent_finality_proofs.back().expect("TODO").0;
+
+		// we have two ranges => find intersection and take last available proof from this intersection
+		let intersection_begin = std::cmp::max(unjustified_range_begin, buffered_range_begin);
+		let intersection_end = std::cmp::min(unjustified_range_end, buffered_range_end);
+		let intersection = intersection_begin..=intersection_end;
+		if !intersection.is_empty() {
+			let selected_finality_proof_index = recent_finality_proofs.make_contiguous().binary_search_by_key(
+				intersection.end(),
+				|(number, _)| *number,
+			).unwrap_or_else(|index| index - 1);
+			
+			let (selected_header_number, finality_proof) = recent_finality_proofs[selected_finality_proof_index].clone();
+			let selected_header = prune_unjustified_headers::<P>(
+				selected_header_number,
+				&mut unjustified_headers,
+			).expect("unjustified_headers contain all headers from intersection; qed");
+			selected_finality_proof = Some((selected_header, finality_proof));
+		}
+	}
 
 	// read all proofs from the stream, probably selecting updated proof that we're going to submit
 	loop {
@@ -360,9 +414,25 @@ where
 
 		let justified_header = prune_unjustified_headers::<P>(finality_proof_target_header_number, &mut unjustified_headers);
 		if let Some(justified_header) = justified_header {
+			recent_finality_proofs.clear();
 			selected_finality_proof = Some((justified_header, finality_proof));
+		} else {
+			// the number of proofs read during single wakeup is expected to be low, so we aren't pruning
+			// `recent_finality_proofs` collection too often
+			recent_finality_proofs.push_back((finality_proof_target_header_number, finality_proof));
 		}
 	}
+
+	// remove obsolete 'recent' finality proofs + keep its size under certain limit
+	let oldest_finality_proof_to_keep = selected_finality_proof
+		.as_ref()
+		.map(|(header, _)| header.number())
+		.unwrap_or(best_number_at_target);
+	prune_recent_finality_proofs::<P>(
+		oldest_finality_proof_to_keep,
+		recent_finality_proofs,
+		sync_params.recent_finality_proofs_limit,
+	);
 
 	Ok(selected_finality_proof)
 }
@@ -371,29 +441,60 @@ fn prune_unjustified_headers<P: FinalitySyncPipeline>(
 	justified_header_number: P::Number,
 	unjustified_headers: &mut UnjustifiedHeaders<P>,
 ) -> Option<P::Header> {
+	prune_ordered_deque(
+		justified_header_number,
+		unjustified_headers,
+		usize::MAX,
+		|header| header.number(),
+	)
+}
+
+fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
+	justified_header_number: P::Number,
+	recent_finality_proofs: &mut FinalityProofs<P>,
+	recent_finality_proofs_limit: usize,
+) {
+	prune_ordered_deque(
+		justified_header_number,
+		recent_finality_proofs,
+		recent_finality_proofs_limit,
+		|(header_number, _)| *header_number,
+	);
+}
+
+fn prune_ordered_deque<T, Number: relay_utils::BlockNumberBase>(
+	header_number: Number,
+	ordered_deque: &mut VecDeque<T>,
+	maximal_deque_size: usize,
+	extract_header_number: impl Fn(&T) -> Number,
+) -> Option<T> {
 	// until `VecDeque::binary_search_by_key` is not stabilized, let's call `make_contiguous` and use
 	// `slice::binary_search_by_key` instead
-	let position = unjustified_headers.make_contiguous().binary_search_by_key(
-		&justified_header_number,
-		|header| header.number(),
-	);
+	let position = ordered_deque.make_contiguous().binary_search_by_key(&header_number, extract_header_number);
 
-	match position {
+	// first extract element we're interested in
+	let extracted_element = match position {
 		Ok(position) => {
-			let updated_unjustified_headers = unjustified_headers.split_off(position + 1);
-			let justified_header = unjustified_headers
+			let updated_deque = ordered_deque.split_off(position + 1);
+			let extracted_element = ordered_deque
 				.pop_back()
 				.expect("binary_search_by_key has returned Ok(); so there's element at `position`;\
 					we're splitting deque at `position+1`; so we have pruned at least 1 element;\
 					qed");
-			*unjustified_headers = updated_unjustified_headers;
-			Some(justified_header)
+			*ordered_deque = updated_deque;
+			Some(extracted_element)
 		},
 		Err(position) => {
-			*unjustified_headers = unjustified_headers.split_off(position);
+			*ordered_deque = ordered_deque.split_off(position);
 			None
 		},
-	}
+	};
+
+	// now - limit deque by size
+	let split_index = ordered_deque.len().saturating_sub(maximal_deque_size);
+	*ordered_deque = ordered_deque.split_off(split_index);
+
+	extracted_element
 }
 
 fn print_sync_progress<P: FinalitySyncPipeline>(
