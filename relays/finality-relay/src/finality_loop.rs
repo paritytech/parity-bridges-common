@@ -315,7 +315,7 @@ where
 
 	// read missing headers. if we see that the header schedules GRANDPA change, we need to
 	// submit this header
-	let mut header_number = best_number_at_target;
+	let mut header_number = best_number_at_target + One::one();
 	while header_number <= best_number_at_source {
 		let (header, finality_proof) = source_client.header_and_finality_proof_by_number(header_number).await.map_err(Error::Source)?;
 		let is_mandatory = header.is_mandatory();
