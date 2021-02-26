@@ -662,11 +662,15 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, test_header, unfinalized_header, Origin, TestHeader, TestRuntime};
+	use crate::mock::{
+		run_test, test_header, unfinalized_header, Origin, TestHash, TestHeader, TestNumber, TestRuntime,
+	};
 	use bp_header_chain::HeaderChain;
 	use bp_test_utils::{alice, authority_list, bob};
+	use codec::Encode;
 	use frame_support::{assert_noop, assert_ok};
-	use sp_runtime::DispatchError;
+	use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
+	use sp_runtime::{Digest, DigestItem, DispatchError};
 
 	fn init_with_origin(origin: Origin) -> Result<InitializationData<TestHeader>, DispatchError> {
 		let init_data = InitializationData {
@@ -678,6 +682,17 @@ mod tests {
 		};
 
 		Module::<TestRuntime>::initialize(origin, init_data.clone()).map(|_| init_data)
+	}
+
+	fn change_log(delay: u64) -> Digest<TestHash> {
+		let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+			next_authorities: vec![(alice(), 1), (bob(), 1)],
+			delay,
+		});
+
+		Digest::<TestHash> {
+			logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+		}
 	}
 
 	#[test]
@@ -889,7 +904,7 @@ mod tests {
 			// Need to update the header digest to indicate that our header signals an authority set
 			// change. The change will be enacted when we import our header.
 			let mut header = test_header(2);
-			header.digest = fork_tests::change_log(0);
+			header.digest = change_log(0);
 
 			// Let's import our test header
 			Module::<TestRuntime>::append_header(header.clone());
@@ -918,7 +933,7 @@ mod tests {
 			// Need to update the header digest to indicate that our header signals an authority set
 			// change. However, the change doesn't happen until the next block.
 			let mut schedules_change = test_header(2);
-			schedules_change.digest = fork_tests::change_log(1);
+			schedules_change.digest = change_log(1);
 			let header = test_header(3);
 
 			// Let's import our test headers
