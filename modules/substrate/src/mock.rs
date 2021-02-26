@@ -110,7 +110,6 @@ pub fn test_header(num: TestNumber) -> TestHeader {
 pub fn unfinalized_header(num: u64) -> crate::storage::ImportedHeader<TestHeader> {
 	crate::storage::ImportedHeader {
 		header: test_header(num),
-		requires_justification: false,
 		is_finalized: false,
 		signal_hash: None,
 	}

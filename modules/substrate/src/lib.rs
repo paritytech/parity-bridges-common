@@ -38,6 +38,8 @@ use frame_support::{
 	decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get, weights::DispatchClass,
 };
 use frame_system::{ensure_signed, RawOrigin};
+use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
+use sp_runtime::generic::OpaqueDigestItemId;
 use sp_runtime::traits::Header as HeaderT;
 use sp_runtime::{traits::BadOrigin, RuntimeDebug};
 use sp_std::{marker::PhantomData, prelude::*};
@@ -50,7 +52,6 @@ pub use storage_proof::StorageProofChecker;
 
 mod storage;
 mod storage_proof;
-mod verifier;
 
 #[cfg(test)]
 mod mock;
@@ -91,9 +92,6 @@ decl_storage! {
 		BestHeaders: Vec<BridgedBlockHash<T>>;
 		/// Hash of the best finalized header.
 		BestFinalized: BridgedBlockHash<T>;
-		/// The set of header IDs (number, hash) which enact an authority set change and therefore
-		/// require a GRANDPA justification.
-		RequiresJustification: map hasher(identity) BridgedBlockHash<T> => BridgedBlockNumber<T>;
 		/// Headers which have been imported into the pallet.
 		ImportedHeaders: map hasher(identity) BridgedBlockHash<T> => Option<ImportedHeader<BridgedHeader<T>>>;
 		/// The current GRANDPA Authority set.
@@ -230,6 +228,7 @@ decl_module! {
 			origin,
 		) -> DispatchResult {
 			ensure_operational::<T>()?;
+			let _ = ensure_signed(origin)?;
 			Ok(())
 		}
 	}
@@ -278,18 +277,6 @@ impl<T: Config> Module<T> {
 		} else {
 			false
 		}
-	}
-
-	/// Returns a list of headers which require finality proofs.
-	///
-	/// These headers require proofs because they enact authority set changes.
-	// TODO: We don't need this anymore
-	pub fn require_justifications() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
-		PalletStorage::<T>::new()
-			.missing_justifications()
-			.iter()
-			.map(|id| (id.number, id.hash))
-			.collect()
 	}
 
 	/// Verify that the passed storage proof is valid, given it is crafted using
@@ -354,7 +341,7 @@ where
 	} else {
 		// We don't have a scheduled change in storage at the moment. Let's check if the current
 		// header signals an authority set change.
-		if let Some(change) = verifier::find_scheduled_change(&header) {
+		if let Some(change) = find_scheduled_change(&header) {
 			let next_set = AuthoritySet {
 				authorities: change.next_authorities,
 				set_id: storage.current_authority_set().set_id + 1,
@@ -388,7 +375,6 @@ where
 
 	storage.write_header(&ImportedHeader {
 		header,
-		requires_justification: false,
 		is_finalized: true,
 		signal_hash: None,
 	});
@@ -460,13 +446,25 @@ fn initialize_bridge<T: Config>(init_params: InitializationData<BridgedHeader<T>
 		initial_hash,
 		ImportedHeader {
 			header,
-			requires_justification: false,
 			is_finalized: true,
 			signal_hash,
 		},
 	);
 
 	IsHalted::put(is_halted);
+}
+
+fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
+	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
+
+	let filter_log = |log: ConsensusLog<H::Number>| match log {
+		ConsensusLog::ScheduledChange(change) => Some(change),
+		_ => None,
+	};
+
+	// find the first consensus digest with the right ID which converts to
+	// the right kind of consensus log.
+	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
 }
 
 /// Expected interface for interacting with bridge pallet storage.
@@ -492,11 +490,6 @@ pub trait BridgeStorage {
 
 	/// Check if a particular header is known to the pallet.
 	fn header_exists(&self, hash: <Self::Header as HeaderT>::Hash) -> bool;
-
-	/// Returns a list of headers which require justifications.
-	///
-	/// A header will require a justification if it enacts a new authority set.
-	fn missing_justifications(&self) -> Vec<HeaderId<Self::Header>>;
 
 	/// Get a specific header by its hash.
 	///
@@ -573,13 +566,6 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 			}
 		}
 
-		if header.requires_justification {
-			<RequiresJustification<T>>::insert(hash, current_height);
-		} else {
-			// If the key doesn't exist this is a no-op, so it's fine to call it often
-			<RequiresJustification<T>>::remove(hash);
-		}
-
 		<ImportedHeaders<T>>::insert(hash, header);
 	}
 
@@ -604,7 +590,6 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 				Default::default(),
 				Default::default(),
 			),
-			requires_justification: false,
 			is_finalized: false,
 			signal_hash: None,
 		})
@@ -620,12 +605,6 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 
 	fn header_by_hash(&self, hash: BridgedBlockHash<T>) -> Option<ImportedHeader<BridgedHeader<T>>> {
 		<ImportedHeaders<T>>::get(hash)
-	}
-
-	fn missing_justifications(&self) -> Vec<HeaderId<BridgedHeader<T>>> {
-		<RequiresJustification<T>>::iter()
-			.map(|(hash, number)| HeaderId { number, hash })
-			.collect()
 	}
 
 	fn current_authority_set(&self) -> AuthoritySet {
@@ -666,7 +645,6 @@ mod tests {
 	use bp_test_utils::{alice, authority_list, bob};
 	use codec::Encode;
 	use frame_support::{assert_noop, assert_ok};
-	use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 	use sp_runtime::{Digest, DigestItem, DispatchError};
 
 	fn init_with_origin(origin: Origin) -> Result<InitializationData<TestHeader>, DispatchError> {

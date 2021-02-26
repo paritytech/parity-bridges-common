@@ -60,9 +60,6 @@ pub struct ScheduledChange<N> {
 pub struct ImportedHeader<H: HeaderT> {
 	/// A plain Substrate header.
 	pub header: H,
-	/// Does this header enact a new authority set change. If it does
-	/// then it will require a justification.
-	pub requires_justification: bool,
 	/// Has this header been finalized, either explicitly via a justification,
 	/// or implicitly via one of its children getting finalized.
 	pub is_finalized: bool,
