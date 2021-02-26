@@ -162,38 +162,6 @@ decl_module! {
 	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
-		/// Import a signed Substrate header into the runtime.
-		///
-		/// This will perform some basic checks to make sure it is fine to
-		/// import into the runtime. However, it does not perform any checks
-		/// related to finality.
-		// TODO: Update weights [#78]
-		#[weight = 0]
-		pub fn import_signed_header(
-			origin,
-			header: BridgedHeader<T>,
-		) -> DispatchResult {
-			ensure_operational::<T>()?;
-			let _ = ensure_signed(origin)?;
-			let hash = header.hash();
-			frame_support::debug::trace!("Going to import header {:?}: {:?}", hash, header);
-
-			let mut verifier = verifier::Verifier {
-				storage: PalletStorage::<T>::new(),
-			};
-
-			let _ = verifier
-				.import_header(hash, header)
-				.map_err(|e| {
-					frame_support::debug::error!("Failed to import header {:?}: {:?}", hash, e);
-					<Error<T>>::InvalidHeader
-				})?;
-
-			frame_support::debug::trace!("Successfully imported header: {:?}", hash);
-
-			Ok(())
-		}
-
 		/// Import a finalty proof for a particular header.
 		///
 		/// This will take care of finalizing any already imported headers
@@ -293,6 +261,7 @@ decl_module! {
 
 impl<T: Config> Module<T> {
 	/// Get the highest header(s) that the pallet knows of.
+	// TODO: This will end up returning the same thing as `best_fianlized()`, maybe merge
 	pub fn best_headers() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
 		PalletStorage::<T>::new()
 			.best_headers()
@@ -314,6 +283,7 @@ impl<T: Config> Module<T> {
 	}
 
 	/// Check if a particular header is known to the bridge pallet.
+	// TODO: May need to modify this, seems like a useful query though
 	pub fn is_known_header(hash: BridgedBlockHash<T>) -> bool {
 		PalletStorage::<T>::new().header_exists(hash)
 	}
@@ -321,6 +291,7 @@ impl<T: Config> Module<T> {
 	/// Check if a particular header is finalized.
 	///
 	/// Will return false if the header is not known to the pallet.
+	// TODO: Keep this, but update
 	// One thing worth noting here is that this approach won't work well
 	// once we track forks since there could be an older header on a
 	// different fork which isn't an ancestor of our best finalized header.
@@ -336,6 +307,7 @@ impl<T: Config> Module<T> {
 	/// Returns a list of headers which require finality proofs.
 	///
 	/// These headers require proofs because they enact authority set changes.
+	// TODO: We don't need this anymore
 	pub fn require_justifications() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
 		PalletStorage::<T>::new()
 			.missing_justifications()
