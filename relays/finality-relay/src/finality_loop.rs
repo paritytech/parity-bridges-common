@@ -498,7 +498,7 @@ fn prune_ordered_deque<T, Number: relay_utils::BlockNumberBase>(
 	maximal_deque_size: usize,
 	extract_header_number: impl Fn(&T) -> Number,
 ) -> Option<T> {
-	// until `VecDeque::binary_search_by_key` is not stabilized, let's call `make_contiguous` and use
+	// `VecDeque::binary_search_by_key` is not stabilized. Let's call `make_contiguous` and use
 	// `slice::binary_search_by_key` instead
 	let position = ordered_deque
 		.make_contiguous()
