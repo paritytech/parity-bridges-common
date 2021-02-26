@@ -52,32 +52,6 @@ impl From<Vec<u8>> for FinalityProof {
 	}
 }
 
-/// Errors which can happen while importing a header.
-#[derive(RuntimeDebug, PartialEq)]
-pub enum ImportError {
-	/// This header is at the same height or older than our latest finalized block, thus not useful.
-	OldHeader,
-	/// This header has already been imported by the pallet.
-	HeaderAlreadyExists,
-	/// We're missing a parent for this header.
-	MissingParent,
-	/// The number of the header does not follow its parent's number.
-	InvalidChildNumber,
-	/// The height of the next authority set change overflowed.
-	ScheduledHeightOverflow,
-	/// Received an authority set which was invalid in some way, such as
-	/// the authority weights being empty or overflowing the `AuthorityWeight`
-	/// type.
-	InvalidAuthoritySet,
-	/// This header is not allowed to be imported since an ancestor requires a finality proof.
-	///
-	/// This can happen if an ancestor is supposed to enact an authority set change.
-	AwaitingFinalityProof,
-	/// This header schedules an authority set change even though we're still waiting
-	/// for an old authority set change to be enacted on this fork.
-	PendingAuthoritySetChange,
-}
-
 /// Errors which can happen while verifying a headers finality.
 #[derive(RuntimeDebug, PartialEq)]
 pub enum FinalizationError {
@@ -109,113 +83,10 @@ where
 	H: HeaderT,
 	H::Number: finality_grandpa::BlockNumberOps,
 {
-	/// Import a header to the pallet.
-	///
-	/// Will perform some basic checks to make sure that this header doesn't break any assumptions
-	/// such as being on a different finalized fork.
-	pub fn import_header(&mut self, hash: H::Hash, header: H) -> Result<(), ImportError> {
-		let best_finalized = self.storage.best_finalized_header();
-
-		if header.number() <= best_finalized.number() {
-			return Err(ImportError::OldHeader);
-		}
-
-		if self.storage.header_exists(hash) {
-			return Err(ImportError::HeaderAlreadyExists);
-		}
-
-		let parent_header = self
-			.storage
-			.header_by_hash(*header.parent_hash())
-			.ok_or(ImportError::MissingParent)?;
-
-		let parent_number = *parent_header.number();
-		if parent_number + One::one() != *header.number() {
-			return Err(ImportError::InvalidChildNumber);
-		}
-
-		// A header requires a justification if it enacts an authority set change. We don't
-		// need to act on it right away (we'll update the set once the header gets finalized), but
-		// we need to make a note of it.
-		//
-		// Note: This assumes that we can only have one authority set change pending per fork at a
-		// time. While this is not strictly true of GRANDPA (it can have multiple pending changes,
-		// even across forks), this assumption simplifies our tracking of authority set changes.
-		let mut signal_hash = parent_header.signal_hash;
-		let scheduled_change = find_scheduled_change(&header);
-
-		// Check if our fork is expecting an authority set change
-		let requires_justification = if let Some(hash) = signal_hash {
-			const PROOF: &str = "If the header has a signal hash it means there's an accompanying set
-							change in storage, therefore this must always be valid.";
-			let pending_change = self.storage.scheduled_set_change(hash).expect(PROOF);
-
-			if scheduled_change.is_some() {
-				return Err(ImportError::PendingAuthoritySetChange);
-			}
-
-			if *header.number() > pending_change.height {
-				return Err(ImportError::AwaitingFinalityProof);
-			}
-
-			pending_change.height == *header.number()
-		} else {
-			// Since we don't currently have a pending authority set change let's check if the header
-			// contains a log indicating when the next change should be.
-			if let Some(change) = scheduled_change {
-				let mut total_weight = 0u64;
-
-				for (_id, weight) in &change.next_authorities {
-					total_weight = total_weight
-						.checked_add(*weight)
-						.ok_or(ImportError::InvalidAuthoritySet)?;
-				}
-
-				// If none of the authorities have a weight associated with them the
-				// set is essentially empty. We don't want that.
-				if total_weight == 0 {
-					return Err(ImportError::InvalidAuthoritySet);
-				}
-
-				let next_set = AuthoritySet {
-					authorities: change.next_authorities,
-					set_id: self.storage.current_authority_set().set_id + 1,
-				};
-
-				let height = (*header.number())
-					.checked_add(&change.delay)
-					.ok_or(ImportError::ScheduledHeightOverflow)?;
-
-				let scheduled_change = ScheduledChange {
-					authority_set: next_set,
-					height,
-				};
-
-				// Note: It's important that the signal hash is updated if a header schedules a
-				// change or else we end up with inconsistencies in other places.
-				signal_hash = Some(hash);
-				self.storage.schedule_next_set_change(hash, scheduled_change);
-
-				// If the delay is 0 this header will enact the change it signaled
-				height == *header.number()
-			} else {
-				false
-			}
-		};
-
-		self.storage.write_header(&ImportedHeader {
-			header,
-			requires_justification,
-			is_finalized: false,
-			signal_hash,
-		});
-
-		Ok(())
-	}
-
 	/// Verify that a previously imported header can be finalized with the given GRANDPA finality
 	/// proof. If the header enacts an authority set change the change will be applied once the
 	/// header has been finalized.
+	// TODO: Mostly remove. May want to roll some stuff into the unchecked variant
 	pub fn import_finality_proof(&mut self, hash: H::Hash, proof: FinalityProof) -> Result<(), FinalizationError> {
 		// Make sure that we've previously imported this header
 		let header = self
@@ -310,6 +181,7 @@ where
 }
 
 /// Returns the lineage of headers between [child, ancestor)
+// TODO: Remove
 fn headers_between<S, H>(
 	storage: &S,
 	ancestor: ImportedHeader<H>,
