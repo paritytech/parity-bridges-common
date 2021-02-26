@@ -42,8 +42,6 @@ jobs:
         run:                       rustup toolchain add $NIGHTLY
       - name:                      Add WASM Utilities
         run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
-      - name:                      Rust Cache
-        uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Checking rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         with:
@@ -101,8 +99,6 @@ jobs:
         run:                       rustup toolchain add $NIGHTLY
       - name:                      Add WASM Utilities
         run:                       rustup target add wasm32-unknown-unknown --toolchain $NIGHTLY
-      - name:                      Rust Cache
-        uses:                      Swatinem/rust-cache@v1.2.0
       - name:                      Building rust-${{ matrix.toolchain }}
         uses:                      actions-rs/cargo@master
         if:                        github.ref == 'refs/heads/master'
