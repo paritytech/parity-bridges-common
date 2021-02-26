@@ -26,8 +26,8 @@
 			"PreRuntime": "PreRuntime"
 		}
 	},
-	"BlockHash": "RialtoBlockHash",
-	"BlockNumber": "RialtoBlockNumber",
+	"BlockHash": "MillauBlockHash",
+	"BlockNumber": "MillauBlockNumber",
 	"BridgedBlockHash": "RialtoBlockHash",
 	"BridgedBlockNumber": "RialtoBlockNumber",
 	"BridgedHeader": "RialtoHeader",
