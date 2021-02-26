@@ -52,6 +52,19 @@ impl From<Vec<u8>> for FinalityProof {
 	}
 }
 
+pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
+	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
+
+	let filter_log = |log: ConsensusLog<H::Number>| match log {
+		ConsensusLog::ScheduledChange(change) => Some(change),
+		_ => None,
+	};
+
+	// find the first consensus digest with the right ID which converts to
+	// the right kind of consensus log.
+	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
