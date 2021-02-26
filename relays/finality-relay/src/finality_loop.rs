@@ -366,7 +366,7 @@ where
 	// to see that the loop is progressing
 	log::trace!(
 		target: "bridge",
-		"Cosidering range of headers ({:?}; {:?}]",
+		"Considering range of headers ({:?}; {:?}]",
 		best_number_at_target,
 		best_number_at_source,
 	);
