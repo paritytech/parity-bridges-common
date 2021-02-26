@@ -49,7 +49,7 @@ pub struct FinalitySyncParams {
 	///
 	/// While in "major syncing" state, we still read finality proofs from the stream. They're stored
 	/// in the internal buffer between loop wakeups. When we're close to the tip of the chain, we may
-	/// met finality delays if headers are not finalized frequently. So instead of waiting for next
+	/// meet finality delays if headers are not finalized frequently. So instead of waiting for next
 	/// finality proof to appear in the stream, we may use existing proof from that buffer.
 	pub recent_finality_proofs_limit: usize,
 	/// Number of recent finality proofs to keep.
