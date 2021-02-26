@@ -705,7 +705,7 @@ impl crate::cli::ToRialtoMessage {
 
 		log::info!(target: "bridge", "Generated Rialto call: {:#?}", call);
 		log::info!(target: "bridge", "Weight of Rialto call: {}", call.get_dispatch_info().weight);
-		log::info!(target: "bridge", "Encoded Rialto call: 0x{}", HexBytes::encode(&call));
+		log::info!(target: "bridge", "Encoded Rialto call: {:?}", HexBytes::encode(&call));
 
 		Ok(call)
 	}
