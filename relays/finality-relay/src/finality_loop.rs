@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! The loop basically reads all missing headers and their finality proofs from the source client.
+//! The proof for the best possible header is then submitted to the target node. The only exception
+//! is the mandatory headers, which we always submit to the target node. For such headers, we
+//! assume that the persistent proof either exists, or will eventually became available.
+
 use crate::{FinalityProof, FinalitySyncPipeline, SourceHeader};
 
 use async_trait::async_trait;
@@ -31,11 +36,6 @@ use std::{
 	pin::Pin,
 	time::{Duration, Instant},
 };
-
-//! The loop basically reads all missing headers and their finality proofs from the source client.
-//! The proof for the best possible header is then submitted to the target node. The only exception
-//! is the mandatory headers, which we always submit to the target node. For such headers, we
-//! assume that the persistent proof either exists, or will eventually became available.
 
 /// Finality proof synchronization loop parameters.
 #[derive(Debug, Clone)]
