@@ -354,7 +354,7 @@ async fn run_encode_call(call: cli::EncodeCall) -> Result<(), String> {
 		cli::EncodeCall::Millau { call } => {
 			let call = call.into_call()?;
 			println!("{:?}", HexBytes::encode(&call));
-		},
+		}
 	}
 	Ok(())
 }
