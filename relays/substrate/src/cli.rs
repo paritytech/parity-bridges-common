@@ -51,11 +51,16 @@ pub enum Command {
 	/// The message is being sent to the source chain, delivered to the target chain and dispatched
 	/// there.
 	SendMessage(SendMessage),
-	/// Generate SCALE-encoded Call for choosen network.
+	/// Generate SCALE-encoded `Call` for choosen network.
 	///
 	/// The call can be used either as message payload or can be wrapped into a transaction
 	/// and executed on the chain directly.
 	EncodeCall(EncodeCall),
+	/// Generate SCALE-encoded `MessagePayload` object that can be sent over selected bridge.
+	///
+	/// The `MessagePayload` can be then fed to `MessageLane::send_message` function and sent over
+	/// the bridge.
+	EncodeMessagePayload(EncodeMessagePayload),
 }
 
 /// Start headers relayer process.
@@ -215,8 +220,13 @@ pub enum EncodeCall {
 		#[structopt(flatten)]
 		call: ToMillauMessage,
 	},
+}
+
+/// A `MessagePayload` to encode.
+#[derive(StructOpt)]
+pub enum EncodeMessagePayload {
 	/// Message Payload of Rialto to Millau call.
-	RialtoToMillauMessagePayload {
+	RialtoToMillau {
 		#[structopt(flatten)]
 		message: ToMillauMessage,
 		/// Declared weight of the dispatch cost on the target chain.
@@ -227,7 +237,7 @@ pub enum EncodeCall {
 		sender: bp_rialto::AccountId,
 	},
 	/// Message Payload of Millau to Rialto call.
-	MillauToRialtoMessagePayload {
+	MillauToRialto {
 		#[structopt(flatten)]
 		message: ToRialtoMessage,
 		/// Declared weight of the dispatch cost on the target chain.

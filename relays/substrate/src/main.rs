@@ -65,6 +65,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 		cli::Command::RelayMessages(arg) => run_relay_messages(arg).await,
 		cli::Command::SendMessage(arg) => run_send_message(arg).await,
 		cli::Command::EncodeCall(arg) => run_encode_call(arg).await,
+		cli::Command::EncodeMessagePayload(arg) => run_encode_message_payload(arg).await,
 	}
 }
 
@@ -361,7 +362,13 @@ async fn run_encode_call(call: cli::EncodeCall) -> Result<(), String> {
 			);
 			println!("0x{}", hex::encode(&call.encode()));
 		},
-		cli::EncodeCall::RialtoToMillauMessagePayload {
+	}
+	Ok(())
+}
+
+async fn run_encode_message_payload(call: cli::EncodeMessagePayload) -> Result<(), String> {
+	match call {
+		cli::EncodeMessagePayload::RialtoToMillau {
 			message,
 			weight,
 			sender,
@@ -379,7 +386,7 @@ async fn run_encode_call(call: cli::EncodeCall) -> Result<(), String> {
 			);
 			println!("0x{}", hex::encode(&payload.encode()));
 		},
-		cli::EncodeCall::MillauToRialtoMessagePayload {
+		cli::EncodeMessagePayload::MillauToRialto {
 			message,
 			weight,
 			sender,
