@@ -161,7 +161,6 @@ decl_error! {
 decl_module! {
 	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
-
 		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
 		///
 		/// The initial configuration provided does not need to be the genesis header of the bridged
@@ -223,6 +222,18 @@ decl_module! {
 			ensure_owner_or_root::<T>(origin)?;
 			IsHalted::put(false);
 			frame_support::debug::info!("Resuming pallet operations.");
+		}
+
+		// TODO: Remove when the finality verifier pallet extrinsic is moved here.
+		//
+		// Since the "real" pallet extrinsics have been removed this is a stub used by the tests to
+		// check whether or not the pallet is operational are still being executed.
+		#[weight = 0]
+		pub fn operational(
+			origin,
+		) -> DispatchResult {
+			ensure_operational::<T>()?;
+			Ok(())
 		}
 	}
 }
@@ -780,12 +791,7 @@ mod tests {
 			IsHalted::put(true);
 
 			assert_noop!(
-				Module::<TestRuntime>::import_signed_header(Origin::signed(1), test_header(1)),
-				Error::<TestRuntime>::Halted,
-			);
-
-			assert_noop!(
-				Module::<TestRuntime>::finalize_header(Origin::signed(1), test_header(1).hash(), vec![]),
+				Module::<TestRuntime>::operational(Origin::signed(1)),
 				Error::<TestRuntime>::Halted,
 			);
 		})
@@ -852,6 +858,22 @@ mod tests {
 			assert!(storage.header_by_hash(header.hash()).unwrap().is_finalized);
 			assert_eq!(storage.best_finalized_header().header, header);
 			assert_eq!(storage.best_headers()[0].hash, header.hash());
+		})
+	}
+
+	#[test]
+	fn importing_unchecked_headers_updates_best_header() {
+		run_test(|| {
+			init_with_origin(Origin::root()).unwrap();
+			let storage = PalletStorage::<TestRuntime>::new();
+
+			let header = test_header(2);
+			Module::<TestRuntime>::append_header(header.clone());
+			assert_eq!(storage.best_headers()[0].hash, header.hash());
+
+			let better_header = test_header(5);
+			Module::<TestRuntime>::append_header(better_header.clone());
+			assert_eq!(storage.best_headers()[0].hash, better_header.hash());
 		})
 	}
 
