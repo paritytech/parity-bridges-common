@@ -162,38 +162,6 @@ decl_module! {
 	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
-		/// Import a finalty proof for a particular header.
-		///
-		/// This will take care of finalizing any already imported headers
-		/// which get finalized when importing this particular proof, as well
-		/// as updating the current and next validator sets.
-		// TODO: Update weights [#78]
-		#[weight = 0]
-		pub fn finalize_header(
-			origin,
-			hash: BridgedBlockHash<T>,
-			finality_proof: Vec<u8>,
-		) -> DispatchResult {
-			ensure_operational::<T>()?;
-			let _ = ensure_signed(origin)?;
-			frame_support::debug::trace!("Going to finalize header: {:?}", hash);
-
-			let mut verifier = verifier::Verifier {
-				storage: PalletStorage::<T>::new(),
-			};
-
-			let _ = verifier
-				.import_finality_proof(hash, finality_proof.into())
-				.map_err(|e| {
-					frame_support::debug::error!("Failed to finalize header {:?}: {:?}", hash, e);
-					<Error<T>>::UnfinalizedHeader
-				})?;
-
-			frame_support::debug::trace!("Successfully finalized header: {:?}", hash);
-
-			Ok(())
-		}
-
 		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
 		///
 		/// The initial configuration provided does not need to be the genesis header of the bridged
