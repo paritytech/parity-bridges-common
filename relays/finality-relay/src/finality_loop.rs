@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -31,6 +31,11 @@ use std::{
 	pin::Pin,
 	time::{Duration, Instant},
 };
+
+//! The loop basically reads all missing headers and their finality proofs from the source client.
+//! The proof for the best possible header is then submitted to the target node. The only exception
+//! is the mandatory headers, which we always submit to the target node. For such headers, we
+//! assume that the persistent proof either exists, or will eventually became available.
 
 /// Finality proof synchronization loop parameters.
 #[derive(Debug, Clone)]
