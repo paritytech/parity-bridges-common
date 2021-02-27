@@ -245,10 +245,10 @@ fn ethereum_deploy_contract_params(matches: &clap::ArgMatches) -> Result<Ethereu
 	});
 	let sub_initial_authorities_set_id = matches
 		.value_of("sub-authorities-set-id")
-		.map(|set| set
-			.parse()
-			.map_err(|e| format!("Failed to parse sub-authorities-set-id: {}", e))
-		)
+		.map(|set| {
+			set.parse()
+				.map_err(|e| format!("Failed to parse sub-authorities-set-id: {}", e))
+		})
 		.transpose()?;
 	let sub_initial_authorities_set = parse_hex_argument(matches, "sub-authorities-set")?;
 	let sub_initial_header = parse_hex_argument(matches, "sub-initial-header")?;
@@ -329,16 +329,17 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<EthereumExchan
 		Some(eth_tx_hash) => ethereum_exchange::ExchangeRelayMode::Single(
 			eth_tx_hash
 				.parse()
-				.map_err(|e| format!("Failed to parse eth-tx-hash: {}", e))?
+				.map_err(|e| format!("Failed to parse eth-tx-hash: {}", e))?,
 		),
-		None => ethereum_exchange::ExchangeRelayMode::Auto(matches
-			.value_of("eth-start-with-block")
-			.map(|eth_start_with_block| {
-				eth_start_with_block
-					.parse()
-					.map_err(|e| format!("Failed to parse eth-start-with-block: {}", e))
-			})
-			.transpose()?
+		None => ethereum_exchange::ExchangeRelayMode::Auto(
+			matches
+				.value_of("eth-start-with-block")
+				.map(|eth_start_with_block| {
+					eth_start_with_block
+						.parse()
+						.map_err(|e| format!("Failed to parse eth-start-with-block: {}", e))
+				})
+				.transpose()?,
 		),
 	};
 
