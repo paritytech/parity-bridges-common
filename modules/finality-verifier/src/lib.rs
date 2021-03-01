@@ -50,20 +50,20 @@ mod mock;
 // Re-export in crate namespace for `construct_runtime!`
 pub use pallet::*;
 
+/// Block number of the bridged chain.
+pub type _BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
+/// Block hash of the bridged chain.
+pub type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
+/// Hasher of the bridged chain.
+pub type _BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
+/// Header of the bridged chain.
+pub type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-
-	/// Block number of the bridged chain.
-	pub(crate) type _BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
-	/// Block hash of the bridged chain.
-	pub(crate) type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
-	/// Hasher of the bridged chain.
-	pub(crate) type _BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
-	/// Header of the bridged chain.
-	pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -161,6 +161,36 @@ pub mod pallet {
 
 			Ok(().into())
 		}
+
+		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
+		///
+		/// The initial configuration provided does not need to be the genesis header of the bridged
+		/// chain, it can be any arbirary header. You can also provide the next scheduled set change
+		/// if it is already know.
+		///
+		/// This function is only allowed to be called from a trusted origin and writes to storage
+		/// with practically no checks in terms of the validity of the data. It is important that
+		/// you ensure that valid data is being passed in.
+		//TODO: Update weights [#78]
+		#[pallet::weight(0)]
+		pub fn initialize(
+			origin: OriginFor<T>,
+			init_data: super::InitializationData<BridgedHeader<T>>,
+		) -> DispatchResultWithPostInfo {
+			let _ = ensure_root(origin)?;
+			// TODO: ensure_owner_or_root::<T>(origin)?;
+
+			let init_allowed = !<BestFinalized<T>>::exists();
+			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
+			initialize_bridge::<T>(init_data.clone());
+
+			frame_support::debug::info!(
+				"Pallet has been initialized with the following parameters: {:?}",
+				init_data
+			);
+
+			Ok(().into())
+		}
 	}
 
 	/// The current number of requests which have written to storage.
@@ -226,22 +256,7 @@ pub mod pallet {
 			}
 
 			if let Some(init_data) = self.init_data.clone() {
-				let super::InitializationData {
-					header,
-					authority_list,
-					set_id,
-					is_halted,
-				} = init_data;
-
-				let initial_hash = header.hash();
-				<InitialHash<T>>::put(initial_hash);
-				<BestFinalized<T>>::put(initial_hash);
-				<ImportedHeaders<T>>::insert(initial_hash, header);
-
-				let authority_set = bp_header_chain::AuthoritySet::new(authority_list, set_id);
-				<CurrentAuthoritySet<T>>::put(authority_set);
-
-				<IsHalted<T>>::put(is_halted);
+				initialize_bridge::<T>(init_data);
 			} else {
 				// Since the bridge hasn't been initialized we shouldn't allow anyone to perform
 				// transactions.
@@ -272,6 +287,8 @@ pub mod pallet {
 		///
 		/// This is the case for non-standard (e.g forced) authority set changes.
 		UnsupportedScheduledChange,
+		/// The pallet has already been initialized.
+		AlreadyInitialized,
 	}
 
 	/// Import the given header to the pallet's storage.
@@ -301,6 +318,25 @@ pub mod pallet {
 
 		Ok(())
 	}
+
+	fn initialize_bridge<T: Config>(init_params: super::InitializationData<BridgedHeader<T>>) {
+		let super::InitializationData {
+			header,
+			authority_list,
+			set_id,
+			is_halted,
+		} = init_params;
+
+		let initial_hash = header.hash();
+		<InitialHash<T>>::put(initial_hash);
+		<BestFinalized<T>>::put(initial_hash);
+		<ImportedHeaders<T>>::insert(initial_hash, header);
+
+		let authority_set = bp_header_chain::AuthoritySet::new(authority_list, set_id);
+		<CurrentAuthoritySet<T>>::put(authority_set);
+
+		<IsHalted<T>>::put(is_halted);
+	}
 }
 
 /// Data required for initializing the bridge pallet.
@@ -308,7 +344,7 @@ pub mod pallet {
 /// The bridge needs to know where to start its sync from, and this provides that initial context.
 #[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub(crate) struct InitializationData<H: HeaderT> {
+pub struct InitializationData<H: HeaderT> {
 	/// The header from which we should start syncing.
 	pub header: H,
 	/// The initial authorities of the pallet.
