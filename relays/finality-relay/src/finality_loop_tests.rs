@@ -277,7 +277,7 @@ fn prune_unjustified_headers_works() {
 		unjustified_headers.make_contiguous(),
 	);
 
-	// when there's no header in the collection
+	// when the header doesn't exist in the collection
 	let mut unjustified_headers = original_unjustified_headers.clone();
 	assert_eq!(
 		prune_unjustified_headers::<TestFinalitySyncPipeline>(11, &mut unjustified_headers),
