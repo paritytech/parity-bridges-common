@@ -5,8 +5,9 @@ on:
     tags:
       - v*
     paths-ignore:
-      - 'README.md'
-      - diagrams/
+      - '**/README.md'
+      - diagrams/*
+      - docs/*
   schedule:                                         # Nightly build
     - cron:                                         '0 1 * * *'
 
@@ -30,7 +31,7 @@ jobs:
             healthcheck: http://localhost:9616/metrics
           - project: substrate-relay
             healthcheck: http://localhost:9616/metrics
-    runs-on:                                        ubuntu-latest
+    runs-on:                                        self-hosted
     container:
       image:                                        docker:git
     steps:

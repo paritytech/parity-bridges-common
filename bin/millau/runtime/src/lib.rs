@@ -313,8 +313,8 @@ parameter_types! {
 impl pallet_finality_verifier::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type HeaderChain = pallet_substrate_bridge::Module<Runtime>;
-	type AncestryProof = Vec<bp_rialto::Header>;
-	type AncestryChecker = bp_header_chain::LinearAncestryChecker;
+	type AncestryProof = ();
+	type AncestryChecker = ();
 	type MaxRequests = MaxRequests;
 }
 
@@ -643,7 +643,8 @@ mod tests {
 		type Weights = pallet_message_lane::weights::RialtoWeight<Runtime>;
 
 		pallet_message_lane::ensure_weights_are_correct::<Weights>(
-			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_millau::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_millau::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT,
 			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
 		);
 

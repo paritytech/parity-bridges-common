@@ -51,8 +51,21 @@ pub enum Command {
 	/// The message is being sent to the source chain, delivered to the target chain and dispatched
 	/// there.
 	SendMessage(SendMessage),
+	/// Generate SCALE-encoded `Call` for choosen network.
+	///
+	/// The call can be used either as message payload or can be wrapped into a transaction
+	/// and executed on the chain directly.
+	EncodeCall(EncodeCall),
+	/// Generate SCALE-encoded `MessagePayload` object that can be sent over selected bridge.
+	///
+	/// The `MessagePayload` can be then fed to `MessageLane::send_message` function and sent over
+	/// the bridge.
+	EncodeMessagePayload(EncodeMessagePayload),
+	/// Estimate Delivery and Dispatch Fee required for message submission to message lane.
+	EstimateFee(EstimateFee),
 }
 
+/// Start headers relayer process.
 #[derive(StructOpt)]
 pub enum RelayHeaders {
 	/// Relay Millau headers to Rialto.
@@ -79,6 +92,7 @@ pub enum RelayHeaders {
 	},
 }
 
+/// Start message relayer process.
 #[derive(StructOpt)]
 pub enum RelayMessages {
 	/// Serve given lane of Millau -> Rialto messages.
@@ -93,8 +107,8 @@ pub enum RelayMessages {
 		rialto_sign: RialtoSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
-		/// Hex-encoded id of lane that should be served by relay.
-		#[structopt(long)]
+		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
+		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
 	},
 	/// Serve given lane of Rialto -> Millau messages.
@@ -109,12 +123,13 @@ pub enum RelayMessages {
 		millau_sign: MillauSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
-		/// Hex-encoded id of lane that should be served by relay.
-		#[structopt(long)]
+		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
+		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
 	},
 }
 
+/// Initialize bridge pallet.
 #[derive(StructOpt)]
 pub enum InitBridge {
 	/// Initialize Millau headers bridge in Rialto.
@@ -141,6 +156,7 @@ pub enum InitBridge {
 	},
 }
 
+/// Send bridge message.
 #[derive(StructOpt)]
 pub enum SendMessage {
 	/// Submit message to given Millau -> Rialto lane.
@@ -151,8 +167,8 @@ pub enum SendMessage {
 		millau_sign: MillauSigningParams,
 		#[structopt(flatten)]
 		rialto_sign: RialtoSigningParams,
-		/// Hex-encoded lane id.
-		#[structopt(long)]
+		/// Hex-encoded lane id. Defaults to `00000000`.
+		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
 		/// Dispatch weight of the message. If not passed, determined automatically.
 		#[structopt(long)]
@@ -163,8 +179,9 @@ pub enum SendMessage {
 		/// Message type.
 		#[structopt(subcommand)]
 		message: ToRialtoMessage,
-		/// The origin to use when dispatching the message on the target chain.
-		#[structopt(long, possible_values = &Origins::variants())]
+		/// The origin to use when dispatching the message on the target chain. Defaults to
+		/// `SourceAccount`.
+		#[structopt(long, possible_values = &Origins::variants(), default_value = "Source")]
 		origin: Origins,
 	},
 	/// Submit message to given Rialto -> Millau lane.
@@ -175,8 +192,8 @@ pub enum SendMessage {
 		rialto_sign: RialtoSigningParams,
 		#[structopt(flatten)]
 		millau_sign: MillauSigningParams,
-		/// Hex-encoded lane id.
-		#[structopt(long)]
+		/// Hex-encoded lane id. Defaults to `00000000`.
+		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
 		/// Dispatch weight of the message. If not passed, determined automatically.
 		#[structopt(long)]
@@ -187,15 +204,119 @@ pub enum SendMessage {
 		/// Message type.
 		#[structopt(subcommand)]
 		message: ToMillauMessage,
-		/// The origin to use when dispatching the message on the target chain.
-		#[structopt(long, possible_values = &Origins::variants())]
+		/// The origin to use when dispatching the message on the target chain. Defaults to
+		/// `SourceAccount`.
+		#[structopt(long, possible_values = &Origins::variants(), default_value = "Source")]
 		origin: Origins,
+	},
+}
+
+/// A call to encode.
+#[derive(StructOpt)]
+pub enum EncodeCall {
+	/// Encode Rialto's Call.
+	Rialto {
+		#[structopt(flatten)]
+		call: ToRialtoMessage,
+	},
+	/// Encode Millau's Call.
+	Millau {
+		#[structopt(flatten)]
+		call: ToMillauMessage,
+	},
+}
+
+/// A `MessagePayload` to encode.
+#[derive(StructOpt)]
+pub enum EncodeMessagePayload {
+	/// Message Payload of Rialto to Millau call.
+	RialtoToMillau {
+		#[structopt(flatten)]
+		payload: RialtoToMillauMessagePayload,
+	},
+	/// Message Payload of Millau to Rialto call.
+	MillauToRialto {
+		#[structopt(flatten)]
+		payload: MillauToRialtoMessagePayload,
+	},
+}
+
+/// Estimate Delivery & Dispatch Fee command.
+#[derive(StructOpt)]
+pub enum EstimateFee {
+	/// Estimate fee of Rialto to Millau message.
+	RialtoToMillau {
+		#[structopt(flatten)]
+		rialto: RialtoConnectionParams,
+		/// Hex-encoded id of lane that will be delivering the message.
+		#[structopt(long)]
+		lane: HexLaneId,
+		/// Payload to send over the bridge.
+		#[structopt(flatten)]
+		payload: RialtoToMillauMessagePayload,
+	},
+	/// Estimate fee of Rialto to Millau message.
+	MillauToRialto {
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		/// Hex-encoded id of lane that will be delivering the message.
+		#[structopt(long)]
+		lane: HexLaneId,
+		/// Payload to send over the bridge.
+		#[structopt(flatten)]
+		payload: MillauToRialtoMessagePayload,
+	},
+}
+
+/// MessagePayload that can be delivered to message lane pallet on Millau.
+#[derive(StructOpt, Debug)]
+pub enum MillauToRialtoMessagePayload {
+	/// Raw, SCALE-encoded `MessagePayload`.
+	Raw {
+		/// Hex-encoded SCALE data.
+		#[structopt(long)]
+		data: Bytes,
+	},
+	/// Construct message to send over the bridge.
+	Message {
+		/// Message details.
+		#[structopt(flatten)]
+		message: ToRialtoMessage,
+		/// SS58 encoded account that will send the payload (must have SS58Prefix = 42)
+		#[structopt(long)]
+		sender: bp_rialto::AccountId,
+	},
+}
+
+/// MessagePayload that can be delivered to message lane pallet on Rialto.
+#[derive(StructOpt, Debug)]
+pub enum RialtoToMillauMessagePayload {
+	/// Raw, SCALE-encoded `MessagePayload`.
+	Raw {
+		/// Hex-encoded SCALE data.
+		#[structopt(long)]
+		data: Bytes,
+	},
+	/// Construct message to send over the bridge.
+	Message {
+		/// Message details.
+		#[structopt(flatten)]
+		message: ToMillauMessage,
+
+		/// SS58 encoded account that will send the payload (must have SS58Prefix = 42)
+		#[structopt(long)]
+		sender: bp_rialto::AccountId,
 	},
 }
 
 /// All possible messages that may be delivered to the Rialto chain.
 #[derive(StructOpt, Debug)]
 pub enum ToRialtoMessage {
+	/// Raw bytes for the message
+	Raw {
+		/// Raw, SCALE-encoded message
+		data: Bytes,
+	},
 	/// Make an on-chain remark (comment).
 	Remark {
 		/// Remark size. If not passed, small UTF8-encoded string is generated by relay as remark.
@@ -204,8 +325,10 @@ pub enum ToRialtoMessage {
 	},
 	/// Transfer the specified `amount` of native tokens to a particular `recipient`.
 	Transfer {
+		/// SS58 encoded account that will receive the transfer (must have SS58Prefix = 42)
 		#[structopt(long)]
 		recipient: bp_rialto::AccountId,
+		/// Amount of target tokens to send.
 		#[structopt(long)]
 		amount: bp_rialto::Balance,
 	},
@@ -214,6 +337,11 @@ pub enum ToRialtoMessage {
 /// All possible messages that may be delivered to the Millau chain.
 #[derive(StructOpt, Debug)]
 pub enum ToMillauMessage {
+	/// Raw bytes for the message
+	Raw {
+		/// Raw, SCALE-encoded message
+		data: Bytes,
+	},
 	/// Make an on-chain remark (comment).
 	Remark {
 		/// Size of the remark. If not passed, small UTF8-encoded string is generated by relay as remark.
@@ -222,8 +350,10 @@ pub enum ToMillauMessage {
 	},
 	/// Transfer the specified `amount` of native tokens to a particular `recipient`.
 	Transfer {
+		/// SS58 encoded account that will receive the transfer (must have SS58Prefix = 42)
 		#[structopt(long)]
 		recipient: bp_millau::AccountId,
+		/// Amount of target tokens to send.
 		#[structopt(long)]
 		amount: bp_millau::Balance,
 	},
@@ -321,7 +451,7 @@ macro_rules! declare_chain_options {
 			#[derive(StructOpt)]
 			pub struct [<$chain ConnectionParams>] {
 				#[doc = "Connect to " $chain " node at given host."]
-				#[structopt(long)]
+				#[structopt(long, default_value = "127.0.0.1")]
 				pub [<$chain_prefix _host>]: String,
 				#[doc = "Connect to " $chain " node websocket server at given port."]
 				#[structopt(long)]
