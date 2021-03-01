@@ -37,10 +37,10 @@ use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::DispatchError, ensure};
-use frame_system::ensure_signed;
+use frame_system::{ensure_signed, RawOrigin};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::traits::{Header as HeaderT, Zero};
+use sp_runtime::traits::{BadOrigin, Header as HeaderT, Zero};
 use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
 
@@ -123,6 +123,7 @@ pub mod pallet {
 			justification: Vec<u8>,
 			ancestry_proof: T::AncestryProof,
 		) -> DispatchResultWithPostInfo {
+			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
 
 			ensure!(
@@ -177,8 +178,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			init_data: super::InitializationData<BridgedHeader<T>>,
 		) -> DispatchResultWithPostInfo {
-			let _ = ensure_root(origin)?;
-			// TODO: ensure_owner_or_root::<T>(origin)?;
+			ensure_owner_or_root::<T>(origin)?;
 
 			let init_allowed = !<BestFinalized<T>>::exists();
 			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
@@ -188,6 +188,50 @@ pub mod pallet {
 				"Pallet has been initialized with the following parameters: {:?}",
 				init_data
 			);
+
+			Ok(().into())
+		}
+
+		/// Change `ModuleOwner`.
+		///
+		/// May only be called either by root, or by `ModuleOwner`.
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn set_owner(origin: OriginFor<T>, new_owner: Option<T::AccountId>) -> DispatchResultWithPostInfo {
+			ensure_owner_or_root::<T>(origin)?;
+			match new_owner {
+				Some(new_owner) => {
+					ModuleOwner::<T>::put(&new_owner);
+					frame_support::debug::info!("Setting pallet Owner to: {:?}", new_owner);
+				}
+				None => {
+					ModuleOwner::<T>::kill();
+					frame_support::debug::info!("Removed Owner of pallet.");
+				}
+			}
+
+			Ok(().into())
+		}
+
+		/// Halt all pallet operations. Operations may be resumed using `resume_operations` call.
+		///
+		/// May only be called either by root, or by `ModuleOwner`.
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn halt_operations(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			ensure_owner_or_root::<T>(origin)?;
+			<IsHalted<T>>::put(true);
+			frame_support::debug::warn!("Stopping pallet operations.");
+
+			Ok(().into())
+		}
+
+		/// Resume all pallet operations. May be called even if pallet is halted.
+		///
+		/// May only be called either by root, or by `ModuleOwner`.
+		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		pub fn resume_operations(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			ensure_owner_or_root::<T>(origin)?;
+			<IsHalted<T>>::put(false);
+			frame_support::debug::info!("Resuming pallet operations.");
 
 			Ok(().into())
 		}
@@ -289,6 +333,8 @@ pub mod pallet {
 		UnsupportedScheduledChange,
 		/// The pallet has already been initialized.
 		AlreadyInitialized,
+		/// All pallet operations are halted.
+		Halted,
 	}
 
 	/// Import the given header to the pallet's storage.
@@ -337,6 +383,24 @@ pub mod pallet {
 
 		<IsHalted<T>>::put(is_halted);
 	}
+
+	/// Ensure that the origin is either root, or `ModuleOwner`.
+	fn ensure_owner_or_root<T: Config>(origin: T::Origin) -> Result<(), BadOrigin> {
+		match origin.into() {
+			Ok(RawOrigin::Root) => Ok(()),
+			Ok(RawOrigin::Signed(ref signer)) if Some(signer) == <ModuleOwner<T>>::get().as_ref() => Ok(()),
+			_ => Err(BadOrigin),
+		}
+	}
+
+	/// Ensure that the pallet is in operational mode (not halted).
+	fn ensure_operational<T: Config>() -> Result<(), Error<T>> {
+		if <IsHalted<T>>::get() {
+			Err(<Error<T>>::Halted)
+		} else {
+			Ok(())
+		}
+	}
 }
 
 /// Data required for initializing the bridge pallet.
@@ -355,10 +419,10 @@ pub struct InitializationData<H: HeaderT> {
 	pub is_halted: bool,
 }
 
-use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
-use sp_runtime::generic::OpaqueDigestItemId;
-
 pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
+	use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
+	use sp_runtime::generic::OpaqueDigestItemId;
+
 	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
 
 	let filter_log = |log: ConsensusLog<H::Number>| match log {
