@@ -40,6 +40,7 @@ use frame_support::{dispatch::DispatchError, ensure};
 use frame_system::{ensure_signed, RawOrigin};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::{BadOrigin, Header as HeaderT, Zero};
 use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
@@ -342,7 +343,7 @@ pub mod pallet {
 	///
 	/// This function will also check if the header schedules and enacts authority set changes,
 	/// updating the current authority set accordingly.
-	fn import_header<T: Config>(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
+	pub(crate) fn import_header<T: Config>(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
 		let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect("TODO");
 		ensure!(best_finalized.number() < header.number(), <Error<T>>::ConflictingFork);
 
@@ -421,7 +422,6 @@ pub struct InitializationData<H: HeaderT> {
 }
 
 pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
-	use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 	use sp_runtime::generic::OpaqueDigestItemId;
 
 	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
@@ -439,11 +439,12 @@ pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finalit
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, test_header, Origin, TestHeader, TestRuntime};
-	use bp_test_utils::{authority_list, make_justification_for_header};
+	use crate::mock::{run_test, test_header, Origin, TestHash, TestHeader, TestNumber, TestRuntime};
+	use bp_test_utils::{alice, authority_list, bob, make_justification_for_header};
 	use codec::Encode;
 	use frame_support::weights::PostDispatchInfo;
 	use frame_support::{assert_err, assert_noop, assert_ok};
+	use sp_runtime::{Digest, DigestItem, DispatchError};
 
 	fn initialize_substrate_bridge() {
 		assert_ok!(init_with_origin(Origin::root()));
@@ -482,6 +483,17 @@ mod tests {
 		let current_number = frame_system::Module::<TestRuntime>::block_number();
 		frame_system::Module::<TestRuntime>::set_block_number(current_number + 1);
 		let _ = Module::<TestRuntime>::on_initialize(current_number);
+	}
+
+	fn change_log(delay: u64) -> Digest<TestHash> {
+		let consensus_log = ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
+			next_authorities: vec![(alice(), 1), (bob(), 1)],
+			delay,
+		});
+
+		Digest::<TestHash> {
+			logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+		}
 	}
 
 	#[test]
@@ -696,6 +708,71 @@ mod tests {
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification, ancestry_proof,),
 				<Error<TestRuntime>>::InvalidAuthoritySet
+			);
+		})
+	}
+
+	#[test]
+	fn importing_header_ensures_that_chain_is_extended() {
+		run_test(|| {
+			init_with_origin(Origin::root()).unwrap();
+
+			let header = test_header(3);
+			assert_ok!(pallet::import_header::<TestRuntime>(header));
+
+			let header = test_header(2);
+			assert_err!(
+				pallet::import_header::<TestRuntime>(header),
+				Error::<TestRuntime>::ConflictingFork,
+			);
+
+			let header = test_header(4);
+			assert_ok!(pallet::import_header::<TestRuntime>(header));
+		})
+	}
+
+	#[test]
+	fn importing_header_enacts_new_authority_set() {
+		run_test(|| {
+			init_with_origin(Origin::root()).unwrap();
+
+			let next_set_id = 2;
+			let next_authorities = vec![(alice(), 1), (bob(), 1)];
+
+			// Need to update the header digest to indicate that our header signals an authority set
+			// change. The change will be enacted when we import our header.
+			let mut header = test_header(2);
+			header.digest = change_log(0);
+
+			// Let's import our test header
+			assert_ok!(pallet::import_header::<TestRuntime>(header.clone()));
+
+			// Make sure that our header is the best finalized
+			assert_eq!(<BestFinalized<TestRuntime>>::get(), header.hash());
+			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
+
+			// Make sure that the authority set actually changed upon importing our header
+			assert_eq!(
+				<CurrentAuthoritySet<TestRuntime>>::get(),
+				bp_header_chain::AuthoritySet::new(next_authorities, next_set_id),
+			);
+		})
+	}
+
+	#[test]
+	fn importing_header_rejects_header_with_scheduled_change_delay() {
+		run_test(|| {
+			init_with_origin(Origin::root()).unwrap();
+
+			// Need to update the header digest to indicate that our header signals an authority set
+			// change. However, the change doesn't happen until the next block.
+			let mut header = test_header(2);
+			header.digest = change_log(1);
+
+			// Should not be allowed to import this header
+			assert_err!(
+				pallet::import_header::<TestRuntime>(header),
+				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
 		})
 	}
