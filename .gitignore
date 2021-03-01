@@ -2,6 +2,8 @@
 **/.env
 **/.env2
 **/rust-toolchain
+hfuzz_target
+hfuzz_workspace
 
 **/*.rs.bk
 
