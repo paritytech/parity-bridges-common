@@ -37,7 +37,7 @@ use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::DispatchError, ensure};
 use frame_system::ensure_signed;
-use sp_runtime::traits::Header as HeaderT;
+use sp_runtime::traits::{Header as HeaderT, Zero};
 use sp_std::vec::Vec;
 
 #[cfg(test)]
@@ -148,9 +148,11 @@ pub mod pallet {
 				<Error<T>>::InvalidAncestryProof
 			);
 
-			let _ = T::HeaderChain::append_header(finality_target)?;
+			// TODO: Should probably get rid of this
+			let _ = T::HeaderChain::append_header(finality_target.clone())?;
 			frame_support::debug::info!("Succesfully imported finalized header with hash {:?}!", hash);
 
+			import_header::<T>(finality_target)?;
 			<RequestCount<T>>::mutate(|count| *count += 1);
 
 			Ok(().into())
@@ -225,7 +227,60 @@ pub mod pallet {
 		FailedToWriteHeader,
 		/// There are too many requests for the current window to handle.
 		TooManyRequests,
+		/// The header being imported is on a fork which is incompatible with the current chain.
+		///
+		/// This can happen if we try and import a finalized header at a lower height than our
+		/// current `best_finalized` header.
+		ConflictingFork,
+		/// The scheduled authority set change found in the header is unsupported by the pallet.
+		///
+		/// This is the case for non-standard (e.g forced) authority set changes.
+		UnsupportedScheduledChange,
 	}
+
+	/// Import the given header to the pallet's storage.
+	///
+	/// This function will also check if the header schedules and enacts authority set changes,
+	/// updating the current authority set accordingly.
+	fn import_header<T: Config>(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
+		let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect("TODO");
+		ensure!(best_finalized.number() < header.number(), <Error<T>>::ConflictingFork);
+
+		// TODO: Check for and reject forced changes
+		if let Some(change) = super::find_scheduled_change(&header) {
+			ensure!(change.delay == Zero::zero(), <Error<T>>::UnsupportedScheduledChange);
+
+			let next_authorities = bp_header_chain::AuthoritySet {
+				authorities: change.next_authorities,
+				set_id: <CurrentAuthoritySet<T>>::get().set_id + 1,
+			};
+
+			// Since our header schedules a change and we know the delay is 0, it must also enact
+			// the change.
+			<CurrentAuthoritySet<T>>::put(next_authorities);
+		};
+
+		<BestFinalized<T>>::put(header.hash());
+		<ImportedHeaders<T>>::insert(header.hash(), header);
+
+		Ok(())
+	}
+}
+
+use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
+use sp_runtime::generic::OpaqueDigestItemId;
+
+pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
+	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
+
+	let filter_log = |log: ConsensusLog<H::Number>| match log {
+		ConsensusLog::ScheduledChange(change) => Some(change),
+		_ => None,
+	};
+
+	// find the first consensus digest with the right ID which converts to
+	// the right kind of consensus log.
+	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
 }
 
 #[cfg(test)]
