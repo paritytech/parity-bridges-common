@@ -63,6 +63,8 @@ pub enum Command {
 	EncodeMessagePayload(EncodeMessagePayload),
 	/// Estimate Delivery and Dispatch Fee required for message submission to message lane.
 	EstimateFee(EstimateFee),
+	/// Given Source chain AccountId, derive a corresponding AccountId on the target chain.
+	DeriveAccount(DeriveAccount),
 }
 
 /// Start headers relayer process.
@@ -265,6 +267,24 @@ pub enum EstimateFee {
 		/// Payload to send over the bridge.
 		#[structopt(flatten)]
 		payload: MillauToRialtoMessagePayload,
+	},
+}
+
+/// Given Source chain AccountId, derive a corresponding AccountId on the target chain.
+///
+/// The (derived) target chain `AccountId` is going to be used as dispatch origin of the call
+/// that has been sent over the bridge.
+/// This account can also be used to receive target-chain funds (or other form of ownership),
+/// since messages sent over the bridge will be able to spend these.
+#[derive(StructOpt)]
+pub enum DeriveAccount {
+	/// Given Rialto AccountId, display corresponding Millau AccountId.
+	RialtoToMillau {
+		account: bp_rialto::AccountId,
+	},
+	/// Given Millau AccountId, display corresponding Rialto AccountId.
+	MillauToRialto {
+		account: bp_millau::AccountId,
 	},
 }
 

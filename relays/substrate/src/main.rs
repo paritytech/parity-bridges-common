@@ -68,6 +68,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 		cli::Command::EncodeCall(arg) => run_encode_call(arg).await,
 		cli::Command::EncodeMessagePayload(arg) => run_encode_message_payload(arg).await,
 		cli::Command::EstimateFee(arg) => run_estimate_fee(arg).await,
+		cli::Command::DeriveAccount(arg) => run_derive_account(arg).await,
 	}
 }
 
@@ -406,6 +407,31 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 			.await?;
 
 			println!("Fee: {:?}", fee);
+		}
+	}
+
+	Ok(())
+}
+
+async fn run_derive_account(cmd: cli::DeriveAccount) -> Result<(), String> {
+	match cmd {
+		cli::DeriveAccount::RialtoToMillau { account } => {
+			let acc = bp_runtime::SourceAccount::Account(account.clone());
+			let id = bp_millau::derive_account_from_rialto_id(acc);
+			println!(
+				"{} (Rialto)\n\nCorresponding (derived) account id:\n-> {} (Millau)",
+				account,
+				id
+			)
+		}
+		cli::DeriveAccount::MillauToRialto { account } => {
+			let acc = bp_runtime::SourceAccount::Account(account.clone());
+			let id = bp_rialto::derive_account_from_millau_id(acc);
+			println!(
+				"{} (Millau)\n\nCorresponding (derived) account id:\n-> {} (Rialto)",
+				account,
+				id
+			)
 		}
 	}
 
