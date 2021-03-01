@@ -33,7 +33,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
-use bp_runtime::{Chain, HeaderOf};
+use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::DispatchError, ensure};
 use frame_system::ensure_signed;
@@ -52,6 +52,12 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
+	/// Block number of the bridged chain.
+	pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
+	/// Block hash of the bridged chain.
+	pub(crate) type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
+	/// Hasher of the bridged chain.
+	pub(crate) type BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
 	/// Header of the bridged chain.
 	pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
@@ -161,6 +167,50 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn request_count)]
 	pub(super) type RequestCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	/// Hash of the header used to bootstrap the pallet.
+	#[pallet::storage]
+	#[pallet::getter(fn initial_hash)]
+	pub(super) type InitialHash<T: Config> = StorageValue<_, BridgedBlockHash<T>, ValueQuery>;
+
+	/// Hash of the best finalized header.
+	#[pallet::storage]
+	#[pallet::getter(fn best_finalized)]
+	pub(super) type BestFinalized<T: Config> = StorageValue<_, BridgedBlockHash<T>, ValueQuery>;
+
+	/// Headers which have been imported into the pallet.
+	// TODO: See if we have Option<Header> with autogen getter
+	// Can also make this generic, Map Hash => H: HeaderT
+	#[pallet::storage]
+	#[pallet::getter(fn imported_headers)]
+	pub(super) type ImportedHeaders<T: Config> = StorageMap<_, Identity, BridgedBlockHash<T>, BridgedHeader<T>>;
+
+	/// The current GRANDPA Authority set.
+	#[pallet::storage]
+	#[pallet::getter(fn current_authority_set)]
+	pub(super) type CurrentAuthoritySet<T: Config> = StorageValue<_, bp_header_chain::AuthoritySet, ValueQuery>;
+
+	// If we assume that `delay` is always zero when we get a ScheduledChange digest then we don't
+	// need this.
+	//
+	// #[pallet::storage]
+	// #[pallet::getter(fn next_scheduled_change)]
+	// pub(super) type NextScheduledChange<T: Config> = StorageMap<_, Identity, BridgedBlockHash<T>, BridgedHeader<T>>;
+
+	/// Optional pallet owner.
+	///
+	/// Pallet owner has a right to halt all pallet operations and then resume it. If it is
+	/// `None`, then there are no direct ways to halt/resume pallet operations, but other
+	/// runtime methods may still be used to do that (i.e. democracy::referendum to update halt
+	/// flag directly or call the `halt_operations`).
+	#[pallet::storage]
+	#[pallet::getter(fn module_owner)]
+	pub(super) type ModuleOwner<T: Config> = StorageValue<_, u32, OptionQuery>;
+
+	/// If true, all pallet transactions are failed immediately.
+	#[pallet::storage]
+	#[pallet::getter(fn is_halted)]
+	pub(super) type IsHalted<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::error]
 	pub enum Error<T> {
