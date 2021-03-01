@@ -1,11 +1,7 @@
 name:                              Publish images to Docker hub
 
 on:
-  pull_request:
   push:
-    branches:
-      - master
-      - 3x8_use_buildah
     tags:
       - v*
     paths-ignore:
