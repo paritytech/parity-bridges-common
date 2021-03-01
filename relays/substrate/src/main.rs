@@ -275,7 +275,6 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			)
 			.encode();
 
-			log::debug!(target: "bridge", "Signed Millau Call: {:?}", HexBytes::encode(&signed_millau_call));
 			log::info!(
 				target: "bridge",
 				"Sending message to Rialto. Size: {}. Dispatch weight: {}. Fee: {}",
@@ -283,6 +282,7 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 				dispatch_weight,
 				fee,
 			);
+			log::info!(target: "bridge", "Signed Millau Call: {:?}", HexBytes::encode(&signed_millau_call));
 
 			millau_client.submit_extrinsic(Bytes(signed_millau_call)).await?;
 		}
@@ -331,7 +331,6 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			)
 			.encode();
 
-			log::debug!(target: "bridge", "Signed Rialto Call: {:?}", HexBytes::encode(&signed_rialto_call));
 			log::info!(
 				target: "bridge",
 				"Sending message to Millau. Size: {}. Dispatch weight: {}. Fee: {}",
@@ -339,6 +338,7 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 				dispatch_weight,
 				fee,
 			);
+			log::info!(target: "bridge", "Signed Rialto Call: {:?}", HexBytes::encode(&signed_rialto_call));
 
 			rialto_client.submit_extrinsic(Bytes(signed_rialto_call)).await?;
 		}
