@@ -332,6 +332,15 @@ pub enum ToRialtoMessage {
 		#[structopt(long)]
 		amount: bp_rialto::Balance,
 	},
+	MillauSendMessage {
+		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
+		#[structopt(long, default_value = "00000000")]
+		lane: HexLaneId,
+		#[structopt(flatten)]
+		payload: RialtoToMillauMessagePayload,
+		#[structopt(long)]
+		fee: bp_rialto::Balance,
+	},
 }
 
 /// All possible messages that may be delivered to the Millau chain.

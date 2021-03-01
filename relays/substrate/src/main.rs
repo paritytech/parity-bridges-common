@@ -701,6 +701,15 @@ impl crate::cli::ToRialtoMessage {
 			cli::ToRialtoMessage::Transfer { recipient, amount } => {
 				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
 			}
+			cli::ToRialtoMessage::MillauSendMessage { lane, payload, fee } => {
+				let payload = payload.into_payload()?;
+				let lane = lane.into();
+				rialto_runtime::Call::BridgeMillauMessageLane(
+					rialto_runtime::MessageLaneCall::send_message(
+						lane, payload, fee
+					)
+				)
+			}
 		};
 
 		log::info!(target: "bridge", "Generated Rialto call: {:#?}", call);
