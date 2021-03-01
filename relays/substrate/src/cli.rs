@@ -419,8 +419,10 @@ impl AccountId {
 	/// Check SS58Prefix and return the account id.
 	fn check_and_get(self, net: &str, expected_prefix: u8) -> sp_runtime::AccountId32 {
 		let version: u16 = self.version.into();
+		println!("Version: {} vs {}", version, expected_prefix);
 		if version != expected_prefix as u16 {
 			log::warn!(
+				target: "bridge",
 				"Following address: {} does not seem to match {}'s format, got: {}",
 				self.account,
 				net,
