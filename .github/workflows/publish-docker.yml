@@ -89,7 +89,7 @@ jobs:
             HEALTH=${{ matrix.healthcheck }}
           labels: |
             org.opencontainers.image.title=${{ matrix.project }}
-            org.opencontainers.image.description="${{ matrix.project }} - component of Parity Bridges Common"
+            # org.opencontainers.image.description="${{ matrix.project }} - component of Parity Bridges Common"
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.url=${{ github.event.repository.html_url }}
             org.opencontainers.image.documentation="${{ github.event.repository.html_url }}/README.md"
