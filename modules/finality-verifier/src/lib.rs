@@ -532,7 +532,7 @@ mod tests {
 	#[test]
 	fn init_can_only_initialize_pallet_once() {
 		run_test(|| {
-			assert_ok!(init_with_origin(Origin::root()));
+			initialize_substrate_bridge();
 			assert_noop!(
 				init_with_origin(Origin::root()),
 				<Error<TestRuntime>>::AlreadyInitialized
@@ -715,7 +715,7 @@ mod tests {
 	#[test]
 	fn importing_header_ensures_that_chain_is_extended() {
 		run_test(|| {
-			init_with_origin(Origin::root()).unwrap();
+			initialize_substrate_bridge();
 
 			let header = test_header(3);
 			assert_ok!(pallet::import_header::<TestRuntime>(header));
@@ -734,7 +734,7 @@ mod tests {
 	#[test]
 	fn importing_header_enacts_new_authority_set() {
 		run_test(|| {
-			init_with_origin(Origin::root()).unwrap();
+			initialize_substrate_bridge();
 
 			let next_set_id = 2;
 			let next_authorities = vec![(alice(), 1), (bob(), 1)];
@@ -762,7 +762,7 @@ mod tests {
 	#[test]
 	fn importing_header_rejects_header_with_scheduled_change_delay() {
 		run_test(|| {
-			init_with_origin(Origin::root()).unwrap();
+			initialize_substrate_bridge();
 
 			// Need to update the header digest to indicate that our header signals an authority set
 			// change. However, the change doesn't happen until the next block.
