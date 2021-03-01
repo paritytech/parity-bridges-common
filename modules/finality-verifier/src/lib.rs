@@ -439,12 +439,19 @@ pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finalit
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, test_header, Origin, TestRuntime};
+	use crate::mock::{run_test, test_header, Origin, TestHeader, TestRuntime};
 	use bp_test_utils::{authority_list, make_justification_for_header};
 	use codec::Encode;
-	use frame_support::{assert_err, assert_ok};
+	use frame_support::weights::PostDispatchInfo;
+	use frame_support::{assert_err, assert_noop, assert_ok};
 
 	fn initialize_substrate_bridge() {
+		assert_ok!(init_with_origin(Origin::root()));
+	}
+
+	fn init_with_origin(
+		origin: Origin,
+	) -> Result<InitializationData<TestHeader>, sp_runtime::DispatchErrorWithPostInfo<PostDispatchInfo>> {
 		let genesis = test_header(0);
 
 		let init_data = InitializationData {
@@ -454,7 +461,7 @@ mod tests {
 			is_halted: false,
 		};
 
-		assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data));
+		Module::<TestRuntime>::initialize(origin, init_data.clone()).map(|_| init_data)
 	}
 
 	fn submit_finality_proof(child: u8, header: u8) -> frame_support::dispatch::DispatchResultWithPostInfo {
@@ -478,6 +485,51 @@ mod tests {
 	}
 
 	#[test]
+	fn init_root_or_owner_origin_can_initialize_pallet() {
+		run_test(|| {
+			assert_noop!(init_with_origin(Origin::signed(1)), DispatchError::BadOrigin);
+			assert_ok!(init_with_origin(Origin::root()));
+
+			// Reset storage so we can initialize the pallet again
+			BestFinalized::<TestRuntime>::kill();
+			ModuleOwner::<TestRuntime>::put(2);
+			assert_ok!(init_with_origin(Origin::signed(2)));
+		})
+	}
+
+	#[test]
+	fn init_storage_entries_are_correctly_initialized() {
+		run_test(|| {
+			assert_eq!(
+				BestFinalized::<TestRuntime>::get(),
+				BridgedBlockHash::<TestRuntime>::default()
+			);
+
+			let init_data = init_with_origin(Origin::root()).unwrap();
+
+			assert!(<ImportedHeaders<TestRuntime>>::contains_key(init_data.header.hash()));
+			assert_eq!(BestFinalized::<TestRuntime>::get(), init_data.header.hash());
+			assert_eq!(
+				CurrentAuthoritySet::<TestRuntime>::get().authorities,
+				init_data.authority_list
+			);
+			assert_eq!(IsHalted::<TestRuntime>::get(), false);
+		})
+	}
+
+	#[test]
+	fn init_can_only_initialize_pallet_once() {
+		run_test(|| {
+			assert_ok!(init_with_origin(Origin::root()));
+			assert_noop!(
+				init_with_origin(Origin::root()),
+				<Error<TestRuntime>>::AlreadyInitialized
+			);
+		})
+	}
+
+	#[test]
+	#[ignore]
 	fn succesfully_imports_header_with_valid_finality_and_ancestry_proofs() {
 		run_test(|| {
 			initialize_substrate_bridge();
