@@ -1,7 +1,11 @@
 name:                                               Publish images to Docker hub
 
 on:
+  pull_request:
   push:
+    branches:
+      - master
+      - 3x8_use_buildah
     tags:
       - v*
     paths-ignore:
@@ -35,15 +39,18 @@ jobs:
     container:
       image:                                        docker:git
     steps:
+
       - name:                                       Cancel Previous Runs
         uses:                                       styfle/cancel-workflow-action@0.4.1
         with:
           access_token:                             ${{ github.token }}
+
       - name:                                       Checkout sources & submodules
         uses:                                       actions/checkout@master
         with:
           fetch-depth:                              5
           submodules:                               recursive
+
       - name:                                       Set vars
         id:                                         vars
         run:                                        |
@@ -54,23 +61,28 @@ jobs:
           else
             echo ::set-output name=TAG::nightly-$(date +%d-%m-%Y)
           fi
-      - name:                                       Build and push ${{ matrix.project }}
-        uses:                                       docker/build-push-action@v1
+
+      - name:                                       Build image for ${{ matrix.project }}
+        uses:                                       redhat-actions/buildah-build@v2.2
         with:
+          image:                                    ${{ matrix.project }}
+          tags:                                     ${{ steps.vars.outputs.TAG }}, latest
+          dockerfiles: |
+            ./Dockerfile
+          build-args: |
+            PROJECT=${{ matrix.project }},
+            HEALTH=${{ matrix.healthcheck }}
+
+      - name:                                       Push ${{ matrix.project }} image to docker.io
+        id:                                         push-to-dockerhub
+        uses:                                       redhat-actions/push-to-registry@v2.1.1
+        with:
+          registry:                                 docker.io/paritytech
+          image:                                    ${{ matrix.project }}
+          tags:                                     ${{ steps.vars.outputs.TAG }}, latest
           username:                                 ${{ secrets.DOCKER_USER }}
           password:                                 ${{ secrets.DOCKER_PASSWORD }}
-          repository:                               paritytech/${{ matrix.project }}
-          build_args:                               PROJECT=${{ matrix.project }}, HEALTH=${{ matrix.healthcheck }}
-          tags:                                     ${{ steps.vars.outputs.TAG }}, latest
-          labels:
-            org.opencontainers.image.created=${{ steps.vars.outputs.DATE }},
-            org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common",
-            org.opencontainers.image.authors="devops-team@parity.io",
-            org.opencontainers.image.vendor="Parity Technologies",
-            org.opencontainers.image.url="https://github.com/paritytech/parity-bridges-common",
-            org.opencontainers.image.documentation="https://github.com/paritytech/parity-bridges-common/README.md",
-            org.opencontainers.image.version=${{ steps.vars.outputs.TAG }},
-            org.opencontainers.image.title=${{ matrix.project }},
-            org.opencontainers.image.description="${{ matrix.project }} - component of Parity Bridges Common",
-            org.opencontainers.image.licenses="GPL-3.0 License"
-          add_git_labels:                           true
+
+      - name:                                       Check the image
+        run: |
+          echo "New image has been pushed to ${{ steps.push-to-dockerhub.outputs.registry-path }}"
