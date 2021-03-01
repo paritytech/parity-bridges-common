@@ -706,11 +706,9 @@ impl crate::cli::ToRialtoMessage {
 			cli::ToRialtoMessage::MillauSendMessage { lane, payload, fee } => {
 				let payload = cli::RialtoToMillauMessagePayload::Raw { data: payload }.into_payload()?;
 				let lane = lane.into();
-				rialto_runtime::Call::BridgeMillauMessageLane(
-					rialto_runtime::MessageLaneCall::send_message(
-						lane, payload, fee
-					)
-				)
+				rialto_runtime::Call::BridgeMillauMessageLane(rialto_runtime::MessageLaneCall::send_message(
+					lane, payload, fee,
+				))
 			}
 		};
 
@@ -744,11 +742,9 @@ impl crate::cli::ToMillauMessage {
 			cli::ToMillauMessage::RialtoSendMessage { lane, payload, fee } => {
 				let payload = cli::MillauToRialtoMessagePayload::Raw { data: payload }.into_payload()?;
 				let lane = lane.into();
-				millau_runtime::Call::BridgeRialtoMessageLane(
-					millau_runtime::MessageLaneCall::send_message(
-						lane, payload, fee
-					)
-				)
+				millau_runtime::Call::BridgeRialtoMessageLane(millau_runtime::MessageLaneCall::send_message(
+					lane, payload, fee,
+				))
 			}
 		};
 
