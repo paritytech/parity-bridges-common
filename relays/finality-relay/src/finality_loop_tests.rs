@@ -300,7 +300,7 @@ fn prune_unjustified_headers_works() {
 		unjustified_headers.make_contiguous(),
 	);
 
-	// when post-last entry is pruned
+	// when we try and prune past last entry
 	let mut unjustified_headers = original_unjustified_headers.clone();
 	assert_eq!(
 		prune_unjustified_headers::<TestFinalitySyncPipeline>(20, &mut unjustified_headers),
