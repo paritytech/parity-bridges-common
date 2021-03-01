@@ -778,7 +778,7 @@ mod tests {
 	}
 
 	#[test]
-	fn disallows_imports_once_limit_is_hit_in_single_block() {
+	fn rate_limiter_disallows_imports_once_limit_is_hit_in_single_block() {
 		run_test(|| {
 			initialize_substrate_bridge();
 			assert_ok!(submit_finality_proof(1, 2));
@@ -788,7 +788,7 @@ mod tests {
 	}
 
 	#[test]
-	fn invalid_requests_do_not_count_towards_request_count() {
+	fn rate_limiter_invalid_requests_do_not_count_towards_request_count() {
 		run_test(|| {
 			let submit_invalid_request = || {
 				let child = test_header(1);
@@ -820,7 +820,7 @@ mod tests {
 	}
 
 	#[test]
-	fn allows_request_after_new_block_has_started() {
+	fn rate_limiter_allows_request_after_new_block_has_started() {
 		run_test(|| {
 			initialize_substrate_bridge();
 			assert_ok!(submit_finality_proof(1, 2));
@@ -832,7 +832,7 @@ mod tests {
 	}
 
 	#[test]
-	fn disallows_imports_once_limit_is_hit_across_different_blocks() {
+	fn rate_limiter_disallows_imports_once_limit_is_hit_across_different_blocks() {
 		run_test(|| {
 			initialize_substrate_bridge();
 			assert_ok!(submit_finality_proof(1, 2));
@@ -845,7 +845,7 @@ mod tests {
 	}
 
 	#[test]
-	fn allows_max_requests_after_long_time_with_no_activity() {
+	fn rate_limiter_allows_max_requests_after_long_time_with_no_activity() {
 		run_test(|| {
 			initialize_substrate_bridge();
 			assert_ok!(submit_finality_proof(1, 2));
