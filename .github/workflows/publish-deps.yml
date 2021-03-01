@@ -68,12 +68,12 @@ jobs:
           tags:                    ${{ steps.prep.outputs.TAGS }}
           labels: |
             org.opencontainers.image.title=${{ matrix.project }}
-            # org.opencontainers.image.description="${{ matrix.project }} - component of Parity Bridges Common"
-            # org.opencontainers.image.source=${{ github.event.repository.html_url }}
-            # org.opencontainers.image.url="https://github.com/paritytech/parity-bridges-common"
-            # org.opencontainers.image.documentation="https://github.com/paritytech/parity-bridges-common/README.md"
-            # org.opencontainers.image.created=${{ steps.prep.outputs.DATE }}
-            # org.opencontainers.image.revision=${{ github.sha }}
-            # org.opencontainers.image.authors="devops-team@parity.io"
-            # org.opencontainers.image.vendor="Parity Technologies"
-            # org.opencontainers.image.licenses="GPL-3.0 License"
+            org.opencontainers.image.description=${{ matrix.project }} - component of Parity Bridges Common
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.url=https://github.com/paritytech/parity-bridges-common
+            org.opencontainers.image.documentation=https://github.com/paritytech/parity-bridges-common/README.md
+            org.opencontainers.image.created=${{ steps.prep.outputs.DATE }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.authors=devops-team@parity.io
+            org.opencontainers.image.vendor=Parity Technologies
+            org.opencontainers.image.licenses=GPL-3.0 License
