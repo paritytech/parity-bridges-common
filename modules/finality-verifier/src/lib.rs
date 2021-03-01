@@ -34,10 +34,14 @@
 
 use bp_header_chain::{justification::verify_justification, AncestryChecker, HeaderChain};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
+use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::DispatchError, ensure};
 use frame_system::ensure_signed;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_runtime::traits::{Header as HeaderT, Zero};
+use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
 
 #[cfg(test)]
@@ -53,11 +57,11 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 
 	/// Block number of the bridged chain.
-	pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
+	pub(crate) type _BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
 	/// Block hash of the bridged chain.
 	pub(crate) type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
 	/// Hasher of the bridged chain.
-	pub(crate) type BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
+	pub(crate) type _BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
 	/// Header of the bridged chain.
 	pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
@@ -193,11 +197,58 @@ pub mod pallet {
 	/// runtime methods may still be used to do that (i.e. democracy::referendum to update halt
 	/// flag directly or call the `halt_operations`).
 	#[pallet::storage]
-	pub(super) type ModuleOwner<T: Config> = StorageValue<_, u32, OptionQuery>;
+	pub(super) type ModuleOwner<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	/// If true, all pallet transactions are failed immediately.
 	#[pallet::storage]
 	pub(super) type IsHalted<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		owner: Option<T::AccountId>,
+		init_data: Option<super::InitializationData<BridgedHeader<T>>>,
+	}
+
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			Self {
+				owner: None,
+				init_data: None,
+			}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			if let Some(ref owner) = self.owner {
+				<ModuleOwner<T>>::put(owner);
+			}
+
+			if let Some(init_data) = self.init_data.clone() {
+				let super::InitializationData {
+					header,
+					authority_list,
+					set_id,
+					is_halted,
+				} = init_data;
+
+				let initial_hash = header.hash();
+				<InitialHash<T>>::put(initial_hash);
+				<BestFinalized<T>>::put(initial_hash);
+				<ImportedHeaders<T>>::insert(initial_hash, header);
+
+				let authority_set = bp_header_chain::AuthoritySet::new(authority_list, set_id);
+				<CurrentAuthoritySet<T>>::put(authority_set);
+
+				<IsHalted<T>>::put(is_halted);
+			} else {
+				// Since the bridge hasn't been initialized we shouldn't allow anyone to perform
+				// transactions.
+				<IsHalted<T>>::put(true);
+			}
+		}
+	}
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -250,6 +301,22 @@ pub mod pallet {
 
 		Ok(())
 	}
+}
+
+/// Data required for initializing the bridge pallet.
+///
+/// The bridge needs to know where to start its sync from, and this provides that initial context.
+#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub(crate) struct InitializationData<H: HeaderT> {
+	/// The header from which we should start syncing.
+	pub header: H,
+	/// The initial authorities of the pallet.
+	pub authority_list: sp_finality_grandpa::AuthorityList,
+	/// The ID of the initial authority set.
+	pub set_id: sp_finality_grandpa::SetId,
+	/// Should the pallet block transaction immediately after initialization.
+	pub is_halted: bool,
 }
 
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
