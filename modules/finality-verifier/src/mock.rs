@@ -17,8 +17,7 @@
 // From construct_runtime macro
 #![allow(clippy::from_over_into)]
 
-use crate::pallet::{BridgedHeader, Config};
-use bp_runtime::{BlockNumberOf, Chain};
+use bp_runtime::Chain;
 use frame_support::{construct_runtime, parameter_types, weights::Weight};
 use sp_runtime::{
 	testing::{Header, H256},
@@ -27,8 +26,8 @@ use sp_runtime::{
 };
 
 pub type AccountId = u64;
-pub type TestHeader = BridgedHeader<TestRuntime>;
-pub type TestNumber = BlockNumberOf<<TestRuntime as Config>::BridgedChain>;
+pub type TestHeader = crate::BridgedHeader<TestRuntime>;
+pub type TestNumber = crate::BridgedBlockNumber<TestRuntime>;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
@@ -79,6 +78,7 @@ impl frame_system::Config for TestRuntime {
 	type SS58Prefix = ();
 }
 
+// TODO: Remove this
 impl pallet_substrate_bridge::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 }

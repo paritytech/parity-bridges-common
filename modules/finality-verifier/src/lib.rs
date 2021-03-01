@@ -51,7 +51,7 @@ mod mock;
 pub use pallet::*;
 
 /// Block number of the bridged chain.
-pub type _BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
+pub type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
 /// Block hash of the bridged chain.
 pub type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
 /// Hasher of the bridged chain.
@@ -133,7 +133,7 @@ pub mod pallet {
 
 			frame_support::debug::trace!("Going to try and finalize header {:?}", finality_target);
 
-			let authority_set = T::HeaderChain::authority_set();
+			let authority_set = <CurrentAuthoritySet<T>>::get();
 			let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T>>::InvalidAuthoritySet)?;
 			let set_id = authority_set.set_id;
 
@@ -145,6 +145,7 @@ pub mod pallet {
 				},
 			)?;
 
+			// TODO: Should probably get rid of this
 			let best_finalized = T::HeaderChain::best_finalized();
 			frame_support::debug::trace!("Checking ancestry against best finalized header: {:?}", &best_finalized);
 
@@ -446,18 +447,14 @@ mod tests {
 	fn initialize_substrate_bridge() {
 		let genesis = test_header(0);
 
-		let init_data = pallet_substrate_bridge::InitializationData {
+		let init_data = InitializationData {
 			header: genesis,
 			authority_list: authority_list(),
 			set_id: 1,
-			scheduled_change: None,
 			is_halted: false,
 		};
 
-		assert_ok!(pallet_substrate_bridge::Module::<TestRuntime>::initialize(
-			Origin::root(),
-			init_data
-		));
+		assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data));
 	}
 
 	fn submit_finality_proof(child: u8, header: u8) -> frame_support::dispatch::DispatchResultWithPostInfo {
