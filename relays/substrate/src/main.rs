@@ -416,6 +416,7 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 async fn run_derive_account(cmd: cli::DeriveAccount) -> Result<(), String> {
 	match cmd {
 		cli::DeriveAccount::RialtoToMillau { account } => {
+			let account = account.into_rialto();
 			let acc = bp_runtime::SourceAccount::Account(account.clone());
 			let id = bp_millau::derive_account_from_rialto_id(acc);
 			println!(
@@ -425,6 +426,7 @@ async fn run_derive_account(cmd: cli::DeriveAccount) -> Result<(), String> {
 			)
 		}
 		cli::DeriveAccount::MillauToRialto { account } => {
+			let account = account.into_millau();
 			let acc = bp_runtime::SourceAccount::Account(account.clone());
 			let id = bp_rialto::derive_account_from_millau_id(acc);
 			println!(
@@ -641,7 +643,7 @@ impl crate::cli::MillauToRialtoMessagePayload {
 				.map_err(|e| format!("Failed to decode Millau's MessagePayload: {:?}", e)),
 			Self::Message { message, sender } => {
 				let spec_version = rialto_runtime::VERSION.spec_version;
-				let origin = CallOrigin::SourceAccount(sender);
+				let origin = CallOrigin::SourceAccount(sender.into_millau());
 				let call = message.into_call()?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -661,7 +663,7 @@ impl crate::cli::RialtoToMillauMessagePayload {
 				.map_err(|e| format!("Failed to decode Rialto's MessagePayload: {:?}", e)),
 			Self::Message { message, sender } => {
 				let spec_version = millau_runtime::VERSION.spec_version;
-				let origin = CallOrigin::SourceAccount(sender);
+				let origin = CallOrigin::SourceAccount(sender.into_rialto());
 				let call = message.into_call()?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -725,6 +727,7 @@ impl crate::cli::ToRialtoMessage {
 				)))
 			}
 			cli::ToRialtoMessage::Transfer { recipient, amount } => {
+				let recipient = recipient.into_rialto();
 				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
 			}
 		};
@@ -754,6 +757,7 @@ impl crate::cli::ToMillauMessage {
 				)))
 			}
 			cli::ToMillauMessage::Transfer { recipient, amount } => {
+				let recipient = recipient.into_millau();
 				millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient, amount))
 			}
 		};
