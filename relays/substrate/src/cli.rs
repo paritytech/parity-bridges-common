@@ -64,7 +64,7 @@ pub enum Command {
 	EncodeMessagePayload(EncodeMessagePayload),
 	/// Estimate Delivery and Dispatch Fee required for message submission to message lane.
 	EstimateFee(EstimateFee),
-	/// Given Source chain AccountId, derive a corresponding AccountId on the target chain.
+	/// Given a source chain `AccountId`, derive the corresponding `AccountId` for the target chain.
 	DeriveAccount(DeriveAccount),
 }
 
@@ -271,7 +271,7 @@ pub enum EstimateFee {
 	},
 }
 
-/// Given Source chain AccountId, derive a corresponding AccountId on the target chain.
+/// Given a source chain `AccountId`, derive the corresponding `AccountId` for the target chain.
 ///
 /// The (derived) target chain `AccountId` is going to be used as dispatch origin of the call
 /// that has been sent over the bridge.
