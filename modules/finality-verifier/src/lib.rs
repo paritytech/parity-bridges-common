@@ -172,32 +172,19 @@ pub mod pallet {
 
 	/// Hash of the header used to bootstrap the pallet.
 	#[pallet::storage]
-	#[pallet::getter(fn initial_hash)]
 	pub(super) type InitialHash<T: Config> = StorageValue<_, BridgedBlockHash<T>, ValueQuery>;
 
 	/// Hash of the best finalized header.
 	#[pallet::storage]
-	#[pallet::getter(fn best_finalized)]
 	pub(super) type BestFinalized<T: Config> = StorageValue<_, BridgedBlockHash<T>, ValueQuery>;
 
 	/// Headers which have been imported into the pallet.
-	// TODO: See if we have Option<Header> with autogen getter
-	// Can also make this generic, Map Hash => H: HeaderT
 	#[pallet::storage]
-	#[pallet::getter(fn imported_headers)]
 	pub(super) type ImportedHeaders<T: Config> = StorageMap<_, Identity, BridgedBlockHash<T>, BridgedHeader<T>>;
 
 	/// The current GRANDPA Authority set.
 	#[pallet::storage]
-	#[pallet::getter(fn current_authority_set)]
 	pub(super) type CurrentAuthoritySet<T: Config> = StorageValue<_, bp_header_chain::AuthoritySet, ValueQuery>;
-
-	// If we assume that `delay` is always zero when we get a ScheduledChange digest then we don't
-	// need this.
-	//
-	// #[pallet::storage]
-	// #[pallet::getter(fn next_scheduled_change)]
-	// pub(super) type NextScheduledChange<T: Config> = StorageMap<_, Identity, BridgedBlockHash<T>, BridgedHeader<T>>;
 
 	/// Optional pallet owner.
 	///
@@ -206,12 +193,10 @@ pub mod pallet {
 	/// runtime methods may still be used to do that (i.e. democracy::referendum to update halt
 	/// flag directly or call the `halt_operations`).
 	#[pallet::storage]
-	#[pallet::getter(fn module_owner)]
 	pub(super) type ModuleOwner<T: Config> = StorageValue<_, u32, OptionQuery>;
 
 	/// If true, all pallet transactions are failed immediately.
 	#[pallet::storage]
-	#[pallet::getter(fn is_halted)]
 	pub(super) type IsHalted<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::error]
