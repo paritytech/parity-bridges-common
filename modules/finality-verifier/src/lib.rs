@@ -529,6 +529,76 @@ mod tests {
 	}
 
 	#[test]
+	fn pallet_owner_may_change_owner() {
+		run_test(|| {
+			ModuleOwner::<TestRuntime>::put(2);
+
+			assert_ok!(Module::<TestRuntime>::set_owner(Origin::root(), Some(1)));
+			assert_noop!(
+				Module::<TestRuntime>::halt_operations(Origin::signed(2)),
+				DispatchError::BadOrigin,
+			);
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::root()));
+
+			assert_ok!(Module::<TestRuntime>::set_owner(Origin::signed(1), None));
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(2)),
+				DispatchError::BadOrigin,
+			);
+			assert_ok!(Module::<TestRuntime>::resume_operations(Origin::root()));
+		});
+	}
+
+	#[test]
+	fn pallet_may_be_halted_by_root() {
+		run_test(|| {
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::root()));
+			assert_ok!(Module::<TestRuntime>::resume_operations(Origin::root()));
+		});
+	}
+
+	#[test]
+	fn pallet_may_be_halted_by_owner() {
+		run_test(|| {
+			ModuleOwner::<TestRuntime>::put(2);
+
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::signed(2)));
+			assert_ok!(Module::<TestRuntime>::resume_operations(Origin::signed(2)));
+
+			assert_noop!(
+				Module::<TestRuntime>::halt_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+
+			assert_ok!(Module::<TestRuntime>::halt_operations(Origin::signed(2)));
+			assert_noop!(
+				Module::<TestRuntime>::resume_operations(Origin::signed(1)),
+				DispatchError::BadOrigin,
+			);
+		});
+	}
+
+	#[test]
+	fn pallet_rejects_transactions_if_halted() {
+		run_test(|| {
+			<IsHalted<TestRuntime>>::put(true);
+
+			assert_noop!(
+				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), test_header(1), vec![], vec![]),
+				Error::<TestRuntime>::Halted,
+			);
+		})
+	}
+
+	#[test]
 	#[ignore]
 	fn succesfully_imports_header_with_valid_finality_and_ancestry_proofs() {
 		run_test(|| {
