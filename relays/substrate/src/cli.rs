@@ -329,6 +329,7 @@ pub enum ToRialtoMessage {
 		#[structopt(long)]
 		amount: bp_rialto::Balance,
 	},
+	/// A call to the Millau Bridge Message Lane pallet to send a message over the bridge.
 	MillauSendMessage {
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
 		#[structopt(long, default_value = "00000000")]
@@ -365,6 +366,7 @@ pub enum ToMillauMessage {
 		#[structopt(long)]
 		amount: bp_millau::Balance,
 	},
+	/// A call to the Rialto Bridge Message Lane pallet to send a message over the bridge.
 	RialtoSendMessage {
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
 		#[structopt(long, default_value = "00000000")]
