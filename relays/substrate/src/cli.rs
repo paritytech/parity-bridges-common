@@ -280,13 +280,9 @@ pub enum EstimateFee {
 #[derive(StructOpt)]
 pub enum DeriveAccount {
 	/// Given Rialto AccountId, display corresponding Millau AccountId.
-	RialtoToMillau {
-		account: AccountId,
-	},
+	RialtoToMillau { account: AccountId },
 	/// Given Millau AccountId, display corresponding Rialto AccountId.
-	MillauToRialto {
-		account: AccountId,
-	},
+	MillauToRialto { account: AccountId },
 }
 
 /// MessagePayload that can be delivered to message lane pallet on Millau.
@@ -403,8 +399,7 @@ impl std::str::FromStr for AccountId {
 	type Err = String;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		let (account, version) = sp_runtime::AccountId32
-			::from_ss58check_with_version(s)
+		let (account, version) = sp_runtime::AccountId32::from_ss58check_with_version(s)
 			.map_err(|err| format!("Unable to decode SS58 address: {:?}", err))?;
 		Ok(Self { account, version })
 	}
@@ -435,8 +430,6 @@ impl AccountId {
 		self.account
 	}
 }
-
-
 
 /// Lane id.
 #[derive(Debug)]

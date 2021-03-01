@@ -421,8 +421,7 @@ async fn run_derive_account(cmd: cli::DeriveAccount) -> Result<(), String> {
 			let id = bp_millau::derive_account_from_rialto_id(acc);
 			println!(
 				"{} (Rialto)\n\nCorresponding (derived) account id:\n-> {} (Millau)",
-				account,
-				id
+				account, id
 			)
 		}
 		cli::DeriveAccount::MillauToRialto { account } => {
@@ -431,8 +430,7 @@ async fn run_derive_account(cmd: cli::DeriveAccount) -> Result<(), String> {
 			let id = bp_rialto::derive_account_from_millau_id(acc);
 			println!(
 				"{} (Millau)\n\nCorresponding (derived) account id:\n-> {} (Rialto)",
-				account,
-				id
+				account, id
 			)
 		}
 	}
