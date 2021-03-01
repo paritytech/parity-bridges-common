@@ -599,7 +599,6 @@ mod tests {
 	}
 
 	#[test]
-	#[ignore]
 	fn succesfully_imports_header_with_valid_finality_and_ancestry_proofs() {
 		run_test(|| {
 			initialize_substrate_bridge();
@@ -607,12 +606,8 @@ mod tests {
 			assert_ok!(submit_finality_proof(1, 2));
 
 			let header = test_header(2);
-			assert_eq!(
-				pallet_substrate_bridge::Module::<TestRuntime>::best_headers(),
-				vec![(*header.number(), header.hash())]
-			);
-
-			assert_eq!(pallet_substrate_bridge::Module::<TestRuntime>::best_finalized(), header);
+			assert_eq!(<BestFinalized<TestRuntime>>::get(), header.hash());
+			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 		})
 	}
 
@@ -685,18 +680,14 @@ mod tests {
 			let genesis = test_header(0);
 
 			let invalid_authority_list = vec![(alice(), u64::MAX), (bob(), u64::MAX)];
-			let init_data = pallet_substrate_bridge::InitializationData {
+			let init_data = InitializationData {
 				header: genesis,
 				authority_list: invalid_authority_list,
 				set_id: 1,
-				scheduled_change: None,
 				is_halted: false,
 			};
 
-			assert_ok!(pallet_substrate_bridge::Module::<TestRuntime>::initialize(
-				Origin::root(),
-				init_data
-			));
+			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data));
 
 			let header = test_header(1);
 			let justification = [1u8; 32].encode();
