@@ -228,7 +228,7 @@ fn finality_sync_loop_works() {
 		// proof for block 15 is ignored - we haven't managed to decode it
 		if data.target_best_block_number == 9 {
 			data.source_best_block_number = 17;
-			data.source_headers.insert(11, (TestSourceHeader(false, 12), None));
+			data.source_headers.insert(11, (TestSourceHeader(false, 11), None));
 			data.source_headers
 				.insert(12, (TestSourceHeader(false, 12), Some(TestFinalityProof(Some(12)))));
 			data.source_headers.insert(13, (TestSourceHeader(false, 13), None));
