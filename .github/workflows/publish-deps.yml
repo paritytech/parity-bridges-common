@@ -63,12 +63,13 @@ jobs:
         uses:                      docker/build-push-action@v2
         with:
           file:                    deployments/BridgeDeps.Dockerfile
+          push:                    true
           cache-from:              type=registry,ref=paritytech/bridge-dependencies:latest
           cache-to:                type=inline
           tags:                    ${{ steps.prep.outputs.TAGS }}
           labels: |
-            org.opencontainers.image.title=${{ matrix.project }}
-            org.opencontainers.image.description=${{ matrix.project }} - component of Parity Bridges Common
+            org.opencontainers.image.title=bridge-dependencies
+            org.opencontainers.image.description=bridge-dependencies - component of Parity Bridges Common
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.url=https://github.com/paritytech/parity-bridges-common
             org.opencontainers.image.documentation=https://github.com/paritytech/parity-bridges-common/README.md
