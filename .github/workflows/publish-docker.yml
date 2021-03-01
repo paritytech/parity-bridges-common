@@ -82,8 +82,6 @@ jobs:
           context:                 .
           file:                    ./Dockerfile
           push:                    true
-          cache-from:              type=registry,ref=paritytech/bridge-dependencies:latest
-          cache-to:                type=inline
           tags:                    ${{ steps.prep.outputs.TAGS }}
           build-args: |
             PROJECT=${{ matrix.project }}
