@@ -75,7 +75,7 @@ pub trait SourceClient<P: FinalitySyncPipeline>: RelayClient {
 	async fn best_finalized_block_number(&self) -> Result<P::Number, Self::Error>;
 
 	/// Get canonical header and its finality proof by number.
-	async fn header_and_finality_proof_by_number(
+	async fn header_and_finality_proof(
 		&self,
 		number: P::Number,
 	) -> Result<(P::Header, Option<P::FinalityProof>), Self::Error>;
@@ -381,7 +381,7 @@ where
 	let mut header_number = best_number_at_target + One::one();
 	while header_number <= best_number_at_source {
 		let (header, finality_proof) = source_client
-			.header_and_finality_proof_by_number(header_number)
+			.header_and_finality_proof(header_number)
 			.await
 			.map_err(Error::Source)?;
 		let is_mandatory = header.is_mandatory();

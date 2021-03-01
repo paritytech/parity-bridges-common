@@ -114,7 +114,7 @@ impl SourceClient<TestFinalitySyncPipeline> for TestSourceClient {
 		Ok(data.source_best_block_number)
 	}
 
-	async fn header_and_finality_proof_by_number(
+	async fn header_and_finality_proof(
 		&self,
 		number: TestNumber,
 	) -> Result<(TestSourceHeader, Option<TestFinalityProof>), TestError> {

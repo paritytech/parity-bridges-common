@@ -110,7 +110,7 @@ where
 		Ok(*finalized_header.number())
 	}
 
-	async fn header_and_finality_proof_by_number(
+	async fn header_and_finality_proof(
 		&self,
 		number: P::Number,
 	) -> Result<(P::Header, Option<P::FinalityProof>), Error> {
