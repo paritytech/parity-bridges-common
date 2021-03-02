@@ -173,7 +173,7 @@ pub enum SendMessage {
 		/// Dispatch weight of the message. If not passed, determined automatically.
 		#[structopt(long)]
 		dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-		/// Delivery and dispatch fee. If not passed, determined automatically.
+		/// Delivery and dispatch fee in source chain base currency units. If not passed, determined automatically.
 		#[structopt(long)]
 		fee: Option<bp_millau::Balance>,
 		/// Message type.
@@ -198,7 +198,7 @@ pub enum SendMessage {
 		/// Dispatch weight of the message. If not passed, determined automatically.
 		#[structopt(long)]
 		dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-		/// Delivery and dispatch fee. If not passed, determined automatically.
+		/// Delivery and dispatch fee in source chain base currency units. If not passed, determined automatically.
 		#[structopt(long)]
 		fee: Option<bp_rialto::Balance>,
 		/// Message type.
@@ -325,7 +325,7 @@ pub enum ToRialtoMessage {
 		/// SS58 encoded account that will receive the transfer (must have SS58Prefix = 42)
 		#[structopt(long)]
 		recipient: bp_rialto::AccountId,
-		/// Amount of target tokens to send.
+		/// Amount of target tokens to send in target chain base currency units.
 		#[structopt(long)]
 		amount: bp_rialto::Balance,
 	},
@@ -337,7 +337,7 @@ pub enum ToRialtoMessage {
 		/// Raw SCALE-encoded Message Payload to submit to the message lane pallet.
 		#[structopt(long)]
 		payload: Bytes,
-		/// Declared Dispatch & Delivery fee.
+		/// Declared delivery and dispatch fee in base source-chain currency units.
 		#[structopt(long)]
 		fee: bp_rialto::Balance,
 	},
@@ -362,7 +362,7 @@ pub enum ToMillauMessage {
 		/// SS58 encoded account that will receive the transfer (must have SS58Prefix = 42)
 		#[structopt(long)]
 		recipient: bp_millau::AccountId,
-		/// Amount of target tokens to send.
+		/// Amount of target tokens to send in target chain base currency units.
 		#[structopt(long)]
 		amount: bp_millau::Balance,
 	},
@@ -374,7 +374,7 @@ pub enum ToMillauMessage {
 		/// Raw SCALE-encoded Message Payload to submit to the message lane pallet.
 		#[structopt(long)]
 		payload: Bytes,
-		/// Declared Dispatch & Delivery fee.
+		/// Declared delivery and dispatch fee in base source-chain currency units.
 		#[structopt(long)]
 		fee: bp_millau::Balance,
 	},
