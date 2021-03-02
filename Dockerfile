@@ -10,7 +10,6 @@
 
 FROM docker.io/paritytech/bridge-dependencies:20.04 as builder
 WORKDIR /parity-bridges-common
-RUN cargo install cargo-chef --version 0.1.13
 
 COPY . .
 
