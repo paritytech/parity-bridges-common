@@ -11,9 +11,9 @@ case "$1" in
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
 		./target/debug/substrate-relay send-message millau-to-rialto \
 			--millau-host localhost \
-			--millau-port 20044 \
-			--millau-signer //Dave \
-			--rialto-signer //Dave \
+			--millau-port 9944 \
+			--millau-signer //Alice \
+			--rialto-signer //Bob \
 			--lane 00000000 \
 			--origin Target \
 			remark \
@@ -22,9 +22,9 @@ case "$1" in
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
 		./target/debug/substrate-relay send-message millau-to-rialto \
 			--millau-host localhost \
-			--millau-port 20044 \
-			--millau-signer //Dave \
-			--rialto-signer //Dave \
+			--millau-port 9945 \
+			--millau-signer //Alice \
+			--rialto-signer //Bob \
 			--lane 00000000 \
 			--origin Target \
 			transfer \
