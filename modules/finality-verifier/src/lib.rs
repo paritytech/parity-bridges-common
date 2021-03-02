@@ -285,6 +285,7 @@ pub mod pallet {
 		init_data: Option<super::InitializationData<BridgedHeader<T>>>,
 	}
 
+	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
