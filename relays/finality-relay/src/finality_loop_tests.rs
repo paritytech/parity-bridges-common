@@ -256,7 +256,7 @@ fn finality_sync_loop_works() {
 
 #[test]
 fn prune_unjustified_headers_works() {
-	let mut original_unjustified_headers: UnjustifiedHeaders<TestFinalitySyncPipeline> = vec![
+	let original_unjustified_headers: UnjustifiedHeaders<TestFinalitySyncPipeline> = vec![
 		TestSourceHeader(false, 10),
 		TestSourceHeader(false, 13),
 		TestSourceHeader(false, 15),
@@ -272,10 +272,7 @@ fn prune_unjustified_headers_works() {
 		prune_unjustified_headers::<TestFinalitySyncPipeline>(10, &mut unjustified_headers),
 		Some(TestSourceHeader(false, 10)),
 	);
-	assert_eq!(
-		&original_unjustified_headers.clone().make_contiguous()[1..],
-		unjustified_headers.make_contiguous(),
-	);
+	assert_eq!(&original_unjustified_headers[1..], unjustified_headers,);
 
 	// when the header doesn't exist in the collection
 	let mut unjustified_headers = original_unjustified_headers.clone();
@@ -283,10 +280,7 @@ fn prune_unjustified_headers_works() {
 		prune_unjustified_headers::<TestFinalitySyncPipeline>(11, &mut unjustified_headers),
 		None,
 	);
-	assert_eq!(
-		&original_unjustified_headers.clone().make_contiguous()[1..],
-		unjustified_headers.make_contiguous(),
-	);
+	assert_eq!(&original_unjustified_headers[1..], unjustified_headers,);
 
 	// when last entry is pruned
 	let mut unjustified_headers = original_unjustified_headers.clone();
@@ -295,10 +289,7 @@ fn prune_unjustified_headers_works() {
 		Some(TestSourceHeader(false, 19)),
 	);
 
-	assert_eq!(
-		&original_unjustified_headers.clone().make_contiguous()[5..],
-		unjustified_headers.make_contiguous(),
-	);
+	assert_eq!(&original_unjustified_headers[5..], unjustified_headers,);
 
 	// when we try and prune past last entry
 	let mut unjustified_headers = original_unjustified_headers.clone();
@@ -306,15 +297,12 @@ fn prune_unjustified_headers_works() {
 		prune_unjustified_headers::<TestFinalitySyncPipeline>(20, &mut unjustified_headers),
 		None,
 	);
-	assert_eq!(
-		&original_unjustified_headers.make_contiguous()[5..],
-		unjustified_headers.make_contiguous(),
-	);
+	assert_eq!(&original_unjustified_headers[5..], unjustified_headers,);
 }
 
 #[test]
 fn prune_recent_finality_proofs_works() {
-	let mut original_recent_finality_proofs: FinalityProofs<TestFinalitySyncPipeline> = vec![
+	let original_recent_finality_proofs: FinalityProofs<TestFinalitySyncPipeline> = vec![
 		(10, TestFinalityProof(Some(10))),
 		(13, TestFinalityProof(Some(13))),
 		(15, TestFinalityProof(Some(15))),
@@ -324,43 +312,28 @@ fn prune_recent_finality_proofs_works() {
 	.into_iter()
 	.collect();
 
-	// when there's proof for justified header in the deque
+	// when there's proof for justified header in the vec
 	let mut recent_finality_proofs = original_recent_finality_proofs.clone();
 	prune_recent_finality_proofs::<TestFinalitySyncPipeline>(10, &mut recent_finality_proofs, 1024);
-	assert_eq!(
-		&original_recent_finality_proofs.clone().make_contiguous()[1..],
-		recent_finality_proofs.make_contiguous(),
-	);
+	assert_eq!(&original_recent_finality_proofs[1..], recent_finality_proofs,);
 
-	// when there are no proof for justified header in the deque
+	// when there are no proof for justified header in the vec
 	let mut recent_finality_proofs = original_recent_finality_proofs.clone();
 	prune_recent_finality_proofs::<TestFinalitySyncPipeline>(11, &mut recent_finality_proofs, 1024);
-	assert_eq!(
-		&original_recent_finality_proofs.clone().make_contiguous()[1..],
-		recent_finality_proofs.make_contiguous(),
-	);
+	assert_eq!(&original_recent_finality_proofs[1..], recent_finality_proofs,);
 
 	// when there are too many entries after initial prune && they also need to be pruned
 	let mut recent_finality_proofs = original_recent_finality_proofs.clone();
 	prune_recent_finality_proofs::<TestFinalitySyncPipeline>(10, &mut recent_finality_proofs, 2);
-	assert_eq!(
-		&original_recent_finality_proofs.clone().make_contiguous()[3..],
-		recent_finality_proofs.make_contiguous(),
-	);
+	assert_eq!(&original_recent_finality_proofs[3..], recent_finality_proofs,);
 
 	// when last entry is pruned
 	let mut recent_finality_proofs = original_recent_finality_proofs.clone();
 	prune_recent_finality_proofs::<TestFinalitySyncPipeline>(19, &mut recent_finality_proofs, 2);
-	assert_eq!(
-		&original_recent_finality_proofs.clone().make_contiguous()[5..],
-		recent_finality_proofs.make_contiguous(),
-	);
+	assert_eq!(&original_recent_finality_proofs[5..], recent_finality_proofs,);
 
 	// when post-last entry is pruned
 	let mut recent_finality_proofs = original_recent_finality_proofs.clone();
 	prune_recent_finality_proofs::<TestFinalitySyncPipeline>(20, &mut recent_finality_proofs, 2);
-	assert_eq!(
-		&original_recent_finality_proofs.make_contiguous()[5..],
-		recent_finality_proofs.make_contiguous(),
-	);
+	assert_eq!(&original_recent_finality_proofs[5..], recent_finality_proofs,);
 }

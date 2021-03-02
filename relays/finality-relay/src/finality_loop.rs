@@ -32,7 +32,6 @@ use relay_utils::{
 	retry_backoff, FailedClient, MaybeConnectionError,
 };
 use std::{
-	collections::VecDeque,
 	pin::Pin,
 	time::{Duration, Instant},
 };
@@ -140,9 +139,9 @@ pub fn run<P: FinalitySyncPipeline>(
 }
 
 /// Unjustified headers container. Ordered by header number.
-pub(crate) type UnjustifiedHeaders<P> = VecDeque<<P as FinalitySyncPipeline>::Header>;
+pub(crate) type UnjustifiedHeaders<P> = Vec<<P as FinalitySyncPipeline>::Header>;
 /// Finality proofs container. Ordered by target header number.
-pub(crate) type FinalityProofs<P> = VecDeque<(
+pub(crate) type FinalityProofs<P> = Vec<(
 	<P as FinalitySyncPipeline>::Number,
 	<P as FinalitySyncPipeline>::FinalityProof,
 )>;
@@ -218,7 +217,7 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 
 		FailedClient::Source
 	})?);
-	let mut recent_finality_proofs = VecDeque::new();
+	let mut recent_finality_proofs = Vec::new();
 
 	let mut progress = (Instant::now(), None);
 	let mut retry_backoff = retry_backoff();
@@ -366,7 +365,7 @@ where
 	TC: TargetClient<P>,
 {
 	let mut selected_finality_proof = None;
-	let mut unjustified_headers = VecDeque::new();
+	let mut unjustified_headers = Vec::new();
 
 	// to see that the loop is progressing
 	log::trace!(
@@ -398,7 +397,7 @@ where
 				prune_unjustified_headers::<P>(header_number, &mut unjustified_headers);
 			}
 			(false, None) => {
-				unjustified_headers.push_back(header);
+				unjustified_headers.push(header);
 			}
 		}
 
@@ -407,15 +406,15 @@ where
 
 	// see if we can improve finality by using recent finality proofs
 	if !unjustified_headers.is_empty() && !recent_finality_proofs.is_empty() {
-		const NOT_EMPTY_PROOF: &str = "we have checked that the deque is not empty; qed";
+		const NOT_EMPTY_PROOF: &str = "we have checked that the vec is not empty; qed";
 
 		// we need proofs for headers in range unjustified_range_begin..=unjustified_range_end
-		let unjustified_range_begin = unjustified_headers.front().expect(NOT_EMPTY_PROOF).number();
-		let unjustified_range_end = unjustified_headers.back().expect(NOT_EMPTY_PROOF).number();
+		let unjustified_range_begin = unjustified_headers.first().expect(NOT_EMPTY_PROOF).number();
+		let unjustified_range_end = unjustified_headers.last().expect(NOT_EMPTY_PROOF).number();
 
 		// we have proofs for headers in range buffered_range_begin..=buffered_range_end
-		let buffered_range_begin = recent_finality_proofs.front().expect(NOT_EMPTY_PROOF).0;
-		let buffered_range_end = recent_finality_proofs.back().expect(NOT_EMPTY_PROOF).0;
+		let buffered_range_begin = recent_finality_proofs.first().expect(NOT_EMPTY_PROOF).0;
+		let buffered_range_end = recent_finality_proofs.last().expect(NOT_EMPTY_PROOF).0;
 
 		// we have two ranges => find intersection and take last available proof from this intersection
 		let intersection_begin = std::cmp::max(unjustified_range_begin, buffered_range_begin);
@@ -423,7 +422,6 @@ where
 		let intersection = intersection_begin..=intersection_end;
 		if !intersection.is_empty() {
 			let selected_finality_proof_index = recent_finality_proofs
-				.make_contiguous()
 				.binary_search_by_key(intersection.end(), |(number, _)| *number)
 				.unwrap_or_else(|index| index - 1);
 
@@ -457,7 +455,7 @@ where
 		} else {
 			// the number of proofs read during single wakeup is expected to be low, so we aren't pruning
 			// `recent_finality_proofs` collection too often
-			recent_finality_proofs.push_back((finality_proof_target_header_number, finality_proof));
+			recent_finality_proofs.push((finality_proof_target_header_number, finality_proof));
 		}
 	}
 
@@ -479,7 +477,7 @@ pub(crate) fn prune_unjustified_headers<P: FinalitySyncPipeline>(
 	justified_header_number: P::Number,
 	unjustified_headers: &mut UnjustifiedHeaders<P>,
 ) -> Option<P::Header> {
-	prune_ordered_deque(justified_header_number, unjustified_headers, usize::MAX, |header| {
+	prune_ordered_vec(justified_header_number, unjustified_headers, usize::MAX, |header| {
 		header.number()
 	})
 }
@@ -489,7 +487,7 @@ pub(crate) fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
 	recent_finality_proofs: &mut FinalityProofs<P>,
 	recent_finality_proofs_limit: usize,
 ) {
-	prune_ordered_deque(
+	prune_ordered_vec(
 		justified_header_number,
 		recent_finality_proofs,
 		recent_finality_proofs_limit,
@@ -497,39 +495,35 @@ pub(crate) fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
 	);
 }
 
-fn prune_ordered_deque<T, Number: relay_utils::BlockNumberBase>(
+fn prune_ordered_vec<T, Number: relay_utils::BlockNumberBase>(
 	header_number: Number,
-	ordered_deque: &mut VecDeque<T>,
-	maximal_deque_size: usize,
+	ordered_vec: &mut Vec<T>,
+	maximal_vec_size: usize,
 	extract_header_number: impl Fn(&T) -> Number,
 ) -> Option<T> {
-	// `VecDeque::binary_search_by_key` is not stabilized. Let's call `make_contiguous` and use
-	// `slice::binary_search_by_key` instead
-	let position = ordered_deque
-		.make_contiguous()
-		.binary_search_by_key(&header_number, extract_header_number);
+	let position = ordered_vec.binary_search_by_key(&header_number, extract_header_number);
 
 	// first extract element we're interested in
 	let extracted_element = match position {
 		Ok(position) => {
-			let updated_deque = ordered_deque.split_off(position + 1);
-			let extracted_element = ordered_deque.pop_back().expect(
+			let updated_vec = ordered_vec.split_off(position + 1);
+			let extracted_element = ordered_vec.pop().expect(
 				"binary_search_by_key has returned Ok(); so there's element at `position`;\
-					we're splitting deque at `position+1`; so we have pruned at least 1 element;\
+					we're splitting vec at `position+1`; so we have pruned at least 1 element;\
 					qed",
 			);
-			*ordered_deque = updated_deque;
+			*ordered_vec = updated_vec;
 			Some(extracted_element)
 		}
 		Err(position) => {
-			*ordered_deque = ordered_deque.split_off(position);
+			*ordered_vec = ordered_vec.split_off(position);
 			None
 		}
 	};
 
-	// now - limit deque by size
-	let split_index = ordered_deque.len().saturating_sub(maximal_deque_size);
-	*ordered_deque = ordered_deque.split_off(split_index);
+	// now - limit vec by size
+	let split_index = ordered_vec.len().saturating_sub(maximal_vec_size);
+	*ordered_vec = ordered_vec.split_off(split_index);
 
 	extracted_element
 }
