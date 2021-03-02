@@ -58,8 +58,7 @@ jobs:
           elif [[ $GITHUB_REF == refs/heads/* ]]; then
             VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
           fi
-          TAGS=${VERSION}
-          TAGS=$TAGS,sha-${GITHUB_SHA::8}
+          TAGS=${VERSION} sha-${GITHUB_SHA::8} latest
           echo ::set-output name=TAGS::${TAGS}
           echo ::set-output name=DATE::$(date +%d-%m-%Y)
 
@@ -67,7 +66,7 @@ jobs:
         uses:                                       redhat-actions/buildah-build@v2.2
         with:
           image:                                    ${{ matrix.project }}
-          tags:                                     ${{ steps.prep.outputs.TAGS }}, latest
+          tags:                                     ${{ steps.prep.outputs.TAGS }}
           dockerfiles:                              ./Dockerfile
           build-args: |
             PROJECT=${{ matrix.project }}
