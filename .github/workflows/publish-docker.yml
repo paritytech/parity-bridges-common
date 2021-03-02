@@ -37,8 +37,6 @@ jobs:
             healthcheck: http://localhost:9616/metrics
 
     runs-on:                       self-hosted
-    container:
-      image:                       docker:git
     steps:
 
       - name:                      Cancel Previous Runs
