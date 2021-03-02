@@ -146,7 +146,6 @@ pub mod pallet {
 				},
 			)?;
 
-			// TODO: Should probably get rid of this
 			let best_finalized = T::HeaderChain::best_finalized();
 			frame_support::debug::trace!("Checking ancestry against best finalized header: {:?}", &best_finalized);
 
@@ -155,7 +154,6 @@ pub mod pallet {
 				<Error<T>>::InvalidAncestryProof
 			);
 
-			// TODO: Should probably get rid of this
 			let _ = T::HeaderChain::append_header(finality_target.clone())?;
 			frame_support::debug::info!("Succesfully imported finalized header with hash {:?}!", hash);
 
@@ -344,10 +342,19 @@ pub mod pallet {
 	///
 	/// This function will also check if the header schedules and enacts authority set changes,
 	/// updating the current authority set accordingly.
+	///
+	/// Note: This function assumes that the given header has already been proven to be valid and
+	/// finalized. Using this assumption it will write them to storage with minimal checks. That
+	/// means it's of great importance that this function *not* called with any headers whose
+	/// finality has not been checked, otherwise you risk bricking your bridge.
 	pub(crate) fn import_header<T: Config>(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
+		let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect(
+			"In order to reach this point the bridge must have been initialized. Therefore
+			`ImportedHeaders` must contain an entry for `BestFinalized`.",
+		);
+
 		// We do a quick check here to ensure that our header chain is making progress and isn't
 		// "travelling back in time" (which would be indicative of something bad, e.g a hard-fork).
-		let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect("TODO");
 		ensure!(best_finalized.number() < header.number(), <Error<T>>::ConflictingFork);
 
 		// TODO: Check for and reject forced changes
