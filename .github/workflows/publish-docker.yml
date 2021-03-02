@@ -58,7 +58,7 @@ jobs:
           elif [[ $GITHUB_REF == refs/heads/* ]]; then
             VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
           fi
-          TAGS=${VERSION} sha-${GITHUB_SHA::8} latest
+          TAGS="${VERSION} sha-${GITHUB_SHA::8} latest"
           echo ::set-output name=TAGS::${TAGS}
           echo ::set-output name=DATE::$(date +%d-%m-%Y)
 
