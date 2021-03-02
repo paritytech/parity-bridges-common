@@ -8,7 +8,7 @@
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
 
-FROM paritytech/bridge-dependencies:20.04 as builder
+FROM docker.io/paritytech/bridge-dependencies:20.04 as builder
 WORKDIR /parity-bridges-common
 RUN cargo install cargo-chef --version 0.1.13
 
@@ -20,7 +20,7 @@ RUN strip ./target/release/${PROJECT}
 
 # In this final stage we copy over the final binary and do some checks
 # to make sure that everything looks good.
-FROM ubuntu:20.04 as runtime
+FROM docker.io/ubuntu:20.04 as runtime
 
 # show backtraces
 ENV RUST_BACKTRACE 1
