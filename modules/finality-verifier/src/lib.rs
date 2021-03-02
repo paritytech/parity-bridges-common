@@ -345,6 +345,8 @@ pub mod pallet {
 	/// This function will also check if the header schedules and enacts authority set changes,
 	/// updating the current authority set accordingly.
 	pub(crate) fn import_header<T: Config>(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
+		// We do a quick check here to ensure that our header chain is making progress and isn't
+		// "travelling back in time" (which would be indicative of something bad, e.g a hard-fork).
 		let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect("TODO");
 		ensure!(best_finalized.number() < header.number(), <Error<T>>::ConflictingFork);
 
@@ -368,6 +370,8 @@ pub mod pallet {
 		Ok(())
 	}
 
+	/// Since this writes to storage with no real checks this should only be used in functions that
+	/// were called by a trusted origin.
 	fn initialize_bridge<T: Config>(init_params: super::InitializationData<BridgedHeader<T>>) {
 		let super::InitializationData {
 			header,
