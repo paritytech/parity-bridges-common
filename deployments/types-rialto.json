@@ -1,4 +1,5 @@
 {
+	"Balance": "u128",
 	"Address": "AccountId",
 	"LookupSource": "AccountId",
 	"MillauBlockHash": "H512",
@@ -66,7 +67,7 @@
 		"fee": "Balance"
 	},
 	"MessagePayload": "Vec<u8>",
-	"OutboundMessageFee": "u64",
+	"OutboundMessageFee": "u128",
 	"OutboundPayload": {
 		"call": "Vec<u8>",
 		"origin": "CallOrigin",
@@ -93,5 +94,7 @@
 			"Sr25519": "H512",
 			"Ecdsa": "[u8;65]"
 		}
-	}
+	},
+	"Fee": "u128",
+	"SpecVersion": "u32"
 }

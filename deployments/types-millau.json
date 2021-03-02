@@ -1,4 +1,5 @@
 {
+	"Balance": "u64",
 	"Address": "AccountId",
 	"LookupSource": "AccountId",
 	"MillauBlockHash": "H512",
