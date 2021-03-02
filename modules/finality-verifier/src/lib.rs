@@ -172,8 +172,7 @@ pub mod pallet {
 		/// This function is only allowed to be called from a trusted origin and writes to storage
 		/// with practically no checks in terms of the validity of the data. It is important that
 		/// you ensure that valid data is being passed in.
-		//TODO: Update weights [#78]
-		#[pallet::weight(0)]
+		#[pallet::weight((T::DbWeight::get().reads_writes(2, 5), DispatchClass::Operational))]
 		pub fn initialize(
 			origin: OriginFor<T>,
 			init_data: super::InitializationData<BridgedHeader<T>>,
