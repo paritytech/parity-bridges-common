@@ -22,14 +22,19 @@ RUN strip ./target/release/${PROJECT}
 FROM docker.io/ubuntu:20.04 as runtime
 
 # show backtraces
-ENV RUST_BACKTRACE 1
+ENV RUST_BACKTRACE 1 \
+	DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
 	apt-get update && \
-	apt-get install -y libssl-dev curl
-
-RUN groupadd -g 1000 user \
-  && useradd -u 1000 -g user -s /bin/sh -m user
+	apt-get install -y --no-install-recommends \
+		libssl-dev curl && \
+	groupadd -g 1000 user && \
+	useradd -u 1000 -g user -s /bin/sh -m user && \
+# apt clean up
+	apt-get autoremove -y && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
 
 # switch to non-root user
 USER user
