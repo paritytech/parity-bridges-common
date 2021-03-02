@@ -197,7 +197,7 @@ pub mod pallet {
 		/// Change `ModuleOwner`.
 		///
 		/// May only be called either by root, or by `ModuleOwner`.
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
 		pub fn set_owner(origin: OriginFor<T>, new_owner: Option<T::AccountId>) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root::<T>(origin)?;
 			match new_owner {
@@ -217,7 +217,7 @@ pub mod pallet {
 		/// Halt all pallet operations. Operations may be resumed using `resume_operations` call.
 		///
 		/// May only be called either by root, or by `ModuleOwner`.
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
 		pub fn halt_operations(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root::<T>(origin)?;
 			<IsHalted<T>>::put(true);
@@ -229,7 +229,7 @@ pub mod pallet {
 		/// Resume all pallet operations. May be called even if pallet is halted.
 		///
 		/// May only be called either by root, or by `ModuleOwner`.
-		#[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
 		pub fn resume_operations(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root::<T>(origin)?;
 			<IsHalted<T>>::put(false);
