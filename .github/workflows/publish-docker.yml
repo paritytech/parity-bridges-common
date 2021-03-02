@@ -72,7 +72,7 @@ jobs:
           tags:                                     ${{ steps.prep.outputs.TAG }}
           dockerfiles:                              ./Dockerfile
           build-args: |
-            PROJECT=${{ matrix.project }},
+            PROJECT=${{ matrix.project }}
             HEALTH=${{ matrix.healthcheck }}
 
       - name:                                       Push ${{ matrix.project }} image to docker.io
