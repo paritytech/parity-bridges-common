@@ -416,20 +416,21 @@ where
 		let buffered_range_begin = recent_finality_proofs.first().expect(NOT_EMPTY_PROOF).0;
 		let buffered_range_end = recent_finality_proofs.last().expect(NOT_EMPTY_PROOF).0;
 
-		// we have two ranges => find intersection and take last available proof from this intersection
+		// we have two ranges => find intersection
 		let intersection_begin = std::cmp::max(unjustified_range_begin, buffered_range_begin);
 		let intersection_end = std::cmp::min(unjustified_range_end, buffered_range_end);
 		let intersection = intersection_begin..=intersection_end;
-		if !intersection.is_empty() {
-			let selected_finality_proof_index = recent_finality_proofs
-				.binary_search_by_key(intersection.end(), |(number, _)| *number)
-				.unwrap_or_else(|index| index - 1);
 
-			let (selected_header_number, finality_proof) =
-				recent_finality_proofs[selected_finality_proof_index].clone();
-			let selected_header = prune_unjustified_headers::<P>(selected_header_number, &mut unjustified_headers)
+		// find last proof from intersection
+		let selected_finality_proof_index = recent_finality_proofs
+			.binary_search_by_key(intersection.end(), |(number, _)| *number)
+			.unwrap_or_else(|index| index.saturating_sub(1));
+		let (selected_header_number, finality_proof) = &recent_finality_proofs[selected_finality_proof_index];
+		if intersection.contains(selected_header_number) {
+			// now remove all obsolete headers and extract selected header
+			let selected_header = prune_unjustified_headers::<P>(*selected_header_number, &mut unjustified_headers)
 				.expect("unjustified_headers contain all headers from intersection; qed");
-			selected_finality_proof = Some((selected_header, finality_proof));
+			selected_finality_proof = Some((selected_header, finality_proof.clone()));
 		}
 	}
 
