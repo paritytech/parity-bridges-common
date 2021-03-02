@@ -10,7 +10,9 @@ bp-eth-poa = { path = "../../primitives/ethereum-poa" }
 codec = { package = "parity-scale-codec", version = "2.0.0" }
 headers-relay = { path = "../headers-relay" }
 hex-literal = "0.3"
-jsonrpsee = { git = "https://github.com/svyatonik/jsonrpsee.git", branch = "shared-client-in-rpc-api", default-features = false, features = ["http"] }
+jsonrpsee-http-client = { git = "https://github.com/paritytech/jsonrpsee" }
+jsonrpsee-proc-macros = { git = "https://github.com/paritytech/jsonrpsee" }
+jsonrpsee-types = { git = "https://github.com/paritytech/jsonrpsee" }
 libsecp256k1 = { version = "0.3.4", default-features = false, features = ["hmac"] }
 log = "0.4.11"
 relay-utils = { path = "../utils" }
