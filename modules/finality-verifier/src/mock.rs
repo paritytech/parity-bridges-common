@@ -79,7 +79,6 @@ impl frame_system::Config for TestRuntime {
 	type SS58Prefix = ();
 }
 
-// TODO: Remove this
 impl pallet_substrate_bridge::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 }
