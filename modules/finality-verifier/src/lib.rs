@@ -410,6 +410,30 @@ pub mod pallet {
 	}
 }
 
+impl<T: Config> Pallet<T> {
+	/// Get the best finalized header the pallet knows of.
+	///
+	/// Returns a dummy header if there is no best header. This can only happen
+	/// if the pallet has not been initialized yet.
+	pub fn best_finalized() -> BridgedHeader<T> {
+		let hash = <BestFinalized<T>>::get();
+		<ImportedHeaders<T>>::get(hash).unwrap_or_else(|| {
+			<BridgedHeader<T>>::new(
+				Default::default(),
+				Default::default(),
+				Default::default(),
+				Default::default(),
+				Default::default(),
+			)
+		})
+	}
+
+	/// Check if a particular header is known to the bridge pallet.
+	pub fn is_known_header(hash: BridgedBlockHash<T>) -> bool {
+		<ImportedHeaders<T>>::contains_key(hash)
+	}
+}
+
 /// Data required for initializing the bridge pallet.
 ///
 /// The bridge needs to know where to start its sync from, and this provides that initial context.
@@ -521,6 +545,7 @@ mod tests {
 				BestFinalized::<TestRuntime>::get(),
 				BridgedBlockHash::<TestRuntime>::default()
 			);
+			assert_eq!(Module::<TestRuntime>::best_finalized(), test_header(0));
 
 			let init_data = init_with_origin(Origin::root()).unwrap();
 
