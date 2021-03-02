@@ -68,6 +68,7 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 		cli::Command::EncodeCall(arg) => run_encode_call(arg).await,
 		cli::Command::EncodeMessagePayload(arg) => run_encode_message_payload(arg).await,
 		cli::Command::EstimateFee(arg) => run_estimate_fee(arg).await,
+		cli::Command::DeriveAccount(arg) => run_derive_account(arg).await,
 	}
 }
 
@@ -282,6 +283,7 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 				dispatch_weight,
 				fee,
 			);
+			log::info!(target: "bridge", "Signed Millau Call: {:?}", HexBytes::encode(&signed_millau_call));
 
 			millau_client.submit_extrinsic(Bytes(signed_millau_call)).await?;
 		}
@@ -337,6 +339,7 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 				dispatch_weight,
 				fee,
 			);
+			log::info!(target: "bridge", "Signed Rialto Call: {:?}", HexBytes::encode(&signed_rialto_call));
 
 			rialto_client.submit_extrinsic(Bytes(signed_rialto_call)).await?;
 		}
@@ -406,6 +409,31 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 			.await?;
 
 			println!("Fee: {:?}", fee);
+		}
+	}
+
+	Ok(())
+}
+
+async fn run_derive_account(cmd: cli::DeriveAccount) -> Result<(), String> {
+	match cmd {
+		cli::DeriveAccount::RialtoToMillau { account } => {
+			let account = account.into_rialto();
+			let acc = bp_runtime::SourceAccount::Account(account.clone());
+			let id = bp_millau::derive_account_from_rialto_id(acc);
+			println!(
+				"{} (Rialto)\n\nCorresponding (derived) account id:\n-> {} (Millau)",
+				account, id
+			)
+		}
+		cli::DeriveAccount::MillauToRialto { account } => {
+			let account = account.into_millau();
+			let acc = bp_runtime::SourceAccount::Account(account.clone());
+			let id = bp_rialto::derive_account_from_millau_id(acc);
+			println!(
+				"{} (Millau)\n\nCorresponding (derived) account id:\n-> {} (Rialto)",
+				account, id
+			)
 		}
 	}
 
@@ -615,7 +643,7 @@ impl crate::cli::MillauToRialtoMessagePayload {
 				.map_err(|e| format!("Failed to decode Millau's MessagePayload: {:?}", e)),
 			Self::Message { message, sender } => {
 				let spec_version = rialto_runtime::VERSION.spec_version;
-				let origin = CallOrigin::SourceAccount(sender);
+				let origin = CallOrigin::SourceAccount(sender.into_millau());
 				let call = message.into_call()?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -635,7 +663,7 @@ impl crate::cli::RialtoToMillauMessagePayload {
 				.map_err(|e| format!("Failed to decode Rialto's MessagePayload: {:?}", e)),
 			Self::Message { message, sender } => {
 				let spec_version = millau_runtime::VERSION.spec_version;
-				let origin = CallOrigin::SourceAccount(sender);
+				let origin = CallOrigin::SourceAccount(sender.into_rialto());
 				let call = message.into_call()?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -699,7 +727,15 @@ impl crate::cli::ToRialtoMessage {
 				)))
 			}
 			cli::ToRialtoMessage::Transfer { recipient, amount } => {
+				let recipient = recipient.into_rialto();
 				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
+			}
+			cli::ToRialtoMessage::MillauSendMessage { lane, payload, fee } => {
+				let payload = cli::RialtoToMillauMessagePayload::Raw { data: payload }.into_payload()?;
+				let lane = lane.into();
+				rialto_runtime::Call::BridgeMillauMessageLane(rialto_runtime::MessageLaneCall::send_message(
+					lane, payload, fee,
+				))
 			}
 		};
 
@@ -728,7 +764,15 @@ impl crate::cli::ToMillauMessage {
 				)))
 			}
 			cli::ToMillauMessage::Transfer { recipient, amount } => {
+				let recipient = recipient.into_millau();
 				millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient, amount))
+			}
+			cli::ToMillauMessage::RialtoSendMessage { lane, payload, fee } => {
+				let payload = cli::MillauToRialtoMessagePayload::Raw { data: payload }.into_payload()?;
+				let lane = lane.into();
+				millau_runtime::Call::BridgeRialtoMessageLane(millau_runtime::MessageLaneCall::send_message(
+					lane, payload, fee,
+				))
 			}
 		};
 
