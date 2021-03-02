@@ -357,8 +357,14 @@ pub mod pallet {
 		// "travelling back in time" (which would be indicative of something bad, e.g a hard-fork).
 		ensure!(best_finalized.number() < header.number(), <Error<T>>::ConflictingFork);
 
-		// TODO: Check for and reject forced changes
+		// We don't support forced changes - at that point governance intervention is required.
+		ensure!(
+			super::find_forced_change(&header).is_none(),
+			<Error<T>>::UnsupportedScheduledChange
+		);
+
 		if let Some(change) = super::find_scheduled_change(&header) {
+			// GRANDPA only includes a `delay` for forced changes, so this isn't valid.
 			ensure!(change.delay == Zero::zero(), <Error<T>>::UnsupportedScheduledChange);
 
 			let next_authorities = bp_header_chain::AuthoritySet {
@@ -472,6 +478,25 @@ pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finalit
 	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
 }
 
+/// Checks the given header for a consensus digest signalling a **forced** scheduled change and
+/// extracts it.
+pub(crate) fn find_forced_change<H: HeaderT>(
+	header: &H,
+) -> Option<(H::Number, sp_finality_grandpa::ScheduledChange<H::Number>)> {
+	use sp_runtime::generic::OpaqueDigestItemId;
+
+	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
+
+	let filter_log = |log: ConsensusLog<H::Number>| match log {
+		ConsensusLog::ForcedChange(delay, change) => Some((delay, change)),
+		_ => None,
+	};
+
+	// find the first consensus digest with the right ID which converts to
+	// the right kind of consensus log.
+	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -526,6 +551,20 @@ mod tests {
 			next_authorities: vec![(alice(), 1), (bob(), 1)],
 			delay,
 		});
+
+		Digest::<TestHash> {
+			logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
+		}
+	}
+
+	fn forced_change_log(delay: u64) -> Digest<TestHash> {
+		let consensus_log = ConsensusLog::<TestNumber>::ForcedChange(
+			delay,
+			sp_finality_grandpa::ScheduledChange {
+				next_authorities: vec![(alice(), 1), (bob(), 1)],
+				delay,
+			},
+		);
 
 		Digest::<TestHash> {
 			logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
@@ -814,6 +853,23 @@ mod tests {
 		})
 	}
 
+	#[test]
+	fn importing_header_rejects_header_with_forced_changes() {
+		run_test(|| {
+			initialize_substrate_bridge();
+
+			// Need to update the header digest to indicate that it signals a forced authority set
+			// change.
+			let mut header = test_header(2);
+			header.digest = forced_change_log(0);
+
+			// Should not be allowed to import this header
+			assert_err!(
+				pallet::import_header::<TestRuntime>(header),
+				<Error<TestRuntime>>::UnsupportedScheduledChange
+			);
+		})
+	}
 	#[test]
 	fn rate_limiter_disallows_imports_once_limit_is_hit_in_single_block() {
 		run_test(|| {
