@@ -45,7 +45,7 @@ jobs:
           access_token:            ${{ github.token }}
 
       - name:                      Checkout sources & submodules
-        uses:                      actions/checkout@master
+        uses:                      actions/checkout@v2
         with:
           fetch-depth:             5
           submodules:              recursive
