@@ -48,6 +48,9 @@ notice = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
+	# generic-array lifetime errasure. If all upstream crates upgrade to >=0.14.0
+	# we can remove this.
+	"RUSTSEC-2020-0146",
 	# yaml-rust < clap. Not feasible to upgrade and also not possible to trigger in practice.
 	"RUSTSEC-2018-0006",
 	# We need to wait until Substrate updates their `wasmtime` dependency to fix this.
