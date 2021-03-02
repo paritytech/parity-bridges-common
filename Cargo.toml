@@ -5,6 +5,7 @@ members = [
 	"bin/rialto/node",
 	"bin/millau/runtime",
 	"bin/rialto/runtime",
+	"fuzz/storage-proof",
 	"modules/call-dispatch",
 	"modules/substrate",
 	"modules/ethereum",
