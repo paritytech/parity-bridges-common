@@ -199,6 +199,11 @@ pub const IS_KNOWN_RIALTO_BLOCK_METHOD: &str = "RialtoHeaderApi_is_known_block";
 /// Name of the `RialtoHeaderApi::incomplete_headers` runtime method.
 pub const INCOMPLETE_RIALTO_HEADERS_METHOD: &str = "RialtoHeaderApi_incomplete_headers";
 
+/// Name of the `RialtoFinalityApi::best_finalized` runtime method.
+pub const BEST_FINALIZED_RIALTO_HEADER_METHOD: &str = "RialtoFinalityApi_best_finalized";
+/// Name of the `RialtoFinalityApi::is_known_header` runtime method.
+pub const IS_KNOW_RIALTO_HEADER_METHOD: &str = "RialtoFinalityApi_is_known_header";
+
 /// Name of the `ToRialtoOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
 pub const TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToRialtoOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
@@ -240,6 +245,13 @@ sp_api::decl_runtime_apis! {
 		fn is_known_block(hash: Hash) -> bool;
 		/// Returns true if the header is considered finalized by the runtime.
 		fn is_finalized_block(hash: Hash) -> bool;
+	}
+
+	pub trait RialtoFinalityApi {
+		/// Returns number and hash of the best finalized header known to the bridge module.
+		fn best_finalized() -> (BlockNumber, Hash);
+		/// Returns true if the header is known to the runtime.
+		fn is_known_header(hash: Hash) -> bool;
 	}
 
 	/// Outbound message lane API for messages that are sent to Rialto chain.
