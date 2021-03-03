@@ -348,10 +348,11 @@ pub mod pallet {
 	/// means it's of great importance that this function *not* called with any headers whose
 	/// finality has not been checked, otherwise you risk bricking your bridge.
 	pub(crate) fn import_header<T: Config>(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
-		let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect(
-			"In order to reach this point the bridge must have been initialized. Therefore
-			`ImportedHeaders` must contain an entry for `BestFinalized`.",
-		);
+		const BEST_FINALIZED_PROOF: &str = "In order to reach this point the bridge must have been
+			initialized. Afterwards, every time `BestFinalized` is updated `ImportedHeaders` is
+			also updated. Therefore `ImportedHeaders` must contain an entry for `BestFinalized`.";
+
+		let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect(BEST_FINALIZED_PROOF);
 
 		// We do a quick check here to ensure that our header chain is making progress and isn't
 		// "travelling back in time" (which would be indicative of something bad, e.g a hard-fork).
