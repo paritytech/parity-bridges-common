@@ -141,10 +141,10 @@ pub mod pallet {
 			);
 
 			// We do a quick check here to ensure that our header chain is making progress and isn't
-			// "travelling back in time" (which would be indicative of something bad, e.g a hard-fork).
+			// "travelling back in time" (which could be indicative of something bad, e.g a hard-fork).
 			ensure!(
 				best_finalized.number() < finality_target.number(),
-				<Error<T>>::ConflictingFork
+				<Error<T>>::OldHeader
 			);
 
 			let authority_set = <CurrentAuthoritySet<T>>::get();
@@ -336,11 +336,8 @@ pub mod pallet {
 		FailedToWriteHeader,
 		/// There are too many requests for the current window to handle.
 		TooManyRequests,
-		/// The header being imported is on a fork which is incompatible with the current chain.
-		///
-		/// This can happen if we try and import a finalized header at a lower height than our
-		/// current `best_finalized` header.
-		ConflictingFork,
+		/// The header being imported is older than the best finalized header known to the pallet.
+		OldHeader,
 		/// The scheduled authority set change found in the header is unsupported by the pallet.
 		///
 		/// This is the case for non-standard (e.g forced) authority set changes.
@@ -798,7 +795,7 @@ mod tests {
 			initialize_substrate_bridge();
 
 			assert_ok!(submit_finality_proof(5, 6));
-			assert_err!(submit_finality_proof(3, 4), Error::<TestRuntime>::ConflictingFork);
+			assert_err!(submit_finality_proof(3, 4), Error::<TestRuntime>::OldHeader);
 			assert_ok!(submit_finality_proof(7, 8));
 		})
 	}
