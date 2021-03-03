@@ -368,6 +368,7 @@ pub mod pallet {
 			// GRANDPA only includes a `delay` for forced changes, so this isn't valid.
 			ensure!(change.delay == Zero::zero(), <Error<T>>::UnsupportedScheduledChange);
 
+			// TODO [#788]: Stop manually increasing the `set_id` here.
 			let next_authorities = bp_header_chain::AuthoritySet {
 				authorities: change.next_authorities,
 				set_id: <CurrentAuthoritySet<T>>::get().set_id + 1,
