@@ -155,10 +155,11 @@ pub mod pallet {
 			);
 
 			let _ = T::HeaderChain::append_header(finality_target.clone())?;
-			frame_support::debug::info!("Succesfully imported finalized header with hash {:?}!", hash);
 
 			import_header::<T>(finality_target)?;
 			<RequestCount<T>>::mutate(|count| *count += 1);
+
+			frame_support::debug::info!("Succesfully imported finalized header with hash {:?}!", hash);
 
 			Ok(().into())
 		}
