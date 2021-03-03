@@ -1,7 +1,5 @@
 {
-	"Balance": "u64",
-	"Address": "AccountId",
-	"LookupSource": "AccountId",
+	"RialtoBalance": "u128",
 	"MillauBlockHash": "H512",
 	"MillauBlockNumber": "u64",
 	"RialtoBlockHash": "H256",
@@ -27,6 +25,10 @@
 			"PreRuntime": "PreRuntime"
 		}
 	},
+	"SpecVersion": "u32",
+	"Balance": "MillauBalance",
+	"Address": "AccountId",
+	"LookupSource": "AccountId",
 	"BlockHash": "MillauBlockHash",
 	"BlockNumber": "MillauBlockNumber",
 	"BridgedBlockHash": "RialtoBlockHash",
@@ -67,11 +69,11 @@
 		"fee": "Balance"
 	},
 	"MessagePayload": "Vec<u8>",
-	"OutboundMessageFee": "u64",
+	"OutboundMessageFee": "Balance",
 	"OutboundPayload": {
 		"call": "Vec<u8>",
 		"origin": "CallOrigin",
-		"spec_version": "u32",
+		"spec_version": "SpecVersion",
 		"weight": "Weight"
 	},
 	"CallOrigin": {
@@ -94,7 +96,5 @@
 			"Sr25519": "H512",
 			"Ecdsa": "[u8;65]"
 		}
-	},
-	"Fee": "u64",
-	"SpecVersion": "u32"
+	}
 }
