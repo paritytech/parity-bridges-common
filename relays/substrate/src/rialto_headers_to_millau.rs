@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Rialto-to-Millau finality sync entrypoint.
+//! Rialto-to-Millau headers sync entrypoint.
 
 use crate::{
 	finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate},
@@ -23,7 +23,7 @@ use crate::{
 
 use async_trait::async_trait;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
-use relay_rialto_client::Rialto;
+use relay_rialto_client::{Rialto, SyncHeader as RialtoSyncHeader};
 use relay_substrate_client::{finality_source::Justification, Error as SubstrateError, TransactionSignScheme};
 use sp_core::Pair;
 
@@ -38,7 +38,7 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 
 	async fn make_submit_finality_proof_transaction(
 		&self,
-		header: relay_rialto_client::SyncHeader,
+		header: RialtoSyncHeader,
 		proof: Justification<bp_rialto::Header>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let account_id = self.target_sign.signer.public().as_array_ref().clone().into();
