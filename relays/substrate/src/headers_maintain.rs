@@ -33,6 +33,7 @@ use crate::headers_pipeline::SubstrateHeadersSyncPipeline;
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
+use bp_header_chain::justification;
 use codec::{Decode, Encode};
 use futures::future::{poll_fn, FutureExt, TryFutureExt};
 use headers_relay::{
@@ -194,6 +195,9 @@ where
 		SourceHeader::Hash: Into<P::Hash>,
 	{
 		loop {
+			// This now return Option<T> and might be closed if the channel becomes full or if background thread gets dropped.
+			// https://github.com/paritytech/jsonrpsee/blob/master/types/src/client.rs#L70
+
 			let maybe_next_justification = self.stream.next();
 			futures::pin_mut!(maybe_next_justification);
 
@@ -202,6 +206,9 @@ where
 				Poll::Ready(justification) => justification,
 				Poll::Pending => return,
 			};
+
+			// TODO: don't unwrap
+			let justification = justification.unwrap();
 
 			// decode justification target
 			let target = bp_header_chain::justification::decode_justification_target::<SourceHeader>(&justification);
