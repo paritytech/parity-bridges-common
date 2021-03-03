@@ -132,6 +132,7 @@ pub mod pallet {
 				<Error<T>>::TooManyRequests
 			);
 
+			let (hash, number) = (finality_target.hash(), finality_target.number());
 			frame_support::debug::trace!("Going to try and finalize header {:?}", finality_target);
 
 			let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect(
@@ -142,17 +143,13 @@ pub mod pallet {
 
 			// We do a quick check here to ensure that our header chain is making progress and isn't
 			// "travelling back in time" (which could be indicative of something bad, e.g a hard-fork).
-			ensure!(
-				best_finalized.number() < finality_target.number(),
-				<Error<T>>::OldHeader
-			);
+			ensure!(best_finalized.number() < number, <Error<T>>::OldHeader);
 
 			let authority_set = <CurrentAuthoritySet<T>>::get();
 			let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T>>::InvalidAuthoritySet)?;
 			let set_id = authority_set.set_id;
 
-			let (hash, number) = (finality_target.hash(), *finality_target.number());
-			verify_justification::<BridgedHeader<T>>((hash, number), set_id, voter_set, &justification).map_err(
+			verify_justification::<BridgedHeader<T>>((hash, *number), set_id, voter_set, &justification).map_err(
 				|e| {
 					frame_support::debug::error!("Received invalid justification for {:?}: {:?}", finality_target, e);
 					<Error<T>>::InvalidJustification
@@ -169,7 +166,7 @@ pub mod pallet {
 
 			let _ = T::HeaderChain::append_header(finality_target.clone())?;
 
-			import_header::<T>(finality_target)?;
+			import_header::<T>(hash, finality_target)?;
 			<RequestCount<T>>::mutate(|count| *count += 1);
 
 			frame_support::debug::info!("Succesfully imported finalized header with hash {:?}!", hash);
@@ -357,7 +354,10 @@ pub mod pallet {
 	/// finalized. Using this assumption it will write them to storage with minimal checks. That
 	/// means it's of great importance that this function *not* called with any headers whose
 	/// finality has not been checked, otherwise you risk bricking your bridge.
-	pub(crate) fn import_header<T: Config>(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
+	pub(crate) fn import_header<T: Config>(
+		hash: BridgedBlockHash<T>,
+		header: BridgedHeader<T>,
+	) -> Result<(), sp_runtime::DispatchError> {
 		// We don't support forced changes - at that point governance intervention is required.
 		ensure!(
 			super::find_forced_change(&header).is_none(),
@@ -378,8 +378,8 @@ pub mod pallet {
 			<CurrentAuthoritySet<T>>::put(next_authorities);
 		};
 
-		<BestFinalized<T>>::put(header.hash());
-		<ImportedHeaders<T>>::insert(header.hash(), header);
+		<BestFinalized<T>>::put(hash);
+		<ImportedHeaders<T>>::insert(hash, header);
 
 		Ok(())
 	}
@@ -814,7 +814,7 @@ mod tests {
 			header.digest = change_log(0);
 
 			// Let's import our test header
-			assert_ok!(pallet::import_header::<TestRuntime>(header.clone()));
+			assert_ok!(pallet::import_header::<TestRuntime>(header.hash(), header.clone()));
 
 			// Make sure that our header is the best finalized
 			assert_eq!(<BestFinalized<TestRuntime>>::get(), header.hash());
@@ -840,7 +840,7 @@ mod tests {
 
 			// Should not be allowed to import this header
 			assert_err!(
-				pallet::import_header::<TestRuntime>(header),
+				pallet::import_header::<TestRuntime>(header.hash(), header),
 				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
 		})
@@ -858,7 +858,7 @@ mod tests {
 
 			// Should not be allowed to import this header
 			assert_err!(
-				pallet::import_header::<TestRuntime>(header),
+				pallet::import_header::<TestRuntime>(header.hash(), header),
 				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
 		})
