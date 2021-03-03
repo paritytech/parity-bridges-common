@@ -134,6 +134,19 @@ pub mod pallet {
 
 			frame_support::debug::trace!("Going to try and finalize header {:?}", finality_target);
 
+			let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect(
+				"In order to reach this point the bridge must have been initialized. Afterwards,
+				every time `BestFinalized` is updated `ImportedHeaders` is also updated. Therefore
+				`ImportedHeaders` must contain an entry for `BestFinalized`.",
+			);
+
+			// We do a quick check here to ensure that our header chain is making progress and isn't
+			// "travelling back in time" (which would be indicative of something bad, e.g a hard-fork).
+			ensure!(
+				best_finalized.number() < finality_target.number(),
+				<Error<T>>::ConflictingFork
+			);
+
 			let authority_set = <CurrentAuthoritySet<T>>::get();
 			let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T>>::InvalidAuthoritySet)?;
 			let set_id = authority_set.set_id;
@@ -348,16 +361,6 @@ pub mod pallet {
 	/// means it's of great importance that this function *not* called with any headers whose
 	/// finality has not been checked, otherwise you risk bricking your bridge.
 	pub(crate) fn import_header<T: Config>(header: BridgedHeader<T>) -> Result<(), sp_runtime::DispatchError> {
-		const BEST_FINALIZED_PROOF: &str = "In order to reach this point the bridge must have been
-			initialized. Afterwards, every time `BestFinalized` is updated `ImportedHeaders` is
-			also updated. Therefore `ImportedHeaders` must contain an entry for `BestFinalized`.";
-
-		let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect(BEST_FINALIZED_PROOF);
-
-		// We do a quick check here to ensure that our header chain is making progress and isn't
-		// "travelling back in time" (which would be indicative of something bad, e.g a hard-fork).
-		ensure!(best_finalized.number() < header.number(), <Error<T>>::ConflictingFork);
-
 		// We don't support forced changes - at that point governance intervention is required.
 		ensure!(
 			super::find_forced_change(&header).is_none(),
@@ -794,17 +797,9 @@ mod tests {
 		run_test(|| {
 			initialize_substrate_bridge();
 
-			let header = test_header(3);
-			assert_ok!(pallet::import_header::<TestRuntime>(header));
-
-			let header = test_header(2);
-			assert_err!(
-				pallet::import_header::<TestRuntime>(header),
-				Error::<TestRuntime>::ConflictingFork,
-			);
-
-			let header = test_header(4);
-			assert_ok!(pallet::import_header::<TestRuntime>(header));
+			assert_ok!(submit_finality_proof(5, 6));
+			assert_err!(submit_finality_proof(3, 4), Error::<TestRuntime>::ConflictingFork);
+			assert_ok!(submit_finality_proof(7, 8));
 		})
 	}
 
