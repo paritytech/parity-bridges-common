@@ -299,7 +299,7 @@ where
 	// if we're waiting too much, then we believe our transaction has been lost and restart sync
 	if let Some(last_transaction) = state.last_transaction {
 		if best_number_at_target >= last_transaction.submitted_header_number {
-			// transaction has been mined && we an continue
+			// transaction has been mined && we can continue
 		} else if last_transaction.time.elapsed() > sync_params.stall_timeout {
 			log::error!(
 				target: "bridge",
