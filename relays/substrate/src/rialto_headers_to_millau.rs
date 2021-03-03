@@ -54,7 +54,7 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 	}
 }
 
-/// Run Millau-to-Rialto finality sync.
+/// Run Rialto-to-Millau finality sync.
 pub async fn run(
 	rialto_client: RialtoClient,
 	millau_client: MillauClient,
