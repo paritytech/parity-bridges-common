@@ -263,7 +263,7 @@ pub const FROM_MILLAU_UNREWARDED_RELAYERS_STATE: &str = "FromMillauInboundLaneAp
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Millau headers from the Bridge Pallet instance.
 	///
-	/// This API is implemented by runtimes that are bridging with Millau chain, not the
+	/// This API is implemented by runtimes that are bridging with the Millau chain, not the
 	/// Millau runtime itself.
 	pub trait MillauHeaderApi {
 		/// Returns number and hash of the best blocks known to the bridge module.
@@ -286,6 +286,10 @@ sp_api::decl_runtime_apis! {
 		fn is_finalized_block(hash: Hash) -> bool;
 	}
 
+	/// API for querying information about the finalized Millau headers.
+	///
+	/// This API is implemented by runtimes that are bridging with the Millau chain, not the
+	/// Millau runtime itself.
 	pub trait MillauFinalityApi {
 		/// Returns number and hash of the best finalized header known to the bridge module.
 		fn best_finalized() -> (BlockNumber, Hash);

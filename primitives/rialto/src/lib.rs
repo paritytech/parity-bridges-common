@@ -224,7 +224,7 @@ pub const FROM_RIALTO_UNREWARDED_RELAYERS_STATE: &str = "FromRialtoInboundLaneAp
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Rialto headers from the Bridge Pallet instance.
 	///
-	/// This API is implemented by runtimes that are bridging with Rialto chain, not the
+	/// This API is implemented by runtimes that are bridging with the Rialto chain, not the
 	/// Rialto runtime itself.
 	pub trait RialtoHeaderApi {
 		/// Returns number and hash of the best blocks known to the bridge module.
@@ -247,6 +247,10 @@ sp_api::decl_runtime_apis! {
 		fn is_finalized_block(hash: Hash) -> bool;
 	}
 
+	/// API for querying information about the finalized Rialto headers.
+	///
+	/// This API is implemented by runtimes that are bridging with the Rialto chain, not the
+	/// Millau runtime itself.
 	pub trait RialtoFinalityApi {
 		/// Returns number and hash of the best finalized header known to the bridge module.
 		fn best_finalized() -> (BlockNumber, Hash);
