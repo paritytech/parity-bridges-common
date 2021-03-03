@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Millau-to-Rialto headers sync entrypoint.
+//! Rialto-to-Millau finality sync entrypoint.
 
 use crate::{
 	finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate},
