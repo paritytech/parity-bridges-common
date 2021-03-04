@@ -1,11 +1,7 @@
 name:                              Publish images to Docker hub
 
 on:
-  pull_request:
   push:
-    branches:
-      - master
-      - 3x8_use_buildah
     tags:
       - v*
     paths-ignore:
@@ -59,6 +55,7 @@ jobs:
             VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
           fi
           TAGS="${VERSION} sha-${GITHUB_SHA::8} latest"
+          echo ::set-output name=TAGS::${VERSION}
           echo ::set-output name=TAGS::${TAGS}
           echo ::set-output name=DATE::$(date +%d-%m-%Y)
 
@@ -71,6 +68,9 @@ jobs:
           build-args: |
             PROJECT=${{ matrix.project }}
             HEALTH=${{ matrix.healthcheck }}
+            VCS_REF=sha-${GITHUB_SHA::8}
+            BUILD_DATE=${{ steps.prep.outputs.DATE }}
+            VERSION=${{ steps.prep.outputs.VERSION }}
 
       - name:                                       Push ${{ matrix.project }} image to docker.io
         id:                                         push-to-dockerhub
@@ -85,16 +85,3 @@ jobs:
       - name:                                       Check the image
         run: |
           echo "New image has been pushed to ${{ steps.push-to-dockerhub.outputs.registry-path }}"
-
-          # labels: |
-          #   org.opencontainers.image.title=${{ matrix.project }}
-          #   org.opencontainers.image.description=${{ matrix.project }} - component of Parity Bridges Common
-          #   org.opencontainers.image.source=${{ github.event.repository.html_url }}
-          #   org.opencontainers.image.url=${{ github.event.repository.html_url }}
-          #   org.opencontainers.image.documentation=${{ github.event.repository.html_url }}/README.md
-          #   org.opencontainers.image.created=${{ steps.prep.outputs.DATE }}
-          #   org.opencontainers.image.version=${{ steps.prep.outputs.TAG }}
-          #   org.opencontainers.image.revision=${{ github.sha }}
-          #   org.opencontainers.image.authors=devops-team@parity.io
-          #   org.opencontainers.image.vendor=Parity Technologies
-          #   org.opencontainers.image.licenses=GPL-3.0 License

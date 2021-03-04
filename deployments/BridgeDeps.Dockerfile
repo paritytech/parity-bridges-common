@@ -2,7 +2,7 @@
 #
 # This image is meant to be used as a building block when building images for
 # the various components in the bridge repo, such as nodes and relayers.
-FROM ubuntu:xenial
+FROM ubuntu:20.04
 
 ENV LAST_DEPS_UPDATE 2020-12-21
 
