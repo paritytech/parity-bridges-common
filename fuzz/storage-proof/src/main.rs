@@ -21,7 +21,6 @@
 use honggfuzz::fuzz;
 // Logic for checking Substrate storage proofs.
 
-use pallet_substrate_bridge::*;
 use sp_core::{Blake2Hasher, H256};
 use sp_state_machine::{backend::Backend, prove_read, InMemoryBackend};
 use sp_std::vec::Vec;
