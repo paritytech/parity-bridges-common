@@ -46,10 +46,7 @@ use sp_trie::StorageProof;
 // Re-export since the node uses these when configuring genesis
 pub use storage::{InitializationData, ScheduledChange};
 
-pub use storage_proof::StorageProofChecker;
-
 mod storage;
-mod storage_proof;
 mod verifier;
 
 #[cfg(test)]
@@ -355,7 +352,7 @@ impl<T: Config> Module<T> {
 	pub fn parse_finalized_storage_proof<R>(
 		finalized_header_hash: BridgedBlockHash<T>,
 		storage_proof: StorageProof,
-		parse: impl FnOnce(StorageProofChecker<BridgedBlockHasher<T>>) -> R,
+		parse: impl FnOnce(bp_runtime::StorageProofChecker<BridgedBlockHasher<T>>) -> R,
 	) -> Result<R, sp_runtime::DispatchError> {
 		let storage = PalletStorage::<T>::new();
 		let header = storage
@@ -365,8 +362,8 @@ impl<T: Config> Module<T> {
 			return Err(Error::<T>::UnfinalizedHeader.into());
 		}
 
-		let storage_proof_checker =
-			StorageProofChecker::new(*header.state_root(), storage_proof).map_err(Error::<T>::from)?;
+		let storage_proof_checker = bp_runtime::StorageProofChecker::new(*header.state_root(), storage_proof)
+			.map_err(|_| Error::<T>::StorageRootMismatch)?;
 		Ok(parse(storage_proof_checker))
 	}
 }
