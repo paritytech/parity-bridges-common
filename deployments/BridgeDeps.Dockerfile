@@ -5,6 +5,7 @@
 FROM ubuntu:20.04
 
 ENV LAST_DEPS_UPDATE 2020-12-21
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
 	apt-get update && \
