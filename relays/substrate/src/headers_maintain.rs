@@ -147,20 +147,20 @@ where
 
 		// Select justification to submit to the target node. We're submitting at most one justification
 		// on every maintain call. So maintain rate directly affects finalization rate.
-		let justification_to_submit = poll_fn(|context| {
+		let (resubscribe, justification_to_submit) = poll_fn(|context| {
 			// read justifications from the stream and push to the queue
-			justifications.read_from_stream::<SourceChain::Header>(context);
+			let resubscribe = !justifications.read_from_stream::<SourceChain::Header>(context);
 
 			// remove all obsolete justifications from the queue
 			remove_obsolete::<P>(&mut justifications.queue, best_finalized);
 
 			// select justification to submit
-			Poll::Ready(select_justification(&mut justifications.queue, sync))
+			Poll::Ready((resubscribe, select_justification(&mut justifications.queue, sync)))
 		})
 		.await;
 
 		// if justifications subscription has been dropped, resubscribe
-		if justifications.stream.is_none() {
+		if resubscribe {
 			justifications.stream = subscribe_justifications(&self.source_client).await;
 		}
 
@@ -198,7 +198,11 @@ where
 	P: SubstrateHeadersSyncPipeline<Completion = Justification, Extra = ()>,
 {
 	/// Read justifications from the subscription stream without blocking.
-	fn read_from_stream<'a, SourceHeader>(&mut self, context: &mut std::task::Context<'a>)
+	///
+	/// Returns `true` if justifications stream is still readable and `false` if it has been
+	/// dropped by the RPC crate && we need to resubscribe.
+	#[must_use]
+	fn read_from_stream<'a, SourceHeader>(&mut self, context: &mut std::task::Context<'a>) -> bool
 	where
 		SourceHeader: HeaderT,
 		SourceHeader::Number: Into<P::Number>,
@@ -206,7 +210,7 @@ where
 	{
 		let stream = match self.stream.as_mut() {
 			Some(stream) => stream,
-			None => return,
+			None => return false,
 		};
 
 		loop {
@@ -216,7 +220,7 @@ where
 			let maybe_next_justification = maybe_next_justification.poll_unpin(context);
 			let justification = match maybe_next_justification {
 				Poll::Ready(justification) => justification,
-				Poll::Pending => return,
+				Poll::Pending => return true,
 			};
 
 			let justification = match justification {
@@ -228,7 +232,7 @@ where
 						P::SOURCE_NAME,
 					);
 
-					return;
+					return false;
 				}
 			};
 
