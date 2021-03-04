@@ -895,7 +895,7 @@ mod tests {
 	fn parse_finalized_storage_accepts_valid_proof() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let (state_root, storage_proof) = storage_proof::tests::craft_valid_storage_proof();
+			let (state_root, storage_proof) = bp_runtime::craft_valid_storage_proof();
 			let mut header = unfinalized_header(1);
 			header.is_finalized = true;
 			header.header.set_state_root(state_root);
