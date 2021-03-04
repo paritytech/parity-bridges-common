@@ -57,7 +57,8 @@ pub struct SubstrateHeadersToSubstrateMaintain<P: SubstrateHeadersSyncPipeline, 
 
 /// Future and already received justifications from the source chain.
 struct Justifications<P: SubstrateHeadersSyncPipeline> {
-	/// Justifications stream.
+	/// Justifications stream. None if it hasn't been initialized yet, or it has been dropped
+	/// by the rpc library.
 	stream: Option<JustificationsSubscription>,
 	/// Justifications that we have read from the stream but have not sent to the
 	/// target node, because their targets were still not synced.
@@ -151,7 +152,7 @@ where
 		// on every maintain call. So maintain rate directly affects finalization rate.
 		let justification_to_submit = poll_fn(|context| {
 			// read justifications from the stream and push to the queue
-			justifications.read_from_stream::<SourceChain>(context);
+			justifications.read_from_stream::<SourceChain::Header>(context);
 
 			// remove all obsolete justifications from the queue
 			remove_obsolete::<P>(&mut justifications.queue, best_finalized);
@@ -200,15 +201,11 @@ where
 	P: SubstrateHeadersSyncPipeline<Completion = Justification, Extra = ()>,
 {
 	/// Read justifications from the subscription stream without blocking.
-	fn read_from_stream<'a, C>(
-		&mut self,
-		context: &mut std::task::Context<'a>,
-	)
+	fn read_from_stream<'a, SourceHeader>(&mut self, context: &mut std::task::Context<'a>)
 	where
-		C: Chain,
-		C::Header: HeaderT,
-		<C::Header as HeaderT>::Number: Into<P::Number>,
-		<C::Header as HeaderT>::Hash: Into<P::Hash>,
+		SourceHeader: HeaderT,
+		SourceHeader::Number: Into<P::Number>,
+		SourceHeader::Hash: Into<P::Hash>,
 	{
 		let stream = match self.stream.as_mut() {
 			Some(stream) => stream,
@@ -231,7 +228,7 @@ where
 					log::warn!(
 						target: "bridge",
 						"{} justifications stream has been dropped. Will be trying to resubscribe",
-						C::NAME,
+						P::SOURCE_NAME,
 					);
 
 					return;
@@ -239,7 +236,7 @@ where
 			};
 
 			// decode justification target
-			let target = bp_header_chain::justification::decode_justification_target::<C::Header>(&justification);
+			let target = bp_header_chain::justification::decode_justification_target::<SourceHeader>(&justification);
 			let target = match target {
 				Ok((target_hash, target_number)) => HeaderId(target_number.into(), target_hash.into()),
 				Err(error) => {
