@@ -50,7 +50,7 @@ std = [
 ]
 runtime-benchmarks = [
 	"ed25519-dalek/u64_backend",
+	"pallet-finality-verifier/runtime-benchmarks",
 	"pallet-message-lane/runtime-benchmarks",
 	"sp-state-machine",
-	# "pallet-substrate-bridge/runtime-benchmarks", TODO
 ]

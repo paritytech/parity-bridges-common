@@ -391,7 +391,7 @@ pub mod pallet {
 
 	/// Since this writes to storage with no real checks this should only be used in functions that
 	/// were called by a trusted origin.
-	fn initialize_bridge<T: Config>(init_params: super::InitializationData<BridgedHeader<T>>) {
+	pub(crate) fn initialize_bridge<T: Config>(init_params: super::InitializationData<BridgedHeader<T>>) {
 		let super::InitializationData {
 			header,
 			authority_list,
@@ -460,8 +460,8 @@ impl<T: Config> Pallet<T> {
 		storage_proof: sp_trie::StorageProof,
 		parse: impl FnOnce(bp_runtime::StorageProofChecker<BridgedBlockHasher<T>>) -> R,
 	) -> Result<R, sp_runtime::DispatchError> {
-		let finalized_header = <ImportedHeaders<T>>::get(hash).ok_or(Error::<T>::UnknownHeader)?;
-		let storage_proof_checker = bp_runtime::StorageProofChecker::new(*finalized_header.state_root(), storage_proof)
+		let header = <ImportedHeaders<T>>::get(hash).ok_or(Error::<T>::UnknownHeader)?;
+		let storage_proof_checker = bp_runtime::StorageProofChecker::new(*header.state_root(), storage_proof)
 			.map_err(|_| Error::<T>::StorageRootMismatch)?;
 
 		Ok(parse(storage_proof_checker))
@@ -516,6 +516,17 @@ pub(crate) fn find_forced_change<H: HeaderT>(
 	// find the first consensus digest with the right ID which converts to
 	// the right kind of consensus log.
 	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
+}
+
+/// (Re)initialize bridge with given header for using it in external benchmarks.
+#[cfg(feature = "runtime-benchmarks")]
+pub fn initialize_for_benchmarks<T: Config>(header: BridgedHeader<T>) {
+	initialize_bridge::<T>(InitializationData {
+		header,
+		authority_list: Vec::new(), // we don't verify any proofs in external benchmarks
+		set_id: 0,
+		is_halted: false,
+	});
 }
 
 #[cfg(test)]
