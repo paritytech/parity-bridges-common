@@ -56,7 +56,7 @@ pub type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
 /// Block hash of the bridged chain.
 pub type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
 /// Hasher of the bridged chain.
-pub type _BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
+pub type BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
 /// Header of the bridged chain.
 pub type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
@@ -335,6 +335,8 @@ pub mod pallet {
 		TooManyRequests,
 		/// The header being imported is older than the best finalized header known to the pallet.
 		OldHeader,
+		/// The header is unknown to the pallet.
+		UnknownHeader,
 		/// The scheduled authority set change found in the header is unsupported by the pallet.
 		///
 		/// This is the case for non-standard (e.g forced) authority set changes.
@@ -343,6 +345,8 @@ pub mod pallet {
 		AlreadyInitialized,
 		/// All pallet operations are halted.
 		Halted,
+		/// The storage proof doesn't contains storage root. So it is invalid for given header.
+		StorageRootMismatch,
 	}
 
 	/// Import the given header to the pallet's storage.
@@ -446,6 +450,21 @@ impl<T: Config> Pallet<T> {
 	/// Check if a particular header is known to the bridge pallet.
 	pub fn is_known_header(hash: BridgedBlockHash<T>) -> bool {
 		<ImportedHeaders<T>>::contains_key(hash)
+	}
+
+	/// Verify that the passed storage proof is valid, given it is crafted using
+	/// known finalized header. If the proof is valid, then the `parse` callback
+	/// is called and the function returns its result.
+	pub fn parse_finalized_storage_proof<R>(
+		hash: BridgedBlockHash<T>,
+		storage_proof: sp_trie::StorageProof,
+		parse: impl FnOnce(bp_runtime::StorageProofChecker<BridgedBlockHasher<T>>) -> R,
+	) -> Result<R, sp_runtime::DispatchError> {
+		let finalized_header = <ImportedHeaders<T>>::get(hash).ok_or(Error::<T>::UnknownHeader)?;
+		let storage_proof_checker = bp_runtime::StorageProofChecker::new(*finalized_header.state_root(), storage_proof)
+			.map_err(|_| Error::<T>::StorageRootMismatch)?;
+
+		Ok(parse(storage_proof_checker))
 	}
 }
 
@@ -864,6 +883,40 @@ mod tests {
 			);
 		})
 	}
+
+	#[test]
+	fn parse_finalized_storage_proof_rejects_proof_on_unknown_header() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::parse_finalized_storage_proof(
+					Default::default(),
+					sp_trie::StorageProof::new(vec![]),
+					|_| (),
+				),
+				Error::<TestRuntime>::UnknownHeader,
+			);
+		});
+	}
+
+	#[test]
+	fn parse_finalized_storage_accepts_valid_proof() {
+		run_test(|| {
+			let (state_root, storage_proof) = bp_runtime::craft_valid_storage_proof();
+
+			let mut header = test_header(2);
+			header.set_state_root(state_root);
+
+			let hash = header.hash();
+			<BestFinalized<TestRuntime>>::put(hash);
+			<ImportedHeaders<TestRuntime>>::insert(hash, header);
+
+			assert_ok!(
+				Module::<TestRuntime>::parse_finalized_storage_proof(hash, storage_proof, |_| (),),
+				(),
+			);
+		});
+	}
+
 	#[test]
 	fn rate_limiter_disallows_imports_once_limit_is_hit_in_single_block() {
 		run_test(|| {

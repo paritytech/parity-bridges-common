@@ -24,7 +24,7 @@ use sp_io::hashing::blake2_256;
 use sp_std::convert::TryFrom;
 
 pub use chain::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
-pub use storage_proof::StorageProofChecker;
+pub use storage_proof::{craft_valid_storage_proof, StorageProofChecker};
 
 mod chain;
 mod storage_proof;

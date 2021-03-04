@@ -18,11 +18,11 @@ sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "maste
 sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+sp-state-machine = { git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 
 [dev-dependencies]
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-state-machine = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
 [features]
 default = ["std"]
@@ -35,5 +35,6 @@ std = [
 	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
+	"sp-state-machine/std",
 	"sp-trie/std",
 ]
