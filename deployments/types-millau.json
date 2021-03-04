@@ -1,5 +1,5 @@
 {
-	"RialtoBalance": "u128",
+	"MillauBalance": "u64",
 	"MillauBlockHash": "H512",
 	"MillauBlockNumber": "u64",
 	"RialtoBlockHash": "H256",
@@ -25,15 +25,17 @@
 			"PreRuntime": "PreRuntime"
 		}
 	},
-	"SpecVersion": "u32",
+	"Fee": "MillauBalance",
 	"Balance": "MillauBalance",
-	"Address": "AccountId",
-	"LookupSource": "AccountId",
 	"BlockHash": "MillauBlockHash",
 	"BlockNumber": "MillauBlockNumber",
 	"BridgedBlockHash": "RialtoBlockHash",
 	"BridgedBlockNumber": "RialtoBlockNumber",
 	"BridgedHeader": "RialtoHeader",
+	"Address": "AccountId",
+	"LookupSource": "AccountId",
+	"AccountSigner": "MultiSigner",
+	"SpecVersion": "u32",
 	"ImportedHeader": {
 		"header": "BridgedHeader",
 		"requires_justification": "bool",
@@ -69,18 +71,18 @@
 		"fee": "Balance"
 	},
 	"MessagePayload": "Vec<u8>",
-	"OutboundMessageFee": "Balance",
+	"OutboundMessageFee": "u64",
 	"OutboundPayload": {
-		"call": "Vec<u8>",
+		"spec_version": "u32",
+		"weight": "Weight",
 		"origin": "CallOrigin",
-		"spec_version": "SpecVersion",
-		"weight": "Weight"
+		"call": "Vec<u8>"
 	},
 	"CallOrigin": {
 		"_enum": {
 			"SourceRoot": "()",
-			"TargetAccount": "([u8;33], MultiSigner,MultiSignature)",
-			"SourceAccount": "[u8;33]"
+			"TargetAccount": "([u8;32], MultiSigner,MultiSignature)",
+			"SourceAccount": "[u8;32]"
 		}
 	},
 	"MultiSigner": {
@@ -89,6 +91,5 @@
 			"Sr25519": "H256",
 			"Ecdsa": "[u8;33]"
 		}
-	}
 	}
 }
