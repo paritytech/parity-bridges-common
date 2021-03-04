@@ -46,9 +46,6 @@ impl Client {
 	/// Build client to use in connection.
 	async fn build_client(params: &ConnectionParams) -> Result<Arc<RpcClient>> {
 		let uri = format!("ws://{}:{}", params.host, params.port);
-		// NOTE: there are a bunch of settings here to configure
-		// https://github.com/paritytech/jsonrpsee/blob/master/ws-client/src/client.rs#L59-#L95
-		// for now just go with the defaults
 		let client = RpcClient::new(RpcConfig::with_url(&uri)).await?;
 		Ok(Arc::new(client))
 	}
