@@ -30,7 +30,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
 	/// An error that can occur when making an HTTP request to
 	/// an JSON-RPC client.
-	Request(RpcError),
+	RpcError(RpcError),
 	/// Failed to parse response.
 	ResponseParseFailed(String),
 	/// We have received a header with missing fields.
@@ -49,7 +49,7 @@ pub enum Error {
 
 impl From<RpcError> for Error {
 	fn from(error: RpcError) -> Self {
-		Error::Request(error)
+		Error::RpcError(error)
 	}
 }
 
@@ -57,7 +57,11 @@ impl MaybeConnectionError for Error {
 	fn is_connection_error(&self) -> bool {
 		matches!(
 			*self,
-			Error::Request(RpcError::TransportError(_)) | Error::ClientNotSynced(_),
+			Error::RpcError(RpcError::TransportError(_))
+				// right now if connection to the ws server is dropped (after it is already established),
+				// we're getting this error
+				| Error::RpcError(RpcError::Internal(_))
+				| Error::ClientNotSynced(_),
 		)
 	}
 }
@@ -65,7 +69,7 @@ impl MaybeConnectionError for Error {
 impl ToString for Error {
 	fn to_string(&self) -> String {
 		match self {
-			Self::Request(e) => e.to_string(),
+			Self::RpcError(e) => e.to_string(),
 			Self::ResponseParseFailed(e) => e.to_string(),
 			Self::IncompleteHeader => {
 				"Incomplete Ethereum Header Received (missing some of required fields - hash, number, logs_bloom)"
