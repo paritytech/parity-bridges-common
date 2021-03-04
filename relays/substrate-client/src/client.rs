@@ -256,7 +256,7 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Return new justifications stream.
-	pub async fn subscribe_justifications(self) -> Result<JustificationsSubscription> {
+	pub async fn subscribe_justifications(&self) -> Result<JustificationsSubscription> {
 		Ok(self
 			.client
 			.subscribe(

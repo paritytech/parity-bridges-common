@@ -71,7 +71,7 @@ impl<P: SubstrateHeadersSyncPipeline, SourceChain: Chain, TargetChain: Chain>
 {
 	/// Create new maintain procedure.
 	pub async fn new(pipeline: P, source_client: Client<SourceChain>, target_client: Client<TargetChain>) -> Self {
-		let justifications = subscribe_justifications(source_client.clone()).await;
+		let justifications = subscribe_justifications(&source_client).await;
 		SubstrateHeadersToSubstrateMaintain {
 			pipeline,
 			source_client,
@@ -161,7 +161,7 @@ where
 
 		// if justifications subscription has been dropped, resubscribe
 		if justifications.stream.is_none() {
-			justifications.stream = subscribe_justifications(self.source_client.clone()).await;
+			justifications.stream = subscribe_justifications(&self.source_client).await;
 		}
 
 		// finally - submit selected justification
@@ -332,7 +332,7 @@ where
 }
 
 /// Subscribe to justifications stream at source node.
-async fn subscribe_justifications<C: Chain>(client: Client<C>) -> Option<JustificationsSubscription> {
+async fn subscribe_justifications<C: Chain>(client: &Client<C>) -> Option<JustificationsSubscription> {
 	match client.subscribe_justifications().await {
 		Ok(source_justifications) => {
 			log::debug!(
