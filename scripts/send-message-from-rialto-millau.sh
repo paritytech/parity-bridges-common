@@ -6,12 +6,14 @@
 # we have (to make sure the message relays are running), but remove the message
 # generator service. From there you may submit messages manually using this script.
 
+RIALTO_PORT="${RIALTO_PORT:-9944}"
+
 case "$1" in
 	remark)
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
 		./target/debug/substrate-relay send-message rialto-to-millau \
 			--rialto-host localhost \
-			--rialto-port 9944 \
+			--rialto-port $RIALTO_PORT \
 			--millau-signer //Alice \
 			--rialto-signer //Bob \
 			--lane 00000000 \
@@ -22,7 +24,7 @@ case "$1" in
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
 		./target/debug/substrate-relay send-message rialto-to-millau \
 			--rialto-host localhost \
-			--rialto-port 9944 \
+			--rialto-port $RIALTO_PORT \
 			--millau-signer //Alice \
 			--rialto-signer //Bob \
 			--lane 00000000 \
