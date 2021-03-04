@@ -34,6 +34,7 @@ use sp_version::RuntimeVersion;
 use std::ops::RangeInclusive;
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
+const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
 /// Opaque justifications subscription type.
 pub type JustificationsSubscription = Subscription<Bytes>;
@@ -95,10 +96,9 @@ impl<C: Chain> Client<C> {
 	/// Build client to use in connection.
 	async fn build_client(params: ConnectionParams) -> Result<RpcClient> {
 		let uri = format!("ws://{}:{}", params.host, params.port);
-		// NOTE: there are a bunch of settings here to configure
-		// https://github.com/paritytech/jsonrpsee/blob/master/ws-client/src/client.rs#L59-#L95
-		// for now just go with the defaults
-		let client = RpcClient::new(RpcConfig::with_url(&uri)).await?;
+		let mut config = RpcConfig::with_url(&uri);
+		config.max_subscription_capacity = MAX_SUBSCRIPTION_CAPACITY;
+		let client = RpcClient::new(config).await?;
 		Ok(client)
 	}
 }

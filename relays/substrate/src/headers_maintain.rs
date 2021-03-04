@@ -47,8 +47,9 @@ use sp_runtime::{traits::Header as HeaderT, Justification};
 use std::{collections::VecDeque, marker::PhantomData, task::Poll};
 
 /// Substrate-to-Substrate headers synchronization maintain procedure.
-pub struct SubstrateHeadersToSubstrateMaintain<P: SubstrateHeadersSyncPipeline, SourceChain, TargetChain: Chain> {
+pub struct SubstrateHeadersToSubstrateMaintain<P: SubstrateHeadersSyncPipeline, SourceChain: Chain, TargetChain: Chain> {
 	pipeline: P,
+	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
 	justifications: Arc<Mutex<Justifications<P>>>,
 	_marker: PhantomData<SourceChain>,
@@ -57,19 +58,25 @@ pub struct SubstrateHeadersToSubstrateMaintain<P: SubstrateHeadersSyncPipeline, 
 /// Future and already received justifications from the source chain.
 struct Justifications<P: SubstrateHeadersSyncPipeline> {
 	/// Justifications stream.
-	stream: JustificationsSubscription,
+	stream: Option<JustificationsSubscription>,
 	/// Justifications that we have read from the stream but have not sent to the
 	/// target node, because their targets were still not synced.
 	queue: VecDeque<(HeaderIdOf<P>, Justification)>,
 }
 
-impl<P: SubstrateHeadersSyncPipeline, SourceChain, TargetChain: Chain>
+impl<P: SubstrateHeadersSyncPipeline, SourceChain: Chain, TargetChain: Chain>
 	SubstrateHeadersToSubstrateMaintain<P, SourceChain, TargetChain>
 {
 	/// Create new maintain procedure.
-	pub fn new(pipeline: P, target_client: Client<TargetChain>, justifications: JustificationsSubscription) -> Self {
+	pub async fn new(
+		pipeline: P,
+		source_client: Client<SourceChain>,
+		target_client: Client<TargetChain>,
+	) -> Self {
+		let justifications = subscribe_justifications(source_client.clone()).await;
 		SubstrateHeadersToSubstrateMaintain {
 			pipeline,
+			source_client,
 			target_client,
 			justifications: Arc::new(Mutex::new(Justifications {
 				stream: justifications,
@@ -81,12 +88,13 @@ impl<P: SubstrateHeadersSyncPipeline, SourceChain, TargetChain: Chain>
 }
 
 #[async_trait]
-impl<P: SubstrateHeadersSyncPipeline, SourceChain, TargetChain: Chain> Clone
+impl<P: SubstrateHeadersSyncPipeline, SourceChain: Chain, TargetChain: Chain> Clone
 	for SubstrateHeadersToSubstrateMaintain<P, SourceChain, TargetChain>
 {
 	fn clone(&self) -> Self {
 		SubstrateHeadersToSubstrateMaintain {
 			pipeline: self.pipeline.clone(),
+			source_client: self.source_client.clone(),
 			target_client: self.target_client.clone(),
 			justifications: self.justifications.clone(),
 			_marker: Default::default(),
@@ -143,7 +151,7 @@ where
 		// on every maintain call. So maintain rate directly affects finalization rate.
 		let justification_to_submit = poll_fn(|context| {
 			// read justifications from the stream and push to the queue
-			justifications.read_from_stream::<SourceChain::Header>(context);
+			justifications.read_from_stream::<SourceChain>(context);
 
 			// remove all obsolete justifications from the queue
 			remove_obsolete::<P>(&mut justifications.queue, best_finalized);
@@ -152,6 +160,11 @@ where
 			Poll::Ready(select_justification(&mut justifications.queue, sync))
 		})
 		.await;
+
+		// if justifications subscription has been dropped, resubscribe
+		if justifications.stream.is_none() {
+			justifications.stream = subscribe_justifications(self.source_client.clone()).await;
+		}
 
 		// finally - submit selected justification
 		if let Some((target, justification)) = justification_to_submit {
@@ -187,17 +200,23 @@ where
 	P: SubstrateHeadersSyncPipeline<Completion = Justification, Extra = ()>,
 {
 	/// Read justifications from the subscription stream without blocking.
-	fn read_from_stream<'a, SourceHeader>(&mut self, context: &mut std::task::Context<'a>)
+	fn read_from_stream<'a, C>(
+		&mut self,
+		context: &mut std::task::Context<'a>,
+	)
 	where
-		SourceHeader: HeaderT,
-		SourceHeader::Number: Into<P::Number>,
-		SourceHeader::Hash: Into<P::Hash>,
+		C: Chain,
+		C::Header: HeaderT,
+		<C::Header as HeaderT>::Number: Into<P::Number>,
+		<C::Header as HeaderT>::Hash: Into<P::Hash>,
 	{
-		loop {
-			// This now return Option<T> and might be closed if the channel becomes full or if background thread gets dropped.
-			// https://github.com/paritytech/jsonrpsee/blob/master/types/src/client.rs#L70
+		let stream = match self.stream.as_mut() {
+			Some(stream) => stream,
+			None => return,
+		};
 
-			let maybe_next_justification = self.stream.next();
+		loop {
+			let maybe_next_justification = stream.next();
 			futures::pin_mut!(maybe_next_justification);
 
 			let maybe_next_justification = maybe_next_justification.poll_unpin(context);
@@ -206,11 +225,21 @@ where
 				Poll::Pending => return,
 			};
 
-			// TODO: don't unwrap
-			let justification = justification.unwrap();
+			let justification = match justification {
+				Some(justification) => justification,
+				None => {
+					log::warn!(
+						target: "bridge",
+						"{} justifications stream has been dropped. Will be trying to resubscribe",
+						C::NAME,
+					);
+
+					return;
+				},
+			};
 
 			// decode justification target
-			let target = bp_header_chain::justification::decode_justification_target::<SourceHeader>(&justification);
+			let target = bp_header_chain::justification::decode_justification_target::<C::Header>(&justification);
 			let target = match target {
 				Ok((target_hash, target_number)) => HeaderId(target_number.into(), target_hash.into()),
 				Err(error) => {
@@ -306,6 +335,31 @@ where
 
 	let best_header_id = HeaderId(decoded_response.0, decoded_response.1);
 	Ok(best_header_id)
+}
+
+/// Subscribe to justifications stream at source node.
+async fn subscribe_justifications<C: Chain>(client: Client<C>) -> Option<JustificationsSubscription> {
+	match client.subscribe_justifications().await {
+		Ok(source_justifications) => {
+			log::debug!(
+				target: "bridge",
+				"Successfully (re)subscribed to {} justifications",
+				C::NAME,
+			);
+
+			Some(source_justifications)
+		},
+		Err(error) => {
+			log::warn!(
+				target: "bridge",
+				"Failed to subscribe to {} justifications: {:?}",
+				C::NAME,
+				error,
+			);
+
+			None
+		}
+	}
 }
 
 #[cfg(test)]
