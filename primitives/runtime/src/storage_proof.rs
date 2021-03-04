@@ -14,9 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: remove on actual use
-#![allow(dead_code)]
-
 //! Logic for checking Substrate storage proofs.
 
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
@@ -63,15 +60,6 @@ where
 pub enum Error {
 	StorageRootMismatch,
 	StorageValueUnavailable,
-}
-
-impl<T: crate::Config> From<Error> for crate::Error<T> {
-	fn from(error: Error) -> Self {
-		match error {
-			Error::StorageRootMismatch => crate::Error::StorageRootMismatch,
-			Error::StorageValueUnavailable => crate::Error::StorageValueUnavailable,
-		}
-	}
 }
 
 #[cfg(test)]

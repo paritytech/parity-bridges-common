@@ -770,12 +770,15 @@ name = "bp-runtime"
 version = "0.1.0"
 dependencies = [
  "frame-support",
+ "hash-db",
  "num-traits",
  "parity-scale-codec 2.0.1",
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-state-machine",
  "sp-std",
+ "sp-trie",
 ]
 
 [[package]]
