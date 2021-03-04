@@ -33,7 +33,6 @@ use crate::headers_pipeline::SubstrateHeadersSyncPipeline;
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
-use bp_header_chain::justification;
 use codec::{Decode, Encode};
 use futures::future::{poll_fn, FutureExt, TryFutureExt};
 use headers_relay::{

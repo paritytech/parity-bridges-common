@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
 use crate::rpc::Ethereum;
 use crate::types::{
 	Address, Bytes, CallRequest, Header, HeaderWithTransactions, Receipt, SignedRawTx, SyncState, Transaction,
@@ -22,7 +21,8 @@ use crate::types::{
 };
 use crate::{ConnectionParams, Error, Result};
 
-use jsonrpsee_http_client::{HttpClient as RpcClient, HttpConfig as RpcConfig};
+use jsonrpsee_ws_client::{WsClient as RpcClient, WsConfig as RpcConfig};
+use std::sync::Arc;
 
 /// Number of headers missing from the Ethereum node for us to consider node not synced.
 const MAJOR_SYNC_BLOCKS: u64 = 5;
@@ -31,28 +31,32 @@ const MAJOR_SYNC_BLOCKS: u64 = 5;
 #[derive(Clone)]
 pub struct Client {
 	params: ConnectionParams,
-	// TODO: ugly way to make it clone becasue `HttpClient` is not clone anymore.
 	client: Arc<RpcClient>,
 }
 
 impl Client {
 	/// Create a new Ethereum RPC Client.
-	pub fn new(params: ConnectionParams) -> Self {
-		Self {
-			client: Self::build_client(&params),
+	pub async fn new(params: ConnectionParams) -> Result<Self> {
+		Ok(Self {
+			client: Self::build_client(&params).await?,
 			params,
-		}
+		})
 	}
 
 	/// Build client to use in connection.
-	fn build_client(params: &ConnectionParams) -> Arc<RpcClient> {
-		let uri = format!("http://{}:{}", params.host, params.port);
-		Arc::new(RpcClient::new(&uri, RpcConfig::default()).unwrap())
+	async fn build_client(params: &ConnectionParams) -> Result<Arc<RpcClient>> {
+		let uri = format!("ws://{}:{}", params.host, params.port);
+		// NOTE: there are a bunch of settings here to configure
+		// https://github.com/paritytech/jsonrpsee/blob/master/ws-client/src/client.rs#L59-#L95
+		// for now just go with the defaults
+		let client = RpcClient::new(RpcConfig::with_url(&uri)).await?;
+		Ok(Arc::new(client))
 	}
 
 	/// Reopen client connection.
-	pub fn reconnect(&mut self) {
-		self.client = Self::build_client(&self.params);
+	pub async fn reconnect(&mut self) -> Result<()> {
+		self.client = Self::build_client(&self.params).await?;
+		Ok(())
 	}
 }
 
