@@ -17,7 +17,7 @@
 //! Logic for checking Substrate storage proofs.
 
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
-use sp_core::{Blake2Hasher, H256};
+use sp_core::H256;
 use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
 use sp_trie::{read_trie_value, Layout, MemoryDB, StorageProof};
@@ -66,11 +66,12 @@ pub enum Error {
 /// Return valid storage proof and state root.
 ///
 /// NOTE: This should only be used for **testing**.
+#[cfg(feature = "std")]
 pub fn craft_valid_storage_proof() -> (H256, StorageProof) {
 	use sp_state_machine::{backend::Backend, prove_read, InMemoryBackend};
 
 	// construct storage proof
-	let backend = <InMemoryBackend<Blake2Hasher>>::from(vec![
+	let backend = <InMemoryBackend<sp_core::Blake2Hasher>>::from(vec![
 		(None, vec![(b"key1".to_vec(), Some(b"value1".to_vec()))]),
 		(None, vec![(b"key2".to_vec(), Some(b"value2".to_vec()))]),
 		(None, vec![(b"key3".to_vec(), Some(b"value3".to_vec()))]),
@@ -97,7 +98,7 @@ pub mod tests {
 		let (root, proof) = craft_valid_storage_proof();
 
 		// check proof in runtime
-		let checker = <StorageProofChecker<Blake2Hasher>>::new(root, proof.clone()).unwrap();
+		let checker = <StorageProofChecker<sp_core::Blake2Hasher>>::new(root, proof.clone()).unwrap();
 		assert_eq!(checker.read_value(b"key1"), Ok(Some(b"value1".to_vec())));
 		assert_eq!(checker.read_value(b"key2"), Ok(Some(b"value2".to_vec())));
 		assert_eq!(checker.read_value(b"key11111"), Err(Error::StorageValueUnavailable));
@@ -105,7 +106,7 @@ pub mod tests {
 
 		// checking proof against invalid commitment fails
 		assert_eq!(
-			<StorageProofChecker<Blake2Hasher>>::new(H256::random(), proof).err(),
+			<StorageProofChecker<sp_core::Blake2Hasher>>::new(H256::random(), proof).err(),
 			Some(Error::StorageRootMismatch)
 		);
 	}
