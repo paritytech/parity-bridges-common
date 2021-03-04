@@ -68,12 +68,12 @@
 	},
 	"MessageData": {
 		"payload": "MessagePayload",
-		"fee": "Balance"
+		"fee": "Fee"
 	},
 	"MessagePayload": "Vec<u8>",
-	"OutboundMessageFee": "u64",
+	"OutboundMessageFee": "Fee",
 	"OutboundPayload": {
-		"spec_version": "u32",
+		"spec_version": "SpecVersion",
 		"weight": "Weight",
 		"origin": "CallOrigin",
 		"call": "Vec<u8>"
@@ -89,7 +89,7 @@
 		"_enum": {
 			"Ed25519": "H256",
 			"Sr25519": "H256",
-			"Ecdsa": "[u8;33]"
+			"Ecdsa": "[u8;32]"
 		}
 	}
 }
