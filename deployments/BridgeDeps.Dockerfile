@@ -27,7 +27,6 @@ RUN rustup update stable && \
 RUN rustc -vV && \
     cargo -V && \
     gcc -v && \
-    g++ -v && \
     cmake --version
 
 ENV RUST_BACKTRACE 1
