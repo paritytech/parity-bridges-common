@@ -129,9 +129,6 @@ both Substrate chains it must be run last.
 ./deployments/local-scripts/run-rialto-bridge-node.sh
 ./deployments/local-scripts/run-millau-bridge-node.sh
 ./deployments/local-scripts/relay-millau-to-rialto.sh
-./deployments/local-scripts/relay-rialto-to-millau.sh
-./deployments/local-scripts/relay-messages-millau-to-rialto-entrypoint.sh
-./deployments/local-scripts/relay-messages-millau-to-rialto-entrypoint.sh
 ```
 
 At this point you should see the relayer submitting headers from the Millau Substrate chain to the
