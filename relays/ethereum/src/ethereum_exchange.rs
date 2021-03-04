@@ -304,9 +304,7 @@ fn run_single_transaction_relay(params: EthereumExchangeParams, eth_tx_hash: H25
 	} = params;
 
 	let result = local_pool.run_until(async move {
-		let eth_client = EthereumClient::new(eth_params)
-			.await
-			.map_err(RpcError::Ethereum)?;
+		let eth_client = EthereumClient::new(eth_params).await.map_err(RpcError::Ethereum)?;
 		let sub_client = SubstrateClient::<Rialto>::new(sub_params)
 			.await
 			.map_err(RpcError::Substrate)?;

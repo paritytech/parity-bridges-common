@@ -47,7 +47,8 @@ use sp_runtime::{traits::Header as HeaderT, Justification};
 use std::{collections::VecDeque, marker::PhantomData, task::Poll};
 
 /// Substrate-to-Substrate headers synchronization maintain procedure.
-pub struct SubstrateHeadersToSubstrateMaintain<P: SubstrateHeadersSyncPipeline, SourceChain: Chain, TargetChain: Chain> {
+pub struct SubstrateHeadersToSubstrateMaintain<P: SubstrateHeadersSyncPipeline, SourceChain: Chain, TargetChain: Chain>
+{
 	pipeline: P,
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
@@ -69,11 +70,7 @@ impl<P: SubstrateHeadersSyncPipeline, SourceChain: Chain, TargetChain: Chain>
 	SubstrateHeadersToSubstrateMaintain<P, SourceChain, TargetChain>
 {
 	/// Create new maintain procedure.
-	pub async fn new(
-		pipeline: P,
-		source_client: Client<SourceChain>,
-		target_client: Client<TargetChain>,
-	) -> Self {
+	pub async fn new(pipeline: P, source_client: Client<SourceChain>, target_client: Client<TargetChain>) -> Self {
 		let justifications = subscribe_justifications(source_client.clone()).await;
 		SubstrateHeadersToSubstrateMaintain {
 			pipeline,
@@ -232,7 +229,7 @@ where
 					);
 
 					return;
-				},
+				}
 			};
 
 			// decode justification target
@@ -345,7 +342,7 @@ async fn subscribe_justifications<C: Chain>(client: Client<C>) -> Option<Justifi
 			);
 
 			Some(source_justifications)
-		},
+		}
 		Err(error) => {
 			log::warn!(
 				target: "bridge",

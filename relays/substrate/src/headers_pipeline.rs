@@ -143,7 +143,8 @@ pub async fn run<SourceChain, TargetChain, P>(
 		pipeline.clone(),
 		source_client.clone(),
 		target_client.clone(),
-	).await;
+	)
+	.await;
 
 	log::info!(
 		target: "bridge",

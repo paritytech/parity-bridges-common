@@ -109,7 +109,8 @@ impl Client {
 	/// Retrieve block header and its transactions by its number from Ethereum node.
 	pub async fn header_by_number_with_transactions(&self, number: u64) -> Result<HeaderWithTransactions> {
 		let get_full_tx_objects = true;
-		let header = Ethereum::get_block_by_number_with_transactions(&*self.client, number, get_full_tx_objects).await?;
+		let header =
+			Ethereum::get_block_by_number_with_transactions(&*self.client, number, get_full_tx_objects).await?;
 
 		let is_complete_header = header.number.is_some() && header.hash.is_some() && header.logs_bloom.is_some();
 		if !is_complete_header {
