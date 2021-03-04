@@ -102,7 +102,6 @@ To run the Bridge you need to be able to connect the bridge relay node to the RP
 on each side of the bridge (source and target chain).
 
 There are 3 ways to run the bridge, described below:
-
 - building & running from source,
 - building or using Docker images for each individual component,
 - running a Docker Compose setup (recommended).
