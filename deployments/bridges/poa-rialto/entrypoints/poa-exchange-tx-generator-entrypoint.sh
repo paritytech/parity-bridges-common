@@ -13,7 +13,7 @@ RELAY_BINARY_PATH=${RELAY_BINARY_PATH:-./ethereum-poa-relay}
 # Ethereum node host
 ETH_HOST=${ETH_HOST:-poa-node-arthur}
 # Ethereum node port
-ETH_PORT=${ETH_PORT:-8545}
+ETH_PORT=${ETH_PORT:-8546}
 # Ethereum chain id
 ETH_CHAIN_ID=${ETH_CHAIN_ID:-105}
 
