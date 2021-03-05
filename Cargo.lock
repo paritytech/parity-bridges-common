@@ -8055,6 +8055,7 @@ dependencies = [
  "rialto-runtime",
  "sp-core",
  "sp-finality-grandpa",
+ "sp-keyring",
  "sp-runtime",
  "sp-trie",
  "structopt",
