@@ -18,7 +18,7 @@
 #![allow(dead_code)]
 
 //! Logic for checking Substrate storage proofs.
-
+use frame_support::traits::Instance;
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
 use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
@@ -65,7 +65,7 @@ pub enum Error {
 	StorageValueUnavailable,
 }
 
-impl<T: crate::Config> From<Error> for crate::Error<T> {
+impl<T: crate::Config<I>, I: Instance> From<Error> for crate::Error<T, I> {
 	fn from(error: Error) -> Self {
 		match error {
 			Error::StorageRootMismatch => crate::Error::StorageRootMismatch,

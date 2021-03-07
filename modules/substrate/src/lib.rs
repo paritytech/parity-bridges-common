@@ -35,7 +35,7 @@ use crate::storage::ImportedHeader;
 use bp_header_chain::AuthoritySet;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use frame_support::{
-	decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get, weights::DispatchClass,
+	decl_error, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::Get, weights::DispatchClass
 };
 use frame_system::{ensure_signed, RawOrigin};
 use sp_runtime::traits::Header as HeaderT;
@@ -59,13 +59,13 @@ mod mock;
 mod fork_tests;
 
 /// Block number of the bridged chain.
-pub(crate) type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
+pub(crate) type BridgedBlockNumber<T, I> = BlockNumberOf<<T as Config<I>>::BridgedChain>;
 /// Block hash of the bridged chain.
-pub(crate) type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
+pub(crate) type BridgedBlockHash<T, I> = HashOf<<T as Config<I>>::BridgedChain>;
 /// Hasher of the bridged chain.
-pub(crate) type BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
+pub(crate) type BridgedBlockHasher<T, I> = HasherOf<<T as Config<I>>::BridgedChain>;
 /// Header of the bridged chain.
-pub(crate) type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
+pub(crate) type BridgedHeader<T, I> = HeaderOf<<T as Config<I>>::BridgedChain>;
 
 /// A convenience type identifying headers.
 #[derive(RuntimeDebug, PartialEq)]
@@ -76,29 +76,28 @@ pub struct HeaderId<H: HeaderT> {
 	pub hash: H::Hash,
 }
 
-pub trait Config: frame_system::Config {
+pub trait Config<I: Instance = DefaultInstance>: frame_system::Config {
 	/// Chain that we are bridging here.
 	type BridgedChain: Chain;
 }
 
 decl_storage! {
-	trait Store for Module<T: Config> as SubstrateBridge {
+	trait Store for Module<T: Config<I>, I: Instance=DefaultInstance> as SubstrateBridge {
 		/// Hash of the header used to bootstrap the pallet.
-		InitialHash: BridgedBlockHash<T>;
+		InitialHash: BridgedBlockHash<T, I>;
 		/// The number of the highest block(s) we know of.
-		BestHeight: BridgedBlockNumber<T>;
+		BestHeight: BridgedBlockNumber<T, I>;
 		/// Hash of the header at the highest known height.
 		///
 		/// If there are multiple headers at the same "best" height
-		/// this will contain all of their hashes.
-		BestHeaders: Vec<BridgedBlockHash<T>>;
+		BestHeaders: Vec<BridgedBlockHash<T, I>>;
 		/// Hash of the best finalized header.
-		BestFinalized: BridgedBlockHash<T>;
+		BestFinalized: BridgedBlockHash<T, I>;
 		/// The set of header IDs (number, hash) which enact an authority set change and therefore
 		/// require a GRANDPA justification.
-		RequiresJustification: map hasher(identity) BridgedBlockHash<T> => BridgedBlockNumber<T>;
+		RequiresJustification: map hasher(identity) BridgedBlockHash<T, I> => BridgedBlockNumber<T, I>;
 		/// Headers which have been imported into the pallet.
-		ImportedHeaders: map hasher(identity) BridgedBlockHash<T> => Option<ImportedHeader<BridgedHeader<T>>>;
+		ImportedHeaders: map hasher(identity) BridgedBlockHash<T, I> => Option<ImportedHeader<BridgedHeader<T, I>>>;
 		/// The current GRANDPA Authority set.
 		CurrentAuthoritySet: AuthoritySet;
 		/// The next scheduled authority set change for a given fork.
@@ -107,7 +106,7 @@ decl_storage! {
 		/// Note that this is different than a header which _enacts_ a change.
 		// GRANDPA doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
-		NextScheduledChange: map hasher(identity) BridgedBlockHash<T> => Option<ScheduledChange<BridgedBlockNumber<T>>>;
+		NextScheduledChange: map hasher(identity) BridgedBlockHash<T, I> => Option<ScheduledChange<BridgedBlockNumber<T, I>>>;
 		/// Optional pallet owner.
 		///
 		/// Pallet owner has a right to halt all pallet operations and then resume it. If it is
@@ -117,28 +116,29 @@ decl_storage! {
 		ModuleOwner get(fn module_owner): Option<T::AccountId>;
 		/// If true, all pallet transactions are failed immediately.
 		IsHalted get(fn is_halted): bool;
+
 	}
 	add_extra_genesis {
 		config(owner): Option<T::AccountId>;
-		config(init_data): Option<InitializationData<BridgedHeader<T>>>;
+		config(init_data): Option<InitializationData<BridgedHeader<T, I>>>;
 		build(|config| {
 			if let Some(ref owner) = config.owner {
-				<ModuleOwner<T>>::put(owner);
+				<ModuleOwner<T, I>>::put(owner);
 			}
 
 			if let Some(init_data) = config.init_data.clone() {
-				initialize_bridge::<T>(init_data);
+				initialize_bridge::<T, I>(init_data);
 			} else {
 				// Since the bridge hasn't been initialized we shouldn't allow anyone to perform
 				// transactions.
-				IsHalted::put(true);
+				<IsHalted<I>>::put(true);
 			}
 		})
 	}
 }
 
 decl_error! {
-	pub enum Error for Module<T: Config> {
+	pub enum Error for Module<T: Config<I>, I: Instance> {
 		/// This header has failed basic verification.
 		InvalidHeader,
 		/// This header has not been finalized.
@@ -159,8 +159,8 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Config> for enum Call where origin: T::Origin {
-		type Error = Error<T>;
+	pub struct Module<T: Config<I>, I: Instance=DefaultInstance> for enum Call where origin: T::Origin {
+		type Error = Error<T, I>;
 
 		/// Import a signed Substrate header into the runtime.
 		///
@@ -171,22 +171,22 @@ decl_module! {
 		#[weight = 0]
 		pub fn import_signed_header(
 			origin,
-			header: BridgedHeader<T>,
+			header: BridgedHeader<T, I>,
 		) -> DispatchResult {
-			ensure_operational::<T>()?;
+			ensure_operational::<T, I>()?;
 			let _ = ensure_signed(origin)?;
 			let hash = header.hash();
 			frame_support::debug::trace!("Going to import header {:?}: {:?}", hash, header);
 
 			let mut verifier = verifier::Verifier {
-				storage: PalletStorage::<T>::new(),
+				storage: PalletStorage::<T, I>::new(),
 			};
 
 			let _ = verifier
 				.import_header(hash, header)
 				.map_err(|e| {
 					frame_support::debug::error!("Failed to import header {:?}: {:?}", hash, e);
-					<Error<T>>::InvalidHeader
+					<Error<T, I>>::InvalidHeader
 				})?;
 
 			frame_support::debug::trace!("Successfully imported header: {:?}", hash);
@@ -203,22 +203,22 @@ decl_module! {
 		#[weight = 0]
 		pub fn finalize_header(
 			origin,
-			hash: BridgedBlockHash<T>,
+			hash: BridgedBlockHash<T, I>,
 			finality_proof: Vec<u8>,
 		) -> DispatchResult {
-			ensure_operational::<T>()?;
+			ensure_operational::<T, I>()?;
 			let _ = ensure_signed(origin)?;
 			frame_support::debug::trace!("Going to finalize header: {:?}", hash);
 
 			let mut verifier = verifier::Verifier {
-				storage: PalletStorage::<T>::new(),
+				storage: PalletStorage::<T, I>::new(),
 			};
 
 			let _ = verifier
 				.import_finality_proof(hash, finality_proof.into())
 				.map_err(|e| {
 					frame_support::debug::error!("Failed to finalize header {:?}: {:?}", hash, e);
-					<Error<T>>::UnfinalizedHeader
+					<Error<T, I>>::UnfinalizedHeader
 				})?;
 
 			frame_support::debug::trace!("Successfully finalized header: {:?}", hash);
@@ -239,12 +239,12 @@ decl_module! {
 		#[weight = 0]
 		pub fn initialize(
 			origin,
-			init_data: InitializationData<BridgedHeader<T>>,
+			init_data: InitializationData<BridgedHeader<T, I>>,
 		) {
-			ensure_owner_or_root::<T>(origin)?;
-			let init_allowed = !<BestFinalized<T>>::exists();
-			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
-			initialize_bridge::<T>(init_data.clone());
+			ensure_owner_or_root::<T, I>(origin)?;
+			let init_allowed = !<BestFinalized<T, I>>::exists();
+			ensure!(init_allowed, <Error<T, I>>::AlreadyInitialized);
+			initialize_bridge::<T, I>(init_data.clone());
 
 			frame_support::debug::info!(
 				"Pallet has been initialized with the following parameters: {:?}", init_data
@@ -256,14 +256,14 @@ decl_module! {
 		/// May only be called either by root, or by `ModuleOwner`.
 		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
 		pub fn set_owner(origin, new_owner: Option<T::AccountId>) {
-			ensure_owner_or_root::<T>(origin)?;
+			ensure_owner_or_root::<T, I>(origin)?;
 			match new_owner {
 				Some(new_owner) => {
-					ModuleOwner::<T>::put(&new_owner);
+					ModuleOwner::<T, I>::put(&new_owner);
 					frame_support::debug::info!("Setting pallet Owner to: {:?}", new_owner);
 				},
 				None => {
-					ModuleOwner::<T>::kill();
+					ModuleOwner::<T, I>::kill();
 					frame_support::debug::info!("Removed Owner of pallet.");
 				},
 			}
@@ -274,8 +274,8 @@ decl_module! {
 		/// May only be called either by root, or by `ModuleOwner`.
 		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
 		pub fn halt_operations(origin) {
-			ensure_owner_or_root::<T>(origin)?;
-			IsHalted::put(true);
+			ensure_owner_or_root::<T, I>(origin)?;
+			<IsHalted<I>>::put(true);
 			frame_support::debug::warn!("Stopping pallet operations.");
 		}
 
@@ -284,17 +284,18 @@ decl_module! {
 		/// May only be called either by root, or by `ModuleOwner`.
 		#[weight = (T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational)]
 		pub fn resume_operations(origin) {
-			ensure_owner_or_root::<T>(origin)?;
-			IsHalted::put(false);
+			ensure_owner_or_root::<T, I>(origin)?;
+			<IsHalted<I>>::put(false);
 			frame_support::debug::info!("Resuming pallet operations.");
 		}
 	}
 }
 
-impl<T: Config> Module<T> {
+
+impl<T: Config<I>, I: Instance> Module<T, I> {
 	/// Get the highest header(s) that the pallet knows of.
-	pub fn best_headers() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
-		PalletStorage::<T>::new()
+	pub fn best_headers() -> Vec<(BridgedBlockNumber<T, I>, BridgedBlockHash<T, I>)> {
+		PalletStorage::<T, I>::new()
 			.best_headers()
 			.iter()
 			.map(|id| (id.number, id.hash))
@@ -309,13 +310,13 @@ impl<T: Config> Module<T> {
 	/// Since this has been finalized correctly a user of the bridge
 	/// pallet should be confident that any transactions that were
 	/// included in this or any previous header will not be reverted.
-	pub fn best_finalized() -> BridgedHeader<T> {
-		PalletStorage::<T>::new().best_finalized_header().header
+	pub fn best_finalized() -> BridgedHeader<T, I> {
+		PalletStorage::<T, I>::new().best_finalized_header().header
 	}
 
 	/// Check if a particular header is known to the bridge pallet.
-	pub fn is_known_header(hash: BridgedBlockHash<T>) -> bool {
-		PalletStorage::<T>::new().header_exists(hash)
+	pub fn is_known_header(hash: BridgedBlockHash<T, I>) -> bool {
+		PalletStorage::<T, I>::new().header_exists(hash)
 	}
 
 	/// Check if a particular header is finalized.
@@ -324,8 +325,8 @@ impl<T: Config> Module<T> {
 	// One thing worth noting here is that this approach won't work well
 	// once we track forks since there could be an older header on a
 	// different fork which isn't an ancestor of our best finalized header.
-	pub fn is_finalized_header(hash: BridgedBlockHash<T>) -> bool {
-		let storage = PalletStorage::<T>::new();
+	pub fn is_finalized_header(hash: BridgedBlockHash<T, I>) -> bool {
+		let storage = PalletStorage::<T, I>::new();
 		if let Some(header) = storage.header_by_hash(hash) {
 			header.is_finalized
 		} else {
@@ -336,8 +337,8 @@ impl<T: Config> Module<T> {
 	/// Returns a list of headers which require finality proofs.
 	///
 	/// These headers require proofs because they enact authority set changes.
-	pub fn require_justifications() -> Vec<(BridgedBlockNumber<T>, BridgedBlockHash<T>)> {
-		PalletStorage::<T>::new()
+	pub fn require_justifications() -> Vec<(BridgedBlockNumber<T, I>, BridgedBlockHash<T, I>)> {
+		PalletStorage::<T, I>::new()
 			.missing_justifications()
 			.iter()
 			.map(|id| (id.number, id.hash))
@@ -348,35 +349,35 @@ impl<T: Config> Module<T> {
 	/// known finalized header. If the proof is valid, then the `parse` callback
 	/// is called and the function returns its result.
 	pub fn parse_finalized_storage_proof<R>(
-		finalized_header_hash: BridgedBlockHash<T>,
+		finalized_header_hash: BridgedBlockHash<T, I>,
 		storage_proof: StorageProof,
-		parse: impl FnOnce(StorageProofChecker<BridgedBlockHasher<T>>) -> R,
+		parse: impl FnOnce(StorageProofChecker<BridgedBlockHasher<T, I>>) -> R,
 	) -> Result<R, sp_runtime::DispatchError> {
-		let storage = PalletStorage::<T>::new();
+		let storage = PalletStorage::<T, I>::new();
 		let header = storage
 			.header_by_hash(finalized_header_hash)
-			.ok_or(Error::<T>::UnknownHeader)?;
+			.ok_or(Error::<T, I>::UnknownHeader)?;
 		if !header.is_finalized {
-			return Err(Error::<T>::UnfinalizedHeader.into());
+			return Err(Error::<T, I>::UnfinalizedHeader.into());
 		}
 
 		let storage_proof_checker =
-			StorageProofChecker::new(*header.state_root(), storage_proof).map_err(Error::<T>::from)?;
+			StorageProofChecker::new(*header.state_root(), storage_proof).map_err(Error::<T, I>::from)?;
 		Ok(parse(storage_proof_checker))
 	}
 }
 
-impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>, sp_runtime::DispatchError> for Module<T> {
-	fn best_finalized() -> BridgedHeader<T> {
-		PalletStorage::<T>::new().best_finalized_header().header
+impl<T: Config<I>, I: Instance> bp_header_chain::HeaderChain<BridgedHeader<T, I>, sp_runtime::DispatchError> for Module<T, I> {
+	fn best_finalized() -> BridgedHeader<T, I> {
+		PalletStorage::<T, I>::new().best_finalized_header().header
 	}
 
 	fn authority_set() -> AuthoritySet {
-		PalletStorage::<T>::new().current_authority_set()
+		PalletStorage::<T, I>::new().current_authority_set()
 	}
 
-	fn append_header(header: BridgedHeader<T>) {
-		import_header_unchecked::<_, T>(&mut PalletStorage::<T>::new(), header);
+	fn append_header(header: BridgedHeader<T, I>) {
+		import_header_unchecked::<_, T, I>(&mut PalletStorage::<T, I>::new(), header);
 	}
 }
 
@@ -390,15 +391,15 @@ impl<T: Config> bp_header_chain::HeaderChain<BridgedHeader<T>, sp_runtime::Dispa
 /// One thing this function does do for you is GRANDPA authority set handoffs. However, since it
 /// does not do verification on the incoming header it will assume that the authority set change
 /// signals in the digest are well formed.
-fn import_header_unchecked<S, T>(storage: &mut S, header: BridgedHeader<T>)
+fn import_header_unchecked<S, T, I: Instance>(storage: &mut S, header: BridgedHeader<T, I>)
 where
-	S: BridgeStorage<Header = BridgedHeader<T>>,
-	T: Config,
+	S: BridgeStorage<Header = BridgedHeader<T, I>>,
+	T: Config<I>,
 {
 	// Since we want to use the existing storage infrastructure we need to indicate the fork
 	// that we're on. We will assume that since we are using the unchecked import there are no
 	// forks, and can indicate that by using the first imported header's "fork".
-	let dummy_fork_hash = <InitialHash<T>>::get();
+	let dummy_fork_hash = <InitialHash<T, I>>::get();
 
 	// If we have a pending change in storage let's check if the current header enacts it.
 	let enact_change = if let Some(pending_change) = storage.scheduled_set_change(dummy_fork_hash) {
@@ -447,18 +448,19 @@ where
 }
 
 /// Ensure that the origin is either root, or `ModuleOwner`.
-fn ensure_owner_or_root<T: Config>(origin: T::Origin) -> Result<(), BadOrigin> {
+fn ensure_owner_or_root<T: Config<I>, I: Instance>(origin: T::Origin) -> Result<(), BadOrigin> {
 	match origin.into() {
 		Ok(RawOrigin::Root) => Ok(()),
-		Ok(RawOrigin::Signed(ref signer)) if Some(signer) == <Module<T>>::module_owner().as_ref() => Ok(()),
+		Ok(RawOrigin::Signed(ref signer)) if Some(signer) == <Module<T, I>>::module_owner().as_ref() => Ok(()),
 		_ => Err(BadOrigin),
 	}
 }
 
 /// Ensure that the pallet is in operational mode (not halted).
-fn ensure_operational<T: Config>() -> Result<(), Error<T>> {
-	if IsHalted::get() {
-		Err(<Error<T>>::Halted)
+/// impl<T: Config<I>, I: Instance>
+fn ensure_operational<T: Config<I>, I: Instance>() -> Result<(), Error<T, I>> {
+	if <IsHalted<I>>::get() {
+		Err(<Error<T, I>>::Halted)
 	} else {
 		Ok(())
 	}
@@ -466,7 +468,7 @@ fn ensure_operational<T: Config>() -> Result<(), Error<T>> {
 
 /// (Re)initialize bridge with given header for using it in external benchmarks.
 #[cfg(feature = "runtime-benchmarks")]
-pub fn initialize_for_benchmarks<T: Config>(header: HeaderOf<T::BridgedChain>) {
+pub fn initialize_for_benchmarks<T: Config<I>, I: Instance>(header: HeaderOf<T::BridgedChain>) {
 	initialize_bridge::<T>(InitializationData {
 		header,
 		authority_list: Vec::new(), // we don't verify any proofs in external benchmarks
@@ -478,7 +480,7 @@ pub fn initialize_for_benchmarks<T: Config>(header: HeaderOf<T::BridgedChain>) {
 
 /// Since this writes to storage with no real checks this should only be used in functions that were
 /// called by a trusted origin.
-fn initialize_bridge<T: Config>(init_params: InitializationData<BridgedHeader<T>>) {
+fn initialize_bridge<T: Config<I>, I: Instance>(init_params: InitializationData<BridgedHeader<T, I>>) {
 	let InitializationData {
 		header,
 		authority_list,
@@ -497,18 +499,18 @@ fn initialize_bridge<T: Config>(init_params: InitializationData<BridgedHeader<T>
 		);
 
 		signal_hash = Some(initial_hash);
-		<NextScheduledChange<T>>::insert(initial_hash, change);
+		<NextScheduledChange<T, I>>::insert(initial_hash, change);
 	};
 
-	<InitialHash<T>>::put(initial_hash);
-	<BestHeight<T>>::put(header.number());
-	<BestHeaders<T>>::put(vec![initial_hash]);
-	<BestFinalized<T>>::put(initial_hash);
+	<InitialHash<T, I>>::put(initial_hash);
+	<BestHeight<T, I>>::put(header.number());
+	<BestHeaders<T, I>>::put(vec![initial_hash]);
+	<BestFinalized<T, I>>::put(initial_hash);
 
 	let authority_set = AuthoritySet::new(authority_list, set_id);
-	CurrentAuthoritySet::put(authority_set);
+	<CurrentAuthoritySet<I>>::put(authority_set);
 
-	<ImportedHeaders<T>>::insert(
+	<ImportedHeaders<T, I>>::insert(
 		initial_hash,
 		ImportedHeader {
 			header,
@@ -518,7 +520,7 @@ fn initialize_bridge<T: Config>(init_params: InitializationData<BridgedHeader<T>
 		},
 	);
 
-	IsHalted::put(is_halted);
+	<IsHalted<I>>::put(is_halted);
 }
 
 /// Expected interface for interacting with bridge pallet storage.
@@ -587,37 +589,37 @@ pub trait BridgeStorage {
 
 /// Used to interact with the pallet storage in a more abstract way.
 #[derive(Default, Clone)]
-pub struct PalletStorage<T>(PhantomData<T>);
+pub struct PalletStorage<T, I>(PhantomData<(T, I)>);
 
-impl<T> PalletStorage<T> {
+impl<T, I> PalletStorage<T, I> {
 	fn new() -> Self {
-		Self(PhantomData::<T>::default())
+		Self(PhantomData::<(T, I)>::default())
 	}
 }
 
-impl<T: Config> BridgeStorage for PalletStorage<T> {
-	type Header = BridgedHeader<T>;
+impl<T: Config<I>, I: Instance> BridgeStorage for PalletStorage<T, I> {
+	type Header = BridgedHeader<T, I>;
 
-	fn write_header(&mut self, header: &ImportedHeader<BridgedHeader<T>>) {
+	fn write_header(&mut self, header: &ImportedHeader<BridgedHeader<T, I>>) {
 		use core::cmp::Ordering;
 
 		let hash = header.hash();
 		let current_height = header.number();
-		let best_height = <BestHeight<T>>::get();
+		let best_height = <BestHeight<T, I>>::get();
 
 		match current_height.cmp(&best_height) {
 			Ordering::Equal => {
 				// Want to avoid duplicates in the case where we're writing a finalized header to
 				// storage which also happens to be at the best height the best height
-				let not_duplicate = !<ImportedHeaders<T>>::contains_key(hash);
+				let not_duplicate = !<ImportedHeaders<T, I>>::contains_key(hash);
 				if not_duplicate {
-					<BestHeaders<T>>::append(hash);
+					<BestHeaders<T, I>>::append(hash);
 				}
 			}
 			Ordering::Greater => {
-				<BestHeaders<T>>::kill();
-				<BestHeaders<T>>::append(hash);
-				<BestHeight<T>>::put(current_height);
+				<BestHeaders<T, I>>::kill();
+				<BestHeaders<T, I>>::append(hash);
+				<BestHeight<T, I>>::put(current_height);
 			}
 			Ordering::Less => {
 				// This is fine. We can still have a valid header, but it might just be on a
@@ -626,30 +628,30 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 		}
 
 		if header.requires_justification {
-			<RequiresJustification<T>>::insert(hash, current_height);
+			<RequiresJustification<T, I>>::insert(hash, current_height);
 		} else {
 			// If the key doesn't exist this is a no-op, so it's fine to call it often
-			<RequiresJustification<T>>::remove(hash);
+			<RequiresJustification<T, I>>::remove(hash);
 		}
 
-		<ImportedHeaders<T>>::insert(hash, header);
+		<ImportedHeaders<T, I>>::insert(hash, header);
 	}
 
-	fn best_headers(&self) -> Vec<HeaderId<BridgedHeader<T>>> {
-		let number = <BestHeight<T>>::get();
-		<BestHeaders<T>>::get()
+	fn best_headers(&self) -> Vec<HeaderId<BridgedHeader<T, I>>> {
+		let number = <BestHeight<T, I>>::get();
+		<BestHeaders<T, I>>::get()
 			.iter()
 			.map(|hash| HeaderId { number, hash: *hash })
 			.collect()
 	}
 
-	fn best_finalized_header(&self) -> ImportedHeader<BridgedHeader<T>> {
+	fn best_finalized_header(&self) -> ImportedHeader<BridgedHeader<T, I>> {
 		// We will only construct a dummy header if the pallet is not initialized and someone tries
 		// to use the public module interface (not dispatchables) to get the best finalized header.
 		// This is an edge case since this can only really happen when bootstrapping the bridge.
-		let hash = <BestFinalized<T>>::get();
+		let hash = <BestFinalized<T, I>>::get();
 		self.header_by_hash(hash).unwrap_or_else(|| ImportedHeader {
-			header: <BridgedHeader<T>>::new(
+			header: <BridgedHeader<T, I>>::new(
 				Default::default(),
 				Default::default(),
 				Default::default(),
@@ -662,49 +664,49 @@ impl<T: Config> BridgeStorage for PalletStorage<T> {
 		})
 	}
 
-	fn update_best_finalized(&self, hash: BridgedBlockHash<T>) {
-		<BestFinalized<T>>::put(hash);
+	fn update_best_finalized(&self, hash: BridgedBlockHash<T, I>) {
+		<BestFinalized<T, I>>::put(hash);
 	}
 
-	fn header_exists(&self, hash: BridgedBlockHash<T>) -> bool {
-		<ImportedHeaders<T>>::contains_key(hash)
+	fn header_exists(&self, hash: BridgedBlockHash<T, I>) -> bool {
+		<ImportedHeaders<T, I>>::contains_key(hash)
 	}
 
-	fn header_by_hash(&self, hash: BridgedBlockHash<T>) -> Option<ImportedHeader<BridgedHeader<T>>> {
-		<ImportedHeaders<T>>::get(hash)
+	fn header_by_hash(&self, hash: BridgedBlockHash<T, I>) -> Option<ImportedHeader<BridgedHeader<T, I>>> {
+		<ImportedHeaders<T, I>>::get(hash)
 	}
 
-	fn missing_justifications(&self) -> Vec<HeaderId<BridgedHeader<T>>> {
-		<RequiresJustification<T>>::iter()
+	fn missing_justifications(&self) -> Vec<HeaderId<BridgedHeader<T, I>>> {
+		<RequiresJustification<T, I>>::iter()
 			.map(|(hash, number)| HeaderId { number, hash })
 			.collect()
 	}
 
 	fn current_authority_set(&self) -> AuthoritySet {
-		CurrentAuthoritySet::get()
+		<CurrentAuthoritySet<I>>::get()
 	}
 
 	fn update_current_authority_set(&self, new_set: AuthoritySet) {
-		CurrentAuthoritySet::put(new_set)
+		<CurrentAuthoritySet<I>>::put(new_set)
 	}
 
-	fn enact_authority_set(&mut self, signal_hash: BridgedBlockHash<T>) -> Result<(), ()> {
-		let new_set = <NextScheduledChange<T>>::take(signal_hash).ok_or(())?.authority_set;
+	fn enact_authority_set(&mut self, signal_hash: BridgedBlockHash<T, I>) -> Result<(), ()> {
+		let new_set = <NextScheduledChange<T, I>>::take(signal_hash).ok_or(())?.authority_set;
 		self.update_current_authority_set(new_set);
 
 		Ok(())
 	}
 
-	fn scheduled_set_change(&self, signal_hash: BridgedBlockHash<T>) -> Option<ScheduledChange<BridgedBlockNumber<T>>> {
-		<NextScheduledChange<T>>::get(signal_hash)
+	fn scheduled_set_change(&self, signal_hash: BridgedBlockHash<T, I>) -> Option<ScheduledChange<BridgedBlockNumber<T, I>>> {
+		<NextScheduledChange<T, I>>::get(signal_hash)
 	}
 
 	fn schedule_next_set_change(
 		&mut self,
-		signal_hash: BridgedBlockHash<T>,
-		next_change: ScheduledChange<BridgedBlockNumber<T>>,
+		signal_hash: BridgedBlockHash<T, I>,
+		next_change: ScheduledChange<BridgedBlockNumber<T, I>>,
 	) {
-		<NextScheduledChange<T>>::insert(signal_hash, next_change)
+		<NextScheduledChange<T, I>>::insert(signal_hash, next_change)
 	}
 }
 
@@ -837,7 +839,7 @@ mod tests {
 	#[test]
 	fn pallet_rejects_transactions_if_halted() {
 		run_test(|| {
-			IsHalted::put(true);
+			<IsHalted<I>>::put(true);
 
 			assert_noop!(
 				Module::<TestRuntime>::import_signed_header(Origin::signed(1), test_header(1)),
