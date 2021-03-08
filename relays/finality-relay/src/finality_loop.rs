@@ -56,10 +56,7 @@ pub struct FinalitySyncParams {
 	/// meet finality delays if headers are not finalized frequently. So instead of waiting for next
 	/// finality proof to appear in the stream, we may use existing proof from that buffer.
 	pub recent_finality_proofs_limit: usize,
-	/// Number of recent finality proofs to keep.
-	///
-	/// When we're in "major syncing" state, we still read finality proofs from the stream and
-	/// Timeout before we treat our transactions as lost.
+	/// Timeout before we treat our transactions as lost and restart the whole sync process.
 	pub stall_timeout: Duration,
 }
 
