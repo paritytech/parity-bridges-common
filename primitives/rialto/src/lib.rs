@@ -39,6 +39,11 @@ use sp_std::prelude::*;
 /// Some reserve is reserved to account future chain growth.
 pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 
+/// Number of bytes, included in the signed Rialto transaction apart from the encoded call itself.
+///
+/// Can be computed by subtracting encoded call size from raw transaction size.
+pub const TX_EXTRA_BYTES: u32 = 103;
+
 /// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
 pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 
@@ -60,15 +65,19 @@ pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 128;
 
-/// Maximal weight of single regular message delivery transaction on Rialto chain.
+/// Weight of single regular message delivery transaction on Rialto chain.
 ///
-/// This value is a result of `pallet_message_lane::Module::receive_messages_proof` weight formula computation
-/// for the case when single message is delivered. The result then must be rounded up to account possible future
-/// runtime upgrades.
-pub const MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_000_000_000;
+/// This value is a result of `pallet_message_lane::Module::receive_messages_proof_weight()` call
+/// for the case when single message of `pallet_message_lane::EXPECTED_DEFAULT_MESSAGE_LENGTH` bytes is delivered.
+/// The message must have dispatch weight set to zero. The result then must be rounded up to account
+/// possible future runtime upgrades.
+pub const DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_000_000_000;
 
 /// Increase of delivery transaction weight on Rialto chain with every additional message byte.
-pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = 3_000;
+///
+/// This value is a result of `pallet_message_lane::WeightInfoExt::storage_proof_size_overhead(1)` call. The
+/// result then must be rounded up to account possible future runtime upgrades.
+pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = 25_000;
 
 /// Maximal weight of single message delivery confirmation transaction on Rialto chain.
 ///
@@ -186,14 +195,8 @@ pub fn max_extrinsic_size() -> u32 {
 	*BlockLength::get().max.get(DispatchClass::Normal)
 }
 
-/// Name of the `RialtoHeaderApi::best_blocks` runtime method.
-pub const BEST_RIALTO_BLOCKS_METHOD: &str = "RialtoHeaderApi_best_blocks";
-/// Name of the `RialtoHeaderApi::finalized_block` runtime method.
-pub const FINALIZED_RIALTO_BLOCK_METHOD: &str = "RialtoHeaderApi_finalized_block";
-/// Name of the `RialtoHeaderApi::is_known_block` runtime method.
-pub const IS_KNOWN_RIALTO_BLOCK_METHOD: &str = "RialtoHeaderApi_is_known_block";
-/// Name of the `RialtoHeaderApi::incomplete_headers` runtime method.
-pub const INCOMPLETE_RIALTO_HEADERS_METHOD: &str = "RialtoHeaderApi_incomplete_headers";
+/// Name of the `RialtoFinalityApi::best_finalized` runtime method.
+pub const BEST_FINALIZED_RIALTO_HEADER_METHOD: &str = "RialtoFinalityApi_best_finalized";
 
 /// Name of the `ToRialtoOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
 pub const TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
@@ -215,7 +218,7 @@ pub const FROM_RIALTO_UNREWARDED_RELAYERS_STATE: &str = "FromRialtoInboundLaneAp
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Rialto headers from the Bridge Pallet instance.
 	///
-	/// This API is implemented by runtimes that are bridging with Rialto chain, not the
+	/// This API is implemented by runtimes that are bridging with the Rialto chain, not the
 	/// Rialto runtime itself.
 	pub trait RialtoHeaderApi {
 		/// Returns number and hash of the best blocks known to the bridge module.
@@ -236,6 +239,17 @@ sp_api::decl_runtime_apis! {
 		fn is_known_block(hash: Hash) -> bool;
 		/// Returns true if the header is considered finalized by the runtime.
 		fn is_finalized_block(hash: Hash) -> bool;
+	}
+
+	/// API for querying information about the finalized Rialto headers.
+	///
+	/// This API is implemented by runtimes that are bridging with the Rialto chain, not the
+	/// Millau runtime itself.
+	pub trait RialtoFinalityApi {
+		/// Returns number and hash of the best finalized header known to the bridge module.
+		fn best_finalized() -> (BlockNumber, Hash);
+		/// Returns true if the header is known to the runtime.
+		fn is_known_header(hash: Hash) -> bool;
 	}
 
 	/// Outbound message lane API for messages that are sent to Rialto chain.

@@ -17,7 +17,7 @@
 use crate::cli::{Cli, Subcommand};
 use crate::service;
 use crate::service::new_partial;
-use rialto_runtime::Block;
+use rialto_runtime::{Block, RuntimeApi};
 use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 
@@ -69,6 +69,9 @@ impl SubstrateCli for Cli {
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
 	let cli = Cli::from_args();
+	sp_core::crypto::set_default_ss58_version(sp_core::crypto::Ss58AddressFormat::Custom(
+		rialto_runtime::SS58Prefix::get() as u16,
+	));
 
 	match &cli.subcommand {
 		Some(Subcommand::Benchmark(cmd)) => {
@@ -149,6 +152,10 @@ pub fn run() -> sc_cli::Result<()> {
 				} = new_partial(&config)?;
 				Ok((cmd.run(client, backend), task_manager))
 			})
+		}
+		Some(Subcommand::Inspect(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| cmd.run::<Block, RuntimeApi, service::Executor>(config))
 		}
 		None => {
 			let runner = cli.create_runner(&cli.run)?;

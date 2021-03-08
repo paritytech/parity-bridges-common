@@ -19,7 +19,7 @@
 #![warn(missing_docs)]
 
 use codec::{Decode, Encode};
-use frame_support::weights::GetDispatchInfo;
+use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_call_dispatch::{CallOrigin, MessagePayload};
 use relay_kusama_client::Kusama;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
@@ -28,6 +28,7 @@ use relay_substrate_client::{Chain, ConnectionParams, TransactionSignScheme};
 use relay_utils::initialize::initialize_relay;
 use sp_core::{Bytes, Pair};
 use sp_runtime::traits::IdentifyAccount;
+use std::fmt::Debug;
 
 /// Kusama node client.
 pub type KusamaClient = relay_substrate_client::Client<Kusama>;
@@ -37,10 +38,9 @@ pub type MillauClient = relay_substrate_client::Client<Millau>;
 pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 
 mod cli;
+mod finality_pipeline;
+mod finality_target;
 mod headers_initialize;
-mod headers_maintain;
-mod headers_pipeline;
-mod headers_target;
 mod messages_lane;
 mod messages_source;
 mod messages_target;
@@ -64,6 +64,10 @@ async fn run_command(command: cli::Command) -> Result<(), String> {
 		cli::Command::RelayHeaders(arg) => run_relay_headers(arg).await,
 		cli::Command::RelayMessages(arg) => run_relay_messages(arg).await,
 		cli::Command::SendMessage(arg) => run_send_message(arg).await,
+		cli::Command::EncodeCall(arg) => run_encode_call(arg).await,
+		cli::Command::EncodeMessagePayload(arg) => run_encode_message_payload(arg).await,
+		cli::Command::EstimateFee(arg) => run_estimate_fee(arg).await,
+		cli::Command::DeriveAccount(arg) => run_derive_account(arg).await,
 	}
 }
 
@@ -92,11 +96,11 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				move |initialization_data| {
 					Ok(Bytes(
 						Rialto::sign_transaction(
-							&rialto_client,
+							*rialto_client.genesis_hash(),
 							&rialto_sign.signer,
 							rialto_signer_next_index,
 							rialto_runtime::SudoCall::sudo(Box::new(
-								rialto_runtime::BridgeMillauCall::initialize(initialization_data).into(),
+								rialto_runtime::FinalityBridgeMillauCall::initialize(initialization_data).into(),
 							))
 							.into(),
 						)
@@ -128,11 +132,11 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				move |initialization_data| {
 					Ok(Bytes(
 						Millau::sign_transaction(
-							&millau_client,
+							*millau_client.genesis_hash(),
 							&millau_sign.signer,
 							millau_signer_next_index,
 							millau_runtime::SudoCall::sudo(Box::new(
-								millau_runtime::BridgeRialtoCall::initialize(initialization_data).into(),
+								millau_runtime::FinalityBridgeRialtoCall::initialize(initialization_data).into(),
 							))
 							.into(),
 						)
@@ -232,6 +236,7 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			rialto_sign,
 			lane,
 			message,
+			dispatch_weight,
 			fee,
 			origin,
 			..
@@ -239,9 +244,11 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let millau_client = millau.into_client().await?;
 			let millau_sign = millau_sign.parse()?;
 			let rialto_sign = rialto_sign.parse()?;
-			let rialto_call = message.into_call();
+			let rialto_call = message.into_call()?;
 
-			let payload = millau_to_rialto_message_payload(&millau_sign, &rialto_sign, &rialto_call, origin);
+			let payload =
+				millau_to_rialto_message_payload(&millau_sign, &rialto_sign, &rialto_call, origin, dispatch_weight);
+			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
 			let fee = get_fee(fee, || {
@@ -254,24 +261,30 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			})
 			.await?;
 
-			log::info!(target: "bridge", "Sending message to Rialto. Fee: {}", fee);
-
 			let millau_call = millau_runtime::Call::BridgeRialtoMessageLane(
 				millau_runtime::MessageLaneCall::send_message(lane, payload, fee),
 			);
 
 			let signed_millau_call = Millau::sign_transaction(
-				&millau_client,
+				*millau_client.genesis_hash(),
 				&millau_sign.signer,
 				millau_client
 					.next_account_index(millau_sign.signer.public().clone().into())
 					.await?,
 				millau_call,
-			);
+			)
+			.encode();
 
-			millau_client
-				.submit_extrinsic(Bytes(signed_millau_call.encode()))
-				.await?;
+			log::info!(
+				target: "bridge",
+				"Sending message to Rialto. Size: {}. Dispatch weight: {}. Fee: {}",
+				signed_millau_call.len(),
+				dispatch_weight,
+				fee,
+			);
+			log::info!(target: "bridge", "Signed Millau Call: {:?}", HexBytes::encode(&signed_millau_call));
+
+			millau_client.submit_extrinsic(Bytes(signed_millau_call)).await?;
 		}
 		cli::SendMessage::RialtoToMillau {
 			rialto,
@@ -279,6 +292,7 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			millau_sign,
 			lane,
 			message,
+			dispatch_weight,
 			fee,
 			origin,
 			..
@@ -286,9 +300,11 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let rialto_client = rialto.into_client().await?;
 			let rialto_sign = rialto_sign.parse()?;
 			let millau_sign = millau_sign.parse()?;
-			let millau_call = message.into_call();
+			let millau_call = message.into_call()?;
 
-			let payload = rialto_to_millau_message_payload(&rialto_sign, &millau_sign, &millau_call, origin);
+			let payload =
+				rialto_to_millau_message_payload(&rialto_sign, &millau_sign, &millau_call, origin, dispatch_weight);
+			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
 			let fee = get_fee(fee, || {
@@ -301,26 +317,125 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			})
 			.await?;
 
-			log::info!(target: "bridge", "Sending message to Millau. Fee: {}", fee);
-
 			let rialto_call = rialto_runtime::Call::BridgeMillauMessageLane(
 				rialto_runtime::MessageLaneCall::send_message(lane, payload, fee),
 			);
 
 			let signed_rialto_call = Rialto::sign_transaction(
-				&rialto_client,
+				*rialto_client.genesis_hash(),
 				&rialto_sign.signer,
 				rialto_client
 					.next_account_index(rialto_sign.signer.public().clone().into())
 					.await?,
 				rialto_call,
-			);
+			)
+			.encode();
 
-			rialto_client
-				.submit_extrinsic(Bytes(signed_rialto_call.encode()))
-				.await?;
+			log::info!(
+				target: "bridge",
+				"Sending message to Millau. Size: {}. Dispatch weight: {}. Fee: {}",
+				signed_rialto_call.len(),
+				dispatch_weight,
+				fee,
+			);
+			log::info!(target: "bridge", "Signed Rialto Call: {:?}", HexBytes::encode(&signed_rialto_call));
+
+			rialto_client.submit_extrinsic(Bytes(signed_rialto_call)).await?;
 		}
 	}
+	Ok(())
+}
+
+async fn run_encode_call(call: cli::EncodeCall) -> Result<(), String> {
+	match call {
+		cli::EncodeCall::Rialto { call } => {
+			let call = call.into_call()?;
+
+			println!("{:?}", HexBytes::encode(&call));
+		}
+		cli::EncodeCall::Millau { call } => {
+			let call = call.into_call()?;
+			println!("{:?}", HexBytes::encode(&call));
+		}
+	}
+	Ok(())
+}
+
+async fn run_encode_message_payload(call: cli::EncodeMessagePayload) -> Result<(), String> {
+	match call {
+		cli::EncodeMessagePayload::RialtoToMillau { payload } => {
+			let payload = payload.into_payload()?;
+
+			println!("{:?}", HexBytes::encode(&payload));
+		}
+		cli::EncodeMessagePayload::MillauToRialto { payload } => {
+			let payload = payload.into_payload()?;
+
+			println!("{:?}", HexBytes::encode(&payload));
+		}
+	}
+	Ok(())
+}
+
+async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
+	match cmd {
+		cli::EstimateFee::RialtoToMillau { rialto, lane, payload } => {
+			let client = rialto.into_client().await?;
+			let lane = lane.into();
+			let payload = payload.into_payload()?;
+
+			let fee: Option<bp_rialto::Balance> = estimate_message_delivery_and_dispatch_fee(
+				&client,
+				bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
+				lane,
+				payload,
+			)
+			.await?;
+
+			println!("Fee: {:?}", fee);
+		}
+		cli::EstimateFee::MillauToRialto { millau, lane, payload } => {
+			let client = millau.into_client().await?;
+			let lane = lane.into();
+			let payload = payload.into_payload()?;
+
+			let fee: Option<bp_millau::Balance> = estimate_message_delivery_and_dispatch_fee(
+				&client,
+				bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
+				lane,
+				payload,
+			)
+			.await?;
+
+			println!("Fee: {:?}", fee);
+		}
+	}
+
+	Ok(())
+}
+
+async fn run_derive_account(cmd: cli::DeriveAccount) -> Result<(), String> {
+	match cmd {
+		cli::DeriveAccount::RialtoToMillau { account } => {
+			let account = account.into_rialto();
+			let acc = bp_runtime::SourceAccount::Account(account.clone());
+			let id = bp_millau::derive_account_from_rialto_id(acc);
+			println!(
+				"{} (Rialto)\n\nCorresponding (derived) account id:\n-> {} (Millau)",
+				account, id
+			)
+		}
+		cli::DeriveAccount::MillauToRialto { account } => {
+			let account = account.into_millau();
+			let acc = bp_runtime::SourceAccount::Account(account.clone());
+			let id = bp_rialto::derive_account_from_millau_id(acc);
+			println!(
+				"{} (Millau)\n\nCorresponding (derived) account id:\n-> {} (Rialto)",
+				account, id
+			)
+		}
+	}
+
 	Ok(())
 }
 
@@ -338,16 +453,57 @@ async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: En
 	Ok(decoded_response)
 }
 
-fn remark_payload() -> Vec<u8> {
-	format!(
-		"Unix time: {}",
-		std::time::SystemTime::now()
-			.duration_since(std::time::SystemTime::UNIX_EPOCH)
-			.unwrap_or_default()
-			.as_secs(),
-	)
-	.as_bytes()
-	.to_vec()
+fn remark_payload(remark_size: Option<cli::ExplicitOrMaximal<usize>>, maximal_allowed_size: u32) -> Vec<u8> {
+	match remark_size {
+		Some(cli::ExplicitOrMaximal::Explicit(remark_size)) => vec![0; remark_size],
+		Some(cli::ExplicitOrMaximal::Maximal) => vec![0; maximal_allowed_size as _],
+		None => format!(
+			"Unix time: {}",
+			std::time::SystemTime::now()
+				.duration_since(std::time::SystemTime::UNIX_EPOCH)
+				.unwrap_or_default()
+				.as_secs(),
+		)
+		.as_bytes()
+		.to_vec(),
+	}
+}
+
+fn message_payload<SAccountId, TPublic, TSignature>(
+	spec_version: u32,
+	weight: Weight,
+	origin: CallOrigin<SAccountId, TPublic, TSignature>,
+	call: &impl Encode,
+) -> MessagePayload<SAccountId, TPublic, TSignature, Vec<u8>>
+where
+	SAccountId: Encode + Debug,
+	TPublic: Encode + Debug,
+	TSignature: Encode + Debug,
+{
+	// Display nicely formatted call.
+	let payload = MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call: HexBytes::encode(call),
+	};
+
+	log::info!(target: "bridge", "Created Message Payload: {:#?}", payload);
+	log::info!(target: "bridge", "Encoded Message Payload: {:?}", HexBytes::encode(&payload));
+
+	// re-pack to return `Vec<u8>`
+	let MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call,
+	} = payload;
+	MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call: call.0,
+	}
 }
 
 fn rialto_to_millau_message_payload(
@@ -355,16 +511,21 @@ fn rialto_to_millau_message_payload(
 	millau_sign: &MillauSigningParams,
 	millau_call: &millau_runtime::Call,
 	origin: cli::Origins,
+	user_specified_dispatch_weight: Option<cli::ExplicitOrMaximal<Weight>>,
 ) -> rialto_runtime::millau_messages::ToMillauMessagePayload {
-	let millau_call_weight = millau_call.get_dispatch_info().weight;
+	let millau_call_weight = prepare_call_dispatch_weight(
+		user_specified_dispatch_weight,
+		cli::ExplicitOrMaximal::Explicit(millau_call.get_dispatch_info().weight),
+		compute_maximal_message_dispatch_weight(bp_millau::max_extrinsic_weight()),
+	);
 	let rialto_sender_public: bp_rialto::AccountSigner = rialto_sign.signer.public().clone().into();
 	let rialto_account_id: bp_rialto::AccountId = rialto_sender_public.into_account();
 	let millau_origin_public = millau_sign.signer.public();
 
-	MessagePayload {
-		spec_version: millau_runtime::VERSION.spec_version,
-		weight: millau_call_weight,
-		origin: match origin {
+	message_payload(
+		millau_runtime::VERSION.spec_version,
+		millau_call_weight,
+		match origin {
 			cli::Origins::Source => CallOrigin::SourceAccount(rialto_account_id),
 			cli::Origins::Target => {
 				let digest = rialto_runtime::millau_account_ownership_digest(
@@ -378,8 +539,8 @@ fn rialto_to_millau_message_payload(
 				CallOrigin::TargetAccount(rialto_account_id, millau_origin_public.into(), digest_signature.into())
 			}
 		},
-		call: millau_call.encode(),
-	}
+		&millau_call,
+	)
 }
 
 fn millau_to_rialto_message_payload(
@@ -387,16 +548,21 @@ fn millau_to_rialto_message_payload(
 	rialto_sign: &RialtoSigningParams,
 	rialto_call: &rialto_runtime::Call,
 	origin: cli::Origins,
+	user_specified_dispatch_weight: Option<cli::ExplicitOrMaximal<Weight>>,
 ) -> millau_runtime::rialto_messages::ToRialtoMessagePayload {
-	let rialto_call_weight = rialto_call.get_dispatch_info().weight;
+	let rialto_call_weight = prepare_call_dispatch_weight(
+		user_specified_dispatch_weight,
+		cli::ExplicitOrMaximal::Explicit(rialto_call.get_dispatch_info().weight),
+		compute_maximal_message_dispatch_weight(bp_rialto::max_extrinsic_weight()),
+	);
 	let millau_sender_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
 	let millau_account_id: bp_millau::AccountId = millau_sender_public.into_account();
 	let rialto_origin_public = rialto_sign.signer.public();
 
-	MessagePayload {
-		spec_version: rialto_runtime::VERSION.spec_version,
-		weight: rialto_call_weight,
-		origin: match origin {
+	message_payload(
+		rialto_runtime::VERSION.spec_version,
+		rialto_call_weight,
+		match origin {
 			cli::Origins::Source => CallOrigin::SourceAccount(millau_account_id),
 			cli::Origins::Target => {
 				let digest = millau_runtime::rialto_account_ownership_digest(
@@ -410,7 +576,18 @@ fn millau_to_rialto_message_payload(
 				CallOrigin::TargetAccount(millau_account_id, rialto_origin_public.into(), digest_signature.into())
 			}
 		},
-		call: rialto_call.encode(),
+		&rialto_call,
+	)
+}
+
+fn prepare_call_dispatch_weight(
+	user_specified_dispatch_weight: Option<cli::ExplicitOrMaximal<Weight>>,
+	weight_from_pre_dispatch_call: cli::ExplicitOrMaximal<Weight>,
+	maximal_allowed_weight: Weight,
+) -> Weight {
+	match user_specified_dispatch_weight.unwrap_or(weight_from_pre_dispatch_call) {
+		cli::ExplicitOrMaximal::Explicit(weight) => weight,
+		cli::ExplicitOrMaximal::Maximal => maximal_allowed_weight,
 	}
 }
 
@@ -419,7 +596,7 @@ where
 	Fee: Decode,
 	F: FnOnce() -> R,
 	R: std::future::Future<Output = Result<Option<Fee>, E>>,
-	E: std::fmt::Debug,
+	E: Debug,
 {
 	match fee {
 		Some(fee) => Ok(fee),
@@ -428,6 +605,70 @@ where
 			Ok(None) => Err("Failed to estimate message fee. Message is too heavy?".into()),
 			Err(error) => Err(format!("Failed to estimate message fee: {:?}", error)),
 		},
+	}
+}
+
+fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
+	bridge_runtime_common::messages::target::maximal_incoming_message_dispatch_weight(maximal_extrinsic_weight)
+}
+
+fn compute_maximal_message_arguments_size(
+	maximal_source_extrinsic_size: u32,
+	maximal_target_extrinsic_size: u32,
+) -> u32 {
+	// assume that both signed extensions and other arguments fit 1KB
+	let service_tx_bytes_on_source_chain = 1024;
+	let maximal_source_extrinsic_size = maximal_source_extrinsic_size - service_tx_bytes_on_source_chain;
+	let maximal_call_size =
+		bridge_runtime_common::messages::target::maximal_incoming_message_size(maximal_target_extrinsic_size);
+	let maximal_call_size = if maximal_call_size > maximal_source_extrinsic_size {
+		maximal_source_extrinsic_size
+	} else {
+		maximal_call_size
+	};
+
+	// bytes in Call encoding that are used to encode everything except arguments
+	let service_bytes = 1 + 1 + 4;
+	maximal_call_size - service_bytes
+}
+
+impl crate::cli::MillauToRialtoMessagePayload {
+	/// Parse the CLI parameters and construct message payload.
+	pub fn into_payload(
+		self,
+	) -> Result<MessagePayload<bp_rialto::AccountId, bp_rialto::AccountSigner, bp_rialto::Signature, Vec<u8>>, String> {
+		match self {
+			Self::Raw { data } => MessagePayload::decode(&mut &*data.0)
+				.map_err(|e| format!("Failed to decode Millau's MessagePayload: {:?}", e)),
+			Self::Message { message, sender } => {
+				let spec_version = rialto_runtime::VERSION.spec_version;
+				let origin = CallOrigin::SourceAccount(sender.into_millau());
+				let call = message.into_call()?;
+				let weight = call.get_dispatch_info().weight;
+
+				Ok(message_payload(spec_version, weight, origin, &call))
+			}
+		}
+	}
+}
+
+impl crate::cli::RialtoToMillauMessagePayload {
+	/// Parse the CLI parameters and construct message payload.
+	pub fn into_payload(
+		self,
+	) -> Result<MessagePayload<bp_millau::AccountId, bp_millau::AccountSigner, bp_millau::Signature, Vec<u8>>, String> {
+		match self {
+			Self::Raw { data } => MessagePayload::decode(&mut &*data.0)
+				.map_err(|e| format!("Failed to decode Rialto's MessagePayload: {:?}", e)),
+			Self::Message { message, sender } => {
+				let spec_version = millau_runtime::VERSION.spec_version;
+				let origin = CallOrigin::SourceAccount(sender.into_rialto());
+				let call = message.into_call()?;
+				let weight = call.get_dispatch_info().weight;
+
+				Ok(message_payload(spec_version, weight, origin, &call))
+			}
+		}
 	}
 }
 
@@ -470,34 +711,99 @@ impl crate::cli::RialtoConnectionParams {
 
 impl crate::cli::ToRialtoMessage {
 	/// Convert CLI call request into runtime `Call` instance.
-	pub fn into_call(self) -> rialto_runtime::Call {
-		match self {
-			cli::ToRialtoMessage::Remark => {
-				rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(remark_payload()))
+	pub fn into_call(self) -> Result<rialto_runtime::Call, String> {
+		let call = match self {
+			cli::ToRialtoMessage::Raw { data } => {
+				Decode::decode(&mut &*data.0).map_err(|e| format!("Unable to decode message: {:#?}", e))?
+			}
+			cli::ToRialtoMessage::Remark { remark_size } => {
+				rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(remark_payload(
+					remark_size,
+					compute_maximal_message_arguments_size(
+						bp_millau::max_extrinsic_size(),
+						bp_rialto::max_extrinsic_size(),
+					),
+				)))
 			}
 			cli::ToRialtoMessage::Transfer { recipient, amount } => {
+				let recipient = recipient.into_rialto();
 				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
 			}
-		}
+			cli::ToRialtoMessage::MillauSendMessage { lane, payload, fee } => {
+				let payload = cli::RialtoToMillauMessagePayload::Raw { data: payload }.into_payload()?;
+				let lane = lane.into();
+				rialto_runtime::Call::BridgeMillauMessageLane(rialto_runtime::MessageLaneCall::send_message(
+					lane, payload, fee,
+				))
+			}
+		};
+
+		log::info!(target: "bridge", "Generated Rialto call: {:#?}", call);
+		log::info!(target: "bridge", "Weight of Rialto call: {}", call.get_dispatch_info().weight);
+		log::info!(target: "bridge", "Encoded Rialto call: {:?}", HexBytes::encode(&call));
+
+		Ok(call)
 	}
 }
 
 impl crate::cli::ToMillauMessage {
 	/// Convert CLI call request into runtime `Call` instance.
-	pub fn into_call(self) -> millau_runtime::Call {
-		match self {
-			cli::ToMillauMessage::Remark => {
-				millau_runtime::Call::System(millau_runtime::SystemCall::remark(remark_payload()))
+	pub fn into_call(self) -> Result<millau_runtime::Call, String> {
+		let call = match self {
+			cli::ToMillauMessage::Raw { data } => {
+				Decode::decode(&mut &*data.0).map_err(|e| format!("Unable to decode message: {:#?}", e))?
+			}
+			cli::ToMillauMessage::Remark { remark_size } => {
+				millau_runtime::Call::System(millau_runtime::SystemCall::remark(remark_payload(
+					remark_size,
+					compute_maximal_message_arguments_size(
+						bp_rialto::max_extrinsic_size(),
+						bp_millau::max_extrinsic_size(),
+					),
+				)))
 			}
 			cli::ToMillauMessage::Transfer { recipient, amount } => {
+				let recipient = recipient.into_millau();
 				millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient, amount))
 			}
-		}
+			cli::ToMillauMessage::RialtoSendMessage { lane, payload, fee } => {
+				let payload = cli::MillauToRialtoMessagePayload::Raw { data: payload }.into_payload()?;
+				let lane = lane.into();
+				millau_runtime::Call::BridgeRialtoMessageLane(millau_runtime::MessageLaneCall::send_message(
+					lane, payload, fee,
+				))
+			}
+		};
+
+		log::info!(target: "bridge", "Generated Millau call: {:#?}", call);
+		log::info!(target: "bridge", "Weight of Millau call: {}", call.get_dispatch_info().weight);
+		log::info!(target: "bridge", "Encoded Millau call: {:?}", HexBytes::encode(&call));
+
+		Ok(call)
+	}
+}
+
+/// Nicer formatting for raw bytes vectors.
+#[derive(Encode, Decode)]
+struct HexBytes(Vec<u8>);
+
+impl Debug for HexBytes {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(fmt, "0x{}", hex::encode(&self.0))
+	}
+}
+
+impl HexBytes {
+	/// Encode given object and wrap into nicely formatted bytes.
+	pub fn encode<T: Encode>(t: &T) -> Self {
+		Self(t.encode())
 	}
 }
 
 #[cfg(test)]
 mod tests {
+	use super::*;
+	use bp_message_lane::source_chain::TargetHeaderChain;
 	use sp_core::Pair;
 	use sp_runtime::traits::{IdentifyAccount, Verify};
 
@@ -541,5 +847,126 @@ mod tests {
 		let signature = millau_signer.signer.sign(&digest);
 
 		assert!(signature.verify(&digest[..], &millau_signer.signer.public()));
+	}
+
+	#[test]
+	fn maximal_rialto_to_millau_message_arguments_size_is_computed_correctly() {
+		use rialto_runtime::millau_messages::Millau;
+
+		let maximal_remark_size =
+			compute_maximal_message_arguments_size(bp_rialto::max_extrinsic_size(), bp_millau::max_extrinsic_size());
+
+		let call: millau_runtime::Call = millau_runtime::SystemCall::remark(vec![42; maximal_remark_size as _]).into();
+		let payload = message_payload(
+			Default::default(),
+			call.get_dispatch_info().weight,
+			pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
+			&call,
+		);
+		assert_eq!(Millau::verify_message(&payload), Ok(()));
+
+		let call: millau_runtime::Call =
+			millau_runtime::SystemCall::remark(vec![42; (maximal_remark_size + 1) as _]).into();
+		let payload = message_payload(
+			Default::default(),
+			call.get_dispatch_info().weight,
+			pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
+			&call,
+		);
+		assert!(Millau::verify_message(&payload).is_err());
+	}
+
+	#[test]
+	fn maximal_size_remark_to_rialto_is_generated_correctly() {
+		assert!(
+			bridge_runtime_common::messages::target::maximal_incoming_message_size(
+				bp_rialto::max_extrinsic_size()
+			) > bp_millau::max_extrinsic_size(),
+			"We can't actually send maximal messages to Rialto from Millau, because Millau extrinsics can't be that large",
+		)
+	}
+
+	#[test]
+	fn maximal_rialto_to_millau_message_dispatch_weight_is_computed_correctly() {
+		use rialto_runtime::millau_messages::Millau;
+
+		let maximal_dispatch_weight = compute_maximal_message_dispatch_weight(bp_millau::max_extrinsic_weight());
+		let call: millau_runtime::Call = rialto_runtime::SystemCall::remark(vec![]).into();
+
+		let payload = message_payload(
+			Default::default(),
+			maximal_dispatch_weight,
+			pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
+			&call,
+		);
+		assert_eq!(Millau::verify_message(&payload), Ok(()));
+
+		let payload = message_payload(
+			Default::default(),
+			maximal_dispatch_weight + 1,
+			pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
+			&call,
+		);
+		assert!(Millau::verify_message(&payload).is_err());
+	}
+
+	#[test]
+	fn maximal_weight_fill_block_to_rialto_is_generated_correctly() {
+		use millau_runtime::rialto_messages::Rialto;
+
+		let maximal_dispatch_weight = compute_maximal_message_dispatch_weight(bp_rialto::max_extrinsic_weight());
+		let call: rialto_runtime::Call = millau_runtime::SystemCall::remark(vec![]).into();
+
+		let payload = message_payload(
+			Default::default(),
+			maximal_dispatch_weight,
+			pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
+			&call,
+		);
+		assert_eq!(Rialto::verify_message(&payload), Ok(()));
+
+		let payload = message_payload(
+			Default::default(),
+			maximal_dispatch_weight + 1,
+			pallet_bridge_call_dispatch::CallOrigin::SourceRoot,
+			&call,
+		);
+		assert!(Rialto::verify_message(&payload).is_err());
+	}
+
+	#[test]
+	fn rialto_tx_extra_bytes_constant_is_correct() {
+		let rialto_call = rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(vec![]));
+		let rialto_tx = Rialto::sign_transaction(
+			Default::default(),
+			&sp_keyring::AccountKeyring::Alice.pair(),
+			0,
+			rialto_call.clone(),
+		);
+		let extra_bytes_in_transaction = rialto_tx.encode().len() - rialto_call.encode().len();
+		assert!(
+			bp_rialto::TX_EXTRA_BYTES as usize >= extra_bytes_in_transaction,
+			"Hardcoded number of extra bytes in Rialto transaction {} is lower than actual value: {}",
+			bp_rialto::TX_EXTRA_BYTES,
+			extra_bytes_in_transaction,
+		);
+	}
+
+	#[test]
+	fn millau_tx_extra_bytes_constant_is_correct() {
+		let millau_call = millau_runtime::Call::System(millau_runtime::SystemCall::remark(vec![]));
+		let millau_tx = Millau::sign_transaction(
+			Default::default(),
+			&sp_keyring::AccountKeyring::Alice.pair(),
+			0,
+			millau_call.clone(),
+		);
+		let extra_bytes_in_transaction = millau_tx.encode().len() - millau_call.encode().len();
+		assert!(
+			bp_millau::TX_EXTRA_BYTES as usize >= extra_bytes_in_transaction,
+			"Hardcoded number of extra bytes in Millau transaction {} is lower than actual value: {}",
+			bp_millau::TX_EXTRA_BYTES,
+			extra_bytes_in_transaction,
+		);
 	}
 }

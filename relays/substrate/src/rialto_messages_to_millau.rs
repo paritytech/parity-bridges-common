@@ -51,8 +51,8 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 		bp_rialto::FROM_RIALTO_LATEST_CONFIRMED_NONCE_METHOD;
 	const INBOUND_LANE_UNREWARDED_RELAYERS_STATE: &'static str = bp_rialto::FROM_RIALTO_UNREWARDED_RELAYERS_STATE;
 
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_rialto::FINALIZED_RIALTO_BLOCK_METHOD;
-	const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str = bp_millau::FINALIZED_MILLAU_BLOCK_METHOD;
+	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_rialto::BEST_FINALIZED_RIALTO_HEADER_METHOD;
+	const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str = bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;
 
 	type SourceSignedTransaction = <Rialto as TransactionSignScheme>::SignedTransaction;
 	type TargetSignedTransaction = <Millau as TransactionSignScheme>::SignedTransaction;
@@ -68,7 +68,8 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 		let call: rialto_runtime::Call =
 			rialto_runtime::MessageLaneCall::receive_messages_delivery_proof(proof, relayers_state).into();
 		let call_weight = call.get_dispatch_info().weight;
-		let transaction = Rialto::sign_transaction(&self.source_client, &self.source_sign.signer, nonce, call);
+		let genesis_hash = *self.source_client.genesis_hash();
+		let transaction = Rialto::sign_transaction(genesis_hash, &self.source_sign.signer, nonce, call);
 		log::trace!(
 			target: "bridge",
 			"Prepared Millau -> Rialto confirmation transaction. Weight: {}/{}, size: {}/{}",
@@ -103,7 +104,8 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 		)
 		.into();
 		let call_weight = call.get_dispatch_info().weight;
-		let transaction = Millau::sign_transaction(&self.target_client, &self.target_sign.signer, nonce, call);
+		let genesis_hash = *self.target_client.genesis_hash();
+		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign.signer, nonce, call);
 		log::trace!(
 			target: "bridge",
 			"Prepared Rialto -> Millau delivery transaction. Weight: {}/{}, size: {}/{}",

@@ -48,6 +48,11 @@ pub use millau_hash::MillauHash;
 /// Some reserve is reserved to account future chain growth.
 pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 
+/// Number of bytes, included in the signed Millau transaction apart from the encoded call itself.
+///
+/// Can be computed by subtracting encoded call size from raw transaction size.
+pub const TX_EXTRA_BYTES: u32 = 103;
+
 /// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
 pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 
@@ -69,15 +74,19 @@ pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 1024;
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 1024;
 
-/// Maximal weight of single regular message delivery transaction on Millau chain.
+/// Weight of single regular message delivery transaction on Millau chain.
 ///
-/// This value is a result of `pallet_message_lane::Module::receive_messages_proof` weight formula computation
-/// for the case when single message is delivered. The result then must be rounded up to account possible future
-/// runtime upgrades.
-pub const MAX_SINGLE_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_000_000_000;
+/// This value is a result of `pallet_message_lane::Module::receive_messages_proof_weight()` call
+/// for the case when single message of `pallet_message_lane::EXPECTED_DEFAULT_MESSAGE_LENGTH` bytes is delivered.
+/// The message must have dispatch weight set to zero. The result then must be rounded up to account
+/// possible future runtime upgrades.
+pub const DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_000_000_000;
 
 /// Increase of delivery transaction weight on Millau chain with every additional message byte.
-pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = 3_000;
+///
+/// This value is a result of `pallet_message_lane::WeightInfoExt::storage_proof_size_overhead(1)` call. The
+/// result then must be rounded up to account possible future runtime upgrades.
+pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = 25_000;
 
 /// Maximal weight of single message delivery confirmation transaction on Millau chain.
 ///
@@ -225,14 +234,8 @@ pub fn max_extrinsic_size() -> u32 {
 	*BlockLength::get().max.get(DispatchClass::Normal)
 }
 
-/// Name of the `MillauHeaderApi::best_block` runtime method.
-pub const BEST_MILLAU_BLOCKS_METHOD: &str = "MillauHeaderApi_best_blocks";
-/// Name of the `MillauHeaderApi::finalized_block` runtime method.
-pub const FINALIZED_MILLAU_BLOCK_METHOD: &str = "MillauHeaderApi_finalized_block";
-/// Name of the `MillauHeaderApi::is_known_block` runtime method.
-pub const IS_KNOWN_MILLAU_BLOCK_METHOD: &str = "MillauHeaderApi_is_known_block";
-/// Name of the `MillauHeaderApi::incomplete_headers` runtime method.
-pub const INCOMPLETE_MILLAU_HEADERS_METHOD: &str = "MillauHeaderApi_incomplete_headers";
+/// Name of the `MillauFinalityApi::best_finalized` runtime method.
+pub const BEST_FINALIZED_MILLAU_HEADER_METHOD: &str = "MillauFinalityApi_best_finalized";
 
 /// Name of the `ToMillauOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
 pub const TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD: &str =
@@ -254,7 +257,7 @@ pub const FROM_MILLAU_UNREWARDED_RELAYERS_STATE: &str = "FromMillauInboundLaneAp
 sp_api::decl_runtime_apis! {
 	/// API for querying information about Millau headers from the Bridge Pallet instance.
 	///
-	/// This API is implemented by runtimes that are bridging with Millau chain, not the
+	/// This API is implemented by runtimes that are bridging with the Millau chain, not the
 	/// Millau runtime itself.
 	pub trait MillauHeaderApi {
 		/// Returns number and hash of the best blocks known to the bridge module.
@@ -275,6 +278,17 @@ sp_api::decl_runtime_apis! {
 		fn is_known_block(hash: Hash) -> bool;
 		/// Returns true if the header is considered finalized by the runtime.
 		fn is_finalized_block(hash: Hash) -> bool;
+	}
+
+	/// API for querying information about the finalized Millau headers.
+	///
+	/// This API is implemented by runtimes that are bridging with the Millau chain, not the
+	/// Millau runtime itself.
+	pub trait MillauFinalityApi {
+		/// Returns number and hash of the best finalized header known to the bridge module.
+		fn best_finalized() -> (BlockNumber, Hash);
+		/// Returns true if the header is known to the runtime.
+		fn is_known_header(hash: Hash) -> bool;
 	}
 
 	/// Outbound message lane API for messages that are sent to Millau chain.
