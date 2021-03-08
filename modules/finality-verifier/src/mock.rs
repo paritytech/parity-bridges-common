@@ -42,7 +42,6 @@ construct_runtime! {
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Bridge: pallet_substrate_bridge::{Module},
 		FinalityVerifier: finality_verifier::{Module},
 	}
 }
@@ -79,19 +78,12 @@ impl frame_system::Config for TestRuntime {
 	type SS58Prefix = ();
 }
 
-impl pallet_substrate_bridge::Config for TestRuntime {
-	type BridgedChain = TestBridgedChain;
-}
-
 parameter_types! {
 	pub const MaxRequests: u32 = 2;
 }
 
 impl finality_verifier::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
-	type HeaderChain = pallet_substrate_bridge::Module<Self>;
-	type AncestryProof = Vec<<Self::BridgedChain as Chain>::Header>;
-	type AncestryChecker = Checker<<Self::BridgedChain as Chain>::Header, Self::AncestryProof>;
 	type MaxRequests = MaxRequests;
 }
 
