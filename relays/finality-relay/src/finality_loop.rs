@@ -471,6 +471,9 @@ where
 	Ok(selected_finality_proof)
 }
 
+/// Remove headers from `unjustified_headers` collection with number lower or equal than `justified_header_number`.
+///
+/// Returns the header that matches `justified_header_number` (if any).
 pub(crate) fn prune_unjustified_headers<P: FinalitySyncPipeline>(
 	justified_header_number: P::Number,
 	unjustified_headers: &mut UnjustifiedHeaders<P>,
