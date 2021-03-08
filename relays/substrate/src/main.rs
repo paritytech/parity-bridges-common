@@ -100,7 +100,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 							&rialto_sign.signer,
 							rialto_signer_next_index,
 							rialto_runtime::SudoCall::sudo(Box::new(
-								rialto_runtime::BridgeMillauCall::initialize(initialization_data).into(),
+								rialto_runtime::FinalityBridgeMillauCall::initialize(initialization_data).into(),
 							))
 							.into(),
 						)
@@ -136,7 +136,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 							&millau_sign.signer,
 							millau_signer_next_index,
 							millau_runtime::SudoCall::sudo(Box::new(
-								millau_runtime::BridgeRialtoCall::initialize(initialization_data).into(),
+								millau_runtime::FinalityBridgeRialtoCall::initialize(initialization_data).into(),
 							))
 							.into(),
 						)
