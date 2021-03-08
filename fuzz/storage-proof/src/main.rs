@@ -21,7 +21,6 @@
 use honggfuzz::fuzz;
 // Logic for checking Substrate storage proofs.
 
-use pallet_substrate_bridge::*;
 use sp_core::{Blake2Hasher, H256};
 use sp_state_machine::{backend::Backend, prove_read, InMemoryBackend};
 use sp_std::vec::Vec;
@@ -64,8 +63,8 @@ fn run_fuzzer() {
 		}
 		let unique_input_vec = transform_into_unique(input_vec);
 		let (root, craft_known_storage_proof) = craft_known_storage_proof(unique_input_vec.clone());
-		let checker =
-			<StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof).expect("Valid proof passed; qed");
+		let checker = <bp_runtime::StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof)
+			.expect("Valid proof passed; qed");
 		for key_value_pair in unique_input_vec {
 			log::info!("Reading value for pair {:?}", key_value_pair);
 			assert_eq!(
