@@ -1,95 +1,9 @@
 {
-	"RialtoBalance": "u128",
-	"MillauBlockHash": "H512",
-	"MillauBlockNumber": "u64",
-	"RialtoBlockHash": "H256",
-	"RialtoBlockNumber": "u32",
-	"MillauHeader": {
-		"parent_Hash": "MillauBlockHash",
-		"number": "Compact<MillauBlockNumber>",
-		"state_root": "MillauBlockHash",
-		"extrinsics_root": "MillauBlockHash",
-		"digest": "MillauDigest"
-	},
-	"MillauDigest": {
-		"logs": "Vec<MillauDigestItem>"
-	},
-	"MillauDigestItem": {
-		"_enum": {
-			"Other": "Vec<u8>",
-			"AuthoritiesChange": "Vec<AuthorityId>",
-			"ChangesTrieRoot": "MillauBlockHash",
-			"SealV0": "SealV0",
-			"Consensus": "Consensus",
-			"Seal": "Seal",
-			"PreRuntime": "PreRuntime"
-		}
-	},
 	"Fee": "RialtoBalance",
 	"Balance": "RialtoBalance",
 	"BlockHash": "RialtoBlockHash",
 	"BlockNumber": "RialtoBlockNumber",
 	"BridgedBlockHash": "MillauBlockHash",
 	"BridgedBlockNumber": "MillauBlockNumber",
-	"BridgedHeader": "MillauHeader",
-	"Address": "AccountId",
-	"LookupSource": "AccountId",
-	"AccountSigner": "MultiSigner",
-	"SpecVersion": "u32",
-	"ImportedHeader": {
-		"header": "BridgedHeader",
-		"requires_justification": "bool",
-		"is_finalized": "bool",
-		"signal_hash": "Option<BridgedBlockHash>"
-	},
-	"AuthoritySet": {
-		"authorities": "AuthorityList",
-		"set_id": "SetId"
-	},
-	"RelayerId": "AccountId",
-	"Id": "[u8; 4]",
-	"InstanceId": "Id",
-	"LaneId": "Id",
-	"MessageNonce": "u64",
-	"MessageId": "(Id, u64)",
-	"MessageKey": {
-		"lane_id": "LaneId",
-		"nonce:": "MessageNonce"
-	},
-	"InboundRelayer": "AccountId",
-	"InboundLaneData": {
-		"relayers": "Vec<(MessageNonce, MessageNonce, RelayerId)>",
-		"last_confirmed_nonce": "MessageNonce"
-	},
-	"OutboundLaneData": {
-		"latest_generated_nonce": "MessageNonce",
-		"latest_received_nonce": "MessageNonce",
-		"oldest_unpruned_nonce": "MessageNonce"
-	},
-	"MessageData": {
-		"payload": "MessagePayload",
-		"fee": "Fee"
-	},
-	"MessagePayload": "Vec<u8>",
-	"OutboundMessageFee": "Fee",
-	"OutboundPayload": {
-		"spec_version": "SpecVersion",
-		"weight": "Weight",
-		"origin": "CallOrigin",
-		"call": "Vec<u8>"
-	},
-	"CallOrigin": {
-		"_enum": {
-			"SourceRoot": "()",
-			"TargetAccount": "([u8;32], MultiSigner,MultiSignature)",
-			"SourceAccount": "AccountId"
-		}
-	},
-	"MultiSigner": {
-		"_enum": {
-			"Ed25519": "H256",
-			"Sr25519": "H256",
-			"Ecdsa": "[u8;32]"
-		}
-	}
+	"BridgedHeader": "MillauHeader"
 }
