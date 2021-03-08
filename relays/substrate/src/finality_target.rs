@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Substrate client as Substrate finality proof target. The chain we connect to should have
-//! runtime that implements `<BridgedChainName>HeaderApi` to allow bridging with
+//! runtime that implements `<BridgedChainName>FinalityApi` to allow bridging with
 //! <BridgedName> chain.
 
 use crate::finality_pipeline::SubstrateFinalitySyncPipeline;
