@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::client::Client;
-
 use bp_runtime::Chain as ChainBase;
 use frame_support::Parameter;
-use jsonrpsee::common::{DeserializeOwned, Serialize};
+use jsonrpsee_types::jsonrpc::{DeserializeOwned, Serialize};
 use num_traits::{CheckedSub, Zero};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{
 	generic::SignedBlock,
-	traits::{AtLeast32Bit, Dispatchable, MaybeDisplay, MaybeSerialize, MaybeSerializeDeserialize, Member},
+	traits::{
+		AtLeast32Bit, Block as BlockT, Dispatchable, MaybeDisplay, MaybeSerialize, MaybeSerializeDeserialize, Member,
+	},
 	Justification,
 };
 use std::{fmt::Debug, time::Duration};
@@ -51,7 +51,7 @@ pub trait Chain: ChainBase {
 		+ AtLeast32Bit
 		+ Copy;
 	/// Block type.
-	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification;
+	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification<Self::Header>;
 	/// The aggregated `Call` type.
 	type Call: Dispatchable + Debug;
 }
@@ -67,7 +67,9 @@ pub trait ChainWithBalances: Chain {
 }
 
 /// Block with justification.
-pub trait BlockWithJustification {
+pub trait BlockWithJustification<Header> {
+	/// Return block header.
+	fn header(&self) -> Header;
 	/// Return block justification, if known.
 	fn justification(&self) -> Option<&Justification>;
 }
@@ -83,20 +85,18 @@ pub trait TransactionSignScheme {
 
 	/// Create transaction for given runtime call, signed by given account.
 	fn sign_transaction(
-		client: &Client<Self::Chain>,
+		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
 		signer_nonce: <Self::Chain as Chain>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction;
 }
 
-impl BlockWithJustification for () {
-	fn justification(&self) -> Option<&Justification> {
-		None
+impl<Block: BlockT> BlockWithJustification<Block::Header> for SignedBlock<Block> {
+	fn header(&self) -> Block::Header {
+		self.block.header().clone()
 	}
-}
 
-impl<Block> BlockWithJustification for SignedBlock<Block> {
 	fn justification(&self) -> Option<&Justification> {
 		self.justification.as_ref()
 	}
