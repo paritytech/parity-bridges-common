@@ -458,7 +458,7 @@ where
 			Some(None) => {
 				finality_proofs_stream.needs_restart = true;
 				break;
-			},
+			}
 			None => break,
 		};
 		let finality_proof_target_header_number = match finality_proof.target_header_number() {
