@@ -181,12 +181,20 @@ struct Transaction<Number> {
 	pub submitted_header_number: Number,
 }
 
+/// Finality proofs stream that may be restarted.
+struct RestartableFinalityProofsStream<S> {
+	/// Flag that the stream needs to be restarted.
+	needs_restart: bool,
+	/// The stream itself.
+	stream: Pin<Box<S>>,
+}
+
 /// Finality synchronization loop state.
 struct FinalityLoopState<'a, P: FinalitySyncPipeline, FinalityProofsStream> {
 	/// Synchronization loop progress.
 	progress: &'a mut (Instant, Option<P::Number>),
 	/// Finality proofs stream.
-	finality_proofs_stream: &'a mut Pin<Box<FinalityProofsStream>>,
+	finality_proofs_stream: &'a mut RestartableFinalityProofsStream<FinalityProofsStream>,
 	/// Recent finality proofs that we have read from the stream.
 	recent_finality_proofs: &'a mut FinalityProofs<P>,
 	/// Last transaction that we have submitted to the target node.
@@ -201,19 +209,26 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 	metrics_sync: Option<SyncLoopMetrics>,
 	exit_signal: impl Future<Output = ()>,
 ) -> Result<(), FailedClient> {
+	let restart_finality_proofs_stream = || async {
+		source_client.finality_proofs().await.map_err(|error| {
+			log::error!(
+				target: "bridge",
+				"Failed to subscribe to {} justifications: {:?}. Going to reconnect",
+				P::SOURCE_NAME,
+				error,
+			);
+
+			FailedClient::Source
+		})
+	};
+
 	let exit_signal = exit_signal.fuse();
 	futures::pin_mut!(exit_signal);
 
-	let mut finality_proofs_stream = Box::pin(source_client.finality_proofs().await.map_err(|error| {
-		log::error!(
-			target: "bridge",
-			"Failed to subscribe to {} justifications: {:?}. Going to reconnect",
-			P::SOURCE_NAME,
-			error,
-		);
-
-		FailedClient::Source
-	})?);
+	let mut finality_proofs_stream = RestartableFinalityProofsStream {
+		needs_restart: false,
+		stream: Box::pin(restart_finality_proofs_stream().await?),
+	};
 	let mut recent_finality_proofs = Vec::new();
 
 	let mut progress = (Instant::now(), None);
@@ -256,6 +271,10 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 					.unwrap_or(relay_utils::relay_loop::RECONNECT_DELAY)
 			}
 		};
+		if finality_proofs_stream.needs_restart {
+			finality_proofs_stream.needs_restart = false;
+			finality_proofs_stream.stream = Box::pin(restart_finality_proofs_stream().await?);
+		}
 
 		// wait till exit signal, or new source block
 		select! {
@@ -350,7 +369,7 @@ where
 async fn select_header_to_submit<P, SC, TC>(
 	source_client: &SC,
 	_target_client: &TC,
-	finality_proofs_stream: &mut Pin<Box<SC::FinalityProofsStream>>,
+	finality_proofs_stream: &mut RestartableFinalityProofsStream<SC::FinalityProofsStream>,
 	recent_finality_proofs: &mut FinalityProofs<P>,
 	best_number_at_source: P::Number,
 	best_number_at_target: P::Number,
@@ -433,10 +452,14 @@ where
 
 	// read all proofs from the stream, probably selecting updated proof that we're going to submit
 	loop {
-		let next_proof = finality_proofs_stream.next();
+		let next_proof = finality_proofs_stream.stream.next();
 		let finality_proof = match next_proof.now_or_never() {
 			Some(Some(finality_proof)) => finality_proof,
-			_ => break,
+			Some(None) => {
+				finality_proofs_stream.needs_restart = true;
+				break;
+			},
+			None => break,
 		};
 		let finality_proof_target_header_number = match finality_proof.target_header_number() {
 			Some(target_header_number) => target_header_number,

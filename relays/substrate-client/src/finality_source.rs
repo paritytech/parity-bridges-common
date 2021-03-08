@@ -132,7 +132,7 @@ where
 		Ok(unfold(
 			self.client.clone().subscribe_justifications().await?,
 			move |mut subscription| async move {
-				let next_justification = subscription.next().await;
+				let next_justification = subscription.next().await?;
 				Some((
 					Justification {
 						raw_justification: next_justification.0,
