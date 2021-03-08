@@ -1829,6 +1829,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "finality-relay"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "async-trait",
+ "backoff",
+ "futures 0.3.13",
+ "headers-relay",
+ "log",
+ "num-traits",
+ "parking_lot 0.11.1",
+ "relay-utils",
+]
+
+[[package]]
 name = "fixed-hash"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5630,8 +5645,10 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-header-chain",
  "bp-message-lane",
  "bp-runtime",
+ "finality-relay",
  "frame-support",
  "frame-system",
  "futures 0.3.13",
@@ -8033,6 +8050,7 @@ dependencies = [
  "bp-rialto",
  "bp-runtime",
  "bridge-runtime-common",
+ "finality-relay",
  "frame-support",
  "futures 0.3.13",
  "headers-relay",
@@ -8042,8 +8060,8 @@ dependencies = [
  "millau-runtime",
  "num-traits",
  "pallet-bridge-call-dispatch",
+ "pallet-finality-verifier",
  "pallet-message-lane",
- "pallet-substrate-bridge",
  "parity-scale-codec 2.0.1",
  "paste 1.0.4",
  "relay-kusama-client",
