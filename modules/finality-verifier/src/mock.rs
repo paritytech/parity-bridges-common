@@ -97,15 +97,6 @@ impl Chain for TestBridgedChain {
 	type Header = <TestRuntime as frame_system::Config>::Header;
 }
 
-#[derive(Debug)]
-pub struct Checker<H, P>(std::marker::PhantomData<(H, P)>);
-
-impl<H> bp_header_chain::AncestryChecker<H, Vec<H>> for Checker<H, Vec<H>> {
-	fn are_ancestors(_ancestor: &H, _child: &H, proof: &Vec<H>) -> bool {
-		!proof.is_empty()
-	}
-}
-
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
 }
