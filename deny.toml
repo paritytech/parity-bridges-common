@@ -56,9 +56,6 @@ ignore = [
 	# We need to wait until Substrate updates their `wasmtime` dependency to fix this.
 	# TODO: See issue #676: https://github.com/paritytech/parity-bridges-common/issues/676
 	"RUSTSEC-2021-0013",
-	# We need to wait until Substrate updates their `libp2p` dependency to fix this.
-	# TODO: See issue #681: https://github.com/paritytech/parity-bridges-common/issues/681
-	"RUSTSEC-2020-0123",
 	# We need to wait until Substrate updates their `hyper` dependency to fix this.
 	# TODO: See issue #710: https://github.com/paritytech/parity-bridges-common/issues/681
 	"RUSTSEC-2021-0020",
