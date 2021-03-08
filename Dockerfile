@@ -8,7 +8,7 @@
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
 
-FROM docker.io/paritytech/bridge-dependencies as builder
+FROM paritytech/bridge-dependencies as builder
 WORKDIR /parity-bridges-common
 
 COPY . .
@@ -19,7 +19,7 @@ RUN strip ./target/release/${PROJECT}
 
 # In this final stage we copy over the final binary and do some checks
 # to make sure that everything looks good.
-FROM docker.io/ubuntu:20.04 as runtime
+FROM ubuntu:20.04 as runtime
 
 # show backtraces
 ENV RUST_BACKTRACE 1
@@ -31,7 +31,7 @@ RUN set -eux; \
 		libssl-dev curl && \
 	groupadd -g 1000 user && \
 	useradd -u 1000 -g user -s /bin/sh -m user && \
-# apt clean up
+	# apt clean up
 	apt-get autoremove -y && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
