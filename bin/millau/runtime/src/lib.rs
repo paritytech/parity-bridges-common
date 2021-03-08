@@ -61,6 +61,7 @@ pub use frame_support::{
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
+pub use pallet_finality_verifier::Call as FinalityBridgeRialtoCall;
 pub use pallet_message_lane::Call as MessageLaneCall;
 pub use pallet_substrate_bridge::Call as BridgeRialtoCall;
 pub use pallet_sudo::Call as SudoCall;
@@ -423,7 +424,7 @@ impl_runtime_apis! {
 		}
 
 		fn execute_block(block: Block) {
-			Executive::execute_block(block)
+			Executive::execute_block(block);
 		}
 
 		fn initialize_block(header: &<Block as BlockT>::Header) {
@@ -458,7 +459,7 @@ impl_runtime_apis! {
 		}
 
 		fn random_seed() -> <Block as BlockT>::Hash {
-			RandomnessCollectiveFlip::random_seed()
+			RandomnessCollectiveFlip::random_seed().0.into()
 		}
 	}
 
