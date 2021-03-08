@@ -3,7 +3,6 @@
 members = [
 	"bin/*/node",
 	"bin/*/runtime",
-	"bin/runtime-common",
 	"fuzz/*",
 	"modules/*",
 	"primitives/*",
