@@ -32,7 +32,7 @@ pub(crate) type MillauFinalityToRialto = SubstrateFinalityToSubstrate<Millau, Ri
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_millau::FINALIZED_MILLAU_BLOCK_METHOD;
+	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;
 
 	type SignedTransaction = <Rialto as TransactionSignScheme>::SignedTransaction;
 
