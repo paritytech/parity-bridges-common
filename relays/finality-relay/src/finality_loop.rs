@@ -17,7 +17,7 @@
 //! The loop basically reads all missing headers and their finality proofs from the source client.
 //! The proof for the best possible header is then submitted to the target node. The only exception
 //! is the mandatory headers, which we always submit to the target node. For such headers, we
-//! assume that the persistent proof either exists, or will eventually became available.
+//! assume that the persistent proof either exists, or will eventually become available.
 
 use crate::{FinalityProof, FinalitySyncPipeline, SourceHeader};
 
