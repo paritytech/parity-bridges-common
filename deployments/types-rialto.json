@@ -112,6 +112,25 @@
       "Ecdsa": "[u8;33]"
     }
   },
+  "MesssageProofOf": "(Weight, FromBridgedChainMessagesProof)",
+  "FromBridgedChainMessagesProof": {
+    "bridged_header_hash": "BridgedBlockHash",
+    "storage_proof": "Vec<StorageProofItem>",
+    "lane": "LaneId",
+    "nonces_start": "MessageNonce",
+    "nonces_end": "MessageNonce"
+  },
+  "StorageProofItem": "Vec<u8>",
+  "MessagesDeliveryProofOf": {
+    "bridged_header_hash": "BridgedBlockHash",
+    "storage_proof": "Vec<StorageProofItem>",
+    "lane": "LaneId"
+  },
+  "UnrewardedRelayersState": {
+    "unrewarded_relayer_entries": "MessageNonce",
+    "messages_in_oldest_entry": "MessageNonce",
+    "total_messages": "MessageNonce"
+  },
   "Fee": "RialtoBalance",
   "Balance": "RialtoBalance",
   "BlockHash": "RialtoBlockHash",
