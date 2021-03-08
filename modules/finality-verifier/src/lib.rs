@@ -16,17 +16,16 @@
 
 //! Substrate Finality Verifier Pallet
 //!
-//! The goal of this pallet is to provide a safe interface for writing finalized headers to an
-//! external pallet which tracks headers and finality proofs. By safe, we mean that only headers
-//! whose finality has been verified will be written to the underlying pallet.
+//! This pallet is an on-chain GRANDPA light client for Substrate based chains.
 //!
-//! By verifying the finality of headers before writing them to storage we prevent DoS vectors in
-//! which unfinalized headers get written to storage even if they don't have a chance of being
-//! finalized in the future (such as in the case where a different fork gets finalized).
+//! This pallet achieves this by trustlessly verifying GRANDPA finality proofs on-chain.
+//! Once verified, finalized headers are stored in the pallet, thereby creating a sparse
+//! header chain. This sparse header chain can be used as a source of truth for other
+//! higher-level applications.
 //!
-//! The underlying pallet used for storage is assumed to be a pallet which tracks headers and
-//! GRANDPA authority set changes. This information is used during the verification of GRANDPA
-//! finality proofs.
+//! Since this pallet only tracks finalized headers it does not deal with forks. If a
+//! fork does occur on the bridged chain there is nothing the pallet can do to handle
+//! this - governance intervention will be required.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Runtime-generated enums
