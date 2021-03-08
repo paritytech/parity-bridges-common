@@ -90,13 +90,13 @@
     "fee": "Fee"
   },
   "MessagePayload": "Vec<u8>",
-  "OpaqueCall": "Vec<u8>",
+  "BridgedOpaqueCall": "Vec<u8>",
   "OutboundMessageFee": "Fee",
   "OutboundPayload": {
     "spec_version": "SpecVersion",
     "weight": "Weight",
     "origin": "CallOrigin",
-    "call": "OpaqueCall"
+    "call": "BridgedOpaqueCall"
   },
   "CallOrigin": {
     "_enum": {
