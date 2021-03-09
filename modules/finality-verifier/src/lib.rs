@@ -141,7 +141,10 @@ pub mod pallet {
 				},
 			)?;
 
-			import_header::<T>(hash, finality_target)?;
+			try_enact_authority_change::<T>(&finality_target)?;
+
+			<BestFinalized<T>>::put(hash);
+			<ImportedHeaders<T>>::insert(hash, finality_target);
 			<RequestCount<T>>::mutate(|count| *count += 1);
 
 			log::info!("Succesfully imported finalized header with hash {:?}!", hash);
@@ -319,42 +322,42 @@ pub mod pallet {
 		StorageRootMismatch,
 	}
 
-	/// Import the given header to the pallet's storage.
+	/// Check the given header for a GRANDPA scheduled authority set change. If a change
+	/// is found it will be enacted immediately.
 	///
-	/// This function will also check if the header schedules and enacts authority set changes,
-	/// updating the current authority set accordingly.
-	///
-	/// Note: This function assumes that the given header has already been proven to be valid and
-	/// finalized. Using this assumption it will write them to storage with minimal checks. That
-	/// means it's of great importance that this function *not* called with any headers whose
-	/// finality has not been checked, otherwise you risk bricking your bridge.
-	pub(crate) fn import_header<T: Config>(
-		hash: BridgedBlockHash<T>,
-		header: BridgedHeader<T>,
+	/// This function does not support forced changes, or scheduled changes with delays
+	/// since these types of changes are indicitive of abnormal behaviour from GRANDPA.
+	pub(crate) fn try_enact_authority_change<T: Config>(
+		header: &BridgedHeader<T>,
 	) -> Result<(), sp_runtime::DispatchError> {
 		// We don't support forced changes - at that point governance intervention is required.
 		ensure!(
-			super::find_forced_change(&header).is_none(),
+			super::find_forced_change(header).is_none(),
 			<Error<T>>::UnsupportedScheduledChange
 		);
 
-		if let Some(change) = super::find_scheduled_change(&header) {
+		if let Some(change) = super::find_scheduled_change(header) {
 			// GRANDPA only includes a `delay` for forced changes, so this isn't valid.
 			ensure!(change.delay == Zero::zero(), <Error<T>>::UnsupportedScheduledChange);
 
+			let current_set_id = <CurrentAuthoritySet<T>>::get().set_id;
 			// TODO [#788]: Stop manually increasing the `set_id` here.
 			let next_authorities = bp_header_chain::AuthoritySet {
 				authorities: change.next_authorities,
-				set_id: <CurrentAuthoritySet<T>>::get().set_id + 1,
+				set_id: current_set_id + 1,
 			};
 
 			// Since our header schedules a change and we know the delay is 0, it must also enact
 			// the change.
-			<CurrentAuthoritySet<T>>::put(next_authorities);
-		};
+			<CurrentAuthoritySet<T>>::put(&next_authorities);
 
-		<BestFinalized<T>>::put(hash);
-		<ImportedHeaders<T>>::insert(hash, header);
+			log::info!(
+				"Transitioned from authority set {} to {}! New authorities are: {:?}",
+				current_set_id,
+				current_set_id + 1,
+				next_authorities,
+			);
+		};
 
 		Ok(())
 	}
@@ -783,8 +786,18 @@ mod tests {
 			let mut header = test_header(2);
 			header.digest = change_log(0);
 
+			// Create a valid justification for the header
+			let set_id = 1;
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
+
 			// Let's import our test header
-			assert_ok!(pallet::import_header::<TestRuntime>(header.hash(), header.clone()));
+			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
+				Origin::signed(1),
+				header.clone(),
+				justification
+			));
 
 			// Make sure that our header is the best finalized
 			assert_eq!(<BestFinalized<TestRuntime>>::get(), header.hash());
@@ -808,9 +821,15 @@ mod tests {
 			let mut header = test_header(2);
 			header.digest = change_log(1);
 
+			// Create a valid justification for the header
+			let set_id = 1;
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
+
 			// Should not be allowed to import this header
 			assert_err!(
-				pallet::import_header::<TestRuntime>(header.hash(), header),
+				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification),
 				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
 		})
@@ -826,9 +845,15 @@ mod tests {
 			let mut header = test_header(2);
 			header.digest = forced_change_log(0);
 
+			// Create a valid justification for the header
+			let set_id = 1;
+			let grandpa_round = 1;
+			let justification =
+				make_justification_for_header(&header, grandpa_round, set_id, &authority_list()).encode();
+
 			// Should not be allowed to import this header
 			assert_err!(
-				pallet::import_header::<TestRuntime>(header.hash(), header),
+				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification),
 				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
 		})
