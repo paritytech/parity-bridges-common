@@ -112,7 +112,7 @@
       "Ecdsa": "[u8;33]"
     }
   },
-  "MesssagesProofOf": {
+  "MessagesProofOf": {
 	"bridged_header_hash": "BridgedBlockHash",
 	"storage_proof": "Vec<StorageProofItem>",
 	"lane": "LaneId",
