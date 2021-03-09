@@ -115,4 +115,3 @@ sp_api::decl_runtime_apis! {
 		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
 	}
 }
-

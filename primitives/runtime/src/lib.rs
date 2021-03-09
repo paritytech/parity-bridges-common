@@ -53,7 +53,6 @@ pub const ROCOCO_BRIDGE_INSTANCE: InstanceId = *b"roco";
 /// Bridge-with-Westend instance id.
 pub const WESTEND_BRIDGE_INSTANCE: InstanceId = *b"wend";
 
-
 /// Call-dispatch module prefix.
 pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/call-dispatch";
 
