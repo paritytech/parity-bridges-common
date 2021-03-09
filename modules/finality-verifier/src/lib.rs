@@ -301,8 +301,6 @@ pub mod pallet {
 		InvalidJustification,
 		/// The authority set from the underlying header chain is invalid.
 		InvalidAuthoritySet,
-		/// Failed to write a header to the underlying header chain.
-		FailedToWriteHeader,
 		/// There are too many requests for the current window to handle.
 		TooManyRequests,
 		/// The header being imported is older than the best finalized header known to the pallet.
