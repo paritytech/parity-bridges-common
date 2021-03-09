@@ -31,7 +31,6 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use bp_header_chain::justification::verify_justification;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
@@ -130,19 +129,9 @@ pub mod pallet {
 			// "travelling back in time" (which could be indicative of something bad, e.g a hard-fork).
 			ensure!(best_finalized.number() < number, <Error<T>>::OldHeader);
 
-			let authority_set = <CurrentAuthoritySet<T>>::get();
-			let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T>>::InvalidAuthoritySet)?;
-			let set_id = authority_set.set_id;
-
-			verify_justification::<BridgedHeader<T>>((hash, *number), set_id, voter_set, &justification).map_err(
-				|e| {
-					log::error!("Received invalid justification for {:?}: {:?}", finality_target, e);
-					<Error<T>>::InvalidJustification
-				},
-			)?;
+			verify_justification::<T>(&justification, hash, *number)?;
 
 			try_enact_authority_change::<T>(&finality_target)?;
-
 			<BestFinalized<T>>::put(hash);
 			<ImportedHeaders<T>>::insert(hash, finality_target);
 			<RequestCount<T>>::mutate(|count| *count += 1);
@@ -360,6 +349,30 @@ pub mod pallet {
 		};
 
 		Ok(())
+	}
+
+	/// Verify a GRANDPA justification (finality proof) for a given header.
+	///
+	/// Will use the GRANDPA current authorities known to the pallet.
+	pub(crate) fn verify_justification<T: Config>(
+		justification: &[u8],
+		hash: BridgedBlockHash<T>,
+		number: BridgedBlockNumber<T>,
+	) -> Result<(), sp_runtime::DispatchError> {
+		use bp_header_chain::justification::verify_justification;
+
+		let authority_set = <CurrentAuthoritySet<T>>::get();
+		let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T>>::InvalidAuthoritySet)?;
+		let set_id = authority_set.set_id;
+
+		Ok(
+			verify_justification::<BridgedHeader<T>>((hash, number), set_id, voter_set, &justification).map_err(
+				|e| {
+					log::error!("Received invalid justification for {:?}: {:?}", hash, e);
+					<Error<T>>::InvalidJustification
+				},
+			)?,
+		)
 	}
 
 	/// Since this writes to storage with no real checks this should only be used in functions that
