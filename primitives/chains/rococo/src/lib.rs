@@ -25,24 +25,24 @@ use sp_std::prelude::*;
 
 pub use bp_polkadot_core::*;
 
-/// Polkadot Chain
-pub type Polkadot = PolkadotLike;
+/// Rococo Chain
+pub type Rococo = PolkadotLike;
 
-/// Name of the `PolkadotHeaderApi::best_blocks` runtime method.
-pub const BEST_POLKADOT_BLOCKS_METHOD: &str = "PolkadotHeaderApi_best_blocks";
-/// Name of the `PolkadotHeaderApi::finalized_block` runtime method.
-pub const FINALIZED_POLKADOT_BLOCK_METHOD: &str = "PolkadotHeaderApi_finalized_block";
-/// Name of the `PolkadotHeaderApi::is_known_block` runtime method.
-pub const IS_KNOWN_POLKADOT_BLOCK_METHOD: &str = "PolkadotHeaderApi_is_known_block";
-/// Name of the `PolkadotHeaderApi::incomplete_headers` runtime method.
-pub const INCOMPLETE_POLKADOT_HEADERS_METHOD: &str = "PolkadotHeaderApi_incomplete_headers";
+/// Name of the `RococoHeaderApi::best_blocks` runtime method.
+pub const BEST_ROCOCO_BLOCKS_METHOD: &str = "RococoHeaderApi_best_blocks";
+/// Name of the `RococoHeaderApi::finalized_block` runtime method.
+pub const FINALIZED_ROCOCO_BLOCK_METHOD: &str = "RococoHeaderApi_finalized_block";
+/// Name of the `RococoHeaderApi::is_known_block` runtime method.
+pub const IS_KNOWN_ROCOCO_BLOCK_METHOD: &str = "RococoHeaderApi_is_known_block";
+/// Name of the `RococoHeaderApi::incomplete_headers` runtime method.
+pub const INCOMPLETE_ROCOCO_HEADERS_METHOD: &str = "RococoHeaderApi_incomplete_headers";
 
 sp_api::decl_runtime_apis! {
-	/// API for querying information about Polkadot headers from the Bridge Pallet instance.
+	/// API for querying information about Rococo headers from the Bridge Pallet instance.
 	///
-	/// This API is implemented by runtimes that are bridging with Polkadot chain, not the
-	/// Polkadot runtime itself.
-	pub trait PolkadotHeaderApi {
+	/// This API is implemented by runtimes that are bridging with Rococo chain, not the
+	/// Rococo runtime itself.
+	pub trait RococoHeaderApi {
 		/// Returns number and hash of the best blocks known to the bridge module.
 		///
 		/// Will return multiple headers if there are many headers at the same "best" height.
@@ -63,11 +63,11 @@ sp_api::decl_runtime_apis! {
 		fn is_finalized_block(hash: Hash) -> bool;
 	}
 
-	/// Outbound message lane API for messages that are sent to Polkadot chain.
+	/// Outbound message lane API for messages that are sent to Rococo chain.
 	///
-	/// This API is implemented by runtimes that are sending messages to Polkadot chain, not the
-	/// Polkadot runtime itself.
-	pub trait ToPolkadotOutboundLaneApi {
+	/// This API is implemented by runtimes that are sending messages to Rococo chain, not the
+	/// Rococo runtime itself.
+	pub trait ToRococoOutboundLaneApi {
 		/// Returns total dispatch weight and encoded payload size of all messages in given inclusive range.
 		///
 		/// If some (or all) messages are missing from the storage, they'll also will
@@ -83,11 +83,11 @@ sp_api::decl_runtime_apis! {
 		fn latest_generated_nonce(lane: LaneId) -> MessageNonce;
 	}
 
-	/// Inbound message lane API for messages sent by Polkadot chain.
+	/// Inbound message lane API for messages sent by Rococo chain.
 	///
-	/// This API is implemented by runtimes that are receiving messages from Polkadot chain, not the
-	/// Polkadot runtime itself.
-	pub trait FromPolkadotInboundLaneApi {
+	/// This API is implemented by runtimes that are receiving messages from Rococo chain, not the
+	/// Rococo runtime itself.
+	pub trait FromRococoInboundLaneApi {
 		/// Returns nonce of the latest message, received by given lane.
 		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 		/// Nonce of latest message that has been confirmed to the bridged chain.

@@ -20,81 +20,13 @@
 // Runtime-generated DecodeLimit::decode_all_with_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bp_message_lane::{LaneId, MessageNonce};
-use bp_runtime::Chain;
-use frame_support::{weights::Weight, RuntimeDebug};
-use sp_core::Hasher as HasherT;
-use sp_runtime::{
-	generic,
-	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic,
-};
+use bp_message_lane::{LaneId, Weight, MessageNonce};
 use sp_std::prelude::*;
 
-// TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
-/// Maximal number of messages in single delivery transaction.
-pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
+pub use bp_polkadot_core::*;
 
-/// Maximal number of unrewarded relayer entries at inbound lane.
-pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
-
-// TODO: should be selected keeping in mind:
-// finality delay on both chains + reward payout cost + messages throughput.
-/// Maximal number of unconfirmed messages at inbound lane.
-pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
-
-/// Block number type used in Kusama.
-pub type BlockNumber = u32;
-
-/// Hash type used in Kusama.
-pub type Hash = <BlakeTwo256 as HasherT>::Out;
-
-/// The type of an object that can produce hashes on Kusama.
-pub type Hasher = BlakeTwo256;
-
-/// The header type used by Kusama.
-pub type Header = generic::Header<BlockNumber, Hasher>;
-
-/// Signature type used by Kusama.
-pub type Signature = MultiSignature;
-
-/// Public key of account on Kusama chain.
-pub type AccountPublic = <Signature as Verify>::Signer;
-
-/// Id of account on Kusama chain.
-pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
-
-/// Index of a transaction on the Kusama chain.
-pub type Nonce = u32;
-
-/// Block type of Kusama.
-pub type Block = generic::Block<Header, UncheckedExtrinsic>;
-
-/// Kusama block signed with a Justification.
-pub type SignedBlock = generic::SignedBlock<Block>;
-
-/// The balance of an account on Polkadot.
-pub type Balance = u128;
-
-/// Kusama chain.
-#[derive(RuntimeDebug)]
-pub struct Kusama;
-
-impl Chain for Kusama {
-	type BlockNumber = BlockNumber;
-	type Hash = Hash;
-	type Hasher = Hasher;
-	type Header = Header;
-}
-
-/// Convert a 256-bit hash into an AccountId.
-pub struct AccountIdConverter;
-
-impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverter {
-	fn convert(hash: sp_core::H256) -> AccountId {
-		hash.to_fixed_bytes().into()
-	}
-}
+/// Kusama Chain
+pub type Kusama = PolkadotLike;
 
 /// Name of the `KusamaHeaderApi::best_blocks` runtime method.
 pub const BEST_KUSAMA_BLOCKS_METHOD: &str = "KusamaHeaderApi_best_blocks";
