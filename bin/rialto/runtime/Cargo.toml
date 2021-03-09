@@ -11,7 +11,8 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 hex-literal = "0.3"
 libsecp256k1 = { version = "0.3.4", optional = true, default-features = false, features = ["hmac"] }
-serde = { version = "1.0.123", optional = true, features = ["derive"] }
+log = { version = "0.4.14", default-features = false }
+serde = { version = "1.0.124", optional = true, features = ["derive"] }
 
 # Bridge dependencies
 
@@ -47,6 +48,7 @@ pallet-session = { git = "https://github.com/paritytech/substrate.git", branch =
 pallet-sudo = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-api = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-block-builder = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
 sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", branch = "master" , default-features = false }
@@ -86,6 +88,7 @@ std = [
 	"frame-support/std",
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
+	"log/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-bridge-eth-poa/std",
@@ -100,6 +103,7 @@ std = [
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment/std",
+	"pallet-transaction-payment-rpc-runtime-api/std",
 	"serde",
 	"sp-api/std",
 	"sp-block-builder/std",

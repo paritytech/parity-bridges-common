@@ -46,10 +46,7 @@ use sp_trie::StorageProof;
 // Re-export since the node uses these when configuring genesis
 pub use storage::{InitializationData, ScheduledChange};
 
-pub use storage_proof::StorageProofChecker;
-
 mod storage;
-mod storage_proof;
 mod verifier;
 
 #[cfg(test)]
@@ -181,7 +178,7 @@ decl_module! {
 			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
 			let hash = header.hash();
-			frame_support::debug::trace!("Going to import header {:?}: {:?}", hash, header);
+			log::trace!("Going to import header {:?}: {:?}", hash, header);
 
 			let mut verifier = verifier::Verifier {
 				storage: PalletStorage::<T>::new(),
@@ -190,11 +187,11 @@ decl_module! {
 			let _ = verifier
 				.import_header(hash, header)
 				.map_err(|e| {
-					frame_support::debug::error!("Failed to import header {:?}: {:?}", hash, e);
+					log::error!("Failed to import header {:?}: {:?}", hash, e);
 					<Error<T>>::InvalidHeader
 				})?;
 
-			frame_support::debug::trace!("Successfully imported header: {:?}", hash);
+			log::trace!("Successfully imported header: {:?}", hash);
 
 			Ok(())
 		}
@@ -213,7 +210,7 @@ decl_module! {
 		) -> DispatchResult {
 			ensure_operational::<T>()?;
 			let _ = ensure_signed(origin)?;
-			frame_support::debug::trace!("Going to finalize header: {:?}", hash);
+			log::trace!("Going to finalize header: {:?}", hash);
 
 			let mut verifier = verifier::Verifier {
 				storage: PalletStorage::<T>::new(),
@@ -222,11 +219,11 @@ decl_module! {
 			let _ = verifier
 				.import_finality_proof(hash, finality_proof.into())
 				.map_err(|e| {
-					frame_support::debug::error!("Failed to finalize header {:?}: {:?}", hash, e);
+					log::error!("Failed to finalize header {:?}: {:?}", hash, e);
 					<Error<T>>::UnfinalizedHeader
 				})?;
 
-			frame_support::debug::trace!("Successfully finalized header: {:?}", hash);
+			log::trace!("Successfully finalized header: {:?}", hash);
 
 			Ok(())
 		}
@@ -251,7 +248,7 @@ decl_module! {
 			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
 			initialize_bridge::<T>(init_data.clone());
 
-			frame_support::debug::info!(
+			log::info!(
 				"Pallet has been initialized with the following parameters: {:?}", init_data
 			);
 		}
@@ -265,11 +262,11 @@ decl_module! {
 			match new_owner {
 				Some(new_owner) => {
 					ModuleOwner::<T>::put(&new_owner);
-					frame_support::debug::info!("Setting pallet Owner to: {:?}", new_owner);
+					log::info!("Setting pallet Owner to: {:?}", new_owner);
 				},
 				None => {
 					ModuleOwner::<T>::kill();
-					frame_support::debug::info!("Removed Owner of pallet.");
+					log::info!("Removed Owner of pallet.");
 				},
 			}
 		}
@@ -281,7 +278,7 @@ decl_module! {
 		pub fn halt_operations(origin) {
 			ensure_owner_or_root::<T>(origin)?;
 			IsHalted::put(true);
-			frame_support::debug::warn!("Stopping pallet operations.");
+			log::warn!("Stopping pallet operations.");
 		}
 
 		/// Resume all pallet operations. May be called even if pallet is halted.
@@ -291,7 +288,7 @@ decl_module! {
 		pub fn resume_operations(origin) {
 			ensure_owner_or_root::<T>(origin)?;
 			IsHalted::put(false);
-			frame_support::debug::info!("Resuming pallet operations.");
+			log::info!("Resuming pallet operations.");
 		}
 	}
 }
@@ -355,7 +352,7 @@ impl<T: Config> Module<T> {
 	pub fn parse_finalized_storage_proof<R>(
 		finalized_header_hash: BridgedBlockHash<T>,
 		storage_proof: StorageProof,
-		parse: impl FnOnce(StorageProofChecker<BridgedBlockHasher<T>>) -> R,
+		parse: impl FnOnce(bp_runtime::StorageProofChecker<BridgedBlockHasher<T>>) -> R,
 	) -> Result<R, sp_runtime::DispatchError> {
 		let storage = PalletStorage::<T>::new();
 		let header = storage
@@ -365,8 +362,8 @@ impl<T: Config> Module<T> {
 			return Err(Error::<T>::UnfinalizedHeader.into());
 		}
 
-		let storage_proof_checker =
-			StorageProofChecker::new(*header.state_root(), storage_proof).map_err(Error::<T>::from)?;
+		let storage_proof_checker = bp_runtime::StorageProofChecker::new(*header.state_root(), storage_proof)
+			.map_err(|_| Error::<T>::StorageRootMismatch)?;
 		Ok(parse(storage_proof_checker))
 	}
 }
@@ -898,7 +895,7 @@ mod tests {
 	fn parse_finalized_storage_accepts_valid_proof() {
 		run_test(|| {
 			let mut storage = PalletStorage::<TestRuntime>::new();
-			let (state_root, storage_proof) = storage_proof::tests::craft_valid_storage_proof();
+			let (state_root, storage_proof) = bp_runtime::craft_valid_storage_proof();
 			let mut header = unfinalized_header(1);
 			header.is_finalized = true;
 			header.header.set_state_root(state_root);

@@ -1,17 +1,10 @@
 [workspace]
 
 members = [
-	"bin/millau/node",
-	"bin/rialto/node",
-	"bin/millau/runtime",
-	"bin/rialto/runtime",
-	"fuzz/storage-proof",
-	"modules/call-dispatch",
-	"modules/substrate",
-	"modules/ethereum",
-	"modules/ethereum-contract/builtin",
-	"modules/finality-verifier",
-	"modules/currency-exchange",
-	"relays/ethereum",
-	"relays/substrate",
+	"bin/*/node",
+	"bin/*/runtime",
+	"fuzz/*",
+	"modules/*",
+	"primitives/*",
+	"relays/*",
 ]

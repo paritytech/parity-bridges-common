@@ -56,7 +56,7 @@ pub type BridgedBlockNumber<T> = BlockNumberOf<<T as Config>::BridgedChain>;
 /// Block hash of the bridged chain.
 pub type BridgedBlockHash<T> = HashOf<<T as Config>::BridgedChain>;
 /// Hasher of the bridged chain.
-pub type _BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
+pub type BridgedBlockHasher<T> = HasherOf<<T as Config>::BridgedChain>;
 /// Header of the bridged chain.
 pub type BridgedHeader<T> = HeaderOf<<T as Config>::BridgedChain>;
 
@@ -133,7 +133,7 @@ pub mod pallet {
 			);
 
 			let (hash, number) = (finality_target.hash(), finality_target.number());
-			frame_support::debug::trace!("Going to try and finalize header {:?}", finality_target);
+			log::trace!("Going to try and finalize header {:?}", finality_target);
 
 			let best_finalized = <ImportedHeaders<T>>::get(<BestFinalized<T>>::get()).expect(
 				"In order to reach this point the bridge must have been initialized. Afterwards,
@@ -151,13 +151,13 @@ pub mod pallet {
 
 			verify_justification::<BridgedHeader<T>>((hash, *number), set_id, voter_set, &justification).map_err(
 				|e| {
-					frame_support::debug::error!("Received invalid justification for {:?}: {:?}", finality_target, e);
+					log::error!("Received invalid justification for {:?}: {:?}", finality_target, e);
 					<Error<T>>::InvalidJustification
 				},
 			)?;
 
 			let best_finalized = T::HeaderChain::best_finalized();
-			frame_support::debug::trace!("Checking ancestry against best finalized header: {:?}", &best_finalized);
+			log::trace!("Checking ancestry against best finalized header: {:?}", &best_finalized);
 
 			ensure!(
 				T::AncestryChecker::are_ancestors(&best_finalized, &finality_target, &ancestry_proof),
@@ -169,7 +169,7 @@ pub mod pallet {
 			import_header::<T>(hash, finality_target)?;
 			<RequestCount<T>>::mutate(|count| *count += 1);
 
-			frame_support::debug::info!("Succesfully imported finalized header with hash {:?}!", hash);
+			log::info!("Succesfully imported finalized header with hash {:?}!", hash);
 
 			Ok(().into())
 		}
@@ -194,7 +194,7 @@ pub mod pallet {
 			ensure!(init_allowed, <Error<T>>::AlreadyInitialized);
 			initialize_bridge::<T>(init_data.clone());
 
-			frame_support::debug::info!(
+			log::info!(
 				"Pallet has been initialized with the following parameters: {:?}",
 				init_data
 			);
@@ -211,11 +211,11 @@ pub mod pallet {
 			match new_owner {
 				Some(new_owner) => {
 					ModuleOwner::<T>::put(&new_owner);
-					frame_support::debug::info!("Setting pallet Owner to: {:?}", new_owner);
+					log::info!("Setting pallet Owner to: {:?}", new_owner);
 				}
 				None => {
 					ModuleOwner::<T>::kill();
-					frame_support::debug::info!("Removed Owner of pallet.");
+					log::info!("Removed Owner of pallet.");
 				}
 			}
 
@@ -229,7 +229,7 @@ pub mod pallet {
 		pub fn halt_operations(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root::<T>(origin)?;
 			<IsHalted<T>>::put(true);
-			frame_support::debug::warn!("Stopping pallet operations.");
+			log::warn!("Stopping pallet operations.");
 
 			Ok(().into())
 		}
@@ -241,7 +241,7 @@ pub mod pallet {
 		pub fn resume_operations(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root::<T>(origin)?;
 			<IsHalted<T>>::put(false);
-			frame_support::debug::info!("Resuming pallet operations.");
+			log::info!("Resuming pallet operations.");
 
 			Ok(().into())
 		}
@@ -335,6 +335,8 @@ pub mod pallet {
 		TooManyRequests,
 		/// The header being imported is older than the best finalized header known to the pallet.
 		OldHeader,
+		/// The header is unknown to the pallet.
+		UnknownHeader,
 		/// The scheduled authority set change found in the header is unsupported by the pallet.
 		///
 		/// This is the case for non-standard (e.g forced) authority set changes.
@@ -343,6 +345,8 @@ pub mod pallet {
 		AlreadyInitialized,
 		/// All pallet operations are halted.
 		Halted,
+		/// The storage proof doesn't contains storage root. So it is invalid for given header.
+		StorageRootMismatch,
 	}
 
 	/// Import the given header to the pallet's storage.
@@ -387,7 +391,7 @@ pub mod pallet {
 
 	/// Since this writes to storage with no real checks this should only be used in functions that
 	/// were called by a trusted origin.
-	fn initialize_bridge<T: Config>(init_params: super::InitializationData<BridgedHeader<T>>) {
+	pub(crate) fn initialize_bridge<T: Config>(init_params: super::InitializationData<BridgedHeader<T>>) {
 		let super::InitializationData {
 			header,
 			authority_list,
@@ -447,6 +451,21 @@ impl<T: Config> Pallet<T> {
 	pub fn is_known_header(hash: BridgedBlockHash<T>) -> bool {
 		<ImportedHeaders<T>>::contains_key(hash)
 	}
+
+	/// Verify that the passed storage proof is valid, given it is crafted using
+	/// known finalized header. If the proof is valid, then the `parse` callback
+	/// is called and the function returns its result.
+	pub fn parse_finalized_storage_proof<R>(
+		hash: BridgedBlockHash<T>,
+		storage_proof: sp_trie::StorageProof,
+		parse: impl FnOnce(bp_runtime::StorageProofChecker<BridgedBlockHasher<T>>) -> R,
+	) -> Result<R, sp_runtime::DispatchError> {
+		let header = <ImportedHeaders<T>>::get(hash).ok_or(Error::<T>::UnknownHeader)?;
+		let storage_proof_checker = bp_runtime::StorageProofChecker::new(*header.state_root(), storage_proof)
+			.map_err(|_| Error::<T>::StorageRootMismatch)?;
+
+		Ok(parse(storage_proof_checker))
+	}
 }
 
 /// Data required for initializing the bridge pallet.
@@ -497,6 +516,17 @@ pub(crate) fn find_forced_change<H: HeaderT>(
 	// find the first consensus digest with the right ID which converts to
 	// the right kind of consensus log.
 	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
+}
+
+/// (Re)initialize bridge with given header for using it in external benchmarks.
+#[cfg(feature = "runtime-benchmarks")]
+pub fn initialize_for_benchmarks<T: Config>(header: BridgedHeader<T>) {
+	initialize_bridge::<T>(InitializationData {
+		header,
+		authority_list: Vec::new(), // we don't verify any proofs in external benchmarks
+		set_id: 0,
+		is_halted: false,
+	});
 }
 
 #[cfg(test)]
@@ -864,6 +894,40 @@ mod tests {
 			);
 		})
 	}
+
+	#[test]
+	fn parse_finalized_storage_proof_rejects_proof_on_unknown_header() {
+		run_test(|| {
+			assert_noop!(
+				Module::<TestRuntime>::parse_finalized_storage_proof(
+					Default::default(),
+					sp_trie::StorageProof::new(vec![]),
+					|_| (),
+				),
+				Error::<TestRuntime>::UnknownHeader,
+			);
+		});
+	}
+
+	#[test]
+	fn parse_finalized_storage_accepts_valid_proof() {
+		run_test(|| {
+			let (state_root, storage_proof) = bp_runtime::craft_valid_storage_proof();
+
+			let mut header = test_header(2);
+			header.set_state_root(state_root);
+
+			let hash = header.hash();
+			<BestFinalized<TestRuntime>>::put(hash);
+			<ImportedHeaders<TestRuntime>>::insert(hash, header);
+
+			assert_ok!(
+				Module::<TestRuntime>::parse_finalized_storage_proof(hash, storage_proof, |_| (),),
+				(),
+			);
+		});
+	}
+
 	#[test]
 	fn rate_limiter_disallows_imports_once_limit_is_hit_in_single_block() {
 		run_test(|| {
