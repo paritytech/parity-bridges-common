@@ -238,30 +238,6 @@ pub mod pallet {
 
 			Ok(().into())
 		}
-
-		/// Halt all pallet operations. Operations may be resumed using `resume_operations` call.
-		///
-		/// May only be called either by root, or by `ModuleOwner`.
-		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
-		pub fn halt_operations(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			ensure_owner_or_root::<T>(origin)?;
-			<IsHalted<T>>::put(true);
-			log::warn!("Stopping pallet operations.");
-
-			Ok(().into())
-		}
-
-		/// Resume all pallet operations. May be called even if pallet is halted.
-		///
-		/// May only be called either by root, or by `ModuleOwner`.
-		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
-		pub fn resume_operations(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			ensure_owner_or_root::<T>(origin)?;
-			<IsHalted<T>>::put(false);
-			log::info!("Resuming pallet operations.");
-
-			Ok(().into())
-		}
 	}
 
 	/// The current number of requests which have written to storage.
