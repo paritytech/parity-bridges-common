@@ -27,8 +27,8 @@ use sp_runtime::{
 };
 
 // Re-export's to avoid extra substrate dependencies in chain-specific crates.
-pub use sp_runtime::traits::Convert;
 pub use frame_support::Parameter;
+pub use sp_runtime::traits::Convert;
 
 // TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
