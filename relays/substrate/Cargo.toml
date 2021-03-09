@@ -26,19 +26,19 @@ bp-polkadot = { path = "../../primitives/chains/polkadot" }
 bp-runtime = { path = "../../primitives/runtime" }
 bp-rialto = { path = "../../primitives/chains/rialto" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
-finality-relay = { path = "../finality-relay" }
-headers-relay = { path = "../headers-relay" }
-messages-relay = { path = "../messages-relay" }
+finality-relay = { path = "../relay/finality" }
+headers-relay = { path = "../relay/headers" }
+messages-relay = { path = "../relay/messages" }
 millau-runtime = { path = "../../bin/millau/runtime" }
 pallet-bridge-call-dispatch = { path = "../../modules/call-dispatch" }
 pallet-finality-verifier = { path = "../../modules/finality-verifier" }
 pallet-message-lane = { path = "../../modules/message-lane" }
-relay-kusama-client = { path = "../kusama-client" }
-relay-millau-client = { path = "../millau-client" }
-relay-polkadot-client = { path = "../polkadot-client" }
-relay-rialto-client = { path = "../rialto-client" }
-relay-substrate-client = { path = "../substrate-client" }
-relay-utils = { path = "../utils" }
+relay-kusama-client = { path = "../client/kusama" }
+relay-millau-client = { path = "../client/millau" }
+relay-polkadot-client = { path = "../client/polkadot" }
+relay-rialto-client = { path = "../client/rialto" }
+relay-substrate-client = { path = "../client/substrate" }
+relay-utils = { path = "../relay/utils" }
 rialto-runtime = { path = "../../bin/rialto/runtime" }
 
 # Substrate Dependencies

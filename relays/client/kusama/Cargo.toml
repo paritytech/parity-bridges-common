@@ -7,13 +7,13 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0" }
-headers-relay = { path = "../headers-relay" }
-relay-substrate-client = { path = "../substrate-client" }
-relay-utils = { path = "../utils" }
+headers-relay = { path = "../../relay/headers" }
+relay-substrate-client = { path = "../substrate" }
+relay-utils = { path = "../../relay/utils" }
 
 # Bridge dependencies
 
-bp-kusama = { path = "../../primitives/chains/kusama" }
+bp-kusama = { path = "../../../primitives/chains/kusama" }
 
 # Substrate Dependencies
 
