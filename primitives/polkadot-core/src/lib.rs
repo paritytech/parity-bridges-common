@@ -90,4 +90,3 @@ impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverte
 		hash.to_fixed_bytes().into()
 	}
 }
-
