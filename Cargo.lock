@@ -3831,6 +3831,7 @@ dependencies = [
  "node-inspect",
  "pallet-message-lane",
  "pallet-message-lane-rpc",
+ "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -3882,6 +3883,7 @@ dependencies = [
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec 2.0.1",
  "serde",
  "sp-api",
@@ -4588,6 +4590,34 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-transaction-payment-rpc"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?branch=master#5f056830a85f33c5628e6a3fac5c8e3270514bfe"
+dependencies = [
+ "jsonrpc-core 15.1.0",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "parity-scale-codec 2.0.1",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-transaction-payment-rpc-runtime-api"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?branch=master#5f056830a85f33c5628e6a3fac5c8e3270514bfe"
+dependencies = [
+ "pallet-transaction-payment",
+ "parity-scale-codec 2.0.1",
+ "sp-api",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -5730,6 +5760,7 @@ dependencies = [
  "node-inspect",
  "pallet-message-lane",
  "pallet-message-lane-rpc",
+ "pallet-transaction-payment-rpc",
  "rialto-runtime",
  "sc-basic-authorship",
  "sc-cli",
@@ -5791,6 +5822,7 @@ dependencies = [
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec 2.0.1",
  "serde",
  "sp-api",
