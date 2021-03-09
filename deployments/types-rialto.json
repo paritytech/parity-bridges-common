@@ -130,6 +130,7 @@
     "messages_in_oldest_entry": "MessageNonce",
     "total_messages": "MessageNonce"
   },
+  "AncestryProof": "()",
   "Fee": "RialtoBalance",
   "Balance": "RialtoBalance",
   "BlockHash": "RialtoBlockHash",

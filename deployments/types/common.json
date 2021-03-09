@@ -129,5 +129,6 @@
 	"unrewarded_relayer_entries": "MessageNonce",
 	"messages_in_oldest_entry": "MessageNonce",
 	"total_messages": "MessageNonce"
-  }
+  },
+  "AncestryProof": "()"
 }
