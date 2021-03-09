@@ -1,0 +1,9 @@
+{
+	"Fee": "MillauBalance",
+	"Balance": "MillauBalance",
+	"BlockHash": "MillauBlockHash",
+	"BlockNumber": "MillauBlockNumber",
+	"BridgedBlockHash": "RialtoBlockHash",
+	"BridgedBlockNumber": "RialtoBlockNumber",
+	"BridgedHeader": "RialtoHeader"
+}
