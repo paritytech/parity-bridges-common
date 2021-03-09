@@ -20,7 +20,7 @@
 // Runtime-generated DecodeLimit::decode_all_with_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bp_message_lane::{LaneId, MessageNonce, Weight};
+use bp_message_lane::{LaneId, MessageNonce, Weight, UnrewardedRelayersState};
 use sp_std::prelude::*;
 
 pub use bp_polkadot_core::*;

@@ -26,6 +26,10 @@ use sp_runtime::{
 	MultiSignature, OpaqueExtrinsic as UncheckedExtrinsic,
 };
 
+// Re-export's to avoid extra substrate dependencies in chain-specific crates.
+pub use sp_runtime::traits::Convert;
+pub use frame_support::Parameter;
+
 // TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
 pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
@@ -85,7 +89,7 @@ impl Chain for PolkadotLike {
 /// Convert a 256-bit hash into an AccountId.
 pub struct AccountIdConverter;
 
-impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverter {
+impl Convert<sp_core::H256, AccountId> for AccountIdConverter {
 	fn convert(hash: sp_core::H256) -> AccountId {
 		hash.to_fixed_bytes().into()
 	}
