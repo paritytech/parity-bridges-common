@@ -224,10 +224,10 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		}
 
 		use pallet_message_lane_rpc::{MessageLaneApi, MessageLaneRpcHandler};
+		use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 		use sc_finality_grandpa_rpc::{GrandpaApi, GrandpaRpcHandler};
 		use sc_rpc::DenyUnsafe;
 		use substrate_frame_rpc_system::{FullSystem, SystemApi};
-		use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 
 		let backend = backend.clone();
 		let client = client.clone();
