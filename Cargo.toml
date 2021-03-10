@@ -8,11 +8,11 @@ members = [
 	"primitives/*",
 	"primitives/chains/*",
 	"relays/*",
-	"relays/client/*",
-	"relays/relay/*",
+	"relays/clients/*",
+	"relays/generic/*",
 ]
 exclude = [
 	"primitives/chains",
-	"relays/client",
-	"relays/relay"
+	"relays/clients",
+	"relays/generic"
 ]
