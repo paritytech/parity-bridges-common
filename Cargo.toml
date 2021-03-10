@@ -6,5 +6,7 @@ members = [
 	"fuzz/*",
 	"modules/*",
 	"primitives/*",
+	"primitives/chains/*",
 	"relays/*",
 ]
+exclude = ["primitives/chains"]
