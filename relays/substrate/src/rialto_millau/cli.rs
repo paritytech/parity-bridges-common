@@ -52,7 +52,8 @@ pub enum RelayHeaders {
 impl RelayHeaders {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(super::run_relay_headers(self).await.map_err(format_err)?)
+		super::run_relay_headers(self).await.map_err(format_err)?;
+		Ok(())
 	}
 }
 
@@ -96,7 +97,8 @@ pub enum RelayMessages {
 impl RelayMessages {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(super::run_relay_messages(self).await.map_err(format_err)?)
+		super::run_relay_messages(self).await.map_err(format_err)?;
+		Ok(())
 	}
 }
 
@@ -130,7 +132,8 @@ pub enum InitBridge {
 impl InitBridge {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(super::run_init_bridge(self).await.map_err(format_err)?)
+		super::run_init_bridge(self).await.map_err(format_err)?;
+		Ok(())
 	}
 }
 
@@ -192,7 +195,8 @@ pub enum SendMessage {
 impl SendMessage {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(super::run_send_message(self).await.map_err(format_err)?)
+		super::run_send_message(self).await.map_err(format_err)?;
+		Ok(())
 	}
 }
 
@@ -214,7 +218,8 @@ pub enum EncodeCall {
 impl EncodeCall {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(super::run_encode_call(self).await.map_err(format_err)?)
+		super::run_encode_call(self).await.map_err(format_err)?;
+		Ok(())
 	}
 }
 
@@ -236,7 +241,8 @@ pub enum EncodeMessagePayload {
 impl EncodeMessagePayload {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(super::run_encode_message_payload(self).await.map_err(format_err)?)
+		super::run_encode_message_payload(self).await.map_err(format_err)?;
+		Ok(())
 	}
 }
 
@@ -270,7 +276,8 @@ pub enum EstimateFee {
 impl EstimateFee {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(super::run_estimate_fee(self).await.map_err(format_err)?)
+		super::run_estimate_fee(self).await.map_err(format_err)?;
+		Ok(())
 	}
 }
 
@@ -291,7 +298,8 @@ pub enum DeriveAccount {
 impl DeriveAccount {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(super::run_derive_account(self).await.map_err(format_err)?)
+		super::run_derive_account(self).await.map_err(format_err)?;
+		Ok(())
 	}
 }
 

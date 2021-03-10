@@ -71,7 +71,7 @@ pub enum Command {
 impl Command {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::InitBridge(arg) => arg.run().await?,
 			Self::RelayHeaders(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
@@ -80,7 +80,8 @@ impl Command {
 			Self::EncodeMessagePayload(arg) => arg.run().await?,
 			Self::EstimateFee(arg) => arg.run().await?,
 			Self::DeriveAccount(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
@@ -94,9 +95,10 @@ pub enum RelayHeaders {
 impl RelayHeaders {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::RialtoMillau(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
@@ -110,9 +112,10 @@ pub enum RelayMessages {
 impl RelayMessages {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::RialtoMillau(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
@@ -126,9 +129,10 @@ pub enum InitBridge {
 impl InitBridge {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::RialtoMillau(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
@@ -142,9 +146,10 @@ pub enum SendMessage {
 impl SendMessage {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::RialtoMillau(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
@@ -158,9 +163,10 @@ pub enum EncodeCall {
 impl EncodeCall {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::RialtoMillau(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
@@ -174,9 +180,10 @@ pub enum EncodeMessagePayload {
 impl EncodeMessagePayload {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::RialtoMillau(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
@@ -190,9 +197,10 @@ pub enum EstimateFee {
 impl EstimateFee {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::RialtoMillau(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
@@ -211,9 +219,10 @@ pub enum DeriveAccount {
 impl DeriveAccount {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		Ok(match self {
+		match self {
 			Self::RialtoMillau(arg) => arg.run().await?,
-		})
+		}
+		Ok(())
 	}
 }
 
