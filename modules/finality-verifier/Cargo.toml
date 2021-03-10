@@ -28,7 +28,6 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 
-
 [dev-dependencies]
 pallet-substrate-bridge = { path = "../../modules/substrate" }
 bp-test-utils = { path = "../../primitives/test-utils" }

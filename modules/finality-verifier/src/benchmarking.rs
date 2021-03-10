@@ -30,7 +30,7 @@
 
 use crate::*;
 
-use frame_benchmarking::benchmarks;
+use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
 use sp_std::vec;
 
@@ -43,16 +43,30 @@ pub trait Config: crate::Config {
 benchmarks! {
 	submit_finality_proof {
 		let n in 1..100;
+		let caller: T::AccountId = whitelisted_caller();
+		initialize_for_benchmarks::<T>(T::bridged_header());
 
-	}: _(RawOrigin::Root, T::bridged_header(), vec![])
+	}: _(RawOrigin::Signed(caller), T::bridged_header(), vec![])
 	verify {
 		assert!(true)
 	}
 }
 
-#[test]
-fn test_benchmarks() {
-	run_test(|| {
-		// assert_ok!(test_benchmark_it_works::<Test>());
-	});
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use frame_support::assert_ok;
+
+	impl Config for mock::TestRuntime {
+		fn bridged_header() -> BridgedHeader<Self> {
+			mock::test_header(0)
+		}
+	}
+
+	#[test]
+	fn it_works() {
+		mock::run_test(|| {
+			assert_ok!(test_benchmark_submit_finality_proof::<mock::TestRuntime>());
+		});
+	}
 }
