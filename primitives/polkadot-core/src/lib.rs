@@ -30,14 +30,14 @@ use sp_runtime::{
 pub use frame_support::Parameter;
 pub use sp_runtime::traits::Convert;
 
-// TODO: may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
+// TODO [#78] may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
 pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
 
 /// Maximal number of unrewarded relayer entries at inbound lane.
 pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
 
-// TODO: should be selected keeping in mind:
+// TODO [#438] should be selected keeping in mind:
 // finality delay on both chains + reward payout cost + messages throughput.
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
