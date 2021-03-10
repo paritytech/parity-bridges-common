@@ -130,5 +130,9 @@
 	"messages_in_oldest_entry": "MessageNonce",
 	"total_messages": "MessageNonce"
   },
-  "AncestryProof": "()"
+  "AncestryProof": "()",
+  "MessageFeeData": {
+	"lane_id": "LaneId",
+	"payload": "OutboundPayload"
+  }
 }
