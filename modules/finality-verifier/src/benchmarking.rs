@@ -32,6 +32,7 @@ use crate::*;
 
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
+use sp_runtime::traits::One;
 use sp_std::vec;
 
 pub trait Config: crate::Config {
@@ -46,7 +47,15 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		initialize_for_benchmarks::<T>(T::bridged_header());
 
-	}: _(RawOrigin::Signed(caller), T::bridged_header(), vec![])
+		let mut header = T::bridged_header();
+		header.set_number(*header.number() + One::one());
+
+		let digest = header.digest_mut();
+		*digest = sp_runtime::Digest {
+			logs: vec![]
+		};
+
+	}: _(RawOrigin::Signed(caller), header, vec![])
 	verify {
 		assert!(true)
 	}

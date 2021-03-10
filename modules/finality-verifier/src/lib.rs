@@ -506,6 +506,8 @@ pub(crate) fn find_forced_change<H: HeaderT>(
 }
 
 /// (Re)initialize bridge with given header for using it in external benchmarks.
+// TODO: Will probably need to change this a bit for the finality verifier benchmarks, while keeping
+// in mind that we shouldn't break the message-lane benches
 #[cfg(feature = "runtime-benchmarks")]
 pub fn initialize_for_benchmarks<T: Config>(header: BridgedHeader<T>) {
 	initialize_bridge::<T>(InitializationData {
