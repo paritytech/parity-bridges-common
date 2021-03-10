@@ -51,6 +51,9 @@ use sp_std::vec::Vec;
 #[cfg(test)]
 mod mock;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 // Re-export in crate namespace for `construct_runtime!`
 pub use pallet::*;
 
