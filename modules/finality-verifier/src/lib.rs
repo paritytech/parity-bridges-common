@@ -23,9 +23,15 @@
 //! header chain. This sparse header chain can be used as a source of truth for other
 //! higher-level applications.
 //!
-//! Since this pallet only tracks finalized headers it does not deal with forks. If a
-//! fork does occur on the bridged chain there is nothing the pallet can do to handle
-//! this - governance intervention will be required.
+//! The pallet is responsible for tracking GRANDPA Validator Set hand-offs. We only import headers with
+//! justifications signed by the current validator set we know of. The header is inspected for `ScheduledChanges`
+//! digest item, which is then used to update next validator set.
+//!
+//! Since this pallet only tracks finalized headers it does not deal with forks. 
+//! Forks can only occur in case GRANDPA Validator Set on the bridged chain
+//! is either colluding or there is a sever bug causing equivocation. Such events are
+//! outside of the scope of this pallet. Shall the fork occur on the bridged chain governance
+//! intervention will be required to re-initialize the bridge and track the right fork.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Runtime-generated enums
