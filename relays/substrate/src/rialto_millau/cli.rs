@@ -19,9 +19,7 @@
 use frame_support::weights::Weight;
 use structopt::StructOpt;
 
-use crate::cli::{
-	HexLaneId, HexBytes, PrometheusParams, AccountId, Origins, ExplicitOrMaximal,
-};
+use crate::cli::{AccountId, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, PrometheusParams};
 use crate::declare_chain_options;
 
 /// Start headers relayer process.
@@ -415,5 +413,3 @@ pub enum ToMillauMessage {
 
 declare_chain_options!(Rialto, rialto);
 declare_chain_options!(Millau, millau);
-
-

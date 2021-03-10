@@ -17,7 +17,7 @@
 //! Deal with CLI args of substrate-to-substrate relay.
 
 use bp_message_lane::LaneId;
-use codec::{Encode, Decode};
+use codec::{Decode, Encode};
 use sp_runtime::app_crypto::Ss58Codec;
 use structopt::{clap::arg_enum, StructOpt};
 

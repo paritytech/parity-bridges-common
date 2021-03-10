@@ -27,7 +27,7 @@ pub type MillauClient = relay_substrate_client::Client<Millau>;
 /// Rialto node client.
 pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 
-use crate::cli::{HexBytes, ExplicitOrMaximal, Origins};
+use crate::cli::{ExplicitOrMaximal, HexBytes, Origins};
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_call_dispatch::{CallOrigin, MessagePayload};
