@@ -143,7 +143,7 @@ pub(crate) type FinalityProofs<P> = Vec<(
 	<P as FinalitySyncPipeline>::FinalityProof,
 )>;
 /// Reference to finality proofs container.
-pub(crate) type FinalityProofsRef<'a, P> = &'a[(
+pub(crate) type FinalityProofsRef<'a, P> = &'a [(
 	<P as FinalitySyncPipeline>::Number,
 	<P as FinalitySyncPipeline>::FinalityProof,
 )];
