@@ -131,6 +131,10 @@
     "total_messages": "MessageNonce"
   },
   "AncestryProof": "()",
+  "MessageFeeData": {
+    "lane_id": "LaneId",
+    "payload": "OutboundPayload"
+  },
   "Fee": "RialtoBalance",
   "Balance": "RialtoBalance",
   "BlockHash": "RialtoBlockHash",
