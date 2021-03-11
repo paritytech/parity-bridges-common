@@ -56,5 +56,5 @@ pub trait FinalityProof<Number>: Clone + Send + Sync + Debug {
 	/// Return header id that this proof is generated for.
 	///
 	/// None is returned if proof is invalid from relayer PoV.
-	fn target_header_number(&self) -> Option<Number>;
+	fn target_header_number(&self) -> Number;
 }
