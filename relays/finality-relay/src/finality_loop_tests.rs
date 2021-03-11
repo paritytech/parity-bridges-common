@@ -19,9 +19,8 @@
 #![cfg(test)]
 
 use crate::finality_loop::{
-	prune_recent_finality_proofs, prune_unjustified_headers, read_finality_proofs_from_stream, run,
-	select_better_recent_finality_proof, FinalityProofs, FinalitySyncParams, SourceClient, TargetClient,
-	UnjustifiedHeaders,
+	prune_recent_finality_proofs, read_finality_proofs_from_stream, run, select_better_recent_finality_proof,
+	FinalityProofs, FinalitySyncParams, SourceClient, TargetClient,
 };
 use crate::{FinalityProof, FinalitySyncPipeline, SourceHeader};
 
@@ -292,10 +291,6 @@ fn select_better_recent_finality_proof_works() {
 		),
 		Some((TestSourceHeader(false, 2), TestFinalityProof(2))),
 	);
-	assert_eq!(
-		unjustified_headers,
-		vec![TestSourceHeader(false, 9), TestSourceHeader(false, 10)]
-	);
 
 	// if there's intersection between recent finality proofs and unjustified headers, but there are no
 	// proofs in this intersection, nothing is changed
@@ -338,7 +333,6 @@ fn select_better_recent_finality_proof_works() {
 		),
 		Some((TestSourceHeader(false, 9), TestFinalityProof(9))),
 	);
-	assert_eq!(unjustified_headers, vec![TestSourceHeader(false, 10)]);
 }
 
 #[test]
@@ -369,52 +363,6 @@ fn read_finality_proofs_from_stream_works() {
 		vec![(1, TestFinalityProof(1)), (4, TestFinalityProof(4))]
 	);
 	assert_eq!(stream.needs_restart, true);
-}
-
-#[test]
-fn prune_unjustified_headers_works() {
-	let original_unjustified_headers: UnjustifiedHeaders<TestSourceHeader> = vec![
-		TestSourceHeader(false, 10),
-		TestSourceHeader(false, 13),
-		TestSourceHeader(false, 15),
-		TestSourceHeader(false, 17),
-		TestSourceHeader(false, 19),
-	]
-	.into_iter()
-	.collect();
-
-	// when header is in the collection
-	let mut unjustified_headers = original_unjustified_headers.clone();
-	assert_eq!(
-		prune_unjustified_headers::<TestFinalitySyncPipeline>(10, &mut unjustified_headers),
-		Some(TestSourceHeader(false, 10)),
-	);
-	assert_eq!(&original_unjustified_headers[1..], unjustified_headers,);
-
-	// when the header doesn't exist in the collection
-	let mut unjustified_headers = original_unjustified_headers.clone();
-	assert_eq!(
-		prune_unjustified_headers::<TestFinalitySyncPipeline>(11, &mut unjustified_headers),
-		None,
-	);
-	assert_eq!(&original_unjustified_headers[1..], unjustified_headers,);
-
-	// when last entry is pruned
-	let mut unjustified_headers = original_unjustified_headers.clone();
-	assert_eq!(
-		prune_unjustified_headers::<TestFinalitySyncPipeline>(19, &mut unjustified_headers),
-		Some(TestSourceHeader(false, 19)),
-	);
-
-	assert_eq!(&original_unjustified_headers[5..], unjustified_headers,);
-
-	// when we try and prune past last entry
-	let mut unjustified_headers = original_unjustified_headers.clone();
-	assert_eq!(
-		prune_unjustified_headers::<TestFinalitySyncPipeline>(20, &mut unjustified_headers),
-		None,
-	);
-	assert_eq!(&original_unjustified_headers[5..], unjustified_headers,);
 }
 
 #[test]

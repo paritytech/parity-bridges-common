@@ -560,21 +560,12 @@ pub(crate) fn select_better_recent_finality_proof<P: FinalitySyncPipeline>(
 	}
 
 	// now remove all obsolete headers and extract selected header
-	let selected_header = prune_unjustified_headers::<P>(*selected_header_number, unjustified_headers)
-		.expect("unjustified_headers contain all headers from intersection; qed");
+	let selected_header_position = unjustified_headers.binary_search_by_key(
+		selected_header_number,
+		|header| header.number(),
+	).expect("unjustified_headers contain all headers from intersection; qed");
+	let selected_header = unjustified_headers.swap_remove(selected_header_position);
 	Some((selected_header, finality_proof.clone()))
-}
-
-/// Remove headers from `unjustified_headers` collection with number lower or equal than `justified_header_number`.
-///
-/// Returns the header that matches `justified_header_number` (if any).
-pub(crate) fn prune_unjustified_headers<P: FinalitySyncPipeline>(
-	justified_header_number: P::Number,
-	unjustified_headers: &mut UnjustifiedHeaders<P::Header>,
-) -> Option<P::Header> {
-	prune_ordered_vec(justified_header_number, unjustified_headers, usize::MAX, |header| {
-		header.number()
-	})
 }
 
 pub(crate) fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
@@ -582,45 +573,21 @@ pub(crate) fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
 	recent_finality_proofs: &mut FinalityProofs<P>,
 	recent_finality_proofs_limit: usize,
 ) {
-	prune_ordered_vec(
-		justified_header_number,
-		recent_finality_proofs,
-		recent_finality_proofs_limit,
+	let position = recent_finality_proofs.binary_search_by_key(
+		&justified_header_number,
 		|(header_number, _)| *header_number,
 	);
-}
 
-fn prune_ordered_vec<T, Number: relay_utils::BlockNumberBase>(
-	header_number: Number,
-	ordered_vec: &mut Vec<T>,
-	maximal_vec_size: usize,
-	extract_header_number: impl Fn(&T) -> Number,
-) -> Option<T> {
-	let position = ordered_vec.binary_search_by_key(&header_number, extract_header_number);
-
-	// first extract element we're interested in
-	let extracted_element = match position {
-		Ok(position) => {
-			let updated_vec = ordered_vec.split_off(position + 1);
-			let extracted_element = ordered_vec.pop().expect(
-				"binary_search_by_key has returned Ok(); so there's element at `position`;\
-					we're splitting vec at `position+1`; so we have pruned at least 1 element;\
-					qed",
-			);
-			*ordered_vec = updated_vec;
-			Some(extracted_element)
-		}
-		Err(position) => {
-			*ordered_vec = ordered_vec.split_off(position);
-			None
-		}
-	};
+	// remove all obsolete elements
+	*recent_finality_proofs = recent_finality_proofs.split_off(
+		position
+			.map(|position| position + 1)
+			.unwrap_or_else(|position| position)
+	);
 
 	// now - limit vec by size
-	let split_index = ordered_vec.len().saturating_sub(maximal_vec_size);
-	*ordered_vec = ordered_vec.split_off(split_index);
-
-	extracted_element
+	let split_index = recent_finality_proofs.len().saturating_sub(recent_finality_proofs_limit);
+	*recent_finality_proofs = recent_finality_proofs.split_off(split_index);
 }
 
 fn print_sync_progress<P: FinalitySyncPipeline>(
