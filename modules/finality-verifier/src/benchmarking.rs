@@ -78,6 +78,67 @@ benchmarks! {
 		// assert_eq!(<BestFinalized<mock::TestRuntime>>::get(), header.hash());
 		// assert!(<ImportedHeaders<mock::TestRuntime>>::contains_key(header.hash()));
 	}
+
+	// Here we want to find out what the overheader of looking for an enacting an authority set is.
+	// I think we can combine the two benchmarks below into this single one...
+	// enacts_authority_set  {
+	// 	todo!()
+	// }: try_enact_authority_change(header)
+	// verify {
+	// 	assert!(true)
+	// }
+
+	// Here we want to find out the overheaded of looking through consensus digests found in a
+	// header.
+	//
+	// E.g, as the number of logs in a header grows, how much more work do we require to look
+	// through them?
+	//
+	// Note that this should be the same for looking through scheduled changes and forces changes,
+	// which is why we only have one benchmark for this.
+	find_scheduled_change {
+		// Not really sure what a good bound for this is.
+		let n in 1..1000;
+
+		let mut logs = vec![];
+		for i in 0..n {
+			// We chose a non-consensus log on purpose since that way we have to look through all
+			// the logs in the header
+			logs.push(sp_runtime::DigestItem::Other(vec![]));
+		}
+
+		let mut header = T::bridged_header();
+		let digest = header.digest_mut();
+		*digest = sp_runtime::Digest {
+			logs,
+		};
+
+	}: {
+		crate::find_scheduled_change(&header)
+	}
+
+	// What we want to check here is how long it takes to read and write the authority set tracked
+	// by the pallet as the number of authorities grows.
+	read_write_authority_sets {
+		// The current max target number of validators on Polkadot/Kusama
+		let n in 1..1000;
+
+		let mut authorities = vec![];
+		for i in 0..n {
+			authorities.push((alice(), 1));
+		}
+
+		let authority_set = bp_header_chain::AuthoritySet {
+			authorities,
+			set_id: 0
+		};
+
+		<CurrentAuthoritySet<T>>::put(&authority_set);
+
+	}: {
+		let authority_set = <CurrentAuthoritySet<T>>::get();
+		<CurrentAuthoritySet<T>>::put(&authority_set);
+	}
 }
 
 #[cfg(test)]
