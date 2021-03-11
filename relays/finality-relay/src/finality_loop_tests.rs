@@ -265,7 +265,7 @@ fn select_better_recent_finality_proof_works() {
 	// if there are no unjustified headers, nothing is changed
 	assert_eq!(
 		select_better_recent_finality_proof::<TestFinalitySyncPipeline>(
-			&vec![(5, TestFinalityProof(5))],
+			&[(5, TestFinalityProof(5))],
 			&mut vec![],
 			Some((TestSourceHeader(false, 2), TestFinalityProof(2))),
 		),
@@ -275,7 +275,7 @@ fn select_better_recent_finality_proof_works() {
 	// if there are no recent finality proofs, nothing is changed
 	assert_eq!(
 		select_better_recent_finality_proof::<TestFinalitySyncPipeline>(
-			&vec![],
+			&[],
 			&mut vec![TestSourceHeader(false, 5)],
 			Some((TestSourceHeader(false, 2), TestFinalityProof(2))),
 		),
@@ -286,7 +286,7 @@ fn select_better_recent_finality_proof_works() {
 	let mut unjustified_headers = vec![TestSourceHeader(false, 9), TestSourceHeader(false, 10)];
 	assert_eq!(
 		select_better_recent_finality_proof::<TestFinalitySyncPipeline>(
-			&vec![(1, TestFinalityProof(1)), (4, TestFinalityProof(4))],
+			&[(1, TestFinalityProof(1)), (4, TestFinalityProof(4))],
 			&mut unjustified_headers,
 			Some((TestSourceHeader(false, 2), TestFinalityProof(2))),
 		),
@@ -306,7 +306,7 @@ fn select_better_recent_finality_proof_works() {
 	];
 	assert_eq!(
 		select_better_recent_finality_proof::<TestFinalitySyncPipeline>(
-			&vec![(7, TestFinalityProof(7)), (11, TestFinalityProof(11))],
+			&[(7, TestFinalityProof(7)), (11, TestFinalityProof(11))],
 			&mut unjustified_headers,
 			Some((TestSourceHeader(false, 2), TestFinalityProof(2))),
 		),
@@ -332,7 +332,7 @@ fn select_better_recent_finality_proof_works() {
 	];
 	assert_eq!(
 		select_better_recent_finality_proof::<TestFinalitySyncPipeline>(
-			&vec![(7, TestFinalityProof(7)), (9, TestFinalityProof(9))],
+			&[(7, TestFinalityProof(7)), (9, TestFinalityProof(9))],
 			&mut unjustified_headers,
 			Some((TestSourceHeader(false, 2), TestFinalityProof(2))),
 		),
