@@ -32,7 +32,9 @@ use std::{marker::PhantomData, pin::Pin};
 /// Wrapped raw Justification.
 #[derive(Debug, Clone)]
 pub struct Justification<Number> {
+	/// Header number decoded from the [`raw_justification`].
 	target_header_number: Number,
+	/// Raw, encoded justification bytes.
 	raw_justification: sp_runtime::Justification,
 }
 

@@ -407,14 +407,14 @@ where
 
 	// read missing headers. if we see that the header schedules GRANDPA change, we need to
 	// submit this header
-	let (mut unjustified_headers, mut selected_finality_proof) = match read_missing_headers::<P, SC, TC>(
+	let selected_finality_proof = read_missing_headers::<P, SC, TC>(
 		source_client,
 		target_client,
 		best_number_at_source,
 		best_number_at_target,
 	)
-	.await?
-	{
+	.await?;
+	let (mut unjustified_headers, mut selected_finality_proof) = match selected_finality_proof {
 		SelectedFinalityProof::Mandatory(header, finality_proof) => return Ok(Some((header, finality_proof))),
 		SelectedFinalityProof::Regular(unjustified_headers, header, finality_proof) => {
 			(unjustified_headers, Some((header, finality_proof)))
@@ -560,10 +560,9 @@ pub(crate) fn select_better_recent_finality_proof<P: FinalitySyncPipeline>(
 	}
 
 	// now remove all obsolete headers and extract selected header
-	let selected_header_position = unjustified_headers.binary_search_by_key(
-		selected_header_number,
-		|header| header.number(),
-	).expect("unjustified_headers contain all headers from intersection; qed");
+	let selected_header_position = unjustified_headers
+		.binary_search_by_key(selected_header_number, |header| header.number())
+		.expect("unjustified_headers contain all headers from intersection; qed");
 	let selected_header = unjustified_headers.swap_remove(selected_header_position);
 	Some((selected_header, finality_proof.clone()))
 }
@@ -573,20 +572,20 @@ pub(crate) fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
 	recent_finality_proofs: &mut FinalityProofs<P>,
 	recent_finality_proofs_limit: usize,
 ) {
-	let position = recent_finality_proofs.binary_search_by_key(
-		&justified_header_number,
-		|(header_number, _)| *header_number,
-	);
+	let position =
+		recent_finality_proofs.binary_search_by_key(&justified_header_number, |(header_number, _)| *header_number);
 
 	// remove all obsolete elements
 	*recent_finality_proofs = recent_finality_proofs.split_off(
 		position
 			.map(|position| position + 1)
-			.unwrap_or_else(|position| position)
+			.unwrap_or_else(|position| position),
 	);
 
 	// now - limit vec by size
-	let split_index = recent_finality_proofs.len().saturating_sub(recent_finality_proofs_limit);
+	let split_index = recent_finality_proofs
+		.len()
+		.saturating_sub(recent_finality_proofs_limit);
 	*recent_finality_proofs = recent_finality_proofs.split_off(split_index);
 }
 
