@@ -20,7 +20,6 @@ bp-header-chain = { path = "../../primitives/header-chain", default-features = f
 
 # Substrate Dependencies
 
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false, optional = true }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
@@ -28,9 +27,12 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 
+# Optional Benchmarking Dependencies
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false, optional = true }
+bp-test-utils = { path = "../../primitives/test-utils", optional = true }
+
 [dev-dependencies]
 pallet-substrate-bridge = { path = "../../modules/substrate" }
-bp-test-utils = { path = "../../primitives/test-utils" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
 [features]
@@ -38,6 +40,7 @@ default = ["std"]
 std = [
 	"bp-runtime/std",
 	"bp-header-chain/std",
+	"bp-test-utils",
 	"codec/std",
 	"finality-grandpa/std",
 	"frame-support/std",
@@ -51,4 +54,5 @@ std = [
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",
+	"bp-test-utils"
 ]

@@ -30,14 +30,15 @@
 
 use crate::*;
 
+use bp_test_utils::{alice, bob, make_justification_for_header};
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
 use sp_runtime::traits::One;
 use sp_std::vec;
 
 pub trait Config: crate::Config {
-	// We need some way for the benchmarks to use headers in a "generic" way. However, since we do use a
-	// real runtime we need a way for the runtime to tell us what the concrete type is.
+	// We need some way for the benchmarks to use headers in a "generic" way. However, since we do
+	// use a real runtime we need a way for the runtime to tell us what the concrete type is.
 	fn bridged_header() -> BridgedHeader<Self>;
 }
 
@@ -45,19 +46,37 @@ benchmarks! {
 	submit_finality_proof {
 		let n in 1..100;
 		let caller: T::AccountId = whitelisted_caller();
-		initialize_for_benchmarks::<T>(T::bridged_header());
+
+		let authorities = vec![(alice(), 1), (bob(), 1)];
+
+		let init_data = InitializationData {
+			header: T::bridged_header(),
+			authority_list: authorities.clone(),
+			set_id: 0,
+			is_halted: false,
+		};
+
+		initialize_bridge::<T>(init_data);
 
 		let mut header = T::bridged_header();
 		header.set_number(*header.number() + One::one());
+		header.set_parent_hash(*T::bridged_header().parent_hash());
 
 		let digest = header.digest_mut();
 		*digest = sp_runtime::Digest {
 			logs: vec![]
 		};
 
-	}: _(RawOrigin::Signed(caller), header, vec![])
+		let set_id = 0;
+		let grandpa_round = 1;
+		let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+
+	}: _(RawOrigin::Signed(caller), header, justification)
 	verify {
 		assert!(true)
+		// Need to play with the types here to get this to compile...
+		// assert_eq!(<BestFinalized<mock::TestRuntime>>::get(), header.hash());
+		// assert!(<ImportedHeaders<mock::TestRuntime>>::contains_key(header.hash()));
 	}
 }
 
