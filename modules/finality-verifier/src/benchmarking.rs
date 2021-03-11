@@ -79,6 +79,44 @@ benchmarks! {
 		// assert!(<ImportedHeaders<mock::TestRuntime>>::contains_key(header.hash()));
 	}
 
+	// What we want to check here is how the number of commits/precommits/vote ancestries affects
+	// the verification time of justifications. With the helper function we have this number grows
+	// based off the number of authorities, so we'll use that as a proxy for the number of
+	// commits/precommits/vote ancestries.
+	submit_finality_proof_justification_verification {
+		// The current max target number of validators on Polkadot/Kusama
+		// Looks like 1000 is too high for tests...
+		let n in 1..1000;
+		let caller: T::AccountId = whitelisted_caller();
+
+		let mut authorities = vec![];
+		for i in 0..n {
+			// Do we need to have different identities for the authorities?
+			authorities.push((alice(), 1));
+		}
+
+		let init_data = InitializationData {
+			header: T::bridged_header(),
+			authority_list: authorities.clone(),
+			set_id: 0,
+			is_halted: false,
+		};
+
+		initialize_bridge::<T>(init_data);
+
+		let mut header = T::bridged_header();
+		header.set_number(*header.number() + One::one());
+		header.set_parent_hash(*T::bridged_header().parent_hash());
+
+		let set_id = 0;
+		let grandpa_round = 1;
+		let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+
+	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
+	verify {
+		assert!(true)
+	}
+
 	// Here we want to find out what the overheader of looking for an enacting an authority set is.
 	// I think we can combine the two benchmarks below into this single one...
 	// enacts_authority_set  {
@@ -156,6 +194,15 @@ mod tests {
 	fn it_works() {
 		mock::run_test(|| {
 			assert_ok!(test_benchmark_submit_finality_proof::<mock::TestRuntime>());
+		});
+	}
+
+	#[test]
+	fn it_also_works() {
+		mock::run_test(|| {
+			assert_ok!(test_benchmark_submit_finality_proof_justification_verification::<
+				mock::TestRuntime,
+			>());
 		});
 	}
 }
