@@ -142,6 +142,11 @@ pub(crate) type FinalityProofs<P> = Vec<(
 	<P as FinalitySyncPipeline>::Number,
 	<P as FinalitySyncPipeline>::FinalityProof,
 )>;
+/// Reference to finality proofs container.
+pub(crate) type FinalityProofsRef<'a, P> = &'a[(
+	<P as FinalitySyncPipeline>::Number,
+	<P as FinalitySyncPipeline>::FinalityProof,
+)];
 
 /// Error that may happen inside finality synchronization loop.
 #[derive(Debug)]
@@ -522,7 +527,7 @@ pub(crate) fn read_finality_proofs_from_stream<P: FinalitySyncPipeline, FPS: Str
 /// Try to select better header and its proof, given finality proofs that we
 /// have recently read from the stream.
 pub(crate) fn select_better_recent_finality_proof<P: FinalitySyncPipeline>(
-	recent_finality_proofs: &FinalityProofs<P>,
+	recent_finality_proofs: FinalityProofsRef<P>,
 	unjustified_headers: &mut UnjustifiedHeaders<P::Header>,
 	selected_finality_proof: Option<(P::Header, P::FinalityProof)>,
 ) -> Option<(P::Header, P::FinalityProof)> {
