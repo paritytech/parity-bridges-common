@@ -716,6 +716,7 @@ impl cli::MillauConnectionParams {
 		MillauClient::new(ConnectionParams {
 			host: self.millau_host,
 			port: self.millau_port,
+			secure: self.millau_secure,
 		})
 		.await
 	}
@@ -727,6 +728,7 @@ impl cli::RialtoConnectionParams {
 		RialtoClient::new(ConnectionParams {
 			host: self.rialto_host,
 			port: self.rialto_port,
+			secure: self.rialto_secure,
 		})
 		.await
 	}
@@ -738,6 +740,7 @@ impl cli::WestendConnectionParams {
 		WestendClient::new(ConnectionParams {
 			host: self.westend_host,
 			port: self.westend_port,
+			secure: self.westend_secure,
 		})
 		.await
 	}

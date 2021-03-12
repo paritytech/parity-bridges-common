@@ -396,6 +396,9 @@ macro_rules! declare_chain_options {
 				#[doc = "Connect to " $chain " node websocket server at given port."]
 				#[structopt(long)]
 				pub [<$chain_prefix _port>]: u16,
+				#[doc = "Use secure websocket connection."]
+				#[structopt(long)]
+				pub [<$chain_prefix _secure>]: bool,
 			}
 
 			#[doc = $chain " signing params."]
