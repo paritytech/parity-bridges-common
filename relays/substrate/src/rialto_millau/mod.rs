@@ -97,15 +97,17 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				rialto_bridge_params.rialto_initial_authorities,
 				rialto_bridge_params.rialto_initial_authorities_set_id,
 				move |initialization_data| {
+					let initialize_call = millau_runtime::FinalityBridgeRialtoCall::<
+						millau_runtime::Runtime,
+						millau_runtime::RialtoFinalityVerifierInstance,
+					>::initialize(initialization_data);
+
 					Ok(Bytes(
 						Millau::sign_transaction(
 							*millau_client.genesis_hash(),
 							&millau_sign.signer,
 							millau_signer_next_index,
-							millau_runtime::SudoCall::sudo(Box::new(
-								millau_runtime::FinalityBridgeRialtoCall::initialize(initialization_data).into(),
-							))
-							.into(),
+							millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
 						)
 						.encode(),
 					))

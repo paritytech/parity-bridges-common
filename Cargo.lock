@@ -794,6 +794,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-westend"
+version = "0.1.0"
+dependencies = [
+ "bp-message-lane",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
@@ -3871,6 +3882,7 @@ dependencies = [
  "bp-millau",
  "bp-rialto",
  "bp-runtime",
+ "bp-westend",
  "bridge-runtime-common",
  "frame-executive",
  "frame-support",
