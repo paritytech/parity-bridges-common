@@ -137,9 +137,15 @@
   },
   "Fee": "MillauBalance",
   "Balance": "MillauBalance",
+  "Hash": "MillauBlockHash",
   "BlockHash": "MillauBlockHash",
   "BlockNumber": "MillauBlockNumber",
   "BridgedBlockHash": "RialtoBlockHash",
   "BridgedBlockNumber": "RialtoBlockNumber",
-  "BridgedHeader": "RialtoHeader"
+  "BridgedHeader": "RialtoHeader",
+  "Parameter": {
+    "_enum": {
+      "MillauToRialtoConversionRate": "u128"
+    }
+  }
 }
