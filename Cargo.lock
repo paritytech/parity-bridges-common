@@ -1850,7 +1850,6 @@ dependencies = [
  "headers-relay",
  "log",
  "num-traits",
- "parking_lot 0.11.1",
  "relay-utils",
 ]
 
@@ -8097,6 +8096,7 @@ dependencies = [
 name = "substrate-relay"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-std",
  "async-trait",
  "bp-header-chain",
