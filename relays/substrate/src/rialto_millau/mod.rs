@@ -30,18 +30,6 @@ pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 /// Westend node client.
 pub type WestendClient = relay_substrate_client::Client<Westend>;
 
-// TODO: check that it's the same on all chains
-
-/// Storage key of pallet_grandpa::CurrentSetId on Rialto.
-const RIALTO_GRANDPA_CURRENT_SET_ID_KEY: [u8; 32] =
-	hex_literal::hex!("2371e21684d2fae99bcb4d579242f74a8a2d09463effcc78a22d75b9cb87dffc");
-/// Storage key of pallet_grandpa::CurrentSetId on Millau.
-const MILLAU_GRANDPA_CURRENT_SET_ID_KEY: [u8; 32] =
-	hex_literal::hex!("2371e21684d2fae99bcb4d579242f74a8a2d09463effcc78a22d75b9cb87dffc");
-/// Storage key of pallet_grandpa::CurrentSetId on Westend.
-const WESTEND_GRANDPA_CURRENT_SET_ID_KEY: [u8; 32] =
-	hex_literal::hex!("2371e21684d2fae99bcb4d579242f74a8a2d09463effcc78a22d75b9cb87dffc");
-
 use crate::cli::{ExplicitOrMaximal, HexBytes, Origins};
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
@@ -76,7 +64,6 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				millau_bridge_params.millau_initial_header,
 				millau_bridge_params.millau_initial_authorities,
 				millau_bridge_params.millau_initial_authorities_set_id,
-				MILLAU_GRANDPA_CURRENT_SET_ID_KEY.to_vec(),
 				move |initialization_data| {
 					Ok(Bytes(
 						Rialto::sign_transaction(
@@ -113,7 +100,6 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				rialto_bridge_params.rialto_initial_header,
 				rialto_bridge_params.rialto_initial_authorities,
 				rialto_bridge_params.rialto_initial_authorities_set_id,
-				RIALTO_GRANDPA_CURRENT_SET_ID_KEY.to_vec(),
 				move |initialization_data| {
 					let initialize_call = millau_runtime::FinalityBridgeRialtoCall::<
 						millau_runtime::Runtime,
@@ -152,7 +138,6 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				westend_bridge_params.westend_initial_header,
 				westend_bridge_params.westend_initial_authorities,
 				westend_bridge_params.westend_initial_authorities_set_id,
-				WESTEND_GRANDPA_CURRENT_SET_ID_KEY.to_vec(),
 				move |initialization_data| {
 					let initialize_call = millau_runtime::FinalityBridgeWestendCall::<
 						millau_runtime::Runtime,

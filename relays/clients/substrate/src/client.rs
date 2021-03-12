@@ -28,7 +28,7 @@ use jsonrpsee_types::{jsonrpc::DeserializeOwned, traits::SubscriptionClient};
 use jsonrpsee_ws_client::{WsClient as RpcClient, WsConfig as RpcConfig, WsSubscription as Subscription};
 use num_traits::Zero;
 use pallet_balances::AccountData;
-use sp_core::{Bytes, storage::StorageKey};
+use sp_core::Bytes;
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::ops::RangeInclusive;
@@ -176,7 +176,7 @@ impl<C: Chain> Client<C> {
 		C: ChainWithBalances,
 	{
 		let storage_key = C::account_info_storage_key(&account);
-		let encoded_account_data = Substrate::<C>::get_storage(&self.client, storage_key, None)
+		let encoded_account_data = Substrate::<C>::get_storage(&self.client, storage_key)
 			.await?
 			.ok_or(Error::AccountDoesNotExist)?;
 		let decoded_account_data =
@@ -210,14 +210,6 @@ impl<C: Chain> Client<C> {
 		let authority_list = encoded_response.0;
 
 		Ok(authority_list)
-	}
-
-	/// Get storage alue under given key.
-	pub async fn storage(&self, block: C::Hash, storage_key: Vec<u8>) -> Result<Option<Vec<u8>>> {
-		Substrate::<C>::get_storage(&self.client, StorageKey(storage_key), Some(block))
-			.await
-			.map(|v| v.map(|v| v.0))
-			.map_err(Into::into)
 	}
 
 	/// Execute runtime call at given block.
