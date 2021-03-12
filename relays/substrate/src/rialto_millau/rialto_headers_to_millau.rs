@@ -16,10 +16,8 @@
 
 //! Rialto-to-Millau headers sync entrypoint.
 
-use crate::{
-	finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate},
-	MillauClient, RialtoClient,
-};
+use super::{MillauClient, RialtoClient};
+use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
 use async_trait::async_trait;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
@@ -39,7 +37,7 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 	async fn make_submit_finality_proof_transaction(
 		&self,
 		header: RialtoSyncHeader,
-		proof: Justification<bp_rialto::Header>,
+		proof: Justification<bp_rialto::BlockNumber>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let account_id = self.target_sign.signer.public().as_array_ref().clone().into();
 		let nonce = self.target_client.next_account_index(account_id).await?;
