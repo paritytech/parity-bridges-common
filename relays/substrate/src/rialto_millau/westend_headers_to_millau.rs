@@ -37,12 +37,12 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 	async fn make_submit_finality_proof_transaction(
 		&self,
 		header: WestendSyncHeader,
-		proof: Justification<bp_rialto::BlockNumber>,
+		proof: Justification<bp_westend::BlockNumber>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let account_id = self.target_sign.signer.public().as_array_ref().clone().into();
 		let nonce = self.target_client.next_account_index(account_id).await?;
 
-		let call = millau_runtime::FinalityBridgeRialtoCall::<
+		let call = millau_runtime::FinalityBridgeWestendCall::<
 			millau_runtime::Runtime,
 			millau_runtime::WestendFinalityVerifierInstance,
 		>::submit_finality_proof(header.into_inner(), proof.into_inner())
