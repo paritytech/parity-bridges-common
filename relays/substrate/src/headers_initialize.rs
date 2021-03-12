@@ -26,6 +26,7 @@ use pallet_finality_verifier::InitializationData;
 use relay_substrate_client::{Chain, Client};
 use sp_core::Bytes;
 use sp_finality_grandpa::{AuthorityList as GrandpaAuthoritiesSet, SetId as GrandpaAuthoritiesSetId};
+use sp_runtime::traits::Header as HeaderT;
 
 /// Submit headers-bridge initialization transaction.
 pub async fn initialize<SourceChain: Chain, TargetChain: Chain>(
@@ -34,6 +35,7 @@ pub async fn initialize<SourceChain: Chain, TargetChain: Chain>(
 	raw_initial_header: Option<Bytes>,
 	raw_initial_authorities_set: Option<Bytes>,
 	initial_authorities_set_id: Option<GrandpaAuthoritiesSetId>,
+	authorities_set_id_key: Vec<u8>,
 	prepare_initialize_transaction: impl FnOnce(InitializationData<SourceChain::Header>) -> Result<Bytes, String>,
 ) {
 	let result = do_initialize(
@@ -42,6 +44,7 @@ pub async fn initialize<SourceChain: Chain, TargetChain: Chain>(
 		raw_initial_header,
 		raw_initial_authorities_set,
 		initial_authorities_set_id,
+		authorities_set_id_key,
 		prepare_initialize_transaction,
 	)
 	.await;
@@ -71,6 +74,7 @@ async fn do_initialize<SourceChain: Chain, TargetChain: Chain>(
 	raw_initial_header: Option<Bytes>,
 	raw_initial_authorities_set: Option<Bytes>,
 	initial_authorities_set_id: Option<GrandpaAuthoritiesSetId>,
+	authorities_set_id_key: Vec<u8>,
 	prepare_initialize_transaction: impl FnOnce(InitializationData<SourceChain::Header>) -> Result<Bytes, String>,
 ) -> Result<TargetChain::Hash, String> {
 	let initialization_data = prepare_initialization_data(
@@ -78,8 +82,17 @@ async fn do_initialize<SourceChain: Chain, TargetChain: Chain>(
 		raw_initial_header,
 		raw_initial_authorities_set,
 		initial_authorities_set_id,
+		authorities_set_id_key,
 	)
 	.await?;
+
+	log::info!(
+		target: "bridge",
+		"Trying to initialize {}-headers bridge. Initialization data: {:?}",
+		SourceChain::NAME,
+		initialization_data,
+	);
+
 	let initialization_tx = prepare_initialize_transaction(initialization_data)?;
 	let initialization_tx_hash = target_client
 		.submit_extrinsic(initialization_tx)
@@ -94,22 +107,25 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 	raw_initial_header: Option<Bytes>,
 	raw_initial_authorities_set: Option<Bytes>,
 	initial_authorities_set_id: Option<GrandpaAuthoritiesSetId>,
+	authorities_set_id_key: Vec<u8>,
 ) -> Result<InitializationData<SourceChain::Header>, String> {
-	let source_genesis_hash = *source_client.genesis_hash();
-
 	let initial_header = match raw_initial_header {
 		Some(raw_initial_header) => SourceChain::Header::decode(&mut &raw_initial_header.0[..])
 			.map_err(|err| format!("Failed to decode {} initial header: {:?}", SourceChain::NAME, err))?,
-		None => source_client
-			.header_by_hash(source_genesis_hash)
-			.await
-			.map_err(|err| format!("Failed to retrive {} genesis header: {:?}", SourceChain::NAME, err))?,
+		None => {
+			let best_finalized_header_hash = source_client.best_finalized_header_hash().await?;
+			source_client
+				.header_by_hash(best_finalized_header_hash)
+				.await
+				.map_err(|err| format!("Failed to retrive {} best finalized header: {:?}", SourceChain::NAME, err))?
+		},
 	};
 
+	let initial_header_hash = initial_header.hash();
 	let raw_initial_authorities_set = match raw_initial_authorities_set {
 		Some(raw_initial_authorities_set) => raw_initial_authorities_set.0,
 		None => source_client
-			.grandpa_authorities_set(source_genesis_hash)
+			.grandpa_authorities_set(initial_header_hash)
 			.await
 			.map_err(|err| {
 				format!(
@@ -128,10 +144,24 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 			)
 		})?;
 
+	let initial_authorities_set_id = match initial_authorities_set_id {
+		Some(initial_authorities_set_id) => initial_authorities_set_id,
+		None => source_client
+			.storage(initial_header_hash, authorities_set_id_key)
+			.await
+			.map_err(|err| format!("Failed to read GRANDPA authorities set id from {}: {:?}", SourceChain::NAME, err))
+			.and_then(|set_id| set_id.ok_or_else(||
+				format!("GRANDPA authorities set id on chain {} is unknown", SourceChain::NAME)
+			))
+			.and_then(|set_id| Decode::decode(&mut &set_id[..])
+				.map_err(|err| format!("Failed to decode GARNDPA authorities set id from {}: {:?}", SourceChain::NAME, err))
+			)?,
+	};
+
 	Ok(InitializationData {
 		header: initial_header,
 		authority_list: initial_authorities_set,
-		set_id: initial_authorities_set_id.unwrap_or(0),
+		set_id: initial_authorities_set_id,
 		is_halted: false,
 	})
 }

@@ -51,7 +51,7 @@ jsonrpsee_proc_macros::rpc_client_api! {
 		#[rpc(method = "state_call", positional_params)]
 		fn state_call(method: String, data: Bytes, at_block: Option<C::Hash>) -> Bytes;
 		#[rpc(method = "state_getStorage", positional_params)]
-		fn get_storage(key: StorageKey) -> Option<StorageData>;
+		fn get_storage(key: StorageKey, at_block: Option<C::Hash>) -> Option<StorageData>;
 		#[rpc(method = "state_getRuntimeVersion", positional_params)]
 		fn runtime_version() -> RuntimeVersion;
 	}
