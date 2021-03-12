@@ -671,6 +671,7 @@ dependencies = [
  "serde",
  "sp-core",
  "sp-finality-grandpa",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -788,6 +789,7 @@ version = "0.1.0"
 dependencies = [
  "bp-header-chain",
  "finality-grandpa 0.14.0",
+ "sp-application-crypto",
  "sp-finality-grandpa",
  "sp-keyring",
  "sp-runtime",
