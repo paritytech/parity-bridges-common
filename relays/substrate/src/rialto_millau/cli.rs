@@ -47,6 +47,17 @@ pub enum RelayHeaders {
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
+	/// Relay Westend headers to Millau.
+	WestendToMillau {
+		#[structopt(flatten)]
+		westend: WestendConnectionParams,
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		prometheus_params: PrometheusParams,
+	},
 }
 
 impl RelayHeaders {
@@ -126,6 +137,17 @@ pub enum InitBridge {
 		millau_sign: MillauSigningParams,
 		#[structopt(flatten)]
 		rialto_bridge_params: RialtoBridgeInitializationParams,
+	},
+	/// Initialize Westend headers bridge in Millau.
+	WestendToMillau {
+		#[structopt(flatten)]
+		westend: WestendConnectionParams,
+		#[structopt(flatten)]
+		millau: MillauConnectionParams,
+		#[structopt(flatten)]
+		millau_sign: MillauSigningParams,
+		#[structopt(flatten)]
+		westend_bridge_params: WestendBridgeInitializationParams,
 	},
 }
 
@@ -421,3 +443,4 @@ pub enum ToMillauMessage {
 
 declare_chain_options!(Rialto, rialto);
 declare_chain_options!(Millau, millau);
+declare_chain_options!(Westend, westend);

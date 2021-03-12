@@ -21,11 +21,14 @@ pub mod millau_headers_to_rialto;
 pub mod millau_messages_to_rialto;
 pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
+pub mod westend_headers_to_millau;
 
 /// Millau node client.
 pub type MillauClient = relay_substrate_client::Client<Millau>;
 /// Rialto node client.
 pub type RialtoClient = relay_substrate_client::Client<Rialto>;
+/// Westend node client.
+pub type WestendClient = relay_substrate_client::Client<Westend>;
 
 use crate::cli::{ExplicitOrMaximal, HexBytes, Origins};
 use codec::{Decode, Encode};
@@ -34,6 +37,7 @@ use pallet_bridge_call_dispatch::{CallOrigin, MessagePayload};
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{Chain, ConnectionParams, TransactionSignScheme};
+use relay_westend_client::Westend;
 use sp_core::{Bytes, Pair};
 use sp_runtime::traits::IdentifyAccount;
 use std::fmt::Debug;
@@ -115,6 +119,44 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			)
 			.await;
 		}
+		cli::InitBridge::WestendToMillau {
+			westend,
+			millau,
+			millau_sign,
+			westend_bridge_params,
+		} => {
+			let westend_client = westend.into_client().await?;
+			let millau_client = millau.into_client().await?;
+			let millau_sign = millau_sign.parse()?;
+			let millau_signer_next_index = millau_client
+				.next_account_index(millau_sign.signer.public().into())
+				.await?;
+
+			crate::headers_initialize::initialize(
+				westend_client,
+				millau_client.clone(),
+				westend_bridge_params.westend_initial_header,
+				westend_bridge_params.westend_initial_authorities,
+				westend_bridge_params.westend_initial_authorities_set_id,
+				move |initialization_data| {
+					let initialize_call = millau_runtime::FinalityBridgeWestendCall::<
+						millau_runtime::Runtime,
+						millau_runtime::WestendFinalityVerifierInstance,
+					>::initialize(initialization_data);
+
+					Ok(Bytes(
+						Millau::sign_transaction(
+							*millau_client.genesis_hash(),
+							&millau_sign.signer,
+							millau_signer_next_index,
+							millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
+						)
+						.encode(),
+					))
+				},
+			)
+			.await;
+		}
 	}
 	Ok(())
 }
@@ -142,6 +184,17 @@ async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 			let millau_client = millau.into_client().await?;
 			let millau_sign = millau_sign.parse()?;
 			rialto_headers_to_millau::run(rialto_client, millau_client, millau_sign, prometheus_params.into()).await;
+		}
+		cli::RelayHeaders::WestendToMillau {
+			westend,
+			millau,
+			millau_sign,
+			prometheus_params,
+		} => {
+			let westend_client = westend.into_client().await?;
+			let millau_client = millau.into_client().await?;
+			let millau_sign = millau_sign.parse()?;
+			westend_headers_to_millau::run(westend_client, millau_client, millau_sign, prometheus_params.into()).await;
 		}
 	}
 	Ok(())
@@ -667,12 +720,24 @@ impl cli::MillauConnectionParams {
 		.await
 	}
 }
+
 impl cli::RialtoConnectionParams {
 	/// Convert CLI connection parameters into Rialto RPC Client.
 	pub async fn into_client(self) -> relay_substrate_client::Result<RialtoClient> {
 		RialtoClient::new(ConnectionParams {
 			host: self.rialto_host,
 			port: self.rialto_port,
+		})
+		.await
+	}
+}
+
+impl cli::WestendConnectionParams {
+	/// Convert CLI connection parameters into Westend RPC Client.
+	pub async fn into_client(self) -> relay_substrate_client::Result<WestendClient> {
+		WestendClient::new(ConnectionParams {
+			host: self.westend_host,
+			port: self.westend_port,
 		})
 		.await
 	}

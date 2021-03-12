@@ -5752,6 +5752,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-westend-client"
+version = "0.1.0"
+dependencies = [
+ "bp-westend",
+ "frame-support",
+ "frame-system",
+ "headers-relay",
+ "pallet-transaction-payment",
+ "parity-scale-codec 2.0.1",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
+ "sp-keyring",
+ "sp-runtime",
+]
+
+[[package]]
 name = "remove_dir_all"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8118,6 +8135,7 @@ dependencies = [
  "bp-polkadot",
  "bp-rialto",
  "bp-runtime",
+ "bp-westend",
  "bridge-runtime-common",
  "finality-relay",
  "frame-support",
@@ -8139,6 +8157,7 @@ dependencies = [
  "relay-rialto-client",
  "relay-substrate-client",
  "relay-utils",
+ "relay-westend-client",
  "rialto-runtime",
  "sp-core",
  "sp-finality-grandpa",
