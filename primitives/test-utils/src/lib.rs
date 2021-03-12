@@ -51,13 +51,11 @@ pub fn make_justification_for_header<H: HeaderT>(
 	// I'm using the same header for all the voters since it doesn't matter as long
 	// as they all vote on blocks _ahead_ of the one we're interested in finalizing
 	for (id, _weight) in authorities.iter() {
-		let signer = extract_keyring(&id);
-		let precommit = signed_precommit::<H>(
-			signer,
-			(precommit_header.hash(), *precommit_header.number()),
-			round,
-			set_id,
-		);
+		// use sp_runtime::RuntimeAppPublic;
+		// let signed_payload = id.sign(&vec![1u8]);
+
+		// let signer = extract_keyring(&id);
+		let precommit = signed_precommit::<H>(id, (precommit_header.hash(), *precommit_header.number()), round, set_id);
 		precommits.push(precommit);
 		votes_ancestries.push(precommit_header.clone());
 	}
@@ -74,22 +72,26 @@ pub fn make_justification_for_header<H: HeaderT>(
 }
 
 fn signed_precommit<H: HeaderT>(
-	signer: Ed25519Keyring,
+	signer: &AuthorityId,
 	target: (H::Hash, H::Number),
 	round: u64,
 	set_id: SetId,
 ) -> finality_grandpa::SignedPrecommit<H::Hash, H::Number, AuthoritySignature, AuthorityId> {
+	use sp_runtime::RuntimeAppPublic;
+
 	let precommit = finality_grandpa::Precommit {
 		target_hash: target.0,
 		target_number: target.1,
 	};
 	let encoded =
 		sp_finality_grandpa::localized_payload(round, set_id, &finality_grandpa::Message::Precommit(precommit.clone()));
-	let signature = signer.sign(&encoded[..]).into();
+
+	let signature = signer.sign(&encoded).expect("TODO"); // .into();
+
 	finality_grandpa::SignedPrecommit {
 		precommit,
 		signature,
-		id: signer.public().into(),
+		id: signer.clone(), // signer.public().into(),
 	}
 }
 

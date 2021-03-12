@@ -11,3 +11,4 @@ bp-header-chain = { path = "../header-chain" }
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-keyring = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate", branch = "master" }
