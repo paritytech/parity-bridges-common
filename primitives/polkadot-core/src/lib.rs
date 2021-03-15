@@ -65,31 +65,31 @@ pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 
 /// All Polkadot-like chains allow normal extrinsics to fill block up to 75%.
 ///
-/// This is a copy-paste from `polkadot-runtime-common` crate.
+/// This is a copy-paste from the Polkadot repo's `polkadot-runtime-common` crate.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 /// All Polkadot-like chains allow 2 seconds of compute with a 6 second average block time.
 ///
-/// This is a copy-paste from `polkadot-runtime-common` crate.
+/// This is a copy-paste from the Polkadot repo's `polkadot-runtime-common` crate.
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
 
 /// All Polkadot-like chains assume that an on-initialize consumes 1% of the weight on average,
 /// hence a single extrinsic will not be allowed to consume more than `AvailableBlockRatio - 1%`.
 ///
-/// This is a copy-paste from `polkadot-runtime-common` crate.
+/// This is a copy-paste from the Polkadot repo's `polkadot-runtime-common` crate.
 pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(1);
 
 parameter_types! {
 	/// All Polkadot-like chains have maximal block size set to 5MB.
 	///
-	/// This is a copy-paste from `polkadot-runtime-common` crate.
+	/// This is a copy-paste from the Polkadot repo's `polkadot-runtime-common` crate.
 	pub BlockLength: limits::BlockLength = limits::BlockLength::max_with_normal_ratio(
 		5 * 1024 * 1024,
 		NORMAL_DISPATCH_RATIO,
 	);
 	/// All Polkadot-like chains have the same block weights.
 	///
-	/// This is a copy-paste from `polkadot-runtime-common` crate.
+	/// This is a copy-paste from the Polkadot repo's `polkadot-runtime-common` crate.
 	pub BlockWeights: limits::BlockWeights = limits::BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
 		.for_class(DispatchClass::all(), |weights| {
