@@ -73,7 +73,7 @@ pub fn prepare_message_proof<B, H, R, FI, MM, ML, MH>(
 where
 	B: MessageBridge,
 	H: Hasher,
-	R: pallet_finality_verifier::Config,
+	R: pallet_finality_verifier::Config<FI>,
 	FI: 'static,
 	<R::BridgedChain as bp_runtime::Chain>::Hash: Into<HashOf<BridgedChain<B>>>,
 	MM: Fn(MessageKey) -> Vec<u8>,
@@ -155,7 +155,7 @@ pub fn prepare_message_delivery_proof<B, H, R, FI, ML, MH>(
 where
 	B: MessageBridge,
 	H: Hasher,
-	R: pallet_finality_verifier::Config,
+	R: pallet_finality_verifier::Config<FI>,
 	FI: 'static,
 	<R::BridgedChain as bp_runtime::Chain>::Hash: Into<HashOf<BridgedChain<B>>>,
 	ML: Fn(LaneId) -> Vec<u8>,
