@@ -27,6 +27,7 @@ use bp_header_chain::{
 };
 use codec::Decode;
 use finality_grandpa::voter_set::VoterSet;
+use num_traits::{One, Zero};
 use pallet_finality_verifier::InitializationData;
 use relay_substrate_client::{Chain, Client};
 use sp_core::Bytes;
@@ -129,7 +130,9 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 	let schedules_change = find_grandpa_authorities_scheduled_change(&initial_header).is_some();
 	if schedules_change {
 		authorities_for_verification = source_authorities_set(&source_client, *initial_header.parent_hash()).await?;
-		log::trace!(target: "bridge", "Selected {} header is scheduling GRANDPA authorities set changes. Using previous set: {:?}",
+		log::trace!(
+			target: "bridge",
+			"Selected {} header is scheduling GRANDPA authorities set changes. Using previous set: {:?}",
 			SourceChain::NAME,
 			authorities_for_verification,
 		);
@@ -137,6 +140,7 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 
 	// Now let's try to guess authorities set id by verifying justification.
 	let mut initial_authorities_set_id = 0;
+	let mut min_possible_block_number = SourceChain::BlockNumber::zero();
 	let authorities_for_verification = VoterSet::new(authorities_for_verification.clone()).ok_or_else(|| {
 		format!(
 			"Read invalid {} authorities set: {:?}",
@@ -145,7 +149,11 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 		)
 	})?;
 	loop {
-		log::trace!(target: "bridge", "Trying {} GRANDPA authorities set id: {}", SourceChain::NAME, initial_authorities_set_id);
+		log::trace!(
+			target: "bridge", "Trying {} GRANDPA authorities set id: {}",
+			SourceChain::NAME,
+			initial_authorities_set_id,
+		);
 
 		let is_valid_set_id = verify_justification::<SourceChain::Header>(
 			(initial_header_hash, initial_header_number),
@@ -159,6 +167,18 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 		}
 
 		initial_authorities_set_id += 1;
+		min_possible_block_number += One::one();
+		if min_possible_block_number > initial_header_number {
+			// there can't be more authorities set changes than headers => if we have reached `initial_block_number`
+			// and still have not found correct value of `initial_authorities_set_id`, then something
+			// else is broken => fail
+			return Err(format!(
+				"Failed to guess initial {} GRANDPA authorities set id: checked all\
+			possible ids in range [0; {}]",
+				SourceChain::NAME,
+				initial_header_number
+			));
+		}
 	}
 
 	Ok(InitializationData {
