@@ -124,8 +124,6 @@ pub enum InitBridge {
 		rialto: RialtoConnectionParams,
 		#[structopt(flatten)]
 		rialto_sign: RialtoSigningParams,
-		#[structopt(flatten)]
-		millau_bridge_params: MillauBridgeInitializationParams,
 	},
 	/// Initialize Rialto headers bridge in Millau.
 	RialtoToMillau {
@@ -135,8 +133,6 @@ pub enum InitBridge {
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
 		millau_sign: MillauSigningParams,
-		#[structopt(flatten)]
-		rialto_bridge_params: RialtoBridgeInitializationParams,
 	},
 	/// Initialize Westend headers bridge in Millau.
 	WestendToMillau {
@@ -146,8 +142,6 @@ pub enum InitBridge {
 		millau: MillauConnectionParams,
 		#[structopt(flatten)]
 		millau_sign: MillauSigningParams,
-		#[structopt(flatten)]
-		westend_bridge_params: WestendBridgeInitializationParams,
 	},
 }
 

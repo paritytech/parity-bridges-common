@@ -48,7 +48,6 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			millau,
 			rialto,
 			rialto_sign,
-			millau_bridge_params,
 		} => {
 			let millau_client = millau.into_client().await?;
 			let rialto_client = rialto.into_client().await?;
@@ -58,34 +57,26 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				.next_account_index(rialto_sign.signer.public().into())
 				.await?;
 
-			crate::headers_initialize::initialize(
-				millau_client,
-				rialto_client.clone(),
-				millau_bridge_params.millau_initial_header,
-				millau_bridge_params.millau_initial_authorities,
-				millau_bridge_params.millau_initial_authorities_set_id,
-				move |initialization_data| {
-					Ok(Bytes(
-						Rialto::sign_transaction(
-							*rialto_client.genesis_hash(),
-							&rialto_sign.signer,
-							rialto_signer_next_index,
-							rialto_runtime::SudoCall::sudo(Box::new(
-								rialto_runtime::FinalityBridgeMillauCall::initialize(initialization_data).into(),
-							))
-							.into(),
-						)
-						.encode(),
-					))
-				},
-			)
+			crate::headers_initialize::initialize(millau_client, rialto_client.clone(), move |initialization_data| {
+				Ok(Bytes(
+					Rialto::sign_transaction(
+						*rialto_client.genesis_hash(),
+						&rialto_sign.signer,
+						rialto_signer_next_index,
+						rialto_runtime::SudoCall::sudo(Box::new(
+							rialto_runtime::FinalityBridgeMillauCall::initialize(initialization_data).into(),
+						))
+						.into(),
+					)
+					.encode(),
+				))
+			})
 			.await;
 		}
 		cli::InitBridge::RialtoToMillau {
 			rialto,
 			millau,
 			millau_sign,
-			rialto_bridge_params,
 		} => {
 			let rialto_client = rialto.into_client().await?;
 			let millau_client = millau.into_client().await?;
@@ -94,36 +85,28 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				.next_account_index(millau_sign.signer.public().into())
 				.await?;
 
-			crate::headers_initialize::initialize(
-				rialto_client,
-				millau_client.clone(),
-				rialto_bridge_params.rialto_initial_header,
-				rialto_bridge_params.rialto_initial_authorities,
-				rialto_bridge_params.rialto_initial_authorities_set_id,
-				move |initialization_data| {
-					let initialize_call = millau_runtime::FinalityBridgeRialtoCall::<
-						millau_runtime::Runtime,
-						millau_runtime::RialtoFinalityVerifierInstance,
-					>::initialize(initialization_data);
+			crate::headers_initialize::initialize(rialto_client, millau_client.clone(), move |initialization_data| {
+				let initialize_call = millau_runtime::FinalityBridgeRialtoCall::<
+					millau_runtime::Runtime,
+					millau_runtime::RialtoFinalityVerifierInstance,
+				>::initialize(initialization_data);
 
-					Ok(Bytes(
-						Millau::sign_transaction(
-							*millau_client.genesis_hash(),
-							&millau_sign.signer,
-							millau_signer_next_index,
-							millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
-						)
-						.encode(),
-					))
-				},
-			)
+				Ok(Bytes(
+					Millau::sign_transaction(
+						*millau_client.genesis_hash(),
+						&millau_sign.signer,
+						millau_signer_next_index,
+						millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
+					)
+					.encode(),
+				))
+			})
 			.await;
 		}
 		cli::InitBridge::WestendToMillau {
 			westend,
 			millau,
 			millau_sign,
-			westend_bridge_params,
 		} => {
 			let westend_client = westend.into_client().await?;
 			let millau_client = millau.into_client().await?;
@@ -132,29 +115,22 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				.next_account_index(millau_sign.signer.public().into())
 				.await?;
 
-			crate::headers_initialize::initialize(
-				westend_client,
-				millau_client.clone(),
-				westend_bridge_params.westend_initial_header,
-				westend_bridge_params.westend_initial_authorities,
-				westend_bridge_params.westend_initial_authorities_set_id,
-				move |initialization_data| {
-					let initialize_call = millau_runtime::FinalityBridgeWestendCall::<
-						millau_runtime::Runtime,
-						millau_runtime::WestendFinalityVerifierInstance,
-					>::initialize(initialization_data);
+			crate::headers_initialize::initialize(westend_client, millau_client.clone(), move |initialization_data| {
+				let initialize_call = millau_runtime::FinalityBridgeWestendCall::<
+					millau_runtime::Runtime,
+					millau_runtime::WestendFinalityVerifierInstance,
+				>::initialize(initialization_data);
 
-					Ok(Bytes(
-						Millau::sign_transaction(
-							*millau_client.genesis_hash(),
-							&millau_sign.signer,
-							millau_signer_next_index,
-							millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
-						)
-						.encode(),
-					))
-				},
-			)
+				Ok(Bytes(
+					Millau::sign_transaction(
+						*millau_client.genesis_hash(),
+						&millau_sign.signer,
+						millau_signer_next_index,
+						millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
+					)
+					.encode(),
+				))
+			})
 			.await;
 		}
 	}

@@ -8137,6 +8137,7 @@ dependencies = [
  "bp-runtime",
  "bp-westend",
  "bridge-runtime-common",
+ "finality-grandpa 0.14.0",
  "finality-relay",
  "frame-support",
  "futures 0.3.13",
