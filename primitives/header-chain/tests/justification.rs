@@ -23,16 +23,11 @@ use codec::Encode;
 type TestHeader = sp_runtime::testing::Header;
 
 fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
-	use sp_finality_grandpa::AuthorityId;
-	use sp_runtime::RuntimeAppPublic;
-	let alice = AuthorityId::generate_pair(Some(vec![1]));
-	let bob = AuthorityId::generate_pair(Some(vec![2]));
-
 	make_justification_for_header(
 		&test_header(1),
 		TEST_GRANDPA_ROUND,
 		TEST_GRANDPA_SET_ID,
-		&vec![(alice, 1), (bob, 1)], // &authority_list(),
+		&keyring_list(),
 	)
 }
 
@@ -107,15 +102,13 @@ fn justification_with_invalid_precommit_ancestry() {
 
 #[test]
 fn valid_justification_accepted() {
-	sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-		assert_eq!(
-			verify_justification::<TestHeader>(
-				header_id::<TestHeader>(1),
-				TEST_GRANDPA_SET_ID,
-				voter_set(),
-				&make_justification_for_header_1().encode(),
-			),
-			Ok(()),
-		);
-	})
+	assert_eq!(
+		verify_justification::<TestHeader>(
+			header_id::<TestHeader>(1),
+			TEST_GRANDPA_SET_ID,
+			voter_set(),
+			&make_justification_for_header_1().encode(),
+		),
+		Ok(()),
+	);
 }

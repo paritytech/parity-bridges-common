@@ -76,7 +76,7 @@ where
 	// signatures are valid. We'll check the validity of the signatures later since they're more
 	// resource intensive to verify.
 	let ancestry_chain = AncestryChain::new(&justification.votes_ancestries);
-	match finality_grandpa::validate_commit(&justification.commit, &authorities_set, &ancestry_chain) {
+	match finality_grandpa::validate_commit(&justification.commit, dbg!(&authorities_set), &ancestry_chain) {
 		Ok(ref result) if result.ghost().is_some() => {}
 		_ => return Err(Error::InvalidJustificationCommit),
 	}
@@ -88,7 +88,7 @@ where
 		if !sp_finality_grandpa::check_message_signature_with_buffer(
 			&finality_grandpa::Message::Precommit(signed.precommit.clone()),
 			&signed.id,
-			&signed.signature,
+			dbg!(&signed.signature),
 			justification.round,
 			authorities_set_id,
 			&mut buf,

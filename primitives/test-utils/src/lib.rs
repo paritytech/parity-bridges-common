@@ -21,12 +21,14 @@
 //! in tests.
 
 use bp_header_chain::justification::GrandpaJustification;
+use ed25519_dalek::{Keypair, PublicKey, Signature, Signer};
 use finality_grandpa::voter_set::VoterSet;
+use sp_application_crypto::{Public, TryFrom};
 use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight};
 use sp_finality_grandpa::{AuthoritySignature, SetId};
-use sp_keyring::Ed25519Keyring;
-use sp_runtime::traits::Header as HeaderT;
-use sp_runtime::traits::{One, Zero};
+use sp_runtime::traits::{Header as HeaderT, One, Zero};
+use sp_runtime::RuntimeDebug;
+use sp_std::prelude::*;
 
 pub const TEST_GRANDPA_ROUND: u64 = 1;
 pub const TEST_GRANDPA_SET_ID: SetId = 1;
@@ -37,7 +39,7 @@ pub fn make_justification_for_header<H: HeaderT>(
 	header: &H,
 	round: u64,
 	set_id: SetId,
-	authorities: &[(AuthorityId, AuthorityWeight)],
+	authorities: &[(NoStdKeyring, AuthorityWeight)],
 ) -> GrandpaJustification<H> {
 	let (target_hash, target_number) = (header.hash(), *header.number());
 	let mut precommits = vec![];
@@ -51,9 +53,6 @@ pub fn make_justification_for_header<H: HeaderT>(
 	// I'm using the same header for all the voters since it doesn't matter as long
 	// as they all vote on blocks _ahead_ of the one we're interested in finalizing
 	for (id, _weight) in authorities.iter() {
-		// use sp_runtime::RuntimeAppPublic;
-		// let signed_payload = id.sign(&vec![1u8]);
-
 		// let signer = extract_keyring(&id);
 		let precommit = signed_precommit::<H>(id, (precommit_header.hash(), *precommit_header.number()), round, set_id);
 		precommits.push(precommit);
@@ -72,26 +71,30 @@ pub fn make_justification_for_header<H: HeaderT>(
 }
 
 fn signed_precommit<H: HeaderT>(
-	signer: &AuthorityId,
+	signer: &NoStdKeyring,
 	target: (H::Hash, H::Number),
 	round: u64,
 	set_id: SetId,
 ) -> finality_grandpa::SignedPrecommit<H::Hash, H::Number, AuthoritySignature, AuthorityId> {
-	use sp_runtime::RuntimeAppPublic;
-
 	let precommit = finality_grandpa::Precommit {
 		target_hash: target.0,
 		target_number: target.1,
 	};
+
 	let encoded =
 		sp_finality_grandpa::localized_payload(round, set_id, &finality_grandpa::Message::Precommit(precommit.clone()));
 
-	let signature = signer.sign(&encoded).expect("TODO"); // .into();
+	let signature = dbg!(signer.pair().sign(&encoded));
+	let raw_signature = signature.to_bytes().iter().map(|x| *x).collect::<Vec<u8>>();
+
+	// Need to wrap our signature and id types that they matche what our `SignedPrecommit` is expecting
+	let signature = dbg!(sp_finality_grandpa::AuthoritySignature::try_from(raw_signature.clone()).unwrap());
+	let id = AuthorityId::from_slice(&signer.public().to_bytes());
 
 	finality_grandpa::SignedPrecommit {
 		precommit,
 		signature,
-		id: signer.clone(), // signer.public().into(),
+		id,
 	}
 }
 
@@ -120,11 +123,35 @@ pub fn header_id<H: HeaderT>(index: u8) -> (H::Hash, H::Number) {
 	(test_header::<H>(index.into()).hash(), index.into())
 }
 
-/// Get the identity of a test account given an ED25519 Public key.
-pub fn extract_keyring(id: &AuthorityId) -> Ed25519Keyring {
-	let mut raw_public = [0; 32];
-	raw_public.copy_from_slice(id.as_ref());
-	Ed25519Keyring::from_raw_public(raw_public).unwrap()
+/// Set of test accounts.
+#[derive(RuntimeDebug, Clone, Copy)]
+pub enum NoStdKeyring {
+	Alice,
+	Bob,
+	Charlie = 3, // Haxx since 2 isn't a valid Edwards point
+	Dave,
+	Eve,
+	Ferdie,
+}
+
+impl NoStdKeyring {
+	pub fn sign(self, msg: &[u8]) -> Signature {
+		self.pair().sign(msg)
+	}
+
+	pub fn pair(self) -> Keypair {
+		Keypair::from_bytes(&[self as u8; 64]).expect("Should probably be fine...")
+	}
+
+	pub fn public(self) -> PublicKey {
+		self.pair().public
+	}
+}
+
+impl Into<AuthorityId> for NoStdKeyring {
+	fn into(self) -> AuthorityId {
+		AuthorityId::from_slice(&self.public().to_bytes())
+	}
 }
 
 /// Get a valid set of voters for a Grandpa round.
@@ -134,20 +161,32 @@ pub fn voter_set() -> VoterSet<AuthorityId> {
 
 /// Convenience function to get a list of Grandpa authorities.
 pub fn authority_list() -> AuthorityList {
-	vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
+	vec![
+		(NoStdKeyring::Alice.into(), 1),
+		(NoStdKeyring::Bob.into(), 1),
+		(NoStdKeyring::Charlie.into(), 1),
+	]
+}
+
+pub fn keyring_list() -> Vec<(NoStdKeyring, u64)> {
+	vec![
+		(NoStdKeyring::Alice, 1),
+		(NoStdKeyring::Bob, 1),
+		(NoStdKeyring::Charlie, 1),
+	]
 }
 
 /// Get the Public key of the Alice test account.
-pub fn alice() -> AuthorityId {
-	Ed25519Keyring::Alice.public().into()
+pub fn alice() -> PublicKey {
+	NoStdKeyring::Alice.public()
 }
 
 /// Get the Public key of the Bob test account.
-pub fn bob() -> AuthorityId {
-	Ed25519Keyring::Bob.public().into()
+pub fn bob() -> PublicKey {
+	NoStdKeyring::Bob.public()
 }
 
 /// Get the Public key of the Charlie test account.
-pub fn charlie() -> AuthorityId {
-	Ed25519Keyring::Charlie.public().into()
+pub fn charlie() -> PublicKey {
+	NoStdKeyring::Charlie.public()
 }

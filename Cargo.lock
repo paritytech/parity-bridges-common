@@ -788,11 +788,12 @@ name = "bp-test-utils"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
+ "ed25519-dalek",
  "finality-grandpa 0.14.0",
  "sp-application-crypto",
  "sp-finality-grandpa",
- "sp-keyring",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
