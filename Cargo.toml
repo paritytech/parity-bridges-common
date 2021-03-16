@@ -7,8 +7,10 @@ members = [
 	"modules/*",
 	"primitives/*",
 	"primitives/chains/*",
+	"primitives/chains/rococo",
 	"relays/*",
 	"relays/clients/*",
+	"relays/clients/rococo",
 	"relays/generic/*",
 ]
 exclude = [

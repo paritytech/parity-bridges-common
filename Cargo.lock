@@ -746,10 +746,14 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "frame-system",
+ "hash256-std-hasher",
+ "parity-scale-codec 2.0.1",
+ "parity-util-mem",
  "sp-api",
  "sp-core",
  "sp-runtime",
  "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -764,6 +768,21 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "bp-rococo"
+version = "0.1.0"
+dependencies = [
+ "bp-message-lane",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "parity-scale-codec 2.0.1",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -5689,6 +5708,24 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "sp-runtime",
+]
+
+[[package]]
+name = "relay-rococo-client"
+version = "0.1.0"
+dependencies = [
+ "bp-rococo",
+ "frame-support",
+ "frame-system",
+ "headers-relay",
+ "pallet-transaction-payment",
+ "parity-scale-codec 2.0.1",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-version",
 ]
 
 [[package]]
