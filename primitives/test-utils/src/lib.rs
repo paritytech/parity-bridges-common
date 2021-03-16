@@ -53,7 +53,6 @@ pub fn make_justification_for_header<H: HeaderT>(
 	// I'm using the same header for all the voters since it doesn't matter as long
 	// as they all vote on blocks _ahead_ of the one we're interested in finalizing
 	for (id, _weight) in authorities.iter() {
-		// let signer = extract_keyring(&id);
 		let precommit = signed_precommit::<H>(id, (precommit_header.hash(), *precommit_header.number()), round, set_id);
 		precommits.push(precommit);
 		votes_ancestries.push(precommit_header.clone());
@@ -87,8 +86,8 @@ fn signed_precommit<H: HeaderT>(
 	let signature = dbg!(signer.pair().sign(&encoded));
 	let raw_signature = signature.to_bytes().iter().map(|x| *x).collect::<Vec<u8>>();
 
-	// Need to wrap our signature and id types that they matche what our `SignedPrecommit` is expecting
-	let signature = dbg!(sp_finality_grandpa::AuthoritySignature::try_from(raw_signature.clone()).unwrap());
+	// Need to wrap our signature and id types that they match what our `SignedPrecommit` is expecting
+	let signature = dbg!(AuthoritySignature::try_from(raw_signature.clone()).unwrap());
 	let id = AuthorityId::from_slice(&signer.public().to_bytes());
 
 	finality_grandpa::SignedPrecommit {
