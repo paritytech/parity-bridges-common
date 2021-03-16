@@ -3045,9 +3045,9 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-proc-macros"
-version = "0.2.0-alpha"
+version = "0.2.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9cd3d41f5b9a1d3e4e4c9ad49a7a34ad8e1134a1a587cd21c72f644f5c053dd"
+checksum = "3cb3f732ccbeafd15cefb59c7c7b5ac6c553c2653613b63e5e7feb7f06a219e9"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -3057,9 +3057,9 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-types"
-version = "0.2.0-alpha"
+version = "0.2.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbf718f9a0d09f50621ea35f507679cf3ab66910a6d95844850076c1281a203c"
+checksum = "5a8cd20c190e75dc56f7543b9d5713c3186351b301b5507ea6b85d8c403aac78"
 dependencies = [
  "async-trait",
  "futures 0.3.13",
@@ -3072,9 +3072,9 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-ws-client"
-version = "0.2.0-alpha"
+version = "0.2.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2068572cd47fa4398fa85473b264153d69592c028cd4ebd5bf6ebc348d26de90"
+checksum = "5afdfa266a6ba3655f464f2e63abddbf3d599226dabd5851928edc817c58867d"
 dependencies = [
  "async-std",
  "async-tls",
