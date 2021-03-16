@@ -1415,7 +1415,10 @@ mod tests {
 				10,
 				FixedU128::zero(),
 				|weight| weight,
-				MessageLaneTransaction { size: 50, dispatch_weight: 777 },
+				MessageLaneTransaction {
+					size: 50,
+					dispatch_weight: 777
+				},
 			),
 			100 + 50 * 10,
 		);
@@ -1429,7 +1432,10 @@ mod tests {
 				10,
 				FixedU128::one(),
 				|weight| weight,
-				MessageLaneTransaction { size: 50, dispatch_weight: 777 },
+				MessageLaneTransaction {
+					size: 50,
+					dispatch_weight: 777
+				},
 			),
 			100 + 50 * 10 + 777,
 		);
