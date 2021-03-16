@@ -19,10 +19,10 @@
 use relay_substrate_client::{Chain, ChainBase};
 use std::time::Duration;
 
-/// Polkadot header id.
+/// Westend header id.
 pub type HeaderId = relay_utils::HeaderId<bp_westend::Hash, bp_westend::BlockNumber>;
 
-/// Polkadot chain definition
+/// Westend chain definition
 #[derive(Debug, Clone, Copy)]
 pub struct Westend;
 
@@ -43,5 +43,5 @@ impl Chain for Westend {
 	type Call = ();
 }
 
-/// Polkadot header type used in headers sync.
+/// Westend header type used in headers sync.
 pub type SyncHeader = relay_substrate_client::SyncHeader<bp_westend::Header>;
