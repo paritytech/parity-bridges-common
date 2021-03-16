@@ -1406,4 +1406,32 @@ mod tests {
 			Err(target::MessageProofError::MessagesCountMismatch),
 		);
 	}
+
+	#[test]
+	fn transaction_payment_works_with_zero_multiplier() {
+		assert_eq!(
+			transaction_payment(
+				100,
+				10,
+				FixedU128::zero(),
+				|weight| weight,
+				MessageLaneTransaction { size: 50, dispatch_weight: 777 },
+			),
+			100 + 50 * 10,
+		);
+	}
+
+	#[test]
+	fn transaction_payment_works_with_non_zero_multiplier() {
+		assert_eq!(
+			transaction_payment(
+				100,
+				10,
+				FixedU128::one(),
+				|weight| weight,
+				MessageLaneTransaction { size: 50, dispatch_weight: 777 },
+			),
+			100 + 50 * 10 + 777,
+		);
+	}
 }
