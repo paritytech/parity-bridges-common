@@ -127,7 +127,15 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 	// If initial header changes the GRANDPA authorities set, then we need previous authorities
 	// to verify justification.
 	let mut authorities_for_verification = initial_authorities_set.clone();
-	let schedules_change = find_grandpa_authorities_scheduled_change(&initial_header).is_some();
+	let scheduled_change = find_grandpa_authorities_scheduled_change(&initial_header);
+	assert!(
+		scheduled_change.as_ref().map(|c| c.delay.is_zero()).unwrap_or(true),
+		"GRANDPA authorities change at {} scheduled to happen in {:?} blocks. We expect\
+		regular hange to have zero delay",
+		initial_header_hash,
+		scheduled_change.as_ref().map(|c| c.delay),
+	);
+	let schedules_change = scheduled_change.is_some();
 	if schedules_change {
 		authorities_for_verification = source_authorities_set(&source_client, *initial_header.parent_hash()).await?;
 		log::trace!(
