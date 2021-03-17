@@ -671,7 +671,6 @@ dependencies = [
  "serde",
  "sp-core",
  "sp-finality-grandpa",
- "sp-io",
  "sp-runtime",
  "sp-std",
 ]
