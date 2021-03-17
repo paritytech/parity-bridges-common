@@ -15,10 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Utilities for testing runtime code.
-//!
-//! Unlike other crates in the `primitives` folder, this crate does *not* need to compile in a
-//! `no_std` environment. This is fine because this code should only be used, as the name implies,
-//! in tests.
+
+#![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_header_chain::justification::GrandpaJustification;
 use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature, Signer};
@@ -39,7 +37,7 @@ pub fn make_justification_for_header<H: HeaderT>(
 	header: &H,
 	round: u64,
 	set_id: SetId,
-	authorities: &[(NoStdKeyring, AuthorityWeight)],
+	authorities: &[(Keyring, AuthorityWeight)],
 ) -> GrandpaJustification<H> {
 	let (target_hash, target_number) = (header.hash(), *header.number());
 	let mut precommits = vec![];
@@ -70,7 +68,7 @@ pub fn make_justification_for_header<H: HeaderT>(
 }
 
 fn signed_precommit<H: HeaderT>(
-	signer: &NoStdKeyring,
+	signer: &Keyring,
 	target: (H::Hash, H::Number),
 	round: u64,
 	set_id: SetId,
@@ -124,7 +122,7 @@ pub fn header_id<H: HeaderT>(index: u8) -> (H::Hash, H::Number) {
 
 /// Set of test accounts.
 #[derive(RuntimeDebug, Clone, Copy)]
-pub enum NoStdKeyring {
+pub enum Keyring {
 	Alice,
 	Bob,
 	Charlie,
@@ -133,9 +131,13 @@ pub enum NoStdKeyring {
 	Ferdie,
 }
 
-impl NoStdKeyring {
-	pub fn sign(self, msg: &[u8]) -> Signature {
-		self.pair().sign(msg)
+impl Keyring {
+	pub fn public(&self) -> PublicKey {
+		(&self.secret()).into()
+	}
+
+	pub fn secret(&self) -> SecretKey {
+		SecretKey::from_bytes(&[*self as u8; 32]).expect("A static array of the correct length is a known good.")
 	}
 
 	pub fn pair(self) -> Keypair {
@@ -147,25 +149,21 @@ impl NoStdKeyring {
 		let public = self.public();
 		pair[32..].copy_from_slice(&public.to_bytes());
 
-		Keypair::from_bytes(&pair).expect("Should probably be fine...")
+		Keypair::from_bytes(&pair).expect("We expect the SecretKey to be good, so this must also be good.")
 	}
 
-	pub fn secret(&self) -> SecretKey {
-		SecretKey::from_bytes(&[*self as u8; 32]).expect("Should probably be fine...")
-	}
-
-	pub fn public(&self) -> PublicKey {
-		(&self.secret()).into()
+	pub fn sign(self, msg: &[u8]) -> Signature {
+		self.pair().sign(msg)
 	}
 }
 
-impl Into<AuthorityId> for NoStdKeyring {
+impl Into<AuthorityId> for Keyring {
 	fn into(self) -> AuthorityId {
 		AuthorityId::from_slice(&self.public().to_bytes())
 	}
 }
 
-impl Into<AuthorityId> for &NoStdKeyring {
+impl Into<AuthorityId> for &Keyring {
 	fn into(self) -> AuthorityId {
 		AuthorityId::from_slice(&self.public().to_bytes())
 	}
@@ -181,21 +179,22 @@ pub fn authority_list() -> AuthorityList {
 	keyring().iter().map(|(id, w)| (id.into(), *w)).collect()
 }
 
-pub fn keyring() -> Vec<(NoStdKeyring, u64)> {
+/// Get the corresponding identities from the keyring for the "standard" authority set.
+pub fn keyring() -> Vec<(Keyring, u64)> {
 	vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
 }
 
 /// Convenience function to get a handle to the Alice test account.
-pub fn alice() -> NoStdKeyring {
-	NoStdKeyring::Alice
+pub fn alice() -> Keyring {
+	Keyring::Alice
 }
 
 /// Convenience function to get a handle to the Bob test account.
-pub fn bob() -> NoStdKeyring {
-	NoStdKeyring::Bob
+pub fn bob() -> Keyring {
+	Keyring::Bob
 }
 
 /// Convenience function to get a handle to the Charlie test account.
-pub fn charlie() -> NoStdKeyring {
-	NoStdKeyring::Charlie
+pub fn charlie() -> Keyring {
+	Keyring::Charlie
 }
