@@ -32,6 +32,9 @@ function show_help () {
   echo " "
   echo "Options:"
   echo "  --no-monitoring                            Disable monitoring"
+  echo " "
+  echo "You can start multiple bridges at once by passing several bridge names:"
+  echo "  ./run.sh poa-rialto rialto-millau westend-millau [stop|update]"
   exit 1
 }
 
