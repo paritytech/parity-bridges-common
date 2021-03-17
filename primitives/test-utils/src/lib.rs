@@ -88,7 +88,7 @@ fn signed_precommit<H: HeaderT>(
 
 	// Need to wrap our signature and id types that they match what our `SignedPrecommit` is expecting
 	let signature = AuthoritySignature::try_from(raw_signature.clone()).unwrap();
-	let id = AuthorityId::from_slice(&signer.public().to_bytes());
+	let id = signer.into();
 
 	finality_grandpa::SignedPrecommit {
 		precommit,
@@ -165,6 +165,12 @@ impl Into<AuthorityId> for NoStdKeyring {
 	}
 }
 
+impl Into<AuthorityId> for &NoStdKeyring {
+	fn into(self) -> AuthorityId {
+		AuthorityId::from_slice(&self.public().to_bytes())
+	}
+}
+
 /// Get a valid set of voters for a Grandpa round.
 pub fn voter_set() -> VoterSet<AuthorityId> {
 	VoterSet::new(authority_list()).unwrap()
@@ -172,32 +178,24 @@ pub fn voter_set() -> VoterSet<AuthorityId> {
 
 /// Convenience function to get a list of Grandpa authorities.
 pub fn authority_list() -> AuthorityList {
-	vec![
-		(NoStdKeyring::Alice.into(), 1),
-		(NoStdKeyring::Bob.into(), 1),
-		(NoStdKeyring::Charlie.into(), 1),
-	]
+	keyring().iter().map(|(id, w)| (id.into(), *w)).collect()
 }
 
-pub fn keyring_list() -> Vec<(NoStdKeyring, u64)> {
-	vec![
-		(NoStdKeyring::Alice, 1),
-		(NoStdKeyring::Bob, 1),
-		(NoStdKeyring::Charlie, 1),
-	]
+pub fn keyring() -> Vec<(NoStdKeyring, u64)> {
+	vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
 }
 
-/// Get the Public key of the Alice test account.
-pub fn alice() -> PublicKey {
-	NoStdKeyring::Alice.public()
+/// Convenience function to get a handle to the Alice test account.
+pub fn alice() -> NoStdKeyring {
+	NoStdKeyring::Alice
 }
 
-/// Get the Public key of the Bob test account.
-pub fn bob() -> PublicKey {
-	NoStdKeyring::Bob.public()
+/// Convenience function to get a handle to the Bob test account.
+pub fn bob() -> NoStdKeyring {
+	NoStdKeyring::Bob
 }
 
-/// Get the Public key of the Charlie test account.
-pub fn charlie() -> PublicKey {
-	NoStdKeyring::Charlie.public()
+/// Convenience function to get a handle to the Charlie test account.
+pub fn charlie() -> NoStdKeyring {
+	NoStdKeyring::Charlie
 }
