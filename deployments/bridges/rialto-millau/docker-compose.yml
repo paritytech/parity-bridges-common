@@ -17,7 +17,7 @@ services:
       LETSENCRYPT_EMAIL: admin@parity.io
 
   relay-headers-millau-to-rialto: &sub-bridge-relay
-    image: paritytech/substrate-relay
+    image: local/substrate-relay
     entrypoint: /entrypoints/relay-headers-millau-to-rialto-entrypoint.sh
     volumes:
       - ./bridges/rialto-millau/entrypoints:/entrypoints
@@ -85,9 +85,12 @@ services:
       LETSENCRYPT_HOST: grafana.millau.brucke.link,grafana.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
     volumes:
-       - ./bridges/rialto-millau/dashboard/grafana/provisioning/:/etc/grafana/provisioning/
+       - ./bridges/rialto-millau/dashboard/grafana/relay-millau-to-rialto-headers-dashboard.json:/etc/grafana/provisioning/dashboards/relay-millau-to-rialto-headers-dashboard.json
+       - ./bridges/rialto-millau/dashboard/grafana/relay-millau-to-rialto-messages-dashboard.json:/etc/grafana/provisioning/dashboards/relay-millau-to-rialto-messages-dashboard.json
+       - ./bridges/rialto-millau/dashboard/grafana/relay-rialto-to-millau-headers-dashboard.json:/etc/grafana/provisioning/dashboards/relay-rialto-to-millau-headers-dashboard.json
+       - ./bridges/rialto-millau/dashboard/grafana/relay-rialto-to-millau-messages-dashboard.json:/etc/grafana/provisioning/dashboards/relay-rialto-to-millau-messages-dashboard.json
 
   prometheus-metrics:
     volumes:
-      - ./bridges/rialto-millau/dashboard/prometheus/:/etc/prometheus/
+      - ./bridges/rialto-millau/dashboard/prometheus/prometheus.yml:/etc/prometheus/prometheus-rialto-millau.yml
     depends_on: *all-nodes
