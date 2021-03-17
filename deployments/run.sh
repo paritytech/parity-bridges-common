@@ -91,21 +91,30 @@ COMPOSE_FILES=$NETWORKS$MONITORING
 
 # Compose looks for .env files in the the current directory by default, we don't want that
 COMPOSE_ARGS="--project-directory ."
+# Path to env file that we want to use. Compose only accepts single `--env-file` argument,
+# so we'll be using the last .env file we'll found.
+COMPOSE_ENV_FILE=''
 
 for BRIDGE in "${BRIDGES[@]}"
 do
   BRIDGE_PATH="./bridges/$BRIDGE"
   BRIDGE=" -f $BRIDGE_PATH/docker-compose.yml"
   COMPOSE_FILES=$BRIDGE$COMPOSE_FILES
-  #TODO: COMPOSE_ARGS+=" --env-file $BRIDGE_PATH/.env"
+
+  # Remember .env file to use in docker-compose call
+  if [[ -f "$BRIDGE_PATH/.env" ]]; then
+    COMPOSE_ENV_FILE=" --env-file $BRIDGE_PATH/.env"
+  fi
 
   # Read and source variables from .env file so we can use them here
   grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY $BRIDGE_PATH/.env > .env2 && . ./.env2 && rm .env2
-
   if [ ! -z ${MATRIX_ACCESS_TOKEN+x} ]; then
     sed -i "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./monitoring/grafana-matrix/config.yml
   fi
 done
+
+# Final COMPOSE_ARGS
+COMPOSE_ARGS="$COMPOSE_ARGS $COMPOSE_ENV_FILE"
 
 # Check the sub-command, perhaps we just mean to stop the network instead of starting it.
 if [ "$SUB_COMMAND" == "stop" ]; then
