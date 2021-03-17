@@ -587,7 +587,7 @@ mod tests {
 
 			let set_id = 1;
 			let authorities = authority_list();
-			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			let initial_authority_set = AuthoritySet::new(authorities, set_id);
 			storage.update_current_authority_set(initial_authority_set);
 
 			// Let's import our header
@@ -722,7 +722,7 @@ mod tests {
 
 			let set_id = 1;
 			let authorities = authority_list();
-			let authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			let authority_set = AuthoritySet::new(authorities, set_id);
 			storage.update_current_authority_set(authority_set);
 
 			// We'll need this justification to finalize the header
@@ -748,10 +748,7 @@ mod tests {
 
 			let set_id = 1;
 			let authorities = authority_list();
-			let authority_set = AuthoritySet {
-				authorities: authorities.clone(),
-				set_id,
-			};
+			let authority_set = AuthoritySet { authorities, set_id };
 			storage.update_current_authority_set(authority_set);
 
 			let grandpa_round = 1;
@@ -792,7 +789,7 @@ mod tests {
 
 			let set_id = 1;
 			let authorities = authority_list();
-			let initial_authority_set = AuthoritySet::new(authorities.clone(), set_id);
+			let initial_authority_set = AuthoritySet::new(authorities, set_id);
 			storage.update_current_authority_set(initial_authority_set);
 
 			// This header enacts an authority set change upon finalization

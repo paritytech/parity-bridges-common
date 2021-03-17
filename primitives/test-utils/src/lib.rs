@@ -82,10 +82,13 @@ fn signed_precommit<H: HeaderT>(
 		sp_finality_grandpa::localized_payload(round, set_id, &finality_grandpa::Message::Precommit(precommit.clone()));
 
 	let signature = signer.pair().sign(&encoded);
-	let raw_signature = signature.to_bytes().iter().map(|x| *x).collect::<Vec<u8>>();
+	let raw_signature: Vec<u8> = signature.to_bytes().into();
 
 	// Need to wrap our signature and id types that they match what our `SignedPrecommit` is expecting
-	let signature = AuthoritySignature::try_from(raw_signature.clone()).unwrap();
+	let signature = AuthoritySignature::try_from(raw_signature).expect(
+		"We know our Keypair is good,
+		so our signature must also be good.",
+	);
 	let id = signer.into();
 
 	finality_grandpa::SignedPrecommit {
@@ -157,15 +160,15 @@ impl Keyring {
 	}
 }
 
-impl Into<AuthorityId> for Keyring {
-	fn into(self) -> AuthorityId {
-		AuthorityId::from_slice(&self.public().to_bytes())
+impl From<Keyring> for AuthorityId {
+	fn from(k: Keyring) -> Self {
+		AuthorityId::from_slice(&k.public().to_bytes())
 	}
 }
 
-impl Into<AuthorityId> for &Keyring {
-	fn into(self) -> AuthorityId {
-		AuthorityId::from_slice(&self.public().to_bytes())
+impl From<&Keyring> for AuthorityId {
+	fn from(k: &Keyring) -> Self {
+		AuthorityId::from_slice(&k.public().to_bytes())
 	}
 }
 
