@@ -21,7 +21,7 @@
 //! in tests.
 
 use bp_header_chain::justification::GrandpaJustification;
-use ed25519_dalek::{Keypair, PublicKey, Signature, Signer};
+use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature, Signer};
 use finality_grandpa::voter_set::VoterSet;
 use sp_application_crypto::{Public, TryFrom};
 use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight};
@@ -83,11 +83,11 @@ fn signed_precommit<H: HeaderT>(
 	let encoded =
 		sp_finality_grandpa::localized_payload(round, set_id, &finality_grandpa::Message::Precommit(precommit.clone()));
 
-	let signature = dbg!(signer.pair().sign(&encoded));
+	let signature = signer.pair().sign(&encoded);
 	let raw_signature = signature.to_bytes().iter().map(|x| *x).collect::<Vec<u8>>();
 
 	// Need to wrap our signature and id types that they match what our `SignedPrecommit` is expecting
-	let signature = dbg!(AuthoritySignature::try_from(raw_signature.clone()).unwrap());
+	let signature = AuthoritySignature::try_from(raw_signature.clone()).unwrap();
 	let id = AuthorityId::from_slice(&signer.public().to_bytes());
 
 	finality_grandpa::SignedPrecommit {
@@ -139,11 +139,23 @@ impl NoStdKeyring {
 	}
 
 	pub fn pair(self) -> Keypair {
-		Keypair::from_bytes(&[self as u8; 64]).expect("Should probably be fine...")
+		let mut pair: [u8; 64] = [0; 64];
+
+		let secret = self.secret();
+		pair[..32].copy_from_slice(&secret.to_bytes());
+
+		let public = self.public();
+		pair[32..].copy_from_slice(&public.to_bytes());
+
+		Keypair::from_bytes(&pair).expect("Should probably be fine...")
 	}
 
-	pub fn public(self) -> PublicKey {
-		self.pair().public
+	pub fn secret(&self) -> SecretKey {
+		SecretKey::from_bytes(&[*self as u8; 32]).expect("Should probably be fine...")
+	}
+
+	pub fn public(&self) -> PublicKey {
+		(&self.secret()).into()
 	}
 }
 
