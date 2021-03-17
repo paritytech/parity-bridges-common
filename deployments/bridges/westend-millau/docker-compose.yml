@@ -5,7 +5,7 @@ services:
   relay-headers-westend-to-millau:
     networks:
       - deployments_default
-      - westend-access
+      - deployments_external
     image: local/substrate-relay
     entrypoint: /entrypoints/relay-headers-westend-to-millau-entrypoint.sh
     volumes:
@@ -34,7 +34,7 @@ services:
       - relay-headers-westend-to-millau
 
 networks:
+  deployments_external:
+    driver: bridge
   deployments_default:
     external: true
-  westend-access:
-    driver: bridge
