@@ -19,7 +19,7 @@ services:
       LETSENCRYPT_EMAIL: admin@parity.io
 
   relay-headers-millau-to-rialto: &sub-bridge-relay
-    image: local/substrate-relay
+    image: paritytech/substrate-relay
     entrypoint: /entrypoints/relay-headers-millau-to-rialto-entrypoint.sh
     volumes:
       - ./bridges/rialto-millau/entrypoints:/entrypoints
