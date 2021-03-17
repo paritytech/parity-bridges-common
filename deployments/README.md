@@ -125,7 +125,7 @@ Following accounts are used when `rialto-millau` bridge is running:
 
 Following accounts are used when `westend-millau` bridge is running:
 
-- Millau's `George` signs relay transactions with new Millau headers.
+- Millau's `George` signs relay transactions with new Westend headers.
 
 ### Docker Usage
 When the network is running you can query logs from individual nodes using:
