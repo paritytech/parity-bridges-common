@@ -28,6 +28,7 @@ function show_help () {
   echo "Usage:"
   echo "  ./run.sh poa-rialto [stop|update]          Run PoA <> Rialto Networks & Bridge"
   echo "  ./run.sh rialto-millau [stop|update]       Run Rialto <> Millau Networks & Bridge"
+  echo "  ./run.sh westend-millau [stop|update]      Run Westend -> Millau Networks & Bridge"
   echo " "
   echo "Options:"
   echo "  --no-monitoring                            Disable monitoring"
@@ -39,7 +40,7 @@ MILLAU=' -f ./networks/millau.yml'
 ETH_POA=' -f ./networks/eth-poa.yml'
 MONITORING=' -f ./monitoring/docker-compose.yml'
 
-BRIDGE=''
+BRIDGES=()
 NETWORKS=''
 SUB_COMMAND='start'
 for i in "$@"
@@ -48,17 +49,28 @@ do
     --no-monitoring)
       MONITORING=" -f ./monitoring/disabled.yml"
       shift
+      continue
       ;;
     poa-rialto)
-      BRIDGE=$i
+      BRIDGES+=($i)
       NETWORKS+=${RIALTO}
+      RIALTO=''
       NETWORKS+=${ETH_POA}
+      ETH_POA=''
       shift
       ;;
     rialto-millau)
-      BRIDGE=$i
+      BRIDGES+=($i)
       NETWORKS+=${RIALTO}
+      RIALTO=''
       NETWORKS+=${MILLAU}
+      MILLAU=''
+      shift
+      ;;
+    westend-millau)
+      BRIDGES+=($i)
+      NETWORKS+=${MILLAU}
+      MILLAU=''
       shift
       ;;
     start|stop|update)
@@ -71,24 +83,29 @@ do
   esac
 done
 
-if [ -z "$BRIDGE" ]; then
+if [ ${#BRIDGES[@]} -eq 0 ]; then
   show_help "Missing bridge name."
 fi
 
-BRIDGE_PATH="./bridges/$BRIDGE"
-BRIDGE="-f $BRIDGE_PATH/docker-compose.yml"
-COMPOSE_FILES=$BRIDGE$NETWORKS$MONITORING
+COMPOSE_FILES=$NETWORKS$MONITORING
 
 # Compose looks for .env files in the the current directory by default, we don't want that
-COMPOSE_ARGS="--project-directory . --env-file "
-COMPOSE_ARGS+=$BRIDGE_PATH/.env
+COMPOSE_ARGS="--project-directory ."
 
-# Read and source variables from .env file so we can use them here
-grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY $BRIDGE_PATH/.env > .env2 && . ./.env2 && rm .env2
+for BRIDGE in "${BRIDGES[@]}"
+do
+  BRIDGE_PATH="./bridges/$BRIDGE"
+  BRIDGE=" -f $BRIDGE_PATH/docker-compose.yml"
+  COMPOSE_FILES=$BRIDGE$COMPOSE_FILES
+  #TODO: COMPOSE_ARGS+=" --env-file $BRIDGE_PATH/.env"
 
-if [ ! -z ${MATRIX_ACCESS_TOKEN+x} ]; then
-  sed -i "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./monitoring/grafana-matrix/config.yml
-fi
+  # Read and source variables from .env file so we can use them here
+  grep -e MATRIX_ACCESS_TOKEN -e WITH_PROXY $BRIDGE_PATH/.env > .env2 && . ./.env2 && rm .env2
+
+  if [ ! -z ${MATRIX_ACCESS_TOKEN+x} ]; then
+    sed -i "s/access_token.*/access_token: \"$MATRIX_ACCESS_TOKEN\"/" ./monitoring/grafana-matrix/config.yml
+  fi
+done
 
 # Check the sub-command, perhaps we just mean to stop the network instead of starting it.
 if [ "$SUB_COMMAND" == "stop" ]; then
