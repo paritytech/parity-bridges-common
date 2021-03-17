@@ -1,0 +1,38 @@
+version: '3.5'
+services:
+  relay-headers-westend-to-millau:
+    networks:
+      - deployments_default
+      - westend-access
+    image: local/substrate-relay
+    entrypoint: /entrypoints/relay-headers-westend-to-millau-entrypoint.sh
+    volumes:
+      - ./bridges/westend-millau/entrypoints:/entrypoints
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "10216:9616"
+    depends_on:
+      - millau-node-alice
+
+  # Note: These are being overridden from the top level `monitoring` compose file.
+  grafana-dashboard:
+    environment:
+      VIRTUAL_HOST: grafana.millau.brucke.link,grafana.rialto.brucke.link
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: grafana.millau.brucke.link,grafana.rialto.brucke.link
+      LETSENCRYPT_EMAIL: admin@parity.io
+    volumes:
+       - ./bridges/westend-millau/dashboard/grafana/relay-westend-to-millau-headers-dashboard.json:/etc/grafana/provisioning/dashboards/relay-westend-to-millau-headers-dashboard.json
+
+  prometheus-metrics:
+    volumes:
+      - ./bridges/westend-millau/dashboard/prometheus/prometheus.yml:/etc/prometheus/prometheus-westend-millau.yml
+    depends_on:
+      - relay-headers-westend-to-millau
+
+networks:
+  deployments_default:
+    external: true
+  westend-access:
+    driver: bridge
