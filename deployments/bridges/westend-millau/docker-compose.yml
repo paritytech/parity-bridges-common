@@ -1,3 +1,5 @@
+# Exposed ports: 10616
+
 version: '3.5'
 services:
   relay-headers-westend-to-millau:
@@ -11,7 +13,7 @@ services:
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
-      - "10216:9616"
+      - "10616:9616"
     depends_on:
       - millau-node-alice
 

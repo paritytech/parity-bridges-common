@@ -1,5 +1,7 @@
 # This Compose file should be built using the Rialto and Eth-PoA node
 # compose files. Otherwise it won't work.
+#
+# Exposed ports: 9616, 9716, 9816, 9916, 8080
 
 version: '3.5'
 services:
