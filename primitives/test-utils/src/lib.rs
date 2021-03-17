@@ -127,7 +127,7 @@ pub fn header_id<H: HeaderT>(index: u8) -> (H::Hash, H::Number) {
 pub enum NoStdKeyring {
 	Alice,
 	Bob,
-	Charlie = 3, // Haxx since 2 isn't a valid Edwards point
+	Charlie,
 	Dave,
 	Eve,
 	Ferdie,
