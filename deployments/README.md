@@ -123,6 +123,10 @@ Following accounts are used when `rialto-millau` bridge is running:
 - Millau's `Ferdie` signs relay transactions with messages from Rialto to Millau;
 - Rialto's `Ferdie` signs relay transactions with message delivery confirmations from Millau to Rialto.
 
+Following accounts are used when `westend-millau` bridge is running:
+
+- Millau's `George` signs relay transactions with new Millau headers.
+
 ### Docker Usage
 When the network is running you can query logs from individual nodes using:
 

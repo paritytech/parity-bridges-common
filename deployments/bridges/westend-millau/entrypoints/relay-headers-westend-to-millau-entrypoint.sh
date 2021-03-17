@@ -10,10 +10,10 @@ curl -v http://millau-node-alice:9933/health
 	--westend-secure \
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
-	--millau-signer //Alice
+	--millau-signer //George
 
 # Give chain a little bit of time to process initialization transaction
-sleep 10
+sleep 6
 /home/user/substrate-relay relay-headers westend-to-millau \
 	--westend-host westend-rpc.polkadot.io \
 	--westend-port 443 \
