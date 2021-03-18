@@ -29,7 +29,7 @@ sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master" ,
 
 # Optional Benchmarking Dependencies
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false, optional = true }
-bp-test-utils = { path = "../../primitives/test-utils", optional = true }
+bp-test-utils = { path = "../../primitives/test-utils", default-features = false, optional = true }
 
 [dev-dependencies]
 pallet-substrate-bridge = { path = "../../modules/substrate" }
@@ -40,7 +40,7 @@ default = ["std"]
 std = [
 	"bp-runtime/std",
 	"bp-header-chain/std",
-	"bp-test-utils",
+	"bp-test-utils/std",
 	"codec/std",
 	"finality-grandpa/std",
 	"frame-support/std",

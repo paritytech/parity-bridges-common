@@ -30,9 +30,13 @@
 
 use crate::*;
 
-use bp_test_utils::{alice, bob, make_justification_for_header};
+use bp_test_utils::{
+	make_justification_for_header,
+	Keyring::{Alice, Bob},
+};
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_system::RawOrigin;
+use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight};
 use sp_runtime::traits::One;
 use sp_std::vec;
 
@@ -47,7 +51,7 @@ benchmarks! {
 		let n in 1..100;
 		let caller: T::AccountId = whitelisted_caller();
 
-		let authorities = vec![(alice(), 1), (bob(), 1)];
+		let authorities = vec![(Alice.into(), 1), (Bob.into(), 1)];
 
 		let init_data = InitializationData {
 			header: T::bridged_header(),
@@ -69,7 +73,7 @@ benchmarks! {
 
 		let set_id = 0;
 		let grandpa_round = 1;
-		let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+		let justification = make_justification_for_header(&header, grandpa_round, set_id, &vec![(Alice, 1), (Bob, 1)]).encode();
 
 	}: _(RawOrigin::Signed(caller), header, justification)
 	verify {
@@ -92,12 +96,12 @@ benchmarks! {
 		let mut authorities = vec![];
 		for i in 0..n {
 			// Do we need to have different identities for the authorities?
-			authorities.push((alice(), 1));
+			authorities.push((Alice, 1));
 		}
 
 		let init_data = InitializationData {
 			header: T::bridged_header(),
-			authority_list: authorities.clone(),
+			authority_list: authorities.iter().map(|(id, w)| (AuthorityId::from(*id), *w)).collect(),
 			set_id: 0,
 			is_halted: false,
 		};
@@ -163,7 +167,7 @@ benchmarks! {
 
 		let mut authorities = vec![];
 		for i in 0..n {
-			authorities.push((alice(), 1));
+			authorities.push((Alice, 1));
 		}
 
 		let authority_set = bp_header_chain::AuthoritySet {
