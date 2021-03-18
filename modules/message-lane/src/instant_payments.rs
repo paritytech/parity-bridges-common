@@ -168,13 +168,13 @@ fn pay_relayer_reward<Currency, AccountId>(
 
 	match pay_result {
 		Ok(_) => log::trace!(
-			target: "runtime",
+			target: "runtime::message-lane",
 			"Rewarded relayer {:?} with {:?}",
 			relayer_account,
 			reward,
 		),
 		Err(error) => log::trace!(
-			target: "runtime",
+			target: "runtime::message-lane",
 			"Failed to pay relayer {:?} reward {:?}: {:?}",
 			relayer_account,
 			reward,

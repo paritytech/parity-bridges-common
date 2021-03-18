@@ -255,11 +255,11 @@ decl_module! {
 			match new_owner {
 				Some(new_owner) => {
 					ModuleOwner::<T, I>::put(&new_owner);
-					log::info!("Setting pallet Owner to: {:?}", new_owner);
+					log::info!(target: "runtime::message-lane", "Setting pallet Owner to: {:?}", new_owner);
 				},
 				None => {
 					ModuleOwner::<T, I>::kill();
-					log::info!("Removed Owner of pallet.");
+					log::info!(target: "runtime::message-lane", "Removed Owner of pallet.");
 				},
 			}
 		}
@@ -273,9 +273,9 @@ decl_module! {
 			<IsHalted<I>>::put(operational);
 
 			if operational {
-				log::info!("Resuming pallet operations.");
+				log::info!(target: "runtime::message-lane", "Resuming pallet operations.");
 			} else {
-				log::warn!("Stopping pallet operations.");
+				log::warn!(target: "runtime::message-lane", "Stopping pallet operations.");
 			}
 		}
 
@@ -306,6 +306,7 @@ decl_module! {
 			T::TargetHeaderChain::verify_message(&payload)
 				.map_err(|err| {
 					log::trace!(
+						target: "runtime::message-lane",
 						"Message to lane {:?} is rejected by target chain: {:?}",
 						lane_id,
 						err,
@@ -324,6 +325,7 @@ decl_module! {
 				&payload,
 			).map_err(|err| {
 				log::trace!(
+					target: "runtime::message-lane",
 					"Message to lane {:?} is rejected by lane verifier: {:?}",
 					lane_id,
 					err,
@@ -339,6 +341,7 @@ decl_module! {
 				&Self::relayer_fund_account_id(),
 			).map_err(|err| {
 				log::trace!(
+					target: "runtime::message-lane",
 					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
 					lane_id,
 					submitter,
@@ -359,6 +362,7 @@ decl_module! {
 			lane.prune_messages(T::MaxMessagesToPruneAtOnce::get());
 
 			log::trace!(
+				target: "runtime::message-lane",
 				"Accepted message {} to lane {:?}. Message size: {:?}",
 				nonce,
 				lane_id,
@@ -395,6 +399,7 @@ decl_module! {
 				&Self::relayer_fund_account_id(),
 			).map_err(|err| {
 				log::trace!(
+					target: "runtime::message-lane",
 					"Submitter {:?} can't pay additional fee {:?} for the message {:?}/{:?}: {:?}",
 					submitter,
 					additional_fee,
@@ -451,6 +456,7 @@ decl_module! {
 			>(proof, messages_count)
 				.map_err(|err| {
 					log::trace!(
+						target: "runtime::message-lane",
 						"Rejecting invalid messages proof: {:?}",
 						err,
 					);
@@ -470,6 +476,7 @@ decl_module! {
 				.fold(0, |sum, weight| sum.saturating_add(weight));
 			if dispatch_weight < actual_dispatch_weight {
 				log::trace!(
+					target: "runtime::message-lane",
 					"Rejecting messages proof because of dispatch weight mismatch: declared={}, expected={}",
 					dispatch_weight,
 					actual_dispatch_weight,
@@ -488,6 +495,7 @@ decl_module! {
 					let updated_latest_confirmed_nonce = lane.receive_state_update(lane_state);
 					if let Some(updated_latest_confirmed_nonce) = updated_latest_confirmed_nonce {
 						log::trace!(
+							target: "runtime::message-lane",
 							"Received lane {:?} state update: latest_confirmed_nonce={}",
 							lane_id,
 							updated_latest_confirmed_nonce,
@@ -506,6 +514,7 @@ decl_module! {
 			}
 
 			log::trace!(
+				target: "runtime::message-lane",
 				"Received messages: total={}, valid={}",
 				total_messages,
 				valid_messages,
@@ -526,6 +535,7 @@ decl_module! {
 			let confirmation_relayer = ensure_signed(origin)?;
 			let (lane_id, lane_data) = T::TargetHeaderChain::verify_messages_delivery_proof(proof).map_err(|err| {
 				log::trace!(
+					target: "runtime::message-lane",
 					"Rejecting invalid messages delivery proof: {:?}",
 					err,
 				);
@@ -581,6 +591,7 @@ decl_module! {
 			}
 
 			log::trace!(
+				target: "runtime::message-lane",
 				"Received messages delivery proof up to (and including) {} at lane {:?}",
 				last_delivered_nonce,
 				lane_id,
