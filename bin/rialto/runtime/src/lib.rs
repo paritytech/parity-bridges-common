@@ -1008,12 +1008,13 @@ impl_runtime_apis! {
 			}
 
 			use pallet_finality_verifier::BridgedHeader;
-			use pallet_message_lane::benchmarking::{
+			use pallet_finality_verifier::benchmarking::{
 				Config as FinalityVerifierConfig
 			};
 
-			impl FinalityVerifierConfig for Runtime {
-				fn bridged_header() -> BridgedHeader<Self> {
+			impl FinalityVerifierConfig<()> for Runtime {
+				fn bridged_header() -> BridgedHeader<Self, ()> {
+					use sp_runtime::traits::Header;
 					bp_millau::Header::new(
 						0,
 						Default::default(),
