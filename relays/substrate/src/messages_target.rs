@@ -20,7 +20,9 @@
 
 use crate::messages_lane::SubstrateMessageLane;
 use crate::messages_source::read_client_state;
+use crate::on_demand_headers_relay::OnDemandHeadersRelay;
 
+use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use bp_message_lane::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::InstanceId;
@@ -48,16 +50,24 @@ pub struct SubstrateMessagesTarget<C: Chain, P> {
 	lane: P,
 	lane_id: LaneId,
 	instance: InstanceId,
+	source_to_target_headers_relay: Option<Arc<Mutex<OnDemandHeadersRelay>>>,
 }
 
 impl<C: Chain, P> SubstrateMessagesTarget<C, P> {
 	/// Create new Substrate headers target.
-	pub fn new(client: Client<C>, lane: P, lane_id: LaneId, instance: InstanceId) -> Self {
+	pub fn new(
+		client: Client<C>,
+		lane: P,
+		lane_id: LaneId,
+		instance: InstanceId,
+		source_to_target_headers_relay: Option<OnDemandHeadersRelay>,
+	) -> Self {
 		SubstrateMessagesTarget {
 			client,
 			lane,
 			lane_id,
 			instance,
+			source_to_target_headers_relay: source_to_target_headers_relay.map(Mutex::new).map(Arc::new),
 		}
 	}
 }
@@ -69,6 +79,7 @@ impl<C: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesTarget<C, P> 
 			lane: self.lane.clone(),
 			lane_id: self.lane_id,
 			instance: self.instance,
+			source_to_target_headers_relay: self.source_to_target_headers_relay.clone(),
 		}
 	}
 }
@@ -189,5 +200,11 @@ where
 			.await?;
 		self.client.submit_extrinsic(Bytes(tx.encode())).await?;
 		Ok(nonces)
+	}
+
+	async fn activate_source_to_target_headers_relay(&self, activate: bool) {
+		if let Some(ref source_to_target_headers_relay) = self.source_to_target_headers_relay {
+			source_to_target_headers_relay.lock().await.activate(activate).await;
+		}
 	}
 }

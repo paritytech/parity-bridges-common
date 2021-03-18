@@ -27,6 +27,7 @@ mod headers_initialize;
 mod messages_lane;
 mod messages_source;
 mod messages_target;
+mod on_demand_headers_relay;
 
 mod rialto_millau;
 

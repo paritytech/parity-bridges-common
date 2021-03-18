@@ -131,11 +131,30 @@ pub async fn run(
 	rialto_client: RialtoClient,
 	rialto_sign: RialtoSigningParams,
 	lane_id: LaneId,
+	enable_headers_relay: bool,
 	metrics_params: Option<MetricsParams>,
 ) {
 	let stall_timeout = Duration::from_secs(5 * 60);
 	let relayer_id_at_millau = millau_sign.signer.public().as_array_ref().clone().into();
 
+	let rialto_to_millau_headers_relay = if enable_headers_relay {
+		Some(crate::rialto_millau::rialto_headers_to_millau::on_demand(
+			rialto_client.clone(),
+			millau_client.clone(),
+			millau_sign.clone(),
+		))
+	} else {
+		None
+	};
+	let millau_to_rialto_headers_relay = if enable_headers_relay {
+		Some(crate::rialto_millau::millau_headers_to_rialto::on_demand(
+			millau_client.clone(),
+			rialto_client.clone(),
+			rialto_sign.clone(),
+		))
+	} else {
+		None
+	};
 	let lane = MillauMessagesToRialto {
 		source_client: millau_client.clone(),
 		source_sign: millau_sign,
@@ -181,8 +200,20 @@ pub async fn run(
 				max_messages_size_in_single_batch,
 			},
 		},
-		MillauSourceClient::new(millau_client, lane.clone(), lane_id, RIALTO_BRIDGE_INSTANCE),
-		RialtoTargetClient::new(rialto_client, lane, lane_id, MILLAU_BRIDGE_INSTANCE),
+		MillauSourceClient::new(
+			millau_client,
+			lane.clone(),
+			lane_id,
+			RIALTO_BRIDGE_INSTANCE,
+			rialto_to_millau_headers_relay,
+		),
+		RialtoTargetClient::new(
+			rialto_client,
+			lane,
+			lane_id,
+			MILLAU_BRIDGE_INSTANCE,
+			millau_to_rialto_headers_relay,
+		),
 		metrics_params,
 		futures::future::pending(),
 	)

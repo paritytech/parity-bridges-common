@@ -18,8 +18,10 @@
 
 use super::{MillauClient, RialtoClient};
 use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
+use crate::on_demand_headers_relay::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
+use futures::FutureExt;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SyncHeader as RialtoSyncHeader};
 use relay_substrate_client::{finality_source::Justification, Error as SubstrateError, TransactionSignScheme};
@@ -69,4 +71,16 @@ pub async fn run(
 		metrics_params,
 	)
 	.await;
+}
+
+/// Return on-demand Rialto-to-Millau finality relay task.
+pub fn on_demand(
+	rialto_client: RialtoClient,
+	millau_client: MillauClient,
+	millau_sign: MillauSigningParams,
+) -> OnDemandHeadersRelay {
+	OnDemandHeadersRelay::new(
+		"Rialto-to-Millau".into(),
+		Box::new(move || run(rialto_client.clone(), millau_client.clone(), millau_sign.clone(), None).boxed()),
+	)
 }

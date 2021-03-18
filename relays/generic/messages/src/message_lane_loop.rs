@@ -139,6 +139,9 @@ pub trait SourceClient<P: MessageLane>: RelayClient {
 		generated_at_block: TargetHeaderIdOf<P>,
 		proof: P::MessagesReceivingProof,
 	) -> Result<(), Self::Error>;
+
+	/// Activate (or deactivate) headers relay that relays target headers to source node.
+	async fn activate_target_to_source_headers_relay(&self, activate: bool);
 }
 
 /// Target client trait.
@@ -177,6 +180,9 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 		nonces: RangeInclusive<MessageNonce>,
 		proof: P::MessagesProof,
 	) -> Result<RangeInclusive<MessageNonce>, Self::Error>;
+
+	/// Activate (or deactivate) headers relay that relays source headers to target node.
+	async fn activate_source_to_target_headers_relay(&self, activate: bool);
 }
 
 /// State of the client.

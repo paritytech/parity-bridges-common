@@ -20,6 +20,7 @@ use crate::chain::{Chain, ChainWithBalances};
 use crate::rpc::{Substrate, SubstrateMessageLane};
 use crate::{ConnectionParams, Error, Result};
 
+use async_std::sync::{Arc, Mutex};
 use bp_message_lane::{LaneId, MessageNonce};
 use bp_runtime::InstanceId;
 use codec::Decode;
@@ -52,6 +53,14 @@ pub struct Client<C: Chain> {
 	client: RpcClient,
 	/// Genesis block hash.
 	genesis_hash: C::Hash,
+	/// If several tasks are preparing their transactions simultaneously, they may get the same
+	/// response (nonce) from the `next_account_index` call. So one of transactions will be rejected
+	/// from the pool. This lock is here to prevent situations like that.
+	///
+	/// Note that it's just lock, not the `HashMap<AccountId, Index>`. This is because querying index
+	/// does not necessarily mean that transaction with this nonce will be submitted. If we fail to
+	/// submit it, we may end up with incorrect (future) nonce in the map => infinite relay loop.
+	next_account_index_lock: Arc<Mutex<()>>,
 }
 
 impl<C: Chain> Clone for Client<C> {
@@ -60,6 +69,7 @@ impl<C: Chain> Clone for Client<C> {
 			params: self.params.clone(),
 			client: self.client.clone(),
 			genesis_hash: self.genesis_hash,
+			next_account_index_lock: self.next_account_index_lock.clone(),
 		}
 	}
 }
@@ -84,6 +94,7 @@ impl<C: Chain> Client<C> {
 			params,
 			client,
 			genesis_hash,
+			next_account_index_lock: Arc::new(Mutex::new(())),
 		})
 	}
 
@@ -189,6 +200,7 @@ impl<C: Chain> Client<C> {
 	///
 	/// Note: It's the caller's responsibility to make sure `account` is a valid ss58 address.
 	pub async fn next_account_index(&self, account: C::AccountId) -> Result<C::Index> {
+		let _guard = self.next_account_index_lock.lock().await;
 		Ok(Substrate::<C>::system_account_next_index(&self.client, account).await?)
 	}
 
