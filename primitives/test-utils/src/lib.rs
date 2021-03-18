@@ -89,7 +89,7 @@ fn signed_precommit<H: HeaderT>(
 		"We know our Keypair is good,
 		so our signature must also be good.",
 	);
-	let id = signer.into();
+	let id = (*signer).into();
 
 	finality_grandpa::SignedPrecommit {
 		precommit,
@@ -166,12 +166,6 @@ impl From<Keyring> for AuthorityId {
 	}
 }
 
-impl From<&Keyring> for AuthorityId {
-	fn from(k: &Keyring) -> Self {
-		AuthorityId::from_slice(&k.public().to_bytes())
-	}
-}
-
 /// Get a valid set of voters for a Grandpa round.
 pub fn voter_set() -> VoterSet<AuthorityId> {
 	VoterSet::new(authority_list()).unwrap()
@@ -179,7 +173,7 @@ pub fn voter_set() -> VoterSet<AuthorityId> {
 
 /// Convenience function to get a list of Grandpa authorities.
 pub fn authority_list() -> AuthorityList {
-	keyring().iter().map(|(id, w)| (id.into(), *w)).collect()
+	keyring().iter().map(|(id, w)| (AuthorityId::from(*id), *w)).collect()
 }
 
 /// Get the corresponding identities from the keyring for the "standard" authority set.
