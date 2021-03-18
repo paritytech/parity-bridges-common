@@ -184,20 +184,5 @@ pub fn authority_list() -> AuthorityList {
 
 /// Get the corresponding identities from the keyring for the "standard" authority set.
 pub fn keyring() -> Vec<(Keyring, u64)> {
-	vec![(alice(), 1), (bob(), 1), (charlie(), 1)]
-}
-
-/// Convenience function to get a handle to the Alice test account.
-pub fn alice() -> Keyring {
-	Keyring::Alice
-}
-
-/// Convenience function to get a handle to the Bob test account.
-pub fn bob() -> Keyring {
-	Keyring::Bob
-}
-
-/// Convenience function to get a handle to the Charlie test account.
-pub fn charlie() -> Keyring {
-	Keyring::Charlie
+	vec![(Keyring::Alice, 1), (Keyring::Bob, 1), (Keyring::Charlie, 1)]
 }
