@@ -2,9 +2,9 @@
 
 # Script used for running and updating bridge deployments.
 #
-# To deploy a network you can run this script with the name of the network you want to run.
+# To deploy a network you can run this script with the name of the bridge (or multiple bridges) you want to run.
 #
-# `./run.sh poa-rialto`
+# `./run.sh poa-rialto rialto-millau`
 #
 # To update a deployment to use the latest images available from the Docker Hub add the `update`
 # argument after the bridge name.
