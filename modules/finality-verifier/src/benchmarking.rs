@@ -34,19 +34,20 @@ use bp_test_utils::{
 	make_justification_for_header,
 	Keyring::{Alice, Bob},
 };
-use frame_benchmarking::{benchmarks, whitelisted_caller};
+use frame_benchmarking::{benchmarks_instance, whitelisted_caller};
+use frame_support::traits::Instance;
 use frame_system::RawOrigin;
-use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight};
+use sp_finality_grandpa::AuthorityId;
 use sp_runtime::traits::One;
 use sp_std::vec;
 
-pub trait Config: crate::Config {
+pub trait Config<I: 'static>: crate::Config<I> {
 	// We need some way for the benchmarks to use headers in a "generic" way. However, since we do
 	// use a real runtime we need a way for the runtime to tell us what the concrete type is.
-	fn bridged_header() -> BridgedHeader<Self>;
+	fn bridged_header() -> BridgedHeader<Self, I>;
 }
 
-benchmarks! {
+benchmarks_instance! {
 	submit_finality_proof {
 		let n in 1..100;
 		let caller: T::AccountId = whitelisted_caller();
@@ -60,7 +61,7 @@ benchmarks! {
 			is_halted: false,
 		};
 
-		initialize_bridge::<T>(init_data);
+		initialize_bridge::<T, I>(init_data);
 
 		let mut header = T::bridged_header();
 		header.set_number(*header.number() + One::one());
@@ -106,7 +107,7 @@ benchmarks! {
 			is_halted: false,
 		};
 
-		initialize_bridge::<T>(init_data);
+		initialize_bridge::<T, I>(init_data);
 
 		let mut header = T::bridged_header();
 		header.set_number(*header.number() + One::one());
@@ -171,15 +172,15 @@ benchmarks! {
 		}
 
 		let authority_set = bp_header_chain::AuthoritySet {
-			authorities,
+			authorities: authorities.iter().map(|(id, w)| (AuthorityId::from(*id), *w)).collect(),
 			set_id: 0
 		};
 
-		<CurrentAuthoritySet<T>>::put(&authority_set);
+		<CurrentAuthoritySet<T, I>>::put(&authority_set);
 
 	}: {
-		let authority_set = <CurrentAuthoritySet<T>>::get();
-		<CurrentAuthoritySet<T>>::put(&authority_set);
+		let authority_set = <CurrentAuthoritySet<T, I>>::get();
+		<CurrentAuthoritySet<T, I>>::put(&authority_set);
 	}
 }
 
