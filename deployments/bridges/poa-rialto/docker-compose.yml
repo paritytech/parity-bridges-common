@@ -81,7 +81,7 @@ services:
   # Note: These are being overridden from the top level `monitoring` compose file.
   prometheus-metrics:
     volumes:
-      - ./bridges/poa-rialto/dashboard/prometheus/prometheus.yml:/etc/prometheus/prometheus-poa-rialto.yml
+      - ./bridges/poa-rialto/dashboard/prometheus/targets.yml:/etc/prometheus/targets-poa-rialto.yml
     depends_on: *all-nodes
 
   grafana-dashboard:

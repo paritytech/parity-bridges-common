@@ -91,5 +91,5 @@ services:
 
   prometheus-metrics:
     volumes:
-      - ./bridges/rialto-millau/dashboard/prometheus/prometheus.yml:/etc/prometheus/prometheus-rialto-millau.yml
+      - ./bridges/rialto-millau/dashboard/prometheus/targets.yml:/etc/prometheus/targets-rialto-millau.yml
     depends_on: *all-nodes
