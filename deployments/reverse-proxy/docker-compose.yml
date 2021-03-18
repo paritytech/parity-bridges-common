@@ -4,7 +4,7 @@ services:
     image: jwilder/nginx-proxy
     container_name: nginx-proxy
     networks:
-      - deployments_external
+      - nginx-proxy
       - deployments_default
     ports:
       - "80:80"
@@ -21,7 +21,7 @@ services:
     image: jrcs/letsencrypt-nginx-proxy-companion
     container_name: nginx-proxy-le
     networks:
-      - deployments_external
+      - nginx-proxy
     volumes_from:
       - nginx-proxy
     volumes:
@@ -36,7 +36,7 @@ volumes:
   certs:
 
 networks:
-  deployments_external:
+  nginx-proxy:
     driver: bridge
   deployments_default:
     external: true
