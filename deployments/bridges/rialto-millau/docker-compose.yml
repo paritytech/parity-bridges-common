@@ -87,10 +87,7 @@ services:
       LETSENCRYPT_HOST: grafana.millau.brucke.link,grafana.rialto.brucke.link
       LETSENCRYPT_EMAIL: admin@parity.io
     volumes:
-       - ./bridges/rialto-millau/dashboard/grafana/relay-millau-to-rialto-headers-dashboard.json:/etc/grafana/provisioning/dashboards/relay-millau-to-rialto-headers-dashboard.json
-       - ./bridges/rialto-millau/dashboard/grafana/relay-millau-to-rialto-messages-dashboard.json:/etc/grafana/provisioning/dashboards/relay-millau-to-rialto-messages-dashboard.json
-       - ./bridges/rialto-millau/dashboard/grafana/relay-rialto-to-millau-headers-dashboard.json:/etc/grafana/provisioning/dashboards/relay-rialto-to-millau-headers-dashboard.json
-       - ./bridges/rialto-millau/dashboard/grafana/relay-rialto-to-millau-messages-dashboard.json:/etc/grafana/provisioning/dashboards/relay-rialto-to-millau-messages-dashboard.json
+      - ./bridges/rialto-millau/dashboard/grafana:/etc/grafana/provisioning/dashboards/rialto-millau
 
   prometheus-metrics:
     volumes:

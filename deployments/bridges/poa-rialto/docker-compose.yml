@@ -86,9 +86,7 @@ services:
 
   grafana-dashboard:
     volumes:
-       - ./bridges/poa-rialto/dashboard/grafana/relay-poa-to-rialto-exchange-dashboard.json:/etc/grafana/provisioning/dashboards/relay-poa-to-rialto-exchange-dashboard.json
-       - ./bridges/poa-rialto/dashboard/grafana/relay-poa-to-rialto-headers-dashboard.json:/etc/grafana/provisioning/dashboards/relay-poa-to-rialto-headers-dashboard.json
-       - ./bridges/poa-rialto/dashboard/grafana/relay-rialto-to-poa-headers-dashboard.json:/etc/grafana/provisioning/dashboards/relay-rialto-to-poa-headers-dashboard.json
+       - ./bridges/poa-rialto/dashboard/grafana:/etc/grafana/provisioning/dashboards/poa-rialto
     environment:
       VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
       VIRTUAL_PORT: 3000
