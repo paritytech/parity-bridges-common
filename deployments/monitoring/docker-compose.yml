@@ -14,7 +14,7 @@ services:
       GF_SERVER_ROOT_URL: ${GRAFANA_SERVER_ROOT_URL}
       GF_SERVER_DOMAIN: ${GRAFANA_SERVER_DOMAIN}
     volumes:
-       - ./monitoring/grafana/provisioning/:/etc/grafana/provisioning/
+       - ./monitoring/grafana/provisioning/:/etc/grafana/provisioning/:ro
     ports:
       - "3000:3000"
     depends_on:

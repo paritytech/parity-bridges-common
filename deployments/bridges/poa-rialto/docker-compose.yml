@@ -86,7 +86,7 @@ services:
 
   grafana-dashboard:
     volumes:
-       - ./bridges/poa-rialto/dashboard/grafana:/etc/grafana/provisioning/dashboards/poa-rialto
+       - ./bridges/poa-rialto/dashboard/grafana:/etc/grafana/dashboards/poa-rialto:ro
     environment:
       VIRTUAL_HOST: dashboard.rialto.bridges.test-installations.parity.io,grafana.rialto.brucke.link
       VIRTUAL_PORT: 3000
