@@ -31,13 +31,21 @@ use sp_std::prelude::*;
 pub const TEST_GRANDPA_ROUND: u64 = 1;
 pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
+/// Make a valid GRANDPA justification with sensible defaults
+pub fn make_default_justification<H: HeaderT>(header: &H) -> GrandpaJustification<H> {
+	make_justification_for_header(header, TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &keyring(), 2)
+}
+
 /// Generate justifications in a way where we are able to tune the number of pre-commits
 /// and vote ancestries which are included in the justification.
 ///
 /// This is useful for benchmarkings where we want to generate valid justifications with
 /// a specific number of pre-commits (tuned with the number of authorities) and/or a specific
 /// number of vote ancestries (tuned with the "depth" parameter).
-pub fn make_justification<H: HeaderT>(
+///
+/// Note: This needs at least three authorities or else the verifier will complain about
+/// being given an invalid commit.
+pub fn make_justification_for_header<H: HeaderT>(
 	header: &H,
 	round: u64,
 	set_id: SetId,
@@ -97,45 +105,6 @@ fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
 	}
 
 	headers
-}
-
-/// Get a valid Grandpa justification for a header given a Grandpa round, authority set ID, and
-/// authority list.
-///
-/// Note: This needs at least three authorities or else the verifier will complain about
-/// being given an invalid commit.
-pub fn make_justification_for_header<H: HeaderT>(
-	header: &H,
-	round: u64,
-	set_id: SetId,
-	authorities: &[(Keyring, AuthorityWeight)],
-) -> GrandpaJustification<H> {
-	let (target_hash, target_number) = (header.hash(), *header.number());
-	let mut precommits = vec![];
-	let mut votes_ancestries = vec![];
-
-	// We want to make sure that the header included in the vote ancestries
-	// is actually related to our target header
-	let mut precommit_header = test_header::<H>(target_number + One::one());
-	precommit_header.set_parent_hash(target_hash);
-
-	// I'm using the same header for all the voters since it doesn't matter as long
-	// as they all vote on blocks _ahead_ of the one we're interested in finalizing
-	for (id, _weight) in authorities.iter() {
-		let precommit = signed_precommit::<H>(id, (precommit_header.hash(), *precommit_header.number()), round, set_id);
-		precommits.push(precommit);
-		votes_ancestries.push(precommit_header.clone());
-	}
-
-	GrandpaJustification {
-		round,
-		commit: finality_grandpa::Commit {
-			target_hash,
-			target_number,
-			precommits,
-		},
-		votes_ancestries,
-	}
 }
 
 fn signed_precommit<H: HeaderT>(

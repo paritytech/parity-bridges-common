@@ -16,14 +16,33 @@
 
 //! Tests for Grandpa Justification code.
 
-use bp_header_chain::justification::{verify_justification, Error, GrandpaJustification};
+use bp_header_chain::justification::{verify_justification, Error};
+use bp_test_utils::Keyring::*;
 use bp_test_utils::*;
 use codec::Encode;
 
 type TestHeader = sp_runtime::testing::Header;
 
-fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
-	make_justification_for_header(&test_header(1), TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &keyring())
+#[test]
+fn valid_justification_accepted() {
+	let depth = 5;
+
+	assert_eq!(
+		verify_justification::<TestHeader>(
+			header_id::<TestHeader>(1),
+			TEST_GRANDPA_SET_ID,
+			&voter_set(),
+			&make_justification_for_header::<TestHeader>(
+				&test_header(1),
+				TEST_GRANDPA_ROUND,
+				TEST_GRANDPA_SET_ID,
+				&[(Alice, 1), (Bob, 1), (Charlie, 1), (Dave, 1), (Eve, 1)],
+				depth,
+			)
+			.encode()
+		),
+		Ok(()),
+	);
 }
 
 #[test]
@@ -41,7 +60,7 @@ fn justification_with_invalid_target_rejected() {
 			header_id::<TestHeader>(2),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header_1().encode(),
+			&make_default_justification::<TestHeader>(&test_header(1)).encode(),
 		),
 		Err(Error::InvalidJustificationTarget),
 	);
@@ -49,7 +68,7 @@ fn justification_with_invalid_target_rejected() {
 
 #[test]
 fn justification_with_invalid_commit_rejected() {
-	let mut justification = make_justification_for_header_1();
+	let mut justification = make_default_justification::<TestHeader>(&test_header(1));
 	justification.commit.precommits.clear();
 
 	assert_eq!(
@@ -65,7 +84,7 @@ fn justification_with_invalid_commit_rejected() {
 
 #[test]
 fn justification_with_invalid_authority_signature_rejected() {
-	let mut justification = make_justification_for_header_1();
+	let mut justification = make_default_justification::<TestHeader>(&test_header(1));
 	justification.commit.precommits[0].signature = Default::default();
 
 	assert_eq!(
@@ -81,7 +100,7 @@ fn justification_with_invalid_authority_signature_rejected() {
 
 #[test]
 fn justification_with_invalid_precommit_ancestry() {
-	let mut justification = make_justification_for_header_1();
+	let mut justification = make_default_justification::<TestHeader>(&test_header(1));
 	justification.votes_ancestries.push(test_header(10));
 
 	assert_eq!(
@@ -96,24 +115,26 @@ fn justification_with_invalid_precommit_ancestry() {
 }
 
 #[test]
-fn valid_justification_accepted() {
-	use bp_test_utils::Keyring::*;
+fn justification_is_invalid_if_we_dont_meet_threshold() {
 	let depth = 5;
+
+	// Need at least three authorities to sign off or else the voter set threshold can't be reached
+	let authorities = [(Alice, 1), (Bob, 1)];
 
 	assert_eq!(
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification::<TestHeader>(
+			&make_justification_for_header::<TestHeader>(
 				&test_header(1),
 				TEST_GRANDPA_ROUND,
 				TEST_GRANDPA_SET_ID,
-				&[(Alice, 1), (Bob, 1), (Charlie, 1), (Dave, 1), (Eve, 1)],
+				&authorities,
 				depth,
 			)
 			.encode()
 		),
-		Ok(()),
+		Err(Error::InvalidJustificationCommit),
 	);
 }
