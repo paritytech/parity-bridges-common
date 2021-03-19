@@ -34,7 +34,7 @@ For sending custom messages over an avialable bridge, the `send-message` command
 ```
 Send custom message over the bridge.
 
-Allows interacting with the bridge by sending messages over `MessageLane` component. The message is being sent to the
+Allows interacting with the bridge by sending messages over `Messages` component. The message is being sent to the
 source chain, delivered to the target chain and dispatched there.
 
 USAGE:
