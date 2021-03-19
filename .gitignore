@@ -5,6 +5,7 @@
 hfuzz_target
 hfuzz_workspace
 **/Cargo.lock
+deployments/monitoring/grafana/provisioning/dashboards/*.json
 
 **/*.rs.bk
 
