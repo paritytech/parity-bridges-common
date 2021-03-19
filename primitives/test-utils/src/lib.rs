@@ -31,8 +31,79 @@ use sp_std::prelude::*;
 pub const TEST_GRANDPA_ROUND: u64 = 1;
 pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
+/// Generate justifications in a way where we are able to tune the number of pre-commits
+/// and vote ancestries which are included in the justification.
+///
+/// This is useful for benchmarkings where we want to generate valid justifications with
+/// a specific number of pre-commits (tuned with the number of authorities) and/or a specific
+/// number of vote ancestries (tuned with the "depth" parameter).
+pub fn make_justification<H: HeaderT>(
+	header: &H,
+	round: u64,
+	set_id: SetId,
+	authorities: &[(Keyring, AuthorityWeight)],
+	depth: u32,
+) -> GrandpaJustification<H> {
+	let (target_hash, target_number) = (header.hash(), *header.number());
+	let mut precommits = vec![];
+	let mut votes_ancestries = vec![];
+
+	for (i, (id, _weight)) in authorities.iter().enumerate() {
+		let chain = generate_chain(i as u8, depth, header);
+
+		// The header we need to use when pre-commiting is the one at the higest height
+		// on our chain.
+		let (precommit_hash, precommit_number) = chain.last().map(|h| (h.hash(), *h.number())).unwrap();
+
+		let precommit = signed_precommit::<H>(&id, (precommit_hash, precommit_number), round, set_id);
+		precommits.push(precommit);
+
+		// We don't include our finality target header in the vote ancestries
+		for child in &chain[1..] {
+			votes_ancestries.push(child.clone());
+		}
+	}
+
+	GrandpaJustification {
+		round,
+		commit: finality_grandpa::Commit {
+			target_hash,
+			target_number,
+			precommits,
+		},
+		votes_ancestries,
+	}
+}
+
+fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
+	let mut headers = vec![];
+	headers.push(ancestor.clone());
+
+	for i in 1..depth {
+		let parent = &headers[(i - 1) as usize];
+		let (hash, num) = (parent.hash(), *parent.number());
+
+		let mut precommit_header = test_header::<H>(num + One::one());
+		precommit_header.set_parent_hash(hash);
+
+		// Modifying the digest so headers at the same height but in different forks have different
+		// hashes
+		let digest = precommit_header.digest_mut();
+		*digest = sp_runtime::Digest {
+			logs: vec![sp_runtime::DigestItem::Other(vec![fork_id])],
+		};
+
+		headers.push(precommit_header);
+	}
+
+	headers
+}
+
 /// Get a valid Grandpa justification for a header given a Grandpa round, authority set ID, and
 /// authority list.
+///
+/// Note: This needs at least three authorities or else the verifier will complain about
+/// being given an invalid commit.
 pub fn make_justification_for_header<H: HeaderT>(
 	header: &H,
 	round: u64,

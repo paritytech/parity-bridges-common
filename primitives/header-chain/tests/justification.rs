@@ -97,12 +97,22 @@ fn justification_with_invalid_precommit_ancestry() {
 
 #[test]
 fn valid_justification_accepted() {
+	use bp_test_utils::Keyring::*;
+	let depth = 5;
+
 	assert_eq!(
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header_1().encode(),
+			&make_justification::<TestHeader>(
+				&test_header(1),
+				TEST_GRANDPA_ROUND,
+				TEST_GRANDPA_SET_ID,
+				&[(Alice, 1), (Bob, 1), (Charlie, 1), (Dave, 1), (Eve, 1)],
+				depth,
+			)
+			.encode()
 		),
 		Ok(()),
 	);
