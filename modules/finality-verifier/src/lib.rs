@@ -725,7 +725,8 @@ mod tests {
 
 			let set_id = 2;
 			let grandpa_round = 1;
-			let justification = make_justification_for_header(&header, grandpa_round, set_id, &keyring(), 2).encode();
+			let justification =
+				make_justification_for_header(&header, grandpa_round, set_id, &keyring(), 2, 3).encode();
 
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification,),

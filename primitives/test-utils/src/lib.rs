@@ -33,14 +33,14 @@ pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
 /// Make a valid GRANDPA justification with sensible defaults
 pub fn make_default_justification<H: HeaderT>(header: &H) -> GrandpaJustification<H> {
-	make_justification_for_header(header, TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &keyring(), 2)
+	make_justification_for_header(header, TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &keyring(), 2, 1)
 }
 
 /// Generate justifications in a way where we are able to tune the number of pre-commits
 /// and vote ancestries which are included in the justification.
 ///
 /// This is useful for benchmarkings where we want to generate valid justifications with
-/// a specific number of pre-commits (tuned with the number of authorities) and/or a specific
+/// a specific number of pre-commits (tuned with the "forks" parameter) and/or a specific
 /// number of vote ancestries (tuned with the "depth" parameter).
 ///
 /// Note: This needs at least three authorities or else the verifier will complain about
@@ -51,25 +51,39 @@ pub fn make_justification_for_header<H: HeaderT>(
 	set_id: SetId,
 	authorities: &[(Keyring, AuthorityWeight)],
 	depth: u32,
+	forks: u32,
 ) -> GrandpaJustification<H> {
 	let (target_hash, target_number) = (header.hash(), *header.number());
 	let mut precommits = vec![];
 	let mut votes_ancestries = vec![];
 
-	for (i, (id, _weight)) in authorities.iter().enumerate() {
+	assert!(
+		forks as usize <= authorities.len(),
+		"If we have more forks than authorities we can't create valid pre-commits for all the forks."
+	);
+
+	let mut chains = vec![];
+	for i in 0..forks {
 		let chain = generate_chain(i as u8, depth, header);
-
-		// The header we need to use when pre-commiting is the one at the higest height
-		// on our chain.
-		let (precommit_hash, precommit_number) = chain.last().map(|h| (h.hash(), *h.number())).unwrap();
-
-		let precommit = signed_precommit::<H>(&id, (precommit_hash, precommit_number), round, set_id);
-		precommits.push(precommit);
 
 		// We don't include our finality target header in the vote ancestries
 		for child in &chain[1..] {
 			votes_ancestries.push(child.clone());
 		}
+
+		chains.push(chain);
+	}
+
+	for (i, (id, _weight)) in authorities.iter().enumerate() {
+		// Assign chains to authorities in a round-robin fashion
+		let chain = chains[i % forks as usize].clone();
+
+		// The header we need to use when pre-commiting is the one at the highest height
+		// on our chain.
+		let (precommit_hash, precommit_number) = chain.last().map(|h| (h.hash(), *h.number())).unwrap();
+
+		let precommit = signed_precommit::<H>(&id, (precommit_hash, precommit_number), round, set_id);
+		precommits.push(precommit);
 	}
 
 	GrandpaJustification {

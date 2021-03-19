@@ -26,6 +26,7 @@ type TestHeader = sp_runtime::testing::Header;
 #[test]
 fn valid_justification_accepted() {
 	let depth = 5;
+	let forks = 5;
 
 	assert_eq!(
 		verify_justification::<TestHeader>(
@@ -38,6 +39,31 @@ fn valid_justification_accepted() {
 				TEST_GRANDPA_SET_ID,
 				&[(Alice, 1), (Bob, 1), (Charlie, 1), (Dave, 1), (Eve, 1)],
 				depth,
+				forks,
+			)
+			.encode()
+		),
+		Ok(()),
+	);
+}
+
+#[test]
+fn valid_justification_accepted_with_single_fork() {
+	let depth = 5;
+	let forks = 1;
+
+	assert_eq!(
+		verify_justification::<TestHeader>(
+			header_id::<TestHeader>(1),
+			TEST_GRANDPA_SET_ID,
+			&voter_set(),
+			&make_justification_for_header::<TestHeader>(
+				&test_header(1),
+				TEST_GRANDPA_ROUND,
+				TEST_GRANDPA_SET_ID,
+				&[(Alice, 1), (Bob, 1), (Charlie, 1), (Dave, 1), (Eve, 1)],
+				depth,
+				forks,
 			)
 			.encode()
 		),
@@ -116,7 +142,8 @@ fn justification_with_invalid_precommit_ancestry() {
 
 #[test]
 fn justification_is_invalid_if_we_dont_meet_threshold() {
-	let depth = 5;
+	let depth = 2;
+	let forks = 2;
 
 	// Need at least three authorities to sign off or else the voter set threshold can't be reached
 	let authorities = [(Alice, 1), (Bob, 1)];
@@ -132,6 +159,7 @@ fn justification_is_invalid_if_we_dont_meet_threshold() {
 				TEST_GRANDPA_SET_ID,
 				&authorities,
 				depth,
+				forks,
 			)
 			.encode()
 		),
