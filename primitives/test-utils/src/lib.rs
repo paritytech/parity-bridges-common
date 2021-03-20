@@ -103,17 +103,17 @@ fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
 		let parent = &headers[(i - 1) as usize];
 		let (hash, num) = (parent.hash(), *parent.number());
 
-		let mut precommit_header = test_header::<H>(num + One::one());
-		precommit_header.set_parent_hash(hash);
+		let mut header = test_header::<H>(num + One::one());
+		header.set_parent_hash(hash);
 
 		// Modifying the digest so headers at the same height but in different forks have different
 		// hashes
-		let digest = precommit_header.digest_mut();
+		let digest = header.digest_mut();
 		*digest = sp_runtime::Digest {
 			logs: vec![sp_runtime::DigestItem::Other(vec![fork_id])],
 		};
 
-		headers.push(precommit_header);
+		headers.push(header);
 	}
 
 	headers
