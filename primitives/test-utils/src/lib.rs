@@ -62,7 +62,7 @@ pub fn make_justification_for_header<H: HeaderT>(
 		"If we have more forks than authorities we can't create valid pre-commits for all the forks."
 	);
 
-	let mut chains = vec![];
+	let mut unsigned_precommits = vec![];
 	for i in 0..forks {
 		let chain = generate_chain(i as u8, depth, header);
 
@@ -71,18 +71,17 @@ pub fn make_justification_for_header<H: HeaderT>(
 			votes_ancestries.push(child.clone());
 		}
 
-		chains.push(chain);
+		// The header we need to use when pre-commiting is the one at the highest height
+		// on our chain.
+		let precommit_candidate = chain.last().map(|h| (h.hash(), *h.number())).unwrap();
+		unsigned_precommits.push(precommit_candidate);
 	}
 
 	for (i, (id, _weight)) in authorities.iter().enumerate() {
-		// Assign chains to authorities in a round-robin fashion
-		let chain = chains[i % forks as usize].clone();
+		// Assign authorities to sign pre-commits in a round-robin fashion
+		let target = unsigned_precommits[i % forks as usize];
+		let precommit = signed_precommit::<H>(&id, target, round, set_id);
 
-		// The header we need to use when pre-commiting is the one at the highest height
-		// on our chain.
-		let (precommit_hash, precommit_number) = chain.last().map(|h| (h.hash(), *h.number())).unwrap();
-
-		let precommit = signed_precommit::<H>(&id, (precommit_hash, precommit_number), round, set_id);
 		precommits.push(precommit);
 	}
 
@@ -98,8 +97,7 @@ pub fn make_justification_for_header<H: HeaderT>(
 }
 
 fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
-	let mut headers = vec![];
-	headers.push(ancestor.clone());
+	let mut headers = vec![ancestor.clone()];
 
 	for i in 1..depth {
 		let parent = &headers[(i - 1) as usize];
