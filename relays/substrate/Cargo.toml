@@ -33,7 +33,7 @@ finality-relay = { path = "../generic/finality" }
 headers-relay = { path = "../generic/headers" }
 messages-relay = { path = "../generic/messages" }
 millau-runtime = { path = "../../bin/millau/runtime" }
-pallet-bridge-dispatch = { path = "../../modules/call-dispatch" }
+pallet-bridge-dispatch = { path = "../../modules/dispatch" }
 pallet-bridge-grandpa = { path = "../../modules/grandpa" }
 pallet-bridge-messages = { path = "../../modules/messages" }
 relay-kusama-client = { path = "../clients/kusama" }

@@ -4,10 +4,10 @@ The [`messages`](./src/messages.rs) module of this crate contains a bunch of hel
 messages module into your runtime. Basic prerequisites of these helpers are:
 - we're going to bridge Substrate-based chain with another Substrate-based chain;
 - both chains have [messages module](../../modules/messages/README.md), Substrate bridge
-  module and the [call dispatch module](../../modules/call-dispatch/README.md);
+  module and the [call dispatch module](../../modules/dispatch/README.md);
 - all message lanes are identical and may be used to transfer the same messages;
 - the messages sent over the bridge are dispatched using
-  [call dispatch module](../../modules/call-dispatch/README.md);
+  [call dispatch module](../../modules/dispatch/README.md);
 - the messages are `pallet_bridge_dispatch::MessagePayload` structures, where `call` field is
   encoded `Call` of the target chain. This means that the `Call` is opaque to the
   [messages module](../../modules/messages/README.md) instance at the source chain.
