@@ -15,5 +15,5 @@ parking_lot = "0.11.0"
 
 # Bridge Dependencies
 
-bp-messages = { path = "../../../primitives/messages" }
+bp-messages = { path = "../../primitives/messages" }
 relay-utils = { path = "../utils" }

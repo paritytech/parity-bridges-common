@@ -7,13 +7,13 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0" }
-headers-relay = { path = "../../generic/headers" }
-relay-substrate-client = { path = "../substrate" }
-relay-utils = { path = "../../generic/utils" }
+headers-relay = { path = "../headers" }
+relay-substrate-client = { path = "../client-substrate" }
+relay-utils = { path = "../utils" }
 
 # Bridge dependencies
 
-rialto-runtime = { path = "../../../bin/rialto/runtime" }
+rialto-runtime = { path = "../../bin/rialto/runtime" }
 
 # Substrate Dependencies
 
