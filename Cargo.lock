@@ -4494,6 +4494,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-multi-bridge-messages"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-rialto",
+ "bp-runtime",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal 0.3.1",
+ "log",
+ "num-traits",
+ "pallet-balances",
+ "parity-scale-codec 2.0.1",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-multi-finality-verifier"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-runtime",
+ "bp-test-utils",
+ "finality-grandpa 0.14.0",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-substrate-bridge",
+ "parity-scale-codec 2.0.1",
+ "serde",
+ "sp-finality-grandpa",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-trie",
+]
+
+[[package]]
 name = "pallet-randomness-collective-flip"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#5f056830a85f33c5628e6a3fac5c8e3270514bfe"
