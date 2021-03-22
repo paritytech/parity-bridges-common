@@ -31,7 +31,7 @@
 use crate::*;
 
 use bp_test_utils::{
-	make_justification_for_header,
+	make_justification_for_header, JustificationGeneratorParams,
 	Keyring::{Alice, Bob},
 };
 use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
@@ -71,9 +71,9 @@ benchmarks_instance_pallet! {
 			logs: vec![]
 		};
 
-		let set_id = 0;
-		let grandpa_round = 1;
-		let justification = make_justification_for_header(&header, grandpa_round, set_id, &vec![(Alice, 1), (Bob, 1)]).encode();
+		// TODO: Make justification for correct header
+		let params = JustificationGeneratorParams::<BridgedHeader<T, I>>::default();
+		let justification = make_justification_for_header(params).encode();
 
 	}: _(RawOrigin::Signed(caller), header, justification)
 	verify {
@@ -112,9 +112,9 @@ benchmarks_instance_pallet! {
 		header.set_number(*header.number() + One::one());
 		header.set_parent_hash(*T::bridged_header().parent_hash());
 
-		let set_id = 0;
-		let grandpa_round = 1;
-		let justification = make_justification_for_header(&header, grandpa_round, set_id, &authorities).encode();
+		// TODO: Make justification for correct header
+		let params = JustificationGeneratorParams::<BridgedHeader<T, I>>::default();
+		let justification = make_justification_for_header(params).encode();
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
