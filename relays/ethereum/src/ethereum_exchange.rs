@@ -264,7 +264,7 @@ impl TargetClient<EthereumToSubstrateExchange> for SubstrateTransactionsTarget {
 
 		// now let's check if transaction is successful
 		match bp_eth_poa::Receipt::is_successful_raw_receipt(raw_tx_receipt) {
-			Ok(true) => (),
+			Ok(true) => {}
 			_ => return Ok(false),
 		}
 

@@ -249,11 +249,7 @@ mod tests {
 		type TransactionInclusionProof = (bool, RawTransaction);
 
 		fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<RawTransaction> {
-			if proof.0 {
-				Some(proof.1.clone())
-			} else {
-				None
-			}
+			if proof.0 { Some(proof.1.clone()) } else { None }
 		}
 	}
 
