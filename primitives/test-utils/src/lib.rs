@@ -108,10 +108,10 @@ fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
 
 		// Modifying the digest so headers at the same height but in different forks have different
 		// hashes
-		let digest = header.digest_mut();
-		*digest = sp_runtime::Digest {
-			logs: vec![sp_runtime::DigestItem::Other(vec![fork_id])],
-		};
+		header
+			.digest_mut()
+			.logs
+			.push(sp_runtime::DigestItem::Other(vec![fork_id]));
 
 		headers.push(header);
 	}
