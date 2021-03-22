@@ -54,7 +54,7 @@ pub trait MessageBridge {
 	fn bridged_balance_to_this_balance(bridged_balance: BalanceOf<BridgedChain<Self>>) -> BalanceOf<ThisChain<Self>>;
 }
 
-/// Chain that has `pallet-bridge-messages` and `call-dispatch` modules.
+/// Chain that has `pallet-bridge-messages` and `dispatch` modules.
 pub trait ChainWithMessages {
 	/// Hash used in the chain.
 	type Hash: Decode;
@@ -85,7 +85,7 @@ pub struct MessageTransaction<Weight> {
 	pub size: u32,
 }
 
-/// This chain that has `pallet-bridge-messages` and `call-dispatch` modules.
+/// This chain that has `pallet-bridge-messages` and `dispatch` modules.
 pub trait ThisChainWithMessages: ChainWithMessages {
 	/// Call type on the chain.
 	type Call: Encode + Decode;
@@ -105,7 +105,7 @@ pub trait ThisChainWithMessages: ChainWithMessages {
 	fn transaction_payment(transaction: MessageTransaction<WeightOf<Self>>) -> BalanceOf<Self>;
 }
 
-/// Bridged chain that has `pallet-bridge-messages` and `call-dispatch` modules.
+/// Bridged chain that has `pallet-bridge-messages` and `dispatch` modules.
 pub trait BridgedChainWithMessages: ChainWithMessages {
 	/// Maximal extrinsic size at Bridged chain.
 	fn maximal_extrinsic_size() -> u32;
