@@ -723,8 +723,10 @@ mod tests {
 
 			let header = test_header(1);
 
-			let mut params = JustificationGeneratorParams::<TestHeader>::default();
-			params.set_id = 2;
+			let params = JustificationGeneratorParams::<TestHeader> {
+				set_id: 2,
+				..Default::default()
+			};
 			let justification = make_justification_for_header(params).encode();
 
 			assert_err!(

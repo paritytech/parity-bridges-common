@@ -62,8 +62,10 @@ impl<H: HeaderT> Default for JustificationGeneratorParams<H> {
 
 /// Make a valid GRANDPA justification with sensible defaults
 pub fn make_default_justification<H: HeaderT>(header: &H) -> GrandpaJustification<H> {
-	let mut params = JustificationGeneratorParams::<H>::default();
-	params.header = header.clone();
+	let params = JustificationGeneratorParams::<H> {
+		header: header.clone(),
+		..Default::default()
+	};
 
 	make_justification_for_header(params)
 }
