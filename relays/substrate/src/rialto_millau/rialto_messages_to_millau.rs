@@ -137,24 +137,20 @@ pub async fn run(
 	let stall_timeout = Duration::from_secs(5 * 60);
 	let relayer_id_at_rialto = rialto_sign.signer.public().as_array_ref().clone().into();
 
-	let rialto_to_millau_headers_relay = if enable_headers_relay {
-		Some(crate::rialto_millau::rialto_headers_to_millau::on_demand(
+	let rialto_to_millau_headers_relay = enable_headers_relay.then(|| {
+		crate::rialto_millau::rialto_headers_to_millau::on_demand(
 			rialto_client.clone(),
 			millau_client.clone(),
 			millau_sign.clone(),
-		))
-	} else {
-		None
-	};
-	let millau_to_rialto_headers_relay = if enable_headers_relay {
-		Some(crate::rialto_millau::millau_headers_to_rialto::on_demand(
+		)
+	});
+	let millau_to_rialto_headers_relay = enable_headers_relay.then(|| {
+		crate::rialto_millau::millau_headers_to_rialto::on_demand(
 			millau_client.clone(),
 			rialto_client.clone(),
 			rialto_sign.clone(),
-		))
-	} else {
-		None
-	};
+		)
+	});
 	let lane = RialtoMessagesToMillau {
 		source_client: rialto_client.clone(),
 		source_sign: rialto_sign,
