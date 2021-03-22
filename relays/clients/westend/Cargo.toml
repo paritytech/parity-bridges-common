@@ -13,7 +13,7 @@ relay-utils = { path = "../../generic/utils" }
 
 # Bridge dependencies
 
-bp-westend = { path = "../../../primitives/chains/westend" }
+bp-westend = { path = "../../../primitives/chain-westend" }
 
 # Substrate Dependencies
 
