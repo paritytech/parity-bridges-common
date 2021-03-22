@@ -778,6 +778,7 @@ dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
+ "hex",
  "parity-scale-codec 2.0.1",
  "sp-api",
  "sp-runtime",

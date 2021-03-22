@@ -21,7 +21,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bp_message_lane::{LaneId, Weight, MessageNonce, UnrewardedRelayersState};
-use frame_support::{StorageHasher, Twox128};
+use frame_support::{Blake2_128Concat, StorageHasher, Twox128};
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
 
@@ -61,21 +61,20 @@ impl sp_runtime::traits::Dispatchable for Call {
 /// https://github.com/paritytech/substrate/blob/c939ceba381b6313462d47334f775e128ea4e95d/frame/support/src/storage/generator/map.rs#L74
 ///	The equivalent command to invoke in case full `Runtime` is known is this:
 ///	`let key = frame_system::Account::<Runtime>::storage_map_final_key(&account_id);`
-
 pub fn account_info_storage_key(id: &AccountId) -> Vec<u8> {
 	let module_prefix_hashed = Twox128::hash(b"System");
 	let storage_prefix_hashed = Twox128::hash(b"Account");
 	let key_hashed = parity_scale_codec::Encode::using_encoded(
-		id, <Hasher as sp_api::Hasher>::hash
+		id, Blake2_128Concat::hash
 	);
 
 	let mut final_key = Vec::with_capacity(
-		module_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.as_ref().len()
+		module_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.len()
 	);
 
 	final_key.extend_from_slice(&module_prefix_hashed[..]);
 	final_key.extend_from_slice(&storage_prefix_hashed[..]);
-	final_key.extend_from_slice(key_hashed.as_ref());
+	final_key.extend_from_slice(key_hashed);
 
 	final_key
 }
@@ -180,6 +179,6 @@ mod tests {
 		let acc = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
 		23 , 24, 25, 26, 27, 28, 29, 30, 31, 32].into();
 		let key = account_info_storage_key(&acc);
-		assert_eq!(hex::encode(key), "ff");
+		assert_eq!(hex::encode(key), "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da92dccd599abfe1920a1cff8a7358231430102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20");
 	}
 }
