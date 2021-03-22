@@ -522,7 +522,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{run_test, test_header, Origin, TestHash, TestHeader, TestNumber, TestRuntime};
 	use bp_test_utils::{
-		authority_list, keyring, make_default_justification, make_justification_for_header,
+		authority_list, make_default_justification, make_justification_for_header, JustificationGeneratorParams,
 		Keyring::{Alice, Bob},
 	};
 	use codec::Encode;
@@ -723,10 +723,9 @@ mod tests {
 
 			let header = test_header(1);
 
-			let set_id = 2;
-			let grandpa_round = 1;
-			let justification =
-				make_justification_for_header(&header, grandpa_round, set_id, &keyring(), 2, 3).encode();
+			let mut params = JustificationGeneratorParams::<TestHeader>::default();
+			params.set_id = 2;
+			let justification = make_justification_for_header(params).encode();
 
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification,),
