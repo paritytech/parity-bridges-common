@@ -313,14 +313,14 @@ parameter_types! {
 	pub const MaxRequests: u32 = 50;
 }
 
-pub type RialtoFinalityVerifierInstance = ();
+pub type RialtoGrandpaInstance = ();
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type MaxRequests = MaxRequests;
 }
 
-pub type WestendFinalityVerifierInstance = pallet_bridge_grandpa::Instance1;
-impl pallet_bridge_grandpa::Config<WestendFinalityVerifierInstance> for Runtime {
+pub type WestendGrandpaInstance = pallet_bridge_grandpa::Instance1;
+impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedChain = bp_westend::Westend;
 	type MaxRequests = MaxRequests;
 }
@@ -379,8 +379,8 @@ construct_runtime!(
 		BridgeRialto: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeRialtoMessages: pallet_bridge_messages::{Module, Call, Storage, Event<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
-		BridgeRialtoFinalityVerifier: pallet_bridge_grandpa::{Module, Call},
-		BridgeWestendFinalityVerifier: pallet_bridge_grandpa::<Instance1>::{Module, Call},
+		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Module, Call},
+		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Module, Call},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
@@ -581,23 +581,23 @@ impl_runtime_apis! {
 
 	impl bp_rialto::RialtoFinalityApi<Block> for Runtime {
 		fn best_finalized() -> (bp_rialto::BlockNumber, bp_rialto::Hash) {
-			let header = BridgeRialtoFinalityVerifier::best_finalized();
+			let header = BridgeRialtoGrandpa::best_finalized();
 			(header.number, header.hash())
 		}
 
 		fn is_known_header(hash: bp_rialto::Hash) -> bool {
-			BridgeRialtoFinalityVerifier::is_known_header(hash)
+			BridgeRialtoGrandpa::is_known_header(hash)
 		}
 	}
 
 	impl bp_westend::WestendFinalityApi<Block> for Runtime {
 		fn best_finalized() -> (bp_westend::BlockNumber, bp_westend::Hash) {
-			let header = BridgeWestendFinalityVerifier::best_finalized();
+			let header = BridgeWestendGrandpa::best_finalized();
 			(header.number, header.hash())
 		}
 
 		fn is_known_header(hash: bp_westend::Hash) -> bool {
-			BridgeWestendFinalityVerifier::is_known_header(hash)
+			BridgeWestendGrandpa::is_known_header(hash)
 		}
 	}
 

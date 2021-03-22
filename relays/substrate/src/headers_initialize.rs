@@ -83,7 +83,7 @@ async fn do_initialize<SourceChain: Chain, TargetChain: Chain>(
 	Ok(initialization_tx_hash)
 }
 
-/// Prepare initialization data for the finality-verifier pallet.
+/// Prepare initialization data for the GRANDPA verifier pallet.
 async fn prepare_initialization_data<SourceChain: Chain>(
 	source_client: Client<SourceChain>,
 ) -> Result<InitializationData<SourceChain::Header>, String> {

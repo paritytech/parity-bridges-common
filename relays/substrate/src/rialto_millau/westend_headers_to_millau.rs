@@ -44,7 +44,7 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 
 		let call = millau_runtime::FinalityBridgeWestendCall::<
 			millau_runtime::Runtime,
-			millau_runtime::WestendFinalityVerifierInstance,
+			millau_runtime::WestendGrandpaInstance,
 		>::submit_finality_proof(header.into_inner(), proof.into_inner())
 		.into();
 

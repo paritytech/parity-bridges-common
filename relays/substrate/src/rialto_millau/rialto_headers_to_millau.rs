@@ -44,7 +44,7 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 
 		let call = millau_runtime::FinalityBridgeRialtoCall::<
 			millau_runtime::Runtime,
-			millau_runtime::RialtoFinalityVerifierInstance,
+			millau_runtime::RialtoGrandpaInstance,
 		>::submit_finality_proof(header.into_inner(), proof.into_inner())
 		.into();
 

@@ -88,7 +88,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			crate::headers_initialize::initialize(rialto_client, millau_client.clone(), move |initialization_data| {
 				let initialize_call = millau_runtime::FinalityBridgeRialtoCall::<
 					millau_runtime::Runtime,
-					millau_runtime::RialtoFinalityVerifierInstance,
+					millau_runtime::RialtoGrandpaInstance,
 				>::initialize(initialization_data);
 
 				Ok(Bytes(
@@ -118,7 +118,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			crate::headers_initialize::initialize(westend_client, millau_client.clone(), move |initialization_data| {
 				let initialize_call = millau_runtime::FinalityBridgeWestendCall::<
 					millau_runtime::Runtime,
-					millau_runtime::WestendFinalityVerifierInstance,
+					millau_runtime::WestendGrandpaInstance,
 				>::initialize(initialization_data);
 
 				Ok(Bytes(
