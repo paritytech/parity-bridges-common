@@ -816,7 +816,7 @@ dependencies = [
  "ed25519-dalek",
  "frame-support",
  "hash-db",
- "pallet-bridge-call-dispatch",
+ "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "parity-scale-codec 2.0.1",
@@ -3893,7 +3893,7 @@ dependencies = [
  "hex-literal 0.3.1",
  "pallet-aura",
  "pallet-balances",
- "pallet-bridge-call-dispatch",
+ "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-grandpa",
@@ -4357,11 +4357,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-call-dispatch"
+name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
- "bp-message-dispatch",
- "bp-runtime",
+ "bp-currency-exchange",
+ "bp-header-chain",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -4374,12 +4375,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-currency-exchange"
+name = "pallet-bridge-dispatch"
 version = "0.1.0"
 dependencies = [
- "bp-currency-exchange",
- "bp-header-chain",
- "frame-benchmarking",
+ "bp-message-dispatch",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "log",
@@ -5848,8 +5848,8 @@ dependencies = [
  "log",
  "pallet-aura",
  "pallet-balances",
- "pallet-bridge-call-dispatch",
  "pallet-bridge-currency-exchange",
+ "pallet-bridge-dispatch",
  "pallet-bridge-eth-poa",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
@@ -8150,7 +8150,7 @@ dependencies = [
  "messages-relay",
  "millau-runtime",
  "num-traits",
- "pallet-bridge-call-dispatch",
+ "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "parity-scale-codec 2.0.1",

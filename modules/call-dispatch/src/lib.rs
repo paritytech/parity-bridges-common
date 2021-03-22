@@ -153,7 +153,7 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 }
 
 decl_storage! {
-	trait Store for Module<T: Config<I>, I: Instance = DefaultInstance> as CallDispatch {}
+	trait Store for Module<T: Config<I>, I: Instance = DefaultInstance> as Dispatch {}
 }
 
 decl_event!(
@@ -452,7 +452,7 @@ mod tests {
 			UncheckedExtrinsic = UncheckedExtrinsic,
 		{
 			System: frame_system::{Module, Call, Config, Storage, Event<T>},
-			CallDispatch: call_dispatch::{Module, Call, Event<T>},
+			Dispatch: call_dispatch::{Module, Call, Event<T>},
 		}
 	}
 
@@ -571,7 +571,7 @@ mod tests {
 			message.spec_version = BAD_SPEC_VERSION;
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
@@ -599,7 +599,7 @@ mod tests {
 			message.weight = 0;
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
@@ -627,7 +627,7 @@ mod tests {
 			);
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
@@ -649,7 +649,7 @@ mod tests {
 			let id = [0; 4];
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Err(()));
+			Dispatch::dispatch(bridge, id, Err(()));
 
 			assert_eq!(
 				System::events(),
@@ -673,7 +673,7 @@ mod tests {
 			message.call.0 = vec![];
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
@@ -700,7 +700,7 @@ mod tests {
 			message.weight = weight;
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
@@ -721,7 +721,7 @@ mod tests {
 			let message = prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
@@ -748,7 +748,7 @@ mod tests {
 			let message = prepare_target_message(call);
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),
@@ -775,7 +775,7 @@ mod tests {
 			let message = prepare_source_message(call);
 
 			System::set_block_number(1);
-			CallDispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message));
 
 			assert_eq!(
 				System::events(),

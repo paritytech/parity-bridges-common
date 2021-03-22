@@ -257,7 +257,7 @@ impl pallet_bridge_currency_exchange::Config<KovanCurrencyExchange> for Runtime 
 	type DepositInto = DepositInto;
 }
 
-impl pallet_bridge_call_dispatch::Config for Runtime {
+impl pallet_bridge_dispatch::Config for Runtime {
 	type Event = Event;
 	type MessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
 	type Call = Call;
@@ -481,7 +481,7 @@ construct_runtime!(
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
 		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeGrandpa: pallet_bridge_grandpa::{Module, Call},
-		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
+		BridgeDispatch: pallet_bridge_dispatch::{Module, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Module, Call, Storage, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
@@ -890,7 +890,7 @@ impl_runtime_apis! {
 					params: MessageParams<Self::AccountId>,
 				) -> (millau_messages::ToMillauMessagePayload, Balance) {
 					let message_payload = vec![0; params.size as usize];
-					let dispatch_origin = pallet_bridge_call_dispatch::CallOrigin::SourceAccount(
+					let dispatch_origin = pallet_bridge_dispatch::CallOrigin::SourceAccount(
 						params.sender_account,
 					);
 
@@ -959,10 +959,10 @@ impl_runtime_apis! {
 						make_millau_outbound_lane_data_key,
 						make_millau_header,
 						call_weight,
-						pallet_bridge_call_dispatch::MessagePayload {
+						pallet_bridge_dispatch::MessagePayload {
 							spec_version: VERSION.spec_version,
 							weight: call_weight,
-							origin: pallet_bridge_call_dispatch::CallOrigin::<
+							origin: pallet_bridge_dispatch::CallOrigin::<
 								bp_millau::AccountId,
 								MultiSigner,
 								Signature,
@@ -1040,7 +1040,7 @@ where
 	AccountId: codec::Encode,
 	SpecVersion: codec::Encode,
 {
-	pallet_bridge_call_dispatch::account_ownership_digest(
+	pallet_bridge_dispatch::account_ownership_digest(
 		millau_call,
 		rialto_account_id,
 		millau_spec_version,

@@ -1,5 +1,5 @@
 [package]
-name = "pallet-bridge-call-dispatch"
+name = "pallet-bridge-dispatch"
 description = "A Substrate Runtime module that dispatches a bridge message, treating it simply as encoded Call"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]

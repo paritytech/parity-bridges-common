@@ -207,7 +207,7 @@ impl frame_system::Config for Runtime {
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 }
-impl pallet_bridge_call_dispatch::Config for Runtime {
+impl pallet_bridge_dispatch::Config for Runtime {
 	type Event = Event;
 	type MessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
 	type Call = Call;
@@ -378,7 +378,7 @@ construct_runtime!(
 	{
 		BridgeRialto: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeRialtoMessages: pallet_bridge_messages::{Module, Call, Storage, Event<T>},
-		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
+		BridgeDispatch: pallet_bridge_dispatch::{Module, Event<T>},
 		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Module, Call},
 		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Module, Call},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
@@ -666,7 +666,7 @@ where
 	AccountId: codec::Encode,
 	SpecVersion: codec::Encode,
 {
-	pallet_bridge_call_dispatch::account_ownership_digest(
+	pallet_bridge_dispatch::account_ownership_digest(
 		rialto_call,
 		millau_account_id,
 		rialto_spec_version,
