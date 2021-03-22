@@ -71,7 +71,7 @@ pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_currency_exchange::Call as BridgeCurrencyExchangeCall;
 pub use pallet_bridge_eth_poa::Call as BridgeEthPoACall;
 pub use pallet_bridge_messages::Call as MessagesCall;
-pub use pallet_finality_verifier::Call as FinalityBridgeMillauCall;
+pub use pallet_bridge_grandpa::Call as FinalityBridgeMillauCall;
 pub use pallet_substrate_bridge::Call as BridgeMillauCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -419,7 +419,7 @@ parameter_types! {
 	pub const MaxRequests: u32 = 50;
 }
 
-impl pallet_finality_verifier::Config for Runtime {
+impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type MaxRequests = MaxRequests;
 }
@@ -480,7 +480,7 @@ construct_runtime!(
 		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Module, Call},
 		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Module, Call},
 		BridgeMillau: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
-		BridgeFinalityVerifier: pallet_finality_verifier::{Module, Call},
+		BridgeFinalityVerifier: pallet_bridge_grandpa::{Module, Call},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Module, Call, Storage, Event<T>},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},

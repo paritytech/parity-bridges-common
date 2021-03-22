@@ -356,17 +356,17 @@ pub mod source {
 		proof: FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChain<B>>>,
 	) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<B>, &'static str>
 	where
-		ThisRuntime: pallet_finality_verifier::Config,
+		ThisRuntime: pallet_bridge_grandpa::Config,
 		ThisRuntime: pallet_bridge_messages::Config<MessagesInstanceOf<BridgedChain<B>>>,
 		HashOf<BridgedChain<B>>:
-			Into<bp_runtime::HashOf<<ThisRuntime as pallet_finality_verifier::Config>::BridgedChain>>,
+			Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config>::BridgedChain>>,
 	{
 		let FromBridgedChainMessagesDeliveryProof {
 			bridged_header_hash,
 			storage_proof,
 			lane,
 		} = proof;
-		pallet_finality_verifier::Module::<ThisRuntime>::parse_finalized_storage_proof(
+		pallet_bridge_grandpa::Module::<ThisRuntime>::parse_finalized_storage_proof(
 			bridged_header_hash.into(),
 			StorageProof::new(storage_proof),
 			|storage| {
@@ -510,16 +510,16 @@ pub mod target {
 		messages_count: u32,
 	) -> Result<ProvedMessages<Message<BalanceOf<BridgedChain<B>>>>, &'static str>
 	where
-		ThisRuntime: pallet_finality_verifier::Config,
+		ThisRuntime: pallet_bridge_grandpa::Config,
 		ThisRuntime: pallet_bridge_messages::Config<MessagesInstanceOf<BridgedChain<B>>>,
 		HashOf<BridgedChain<B>>:
-			Into<bp_runtime::HashOf<<ThisRuntime as pallet_finality_verifier::Config>::BridgedChain>>,
+			Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config>::BridgedChain>>,
 	{
 		verify_messages_proof_with_parser::<B, _, _>(
 			proof,
 			messages_count,
 			|bridged_header_hash, bridged_storage_proof| {
-				pallet_finality_verifier::Module::<ThisRuntime>::parse_finalized_storage_proof(
+				pallet_bridge_grandpa::Module::<ThisRuntime>::parse_finalized_storage_proof(
 					bridged_header_hash.into(),
 					StorageProof::new(bridged_storage_proof),
 					|storage_adapter| storage_adapter,

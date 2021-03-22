@@ -1,5 +1,5 @@
 [package]
-name = "pallet-finality-verifier"
+name = "pallet-bridge-grandpa"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"

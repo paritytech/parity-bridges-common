@@ -63,8 +63,8 @@ pub use frame_support::{
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
-pub use pallet_finality_verifier::Call as FinalityBridgeRialtoCall;
-pub use pallet_finality_verifier::Call as FinalityBridgeWestendCall;
+pub use pallet_bridge_grandpa::Call as FinalityBridgeRialtoCall;
+pub use pallet_bridge_grandpa::Call as FinalityBridgeWestendCall;
 pub use pallet_substrate_bridge::Call as BridgeRialtoCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -314,13 +314,13 @@ parameter_types! {
 }
 
 pub type RialtoFinalityVerifierInstance = ();
-impl pallet_finality_verifier::Config for Runtime {
+impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type MaxRequests = MaxRequests;
 }
 
-pub type WestendFinalityVerifierInstance = pallet_finality_verifier::Instance1;
-impl pallet_finality_verifier::Config<WestendFinalityVerifierInstance> for Runtime {
+pub type WestendFinalityVerifierInstance = pallet_bridge_grandpa::Instance1;
+impl pallet_bridge_grandpa::Config<WestendFinalityVerifierInstance> for Runtime {
 	type BridgedChain = bp_westend::Westend;
 	type MaxRequests = MaxRequests;
 }
@@ -379,8 +379,8 @@ construct_runtime!(
 		BridgeRialto: pallet_substrate_bridge::{Module, Call, Storage, Config<T>},
 		BridgeRialtoMessages: pallet_bridge_messages::{Module, Call, Storage, Event<T>},
 		BridgeCallDispatch: pallet_bridge_call_dispatch::{Module, Event<T>},
-		BridgeRialtoFinalityVerifier: pallet_finality_verifier::{Module, Call},
-		BridgeWestendFinalityVerifier: pallet_finality_verifier::<Instance1>::{Module, Call},
+		BridgeRialtoFinalityVerifier: pallet_bridge_grandpa::{Module, Call},
+		BridgeWestendFinalityVerifier: pallet_bridge_grandpa::<Instance1>::{Module, Call},
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
 		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
