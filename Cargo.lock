@@ -770,7 +770,7 @@ dependencies = [
 name = "bp-rococo"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
  "sp-api",
