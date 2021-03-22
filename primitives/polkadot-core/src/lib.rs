@@ -18,7 +18,7 @@
 
 use bp_message_lane::MessageNonce;
 use bp_runtime::Chain;
-use frame_support::{RuntimeDebug, dispatch::Dispatchable};
+use frame_support::{dispatch::Dispatchable, RuntimeDebug};
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	generic,
@@ -82,23 +82,14 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 pub type Balance = u128;
 
 /// Unchecked Extrinsic type.
-pub type UncheckedExtrinsic<Call> = generic::UncheckedExtrinsic<
-	AccountId,
-	Call,
-	Signature,
-	SignedExtensions<Call>
->;
+pub type UncheckedExtrinsic<Call> = generic::UncheckedExtrinsic<AccountId, Call, Signature, SignedExtensions<Call>>;
 
 /// A type of the data encoded as part of the transaction.
-pub type SignedExtra = (
-	(), (), (), sp_runtime::generic::Era, Nonce, (), Balance,
-);
+pub type SignedExtra = ((), (), (), sp_runtime::generic::Era, Nonce, (), Balance);
 
 /// Parameters which are part of the payload used to produce transaction signature,
 /// but don't end up in the transaction itself (i.e. inherent part of the runtime).
-pub type AdditionalSigned = (
-	u32, u32, Hash, Hash, (), (), (),
-);
+pub type AdditionalSigned = (u32, u32, Hash, Hash, (), (), ());
 
 /// A simplified version of signed extensions meant for producing signed transactions
 /// and signed payload in the client code.
@@ -110,17 +101,15 @@ pub struct SignedExtensions<Call> {
 }
 
 impl<Call> parity_scale_codec::Encode for SignedExtensions<Call> {
-    fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
+	fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
 		self.encode_payload.using_encoded(f)
 	}
 }
 
 impl<Call> parity_scale_codec::Decode for SignedExtensions<Call> {
-    fn decode<I: parity_scale_codec::Input>(_input: &mut I) -> Result<Self, parity_scale_codec::Error> {
-		unimplemented!(
-			"SignedExtensions are never meant to be decoded, they are only used to create transaction"
-		);
-    }
+	fn decode<I: parity_scale_codec::Input>(_input: &mut I) -> Result<Self, parity_scale_codec::Error> {
+		unimplemented!("SignedExtensions are never meant to be decoded, they are only used to create transaction");
+	}
 }
 
 impl<Call> SignedExtensions<Call> {
@@ -133,13 +122,13 @@ impl<Call> SignedExtensions<Call> {
 	) -> Self {
 		Self {
 			encode_payload: (
-				(), // spec version
-				(), // tx version
-				(), // genesis
-				era, // era
+				(),    // spec version
+				(),    // tx version
+				(),    // genesis
+				era,   // era
 				nonce, // nonce (compact encoding)
-				(), // Check weight
-				tip, // transaction payment / tip (compact encoding)
+				(),    // Check weight
+				tip,   // transaction payment / tip (compact encoding)
 			),
 			additional_signed: (
 				version.spec_version,
@@ -155,20 +144,21 @@ impl<Call> SignedExtensions<Call> {
 	}
 }
 
-impl<Call> sp_runtime::traits::SignedExtension for SignedExtensions<Call> where
+impl<Call> sp_runtime::traits::SignedExtension for SignedExtensions<Call>
+where
 	Call: parity_scale_codec::Codec + sp_std::fmt::Debug + Sync + Send + Clone + Eq + PartialEq,
 	Call: Dispatchable,
 {
-    const IDENTIFIER: &'static str = "Not needed.";
+	const IDENTIFIER: &'static str = "Not needed.";
 
-    type AccountId = AccountId;
-    type Call = Call;
-    type AdditionalSigned = AdditionalSigned;
-    type Pre = ();
+	type AccountId = AccountId;
+	type Call = Call;
+	type AdditionalSigned = AdditionalSigned;
+	type Pre = ();
 
-    fn additional_signed(&self) -> Result<Self::AdditionalSigned, frame_support::unsigned::TransactionValidityError> {
+	fn additional_signed(&self) -> Result<Self::AdditionalSigned, frame_support::unsigned::TransactionValidityError> {
 		Ok(self.additional_signed.clone())
-    }
+	}
 }
 
 /// Polkadot-like chain.

@@ -1,4 +1,3 @@
-
 // Parity Bridges Common is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -72,18 +71,14 @@ impl TransactionSignScheme for Rococo {
 				signer_nonce,
 				0,
 			),
-		).expect("SignedExtension never fails.");
+		)
+		.expect("SignedExtension never fails.");
 
 		let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
 		let signer: sp_runtime::MultiSigner = signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		bp_rococo::UncheckedExtrinsic::new_signed(
-			call,
-			signer.into_account(),
-			signature.into(),
-			extra,
-		)
+		bp_rococo::UncheckedExtrinsic::new_signed(call, signer.into_account(), signature.into(), extra)
 	}
 }
 
