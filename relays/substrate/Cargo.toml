@@ -36,13 +36,13 @@ millau-runtime = { path = "../../bin/millau/runtime" }
 pallet-bridge-call-dispatch = { path = "../../modules/call-dispatch" }
 pallet-bridge-messages = { path = "../../modules/messages" }
 pallet-finality-verifier = { path = "../../modules/finality-verifier" }
-relay-kusama-client = { path = "../clients/kusama" }
-relay-millau-client = { path = "../clients/millau" }
-relay-polkadot-client = { path = "../clients/polkadot" }
-relay-rialto-client = { path = "../clients/rialto" }
-relay-substrate-client = { path = "../clients/substrate" }
+relay-kusama-client = { path = "../client-kusama" }
+relay-millau-client = { path = "../client-millau" }
+relay-polkadot-client = { path = "../client-polkadot" }
+relay-rialto-client = { path = "../client-rialto" }
+relay-substrate-client = { path = "../client-substrate" }
 relay-utils = { path = "../generic/utils" }
-relay-westend-client = { path = "../clients/westend" }
+relay-westend-client = { path = "../client-westend" }
 rialto-runtime = { path = "../../bin/rialto/runtime" }
 
 # Substrate Dependencies
