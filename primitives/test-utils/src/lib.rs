@@ -57,6 +57,7 @@ pub fn make_justification_for_header<H: HeaderT>(
 	let mut precommits = vec![];
 	let mut votes_ancestries = vec![];
 
+	assert!(depth != 0, "Can't have a chain of zero length.");
 	assert!(
 		forks as usize <= authorities.len(),
 		"If we have more forks than authorities we can't create valid pre-commits for all the forks."
