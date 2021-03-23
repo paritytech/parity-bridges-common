@@ -88,7 +88,7 @@ benchmarks_instance_pallet! {
 	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
 	// final justification.
 	submit_finality_proof_on_many_forks {
-		let n in 1..10;
+		let n in 1..2;
 		let caller: T::AccountId = whitelisted_caller();
 
 		let init_data = InitializationData {
