@@ -64,7 +64,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 						&rialto_sign.signer,
 						rialto_signer_next_index,
 						rialto_runtime::SudoCall::sudo(Box::new(
-							rialto_runtime::FinalityBridgeMillauCall::initialize(initialization_data).into(),
+							rialto_runtime::BridgeGrandpaMillauCall::initialize(initialization_data).into(),
 						))
 						.into(),
 					)
@@ -86,7 +86,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				.await?;
 
 			crate::headers_initialize::initialize(rialto_client, millau_client.clone(), move |initialization_data| {
-				let initialize_call = millau_runtime::FinalityBridgeRialtoCall::<
+				let initialize_call = millau_runtime::BridgeGrandpaRialtoCall::<
 					millau_runtime::Runtime,
 					millau_runtime::RialtoGrandpaInstance,
 				>::initialize(initialization_data);
@@ -119,7 +119,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			// may fail, because we need to initialize both Rialto -> Millau and Westend -> Millau bridge.
 			// => since there's single possible sudo account, one of transaction may fail with duplicate nonce error
 			crate::headers_initialize::initialize(westend_client, millau_client.clone(), move |initialization_data| {
-				let initialize_call = millau_runtime::FinalityBridgeWestendCall::<
+				let initialize_call = millau_runtime::BridgeGrandpaWestendCall::<
 					millau_runtime::Runtime,
 					millau_runtime::WestendGrandpaInstance,
 				>::initialize(initialization_data);
