@@ -88,6 +88,7 @@ the `relays` which are used to pass messages between chains.
 │  ├── ethereum     // Ethereum PoA Header Sync Module
 │  ├── grandpa      // On-Chain GRANDPA Light Client
 │  ├── messages     // Cross Chain Message Passing
+│  ├── dispatch     // Target Chain Message Execution
 │  └──  ...
 ├── primitives      // Code shared between modules, runtimes, and relays
 │  └──  ...
