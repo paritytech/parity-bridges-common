@@ -1007,12 +1007,12 @@ impl_runtime_apis! {
 				}
 			}
 
-			use pallet_finality_verifier::BridgedHeader;
-			use pallet_finality_verifier::benchmarking::{
-				Config as FinalityVerifierConfig
+			use pallet_bridge_grandpa::BridgedHeader;
+			use pallet_bridge_grandpa::benchmarking::{
+				Config as BridgeGrandpaConfig
 			};
 
-			impl FinalityVerifierConfig<()> for Runtime {
+			impl BridgeGrandpaConfig<()> for Runtime {
 				fn bridged_header(num: bp_millau::BlockNumber) -> BridgedHeader<Self, ()> {
 					use sp_runtime::traits::Header;
 					bp_millau::Header::new(
@@ -1037,7 +1037,7 @@ impl_runtime_apis! {
 				pallet_bridge_messages,
 				MessagesBench::<Runtime, WithMillauMessagesInstance>
 			);
-			add_benchmark!(params, batches, pallet_finality_verifier, BridgeFinalityVerifier);
+			add_benchmark!(params, batches, pallet_bridge_grandpa, BridgeGrandpa);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)
