@@ -70,7 +70,7 @@ pub fn account_info_storage_key(id: &AccountId) -> Vec<u8> {
 
 	final_key.extend_from_slice(&module_prefix_hashed[..]);
 	final_key.extend_from_slice(&storage_prefix_hashed[..]);
-	final_key.extend_from_slice(key_hashed);
+	final_key.extend_from_slice(&key_hashed);
 
 	final_key
 }

@@ -23,18 +23,13 @@ use codec::Encode;
 type TestHeader = sp_runtime::testing::Header;
 
 fn make_justification_for_header_1() -> GrandpaJustification<TestHeader> {
-	make_justification_for_header(
-		&test_header(1),
-		TEST_GRANDPA_ROUND,
-		TEST_GRANDPA_SET_ID,
-		&authority_list(),
-	)
+	make_justification_for_header(&test_header(1), TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID, &keyring())
 }
 
 #[test]
 fn justification_with_invalid_encoding_rejected() {
 	assert_eq!(
-		verify_justification::<TestHeader>(header_id::<TestHeader>(1), TEST_GRANDPA_SET_ID, voter_set(), &[],),
+		verify_justification::<TestHeader>(header_id::<TestHeader>(1), TEST_GRANDPA_SET_ID, &voter_set(), &[],),
 		Err(Error::JustificationDecode),
 	);
 }
@@ -45,7 +40,7 @@ fn justification_with_invalid_target_rejected() {
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(2),
 			TEST_GRANDPA_SET_ID,
-			voter_set(),
+			&voter_set(),
 			&make_justification_for_header_1().encode(),
 		),
 		Err(Error::InvalidJustificationTarget),
@@ -61,7 +56,7 @@ fn justification_with_invalid_commit_rejected() {
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
-			voter_set(),
+			&voter_set(),
 			&justification.encode(),
 		),
 		Err(Error::InvalidJustificationCommit),
@@ -77,7 +72,7 @@ fn justification_with_invalid_authority_signature_rejected() {
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
-			voter_set(),
+			&voter_set(),
 			&justification.encode(),
 		),
 		Err(Error::InvalidAuthoritySignature),
@@ -93,7 +88,7 @@ fn justification_with_invalid_precommit_ancestry() {
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
-			voter_set(),
+			&voter_set(),
 			&justification.encode(),
 		),
 		Err(Error::InvalidPrecommitAncestries),
@@ -106,7 +101,7 @@ fn valid_justification_accepted() {
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
-			voter_set(),
+			&voter_set(),
 			&make_justification_for_header_1().encode(),
 		),
 		Ok(()),
