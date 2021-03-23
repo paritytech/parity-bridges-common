@@ -1013,10 +1013,10 @@ impl_runtime_apis! {
 			};
 
 			impl FinalityVerifierConfig<()> for Runtime {
-				fn bridged_header() -> BridgedHeader<Self, ()> {
+				fn bridged_header(num: bp_millau::BlockNumber) -> BridgedHeader<Self, ()> {
 					use sp_runtime::traits::Header;
 					bp_millau::Header::new(
-						0,
+						num,
 						Default::default(),
 						Default::default(),
 						Default::default(),
