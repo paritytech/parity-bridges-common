@@ -19,7 +19,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_header_chain::justification::GrandpaJustification;
-use ed25519_dalek::Signer;
 use sp_application_crypto::TryFrom;
 use sp_finality_grandpa::{AuthorityId, AuthorityWeight};
 use sp_finality_grandpa::{AuthoritySignature, SetId};
@@ -35,7 +34,7 @@ pub const TEST_GRANDPA_ROUND: u64 = 1;
 pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
 /// Configuration parameters when generating test GRANDPA justifications.
-pub struct JustificationGeneratorParams<H, K: Keyring> {
+pub struct JustificationGeneratorParams<H, S: Signer> {
 	/// The header which we want to finalize.
 	pub header: H,
 	/// The GRANDPA round number for the current authority set.
@@ -43,7 +42,7 @@ pub struct JustificationGeneratorParams<H, K: Keyring> {
 	/// The current authority set ID.
 	pub set_id: SetId,
 	/// The current GRANDPA authority set.
-	pub authorities: Vec<(K, AuthorityWeight)>,
+	pub authorities: Vec<(S, AuthorityWeight)>,
 	/// The number of headers included in our justification's vote ancestries.
 	pub depth: u32,
 	/// The number of forks, and thus the number of pre-commits in our justification.
@@ -56,7 +55,7 @@ impl<H: HeaderT> Default for JustificationGeneratorParams<H, TestKeyring> {
 			header: test_header(One::one()),
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
-			authorities: keyring(),
+			authorities: test_keyring(),
 			depth: 2,
 			forks: 1,
 		}
@@ -82,10 +81,10 @@ pub fn make_default_justification<H: HeaderT>(header: &H) -> GrandpaJustificatio
 ///
 /// Note: This needs at least three authorities or else the verifier will complain about
 /// being given an invalid commit.
-pub fn make_justification_for_header<H, K>(params: JustificationGeneratorParams<H, K>) -> GrandpaJustification<H>
+pub fn make_justification_for_header<H, S>(params: JustificationGeneratorParams<H, S>) -> GrandpaJustification<H>
 where
 	H: HeaderT,
-	K: Keyring + Into<AuthorityId> + Copy,
+	S: Signer + Into<AuthorityId> + Copy,
 {
 	let JustificationGeneratorParams {
 		header,
@@ -124,7 +123,7 @@ where
 	for (i, (id, _weight)) in authorities.iter().enumerate() {
 		// Assign authorities to sign pre-commits in a round-robin fashion
 		let target = unsigned_precommits[i % forks as usize];
-		let precommit = signed_precommit::<H, K>(&id, target, round, set_id);
+		let precommit = signed_precommit::<H, S>(&id, target, round, set_id);
 
 		precommits.push(precommit);
 	}
@@ -163,15 +162,15 @@ fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
 	headers
 }
 
-fn signed_precommit<H, K>(
-	signer: &K,
+fn signed_precommit<H, S>(
+	signer: &S,
 	target: (H::Hash, H::Number),
 	round: u64,
 	set_id: SetId,
 ) -> finality_grandpa::SignedPrecommit<H::Hash, H::Number, AuthoritySignature, AuthorityId>
 where
 	H: HeaderT,
-	K: Keyring + Into<AuthorityId> + Copy,
+	S: Signer + Into<AuthorityId> + Copy,
 {
 	let precommit = finality_grandpa::Precommit {
 		target_hash: target.0,
@@ -181,7 +180,7 @@ where
 	let encoded =
 		sp_finality_grandpa::localized_payload(round, set_id, &finality_grandpa::Message::Precommit(precommit.clone()));
 
-	let signature = signer.pair().sign(&encoded);
+	let signature = signer.sign(&encoded);
 	let raw_signature: Vec<u8> = signature.to_bytes().into();
 
 	// Need to wrap our signature and id types that they match what our `SignedPrecommit` is expecting

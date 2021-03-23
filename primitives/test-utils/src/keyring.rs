@@ -16,13 +16,14 @@
 
 //! Utilities for working with test accounts.
 
-use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature, Signer};
+use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature};
 use finality_grandpa::voter_set::VoterSet;
 use sp_application_crypto::Public;
 use sp_finality_grandpa::{AuthorityId, AuthorityList};
 use sp_runtime::RuntimeDebug;
 
-pub trait Keyring {
+/// Used to indicate if a type is able to cryptographically sign messages.
+pub trait Signer {
 	fn public(&self) -> PublicKey {
 		(&self.secret()).into()
 	}
@@ -42,6 +43,7 @@ pub trait Keyring {
 	}
 
 	fn sign(&self, msg: &[u8]) -> Signature {
+		use ed25519_dalek::Signer;
 		self.pair().sign(msg)
 	}
 }
@@ -57,7 +59,7 @@ pub enum TestKeyring {
 	Ferdie,
 }
 
-impl Keyring for TestKeyring {
+impl Signer for TestKeyring {
 	fn secret(&self) -> SecretKey {
 		SecretKey::from_bytes(&[*self as u8; 32]).expect("A static array of the correct length is a known good.")
 	}
@@ -67,7 +69,7 @@ impl Keyring for TestKeyring {
 #[derive(RuntimeDebug, Clone, Copy)]
 pub struct Account(pub u8);
 
-impl Keyring for Account {
+impl Signer for Account {
 	fn secret(&self) -> SecretKey {
 		SecretKey::from_bytes(&[self.0; 32]).expect("A static array of the correct length is a known good.")
 	}
@@ -92,11 +94,14 @@ pub fn voter_set() -> VoterSet<AuthorityId> {
 
 /// Convenience function to get a list of Grandpa authorities.
 pub fn authority_list() -> AuthorityList {
-	keyring().iter().map(|(id, w)| (AuthorityId::from(*id), *w)).collect()
+	test_keyring()
+		.iter()
+		.map(|(id, w)| (AuthorityId::from(*id), *w))
+		.collect()
 }
 
 /// Get the corresponding identities from the keyring for the "standard" authority set.
-pub fn keyring() -> Vec<(TestKeyring, u64)> {
+pub fn test_keyring() -> Vec<(TestKeyring, u64)> {
 	vec![
 		(TestKeyring::Alice, 1),
 		(TestKeyring::Bob, 1),
