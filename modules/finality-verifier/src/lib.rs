@@ -256,8 +256,10 @@ pub mod pallet {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
-		owner: Option<T::AccountId>,
-		init_data: Option<super::InitializationData<BridgedHeader<T, I>>>,
+		/// Optional module owner account.
+		pub owner: Option<T::AccountId>,
+		/// Optional module initialization data.
+		pub init_data: Option<super::InitializationData<BridgedHeader<T, I>>>,
 	}
 
 	#[cfg(feature = "std")]
@@ -522,7 +524,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{run_test, test_header, Origin, TestHash, TestHeader, TestNumber, TestRuntime};
 	use bp_test_utils::{
-		authority_list, keyring, make_justification_for_header,
+		authority_list, make_default_justification, make_justification_for_header, JustificationGeneratorParams,
 		Keyring::{Alice, Bob},
 	};
 	use codec::Encode;
@@ -551,10 +553,7 @@ mod tests {
 
 	fn submit_finality_proof(header: u8) -> frame_support::dispatch::DispatchResultWithPostInfo {
 		let header = test_header(header.into());
-
-		let set_id = 1;
-		let grandpa_round = 1;
-		let justification = make_justification_for_header(&header, grandpa_round, set_id, &keyring()).encode();
+		let justification = make_default_justification(&header).encode();
 
 		Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification)
 	}
@@ -726,9 +725,11 @@ mod tests {
 
 			let header = test_header(1);
 
-			let set_id = 2;
-			let grandpa_round = 1;
-			let justification = make_justification_for_header(&header, grandpa_round, set_id, &keyring()).encode();
+			let params = JustificationGeneratorParams::<TestHeader> {
+				set_id: 2,
+				..Default::default()
+			};
+			let justification = make_justification_for_header(params).encode();
 
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification,),
@@ -802,9 +803,7 @@ mod tests {
 			header.digest = change_log(0);
 
 			// Create a valid justification for the header
-			let set_id = 1;
-			let grandpa_round = 1;
-			let justification = make_justification_for_header(&header, grandpa_round, set_id, &keyring()).encode();
+			let justification = make_default_justification(&header).encode();
 
 			// Let's import our test header
 			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
@@ -836,9 +835,7 @@ mod tests {
 			header.digest = change_log(1);
 
 			// Create a valid justification for the header
-			let set_id = 1;
-			let grandpa_round = 1;
-			let justification = make_justification_for_header(&header, grandpa_round, set_id, &keyring()).encode();
+			let justification = make_default_justification(&header).encode();
 
 			// Should not be allowed to import this header
 			assert_err!(
@@ -859,9 +856,7 @@ mod tests {
 			header.digest = forced_change_log(0);
 
 			// Create a valid justification for the header
-			let set_id = 1;
-			let grandpa_round = 1;
-			let justification = make_justification_for_header(&header, grandpa_round, set_id, &keyring()).encode();
+			let justification = make_default_justification(&header).encode();
 
 			// Should not be allowed to import this header
 			assert_err!(
