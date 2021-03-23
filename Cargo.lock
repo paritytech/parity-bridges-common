@@ -3895,6 +3895,7 @@ dependencies = [
  "pallet-bridge-messages",
  "pallet-finality-verifier",
  "pallet-grandpa",
+ "pallet-multi-finality-verifier",
  "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-shift-session-manager",
@@ -4490,29 +4491,6 @@ dependencies = [
  "sp-runtime",
  "sp-session",
  "sp-staking",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-multi-bridge-messages"
-version = "0.1.0"
-dependencies = [
- "bp-messages",
- "bp-rialto",
- "bp-runtime",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex",
- "hex-literal 0.3.1",
- "log",
- "num-traits",
- "pallet-balances",
- "parity-scale-codec 2.0.1",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
  "sp-std",
 ]
 
