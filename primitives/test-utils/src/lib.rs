@@ -32,7 +32,7 @@ pub const TEST_GRANDPA_ROUND: u64 = 1;
 pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
 /// Configuration parameters when generating test GRANDPA justifications.
-pub struct JustificationGeneratorParams<H> {
+pub struct JustificationGeneratorParams<H, K: Keyring> {
 	/// The header which we want to finalize.
 	pub header: H,
 	/// The GRANDPA round number for the current authority set.
@@ -40,14 +40,14 @@ pub struct JustificationGeneratorParams<H> {
 	/// The current authority set ID.
 	pub set_id: SetId,
 	/// The current GRANDPA authority set.
-	pub authorities: Vec<(Keyring, AuthorityWeight)>,
+	pub authorities: Vec<(K, AuthorityWeight)>,
 	/// The number of headers included in our justification's vote ancestries.
 	pub depth: u32,
 	/// The number of forks, and thus the number of pre-commits in our justification.
 	pub forks: u32,
 }
 
-impl<H: HeaderT> Default for JustificationGeneratorParams<H> {
+impl<H: HeaderT> Default for JustificationGeneratorParams<H, TestKeyring> {
 	fn default() -> Self {
 		Self {
 			header: test_header(One::one()),
@@ -62,7 +62,7 @@ impl<H: HeaderT> Default for JustificationGeneratorParams<H> {
 
 /// Make a valid GRANDPA justification with sensible defaults
 pub fn make_default_justification<H: HeaderT>(header: &H) -> GrandpaJustification<H> {
-	let params = JustificationGeneratorParams::<H> {
+	let params = JustificationGeneratorParams::<H, TestKeyring> {
 		header: header.clone(),
 		..Default::default()
 	};
@@ -79,7 +79,11 @@ pub fn make_default_justification<H: HeaderT>(header: &H) -> GrandpaJustificatio
 ///
 /// Note: This needs at least three authorities or else the verifier will complain about
 /// being given an invalid commit.
-pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorParams<H>) -> GrandpaJustification<H> {
+pub fn make_justification_for_header<H, K>(params: JustificationGeneratorParams<H, K>) -> GrandpaJustification<H>
+where
+	H: HeaderT,
+	K: Keyring + Into<AuthorityId> + Copy,
+{
 	let JustificationGeneratorParams {
 		header,
 		round,
@@ -117,7 +121,7 @@ pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorP
 	for (i, (id, _weight)) in authorities.iter().enumerate() {
 		// Assign authorities to sign pre-commits in a round-robin fashion
 		let target = unsigned_precommits[i % forks as usize];
-		let precommit = signed_precommit::<H>(&id, target, round, set_id);
+		let precommit = signed_precommit::<H, K>(&id, target, round, set_id);
 
 		precommits.push(precommit);
 	}
@@ -156,12 +160,16 @@ fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
 	headers
 }
 
-fn signed_precommit<H: HeaderT>(
-	signer: &Keyring,
+fn signed_precommit<H, K>(
+	signer: &K,
 	target: (H::Hash, H::Number),
 	round: u64,
 	set_id: SetId,
-) -> finality_grandpa::SignedPrecommit<H::Hash, H::Number, AuthoritySignature, AuthorityId> {
+) -> finality_grandpa::SignedPrecommit<H::Hash, H::Number, AuthoritySignature, AuthorityId>
+where
+	H: HeaderT,
+	K: Keyring + Into<AuthorityId> + Copy,
+{
 	let precommit = finality_grandpa::Precommit {
 		target_hash: target.0,
 		target_number: target.1,
@@ -212,27 +220,14 @@ pub fn header_id<H: HeaderT>(index: u8) -> (H::Hash, H::Number) {
 	(test_header::<H>(index.into()).hash(), index.into())
 }
 
-/// Set of test accounts.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub enum Keyring {
-	Alice,
-	Bob,
-	Charlie,
-	Dave,
-	Eve,
-	Ferdie,
-}
-
-impl Keyring {
-	pub fn public(&self) -> PublicKey {
+pub trait Keyring {
+	fn public(&self) -> PublicKey {
 		(&self.secret()).into()
 	}
 
-	pub fn secret(&self) -> SecretKey {
-		SecretKey::from_bytes(&[*self as u8; 32]).expect("A static array of the correct length is a known good.")
-	}
+	fn secret(&self) -> SecretKey;
 
-	pub fn pair(self) -> Keypair {
+	fn pair(&self) -> Keypair {
 		let mut pair: [u8; 64] = [0; 64];
 
 		let secret = self.secret();
@@ -244,14 +239,46 @@ impl Keyring {
 		Keypair::from_bytes(&pair).expect("We expect the SecretKey to be good, so this must also be good.")
 	}
 
-	pub fn sign(self, msg: &[u8]) -> Signature {
+	fn sign(&self, msg: &[u8]) -> Signature {
 		self.pair().sign(msg)
 	}
 }
 
-impl From<Keyring> for AuthorityId {
-	fn from(k: Keyring) -> Self {
+#[derive(RuntimeDebug, Clone, Copy)]
+pub struct Account(pub u8);
+
+impl Keyring for Account {
+	fn secret(&self) -> SecretKey {
+		SecretKey::from_bytes(&[self.0; 32]).expect("A static array of the correct length is a known good.")
+	}
+}
+
+/// Set of test accounts.
+#[derive(RuntimeDebug, Clone, Copy)]
+pub enum TestKeyring {
+	Alice,
+	Bob,
+	Charlie,
+	Dave,
+	Eve,
+	Ferdie,
+}
+
+impl Keyring for TestKeyring {
+	fn secret(&self) -> SecretKey {
+		SecretKey::from_bytes(&[*self as u8; 32]).expect("A static array of the correct length is a known good.")
+	}
+}
+
+impl From<TestKeyring> for AuthorityId {
+	fn from(k: TestKeyring) -> Self {
 		AuthorityId::from_slice(&k.public().to_bytes())
+	}
+}
+
+impl From<Account> for AuthorityId {
+	fn from(p: Account) -> Self {
+		AuthorityId::from_slice(&p.public().to_bytes())
 	}
 }
 
@@ -266,6 +293,10 @@ pub fn authority_list() -> AuthorityList {
 }
 
 /// Get the corresponding identities from the keyring for the "standard" authority set.
-pub fn keyring() -> Vec<(Keyring, u64)> {
-	vec![(Keyring::Alice, 1), (Keyring::Bob, 1), (Keyring::Charlie, 1)]
+pub fn keyring() -> Vec<(TestKeyring, u64)> {
+	vec![
+		(TestKeyring::Alice, 1),
+		(TestKeyring::Bob, 1),
+		(TestKeyring::Charlie, 1),
+	]
 }

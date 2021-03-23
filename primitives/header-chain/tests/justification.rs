@@ -17,7 +17,7 @@
 //! Tests for Grandpa Justification code.
 
 use bp_header_chain::justification::{verify_justification, Error};
-use bp_test_utils::Keyring::*;
+use bp_test_utils::TestKeyring::*;
 use bp_test_utils::*;
 use codec::Encode;
 
@@ -39,7 +39,7 @@ fn valid_justification_accepted() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader>(params).encode()
+			&make_justification_for_header::<TestHeader, TestKeyring>(params).encode()
 		),
 		Ok(()),
 	);
@@ -61,7 +61,35 @@ fn valid_justification_accepted_with_single_fork() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader>(params).encode()
+			&make_justification_for_header::<TestHeader, TestKeyring>(params).encode()
+		),
+		Ok(()),
+	);
+}
+
+#[test]
+fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
+	let n = 15;
+	let mut authorities = vec![];
+	for i in 0..n {
+		authorities.push(Account(i));
+	}
+
+	let params = JustificationGeneratorParams {
+		header: test_header(1),
+		round: TEST_GRANDPA_ROUND,
+		set_id: TEST_GRANDPA_SET_ID,
+		authorities: authorities.iter().map(|k| (*k, 1)).collect(),
+		depth: 5,
+		forks: n.into(),
+	};
+
+	assert_eq!(
+		verify_justification::<TestHeader>(
+			header_id::<TestHeader>(1),
+			TEST_GRANDPA_SET_ID,
+			&voter_set(),
+			&make_justification_for_header::<TestHeader, _>(params).encode()
 		),
 		Ok(()),
 	);
@@ -153,7 +181,7 @@ fn justification_is_invalid_if_we_dont_meet_threshold() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader>(params).encode()
+			&make_justification_for_header::<TestHeader, _>(params).encode()
 		),
 		Err(Error::InvalidJustificationCommit),
 	);
