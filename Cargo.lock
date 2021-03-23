@@ -827,9 +827,9 @@ dependencies = [
  "ed25519-dalek",
  "frame-support",
  "hash-db",
- "pallet-bridge-call-dispatch",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-grandpa",
  "pallet-bridge-messages",
- "pallet-finality-verifier",
  "parity-scale-codec 2.0.1",
  "sp-core",
  "sp-runtime",
@@ -3905,9 +3905,9 @@ dependencies = [
  "hex-literal 0.3.1",
  "pallet-aura",
  "pallet-balances",
- "pallet-bridge-call-dispatch",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-grandpa",
  "pallet-bridge-messages",
- "pallet-finality-verifier",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
  "pallet-session",
@@ -4369,11 +4369,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-call-dispatch"
+name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
- "bp-message-dispatch",
- "bp-runtime",
+ "bp-currency-exchange",
+ "bp-header-chain",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -4386,12 +4387,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-currency-exchange"
+name = "pallet-bridge-dispatch"
 version = "0.1.0"
 dependencies = [
- "bp-currency-exchange",
- "bp-header-chain",
- "frame-benchmarking",
+ "bp-message-dispatch",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "log",
@@ -4419,6 +4419,27 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-grandpa"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-runtime",
+ "bp-test-utils",
+ "finality-grandpa 0.14.0",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-substrate-bridge",
+ "parity-scale-codec 2.0.1",
+ "serde",
+ "sp-finality-grandpa",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-trie",
 ]
 
 [[package]]
@@ -4461,27 +4482,6 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-state-machine",
- "sp-trie",
-]
-
-[[package]]
-name = "pallet-finality-verifier"
-version = "0.1.0"
-dependencies = [
- "bp-header-chain",
- "bp-runtime",
- "bp-test-utils",
- "finality-grandpa 0.14.0",
- "frame-support",
- "frame-system",
- "log",
- "pallet-substrate-bridge",
- "parity-scale-codec 2.0.1",
- "serde",
- "sp-finality-grandpa",
- "sp-io",
- "sp-runtime",
- "sp-std",
  "sp-trie",
 ]
 
@@ -5860,11 +5860,11 @@ dependencies = [
  "log",
  "pallet-aura",
  "pallet-balances",
- "pallet-bridge-call-dispatch",
  "pallet-bridge-currency-exchange",
+ "pallet-bridge-dispatch",
  "pallet-bridge-eth-poa",
+ "pallet-bridge-grandpa",
  "pallet-bridge-messages",
- "pallet-finality-verifier",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
  "pallet-session",
@@ -8162,9 +8162,9 @@ dependencies = [
  "messages-relay",
  "millau-runtime",
  "num-traits",
- "pallet-bridge-call-dispatch",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-grandpa",
  "pallet-bridge-messages",
- "pallet-finality-verifier",
  "parity-scale-codec 2.0.1",
  "paste 1.0.4",
  "relay-kusama-client",
