@@ -29,6 +29,8 @@ pub enum RpcError {
 	Ethereum(EthereumNodeError),
 	/// An error occured when interacting with a Substrate node.
 	Substrate(SubstrateNodeError),
+	/// Error running relay loop.
+	Loop(String),
 }
 
 impl From<RpcError> for String {
@@ -37,6 +39,7 @@ impl From<RpcError> for String {
 			RpcError::Serialization(e) => e.to_string(),
 			RpcError::Ethereum(e) => e.to_string(),
 			RpcError::Substrate(e) => e.to_string(),
+			RpcError::Loop(e) => e,
 		}
 	}
 }
