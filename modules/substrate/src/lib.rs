@@ -723,7 +723,7 @@ mod tests {
 	use bp_header_chain::HeaderChain;
 	use bp_test_utils::{
 		authority_list,
-		Keyring::{Alice, Bob},
+		TestKeyring::{Alice, Bob},
 	};
 	use frame_support::{assert_err, assert_noop, assert_ok};
 	use sp_runtime::DispatchError;

@@ -527,7 +527,7 @@ mod tests {
 	use crate::mock::{run_test, test_header, Origin, TestHash, TestHeader, TestNumber, TestRuntime};
 	use bp_test_utils::{
 		authority_list, make_default_justification, make_justification_for_header, JustificationGeneratorParams,
-		Keyring::{Alice, Bob},
+		TestKeyring::{self, Alice, Bob},
 	};
 	use codec::Encode;
 	use frame_support::weights::PostDispatchInfo;
@@ -727,7 +727,7 @@ mod tests {
 
 			let header = test_header(1);
 
-			let params = JustificationGeneratorParams::<TestHeader> {
+			let params = JustificationGeneratorParams::<TestHeader, TestKeyring> {
 				set_id: 2,
 				..Default::default()
 			};

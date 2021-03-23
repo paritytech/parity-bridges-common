@@ -61,7 +61,7 @@ use crate::{BestFinalized, BestHeight, BridgeStorage, NextScheduledChange, Palle
 use bp_header_chain::AuthoritySet;
 use bp_test_utils::{
 	authority_list, make_default_justification,
-	Keyring::{Alice, Bob},
+	TestKeyring::{Alice, Bob},
 };
 use codec::Encode;
 use frame_support::{IterableStorageMap, StorageValue};

@@ -344,7 +344,7 @@ mod tests {
 	use crate::{BestFinalized, BestHeight, HeaderId, ImportedHeaders, PalletStorage};
 	use bp_test_utils::{
 		authority_list, make_default_justification,
-		Keyring::{Alice, Bob},
+		TestKeyring::{Alice, Bob},
 	};
 	use codec::Encode;
 	use frame_support::{assert_err, assert_ok};
