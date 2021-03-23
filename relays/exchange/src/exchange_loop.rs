@@ -299,7 +299,7 @@ mod tests {
 			}
 		}));
 
-		async_std::task::block_on(run(
+		let _ = async_std::task::block_on(run(
 			storage,
 			source,
 			target,
