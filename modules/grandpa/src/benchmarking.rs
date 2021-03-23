@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Benchmarks for the Finality Verifier Pallet.
+//! Benchmarks for the GRANDPA Pallet.
 
 // Braindump for benches:
 //
@@ -56,7 +56,7 @@ benchmarks_instance_pallet! {
 		let init_data = InitializationData {
 			header: T::bridged_header(Zero::zero()),
 			authority_list: authority_list(),
-			set_id: 0,
+			set_id: TEST_GRANDPA_SET_ID,
 			is_halted: false,
 		};
 
@@ -94,7 +94,7 @@ benchmarks_instance_pallet! {
 		let init_data = InitializationData {
 			header: T::bridged_header(Zero::zero()),
 			authority_list: authority_list(),
-			set_id: 0,
+			set_id: TEST_GRANDPA_SET_ID,
 			is_halted: false,
 		};
 
@@ -103,6 +103,7 @@ benchmarks_instance_pallet! {
 		let mut header = T::bridged_header(One::one());
 		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
 
+		// TODO: Can't have more forks than we have authorities
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
 			round: TEST_GRANDPA_ROUND,
@@ -188,24 +189,22 @@ mod tests {
 	use frame_support::assert_ok;
 
 	impl Config for mock::TestRuntime {
-		fn bridged_header() -> BridgedHeader<Self, ()> {
-			mock::test_header(0)
+		fn bridged_header(num: u64) -> BridgedHeader<Self, ()> {
+			mock::test_header(num)
 		}
 	}
 
 	#[test]
-	fn it_works() {
+	fn single_fork_finality_proof_is_valid() {
 		mock::run_test(|| {
-			assert_ok!(test_benchmark_submit_finality_proof::<mock::TestRuntime>());
+			assert_ok!(test_benchmark_submit_finality_proof_on_single_fork::<mock::TestRuntime>());
 		});
 	}
 
 	#[test]
-	fn it_also_works() {
+	fn multi_fork_finality_proof_is_valid() {
 		mock::run_test(|| {
-			assert_ok!(test_benchmark_submit_finality_proof_justification_verification::<
-				mock::TestRuntime,
-			>());
+			assert_ok!(test_benchmark_submit_finality_proof_on_many_forks::<mock::TestRuntime>());
 		});
 	}
 }
