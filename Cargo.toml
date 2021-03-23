@@ -6,15 +6,5 @@ members = [
 	"fuzz/*",
 	"modules/*",
 	"primitives/*",
-	"primitives/chains/*",
-	"primitives/chains/rococo",
 	"relays/*",
-	"relays/clients/*",
-	"relays/clients/rococo",
-	"relays/generic/*",
-]
-exclude = [
-	"primitives/chains",
-	"relays/clients",
-	"relays/generic"
 ]

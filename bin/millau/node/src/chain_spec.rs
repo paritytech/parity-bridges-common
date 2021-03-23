@@ -16,8 +16,8 @@
 
 use bp_millau::derive_account_from_rialto_id;
 use millau_runtime::{
-	AccountId, AuraConfig, BalancesConfig, BridgeRialtoConfig, GenesisConfig, GrandpaConfig, SessionConfig,
-	SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	AccountId, AuraConfig, BalancesConfig, BridgeRialtoConfig, BridgeWestendFinalityVerifierConfig, GenesisConfig,
+	GrandpaConfig, SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
@@ -122,7 +122,10 @@ impl Alternative {
 							get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 							get_account_id_from_seed::<sr25519::Public>("George//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
-							pallet_message_lane::Module::<millau_runtime::Runtime, pallet_message_lane::DefaultInstance>::relayer_fund_account_id(),
+							pallet_bridge_messages::Module::<
+								millau_runtime::Runtime,
+								pallet_bridge_messages::DefaultInstance,
+							>::relayer_fund_account_id(),
 							derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
 								get_account_id_from_seed::<sr25519::Public>("Dave"),
 							)),
@@ -175,6 +178,13 @@ fn testnet_genesis(
 				.iter()
 				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
 				.collect::<Vec<_>>(),
+		}),
+		pallet_finality_verifier_Instance1: Some(BridgeWestendFinalityVerifierConfig {
+			// for our deployments to avoid multiple same-nonces transactions:
+			// //Alice is already used to initialize Rialto<->Millau bridge
+			// => let's use //George to initialize Westend->Millau bridge
+			owner: Some(get_account_id_from_seed::<sr25519::Public>("George")),
+			..Default::default()
 		}),
 	}
 }

@@ -6,10 +6,10 @@ cargo run --manifest-path=bin/rialto/node/Cargo.toml --release --features=runtim
 	--chain=local \
 	--steps=50 \
 	--repeat=20 \
-	--pallet=pallet_message_lane \
+	--pallet=pallet_bridge_messages \
 	--extrinsic=* \
 	--execution=wasm \
 	--wasm-execution=Compiled \
 	--heap-pages=4096 \
-	--output=./modules/message-lane/src/weights.rs \
+	--output=./modules/messages/src/weights.rs \
 	--template=./.maintain/rialto-weight-template.hbs
