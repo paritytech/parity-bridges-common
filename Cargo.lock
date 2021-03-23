@@ -767,6 +767,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-rococo"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-runtime"
 version = "0.1.0"
 dependencies = [
@@ -1863,6 +1874,7 @@ dependencies = [
  "headers-relay",
  "log",
  "num-traits",
+ "parking_lot 0.11.1",
  "relay-utils",
 ]
 
