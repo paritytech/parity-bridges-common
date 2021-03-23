@@ -14,6 +14,10 @@
 # Once you've stopped having fun with your deployment you can take it down with:
 #
 # `./run.sh rialto-millau stop`
+#
+# Stopping the bridge will also bring down all networks that it uses. So if you have started multiple bridges
+# that are using the same network (like Millau in rialto-millau and westend-millau bridges), then stopping one
+# of these bridges will cause the other bridge to break.
 
 set -xeu
 
