@@ -774,8 +774,7 @@ dependencies = [
 name = "bp-rococo"
 version = "0.1.0"
 dependencies = [
-<<<<<<< HEAD
- "bp-message-lane",
+ "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
@@ -785,13 +784,6 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-version",
-=======
- "bp-messages",
- "bp-polkadot-core",
- "bp-runtime",
- "sp-api",
- "sp-std",
->>>>>>> master
 ]
 
 [[package]]
@@ -5750,7 +5742,6 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "sp-runtime",
- "sp-version",
 ]
 
 [[package]]
