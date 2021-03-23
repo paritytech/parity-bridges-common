@@ -251,7 +251,7 @@ where
 	type Pre = ();
 
 	fn additional_signed(&self) -> Result<Self::AdditionalSigned, frame_support::unsigned::TransactionValidityError> {
-		Ok(self.additional_signed.clone())
+		Ok(self.additional_signed)
 	}
 }
 
