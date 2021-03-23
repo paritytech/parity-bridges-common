@@ -31,51 +31,52 @@
 use crate::*;
 
 use bp_test_utils::{
-	make_justification_for_header, JustificationGeneratorParams,
-	Keyring::{Alice, Bob},
+	authority_list, keyring, make_justification_for_header, JustificationGeneratorParams, Keyring::*,
+	TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID,
 };
 use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
 use frame_system::RawOrigin;
 use sp_finality_grandpa::AuthorityId;
-use sp_runtime::traits::One;
+use sp_runtime::traits::{One, Zero};
 use sp_std::vec;
 
 pub trait Config<I: 'static = ()>: crate::Config<I> {
 	// We need some way for the benchmarks to use headers in a "generic" way. However, since we do
 	// use a real runtime we need a way for the runtime to tell us what the concrete type is.
-	fn bridged_header() -> BridgedHeader<Self, I>;
+	fn bridged_header(num: BridgedBlockNumber<Self, I>) -> BridgedHeader<Self, I>;
 }
 
 benchmarks_instance_pallet! {
-	submit_finality_proof {
-		let n in 1..100;
+	// What we want to check here is the effect of vote ancestries on justification verification
+	// time. We will do this by varying the number of ancestors our finality target has.
+	submit_finality_proof_on_single_fork {
+		let n in 1..10;
 		let caller: T::AccountId = whitelisted_caller();
 
-		let authorities = vec![(Alice.into(), 1), (Bob.into(), 1)];
-
 		let init_data = InitializationData {
-			header: T::bridged_header(),
-			authority_list: authorities.clone(),
+			header: T::bridged_header(Zero::zero()),
+			authority_list: authority_list(),
 			set_id: 0,
 			is_halted: false,
 		};
 
 		initialize_bridge::<T, I>(init_data);
 
-		let mut header = T::bridged_header();
-		header.set_number(*header.number() + One::one());
-		header.set_parent_hash(*T::bridged_header().parent_hash());
+		let mut header = T::bridged_header(One::one());
+		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
 
-		let digest = header.digest_mut();
-		*digest = sp_runtime::Digest {
-			logs: vec![]
+		let params = JustificationGeneratorParams {
+			header: header.clone(),
+			round: TEST_GRANDPA_ROUND,
+			set_id: TEST_GRANDPA_SET_ID,
+			authorities: keyring(),
+			depth: n,
+			forks: 1,
 		};
 
-		// TODO: Make justification for correct header
-		let params = JustificationGeneratorParams::<BridgedHeader<T, I>>::default();
 		let justification = make_justification_for_header(params).encode();
 
-	}: _(RawOrigin::Signed(caller), header, justification)
+	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
 		assert!(true)
 		// Need to play with the types here to get this to compile...
@@ -83,43 +84,41 @@ benchmarks_instance_pallet! {
 		// assert!(<ImportedHeaders<mock::TestRuntime>>::contains_key(header.hash()));
 	}
 
-	// What we want to check here is how the number of commits/precommits/vote ancestries affects
-	// the verification time of justifications. With the helper function we have this number grows
-	// based off the number of authorities, so we'll use that as a proxy for the number of
-	// commits/precommits/vote ancestries.
-	submit_finality_proof_justification_verification {
-		// The current max target number of validators on Polkadot/Kusama
-		// Looks like 1000 is too high for tests...
-		let n in 1..1000;
+	// What we want to check here is the effect of many pre-commits on justification verification.
+	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
+	// final justification.
+	submit_finality_proof_on_many_forks {
+		let n in 1..10;
 		let caller: T::AccountId = whitelisted_caller();
 
-		let mut authorities = vec![];
-		for i in 0..n {
-			// Do we need to have different identities for the authorities?
-			authorities.push((Alice, 1));
-		}
-
 		let init_data = InitializationData {
-			header: T::bridged_header(),
-			authority_list: authorities.iter().map(|(id, w)| (AuthorityId::from(*id), *w)).collect(),
+			header: T::bridged_header(Zero::zero()),
+			authority_list: authority_list(),
 			set_id: 0,
 			is_halted: false,
 		};
 
 		initialize_bridge::<T, I>(init_data);
 
-		let mut header = T::bridged_header();
-		header.set_number(*header.number() + One::one());
-		header.set_parent_hash(*T::bridged_header().parent_hash());
+		let mut header = T::bridged_header(One::one());
+		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
 
-		// TODO: Make justification for correct header
-		let params = JustificationGeneratorParams::<BridgedHeader<T, I>>::default();
+		let params = JustificationGeneratorParams {
+			header: header.clone(),
+			round: TEST_GRANDPA_ROUND,
+			set_id: TEST_GRANDPA_SET_ID,
+			authorities: keyring(),
+			depth: 1, // Maybe do 2?
+			forks: n,
+		};
+
 		let justification = make_justification_for_header(params).encode();
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
 		assert!(true)
 	}
+
 
 	// Here we want to find out what the overheader of looking for an enacting an authority set is.
 	// I think we can combine the two benchmarks below into this single one...
@@ -149,7 +148,7 @@ benchmarks_instance_pallet! {
 			logs.push(sp_runtime::DigestItem::Other(vec![]));
 		}
 
-		let mut header = T::bridged_header();
+		let mut header = T::bridged_header(Zero::zero());
 		let digest = header.digest_mut();
 		*digest = sp_runtime::Digest {
 			logs,
