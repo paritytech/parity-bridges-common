@@ -70,10 +70,7 @@ fn valid_justification_accepted_with_single_fork() {
 #[test]
 fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 	let n = 15;
-	let mut authorities = vec![];
-	for i in 0..n {
-		authorities.push(Account(i));
-	}
+	let authorities = accounts(n);
 
 	let params = JustificationGeneratorParams {
 		header: test_header(1),

@@ -46,16 +46,7 @@ pub trait Keyring {
 	}
 }
 
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct Account(pub u8);
-
-impl Keyring for Account {
-	fn secret(&self) -> SecretKey {
-		SecretKey::from_bytes(&[self.0; 32]).expect("A static array of the correct length is a known good.")
-	}
-}
-
-/// Set of test accounts.
+/// Set of test accounts with friendly names.
 #[derive(RuntimeDebug, Clone, Copy)]
 pub enum TestKeyring {
 	Alice,
@@ -69,6 +60,16 @@ pub enum TestKeyring {
 impl Keyring for TestKeyring {
 	fn secret(&self) -> SecretKey {
 		SecretKey::from_bytes(&[*self as u8; 32]).expect("A static array of the correct length is a known good.")
+	}
+}
+
+/// A test account which can be used to sign messages.
+#[derive(RuntimeDebug, Clone, Copy)]
+pub struct Account(pub u8);
+
+impl Keyring for Account {
+	fn secret(&self) -> SecretKey {
+		SecretKey::from_bytes(&[self.0; 32]).expect("A static array of the correct length is a known good.")
 	}
 }
 
@@ -101,4 +102,14 @@ pub fn keyring() -> Vec<(TestKeyring, u64)> {
 		(TestKeyring::Bob, 1),
 		(TestKeyring::Charlie, 1),
 	]
+}
+
+/// Get a list of "unique" accounts.
+pub fn accounts(len: u8) -> Vec<Account> {
+	let mut v = vec![];
+	for i in 0..len {
+		v.push(Account(i));
+	}
+
+	v
 }
