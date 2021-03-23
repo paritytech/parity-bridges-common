@@ -493,7 +493,7 @@ fn run_sync_loop_test(params: SyncLoopTestParams) {
 	target.data.lock().requires_extra = target_requires_extra;
 	target.data.lock().requires_completion = target_requires_completion;
 
-	run(
+	async_std::task::block_on(run(
 		source,
 		test_tick(),
 		target,
@@ -502,7 +502,7 @@ fn run_sync_loop_test(params: SyncLoopTestParams) {
 		crate::sync::tests::default_sync_params(),
 		None,
 		exit_receiver.into_future().map(|(_, _)| ()),
-	);
+	));
 }
 
 #[test]

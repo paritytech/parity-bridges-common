@@ -202,13 +202,13 @@ fn run_sync_loop(state_function: impl Fn(&mut ClientsData) -> bool + Send + Sync
 		stall_timeout: Duration::from_secs(1),
 	};
 
-	run(
+	async_std::task::block_on(run(
 		source_client,
 		target_client,
 		sync_params,
 		None,
 		exit_receiver.into_future().map(|(_, _)| ()),
-	);
+	));
 
 	let clients_data = clients_data.lock().clone();
 	clients_data

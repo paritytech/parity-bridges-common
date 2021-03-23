@@ -726,7 +726,8 @@ pub(crate) mod tests {
 				target_client,
 				None,
 				exit_signal,
-			);
+			)
+			.await;
 			let result = data.lock().clone();
 			result
 		})

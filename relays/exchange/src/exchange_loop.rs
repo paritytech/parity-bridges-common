@@ -321,12 +321,12 @@ mod tests {
 			}
 		}));
 
-		run(
+		async_std::task::block_on(run(
 			storage,
 			source,
 			target,
 			None,
 			exit_receiver.into_future().map(|(_, _)| ()),
-		);
+		));
 	}
 }
