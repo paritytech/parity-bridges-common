@@ -19,7 +19,7 @@
 use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature};
 use finality_grandpa::voter_set::VoterSet;
 use sp_application_crypto::Public;
-use sp_finality_grandpa::{AuthorityId, AuthorityList};
+use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight};
 use sp_runtime::RuntimeDebug;
 
 /// Used to indicate if a type is able to cryptographically sign messages.
@@ -101,7 +101,7 @@ pub fn authority_list() -> AuthorityList {
 }
 
 /// Get the corresponding identities from the keyring for the "standard" authority set.
-pub fn test_keyring() -> Vec<(TestKeyring, u64)> {
+pub fn test_keyring() -> Vec<(TestKeyring, AuthorityWeight)> {
 	vec![
 		(TestKeyring::Alice, 1),
 		(TestKeyring::Bob, 1),
