@@ -78,10 +78,10 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 
 	/// Run relay loop.
 	///
-	/// This function represents an outer loop, which in turn calls provided `loop_run` function to do
-	/// actual job. When `loop_run` returns, this outer loop reconnects to failed client (source,
-	/// target or both) and calls `loop_run` again.
-	pub async fn run<R, F>(mut self, loop_run: R) -> Result<(), String>
+	/// This function represents an outer loop, which in turn calls provided `run_loop` function to do
+	/// actual job. When `run_loop` returns, this outer loop reconnects to failed client (source,
+	/// target or both) and calls `run_loop` again.
+	pub async fn run<R, F>(mut self, run_loop: R) -> Result<(), String>
 	where
 		R: Fn(SC, TC, Option<LM>) -> F,
 		F: Future<Output = Result<(), FailedClient>>,
@@ -90,7 +90,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 		LM: Clone,
 	{
 		loop {
-			let result = loop_run(
+			let result = run_loop(
 				self.source_client.clone(),
 				self.target_client.clone(),
 				self.loop_metric.clone(),
