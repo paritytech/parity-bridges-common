@@ -53,14 +53,15 @@ pub struct Client<C: Chain> {
 	client: RpcClient,
 	/// Genesis block hash.
 	genesis_hash: C::Hash,
-	/// If several tasks are preparing their transactions simultaneously, they may get the same
-	/// response (nonce) from the `next_account_index` call. So one of transactions will be rejected
+	/// If several tasks are submitting their transactions simultaneously using `sumbit_signed_extrinsic`
+	/// method, they may get the same transaction nonce. So one of transactions will be rejected
 	/// from the pool. This lock is here to prevent situations like that.
 	///
 	/// Note that it's just lock, not the `HashMap<AccountId, Index>`. This is because querying index
-	/// does not necessarily mean that transaction with this nonce will be submitted. If we fail to
-	/// submit it, we may end up with incorrect (future) nonce in the map => infinite relay loop.
-	next_account_index_lock: Arc<Mutex<()>>,
+	/// does not necessarily mean that transaction with this nonce will be included into the block. If
+	/// it'll be rejected or dropped, we may end up with incorrect (future) nonce in the map => infinite
+	/// relay loop.
+	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
 }
 
 impl<C: Chain> Clone for Client<C> {
@@ -69,7 +70,7 @@ impl<C: Chain> Clone for Client<C> {
 			params: self.params.clone(),
 			client: self.client.clone(),
 			genesis_hash: self.genesis_hash,
-			next_account_index_lock: self.next_account_index_lock.clone(),
+			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
 		}
 	}
 }
@@ -94,7 +95,7 @@ impl<C: Chain> Client<C> {
 			params,
 			client,
 			genesis_hash,
-			next_account_index_lock: Arc::new(Mutex::new(())),
+			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
 		})
 	}
 
@@ -200,16 +201,35 @@ impl<C: Chain> Client<C> {
 	///
 	/// Note: It's the caller's responsibility to make sure `account` is a valid ss58 address.
 	pub async fn next_account_index(&self, account: C::AccountId) -> Result<C::Index> {
-		let _guard = self.next_account_index_lock.lock().await;
 		Ok(Substrate::<C>::system_account_next_index(&self.client, account).await?)
 	}
 
-	/// Submit an extrinsic for inclusion in a block.
+	/// Submit unsigned extrinsic for inclusion in a block.
 	///
 	/// Note: The given transaction does not need be SCALE encoded beforehand.
-	pub async fn submit_extrinsic(&self, transaction: Bytes) -> Result<C::Hash> {
+	pub async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<C::Hash> {
 		let tx_hash = Substrate::<C>::author_submit_extrinsic(&self.client, transaction).await?;
 		log::trace!(target: "bridge", "Sent transaction to Substrate node: {:?}", tx_hash);
+		Ok(tx_hash)
+	}
+
+	/// Submit an extrinsic signed by given account.
+	///
+	/// All calls of this method are synchronized, so there can't be more than one active
+	/// `submit_extrinsic_by()` call. This guarantees that no nonces collision may happen
+	/// if all client instances are clones of the same initial `Client`.
+	///
+	/// Note: The extrinsic returned by `prepare_extrinsic` does not need be SCALE encoded beforehand.
+	pub async fn submit_signed_extrinsic(
+		&self,
+		extrinsic_signer: C::AccountId,
+		prepare_extrinsic: impl FnOnce(C::Index) -> Bytes,
+	) -> Result<C::Hash> {
+		let _guard = self.submit_signed_extrinsic_lock.lock().await;
+		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
+		let extrinsic = prepare_extrinsic(transaction_nonce);
+		let tx_hash = Substrate::<C>::author_submit_extrinsic(&self.client, extrinsic).await?;
+		log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 		Ok(tx_hash)
 	}
 

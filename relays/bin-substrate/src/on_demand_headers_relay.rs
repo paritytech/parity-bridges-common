@@ -19,7 +19,7 @@
 use std::{future::Future, pin::Pin};
 
 /// On-demand headers relay future.
-type OnDemandHeadersRelayFuture = Pin<Box<dyn Future<Output = ()> + 'static + Send>>;
+type OnDemandHeadersRelayFuture = Pin<Box<dyn Future<Output = Result<(), String>> + 'static + Send>>;
 /// On-demand headers relay start function.
 type StartOnDemandHeadersRelay = Box<dyn Fn() -> OnDemandHeadersRelayFuture + 'static + Send>;
 
@@ -55,8 +55,8 @@ impl OnDemandHeadersRelay {
 				let headers_relay_future = (self.run_headers_relay)();
 				let active_headers_relay = async_std::task::spawn(async move {
 					log::info!(target: "bridge", "Starting on-demand {} headers relay", name);
-					headers_relay_future.await;
-					log::trace!(target: "bridge", "On-demand {} headers relay has been stopped", name);
+					let result = headers_relay_future.await;
+					log::trace!(target: "bridge", "On-demand {} headers relay has been stopped. Result: {:?}", name, result);
 				});
 				self.active_headers_relay = Some(active_headers_relay);
 			}

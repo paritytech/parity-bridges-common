@@ -573,6 +573,10 @@ pub(crate) mod tests {
 			data.source_latest_confirmed_received_nonce = proof;
 			Ok(())
 		}
+
+		async fn activate_target_to_source_headers_relay(&self, _activate: bool) {
+			unimplemented!("TODO: test me")
+		}
 	}
 
 	#[derive(Clone)]
@@ -670,6 +674,10 @@ pub(crate) mod tests {
 			}
 			data.submitted_messages_proofs.push(proof);
 			Ok(nonces)
+		}
+
+		async fn activate_source_to_target_headers_relay(&self, _activate: bool) {
+			unimplemented!("TODO: test me")
 		}
 	}
 

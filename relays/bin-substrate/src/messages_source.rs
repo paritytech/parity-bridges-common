@@ -105,6 +105,7 @@ where
 		MessagesProof = SubstrateMessagesProof<C>,
 		SourceHeaderNumber = <C::Header as HeaderT>::Number,
 		SourceHeaderHash = <C::Header as HeaderT>::Hash,
+		SourceChain = C,
 	>,
 	P::TargetHeaderNumber: Decode,
 	P::TargetHeaderHash: Decode,
@@ -208,11 +209,12 @@ where
 		generated_at_block: TargetHeaderIdOf<P>,
 		proof: P::MessagesReceivingProof,
 	) -> Result<(), SubstrateError> {
-		let tx = self
-			.lane
-			.make_messages_receiving_proof_transaction(generated_at_block, proof)
+		self.client
+			.submit_signed_extrinsic(self.lane.source_transactions_author(), move |author_nonce| {
+				self.lane
+					.make_messages_receiving_proof_transaction(author_nonce, generated_at_block, proof)
+			})
 			.await?;
-		self.client.submit_extrinsic(Bytes(tx.encode())).await?;
 		Ok(())
 	}
 
