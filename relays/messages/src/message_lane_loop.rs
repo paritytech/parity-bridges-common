@@ -684,7 +684,7 @@ pub(crate) mod tests {
 				data: data.clone(),
 				tick: target_tick,
 			};
-			run(
+			let _ = run(
 				Params {
 					lane: [0, 0, 0, 0],
 					source_tick: Duration::from_millis(100),
