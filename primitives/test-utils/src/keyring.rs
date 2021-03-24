@@ -111,10 +111,5 @@ pub fn test_keyring() -> Vec<(TestKeyring, u64)> {
 
 /// Get a list of "unique" accounts.
 pub fn accounts(len: u8) -> Vec<Account> {
-	let mut v = vec![];
-	for i in 0..len {
-		v.push(Account(i));
-	}
-
-	v
+	(0..len).into_iter().map(Account).collect()
 }
