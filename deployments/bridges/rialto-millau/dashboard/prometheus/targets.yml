@@ -1,0 +1,5 @@
+- targets:
+  - relay-headers-millau-to-rialto:9616
+  - relay-headers-rialto-to-millau:9616
+  - relay-messages-millau-to-rialto:9616
+  - relay-messages-rialto-to-millau:9616

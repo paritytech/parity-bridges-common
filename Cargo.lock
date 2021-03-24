@@ -679,7 +679,7 @@ dependencies = [
 name = "bp-kusama"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
  "sp-api",
@@ -695,7 +695,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-message-lane"
+name = "bp-messages"
 version = "0.1.0"
 dependencies = [
  "bp-runtime",
@@ -709,7 +709,7 @@ dependencies = [
 name = "bp-millau"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-runtime",
  "fixed-hash",
  "frame-support",
@@ -731,7 +731,7 @@ dependencies = [
 name = "bp-polkadot"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
  "sp-api",
@@ -742,7 +742,7 @@ dependencies = [
 name = "bp-polkadot-core"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-runtime",
  "frame-support",
  "frame-system",
@@ -756,13 +756,24 @@ dependencies = [
 name = "bp-rialto"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-runtime",
  "frame-support",
  "frame-system",
  "sp-api",
  "sp-core",
  "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "bp-rococo"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "sp-api",
  "sp-std",
 ]
 
@@ -787,17 +798,19 @@ name = "bp-test-utils"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
+ "ed25519-dalek",
  "finality-grandpa 0.14.0",
+ "sp-application-crypto",
  "sp-finality-grandpa",
- "sp-keyring",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
 name = "bp-westend"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
  "sp-api",
@@ -809,14 +822,14 @@ name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
  "bp-message-dispatch",
- "bp-message-lane",
+ "bp-messages",
  "bp-runtime",
  "ed25519-dalek",
  "frame-support",
  "hash-db",
- "pallet-bridge-call-dispatch",
- "pallet-finality-verifier",
- "pallet-message-lane",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
  "parity-scale-codec 2.0.1",
  "sp-core",
  "sp-runtime",
@@ -1861,6 +1874,7 @@ dependencies = [
  "headers-relay",
  "log",
  "num-traits",
+ "parking_lot 0.11.1",
  "relay-utils",
 ]
 
@@ -3827,7 +3841,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
- "bp-message-lane",
+ "bp-messages",
  "futures 0.3.13",
  "hex",
  "log",
@@ -3839,7 +3853,7 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-millau",
  "bp-runtime",
  "frame-benchmarking",
@@ -3847,8 +3861,8 @@ dependencies = [
  "jsonrpc-core 15.1.0",
  "millau-runtime",
  "node-inspect",
- "pallet-message-lane",
- "pallet-message-lane-rpc",
+ "pallet-bridge-messages",
+ "pallet-bridge-messages-rpc",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
  "sc-cli",
@@ -3878,7 +3892,7 @@ name = "millau-runtime"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
- "bp-message-lane",
+ "bp-messages",
  "bp-millau",
  "bp-rialto",
  "bp-runtime",
@@ -3891,10 +3905,10 @@ dependencies = [
  "hex-literal 0.3.1",
  "pallet-aura",
  "pallet-balances",
- "pallet-bridge-call-dispatch",
- "pallet-finality-verifier",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
  "pallet-grandpa",
- "pallet-message-lane",
  "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-shift-session-manager",
@@ -4355,11 +4369,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-call-dispatch"
+name = "pallet-bridge-currency-exchange"
 version = "0.1.0"
 dependencies = [
- "bp-message-dispatch",
- "bp-runtime",
+ "bp-currency-exchange",
+ "bp-header-chain",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -4372,12 +4387,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-currency-exchange"
+name = "pallet-bridge-dispatch"
 version = "0.1.0"
 dependencies = [
- "bp-currency-exchange",
- "bp-header-chain",
- "frame-benchmarking",
+ "bp-message-dispatch",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "log",
@@ -4408,7 +4422,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-finality-verifier"
+name = "pallet-bridge-grandpa"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
@@ -4425,6 +4439,49 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "sp-trie",
+]
+
+[[package]]
+name = "pallet-bridge-messages"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-rialto",
+ "bp-runtime",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal 0.3.1",
+ "log",
+ "num-traits",
+ "pallet-balances",
+ "parity-scale-codec 2.0.1",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-messages-rpc"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-runtime",
+ "derive_more",
+ "futures 0.3.13",
+ "jsonrpc-core 15.1.0",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "log",
+ "sc-client-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
+ "sp-state-machine",
  "sp-trie",
 ]
 
@@ -4448,48 +4505,6 @@ dependencies = [
  "sp-session",
  "sp-staking",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-message-lane"
-version = "0.1.0"
-dependencies = [
- "bp-message-lane",
- "bp-rialto",
- "bp-runtime",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex-literal 0.3.1",
- "log",
- "num-traits",
- "pallet-balances",
- "parity-scale-codec 2.0.1",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-message-lane-rpc"
-version = "0.1.0"
-dependencies = [
- "bp-message-lane",
- "bp-runtime",
- "derive_more",
- "futures 0.3.13",
- "jsonrpc-core 15.1.0",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "log",
- "sc-client-api",
- "sp-blockchain",
- "sp-core",
- "sp-runtime",
- "sp-state-machine",
- "sp-trie",
 ]
 
 [[package]]
@@ -5710,7 +5725,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-header-chain",
- "bp-message-lane",
+ "bp-messages",
  "bp-runtime",
  "finality-relay",
  "frame-support",
@@ -5787,15 +5802,15 @@ checksum = "53552c6c49e1e13f1a203ef0080ab3bbef0beb570a528993e83df057a9d9bba1"
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-message-lane",
+ "bp-messages",
  "bp-rialto",
  "bp-runtime",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpc-core 15.1.0",
  "node-inspect",
- "pallet-message-lane",
- "pallet-message-lane-rpc",
+ "pallet-bridge-messages",
+ "pallet-bridge-messages-rpc",
  "pallet-transaction-payment-rpc",
  "rialto-runtime",
  "sc-basic-authorship",
@@ -5830,7 +5845,7 @@ dependencies = [
  "bp-eth-poa",
  "bp-header-chain",
  "bp-message-dispatch",
- "bp-message-lane",
+ "bp-messages",
  "bp-millau",
  "bp-rialto",
  "bp-runtime",
@@ -5845,12 +5860,12 @@ dependencies = [
  "log",
  "pallet-aura",
  "pallet-balances",
- "pallet-bridge-call-dispatch",
  "pallet-bridge-currency-exchange",
+ "pallet-bridge-dispatch",
  "pallet-bridge-eth-poa",
- "pallet-finality-verifier",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
  "pallet-grandpa",
- "pallet-message-lane",
  "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-shift-session-manager",
@@ -8130,7 +8145,7 @@ dependencies = [
  "async-trait",
  "bp-header-chain",
  "bp-kusama",
- "bp-message-lane",
+ "bp-messages",
  "bp-millau",
  "bp-polkadot",
  "bp-rialto",
@@ -8147,9 +8162,9 @@ dependencies = [
  "messages-relay",
  "millau-runtime",
  "num-traits",
- "pallet-bridge-call-dispatch",
- "pallet-finality-verifier",
- "pallet-message-lane",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
  "parity-scale-codec 2.0.1",
  "paste 1.0.4",
  "relay-kusama-client",
