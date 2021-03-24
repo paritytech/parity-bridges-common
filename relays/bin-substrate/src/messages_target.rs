@@ -196,9 +196,13 @@ where
 		proof: P::MessagesProof,
 	) -> Result<RangeInclusive<MessageNonce>, SubstrateError> {
 		self.client
-			.submit_signed_extrinsic(self.lane.target_transactions_author(), |author_nonce| {
-				self.lane
-					.make_messages_delivery_transaction(author_nonce, generated_at_header, nonces.clone(), proof)
+			.submit_signed_extrinsic(self.lane.target_transactions_author(), |transaction_nonce| {
+				self.lane.make_messages_delivery_transaction(
+					transaction_nonce,
+					generated_at_header,
+					nonces.clone(),
+					proof,
+				)
 			})
 			.await?;
 		Ok(nonces)

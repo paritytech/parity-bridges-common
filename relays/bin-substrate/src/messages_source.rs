@@ -210,9 +210,9 @@ where
 		proof: P::MessagesReceivingProof,
 	) -> Result<(), SubstrateError> {
 		self.client
-			.submit_signed_extrinsic(self.lane.source_transactions_author(), move |author_nonce| {
+			.submit_signed_extrinsic(self.lane.source_transactions_author(), move |transaction_nonce| {
 				self.lane
-					.make_messages_receiving_proof_transaction(author_nonce, generated_at_block, proof)
+					.make_messages_receiving_proof_transaction(transaction_nonce, generated_at_block, proof)
 			})
 			.await?;
 		Ok(())

@@ -159,10 +159,15 @@ impl SubmitEthereumHeaders for SubstrateClient<Rialto> {
 			self.submit_signed_extrinsic(
 				params.signer.public().as_array_ref().clone().into(),
 				|transaction_nonce| {
-					let call = instance.build_signed_header_call(headers);
-					let transaction =
-						Rialto::sign_transaction(*self.genesis_hash(), &params.signer, transaction_nonce, call);
-					Bytes(transaction.encode())
+					Bytes(
+						Rialto::sign_transaction(
+							*self.genesis_hash(),
+							&params.signer,
+							transaction_nonce,
+							instance.build_signed_header_call(headers),
+						)
+						.encode(),
+					)
 				},
 			)
 			.await?;
@@ -258,10 +263,15 @@ impl SubmitEthereumExchangeTransactionProof for SubstrateClient<Rialto> {
 		self.submit_signed_extrinsic(
 			params.signer.public().as_array_ref().clone().into(),
 			|transaction_nonce| {
-				let call = instance.build_currency_exchange_call(proof);
-				let transaction =
-					Rialto::sign_transaction(*self.genesis_hash(), &params.signer, transaction_nonce, call);
-				Bytes(transaction.encode())
+				Bytes(
+					Rialto::sign_transaction(
+						*self.genesis_hash(),
+						&params.signer,
+						transaction_nonce,
+						instance.build_currency_exchange_call(proof),
+					)
+					.encode(),
+				)
 			},
 		)
 		.await?;
