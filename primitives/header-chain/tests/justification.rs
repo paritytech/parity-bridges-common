@@ -68,23 +68,32 @@ fn valid_justification_accepted_with_single_fork() {
 
 #[test]
 fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
+	use finality_grandpa::voter_set::VoterSet;
+	use sp_finality_grandpa::AuthorityId;
+
 	let n = 15;
-	let authorities = accounts(n);
+	let authorities = accounts(n).iter().map(|k| (*k, 1)).collect::<Vec<_>>();
 
 	let params = JustificationGeneratorParams {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
-		authorities: authorities.iter().map(|k| (*k, 1)).collect(),
+		authorities: authorities.clone(),
 		depth: 5,
 		forks: n.into(),
 	};
+
+	let authorities = authorities
+		.iter()
+		.map(|(id, w)| (AuthorityId::from(*id), *w))
+		.collect::<Vec<(AuthorityId, _)>>();
+	let voter_set = VoterSet::new(authorities).unwrap();
 
 	assert_eq!(
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
-			&voter_set(), // TODO: How did this pass...
+			&voter_set,
 			&make_justification_for_header::<TestHeader>(params).encode()
 		),
 		Ok(()),
