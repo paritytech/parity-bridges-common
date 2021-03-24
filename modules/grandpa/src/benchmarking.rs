@@ -31,7 +31,7 @@
 use crate::*;
 
 use bp_test_utils::{
-	authority_list, keyring, make_justification_for_header, JustificationGeneratorParams, Keyring::*,
+	accounts, authority_list, make_justification_for_header, test_keyring, JustificationGeneratorParams, ALICE,
 	TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID,
 };
 use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
@@ -69,7 +69,7 @@ benchmarks_instance_pallet! {
 			header: header.clone(),
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
-			authorities: keyring(),
+			authorities: test_keyring(),
 			depth: n,
 			forks: 1,
 		};
@@ -88,12 +88,17 @@ benchmarks_instance_pallet! {
 	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
 	// final justification.
 	submit_finality_proof_on_many_forks {
-		let n in 1..2;
+		let n in 1..10;
 		let caller: T::AccountId = whitelisted_caller();
+
+		let authority_list = accounts(n as u8)
+			.iter()
+			.map(|id| (AuthorityId::from(*id), 1))
+			.collect::<Vec<_>>();
 
 		let init_data = InitializationData {
 			header: T::bridged_header(Zero::zero()),
-			authority_list: authority_list(),
+			authority_list,
 			set_id: TEST_GRANDPA_SET_ID,
 			is_halted: false,
 		};
@@ -103,13 +108,12 @@ benchmarks_instance_pallet! {
 		let mut header = T::bridged_header(One::one());
 		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
 
-		// TODO: Can't have more forks than we have authorities
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
-			authorities: keyring(),
-			depth: 1, // Maybe do 2?
+			authorities: accounts(n as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
+			depth: 2,
 			forks: n,
 		};
 
@@ -167,7 +171,7 @@ benchmarks_instance_pallet! {
 
 		let mut authorities = vec![];
 		for i in 0..n {
-			authorities.push((Alice, 1));
+			authorities.push((ALICE, 1));
 		}
 
 		let authority_set = bp_header_chain::AuthoritySet {
