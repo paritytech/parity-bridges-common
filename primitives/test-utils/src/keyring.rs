@@ -22,15 +22,28 @@ use sp_application_crypto::Public;
 use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight};
 use sp_runtime::RuntimeDebug;
 
-/// Used to indicate if a type is able to cryptographically sign messages.
-pub trait Signer {
-	fn public(&self) -> PublicKey {
+/// Set of test accounts with friendly names.
+pub const ALICE: Account = Account(0);
+pub const BOB: Account = Account(1);
+pub const CHARLIE: Account = Account(2);
+pub const DAVE: Account = Account(3);
+pub const EVE: Account = Account(4);
+pub const FERDIE: Account = Account(5);
+
+/// A test account which can be used to sign messages.
+#[derive(RuntimeDebug, Clone, Copy)]
+pub struct Account(pub u8);
+
+impl Account {
+	pub fn public(&self) -> PublicKey {
 		(&self.secret()).into()
 	}
 
-	fn secret(&self) -> SecretKey;
+	pub fn secret(&self) -> SecretKey {
+		SecretKey::from_bytes(&[self.0; 32]).expect("A static array of the correct length is a known good.")
+	}
 
-	fn pair(&self) -> Keypair {
+	pub fn pair(&self) -> Keypair {
 		let mut pair: [u8; 64] = [0; 64];
 
 		let secret = self.secret();
@@ -42,42 +55,9 @@ pub trait Signer {
 		Keypair::from_bytes(&pair).expect("We expect the SecretKey to be good, so this must also be good.")
 	}
 
-	fn sign(&self, msg: &[u8]) -> Signature {
+	pub fn sign(&self, msg: &[u8]) -> Signature {
 		use ed25519_dalek::Signer;
 		self.pair().sign(msg)
-	}
-}
-
-/// Set of test accounts with friendly names.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub enum TestKeyring {
-	Alice,
-	Bob,
-	Charlie,
-	Dave,
-	Eve,
-	Ferdie,
-}
-
-impl Signer for TestKeyring {
-	fn secret(&self) -> SecretKey {
-		SecretKey::from_bytes(&[*self as u8; 32]).expect("A static array of the correct length is a known good.")
-	}
-}
-
-/// A test account which can be used to sign messages.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct Account(pub u8);
-
-impl Signer for Account {
-	fn secret(&self) -> SecretKey {
-		SecretKey::from_bytes(&[self.0; 32]).expect("A static array of the correct length is a known good.")
-	}
-}
-
-impl From<TestKeyring> for AuthorityId {
-	fn from(k: TestKeyring) -> Self {
-		AuthorityId::from_slice(&k.public().to_bytes())
 	}
 }
 
@@ -101,12 +81,8 @@ pub fn authority_list() -> AuthorityList {
 }
 
 /// Get the corresponding identities from the keyring for the "standard" authority set.
-pub fn test_keyring() -> Vec<(TestKeyring, AuthorityWeight)> {
-	vec![
-		(TestKeyring::Alice, 1),
-		(TestKeyring::Bob, 1),
-		(TestKeyring::Charlie, 1),
-	]
+pub fn test_keyring() -> Vec<(Account, AuthorityWeight)> {
+	vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1)]
 }
 
 /// Get a list of "unique" accounts.

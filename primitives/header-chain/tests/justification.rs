@@ -17,7 +17,6 @@
 //! Tests for Grandpa Justification code.
 
 use bp_header_chain::justification::{verify_justification, Error};
-use bp_test_utils::TestKeyring::*;
 use bp_test_utils::*;
 use codec::Encode;
 
@@ -29,7 +28,7 @@ fn valid_justification_accepted() {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
-		authorities: vec![(Alice, 1), (Bob, 1), (Charlie, 1), (Dave, 1), (Eve, 1)],
+		authorities: vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1), (DAVE, 1), (EVE, 1)],
 		depth: 5,
 		forks: 5,
 	};
@@ -39,7 +38,7 @@ fn valid_justification_accepted() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader, TestKeyring>(params).encode()
+			&make_justification_for_header::<TestHeader>(params).encode()
 		),
 		Ok(()),
 	);
@@ -51,7 +50,7 @@ fn valid_justification_accepted_with_single_fork() {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
-		authorities: vec![(Alice, 1), (Bob, 1), (Charlie, 1), (Dave, 1), (Eve, 1)],
+		authorities: vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1), (DAVE, 1), (EVE, 1)],
 		depth: 5,
 		forks: 1,
 	};
@@ -61,7 +60,7 @@ fn valid_justification_accepted_with_single_fork() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader, TestKeyring>(params).encode()
+			&make_justification_for_header::<TestHeader>(params).encode()
 		),
 		Ok(()),
 	);
@@ -85,8 +84,8 @@ fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
-			&voter_set(),
-			&make_justification_for_header::<TestHeader, _>(params).encode()
+			&voter_set(), // TODO: How did this pass...
+			&make_justification_for_header::<TestHeader>(params).encode()
 		),
 		Ok(()),
 	);
@@ -168,7 +167,7 @@ fn justification_is_invalid_if_we_dont_meet_threshold() {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
-		authorities: vec![(Alice, 1), (Bob, 1)],
+		authorities: vec![(ALICE, 1), (BOB, 1)],
 		depth: 2,
 		forks: 2,
 	};
@@ -178,7 +177,7 @@ fn justification_is_invalid_if_we_dont_meet_threshold() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader, _>(params).encode()
+			&make_justification_for_header::<TestHeader>(params).encode()
 		),
 		Err(Error::InvalidJustificationCommit),
 	);

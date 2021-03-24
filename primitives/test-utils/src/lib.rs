@@ -34,7 +34,7 @@ pub const TEST_GRANDPA_ROUND: u64 = 1;
 pub const TEST_GRANDPA_SET_ID: SetId = 1;
 
 /// Configuration parameters when generating test GRANDPA justifications.
-pub struct JustificationGeneratorParams<H, S: Signer> {
+pub struct JustificationGeneratorParams<H> {
 	/// The header which we want to finalize.
 	pub header: H,
 	/// The GRANDPA round number for the current authority set.
@@ -42,14 +42,14 @@ pub struct JustificationGeneratorParams<H, S: Signer> {
 	/// The current authority set ID.
 	pub set_id: SetId,
 	/// The current GRANDPA authority set.
-	pub authorities: Vec<(S, AuthorityWeight)>,
+	pub authorities: Vec<(Account, AuthorityWeight)>,
 	/// The number of headers included in our justification's vote ancestries.
 	pub depth: u32,
 	/// The number of forks, and thus the number of pre-commits in our justification.
 	pub forks: u32,
 }
 
-impl<H: HeaderT> Default for JustificationGeneratorParams<H, TestKeyring> {
+impl<H: HeaderT> Default for JustificationGeneratorParams<H> {
 	fn default() -> Self {
 		Self {
 			header: test_header(One::one()),
@@ -64,7 +64,7 @@ impl<H: HeaderT> Default for JustificationGeneratorParams<H, TestKeyring> {
 
 /// Make a valid GRANDPA justification with sensible defaults
 pub fn make_default_justification<H: HeaderT>(header: &H) -> GrandpaJustification<H> {
-	let params = JustificationGeneratorParams::<H, TestKeyring> {
+	let params = JustificationGeneratorParams::<H> {
 		header: header.clone(),
 		..Default::default()
 	};
@@ -81,11 +81,7 @@ pub fn make_default_justification<H: HeaderT>(header: &H) -> GrandpaJustificatio
 ///
 /// Note: This needs at least three authorities or else the verifier will complain about
 /// being given an invalid commit.
-pub fn make_justification_for_header<H, S>(params: JustificationGeneratorParams<H, S>) -> GrandpaJustification<H>
-where
-	H: HeaderT,
-	S: Signer + Into<AuthorityId> + Copy,
-{
+pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorParams<H>) -> GrandpaJustification<H> {
 	let JustificationGeneratorParams {
 		header,
 		round,
@@ -123,7 +119,7 @@ where
 	for (i, (id, _weight)) in authorities.iter().enumerate() {
 		// Assign authorities to sign pre-commits in a round-robin fashion
 		let target = unsigned_precommits[i % forks as usize];
-		let precommit = signed_precommit::<H, S>(&id, target, round, set_id);
+		let precommit = signed_precommit::<H>(&id, target, round, set_id);
 
 		precommits.push(precommit);
 	}
@@ -162,16 +158,12 @@ fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
 	headers
 }
 
-fn signed_precommit<H, S>(
-	signer: &S,
+fn signed_precommit<H: HeaderT>(
+	signer: &Account,
 	target: (H::Hash, H::Number),
 	round: u64,
 	set_id: SetId,
-) -> finality_grandpa::SignedPrecommit<H::Hash, H::Number, AuthoritySignature, AuthorityId>
-where
-	H: HeaderT,
-	S: Signer + Into<AuthorityId> + Copy,
-{
+) -> finality_grandpa::SignedPrecommit<H::Hash, H::Number, AuthoritySignature, AuthorityId> {
 	let precommit = finality_grandpa::Precommit {
 		target_hash: target.0,
 		target_number: target.1,
