@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(dead_code)] // TODO: https://github.com/paritytech/parity-bridges-common/issues/817
+
 //! On-demand Substrate -> Substrate headers relay.
 
 use std::{future::Future, pin::Pin};

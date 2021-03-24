@@ -192,7 +192,6 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 			rialto_sign,
 			prometheus_params,
 			lane,
-			enable_headers_relay,
 		} => {
 			let millau_client = millau.into_client().await?;
 			let millau_sign = millau_sign.parse()?;
@@ -205,7 +204,6 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 				rialto_client,
 				rialto_sign,
 				lane.into(),
-				enable_headers_relay,
 				prometheus_params.into(),
 			)
 			.await
@@ -217,7 +215,6 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 			millau_sign,
 			prometheus_params,
 			lane,
-			enable_headers_relay,
 		} => {
 			let rialto_client = rialto.into_client().await?;
 			let rialto_sign = rialto_sign.parse()?;
@@ -230,7 +227,6 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 				millau_client,
 				millau_sign,
 				lane.into(),
-				enable_headers_relay,
 				prometheus_params.into(),
 			)
 			.await

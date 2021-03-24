@@ -86,9 +86,6 @@ pub enum RelayMessages {
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
 		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
-		/// Enable on-demand headers relay. If passed, separate headers relay processes are not required.
-		#[structopt(long)]
-		enable_headers_relay: bool,
 	},
 	/// Serve given lane of Rialto -> Millau messages.
 	RialtoToMillau {
@@ -105,9 +102,6 @@ pub enum RelayMessages {
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
 		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
-		/// Enable on-demand headers relay. If passed, separate headers relay processes are not required.
-		#[structopt(long)]
-		enable_headers_relay: bool,
 	},
 }
 

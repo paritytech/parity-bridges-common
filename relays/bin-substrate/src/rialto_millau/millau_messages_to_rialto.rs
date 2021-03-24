@@ -135,26 +135,13 @@ pub async fn run(
 	rialto_client: RialtoClient,
 	rialto_sign: RialtoSigningParams,
 	lane_id: LaneId,
-	enable_headers_relay: bool,
 	metrics_params: Option<MetricsParams>,
 ) -> Result<(), String> {
 	let stall_timeout = Duration::from_secs(5 * 60);
 	let relayer_id_at_millau = millau_sign.signer.public().as_array_ref().clone().into();
 
-	let rialto_to_millau_headers_relay = enable_headers_relay.then(|| {
-		crate::rialto_millau::rialto_headers_to_millau::on_demand(
-			rialto_client.clone(),
-			millau_client.clone(),
-			millau_sign.clone(),
-		)
-	});
-	let millau_to_rialto_headers_relay = enable_headers_relay.then(|| {
-		crate::rialto_millau::millau_headers_to_rialto::on_demand(
-			millau_client.clone(),
-			rialto_client.clone(),
-			rialto_sign.clone(),
-		)
-	});
+	let rialto_to_millau_headers_relay = None;
+	let millau_to_rialto_headers_relay = None;
 	let lane = MillauMessagesToRialto {
 		source_client: millau_client.clone(),
 		source_sign: millau_sign,

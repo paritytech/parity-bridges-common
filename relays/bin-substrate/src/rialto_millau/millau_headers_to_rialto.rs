@@ -73,6 +73,7 @@ pub async fn run(
 }
 
 /// Return on-demand Millau-to-Rialto finality relay task.
+#[allow(dead_code)] // TODO: https://github.com/paritytech/parity-bridges-common/issues/817
 pub fn on_demand(
 	millau_client: MillauClient,
 	rialto_client: RialtoClient,
