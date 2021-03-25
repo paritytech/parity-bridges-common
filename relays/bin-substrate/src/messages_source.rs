@@ -53,12 +53,7 @@ pub struct SubstrateMessagesSource<C: Chain, P> {
 
 impl<C: Chain, P> SubstrateMessagesSource<C, P> {
 	/// Create new Substrate headers source.
-	pub fn new(
-		client: Client<C>,
-		lane: P,
-		lane_id: LaneId,
-		instance: InstanceId,
-	) -> Self {
+	pub fn new(client: Client<C>, lane: P, lane_id: LaneId, instance: InstanceId) -> Self {
 		SubstrateMessagesSource {
 			client,
 			lane,
@@ -212,8 +207,7 @@ where
 		Ok(())
 	}
 
-	async fn activate_target_to_source_headers_relay(&self, _activate: bool) {
-	}
+	async fn activate_target_to_source_headers_relay(&self, _activate: bool) {}
 }
 
 pub async fn read_client_state<SelfChain, BridgedHeaderHash, BridgedHeaderNumber>(

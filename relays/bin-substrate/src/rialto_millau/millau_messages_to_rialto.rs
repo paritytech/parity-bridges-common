@@ -185,18 +185,8 @@ pub async fn run(
 				max_messages_size_in_single_batch,
 			},
 		},
-		MillauSourceClient::new(
-			millau_client,
-			lane.clone(),
-			lane_id,
-			RIALTO_BRIDGE_INSTANCE,
-		),
-		RialtoTargetClient::new(
-			rialto_client,
-			lane,
-			lane_id,
-			MILLAU_BRIDGE_INSTANCE,
-		),
+		MillauSourceClient::new(millau_client, lane.clone(), lane_id, RIALTO_BRIDGE_INSTANCE),
+		RialtoTargetClient::new(rialto_client, lane, lane_id, MILLAU_BRIDGE_INSTANCE),
 		metrics_params,
 		futures::future::pending(),
 	)
