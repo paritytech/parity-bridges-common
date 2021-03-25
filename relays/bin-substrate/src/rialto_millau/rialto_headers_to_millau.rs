@@ -18,10 +18,8 @@
 
 use super::{MillauClient, RialtoClient};
 use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
-use crate::on_demand_headers_relay::OnDemandHeadersRelay;
 
 use codec::Encode;
-use futures::FutureExt;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SyncHeader as RialtoSyncHeader};
 use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};
