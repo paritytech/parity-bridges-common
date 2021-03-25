@@ -1023,6 +1023,10 @@ impl_runtime_apis! {
 						Default::default(),
 					)
 				}
+
+				fn session_length() -> BridgedBlockNumber<Self, ()> {
+					bp_millau::SESSION_LENGTH
+				}
 			}
 
 			add_benchmark!(

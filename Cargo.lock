@@ -4433,6 +4433,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "num-traits",
  "pallet-substrate-bridge",
  "parity-scale-codec 2.0.1",
  "serde",

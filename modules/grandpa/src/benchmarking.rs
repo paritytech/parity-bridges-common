@@ -36,6 +36,7 @@ use bp_test_utils::{
 };
 use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
 use frame_system::RawOrigin;
+use num_traits::cast::AsPrimitive;
 use sp_finality_grandpa::AuthorityId;
 use sp_runtime::traits::{One, Zero};
 use sp_std::vec;
@@ -44,13 +45,14 @@ pub trait Config<I: 'static = ()>: crate::Config<I> {
 	// We need some way for the benchmarks to use headers in a "generic" way. However, since we do
 	// use a real runtime we need a way for the runtime to tell us what the concrete type is.
 	fn bridged_header(num: BridgedBlockNumber<Self, I>) -> BridgedHeader<Self, I>;
+	fn session_length() -> BridgedBlockNumber<Self, I>;
 }
 
 benchmarks_instance_pallet! {
 	// What we want to check here is the effect of vote ancestries on justification verification
 	// time. We will do this by varying the number of ancestors our finality target has.
 	submit_finality_proof_on_single_fork {
-		let n in 1..10;
+		let n in 1..T::session_length().as_() as u32;
 		let caller: T::AccountId = whitelisted_caller();
 
 		let init_data = InitializationData {
@@ -78,17 +80,19 @@ benchmarks_instance_pallet! {
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
-		assert!(true)
-		// Need to play with the types here to get this to compile...
-		// assert_eq!(<BestFinalized<mock::TestRuntime>>::get(), header.hash());
-		// assert!(<ImportedHeaders<mock::TestRuntime>>::contains_key(header.hash()));
+		let mut header = T::bridged_header(One::one());
+		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let expected_hash = header.hash();
+
+		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
+		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
 	}
 
 	// What we want to check here is the effect of many pre-commits on justification verification.
 	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
 	// final justification.
 	submit_finality_proof_on_many_forks {
-		let n in 1..10;
+		let n in 1..u8::MAX.into();
 		let caller: T::AccountId = whitelisted_caller();
 
 		let authority_list = accounts(n as u8)
@@ -121,7 +125,12 @@ benchmarks_instance_pallet! {
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
-		assert!(true)
+		let mut header = T::bridged_header(One::one());
+		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let expected_hash = header.hash();
+
+		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
+		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
 	}
 
 
@@ -195,6 +204,10 @@ mod tests {
 	impl Config for mock::TestRuntime {
 		fn bridged_header(num: u64) -> BridgedHeader<Self, ()> {
 			mock::test_header(num)
+		}
+
+		fn session_length() -> BridgedBlockNumber<Self, ()> {
+			5
 		}
 	}
 
