@@ -23,7 +23,7 @@ use relay_substrate_client::{
 	finality_source::{FinalitySource, Justification},
 	BlockNumberOf, Chain, Client, HashOf, SyncHeader,
 };
-use relay_utils::BlockNumberBase;
+use relay_utils::{metrics::MetricsParams, BlockNumberBase};
 use sp_core::Bytes;
 use std::{fmt::Debug, marker::PhantomData, time::Duration};
 
@@ -99,7 +99,7 @@ pub async fn run<SourceChain, TargetChain, P>(
 	pipeline: P,
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
-	metrics_params: Option<relay_utils::metrics::MetricsParams>,
+	metrics_params: MetricsParams,
 ) -> Result<(), String>
 where
 	P: SubstrateFinalitySyncPipeline<

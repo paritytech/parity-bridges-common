@@ -21,7 +21,7 @@ use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityT
 
 use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
-use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};
+use relay_substrate_client::{finality_source::Justification, metrics::FloatJsonValueMetric, Chain, TransactionSignScheme};
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
 use sp_core::{Bytes, Pair};
 
@@ -61,13 +61,29 @@ pub async fn run(
 	westend_client: WestendClient,
 	millau_client: MillauClient,
 	millau_sign: MillauSigningParams,
-	metrics_params: Option<relay_utils::metrics::MetricsParams>,
+	metrics_params: relay_utils::metrics::MetricsParams,
 ) -> Result<(), String> {
 	crate::finality_pipeline::run(
 		WestendFinalityToMillau::new(millau_client.clone(), millau_sign),
 		westend_client,
-		millau_client,
-		metrics_params,
+		millau_client.clone(),
+		relay_utils::relay_metrics(
+			finality_relay::metrics_prefix::<WestendFinalityToMillau>(),
+			metrics_params.address,
+		)
+		.standalone_metric(FloatJsonValueMetric::new(
+			"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=usd".into(),
+			"$.polkadot.usd".into(),
+			"polkadot_price".into(),
+			"Polkadot price in USD".into(),
+		))?
+		.standalone_metric(FloatJsonValueMetric::new(
+			"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=usd".into(),
+			"$.kusama.usd".into(),
+			"kusama_price".into(),
+			"Kusama price in USD".into(),
+		))?
+		.into_params(),
 	)
 	.await
 }

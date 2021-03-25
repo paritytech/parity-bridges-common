@@ -38,6 +38,8 @@ pub enum Error {
 	AccountDoesNotExist,
 	/// The client we're connected to is not synced, so we can't rely on its state.
 	ClientNotSynced(Health),
+	/// An error has happened when we have tried to parse storage proof.
+	StorageProofError(bp_runtime::StorageProofError),
 	/// Custom logic error.
 	Custom(String),
 }
@@ -74,6 +76,7 @@ impl ToString for Error {
 			Self::ResponseParseFailed(e) => e.to_string(),
 			Self::UninitializedBridgePallet => "The Substrate bridge pallet has not been initialized yet.".into(),
 			Self::AccountDoesNotExist => "Account does not exist on the chain".into(),
+			Self::StorageProofError(e) => format!("Error when parsing storage proof: {:?}", e),
 			Self::ClientNotSynced(health) => format!("Substrate client is not synced: {}", health),
 			Self::Custom(e) => e.clone(),
 		}

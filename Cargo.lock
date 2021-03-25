@@ -136,6 +136,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "698b65a961a9d730fb45b6b0327e20207810c9f61ee421b082b27ba003f49e2b"
 
 [[package]]
+name = "array_tool"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f8cb5d814eb646a863c4f24978cff2880c4be96ad8cde2c0f0678732902e271"
+
+[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -986,6 +992,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "chttp"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca699a61cc91c90af209d6bf546fc69d29e9d474c77fa86b9410eb3cf1e6eb31"
+dependencies = [
+ "bytes 0.4.12",
+ "chrono",
+ "crossbeam-channel 0.3.9",
+ "curl",
+ "curl-sys",
+ "futures-io-preview",
+ "futures-util-preview",
+ "http 0.1.21",
+ "lazy_static",
+ "log",
+ "slab",
+ "sluice",
+]
+
+[[package]]
 name = "cid"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1211,6 +1237,15 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8ec7fcd21571dc78f96cc96243cab8d8f035247c3efd16c687be154c3fa9efa"
+dependencies = [
+ "crossbeam-utils 0.6.6",
+]
+
+[[package]]
+name = "crossbeam-channel"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dca26ee1f8d361640700bde38b2c37d8c22b3ce2d360e1fc1c74ea4b0aa7d775"
@@ -1278,6 +1313,16 @@ dependencies = [
  "cfg-if 0.1.10",
  "crossbeam-utils 0.7.2",
  "maybe-uninit",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.6.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04973fa96e96579258a5091af6003abde64af786b860f18622b82e026cca60e6"
+dependencies = [
+ "cfg-if 0.1.10",
+ "lazy_static",
 ]
 
 [[package]]
@@ -1356,6 +1401,37 @@ dependencies = [
  "byteorder",
  "fnv",
  "rand 0.7.3",
+]
+
+[[package]]
+name = "curl"
+version = "0.4.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a872858e9cb9e3b96c80dd78774ad9e32e44d3b05dc31e142b858d14aebc82c"
+dependencies = [
+ "curl-sys",
+ "libc",
+ "openssl-probe",
+ "openssl-sys",
+ "schannel",
+ "socket2",
+ "winapi 0.3.9",
+]
+
+[[package]]
+name = "curl-sys"
+version = "0.4.41+curl-7.75.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ec466abd277c7cab2905948f3e94d10bc4963f1f5d47921c1cc4ffd2028fe65"
+dependencies = [
+ "cc",
+ "libc",
+ "libnghttp2-sys",
+ "libz-sys",
+ "openssl-sys",
+ "pkg-config",
+ "vcpkg",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -2167,10 +2243,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-channel-preview"
+version = "0.3.0-alpha.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21c71ed547606de08e9ae744bb3c6d80f5627527ef31ecf2a7210d0e67bc8fae"
+dependencies = [
+ "futures-core-preview",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "15496a72fabf0e62bdc3df11a59a3787429221dd0710ba8ef163d6f7a9112c94"
+
+[[package]]
+name = "futures-core-preview"
+version = "0.3.0-alpha.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b141ccf9b7601ef987f36f1c0d9522f76df3bba1cf2e63bfacccc044c4558f5"
 
 [[package]]
 name = "futures-cpupool"
@@ -2215,6 +2306,12 @@ name = "futures-io"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d71c2c65c57704c32f5241c1223167c2c3294fd34ac020c807ddbe6db287ba59"
+
+[[package]]
+name = "futures-io-preview"
+version = "0.3.0-alpha.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "082e402605fcb8b1ae1e5ba7d7fdfd3e31ef510e2a8367dd92927bb41ae41b3a"
 
 [[package]]
 name = "futures-lite"
@@ -2296,6 +2393,19 @@ dependencies = [
  "pin-utils",
  "proc-macro-hack",
  "proc-macro-nested",
+ "slab",
+]
+
+[[package]]
+name = "futures-util-preview"
+version = "0.3.0-alpha.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af8198c48b222f02326940ce2b3aa9e6e91a32886eeaad7ca3b8e4c70daa3f4e"
+dependencies = [
+ "futures-core-preview",
+ "futures-io-preview",
+ "memchr",
+ "pin-utils",
  "slab",
 ]
 
@@ -2930,6 +3040,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonpath_lib"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61352ec23883402b7d30b3313c16cbabefb8907361c4eb669d990cbb87ceee5a"
+dependencies = [
+ "array_tool",
+ "env_logger 0.7.1",
+ "log",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "jsonrpc-client-transports"
 version = "15.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3216,6 +3339,16 @@ name = "libm"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7d73b3f436185384286bd8098d17ec07c9a7d2388a6599f824d8502b529702a"
+
+[[package]]
+name = "libnghttp2-sys"
+version = "0.1.6+1.43.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0af55541a8827e138d59ec9e5877fb6095ece63fb6f4da45e7491b4fbd262855"
+dependencies = [
+ "cc",
+ "libc",
+]
 
 [[package]]
 name = "libp2p"
@@ -3659,6 +3792,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "602113192b08db8f38796c4e85c39e960c145965140e918018bcde1952429655"
 dependencies = [
  "cc",
+ "libc",
  "pkg-config",
  "vcpkg",
 ]
@@ -4317,6 +4451,19 @@ name = "openssl-probe"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77af24da69f9d9341038eba93a073b1fdaaa1b788221b00a69bce9e762cb32de"
+
+[[package]]
+name = "openssl-sys"
+version = "0.9.61"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "313752393519e876837e09e1fa183ddef0be7735868dced3196f4472d536277f"
+dependencies = [
+ "autocfg",
+ "cc",
+ "libc",
+ "pkg-config",
+ "vcpkg",
+]
 
 [[package]]
 name = "owning_ref"
@@ -5517,7 +5664,7 @@ version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ab346ac5921dc62ffa9f89b7a773907511cdfa5490c572ae9be1be33e8afa4a"
 dependencies = [
- "crossbeam-channel",
+ "crossbeam-channel 0.5.0",
  "crossbeam-deque 0.8.0",
  "crossbeam-utils 0.8.3",
  "lazy_static",
@@ -5781,10 +5928,13 @@ dependencies = [
  "async-std",
  "async-trait",
  "backoff",
+ "chttp",
  "env_logger 0.8.3",
  "futures 0.3.13",
+ "jsonpath_lib",
  "log",
  "num-traits",
+ "serde_json",
  "substrate-prometheus-endpoint",
  "sysinfo",
  "time 0.2.25",
@@ -7122,6 +7272,7 @@ version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "799e97dc9fdae36a5c8b8f2cae9ce2ee9fdce2058c57a93e6099d919fd982f79"
 dependencies = [
+ "indexmap",
  "itoa",
  "ryu",
  "serde",
@@ -7252,6 +7403,17 @@ name = "slab"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
+
+[[package]]
+name = "sluice"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec70d7c3b17c262d4a18f7291c6ce62bf47170915f3b795434d3c5c49a4e59b7"
+dependencies = [
+ "futures-channel-preview",
+ "futures-core-preview",
+ "futures-io-preview",
+]
 
 [[package]]
 name = "smallvec"
