@@ -8,8 +8,6 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
 parity-scale-codec = { version = "2.0.0", default-features = false, features = ["derive"] }
-parity-util-mem = { version = "0.9.0", default-features = false, features = ["primitive-types"] }
-hash256-std-hasher = { version = "0.15.2", default-features = false }
 
 # Bridge Dependencies
 

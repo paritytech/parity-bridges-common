@@ -30,8 +30,8 @@ pub use bp_polkadot_core::*;
 pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: sp_version::create_runtime_str!("polkadot"),
-	impl_name: sp_version::create_runtime_str!("parity-polkadot"),
+	spec_name: sp_version::create_runtime_str!("rococo"),
+	impl_name: sp_version::create_runtime_str!("parity-rococo-v1-1"),
 	authoring_version: 0,
 	spec_version: 30,
 	impl_version: 0,

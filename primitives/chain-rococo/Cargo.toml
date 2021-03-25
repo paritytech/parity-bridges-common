@@ -30,8 +30,10 @@ std = [
 	"bp-messages/std",
 	"bp-polkadot-core/std",
 	"bp-runtime/std",
+	"frame-support/std",
 	"parity-scale-codec/std",
 	"sp-api/std",
+	"sp-runtime/std",
 	"sp-std/std",
 	"sp-version/std",
 ]

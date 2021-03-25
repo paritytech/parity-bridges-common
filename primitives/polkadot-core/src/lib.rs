@@ -187,7 +187,7 @@ pub type AdditionalSigned = (u32, u32, Hash, Hash, (), (), ());
 
 /// A simplified version of signed extensions meant for producing signed transactions
 /// and signed payload in the client code.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug)]
 pub struct SignedExtensions<Call> {
 	encode_payload: SignedExtra,
 	additional_signed: AdditionalSigned,
