@@ -133,7 +133,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 							*millau_client.genesis_hash(),
 							&millau_sign.signer,
 							transaction_nonce,
-							millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
+							initialize_call.into(),
 						)
 						.encode(),
 					)
