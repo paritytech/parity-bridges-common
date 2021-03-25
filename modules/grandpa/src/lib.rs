@@ -85,6 +85,21 @@ pub mod pallet {
 		/// until the request count has decreased.
 		#[pallet::constant]
 		type MaxRequests: Get<u32>;
+
+		/// The maximum length of a session on the bridged chain.
+		///
+		/// The pallet uses this to bound justification verification since justifications contain
+		/// ancestry proofs whose size is capped at `BridgedSessionLength`.
+		#[pallet::constant]
+		type BridgedSessionLength: Get<BridgedBlockNumber<Self, I>>;
+
+		/// The number of validators on the bridged chain.
+		///
+		/// The pallet uses this to bound justification verification since justifications may
+		/// contain up to `BridgedValidatorCount` number of signed `pre-commit` messages which need to
+		/// be verified.
+		#[pallet::constant]
+		type BridgedValidatorCount: Get<u64>;
 	}
 
 	#[pallet::pallet]

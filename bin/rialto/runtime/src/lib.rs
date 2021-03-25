@@ -417,11 +417,17 @@ parameter_types! {
 	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
 	// call per block.
 	pub const MaxRequests: u32 = 50;
+	pub const MillauSessionLength: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
+
+	// TODO: Update this
+	pub const MillauValidatorCount: u64 = 250;
 }
 
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type MaxRequests = MaxRequests;
+	type BridgedSessionLength = MillauSessionLength;
+	type BridgedValidatorCount = MillauValidatorCount;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}

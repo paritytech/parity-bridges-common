@@ -57,6 +57,9 @@ pub const FROM_WESTEND_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromWestendInbound
 /// Name of the `FromWestendInboundLaneApi::unrewarded_relayers_state` runtime method.
 pub const FROM_WESTEND_UNREWARDED_RELAYERS_STATE: &str = "FromWestendInboundLaneApi_unrewarded_relayers_state";
 
+/// The length of a session (how often authorities change) on Westend measured in of number of blocks.
+pub const SESSION_LENGTH: BlockNumber = 10 * time_units::MINUTES;
+
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Westend headers.
 	///

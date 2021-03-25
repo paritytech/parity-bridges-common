@@ -311,18 +311,30 @@ parameter_types! {
 	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
 	// call per block.
 	pub const MaxRequests: u32 = 50;
+	pub const WestendSessionLength: bp_westend::BlockNumber = bp_westend::SESSION_LENGTH;
+	pub const RialtoSessionLength: bp_rialto::BlockNumber = bp_rialto::SESSION_LENGTH;
+
+	// TODO: Update this
+	pub const RialtoValidatorCount: u64 = 250;
+	pub const WestendValidatorCount: u64 = 250;
 }
 
 pub type RialtoGrandpaInstance = ();
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type MaxRequests = MaxRequests;
+	type BridgedSessionLength = RialtoSessionLength;
+	type BridgedValidatorCount = RialtoValidatorCount;
 }
 
 pub type WestendGrandpaInstance = pallet_bridge_grandpa::Instance1;
 impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedChain = bp_westend::Westend;
 	type MaxRequests = MaxRequests;
+
+	// TODO: Update this
+	type BridgedSessionLength = WestendSessionLength;
+	type BridgedValidatorCount = WestendValidatorCount;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}
