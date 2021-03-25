@@ -428,6 +428,7 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type MaxRequests = MaxRequests;
 	type BridgedSessionLength = MillauSessionLength;
 	type BridgedValidatorCount = MillauValidatorCount;
+	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}

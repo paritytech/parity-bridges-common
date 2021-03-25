@@ -36,11 +36,13 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
+use crate::weights::WeightInfo;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::ensure;
 use frame_system::{ensure_signed, RawOrigin};
+use num_traits::cast::AsPrimitive;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
@@ -50,6 +52,9 @@ use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
+
+/// Module containing weights for this pallet.
+pub mod weights;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -100,6 +105,9 @@ pub mod pallet {
 		/// be verified.
 		#[pallet::constant]
 		type BridgedValidatorCount: Get<u64>;
+
+		/// Weights gathered through benchmarking.
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::pallet]
@@ -125,7 +133,10 @@ pub mod pallet {
 		///
 		/// If successful in verification, it will write the target header to the underlying storage
 		/// pallet.
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::submit_finality_proof(
+			T::BridgedSessionLength::get().as_() as u32,
+			T::BridgedValidatorCount::get() as u32,
+		))]
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,
 			finality_target: BridgedHeader<T, I>,

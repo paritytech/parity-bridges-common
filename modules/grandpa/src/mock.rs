@@ -89,6 +89,7 @@ impl grandpa::Config for TestRuntime {
 	type MaxRequests = MaxRequests;
 	type BridgedSessionLength = SessionLength;
 	type BridgedValidatorCount = NumValidators;
+	type WeightInfo = ();
 }
 
 #[derive(Debug)]

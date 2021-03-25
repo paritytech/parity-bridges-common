@@ -325,16 +325,20 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type MaxRequests = MaxRequests;
 	type BridgedSessionLength = RialtoSessionLength;
 	type BridgedValidatorCount = RialtoValidatorCount;
+
+	// TODO: Need to update for Millau runtime
+	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 
 pub type WestendGrandpaInstance = pallet_bridge_grandpa::Instance1;
 impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedChain = bp_westend::Westend;
 	type MaxRequests = MaxRequests;
-
-	// TODO: Update this
 	type BridgedSessionLength = WestendSessionLength;
 	type BridgedValidatorCount = WestendValidatorCount;
+
+	// TODO: Need to update for Millau runtime
+	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}
