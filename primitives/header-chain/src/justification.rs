@@ -59,7 +59,7 @@ pub fn verify_justification<Header: HeaderT>(
 	authorities_set_id: SetId,
 	authorities_set: &VoterSet<AuthorityId>,
 	raw_justification: &[u8],
-) -> Result<(), Error>
+) -> Result<(usize, usize), Error>
 where
 	Header::Number: finality_grandpa::BlockNumberOps,
 {
@@ -122,7 +122,13 @@ where
 		return Err(Error::InvalidPrecommitAncestries);
 	}
 
-	Ok(())
+	// Note: The original GRANDPA code doesn't return this. However, from the runtime's perspective
+	// we care about these two metrics since they determine how much weight is spent validating a
+	// particular justification.
+	let num_precommits = justification.commit.precommits.len();
+	let vote_ancestries = justification.votes_ancestries.len();
+
+	Ok((num_precommits, vote_ancestries))
 }
 
 /// A GRANDPA Justification is a proof that a given header was finalized

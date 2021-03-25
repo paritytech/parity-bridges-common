@@ -154,9 +154,9 @@ pub mod pallet {
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
 			let set_id = authority_set.set_id;
-			verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
+			let (_precommits, _votes) = verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
 
-			try_enact_authority_change::<T, I>(&finality_target, set_id)?;
+			let _enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<BestFinalized<T, I>>::put(hash);
 			<ImportedHeaders<T, I>>::insert(hash, finality_target);
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
@@ -339,10 +339,14 @@ pub mod pallet {
 	///
 	/// This function does not support forced changes, or scheduled changes with delays
 	/// since these types of changes are indicitive of abnormal behaviour from GRANDPA.
+	///
+	/// Return type will indicate if a change was enacted or not.
 	pub(crate) fn try_enact_authority_change<T: Config<I>, I: 'static>(
 		header: &BridgedHeader<T, I>,
 		current_set_id: sp_finality_grandpa::SetId,
-	) -> Result<(), sp_runtime::DispatchError> {
+	) -> Result<bool, sp_runtime::DispatchError> {
+		let mut change_enacted = false;
+
 		// We don't support forced changes - at that point governance intervention is required.
 		ensure!(
 			super::find_forced_change(header).is_none(),
@@ -362,6 +366,7 @@ pub mod pallet {
 			// Since our header schedules a change and we know the delay is 0, it must also enact
 			// the change.
 			<CurrentAuthoritySet<T, I>>::put(&next_authorities);
+			change_enacted = true;
 
 			log::info!(
 				target: "runtime::bridge-grandpa",
@@ -372,7 +377,7 @@ pub mod pallet {
 			);
 		};
 
-		Ok(())
+		Ok(change_enacted)
 	}
 
 	/// Verify a GRANDPA justification (finality proof) for a given header.
@@ -383,20 +388,21 @@ pub mod pallet {
 		hash: BridgedBlockHash<T, I>,
 		number: BridgedBlockNumber<T, I>,
 		authority_set: bp_header_chain::AuthoritySet,
-	) -> Result<(), sp_runtime::DispatchError> {
+	) -> Result<(usize, usize), sp_runtime::DispatchError> {
 		use bp_header_chain::justification::verify_justification;
 
 		let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T, I>>::InvalidAuthoritySet)?;
 		let set_id = authority_set.set_id;
 
-		Ok(
-			verify_justification::<BridgedHeader<T, I>>((hash, number), set_id, &voter_set, &justification).map_err(
-				|e| {
-					log::error!(target: "runtime::bridge-grandpa", "Received invalid justification for {:?}: {:?}", hash, e);
-					<Error<T, I>>::InvalidJustification
-				},
-			)?,
-		)
+		// We want to return the number of pre-commits and vote ancestries so that we can more
+		// accurately calculate the weight of our call.
+		let counts = verify_justification::<BridgedHeader<T, I>>((hash, number), set_id, &voter_set, &justification)
+			.map_err(|e| {
+				log::error!(target: "runtime::bridge-grandpa", "Received invalid justification for {:?}: {:?}", hash, e);
+				<Error<T, I>>::InvalidJustification
+			})?;
+
+		Ok(counts)
 	}
 
 	/// Since this writes to storage with no real checks this should only be used in functions that

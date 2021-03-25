@@ -33,15 +33,13 @@ fn valid_justification_accepted() {
 		forks: 5,
 	};
 
-	assert_eq!(
-		verify_justification::<TestHeader>(
-			header_id::<TestHeader>(1),
-			TEST_GRANDPA_SET_ID,
-			&voter_set(),
-			&make_justification_for_header::<TestHeader>(params).encode()
-		),
-		Ok(()),
-	);
+	assert!(verify_justification::<TestHeader>(
+		header_id::<TestHeader>(1),
+		TEST_GRANDPA_SET_ID,
+		&voter_set(),
+		&make_justification_for_header::<TestHeader>(params).encode()
+	)
+	.is_ok());
 }
 
 #[test]
@@ -55,15 +53,13 @@ fn valid_justification_accepted_with_single_fork() {
 		forks: 1,
 	};
 
-	assert_eq!(
-		verify_justification::<TestHeader>(
-			header_id::<TestHeader>(1),
-			TEST_GRANDPA_SET_ID,
-			&voter_set(),
-			&make_justification_for_header::<TestHeader>(params).encode()
-		),
-		Ok(()),
-	);
+	assert!(verify_justification::<TestHeader>(
+		header_id::<TestHeader>(1),
+		TEST_GRANDPA_SET_ID,
+		&voter_set(),
+		&make_justification_for_header::<TestHeader>(params).encode()
+	)
+	.is_ok());
 }
 
 #[test]
@@ -89,15 +85,13 @@ fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 		.collect::<Vec<(AuthorityId, _)>>();
 	let voter_set = VoterSet::new(authorities).unwrap();
 
-	assert_eq!(
-		verify_justification::<TestHeader>(
-			header_id::<TestHeader>(1),
-			TEST_GRANDPA_SET_ID,
-			&voter_set,
-			&make_justification_for_header::<TestHeader>(params).encode()
-		),
-		Ok(()),
-	);
+	assert!(verify_justification::<TestHeader>(
+		header_id::<TestHeader>(1),
+		TEST_GRANDPA_SET_ID,
+		&voter_set,
+		&make_justification_for_header::<TestHeader>(params).encode()
+	)
+	.is_ok());
 }
 
 #[test]
