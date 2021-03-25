@@ -124,7 +124,7 @@ benchmarks_instance_pallet! {
 	// What we want to check here is the effect of many pre-commits on justification verification.
 	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
 	// final justification.
-	submit_finality_proof_on_multiple_forks {
+	submit_finality_proof_on_many_forks {
 		let p in 1..u8::MAX.into();
 
 		let caller: T::AccountId = whitelisted_caller();
@@ -231,6 +231,13 @@ mod tests {
 		fn session_length() -> BridgedBlockNumber<Self, ()> {
 			5
 		}
+	}
+
+	#[test]
+	fn finality_proof_is_valid() {
+		mock::run_test(|| {
+			assert_ok!(test_benchmark_submit_finality_proof::<mock::TestRuntime>());
+		});
 	}
 
 	#[test]
