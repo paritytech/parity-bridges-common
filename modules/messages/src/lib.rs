@@ -1495,10 +1495,7 @@ mod tests {
 		let storage_key = storage_keys::outbound_lane_data_key::<DefaultInstance>(&*b"test").0;
 		assert_eq!(
 			storage_key,
-			hex!(
-				"dd16c784ebd3390a9bc0357c7511ed0196c246acb9b55077390e3ca723a0ca1f44a8995dd50b6657a037a7839304535b74657374"
-			)
-			.to_vec(),
+			hex!("dd16c784ebd3390a9bc0357c7511ed0196c246acb9b55077390e3ca723a0ca1f44a8995dd50b6657a037a7839304535b74657374").to_vec(),
 			"Unexpected storage key: {}",
 			hex::encode(&storage_key),
 		);
@@ -1511,10 +1508,7 @@ mod tests {
 		let storage_key = storage_keys::inbound_lane_data_key::<TestRuntime, DefaultInstance>(&*b"test").0;
 		assert_eq!(
 			storage_key,
-			hex!(
-				"dd16c784ebd3390a9bc0357c7511ed01e5f83cf83f2127eb47afdc35d6e43fab44a8995dd50b6657a037a7839304535b74657374"
-			)
-			.to_vec(),
+			hex!("dd16c784ebd3390a9bc0357c7511ed01e5f83cf83f2127eb47afdc35d6e43fab44a8995dd50b6657a037a7839304535b74657374").to_vec(),
 			"Unexpected storage key: {}",
 			hex::encode(&storage_key),
 		);

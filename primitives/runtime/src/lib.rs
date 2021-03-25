@@ -54,7 +54,7 @@ pub const ROCOCO_BRIDGE_INSTANCE: InstanceId = *b"roco";
 pub const WESTEND_BRIDGE_INSTANCE: InstanceId = *b"wend";
 
 /// Call-dispatch module prefix.
-pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/call-dispatch";
+pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/dispatch";
 
 /// A unique prefix for entropy when generating cross-chain account IDs.
 pub const ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/account";
@@ -105,7 +105,7 @@ where
 ///
 /// This account is used to collect fees for relayers that are passing messages across the bridge.
 ///
-/// The account ID can be the same across different instances of `pallet-bridge-messages` if the same
+/// The account ID can be the same across different instances of `message-lane` if the same
 /// `bridge_id` is used.
 pub fn derive_relayer_fund_account_id(bridge_id: InstanceId) -> H256 {
 	("relayer-fund-account", bridge_id).using_encoded(blake2_256).into()

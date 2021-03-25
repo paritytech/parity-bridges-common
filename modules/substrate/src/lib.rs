@@ -721,7 +721,7 @@ mod tests {
 	use super::*;
 	use crate::mock::{run_test, test_header, unfinalized_header, Origin, TestHeader, TestRuntime};
 	use bp_header_chain::HeaderChain;
-	use bp_test_utils::{alice, authority_list, bob};
+	use bp_test_utils::{authority_list, ALICE, BOB};
 	use frame_support::{assert_err, assert_noop, assert_ok};
 	use sp_runtime::DispatchError;
 
@@ -949,7 +949,7 @@ mod tests {
 			let storage = PalletStorage::<TestRuntime>::new();
 
 			let next_set_id = 2;
-			let next_authorities = vec![(alice(), 1), (bob(), 1)];
+			let next_authorities = vec![(ALICE.into(), 1), (BOB.into(), 1)];
 
 			// Need to update the header digest to indicate that our header signals an authority set
 			// change. The change will be enacted when we import our header.
@@ -978,7 +978,7 @@ mod tests {
 			let storage = PalletStorage::<TestRuntime>::new();
 
 			let next_set_id = 2;
-			let next_authorities = vec![(alice(), 1), (bob(), 1)];
+			let next_authorities = vec![(ALICE.into(), 1), (BOB.into(), 1)];
 
 			// Need to update the header digest to indicate that our header signals an authority set
 			// change. However, the change doesn't happen until the next block.
@@ -1007,7 +1007,7 @@ mod tests {
 		run_test(|| {
 			let storage = PalletStorage::<TestRuntime>::new();
 
-			let next_authorities = vec![(alice(), 1)];
+			let next_authorities = vec![(ALICE.into(), 1)];
 			let next_set_id = 2;
 			let next_authority_set = AuthoritySet::new(next_authorities.clone(), next_set_id);
 

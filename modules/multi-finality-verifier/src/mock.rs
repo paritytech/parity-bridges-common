@@ -42,7 +42,7 @@ construct_runtime! {
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		FinalityVerifier: finality_verifier::{Module},
+		MultiFinalityVerifier: finality_verifier::{Module},
 	}
 }
 
