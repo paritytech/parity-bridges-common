@@ -137,9 +137,11 @@ pub mod pallet {
 			// "travelling back in time" (which could be indicative of something bad, e.g a hard-fork).
 			ensure!(best_finalized.number() < number, <Error<T, I>>::OldHeader);
 
-			verify_justification::<T, I>(&justification, hash, *number)?;
+			let authority_set = <CurrentAuthoritySet<T, I>>::get();
+			let set_id = authority_set.set_id;
+			verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
 
-			try_enact_authority_change::<T, I>(&finality_target)?;
+			try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<BestFinalized<T, I>>::put(hash);
 			<ImportedHeaders<T, I>>::insert(hash, finality_target);
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
@@ -324,6 +326,7 @@ pub mod pallet {
 	/// since these types of changes are indicitive of abnormal behaviour from GRANDPA.
 	pub(crate) fn try_enact_authority_change<T: Config<I>, I: 'static>(
 		header: &BridgedHeader<T, I>,
+		current_set_id: sp_finality_grandpa::SetId,
 	) -> Result<(), sp_runtime::DispatchError> {
 		// We don't support forced changes - at that point governance intervention is required.
 		ensure!(
@@ -335,7 +338,6 @@ pub mod pallet {
 			// GRANDPA only includes a `delay` for forced changes, so this isn't valid.
 			ensure!(change.delay == Zero::zero(), <Error<T, I>>::UnsupportedScheduledChange);
 
-			let current_set_id = <CurrentAuthoritySet<T, I>>::get().set_id;
 			// TODO [#788]: Stop manually increasing the `set_id` here.
 			let next_authorities = bp_header_chain::AuthoritySet {
 				authorities: change.next_authorities,
@@ -365,10 +367,10 @@ pub mod pallet {
 		justification: &[u8],
 		hash: BridgedBlockHash<T, I>,
 		number: BridgedBlockNumber<T, I>,
+		authority_set: bp_header_chain::AuthoritySet,
 	) -> Result<(), sp_runtime::DispatchError> {
 		use bp_header_chain::justification::verify_justification;
 
-		let authority_set = <CurrentAuthoritySet<T, I>>::get();
 		let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T, I>>::InvalidAuthoritySet)?;
 		let set_id = authority_set.set_id;
 
