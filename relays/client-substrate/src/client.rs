@@ -53,7 +53,7 @@ pub struct Client<C: Chain> {
 	client: RpcClient,
 	/// Genesis block hash.
 	genesis_hash: C::Hash,
-	/// If several tasks are submitting their transactions simultaneously using `sumbit_signed_extrinsic`
+	/// If several tasks are submitting their transactions simultaneously using `submit_signed_extrinsic`
 	/// method, they may get the same transaction nonce. So one of transactions will be rejected
 	/// from the pool. This lock is here to prevent situations like that.
 	///
