@@ -140,8 +140,6 @@ pub async fn run(
 	let stall_timeout = Duration::from_secs(5 * 60);
 	let relayer_id_at_millau = millau_sign.signer.public().as_array_ref().clone().into();
 
-	let rialto_to_millau_headers_relay = None; // https://github.com/paritytech/parity-bridges-common/issues/817
-	let millau_to_rialto_headers_relay = None; // https://github.com/paritytech/parity-bridges-common/issues/817
 	let lane = MillauMessagesToRialto {
 		source_client: millau_client.clone(),
 		source_sign: millau_sign,

@@ -73,16 +73,3 @@ pub async fn run(
 	)
 	.await
 }
-
-/// Return on-demand Rialto-to-Millau finality relay task.
-#[allow(dead_code)] // TODO: https://github.com/paritytech/parity-bridges-common/issues/817
-pub fn on_demand(
-	rialto_client: RialtoClient,
-	millau_client: MillauClient,
-	millau_sign: MillauSigningParams,
-) -> OnDemandHeadersRelay {
-	OnDemandHeadersRelay::new(
-		"Rialto-to-Millau".into(),
-		Box::new(move || run(rialto_client.clone(), millau_client.clone(), millau_sign.clone(), None).boxed()),
-	)
-}
