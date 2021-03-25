@@ -16,18 +16,6 @@
 
 //! Benchmarks for the GRANDPA Pallet.
 
-// Braindump for benches:
-//
-// Will want to make sure number of requests is low
-// Will want to Make sure we have already ImportedHeaders and BestFinalized
-//		(E.g pallet is initialized)
-// Will want to check how heavy authority set changes are
-//		How does weight increase as the authority list size increases since we have to
-//		store that info in the pallet
-//	Most important thing will be checking how justification verification scales
-//		It's checking ancestry proofs, so we'll need to create valid, but different sized
-//		justifications
-
 use crate::*;
 
 use bp_test_utils::{
@@ -49,53 +37,13 @@ pub trait Config<I: 'static = ()>: crate::Config<I> {
 }
 
 benchmarks_instance_pallet! {
-	// What we want to check here is the effect of vote ancestries on justification verification
-	// time. We will do this by varying the number of ancestors our finality target has.
-	submit_finality_proof_on_single_fork {
-		let n in 1..T::session_length().as_() as u32;
+	submit_finality_proof {
+		let s in 1..T::session_length().as_() as u32;
+		let p in 1..u8::MAX.into();
+
 		let caller: T::AccountId = whitelisted_caller();
 
-		let init_data = InitializationData {
-			header: T::bridged_header(Zero::zero()),
-			authority_list: authority_list(),
-			set_id: TEST_GRANDPA_SET_ID,
-			is_halted: false,
-		};
-
-		initialize_bridge::<T, I>(init_data);
-
-		let mut header = T::bridged_header(One::one());
-		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
-
-		let params = JustificationGeneratorParams {
-			header: header.clone(),
-			round: TEST_GRANDPA_ROUND,
-			set_id: TEST_GRANDPA_SET_ID,
-			authorities: test_keyring(),
-			depth: n,
-			forks: 1,
-		};
-
-		let justification = make_justification_for_header(params).encode();
-
-	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
-	verify {
-		let mut header = T::bridged_header(One::one());
-		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
-		let expected_hash = header.hash();
-
-		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
-		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
-	}
-
-	// What we want to check here is the effect of many pre-commits on justification verification.
-	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
-	// final justification.
-	submit_finality_proof_on_many_forks {
-		let n in 1..u8::MAX.into();
-		let caller: T::AccountId = whitelisted_caller();
-
-		let authority_list = accounts(n as u8)
+		let authority_list = accounts(p as u8)
 			.iter()
 			.map(|id| (AuthorityId::from(*id), 1))
 			.collect::<Vec<_>>();
@@ -116,9 +64,49 @@ benchmarks_instance_pallet! {
 			header: header.clone(),
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
-			authorities: accounts(n as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
-			depth: 2,
-			forks: n,
+			authorities: accounts(p as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
+			depth: s,
+			forks: p,
+		};
+
+		let justification = make_justification_for_header(params).encode();
+
+	}: _(RawOrigin::Signed(caller), header, justification)
+	verify {
+		let mut header = T::bridged_header(One::one());
+		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let expected_hash = header.hash();
+
+		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
+		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
+	}
+
+	// What we want to check here is the effect of vote ancestries on justification verification
+	// time. We will do this by varying the number of ancestors our finality target has.
+	submit_finality_proof_on_single_fork {
+		let s in 1..T::session_length().as_() as u32;
+
+		let caller: T::AccountId = whitelisted_caller();
+
+		let init_data = InitializationData {
+			header: T::bridged_header(Zero::zero()),
+			authority_list: authority_list(),
+			set_id: TEST_GRANDPA_SET_ID,
+			is_halted: false,
+		};
+
+		initialize_bridge::<T, I>(init_data);
+
+		let mut header = T::bridged_header(One::one());
+		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+
+		let params = JustificationGeneratorParams {
+			header: header.clone(),
+			round: TEST_GRANDPA_ROUND,
+			set_id: TEST_GRANDPA_SET_ID,
+			authorities: test_keyring(),
+			depth: s,
+			forks: 1,
 		};
 
 		let justification = make_justification_for_header(params).encode();
@@ -133,20 +121,54 @@ benchmarks_instance_pallet! {
 		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
 	}
 
+	// What we want to check here is the effect of many pre-commits on justification verification.
+	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
+	// final justification.
+	submit_finality_proof_on_multiple_forks {
+		let p in 1..u8::MAX.into();
 
-	// Here we want to find out what the overheader of looking for an enacting an authority set is.
-	// I think we can combine the two benchmarks below into this single one...
-	// enacts_authority_set  {
-	// 	todo!()
-	// }: try_enact_authority_change(header)
-	// verify {
-	// 	assert!(true)
-	// }
+		let caller: T::AccountId = whitelisted_caller();
+
+		let authority_list = accounts(p as u8)
+			.iter()
+			.map(|id| (AuthorityId::from(*id), 1))
+			.collect::<Vec<_>>();
+
+		let init_data = InitializationData {
+			header: T::bridged_header(Zero::zero()),
+			authority_list,
+			set_id: TEST_GRANDPA_SET_ID,
+			is_halted: false,
+		};
+
+		initialize_bridge::<T, I>(init_data);
+
+		let mut header = T::bridged_header(One::one());
+		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+
+		let params = JustificationGeneratorParams {
+			header: header.clone(),
+			round: TEST_GRANDPA_ROUND,
+			set_id: TEST_GRANDPA_SET_ID,
+			authorities: accounts(p as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
+			depth: 2,
+			forks: p,
+		};
+
+		let justification = make_justification_for_header(params).encode();
+
+	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
+	verify {
+		let mut header = T::bridged_header(One::one());
+		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let expected_hash = header.hash();
+
+		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
+		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
+	}
 
 	// Here we want to find out the overheaded of looking through consensus digests found in a
-	// header.
-	//
-	// E.g, as the number of logs in a header grows, how much more work do we require to look
+	// header. As the number of logs in a header grows, how much more work do we require to look
 	// through them?
 	//
 	// Note that this should be the same for looking through scheduled changes and forces changes,

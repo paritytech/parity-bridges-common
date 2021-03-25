@@ -1007,7 +1007,7 @@ impl_runtime_apis! {
 				}
 			}
 
-			use pallet_bridge_grandpa::BridgedHeader;
+			use pallet_bridge_grandpa::{BridgedHeader, BridgedBlockNumber};
 			use pallet_bridge_grandpa::benchmarking::{
 				Config as BridgeGrandpaConfig
 			};
