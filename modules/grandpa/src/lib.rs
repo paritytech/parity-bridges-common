@@ -165,7 +165,7 @@ pub mod pallet {
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
 			let set_id = authority_set.set_id;
-			let (_precommits, _votes) = verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
+			let (precommits, votes) = verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
 
 			let _enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<BestFinalized<T, I>>::put(hash);
@@ -174,7 +174,7 @@ pub mod pallet {
 
 			log::info!(target: "runtime::bridge-grandpa", "Succesfully imported finalized header with hash {:?}!", hash);
 
-			Ok(().into())
+			Ok(Some(T::WeightInfo::submit_finality_proof(votes as u32, precommits as u32)).into())
 		}
 
 		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
