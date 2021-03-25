@@ -23,6 +23,7 @@ use bp_test_utils::{
 	TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID,
 };
 use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
+use frame_support::traits::Get;
 use frame_system::RawOrigin;
 use num_traits::cast::AsPrimitive;
 use sp_finality_grandpa::AuthorityId;
@@ -33,13 +34,12 @@ pub trait Config<I: 'static = ()>: crate::Config<I> {
 	// We need some way for the benchmarks to use headers in a "generic" way. However, since we do
 	// use a real runtime we need a way for the runtime to tell us what the concrete type is.
 	fn bridged_header(num: BridgedBlockNumber<Self, I>) -> BridgedHeader<Self, I>;
-	fn session_length() -> BridgedBlockNumber<Self, I>;
 }
 
 benchmarks_instance_pallet! {
 	submit_finality_proof {
-		let s in 1..T::session_length().as_() as u32;
-		let p in 1..u8::MAX.into();
+		let s in 1..T::BridgedSessionLength::get().as_() as u32;
+		let p in 1..T::BridgedValidatorCount::get() as u32;
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -84,7 +84,7 @@ benchmarks_instance_pallet! {
 	// What we want to check here is the effect of vote ancestries on justification verification
 	// time. We will do this by varying the number of ancestors our finality target has.
 	submit_finality_proof_on_single_fork {
-		let s in 1..T::session_length().as_() as u32;
+		let s in 1..T::BridgedSessionLength::get().as_() as u32;
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -125,7 +125,7 @@ benchmarks_instance_pallet! {
 	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
 	// final justification.
 	submit_finality_proof_on_many_forks {
-		let p in 1..u8::MAX.into();
+		let p in 1..T::BridgedValidatorCount::get() as u32;
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -226,10 +226,6 @@ mod tests {
 	impl Config for mock::TestRuntime {
 		fn bridged_header(num: u64) -> BridgedHeader<Self, ()> {
 			mock::test_header(num)
-		}
-
-		fn session_length() -> BridgedBlockNumber<Self, ()> {
-			5
 		}
 	}
 

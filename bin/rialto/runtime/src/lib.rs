@@ -419,8 +419,8 @@ parameter_types! {
 	pub const MaxRequests: u32 = 50;
 	pub const MillauSessionLength: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
 
-	// TODO: Update this
-	pub const MillauValidatorCount: u64 = 250;
+	// TODO: Update this. Right now this will break benchmarking if it is greater than `u8::MAX`
+	pub const MillauValidatorCount: u64 = 255;
 }
 
 impl pallet_bridge_grandpa::Config for Runtime {
@@ -1013,7 +1013,7 @@ impl_runtime_apis! {
 				}
 			}
 
-			use pallet_bridge_grandpa::{BridgedHeader, BridgedBlockNumber};
+			use pallet_bridge_grandpa::BridgedHeader;
 			use pallet_bridge_grandpa::benchmarking::{
 				Config as BridgeGrandpaConfig
 			};
@@ -1028,10 +1028,6 @@ impl_runtime_apis! {
 						Default::default(),
 						Default::default(),
 					)
-				}
-
-				fn session_length() -> BridgedBlockNumber<Self, ()> {
-					bp_millau::SESSION_LENGTH
 				}
 			}
 
