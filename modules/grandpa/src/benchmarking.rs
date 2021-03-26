@@ -30,12 +30,6 @@ use sp_finality_grandpa::AuthorityId;
 use sp_runtime::traits::{One, Zero};
 use sp_std::vec;
 
-pub trait Config<I: 'static = ()>: crate::Config<I> {
-	// We need some way for the benchmarks to use headers in a "generic" way. However, since we do
-	// use a real runtime we need a way for the runtime to tell us what the concrete type is.
-	fn bridged_header(num: BridgedBlockNumber<Self, I>) -> BridgedHeader<Self, I>;
-}
-
 benchmarks_instance_pallet! {
 	submit_finality_proof {
 		let s in 1..T::BridgedSessionLength::get().as_() as u32;
@@ -49,16 +43,14 @@ benchmarks_instance_pallet! {
 			.collect::<Vec<_>>();
 
 		let init_data = InitializationData {
-			header: T::bridged_header(Zero::zero()),
+			header: bp_test_utils::test_header(Zero::zero()),
 			authority_list,
 			set_id: TEST_GRANDPA_SET_ID,
 			is_halted: false,
 		};
 
 		initialize_bridge::<T, I>(init_data);
-
-		let mut header = T::bridged_header(One::one());
-		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
@@ -73,8 +65,7 @@ benchmarks_instance_pallet! {
 
 	}: _(RawOrigin::Signed(caller), header, justification)
 	verify {
-		let mut header = T::bridged_header(One::one());
-		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 		let expected_hash = header.hash();
 
 		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
@@ -89,16 +80,14 @@ benchmarks_instance_pallet! {
 		let caller: T::AccountId = whitelisted_caller();
 
 		let init_data = InitializationData {
-			header: T::bridged_header(Zero::zero()),
+			header: bp_test_utils::test_header(Zero::zero()),
 			authority_list: authority_list(),
 			set_id: TEST_GRANDPA_SET_ID,
 			is_halted: false,
 		};
 
 		initialize_bridge::<T, I>(init_data);
-
-		let mut header = T::bridged_header(One::one());
-		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
@@ -113,8 +102,7 @@ benchmarks_instance_pallet! {
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
-		let mut header = T::bridged_header(One::one());
-		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 		let expected_hash = header.hash();
 
 		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
@@ -135,16 +123,14 @@ benchmarks_instance_pallet! {
 			.collect::<Vec<_>>();
 
 		let init_data = InitializationData {
-			header: T::bridged_header(Zero::zero()),
+			header: bp_test_utils::test_header(Zero::zero()),
 			authority_list,
 			set_id: TEST_GRANDPA_SET_ID,
 			is_halted: false,
 		};
 
 		initialize_bridge::<T, I>(init_data);
-
-		let mut header = T::bridged_header(One::one());
-		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
@@ -159,8 +145,7 @@ benchmarks_instance_pallet! {
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
-		let mut header = T::bridged_header(One::one());
-		header.set_parent_hash(*T::bridged_header(Zero::zero()).parent_hash());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 		let expected_hash = header.hash();
 
 		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
@@ -184,7 +169,7 @@ benchmarks_instance_pallet! {
 			logs.push(sp_runtime::DigestItem::Other(vec![]));
 		}
 
-		let mut header = T::bridged_header(Zero::zero());
+		let mut header: BridgedHeader<T, I> = bp_test_utils::test_header(Zero::zero());
 		let digest = header.digest_mut();
 		*digest = sp_runtime::Digest {
 			logs,
@@ -222,12 +207,6 @@ benchmarks_instance_pallet! {
 mod tests {
 	use super::*;
 	use frame_support::assert_ok;
-
-	impl Config for mock::TestRuntime {
-		fn bridged_header(num: u64) -> BridgedHeader<Self, ()> {
-			mock::test_header(num)
-		}
-	}
 
 	#[test]
 	fn finality_proof_is_valid() {

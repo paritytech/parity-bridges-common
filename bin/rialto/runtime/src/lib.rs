@@ -1014,24 +1014,6 @@ impl_runtime_apis! {
 				}
 			}
 
-			use pallet_bridge_grandpa::BridgedHeader;
-			use pallet_bridge_grandpa::benchmarking::{
-				Config as BridgeGrandpaConfig
-			};
-
-			impl BridgeGrandpaConfig<()> for Runtime {
-				fn bridged_header(num: bp_millau::BlockNumber) -> BridgedHeader<Self, ()> {
-					use sp_runtime::traits::Header;
-					bp_millau::Header::new(
-						num,
-						Default::default(),
-						Default::default(),
-						Default::default(),
-						Default::default(),
-					)
-				}
-			}
-
 			add_benchmark!(
 				params,
 				batches,
