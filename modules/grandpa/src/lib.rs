@@ -394,6 +394,9 @@ pub mod pallet {
 	/// Verify a GRANDPA justification (finality proof) for a given header.
 	///
 	/// Will use the GRANDPA current authorities known to the pallet.
+	///
+	/// This returns the number of `pre-commits` and vote ancestries found in the given
+	/// justification in order to refund any weight which was overcharged in the initial call.
 	pub(crate) fn verify_justification<T: Config<I>, I: 'static>(
 		justification: &[u8],
 		hash: BridgedBlockHash<T, I>,
