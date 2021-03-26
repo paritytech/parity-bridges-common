@@ -41,6 +41,7 @@
 // ./grandpa-template.txt
 // --raw
 
+#![allow(clippy::all)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
