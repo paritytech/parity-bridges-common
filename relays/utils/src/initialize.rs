@@ -70,7 +70,7 @@ impl<A: Display, B: Display> Display for Either<A, B> {
 	}
 }
 
-fn color_target<'a>(target: &'a str) -> impl Display + 'a {
+fn color_target(target: &str) -> impl Display + '_ {
 	if cfg!(windows) {
 		Either::Left(target)
 	} else {
