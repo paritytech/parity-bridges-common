@@ -43,34 +43,24 @@ pub fn initialize_logger(with_timestamp: bool) {
 				Either::Right(ansi_term::Colour::Fixed(8).bold().paint(timestamp))
 			};
 
-			writeln!(
-				buf,
-				"{} {} {} {}",
-				timestamp,
-				log_level,
-				log_target,
-				record.args(),
-			)
+			writeln!(buf, "{} {} {} {}", timestamp, log_level, log_target, record.args(),)
 		});
 	} else {
 		builder.format(move |buf, record| {
 			let log_level = color_level(record.level());
 			let log_target = color_target(record.target());
 
-			writeln!(
-				buf,
-				"{} {} {}",
-				log_level,
-				log_target,
-				record.args(),
-			)
+			writeln!(buf, "{} {} {}", log_level, log_target, record.args(),)
 		});
 	}
 
 	builder.init();
 }
 
-enum Either<A, B> { Left(A), Right(B) }
+enum Either<A, B> {
+	Left(A),
+	Right(B),
+}
 impl<A: Display, B: Display> Display for Either<A, B> {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {

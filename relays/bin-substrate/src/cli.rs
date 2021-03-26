@@ -449,7 +449,7 @@ macro_rules! declare_chain_options {
 mod tests {
 	use std::str::FromStr;
 
-    use super::*;
+	use super::*;
 
 	#[test]
 	fn should_format_addresses_with_ss58_format() {
@@ -467,12 +467,8 @@ mod tests {
 			.map(|s| AccountId::from_str(s).unwrap())
 			.collect::<Vec<_>>();
 
-		let actual = parsed
-			.iter()
-			.map(|a| format!("{}", a))
-			.collect::<Vec<_>>();
+		let actual = parsed.iter().map(|a| format!("{}", a)).collect::<Vec<_>>();
 
 		assert_eq!(actual, expected)
 	}
 }
-
