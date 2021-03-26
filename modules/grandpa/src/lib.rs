@@ -547,14 +547,12 @@ pub(crate) fn find_forced_change<H: HeaderT>(
 	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
 }
 
-/// (Re)initialize bridge with given header for using it in external benchmarks.
-// TODO: Will probably need to change this a bit for the finality verifier benchmarks, while keeping
-// in mind that we shouldn't break the message-lane benches
+/// (Re)initialize bridge with given header for using it in `pallet-bridge-messages` benchmarks.
 #[cfg(feature = "runtime-benchmarks")]
 pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader<T, I>) {
 	initialize_bridge::<T, I>(InitializationData {
 		header,
-		authority_list: Vec::new(), // we don't verify any proofs in external benchmarks
+		authority_list: Vec::new(), // we don't verify any proofs in messages benchmarks
 		set_id: 0,
 		is_halted: false,
 	});
