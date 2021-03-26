@@ -314,7 +314,7 @@ parameter_types! {
 	pub const WestendSessionLength: bp_westend::BlockNumber = bp_westend::SESSION_LENGTH;
 	pub const RialtoSessionLength: bp_rialto::BlockNumber = bp_rialto::SESSION_LENGTH;
 
-	// TODO: Update this. Right now this will break benchmarking if it is greater than `u8::MAX`
+	// TODO [#846]: Right now this will break benchmarking if it is greater than `u8::MAX`
 	pub const RialtoValidatorCount: u64 = 255;
 	pub const WestendValidatorCount: u64 = 255;
 }
@@ -326,7 +326,8 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedSessionLength = RialtoSessionLength;
 	type BridgedValidatorCount = RialtoValidatorCount;
 
-	// TODO: Need to update for Millau runtime
+	// NOTE: We should technically be using weights generated for the Millau runtime, but since we
+	// don't have those we'll just use the Rialto runtime ones.
 	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 
@@ -337,7 +338,8 @@ impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedSessionLength = WestendSessionLength;
 	type BridgedValidatorCount = WestendValidatorCount;
 
-	// TODO: Need to update for Millau runtime
+	// NOTE: We should technically be using weights generated for the Millau runtime, but since we
+	// don't have those we'll just use the Rialto runtime ones.
 	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 

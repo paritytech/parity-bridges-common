@@ -419,7 +419,7 @@ parameter_types! {
 	pub const MaxRequests: u32 = 50;
 	pub const MillauSessionLength: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
 
-	// TODO: Update this. Right now this will break benchmarking if it is greater than `u8::MAX`
+	// TODO [#846]: Right now this will break benchmarking if it is greater than `u8::MAX`
 	pub const MillauValidatorCount: u64 = 255;
 }
 
