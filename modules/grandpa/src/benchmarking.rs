@@ -15,6 +15,34 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Benchmarks for the GRANDPA Pallet.
+//!
+//! The main dispatchable for the GRANDPA pallet is `submit_finality_proof`, so these benchmarks are
+//! based around that. There are to main factors which affect finality proof verification:
+//!
+//! 1. The number of `votes-ancestries` in the justification
+//! 2. The number of `pre-commits` in the justification
+//!
+//! Vote ancestries are the headers between (`finality_target`, `head_of_chain`], where
+//! `header_of_chain` is a decendant of `finality_target`.
+//!
+//! Pre-commits are messages which are signed by validators at the head of the chain they think is
+//! the best.
+//!
+//! Consider the following:
+//!
+//!   / [B'] <- [C']
+//! [A] <- [B] <- [C]
+//!
+//! The common ancestor of both forks is block A, so this is what GRANDPA will finalize. In order to
+//! verify this we will have vote ancestries of [B, C, B', C'] and pre-commits [C, C'].
+//!
+//! Note that the worst case scenario here would be a justification where each validator has it's
+//! own fork which is `SESSION_LENGTH` blocks long.
+//!
+//! As far as benchmarking results go, the only benchmark that should be used in
+//! `pallet-bridge-grandpa` to annotate weights is the `submit_finality_proof` one. The others are
+//! looking at the effects of specific code paths and do not actually reflect the overall worst case
+//! scenario.
 
 use crate::*;
 
@@ -31,6 +59,11 @@ use sp_runtime::traits::{One, Zero};
 use sp_std::vec;
 
 benchmarks_instance_pallet! {
+	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
+	// annotate the weight in the pallet.
+	//
+	// The other benchmarks related to `submit_finality_proof` are looking at the effect of specific
+	// parameters and are there mostly for seeing how specific codepaths behave.
 	submit_finality_proof {
 		let s in 1..T::BridgedSessionLength::get().as_() as u32;
 		let p in 1..T::BridgedValidatorCount::get() as u32;
@@ -73,7 +106,7 @@ benchmarks_instance_pallet! {
 	}
 
 	// What we want to check here is the effect of vote ancestries on justification verification
-	// time. We will do this by varying the number of ancestors our finality target has.
+	// do this by varying the number of headers between `finality_target` and `header_of_chain`.
 	submit_finality_proof_on_single_fork {
 		let s in 1..T::BridgedSessionLength::get().as_() as u32;
 
