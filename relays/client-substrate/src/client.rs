@@ -56,11 +56,6 @@ pub struct Client<C: Chain> {
 	/// If several tasks are submitting their transactions simultaneously using `submit_signed_extrinsic`
 	/// method, they may get the same transaction nonce. So one of transactions will be rejected
 	/// from the pool. This lock is here to prevent situations like that.
-	///
-	/// Note that it's just lock, not the `HashMap<AccountId, Index>`. This is because querying index
-	/// does not necessarily mean that transaction with this nonce will be included into the block. If
-	/// it'll be rejected or dropped, we may end up with incorrect (future) nonce in the map => infinite
-	/// relay loop.
 	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
 }
 
@@ -206,7 +201,7 @@ impl<C: Chain> Client<C> {
 
 	/// Submit unsigned extrinsic for inclusion in a block.
 	///
-	/// Note: The given transaction does not need be SCALE encoded beforehand.
+	/// Note: The given transaction needs to be SCALE encoded beforehand.
 	pub async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<C::Hash> {
 		let tx_hash = Substrate::<C>::author_submit_extrinsic(&self.client, transaction).await?;
 		log::trace!(target: "bridge", "Sent transaction to Substrate node: {:?}", tx_hash);
@@ -216,10 +211,10 @@ impl<C: Chain> Client<C> {
 	/// Submit an extrinsic signed by given account.
 	///
 	/// All calls of this method are synchronized, so there can't be more than one active
-	/// `submit_extrinsic_by()` call. This guarantees that no nonces collision may happen
+	/// `submit_signed_extrinsic()` call. This guarantees that no nonces collision may happen
 	/// if all client instances are clones of the same initial `Client`.
 	///
-	/// Note: The extrinsic returned by `prepare_extrinsic` does not need be SCALE encoded beforehand.
+	/// Note: The given transaction needs to be SCALE encoded beforehand.
 	pub async fn submit_signed_extrinsic(
 		&self,
 		extrinsic_signer: C::AccountId,
