@@ -813,11 +813,7 @@ fn oldest_headers<P: HeadersSyncPipeline>(
 		.flat_map(|h| h.values())
 		.take_while(|h| f(h))
 		.collect::<Vec<_>>();
-	if result.is_empty() {
-		None
-	} else {
-		Some(result)
-	}
+	if result.is_empty() { None } else { Some(result) }
 }
 
 /// Forget all headers with number less than given.
@@ -1138,10 +1134,12 @@ pub(crate) mod tests {
 		assert!(queue.extra.is_empty());
 		assert!(queue.ready.is_empty());
 		assert_eq!(queue.known_headers.len(), 5);
-		assert!(queue
-			.known_headers
-			.values()
-			.all(|s| s.values().all(|s| *s == HeaderStatus::Synced)));
+		assert!(
+			queue
+				.known_headers
+				.values()
+				.all(|s| s.values().all(|s| *s == HeaderStatus::Synced))
+		);
 
 		// children of synced headers are stored
 		assert_eq!(

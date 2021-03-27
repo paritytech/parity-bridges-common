@@ -67,7 +67,7 @@ pub trait SourceClient<P: HeadersSyncPipeline>: RelayClient {
 
 	/// Get completion data by header hash.
 	async fn header_completion(&self, id: HeaderIdOf<P>)
-		-> Result<(HeaderIdOf<P>, Option<P::Completion>), Self::Error>;
+	-> Result<(HeaderIdOf<P>, Option<P::Completion>), Self::Error>;
 
 	/// Get extra data by header hash.
 	async fn header_extra(
@@ -94,7 +94,7 @@ pub trait TargetClient<P: HeadersSyncPipeline>: RelayClient {
 
 	/// Submit completion data for header.
 	async fn complete_header(&self, id: HeaderIdOf<P>, completion: P::Completion)
-		-> Result<HeaderIdOf<P>, Self::Error>;
+	-> Result<HeaderIdOf<P>, Self::Error>;
 
 	/// Returns true if header requires extra data to be submitted.
 	async fn requires_extra(&self, header: QueuedHeader<P>) -> Result<(HeaderIdOf<P>, bool), Self::Error>;

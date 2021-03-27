@@ -55,7 +55,7 @@ pub fn abort_on_spec_version_change<C: ChainWithBalances>(mut env: impl Environm
 		loop {
 			let actual_spec_version = env.runtime_version().await;
 			match actual_spec_version {
-				Ok(version) if version.spec_version == expected_spec_version => (),
+				Ok(version) if version.spec_version == expected_spec_version => {}
 				Ok(version) => {
 					log::error!(
 						target: "bridge-guard",
