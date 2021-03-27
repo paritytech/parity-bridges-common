@@ -4535,6 +4535,8 @@ name = "pallet-multi-finality-verifier"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
+ "bp-polkadot-core",
+ "bp-rialto",
  "bp-runtime",
  "bp-test-utils",
  "finality-grandpa 0.14.0",

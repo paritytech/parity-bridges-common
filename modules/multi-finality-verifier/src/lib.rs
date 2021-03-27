@@ -767,6 +767,36 @@ mod tests {
 	}
 
 	#[test]
+	fn can_initialize_new_polka_like_bridge_with_separate_vefifier_instance() {
+		run_test(|| {
+			let gateway_a: InstanceId = *b"rlta";
+
+			let rh: bp_rialto::Header = bp_rialto::Header::new(
+				1,
+				Default::default(),
+				Default::default(),
+				Default::default(),
+				Default::default(),
+			);
+			let init_data = InitializationData {
+				header: rh,
+				authority_list: authority_list(),
+				set_id: 1,
+				is_halted: false,
+			};
+
+			assert_ok!(
+				mock::MultiFinalityVerifierPolkadotLike::initialize_single(
+					Origin::root(),
+					init_data.clone(),
+					gateway_a
+				)
+				.map(|_| init_data)
+			);
+		})
+	}
+
+	#[test]
 	fn pallet_owner_may_change_owner() {
 		run_test(|| {
 			ModuleOwner::<TestRuntime>::put(2);

@@ -25,6 +25,8 @@ use sp_runtime::{
 	Perbill,
 };
 
+use bp_polkadot_core::PolkadotLike;
+
 pub type AccountId = u64;
 pub type TestHeader = crate::BridgedHeader<TestRuntime, ()>;
 pub type TestNumber = crate::BridgedBlockNumber<TestRuntime, ()>;
@@ -33,7 +35,7 @@ pub type TestHash = crate::BridgedBlockHash<TestRuntime, ()>;
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
-use crate as finality_verifier;
+use crate as multi_finality_verifier;
 
 construct_runtime! {
 	pub enum TestRuntime where
@@ -42,7 +44,8 @@ construct_runtime! {
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		MultiFinalityVerifier: finality_verifier::{Module},
+		MultiFinalityVerifier: multi_finality_verifier::{Module},
+		MultiFinalityVerifierPolkadotLike: multi_finality_verifier::<Instance1>::{Module},
 	}
 }
 
@@ -82,8 +85,14 @@ parameter_types! {
 	pub const MaxRequests: u32 = 2;
 }
 
-impl finality_verifier::Config for TestRuntime {
+impl multi_finality_verifier::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
+	type MaxRequests = MaxRequests;
+}
+
+pub type PolkadotLikeFinalityVerifierInstance = multi_finality_verifier::Instance1;
+impl multi_finality_verifier::Config<PolkadotLikeFinalityVerifierInstance> for TestRuntime {
+	type BridgedChain = PolkadotLike;
 	type MaxRequests = MaxRequests;
 }
 
