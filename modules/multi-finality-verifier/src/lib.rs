@@ -184,9 +184,9 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root_single::<T, I>(origin, gateway_id)?;
 
-			let init_allowed = !<BestFinalizedMap<T, I>>::contains_key(gateway_id.clone());
+			let init_allowed = !<BestFinalizedMap<T, I>>::contains_key(gateway_id);
 			ensure!(init_allowed, <Error<T, I>>::AlreadyInitialized);
-			initialize_single_bridge::<T, I>(init_data.clone(), gateway_id.clone());
+			initialize_single_bridge::<T, I>(init_data.clone(), gateway_id);
 
 			log::info!(
 				"Pallet has been initialized with the following parameters: {:?}, {:?}",
@@ -429,7 +429,7 @@ pub mod pallet {
 
 	/// Since this writes to storage with no real checks this should only be used in functions that
 	/// were called by a trusted origin.
-	pub(crate) fn initialize_bridge<T: Config<I>, I: 'static>(
+	pub fn initialize_bridge<T: Config<I>, I: 'static>(
 		init_params: super::InitializationData<BridgedHeader<T, I>>,
 	) {
 		let default_gateway: InstanceId = *b"gate";
@@ -500,7 +500,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	/// Returns a dummy header if there is no best header. This can only happen
 	/// if the pallet has not been initialized yet.
 	pub fn best_finalized_map(gateway_id: InstanceId) -> BridgedHeader<T, I> {
-		let hash = <BestFinalizedMap<T, I>>::get(gateway_id).unwrap_or(Default::default());
+		let hash = <BestFinalizedMap<T, I>>::get(gateway_id).unwrap_or_default();
 		<MultiImportedHeaders<T, I>>::get(gateway_id, hash).unwrap_or_else(|| {
 			<BridgedHeader<T, I>>::new(
 				Default::default(),

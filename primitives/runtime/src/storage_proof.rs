@@ -17,6 +17,7 @@
 //! Logic for checking Substrate storage proofs.
 
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
+#[cfg(feature = "std")]
 use sp_core::H256;
 use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
