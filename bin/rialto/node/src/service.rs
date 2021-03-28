@@ -151,7 +151,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 				return Err(ServiceError::Other(format!(
 					"Error hooking up remote keystore for {}: {}",
 					url, e
-				)))
+				)));
 			}
 		};
 	}

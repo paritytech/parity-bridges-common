@@ -755,9 +755,11 @@ mod tests {
 				storage: storage.clone(),
 			};
 			assert!(verifier.import_header(header.hash(), header.clone()).is_ok());
-			assert!(verifier
-				.import_finality_proof(header.hash(), justification.into())
-				.is_ok());
+			assert!(
+				verifier
+					.import_finality_proof(header.hash(), justification.into())
+					.is_ok()
+			);
 
 			// Make sure we marked the our headers as finalized
 			assert!(storage.header_by_hash(imported_headers[1].hash()).unwrap().is_finalized);

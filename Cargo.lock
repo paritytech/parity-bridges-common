@@ -626,6 +626,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-circuit"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-runtime",
+ "fixed-hash",
+ "frame-support",
+ "frame-system",
+ "hash256-std-hasher",
+ "impl-codec",
+ "impl-serde",
+ "parity-util-mem",
+ "serde",
+ "sp-api",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-trie",
+]
+
+[[package]]
 name = "bp-currency-exchange"
 version = "0.1.0"
 dependencies = [
@@ -658,6 +680,20 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "triehash",
+]
+
+[[package]]
+name = "bp-gateway"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "sp-api",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -1003,6 +1039,58 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12f8e7987cbd042a63249497f41aed09f8e65add917ea6566effbc56578d6801"
 dependencies = [
  "generic-array 0.14.4",
+]
+
+[[package]]
+name = "circuit-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-circuit",
+ "bp-gateway",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-millau",
+ "bp-polkadot-core",
+ "bp-rialto",
+ "bp-runtime",
+ "bp-westend",
+ "bridge-runtime-common",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
+ "pallet-grandpa",
+ "pallet-multi-finality-verifier",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-shift-session-manager",
+ "pallet-substrate-bridge",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "parity-scale-codec 2.0.1",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-inherents",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-trie",
+ "sp-version",
+ "substrate-wasm-builder-runner",
 ]
 
 [[package]]
@@ -2297,6 +2385,62 @@ dependencies = [
  "proc-macro-hack",
  "proc-macro-nested",
  "slab",
+]
+
+[[package]]
+name = "gateway-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-circuit",
+ "bp-currency-exchange",
+ "bp-eth-poa",
+ "bp-gateway",
+ "bp-header-chain",
+ "bp-message-dispatch",
+ "bp-messages",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "libsecp256k1",
+ "log",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-bridge-currency-exchange",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-eth-poa",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
+ "pallet-grandpa",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-shift-session-manager",
+ "pallet-substrate-bridge",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "parity-scale-codec 2.0.1",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-trie",
+ "sp-version",
+ "substrate-wasm-builder-runner",
 ]
 
 [[package]]
@@ -3916,6 +4060,7 @@ dependencies = [
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-grandpa",
+ "pallet-multi-finality-verifier",
  "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-shift-session-manager",
@@ -4512,6 +4657,29 @@ dependencies = [
  "sp-session",
  "sp-staking",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-multi-finality-verifier"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-polkadot-core",
+ "bp-rialto",
+ "bp-runtime",
+ "bp-test-utils",
+ "finality-grandpa 0.14.0",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-substrate-bridge",
+ "parity-scale-codec 2.0.1",
+ "serde",
+ "sp-finality-grandpa",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-trie",
 ]
 
 [[package]]
@@ -5641,6 +5809,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-circuit-client"
+version = "0.1.0"
+dependencies = [
+ "circuit-runtime",
+ "frame-support",
+ "frame-system",
+ "headers-relay",
+ "pallet-transaction-payment",
+ "parity-scale-codec 2.0.1",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
+ "sp-keyring",
+ "sp-runtime",
+]
+
+[[package]]
 name = "relay-ethereum-client"
 version = "0.1.0"
 dependencies = [
@@ -5655,6 +5840,23 @@ dependencies = [
  "parity-scale-codec 2.0.1",
  "relay-utils",
  "web3",
+]
+
+[[package]]
+name = "relay-gateway-client"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "gateway-runtime",
+ "headers-relay",
+ "pallet-transaction-payment",
+ "parity-scale-codec 2.0.1",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
+ "sp-keyring",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -8263,6 +8465,59 @@ dependencies = [
  "once_cell",
  "rayon",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "t3rn-multi-relay"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-std",
+ "async-trait",
+ "bp-circuit",
+ "bp-gateway",
+ "bp-header-chain",
+ "bp-kusama",
+ "bp-messages",
+ "bp-millau",
+ "bp-polkadot",
+ "bp-rialto",
+ "bp-runtime",
+ "bp-westend",
+ "bridge-runtime-common",
+ "circuit-runtime",
+ "finality-grandpa 0.14.0",
+ "finality-relay",
+ "frame-support",
+ "futures 0.3.13",
+ "gateway-runtime",
+ "headers-relay",
+ "hex",
+ "log",
+ "messages-relay",
+ "millau-runtime",
+ "num-traits",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
+ "parity-scale-codec 2.0.1",
+ "paste 1.0.4",
+ "relay-circuit-client",
+ "relay-gateway-client",
+ "relay-kusama-client",
+ "relay-millau-client",
+ "relay-polkadot-client",
+ "relay-rialto-client",
+ "relay-substrate-client",
+ "relay-utils",
+ "relay-westend-client",
+ "rialto-runtime",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-trie",
+ "structopt",
 ]
 
 [[package]]

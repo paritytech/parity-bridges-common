@@ -38,6 +38,12 @@ pub const NO_INSTANCE_ID: InstanceId = [0, 0, 0, 0];
 /// Bridge-with-Rialto instance id.
 pub const RIALTO_BRIDGE_INSTANCE: InstanceId = *b"rlto";
 
+/// Bridge-with-Rialto instance id.
+pub const GATEWAY_BRIDGE_INSTANCE: InstanceId = *b"gate";
+
+/// Bridge-with-Millau instance id.
+pub const CIRCUIT_BRIDGE_INSTANCE: InstanceId = *b"circ";
+
 /// Bridge-with-Millau instance id.
 pub const MILLAU_BRIDGE_INSTANCE: InstanceId = *b"mlau";
 
@@ -105,7 +111,7 @@ where
 ///
 /// This account is used to collect fees for relayers that are passing messages across the bridge.
 ///
-/// The account ID can be the same across different instances of `pallet-bridge-messages` if the same
+/// The account ID can be the same across different instances of `message-lane` if the same
 /// `bridge_id` is used.
 pub fn derive_relayer_fund_account_id(bridge_id: InstanceId) -> H256 {
 	("relayer-fund-account", bridge_id).using_encoded(blake2_256).into()

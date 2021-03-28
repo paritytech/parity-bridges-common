@@ -23,6 +23,7 @@ bp-westend = { path = "../../../primitives/chain-westend", default-features = fa
 bridge-runtime-common = { path = "../../runtime-common", default-features = false }
 pallet-bridge-dispatch = { path = "../../../modules/dispatch", default-features = false }
 pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = false }
+pallet-multi-finality-verifier = { path = "../../../modules/multi-finality-verifier", default-features = false }
 pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
 pallet-shift-session-manager = { path = "../../../modules/shift-session-manager", default-features = false }
 pallet-substrate-bridge = { path = "../../../modules/substrate", default-features = false }
@@ -78,6 +79,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-bridge-dispatch/std",
 	"pallet-bridge-grandpa/std",
+	"pallet-multi-finality-verifier/std",
 	"pallet-bridge-messages/std",
 	"pallet-grandpa/std",
 	"pallet-randomness-collective-flip/std",
