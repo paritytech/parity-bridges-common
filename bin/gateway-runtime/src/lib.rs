@@ -1091,7 +1091,7 @@ mod tests {
 
 	#[test]
 	fn ensure_gateway_message_lane_weights_are_correct() {
-		type Weights = pallet_bridge_messages::weights::GatewayWeight<Runtime>;
+		type Weights = pallet_bridge_messages::weights::RialtoWeight<Runtime>;
 
 		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
 			bp_gateway::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
