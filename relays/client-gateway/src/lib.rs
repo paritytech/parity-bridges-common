@@ -53,9 +53,7 @@ impl ChainWithBalances for Gateway {
 
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		use frame_support::storage::generator::StorageMap;
-		StorageKey(frame_system::Account::<gateway_runtime::Runtime>::storage_map_final_key(
-			account_id,
-		))
+		StorageKey(frame_system::Account::<gateway_runtime::Runtime>::storage_map_final_key(account_id))
 	}
 }
 

@@ -147,7 +147,9 @@ impl messages::ThisChainWithMessages for Gateway {
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_gateway::Balance {
 		// in our testnets, both per-byte fee and weight-to-fee are 1:1
 		messages::transaction_payment(
-			bp_gateway::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+			bp_gateway::BlockWeights::get()
+				.get(DispatchClass::Normal)
+				.base_extrinsic,
 			1,
 			FixedU128::zero(),
 			|weight| weight as _,
@@ -178,7 +180,8 @@ impl messages::BridgedChainWithMessages for Circuit {
 
 	fn message_weight_limits(_message_payload: &[u8]) -> RangeInclusive<Weight> {
 		// we don't want to relay too large messages + keep reserve for future upgrades
-		let upper_limit = messages::target::maximal_incoming_message_dispatch_weight(bp_circuit::max_extrinsic_weight());
+		let upper_limit =
+			messages::target::maximal_incoming_message_dispatch_weight(bp_circuit::max_extrinsic_weight());
 
 		// we're charging for payload bytes in `WithCircuitMessageBridge::transaction_payment` function
 		//
@@ -210,7 +213,9 @@ impl messages::BridgedChainWithMessages for Circuit {
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_circuit::Balance {
 		// in our testnets, both per-byte fee and weight-to-fee are 1:1
 		messages::transaction_payment(
-			bp_circuit::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
+			bp_circuit::BlockWeights::get()
+				.get(DispatchClass::Normal)
+				.base_extrinsic,
 			1,
 			FixedU128::zero(),
 			|weight| weight as _,

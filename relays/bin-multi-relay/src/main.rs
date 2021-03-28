@@ -28,8 +28,8 @@ mod messages_lane;
 mod messages_source;
 mod messages_target;
 
-mod rialto_millau;
 mod gateway_circuit;
+mod rialto_millau;
 
 fn main() {
 	initialize_relay();

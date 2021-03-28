@@ -61,9 +61,9 @@ pub use frame_support::{
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaGatewayCall;
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaWestendCall;
+pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_substrate_bridge::Call as BridgeGatewayCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -224,7 +224,7 @@ impl pallet_grandpa::Config for Runtime {
 	type KeyOwnerProofSystem = ();
 	type KeyOwnerProof = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 	type KeyOwnerIdentification =
-	<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
+		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
 	type HandleEquivocation = ();
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
@@ -428,7 +428,7 @@ pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signatu
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive =
-frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllModules>;
+	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllModules>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
@@ -667,10 +667,10 @@ pub fn gateway_account_ownership_digest<Call, AccountId, SpecVersion>(
 	circuit_account_id: AccountId,
 	gateway_spec_version: SpecVersion,
 ) -> sp_std::vec::Vec<u8>
-	where
-		Call: codec::Encode,
-		AccountId: codec::Encode,
-		SpecVersion: codec::Encode,
+where
+	Call: codec::Encode,
+	AccountId: codec::Encode,
+	SpecVersion: codec::Encode,
 {
 	pallet_bridge_dispatch::account_ownership_digest(
 		gateway_call,
@@ -710,7 +710,7 @@ mod tests {
 			bp_circuit::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
 			bp_gateway::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE as _,
 		)
-			.unwrap_or(u32::MAX);
+		.unwrap_or(u32::MAX);
 		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
 			bp_circuit::max_extrinsic_size(),
 			bp_circuit::max_extrinsic_weight(),

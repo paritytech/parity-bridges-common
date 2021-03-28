@@ -21,8 +21,8 @@ use codec::{Decode, Encode};
 use sp_runtime::app_crypto::Ss58Codec;
 use structopt::{clap::arg_enum, StructOpt};
 
-use crate::rialto_millau::cli as rialto_millau;
 use crate::gateway_circuit::cli as gateway_circuit;
+use crate::rialto_millau::cli as rialto_millau;
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {

@@ -16,9 +16,9 @@
 
 //! Gateway <> Circuit Bridge commands.
 
-pub mod cli;
 pub mod circuit_headers_to_gateway;
 pub mod circuit_messages_to_gateway;
+pub mod cli;
 pub mod gateway_headers_to_circuit;
 pub mod gateway_messages_to_circuit;
 pub mod westend_headers_to_circuit;
@@ -156,7 +156,8 @@ async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 			let circuit_client = circuit.into_client().await?;
 			let gateway_client = gateway.into_client().await?;
 			let gateway_sign = gateway_sign.parse()?;
-			circuit_headers_to_gateway::run(circuit_client, gateway_client, gateway_sign, prometheus_params.into()).await
+			circuit_headers_to_gateway::run(circuit_client, gateway_client, gateway_sign, prometheus_params.into())
+				.await
 		}
 		cli::RelayHeaders::GatewayToCircuit {
 			gateway,
@@ -167,7 +168,8 @@ async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 			let gateway_client = gateway.into_client().await?;
 			let circuit_client = circuit.into_client().await?;
 			let circuit_sign = circuit_sign.parse()?;
-			gateway_headers_to_circuit::run(gateway_client, circuit_client, circuit_sign, prometheus_params.into()).await
+			gateway_headers_to_circuit::run(gateway_client, circuit_client, circuit_sign, prometheus_params.into())
+				.await
 		}
 		cli::RelayHeaders::WestendToCircuit {
 			westend,
@@ -178,7 +180,8 @@ async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 			let westend_client = westend.into_client().await?;
 			let circuit_client = circuit.into_client().await?;
 			let circuit_sign = circuit_sign.parse()?;
-			westend_headers_to_circuit::run(westend_client, circuit_client, circuit_sign, prometheus_params.into()).await
+			westend_headers_to_circuit::run(westend_client, circuit_client, circuit_sign, prometheus_params.into())
+				.await
 		}
 	}
 }
@@ -252,8 +255,13 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let gateway_sign = gateway_sign.parse()?;
 			let gateway_call = message.into_call()?;
 
-			let payload =
-				circuit_to_gateway_message_payload(&circuit_sign, &gateway_sign, &gateway_call, origin, dispatch_weight);
+			let payload = circuit_to_gateway_message_payload(
+				&circuit_sign,
+				&gateway_sign,
+				&gateway_call,
+				origin,
+				dispatch_weight,
+			);
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
@@ -310,8 +318,13 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let circuit_sign = circuit_sign.parse()?;
 			let circuit_call = message.into_call()?;
 
-			let payload =
-				gateway_to_circuit_message_payload(&gateway_sign, &circuit_sign, &circuit_call, origin, dispatch_weight);
+			let payload = gateway_to_circuit_message_payload(
+				&gateway_sign,
+				&circuit_sign,
+				&circuit_call,
+				origin,
+				dispatch_weight,
+			);
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
@@ -546,7 +559,11 @@ fn gateway_to_circuit_message_payload(
 
 				let digest_signature = circuit_sign.signer.sign(&digest);
 
-				CallOrigin::TargetAccount(gateway_account_id, circuit_origin_public.into(), digest_signature.into())
+				CallOrigin::TargetAccount(
+					gateway_account_id,
+					circuit_origin_public.into(),
+					digest_signature.into(),
+				)
 			}
 		},
 		&circuit_call,
@@ -583,7 +600,11 @@ fn circuit_to_gateway_message_payload(
 
 				let digest_signature = gateway_sign.signer.sign(&digest);
 
-				CallOrigin::TargetAccount(circuit_account_id, gateway_origin_public.into(), digest_signature.into())
+				CallOrigin::TargetAccount(
+					circuit_account_id,
+					gateway_origin_public.into(),
+					digest_signature.into(),
+				)
 			}
 		},
 		&gateway_call,
@@ -646,7 +667,8 @@ impl cli::CircuitToGatewayMessagePayload {
 	/// Parse the CLI parameters and construct message payload.
 	pub fn into_payload(
 		self,
-	) -> Result<MessagePayload<bp_gateway::AccountId, bp_gateway::AccountSigner, bp_gateway::Signature, Vec<u8>>, String> {
+	) -> Result<MessagePayload<bp_gateway::AccountId, bp_gateway::AccountSigner, bp_gateway::Signature, Vec<u8>>, String>
+	{
 		match self {
 			Self::Raw { data } => MessagePayload::decode(&mut &*data.0)
 				.map_err(|e| format!("Failed to decode Circuit's MessagePayload: {:?}", e)),
@@ -666,7 +688,8 @@ impl cli::GatewayToCircuitMessagePayload {
 	/// Parse the CLI parameters and construct message payload.
 	pub fn into_payload(
 		self,
-	) -> Result<MessagePayload<bp_circuit::AccountId, bp_circuit::AccountSigner, bp_circuit::Signature, Vec<u8>>, String> {
+	) -> Result<MessagePayload<bp_circuit::AccountId, bp_circuit::AccountSigner, bp_circuit::Signature, Vec<u8>>, String>
+	{
 		match self {
 			Self::Raw { data } => MessagePayload::decode(&mut &*data.0)
 				.map_err(|e| format!("Failed to decode Gateway's MessagePayload: {:?}", e)),
@@ -864,7 +887,8 @@ mod tests {
 		let maximal_remark_size =
 			compute_maximal_message_arguments_size(bp_gateway::max_extrinsic_size(), bp_circuit::max_extrinsic_size());
 
-		let call: circuit_runtime::Call = circuit_runtime::SystemCall::remark(vec![42; maximal_remark_size as _]).into();
+		let call: circuit_runtime::Call =
+			circuit_runtime::SystemCall::remark(vec![42; maximal_remark_size as _]).into();
 		let payload = message_payload(
 			Default::default(),
 			call.get_dispatch_info().weight,

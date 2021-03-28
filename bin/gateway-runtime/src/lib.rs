@@ -34,9 +34,9 @@ pub mod exchange;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benches;
-pub mod kovan;
 pub mod circuit_messages;
 pub mod gateway_poa;
+pub mod kovan;
 
 use crate::circuit_messages::{ToCircuitMessagePayload, WithCircuitMessageBridge};
 

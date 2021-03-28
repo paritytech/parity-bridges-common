@@ -27,24 +27,27 @@ use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::Encode;
 use frame_support::dispatch::GetDispatchInfo;
 use messages_relay::message_lane::MessageLane;
-use relay_circuit_client::{HeaderId as CircuitHeaderId, Circuit, SigningParams as CircuitSigningParams};
-use relay_gateway_client::{HeaderId as GatewayHeaderId, Gateway, SigningParams as GatewaySigningParams};
+use relay_circuit_client::{Circuit, HeaderId as CircuitHeaderId, SigningParams as CircuitSigningParams};
+use relay_gateway_client::{Gateway, HeaderId as GatewayHeaderId, SigningParams as GatewaySigningParams};
 use relay_substrate_client::{Chain, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
 use sp_core::{Bytes, Pair};
 use std::{ops::RangeInclusive, time::Duration};
 
 /// Gateway-to-Circuit message lane.
-type GatewayMessagesToCircuit = SubstrateMessageLaneToSubstrate<Gateway, GatewaySigningParams, Circuit, CircuitSigningParams>;
+type GatewayMessagesToCircuit =
+	SubstrateMessageLaneToSubstrate<Gateway, GatewaySigningParams, Circuit, CircuitSigningParams>;
 
 impl SubstrateMessageLane for GatewayMessagesToCircuit {
 	const OUTBOUND_LANE_MESSAGES_DISPATCH_WEIGHT_METHOD: &'static str =
 		bp_circuit::TO_CIRCUIT_MESSAGES_DISPATCH_WEIGHT_METHOD;
 	const OUTBOUND_LANE_LATEST_GENERATED_NONCE_METHOD: &'static str =
 		bp_circuit::TO_CIRCUIT_LATEST_GENERATED_NONCE_METHOD;
-	const OUTBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_circuit::TO_CIRCUIT_LATEST_RECEIVED_NONCE_METHOD;
+	const OUTBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str =
+		bp_circuit::TO_CIRCUIT_LATEST_RECEIVED_NONCE_METHOD;
 
-	const INBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_gateway::FROM_GATEWAY_LATEST_RECEIVED_NONCE_METHOD;
+	const INBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str =
+		bp_gateway::FROM_GATEWAY_LATEST_RECEIVED_NONCE_METHOD;
 	const INBOUND_LANE_LATEST_CONFIRMED_NONCE_METHOD: &'static str =
 		bp_gateway::FROM_GATEWAY_LATEST_CONFIRMED_NONCE_METHOD;
 	const INBOUND_LANE_UNREWARDED_RELAYERS_STATE: &'static str = bp_gateway::FROM_GATEWAY_UNREWARDED_RELAYERS_STATE;
