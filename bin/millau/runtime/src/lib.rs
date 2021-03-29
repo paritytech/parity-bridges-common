@@ -326,8 +326,7 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedSessionLength = RialtoSessionLength;
 	type BridgedValidatorCount = RialtoValidatorCount;
 
-	// NOTE: We should technically be using weights generated for the Millau runtime, but since we
-	// don't have those we'll just use the Rialto runtime ones.
+	// TODO [#391]: Use weights generated for the Millau runtime instead of Rialto ones.
 	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 
@@ -338,8 +337,7 @@ impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedSessionLength = WestendSessionLength;
 	type BridgedValidatorCount = WestendValidatorCount;
 
-	// NOTE: We should technically be using weights generated for the Millau runtime, but since we
-	// don't have those we'll just use the Rialto runtime ones.
+	// TODO [#391]: Use weights generated for the Millau runtime instead of Rialto ones.
 	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 
