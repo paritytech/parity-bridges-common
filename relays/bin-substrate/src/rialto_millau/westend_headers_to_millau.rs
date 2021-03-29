@@ -19,7 +19,7 @@
 use super::{MillauClient, WestendClient};
 use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
-use codec::Encode;
+use codec::{Decode, Encode};
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
@@ -46,7 +46,10 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 		let call = millau_runtime::BridgeGrandpaWestendCall::<
 			millau_runtime::Runtime,
 			millau_runtime::WestendGrandpaInstance,
-		>::submit_finality_proof(header.into_inner(), proof.into_inner())
+		>::submit_finality_proof(
+			header.into_inner(),
+			Decode::decode(&mut &proof.into_inner()[..]).expect("TODO"),
+		)
 		.into();
 
 		let genesis_hash = *self.target_client.genesis_hash();

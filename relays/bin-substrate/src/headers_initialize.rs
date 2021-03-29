@@ -172,11 +172,14 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 			initial_authorities_set_id,
 		);
 
+		let decoded_justification: bp_header_chain::justification::GrandpaJustification<SourceChain::Header> =
+			Decode::decode(&mut &justification.0[..]).expect("TODO");
+
 		let is_valid_set_id = verify_justification::<SourceChain::Header>(
 			(initial_header_hash, initial_header_number),
 			initial_authorities_set_id,
 			&authorities_for_verification,
-			&justification.0,
+			&decoded_justification,
 		)
 		.is_ok();
 		if is_valid_set_id {

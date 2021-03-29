@@ -19,7 +19,7 @@
 use super::{MillauClient, RialtoClient};
 use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
-use codec::Encode;
+use codec::{Decode, Encode};
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SyncHeader as RialtoSyncHeader};
 use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};
@@ -46,7 +46,10 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 		let call = millau_runtime::BridgeGrandpaRialtoCall::<
 			millau_runtime::Runtime,
 			millau_runtime::RialtoGrandpaInstance,
-		>::submit_finality_proof(header.into_inner(), proof.into_inner())
+		>::submit_finality_proof(
+			header.into_inner(),
+			Decode::decode(&mut &proof.into_inner()[..]).expect("TODO"),
+		)
 		.into();
 
 		let genesis_hash = *self.target_client.genesis_hash();
