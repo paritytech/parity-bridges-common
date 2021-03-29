@@ -65,8 +65,8 @@ benchmarks_instance_pallet! {
 	// The other benchmarks related to `submit_finality_proof` are looking at the effect of specific
 	// parameters and are there mostly for seeing how specific codepaths behave.
 	submit_finality_proof {
-		let s in 1..T::BridgedSessionLength::get().as_() as u32;
-		let p in 1..T::BridgedValidatorCount::get() as u32;
+		let s in 1..T::MaxBridgedSessionLength::get().as_() as u32;
+		let p in 1..T::MaxBridgedValidatorCount::get() as u32;
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -108,7 +108,7 @@ benchmarks_instance_pallet! {
 	// What we want to check here is the effect of vote ancestries on justification verification
 	// do this by varying the number of headers between `finality_target` and `header_of_chain`.
 	submit_finality_proof_on_single_fork {
-		let s in 1..T::BridgedSessionLength::get().as_() as u32;
+		let s in 1..T::MaxBridgedSessionLength::get().as_() as u32;
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -146,7 +146,7 @@ benchmarks_instance_pallet! {
 	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
 	// final justification.
 	submit_finality_proof_on_many_forks {
-		let p in 1..T::BridgedValidatorCount::get() as u32;
+		let p in 1..T::MaxBridgedValidatorCount::get() as u32;
 
 		let caller: T::AccountId = whitelisted_caller();
 

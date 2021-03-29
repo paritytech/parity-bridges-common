@@ -426,8 +426,8 @@ parameter_types! {
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type MaxRequests = MaxRequests;
-	type BridgedSessionLength = MillauSessionLength;
-	type BridgedValidatorCount = MillauValidatorCount;
+	type MaxBridgedSessionLength = MillauSessionLength;
+	type MaxBridgedValidatorCount = MillauValidatorCount;
 	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 

@@ -94,17 +94,23 @@ pub mod pallet {
 		/// The maximum length of a session on the bridged chain.
 		///
 		/// The pallet uses this to bound justification verification since justifications contain
-		/// ancestry proofs whose size is capped at `BridgedSessionLength`.
+		/// ancestry proofs whose size is capped at `MaxBridgedSessionLength`.
 		#[pallet::constant]
-		type BridgedSessionLength: Get<BridgedBlockNumber<Self, I>>;
+		type MaxBridgedSessionLength: Get<BridgedBlockNumber<Self, I>>;
 
 		/// The number of validators on the bridged chain.
 		///
 		/// The pallet uses this to bound justification verification since justifications may
-		/// contain up to `BridgedValidatorCount` number of signed `pre-commit` messages which need to
-		/// be verified.
+		/// contain up to `MaxBridgedValidatorCount` number of signed `pre-commit` messages which
+		/// need to be verified.
+		///
+		/// Note that `MaxBridgedValidatorCount` should *not* match the exact number of validators
+		/// on the bridged chain. Instead it should be a number which is greater than the actual
+		/// number of validators in order to provide some buffer room should the validator set
+		/// increase in size. If this number ends up being lower than the actual number of
+		/// validators on the bridged chain you risk stalling the bridge.
 		#[pallet::constant]
-		type BridgedValidatorCount: Get<u64>;
+		type MaxBridgedValidatorCount: Get<u64>;
 
 		/// Weights gathered through benchmarking.
 		type WeightInfo: WeightInfo;
@@ -134,8 +140,8 @@ pub mod pallet {
 		/// If successful in verification, it will write the target header to the underlying storage
 		/// pallet.
 		#[pallet::weight(T::WeightInfo::submit_finality_proof(
-			T::BridgedSessionLength::get().as_() as u32,
-			T::BridgedValidatorCount::get() as u32,
+			T::MaxBridgedSessionLength::get().as_() as u32,
+			T::MaxBridgedValidatorCount::get() as u32,
 		))]
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,

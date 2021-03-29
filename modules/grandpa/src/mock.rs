@@ -87,8 +87,8 @@ parameter_types! {
 impl grandpa::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = MaxRequests;
-	type BridgedSessionLength = SessionLength;
-	type BridgedValidatorCount = NumValidators;
+	type MaxBridgedSessionLength = SessionLength;
+	type MaxBridgedValidatorCount = NumValidators;
 	type WeightInfo = ();
 }
 
