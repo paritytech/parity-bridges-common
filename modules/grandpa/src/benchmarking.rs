@@ -66,7 +66,7 @@ benchmarks_instance_pallet! {
 	// parameters and are there mostly for seeing how specific codepaths behave.
 	submit_finality_proof {
 		let s in 1..T::MaxBridgedSessionLength::get().as_() as u32;
-		let p in 1..T::MaxBridgedValidatorCount::get() as u32;
+		let p in 1..T::MaxBridgedValidatorCount::get();
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -146,7 +146,7 @@ benchmarks_instance_pallet! {
 	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
 	// final justification.
 	submit_finality_proof_on_many_forks {
-		let p in 1..T::MaxBridgedValidatorCount::get() as u32;
+		let p in 1..T::MaxBridgedValidatorCount::get();
 
 		let caller: T::AccountId = whitelisted_caller();
 

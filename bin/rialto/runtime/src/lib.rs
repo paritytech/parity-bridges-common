@@ -420,7 +420,7 @@ parameter_types! {
 	pub const MillauSessionLength: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
 
 	// TODO [#846]: Right now this will break benchmarking if it is greater than `u8::MAX`
-	pub const MillauValidatorCount: u64 = 255;
+	pub const MillauValidatorCount: u32 = 255;
 }
 
 impl pallet_bridge_grandpa::Config for Runtime {

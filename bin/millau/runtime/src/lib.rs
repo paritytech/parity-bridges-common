@@ -315,8 +315,8 @@ parameter_types! {
 	pub const RialtoSessionLength: bp_rialto::BlockNumber = bp_rialto::SESSION_LENGTH;
 
 	// TODO [#846]: Right now this will break benchmarking if it is greater than `u8::MAX`
-	pub const RialtoValidatorCount: u64 = 255;
-	pub const WestendValidatorCount: u64 = 255;
+	pub const RialtoValidatorCount: u32 = 255;
+	pub const WestendValidatorCount: u32 = 255;
 }
 
 pub type RialtoGrandpaInstance = ();

@@ -110,7 +110,7 @@ pub mod pallet {
 		/// increase in size. If this number ends up being lower than the actual number of
 		/// validators on the bridged chain you risk stalling the bridge.
 		#[pallet::constant]
-		type MaxBridgedValidatorCount: Get<u64>;
+		type MaxBridgedValidatorCount: Get<u32>;
 
 		/// Weights gathered through benchmarking.
 		type WeightInfo: WeightInfo;
@@ -141,7 +141,7 @@ pub mod pallet {
 		/// pallet.
 		#[pallet::weight(T::WeightInfo::submit_finality_proof(
 			T::MaxBridgedSessionLength::get().as_() as u32,
-			T::MaxBridgedValidatorCount::get() as u32,
+			T::MaxBridgedValidatorCount::get(),
 		))]
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,
