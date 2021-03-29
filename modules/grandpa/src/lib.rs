@@ -171,7 +171,7 @@ pub mod pallet {
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
 			let set_id = authority_set.set_id;
-			let (precommits, votes) = verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
+			let justification = verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
 
 			let _enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<BestFinalized<T, I>>::put(hash);
@@ -179,6 +179,9 @@ pub mod pallet {
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
 
 			log::info!(target: "runtime::bridge-grandpa", "Succesfully imported finalized header with hash {:?}!", hash);
+
+			let precommits = justification.commit.precommits.len();
+			let votes = justification.votes_ancestries.len();
 
 			Ok(Some(T::WeightInfo::submit_finality_proof(votes as u32, precommits as u32)).into())
 		}
@@ -401,14 +404,14 @@ pub mod pallet {
 	///
 	/// Will use the GRANDPA current authorities known to the pallet.
 	///
-	/// This returns the number of `pre-commits` and vote ancestries found in the given
-	/// justification in order to refund any weight which was overcharged in the initial call.
+	/// If succesful it returns the decoded GRANDPA justification so we can refund any weight which
+	/// was overcharged in the initial call.
 	pub(crate) fn verify_justification<T: Config<I>, I: 'static>(
 		justification: &[u8],
 		hash: BridgedBlockHash<T, I>,
 		number: BridgedBlockNumber<T, I>,
 		authority_set: bp_header_chain::AuthoritySet,
-	) -> Result<(usize, usize), sp_runtime::DispatchError> {
+	) -> Result<bp_header_chain::justification::GrandpaJustification<BridgedHeader<T, I>>, sp_runtime::DispatchError> {
 		use bp_header_chain::justification::verify_justification;
 
 		let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T, I>>::InvalidAuthoritySet)?;
@@ -416,13 +419,15 @@ pub mod pallet {
 
 		// We want to return the number of pre-commits and vote ancestries so that we can more
 		// accurately calculate the weight of our call.
-		let counts = verify_justification::<BridgedHeader<T, I>>((hash, number), set_id, &voter_set, &justification)
-			.map_err(|e| {
-				log::error!(target: "runtime::bridge-grandpa", "Received invalid justification for {:?}: {:?}", hash, e);
-				<Error<T, I>>::InvalidJustification
-			})?;
+		let justification =
+			verify_justification::<BridgedHeader<T, I>>((hash, number), set_id, &voter_set, &justification).map_err(
+				|e| {
+					log::error!(target: "runtime::bridge-grandpa", "Received invalid justification for {:?}: {:?}", hash, e);
+					<Error<T, I>>::InvalidJustification
+				},
+			)?;
 
-		Ok(counts)
+		Ok(justification)
 	}
 
 	/// Since this writes to storage with no real checks this should only be used in functions that
