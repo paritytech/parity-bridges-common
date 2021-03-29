@@ -25,7 +25,7 @@ use frame_support::RuntimeDebug;
 use sp_finality_grandpa::{AuthorityId, AuthoritySignature, SetId};
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
-use sp_std::prelude::Vec;
+use sp_std::prelude::*;
 
 /// Justification verification error.
 #[derive(RuntimeDebug, PartialEq)]
@@ -133,7 +133,7 @@ where
 ///
 /// This particular proof is used to prove that headers on a bridged chain
 /// (so not our chain) have been finalized correctly.
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
 pub struct GrandpaJustification<Header: HeaderT> {
 	/// The round (voting period) this justification is valid for.
 	pub round: u64,
