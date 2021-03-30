@@ -1005,7 +1005,13 @@ mod tests {
 		millau1.enforce_chain::<Rialto>();
 
 		// then
-		assert_eq!(&format!("{}", rialto1), "752paRyW1EGfq9YLTSSqcSJ5hqnBDidBmaftGhBo8fy6ypW9");
-		assert_eq!(&format!("{}", millau1), "5sauUXUfPjmwxSgmb3tZ5d6yx24eZX4wWJ2JtVUBaQqFbvEU");
+		assert_eq!(
+			&format!("{}", rialto1),
+			"752paRyW1EGfq9YLTSSqcSJ5hqnBDidBmaftGhBo8fy6ypW9"
+		);
+		assert_eq!(
+			&format!("{}", millau1),
+			"5sauUXUfPjmwxSgmb3tZ5d6yx24eZX4wWJ2JtVUBaQqFbvEU"
+		);
 	}
 }
