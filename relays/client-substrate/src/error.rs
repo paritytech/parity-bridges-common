@@ -43,7 +43,7 @@ pub enum Error {
 }
 
 impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
 		match self {
 			Self::RpcError(ref e) => Some(e),
 			Self::ResponseParseFailed(ref e) => Some(e),
@@ -75,7 +75,7 @@ impl MaybeConnectionError for Error {
 }
 
 impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		let s = match self {
 			Self::RpcError(e) => e.to_string(),
 			Self::ResponseParseFailed(e) => e.to_string(),
@@ -86,7 +86,7 @@ impl std::fmt::Display for Error {
 		};
 
 		write!(f, "{}", s)
-    }
+	}
 }
 
 impl From<Error> for String {
@@ -94,4 +94,3 @@ impl From<Error> for String {
 		error.to_string()
 	}
 }
-

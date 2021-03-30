@@ -66,14 +66,14 @@ pub struct SubstrateFinalityToSubstrate<SourceChain, TargetChain: Chain, TargetS
 	_marker: PhantomData<SourceChain>,
 }
 
-impl<SourceChain, TargetChain: Chain, TargetSign> Debug for SubstrateFinalityToSubstrate<
-	SourceChain, TargetChain, TargetSign
-> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<SourceChain, TargetChain: Chain, TargetSign> Debug
+	for SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>
+{
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		f.debug_struct("SubstrateFinalityToSubstrate")
 			.field("target_client", &self.target_client)
 			.finish()
-    }
+	}
 }
 
 impl<SourceChain, TargetChain: Chain, TargetSign> SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign> {

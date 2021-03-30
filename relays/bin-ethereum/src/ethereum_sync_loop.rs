@@ -78,7 +78,7 @@ pub struct EthereumSyncParams {
 }
 
 impl Debug for EthereumSyncParams {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		f.debug_struct("EthereumSyncParams")
 			.field("eth_params", &self.eth_params)
 			.field("sub_params", &self.sub_params)
@@ -87,7 +87,7 @@ impl Debug for EthereumSyncParams {
 			.field("metrics_params", &self.metrics_params)
 			.field("instance", &self.instance)
 			.finish()
-    }
+	}
 }
 
 /// Ethereum synchronization pipeline.

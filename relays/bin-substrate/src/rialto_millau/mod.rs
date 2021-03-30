@@ -40,7 +40,7 @@ use relay_rialto_client::Rialto;
 use relay_substrate_client::{Chain, ConnectionParams, TransactionSignScheme};
 use relay_westend_client::Westend;
 use sp_core::{Bytes, Pair};
-use sp_runtime::{MultiSigner, traits::IdentifyAccount};
+use sp_runtime::{traits::IdentifyAccount, MultiSigner};
 use sp_version::RuntimeVersion;
 use std::fmt::Debug;
 
@@ -56,7 +56,7 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 
 			let encode_init_bridge = |init_data| {
 				rialto_runtime::SudoCall::sudo(Box::new(
-						rialto_runtime::BridgeGrandpaMillauCall::initialize(init_data).into(),
+					rialto_runtime::BridgeGrandpaMillauCall::initialize(init_data).into(),
 				))
 			};
 			let source_client = source_chain_client::<Source>(source).await?;
@@ -245,9 +245,9 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let estimate_message_fee_method = bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD;
 			let fee = fee.map(|x| x.cast());
 			let send_message_call = |lane, payload, fee| {
-				millau_runtime::Call::BridgeRialtoMessages(
-					millau_runtime::MessagesCall::send_message(lane, payload, fee),
-				)
+				millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
+					lane, payload, fee,
+				))
 			};
 
 			let source_client = source_chain_client::<Source>(source).await?;
@@ -273,7 +273,11 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 							let digest = account_ownership_digest(&target_call, source_account_id.clone());
 							let target_origin_public = target_sign.public();
 							let digest_signature = target_sign.sign(&digest);
-							CallOrigin::TargetAccount(source_account_id, target_origin_public.into(), digest_signature.into())
+							CallOrigin::TargetAccount(
+								source_account_id,
+								target_origin_public.into(),
+								digest_signature.into(),
+							)
 						}
 					},
 					&target_call,
@@ -347,9 +351,9 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let estimate_message_fee_method = bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD;
 			let fee = fee.map(|x| x.0);
 			let send_message_call = |lane, payload, fee| {
-				rialto_runtime::Call::BridgeMillauMessages(
-					rialto_runtime::MessagesCall::send_message(lane, payload, fee)
-				)
+				rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
+					lane, payload, fee,
+				))
 			};
 
 			let source_client = source_chain_client::<Source>(source).await?;
@@ -375,7 +379,11 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 							let digest = account_ownership_digest(&target_call, source_account_id.clone());
 							let target_origin_public = target_sign.public();
 							let digest_signature = target_sign.sign(&digest);
-							CallOrigin::TargetAccount(source_account_id, target_origin_public.into(), digest_signature.into())
+							CallOrigin::TargetAccount(
+								source_account_id,
+								target_origin_public.into(),
+								digest_signature.into(),
+							)
 						}
 					},
 					&target_call,
@@ -477,13 +485,9 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 			let lane = lane.into();
 			let payload = Source::encode_message(payload)?;
 
-			let fee: Option<SourceBalance> = estimate_message_delivery_and_dispatch_fee(
-				&source_client,
-				estimate_message_fee_method,
-				lane,
-				payload,
-			)
-			.await?;
+			let fee: Option<SourceBalance> =
+				estimate_message_delivery_and_dispatch_fee(&source_client, estimate_message_fee_method, lane, payload)
+					.await?;
 
 			println!("Fee: {:?}", fee);
 		}
@@ -497,13 +501,9 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 			let lane = lane.into();
 			let payload = Source::encode_message(payload)?;
 
-			let fee: Option<SourceBalance> = estimate_message_delivery_and_dispatch_fee(
-				&source_client,
-				estimate_message_fee_method,
-				lane,
-				payload,
-			)
-			.await?;
+			let fee: Option<SourceBalance> =
+				estimate_message_delivery_and_dispatch_fee(&source_client, estimate_message_fee_method, lane, payload)
+					.await?;
 
 			println!("Fee: {:?}", fee);
 		}
