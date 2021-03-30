@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_runtime::Chain as ChainBase;
-use codec::Encode;
 use crate::cli::{SourceConnectionParams, TargetConnectionParams, TargetSigningParams};
 use crate::rialto_millau::CliChain;
+use bp_runtime::Chain as ChainBase;
+use codec::Encode;
 use pallet_bridge_grandpa::InitializationData;
-use relay_substrate_client::{TransactionSignScheme, Chain};
+use relay_substrate_client::{Chain, TransactionSignScheme};
 use sp_core::{Bytes, Pair};
 use structopt::{clap::arg_enum, StructOpt};
 
@@ -52,10 +52,13 @@ macro_rules! select_bridge {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
 
-				fn encode_init_bridge(init_data: InitializationData<<Source as ChainBase>::Header>) -> <Target as Chain>::Call {
+				fn encode_init_bridge(
+					init_data: InitializationData<<Source as ChainBase>::Header>,
+				) -> <Target as Chain>::Call {
 					rialto_runtime::SudoCall::sudo(Box::new(
-							rialto_runtime::BridgeGrandpaMillauCall::initialize(init_data).into(),
-					)).into()
+						rialto_runtime::BridgeGrandpaMillauCall::initialize(init_data).into(),
+					))
+					.into()
 				}
 
 				$generic
@@ -64,11 +67,13 @@ macro_rules! select_bridge {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
 
-				fn encode_init_bridge(init_data: InitializationData<<Source as ChainBase>::Header>) -> <Target as Chain>::Call {
+				fn encode_init_bridge(
+					init_data: InitializationData<<Source as ChainBase>::Header>,
+				) -> <Target as Chain>::Call {
 					let initialize_call = millau_runtime::BridgeGrandpaRialtoCall::<
 						millau_runtime::Runtime,
 						millau_runtime::RialtoGrandpaInstance,
-						>::initialize(init_data);
+					>::initialize(init_data);
 					millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into()
 				}
 
@@ -78,14 +83,17 @@ macro_rules! select_bridge {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
 
-				fn encode_init_bridge(init_data: InitializationData<<Source as ChainBase>::Header>) -> <Target as Chain>::Call {
+				fn encode_init_bridge(
+					init_data: InitializationData<<Source as ChainBase>::Header>,
+				) -> <Target as Chain>::Call {
 					// at Westend -> Millau initialization we're not using sudo, because otherwise our deployments
 					// may fail, because we need to initialize both Rialto -> Millau and Westend -> Millau bridge.
 					// => since there's single possible sudo account, one of transaction may fail with duplicate nonce error
 					millau_runtime::BridgeGrandpaWestendCall::<
 						millau_runtime::Runtime,
 						millau_runtime::WestendGrandpaInstance,
-					>::initialize(init_data).into()
+					>::initialize(init_data)
+					.into()
 				}
 
 				$generic
@@ -118,7 +126,8 @@ impl InitBridge {
 						.encode(),
 					)
 				},
-			).await;
+			)
+			.await;
 
 			Ok(())
 		})
