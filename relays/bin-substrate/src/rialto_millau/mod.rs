@@ -55,6 +55,11 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			type Source = Millau;
 			type Target = Rialto;
 
+			let encode_init_bridge = |init_data| {
+				rialto_runtime::SudoCall::sudo(Box::new(
+						rialto_runtime::BridgeGrandpaMillauCall::initialize(init_data).into(),
+				))
+			};
 			let source_client = source_chain_client::<Source>(source).await?;
 			let target_client = target_chain_client::<Target>(target).await?;
 			let target_sign = Target::target_signing_params(target_sign)?;
@@ -65,14 +70,11 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				target_sign.public().into(),
 				move |transaction_nonce, initialization_data| {
 					Bytes(
-						Rialto::sign_transaction(
+						Target::sign_transaction(
 							*target_client.genesis_hash(),
 							&target_sign,
 							transaction_nonce,
-							rialto_runtime::SudoCall::sudo(Box::new(
-								rialto_runtime::BridgeGrandpaMillauCall::initialize(initialization_data).into(),
-							))
-							.into(),
+							encode_init_bridge(initialization_data).into(),
 						)
 						.encode(),
 					)
@@ -88,6 +90,13 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			type Source = Rialto;
 			type Target = Millau;
 
+			let encode_init_bridge = |init_data| {
+				let initialize_call = millau_runtime::BridgeGrandpaRialtoCall::<
+					millau_runtime::Runtime,
+					millau_runtime::RialtoGrandpaInstance,
+				>::initialize(init_data);
+				millau_runtime::SudoCall::sudo(Box::new(initialize_call.into()))
+			};
 			let source_client = source_chain_client::<Source>(source).await?;
 			let target_client = target_chain_client::<Target>(target).await?;
 			let target_sign = Target::target_signing_params(target_sign)?;
@@ -97,17 +106,12 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 				target_client.clone(),
 				target_sign.public().into(),
 				move |transaction_nonce, initialization_data| {
-					let initialize_call = millau_runtime::BridgeGrandpaRialtoCall::<
-						millau_runtime::Runtime,
-						millau_runtime::RialtoGrandpaInstance,
-					>::initialize(initialization_data);
-
 					Bytes(
-						Millau::sign_transaction(
+						Target::sign_transaction(
 							*target_client.genesis_hash(),
 							&target_sign,
 							transaction_nonce,
-							millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
+							encode_init_bridge(initialization_data).into(),
 						)
 						.encode(),
 					)
@@ -123,29 +127,31 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			type Source = Westend;
 			type Target = Millau;
 
+			let encode_init_bridge = |init_data| {
+				// at Westend -> Millau initialization we're not using sudo, because otherwise our deployments
+				// may fail, because we need to initialize both Rialto -> Millau and Westend -> Millau bridge.
+				// => since there's single possible sudo account, one of transaction may fail with duplicate nonce error
+				millau_runtime::BridgeGrandpaWestendCall::<
+					millau_runtime::Runtime,
+					millau_runtime::WestendGrandpaInstance,
+				>::initialize(init_data)
+			};
+
 			let source_client = source_chain_client::<Source>(source).await?;
 			let target_client = target_chain_client::<Target>(target).await?;
 			let target_sign = Target::target_signing_params(target_sign)?;
 
-			// at Westend -> Millau initialization we're not using sudo, because otherwise our deployments
-			// may fail, because we need to initialize both Rialto -> Millau and Westend -> Millau bridge.
-			// => since there's single possible sudo account, one of transaction may fail with duplicate nonce error
 			crate::headers_initialize::initialize(
 				source_client,
 				target_client.clone(),
 				target_sign.public().into(),
 				move |transaction_nonce, initialization_data| {
-					let initialize_call = millau_runtime::BridgeGrandpaWestendCall::<
-						millau_runtime::Runtime,
-						millau_runtime::WestendGrandpaInstance,
-					>::initialize(initialization_data);
-
 					Bytes(
-						Millau::sign_transaction(
+						Target::sign_transaction(
 							*target_client.genesis_hash(),
 							&target_sign,
 							transaction_nonce,
-							initialize_call.into(),
+							encode_init_bridge(initialization_data).into(),
 						)
 						.encode(),
 					)
@@ -588,7 +594,7 @@ where
 
 // TODO [ToDr] Rest of the parameters.
 fn rialto_to_millau_message_payload<Source: CliChain, Target: CliChain>(
-	rialto_sign: &Source::KeyPair,
+	source_sign: &Source::KeyPair,
 	millau_sign: &Target::KeyPair,
 	millau_call: &millau_runtime::Call,
 	origin: Origins,
@@ -604,7 +610,7 @@ where
 		ExplicitOrMaximal::Explicit(millau_call.get_dispatch_info().weight),
 		compute_maximal_message_dispatch_weight(bp_millau::max_extrinsic_weight()),
 	);
-	let rialto_sender_public: bp_rialto::AccountSigner = rialto_sign.public().clone().into();
+	let rialto_sender_public: bp_rialto::AccountSigner = rialto_sign.public();
 	let rialto_account_id: bp_rialto::AccountId = rialto_sender_public.into_account();
 	let millau_origin_public = millau_sign.public();
 
@@ -725,10 +731,8 @@ fn compute_maximal_message_arguments_size(
 }
 
 // TODO [ToDr] Docs.
-trait CliChain {
-	type Chain: Chain;
+trait CliChain: Chain {
 	type KeyPair: sp_core::crypto::Pair;
-	type Call;
 	type MessagePayload;
 
 	fn encode_call(call: cli::Call) -> Result<Self::Call, String>;
@@ -747,9 +751,7 @@ trait CliChain {
 }
 
 impl CliChain for Millau {
-	type Chain = Self;
 	type KeyPair = sp_core::sr25519::Pair;
-	type Call = millau_runtime::Call;
 	type MessagePayload = MessagePayload<bp_millau::AccountId, bp_rialto::AccountSigner, bp_rialto::Signature, Vec<u8>>;
 
 	fn encode_call(call: cli::Call) -> Result<Self::Call, String> {
@@ -817,9 +819,7 @@ impl CliChain for Millau {
 }
 
 impl CliChain for Rialto {
-	type Chain = Self;
 	type KeyPair = sp_core::sr25519::Pair;
-	type Call = rialto_runtime::Call;
 	type MessagePayload = MessagePayload<bp_rialto::AccountId, bp_millau::AccountSigner, bp_millau::Signature, Vec<u8>>;
 
 	fn encode_call(call: cli::Call) -> Result<Self::Call, String> {
@@ -878,9 +878,7 @@ impl CliChain for Rialto {
 }
 
 impl CliChain for Westend {
-	type Chain = Self;
 	type KeyPair = sp_core::sr25519::Pair;
-	type Call = ();
 	type MessagePayload = ();
 
 	fn encode_call(_: cli::Call) -> Result<Self::Call, String> {
@@ -894,7 +892,7 @@ impl CliChain for Westend {
 
 async fn source_chain_client<Chain: CliChain>(
 	params: SourceConnectionParams,
-) -> relay_substrate_client::Result<relay_substrate_client::Client<Chain::Chain>> {
+) -> relay_substrate_client::Result<relay_substrate_client::Client<Chain>> {
 	relay_substrate_client::Client::new(ConnectionParams {
 		host: params.source_host,
 		port: params.source_port,
@@ -905,7 +903,7 @@ async fn source_chain_client<Chain: CliChain>(
 
 async fn target_chain_client<Chain: CliChain>(
 	params: TargetConnectionParams,
-) -> relay_substrate_client::Result<relay_substrate_client::Client<Chain::Chain>> {
+) -> relay_substrate_client::Result<relay_substrate_client::Client<Chain>> {
 	relay_substrate_client::Client::new(ConnectionParams {
 		host: params.target_host,
 		port: params.target_port,
