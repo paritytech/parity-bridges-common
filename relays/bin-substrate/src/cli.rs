@@ -416,5 +416,5 @@ macro_rules! declare_chain_options {
 }
 
 // TODO [ToDr] Use structop renames instead of different fields.
-declare_chain_options! (Source, source);
-declare_chain_options! (Target, target);
+declare_chain_options!(Source, source);
+declare_chain_options!(Target, target);

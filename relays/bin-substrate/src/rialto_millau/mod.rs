@@ -30,8 +30,10 @@ pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 /// Westend node client.
 pub type WestendClient = relay_substrate_client::Client<Westend>;
 
-use crate::cli::{ExplicitOrMaximal, HexBytes, Origins, SourceSigningParams, TargetSigningParams,
-SourceConnectionParams, TargetConnectionParams};
+use crate::cli::{
+	ExplicitOrMaximal, HexBytes, Origins, SourceConnectionParams, SourceSigningParams, TargetConnectionParams,
+	TargetSigningParams,
+};
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
@@ -174,7 +176,8 @@ async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 				target_client,
 				RialtoSigningParams { signer: target_sign },
 				prometheus_params.into(),
-			).await
+			)
+			.await
 		}
 		cli::RelayHeaders::RialtoToMillau {
 			source,
@@ -193,7 +196,8 @@ async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 				target_client,
 				MillauSigningParams { signer: target_sign },
 				prometheus_params.into(),
-			).await
+			)
+			.await
 		}
 		cli::RelayHeaders::WestendToMillau {
 			source,
@@ -212,7 +216,8 @@ async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 				target_client,
 				MillauSigningParams { signer: target_sign },
 				prometheus_params.into(),
-			).await
+			)
+			.await
 		}
 	}
 }
@@ -296,8 +301,13 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 
 			let rialto_call = message.into_call()?;
 
-			let payload =
-				millau_to_rialto_message_payload::<Source, Target>(&source_sign, &target_sign, &rialto_call, origin, dispatch_weight);
+			let payload = millau_to_rialto_message_payload::<Source, Target>(
+				&source_sign,
+				&target_sign,
+				&rialto_call,
+				origin,
+				dispatch_weight,
+			);
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
@@ -358,8 +368,13 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 
 			let millau_call = message.into_call()?;
 
-			let payload =
-				rialto_to_millau_message_payload::<Source, Target>(&source_sign, &target_sign, &millau_call, origin, dispatch_weight);
+			let payload = rialto_to_millau_message_payload::<Source, Target>(
+				&source_sign,
+				&target_sign,
+				&millau_call,
+				origin,
+				dispatch_weight,
+			);
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
@@ -575,7 +590,8 @@ fn rialto_to_millau_message_payload<Source: CliChain, Target: CliChain>(
 	millau_call: &millau_runtime::Call,
 	origin: Origins,
 	user_specified_dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-) -> rialto_runtime::millau_messages::ToMillauMessagePayload where
+) -> rialto_runtime::millau_messages::ToMillauMessagePayload
+where
 	<Source::KeyPair as sp_core::crypto::Pair>::Public: Into<sp_runtime::MultiSigner>,
 	<Target::KeyPair as sp_core::crypto::Pair>::Public: Into<sp_runtime::MultiSigner>,
 	<Target::KeyPair as sp_core::crypto::Pair>::Signature: Into<sp_runtime::MultiSignature>,
@@ -617,7 +633,8 @@ fn millau_to_rialto_message_payload<Source: CliChain, Target: CliChain>(
 	rialto_call: &rialto_runtime::Call,
 	origin: Origins,
 	user_specified_dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-) -> millau_runtime::rialto_messages::ToRialtoMessagePayload where
+) -> millau_runtime::rialto_messages::ToRialtoMessagePayload
+where
 	<Source::KeyPair as sp_core::crypto::Pair>::Public: Into<sp_runtime::MultiSigner>,
 	<Target::KeyPair as sp_core::crypto::Pair>::Public: Into<sp_runtime::MultiSigner>,
 	<Target::KeyPair as sp_core::crypto::Pair>::Signature: Into<sp_runtime::MultiSignature>,
@@ -708,12 +725,12 @@ trait CliChain {
 	type Chain: Chain;
 	type KeyPair: sp_core::crypto::Pair;
 
-	fn source_signing_params(params: SourceSigningParams) ->  Result<Self::KeyPair, String> {
+	fn source_signing_params(params: SourceSigningParams) -> Result<Self::KeyPair, String> {
 		Self::KeyPair::from_string(&params.source_signer, params.source_signer_password.as_deref())
 			.map_err(|e| format!("Failed to parse source-signer: {:?}", e))
 	}
 
-	fn target_signing_params(params: TargetSigningParams) ->  Result<Self::KeyPair, String> {
+	fn target_signing_params(params: TargetSigningParams) -> Result<Self::KeyPair, String> {
 		Self::KeyPair::from_string(&params.target_signer, params.target_signer_password.as_deref())
 			.map_err(|e| format!("Failed to parse target-signer: {:?}", e))
 	}
@@ -734,24 +751,26 @@ impl CliChain for Westend {
 	type KeyPair = sp_core::sr25519::Pair;
 }
 
-async fn source_chain_client<Chain: CliChain>(params: SourceConnectionParams)
-	-> relay_substrate_client::Result<relay_substrate_client::Client<Chain::Chain>>
-{
+async fn source_chain_client<Chain: CliChain>(
+	params: SourceConnectionParams,
+) -> relay_substrate_client::Result<relay_substrate_client::Client<Chain::Chain>> {
 	relay_substrate_client::Client::new(ConnectionParams {
 		host: params.source_host,
 		port: params.source_port,
 		secure: params.source_secure,
-	}).await
+	})
+	.await
 }
 
-async fn target_chain_client<Chain: CliChain>(params: TargetConnectionParams)
-	-> relay_substrate_client::Result<relay_substrate_client::Client<Chain::Chain>>
-{
+async fn target_chain_client<Chain: CliChain>(
+	params: TargetConnectionParams,
+) -> relay_substrate_client::Result<relay_substrate_client::Client<Chain::Chain>> {
 	relay_substrate_client::Client::new(ConnectionParams {
 		host: params.target_host,
 		port: params.target_port,
 		secure: params.target_secure,
-	}).await
+	})
+	.await
 }
 
 impl cli::MillauToRialtoMessagePayload {
