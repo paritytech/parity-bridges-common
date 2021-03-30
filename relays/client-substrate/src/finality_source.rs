@@ -125,7 +125,7 @@ where
 			.justification()
 			.map(|raw_justification| GrandpaJustification::<C::Header>::decode(&mut raw_justification.as_slice()))
 			.transpose()
-			.map_err(|e| Error::ResponseParseFailed(e))?
+			.map_err(Error::ResponseParseFailed)?
 			.map(|justification| Justification {
 				target_header_number: number,
 				justification,
