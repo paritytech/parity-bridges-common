@@ -19,7 +19,7 @@
 use super::{MillauClient, RialtoClient};
 use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
-use codec::{Decode, Encode};
+use codec::Encode;
 use relay_millau_client::{Millau, SyncHeader as MillauSyncHeader};
 use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};

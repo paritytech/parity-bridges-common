@@ -19,7 +19,7 @@
 use super::{MillauClient, WestendClient};
 use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
-use codec::{Decode, Encode};
+use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
