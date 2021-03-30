@@ -25,6 +25,8 @@ use structopt::{clap::arg_enum, StructOpt};
 
 use crate::rialto_millau::cli as rialto_millau;
 
+mod relay_headers;
+
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
 	Command::from_args()
@@ -38,7 +40,7 @@ pub enum Command {
 	///
 	/// The on-chain bridge component should have been already initialized with
 	/// `init-bridge` sub-command.
-	RelayHeaders(RelayHeaders),
+	RelayHeaders(relay_headers::RelayHeaders),
 	/// Start messages relay between two chains.
 	///
 	/// Ties up to `Messages` pallets on both chains and starts relaying messages.
@@ -82,23 +84,6 @@ impl Command {
 			Self::EncodeMessagePayload(arg) => arg.run().await?,
 			Self::EstimateFee(arg) => arg.run().await?,
 			Self::DeriveAccount(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// Start headers relayer process.
-#[derive(StructOpt)]
-pub enum RelayHeaders {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::RelayHeaders),
-}
-
-impl RelayHeaders {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
 		}
 		Ok(())
 	}
@@ -437,5 +422,6 @@ macro_rules! declare_chain_options {
 }
 
 // TODO [ToDr] Use structop renames instead of different fields.
+// TODO [ToDr] Add Into<ConnectionParams>?
 declare_chain_options!(Source, source);
 declare_chain_options!(Target, target);

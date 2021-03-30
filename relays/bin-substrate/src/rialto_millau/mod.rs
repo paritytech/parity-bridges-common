@@ -27,8 +27,6 @@ pub mod westend_headers_to_millau;
 pub type MillauClient = relay_substrate_client::Client<Millau>;
 /// Rialto node client.
 pub type RialtoClient = relay_substrate_client::Client<Rialto>;
-/// Westend node client.
-pub type WestendClient = relay_substrate_client::Client<Westend>;
 
 use crate::cli::{
 	ExplicitOrMaximal, HexBytes, Origins, SourceConnectionParams, SourceSigningParams, TargetConnectionParams,
@@ -37,8 +35,8 @@ use crate::cli::{
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
-use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
-use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
+use relay_millau_client::Millau;
+use relay_rialto_client::Rialto;
 use relay_substrate_client::{Chain, ConnectionParams, TransactionSignScheme};
 use relay_westend_client::Westend;
 use sp_core::{Bytes, Pair};
@@ -164,74 +162,6 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 	Ok(())
 }
 
-async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
-	match command {
-		cli::RelayHeaders::MillauToRialto {
-			source,
-			target,
-			target_sign,
-			prometheus_params,
-		} => {
-			type Source = Millau;
-			type Target = Rialto;
-
-			let source_client = source_chain_client::<Source>(source).await?;
-			let target_client = target_chain_client::<Target>(target).await?;
-			let target_sign = Target::target_signing_params(target_sign)?;
-
-			millau_headers_to_rialto::run(
-				source_client,
-				target_client,
-				RialtoSigningParams { signer: target_sign },
-				prometheus_params.into(),
-			)
-			.await
-		}
-		cli::RelayHeaders::RialtoToMillau {
-			source,
-			target,
-			target_sign,
-			prometheus_params,
-		} => {
-			type Source = Rialto;
-			type Target = Millau;
-
-			let source_client = source_chain_client::<Source>(source).await?;
-			let target_client = target_chain_client::<Target>(target).await?;
-			let target_sign = Target::target_signing_params(target_sign)?;
-
-			rialto_headers_to_millau::run(
-				source_client,
-				target_client,
-				MillauSigningParams { signer: target_sign },
-				prometheus_params.into(),
-			)
-			.await
-		}
-		cli::RelayHeaders::WestendToMillau {
-			source,
-			target,
-			target_sign,
-			prometheus_params,
-		} => {
-			type Source = Westend;
-			type Target = Millau;
-
-			let source_client = source_chain_client::<Source>(source).await?;
-			let target_client = target_chain_client::<Target>(target).await?;
-			let target_sign = Target::target_signing_params(target_sign)?;
-
-			westend_headers_to_millau::run(
-				source_client,
-				target_client,
-				MillauSigningParams { signer: target_sign },
-				prometheus_params.into(),
-			)
-			.await
-		}
-	}
-}
-
 async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 	match command {
 		cli::RelayMessages::MillauToRialto {
@@ -252,9 +182,9 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 
 			millau_messages_to_rialto::run(
 				source_client,
-				MillauSigningParams { signer: source_sign },
+				source_sign,
 				target_client,
-				RialtoSigningParams { signer: target_sign },
+				target_sign,
 				lane.into(),
 				prometheus_params.into(),
 			)
@@ -278,9 +208,9 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 
 			rialto_messages_to_millau::run(
 				source_client,
-				RialtoSigningParams { signer: source_sign },
+				source_sign,
 				target_client,
-				MillauSigningParams { signer: target_sign },
+				target_sign,
 				lane.into(),
 				prometheus_params.into(),
 			)
@@ -727,7 +657,7 @@ fn compute_maximal_message_arguments_size(
 }
 
 // TODO [ToDr] Docs.
-trait CliChain: Chain {
+pub trait CliChain: Chain {
 	const RUNTIME_VERSION: RuntimeVersion;
 
 	type KeyPair: sp_core::crypto::Pair;
@@ -920,7 +850,7 @@ impl CliChain for Westend {
 	}
 }
 
-async fn source_chain_client<Chain: CliChain>(
+pub async fn source_chain_client<Chain: CliChain>(
 	params: SourceConnectionParams,
 ) -> relay_substrate_client::Result<relay_substrate_client::Client<Chain>> {
 	relay_substrate_client::Client::new(ConnectionParams {
@@ -931,7 +861,7 @@ async fn source_chain_client<Chain: CliChain>(
 	.await
 }
 
-async fn target_chain_client<Chain: CliChain>(
+pub async fn target_chain_client<Chain: CliChain>(
 	params: TargetConnectionParams,
 ) -> relay_substrate_client::Result<relay_substrate_client::Client<Chain>> {
 	relay_substrate_client::Client::new(ConnectionParams {
@@ -951,11 +881,11 @@ mod tests {
 
 	#[test]
 	fn millau_signature_is_valid_on_rialto() {
-		let millau_sign = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
+		let millau_sign = relay_millau_client::SigningParams::from_string("//Dave", None).unwrap();
 
 		let call = rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(vec![]));
 
-		let millau_public: bp_millau::AccountSigner = millau_sign.signer.public().into();
+		let millau_public: bp_millau::AccountSigner = millau_sign.public().into();
 		let millau_account_id: bp_millau::AccountId = millau_public.into_account();
 
 		let digest = millau_runtime::rialto_account_ownership_digest(
@@ -964,19 +894,19 @@ mod tests {
 			rialto_runtime::VERSION.spec_version,
 		);
 
-		let rialto_signer = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
-		let signature = rialto_signer.signer.sign(&digest);
+		let rialto_signer = relay_rialto_client::SigningParams::from_string("//Dave", None).unwrap();
+		let signature = rialto_signer.sign(&digest);
 
-		assert!(signature.verify(&digest[..], &rialto_signer.signer.public()));
+		assert!(signature.verify(&digest[..], &rialto_signer.public()));
 	}
 
 	#[test]
 	fn rialto_signature_is_valid_on_millau() {
-		let rialto_sign = relay_rialto_client::SigningParams::from_suri("//Dave", None).unwrap();
+		let rialto_sign = relay_rialto_client::SigningParams::from_string("//Dave", None).unwrap();
 
 		let call = millau_runtime::Call::System(millau_runtime::SystemCall::remark(vec![]));
 
-		let rialto_public: bp_rialto::AccountSigner = rialto_sign.signer.public().into();
+		let rialto_public: bp_rialto::AccountSigner = rialto_sign.public().into();
 		let rialto_account_id: bp_rialto::AccountId = rialto_public.into_account();
 
 		let digest = rialto_runtime::millau_account_ownership_digest(
@@ -985,10 +915,10 @@ mod tests {
 			millau_runtime::VERSION.spec_version,
 		);
 
-		let millau_signer = relay_millau_client::SigningParams::from_suri("//Dave", None).unwrap();
-		let signature = millau_signer.signer.sign(&digest);
+		let millau_signer = relay_millau_client::SigningParams::from_string("//Dave", None).unwrap();
+		let signature = millau_signer.sign(&digest);
 
-		assert!(signature.verify(&digest[..], &millau_signer.signer.public()));
+		assert!(signature.verify(&digest[..], &millau_signer.public()));
 	}
 
 	#[test]

@@ -24,52 +24,6 @@ use crate::cli::{
 	SourceSigningParams, TargetConnectionParams, TargetSigningParams,
 };
 
-/// Start headers relayer process.
-#[derive(StructOpt)]
-pub enum RelayHeaders {
-	/// Relay Millau headers to Rialto.
-	MillauToRialto {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		#[structopt(flatten)]
-		target: TargetConnectionParams,
-		#[structopt(flatten)]
-		target_sign: TargetSigningParams,
-		#[structopt(flatten)]
-		prometheus_params: PrometheusParams,
-	},
-	/// Relay Rialto headers to Millau.
-	RialtoToMillau {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		#[structopt(flatten)]
-		target: TargetConnectionParams,
-		#[structopt(flatten)]
-		target_sign: TargetSigningParams,
-		#[structopt(flatten)]
-		prometheus_params: PrometheusParams,
-	},
-	/// Relay Westend headers to Millau.
-	WestendToMillau {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		#[structopt(flatten)]
-		target: TargetConnectionParams,
-		#[structopt(flatten)]
-		target_sign: TargetSigningParams,
-		#[structopt(flatten)]
-		prometheus_params: PrometheusParams,
-	},
-}
-
-impl RelayHeaders {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_relay_headers(self).await.map_err(format_err)?;
-		Ok(())
-	}
-}
-
 /// Start message relayer process.
 #[derive(StructOpt)]
 pub enum RelayMessages {
