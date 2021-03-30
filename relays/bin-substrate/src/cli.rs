@@ -286,7 +286,7 @@ impl AccountId {
 		if original.ss58_format != self.ss58_format {
 			log::warn!(
 				target: "bridge",
-				"Address {} does not seem to match {}'s SS58 format (got: {}, want: {}).\nConverted to: {}",
+				"Address {} does not seem to match {}'s SS58 format (got: {}, expected: {}).\nConverted to: {}",
 				original,
 				T::NAME,
 				original.ss58_format,
