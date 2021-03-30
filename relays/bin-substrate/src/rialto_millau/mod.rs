@@ -311,7 +311,7 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
-			let fee = get_fee(fee, || {
+			let fee = get_fee(fee.map(|x| x.cast()), || {
 				estimate_message_delivery_and_dispatch_fee(
 					&source_client,
 					bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
@@ -378,7 +378,7 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
-			let fee = get_fee(fee, || {
+			let fee = get_fee(fee.map(|x| x.0), || {
 				estimate_message_delivery_and_dispatch_fee(
 					&source_client,
 					bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
@@ -831,13 +831,14 @@ impl cli::ToRialtoMessage {
 			}
 			cli::ToRialtoMessage::Transfer { recipient, amount } => {
 				let recipient = recipient.into_rialto();
+				let amount = amount.0;
 				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
 			}
 			cli::ToRialtoMessage::MillauSendMessage { lane, payload, fee } => {
 				let payload = cli::RialtoToMillauMessagePayload::Raw { data: payload }.into_payload()?;
 				let lane = lane.into();
 				rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
-					lane, payload, fee,
+					lane, payload, fee.0,
 				))
 			}
 		};
@@ -868,13 +869,14 @@ impl cli::ToMillauMessage {
 			}
 			cli::ToMillauMessage::Transfer { recipient, amount } => {
 				let recipient = recipient.into_millau();
+				let amount = amount.cast();
 				millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient, amount))
 			}
 			cli::ToMillauMessage::RialtoSendMessage { lane, payload, fee } => {
 				let payload = cli::MillauToRialtoMessagePayload::Raw { data: payload }.into_payload()?;
 				let lane = lane.into();
 				millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
-					lane, payload, fee,
+					lane, payload, fee.cast(),
 				))
 			}
 		};

@@ -19,10 +19,7 @@
 use frame_support::weights::Weight;
 use structopt::StructOpt;
 
-use crate::cli::{
-	AccountId, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, PrometheusParams, SourceConnectionParams,
-	SourceSigningParams, TargetConnectionParams, TargetSigningParams,
-};
+use crate::cli::{AccountId, Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, PrometheusParams, SourceConnectionParams, SourceSigningParams, TargetConnectionParams, TargetSigningParams};
 
 /// Start headers relayer process.
 #[derive(StructOpt)]
@@ -174,7 +171,7 @@ pub enum SendMessage {
 		dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
 		/// Delivery and dispatch fee in source chain base currency units. If not passed, determined automatically.
 		#[structopt(long)]
-		fee: Option<bp_millau::Balance>,
+		fee: Option<Balance>,
 		/// Message type.
 		#[structopt(subcommand)]
 		message: ToRialtoMessage,
@@ -199,7 +196,7 @@ pub enum SendMessage {
 		dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
 		/// Delivery and dispatch fee in source chain base currency units. If not passed, determined automatically.
 		#[structopt(long)]
-		fee: Option<bp_rialto::Balance>,
+		fee: Option<Balance>,
 		/// Message type.
 		#[structopt(subcommand)]
 		message: ToMillauMessage,
@@ -384,7 +381,7 @@ pub enum ToRialtoMessage {
 		recipient: AccountId,
 		/// Amount of target tokens to send in target chain base currency units.
 		#[structopt(long)]
-		amount: bp_rialto::Balance,
+		amount: Balance,
 	},
 	/// A call to the Millau Bridge Messages pallet to send a message over the bridge.
 	MillauSendMessage {
@@ -396,7 +393,7 @@ pub enum ToRialtoMessage {
 		payload: HexBytes,
 		/// Declared delivery and dispatch fee in base source-chain currency units.
 		#[structopt(long)]
-		fee: bp_rialto::Balance,
+		fee: Balance,
 	},
 }
 
@@ -423,7 +420,7 @@ pub enum ToMillauMessage {
 		recipient: AccountId,
 		/// Amount of target tokens to send in target chain base currency units.
 		#[structopt(long)]
-		amount: bp_millau::Balance,
+		amount: Balance,
 	},
 	/// A call to the Rialto Bridge Messages pallet to send a message over the bridge.
 	RialtoSendMessage {
@@ -435,6 +432,6 @@ pub enum ToMillauMessage {
 		payload: HexBytes,
 		/// Declared delivery and dispatch fee in base source-chain currency units.
 		#[structopt(long)]
-		fee: bp_millau::Balance,
+		fee: Balance,
 	},
 }

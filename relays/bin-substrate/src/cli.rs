@@ -16,6 +16,8 @@
 
 //! Deal with CLI args of substrate-to-substrate relay.
 
+use std::convert::TryInto;
+
 use bp_messages::LaneId;
 use codec::{Decode, Encode};
 use sp_runtime::app_crypto::Ss58Codec;
@@ -235,6 +237,26 @@ arg_enum! {
 	pub enum Origins {
 		Target,
 		Source,
+	}
+}
+
+/// Generic balance type.
+#[derive(Debug)]
+pub struct Balance(pub u128);
+
+impl std::str::FromStr for Balance {
+	type Err = <u128 as std::str::FromStr>::Err;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		Ok(Self(s.parse()?))
+	}
+}
+
+impl Balance {
+	/// Cast balance to `u64` type, panicking if it's too large.
+	pub fn cast(&self) -> u64 {
+		self.0.try_into()
+			.expect("Balance is too high for this chain.")
 	}
 }
 
