@@ -19,7 +19,10 @@
 use frame_support::weights::Weight;
 use structopt::StructOpt;
 
-use crate::cli::{AccountId, Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, PrometheusParams, SourceConnectionParams, SourceSigningParams, TargetConnectionParams, TargetSigningParams};
+use crate::cli::{
+	AccountId, Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, PrometheusParams, SourceConnectionParams,
+	SourceSigningParams, TargetConnectionParams, TargetSigningParams,
+};
 
 /// Start headers relayer process.
 #[derive(StructOpt)]

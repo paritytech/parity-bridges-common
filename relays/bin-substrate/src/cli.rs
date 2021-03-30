@@ -255,8 +255,7 @@ impl std::str::FromStr for Balance {
 impl Balance {
 	/// Cast balance to `u64` type, panicking if it's too large.
 	pub fn cast(&self) -> u64 {
-		self.0.try_into()
-			.expect("Balance is too high for this chain.")
+		self.0.try_into().expect("Balance is too high for this chain.")
 	}
 }
 

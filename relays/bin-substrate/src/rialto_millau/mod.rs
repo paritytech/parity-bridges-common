@@ -750,12 +750,7 @@ impl CliChain for Millau {
 	type Chain = Self;
 	type KeyPair = sp_core::sr25519::Pair;
 	type Call = millau_runtime::Call;
-	type MessagePayload = MessagePayload<
-		bp_millau::AccountId,
-		bp_rialto::AccountSigner,
-		bp_rialto::Signature,
-		Vec<u8>,
-	>;
+	type MessagePayload = MessagePayload<bp_millau::AccountId, bp_rialto::AccountSigner, bp_rialto::Signature, Vec<u8>>;
 
 	fn encode_call(call: cli::Call) -> Result<Self::Call, String> {
 		let call = match call {
@@ -782,7 +777,9 @@ impl CliChain for Millau {
 				let payload = Target::encode_message(cli::MessagePayload::Raw { data: payload })?;
 				let lane = lane.into();
 				millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
-					lane, payload, fee.cast(),
+					lane,
+					payload,
+					fee.cast(),
 				))
 			}
 		};
@@ -817,19 +814,13 @@ impl CliChain for Millau {
 			}
 		}
 	}
-
 }
 
 impl CliChain for Rialto {
 	type Chain = Self;
 	type KeyPair = sp_core::sr25519::Pair;
 	type Call = rialto_runtime::Call;
-	type MessagePayload = MessagePayload<
-		bp_rialto::AccountId,
-		bp_millau::AccountSigner,
-		bp_millau::Signature,
-		Vec<u8>,
-	>;
+	type MessagePayload = MessagePayload<bp_rialto::AccountId, bp_millau::AccountSigner, bp_millau::Signature, Vec<u8>>;
 
 	fn encode_call(call: cli::Call) -> Result<Self::Call, String> {
 		let call = match call {
