@@ -22,7 +22,7 @@ use crate::error::Error;
 use crate::sync_header::SyncHeader;
 
 use async_trait::async_trait;
-use bp_header_chain::justification::{decode_justification_target, GrandpaJustification};
+use bp_header_chain::justification::GrandpaJustification;
 use codec::{Decode, Encode};
 use finality_relay::{FinalityProof, FinalitySyncPipeline, SourceClient, SourceHeader};
 use futures::stream::{unfold, Stream, StreamExt};
@@ -36,17 +36,18 @@ pub struct Justification<H: HeaderT> {
 	/// Header number decoded from the [`raw_justification`].
 	target_header_number: H::Number,
 	/// Decoded GRANDPA justification.
-	raw_justification: GrandpaJustification<H>,
+	justification: GrandpaJustification<H>,
 }
 
 impl<H: HeaderT> Justification<H> {
 	/// Extract raw encoded justification.
-	pub fn into_inner(self) -> sp_runtime::Justification {
-		self.raw_justification.encode()
+	pub fn into_encoded(self) -> sp_runtime::Justification {
+		self.justification.encode()
 	}
 
+	/// Get the decoded GRANDPA justification.
 	pub fn justification(self) -> GrandpaJustification<H> {
-		self.raw_justification
+		self.justification
 	}
 }
 
@@ -127,7 +128,7 @@ where
 			.map_err(|e| Error::ResponseParseFailed(e))?
 			.map(|justification| Justification {
 				target_header_number: number,
-				raw_justification: justification,
+				justification,
 			});
 
 		Ok((signed_block.header().into(), justification))
@@ -159,7 +160,7 @@ where
 					return Some((
 						Justification {
 							target_header_number: justification.commit.target_number,
-							raw_justification: justification,
+							justification,
 						},
 						subscription,
 					));
