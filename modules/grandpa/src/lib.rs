@@ -365,7 +365,7 @@ pub mod pallet {
 	/// This function does not support forced changes, or scheduled changes with delays
 	/// since these types of changes are indicitive of abnormal behaviour from GRANDPA.
 	///
-	/// Return type will indicate if a change was enacted or not.
+	/// Returned value will indicate if a change was enacted or not.
 	pub(crate) fn try_enact_authority_change<T: Config<I>, I: 'static>(
 		header: &BridgedHeader<T, I>,
 		current_set_id: sp_finality_grandpa::SetId,
