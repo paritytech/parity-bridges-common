@@ -993,4 +993,19 @@ mod tests {
 			extra_bytes_in_transaction,
 		);
 	}
+
+	#[test]
+	fn should_reformat_addresses() {
+		// given
+		let mut rialto1: AccountId = "5sauUXUfPjmwxSgmb3tZ5d6yx24eZX4wWJ2JtVUBaQqFbvEU".parse().unwrap();
+		let mut millau1: AccountId = "752paRyW1EGfq9YLTSSqcSJ5hqnBDidBmaftGhBo8fy6ypW9".parse().unwrap();
+
+		// when
+		rialto1.enforce_chain::<Millau>();
+		millau1.enforce_chain::<Rialto>();
+
+		// then
+		assert_eq!(&format!("{}", rialto1), "752paRyW1EGfq9YLTSSqcSJ5hqnBDidBmaftGhBo8fy6ypW9");
+		assert_eq!(&format!("{}", millau1), "5sauUXUfPjmwxSgmb3tZ5d6yx24eZX4wWJ2JtVUBaQqFbvEU");
+	}
 }
