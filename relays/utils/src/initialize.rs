@@ -78,7 +78,6 @@ fn color_target(target: &str) -> impl Display + '_ {
 	}
 }
 
-#[inline]
 fn color_level(level: log::Level) -> impl Display {
 	if cfg!(windows) {
 		Either::Left(level)
