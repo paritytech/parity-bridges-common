@@ -18,6 +18,20 @@ use crate::cli::{PrometheusParams, SourceConnectionParams, TargetConnectionParam
 use crate::rialto_millau::CliChain;
 use structopt::{clap::arg_enum, StructOpt};
 
+/// Start headers relayer process.
+#[derive(StructOpt)]
+pub struct RelayHeaders {
+	bridge: RelayHeadersBridge,
+	#[structopt(flatten)]
+	source: SourceConnectionParams,
+	#[structopt(flatten)]
+	target: TargetConnectionParams,
+	#[structopt(flatten)]
+	target_sign: TargetSigningParams,
+	#[structopt(flatten)]
+	prometheus_params: PrometheusParams,
+}
+
 arg_enum! {
 	#[derive(Debug)]
 	/// Headers relay bridge.
@@ -53,20 +67,6 @@ macro_rules! select_bridge {
 	};
 }
 
-/// Start headers relayer process.
-#[derive(StructOpt)]
-pub struct RelayHeaders {
-	bridge: RelayHeadersBridge,
-	#[structopt(flatten)]
-	source: SourceConnectionParams,
-	#[structopt(flatten)]
-	target: TargetConnectionParams,
-	#[structopt(flatten)]
-	target_sign: TargetSigningParams,
-	#[structopt(flatten)]
-	prometheus_params: PrometheusParams,
-}
-
 impl RelayHeaders {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
@@ -86,3 +86,4 @@ impl RelayHeaders {
 		})
 	}
 }
+

@@ -69,46 +69,6 @@ impl RelayMessages {
 	}
 }
 
-/// Initialize bridge pallet.
-#[derive(StructOpt)]
-pub enum InitBridge {
-	/// Initialize Millau headers bridge in Rialto.
-	MillauToRialto {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		#[structopt(flatten)]
-		target: TargetConnectionParams,
-		#[structopt(flatten)]
-		target_sign: TargetSigningParams,
-	},
-	/// Initialize Rialto headers bridge in Millau.
-	RialtoToMillau {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		#[structopt(flatten)]
-		target: TargetConnectionParams,
-		#[structopt(flatten)]
-		target_sign: TargetSigningParams,
-	},
-	/// Initialize Westend headers bridge in Millau.
-	WestendToMillau {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		#[structopt(flatten)]
-		target: TargetConnectionParams,
-		#[structopt(flatten)]
-		target_sign: TargetSigningParams,
-	},
-}
-
-impl InitBridge {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_init_bridge(self).await.map_err(format_err)?;
-		Ok(())
-	}
-}
-
 /// Send bridge message.
 #[derive(StructOpt)]
 pub enum SendMessage {

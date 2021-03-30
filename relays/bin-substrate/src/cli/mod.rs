@@ -25,6 +25,7 @@ use structopt::{clap::arg_enum, StructOpt};
 
 use crate::rialto_millau::cli as rialto_millau;
 
+mod init_bridge;
 mod relay_headers;
 
 /// Parse relay CLI args.
@@ -49,7 +50,7 @@ pub enum Command {
 	/// Initialize on-chain bridge pallet with current header data.
 	///
 	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
-	InitBridge(InitBridge),
+	InitBridge(init_bridge::InitBridge),
 	/// Send custom message over the bridge.
 	///
 	/// Allows interacting with the bridge by sending messages over `Messages` component.
@@ -76,9 +77,9 @@ impl Command {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self {
-			Self::InitBridge(arg) => arg.run().await?,
 			Self::RelayHeaders(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
+			Self::InitBridge(arg) => arg.run().await?,
 			Self::SendMessage(arg) => arg.run().await?,
 			Self::EncodeCall(arg) => arg.run().await?,
 			Self::EncodeMessagePayload(arg) => arg.run().await?,
@@ -97,23 +98,6 @@ pub enum RelayMessages {
 }
 
 impl RelayMessages {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// Initialize bridge pallet.
-#[derive(StructOpt)]
-pub enum InitBridge {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::InitBridge),
-}
-
-impl InitBridge {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self {
