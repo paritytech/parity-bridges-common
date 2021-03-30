@@ -91,7 +91,7 @@ where
 	type Hash = HashOf<SourceChain>;
 	type Number = BlockNumberOf<SourceChain>;
 	type Header = SyncHeader<SourceChain::Header>;
-	type FinalityProof = Justification<SourceChain::BlockNumber>;
+	type FinalityProof = Justification<SourceChain::Header>;
 }
 
 /// Run Substrate-to-Substrate finality sync.
@@ -106,7 +106,7 @@ where
 		Hash = HashOf<SourceChain>,
 		Number = BlockNumberOf<SourceChain>,
 		Header = SyncHeader<SourceChain::Header>,
-		FinalityProof = Justification<SourceChain::BlockNumber>,
+		FinalityProof = Justification<SourceChain::Header>,
 		TargetChain = TargetChain,
 	>,
 	SourceChain: Clone + Chain,

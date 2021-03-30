@@ -41,15 +41,12 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 		&self,
 		transaction_nonce: <Millau as Chain>::Index,
 		header: WestendSyncHeader,
-		proof: Justification<bp_westend::BlockNumber>,
+		proof: Justification<bp_westend::Header>,
 	) -> Bytes {
 		let call = millau_runtime::BridgeGrandpaWestendCall::<
 			millau_runtime::Runtime,
 			millau_runtime::WestendGrandpaInstance,
-		>::submit_finality_proof(
-			header.into_inner(),
-			Decode::decode(&mut &proof.into_inner()[..]).expect("TODO"),
-		)
+		>::submit_finality_proof(header.into_inner(), proof.justification())
 		.into();
 
 		let genesis_hash = *self.target_client.genesis_hash();

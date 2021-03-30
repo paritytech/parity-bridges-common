@@ -41,15 +41,12 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 		&self,
 		transaction_nonce: <Millau as Chain>::Index,
 		header: RialtoSyncHeader,
-		proof: Justification<bp_rialto::BlockNumber>,
+		proof: Justification<bp_rialto::Header>,
 	) -> Bytes {
 		let call = millau_runtime::BridgeGrandpaRialtoCall::<
 			millau_runtime::Runtime,
 			millau_runtime::RialtoGrandpaInstance,
-		>::submit_finality_proof(
-			header.into_inner(),
-			Decode::decode(&mut &proof.into_inner()[..]).expect("TODO"),
-		)
+		>::submit_finality_proof(header.into_inner(), proof.justification())
 		.into();
 
 		let genesis_hash = *self.target_client.genesis_hash();
