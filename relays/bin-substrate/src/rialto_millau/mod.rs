@@ -30,7 +30,8 @@ pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 /// Westend node client.
 pub type WestendClient = relay_substrate_client::Client<Westend>;
 
-use crate::cli::{ExplicitOrMaximal, HexBytes, Origins};
+use crate::cli::{ExplicitOrMaximal, HexBytes, Origins, SourceSigningParams, TargetSigningParams,
+SourceConnectionParams, TargetConnectionParams};
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
@@ -45,23 +46,26 @@ use std::fmt::Debug;
 async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 	match command {
 		cli::InitBridge::MillauToRialto {
-			millau,
-			rialto,
-			rialto_sign,
+			source,
+			target,
+			target_sign,
 		} => {
-			let millau_client = millau.into_client().await?;
-			let rialto_client = rialto.into_client().await?;
-			let rialto_sign = rialto_sign.parse()?;
+			type Source = Millau;
+			type Target = Rialto;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let target_client = target_chain_client::<Target>(target).await?;
+			let target_sign = Target::target_signing_params(target_sign)?;
 
 			crate::headers_initialize::initialize(
-				millau_client,
-				rialto_client.clone(),
-				rialto_sign.signer.public().into(),
+				source_client,
+				target_client.clone(),
+				target_sign.public().into(),
 				move |transaction_nonce, initialization_data| {
 					Bytes(
 						Rialto::sign_transaction(
-							*rialto_client.genesis_hash(),
-							&rialto_sign.signer,
+							*target_client.genesis_hash(),
+							&target_sign,
 							transaction_nonce,
 							rialto_runtime::SudoCall::sudo(Box::new(
 								rialto_runtime::BridgeGrandpaMillauCall::initialize(initialization_data).into(),
@@ -75,18 +79,21 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			.await;
 		}
 		cli::InitBridge::RialtoToMillau {
-			rialto,
-			millau,
-			millau_sign,
+			source,
+			target,
+			target_sign,
 		} => {
-			let rialto_client = rialto.into_client().await?;
-			let millau_client = millau.into_client().await?;
-			let millau_sign = millau_sign.parse()?;
+			type Source = Rialto;
+			type Target = Millau;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let target_client = target_chain_client::<Target>(target).await?;
+			let target_sign = Target::target_signing_params(target_sign)?;
 
 			crate::headers_initialize::initialize(
-				rialto_client,
-				millau_client.clone(),
-				millau_sign.signer.public().into(),
+				source_client,
+				target_client.clone(),
+				target_sign.public().into(),
 				move |transaction_nonce, initialization_data| {
 					let initialize_call = millau_runtime::BridgeGrandpaRialtoCall::<
 						millau_runtime::Runtime,
@@ -95,8 +102,8 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 
 					Bytes(
 						Millau::sign_transaction(
-							*millau_client.genesis_hash(),
-							&millau_sign.signer,
+							*target_client.genesis_hash(),
+							&target_sign,
 							transaction_nonce,
 							millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into(),
 						)
@@ -107,21 +114,24 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 			.await;
 		}
 		cli::InitBridge::WestendToMillau {
-			westend,
-			millau,
-			millau_sign,
+			source,
+			target,
+			target_sign,
 		} => {
-			let westend_client = westend.into_client().await?;
-			let millau_client = millau.into_client().await?;
-			let millau_sign = millau_sign.parse()?;
+			type Source = Westend;
+			type Target = Millau;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let target_client = target_chain_client::<Target>(target).await?;
+			let target_sign = Target::target_signing_params(target_sign)?;
 
 			// at Westend -> Millau initialization we're not using sudo, because otherwise our deployments
 			// may fail, because we need to initialize both Rialto -> Millau and Westend -> Millau bridge.
 			// => since there's single possible sudo account, one of transaction may fail with duplicate nonce error
 			crate::headers_initialize::initialize(
-				westend_client,
-				millau_client.clone(),
-				millau_sign.signer.public().into(),
+				source_client,
+				target_client.clone(),
+				target_sign.public().into(),
 				move |transaction_nonce, initialization_data| {
 					let initialize_call = millau_runtime::BridgeGrandpaWestendCall::<
 						millau_runtime::Runtime,
@@ -130,8 +140,8 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 
 					Bytes(
 						Millau::sign_transaction(
-							*millau_client.genesis_hash(),
-							&millau_sign.signer,
+							*target_client.genesis_hash(),
+							&target_sign,
 							transaction_nonce,
 							initialize_call.into(),
 						)
@@ -148,37 +158,61 @@ async fn run_init_bridge(command: cli::InitBridge) -> Result<(), String> {
 async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 	match command {
 		cli::RelayHeaders::MillauToRialto {
-			millau,
-			rialto,
-			rialto_sign,
+			source,
+			target,
+			target_sign,
 			prometheus_params,
 		} => {
-			let millau_client = millau.into_client().await?;
-			let rialto_client = rialto.into_client().await?;
-			let rialto_sign = rialto_sign.parse()?;
-			millau_headers_to_rialto::run(millau_client, rialto_client, rialto_sign, prometheus_params.into()).await
+			type Source = Millau;
+			type Target = Rialto;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let target_client = target_chain_client::<Target>(target).await?;
+			let target_sign = Target::target_signing_params(target_sign)?;
+			millau_headers_to_rialto::run(
+				source_client,
+				target_client,
+				RialtoSigningParams { signer: target_sign },
+				prometheus_params.into(),
+			).await
 		}
 		cli::RelayHeaders::RialtoToMillau {
-			rialto,
-			millau,
-			millau_sign,
+			source,
+			target,
+			target_sign,
 			prometheus_params,
 		} => {
-			let rialto_client = rialto.into_client().await?;
-			let millau_client = millau.into_client().await?;
-			let millau_sign = millau_sign.parse()?;
-			rialto_headers_to_millau::run(rialto_client, millau_client, millau_sign, prometheus_params.into()).await
+			type Source = Rialto;
+			type Target = Millau;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let target_client = target_chain_client::<Target>(target).await?;
+			let target_sign = Target::target_signing_params(target_sign)?;
+			rialto_headers_to_millau::run(
+				source_client,
+				target_client,
+				MillauSigningParams { signer: target_sign },
+				prometheus_params.into(),
+			).await
 		}
 		cli::RelayHeaders::WestendToMillau {
-			westend,
-			millau,
-			millau_sign,
+			source,
+			target,
+			target_sign,
 			prometheus_params,
 		} => {
-			let westend_client = westend.into_client().await?;
-			let millau_client = millau.into_client().await?;
-			let millau_sign = millau_sign.parse()?;
-			westend_headers_to_millau::run(westend_client, millau_client, millau_sign, prometheus_params.into()).await
+			type Source = Westend;
+			type Target = Millau;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let target_client = target_chain_client::<Target>(target).await?;
+			let target_sign = Target::target_signing_params(target_sign)?;
+			westend_headers_to_millau::run(
+				source_client,
+				target_client,
+				MillauSigningParams { signer: target_sign },
+				prometheus_params.into(),
+			).await
 		}
 	}
 }
@@ -186,46 +220,52 @@ async fn run_relay_headers(command: cli::RelayHeaders) -> Result<(), String> {
 async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 	match command {
 		cli::RelayMessages::MillauToRialto {
-			millau,
-			millau_sign,
-			rialto,
-			rialto_sign,
+			source,
+			source_sign,
+			target,
+			target_sign,
 			prometheus_params,
 			lane,
 		} => {
-			let millau_client = millau.into_client().await?;
-			let millau_sign = millau_sign.parse()?;
-			let rialto_client = rialto.into_client().await?;
-			let rialto_sign = rialto_sign.parse()?;
+			type Source = Millau;
+			type Target = Rialto;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let source_sign = Source::source_signing_params(source_sign)?;
+			let target_client = target_chain_client::<Target>(target).await?;
+			let target_sign = Target::target_signing_params(target_sign)?;
 
 			millau_messages_to_rialto::run(
-				millau_client,
-				millau_sign,
-				rialto_client,
-				rialto_sign,
+				source_client,
+				MillauSigningParams { signer: source_sign },
+				target_client,
+				RialtoSigningParams { signer: target_sign },
 				lane.into(),
 				prometheus_params.into(),
 			)
 			.await
 		}
 		cli::RelayMessages::RialtoToMillau {
-			rialto,
-			rialto_sign,
-			millau,
-			millau_sign,
+			source,
+			source_sign,
+			target,
+			target_sign,
 			prometheus_params,
 			lane,
 		} => {
-			let rialto_client = rialto.into_client().await?;
-			let rialto_sign = rialto_sign.parse()?;
-			let millau_client = millau.into_client().await?;
-			let millau_sign = millau_sign.parse()?;
+			type Source = Rialto;
+			type Target = Millau;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let source_sign = Source::source_signing_params(source_sign)?;
+			let target_client = target_chain_client::<Target>(target).await?;
+			let target_sign = Target::target_signing_params(target_sign)?;
 
 			rialto_messages_to_millau::run(
-				rialto_client,
-				rialto_sign,
-				millau_client,
-				millau_sign,
+				source_client,
+				RialtoSigningParams { signer: source_sign },
+				target_client,
+				MillauSigningParams { signer: target_sign },
 				lane.into(),
 				prometheus_params.into(),
 			)
@@ -237,9 +277,9 @@ async fn run_relay_messages(command: cli::RelayMessages) -> Result<(), String> {
 async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 	match command {
 		cli::SendMessage::MillauToRialto {
-			millau,
-			millau_sign,
-			rialto_sign,
+			source,
+			source_sign,
+			target_sign,
 			lane,
 			message,
 			dispatch_weight,
@@ -247,19 +287,23 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			origin,
 			..
 		} => {
-			let millau_client = millau.into_client().await?;
-			let millau_sign = millau_sign.parse()?;
-			let rialto_sign = rialto_sign.parse()?;
+			type Source = Millau;
+			type Target = Rialto;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let source_sign = Source::source_signing_params(source_sign)?;
+			let target_sign = Target::target_signing_params(target_sign)?;
+
 			let rialto_call = message.into_call()?;
 
 			let payload =
-				millau_to_rialto_message_payload(&millau_sign, &rialto_sign, &rialto_call, origin, dispatch_weight);
+				millau_to_rialto_message_payload::<Source, Target>(&source_sign, &target_sign, &rialto_call, origin, dispatch_weight);
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
 			let fee = get_fee(fee, || {
 				estimate_message_delivery_and_dispatch_fee(
-					&millau_client,
+					&source_client,
 					bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
 					lane,
 					payload.clone(),
@@ -267,15 +311,15 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			})
 			.await?;
 
-			millau_client
-				.submit_signed_extrinsic(millau_sign.signer.public().clone().into(), |transaction_nonce| {
+			source_client
+				.submit_signed_extrinsic(source_sign.public().clone().into(), |transaction_nonce| {
 					let millau_call = millau_runtime::Call::BridgeRialtoMessages(
 						millau_runtime::MessagesCall::send_message(lane, payload, fee),
 					);
 
 					let signed_millau_call = Millau::sign_transaction(
-						*millau_client.genesis_hash(),
-						&millau_sign.signer,
+						*source_client.genesis_hash(),
+						&source_sign,
 						transaction_nonce,
 						millau_call,
 					)
@@ -295,9 +339,9 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 				.await?;
 		}
 		cli::SendMessage::RialtoToMillau {
-			rialto,
-			rialto_sign,
-			millau_sign,
+			source,
+			source_sign,
+			target_sign,
 			lane,
 			message,
 			dispatch_weight,
@@ -305,19 +349,23 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			origin,
 			..
 		} => {
-			let rialto_client = rialto.into_client().await?;
-			let rialto_sign = rialto_sign.parse()?;
-			let millau_sign = millau_sign.parse()?;
+			type Source = Rialto;
+			type Target = Millau;
+
+			let source_client = source_chain_client::<Source>(source).await?;
+			let source_sign = Source::source_signing_params(source_sign)?;
+			let target_sign = Target::target_signing_params(target_sign)?;
+
 			let millau_call = message.into_call()?;
 
 			let payload =
-				rialto_to_millau_message_payload(&rialto_sign, &millau_sign, &millau_call, origin, dispatch_weight);
+				rialto_to_millau_message_payload::<Source, Target>(&source_sign, &target_sign, &millau_call, origin, dispatch_weight);
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
 			let fee = get_fee(fee, || {
 				estimate_message_delivery_and_dispatch_fee(
-					&rialto_client,
+					&source_client,
 					bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
 					lane,
 					payload.clone(),
@@ -325,15 +373,15 @@ async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
 			})
 			.await?;
 
-			rialto_client
-				.submit_signed_extrinsic(rialto_sign.signer.public().clone().into(), |transaction_nonce| {
+			source_client
+				.submit_signed_extrinsic(source_sign.public().clone().into(), |transaction_nonce| {
 					let rialto_call = rialto_runtime::Call::BridgeMillauMessages(
 						rialto_runtime::MessagesCall::send_message(lane, payload, fee),
 					);
 
 					let signed_rialto_call = Rialto::sign_transaction(
-						*rialto_client.genesis_hash(),
-						&rialto_sign.signer,
+						*source_client.genesis_hash(),
+						&source_sign,
 						transaction_nonce,
 						rialto_call,
 					)
@@ -389,13 +437,15 @@ async fn run_encode_message_payload(call: cli::EncodeMessagePayload) -> Result<(
 
 async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 	match cmd {
-		cli::EstimateFee::RialtoToMillau { rialto, lane, payload } => {
-			let client = rialto.into_client().await?;
+		cli::EstimateFee::RialtoToMillau { source, lane, payload } => {
+			type Source = Rialto;
+
+			let source_client = source_chain_client::<Source>(source).await?;
 			let lane = lane.into();
 			let payload = payload.into_payload()?;
 
 			let fee: Option<bp_rialto::Balance> = estimate_message_delivery_and_dispatch_fee(
-				&client,
+				&source_client,
 				bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD,
 				lane,
 				payload,
@@ -404,13 +454,15 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 
 			println!("Fee: {:?}", fee);
 		}
-		cli::EstimateFee::MillauToRialto { millau, lane, payload } => {
-			let client = millau.into_client().await?;
+		cli::EstimateFee::MillauToRialto { source, lane, payload } => {
+			type Source = Millau;
+
+			let source_client = source_chain_client::<Source>(source).await?;
 			let lane = lane.into();
 			let payload = payload.into_payload()?;
 
 			let fee: Option<bp_millau::Balance> = estimate_message_delivery_and_dispatch_fee(
-				&client,
+				&source_client,
 				bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD,
 				lane,
 				payload,
@@ -516,21 +568,26 @@ where
 	}
 }
 
-fn rialto_to_millau_message_payload(
-	rialto_sign: &RialtoSigningParams,
-	millau_sign: &MillauSigningParams,
+// TODO [ToDr] Rest of the parameters.
+fn rialto_to_millau_message_payload<Source: CliChain, Target: CliChain>(
+	rialto_sign: &Source::KeyPair,
+	millau_sign: &Target::KeyPair,
 	millau_call: &millau_runtime::Call,
 	origin: Origins,
 	user_specified_dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-) -> rialto_runtime::millau_messages::ToMillauMessagePayload {
+) -> rialto_runtime::millau_messages::ToMillauMessagePayload where
+	<Source::KeyPair as sp_core::crypto::Pair>::Public: Into<sp_runtime::MultiSigner>,
+	<Target::KeyPair as sp_core::crypto::Pair>::Public: Into<sp_runtime::MultiSigner>,
+	<Target::KeyPair as sp_core::crypto::Pair>::Signature: Into<sp_runtime::MultiSignature>,
+{
 	let millau_call_weight = prepare_call_dispatch_weight(
 		user_specified_dispatch_weight,
 		ExplicitOrMaximal::Explicit(millau_call.get_dispatch_info().weight),
 		compute_maximal_message_dispatch_weight(bp_millau::max_extrinsic_weight()),
 	);
-	let rialto_sender_public: bp_rialto::AccountSigner = rialto_sign.signer.public().clone().into();
+	let rialto_sender_public: bp_rialto::AccountSigner = rialto_sign.public().clone().into();
 	let rialto_account_id: bp_rialto::AccountId = rialto_sender_public.into_account();
-	let millau_origin_public = millau_sign.signer.public();
+	let millau_origin_public = millau_sign.public();
 
 	message_payload(
 		millau_runtime::VERSION.spec_version,
@@ -544,7 +601,7 @@ fn rialto_to_millau_message_payload(
 					millau_runtime::VERSION.spec_version,
 				);
 
-				let digest_signature = millau_sign.signer.sign(&digest);
+				let digest_signature = millau_sign.sign(&digest);
 
 				CallOrigin::TargetAccount(rialto_account_id, millau_origin_public.into(), digest_signature.into())
 			}
@@ -553,21 +610,26 @@ fn rialto_to_millau_message_payload(
 	)
 }
 
-fn millau_to_rialto_message_payload(
-	millau_sign: &MillauSigningParams,
-	rialto_sign: &RialtoSigningParams,
+// TODO [ToDr] Rest of the parameters.
+fn millau_to_rialto_message_payload<Source: CliChain, Target: CliChain>(
+	millau_sign: &Source::KeyPair,
+	rialto_sign: &Target::KeyPair,
 	rialto_call: &rialto_runtime::Call,
 	origin: Origins,
 	user_specified_dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-) -> millau_runtime::rialto_messages::ToRialtoMessagePayload {
+) -> millau_runtime::rialto_messages::ToRialtoMessagePayload where
+	<Source::KeyPair as sp_core::crypto::Pair>::Public: Into<sp_runtime::MultiSigner>,
+	<Target::KeyPair as sp_core::crypto::Pair>::Public: Into<sp_runtime::MultiSigner>,
+	<Target::KeyPair as sp_core::crypto::Pair>::Signature: Into<sp_runtime::MultiSignature>,
+{
 	let rialto_call_weight = prepare_call_dispatch_weight(
 		user_specified_dispatch_weight,
 		ExplicitOrMaximal::Explicit(rialto_call.get_dispatch_info().weight),
 		compute_maximal_message_dispatch_weight(bp_rialto::max_extrinsic_weight()),
 	);
-	let millau_sender_public: bp_millau::AccountSigner = millau_sign.signer.public().clone().into();
+	let millau_sender_public: bp_millau::AccountSigner = millau_sign.public().clone().into();
 	let millau_account_id: bp_millau::AccountId = millau_sender_public.into_account();
-	let rialto_origin_public = rialto_sign.signer.public();
+	let rialto_origin_public = rialto_sign.public();
 
 	message_payload(
 		rialto_runtime::VERSION.spec_version,
@@ -581,7 +643,7 @@ fn millau_to_rialto_message_payload(
 					rialto_runtime::VERSION.spec_version,
 				);
 
-				let digest_signature = rialto_sign.signer.sign(&digest);
+				let digest_signature = rialto_sign.sign(&digest);
 
 				CallOrigin::TargetAccount(millau_account_id, rialto_origin_public.into(), digest_signature.into())
 			}
@@ -642,6 +704,56 @@ fn compute_maximal_message_arguments_size(
 	maximal_call_size - service_bytes
 }
 
+trait CliChain {
+	type Chain: Chain;
+	type KeyPair: sp_core::crypto::Pair;
+
+	fn source_signing_params(params: SourceSigningParams) ->  Result<Self::KeyPair, String> {
+		Self::KeyPair::from_string(&params.source_signer, params.source_signer_password.as_deref())
+			.map_err(|e| format!("Failed to parse source-signer: {:?}", e))
+	}
+
+	fn target_signing_params(params: TargetSigningParams) ->  Result<Self::KeyPair, String> {
+		Self::KeyPair::from_string(&params.target_signer, params.target_signer_password.as_deref())
+			.map_err(|e| format!("Failed to parse target-signer: {:?}", e))
+	}
+}
+
+impl CliChain for Millau {
+	type Chain = Self;
+	type KeyPair = sp_core::sr25519::Pair;
+}
+
+impl CliChain for Rialto {
+	type Chain = Self;
+	type KeyPair = sp_core::sr25519::Pair;
+}
+
+impl CliChain for Westend {
+	type Chain = Self;
+	type KeyPair = sp_core::sr25519::Pair;
+}
+
+async fn source_chain_client<Chain: CliChain>(params: SourceConnectionParams)
+	-> relay_substrate_client::Result<relay_substrate_client::Client<Chain::Chain>>
+{
+	relay_substrate_client::Client::new(ConnectionParams {
+		host: params.source_host,
+		port: params.source_port,
+		secure: params.source_secure,
+	}).await
+}
+
+async fn target_chain_client<Chain: CliChain>(params: TargetConnectionParams)
+	-> relay_substrate_client::Result<relay_substrate_client::Client<Chain::Chain>>
+{
+	relay_substrate_client::Client::new(ConnectionParams {
+		host: params.target_host,
+		port: params.target_port,
+		secure: params.target_secure,
+	}).await
+}
+
 impl cli::MillauToRialtoMessagePayload {
 	/// Parse the CLI parameters and construct message payload.
 	pub fn into_payload(
@@ -679,58 +791,6 @@ impl cli::RialtoToMillauMessagePayload {
 				Ok(message_payload(spec_version, weight, origin, &call))
 			}
 		}
-	}
-}
-
-impl cli::RialtoSigningParams {
-	/// Parse CLI parameters into typed signing params.
-	pub fn parse(self) -> Result<RialtoSigningParams, String> {
-		RialtoSigningParams::from_suri(&self.rialto_signer, self.rialto_signer_password.as_deref())
-			.map_err(|e| format!("Failed to parse rialto-signer: {:?}", e))
-	}
-}
-
-impl cli::MillauSigningParams {
-	/// Parse CLI parameters into typed signing params.
-	pub fn parse(self) -> Result<MillauSigningParams, String> {
-		MillauSigningParams::from_suri(&self.millau_signer, self.millau_signer_password.as_deref())
-			.map_err(|e| format!("Failed to parse millau-signer: {:?}", e))
-	}
-}
-
-impl cli::MillauConnectionParams {
-	/// Convert CLI connection parameters into Millau RPC Client.
-	pub async fn into_client(self) -> relay_substrate_client::Result<MillauClient> {
-		MillauClient::new(ConnectionParams {
-			host: self.millau_host,
-			port: self.millau_port,
-			secure: self.millau_secure,
-		})
-		.await
-	}
-}
-
-impl cli::RialtoConnectionParams {
-	/// Convert CLI connection parameters into Rialto RPC Client.
-	pub async fn into_client(self) -> relay_substrate_client::Result<RialtoClient> {
-		RialtoClient::new(ConnectionParams {
-			host: self.rialto_host,
-			port: self.rialto_port,
-			secure: self.rialto_secure,
-		})
-		.await
-	}
-}
-
-impl cli::WestendConnectionParams {
-	/// Convert CLI connection parameters into Westend RPC Client.
-	pub async fn into_client(self) -> relay_substrate_client::Result<WestendClient> {
-		WestendClient::new(ConnectionParams {
-			host: self.westend_host,
-			port: self.westend_port,
-			secure: self.westend_secure,
-		})
-		.await
 	}
 }
 

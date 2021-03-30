@@ -99,6 +99,7 @@ impl TransactionSignScheme for Rialto {
 	}
 }
 
+// TODO [ToDr] Remove
 /// Rialto signing params.
 #[derive(Clone)]
 pub struct SigningParams {

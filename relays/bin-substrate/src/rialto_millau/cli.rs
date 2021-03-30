@@ -19,8 +19,10 @@
 use frame_support::weights::Weight;
 use structopt::StructOpt;
 
-use crate::cli::{AccountId, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, PrometheusParams};
-use crate::declare_chain_options;
+use crate::cli::{
+	AccountId, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, PrometheusParams,
+	SourceConnectionParams, TargetConnectionParams, SourceSigningParams, TargetSigningParams,
+};
 
 /// Start headers relayer process.
 #[derive(StructOpt)]
@@ -28,33 +30,33 @@ pub enum RelayHeaders {
 	/// Relay Millau headers to Rialto.
 	MillauToRialto {
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
+		target: TargetConnectionParams,
 		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
+		target_sign: TargetSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
 	/// Relay Rialto headers to Millau.
 	RialtoToMillau {
 		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		target: TargetConnectionParams,
 		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
+		target_sign: TargetSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
 	/// Relay Westend headers to Millau.
 	WestendToMillau {
 		#[structopt(flatten)]
-		westend: WestendConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		target: TargetConnectionParams,
 		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
+		target_sign: TargetSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 	},
@@ -74,13 +76,13 @@ pub enum RelayMessages {
 	/// Serve given lane of Millau -> Rialto messages.
 	MillauToRialto {
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
+		source_sign: SourceSigningParams,
 		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
+		target: TargetConnectionParams,
 		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
+		target_sign: TargetSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
@@ -90,13 +92,13 @@ pub enum RelayMessages {
 	/// Serve given lane of Rialto -> Millau messages.
 	RialtoToMillau {
 		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
+		source_sign: SourceSigningParams,
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		target: TargetConnectionParams,
 		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
+		target_sign: TargetSigningParams,
 		#[structopt(flatten)]
 		prometheus_params: PrometheusParams,
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
@@ -119,29 +121,29 @@ pub enum InitBridge {
 	/// Initialize Millau headers bridge in Rialto.
 	MillauToRialto {
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
+		target: TargetConnectionParams,
 		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
+		target_sign: TargetSigningParams,
 	},
 	/// Initialize Rialto headers bridge in Millau.
 	RialtoToMillau {
 		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		target: TargetConnectionParams,
 		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
+		target_sign: TargetSigningParams,
 	},
 	/// Initialize Westend headers bridge in Millau.
 	WestendToMillau {
 		#[structopt(flatten)]
-		westend: WestendConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		target: TargetConnectionParams,
 		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
+		target_sign: TargetSigningParams,
 	},
 }
 
@@ -159,11 +161,11 @@ pub enum SendMessage {
 	/// Submit message to given Millau -> Rialto lane.
 	MillauToRialto {
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
+		source_sign: SourceSigningParams,
 		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
+		target_sign: TargetSigningParams,
 		/// Hex-encoded lane id. Defaults to `00000000`.
 		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
@@ -184,11 +186,11 @@ pub enum SendMessage {
 	/// Submit message to given Rialto -> Millau lane.
 	RialtoToMillau {
 		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
+		source: SourceConnectionParams,
 		#[structopt(flatten)]
-		rialto_sign: RialtoSigningParams,
+		source_sign: SourceSigningParams,
 		#[structopt(flatten)]
-		millau_sign: MillauSigningParams,
+		target_sign: TargetSigningParams,
 		/// Hex-encoded lane id. Defaults to `00000000`.
 		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
@@ -268,7 +270,7 @@ pub enum EstimateFee {
 	/// Estimate fee of Rialto to Millau message.
 	RialtoToMillau {
 		#[structopt(flatten)]
-		rialto: RialtoConnectionParams,
+		source: SourceConnectionParams,
 		/// Hex-encoded id of lane that will be delivering the message.
 		#[structopt(long)]
 		lane: HexLaneId,
@@ -279,7 +281,7 @@ pub enum EstimateFee {
 	/// Estimate fee of Rialto to Millau message.
 	MillauToRialto {
 		#[structopt(flatten)]
-		millau: MillauConnectionParams,
+		source: SourceConnectionParams,
 		/// Hex-encoded id of lane that will be delivering the message.
 		#[structopt(long)]
 		lane: HexLaneId,
@@ -398,6 +400,8 @@ pub enum ToRialtoMessage {
 	},
 }
 
+// TODO [ToDr] Deal with message duplication.
+
 /// All possible messages that may be delivered to the Millau chain.
 #[derive(StructOpt, Debug)]
 pub enum ToMillauMessage {
@@ -434,7 +438,3 @@ pub enum ToMillauMessage {
 		fee: bp_millau::Balance,
 	},
 }
-
-declare_chain_options!(Rialto, rialto);
-declare_chain_options!(Millau, millau);
-declare_chain_options!(Westend, westend);

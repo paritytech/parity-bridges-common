@@ -99,6 +99,7 @@ impl TransactionSignScheme for Millau {
 	}
 }
 
+// TODO [ToDr] Remove
 /// Millau signing params.
 #[derive(Clone)]
 pub struct SigningParams {
