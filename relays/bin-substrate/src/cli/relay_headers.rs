@@ -50,6 +50,7 @@ macro_rules! select_bridge {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
 				type Finality = crate::rialto_millau::millau_headers_to_rialto::MillauFinalityToRialto;
+
 				$generic
 			}
 			RelayHeadersBridge::RialtoToMillau => {

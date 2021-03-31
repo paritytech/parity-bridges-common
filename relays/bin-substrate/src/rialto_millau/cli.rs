@@ -258,7 +258,7 @@ pub enum MessagePayload {
 	},
 }
 
-/// All possible messages that may be delivered to generic substrate chain.
+/// All possible messages that may be delivered to generic Substrate chain.
 #[derive(StructOpt, Debug)]
 pub enum Call {
 	/// Raw bytes for the message

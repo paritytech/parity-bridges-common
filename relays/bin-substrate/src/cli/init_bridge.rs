@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -40,7 +40,6 @@ arg_enum! {
 	#[derive(Debug)]
 	/// Bridge to initialize.
 	pub enum InitBridgeName {
-
 		MillauToRialto,
 		RialtoToMillau,
 		WestendToMillau,
