@@ -120,7 +120,7 @@ pub fn set_gauge_value<T: Default + Debug, V: Atomic<T = T>, E: Debug>(gauge: &G
 		Ok(None) => {
 			log::warn!(
 				target: "bridge-metrics",
-				"Failed to update metric '{}': value is empty",
+				"Failed to update metric '{:?}': value is empty",
 				gauge.desc().first().map(|d| d.fq_name),
 			);
 			Default::default()
@@ -128,7 +128,7 @@ pub fn set_gauge_value<T: Default + Debug, V: Atomic<T = T>, E: Debug>(gauge: &G
 		Err(error) => {
 			log::warn!(
 				target: "bridge-metrics",
-				"Failed to update metric '{}': {:?}",
+				"Failed to update metric '{:?}': {:?}",
 				gauge.desc().first().map(|d| d.fq_name),
 				error,
 			);
