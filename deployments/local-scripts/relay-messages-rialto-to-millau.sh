@@ -11,10 +11,10 @@ RIALTO_PORT="${RIALTO_PORT:-9944}"
 RUST_LOG=bridge=debug \
 ./target/debug/substrate-relay relay-messages rialto-to-millau \
 	--lane 00000000 \
-	--rialto-host localhost \
-	--rialto-port $RIALTO_PORT \
-	--rialto-signer //Bob \
-	--millau-host localhost \
-	--millau-port $MILLAU_PORT \
-	--millau-signer //Bob \
+	--source-host localhost \
+	--source-port $RIALTO_PORT \
+	--source-signer //Bob \
+	--target-host localhost \
+	--target-port $MILLAU_PORT \
+	--target-signer //Bob \
 	--prometheus-host=0.0.0.0
