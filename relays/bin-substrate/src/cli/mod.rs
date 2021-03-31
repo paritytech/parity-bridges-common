@@ -25,6 +25,8 @@ use frame_support::weights::Weight;
 use sp_runtime::app_crypto::Ss58Codec;
 use structopt::{clap::arg_enum, StructOpt};
 
+pub(crate) mod encode_call;
+
 mod init_bridge;
 mod relay_headers;
 
@@ -61,7 +63,7 @@ pub enum Command {
 	///
 	/// The call can be used either as message payload or can be wrapped into a transaction
 	/// and executed on the chain directly.
-	EncodeCall(EncodeCall),
+	EncodeCall(encode_call::EncodeCall),
 	/// Generate SCALE-encoded `MessagePayload` object that can be sent over selected bridge.
 	///
 	/// The `MessagePayload` can be then fed to `Messages::send_message` function and sent over
@@ -115,23 +117,6 @@ pub enum SendMessage {
 }
 
 impl SendMessage {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// A call to encode.
-#[derive(StructOpt)]
-pub enum EncodeCall {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::EncodeCall),
-}
-
-impl EncodeCall {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self {
@@ -310,9 +295,6 @@ pub trait CliChain: relay_substrate_client::Chain {
 	/// Numeric value of SS58 format.
 	fn ss58_format() -> u16;
 
-	/// Parse CLI call and encode it to be dispatched on this specific chain.
-	fn encode_call(call: crate::rialto_millau::cli::Call) -> Result<Self::Call, String>;
-
 	/// Construct message payload to be sent over the bridge.
 	fn encode_message(message: crate::rialto_millau::cli::MessagePayload) -> Result<Self::MessagePayload, String>;
 
@@ -355,7 +337,7 @@ impl std::str::FromStr for HexLaneId {
 }
 
 /// Nicer formatting for raw bytes vectors.
-#[derive(Encode, Decode)]
+#[derive(Default, Encode, Decode)]
 pub struct HexBytes(pub Vec<u8>);
 
 impl std::str::FromStr for HexBytes {
@@ -368,7 +350,13 @@ impl std::str::FromStr for HexBytes {
 
 impl std::fmt::Debug for HexBytes {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(fmt, "0x{}", hex::encode(&self.0))
+		write!(fmt, "0x{}", self)
+	}
+}
+
+impl std::fmt::Display for HexBytes {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(fmt, "{}", hex::encode(&self.0))
 	}
 }
 
@@ -496,5 +484,18 @@ mod tests {
 		let actual = parsed.iter().map(|a| format!("{}", a)).collect::<Vec<_>>();
 
 		assert_eq!(actual, expected)
+	}
+
+	#[test]
+	fn hex_bytes_display_matches_from_str_for_clap() {
+		// given
+		let hex = HexBytes(vec![1, 2, 3, 4]);
+		let display = format!("{}", hex);
+
+		// when
+		let hex2: HexBytes = display.parse().unwrap();
+
+		// then
+		assert_eq!(hex.0, hex2.0);
 	}
 }
