@@ -40,11 +40,6 @@ pub struct Justification<H: HeaderT> {
 }
 
 impl<H: HeaderT> Justification<H> {
-	/// Extract raw encoded justification.
-	pub fn into_encoded(self) -> sp_runtime::Justification {
-		self.justification.encode()
-	}
-
 	/// Get the decoded GRANDPA justification.
 	pub fn justification(self) -> GrandpaJustification<H> {
 		self.justification
