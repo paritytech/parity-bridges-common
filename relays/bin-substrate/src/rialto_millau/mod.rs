@@ -29,8 +29,8 @@ pub type MillauClient = relay_substrate_client::Client<Millau>;
 pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 
 use crate::cli::{
-	ExplicitOrMaximal, HexBytes, Origins, SourceConnectionParams, SourceSigningParams, TargetConnectionParams,
-	TargetSigningParams,
+	AccountId, CliChain, ExplicitOrMaximal, HexBytes, Origins, SourceConnectionParams, SourceSigningParams,
+	TargetConnectionParams, TargetSigningParams,
 };
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
@@ -396,23 +396,35 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 
 async fn run_derive_account(cmd: cli::DeriveAccount) -> Result<(), String> {
 	match cmd {
-		cli::DeriveAccount::RialtoToMillau { account } => {
-			let account = account.into_rialto();
-			let acc = bp_runtime::SourceAccount::Account(account.clone());
+		cli::DeriveAccount::RialtoToMillau { mut account } => {
+			type Source = Rialto;
+			type Target = Millau;
+
+			account.enforce_chain::<Source>();
+			let acc = bp_runtime::SourceAccount::Account(account.raw_id());
 			let id = bp_millau::derive_account_from_rialto_id(acc);
+			let derived_account = AccountId::from_raw::<Target>(id);
+			println!("Source address:\n{} ({})", account, Source::NAME);
 			println!(
-				"{} (Rialto)\n\nCorresponding (derived) account id:\n-> {} (Millau)",
-				account, id
-			)
+				"->Corresponding (derived) address:\n{} ({})",
+				derived_account,
+				Target::NAME,
+			);
 		}
-		cli::DeriveAccount::MillauToRialto { account } => {
-			let account = account.into_millau();
-			let acc = bp_runtime::SourceAccount::Account(account.clone());
+		cli::DeriveAccount::MillauToRialto { mut account } => {
+			type Source = Millau;
+			type Target = Rialto;
+
+			account.enforce_chain::<Source>();
+			let acc = bp_runtime::SourceAccount::Account(account.raw_id());
 			let id = bp_rialto::derive_account_from_millau_id(acc);
+			let derived_account = AccountId::from_raw::<Target>(id);
+			println!("Source address:\n{} ({})", account, Source::NAME);
 			println!(
-				"{} (Millau)\n\nCorresponding (derived) account id:\n-> {} (Rialto)",
-				account, id
-			)
+				"->Corresponding (derived) address:\n{} ({})",
+				derived_account,
+				Target::NAME,
+			);
 		}
 	}
 
@@ -538,35 +550,15 @@ fn compute_maximal_message_arguments_size(
 	maximal_call_size - service_bytes
 }
 
-// TODO [ToDr] Docs.
-pub trait CliChain: Chain {
-	const RUNTIME_VERSION: RuntimeVersion;
-
-	type KeyPair: sp_core::crypto::Pair;
-	type MessagePayload;
-
-	fn encode_call(call: cli::Call) -> Result<Self::Call, String>;
-
-	fn encode_message(message: cli::MessagePayload) -> Result<Self::MessagePayload, String>;
-
-	fn max_extrinsic_weight() -> Weight;
-
-	fn source_signing_params(params: SourceSigningParams) -> Result<Self::KeyPair, String> {
-		Self::KeyPair::from_string(&params.source_signer, params.source_signer_password.as_deref())
-			.map_err(|e| format!("Failed to parse source-signer: {:?}", e))
-	}
-
-	fn target_signing_params(params: TargetSigningParams) -> Result<Self::KeyPair, String> {
-		Self::KeyPair::from_string(&params.target_signer, params.target_signer_password.as_deref())
-			.map_err(|e| format!("Failed to parse target-signer: {:?}", e))
-	}
-}
-
 impl CliChain for Millau {
 	const RUNTIME_VERSION: RuntimeVersion = millau_runtime::VERSION;
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = MessagePayload<bp_millau::AccountId, bp_rialto::AccountSigner, bp_rialto::Signature, Vec<u8>>;
+
+	fn ss58_format() -> u16 {
+		millau_runtime::SS58Prefix::get() as u16
+	}
 
 	fn max_extrinsic_weight() -> Weight {
 		bp_millau::max_extrinsic_weight()
@@ -586,10 +578,10 @@ impl CliChain for Millau {
 					),
 				)))
 			}
-			cli::Call::Transfer { recipient, amount } => {
-				let recipient = recipient.into_millau();
+			cli::Call::Transfer { mut recipient, amount } => {
+				recipient.enforce_chain::<Millau>();
 				let amount = amount.cast();
-				millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient, amount))
+				millau_runtime::Call::Balances(millau_runtime::BalancesCall::transfer(recipient.raw_id(), amount))
 			}
 			cli::Call::BridgeSendMessage { lane, payload, fee } => {
 				type Target = Rialto;
@@ -622,11 +614,13 @@ impl CliChain for Millau {
 		match message {
 			cli::MessagePayload::Raw { data } => MessagePayload::decode(&mut &*data.0)
 				.map_err(|e| format!("Failed to decode Millau's MessagePayload: {:?}", e)),
-			cli::MessagePayload::Call { call, sender } => {
+			cli::MessagePayload::Call { call, mut sender } => {
+				type Source = Millau;
 				type Target = Rialto;
 
+				sender.enforce_chain::<Source>();
 				let spec_version = Target::RUNTIME_VERSION.spec_version;
-				let origin = CallOrigin::SourceAccount(sender.into_millau());
+				let origin = CallOrigin::SourceAccount(sender.raw_id());
 				let call = Target::encode_call(call)?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -640,9 +634,11 @@ impl CliChain for Rialto {
 	const RUNTIME_VERSION: RuntimeVersion = rialto_runtime::VERSION;
 
 	type KeyPair = sp_core::sr25519::Pair;
-
-	// TODO [ToDr] This has to be replaced with Target-specific payload.
 	type MessagePayload = MessagePayload<bp_rialto::AccountId, bp_millau::AccountSigner, bp_millau::Signature, Vec<u8>>;
+
+	fn ss58_format() -> u16 {
+		rialto_runtime::SS58Prefix::get() as u16
+	}
 
 	fn max_extrinsic_weight() -> Weight {
 		bp_rialto::max_extrinsic_weight()
@@ -662,10 +658,12 @@ impl CliChain for Rialto {
 					),
 				)))
 			}
-			cli::Call::Transfer { recipient, amount } => {
-				let recipient = recipient.into_rialto();
+			cli::Call::Transfer { mut recipient, amount } => {
+				type Source = Rialto;
+
+				recipient.enforce_chain::<Source>();
 				let amount = amount.0;
-				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient, amount))
+				rialto_runtime::Call::Balances(rialto_runtime::BalancesCall::transfer(recipient.raw_id(), amount))
 			}
 			cli::Call::BridgeSendMessage { lane, payload, fee } => {
 				type Target = Millau;
@@ -689,11 +687,13 @@ impl CliChain for Rialto {
 		match message {
 			cli::MessagePayload::Raw { data } => MessagePayload::decode(&mut &*data.0)
 				.map_err(|e| format!("Failed to decode Rialto's MessagePayload: {:?}", e)),
-			cli::MessagePayload::Call { call, sender } => {
+			cli::MessagePayload::Call { call, mut sender } => {
+				type Source = Rialto;
 				type Target = Millau;
 
+				sender.enforce_chain::<Source>();
 				let spec_version = Target::RUNTIME_VERSION.spec_version;
-				let origin = CallOrigin::SourceAccount(sender.into_rialto());
+				let origin = CallOrigin::SourceAccount(sender.raw_id());
 				let call = Target::encode_call(call)?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -718,6 +718,10 @@ impl CliChain for Westend {
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = ();
+
+	fn ss58_format() -> u16 {
+		42
+	}
 
 	fn max_extrinsic_weight() -> Weight {
 		0
@@ -921,6 +925,27 @@ mod tests {
 			"Hardcoded number of extra bytes in Millau transaction {} is lower than actual value: {}",
 			bp_millau::TX_EXTRA_BYTES,
 			extra_bytes_in_transaction,
+		);
+	}
+
+	#[test]
+	fn should_reformat_addresses() {
+		// given
+		let mut rialto1: AccountId = "5sauUXUfPjmwxSgmb3tZ5d6yx24eZX4wWJ2JtVUBaQqFbvEU".parse().unwrap();
+		let mut millau1: AccountId = "752paRyW1EGfq9YLTSSqcSJ5hqnBDidBmaftGhBo8fy6ypW9".parse().unwrap();
+
+		// when
+		rialto1.enforce_chain::<Millau>();
+		millau1.enforce_chain::<Rialto>();
+
+		// then
+		assert_eq!(
+			&format!("{}", rialto1),
+			"752paRyW1EGfq9YLTSSqcSJ5hqnBDidBmaftGhBo8fy6ypW9"
+		);
+		assert_eq!(
+			&format!("{}", millau1),
+			"5sauUXUfPjmwxSgmb3tZ5d6yx24eZX4wWJ2JtVUBaQqFbvEU"
 		);
 	}
 }
