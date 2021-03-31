@@ -23,34 +23,12 @@ use crate::sync_header::SyncHeader;
 
 use async_trait::async_trait;
 use bp_header_chain::justification::GrandpaJustification;
-use codec::{Decode, Encode};
-use finality_relay::{FinalityProof, FinalitySyncPipeline, SourceClient, SourceHeader};
+use codec::Decode;
+use finality_relay::{FinalitySyncPipeline, SourceClient, SourceHeader};
 use futures::stream::{unfold, Stream, StreamExt};
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_runtime::traits::Header as HeaderT;
 use std::{marker::PhantomData, pin::Pin};
-
-/// Wrapped raw Justification.
-#[derive(Debug, Clone)]
-pub struct Justification<H: HeaderT> {
-	/// Header number decoded from the [`raw_justification`].
-	target_header_number: H::Number,
-	/// Decoded GRANDPA justification.
-	justification: GrandpaJustification<H>,
-}
-
-impl<H: HeaderT> Justification<H> {
-	/// Get the decoded GRANDPA justification.
-	pub fn justification(self) -> GrandpaJustification<H> {
-		self.justification
-	}
-}
-
-impl<H: HeaderT> FinalityProof<H::Number> for Justification<H> {
-	fn target_header_number(&self) -> H::Number {
-		self.target_header_number
-	}
-}
 
 /// Substrate node as finality source.
 pub struct FinalitySource<C: Chain, P> {
@@ -95,11 +73,11 @@ where
 		Hash = C::Hash,
 		Number = C::BlockNumber,
 		Header = SyncHeader<C::Header>,
-		FinalityProof = Justification<C::Header>,
+		FinalityProof = GrandpaJustification<C::Header>,
 	>,
 	P::Header: SourceHeader<C::BlockNumber>,
 {
-	type FinalityProofsStream = Pin<Box<dyn Stream<Item = Justification<C::Header>> + Send>>;
+	type FinalityProofsStream = Pin<Box<dyn Stream<Item = GrandpaJustification<C::Header>> + Send>>;
 
 	async fn best_finalized_block_number(&self) -> Result<P::Number, Error> {
 		// we **CAN** continue to relay finality proofs if source node is out of sync, because
@@ -120,11 +98,7 @@ where
 			.justification()
 			.map(|raw_justification| GrandpaJustification::<C::Header>::decode(&mut raw_justification.as_slice()))
 			.transpose()
-			.map_err(Error::ResponseParseFailed)?
-			.map(|justification| Justification {
-				target_header_number: number,
-				justification,
-			});
+			.map_err(Error::ResponseParseFailed)?;
 
 		Ok((signed_block.header().into(), justification))
 	}
@@ -152,13 +126,7 @@ where
 						}
 					};
 
-					return Some((
-						Justification {
-							target_header_number: justification.commit.target_number,
-							justification,
-						},
-						subscription,
-					));
+					return Some((justification, subscription));
 				}
 			},
 		)

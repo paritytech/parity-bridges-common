@@ -136,6 +136,12 @@ pub struct GrandpaJustification<Header: HeaderT> {
 	pub votes_ancestries: Vec<Header>,
 }
 
+impl<H: HeaderT> crate::FinalityProof<H::Number> for GrandpaJustification<H> {
+	fn target_header_number(&self) -> H::Number {
+		self.commit.target_number
+	}
+}
+
 /// A utility trait implementing `finality_grandpa::Chain` using a given set of headers.
 #[derive(RuntimeDebug)]
 struct AncestryChain<Header: HeaderT> {

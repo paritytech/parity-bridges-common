@@ -1877,6 +1877,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "backoff",
+ "bp-header-chain",
  "futures 0.3.13",
  "headers-relay",
  "log",

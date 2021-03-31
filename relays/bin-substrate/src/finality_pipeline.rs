@@ -18,11 +18,9 @@
 
 use crate::finality_target::SubstrateFinalityTarget;
 
+use bp_header_chain::justification::GrandpaJustification;
 use finality_relay::{FinalitySyncParams, FinalitySyncPipeline};
-use relay_substrate_client::{
-	finality_source::{FinalitySource, Justification},
-	BlockNumberOf, Chain, Client, HashOf, SyncHeader,
-};
+use relay_substrate_client::{finality_source::FinalitySource, BlockNumberOf, Chain, Client, HashOf, SyncHeader};
 use relay_utils::BlockNumberBase;
 use sp_core::Bytes;
 use std::{fmt::Debug, marker::PhantomData, time::Duration};
@@ -91,7 +89,7 @@ where
 	type Hash = HashOf<SourceChain>;
 	type Number = BlockNumberOf<SourceChain>;
 	type Header = SyncHeader<SourceChain::Header>;
-	type FinalityProof = Justification<SourceChain::Header>;
+	type FinalityProof = GrandpaJustification<SourceChain::Header>;
 }
 
 /// Run Substrate-to-Substrate finality sync.
@@ -106,7 +104,7 @@ where
 		Hash = HashOf<SourceChain>,
 		Number = BlockNumberOf<SourceChain>,
 		Header = SyncHeader<SourceChain::Header>,
-		FinalityProof = Justification<SourceChain::Header>,
+		FinalityProof = GrandpaJustification<SourceChain::Header>,
 		TargetChain = TargetChain,
 	>,
 	SourceChain: Clone + Chain,

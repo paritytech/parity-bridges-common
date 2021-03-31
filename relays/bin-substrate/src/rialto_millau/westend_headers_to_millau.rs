@@ -19,9 +19,10 @@
 use super::{MillauClient, WestendClient};
 use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
+use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
-use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme};
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
 use sp_core::{Bytes, Pair};
 
@@ -41,12 +42,12 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 		&self,
 		transaction_nonce: <Millau as Chain>::Index,
 		header: WestendSyncHeader,
-		proof: Justification<bp_westend::Header>,
+		proof: GrandpaJustification<bp_westend::Header>,
 	) -> Bytes {
 		let call = millau_runtime::BridgeGrandpaWestendCall::<
 			millau_runtime::Runtime,
 			millau_runtime::WestendGrandpaInstance,
-		>::submit_finality_proof(header.into_inner(), proof.justification())
+		>::submit_finality_proof(header.into_inner(), proof)
 		.into();
 
 		let genesis_hash = *self.target_client.genesis_hash();
