@@ -124,7 +124,7 @@ impl InitBridge {
 							*target_client.genesis_hash(),
 							&target_sign,
 							transaction_nonce,
-							encode_init_bridge(initialization_data).into(),
+							encode_init_bridge(initialization_data),
 						)
 						.encode(),
 					)
