@@ -21,9 +21,8 @@ use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityT
 
 use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
-use relay_substrate_client::{
-	finality_source::Justification, metrics::FloatJsonValueMetric, Chain, TransactionSignScheme,
-};
+use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};
+use relay_utils::metrics::FloatJsonValueMetric;
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
 use sp_core::{Bytes, Pair};
 
