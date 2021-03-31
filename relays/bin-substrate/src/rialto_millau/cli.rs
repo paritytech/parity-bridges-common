@@ -25,6 +25,8 @@ use crate::cli::{
 };
 
 /// Start message relayer process.
+///
+/// TODO [#855] Move to separate module.
 #[derive(StructOpt)]
 pub enum RelayMessages {
 	/// Serve given lane of Millau -> Rialto messages.
@@ -70,6 +72,8 @@ impl RelayMessages {
 }
 
 /// Send bridge message.
+///
+/// TODO [#855] Move to separate module.
 #[derive(StructOpt)]
 pub enum SendMessage {
 	/// Submit message to given Millau -> Rialto lane.
@@ -133,6 +137,8 @@ impl SendMessage {
 }
 
 /// A call to encode.
+///
+/// TODO [#855] Move to separate module.
 #[derive(StructOpt)]
 pub enum EncodeCall {
 	/// Encode Rialto's Call.
@@ -156,6 +162,8 @@ impl EncodeCall {
 }
 
 /// A `MessagePayload` to encode.
+///
+/// TODO [#855] Move to separate module.
 #[derive(StructOpt)]
 pub enum EncodeMessagePayload {
 	/// Message Payload of Rialto to Millau call.
@@ -179,6 +187,8 @@ impl EncodeMessagePayload {
 }
 
 /// Estimate Delivery & Dispatch Fee command.
+///
+/// TODO [#855] Move to separate module.
 #[derive(StructOpt)]
 pub enum EstimateFee {
 	/// Estimate fee of Rialto to Millau message.
@@ -219,6 +229,8 @@ impl EstimateFee {
 /// that has been sent over the bridge.
 /// This account can also be used to receive target-chain funds (or other form of ownership),
 /// since messages sent over the bridge will be able to spend these.
+///
+/// TODO [#855] Move to separate module.
 #[derive(StructOpt)]
 pub enum DeriveAccount {
 	/// Given Rialto AccountId, display corresponding Millau AccountId.
