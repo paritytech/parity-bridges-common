@@ -603,13 +603,7 @@ impl CliChain for Millau {
 		Ok(call)
 	}
 
-	// TODO [ToDr] support multiple bridges?
-	// The way I see this it should be:
-	// ```
-	// encode_message::<Target: CliChain>
-	// ```
-	// and from the type we can extract all required parameters and figure out if it's supported or
-	// not.
+	// TODO [#854|#843] support multiple bridges?
 	fn encode_message(message: cli::MessagePayload) -> Result<Self::MessagePayload, String> {
 		match message {
 			cli::MessagePayload::Raw { data } => MessagePayload::decode(&mut &*data.0)

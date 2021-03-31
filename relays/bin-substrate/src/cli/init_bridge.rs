@@ -36,6 +36,7 @@ pub struct InitBridge {
 	target_sign: TargetSigningParams,
 }
 
+// TODO [#851] Use kebab-case.
 arg_enum! {
 	#[derive(Debug)]
 	/// Bridge to initialize.

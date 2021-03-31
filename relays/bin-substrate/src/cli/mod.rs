@@ -304,7 +304,7 @@ pub trait CliChain: relay_substrate_client::Chain {
 
 	/// Bridge Message Payload type.
 	///
-	/// TODO [ToDr] This should be removed in favour of target-specifc types.
+	/// TODO [#854] This should be removed in favour of target-specifc types.
 	type MessagePayload;
 
 	/// Numeric value of SS58 format.
@@ -466,8 +466,8 @@ macro_rules! declare_chain_options {
 	};
 }
 
-// TODO [ToDr] Use structop renames instead of different fields.
-// TODO [ToDr] Add Into<ConnectionParams>?
+// TODO [#852] Use structop renames instead of different fields.
+// TODO [#852] Add Into<ConnectionParams>?
 declare_chain_options!(Source, source);
 declare_chain_options!(Target, target);
 

@@ -33,6 +33,7 @@ pub struct RelayHeaders {
 	prometheus_params: PrometheusParams,
 }
 
+// TODO [#851] Use kebab-case.
 arg_enum! {
 	#[derive(Debug)]
 	/// Headers relay bridge.

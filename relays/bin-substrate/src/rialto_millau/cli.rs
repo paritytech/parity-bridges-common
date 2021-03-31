@@ -281,7 +281,7 @@ pub enum Call {
 		#[structopt(long)]
 		amount: Balance,
 	},
-	// TODO [ToDr] Support multiple bridges.
+	// TODO [#853] Support multiple bridges.
 	/// A call to the specific Message Lane pallet to send a message over the bridge.
 	BridgeSendMessage {
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
