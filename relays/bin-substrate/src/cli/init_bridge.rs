@@ -26,6 +26,8 @@ use structopt::{clap::arg_enum, StructOpt};
 /// Initialize bridge pallet.
 #[derive(StructOpt)]
 pub struct InitBridge {
+	/// A bridge instance to initalize.
+	#[structopt(possible_values = &InitBridgeName::variants(), case_insensitive = true)]
 	bridge: InitBridgeName,
 	#[structopt(flatten)]
 	source: SourceConnectionParams,
@@ -39,6 +41,7 @@ arg_enum! {
 	#[derive(Debug)]
 	/// Bridge to initialize.
 	pub enum InitBridgeName {
+
 		MillauToRialto,
 		RialtoToMillau,
 		WestendToMillau,

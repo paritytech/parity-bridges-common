@@ -21,6 +21,8 @@ use structopt::{clap::arg_enum, StructOpt};
 /// Start headers relayer process.
 #[derive(StructOpt)]
 pub struct RelayHeaders {
+	/// A bridge instance to relay headers for.
+	#[structopt(possible_values = &RelayHeadersBridge::variants(), case_insensitive = true)]
 	bridge: RelayHeadersBridge,
 	#[structopt(flatten)]
 	source: SourceConnectionParams,
