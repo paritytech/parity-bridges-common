@@ -3,6 +3,7 @@ set -xeu
 
 sleep 3
 curl -v http://millau-node-alice:9933/health
+curl -v http://westend-rpc.polkadot.io:443/health
 
 /home/user/substrate-relay init-bridge WestendToMillau \
 	--source-host westend-rpc.polkadot.io \
