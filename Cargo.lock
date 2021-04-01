@@ -822,6 +822,7 @@ dependencies = [
  "bp-runtime",
  "sp-api",
  "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -8204,6 +8205,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "sp-trie",
+ "sp-version",
  "structopt",
 ]
 

@@ -9,19 +9,19 @@ MILLAU_PORT="${MILLAU_PORT:-9945}"
 RIALTO_PORT="${RIALTO_PORT:-9944}"
 
 RUST_LOG=bridge=debug \
-./target/debug/substrate-relay init-bridge millau-to-rialto \
-	--millau-host localhost \
-	--millau-port $MILLAU_PORT \
-	--rialto-host localhost \
-	--rialto-port $RIALTO_PORT \
-	--rialto-signer //Alice \
+./target/debug/substrate-relay init-bridge MillauToRialto \
+	--source-host localhost \
+	--source-port $MILLAU_PORT \
+	--target-host localhost \
+	--target-port $RIALTO_PORT \
+	--target-signer //Alice \
 
 sleep 5
 RUST_LOG=bridge=debug \
-./target/debug/substrate-relay relay-headers millau-to-rialto \
-	--millau-host localhost \
-	--millau-port $MILLAU_PORT \
-	--rialto-host localhost \
-	--rialto-port $RIALTO_PORT \
-	--rialto-signer //Alice \
+./target/debug/substrate-relay relay-headers MillauToRialto \
+	--source-host localhost \
+	--source-port $MILLAU_PORT \
+	--target-host localhost \
+	--target-port $RIALTO_PORT \
+	--target-signer //Alice \
 	--prometheus-host=0.0.0.0
