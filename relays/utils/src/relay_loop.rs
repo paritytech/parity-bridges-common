@@ -24,9 +24,6 @@ use substrate_prometheus_endpoint::{init_prometheus, Registry};
 /// Default pause between reconnect attempts.
 pub const RECONNECT_DELAY: Duration = Duration::from_secs(10);
 
-/// Generic relay loop metrics that may be reused by any loop.
-pub type GenericLoopMetrics = LoopMetrics<(), (), ()>;
-
 /// Basic blockchain client from relay perspective.
 #[async_trait]
 pub trait Client: Clone + Send + Sync {
