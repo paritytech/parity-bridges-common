@@ -271,6 +271,9 @@ pub enum MessagePayload {
 }
 
 /// All possible messages that may be delivered to generic Substrate chain.
+///
+/// Note this enum may be used in the context of both Source (as part of `encode-call`)
+/// and Target chain (as part of `encode-message/send-message`).
 #[derive(StructOpt, Debug)]
 pub enum Call {
 	/// Raw bytes for the message
@@ -294,7 +297,7 @@ pub enum Call {
 		amount: Balance,
 	},
 	// TODO [#853] Support multiple bridges.
-	/// A call to the specific Message Lane pallet to send a message over the bridge.
+	/// A call to the specific Bridge Messages pallet to queue message to be sent over a bridge.
 	BridgeSendMessage {
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
 		#[structopt(long, default_value = "00000000")]
