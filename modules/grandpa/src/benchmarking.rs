@@ -56,7 +56,7 @@ use frame_system::RawOrigin;
 use num_traits::cast::AsPrimitive;
 use sp_finality_grandpa::AuthorityId;
 use sp_runtime::traits::{One, Zero};
-use sp_std::vec;
+use sp_std::{vec, vec::Vec};
 
 benchmarks_instance_pallet! {
 	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
@@ -94,7 +94,7 @@ benchmarks_instance_pallet! {
 			forks: p,
 		};
 
-		let justification = make_justification_for_header(params).encode();
+		let justification = make_justification_for_header(params);
 
 	}: _(RawOrigin::Signed(caller), header, justification)
 	verify {
@@ -131,7 +131,7 @@ benchmarks_instance_pallet! {
 			forks: 1,
 		};
 
-		let justification = make_justification_for_header(params).encode();
+		let justification = make_justification_for_header(params);
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
@@ -174,7 +174,7 @@ benchmarks_instance_pallet! {
 			forks: p,
 		};
 
-		let justification = make_justification_for_header(params).encode();
+		let justification = make_justification_for_header(params);
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
