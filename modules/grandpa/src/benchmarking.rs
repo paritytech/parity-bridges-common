@@ -51,12 +51,21 @@ use bp_test_utils::{
 	TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID,
 };
 use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
-use frame_support::traits::Get;
 use frame_system::RawOrigin;
-use num_traits::cast::AsPrimitive;
 use sp_finality_grandpa::AuthorityId;
 use sp_runtime::traits::{One, Zero};
 use sp_std::{vec, vec::Vec};
+
+// The upper limit of a session length used during benchmarking.
+//
+// This helps characterize the effect `vote_ancestries` has on justification verification time.
+const MAX_SESSION_LEN: u32 = 100;
+
+// The upper limit of the validator set size used during benchmarking.
+//
+// This helps characterize the effect `pre-commit` signature verification has on justification
+// verification time.
+const MAX_VALIDATOR_SET_SIZE: u32 = 100;
 
 benchmarks_instance_pallet! {
 	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
@@ -64,9 +73,12 @@ benchmarks_instance_pallet! {
 	//
 	// The other benchmarks related to `submit_finality_proof` are looking at the effect of specific
 	// parameters and are there mostly for seeing how specific codepaths behave.
+	//
+	// TODO: It might be more accurate to base the weight of the len() of the votes_ancestries since
+	// different forks can have different lengths
 	submit_finality_proof {
-		let s in 1..T::MaxBridgedSessionLength::get().as_() as u32;
-		let p in 1..T::MaxBridgedValidatorCount::get();
+		let s in 1..MAX_SESSION_LEN;
+		let p in 1..MAX_VALIDATOR_SET_SIZE;
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -108,7 +120,7 @@ benchmarks_instance_pallet! {
 	// What we want to check here is the effect of vote ancestries on justification verification
 	// do this by varying the number of headers between `finality_target` and `header_of_chain`.
 	submit_finality_proof_on_single_fork {
-		let s in 1..T::MaxBridgedSessionLength::get().as_() as u32;
+		let s in 1..MAX_SESSION_LEN;
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -146,7 +158,7 @@ benchmarks_instance_pallet! {
 	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
 	// final justification.
 	submit_finality_proof_on_many_forks {
-		let p in 1..T::MaxBridgedValidatorCount::get();
+		let p in 1..MAX_VALIDATOR_SET_SIZE;
 
 		let caller: T::AccountId = whitelisted_caller();
 
