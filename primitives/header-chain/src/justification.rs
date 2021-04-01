@@ -58,15 +58,11 @@ pub fn verify_justification<Header: HeaderT>(
 	finalized_target: (Header::Hash, Header::Number),
 	authorities_set_id: SetId,
 	authorities_set: &VoterSet<AuthorityId>,
-	raw_justification: &[u8],
-) -> Result<GrandpaJustification<Header>, Error>
+	justification: &GrandpaJustification<Header>,
+) -> Result<(), Error>
 where
 	Header::Number: finality_grandpa::BlockNumberOps,
 {
-	// Decode justification first
-	let justification =
-		GrandpaJustification::<Header>::decode(&mut &*raw_justification).map_err(|_| Error::JustificationDecode)?;
-
 	// Ensure that it is justification for the expected header
 	if (justification.commit.target_hash, justification.commit.target_number) != finalized_target {
 		return Err(Error::InvalidJustificationTarget);
@@ -122,10 +118,7 @@ where
 		return Err(Error::InvalidPrecommitAncestries);
 	}
 
-	// Note: The original GRANDPA code doesn't return the decoded justification. However, from the
-	// runtime's perspective it is useful for getting infromation about how much work was actual
-	// spent validating the justification.
-	Ok(justification)
+	Ok(())
 }
 
 /// A GRANDPA Justification is a proof that a given header was finalized
@@ -141,6 +134,12 @@ pub struct GrandpaJustification<Header: HeaderT> {
 	pub commit: finality_grandpa::Commit<Header::Hash, Header::Number, AuthoritySignature, AuthorityId>,
 	/// A proof that the chain of blocks in the commit are related to each other.
 	pub votes_ancestries: Vec<Header>,
+}
+
+impl<H: HeaderT> crate::FinalityProof<H::Number> for GrandpaJustification<H> {
+	fn target_header_number(&self) -> H::Number {
+		self.commit.target_number
+	}
 }
 
 /// A utility trait implementing `finality_grandpa::Chain` using a given set of headers.

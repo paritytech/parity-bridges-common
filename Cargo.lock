@@ -822,6 +822,7 @@ dependencies = [
  "bp-runtime",
  "sp-api",
  "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -1877,6 +1878,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "backoff",
+ "bp-header-chain",
  "futures 0.3.13",
  "headers-relay",
  "log",
@@ -8206,6 +8208,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "sp-trie",
+ "sp-version",
  "structopt",
 ]
 

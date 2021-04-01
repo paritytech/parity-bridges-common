@@ -14,8 +14,8 @@ MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE=128
 FERDIE_ADDR=5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL
 
 SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto"
-SHARED_HOST="--millau-host millau-node-bob --millau-port 9944"
-DAVE_SIGNER="--rialto-signer //Dave --millau-signer //Dave"
+SHARED_HOST="--source-host millau-node-bob --source-port 9944"
+DAVE_SIGNER="--target-signer //Dave --source-signer //Dave"
 
 SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $DAVE_SIGNER"
 

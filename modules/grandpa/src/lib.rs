@@ -37,6 +37,8 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::weights::WeightInfo;
+
+use bp_header_chain::justification::GrandpaJustification;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
@@ -48,7 +50,6 @@ use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::{BadOrigin, Header as HeaderT, Zero};
 use sp_runtime::RuntimeDebug;
-use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -146,7 +147,7 @@ pub mod pallet {
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,
 			finality_target: BridgedHeader<T, I>,
-			justification: Vec<u8>,
+			justification: GrandpaJustification<BridgedHeader<T, I>>,
 		) -> DispatchResultWithPostInfo {
 			ensure_operational::<T, I>()?;
 			let _ = ensure_signed(origin)?;
@@ -171,7 +172,7 @@ pub mod pallet {
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
 			let set_id = authority_set.set_id;
-			let justification = verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
+			verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
 
 			let _enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<BestFinalized<T, I>>::put(hash);
@@ -412,27 +413,24 @@ pub mod pallet {
 	/// If succesful it returns the decoded GRANDPA justification so we can refund any weight which
 	/// was overcharged in the initial call.
 	pub(crate) fn verify_justification<T: Config<I>, I: 'static>(
-		justification: &[u8],
+		justification: &GrandpaJustification<BridgedHeader<T, I>>,
 		hash: BridgedBlockHash<T, I>,
 		number: BridgedBlockNumber<T, I>,
 		authority_set: bp_header_chain::AuthoritySet,
-	) -> Result<bp_header_chain::justification::GrandpaJustification<BridgedHeader<T, I>>, sp_runtime::DispatchError> {
+	) -> Result<(), sp_runtime::DispatchError> {
 		use bp_header_chain::justification::verify_justification;
 
 		let voter_set = VoterSet::new(authority_set.authorities).ok_or(<Error<T, I>>::InvalidAuthoritySet)?;
 		let set_id = authority_set.set_id;
 
-		// We want to return the number of pre-commits and vote ancestries so that we can more
-		// accurately calculate the weight of our call.
-		let justification =
+		Ok(
 			verify_justification::<BridgedHeader<T, I>>((hash, number), set_id, &voter_set, &justification).map_err(
 				|e| {
 					log::error!(target: "runtime::bridge-grandpa", "Received invalid justification for {:?}: {:?}", hash, e);
 					<Error<T, I>>::InvalidJustification
 				},
-			)?;
-
-		Ok(justification)
+			)?,
+		)
 	}
 
 	/// Since this writes to storage with no real checks this should only be used in functions that
@@ -571,7 +569,7 @@ pub(crate) fn find_forced_change<H: HeaderT>(
 pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader<T, I>) {
 	initialize_bridge::<T, I>(InitializationData {
 		header,
-		authority_list: Vec::new(), // we don't verify any proofs in messages benchmarks
+		authority_list: sp_std::vec::Vec::new(), // we don't verify any proofs in external benchmarks
 		set_id: 0,
 		is_halted: false,
 	});
@@ -611,7 +609,7 @@ mod tests {
 
 	fn submit_finality_proof(header: u8) -> frame_support::dispatch::DispatchResultWithPostInfo {
 		let header = test_header(header.into());
-		let justification = make_default_justification(&header).encode();
+		let justification = make_default_justification(&header);
 
 		Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification)
 	}
@@ -757,10 +755,7 @@ mod tests {
 		run_test(|| {
 			<IsHalted<TestRuntime>>::put(true);
 
-			assert_noop!(
-				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), test_header(1), vec![]),
-				Error::<TestRuntime>::Halted,
-			);
+			assert_noop!(submit_finality_proof(1), Error::<TestRuntime>::Halted,);
 		})
 	}
 
@@ -787,7 +782,7 @@ mod tests {
 				set_id: 2,
 				..Default::default()
 			};
-			let justification = make_justification_for_header(params).encode();
+			let justification = make_justification_for_header(params);
 
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification,),
@@ -802,7 +797,8 @@ mod tests {
 			initialize_substrate_bridge();
 
 			let header = test_header(1);
-			let justification = [1u8; 32].encode();
+			let mut justification = make_default_justification(&header);
+			justification.round = 42;
 
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification,),
@@ -827,7 +823,7 @@ mod tests {
 			assert_ok!(Module::<TestRuntime>::initialize(Origin::root(), init_data));
 
 			let header = test_header(1);
-			let justification = [1u8; 32].encode();
+			let justification = make_default_justification(&header);
 
 			assert_err!(
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, justification,),
@@ -861,7 +857,7 @@ mod tests {
 			header.digest = change_log(0);
 
 			// Create a valid justification for the header
-			let justification = make_default_justification(&header).encode();
+			let justification = make_default_justification(&header);
 
 			// Let's import our test header
 			assert_ok!(Module::<TestRuntime>::submit_finality_proof(
@@ -893,7 +889,7 @@ mod tests {
 			header.digest = change_log(1);
 
 			// Create a valid justification for the header
-			let justification = make_default_justification(&header).encode();
+			let justification = make_default_justification(&header);
 
 			// Should not be allowed to import this header
 			assert_err!(
@@ -914,7 +910,7 @@ mod tests {
 			header.digest = forced_change_log(0);
 
 			// Create a valid justification for the header
-			let justification = make_default_justification(&header).encode();
+			let justification = make_default_justification(&header);
 
 			// Should not be allowed to import this header
 			assert_err!(
@@ -973,7 +969,8 @@ mod tests {
 		run_test(|| {
 			let submit_invalid_request = || {
 				let header = test_header(1);
-				let invalid_justification = vec![4, 2, 4, 2].encode();
+				let mut invalid_justification = make_default_justification(&header);
+				invalid_justification.round = 42;
 
 				Module::<TestRuntime>::submit_finality_proof(Origin::signed(1), header, invalid_justification)
 			};

@@ -16,13 +16,13 @@
 
 //! Rialto-to-Millau headers sync entrypoint.
 
-use super::{MillauClient, RialtoClient};
 use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
+use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SyncHeader as RialtoSyncHeader};
-use relay_substrate_client::{finality_source::Justification, Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme};
 use sp_core::{Bytes, Pair};
 
 /// Rialto-to-Millau finality sync pipeline.
@@ -34,40 +34,24 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 	type TargetChain = Millau;
 
 	fn transactions_author(&self) -> bp_millau::AccountId {
-		self.target_sign.signer.public().as_array_ref().clone().into()
+		self.target_sign.public().as_array_ref().clone().into()
 	}
 
 	fn make_submit_finality_proof_transaction(
 		&self,
 		transaction_nonce: <Millau as Chain>::Index,
 		header: RialtoSyncHeader,
-		proof: Justification<bp_rialto::BlockNumber>,
+		proof: GrandpaJustification<bp_rialto::Header>,
 	) -> Bytes {
 		let call = millau_runtime::BridgeGrandpaRialtoCall::<
 			millau_runtime::Runtime,
 			millau_runtime::RialtoGrandpaInstance,
-		>::submit_finality_proof(header.into_inner(), proof.into_inner())
+		>::submit_finality_proof(header.into_inner(), proof)
 		.into();
 
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign.signer, transaction_nonce, call);
+		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
 
 		Bytes(transaction.encode())
 	}
-}
-
-/// Run Rialto-to-Millau finality sync.
-pub async fn run(
-	rialto_client: RialtoClient,
-	millau_client: MillauClient,
-	millau_sign: MillauSigningParams,
-	metrics_params: Option<relay_utils::metrics::MetricsParams>,
-) -> Result<(), String> {
-	crate::finality_pipeline::run(
-		RialtoFinalityToMillau::new(millau_client.clone(), millau_sign),
-		rialto_client,
-		millau_client,
-		metrics_params,
-	)
-	.await
 }
