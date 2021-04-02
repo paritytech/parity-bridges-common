@@ -65,7 +65,9 @@ const MAX_SESSION_LEN: u32 = 100;
 //
 // This helps characterize the effect `pre-commit` signature verification has on justification
 // verification time.
-const MAX_VALIDATOR_SET_SIZE: u32 = 100;
+//
+// TODO [#846]: Right now this will break benchmarking if it is greater than `u8::MAX`
+const MAX_VALIDATOR_SET_SIZE: u32 = u8::MAX.into();
 
 benchmarks_instance_pallet! {
 	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
