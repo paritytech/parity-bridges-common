@@ -523,7 +523,7 @@ impl CliEncodeCall for Millau {
 				encode_call::MILLAU_TO_RIALTO_INDEX => {
 					let payload = Decode::decode(&mut &*payload.0)?;
 					millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
-						lane.0.clone(),
+						lane.0,
 						payload,
 						fee.cast(),
 					))
@@ -593,9 +593,7 @@ impl CliEncodeCall for Rialto {
 				encode_call::RIALTO_TO_MILLAU_INDEX => {
 					let payload = Decode::decode(&mut &*payload.0)?;
 					rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
-						lane.0.clone(),
-						payload,
-						fee.0,
+						lane.0, payload, fee.0,
 					))
 				}
 				_ => anyhow::bail!("Unsupported bridge pallet with index: {}", pallet_index),
