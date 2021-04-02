@@ -106,6 +106,7 @@ impl EncodeCallBridge {
 pub const RIALTO_TO_MILLAU_INDEX: u8 = 0;
 pub const MILLAU_TO_RIALTO_INDEX: u8 = 0;
 
+#[macro_export]
 macro_rules! select_bridge {
 	($bridge: expr, $generic: tt) => {
 		match $bridge {

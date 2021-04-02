@@ -31,6 +31,7 @@ mod derive_account;
 mod init_bridge;
 mod relay_headers;
 mod relay_messages;
+//mod send_message;
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
@@ -55,12 +56,12 @@ pub enum Command {
 	///
 	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
 	InitBridge(init_bridge::InitBridge),
-	/// Send custom message over the bridge.
-	///
-	/// Allows interacting with the bridge by sending messages over `Messages` component.
-	/// The message is being sent to the source chain, delivered to the target chain and dispatched
-	/// there.
-	SendMessage(SendMessage),
+	// /// Send custom message over the bridge.
+	// ///
+	// /// Allows interacting with the bridge by sending messages over `Messages` component.
+	// /// The message is being sent to the source chain, delivered to the target chain and dispatched
+	// /// there.
+	// SendMessage(send_message::SendMessage),
 	/// Generate SCALE-encoded `Call` for choosen network.
 	///
 	/// The call can be used either as message payload or can be wrapped into a transaction
@@ -84,28 +85,11 @@ impl Command {
 			Self::RelayHeaders(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
 			Self::InitBridge(arg) => arg.run().await?,
-			Self::SendMessage(arg) => arg.run().await?,
+			// Self::SendMessage(arg) => arg.run().await?,
 			Self::EncodeCall(arg) => arg.run().await?,
 			Self::EncodeMessagePayload(arg) => arg.run().await?,
 			Self::EstimateFee(arg) => arg.run().await?,
 			Self::DeriveAccount(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// Send bridge message.
-#[derive(StructOpt)]
-pub enum SendMessage {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::SendMessage),
-}
-
-impl SendMessage {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
 		}
 		Ok(())
 	}
