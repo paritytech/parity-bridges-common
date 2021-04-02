@@ -56,18 +56,17 @@ use sp_finality_grandpa::AuthorityId;
 use sp_runtime::traits::{One, Zero};
 use sp_std::{vec, vec::Vec};
 
-// The upper limit of a session length used during benchmarking.
+// The maximum number of vote ancestries to include in a justification.
 //
-// This helps characterize the effect `vote_ancestries` has on justification verification time.
-const MAX_SESSION_LEN: u32 = 100;
+// In practice this would be limited by the session length (number of blocks a single authority set
+// can produce) of a given chain.
+const MAX_VOTE_ANCESTRIES: u32 = 1000;
 
-// The upper limit of the validator set size used during benchmarking.
-//
-// This helps characterize the effect `pre-commit` signature verification has on justification
-// verification time.
+// The maximum number of pre-commits to include in a justification. In practice this scales with the
+// number of validators.
 //
 // TODO [#846]: Right now this will break benchmarking if it is greater than `u8::MAX`
-const MAX_VALIDATOR_SET_SIZE: u32 = u8::MAX.into();
+const MAX_VALIDATOR_SET_SIZE: u32 = 255;
 
 benchmarks_instance_pallet! {
 	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
@@ -75,11 +74,8 @@ benchmarks_instance_pallet! {
 	//
 	// The other benchmarks related to `submit_finality_proof` are looking at the effect of specific
 	// parameters and are there mostly for seeing how specific codepaths behave.
-	//
-	// TODO: It might be more accurate to base the weight of the len() of the votes_ancestries since
-	// different forks can have different lengths
 	submit_finality_proof {
-		let s in 1..MAX_SESSION_LEN;
+		let v in 1..MAX_VOTE_ANCESTRIES;
 		let p in 1..MAX_VALIDATOR_SET_SIZE;
 
 		let caller: T::AccountId = whitelisted_caller();
@@ -104,8 +100,10 @@ benchmarks_instance_pallet! {
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
 			authorities: accounts(p as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
-			depth: s,
-			forks: p,
+			votes: v,
+			// I don't think the number of forks matters, since the total number of vote
+			// ancestries to check will be the same
+			forks: 1,
 		};
 
 		let justification = make_justification_for_header(params);
@@ -122,7 +120,7 @@ benchmarks_instance_pallet! {
 	// What we want to check here is the effect of vote ancestries on justification verification
 	// do this by varying the number of headers between `finality_target` and `header_of_chain`.
 	submit_finality_proof_on_single_fork {
-		let s in 1..MAX_SESSION_LEN;
+		let v in 1..MAX_VOTE_ANCESTRIES;
 
 		let caller: T::AccountId = whitelisted_caller();
 
@@ -141,7 +139,7 @@ benchmarks_instance_pallet! {
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
 			authorities: test_keyring(),
-			depth: s,
+			votes: v,
 			forks: 1,
 		};
 
@@ -184,7 +182,7 @@ benchmarks_instance_pallet! {
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
 			authorities: accounts(p as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
-			depth: 2,
+			votes: p,
 			forks: p,
 		};
 
