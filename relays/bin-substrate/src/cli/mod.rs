@@ -28,6 +28,7 @@ use structopt::{clap::arg_enum, StructOpt};
 mod derive_account;
 mod init_bridge;
 mod relay_headers;
+mod relay_messages;
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
@@ -47,7 +48,7 @@ pub enum Command {
 	///
 	/// Ties up to `Messages` pallets on both chains and starts relaying messages.
 	/// Requires the header relay to be already running.
-	RelayMessages(RelayMessages),
+	RelayMessages(relay_messages::RelayMessages),
 	/// Initialize on-chain bridge pallet with current header data.
 	///
 	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
@@ -86,23 +87,6 @@ impl Command {
 			Self::EncodeMessagePayload(arg) => arg.run().await?,
 			Self::EstimateFee(arg) => arg.run().await?,
 			Self::DeriveAccount(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// Start message relayer process.
-#[derive(StructOpt)]
-pub enum RelayMessages {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::RelayMessages),
-}
-
-impl RelayMessages {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
 		}
 		Ok(())
 	}
