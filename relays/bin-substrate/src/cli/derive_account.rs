@@ -49,11 +49,17 @@ macro_rules! select_bridge {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
 
+				#[allow(unused_imports)] // the import is not used in `run`
+				use bp_millau::derive_account_from_rialto_id as derive_account;
+
 				$generic
 			}
 			DeriveAccountBridge::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
+
+				#[allow(unused_imports)] // the import is not used in `run`.
+				use bp_rialto::derive_account_from_millau_id as derive_account;
 
 				$generic
 			}
@@ -70,7 +76,7 @@ impl DeriveAccount {
 			let mut account = self.account.clone();
 			account.enforce_chain::<Source>();
 			let acc = bp_runtime::SourceAccount::Account(account.raw_id());
-			let id = bp_millau::derive_account_from_rialto_id(acc);
+			let id = derive_account(acc);
 			let derived_account = AccountId::from_raw::<Target>(id);
 			(account, derived_account)
 		})
@@ -118,7 +124,7 @@ mod tests {
 
 		assert_eq!(
 			format!("{}", rialto_derived),
-			"74GNQjmkcfstRftSQPJgMREchqHM56EvAUXRc266cZ1NYVW5"
+			"73gLnUwrAdH4vMjbXCiNEpgyz1PLk9JxCaY4cKzvfSZT73KE"
 		);
 		assert_eq!(
 			format!("{}", millau_derived),
