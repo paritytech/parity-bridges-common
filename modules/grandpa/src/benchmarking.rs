@@ -101,8 +101,6 @@ benchmarks_instance_pallet! {
 			set_id: TEST_GRANDPA_SET_ID,
 			authorities: accounts(p as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
 			votes: v,
-			// I don't think the number of forks matters, since the total number of vote
-			// ancestries to check will be the same
 			forks: 1,
 		};
 
