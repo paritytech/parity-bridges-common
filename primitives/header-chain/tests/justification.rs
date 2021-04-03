@@ -83,7 +83,7 @@ fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: authorities.clone(),
-		votes: 5 * authorities.len() as u32, // TODO
+		votes: n.into(),
 		forks: n.into(),
 	};
 
