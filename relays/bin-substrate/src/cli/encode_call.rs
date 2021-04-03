@@ -60,9 +60,9 @@ pub enum Call {
 	},
 	/// A call to the specific Bridge Messages pallet to queue message to be sent over a bridge.
 	BridgeSendMessage {
-		/// An index of the pallet to encode.
+		/// An index of the bridge instance which represents the expected target chain.
 		#[structopt(skip = 255)]
-		pallet_index: u8,
+		bridge_instance_index: u8,
 		/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
 		#[structopt(long, default_value = "00000000")]
 		lane: HexLaneId,
@@ -95,7 +95,7 @@ arg_enum! {
 }
 
 impl EncodeCallBridge {
-	fn pallet_index(&self) -> u8 {
+	fn bridge_instance_index(&self) -> u8 {
 		match self {
 			Self::MillauToRialto => MILLAU_TO_RIALTO_INDEX,
 			Self::RialtoToMillau => RIALTO_TO_MILLAU_INDEX,
@@ -128,7 +128,7 @@ macro_rules! select_bridge {
 impl EncodeCall {
 	fn encode(&mut self) -> anyhow::Result<HexBytes> {
 		select_bridge!(self.bridge, {
-			preprocess_call::<Source, Target>(&mut self.call, self.bridge.pallet_index());
+			preprocess_call::<Source, Target>(&mut self.call, self.bridge.bridge_instance_index());
 			let call = Source::encode_call(&self.call)?;
 
 			let encoded = HexBytes::encode(&call);
@@ -153,11 +153,11 @@ impl EncodeCall {
 /// This function will fill in all optional and missing pieces and will make sure that
 /// values are converted to bridge-specific ones.
 ///
-/// Most importantly, the method will fill-in [`bridge_pallet_index`] parameter for
+/// Most importantly, the method will fill-in [`bridge_instance_index`] parameter for
 /// target-chain specific calls.
 pub(crate) fn preprocess_call<Source: CliEncodeCall + CliChain, Target: CliEncodeCall>(
 	call: &mut Call,
-	bridge_pallet_index: u8,
+	bridge_instance: u8,
 ) {
 	match *call {
 		Call::Raw { .. } => {}
@@ -176,9 +176,10 @@ pub(crate) fn preprocess_call<Source: CliEncodeCall + CliChain, Target: CliEncod
 			recipient.enforce_chain::<Source>();
 		}
 		Call::BridgeSendMessage {
-			ref mut pallet_index, ..
+			ref mut bridge_instance_index,
+			..
 		} => {
-			*pallet_index = bridge_pallet_index;
+			*bridge_instance_index = bridge_instance;
 		}
 	};
 }
