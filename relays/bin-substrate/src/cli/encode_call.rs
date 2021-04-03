@@ -51,7 +51,7 @@ pub enum Call {
 	},
 	/// Transfer the specified `amount` of native tokens to a particular `recipient`.
 	Transfer {
-		/// SS58 encoded account that will receive the transfer (must have SS58Prefix = 42)
+		/// Address of an account to receive the transfer.
 		#[structopt(long)]
 		recipient: AccountId,
 		/// Amount of target tokens to send in target chain base currency units.
