@@ -119,8 +119,8 @@ pub mod pallet {
 		/// If successful in verification, it will write the target header to the underlying storage
 		/// pallet.
 		#[pallet::weight(T::WeightInfo::submit_finality_proof(
-			justification.commit.precommits.len() as u32,
 			justification.votes_ancestries.len() as u32,
+			justification.commit.precommits.len() as u32,
 		))]
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,
