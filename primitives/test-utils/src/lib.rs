@@ -102,6 +102,7 @@ pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorP
 	let mut precommits = vec![];
 	let mut votes_ancestries = vec![];
 
+	assert!(forks != 0, "Need at least one fork to have a chain..");
 	assert!(votes >= forks, "Need at least one header per fork.");
 	assert!(
 		forks as usize <= authorities.len(),
