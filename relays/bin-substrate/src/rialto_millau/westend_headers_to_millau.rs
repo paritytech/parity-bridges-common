@@ -72,6 +72,8 @@ pub async fn run(
 			finality_relay::metrics_prefix::<WestendFinalityToMillau>(),
 			metrics_params.address,
 		)
+		// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
+		// relays, but we want to test metrics/dashboards in advance
 		.standalone_metric(FloatJsonValueMetric::new(
 			"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=usd".into(),
 			"$.polkadot.usd".into(),
