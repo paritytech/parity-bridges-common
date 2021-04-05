@@ -434,7 +434,10 @@ impl CliEncodeCall for Millau {
 						fee.cast(),
 					))
 				}
-				_ => anyhow::bail!("Unsupported bridge pallet with index: {}", bridge_instance_index),
+				_ => anyhow::bail!(
+					"Unsupported target bridge pallet with instance index: {}",
+					bridge_instance_index
+				),
 			},
 		})
 	}
@@ -502,7 +505,10 @@ impl CliEncodeCall for Rialto {
 						lane.0, payload, fee.0,
 					))
 				}
-				_ => anyhow::bail!("Unsupported bridge pallet with index: {}", bridge_instance_index),
+				_ => anyhow::bail!(
+					"Unsupported target bridge pallet with instance index: {}",
+					bridge_instance_index
+				),
 			},
 		})
 	}
