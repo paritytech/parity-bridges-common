@@ -22,7 +22,6 @@ use codec::Decode;
 use relay_utils::metrics::{register, Gauge, Metrics, Registry, StandaloneMetrics, F64};
 use sp_core::storage::StorageKey;
 use sp_runtime::{traits::UniqueSaturatedInto, FixedPointNumber};
-use std::marker::PhantomData;
 use std::time::Duration;
 
 /// Storage value update interval (in blocks).
@@ -35,7 +34,6 @@ pub struct FloatStorageValueMetric<C: Chain, T: Clone> {
 	storage_key: StorageKey,
 	maybe_default_value: Option<T>,
 	metric: Gauge<F64>,
-	_phantom: PhantomData<T>,
 }
 
 impl<C: Chain, T: Decode + FixedPointNumber> FloatStorageValueMetric<C, T> {
@@ -56,7 +54,6 @@ impl<C: Chain, T: Decode + FixedPointNumber> FloatStorageValueMetric<C, T> {
 					we use default options;\
 					qed",
 			),
-			_phantom: Default::default(),
 		}
 	}
 }
