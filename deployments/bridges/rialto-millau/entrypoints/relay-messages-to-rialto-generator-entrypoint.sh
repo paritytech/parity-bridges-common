@@ -16,6 +16,7 @@ FERDIE_ADDR=5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL
 SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto"
 SHARED_HOST="--source-host millau-node-bob --source-port 9944"
 DAVE_SIGNER="--target-signer //Dave --source-signer //Dave"
+PAYLOAD="01234567"
 
 SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $DAVE_SIGNER"
 
@@ -38,7 +39,8 @@ do
 	$SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--origin Target \
-		remark
+		remark \
+		--remark-payload $PAYLOAD
 
 	rand_sleep
 	echo "Sending Transfer from Millau to Rialto using Target Origin"
@@ -54,7 +56,8 @@ do
 	 $SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--origin Source \
-		remark
+		remark \
+		--remark-payload $PAYLOAD
 
 	rand_sleep
 	echo "Sending Transfer from Millau to Rialto using Source Origin"
@@ -75,6 +78,7 @@ do
 			--lane $MESSAGE_LANE \
 			--origin Target \
 			remark \
+			--remark-payload $PAYLOAD \
 			--remark-size=max
 
 		rand_sleep
@@ -83,7 +87,8 @@ do
 			--lane $MESSAGE_LANE \
 			--origin Target \
 			--dispatch-weight=max \
-			remark
+			remark \
+			--remark-payload $PAYLOAD \
 
 		rand_sleep
 		echo "Sending Maximal Size and Dispatch Weight Remark from Millau to Rialto using Target Origin"
@@ -92,6 +97,7 @@ do
 			--origin Target \
 			--dispatch-weight=max \
 			remark \
+			--remark-payload $PAYLOAD \
 			--remark-size=max
 
 	fi
@@ -105,8 +111,8 @@ do
 			$SEND_MESSAGE \
 				--lane $MESSAGE_LANE \
 				--origin Target \
-				remark
+				remark \
+				--remark-payload $PAYLOAD
 		done
-
 	fi
 done
