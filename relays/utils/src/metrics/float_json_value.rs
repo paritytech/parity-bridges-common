@@ -46,23 +46,24 @@ impl FloatJsonValueMetric {
 
 	/// Read value from HTTP service.
 	async fn read_value(&self) -> Result<f64, String> {
-		use chttp::prelude::*;
+		use isahc::{AsyncReadResponseExt, HttpClient, Request};
 
-		fn map_chttp_err(err: impl std::fmt::Display) -> String {
+		fn map_isahc_err(err: impl std::fmt::Display) -> String {
 			format!("Failed to fetch token price from remote server: {}", err)
 		}
 
 		let request = Request::get(&self.url)
 			.header("Accept", "application/json")
 			.body(())
-			.map_err(map_chttp_err)?;
+			.map_err(map_isahc_err)?;
 		let raw_response = HttpClient::new()
+			.map_err(map_isahc_err)?
 			.send_async(request)
 			.await
-			.map_err(map_chttp_err)?
-			.text_async()
+			.map_err(map_isahc_err)?
+			.text()
 			.await
-			.map_err(map_chttp_err)?;
+			.map_err(map_isahc_err)?;
 
 		parse_service_response(&self.json_path, &raw_response)
 	}
