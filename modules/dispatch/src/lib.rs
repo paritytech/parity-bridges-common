@@ -490,6 +490,7 @@ mod tests {
 		type BlockLength = ();
 		type DbWeight = ();
 		type SS58Prefix = ();
+		type OnSetCode = ();
 	}
 
 	impl Config for TestRuntime {

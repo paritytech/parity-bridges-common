@@ -76,6 +76,7 @@ impl frame_system::Config for TestRuntime {
 	type BlockWeights = ();
 	type BlockLength = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
