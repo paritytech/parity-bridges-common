@@ -5978,6 +5978,7 @@ dependencies = [
  "relay-utils",
  "sc-rpc-api",
  "sp-core",
+ "sp-finality-grandpa",
  "sp-runtime",
  "sp-std",
  "sp-trie",
