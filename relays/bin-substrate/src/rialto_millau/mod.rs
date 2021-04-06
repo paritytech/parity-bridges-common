@@ -212,7 +212,7 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 	Ok(())
 }
 
-async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: Encode>(
+pub(crate) async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: Encode>(
 	client: &relay_substrate_client::Client<C>,
 	estimate_fee_method: &str,
 	lane: bp_messages::LaneId,
@@ -226,7 +226,7 @@ async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: En
 	Ok(decoded_response)
 }
 
-fn message_payload<SAccountId, TPublic, TSignature>(
+pub(crate) fn message_payload<SAccountId, TPublic, TSignature>(
 	spec_version: u32,
 	weight: Weight,
 	origin: CallOrigin<SAccountId, TPublic, TSignature>,
@@ -263,7 +263,7 @@ where
 	}
 }
 
-fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
+pub(crate) fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
 	bridge_runtime_common::messages::target::maximal_incoming_message_dispatch_weight(maximal_extrinsic_weight)
 }
 

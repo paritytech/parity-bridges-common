@@ -95,7 +95,7 @@ arg_enum! {
 }
 
 impl EncodeCallBridge {
-	fn bridge_instance_index(&self) -> u8 {
+	pub(crate) fn bridge_instance_index(&self) -> u8 {
 		match self {
 			Self::MillauToRialto => MILLAU_TO_RIALTO_INDEX,
 			Self::RialtoToMillau => RIALTO_TO_MILLAU_INDEX,
@@ -106,7 +106,6 @@ impl EncodeCallBridge {
 pub const RIALTO_TO_MILLAU_INDEX: u8 = 0;
 pub const MILLAU_TO_RIALTO_INDEX: u8 = 0;
 
-#[macro_export]
 macro_rules! select_bridge {
 	($bridge: expr, $generic: tt) => {
 		match $bridge {

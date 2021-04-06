@@ -31,7 +31,7 @@ mod derive_account;
 mod init_bridge;
 mod relay_headers;
 mod relay_messages;
-//mod send_message;
+mod send_message;
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
@@ -56,12 +56,12 @@ pub enum Command {
 	///
 	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
 	InitBridge(init_bridge::InitBridge),
-	// /// Send custom message over the bridge.
-	// ///
-	// /// Allows interacting with the bridge by sending messages over `Messages` component.
-	// /// The message is being sent to the source chain, delivered to the target chain and dispatched
-	// /// there.
-	// SendMessage(send_message::SendMessage),
+	/// Send custom message over the bridge.
+	///
+	/// Allows interacting with the bridge by sending messages over `Messages` component.
+	/// The message is being sent to the source chain, delivered to the target chain and dispatched
+	/// there.
+	SendMessage(send_message::SendMessage),
 	/// Generate SCALE-encoded `Call` for choosen network.
 	///
 	/// The call can be used either as message payload or can be wrapped into a transaction
@@ -85,7 +85,7 @@ impl Command {
 			Self::RelayHeaders(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
 			Self::InitBridge(arg) => arg.run().await?,
-			// Self::SendMessage(arg) => arg.run().await?,
+			Self::SendMessage(arg) => arg.run().await?,
 			Self::EncodeCall(arg) => arg.run().await?,
 			Self::EncodeMessagePayload(arg) => arg.run().await?,
 			Self::EstimateFee(arg) => arg.run().await?,
@@ -142,8 +142,15 @@ arg_enum! {
 }
 
 /// Generic balance type.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Balance(pub u128);
+
+impl std::fmt::Display for Balance {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		// TODO [ToDr] Use num_format.
+		write!(fmt, "{}", self.0)
+	}
+}
 
 impl std::str::FromStr for Balance {
 	type Err = <u128 as std::str::FromStr>::Err;

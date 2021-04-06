@@ -14,17 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::encode_call::{CliEncodeCall, EncodeCallBridge};
+use crate::cli::encode_call::{self, CliEncodeCall, EncodeCallBridge};
 use crate::cli::{
-	source_chain_client, target_chain_client, AccountId, Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId,
-	Origins, SourceConnectionParams, SourceSigningParams, TargetSigningParams,
+	AccountId, Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
+	SourceSigningParams, TargetSigningParams,
 };
-use crate::select_bridge;
+use bp_messages::LaneId;
 use codec::{Decode, Encode};
 use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
+use pallet_bridge_dispatch::CallOrigin;
 use relay_substrate_client::{Chain, TransactionSignScheme};
-use sp_core::Pair;
-use structopt::{clap::arg_enum, StructOpt};
+use sp_core::{Bytes, Pair};
+use sp_runtime::{traits::IdentifyAccount, MultiSigner};
+use structopt::StructOpt;
 
 /// Send bridge message.
 #[derive(StructOpt)]
@@ -57,9 +59,58 @@ pub struct SendMessage {
 	origin: Origins,
 }
 
+macro_rules! select_bridge {
+	($bridge: expr, $generic: tt) => {
+		match $bridge {
+			EncodeCallBridge::MillauToRialto => {
+				type Source = relay_millau_client::Millau;
+				type Target = relay_rialto_client::Rialto;
+
+				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+				use millau_runtime::rialto_account_ownership_digest as account_ownership_digest;
+
+				// TODO [ToDr] Use `encode_call`.
+				fn send_message_call(
+					lane: LaneId,
+					payload: <Source as CliChain>::MessagePayload,
+					fee: Balance,
+				) -> millau_runtime::Call {
+					millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
+						lane,
+						payload,
+						fee.cast(),
+					))
+				}
+
+				$generic
+			}
+			EncodeCallBridge::RialtoToMillau => {
+				type Source = relay_rialto_client::Rialto;
+				type Target = relay_millau_client::Millau;
+
+				use bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+				use rialto_runtime::millau_account_ownership_digest as account_ownership_digest;
+
+				// TODO [ToDr] Use `encode_call`.
+				fn send_message_call(
+					lane: LaneId,
+					payload: <Source as CliChain>::MessagePayload,
+					fee: Balance,
+				) -> rialto_runtime::Call {
+					rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
+						lane, payload, fee.0,
+					))
+				}
+
+				$generic
+			}
+		}
+	};
+}
+
 impl SendMessage {
 	/// Run the command.
-	pub async fn run(mut self) -> anyhow::Result<()> {
+	pub async fn run(self) -> anyhow::Result<()> {
 		let Self {
 			source,
 			source_sign,
@@ -73,45 +124,33 @@ impl SendMessage {
 		} = self;
 
 		select_bridge!(bridge, {
-			// Bridge-specific
-			// let account_ownership_digest = |target_call, source_account_id| {
-			// 	millau_runtime::rialto_account_ownership_digest(
-			// 		&target_call,
-			// 		source_account_id,
-			// 		Target::RUNTIME_VERSION.spec_version,
-			// 	)
-			// };
-			// let estimate_message_fee_method = bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD;
-			// let fee = fee.map(|x| x.cast());
-			// let send_message_call = |lane, payload, fee| {
-			// 	millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
-			// 		lane, payload, fee,
-			// 	))
-			// };
+			let source_client = source.into_client::<Source>().await?;
+			let source_sign = source_sign.into_keypair::<Source>()?;
+			let target_sign = target_sign.into_keypair::<Target>()?;
 
-			let source_client = self.source.into_client::<Source>().await?;
-			let target_client = self.target.into_client::<Target>().await?;
-			let target_sign = self.target_sign.into_keypair::<Target>()?;
-
-			encode_call::preprocess_call::<Source, Target>(&mut message, bridge.pallet_index());
+			encode_call::preprocess_call::<Source, Target>(&mut message, bridge.bridge_instance_index());
 			let target_call = Target::encode_call(&message)?;
 
 			let payload = {
 				let target_call_weight = prepare_call_dispatch_weight(
 					dispatch_weight,
 					ExplicitOrMaximal::Explicit(target_call.get_dispatch_info().weight),
-					compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
+					crate::rialto_millau::compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
 				);
 				let source_sender_public: MultiSigner = source_sign.public().into();
 				let source_account_id = source_sender_public.into_account();
 
-				message_payload(
+				crate::rialto_millau::message_payload(
 					Target::RUNTIME_VERSION.spec_version,
 					target_call_weight,
 					match origin {
 						Origins::Source => CallOrigin::SourceAccount(source_account_id),
 						Origins::Target => {
-							let digest = account_ownership_digest(&target_call, source_account_id.clone());
+							let digest = account_ownership_digest(
+								&target_call,
+								source_account_id.clone(),
+								Target::RUNTIME_VERSION.spec_version,
+							);
 							let target_origin_public = target_sign.public();
 							let digest_signature = target_sign.sign(&digest);
 							CallOrigin::TargetAccount(
@@ -127,13 +166,14 @@ impl SendMessage {
 			let dispatch_weight = payload.weight;
 
 			let lane = lane.into();
-			let fee = get_fee(fee, || {
-				estimate_message_delivery_and_dispatch_fee(
-					&source_client,
-					estimate_message_fee_method,
-					lane,
-					payload.clone(),
-				)
+			let fee = get_fee(fee, || async {
+				crate::rialto_millau::estimate_message_delivery_and_dispatch_fee::<
+					<Source as relay_substrate_client::ChainWithBalances>::NativeBalance,
+					_,
+					_,
+				>(&source_client, ESTIMATE_MESSAGE_FEE_METHOD, lane, payload.clone())
+				.await
+				.map(|v| v.map(|v| Balance(v as _)))
 			})
 			.await?;
 
@@ -184,20 +224,17 @@ fn prepare_call_dispatch_weight(
 	}
 }
 
-async fn get_fee<Fee, F, R, E>(fee: Option<Fee>, f: F) -> Result<Fee, String>
+async fn get_fee<F, R, E>(fee: Option<Balance>, f: F) -> anyhow::Result<Balance>
 where
-	Fee: Decode,
 	F: FnOnce() -> R,
-	R: std::future::Future<Output = Result<Option<Fee>, E>>,
-	E: Debug,
+	R: std::future::Future<Output = Result<Option<Balance>, E>>,
+	E: Send + Sync + std::error::Error + 'static,
 {
 	match fee {
 		Some(fee) => Ok(fee),
-		None => match f().await {
-			Ok(Some(fee)) => Ok(fee),
-			Ok(None) => Err("Failed to estimate message fee. Message is too heavy?".into()),
-			Err(error) => Err(format!("Failed to estimate message fee: {:?}", error)),
-		},
+		None => f().await?.ok_or(anyhow::format_err!(
+			"Failed to estimate message fee. Message is too heavy?"
+		)),
 	}
 }
 
