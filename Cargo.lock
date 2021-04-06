@@ -4103,6 +4103,7 @@ dependencies = [
  "sc-keystore",
  "sc-rpc",
  "sc-service",
+ "sc-telemetry",
  "sc-transaction-pool",
  "sp-consensus",
  "sp-consensus-aura",
