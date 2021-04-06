@@ -122,7 +122,7 @@ impl Alternative {
 							get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 							get_account_id_from_seed::<sr25519::Public>("George//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
-							pallet_bridge_messages::Module::<
+							pallet_bridge_messages::Pallet::<
 								millau_runtime::Runtime,
 								pallet_bridge_messages::DefaultInstance,
 							>::relayer_fund_account_id(),

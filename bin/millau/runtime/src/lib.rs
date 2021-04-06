@@ -292,7 +292,7 @@ impl pallet_session::Config for Runtime {
 	type ValidatorIdOf = ();
 	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
 	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
-	type SessionManager = pallet_shift_session_manager::Module<Runtime>;
+	type SessionManager = pallet_shift_session_manager::Pallet<Runtime>;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
 	type DisabledValidatorsThreshold = ();
@@ -363,7 +363,7 @@ impl pallet_bridge_messages::Config for Runtime {
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = pallet_bridge_messages::instant_payments::InstantCurrencyPayments<
 		Runtime,
-		pallet_balances::Module<Runtime>,
+		pallet_balances::Pallet<Runtime>,
 		GetDeliveryConfirmationTransactionFee,
 		RootAccountForPayments,
 	>;
@@ -378,20 +378,20 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		BridgeRialtoMessages: pallet_bridge_messages::{Module, Call, Storage, Event<T>},
-		BridgeDispatch: pallet_bridge_dispatch::{Module, Event<T>},
-		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Module, Call, Storage},
-		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Module, Call, Config<T>, Storage},
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
-		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-		Aura: pallet_aura::{Module, Config<T>},
-		Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		TransactionPayment: pallet_transaction_payment::{Module, Storage},
-		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		Session: pallet_session::{Module, Call, Storage, Event, Config<T>},
-		ShiftSessionManager: pallet_shift_session_manager::{Module},
+		BridgeRialtoMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>},
+		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
+		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
+		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Config<T>, Storage},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
+		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+		Aura: pallet_aura::{Pallet, Config<T>},
+		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
 	}
 );
 
@@ -423,7 +423,7 @@ pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signatu
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive =
-	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllModules>;
+	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPallets>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
