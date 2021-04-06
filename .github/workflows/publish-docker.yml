@@ -59,6 +59,12 @@ jobs:
           echo ::set-output name=TAGS::${TAGS}
           echo ::set-output name=DATE::$(date +%d-%m-%Y)
 
+      - name: Workaround rootless build
+        run: |
+          sudo apt-get install fuse-overlayfs
+          mkdir -vp ~/.config/containers
+          printf "[storage.options]\nmount_program=\"/usr/bin/fuse-overlayfs\"" > ~/.config/containers/storage.conf
+
       - name:                                       Build image for ${{ matrix.project }}
         uses:                                       redhat-actions/buildah-build@v2.2
         with:
