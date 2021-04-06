@@ -20,7 +20,6 @@ env_logger = "0.8.3"
 bp-header-chain = { path = "../../primitives/header-chain" }
 bp-runtime = { path = "../../primitives/runtime" }
 bp-test-utils = { path = "../../primitives/test-utils" }
-pallet-substrate-bridge = { path = "../../modules/substrate" }
 
 # Substrate Dependencies
 

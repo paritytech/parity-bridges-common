@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// Copyright 2019-2020 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -14,28 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Substrate-to-substrate relay entrypoint.
+//! Contains several Substrate-specific metrics that may be exposed by relay.
 
-#![warn(missing_docs)]
+pub use float_storage_value::FloatStorageValueMetric;
+pub use storage_proof_overhead::StorageProofOverheadMetric;
 
-use relay_utils::initialize::initialize_logger;
-
-mod cli;
-mod finality_pipeline;
-mod finality_target;
-mod headers_initialize;
-mod messages_lane;
-mod messages_source;
-mod messages_target;
-
-mod rialto_millau;
-
-fn main() {
-	initialize_logger(false);
-	let command = cli::parse_args();
-	let run = command.run();
-	let result = async_std::task::block_on(run);
-	if let Err(error) = result {
-		log::error!(target: "bridge", "Failed to start relay: {}", error);
-	}
-}
+mod float_storage_value;
+mod storage_proof_overhead;

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ use sp_runtime::{
 use std::{fmt::Debug, time::Duration};
 
 /// Substrate-based chain from minimal relay-client point of view.
-pub trait Chain: ChainBase {
+pub trait Chain: ChainBase + Clone {
 	/// Chain name.
 	const NAME: &'static str;
 	/// Average block interval.

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -72,7 +72,7 @@ pub struct EthereumSyncParams {
 	/// Synchronization parameters.
 	pub sync_params: HeadersSyncParams,
 	/// Metrics parameters.
-	pub metrics_params: Option<MetricsParams>,
+	pub metrics_params: MetricsParams,
 	/// Instance of the bridge pallet being synchronized.
 	pub instance: Arc<dyn BridgeInstance>,
 }
