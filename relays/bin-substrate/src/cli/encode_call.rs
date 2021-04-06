@@ -246,4 +246,79 @@ mod tests {
 			"0x0d00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0"
 		);
 	}
+
+	#[test]
+	fn should_encode_remark_with_default_payload() {
+		// given
+		let mut encode_call = EncodeCall::from_iter(vec!["encode-call", "RialtoToMillau", "remark"]);
+
+		// when
+		let hex = encode_call.encode().unwrap();
+
+		// then
+		assert_eq!(
+			format!("{:?}", hex),
+			"0x0d00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0"
+		);
+	}
+
+	#[test]
+	fn should_encode_remark_with_explicit_payload() {
+		// given
+		let mut encode_call = EncodeCall::from_iter(vec![
+			"encode-call",
+			"RialtoToMillau",
+			"remark",
+			"--remark-payload",
+			"1234",
+		]);
+
+		// when
+		let hex = encode_call.encode().unwrap();
+
+		// then
+		assert_eq!(
+			format!("{:?}", hex),
+			"0x0d00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0"
+		);
+	}
+
+	#[test]
+	fn should_encode_remark_with_size() {
+		// given
+		let mut encode_call =
+			EncodeCall::from_iter(vec!["encode-call", "RialtoToMillau", "remark", "--remark-size", "12"]);
+
+		// when
+		let hex = encode_call.encode().unwrap();
+
+		// then
+		assert_eq!(
+			format!("{:?}", hex),
+			"0x0d00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0"
+		);
+	}
+
+	#[test]
+	fn should_disallow_both_payload_and_size() {
+		// given
+		let mut encode_call = EncodeCall::from_iter(vec![
+			"encode-call",
+			"RialtoToMillau",
+			"remark",
+			"--remark-payload",
+			"1234",
+			"--remark-size",
+			"12",
+		]);
+
+		// when
+		let hex = encode_call.encode().unwrap();
+
+		// then
+		assert_eq!(
+			format!("{:?}", hex),
+			"0x0d00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0"
+		);
+	}
 }
