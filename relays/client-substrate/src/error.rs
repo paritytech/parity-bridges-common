@@ -44,6 +44,20 @@ pub enum Error {
 	Custom(String),
 }
 
+impl std::error::Error for Error {
+	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+		match self {
+			Self::RpcError(ref e) => Some(e),
+			Self::ResponseParseFailed(ref e) => Some(e),
+			Self::UninitializedBridgePallet => None,
+			Self::AccountDoesNotExist => None,
+			Self::ClientNotSynced(_) => None,
+			Self::StorageProofError(_) => None,
+			Self::Custom(_) => None,
+		}
+	}
+}
+
 impl From<RpcError> for Error {
 	fn from(error: RpcError) -> Self {
 		Error::RpcError(error)
@@ -63,15 +77,9 @@ impl MaybeConnectionError for Error {
 	}
 }
 
-impl From<Error> for String {
-	fn from(error: Error) -> String {
-		error.to_string()
-	}
-}
-
-impl ToString for Error {
-	fn to_string(&self) -> String {
-		match self {
+impl std::fmt::Display for Error {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		let s = match self {
 			Self::RpcError(e) => e.to_string(),
 			Self::ResponseParseFailed(e) => e.to_string(),
 			Self::UninitializedBridgePallet => "The Substrate bridge pallet has not been initialized yet.".into(),
@@ -79,6 +87,14 @@ impl ToString for Error {
 			Self::StorageProofError(e) => format!("Error when parsing storage proof: {:?}", e),
 			Self::ClientNotSynced(health) => format!("Substrate client is not synced: {}", health),
 			Self::Custom(e) => e.clone(),
-		}
+		};
+
+		write!(f, "{}", s)
+	}
+}
+
+impl From<Error> for String {
+	fn from(error: Error) -> String {
+		error.to_string()
 	}
 }

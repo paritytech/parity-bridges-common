@@ -22,11 +22,23 @@
 
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
 use sp_std::prelude::*;
+use sp_version::RuntimeVersion;
 
 pub use bp_polkadot_core::*;
 
 /// Westend Chain
 pub type Westend = PolkadotLike;
+
+/// Runtime version.
+pub const VERSION: RuntimeVersion = RuntimeVersion {
+	spec_name: sp_version::create_runtime_str!("westend"),
+	impl_name: sp_version::create_runtime_str!("parity-westend"),
+	authoring_version: 2,
+	spec_version: 50,
+	impl_version: 0,
+	apis: sp_version::create_apis_vec![[]],
+	transaction_version: 5,
+};
 
 // We use this to get the account on Westend (target) which is derived from Rococo's (source)
 // account.
@@ -56,6 +68,13 @@ pub const FROM_WESTEND_LATEST_RECEIVED_NONCE_METHOD: &str = "FromWestendInboundL
 pub const FROM_WESTEND_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromWestendInboundLaneApi_latest_confirmed_nonce";
 /// Name of the `FromWestendInboundLaneApi::unrewarded_relayers_state` runtime method.
 pub const FROM_WESTEND_UNREWARDED_RELAYERS_STATE: &str = "FromWestendInboundLaneApi_unrewarded_relayers_state";
+
+/// The target length of a session (how often authorities change) on Westend measured in of number of
+/// blocks.
+///
+/// Note that since this is a target sessions may change before/after this time depending on network
+/// conditions.
+pub const SESSION_LENGTH: BlockNumber = 10 * time_units::MINUTES;
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Westend headers.

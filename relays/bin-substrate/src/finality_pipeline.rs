@@ -18,11 +18,9 @@
 
 use crate::finality_target::SubstrateFinalityTarget;
 
+use bp_header_chain::justification::GrandpaJustification;
 use finality_relay::{FinalitySyncParams, FinalitySyncPipeline};
-use relay_substrate_client::{
-	finality_source::{FinalitySource, Justification},
-	BlockNumberOf, Chain, Client, HashOf, SyncHeader,
-};
+use relay_substrate_client::{finality_source::FinalitySource, BlockNumberOf, Chain, Client, HashOf, SyncHeader};
 use relay_utils::{metrics::MetricsParams, BlockNumberBase};
 use sp_core::Bytes;
 use std::{fmt::Debug, marker::PhantomData, time::Duration};
@@ -43,6 +41,11 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 	/// Chain with GRANDPA bridge pallet.
 	type TargetChain: Chain;
 
+	/// Customize metrics exposed by headers sync loop.
+	fn customize_metrics(params: MetricsParams) -> anyhow::Result<MetricsParams> {
+		Ok(params)
+	}
+
 	/// Returns id of account that we're using to sign transactions at target chain.
 	fn transactions_author(&self) -> <Self::TargetChain as Chain>::AccountId;
 
@@ -56,7 +59,7 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 }
 
 /// Substrate-to-Substrate finality proof pipeline.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SubstrateFinalityToSubstrate<SourceChain, TargetChain: Chain, TargetSign> {
 	/// Client for the target chain.
 	pub(crate) target_client: Client<TargetChain>,
@@ -64,6 +67,16 @@ pub struct SubstrateFinalityToSubstrate<SourceChain, TargetChain: Chain, TargetS
 	pub(crate) target_sign: TargetSign,
 	/// Unused generic arguments dump.
 	_marker: PhantomData<SourceChain>,
+}
+
+impl<SourceChain, TargetChain: Chain, TargetSign> Debug
+	for SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>
+{
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		f.debug_struct("SubstrateFinalityToSubstrate")
+			.field("target_client", &self.target_client)
+			.finish()
+	}
 }
 
 impl<SourceChain, TargetChain: Chain, TargetSign> SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign> {
@@ -83,7 +96,7 @@ where
 	SourceChain: Clone + Chain + Debug,
 	BlockNumberOf<SourceChain>: BlockNumberBase,
 	TargetChain: Clone + Chain + Debug,
-	TargetSign: Clone + Send + Sync + Debug,
+	TargetSign: Clone + Send + Sync,
 {
 	const SOURCE_NAME: &'static str = SourceChain::NAME;
 	const TARGET_NAME: &'static str = TargetChain::NAME;
@@ -91,7 +104,7 @@ where
 	type Hash = HashOf<SourceChain>;
 	type Number = BlockNumberOf<SourceChain>;
 	type Header = SyncHeader<SourceChain::Header>;
-	type FinalityProof = Justification<SourceChain::BlockNumber>;
+	type FinalityProof = GrandpaJustification<SourceChain::Header>;
 }
 
 /// Run Substrate-to-Substrate finality sync.
@@ -100,13 +113,13 @@ pub async fn run<SourceChain, TargetChain, P>(
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
 	metrics_params: MetricsParams,
-) -> Result<(), String>
+) -> anyhow::Result<()>
 where
 	P: SubstrateFinalitySyncPipeline<
 		Hash = HashOf<SourceChain>,
 		Number = BlockNumberOf<SourceChain>,
 		Header = SyncHeader<SourceChain::Header>,
-		FinalityProof = Justification<SourceChain::BlockNumber>,
+		FinalityProof = GrandpaJustification<SourceChain::Header>,
 		TargetChain = TargetChain,
 	>,
 	SourceChain: Clone + Chain,
@@ -132,4 +145,5 @@ where
 		futures::future::pending(),
 	)
 	.await
+	.map_err(|e| anyhow::format_err!("{}", e))
 }

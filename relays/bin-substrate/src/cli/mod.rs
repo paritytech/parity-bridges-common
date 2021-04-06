@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -16,12 +16,21 @@
 
 //! Deal with CLI args of substrate-to-substrate relay.
 
+use std::convert::TryInto;
+
+use crate::rialto_millau::cli as rialto_millau;
 use bp_messages::LaneId;
 use codec::{Decode, Encode};
+use frame_support::weights::Weight;
 use sp_runtime::app_crypto::Ss58Codec;
 use structopt::{clap::arg_enum, StructOpt};
 
-use crate::rialto_millau::cli as rialto_millau;
+pub(crate) mod encode_call;
+
+mod derive_account;
+mod init_bridge;
+mod relay_headers;
+mod relay_messages;
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
@@ -36,16 +45,16 @@ pub enum Command {
 	///
 	/// The on-chain bridge component should have been already initialized with
 	/// `init-bridge` sub-command.
-	RelayHeaders(RelayHeaders),
+	RelayHeaders(relay_headers::RelayHeaders),
 	/// Start messages relay between two chains.
 	///
 	/// Ties up to `Messages` pallets on both chains and starts relaying messages.
 	/// Requires the header relay to be already running.
-	RelayMessages(RelayMessages),
+	RelayMessages(relay_messages::RelayMessages),
 	/// Initialize on-chain bridge pallet with current header data.
 	///
 	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
-	InitBridge(InitBridge),
+	InitBridge(init_bridge::InitBridge),
 	/// Send custom message over the bridge.
 	///
 	/// Allows interacting with the bridge by sending messages over `Messages` component.
@@ -56,7 +65,7 @@ pub enum Command {
 	///
 	/// The call can be used either as message payload or can be wrapped into a transaction
 	/// and executed on the chain directly.
-	EncodeCall(EncodeCall),
+	EncodeCall(encode_call::EncodeCall),
 	/// Generate SCALE-encoded `MessagePayload` object that can be sent over selected bridge.
 	///
 	/// The `MessagePayload` can be then fed to `Messages::send_message` function and sent over
@@ -65,72 +74,21 @@ pub enum Command {
 	/// Estimate Delivery and Dispatch Fee required for message submission to messages pallet.
 	EstimateFee(EstimateFee),
 	/// Given a source chain `AccountId`, derive the corresponding `AccountId` for the target chain.
-	DeriveAccount(DeriveAccount),
+	DeriveAccount(derive_account::DeriveAccount),
 }
 
 impl Command {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self {
-			Self::InitBridge(arg) => arg.run().await?,
 			Self::RelayHeaders(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
+			Self::InitBridge(arg) => arg.run().await?,
 			Self::SendMessage(arg) => arg.run().await?,
 			Self::EncodeCall(arg) => arg.run().await?,
 			Self::EncodeMessagePayload(arg) => arg.run().await?,
 			Self::EstimateFee(arg) => arg.run().await?,
 			Self::DeriveAccount(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// Start headers relayer process.
-#[derive(StructOpt)]
-pub enum RelayHeaders {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::RelayHeaders),
-}
-
-impl RelayHeaders {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// Start message relayer process.
-#[derive(StructOpt)]
-pub enum RelayMessages {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::RelayMessages),
-}
-
-impl RelayMessages {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// Initialize bridge pallet.
-#[derive(StructOpt)]
-pub enum InitBridge {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::InitBridge),
-}
-
-impl InitBridge {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
 		}
 		Ok(())
 	}
@@ -144,23 +102,6 @@ pub enum SendMessage {
 }
 
 impl SendMessage {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// A call to encode.
-#[derive(StructOpt)]
-pub enum EncodeCall {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::EncodeCall),
-}
-
-impl EncodeCall {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self {
@@ -204,28 +145,6 @@ impl EstimateFee {
 	}
 }
 
-/// Given a source chain `AccountId`, derive the corresponding `AccountId` for the target chain.
-///
-/// The (derived) target chain `AccountId` is going to be used as dispatch origin of the call
-/// that has been sent over the bridge.
-/// This account can also be used to receive target-chain funds (or other form of ownership),
-/// since messages sent over the bridge will be able to spend these.
-#[derive(StructOpt)]
-pub enum DeriveAccount {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::DeriveAccount),
-}
-
-impl DeriveAccount {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
 arg_enum! {
 	#[derive(Debug)]
 	/// The origin to use when dispatching the message on the target chain.
@@ -238,49 +157,112 @@ arg_enum! {
 	}
 }
 
-/// Generic account id with custom parser.
+/// Generic balance type.
 #[derive(Debug)]
+pub struct Balance(pub u128);
+
+impl std::str::FromStr for Balance {
+	type Err = <u128 as std::str::FromStr>::Err;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		Ok(Self(s.parse()?))
+	}
+}
+
+impl Balance {
+	/// Cast balance to `u64` type, panicking if it's too large.
+	pub fn cast(&self) -> u64 {
+		self.0.try_into().expect("Balance is too high for this chain.")
+	}
+}
+
+/// Generic account id with custom parser.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountId {
 	account: sp_runtime::AccountId32,
-	version: sp_core::crypto::Ss58AddressFormat,
+	ss58_format: sp_core::crypto::Ss58AddressFormat,
+}
+
+impl std::fmt::Display for AccountId {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(fmt, "{}", self.account.to_ss58check_with_version(self.ss58_format))
+	}
 }
 
 impl std::str::FromStr for AccountId {
 	type Err = String;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		let (account, version) = sp_runtime::AccountId32::from_ss58check_with_version(s)
+		let (account, ss58_format) = sp_runtime::AccountId32::from_ss58check_with_version(s)
 			.map_err(|err| format!("Unable to decode SS58 address: {:?}", err))?;
-		Ok(Self { account, version })
+		Ok(Self { account, ss58_format })
 	}
 }
 
+const SS58_FORMAT_PROOF: &str = "u16 -> Ss58Format is infallible; qed";
+
 impl AccountId {
-	/// Perform runtime checks of SS58 version and get Rialto's AccountId.
-	pub fn into_rialto(self) -> bp_rialto::AccountId {
-		self.check_and_get("Rialto", rialto_runtime::SS58Prefix::get())
+	/// Create new SS58-formatted address from raw account id.
+	pub fn from_raw<T: CliChain>(account: sp_runtime::AccountId32) -> Self {
+		Self {
+			account,
+			ss58_format: T::ss58_format().try_into().expect(SS58_FORMAT_PROOF),
+		}
 	}
 
-	/// Perform runtime checks of SS58 version and get Millau's AccountId.
-	pub fn into_millau(self) -> bp_millau::AccountId {
-		self.check_and_get("Millau", millau_runtime::SS58Prefix::get())
-	}
-
-	/// Check SS58Prefix and return the account id.
-	fn check_and_get(self, net: &str, expected_prefix: u8) -> sp_runtime::AccountId32 {
-		let version: u16 = self.version.into();
-		println!("Version: {} vs {}", version, expected_prefix);
-		if version != expected_prefix as u16 {
+	/// Enforces formatting account to be for given [`CliChain`] type.
+	///
+	/// This will change the `ss58format` of the account to match the requested one.
+	/// Note that a warning will be produced in case the current format does not match
+	/// the requested one, but the conversion always succeeds.
+	pub fn enforce_chain<T: CliChain>(&mut self) {
+		let original = self.clone();
+		self.ss58_format = T::ss58_format().try_into().expect(SS58_FORMAT_PROOF);
+		log::debug!("{} SS58 format: {} (RAW: {})", self, self.ss58_format, self.account);
+		if original.ss58_format != self.ss58_format {
 			log::warn!(
 				target: "bridge",
-				"Following address: {} does not seem to match {}'s format, got: {}",
-				self.account,
-				net,
-				self.version,
+				"Address {} does not seem to match {}'s SS58 format (got: {}, expected: {}).\nConverted to: {}",
+				original,
+				T::NAME,
+				original.ss58_format,
+				self.ss58_format,
+				self,
 			)
 		}
-		self.account
 	}
+
+	/// Returns the raw (no SS58-prefixed) account id.
+	pub fn raw_id(&self) -> sp_runtime::AccountId32 {
+		self.account.clone()
+	}
+}
+
+/// Bridge-supported network definition.
+///
+/// Used to abstract away CLI commands.
+pub trait CliChain: relay_substrate_client::Chain {
+	/// Chain's current version of the runtime.
+	const RUNTIME_VERSION: sp_version::RuntimeVersion;
+
+	/// Crypto keypair type used to send messages.
+	///
+	/// In case of chains supporting multiple cryptos, pick one used by the CLI.
+	type KeyPair: sp_core::crypto::Pair;
+
+	/// Bridge Message Payload type.
+	///
+	/// TODO [#854] This should be removed in favour of target-specifc types.
+	type MessagePayload;
+
+	/// Numeric value of SS58 format.
+	fn ss58_format() -> u16;
+
+	/// Construct message payload to be sent over the bridge.
+	fn encode_message(message: crate::rialto_millau::cli::MessagePayload) -> Result<Self::MessagePayload, String>;
+
+	/// Maximal extrinsic weight (from the runtime).
+	fn max_extrinsic_weight() -> Weight;
 }
 
 /// Lane id.
@@ -304,7 +286,7 @@ impl std::str::FromStr for HexLaneId {
 }
 
 /// Nicer formatting for raw bytes vectors.
-#[derive(Encode, Decode)]
+#[derive(Default, Encode, Decode)]
 pub struct HexBytes(pub Vec<u8>);
 
 impl std::str::FromStr for HexBytes {
@@ -317,7 +299,13 @@ impl std::str::FromStr for HexBytes {
 
 impl std::fmt::Debug for HexBytes {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(fmt, "0x{}", hex::encode(&self.0))
+		write!(fmt, "0x{}", self)
+	}
+}
+
+impl std::fmt::Display for HexBytes {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(fmt, "{}", hex::encode(&self.0))
 	}
 }
 
@@ -412,6 +400,76 @@ macro_rules! declare_chain_options {
 				#[structopt(long)]
 				pub [<$chain_prefix _signer_password>]: Option<String>,
 			}
+
+			impl [<$chain SigningParams>] {
+				/// Parse signing params into chain-specific KeyPair.
+				pub fn into_keypair<Chain: CliChain>(self) -> anyhow::Result<Chain::KeyPair> {
+					use sp_core::crypto::Pair;
+					Chain::KeyPair::from_string(
+						&self.[<$chain_prefix _signer>],
+						self.[<$chain_prefix _signer_password>].as_deref()
+					).map_err(|e| anyhow::format_err!("{:?}", e))
+				}
+			}
+
+			impl [<$chain ConnectionParams>] {
+				/// Convert connection params into Substrate client.
+				pub async fn into_client<Chain: CliChain>(
+					self,
+				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
+					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {
+						host: self.[<$chain_prefix _host>],
+						port: self.[<$chain_prefix _port>],
+						secure: self.[<$chain_prefix _secure>],
+					})
+					.await?
+					)
+				}
+			}
 		}
 	};
+}
+
+declare_chain_options!(Source, source);
+declare_chain_options!(Target, target);
+
+#[cfg(test)]
+mod tests {
+	use std::str::FromStr;
+
+	use super::*;
+
+	#[test]
+	fn should_format_addresses_with_ss58_format() {
+		// given
+		let rialto1 = "5sauUXUfPjmwxSgmb3tZ5d6yx24eZX4wWJ2JtVUBaQqFbvEU";
+		let rialto2 = "5rERgaT1Z8nM3et2epA5i1VtEBfp5wkhwHtVE8HK7BRbjAH2";
+		let millau1 = "752paRyW1EGfq9YLTSSqcSJ5hqnBDidBmaftGhBo8fy6ypW9";
+		let millau2 = "74GNQjmkcfstRftSQPJgMREchqHM56EvAUXRc266cZ1NYVW5";
+
+		let expected = vec![rialto1, rialto2, millau1, millau2];
+
+		// when
+		let parsed = expected
+			.iter()
+			.map(|s| AccountId::from_str(s).unwrap())
+			.collect::<Vec<_>>();
+
+		let actual = parsed.iter().map(|a| format!("{}", a)).collect::<Vec<_>>();
+
+		assert_eq!(actual, expected)
+	}
+
+	#[test]
+	fn hex_bytes_display_matches_from_str_for_clap() {
+		// given
+		let hex = HexBytes(vec![1, 2, 3, 4]);
+		let display = format!("{}", hex);
+
+		// when
+		let hex2: HexBytes = display.parse().unwrap();
+
+		// then
+		assert_eq!(hex.0, hex2.0);
+	}
 }

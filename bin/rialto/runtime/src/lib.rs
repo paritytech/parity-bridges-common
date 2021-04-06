@@ -422,6 +422,7 @@ parameter_types! {
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type MaxRequests = MaxRequests;
+	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}
@@ -799,6 +800,7 @@ impl_runtime_apis! {
 			config: frame_benchmarking::BenchmarkConfig,
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, TrackedStorageKey, add_benchmark};
+
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
@@ -945,6 +947,7 @@ impl_runtime_apis! {
 					>(
 						&lane_id,
 					).0;
+
 					let make_millau_header = |state_root| bp_millau::Header::new(
 						0,
 						Default::default(),
@@ -1005,7 +1008,6 @@ impl_runtime_apis! {
 				}
 			}
 
-			add_benchmark!(params, batches, pallet_bridge_eth_poa, BridgeKovan);
 			add_benchmark!(
 				params,
 				batches,
@@ -1018,6 +1020,7 @@ impl_runtime_apis! {
 				pallet_bridge_messages,
 				MessagesBench::<Runtime, WithMillauMessagesInstance>
 			);
+			add_benchmark!(params, batches, pallet_bridge_grandpa, BridgeMillauGrandpa);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)

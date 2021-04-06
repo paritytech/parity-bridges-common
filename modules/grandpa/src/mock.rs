@@ -80,11 +80,14 @@ impl frame_system::Config for TestRuntime {
 
 parameter_types! {
 	pub const MaxRequests: u32 = 2;
+	pub const SessionLength: u64 = 5;
+	pub const NumValidators: u32 = 5;
 }
 
 impl grandpa::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = MaxRequests;
+	type WeightInfo = ();
 }
 
 #[derive(Debug)]

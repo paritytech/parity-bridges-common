@@ -10,10 +10,10 @@ USAGE:
     substrate-relay <SUBCOMMAND>
 
 FLAGS:
-    -h, --help       
+    -h, --help
             Prints help information
 
-    -V, --version    
+    -V, --version
             Prints version information
 
 
@@ -61,7 +61,7 @@ for both submit message commands, hence only the output for `millau-to-rialto` i
 Submit message to given Millau -> Rialto lane
 
 USAGE:
-    substrate-relay send-message millau-to-rialto [OPTIONS] --lane <lane> --millau-host <millau-host> --millau-port <millau-port> --millau-signer <millau-signer> --origin <origin> --rialto-signer <rialto-signer> <SUBCOMMAND>
+    substrate-relay send-message millau-to-rialto [OPTIONS] --lane <lane> --source-host <source-host> --source-port <source-port> --source-signer <source-signer> --origin <origin> --target-signer <target-signer> <SUBCOMMAND>
 
 FLAGS:
     -h, --help       Prints help information
@@ -72,22 +72,22 @@ OPTIONS:
             Delivery and dispatch fee. If not passed, determined automatically
 
         --lane <lane>                                        Hex-encoded lane id
-        --millau-host <millau-host>                          Connect to Millau node at given host
-        --millau-port <millau-port>                          Connect to Millau node websocket server at given port
-        --millau-signer <millau-signer>
-            The SURI of secret key to use when transactions are submitted to the Millau node
+        --source-host <source-host>                          Connect to Source node at given host
+        --source-port <source-port>                          Connect to Source node websocket server at given port
+        --source-signer <source-signer>
+            The SURI of secret key to use when transactions are submitted to the Source node
 
-        --millau-signer-password <millau-signer-password>
-            The password for the SURI of secret key to use when transactions are submitted to the Millau node
+        --source-signer-password <source-signer-password>
+            The password for the SURI of secret key to use when transactions are submitted to the Source node
 
         --origin <origin>
             The origin to use when dispatching the message on the target chain [possible values: Target, Source]
 
-        --rialto-signer <rialto-signer>
-            The SURI of secret key to use when transactions are submitted to the Rialto node
+        --target-signer <target-signer>
+            The SURI of secret key to use when transactions are submitted to the Target node
 
-        --rialto-signer-password <rialto-signer-password>
-            The password for the SURI of secret key to use when transactions are submitted to the Rialto node
+        --target-signer-password <target-signer-password>
+            The password for the SURI of secret key to use when transactions are submitted to the Target node
 
 
 SUBCOMMANDS:
@@ -100,30 +100,30 @@ As can be seen from the output, there are two types of messages available: `rema
 A remark is some opaque message which will be placed on-chain. For basic testing, a remark is
 the easiest to go with.
 
-Usage of the arguments is best explained with an example. Below you can see, how a remark 
+Usage of the arguments is best explained with an example. Below you can see, how a remark
 would look like:
 
 ```
 substrate-relay send-message millau-to-rialto \
-		--millau-host=127.0.0.1 \
-		--millau-port=10946 \
-		--millau-signer=//Dave \
-		--rialto-signer=//Dave \
+		--source-host=127.0.0.1 \
+		--source-port=10946 \
+		--source-signer=//Dave \
+		--target-signer=//Dave \
 		--lane=00000000 \
 		--origin Target \
 		remark
 ```
 Messages are basically regular transactions. That means, they have to be signed. In order
 to send a message, you have to control an account private key on both, the source and
-the target chain. Those accounts are specified using the `--millau-signer` and `--rialto-signer`
-arguments in the example above. 
+the target chain. Those accounts are specified using the `--source-signer` and `--target-signer`
+arguments in the example above.
 
-Message delivery and dispatch requires a fee to be paid. In the example above, we have not 
+Message delivery and dispatch requires a fee to be paid. In the example above, we have not
 specified the `--fee` argument. Hence, the fee will be estimated automatically. Note that
 in order to pay the fee, the message sender account has to have sufficient funds available.
 
 The `--origin` argument allows to denote under which authority the message will be dispatched
-on the target chain. Accepted values are `Target` and `Source`. 
+on the target chain. Accepted values are `Target` and `Source`.
 
 Although not strictly necessary, it is recommended, to use one of the well-known development
 accounts (`Alice`, `Bob`, `Charlie`, `Dave`, `Eve`) for message sending. Those accounts are

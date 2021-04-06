@@ -37,6 +37,7 @@ pub trait Client: Clone + Send + Sync {
 /// Returns generic loop that may be customized and started.
 pub fn relay_loop<SC, TC>(source_client: SC, target_client: TC) -> Loop<SC, TC, ()> {
 	Loop {
+		reconnect_delay: RECONNECT_DELAY,
 		source_client,
 		target_client,
 		loop_metric: None,
@@ -49,6 +50,7 @@ pub fn relay_metrics(prefix: String, address: Option<MetricsAddress>) -> LoopMet
 
 	LoopMetrics {
 		relay_loop: Loop {
+			reconnect_delay: RECONNECT_DELAY,
 			source_client: (),
 			target_client: (),
 			loop_metric: None,
@@ -62,6 +64,7 @@ pub fn relay_metrics(prefix: String, address: Option<MetricsAddress>) -> LoopMet
 
 /// Generic relay loop.
 pub struct Loop<SC, TC, LM> {
+	reconnect_delay: Duration,
 	source_client: SC,
 	target_client: TC,
 	loop_metric: Option<LM>,
@@ -76,6 +79,12 @@ pub struct LoopMetrics<SC, TC, LM> {
 }
 
 impl<SC, TC, LM> Loop<SC, TC, LM> {
+	/// Customize delay between reconnect attempts.
+	pub fn reconnect_delay(mut self, reconnect_delay: Duration) -> Self {
+		self.reconnect_delay = reconnect_delay;
+		self
+	}
+
 	/// Start building loop metrics using given prefix.
 	///
 	/// Panics if `prefix` is empty.
@@ -84,6 +93,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 
 		LoopMetrics {
 			relay_loop: Loop {
+				reconnect_delay: self.reconnect_delay,
 				source_client: self.source_client,
 				target_client: self.target_client,
 				loop_metric: None,
@@ -122,7 +132,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 			match result {
 				Ok(()) => break,
 				Err(failed_client) => loop {
-					async_std::task::sleep(RECONNECT_DELAY).await;
+					async_std::task::sleep(self.reconnect_delay).await;
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Source {
 						match self.source_client.reconnect().await {
 							Ok(()) => (),
@@ -130,7 +140,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 								log::warn!(
 									target: "bridge",
 									"Failed to reconnect to source client. Going to retry in {}s: {:?}",
-									RECONNECT_DELAY.as_secs(),
+									self.reconnect_delay.as_secs(),
 									error,
 								);
 								continue;
@@ -144,7 +154,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 								log::warn!(
 									target: "bridge",
 									"Failed to reconnect to target client. Going to retry in {}s: {:?}",
-									RECONNECT_DELAY.as_secs(),
+									self.reconnect_delay.as_secs(),
 									error,
 								);
 								continue;
@@ -220,6 +230,7 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 		}
 
 		Ok(Loop {
+			reconnect_delay: self.relay_loop.reconnect_delay,
 			source_client: self.relay_loop.source_client,
 			target_client: self.relay_loop.target_client,
 			loop_metric: self.loop_metric,
