@@ -35,27 +35,26 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 	type TargetChain = Millau;
 
 	fn customize_metrics(params: MetricsParams) -> anyhow::Result<MetricsParams> {
-		Ok(relay_utils::relay_metrics(
-			finality_relay::metrics_prefix::<Self>(),
-			params.address,
+		Ok(
+			relay_utils::relay_metrics(finality_relay::metrics_prefix::<Self>(), params.address)
+				// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
+				// relays, but we want to test metrics/dashboards in advance
+				.standalone_metric(FloatJsonValueMetric::new(
+					"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=usd".into(),
+					"$.polkadot.usd".into(),
+					"polkadot_price".into(),
+					"Polkadot price in USD".into(),
+				))
+				.map_err(|e| anyhow::format_err!("{}", e))?
+				.standalone_metric(FloatJsonValueMetric::new(
+					"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=usd".into(),
+					"$.kusama.usd".into(),
+					"kusama_price".into(),
+					"Kusama price in USD".into(),
+				))
+				.map_err(|e| anyhow::format_err!("{}", e))?
+				.into_params(),
 		)
-		// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
-		// relays, but we want to test metrics/dashboards in advance
-		.standalone_metric(FloatJsonValueMetric::new(
-			"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=usd".into(),
-			"$.polkadot.usd".into(),
-			"polkadot_price".into(),
-			"Polkadot price in USD".into(),
-		))
-		.map_err(|e| anyhow::format_err!("{}", e))?
-		.standalone_metric(FloatJsonValueMetric::new(
-			"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=usd".into(),
-			"$.kusama.usd".into(),
-			"kusama_price".into(),
-			"Kusama price in USD".into(),
-		))
-		.map_err(|e| anyhow::format_err!("{}", e))?
-		.into_params())
 	}
 
 	fn transactions_author(&self) -> bp_millau::AccountId {
