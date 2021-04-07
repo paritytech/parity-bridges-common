@@ -23,11 +23,6 @@ pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
 pub mod westend_headers_to_millau;
 
-/// Millau node client.
-pub type MillauClient = relay_substrate_client::Client<Millau>;
-/// Rialto node client.
-pub type RialtoClient = relay_substrate_client::Client<Rialto>;
-
 use crate::cli::{
 	bridge::{MILLAU_TO_RIALTO_INDEX, RIALTO_TO_MILLAU_INDEX},
 	encode_call::{self, Call, CliEncodeCall},

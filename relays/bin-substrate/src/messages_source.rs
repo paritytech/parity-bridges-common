@@ -19,6 +19,7 @@
 //! <BridgedName> chain.
 
 use crate::messages_lane::SubstrateMessageLane;
+use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce};
@@ -44,21 +45,29 @@ use std::ops::RangeInclusive;
 pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
 
 /// Substrate client as Substrate messages source.
-pub struct SubstrateMessagesSource<C: Chain, P> {
+pub struct SubstrateMessagesSource<C: Chain, P: SubstrateMessageLane> {
 	client: Client<C>,
 	lane: P,
 	lane_id: LaneId,
 	instance: InstanceId,
+	target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
 }
 
-impl<C: Chain, P> SubstrateMessagesSource<C, P> {
+impl<C: Chain, P: SubstrateMessageLane> SubstrateMessagesSource<C, P> {
 	/// Create new Substrate headers source.
-	pub fn new(client: Client<C>, lane: P, lane_id: LaneId, instance: InstanceId) -> Self {
+	pub fn new(
+		client: Client<C>,
+		lane: P,
+		lane_id: LaneId,
+		instance: InstanceId,
+		target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
+	) -> Self {
 		SubstrateMessagesSource {
 			client,
 			lane,
 			lane_id,
 			instance,
+			target_to_source_headers_relay,
 		}
 	}
 }
@@ -70,6 +79,7 @@ impl<C: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesSource<C, P> 
 			lane: self.lane.clone(),
 			lane_id: self.lane_id,
 			instance: self.instance,
+			target_to_source_headers_relay: self.target_to_source_headers_relay.clone(),
 		}
 	}
 }
@@ -96,6 +106,7 @@ where
 		SourceHeaderHash = <C::Header as HeaderT>::Hash,
 		SourceChain = C,
 	>,
+	P::TargetChain: Chain<Hash = P::TargetHeaderHash, BlockNumber = P::TargetHeaderNumber>,
 	P::TargetHeaderNumber: Decode,
 	P::TargetHeaderHash: Decode,
 {
@@ -207,7 +218,11 @@ where
 		Ok(())
 	}
 
-	async fn activate_target_to_source_headers_relay(&self, _activate: bool) {}
+	async fn require_target_header_on_source(&self, id: TargetHeaderIdOf<P>) {
+		if let Some(ref target_to_source_headers_relay) = self.target_to_source_headers_relay {
+			target_to_source_headers_relay.require_finalized_header(id);
+		}
+	}
 }
 
 pub async fn read_client_state<SelfChain, BridgedHeaderHash, BridgedHeaderNumber>(
