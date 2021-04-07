@@ -27,6 +27,9 @@ use sp_version::RuntimeVersion;
 
 pub use bp_polkadot_core::*;
 
+/// Rococo Chain
+pub type Rococo = PolkadotLike;
+
 pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
@@ -74,9 +77,6 @@ pub fn account_info_storage_key(id: &AccountId) -> Vec<u8> {
 
 	final_key
 }
-
-/// Rococo Chain
-pub type Rococo = PolkadotLike;
 
 // We use this to get the account on Rococo (target) which is derived from Westend's (source)
 // account.
