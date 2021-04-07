@@ -22,6 +22,9 @@ use std::time::Duration;
 /// Rococo header id.
 pub type HeaderId = relay_utils::HeaderId<bp_rococo::Hash, bp_rococo::BlockNumber>;
 
+/// Rococo header type used in headers sync.
+pub type SyncHeader = relay_substrate_client::SyncHeader<bp_rococo::Header>;
+
 /// Rococo chain definition
 #[derive(Debug, Clone, Copy)]
 pub struct Rococo;
@@ -111,6 +114,3 @@ impl Default for SigningParams {
 		}
 	}
 }
-
-/// Rococo header type used in headers sync.
-pub type SyncHeader = relay_substrate_client::SyncHeader<bp_rococo::Header>;
