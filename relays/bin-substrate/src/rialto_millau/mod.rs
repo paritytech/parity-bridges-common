@@ -40,6 +40,7 @@ use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
+use relay_rococo_client::Rococo;
 use relay_substrate_client::{Chain, TransactionSignScheme};
 use relay_westend_client::Westend;
 use sp_core::{Bytes, Pair};
@@ -568,6 +569,25 @@ impl CliChain for Westend {
 
 	fn encode_message(_message: cli::MessagePayload) -> Result<Self::MessagePayload, String> {
 		Err("Sending messages from Westend is not yet supported.".into())
+	}
+}
+
+impl CliChain for Rococo {
+	const RUNTIME_VERSION: RuntimeVersion = bp_rococo::VERSION;
+
+	type KeyPair = sp_core::sr25519::Pair;
+	type MessagePayload = ();
+
+	fn ss58_format() -> u16 {
+		42
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		0
+	}
+
+	fn encode_message(_message: cli::MessagePayload) -> Result<Self::MessagePayload, String> {
+		Err("Sending messages from Rococo is not yet supported.".into())
 	}
 }
 
