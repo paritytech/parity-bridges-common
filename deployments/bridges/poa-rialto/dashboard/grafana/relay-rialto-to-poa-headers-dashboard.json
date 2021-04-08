@@ -239,7 +239,7 @@
         {
           "expr": "max_over_time(Substrate_to_Ethereum_Sync_best_block_numbers{node=\"source\"}[2m])-min_over_time(Substrate_to_Ethereum_Sync_best_block_numbers{node=\"source\"}[2m])",
           "interval": "",
-          "legendFormat": "Number of Rialto Headers Synced on Ethereum PoA",
+          "legendFormat": "Number of new Headers on Rialto (Last 2 Mins)",
           "refId": "A"
         }
       ],
