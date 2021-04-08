@@ -793,6 +793,7 @@ dependencies = [
 name = "bp-rococo"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
@@ -836,6 +837,7 @@ dependencies = [
 name = "bp-westend"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",

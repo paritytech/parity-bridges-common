@@ -21,6 +21,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
+use bp_runtime::Chain;
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
 
@@ -42,8 +43,13 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 };
 
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
+#[allow(non_camel_case_types)]
 pub enum Call {
 	MockPallet,
+	submit_finality_proof(
+		<PolkadotLike as Chain>::Header,
+		bp_header_chain::justification::GrandpaJustification<<PolkadotLike as Chain>::Header>,
+	),
 }
 
 impl sp_runtime::traits::Dispatchable for Call {
