@@ -51,6 +51,7 @@ pub enum Call {
 		<PolkadotLike as Chain>::Header,
 		bp_header_chain::justification::GrandpaJustification<<PolkadotLike as Chain>::Header>,
 	),
+	initialize,
 }
 
 impl sp_runtime::traits::Dispatchable for Call {

@@ -109,7 +109,8 @@ macro_rules! select_bridge {
 				fn encode_init_bridge(
 					_init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					bp_rococo::Call::MockPallet
+					// TODO: Maybe more closely match "real" Call
+					bp_rococo::Call::initialize
 				}
 
 				$generic
@@ -121,7 +122,8 @@ macro_rules! select_bridge {
 				fn encode_init_bridge(
 					_init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					bp_westend::Call::MockPallet
+					// TODO: Maybe more closely match "real" Call
+					bp_westend::Call::initialize
 				}
 
 				$generic
