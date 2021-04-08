@@ -58,7 +58,7 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToRococo {
 	}
 
 	fn transactions_author(&self) -> bp_rococo::AccountId {
-		self.target_sign.signer.public().as_array_ref().clone().into()
+		self.target_sign.public().as_array_ref().clone().into()
 	}
 
 	fn make_submit_finality_proof_transaction(
@@ -76,7 +76,7 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToRococo {
 
 		let call = bp_rococo::Call::MockPallet;
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Rococo::sign_transaction(genesis_hash, &self.target_sign.signer, transaction_nonce, call);
+		let transaction = Rococo::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
 
 		Bytes(transaction.encode())
 	}
