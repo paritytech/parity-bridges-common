@@ -239,7 +239,7 @@
         {
           "expr": "max_over_time(Millau_to_Rialto_Sync_best_block_numbers{node=\"source\"}[2m])-min_over_time(Millau_to_Rialto_Sync_best_block_numbers{node=\"source\"}[2m])",
           "interval": "",
-          "legendFormat": "Number of Millau Headers Synced on Rialto",
+          "legendFormat": "Number of new Headers on Millau (Last 2 Mins)",
           "refId": "A"
         }
       ],

@@ -29,15 +29,16 @@ pub type MillauClient = relay_substrate_client::Client<Millau>;
 pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 
 use crate::cli::{
+	bridge,
 	encode_call::{self, Call, CliEncodeCall},
-	CliChain, ExplicitOrMaximal, HexBytes,
+	CliChain, HexBytes,
 };
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::Chain;
 use relay_westend_client::Westend;
 use sp_version::RuntimeVersion;
 use std::fmt::Debug;
@@ -287,7 +288,7 @@ impl CliEncodeCall for Millau {
 				fee,
 				bridge_instance_index,
 			} => match *bridge_instance_index {
-				MILLAU_TO_RIALTO_INDEX => {
+				bridge::MILLAU_TO_RIALTO_INDEX => {
 					let payload = Decode::decode(&mut &*payload.0)?;
 					millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
 						lane.0,
@@ -330,7 +331,7 @@ impl CliChain for Millau {
 				sender.enforce_chain::<Source>();
 				let spec_version = Target::RUNTIME_VERSION.spec_version;
 				let origin = CallOrigin::SourceAccount(sender.raw_id());
-				encode_call::preprocess_call::<Source, Target>(&mut call, encode_call::MILLAU_TO_RIALTO_INDEX);
+				encode_call::preprocess_call::<Source, Target>(&mut call, bridge::MILLAU_TO_RIALTO_INDEX);
 				let call = Target::encode_call(&call).map_err(|e| e.to_string())?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -360,7 +361,7 @@ impl CliEncodeCall for Rialto {
 				fee,
 				bridge_instance_index,
 			} => match *bridge_instance_index {
-				RIALTO_TO_MILLAU_INDEX => {
+				bridge::RIALTO_TO_MILLAU_INDEX => {
 					let payload = Decode::decode(&mut &*payload.0)?;
 					rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
 						lane.0, payload, fee.0,
@@ -400,7 +401,7 @@ impl CliChain for Rialto {
 				sender.enforce_chain::<Source>();
 				let spec_version = Target::RUNTIME_VERSION.spec_version;
 				let origin = CallOrigin::SourceAccount(sender.raw_id());
-				encode_call::preprocess_call::<Source, Target>(&mut call, encode_call::RIALTO_TO_MILLAU_INDEX);
+				encode_call::preprocess_call::<Source, Target>(&mut call, bridge::RIALTO_TO_MILLAU_INDEX);
 				let call = Target::encode_call(&call).map_err(|e| e.to_string())?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -437,6 +438,7 @@ fn format_err(e: anyhow::Error) -> String {
 mod tests {
 	use super::*;
 	use bp_messages::source_chain::TargetHeaderChain;
+	use relay_substrate_client::TransactionSignScheme;
 	use sp_core::Pair;
 	use sp_runtime::traits::{IdentifyAccount, Verify};
 

@@ -14,13 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::encode_call::{self, CliEncodeCall, EncodeCallBridge};
+use crate::cli::bridge::FullBridge;
+use crate::cli::encode_call::{self, CliEncodeCall};
 use crate::cli::{
-	AccountId, Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
-	SourceSigningParams, TargetSigningParams,
+	Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams, SourceSigningParams,
+	TargetSigningParams,
 };
 use bp_messages::LaneId;
-use codec::{Decode, Encode};
+use codec::Encode;
 use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
 use pallet_bridge_dispatch::CallOrigin;
 use relay_substrate_client::{Chain, TransactionSignScheme};
@@ -32,8 +33,8 @@ use structopt::StructOpt;
 #[derive(StructOpt)]
 pub struct SendMessage {
 	/// A bridge instance to encode call for.
-	#[structopt(possible_values = &EncodeCallBridge::variants(), case_insensitive = true)]
-	bridge: EncodeCallBridge,
+	#[structopt(possible_values = &FullBridge::variants(), case_insensitive = true)]
+	bridge: FullBridge,
 	#[structopt(flatten)]
 	source: SourceConnectionParams,
 	#[structopt(flatten)]
@@ -62,14 +63,13 @@ pub struct SendMessage {
 macro_rules! select_bridge {
 	($bridge: expr, $generic: tt) => {
 		match $bridge {
-			EncodeCallBridge::MillauToRialto => {
+			FullBridge::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
 
 				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 				use millau_runtime::rialto_account_ownership_digest as account_ownership_digest;
 
-				// TODO [ToDr] Use `encode_call`.
 				fn send_message_call(
 					lane: LaneId,
 					payload: <Source as CliChain>::MessagePayload,
@@ -84,14 +84,13 @@ macro_rules! select_bridge {
 
 				$generic
 			}
-			EncodeCallBridge::RialtoToMillau => {
+			FullBridge::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
 
 				use bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 				use rialto_runtime::millau_account_ownership_digest as account_ownership_digest;
 
-				// TODO [ToDr] Use `encode_call`.
 				fn send_message_call(
 					lane: LaneId,
 					payload: <Source as CliChain>::MessagePayload,
