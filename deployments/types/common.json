@@ -157,4 +157,3 @@
 		"votes_ancestries": "Vec<BridgedHeader>"
 	}
 }
-
