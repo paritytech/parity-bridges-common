@@ -395,7 +395,7 @@ macro_rules! declare_chain_options {
 
 			impl [<$chain SigningParams>] {
 				/// Parse signing params into chain-specific KeyPair.
-				pub fn into_keypair<Chain: CliChain>(&self) -> anyhow::Result<Chain::KeyPair> {
+				pub fn to_keypair<Chain: CliChain>(&self) -> anyhow::Result<Chain::KeyPair> {
 					use sp_core::crypto::Pair;
 					Chain::KeyPair::from_string(
 						&self.[<$chain_prefix _signer>],
@@ -406,7 +406,7 @@ macro_rules! declare_chain_options {
 
 			impl [<$chain ConnectionParams>] {
 				/// Convert connection params into Substrate client.
-				pub async fn into_client<Chain: CliChain>(
+				pub async fn to_client<Chain: CliChain>(
 					&self,
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
 					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {

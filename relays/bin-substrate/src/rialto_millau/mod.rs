@@ -69,7 +69,7 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 
 			let estimate_message_fee_method = bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD;
 
-			let source_client = source.into_client::<Source>().await.map_err(format_err)?;
+			let source_client = source.to_client::<Source>().await.map_err(format_err)?;
 			let lane = lane.into();
 			let payload = Source::encode_message(payload)?;
 
@@ -85,7 +85,7 @@ async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
 
 			let estimate_message_fee_method = bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD;
 
-			let source_client = source.into_client::<Source>().await.map_err(format_err)?;
+			let source_client = source.to_client::<Source>().await.map_err(format_err)?;
 			let lane = lane.into();
 			let payload = Source::encode_message(payload)?;
 

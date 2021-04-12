@@ -74,8 +74,8 @@ impl SendMessage {
 				..
 			} = self;
 
-			let source_sign = source_sign.into_keypair::<Source>()?;
-			let target_sign = target_sign.into_keypair::<Target>()?;
+			let source_sign = source_sign.to_keypair::<Source>()?;
+			let target_sign = target_sign.to_keypair::<Target>()?;
 
 			encode_call::preprocess_call::<Source, Target>(message, bridge.bridge_instance_index());
 			let target_call = Target::encode_call(&message)?;
@@ -121,8 +121,8 @@ impl SendMessage {
 		crate::select_full_bridge!(self.bridge, {
 			let payload = self.encode_payload()?;
 
-			let source_client = self.source.into_client::<Source>().await?;
-			let source_sign = self.source_sign.into_keypair::<Source>()?;
+			let source_client = self.source.to_client::<Source>().await?;
+			let source_sign = self.source_sign.to_keypair::<Source>()?;
 
 			let lane = self.lane.clone().into();
 			let fee = match self.fee {
@@ -134,9 +134,7 @@ impl SendMessage {
 				>(&source_client, ESTIMATE_MESSAGE_FEE_METHOD, lane, payload.clone())
 				.await?
 				.map(|v| Balance(v as _))
-				.ok_or(anyhow::format_err!(
-					"Failed to estimate message fee. Message is too heavy?"
-				))?,
+				.ok_or_else(|| anyhow::format_err!("Failed to estimate message fee. Message is too heavy?"))?,
 			};
 			let dispatch_weight = payload.weight;
 			let send_message_call = Source::encode_call(&encode_call::Call::BridgeSendMessage {
