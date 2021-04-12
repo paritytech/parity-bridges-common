@@ -56,7 +56,7 @@ impl EstimateFee {
 				estimate_message_delivery_and_dispatch_fee(&source_client, ESTIMATE_MESSAGE_FEE_METHOD, lane, payload)
 					.await?;
 
-			log::info!("Fee: {:?}", Balance(fee as _));
+			log::info!(target: "bridge", "Fee: {:?}", Balance(fee as _));
 			println!("{}", fee);
 			Ok(())
 		})

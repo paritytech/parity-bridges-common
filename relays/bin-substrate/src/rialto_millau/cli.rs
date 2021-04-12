@@ -84,7 +84,7 @@ pub enum SendMessage {
 impl SendMessage {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_send_message(self).await.map_err(format_err)?;
+		super::run_send_message(self).await.map_err(|e| anyhow::anyhow!(e))?;
 		Ok(())
 	}
 }
@@ -109,7 +109,9 @@ pub enum EncodeMessagePayload {
 impl EncodeMessagePayload {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_encode_message_payload(self).await.map_err(format_err)?;
+		super::run_encode_message_payload(self)
+			.await
+			.map_err(|e| anyhow::anyhow!(e))?;
 		Ok(())
 	}
 }
@@ -131,8 +133,4 @@ pub enum MessagePayload {
 		#[structopt(long)]
 		sender: AccountId,
 	},
-}
-
-fn format_err(err: String) -> anyhow::Error {
-	anyhow::anyhow!(err)
 }
