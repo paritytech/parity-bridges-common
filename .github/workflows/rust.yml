@@ -171,5 +171,5 @@ jobs:
         uses:                      actions-rs/cargo@master
         with:
           command:                 clippy
-          toolchain:               $NIGHTLY
+          toolchain:               nightly-2021-04-10 #if necessary, specify the version, nightly-2020-10-04, etc.
           args:                    --all-targets -- -D warnings
