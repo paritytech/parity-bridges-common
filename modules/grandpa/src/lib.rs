@@ -1025,4 +1025,30 @@ mod tests {
 			assert_ok!(submit_finality_proof(7));
 		})
 	}
+
+	#[test]
+	fn should_prune_headers_over_headers_to_keep_parameter() {
+		run_test(|| {
+			initialize_substrate_bridge();
+			assert_ok!(submit_finality_proof(1));
+			let first_header = Pallet::<TestRuntime>::best_finalized();
+			next_block();
+
+			assert_ok!(submit_finality_proof(2));
+			next_block();
+			assert_ok!(submit_finality_proof(3));
+			next_block();
+			assert_ok!(submit_finality_proof(4));
+			next_block();
+			assert_ok!(submit_finality_proof(5));
+			next_block();
+
+			assert_ok!(submit_finality_proof(6));
+
+			assert!(
+				!Pallet::<TestRuntime>::is_known_header(first_header.hash()),
+				"First header should be pruned."
+			);
+		})
+	}
 }
