@@ -20,7 +20,6 @@ use crate::cli::{
 	Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams, SourceSigningParams,
 	TargetSigningParams,
 };
-use bp_messages::LaneId;
 use codec::Encode;
 use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
 use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
@@ -39,7 +38,7 @@ pub struct SendMessage {
 	source: SourceConnectionParams,
 	#[structopt(flatten)]
 	source_sign: SourceSigningParams,
-	// TODO [ToDr] Move TargetSign to origins
+	// TODO [#885] Move TargetSign to origins
 	#[structopt(flatten)]
 	target_sign: TargetSigningParams,
 	/// Hex-encoded lane id. Defaults to `00000000`.
@@ -60,65 +59,11 @@ pub struct SendMessage {
 	origin: Origins,
 }
 
-// TODO [ToDr] Use common macro.
-macro_rules! select_bridge {
-	($bridge: expr, $generic: tt) => {
-		match $bridge {
-			FullBridge::MillauToRialto => {
-				type Source = relay_millau_client::Millau;
-				type Target = relay_rialto_client::Rialto;
-
-				#[allow(unused_imports)]
-				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
-				#[allow(unused_imports)]
-				use millau_runtime::rialto_account_ownership_digest as account_ownership_digest;
-
-				#[allow(dead_code)]
-				fn send_message_call(
-					lane: LaneId,
-					payload: <Source as CliChain>::MessagePayload,
-					fee: Balance,
-				) -> millau_runtime::Call {
-					millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
-						lane,
-						payload,
-						fee.cast(),
-					))
-				}
-
-				$generic
-			}
-			FullBridge::RialtoToMillau => {
-				type Source = relay_rialto_client::Rialto;
-				type Target = relay_millau_client::Millau;
-
-				#[allow(unused_imports)]
-				use bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
-				#[allow(unused_imports)]
-				use rialto_runtime::millau_account_ownership_digest as account_ownership_digest;
-
-				#[allow(dead_code)]
-				fn send_message_call(
-					lane: LaneId,
-					payload: <Source as CliChain>::MessagePayload,
-					fee: Balance,
-				) -> rialto_runtime::Call {
-					rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
-						lane, payload, fee.0,
-					))
-				}
-
-				$generic
-			}
-		}
-	};
-}
-
 impl SendMessage {
 	pub fn encode_payload(
 		&mut self,
 	) -> anyhow::Result<MessagePayload<AccountId32, MultiSigner, MultiSignature, Vec<u8>>> {
-		select_bridge!(self.bridge, {
+		crate::select_full_bridge!(self.bridge, {
 			let SendMessage {
 				source_sign,
 				target_sign,
@@ -173,7 +118,7 @@ impl SendMessage {
 
 	/// Run the command.
 	pub async fn run(mut self) -> anyhow::Result<()> {
-		select_bridge!(self.bridge, {
+		crate::select_full_bridge!(self.bridge, {
 			let payload = self.encode_payload()?;
 
 			let source_client = self.source.into_client::<Source>().await?;

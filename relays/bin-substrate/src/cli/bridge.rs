@@ -50,11 +50,33 @@ macro_rules! select_full_bridge {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
 
+				// Derive-account
 				#[allow(unused_imports)]
 				use bp_millau::derive_account_from_rialto_id as derive_account;
 
+				// Relay-messages
 				#[allow(unused_imports)]
 				use crate::rialto_millau::millau_messages_to_rialto::run as relay_messages;
+
+				// Send-message
+				#[allow(unused_imports)]
+				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+
+				#[allow(unused_imports)]
+				use millau_runtime::rialto_account_ownership_digest as account_ownership_digest;
+
+				#[allow(dead_code)]
+				fn send_message_call(
+					lane: bp_messages::LaneId,
+					payload: <Source as crate::cli::CliChain>::MessagePayload,
+					fee: crate::cli::Balance,
+				) -> millau_runtime::Call {
+					millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
+						lane,
+						payload,
+						fee.cast(),
+					))
+				}
 
 				$generic
 			}
@@ -62,11 +84,30 @@ macro_rules! select_full_bridge {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
 
+				// Derive-account
 				#[allow(unused_imports)]
 				use bp_rialto::derive_account_from_millau_id as derive_account;
 
+				// Relay-messages
 				#[allow(unused_imports)]
 				use crate::rialto_millau::rialto_messages_to_millau::run as relay_messages;
+
+				// Send-message
+				#[allow(unused_imports)]
+				use bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+				#[allow(unused_imports)]
+				use rialto_runtime::millau_account_ownership_digest as account_ownership_digest;
+
+				#[allow(dead_code)]
+				fn send_message_call(
+					lane: bp_messages::LaneId,
+					payload: <Source as crate::cli::CliChain>::MessagePayload,
+					fee: crate::cli::Balance,
+				) -> rialto_runtime::Call {
+					rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
+						lane, payload, fee.0,
+					))
+				}
 
 				$generic
 			}
