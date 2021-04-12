@@ -48,6 +48,7 @@ macro_rules! select_full_bridge {
 		match $bridge {
 			FullBridge::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
+				#[allow(dead_code)]
 				type Target = relay_rialto_client::Rialto;
 
 				#[allow(unused_imports)]
@@ -56,10 +57,14 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use crate::rialto_millau::millau_messages_to_rialto::run as relay_messages;
 
+				#[allow(unused_imports)]
+				use bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+
 				$generic
 			}
 			FullBridge::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
+				#[allow(dead_code)]
 				type Target = relay_millau_client::Millau;
 
 				#[allow(unused_imports)]
@@ -67,6 +72,9 @@ macro_rules! select_full_bridge {
 
 				#[allow(unused_imports)]
 				use crate::rialto_millau::rialto_messages_to_millau::run as relay_messages;
+
+				#[allow(unused_imports)]
+				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
 			}

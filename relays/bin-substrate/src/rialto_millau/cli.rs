@@ -114,47 +114,6 @@ impl EncodeMessagePayload {
 	}
 }
 
-/// Estimate Delivery & Dispatch Fee command.
-///
-/// TODO [#855] Move to separate module.
-#[derive(StructOpt)]
-pub enum EstimateFee {
-	/// Estimate fee of Rialto to Millau message.
-	RialtoToMillau {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		/// Hex-encoded id of lane that will be delivering the message.
-		#[structopt(long)]
-		lane: HexLaneId,
-		/// Payload to send over the bridge.
-		#[structopt(flatten)]
-		payload: MessagePayload,
-	},
-	/// Estimate fee of Rialto to Millau message.
-	MillauToRialto {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		/// Hex-encoded id of lane that will be delivering the message.
-		#[structopt(long)]
-		lane: HexLaneId,
-		/// Payload to send over the bridge.
-		#[structopt(flatten)]
-		payload: MessagePayload,
-	},
-}
-
-impl EstimateFee {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_estimate_fee(self).await.map_err(format_err)?;
-		Ok(())
-	}
-}
-
-fn format_err(err: String) -> anyhow::Error {
-	anyhow::anyhow!(err)
-}
-
 /// Generic message payload.
 #[derive(StructOpt, Debug)]
 pub enum MessagePayload {
@@ -172,4 +131,8 @@ pub enum MessagePayload {
 		#[structopt(long)]
 		sender: AccountId,
 	},
+}
+
+fn format_err(err: String) -> anyhow::Error {
+	anyhow::anyhow!(err)
 }

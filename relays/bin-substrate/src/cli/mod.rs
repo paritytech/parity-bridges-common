@@ -27,6 +27,7 @@ use structopt::{clap::arg_enum, StructOpt};
 
 pub(crate) mod bridge;
 pub(crate) mod encode_call;
+pub(crate) mod estimate_fee;
 
 mod derive_account;
 mod init_bridge;
@@ -73,7 +74,7 @@ pub enum Command {
 	/// the bridge.
 	EncodeMessagePayload(EncodeMessagePayload),
 	/// Estimate Delivery and Dispatch Fee required for message submission to messages pallet.
-	EstimateFee(EstimateFee),
+	EstimateFee(estimate_fee::EstimateFee),
 	/// Given a source chain `AccountId`, derive the corresponding `AccountId` for the target chain.
 	DeriveAccount(derive_account::DeriveAccount),
 }
@@ -120,23 +121,6 @@ pub enum EncodeMessagePayload {
 }
 
 impl EncodeMessagePayload {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// Estimate Delivery & Dispatch Fee command.
-#[derive(StructOpt)]
-pub enum EstimateFee {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::EstimateFee),
-}
-
-impl EstimateFee {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self {
@@ -378,7 +362,7 @@ macro_rules! declare_chain_options {
 	($chain:ident, $chain_prefix:ident) => {
 		paste::item! {
 			#[doc = $chain " connection params."]
-			#[derive(StructOpt)]
+			#[derive(StructOpt, Debug)]
 			pub struct [<$chain ConnectionParams>] {
 				#[doc = "Connect to " $chain " node at given host."]
 				#[structopt(long, default_value = "127.0.0.1")]
@@ -392,7 +376,7 @@ macro_rules! declare_chain_options {
 			}
 
 			#[doc = $chain " signing params."]
-			#[derive(StructOpt)]
+			#[derive(StructOpt, Debug)]
 			pub struct [<$chain SigningParams>] {
 				#[doc = "The SURI of secret key to use when transactions are submitted to the " $chain " node."]
 				#[structopt(long)]

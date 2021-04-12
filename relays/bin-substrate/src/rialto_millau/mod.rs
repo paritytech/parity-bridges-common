@@ -31,6 +31,7 @@ pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 use crate::cli::{
 	bridge::{MILLAU_TO_RIALTO_INDEX, RIALTO_TO_MILLAU_INDEX},
 	encode_call::{self, Call, CliEncodeCall},
+	estimate_fee::estimate_message_delivery_and_dispatch_fee,
 	CliChain, ExplicitOrMaximal, HexBytes, Origins,
 };
 use codec::{Decode, Encode};
@@ -283,59 +284,6 @@ async fn run_encode_message_payload(call: cli::EncodeMessagePayload) -> Result<(
 		}
 	}
 	Ok(())
-}
-
-async fn run_estimate_fee(cmd: cli::EstimateFee) -> Result<(), String> {
-	match cmd {
-		cli::EstimateFee::RialtoToMillau { source, lane, payload } => {
-			type Source = Rialto;
-			type SourceBalance = bp_rialto::Balance;
-
-			let estimate_message_fee_method = bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD;
-
-			let source_client = source.into_client::<Source>().await.map_err(format_err)?;
-			let lane = lane.into();
-			let payload = Source::encode_message(payload)?;
-
-			let fee: Option<SourceBalance> =
-				estimate_message_delivery_and_dispatch_fee(&source_client, estimate_message_fee_method, lane, payload)
-					.await?;
-
-			println!("Fee: {:?}", fee);
-		}
-		cli::EstimateFee::MillauToRialto { source, lane, payload } => {
-			type Source = Millau;
-			type SourceBalance = bp_millau::Balance;
-
-			let estimate_message_fee_method = bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD;
-
-			let source_client = source.into_client::<Source>().await.map_err(format_err)?;
-			let lane = lane.into();
-			let payload = Source::encode_message(payload)?;
-
-			let fee: Option<SourceBalance> =
-				estimate_message_delivery_and_dispatch_fee(&source_client, estimate_message_fee_method, lane, payload)
-					.await?;
-
-			println!("Fee: {:?}", fee);
-		}
-	}
-
-	Ok(())
-}
-
-async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: Encode>(
-	client: &relay_substrate_client::Client<C>,
-	estimate_fee_method: &str,
-	lane: bp_messages::LaneId,
-	payload: P,
-) -> Result<Option<Fee>, relay_substrate_client::Error> {
-	let encoded_response = client
-		.state_call(estimate_fee_method.into(), (lane, payload).encode().into(), None)
-		.await?;
-	let decoded_response: Option<Fee> =
-		Decode::decode(&mut &encoded_response.0[..]).map_err(relay_substrate_client::Error::ResponseParseFailed)?;
-	Ok(decoded_response)
 }
 
 fn message_payload<SAccountId, TPublic, TSignature>(
