@@ -337,7 +337,7 @@ impl From<PrometheusParams> for relay_utils::metrics::MetricsParams {
 }
 
 /// Either explicit or maximal allowed value.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExplicitOrMaximal<V> {
 	/// User has explicitly specified argument value.
 	Explicit(V),
@@ -395,7 +395,7 @@ macro_rules! declare_chain_options {
 
 			impl [<$chain SigningParams>] {
 				/// Parse signing params into chain-specific KeyPair.
-				pub fn into_keypair<Chain: CliChain>(self) -> anyhow::Result<Chain::KeyPair> {
+				pub fn into_keypair<Chain: CliChain>(&self) -> anyhow::Result<Chain::KeyPair> {
 					use sp_core::crypto::Pair;
 					Chain::KeyPair::from_string(
 						&self.[<$chain_prefix _signer>],
@@ -407,10 +407,10 @@ macro_rules! declare_chain_options {
 			impl [<$chain ConnectionParams>] {
 				/// Convert connection params into Substrate client.
 				pub async fn into_client<Chain: CliChain>(
-					self,
+					&self,
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
 					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {
-						host: self.[<$chain_prefix _host>],
+						host: self.[<$chain_prefix _host>].clone(),
 						port: self.[<$chain_prefix _port>],
 						secure: self.[<$chain_prefix _secure>],
 					})

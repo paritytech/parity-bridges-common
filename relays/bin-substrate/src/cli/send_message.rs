@@ -23,10 +23,10 @@ use crate::cli::{
 use bp_messages::LaneId;
 use codec::Encode;
 use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
-use pallet_bridge_dispatch::CallOrigin;
+use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
 use relay_substrate_client::{Chain, TransactionSignScheme};
 use sp_core::{Bytes, Pair};
-use sp_runtime::{traits::IdentifyAccount, MultiSigner};
+use sp_runtime::{traits::IdentifyAccount, AccountId32, MultiSignature, MultiSigner};
 use structopt::StructOpt;
 
 /// Send bridge message.
@@ -60,6 +60,7 @@ pub struct SendMessage {
 	origin: Origins,
 }
 
+// TODO [ToDr] Use common macro.
 macro_rules! select_bridge {
 	($bridge: expr, $generic: tt) => {
 		match $bridge {
@@ -67,9 +68,12 @@ macro_rules! select_bridge {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
 
+				#[allow(unused_imports)]
 				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+				#[allow(unused_imports)]
 				use millau_runtime::rialto_account_ownership_digest as account_ownership_digest;
 
+				#[allow(dead_code)]
 				fn send_message_call(
 					lane: LaneId,
 					payload: <Source as CliChain>::MessagePayload,
@@ -88,9 +92,12 @@ macro_rules! select_bridge {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
 
+				#[allow(unused_imports)]
 				use bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+				#[allow(unused_imports)]
 				use rialto_runtime::millau_account_ownership_digest as account_ownership_digest;
 
+				#[allow(dead_code)]
 				fn send_message_call(
 					lane: LaneId,
 					payload: <Source as CliChain>::MessagePayload,
@@ -108,26 +115,24 @@ macro_rules! select_bridge {
 }
 
 impl SendMessage {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		let Self {
-			source,
-			source_sign,
-			target_sign,
-			lane,
-			mut message,
-			dispatch_weight,
-			fee,
-			origin,
-			bridge,
-		} = self;
+	pub fn encode_payload(
+		&mut self,
+	) -> anyhow::Result<MessagePayload<AccountId32, MultiSigner, MultiSignature, Vec<u8>>> {
+		select_bridge!(self.bridge, {
+			let SendMessage {
+				source_sign,
+				target_sign,
+				ref mut message,
+				dispatch_weight,
+				origin,
+				bridge,
+				..
+			} = self;
 
-		select_bridge!(bridge, {
-			let source_client = source.into_client::<Source>().await?;
 			let source_sign = source_sign.into_keypair::<Source>()?;
 			let target_sign = target_sign.into_keypair::<Target>()?;
 
-			encode_call::preprocess_call::<Source, Target>(&mut message, bridge.bridge_instance_index());
+			encode_call::preprocess_call::<Source, Target>(message, bridge.bridge_instance_index());
 			let target_call = Target::encode_call(&message)?;
 
 			let payload = {
@@ -162,24 +167,37 @@ impl SendMessage {
 					&target_call,
 				)
 			};
-			let dispatch_weight = payload.weight;
+			Ok(payload)
+		})
+	}
 
-			let lane = lane.into();
-			let fee = get_fee(fee, || async {
-				crate::rialto_millau::estimate_message_delivery_and_dispatch_fee::<
+	/// Run the command.
+	pub async fn run(mut self) -> anyhow::Result<()> {
+		select_bridge!(self.bridge, {
+			let payload = self.encode_payload()?;
+
+			let source_client = self.source.into_client::<Source>().await?;
+			let source_sign = self.source_sign.into_keypair::<Source>()?;
+
+			let lane = self.lane.into();
+			let fee = match self.fee {
+				Some(fee) => fee,
+				None => crate::rialto_millau::estimate_message_delivery_and_dispatch_fee::<
 					<Source as relay_substrate_client::ChainWithBalances>::NativeBalance,
 					_,
 					_,
 				>(&source_client, ESTIMATE_MESSAGE_FEE_METHOD, lane, payload.clone())
-				.await
-				.map(|v| v.map(|v| Balance(v as _)))
-			})
-			.await?;
+				.await?
+				.map(|v| Balance(v as _))
+				.ok_or(anyhow::format_err!(
+					"Failed to estimate message fee. Message is too heavy?"
+				))?,
+			};
+			let dispatch_weight = payload.weight;
+			let send_message_call = send_message_call(lane, payload, fee);
 
 			source_client
 				.submit_signed_extrinsic(source_sign.public().into(), |transaction_nonce| {
-					let send_message_call = send_message_call(lane, payload, fee);
-
 					let signed_source_call = Source::sign_transaction(
 						*source_client.genesis_hash(),
 						&source_sign,
@@ -213,36 +231,96 @@ impl SendMessage {
 }
 
 fn prepare_call_dispatch_weight(
-	user_specified_dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
+	user_specified_dispatch_weight: &Option<ExplicitOrMaximal<Weight>>,
 	weight_from_pre_dispatch_call: ExplicitOrMaximal<Weight>,
 	maximal_allowed_weight: Weight,
 ) -> Weight {
-	match user_specified_dispatch_weight.unwrap_or(weight_from_pre_dispatch_call) {
+	match user_specified_dispatch_weight
+		.clone()
+		.unwrap_or(weight_from_pre_dispatch_call)
+	{
 		ExplicitOrMaximal::Explicit(weight) => weight,
 		ExplicitOrMaximal::Maximal => maximal_allowed_weight,
-	}
-}
-
-async fn get_fee<F, R, E>(fee: Option<Balance>, f: F) -> anyhow::Result<Balance>
-where
-	F: FnOnce() -> R,
-	R: std::future::Future<Output = Result<Option<Balance>, E>>,
-	E: Send + Sync + std::error::Error + 'static,
-{
-	match fee {
-		Some(fee) => Ok(fee),
-		None => f().await?.ok_or(anyhow::format_err!(
-			"Failed to estimate message fee. Message is too heavy?"
-		)),
 	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use hex_literal::hex;
 
 	#[test]
-	fn should_have_tests() {
-		assert_eq!(true, false)
+	fn send_remark_rialto_to_millau() {
+		// given
+		let mut send_message = SendMessage::from_iter(vec![
+			"send-message",
+			"RialtoToMillau",
+			"--source-port",
+			"1234",
+			"--source-signer",
+			"//Alice",
+			"--target-signer",
+			"//Bob",
+			"remark",
+			"--remark-payload",
+			"1234",
+		]);
+
+		// when
+		let payload = send_message.encode_payload().unwrap();
+
+		// then
+		assert_eq!(
+			payload,
+			MessagePayload {
+				spec_version: relay_millau_client::Millau::RUNTIME_VERSION.spec_version,
+				weight: 1345000,
+				origin: CallOrigin::SourceAccount(sp_keyring::AccountKeyring::Alice.to_account_id()),
+				call: hex!("0401081234").to_vec(),
+			}
+		);
+	}
+
+	#[test]
+	fn send_remark_millau_to_rialto() {
+		// given
+		let mut send_message = SendMessage::from_iter(vec![
+			"send-message",
+			"MillauToRialto",
+			"--source-port",
+			"1234",
+			"--source-signer",
+			"//Alice",
+			"--origin",
+			"Target",
+			"--target-signer",
+			"//Bob",
+			"remark",
+			"--remark-payload",
+			"1234",
+		]);
+
+		// when
+		let payload = send_message.encode_payload().unwrap();
+
+		// then
+		// Since signatures are randomized we extract it from here and only check the rest.
+		let signature = match payload.origin {
+			CallOrigin::TargetAccount(_, _, ref sig) => sig.clone(),
+			_ => panic!("Unexpected `CallOrigin`: {:?}", payload),
+		};
+		assert_eq!(
+			payload,
+			MessagePayload {
+				spec_version: relay_millau_client::Millau::RUNTIME_VERSION.spec_version,
+				weight: 1345000,
+				origin: CallOrigin::TargetAccount(
+					sp_keyring::AccountKeyring::Alice.to_account_id(),
+					sp_keyring::AccountKeyring::Bob.into(),
+					signature,
+				),
+				call: hex!("0701081234").to_vec(),
+			}
+		);
 	}
 }

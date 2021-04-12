@@ -56,3 +56,4 @@ sp-version = { git = "https://github.com/paritytech/substrate", branch = "master
 
 [dev-dependencies]
 sp-keyring = { git = "https://github.com/paritytech/substrate", branch = "master" }
+hex-literal = "0.3"
