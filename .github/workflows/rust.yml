@@ -23,7 +23,7 @@ jobs:
         toolchain:
           - stable
           #- beta
-          - nightly
+          - nightly-2021-04-10
     runs-on:                       ubuntu-latest
     env:
       RUST_BACKTRACE:              full
