@@ -4462,6 +4462,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-format"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bafe4179722c2894288ee77a9f044f02811c86af699344c498b0840c698a2465"
+dependencies = [
+ "arrayvec 0.4.12",
+ "itoa",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8449,6 +8459,7 @@ dependencies = [
  "log",
  "messages-relay",
  "millau-runtime",
+ "num-format",
  "num-traits",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",

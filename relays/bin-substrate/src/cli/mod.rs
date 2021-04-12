@@ -148,8 +148,8 @@ pub struct Balance(pub u128);
 
 impl std::fmt::Display for Balance {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		// TODO [ToDr] Use num_format.
-		write!(fmt, "{}", self.0)
+		use num_format::{Locale, ToFormattedString};
+		write!(fmt, "{}", self.0.to_formatted_string(&Locale::en))
 	}
 }
 
