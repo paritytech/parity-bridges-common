@@ -31,7 +31,7 @@ pub enum MessagePayload {
 		/// Message details.
 		#[structopt(flatten)]
 		call: crate::cli::encode_call::Call,
-		/// SS58 encoded account that will send the payload (must have SS58Prefix = 42)
+		/// SS58 encoded Source account that will send the payload.
 		#[structopt(long)]
 		sender: AccountId,
 	},
