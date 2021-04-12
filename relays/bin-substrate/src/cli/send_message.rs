@@ -124,7 +124,7 @@ impl SendMessage {
 			let source_client = self.source.into_client::<Source>().await?;
 			let source_sign = self.source_sign.into_keypair::<Source>()?;
 
-			let lane = self.lane.into();
+			let lane = self.lane.clone().into();
 			let fee = match self.fee {
 				Some(fee) => fee,
 				None => crate::rialto_millau::estimate_message_delivery_and_dispatch_fee::<
@@ -139,7 +139,12 @@ impl SendMessage {
 				))?,
 			};
 			let dispatch_weight = payload.weight;
-			let send_message_call = send_message_call(lane, payload, fee);
+			let send_message_call = Source::encode_call(&encode_call::Call::BridgeSendMessage {
+				bridge_instance_index: self.bridge.bridge_instance_index(),
+				lane: self.lane,
+				payload: HexBytes::encode(&payload),
+				fee,
+			})?;
 
 			source_client
 				.submit_signed_extrinsic(source_sign.public().into(), |transaction_nonce| {

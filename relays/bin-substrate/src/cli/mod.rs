@@ -258,7 +258,7 @@ pub trait CliChain: relay_substrate_client::Chain {
 }
 
 /// Lane id.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HexLaneId(pub LaneId);
 
 impl From<HexLaneId> for LaneId {
