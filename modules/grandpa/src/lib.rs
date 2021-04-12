@@ -91,6 +91,14 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxRequests: Get<u32>;
 
+		/// Maximal number of finalized headers to keep in the storage.
+		///
+		/// The setting is there to prevent growing the on-chain state indefinitely. Note
+		/// the setting does not relate to block numbers - we will simply keep as much items
+		/// in the storage, so it doesn't guarantee any fixed timeframe for finality headers.
+		#[pallet::constant]
+		type HeadersToKeep: Get<u32>;
+
 		/// Weights gathered through benchmarking.
 		type WeightInfo: WeightInfo;
 	}
@@ -153,9 +161,18 @@ pub mod pallet {
 			verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
 
 			let _enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
+			let index = <ImportedHashesNeedle<T, I>>::get();
+			let pruning = <ImportedHashes<T, I>>::try_get(index);
 			<BestFinalized<T, I>>::put(hash);
 			<ImportedHeaders<T, I>>::insert(hash, finality_target);
+			<ImportedHashes<T, I>>::insert(index, hash);
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
+
+			// Update ring buffer needle and remove old header.
+			<ImportedHashesNeedle<T, I>>::put((index + 1) % T::HeadersToKeep::get());
+			if let Ok(hash) = pruning {
+				<ImportedHeaders<T, I>>::remove(hash);
+			}
 
 			log::info!(target: "runtime::bridge-grandpa", "Succesfully imported finalized header with hash {:?}!", hash);
 
@@ -247,6 +264,15 @@ pub mod pallet {
 	/// Hash of the best finalized header.
 	#[pallet::storage]
 	pub(super) type BestFinalized<T: Config<I>, I: 'static = ()> = StorageValue<_, BridgedBlockHash<T, I>, ValueQuery>;
+
+	/// A ring buffer of imported hashes. Ordered by the insertion time.
+	#[pallet::storage]
+	pub(super) type ImportedHashes<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Identity /* TODO */, u32, BridgedBlockHash<T, I>>;
+
+	/// Current ring buffer position.
+	#[pallet::storage]
+	pub(super) type ImportedHashesNeedle<T: Config<I>, I: 'static = ()> = StorageValue<_, u32, ValueQuery>;
 
 	/// Headers which have been imported into the pallet.
 	#[pallet::storage]
