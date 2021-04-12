@@ -143,7 +143,7 @@ arg_enum! {
 }
 
 /// Generic balance type.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Balance(pub u128);
 
 impl std::str::FromStr for Balance {
@@ -251,7 +251,7 @@ pub trait CliChain: relay_substrate_client::Chain {
 }
 
 /// Lane id.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct HexLaneId(pub LaneId);
 
 impl From<HexLaneId> for LaneId {
@@ -271,7 +271,7 @@ impl std::str::FromStr for HexLaneId {
 }
 
 /// Nicer formatting for raw bytes vectors.
-#[derive(Default, Encode, Decode)]
+#[derive(Default, Encode, Decode, PartialEq, Eq)]
 pub struct HexBytes(pub Vec<u8>);
 
 impl std::str::FromStr for HexBytes {
@@ -330,7 +330,7 @@ impl From<PrometheusParams> for relay_utils::metrics::MetricsParams {
 }
 
 /// Either explicit or maximal allowed value.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ExplicitOrMaximal<V> {
 	/// User has explicitly specified argument value.
 	Explicit(V),
@@ -362,7 +362,7 @@ macro_rules! declare_chain_options {
 	($chain:ident, $chain_prefix:ident) => {
 		paste::item! {
 			#[doc = $chain " connection params."]
-			#[derive(StructOpt, Debug)]
+			#[derive(StructOpt, Debug, PartialEq, Eq)]
 			pub struct [<$chain ConnectionParams>] {
 				#[doc = "Connect to " $chain " node at given host."]
 				#[structopt(long, default_value = "127.0.0.1")]
@@ -376,7 +376,7 @@ macro_rules! declare_chain_options {
 			}
 
 			#[doc = $chain " signing params."]
-			#[derive(StructOpt, Debug)]
+			#[derive(StructOpt, Debug, PartialEq, Eq)]
 			pub struct [<$chain SigningParams>] {
 				#[doc = "The SURI of secret key to use when transactions are submitted to the " $chain " node."]
 				#[structopt(long)]

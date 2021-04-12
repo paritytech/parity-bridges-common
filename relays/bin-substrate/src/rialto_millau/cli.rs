@@ -115,7 +115,7 @@ impl EncodeMessagePayload {
 }
 
 /// Generic message payload.
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, PartialEq, Eq)]
 pub enum MessagePayload {
 	/// Raw, SCALE-encoded `MessagePayload`.
 	Raw {

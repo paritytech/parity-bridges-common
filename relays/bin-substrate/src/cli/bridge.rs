@@ -17,7 +17,7 @@
 use structopt::clap::arg_enum;
 
 arg_enum! {
-	#[derive(Debug)]
+	#[derive(Debug, PartialEq, Eq)]
 	/// Supported full bridges (headers + messages).
 	pub enum FullBridge {
 		MillauToRialto,

@@ -22,7 +22,7 @@ use relay_substrate_client::{Chain, ChainWithBalances};
 use structopt::StructOpt;
 
 /// Estimate Delivery & Dispatch Fee command.
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, PartialEq, Eq)]
 pub struct EstimateFee {
 	/// A bridge instance to encode call for.
 	#[structopt(possible_values = &FullBridge::variants(), case_insensitive = true)]
@@ -30,7 +30,7 @@ pub struct EstimateFee {
 	#[structopt(flatten)]
 	source: SourceConnectionParams,
 	/// Hex-encoded id of lane that will be delivering the message.
-	#[structopt(long)]
+	#[structopt(long, default_value = "00000000")]
 	lane: HexLaneId,
 	/// Payload to send over the bridge.
 	#[structopt(flatten)]
@@ -77,4 +77,52 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: C
 	let fee = decoded_response
 		.ok_or_else(|| anyhow::format_err!("Unable to decode fee from: {:?}", HexBytes(encoded_response.to_vec())))?;
 	Ok(fee)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::cli::encode_call;
+	use sp_core::crypto::Ss58Codec;
+
+	#[test]
+	fn should_parse_cli_options() {
+		// given
+		let alice = sp_keyring::AccountKeyring::Alice.to_account_id().to_ss58check();
+
+		// when
+		let res = EstimateFee::from_iter(vec![
+			"estimate_fee",
+			"RialtoToMillau",
+			"--source-port",
+			"1234",
+			"call",
+			"--sender",
+			&alice,
+			"remark",
+			"--remark-payload",
+			"1234",
+		]);
+
+		// then
+		assert_eq!(
+			res,
+			EstimateFee {
+				bridge: FullBridge::RialtoToMillau,
+				lane: HexLaneId([0, 0, 0, 0]),
+				source: SourceConnectionParams {
+					source_host: "127.0.0.1".into(),
+					source_port: 1234,
+					source_secure: false,
+				},
+				payload: crate::rialto_millau::cli::MessagePayload::Call {
+					sender: alice.parse().unwrap(),
+					call: encode_call::Call::Remark {
+						remark_payload: Some(HexBytes(vec![0x12, 0x34])),
+						remark_size: None,
+					}
+				}
+			}
+		);
+	}
 }
