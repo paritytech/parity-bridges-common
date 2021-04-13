@@ -20,8 +20,7 @@ use frame_support::weights::Weight;
 use structopt::StructOpt;
 
 use crate::cli::{
-	AccountId, Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams, SourceSigningParams,
-	TargetSigningParams,
+	Balance, ExplicitOrMaximal, HexLaneId, Origins, SourceConnectionParams, SourceSigningParams, TargetSigningParams,
 };
 
 /// Send bridge message.
@@ -87,50 +86,6 @@ impl SendMessage {
 		super::run_send_message(self).await.map_err(format_err)?;
 		Ok(())
 	}
-}
-
-/// A `MessagePayload` to encode.
-///
-/// TODO [#855] Move to separate module.
-#[derive(StructOpt)]
-pub enum EncodeMessagePayload {
-	/// Message Payload of Rialto to Millau call.
-	RialtoToMillau {
-		#[structopt(flatten)]
-		payload: MessagePayload,
-	},
-	/// Message Payload of Millau to Rialto call.
-	MillauToRialto {
-		#[structopt(flatten)]
-		payload: MessagePayload,
-	},
-}
-
-impl EncodeMessagePayload {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_encode_message_payload(self).await.map_err(format_err)?;
-		Ok(())
-	}
-}
-
-/// Generic message payload.
-#[derive(StructOpt, Debug, PartialEq, Eq)]
-pub enum MessagePayload {
-	/// Raw, SCALE-encoded `MessagePayload`.
-	Raw {
-		/// Hex-encoded SCALE data.
-		data: HexBytes,
-	},
-	/// Construct message to send over the bridge.
-	Call {
-		/// Message details.
-		#[structopt(flatten)]
-		call: crate::cli::encode_call::Call,
-		/// SS58 encoded account that will send the payload (must have SS58Prefix = 42)
-		#[structopt(long)]
-		sender: AccountId,
-	},
 }
 
 fn format_err(err: String) -> anyhow::Error {

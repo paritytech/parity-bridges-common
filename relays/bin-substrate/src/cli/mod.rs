@@ -27,6 +27,7 @@ use structopt::{clap::arg_enum, StructOpt};
 
 pub(crate) mod bridge;
 pub(crate) mod encode_call;
+pub(crate) mod encode_message;
 pub(crate) mod estimate_fee;
 
 mod derive_account;
@@ -72,7 +73,7 @@ pub enum Command {
 	///
 	/// The `MessagePayload` can be then fed to `Messages::send_message` function and sent over
 	/// the bridge.
-	EncodeMessagePayload(EncodeMessagePayload),
+	EncodeMessage(encode_message::EncodeMessage),
 	/// Estimate Delivery and Dispatch Fee required for message submission to messages pallet.
 	EstimateFee(estimate_fee::EstimateFee),
 	/// Given a source chain `AccountId`, derive the corresponding `AccountId` for the target chain.
@@ -88,7 +89,7 @@ impl Command {
 			Self::InitBridge(arg) => arg.run().await?,
 			Self::SendMessage(arg) => arg.run().await?,
 			Self::EncodeCall(arg) => arg.run().await?,
-			Self::EncodeMessagePayload(arg) => arg.run().await?,
+			Self::EncodeMessage(arg) => arg.run().await?,
 			Self::EstimateFee(arg) => arg.run().await?,
 			Self::DeriveAccount(arg) => arg.run().await?,
 		}
@@ -104,23 +105,6 @@ pub enum SendMessage {
 }
 
 impl SendMessage {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		match self {
-			Self::RialtoMillau(arg) => arg.run().await?,
-		}
-		Ok(())
-	}
-}
-
-/// A `MessagePayload` to encode.
-#[derive(StructOpt)]
-pub enum EncodeMessagePayload {
-	#[structopt(flatten)]
-	RialtoMillau(rialto_millau::EncodeMessagePayload),
-}
-
-impl EncodeMessagePayload {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self {
@@ -244,7 +228,7 @@ pub trait CliChain: relay_substrate_client::Chain {
 	fn ss58_format() -> u16;
 
 	/// Construct message payload to be sent over the bridge.
-	fn encode_message(message: crate::rialto_millau::cli::MessagePayload) -> Result<Self::MessagePayload, String>;
+	fn encode_message(message: crate::cli::encode_message::MessagePayload) -> Result<Self::MessagePayload, String>;
 
 	/// Maximal extrinsic weight (from the runtime).
 	fn max_extrinsic_weight() -> Weight;
