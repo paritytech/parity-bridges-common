@@ -30,7 +30,7 @@ const UPDATE_INTERVAL_IN_BLOCKS: u32 = 100;
 
 /// Metric that represents extra size of storage proof as unsigned integer gauge.
 ///
-/// Ther's one thing to keep in mind when using this metric: the overhead may be slightly
+/// There's one thing to keep in mind when using this metric: the overhead may be slightly
 /// different for other values, but this metric gives a good estimation.
 #[derive(Debug)]
 pub struct StorageProofOverheadMetric<C: Chain> {
