@@ -117,10 +117,10 @@ impl RelayHeadersAndMessages {
 		select_bridge!(self, {
 			let params: Params = self.into();
 
-			let left_client = params.left.into_client::<Left>().await?;
-			let left_sign = params.left_sign.into_keypair::<Left>()?;
-			let right_client = params.right.into_client::<Right>().await?;
-			let right_sign = params.right_sign.into_keypair::<Right>()?;
+			let left_client = params.left.to_client::<Left>().await?;
+			let left_sign = params.left_sign.to_keypair::<Left>()?;
+			let right_client = params.right.to_client::<Right>().await?;
+			let right_sign = params.right_sign.to_keypair::<Right>()?;
 
 			let lane = params.shared.lane.into();
 

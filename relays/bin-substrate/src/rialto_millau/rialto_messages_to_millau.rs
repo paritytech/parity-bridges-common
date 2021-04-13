@@ -137,7 +137,7 @@ pub async fn run(
 	params: MessagesRelayParams<Rialto, RialtoSigningParams, Millau, MillauSigningParams>,
 ) -> Result<(), String> {
 	let stall_timeout = Duration::from_secs(5 * 60);
-	let relayer_id_at_rialto = (*rialto_sign.public().as_array_ref()).into();
+	let relayer_id_at_rialto = (*params.source_sign.public().as_array_ref()).into();
 
 	let lane_id = params.lane_id;
 	let source_client = params.source_client;
