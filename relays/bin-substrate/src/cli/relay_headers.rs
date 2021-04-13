@@ -51,21 +51,21 @@ macro_rules! select_bridge {
 			RelayHeadersBridge::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
-				type Finality = crate::rialto_millau::millau_headers_to_rialto::MillauFinalityToRialto;
+				type Finality = crate::chains::millau_headers_to_rialto::MillauFinalityToRialto;
 
 				$generic
 			}
 			RelayHeadersBridge::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
-				type Finality = crate::rialto_millau::rialto_headers_to_millau::RialtoFinalityToMillau;
+				type Finality = crate::chains::rialto_headers_to_millau::RialtoFinalityToMillau;
 
 				$generic
 			}
 			RelayHeadersBridge::WestendToMillau => {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
-				type Finality = crate::rialto_millau::westend_headers_to_millau::WestendFinalityToMillau;
+				type Finality = crate::chains::westend_headers_to_millau::WestendFinalityToMillau;
 
 				$generic
 			}
