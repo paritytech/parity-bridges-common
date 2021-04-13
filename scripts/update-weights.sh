@@ -1,11 +1,13 @@
 #!/bin/sh
+#
+# Runtime benchmarks for the `pallet-bridge-messages` and `pallet-bridge-grandpa` pallets.
+#
+# Run this script from root of the repo.
 
-set -exu
+set -eux
 
-# Run this script from root of the repo
-
-time cargo run --manifest-path=bin/rialto/node/Cargo.toml --release --features=runtime-benchmarks -- benchmark \
-	--chain=local \
+time cargo run --release -p rialto-bridge-node --features=runtime-benchmarks -- benchmark \
+	--chain=dev \
 	--steps=50 \
 	--repeat=20 \
 	--pallet=pallet_bridge_messages \
@@ -16,8 +18,8 @@ time cargo run --manifest-path=bin/rialto/node/Cargo.toml --release --features=r
 	--output=./modules/messages/src/weights.rs \
 	--template=./.maintain/rialto-weight-template.hbs
 
-time cargo run --manifest-path=bin/rialto/node/Cargo.toml --release --features=runtime-benchmarks -- benchmark \
-	--chain=local \
+time cargo run --release -p rialto-bridge-node --features=runtime-benchmarks -- benchmark \
+	--chain=dev \
 	--steps=50 \
 	--repeat=20 \
 	--pallet=pallet_bridge_grandpa \
