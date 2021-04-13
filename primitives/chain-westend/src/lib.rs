@@ -46,6 +46,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
 #[allow(non_camel_case_types)]
 pub enum Call {
+	/// Rococo bridge pallet.
+	///
+	/// Note this index has to be kept in-sync with westend runtime configuration:
+	/// https://github.com/paritytech/polkadot/blob/master/runtime/westend/src/lib.rs#L809
 	#[codec(index = 40)]
 	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
 }
