@@ -16,103 +16,9 @@
 
 //! Deal with CLI args of Rialto <> Millau relay.
 
-use frame_support::weights::Weight;
 use structopt::StructOpt;
 
-use crate::cli::{
-	AccountId, Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams, SourceSigningParams,
-	TargetSigningParams,
-};
-
-/// Send bridge message.
-///
-/// TODO [#855] Move to separate module.
-#[derive(StructOpt)]
-pub enum SendMessage {
-	/// Submit message to given Millau -> Rialto lane.
-	MillauToRialto {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		#[structopt(flatten)]
-		source_sign: SourceSigningParams,
-		#[structopt(flatten)]
-		target_sign: TargetSigningParams,
-		/// Hex-encoded lane id. Defaults to `00000000`.
-		#[structopt(long, default_value = "00000000")]
-		lane: HexLaneId,
-		/// Dispatch weight of the message. If not passed, determined automatically.
-		#[structopt(long)]
-		dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-		/// Delivery and dispatch fee in source chain base currency units. If not passed, determined automatically.
-		#[structopt(long)]
-		fee: Option<Balance>,
-		/// Message type.
-		#[structopt(subcommand)]
-		message: crate::cli::encode_call::Call,
-		/// The origin to use when dispatching the message on the target chain. Defaults to
-		/// `SourceAccount`.
-		#[structopt(long, possible_values = &Origins::variants(), default_value = "Source")]
-		origin: Origins,
-	},
-	/// Submit message to given Rialto -> Millau lane.
-	RialtoToMillau {
-		#[structopt(flatten)]
-		source: SourceConnectionParams,
-		#[structopt(flatten)]
-		source_sign: SourceSigningParams,
-		#[structopt(flatten)]
-		target_sign: TargetSigningParams,
-		/// Hex-encoded lane id. Defaults to `00000000`.
-		#[structopt(long, default_value = "00000000")]
-		lane: HexLaneId,
-		/// Dispatch weight of the message. If not passed, determined automatically.
-		#[structopt(long)]
-		dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-		/// Delivery and dispatch fee in source chain base currency units. If not passed, determined automatically.
-		#[structopt(long)]
-		fee: Option<Balance>,
-		/// Message type.
-		#[structopt(subcommand)]
-		message: crate::cli::encode_call::Call,
-		/// The origin to use when dispatching the message on the target chain. Defaults to
-		/// `SourceAccount`.
-		#[structopt(long, possible_values = &Origins::variants(), default_value = "Source")]
-		origin: Origins,
-	},
-}
-
-impl SendMessage {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_send_message(self).await.map_err(format_err)?;
-		Ok(())
-	}
-}
-
-/// A `MessagePayload` to encode.
-///
-/// TODO [#855] Move to separate module.
-#[derive(StructOpt)]
-pub enum EncodeMessagePayload {
-	/// Message Payload of Rialto to Millau call.
-	RialtoToMillau {
-		#[structopt(flatten)]
-		payload: MessagePayload,
-	},
-	/// Message Payload of Millau to Rialto call.
-	MillauToRialto {
-		#[structopt(flatten)]
-		payload: MessagePayload,
-	},
-}
-
-impl EncodeMessagePayload {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_encode_message_payload(self).await.map_err(format_err)?;
-		Ok(())
-	}
-}
+use crate::cli::{HexLaneId, SourceConnectionParams};
 
 /// Estimate Delivery & Dispatch Fee command.
 ///
@@ -128,7 +34,7 @@ pub enum EstimateFee {
 		lane: HexLaneId,
 		/// Payload to send over the bridge.
 		#[structopt(flatten)]
-		payload: MessagePayload,
+		payload: crate::cli::encode_message::MessagePayload,
 	},
 	/// Estimate fee of Rialto to Millau message.
 	MillauToRialto {
@@ -139,7 +45,7 @@ pub enum EstimateFee {
 		lane: HexLaneId,
 		/// Payload to send over the bridge.
 		#[structopt(flatten)]
-		payload: MessagePayload,
+		payload: crate::cli::encode_message::MessagePayload,
 	},
 }
 
@@ -153,23 +59,4 @@ impl EstimateFee {
 
 fn format_err(err: String) -> anyhow::Error {
 	anyhow::anyhow!(err)
-}
-
-/// Generic message payload.
-#[derive(StructOpt, Debug)]
-pub enum MessagePayload {
-	/// Raw, SCALE-encoded `MessagePayload`.
-	Raw {
-		/// Hex-encoded SCALE data.
-		data: HexBytes,
-	},
-	/// Construct message to send over the bridge.
-	Call {
-		/// Message details.
-		#[structopt(flatten)]
-		call: crate::cli::encode_call::Call,
-		/// SS58 encoded account that will send the payload (must have SS58Prefix = 42)
-		#[structopt(long)]
-		sender: AccountId,
-	},
 }
