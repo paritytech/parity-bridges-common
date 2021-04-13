@@ -16,7 +16,6 @@
 
 //! Rialto <> Millau Bridge commands.
 
-pub mod cli;
 pub mod millau_headers_to_rialto;
 pub mod millau_messages_to_rialto;
 pub mod rialto_headers_to_millau;
@@ -29,7 +28,7 @@ pub type MillauClient = relay_substrate_client::Client<Millau>;
 pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 
 use crate::cli::{
-	bridge::{MILLAU_TO_RIALTO_INDEX, RIALTO_TO_MILLAU_INDEX},
+	bridge,
 	encode_call::{self, Call, CliEncodeCall},
 	encode_message,
 	estimate_fee::estimate_message_delivery_and_dispatch_fee,
@@ -40,234 +39,10 @@ use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::Chain;
 use relay_westend_client::Westend;
-use sp_core::{Bytes, Pair};
-use sp_runtime::{traits::IdentifyAccount, MultiSigner};
 use sp_version::RuntimeVersion;
 use std::fmt::Debug;
-
-async fn run_send_message(command: cli::SendMessage) -> Result<(), String> {
-	match command {
-		cli::SendMessage::MillauToRialto {
-			source,
-			source_sign,
-			target_sign,
-			lane,
-			mut message,
-			dispatch_weight,
-			fee,
-			origin,
-			..
-		} => {
-			type Source = Millau;
-			type Target = Rialto;
-
-			let account_ownership_digest = |target_call, source_account_id| {
-				millau_runtime::rialto_account_ownership_digest(
-					&target_call,
-					source_account_id,
-					Target::RUNTIME_VERSION.spec_version,
-				)
-			};
-			let estimate_message_fee_method = bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD;
-			let fee = fee.map(|x| x.cast());
-			let send_message_call = |lane, payload, fee| {
-				millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
-					lane, payload, fee,
-				))
-			};
-
-			let source_client = source.into_client::<Source>().await.map_err(format_err)?;
-			let source_sign = source_sign.into_keypair::<Source>().map_err(format_err)?;
-			let target_sign = target_sign.into_keypair::<Target>().map_err(format_err)?;
-
-			encode_call::preprocess_call::<Source, Target>(&mut message, MILLAU_TO_RIALTO_INDEX);
-			let target_call = Target::encode_call(&message).map_err(|e| e.to_string())?;
-
-			let payload = {
-				let target_call_weight = prepare_call_dispatch_weight(
-					dispatch_weight,
-					ExplicitOrMaximal::Explicit(target_call.get_dispatch_info().weight),
-					compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
-				);
-				let source_sender_public: MultiSigner = source_sign.public().into();
-				let source_account_id = source_sender_public.into_account();
-
-				message_payload(
-					Target::RUNTIME_VERSION.spec_version,
-					target_call_weight,
-					match origin {
-						Origins::Source => CallOrigin::SourceAccount(source_account_id),
-						Origins::Target => {
-							let digest = account_ownership_digest(&target_call, source_account_id.clone());
-							let target_origin_public = target_sign.public();
-							let digest_signature = target_sign.sign(&digest);
-							CallOrigin::TargetAccount(
-								source_account_id,
-								target_origin_public.into(),
-								digest_signature.into(),
-							)
-						}
-					},
-					&target_call,
-				)
-			};
-			let dispatch_weight = payload.weight;
-
-			let lane = lane.into();
-			let fee = get_fee(fee, || {
-				estimate_message_delivery_and_dispatch_fee(
-					&source_client,
-					estimate_message_fee_method,
-					lane,
-					payload.clone(),
-				)
-			})
-			.await?;
-
-			source_client
-				.submit_signed_extrinsic(source_sign.public().into(), |transaction_nonce| {
-					let send_message_call = send_message_call(lane, payload, fee);
-
-					let signed_source_call = Source::sign_transaction(
-						*source_client.genesis_hash(),
-						&source_sign,
-						transaction_nonce,
-						send_message_call,
-					)
-					.encode();
-
-					log::info!(
-						target: "bridge",
-						"Sending message to {}. Size: {}. Dispatch weight: {}. Fee: {}",
-						Target::NAME,
-						signed_source_call.len(),
-						dispatch_weight,
-						fee,
-					);
-					log::info!(
-						target: "bridge",
-						"Signed {} Call: {:?}",
-						Source::NAME,
-						HexBytes::encode(&signed_source_call)
-					);
-
-					Bytes(signed_source_call)
-				})
-				.await?;
-		}
-		cli::SendMessage::RialtoToMillau {
-			source,
-			source_sign,
-			target_sign,
-			lane,
-			mut message,
-			dispatch_weight,
-			fee,
-			origin,
-			..
-		} => {
-			type Source = Rialto;
-			type Target = Millau;
-
-			let account_ownership_digest = |target_call, source_account_id| {
-				rialto_runtime::millau_account_ownership_digest(
-					&target_call,
-					source_account_id,
-					Target::RUNTIME_VERSION.spec_version,
-				)
-			};
-			let estimate_message_fee_method = bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD;
-			let fee = fee.map(|x| x.0);
-			let send_message_call = |lane, payload, fee| {
-				rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
-					lane, payload, fee,
-				))
-			};
-
-			let source_client = source.into_client::<Source>().await.map_err(format_err)?;
-			let source_sign = source_sign.into_keypair::<Source>().map_err(format_err)?;
-			let target_sign = target_sign.into_keypair::<Target>().map_err(format_err)?;
-
-			encode_call::preprocess_call::<Source, Target>(&mut message, RIALTO_TO_MILLAU_INDEX);
-			let target_call = Target::encode_call(&message).map_err(|e| e.to_string())?;
-
-			let payload = {
-				let target_call_weight = prepare_call_dispatch_weight(
-					dispatch_weight,
-					ExplicitOrMaximal::Explicit(target_call.get_dispatch_info().weight),
-					compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
-				);
-				let source_sender_public: MultiSigner = source_sign.public().into();
-				let source_account_id = source_sender_public.into_account();
-
-				message_payload(
-					Target::RUNTIME_VERSION.spec_version,
-					target_call_weight,
-					match origin {
-						Origins::Source => CallOrigin::SourceAccount(source_account_id),
-						Origins::Target => {
-							let digest = account_ownership_digest(&target_call, source_account_id.clone());
-							let target_origin_public = target_sign.public();
-							let digest_signature = target_sign.sign(&digest);
-							CallOrigin::TargetAccount(
-								source_account_id,
-								target_origin_public.into(),
-								digest_signature.into(),
-							)
-						}
-					},
-					&target_call,
-				)
-			};
-			let dispatch_weight = payload.weight;
-
-			let lane = lane.into();
-			let fee = get_fee(fee, || {
-				estimate_message_delivery_and_dispatch_fee(
-					&source_client,
-					estimate_message_fee_method,
-					lane,
-					payload.clone(),
-				)
-			})
-			.await?;
-
-			source_client
-				.submit_signed_extrinsic(source_sign.public().into(), |transaction_nonce| {
-					let send_message_call = send_message_call(lane, payload, fee);
-
-					let signed_source_call = Source::sign_transaction(
-						*source_client.genesis_hash(),
-						&source_sign,
-						transaction_nonce,
-						send_message_call,
-					)
-					.encode();
-
-					log::info!(
-						target: "bridge",
-						"Sending message to {}. Size: {}. Dispatch weight: {}. Fee: {}",
-						Target::NAME,
-						signed_source_call.len(),
-						dispatch_weight,
-						fee,
-					);
-					log::info!(
-						target: "bridge",
-						"Signed {} Call: {:?}",
-						Source::NAME,
-						HexBytes::encode(&signed_source_call)
-					);
-
-					Bytes(signed_source_call)
-				})
-				.await?;
-		}
-	}
-	Ok(())
-}
 
 fn message_payload<SAccountId, TPublic, TSignature>(
 	spec_version: u32,
@@ -306,35 +81,7 @@ where
 	}
 }
 
-fn prepare_call_dispatch_weight(
-	user_specified_dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
-	weight_from_pre_dispatch_call: ExplicitOrMaximal<Weight>,
-	maximal_allowed_weight: Weight,
-) -> Weight {
-	match user_specified_dispatch_weight.unwrap_or(weight_from_pre_dispatch_call) {
-		ExplicitOrMaximal::Explicit(weight) => weight,
-		ExplicitOrMaximal::Maximal => maximal_allowed_weight,
-	}
-}
-
-async fn get_fee<Fee, F, R, E>(fee: Option<Fee>, f: F) -> Result<Fee, String>
-where
-	Fee: Decode,
-	F: FnOnce() -> R,
-	R: std::future::Future<Output = Result<Option<Fee>, E>>,
-	E: Debug,
-{
-	match fee {
-		Some(fee) => Ok(fee),
-		None => match f().await {
-			Ok(Some(fee)) => Ok(fee),
-			Ok(None) => Err("Failed to estimate message fee. Message is too heavy?".into()),
-			Err(error) => Err(format!("Failed to estimate message fee: {:?}", error)),
-		},
-	}
-}
-
-fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
+pub(crate) fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
 	bridge_runtime_common::messages::target::maximal_incoming_message_dispatch_weight(maximal_extrinsic_weight)
 }
 
@@ -358,7 +105,7 @@ impl CliEncodeCall for Millau {
 				fee,
 				bridge_instance_index,
 			} => match *bridge_instance_index {
-				MILLAU_TO_RIALTO_INDEX => {
+				bridge::MILLAU_TO_RIALTO_INDEX => {
 					let payload = Decode::decode(&mut &*payload.0)?;
 					millau_runtime::Call::BridgeRialtoMessages(millau_runtime::MessagesCall::send_message(
 						lane.0,
@@ -401,7 +148,7 @@ impl CliChain for Millau {
 				sender.enforce_chain::<Source>();
 				let spec_version = Target::RUNTIME_VERSION.spec_version;
 				let origin = CallOrigin::SourceAccount(sender.raw_id());
-				encode_call::preprocess_call::<Source, Target>(&mut call, MILLAU_TO_RIALTO_INDEX);
+				encode_call::preprocess_call::<Source, Target>(&mut call, bridge::MILLAU_TO_RIALTO_INDEX);
 				let call = Target::encode_call(&call).map_err(|e| e.to_string())?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -431,7 +178,7 @@ impl CliEncodeCall for Rialto {
 				fee,
 				bridge_instance_index,
 			} => match *bridge_instance_index {
-				RIALTO_TO_MILLAU_INDEX => {
+				bridge::RIALTO_TO_MILLAU_INDEX => {
 					let payload = Decode::decode(&mut &*payload.0)?;
 					rialto_runtime::Call::BridgeMillauMessages(rialto_runtime::MessagesCall::send_message(
 						lane.0, payload, fee.0,
@@ -471,7 +218,7 @@ impl CliChain for Rialto {
 				sender.enforce_chain::<Source>();
 				let spec_version = Target::RUNTIME_VERSION.spec_version;
 				let origin = CallOrigin::SourceAccount(sender.raw_id());
-				encode_call::preprocess_call::<Source, Target>(&mut call, RIALTO_TO_MILLAU_INDEX);
+				encode_call::preprocess_call::<Source, Target>(&mut call, bridge::RIALTO_TO_MILLAU_INDEX);
 				let call = Target::encode_call(&call).map_err(|e| e.to_string())?;
 				let weight = call.get_dispatch_info().weight;
 
@@ -508,6 +255,7 @@ fn format_err(e: anyhow::Error) -> String {
 mod tests {
 	use super::*;
 	use bp_messages::source_chain::TargetHeaderChain;
+	use relay_substrate_client::TransactionSignScheme;
 	use sp_core::Pair;
 	use sp_runtime::traits::{IdentifyAccount, Verify};
 
