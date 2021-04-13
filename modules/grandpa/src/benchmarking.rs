@@ -78,7 +78,7 @@ benchmarks_instance_pallet! {
 
 		let caller: T::AccountId = whitelisted_caller();
 
-		let authority_list = accounts(p as u8)
+		let authority_list = accounts(p as u16)
 			.iter()
 			.map(|id| (AuthorityId::from(*id), 1))
 			.collect::<Vec<_>>();
@@ -97,7 +97,7 @@ benchmarks_instance_pallet! {
 			header: header.clone(),
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
-			authorities: accounts(p as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
+			authorities: accounts(p as u16).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
 			votes: v,
 			forks: 1,
 		};
@@ -158,7 +158,7 @@ benchmarks_instance_pallet! {
 
 		let caller: T::AccountId = whitelisted_caller();
 
-		let authority_list = accounts(p as u8)
+		let authority_list = accounts(p as u16)
 			.iter()
 			.map(|id| (AuthorityId::from(*id), 1))
 			.collect::<Vec<_>>();
@@ -177,7 +177,7 @@ benchmarks_instance_pallet! {
 			header: header.clone(),
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
-			authorities: accounts(p as u8).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
+			authorities: accounts(p as u16).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
 			votes: p,
 			forks: p,
 		};
