@@ -48,6 +48,7 @@ macro_rules! select_full_bridge {
 		match $bridge {
 			FullBridge::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
+				#[allow(dead_code)]
 				type Target = relay_rialto_client::Rialto;
 
 				// Derive-account
@@ -69,6 +70,7 @@ macro_rules! select_full_bridge {
 			}
 			FullBridge::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
+				#[allow(dead_code)]
 				type Target = relay_millau_client::Millau;
 
 				// Derive-account

@@ -18,32 +18,7 @@
 
 use structopt::StructOpt;
 
-use crate::cli::{AccountId, HexBytes, HexLaneId, SourceConnectionParams};
-
-/// A `MessagePayload` to encode.
-///
-/// TODO [#855] Move to separate module.
-#[derive(StructOpt)]
-pub enum EncodeMessagePayload {
-	/// Message Payload of Rialto to Millau call.
-	RialtoToMillau {
-		#[structopt(flatten)]
-		payload: MessagePayload,
-	},
-	/// Message Payload of Millau to Rialto call.
-	MillauToRialto {
-		#[structopt(flatten)]
-		payload: MessagePayload,
-	},
-}
-
-impl EncodeMessagePayload {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		super::run_encode_message_payload(self).await.map_err(format_err)?;
-		Ok(())
-	}
-}
+use crate::cli::{HexLaneId, SourceConnectionParams};
 
 /// Estimate Delivery & Dispatch Fee command.
 ///
@@ -59,7 +34,7 @@ pub enum EstimateFee {
 		lane: HexLaneId,
 		/// Payload to send over the bridge.
 		#[structopt(flatten)]
-		payload: MessagePayload,
+		payload: crate::cli::encode_message::MessagePayload,
 	},
 	/// Estimate fee of Rialto to Millau message.
 	MillauToRialto {
@@ -70,7 +45,7 @@ pub enum EstimateFee {
 		lane: HexLaneId,
 		/// Payload to send over the bridge.
 		#[structopt(flatten)]
-		payload: MessagePayload,
+		payload: crate::cli::encode_message::MessagePayload,
 	},
 }
 
@@ -84,23 +59,4 @@ impl EstimateFee {
 
 fn format_err(err: String) -> anyhow::Error {
 	anyhow::anyhow!(err)
-}
-
-/// Generic message payload.
-#[derive(StructOpt, Debug)]
-pub enum MessagePayload {
-	/// Raw, SCALE-encoded `MessagePayload`.
-	Raw {
-		/// Hex-encoded SCALE data.
-		data: HexBytes,
-	},
-	/// Construct message to send over the bridge.
-	Call {
-		/// Message details.
-		#[structopt(flatten)]
-		call: crate::cli::encode_call::Call,
-		/// SS58 encoded account that will send the payload (must have SS58Prefix = 42)
-		#[structopt(long)]
-		sender: AccountId,
-	},
 }
