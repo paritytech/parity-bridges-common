@@ -34,7 +34,7 @@ pub struct EstimateFee {
 	lane: HexLaneId,
 	/// Payload to send over the bridge.
 	#[structopt(flatten)]
-	payload: crate::rialto_millau::cli::MessagePayload,
+	payload: crate::cli::encode_message::MessagePayload,
 }
 
 impl EstimateFee {
@@ -115,7 +115,7 @@ mod tests {
 					source_port: 1234,
 					source_secure: false,
 				},
-				payload: crate::rialto_millau::cli::MessagePayload::Call {
+				payload: crate::cli::encode_message::MessagePayload::Call {
 					sender: alice.parse().unwrap(),
 					call: encode_call::Call::Remark {
 						remark_payload: Some(HexBytes(vec![0x12, 0x34])),
