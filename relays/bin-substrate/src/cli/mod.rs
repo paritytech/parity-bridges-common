@@ -28,12 +28,12 @@ pub(crate) mod bridge;
 pub(crate) mod encode_call;
 pub(crate) mod encode_message;
 pub(crate) mod estimate_fee;
+pub(crate) mod send_message;
 
 mod derive_account;
 mod init_bridge;
 mod relay_headers;
 mod relay_messages;
-mod send_message;
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {

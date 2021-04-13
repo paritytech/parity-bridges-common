@@ -27,6 +27,7 @@ use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
 use relay_substrate_client::{Chain, TransactionSignScheme};
 use sp_core::{Bytes, Pair};
 use sp_runtime::{traits::IdentifyAccount, AccountId32, MultiSignature, MultiSigner};
+use std::fmt::Debug;
 use structopt::StructOpt;
 
 /// Send bridge message.
@@ -85,12 +86,12 @@ impl SendMessage {
 				let target_call_weight = prepare_call_dispatch_weight(
 					dispatch_weight,
 					ExplicitOrMaximal::Explicit(target_call.get_dispatch_info().weight),
-					crate::rialto_millau::compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
+					compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
 				);
 				let source_sender_public: MultiSigner = source_sign.public().into();
 				let source_account_id = source_sender_public.into_account();
 
-				crate::rialto_millau::message_payload(
+				message_payload(
 					Target::RUNTIME_VERSION.spec_version,
 					target_call_weight,
 					match origin {
@@ -191,6 +192,47 @@ fn prepare_call_dispatch_weight(
 		ExplicitOrMaximal::Explicit(weight) => weight,
 		ExplicitOrMaximal::Maximal => maximal_allowed_weight,
 	}
+}
+
+pub(crate) fn message_payload<SAccountId, TPublic, TSignature>(
+	spec_version: u32,
+	weight: Weight,
+	origin: CallOrigin<SAccountId, TPublic, TSignature>,
+	call: &impl Encode,
+) -> MessagePayload<SAccountId, TPublic, TSignature, Vec<u8>>
+where
+	SAccountId: Encode + Debug,
+	TPublic: Encode + Debug,
+	TSignature: Encode + Debug,
+{
+	// Display nicely formatted call.
+	let payload = MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call: HexBytes::encode(call),
+	};
+
+	log::info!(target: "bridge", "Created Message Payload: {:#?}", payload);
+	log::info!(target: "bridge", "Encoded Message Payload: {:?}", HexBytes::encode(&payload));
+
+	// re-pack to return `Vec<u8>`
+	let MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call,
+	} = payload;
+	MessagePayload {
+		spec_version,
+		weight,
+		origin,
+		call: call.0,
+	}
+}
+
+pub(crate) fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
+	bridge_runtime_common::messages::target::maximal_incoming_message_dispatch_weight(maximal_extrinsic_weight)
 }
 
 #[cfg(test)]
