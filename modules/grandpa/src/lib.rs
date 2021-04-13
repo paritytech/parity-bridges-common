@@ -161,16 +161,17 @@ pub mod pallet {
 			verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
 
 			let _enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
-			let index = <ImportedHashesNeedle<T, I>>::get();
+			let index = <ImportedHashesPointer<T, I>>::get();
 			let pruning = <ImportedHashes<T, I>>::try_get(index);
 			<BestFinalized<T, I>>::put(hash);
 			<ImportedHeaders<T, I>>::insert(hash, finality_target);
 			<ImportedHashes<T, I>>::insert(index, hash);
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
 
-			// Update ring buffer needle and remove old header.
-			<ImportedHashesNeedle<T, I>>::put((index + 1) % T::HeadersToKeep::get());
+			// Update ring buffer pointer and remove old header.
+			<ImportedHashesPointer<T, I>>::put((index + 1) % T::HeadersToKeep::get());
 			if let Ok(hash) = pruning {
+				log::debug!(target: "runtime::bridge-grandpa", "Pruning old header: {:?}.", hash);
 				<ImportedHeaders<T, I>>::remove(hash);
 			}
 
@@ -268,11 +269,11 @@ pub mod pallet {
 	/// A ring buffer of imported hashes. Ordered by the insertion time.
 	#[pallet::storage]
 	pub(super) type ImportedHashes<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Identity /* TODO */, u32, BridgedBlockHash<T, I>>;
+		StorageMap<_, Identity, u32, BridgedBlockHash<T, I>>;
 
 	/// Current ring buffer position.
 	#[pallet::storage]
-	pub(super) type ImportedHashesNeedle<T: Config<I>, I: 'static = ()> = StorageValue<_, u32, ValueQuery>;
+	pub(super) type ImportedHashesPointer<T: Config<I>, I: 'static = ()> = StorageValue<_, u32, ValueQuery>;
 
 	/// Headers which have been imported into the pallet.
 	#[pallet::storage]

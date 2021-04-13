@@ -417,9 +417,9 @@ parameter_types! {
 
 	// Number of headers to keep.
 	//
-	// assuming worst case of every header being finalized, and 6 seconds block time, we will keep
-	// headers for a week.
-	pub const HeadersToKeep: u32 = 10 * 60 * 24 * 7;
+	// Assuming the worst case of every header being finalized, we will keep headers at least for a
+	// week.
+	pub const HeadersToKeep: u32 = 7 * bp_rialto::DAYS as u32;
 }
 
 impl pallet_bridge_grandpa::Config for Runtime {
