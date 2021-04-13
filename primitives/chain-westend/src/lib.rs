@@ -46,12 +46,20 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
 #[allow(non_camel_case_types)]
 pub enum Call {
-	MockPallet,
+	#[codec(index = 40)]
+	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
+}
+
+#[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
+#[allow(non_camel_case_types)]
+pub enum BridgeGrandpaRococoCall {
+	#[codec(index = 0)]
 	submit_finality_proof(
 		<PolkadotLike as Chain>::Header,
 		bp_header_chain::justification::GrandpaJustification<<PolkadotLike as Chain>::Header>,
 	),
-	initialize,
+	#[codec(index = 1)]
+	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
 }
 
 impl sp_runtime::traits::Dispatchable for Call {

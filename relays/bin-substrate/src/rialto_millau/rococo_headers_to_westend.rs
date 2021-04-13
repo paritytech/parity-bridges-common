@@ -67,13 +67,10 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWestend {
 		header: RococoSyncHeader,
 		proof: GrandpaJustification<bp_rococo::Header>,
 	) -> Bytes {
-		// let call = westend_runtime::BridgeGrandpaRococoCall::<
-		// 	westend_runtime::Runtime,
-		// 	westend_runtime::RococoGrandpaInstance,
-		// >::submit_finality_proof(header.into_inner(), proof)
-		// .into();
-
-		let call = bp_westend::Call::submit_finality_proof(header.into_inner(), proof);
+		let call = bp_westend::Call::BridgeGrandpaRococo(bp_westend::BridgeGrandpaRococoCall::submit_finality_proof(
+			header.into_inner(),
+			proof,
+		));
 		let genesis_hash = *self.target_client.genesis_hash();
 		let transaction = Westend::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
 

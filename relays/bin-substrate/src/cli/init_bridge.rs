@@ -15,9 +15,9 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::cli::{SourceConnectionParams, TargetConnectionParams, TargetSigningParams};
+use bp_header_chain::InitializationData;
 use bp_runtime::Chain as ChainBase;
 use codec::Encode;
-use pallet_bridge_grandpa::InitializationData;
 use relay_substrate_client::{Chain, TransactionSignScheme};
 use sp_core::{Bytes, Pair};
 use structopt::{clap::arg_enum, StructOpt};
@@ -107,10 +107,9 @@ macro_rules! select_bridge {
 				type Target = relay_rococo_client::Rococo;
 
 				fn encode_init_bridge(
-					_init_data: InitializationData<<Source as ChainBase>::Header>,
+					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					// TODO: Maybe more closely match "real" Call
-					bp_rococo::Call::initialize
+					bp_rococo::Call::BridgeGrandpaWestend(bp_rococo::BridgeGrandpaWestendCall::initialize(init_data))
 				}
 
 				$generic
@@ -120,10 +119,9 @@ macro_rules! select_bridge {
 				type Target = relay_westend_client::Westend;
 
 				fn encode_init_bridge(
-					_init_data: InitializationData<<Source as ChainBase>::Header>,
+					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					// TODO: Maybe more closely match "real" Call
-					bp_westend::Call::initialize
+					bp_westend::Call::BridgeGrandpaRococo(bp_westend::BridgeGrandpaRococoCall::initialize(init_data))
 				}
 
 				$generic
