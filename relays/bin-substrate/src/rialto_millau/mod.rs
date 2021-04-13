@@ -30,21 +30,19 @@ pub type RialtoClient = relay_substrate_client::Client<Rialto>;
 use crate::cli::{
 	bridge,
 	encode_call::{self, Call, CliEncodeCall},
-	encode_message,
-	estimate_fee::estimate_message_delivery_and_dispatch_fee,
-	CliChain, ExplicitOrMaximal, HexBytes, Origins,
+	encode_message, CliChain, HexBytes,
 };
 use codec::{Decode, Encode};
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
-use relay_substrate_client::Chain;
 use relay_westend_client::Westend;
 use sp_version::RuntimeVersion;
 use std::fmt::Debug;
 
-fn message_payload<SAccountId, TPublic, TSignature>(
+/// TODO [ToDr] move
+pub(crate) fn message_payload<SAccountId, TPublic, TSignature>(
 	spec_version: u32,
 	weight: Weight,
 	origin: CallOrigin<SAccountId, TPublic, TSignature>,
@@ -245,10 +243,6 @@ impl CliChain for Westend {
 	fn encode_message(_message: encode_message::MessagePayload) -> Result<Self::MessagePayload, String> {
 		Err("Sending messages from Westend is not yet supported.".into())
 	}
-}
-
-fn format_err(e: anyhow::Error) -> String {
-	e.to_string()
 }
 
 #[cfg(test)]

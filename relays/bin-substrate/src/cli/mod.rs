@@ -18,7 +18,6 @@
 
 use std::convert::TryInto;
 
-use crate::rialto_millau::cli as rialto_millau;
 use bp_messages::LaneId;
 use codec::{Decode, Encode};
 use frame_support::weights::Weight;

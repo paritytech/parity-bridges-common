@@ -16,6 +16,7 @@
 
 use crate::cli::bridge::FullBridge;
 use crate::cli::encode_call::{self, CliEncodeCall};
+use crate::cli::estimate_fee::estimate_message_delivery_and_dispatch_fee;
 use crate::cli::{
 	Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams, SourceSigningParams,
 	TargetSigningParams,
@@ -127,14 +128,14 @@ impl SendMessage {
 			let lane = self.lane.clone().into();
 			let fee = match self.fee {
 				Some(fee) => fee,
-				None => crate::rialto_millau::estimate_message_delivery_and_dispatch_fee::<
-					<Source as relay_substrate_client::ChainWithBalances>::NativeBalance,
-					_,
-					_,
-				>(&source_client, ESTIMATE_MESSAGE_FEE_METHOD, lane, payload.clone())
-				.await?
-				.map(|v| Balance(v as _))
-				.ok_or_else(|| anyhow::format_err!("Failed to estimate message fee. Message is too heavy?"))?,
+				None => Balance(
+					estimate_message_delivery_and_dispatch_fee::<
+						<Source as relay_substrate_client::ChainWithBalances>::NativeBalance,
+						_,
+						_,
+					>(&source_client, ESTIMATE_MESSAGE_FEE_METHOD, lane, payload.clone())
+					.await? as _,
+				),
 			};
 			let dispatch_weight = payload.weight;
 			let send_message_call = Source::encode_call(&encode_call::Call::BridgeSendMessage {
