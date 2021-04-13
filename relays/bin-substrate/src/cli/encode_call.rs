@@ -35,7 +35,7 @@ pub struct EncodeCall {
 ///
 /// Note this enum may be used in the context of both Source (as part of `encode-call`)
 /// and Target chain (as part of `encode-message/send-message`).
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt, Debug, PartialEq, Eq)]
 pub enum Call {
 	/// Raw bytes for the message
 	Raw {
@@ -268,12 +268,8 @@ mod tests {
 
 		// then
 		assert_eq!(err.kind, structopt::clap::ErrorKind::ArgumentConflict);
-		assert_eq!(
-			err.info,
-			Some(vec![
-				"remark-size".to_string(),
-				"--remark-payload <remark-payload>".to_string()
-			])
-		);
+
+		let info = err.info.unwrap();
+		assert!(info.contains(&"remark-payload".to_string()) | info.contains(&"remark-size".to_string()))
 	}
 }

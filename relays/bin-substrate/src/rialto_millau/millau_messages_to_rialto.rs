@@ -60,7 +60,7 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 	type TargetChain = Rialto;
 
 	fn source_transactions_author(&self) -> bp_rialto::AccountId {
-		self.source_sign.public().as_array_ref().clone().into()
+		(*self.source_sign.public().as_array_ref()).into()
 	}
 
 	fn make_messages_receiving_proof_transaction(
@@ -87,7 +87,7 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 	}
 
 	fn target_transactions_author(&self) -> bp_rialto::AccountId {
-		self.target_sign.public().as_array_ref().clone().into()
+		(*self.target_sign.public().as_array_ref()).into()
 	}
 
 	fn make_messages_delivery_transaction(
@@ -137,7 +137,7 @@ pub async fn run(
 	params: MessagesRelayParams<Millau, MillauSigningParams, Rialto, RialtoSigningParams>,
 ) -> Result<(), String> {
 	let stall_timeout = Duration::from_secs(5 * 60);
-	let relayer_id_at_millau = params.source_sign.public().as_array_ref().clone().into();
+	let relayer_id_at_millau = (*millau_sign.public().as_array_ref()).into();
 
 	let lane_id = params.lane_id;
 	let source_client = params.source_client;
