@@ -3,7 +3,7 @@
 version: '3.5'
 services:
   relay-headers-westend-to-millau:
-    image: paritytech/substrate-relay
+    image: local/substrate-relay
     entrypoint: /entrypoints/relay-headers-westend-to-millau-entrypoint.sh
     volumes:
       - ./bridges/westend-millau/entrypoints:/entrypoints
