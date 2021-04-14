@@ -26,18 +26,19 @@ use bp_messages::{LaneId, MessageNonce};
 use bp_runtime::InstanceId;
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::{Decode, Encode};
-use frame_support::weights::Weight;
+use frame_support::{traits::Instance, weights::Weight};
 use messages_relay::{
 	message_lane::{SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
 		ClientState, MessageProofParameters, MessageWeights, MessageWeightsMap, SourceClient, SourceClientState,
 	},
 };
+use pallet_bridge_messages::Config as MessagesConfig;
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf};
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
 use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
-use std::ops::RangeInclusive;
+use std::{marker::PhantomData, ops::RangeInclusive};
 
 /// Intermediate message proof returned by the source Substrate node. Includes everything
 /// required to submit to the target node: cumulative dispatch weight of bundled messages and
@@ -45,15 +46,16 @@ use std::ops::RangeInclusive;
 pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
 
 /// Substrate client as Substrate messages source.
-pub struct SubstrateMessagesSource<C: Chain, P: SubstrateMessageLane> {
+pub struct SubstrateMessagesSource<C: Chain, P: SubstrateMessageLane, R, I> {
 	client: Client<C>,
 	lane: P,
 	lane_id: LaneId,
 	instance: InstanceId,
 	target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
+	_phantom: PhantomData<(R, I)>,
 }
 
-impl<C: Chain, P: SubstrateMessageLane> SubstrateMessagesSource<C, P> {
+impl<C: Chain, P: SubstrateMessageLane, R, I> SubstrateMessagesSource<C, P, R, I> {
 	/// Create new Substrate headers source.
 	pub fn new(
 		client: Client<C>,
@@ -68,11 +70,12 @@ impl<C: Chain, P: SubstrateMessageLane> SubstrateMessagesSource<C, P> {
 			lane_id,
 			instance,
 			target_to_source_headers_relay,
+			_phantom: Default::default(),
 		}
 	}
 }
 
-impl<C: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesSource<C, P> {
+impl<C: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMessagesSource<C, P, R, I> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client.clone(),
@@ -80,12 +83,19 @@ impl<C: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesSource<C, P> 
 			lane_id: self.lane_id,
 			instance: self.instance,
 			target_to_source_headers_relay: self.target_to_source_headers_relay.clone(),
+			_phantom: Default::default(),
 		}
 	}
 }
 
 #[async_trait]
-impl<C: Chain, P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<C, P> {
+impl<C, P, R, I> RelayClient for SubstrateMessagesSource<C, P, R, I>
+where
+	C: Chain,
+	P: SubstrateMessageLane,
+	R: Send + Sync,
+	I: Send + Sync + Instance,
+{
 	type Error = SubstrateError;
 
 	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
@@ -94,7 +104,7 @@ impl<C: Chain, P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<
 }
 
 #[async_trait]
-impl<C, P> SourceClient<P> for SubstrateMessagesSource<C, P>
+impl<C, P, R, I> SourceClient<P> for SubstrateMessagesSource<C, P, R, I>
 where
 	C: Chain,
 	C::Header: DeserializeOwned,
@@ -109,6 +119,8 @@ where
 	P::TargetChain: Chain<Hash = P::TargetHeaderHash, BlockNumber = P::TargetHeaderNumber>,
 	P::TargetHeaderNumber: Decode,
 	P::TargetHeaderHash: Decode,
+	R: Send + Sync + MessagesConfig<I>,
+	I: Send + Sync + Instance,
 {
 	async fn state(&self) -> Result<SourceClientState<P>, SubstrateError> {
 		// we can't continue to deliver confirmations if source node is out of sync, because
@@ -182,15 +194,22 @@ where
 		nonces: RangeInclusive<MessageNonce>,
 		proof_parameters: MessageProofParameters,
 	) -> Result<(SourceHeaderIdOf<P>, RangeInclusive<MessageNonce>, P::MessagesProof), SubstrateError> {
+		let mut storage_keys = Vec::with_capacity(nonces.end().saturating_sub(*nonces.start()) as usize + 1);
+		let mut message_nonce = *nonces.start();
+		while message_nonce <= *nonces.end() {
+			let message_key = pallet_bridge_messages::storage_keys::message_key::<R, I>(&self.lane_id, message_nonce);
+			storage_keys.push(message_key);
+			message_nonce += 1;
+		}
+		if proof_parameters.outbound_state_proof_required {
+			storage_keys.push(pallet_bridge_messages::storage_keys::outbound_lane_data_key::<I>(
+				&self.lane_id,
+			));
+		}
+
 		let proof = self
 			.client
-			.prove_messages(
-				self.instance,
-				self.lane_id,
-				nonces.clone(),
-				proof_parameters.outbound_state_proof_required,
-				id.1,
-			)
+			.prove_storage(storage_keys, id.1)
 			.await?
 			.iter_nodes()
 			.collect();

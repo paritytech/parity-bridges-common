@@ -127,10 +127,20 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 }
 
 /// Millau node as messages source.
-type MillauSourceClient = SubstrateMessagesSource<Millau, MillauMessagesToRialto>;
+type MillauSourceClient = SubstrateMessagesSource<
+	Millau,
+	MillauMessagesToRialto,
+	millau_runtime::Runtime,
+	millau_runtime::WithRialtoMessagesInstance,
+>;
 
 /// Rialto node as messages target.
-type RialtoTargetClient = SubstrateMessagesTarget<Rialto, MillauMessagesToRialto>;
+type RialtoTargetClient = SubstrateMessagesTarget<
+	Rialto,
+	MillauMessagesToRialto,
+	rialto_runtime::Runtime,
+	rialto_runtime::WithMillauMessagesInstance,
+>;
 
 /// Run Millau-to-Rialto messages sync.
 pub async fn run(
@@ -211,13 +221,11 @@ pub async fn run(
 				registry,
 				prefix,
 				source_client.clone(),
-				(bp_runtime::RIALTO_BRIDGE_INSTANCE, lane_id),
-				millau_runtime::rialto_messages::inbound_lane_data_key(&lane_id),
 				"millau_storage_proof_overhead".into(),
 				"Millau storage proof overhead".into(),
 			)
 		})?
-		.standalone_metric(move |registry, prefix| {
+		.standalone_metric(|registry, prefix| {
 			FloatStorageValueMetric::<_, sp_runtime::FixedU128>::new(
 				registry,
 				prefix,
