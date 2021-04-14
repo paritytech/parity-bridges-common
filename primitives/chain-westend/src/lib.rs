@@ -43,13 +43,19 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	transaction_version: 5,
 };
 
+/// Westend Runtime `Call` enum.
+///
+/// The enum represents a subset of possible `Call`s we can send to Westend chain.
+/// Ideally this code would be auto-generated from Metadata, because we want to
+/// avoid depending directly on the ENTIRE runtime just to get the encoding of `Dispatchable`s.
+///
+/// All entries here (like pretty much in the entire file) must be kept in sync with Westend
+/// `construct_runtime`, so that we maintain SCALE-compatibility.
+///
+/// See: https://github.com/paritytech/polkadot/blob/master/runtime/westend/src/lib.rs
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
-#[allow(non_camel_case_types)]
 pub enum Call {
 	/// Rococo bridge pallet.
-	///
-	/// Note this index has to be kept in-sync with westend runtime configuration:
-	/// https://github.com/paritytech/polkadot/blob/master/runtime/westend/src/lib.rs#L809
 	#[codec(index = 40)]
 	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
 }
