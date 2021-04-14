@@ -168,7 +168,7 @@ where
 	) -> Option<HeaderId<SourceHeaderHash, SourceHeaderNumber>> {
 		self.source_queue
 			.back()
-			.and_then(|(h, _)| if h.0 < current_best.0 { Some(h.clone()) } else { None })
+			.and_then(|(h, _)| if h.0 > current_best.0 { Some(h.clone()) } else { None })
 	}
 
 	fn best_at_source(&self) -> Option<MessageNonce> {

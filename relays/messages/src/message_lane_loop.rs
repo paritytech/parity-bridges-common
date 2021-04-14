@@ -476,7 +476,9 @@ pub(crate) mod tests {
 		target_latest_confirmed_received_nonce: MessageNonce,
 		submitted_messages_proofs: Vec<TestMessagesProof>,
 		target_to_source_header_required: Option<TestTargetHeaderId>,
+		target_to_source_header_requirements: Vec<TestTargetHeaderId>,
 		source_to_target_header_required: Option<TestSourceHeaderId>,
+		source_to_target_header_requirements: Vec<TestSourceHeaderId>,
 	}
 
 	#[derive(Clone)]
@@ -585,6 +587,7 @@ pub(crate) mod tests {
 		async fn require_target_header_on_source(&self, id: TargetHeaderIdOf<TestMessageLane>) {
 			let mut data = self.data.lock();
 			data.target_to_source_header_required = Some(id);
+			data.target_to_source_header_requirements.push(id);
 			(self.tick)(&mut *data);
 		}
 	}
@@ -689,6 +692,7 @@ pub(crate) mod tests {
 		async fn require_source_header_on_target(&self, id: SourceHeaderIdOf<TestMessageLane>) {
 			let mut data = self.data.lock();
 			data.source_to_target_header_required = Some(id);
+			data.source_to_target_header_requirements.push(id);
 			(self.tick)(&mut *data);
 		}
 	}
@@ -837,7 +841,7 @@ pub(crate) mod tests {
 						HeaderId(data.source_state.best_self.0 + 1, data.source_state.best_self.0 + 1);
 					data.source_state.best_finalized_self = data.source_state.best_self;
 				}
-				// if source has received all messages receiving confirmations => increase source block so that confirmations may be sent
+				// if source has received all messages receiving confirmations => stop
 				if data.source_latest_confirmed_received_nonce == 10 {
 					exit_sender.unbounded_send(()).unwrap();
 				}
@@ -853,5 +857,9 @@ pub(crate) mod tests {
 		assert_eq!(result.submitted_messages_proofs[1].0, 5..=8);
 		assert_eq!(result.submitted_messages_proofs[2].0, 9..=10);
 		assert!(!result.submitted_messages_receiving_proofs.is_empty());
+
+		// check that we have at least once required new source->target or target->source headers
+		assert!(!result.target_to_source_header_requirements.is_empty());
+		assert!(!result.source_to_target_header_requirements.is_empty());
 	}
 }
