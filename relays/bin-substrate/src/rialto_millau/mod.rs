@@ -40,8 +40,34 @@ use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
 use relay_rococo_client::Rococo;
+use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams};
 use relay_westend_client::Westend;
 use sp_version::RuntimeVersion;
+
+pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
+	params: MetricsParams,
+) -> anyhow::Result<MetricsParams> {
+	Ok(
+		relay_utils::relay_metrics(finality_relay::metrics_prefix::<T>(), params.address)
+			// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
+			// relays, but we want to test metrics/dashboards in advance
+			.standalone_metric(FloatJsonValueMetric::new(
+				"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=usd".into(),
+				"$.polkadot.usd".into(),
+				"polkadot_price".into(),
+				"Polkadot price in USD".into(),
+			))
+			.map_err(|e| anyhow::format_err!("{}", e))?
+			.standalone_metric(FloatJsonValueMetric::new(
+				"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=usd".into(),
+				"$.kusama.usd".into(),
+				"kusama_price".into(),
+				"Kusama price in USD".into(),
+			))
+			.map_err(|e| anyhow::format_err!("{}", e))?
+			.into_params(),
+	)
+}
 
 impl CliEncodeCall for Millau {
 	fn max_extrinsic_size() -> u32 {

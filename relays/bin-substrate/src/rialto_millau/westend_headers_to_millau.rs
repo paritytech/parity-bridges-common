@@ -22,7 +22,7 @@ use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_substrate_client::{Chain, TransactionSignScheme};
-use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams};
+use relay_utils::metrics::MetricsParams;
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
 use sp_core::{Bytes, Pair};
 
@@ -35,26 +35,7 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 	type TargetChain = Millau;
 
 	fn customize_metrics(params: MetricsParams) -> anyhow::Result<MetricsParams> {
-		Ok(
-			relay_utils::relay_metrics(finality_relay::metrics_prefix::<Self>(), params.address)
-				// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
-				// relays, but we want to test metrics/dashboards in advance
-				.standalone_metric(FloatJsonValueMetric::new(
-					"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=usd".into(),
-					"$.polkadot.usd".into(),
-					"polkadot_price".into(),
-					"Polkadot price in USD".into(),
-				))
-				.map_err(|e| anyhow::format_err!("{}", e))?
-				.standalone_metric(FloatJsonValueMetric::new(
-					"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=usd".into(),
-					"$.kusama.usd".into(),
-					"kusama_price".into(),
-					"Kusama price in USD".into(),
-				))
-				.map_err(|e| anyhow::format_err!("{}", e))?
-				.into_params(),
-		)
+		crate::rialto_millau::add_polkadot_kusama_price_metrics::<Self>(params)
 	}
 
 	fn transactions_author(&self) -> bp_millau::AccountId {
