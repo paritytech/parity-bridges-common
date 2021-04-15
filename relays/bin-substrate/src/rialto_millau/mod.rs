@@ -426,3 +426,89 @@ mod tests {
 		);
 	}
 }
+
+#[cfg(test)]
+mod rococo_tests {
+	use bp_header_chain::justification::GrandpaJustification;
+	use codec::Encode;
+
+	#[test]
+	fn scale_compatibility_of_bridges_call() {
+		// given
+		let header = sp_runtime::generic::Header {
+			parent_hash: Default::default(),
+			number: Default::default(),
+			state_root: Default::default(),
+			extrinsics_root: Default::default(),
+			digest: sp_runtime::generic::Digest { logs: vec![] },
+		};
+		let justification = GrandpaJustification {
+			round: 0,
+			commit: finality_grandpa::Commit {
+				target_hash: Default::default(),
+				target_number: Default::default(),
+				precommits: vec![],
+			},
+			votes_ancestries: vec![],
+		};
+		let actual = bp_rococo::BridgeGrandpaWestendCall::submit_finality_proof(header.clone(), justification.clone());
+		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
+			header,
+			justification.clone(),
+		);
+
+		// when
+		let actual_encoded = actual.encode();
+		let expected_encoded = expected.encode();
+
+		// then
+		assert_eq!(
+			actual_encoded, expected_encoded,
+			"Encoding difference. Raw: {:?} vs {:?}",
+			actual, expected
+		);
+	}
+}
+
+#[cfg(test)]
+mod westend_tests {
+	use bp_header_chain::justification::GrandpaJustification;
+	use codec::Encode;
+
+	#[test]
+	fn scale_compatibility_of_bridges_call() {
+		// given
+		let header = sp_runtime::generic::Header {
+			parent_hash: Default::default(),
+			number: Default::default(),
+			state_root: Default::default(),
+			extrinsics_root: Default::default(),
+			digest: sp_runtime::generic::Digest { logs: vec![] },
+		};
+		let justification = GrandpaJustification {
+			round: 0,
+			commit: finality_grandpa::Commit {
+				target_hash: Default::default(),
+				target_number: Default::default(),
+				precommits: vec![],
+			},
+			votes_ancestries: vec![],
+		};
+		let actual = bp_westend::BridgeGrandpaRococoCall::submit_finality_proof(header.clone(), justification.clone());
+		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
+			header,
+			justification.clone(),
+		);
+
+		// when
+		let actual_encoded = actual.encode();
+		let expected_encoded = expected.encode();
+
+		// then
+		assert_eq!(
+			actual_encoded, expected_encoded,
+			"Encoding difference. Raw: {:?} vs {:?}",
+			actual, expected
+		);
+	}
+}
