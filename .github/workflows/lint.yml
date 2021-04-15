@@ -41,3 +41,14 @@ jobs:
         with:
           command:      fmt
           args:         --all -- --check
+  check-spellcheck:
+    name:               Check For Spelling and/or Grammar Mistakes
+    runs-on:            ubuntu-latest
+    env:
+      RUST_BACKTRACE:   full
+    steps:
+      - name:           Add cargo-spellcheck
+        run:            rustup component add cargo-spellcheck
+
+      - name:           Run cargo-spellcheck
+        run:            cargo spellcheck check
