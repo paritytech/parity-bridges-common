@@ -47,8 +47,22 @@ jobs:
     env:
       RUST_BACKTRACE:   full
     steps:
-      - name:           Add cargo-spellcheck
+      - name:           Cancel Previous Runs
+        uses:           styfle/cancel-workflow-action@0.4.1
+        with:
+          access_token: ${{ github.token }}
+      
+      - name:           Checkout sources & submodules
+        uses:           actions/checkout@master
+        with:
+          fetch-depth:  5
+          submodules:   recursive
+      
+      - name:           Add rustfmt
         run:            rustup component add cargo-spellcheck
-
-      - name:           Run cargo-spellcheck
-        run:            cargo spellcheck check
+      
+      - name:           rust-fmt check
+        uses:           actions-rs/cargo@master
+        with:
+          command:      spellcheck
+          args:         check
