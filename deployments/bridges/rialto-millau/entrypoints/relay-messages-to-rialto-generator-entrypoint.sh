@@ -10,10 +10,11 @@ set -eu
 # Max delay before submitting transactions (s)
 MAX_SUBMIT_DELAY_S=${MSG_EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-30}
 MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
+SECONDARY_MESSAGE_LANE=${MSG_EXCHANGE_GEN_SECONDARY_LANE}
 MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE=128
 FERDIE_ADDR=6ztG3jPnJTwgZnnYsgCDXbbQVR82M96hBZtPvkN56A9668ZC
 
-SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto"
+SHARED_CMD=" /home/user/substrate-relay send-message MillauToRialto"
 SHARED_HOST="--source-host millau-node-bob --source-port 9944"
 DAVE_SIGNER="--target-signer //Dave --source-signer //Dave"
 
@@ -39,6 +40,14 @@ do
 		--lane $MESSAGE_LANE \
 		--origin Target \
 		remark
+
+	if [ ! -z $SECONDARY_MESSAGE_LANE ]; then
+		echo "Sending Remark from Millau to Rialto using Target Origin using secondary lane: $SECONDARY_MESSAGE_LANE"
+		$SEND_MESSAGE \
+			--lane $SECONDARY_MESSAGE_LANE \
+			--origin Target \
+			remark
+	fi
 
 	rand_sleep
 	echo "Sending Transfer from Millau to Rialto using Target Origin"

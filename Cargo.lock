@@ -827,6 +827,7 @@ dependencies = [
  "bp-header-chain",
  "ed25519-dalek",
  "finality-grandpa 0.14.0",
+ "parity-scale-codec 2.0.1",
  "sp-application-crypto",
  "sp-finality-grandpa",
  "sp-runtime",
@@ -4093,7 +4094,6 @@ dependencies = [
  "millau-runtime",
  "node-inspect",
  "pallet-bridge-messages",
- "pallet-bridge-messages-rpc",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
  "sc-cli",
@@ -4717,26 +4717,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-bridge-messages-rpc"
-version = "0.1.0"
-dependencies = [
- "bp-messages",
- "bp-runtime",
- "derive_more",
- "futures 0.3.13",
- "jsonrpc-core 15.1.0",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "log",
- "sc-client-api",
- "sp-blockchain",
- "sp-core",
- "sp-runtime",
- "sp-state-machine",
- "sp-trie",
 ]
 
 [[package]]
@@ -5995,6 +5975,7 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-runtime",
  "sp-std",
+ "sp-storage",
  "sp-trie",
  "sp-version",
 ]
@@ -6073,7 +6054,6 @@ dependencies = [
  "jsonrpc-core 15.1.0",
  "node-inspect",
  "pallet-bridge-messages",
- "pallet-bridge-messages-rpc",
  "pallet-transaction-payment-rpc",
  "rialto-runtime",
  "sc-basic-authorship",

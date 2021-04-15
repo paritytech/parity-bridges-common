@@ -36,6 +36,8 @@ pub enum Error {
 	UninitializedBridgePallet,
 	/// Account does not exist on the chain.
 	AccountDoesNotExist,
+	/// Runtime storage is missing mandatory ":code:" entry.
+	MissingMandatoryCodeEntry,
 	/// The client we're connected to is not synced, so we can't rely on its state.
 	ClientNotSynced(Health),
 	/// An error has happened when we have tried to parse storage proof.
@@ -51,6 +53,7 @@ impl std::error::Error for Error {
 			Self::ResponseParseFailed(ref e) => Some(e),
 			Self::UninitializedBridgePallet => None,
 			Self::AccountDoesNotExist => None,
+			Self::MissingMandatoryCodeEntry => None,
 			Self::ClientNotSynced(_) => None,
 			Self::StorageProofError(_) => None,
 			Self::Custom(_) => None,
@@ -72,6 +75,7 @@ impl MaybeConnectionError for Error {
 				// right now if connection to the ws server is dropped (after it is already established),
 				// we're getting this error
 				| Error::RpcError(RpcError::Internal(_))
+				| Error::RpcError(RpcError::RestartNeeded(_))
 				| Error::ClientNotSynced(_),
 		)
 	}
@@ -84,6 +88,7 @@ impl std::fmt::Display for Error {
 			Self::ResponseParseFailed(e) => e.to_string(),
 			Self::UninitializedBridgePallet => "The Substrate bridge pallet has not been initialized yet.".into(),
 			Self::AccountDoesNotExist => "Account does not exist on the chain".into(),
+			Self::MissingMandatoryCodeEntry => "Mandatory :code: entry is missing from runtime storage".into(),
 			Self::StorageProofError(e) => format!("Error when parsing storage proof: {:?}", e),
 			Self::ClientNotSynced(health) => format!("Substrate client is not synced: {}", health),
 			Self::Custom(e) => e.clone(),

@@ -24,11 +24,6 @@ pub mod rococo_headers_to_westend;
 pub mod westend_headers_to_millau;
 pub mod westend_headers_to_rococo;
 
-/// Millau node client.
-pub type MillauClient = relay_substrate_client::Client<Millau>;
-/// Rialto node client.
-pub type RialtoClient = relay_substrate_client::Client<Rialto>;
-
 use crate::cli::{
 	bridge,
 	encode_call::{self, Call, CliEncodeCall},

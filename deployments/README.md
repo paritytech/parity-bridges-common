@@ -114,14 +114,14 @@ Following accounts are used when `poa-rialto` bridge is running:
 
 Following accounts are used when `rialto-millau` bridge is running:
 
-- Millau's `Charlie` signs relay transactions with new Rialto headers;
-- Rialto's `Charlie` signs relay transactions with new Millau headers;
+- Millau's `Charlie` signs complex headers+messages relay transactions on Millau chain;
+- Rialto's `Charlie` signs complex headers+messages relay transactions on Rialto chain;
 - Millau's `Dave` signs Millau transactions which contain messages for Rialto;
 - Rialto's `Dave` signs Rialto transactions which contain messages for Millau;
-- Millau's `Eve` signs relay transactions with message delivery confirmations from Rialto to Millau;
-- Rialto's `Eve` signs relay transactions with messages from Millau to Rialto;
-- Millau's `Ferdie` signs relay transactions with messages from Rialto to Millau;
-- Rialto's `Ferdie` signs relay transactions with message delivery confirmations from Millau to Rialto.
+- Millau's `Eve` signs relay transactions with message delivery confirmations (lane 00000001) from Rialto to Millau;
+- Rialto's `Eve` signs relay transactions with messages (lane 00000001) from Millau to Rialto;
+- Millau's `Ferdie` signs relay transactions with messages (lane 00000001) from Rialto to Millau;
+- Rialto's `Ferdie` signs relay transactions with message delivery confirmations (lane 00000001) from Millau to Rialto.
 
 Following accounts are used when `westend-millau` bridge is running:
 
