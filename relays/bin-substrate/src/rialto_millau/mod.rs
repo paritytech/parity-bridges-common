@@ -457,7 +457,7 @@ mod rococo_tests {
 		let actual = bp_rococo::BridgeGrandpaWestendCall::submit_finality_proof(header.clone(), justification.clone());
 		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
 			header,
-			justification.clone(),
+			justification,
 		);
 
 		// when
@@ -500,7 +500,7 @@ mod westend_tests {
 		let actual = bp_westend::BridgeGrandpaRococoCall::submit_finality_proof(header.clone(), justification.clone());
 		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
 			header,
-			justification.clone(),
+			justification,
 		);
 
 		// when
