@@ -20,11 +20,49 @@ pub mod millau_headers_to_rialto;
 pub mod millau_messages_to_rialto;
 pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
+pub mod rococo_headers_to_westend;
 pub mod westend_headers_to_millau;
+pub mod westend_headers_to_rococo;
 
 mod millau;
 mod rialto;
+mod rococo;
 mod westend;
+
+use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams};
+
+pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
+	params: MetricsParams,
+) -> anyhow::Result<MetricsParams> {
+	Ok(
+		relay_utils::relay_metrics(Some(finality_relay::metrics_prefix::<T>()), params)
+			// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
+			// relays, but we want to test metrics/dashboards in advance
+			.standalone_metric(|registry, prefix| {
+				FloatJsonValueMetric::new(
+					registry,
+					prefix,
+					"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=usd".into(),
+					"$.polkadot.usd".into(),
+					"polkadot_price".into(),
+					"Polkadot price in USD".into(),
+				)
+			})
+			.map_err(|e| anyhow::format_err!("{}", e))?
+			.standalone_metric(|registry, prefix| {
+				FloatJsonValueMetric::new(
+					registry,
+					prefix,
+					"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=usd".into(),
+					"$.kusama.usd".into(),
+					"kusama_price".into(),
+					"Kusama price in USD".into(),
+				)
+			})
+			.map_err(|e| anyhow::format_err!("{}", e))?
+			.into_params(),
+	)
+}
 
 #[cfg(test)]
 mod tests {
@@ -202,6 +240,92 @@ mod tests {
 			"Hardcoded number of extra bytes in Millau transaction {} is lower than actual value: {}",
 			bp_millau::TX_EXTRA_BYTES,
 			extra_bytes_in_transaction,
+		);
+	}
+}
+
+#[cfg(test)]
+mod rococo_tests {
+	use bp_header_chain::justification::GrandpaJustification;
+	use codec::Encode;
+
+	#[test]
+	fn scale_compatibility_of_bridges_call() {
+		// given
+		let header = sp_runtime::generic::Header {
+			parent_hash: Default::default(),
+			number: Default::default(),
+			state_root: Default::default(),
+			extrinsics_root: Default::default(),
+			digest: sp_runtime::generic::Digest { logs: vec![] },
+		};
+		let justification = GrandpaJustification {
+			round: 0,
+			commit: finality_grandpa::Commit {
+				target_hash: Default::default(),
+				target_number: Default::default(),
+				precommits: vec![],
+			},
+			votes_ancestries: vec![],
+		};
+		let actual = bp_rococo::BridgeGrandpaWestendCall::submit_finality_proof(header.clone(), justification.clone());
+		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
+			header,
+			justification,
+		);
+
+		// when
+		let actual_encoded = actual.encode();
+		let expected_encoded = expected.encode();
+
+		// then
+		assert_eq!(
+			actual_encoded, expected_encoded,
+			"Encoding difference. Raw: {:?} vs {:?}",
+			actual, expected
+		);
+	}
+}
+
+#[cfg(test)]
+mod westend_tests {
+	use bp_header_chain::justification::GrandpaJustification;
+	use codec::Encode;
+
+	#[test]
+	fn scale_compatibility_of_bridges_call() {
+		// given
+		let header = sp_runtime::generic::Header {
+			parent_hash: Default::default(),
+			number: Default::default(),
+			state_root: Default::default(),
+			extrinsics_root: Default::default(),
+			digest: sp_runtime::generic::Digest { logs: vec![] },
+		};
+		let justification = GrandpaJustification {
+			round: 0,
+			commit: finality_grandpa::Commit {
+				target_hash: Default::default(),
+				target_number: Default::default(),
+				precommits: vec![],
+			},
+			votes_ancestries: vec![],
+		};
+		let actual = bp_westend::BridgeGrandpaRococoCall::submit_finality_proof(header.clone(), justification.clone());
+		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
+			header,
+			justification,
+		);
+
+		// when
+		let actual_encoded = actual.encode();
+		let expected_encoded = expected.encode();
+
+		// then
+		assert_eq!(
+			actual_encoded, expected_encoded,
+			"Encoding difference. Raw: {:?} vs {:?}",
+			actual, expected
 		);
 	}
 }
