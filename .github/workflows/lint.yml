@@ -58,8 +58,8 @@ jobs:
           fetch-depth:  5
           submodules:   recursive
       
-      - name:           Add rustfmt
-        run:            rustup component add cargo-spellcheck
+      - name:           Add cargo-spellcheck
+        run:            cargo install cargo-spellcheck
       
       - name:           rust-fmt check
         uses:           actions-rs/cargo@master
