@@ -61,7 +61,7 @@ jobs:
       - name:           Add cargo-spellcheck
         run:            cargo install cargo-spellcheck
       
-      - name:           rust-fmt check
+      - name:           Run spellcheck
         uses:           actions-rs/cargo@master
         with:
           command:      spellcheck
