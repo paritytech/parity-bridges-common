@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -27,13 +27,13 @@ use frame_support::{
 	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
+use sp_api::RuntimeVersion;
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	traits::{BlakeTwo256, Convert, IdentifyAccount, Verify},
 	MultiSignature, MultiSigner, Perbill,
 };
 use sp_std::prelude::*;
-
 /// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
 /// Gateway chain. This mostly depends on number of entries (and their density) in the storage trie.
 /// Some reserve is reserved to account future chain growth.
@@ -47,7 +47,7 @@ pub const TX_EXTRA_BYTES: u32 = 103;
 /// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
 pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 
-/// Maximal weight of single ateway block.
+/// Maximal weight of single Gateway block.
 ///
 /// This represents two seconds of compute assuming a target block time of six seconds.
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
@@ -67,7 +67,7 @@ pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 128;
 
 /// Weight of single regular message delivery transaction on Gateway chain.
 ///
-/// This value is a result of `pallet_bridge_messages::Module::receive_messages_proof_weight()` call
+/// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_proof_weight()` call
 /// for the case when single message of `pallet_bridge_messages::EXPECTED_DEFAULT_MESSAGE_LENGTH` bytes is delivered.
 /// The message must have dispatch weight set to zero. The result then must be rounded up to account
 /// possible future runtime upgrades.
@@ -81,12 +81,16 @@ pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = 25_000;
 
 /// Maximal weight of single message delivery confirmation transaction on Gateway chain.
 ///
-/// This value is a result of `pallet_bridge_messages::Module::receive_messages_delivery_proof` weight formula computation
+/// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_delivery_proof` weight formula computation
 /// for the case when single message is confirmed. The result then must be rounded up to account possible future
 /// runtime upgrades.
 pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = 2_000_000_000;
 
-/// The length of a session (how often authorities change) on Gateway measured in of number of blocks.
+/// The target length of a session (how often authorities change) on Gateway measured in of number of
+/// blocks.
+///
+/// Note that since this is a target sessions may change before/after this time depending on network
+/// conditions.
 pub const SESSION_LENGTH: BlockNumber = 4;
 
 /// Re-export `time_units` to make usage easier.
@@ -106,6 +110,17 @@ pub mod time_units {
 
 /// Block number type used in Gateway.
 pub type BlockNumber = u32;
+
+/// Runtime version.
+pub const VERSION: RuntimeVersion = RuntimeVersion {
+	spec_name: sp_version::create_runtime_str!("gateway"),
+	impl_name: sp_version::create_runtime_str!("t3rn-gateway"),
+	authoring_version: 2,
+	spec_version: 50,
+	impl_version: 0,
+	apis: sp_version::create_apis_vec![[]],
+	transaction_version: 5,
+};
 
 /// Hash type used in Gateway.
 pub type Hash = <BlakeTwo256 as HasherT>::Out;
@@ -158,7 +173,7 @@ impl Convert<sp_core::H256, AccountId> for AccountIdConverter {
 //
 // Note that this should only be used for testing.
 pub fn derive_account_from_circuit_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
-	let encoded_id = bp_runtime::derive_account_id(bp_runtime::MILLAU_BRIDGE_INSTANCE, id);
+	let encoded_id = bp_runtime::derive_account_id(bp_runtime::CIRCUIT_BRIDGE_INSTANCE, id);
 	AccountIdConverter::convert(encoded_id)
 }
 

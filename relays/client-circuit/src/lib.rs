@@ -22,8 +22,6 @@ use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
-pub use circuit_runtime::BridgeGatewayCall;
-
 /// Circuit header id.
 pub type HeaderId = relay_utils::HeaderId<circuit_runtime::Hash, circuit_runtime::BlockNumber>;
 
@@ -97,27 +95,8 @@ impl TransactionSignScheme for Circuit {
 	}
 }
 
-/// Circuit signing params.
-#[derive(Clone)]
-pub struct SigningParams {
-	/// Substrate transactions signer.
-	pub signer: sp_core::sr25519::Pair,
-}
-
-impl SigningParams {
-	/// Create signing params from SURI and password.
-	pub fn from_suri(suri: &str, password: Option<&str>) -> Result<Self, sp_core::crypto::SecretStringError> {
-		Ok(SigningParams {
-			signer: sp_core::sr25519::Pair::from_string(suri, password)?,
-		})
-	}
-}
-
-impl std::fmt::Debug for SigningParams {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "{}", self.signer.public())
-	}
-}
+/// Millau signing params.
+pub type SigningParams = sp_core::sr25519::Pair;
 
 /// Circuit header type used in headers sync.
 pub type SyncHeader = relay_substrate_client::SyncHeader<circuit_runtime::Header>;

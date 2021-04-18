@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -110,6 +110,11 @@ pub trait SyncMaintain<P: HeadersSyncPipeline>: Clone + Send + Sync {
 
 impl<P: HeadersSyncPipeline> SyncMaintain<P> for () {}
 
+/// Return prefix that will be used by default to expose Prometheus metrics of the finality proofs sync loop.
+pub fn metrics_prefix<P: HeadersSyncPipeline>() -> String {
+	format!("{}_to_{}_Sync", P::SOURCE_NAME, P::TARGET_NAME)
+}
+
 /// Run headers synchronization.
 #[allow(clippy::too_many_arguments)]
 pub async fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
@@ -119,15 +124,15 @@ pub async fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 	target_tick: Duration,
 	sync_maintain: impl SyncMaintain<P>,
 	sync_params: HeadersSyncParams,
-	metrics_params: Option<MetricsParams>,
+	metrics_params: MetricsParams,
 	exit_signal: impl Future<Output = ()>,
 ) -> Result<(), String> {
 	let exit_signal = exit_signal.shared();
 	relay_utils::relay_loop(source_client, target_client)
-		.with_metrics(format!("{}_to_{}_Sync", P::SOURCE_NAME, P::TARGET_NAME))
-		.loop_metric(SyncLoopMetrics::default())?
-		.standalone_metric(GlobalMetrics::default())?
-		.expose(metrics_params)
+		.with_metrics(Some(metrics_prefix::<P>()), metrics_params)
+		.loop_metric(|registry, prefix| SyncLoopMetrics::new(registry, prefix))?
+		.standalone_metric(|registry, prefix| GlobalMetrics::new(registry, prefix))?
+		.expose()
 		.await?
 		.run(|source_client, target_client, metrics| {
 			run_until_connection_lost(
@@ -628,5 +633,5 @@ fn print_sync_progress<P: HeadersSyncPipeline>(
 		now_best_header.map(|id| id.0),
 		now_target_header,
 	);
-	(now_time, now_best_header.clone().map(|id| id.0), *now_target_header)
+	(now_time, (*now_best_header).map(|id| id.0), *now_target_header)
 }

@@ -30,7 +30,6 @@ sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master" ,
 
 [dev-dependencies]
 bp-test-utils = {path = "../../primitives/test-utils" }
-pallet-substrate-bridge = { path = "../../modules/substrate" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
 bp-rialto = { path = "../../primitives/chain-rialto" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }

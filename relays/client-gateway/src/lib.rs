@@ -1,6 +1,3 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
-// This file is part of Parity Bridges Common.
-
 // Parity Bridges Common is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -21,8 +18,6 @@ use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSig
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
-
-pub use gateway_runtime::BridgeCircuitCall;
 
 /// Gateway header id.
 pub type HeaderId = relay_utils::HeaderId<gateway_runtime::Hash, gateway_runtime::BlockNumber>;
@@ -53,6 +48,7 @@ impl ChainWithBalances for Gateway {
 
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		use frame_support::storage::generator::StorageMap;
+
 		StorageKey(frame_system::Account::<gateway_runtime::Runtime>::storage_map_final_key(account_id))
 	}
 }
@@ -98,34 +94,7 @@ impl TransactionSignScheme for Gateway {
 }
 
 /// Gateway signing params.
-#[derive(Clone)]
-pub struct SigningParams {
-	/// Substrate transactions signer.
-	pub signer: sp_core::sr25519::Pair,
-}
-
-impl SigningParams {
-	/// Create signing params from SURI and password.
-	pub fn from_suri(suri: &str, password: Option<&str>) -> Result<Self, sp_core::crypto::SecretStringError> {
-		Ok(SigningParams {
-			signer: sp_core::sr25519::Pair::from_string(suri, password)?,
-		})
-	}
-}
-
-impl std::fmt::Debug for SigningParams {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "{}", self.signer.public())
-	}
-}
-
-impl Default for SigningParams {
-	fn default() -> Self {
-		SigningParams {
-			signer: sp_keyring::AccountKeyring::Alice.pair(),
-		}
-	}
-}
+pub type SigningParams = sp_core::sr25519::Pair;
 
 /// Gateway header type used in headers sync.
 pub type SyncHeader = relay_substrate_client::SyncHeader<gateway_runtime::Header>;

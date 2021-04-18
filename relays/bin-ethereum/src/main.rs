@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -34,7 +34,10 @@ use ethereum_sync_loop::EthereumSyncParams;
 use headers_relay::sync::TargetTransactionMode;
 use hex_literal::hex;
 use instances::{BridgeInstance, Kovan, RialtoPoA};
-use relay_utils::{initialize::initialize_relay, metrics::MetricsParams};
+use relay_utils::{
+	initialize::initialize_relay,
+	metrics::{MetricsAddress, MetricsParams},
+};
 use secp256k1::SecretKey;
 use sp_core::crypto::Pair;
 use substrate_sync_loop::SubstrateSyncParams;
@@ -167,10 +170,11 @@ fn substrate_connection_params(matches: &clap::ArgMatches) -> Result<SubstrateCo
 }
 
 fn rialto_signing_params(matches: &clap::ArgMatches) -> Result<RialtoSigningParams, String> {
-	let mut params = RialtoSigningParams::default();
+	let mut params = sp_keyring::AccountKeyring::Alice.pair();
+
 	if let Some(sub_signer) = matches.value_of("sub-signer") {
 		let sub_signer_password = matches.value_of("sub-signer-password");
-		params.signer = sp_core::sr25519::Pair::from_string(sub_signer, sub_signer_password)
+		params = sp_core::sr25519::Pair::from_string(sub_signer, sub_signer_password)
 			.map_err(|e| format!("Failed to parse sub-signer: {:?}", e))?;
 	}
 	Ok(params)
@@ -366,12 +370,12 @@ fn ethereum_exchange_params(matches: &clap::ArgMatches) -> Result<EthereumExchan
 	Ok(params)
 }
 
-fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<MetricsParams>, String> {
+fn metrics_params(matches: &clap::ArgMatches) -> Result<MetricsParams, String> {
 	if matches.is_present("no-prometheus") {
-		return Ok(None);
+		return Ok(None.into());
 	}
 
-	let mut metrics_params = MetricsParams::default();
+	let mut metrics_params = MetricsAddress::default();
 
 	if let Some(prometheus_host) = matches.value_of("prometheus-host") {
 		metrics_params.host = prometheus_host.into();
@@ -382,7 +386,7 @@ fn metrics_params(matches: &clap::ArgMatches) -> Result<Option<MetricsParams>, S
 			.map_err(|e| format!("Failed to parse prometheus-port: {}", e))?;
 	}
 
-	Ok(Some(metrics_params))
+	Ok(Some(metrics_params).into())
 }
 
 fn instance_params(matches: &clap::ArgMatches) -> Result<Arc<dyn BridgeInstance>, String> {

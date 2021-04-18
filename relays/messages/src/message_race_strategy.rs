@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -160,6 +160,15 @@ where
 
 	fn is_empty(&self) -> bool {
 		self.source_queue.is_empty()
+	}
+
+	fn required_source_header_at_target(
+		&self,
+		current_best: &HeaderId<SourceHeaderHash, SourceHeaderNumber>,
+	) -> Option<HeaderId<SourceHeaderHash, SourceHeaderNumber>> {
+		self.source_queue
+			.back()
+			.and_then(|(h, _)| if h.0 > current_best.0 { Some(h.clone()) } else { None })
 	}
 
 	fn best_at_source(&self) -> Option<MessageNonce> {

@@ -41,8 +41,8 @@ construct_runtime! {
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Grandpa: grandpa::{Module},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Grandpa: grandpa::{Pallet},
 	}
 }
 
@@ -76,15 +76,21 @@ impl frame_system::Config for TestRuntime {
 	type BlockWeights = ();
 	type BlockLength = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
 	pub const MaxRequests: u32 = 2;
+	pub const HeadersToKeep: u32 = 5;
+	pub const SessionLength: u64 = 5;
+	pub const NumValidators: u32 = 5;
 }
 
 impl grandpa::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = MaxRequests;
+	type HeadersToKeep = HeadersToKeep;
+	type WeightInfo = ();
 }
 
 #[derive(Debug)]

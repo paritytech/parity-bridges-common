@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -62,7 +62,6 @@ pub mod consts {
 }
 
 /// Ethereum synchronization parameters.
-#[derive(Debug)]
 pub struct EthereumSyncParams {
 	/// Ethereum connection params.
 	pub eth_params: EthereumConnectionParams,
@@ -73,9 +72,22 @@ pub struct EthereumSyncParams {
 	/// Synchronization parameters.
 	pub sync_params: HeadersSyncParams,
 	/// Metrics parameters.
-	pub metrics_params: Option<MetricsParams>,
+	pub metrics_params: MetricsParams,
 	/// Instance of the bridge pallet being synchronized.
 	pub instance: Arc<dyn BridgeInstance>,
+}
+
+impl Debug for EthereumSyncParams {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		f.debug_struct("EthereumSyncParams")
+			.field("eth_params", &self.eth_params)
+			.field("sub_params", &self.sub_params)
+			.field("sub_sign", &sp_core::Pair::public(&self.sub_sign))
+			.field("sync_params", &self.sync_params)
+			.field("metrics_params", &self.metrics_params)
+			.field("instance", &self.instance)
+			.finish()
+	}
 }
 
 /// Ethereum synchronization pipeline.

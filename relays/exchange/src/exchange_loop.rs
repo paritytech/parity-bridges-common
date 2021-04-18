@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -78,21 +78,26 @@ impl<BlockNumber: Clone + Copy> TransactionProofsRelayStorage for InMemoryStorag
 	}
 }
 
+/// Return prefix that will be used by default to expose Prometheus metrics of the exchange loop.
+pub fn metrics_prefix<P: TransactionProofPipeline>() -> String {
+	format!("{}_to_{}_Exchange", P::SOURCE_NAME, P::TARGET_NAME)
+}
+
 /// Run proofs synchronization.
 pub async fn run<P: TransactionProofPipeline>(
 	storage: impl TransactionProofsRelayStorage<BlockNumber = BlockNumberOf<P>>,
 	source_client: impl SourceClient<P>,
 	target_client: impl TargetClient<P>,
-	metrics_params: Option<MetricsParams>,
+	metrics_params: MetricsParams,
 	exit_signal: impl Future<Output = ()>,
 ) -> Result<(), String> {
 	let exit_signal = exit_signal.shared();
 
 	relay_utils::relay_loop(source_client, target_client)
-		.with_metrics(format!("{}_to_{}_Exchange", P::SOURCE_NAME, P::TARGET_NAME))
-		.loop_metric(ExchangeLoopMetrics::default())?
-		.standalone_metric(GlobalMetrics::default())?
-		.expose(metrics_params)
+		.with_metrics(Some(metrics_prefix::<P>()), metrics_params)
+		.loop_metric(|registry, prefix| ExchangeLoopMetrics::new(registry, prefix))?
+		.standalone_metric(|registry, prefix| GlobalMetrics::new(registry, prefix))?
+		.expose()
 		.await?
 		.run(|source_client, target_client, metrics| {
 			run_until_connection_lost(
@@ -303,7 +308,7 @@ mod tests {
 			storage,
 			source,
 			target,
-			None,
+			MetricsParams::disabled(),
 			exit_receiver.into_future().map(|(_, _)| ()),
 		));
 	}

@@ -26,7 +26,6 @@ pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = 
 pallet-multi-finality-verifier = { path = "../../../modules/multi-finality-verifier", default-features = false }
 pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
 pallet-shift-session-manager = { path = "../../../modules/shift-session-manager", default-features = false }
-pallet-substrate-bridge = { path = "../../../modules/substrate", default-features = false }
 
 # Substrate Dependencies
 
@@ -85,7 +84,6 @@ std = [
 	"pallet-randomness-collective-flip/std",
 	"pallet-session/std",
 	"pallet-shift-session-manager/std",
-	"pallet-substrate-bridge/std",
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
@@ -105,3 +103,6 @@ std = [
 	"sp-trie/std",
 	"sp-version/std",
 ]
+# TODO: https://github.com/paritytech/parity-bridges-common/issues/390
+# I've left the feature flag here to test our CI configuration
+runtime-benchmarks = []

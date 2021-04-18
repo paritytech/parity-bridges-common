@@ -13,7 +13,7 @@ relay-utils = { path = "../utils" }
 
 # Supported Chains
 
-circuit-runtime = { path = "../../bin/circuit-runtime" }
+circuit-runtime = { path = "../../bin/runtimes/circuit-runtime" }
 
 # Substrate Dependencies
 

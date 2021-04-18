@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -84,6 +84,27 @@ where
 			.submit_signed_extrinsic(self.pipeline.transactions_author(), move |transaction_nonce| {
 				self.pipeline
 					.make_submit_finality_proof_transaction(transaction_nonce, header, proof)
+			})
+			.await
+			.map(drop)
+	}
+
+	async fn submit_finality_proof_and_roots(
+		&self,
+		header: P::Header,
+		proof: P::FinalityProof,
+		state_root: P::Hash,
+		extrinics_root: P::Hash,
+	) -> Result<(), SubstrateError> {
+		self.client
+			.submit_signed_extrinsic(self.pipeline.transactions_author(), move |transaction_nonce| {
+				self.pipeline.make_submit_finality_proof_transaction_and_roots(
+					transaction_nonce,
+					header,
+					proof,
+					state_root,
+					extrinics_root,
+				)
 			})
 			.await
 			.map(drop)

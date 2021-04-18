@@ -43,9 +43,9 @@ construct_runtime! {
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		MultiFinalityVerifier: multi_finality_verifier::{Module},
-		MultiFinalityVerifierPolkadotLike: multi_finality_verifier::<Instance1>::{Module},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		MultiFinalityVerifier: multi_finality_verifier::{Pallet},
+		MultiFinalityVerifierPolkadotLike: multi_finality_verifier::<Instance1>::{Pallet},
 	}
 }
 
@@ -79,21 +79,29 @@ impl frame_system::Config for TestRuntime {
 	type BlockWeights = ();
 	type BlockLength = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
 	pub const MaxRequests: u32 = 2;
+	pub const HeadersToKeep: u32 = 5;
+	pub const SessionLength: u64 = 5;
+	pub const NumValidators: u32 = 5;
 }
 
 impl multi_finality_verifier::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = MaxRequests;
+	type HeadersToKeep = HeadersToKeep;
+	type WeightInfo = ();
 }
 
 pub type PolkadotLikeFinalityVerifierInstance = multi_finality_verifier::Instance1;
 impl multi_finality_verifier::Config<PolkadotLikeFinalityVerifierInstance> for TestRuntime {
 	type BridgedChain = PolkadotLike;
 	type MaxRequests = MaxRequests;
+	type HeadersToKeep = HeadersToKeep;
+	type WeightInfo = ();
 }
 
 #[derive(Debug)]

@@ -1,3 +1,6 @@
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// This file is part of Parity Bridges Common.
+
 // Parity Bridges Common is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -21,6 +24,9 @@ use std::time::Duration;
 
 /// Rococo header id.
 pub type HeaderId = relay_utils::HeaderId<bp_rococo::Hash, bp_rococo::BlockNumber>;
+
+/// Rococo header type used in headers sync.
+pub type SyncHeader = relay_substrate_client::SyncHeader<bp_rococo::Header>;
 
 /// Rococo chain definition
 #[derive(Debug, Clone, Copy)]
@@ -83,34 +89,4 @@ impl TransactionSignScheme for Rococo {
 }
 
 /// Rococo signing params.
-#[derive(Clone)]
-pub struct SigningParams {
-	/// Substrate transactions signer.
-	pub signer: sp_core::sr25519::Pair,
-}
-
-impl SigningParams {
-	/// Create signing params from SURI and password.
-	pub fn from_suri(suri: &str, password: Option<&str>) -> Result<Self, sp_core::crypto::SecretStringError> {
-		Ok(SigningParams {
-			signer: sp_core::sr25519::Pair::from_string(suri, password)?,
-		})
-	}
-}
-
-impl std::fmt::Debug for SigningParams {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "{}", self.signer.public())
-	}
-}
-
-impl Default for SigningParams {
-	fn default() -> Self {
-		SigningParams {
-			signer: sp_keyring::AccountKeyring::Alice.pair(),
-		}
-	}
-}
-
-/// Rococo header type used in headers sync.
-pub type SyncHeader = relay_substrate_client::SyncHeader<bp_rococo::Header>;
+pub type SigningParams = sp_core::sr25519::Pair;
