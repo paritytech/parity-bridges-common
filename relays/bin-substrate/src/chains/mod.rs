@@ -24,6 +24,14 @@ pub mod rococo_headers_to_westend;
 pub mod westend_headers_to_millau;
 pub mod westend_headers_to_rococo;
 
+pub mod circuit_headers_to_gateway;
+pub mod circuit_messages_to_gateway;
+pub mod gateway_headers_to_circuit;
+// pub mod westend_headers_to_circuit;
+pub mod gateway_messages_to_circuit;
+
+mod circuit;
+mod gateway;
 mod millau;
 mod rialto;
 mod rococo;
@@ -150,9 +158,8 @@ mod tests {
 	#[test]
 	fn maximal_size_remark_to_rialto_is_generated_correctly() {
 		assert!(
-			bridge_runtime_common::messages::target::maximal_incoming_message_size(
-				bp_rialto::max_extrinsic_size()
-			) > bp_millau::max_extrinsic_size(),
+			bridge_runtime_common::messages::target::maximal_incoming_message_size(bp_rialto::max_extrinsic_size())
+				> bp_millau::max_extrinsic_size(),
 			"We can't actually send maximal messages to Rialto from Millau, because Millau extrinsics can't be that large",
 		)
 	}

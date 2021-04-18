@@ -319,7 +319,7 @@ fn make_message_weights_map<C: Chain>(
 
 	for (nonce, weight, size) in weights {
 		match (nonce == expected_nonce, is_at_head) {
-			(true, _) => (),
+			(true, _) => {}
 			(false, true) => {
 				// this may happen if some messages were already pruned from the source node
 				//

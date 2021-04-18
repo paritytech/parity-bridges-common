@@ -68,7 +68,7 @@ pub fn accept_aura_header_into_pool<S: Storage, CT: ChainTime>(
 	match (receipts_required, receipts.is_some()) {
 		(true, false) => return Err(Error::MissingTransactionsReceipts),
 		(false, true) => return Err(Error::RedundantTransactionsReceipts),
-		_ => (),
+		_ => {}
 	}
 
 	// we do not want to have all future headers in the pool at once
@@ -353,7 +353,7 @@ fn find_next_validators_signal<S: Storage>(storage: &S, context: &ImportContext<
 		// change
 		let current_scheduled_set = match current_set_signal_block {
 			Some(current_set_signal_block) if Some(&current_set_signal_block) == best_set_signal_block.as_ref() => {
-				return next_scheduled_set.map(|scheduled_set| scheduled_set.validators)
+				return next_scheduled_set.map(|scheduled_set| scheduled_set.validators);
 			}
 			None => return next_scheduled_set.map(|scheduled_set| scheduled_set.validators),
 			Some(current_set_signal_block) => storage.scheduled_change(&current_set_signal_block.hash).expect(

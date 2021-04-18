@@ -22,7 +22,7 @@
 //! 2) add `declare_bridge_options!(...)` for the bridge;
 //! 3) add bridge support to the `select_bridge! { ... }` macro.
 
-use crate::cli::{CliChain, HexLaneId, PrometheusParams};
+use crate::cli::{CliChain, GatewayIdParams, HexLaneId, PrometheusParams};
 use crate::declare_chain_options;
 use crate::messages_lane::MessagesRelayParams;
 use crate::on_demand_headers::OnDemandHeadersRelay;
@@ -35,6 +35,7 @@ use structopt::StructOpt;
 #[derive(StructOpt)]
 pub enum RelayHeadersAndMessages {
 	MillauRialto(MillauRialtoHeadersAndMessages),
+	CircuitGateway(CircuitGatewayHeadersAndMessages),
 }
 
 /// Parameters that have the same names across all bridges.
@@ -58,6 +59,8 @@ macro_rules! declare_bridge_options {
 			pub struct [<$chain1 $chain2 HeadersAndMessages>] {
 				#[structopt(flatten)]
 				shared: HeadersAndMessagesSharedParams,
+				#[structopt(long, default_value = "gate")]
+				gateway_id: GatewayIdParams,
 				#[structopt(flatten)]
 				left: [<$chain1 ConnectionParams>],
 				#[structopt(flatten)]
@@ -101,6 +104,23 @@ macro_rules! select_bridge {
 
 				$generic
 			}
+			RelayHeadersAndMessages::CircuitGateway(_) => {
+				type Params = CircuitGatewayHeadersAndMessages;
+
+				type Left = relay_circuit_client::Circuit;
+				type Right = relay_gateway_client::Gateway;
+
+				type LeftToRightFinality = crate::chains::circuit_headers_to_gateway::CircuitFinalityToGateway;
+				type RightToLeftFinality = crate::chains::gateway_headers_to_circuit::GatewayFinalityToCircuit;
+
+				type LeftToRightMessages = crate::chains::circuit_messages_to_gateway::CircuitMessagesToGateway;
+				type RightToLeftMessages = crate::chains::gateway_messages_to_circuit::GatewayMessagesToCircuit;
+
+				use crate::chains::circuit_messages_to_gateway::run as left_to_right_messages;
+				use crate::chains::gateway_messages_to_circuit::run as right_to_left_messages;
+
+				$generic
+			}
 		}
 	};
 }
@@ -110,6 +130,12 @@ declare_chain_options!(Millau, millau);
 declare_chain_options!(Rialto, rialto);
 // All supported bridges.
 declare_bridge_options!(Millau, Rialto);
+
+// All supported chains.
+declare_chain_options!(Circuit, circuit);
+declare_chain_options!(Gateway, gateway);
+// All supported bridges.
+declare_bridge_options!(Circuit, Gateway);
 
 impl RelayHeadersAndMessages {
 	/// Run the command.
@@ -130,12 +156,12 @@ impl RelayHeadersAndMessages {
 			let left_to_right_on_demand_headers = OnDemandHeadersRelay::new(
 				left_client.clone(),
 				right_client.clone(),
-				LeftToRightFinality::new(right_client.clone(), right_sign.clone()),
+				LeftToRightFinality::new(right_client.clone(), right_sign.clone(), params.gateway_id.0),
 			);
 			let right_to_left_on_demand_headers = OnDemandHeadersRelay::new(
 				right_client.clone(),
 				left_client.clone(),
-				RightToLeftFinality::new(left_client.clone(), left_sign.clone()),
+				RightToLeftFinality::new(left_client.clone(), left_sign.clone(), params.gateway_id.0),
 			);
 
 			let left_to_right_messages = left_to_right_messages(MessagesRelayParams {

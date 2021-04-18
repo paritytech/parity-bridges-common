@@ -300,7 +300,7 @@ mod tests {
 						.transactions_to_accept
 						.insert(test_transaction_hash(1));
 				}
-				_ => (),
+				_ => {}
 			}
 		}));
 

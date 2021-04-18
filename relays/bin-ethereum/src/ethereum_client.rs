@@ -144,7 +144,7 @@ impl EthereumHighLevelRpc for EthereumClient {
 					incomplete: Vec::new(),
 					rejected: headers.iter().rev().map(|header| header.id()).collect(),
 					fatal_error: Some(error.into()),
-				}
+				};
 			}
 		};
 

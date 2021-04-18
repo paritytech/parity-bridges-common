@@ -76,6 +76,9 @@ pub trait SourceClient<P: FinalitySyncPipeline>: RelayClient {
 		number: P::Number,
 	) -> Result<(P::Header, Option<P::FinalityProof>), Self::Error>;
 
+	/// Get canonical header and its finality proof by number.
+	async fn get_roots_for_header(&self, header: P::Header) -> Result<(P::Hash, P::Hash), Self::Error>;
+
 	/// Subscribe to new finality proofs.
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, Self::Error>;
 }
@@ -88,6 +91,15 @@ pub trait TargetClient<P: FinalitySyncPipeline>: RelayClient {
 
 	/// Submit header finality proof.
 	async fn submit_finality_proof(&self, header: P::Header, proof: P::FinalityProof) -> Result<(), Self::Error>;
+
+	/// Submit header finality proof.
+	async fn submit_finality_proof_and_roots(
+		&self,
+		header: P::Header,
+		proof: P::FinalityProof,
+		state_root: P::Hash,
+		extrinsics_root: P::Hash,
+	) -> Result<(), Self::Error>;
 }
 
 /// Return prefix that will be used by default to expose Prometheus metrics of the finality proofs sync loop.
@@ -260,7 +272,11 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 				sync_params.tick
 			}
 			Err(error) => {
+				use backtrace::Backtrace;
+
 				log::error!(target: "bridge", "Finality sync loop iteration has failed with error: {:?}", error);
+				trace! {};
+
 				error.fail_if_connection_error()?;
 				retry_backoff
 					.next_backoff()
@@ -346,7 +362,7 @@ where
 				submitted_header_number: header.number(),
 			};
 
-			log::debug!(
+			log::info!(
 				target: "bridge",
 				"Going to submit finality proof of {} header #{:?} to {}",
 				P::SOURCE_NAME,
@@ -354,8 +370,20 @@ where
 				P::TARGET_NAME,
 			);
 
+			let (state_root, extrinsics_root) = source_client
+				.get_roots_for_header(header.clone())
+				.await
+				.map_err(Error::Source)?;
+
+			log::info!(
+				target: "bridge",
+				"Going to submit finality proof of {} header #{:?} to {}",
+				P::SOURCE_NAME,
+				new_transaction.submitted_header_number,
+				P::TARGET_NAME,
+			);
 			target_client
-				.submit_finality_proof(header, justification)
+				.submit_finality_proof_and_roots(header, justification, state_root, extrinsics_root)
 				.await
 				.map_err(Error::Target)?;
 			Ok(Some(new_transaction))

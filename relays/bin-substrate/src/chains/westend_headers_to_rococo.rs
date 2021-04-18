@@ -57,4 +57,14 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToRococo {
 
 		Bytes(transaction.encode())
 	}
+	fn make_submit_finality_proof_transaction_and_roots(
+		&self,
+		transaction_nonce: <Rococo as Chain>::Index,
+		header: WestendSyncHeader,
+		proof: GrandpaJustification<bp_westend::Header>,
+		state_root: Self::Hash,
+		extrinsics_root: Self::Hash,
+	) -> Bytes {
+		unimplemented!("not supported");
+	}
 }

@@ -93,7 +93,7 @@ where
 	) -> Result<(P::Header, Option<P::FinalityProof>), Error> {
 		let header_hash = self.client.block_hash_by_number(number).await?;
 		let signed_block = self.client.get_block(Some(header_hash)).await?;
-
+		// println!("client-substrate got sub next header_and_finality_proof {:?}", signed_block);
 		let justification = signed_block
 			.justification()
 			.map(|raw_justification| GrandpaJustification::<C::Header>::decode(&mut raw_justification.as_slice()))
@@ -101,6 +101,15 @@ where
 			.map_err(Error::ResponseParseFailed)?;
 
 		Ok((signed_block.header().into(), justification))
+	}
+
+	async fn get_roots_for_header(&self, header: P::Header) -> Result<(P::Hash, P::Hash), Error> {
+		let signed_block = self.client.get_block(Some(header.hash())).await?;
+		// println!("client-substrate got sub next get_roots_for_header {:?}", signed_block);
+		Ok((
+			signed_block.header().state_root().clone(),
+			signed_block.header().extrinsics_root().clone(),
+		))
 	}
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, Error> {

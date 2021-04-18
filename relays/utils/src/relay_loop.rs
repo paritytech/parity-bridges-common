@@ -127,7 +127,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 					async_std::task::sleep(self.reconnect_delay).await;
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Source {
 						match self.source_client.reconnect().await {
-							Ok(()) => (),
+							Ok(()) => {}
 							Err(error) => {
 								log::warn!(
 									target: "bridge",
@@ -141,7 +141,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 					}
 					if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
 						match self.target_client.reconnect().await {
-							Ok(()) => (),
+							Ok(()) => {}
 							Err(error) => {
 								log::warn!(
 									target: "bridge",
@@ -193,7 +193,7 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 		// standalone metric is exposed by several loops && only spawn single metric
 		match create_metric(&self.registry, self.metrics_prefix.as_deref()) {
 			Ok(standalone_metrics) => standalone_metrics.spawn(),
-			Err(PrometheusError::AlreadyReg) => (),
+			Err(PrometheusError::AlreadyReg) => {}
 			Err(e) => return Err(e.to_string()),
 		}
 

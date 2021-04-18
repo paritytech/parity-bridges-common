@@ -38,6 +38,12 @@ pub const NO_INSTANCE_ID: InstanceId = [0, 0, 0, 0];
 /// Bridge-with-Rialto instance id.
 pub const RIALTO_BRIDGE_INSTANCE: InstanceId = *b"rlto";
 
+/// Bridge-with-Rialto instance id.
+pub const GATEWAY_BRIDGE_INSTANCE: InstanceId = *b"gate";
+
+/// Bridge-with-Millau instance id.
+pub const CIRCUIT_BRIDGE_INSTANCE: InstanceId = *b"circ";
+
 /// Bridge-with-Millau instance id.
 pub const MILLAU_BRIDGE_INSTANCE: InstanceId = *b"mlau";
 

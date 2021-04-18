@@ -96,7 +96,7 @@ pub trait SourceClient<P: TransactionProofPipeline>: RelayClient {
 	/// Return block + index where transaction has been **mined**. May return `Ok(None)` if transaction
 	/// is unknown to the source node.
 	async fn transaction_block(&self, hash: &TransactionHashOf<P>)
-		-> Result<Option<(HeaderId<P>, usize)>, Self::Error>;
+	-> Result<Option<(HeaderId<P>, usize)>, Self::Error>;
 	/// Prepare transaction proof.
 	async fn transaction_proof(&self, block: &P::Block, tx_index: usize) -> Result<P::TransactionProof, Self::Error>;
 }
@@ -672,12 +672,14 @@ pub(crate) mod tests {
 	}
 
 	fn ensure_relay_single_failure(source: TestTransactionsSource, target: TestTransactionsTarget) {
-		assert!(async_std::task::block_on(relay_single_transaction_proof(
-			&source,
-			&target,
-			test_transaction_hash(0),
-		))
-		.is_err(),);
+		assert!(
+			async_std::task::block_on(relay_single_transaction_proof(
+				&source,
+				&target,
+				test_transaction_hash(0),
+			))
+			.is_err(),
+		);
 		assert!(target.data.lock().submitted_proofs.is_empty());
 	}
 

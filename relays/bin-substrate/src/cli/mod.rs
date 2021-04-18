@@ -32,6 +32,7 @@ pub(crate) mod send_message;
 
 mod derive_account;
 mod init_bridge;
+mod init_multi_bridge;
 mod relay_headers;
 mod relay_headers_and_messages;
 mod relay_messages;
@@ -66,6 +67,10 @@ pub enum Command {
 	///
 	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
 	InitBridge(init_bridge::InitBridge),
+	/// Initialize on-chain bridge pallet with current header data.
+	///
+	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
+	InitMultiBridge(init_multi_bridge::InitMultiBridge),
 	/// Send custom message over the bridge.
 	///
 	/// Allows interacting with the bridge by sending messages over `Messages` component.
@@ -96,6 +101,7 @@ impl Command {
 			Self::RelayMessages(arg) => arg.run().await?,
 			Self::RelayHeadersAndMessages(arg) => arg.run().await?,
 			Self::InitBridge(arg) => arg.run().await?,
+			Self::InitMultiBridge(arg) => arg.run().await?,
 			Self::SendMessage(arg) => arg.run().await?,
 			Self::EncodeCall(arg) => arg.run().await?,
 			Self::EncodeMessage(arg) => arg.run().await?,
@@ -281,6 +287,26 @@ impl HexBytes {
 	/// Encode given object and wrap into nicely formatted bytes.
 	pub fn encode<T: Encode>(t: &T) -> Self {
 		Self(t.encode())
+	}
+}
+
+/// Nicer formatting for raw bytes vectors.
+#[derive(Encode, Decode)]
+pub struct GatewayIdParams(pub bp_runtime::InstanceId);
+
+use std::array::TryFromSliceError;
+
+fn try_string_into_instance_id(s: &str) -> Result<bp_runtime::InstanceId, TryFromSliceError> {
+	s.as_bytes().try_into()
+}
+
+impl std::str::FromStr for GatewayIdParams {
+	type Err = String;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		let gateway_id =
+			try_string_into_instance_id(s).map_err(|_| format!("Unable to decode gateway_id as [u8; 4]"))?;
+		Ok(Self(gateway_id))
 	}
 }
 

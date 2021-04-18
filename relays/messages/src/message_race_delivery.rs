@@ -410,7 +410,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 
 				return None;
 			}
-			_ => (),
+			_ => {}
 		}
 
 		// Ok - we may have new nonces to deliver. But target may still reject new messages, because we haven't
@@ -527,11 +527,7 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 						true
 					})
 					.collect::<BTreeMap<_, _>>();
-				if to_requeue.is_empty() {
-					None
-				} else {
-					Some(to_requeue)
-				}
+				if to_requeue.is_empty() { None } else { Some(to_requeue) }
 			})?;
 
 		Some((
@@ -555,11 +551,7 @@ impl NoncesRange for MessageWeightsMap {
 
 	fn greater_than(mut self, nonce: MessageNonce) -> Option<Self> {
 		let gte = self.split_off(&(nonce + 1));
-		if gte.is_empty() {
-			None
-		} else {
-			Some(gte)
-		}
+		if gte.is_empty() { None } else { Some(gte) }
 	}
 }
 

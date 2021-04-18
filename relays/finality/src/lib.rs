@@ -20,6 +20,8 @@
 //! to submit all source headers to the target node.
 
 pub use crate::finality_loop::{metrics_prefix, run, FinalitySyncParams, SourceClient, TargetClient};
+#[macro_use]
+extern crate stacktrace;
 
 use bp_header_chain::FinalityProof;
 use std::fmt::Debug;

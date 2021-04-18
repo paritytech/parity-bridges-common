@@ -54,4 +54,14 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 
 		Bytes(transaction.encode())
 	}
+	fn make_submit_finality_proof_transaction_and_roots(
+		&self,
+		transaction_nonce: <Millau as Chain>::Index,
+		header: RialtoSyncHeader,
+		proof: GrandpaJustification<bp_rialto::Header>,
+		state_root: Self::Hash,
+		extrinsics_root: Self::Hash,
+	) -> Bytes {
+		unimplemented!("not supported");
+	}
 }
