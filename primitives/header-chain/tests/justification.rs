@@ -1,4 +1,4 @@
-// Copyright 2020 Parity Technologies (UK) Ltd.
+// Copyright 2020-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -18,30 +18,34 @@
 
 use bp_header_chain::justification::{verify_justification, Error};
 use bp_test_utils::*;
-use codec::Encode;
 
 type TestHeader = sp_runtime::testing::Header;
 
 #[test]
 fn valid_justification_accepted() {
+	let authorities = vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1), (DAVE, 1), (EVE, 1)];
 	let params = JustificationGeneratorParams {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
-		authorities: vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1), (DAVE, 1), (EVE, 1)],
-		depth: 5,
-		forks: 5,
+		authorities: authorities.clone(),
+		votes: 7,
+		forks: 3,
 	};
 
+	let justification = make_justification_for_header::<TestHeader>(params.clone());
 	assert_eq!(
 		verify_justification::<TestHeader>(
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader>(params).encode()
+			&justification,
 		),
 		Ok(()),
 	);
+
+	assert_eq!(justification.commit.precommits.len(), authorities.len());
+	assert_eq!(justification.votes_ancestries.len(), params.votes as usize);
 }
 
 #[test]
@@ -51,7 +55,7 @@ fn valid_justification_accepted_with_single_fork() {
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1), (DAVE, 1), (EVE, 1)],
-		depth: 5,
+		votes: 5,
 		forks: 1,
 	};
 
@@ -60,7 +64,7 @@ fn valid_justification_accepted_with_single_fork() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader>(params).encode()
+			&make_justification_for_header::<TestHeader>(params)
 		),
 		Ok(()),
 	);
@@ -79,7 +83,7 @@ fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: authorities.clone(),
-		depth: 5,
+		votes: n.into(),
 		forks: n.into(),
 	};
 
@@ -94,17 +98,9 @@ fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set,
-			&make_justification_for_header::<TestHeader>(params).encode()
+			&make_justification_for_header::<TestHeader>(params)
 		),
 		Ok(()),
-	);
-}
-
-#[test]
-fn justification_with_invalid_encoding_rejected() {
-	assert_eq!(
-		verify_justification::<TestHeader>(header_id::<TestHeader>(1), TEST_GRANDPA_SET_ID, &voter_set(), &[],),
-		Err(Error::JustificationDecode),
 	);
 }
 
@@ -115,7 +111,7 @@ fn justification_with_invalid_target_rejected() {
 			header_id::<TestHeader>(2),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_default_justification::<TestHeader>(&test_header(1)).encode(),
+			&make_default_justification::<TestHeader>(&test_header(1)),
 		),
 		Err(Error::InvalidJustificationTarget),
 	);
@@ -131,7 +127,7 @@ fn justification_with_invalid_commit_rejected() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&justification.encode(),
+			&justification,
 		),
 		Err(Error::InvalidJustificationCommit),
 	);
@@ -147,7 +143,7 @@ fn justification_with_invalid_authority_signature_rejected() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&justification.encode(),
+			&justification,
 		),
 		Err(Error::InvalidAuthoritySignature),
 	);
@@ -163,7 +159,7 @@ fn justification_with_invalid_precommit_ancestry() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&justification.encode(),
+			&justification,
 		),
 		Err(Error::InvalidPrecommitAncestries),
 	);
@@ -172,12 +168,14 @@ fn justification_with_invalid_precommit_ancestry() {
 #[test]
 fn justification_is_invalid_if_we_dont_meet_threshold() {
 	// Need at least three authorities to sign off or else the voter set threshold can't be reached
+	let authorities = vec![(ALICE, 1), (BOB, 1)];
+
 	let params = JustificationGeneratorParams {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
-		authorities: vec![(ALICE, 1), (BOB, 1)],
-		depth: 2,
+		authorities: authorities.clone(),
+		votes: 2 * authorities.len() as u32,
 		forks: 2,
 	};
 
@@ -186,7 +184,7 @@ fn justification_is_invalid_if_we_dont_meet_threshold() {
 			header_id::<TestHeader>(1),
 			TEST_GRANDPA_SET_ID,
 			&voter_set(),
-			&make_justification_for_header::<TestHeader>(params).encode()
+			&make_justification_for_header::<TestHeader>(params)
 		),
 		Err(Error::InvalidJustificationCommit),
 	);

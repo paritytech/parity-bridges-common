@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ use relay_substrate_client::{
 	ConnectionParams as SubstrateConnectionParams,
 };
 use relay_utils::{metrics::MetricsParams, relay_loop::Client as RelayClient};
-use sp_runtime::Justification;
+use sp_runtime::EncodedJustification;
 
 use std::fmt::Debug;
 use std::{collections::HashSet, time::Duration};
@@ -68,7 +68,7 @@ pub struct SubstrateSyncParams {
 	/// Synchronization parameters.
 	pub sync_params: HeadersSyncParams,
 	/// Metrics parameters.
-	pub metrics_params: Option<MetricsParams>,
+	pub metrics_params: MetricsParams,
 }
 
 /// Substrate synchronization pipeline.
@@ -84,7 +84,7 @@ impl HeadersSyncPipeline for SubstrateHeadersSyncPipeline {
 	type Number = rialto_runtime::BlockNumber;
 	type Header = RialtoSyncHeader;
 	type Extra = ();
-	type Completion = Justification;
+	type Completion = EncodedJustification;
 
 	fn estimate_size(source: &QueuedHeader<Self>) -> usize {
 		source.header().encode().len()
@@ -151,7 +151,11 @@ impl TargetClient<SubstrateHeadersSyncPipeline> for EthereumHeadersTarget {
 		self.client.incomplete_substrate_headers(self.contract).await
 	}
 
-	async fn complete_header(&self, id: RialtoHeaderId, completion: Justification) -> Result<RialtoHeaderId, RpcError> {
+	async fn complete_header(
+		&self,
+		id: RialtoHeaderId,
+		completion: EncodedJustification,
+	) -> Result<RialtoHeaderId, RpcError> {
 		self.client
 			.complete_substrate_header(self.sign_params.clone(), self.contract, id, completion)
 			.await

@@ -13,7 +13,8 @@ relay-utils = { path = "../utils" }
 
 # Bridge dependencies
 
-gateway-runtime = { path = "../../bin/gateway-runtime" }
+bp-gateway = { path = "../../primitives/chain-gateway" }
+gateway-runtime = { path = "../../bin/runtimes/gateway-runtime" }
 
 # Substrate Dependencies
 

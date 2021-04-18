@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Module provides a set of guard functions that are running in background threads
+//! Pallet provides a set of guard functions that are running in background threads
 //! and are aborting process if some condition fails.
 
 use crate::{Chain, ChainWithBalances, Client};
@@ -172,6 +172,7 @@ mod tests {
 		SinkExt,
 	};
 
+	#[derive(Debug, Clone)]
 	struct TestChain;
 
 	impl bp_runtime::Chain for TestChain {

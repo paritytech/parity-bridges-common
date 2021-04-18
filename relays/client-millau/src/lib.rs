@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -21,8 +21,6 @@ use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSig
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
-
-pub use millau_runtime::BridgeRialtoCall;
 
 /// Millau header id.
 pub type HeaderId = relay_utils::HeaderId<millau_runtime::Hash, millau_runtime::BlockNumber>;
@@ -100,26 +98,7 @@ impl TransactionSignScheme for Millau {
 }
 
 /// Millau signing params.
-#[derive(Clone)]
-pub struct SigningParams {
-	/// Substrate transactions signer.
-	pub signer: sp_core::sr25519::Pair,
-}
-
-impl SigningParams {
-	/// Create signing params from SURI and password.
-	pub fn from_suri(suri: &str, password: Option<&str>) -> Result<Self, sp_core::crypto::SecretStringError> {
-		Ok(SigningParams {
-			signer: sp_core::sr25519::Pair::from_string(suri, password)?,
-		})
-	}
-}
-
-impl std::fmt::Debug for SigningParams {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "{}", self.signer.public())
-	}
-}
+pub type SigningParams = sp_core::sr25519::Pair;
 
 /// Millau header type used in headers sync.
 pub type SyncHeader = relay_substrate_client::SyncHeader<millau_runtime::Header>;

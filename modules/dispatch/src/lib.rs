@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -45,6 +45,7 @@ use sp_std::{fmt::Debug, marker::PhantomData, prelude::*};
 /// Spec version type.
 pub type SpecVersion = u32;
 
+// TODO [#895] move to primitives
 /// Origin of a Call when it is dispatched on the target chain.
 ///
 /// The source chain can (and should) verify that the message can be dispatched on the target chain
@@ -89,6 +90,7 @@ pub enum CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainS
 	SourceAccount(SourceChainAccountId),
 }
 
+// TODO [#895] move to primitives
 /// Message payload type used by dispatch module.
 #[derive(RuntimeDebug, Encode, Decode, Clone, PartialEq, Eq)]
 pub struct MessagePayload<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature, Call> {
@@ -153,7 +155,7 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 }
 
 decl_storage! {
-	trait Store for Module<T: Config<I>, I: Instance = DefaultInstance> as Dispatch {}
+	trait Store for Pallet<T: Config<I>, I: Instance = DefaultInstance> as Dispatch {}
 }
 
 decl_event!(
@@ -189,7 +191,7 @@ decl_module! {
 	}
 }
 
-impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Module<T, I> {
+impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 	type Message =
 		MessagePayload<T::SourceChainAccountId, T::TargetChainAccountPublic, T::TargetChainSignature, T::EncodedCall>;
 
@@ -455,8 +457,8 @@ mod tests {
 			NodeBlock = Block,
 			UncheckedExtrinsic = UncheckedExtrinsic,
 		{
-			System: frame_system::{Module, Call, Config, Storage, Event<T>},
-			Dispatch: call_dispatch::{Module, Call, Event<T>},
+			System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+			Dispatch: call_dispatch::{Pallet, Call, Event<T>},
 		}
 	}
 
@@ -490,6 +492,7 @@ mod tests {
 		type BlockLength = ();
 		type DbWeight = ();
 		type SS58Prefix = ();
+		type OnSetCode = ();
 	}
 
 	impl Config for TestRuntime {
@@ -534,7 +537,7 @@ mod tests {
 	fn prepare_message(
 		origin: CallOrigin<AccountId, TestAccountPublic, TestSignature>,
 		call: Call,
-	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
+	) -> <Pallet<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
 		MessagePayload {
 			spec_version: TEST_SPEC_VERSION,
 			weight: TEST_WEIGHT,
@@ -545,20 +548,20 @@ mod tests {
 
 	fn prepare_root_message(
 		call: Call,
-	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
+	) -> <Pallet<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
 		prepare_message(CallOrigin::SourceRoot, call)
 	}
 
 	fn prepare_target_message(
 		call: Call,
-	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
+	) -> <Pallet<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
 		let origin = CallOrigin::TargetAccount(1, TestAccountPublic(1), TestSignature(1));
 		prepare_message(origin, call)
 	}
 
 	fn prepare_source_message(
 		call: Call,
-	) -> <Module<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
+	) -> <Pallet<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
 		let origin = CallOrigin::SourceAccount(1);
 		prepare_message(origin, call)
 	}

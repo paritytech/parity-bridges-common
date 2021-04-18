@@ -21,12 +21,67 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
+use bp_runtime::Chain;
 use sp_std::prelude::*;
+use sp_version::RuntimeVersion;
 
 pub use bp_polkadot_core::*;
 
 /// Westend Chain
 pub type Westend = PolkadotLike;
+
+pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
+
+/// Runtime version.
+pub const VERSION: RuntimeVersion = RuntimeVersion {
+	spec_name: sp_version::create_runtime_str!("westend"),
+	impl_name: sp_version::create_runtime_str!("parity-westend"),
+	authoring_version: 2,
+	spec_version: 50,
+	impl_version: 0,
+	apis: sp_version::create_apis_vec![[]],
+	transaction_version: 5,
+};
+
+/// Westend Runtime `Call` enum.
+///
+/// The enum represents a subset of possible `Call`s we can send to Westend chain.
+/// Ideally this code would be auto-generated from Metadata, because we want to
+/// avoid depending directly on the ENTIRE runtime just to get the encoding of `Dispatchable`s.
+///
+/// All entries here (like pretty much in the entire file) must be kept in sync with Westend
+/// `construct_runtime`, so that we maintain SCALE-compatibility.
+///
+/// See: https://github.com/paritytech/polkadot/blob/master/runtime/westend/src/lib.rs
+#[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
+pub enum Call {
+	/// Rococo bridge pallet.
+	#[codec(index = 40)]
+	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
+}
+
+#[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
+#[allow(non_camel_case_types)]
+pub enum BridgeGrandpaRococoCall {
+	#[codec(index = 0)]
+	submit_finality_proof(
+		<PolkadotLike as Chain>::Header,
+		bp_header_chain::justification::GrandpaJustification<<PolkadotLike as Chain>::Header>,
+	),
+	#[codec(index = 1)]
+	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
+}
+
+impl sp_runtime::traits::Dispatchable for Call {
+	type Origin = ();
+	type Config = ();
+	type Info = ();
+	type PostInfo = ();
+
+	fn dispatch(self, _origin: Self::Origin) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
+		unimplemented!("The Call is not expected to be dispatched.")
+	}
+}
 
 // We use this to get the account on Westend (target) which is derived from Rococo's (source)
 // account.
@@ -56,6 +111,13 @@ pub const FROM_WESTEND_LATEST_RECEIVED_NONCE_METHOD: &str = "FromWestendInboundL
 pub const FROM_WESTEND_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromWestendInboundLaneApi_latest_confirmed_nonce";
 /// Name of the `FromWestendInboundLaneApi::unrewarded_relayers_state` runtime method.
 pub const FROM_WESTEND_UNREWARDED_RELAYERS_STATE: &str = "FromWestendInboundLaneApi_unrewarded_relayers_state";
+
+/// The target length of a session (how often authorities change) on Westend measured in of number of
+/// blocks.
+///
+/// Note that since this is a target sessions may change before/after this time depending on network
+/// conditions.
+pub const SESSION_LENGTH: BlockNumber = 10 * time_units::MINUTES;
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Westend headers.

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -17,22 +17,19 @@
 //! Substrate node client.
 
 use crate::chain::{Chain, ChainWithBalances};
-use crate::rpc::{Substrate, SubstrateMessages};
+use crate::rpc::Substrate;
 use crate::{ConnectionParams, Error, Result};
 
 use async_std::sync::{Arc, Mutex};
-use bp_messages::{LaneId, MessageNonce};
-use bp_runtime::InstanceId;
 use codec::Decode;
 use frame_system::AccountInfo;
 use jsonrpsee_types::{jsonrpc::DeserializeOwned, traits::SubscriptionClient};
 use jsonrpsee_ws_client::{WsClient as RpcClient, WsConfig as RpcConfig, WsSubscription as Subscription};
 use num_traits::Zero;
 use pallet_balances::AccountData;
-use sp_core::Bytes;
+use sp_core::{storage::StorageKey, Bytes};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
-use std::ops::RangeInclusive;
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
@@ -50,7 +47,7 @@ pub struct Client<C: Chain> {
 	/// Client connection params.
 	params: ConnectionParams,
 	/// Substrate RPC client.
-	client: RpcClient,
+	client: Arc<RpcClient>,
 	/// Genesis block hash.
 	genesis_hash: C::Hash,
 	/// If several tasks are submitting their transactions simultaneously using `submit_signed_extrinsic`
@@ -84,7 +81,7 @@ impl<C: Chain> Client<C> {
 		let client = Self::build_client(params.clone()).await?;
 
 		let number: C::BlockNumber = Zero::zero();
-		let genesis_hash = Substrate::<C>::chain_get_block_hash(&client, number).await?;
+		let genesis_hash = Substrate::<C>::chain_get_block_hash(&*client, number).await?;
 
 		Ok(Self {
 			params,
@@ -101,7 +98,7 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Build client to use in connection.
-	async fn build_client(params: ConnectionParams) -> Result<RpcClient> {
+	async fn build_client(params: ConnectionParams) -> Result<Arc<RpcClient>> {
 		let uri = format!(
 			"{}://{}:{}",
 			if params.secure { "wss" } else { "ws" },
@@ -111,14 +108,15 @@ impl<C: Chain> Client<C> {
 		let mut config = RpcConfig::with_url(&uri);
 		config.max_notifs_per_subscription = MAX_SUBSCRIPTION_CAPACITY;
 		let client = RpcClient::new(config).await?;
-		Ok(client)
+
+		Ok(Arc::new(client))
 	}
 }
 
 impl<C: Chain> Client<C> {
 	/// Returns true if client is connected to at least one peer and is in synced state.
 	pub async fn ensure_synced(&self) -> Result<()> {
-		let health = Substrate::<C>::system_health(&self.client).await?;
+		let health = Substrate::<C>::system_health(&*self.client).await?;
 		let is_synced = !health.is_syncing && (!health.should_have_peers || health.peers > 0);
 		if is_synced {
 			Ok(())
@@ -134,7 +132,7 @@ impl<C: Chain> Client<C> {
 
 	/// Return hash of the best finalized block.
 	pub async fn best_finalized_header_hash(&self) -> Result<C::Hash> {
-		Ok(Substrate::<C>::chain_get_finalized_head(&self.client).await?)
+		Ok(Substrate::<C>::chain_get_finalized_head(&*self.client).await?)
 	}
 
 	/// Returns the best Substrate header.
@@ -142,12 +140,12 @@ impl<C: Chain> Client<C> {
 	where
 		C::Header: DeserializeOwned,
 	{
-		Ok(Substrate::<C>::chain_get_header(&self.client, None).await?)
+		Ok(Substrate::<C>::chain_get_header(&*self.client, None).await?)
 	}
 
 	/// Get a Substrate block from its hash.
 	pub async fn get_block(&self, block_hash: Option<C::Hash>) -> Result<C::SignedBlock> {
-		Ok(Substrate::<C>::chain_get_block(&self.client, block_hash).await?)
+		Ok(Substrate::<C>::chain_get_block(&*self.client, block_hash).await?)
 	}
 
 	/// Get a Substrate header by its hash.
@@ -155,12 +153,12 @@ impl<C: Chain> Client<C> {
 	where
 		C::Header: DeserializeOwned,
 	{
-		Ok(Substrate::<C>::chain_get_header(&self.client, block_hash).await?)
+		Ok(Substrate::<C>::chain_get_header(&*self.client, block_hash).await?)
 	}
 
 	/// Get a Substrate block hash by its number.
 	pub async fn block_hash_by_number(&self, number: C::BlockNumber) -> Result<C::Hash> {
-		Ok(Substrate::<C>::chain_get_block_hash(&self.client, number).await?)
+		Ok(Substrate::<C>::chain_get_block_hash(&*self.client, number).await?)
 	}
 
 	/// Get a Substrate header by its number.
@@ -174,7 +172,15 @@ impl<C: Chain> Client<C> {
 
 	/// Return runtime version.
 	pub async fn runtime_version(&self) -> Result<RuntimeVersion> {
-		Ok(Substrate::<C>::runtime_version(&self.client).await?)
+		Ok(Substrate::<C>::state_runtime_version(&*self.client).await?)
+	}
+
+	/// Read value from runtime storage.
+	pub async fn storage_value<T: Decode>(&self, storage_key: StorageKey) -> Result<Option<T>> {
+		Substrate::<C>::state_get_storage(&*self.client, storage_key)
+			.await?
+			.map(|encoded_value| T::decode(&mut &encoded_value.0[..]).map_err(Error::ResponseParseFailed))
+			.transpose()
 	}
 
 	/// Return native tokens balance of the account.
@@ -183,7 +189,7 @@ impl<C: Chain> Client<C> {
 		C: ChainWithBalances,
 	{
 		let storage_key = C::account_info_storage_key(&account);
-		let encoded_account_data = Substrate::<C>::get_storage(&self.client, storage_key)
+		let encoded_account_data = Substrate::<C>::state_get_storage(&*self.client, storage_key)
 			.await?
 			.ok_or(Error::AccountDoesNotExist)?;
 		let decoded_account_data =
@@ -196,14 +202,14 @@ impl<C: Chain> Client<C> {
 	///
 	/// Note: It's the caller's responsibility to make sure `account` is a valid ss58 address.
 	pub async fn next_account_index(&self, account: C::AccountId) -> Result<C::Index> {
-		Ok(Substrate::<C>::system_account_next_index(&self.client, account).await?)
+		Ok(Substrate::<C>::system_account_next_index(&*self.client, account).await?)
 	}
 
 	/// Submit unsigned extrinsic for inclusion in a block.
 	///
 	/// Note: The given transaction needs to be SCALE encoded beforehand.
 	pub async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<C::Hash> {
-		let tx_hash = Substrate::<C>::author_submit_extrinsic(&self.client, transaction).await?;
+		let tx_hash = Substrate::<C>::author_submit_extrinsic(&*self.client, transaction).await?;
 		log::trace!(target: "bridge", "Sent transaction to Substrate node: {:?}", tx_hash);
 		Ok(tx_hash)
 	}
@@ -223,7 +229,7 @@ impl<C: Chain> Client<C> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
 		let extrinsic = prepare_extrinsic(transaction_nonce);
-		let tx_hash = Substrate::<C>::author_submit_extrinsic(&self.client, extrinsic).await?;
+		let tx_hash = Substrate::<C>::author_submit_extrinsic(&*self.client, extrinsic).await?;
 		log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 		Ok(tx_hash)
 	}
@@ -233,7 +239,7 @@ impl<C: Chain> Client<C> {
 		let call = SUB_API_GRANDPA_AUTHORITIES.to_string();
 		let data = Bytes(Vec::new());
 
-		let encoded_response = Substrate::<C>::state_call(&self.client, call, data, Some(block)).await?;
+		let encoded_response = Substrate::<C>::state_call(&*self.client, call, data, Some(block)).await?;
 		let authority_list = encoded_response.0;
 
 		Ok(authority_list)
@@ -241,50 +247,17 @@ impl<C: Chain> Client<C> {
 
 	/// Execute runtime call at given block.
 	pub async fn state_call(&self, method: String, data: Bytes, at_block: Option<C::Hash>) -> Result<Bytes> {
-		Substrate::<C>::state_call(&self.client, method, data, at_block)
+		Substrate::<C>::state_call(&*self.client, method, data, at_block)
 			.await
 			.map_err(Into::into)
 	}
 
-	/// Returns proof-of-message(s) in given inclusive range.
-	pub async fn prove_messages(
-		&self,
-		instance: InstanceId,
-		lane: LaneId,
-		range: RangeInclusive<MessageNonce>,
-		include_outbound_lane_state: bool,
-		at_block: C::Hash,
-	) -> Result<StorageProof> {
-		let encoded_trie_nodes = SubstrateMessages::<C>::prove_messages(
-			&self.client,
-			instance,
-			lane,
-			*range.start(),
-			*range.end(),
-			include_outbound_lane_state,
-			Some(at_block),
-		)
-		.await
-		.map_err(Error::RpcError)?;
-		let decoded_trie_nodes: Vec<Vec<u8>> =
-			Decode::decode(&mut &encoded_trie_nodes[..]).map_err(Error::ResponseParseFailed)?;
-		Ok(StorageProof::new(decoded_trie_nodes))
-	}
-
-	/// Returns proof-of-message(s) delivery.
-	pub async fn prove_messages_delivery(
-		&self,
-		instance: InstanceId,
-		lane: LaneId,
-		at_block: C::Hash,
-	) -> Result<Vec<Vec<u8>>> {
-		let encoded_trie_nodes =
-			SubstrateMessages::<C>::prove_messages_delivery(&self.client, instance, lane, Some(at_block))
-				.await
-				.map_err(Error::RpcError)?;
-		let decoded_trie_nodes: Vec<Vec<u8>> =
-			Decode::decode(&mut &encoded_trie_nodes[..]).map_err(Error::ResponseParseFailed)?;
-		Ok(decoded_trie_nodes)
+	/// Returns storage proof of given storage keys.
+	pub async fn prove_storage(&self, keys: Vec<StorageKey>, at_block: C::Hash) -> Result<StorageProof> {
+		Substrate::<C>::state_prove_storage(&*self.client, keys, Some(at_block))
+			.await
+			.map(|proof| StorageProof::new(proof.proof.into_iter().map(|b| b.0).collect()))
+			.map_err(Into::into)
 	}
 
 	/// Return new justifications stream.

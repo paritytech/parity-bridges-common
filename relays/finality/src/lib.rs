@@ -19,8 +19,11 @@
 //! are still submitted to the target node, but are treated as auxiliary data as we are not trying
 //! to submit all source headers to the target node.
 
-pub use crate::finality_loop::{run, FinalitySyncParams, SourceClient, TargetClient};
+pub use crate::finality_loop::{metrics_prefix, run, FinalitySyncParams, SourceClient, TargetClient};
+#[macro_use]
+extern crate stacktrace;
 
+use bp_header_chain::FinalityProof;
 use std::fmt::Debug;
 
 mod finality_loop;
@@ -49,10 +52,4 @@ pub trait SourceHeader<Number>: Clone + Debug + PartialEq + Send + Sync {
 	fn number(&self) -> Number;
 	/// Returns true if this header needs to be submitted to target node.
 	fn is_mandatory(&self) -> bool;
-}
-
-/// Abstract finality proof that is justifying block finality.
-pub trait FinalityProof<Number>: Clone + Send + Sync + Debug {
-	/// Return number of header that this proof is generated for.
-	fn target_header_number(&self) -> Number;
 }

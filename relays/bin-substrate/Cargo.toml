@@ -13,6 +13,7 @@ codec = { package = "parity-scale-codec", version = "2.0.0" }
 futures = "0.3.12"
 hex = "0.4"
 log = "0.4.14"
+num-format = "0.4"
 num-traits = "0.2"
 paste = "1.0"
 structopt = "0.3"
@@ -25,8 +26,11 @@ bp-messages = { path = "../../primitives/messages" }
 bp-millau = { path = "../../primitives/chain-millau" }
 bp-polkadot = { path = "../../primitives/chain-polkadot" }
 bp-rialto = { path = "../../primitives/chain-rialto" }
+bp-rococo = { path = "../../primitives/chain-rococo" }
 bp-runtime = { path = "../../primitives/runtime" }
 bp-westend = { path = "../../primitives/chain-westend" }
+bp-circuit = { path = "../../primitives/chain-circuit" }
+bp-gateway = { path = "../../primitives/chain-gateway" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 finality-grandpa = { version = "0.14.0" }
 finality-relay = { path = "../finality" }
@@ -34,17 +38,21 @@ headers-relay = { path = "../headers" }
 messages-relay = { path = "../messages" }
 millau-runtime = { path = "../../bin/millau/runtime" }
 pallet-bridge-dispatch = { path = "../../modules/dispatch" }
-pallet-bridge-grandpa = { path = "../../modules/grandpa" }
 pallet-bridge-messages = { path = "../../modules/messages" }
+pallet-multi-finality-verifier = { path = "../../modules/multi-finality-verifier" }
 relay-kusama-client = { path = "../client-kusama" }
 relay-millau-client = { path = "../client-millau" }
 relay-polkadot-client = { path = "../client-polkadot" }
 relay-rialto-client = { path = "../client-rialto" }
+relay-rococo-client = { path = "../client-rococo" }
+relay-gateway-client = { path = "../client-gateway" }
+relay-circuit-client = { path = "../client-circuit" }
 relay-substrate-client = { path = "../client-substrate" }
 relay-utils = { path = "../utils" }
 relay-westend-client = { path = "../client-westend" }
 rialto-runtime = { path = "../../bin/rialto/runtime" }
-
+circuit-runtime = { path = "../../bin/runtimes/circuit-runtime" }
+gateway-runtime = { path = "../../bin/runtimes/gateway-runtime" }
 # Substrate Dependencies
 
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
@@ -52,6 +60,8 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-version = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
 [dev-dependencies]
 sp-keyring = { git = "https://github.com/paritytech/substrate", branch = "master" }
+hex-literal = "0.3"

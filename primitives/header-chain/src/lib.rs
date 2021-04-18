@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -55,6 +55,22 @@ impl AuthoritySet {
 	}
 }
 
+/// Data required for initializing the bridge pallet.
+///
+/// The bridge needs to know where to start its sync from, and this provides that initial context.
+#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct InitializationData<H: HeaderT> {
+	/// The header from which we should start syncing.
+	pub header: H,
+	/// The initial authorities of the pallet.
+	pub authority_list: AuthorityList,
+	/// The ID of the initial authority set.
+	pub set_id: SetId,
+	/// Should the pallet block transaction immediately after initialization.
+	pub is_halted: bool,
+}
+
 /// base trait for verifying transaction inclusion proofs.
 pub trait InclusionProofVerifier {
 	/// Transaction type.
@@ -92,6 +108,12 @@ impl<H: Default, E> HeaderChain<H, E> for () {
 	fn append_header(_header: H) -> Result<(), E> {
 		Ok(())
 	}
+}
+
+/// Abstract finality proof that is justifying block finality.
+pub trait FinalityProof<Number>: Clone + Send + Sync + Debug {
+	/// Return number of header that this proof is generated for.
+	fn target_header_number(&self) -> Number;
 }
 
 /// Find header digest that schedules next GRANDPA authorities set.
