@@ -48,7 +48,7 @@ pub struct JustificationGeneratorParams<H> {
 	pub authorities: Vec<(Account, AuthorityWeight)>,
 	/// The total number of vote ancestries in our justification.
 	///
-	/// These may be distributed among many different forks.
+	/// These may be distributed among many forks.
 	pub votes: u32,
 	/// The number of forks.
 	///

@@ -155,7 +155,7 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>: Debug {
 	fn is_empty(&self) -> bool;
 	/// Return id of source header that is required to be on target to continue synchronization.
 	fn required_source_header_at_target(&self, current_best: &SourceHeaderId) -> Option<SourceHeaderId>;
-	/// Return best nonce at source node.
+	/// Return the best nonce at source node.
 	///
 	/// `Some` is returned only if we are sure that the value is greater or equal
 	/// than the result of `best_at_target`.

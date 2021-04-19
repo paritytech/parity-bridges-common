@@ -165,7 +165,7 @@ pub type Index = u32;
 /// Hashing type.
 pub type Hashing = BlakeTwo256;
 
-/// The type of an object that can produce hashes on Polkadot-like chains.
+/// The type of object that can produce hashes on Polkadot-like chains.
 pub type Hasher = BlakeTwo256;
 
 /// The header type used by Polkadot-like chains.
