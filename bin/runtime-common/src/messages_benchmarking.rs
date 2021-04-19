@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Everything required to run benchmarks of message-lanes, based on
+//! Everything required to run benchmarks of messages module, based on
 //! `bridge_runtime_common::messages` implementation.
 
 #![cfg(feature = "runtime-benchmarks")]
@@ -24,11 +24,11 @@ use crate::messages::{
 	BridgedChain, HashOf, MessageBridge, ThisChain,
 };
 
-use bp_message_lane::{LaneId, MessageData, MessageKey, MessagePayload};
+use bp_messages::{LaneId, MessageData, MessageKey, MessagePayload};
 use codec::Encode;
 use ed25519_dalek::{PublicKey, SecretKey, Signer, KEYPAIR_LENGTH, SECRET_KEY_LENGTH};
 use frame_support::weights::Weight;
-use pallet_message_lane::benchmarking::{MessageDeliveryProofParams, MessageProofParams, ProofSize};
+use pallet_bridge_messages::benchmarking::{MessageDeliveryProofParams, MessageProofParams, ProofSize};
 use sp_core::Hasher;
 use sp_runtime::traits::Header;
 use sp_std::prelude::*;
@@ -73,7 +73,7 @@ pub fn prepare_message_proof<B, H, R, FI, MM, ML, MH>(
 where
 	B: MessageBridge,
 	H: Hasher,
-	R: pallet_finality_verifier::Config<FI>,
+	R: pallet_bridge_grandpa::Config<FI>,
 	FI: 'static,
 	<R::BridgedChain as bp_runtime::Chain>::Hash: Into<HashOf<BridgedChain<B>>>,
 	MM: Fn(MessageKey) -> Vec<u8>,
@@ -130,7 +130,7 @@ where
 	// prepare Bridged chain header and insert it into the Substrate pallet
 	let bridged_header = make_bridged_header(root);
 	let bridged_header_hash = bridged_header.hash();
-	pallet_finality_verifier::initialize_for_benchmarks::<R, FI>(bridged_header);
+	pallet_bridge_grandpa::initialize_for_benchmarks::<R, FI>(bridged_header);
 
 	(
 		FromBridgedChainMessagesProof {
@@ -155,7 +155,7 @@ pub fn prepare_message_delivery_proof<B, H, R, FI, ML, MH>(
 where
 	B: MessageBridge,
 	H: Hasher,
-	R: pallet_finality_verifier::Config<FI>,
+	R: pallet_bridge_grandpa::Config<FI>,
 	FI: 'static,
 	<R::BridgedChain as bp_runtime::Chain>::Hash: Into<HashOf<BridgedChain<B>>>,
 	ML: Fn(LaneId) -> Vec<u8>,
@@ -183,7 +183,7 @@ where
 	// prepare Bridged chain header and insert it into the Substrate pallet
 	let bridged_header = make_bridged_header(root);
 	let bridged_header_hash = bridged_header.hash();
-	pallet_finality_verifier::initialize_for_benchmarks::<R, FI>(bridged_header);
+	pallet_bridge_grandpa::initialize_for_benchmarks::<R, FI>(bridged_header);
 
 	FromBridgedChainMessagesDeliveryProof {
 		bridged_header_hash: bridged_header_hash.into(),
