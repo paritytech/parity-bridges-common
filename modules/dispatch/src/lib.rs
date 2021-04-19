@@ -102,6 +102,13 @@ pub struct MessagePayload<SourceChainAccountId, TargetChainAccountPublic, Target
 	pub weight: Weight,
 	/// Call origin to be used during dispatch.
 	pub origin: CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature>,
+	/// If true, then the sender has decided to pay dispatch fee at the target chain.
+	///
+	/// The fee is paid right before the message is dispatched. So in case of any other
+	/// issues (like invalid call encoding, invalid signature, ...) we won't do any direct
+	/// transfers. Instead, we're returning fee related to this message dispatch to the
+	/// relayer.
+	pub pay_dispatch_fee_at_target_chain: bool,
 	/// The call itself.
 	pub call: Call,
 }
@@ -160,7 +167,8 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event<T, I = DefaultInstance> where
-		<T as Config<I>>::MessageId
+		<T as Config<I>>::MessageId,
+		AccountId = <T as frame_system::Config>::AccountId,
 	{
 		/// Message has been rejected before reaching dispatch.
 		MessageRejected(InstanceId, MessageId),
@@ -178,6 +186,8 @@ decl_event!(
 		MessageCallDecodeFailed(InstanceId, MessageId),
 		/// The call from the message has been rejected by the call filter.
 		MessageCallRejected(InstanceId, MessageId),
+		/// The origin account has failed to pay fee for dispatching the message.
+		MessageDispatchPaymentFailed(InstanceId, MessageId, AccountId, Weight),
 		/// Phantom member, never used. Needed to handle multiple pallet instances.
 		_Dummy(PhantomData<I>),
 	}
@@ -191,7 +201,7 @@ decl_module! {
 	}
 }
 
-impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
+impl<T: Config<I>, I: Instance> MessageDispatch<T::AccountId, T::MessageId> for Pallet<T, I> {
 	type Message =
 		MessagePayload<T::SourceChainAccountId, T::TargetChainAccountPublic, T::TargetChainSignature, T::EncodedCall>;
 
@@ -199,14 +209,19 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 		message.weight
 	}
 
-	fn dispatch(bridge: InstanceId, id: T::MessageId, message: Result<Self::Message, ()>) {
+	fn dispatch<P: FnOnce(&T::AccountId, Weight) -> Result<(), ()>>(
+		bridge: InstanceId,
+		id: T::MessageId,
+		message: Result<Self::Message, ()>,
+		pay_dispatch_fee: P,
+	) -> Weight {
 		// emit special even if message has been rejected by external component
 		let message = match message {
 			Ok(message) => message,
 			Err(_) => {
 				log::trace!(target: "runtime::bridge-dispatch", "Message {:?}/{:?}: rejected before actual dispatch", bridge, id);
 				Self::deposit_event(RawEvent::MessageRejected(bridge, id));
-				return;
+				return 0;
 			}
 		};
 
@@ -227,7 +242,7 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 				expected_version,
 				message.spec_version,
 			));
-			return;
+			return message.weight;
 		}
 
 		// now that we have spec version checked, let's decode the call
@@ -236,7 +251,7 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 			Err(_) => {
 				log::trace!(target: "runtime::bridge-dispatch", "Failed to decode Call from message {:?}/{:?}", bridge, id,);
 				Self::deposit_event(RawEvent::MessageCallDecodeFailed(bridge, id));
-				return;
+				return message.weight;
 			}
 		};
 
@@ -262,7 +277,7 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 						target_signature,
 					);
 					Self::deposit_event(RawEvent::MessageSignatureMismatch(bridge, id));
-					return;
+					return message.weight;
 				}
 
 				log::trace!(target: "runtime::bridge-dispatch", "Target Account: {:?}", &target_account);
@@ -286,7 +301,7 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 				call,
 			);
 			Self::deposit_event(RawEvent::MessageCallRejected(bridge, id));
-			return;
+			return message.weight;
 		}
 
 		// verify weight
@@ -309,7 +324,27 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 				expected_weight,
 				message.weight,
 			));
-			return;
+			return message.weight;
+		}
+
+		// pay dispatch fee right before dispatch
+		if message.pay_dispatch_fee_at_target_chain {
+			if pay_dispatch_fee(&origin_account, message.weight).is_err() {
+				log::trace!(
+					target: "runtime::bridge-dispatch",
+					"Failed to pay dispatch fee for dispatching message {:?}/{:?} with weight {}",
+					bridge,
+					id,
+					message.weight,
+				);
+				Self::deposit_event(RawEvent::MessageDispatchPaymentFailed(
+					bridge,
+					id,
+					origin_account,
+					message.weight,
+				));
+				return message.weight;
+			}
 		}
 
 		// finally dispatch message
@@ -318,6 +353,7 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 		log::trace!(target: "runtime::bridge-dispatch", "Message being dispatched is: {:?}", &call);
 		let dispatch_result = call.dispatch(origin);
 		let actual_call_weight = extract_actual_weight(&dispatch_result, &dispatch_info);
+		let unused_dispatch_weight = message.weight.saturating_sub(actual_call_weight);
 
 		log::trace!(
 			target: "runtime::bridge-dispatch",
@@ -334,6 +370,8 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::MessageId> for Pallet<T, I> {
 			id,
 			dispatch_result.map(drop).map_err(|e| e.error),
 		));
+
+		unused_dispatch_weight
 	}
 }
 
@@ -537,31 +575,32 @@ mod tests {
 	fn prepare_message(
 		origin: CallOrigin<AccountId, TestAccountPublic, TestSignature>,
 		call: Call,
-	) -> <Pallet<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
+	) -> <Pallet<TestRuntime> as MessageDispatch<AccountId, <TestRuntime as Config>::MessageId>>::Message {
 		MessagePayload {
 			spec_version: TEST_SPEC_VERSION,
 			weight: TEST_WEIGHT,
 			origin,
+			pay_dispatch_fee_at_target_chain: false,
 			call: EncodedCall(call.encode()),
 		}
 	}
 
 	fn prepare_root_message(
 		call: Call,
-	) -> <Pallet<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
+	) -> <Pallet<TestRuntime> as MessageDispatch<AccountId, <TestRuntime as Config>::MessageId>>::Message {
 		prepare_message(CallOrigin::SourceRoot, call)
 	}
 
 	fn prepare_target_message(
 		call: Call,
-	) -> <Pallet<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
+	) -> <Pallet<TestRuntime> as MessageDispatch<AccountId, <TestRuntime as Config>::MessageId>>::Message {
 		let origin = CallOrigin::TargetAccount(1, TestAccountPublic(1), TestSignature(1));
 		prepare_message(origin, call)
 	}
 
 	fn prepare_source_message(
 		call: Call,
-	) -> <Pallet<TestRuntime> as MessageDispatch<<TestRuntime as Config>::MessageId>>::Message {
+	) -> <Pallet<TestRuntime> as MessageDispatch<AccountId, <TestRuntime as Config>::MessageId>>::Message {
 		let origin = CallOrigin::SourceAccount(1);
 		prepare_message(origin, call)
 	}
@@ -578,7 +617,7 @@ mod tests {
 			message.spec_version = BAD_SPEC_VERSION;
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),
@@ -606,7 +645,7 @@ mod tests {
 			message.weight = 0;
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),
@@ -634,7 +673,7 @@ mod tests {
 			);
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),
@@ -656,7 +695,7 @@ mod tests {
 			let id = [0; 4];
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Err(()));
+			Dispatch::dispatch(bridge, id, Err(()), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),
@@ -680,7 +719,7 @@ mod tests {
 			message.call.0 = vec![];
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),
@@ -707,13 +746,70 @@ mod tests {
 			message.weight = weight;
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),
 				vec![EventRecord {
 					phase: Phase::Initialization,
 					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageCallRejected(bridge, id)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn should_emit_event_for_unpaid_calls() {
+		new_test_ext().execute_with(|| {
+			let bridge = b"ethb".to_owned();
+			let id = [0; 4];
+
+			let mut message =
+				prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
+			message.pay_dispatch_fee_at_target_chain = true;
+
+			System::set_block_number(1);
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| Err(()));
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatchPaymentFailed(
+						bridge,
+						id,
+						AccountIdConverter::convert(derive_account_id::<AccountId>(bridge, SourceAccount::Root)),
+						TEST_WEIGHT,
+					)),
+					topics: vec![],
+				}],
+			);
+		});
+	}
+
+	#[test]
+	fn should_dispatch_calls_paid_at_target_chain() {
+		new_test_ext().execute_with(|| {
+			let bridge = b"ethb".to_owned();
+			let id = [0; 4];
+
+			let mut message =
+				prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
+			message.pay_dispatch_fee_at_target_chain = true;
+
+			System::set_block_number(1);
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| Ok(()));
+
+			assert_eq!(
+				System::events(),
+				vec![EventRecord {
+					phase: Phase::Initialization,
+					event: Event::call_dispatch(call_dispatch::Event::<TestRuntime>::MessageDispatched(
+						bridge,
+						id,
+						Ok(())
+					)),
 					topics: vec![],
 				}],
 			);
@@ -728,7 +824,7 @@ mod tests {
 			let message = prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),
@@ -755,7 +851,7 @@ mod tests {
 			let message = prepare_target_message(call);
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),
@@ -782,7 +878,7 @@ mod tests {
 			let message = prepare_source_message(call);
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message));
+			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
 
 			assert_eq!(
 				System::events(),

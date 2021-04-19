@@ -64,6 +64,7 @@ type ToRialtoMessagesDeliveryProof = messages::source::FromBridgedChainMessagesD
 pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
 	WithRialtoMessageBridge,
 	crate::Runtime,
+	pallet_balances::Pallet<Runtime>,
 	pallet_bridge_dispatch::DefaultInstance,
 >;
 

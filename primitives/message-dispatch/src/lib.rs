@@ -25,7 +25,7 @@ use bp_runtime::InstanceId;
 pub type Weight = u64;
 
 /// A generic trait to dispatch arbitrary messages delivered over the bridge.
-pub trait MessageDispatch<MessageId> {
+pub trait MessageDispatch<AccountId, MessageId> {
 	/// A type of the message to be dispatched.
 	type Message: codec::Decode;
 
@@ -45,5 +45,12 @@ pub trait MessageDispatch<MessageId> {
 	/// a sign that some other component has rejected the message even before it has
 	/// reached `dispatch` method (right now this may only be caused if we fail to decode
 	/// the whole message).
-	fn dispatch(bridge: InstanceId, id: MessageId, message: Result<Self::Message, ()>);
+	///
+	/// Returns unspent dispatch weight.
+	fn dispatch<P: FnOnce(&AccountId, Weight) -> Result<(), ()>>(
+		bridge: InstanceId,
+		id: MessageId,
+		message: Result<Self::Message, ()>,
+		pay_dispatch_fee: P,
+	) -> Weight;
 }

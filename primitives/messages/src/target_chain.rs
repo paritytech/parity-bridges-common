@@ -84,7 +84,7 @@ pub trait SourceHeaderChain<Fee> {
 }
 
 /// Called when inbound message is received.
-pub trait MessageDispatch<Fee> {
+pub trait MessageDispatch<AccountId, Fee> {
 	/// Decoded message payload type. Valid message may contain invalid payload. In this case
 	/// message is delivered, but dispatch fails. Therefore, two separate types of payload
 	/// (opaque `MessagePayload` used in delivery and this `DispatchPayload` used in dispatch).
@@ -100,7 +100,17 @@ pub trait MessageDispatch<Fee> {
 	///
 	/// It is up to the implementers of this trait to determine whether the message
 	/// is invalid (i.e. improperly encoded, has too large weight, ...) or not.
-	fn dispatch(message: DispatchMessage<Self::DispatchPayload, Fee>);
+	///
+	/// If your configuration allows paying dispatch fee at the target chain, then
+	/// it must be paid inside this method to the `relayer_account`.
+	///
+	/// Returns 'unused' dispatch weight that will be deducted from total delivery transaction
+	/// weight, thus reducing the transaction cost. This shall not be zero in two cases:
+	///
+	/// 1) if message has been dispatched successfully, but post-dispatch weight is less than
+	///    the weight, declared by the message sender;
+	/// 2) if message has not been dispatched at all.
+	fn dispatch(relayer_account: &AccountId, message: DispatchMessage<Self::DispatchPayload, Fee>) -> Weight;
 }
 
 impl<Message> Default for ProvedLaneMessages<Message> {
@@ -149,12 +159,14 @@ impl<Fee> SourceHeaderChain<Fee> for ForbidInboundMessages {
 	}
 }
 
-impl<Fee> MessageDispatch<Fee> for ForbidInboundMessages {
+impl<AccountId, Fee> MessageDispatch<AccountId, Fee> for ForbidInboundMessages {
 	type DispatchPayload = ();
 
 	fn dispatch_weight(_message: &DispatchMessage<Self::DispatchPayload, Fee>) -> Weight {
 		Weight::MAX
 	}
 
-	fn dispatch(_message: DispatchMessage<Self::DispatchPayload, Fee>) {}
+	fn dispatch(_relayer_account: &AccountId, _message: DispatchMessage<Self::DispatchPayload, Fee>) -> Weight {
+		0
+	}
 }

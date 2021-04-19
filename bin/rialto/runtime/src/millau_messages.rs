@@ -58,6 +58,7 @@ pub type FromMillauEncodedCall = messages::target::FromBridgedChainEncodedMessag
 pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
 	WithMillauMessageBridge,
 	crate::Runtime,
+	pallet_balances::Pallet<Runtime>,
 	pallet_bridge_dispatch::DefaultInstance,
 >;
 

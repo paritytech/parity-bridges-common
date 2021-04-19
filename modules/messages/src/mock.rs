@@ -357,7 +357,7 @@ impl SourceHeaderChain<TestMessageFee> for TestSourceHeaderChain {
 #[derive(Debug)]
 pub struct TestMessageDispatch;
 
-impl MessageDispatch<TestMessageFee> for TestMessageDispatch {
+impl MessageDispatch<AccountId, TestMessageFee> for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
 
 	fn dispatch_weight(message: &DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
@@ -367,7 +367,9 @@ impl MessageDispatch<TestMessageFee> for TestMessageDispatch {
 		}
 	}
 
-	fn dispatch(_message: DispatchMessage<TestPayload, TestMessageFee>) {}
+	fn dispatch(_relayer_account: &AccountId, _message: DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
+		0
+	}
 }
 
 /// Return test lane message with given nonce and payload.

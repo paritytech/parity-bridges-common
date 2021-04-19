@@ -148,7 +148,11 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// Source header chain, as it is represented on target chain.
 	type SourceHeaderChain: SourceHeaderChain<Self::InboundMessageFee>;
 	/// Message dispatch.
-	type MessageDispatch: MessageDispatch<Self::InboundMessageFee, DispatchPayload = Self::InboundPayload>;
+	type MessageDispatch: MessageDispatch<
+		Self::AccountId,
+		Self::InboundMessageFee,
+		DispatchPayload = Self::InboundPayload,
+	>;
 }
 
 /// Shortcut to messages proof type for Config.
@@ -434,13 +438,13 @@ decl_module! {
 		#[weight = T::WeightInfo::receive_messages_proof_weight(proof, *messages_count, *dispatch_weight)]
 		pub fn receive_messages_proof(
 			origin,
-			relayer_id: T::InboundRelayer,
+			relayer_id_at_bridged_chain: T::InboundRelayer,
 			proof: MessagesProofOf<T, I>,
 			messages_count: u32,
 			dispatch_weight: Weight,
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
-			let _ = ensure_signed(origin)?;
+			let relayer_id_at_this_chain = ensure_signed(origin)?;
 
 			// reject transactions that are declaring too many messages
 			ensure!(
@@ -507,7 +511,13 @@ decl_module! {
 					debug_assert_eq!(message.key.lane_id, lane_id);
 
 					total_messages += 1;
-					if lane.receive_message::<T::MessageDispatch>(relayer_id.clone(), message.key.nonce, message.data) {
+					// TODO: refund unspent weight here
+					if lane.receive_message::<T::MessageDispatch, T::AccountId>(
+						&relayer_id_at_bridged_chain,
+						&relayer_id_at_this_chain,
+						message.key.nonce,
+						message.data,
+					) {
 						valid_messages += 1;
 					}
 				}
