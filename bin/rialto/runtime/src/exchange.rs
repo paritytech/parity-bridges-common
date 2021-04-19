@@ -65,7 +65,7 @@ pub struct EthereumTransactionTag {
 	pub nonce: sp_core::U256,
 }
 
-/// Eth transaction from runtime perspective.
+/// Ethereum transaction from runtime perspective.
 pub struct EthTransaction;
 
 impl MaybeLockFundsTransaction for EthTransaction {
