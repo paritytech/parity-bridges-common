@@ -6,6 +6,6 @@ extra_dictionaries = ["lingua.dic"]
 [hunspell.quirks]
 # `Type`'s
 # 5x
-transform_regex = ["^'([^\\s])'$", "^[0-9]+(?:\\.[0-9]*)?x$", "^'s$", "^\\+$"]
+transform_regex = ["^'([^\\s])'$", "^[0-9]+(?:\\.[0-9]*)?x$", "^'s$", "^\\+$", "."]
 allow_concatenation = true
 allow_dashes = true
