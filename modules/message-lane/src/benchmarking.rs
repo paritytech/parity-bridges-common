@@ -151,7 +151,7 @@ benchmarks_instance! {
 	// * outbound lane already has state, so it needs to be read and decoded;
 	// * relayers fund account does not exists (in practice it needs to exist in production environment);
 	// * maximal number of messages is being pruned during the call;
-	// * message size is 1KB.
+	// * message size is 1 KB.
 	//
 	// With single KB of message size, the weight of the call is increased (roughly) by
 	// `(send_16_kb_message_worst_case - send_1_kb_message_worst_case) / 15`.

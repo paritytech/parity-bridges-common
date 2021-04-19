@@ -307,7 +307,7 @@ where
 	}
 }
 
-/// Returns the lineage of headers between [child, ancestor)
+/// Returns the lineage of headers between [ child, ancestor )
 fn headers_between<S, H>(
 	storage: &S,
 	ancestor: ImportedHeader<H>,

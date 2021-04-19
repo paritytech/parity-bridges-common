@@ -187,7 +187,7 @@ impl<C: Chain> Client<C> {
 
 	/// Get the nonce of the given Substrate account.
 	///
-	/// Note: It's the caller's responsibility to make sure `account` is a valid ss58 address.
+	/// Note: It's the caller's responsibility to make sure `account` is a valid SS58 address.
 	pub async fn next_account_index(&self, account: C::AccountId) -> Result<C::Index> {
 		Ok(Substrate::<C>::system_account_next_index(&self.client, account).await?)
 	}

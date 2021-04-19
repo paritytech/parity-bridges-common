@@ -110,7 +110,7 @@ pub trait TargetClient<P: TransactionProofPipeline>: RelayClient {
 	async fn is_header_known(&self, id: &HeaderId<P>) -> Result<bool, Self::Error>;
 	/// Returns `Ok(true)` if header is finalized by the target node.
 	async fn is_header_finalized(&self, id: &HeaderId<P>) -> Result<bool, Self::Error>;
-	/// Returns best finalized header id.
+	/// Returns the best finalized header id.
 	async fn best_finalized_header_id(&self) -> Result<HeaderId<P>, Self::Error>;
 	/// Returns `Ok(true)` if transaction proof is need to be relayed.
 	async fn filter_transaction_proof(&self, proof: &P::TransactionProof) -> Result<bool, Self::Error>;

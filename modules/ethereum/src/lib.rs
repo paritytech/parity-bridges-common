@@ -169,7 +169,7 @@ struct PruningRange {
 	/// were unable to prune for whatever reason (i.e. if it isn't finalized yet and has
 	/// scheduled validators set change).
 	pub oldest_unpruned_block: u64,
-	/// Number of oldest block(s) that we want to keep. We want to prune blocks in range
+	/// Number of the oldest block(s) that we want to keep. We want to prune blocks in range
 	/// [`oldest_unpruned_block`; `oldest_block_to_keep`).
 	pub oldest_block_to_keep: u64,
 }

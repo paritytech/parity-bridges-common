@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Tests for checking that behaviour of importing headers and finality proofs works correctly.
+//! Tests for checking that behavior of importing headers and finality proofs works correctly.
 //!
 //! The tests are built around the idea that we will be importing headers on different forks and we
 //! should be able to check that we're correctly importing headers, scheduling changes, and
@@ -38,20 +38,20 @@
 //! (Type::Header(2, 1, None, None), Ok(()))
 //!
 //! Import header 2 on fork 1. This does not create a fork, or schedule an authority set change. We
-//! expect this header import to be succesful.
+//! expect this header import to be successful.
 //!
 //! ## Example Import 2
 //!
 //! (Type::Header(4, 2, Some((3, 1)), Some(0)), Ok(()))
 //!
 //! Import header 4 on fork 2. This header starts a new fork from header 3 on fork 1. It also
-//! schedules a change with a delay of 0 blocks. It should be succesfully imported.
+//! schedules a change with a delay of 0 blocks. It should be successfully imported.
 //!
 //! ## Example Import 3
 //!
 //! (Type::Finality(2, 1), Err(FinalizationError::OldHeader.into()))
 //!
-//! Import a finality proof for header 2 on fork 1. This finalty proof should fail to be imported
+//! Import a finality proof for header 2 on fork 1. This finality proof should fail to be imported
 //! because the header is an old header.
 
 use crate::mock::*;

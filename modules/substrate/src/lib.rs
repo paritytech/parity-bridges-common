@@ -101,7 +101,7 @@ decl_storage! {
 		/// The next scheduled authority set change for a given fork.
 		///
 		/// The fork is indicated by the header which _signals_ the change (key in the mapping).
-		/// Note that this is different than a header which _enacts_ a change.
+		/// Note that this is different from a header which _enacts_ a change.
 		// GRANDPA doesn't require there to always be a pending change. In fact, most of the time
 		// there will be no pending change available.
 		NextScheduledChange: map hasher(identity) BridgedBlockHash<T> => Option<ScheduledChange<BridgedBlockNumber<T>>>;
@@ -196,7 +196,7 @@ decl_module! {
 			Ok(())
 		}
 
-		/// Import a finalty proof for a particular header.
+		/// Import a finality proof for a particular header.
 		///
 		/// This will take care of finalizing any already imported headers
 		/// which get finalized when importing this particular proof, as well
@@ -231,7 +231,7 @@ decl_module! {
 		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
 		///
 		/// The initial configuration provided does not need to be the genesis header of the bridged
-		/// chain, it can be any arbirary header. You can also provide the next scheduled set change
+		/// chain, it can be any arbitrary header. You can also provide the next scheduled set change
 		/// if it is already know.
 		///
 		/// This function is only allowed to be called from a trusted origin and writes to storage

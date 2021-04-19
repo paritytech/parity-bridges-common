@@ -19,7 +19,7 @@
 //! The messages are interpreted directly as runtime `Call`. We attempt to decode
 //! them and then dispatch as usual. To prevent compatibility issues, the Calls have
 //! to include a `spec_version`. This will be checked before dispatch. In the case of
-//! a succesful dispatch an event is emitted.
+//! a successful dispatch an event is emitted.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
@@ -56,7 +56,7 @@ pub enum CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainS
 	/// from a derived account.
 	///
 	/// The derived account represents the source Root account on the target chain. This is useful
-	/// if the target chain needs some way of knowing that a call came from a priviledged origin on
+	/// if the target chain needs some way of knowing that a call came from a privileged origin on
 	/// the source chain (maybe to allow a configuration change for example).
 	SourceRoot,
 

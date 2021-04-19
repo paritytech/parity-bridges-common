@@ -503,7 +503,7 @@ pub mod target {
 	/// Verify proof of Bridged -> This chain messages.
 	///
 	/// The `messages_count` argument verification (sane limits) is supposed to be made
-	/// outside of this function. This function only verifies that the proof declares exactly
+	/// outside this function. This function only verifies that the proof declares exactly
 	/// `messages_count` messages.
 	pub fn verify_messages_proof<B: MessageBridge, ThisRuntime>(
 		proof: FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>,

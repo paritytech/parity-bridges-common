@@ -28,7 +28,7 @@
 //!
 //! Since this pallet only tracks finalized headers it does not deal with forks. Forks can only
 //! occur if the GRANDPA validator set on the bridged chain is either colluding or there is a severe
-//! bug causing resulting in an equivocation. Such events are outside of the scope of this pallet.
+//! bug causing resulting in an equivocation. Such events are outside the scope of this pallet.
 //! Shall the fork occur on the bridged chain governance intervention will be required to
 //! re-initialize the bridge and track the right fork.
 
@@ -149,7 +149,7 @@ pub mod pallet {
 		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
 		///
 		/// The initial configuration provided does not need to be the genesis header of the bridged
-		/// chain, it can be any arbirary header. You can also provide the next scheduled set change
+		/// chain, it can be any arbitrary header. You can also provide the next scheduled set change
 		/// if it is already know.
 		///
 		/// This function is only allowed to be called from a trusted origin and writes to storage
@@ -315,7 +315,7 @@ pub mod pallet {
 	/// is found it will be enacted immediately.
 	///
 	/// This function does not support forced changes, or scheduled changes with delays
-	/// since these types of changes are indicitive of abnormal behaviour from GRANDPA.
+	/// since these types of changes are indicative of abnormal behavior from GRANDPA.
 	pub(crate) fn try_enact_authority_change<T: Config<I>, I: 'static>(
 		header: &BridgedHeader<T, I>,
 	) -> Result<(), sp_runtime::DispatchError> {

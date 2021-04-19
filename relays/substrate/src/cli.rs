@@ -382,7 +382,7 @@ where
 }
 
 /// Create chain-specific set of configuration objects: connection parameters,
-/// signing parameters and bridge initialisation parameters.
+/// signing parameters and bridge initialization parameters.
 #[macro_export]
 macro_rules! declare_chain_options {
 	($chain:ident, $chain_prefix:ident) => {

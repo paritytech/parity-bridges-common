@@ -26,7 +26,7 @@ use frame_support::weights::Weight;
 pub const EXPECTED_DEFAULT_MESSAGE_LENGTH: u32 = 128;
 
 /// We assume that size of signed extensions on all our chains and size of all 'small' arguments of calls
-/// we're checking here would fit 1KB.
+/// we're checking here would fit 1 KB.
 const SIGNED_EXTENSIONS_SIZE: u32 = 1024;
 
 /// Ensure that weights from `WeightInfoExt` implementation are looking correct.
@@ -242,7 +242,7 @@ pub trait WeightInfoExt: WeightInfo {
 		weight_of_two_messages_and_two_tx_overheads.saturating_sub(weight_of_two_messages_and_single_tx_overhead)
 	}
 
-	/// Returns weight that needs to be accounted when receiving given number of messages with message
+	/// Returns weight that needs to be accounted when receiving a given number of messages with message
 	/// delivery transaction (`receive_messages_proof`).
 	fn receive_messages_proof_messages_overhead(messages: MessageNonce) -> Weight {
 		let weight_of_two_messages_and_single_tx_overhead = Self::receive_two_messages_proof();
@@ -269,7 +269,7 @@ pub trait WeightInfoExt: WeightInfo {
 		weight_of_two_messages_and_two_tx_overheads.saturating_sub(weight_of_two_messages_and_single_tx_overhead)
 	}
 
-	/// Returns weight that needs to be accounted when receiving confirmations for given number of
+	/// Returns weight that needs to be accounted when receiving confirmations for a given number of
 	/// messages with delivery confirmation transaction (`receive_messages_delivery_proof`).
 	fn receive_messages_delivery_proof_messages_overhead(messages: MessageNonce) -> Weight {
 		let weight_of_two_messages = Self::receive_delivery_proof_for_two_messages_by_single_relayer();
@@ -279,7 +279,7 @@ pub trait WeightInfoExt: WeightInfo {
 			.saturating_mul(messages as Weight)
 	}
 
-	/// Returns weight that needs to be accounted when receiving confirmations for given number of
+	/// Returns weight that needs to be accounted when receiving confirmations for a given number of
 	/// relayers entries with delivery confirmation transaction (`receive_messages_delivery_proof`).
 	fn receive_messages_delivery_proof_relayers_overhead(relayers: MessageNonce) -> Weight {
 		let weight_of_two_messages_by_two_relayers = Self::receive_delivery_proof_for_two_messages_by_two_relayers();
@@ -290,7 +290,7 @@ pub trait WeightInfoExt: WeightInfo {
 			.saturating_mul(relayers as Weight)
 	}
 
-	/// Returns weight that needs to be accounted when storage proof of given size is recieved (either in
+	/// Returns weight that needs to be accounted when storage proof of given size is received (either in
 	/// `receive_messages_proof` or `receive_messages_delivery_proof`).
 	///
 	/// **IMPORTANT**: this overhead is already included in the 'base' transaction cost - e.g. proof

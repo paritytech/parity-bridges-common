@@ -110,7 +110,7 @@ Users of the pallet add their messages to an "outbound lane" on the source chain
 finalized message relayers are responsible for reading the current queue of messages and submitting
 some (or all) of them to the "inbound lane" of the target chain. Each message has a `nonce`
 associated with it, which serves as the ordering of messages. The inbound lane stores the last
-delivered nonce to prevent replaying messages. To succesfuly deliver the message to the inbound lane
+delivered nonce to prevent replaying messages. To successfully deliver the message to the inbound lane
 on target chain the relayer has to present present a storage proof which shows that the message was
 part of the outbound lane on the source chain.
 

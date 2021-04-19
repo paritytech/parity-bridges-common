@@ -91,7 +91,7 @@ kCharlie.
 1. Relayer prepares transaction which delivers `B1` and with all of the missing
    ancestors to the target chain (one header per transaction).
 
-1. After the transaction is succesfully dispatched the Polkadot on-chain light client of the Kusama
+1. After the transaction is successfully dispatched the Polkadot on-chain light client of the Kusama
    chain learns about block `B1` - it is stored in the on-chain storage.
 
 ### Syncing finality loop

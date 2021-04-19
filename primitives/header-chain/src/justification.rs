@@ -36,7 +36,7 @@ pub enum Error {
 	InvalidJustificationTarget,
 	/// Invalid commit in justification.
 	InvalidJustificationCommit,
-	/// Justification has invalid authority singature.
+	/// Justification has invalid authority signature.
 	InvalidAuthoritySignature,
 	/// The justification has precommit for the header that has no route from the target header.
 	InvalidPrecommitAncestryProof,

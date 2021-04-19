@@ -11,7 +11,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-//! Message delivery race delivers proof-of-messages from lane.source to lane.target.
+//! Message delivery race delivers proof-of-messages from lane. Source to lane.target.
 
 use crate::message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf};
 use crate::message_lane_loop::{
@@ -209,7 +209,7 @@ where
 /// Additional nonces data from the target client used by message delivery race.
 #[derive(Debug, Clone)]
 struct DeliveryRaceTargetNoncesData {
-	/// Latest nonce that we know: (1) has been delivered to us (2) has been confirmed
+	/// The latest nonce that we know: (1) has been delivered to us (2) has been confirmed
 	/// back to the source node (by confirmations race) and (3) relayer has received
 	/// reward for (and this has been confirmed by the message delivery race).
 	confirmed_nonce: MessageNonce,
@@ -229,7 +229,7 @@ struct MessageDeliveryStrategy<P: MessageLane> {
 	max_messages_weight_in_single_batch: Weight,
 	/// Maximal messages size in the single delivery transaction.
 	max_messages_size_in_single_batch: usize,
-	/// Latest confirmed nonces at the source client + the header id where we have first met this nonce.
+	/// The latest confirmed nonces at the source client + the header id where we have first met this nonce.
 	latest_confirmed_nonces_at_source: VecDeque<(SourceHeaderIdOf<P>, MessageNonce)>,
 	/// Target nonces from the source client.
 	target_nonces: Option<TargetClientNonces<DeliveryRaceTargetNoncesData>>,

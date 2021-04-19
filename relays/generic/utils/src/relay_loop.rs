@@ -25,7 +25,7 @@ pub const RECONNECT_DELAY: Duration = Duration::from_secs(10);
 /// Basic blockchain client from relay perspective.
 #[async_trait]
 pub trait Client: Clone + Send + Sync {
-	/// Type of error this clients returns.
+	/// Type of error these clients returns.
 	type Error: Debug + MaybeConnectionError;
 
 	/// Try to reconnect to source node.
