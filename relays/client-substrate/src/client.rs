@@ -106,7 +106,6 @@ impl<C: Chain> Client<C> {
 			params.port,
 		);
 		let client = RpcClientBuilder::default()
-			.max_concurrent_requests(10)
 			.max_notifs_per_subscription(MAX_SUBSCRIPTION_CAPACITY)
 			.build(&uri)
 			.await?;
