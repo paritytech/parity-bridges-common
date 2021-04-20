@@ -414,7 +414,20 @@ parameter_types! {
 	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
 	// call per block.
 	pub const MaxRequests: u32 = 50;
+}
 
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	// Number of headers to keep.
+	//
+	// Assuming the worst case of every header being finalized, we will keep headers at least for a
+	// week.
+	pub const HeadersToKeep: u32 = 1024;
+}
+// TODO [ToDr] ^^ Test with this, use constant.
+
+#[cfg(not(feature = "runtime-benchmarks"))]
+parameter_types! {
 	// Number of headers to keep.
 	//
 	// Assuming the worst case of every header being finalized, we will keep headers at least for a
