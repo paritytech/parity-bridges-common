@@ -8,7 +8,7 @@
 
 set -xeu
 
- RUST_LOG=rpc=trace,bridge=trace ./target/debug/substrate-relay init-bridge WestendToRococo \
+RUST_LOG=rpc=trace,bridge=trace ./target/debug/substrate-relay init-bridge WestendToRococo \
 	--source-host 127.0.0.1 \
 	--source-port 9944 \
 	--target-host 127.0.0.1 \
