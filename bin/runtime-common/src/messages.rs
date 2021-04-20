@@ -457,8 +457,18 @@ pub mod target {
 	/// vector length. Custom decode implementation here is exactly to deal with this.
 	#[derive(Decode, Encode, RuntimeDebug, PartialEq)]
 	pub struct FromBridgedChainEncodedMessageCall<B> {
-		pub(crate) encoded_call: Vec<u8>,
-		pub(crate) _marker: PhantomData<B>,
+		encoded_call: Vec<u8>,
+		_marker: PhantomData<B>,
+	}
+
+	impl<B: MessageBridge> FromBridgedChainEncodedMessageCall<B> {
+		/// Create encoded call.
+		pub fn new(encoded_call: Vec<u8>) -> Self {
+			FromBridgedChainEncodedMessageCall {
+				encoded_call,
+				_marker: PhantomData::default(),
+			}
+		}
 	}
 
 	impl<B: MessageBridge> From<FromBridgedChainEncodedMessageCall<B>> for Result<CallOf<ThisChain<B>>, ()> {
@@ -979,10 +989,9 @@ mod tests {
 				weight: 100,
 				origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
 				pay_dispatch_fee_at_target_chain: true,
-				call: target::FromBridgedChainEncodedMessageCall::<OnThisChainBridge> {
-					encoded_call: ThisChainCall::Transfer.encode(),
-					_marker: PhantomData::default(),
-				},
+				call: target::FromBridgedChainEncodedMessageCall::<OnThisChainBridge>::new(
+					ThisChainCall::Transfer.encode(),
+				),
 			}
 		);
 		assert_eq!(Ok(ThisChainCall::Transfer), message_on_this_chain.call.into());
