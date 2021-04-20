@@ -41,7 +41,15 @@ use std::collections::BTreeMap;
 pub type AccountId = u64;
 pub type Balance = u64;
 #[derive(Decode, Encode, Clone, Debug, PartialEq, Eq)]
-pub struct TestPayload(pub u64, pub Weight);
+pub struct TestPayload {
+	/// Field that may be used to identify messages.
+	pub id: u64,
+	/// Dispatch weight that is declared by the message sender.
+	pub declared_weight: Weight,
+	/// Unspent weight. In correct code it'll always be <= `declared_weight`, but for test
+	/// purposes we'll be making it larger than `declared_weight` sometimes.
+	pub unspent_weight: Weight,
+}
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
 
@@ -187,10 +195,10 @@ pub const TEST_ERROR: &str = "Test error";
 pub const TEST_LANE_ID: LaneId = [0, 0, 0, 1];
 
 /// Regular message payload.
-pub const REGULAR_PAYLOAD: TestPayload = TestPayload(0, 50);
+pub const REGULAR_PAYLOAD: TestPayload = message_payload(0, 50);
 
 /// Payload that is rejected by `TestTargetHeaderChain`.
-pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = TestPayload(1, 50);
+pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = message_payload(1, 50);
 
 /// Vec of proved messages, grouped by lane.
 pub type MessagesByLaneVec = Vec<(LaneId, ProvedLaneMessages<Message<TestMessageFee>>)>;
@@ -362,13 +370,16 @@ impl MessageDispatch<AccountId, TestMessageFee> for TestMessageDispatch {
 
 	fn dispatch_weight(message: &DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
 		match message.data.payload.as_ref() {
-			Ok(payload) => payload.1,
+			Ok(payload) => payload.declared_weight,
 			Err(_) => 0,
 		}
 	}
 
-	fn dispatch(_relayer_account: &AccountId, _message: DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
-		0
+	fn dispatch(_relayer_account: &AccountId, message: DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
+		match message.data.payload.as_ref() {
+			Ok(payload) => payload.unspent_weight,
+			Err(_) => 0,
+		}
 	}
 }
 
@@ -380,6 +391,15 @@ pub fn message(nonce: MessageNonce, payload: TestPayload) -> Message<TestMessage
 			nonce,
 		},
 		data: message_data(payload),
+	}
+}
+
+/// Constructs message payload using given arguments and zero unspent weight.
+pub const fn message_payload(id: u64, declared_weight: Weight) -> TestPayload {
+	TestPayload {
+		id,
+		declared_weight,
+		unspent_weight: 0,
 	}
 }
 
