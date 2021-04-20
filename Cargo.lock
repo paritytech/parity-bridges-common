@@ -3232,8 +3232,9 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-proc-macros"
-version = "0.2.0-alpha.4"
-source = "git+https://github.com/paritytech/jsonrpsee?rev=de7b58a881512cd5ab8bbf16a56241ca808c7765#de7b58a881512cd5ab8bbf16a56241ca808c7765"
+version = "0.2.0-alpha.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0cbaee9ca6440e191545a68c7bf28db0ff918359a904e37a6e7cf7edd132f5a"
 dependencies = [
  "Inflector",
  "proc-macro-crate 1.0.0",
@@ -3244,8 +3245,9 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-types"
-version = "0.2.0-alpha.4"
-source = "git+https://github.com/paritytech/jsonrpsee?rev=de7b58a881512cd5ab8bbf16a56241ca808c7765#de7b58a881512cd5ab8bbf16a56241ca808c7765"
+version = "0.2.0-alpha.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4ce2de6884fb4abee16eca02329a1eec1eb8df8aed751a8e929083820c78ce7"
 dependencies = [
  "async-trait",
  "beef",
@@ -3254,14 +3256,14 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
- "smallvec 1.6.1",
  "thiserror",
 ]
 
 [[package]]
 name = "jsonrpsee-ws-client"
-version = "0.2.0-alpha.4"
-source = "git+https://github.com/paritytech/jsonrpsee?rev=de7b58a881512cd5ab8bbf16a56241ca808c7765#de7b58a881512cd5ab8bbf16a56241ca808c7765"
+version = "0.2.0-alpha.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "03ece6acc5ef1e7877fd53887e8937b273466713dc8c017a32223c2b9b678d63"
 dependencies = [
  "async-std",
  "async-tls",
@@ -3271,6 +3273,7 @@ dependencies = [
  "jsonrpsee-types",
  "log",
  "pin-project 1.0.5",
+ "serde",
  "serde_json",
  "soketto",
  "thiserror",
@@ -5840,7 +5843,6 @@ dependencies = [
  "headers-relay",
  "hex-literal 0.3.1",
  "jsonrpsee-proc-macros",
- "jsonrpsee-types",
  "jsonrpsee-ws-client",
  "libsecp256k1",
  "log",
@@ -5949,7 +5951,6 @@ dependencies = [
  "futures 0.3.13",
  "headers-relay",
  "jsonrpsee-proc-macros",
- "jsonrpsee-types",
  "jsonrpsee-ws-client",
  "log",
  "num-traits",
