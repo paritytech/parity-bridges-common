@@ -66,6 +66,9 @@ const MAX_VOTE_ANCESTRIES: u32 = 1000;
 // number of validators.
 const MAX_VALIDATOR_SET_SIZE: u32 = 1024;
 
+// Number of headers to import initially before running the benchmarks.
+const INITIAL_HEADERS: u32 = 1024;
+
 benchmarks_instance_pallet! {
 	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
 	// annotate the weight in the pallet.
@@ -90,9 +93,9 @@ benchmarks_instance_pallet! {
 			is_halted: false,
 		};
 
-		initialize_bridge::<T, I>(init_data);
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
+		bootstrap_bridge::<T, I>(init_data, INITIAL_HEADERS);
 
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
 			round: TEST_GRANDPA_ROUND,
@@ -127,7 +130,7 @@ benchmarks_instance_pallet! {
 			is_halted: false,
 		};
 
-		initialize_bridge::<T, I>(init_data);
+		bootstrap_bridge::<T, I>(init_data, INITIAL_HEADERS);
 		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 
 		let params = JustificationGeneratorParams {
@@ -170,7 +173,7 @@ benchmarks_instance_pallet! {
 			is_halted: false,
 		};
 
-		initialize_bridge::<T, I>(init_data);
+		bootstrap_bridge::<T, I>(init_data, INITIAL_HEADERS);
 		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 
 		let params = JustificationGeneratorParams {
