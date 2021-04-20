@@ -883,6 +883,7 @@ impl_runtime_apis! {
 						weight: params.size as _,
 						origin: dispatch_origin,
 						call: message_payload,
+						pay_dispatch_fee_at_target_chain: false,
 					};
 					(message, pallet_bridge_messages::benchmarking::MESSAGE_FEE.into())
 				}
@@ -899,7 +900,7 @@ impl_runtime_apis! {
 					use codec::Encode;
 					use frame_support::weights::GetDispatchInfo;
 					use pallet_bridge_messages::storage_keys;
-					use sp_runtime::traits::Header;
+					use sp_runtime::traits::{Header, IdentifyAccount};
 
 					let remark = match params.size {
 						MessagesProofSize::Minimal(ref size) => vec![0u8; *size as _],
@@ -912,11 +913,17 @@ impl_runtime_apis! {
 					let (rialto_raw_public, rialto_raw_signature) = ed25519_sign(
 						&call,
 						&millau_account_id,
+						VERSION.spec_version,
+						bp_runtime::MILLAU_BRIDGE_INSTANCE,
 					);
 					let rialto_public = MultiSigner::Ed25519(sp_core::ed25519::Public::from_raw(rialto_raw_public));
 					let rialto_signature = MultiSignature::Ed25519(sp_core::ed25519::Signature::from_raw(
 						rialto_raw_signature,
 					));
+
+					if params.pay_dispatch_fee_at_target_chain {
+						Self::endow_account(&rialto_public.clone().into_account());
+					}
 
 					let make_millau_message_key = |message_key: MessageKey| storage_keys::message_key::<
 						Runtime,
@@ -938,6 +945,7 @@ impl_runtime_apis! {
 						Default::default(),
 					);
 
+					let pay_dispatch_fee_at_target_chain = params.pay_dispatch_fee_at_target_chain;
 					prepare_message_proof::<WithMillauMessageBridge, bp_millau::Hasher, Runtime, (), _, _, _>(
 						params,
 						make_millau_message_key,
@@ -956,6 +964,7 @@ impl_runtime_apis! {
 								rialto_public,
 								rialto_signature,
 							),
+							pay_dispatch_fee_at_target_chain,
 							call: call.encode(),
 						}.encode(),
 					)
@@ -987,6 +996,18 @@ impl_runtime_apis! {
 							Default::default(),
 						),
 					)
+				}
+
+				fn is_message_dispatched(nonce: bp_messages::MessageNonce) -> bool {
+					frame_system::Pallet::<Runtime>::events()
+						.into_iter()
+						.map(|event_record| event_record.event)
+						.any(|event| matches!(
+							event,
+							Event::pallet_bridge_dispatch(pallet_bridge_dispatch::Event::<Runtime, _>::MessageDispatched(
+								_, ([0, 0, 0, 0], nonce_from_event), _,
+							)) if nonce_from_event == nonce
+						))
 				}
 			}
 

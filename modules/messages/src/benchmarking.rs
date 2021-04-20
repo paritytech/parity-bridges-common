@@ -55,6 +55,8 @@ pub struct MessageParams<ThisAccountId> {
 	pub size: u32,
 	/// Message sender account.
 	pub sender_account: ThisAccountId,
+	/// If true, dispatch fee is paid at the target chain (if supported by configuration).
+	pub pay_dispatch_fee_at_target_chain: bool,
 }
 
 /// Benchmark-specific message proof parameters.
@@ -67,6 +69,8 @@ pub struct MessageProofParams {
 	pub outbound_lane_data: Option<OutboundLaneData>,
 	/// Proof size requirements.
 	pub size: ProofSize,
+	/// If true, dispatch fee is paid at the target chain (if supported by configuration).
+	pub pay_dispatch_fee_at_target_chain: bool,
 }
 
 /// Benchmark-specific message delivery proof parameters.
@@ -94,6 +98,8 @@ pub trait Config<I: Instance>: crate::Config<I> {
 	/// Create given account and give it enough balance for test purposes.
 	fn endow_account(account: &Self::AccountId);
 	/// Prepare message to send over lane.
+	///
+	/// Dispatch fee is assumed to be paid at the source chain.
 	fn prepare_outbound_message(
 		params: MessageParams<Self::AccountId>,
 	) -> (Self::OutboundPayload, Self::OutboundMessageFee);
@@ -108,6 +114,8 @@ pub trait Config<I: Instance>: crate::Config<I> {
 	fn prepare_message_delivery_proof(
 		params: MessageDeliveryProofParams<Self::AccountId>,
 	) -> <Self::TargetHeaderChain as TargetHeaderChain<Self::OutboundPayload, Self::AccountId>>::MessagesDeliveryProof;
+	/// Returns true if message has been dispatched (either successfully or not).
+	fn is_message_dispatched(nonce: MessageNonce) -> bool;
 }
 
 benchmarks_instance! {
@@ -119,7 +127,8 @@ benchmarks_instance! {
 	// * outbound lane already has state, so it needs to be read and decoded;
 	// * relayers fund account does not exists (in practice it needs to exist in production environment);
 	// * maximal number of messages is being pruned during the call;
-	// * message size is minimal for the target chain.
+	// * message size is minimal for the target chain;
+	// * message is paid at the source (this) chain.
 	//
 	// Result of this benchmark is used as a base weight for `send_message` call. Then the 'message weight'
 	// (estimated using `send_half_maximal_message_worst_case` and `send_maximal_message_worst_case`) is
@@ -138,6 +147,40 @@ benchmarks_instance! {
 		let (payload, fee) = T::prepare_outbound_message(MessageParams {
 			size: 0,
 			sender_account: sender.clone(),
+			pay_dispatch_fee_at_target_chain: false,
+		});
+	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
+	verify {
+		assert_eq!(
+			crate::Pallet::<T, I>::outbound_latest_generated_nonce(T::bench_lane_id()),
+			T::MaxMessagesToPruneAtOnce::get() + 1,
+		);
+	}
+
+	// Benchmark `send_message` extrinsic with the following conditions:
+	// * outbound lane already has state, so it needs to be read and decoded;
+	// * relayers fund account does not exists (in practice it needs to exist in production environment);
+	// * maximal number of messages is being pruned during the call;
+	// * message size is minimal for the target chain;
+	// * message is paid at the target (bridged) chain.
+	//
+	// Result of this benchmark is used to compute weight of the pay-dispatch-fee-at-source-chain
+	// operation and refund it to the message sender if dispatch is paid at the target chain.
+	send_minimal_message_with_dispatch_paid_at_the_target_chain {
+		let lane_id = T::bench_lane_id();
+		let sender = account("sender", 0, SEED);
+		T::endow_account(&sender);
+
+		// 'send' messages that are to be pruned when our message is sent
+		for _nonce in 1..=T::MaxMessagesToPruneAtOnce::get() {
+			send_regular_message::<T, I>();
+		}
+		confirm_message_delivery::<T, I>(T::MaxMessagesToPruneAtOnce::get());
+
+		let (payload, fee) = T::prepare_outbound_message(MessageParams {
+			size: 0,
+			sender_account: sender.clone(),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
@@ -175,6 +218,7 @@ benchmarks_instance! {
 		let (payload, fee) = T::prepare_outbound_message(MessageParams {
 			size,
 			sender_account: sender.clone(),
+			pay_dispatch_fee_at_target_chain: false,
 		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
@@ -212,6 +256,7 @@ benchmarks_instance! {
 		let (payload, fee) = T::prepare_outbound_message(MessageParams {
 			size,
 			sender_account: sender.clone(),
+			pay_dispatch_fee_at_target_chain: false,
 		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
@@ -242,7 +287,8 @@ benchmarks_instance! {
 	// * proof does not include outbound lane state proof;
 	// * inbound lane already has state, so it needs to be read and decoded;
 	// * message is successfully dispatched;
-	// * message requires all heavy checks done by dispatcher.
+	// * message requires all heavy checks done by dispatcher;
+	// * message dispatch fee is pait at target (this) chain.
 	//
 	// This is base benchmark for all other message delivery benchmarks.
 	receive_single_message_proof {
@@ -257,6 +303,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -264,13 +311,15 @@ benchmarks_instance! {
 			crate::Pallet::<T, I>::inbound_latest_received_nonce(T::bench_lane_id()),
 			21,
 		);
+		assert!(T::is_message_dispatched(21));
 	}
 
 	// Benchmark `receive_messages_proof` extrinsic with two minimal-weight messages and following conditions:
 	// * proof does not include outbound lane state proof;
 	// * inbound lane already has state, so it needs to be read and decoded;
 	// * message is successfully dispatched;
-	// * message requires all heavy checks done by dispatcher.
+	// * message requires all heavy checks done by dispatcher;
+	// * message dispatch fee is pait at target (this) chain.
 	//
 	// The weight of single message delivery could be approximated as
 	// `weight(receive_two_messages_proof) - weight(receive_single_message_proof)`.
@@ -288,6 +337,7 @@ benchmarks_instance! {
 			message_nonces: 21..=22,
 			outbound_lane_data: None,
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 2, dispatch_weight)
 	verify {
@@ -295,13 +345,15 @@ benchmarks_instance! {
 			crate::Pallet::<T, I>::inbound_latest_received_nonce(T::bench_lane_id()),
 			22,
 		);
+		assert!(T::is_message_dispatched(22));
 	}
 
 	// Benchmark `receive_messages_proof` extrinsic with single minimal-weight message and following conditions:
 	// * proof includes outbound lane state proof;
 	// * inbound lane already has state, so it needs to be read and decoded;
 	// * message is successfully dispatched;
-	// * message requires all heavy checks done by dispatcher.
+	// * message requires all heavy checks done by dispatcher;
+	// * message dispatch fee is pait at target (this) chain.
 	//
 	// The weight of outbound lane state delivery would be
 	// `weight(receive_single_message_proof_with_outbound_lane_state) - weight(receive_single_message_proof)`.
@@ -323,6 +375,7 @@ benchmarks_instance! {
 				latest_generated_nonce: 21,
 			}),
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -334,6 +387,7 @@ benchmarks_instance! {
 			crate::Pallet::<T, I>::inbound_latest_confirmed_nonce(T::bench_lane_id()),
 			20,
 		);
+		assert!(T::is_message_dispatched(21));
 	}
 
 	// Benchmark `receive_messages_proof` extrinsic with single minimal-weight message and following conditions:
@@ -357,6 +411,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::HasExtraNodes(1024),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -364,6 +419,7 @@ benchmarks_instance! {
 			crate::Pallet::<T, I>::inbound_latest_received_nonce(T::bench_lane_id()),
 			21,
 		);
+		assert!(T::is_message_dispatched(21));
 	}
 
 	// Benchmark `receive_messages_proof` extrinsic with single minimal-weight message and following conditions:
@@ -389,6 +445,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::HasExtraNodes(16 * 1024),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -396,6 +453,40 @@ benchmarks_instance! {
 			crate::Pallet::<T, I>::inbound_latest_received_nonce(T::bench_lane_id()),
 			21,
 		);
+		assert!(T::is_message_dispatched(21));
+	}
+
+	// Benchmark `receive_messages_proof` extrinsic with single minimal-weight message and following conditions:
+	// * proof does not include outbound lane state proof;
+	// * inbound lane already has state, so it needs to be read and decoded;
+	// * message is successfully dispatched;
+	// * message requires all heavy checks done by dispatcher;
+	// * message dispatch fee is pait at source (bridged) chain.
+	//
+	// This benchmark is used to compute extra weight spent at target chain when fee is paid there. Then we use
+	// this information in two places: (1) to reduce weight of delivery tx if sender pays fee at the source chain
+	// and (2) to refund relayer with this weight if fee has been paid at the source chain.
+	receive_single_prepaid_message_proof {
+		let relayer_id_on_source = T::bridged_relayer_id();
+		let relayer_id_on_target = account("relayer", 0, SEED);
+
+		// mark messages 1..=20 as delivered
+		receive_messages::<T, I>(20);
+
+		let (proof, dispatch_weight) = T::prepare_message_proof(MessageProofParams {
+			lane: T::bench_lane_id(),
+			message_nonces: 21..=21,
+			outbound_lane_data: None,
+			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
+			pay_dispatch_fee_at_target_chain: false,
+		});
+	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
+	verify {
+		assert_eq!(
+			crate::Pallet::<T, I>::inbound_latest_received_nonce(T::bench_lane_id()),
+			21,
+		);
+		assert!(T::is_message_dispatched(21));
 	}
 
 	// Benchmark `receive_messages_delivery_proof` extrinsic with following conditions:
@@ -517,7 +608,8 @@ benchmarks_instance! {
 	// * outbound lane already has state, so it needs to be read and decoded;
 	// * relayers fund account does not exists (in practice it needs to exist in production environment);
 	// * maximal number of messages is being pruned during the call;
-	// * message size varies from minimal to maximal for the target chain.
+	// * message size varies from minimal to maximal for the target chain;
+	// * message dispatch fee is paid at this (source) chain.
 	//
 	// Results of this benchmark may be used to check how message size affects `send_message` performance.
 	send_messages_of_various_lengths {
@@ -536,6 +628,7 @@ benchmarks_instance! {
 		let (payload, fee) = T::prepare_outbound_message(MessageParams {
 			size: i as _,
 			sender_account: sender.clone(),
+			pay_dispatch_fee_at_target_chain: false,
 		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
@@ -569,6 +662,7 @@ benchmarks_instance! {
 			message_nonces: 21..=(20 + i as MessageNonce),
 			outbound_lane_data: None,
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
@@ -606,6 +700,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::HasExtraNodes(i as _),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
@@ -643,6 +738,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::HasLargeLeaf(i as _),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
@@ -686,6 +782,7 @@ benchmarks_instance! {
 				latest_generated_nonce: 21,
 			}),
 			size: ProofSize::Minimal(0),
+			pay_dispatch_fee_at_target_chain: true,
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
