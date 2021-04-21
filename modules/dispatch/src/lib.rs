@@ -869,7 +869,8 @@ mod tests {
 			let message = prepare_target_message(call);
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
+			let result = Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
+			assert!(!result.dispatch_fee_paid_during_dispatch);
 
 			assert_eq!(
 				System::events(),
@@ -896,7 +897,8 @@ mod tests {
 			let message = prepare_source_message(call);
 
 			System::set_block_number(1);
-			Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
+			let result = Dispatch::dispatch(bridge, id, Ok(message), |_, _| unreachable!());
+			assert!(!result.dispatch_fee_paid_during_dispatch);
 
 			assert_eq!(
 				System::events(),

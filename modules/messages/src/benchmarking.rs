@@ -55,8 +55,6 @@ pub struct MessageParams<ThisAccountId> {
 	pub size: u32,
 	/// Message sender account.
 	pub sender_account: ThisAccountId,
-	/// If true, dispatch fee is paid at the target chain (if supported by configuration).
-	pub pay_dispatch_fee_at_target_chain: bool,
 }
 
 /// Benchmark-specific message proof parameters.
@@ -98,8 +96,6 @@ pub trait Config<I: Instance>: crate::Config<I> {
 	/// Create given account and give it enough balance for test purposes.
 	fn endow_account(account: &Self::AccountId);
 	/// Prepare message to send over lane.
-	///
-	/// Dispatch fee is assumed to be paid at the source chain.
 	fn prepare_outbound_message(
 		params: MessageParams<Self::AccountId>,
 	) -> (Self::OutboundPayload, Self::OutboundMessageFee);
@@ -127,8 +123,7 @@ benchmarks_instance! {
 	// * outbound lane already has state, so it needs to be read and decoded;
 	// * relayers fund account does not exists (in practice it needs to exist in production environment);
 	// * maximal number of messages is being pruned during the call;
-	// * message size is minimal for the target chain;
-	// * message is paid at the source (this) chain.
+	// * message size is minimal for the target chain.
 	//
 	// Result of this benchmark is used as a base weight for `send_message` call. Then the 'message weight'
 	// (estimated using `send_half_maximal_message_worst_case` and `send_maximal_message_worst_case`) is
@@ -147,7 +142,6 @@ benchmarks_instance! {
 		let (payload, fee) = T::prepare_outbound_message(MessageParams {
 			size: 0,
 			sender_account: sender.clone(),
-			pay_dispatch_fee_at_target_chain: false,
 		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
@@ -185,7 +179,6 @@ benchmarks_instance! {
 		let (payload, fee) = T::prepare_outbound_message(MessageParams {
 			size,
 			sender_account: sender.clone(),
-			pay_dispatch_fee_at_target_chain: false,
 		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
@@ -223,7 +216,6 @@ benchmarks_instance! {
 		let (payload, fee) = T::prepare_outbound_message(MessageParams {
 			size,
 			sender_account: sender.clone(),
-			pay_dispatch_fee_at_target_chain: false,
 		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
@@ -575,8 +567,7 @@ benchmarks_instance! {
 	// * outbound lane already has state, so it needs to be read and decoded;
 	// * relayers fund account does not exists (in practice it needs to exist in production environment);
 	// * maximal number of messages is being pruned during the call;
-	// * message size varies from minimal to maximal for the target chain;
-	// * message dispatch fee is paid at this (source) chain.
+	// * message size varies from minimal to maximal for the target chain.
 	//
 	// Results of this benchmark may be used to check how message size affects `send_message` performance.
 	send_messages_of_various_lengths {
@@ -595,7 +586,6 @@ benchmarks_instance! {
 		let (payload, fee) = T::prepare_outbound_message(MessageParams {
 			size: i as _,
 			sender_account: sender.clone(),
-			pay_dispatch_fee_at_target_chain: false,
 		});
 	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
 	verify {
