@@ -84,15 +84,17 @@ pub(crate) fn initialize_loop(loop_name: String) {
 /// Returns loop name prefix to use in logs. The prefix is initialized with the `initialize_loop` call.
 fn loop_name_prefix() -> String {
 	// try_with to avoid panic outside of async-std task context
-	LOOP_NAME.try_with(|loop_name| {
-		// using borrow is ok here, because loop is only initialized once (=> borrow_mut will only be called once)
-		let loop_name = loop_name.borrow();
-		if loop_name.is_empty() {
-			String::new()
-		} else {
-			format!("[{}] ", loop_name)
-		}
-	}).unwrap_or_else(|_| String::new())
+	LOOP_NAME
+		.try_with(|loop_name| {
+			// using borrow is ok here, because loop is only initialized once (=> borrow_mut will only be called once)
+			let loop_name = loop_name.borrow();
+			if loop_name.is_empty() {
+				String::new()
+			} else {
+				format!("[{}] ", loop_name)
+			}
+		})
+		.unwrap_or_else(|_| String::new())
 }
 
 enum Either<A, B> {

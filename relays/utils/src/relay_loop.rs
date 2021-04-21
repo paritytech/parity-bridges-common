@@ -115,14 +115,10 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 	{
 		async_std::task::spawn(async move {
 			crate::initialize::initialize_loop(loop_name);
-			
+
 			loop {
 				let loop_metric = self.loop_metric.clone();
-				let future_result = run_loop(
-					self.source_client.clone(),
-					self.target_client.clone(),
-					loop_metric,
-				);
+				let future_result = run_loop(self.source_client.clone(), self.target_client.clone(), loop_metric);
 				let result = future_result.await;
 
 				match result {
@@ -166,7 +162,8 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 			}
 
 			Ok(())
-		}).await
+		})
+		.await
 	}
 }
 
