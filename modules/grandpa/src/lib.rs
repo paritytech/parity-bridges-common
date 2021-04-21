@@ -464,8 +464,8 @@ pub mod pallet {
 	#[cfg(feature = "runtime-benchmarks")]
 	pub(crate) fn bootstrap_bridge<T: Config<I>, I: 'static>(
 		init_params: super::InitializationData<BridgedHeader<T, I>>,
-		inject_headers: u32,
 	) {
+		let inject_headers = T::HeadersToKeep::get();
 		let start_number = *init_params.header.number();
 		let end_number = start_number + inject_headers.into();
 		initialize_bridge::<T, I>(init_params);

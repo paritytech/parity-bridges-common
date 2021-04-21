@@ -418,10 +418,11 @@ parameter_types! {
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
-	// Number of headers to keep.
+	// Number of headers to keep in benchmarks.
 	//
-	// Assuming the worst case of every header being finalized, we will keep headers at least for a
-	// week.
+	// In benchmarks we always populate with full number of `HeadersToKeep` to make sure that
+	// pruning is taken into account.
+	// This is lower than regular value, to speed up benchmarking setup.
 	pub const HeadersToKeep: u32 = 1024;
 }
 // TODO [ToDr] ^^ Test with this, use constant.
