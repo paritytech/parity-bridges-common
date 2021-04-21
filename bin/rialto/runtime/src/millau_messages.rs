@@ -267,7 +267,7 @@ mod tests {
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		MessageKey,
 	};
-	use bp_runtime::{derive_account_id, SourceAccount};
+	use bp_runtime::{derive_account_id, messages::DispatchFeePayment, SourceAccount};
 	use bridge_runtime_common::messages::target::{FromBridgedChainEncodedMessageCall, FromBridgedChainMessagePayload};
 	use frame_support::{
 		traits::Currency,
@@ -322,7 +322,7 @@ mod tests {
 							spec_version: VERSION.spec_version,
 							weight: dispatch_weight,
 							origin: CallOrigin::SourceRoot,
-							pay_dispatch_fee_at_target_chain: true,
+							dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 							call: FromBridgedChainEncodedMessageCall::new(call.encode()),
 						}),
 						fee: 1,

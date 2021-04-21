@@ -23,13 +23,11 @@ use bp_messages::{
 	source_chain::{
 		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, Sender, TargetHeaderChain,
 	},
-	target_chain::{
-		DispatchMessage, MessageDispatch, MessageDispatchResult, ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
-	},
+	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 	Parameter as MessagesParameter,
 };
-use bp_runtime::Size;
+use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode};
 use frame_support::{parameter_types, weights::Weight};
 use sp_core::H256;

@@ -711,7 +711,6 @@ name = "bp-message-dispatch"
 version = "0.1.0"
 dependencies = [
  "bp-runtime",
- "frame-support",
  "parity-scale-codec 2.0.1",
 ]
 
@@ -719,7 +718,6 @@ dependencies = [
 name = "bp-messages"
 version = "0.1.0"
 dependencies = [
- "bp-message-dispatch",
  "bp-runtime",
  "frame-support",
  "frame-system",
@@ -4703,6 +4701,7 @@ dependencies = [
 name = "pallet-bridge-messages"
 version = "0.1.0"
 dependencies = [
+ "bp-message-dispatch",
  "bp-messages",
  "bp-rialto",
  "bp-runtime",
@@ -8427,6 +8426,7 @@ dependencies = [
  "async-trait",
  "bp-header-chain",
  "bp-kusama",
+ "bp-message-dispatch",
  "bp-messages",
  "bp-millau",
  "bp-polkadot",

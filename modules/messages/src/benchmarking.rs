@@ -23,6 +23,7 @@ use bp_messages::{
 	source_chain::TargetHeaderChain, target_chain::SourceHeaderChain, InboundLaneData, LaneId, MessageData,
 	MessageNonce, OutboundLaneData, UnrewardedRelayersState,
 };
+use bp_runtime::messages::DispatchFeePayment;
 use frame_benchmarking::{account, benchmarks_instance};
 use frame_support::{traits::Get, weights::Weight};
 use frame_system::RawOrigin;
@@ -68,7 +69,7 @@ pub struct MessageProofParams {
 	/// Proof size requirements.
 	pub size: ProofSize,
 	/// If true, dispatch fee is paid at the target chain (if supported by configuration).
-	pub pay_dispatch_fee_at_target_chain: bool,
+	pub dispatch_fee_payment: DispatchFeePayment,
 }
 
 /// Benchmark-specific message delivery proof parameters.
@@ -262,7 +263,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -296,7 +297,7 @@ benchmarks_instance! {
 			message_nonces: 21..=22,
 			outbound_lane_data: None,
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 2, dispatch_weight)
 	verify {
@@ -334,7 +335,7 @@ benchmarks_instance! {
 				latest_generated_nonce: 21,
 			}),
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -370,7 +371,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::HasExtraNodes(1024),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -404,7 +405,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::HasExtraNodes(16 * 1024),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -437,7 +438,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
-			pay_dispatch_fee_at_target_chain: false,
+			dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
@@ -619,7 +620,7 @@ benchmarks_instance! {
 			message_nonces: 21..=(20 + i as MessageNonce),
 			outbound_lane_data: None,
 			size: ProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
@@ -657,7 +658,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::HasExtraNodes(i as _),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
@@ -695,7 +696,7 @@ benchmarks_instance! {
 			message_nonces: 21..=21,
 			outbound_lane_data: None,
 			size: ProofSize::HasLargeLeaf(i as _),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),
@@ -739,7 +740,7 @@ benchmarks_instance! {
 				latest_generated_nonce: 21,
 			}),
 			size: ProofSize::Minimal(0),
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
 	}: receive_messages_proof(
 		RawOrigin::Signed(relayer_id_on_target),

@@ -840,6 +840,7 @@ impl_runtime_apis! {
 			}
 
 			use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
+			use bp_runtime::messages::DispatchFeePayment;
 			use bridge_runtime_common::messages;
 			use pallet_bridge_messages::benchmarking::{
 				Pallet as MessagesBench,
@@ -883,7 +884,7 @@ impl_runtime_apis! {
 						weight: params.size as _,
 						origin: dispatch_origin,
 						call: message_payload,
-						pay_dispatch_fee_at_target_chain: false,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 					};
 					(message, pallet_bridge_messages::benchmarking::MESSAGE_FEE.into())
 				}
@@ -921,7 +922,7 @@ impl_runtime_apis! {
 						rialto_raw_signature,
 					));
 
-					if params.pay_dispatch_fee_at_target_chain {
+					if params.dispatch_fee_payment == DispatchFeePayment::AtTargetChain {
 						Self::endow_account(&rialto_public.clone().into_account());
 					}
 
@@ -945,7 +946,7 @@ impl_runtime_apis! {
 						Default::default(),
 					);
 
-					let pay_dispatch_fee_at_target_chain = params.pay_dispatch_fee_at_target_chain;
+					let dispatch_fee_payment = params.dispatch_fee_payment.clone();
 					prepare_message_proof::<WithMillauMessageBridge, bp_millau::Hasher, Runtime, (), _, _, _>(
 						params,
 						make_millau_message_key,
@@ -964,7 +965,7 @@ impl_runtime_apis! {
 								rialto_public,
 								rialto_signature,
 							),
-							pay_dispatch_fee_at_target_chain,
+							dispatch_fee_payment,
 							call: call.encode(),
 						}.encode(),
 					)

@@ -19,28 +19,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-use bp_runtime::InstanceId;
-use codec::{Decode, Encode};
-use frame_support::RuntimeDebug;
+use bp_runtime::{messages::MessageDispatchResult, InstanceId};
 
 /// Message dispatch weight.
 pub type Weight = u64;
-
-/// Message dispatch result.
-#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
-pub struct MessageDispatchResult {
-	/// Unspent dispatch weight. This weight that will be deducted from total delivery transaction
-	/// weight, thus reducing the transaction cost. This shall not be zero in (at least) two cases:
-	///
-	/// 1) if message has been dispatched successfully, but post-dispatch weight is less than
-	///    the weight, declared by the message sender;
-	/// 2) if message has not been dispatched at all.
-	pub unspent_weight: Weight,
-	/// Whether the message dispatch fee has been paid during dispatch. This will be true if your
-	/// configuration supports pay-dispatch-fee-at-target-chain option and message sender has enabled
-	/// this option.
-	pub dispatch_fee_paid_during_dispatch: bool,
-}
 
 /// A generic trait to dispatch arbitrary messages delivered over the bridge.
 pub trait MessageDispatch<AccountId, MessageId> {

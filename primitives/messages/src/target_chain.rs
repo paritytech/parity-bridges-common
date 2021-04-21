@@ -16,11 +16,9 @@
 
 //! Primitives of messages module, that are used on the target chain.
 
-pub use bp_message_dispatch::MessageDispatchResult;
-
 use crate::{LaneId, Message, MessageData, MessageKey, OutboundLaneData};
 
-use bp_runtime::Size;
+use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode, Error as CodecError};
 use frame_support::{weights::Weight, Parameter, RuntimeDebug};
 use sp_std::{collections::btree_map::BTreeMap, fmt::Debug, prelude::*};

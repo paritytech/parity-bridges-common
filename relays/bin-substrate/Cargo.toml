@@ -22,6 +22,7 @@ structopt = "0.3"
 
 bp-header-chain = { path = "../../primitives/header-chain" }
 bp-kusama = { path = "../../primitives/chain-kusama" }
+bp-message-dispatch = { path = "../../primitives/message-dispatch" }
 bp-messages = { path = "../../primitives/messages" }
 bp-millau = { path = "../../primitives/chain-millau" }
 bp-polkadot = { path = "../../primitives/chain-polkadot" }

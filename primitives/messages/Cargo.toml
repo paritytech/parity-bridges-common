@@ -11,7 +11,6 @@ codec = { package = "parity-scale-codec", version = "2.0.0", default-features = 
 
 # Bridge dependencies
 
-bp-message-dispatch = { path = "../message-dispatch", default-features = false }
 bp-runtime = { path = "../runtime", default-features = false }
 
 # Substrate Dependencies
@@ -23,7 +22,6 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "master" , 
 [features]
 default = ["std"]
 std = [
-	"bp-message-dispatch/std",
 	"bp-runtime/std",
 	"codec/std",
 	"frame-support/std",

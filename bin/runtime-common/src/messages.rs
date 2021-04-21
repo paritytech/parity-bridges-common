@@ -23,10 +23,13 @@
 use bp_message_dispatch::MessageDispatch as _;
 use bp_messages::{
 	source_chain::{LaneMessageVerifier, Sender},
-	target_chain::{DispatchMessage, MessageDispatch, MessageDispatchResult, ProvedLaneMessages, ProvedMessages},
+	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
-use bp_runtime::{InstanceId, Size, StorageProofChecker};
+use bp_runtime::{
+	messages::{DispatchFeePayment, MessageDispatchResult},
+	InstanceId, Size, StorageProofChecker,
+};
 use codec::{Decode, Encode};
 use frame_support::{
 	traits::{Currency, ExistenceRequirement, Instance},
@@ -334,10 +337,11 @@ pub mod source {
 		//
 		// if we're going to pay dispatch fee at the target chain, then we don't include weight
 		// of the message dispatch in the delivery transaction cost
+		let pay_dispatch_fee_at_target_chain = payload.dispatch_fee_payment == DispatchFeePayment::AtTargetChain;
 		let delivery_transaction = BridgedChain::<B>::estimate_delivery_transaction(
 			&payload.call,
-			payload.pay_dispatch_fee_at_target_chain,
-			if payload.pay_dispatch_fee_at_target_chain {
+			pay_dispatch_fee_at_target_chain,
+			if pay_dispatch_fee_at_target_chain {
 				0.into()
 			} else {
 				payload.weight.into()
@@ -977,7 +981,7 @@ mod tests {
 			spec_version: 1,
 			weight: 100,
 			origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
-			pay_dispatch_fee_at_target_chain: true,
+			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 			call: ThisChainCall::Transfer.encode(),
 		}
 		.encode();
@@ -992,7 +996,7 @@ mod tests {
 				spec_version: 1,
 				weight: 100,
 				origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
-				pay_dispatch_fee_at_target_chain: true,
+				dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 				call: target::FromBridgedChainEncodedMessageCall::<OnThisChainBridge>::new(
 					ThisChainCall::Transfer.encode(),
 				),
@@ -1009,7 +1013,7 @@ mod tests {
 			spec_version: 1,
 			weight: 100,
 			origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
-			pay_dispatch_fee_at_target_chain: false,
+			dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			call: vec![42],
 		}
 	}
@@ -1032,7 +1036,7 @@ mod tests {
 
 		// let's check if estimation is less than hardcoded, if dispatch is paid at target chain
 		let mut payload_with_pay_on_target = regular_outbound_message_payload();
-		payload_with_pay_on_target.pay_dispatch_fee_at_target_chain = true;
+		payload_with_pay_on_target.dispatch_fee_payment = DispatchFeePayment::AtTargetChain;
 		let fee_at_source = source::estimate_message_dispatch_and_delivery_fee::<OnThisChainBridge>(
 			&payload_with_pay_on_target,
 			OnThisChainBridge::RELAYER_FEE_PERCENT,
@@ -1075,7 +1079,7 @@ mod tests {
 			spec_version: 1,
 			weight: 100,
 			origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
-			pay_dispatch_fee_at_target_chain: false,
+			dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			call: vec![42],
 		};
 
@@ -1119,7 +1123,7 @@ mod tests {
 			spec_version: 1,
 			weight: 100,
 			origin: pallet_bridge_dispatch::CallOrigin::SourceAccount(ThisChainAccountId(1)),
-			pay_dispatch_fee_at_target_chain: false,
+			dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			call: vec![42],
 		};
 
@@ -1187,7 +1191,7 @@ mod tests {
 				spec_version: 1,
 				weight: 5,
 				origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
-				pay_dispatch_fee_at_target_chain: false,
+				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 				call: vec![1, 2, 3, 4, 5, 6],
 			},)
 			.is_err()
@@ -1203,7 +1207,7 @@ mod tests {
 				spec_version: 1,
 				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT + 1,
 				origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
-				pay_dispatch_fee_at_target_chain: false,
+				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 				call: vec![1, 2, 3, 4, 5, 6],
 			},)
 			.is_err()
@@ -1219,7 +1223,7 @@ mod tests {
 				spec_version: 1,
 				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT,
 				origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
-				pay_dispatch_fee_at_target_chain: false,
+				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 				call: vec![0; source::maximal_message_size::<OnThisChainBridge>() as usize + 1],
 			},)
 			.is_err()
@@ -1235,7 +1239,7 @@ mod tests {
 				spec_version: 1,
 				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT,
 				origin: pallet_bridge_dispatch::CallOrigin::SourceRoot,
-				pay_dispatch_fee_at_target_chain: false,
+				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 				call: vec![0; source::maximal_message_size::<OnThisChainBridge>() as _],
 			},),
 			Ok(()),

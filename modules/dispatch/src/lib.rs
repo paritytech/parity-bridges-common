@@ -24,8 +24,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-use bp_message_dispatch::{MessageDispatch, MessageDispatchResult, Weight};
-use bp_runtime::{derive_account_id, InstanceId, Size, SourceAccount};
+use bp_message_dispatch::{MessageDispatch, Weight};
+use bp_runtime::{
+	derive_account_id,
+	messages::{DispatchFeePayment, MessageDispatchResult},
+	InstanceId, Size, SourceAccount,
+};
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_event, decl_module, decl_storage,
@@ -102,13 +106,8 @@ pub struct MessagePayload<SourceChainAccountId, TargetChainAccountPublic, Target
 	pub weight: Weight,
 	/// Call origin to be used during dispatch.
 	pub origin: CallOrigin<SourceChainAccountId, TargetChainAccountPublic, TargetChainSignature>,
-	/// If true, then the sender has decided to pay dispatch fee at the target chain.
-	///
-	/// The fee is paid right before the message is dispatched. So in case of any other
-	/// issues (like invalid call encoding, invalid signature, ...) we won't do any direct
-	/// transfers. Instead, we're returning fee related to this message dispatch to the
-	/// relayer.
-	pub pay_dispatch_fee_at_target_chain: bool,
+	/// Where message dispatch fee is paid?
+	pub dispatch_fee_payment: DispatchFeePayment,
 	/// The call itself.
 	pub call: Call,
 }
@@ -180,14 +179,14 @@ decl_event!(
 		MessageWeightMismatch(InstanceId, MessageId, Weight, Weight),
 		/// Message signature mismatch.
 		MessageSignatureMismatch(InstanceId, MessageId),
-		/// Message has been dispatched with given result.
-		MessageDispatched(InstanceId, MessageId, DispatchResult),
 		/// We have failed to decode Call from the message.
 		MessageCallDecodeFailed(InstanceId, MessageId),
 		/// The call from the message has been rejected by the call filter.
 		MessageCallRejected(InstanceId, MessageId),
 		/// The origin account has failed to pay fee for dispatching the message.
 		MessageDispatchPaymentFailed(InstanceId, MessageId, AccountId, Weight),
+		/// Message has been dispatched with given result.
+		MessageDispatched(InstanceId, MessageId, DispatchResult),
 		/// Phantom member, never used. Needed to handle multiple pallet instances.
 		_Dummy(PhantomData<I>),
 	}
@@ -335,7 +334,8 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::AccountId, T::MessageId> for 
 		}
 
 		// pay dispatch fee right before dispatch
-		if message.pay_dispatch_fee_at_target_chain && pay_dispatch_fee(&origin_account, message.weight).is_err() {
+		let pay_dispatch_fee_at_target_chain = message.dispatch_fee_payment == DispatchFeePayment::AtTargetChain;
+		if pay_dispatch_fee_at_target_chain && pay_dispatch_fee(&origin_account, message.weight).is_err() {
 			log::trace!(
 				target: "runtime::bridge-dispatch",
 				"Failed to pay dispatch fee for dispatching message {:?}/{:?} with weight {}",
@@ -351,7 +351,7 @@ impl<T: Config<I>, I: Instance> MessageDispatch<T::AccountId, T::MessageId> for 
 			));
 			return dispatch_result;
 		}
-		dispatch_result.dispatch_fee_paid_during_dispatch = message.pay_dispatch_fee_at_target_chain;
+		dispatch_result.dispatch_fee_paid_during_dispatch = pay_dispatch_fee_at_target_chain;
 
 		// finally dispatch message
 		let origin = RawOrigin::Signed(origin_account).into();
@@ -586,7 +586,7 @@ mod tests {
 			spec_version: TEST_SPEC_VERSION,
 			weight: TEST_WEIGHT,
 			origin,
-			pay_dispatch_fee_at_target_chain: false,
+			dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			call: EncodedCall(call.encode()),
 		}
 	}
@@ -782,7 +782,7 @@ mod tests {
 			let mut message =
 				prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
 			let weight = message.weight;
-			message.pay_dispatch_fee_at_target_chain = true;
+			message.dispatch_fee_payment = DispatchFeePayment::AtTargetChain;
 
 			System::set_block_number(1);
 			let result = Dispatch::dispatch(bridge, id, Ok(message), |_, _| Err(()));
@@ -812,7 +812,7 @@ mod tests {
 
 			let mut message =
 				prepare_root_message(Call::System(<frame_system::Call<TestRuntime>>::remark(vec![1, 2, 3])));
-			message.pay_dispatch_fee_at_target_chain = true;
+			message.dispatch_fee_payment = DispatchFeePayment::AtTargetChain;
 
 			System::set_block_number(1);
 			let result = Dispatch::dispatch(bridge, id, Ok(message), |_, _| Ok(()));

@@ -17,9 +17,10 @@
 //! Everything about incoming messages receival.
 
 use bp_messages::{
-	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch, MessageDispatchResult},
+	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 	InboundLaneData, LaneId, MessageKey, MessageNonce, OutboundLaneData,
 };
+use bp_runtime::messages::MessageDispatchResult;
 use frame_support::RuntimeDebug;
 use sp_std::prelude::PartialEq;
 
