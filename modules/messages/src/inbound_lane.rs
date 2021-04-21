@@ -110,7 +110,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	/// Receive new message.
 	pub fn receive_message<P: MessageDispatch<AccountId, S::MessageFee>, AccountId>(
 		&mut self,
-		relayer_at_brdiged_chain: &S::Relayer,
+		relayer_at_bridged_chain: &S::Relayer,
 		relayer_at_this_chain: &AccountId,
 		nonce: MessageNonce,
 		message_data: DispatchMessageData<P::DispatchPayload, S::MessageFee>,
@@ -133,7 +133,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 
 		let push_new = match data.relayers.back_mut() {
-			Some((_, nonce_high, last_relayer)) if last_relayer == relayer_at_brdiged_chain => {
+			Some((_, nonce_high, last_relayer)) if last_relayer == relayer_at_bridged_chain => {
 				*nonce_high = nonce;
 				false
 			}
@@ -141,7 +141,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		};
 		if push_new {
 			data.relayers
-				.push_back((nonce, nonce, (*relayer_at_brdiged_chain).clone()));
+				.push_back((nonce, nonce, (*relayer_at_bridged_chain).clone()));
 		}
 
 		self.storage.set_data(data);
