@@ -17,8 +17,8 @@
 //! Everything about incoming messages receival.
 
 use bp_messages::{
-	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-	InboundLaneData, LaneId, MessageKey, MessageNonce, OutboundLaneData, Weight,
+	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch, MessageDispatchResult},
+	InboundLaneData, LaneId, MessageKey, MessageNonce, OutboundLaneData,
 };
 use frame_support::RuntimeDebug;
 use sp_std::prelude::PartialEq;
@@ -48,8 +48,8 @@ pub enum ReceivalResult {
 	/// Message has been received and dispatched. Note that we don't care whether dispatch has
 	/// been successful or not - in both case message falls into this category.
 	///
-	/// The unspent message dispatch weight is also returned.
-	Dispatched(Weight),
+	/// The message dispatch result is also returned.
+	Dispatched(MessageDispatchResult),
 	/// Message has invalid nonce and lane has rejected to accept this message.
 	InvalidNonce,
 	/// There are too many unrewarded relayer entires at the lane.
@@ -164,8 +164,8 @@ mod tests {
 	use crate::{
 		inbound_lane,
 		mock::{
-			message_data, run_test, TestMessageDispatch, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A,
-			TEST_RELAYER_B, TEST_RELAYER_C,
+			dispatch_result, message_data, run_test, TestMessageDispatch, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID,
+			TEST_RELAYER_A, TEST_RELAYER_B, TEST_RELAYER_C,
 		},
 		DefaultInstance, RuntimeInboundLaneStorage,
 	};
@@ -181,7 +181,7 @@ mod tests {
 				nonce,
 				message_data(REGULAR_PAYLOAD).into()
 			),
-			ReceivalResult::Dispatched(0)
+			ReceivalResult::Dispatched(dispatch_result(0))
 		);
 	}
 
@@ -319,7 +319,7 @@ mod tests {
 						current_nonce,
 						message_data(REGULAR_PAYLOAD).into()
 					),
-					ReceivalResult::Dispatched(0)
+					ReceivalResult::Dispatched(dispatch_result(0))
 				);
 			}
 			// Fails to dispatch new message from different than latest relayer.
@@ -358,7 +358,7 @@ mod tests {
 						current_nonce,
 						message_data(REGULAR_PAYLOAD).into()
 					),
-					ReceivalResult::Dispatched(0)
+					ReceivalResult::Dispatched(dispatch_result(0))
 				);
 			}
 			// Fails to dispatch new message from different than latest relayer.
@@ -395,7 +395,7 @@ mod tests {
 					1,
 					message_data(REGULAR_PAYLOAD).into()
 				),
-				ReceivalResult::Dispatched(0)
+				ReceivalResult::Dispatched(dispatch_result(0))
 			);
 			assert_eq!(
 				lane.receive_message::<TestMessageDispatch, _>(
@@ -404,7 +404,7 @@ mod tests {
 					2,
 					message_data(REGULAR_PAYLOAD).into()
 				),
-				ReceivalResult::Dispatched(0)
+				ReceivalResult::Dispatched(dispatch_result(0))
 			);
 			assert_eq!(
 				lane.receive_message::<TestMessageDispatch, _>(
@@ -413,7 +413,7 @@ mod tests {
 					3,
 					message_data(REGULAR_PAYLOAD).into()
 				),
-				ReceivalResult::Dispatched(0)
+				ReceivalResult::Dispatched(dispatch_result(0))
 			);
 			assert_eq!(
 				lane.storage.data().relayers,
@@ -433,7 +433,7 @@ mod tests {
 					1,
 					message_data(REGULAR_PAYLOAD).into()
 				),
-				ReceivalResult::Dispatched(0)
+				ReceivalResult::Dispatched(dispatch_result(0))
 			);
 			assert_eq!(
 				lane.receive_message::<TestMessageDispatch, _>(
@@ -461,7 +461,7 @@ mod tests {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			let mut payload = REGULAR_PAYLOAD;
-			payload.unspent_weight = 1;
+			payload.dispatch_result.unspent_weight = 1;
 			assert_eq!(
 				lane.receive_message::<TestMessageDispatch, _>(
 					&TEST_RELAYER_A,
@@ -469,7 +469,7 @@ mod tests {
 					1,
 					message_data(payload).into()
 				),
-				ReceivalResult::Dispatched(1)
+				ReceivalResult::Dispatched(dispatch_result(1))
 			);
 		});
 	}

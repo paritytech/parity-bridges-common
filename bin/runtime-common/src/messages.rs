@@ -23,7 +23,7 @@
 use bp_message_dispatch::MessageDispatch as _;
 use bp_messages::{
 	source_chain::{LaneMessageVerifier, Sender},
-	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
+	target_chain::{DispatchMessage, MessageDispatch, MessageDispatchResult, ProvedLaneMessages, ProvedMessages},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
 use bp_runtime::{InstanceId, Size, StorageProofChecker};
@@ -128,6 +128,7 @@ pub trait BridgedChainWithMessages: ChainWithMessages {
 	/// Estimate size and weight of single message delivery transaction at the Bridged chain.
 	fn estimate_delivery_transaction(
 		message_payload: &[u8],
+		include_pay_dispatch_fee_cost: bool,
 		message_dispatch_weight: WeightOf<Self>,
 	) -> MessageTransaction<WeightOf<Self>>;
 
@@ -335,6 +336,7 @@ pub mod source {
 		// of the message dispatch in the delivery transaction cost
 		let delivery_transaction = BridgedChain::<B>::estimate_delivery_transaction(
 			&payload.call,
+			payload.pay_dispatch_fee_at_target_chain,
 			if payload.pay_dispatch_fee_at_target_chain {
 				0.into()
 			} else {
@@ -513,7 +515,7 @@ pub mod target {
 		fn dispatch(
 			relayer_account: &AccountIdOf<ThisChain<B>>,
 			message: DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
-		) -> Weight {
+		) -> MessageDispatchResult {
 			let message_id = (message.key.lane_id, message.key.nonce);
 			pallet_bridge_dispatch::Pallet::<ThisRuntime, ThisDispatchInstance>::dispatch(
 				B::INSTANCE,
@@ -894,6 +896,7 @@ mod tests {
 
 		fn estimate_delivery_transaction(
 			_message_payload: &[u8],
+			_include_pay_dispatch_fee_cost: bool,
 			_message_dispatch_weight: WeightOf<Self>,
 		) -> MessageTransaction<WeightOf<Self>> {
 			unreachable!()
@@ -949,6 +952,7 @@ mod tests {
 
 		fn estimate_delivery_transaction(
 			_message_payload: &[u8],
+			_include_pay_dispatch_fee_cost: bool,
 			message_dispatch_weight: WeightOf<Self>,
 		) -> MessageTransaction<WeightOf<Self>> {
 			MessageTransaction {

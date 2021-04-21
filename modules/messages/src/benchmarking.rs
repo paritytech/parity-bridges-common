@@ -157,39 +157,6 @@ benchmarks_instance! {
 		);
 	}
 
-	// Benchmark `send_message` extrinsic with the following conditions:
-	// * outbound lane already has state, so it needs to be read and decoded;
-	// * relayers fund account does not exists (in practice it needs to exist in production environment);
-	// * maximal number of messages is being pruned during the call;
-	// * message size is minimal for the target chain;
-	// * message is paid at the target (bridged) chain.
-	//
-	// Result of this benchmark is used to compute weight of the pay-dispatch-fee-at-source-chain
-	// operation and refund it to the message sender if dispatch is paid at the target chain.
-	send_minimal_message_with_dispatch_paid_at_the_target_chain {
-		let lane_id = T::bench_lane_id();
-		let sender = account("sender", 0, SEED);
-		T::endow_account(&sender);
-
-		// 'send' messages that are to be pruned when our message is sent
-		for _nonce in 1..=T::MaxMessagesToPruneAtOnce::get() {
-			send_regular_message::<T, I>();
-		}
-		confirm_message_delivery::<T, I>(T::MaxMessagesToPruneAtOnce::get());
-
-		let (payload, fee) = T::prepare_outbound_message(MessageParams {
-			size: 0,
-			sender_account: sender.clone(),
-			pay_dispatch_fee_at_target_chain: true,
-		});
-	}: send_message(RawOrigin::Signed(sender), lane_id, payload, fee)
-	verify {
-		assert_eq!(
-			crate::Pallet::<T, I>::outbound_latest_generated_nonce(T::bench_lane_id()),
-			T::MaxMessagesToPruneAtOnce::get() + 1,
-		);
-	}
-
 	// Benchmark `send_message` extrinsic with the worst possible conditions:
 	// * outbound lane already has state, so it needs to be read and decoded;
 	// * relayers fund account does not exists (in practice it needs to exist in production environment);

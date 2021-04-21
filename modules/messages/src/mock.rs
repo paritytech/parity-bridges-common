@@ -23,7 +23,9 @@ use bp_messages::{
 	source_chain::{
 		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, Sender, TargetHeaderChain,
 	},
-	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
+	target_chain::{
+		DispatchMessage, MessageDispatch, MessageDispatchResult, ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
+	},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 	Parameter as MessagesParameter,
 };
@@ -46,9 +48,11 @@ pub struct TestPayload {
 	pub id: u64,
 	/// Dispatch weight that is declared by the message sender.
 	pub declared_weight: Weight,
-	/// Unspent weight. In correct code it'll always be <= `declared_weight`, but for test
+	/// Message dispatch result.
+	///
+	/// Note: in correct code `dispatch_result.unspent_weight` will always be <= `declared_weight`, but for test
 	/// purposes we'll be making it larger than `declared_weight` sometimes.
-	pub unspent_weight: Weight,
+	pub dispatch_result: MessageDispatchResult,
 }
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
@@ -375,10 +379,13 @@ impl MessageDispatch<AccountId, TestMessageFee> for TestMessageDispatch {
 		}
 	}
 
-	fn dispatch(_relayer_account: &AccountId, message: DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
+	fn dispatch(
+		_relayer_account: &AccountId,
+		message: DispatchMessage<TestPayload, TestMessageFee>,
+	) -> MessageDispatchResult {
 		match message.data.payload.as_ref() {
-			Ok(payload) => payload.unspent_weight,
-			Err(_) => 0,
+			Ok(payload) => payload.dispatch_result.clone(),
+			Err(_) => dispatch_result(0),
 		}
 	}
 }
@@ -399,7 +406,7 @@ pub const fn message_payload(id: u64, declared_weight: Weight) -> TestPayload {
 	TestPayload {
 		id,
 		declared_weight,
-		unspent_weight: 0,
+		dispatch_result: dispatch_result(0),
 	}
 }
 
@@ -408,6 +415,14 @@ pub fn message_data(payload: TestPayload) -> MessageData<TestMessageFee> {
 	MessageData {
 		payload: payload.encode(),
 		fee: 1,
+	}
+}
+
+/// Returns message dispatch result with given unspent weight.
+pub const fn dispatch_result(unspent_weight: Weight) -> MessageDispatchResult {
+	MessageDispatchResult {
+		unspent_weight,
+		dispatch_fee_paid_during_dispatch: true,
 	}
 }
 

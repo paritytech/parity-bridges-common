@@ -16,6 +16,8 @@
 
 //! Primitives of messages module, that are used on the target chain.
 
+pub use bp_message_dispatch::MessageDispatchResult;
+
 use crate::{LaneId, Message, MessageData, MessageKey, OutboundLaneData};
 
 use bp_runtime::Size;
@@ -103,14 +105,10 @@ pub trait MessageDispatch<AccountId, Fee> {
 	///
 	/// If your configuration allows paying dispatch fee at the target chain, then
 	/// it must be paid inside this method to the `relayer_account`.
-	///
-	/// Returns 'unused' dispatch weight that will be deducted from total delivery transaction
-	/// weight, thus reducing the transaction cost. This shall not be zero in two cases:
-	///
-	/// 1) if message has been dispatched successfully, but post-dispatch weight is less than
-	///    the weight, declared by the message sender;
-	/// 2) if message has not been dispatched at all.
-	fn dispatch(relayer_account: &AccountId, message: DispatchMessage<Self::DispatchPayload, Fee>) -> Weight;
+	fn dispatch(
+		relayer_account: &AccountId,
+		message: DispatchMessage<Self::DispatchPayload, Fee>,
+	) -> MessageDispatchResult;
 }
 
 impl<Message> Default for ProvedLaneMessages<Message> {
@@ -166,7 +164,10 @@ impl<AccountId, Fee> MessageDispatch<AccountId, Fee> for ForbidInboundMessages {
 		Weight::MAX
 	}
 
-	fn dispatch(_relayer_account: &AccountId, _message: DispatchMessage<Self::DispatchPayload, Fee>) -> Weight {
-		0
+	fn dispatch(_: &AccountId, _: DispatchMessage<Self::DispatchPayload, Fee>) -> MessageDispatchResult {
+		MessageDispatchResult {
+			unspent_weight: 0,
+			dispatch_fee_paid_during_dispatch: false,
+		}
 	}
 }
