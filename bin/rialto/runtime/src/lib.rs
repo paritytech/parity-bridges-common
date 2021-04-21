@@ -425,7 +425,6 @@ parameter_types! {
 	// This is lower than regular value, to speed up benchmarking setup.
 	pub const HeadersToKeep: u32 = 1024;
 }
-// TODO [ToDr] ^^ Test with this, use constant.
 
 #[cfg(not(feature = "runtime-benchmarks"))]
 parameter_types! {
