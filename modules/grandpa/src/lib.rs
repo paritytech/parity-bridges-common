@@ -159,7 +159,7 @@ pub mod pallet {
 
 			let _enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
-			insert_header::<T, I>(finality_target, Some(hash));
+			insert_header::<T, I>(finality_target, hash);
 			log::info!(target: "runtime::bridge-grandpa", "Succesfully imported finalized header with hash {:?}!", hash);
 
 			Ok(().into())
@@ -417,13 +417,9 @@ pub mod pallet {
 
 	/// Import a previously verified header to the storage.
 	///
-	/// Note this function solely takes care of updating the storage and does not verify
-	/// the validaty of such import.
-	pub(crate) fn insert_header<T: Config<I>, I: 'static>(
-		header: BridgedHeader<T, I>,
-		hash: Option<BridgedBlockHash<T, I>>,
-	) {
-		let hash = hash.unwrap_or_else(|| header.hash());
+	/// Note this function solely takes care of updating the storage and pruning old entries,
+	/// but does not verify the validaty of such import.
+	pub(crate) fn insert_header<T: Config<I>, I: 'static>(header: BridgedHeader<T, I>, hash: BridgedBlockHash<T, I>) {
 		let index = <ImportedHashesPointer<T, I>>::get();
 		let pruning = <ImportedHashes<T, I>>::try_get(index);
 		<BestFinalized<T, I>>::put(hash);
@@ -453,7 +449,7 @@ pub mod pallet {
 		let initial_hash = header.hash();
 		<InitialHash<T, I>>::put(initial_hash);
 		<ImportedHashesPointer<T, I>>::put(0);
-		insert_header::<T, I>(header, Some(initial_hash));
+		insert_header::<T, I>(header, initial_hash);
 
 		let authority_set = bp_header_chain::AuthoritySet::new(authority_list, set_id);
 		<CurrentAuthoritySet<T, I>>::put(authority_set);
@@ -465,9 +461,8 @@ pub mod pallet {
 	pub(crate) fn bootstrap_bridge<T: Config<I>, I: 'static>(
 		init_params: super::InitializationData<BridgedHeader<T, I>>,
 	) {
-		let inject_headers = T::HeadersToKeep::get();
 		let start_number = *init_params.header.number();
-		let end_number = start_number + inject_headers.into();
+		let end_number = start_number + T::HeadersToKeep::get().into();
 		initialize_bridge::<T, I>(init_params);
 
 		let mut number = start_number;
@@ -480,7 +475,7 @@ pub mod pallet {
 				Default::default(),
 				Default::default(),
 			);
-			insert_header::<T, I>(header, None);
+			insert_header::<T, I>(header, header.hash());
 		}
 	}
 

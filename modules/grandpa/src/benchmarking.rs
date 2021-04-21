@@ -67,7 +67,11 @@ const MAX_VOTE_ANCESTRIES: u32 = 1000;
 // number of validators.
 const MAX_VALIDATOR_SET_SIZE: u32 = 1024;
 
-fn header_number<T: Config<I>, I: 'static, R: From<u32>>() -> R {
+/// Returns number of first header to be imported.
+///
+/// Since we boostrap the pallet with `HeadersToKeep` already imported headers,
+/// this function computes the next expected header number to import.
+fn header_number<T: Config<I>, I: 'static, N: From<u32>>() -> N {
 	(T::HeadersToKeep::get() + 1).into()
 }
 
