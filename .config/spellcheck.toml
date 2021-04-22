@@ -1,6 +1,6 @@
 [hunspell]
 lang = "en_US"
-search_dirs = ["."]
+search_dirs = ["./modules/currency-exchange"]
 extra_dictionaries = ["lingua.dic"]
 
 [hunspell.quirks]
