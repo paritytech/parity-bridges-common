@@ -66,7 +66,6 @@ pub enum Call {
 
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
 #[allow(non_camel_case_types)]
-// TODO: Will changing the name on this break SCALE encoding?
 pub enum BridgeGrandpaCall {
 	#[codec(index = 0)]
 	submit_finality_proof(

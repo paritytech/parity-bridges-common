@@ -273,7 +273,7 @@ mod rococo_tests {
 			votes_ancestries: vec![],
 		};
 
-		let actual = bp_rococo::BridgeGrandpaWestendCall::submit_finality_proof(header.clone(), justification.clone());
+		let actual = bp_rococo::BridgeGrandpaCall::submit_finality_proof(header.clone(), justification.clone());
 		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
 			header,
 			justification,
