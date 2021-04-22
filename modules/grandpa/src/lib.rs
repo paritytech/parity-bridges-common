@@ -475,7 +475,8 @@ pub mod pallet {
 				Default::default(),
 				Default::default(),
 			);
-			insert_header::<T, I>(header, header.hash());
+			let hash = header.hash();
+			insert_header::<T, I>(header, hash);
 		}
 	}
 
