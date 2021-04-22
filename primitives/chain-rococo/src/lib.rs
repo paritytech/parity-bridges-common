@@ -57,12 +57,17 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 pub enum Call {
 	/// Westend bridge pallet.
 	#[codec(index = 40)]
-	BridgeGrandpaWestend(BridgeGrandpaWestendCall),
+	BridgeGrandpaWestend(BridgeGrandpaCall),
+
+	/// Wococo bridge pallet.
+	#[codec(index = 41)]
+	BridgeGrandpaWococo(BridgeGrandpaCall),
 }
 
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
 #[allow(non_camel_case_types)]
-pub enum BridgeGrandpaWestendCall {
+// TODO: Will changing the name on this break SCALE encoding?
+pub enum BridgeGrandpaCall {
 	#[codec(index = 0)]
 	submit_finality_proof(
 		<PolkadotLike as Chain>::Header,
