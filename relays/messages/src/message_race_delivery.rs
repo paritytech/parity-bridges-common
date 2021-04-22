@@ -299,16 +299,8 @@ impl<P: MessageLane> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::M
 			header_required_for_messages_delivery,
 			header_required_for_reward_confirmations_delivery,
 		) {
-			(Some(id1), Some(id2)) => {
-				if id1.0 > id2.0 {
-					Some(id1)
-				} else {
-					Some(id2)
-				}
-			}
-			(Some(id1), None) => Some(id1),
-			(None, Some(id2)) => Some(id2),
-			(None, None) => None,
+			(Some(id1), Some(id2)) => Some(if id1.0 > id2.0 { id1 } else { id2 }),
+			(a, b) => a.or(b),
 		}
 	}
 
