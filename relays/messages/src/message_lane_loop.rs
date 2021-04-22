@@ -860,5 +860,6 @@ pub(crate) mod tests {
 
 		// check that we have at least once required new source->target or target->source headers
 		assert!(!result.target_to_source_header_requirements.is_empty());
+		assert!(!result.source_to_target_header_requirements.is_empty());
 	}
 }
