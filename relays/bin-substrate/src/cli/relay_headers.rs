@@ -44,6 +44,8 @@ arg_enum! {
 		WestendToMillau,
 		WestendToRococo,
 		RococoToWestend,
+		RococoToWococo,
+		WococoToRococo,
 	}
 }
 
@@ -82,6 +84,20 @@ macro_rules! select_bridge {
 				type Source = relay_rococo_client::Rococo;
 				type Target = relay_westend_client::Westend;
 				type Finality = crate::chains::rococo_headers_to_westend::RococoFinalityToWestend;
+
+				$generic
+			}
+			RelayHeadersBridge::RococoToWococo => {
+				type Source = relay_rococo_client::Rococo;
+				type Target = relay_wococo_client::Wococo;
+				type Finality = crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
+
+				$generic
+			}
+			RelayHeadersBridge::WococoToRococo => {
+				type Source = relay_wococo_client::Wococo;
+				type Target = relay_rococo_client::Rococo;
+				type Finality = crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
 
 				$generic
 			}

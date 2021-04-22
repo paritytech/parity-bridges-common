@@ -21,13 +21,16 @@ pub mod millau_messages_to_rialto;
 pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
 pub mod rococo_headers_to_westend;
+pub mod rococo_headers_to_wococo;
 pub mod westend_headers_to_millau;
 pub mod westend_headers_to_rococo;
+pub mod wococo_headers_to_rococo;
 
 mod millau;
 mod rialto;
 mod rococo;
 mod westend;
+mod wococo;
 
 use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams};
 
