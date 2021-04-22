@@ -50,6 +50,9 @@ pub const KUSAMA_BRIDGE_INSTANCE: InstanceId = *b"ksma";
 /// Bridge-with-Rococo instance id.
 pub const ROCOCO_BRIDGE_INSTANCE: InstanceId = *b"roco";
 
+/// Bridge-with-Wococo instance id.
+pub const WOCOCO_BRIDGE_INSTANCE: InstanceId = *b"woco";
+
 /// Bridge-with-Westend instance id.
 pub const WESTEND_BRIDGE_INSTANCE: InstanceId = *b"wend";
 
