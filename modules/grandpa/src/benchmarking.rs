@@ -51,10 +51,9 @@ use bp_test_utils::{
 	TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID,
 };
 use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
-use frame_support::traits::Get;
 use frame_system::RawOrigin;
 use sp_finality_grandpa::AuthorityId;
-use sp_runtime::traits::Zero;
+use sp_runtime::traits::{One, Zero};
 use sp_std::{vec, vec::Vec};
 
 // The maximum number of vote ancestries to include in a justification.
@@ -66,14 +65,6 @@ const MAX_VOTE_ANCESTRIES: u32 = 1000;
 // The maximum number of pre-commits to include in a justification. In practice this scales with the
 // number of validators.
 const MAX_VALIDATOR_SET_SIZE: u32 = 1024;
-
-/// Returns number of first header to be imported.
-///
-/// Since we boostrap the pallet with `HeadersToKeep` already imported headers,
-/// this function computes the next expected header number to import.
-fn header_number<T: Config<I>, I: 'static, N: From<u32>>() -> N {
-	(T::HeadersToKeep::get() + 1).into()
-}
 
 benchmarks_instance_pallet! {
 	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
@@ -99,9 +90,9 @@ benchmarks_instance_pallet! {
 			is_halted: false,
 		};
 
-		bootstrap_bridge::<T, I>(init_data);
+		initialize_bridge::<T, I>(init_data);
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
 			round: TEST_GRANDPA_ROUND,
@@ -115,7 +106,7 @@ benchmarks_instance_pallet! {
 
 	}: _(RawOrigin::Signed(caller), header, justification)
 	verify {
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 		let expected_hash = header.hash();
 
 		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
@@ -136,8 +127,8 @@ benchmarks_instance_pallet! {
 			is_halted: false,
 		};
 
-		bootstrap_bridge::<T, I>(init_data);
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
+		initialize_bridge::<T, I>(init_data);
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
@@ -152,7 +143,7 @@ benchmarks_instance_pallet! {
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 		let expected_hash = header.hash();
 
 		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
@@ -179,8 +170,8 @@ benchmarks_instance_pallet! {
 			is_halted: false,
 		};
 
-		bootstrap_bridge::<T, I>(init_data);
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
+		initialize_bridge::<T, I>(init_data);
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 
 		let params = JustificationGeneratorParams {
 			header: header.clone(),
@@ -195,7 +186,7 @@ benchmarks_instance_pallet! {
 
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
 	verify {
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 		let expected_hash = header.hash();
 
 		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
