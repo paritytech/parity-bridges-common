@@ -37,4 +37,3 @@ impl CliChain for Wococo {
 		Err("Sending messages from Wococo is not yet supported.".into())
 	}
 }
-

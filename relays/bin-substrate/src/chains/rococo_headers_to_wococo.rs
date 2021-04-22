@@ -58,4 +58,3 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 		Bytes(transaction.encode())
 	}
 }
-
