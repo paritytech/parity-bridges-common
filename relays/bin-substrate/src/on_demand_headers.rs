@@ -288,7 +288,7 @@ fn select_on_demand_relay_action<C: Chain>(
 	let best_finalized_source_header_at_source =
 		best_finalized_source_header_at_source.unwrap_or(best_finalized_source_header_at_target);
 
-	// if there are too many source headers missing from the target node, requie some
+	// if there are too many source headers missing from the target node, require some
 	// new headers at target
 	//
 	// why do we need that? When complex headers+messages relay is used, it'll normally only relay
