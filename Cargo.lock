@@ -651,6 +651,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-eth-clique"
+version = "0.1.0"
+dependencies = [
+ "ethbloom 0.10.0",
+ "fixed-hash",
+ "hash-db",
+ "hex-literal 0.2.1",
+ "impl-rlp",
+ "impl-serde",
+ "libsecp256k1",
+ "parity-bytes",
+ "parity-scale-codec 2.0.1",
+ "plain_hasher",
+ "primitive-types",
+ "rlp",
+ "serde",
+ "serde-big-array",
+ "sp-api",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "triehash",
+]
+
+[[package]]
 name = "bp-eth-poa"
 version = "0.1.0"
 dependencies = [
@@ -4645,6 +4670,24 @@ dependencies = [
  "parity-scale-codec 2.0.1",
  "serde",
  "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-eth-clique-variant"
+version = "0.1.0"
+dependencies = [
+ "bp-eth-clique",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal 0.3.1",
+ "libsecp256k1",
+ "log",
+ "parity-scale-codec 2.0.1",
+ "serde",
  "sp-io",
  "sp-runtime",
  "sp-std",
