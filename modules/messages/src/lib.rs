@@ -43,21 +43,21 @@ pub use crate::weights_ext::{
 };
 
 use crate::inbound_lane::{InboundLane, InboundLaneStorage, ReceivalResult};
-use crate::outbound_lane::{OutboundLane, OutboundLaneStorage};
+use crate::outbound_lane::{OutboundLane, OutboundLaneStorage, ReceivalConfirmationResult};
 use crate::weights::WeightInfo;
 
 use bp_messages::{
 	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, TargetHeaderChain},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
-	total_unrewarded_messages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce, OperatingMode,
-	OutboundLaneData, Parameter as MessagesParameter, UnrewardedRelayersState,
+	total_unrewarded_messages, DeliveredMessages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce,
+	OperatingMode, OutboundLaneData, Parameter as MessagesParameter, UnrewardedRelayersState,
 };
 use bp_runtime::Size;
 use codec::{Decode, Encode};
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::DispatchResultWithPostInfo,
-	ensure,
+	ensure, fail,
 	traits::Get,
 	weights::{DispatchClass, Pays, PostDispatchInfo, Weight},
 	Parameter, StorageMap,
@@ -186,6 +186,8 @@ decl_error! {
 		InvalidMessagesDispatchWeight,
 		/// Invalid messages delivery proof has been submitted.
 		InvalidMessagesDeliveryProof,
+		/// The bridged chain has invalid `UnrewardedRelayers` in its storage (fatal for the lane).
+		InvalidUnrewardedRelayers,
 		/// The relayer has declared invalid unrewarded relayers state in the `receive_messages_delivery_proof` call.
 		InvalidUnrewardedRelayersState,
 		/// The message someone is trying to work with (i.e. increase fee) is already-delivered.
@@ -236,8 +238,8 @@ decl_event!(
 		ParameterUpdated(Parameter),
 		/// Message has been accepted and is waiting to be delivered.
 		MessageAccepted(LaneId, MessageNonce),
-		/// Messages in the inclusive range have been delivered and processed by the bridged chain.
-		MessagesDelivered(LaneId, MessageNonce, MessageNonce),
+		/// Messages in the inclusive range have been delivered to the bridged chain.
+		MessagesDelivered(LaneId, DeliveredMessages),
 		/// Phantom member, never used.
 		Dummy(PhantomData<(AccountId, I)>),
 	}
@@ -620,19 +622,32 @@ decl_module! {
 			let mut lane = outbound_lane::<T, I>(lane_id);
 			let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
 			let last_delivered_nonce = lane_data.last_delivered_nonce();
-			let received_range = lane.confirm_delivery(last_delivered_nonce);
-			if let Some(received_range) = received_range {
-				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, received_range.0, received_range.1));
+			let confirmed_messages = match lane.confirm_delivery(last_delivered_nonce, &lane_data.relayers) {
+				ReceivalConfirmationResult::ConfirmedMessages(confirmed_messages) => Some(confirmed_messages),
+				ReceivalConfirmationResult::NoNewConfirmations => None,
+				error => {
+					log::trace!(
+						target: "runtime::bridge-messages",
+						"Messages delivery proof contains invalid unrewarded relayers vec: {:?}",
+						error,
+					);
+
+					fail!(Error::<T, I>::InvalidUnrewardedRelayers);
+				},
+			};
+			if let Some(confirmed_messages) = confirmed_messages {
+				let received_range = confirmed_messages.begin..=confirmed_messages.end;
+				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, confirmed_messages));
 
 				// remember to reward relayers that have delivered messages
 				// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
-				for (nonce_low, nonce_high, relayer) in lane_data.relayers {
-					let nonce_begin = sp_std::cmp::max(nonce_low, received_range.0);
-					let nonce_end = sp_std::cmp::min(nonce_high, received_range.1);
+				for entry in lane_data.relayers {
+					let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
+					let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
 
 					// loop won't proceed if current entry is ahead of received range (begin > end).
 					// this loop is bound by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
-					let mut relayer_reward = relayers_rewards.entry(relayer).or_default();
+					let mut relayer_reward = relayers_rewards.entry(entry.relayer).or_default();
 					for nonce in nonce_begin..nonce_end + 1 {
 						let message_data = OutboundMessages::<T, I>::get(MessageKey {
 							lane_id,
@@ -697,7 +712,10 @@ impl<T: Config<I>, I: Instance> Pallet<T, I> {
 		let relayers = InboundLanes::<T, I>::get(&lane).relayers;
 		bp_messages::UnrewardedRelayersState {
 			unrewarded_relayer_entries: relayers.len() as _,
-			messages_in_oldest_entry: relayers.front().map(|(begin, end, _)| 1 + end - begin).unwrap_or(0),
+			messages_in_oldest_entry: relayers
+				.front()
+				.map(|entry| 1 + entry.messages.end - entry.messages.begin)
+				.unwrap_or(0),
 			total_messages: total_unrewarded_messages(&relayers).unwrap_or(MessageNonce::MAX),
 		}
 	}
@@ -920,11 +938,12 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, message_payload, run_test, Event as TestEvent, Origin, TestMessageDeliveryAndDispatchPayment,
-		TestMessagesDeliveryProof, TestMessagesParameter, TestMessagesProof, TestRuntime, TokenConversionRate,
-		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
+		message, message_payload, run_test, unrewarded_relayer, Event as TestEvent, Origin,
+		TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof, TestMessagesParameter, TestMessagesProof,
+		TestRuntime, TokenConversionRate, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
+		TEST_RELAYER_A, TEST_RELAYER_B,
 	};
-	use bp_messages::UnrewardedRelayersState;
+	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
 	use frame_support::{assert_noop, assert_ok};
 	use frame_system::{EventRecord, Pallet as System, Phase};
 	use hex_literal::hex;
@@ -972,17 +991,29 @@ mod tests {
 				TEST_LANE_ID,
 				InboundLaneData {
 					last_confirmed_nonce: 1,
-					..Default::default()
+					relayers: vec![UnrewardedRelayer {
+						relayer: 0,
+						messages: DeliveredMessages::new(1, true),
+					}]
+					.into_iter()
+					.collect(),
 				},
 			))),
-			Default::default(),
+			UnrewardedRelayersState {
+				unrewarded_relayer_entries: 1,
+				total_messages: 1,
+				..Default::default()
+			},
 		));
 
 		assert_eq!(
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::Messages(RawEvent::MessagesDelivered(TEST_LANE_ID, 1, 1)),
+				event: TestEvent::Messages(RawEvent::MessagesDelivered(
+					TEST_LANE_ID,
+					DeliveredMessages::new(1, true),
+				)),
 				topics: vec![],
 			}],
 		);
@@ -1333,9 +1364,12 @@ mod tests {
 				TEST_LANE_ID,
 				InboundLaneData {
 					last_confirmed_nonce: 8,
-					relayers: vec![(9, 9, TEST_RELAYER_A), (10, 10, TEST_RELAYER_B)]
-						.into_iter()
-						.collect(),
+					relayers: vec![
+						unrewarded_relayer(9, 9, TEST_RELAYER_A),
+						unrewarded_relayer(10, 10, TEST_RELAYER_B),
+					]
+					.into_iter()
+					.collect(),
 				},
 			);
 			assert_eq!(
@@ -1366,9 +1400,12 @@ mod tests {
 				InboundLanes::<TestRuntime>::get(TEST_LANE_ID),
 				InboundLaneData {
 					last_confirmed_nonce: 9,
-					relayers: vec![(10, 10, TEST_RELAYER_B), (11, 11, TEST_RELAYER_A)]
-						.into_iter()
-						.collect(),
+					relayers: vec![
+						unrewarded_relayer(10, 10, TEST_RELAYER_B),
+						unrewarded_relayer(11, 11, TEST_RELAYER_A)
+					]
+					.into_iter()
+					.collect(),
 				},
 			);
 			assert_eq!(
@@ -1465,7 +1502,7 @@ mod tests {
 				TestMessagesDeliveryProof(Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
-						relayers: vec![(1, 1, TEST_RELAYER_A)].into_iter().collect(),
+						relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into_iter().collect(),
 						..Default::default()
 					}
 				))),
@@ -1490,9 +1527,12 @@ mod tests {
 				TestMessagesDeliveryProof(Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
-						relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
-							.into_iter()
-							.collect(),
+						relayers: vec![
+							unrewarded_relayer(1, 1, TEST_RELAYER_A),
+							unrewarded_relayer(2, 2, TEST_RELAYER_B)
+						]
+						.into_iter()
+						.collect(),
 						..Default::default()
 					}
 				))),
@@ -1537,9 +1577,12 @@ mod tests {
 					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
-							relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
-								.into_iter()
-								.collect(),
+							relayers: vec![
+								unrewarded_relayer(1, 1, TEST_RELAYER_A),
+								unrewarded_relayer(2, 2, TEST_RELAYER_B)
+							]
+							.into_iter()
+							.collect(),
 							..Default::default()
 						}
 					))),
@@ -1559,9 +1602,12 @@ mod tests {
 					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
-							relayers: vec![(1, 1, TEST_RELAYER_A), (2, 2, TEST_RELAYER_B)]
-								.into_iter()
-								.collect(),
+							relayers: vec![
+								unrewarded_relayer(1, 1, TEST_RELAYER_A),
+								unrewarded_relayer(2, 2, TEST_RELAYER_B)
+							]
+							.into_iter()
+							.collect(),
 							..Default::default()
 						}
 					))),

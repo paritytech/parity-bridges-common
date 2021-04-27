@@ -19,13 +19,14 @@
 
 use crate::Config;
 
+use bitvec::prelude::*;
 use bp_messages::{
 	source_chain::{
 		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, Sender, TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
-	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
-	Parameter as MessagesParameter,
+	DeliveredMessages, InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
+	Parameter as MessagesParameter, UnrewardedRelayer,
 };
 use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode};
@@ -421,8 +422,29 @@ pub fn message_data(payload: TestPayload) -> MessageData<TestMessageFee> {
 /// Returns message dispatch result with given unspent weight.
 pub const fn dispatch_result(unspent_weight: Weight) -> MessageDispatchResult {
 	MessageDispatchResult {
+		dispatch_result: true,
 		unspent_weight,
 		dispatch_fee_paid_during_dispatch: true,
+	}
+}
+
+/// Constructs unrewarded relayer entry from nonces range and relayer id.
+pub fn unrewarded_relayer(
+	begin: MessageNonce,
+	end: MessageNonce,
+	relayer: TestRelayer,
+) -> UnrewardedRelayer<TestRelayer> {
+	UnrewardedRelayer {
+		relayer,
+		messages: DeliveredMessages {
+			begin,
+			end,
+			dispatch_results: if end >= begin {
+				bitvec![Msb0, u8; 1; (end - begin + 1) as _]
+			} else {
+				Default::default()
+			},
+		},
 	}
 }
 
