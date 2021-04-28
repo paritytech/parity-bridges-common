@@ -641,7 +641,7 @@ decl_module! {
 			};
 			if let Some(confirmed_messages) = confirmed_messages {
 				// handle messages delivery
-				T::OnMessagesDelivered::on_messages_delivered(&confirmed_messages);
+				T::OnMessagesDelivered::on_messages_delivered(&lane_id, &confirmed_messages);
 
 				// emit 'delivered' event
 				let received_range = confirmed_messages.begin..=confirmed_messages.end;
@@ -1909,10 +1909,10 @@ mod tests {
 			));
 
 			// ensure that both callbacks have been called twice: for 1+2, then for 3
-			crate::mock::TestOnMessagesDelivered1::ensure_called(&delivered_messages_1_and_2);
-			crate::mock::TestOnMessagesDelivered1::ensure_called(&delivered_message_3);
-			crate::mock::TestOnMessagesDelivered2::ensure_called(&delivered_messages_1_and_2);
-			crate::mock::TestOnMessagesDelivered2::ensure_called(&delivered_message_3);
+			crate::mock::TestOnMessagesDelivered1::ensure_called(&TEST_LANE_ID, &delivered_messages_1_and_2);
+			crate::mock::TestOnMessagesDelivered1::ensure_called(&TEST_LANE_ID, &delivered_message_3);
+			crate::mock::TestOnMessagesDelivered2::ensure_called(&TEST_LANE_ID, &delivered_messages_1_and_2);
+			crate::mock::TestOnMessagesDelivered2::ensure_called(&TEST_LANE_ID, &delivered_message_3);
 		});
 	}
 }

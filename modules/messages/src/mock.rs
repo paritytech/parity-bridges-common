@@ -354,15 +354,15 @@ pub struct TestOnMessagesDelivered1;
 
 impl TestOnMessagesDelivered1 {
 	/// Verify that the callback has been called with given delivered messages.
-	pub fn ensure_called(messages: &DeliveredMessages) {
-		let key = (b"TestOnMessagesDelivered1", messages).encode();
+	pub fn ensure_called(lane: &LaneId, messages: &DeliveredMessages) {
+		let key = (b"TestOnMessagesDelivered1", lane, messages).encode();
 		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
 	}
 }
 
 impl OnMessagesDelivered for TestOnMessagesDelivered1 {
-	fn on_messages_delivered(messages: &DeliveredMessages) {
-		let key = (b"TestOnMessagesDelivered1", messages).encode();
+	fn on_messages_delivered(lane: &LaneId, messages: &DeliveredMessages) {
+		let key = (b"TestOnMessagesDelivered1", lane, messages).encode();
 		frame_support::storage::unhashed::put(&key, &true);
 	}
 }
@@ -373,15 +373,15 @@ pub struct TestOnMessagesDelivered2;
 
 impl TestOnMessagesDelivered2 {
 	/// Verify that the callback has been called with given delivered messages.
-	pub fn ensure_called(messages: &DeliveredMessages) {
-		let key = (b"TestOnMessagesDelivered2", messages).encode();
+	pub fn ensure_called(lane: &LaneId, messages: &DeliveredMessages) {
+		let key = (b"TestOnMessagesDelivered2", lane, messages).encode();
 		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
 	}
 }
 
 impl OnMessagesDelivered for TestOnMessagesDelivered2 {
-	fn on_messages_delivered(messages: &DeliveredMessages) {
-		let key = (b"TestOnMessagesDelivered2", messages).encode();
+	fn on_messages_delivered(lane: &LaneId, messages: &DeliveredMessages) {
+		let key = (b"TestOnMessagesDelivered2", lane, messages).encode();
 		frame_support::storage::unhashed::put(&key, &true);
 	}
 }

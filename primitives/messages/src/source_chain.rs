@@ -141,7 +141,7 @@ pub trait OnMessagesDelivered {
 	/// Called when we receive confirmation that our messages have been delivered to the
 	/// target chain. The confirmation aso has single bit dispatch result for every
 	/// confirmed message (see `DeliveredMessages` for details).
-	fn on_messages_delivered(_messages: &DeliveredMessages) {}
+	fn on_messages_delivered(_lane: &LaneId, _messages: &DeliveredMessages) {}
 }
 
 /// Structure that may be used in place of `TargetHeaderChain`, `LaneMessageVerifier` and
