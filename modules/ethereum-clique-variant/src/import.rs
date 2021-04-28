@@ -36,7 +36,6 @@ pub fn import_headers<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 	storage: &mut S,
 	pruning_strategy: &mut PS,
 	clique_variant_config: &CliqueVariantConfiguration,
-	validators_config: &ValidatorsConfiguration,
 	submitter: Option<S::Submitter>,
 	headers: Vec<CliqueHeader>,
 	chain_time: &CT,
@@ -49,7 +48,6 @@ pub fn import_headers<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 			storage,
 			pruning_strategy,
 			clique_variant_config,
-			validators_config,
 			submitter.clone(),
 			header,
 			chain_time,
@@ -77,7 +75,7 @@ pub type FinalizedHeaders<S> = Vec<(HeaderId, Option<<S as Storage>::Submitter>)
 
 /// Imports given header and updates blocks finality (if required).
 ///
-/// Transactions receipts are useless for verify blocking in clique consensus
+/// Transactions receipts are useless here
 ///
 /// Returns imported block id and list of all finalized headers.
 /// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/415)
@@ -86,7 +84,6 @@ pub fn import_header<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 	storage: &mut S,
 	pruning_strategy: &mut PS,
 	clique_variant_config: &CliqueVariantConfiguration,
-	validators_config: &ValidatorsConfiguration,
 	submitter: Option<S::Submitter>,
 	header: CliqueHeader,
 	chain_time: &CT,
@@ -97,12 +94,8 @@ pub fn import_header<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 	// verify header
 	let import_context = verify_clique_variant_header(storage, clique_variant_config, submitter, &header, chain_time)?;
 
-	// check if block schedules new validators
-	let validators = Validators::new(validators_config);
-	let (scheduled_change, enacted_change) = validators.extract_validators_change(&header, receipts)?;
+	import_context.snapshot.verify(header)?
 
-	// check if block finalizes some other blocks and corresponding scheduled validators
-	let validators_set = import_context.validators_set();
 	let finalized_blocks = finalize_blocks(
 		storage,
 		finalized_id,
@@ -150,18 +143,6 @@ pub fn import_header<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 	storage.finalize_and_prune_headers(new_best_finalized_block_id, pruning_upper_bound);
 
 	Ok((header_id, finalized_blocks.finalized_headers))
-}
-
-/// Returns true if transactions receipts are required to import given header.
-pub fn header_import_requires_receipts<S: Storage>(
-	storage: &S,
-	validators_config: &ValidatorsConfiguration,
-	header: &CliqueHeader,
-) -> bool {
-	is_importable_header(storage, header)
-		.map(|_| Validators::new(validators_config))
-		.map(|validators| validators.maybe_signals_validators_change(header))
-		.unwrap_or(false)
 }
 
 #[cfg(test)]

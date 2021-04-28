@@ -73,33 +73,13 @@ pub fn accept_clique_header_into_pool<S: Storage, CT: ChainTime>(
 		return Err(Error::UnsignedTooFarInTheFuture);
 	}
 
-	// TODO: only accept new headers when we're at the tip of PoA chain
-	// https://github.com/paritytech/parity-bridges-common/issues/38
-
-	// we want to see at most one header with given number from single authority
-	// => every header is providing tag (block_number + authority)
-	// => since only one tx in the pool can provide the same tag, they're auto-deduplicated
-	let provides_number_and_authority_tag = (header.number, header.author).encode();
-
-	// we want to see several 'future' headers in the pool at once, but we may not have access to
-	// previous headers here
-	// => we can at least 'verify' that headers comprise a chain by providing and requiring
-	// tag (header.number, header.hash)
-	let provides_header_number_and_hash_tag = header_id.encode();
-
+	
 	// depending on whether parent header is available, we either perform full or 'shortened' check
 	let context = storage.import_context(None, &header.parent_hash);
 	let tags = match context {
 		Some(context) => {
 			let header_step = contextual_checks(config, &context, None, header)?;
 			validator_checks(config, &context.validators_set().validators, header)?;
-
-			// since our parent is already in the storage, we do not require it
-			// to be in the transaction pool
-			(
-				vec![],
-				vec![provides_number_and_authority_tag, provides_header_number_and_hash_tag],
-			)
 		}
 		None => {
 			// we know nothing about parent header

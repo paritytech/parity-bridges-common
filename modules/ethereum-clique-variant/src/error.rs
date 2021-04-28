@@ -113,6 +113,7 @@ impl Error {
 			Error::TryingToFinalizeSibling => "Trying to finalize sibling of finalized block",
 			Error::HeaderTimestampIsAhead => "Header timestamp is ahead of on-chain timestamp",
 			Error::MissingSignature => "Extra-data 65 byte signature suffix missing",
+			_ => "TODO :)",
 		}
 	}
 

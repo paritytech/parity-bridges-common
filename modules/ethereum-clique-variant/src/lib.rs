@@ -31,12 +31,12 @@ use sp_runtime::{
 };
 use sp_std::{cmp::Ord, collections::btree_map::BTreeMap, prelude::*};
 
-pub use validators::{ValidatorsConfiguration, ValidatorsSource};
+pub use snapshot::{Snapshot};
 
 mod error;
 mod finality;
 mod import;
-mod validators;
+mod snapshot;
 mod verification;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -158,8 +158,7 @@ pub struct ImportContext<Submitter> {
 	parent_hash: H256,
 	parent_header: CliqueHeader,
 	parent_total_difficulty: U256,
-	validators_set_id: u64,
-	validators_set: ValidatorsSet,
+	snapshot: Snapshot,
 }
 
 impl<Submitter> ImportContext<Submitter> {
@@ -177,28 +176,6 @@ impl<Submitter> ImportContext<Submitter> {
 	pub fn total_difficulty(&self) -> &U256 {
 		&self.parent_total_difficulty
 	}
-
-	/// Returns id of the set of validators.
-	pub fn validators_set_id(&self) -> u64 {
-		// header.number / epoch_length
-		self.validators_set_id
-	}
-
-	/// Returns reference to validators set for the block we're going to import.
-	pub fn validators_set(&self) -> &ValidatorsSet {
-		&self.validators_set
-	}
-
-	/// Returns reference to the latest block which has enacted the change of validators set.
-	pub fn last_checkpoint(&self) -> Option<HeaderId> {
-		if self.validators_set_id == 0 {
-			// TODO return genesis block?
-			None
-		} else {
-			// TODO retrieve last checkpoint block
-		}
-	}
-
 	/// Converts import context into header we're going to import.
 	#[allow(clippy::too_many_arguments)]
 	pub fn into_import_header(
@@ -207,7 +184,6 @@ impl<Submitter> ImportContext<Submitter> {
 		id: HeaderId,
 		header: CliqueHeader,
 		total_difficulty: U256,
-		enacted_change: Option<ChangeToEnact>,
 	) -> HeaderToImport<Submitter> {
 		HeaderToImport {
 			context: self,
@@ -215,7 +191,6 @@ impl<Submitter> ImportContext<Submitter> {
 			id,
 			header,
 			total_difficulty,
-			enacted_change,
 		}
 	}
 }
@@ -347,7 +322,6 @@ decl_module! {
 				&mut BridgeStorage::<T, I>::new(),
 				&mut T::PruningStrategy::default(),
 				&T::CliqueVariantConfiguration::get(),
-				&T::ValidatorsConfiguration::get(),
 				None,
 				header,
 				&T::ChainTime::default(),
@@ -412,8 +386,8 @@ decl_storage! {
 		HeadersByNumber: map hasher(blake2_128_concat) u64 => Option<Vec<H256>>;
 		/// Map of cached finality data by header hash.
 		FinalityCache: map hasher(identity) H256 => Option<FinalityVotes<T::AccountId>>;
-		/// Map of validators sets by their id.
-		ValidatorsSets: map hasher(twox_64_concat) u64 => Option<ValidatorsSet>;
+		/// Block state
+		BlockState: BlockState;
 		/// Validators sets reference count. Each header that is authored by this set increases
 		/// the reference count. When we prune this header, we decrease the reference count.
 		/// When it reaches zero, we are free to prune validator set as well.
@@ -628,18 +602,11 @@ impl<T: Config<I>, I: Instance> Storage for BridgeStorage<T, I> {
 		parent_hash: &H256,
 	) -> Option<ImportContext<Self::Submitter>> {
 		Headers::<T, I>::get(parent_hash).map(|parent_header| {
-			let validators_set = ValidatorsSets::<I>::get(parent_header.next_validators_set_id)
-				.expect("validators set is only pruned when last ref is pruned; there is a ref; qed");
-			let parent_scheduled_change = ScheduledChanges::<I>::get(parent_hash);
 			ImportContext {
 				submitter,
 				parent_hash: *parent_hash,
 				parent_header: parent_header.header,
 				parent_total_difficulty: parent_header.total_difficulty,
-				parent_scheduled_change,
-				validators_set_id: parent_header.next_validators_set_id,
-				validators_set,
-				last_signal_block: parent_header.last_signal_block,
 			}
 		})
 	}
@@ -1097,7 +1064,7 @@ pub(crate) mod tests {
 					&storage,
 					example_header().compute_hash(),
 					0,
-					&[(example_tx(), example_tx_receipt(true))],
+					&[example_tx()],
 				),
 				false,
 			);
@@ -1121,7 +1088,7 @@ pub(crate) mod tests {
 					&storage,
 					finalized_header_sibling_hash,
 					0,
-					&[(example_tx(), example_tx_receipt(true))],
+					&[example_tx()],
 				),
 				false,
 			);
@@ -1145,7 +1112,7 @@ pub(crate) mod tests {
 					&storage,
 					finalized_header_uncle_hash,
 					0,
-					&[(example_tx(), example_tx_receipt(true))],
+					&[example_tx()],
 				),
 				false,
 			);
@@ -1162,8 +1129,8 @@ pub(crate) mod tests {
 					example_header().compute_hash(),
 					0,
 					&[
-						(example_tx(), example_tx_receipt(true)),
-						(example_tx(), example_tx_receipt(true))
+						example_tx(),
+						example_tx()
 					],
 				),
 				false,
@@ -1180,23 +1147,7 @@ pub(crate) mod tests {
 					&storage,
 					example_header().compute_hash(),
 					0,
-					&[(example_tx(), vec![42])],
-				),
-				false,
-			);
-		});
-	}
-
-	#[test]
-	fn verify_transaction_finalized_rejects_failed_transaction() {
-		run_test_with_genesis(example_header_with_failed_receipt(), TOTAL_VALIDATORS, |_| {
-			let storage = BridgeStorage::<TestRuntime>::new();
-			assert_eq!(
-				verify_transaction_finalized(
-					&storage,
-					example_header_with_failed_receipt().compute_hash(),
-					0,
-					&[(example_tx(), example_tx_receipt(false))],
+					&[example_tx()],
 				),
 				false,
 			);

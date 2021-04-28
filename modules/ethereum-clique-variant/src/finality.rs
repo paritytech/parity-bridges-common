@@ -52,8 +52,6 @@ pub struct FinalityEffects<Submitter> {
 #[derive(RuntimeDebug, Decode, Encode)]
 #[cfg_attr(test, derive(Clone, PartialEq))]
 pub struct FinalityVotes<Submitter> {
-	/// Number of votes per each validator.
-	pub votes: BTreeMap<Address, u64>,
 	/// Ancestry blocks with oldest ancestors at the beginning and newest at the
 	/// end of the queue.
 	pub ancestry: VecDeque<FinalityAncestor<Submitter>>,
