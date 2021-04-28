@@ -135,6 +135,22 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	}
 }
 
+/// Messages bridge API to be used from other pallets.
+pub trait MessagesBridge<AccountId, Balance, Payload> {
+	/// Error type.
+	type Error: Debug;
+
+	/// Send message over the bridge.
+	///
+	/// Returns unique message nonce or error if send has failed.
+	fn send_message(
+		sender: AccountId,
+		lane: LaneId,
+		message: Payload,
+		delivery_and_dispatch_fee: Balance,
+	) -> Result<MessageNonce, Self::Error>;
+}
+
 /// Handler for messages delivery confirmation.
 #[impl_trait_for_tuples::impl_for_tuples(30)]
 pub trait OnDeliveryConfirmed {

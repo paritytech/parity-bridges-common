@@ -848,6 +848,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-token-swap"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec 2.0.1",
+]
+
+[[package]]
 name = "bp-westend"
 version = "0.1.0"
 dependencies = [
@@ -4778,6 +4786,26 @@ dependencies = [
  "num-traits",
  "pallet-balances",
  "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-token-swap"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-runtime",
+ "bp-token-swap",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-bridge-dispatch",
+ "parity-scale-codec 2.0.1",
  "serde",
  "sp-core",
  "sp-io",
