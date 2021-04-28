@@ -358,7 +358,8 @@ pub mod source {
 	where
 		ThisRuntime: pallet_bridge_grandpa::Config<GrandpaInstance>,
 		ThisRuntime: pallet_bridge_messages::Config<MessagesInstanceOf<BridgedChain<B>>>,
-		HashOf<BridgedChain<B>>: Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config<GrandpaInstance>>::BridgedChain>>,
+		HashOf<BridgedChain<B>>:
+			Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config<GrandpaInstance>>::BridgedChain>>,
 	{
 		let FromBridgedChainMessagesDeliveryProof {
 			bridged_header_hash,
@@ -511,7 +512,8 @@ pub mod target {
 	where
 		ThisRuntime: pallet_bridge_grandpa::Config<GrandpaInstance>,
 		ThisRuntime: pallet_bridge_messages::Config<MessagesInstanceOf<BridgedChain<B>>>,
-		HashOf<BridgedChain<B>>: Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config<GrandpaInstance>>::BridgedChain>>,
+		HashOf<BridgedChain<B>>:
+			Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config<GrandpaInstance>>::BridgedChain>>,
 	{
 		verify_messages_proof_with_parser::<B, _, _>(
 			proof,
