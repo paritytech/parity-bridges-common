@@ -47,7 +47,9 @@ use crate::outbound_lane::{OutboundLane, OutboundLaneStorage, ReceivalConfirmati
 use crate::weights::WeightInfo;
 
 use bp_messages::{
-	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, TargetHeaderChain},
+	source_chain::{
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnMessagesDelivered, RelayersRewards, TargetHeaderChain,
+	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	total_unrewarded_messages, DeliveredMessages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce,
 	OperatingMode, OutboundLaneData, Parameter as MessagesParameter, UnrewardedRelayersState,
@@ -146,6 +148,8 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	type LaneMessageVerifier: LaneMessageVerifier<Self::AccountId, Self::OutboundPayload, Self::OutboundMessageFee>;
 	/// Message delivery payment.
 	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<Self::AccountId, Self::OutboundMessageFee>;
+	/// Handler for delivered messages.
+	type OnMessagesDelivered: OnMessagesDelivered;
 
 	// Types that are used by inbound_lane (on target chain).
 
@@ -636,6 +640,10 @@ decl_module! {
 				},
 			};
 			if let Some(confirmed_messages) = confirmed_messages {
+				// handle messages delivery
+				T::OnMessagesDelivered::on_messages_delivered(&confirmed_messages);
+
+				// emit 'delivered' event
 				let received_range = confirmed_messages.begin..=confirmed_messages.end;
 				Self::deposit_event(RawEvent::MessagesDelivered(lane_id, confirmed_messages));
 
@@ -957,6 +965,10 @@ mod tests {
 	fn send_regular_message() {
 		get_ready_for_events();
 
+		let message_nonce = outbound_lane::<TestRuntime, DefaultInstance>(TEST_LANE_ID)
+			.data()
+			.latest_generated_nonce
+			+ 1;
 		assert_ok!(Pallet::<TestRuntime>::send_message(
 			Origin::signed(1),
 			TEST_LANE_ID,
@@ -969,7 +981,7 @@ mod tests {
 			System::<TestRuntime>::events(),
 			vec![EventRecord {
 				phase: Phase::Initialization,
-				event: TestEvent::Messages(RawEvent::MessageAccepted(TEST_LANE_ID, 1)),
+				event: TestEvent::Messages(RawEvent::MessageAccepted(TEST_LANE_ID, message_nonce)),
 				topics: vec![],
 			}],
 		);
@@ -1835,6 +1847,72 @@ mod tests {
 				post,
 				pre - 1 - <TestRuntime as Config>::WeightInfo::pay_inbound_dispatch_fee_overhead()
 			);
+		});
+	}
+
+	#[test]
+	fn messages_delivered_callbacks_are_called() {
+		run_test(|| {
+			send_regular_message();
+			send_regular_message();
+			send_regular_message();
+
+			// messages 1+2 are confirmed in 1 tx, message 3 in a separate tx
+			// dispatch of message 2 has failed
+			let mut delivered_messages_1_and_2 = DeliveredMessages::new(1, true);
+			delivered_messages_1_and_2.note_dispatched_message(false);
+			let messages_1_and_2_proof = Ok((
+				TEST_LANE_ID,
+				InboundLaneData {
+					last_confirmed_nonce: 0,
+					relayers: vec![UnrewardedRelayer {
+						relayer: 0,
+						messages: delivered_messages_1_and_2.clone(),
+					}]
+					.into_iter()
+					.collect(),
+				},
+			));
+			let delivered_message_3 = DeliveredMessages::new(3, true);
+			let messages_3_proof = Ok((
+				TEST_LANE_ID,
+				InboundLaneData {
+					last_confirmed_nonce: 0,
+					relayers: vec![UnrewardedRelayer {
+						relayer: 0,
+						messages: delivered_message_3.clone(),
+					}]
+					.into_iter()
+					.collect(),
+				},
+			));
+
+			// first tx with messages 1+2
+			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
+				Origin::signed(1),
+				TestMessagesDeliveryProof(messages_1_and_2_proof),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 1,
+					total_messages: 2,
+					..Default::default()
+				},
+			));
+			// second tx with message 3
+			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
+				Origin::signed(1),
+				TestMessagesDeliveryProof(messages_3_proof),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 1,
+					total_messages: 1,
+					..Default::default()
+				},
+			));
+
+			// ensure that both callbacks have been called twice: for 1+2, then for 3
+			crate::mock::TestOnMessagesDelivered1::ensure_called(&delivered_messages_1_and_2);
+			crate::mock::TestOnMessagesDelivered1::ensure_called(&delivered_message_3);
+			crate::mock::TestOnMessagesDelivered2::ensure_called(&delivered_messages_1_and_2);
+			crate::mock::TestOnMessagesDelivered2::ensure_called(&delivered_message_3);
 		});
 	}
 }

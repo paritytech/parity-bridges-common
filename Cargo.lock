@@ -729,6 +729,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "frame-system",
+ "impl-trait-for-tuples",
  "parity-scale-codec",
  "serde",
  "sp-std",

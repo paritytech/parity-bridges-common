@@ -22,7 +22,8 @@ use crate::Config;
 use bitvec::prelude::*;
 use bp_messages::{
 	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, RelayersRewards, Sender, TargetHeaderChain,
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnMessagesDelivered, RelayersRewards, Sender,
+		TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	DeliveredMessages, InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
@@ -170,6 +171,7 @@ impl Config for TestRuntime {
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
+	type OnMessagesDelivered = (TestOnMessagesDelivered1, TestOnMessagesDelivered2);
 
 	type SourceHeaderChain = TestSourceHeaderChain;
 	type MessageDispatch = TestMessageDispatch;
@@ -343,6 +345,44 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 			let key = (b":relayer-reward:", relayer, reward.reward).encode();
 			frame_support::storage::unhashed::put(&key, &true);
 		}
+	}
+}
+
+/// First on-messages-delivered callback.
+#[derive(Debug)]
+pub struct TestOnMessagesDelivered1;
+
+impl TestOnMessagesDelivered1 {
+	/// Verify that the callback has been called with given delivered messages.
+	pub fn ensure_called(messages: &DeliveredMessages) {
+		let key = (b"TestOnMessagesDelivered1", messages).encode();
+		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
+	}
+}
+
+impl OnMessagesDelivered for TestOnMessagesDelivered1 {
+	fn on_messages_delivered(messages: &DeliveredMessages) {
+		let key = (b"TestOnMessagesDelivered1", messages).encode();
+		frame_support::storage::unhashed::put(&key, &true);
+	}
+}
+
+/// Seconde on-messages-delivered callback.
+#[derive(Debug)]
+pub struct TestOnMessagesDelivered2;
+
+impl TestOnMessagesDelivered2 {
+	/// Verify that the callback has been called with given delivered messages.
+	pub fn ensure_called(messages: &DeliveredMessages) {
+		let key = (b"TestOnMessagesDelivered2", messages).encode();
+		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
+	}
+}
+
+impl OnMessagesDelivered for TestOnMessagesDelivered2 {
+	fn on_messages_delivered(messages: &DeliveredMessages) {
+		let key = (b"TestOnMessagesDelivered2", messages).encode();
+		frame_support::storage::unhashed::put(&key, &true);
 	}
 }
 
