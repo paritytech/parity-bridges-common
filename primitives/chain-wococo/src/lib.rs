@@ -55,7 +55,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// See: https://github.com/paritytech/polkadot/blob/master/runtime/rococo/src/lib.rs
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
 pub enum Call {
-	/// Westend bridge pallet.
+	/// Rococo bridge pallet.
 	#[codec(index = 40)]
 	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
 }
