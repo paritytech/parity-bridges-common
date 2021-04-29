@@ -832,6 +832,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-wococo"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "parity-scale-codec 2.0.1",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
+]
+
+[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
@@ -5994,6 +6009,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-wococo-client"
+version = "0.1.0"
+dependencies = [
+ "bp-wococo",
+ "frame-support",
+ "frame-system",
+ "headers-relay",
+ "pallet-transaction-payment",
+ "parity-scale-codec 2.0.1",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
+ "sp-keyring",
+ "sp-runtime",
+]
+
+[[package]]
 name = "remove_dir_all"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8429,6 +8461,7 @@ dependencies = [
  "bp-rococo",
  "bp-runtime",
  "bp-westend",
+ "bp-wococo",
  "bridge-runtime-common",
  "finality-grandpa 0.14.0",
  "finality-relay",
@@ -8454,6 +8487,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "relay-westend-client",
+ "relay-wococo-client",
  "rialto-runtime",
  "sp-core",
  "sp-finality-grandpa",
