@@ -121,7 +121,7 @@ macro_rules! select_bridge {
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					bp_rococo::Call::BridgeGrandpaWococo(bp_rococo::BridgeGrandpaCall::initialize(init_data))
+					bp_rococo::Call::BridgeGrandpaWococo(bp_rococo::BridgeGrandpaWococoCall::initialize(init_data))
 				}
 
 				$generic
