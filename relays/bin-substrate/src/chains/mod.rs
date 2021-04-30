@@ -129,7 +129,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			call.get_dispatch_info().weight,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
@@ -139,7 +139,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			call.get_dispatch_info().weight,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert!(Millau::verify_message(&payload).is_err());
@@ -166,7 +166,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			maximal_dispatch_weight,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
@@ -174,7 +174,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			maximal_dispatch_weight + 1,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert!(Millau::verify_message(&payload).is_err());
@@ -191,7 +191,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			maximal_dispatch_weight,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert_eq!(Rialto::verify_message(&payload), Ok(()));
@@ -199,7 +199,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			maximal_dispatch_weight + 1,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert!(Rialto::verify_message(&payload).is_err());
