@@ -72,6 +72,9 @@ impl Alternative {
 			json!({
 				"tokenDecimals": 9,
 				"tokenSymbol": "RLT",
+				"bridgeIds": {
+					"Millau": bp_runtime::MILLAU_BRIDGE_INSTANCE,
+				}
 			})
 			.as_object()
 			.expect("Map given; qed")
@@ -178,7 +181,7 @@ fn testnet_genesis(
 			changes_trie_config: Default::default(),
 		},
 		pallet_balances: BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 50)).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 20)).collect(),
 		},
 		pallet_aura: AuraConfig {
 			authorities: Vec::new(),

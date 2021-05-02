@@ -71,6 +71,9 @@ impl Alternative {
 			serde_json::json!({
 				"tokenDecimals": 9,
 				"tokenSymbol": "MLAU",
+				"bridgeIds": {
+					"Rialto": bp_runtime::RIALTO_BRIDGE_INSTANCE,
+				}
 			})
 			.as_object()
 			.expect("Map given; qed")
