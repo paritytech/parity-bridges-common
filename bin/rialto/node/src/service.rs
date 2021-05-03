@@ -289,7 +289,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		let raw_slot_duration = slot_duration.slot_duration();
 		let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(StartAuraParams {
 			slot_duration,
-			client: client.clone(),
+			client,
 			select_chain,
 			block_import,
 			proposer_factory,
