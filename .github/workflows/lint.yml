@@ -62,4 +62,4 @@ jobs:
         run:            cargo install cargo-spellcheck
 
       - name:           Run spellcheck
-        run:            cargo spellcheck check -m 1 -vv $(find modules/currency-exchange/src -name "*.rs")
+        run:            cargo spellcheck check -m 1 -vv $(find modules/dispatch/src -name "*.rs")
