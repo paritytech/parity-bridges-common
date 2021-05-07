@@ -4700,6 +4700,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal 0.3.1",
+ "lazy_static",
  "libsecp256k1",
  "log",
  "lru-cache",
