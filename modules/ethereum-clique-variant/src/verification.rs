@@ -20,8 +20,8 @@ use crate::{
 	ChainTime, CliqueVariantConfiguration, CliqueVariantScheduledChange, ImportContext, PoolConfiguration, Storage,
 };
 use bp_eth_clique::{
-	public_to_address, step_validator, Address, CliqueHeader, HeaderId, Receipt, SealedEmptyStep, ADDRESS_LENGTH,
-	DIFF_INTURN, DIFF_NOTURN, H256, H520, KECCAK_EMPTY_LIST_RLP, SIGNATURE_LENGTH, U128, U256, VANITY_LENGTH,
+	public_to_address, step_validator, Address, CliqueHeader, HeaderId, ADDRESS_LENGTH, DIFF_INTURN, DIFF_NOTURN, H256,
+	H520, KECCAK_EMPTY_LIST_RLP, SIGNATURE_LENGTH, U128, U256, VANITY_LENGTH,
 };
 use codec::Encode;
 use sp_io::crypto::secp256k1_ecdsa_recover;
@@ -47,7 +47,6 @@ pub fn is_importable_header<S: Storage>(storage: &S, header: &CliqueHeader) -> R
 }
 
 /// Try accept unsigned clique header into transaction pool.
-///
 /// Returns required and provided tags.
 pub fn accept_clique_header_into_pool<S: Storage, CT: ChainTime>(
 	storage: &S,
@@ -73,7 +72,6 @@ pub fn accept_clique_header_into_pool<S: Storage, CT: ChainTime>(
 		return Err(Error::UnsignedTooFarInTheFuture);
 	}
 
-	
 	// depending on whether parent header is available, we either perform full or 'shortened' check
 	let context = storage.import_context(None, &header.parent_hash);
 	let tags = match context {
@@ -266,37 +264,6 @@ fn verify_signature(expected_validator: &Address, signature: &H520, message: &H2
 		.map(|public| public_to_address(&public))
 		.map(|address| *expected_validator == address)
 		.unwrap_or(false)
-}
-
-/// Find next unfinalized validators set change after finalized set.
-fn find_next_validators_signal<S: Storage>(storage: &S, context: &ImportContext<S::Submitter>) -> Option<Vec<Address>> {
-	// that's the earliest block number we may met in following loop
-	// it may be None if that's the first set
-	let best_set_signal_block = context.validators_set().signal_block;
-
-	// if parent schedules validators set change, then it may be our set
-	// else we'll start with last known change
-	let mut current_set_signal_block = context.last_signal_block();
-	let mut next_scheduled_set: Option<CliqueVariantScheduledChange> = None;
-
-	loop {
-		// if we have reached block that signals finalized change, then
-		// next_current_block_hash points to the block that schedules next
-		// change
-		let current_scheduled_set = match current_set_signal_block {
-			Some(current_set_signal_block) if Some(&current_set_signal_block) == best_set_signal_block.as_ref() => {
-				return next_scheduled_set.map(|scheduled_set| scheduled_set.validators)
-			}
-			None => return next_scheduled_set.map(|scheduled_set| scheduled_set.validators),
-			Some(current_set_signal_block) => storage.scheduled_change(&current_set_signal_block.hash).expect(
-				"header that is associated with this change is not pruned;\
-					scheduled changes are only removed when header is pruned; qed",
-			),
-		};
-
-		current_set_signal_block = current_scheduled_set.prev_signal_block;
-		next_scheduled_set = Some(current_scheduled_set);
-	}
 }
 
 #[cfg(test)]

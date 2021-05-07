@@ -18,10 +18,14 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use crate::finality::{CachedFinalityVotes, FinalityVotes};
-use bp_eth_clique::{Address, CliqueHeader, HeaderId, RawTransaction, RawTransactionReceipt, Receipt, H256, U256};
+use crate::{
+	finality::{CachedFinalityVotes, FinalityVotes},
+	snapshot::Snapshot,
+};
+use bp_eth_clique::{Address, CliqueHeader, HeaderId, RawTransaction};
 use codec::{Decode, Encode};
 use frame_support::{decl_module, decl_storage, traits::Get};
+use primitive_types::{H256, U256};
 use sp_runtime::{
 	transaction_validity::{
 		InvalidTransaction, TransactionLongevity, TransactionPriority, TransactionSource, TransactionValidity,
@@ -31,12 +35,11 @@ use sp_runtime::{
 };
 use sp_std::{cmp::Ord, collections::btree_map::BTreeMap, prelude::*};
 
-pub use snapshot::{Snapshot};
-
 mod error;
 mod finality;
 mod import;
 mod snapshot;
+mod utils;
 mod verification;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -90,16 +93,6 @@ pub struct StoredHeader<Submitter> {
 	pub header: CliqueHeader,
 	/// Total difficulty of the chain.
 	pub total_difficulty: U256,
-}
-
-/// Validators set as it is stored in the runtime storage.
-#[derive(Encode, Decode, PartialEq, RuntimeDebug)]
-#[cfg_attr(test, derive(Clone))]
-pub struct ValidatorsSet {
-	/// Validators of this set.
-	pub validators: Vec<Address>,
-	/// Hash of the block where this set has been enacted.
-	pub enact_block: HeaderId,
 }
 
 /// Header that we're importing.
@@ -158,7 +151,6 @@ pub struct ImportContext<Submitter> {
 	parent_hash: H256,
 	parent_header: CliqueHeader,
 	parent_total_difficulty: U256,
-	snapshot: Snapshot,
 }
 
 impl<Submitter> ImportContext<Submitter> {
@@ -176,6 +168,7 @@ impl<Submitter> ImportContext<Submitter> {
 	pub fn total_difficulty(&self) -> &U256 {
 		&self.parent_total_difficulty
 	}
+
 	/// Converts import context into header we're going to import.
 	#[allow(clippy::too_many_arguments)]
 	pub fn into_import_header(
@@ -299,14 +292,10 @@ impl<AccountId> OnHeadersSubmitted<AccountId> for () {
 pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// CliqueVariant configuration.
 	type CliqueVariantConfiguration: Get<CliqueVariantConfiguration>;
-	/// Validators configuration.
-	type ValidatorsConfiguration: Get<validators::ValidatorsConfiguration>;
-
 	/// Headers pruning strategy.
 	type PruningStrategy: PruningStrategy;
 	/// Header timestamp verification against current on-chain time.
 	type ChainTime: ChainTime;
-
 	/// Handler for headers submission result.
 	type OnHeadersSubmitted: OnHeadersSubmitted<Self::AccountId>;
 }
@@ -386,12 +375,6 @@ decl_storage! {
 		HeadersByNumber: map hasher(blake2_128_concat) u64 => Option<Vec<H256>>;
 		/// Map of cached finality data by header hash.
 		FinalityCache: map hasher(identity) H256 => Option<FinalityVotes<T::AccountId>>;
-		/// Block state
-		BlockState: BlockState;
-		/// Validators sets reference count. Each header that is authored by this set increases
-		/// the reference count. When we prune this header, we decrease the reference count.
-		/// When it reaches zero, we are free to prune validator set as well.
-		ValidatorsSetsRc: map hasher(twox_64_concat) u64 => Option<u64>;
 	}
 	add_extra_genesis {
 		config(initial_header): CliqueHeader;
@@ -446,11 +429,10 @@ impl<T: Config<I>, I: Instance> frame_support::unsigned::ValidateUnsigned for Pa
 
 	fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
 		match *call {
-			Self::Call::import_unsigned_header(ref header, ref receipts) => {
+			Self::Call::import_unsigned_header(ref header) => {
 				let accept_result = verification::accept_clique_header_into_pool(
 					&BridgeStorage::<T, I>::new(),
 					&T::CliqueVariantConfiguration::get(),
-					&T::ValidatorsConfiguration::get(),
 					&pool_configuration(),
 					header,
 					&T::ChainTime::default(),
@@ -601,13 +583,11 @@ impl<T: Config<I>, I: Instance> Storage for BridgeStorage<T, I> {
 		submitter: Option<Self::Submitter>,
 		parent_hash: &H256,
 	) -> Option<ImportContext<Self::Submitter>> {
-		Headers::<T, I>::get(parent_hash).map(|parent_header| {
-			ImportContext {
-				submitter,
-				parent_hash: *parent_hash,
-				parent_header: parent_header.header,
-				parent_total_difficulty: parent_header.total_difficulty,
-			}
+		Headers::<T, I>::get(parent_hash).map(|parent_header| ImportContext {
+			submitter,
+			parent_hash: *parent_hash,
+			parent_header: parent_header.header,
+			parent_total_difficulty: parent_header.total_difficulty,
 		})
 	}
 
@@ -615,31 +595,6 @@ impl<T: Config<I>, I: Instance> Storage for BridgeStorage<T, I> {
 		if header.is_best {
 			BestBlock::<I>::put((header.id, header.total_difficulty));
 		}
-		let next_validators_set_id = match header.enacted_change {
-			Some(enacted_change) => {
-				let next_validators_set_id = NextValidatorsSetId::<I>::mutate(|set_id| {
-					let next_set_id = *set_id;
-					*set_id += 1;
-					next_set_id
-				});
-				ValidatorsSets::<I>::insert(
-					next_validators_set_id,
-					ValidatorsSet {
-						validators: enacted_change.validators,
-						enact_block: header.id,
-					},
-				);
-				ValidatorsSetsRc::<I>::insert(next_validators_set_id, 1);
-				next_validators_set_id
-			}
-			None => {
-				ValidatorsSetsRc::<I>::mutate(header.context.validators_set_id, |rc| {
-					*rc = Some(rc.map(|rc| rc + 1).unwrap_or(1));
-					*rc
-				});
-				header.context.validators_set_id
-			}
-		};
 
 		log::trace!(
 			target: "runtime",
@@ -655,7 +610,6 @@ impl<T: Config<I>, I: Instance> Storage for BridgeStorage<T, I> {
 				submitter: header.context.submitter,
 				header: header.header,
 				total_difficulty: header.total_difficulty,
-				next_validators_set_id,
 			},
 		);
 	}
@@ -714,18 +668,8 @@ pub(crate) fn initialize_storage<T: Config<I>, I: Instance>(
 			submitter: None,
 			header: initial_header.clone(),
 			total_difficulty: initial_difficulty,
-			next_validators_set_id: 0,
 		},
 	);
-	NextValidatorsSetId::<I>::put(1);
-	ValidatorsSets::<I>::insert(
-		0,
-		ValidatorsSet {
-			validators: initial_validators.to_vec(),
-			enact_block: initial_id,
-		},
-	);
-	ValidatorsSetsRc::<I>::insert(0, 1);
 }
 
 /// Verify that transaction is included into given finalized block.
@@ -1060,12 +1004,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, example_header_parent());
 			insert_header(&mut storage, example_header());
 			assert_eq!(
-				verify_transaction_finalized(
-					&storage,
-					example_header().compute_hash(),
-					0,
-					&[example_tx()],
-				),
+				verify_transaction_finalized(&storage, example_header().compute_hash(), 0, &[example_tx()],),
 				false,
 			);
 		});
@@ -1084,12 +1023,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, finalized_header_sibling);
 			storage.finalize_and_prune_headers(Some(example_header().compute_id()), 0);
 			assert_eq!(
-				verify_transaction_finalized(
-					&storage,
-					finalized_header_sibling_hash,
-					0,
-					&[example_tx()],
-				),
+				verify_transaction_finalized(&storage, finalized_header_sibling_hash, 0, &[example_tx()],),
 				false,
 			);
 		});
@@ -1108,12 +1042,7 @@ pub(crate) mod tests {
 			insert_header(&mut storage, example_header());
 			storage.finalize_and_prune_headers(Some(example_header().compute_id()), 0);
 			assert_eq!(
-				verify_transaction_finalized(
-					&storage,
-					finalized_header_uncle_hash,
-					0,
-					&[example_tx()],
-				),
+				verify_transaction_finalized(&storage, finalized_header_uncle_hash, 0, &[example_tx()],),
 				false,
 			);
 		});
@@ -1128,10 +1057,7 @@ pub(crate) mod tests {
 					&storage,
 					example_header().compute_hash(),
 					0,
-					&[
-						example_tx(),
-						example_tx()
-					],
+					&[example_tx(), example_tx()],
 				),
 				false,
 			);
@@ -1143,12 +1069,7 @@ pub(crate) mod tests {
 		run_test_with_genesis(example_header(), TOTAL_VALIDATORS, |_| {
 			let storage = BridgeStorage::<TestRuntime>::new();
 			assert_eq!(
-				verify_transaction_finalized(
-					&storage,
-					example_header().compute_hash(),
-					0,
-					&[example_tx()],
-				),
+				verify_transaction_finalized(&storage, example_header().compute_hash(), 0, &[example_tx()],),
 				false,
 			);
 		});

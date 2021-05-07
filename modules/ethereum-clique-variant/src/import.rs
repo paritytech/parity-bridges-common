@@ -94,23 +94,24 @@ pub fn import_header<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 	// verify header
 	let import_context = verify_clique_variant_header(storage, clique_variant_config, submitter, &header, chain_time)?;
 
-	import_context.snapshot.verify(header)?
+	// verify validator
+	// Retrieve the parent state
+	// TODO how to init snapshot?
+	let parent_state = Snapshot::new().retrieve(storage, &header.parent_hash, clique_variant_config)?;
+	// Try to apply current state, apply() will further check signer and recent signer.
+	let mut new_state = parent_state.clone();
+	new_state.apply(header, header.number() % clique_variant_config.epoch_length == 0)?;
+	new_state.calc_next_timestamp(header.timestamp(), clique_variant_config.period)?;
+	new_state.verify(header)?;
 
 	let finalized_blocks = finalize_blocks(
 		storage,
 		finalized_id,
-		(validators_set.enact_block, &validators_set.validators),
 		header_id,
 		import_context.submitter(),
 		&header,
 		clique_variant_config.two_thirds_majority_transition,
 	)?;
-	let enacted_change = enacted_change
-		.map(|validators| ChangeToEnact {
-			signal_block: None,
-			validators,
-		})
-		.or_else(|| validators.finalize_validators_change(storage, &finalized_blocks.finalized_headers));
 
 	// NOTE: we can't return Err() from anywhere below this line
 	// (because otherwise we'll have inconsistent storage if transaction will fail)
@@ -119,15 +120,7 @@ pub fn import_header<S: Storage, PS: PruningStrategy, CT: ChainTime>(
 	let (best_id, best_total_difficulty) = storage.best_block();
 	let total_difficulty = import_context.total_difficulty() + header.difficulty;
 	let is_best = total_difficulty > best_total_difficulty;
-	storage.insert_header(import_context.into_import_header(
-		is_best,
-		header_id,
-		header,
-		total_difficulty,
-		enacted_change,
-		scheduled_change,
-		finalized_blocks.votes,
-	));
+	storage.insert_header(import_context.into_import_header(is_best, header_id, header, total_difficulty));
 
 	// compute upper border of updated pruning range
 	let new_best_block_id = if is_best { header_id } else { best_id };

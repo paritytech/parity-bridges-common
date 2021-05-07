@@ -63,6 +63,16 @@ pub const ADDRESS_LENGTH: usize = 20;
 pub const DIFF_INTURN: U256 = U256([2, 0, 0, 0]);
 /// Difficulty for NOTURN block
 pub const DIFF_NOTURN: U256 = U256([1, 0, 0, 0]);
+/// Default noturn block wiggle factor defined in spec.
+pub const SIGNING_DELAY_NOTURN_MS: u64 = 500;
+
+/// How many recovered signature to cache in the memory.
+pub const CREATOR_CACHE_NUM: usize = 210;
+lazy_static! {
+	/// key: header hash
+	/// value: creator address
+	static ref CREATOR_BY_HASH: RwLock<LruCache<H256, Address>> = RwLock::new(LruCache::new(CREATOR_CACHE_NUM));
+}
 
 construct_fixed_hash! { pub struct H520(65); }
 impl_fixed_hash_rlp!(H520, 65);
@@ -71,9 +81,6 @@ impl_fixed_hash_serde!(H520, 65);
 
 /// Raw (RLP-encoded) ethereum transaction.
 pub type RawTransaction = Vec<u8>;
-
-/// Raw (RLP-encoded) ethereum transaction receipt.
-pub type RawTransactionReceipt = Vec<u8>;
 
 /// An ethereum address.
 pub type Address = H160;
@@ -151,19 +158,6 @@ pub struct UnsignedTransaction {
 	pub payload: Bytes,
 }
 
-/// Information describing execution of a transaction.
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
-pub struct Receipt {
-	/// The total gas used in the block following execution of the transaction.
-	pub gas_used: U256,
-	/// The OR-wide combination of all logs' blooms for this transaction.
-	pub log_bloom: Bloom,
-	/// The logs stemming from this transaction.
-	pub logs: Vec<LogEntry>,
-	/// Transaction outcome.
-	pub outcome: TransactionOutcome,
-}
-
 /// Transaction outcome store in the receipt.
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
 pub enum TransactionOutcome {
@@ -194,17 +188,6 @@ pub struct Bloom(#[cfg_attr(feature = "std", serde(with = "BigArray"))] [u8; 256
 #[cfg(feature = "std")]
 big_array! { BigArray; }
 
-/// An empty step message that is included in a seal, the only difference is that it doesn't include
-/// the `parent_hash` in order to save space. The included signature is of the original empty step
-/// message, which can be reconstructed by using the parent hash of the block in which this sealed
-/// empty message is included.
-pub struct SealedEmptyStep {
-	/// Signature of the original message author.
-	pub signature: H520,
-	/// The step this message is generated for.
-	pub step: u64,
-}
-
 impl CliqueHeader {
 	/// Compute id of this header.
 	pub fn compute_id(&self) -> HeaderId {
@@ -216,7 +199,7 @@ impl CliqueHeader {
 
 	/// Compute hash of this header (keccak of the RLP with seal).
 	pub fn compute_hash(&self) -> H256 {
-		keccak_256(&self.rlp(true)).into()
+		keccak_256(&self.rlp()).into()
 	}
 
 	/// Get id of this header' parent. Returns None if this is genesis header.
@@ -242,29 +225,12 @@ impl CliqueHeader {
 		Some(keccak_256(&self.rlp(false)).into())
 	}
 
-	/// Get header author' signature.
-	pub fn signature(&self) -> Option<H520> {
-		self.seal.get(1).and_then(|x| Rlp::new(x).as_val().ok())
-	}
-
-	/// Extracts the empty steps from the header seal.
-	pub fn empty_steps(&self) -> Option<Vec<SealedEmptyStep>> {
-		self.seal
-			.get(2)
-			.and_then(|x| Rlp::new(x).as_list::<SealedEmptyStep>().ok())
-	}
-
 	/// Returns header RLP with or without seals.
-	fn rlp(&self, with_seal: bool) -> Bytes {
+	fn rlp(&self) -> Bytes {
 		let mut s = RlpStream::new();
-		if with_seal {
-			s.begin_list(13 + self.seal.len());
-		} else {
-			s.begin_list(13);
-		}
-
+		s.begin_list(14);
 		s.append(&self.parent_hash);
-		s.append(&self.uncles_hash);
+		s.append(&self.uncle_hash);
 		s.append(&self.coinbase);
 		s.append(&self.state_root);
 		s.append(&self.transactions_root);
@@ -277,12 +243,6 @@ impl CliqueHeader {
 		s.append(&self.timestamp);
 		s.append(&self.extra_data);
 		s.append(&self.nonce);
-
-		if with_seal {
-			for b in &self.seal {
-				s.append_raw(b, 1);
-			}
-		}
 
 		s.out().to_vec()
 	}
@@ -334,15 +294,6 @@ impl UnsignedTransaction {
 			stream.append(&0u8);
 			stream.append(&0u8);
 		}
-	}
-}
-
-impl Decodable for SealedEmptyStep {
-	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-		let signature: H520 = rlp.val_at(0)?;
-		let step = rlp.val_at(1)?;
-
-		Ok(SealedEmptyStep { signature, step })
 	}
 }
 
@@ -463,11 +414,6 @@ pub fn compute_merkle_root<T: AsRef<[u8]>>(items: impl Iterator<Item = T>) -> H2
 	triehash::ordered_trie_root::<Keccak256Hasher, _>(items)
 }
 
-/// Get validator that should author the block at given step.
-pub fn step_validator<T>(header_validators: &[T], header_step: u64) -> &T {
-	&header_validators[(header_step % header_validators.len() as u64) as usize]
-}
-
 sp_api::decl_runtime_apis! {
 	/// API for querying information about headers from the Rialto Bridge Pallet
 	pub trait RialtoPoAHeaderApi {
@@ -478,8 +424,6 @@ sp_api::decl_runtime_apis! {
 		fn best_block() -> (u64, H256);
 		/// Returns number and hash of the best finalized block known to the bridge module.
 		fn finalized_block() -> (u64, H256);
-		/// Returns true if the import of given block requires transactions receipts.
-		fn is_import_requires_receipts(header: CliqueHeader) -> bool;
 		/// Returns true if header is known to the runtime.
 		fn is_known_block(hash: H256) -> bool;
 	}
@@ -493,8 +437,6 @@ sp_api::decl_runtime_apis! {
 		fn best_block() -> (u64, H256);
 		/// Returns number and hash of the best finalized block known to the bridge module.
 		fn finalized_block() -> (u64, H256);
-		/// Returns true if the import of given block requires transactions receipts.
-		fn is_import_requires_receipts(header: CliqueHeader) -> bool;
 		/// Returns true if header is known to the runtime.
 		fn is_known_block(hash: H256) -> bool;
 	}
@@ -585,71 +527,5 @@ mod tests {
 				},
 			}),
 		);
-	}
-
-	#[test]
-	fn is_successful_raw_receipt_works() {
-		assert!(Receipt::is_successful_raw_receipt(&[]).is_err());
-
-		assert_eq!(
-			Receipt::is_successful_raw_receipt(
-				&Receipt {
-					outcome: TransactionOutcome::Unknown,
-					gas_used: Default::default(),
-					log_bloom: Default::default(),
-					logs: Vec::new(),
-				}
-				.rlp()
-			),
-			Ok(false),
-		);
-		assert_eq!(
-			Receipt::is_successful_raw_receipt(
-				&Receipt {
-					outcome: TransactionOutcome::StateRoot(Default::default()),
-					gas_used: Default::default(),
-					log_bloom: Default::default(),
-					logs: Vec::new(),
-				}
-				.rlp()
-			),
-			Ok(false),
-		);
-		assert_eq!(
-			Receipt::is_successful_raw_receipt(
-				&Receipt {
-					outcome: TransactionOutcome::StatusCode(0),
-					gas_used: Default::default(),
-					log_bloom: Default::default(),
-					logs: Vec::new(),
-				}
-				.rlp()
-			),
-			Ok(false),
-		);
-		assert_eq!(
-			Receipt::is_successful_raw_receipt(
-				&Receipt {
-					outcome: TransactionOutcome::StatusCode(1),
-					gas_used: Default::default(),
-					log_bloom: Default::default(),
-					logs: Vec::new(),
-				}
-				.rlp()
-			),
-			Ok(true),
-		);
-	}
-
-	#[test]
-	fn is_successful_raw_receipt_with_empty_data() {
-		let mut stream = RlpStream::new();
-		stream.begin_list(4);
-		stream.append_empty_data();
-		stream.append(&1u64);
-		stream.append(&2u64);
-		stream.append(&3u64);
-
-		assert_eq!(Receipt::is_successful_raw_receipt(&stream.out()), Ok(false),);
 	}
 }

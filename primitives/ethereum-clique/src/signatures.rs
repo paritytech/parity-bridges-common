@@ -23,8 +23,7 @@
 pub use secp256k1::SecretKey;
 
 use crate::{
-	public_to_address, rlp_encode, step_validator, Address, CliqueHeader, RawTransaction, UnsignedTransaction, H256,
-	H520, U256,
+	public_to_address, rlp_encode, Address, CliqueHeader, RawTransaction, UnsignedTransaction, H256, H520, U256,
 };
 
 use secp256k1::{Message, PublicKey};
@@ -45,11 +44,12 @@ pub trait SignTransaction {
 
 impl SignHeader for CliqueHeader {
 	fn sign_by(mut self, author: &SecretKey) -> Self {
-		self.author = secret_to_address(author);
+		self.coinbase = secret_to_address(author);
 
-		let message = self.seal_hash(false).unwrap();
+		let message = self.seal_hash().unwrap();
 		let signature = sign(author, message);
 		self.seal[1] = rlp_encode(&signature).to_vec();
+		self.extra_data.extend_from_slice(&sig[..]);
 		self
 	}
 

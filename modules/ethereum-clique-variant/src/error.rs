@@ -15,6 +15,22 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use sp_runtime::RuntimeDebug;
+use std::fmt;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+/// Error indicating an expected value was not found.
+pub struct Mismatch<T> {
+	/// Value expected.
+	pub expect: T,
+	/// Value found.
+	pub found: T,
+}
+
+impl<T: fmt::Display> fmt::Display for Mismatch<T> {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		f.write_fmt(format_args!("Expected {}, found {}", self.expected, self.found))
+	}
+}
 
 /// Header import error.
 #[derive(Clone, Copy, RuntimeDebug)]
@@ -86,6 +102,18 @@ pub enum Error {
 	/// Header timestamp too close
 	/// HeaderTimestampTooClose is returned when header timestamp is too close with parent's
 	HeaderTimestampTooClose = 30,
+	/// Missing signers
+	CheckpointNoSigner = 31,
+	/// Signature or author field does not belong to an authority.
+	NotAuthorized(Address) = 32,
+	/// The signer signed a block to recently
+	TooRecentlySigned(Address) = 33,
+	/// Wrong checkpoint authors recovered
+	FaultyRecoveredSigners(Vec<String>) = 34,
+	/// Parent given is unknown.
+	UnknownParent(H256) = 35,
+	/// Checkpoint is missing
+	MissingCheckpoint(H256),
 }
 
 impl Error {
@@ -112,6 +140,7 @@ impl Error {
 			Error::UnsignedTooFarInTheFuture => "The unsigned header is too far in future",
 			Error::TryingToFinalizeSibling => "Trying to finalize sibling of finalized block",
 			Error::HeaderTimestampIsAhead => "Header timestamp is ahead of on-chain timestamp",
+			Error::MissingVanity => "Extra-data 32 byte vanity prefix missing",
 			Error::MissingSignature => "Extra-data 65 byte signature suffix missing",
 			_ => "TODO :)",
 		}

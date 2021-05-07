@@ -15,362 +15,281 @@
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    collections::{BTreeSet, HashMap, VecDeque},
-    fmt,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+	collections::{BTreeSet, HashMap, VecDeque},
+	fmt,
+	time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use engines::{
-    clique::{
-        util::{extract_signers, recover_creator},
-        VoteType, DIFF_INTURN, DIFF_NOTURN, NULL_AUTHOR, SIGNING_DELAY_NOTURN_MS,
-    },
-    EngineError,
+use crate::{
+	error::{Error, Mismatch},
+	utils::*,
+	ChainTime,
 };
-use error::{BlockError, Error};
-use ethereum_types::{Address, H64};
+use bp_eth_clique::{Address, CliqueHeader, DIFF_INTURN, DIFF_NOTURN, NULL_AUTHOR, SIGNING_DELAY_NOTURN_MS};
 use rand::Rng;
-use time_utils::CheckedSystemTime;
-use types::{header::Header, BlockNumber};
-use unexpected::Mismatch;
+
+/// How many CliqueBlockState to cache in the memory.
+pub const SNAP_CACHE_NUM: usize = 128;
+
+lazy_static! {
+	/// key: header hash
+	/// value: creator address
+	static ref SNAPSHOT_BY_HASH: RwLock<LruCache<H256, Snapshot>> = RwLock::new(LruCache::new(SNAP_CACHE_NUM));
+}
 
 /// Clique state for each block.
 #[cfg(not(test))]
 #[derive(Clone, Debug, Default)]
-pub struct Snapshot {
-    /// a list of all valid signer, sorted by ascending order.
-    signers: BTreeSet<Address>,
-    /// a deque of recent signer, new entry should be pushed front, apply() modifies this.
-    recent_signers: VecDeque<Address>,
-    /// inturn signing should wait until this time
-    pub next_timestamp_inturn: Option<SystemTime>,
-    /// noturn signing should wait until this time
-    pub next_timestamp_noturn: Option<SystemTime>,
+pub struct Snapshot<CT: ChainTime> {
+	/// a list of all valid signer, sorted by ascending order.
+	signers: BTreeSet<Address>,
+	/// a deque of recent signer, new entry should be pushed front, apply() modifies this.
+	recent_signers: VecDeque<Address>,
+	/// inturn signing should wait until this time
+	pub next_timestamp_inturn: Option<CT>,
+	/// noturn signing should wait until this time
+	pub next_timestamp_noturn: Option<CT>,
 }
 
 #[cfg(test)]
 #[derive(Clone, Debug, Default)]
-pub struct Snapshot {
-    /// a list of all valid signer, sorted by ascending order.
-    pub signers: BTreeSet<Address>,
-    /// a deque of recent signer, new entry should be pushed front, apply() modifies this.
-    pub recent_signers: VecDeque<Address>,
-    /// inturn signing should wait until this time
-    pub next_timestamp_inturn: Option<SystemTime>,
-    /// noturn signing should wait until this time
-    pub next_timestamp_noturn: Option<SystemTime>,
+pub struct Snapshot<CT: ChainTime> {
+	/// a list of all valid signer, sorted by ascending order.
+	pub signers: BTreeSet<Address>,
+	/// a deque of recent signer, new entry should be pushed front, apply() modifies this.
+	pub recent_signers: VecDeque<Address>,
+	/// inturn signing should wait until this time
+	pub next_timestamp_inturn: Option<CT>,
+	/// noturn signing should wait until this time
+	pub next_timestamp_noturn: Option<CT>,
 }
 
 impl fmt::Display for Snapshot {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let signers: Vec<String> = self
-            .signers
-            .iter()
-            .map(|s| {
-                format!(
-                    "{} {:?}",
-                    s,
-                    self.votes
-                        .iter()
-                        .map(|(v, s)| format!(
-                            "[beneficiary {}, votes: {}]",
-                            v.beneficiary, s.votes
-                        ))
-                        .collect::<Vec<_>>()
-                )
-            })
-            .collect();
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let signers: Vec<String> = self.signers.iter().map(|s| format!("{}", s,)).collect();
 
-        let recent_signers: Vec<String> = self
-            .recent_signers
-            .iter()
-            .map(|s| format!("{}", s))
-            .collect();
-        let num_votes = self.votes_history.len();
-        let add_votes = self
-            .votes_history
-            .iter()
-            .filter(|v| v.kind == VoteType::Add)
-            .count();
-        let rm_votes = self
-            .votes_history
-            .iter()
-            .filter(|v| v.kind == VoteType::Remove)
-            .count();
-        let reverted_votes = self.votes_history.iter().filter(|v| v.reverted).count();
+		let recent_signers: Vec<String> = self.recent_signers.iter().map(|s| format!("{}", s)).collect();
 
-        write!(f,
-			"Votes {{ \n signers: {:?} \n recent_signers: {:?} \n number of votes: {} \n number of add votes {}
-			\r number of remove votes {} \n number of reverted votes: {}}}",
-			signers, recent_signers, num_votes, add_votes, rm_votes, reverted_votes)
-    }
+		write!(
+			f,
+			"Snapshot {{ \n signers: {:?} \n recent_signers: {:?}}}",
+			signers, recent_signers
+		)
+	}
 }
 
 impl Snapshot {
-    /// Create new state with given information, this is used creating new state from Checkpoint block.
-    pub fn new(signers: BTreeSet<Address>) -> Self {
-        Snapshot {
-            signers,
-            ..Default::default()
-        }
-    }
+	/// Create new state with given information, this is used creating new state from Checkpoint block.
+	pub fn new(signers: BTreeSet<Address>) -> Self {
+		Snapshot {
+			signers,
+			..Default::default()
+		}
+	}
 
-    // see https://github.com/ethereum/go-ethereum/blob/master/consensus/clique/clique.go#L474
-    fn verify(&self, header: &Header) -> Result<Address, Error> {
-        let creator = recover_creator(header)?.clone();
+	fn snap_no_backfill(&self, hash: &H256) -> Option<Snapshot> {
+		self.SNAPSHOT_BY_HASH.write().get_mut(hash).cloned()
+	}
 
-        // The signer is not authorized
-        if !self.signers.contains(&creator) {
-            trace!(target: "engine", "current state: {}", self);
-            Err(EngineError::NotAuthorized(creator))?
-        }
+	/// Construct an new snapshot from given checkpoint header.
+	fn recover_from(&self, header: &Header, clique_variant_config: &CliqueVariantConfiguration) -> Result<Self, Error> {
+		// must be checkpoint block header
+		debug_assert_eq!(header.number() % self.epoch_length, 0);
 
-        // The signer has signed a block too recently
-        if self.recent_signers.contains(&creator) {
-            trace!(target: "engine", "current state: {}", self);
-            Err(EngineError::CliqueTooRecentlySigned(creator))?
-        }
+		self.signers = extract_signers(header)?;
 
-        // Wrong difficulty
-        let inturn = self.is_inturn(header.number(), &creator);
+		// TODO(niklasad1): refactor to perform this check in the `Snapshot` constructor instead
+		self.calc_next_timestamp(header.timestamp(), clique_variant_config.period)?;
 
-        if inturn && *header.difficulty() != DIFF_INTURN {
-            Err(BlockError::InvalidDifficulty(Mismatch {
-                expected: DIFF_INTURN,
-                found: *header.difficulty(),
-            }))?
-        }
+		Ok(Self)
+	}
 
-        if !inturn && *header.difficulty() != DIFF_NOTURN {
-            Err(BlockError::InvalidDifficulty(Mismatch {
-                expected: DIFF_NOTURN,
-                found: *header.difficulty(),
-            }))?
-        }
+	/// Get `Snapshot` for given header, backfill from last checkpoint if needed.
+	fn retrieve<S: Storage>(
+		&self,
+		storage: &S,
+		header: &Header,
+		clique_variant_config: &CliqueVariantConfiguration,
+	) -> Result<Snapshot, Error> {
+		let mut snapshot_by_hash = SNAPSHOT_BY_HASH.write();
+		if let Some(snap) = snapshot_by_hash.get_mut(&header.hash()) {
+			return Ok(snap.clone());
+		}
+		// If we are looking for an checkpoint block state, we can directly reconstruct it.
+		if header.number % self.epoch_length == 0 {
+			let snap = self.recover_from(header)?;
+			snapshot_by_hash.insert(header.hash(), snap.clone());
+			return Ok(snap);
+		}
+		// BlockState is not found in memory, which means we need to reconstruct state from last checkpoint.
+		let last_checkpoint_number = header.number() - header.number() % clique_variant_config.epoch_length as u64;
+		debug_assert_ne!(last_checkpoint_number, header.number());
 
-        Ok(creator)
-    }
+		// Catching up state, note that we don't really store block state for intermediary blocks,
+		// for speed.
+		let backfill_start = time::Instant::now();
+		log::trace!(target: "snapshot",
+					"Back-filling snapshot. last_checkpoint_number: {}, target: {}({}).",
+					last_checkpoint_number, header.number(), header.hash());
 
-    /// Verify and apply a new header to current state
-    pub fn apply(&mut self, header: &Header, is_checkpoint: bool) -> Result<Address, Error> {
-        let creator = self.verify(header)?;
-        self.recent_signers.push_front(creator);
-        self.rotate_recent_signers();
+		let chain: &mut VecDeque<CliqueHeader> =
+			&mut VecDeque::with_capacity((header.number() - last_checkpoint_number + 1) as usize);
 
-        if is_checkpoint {
-            // checkpoint block should not affect previous tallying, so we check that.
-            let signers = extract_signers(header)?;
-            if self.signers != signers {
-                let invalid_signers: Vec<String> = signers
-                    .into_iter()
-                    .filter(|s| !self.signers.contains(s))
-                    .map(|s| format!("{}", s))
-                    .collect();
-                Err(EngineError::CliqueFaultyRecoveredSigners(invalid_signers))?
-            };
+		// Put ourselves in.
+		chain.push_front(header.clone());
 
-            // TODO(niklasad1): I'm not sure if we should shrink here because it is likely that next epoch
-            // will need some memory and might be better for allocation algorithm to decide whether to shrink or not
-            // (typically doubles or halves the allocted memory when necessary)
-            self.votes.clear();
-            self.votes_history.clear();
-            self.votes.shrink_to_fit();
-            self.votes_history.shrink_to_fit();
-        }
+		// populate chain to last checkpoint
+		loop {
+			let (last_parent_hash, last_num) = {
+				let l = chain.front().expect("chain has at least one element; qed");
+				(*l.parent_hash, l.number)
+			};
 
-        // Contains vote
-        if *header.author() != NULL_AUTHOR {
-            let decoded_seal = header.decode_seal::<Vec<_>>()?;
-            if decoded_seal.len() != 2 {
-                Err(BlockError::InvalidSealArity(Mismatch {
-                    expected: 2,
-                    found: decoded_seal.len(),
-                }))?
-            }
+			if last_num == last_checkpoint_number + 1 {
+				break;
+			}
+			match Storage::header(last_parent_hash) {
+				None => {
+					return Err(Error::UnknownParent(last_parent_hash))?;
+				}
+				Some(next) => {
+					chain.push_front(next);
+				}
+			}
+		}
 
-            let nonce = H64::from_slice(decoded_seal[1]);
-            self.update_signers_on_vote(
-                VoteType::from_nonce(nonce)?,
-                creator,
-                *header.author(),
-                header.number(),
-            )?;
-        }
+		// Get the state for last checkpoint.
+		let last_checkpoint_hash = *chain
+			.front()
+			.expect("chain has at least one element; qed")
+			.parent_hash();
 
-        Ok(creator)
-    }
+		let last_checkpoint_header = match Storage::header(last_checkpoint_hash) {
+			None => return Err(Error::MissingCheckpoint(last_checkpoint_hash))?,
+			Some(header) => header,
+		};
 
-    fn update_signers_on_vote(
-        &mut self,
-        kind: VoteType,
-        signer: Address,
-        beneficiary: Address,
-        block_number: u64,
-    ) -> Result<(), Error> {
-        trace!(target: "engine", "Attempt vote {:?} {:?}", kind, beneficiary);
+		let last_checkpoint_state = match snapshot_by_hash.get_mut(&last_checkpoint_hash) {
+			Some(state) => state.clone(),
+			None => self.recover_from(&last_checkpoint_header)?,
+		};
 
-        let pending_vote = PendingVote {
-            signer,
-            beneficiary,
-        };
+		snapshot_by_hash.insert(last_checkpoint_header.hash(), last_checkpoint_state.clone());
 
-        let reverted = if self.is_valid_vote(&beneficiary, kind) {
-            self.add_vote(pending_vote, kind)
-        } else {
-            // This case only happens if a `signer` wants to revert their previous vote
-            // (does nothing if no previous vote was found)
-            self.revert_vote(pending_vote)
-        };
+		// Backfill!
+		let mut new_state = last_checkpoint_state.clone();
+		for item in chain {
+			new_state.apply(item, false)?;
+		}
+		new_state.calc_next_timestamp(header.timestamp(), clique_variant_config.period)?;
+		snapshot_by_hash.insert(header.hash(), new_state.clone());
 
-        // Add all votes to the history
-        self.votes_history.push(Vote {
-            block_number,
-            beneficiary,
-            kind,
-            signer,
-            reverted,
-        });
+		let elapsed = backfill_start.elapsed();
+		log::trace!(target: "snapshot", "Back-filling succeed, took {} ms.", elapsed.as_millis());
+		Ok(new_state)
+	}
 
-        // If no vote was found for the beneficiary return `early` but don't propogate an error
-        let (votes, vote_kind) = match self.get_current_votes_and_kind(beneficiary) {
-            Some((v, k)) => (v, k),
-            None => return Ok(()),
-        };
-        let threshold = self.signers.len() / 2;
+	// see https://github.com/ethereum/go-ethereum/blob/master/consensus/clique/clique.go#L474
+	fn verify(&self, header: &Header) -> Result<Address, Error> {
+		let creator = recover_creator(header)?.clone();
 
-        debug!(target: "engine", "{}/{} votes to have consensus", votes, threshold + 1);
-        trace!(target: "engine", "votes: {:?}", votes);
+		// The signer is not authorized
+		if !self.signers.contains(&creator) {
+			log::trace!(target: "snapshot", "current state: {}", self);
+			Err(Error::NotAuthorized(creator))?
+		}
 
-        if votes > threshold {
-            match vote_kind {
-                VoteType::Add => {
-                    if self.signers.insert(beneficiary) {
-                        debug!(target: "engine", "added new signer: {}", beneficiary);
-                    }
-                }
-                VoteType::Remove => {
-                    if self.signers.remove(&beneficiary) {
-                        debug!(target: "engine", "removed signer: {}", beneficiary);
-                    }
-                }
-            }
+		// The signer has signed a block too recently
+		if self.recent_signers.contains(&creator) {
+			log::trace!(target: "snapshot", "current state: {}", self);
+			Err(Error::TooRecentlySigned(creator))?
+		}
 
-            self.rotate_recent_signers();
-            self.remove_all_votes_from(beneficiary);
-        }
+		// Wrong difficulty
+		let inturn = self.is_inturn(header.number, &creator);
 
-        Ok(())
-    }
+		if inturn && *header.difficulty != DIFF_INTURN {
+			Err(Error::InvalidDifficulty(Mismatch {
+				expect: DIFF_INTURN,
+				found: *header.difficulty,
+			}))?
+		}
 
-    /// Calculate the next timestamp for `inturn` and `noturn` fails if any of them can't be represented as
-    /// `SystemTime`
-    // TODO(niklasad1): refactor this method to be in constructor of `Snapshot` instead.
-    // This is a quite bad API because we must mutate both variables even when already `inturn` fails
-    // That's why we can't return early and must have the `if-else` in the end
-    pub fn calc_next_timestamp(&mut self, timestamp: u64, period: u64) -> Result<(), Error> {
-        let inturn = CheckedSystemTime::checked_add(
-            UNIX_EPOCH,
-            Duration::from_secs(timestamp.saturating_add(period)),
-        );
+		if !inturn && *header.difficulty() != DIFF_NOTURN {
+			Err(Error::InvalidDifficulty(Mismatch {
+				expect: DIFF_NOTURN,
+				found: *header.difficulty,
+			}))?
+		}
 
-        self.next_timestamp_inturn = inturn;
+		Ok(creator)
+	}
 
-        let delay = Duration::from_millis(rand::thread_rng().gen_range(
-            0u64,
-            (self.signers.len() as u64 / 2 + 1) * SIGNING_DELAY_NOTURN_MS,
-        ));
-        self.next_timestamp_noturn = inturn.map(|inturn| inturn + delay);
+	/// Verify and apply a new header to current state
+	pub fn apply(&mut self, header: &Header, is_checkpoint: bool) -> Result<Address, Error> {
+		let creator = self.verify(header)?;
+		self.recent_signers.push_front(creator);
+		self.rotate_recent_signers();
 
-        if self.next_timestamp_inturn.is_some() && self.next_timestamp_noturn.is_some() {
-            Ok(())
-        } else {
-            Err(BlockError::TimestampOverflow)?
-        }
-    }
+		if is_checkpoint {
+			// checkpoint block should not affect previous tallying, so we check that.
+			let signers = extract_signers(header)?;
+			if self.signers != signers {
+				let invalid_signers: Vec<String> = signers
+					.into_iter()
+					.filter(|s| !self.signers.contains(s))
+					.map(|s| format!("{}", s))
+					.collect();
+				Err(Error::CliqueFaultyRecoveredSigners(invalid_signers))?
+			};
+		}
 
-    /// Returns true if the block difficulty should be `inturn`
-    pub fn is_inturn(&self, current_block_number: u64, author: &Address) -> bool {
-        if let Some(pos) = self.signers.iter().position(|x| *author == *x) {
-            return current_block_number % self.signers.len() as u64 == pos as u64;
-        }
-        false
-    }
+		Ok(creator)
+	}
 
-    /// Returns whether the signer is authorized to sign a block
-    pub fn is_authorized(&self, author: &Address) -> bool {
-        self.signers.contains(author) && !self.recent_signers.contains(author)
-    }
+	/// Calculate the next timestamp for `inturn` and `noturn` fails if any of them can't be represented as
+	/// `SystemTime`
+	// TODO(niklasad1): refactor this method to be in constructor of `Snapshot` instead.
+	// This is a quite bad API because we must mutate both variables even when already `inturn` fails
+	// That's why we can't return early and must have the `if-else` in the end
+	pub fn calc_next_timestamp(&mut self, timestamp: u64, period: u64) -> Result<(), Error> {
+		let inturn = timestamp.saturating_add(period);
 
-    /// Returns whether it makes sense to cast the specified vote in the
-    /// current state (e.g. don't try to add an already authorized signer).
-    pub fn is_valid_vote(&self, address: &Address, vote_type: VoteType) -> bool {
-        let in_signer = self.signers.contains(address);
-        match vote_type {
-            VoteType::Add => !in_signer,
-            VoteType::Remove => in_signer,
-        }
-    }
+		self.next_timestamp_inturn = inturn;
 
-    /// Returns the list of current signers
-    pub fn signers(&self) -> &BTreeSet<Address> {
-        &self.signers
-    }
+		let delay = Duration::from_millis(
+			rand::thread_rng().gen_range(0u64, (self.signers.len() as u64 / 2 + 1) * SIGNING_DELAY_NOTURN_MS),
+		);
+		self.next_timestamp_noturn = inturn.map(|inturn| inturn + delay);
 
-    // Note this method will always return `true` but it is intended for a uniform `API`
-    fn add_vote(&mut self, pending_vote: PendingVote, kind: VoteType) -> bool {
-        self.votes
-            .entry(pending_vote)
-            .and_modify(|state| {
-                state.votes = state.votes.saturating_add(1);
-            })
-            .or_insert_with(|| VoteState { kind, votes: 1 });
-        true
-    }
+		if self.next_timestamp_inturn.is_some() && self.next_timestamp_noturn.is_some() {
+			Ok(())
+		} else {
+			Err(Error::TimestampOverflow)?
+		}
+	}
 
-    fn revert_vote(&mut self, pending_vote: PendingVote) -> bool {
-        let mut revert = false;
-        let mut remove = false;
+	/// Returns true if the block difficulty should be `inturn`
+	pub fn is_inturn(&self, current_block_number: u64, author: &Address) -> bool {
+		if let Some(pos) = self.signers.iter().position(|x| *author == *x) {
+			return current_block_number % self.signers.len() as u64 == pos as u64;
+		}
+		false
+	}
 
-        self.votes.entry(pending_vote).and_modify(|state| {
-            if state.votes.saturating_sub(1) == 0 {
-                remove = true;
-            }
-            revert = true;
-        });
+	/// Returns whether the signer is authorized to sign a block
+	pub fn is_authorized(&self, author: &Address) -> bool {
+		self.signers.contains(author) && !self.recent_signers.contains(author)
+	}
 
-        if remove {
-            self.votes.remove(&pending_vote);
-        }
+	/// Returns the list of current signers
+	pub fn signers(&self) -> &BTreeSet<Address> {
+		&self.signers
+	}
 
-        revert
-    }
-
-    fn get_current_votes_and_kind(&self, beneficiary: Address) -> Option<(usize, VoteType)> {
-        let kind = self
-            .votes
-            .iter()
-            .find(|(v, _t)| v.beneficiary == beneficiary)
-            .map(|(_v, t)| t.kind)?;
-
-        let votes = self
-            .votes
-            .keys()
-            .filter(|vote| vote.beneficiary == beneficiary)
-            .count();
-
-        Some((votes, kind))
-    }
-
-    fn rotate_recent_signers(&mut self) {
-        if self.recent_signers.len() >= (self.signers.len() / 2) + 1 {
-            self.recent_signers.pop_back();
-        }
-    }
-
-    fn remove_all_votes_from(&mut self, beneficiary: Address) {
-        self.votes = std::mem::replace(&mut self.votes, HashMap::new())
-            .into_iter()
-            .filter(|(v, _t)| v.signer != beneficiary && v.beneficiary != beneficiary)
-            .collect();
-    }
+	fn rotate_recent_signers(&mut self) {
+		if self.recent_signers.len() >= (self.signers.len() / 2) + 1 {
+			self.recent_signers.pop_back();
+		}
+	}
 }
