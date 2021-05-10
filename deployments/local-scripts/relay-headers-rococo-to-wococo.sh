@@ -13,7 +13,7 @@ RUST_LOG=rpc=trace,bridge=trace ./target/debug/substrate-relay init-bridge Rococ
 	--source-port 9955 \
 	--target-host 127.0.0.1 \
 	--target-port 9944 \
-	--target-signer //Dave
+	--target-signer //Alice
 
 RUST_LOG=rpc=trace,bridge=trace ./target/debug/substrate-relay relay-headers RococoToWococo \
 	--source-host 127.0.0.1 \
