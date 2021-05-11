@@ -104,7 +104,7 @@ impl messages::ThisChainWithMessages for Millau {
 	type Origin = crate::Origin;
 	type Call = crate::Call;
 
-	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
+	fn is_message_accepted(_send_origin: &Self::Origin, lane: &LaneId) -> bool {
 		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
 	}
 

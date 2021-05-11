@@ -100,8 +100,8 @@ pub trait ThisChainWithMessages: ChainWithMessages {
 	/// Call type on the chain.
 	type Call: Encode + Decode;
 
-	/// Are we accepting any messages to the given lane?
-	fn is_outbound_lane_enabled(lane: &LaneId) -> bool;
+	/// Do we accept message sent by given origin to given lane?
+	fn is_message_accepted(origin: &Self::Origin, lane: &LaneId) -> bool;
 
 	/// Maximal number of pending (not yet delivered) messages at This chain.
 	///
@@ -243,7 +243,7 @@ pub mod source {
 	#[derive(RuntimeDebug)]
 	pub struct FromThisChainMessageVerifier<B>(PhantomData<B>);
 
-	pub(crate) const OUTBOUND_LANE_DISABLED: &str = "The outbound message lane is disabled.";
+	pub(crate) const MESSAGE_REJECTED_BY_OUTBOUND_LANE: &str = "The outbound message lane has rejected the message.";
 	pub(crate) const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
 	pub(crate) const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
 	pub(crate) const TOO_LOW_FEE: &str = "Provided fee is below minimal threshold required by the lane.";
@@ -273,8 +273,8 @@ pub mod source {
 			payload: &FromThisChainMessagePayload<B>,
 		) -> Result<(), Self::Error> {
 			// reject message if lane is blocked
-			if !ThisChain::<B>::is_outbound_lane_enabled(lane) {
-				return Err(OUTBOUND_LANE_DISABLED);
+			if !ThisChain::<B>::is_message_accepted(submitter, lane) {
+				return Err(MESSAGE_REJECTED_BY_OUTBOUND_LANE);
 			}
 
 			// reject message if there are too many pending messages at this lane
@@ -906,7 +906,7 @@ mod tests {
 		type Origin = ThisChainOrigin;
 		type Call = ThisChainCall;
 
-		fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
+		fn is_message_accepted(_send_origin: &Self::Origin, lane: &LaneId) -> bool {
 			lane == TEST_LANE_ID
 		}
 
@@ -963,7 +963,7 @@ mod tests {
 		type Origin = BridgedChainOrigin;
 		type Call = BridgedChainCall;
 
-		fn is_outbound_lane_enabled(_lane: &LaneId) -> bool {
+		fn is_message_accepted(_send_origin: &Self::Origin, _lane: &LaneId) -> bool {
 			unreachable!()
 		}
 
@@ -1196,7 +1196,7 @@ mod tests {
 				&test_lane_outbound_data(),
 				&regular_outbound_message_payload(),
 			),
-			Err(source::OUTBOUND_LANE_DISABLED)
+			Err(source::MESSAGE_REJECTED_BY_OUTBOUND_LANE)
 		);
 	}
 

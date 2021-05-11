@@ -62,8 +62,9 @@ corresponding chain. There is single exception, though (it may be changed in the
 
 This trait represents this chain from bridge point of view. Let's review every method of this trait:
 
-- `ThisChainWithMessages::is_outbound_lane_enabled`: is used to check whether given lane accepts
-  outbound messages.
+- `ThisChainWithMessages::is_message_accepted`: is used to check whether given lane accepts
+  messages. The send-message origin is passed to the function, so you may e.g. verify that only
+  given pallet is able to send messages over selected lane.
 
 - `ThisChainWithMessages::maximal_pending_messages_at_outbound_lane`: you should return maximal
   number of pending (undelivered) messages from this function. Returning small values would require
