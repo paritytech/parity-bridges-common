@@ -22,7 +22,7 @@ use crate::Config;
 use bitvec::prelude::*;
 use bp_messages::{
 	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards,
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards, SenderOrigin,
 		TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
@@ -172,6 +172,7 @@ impl Config for TestRuntime {
 
 	type AccountIdConverter = AccountIdConverter;
 
+	type SenderOrigin = Origin;
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
@@ -179,6 +180,15 @@ impl Config for TestRuntime {
 
 	type SourceHeaderChain = TestSourceHeaderChain;
 	type MessageDispatch = TestMessageDispatch;
+}
+
+impl SenderOrigin<AccountId> for Origin {
+	fn linked_account(&self) -> Option<AccountId> {
+		match self.caller {
+			OriginCaller::system(frame_system::RawOrigin::Signed(ref submitter)) => Some(submitter.clone()),
+			_ => None,
+		}
+	}
 }
 
 impl Size for TestPayload {

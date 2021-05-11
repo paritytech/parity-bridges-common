@@ -64,7 +64,9 @@ This trait represents this chain from bridge point of view. Let's review every m
 
 - `ThisChainWithMessages::is_message_accepted`: is used to check whether given lane accepts
   messages. The send-message origin is passed to the function, so you may e.g. verify that only
-  given pallet is able to send messages over selected lane.
+  given pallet is able to send messages over selected lane. **IMPORTANT**: if you assume that the
+  message must be paid by the sender, you must ensure that the sender origin has linked the account
+  for paying message delivery and dispatch fee.
 
 - `ThisChainWithMessages::maximal_pending_messages_at_outbound_lane`: you should return maximal
   number of pending (undelivered) messages from this function. Returning small values would require

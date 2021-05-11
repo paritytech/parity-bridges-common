@@ -20,7 +20,7 @@
 //! to the actual relayer in case confirmation is received.
 
 use bp_messages::{
-	source_chain::{MessageDeliveryAndDispatchPayment, RelayersRewards},
+	source_chain::{MessageDeliveryAndDispatchPayment, RelayersRewards, SenderOrigin},
 	MessageNonce,
 };
 use codec::Encode;
@@ -42,19 +42,18 @@ use sp_std::fmt::Debug;
 /// to the relayer account.
 /// NOTE It's within relayer's interest to keep their balance above ED as well, to make sure they
 /// can receive the payment.
-pub struct InstantCurrencyPayments<T, Currency, GetConfirmationFee, RootAccount> {
-	_phantom: sp_std::marker::PhantomData<(T, Currency, GetConfirmationFee, RootAccount)>,
+pub struct InstantCurrencyPayments<T, I, Currency, GetConfirmationFee> {
+	_phantom: sp_std::marker::PhantomData<(T, I, Currency, GetConfirmationFee)>,
 }
 
-impl<T, Currency, GetConfirmationFee, RootAccount>
-	MessageDeliveryAndDispatchPayment<T::Origin, T::AccountId, Currency::Balance>
-	for InstantCurrencyPayments<T, Currency, GetConfirmationFee, RootAccount>
+impl<T, I, Currency, GetConfirmationFee>
+	MessageDeliveryAndDispatchPayment<T::SenderOrigin, T::AccountId, Currency::Balance>
+	for InstantCurrencyPayments<T, I, Currency, GetConfirmationFee>
 where
-	T: frame_system::Config,
+	T: crate::Config<I>,
 	Currency: CurrencyT<T::AccountId>,
 	Currency::Balance: From<MessageNonce>,
 	GetConfirmationFee: Get<Currency::Balance>,
-	RootAccount: Get<Option<T::AccountId>>,
 {
 	type Error = &'static str;
 
@@ -68,17 +67,18 @@ where
 	}
 
 	fn pay_delivery_and_dispatch_fee(
-		submitter: &T::Origin,
+		submitter: &T::SenderOrigin,
 		fee: &Currency::Balance,
 		relayer_fund_account: &T::AccountId,
 	) -> Result<(), Self::Error> {
-		let root_account = RootAccount::get();
-		let submitter_account = match submitter.clone().into() {
-			Ok(frame_system::RawOrigin::Signed(submitter)) => submitter,
-			Ok(frame_system::RawOrigin::Root) | Ok(frame_system::RawOrigin::None) => {
-				root_account.ok_or("Sending messages using Root or None origin is disallowed.")?
+		let submitter_account = match submitter.linked_account() {
+			Some(submitter_account) => submitter_account,
+			None => {
+				// message lane verifier has accepted the message before, so this message
+				// is unpaid **by design**
+				// => let's just do nothing
+				return Ok(());
 			}
-			Err(_) => return Err("Invalid message sender origin"),
 		};
 
 		Currency::transfer(

@@ -376,13 +376,14 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 
 	type AccountIdConverter = bp_millau::AccountIdConverter;
 
+	type SenderOrigin = Origin;
 	type TargetHeaderChain = crate::rialto_messages::Rialto;
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = pallet_bridge_messages::instant_payments::InstantCurrencyPayments<
 		Runtime,
+		WithRialtoMessagesInstance,
 		pallet_balances::Pallet<Runtime>,
 		GetDeliveryConfirmationTransactionFee,
-		RootAccountForPayments,
 	>;
 	type OnDeliveryConfirmed = ();
 

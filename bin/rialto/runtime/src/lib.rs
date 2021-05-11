@@ -483,13 +483,14 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 
 	type AccountIdConverter = bp_rialto::AccountIdConverter;
 
+	type SenderOrigin = Origin;
 	type TargetHeaderChain = crate::millau_messages::Millau;
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = pallet_bridge_messages::instant_payments::InstantCurrencyPayments<
 		Runtime,
+		WithMillauMessagesInstance,
 		pallet_balances::Pallet<Runtime>,
 		GetDeliveryConfirmationTransactionFee,
-		RootAccountForPayments,
 	>;
 	type OnDeliveryConfirmed = ();
 
