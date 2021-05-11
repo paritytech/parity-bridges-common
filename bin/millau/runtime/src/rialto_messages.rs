@@ -101,6 +101,7 @@ impl messages::ChainWithMessages for Millau {
 }
 
 impl messages::ThisChainWithMessages for Millau {
+	type Origin = crate::Origin;
 	type Call = crate::Call;
 
 	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {

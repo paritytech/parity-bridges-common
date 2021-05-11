@@ -20,7 +20,7 @@
 //! to the actual relayer in case confirmation is received.
 
 use bp_messages::{
-	source_chain::{MessageDeliveryAndDispatchPayment, RelayersRewards, Sender},
+	source_chain::{MessageDeliveryAndDispatchPayment, RelayersRewards},
 	MessageNonce,
 };
 use codec::Encode;
@@ -46,7 +46,8 @@ pub struct InstantCurrencyPayments<T, Currency, GetConfirmationFee, RootAccount>
 	_phantom: sp_std::marker::PhantomData<(T, Currency, GetConfirmationFee, RootAccount)>,
 }
 
-impl<T, Currency, GetConfirmationFee, RootAccount> MessageDeliveryAndDispatchPayment<T::AccountId, Currency::Balance>
+impl<T, Currency, GetConfirmationFee, RootAccount>
+	MessageDeliveryAndDispatchPayment<T::Origin, T::AccountId, Currency::Balance>
 	for InstantCurrencyPayments<T, Currency, GetConfirmationFee, RootAccount>
 where
 	T: frame_system::Config,
@@ -67,20 +68,21 @@ where
 	}
 
 	fn pay_delivery_and_dispatch_fee(
-		submitter: &Sender<T::AccountId>,
+		submitter: &T::Origin,
 		fee: &Currency::Balance,
 		relayer_fund_account: &T::AccountId,
 	) -> Result<(), Self::Error> {
 		let root_account = RootAccount::get();
-		let account = match submitter {
-			Sender::Signed(submitter) => submitter,
-			Sender::Root | Sender::None => root_account
-				.as_ref()
-				.ok_or("Sending messages using Root or None origin is disallowed.")?,
+		let submitter_account = match submitter.clone().into() {
+			Ok(frame_system::RawOrigin::Signed(submitter)) => submitter,
+			Ok(frame_system::RawOrigin::Root) | Ok(frame_system::RawOrigin::None) => {
+				root_account.ok_or("Sending messages using Root or None origin is disallowed.")?
+			}
+			Err(_) => return Err("Invalid message sender origin"),
 		};
 
 		Currency::transfer(
-			account,
+			&submitter_account,
 			relayer_fund_account,
 			*fee,
 			// it's fine for the submitter to go below Existential Deposit and die.

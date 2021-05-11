@@ -22,7 +22,7 @@ use crate::Config;
 use bitvec::prelude::*;
 use bp_messages::{
 	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards, Sender,
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards,
 		TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
@@ -283,11 +283,11 @@ impl TargetHeaderChain<TestPayload, TestRelayer> for TestTargetHeaderChain {
 #[derive(Debug, Default)]
 pub struct TestLaneMessageVerifier;
 
-impl LaneMessageVerifier<AccountId, TestPayload, TestMessageFee> for TestLaneMessageVerifier {
+impl LaneMessageVerifier<Origin, AccountId, TestPayload, TestMessageFee> for TestLaneMessageVerifier {
 	type Error = &'static str;
 
 	fn verify_message(
-		_submitter: &Sender<AccountId>,
+		_submitter: &Origin,
 		delivery_and_dispatch_fee: &TestMessageFee,
 		_lane: &LaneId,
 		_lane_outbound_data: &OutboundLaneData,
@@ -313,7 +313,8 @@ impl TestMessageDeliveryAndDispatchPayment {
 
 	/// Returns true if given fee has been paid by given submitter.
 	pub fn is_fee_paid(submitter: AccountId, fee: TestMessageFee) -> bool {
-		frame_support::storage::unhashed::get(b":message-fee:") == Some((Sender::Signed(submitter), fee))
+		let raw_origin: Result<frame_system::RawOrigin<_>, _> = Origin::signed(submitter).into();
+		frame_support::storage::unhashed::get(b":message-fee:") == Some((raw_origin.unwrap(), fee))
 	}
 
 	/// Returns true if given relayer has been rewarded with given balance. The reward-paid flag is
@@ -324,11 +325,11 @@ impl TestMessageDeliveryAndDispatchPayment {
 	}
 }
 
-impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessageDeliveryAndDispatchPayment {
+impl MessageDeliveryAndDispatchPayment<Origin, AccountId, TestMessageFee> for TestMessageDeliveryAndDispatchPayment {
 	type Error = &'static str;
 
 	fn pay_delivery_and_dispatch_fee(
-		submitter: &Sender<AccountId>,
+		submitter: &Origin,
 		fee: &TestMessageFee,
 		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {
@@ -336,7 +337,8 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 			return Err(TEST_ERROR);
 		}
 
-		frame_support::storage::unhashed::put(b":message-fee:", &(submitter, fee));
+		let raw_origin: Result<frame_system::RawOrigin<_>, _> = submitter.clone().into();
+		frame_support::storage::unhashed::put(b":message-fee:", &(raw_origin.unwrap(), fee));
 		Ok(())
 	}
 

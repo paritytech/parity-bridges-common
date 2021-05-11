@@ -22,9 +22,6 @@ use bp_runtime::Size;
 use frame_support::{weights::Weight, Parameter, RuntimeDebug};
 use sp_std::{collections::btree_map::BTreeMap, fmt::Debug};
 
-/// The sender of the message on the source chain.
-pub type Sender<AccountId> = frame_system::RawOrigin<AccountId>;
-
 /// Relayers rewards, grouped by relayer account id.
 pub type RelayersRewards<AccountId, Balance> = BTreeMap<AccountId, RelayerRewards<Balance>>;
 
@@ -77,13 +74,13 @@ pub trait TargetHeaderChain<Payload, AccountId> {
 /// Lane3 until some block, ...), then it may be built using this verifier.
 ///
 /// Any fee requirements should also be enforced here.
-pub trait LaneMessageVerifier<Submitter, Payload, Fee> {
+pub trait LaneMessageVerifier<Origin, Submitter, Payload, Fee> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
 	/// Verify message payload and return Ok(()) if message is valid and allowed to be sent over the lane.
 	fn verify_message(
-		submitter: &Sender<Submitter>,
+		submitter: &Origin,
 		delivery_and_dispatch_fee: &Fee,
 		lane: &LaneId,
 		outbound_data: &OutboundLaneData,
@@ -104,14 +101,14 @@ pub trait LaneMessageVerifier<Submitter, Payload, Fee> {
 /// So to be sure that any non-altruist relayer would agree to deliver message, submitter
 /// should set `delivery_and_dispatch_fee` to at least (equialent of): sum of fees from (2)
 /// to (4) above, plus some interest for the relayer.
-pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
+pub trait MessageDeliveryAndDispatchPayment<Origin, AccountId, Balance> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
 	/// Withhold/write-off delivery_and_dispatch_fee from submitter account to
 	/// some relayers-fund account.
 	fn pay_delivery_and_dispatch_fee(
-		submitter: &Sender<AccountId>,
+		submitter: &Origin,
 		fee: &Balance,
 		relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error>;
@@ -188,11 +185,11 @@ impl<Payload, AccountId> TargetHeaderChain<Payload, AccountId> for ForbidOutboun
 	}
 }
 
-impl<Submitter, Payload, Fee> LaneMessageVerifier<Submitter, Payload, Fee> for ForbidOutboundMessages {
+impl<Origin, Submitter, Payload, Fee> LaneMessageVerifier<Origin, Submitter, Payload, Fee> for ForbidOutboundMessages {
 	type Error = &'static str;
 
 	fn verify_message(
-		_submitter: &Sender<Submitter>,
+		_submitter: &Origin,
 		_delivery_and_dispatch_fee: &Fee,
 		_lane: &LaneId,
 		_outbound_data: &OutboundLaneData,
@@ -202,11 +199,13 @@ impl<Submitter, Payload, Fee> LaneMessageVerifier<Submitter, Payload, Fee> for F
 	}
 }
 
-impl<AccountId, Balance> MessageDeliveryAndDispatchPayment<AccountId, Balance> for ForbidOutboundMessages {
+impl<Origin, AccountId, Balance> MessageDeliveryAndDispatchPayment<Origin, AccountId, Balance>
+	for ForbidOutboundMessages
+{
 	type Error = &'static str;
 
 	fn pay_delivery_and_dispatch_fee(
-		_submitter: &Sender<AccountId>,
+		_submitter: &Origin,
 		_fee: &Balance,
 		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {

@@ -101,6 +101,7 @@ impl messages::ChainWithMessages for Rialto {
 }
 
 impl messages::ThisChainWithMessages for Rialto {
+	type Origin = crate::Origin;
 	type Call = crate::Call;
 
 	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
