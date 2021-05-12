@@ -46,6 +46,9 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 		Ok(params)
 	}
 
+	/// Start finality relay guards.
+	fn start_relay_guards(_target_client: &Client<Self::TargetChain>) {}
+
 	/// Returns id of account that we're using to sign transactions at target chain.
 	fn transactions_author(&self) -> <Self::TargetChain as Chain>::AccountId;
 
