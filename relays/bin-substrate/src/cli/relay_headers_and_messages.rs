@@ -41,7 +41,7 @@ pub enum RelayHeadersAndMessages {
 #[derive(StructOpt)]
 pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
-	#[structopt(long)]
+	#[structopt(long, default_value = "00000000")]
 	lane: Vec<HexLaneId>,
 	#[structopt(flatten)]
 	prometheus_params: PrometheusParams,
