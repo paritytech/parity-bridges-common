@@ -143,6 +143,7 @@ impl RelayHeadersAndMessages {
 				MAX_MISSING_RIGHT_HEADERS_AT_LEFT,
 			);
 
+			// Need 2x capacity since we consider both directions for each lane
 			let mut message_relays = Vec::with_capacity(lanes.len() * 2);
 			for lane in lanes {
 				let lane = lane.into();
