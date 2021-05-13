@@ -54,7 +54,7 @@ use bp_messages::{
 	DeliveredMessages, LaneId, MessageNonce,
 };
 use bp_runtime::{messages::DispatchFeePayment, InstanceId};
-use bp_token_swap::TokenSwap;
+use bp_token_swap::{TokenSwap, TokenSwapType};
 use codec::{Decode, Encode};
 use frame_support::{
 	fail,
@@ -84,6 +84,8 @@ pub enum TokenSwapState {
 
 pub use pallet::*;
 
+// comes from #[pallet::event]
+#[allow(clippy::unused_unit)]
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -144,6 +146,7 @@ pub mod pallet {
 	>;
 	/// Type of `TokenSwap` used by the pallet.
 	pub type TokenSwapOf<T, I> = TokenSwap<
+		BlockNumberFor<T>,
 		<<T as Config<I>>::ThisCurrency as Currency<<T as frame_system::Config>::AccountId>>::Balance,
 		<T as frame_system::Config>::AccountId,
 		<T as Config<I>>::BridgedBalance,
@@ -328,7 +331,16 @@ pub mod pallet {
 			let swap_state = PendingSwaps::<T, I>::get(swap_hash);
 			match swap_state {
 				Some(TokenSwapState::Started) => fail!(Error::<T, I>::SwapIsPending),
-				Some(TokenSwapState::Confirmed) => (),
+				Some(TokenSwapState::Confirmed) => {
+					let is_claim_allowed = match swap.swap_type {
+						TokenSwapType::TemporaryTargetAccountAtBridgedChain => true,
+						TokenSwapType::LockClaimUntilBlock(block_number, _) => {
+							block_number < frame_system::Pallet::<T>::block_number()
+						}
+					};
+
+					ensure!(is_claim_allowed, Error::<T, I>::SwapIsTemporaryLocked);
+				}
 				Some(TokenSwapState::Failed) => fail!(Error::<T, I>::SwapIsFailed),
 				None => fail!(Error::<T, I>::SwapIsInactive),
 			}
@@ -338,7 +350,7 @@ pub mod pallet {
 
 		/// Return previously reserved `source_balance_at_this_chain` back to the `source_account_at_this_chain`.
 		///
-		/// This should be called only when transferhas failed at Bridged chain and we have received
+		/// This should be called only when transfer has failed at Bridged chain and we have received
 		/// notification about thate.
 		#[pallet::weight(0)]
 		pub fn cancel_swap(origin: OriginFor<T>, swap: TokenSwapOf<T, I>) -> DispatchResultWithPostInfo {
@@ -349,13 +361,16 @@ pub mod pallet {
 				Error::<T, I>::MismatchedSwapSourceOrigin,
 			);
 
-			// ensure that the swap is failed
+			// ensure that the swap has failed
 			let swap_hash = swap.using_encoded(blake2_256).into();
 			let swap_state = PendingSwaps::<T, I>::get(swap_hash);
 			match swap_state {
 				Some(TokenSwapState::Started) => fail!(Error::<T, I>::SwapIsPending),
 				Some(TokenSwapState::Confirmed) => fail!(Error::<T, I>::SwapIsConfirmed),
-				Some(TokenSwapState::Failed) => (),
+				Some(TokenSwapState::Failed) => {
+					// we allow cancelling swap even before lock period is over - the `source_account_at_this_chain`
+					// has already paid for nothing and it is up to him to decide whether he want to try again
+				}
 				None => fail!(Error::<T, I>::SwapIsInactive),
 			}
 
@@ -394,6 +409,11 @@ pub mod pallet {
 		SwapIsPending,
 		/// Someone is trying to claim swap that has failed.
 		SwapIsFailed,
+		/// Claiming swap is not allowed.
+		///
+		/// Now the only possible case when you may get this error, is when you're trying to claim swap with
+		/// `TokenSwapType::LockClaimUntilBlock` before lock period is over.
+		SwapIsTemporaryLocked,
 		/// Someone is trying to cancel swap that has been confirmed.
 		SwapIsConfirmed,
 		/// Someone is trying to claim/cancel swap that is either not started or already claimed/cancelled.
@@ -496,12 +516,15 @@ mod tests {
 	use crate::mock::*;
 	use frame_support::{assert_noop, assert_ok};
 
+	const CAN_CLAIM_BLOCK_NUMBER: u64 = 11;
+
 	const BRIDGED_CHAIN_ACCOUNT_PUBLIC: BridgedAccountPublic = 1;
 	const BRIDGED_CHAIN_ACCOUNT_SIGNATURE: BridgedAccountSignature = 2;
 	const BRIDGED_CHAIN_ACCOUNT: BridgedAccountId = 3;
 
 	fn test_swap() -> TokenSwapOf<TestRuntime, ()> {
 		bp_token_swap::TokenSwap {
+			swap_type: TokenSwapType::LockClaimUntilBlock(CAN_CLAIM_BLOCK_NUMBER - 1, 0.into()),
 			source_balance_at_this_chain: 100,
 			source_account_at_this_chain: THIS_CHAIN_ACCOUNT,
 			target_balance_at_bridged_chain: 200,
@@ -723,6 +746,7 @@ mod tests {
 	#[test]
 	fn claim_swap_fails_if_currency_transfer_from_swap_account_fails() {
 		run_test(|| {
+			frame_system::Pallet::<TestRuntime>::set_block_number(CAN_CLAIM_BLOCK_NUMBER);
 			PendingSwaps::<TestRuntime, ()>::insert(test_swap_hash(), TokenSwapState::Confirmed);
 
 			assert_noop!(
@@ -736,12 +760,30 @@ mod tests {
 	}
 
 	#[test]
+	fn claim_swap_fails_before_lock_period_is_completed() {
+		run_test(|| {
+			start_test_swap();
+			receive_test_swap_confirmation(true);
+
+			frame_system::Pallet::<TestRuntime>::set_block_number(CAN_CLAIM_BLOCK_NUMBER - 1);
+
+			assert_noop!(
+				Pallet::<TestRuntime>::claim_swap(
+					Origin::signed(target_account_at_this_chain::<TestRuntime, ()>(&test_swap())),
+					test_swap(),
+				),
+				Error::<TestRuntime, ()>::SwapIsTemporaryLocked
+			);
+		});
+	}
+
+	#[test]
 	fn claim_swap_succeeds() {
 		run_test(|| {
 			start_test_swap();
 			receive_test_swap_confirmation(true);
 
-			frame_system::Pallet::<TestRuntime>::set_block_number(1);
+			frame_system::Pallet::<TestRuntime>::set_block_number(CAN_CLAIM_BLOCK_NUMBER);
 			frame_system::Pallet::<TestRuntime>::reset_events();
 
 			assert_ok!(Pallet::<TestRuntime>::claim_swap(

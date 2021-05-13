@@ -12,10 +12,12 @@ codec = { package = "parity-scale-codec", version = "2.0.0", default-features = 
 # Substrate Dependencies
 
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 
 [features]
 default = ["std"]
 std = [
 	"codec/std",
 	"frame-support/std",
+	"sp-core/std",
 ]

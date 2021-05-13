@@ -853,6 +853,7 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec 2.0.1",
+ "sp-core",
 ]
 
 [[package]]
