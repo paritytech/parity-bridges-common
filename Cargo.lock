@@ -5884,6 +5884,7 @@ dependencies = [
 name = "relay-ethereum-client"
 version = "0.1.0"
 dependencies = [
+ "async-std",
  "bp-eth-poa",
  "headers-relay",
  "hex-literal 0.3.1",
