@@ -135,7 +135,7 @@ deny:
   <<:                              *docker-env
   <<:                              *pushes
   script:
-    - cargo deny advisories bans licenses sources
+    - cargo deny check advisories bans licenses sources
 
 
 #### stage:                        build
