@@ -1,7 +1,9 @@
 stages:
+  - lint
   - check
   - test
   - build
+  - publish
 
 workflow:
   rules:
@@ -13,7 +15,7 @@ variables:                         &default-vars
   GIT_DEPTH:                       100
   CARGO_INCREMENTAL:               0
   ARCH:                            "x86_64"
-  CI_IMAGE:                        "paritytech/ci-linux:production"
+  CI_IMAGE:                        "paritytech/bridges-ci:latest"
 
 default:
   cache:                           {}
@@ -47,37 +49,93 @@ default:
   tags:
     - linux-docker
 
+#### stage:                        lint
+
+clippy-nightly:
+  stage:                           lint
+  <<:                              *docker-env
+  variables:
+    RUSTFLAGS:                     "-D warnings"
+  script:
+    - cargo +nightly clippy --all-targets
+
+fmt:
+  stage:                           lint
+  <<:                              *docker-env
+  script:
+    - cargo fmt --all -- --check
+
+spellcheck:
+  stage:                           lint
+  <<:                              *docker-env
+  script:
+    - cargo spellcheck check -m 1 -vv $(find modules/currency-exchange/src -name "*.rs")
+
 #### stage:                        check
 
-check-std:
+check:
+  stage:                           check
+  <<:                              *docker-env
+  script:                          &check-script
+    - cargo check --verbose --workspace
+    # Check Rialto benchmarks runtime
+    - cargo check -p rialto-runtime --features runtime-benchmarks --verbose
+    # Check Millau benchmarks runtime
+    - cargo check -p millau-runtime --features runtime-benchmarks --verbose
+
+check-nightly:
   stage:                           check
   <<:                              *docker-env
   script:
-    - echo "cargo check --verbose --all-features"
+    - rustup default nightly
+    - *check-script
+    
+#### stage:                        test
 
-check-wasm:
-  stage:                           check
-  <<:                              *docker-env
-  script:
-    - echo "cargo check --verbose --no-default-features --target wasm32-unknown-unknown"
-
-#### stage:                        workspace
-
-build-std:
+test:
   stage:                           test
   <<:                              *docker-env
-  needs:
-    - job:                         check-std
-      artifacts:                   false
-  script:
-    - echo "cargo build --verbose --all-features --release"
+  script:                          &test-script
+    - cargo test --verbose --workspace
 
-build-wasm:
+test-nightly:
   stage:                           test
   <<:                              *docker-env
-  needs:
-    - job:                         check-wasm
-      artifacts:                   false
   script:
-    - echo "cargo build --verbose --no-default-features --release --target wasm32-unknown-unknown"
-    # debug
+    - rustup default nightly
+    - *test-script
+    
+
+deny:
+  stage:                           test
+  <<:                              *docker-env
+  script:
+    - cargo deny advisories bans licenses sources
+
+
+#### stage:                        build
+
+build:
+  stage:                           build
+  <<:                              *docker-env
+  <<:                              *collect-artifacts
+  # master
+  script:                          &build-script
+    - cargo build --verbose --workspace
+    # Prepare artifacts
+    - mkdir -p ./artifacts;
+    - mv -v target/debug/rialto-bridge-node ./artifacts/
+    - mv -v target/debug/millau-bridge-node ./artifacts/
+    - mv -v target/debug/ethereum-poa-relay ./artifacts/
+    - mv -v target/debug/substrate-relay ./artifacts/
+
+build-nightly:
+  stage:                           build
+  <<:                              *docker-env
+  <<:                              *collect-artifacts
+  # master
+  script:
+    - rustup default nightly
+    - *build-script
+    
+#### stage:                        publish
