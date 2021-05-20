@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -63,7 +63,7 @@ pub enum Subcommand {
 	Revert(sc_cli::RevertCmd),
 
 	/// Inspect blocks or extrinsics.
-	Inspect(node_inspect::cli::InspectCmd),
+	Inspect(node_inspect::cli::InspectKeyCmd),
 
 	/// Benchmark runtime pallets.
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),

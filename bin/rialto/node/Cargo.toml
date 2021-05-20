@@ -12,14 +12,14 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 [dependencies]
 jsonrpc-core = "15.1.0"
 structopt = "0.3.21"
+serde_json = "1.0.59"
 
 # Bridge dependencies
 
-bp-message-lane = { path = "../../../primitives/message-lane" }
+bp-messages = { path = "../../../primitives/messages" }
 bp-runtime = { path = "../../../primitives/runtime" }
-bp-rialto = { path = "../../../primitives/chains/rialto" }
-pallet-message-lane = { path = "../../../modules/message-lane" }
-pallet-message-lane-rpc = { path = "../../../modules/message-lane/rpc" }
+bp-rialto = { path = "../../../primitives/chain-rialto" }
+pallet-bridge-messages = { path = "../../../modules/messages" }
 rialto-runtime = { path = "../runtime" }
 
 # Substrate Dependencies
@@ -48,6 +48,7 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "master" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
 [build-dependencies]

@@ -27,8 +27,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
 	apt-get update && \
-	apt-get install -y --no-install-recommends \
-		libssl-dev curl && \
+	apt-get install -y curl ca-certificates && \
+	apt-get install -y --no-install-recommends libssl-dev && \
+	update-ca-certificates && \
 	groupadd -g 1000 user && \
 	useradd -u 1000 -g user -s /bin/sh -m user && \
 	# apt clean up

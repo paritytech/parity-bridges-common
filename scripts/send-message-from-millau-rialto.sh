@@ -11,22 +11,22 @@ MILLAU_PORT="${RIALTO_PORT:-9945}"
 case "$1" in
 	remark)
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
-		./target/debug/substrate-relay send-message millau-to-rialto \
-			--millau-host localhost \
-			--millau-port $MILLAU_PORT \
-			--millau-signer //Alice \
-			--rialto-signer //Bob \
+		./target/debug/substrate-relay send-message MillauToRialto \
+			--source-host localhost \
+			--source-port $MILLAU_PORT \
+			--source-signer //Alice \
+			--target-signer //Bob \
 			--lane 00000000 \
 			--origin Target \
 			remark \
 		;;
 	transfer)
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
-		./target/debug/substrate-relay send-message millau-to-rialto \
-			--millau-host localhost \
-			--millau-port $MILLAU_PORT \
-			--millau-signer //Alice \
-			--rialto-signer //Bob \
+		./target/debug/substrate-relay send-message MillauToRialto \
+			--source-host localhost \
+			--source-port $MILLAU_PORT \
+			--source-signer //Alice \
+			--target-signer //Bob \
 			--lane 00000000 \
 			--origin Target \
 			transfer \
