@@ -79,8 +79,6 @@ fmt:
   <<:                              *pushes
   script:
     - cargo fmt --all -- --check
-  # FIXME: debug
-  allow_failure:                   true
 
 spellcheck:
   stage:                           lint
