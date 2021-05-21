@@ -16,6 +16,7 @@ variables:                         &default-vars
   CARGO_INCREMENTAL:               0
   ARCH:                            "x86_64"
   CI_IMAGE:                        "paritytech/bridges-ci:latest"
+  RUST_BACKTRACE:                  full
 
 default:
   cache:                           {}
@@ -84,12 +85,8 @@ spellcheck:
   stage:                           lint
   <<:                              *docker-env
   <<:                              *pushes
-  variables:
-    RUST_BACKTRACE:                full
   script:
     - cargo spellcheck check -m 1 -vv $(find modules/currency-exchange/src -name "*.rs")
-  # FIXME: debug
-  allow_failure:                   true
 
 #### stage:                        check
 
@@ -139,7 +136,7 @@ deny:
     - cargo deny check bans licenses sources --hide-inclusion-graph
   after_script:
     - mkdir -p ./artifacts
-    - echo "___Complete logs are in the artifacts___"
+    - echo "___Complete logs can be found in the artifacts___"
     - cargo deny check advisories 2> advisories.log
     - cargo deny check bans licenses sources 2> bans_licenses_sources.log
 
