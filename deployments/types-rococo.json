@@ -206,17 +206,16 @@
     "commit": "Commit",
     "votes_ancestries": "Vec<BridgedHeader>"
   },
-  "Fee": "MillauBalance",
-  "Balance": "MillauBalance",
-  "Hash": "MillauBlockHash",
-  "BlockHash": "MillauBlockHash",
-  "BlockNumber": "MillauBlockNumber",
-  "BridgedBlockHash": "RialtoBlockHash",
-  "BridgedBlockNumber": "RialtoBlockNumber",
-  "BridgedHeader": "RialtoHeader",
+  "Fee": "RococoBalance",
+  "Balance": "RococoBalance",
+  "BlockHash": "RococoBlockHash",
+  "BlockNumber": "RococoBlockNumber",
+  "BridgedBlockHash": "WococoBlockHash",
+  "BridgedBlockNumber": "WococoBlockNumber",
+  "BridgedHeader": "WococoHeader",
   "Parameter": {
     "_enum": {
-      "MillauToRialtoConversionRate": "u128"
+      "RococoToWococoConversionRate": "u128"
     }
   }
 }
