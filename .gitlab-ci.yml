@@ -84,6 +84,8 @@ spellcheck:
   stage:                           lint
   <<:                              *docker-env
   <<:                              *pushes
+  variables:
+    RUST_BACKTRACE:                full
   script:
     - cargo spellcheck check -m 1 -vv $(find modules/currency-exchange/src -name "*.rs")
   # FIXME: debug
@@ -109,7 +111,7 @@ check-nightly:
   script:
     - rustup default nightly
     - *check-script
-    
+
 #### stage:                        test
 
 test:
@@ -126,7 +128,6 @@ test-nightly:
   script:
     - rustup default nightly
     - *test-script
-    
 
 deny:
   stage:                           test
@@ -168,5 +169,5 @@ build-nightly:
   script:
     - rustup default nightly
     - *build-script
-    
+
 #### stage:                        publish
