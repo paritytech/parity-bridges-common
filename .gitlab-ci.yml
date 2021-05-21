@@ -132,9 +132,15 @@ deny:
   stage:                           test
   <<:                              *docker-env
   <<:                              *pushes
+  <<:                              *collect-artifacts
   script:
-    - cargo deny check advisories bans licenses sources
-
+    - cargo deny check advisories --hide-inclusion-graph
+    - cargo deny check bans licenses sources --hide-inclusion-graph
+  after_script:
+    - mkdir -p ./artifacts
+    - echo "___Complete logs are in the artifacts___"
+    - cargo deny check advisories 2> advisories.log
+    - cargo deny check bans licenses sources 2> bans_licenses_sources.log
 
 #### stage:                        build
 
@@ -147,7 +153,7 @@ build:
   script:                          &build-script
     - cargo build --verbose --workspace
     # Prepare artifacts
-    - mkdir -p ./artifacts;
+    - mkdir -p ./artifacts
     - mv -v target/debug/rialto-bridge-node ./artifacts/
     - mv -v target/debug/millau-bridge-node ./artifacts/
     - mv -v target/debug/ethereum-poa-relay ./artifacts/
