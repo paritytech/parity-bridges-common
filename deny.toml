@@ -132,13 +132,13 @@ expression = "OpenSSL"
 # depending on the rest of your configuration
 license-files = [
     # Each entry is a crate relative path, and the (opaque) hash of its contents
-    { path = "LICENSE", hash = "0xbd0eed23" }
+    { path = "LICENSE", hash = 0xbd0eed23 }
 ]
 
 [[licenses.clarify]]
 name = "webpki"
 expression = "ISC"
-license-files = [{ path = "LICENSE", hash = "0x001c7e6c" }]
+license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
 
 [licenses.private]
 # If true, ignores workspace crates that aren't published, or are only
