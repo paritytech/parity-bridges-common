@@ -25,9 +25,9 @@
 		}
 	},
 	"--2": "Wococo Types",
-	"WococoBalance": "u128",
-	"WococoBlockHash": "H256",
-	"WococoBlockNumber": "u32",
+	"WococoBalance": "RococoBalance",
+	"WococoBlockHash": "RococoBlockHash",
+	"WococoBlockNumber": "RococoBlockNumber",
 	"WococoHeader": {
 		"parent_Hash": "WococoBlockHash",
 		"number": "Compact<WococoBlockNumber>",
