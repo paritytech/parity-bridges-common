@@ -3,52 +3,12 @@
   "RococoBalance": "u128",
   "RococoBlockHash": "H256",
   "RococoBlockNumber": "u32",
-  "RococoHeader": {
-    "parent_Hash": "RococoBlockHash",
-    "number": "Compact<RococoBlockNumber>",
-    "state_root": "RococoBlockHash",
-    "extrinsics_root": "RococoBlockHash",
-    "digest": "RococoDigest"
-  },
-  "RococoDigest": {
-    "logs": "Vec<RococoDigestItem>"
-  },
-  "RococoDigestItem": {
-    "_enum": {
-      "Other": "Vec<u8>",
-      "AuthoritiesChange": "Vec<AuthorityId>",
-      "ChangesTrieRoot": "RococoBlockHash",
-      "SealV0": "SealV0",
-      "Consensus": "Consensus",
-      "Seal": "Seal",
-      "PreRuntime": "PreRuntime"
-    }
-  },
+  "RococoHeader": "Header",
   "--2": "Wococo Types",
-  "WococoBalance": "u128",
-  "WococoBlockHash": "H256",
-  "WococoBlockNumber": "u32",
-  "WococoHeader": {
-    "parent_Hash": "WococoBlockHash",
-    "number": "Compact<WococoBlockNumber>",
-    "state_root": "WococoBlockHash",
-    "extrinsics_root": "WococoBlockHash",
-    "digest": "WococoDigest"
-  },
-  "WococoDigest": {
-    "logs": "Vec<WococoDigestItem>"
-  },
-  "WococoDigestItem": {
-    "_enum": {
-      "Other": "Vec<u8>",
-      "AuthoritiesChange": "Vec<AuthorityId>",
-      "ChangesTrieRoot": "WococoBlockHash",
-      "SealV0": "SealV0",
-      "Consensus": "Consensus",
-      "Seal": "Seal",
-      "PreRuntime": "PreRuntime"
-    }
-  },
+  "WococoBalance": "RococoBalance",
+  "WococoBlockHash": "RococoBlockHash",
+  "WococoBlockNumber": "RococoBlockNumber",
+  "WococoHeader": "RococoHeader",
   "--3": "Common types",
   "Address": "AccountId",
   "LookupSource": "AccountId",
