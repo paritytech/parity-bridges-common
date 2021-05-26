@@ -26,8 +26,8 @@ WORKDIR /home/user
 
 ARG PROJECT=ethereum-poa-relay
 
-COPY --chown=user:user ./artifacts/${PROJECT} ./
-COPY --chown=user:user ./artifacts/bridge-entrypoint.sh ./
+COPY --chown=user:user ./${PROJECT} ./
+COPY --chown=user:user ./bridge-entrypoint.sh ./
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
