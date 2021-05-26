@@ -186,9 +186,9 @@ build:
       artifacts:                   true
   before_script:                   &check-versions
     - if [[ "${CI_COMMIT_TAG}" ]]; then
-        VERSION=${CI_COMMIT_TAG}
+        VERSION=${CI_COMMIT_TAG};
       elif [[ "${CI_COMMIT_REF_NAME}" ]]; then
-        VERSION=$(echo ${CI_COMMIT_REF_NAME} | sed -r 's#/+#-#g')
+        VERSION=$(echo ${CI_COMMIT_REF_NAME} | sed -r 's#/+#-#g');
       fi
     - echo "Effective tags = ${VERSION} sha-${CI_COMMIT_SHORT_SHA} latest"
   script:
