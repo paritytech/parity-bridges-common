@@ -210,7 +210,7 @@ build:
   variables:                       &image-variables
     GIT_STRATEGY:                  none
     DOCKERFILE:                    ci.Dockerfile
-    IMAGE_NAME:                    docker.io/parity/$CI_JOB_NAME
+    IMAGE_NAME:                    docker.io/paritytech/$CI_JOB_NAME
   needs:
     - job:                         build
       artifacts:                   true
@@ -225,7 +225,6 @@ build:
     - test "${Docker_Hub_User_Parity}" -a "${Docker_Hub_Pass_Parity}" ||
         ( echo "no docker credentials provided"; exit 1 )
     - cd ./artifacts
-    # FIXME: [Warning] one or more build args were not consumed: [HEALTH]
     - buildah bud
         --format=docker
         --build-arg VCS_REF="${CI_COMMIT_SHORT_SHA}"
@@ -250,29 +249,17 @@ build:
 rialto-bridge-node:
   stage:                           publish
   <<:                              *build-push-image
-  variables:
-    <<:                            *image-variables
-    HEALTH:                        http://localhost:9933/health
 
 millau-bridge-node:
   stage:                           publish
   <<:                              *build-push-image
-  variables:
-    <<:                            *image-variables
-    HEALTH:                        http://localhost:9933/health
 
 ethereum-poa-relay:
   stage:                           publish
   <<:                              *build-push-image
-  variables:
-    <<:                            *image-variables
-    HEALTH:                        http://localhost:9616/metrics
 
 substrate-relay:
   stage:                           publish
   <<:                              *build-push-image
-  variables:
-    <<:                            *image-variables
-    HEALTH:                        http://localhost:9616/metrics
 
 # publish binaries
