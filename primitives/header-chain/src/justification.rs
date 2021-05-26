@@ -121,10 +121,7 @@ where
 			return Err(Error::PrecommitTargetHasLowerNumberThanCommitTarget);
 		}
 		// all precommits must be for target block descendents
-		let is_descendant = chain.is_ancestor(&justification.commit.target_hash, &signed.precommit.target_hash);
-		if !is_descendant {
-			return Err(Error::PrecommitTargetIsNotCommitDescendant);
-		}
+		chain = chain.ensure_descendant(&justification.commit.target_hash, &signed.precommit.target_hash)?;
 		// since we know now that the precommit target is the descendant of the justification target,
 		// we may increase 'weight' of the justification target
 		//
@@ -190,11 +187,12 @@ impl<Header: HeaderT> AncestryChain<Header> {
 		AncestryChain { parents, unvisited }
 	}
 
-	/// Returns `true` if `precommit_target` is a descendant of the `commit_target` block.
-	///
-	/// The method is removing all visited headers from `unvisited` container. The struct
-	/// is spoiled after it returns `false` and shall not be used again.
-	pub fn is_ancestor(&mut self, commit_target: &Header::Hash, precommit_target: &Header::Hash) -> bool {
+	/// Returns `Err(_)` if `precommit_target` is a descendant of the `commit_target` block and `Ok(_)` otherwise.
+	pub fn ensure_descendant(
+		mut self,
+		commit_target: &Header::Hash,
+		precommit_target: &Header::Hash,
+	) -> Result<Self, Error> {
 		let mut current_hash = *precommit_target;
 		loop {
 			if current_hash == *commit_target {
@@ -209,14 +207,14 @@ impl<Header: HeaderT> AncestryChain<Header> {
 						// `is_visited_before` means that it has been visited before in some of previous calls
 						// => since we assume that previous call has finished with `true`, this also will
 						//    be finished with `true`
-						return true;
+						return Ok(self);
 					}
 
 					*parent_hash
 				}
-				None => return false,
+				None => return Err(Error::PrecommitTargetIsNotCommitDescendant),
 			};
 		}
-		true
+		Ok(self)
 	}
 }
