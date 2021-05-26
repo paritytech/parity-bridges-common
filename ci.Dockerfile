@@ -42,8 +42,8 @@ ARG VERSION=""
 
 LABEL org.opencontainers.image.title="${PROJECT}" \
     org.opencontainers.image.description="${PROJECT} - component of Parity Bridges Common" \
-    org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/Dockerfile" \
-    org.opencontainers.image.url="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/Dockerfile" \
+    org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/ci.Dockerfile" \
+    org.opencontainers.image.url="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/ci.Dockerfile" \
     org.opencontainers.image.documentation="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/README.md" \
     org.opencontainers.image.created="${BUILD_DATE}" \
     org.opencontainers.image.version="${VERSION}" \
