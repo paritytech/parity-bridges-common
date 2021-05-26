@@ -57,10 +57,8 @@ pub enum Error {
 	InvalidJustificationTarget,
 	/// The authority has provided an invalid signature.
 	InvalidAuthoritySignature,
-	/// The justification contains precommit for header that has lower number than the commit header.
-	PrecommitTargetHasLowerNumberThanCommitTarget,
 	/// The justification contains precommit for header that is not a descendant of the commit header.
-	PrecommitTargetIsNotCommitDescendant,
+	PrecommitIsNotCommitDescendant,
 	/// The cumulative weight of all votes in the justification is not enough to justify commit
 	/// header finalization.
 	TooLowCumulativeWeight,
@@ -118,7 +116,7 @@ where
 
 		// all precommits must be for block higher than the target
 		if signed.precommit.target_number < justification.commit.target_number {
-			return Err(Error::PrecommitTargetHasLowerNumberThanCommitTarget);
+			return Err(Error::PrecommitIsNotCommitDescendant);
 		}
 		// all precommits must be for target block descendents
 		chain = chain.ensure_descendant(&justification.commit.target_hash, &signed.precommit.target_hash)?;
@@ -212,7 +210,7 @@ impl<Header: HeaderT> AncestryChain<Header> {
 
 					*parent_hash
 				}
-				None => return Err(Error::PrecommitTargetIsNotCommitDescendant),
+				None => return Err(Error::PrecommitIsNotCommitDescendant),
 			};
 		}
 		Ok(self)

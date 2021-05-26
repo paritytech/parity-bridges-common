@@ -123,7 +123,7 @@ fn same_result_when_precommit_target_has_lower_number_than_commit_target() {
 			&full_voter_set(),
 			&justification,
 		),
-		Err(Error::PrecommitTargetHasLowerNumberThanCommitTarget),
+		Err(Error::PrecommitIsNotCommitDescendant),
 	);
 	// original implementation returns empty GHOST
 	assert_matches!(
@@ -155,7 +155,7 @@ fn same_result_when_precommit_target_is_not_descendant_of_commit_target() {
 			&full_voter_set(),
 			&justification,
 		),
-		Err(Error::PrecommitTargetIsNotCommitDescendant),
+		Err(Error::PrecommitIsNotCommitDescendant),
 	);
 	// original implementation returns empty GHOST
 	assert_matches!(
