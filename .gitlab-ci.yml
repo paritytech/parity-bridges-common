@@ -161,6 +161,7 @@ build:
     - strip ./target/release/substrate-relay
     - mv -v ./target/release/substrate-relay ./artifacts/
     - mv -v ./deployments/local-scripts/bridge-entrypoint.sh ./artifacts/
+    - mv -v ./ci.Dockerfile ./artifacts/
 
 # build-nightly:
 #   stage:                           build
@@ -214,7 +215,7 @@ build:
     - buildah push --format=v2s2 "$IMAGE_NAME:sha-${CI_COMMIT_SHORT_SHA}"
     - buildah push --format=v2s2 "$IMAGE_NAME:latest"
   after_script:
-    - buildah logout "$IMAGE_NAME"
+    - env REGISTRY_AUTH_FILE= buildah logout "$IMAGE_NAME"
 
 rialto-bridge-node:
   stage:                           publish
