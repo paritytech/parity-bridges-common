@@ -103,6 +103,7 @@ where
 				continue;
 			}
 		};
+
 		// check if authority has already voted in the same round.
 		//
 		// there's a lot of code in `validate_commit` and `import_precommit` functions inside
