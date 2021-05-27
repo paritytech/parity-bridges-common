@@ -47,15 +47,14 @@
 use crate::*;
 
 use bp_test_utils::{
-	accounts, authority_list, make_justification_for_header, test_keyring, JustificationGeneratorParams, ALICE,
-	TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID,
+	accounts, make_justification_for_header, JustificationGeneratorParams, TEST_GRANDPA_ROUND, TEST_GRANDPA_SET_ID,
 };
 use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
 use frame_support::traits::Get;
 use frame_system::RawOrigin;
 use sp_finality_grandpa::AuthorityId;
 use sp_runtime::traits::Zero;
-use sp_std::{vec, vec::Vec};
+use sp_std::vec::Vec;
 
 // The maximum number of vote ancestries to include in a justification.
 //
@@ -75,207 +74,71 @@ fn header_number<T: Config<I>, I: 'static, N: From<u32>>() -> N {
 	(T::HeadersToKeep::get() + 1).into()
 }
 
-benchmarks_instance_pallet! {
-	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
-	// annotate the weight in the pallet.
-	//
-	// The other benchmarks related to `submit_finality_proof` are looking at the effect of specific
-	// parameters and are there mostly for seeing how specific codepaths behave.
-	submit_finality_proof {
-		let v in 1..MAX_VOTE_ANCESTRIES;
-		let p in 1..MAX_VALIDATOR_SET_SIZE;
+/// Prepare header and its justification to submit using `submit_finality_proof`.
+fn prepare_benchmark_data<T: Config<I>, I: 'static>(
+	precommits: u32,
+	ancestors: u32,
+) -> (BridgedHeader<T, I>, GrandpaJustification<BridgedHeader<T, I>>) {
+	let authority_list = accounts(precommits as u16)
+		.iter()
+		.map(|id| (AuthorityId::from(*id), 1))
+		.collect::<Vec<_>>();
 
-		let caller: T::AccountId = whitelisted_caller();
+	let init_data = InitializationData {
+		header: bp_test_utils::test_header(Zero::zero()),
+		authority_list,
+		set_id: TEST_GRANDPA_SET_ID,
+		is_halted: false,
+	};
 
-		let authority_list = accounts(p as u16)
-			.iter()
-			.map(|id| (AuthorityId::from(*id), 1))
-			.collect::<Vec<_>>();
+	bootstrap_bridge::<T, I>(init_data);
 
-		let init_data = InitializationData {
-			header: bp_test_utils::test_header(Zero::zero()),
-			authority_list,
-			set_id: TEST_GRANDPA_SET_ID,
-			is_halted: false,
-		};
-
-		bootstrap_bridge::<T, I>(init_data);
-
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
-		let params = JustificationGeneratorParams {
-			header: header.clone(),
-			round: TEST_GRANDPA_ROUND,
-			set_id: TEST_GRANDPA_SET_ID,
-			authorities: accounts(p as u16).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
-			votes: v,
-			forks: 1,
-		};
-
-		let justification = make_justification_for_header(params);
-
-	}: _(RawOrigin::Signed(caller), header, justification)
-	verify {
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
-		let expected_hash = header.hash();
-
-		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
-		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
-	}
-
-	// What we want to check here is the effect of vote ancestries on justification verification
-	// do this by varying the number of headers between `finality_target` and `header_of_chain`.
-	submit_finality_proof_on_single_fork {
-		let v in 1..MAX_VOTE_ANCESTRIES;
-
-		let caller: T::AccountId = whitelisted_caller();
-
-		let init_data = InitializationData {
-			header: bp_test_utils::test_header(Zero::zero()),
-			authority_list: authority_list(),
-			set_id: TEST_GRANDPA_SET_ID,
-			is_halted: false,
-		};
-
-		bootstrap_bridge::<T, I>(init_data);
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
-
-		let params = JustificationGeneratorParams {
-			header: header.clone(),
-			round: TEST_GRANDPA_ROUND,
-			set_id: TEST_GRANDPA_SET_ID,
-			authorities: test_keyring(),
-			votes: v,
-			forks: 1,
-		};
-
-		let justification = make_justification_for_header(params);
-
-	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
-	verify {
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
-		let expected_hash = header.hash();
-
-		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
-		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
-	}
-
-	// What we want to check here is the effect of many pre-commits on justification verification.
-	// We do this by creating many forks, whose head will be used as a signed pre-commit in the
-	// final justification.
-	submit_finality_proof_on_many_forks {
-		let p in 1..MAX_VALIDATOR_SET_SIZE;
-
-		let caller: T::AccountId = whitelisted_caller();
-
-		let authority_list = accounts(p as u16)
-			.iter()
-			.map(|id| (AuthorityId::from(*id), 1))
-			.collect::<Vec<_>>();
-
-		let init_data = InitializationData {
-			header: bp_test_utils::test_header(Zero::zero()),
-			authority_list,
-			set_id: TEST_GRANDPA_SET_ID,
-			is_halted: false,
-		};
-
-		bootstrap_bridge::<T, I>(init_data);
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
-
-		let params = JustificationGeneratorParams {
-			header: header.clone(),
-			round: TEST_GRANDPA_ROUND,
-			set_id: TEST_GRANDPA_SET_ID,
-			authorities: accounts(p as u16).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
-			votes: p,
-			forks: p,
-		};
-
-		let justification = make_justification_for_header(params);
-
-	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
-	verify {
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
-		let expected_hash = header.hash();
-
-		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
-		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
-	}
-
-	// Here we want to find out the overheaded of looking through consensus digests found in a
-	// header. As the number of logs in a header grows, how much more work do we require to look
-	// through them?
-	//
-	// Note that this should be the same for looking through scheduled changes and forces changes,
-	// which is why we only have one benchmark for this.
-	find_scheduled_change {
-		// Not really sure what a good bound for this is.
-		let n in 1..1000;
-
-		let mut logs = vec![];
-		for i in 0..n {
-			// We chose a non-consensus log on purpose since that way we have to look through all
-			// the logs in the header
-			logs.push(sp_runtime::DigestItem::Other(vec![]));
-		}
-
-		let mut header: BridgedHeader<T, I> = bp_test_utils::test_header(Zero::zero());
-		let digest = header.digest_mut();
-		*digest = sp_runtime::Digest {
-			logs,
-		};
-
-	}: {
-		crate::find_scheduled_change(&header)
-	}
-
-	// What we want to check here is how long it takes to read and write the authority set tracked
-	// by the pallet as the number of authorities grows.
-	read_write_authority_sets {
-		// The current max target number of validators on Polkadot/Kusama
-		let n in 1..1000;
-
-		let mut authorities = vec![];
-		for i in 0..n {
-			authorities.push((ALICE, 1));
-		}
-
-		let authority_set = bp_header_chain::AuthoritySet {
-			authorities: authorities.iter().map(|(id, w)| (AuthorityId::from(*id), *w)).collect(),
-			set_id: 0
-		};
-
-		<CurrentAuthoritySet<T, I>>::put(&authority_set);
-
-	}: {
-		let authority_set = <CurrentAuthoritySet<T, I>>::get();
-		<CurrentAuthoritySet<T, I>>::put(&authority_set);
-	}
+	let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
+	let params = JustificationGeneratorParams {
+		header: header.clone(),
+		round: TEST_GRANDPA_ROUND,
+		set_id: TEST_GRANDPA_SET_ID,
+		authorities: accounts(precommits as u16).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
+		ancestors,
+		common_ancestors: 0,
+		forks: 1,
+	};
+	let justification = make_justification_for_header(params);
+	(header, justification)
 }
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use frame_support::assert_ok;
+benchmarks_instance_pallet! {
+	// This benchmark computes the pre-dispatch weight of every additional ancestor. Every entry in
+	// the `votes_ancestry` of the justification in this benchmark represents an unique header on the
+	// route from commit.target to precommit.target.
+	weight_per_additional_unique_ancestor {
+		let v in 1..MAX_VOTE_ANCESTRIES;
+		let p = 1;
+		let caller: T::AccountId = whitelisted_caller();
+		let (header, justification) = prepare_benchmark_data::<T, I>(p, v);
+	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
+	verify {
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
+		let expected_hash = header.hash();
 
-	#[test]
-	fn finality_proof_is_valid() {
-		mock::run_test(|| {
-			assert_ok!(test_benchmark_submit_finality_proof::<mock::TestRuntime>());
-		});
+		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
+		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
 	}
 
-	#[test]
-	fn single_fork_finality_proof_is_valid() {
-		mock::run_test(|| {
-			assert_ok!(test_benchmark_submit_finality_proof_on_single_fork::<mock::TestRuntime>());
-		});
-	}
+	// This benchmark computes weight that needs to be added for every precommit. It assumes that all
+	// authorities have signed on the same header, so the cost of additional validator is near to
+	// the cost of validator signature verification.
+	weight_per_additional_precommit {
+		let p in 1..MAX_VALIDATOR_SET_SIZE;
+		let v = 1;
+		let caller: T::AccountId = whitelisted_caller();
+		let (header, justification) = prepare_benchmark_data::<T, I>(p, v);
+	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
+	verify {
+		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
+		let expected_hash = header.hash();
 
-	#[test]
-	fn multi_fork_finality_proof_is_valid() {
-		mock::run_test(|| {
-			assert_ok!(test_benchmark_submit_finality_proof_on_many_forks::<mock::TestRuntime>());
-		});
+		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
+		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
 	}
 }

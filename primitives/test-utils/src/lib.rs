@@ -19,6 +19,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_header_chain::justification::GrandpaJustification;
+use codec::Encode;
 use sp_application_crypto::TryFrom;
 use sp_finality_grandpa::{AuthorityId, AuthorityWeight};
 use sp_finality_grandpa::{AuthoritySignature, SetId};
@@ -46,10 +47,15 @@ pub struct JustificationGeneratorParams<H> {
 	///
 	/// The size of the set will determine the number of pre-commits in our justification.
 	pub authorities: Vec<(Account, AuthorityWeight)>,
-	/// The total number of vote ancestries in our justification.
+	/// The total number of precommit ancestors in the `votes_ancestries` field our justification.
 	///
 	/// These may be distributed among many different forks.
-	pub votes: u32,
+	pub ancestors: u32,
+	/// The number ancestors that are shared among all forks.
+	///
+	/// If it is 0, the headers of all forks are unique. If it is one, then all forks are
+	/// sharing single header - the direct descendant of the `header`.
+	pub common_ancestors: u32,
 	/// The number of forks.
 	///
 	/// Useful for creating a "worst-case" scenario in which each authority is on its own fork.
@@ -63,7 +69,8 @@ impl<H: HeaderT> Default for JustificationGeneratorParams<H> {
 			round: TEST_GRANDPA_ROUND,
 			set_id: TEST_GRANDPA_SET_ID,
 			authorities: test_keyring(),
-			votes: 2,
+			ancestors: 2,
+			common_ancestors: 0,
 			forks: 1,
 		}
 	}
@@ -94,35 +101,44 @@ pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorP
 		round,
 		set_id,
 		authorities,
-		mut votes,
+		mut ancestors,
+		common_ancestors,
 		forks,
 	} = params;
-
 	let (target_hash, target_number) = (header.hash(), *header.number());
-	let mut precommits = vec![];
 	let mut votes_ancestries = vec![];
+	let mut precommits = vec![];
 
 	assert!(forks != 0, "Need at least one fork to have a chain..");
-	assert!(votes >= forks, "Need at least one header per fork.");
 	assert!(
 		forks as usize <= authorities.len(),
 		"If we have more forks than authorities we can't create valid pre-commits for all the forks."
 	);
+	assert!(
+		ancestors - common_ancestors >= forks,
+		"Need at least one ancestor per fork."
+	);
+
+	// we always start with some prefix that is shared between routes from commit.target
+	// to all precommit.target
+	let common_ancestors_chain = generate_chain(0, common_ancestors + 1, &header);
+	let last_common_ancestor = common_ancestors_chain.last().cloned().unwrap();
+	votes_ancestries.extend(common_ancestors_chain.into_iter().skip(1));
 
 	// Roughly, how many vote ancestries do we want per fork
-	let target_depth = (votes + forks - 1) / forks;
+	let target_depth = (ancestors - common_ancestors + forks - 1) / forks;
 
 	let mut unsigned_precommits = vec![];
 	for i in 0..forks {
-		let depth = if votes >= target_depth {
-			votes -= target_depth;
+		let depth = if ancestors >= target_depth {
+			ancestors -= target_depth;
 			target_depth
 		} else {
-			votes
+			ancestors
 		};
 
 		// Note: Adding 1 to account for the target header
-		let chain = generate_chain(i as u8, depth + 1, &header);
+		let chain = generate_chain(i as u32, depth + 1, &last_common_ancestor);
 
 		// We don't include our finality target header in the vote ancestries
 		for child in &chain[1..] {
@@ -154,7 +170,7 @@ pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorP
 	}
 }
 
-fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
+fn generate_chain<H: HeaderT>(fork_id: u32, depth: u32, ancestor: &H) -> Vec<H> {
 	let mut headers = vec![ancestor.clone()];
 
 	for i in 1..depth {
@@ -169,7 +185,7 @@ fn generate_chain<H: HeaderT>(fork_id: u8, depth: u32, ancestor: &H) -> Vec<H> {
 		header
 			.digest_mut()
 			.logs
-			.push(sp_runtime::DigestItem::Other(vec![fork_id]));
+			.push(sp_runtime::DigestItem::Other(fork_id.encode()));
 
 		headers.push(header);
 	}
