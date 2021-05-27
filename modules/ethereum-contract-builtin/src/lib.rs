@@ -28,7 +28,7 @@ pub enum Error {
 	BlockNumberDecode,
 	/// Failed to decode Substrate header.
 	HeaderDecode(codec::Error),
-	/// Failed to decode best voters set.
+	/// Failed to decode the best voters set.
 	BestSetDecode(codec::Error),
 	/// Best voters set is invalid.
 	InvalidBestSet,

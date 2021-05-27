@@ -23,7 +23,7 @@
 //! 2. The number of `pre-commits` in the justification
 //!
 //! Vote ancestries are the headers between (`finality_target`, `head_of_chain`], where
-//! `header_of_chain` is a decendant of `finality_target`.
+//! `header_of_chain` is a descendant of `finality_target`.
 //!
 //! Pre-commits are messages which are signed by validators at the head of the chain they think is
 //! the best.

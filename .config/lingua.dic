@@ -33,6 +33,7 @@ crypto/MS
 customizable/B
 debian/M
 decodable/MS
+dev
 DOT/S
 doesn
 dispatchables
@@ -153,6 +154,8 @@ unfinalized
 unpruned
 unservable/B
 unsynced
+U256
+u32
 ve
 vec
 Vec

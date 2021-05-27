@@ -59,7 +59,7 @@ pub struct FinalityEffects<Submitter> {
 pub struct FinalityVotes<Submitter> {
 	/// Number of votes per each validator.
 	pub votes: BTreeMap<Address, u64>,
-	/// Ancestry blocks with oldest ancestors at the beginning and newest at the
+	/// Ancestry blocks with the oldest ancestors at the beginning and newest at the
 	/// end of the queue.
 	pub ancestry: VecDeque<FinalityAncestor<Submitter>>,
 }
