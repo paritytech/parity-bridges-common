@@ -36,7 +36,7 @@ pub struct CachedFinalityVotes<Submitter> {
 	/// best finalized.
 	pub stopped_at_finalized_sibling: bool,
 	/// Header ancestors that were read while we have been searching for
-	/// cached votes entry. Newest header has index 0.
+	/// cached votes entry, the newest header has index 0.
 	pub unaccounted_ancestry: VecDeque<(HeaderId, Option<Submitter>, AuraHeader)>,
 	/// Cached finality votes, if they have been found. The associated
 	/// header is not included into `unaccounted_ancestry`.

@@ -61,6 +61,7 @@ instantiate/B
 intrinsic/MS
 intrinsics
 InitiateChange
+InstantCurrencyPayments
 isn
 io
 js
@@ -74,6 +75,7 @@ kusama/S
 KYC/M
 keccak
 Kovan
+MaxUnrewardedRelayerEntriesAtInboundLane
 merkle/MS
 MessageNonce
 MessageNonces
@@ -101,6 +103,8 @@ parablock/MS
 parachain/MS
 parameterize/D
 pallet_message_lane
+pallet_bridge_messages
+pallet_bridge_grandpa
 polkadot/MS
 pov-block/MS
 PoA
@@ -137,6 +141,7 @@ subsystem/MS
 subsystems'
 shouldn
 synchronizer
+pallet_message_lane
 taskmanager/MS
 teleport/RG
 teleportation/SM
