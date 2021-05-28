@@ -39,10 +39,10 @@
 //! Note that the worst case scenario here would be a justification where each validator has it's
 //! own fork which is `SESSION_LENGTH` blocks long.
 //!
-//! As far as benchmarking results go, the only benchmark that should be used in
-//! `pallet-bridge-grandpa` to annotate weights is the `submit_finality_proof` one. The others are
-//! looking at the effects of specific code paths and do not actually reflect the overall worst case
-//! scenario.
+//! There are two benchmarks that are used in the `submit_finality_proof` formula. The first is
+//! a `weight_per_additional_unique_ancestor` that adds weight for every header in the votes ancestry.
+//! And the second one is the `weight_per_additional_precommit`, which adds weight for every
+//! additional precommit.
 
 use crate::*;
 
