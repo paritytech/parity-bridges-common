@@ -30,7 +30,6 @@ fn valid_justification_accepted() {
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: authorities.clone(),
 		ancestors: 7,
-		common_ancestors: 0,
 		forks: 3,
 	};
 
@@ -57,7 +56,6 @@ fn valid_justification_accepted_with_single_fork() {
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1), (DAVE, 1), (EVE, 1)],
 		ancestors: 5,
-		common_ancestors: 0,
 		forks: 1,
 	};
 
@@ -86,7 +84,6 @@ fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: authorities.clone(),
 		ancestors: n.into(),
-		common_ancestors: 0,
 		forks: n.into(),
 	};
 
@@ -179,7 +176,6 @@ fn justification_is_invalid_if_we_dont_meet_threshold() {
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: authorities.clone(),
 		ancestors: 2 * authorities.len() as u32,
-		common_ancestors: 0,
 		forks: 2,
 	};
 

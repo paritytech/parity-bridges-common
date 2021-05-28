@@ -51,11 +51,6 @@ pub struct JustificationGeneratorParams<H> {
 	///
 	/// These may be distributed among many different forks.
 	pub ancestors: u32,
-	/// The number ancestors that are shared among all forks.
-	///
-	/// If it is 0, the headers of all forks are unique. If it is one, then all forks are
-	/// sharing single header - the direct descendant of the `header`.
-	pub common_ancestors: u32,
 	/// The number of forks.
 	///
 	/// Useful for creating a "worst-case" scenario in which each authority is on its own fork.
@@ -70,7 +65,6 @@ impl<H: HeaderT> Default for JustificationGeneratorParams<H> {
 			set_id: TEST_GRANDPA_SET_ID,
 			authorities: test_keyring(),
 			ancestors: 2,
-			common_ancestors: 0,
 			forks: 1,
 		}
 	}
@@ -102,7 +96,6 @@ pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorP
 		set_id,
 		authorities,
 		mut ancestors,
-		common_ancestors,
 		forks,
 	} = params;
 	let (target_hash, target_number) = (header.hash(), *header.number());
@@ -114,19 +107,9 @@ pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorP
 		forks as usize <= authorities.len(),
 		"If we have more forks than authorities we can't create valid pre-commits for all the forks."
 	);
-	assert!(
-		ancestors - common_ancestors >= forks,
-		"Need at least one ancestor per fork."
-	);
-
-	// we always start with some prefix that is shared between routes from commit.target
-	// to all precommit.target
-	let common_ancestors_chain = generate_chain(0, common_ancestors + 1, &header);
-	let last_common_ancestor = common_ancestors_chain.last().cloned().unwrap();
-	votes_ancestries.extend(common_ancestors_chain.into_iter().skip(1));
 
 	// Roughly, how many vote ancestries do we want per fork
-	let target_depth = (ancestors - common_ancestors + forks - 1) / forks;
+	let target_depth = (ancestors + forks - 1) / forks;
 
 	let mut unsigned_precommits = vec![];
 	for i in 0..forks {
@@ -138,7 +121,7 @@ pub fn make_justification_for_header<H: HeaderT>(params: JustificationGeneratorP
 		};
 
 		// Note: Adding 1 to account for the target header
-		let chain = generate_chain(i as u32, depth + 1, &last_common_ancestor);
+		let chain = generate_chain(i as u32, depth + 1, &header);
 
 		// We don't include our finality target header in the vote ancestries
 		for child in &chain[1..] {

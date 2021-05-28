@@ -100,7 +100,6 @@ fn prepare_benchmark_data<T: Config<I>, I: 'static>(
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: accounts(precommits as u16).iter().map(|k| (*k, 1)).collect::<Vec<_>>(),
 		ancestors,
-		common_ancestors: 0,
 		forks: 1,
 	};
 	let justification = make_justification_for_header(params);
