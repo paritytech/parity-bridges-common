@@ -9,7 +9,8 @@
 	"BridgedHeader": "RialtoHeader",
 	"Parameter": {
 		"_enum": {
-			"MillauToRialtoConversionRate": "u128"
+			"MillauToRialtoConversionRate": "u128",
+			"RejectOutboundMessages": "bool"
 		}
 	}
 }

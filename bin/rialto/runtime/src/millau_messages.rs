@@ -40,6 +40,8 @@ pub const INITIAL_MILLAU_TO_RIALTO_CONVERSION_RATE: FixedU128 = FixedU128::from_
 parameter_types! {
 	/// Millau to Rialto conversion rate. Initially we treat both tokens as equal.
 	pub storage MillauToRialtoConversionRate: FixedU128 = INITIAL_MILLAU_TO_RIALTO_CONVERSION_RATE;
+	/// If `true`, all Rialto -> Millau messages are rejected.
+	pub storage RejectOutboundMessages: bool = false;
 }
 
 /// Message payload for Rialto -> Millau messages.
@@ -104,6 +106,10 @@ impl messages::ThisChainWithMessages for Rialto {
 	type Call = crate::Call;
 
 	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
+		if RejectOutboundMessages::get() {
+			return false;
+		}
+
 		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
 	}
 
@@ -247,6 +253,8 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 pub enum RialtoToMillauMessagesParameter {
 	/// The conversion formula we use is: `RialtoTokens = MillauTokens * conversion_rate`.
 	MillauToRialtoConversionRate(FixedU128),
+	/// If `true`, all new outbound messages are rejected.
+	RejectOutboundMessages(bool),
 }
 
 impl MessagesParameter for RialtoToMillauMessagesParameter {
@@ -254,6 +262,9 @@ impl MessagesParameter for RialtoToMillauMessagesParameter {
 		match *self {
 			RialtoToMillauMessagesParameter::MillauToRialtoConversionRate(ref conversion_rate) => {
 				MillauToRialtoConversionRate::set(conversion_rate)
+			}
+			RialtoToMillauMessagesParameter::RejectOutboundMessages(reject_outbound_messages) => {
+				RejectOutboundMessages::set(&reject_outbound_messages);
 			}
 		}
 	}
