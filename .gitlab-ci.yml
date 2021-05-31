@@ -52,99 +52,111 @@ default:
   tags:
     - linux-docker
 
-.pushes:                           &pushes
+.test-refs:                        &test-refs
   # these jobs run only on PRs
   # FIXME: check whether it runs on tags and master
   rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
-      changes:
+    # FIXME: check it works
+    - changes:
         - '**.md'
         - diagrams/*
         - docs/*
       when:                        never
+    # FIXME: check how it's triggered
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
-
-.build-refs:                       &build-refs
-  rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_COMMIT_REF_NAME == "master"
+    - if: $CI_COMMIT_REF_NAME =~ /^[0-9]+$/                         # PRs
     - if: $CI_COMMIT_REF_NAME =~ /^v[0-9]+\.[0-9]+.*$/              # i.e. v1.0, v2.1rc1
 
-.nightly-pipeline:                 &nightly-pipeline
+.build-refs:                       &build-refs
   rules:
+    # won't run on the CI image update pipeline
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_REF_NAME =~ /^v[0-9]+\.[0-9]+.*$/              # i.e. v1.0, v2.1rc1
+    # there are two types of nightly pipelines:
+    # 1. this one is triggered by the schedule with $PIPELINE == "nightly", it's for releasing.
     # this job runs only on nightly pipeline with the mentioned variable, against `master` branch
     - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "schedule" && $PIPELINE == "nightly"
 
+.nightly-test:                     &nightly-test
+  rules:
+    # 2. another is triggered by scripts repo $CI_PIPELINE_SOURCE == "pipeline" it's for the CI image
+    #    update, it also runs all the nightly checks.
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+
 #### stage:                        lint
 
-# clippy-nightly:
-#   stage:                           lint
-#   <<:                              *docker-env
-#   <<:                              *pushes
-#   variables:
-#     RUSTFLAGS:                     "-D warnings"
-#   script:
-#     - cargo +nightly clippy --all-targets
-#   # FIXME: debug
-#   allow_failure:                   true
+clippy-nightly:
+  stage:                           lint
+  <<:                              *docker-env
+  <<:                              *test-refs
+  variables:
+    RUSTFLAGS:                     "-D warnings"
+  script:
+    - cargo +nightly clippy --all-targets
+  # FIXME: debug
+  allow_failure:                   true
 
-# fmt:
-#   stage:                           lint
-#   <<:                              *docker-env
-#   <<:                              *pushes
-#   script:
-#     - cargo fmt --all -- --check
+fmt:
+  stage:                           lint
+  <<:                              *docker-env
+  <<:                              *test-refs
+  script:
+    - cargo fmt --all -- --check
 
-# spellcheck:
-#   stage:                           lint
-#   <<:                              *docker-env
-#   <<:                              *pushes
-#   script:
-#     - cargo spellcheck check -m 1 -vv $(find modules/currency-exchange/src -name "*.rs")
+spellcheck:
+  stage:                           lint
+  <<:                              *docker-env
+  <<:                              *test-refs
+  script:
+    - cargo spellcheck check -m 1 -vv $(find modules/currency-exchange/src -name "*.rs")
 
-# #### stage:                        check
+#### stage:                        check
 
-# check:
-#   stage:                           check
-#   <<:                              *docker-env
-#   <<:                              *pushes
-#   script:                          &check-script
-#     - cargo check --verbose --workspace
-#     # Check Rialto benchmarks runtime
-#     - cargo check -p rialto-runtime --features runtime-benchmarks --verbose
-#     # Check Millau benchmarks runtime
-#     - cargo check -p millau-runtime --features runtime-benchmarks --verbose
+check:
+  stage:                           check
+  <<:                              *docker-env
+  <<:                              *test-refs
+  script:                          &check-script
+    - cargo check --verbose --workspace
+    # Check Rialto benchmarks runtime
+    - cargo check -p rialto-runtime --features runtime-benchmarks --verbose
+    # Check Millau benchmarks runtime
+    - cargo check -p millau-runtime --features runtime-benchmarks --verbose
 
-# check-nightly:
-#   stage:                           check
-#   <<:                              *docker-env
-#   script:
-#     - rustup default nightly
-#     - *check-script
+check-nightly:
+  stage:                           check
+  <<:                              *docker-env
+  <<:                              *nightly-test
+  script:
+    - rustup default nightly
+    - *check-script
 
-# #### stage:                        test
+#### stage:                        test
 
-# test:
-#   stage:                           test
-#   <<:                              *docker-env
-#   <<:                              *pushes
-#   script:                          &test-script
-#     - cargo test --verbose --workspace
+test:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *test-refs
+  script:                          &test-script
+    - cargo test --verbose --workspace
 
-# test-nightly:
-#   stage:                           test
-#   <<:                              *docker-env
-#   script:
-#     - rustup default nightly
-#     - *test-script
+test-nightly:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *nightly-test
+  script:
+    - rustup default nightly
+    - *test-script
 
 deny:
   stage:                           test
   <<:                              *docker-env
-  <<:                              *pushes
+  <<:                              *nightly-test
   <<:                              *collect-artifacts
   script:
     - cargo deny check advisories --hide-inclusion-graph
@@ -160,7 +172,7 @@ deny:
 deny-licenses:
   stage:                           test
   <<:                              *docker-env
-  <<:                              *pushes
+  <<:                              *test-refs
   <<:                              *collect-artifacts
   script:
     - cargo deny check licenses --hide-inclusion-graph
@@ -174,11 +186,12 @@ deny-licenses:
 build:
   stage:                           build
   <<:                              *docker-env
-  <<:                              *pushes
+  <<:                              *build-refs
   <<:                              *collect-artifacts
   # master
   script:                          &build-script
     - cargo build --release --verbose --workspace
+  after_script:
     # Prepare artifacts
     - mkdir -p ./artifacts
     - strip ./target/release/rialto-bridge-node
@@ -192,21 +205,21 @@ build:
     - mv -v ./deployments/local-scripts/bridge-entrypoint.sh ./artifacts/
     - mv -v ./ci.Dockerfile ./artifacts/
 
-# build-nightly:
-#   stage:                           build
-#   <<:                              *docker-env
-#   <<:                              *collect-artifacts
-#   # master
-#   script:
-# do not do artifacts here
-#     - rustup default nightly
-#     - *build-script
+build-nightly:
+  stage:                           build
+  <<:                              *docker-env
+  <<:                              *collect-artifacts
+  <<:                              *nightly-test
+  script:
+    - rustup default nightly
+    - *build-script
 
 #### stage:                        publish
 
 .build-push-image:                 &build-push-image
   <<:                              *kubernetes-build
   image:                           quay.io/buildah/stable
+  <<:                              *build-refs
   variables:                       &image-variables
     GIT_STRATEGY:                  none
     DOCKERFILE:                    ci.Dockerfile
@@ -262,4 +275,4 @@ substrate-relay:
   stage:                           publish
   <<:                              *build-push-image
 
-# publish binaries
+# FIXME: publish binaries
