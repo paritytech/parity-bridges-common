@@ -46,6 +46,13 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 		Ok(params)
 	}
 
+	/// Start finality relay guards.
+	///
+	/// Different finality bridges may have different set of guards - e.g. on ephemeral chains we
+	/// don't need version guards, on test chains we don't care that much about relayer account
+	/// balance, ... So the implementation is left to the specific bridges.
+	fn start_relay_guards(_target_client: &Client<Self::TargetChain>) {}
+
 	/// Returns id of account that we're using to sign transactions at target chain.
 	fn transactions_author(&self) -> <Self::TargetChain as Chain>::AccountId;
 
@@ -113,7 +120,7 @@ where
 	SourceChain: Clone + Chain + Debug,
 	BlockNumberOf<SourceChain>: BlockNumberBase,
 	TargetChain: Clone + Chain + Debug,
-	TargetSign: Clone + Send + Sync,
+	TargetSign: 'static + Clone + Send + Sync,
 {
 	const SOURCE_NAME: &'static str = SourceChain::NAME;
 	const TARGET_NAME: &'static str = TargetChain::NAME;
@@ -129,6 +136,7 @@ pub async fn run<SourceChain, TargetChain, P>(
 	pipeline: P,
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
+	is_on_demand_task: bool,
 	metrics_params: MetricsParams,
 ) -> anyhow::Result<()>
 where
@@ -154,6 +162,7 @@ where
 		FinalitySource::new(source_client),
 		SubstrateFinalityTarget::new(target_client, pipeline),
 		FinalitySyncParams {
+			is_on_demand_task,
 			tick: std::cmp::max(SourceChain::AVERAGE_BLOCK_INTERVAL, TargetChain::AVERAGE_BLOCK_INTERVAL),
 			recent_finality_proofs_limit: RECENT_FINALITY_PROOFS_LIMIT,
 			stall_timeout: STALL_TIMEOUT,

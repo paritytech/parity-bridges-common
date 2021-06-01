@@ -23,7 +23,7 @@ use crate::messages_source::SubstrateMessagesSource;
 use crate::messages_target::SubstrateMessagesTarget;
 
 use bp_messages::MessageNonce;
-use bp_runtime::{MILLAU_BRIDGE_INSTANCE, RIALTO_BRIDGE_INSTANCE};
+use bp_runtime::{MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::Encode;
 use frame_support::dispatch::GetDispatchInfo;
@@ -59,7 +59,7 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 	type SourceChain = Millau;
 	type TargetChain = Rialto;
 
-	fn source_transactions_author(&self) -> bp_rialto::AccountId {
+	fn source_transactions_author(&self) -> bp_millau::AccountId {
 		(*self.source_sign.public().as_array_ref()).into()
 	}
 
@@ -200,14 +200,14 @@ pub async fn run(
 			source_client.clone(),
 			lane.clone(),
 			lane_id,
-			RIALTO_BRIDGE_INSTANCE,
+			RIALTO_CHAIN_ID,
 			params.target_to_source_headers_relay,
 		),
 		RialtoTargetClient::new(
 			params.target_client,
 			lane,
 			lane_id,
-			MILLAU_BRIDGE_INSTANCE,
+			MILLAU_CHAIN_ID,
 			params.source_to_target_headers_relay,
 		),
 		relay_utils::relay_metrics(

@@ -201,7 +201,7 @@ impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverte
 ///
 /// Note that this should only be used for testing.
 pub fn derive_account_from_rialto_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
-	let encoded_id = bp_runtime::derive_account_id(bp_runtime::RIALTO_BRIDGE_INSTANCE, id);
+	let encoded_id = bp_runtime::derive_account_id(bp_runtime::RIALTO_CHAIN_ID, id);
 	AccountIdConverter::convert(encoded_id)
 }
 
@@ -259,31 +259,6 @@ pub const FROM_MILLAU_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromMillauInboundLa
 pub const FROM_MILLAU_UNREWARDED_RELAYERS_STATE: &str = "FromMillauInboundLaneApi_unrewarded_relayers_state";
 
 sp_api::decl_runtime_apis! {
-	/// API for querying information about Millau headers from the Bridge Pallet instance.
-	///
-	/// This API is implemented by runtimes that are bridging with the Millau chain, not the
-	/// Millau runtime itself.
-	pub trait MillauHeaderApi {
-		/// Returns number and hash of the best blocks known to the bridge module.
-		///
-		/// Will return multiple headers if there are many headers at the same "best" height.
-		///
-		/// The caller should only submit an `import_header` transaction that makes
-		/// (or leads to making) other header the best one.
-		fn best_blocks() -> Vec<(BlockNumber, Hash)>;
-		/// Returns number and hash of the best finalized block known to the bridge module.
-		fn finalized_block() -> (BlockNumber, Hash);
-		/// Returns numbers and hashes of headers that require finality proofs.
-		///
-		/// An empty response means that there are no headers which currently require a
-		/// finality proof.
-		fn incomplete_headers() -> Vec<(BlockNumber, Hash)>;
-		/// Returns true if the header is known to the runtime.
-		fn is_known_block(hash: Hash) -> bool;
-		/// Returns true if the header is considered finalized by the runtime.
-		fn is_finalized_block(hash: Hash) -> bool;
-	}
-
 	/// API for querying information about the finalized Millau headers.
 	///
 	/// This API is implemented by runtimes that are bridging with the Millau chain, not the

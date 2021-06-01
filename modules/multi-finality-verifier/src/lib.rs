@@ -40,7 +40,7 @@ use crate::weights::WeightInfo;
 
 use bp_header_chain::justification::GrandpaJustification;
 use bp_header_chain::InitializationData;
-use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf, InstanceId};
+use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf, ChainId};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::ensure;
 use frame_system::{ensure_signed, RawOrigin};
@@ -140,7 +140,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			finality_target: BridgedHeader<T, I>,
 			justification: GrandpaJustification<BridgedHeader<T, I>>,
-			gateway_id: InstanceId,
+			gateway_id: ChainId,
 			extrinsics_root: BridgedBlockHash<T, I>,
 			state_root: BridgedBlockHash<T, I>,
 		) -> DispatchResultWithPostInfo {
@@ -211,7 +211,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			finality_target: BridgedHeader<T, I>,
 			justification: GrandpaJustification<BridgedHeader<T, I>>,
-			gateway_id: InstanceId,
+			gateway_id: ChainId,
 			// ToDo: Try passing Vec<u8> here and cast to appropriate header type with help of xDNS
 			state_root: BridgedBlockHash<T, I>,
 			extrinsics_root: BridgedBlockHash<T, I>,
@@ -247,7 +247,7 @@ pub mod pallet {
 		pub fn initialize_single(
 			origin: OriginFor<T>,
 			init_data: super::InitializationData<BridgedHeader<T, I>>,
-			gateway_id: InstanceId,
+			gateway_id: ChainId,
 		) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root_single::<T, I>(origin, gateway_id)?;
 
@@ -272,7 +272,7 @@ pub mod pallet {
 		pub fn set_owner(
 			origin: OriginFor<T>,
 			new_owner: Option<T::AccountId>,
-			gateway_id: InstanceId,
+			gateway_id: ChainId,
 		) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root_single::<T, I>(origin, gateway_id)?;
 			match new_owner {
@@ -296,7 +296,7 @@ pub mod pallet {
 		pub fn set_operational(
 			origin: OriginFor<T>,
 			operational: bool,
-			gateway_id: InstanceId,
+			gateway_id: ChainId,
 		) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root_single::<T, I>(origin, gateway_id)?;
 			<IsHaltedMap<T, I>>::insert(gateway_id, operational);
@@ -320,39 +320,39 @@ pub mod pallet {
 	/// that the pallet can always make progress.
 	#[pallet::storage]
 	#[pallet::getter(fn request_count_map)]
-	pub(super) type RequestCountMap<T: Config<I>, I: 'static = ()> = StorageMap<_, Blake2_256, InstanceId, u32>;
+	pub(super) type RequestCountMap<T: Config<I>, I: 'static = ()> = StorageMap<_, Blake2_256, ChainId, u32>;
 
 	/// Hash of the header used to bootstrap the pallet.
 	#[pallet::storage]
 	pub(super) type InitialHashMap<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_256, InstanceId, BridgedBlockHash<T, I>>;
+		StorageMap<_, Blake2_256, ChainId, BridgedBlockHash<T, I>>;
 
 	/// Map of hashes of the best finalized header.
 	#[pallet::storage]
 	pub(super) type BestFinalizedMap<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_256, InstanceId, BridgedBlockHash<T, I>>;
+		StorageMap<_, Blake2_256, ChainId, BridgedBlockHash<T, I>>;
 
 	/// A ring buffer of imported hashes. Ordered by the insertion time.
 	#[pallet::storage]
 	pub(super) type MultiImportedHashes<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Blake2_256, InstanceId, Identity, u32, BridgedBlockHash<T, I>>;
+		StorageDoubleMap<_, Blake2_256, ChainId, Identity, u32, BridgedBlockHash<T, I>>;
 
 	/// Current ring buffer position.
 	#[pallet::storage]
 	pub(super) type MultiImportedHashesPointer<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_256, InstanceId, u32>;
+		StorageMap<_, Blake2_256, ChainId, u32>;
 
 	/// Headers which have been imported into the pallet.
 	#[pallet::storage]
 	pub(super) type MultiImportedHeaders<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Blake2_256, InstanceId, Identity, BridgedBlockHash<T, I>, BridgedHeader<T, I>>;
+		StorageDoubleMap<_, Blake2_256, ChainId, Identity, BridgedBlockHash<T, I>, BridgedHeader<T, I>>;
 
 	/// Roots (ExtrinsicsRoot + StateRoot) which have been imported into the pallet for a given gateway.
 	#[pallet::storage]
 	pub(super) type MultiImportedRoots<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
 		_,
 		Blake2_256,
-		InstanceId,
+		ChainId,
 		Identity,
 		BridgedBlockHash<T, I>,
 		(BridgedBlockHash<T, I>, BridgedBlockHash<T, I>),
@@ -361,7 +361,7 @@ pub mod pallet {
 	/// The current GRANDPA Authority set map.
 	#[pallet::storage]
 	pub(super) type CurrentAuthoritySetMap<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_256, InstanceId, bp_header_chain::AuthoritySet>;
+		StorageMap<_, Blake2_256, ChainId, bp_header_chain::AuthoritySet>;
 
 	/// Optional pallet owner.
 	///
@@ -379,7 +379,7 @@ pub mod pallet {
 	/// runtime methods may still be used to do that (i.e. democracy::referendum to update halt
 	/// flag directly or call the `halt_operations`).
 	#[pallet::storage]
-	pub(super) type PalletOwnerMap<T: Config<I>, I: 'static = ()> = StorageMap<_, Blake2_256, InstanceId, T::AccountId>;
+	pub(super) type PalletOwnerMap<T: Config<I>, I: 'static = ()> = StorageMap<_, Blake2_256, ChainId, T::AccountId>;
 
 	/// If true, all pallet transactions are failed immediately.
 	#[pallet::storage]
@@ -387,12 +387,12 @@ pub mod pallet {
 
 	/// If true, all pallet transactions are failed immediately.
 	#[pallet::storage]
-	pub(super) type IsHaltedMap<T: Config<I>, I: 'static = ()> = StorageMap<_, Blake2_256, InstanceId, bool>;
+	pub(super) type IsHaltedMap<T: Config<I>, I: 'static = ()> = StorageMap<_, Blake2_256, ChainId, bool>;
 
 	/// Map of instance ids of gateways which are active
 	#[pallet::storage]
 	pub(super) type InstantiatedGatewaysMap<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, Vec<InstanceId>, ValueQuery>;
+		StorageValue<_, Vec<ChainId>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
@@ -461,7 +461,7 @@ pub mod pallet {
 	pub(crate) fn try_enact_authority_change_single<T: Config<I>, I: 'static>(
 		header: &BridgedHeader<T, I>,
 		current_set_id: sp_finality_grandpa::SetId,
-		gateway_id: InstanceId,
+		gateway_id: ChainId,
 	) -> Result<bool, sp_runtime::DispatchError> {
 		let mut change_enacted = false;
 
@@ -509,7 +509,7 @@ pub mod pallet {
 		hash: BridgedBlockHash<T, I>,
 		number: BridgedBlockNumber<T, I>,
 		authority_set: bp_header_chain::AuthoritySet,
-		_gateway_id: InstanceId,
+		_gateway_id: ChainId,
 	) -> Result<(), sp_runtime::DispatchError> {
 		use bp_header_chain::justification::verify_justification;
 
@@ -529,7 +529,7 @@ pub mod pallet {
 	/// Since this writes to storage with no real checks this should only be used in functions that
 	/// were called by a trusted origin.
 	pub fn initialize_bridge<T: Config<I>, I: 'static>(init_params: super::InitializationData<BridgedHeader<T, I>>) {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 		initialize_single_bridge::<T, I>(init_params, default_gateway)
 	}
 
@@ -537,7 +537,7 @@ pub mod pallet {
 	/// were called by a trusted origin.
 	pub(crate) fn initialize_single_bridge<T: Config<I>, I: 'static>(
 		init_params: super::InitializationData<BridgedHeader<T, I>>,
-		gateway_id: InstanceId,
+		gateway_id: ChainId,
 	) {
 		let super::InitializationData {
 			header,
@@ -565,7 +565,7 @@ pub mod pallet {
 	/// Ensure that the origin is either root, or `PalletOwner`.
 	fn ensure_owner_or_root_single<T: Config<I>, I: 'static>(
 		origin: T::Origin,
-		gateway_id: InstanceId,
+		gateway_id: ChainId,
 	) -> Result<(), BadOrigin> {
 		match origin.into() {
 			Ok(RawOrigin::Root) => Ok(()),
@@ -580,7 +580,7 @@ pub mod pallet {
 	}
 
 	/// Ensure that the pallet is in operational mode (not halted).
-	fn ensure_operational_single<T: Config<I>, I: 'static>(gateway_id: InstanceId) -> Result<(), Error<T, I>> {
+	fn ensure_operational_single<T: Config<I>, I: 'static>(gateway_id: ChainId) -> Result<(), Error<T, I>> {
 		if <IsHaltedMap<T, I>>::get(gateway_id)
 			.expect("Is halted prop is should have been set before during initialize")
 		{
@@ -596,7 +596,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	///
 	/// Returns a dummy header if there is no best header. This can only happen
 	/// if the pallet has not been initialized yet.
-	pub fn best_finalized_map(gateway_id: InstanceId) -> BridgedHeader<T, I> {
+	pub fn best_finalized_map(gateway_id: ChainId) -> BridgedHeader<T, I> {
 		let hash = <BestFinalizedMap<T, I>>::get(gateway_id).unwrap_or_default();
 		<MultiImportedHeaders<T, I>>::get(gateway_id, hash).unwrap_or_else(|| {
 			<BridgedHeader<T, I>>::new(
@@ -610,7 +610,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	}
 
 	/// Check if a particular header is known to the bridge pallet.
-	pub fn is_known_header(hash: BridgedBlockHash<T, I>, gateway_id: InstanceId) -> bool {
+	pub fn is_known_header(hash: BridgedBlockHash<T, I>, gateway_id: ChainId) -> bool {
 		<MultiImportedHeaders<T, I>>::contains_key(gateway_id, hash)
 	}
 
@@ -621,7 +621,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		hash: BridgedBlockHash<T, I>,
 		storage_proof: sp_trie::StorageProof,
 		parse: impl FnOnce(bp_runtime::StorageProofChecker<BridgedBlockHasher<T, I>>) -> R,
-		gateway_id: InstanceId,
+		gateway_id: ChainId,
 	) -> Result<R, sp_runtime::DispatchError> {
 		let header = <MultiImportedHeaders<T, I>>::get(gateway_id, hash).ok_or(Error::<T, I>::UnknownHeader)?;
 		let storage_proof_checker = bp_runtime::StorageProofChecker::new(*header.state_root(), storage_proof)
@@ -690,7 +690,7 @@ mod tests {
 	use sp_runtime::{Digest, DigestItem, DispatchError};
 
 	fn teardown_substrate_bridge() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 		// Reset storage so we can initialize the pallet again
 		BestFinalizedMap::<TestRuntime>::remove(default_gateway);
 		PalletOwnerMap::<TestRuntime>::remove(default_gateway);
@@ -706,17 +706,17 @@ mod tests {
 
 	fn initialize_substrate_bridge() {
 		teardown_substrate_bridge();
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 		assert_ok!(init_single_gateway_with_origin(Origin::root(), default_gateway));
 	}
 
-	fn initialize_substrate_bridge_for_gateway(gateway_id: InstanceId) {
+	fn initialize_substrate_bridge_for_gateway(gateway_id: ChainId) {
 		assert_ok!(init_single_gateway_with_origin(Origin::root(), gateway_id));
 	}
 
 	fn init_single_gateway_with_origin(
 		origin: Origin,
-		gateway_id: InstanceId,
+		gateway_id: ChainId,
 	) -> Result<InitializationData<TestHeader>, sp_runtime::DispatchErrorWithPostInfo<PostDispatchInfo>> {
 		let genesis = test_header(0);
 
@@ -741,7 +741,7 @@ mod tests {
 			set_id: 1,
 			is_halted: false,
 		};
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		Pallet::<TestRuntime>::initialize_single(origin, init_data.clone(), default_gateway).map(|_| init_data)
 	}
@@ -751,7 +751,7 @@ mod tests {
 
 		let justification = make_default_justification(&header);
 
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		let default_roots = (Default::default(), Default::default());
 
@@ -774,7 +774,7 @@ mod tests {
 
 		let justification = make_default_justification(&header);
 
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		Pallet::<TestRuntime>::submit_finality_proof_and_roots(
 			Origin::signed(1),
@@ -821,7 +821,7 @@ mod tests {
 
 	#[test]
 	fn init_root_or_owner_origin_can_initialize_pallet() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		run_test(|| {
 			assert_noop!(init_with_origin(Origin::signed(1)), DispatchError::BadOrigin);
@@ -836,7 +836,7 @@ mod tests {
 
 	#[test]
 	fn init_storage_entries_are_correctly_initialized() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		run_test(|| {
 			assert_eq!(BestFinalizedMap::<TestRuntime>::get(default_gateway), None,);
@@ -879,8 +879,8 @@ mod tests {
 	#[test]
 	fn init_can_initialize_pallet_for_multiple_gateway_but_only_once_per_each_gateway() {
 		run_test(|| {
-			let gateway_a: InstanceId = *b"rlta";
-			let gateway_b: InstanceId = *b"rltb";
+			let gateway_a: ChainId = *b"rlta";
+			let gateway_b: ChainId = *b"rltb";
 
 			initialize_substrate_bridge_for_gateway(gateway_a);
 			initialize_substrate_bridge_for_gateway(gateway_b);
@@ -894,7 +894,7 @@ mod tests {
 	#[test]
 	fn can_initialize_new_polka_like_bridge_with_separate_vefifier_instance() {
 		run_test(|| {
-			let gateway_a: InstanceId = *b"rlta";
+			let gateway_a: ChainId = *b"rlta";
 
 			let rh: bp_rialto::Header = bp_rialto::Header::new(
 				1,
@@ -925,7 +925,7 @@ mod tests {
 	fn pallet_owner_may_change_owner() {
 		run_test(|| {
 			PalletOwner::<TestRuntime>::put(2);
-			let default_gateway: InstanceId = *b"gate";
+			let default_gateway: ChainId = *b"gate";
 
 			assert_ok!(Pallet::<TestRuntime>::set_owner(
 				Origin::root(),
@@ -965,7 +965,7 @@ mod tests {
 
 	#[test]
 	fn pallet_may_be_halted_by_root() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		run_test(|| {
 			assert_ok!(Pallet::<TestRuntime>::set_operational(
@@ -983,7 +983,7 @@ mod tests {
 
 	#[test]
 	fn pallet_may_be_halted_by_owner() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		run_test(|| {
 			PalletOwnerMap::<TestRuntime>::insert(default_gateway, 2);
@@ -1023,7 +1023,7 @@ mod tests {
 	#[test]
 	fn pallet_rejects_transactions_if_halted() {
 		run_test(|| {
-			let gateway_a: InstanceId = *b"gate";
+			let gateway_a: ChainId = *b"gate";
 			<IsHaltedMap<TestRuntime>>::insert(gateway_a, true);
 
 			let header = test_header(1);
@@ -1045,7 +1045,7 @@ mod tests {
 
 	#[test]
 	fn succesfully_imports_header_with_valid_finality() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 		run_test(|| {
 			initialize_substrate_bridge();
 			assert_ok!(submit_finality_proof(1));
@@ -1075,7 +1075,7 @@ mod tests {
 			};
 			let justification = make_justification_for_header(params);
 
-			let default_gateway: InstanceId = *b"gate";
+			let default_gateway: ChainId = *b"gate";
 
 			assert_err!(
 				Pallet::<TestRuntime>::submit_finality_proof(
@@ -1099,7 +1099,7 @@ mod tests {
 			let header = test_header(1);
 			let mut justification = make_default_justification(&header);
 			justification.round = 42;
-			let default_gateway: InstanceId = *b"gate";
+			let default_gateway: ChainId = *b"gate";
 
 			assert_err!(
 				Pallet::<TestRuntime>::submit_finality_proof(
@@ -1128,7 +1128,7 @@ mod tests {
 				is_halted: false,
 			};
 
-			let default_gateway: InstanceId = *b"gate";
+			let default_gateway: ChainId = *b"gate";
 
 			assert_ok!(Pallet::<TestRuntime>::initialize_single(
 				Origin::root(),
@@ -1179,7 +1179,7 @@ mod tests {
 
 			let justification = make_default_justification(&header);
 
-			let default_gateway: InstanceId = *b"gate";
+			let default_gateway: ChainId = *b"gate";
 
 			// Let's import our test header
 			assert_ok!(Pallet::<TestRuntime>::submit_finality_proof(
@@ -1221,7 +1221,7 @@ mod tests {
 
 			let justification = make_default_justification(&header);
 
-			let default_gateway: InstanceId = *b"gate";
+			let default_gateway: ChainId = *b"gate";
 
 			// Should not be allowed to import this header
 			assert_err!(
@@ -1250,7 +1250,7 @@ mod tests {
 
 			let justification = make_default_justification(&header);
 
-			let default_gateway: InstanceId = *b"gate";
+			let default_gateway: ChainId = *b"gate";
 
 			// Should not be allowed to import this header
 			assert_err!(
@@ -1269,7 +1269,7 @@ mod tests {
 
 	#[test]
 	fn parse_finalized_storage_proof_rejects_proof_on_unknown_header() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		run_test(|| {
 			assert_noop!(
@@ -1286,7 +1286,7 @@ mod tests {
 
 	#[test]
 	fn parse_finalized_storage_accepts_valid_proof() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		run_test(|| {
 			let (state_root, storage_proof) = bp_runtime::craft_valid_storage_proof();
@@ -1318,7 +1318,7 @@ mod tests {
 
 	#[test]
 	fn rate_limiter_invalid_requests_do_not_count_towards_request_count() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 		run_test(|| {
 			let submit_invalid_request = || {
 				let header = test_header(1);
@@ -1392,7 +1392,7 @@ mod tests {
 
 	#[test]
 	fn should_prune_headers_over_headers_to_keep_parameter() {
-		let default_gateway: InstanceId = *b"gate";
+		let default_gateway: ChainId = *b"gate";
 
 		run_test(|| {
 			initialize_substrate_bridge();

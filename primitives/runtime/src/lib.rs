@@ -33,31 +33,37 @@ mod chain;
 mod storage_proof;
 
 /// Use this when something must be shared among all instances.
-pub const NO_INSTANCE_ID: InstanceId = [0, 0, 0, 0];
+pub const NO_INSTANCE_ID: ChainId = [0, 0, 0, 0];
 
 /// Bridge-with-Rialto instance id.
-pub const RIALTO_BRIDGE_INSTANCE: InstanceId = *b"rlto";
+pub const RIALTO_CHAIN_ID: ChainId = *b"rlto";
 
 /// Bridge-with-Rialto instance id.
-pub const GATEWAY_BRIDGE_INSTANCE: InstanceId = *b"gate";
+pub const GATEWAY_BRIDGE_INSTANCE: ChainId = *b"bgat";
 
 /// Bridge-with-Millau instance id.
-pub const CIRCUIT_BRIDGE_INSTANCE: InstanceId = *b"circ";
+pub const CIRCUIT_BRIDGE_INSTANCE: ChainId = *b"bcir";
 
 /// Bridge-with-Millau instance id.
-pub const MILLAU_BRIDGE_INSTANCE: InstanceId = *b"mlau";
+pub const MILLAU_CHAIN_ID: ChainId = *b"mlau";
 
 /// Bridge-with-Polkadot instance id.
-pub const POLKADOT_BRIDGE_INSTANCE: InstanceId = *b"pdot";
+pub const POLKADOT_CHAIN_ID: ChainId = *b"pdot";
 
 /// Bridge-with-Kusama instance id.
-pub const KUSAMA_BRIDGE_INSTANCE: InstanceId = *b"ksma";
+pub const KUSAMA_CHAIN_ID: ChainId = *b"ksma";
 
 /// Bridge-with-Rococo instance id.
-pub const ROCOCO_BRIDGE_INSTANCE: InstanceId = *b"roco";
+pub const ROCOCO_CHAIN_ID: ChainId = *b"roco";
 
-/// Bridge-with-Westend instance id.
-pub const WESTEND_BRIDGE_INSTANCE: InstanceId = *b"wend";
+/// Bridge-with-Wococo instance id.
+pub const WOCOCO_CHAIN_ID: ChainId = *b"woco";
+
+/// Bridge-with-Rococo instance id.
+pub const GATEWAY_CHAIN_ID: ChainId = *b"gate";
+
+/// Bridge-with-Wococo instance id.
+pub const CIRCUIT_CHAIN_ID: ChainId = *b"circ";
 
 /// Call-dispatch module prefix.
 pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/dispatch";
@@ -68,11 +74,13 @@ pub const ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/
 /// A unique prefix for entropy when generating a cross-chain account ID for the Root account.
 pub const ROOT_ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/root";
 
-/// Id of deployed module instance. We have a bunch of pallets that may be used in
-/// different bridges. E.g. messages pallet may be deployed twice in the same
-/// runtime to bridge ThisChain with Chain1 and Chain2. Sometimes we need to be able
-/// to identify deployed instance dynamically. This type is used for that.
-pub type InstanceId = [u8; 4];
+/// Unique identifier of the chain.
+///
+/// In addition to its main function (identifying the chain), this type may also be used to
+/// identify module instance. We have a bunch of pallets that may be used in different bridges. E.g.
+/// messages pallet may be deployed twice in the same runtime to bridge ThisChain with Chain1 and Chain2.
+/// Sometimes we need to be able to identify deployed instance dynamically. This type may be used for that.
+pub type ChainId = [u8; 4];
 
 /// Type of accounts on the source chain.
 pub enum SourceAccount<T> {
@@ -96,7 +104,7 @@ pub enum SourceAccount<T> {
 /// Note: If the same `bridge_id` is used across different chains (for example, if one source chain
 /// is bridged to multiple target chains), then all the derived accounts would be the same across
 /// the different chains. This could negatively impact users' privacy across chains.
-pub fn derive_account_id<AccountId>(bridge_id: InstanceId, id: SourceAccount<AccountId>) -> H256
+pub fn derive_account_id<AccountId>(bridge_id: ChainId, id: SourceAccount<AccountId>) -> H256
 where
 	AccountId: Encode,
 {
@@ -113,7 +121,7 @@ where
 ///
 /// The account ID can be the same across different instances of `message-lane` if the same
 /// `bridge_id` is used.
-pub fn derive_relayer_fund_account_id(bridge_id: InstanceId) -> H256 {
+pub fn derive_relayer_fund_account_id(bridge_id: ChainId) -> H256 {
 	("relayer-fund-account", bridge_id).using_encoded(blake2_256).into()
 }
 

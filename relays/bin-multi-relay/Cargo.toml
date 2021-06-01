@@ -48,8 +48,8 @@ relay-substrate-client = { path = "../client-substrate" }
 relay-utils = { path = "../utils" }
 relay-westend-client = { path = "../client-westend" }
 rialto-runtime = { path = "../../bin/rialto/runtime" }
-gateway-runtime = { path = "../../bin/gateway-runtime" }
-circuit-runtime = { path = "../../bin/circuit-runtime" }
+gateway-runtime = { path = "../../bin/runtimes/gateway-runtime" }
+circuit-runtime = { path = "../../bin/runtimes/circuit-runtime" }
 
 # Substrate Dependencies
 

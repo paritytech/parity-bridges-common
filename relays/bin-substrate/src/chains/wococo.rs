@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -14,13 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use wasm_builder_runner::WasmBuilder;
+use crate::cli::{encode_message, CliChain};
+use frame_support::weights::Weight;
+use relay_wococo_client::Wococo;
+use sp_version::RuntimeVersion;
 
-fn main() {
-	WasmBuilder::new()
-		.with_current_project()
-		.with_wasm_builder_from_crates("1.0.11")
-		.export_heap_base()
-		.import_memory()
-		.build()
+impl CliChain for Wococo {
+	const RUNTIME_VERSION: RuntimeVersion = bp_wococo::VERSION;
+
+	type KeyPair = sp_core::sr25519::Pair;
+	type MessagePayload = ();
+
+	fn ss58_format() -> u16 {
+		42
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		0
+	}
+
+	fn encode_message(_message: encode_message::MessagePayload) -> Result<Self::MessagePayload, String> {
+		Err("Sending messages from Wococo is not yet supported.".into())
+	}
 }

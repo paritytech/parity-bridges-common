@@ -55,7 +55,7 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, Randomness},
+	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
@@ -308,7 +308,6 @@ parameter_types! {
 	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
 	// call per block.
 	pub const MaxRequests: u32 = 50;
-	pub const WestendValidatorCount: u32 = 255;
 
 	// Number of headers to keep.
 	//
@@ -478,10 +477,6 @@ impl_runtime_apis! {
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
 		}
-
-		fn random_seed() -> <Block as BlockT>::Hash {
-			RandomnessCollectiveFlip::random_seed().0
-		}
 	}
 
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
@@ -647,7 +642,7 @@ impl_runtime_apis! {
 /// The byte vector returned by this function should be signed with a Rialto account private key.
 /// This way, the owner of `millau_account_id` on Millau proves that the Rialto account private key
 /// is also under his control.
-pub fn rialto_account_ownership_digest<Call, AccountId, SpecVersion>(
+pub fn millau_to_rialto_account_ownership_digest<Call, AccountId, SpecVersion>(
 	rialto_call: &Call,
 	millau_account_id: AccountId,
 	rialto_spec_version: SpecVersion,
@@ -661,7 +656,8 @@ where
 		rialto_call,
 		millau_account_id,
 		rialto_spec_version,
-		bp_runtime::MILLAU_BRIDGE_INSTANCE,
+		bp_runtime::MILLAU_CHAIN_ID,
+		bp_runtime::RIALTO_CHAIN_ID,
 	)
 }
 

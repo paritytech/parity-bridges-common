@@ -17,21 +17,28 @@ serde = { version = "1.0.124", optional = true, features = ["derive"] }
 bp-header-chain = { path = "../../../primitives/header-chain", default-features = false }
 bp-messages = { path = "../../../primitives/messages", default-features = false }
 bp-millau = { path = "../../../primitives/chain-millau", default-features = false }
-bp-circuit = { path = "../../../primitives/chain-circuit", default-features = false }
-bp-gateway = { path = "../../../primitives/chain-gateway", default-features = false }
-bp-polkadot-core = { path = "../../../primitives/polkadot-core", default-features = false }
 bp-rialto = { path = "../../../primitives/chain-rialto", default-features = false }
 bp-runtime = { path = "../../../primitives/runtime", default-features = false }
+bp-gateway = { path = "../../../primitives/chain-gateway", default-features = false }
+bp-circuit = { path = "../../../primitives/chain-circuit", default-features = false }
+bp-polkadot-core = { path = "../../../primitives/polkadot-core", default-features = false }
 bp-westend = { path = "../../../primitives/chain-westend", default-features = false }
 bridge-runtime-common = { path = "../../runtime-common", default-features = false }
 pallet-bridge-dispatch = { path = "../../../modules/dispatch", default-features = false }
 pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = false }
-pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
 pallet-multi-finality-verifier = { path = "../../../modules/multi-finality-verifier", default-features = false }
+pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
 pallet-shift-session-manager = { path = "../../../modules/shift-session-manager", default-features = false }
 
-# Substrate Dependencies
+#pallet-xdns = { git = "https://github.com/t3rn/t3rn", branch = "poc-1-xdns" , default-features = false }
+#pallet-xdns = { path = "../../../../src/xdns", default-features = false }
+#pallet-contracts-registry = { git = "https://github.com/t3rn/t3rn", branch = "poc-1" , default-features = false }
+pallet-contracts-registry = {  path = "../../../../src/contracts-registry", default-features = false }
+pallet-circuit-execution-delivery = {  path = "../../../../src/execution-delivery", default-features = false }
 
+#substrate-api-client = { default-features = false, path = "../../../../substrate-api-client", features = ["full_crypto"] }
+
+# Substrate Dependencies
 frame-executive = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
@@ -60,7 +67,7 @@ sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master" ,
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 
 [build-dependencies]
-wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "2.0.0" }
+substrate-wasm-builder = "3.0.0"
 
 [features]
 default = ["std"]
@@ -68,12 +75,12 @@ std = [
 	"bp-header-chain/std",
 	"bp-messages/std",
 	"bp-millau/std",
-	"bp-circuit/std",
-	"bp-gateway/std",
-	"bp-polkadot-core/std",
 	"bp-rialto/std",
 	"bp-runtime/std",
 	"bp-westend/std",
+	"bp-gateway/std",
+	"bp-circuit/std",
+	"bp-polkadot-core/std",
 	"bridge-runtime-common/std",
 	"codec/std",
 	"frame-executive/std",
@@ -81,9 +88,14 @@ std = [
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
 	"pallet-aura/std",
+#	"substrate-api-client/std",
+#	"pallet-xdns/std",
+	"pallet-contracts-registry/std",
+	"pallet-circuit-execution-delivery/std",
 	"pallet-balances/std",
 	"pallet-bridge-dispatch/std",
 	"pallet-bridge-grandpa/std",
+	"pallet-multi-finality-verifier/std",
 	"pallet-bridge-messages/std",
 	"pallet-grandpa/std",
 	"pallet-randomness-collective-flip/std",
@@ -91,7 +103,6 @@ std = [
 	"pallet-shift-session-manager/std",
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
-	"pallet-multi-finality-verifier/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
 	"serde",
@@ -109,3 +120,6 @@ std = [
 	"sp-trie/std",
 	"sp-version/std",
 ]
+# TODO: https://github.com/paritytech/parity-bridges-common/issues/390
+# I've left the feature flag here to test our CI configuration
+runtime-benchmarks = []

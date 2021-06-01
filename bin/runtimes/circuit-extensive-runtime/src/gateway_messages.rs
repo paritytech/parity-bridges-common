@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Parity Technologies (UK) Ltd.
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -23,43 +23,23 @@ use bp_messages::{
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessagesParameter,
 };
-use bp_runtime::{InstanceId, RIALTO_BRIDGE_INSTANCE};
-use bridge_runtime_common::messages::{self, ChainWithMessages, MessageBridge, MessageTransaction};
+use bp_runtime::{ChainId, CIRCUIT_CHAIN_ID, GATEWAY_CHAIN_ID};
+use bridge_runtime_common::messages::{self, MessageBridge, MessageTransaction};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
 	weights::{DispatchClass, Weight},
 	RuntimeDebug,
 };
-use sp_core::storage::StorageKey;
-use sp_runtime::{FixedPointNumber, FixedU128};
+use sp_runtime::{traits::Zero, FixedPointNumber, FixedU128};
 use sp_std::{convert::TryFrom, ops::RangeInclusive};
+
+/// Initial value of `GatewayToCircuitConversionRate` parameter.
+pub const INITIAL_GATEWAY_TO_CIRCUIT_CONVERSION_RATE: FixedU128 = FixedU128::from_inner(FixedU128::DIV);
 
 parameter_types! {
 	/// Gateway to Circuit conversion rate. Initially we treat both tokens as equal.
-	storage GatewayToCircuitConversionRate: FixedU128 = FixedU128::one();
-}
-
-/// Storage key of the Circuit -> Gateway message in the runtime storage.
-pub fn message_key(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
-	pallet_bridge_messages::storage_keys::message_key::<Runtime, <Circuit as ChainWithMessages>::MessagesInstance>(
-		lane, nonce,
-	)
-}
-
-/// Storage key of the Circuit -> Gateway message lane state in the runtime storage.
-pub fn outbound_lane_data_key(lane: &LaneId) -> StorageKey {
-	pallet_bridge_messages::storage_keys::outbound_lane_data_key::<<Circuit as ChainWithMessages>::MessagesInstance>(
-		lane,
-	)
-}
-
-/// Storage key of the Gateway -> Circuit message lane state in the runtime storage.
-pub fn inbound_lane_data_key(lane: &LaneId) -> StorageKey {
-	pallet_bridge_messages::storage_keys::inbound_lane_data_key::<
-		Runtime,
-		<Circuit as ChainWithMessages>::MessagesInstance,
-	>(lane)
+	pub storage GatewayToCircuitConversionRate: FixedU128 = INITIAL_GATEWAY_TO_CIRCUIT_CONVERSION_RATE;
 }
 
 /// Message payload for Circuit -> Gateway messages.
@@ -92,8 +72,6 @@ pub type FromGatewayMessageDispatch = messages::target::FromBridgedChainMessageD
 pub struct WithGatewayMessageBridge;
 
 impl MessageBridge for WithGatewayMessageBridge {
-	const INSTANCE: InstanceId = RIALTO_BRIDGE_INSTANCE;
-
 	const RELAYER_FEE_PERCENT: u32 = 10;
 
 	type ThisChain = Circuit;
@@ -110,6 +88,8 @@ impl MessageBridge for WithGatewayMessageBridge {
 pub struct Circuit;
 
 impl messages::ChainWithMessages for Circuit {
+	const ID: ChainId = CIRCUIT_CHAIN_ID;
+
 	type Hash = bp_circuit::Hash;
 	type AccountId = bp_circuit::AccountId;
 	type Signer = bp_circuit::AccountSigner;
@@ -117,14 +97,14 @@ impl messages::ChainWithMessages for Circuit {
 	type Weight = Weight;
 	type Balance = bp_circuit::Balance;
 
-	type MessagesInstance = pallet_bridge_messages::DefaultInstance;
+	type MessagesInstance = crate::WithGatewayMessagesInstance;
 }
 
 impl messages::ThisChainWithMessages for Circuit {
 	type Call = crate::Call;
 
 	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
-		*lane == LaneId::default()
+		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
@@ -147,9 +127,7 @@ impl messages::ThisChainWithMessages for Circuit {
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_circuit::Balance {
 		// in our testnets, both per-byte fee and weight-to-fee are 1:1
 		messages::transaction_payment(
-			bp_circuit::BlockWeights::get()
-				.get(DispatchClass::Normal)
-				.base_extrinsic,
+			bp_circuit::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
 			1,
 			FixedU128::zero(),
 			|weight| weight as _,
@@ -163,6 +141,8 @@ impl messages::ThisChainWithMessages for Circuit {
 pub struct Gateway;
 
 impl messages::ChainWithMessages for Gateway {
+	const ID: ChainId = GATEWAY_CHAIN_ID;
+
 	type Hash = bp_gateway::Hash;
 	type AccountId = bp_gateway::AccountId;
 	type Signer = bp_gateway::AccountSigner;
@@ -180,8 +160,7 @@ impl messages::BridgedChainWithMessages for Gateway {
 
 	fn message_weight_limits(_message_payload: &[u8]) -> RangeInclusive<Weight> {
 		// we don't want to relay too large messages + keep reserve for future upgrades
-		let upper_limit =
-			messages::target::maximal_incoming_message_dispatch_weight(bp_gateway::max_extrinsic_weight());
+		let upper_limit = messages::target::maximal_incoming_message_dispatch_weight(bp_gateway::max_extrinsic_weight());
 
 		// we're charging for payload bytes in `WithGatewayMessageBridge::transaction_payment` function
 		//
@@ -213,9 +192,7 @@ impl messages::BridgedChainWithMessages for Gateway {
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_gateway::Balance {
 		// in our testnets, both per-byte fee and weight-to-fee are 1:1
 		messages::transaction_payment(
-			bp_gateway::BlockWeights::get()
-				.get(DispatchClass::Normal)
-				.base_extrinsic,
+			bp_gateway::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
 			1,
 			FixedU128::zero(),
 			|weight| weight as _,
@@ -239,7 +216,9 @@ impl TargetHeaderChain<ToGatewayMessagePayload, bp_gateway::AccountId> for Gatew
 	fn verify_messages_delivery_proof(
 		proof: Self::MessagesDeliveryProof,
 	) -> Result<(LaneId, InboundLaneData<bp_circuit::AccountId>), Self::Error> {
-		messages::source::verify_messages_delivery_proof::<WithGatewayMessageBridge, Runtime>(proof)
+		messages::source::verify_messages_delivery_proof::<WithGatewayMessageBridge, Runtime, crate::GatewayGrandpaInstance>(
+			proof,
+		)
 	}
 }
 
@@ -256,7 +235,10 @@ impl SourceHeaderChain<bp_gateway::Balance> for Gateway {
 		proof: Self::MessagesProof,
 		messages_count: u32,
 	) -> Result<ProvedMessages<Message<bp_gateway::Balance>>, Self::Error> {
-		messages::target::verify_messages_proof::<WithGatewayMessageBridge, Runtime>(proof, messages_count)
+		messages::target::verify_messages_proof::<WithGatewayMessageBridge, Runtime, crate::GatewayGrandpaInstance>(
+			proof,
+			messages_count,
+		)
 	}
 }
 

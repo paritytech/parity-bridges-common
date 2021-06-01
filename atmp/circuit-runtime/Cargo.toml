@@ -1,5 +1,5 @@
 [package]
-name = "gateway-runtime"
+name = "circuit-runtime"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
@@ -10,32 +10,28 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 hex-literal = "0.3"
-libsecp256k1 = { version = "0.3.4", optional = true, default-features = false, features = ["hmac"] }
-log = { version = "0.4.14", default-features = false }
 serde = { version = "1.0.124", optional = true, features = ["derive"] }
 
 # Bridge dependencies
 
-bp-currency-exchange = { path = "../../primitives/currency-exchange", default-features = false }
-bp-eth-poa = { path = "../../primitives/ethereum-poa", default-features = false }
-bp-header-chain = { path = "../../primitives/header-chain", default-features = false }
-bp-message-dispatch = { path = "../../primitives/message-dispatch", default-features = false }
-bp-messages = { path = "../../primitives/messages", default-features = false }
-bp-circuit = { path = "../../primitives/chain-circuit", default-features = false }
-bp-gateway = { path = "../../primitives/chain-gateway", default-features = false }
-bp-runtime = { path = "../../primitives/runtime", default-features = false }
-bridge-runtime-common = { path = "../runtime-common", default-features = false }
-pallet-bridge-currency-exchange = { path = "../../modules/currency-exchange", default-features = false }
-pallet-bridge-dispatch = { path = "../../modules/dispatch", default-features = false }
-pallet-bridge-eth-poa = { path = "../../modules/ethereum", default-features = false }
-pallet-bridge-grandpa = { path = "../../modules/grandpa", default-features = false }
-pallet-bridge-messages = { path = "../../modules/messages", default-features = false }
-pallet-shift-session-manager = { path = "../../modules/shift-session-manager", default-features = false }
-pallet-substrate-bridge = { path = "../../modules/substrate", default-features = false }
+bp-header-chain = { path = "../../../primitives/header-chain", default-features = false }
+bp-messages = { path = "../../../primitives/messages", default-features = false }
+bp-millau = { path = "../../../primitives/chain-millau", default-features = false }
+bp-circuit = { path = "../../../primitives/chain-circuit", default-features = false }
+bp-gateway = { path = "../../../primitives/chain-gateway", default-features = false }
+bp-polkadot-core = { path = "../../../primitives/polkadot-core", default-features = false }
+bp-rialto = { path = "../../../primitives/chain-rialto", default-features = false }
+bp-runtime = { path = "../../../primitives/runtime", default-features = false }
+bp-westend = { path = "../../../primitives/chain-westend", default-features = false }
+bridge-runtime-common = { path = "../../runtime-common", default-features = false }
+pallet-bridge-dispatch = { path = "../../../modules/dispatch", default-features = false }
+pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = false }
+pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
+pallet-multi-finality-verifier = { path = "../../../modules/multi-finality-verifier", default-features = false }
+pallet-shift-session-manager = { path = "../../../modules/shift-session-manager", default-features = false }
 
 # Substrate Dependencies
 
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false, optional = true }
 frame-executive = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
@@ -55,7 +51,6 @@ sp-consensus-aura = { git = "https://github.com/paritytech/substrate", branch = 
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-session = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
@@ -64,45 +59,39 @@ sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch 
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 
-
-[dev-dependencies]
-libsecp256k1 = { version = "0.3.4", features = ["hmac"] }
-
 [build-dependencies]
 wasm-builder-runner = { package = "substrate-wasm-builder-runner", version = "2.0.0" }
 
 [features]
 default = ["std"]
 std = [
-	"bp-currency-exchange/std",
-	"bp-eth-poa/std",
 	"bp-header-chain/std",
-	"bp-message-dispatch/std",
 	"bp-messages/std",
+	"bp-millau/std",
 	"bp-circuit/std",
 	"bp-gateway/std",
+	"bp-polkadot-core/std",
+	"bp-rialto/std",
 	"bp-runtime/std",
+	"bp-westend/std",
 	"bridge-runtime-common/std",
 	"codec/std",
-	"frame-benchmarking/std",
 	"frame-executive/std",
 	"frame-support/std",
 	"frame-system-rpc-runtime-api/std",
 	"frame-system/std",
-	"log/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
-	"pallet-bridge-currency-exchange/std",
 	"pallet-bridge-dispatch/std",
-	"pallet-bridge-eth-poa/std",
 	"pallet-bridge-grandpa/std",
 	"pallet-bridge-messages/std",
 	"pallet-grandpa/std",
 	"pallet-randomness-collective-flip/std",
+	"pallet-session/std",
 	"pallet-shift-session-manager/std",
-	"pallet-substrate-bridge/std",
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
+	"pallet-multi-finality-verifier/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
 	"serde",
@@ -112,7 +101,6 @@ std = [
 	"sp-core/std",
 	"sp-finality-grandpa/std",
 	"sp-inherents/std",
-	"sp-io/std",
 	"sp-offchain/std",
 	"sp-runtime/std",
 	"sp-session/std",
@@ -120,15 +108,4 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-trie/std",
 	"sp-version/std",
-]
-runtime-benchmarks = [
-	"bridge-runtime-common/runtime-benchmarks",
-	"frame-benchmarking",
-	"frame-support/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"libsecp256k1",
-	"pallet-bridge-currency-exchange/runtime-benchmarks",
-	"pallet-bridge-eth-poa/runtime-benchmarks",
-	"pallet-bridge-messages/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
 ]

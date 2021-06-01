@@ -67,7 +67,7 @@
     "set_id": "SetId"
   },
   "Id": "[u8; 4]",
-  "InstanceId": "Id",
+  "ChainId": "Id",
   "LaneId": "Id",
   "MessageNonce": "u64",
   "MessageId": "(Id, u64)",

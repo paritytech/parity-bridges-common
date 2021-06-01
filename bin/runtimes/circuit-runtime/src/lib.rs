@@ -55,7 +55,7 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, Randomness},
+	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
@@ -63,7 +63,6 @@ pub use frame_support::{
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaGatewayCall;
-pub use pallet_bridge_grandpa::Call as BridgeGrandpaWestendCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_multi_finality_verifier::Call as BridgePolkadotLikeMultiFinalityVerifierCall;
 pub use pallet_sudo::Call as SudoCall;
@@ -128,8 +127,8 @@ impl_opaque_keys! {
 
 /// This runtime version.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("circuit-runtime"),
-	impl_name: create_runtime_str!("circuit-runtime"),
+	spec_name: create_runtime_str!("Circuit-runtime"),
+	impl_name: create_runtime_str!("Circuit-runtime"),
 	authoring_version: 1,
 	spec_version: 1,
 	impl_version: 1,
@@ -227,7 +226,7 @@ impl pallet_grandpa::Config for Runtime {
 	type KeyOwnerProofSystem = ();
 	type KeyOwnerProof = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 	type KeyOwnerIdentification =
-		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
+	<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
 	type HandleEquivocation = ();
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
@@ -289,6 +288,14 @@ parameter_types! {
 	pub const Offset: BlockNumber = 0;
 }
 
+pub type PolkadotLikeGrandpaInstance = pallet_bridge_grandpa::Instance1;
+impl pallet_multi_finality_verifier::Config<PolkadotLikeGrandpaInstance> for Runtime {
+	type BridgedChain = bp_polkadot_core::PolkadotLike;
+	type MaxRequests = MaxRequests;
+	type WeightInfo = pallet_multi_finality_verifier::weights::GatewayWeight<Runtime>;
+	type HeadersToKeep = HeadersToKeep;
+}
+
 impl pallet_session::Config for Runtime {
 	type Event = Event;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
@@ -309,13 +316,12 @@ parameter_types! {
 	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
 	// call per block.
 	pub const MaxRequests: u32 = 50;
-	pub const WestendValidatorCount: u32 = 255;
 
 	// Number of headers to keep.
 	//
 	// Assuming the worst case of every header being finalized, we will keep headers for at least a
 	// week.
-	pub const HeadersToKeep: u32 = 7 * bp_millau::DAYS as u32;
+	pub const HeadersToKeep: u32 = 7 * bp_circuit::DAYS as u32;
 }
 
 pub type GatewayGrandpaInstance = ();
@@ -325,25 +331,7 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type HeadersToKeep = HeadersToKeep;
 
 	// TODO [#391]: Use weights generated for the Circuit runtime instead of Gateway ones.
-	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
-}
-
-pub type WestendGrandpaInstance = pallet_bridge_grandpa::Instance1;
-impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
-	type BridgedChain = bp_westend::Westend;
-	type MaxRequests = MaxRequests;
-	type HeadersToKeep = HeadersToKeep;
-
-	// TODO [#391]: Use weights generated for the Circuit runtime instead of Gateway ones.
-	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
-}
-
-pub type PolkadotLikeGrandpaInstance = pallet_bridge_grandpa::Instance1;
-impl pallet_multi_finality_verifier::Config<PolkadotLikeGrandpaInstance> for Runtime {
-	type BridgedChain = bp_polkadot_core::PolkadotLike;
-	type MaxRequests = MaxRequests;
-	type HeadersToKeep = HeadersToKeep;
-	type WeightInfo = pallet_multi_finality_verifier::weights::GatewayWeight<Runtime>;
+	type WeightInfo =();
 }
 
 impl pallet_shift_session_manager::Config for Runtime {}
@@ -360,13 +348,13 @@ parameter_types! {
 	pub const RootAccountForPayments: Option<AccountId> = None;
 }
 
-/// Instance of the messages pallet used to relay messages to/from Rialto chain.
+/// Instance of the messages pallet used to relay messages to/from Gateway chain.
 pub type WithGatewayMessagesInstance = pallet_bridge_messages::DefaultInstance;
 
 impl pallet_bridge_messages::Config<WithGatewayMessagesInstance> for Runtime {
 	type Event = Event;
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/390
-	type WeightInfo = pallet_bridge_messages::weights::RialtoWeight<Runtime>;
+	type WeightInfo =();
 	type Parameter = gateway_messages::CircuitToGatewayMessagesParameter;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
@@ -403,7 +391,6 @@ construct_runtime!(
 		BridgeGatewayMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>},
 		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
 		BridgeGatewayGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
-		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Config<T>, Storage},
 		BridgePolkadotLikeMultiFinalityVerifier: pallet_multi_finality_verifier::<Instance1>::{Pallet, Call, Storage},
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
@@ -446,7 +433,7 @@ pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signatu
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive =
-	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPallets>;
+frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPallets>;
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
@@ -487,10 +474,6 @@ impl_runtime_apis! {
 			data: sp_inherents::InherentData,
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
-		}
-
-		fn random_seed() -> <Block as BlockT>::Hash {
-			RandomnessCollectiveFlip::random_seed().0
 		}
 	}
 
@@ -580,30 +563,22 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_rialto::RialtoFinalityApi<Block> for Runtime {
-		fn best_finalized() -> (bp_rialto::BlockNumber, bp_rialto::Hash) {
-			// ToDo: Add argument and change call to pallet_multi_finality_verifier (gateway_id)
-			// let header = BridgeGatewayGrandpa::best_finalized();
-			let defa_gate: bp_runtime::InstanceId = *b"gwes";
-			// frame_support::debug::info!("check best_finalized on {:?}", defa_gate);
-			let header = BridgePolkadotLikeMultiFinalityVerifier::best_finalized_map(defa_gate);
-			(header.number, header.hash())
-		}
-
-		fn is_known_header(hash: bp_rialto::Hash) -> bool {
-			// ToDo: Add argument and change call to pallet_multi_finality_verifier (gateway_id)
-			// BridgeGatewayGrandpa::is_known_header(hash)
-			let defa_gate: bp_runtime::InstanceId = *b"gwes";
-			BridgePolkadotLikeMultiFinalityVerifier::is_known_header(hash, defa_gate)
-		}
-	}
+	// impl bp_gateway::GatewayFinalityApi<Block> for Runtime {
+	// 	fn best_finalized() -> (bp_gateway::BlockNumber, bp_gateway::Hash) {
+	// 		let header = BridgeGatewayGrandpa::best_finalized();
+	// 		(header.number, header.hash())
+	// 	}
+	//
+	// 	fn is_known_header(hash: bp_gateway::Hash) -> bool {
+	// 		BridgeGatewayGrandpa::is_known_header(hash)
+	// 	}
+	// }
 
 	impl bp_gateway::GatewayFinalityApi<Block> for Runtime {
 		fn best_finalized() -> (bp_gateway::BlockNumber, bp_gateway::Hash) {
 			// ToDo: Add argument and change call to pallet_multi_finality_verifier (gateway_id)
 			// let header = BridgeGatewayGrandpa::best_finalized();
-			let defa_gate: bp_runtime::InstanceId = *b"gwes";
-			// frame_support::debug::info!("check best_finalized on {:?}", defa_gate);
+			let defa_gate: bp_runtime::ChainId = *b"gwes";
 			let header = BridgePolkadotLikeMultiFinalityVerifier::best_finalized_map(defa_gate);
 			(header.number, header.hash())
 		}
@@ -611,29 +586,8 @@ impl_runtime_apis! {
 		fn is_known_header(hash: bp_gateway::Hash) -> bool {
 			// ToDo: Add argument and change call to pallet_multi_finality_verifier (gateway_id)
 			// BridgeGatewayGrandpa::is_known_header(hash)
-			let defa_gate: bp_runtime::InstanceId = *b"gwes";
+			let defa_gate: bp_runtime::ChainId = *b"gwes";
 			BridgePolkadotLikeMultiFinalityVerifier::is_known_header(hash, defa_gate)
-		}
-
-		// fn best_finalized() -> (bp_gateway::BlockNumber, bp_gateway::Hash) {
-		//
-		// 	let header = BridgeGatewayGrandpa::best_finalized();
-		// 	(header.number, header.hash())
-		// }
-		//
-		// fn is_known_header(hash: bp_gateway::Hash) -> bool {
-		// 	BridgeGatewayGrandpa::is_known_header(hash)
-		// }
-	}
-
-	impl bp_westend::WestendFinalityApi<Block> for Runtime {
-		fn best_finalized() -> (bp_westend::BlockNumber, bp_westend::Hash) {
-			let header = BridgeWestendGrandpa::best_finalized();
-			(header.number, header.hash())
-		}
-
-		fn is_known_header(hash: bp_westend::Hash) -> bool {
-			BridgeWestendGrandpa::is_known_header(hash)
 		}
 	}
 
@@ -692,21 +646,22 @@ impl_runtime_apis! {
 /// The byte vector returned by this function should be signed with a Gateway account private key.
 /// This way, the owner of `circuit_account_id` on Circuit proves that the Gateway account private key
 /// is also under his control.
-pub fn gateway_account_ownership_digest<Call, AccountId, SpecVersion>(
+pub fn circuit_to_gateway_account_ownership_digest<Call, AccountId, SpecVersion>(
 	gateway_call: &Call,
 	circuit_account_id: AccountId,
 	gateway_spec_version: SpecVersion,
 ) -> sp_std::vec::Vec<u8>
-where
-	Call: codec::Encode,
-	AccountId: codec::Encode,
-	SpecVersion: codec::Encode,
+	where
+		Call: codec::Encode,
+		AccountId: codec::Encode,
+		SpecVersion: codec::Encode,
 {
 	pallet_bridge_dispatch::account_ownership_digest(
 		gateway_call,
 		circuit_account_id,
 		gateway_spec_version,
-		bp_runtime::CIRCUIT_BRIDGE_INSTANCE,
+		bp_runtime::CIRCUIT_CHAIN_ID,
+		bp_runtime::GATEWAY_CHAIN_ID,
 	)
 }
 
@@ -718,7 +673,7 @@ mod tests {
 	#[test]
 	fn ensure_circuit_message_lane_weights_are_correct() {
 		// TODO: https://github.com/paritytech/parity-bridges-common/issues/390
-		type Weights = pallet_bridge_messages::weights::GatewayWeight<Runtime>;
+		type Weights =();
 
 		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
 			bp_circuit::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
@@ -740,7 +695,7 @@ mod tests {
 			bp_circuit::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
 			bp_gateway::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE as _,
 		)
-		.unwrap_or(u32::MAX);
+			.unwrap_or(u32::MAX);
 		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
 			bp_circuit::max_extrinsic_size(),
 			bp_circuit::max_extrinsic_weight(),
