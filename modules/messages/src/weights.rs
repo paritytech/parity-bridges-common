@@ -74,17 +74,17 @@ pub struct RialtoWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for RialtoWeight<T> {
 	fn send_minimal_message_worst_case() -> Weight {
 		(149_643_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
+			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
 	fn send_1_kb_message_worst_case() -> Weight {
 		(153_329_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
+			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
 	fn send_16_kb_message_worst_case() -> Weight {
 		(200_113_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
+			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
 	fn increase_message_fee() -> Weight {
@@ -183,17 +183,17 @@ impl<T: frame_system::Config> WeightInfo for RialtoWeight<T> {
 impl WeightInfo for () {
 	fn send_minimal_message_worst_case() -> Weight {
 		(149_643_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
+			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(12 as Weight))
 	}
 	fn send_1_kb_message_worst_case() -> Weight {
 		(153_329_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
+			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(12 as Weight))
 	}
 	fn send_16_kb_message_worst_case() -> Weight {
 		(200_113_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
+			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(12 as Weight))
 	}
 	fn increase_message_fee() -> Weight {
