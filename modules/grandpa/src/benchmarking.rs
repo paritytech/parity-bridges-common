@@ -38,11 +38,6 @@
 //!
 //! Note that the worst case scenario here would be a justification where each validator has it's
 //! own fork which is `SESSION_LENGTH` blocks long.
-//!
-//! There are two benchmarks that are used in the `submit_finality_proof` formula. The first is
-//! a `weight_per_additional_unique_ancestor` that adds weight for every header in the votes ancestry.
-//! And the second one is the `weight_per_additional_precommit`, which adds weight for every
-//! additional precommit.
 
 use crate::*;
 
@@ -107,29 +102,11 @@ fn prepare_benchmark_data<T: Config<I>, I: 'static>(
 }
 
 benchmarks_instance_pallet! {
-	// This benchmark computes the pre-dispatch weight of every additional ancestor. Every entry in
-	// the `votes_ancestry` of the justification in this benchmark represents an unique header on the
-	// route from commit.target to precommit.target.
-	weight_per_additional_unique_ancestor {
-		let v in 1..MAX_VOTE_ANCESTRIES;
-		let p = 1;
-		let caller: T::AccountId = whitelisted_caller();
-		let (header, justification) = prepare_benchmark_data::<T, I>(p, v);
-	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)
-	verify {
-		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
-		let expected_hash = header.hash();
-
-		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
-		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
-	}
-
-	// This benchmark computes weight that needs to be added for every precommit. It assumes that all
-	// authorities have signed on the same header, so the cost of additional validator is near to
-	// the cost of validator signature verification.
-	weight_per_additional_precommit {
+	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
+	// annotate the weight in the pallet.
+	submit_finality_proof {
 		let p in 1..MAX_VALIDATOR_SET_SIZE;
-		let v = 1;
+		let v in 1..MAX_VOTE_ANCESTRIES;
 		let caller: T::AccountId = whitelisted_caller();
 		let (header, justification) = prepare_benchmark_data::<T, I>(p, v);
 	}: submit_finality_proof(RawOrigin::Signed(caller), header, justification)

@@ -42,10 +42,11 @@ use bp_header_chain::justification::GrandpaJustification;
 use bp_header_chain::InitializationData;
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{ensure, fail, weights::Weight};
+use frame_support::{ensure, fail};
 use frame_system::{ensure_signed, RawOrigin};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 use sp_runtime::traits::{BadOrigin, Header as HeaderT, Zero};
+use sp_std::convert::TryInto;
 
 #[cfg(test)]
 mod mock;
@@ -123,7 +124,10 @@ pub mod pallet {
 		///
 		/// If successful in verification, it will write the target header to the underlying storage
 		/// pallet.
-		#[pallet::weight(submit_finality_proof_weight::<T, I>(&justification))]
+		#[pallet::weight(T::WeightInfo::submit_finality_proof(
+			justification.commit.precommits.len().try_into().unwrap_or(u32::MAX),
+			justification.votes_ancestries.len().try_into().unwrap_or(u32::MAX),
+		))]
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,
 			finality_target: BridgedHeader<T, I>,
@@ -586,38 +590,6 @@ pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader
 		set_id: 0,
 		is_halted: false,
 	});
-}
-
-/// Compute weight of `submit_finality_proof` call.
-fn submit_finality_proof_weight<T: Config<I>, I: 'static>(
-	justification: &GrandpaJustification<BridgedHeader<T, I>>,
-) -> Weight {
-	// base weight represents:
-	// 1) all operations in the call, except for `verify_justification` (including cost of db ops);
-	// 2) extra weight of `verify_justification` that is not accounted by other (`p` and `v`)
-	//    components. In theory it is not a constant (which we assume here), but some function of
-	//    `v` and `p`. But in practice it is near to a constant - e.g. changing params from (p=2, v=2)
-	//    to (p=8192, v=8192) changes this 'constant' by ~15%. And we shall never see something like
-	//    (p=8192, v=8192) in reality.
-	let base_weight = sp_std::cmp::max(
-		T::WeightInfo::weight_per_additional_unique_ancestor(0),
-		T::WeightInfo::weight_per_additional_precommit(0),
-	);
-
-	// the other component that significantly affects call weight is a number of headers in the
-	// ancestry. Every header is hashed and then we are building the path from commit target to
-	// every precommit target (obviously iterating the ancestry).
-	let ancestors_weight =
-		T::WeightInfo::weight_per_additional_unique_ancestor(justification.votes_ancestries.len() as u32);
-
-	// the last component that affects the weight is a number of precommits. Every precommit
-	// contains a signature, which needs to be verified.
-	let precommits_weight =
-		T::WeightInfo::weight_per_additional_precommit(justification.commit.precommits.len() as u32);
-
-	base_weight
-		.saturating_add(ancestors_weight)
-		.saturating_add(precommits_weight)
 }
 
 #[cfg(test)]
