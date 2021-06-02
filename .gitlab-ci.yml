@@ -53,17 +53,13 @@ default:
     - linux-docker
 
 .test-refs:                        &test-refs
-  # these jobs run only on PRs
-  # FIXME: check whether it runs on tags and master
   rules:
-    # FIXME: check it works
-    - changes:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
+      changes:
         - '**.md'
         - diagrams/*
         - docs/*
       when:                        never
-    # FIXME: check how it's triggered
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "pipeline"
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -80,7 +76,7 @@ default:
     # there are two types of nightly pipelines:
     # 1. this one is triggered by the schedule with $PIPELINE == "nightly", it's for releasing.
     # this job runs only on nightly pipeline with the mentioned variable, against `master` branch
-    - if: $CI_COMMIT_REF_NAME == "master" && $CI_PIPELINE_SOURCE == "schedule" && $PIPELINE == "nightly"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $PIPELINE == "nightly"
 
 .nightly-test:                     &nightly-test
   rules:
