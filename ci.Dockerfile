@@ -1,25 +1,7 @@
-# Builds images used by the bridge.
-#
-# In particular, it can be used to build Substrate nodes and bridge relayers. The binary that gets
-# built can be specified with the `PROJECT` build-arg. For example, to build the `substrate-relay`
-# you would do the following:
-#
-# `docker build . -t local/substrate-relay --build-arg=PROJECT=substrate-relay`
-#
-# See the `deployments/README.md` for all the available `PROJECT` values.
-
-FROM paritytech/bridges-ci:latest as builder
-WORKDIR /parity-bridges-common
-
-COPY . .
-
-ARG PROJECT=ethereum-poa-relay
-RUN cargo build --release --verbose -p ${PROJECT} && \
-    strip ./target/release/${PROJECT}
-
-# In this final stage we copy over the final binary and do some checks
-# to make sure that everything looks good.
-FROM ubuntu:20.04 as runtime
+# This file is a "runtime" part from a builder-pattern in Dockerfile, it's used in CI.
+# The only different part is that the compilation happens externally,
+# so COPY has a different source.
+FROM ubuntu:20.04
 
 # show backtraces
 ENV RUST_BACKTRACE 1
@@ -44,8 +26,8 @@ WORKDIR /home/user
 
 ARG PROJECT=ethereum-poa-relay
 
-COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
-COPY --chown=user:user --from=builder /parity-bridges-common/deployments/local-scripts/bridge-entrypoint.sh ./
+COPY --chown=user:user ./${PROJECT} ./
+COPY --chown=user:user ./bridge-entrypoint.sh ./
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
@@ -60,8 +42,8 @@ ARG VERSION=""
 
 LABEL org.opencontainers.image.title="${PROJECT}" \
     org.opencontainers.image.description="${PROJECT} - component of Parity Bridges Common" \
-    org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/Dockerfile" \
-    org.opencontainers.image.url="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/Dockerfile" \
+    org.opencontainers.image.source="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/ci.Dockerfile" \
+    org.opencontainers.image.url="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/ci.Dockerfile" \
     org.opencontainers.image.documentation="https://github.com/paritytech/parity-bridges-common/blob/${VCS_REF}/README.md" \
     org.opencontainers.image.created="${BUILD_DATE}" \
     org.opencontainers.image.version="${VERSION}" \
