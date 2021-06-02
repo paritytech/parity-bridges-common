@@ -15,7 +15,7 @@ variables:                         &default-vars
   GIT_DEPTH:                       100
   CARGO_INCREMENTAL:               0
   ARCH:                            "x86_64"
-  CI_IMAGE:                        "paritytech/bridges-ci:latest"
+  CI_IMAGE:                        "paritytech/bridges-ci:production"
   RUST_BACKTRACE:                  full
 
 default:
