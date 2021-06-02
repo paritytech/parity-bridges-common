@@ -98,7 +98,7 @@ clippy-nightly:
     RUSTFLAGS:                     "-D warnings"
   script:
     - cargo +nightly clippy --all-targets
-  # FIXME: debug
+  # FIXME: remove when all the warns are fixed
   allow_failure:                   true
 
 fmt:
@@ -122,11 +122,11 @@ check:
   <<:                              *docker-env
   <<:                              *test-refs
   script:                          &check-script
-    - cargo check --verbose --workspace
+    - time cargo check --verbose --workspace
     # Check Rialto benchmarks runtime
-    - cargo check -p rialto-runtime --features runtime-benchmarks --verbose
+    - time cargo check -p rialto-runtime --features runtime-benchmarks --verbose
     # Check Millau benchmarks runtime
-    - cargo check -p millau-runtime --features runtime-benchmarks --verbose
+    - time cargo check -p millau-runtime --features runtime-benchmarks --verbose
 
 check-nightly:
   stage:                           check
@@ -143,7 +143,7 @@ test:
   <<:                              *docker-env
   <<:                              *test-refs
   script:                          &test-script
-    - cargo test --verbose --workspace
+    - time cargo test --verbose --workspace
 
 test-nightly:
   stage:                           test
@@ -190,7 +190,7 @@ build:
   <<:                              *collect-artifacts
   # master
   script:                          &build-script
-    - cargo build --release --verbose --workspace
+    - time cargo build --release --verbose --workspace
   after_script:
     # Prepare artifacts
     - mkdir -p ./artifacts
