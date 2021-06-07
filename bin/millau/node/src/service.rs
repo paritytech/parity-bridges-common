@@ -349,7 +349,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			network,
 			voting_rule: sc_finality_grandpa::VotingRulesBuilder::default().build(),
 			prometheus_registry,
-			shared_voter_state: shared_voter_state.clone(),
+			shared_voter_state,
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
 		};
 
