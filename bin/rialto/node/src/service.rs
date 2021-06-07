@@ -216,9 +216,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	let name = config.network.node_name.clone();
 	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
-	
-	let shared_voter_state = sc_finality_grandpa::SharedVoterState::empty();
 
+	let shared_voter_state = sc_finality_grandpa::SharedVoterState::empty();
 
 	let rpc_extensions_builder = {
 		use sc_finality_grandpa::FinalityProofProvider as GrandpaFinalityProofProvider;
