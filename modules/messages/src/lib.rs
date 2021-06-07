@@ -199,7 +199,7 @@ decl_storage! {
 		/// flag directly or call the `halt_operations`).
 		pub PalletOwner get(fn module_owner): Option<T::AccountId>;
 		/// The current operating mode of the pallet.
-		/// 
+		///
 		/// Depending on the mode either all, some, or no transactions will be allowed.
 		pub PalletOperatingMode get(fn operating_mode) config(): OperatingMode;
 		/// Map of lane id => inbound lane data.
