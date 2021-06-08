@@ -1,6 +1,6 @@
 [package]
 name = "bp-circuit"
-description = "Primitives of Circuit runtime."
+description = "Primitives of Millau runtime."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
