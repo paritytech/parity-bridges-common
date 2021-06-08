@@ -1,5 +1,5 @@
 stages:
-  - debug
+  #- debug
   - lint
   - check
   - test
@@ -85,13 +85,13 @@ default:
     #    update, it also runs all the nightly checks.
     - if: $CI_PIPELINE_SOURCE == "pipeline"
 
-debug:
-  stage: debug
-  image: docker.io/library/alpine:3.13
-  script:
-    - env | sort
-  tags:
-    - linux-docker
+# debug:
+#   stage: debug
+#   image: docker.io/library/alpine:3.13
+#   script:
+#     - env | sort
+#   tags:
+#     - linux-docker
 
 #### stage:                        lint
 
