@@ -1,4 +1,4 @@
-# foobar 006
+# foobar 007
 
 # Builds images used by the bridge.
 #
