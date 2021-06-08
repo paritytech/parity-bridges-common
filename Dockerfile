@@ -1,3 +1,5 @@
+# foobar 001
+
 # Builds images used by the bridge.
 #
 # In particular, it can be used to build Substrate nodes and bridge relayers. The binary that gets
