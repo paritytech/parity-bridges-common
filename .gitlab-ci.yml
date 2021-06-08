@@ -237,7 +237,6 @@ build-nightly:
     - buildah bud
         --format=docker
         --build-arg VCS_REF="${CI_COMMIT_SHORT_SHA}"
-        --build-arg HEALTH="${HEALTH}"
         --build-arg BUILD_DATE="$(date +%d-%m-%Y)"
         --build-arg PROJECT="${CI_JOB_NAME}"
         --build-arg VERSION="${VERSION}"
