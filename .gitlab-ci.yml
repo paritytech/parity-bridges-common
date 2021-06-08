@@ -54,12 +54,12 @@ default:
 
 .test-refs:                        &test-refs
   rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
-      changes:
-        - '**.md'
-        - diagrams/*
-        - docs/*
-      when:                        never
+    # - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
+    #   changes:
+    #     - '**.md'
+    #     - diagrams/*
+    #     - docs/*
+    #   when:                        never
     - if: $CI_PIPELINE_SOURCE == "pipeline"
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "schedule"
