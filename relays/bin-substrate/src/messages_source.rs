@@ -30,7 +30,7 @@ use frame_support::{traits::Instance, weights::Weight};
 use messages_relay::{
 	message_lane::{SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
-		ClientState, MessageProofParameters, MessageWeights, MessageWeightsMap, SourceClient, SourceClientState,
+		ClientState, MessageDetails, MessageDetailsMap, MessageProofParameters, SourceClient, SourceClientState,
 	},
 };
 use pallet_bridge_messages::Config as MessagesConfig;
@@ -112,6 +112,7 @@ where
 	C::BlockNumber: BlockNumberBase,
 	P: SubstrateMessageLane<
 		MessagesProof = SubstrateMessagesProof<C>,
+		SourceChainBalance = C::Balance,
 		SourceHeaderNumber = <C::Header as HeaderT>::Number,
 		SourceHeaderHash = <C::Header as HeaderT>::Hash,
 		SourceChain = C,
@@ -168,11 +169,11 @@ where
 		Ok((id, latest_received_nonce))
 	}
 
-	async fn generated_messages_weights(
+	async fn generated_message_details(
 		&self,
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Result<MessageWeightsMap, SubstrateError> {
+	) -> Result<MessageDetailsMap<P::SourceChainBalance>, SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -242,6 +243,10 @@ where
 			target_to_source_headers_relay.require_finalized_header(id).await;
 		}
 	}
+
+	async fn estimate_confirmation_transaction(&self) -> P::SourceChainBalance {
+		num_traits::Zero::zero() // TODO: will be introduced in follow-up PR(s)
+	}
 }
 
 pub async fn read_client_state<SelfChain, BridgedHeaderHash, BridgedHeaderNumber>(
@@ -290,7 +295,7 @@ where
 fn make_message_weights_map<C: Chain>(
 	weights: Vec<(MessageNonce, Weight, u32)>,
 	nonces: RangeInclusive<MessageNonce>,
-) -> Result<MessageWeightsMap, SubstrateError> {
+) -> Result<MessageDetailsMap<C::Balance>, SubstrateError> {
 	let make_missing_nonce_error = |expected_nonce| {
 		Err(SubstrateError::Custom(format!(
 			"Missing nonce {} in messages_dispatch_weight call result. Expected all nonces from {:?}",
@@ -298,7 +303,7 @@ fn make_message_weights_map<C: Chain>(
 		)))
 	};
 
-	let mut weights_map = MessageWeightsMap::new();
+	let mut weights_map = MessageDetailsMap::new();
 
 	// this is actually prevented by external logic
 	if nonces.is_empty() {
@@ -341,9 +346,10 @@ fn make_message_weights_map<C: Chain>(
 
 		weights_map.insert(
 			nonce,
-			MessageWeights {
-				weight,
+			MessageDetails {
+				dispatch_weight: weight,
 				size: size as _,
+				reward: num_traits::Zero::zero(), // TODO: will be introduced in follow-up PR(s)
 			},
 		);
 		expected_nonce = nonce + 1;
@@ -363,9 +369,30 @@ mod tests {
 			make_message_weights_map::<relay_rialto_client::Rialto>(vec![(1, 0, 0), (2, 0, 0), (3, 0, 0)], 1..=3,)
 				.unwrap(),
 			vec![
-				(1, MessageWeights { weight: 0, size: 0 }),
-				(2, MessageWeights { weight: 0, size: 0 }),
-				(3, MessageWeights { weight: 0, size: 0 }),
+				(
+					1,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0
+					}
+				),
+				(
+					2,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0
+					}
+				),
+				(
+					3,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0
+					}
+				),
 			]
 			.into_iter()
 			.collect(),
@@ -377,8 +404,22 @@ mod tests {
 		assert_eq!(
 			make_message_weights_map::<relay_rialto_client::Rialto>(vec![(2, 0, 0), (3, 0, 0)], 1..=3,).unwrap(),
 			vec![
-				(2, MessageWeights { weight: 0, size: 0 }),
-				(3, MessageWeights { weight: 0, size: 0 }),
+				(
+					2,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0
+					}
+				),
+				(
+					3,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0
+					}
+				),
 			]
 			.into_iter()
 			.collect(),
