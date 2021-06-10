@@ -552,7 +552,6 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 	let mut total_reward = P::SourceChainBalance::zero();
 	let mut total_confirmations_cost = P::SourceChainBalance::zero();
 	let mut total_cost = P::SourceChainBalance::zero();
-	let mut maximal_actual_reward = P::SourceChainBalance::zero();
 
 	// technically, multiple confirmations will be delivered in a single transaction,
 	// meaning less loses for relayer. But here we don't know the final relayer yet, so
@@ -616,7 +615,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			RelayerMode::Altruistic => {
 				soft_selected_count = index + 1;
 			}
-			RelayerMode::MaximalReward | RelayerMode::NoLosses => {
+			RelayerMode::NoLosses => {
 				let delivery_transaction_cost = lane_target_client
 					.estimate_delivery_transaction_in_source_tokens(
 						0..=(new_selected_count as MessageNonce - 1),
@@ -659,18 +658,9 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 					);
 				}
 
-				// both NoLosses and MaximalReward relayers never want to lose their funds
+				// NoLosses relayer never want to lose his funds
 				if total_reward >= total_cost {
-					if relayer_mode == RelayerMode::MaximalReward {
-						let actual_reward = total_reward.saturating_sub(total_cost);
-						if actual_reward >= maximal_actual_reward {
-							maximal_actual_reward = actual_reward;
-							soft_selected_count = index + 1;
-						}
-					} else {
-						// RelayerMode::NoLosses
-						soft_selected_count = index + 1;
-					}
+					soft_selected_count = index + 1;
 				}
 			}
 		}
@@ -1106,9 +1096,10 @@ mod tests {
 		);
 	}
 
-	async fn non_altruistic_relayer_is_delivering_messages_if_cost_is_equal_to_reward(relayer_mode: RelayerMode) {
+	#[async_std::test]
+	async fn no_losses_relayer_is_delivering_messages_if_cost_is_equal_to_reward() {
 		let (state, mut strategy) = prepare_strategy();
-		strategy.relayer_mode = relayer_mode;
+		strategy.relayer_mode = RelayerMode::NoLosses;
 
 		// so now we have:
 		// - 20..=23 with reward = cost
@@ -1120,23 +1111,12 @@ mod tests {
 	}
 
 	#[async_std::test]
-	async fn no_losses_relayer_is_delivering_messages_if_cost_is_equal_to_reward() {
-		non_altruistic_relayer_is_delivering_messages_if_cost_is_equal_to_reward(RelayerMode::NoLosses).await;
-	}
-
-	#[async_std::test]
-	async fn maximal_reward_relayer_is_delivering_messages_if_cost_is_equal_to_reward() {
-		non_altruistic_relayer_is_delivering_messages_if_cost_is_equal_to_reward(RelayerMode::MaximalReward).await;
-	}
-
-	async fn non_altruistic_relayer_is_not_delivering_messages_if_cost_is_larger_than_reward(
-		relayer_mode: RelayerMode,
-	) {
+	async fn no_losses_relayer_is_not_delivering_messages_if_cost_is_larger_than_reward() {
 		let (mut state, mut strategy) = prepare_strategy();
 		let nonces = source_nonces(24..=25, 19, DEFAULT_REWARD - DELIVERY_TRANSACTION_COST);
 		strategy.strategy.source_nonces_updated(header_id(2), nonces);
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
-		strategy.relayer_mode = relayer_mode;
+		strategy.relayer_mode = RelayerMode::NoLosses;
 
 		// so now we have:
 		// - 20..=23 with reward = cost
@@ -1145,43 +1125,6 @@ mod tests {
 		assert_eq!(
 			strategy.select_nonces_to_deliver(state).await,
 			Some(((20..=23), proof_parameters(false, 4)))
-		);
-	}
-
-	#[async_std::test]
-	async fn no_losses_relayer_is_not_delivering_messages_if_cost_is_larger_than_reward() {
-		non_altruistic_relayer_is_not_delivering_messages_if_cost_is_larger_than_reward(RelayerMode::NoLosses).await;
-	}
-
-	#[async_std::test]
-	async fn maximal_reward_relayer_is_not_delivering_messages_if_cost_is_larger_than_reward() {
-		non_altruistic_relayer_is_not_delivering_messages_if_cost_is_larger_than_reward(RelayerMode::MaximalReward)
-			.await;
-	}
-
-	#[async_std::test]
-	async fn maximal_reward_relayer_selects_message_with_maximal_reward() {
-		let (mut state, mut strategy) = prepare_strategy();
-		let mut nonces = source_nonces(24..=27, 19, 0);
-		nonces.new_nonces.get_mut(&24).unwrap().reward = 3;
-		nonces.new_nonces.get_mut(&25).unwrap().reward = 0;
-		nonces.new_nonces.get_mut(&26).unwrap().reward = 4;
-		nonces.new_nonces.get_mut(&27).unwrap().reward = 1;
-		strategy.strategy.source_nonces_updated(header_id(2), nonces);
-		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
-		strategy.relayer_mode = RelayerMode::MaximalReward;
-
-		// so now we have:
-		// - 20..=23 with reward = cost
-		// - 24 with reward = 3 and additional cost = 2
-		// - 25 with reward = 0 and additional cost = 2
-		// - 26 with reward = 4 and additional cost = 2
-		// - 27 with reward = 1 and additional cost = 2
-		// => strategy will select 23 initially ()24 initially (3-2=1), then reject 25 (3-4=-1),
-		// then select 26 (7-6=1), then reject 27 (8-8=0)
-		assert_eq!(
-			strategy.select_nonces_to_deliver(state).await,
-			Some(((20..=26), proof_parameters(false, 7)))
 		);
 	}
 }

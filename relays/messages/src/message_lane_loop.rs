@@ -65,10 +65,6 @@ pub enum RelayerMode {
 	Altruistic,
 	/// The relayer will deliver all messages and confirmations as long as he's not losing any funds.
 	NoLosses,
-	/// The relayer will deliver all messages and confirmations as long as he's not losing any funds.
-	/// But of all messages that may be delivered, he would select message that maximizes difference
-	/// between total reward and total cost.
-	MaximalReward,
 }
 
 /// Message delivery race parameters.
