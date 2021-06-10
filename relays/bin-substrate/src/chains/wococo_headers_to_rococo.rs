@@ -30,7 +30,7 @@ use sp_core::{Bytes, Pair};
 /// relay as gone wild.
 ///
 /// See `maximal_balance_decrease_per_day_is_sane` test for details.
-const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_rococo::Balance = 0;
+const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_rococo::Balance = 800_000_000_000_000;
 
 /// Wococo-to-Rococo finality sync pipeline.
 pub(crate) type WococoFinalityToRococo = SubstrateFinalityToSubstrate<Wococo, Rococo, RococoSigningParams>;
