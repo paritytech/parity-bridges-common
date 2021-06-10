@@ -104,13 +104,10 @@ mod tests {
 			AVG_VOTES_ANCESTRIES_LEN,
 			AVG_PRECOMMITS_LEN,
 		);
-println!("single_source_header_submit_call_weight={}", single_source_header_submit_call_weight);
 		// for simplicity - add extra weight for base tx fee + fee that is paid for the tx size + adjusted fee
 		let single_source_header_submit_tx_weight = single_source_header_submit_call_weight/* * 3 / 2*/;
 		let single_source_header_tx_cost = bp_rococo::WeightToFee::calc(&single_source_header_submit_tx_weight);
-println!("single_source_header_tx_cost={}", single_source_header_tx_cost);
 		let maximal_expected_decrease = single_source_header_tx_cost * number_of_source_headers_per_day;
-println!("maximal_expected_decrease={}", maximal_expected_decrease);
 		assert!(
 			MAXIMAL_BALANCE_DECREASE_PER_DAY >= maximal_expected_decrease,
 			"Maximal expected loss per day {} is larger than hardcoded {}",
