@@ -245,7 +245,7 @@ where
 	}
 
 	async fn estimate_confirmation_transaction(&self) -> P::SourceChainBalance {
-		num_traits::Zero::zero() // TODO: will be introduced in follow-up PR(s)
+		num_traits::Zero::zero() // TODO: https://github.com/paritytech/parity-bridges-common/issues/997
 	}
 }
 
@@ -349,7 +349,8 @@ fn make_message_weights_map<C: Chain>(
 			MessageDetails {
 				dispatch_weight: weight,
 				size: size as _,
-				reward: num_traits::Zero::zero(), // TODO: will be introduced in follow-up PR(s)
+				// TODO: https://github.com/paritytech/parity-bridges-common/issues/997
+				reward: num_traits::Zero::zero(),
 			},
 		);
 		expected_nonce = nonce + 1;

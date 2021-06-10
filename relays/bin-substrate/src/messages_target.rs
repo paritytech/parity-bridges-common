@@ -236,6 +236,6 @@ where
 		_total_dispatch_weight: Weight,
 		_total_size: u32,
 	) -> P::SourceChainBalance {
-		num_traits::Zero::zero() // TODO: will be introduced in follow-up PR(s)
+		num_traits::Zero::zero() // TODO: https://github.com/paritytech/parity-bridges-common/issues/997
 	}
 }
