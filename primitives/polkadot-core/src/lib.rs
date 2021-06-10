@@ -38,10 +38,7 @@ use sp_runtime::{
 use sp_std::prelude::Vec;
 
 // Re-export's to avoid extra substrate dependencies in chain-specific crates.
-pub use frame_support::{
-	weights::constants::ExtrinsicBaseWeight,
-	Parameter,
-};
+pub use frame_support::{weights::constants::ExtrinsicBaseWeight, Parameter};
 pub use sp_runtime::{traits::Convert, Perbill};
 
 /// Number of extra bytes (excluding size of storage value itself) of storage proof, built at

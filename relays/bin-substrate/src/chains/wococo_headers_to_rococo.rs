@@ -30,7 +30,7 @@ use sp_core::{Bytes, Pair};
 /// relay as gone wild.
 ///
 /// See `maximal_balance_decrease_per_day_is_sane` test for details.
-const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_rococo::Balance = 1_500_000_000_000_000;
+pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_rococo::Balance = 1_500_000_000_000_000;
 
 /// Wococo-to-Rococo finality sync pipeline.
 pub(crate) type WococoFinalityToRococo = SubstrateFinalityToSubstrate<Wococo, Rococo, RococoSigningParams>;
@@ -79,9 +79,9 @@ impl SubstrateFinalitySyncPipeline for WococoFinalityToRococo {
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use frame_support::weights::WeightToFeePolynomial;
 	use pallet_bridge_grandpa::weights::WeightInfo;
-	use super::*;
 
 	#[test]
 	fn maximal_balance_decrease_per_day_is_sane() {
@@ -100,10 +100,8 @@ mod tests {
 		const AVG_VOTES_ANCESTRIES_LEN: u32 = 2;
 		const AVG_PRECOMMITS_LEN: u32 = 1024 * 2 / 3 + 1;
 		let number_of_source_headers_per_day: bp_wococo::Balance = bp_wococo::DAYS as _;
-		let single_source_header_submit_call_weight = RococoGrandpaPalletWeights::submit_finality_proof(
-			AVG_VOTES_ANCESTRIES_LEN,
-			AVG_PRECOMMITS_LEN,
-		);
+		let single_source_header_submit_call_weight =
+			RococoGrandpaPalletWeights::submit_finality_proof(AVG_VOTES_ANCESTRIES_LEN, AVG_PRECOMMITS_LEN);
 		// for simplicity - add extra weight for base tx fee + fee that is paid for the tx size + adjusted fee
 		let single_source_header_submit_tx_weight = single_source_header_submit_call_weight * 3 / 2;
 		let single_source_header_tx_cost = bp_rococo::WeightToFee::calc(&single_source_header_submit_tx_weight);

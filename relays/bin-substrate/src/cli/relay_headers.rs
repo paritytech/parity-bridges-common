@@ -100,13 +100,7 @@ impl RelayHeaders {
 			let finality = Finality::new(target_client.clone(), target_sign);
 			finality.start_relay_guards();
 
-			crate::finality_pipeline::run(
-				finality,
-				source_client,
-				target_client,
-				metrics_params,
-			)
-			.await
+			crate::finality_pipeline::run(finality, source_client, target_client, metrics_params).await
 		})
 	}
 }
