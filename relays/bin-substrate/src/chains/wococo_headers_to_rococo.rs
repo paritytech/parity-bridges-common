@@ -30,7 +30,7 @@ use sp_core::{Bytes, Pair};
 /// relay as gone wild.
 ///
 /// See `maximal_balance_decrease_per_day_is_sane` test for details.
-const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_rococo::Balance = 800_000_000_000_000;
+const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_rococo::Balance = 1_500_000_000_000_000;
 
 /// Wococo-to-Rococo finality sync pipeline.
 pub(crate) type WococoFinalityToRococo = SubstrateFinalityToSubstrate<Wococo, Rococo, RococoSigningParams>;
@@ -105,7 +105,7 @@ mod tests {
 			AVG_PRECOMMITS_LEN,
 		);
 		// for simplicity - add extra weight for base tx fee + fee that is paid for the tx size + adjusted fee
-		let single_source_header_submit_tx_weight = single_source_header_submit_call_weight/* * 3 / 2*/;
+		let single_source_header_submit_tx_weight = single_source_header_submit_call_weight * 3 / 2;
 		let single_source_header_tx_cost = bp_rococo::WeightToFee::calc(&single_source_header_submit_tx_weight);
 		let maximal_expected_decrease = single_source_header_tx_cost * number_of_source_headers_per_day;
 		assert!(
