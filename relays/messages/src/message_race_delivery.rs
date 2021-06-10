@@ -29,7 +29,7 @@ use crate::metrics::MessageLaneLoopMetrics;
 use async_trait::async_trait;
 use bp_messages::{MessageNonce, UnrewardedRelayersState, Weight};
 use futures::stream::FusedStream;
-use num_traits::{Saturating, Zero};
+use num_traits::{SaturatingAdd, Zero};
 use relay_utils::FailedClient;
 use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive, time::Duration};
 
@@ -629,9 +629,9 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 				let is_total_reward_less_than_cost = total_reward < total_cost;
 				let prev_total_cost = total_cost;
 				let prev_total_reward = total_reward;
-				total_confirmations_cost = total_confirmations_cost.saturating_add(confirmation_transaction_cost);
-				total_reward = total_reward.saturating_add(details.reward);
-				total_cost = total_confirmations_cost.saturating_add(delivery_transaction_cost);
+				total_confirmations_cost = total_confirmations_cost.saturating_add(&confirmation_transaction_cost);
+				total_reward = total_reward.saturating_add(&details.reward);
+				total_cost = total_confirmations_cost.saturating_add(&delivery_transaction_cost);
 				if !is_total_reward_less_than_cost && total_reward < total_cost {
 					log::debug!(
 						target: "bridge",
