@@ -223,9 +223,9 @@ struct DeliveryRaceTargetNoncesData {
 
 /// Messages delivery strategy.
 struct MessageDeliveryStrategy<P: MessageLane, SC, TC> {
-	/// TODO
+	/// The client that is connected to the message lane source node.
 	lane_source_client: SC,
-	/// TODO
+	/// The client that is connected to the message lane target node.
 	lane_target_client: TC,
 	/// Maximal unrewarded relayer entries at target client.
 	max_unrewarded_relayer_entries_at_target: MessageNonce,
