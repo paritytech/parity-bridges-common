@@ -104,7 +104,6 @@ impl RelayHeaders {
 				finality,
 				source_client,
 				target_client,
-				false,
 				metrics_params,
 			)
 			.await

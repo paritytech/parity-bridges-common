@@ -197,7 +197,6 @@ fn run_sync_loop(state_function: impl Fn(&mut ClientsData) -> bool + Send + Sync
 		data: clients_data.clone(),
 	};
 	let sync_params = FinalitySyncParams {
-		is_on_demand_task: false,
 		tick: Duration::from_secs(0),
 		recent_finality_proofs_limit: 1024,
 		stall_timeout: Duration::from_secs(1),
@@ -343,7 +342,7 @@ fn read_finality_proofs_from_stream_works() {
 	let mut stream = futures::stream::pending().into();
 	read_finality_proofs_from_stream::<TestFinalitySyncPipeline, _>(&mut stream, &mut recent_finality_proofs);
 	assert_eq!(recent_finality_proofs, vec![(1, TestFinalityProof(1))]);
-	assert_eq!(stream.needs_restart, false);
+	assert!(!stream.needs_restart);
 
 	// when stream has entry with target, it is added to the recent proofs container
 	let mut stream = futures::stream::iter(vec![TestFinalityProof(4)])
@@ -354,7 +353,7 @@ fn read_finality_proofs_from_stream_works() {
 		recent_finality_proofs,
 		vec![(1, TestFinalityProof(1)), (4, TestFinalityProof(4))]
 	);
-	assert_eq!(stream.needs_restart, false);
+	assert!(!stream.needs_restart);
 
 	// when stream has ended, we'll need to restart it
 	let mut stream = futures::stream::empty().into();
@@ -363,7 +362,7 @@ fn read_finality_proofs_from_stream_works() {
 		recent_finality_proofs,
 		vec![(1, TestFinalityProof(1)), (4, TestFinalityProof(4))]
 	);
-	assert_eq!(stream.needs_restart, true);
+	assert!(stream.needs_restart);
 }
 
 #[test]
