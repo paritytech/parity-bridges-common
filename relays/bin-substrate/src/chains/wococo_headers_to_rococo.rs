@@ -85,7 +85,7 @@ mod tests {
 
 	#[test]
 	fn maximal_balance_decrease_per_day_is_sane() {
-		// Rococo/Wooco GRANDPA pallet weights. They're now using Rialto weights => using `RialtoWeight` is justified.
+		// Rococo/Wococo GRANDPA pallet weights. They're now using Rialto weights => using `RialtoWeight` is justified.
 		//
 		// Using Rialto runtime this is slightly incorrect, because `DbWeight` of Rococo/Wococo runtime may differ
 		// from the `DbWeight` of Rialto runtime. But now (and most probably forever) it is the same.
