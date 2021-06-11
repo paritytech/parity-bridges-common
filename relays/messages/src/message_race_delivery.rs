@@ -1055,7 +1055,7 @@ mod tests {
 	}
 
 	#[async_std::test]
-	async fn source_header_is_requied_when_confirmations_are_required() {
+	async fn source_header_is_required_when_confirmations_are_required() {
 		// let's prepare situation when:
 		// - all messages [20; 23] have been generated at source block#1;
 		let (mut state, mut strategy) = prepare_strategy();
