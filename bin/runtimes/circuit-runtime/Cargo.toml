@@ -33,8 +33,8 @@ pallet-shift-session-manager = { path = "../../../modules/shift-session-manager"
 #pallet-xdns = { git = "https://github.com/t3rn/t3rn", branch = "poc-1-xdns" , default-features = false }
 #pallet-xdns = { path = "../../../../src/xdns", default-features = false }
 #pallet-contracts-registry = { git = "https://github.com/t3rn/t3rn", branch = "poc-1" , default-features = false }
-pallet-contracts-registry = {  path = "../../../../src/contracts-registry", default-features = false }
-pallet-circuit-execution-delivery = {  path = "../../../../src/execution-delivery", default-features = false }
+pallet-contracts-registry = {  path = "../../../../../circuit/src/contracts-registry", default-features = false }
+pallet-circuit-execution-delivery = {  path = "../../../../../circuit/src/execution-delivery", default-features = false }
 
 #substrate-api-client = { default-features = false, path = "../../../../substrate-api-client", features = ["full_crypto"] }
 
