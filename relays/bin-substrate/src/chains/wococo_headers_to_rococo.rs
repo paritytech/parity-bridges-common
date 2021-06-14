@@ -30,6 +30,7 @@ use sp_core::{Bytes, Pair};
 /// relay as gone wild.
 ///
 /// See `maximal_balance_decrease_per_day_is_sane` test for details.
+/// Note that this is in plancks, so this corresponds to `1500 UNITS`.
 pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_rococo::Balance = 1_500_000_000_000_000;
 
 /// Wococo-to-Rococo finality sync pipeline.
