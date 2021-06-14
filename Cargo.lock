@@ -806,7 +806,9 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
+ "frame-support",
  "parity-scale-codec",
+ "smallvec 1.6.1",
  "sp-api",
  "sp-runtime",
  "sp-std",
@@ -865,12 +867,12 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-polkadot-core",
+ "bp-rococo",
  "bp-runtime",
  "parity-scale-codec",
  "sp-api",
  "sp-runtime",
  "sp-std",
- "sp-version",
 ]
 
 [[package]]
@@ -8637,6 +8639,7 @@ dependencies = [
  "millau-runtime",
  "num-format",
  "num-traits",
+ "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "parity-scale-codec",
  "paste 1.0.4",
