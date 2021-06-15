@@ -55,7 +55,7 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, Randomness},
+	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
@@ -250,6 +250,7 @@ parameter_types! {
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -263,6 +264,8 @@ impl pallet_balances::Config for Runtime {
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
 	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 }
 
 parameter_types! {
@@ -308,7 +311,6 @@ parameter_types! {
 	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
 	// call per block.
 	pub const MaxRequests: u32 = 50;
-	pub const WestendValidatorCount: u32 = 255;
 
 	// Number of headers to keep.
 	//
@@ -478,10 +480,6 @@ impl_runtime_apis! {
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
 		}
-
-		fn random_seed() -> <Block as BlockT>::Hash {
-			RandomnessCollectiveFlip::random_seed().0
-		}
 	}
 
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
@@ -603,17 +601,23 @@ impl_runtime_apis! {
 			).ok()
 		}
 
-		fn messages_dispatch_weight(
+		fn message_details(
 			lane: bp_messages::LaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
-		) -> Vec<(bp_messages::MessageNonce, Weight, u32)> {
+		) -> Vec<bp_messages::MessageDetails<Balance>> {
 			(begin..=end).filter_map(|nonce| {
-				let encoded_payload = BridgeRialtoMessages::outbound_message_payload(lane, nonce)?;
+				let message_data = BridgeRialtoMessages::outbound_message_data(lane, nonce)?;
 				let decoded_payload = rialto_messages::ToRialtoMessagePayload::decode(
-					&mut &encoded_payload[..]
+					&mut &message_data.payload[..]
 				).ok()?;
-				Some((nonce, decoded_payload.weight, encoded_payload.len() as _))
+				Some(bp_messages::MessageDetails {
+					nonce,
+					dispatch_weight: decoded_payload.weight,
+					size: message_data.payload.len() as _,
+					delivery_and_dispatch_fee: message_data.fee,
+					// TODO: include dispatch fee type (https://github.com/paritytech/parity-bridges-common/pull/911)
+				})
 			})
 			.collect()
 		}
@@ -647,7 +651,7 @@ impl_runtime_apis! {
 /// The byte vector returned by this function should be signed with a Rialto account private key.
 /// This way, the owner of `millau_account_id` on Millau proves that the Rialto account private key
 /// is also under his control.
-pub fn rialto_account_ownership_digest<Call, AccountId, SpecVersion>(
+pub fn millau_to_rialto_account_ownership_digest<Call, AccountId, SpecVersion>(
 	rialto_call: &Call,
 	millau_account_id: AccountId,
 	rialto_spec_version: SpecVersion,
@@ -661,7 +665,8 @@ where
 		rialto_call,
 		millau_account_id,
 		rialto_spec_version,
-		bp_runtime::MILLAU_BRIDGE_INSTANCE,
+		bp_runtime::MILLAU_CHAIN_ID,
+		bp_runtime::RIALTO_CHAIN_ID,
 	)
 }
 

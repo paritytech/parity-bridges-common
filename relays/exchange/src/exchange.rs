@@ -26,7 +26,7 @@ use std::{
 };
 
 /// Transaction proof pipeline.
-pub trait TransactionProofPipeline {
+pub trait TransactionProofPipeline: 'static {
 	/// Name of the transaction proof source.
 	const SOURCE_NAME: &'static str;
 	/// Name of the transaction proof target.
@@ -35,18 +35,21 @@ pub trait TransactionProofPipeline {
 	/// Block type.
 	type Block: SourceBlock;
 	/// Transaction inclusion proof type.
-	type TransactionProof;
+	type TransactionProof: 'static + Send + Sync;
 }
 
 /// Block that is participating in exchange.
-pub trait SourceBlock {
+pub trait SourceBlock: 'static + Send + Sync {
 	/// Block hash type.
-	type Hash: Clone + Debug + Display;
+	type Hash: 'static + Clone + Send + Sync + Debug + Display;
 	/// Block number type.
-	type Number: Debug
+	type Number: 'static
+		+ Debug
 		+ Display
 		+ Clone
 		+ Copy
+		+ Send
+		+ Sync
 		+ Into<u64>
 		+ std::cmp::Ord
 		+ std::ops::Add<Output = Self::Number>
@@ -61,7 +64,7 @@ pub trait SourceBlock {
 }
 
 /// Transaction that is participating in exchange.
-pub trait SourceTransaction {
+pub trait SourceTransaction: 'static + Send {
 	/// Transaction hash type.
 	type Hash: Debug + Display;
 
@@ -321,7 +324,7 @@ async fn wait_transaction_mined<P: TransactionProofPipeline>(
 	source_tx_hash: &TransactionHashOf<P>,
 ) -> Result<(HeaderId<P>, usize), String> {
 	loop {
-		let source_header_and_tx = source_client.transaction_block(&source_tx_hash).await.map_err(|err| {
+		let source_header_and_tx = source_client.transaction_block(source_tx_hash).await.map_err(|err| {
 			format!(
 				"Error retrieving transaction {} from {} node: {:?}",
 				source_tx_hash,
@@ -360,7 +363,7 @@ async fn wait_header_imported<P: TransactionProofPipeline>(
 	source_header_id: &HeaderId<P>,
 ) -> Result<(), String> {
 	loop {
-		let is_header_known = target_client.is_header_known(&source_header_id).await.map_err(|err| {
+		let is_header_known = target_client.is_header_known(source_header_id).await.map_err(|err| {
 			format!(
 				"Failed to check existence of header {}/{} on {} node: {:?}",
 				source_header_id.0,
@@ -403,7 +406,7 @@ async fn wait_header_finalized<P: TransactionProofPipeline>(
 ) -> Result<(), String> {
 	loop {
 		let is_header_finalized = target_client
-			.is_header_finalized(&source_header_id)
+			.is_header_finalized(source_header_id)
 			.await
 			.map_err(|err| {
 				format!(

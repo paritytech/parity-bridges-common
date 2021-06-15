@@ -169,9 +169,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "Westend_to_Millau_Sync_kusama_price / Westend_to_Millau_Sync_polkadot_price",
+          "expr": "Westend_to_Millau_Sync_kusama_to_base_conversion_rate / Westend_to_Millau_Sync_polkadot_to_base_conversion_rate",
           "interval": "",
-          "legendFormat": "At exchanges (actually Polkadot -> Kusama)",
+          "legendFormat": "Outside of runtime (actually Polkadot -> Kusama)",
           "refId": "A"
         },
         {
@@ -377,9 +377,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "Westend_to_Millau_Sync_polkadot_price / Westend_to_Millau_Sync_kusama_price",
+          "expr": "Westend_to_Millau_Sync_polkadot_to_base_conversion_rate / Westend_to_Millau_Sync_kusama_to_base_conversion_rate",
           "interval": "",
-          "legendFormat": "At exchanges (actually Kusama -> Polkadot)",
+          "legendFormat": "Outside of runtime (actually Kusama -> Polkadot)",
           "refId": "A"
         },
         {

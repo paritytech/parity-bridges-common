@@ -21,10 +21,10 @@ use crate::cli::{
 	Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams, SourceSigningParams,
 	TargetSigningParams,
 };
+use bp_message_dispatch::{CallOrigin, MessagePayload};
 use bp_runtime::messages::DispatchFeePayment;
 use codec::Encode;
 use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
-use pallet_bridge_dispatch::{CallOrigin, MessagePayload};
 use relay_substrate_client::{Chain, TransactionSignScheme};
 use sp_core::{Bytes, Pair};
 use sp_runtime::{traits::IdentifyAccount, AccountId32, MultiSignature, MultiSigner};
@@ -81,7 +81,7 @@ impl SendMessage {
 			let target_sign = target_sign.to_keypair::<Target>()?;
 
 			encode_call::preprocess_call::<Source, Target>(message, bridge.bridge_instance_index());
-			let target_call = Target::encode_call(&message)?;
+			let target_call = Target::encode_call(message)?;
 
 			let payload = {
 				let target_call_weight = prepare_call_dispatch_weight(
@@ -131,11 +131,12 @@ impl SendMessage {
 			let fee = match self.fee {
 				Some(fee) => fee,
 				None => Balance(
-					estimate_message_delivery_and_dispatch_fee::<
-						<Source as relay_substrate_client::ChainWithBalances>::NativeBalance,
-						_,
-						_,
-					>(&source_client, ESTIMATE_MESSAGE_FEE_METHOD, lane, payload.clone())
+					estimate_message_delivery_and_dispatch_fee::<<Source as Chain>::Balance, _, _>(
+						&source_client,
+						ESTIMATE_MESSAGE_FEE_METHOD,
+						lane,
+						payload.clone(),
+					)
 					.await? as _,
 				),
 			};

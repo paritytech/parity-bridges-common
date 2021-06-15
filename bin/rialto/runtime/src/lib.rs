@@ -61,7 +61,7 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, Randomness},
+	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
@@ -357,6 +357,7 @@ parameter_types! {
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -370,6 +371,8 @@ impl pallet_balances::Config for Runtime {
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
 	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 }
 
 parameter_types! {
@@ -409,19 +412,34 @@ impl pallet_session::Config for Runtime {
 }
 
 parameter_types! {
-	// This is a pretty unscientific cap.
-	//
-	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
-	// call per block.
+	/// This is a pretty unscientific cap.
+	///
+	/// Note that once this is hit the pallet will essentially throttle incoming requests down to one
+	/// call per block.
 	pub const MaxRequests: u32 = 50;
+}
 
-	// Number of headers to keep.
-	//
-	// Assuming the worst case of every header being finalized, we will keep headers at least for a
-	// week.
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	/// Number of headers to keep in benchmarks.
+	///
+	/// In benchmarks we always populate with full number of `HeadersToKeep` to make sure that
+	/// pruning is taken into account.
+	///
+	/// Note: This is lower than regular value, to speed up benchmarking setup.
+	pub const HeadersToKeep: u32 = 1024;
+}
+
+#[cfg(not(feature = "runtime-benchmarks"))]
+parameter_types! {
+	/// Number of headers to keep.
+	///
+	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
+	/// week.
 	pub const HeadersToKeep: u32 = 7 * bp_rialto::DAYS as u32;
 }
 
+pub type MillauGrandpaInstance = ();
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type MaxRequests = MaxRequests;
@@ -571,10 +589,6 @@ impl_runtime_apis! {
 			data: sp_inherents::InherentData,
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
-		}
-
-		fn random_seed() -> <Block as BlockT>::Hash {
-			RandomnessCollectiveFlip::random_seed().0
 		}
 	}
 
@@ -738,17 +752,23 @@ impl_runtime_apis! {
 			).ok()
 		}
 
-		fn messages_dispatch_weight(
+		fn message_details(
 			lane: bp_messages::LaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
-		) -> Vec<(bp_messages::MessageNonce, Weight, u32)> {
+		) -> Vec<bp_messages::MessageDetails<Balance>> {
 			(begin..=end).filter_map(|nonce| {
-				let encoded_payload = BridgeMillauMessages::outbound_message_payload(lane, nonce)?;
+				let message_data = BridgeMillauMessages::outbound_message_data(lane, nonce)?;
 				let decoded_payload = millau_messages::ToMillauMessagePayload::decode(
-					&mut &encoded_payload[..]
+					&mut &message_data.payload[..]
 				).ok()?;
-				Some((nonce, decoded_payload.weight, encoded_payload.len() as _))
+				Some(bp_messages::MessageDetails {
+					nonce,
+					dispatch_weight: decoded_payload.weight,
+					size: message_data.payload.len() as _,
+					delivery_and_dispatch_fee: message_data.fee,
+					// TODO: include dispatch fee type (https://github.com/paritytech/parity-bridges-common/pull/911)
+				})
 			})
 			.collect()
 		}
@@ -875,7 +895,7 @@ impl_runtime_apis! {
 					params: MessageParams<Self::AccountId>,
 				) -> (millau_messages::ToMillauMessagePayload, Balance) {
 					let message_payload = vec![0; params.size as usize];
-					let dispatch_origin = pallet_bridge_dispatch::CallOrigin::SourceAccount(
+					let dispatch_origin = bp_message_dispatch::CallOrigin::SourceAccount(
 						params.sender_account,
 					);
 
@@ -915,7 +935,8 @@ impl_runtime_apis! {
 						&call,
 						&millau_account_id,
 						VERSION.spec_version,
-						bp_runtime::MILLAU_BRIDGE_INSTANCE,
+						bp_runtime::MILLAU_CHAIN_ID,
+						bp_runtime::RIALTO_CHAIN_ID,
 					);
 					let rialto_public = MultiSigner::Ed25519(sp_core::ed25519::Public::from_raw(rialto_raw_public));
 					let rialto_signature = MultiSignature::Ed25519(sp_core::ed25519::Signature::from_raw(
@@ -953,10 +974,10 @@ impl_runtime_apis! {
 						make_millau_outbound_lane_data_key,
 						make_millau_header,
 						call_weight,
-						pallet_bridge_dispatch::MessagePayload {
+						bp_message_dispatch::MessagePayload {
 							spec_version: VERSION.spec_version,
 							weight: call_weight,
-							origin: pallet_bridge_dispatch::CallOrigin::<
+							origin: bp_message_dispatch::CallOrigin::<
 								bp_millau::AccountId,
 								MultiSigner,
 								Signature,
@@ -1037,7 +1058,7 @@ impl_runtime_apis! {
 /// The byte vector returned by this function should be signed with a Millau account private key.
 /// This way, the owner of `rialto_account_id` on Rialto proves that the 'millau' account private key
 /// is also under his control.
-pub fn millau_account_ownership_digest<Call, AccountId, SpecVersion>(
+pub fn rialto_to_millau_account_ownership_digest<Call, AccountId, SpecVersion>(
 	millau_call: &Call,
 	rialto_account_id: AccountId,
 	millau_spec_version: SpecVersion,
@@ -1051,7 +1072,8 @@ where
 		millau_call,
 		rialto_account_id,
 		millau_spec_version,
-		bp_runtime::RIALTO_BRIDGE_INSTANCE,
+		bp_runtime::RIALTO_CHAIN_ID,
+		bp_runtime::MILLAU_CHAIN_ID,
 	)
 }
 

@@ -23,10 +23,11 @@ use crate::{ConnectionParams, Error, Result};
 use async_std::sync::{Arc, Mutex};
 use codec::Decode;
 use frame_system::AccountInfo;
-use jsonrpsee_types::{jsonrpc::DeserializeOwned, traits::SubscriptionClient};
-use jsonrpsee_ws_client::{WsClient as RpcClient, WsConfig as RpcConfig, WsSubscription as Subscription};
+use jsonrpsee_ws_client::{traits::SubscriptionClient, v2::params::JsonRpcParams, DeserializeOwned};
+use jsonrpsee_ws_client::{Subscription, WsClient as RpcClient, WsClientBuilder as RpcClientBuilder};
 use num_traits::Zero;
 use pallet_balances::AccountData;
+use relay_utils::relay_loop::RECONNECT_DELAY;
 use sp_core::{storage::StorageKey, Bytes};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
@@ -77,7 +78,29 @@ impl<C: Chain> std::fmt::Debug for Client<C> {
 
 impl<C: Chain> Client<C> {
 	/// Returns client that is able to call RPCs on Substrate node over websocket connection.
-	pub async fn new(params: ConnectionParams) -> Result<Self> {
+	///
+	/// This function will keep connecting to given Sustrate node until connection is established
+	/// and is functional. If attempt fail, it will wait for `RECONNECT_DELAY` and retry again.
+	pub async fn new(params: ConnectionParams) -> Self {
+		loop {
+			match Self::try_connect(params.clone()).await {
+				Ok(client) => return client,
+				Err(error) => log::error!(
+					target: "bridge",
+					"Failed to connect to {} node: {:?}. Going to retry in {}s",
+					C::NAME,
+					error,
+					RECONNECT_DELAY.as_secs(),
+				),
+			}
+
+			async_std::task::sleep(RECONNECT_DELAY).await;
+		}
+	}
+
+	/// Try to connect to Substrate node over websocket. Returns Substrate RPC client if connection
+	/// has been established or error otherwise.
+	pub async fn try_connect(params: ConnectionParams) -> Result<Self> {
 		let client = Self::build_client(params.clone()).await?;
 
 		let number: C::BlockNumber = Zero::zero();
@@ -105,9 +128,10 @@ impl<C: Chain> Client<C> {
 			params.host,
 			params.port,
 		);
-		let mut config = RpcConfig::with_url(&uri);
-		config.max_notifs_per_subscription = MAX_SUBSCRIPTION_CAPACITY;
-		let client = RpcClient::new(config).await?;
+		let client = RpcClientBuilder::default()
+			.max_notifs_per_subscription(MAX_SUBSCRIPTION_CAPACITY)
+			.build(&uri)
+			.await?;
 
 		Ok(Arc::new(client))
 	}
@@ -184,7 +208,7 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Return native tokens balance of the account.
-	pub async fn free_native_balance(&self, account: C::AccountId) -> Result<C::NativeBalance>
+	pub async fn free_native_balance(&self, account: C::AccountId) -> Result<C::Balance>
 	where
 		C: ChainWithBalances,
 	{
@@ -193,7 +217,7 @@ impl<C: Chain> Client<C> {
 			.await?
 			.ok_or(Error::AccountDoesNotExist)?;
 		let decoded_account_data =
-			AccountInfo::<C::Index, AccountData<C::NativeBalance>>::decode(&mut &encoded_account_data.0[..])
+			AccountInfo::<C::Index, AccountData<C::Balance>>::decode(&mut &encoded_account_data.0[..])
 				.map_err(Error::ResponseParseFailed)?;
 		Ok(decoded_account_data.data.free)
 	}
@@ -266,7 +290,7 @@ impl<C: Chain> Client<C> {
 			.client
 			.subscribe(
 				"grandpa_subscribeJustifications",
-				jsonrpsee_types::jsonrpc::Params::None,
+				JsonRpcParams::NoParams,
 				"grandpa_unsubscribeJustifications",
 			)
 			.await?)

@@ -26,9 +26,9 @@ pub const RECONNECT_DELAY: Duration = Duration::from_secs(10);
 
 /// Basic blockchain client from relay perspective.
 #[async_trait]
-pub trait Client: Clone + Send + Sync {
+pub trait Client: 'static + Clone + Send + Sync {
 	/// Type of error this clients returns.
-	type Error: Debug + MaybeConnectionError;
+	type Error: 'static + Debug + MaybeConnectionError + Send + Sync;
 
 	/// Try to reconnect to source node.
 	async fn reconnect(&mut self) -> Result<(), Self::Error>;
@@ -105,63 +105,42 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 	/// This function represents an outer loop, which in turn calls provided `run_loop` function to do
 	/// actual job. When `run_loop` returns, this outer loop reconnects to failed client (source,
 	/// target or both) and calls `run_loop` again.
-	pub async fn run<R, F>(mut self, run_loop: R) -> Result<(), String>
+	pub async fn run<R, F>(mut self, loop_name: String, run_loop: R) -> Result<(), String>
 	where
-		R: Fn(SC, TC, Option<LM>) -> F,
-		F: Future<Output = Result<(), FailedClient>>,
-		SC: Client,
-		TC: Client,
-		LM: Clone,
+		R: 'static + Send + Fn(SC, TC, Option<LM>) -> F,
+		F: 'static + Send + Future<Output = Result<(), FailedClient>>,
+		SC: 'static + Client,
+		TC: 'static + Client,
+		LM: 'static + Send + Clone,
 	{
-		loop {
-			let result = run_loop(
-				self.source_client.clone(),
-				self.target_client.clone(),
-				self.loop_metric.clone(),
-			)
-			.await;
+		let run_loop_task = async move {
+			crate::initialize::initialize_loop(loop_name);
 
-			match result {
-				Ok(()) => break,
-				Err(failed_client) => loop {
-					async_std::task::sleep(self.reconnect_delay).await;
-					if failed_client == FailedClient::Both || failed_client == FailedClient::Source {
-						match self.source_client.reconnect().await {
-							Ok(()) => (),
-							Err(error) => {
-								log::warn!(
-									target: "bridge",
-									"Failed to reconnect to source client. Going to retry in {}s: {:?}",
-									self.reconnect_delay.as_secs(),
-									error,
-								);
-								continue;
-							}
-						}
-					}
-					if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
-						match self.target_client.reconnect().await {
-							Ok(()) => (),
-							Err(error) => {
-								log::warn!(
-									target: "bridge",
-									"Failed to reconnect to target client. Going to retry in {}s: {:?}",
-									self.reconnect_delay.as_secs(),
-									error,
-								);
-								continue;
-							}
-						}
-					}
+			loop {
+				let loop_metric = self.loop_metric.clone();
+				let future_result = run_loop(self.source_client.clone(), self.target_client.clone(), loop_metric);
+				let result = future_result.await;
 
-					break;
-				},
+				match result {
+					Ok(()) => break,
+					Err(failed_client) => {
+						reconnect_failed_client(
+							failed_client,
+							self.reconnect_delay,
+							&mut self.source_client,
+							&mut self.target_client,
+						)
+						.await
+					}
+				}
+
+				log::debug!(target: "bridge", "Restarting relay loop");
 			}
 
-			log::debug!(target: "bridge", "Restarting relay loop");
-		}
+			Ok(())
+		};
 
-		Ok(())
+		async_std::task::spawn(run_loop_task).await
 	}
 }
 
@@ -241,6 +220,48 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 			target_client: self.relay_loop.target_client,
 			loop_metric: self.loop_metric,
 		})
+	}
+}
+
+/// Deal with the client who has returned connection error.
+pub async fn reconnect_failed_client(
+	failed_client: FailedClient,
+	reconnect_delay: Duration,
+	source_client: &mut impl Client,
+	target_client: &mut impl Client,
+) {
+	loop {
+		async_std::task::sleep(reconnect_delay).await;
+		if failed_client == FailedClient::Both || failed_client == FailedClient::Source {
+			match source_client.reconnect().await {
+				Ok(()) => (),
+				Err(error) => {
+					log::warn!(
+						target: "bridge",
+						"Failed to reconnect to source client. Going to retry in {}s: {:?}",
+						reconnect_delay.as_secs(),
+						error,
+					);
+					continue;
+				}
+			}
+		}
+		if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
+			match target_client.reconnect().await {
+				Ok(()) => (),
+				Err(error) => {
+					log::warn!(
+						target: "bridge",
+						"Failed to reconnect to target client. Going to retry in {}s: {:?}",
+						reconnect_delay.as_secs(),
+						error,
+					);
+					continue;
+				}
+			}
+		}
+
+		break;
 	}
 }
 

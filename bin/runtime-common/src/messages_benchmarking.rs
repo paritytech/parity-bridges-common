@@ -25,7 +25,7 @@ use crate::messages::{
 };
 
 use bp_messages::{LaneId, MessageData, MessageKey, MessagePayload};
-use bp_runtime::InstanceId;
+use bp_runtime::ChainId;
 use codec::Encode;
 use ed25519_dalek::{PublicKey, SecretKey, Signer, KEYPAIR_LENGTH, SECRET_KEY_LENGTH};
 use frame_support::weights::Weight;
@@ -42,7 +42,8 @@ pub fn ed25519_sign(
 	target_call: &impl Encode,
 	source_account_id: &impl Encode,
 	target_spec_version: u32,
-	bridge: InstanceId,
+	source_chain_id: ChainId,
+	target_chain_id: ChainId,
 ) -> ([u8; 32], [u8; 64]) {
 	// key from the repo example (https://docs.rs/ed25519-dalek/1.0.1/ed25519_dalek/struct.SecretKey.html)
 	let target_secret = SecretKey::from_bytes(&[
@@ -57,8 +58,13 @@ pub fn ed25519_sign(
 	target_pair_bytes[SECRET_KEY_LENGTH..].copy_from_slice(&target_public.to_bytes());
 	let target_pair = ed25519_dalek::Keypair::from_bytes(&target_pair_bytes).expect("hardcoded pair is valid");
 
-	let signature_message =
-		pallet_bridge_dispatch::account_ownership_digest(target_call, source_account_id, target_spec_version, bridge);
+	let signature_message = pallet_bridge_dispatch::account_ownership_digest(
+		target_call,
+		source_account_id,
+		target_spec_version,
+		source_chain_id,
+		target_chain_id,
+	);
 	let target_origin_signature = target_pair
 		.try_sign(&signature_message)
 		.expect("Ed25519 try_sign should not fail in benchmarks");

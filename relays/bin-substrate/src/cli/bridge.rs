@@ -53,7 +53,7 @@ macro_rules! select_full_bridge {
 
 				// Derive-account
 				#[allow(unused_imports)]
-				use bp_millau::derive_account_from_rialto_id as derive_account;
+				use bp_rialto::derive_account_from_millau_id as derive_account;
 
 				// Relay-messages
 				#[allow(unused_imports)]
@@ -64,7 +64,7 @@ macro_rules! select_full_bridge {
 				use bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 				// Send-message
 				#[allow(unused_imports)]
-				use millau_runtime::rialto_account_ownership_digest as account_ownership_digest;
+				use millau_runtime::millau_to_rialto_account_ownership_digest as account_ownership_digest;
 
 				$generic
 			}
@@ -75,7 +75,7 @@ macro_rules! select_full_bridge {
 
 				// Derive-account
 				#[allow(unused_imports)]
-				use bp_rialto::derive_account_from_millau_id as derive_account;
+				use bp_millau::derive_account_from_rialto_id as derive_account;
 
 				// Relay-messages
 				#[allow(unused_imports)]
@@ -87,7 +87,7 @@ macro_rules! select_full_bridge {
 
 				// Send-message
 				#[allow(unused_imports)]
-				use rialto_runtime::millau_account_ownership_digest as account_ownership_digest;
+				use rialto_runtime::rialto_to_millau_account_ownership_digest as account_ownership_digest;
 
 				$generic
 			}

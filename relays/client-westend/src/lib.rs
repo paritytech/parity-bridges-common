@@ -47,11 +47,10 @@ impl Chain for Westend {
 	type Index = bp_westend::Nonce;
 	type SignedBlock = bp_westend::SignedBlock;
 	type Call = bp_westend::Call;
+	type Balance = bp_westend::Balance;
 }
 
 impl ChainWithBalances for Westend {
-	type NativeBalance = bp_westend::Balance;
-
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		StorageKey(bp_westend::account_info_storage_key(account_id))
 	}
@@ -84,7 +83,12 @@ impl TransactionSignScheme for Westend {
 		let signer: sp_runtime::MultiSigner = signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		bp_westend::UncheckedExtrinsic::new_signed(call, signer.into_account(), signature.into(), extra)
+		bp_westend::UncheckedExtrinsic::new_signed(
+			call,
+			sp_runtime::MultiAddress::Id(signer.into_account()),
+			signature.into(),
+			extra,
+		)
 	}
 }
 

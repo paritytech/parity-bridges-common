@@ -20,14 +20,15 @@ pub mod millau_headers_to_rialto;
 pub mod millau_messages_to_rialto;
 pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
-pub mod rococo_headers_to_westend;
+pub mod rococo_headers_to_wococo;
 pub mod westend_headers_to_millau;
-pub mod westend_headers_to_rococo;
+pub mod wococo_headers_to_rococo;
 
 mod millau;
 mod rialto;
 mod rococo;
 mod westend;
+mod wococo;
 
 use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams};
 
@@ -42,10 +43,10 @@ pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncP
 				FloatJsonValueMetric::new(
 					registry,
 					prefix,
-					"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=usd".into(),
-					"$.polkadot.usd".into(),
-					"polkadot_price".into(),
-					"Polkadot price in USD".into(),
+					"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=btc".into(),
+					"$.polkadot.btc".into(),
+					"polkadot_to_base_conversion_rate".into(),
+					"Rate used to convert from DOT to some BASE tokens".into(),
 				)
 			})
 			.map_err(|e| anyhow::format_err!("{}", e))?
@@ -53,10 +54,10 @@ pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncP
 				FloatJsonValueMetric::new(
 					registry,
 					prefix,
-					"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=usd".into(),
-					"$.kusama.usd".into(),
-					"kusama_price".into(),
-					"Kusama price in USD".into(),
+					"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=btc".into(),
+					"$.kusama.btc".into(),
+					"kusama_to_base_conversion_rate".into(),
+					"Rate used to convert from KSM to some BASE tokens".into(),
 				)
 			})
 			.map_err(|e| anyhow::format_err!("{}", e))?
@@ -85,7 +86,7 @@ mod tests {
 		let millau_public: bp_millau::AccountSigner = millau_sign.public().into();
 		let millau_account_id: bp_millau::AccountId = millau_public.into_account();
 
-		let digest = millau_runtime::rialto_account_ownership_digest(
+		let digest = millau_runtime::millau_to_rialto_account_ownership_digest(
 			&call,
 			millau_account_id,
 			rialto_runtime::VERSION.spec_version,
@@ -106,7 +107,7 @@ mod tests {
 		let rialto_public: bp_rialto::AccountSigner = rialto_sign.public().into();
 		let rialto_account_id: bp_rialto::AccountId = rialto_public.into_account();
 
-		let digest = rialto_runtime::millau_account_ownership_digest(
+		let digest = rialto_runtime::rialto_to_millau_account_ownership_digest(
 			&call,
 			rialto_account_id,
 			millau_runtime::VERSION.spec_version,
@@ -131,7 +132,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			call.get_dispatch_info().weight,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
@@ -141,7 +142,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			call.get_dispatch_info().weight,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert!(Millau::verify_message(&payload).is_err());
@@ -168,7 +169,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			maximal_dispatch_weight,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
@@ -176,7 +177,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			maximal_dispatch_weight + 1,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert!(Millau::verify_message(&payload).is_err());
@@ -193,7 +194,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			maximal_dispatch_weight,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert_eq!(Rialto::verify_message(&payload), Ok(()));
@@ -201,7 +202,7 @@ mod tests {
 		let payload = send_message::message_payload(
 			Default::default(),
 			maximal_dispatch_weight + 1,
-			pallet_bridge_dispatch::CallOrigin::SourceRoot,
+			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
 		);
 		assert!(Rialto::verify_message(&payload).is_err());
@@ -270,7 +271,7 @@ mod rococo_tests {
 			votes_ancestries: vec![],
 		};
 
-		let actual = bp_rococo::BridgeGrandpaWestendCall::submit_finality_proof(header.clone(), justification.clone());
+		let actual = bp_rococo::BridgeGrandpaWococoCall::submit_finality_proof(header.clone(), justification.clone());
 		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
 			header,
 			justification,

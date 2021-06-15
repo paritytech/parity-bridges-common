@@ -24,7 +24,7 @@ Substrate chains or Ethereum Proof-of-Authority chains.
 To get up and running you need both stable and nightly Rust. Rust nightly is used to build the Web
 Assembly (WASM) runtime for the node. You can configure the WASM support as so:
 
-```
+```bash
 rustup install nightly
 rustup target add wasm32-unknown-unknown --toolchain nightly
 ```
@@ -103,6 +103,7 @@ To run the Bridge you need to be able to connect the bridge relay node to the RP
 on each side of the bridge (source and target chain).
 
 There are 3 ways to run the bridge, described below:
+
 - building & running from source,
 - building or using Docker images for each individual component,
 - running a Docker Compose setup (recommended).
@@ -126,8 +127,8 @@ both Substrate chains it must be run last.
 
 ```bash
 # In `parity-bridges-common` folder
-./deployments/local-scripts/run-rialto-bridge-node.sh
-./deployments/local-scripts/run-millau-bridge-node.sh
+./deployments/local-scripts/run-rialto-node.sh
+./deployments/local-scripts/run-millau-node.sh
 ./deployments/local-scripts/relay-millau-to-rialto.sh
 ```
 

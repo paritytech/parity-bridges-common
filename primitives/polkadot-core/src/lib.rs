@@ -22,23 +22,24 @@ use frame_support::{
 	dispatch::Dispatchable,
 	parameter_types,
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+		constants::{BlockExecutionWeight, WEIGHT_PER_SECOND},
 		DispatchClass, Weight,
 	},
 	Blake2_128Concat, RuntimeDebug, StorageHasher, Twox128,
 };
 use frame_system::limits;
+use parity_scale_codec::Compact;
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, OpaqueExtrinsic, Perbill,
+	MultiAddress, MultiSignature, OpaqueExtrinsic,
 };
 use sp_std::prelude::Vec;
 
 // Re-export's to avoid extra substrate dependencies in chain-specific crates.
-pub use frame_support::Parameter;
-pub use sp_runtime::traits::Convert;
+pub use frame_support::{weights::constants::ExtrinsicBaseWeight, Parameter};
+pub use sp_runtime::{traits::Convert, Perbill};
 
 /// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
 /// Polkadot-like chain. This mostly depends on number of entries in the storage trie.
@@ -192,10 +193,19 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 pub type Balance = u128;
 
 /// Unchecked Extrinsic type.
-pub type UncheckedExtrinsic<Call> = generic::UncheckedExtrinsic<AccountId, Call, Signature, SignedExtensions<Call>>;
+pub type UncheckedExtrinsic<Call> =
+	generic::UncheckedExtrinsic<MultiAddress<AccountId, ()>, Call, Signature, SignedExtensions<Call>>;
 
 /// A type of the data encoded as part of the transaction.
-pub type SignedExtra = ((), (), (), sp_runtime::generic::Era, Nonce, (), Balance);
+pub type SignedExtra = (
+	(),
+	(),
+	(),
+	sp_runtime::generic::Era,
+	Compact<Nonce>,
+	(),
+	Compact<Balance>,
+);
 
 /// Parameters which are part of the payload used to produce transaction signature,
 /// but don't end up in the transaction itself (i.e. inherent part of the runtime).
@@ -232,13 +242,13 @@ impl<Call> SignedExtensions<Call> {
 	) -> Self {
 		Self {
 			encode_payload: (
-				(),    // spec version
-				(),    // tx version
-				(),    // genesis
-				era,   // era
-				nonce, // nonce (compact encoding)
-				(),    // Check weight
-				tip,   // transaction payment / tip (compact encoding)
+				(),           // spec version
+				(),           // tx version
+				(),           // genesis
+				era,          // era
+				nonce.into(), // nonce (compact encoding)
+				(),           // Check weight
+				tip.into(),   // transaction payment / tip (compact encoding)
 			),
 			additional_signed: (
 				version.spec_version,
