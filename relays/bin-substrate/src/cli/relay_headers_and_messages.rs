@@ -28,6 +28,7 @@ use crate::messages_lane::MessagesRelayParams;
 use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use futures::{FutureExt, TryFutureExt};
+use relay_substrate_client::Chain;
 use relay_utils::metrics::MetricsParams;
 use structopt::StructOpt;
 
@@ -99,8 +100,14 @@ macro_rules! select_bridge {
 				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber = bp_rialto::SESSION_LENGTH;
 
-				use crate::chains::millau_messages_to_rialto::run as left_to_right_messages;
-				use crate::chains::rialto_messages_to_millau::run as right_to_left_messages;
+				use crate::chains::millau_messages_to_rialto::{
+					run as left_to_right_messages,
+					add_standalone_metrics as add_left_to_right_standalone_metrics,
+				};
+				use crate::chains::rialto_messages_to_millau::{
+					run as right_to_left_messages,
+					add_standalone_metrics as add_right_to_left_standalone_metrics,
+				};
 
 				$generic
 			}
@@ -127,8 +134,49 @@ impl RelayHeadersAndMessages {
 
 			let lanes = params.shared.lane;
 
+			const METRIC_IS_SOME_PROOF: &str = "it is `None` when metric has been already registered; \
+				this is the command entrypoint, so nothing has been registered yet; \
+				qed";
+
 			let metrics_params: MetricsParams = params.shared.prometheus_params.into();
-			let metrics_params = relay_utils::relay_metrics(None, metrics_params).into_params();
+			let metrics_params = relay_utils::relay_metrics(None, metrics_params)
+				.into_params();
+			let (metrics_params, left_to_right_metrics) = add_left_to_right_standalone_metrics(metrics_params, left_client.clone())?;
+			let (metrics_params, right_to_left_metrics) = add_right_to_left_standalone_metrics(metrics_params, right_client.clone())?;
+			crate::conversion_rate_update::run_conversion_rate_update_loop(
+				left_to_right_metrics.target_to_source_conversion_rate.expect(METRIC_IS_SOME_PROOF),
+				left_to_right_metrics.target_to_base_conversion_rate.clone().expect(METRIC_IS_SOME_PROOF),
+				left_to_right_metrics.source_to_base_conversion_rate.clone().expect(METRIC_IS_SOME_PROOF),
+				0.0,
+				|new_rate| {
+					log::info!(
+						target: "bridge",
+						"Going to update {} -> {} (on {}) conversion rate to {}.",
+						Right::NAME,
+						Left::NAME,
+						Left::NAME,
+						new_rate,
+					);
+					Ok(())
+				},
+			);
+			crate::conversion_rate_update::run_conversion_rate_update_loop(
+				right_to_left_metrics.target_to_source_conversion_rate.expect(METRIC_IS_SOME_PROOF),
+				left_to_right_metrics.source_to_base_conversion_rate.expect(METRIC_IS_SOME_PROOF),
+				left_to_right_metrics.target_to_base_conversion_rate.expect(METRIC_IS_SOME_PROOF),
+				0.01,
+				|new_rate| {
+					log::info!(
+						target: "bridge",
+						"Going to update {} -> {} (on {}) conversion rate to {}.",
+						Left::NAME,
+						Right::NAME,
+						Right::NAME,
+						new_rate,
+					);
+					Ok(())
+				},
+			);
 
 			let left_to_right_on_demand_headers = OnDemandHeadersRelay::new(
 				left_client.clone(),

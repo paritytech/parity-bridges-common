@@ -21,9 +21,10 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 use bp_messages::{LaneId, MessageNonce};
 use frame_support::weights::Weight;
 use messages_relay::message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf};
-use relay_substrate_client::{BlockNumberOf, Chain, Client, HashOf};
-use relay_utils::{metrics::MetricsParams, BlockNumberBase};
-use sp_core::Bytes;
+use relay_substrate_client::{BlockNumberOf, Chain, Client, HashOf, metrics::{FloatStorageValueMetric, StorageProofOverheadMetric}};
+use relay_utils::{metrics::{F64SharedRef, MetricsParams}, BlockNumberBase};
+use sp_core::{Bytes, storage::StorageKey};
+use sp_runtime::FixedU128;
 use std::ops::RangeInclusive;
 
 /// Substrate <-> Substrate messages relay parameters.
@@ -182,6 +183,71 @@ pub fn select_delivery_transaction_limits<W: pallet_bridge_messages::WeightInfoE
 	);
 
 	(max_number_of_messages, weight_for_messages_dispatch)
+}
+
+/// Shared references to the values of standalone metrics of the message lane relay loop.
+#[derive(Debug, Clone)]
+pub struct StandaloneMessagesMetrics {
+	/// Shared reference to the actual target -> <base> chain token conversion rate.
+	pub target_to_base_conversion_rate: Option<F64SharedRef>,
+	/// Shared reference to the actual source -> <base> chain token conversion rate.
+	pub source_to_base_conversion_rate: Option<F64SharedRef>,
+	/// Shared reference to the stored (in the source chain runtime storage) target -> source chain conversion rate.
+	pub target_to_source_conversion_rate: Option<F64SharedRef>,
+}
+
+/// Add general standalone metrics for the message lane relay loop.
+pub fn add_standalone_metrics<P: SubstrateMessageLane>(
+	metrics_params: MetricsParams,
+	source_client: Client<P::SourceChain>,
+	source_chain_token_id: &str,
+	target_chain_token_id: &str,
+	target_to_source_conversion_rate_storage_key: StorageKey,
+	initial_target_to_source_conversion_rate: Option<FixedU128>,
+) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
+	let mut target_to_source_conversion_rate = None;
+	let mut source_to_base_conversion_rate = None;
+	let mut target_to_base_conversion_rate = None;
+	let metrics_params = relay_utils::relay_metrics(None, metrics_params)
+		.standalone_metric(|registry, prefix| StorageProofOverheadMetric::new(
+			registry,
+			prefix,
+			source_client.clone(),
+			format!("{}_storage_proof_overhead", P::SourceChain::NAME.to_lowercase()),
+			format!("{} storage proof overhead", P::SourceChain::NAME),
+		))?
+		.standalone_metric(|registry, prefix| {
+			let metric = FloatStorageValueMetric::<_, sp_runtime::FixedU128>::new(
+				registry,
+				prefix,
+				source_client,
+				target_to_source_conversion_rate_storage_key,
+				initial_target_to_source_conversion_rate,
+				format!("{}_{}_to_{}_conversion_rate", P::SourceChain::NAME, P::TargetChain::NAME, P::SourceChain::NAME),
+				format!("{} to {} tokens conversion rate (used by {})", P::TargetChain::NAME, P::SourceChain::NAME, P::SourceChain::NAME),
+			)?;
+			target_to_source_conversion_rate = Some(metric.shared_value_ref());
+			Ok(metric)
+		})?
+		.standalone_metric(|registry, prefix| {
+			let metric = crate::chains::token_price_metric(registry, prefix, source_chain_token_id)?;
+			source_to_base_conversion_rate = Some(metric.shared_value_ref());
+			Ok(metric)
+		})?
+		.standalone_metric(|registry, prefix| {
+			let metric = crate::chains::token_price_metric(registry, prefix, target_chain_token_id)?;
+			target_to_base_conversion_rate = Some(metric.shared_value_ref());
+			Ok(metric)
+		})?
+		.into_params();
+	Ok((
+		metrics_params,
+		StandaloneMessagesMetrics {
+			target_to_source_conversion_rate,
+			source_to_base_conversion_rate,
+			target_to_base_conversion_rate,
+		},
+	))
 }
 
 #[cfg(test)]

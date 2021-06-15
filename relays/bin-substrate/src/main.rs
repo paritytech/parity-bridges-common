@@ -20,6 +20,7 @@
 
 mod chains;
 mod cli;
+mod conversion_rate_update;
 mod finality_pipeline;
 mod finality_target;
 mod headers_initialize;
