@@ -421,7 +421,7 @@ benchmarks_instance! {
 	// * inbound lane already has state, so it needs to be read and decoded;
 	// * message is successfully dispatched;
 	// * message requires all heavy checks done by dispatcher;
-	// * message dispatch fee is pait at source (bridged) chain.
+	// * message dispatch fee is paid at source (bridged) chain.
 	//
 	// This benchmark is used to compute extra weight spent at target chain when fee is paid there. Then we use
 	// this information in two places: (1) to reduce weight of delivery tx if sender pays fee at the source chain
