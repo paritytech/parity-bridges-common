@@ -279,7 +279,7 @@ benchmarks_instance! {
 	// * inbound lane already has state, so it needs to be read and decoded;
 	// * message is successfully dispatched;
 	// * message requires all heavy checks done by dispatcher;
-	// * message dispatch fee is pait at target (this) chain.
+	// * message dispatch fee is paid at target (this) chain.
 	//
 	// The weight of single message delivery could be approximated as
 	// `weight(receive_two_messages_proof) - weight(receive_single_message_proof)`.
