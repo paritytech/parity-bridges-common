@@ -186,8 +186,8 @@ fn testnet_genesis(
 		aura: AuraConfig {
 			authorities: Vec::new(),
 		},
-		bridge_eth_poa_Instance1: load_rialto_poa_bridge_config(),
-		bridge_eth_poa_Instance2: load_kovan_bridge_config(),
+		bridge_rialto_poa: load_rialto_poa_bridge_config(),
+		bridge_kovan: load_kovan_bridge_config(),
 		grandpa: GrandpaConfig {
 			authorities: Vec::new(),
 		},
