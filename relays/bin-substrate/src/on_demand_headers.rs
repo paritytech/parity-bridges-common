@@ -409,7 +409,7 @@ where
 			return Ok(Some(current));
 		}
 
-		current = current + One::one();
+		current += One::one();
 	}
 
 	Ok(None)

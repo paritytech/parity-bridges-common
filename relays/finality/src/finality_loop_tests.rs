@@ -191,7 +191,7 @@ fn prepare_test_clients(
 		},
 		TestTargetClient {
 			on_method_call: internal_state_function,
-			data: clients_data.clone(),
+			data: clients_data,
 		},
 	)
 }
