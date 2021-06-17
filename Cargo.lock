@@ -4148,6 +4148,7 @@ dependencies = [
  "futures 0.3.13",
  "hex",
  "log",
+ "num-traits",
  "parking_lot 0.11.1",
  "relay-utils",
 ]
