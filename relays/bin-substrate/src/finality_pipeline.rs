@@ -51,7 +51,7 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 	/// Different finality bridges may have different set of guards - e.g. on ephemeral chains we
 	/// don't need version guards, on test chains we don't care that much about relayer account
 	/// balance, ... So the implementation is left to the specific bridges.
-	fn start_relay_guards(_target_client: &Client<Self::TargetChain>) {}
+	fn start_relay_guards(&self) {}
 
 	/// Returns id of account that we're using to sign transactions at target chain.
 	fn transactions_author(&self) -> <Self::TargetChain as Chain>::AccountId;
@@ -119,6 +119,7 @@ pub async fn run<SourceChain, TargetChain, P>(
 	pipeline: P,
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
+	only_mandatory_headers: bool,
 	metrics_params: MetricsParams,
 ) -> anyhow::Result<()>
 where
@@ -147,6 +148,7 @@ where
 			tick: std::cmp::max(SourceChain::AVERAGE_BLOCK_INTERVAL, TargetChain::AVERAGE_BLOCK_INTERVAL),
 			recent_finality_proofs_limit: RECENT_FINALITY_PROOFS_LIMIT,
 			stall_timeout: STALL_TIMEOUT,
+			only_mandatory_headers,
 		},
 		metrics_params,
 		futures::future::pending(),
