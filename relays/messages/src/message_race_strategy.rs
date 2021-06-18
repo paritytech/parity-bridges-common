@@ -473,10 +473,7 @@ mod tests {
 		fn source_queue_nonces(
 			source_queue: &SourceRangesQueue<TestSourceHeaderHash, TestSourceHeaderNumber, SourceNoncesRange>,
 		) -> Vec<MessageNonce> {
-			source_queue
-				.iter()
-				.flat_map(|(_, range)| range.clone())
-				.collect()
+			source_queue.iter().flat_map(|(_, range)| range.clone()).collect()
 		}
 
 		strategy.remove_le_nonces_from_source_queue(1);
