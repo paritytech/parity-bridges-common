@@ -335,6 +335,7 @@ mod tests {
 
 	#[test]
 	fn confirm_delivery_fails_if_entry_is_empty() {
+		#[allow(clippy::reversed_empty_ranges)]
 		assert_eq!(
 			assert_3_messages_confirmation_fails(
 				3,
