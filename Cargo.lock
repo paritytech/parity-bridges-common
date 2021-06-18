@@ -888,6 +888,7 @@ dependencies = [
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-transaction-payment",
  "parity-scale-codec",
  "sp-core",
  "sp-runtime",
@@ -4761,6 +4762,7 @@ dependencies = [
 name = "pallet-bridge-messages"
 version = "0.1.0"
 dependencies = [
+ "bp-message-dispatch",
  "bp-messages",
  "bp-rialto",
  "bp-runtime",
