@@ -1029,7 +1029,7 @@ impl_runtime_apis! {
 						.map(|event_record| event_record.event)
 						.any(|event| matches!(
 							event,
-							Event::pallet_bridge_dispatch(pallet_bridge_dispatch::Event::<Runtime, _>::MessageDispatched(
+							Event::BridgeDispatch(pallet_bridge_dispatch::Event::<Runtime, _>::MessageDispatched(
 								_, ([0, 0, 0, 0], nonce_from_event), _,
 							)) if nonce_from_event == nonce
 						))
