@@ -239,7 +239,7 @@ impl DeliveredMessages {
 	/// Panics if message nonce is not in the `begin..=end` range. Typically you'll first
 	/// check if message is within the range by calling `contains_message`.
 	pub fn message_dispatch_result(&self, nonce: MessageNonce) -> bool {
-		const INVALID_NONCE: &'static str = "Invalid nonce used to index dispatch_results";
+		const INVALID_NONCE: &str = "Invalid nonce used to index dispatch_results";
 
 		let index = nonce.checked_sub(self.begin).expect(INVALID_NONCE) as usize;
 		*self.dispatch_results.get(index).expect(INVALID_NONCE)
@@ -373,11 +373,11 @@ mod tests {
 			dispatch_results: bitvec![Msb0, u8; 1; 151],
 		};
 
-		assert_eq!(delivered_messages.contains_message(99), false);
-		assert_eq!(delivered_messages.contains_message(100), true);
-		assert_eq!(delivered_messages.contains_message(150), true);
-		assert_eq!(delivered_messages.contains_message(151), false);
+		assert!(!delivered_messages.contains_message(99));
+		assert!(delivered_messages.contains_message(100));
+		assert!(delivered_messages.contains_message(150));
+		assert!(!delivered_messages.contains_message(151));
 
-		assert_eq!(delivered_messages.message_dispatch_result(125), true);
+		assert!(delivered_messages.message_dispatch_result(125));
 	}
 }
