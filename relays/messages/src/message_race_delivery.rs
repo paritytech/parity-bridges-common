@@ -541,6 +541,7 @@ where
 ///
 /// The function returns nonces that are NOT selected for current batch and will be
 /// delivered later.
+#[allow(clippy::too_many_arguments)]
 async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 	relayer_mode: RelayerMode,
 	max_messages_in_this_batch: MessageNonce,

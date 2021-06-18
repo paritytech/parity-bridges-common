@@ -110,7 +110,7 @@ where
 		//
 		// => let's first select range of entries inside deque that are already finalized at
 		// the target client and pass this range to the selector
-		let best_header_at_target = race_state.best_finalized_source_header_id_at_best_target.clone()?;
+		let best_header_at_target = race_state.best_finalized_source_header_id_at_best_target?;
 		self.source_queue
 			.iter()
 			.enumerate()
@@ -458,7 +458,7 @@ mod tests {
 		assert_eq!(strategy.maximal_available_source_queue_index(state.clone()), Some(2));
 
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(4));
-		assert_eq!(strategy.maximal_available_source_queue_index(state.clone()), Some(2));
+		assert_eq!(strategy.maximal_available_source_queue_index(state), Some(2));
 	}
 
 	#[test]
@@ -475,7 +475,7 @@ mod tests {
 		) -> Vec<MessageNonce> {
 			source_queue
 				.iter()
-				.flat_map(|(_, range)| range.clone().into_iter())
+				.flat_map(|(_, range)| range.clone())
 				.collect()
 		}
 
