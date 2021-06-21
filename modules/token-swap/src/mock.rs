@@ -18,7 +18,7 @@ use crate as pallet_bridge_token_swap;
 use crate::MessagePayloadOf;
 
 use bp_messages::{source_chain::MessagesBridge, LaneId, MessageNonce};
-use bp_runtime::InstanceId;
+use bp_runtime::ChainId;
 use frame_support::weights::Weight;
 use sp_core::H256;
 use sp_runtime::{
@@ -90,6 +90,7 @@ impl frame_system::Config for TestRuntime {
 
 frame_support::parameter_types! {
 	pub const ExistentialDeposit: u64 = 10;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for TestRuntime {
@@ -100,10 +101,12 @@ impl pallet_balances::Config for TestRuntime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = frame_system::Pallet<TestRuntime>;
 	type WeightInfo = ();
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 }
 
 frame_support::parameter_types! {
-	pub const BridgeInstanceId: InstanceId = *b"inst";
+	pub const BridgeChainId: ChainId = *b"inst";
 	pub const OutboundMessageLaneId: LaneId = *b"lane";
 	pub const BridgedChainSpecVersion: u32 = 42;
 	pub const BridgedChainTransferWeight: Weight = 1;
@@ -113,7 +116,7 @@ frame_support::parameter_types! {
 impl pallet_bridge_token_swap::Config for TestRuntime {
 	type Event = Event;
 
-	type BridgeInstanceId = BridgeInstanceId;
+	type BridgeChainId = BridgeChainId;
 	type OutboundMessageLaneId = OutboundMessageLaneId;
 	type MessagesBridge = TestMessagesBridge;
 	type MessageDeliveryAndDispatchFee = MessageDeliveryAndDispatchFee;

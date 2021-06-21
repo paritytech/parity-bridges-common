@@ -50,10 +50,10 @@
 //! temporary `swap_account_at_this_chain` account. It is destroyed upon swap completion.
 
 use bp_messages::{
-	source_chain::{MessagesBridge, OnMessagesDelivered},
+	source_chain::{MessagesBridge, OnDeliveryConfirmed},
 	DeliveredMessages, LaneId, MessageNonce,
 };
-use bp_runtime::{messages::DispatchFeePayment, InstanceId};
+use bp_runtime::{messages::DispatchFeePayment, ChainId};
 use bp_token_swap::{TokenSwap, TokenSwapType};
 use codec::{Decode, Encode};
 use frame_support::{
@@ -98,7 +98,7 @@ pub mod pallet {
 		type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
 		/// Id of the bridge with the Bridged chain.
-		type BridgeInstanceId: Get<InstanceId>;
+		type BridgeChainId: Get<ChainId>;
 		/// The identifier of outbound message lane on This chain used to send token transfer
 		/// messages to the Bridged chain.
 		///
@@ -138,7 +138,7 @@ pub mod pallet {
 	/// SCALE-encoded `Currency::transfer` call on the bridged chain.
 	pub type RawBridgedTransferCall = Vec<u8>;
 	/// Bridge message payload used by the pallet.
-	pub type MessagePayloadOf<T, I> = pallet_bridge_dispatch::MessagePayload<
+	pub type MessagePayloadOf<T, I> = bp_message_dispatch::MessagePayload<
 		<T as frame_system::Config>::AccountId,
 		<T as Config<I>>::BridgedAccountPublic,
 		<T as Config<I>>::BridgedAccountSignature,
@@ -251,10 +251,10 @@ pub mod pallet {
 				let send_message_result = T::MessagesBridge::send_message(
 					swap_account.clone(),
 					T::OutboundMessageLaneId::get(),
-					pallet_bridge_dispatch::MessagePayload {
+					bp_message_dispatch::MessagePayload {
 						spec_version: T::BridgedChainSpecVersion::get(),
 						weight: T::BridgedChainTransferWeight::get(),
-						origin: pallet_bridge_dispatch::CallOrigin::TargetAccount(
+						origin: bp_message_dispatch::CallOrigin::TargetAccount(
 							swap_account,
 							target_public_at_bridged_chain,
 							bridged_currency_transfer_signature,
@@ -430,7 +430,7 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type PendingMessages<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, MessageNonce, H256>;
 
-	impl<T: Config<I>, I: 'static> OnMessagesDelivered for Pallet<T, I> {
+	impl<T: Config<I>, I: 'static> OnDeliveryConfirmed for Pallet<T, I> {
 		fn on_messages_delivered(lane: &LaneId, delivered_messages: &DeliveredMessages) {
 			// we're only interested in our lane messages
 			if *lane != T::OutboundMessageLaneId::get() {
@@ -463,7 +463,7 @@ pub mod pallet {
 	/// Expected target account representation on This chain (aka `target_account_at_this_chain`).
 	pub(crate) fn target_account_at_this_chain<T: Config<I>, I: 'static>(swap: &TokenSwapOf<T, I>) -> T::AccountId {
 		T::FromBridgedToThisAccountIdConverter::convert(bp_runtime::derive_account_id(
-			T::BridgeInstanceId::get(),
+			T::BridgeChainId::get(),
 			bp_runtime::SourceAccount::Account(swap.target_account_at_bridged_chain.clone()),
 		))
 	}
@@ -676,11 +676,10 @@ mod tests {
 				test_swap().source_balance_at_this_chain + MessageDeliveryAndDispatchFee::get(),
 			);
 			assert!(
-				frame_system::Pallet::<TestRuntime>::events().iter().any(|e| e.event
-					== crate::mock::Event::pallet_bridge_token_swap(crate::Event::SwapStarted(
-						swap_hash,
-						MESSAGE_NONCE,
-					))),
+				frame_system::Pallet::<TestRuntime>::events()
+					.iter()
+					.any(|e| e.event
+						== crate::mock::Event::TokenSwap(crate::Event::SwapStarted(swap_hash, MESSAGE_NONCE,))),
 				"Missing SwapStarted event: {:?}",
 				frame_system::Pallet::<TestRuntime>::events(),
 			);
@@ -806,8 +805,7 @@ mod tests {
 			assert!(
 				frame_system::Pallet::<TestRuntime>::events()
 					.iter()
-					.any(|e| e.event
-						== crate::mock::Event::pallet_bridge_token_swap(crate::Event::SwapClaimed(swap_hash,))),
+					.any(|e| e.event == crate::mock::Event::TokenSwap(crate::Event::SwapClaimed(swap_hash,))),
 				"Missing SwapClaimed event: {:?}",
 				frame_system::Pallet::<TestRuntime>::events(),
 			);
@@ -904,8 +902,9 @@ mod tests {
 				THIS_CHAIN_ACCOUNT_BALANCE - MessageDeliveryAndDispatchFee::get(),
 			);
 			assert!(
-				frame_system::Pallet::<TestRuntime>::events().iter().any(|e| e.event
-					== crate::mock::Event::pallet_bridge_token_swap(crate::Event::SwapCancelled(swap_hash,))),
+				frame_system::Pallet::<TestRuntime>::events()
+					.iter()
+					.any(|e| e.event == crate::mock::Event::TokenSwap(crate::Event::SwapCancelled(swap_hash,))),
 				"Missing SwapCancelled event: {:?}",
 				frame_system::Pallet::<TestRuntime>::events(),
 			);

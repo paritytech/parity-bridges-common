@@ -852,7 +852,7 @@ name = "bp-token-swap"
 version = "0.1.0"
 dependencies = [
  "frame-support",
- "parity-scale-codec 2.0.1",
+ "parity-scale-codec",
  "sp-core",
 ]
 
@@ -4798,6 +4798,7 @@ dependencies = [
 name = "pallet-bridge-token-swap"
 version = "0.1.0"
 dependencies = [
+ "bp-message-dispatch",
  "bp-messages",
  "bp-runtime",
  "bp-token-swap",
@@ -4806,7 +4807,7 @@ dependencies = [
  "log",
  "pallet-balances",
  "pallet-bridge-dispatch",
- "parity-scale-codec 2.0.1",
+ "parity-scale-codec",
  "serde",
  "sp-core",
  "sp-io",
