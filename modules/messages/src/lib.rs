@@ -48,7 +48,7 @@ use crate::weights::WeightInfo;
 
 use bp_messages::{
 	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnMessagesDelivered, RelayersRewards, TargetHeaderChain,
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards, TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	total_unrewarded_messages, DeliveredMessages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce,
@@ -149,7 +149,7 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 	/// Message delivery payment.
 	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<Self::AccountId, Self::OutboundMessageFee>;
 	/// Handler for delivered messages.
-	type OnMessagesDelivered: OnMessagesDelivered;
+	type OnDeliveryConfirmed: OnDeliveryConfirmed;
 
 	// Types that are used by inbound_lane (on target chain).
 
@@ -640,8 +640,8 @@ decl_module! {
 				},
 			};
 			if let Some(confirmed_messages) = confirmed_messages {
-				// handle messages delivery
-				T::OnMessagesDelivered::on_messages_delivered(&lane_id, &confirmed_messages);
+				// handle messages delivery confirmation
+				T::OnDeliveryConfirmed::on_messages_delivered(&lane_id, &confirmed_messages);
 
 				// emit 'delivered' event
 				let received_range = confirmed_messages.begin..=confirmed_messages.end;
@@ -1909,10 +1909,10 @@ mod tests {
 			));
 
 			// ensure that both callbacks have been called twice: for 1+2, then for 3
-			crate::mock::TestOnMessagesDelivered1::ensure_called(&TEST_LANE_ID, &delivered_messages_1_and_2);
-			crate::mock::TestOnMessagesDelivered1::ensure_called(&TEST_LANE_ID, &delivered_message_3);
-			crate::mock::TestOnMessagesDelivered2::ensure_called(&TEST_LANE_ID, &delivered_messages_1_and_2);
-			crate::mock::TestOnMessagesDelivered2::ensure_called(&TEST_LANE_ID, &delivered_message_3);
+			crate::mock::TestOnDeliveryConfirmed1::ensure_called(&TEST_LANE_ID, &delivered_messages_1_and_2);
+			crate::mock::TestOnDeliveryConfirmed1::ensure_called(&TEST_LANE_ID, &delivered_message_3);
+			crate::mock::TestOnDeliveryConfirmed2::ensure_called(&TEST_LANE_ID, &delivered_messages_1_and_2);
+			crate::mock::TestOnDeliveryConfirmed2::ensure_called(&TEST_LANE_ID, &delivered_message_3);
 		});
 	}
 }

@@ -135,9 +135,9 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	}
 }
 
-/// Handler for delivered messages.
+/// Handler for messages delivery confirmation.
 #[impl_trait_for_tuples::impl_for_tuples(30)]
-pub trait OnMessagesDelivered {
+pub trait OnDeliveryConfirmed {
 	/// Called when we receive confirmation that our messages have been delivered to the
 	/// target chain. The confirmation aso has single bit dispatch result for every
 	/// confirmed message (see `DeliveredMessages` for details).

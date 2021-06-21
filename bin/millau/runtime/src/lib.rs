@@ -384,7 +384,7 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 		GetDeliveryConfirmationTransactionFee,
 		RootAccountForPayments,
 	>;
-	type OnMessagesDelivered = ();
+	type OnDeliveryConfirmed = ();
 
 	type SourceHeaderChain = crate::rialto_messages::Rialto;
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
