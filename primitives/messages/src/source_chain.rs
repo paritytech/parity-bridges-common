@@ -139,7 +139,7 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 #[impl_trait_for_tuples::impl_for_tuples(30)]
 pub trait OnMessagesDelivered {
 	/// Called when we receive confirmation that our messages have been delivered to the
-	/// target chain. The confirmation aso has single bit dispatch result for every
+	/// target chain. The confirmation also has single bit dispatch result for every
 	/// confirmed message (see `DeliveredMessages` for details).
 	fn on_messages_delivered(_lane: &LaneId, _messages: &DeliveredMessages) {}
 }
