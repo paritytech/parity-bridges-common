@@ -725,9 +725,11 @@ dependencies = [
 name = "bp-messages"
 version = "0.1.0"
 dependencies = [
+ "bitvec",
  "bp-runtime",
  "frame-support",
  "frame-system",
+ "impl-trait-for-tuples",
  "parity-scale-codec",
  "serde",
  "sp-std",
@@ -4762,6 +4764,7 @@ dependencies = [
 name = "pallet-bridge-messages"
 version = "0.1.0"
 dependencies = [
+ "bitvec",
  "bp-message-dispatch",
  "bp-messages",
  "bp-rialto",
