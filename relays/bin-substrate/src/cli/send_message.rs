@@ -264,8 +264,6 @@ mod tests {
 			"1234",
 			"--source-signer",
 			"//Alice",
-			"--target-signer",
-			"//Bob",
 			"remark",
 			"--remark-payload",
 			"1234",
