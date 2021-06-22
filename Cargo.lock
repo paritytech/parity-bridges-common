@@ -5925,6 +5925,7 @@ dependencies = [
 name = "relay-millau-client"
 version = "0.1.0"
 dependencies = [
+ "bp-millau",
  "frame-support",
  "frame-system",
  "headers-relay",
@@ -5959,6 +5960,7 @@ dependencies = [
 name = "relay-rialto-client"
 version = "0.1.0"
 dependencies = [
+ "bp-rialto",
  "frame-support",
  "frame-system",
  "headers-relay",
@@ -6008,12 +6010,15 @@ dependencies = [
  "log",
  "num-traits",
  "pallet-balances",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
  "rand 0.7.3",
  "relay-utils",
  "sc-rpc-api",
  "sp-core",
  "sp-finality-grandpa",
+ "sp-rpc",
  "sp-runtime",
  "sp-std",
  "sp-storage",
