@@ -52,7 +52,7 @@ pub type ToMillauMessageVerifier = messages::source::FromThisChainMessageVerifie
 pub type FromMillauMessagePayload = messages::target::FromBridgedChainMessagePayload<WithMillauMessageBridge>;
 
 /// Encoded Rialto Call as it comes from Millau.
-pub type FromMillauEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<WithMillauMessageBridge>;
+pub type FromMillauEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<crate::Call>;
 
 /// Call-dispatch based message dispatch for Millau -> Rialto messages.
 pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDispatch<

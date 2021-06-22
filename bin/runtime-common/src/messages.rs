@@ -425,7 +425,7 @@ pub mod target {
 		AccountIdOf<BridgedChain<B>>,
 		SignerOf<ThisChain<B>>,
 		SignatureOf<ThisChain<B>>,
-		FromBridgedChainEncodedMessageCall<B>,
+		FromBridgedChainEncodedMessageCall<CallOf<ThisChain<B>>>,
 	>;
 
 	/// Messages proof from bridged chain:
@@ -463,12 +463,12 @@ pub mod target {
 	/// Our Call is opaque (`Vec<u8>`) for Bridged chain. So it is encoded, prefixed with
 	/// vector length. Custom decode implementation here is exactly to deal with this.
 	#[derive(Decode, Encode, RuntimeDebug, PartialEq)]
-	pub struct FromBridgedChainEncodedMessageCall<B> {
+	pub struct FromBridgedChainEncodedMessageCall<DecodedCall> {
 		encoded_call: Vec<u8>,
-		_marker: PhantomData<B>,
+		_marker: PhantomData<DecodedCall>,
 	}
 
-	impl<B: MessageBridge> FromBridgedChainEncodedMessageCall<B> {
+	impl<DecodedCall> FromBridgedChainEncodedMessageCall<DecodedCall> {
 		/// Create encoded call.
 		pub fn new(encoded_call: Vec<u8>) -> Self {
 			FromBridgedChainEncodedMessageCall {
@@ -478,9 +478,9 @@ pub mod target {
 		}
 	}
 
-	impl<B: MessageBridge> From<FromBridgedChainEncodedMessageCall<B>> for Result<CallOf<ThisChain<B>>, ()> {
-		fn from(encoded_call: FromBridgedChainEncodedMessageCall<B>) -> Self {
-			CallOf::<ThisChain<B>>::decode(&mut &encoded_call.encoded_call[..]).map_err(drop)
+	impl<DecodedCall: Decode> From<FromBridgedChainEncodedMessageCall<DecodedCall>> for Result<DecodedCall, ()> {
+		fn from(encoded_call: FromBridgedChainEncodedMessageCall<DecodedCall>) -> Self {
+			DecodedCall::decode(&mut &encoded_call.encoded_call[..]).map_err(drop)
 		}
 	}
 
@@ -1000,7 +1000,7 @@ mod tests {
 				weight: 100,
 				origin: bp_message_dispatch::CallOrigin::SourceRoot,
 				dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-				call: target::FromBridgedChainEncodedMessageCall::<OnThisChainBridge>::new(
+				call: target::FromBridgedChainEncodedMessageCall::<ThisChainCall>::new(
 					ThisChainCall::Transfer.encode(),
 				),
 			}
