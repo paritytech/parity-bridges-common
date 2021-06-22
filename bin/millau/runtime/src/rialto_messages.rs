@@ -77,6 +77,7 @@ impl MessageBridge for WithRialtoMessageBridge {
 
 	type ThisChain = Millau;
 	type BridgedChain = Rialto;
+	type BridgedMessagesInstance = crate::WithRialtoMessagesInstance;
 
 	fn bridged_balance_to_this_balance(bridged_balance: bp_rialto::Balance) -> bp_millau::Balance {
 		bp_millau::Balance::try_from(RialtoToMillauConversionRate::get().saturating_mul_int(bridged_balance))
@@ -97,8 +98,6 @@ impl messages::ChainWithMessages for Millau {
 	type Signature = bp_millau::Signature;
 	type Weight = Weight;
 	type Balance = bp_millau::Balance;
-
-	type MessagesInstance = crate::WithRialtoMessagesInstance;
 }
 
 impl messages::ThisChainWithMessages for Millau {
@@ -153,8 +152,6 @@ impl messages::ChainWithMessages for Rialto {
 	type Signature = bp_rialto::Signature;
 	type Weight = Weight;
 	type Balance = bp_rialto::Balance;
-
-	type MessagesInstance = pallet_bridge_messages::DefaultInstance;
 }
 
 impl messages::BridgedChainWithMessages for Rialto {

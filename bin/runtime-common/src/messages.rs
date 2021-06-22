@@ -53,6 +53,8 @@ pub trait MessageBridge {
 	type ThisChain: ThisChainWithMessages;
 	/// Bridged chain in context of message bridge.
 	type BridgedChain: BridgedChainWithMessages;
+	/// Instance of the `pallet-bridge-messages` pallet at the Bridged chain.
+	type BridgedMessagesInstance: Instance;
 
 	/// Convert Bridged chain balance into This chain balance.
 	fn bridged_balance_to_this_balance(bridged_balance: BalanceOf<BridgedChain<Self>>) -> BalanceOf<ThisChain<Self>>;
@@ -78,9 +80,6 @@ pub trait ChainWithMessages {
 	type Weight: From<frame_support::weights::Weight> + PartialOrd;
 	/// Type of balances that is used on the chain.
 	type Balance: Encode + Decode + CheckedAdd + CheckedDiv + CheckedMul + PartialOrd + From<u32> + Copy;
-
-	/// Instance of the `pallet-bridge-messages` pallet.
-	type MessagesInstance: Instance;
 }
 
 /// Message related transaction parameters estimation.
@@ -147,7 +146,6 @@ pub(crate) type SignerOf<C> = <C as ChainWithMessages>::Signer;
 pub(crate) type SignatureOf<C> = <C as ChainWithMessages>::Signature;
 pub(crate) type WeightOf<C> = <C as ChainWithMessages>::Weight;
 pub(crate) type BalanceOf<C> = <C as ChainWithMessages>::Balance;
-pub(crate) type MessagesInstanceOf<C> = <C as ChainWithMessages>::MessagesInstance;
 
 pub(crate) type CallOf<C> = <C as ThisChainWithMessages>::Call;
 
@@ -376,7 +374,7 @@ pub mod source {
 	) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<B>, &'static str>
 	where
 		ThisRuntime: pallet_bridge_grandpa::Config<GrandpaInstance>,
-		ThisRuntime: pallet_bridge_messages::Config<MessagesInstanceOf<BridgedChain<B>>>,
+		ThisRuntime: pallet_bridge_messages::Config<B::BridgedMessagesInstance>,
 		HashOf<BridgedChain<B>>:
 			Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config<GrandpaInstance>>::BridgedChain>>,
 	{
@@ -393,7 +391,7 @@ pub mod source {
 				// is fatal.
 				let storage_inbound_lane_data_key = pallet_bridge_messages::storage_keys::inbound_lane_data_key::<
 					ThisRuntime,
-					MessagesInstanceOf<BridgedChain<B>>,
+					B::BridgedMessagesInstance,
 				>(&lane);
 				let raw_inbound_lane_data = storage
 					.read_value(storage_inbound_lane_data_key.0.as_ref())
@@ -561,7 +559,7 @@ pub mod target {
 	) -> Result<ProvedMessages<Message<BalanceOf<BridgedChain<B>>>>, &'static str>
 	where
 		ThisRuntime: pallet_bridge_grandpa::Config<GrandpaInstance>,
-		ThisRuntime: pallet_bridge_messages::Config<MessagesInstanceOf<BridgedChain<B>>>,
+		ThisRuntime: pallet_bridge_messages::Config<B::BridgedMessagesInstance>,
 		HashOf<BridgedChain<B>>:
 			Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config<GrandpaInstance>>::BridgedChain>>,
 	{
@@ -623,11 +621,11 @@ pub mod target {
 	where
 		H: Hasher,
 		B: MessageBridge,
-		ThisRuntime: pallet_bridge_messages::Config<MessagesInstanceOf<BridgedChain<B>>>,
+		ThisRuntime: pallet_bridge_messages::Config<B::BridgedMessagesInstance>,
 	{
 		fn read_raw_outbound_lane_data(&self, lane_id: &LaneId) -> Option<Vec<u8>> {
 			let storage_outbound_lane_data_key = pallet_bridge_messages::storage_keys::outbound_lane_data_key::<
-				MessagesInstanceOf<BridgedChain<B>>,
+				B::BridgedMessagesInstance,
 			>(lane_id);
 			self.storage
 				.read_value(storage_outbound_lane_data_key.0.as_ref())
@@ -637,7 +635,7 @@ pub mod target {
 		fn read_raw_message(&self, message_key: &MessageKey) -> Option<Vec<u8>> {
 			let storage_message_key = pallet_bridge_messages::storage_keys::message_key::<
 				ThisRuntime,
-				MessagesInstanceOf<BridgedChain<B>>,
+				B::BridgedMessagesInstance,
 			>(&message_key.lane_id, message_key.nonce);
 			self.storage.read_value(storage_message_key.0.as_ref()).ok()?
 		}
@@ -746,6 +744,7 @@ mod tests {
 
 		type ThisChain = ThisChain;
 		type BridgedChain = BridgedChain;
+		type BridgedMessagesInstance = pallet_bridge_messages::DefaultInstance;
 
 		fn bridged_balance_to_this_balance(bridged_balance: BridgedChainBalance) -> ThisChainBalance {
 			ThisChainBalance(bridged_balance.0 * BRIDGED_CHAIN_TO_THIS_CHAIN_BALANCE_RATE as u32)
@@ -761,6 +760,7 @@ mod tests {
 
 		type ThisChain = BridgedChain;
 		type BridgedChain = ThisChain;
+		type BridgedMessagesInstance = pallet_bridge_messages::DefaultInstance;
 
 		fn bridged_balance_to_this_balance(_this_balance: ThisChainBalance) -> BridgedChainBalance {
 			unreachable!()
@@ -865,8 +865,6 @@ mod tests {
 		type Signature = ThisChainSignature;
 		type Weight = frame_support::weights::Weight;
 		type Balance = ThisChainBalance;
-
-		type MessagesInstance = pallet_bridge_messages::DefaultInstance;
 	}
 
 	impl ThisChainWithMessages for ThisChain {
@@ -925,8 +923,6 @@ mod tests {
 		type Signature = BridgedChainSignature;
 		type Weight = frame_support::weights::Weight;
 		type Balance = BridgedChainBalance;
-
-		type MessagesInstance = pallet_bridge_messages::DefaultInstance;
 	}
 
 	impl ThisChainWithMessages for BridgedChain {
