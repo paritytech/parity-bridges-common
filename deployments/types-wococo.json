@@ -56,6 +56,7 @@
     "spec_version": "SpecVersion",
     "weight": "Weight",
     "origin": "CallOrigin",
+    "dispatch_fee_payment": "DispatchFeePayment",
     "call": "BridgedOpaqueCall"
   },
   "CallOrigin": {
@@ -63,6 +64,12 @@
       "SourceRoot": "()",
       "TargetAccount": "(SourceAccountId, MultiSigner, MultiSignature)",
       "SourceAccount": "SourceAccountId"
+    }
+  },
+  "DispatchFeePayment": {
+    "_enum": {
+      "AtSourceChain": "()",
+      "AtTargetChain": "()"
     }
   },
   "MultiSigner": {
