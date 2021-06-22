@@ -74,6 +74,8 @@ pub struct WithRialtoMessageBridge;
 
 impl MessageBridge for WithRialtoMessageBridge {
 	const RELAYER_FEE_PERCENT: u32 = 10;
+	const THIS_CHAIN_ID: ChainId = MILLAU_CHAIN_ID;
+	const BRIDGED_CHAIN_ID: ChainId = RIALTO_CHAIN_ID;
 
 	type ThisChain = Millau;
 	type BridgedChain = Rialto;
@@ -90,8 +92,6 @@ impl MessageBridge for WithRialtoMessageBridge {
 pub struct Millau;
 
 impl messages::ChainWithMessages for Millau {
-	const ID: ChainId = MILLAU_CHAIN_ID;
-
 	type Hash = bp_millau::Hash;
 	type AccountId = bp_millau::AccountId;
 	type Signer = bp_millau::AccountSigner;
@@ -144,8 +144,6 @@ impl messages::ThisChainWithMessages for Millau {
 pub struct Rialto;
 
 impl messages::ChainWithMessages for Rialto {
-	const ID: ChainId = RIALTO_CHAIN_ID;
-
 	type Hash = bp_rialto::Hash;
 	type AccountId = bp_rialto::AccountId;
 	type Signer = bp_rialto::AccountSigner;

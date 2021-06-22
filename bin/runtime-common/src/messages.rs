@@ -49,6 +49,11 @@ pub trait MessageBridge {
 	/// Relayer interest (in percents).
 	const RELAYER_FEE_PERCENT: u32;
 
+	/// Identifier of this chain.
+	const THIS_CHAIN_ID: ChainId;
+	/// Identifier of the Bridged chain.
+	const BRIDGED_CHAIN_ID: ChainId;
+
 	/// This chain in context of message bridge.
 	type ThisChain: ThisChainWithMessages;
 	/// Bridged chain in context of message bridge.
@@ -62,9 +67,6 @@ pub trait MessageBridge {
 
 /// Chain that has `pallet-bridge-messages` and `dispatch` modules.
 pub trait ChainWithMessages {
-	/// Identifier of this chain.
-	const ID: ChainId;
-
 	/// Hash used in the chain.
 	type Hash: Decode;
 	/// Accound id on the chain.
@@ -521,8 +523,8 @@ pub mod target {
 		) -> MessageDispatchResult {
 			let message_id = (message.key.lane_id, message.key.nonce);
 			pallet_bridge_dispatch::Pallet::<ThisRuntime, ThisDispatchInstance>::dispatch(
-				B::BridgedChain::ID,
-				B::ThisChain::ID,
+				B::BRIDGED_CHAIN_ID,
+				B::THIS_CHAIN_ID,
 				message_id,
 				message.data.payload.map_err(drop),
 				|dispatch_origin, dispatch_weight| {
@@ -741,6 +743,8 @@ mod tests {
 
 	impl MessageBridge for OnThisChainBridge {
 		const RELAYER_FEE_PERCENT: u32 = 10;
+		const THIS_CHAIN_ID: ChainId = *b"this";
+		const BRIDGED_CHAIN_ID: ChainId = *b"brdg";
 
 		type ThisChain = ThisChain;
 		type BridgedChain = BridgedChain;
@@ -757,6 +761,8 @@ mod tests {
 
 	impl MessageBridge for OnBridgedChainBridge {
 		const RELAYER_FEE_PERCENT: u32 = 20;
+		const THIS_CHAIN_ID: ChainId = *b"brdg";
+		const BRIDGED_CHAIN_ID: ChainId = *b"this";
 
 		type ThisChain = BridgedChain;
 		type BridgedChain = ThisChain;
@@ -857,8 +863,6 @@ mod tests {
 	struct ThisChain;
 
 	impl ChainWithMessages for ThisChain {
-		const ID: ChainId = *b"this";
-
 		type Hash = ();
 		type AccountId = ThisChainAccountId;
 		type Signer = ThisChainSigner;
@@ -915,8 +919,6 @@ mod tests {
 	struct BridgedChain;
 
 	impl ChainWithMessages for BridgedChain {
-		const ID: ChainId = *b"brdg";
-
 		type Hash = ();
 		type AccountId = BridgedChainAccountId;
 		type Signer = BridgedChainSigner;
