@@ -41,10 +41,10 @@ pub struct SendMessage {
 	source: SourceConnectionParams,
 	#[structopt(flatten)]
 	source_sign: SourceSigningParams,
-	/// The SURI of secret key to use when transactions are submitted to the target chain node.
+	/// The SURI of secret key to use when transactions are submitted to the Target node.
 	#[structopt(long, required_if("origin", "Target"))]
 	target_signer: Option<String>,
-	/// The password for the SURI of secret key to use when transactions are submitted to the target chain node.
+	/// The password for the SURI of secret key to use when transactions are submitted to the Target node.
 	#[structopt(long)]
 	target_signer_password: Option<String>,
 	/// Hex-encoded lane id. Defaults to `00000000`.
@@ -104,7 +104,7 @@ impl SendMessage {
 							let target_sign = TargetSigningParams {
 								target_signer: target_signer
 									.clone()
-									.ok_or(anyhow::format_err!("The arguments target_signer is not available"))?,
+									.ok_or(anyhow::format_err!("The argument target_signer is not available"))?,
 								target_signer_password: target_signer_password.clone(),
 							};
 							let target_sign = target_sign.to_keypair::<Target>()?;
