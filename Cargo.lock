@@ -4131,6 +4131,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-messages",
+ "bp-runtime",
  "futures 0.3.13",
  "hex",
  "log",
