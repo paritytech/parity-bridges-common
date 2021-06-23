@@ -1,5 +1,4 @@
 stages:
-  - canary
   - lint
   - check
   - test
@@ -87,15 +86,6 @@ default:
     # 2. another is triggered by scripts repo $CI_PIPELINE_SOURCE == "pipeline" it's for the CI image
     #    update, it also runs all the nightly checks.
     - if: $CI_PIPELINE_SOURCE == "pipeline"
-
-#### stage:                        canary
-
-canary:
-  stage:                           canary
-  <<:                              *kubernetes-build
-  image:                           alpine:3.13
-  script:
-    - "true"
 
 #### stage:                        lint
 
