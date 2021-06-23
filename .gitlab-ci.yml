@@ -1,5 +1,4 @@
 stages:
-  - canary
   - lint
   - check
   - test
@@ -55,12 +54,15 @@ default:
 
 .test-refs:                        &test-refs
   rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
-      changes:
-        - '**.md'
-        - diagrams/*
-        - docs/*
-      when:                        never
+    # FIXME: This is the cause why pipelines wouldn't start. The problem might be in our custom
+    # mirroring. This should be investigated further, but for now let's have the working
+    # pipeline.
+    # - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
+    #   changes:
+    #     - '**.md'
+    #     - diagrams/*
+    #     - docs/*
+    #   when:                        never
     - if: $CI_PIPELINE_SOURCE == "pipeline"
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -84,15 +86,6 @@ default:
     # 2. another is triggered by scripts repo $CI_PIPELINE_SOURCE == "pipeline" it's for the CI image
     #    update, it also runs all the nightly checks.
     - if: $CI_PIPELINE_SOURCE == "pipeline"
-
-#### stage:                        canary
-
-canary:
-  stage:                           canary
-  <<:                              *kubernetes-build
-  image:                           alpine:3.13
-  script:
-    - "true"
 
 #### stage:                        lint
 
