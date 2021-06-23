@@ -61,7 +61,7 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 		header: RococoSyncHeader,
 		proof: GrandpaJustification<bp_rococo::Header>,
 	) -> Bytes {
-		let call = bp_wococo::Call::BridgeGrandpaRococo(bp_wococo::BridgeGrandpaRococoCall::submit_finality_proof(
+		let call = relay_wococo_client::runtime::Call::BridgeGrandpaRococo(relay_wococo_client::runtime::BridgeGrandpaRococoCall::submit_finality_proof(
 			header.into_inner(),
 			proof,
 		));
