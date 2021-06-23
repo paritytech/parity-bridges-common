@@ -129,7 +129,6 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 type RialtoSourceClient = SubstrateMessagesSource<
 	Rialto,
 	RialtoMessagesToMillau,
-	rialto_runtime::Runtime,
 	rialto_runtime::WithMillauMessagesInstance,
 >;
 
@@ -137,7 +136,6 @@ type RialtoSourceClient = SubstrateMessagesSource<
 type MillauTargetClient = SubstrateMessagesTarget<
 	Millau,
 	RialtoMessagesToMillau,
-	millau_runtime::Runtime,
 	millau_runtime::WithRialtoMessagesInstance,
 >;
 

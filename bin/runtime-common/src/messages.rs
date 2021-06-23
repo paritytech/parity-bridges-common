@@ -376,7 +376,6 @@ pub mod source {
 	) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<B>, &'static str>
 	where
 		ThisRuntime: pallet_bridge_grandpa::Config<GrandpaInstance>,
-		ThisRuntime: pallet_bridge_messages::Config<B::BridgedMessagesInstance>,
 		HashOf<BridgedChain<B>>:
 			Into<bp_runtime::HashOf<<ThisRuntime as pallet_bridge_grandpa::Config<GrandpaInstance>>::BridgedChain>>,
 	{
@@ -392,7 +391,6 @@ pub mod source {
 				// Messages delivery proof is just proof of single storage key read => any error
 				// is fatal.
 				let storage_inbound_lane_data_key = pallet_bridge_messages::storage_keys::inbound_lane_data_key::<
-					ThisRuntime,
 					B::BridgedMessagesInstance,
 				>(&lane);
 				let raw_inbound_lane_data = storage
@@ -574,7 +572,7 @@ pub mod target {
 					StorageProof::new(bridged_storage_proof),
 					|storage_adapter| storage_adapter,
 				)
-				.map(|storage| StorageProofCheckerAdapter::<_, B, ThisRuntime> {
+				.map(|storage| StorageProofCheckerAdapter::<_, B> {
 					storage,
 					_dummy: Default::default(),
 				})
@@ -614,16 +612,15 @@ pub mod target {
 		fn read_raw_message(&self, message_key: &MessageKey) -> Option<Vec<u8>>;
 	}
 
-	struct StorageProofCheckerAdapter<H: Hasher, B, ThisRuntime> {
+	struct StorageProofCheckerAdapter<H: Hasher, B> {
 		storage: StorageProofChecker<H>,
-		_dummy: sp_std::marker::PhantomData<(B, ThisRuntime)>,
+		_dummy: sp_std::marker::PhantomData<B>,
 	}
 
-	impl<H, B, ThisRuntime> MessageProofParser for StorageProofCheckerAdapter<H, B, ThisRuntime>
+	impl<H, B> MessageProofParser for StorageProofCheckerAdapter<H, B>
 	where
 		H: Hasher,
 		B: MessageBridge,
-		ThisRuntime: pallet_bridge_messages::Config<B::BridgedMessagesInstance>,
 	{
 		fn read_raw_outbound_lane_data(&self, lane_id: &LaneId) -> Option<Vec<u8>> {
 			let storage_outbound_lane_data_key = pallet_bridge_messages::storage_keys::outbound_lane_data_key::<
@@ -636,7 +633,6 @@ pub mod target {
 
 		fn read_raw_message(&self, message_key: &MessageKey) -> Option<Vec<u8>> {
 			let storage_message_key = pallet_bridge_messages::storage_keys::message_key::<
-				ThisRuntime,
 				B::BridgedMessagesInstance,
 			>(&message_key.lane_id, message_key.nonce);
 			self.storage.read_value(storage_message_key.0.as_ref()).ok()?
