@@ -91,6 +91,7 @@ canary:
   stage:                           canary
   <<:                              *kubernetes-build
   image:                           alpine:3.13
+  # FIXME: I'm a normal PR
   script:
     - "true"
 
