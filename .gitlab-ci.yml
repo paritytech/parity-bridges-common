@@ -89,11 +89,10 @@ default:
 
 canary:
   stage:                           canary
+  <<:                              *kubernetes-build
   image:                           alpine:3.13
   script:
     - "true"
-  tags:
-    - kubernetes-parity-build
 
 #### stage:                        lint
 
