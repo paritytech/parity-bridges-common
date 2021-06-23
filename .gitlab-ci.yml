@@ -93,6 +93,8 @@ canary:
   image:                           alpine:3.13
   script:
     - "true"
+    # FIXME: debug
+    - exit 0
 
 #### stage:                        lint
 
