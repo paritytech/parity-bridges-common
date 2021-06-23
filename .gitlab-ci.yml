@@ -93,7 +93,7 @@ canary:
   image:                           alpine:3.13
   script:
     - "true"
-    - echo "CI_PIPELINE_SOURCE value is $CI_PIPELINE_SOURCE"
+    - echo "CI_PIPELINE_SOURCE value is $CI_PIPELINE_SOURCE and CI_COMMIT_BRANCH is $CI_COMMIT_BRANCH"
 
 #### stage:                        lint
 
