@@ -77,8 +77,17 @@
   },
   "InboundRelayer": "AccountId",
   "InboundLaneData": {
-    "relayers": "Vec<(MessageNonce, MessageNonce, RelayerId)>",
+    "relayers": "Vec<UnrewardedRelayer>",
     "last_confirmed_nonce": "MessageNonce"
+  },
+  "UnrewardedRelayer": {
+    "relayer": "RelayerId",
+    "messages": "DeliveredMessages"
+  },
+  "DeliveredMessages": {
+    "begin": "MessageNonce",
+    "end": "MessageNonce",
+    "dispatch_results": "BitVec"
   },
   "OutboundLaneData": {
     "latest_generated_nonce": "MessageNonce",
