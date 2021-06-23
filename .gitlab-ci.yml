@@ -86,7 +86,7 @@ default:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
 
 #### stage:                        canary
-
+# FIXME just change
 canary:
   stage:                           canary
   <<:                              *kubernetes-build
