@@ -55,7 +55,9 @@ default:
 
 .test-refs:                        &test-refs
   rules:
-    # FIXME: debug
+    # FIXME: This is the cause why pipelines wouldn't start. The problem might be in our custom
+    # mirroring. This should be investigated further, but for now let's have the working
+    # pipeline.
     # - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
     #   changes:
     #     - '**.md'
