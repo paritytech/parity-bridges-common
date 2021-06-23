@@ -30,7 +30,7 @@ case "$1" in
 			--lane 00000000 \
 			--origin Target \
 			transfer \
-			--amount 100000000000000 \
+			--amount 1000000000 \
 			--recipient 5DZvVvd1udr61vL7Xks17TFQ4fi9NiagYLaBobnbPCP14ewA \
 		;;
 	*) echo "A message type is require. Supported messages: remark, transfer."; exit 1;;
