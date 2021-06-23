@@ -93,6 +93,7 @@ canary:
   image:                           alpine:3.13
   script:
     - "true"
+    - echo "CI_PIPELINE_SOURCE value is $CI_PIPELINE_SOURCE"
 
 #### stage:                        lint
 
