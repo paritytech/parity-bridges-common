@@ -93,7 +93,7 @@ canary:
   script:
     - "true"
   tags:
-    - linux-docker
+    - kubernetes-parity-build
 
 #### stage:                        lint
 
