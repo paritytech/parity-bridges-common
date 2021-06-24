@@ -133,8 +133,8 @@ pub mod pallet {
 		/// If successful in verification, it will write the target header to the underlying storage
 		/// pallet.
 		#[pallet::weight(T::WeightInfo::submit_finality_proof(
-			justification.votes_ancestries.len() as u32,
-			justification.commit.precommits.len() as u32,
+		justification.votes_ancestries.len() as u32,
+		justification.commit.precommits.len() as u32,
 		))]
 		pub fn submit_finality_proof(
 			origin: OriginFor<T>,
@@ -161,7 +161,7 @@ pub mod pallet {
 				`ImportedHeaders` must contain an entry for `BestFinalized`.",
 				),
 			)
-			.expect("In order to reach this point the bridge must have been initialized for given gateway.");
+				.expect("In order to reach this point the bridge must have been initialized for given gateway.");
 
 			// We do a quick check here to ensure that our header chain is making progress and isn't
 			// "travelling back in time" (which could be indicative of something bad, e.g a hard-fork).
@@ -325,30 +325,32 @@ pub mod pallet {
 	/// Hash of the header used to bootstrap the pallet.
 	#[pallet::storage]
 	pub(super) type InitialHashMap<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_256, ChainId, BridgedBlockHash<T, I>>;
+	StorageMap<_, Blake2_256, ChainId, BridgedBlockHash<T, I>>;
 
 	/// Map of hashes of the best finalized header.
 	#[pallet::storage]
 	pub(super) type BestFinalizedMap<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_256, ChainId, BridgedBlockHash<T, I>>;
+	StorageMap<_, Blake2_256, ChainId, BridgedBlockHash<T, I>>;
 
 	/// A ring buffer of imported hashes. Ordered by the insertion time.
 	#[pallet::storage]
 	pub(super) type MultiImportedHashes<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Blake2_256, ChainId, Identity, u32, BridgedBlockHash<T, I>>;
+	StorageDoubleMap<_, Blake2_256, ChainId, Identity, u32, BridgedBlockHash<T, I>>;
 
 	/// Current ring buffer position.
 	#[pallet::storage]
 	pub(super) type MultiImportedHashesPointer<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_256, ChainId, u32>;
+	StorageMap<_, Blake2_256, ChainId, u32>;
 
 	/// Headers which have been imported into the pallet.
 	#[pallet::storage]
-	pub(super) type MultiImportedHeaders<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Blake2_256, ChainId, Identity, BridgedBlockHash<T, I>, BridgedHeader<T, I>>;
+	#[pallet::getter(fn get_multi_imported_headers)]
+	pub type MultiImportedHeaders<T: Config<I>, I: 'static = ()> =
+	StorageDoubleMap<_, Blake2_256, ChainId, Identity, BridgedBlockHash<T, I>, BridgedHeader<T, I>>;
 
 	/// Roots (ExtrinsicsRoot + StateRoot) which have been imported into the pallet for a given gateway.
 	#[pallet::storage]
+	#[pallet::getter(fn get_imported_roots)]
 	pub(super) type MultiImportedRoots<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
 		_,
 		Blake2_256,
@@ -361,7 +363,7 @@ pub mod pallet {
 	/// The current GRANDPA Authority set map.
 	#[pallet::storage]
 	pub(super) type CurrentAuthoritySetMap<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_256, ChainId, bp_header_chain::AuthoritySet>;
+	StorageMap<_, Blake2_256, ChainId, bp_header_chain::AuthoritySet>;
 
 	/// Optional pallet owner.
 	///
@@ -392,7 +394,7 @@ pub mod pallet {
 	/// Map of instance ids of gateways which are active
 	#[pallet::storage]
 	pub(super) type InstantiatedGatewaysMap<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, Vec<ChainId>, ValueQuery>;
+	StorageValue<_, Vec<ChainId>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
@@ -570,11 +572,11 @@ pub mod pallet {
 		match origin.into() {
 			Ok(RawOrigin::Root) => Ok(()),
 			Ok(RawOrigin::Signed(ref signer))
-				if <PalletOwnerMap<T, I>>::contains_key(gateway_id)
-					&& Some(signer) == <PalletOwnerMap<T, I>>::get(gateway_id).as_ref() =>
-			{
-				Ok(())
-			}
+			if <PalletOwnerMap<T, I>>::contains_key(gateway_id)
+				&& Some(signer) == <PalletOwnerMap<T, I>>::get(gateway_id).as_ref() =>
+				{
+					Ok(())
+				}
 			_ => Err(BadOrigin),
 		}
 	}
