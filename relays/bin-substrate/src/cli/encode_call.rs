@@ -17,6 +17,7 @@
 use crate::cli::bridge::FullBridge;
 use crate::cli::{AccountId, Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId};
 use crate::select_full_bridge;
+use frame_support::weights::DispatchInfo;
 use relay_substrate_client::Chain;
 use structopt::StructOpt;
 
@@ -86,7 +87,7 @@ pub trait CliEncodeCall: Chain {
 	fn encode_call(call: &Call) -> anyhow::Result<Self::Call>;
 
 	/// Get dispatch info for the call.
-	fn get_dispatch_info(call: &Self::Call) -> frame_support::weights::DispatchInfo;
+	fn get_dispatch_info(call: &Self::Call) -> anyhow::Result<DispatchInfo>;
 }
 
 impl EncodeCall {
@@ -98,7 +99,7 @@ impl EncodeCall {
 			let encoded = HexBytes::encode(&call);
 
 			log::info!(target: "bridge", "Generated {} call: {:#?}", Source::NAME, call);
-			log::info!(target: "bridge", "Weight of {} call: {}", Source::NAME, Source::get_dispatch_info(&call).weight);
+			log::info!(target: "bridge", "Weight of {} call: {}", Source::NAME, Source::get_dispatch_info(&call)?.weight);
 			log::info!(target: "bridge", "Encoded {} call: {:?}", Source::NAME, encoded);
 
 			Ok(encoded)

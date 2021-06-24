@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use codec::Decode;
-use frame_support::weights::Weight;
+use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_wococo_client::Wococo;
 use sp_version::RuntimeVersion;
 
@@ -58,16 +58,16 @@ impl CliEncodeCall for Wococo {
 		})
 	}
 
-	fn get_dispatch_info(call: &relay_wococo_client::runtime::Call) -> frame_support::weights::DispatchInfo {
+	fn get_dispatch_info(call: &relay_wococo_client::runtime::Call) -> anyhow::Result<DispatchInfo> {
 		match *call {
 			relay_wococo_client::runtime::Call::System(relay_wococo_client::runtime::SystemCall::remark(_)) => {
-				frame_support::weights::DispatchInfo {
-					weight: 1_345_000,
-					class: frame_support::weights::DispatchClass::Normal,
-					pays_fee: frame_support::weights::Pays::Yes,
-				}
+				Ok(DispatchInfo {
+					weight: crate::chains::rococo::SYSTEM_REMARK_CALL_WEIGHT,
+					class: DispatchClass::Normal,
+					pays_fee: Pays::Yes,
+				})
 			}
-			_ => unimplemented!("Unsupported Wococo call: {:?}", call),
+			_ => anyhow::bail!("Unsupported Rococo call: {:?}", call),
 		}
 	}
 }
@@ -83,7 +83,7 @@ impl CliChain for Wococo {
 	}
 
 	fn max_extrinsic_weight() -> Weight {
-		0
+		bp_wococo::max_extrinsic_weight()
 	}
 
 	fn encode_message(_message: encode_message::MessagePayload) -> Result<Self::MessagePayload, String> {

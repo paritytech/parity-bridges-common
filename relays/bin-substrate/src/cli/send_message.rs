@@ -86,7 +86,7 @@ impl SendMessage {
 			let payload = {
 				let target_call_weight = prepare_call_dispatch_weight(
 					dispatch_weight,
-					ExplicitOrMaximal::Explicit(Target::get_dispatch_info(&target_call).weight),
+					ExplicitOrMaximal::Explicit(Target::get_dispatch_info(&target_call)?.weight),
 					compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
 				);
 				let source_sender_public: MultiSigner = source_sign.public().into();
