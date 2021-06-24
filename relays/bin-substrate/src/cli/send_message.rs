@@ -102,9 +102,9 @@ impl SendMessage {
 						Origins::Source => CallOrigin::SourceAccount(source_account_id),
 						Origins::Target => {
 							let target_sign = TargetSigningParams {
-								target_signer: target_signer
-									.clone()
-									.ok_or(anyhow::format_err!("The argument target_signer is not available"))?,
+								target_signer: target_signer.clone().ok_or_else(|| {
+									anyhow::format_err!("The argument target_signer is not available")
+								})?,
 								target_signer_password: target_signer_password.clone(),
 							};
 							let target_sign = target_sign.to_keypair::<Target>()?;
