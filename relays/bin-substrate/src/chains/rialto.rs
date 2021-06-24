@@ -60,6 +60,10 @@ impl CliEncodeCall for Rialto {
 			},
 		})
 	}
+
+	fn get_dispatch_info(call: &rialto_runtime::Call) -> frame_support::weights::DispatchInfo {
+		frame_support::weights::GetDispatchInfo::get_dispatch_info(call)
+	}
 }
 
 impl CliChain for Rialto {

@@ -62,6 +62,10 @@ impl CliEncodeCall for Millau {
 			},
 		})
 	}
+
+	fn get_dispatch_info(call: &millau_runtime::Call) -> frame_support::weights::DispatchInfo {
+		frame_support::weights::GetDispatchInfo::get_dispatch_info(call)
+	}
 }
 
 impl CliChain for Millau {

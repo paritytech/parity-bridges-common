@@ -65,6 +65,13 @@ impl WeightToFeePolynomial for WeightToFee {
 	}
 }
 
+// We use this to get the account on Rococo (target) which is derived from Wococo's (source)
+// account.
+pub fn derive_account_from_wococo_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
+	let encoded_id = bp_runtime::derive_account_id(bp_runtime::WOCOCO_CHAIN_ID, id);
+	AccountIdConverter::convert(encoded_id)
+}
+
 /// Name of the `RococoFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_ROCOCO_HEADER_METHOD: &str = "RococoFinalityApi_best_finalized";
 /// Name of the `RococoFinalityApi::is_known_header` runtime method.
