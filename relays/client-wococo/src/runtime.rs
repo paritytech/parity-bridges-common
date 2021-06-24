@@ -52,7 +52,6 @@ where
 	)
 }
 
-
 /// Wococo Runtime `Call` enum.
 ///
 /// The enum represents a subset of possible `Call`s we can send to Rococo chain.
@@ -101,7 +100,12 @@ pub enum BridgeMessagesRococoCall {
 	#[codec(index = 3)]
 	send_message(
 		LaneId,
-		bp_message_dispatch::MessagePayload<bp_rococo::AccountId, bp_wococo::AccountId, bp_wococo::AccountPublic, Vec<u8>>,
+		bp_message_dispatch::MessagePayload<
+			bp_rococo::AccountId,
+			bp_wococo::AccountId,
+			bp_wococo::AccountPublic,
+			Vec<u8>,
+		>,
 		bp_rococo::Balance,
 	),
 	#[codec(index = 5)]
@@ -115,7 +119,7 @@ pub enum BridgeMessagesRococoCall {
 	receive_messages_delivery_proof(
 		bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<bp_rococo::Hash>,
 		UnrewardedRelayersState,
-	)
+	),
 }
 
 impl sp_runtime::traits::Dispatchable for Call {

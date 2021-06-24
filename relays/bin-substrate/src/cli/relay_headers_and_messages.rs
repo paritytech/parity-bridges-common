@@ -104,7 +104,7 @@ macro_rules! select_bridge {
 				use crate::chains::rialto_messages_to_millau::run as right_to_left_messages;
 
 				$generic
-			},
+			}
 			RelayHeadersAndMessages::RococoWococo(_) => {
 				type Params = RococoWococoHeadersAndMessages;
 
@@ -124,7 +124,7 @@ macro_rules! select_bridge {
 				use crate::chains::wococo_messages_to_rococo::run as right_to_left_messages;
 
 				$generic
-			},
+			}
 		}
 	};
 }

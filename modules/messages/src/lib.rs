@@ -754,9 +754,9 @@ impl<T: Config<I>, I: Instance> Pallet<T, I> {
 /// it is Instance42. But there's no other way, but to craft this key manually (which is what I'm
 /// trying to avoid here) - by using strings like "Instance2", "OutboundMessages", etc.
 pub mod storage_keys {
+	use super::*;
 	use frame_support::{traits::Instance, StorageHasher};
 	use sp_core::storage::StorageKey;
-	use super::*;
 
 	/// Storage key of the outbound message in the runtime storage.
 	pub fn message_key<I: Instance>(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
@@ -779,9 +779,8 @@ pub mod storage_keys {
 		let storage_prefix_hashed = frame_support::Twox128::hash(map_name.as_bytes());
 		let key_hashed = frame_support::Blake2_128Concat::hash(key);
 
-		let mut final_key = Vec::with_capacity(
-			module_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.len()
-		);
+		let mut final_key =
+			Vec::with_capacity(module_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.len());
 
 		final_key.extend_from_slice(&module_prefix_hashed[..]);
 		final_key.extend_from_slice(&storage_prefix_hashed[..]);
