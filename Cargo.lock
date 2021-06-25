@@ -804,7 +804,6 @@ dependencies = [
 name = "bp-rococo"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
@@ -866,7 +865,6 @@ dependencies = [
 name = "bp-wococo"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
  "bp-messages",
  "bp-polkadot-core",
  "bp-rococo",
@@ -5987,10 +5985,19 @@ dependencies = [
 name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
+ "bp-message-dispatch",
+ "bp-messages",
+ "bp-polkadot-core",
  "bp-rococo",
+ "bp-runtime",
+ "bp-wococo",
+ "bridge-runtime-common",
  "frame-support",
  "frame-system",
  "headers-relay",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-messages",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
@@ -6073,10 +6080,19 @@ dependencies = [
 name = "relay-wococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
+ "bp-message-dispatch",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-rococo",
+ "bp-runtime",
  "bp-wococo",
+ "bridge-runtime-common",
  "frame-support",
  "frame-system",
  "headers-relay",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-messages",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
