@@ -27,8 +27,17 @@
 	},
 	"InboundRelayer": "AccountId",
 	"InboundLaneData": {
-		"relayers": "Vec<(MessageNonce, MessageNonce, RelayerId)>",
+		"relayers": "Vec<UnrewardedRelayer>",
 		"last_confirmed_nonce": "MessageNonce"
+	},
+	"UnrewardedRelayer": {
+		"relayer": "RelayerId",
+		"messages": "DeliveredMessages"
+	},
+	"DeliveredMessages": {
+		"begin": "MessageNonce",
+		"end": "MessageNonce",
+		"dispatch_results": "BitVec"
 	},
 	"OutboundLaneData": {
 		"latest_generated_nonce": "MessageNonce",
@@ -46,6 +55,7 @@
 		"spec_version": "SpecVersion",
 		"weight": "Weight",
 		"origin": "CallOrigin",
+		"dispatch_fee_payment": "DispatchFeePayment",
 		"call": "BridgedOpaqueCall"
 	},
 	"CallOrigin": {
@@ -53,6 +63,12 @@
 			"SourceRoot": "()",
 			"TargetAccount": "(SourceAccountId, MultiSigner, MultiSignature)",
 			"SourceAccount": "SourceAccountId"
+		}
+	},
+	"DispatchFeePayment": {
+		"_enum": {
+			"AtSourceChain": "()",
+			"AtTargetChain": "()"
 		}
 	},
 	"MultiSigner": {
