@@ -24,7 +24,7 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
-use bp_runtime::ChainId;
+use bp_runtime::{messages::DispatchFeePayment, ChainId};
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -37,7 +37,6 @@ use messages_relay::{
 	},
 };
 use num_traits::{Bounded, Zero};
-use pallet_bridge_messages::Config as MessagesConfig;
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf};
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
@@ -50,16 +49,16 @@ use std::{marker::PhantomData, ops::RangeInclusive};
 pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
 
 /// Substrate client as Substrate messages source.
-pub struct SubstrateMessagesSource<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> {
+pub struct SubstrateMessagesSource<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> {
 	client: Client<SC>,
 	lane: P,
 	lane_id: LaneId,
 	instance: ChainId,
 	target_to_source_headers_relay: Option<OnDemandHeadersRelay<TC>>,
-	_phantom: PhantomData<(R, I)>,
+	_phantom: PhantomData<I>,
 }
 
-impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> SubstrateMessagesSource<SC, TC, P, R, I> {
+impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> SubstrateMessagesSource<SC, TC, P, I> {
 	/// Create new Substrate headers source.
 	pub fn new(
 		client: Client<SC>,
@@ -79,7 +78,7 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> SubstrateMessagesSourc
 	}
 }
 
-impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMessagesSource<SC, TC, P, R, I> {
+impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> Clone for SubstrateMessagesSource<SC, TC, P, I> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client.clone(),
@@ -93,12 +92,11 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMes
 }
 
 #[async_trait]
-impl<SC, TC, P, R, I> RelayClient for SubstrateMessagesSource<SC, TC, P, R, I>
+impl<SC, TC, P, I> RelayClient for SubstrateMessagesSource<SC, TC, P, I>
 where
 	SC: Chain,
 	TC: Chain,
 	P: SubstrateMessageLane,
-	R: 'static + Send + Sync,
 	I: Send + Sync + Instance,
 {
 	type Error = SubstrateError;
@@ -109,7 +107,7 @@ where
 }
 
 #[async_trait]
-impl<SC, TC, P, R, I> SourceClient<P> for SubstrateMessagesSource<SC, TC, P, R, I>
+impl<SC, TC, P, I> SourceClient<P> for SubstrateMessagesSource<SC, TC, P, I>
 where
 	SC: Chain<Hash = P::SourceHeaderHash, BlockNumber = P::SourceHeaderNumber, Balance = P::SourceChainBalance>,
 	SC::Hash: Copy,
@@ -127,7 +125,6 @@ where
 	>,
 	P::TargetHeaderNumber: Decode,
 	P::TargetHeaderHash: Decode,
-	R: Send + Sync + MessagesConfig<I>,
 	I: Send + Sync + Instance,
 {
 	async fn state(&self) -> Result<SourceClientState<P>, SubstrateError> {
@@ -205,7 +202,7 @@ where
 		let mut storage_keys = Vec::with_capacity(nonces.end().saturating_sub(*nonces.start()) as usize + 1);
 		let mut message_nonce = *nonces.start();
 		while message_nonce <= *nonces.end() {
-			let message_key = pallet_bridge_messages::storage_keys::message_key::<R, I>(&self.lane_id, message_nonce);
+			let message_key = pallet_bridge_messages::storage_keys::message_key::<I>(&self.lane_id, message_nonce);
 			storage_keys.push(message_key);
 			message_nonce += 1;
 		}
@@ -387,6 +384,7 @@ fn make_message_details_map<C: Chain>(
 				dispatch_weight: details.dispatch_weight,
 				size: details.size as _,
 				reward: details.delivery_and_dispatch_fee,
+				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			},
 		);
 		expected_nonce = details.nonce + 1;
@@ -398,10 +396,10 @@ fn make_message_details_map<C: Chain>(
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use bp_runtime::messages::DispatchFeePayment;
 	use relay_millau_client::Millau;
 	use relay_rialto_client::Rialto;
-	use super::*;
 
 	fn message_details_from_rpc(
 		nonces: RangeInclusive<MessageNonce>,
@@ -428,7 +426,8 @@ mod tests {
 					MessageDetails {
 						dispatch_weight: 0,
 						size: 0,
-						reward: 0
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 					}
 				),
 				(
@@ -436,7 +435,8 @@ mod tests {
 					MessageDetails {
 						dispatch_weight: 0,
 						size: 0,
-						reward: 0
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 					}
 				),
 				(
@@ -444,7 +444,8 @@ mod tests {
 					MessageDetails {
 						dispatch_weight: 0,
 						size: 0,
-						reward: 0
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 					}
 				),
 			]
@@ -463,7 +464,8 @@ mod tests {
 					MessageDetails {
 						dispatch_weight: 0,
 						size: 0,
-						reward: 0
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 					}
 				),
 				(
@@ -471,7 +473,8 @@ mod tests {
 					MessageDetails {
 						dispatch_weight: 0,
 						size: 0,
-						reward: 0
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 					}
 				),
 			]

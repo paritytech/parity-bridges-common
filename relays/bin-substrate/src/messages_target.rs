@@ -35,7 +35,6 @@ use messages_relay::{
 	message_lane_loop::{TargetClient, TargetClientState},
 };
 use num_traits::{Bounded, One, Zero};
-use pallet_bridge_messages::Config as MessagesConfig;
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf};
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
@@ -49,16 +48,16 @@ pub type SubstrateMessagesReceivingProof<C> = (
 );
 
 /// Substrate client as Substrate messages target.
-pub struct SubstrateMessagesTarget<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> {
+pub struct SubstrateMessagesTarget<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> {
 	client: Client<TC>,
 	lane: P,
 	lane_id: LaneId,
 	instance: ChainId,
 	source_to_target_headers_relay: Option<OnDemandHeadersRelay<SC>>,
-	_phantom: PhantomData<(R, I)>,
+	_phantom: PhantomData<I>,
 }
 
-impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> SubstrateMessagesTarget<SC, TC, P, R, I> {
+impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> SubstrateMessagesTarget<SC, TC, P, I> {
 	/// Create new Substrate headers target.
 	pub fn new(
 		client: Client<TC>,
@@ -78,7 +77,7 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> SubstrateMessagesTarge
 	}
 }
 
-impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMessagesTarget<SC, TC, P, R, I> {
+impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> Clone for SubstrateMessagesTarget<SC, TC, P, I> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client.clone(),
@@ -92,12 +91,11 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMes
 }
 
 #[async_trait]
-impl<SC, TC, P, R, I> RelayClient for SubstrateMessagesTarget<SC, TC, P, R, I>
+impl<SC, TC, P, I> RelayClient for SubstrateMessagesTarget<SC, TC, P, I>
 where
 	SC: Chain,
 	TC: Chain,
 	P: SubstrateMessageLane,
-	R: 'static + Send + Sync,
 	I: Send + Sync + Instance,
 {
 	type Error = SubstrateError;
@@ -108,7 +106,7 @@ where
 }
 
 #[async_trait]
-impl<SC, TC, P, R, I> TargetClient<P> for SubstrateMessagesTarget<SC, TC, P, R, I>
+impl<SC, TC, P, I> TargetClient<P> for SubstrateMessagesTarget<SC, TC, P, I>
 where
 	SC: Chain<Hash = P::SourceHeaderHash, BlockNumber = P::SourceHeaderNumber, Balance = P::SourceChainBalance>,
 	SC::Balance: TryFrom<TC::Balance> + Bounded,
@@ -126,7 +124,6 @@ where
 	>,
 	P::SourceHeaderNumber: Decode,
 	P::SourceHeaderHash: Decode,
-	R: Send + Sync + MessagesConfig<I>,
 	I: Send + Sync + Instance,
 {
 	async fn state(&self) -> Result<TargetClientState<P>, SubstrateError> {
@@ -197,7 +194,7 @@ where
 		id: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, P::MessagesReceivingProof), SubstrateError> {
 		let (id, relayers_state) = self.unrewarded_relayers_state(id).await?;
-		let inbound_data_key = pallet_bridge_messages::storage_keys::inbound_lane_data_key::<R, I>(&self.lane_id);
+		let inbound_data_key = pallet_bridge_messages::storage_keys::inbound_lane_data_key::<I>(&self.lane_id);
 		let proof = self
 			.client
 			.prove_storage(vec![inbound_data_key], id.1)
@@ -246,8 +243,7 @@ where
 		// TODO: use actual rate (https://github.com/paritytech/parity-bridges-common/issues/997)
 		convert_target_tokens_to_source_tokens::<SC, TC>(
 			FixedU128::one(),
-			self
-				.client
+			self.client
 				.estimate_extrinsic_fee(self.lane.make_messages_delivery_transaction(
 					Zero::zero(),
 					HeaderId(Default::default(), Default::default()),
@@ -286,16 +282,19 @@ fn prepare_dummy_messages_proof<SC: Chain>(
 fn convert_target_tokens_to_source_tokens<SC: Chain, TC: Chain>(
 	target_to_source_conversion_rate: FixedU128,
 	target_transaction_fee: TC::Balance,
-) -> SC::Balance where SC::Balance: TryFrom<TC::Balance> {
+) -> SC::Balance
+where
+	SC::Balance: TryFrom<TC::Balance>,
+{
 	SC::Balance::try_from(target_to_source_conversion_rate.saturating_mul_int(target_transaction_fee))
 		.unwrap_or_else(|_| SC::Balance::max_value())
 }
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use relay_millau_client::Millau;
 	use relay_rialto_client::Rialto;
-	use super::*;
 
 	#[test]
 	fn prepare_dummy_messages_proof_works() {
@@ -313,8 +312,17 @@ mod tests {
 
 	#[test]
 	fn convert_target_tokens_to_source_tokens_works() {
-		assert_eq!(convert_target_tokens_to_source_tokens::<Rialto, Millau>((150, 100).into(), 1_000), 1_500);
-		assert_eq!(convert_target_tokens_to_source_tokens::<Rialto, Millau>((50, 100).into(), 1_000), 500);
-		assert_eq!(convert_target_tokens_to_source_tokens::<Rialto, Millau>((100, 100).into(), 1_000), 1_000);
+		assert_eq!(
+			convert_target_tokens_to_source_tokens::<Rialto, Millau>((150, 100).into(), 1_000),
+			1_500
+		);
+		assert_eq!(
+			convert_target_tokens_to_source_tokens::<Rialto, Millau>((50, 100).into(), 1_000),
+			500
+		);
+		assert_eq!(
+			convert_target_tokens_to_source_tokens::<Rialto, Millau>((100, 100).into(), 1_000),
+			1_000
+		);
 	}
 }
