@@ -237,9 +237,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max_over_time(Westend_to_Millau_Sync_best_block_numbers{node=\"source\"}[2m])-min_over_time(Westend_to_Millau_Sync_best_block_numbers{node=\"source\"}[2m])",
+          "expr": "max_over_time(Westend_to_Millau_Sync_best_block_numbers{node=\"source\"}[10m])-min_over_time(Westend_to_Millau_Sync_best_block_numbers{node=\"source\"}[10m])",
           "interval": "",
-          "legendFormat": "Number of new Headers on Westend (Last 2 Mins)",
+          "legendFormat": "Number of new Headers on Westend (Last 10 Mins)",
           "refId": "A"
         }
       ],
