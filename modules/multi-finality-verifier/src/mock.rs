@@ -90,7 +90,7 @@ parameter_types! {
 }
 
 impl multi_finality_verifier::Config for TestRuntime {
-	type BridgedChain = TestBridgedChain;
+	type BridgedChain = TestCircuitLikeChain;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
 	type WeightInfo = ();
@@ -105,9 +105,19 @@ impl multi_finality_verifier::Config<PolkadotLikeFinalityVerifierInstance> for T
 }
 
 #[derive(Debug)]
-pub struct TestBridgedChain;
+pub struct TestCircuitLikeChain;
 
-impl Chain for TestBridgedChain {
+impl Chain for TestCircuitLikeChain {
+	type BlockNumber = <TestRuntime as frame_system::Config>::BlockNumber;
+	type Hash = <TestRuntime as frame_system::Config>::Hash;
+	type Hasher = <TestRuntime as frame_system::Config>::Hashing;
+	type Header = <TestRuntime as frame_system::Config>::Header;
+}
+
+#[derive(Debug)]
+pub struct TestKeccak256U64Chain;
+
+impl Chain for TestKeccak256U64Chain {
 	type BlockNumber = <TestRuntime as frame_system::Config>::BlockNumber;
 	type Hash = <TestRuntime as frame_system::Config>::Hash;
 	type Hasher = <TestRuntime as frame_system::Config>::Hashing;
