@@ -47,7 +47,7 @@ impl FloatJsonValueMetric {
 			url,
 			json_path,
 			metric: register(Gauge::new(metric_name(prefix, &name), help)?, registry)?,
-			shared_value_ref: shared_value_ref.clone(),
+			shared_value_ref,
 		})
 	}
 
