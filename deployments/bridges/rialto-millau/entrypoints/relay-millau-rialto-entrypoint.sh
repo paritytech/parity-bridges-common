@@ -5,14 +5,14 @@ sleep 20
 curl -v http://millau-node-alice:9933/health
 curl -v http://rialto-node-alice:9933/health
 
-/home/user/substrate-relay init-bridge MillauToRialto \
+/home/user/substrate-relay init-bridge millau-to-rialto \
 	--source-host millau-node-alice \
 	--source-port 9944 \
 	--target-host rialto-node-alice \
 	--target-port 9944 \
 	--target-signer //Alice
 
-/home/user/substrate-relay init-bridge RialtoToMillau \
+/home/user/substrate-relay init-bridge rialto-to-millau \
 	--source-host rialto-node-alice \
 	--source-port 9944 \
 	--target-host millau-node-alice \
