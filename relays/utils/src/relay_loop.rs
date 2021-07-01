@@ -197,7 +197,8 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 				address.host.parse().map_err(|err| {
 					anyhow::format_err!(
 						"Invalid host {} is used to expose Prometheus metrics: {}",
-						address.host, err,
+						address.host,
+						err,
 					)
 				})?,
 				address.port,

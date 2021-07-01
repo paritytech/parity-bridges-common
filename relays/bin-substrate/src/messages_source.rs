@@ -19,21 +19,24 @@
 //! <BridgedName> chain.
 
 use crate::messages_lane::SubstrateMessageLane;
+use crate::messages_target::SubstrateMessagesReceivingProof;
 use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
-use bp_messages::{LaneId, MessageNonce};
-use bp_runtime::ChainId;
-use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
+use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
+use bp_runtime::{messages::DispatchFeePayment, ChainId};
+use bridge_runtime_common::messages::{
+	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
+};
 use codec::{Decode, Encode};
 use frame_support::{traits::Instance, weights::Weight};
 use messages_relay::{
 	message_lane::{SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
-		ClientState, MessageProofParameters, MessageWeights, MessageWeightsMap, SourceClient, SourceClientState,
+		ClientState, MessageDetails, MessageDetailsMap, MessageProofParameters, SourceClient, SourceClientState,
 	},
 };
-use pallet_bridge_messages::Config as MessagesConfig;
+use num_traits::{Bounded, Zero};
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf};
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
@@ -46,23 +49,23 @@ use std::{marker::PhantomData, ops::RangeInclusive};
 pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
 
 /// Substrate client as Substrate messages source.
-pub struct SubstrateMessagesSource<C: Chain, P: SubstrateMessageLane, R, I> {
-	client: Client<C>,
+pub struct SubstrateMessagesSource<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> {
+	client: Client<SC>,
 	lane: P,
 	lane_id: LaneId,
 	instance: ChainId,
-	target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
-	_phantom: PhantomData<(R, I)>,
+	target_to_source_headers_relay: Option<OnDemandHeadersRelay<TC>>,
+	_phantom: PhantomData<I>,
 }
 
-impl<C: Chain, P: SubstrateMessageLane, R, I> SubstrateMessagesSource<C, P, R, I> {
+impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> SubstrateMessagesSource<SC, TC, P, I> {
 	/// Create new Substrate headers source.
 	pub fn new(
-		client: Client<C>,
+		client: Client<SC>,
 		lane: P,
 		lane_id: LaneId,
 		instance: ChainId,
-		target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
+		target_to_source_headers_relay: Option<OnDemandHeadersRelay<TC>>,
 	) -> Self {
 		SubstrateMessagesSource {
 			client,
@@ -75,7 +78,7 @@ impl<C: Chain, P: SubstrateMessageLane, R, I> SubstrateMessagesSource<C, P, R, I
 	}
 }
 
-impl<C: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMessagesSource<C, P, R, I> {
+impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> Clone for SubstrateMessagesSource<SC, TC, P, I> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client.clone(),
@@ -89,11 +92,11 @@ impl<C: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMessagesSource<
 }
 
 #[async_trait]
-impl<C, P, R, I> RelayClient for SubstrateMessagesSource<C, P, R, I>
+impl<SC, TC, P, I> RelayClient for SubstrateMessagesSource<SC, TC, P, I>
 where
-	C: Chain,
+	SC: Chain,
+	TC: Chain,
 	P: SubstrateMessageLane,
-	R: 'static + Send + Sync,
 	I: Send + Sync + Instance,
 {
 	type Error = SubstrateError;
@@ -104,22 +107,24 @@ where
 }
 
 #[async_trait]
-impl<C, P, R, I> SourceClient<P> for SubstrateMessagesSource<C, P, R, I>
+impl<SC, TC, P, I> SourceClient<P> for SubstrateMessagesSource<SC, TC, P, I>
 where
-	C: Chain,
-	C::Header: DeserializeOwned,
-	C::Index: DeserializeOwned,
-	C::BlockNumber: BlockNumberBase,
+	SC: Chain<Hash = P::SourceHeaderHash, BlockNumber = P::SourceHeaderNumber, Balance = P::SourceChainBalance>,
+	SC::Hash: Copy,
+	SC::BlockNumber: Copy,
+	SC::Balance: Decode + Bounded,
+	SC::Header: DeserializeOwned,
+	SC::Index: DeserializeOwned,
+	SC::BlockNumber: BlockNumberBase,
+	TC: Chain<Hash = P::TargetHeaderHash, BlockNumber = P::TargetHeaderNumber>,
 	P: SubstrateMessageLane<
-		MessagesProof = SubstrateMessagesProof<C>,
-		SourceHeaderNumber = <C::Header as HeaderT>::Number,
-		SourceHeaderHash = <C::Header as HeaderT>::Hash,
-		SourceChain = C,
+		MessagesProof = SubstrateMessagesProof<SC>,
+		MessagesReceivingProof = SubstrateMessagesReceivingProof<TC>,
+		SourceChain = SC,
+		TargetChain = TC,
 	>,
-	P::TargetChain: Chain<Hash = P::TargetHeaderHash, BlockNumber = P::TargetHeaderNumber>,
 	P::TargetHeaderNumber: Decode,
 	P::TargetHeaderHash: Decode,
-	R: Send + Sync + MessagesConfig<I>,
 	I: Send + Sync + Instance,
 {
 	async fn state(&self) -> Result<SourceClientState<P>, SubstrateError> {
@@ -168,11 +173,11 @@ where
 		Ok((id, latest_received_nonce))
 	}
 
-	async fn generated_messages_weights(
+	async fn generated_message_details(
 		&self,
 		id: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Result<MessageWeightsMap, SubstrateError> {
+	) -> Result<MessageDetailsMap<P::SourceChainBalance>, SubstrateError> {
 		let encoded_response = self
 			.client
 			.state_call(
@@ -182,7 +187,7 @@ where
 			)
 			.await?;
 
-		make_message_details_map::<C>(
+		make_message_details_map::<SC>(
 			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?,
 			nonces,
 		)
@@ -197,7 +202,7 @@ where
 		let mut storage_keys = Vec::with_capacity(nonces.end().saturating_sub(*nonces.start()) as usize + 1);
 		let mut message_nonce = *nonces.start();
 		while message_nonce <= *nonces.end() {
-			let message_key = pallet_bridge_messages::storage_keys::message_key::<R, I>(&self.lane_id, message_nonce);
+			let message_key = pallet_bridge_messages::storage_keys::message_key::<I>(&self.lane_id, message_nonce);
 			storage_keys.push(message_key);
 			message_nonce += 1;
 		}
@@ -242,6 +247,40 @@ where
 			target_to_source_headers_relay.require_finalized_header(id).await;
 		}
 	}
+
+	async fn estimate_confirmation_transaction(&self) -> P::SourceChainBalance {
+		self.client
+			.estimate_extrinsic_fee(self.lane.make_messages_receiving_proof_transaction(
+				Zero::zero(),
+				HeaderId(Default::default(), Default::default()),
+				prepare_dummy_messages_delivery_proof::<SC, TC>(),
+			))
+			.await
+			.unwrap_or_else(|_| SC::Balance::max_value())
+	}
+}
+
+/// Prepare 'dummy' messages delivery proof that will compose the delivery confirmation transaction.
+///
+/// We don't care about proof actually being the valid proof, because its validity doesn't
+/// affect the call weight - we only care about its size.
+fn prepare_dummy_messages_delivery_proof<SC: Chain, TC: Chain>() -> SubstrateMessagesReceivingProof<TC> {
+	let single_message_confirmation_size =
+		bp_messages::InboundLaneData::<()>::encoded_size_hint(SC::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE, 1, 1)
+			.unwrap_or(u32::MAX);
+	let proof_size = TC::STORAGE_PROOF_OVERHEAD.saturating_add(single_message_confirmation_size);
+	(
+		UnrewardedRelayersState {
+			unrewarded_relayer_entries: 1,
+			messages_in_oldest_entry: 1,
+			total_messages: 1,
+		},
+		FromBridgedChainMessagesDeliveryProof {
+			bridged_header_hash: Default::default(),
+			storage_proof: vec![vec![0; proof_size as usize]],
+			lane: Default::default(),
+		},
+	)
 }
 
 pub async fn read_client_state<SelfChain, BridgedHeaderHash, BridgedHeaderNumber>(
@@ -290,15 +329,15 @@ where
 fn make_message_details_map<C: Chain>(
 	weights: Vec<bp_messages::MessageDetails<C::Balance>>,
 	nonces: RangeInclusive<MessageNonce>,
-) -> Result<MessageWeightsMap, SubstrateError> {
+) -> Result<MessageDetailsMap<C::Balance>, SubstrateError> {
 	let make_missing_nonce_error = |expected_nonce| {
 		Err(SubstrateError::Custom(format!(
-			"Missing nonce {} in messages_dispatch_weight call result. Expected all nonces from {:?}",
+			"Missing nonce {} in message_details call result. Expected all nonces from {:?}",
 			expected_nonce, nonces,
 		)))
 	};
 
-	let mut weights_map = MessageWeightsMap::new();
+	let mut weights_map = MessageDetailsMap::new();
 
 	// this is actually prevented by external logic
 	if nonces.is_empty() {
@@ -341,9 +380,11 @@ fn make_message_details_map<C: Chain>(
 
 		weights_map.insert(
 			details.nonce,
-			MessageWeights {
-				weight: details.dispatch_weight,
+			MessageDetails {
+				dispatch_weight: details.dispatch_weight,
 				size: details.size as _,
+				reward: details.delivery_and_dispatch_fee,
+				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			},
 		);
 		expected_nonce = details.nonce + 1;
@@ -356,6 +397,9 @@ fn make_message_details_map<C: Chain>(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_runtime::messages::DispatchFeePayment;
+	use relay_millau_client::Millau;
+	use relay_rialto_client::Rialto;
 
 	fn message_details_from_rpc(
 		nonces: RangeInclusive<MessageNonce>,
@@ -367,6 +411,7 @@ mod tests {
 				dispatch_weight: 0,
 				size: 0,
 				delivery_and_dispatch_fee: 0,
+				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			})
 			.collect()
 	}
@@ -376,9 +421,33 @@ mod tests {
 		assert_eq!(
 			make_message_details_map::<relay_rialto_client::Rialto>(message_details_from_rpc(1..=3), 1..=3,).unwrap(),
 			vec![
-				(1, MessageWeights { weight: 0, size: 0 }),
-				(2, MessageWeights { weight: 0, size: 0 }),
-				(3, MessageWeights { weight: 0, size: 0 }),
+				(
+					1,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
+					}
+				),
+				(
+					2,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
+					}
+				),
+				(
+					3,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
+					}
+				),
 			]
 			.into_iter()
 			.collect(),
@@ -390,8 +459,24 @@ mod tests {
 		assert_eq!(
 			make_message_details_map::<relay_rialto_client::Rialto>(message_details_from_rpc(2..=3), 1..=3,).unwrap(),
 			vec![
-				(2, MessageWeights { weight: 0, size: 0 }),
-				(3, MessageWeights { weight: 0, size: 0 }),
+				(
+					2,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
+					}
+				),
+				(
+					3,
+					MessageDetails {
+						dispatch_weight: 0,
+						size: 0,
+						reward: 0,
+						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
+					}
+				),
 			]
 			.into_iter()
 			.collect(),
@@ -422,5 +507,17 @@ mod tests {
 			make_message_details_map::<relay_rialto_client::Rialto>(vec![], 1..=3),
 			Err(SubstrateError::Custom(_))
 		));
+	}
+
+	#[test]
+	fn prepare_dummy_messages_delivery_proof_works() {
+		let expected_minimal_size = Rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE + Millau::STORAGE_PROOF_OVERHEAD;
+		let dummy_proof = prepare_dummy_messages_delivery_proof::<Rialto, Millau>();
+		assert!(
+			dummy_proof.1.encode().len() as u32 > expected_minimal_size,
+			"Expected proof size at least {}. Got: {}",
+			expected_minimal_size,
+			dummy_proof.1.encode().len(),
+		);
 	}
 }

@@ -125,20 +125,12 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 }
 
 /// Rialto node as messages source.
-type RialtoSourceClient = SubstrateMessagesSource<
-	Rialto,
-	RialtoMessagesToMillau,
-	rialto_runtime::Runtime,
-	rialto_runtime::WithMillauMessagesInstance,
->;
+type RialtoSourceClient =
+	SubstrateMessagesSource<Rialto, Millau, RialtoMessagesToMillau, rialto_runtime::WithMillauMessagesInstance>;
 
 /// Millau node as messages target.
-type MillauTargetClient = SubstrateMessagesTarget<
-	Millau,
-	RialtoMessagesToMillau,
-	millau_runtime::Runtime,
-	millau_runtime::WithRialtoMessagesInstance,
->;
+type MillauTargetClient =
+	SubstrateMessagesTarget<Rialto, Millau, RialtoMessagesToMillau, millau_runtime::WithRialtoMessagesInstance>;
 
 /// Run Rialto-to-Millau messages sync.
 pub async fn run(
@@ -158,7 +150,7 @@ pub async fn run(
 	};
 
 	// 2/3 is reserved for proofs and tx overhead
-	let max_messages_size_in_single_batch = bp_millau::max_extrinsic_size() as usize / 3;
+	let max_messages_size_in_single_batch = bp_millau::max_extrinsic_size() / 3;
 	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
 		select_delivery_transaction_limits::<pallet_bridge_messages::weights::RialtoWeight<rialto_runtime::Runtime>>(
 			bp_millau::max_extrinsic_weight(),
@@ -178,7 +170,13 @@ pub async fn run(
 		max_messages_weight_in_single_batch,
 	);
 
-	let (metrics_params, _) = add_standalone_metrics(params.metrics_params, source_client.clone())?;
+	let (metrics_params, metrics_values) = add_standalone_metrics(
+		Some(messages_relay::message_lane_loop::metrics_prefix::<
+			RialtoMessagesToMillau,
+		>(&lane_id)),
+		params.metrics_params,
+		source_client.clone(),
+	)?;
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
 			lane: lane_id,
@@ -192,6 +190,7 @@ pub async fn run(
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
+				relayer_mode: messages_relay::message_lane_loop::RelayerMode::Altruistic,
 			},
 		},
 		RialtoSourceClient::new(
@@ -206,6 +205,7 @@ pub async fn run(
 			lane,
 			lane_id,
 			RIALTO_CHAIN_ID,
+			metrics_values,
 			params.source_to_target_headers_relay,
 		),
 		metrics_params,
@@ -216,6 +216,7 @@ pub async fn run(
 
 /// Add standalone metrics for the Rialto -> Millau messages loop.
 pub(crate) fn add_standalone_metrics(
+	metrics_prefix: Option<String>,
 	metrics_params: MetricsParams,
 	source_client: Client<Rialto>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
@@ -223,11 +224,14 @@ pub(crate) fn add_standalone_metrics(
 	// conversion rate update mechanism. So to keep it close to 1:1, we'll be treating Rialto as BTC and Millau
 	// as wBTC.
 	crate::messages_lane::add_standalone_metrics::<RialtoMessagesToMillau>(
+		metrics_prefix,
 		metrics_params,
 		source_client,
-		"bitcoin",
-		"wrapped-bitcoin",
-		sp_core::storage::StorageKey(rialto_runtime::millau_messages::MillauToRialtoConversionRate::key().to_vec()),
-		Some(rialto_runtime::millau_messages::INITIAL_MILLAU_TO_RIALTO_CONVERSION_RATE),
+		Some("bitcoin"),
+		Some("wrapped-bitcoin"),
+		Some((
+			sp_core::storage::StorageKey(rialto_runtime::millau_messages::MillauToRialtoConversionRate::key().to_vec()),
+			rialto_runtime::millau_messages::INITIAL_MILLAU_TO_RIALTO_CONVERSION_RATE,
+		)),
 	)
 }

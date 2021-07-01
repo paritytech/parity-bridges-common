@@ -21,8 +21,10 @@ pub mod millau_messages_to_rialto;
 pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
 pub mod rococo_headers_to_wococo;
+pub mod rococo_messages_to_wococo;
 pub mod westend_headers_to_millau;
 pub mod wococo_headers_to_rococo;
+pub mod wococo_messages_to_rococo;
 
 mod millau;
 mod rialto;
@@ -33,17 +35,18 @@ mod wococo;
 use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams, PrometheusError, Registry};
 
 pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
+	prefix: Option<String>,
 	params: MetricsParams,
 ) -> anyhow::Result<MetricsParams> {
 	// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
 	// relays, but we want to test metrics/dashboards in advance
-	Ok(relay_utils::relay_metrics(None, params)
+	Ok(relay_utils::relay_metrics(prefix, params)
 		.standalone_metric(|registry, prefix| token_price_metric(registry, prefix, "polkadot"))?
 		.standalone_metric(|registry, prefix| token_price_metric(registry, prefix, "kusama"))?
 		.into_params())
 }
 
-/// Adds standalone token price metric and retuns shared reference to the metric value.
+/// Creates standalone token price metric.
 pub(crate) fn token_price_metric(
 	registry: &Registry,
 	prefix: Option<&str>,
@@ -52,10 +55,16 @@ pub(crate) fn token_price_metric(
 	FloatJsonValueMetric::new(
 		registry,
 		prefix,
-		format!("https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=btc", token_id),
+		format!(
+			"https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=btc",
+			token_id
+		),
 		format!("$.{}.btc", token_id),
 		format!("{}_to_base_conversion_rate", token_id.replace("-", "_")),
-		format!("Rate used to convert from {} to some BASE tokens", token_id.to_uppercase()),
+		format!(
+			"Rate used to convert from {} to some BASE tokens",
+			token_id.to_uppercase()
+		),
 	)
 }
 
@@ -265,7 +274,10 @@ mod rococo_tests {
 			votes_ancestries: vec![],
 		};
 
-		let actual = bp_rococo::BridgeGrandpaWococoCall::submit_finality_proof(header.clone(), justification.clone());
+		let actual = relay_rococo_client::runtime::BridgeGrandpaWococoCall::submit_finality_proof(
+			header.clone(),
+			justification.clone(),
+		);
 		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
 			header,
 			justification,

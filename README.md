@@ -94,7 +94,7 @@ the `relays` which are used to pass messages between chains.
 │  └──  ...
 ├── relays          // Application for sending headers and messages between chains
 │  └──  ...
-└── scripts         // Useful development and maintenence scripts
+└── scripts         // Useful development and maintenance scripts
 ```
 
 ## Running the Bridge
@@ -159,7 +159,7 @@ Then we need to initialize and run the relayer:
 
 ```bash
 docker run --network=host -it \
-        paritytech/substrate-relay init-bridge RialtoToMillau \
+        paritytech/substrate-relay init-bridge rialto-to-millau \
         --target-host localhost \
         --target-port 9945 \
         --source-host localhost \
@@ -167,7 +167,7 @@ docker run --network=host -it \
         --target-signer //Alice
 
 docker run --network=host -it \
-        paritytech/substrate-relay relay-headers RialtoToMillau \
+        paritytech/substrate-relay relay-headers rialto-to-millau \
         --target-host localhost \
         --target-port 9945 \
         --source-host localhost \

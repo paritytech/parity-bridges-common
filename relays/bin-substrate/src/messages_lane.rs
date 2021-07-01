@@ -21,9 +21,15 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 use bp_messages::{LaneId, MessageNonce};
 use frame_support::weights::Weight;
 use messages_relay::message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf};
-use relay_substrate_client::{BlockNumberOf, Chain, Client, HashOf, metrics::{FloatStorageValueMetric, StorageProofOverheadMetric}};
-use relay_utils::{metrics::{F64SharedRef, MetricsParams}, BlockNumberBase};
-use sp_core::{Bytes, storage::StorageKey};
+use relay_substrate_client::{
+	metrics::{FloatStorageValueMetric, StorageProofOverheadMetric},
+	BlockNumberOf, Chain, Client, HashOf,
+};
+use relay_utils::{
+	metrics::{F64SharedRef, MetricsParams},
+	BlockNumberBase,
+};
+use sp_core::{storage::StorageKey, Bytes};
 use sp_runtime::FixedU128;
 use std::ops::RangeInclusive;
 
@@ -140,6 +146,7 @@ where
 	type MessagesProof = SubstrateMessagesProof<Source>;
 	type MessagesReceivingProof = SubstrateMessagesReceivingProof<Target>;
 
+	type SourceChainBalance = Source::Balance;
 	type SourceHeaderNumber = BlockNumberOf<Source>;
 	type SourceHeaderHash = HashOf<Source>;
 
@@ -196,52 +203,80 @@ pub struct StandaloneMessagesMetrics {
 	pub target_to_source_conversion_rate: Option<F64SharedRef>,
 }
 
+impl StandaloneMessagesMetrics {
+	/// Return conversion rate from target to source tokens.
+	pub async fn target_to_source_conversion_rate(&self) -> Option<f64> {
+		let target_to_base_conversion_rate = (*self.target_to_base_conversion_rate.as_ref()?.read().await)?;
+		let source_to_base_conversion_rate = (*self.source_to_base_conversion_rate.as_ref()?.read().await)?;
+		Some(target_to_base_conversion_rate / source_to_base_conversion_rate)
+	}
+}
+
 /// Add general standalone metrics for the message lane relay loop.
 pub fn add_standalone_metrics<P: SubstrateMessageLane>(
+	metrics_prefix: Option<String>,
 	metrics_params: MetricsParams,
 	source_client: Client<P::SourceChain>,
-	source_chain_token_id: &str,
-	target_chain_token_id: &str,
-	target_to_source_conversion_rate_storage_key: StorageKey,
-	initial_target_to_source_conversion_rate: Option<FixedU128>,
+	source_chain_token_id: Option<&str>,
+	target_chain_token_id: Option<&str>,
+	target_to_source_conversion_rate_params: Option<(StorageKey, FixedU128)>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
 	let mut target_to_source_conversion_rate = None;
 	let mut source_to_base_conversion_rate = None;
 	let mut target_to_base_conversion_rate = None;
-	let metrics_params = relay_utils::relay_metrics(None, metrics_params)
-		.standalone_metric(|registry, prefix| StorageProofOverheadMetric::new(
-			registry,
-			prefix,
-			source_client.clone(),
-			format!("{}_storage_proof_overhead", P::SourceChain::NAME.to_lowercase()),
-			format!("{} storage proof overhead", P::SourceChain::NAME),
-		))?
-		.standalone_metric(|registry, prefix| {
+	let mut metrics_params =
+		relay_utils::relay_metrics(metrics_prefix, metrics_params).standalone_metric(|registry, prefix| {
+			StorageProofOverheadMetric::new(
+				registry,
+				prefix,
+				source_client.clone(),
+				format!("{}_storage_proof_overhead", P::SourceChain::NAME.to_lowercase()),
+				format!("{} storage proof overhead", P::SourceChain::NAME),
+			)
+		})?;
+	if let Some((target_to_source_conversion_rate_storage_key, initial_target_to_source_conversion_rate)) =
+		target_to_source_conversion_rate_params
+	{
+		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
 			let metric = FloatStorageValueMetric::<_, sp_runtime::FixedU128>::new(
 				registry,
 				prefix,
 				source_client,
 				target_to_source_conversion_rate_storage_key,
-				initial_target_to_source_conversion_rate,
-				format!("{}_{}_to_{}_conversion_rate", P::SourceChain::NAME, P::TargetChain::NAME, P::SourceChain::NAME),
-				format!("{} to {} tokens conversion rate (used by {})", P::TargetChain::NAME, P::SourceChain::NAME, P::SourceChain::NAME),
+				Some(initial_target_to_source_conversion_rate),
+				format!(
+					"{}_{}_to_{}_conversion_rate",
+					P::SourceChain::NAME,
+					P::TargetChain::NAME,
+					P::SourceChain::NAME
+				),
+				format!(
+					"{} to {} tokens conversion rate (used by {})",
+					P::TargetChain::NAME,
+					P::SourceChain::NAME,
+					P::SourceChain::NAME
+				),
 			)?;
 			target_to_source_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
-		})?
-		.standalone_metric(|registry, prefix| {
+		})?;
+	}
+	if let Some(source_chain_token_id) = source_chain_token_id {
+		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
 			let metric = crate::chains::token_price_metric(registry, prefix, source_chain_token_id)?;
 			source_to_base_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
-		})?
-		.standalone_metric(|registry, prefix| {
+		})?;
+	}
+	if let Some(target_chain_token_id) = target_chain_token_id {
+		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
 			let metric = crate::chains::token_price_metric(registry, prefix, target_chain_token_id)?;
 			target_to_base_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
-		})?
-		.into_params();
+		})?;
+	}
 	Ok((
-		metrics_params,
+		metrics_params.into_params(),
 		StandaloneMessagesMetrics {
 			target_to_source_conversion_rate,
 			source_to_base_conversion_rate,
@@ -269,7 +304,7 @@ mod tests {
 			// reserved for messages dispatch allows dispatch of non-trivial messages.
 			//
 			// Any significant change in this values should attract additional attention.
-			(1024, 216_583_333_334),
+			(782, 216_583_333_334),
 		);
 	}
 }

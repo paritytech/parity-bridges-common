@@ -36,6 +36,7 @@ use structopt::StructOpt;
 #[derive(StructOpt)]
 pub enum RelayHeadersAndMessages {
 	MillauRialto(MillauRialtoHeadersAndMessages),
+	RococoWococo(RococoWococoHeadersAndMessages),
 }
 
 /// Parameters that have the same names across all bridges.
@@ -101,12 +102,34 @@ macro_rules! select_bridge {
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber = bp_rialto::SESSION_LENGTH;
 
 				use crate::chains::millau_messages_to_rialto::{
-					run as left_to_right_messages,
-					add_standalone_metrics as add_left_to_right_standalone_metrics,
+					add_standalone_metrics as add_left_to_right_standalone_metrics, run as left_to_right_messages,
 				};
 				use crate::chains::rialto_messages_to_millau::{
-					run as right_to_left_messages,
-					add_standalone_metrics as add_right_to_left_standalone_metrics,
+					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
+				};
+
+				$generic
+			}
+			RelayHeadersAndMessages::RococoWococo(_) => {
+				type Params = RococoWococoHeadersAndMessages;
+
+				type Left = relay_rococo_client::Rococo;
+				type Right = relay_wococo_client::Wococo;
+
+				type LeftToRightFinality = crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
+				type RightToLeftFinality = crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
+
+				type LeftToRightMessages = crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo;
+				type RightToLeftMessages = crate::chains::wococo_messages_to_rococo::WococoMessagesToRococo;
+
+				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_rococo::BlockNumber = bp_rococo::SESSION_LENGTH;
+				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber = bp_wococo::SESSION_LENGTH;
+
+				use crate::chains::rococo_messages_to_wococo::{
+					add_standalone_metrics as add_left_to_right_standalone_metrics, run as left_to_right_messages,
+				};
+				use crate::chains::wococo_messages_to_rococo::{
+					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
 				};
 
 				$generic
@@ -118,8 +141,11 @@ macro_rules! select_bridge {
 // All supported chains.
 declare_chain_options!(Millau, millau);
 declare_chain_options!(Rialto, rialto);
+declare_chain_options!(Rococo, rococo);
+declare_chain_options!(Wococo, wococo);
 // All supported bridges.
 declare_bridge_options!(Millau, Rialto);
+declare_bridge_options!(Rococo, Wococo);
 
 impl RelayHeadersAndMessages {
 	/// Run the command.
@@ -139,10 +165,9 @@ impl RelayHeadersAndMessages {
 				qed";
 
 			let metrics_params: MetricsParams = params.shared.prometheus_params.into();
-			let metrics_params = relay_utils::relay_metrics(None, metrics_params)
-				.into_params();
-			let (metrics_params, left_to_right_metrics) = add_left_to_right_standalone_metrics(metrics_params, left_client.clone())?;
-			let (metrics_params, right_to_left_metrics) = add_right_to_left_standalone_metrics(metrics_params, right_client.clone())?;
+			let metrics_params = relay_utils::relay_metrics(None, metrics_params).into_params();
+			let (metrics_params, left_to_right_metrics) = add_left_to_right_standalone_metrics(None, metrics_params, left_client.clone())?;
+			let (metrics_params, right_to_left_metrics) = add_right_to_left_standalone_metrics(None, metrics_params, right_client.clone())?;
 			crate::conversion_rate_update::run_conversion_rate_update_loop(
 				left_to_right_metrics.target_to_source_conversion_rate.expect(METRIC_IS_SOME_PROOF),
 				left_to_right_metrics.target_to_base_conversion_rate.clone().expect(METRIC_IS_SOME_PROOF),
