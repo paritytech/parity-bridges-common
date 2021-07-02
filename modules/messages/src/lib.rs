@@ -1367,10 +1367,14 @@ mod tests {
 					TEST_LANE_ID,
 					InboundLaneData {
 						last_confirmed_nonce: 1,
-						..Default::default()
+						relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into_iter().collect(),
 					},
 				))),
-				Default::default(),
+				UnrewardedRelayersState {
+					unrewarded_relayer_entries: 1,
+					messages_in_oldest_entry: 1,
+					total_messages: 1,
+				},
 			));
 		});
 	}
