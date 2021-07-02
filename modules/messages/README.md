@@ -409,7 +409,7 @@ Where:
 Weight formula of the `receive_messages_delivery_proof` call assumes that all messages in the proof
 are actually delivered (so there are no already confirmed messages) and every messages is processed
 by the `OnDeliveryConfirmed` callback. This means that for every message, we're adding single db read
-weight and single db write weight. If, by some reason, messaes are not processed by the
+weight and single db write weight. If, by some reason, messages are not processed by the
 `OnDeliveryConfirmed` callback, or their processing is faster than that additional weight, the
 difference is refunded to the submitter.
 
