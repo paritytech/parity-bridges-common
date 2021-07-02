@@ -680,7 +680,7 @@ decl_module! {
 							actual_callback_weight,
 							difference,
 						);
-						actual_weight = actual_weight - difference;
+						actual_weight -= difference;
 					},
 					None => {
 						debug_assert!(false, "The delivery confirmation callback is wrong");
