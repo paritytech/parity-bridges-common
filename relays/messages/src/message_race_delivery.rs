@@ -540,8 +540,7 @@ where
 /// From given set of source nonces, that are ready to be delivered, select nonces
 /// to fit into single delivery transaction.
 ///
-/// The function returns nonces that are NOT selected for current batch and will be
-/// delivered later.
+/// The function returns last nonce that must be delivered to the target chain.
 #[allow(clippy::too_many_arguments)]
 async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 	relayer_mode: RelayerMode,
@@ -564,6 +563,8 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 	let mut selected_unpaid_weight: Weight = 0;
 	let mut selected_size: u32 = 0;
 	let mut selected_count: MessageNonce = 0;
+	let mut selected_reward = P::SourceChainBalance::zero();
+	let mut selected_cost = P::SourceChainBalance::zero();
 
 	let mut total_reward = P::SourceChainBalance::zero();
 	let mut total_confirmations_cost = P::SourceChainBalance::zero();
@@ -701,6 +702,8 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 				// NoLosses relayer never want to lose his funds
 				if total_reward >= total_cost {
 					soft_selected_count = index + 1;
+					selected_reward = total_reward;
+					selected_cost = total_cost;
 				}
 			}
 		}
@@ -732,6 +735,18 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 	}
 
 	if hard_selected_count != 0 {
+		if relayer_mode != RelayerMode::Altruistic {
+			log::trace!(
+				target: "bridge",
+				"Expected reward from delivering nonces [{:?}; {:?}] is: {:?} - {:?} = {:?}",
+				hard_selected_begin_nonce,
+				hard_selected_begin_nonce + hard_selected_count as MessageNonce - 1,
+				selected_reward,
+				selected_cost,
+				selected_reward - selected_cost,
+			);
+		}
+
 		Some(hard_selected_begin_nonce + hard_selected_count as MessageNonce - 1)
 	} else {
 		None
