@@ -84,6 +84,7 @@ impl FloatJsonValueMetric {
 	}
 }
 
+
 #[async_trait]
 impl StandaloneMetrics for FloatJsonValueMetric {
 	fn update_interval(&self) -> Duration {
