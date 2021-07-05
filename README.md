@@ -139,7 +139,7 @@ First, we must run the two Substrate nodes.
 ./deployments/local-scripts/run-millau-node.sh
 ```
 
-Afterwards the nodes are up we can run the header relayers.
+After the nodes are up we can run the header relayers.
 
 ```bash
 ./deployments/local-scripts/relay-millau-to-rialto.sh
