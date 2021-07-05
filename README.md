@@ -120,51 +120,66 @@ cargo build -p substrate-relay
 
 ### Running a Dev network
 
-We will launch a dev network to demonstrate how to relay message from substrate to substrate
+We will launch a dev network to demonstrate how to relay a message between two Substrate based
+chains (named Rialto and Millau).
+
+To do this we will need two nodes, two relayers which will relay headers, and two relayers which
+will relay messages.
 
 #### Running from local scripts
 
-To run a simple dev network you can use the scripts located in 
-[`deployments/local-scripts` folder](./deployments/local-scripts). Since the relayer 
-connects to both Substrate chains it must be run last.
+To run a simple dev network you can use the scripts located in the
+[`deployments/local-scripts` folder](./deployments/local-scripts).
+
+First, we must run the two Substrate nodes.
 
 ```bash
 # In `parity-bridges-common` folder
-
 ./deployments/local-scripts/run-rialto-node.sh
 ./deployments/local-scripts/run-millau-node.sh
+```
+
+Afterwards the nodes are up we can run the header relayers.
+
+```bash
 ./deployments/local-scripts/relay-millau-to-rialto.sh
 ./deployments/local-scripts/relay-rialto-to-millau.sh
-./deployments/local-scripts/relay-messages-millau-to-rialto.sh
-./deployments/local-scripts/relay-messages-millau-to-rialto.sh
 ```
 
 At this point you should see the relayer submitting headers from the Millau Substrate chain to the
-Rialto Substrate chain as following:
+Rialto Substrate chain.
 
 ```
 # Header Relayer Logs
 [Millau_to_Rialto_Sync] [date] DEBUG bridge Going to submit finality proof of Millau header #147 to Rialto
-[Millau_to_Rialto_Sync] [date] INFO bridge Synced 147 of 147 headers
-[Millau_to_Rialto_Sync] [date] DEBUG bridge Going to submit finality proof of Millau header #148 to Rialto
-[Millau_to_Rialto_Sync] [date] INFO bridge Synced 148 of 149 headers
+[...] [date] INFO bridge Synced 147 of 147 headers
+[...] [date] DEBUG bridge Going to submit finality proof of Millau header #148 to Rialto
+[...] [date] INFO bridge Synced 148 of 149 headers
 ```
 
-You will also see the message lane relayers listening for new messages. To send a message
-see the [How to send a message section](#how-to-send-a-message).
+Finally, we can run the message relayers.
+
+```bash
+./deployments/local-scripts/relay-messages-millau-to-rialto.sh
+./deployments/local-scripts/relay-messages-millau-to-rialto.sh
+```
+
+You will also see the message lane relayers listening for new messages.
 
 ```
 # Message Relayer Logs
 [Millau_to_Rialto_MessageLane_00000000] [date] DEBUG bridge Asking Millau::ReceivingConfirmationsDelivery about best message nonces
-[Millau_to_Rialto_MessageLane_00000000] [date] INFO bridge Synced Some(2) of Some(3) nonces in Millau::MessagesDelivery -> Rialto::MessagesDelivery race
-[Millau_to_Rialto_MessageLane_00000000] [date] DEBUG bridge Asking Millau::MessagesDelivery about message nonces
-[Millau_to_Rialto_MessageLane_00000000] [date] DEBUG bridge Received best nonces from Millau::ReceivingConfirmationsDelivery: TargetClientNonces { latest_nonce: 0, nonces_data: () }
-[Millau_to_Rialto_MessageLane_00000000] [date] DEBUG bridge Asking Millau::ReceivingConfirmationsDelivery about finalized message nonces
-[Millau_to_Rialto_MessageLane_00000000] [date] DEBUG bridge Received finalized nonces from Millau::ReceivingConfirmationsDelivery: TargetClientNonces { latest_nonce: 0, nonces_data: () }
-[Millau_to_Rialto_MessageLane_00000000] [date] DEBUG bridge Received nonces from Millau::MessagesDelivery: SourceClientNonces { new_nonces: {}, confirmed_nonce: Some(0) }
-[Millau_to_Rialto_MessageLane_00000000] [date] DEBUG bridge Asking Millau node about its state
-[Millau_to_Rialto_MessageLane_00000000] [date] DEBUG bridge Received state from Millau node: ClientState { best_self: HeaderId(1593, 0xacac***), best_finalized_self: HeaderId(1590, 0x0be81d...), best_finalized_peer_at_best_self: HeaderId(0, 0xdcdd89...) }
+[...] [date] INFO bridge Synced Some(2) of Some(3) nonces in Millau::MessagesDelivery -> Rialto::MessagesDelivery race
+[...] [date] DEBUG bridge Asking Millau::MessagesDelivery about message nonces
+[...] [date] DEBUG bridge Received best nonces from Millau::ReceivingConfirmationsDelivery: TargetClientNonces { latest_nonce: 0, nonces_data: () }
+[...] [date] DEBUG bridge Asking Millau::ReceivingConfirmationsDelivery about finalized message nonces
+[...] [date] DEBUG bridge Received finalized nonces from Millau::ReceivingConfirmationsDelivery: TargetClientNonces { latest_nonce: 0, nonces_data: () }
+[...] [date] DEBUG bridge Received nonces from Millau::MessagesDelivery: SourceClientNonces { new_nonces: {}, confirmed_nonce: Some(0) }
+[...] [date] DEBUG bridge Asking Millau node about its state
+[...] [date] DEBUG bridge Received state from Millau node: ClientState { best_self: HeaderId(1593, 0xacac***), best_finalized_self: HeaderId(1590, 0x0be81d...), best_finalized_peer_at_best_self: HeaderId(0, 0xdcdd89...) }
 ```
+
+To send a message see the ["How to send a message" section](#how-to-send-a-message).
 
 ### Full Network Docker Compose Setup
 
