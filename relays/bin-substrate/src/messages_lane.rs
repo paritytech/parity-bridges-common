@@ -201,8 +201,18 @@ pub struct StandaloneMessagesMetrics {
 	pub source_to_base_conversion_rate: Option<F64SharedRef>,
 }
 
+impl StandaloneMessagesMetrics {
+	/// Return conversion rate from target to source tokens.
+	pub async fn target_to_source_conversion_rate(&self) -> Option<f64> {
+		let target_to_base_conversion_rate = (*self.target_to_base_conversion_rate.as_ref()?.read().await)?;
+		let source_to_base_conversion_rate = (*self.source_to_base_conversion_rate.as_ref()?.read().await)?;
+		Some(target_to_base_conversion_rate / source_to_base_conversion_rate)
+	}
+}
+
 /// Add general standalone metrics for the message lane relay loop.
 pub fn add_standalone_metrics<P: SubstrateMessageLane>(
+	metrics_prefix: Option<String>,
 	metrics_params: MetricsParams,
 	source_client: Client<P::SourceChain>,
 	source_chain_token_id: Option<&str>,
@@ -212,7 +222,7 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 	let mut source_to_base_conversion_rate = None;
 	let mut target_to_base_conversion_rate = None;
 	let mut metrics_params =
-		relay_utils::relay_metrics(None, metrics_params).standalone_metric(|registry, prefix| {
+		relay_utils::relay_metrics(metrics_prefix, metrics_params).standalone_metric(|registry, prefix| {
 			StorageProofOverheadMetric::new(
 				registry,
 				prefix,

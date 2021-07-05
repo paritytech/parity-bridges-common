@@ -171,7 +171,13 @@ pub async fn run(
 		max_messages_weight_in_single_batch,
 	);
 
-	let (metrics_params, _) = add_standalone_metrics(params.metrics_params, source_client.clone())?;
+	let (metrics_params, metrics_values) = add_standalone_metrics(
+		Some(messages_relay::message_lane_loop::metrics_prefix::<
+			MillauMessagesToRialto,
+		>(&lane_id)),
+		params.metrics_params,
+		source_client.clone(),
+	)?;
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
 			lane: lane_id,
@@ -200,6 +206,7 @@ pub async fn run(
 			lane,
 			lane_id,
 			MILLAU_CHAIN_ID,
+			metrics_values,
 			params.source_to_target_headers_relay,
 		),
 		metrics_params,
@@ -210,14 +217,16 @@ pub async fn run(
 
 /// Add standalone metrics for the Millau -> Rialto messages loop.
 pub(crate) fn add_standalone_metrics(
+	metrics_prefix: Option<String>,
 	metrics_params: MetricsParams,
 	source_client: Client<Millau>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
 	crate::messages_lane::add_standalone_metrics::<MillauMessagesToRialto>(
+		metrics_prefix,
 		metrics_params,
 		source_client,
-		None,
-		None,
+		Some(crate::chains::MILLAU_ASSOCIATED_TOKEN_ID),
+		Some(crate::chains::RIALTO_ASSOCIATED_TOKEN_ID),
 		Some((
 			sp_core::storage::StorageKey(millau_runtime::rialto_messages::RialtoToMillauConversionRate::key().to_vec()),
 			millau_runtime::rialto_messages::INITIAL_RIALTO_TO_MILLAU_CONVERSION_RATE,
