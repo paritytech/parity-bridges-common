@@ -73,7 +73,7 @@ pub struct SendMessage {
 	#[structopt(
 		long,
 		possible_values = DispatchFeePayment::VARIANTS,
-		case_insensitive=true,
+		case_insensitive = true,
 		default_value = "at-source-chain",
 	)]
 	dispatch_fee_payment: DispatchFeePayment,
