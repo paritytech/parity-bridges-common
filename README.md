@@ -207,7 +207,7 @@ interact with and test the bridge see more details in [send message](./docs/send
 ./scripts/send-message-from-millau-rialto.sh remark
 ```
 
-After sending a message you will see the following logs showing transaction successfully sent
+After sending a message you will see the following logs showing a message was successfully sent:
 
 ```
 INFO bridge Sending message to Rialto. Size: 286. Dispatch weight: 1038000. Fee: 275,002,568
