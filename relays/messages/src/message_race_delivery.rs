@@ -648,7 +648,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			RelayerMode::Altruistic => {
 				soft_selected_count = index + 1;
 			}
-			RelayerMode::NoLosses => {
+			RelayerMode::Rational => {
 				let delivery_transaction_cost = lane_target_client
 					.estimate_delivery_transaction_in_source_tokens(
 						0..=(new_selected_count as MessageNonce - 1),
@@ -699,7 +699,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 					);
 				}
 
-				// NoLosses relayer never want to lose his funds
+				// Rational relayer never want to lose his funds
 				if total_reward >= total_cost {
 					soft_selected_count = index + 1;
 					selected_reward = total_reward;
@@ -1166,9 +1166,9 @@ mod tests {
 	}
 
 	#[async_std::test]
-	async fn no_losses_relayer_is_delivering_messages_if_cost_is_equal_to_reward() {
+	async fn rational_relayer_is_delivering_messages_if_cost_is_equal_to_reward() {
 		let (state, mut strategy) = prepare_strategy();
-		strategy.relayer_mode = RelayerMode::NoLosses;
+		strategy.relayer_mode = RelayerMode::Rational;
 
 		// so now we have:
 		// - 20..=23 with reward = cost
@@ -1180,7 +1180,7 @@ mod tests {
 	}
 
 	#[async_std::test]
-	async fn no_losses_relayer_is_not_delivering_messages_if_cost_is_larger_than_reward() {
+	async fn rational_relayer_is_not_delivering_messages_if_cost_is_larger_than_reward() {
 		let (mut state, mut strategy) = prepare_strategy();
 		let nonces = source_nonces(
 			24..=25,
@@ -1190,7 +1190,7 @@ mod tests {
 		);
 		strategy.strategy.source_nonces_updated(header_id(2), nonces);
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
-		strategy.relayer_mode = RelayerMode::NoLosses;
+		strategy.relayer_mode = RelayerMode::Rational;
 
 		// so now we have:
 		// - 20..=23 with reward = cost
@@ -1203,7 +1203,7 @@ mod tests {
 	}
 
 	#[async_std::test]
-	async fn no_losses_relayer_is_delivering_unpaid_messages() {
+	async fn rational_relayer_is_delivering_unpaid_messages() {
 		async fn test_with_dispatch_fee_payment(
 			dispatch_fee_payment: DispatchFeePayment,
 		) -> Option<(RangeInclusive<MessageNonce>, MessageProofParameters)> {
@@ -1221,7 +1221,7 @@ mod tests {
 			strategy.max_messages_in_single_batch = 100;
 			strategy.max_messages_weight_in_single_batch = 100;
 			strategy.max_messages_size_in_single_batch = 100;
-			strategy.relayer_mode = RelayerMode::NoLosses;
+			strategy.relayer_mode = RelayerMode::Rational;
 
 			// so now we have:
 			// - 20..=23 with reward = cost

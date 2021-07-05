@@ -45,7 +45,7 @@ pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
 	#[structopt(long, default_value = "00000000")]
 	lane: Vec<HexLaneId>,
-	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "no-losses")]
+	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
 	relayer_mode: RelayerMode,
 	#[structopt(flatten)]
 	prometheus_params: PrometheusParams,
