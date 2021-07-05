@@ -186,6 +186,17 @@ To send a message see the ["How to send a message" section](#how-to-send-a-messa
 For a more sophisticated deployment which includes bidirectional header sync, message passing,
 monitoring dashboards, etc. see the [Deployments README](./deployments/README.md).
 
+You should note that you can find images for all the bridge components published on
+[Docker Hub](https://hub.docker.com/u/paritytech).
+
+To run a Rialto node for example, you can use the following command:
+
+```bash
+docker run -p 30333:30333 -p 9933:9933 -p 9944:9944 \
+  -it paritytech/rialto-bridge-node --dev --tmp \
+  --rpc-cors=all --unsafe-rpc-external --unsafe-ws-external
+```
+
 ### How to send a message
 
 In this section we'll show you how to quickly send a bridge message, if you want to
