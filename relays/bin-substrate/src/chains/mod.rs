@@ -32,38 +32,48 @@ mod rococo;
 mod westend;
 mod wococo;
 
-use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams};
+// Millau/Rialto tokens have no any real value, so the conversion rate we use is always 1:1. But we want to
+// test our code that is intended to work with real-value chains. So to keep it close to 1:1, we'll be treating
+// Rialto as BTC and Millau as wBTC (only in relayer).
+
+/// The identifier of token, which value is associated with Rialto token value by relayer.
+pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = "bitcoin";
+/// The identifier of token, which value is associated with Millau token value by relayer.
+pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = "wrapped-bitcoin";
+
+use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams, PrometheusError, Registry};
 
 pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
+	prefix: Option<String>,
 	params: MetricsParams,
 ) -> anyhow::Result<MetricsParams> {
-	Ok(
-		relay_utils::relay_metrics(Some(finality_relay::metrics_prefix::<T>()), params)
-			// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
-			// relays, but we want to test metrics/dashboards in advance
-			.standalone_metric(|registry, prefix| {
-				FloatJsonValueMetric::new(
-					registry,
-					prefix,
-					"https://api.coingecko.com/api/v3/simple/price?ids=Polkadot&vs_currencies=btc".into(),
-					"$.polkadot.btc".into(),
-					"polkadot_to_base_conversion_rate".into(),
-					"Rate used to convert from DOT to some BASE tokens".into(),
-				)
-			})
-			.map_err(|e| anyhow::format_err!("{}", e))?
-			.standalone_metric(|registry, prefix| {
-				FloatJsonValueMetric::new(
-					registry,
-					prefix,
-					"https://api.coingecko.com/api/v3/simple/price?ids=Kusama&vs_currencies=btc".into(),
-					"$.kusama.btc".into(),
-					"kusama_to_base_conversion_rate".into(),
-					"Rate used to convert from KSM to some BASE tokens".into(),
-				)
-			})
-			.map_err(|e| anyhow::format_err!("{}", e))?
-			.into_params(),
+	// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
+	// relays, but we want to test metrics/dashboards in advance
+	Ok(relay_utils::relay_metrics(prefix, params)
+		.standalone_metric(|registry, prefix| token_price_metric(registry, prefix, "polkadot"))?
+		.standalone_metric(|registry, prefix| token_price_metric(registry, prefix, "kusama"))?
+		.into_params())
+}
+
+/// Creates standalone token price metric.
+pub(crate) fn token_price_metric(
+	registry: &Registry,
+	prefix: Option<&str>,
+	token_id: &str,
+) -> Result<FloatJsonValueMetric, PrometheusError> {
+	FloatJsonValueMetric::new(
+		registry,
+		prefix,
+		format!(
+			"https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=btc",
+			token_id
+		),
+		format!("$.{}.btc", token_id),
+		format!("{}_to_base_conversion_rate", token_id.replace("-", "_")),
+		format!(
+			"Rate used to convert from {} to some BASE tokens",
+			token_id.to_uppercase()
+		),
 	)
 }
 

@@ -212,7 +212,7 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 		nonces: RangeInclusive<MessageNonce>,
 		total_dispatch_weight: Weight,
 		total_size: u32,
-	) -> P::SourceChainBalance;
+	) -> Result<P::SourceChainBalance, Self::Error>;
 }
 
 /// State of the client.
@@ -258,7 +258,7 @@ pub async fn run<P: MessageLane>(
 	target_client: impl TargetClient<P>,
 	metrics_params: MetricsParams,
 	exit_signal: impl Future<Output = ()> + Send + 'static,
-) -> Result<(), String> {
+) -> anyhow::Result<()> {
 	let exit_signal = exit_signal.shared();
 	relay_utils::relay_loop(source_client, target_client)
 		.reconnect_delay(params.reconnect_delay)
@@ -775,10 +775,12 @@ pub(crate) mod tests {
 			nonces: RangeInclusive<MessageNonce>,
 			total_dispatch_weight: Weight,
 			total_size: u32,
-		) -> TestSourceChainBalance {
-			BASE_MESSAGE_DELIVERY_TRANSACTION_COST * (nonces.end() - nonces.start() + 1)
-				+ total_dispatch_weight
-				+ total_size as TestSourceChainBalance
+		) -> Result<TestSourceChainBalance, TestError> {
+			Ok(
+				BASE_MESSAGE_DELIVERY_TRANSACTION_COST * (nonces.end() - nonces.start() + 1)
+					+ total_dispatch_weight
+					+ total_size as TestSourceChainBalance,
+			)
 		}
 	}
 
