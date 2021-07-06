@@ -1,0 +1,12 @@
+version: '3.5'
+services:
+  bridges-ui:
+    # TODO [ToDr] switch to paritytech after https://github.com/paritytech/parity-bridges-ui/issues/201
+    image: wirednkod13/parity-bridges-ui
+    environment:
+      VIRTUAL_HOST: ui.brucke.link
+      VIRTUAL_PORT: 80
+      LETSENCRYPT_HOST: ui.brucke.link
+      LETSENCRYPT_EMAIL: admin@parity.io
+    ports:
+      - "8080:80"
