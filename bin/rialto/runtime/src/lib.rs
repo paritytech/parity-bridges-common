@@ -38,6 +38,8 @@ pub mod kovan;
 pub mod millau_messages;
 pub mod rialto_poa;
 
+mod parachains;
+
 use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 
 use bridge_runtime_common::messages::{source::estimate_message_dispatch_and_delivery_fee, MessageBridge};
@@ -53,7 +55,7 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature, MultiSigner,
 };
-use sp_std::prelude::*;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -497,6 +499,8 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
 }
 
+impl pallet_authority_discovery::Config for Runtime {}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -520,6 +524,28 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
+
+		// Consensus support.
+		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config},
+
+		// Parachains modules.
+		ParachainsOrigin: polkadot_runtime_parachains::origin::{Pallet, Origin},
+		ParachainsConfiguration: polkadot_runtime_parachains::configuration::{Pallet, Call, Storage, Config<T>},
+		Shared: polkadot_runtime_parachains::shared::{Pallet, Call, Storage},
+		Inclusion: polkadot_runtime_parachains::inclusion::{Pallet, Call, Storage, Event<T>},
+		ParasInherent: polkadot_runtime_parachains::paras_inherent::{Pallet, Call, Storage, Inherent},
+		Scheduler: polkadot_runtime_parachains::scheduler::{Pallet, Call, Storage},
+		Paras: polkadot_runtime_parachains::paras::{Pallet, Call, Storage, Event, Config},
+		Initializer: polkadot_runtime_parachains::initializer::{Pallet, Call, Storage},
+		Dmp: polkadot_runtime_parachains::dmp::{Pallet, Call, Storage},
+		Ump: polkadot_runtime_parachains::ump::{Pallet, Call, Storage, Event},
+		Hrmp: polkadot_runtime_parachains::hrmp::{Pallet, Call, Storage, Event, Config},
+		SessionInfo: polkadot_runtime_parachains::session_info::{Pallet, Call, Storage},
+
+		// Parachain Onboarding Pallets
+		//Registrar: polkadot_runtime_common::paras_registrar::{Pallet, Call, Storage, Event<T>},
+		//Slots: polkadot_runtime_common::slots::{Pallet, Call, Storage, Event<T>},
+		//ParasSudoWrapper: polkadot_runtime_common::paras_sudo_wrapper::{Pallet, Call},
 	}
 );
 
@@ -797,6 +823,74 @@ impl_runtime_apis! {
 
 		fn unrewarded_relayers_state(lane: bp_messages::LaneId) -> bp_messages::UnrewardedRelayersState {
 			BridgeMillauMessages::inbound_unrewarded_relayers_state(lane)
+		}
+	}
+
+	impl polkadot_primitives::v1::ParachainHost<Block, Hash, BlockNumber> for Runtime {
+		fn validators() -> Vec<polkadot_primitives::v1::ValidatorId> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::validators::<Runtime>()
+		}
+
+		fn validator_groups() -> (Vec<Vec<polkadot_primitives::v1::ValidatorIndex>>, polkadot_primitives::v1::GroupRotationInfo<BlockNumber>) {
+			polkadot_runtime_parachains::runtime_api_impl::v1::validator_groups::<Runtime>()
+		}
+
+		fn availability_cores() -> Vec<polkadot_primitives::v1::CoreState<Hash, BlockNumber>> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::availability_cores::<Runtime>()
+		}
+
+		fn persisted_validation_data(para_id: polkadot_primitives::v1::Id, assumption: polkadot_primitives::v1::OccupiedCoreAssumption)
+			-> Option<polkadot_primitives::v1::PersistedValidationData<Hash, BlockNumber>> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::persisted_validation_data::<Runtime>(para_id, assumption)
+		}
+
+		fn check_validation_outputs(
+			para_id: polkadot_primitives::v1::Id,
+			outputs: polkadot_primitives::v1::CandidateCommitments,
+		) -> bool {
+			polkadot_runtime_parachains::runtime_api_impl::v1::check_validation_outputs::<Runtime>(para_id, outputs)
+		}
+
+		fn session_index_for_child() -> polkadot_primitives::v1::SessionIndex {
+			polkadot_runtime_parachains::runtime_api_impl::v1::session_index_for_child::<Runtime>()
+		}
+
+		fn validation_code(para_id: polkadot_primitives::v1::Id, assumption: polkadot_primitives::v1::OccupiedCoreAssumption)
+			-> Option<polkadot_primitives::v1::ValidationCode> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::validation_code::<Runtime>(para_id, assumption)
+		}
+
+		fn candidate_pending_availability(para_id: polkadot_primitives::v1::Id) -> Option<polkadot_primitives::v1::CommittedCandidateReceipt<Hash>> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::candidate_pending_availability::<Runtime>(para_id)
+		}
+
+		fn candidate_events() -> Vec<polkadot_primitives::v1::CandidateEvent<Hash>> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::candidate_events::<Runtime, _>(|ev| {
+				match ev {
+					Event::Inclusion(ev) => {
+						Some(ev)
+					}
+					_ => None,
+				}
+			})
+		}
+
+		fn session_info(index: polkadot_primitives::v1::SessionIndex) -> Option<polkadot_primitives::v1::SessionInfo> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::session_info::<Runtime>(index)
+		}
+
+		fn dmq_contents(recipient: polkadot_primitives::v1::Id) -> Vec<polkadot_primitives::v1::InboundDownwardMessage<BlockNumber>> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::dmq_contents::<Runtime>(recipient)
+		}
+
+		fn inbound_hrmp_channels_contents(
+			recipient: polkadot_primitives::v1::Id
+		) -> BTreeMap<polkadot_primitives::v1::Id, Vec<polkadot_primitives::v1::InboundHrmpMessage<BlockNumber>>> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::inbound_hrmp_channels_contents::<Runtime>(recipient)
+		}
+
+		fn validation_code_by_hash(hash: polkadot_primitives::v1::ValidationCodeHash) -> Option<polkadot_primitives::v1::ValidationCode> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::validation_code_by_hash::<Runtime>(hash)
 		}
 	}
 
