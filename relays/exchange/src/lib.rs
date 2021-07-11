@@ -24,3 +24,4 @@
 pub mod exchange;
 pub mod exchange_loop;
 pub mod exchange_loop_metrics;
+pub mod error;

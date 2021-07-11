@@ -20,6 +20,7 @@ use crate::cli::{encode_message, CliChain};
 use frame_support::weights::Weight;
 use relay_westend_client::Westend;
 use sp_version::RuntimeVersion;
+use anyhow::anyhow;
 
 impl CliChain for Westend {
 	const RUNTIME_VERSION: RuntimeVersion = bp_westend::VERSION;
@@ -37,7 +38,7 @@ impl CliChain for Westend {
 
 	fn encode_message(
 		_message: encode_message::MessagePayload,
-	) -> Result<Self::MessagePayload, String> {
-		Err("Sending messages from Westend is not yet supported.".into())
+	) -> anyhow::Result<Self::MessagePayload> {
+		Err(anyhow!("Sending messages from Westend is not yet supported."))
 	}
 }

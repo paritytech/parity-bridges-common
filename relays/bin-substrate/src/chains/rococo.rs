@@ -18,6 +18,7 @@ use codec::Decode;
 use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_rococo_client::Rococo;
 use sp_version::RuntimeVersion;
+use anyhow::anyhow;
 
 use crate::cli::{
 	bridge,
@@ -94,7 +95,7 @@ impl CliChain for Rococo {
 
 	fn encode_message(
 		_message: encode_message::MessagePayload,
-	) -> Result<Self::MessagePayload, String> {
-		Err("Sending messages from Rococo is not yet supported.".into())
+	) -> anyhow::Result<Self::MessagePayload> {
+		Err(anyhow!("Sending messages from Rococo is not yet supported."))
 	}
 }

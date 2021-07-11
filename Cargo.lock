@@ -2363,6 +2363,7 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "sp-runtime",
+ "thiserror",
 ]
 
 [[package]]
@@ -2398,6 +2399,7 @@ dependencies = [
  "num-traits",
  "parking_lot 0.11.2",
  "relay-utils",
+ "thiserror",
 ]
 
 [[package]]
@@ -2469,7 +2471,6 @@ dependencies = [
 name = "finality-relay"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-std",
  "async-trait",
  "backoff",
@@ -3140,7 +3141,6 @@ dependencies = [
 name = "headers-relay"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-std",
  "async-trait",
  "backoff",
@@ -4745,7 +4745,6 @@ dependencies = [
 name = "messages-relay"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-std",
  "async-trait",
  "bp-messages",
@@ -8205,6 +8204,7 @@ dependencies = [
  "libsecp256k1 0.3.5",
  "log",
  "relay-utils",
+ "thiserror",
  "tokio",
  "web3",
 ]
@@ -8350,6 +8350,7 @@ dependencies = [
  "sp-storage",
  "sp-trie",
  "sp-version",
+ "thiserror",
  "tokio",
 ]
 
@@ -8371,6 +8372,7 @@ dependencies = [
  "serde_json",
  "substrate-prometheus-endpoint",
  "sysinfo",
+ "thiserror",
  "time 0.2.27",
 ]
 
@@ -11340,6 +11342,7 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-runtime",
+ "thiserror",
 ]
 
 [[package]]

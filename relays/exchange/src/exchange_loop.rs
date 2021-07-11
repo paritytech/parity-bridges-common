@@ -22,6 +22,7 @@ use crate::{
 		TargetClient, TransactionProofPipeline,
 	},
 	exchange_loop_metrics::ExchangeLoopMetrics,
+	error::Error,
 };
 
 use backoff::backoff::Backoff;
@@ -32,6 +33,7 @@ use relay_utils::{
 	retry_backoff, FailedClient, MaybeConnectionError,
 };
 use std::future::Future;
+use crate::error::ErrorOf;
 
 /// Transactions proofs relay state.
 #[derive(Debug)]
@@ -92,7 +94,7 @@ pub async fn run<P: TransactionProofPipeline>(
 	target_client: impl TargetClient<P>,
 	metrics_params: MetricsParams,
 	exit_signal: impl Future<Output = ()> + 'static + Send,
-) -> anyhow::Result<()> {
+) -> Result<(), ErrorOf<P>> {
 	let exit_signal = exit_signal.shared();
 
 	relay_utils::relay_loop(source_client, target_client)
@@ -110,7 +112,7 @@ pub async fn run<P: TransactionProofPipeline>(
 				exit_signal.clone(),
 			)
 		})
-		.await
+		.await.map_err(Error::Utils)
 }
 
 /// Run proofs synchronization.

@@ -18,6 +18,7 @@ use codec::Decode;
 use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_wococo_client::Wococo;
 use sp_version::RuntimeVersion;
+use anyhow::anyhow;
 
 use crate::cli::{
 	bridge,
@@ -88,7 +89,7 @@ impl CliChain for Wococo {
 
 	fn encode_message(
 		_message: encode_message::MessagePayload,
-	) -> Result<Self::MessagePayload, String> {
-		Err("Sending messages from Wococo is not yet supported.".into())
+	) -> anyhow::Result<Self::MessagePayload> {
+		Err(anyhow!("Sending messages from Wococo is not yet supported."))
 	}
 }

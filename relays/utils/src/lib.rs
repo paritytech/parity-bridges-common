@@ -17,10 +17,12 @@
 //! Utilities used by different relays.
 
 pub use relay_loop::{relay_loop, relay_metrics};
+pub use error::Error;
 
 use backoff::{backoff::Backoff, ExponentialBackoff};
 use futures::future::FutureExt;
 use std::time::Duration;
+use thiserror::Error;
 
 /// Max delay after connection-unrelated error happened before we'll try the
 /// same request again.
@@ -32,6 +34,7 @@ pub const CONNECTION_ERROR_DELAY: Duration = Duration::from_secs(10);
 pub mod initialize;
 pub mod metrics;
 pub mod relay_loop;
+pub mod error;
 
 /// Block number traits shared by all chains that relay is able to serve.
 pub trait BlockNumberBase:
@@ -111,11 +114,13 @@ pub trait MaybeConnectionError {
 }
 
 /// Stringified error that may be either connection-related or not.
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum StringifiedMaybeConnectionError {
 	/// The error is connection-related error.
+	#[error("{0}")]
 	Connection(String),
 	/// The error is connection-unrelated error.
+	#[error("{0}")]
 	NonConnection(String),
 }
 
@@ -135,15 +140,6 @@ impl MaybeConnectionError for StringifiedMaybeConnectionError {
 		match *self {
 			StringifiedMaybeConnectionError::Connection(_) => true,
 			StringifiedMaybeConnectionError::NonConnection(_) => false,
-		}
-	}
-}
-
-impl ToString for StringifiedMaybeConnectionError {
-	fn to_string(&self) -> String {
-		match *self {
-			StringifiedMaybeConnectionError::Connection(ref err) => err.clone(),
-			StringifiedMaybeConnectionError::NonConnection(ref err) => err.clone(),
 		}
 	}
 }

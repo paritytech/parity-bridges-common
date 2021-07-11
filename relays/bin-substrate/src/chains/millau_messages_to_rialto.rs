@@ -249,7 +249,7 @@ pub async fn run(
 		metrics_params,
 		futures::future::pending(),
 	)
-	.await
+	.await.map_err(Into::into)
 }
 
 /// Add standalone metrics for the Millau -> Rialto messages loop.
