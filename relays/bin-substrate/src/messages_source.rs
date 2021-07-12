@@ -213,6 +213,8 @@ where
 			.await?
 			.iter_nodes()
 			.collect();
+
+
 		let proof = FromBridgedChainMessagesProof {
 			bridged_header_hash: id.1,
 			storage_proof: proof,
