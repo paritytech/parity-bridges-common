@@ -71,7 +71,7 @@ impl MaybeConnectionError for Error {
 	fn is_connection_error(&self) -> bool {
 		matches!(
 			*self,
-			Error::RpcError(RpcError::TransportError(_))
+			Error::RpcError(RpcError::Transport(_))
 				// right now if connection to the ws server is dropped (after it is already established),
 				// we're getting this error
 				| Error::RpcError(RpcError::Internal(_))

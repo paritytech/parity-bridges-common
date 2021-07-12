@@ -51,6 +51,11 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master
 sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "master" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
+# Polkadot (parachain) Dependencies
+
+polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "master" }
+
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", branch = "master" }

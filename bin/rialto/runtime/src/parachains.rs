@@ -16,6 +16,7 @@
 
 //! Parachains support in Rialto runtime.
 
+//   Cumulus commit: 59cdbb6a56b1c49009413d66ba2232494563b57c
 //  Polkadot commit: 2bad8079a73dc92d83bc3c0e5d81de388d36cf24
 // Substrate commit: 3cd75117765c4a63d40c00aa41e1bf12135c237b
 // Substrate regex:  substrate\?branch\=master\#[^3]
