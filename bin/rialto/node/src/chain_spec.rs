@@ -251,6 +251,12 @@ fn testnet_genesis(
 				..Default::default()
 			}
 		},
+		// IIUC we can start with pre-configured parachain, but it'll require:
+		// 1) genesis header of the parachain;
+		// 2) validation code of the parachain.
+		//
+		// => it maybe easier to onboard parachain from relay similarly to how we initialize
+		//    GRANDPA pallet
 		paras: Default::default(),
 	}
 }
