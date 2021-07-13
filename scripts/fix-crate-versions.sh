@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 
-#REGEX="error\: failed to select a version for the requirement \`(.*) = \"(.*)\"\`\
-#candidate versions found which didn't match: (.*)"
 REGEX="error\: failed to select a version for the requirement \`(.*) = \"(.*)\"\`
 candidate versions found which didn't match: (.*)
 location searched"
-
-#sed -z "s/name = \"sp-finality-grandpa\"\nversion = \"4.0.0\"/name = \"sp-finality-grandpa\"\nversion = \"3.0.0\"/" -i Cargo.lock
 
 while :
 do
