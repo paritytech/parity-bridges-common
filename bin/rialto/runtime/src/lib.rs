@@ -374,7 +374,7 @@ parameter_types! {
 
 impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
-	type Moment = u64;
+	type Moment = bp_rialto::Moment;
 	type OnTimestampSet = Babe;
 	type MinimumPeriod = MinimumPeriod;
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
