@@ -16,7 +16,7 @@
 
 use bp_runtime::Chain as ChainBase;
 use frame_support::Parameter;
-use jsonrpsee_ws_client::{DeserializeOwned, Serialize};
+use jsonrpsee_ws_client::types::{DeserializeOwned, Serialize};
 use num_traits::{Bounded, CheckedSub, SaturatingAdd, Zero};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{

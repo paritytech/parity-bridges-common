@@ -134,9 +134,21 @@ where
 			self.client.clone().subscribe_justifications().await?,
 			move |mut subscription| async move {
 				loop {
-					let next_justification = subscription.next().await?;
+					let next_justification = match subscription.next().await {
+						Ok(maybe_bytes) => maybe_bytes?,
+						Err(err) => {
+							log::error!(
+								target: "bridge",
+								"Failed to fetch justification from the {} justifications stream: {:?}",
+								P::SOURCE_NAME,
+								err,
+							);
+
+							continue;
+						}
+					};
 					let decoded_justification =
-						GrandpaJustification::<C::Header>::decode(&mut &next_justification.0[..]);
+						GrandpaJustification::<C::Header>::decode(&mut &next_justification[..]);
 
 					let justification = match decoded_justification {
 						Ok(j) => j,
