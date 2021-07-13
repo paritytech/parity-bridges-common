@@ -2210,9 +2210,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17392a012ea30ef05a610aa97dfb49496e71c9f676b27879922ea5bdf60d9d3f"
+checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
 dependencies = [
  "atty",
  "humantime 2.1.0",
@@ -2343,7 +2343,7 @@ dependencies = [
  "bp-currency-exchange",
  "bp-eth-poa",
  "clap",
- "env_logger 0.8.3",
+ "env_logger 0.8.4",
  "ethabi",
  "ethabi-contract",
  "ethabi-derive",
@@ -7455,6 +7455,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "polkadot-test-client"
+version = "0.9.8"
+source = "git+https://github.com/paritytech/polkadot?branch=master#2bad8079a73dc92d83bc3c0e5d81de388d36cf24"
+dependencies = [
+ "parity-scale-codec",
+ "polkadot-node-subsystem",
+ "polkadot-primitives",
+ "polkadot-test-runtime",
+ "polkadot-test-service",
+ "sc-block-builder",
+ "sc-consensus",
+ "sc-service",
+ "sp-api",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-babe",
+ "sp-core",
+ "sp-inherents",
+ "sp-runtime",
+ "sp-state-machine",
+ "sp-timestamp",
+ "substrate-test-client",
+]
+
+[[package]]
 name = "polkadot-test-runtime"
 version = "0.9.8"
 source = "git+https://github.com/paritytech/polkadot?branch=master#2bad8079a73dc92d83bc3c0e5d81de388d36cf24"
@@ -8103,6 +8128,168 @@ dependencies = [
 ]
 
 [[package]]
+name = "relalto-bridge-node"
+version = "0.0.1"
+dependencies = [
+ "async-trait",
+ "beefy-gadget",
+ "beefy-primitives",
+ "bp-messages",
+ "bp-rialto",
+ "bp-runtime",
+ "env_logger 0.8.4",
+ "frame-benchmarking",
+ "frame-system-rpc-runtime-api",
+ "futures 0.3.15",
+ "hex-literal 0.3.1",
+ "kvdb",
+ "kvdb-rocksdb",
+ "pallet-babe",
+ "pallet-bridge-messages",
+ "pallet-im-online",
+ "pallet-mmr-primitives",
+ "pallet-staking",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "polkadot-approval-distribution",
+ "polkadot-availability-bitfield-distribution",
+ "polkadot-availability-distribution",
+ "polkadot-availability-recovery",
+ "polkadot-client",
+ "polkadot-collator-protocol",
+ "polkadot-gossip-support",
+ "polkadot-network-bridge",
+ "polkadot-node-collation-generation",
+ "polkadot-node-core-approval-voting",
+ "polkadot-node-core-av-store",
+ "polkadot-node-core-backing",
+ "polkadot-node-core-bitfield-signing",
+ "polkadot-node-core-candidate-validation",
+ "polkadot-node-core-chain-api",
+ "polkadot-node-core-parachains-inherent",
+ "polkadot-node-core-provisioner",
+ "polkadot-node-core-runtime-api",
+ "polkadot-node-primitives",
+ "polkadot-node-subsystem",
+ "polkadot-node-subsystem-util",
+ "polkadot-overseer",
+ "polkadot-parachain",
+ "polkadot-primitives",
+ "polkadot-rpc",
+ "polkadot-runtime-parachains",
+ "polkadot-statement-distribution",
+ "polkadot-test-client",
+ "relalto-runtime",
+ "sc-authority-discovery",
+ "sc-basic-authorship",
+ "sc-block-builder",
+ "sc-chain-spec",
+ "sc-cli",
+ "sc-client-api",
+ "sc-client-db",
+ "sc-consensus",
+ "sc-consensus-babe",
+ "sc-consensus-slots",
+ "sc-consensus-uncles",
+ "sc-executor",
+ "sc-finality-grandpa",
+ "sc-finality-grandpa-warp-sync",
+ "sc-keystore",
+ "sc-network",
+ "sc-service",
+ "sc-telemetry",
+ "sc-transaction-pool",
+ "serde",
+ "serde_json",
+ "sp-api",
+ "sp-authority-discovery",
+ "sp-block-builder",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-aura",
+ "sp-consensus-babe",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-inherents",
+ "sp-io",
+ "sp-keystore",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-state-machine",
+ "sp-storage",
+ "sp-timestamp",
+ "sp-transaction-pool",
+ "sp-trie",
+ "structopt",
+ "substrate-build-script-utils",
+ "substrate-prometheus-endpoint",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "relalto-runtime"
+version = "0.1.0"
+dependencies = [
+ "bp-currency-exchange",
+ "bp-eth-poa",
+ "bp-header-chain",
+ "bp-message-dispatch",
+ "bp-messages",
+ "bp-millau",
+ "bp-rialto",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "hex-literal 0.3.1",
+ "libsecp256k1",
+ "log",
+ "pallet-aura",
+ "pallet-authority-discovery",
+ "pallet-balances",
+ "pallet-bridge-currency-exchange",
+ "pallet-bridge-dispatch",
+ "pallet-bridge-eth-poa",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
+ "pallet-grandpa",
+ "pallet-randomness-collective-flip",
+ "pallet-session",
+ "pallet-shift-session-manager",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "parity-scale-codec",
+ "polkadot-primitives",
+ "polkadot-runtime-common",
+ "polkadot-runtime-parachains",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-trie",
+ "sp-version",
+ "substrate-wasm-builder 4.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+]
+
+[[package]]
 name = "relay-ethereum-client"
 version = "0.1.0"
 dependencies = [
@@ -8259,7 +8446,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "backoff",
- "env_logger 0.8.3",
+ "env_logger 0.8.4",
  "futures 0.3.15",
  "isahc",
  "jsonpath_lib",
@@ -8319,7 +8506,7 @@ name = "remote-externalities"
 version = "0.9.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#3cd75117765c4a63d40c00aa41e1bf12135c237b"
 dependencies = [
- "env_logger 0.8.3",
+ "env_logger 0.8.4",
  "hex",
  "jsonrpsee-proc-macros",
  "jsonrpsee-ws-client",
@@ -11113,7 +11300,7 @@ dependencies = [
  "bp-header-chain",
  "bp-runtime",
  "bp-test-utils",
- "env_logger 0.8.3",
+ "env_logger 0.8.4",
  "finality-grandpa",
  "frame-support",
  "frame-system",
