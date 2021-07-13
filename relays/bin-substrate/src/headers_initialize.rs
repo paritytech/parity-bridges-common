@@ -111,7 +111,7 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 	let justification = justifications
 		.next()
 		.await
-    	.map_err(|e| format!("Failed to read {} justification from the stream: {}", SourceChain::NAME, e))?
+		.map_err(|e| format!("Failed to read {} justification from the stream: {}", SourceChain::NAME, e))?
 		.ok_or_else(|| {
 			format!(
 				"No justification to read from {}: stream has ended.",
