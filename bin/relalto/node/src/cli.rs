@@ -16,19 +16,12 @@
 
 //! Relalto CLI library.
 
+use sc_cli::RunCmd;
 use structopt::StructOpt;
 
 #[allow(missing_docs)]
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
-}
-
-#[allow(missing_docs)]
-#[derive(Debug, StructOpt)]
-pub struct RunCmd {
-	#[allow(missing_docs)]
-	#[structopt(flatten)]
-	pub base: sc_cli::RunCmd,
 }
 
 #[allow(missing_docs)]

@@ -35,7 +35,7 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sc_client_api::AuxStore;
 use sc_keystore::LocalKeystore;
-//use sp_consensus_babe::BabeApi;
+use sp_consensus_babe::BabeApi;
 
 pub use polkadot_availability_distribution::AvailabilityDistributionSubsystem;
 pub use polkadot_node_core_av_store::AvailabilityStoreSubsystem;
@@ -58,7 +58,7 @@ pub use polkadot_gossip_support::GossipSupport as GossipSupportSubsystem;
 /// Arguments passed for overseer construction.
 pub struct OverseerGenArgs<'a, Spawner, RuntimeClient> where
 	RuntimeClient: 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block> + AuxStore,
-	RuntimeClient::Api: ParachainHost<Block> + /*BabeApi<Block> + */AuthorityDiscoveryApi<Block>,
+	RuntimeClient::Api: ParachainHost<Block> + BabeApi<Block> + AuthorityDiscoveryApi<Block>,
 	Spawner: 'static + SpawnNamed + Clone + Unpin,
 {
 	/// Set of initial relay chain leaves to track.
@@ -134,7 +134,7 @@ pub fn create_default_subsystems<'a, Spawner, RuntimeClient>
 >
 where
 	RuntimeClient: 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block> + AuxStore,
-	RuntimeClient::Api: ParachainHost<Block> + /*BabeApi<Block> + */AuthorityDiscoveryApi<Block>,
+	RuntimeClient::Api: ParachainHost<Block> + BabeApi<Block> + AuthorityDiscoveryApi<Block>,
 	Spawner: 'static + SpawnNamed + Clone + Unpin
 {
 	use polkadot_node_subsystem_util::metrics::Metrics;
@@ -240,7 +240,7 @@ pub trait OverseerGen {
 	fn generate<'a, Spawner, RuntimeClient>(&self, args: OverseerGenArgs<'a, Spawner, RuntimeClient>) -> Result<(Overseer<Spawner, Arc<RuntimeClient>>, OverseerHandler), Error>
 	where
 		RuntimeClient: 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block> + AuxStore,
-		RuntimeClient::Api: ParachainHost<Block> + /*BabeApi<Block> + */AuthorityDiscoveryApi<Block>,
+		RuntimeClient::Api: ParachainHost<Block> + BabeApi<Block> + AuthorityDiscoveryApi<Block>,
 		Spawner: 'static + SpawnNamed + Clone + Unpin {
 		let gen = RealOverseerGen;
 		RealOverseerGen::generate::<Spawner, RuntimeClient>(&gen, args)
@@ -259,7 +259,7 @@ impl OverseerGen for RealOverseerGen {
 	) -> Result<(Overseer<Spawner, Arc<RuntimeClient>>, OverseerHandler), Error>
 	where
 		RuntimeClient: 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block> + AuxStore,
-		RuntimeClient::Api: ParachainHost<Block> + /*BabeApi<Block> + */AuthorityDiscoveryApi<Block>,
+		RuntimeClient::Api: ParachainHost<Block> + BabeApi<Block> + AuthorityDiscoveryApi<Block>,
 		Spawner: 'static + SpawnNamed + Clone + Unpin
 	{
 		let spawner = args.spawner.clone();

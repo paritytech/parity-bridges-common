@@ -421,17 +421,12 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
-parameter_types! {
-	pub const Period: BlockNumber = bp_rialto::SESSION_LENGTH;
-	pub const Offset: BlockNumber = 0;
-}
-
 impl pallet_session::Config for Runtime {
 	type Event = Event;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	type ValidatorIdOf = ();
-	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
-	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+	type ShouldEndSession = Babe;
+	type NextSessionRotation = Babe;
 	type SessionManager = pallet_shift_session_manager::Pallet<Runtime>;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
@@ -962,6 +957,14 @@ impl_runtime_apis! {
 
 		fn validation_code_by_hash(hash: polkadot_primitives::v1::ValidationCodeHash) -> Option<polkadot_primitives::v1::ValidationCode> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::validation_code_by_hash::<Runtime>(hash)
+		}
+	}
+
+	impl sp_authority_discovery::AuthorityDiscoveryApi<Block> for Runtime {
+		fn authorities() -> Vec<sp_authority_discovery::AuthorityId> {
+			// TODO: implement me
+			Vec::new()
+			//parachains_runtime_api_impl::relevant_authority_ids::<Runtime>()
 		}
 	}
 

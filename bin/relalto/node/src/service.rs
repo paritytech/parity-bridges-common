@@ -76,7 +76,6 @@ sc_executor::native_executor_instance!(
 
 pub use polkadot_client::{
 	FullBackend, FullClient, AbstractClient, Client, ClientHandle, ExecuteWithClient,
-	RuntimeApiCollection,
 };
 pub use consensus_common::{Proposal, SelectChain, BlockImport, block_validation::Chain};
 pub use polkadot_primitives::v1::{Block, BlockId, CollatorPair, Hash, Id as ParaId};
@@ -95,8 +94,50 @@ pub use sp_runtime::traits::{DigestFor, HashFor, NumberFor, Block as BlockT, sel
 /// The maximum number of active leaves we forward to the [`Overseer`] on startup.
 const MAX_ACTIVE_LEAVES: usize = 4;
 
+/// A set of APIs that polkadot-like runtimes must implement.
+pub trait MyRuntimeApiCollection:
+	sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
+	+ sp_api::ApiExt<Block>
+	+ sp_consensus_babe::BabeApi<Block>
+	+ sp_finality_grandpa::GrandpaApi<Block>
+	+ ParachainHost<Block>
+	+ sp_block_builder::BlockBuilder<Block>
+	+ frame_system_rpc_runtime_api::AccountNonceApi<Block, bp_rialto::AccountId, relalto_runtime::Index>
+	//+ pallet_mmr_primitives::MmrApi<Block, <Block as BlockT>::Hash>
+	+ pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, bp_rialto::Balance>
+	+ sp_api::Metadata<Block>
+	+ sp_offchain::OffchainWorkerApi<Block>
+	+ sp_session::SessionKeys<Block>
+	+ sp_authority_discovery::AuthorityDiscoveryApi<Block>
+	//+ beefy_primitives::BeefyApi<Block>
+where
+	<Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
+{}
+
+impl<Api> MyRuntimeApiCollection for Api
+where
+	Api: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
+		+ sp_api::ApiExt<Block>
+		+ sp_consensus_babe::BabeApi<Block>
+		+ sp_finality_grandpa::GrandpaApi<Block>
+		+ ParachainHost<Block>
+		+ sp_block_builder::BlockBuilder<Block>
+		+ frame_system_rpc_runtime_api::AccountNonceApi<Block, bp_rialto::AccountId, relalto_runtime::Index>
+		//+ pallet_mmr_primitives::MmrApi<Block, <Block as BlockT>::Hash>
+		+ pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, bp_rialto::Balance>
+		+ sp_api::Metadata<Block>
+		+ sp_offchain::OffchainWorkerApi<Block>
+		+ sp_session::SessionKeys<Block>
+		+ sp_authority_discovery::AuthorityDiscoveryApi<Block>,
+		//+ beefy_primitives::BeefyApi<Block>,
+	<Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
+{}
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+	#[error(transparent)]
+	Cli(#[from] sc_cli::Error),
+
 	#[error(transparent)]
 	Io(#[from] std::io::Error),
 
@@ -134,6 +175,9 @@ pub enum Error {
 	#[cfg(feature = "full-node")]
 	#[error("Creating a custom database is required for validators")]
 	DatabasePathRequired,
+
+	#[error("Temporary error")]
+	Temp(String),
 }
 
 /// Can be called for a `Configuration` to identify which network the configuration targets.
@@ -243,11 +287,10 @@ fn new_partial<RuntimeApi, Executor>(
 	where
 		RuntimeApi: ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
 		RuntimeApi::RuntimeApi:
-		RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
+			MyRuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
 		Executor: NativeExecutionDispatch + 'static,
 {
 	set_prometheus_registry(config)?;
-
 
 	let telemetry = config.telemetry_endpoints.clone()
 		.filter(|x| !x.is_empty())
@@ -366,7 +409,8 @@ fn new_partial<RuntimeApi, Executor>(
 		move |deny_unsafe, subscription_executor: polkadot_rpc::SubscriptionTaskExecutor|
 			-> polkadot_rpc::RpcExtension
 		{
-			let deps = polkadot_rpc::FullDeps {
+			polkadot_rpc::RpcExtension::default()
+/*			let deps = polkadot_rpc::FullDeps {
 				client: client.clone(),
 				pool: transaction_pool.clone(),
 				select_chain: select_chain.clone(),
@@ -390,7 +434,7 @@ fn new_partial<RuntimeApi, Executor>(
 				},
 			};
 
-			polkadot_rpc::create_full(deps)
+			unimplemented!("TODO")// polkadot_rpc::create_full(deps)*/
 		}
 	};
 
@@ -469,7 +513,7 @@ async fn active_leaves<RuntimeApi, Executor>(
 where
 		RuntimeApi: ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
 		RuntimeApi::RuntimeApi:
-		RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
+			MyRuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
 		Executor: NativeExecutionDispatch + 'static,
 {
 	let best_block = select_chain.best_chain().await?;
@@ -529,7 +573,7 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 	where
 		RuntimeApi: ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
 		RuntimeApi::RuntimeApi:
-		RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
+			MyRuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
 		Executor: NativeExecutionDispatch + 'static,
 		OverseerGenerator: OverseerGen,
 {
@@ -824,7 +868,7 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 	};
 
 	// We currently only run the BEEFY gadget on the Rococo and Wococo testnets.
-	if !disable_beefy && (chain_spec.is_rococo() || chain_spec.is_wococo()) {
+/*	if !disable_beefy && (chain_spec.is_rococo() || chain_spec.is_wococo()) {
 		let beefy_params = beefy_gadget::BeefyParams {
 			client: client.clone(),
 			backend: backend.clone(),
@@ -846,7 +890,7 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 		} else {
 			task_manager.spawn_handle().spawn_blocking("beefy-gadget", gadget);
 		}
-	}
+	}*/
 
 	let config = grandpa::Config {
 		// FIXME substrate#1578 make this available through chainspec
@@ -936,194 +980,6 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 	})
 }
 
-/// Builds a new service for a light client.
-#[cfg(feature = "light-node")]
-fn new_light<Runtime, Dispatch>(mut config: Configuration) -> Result<(
-	TaskManager,
-	RpcHandlers,
-), Error>
-	where
-		Runtime: 'static + Send + Sync + ConstructRuntimeApi<Block, LightClient<Runtime, Dispatch>>,
-		<Runtime as ConstructRuntimeApi<Block, LightClient<Runtime, Dispatch>>>::RuntimeApi:
-		RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<LightBackend, Block>>,
-		Dispatch: NativeExecutionDispatch + 'static,
-{
-	set_prometheus_registry(&mut config)?;
-	use sc_client_api::backend::RemoteBackend;
-
-	let telemetry = config.telemetry_endpoints.clone()
-		.filter(|x| !x.is_empty())
-		.map(|endpoints| -> Result<_, telemetry::Error> {
-			let worker = TelemetryWorker::new(16)?;
-			let telemetry = worker.handle().new_telemetry(endpoints);
-			Ok((worker, telemetry))
-		})
-		.transpose()?;
-
-	let (client, backend, keystore_container, mut task_manager, on_demand) =
-		service::new_light_parts::<Block, Runtime, Dispatch>(
-			&config,
-			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
-		)?;
-
-	let mut telemetry = telemetry
-		.map(|(worker, telemetry)| {
-			task_manager.spawn_handle().spawn("telemetry", worker.run());
-			telemetry
-		});
-
-	config.network.extra_sets.push(grandpa::grandpa_peers_set_config());
-
-	let select_chain = sc_consensus::LongestChain::new(backend.clone());
-
-	let transaction_pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
-		config.transaction_pool.clone(),
-		config.prometheus_registry(),
-		task_manager.spawn_essential_handle(),
-		client.clone(),
-		on_demand.clone(),
-	));
-
-	let (grandpa_block_import, grandpa_link) = grandpa::block_import(
-		client.clone(),
-		&(client.clone() as Arc<_>),
-		select_chain.clone(),
-		telemetry.as_ref().map(|x| x.handle()),
-	)?;
-	let justification_import = grandpa_block_import.clone();
-
-	let (babe_block_import, babe_link) = babe::block_import(
-		babe::Config::get_or_compute(&*client)?,
-		grandpa_block_import,
-		client.clone(),
-	)?;
-
-	// FIXME: pruning task isn't started since light client doesn't do `AuthoritySetup`.
-	let slot_duration = babe_link.config().slot_duration();
-	let import_queue = babe::import_queue(
-		babe_link,
-		babe_block_import,
-		Some(Box::new(justification_import)),
-		client.clone(),
-		select_chain.clone(),
-		move |_, ()| async move {
-			let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-
-			let slot =
-				sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_duration(
-					*timestamp,
-					slot_duration,
-				);
-
-			Ok((timestamp, slot))
-		},
-		&task_manager.spawn_essential_handle(),
-		config.prometheus_registry(),
-		consensus_common::NeverCanAuthor,
-		telemetry.as_ref().map(|x| x.handle()),
-	)?;
-
-	let (network, system_rpc_tx, network_starter) =
-		service::build_network(service::BuildNetworkParams {
-			config: &config,
-			client: client.clone(),
-			transaction_pool: transaction_pool.clone(),
-			spawn_handle: task_manager.spawn_handle(),
-			import_queue,
-			on_demand: Some(on_demand.clone()),
-			block_announce_validator_builder: None,
-		})?;
-
-	let enable_grandpa = !config.disable_grandpa;
-	if enable_grandpa {
-		let name = config.network.node_name.clone();
-
-		let config = grandpa::Config {
-			gossip_duration: Duration::from_millis(1000),
-			justification_period: 512,
-			name: Some(name),
-			observer_enabled: false,
-			keystore: None,
-			local_role: config.role.clone(),
-			telemetry: telemetry.as_ref().map(|x| x.handle()),
-		};
-
-		task_manager.spawn_handle().spawn_blocking(
-			"grandpa-observer",
-			grandpa::run_grandpa_observer(config, grandpa_link, network.clone())?,
-		);
-	}
-
-	if config.offchain_worker.enabled {
-		let _ = service::build_offchain_workers(
-			&config,
-			task_manager.spawn_handle(),
-			client.clone(),
-			network.clone(),
-		);
-	}
-
-	let light_deps = polkadot_rpc::LightDeps {
-		remote_blockchain: backend.remote_blockchain(),
-		fetcher: on_demand.clone(),
-		client: client.clone(),
-		pool: transaction_pool.clone(),
-	};
-
-	let rpc_extensions = polkadot_rpc::create_light(light_deps);
-
-	let rpc_handlers = service::spawn_tasks(service::SpawnTasksParams {
-		on_demand: Some(on_demand),
-		remote_blockchain: Some(backend.remote_blockchain()),
-		rpc_extensions_builder: Box::new(service::NoopRpcExtensionBuilder(rpc_extensions)),
-		task_manager: &mut task_manager,
-		config,
-		keystore: keystore_container.sync_keystore(),
-		backend,
-		transaction_pool,
-		client,
-		network,
-		system_rpc_tx,
-		telemetry: telemetry.as_mut(),
-	})?;
-
-	network_starter.start_network();
-
-	Ok((task_manager, rpc_handlers))
-}
-
-/// Builds a new object suitable for chain operations.
-#[cfg(feature = "full-node")]
-pub fn new_chain_ops(
-	mut config: &mut Configuration,
-	jaeger_agent: Option<std::net::SocketAddr>,
-) -> Result<
-	(
-		Arc<Client>,
-		Arc<FullBackend>,
-		consensus_common::import_queue::BasicQueue<Block, PrefixedMemoryDB<BlakeTwo256>>,
-		TaskManager,
-	),
-	Error
->
-{
-	config.keystore = sc_service::config::KeystoreConfig::InMemory;
-
-	let sc_service::PartialComponents { client, backend, import_queue, task_manager, .. }
-		= new_partial::<relalto_runtime::RuntimeApi, RelaltoExecutor>(config, jaeger_agent, None)?;
-	Ok((Arc::new(client), backend, import_queue, task_manager))
-}
-
-
-/// Build a new light node.
-#[cfg(feature = "light-node")]
-pub fn build_light(config: Configuration) -> Result<(
-	TaskManager,
-	RpcHandlers,
-), Error> {
-	new_light::<relalto_runtime::RuntimeApi, RelaltoExecutor>(config)
-}
-
 #[cfg(feature = "full-node")]
 pub fn build_full(
 	config: Configuration,
@@ -1133,7 +989,7 @@ pub fn build_full(
 	jaeger_agent: Option<std::net::SocketAddr>,
 	telemetry_worker_handle: Option<TelemetryWorkerHandle>,
 	overseer_gen: impl OverseerGen,
-) -> Result<NewFull<Client>, Error> {
+) -> Result<NewFull<Arc<FullClient<relalto_runtime::RuntimeApi, RelaltoExecutor>>>, Error> {
 	new_full::<relalto_runtime::RuntimeApi, RelaltoExecutor, _>(
 		config,
 		is_collator,
@@ -1143,5 +999,5 @@ pub fn build_full(
 		telemetry_worker_handle,
 		None,
 		overseer_gen,
-	).map(|full| full.with_client(Client::Polkadot))
+	)
 }

@@ -23,6 +23,6 @@ mod cli;
 mod command;
 
 /// Run the Relalto Node
-fn main() -> sc_cli::Result<()> {
+fn main() -> Result<(), crate::service::Error> {
 	command::run()
 }

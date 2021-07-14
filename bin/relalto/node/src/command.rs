@@ -17,7 +17,7 @@
 use sc_cli::{SubstrateCli, RuntimeVersion, Role};
 use crate::cli::{Cli, Subcommand};
 use futures::future::TryFutureExt;
-
+/*
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
 	#[error(transparent)]
@@ -40,7 +40,7 @@ impl std::convert::From<String> for Error {
 }
 
 type Result<T> = std::result::Result<T, Error>;
-
+*/
 fn get_exec_name() -> Option<String> {
 	std::env::current_exe()
 		.ok()
@@ -80,14 +80,15 @@ impl SubstrateCli for Cli {
 }
 
 /// Parse and run command line arguments
-pub fn run() -> sc_cli::Result<()> {
+pub fn run() -> Result<(), crate::service::Error> {
 	let cli = Cli::from_args();
 	sp_core::crypto::set_default_ss58_version(sp_core::crypto::Ss58AddressFormat::Custom(
 		relalto_runtime::SS58Prefix::get() as u16,
 	));
 
-	match &cli.subcommand {
-		None => {
+/*	match &cli.subcommand {
+		_ => Err(crate::service::Error::Temp("InalidSubcommand".into())),
+		None => {*/
 			let jaeger_agent = None;
 			let runner = cli.create_runner(&cli.run)?;
 			let grandpa_pause = None;
@@ -96,7 +97,7 @@ pub fn run() -> sc_cli::Result<()> {
 			runner
 				.run_node_until_exit(|config| async move {
 					match config.role {
-						Role::Light => Err(Error::Other("Light client not enabled".into())),
+						Role::Light => Err(crate::service::Error::Temp("Light is not supported".into())),
 						_ => crate::service::build_full(
 							config,
 							crate::service::IsCollator::No,
@@ -108,7 +109,6 @@ pub fn run() -> sc_cli::Result<()> {
 						).map(|full| full.task_manager).map_err(Into::into),
 					}
 				})
-				.map_err(sc_cli::Error::Service)
-		}
-	}
+/*		}
+	}*/
 }

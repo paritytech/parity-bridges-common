@@ -8270,6 +8270,7 @@ dependencies = [
  "polkadot-runtime-parachains",
  "serde",
  "sp-api",
+ "sp-authority-discovery",
  "sp-block-builder",
  "sp-consensus-babe",
  "sp-core",
