@@ -94,7 +94,7 @@ impl TransactionSignScheme for Rialto {
 		let signer: sp_runtime::MultiSigner = signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		rialto_runtime::UncheckedExtrinsic::new_signed(call, signer.into_account(), signature.into(), extra)
+		rialto_runtime::UncheckedExtrinsic::new_signed(call, signer.into_account().into(), signature.into(), extra)
 	}
 }
 

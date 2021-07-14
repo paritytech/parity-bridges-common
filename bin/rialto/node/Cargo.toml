@@ -24,7 +24,6 @@ rialto-runtime = { path = "../runtime" }
 
 # Substrate Dependencies
 
-
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", branch = "master" }
 node-inspect = { git = "https://github.com/paritytech/substrate", branch = "master" }
@@ -42,6 +41,7 @@ sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-service = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-telemetry = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-authorship = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-consensus-babe = { git = "https://github.com/paritytech/substrate", branch = "master" }
@@ -51,6 +51,11 @@ sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "mast
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "master" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
+
+# Polkadot (parachain) Dependencies
+
+polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "master" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "master" }
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "master" }
