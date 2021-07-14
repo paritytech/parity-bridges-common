@@ -50,6 +50,7 @@ pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
+sp-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-consensus-babe = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
@@ -118,6 +119,7 @@ std = [
 	"polkadot-runtime-parachains/std",
 	"serde",
 	"sp-api/std",
+	"sp-authority-discovery/std",
 	"sp-block-builder/std",
 	"sp-consensus-babe/std",
 	"sp-core/std",

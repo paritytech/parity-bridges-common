@@ -21,9 +21,15 @@
 // Substrate commit: 3cd75117765c4a63d40c00aa41e1bf12135c237b
 // Substrate regex:  substrate\?branch\=master\#[^3]
 
-use crate::{AccountId, Balance, Balances, BlockNumber, Event, Origin, RandomnessCollectiveFlip, Runtime};
+// ws://127.0.0.1:11944
+// manual actions:
+// 1) reserve parachain id (2000 - registrar::reserve()): https://github.com/substrate-developer-hub/cumulus-workshop/blob/master/en/2-relay-chain/2-reserve.md
+// 2) register parathread (without auction/crowdloan): https://github.com/substrate-developer-hub/cumulus-workshop/blob/master/en/5-rococo-registration/1-register.md
+// 2) register parachain (option 2): https://github.com/substrate-developer-hub/cumulus-workshop/blob/master/en/3-parachains/2-register.md
 
-use frame_support::parameter_types;
+use crate::{AccountId, Balance, Balances, BlockNumber, Event, Origin, RandomnessCollectiveFlip, Registrar, Runtime, Slots};
+
+use frame_support::{parameter_types, weights::Weight};
 use frame_system::EnsureRoot;
 use polkadot_primitives::v1::ValidatorIndex;
 use polkadot_runtime_common::{paras_sudo_wrapper, paras_registrar, slots};
@@ -102,18 +108,7 @@ impl parachains_ump::Config for Runtime {
 	type FirstMessageFactorPercent = FirstMessageFactorPercent;
 }
 
-/*
-pallet_authority_discovery: parachains_session_info::Config
-*/
-
-
-
-
-
-
-
-/*
-impl paras_sudo_wrapper::Config for Runtime {}
+// onboarding
 
 parameter_types! {
 	pub const ParaDeposit: Balance = 0;
@@ -124,14 +119,14 @@ impl paras_registrar::Config for Runtime {
 	type Event = Event;
 	type Origin = Origin;
 	type Currency = Balances;
-	type OnSwap = ();
+	type OnSwap = (Slots);
 	type ParaDeposit = ParaDeposit;
 	type DataDepositPerByte = DataDepositPerByte;
-	type WeightInfo = ();
+	type WeightInfo = ZeroWeights;
 }
 
 parameter_types! {
-	pub const LeasePeriod: BlockNumber = 28 * bp_rialto::DAYS;
+	pub const LeasePeriod: BlockNumber = 10 * bp_rialto::MINUTES;
 }
 
 impl slots::Config for Runtime {
@@ -139,6 +134,24 @@ impl slots::Config for Runtime {
 	type Currency = Balances;
 	type Registrar = Registrar;
 	type LeasePeriod = LeasePeriod;
-	type WeightInfo = slots::TestWeightInfo;
+	type WeightInfo = ZeroWeights;
 }
-*/
+
+impl paras_sudo_wrapper::Config for Runtime {}
+
+pub struct ZeroWeights;
+
+impl polkadot_runtime_common::paras_registrar::WeightInfo for ZeroWeights {
+	fn reserve() -> Weight { 0 }
+	fn register() -> Weight { 0 }
+	fn force_register() -> Weight { 0 }
+	fn deregister() -> Weight { 0 }
+	fn swap() -> Weight { 0 }
+}
+
+impl polkadot_runtime_common::slots::WeightInfo for ZeroWeights {
+	fn force_lease() -> Weight { 0 }
+	fn manage_lease_period_start(_c: u32, _t: u32, ) -> Weight { 0 }
+	fn clear_all_leases() -> Weight { 0 }
+	fn trigger_onboard() -> Weight { 0 }
+}
