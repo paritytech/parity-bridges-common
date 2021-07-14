@@ -46,6 +46,8 @@ impl<T: Config> pallet_session::SessionManager<T::ValidatorId> for Pallet<T> {
 			return None;
 		}
 
+		log::info!(target: "runtime::bridge", "ShiftSessionManager::new_session({})", session_index);
+
 		// the idea that on first call (i.e. when session 1 ends) we're reading current
 		// set of validators from session module (they are initial validators) and save
 		// in our 'local storage'.

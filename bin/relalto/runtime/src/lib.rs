@@ -47,8 +47,9 @@ use codec::Decode;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
+use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::traits::{Block as BlockT, IdentityLookup, NumberFor, OpaqueKeys};
+use sp_runtime::traits::{AccountIdLookup, Block as BlockT, IdentityLookup, NumberFor, OpaqueKeys};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
@@ -130,6 +131,9 @@ impl_opaque_keys! {
 	pub struct SessionKeys {
 		pub babe: Babe,
 		pub grandpa: Grandpa,
+		pub para_validator: Initializer,
+		pub para_assignment: SessionInfo,
+		pub authority_discovery: AuthorityDiscovery,
 	}
 }
 
@@ -171,7 +175,7 @@ impl frame_system::Config for Runtime {
 	/// The aggregated dispatch type that is available for extrinsics.
 	type Call = Call;
 	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-	type Lookup = IdentityLookup<AccountId>;
+	type Lookup = AccountIdLookup<AccountId, ()>;
 	/// The index type for storing how many extrinsics an account has signed.
 	type Index = Index;
 	/// The index type for blocks.
@@ -570,14 +574,14 @@ construct_runtime!(
 		SessionInfo: polkadot_runtime_parachains::session_info::{Pallet, Call, Storage},
 
 		// Parachain Onboarding Pallets
-		//Registrar: polkadot_runtime_common::paras_registrar::{Pallet, Call, Storage, Event<T>},
-		//Slots: polkadot_runtime_common::slots::{Pallet, Call, Storage, Event<T>},
-		//ParasSudoWrapper: polkadot_runtime_common::paras_sudo_wrapper::{Pallet, Call},
+		Registrar: polkadot_runtime_common::paras_registrar::{Pallet, Call, Storage, Event<T>},
+		Slots: polkadot_runtime_common::slots::{Pallet, Call, Storage, Event<T>},
+		ParasSudoWrapper: polkadot_runtime_common::paras_sudo_wrapper::{Pallet, Call},
 	}
 );
 
 /// The address format for describing accounts.
-pub type Address = AccountId;
+pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, Hashing>;
 /// Block type as expected by this runtime.
@@ -600,8 +604,6 @@ pub type SignedExtra = (
 pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
-/// Extrinsic type that has already been checked.
-pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive =
 	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPallets>;
@@ -961,10 +963,8 @@ impl_runtime_apis! {
 	}
 
 	impl sp_authority_discovery::AuthorityDiscoveryApi<Block> for Runtime {
-		fn authorities() -> Vec<sp_authority_discovery::AuthorityId> {
-			// TODO: implement me
-			Vec::new()
-			//parachains_runtime_api_impl::relevant_authority_ids::<Runtime>()
+		fn authorities() -> Vec<AuthorityDiscoveryId> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::relevant_authority_ids::<Runtime>()
 		}
 	}
 

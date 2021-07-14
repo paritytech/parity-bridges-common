@@ -109,6 +109,7 @@ polkadot-node-core-bitfield-signing = { git = "https://github.com/paritytech/pol
 polkadot-node-core-candidate-validation = { git = "https://github.com/paritytech/polkadot", branch = "master", optional = true }
 polkadot-node-core-chain-api = { git = "https://github.com/paritytech/polkadot", branch = "master", optional = true }
 polkadot-node-core-provisioner = { git = "https://github.com/paritytech/polkadot", branch = "master", optional = true }
+polkadot-node-core-pvf = { git = "https://github.com/paritytech/polkadot", branch = "master", optional = true }
 polkadot-node-core-runtime-api = { git = "https://github.com/paritytech/polkadot", branch = "master", optional = true }
 polkadot-statement-distribution = { git = "https://github.com/paritytech/polkadot", branch = "master", optional = true }
 polkadot-approval-distribution = { git = "https://github.com/paritytech/polkadot", branch = "master", optional = true }
@@ -142,6 +143,7 @@ full-node = [
 	"polkadot-node-core-bitfield-signing",
 	"polkadot-node-core-candidate-validation",
 	"polkadot-node-core-chain-api",
+	"polkadot-node-core-pvf",
 	"polkadot-node-core-provisioner",
 	"polkadot-node-core-runtime-api",
 	"polkadot-statement-distribution",

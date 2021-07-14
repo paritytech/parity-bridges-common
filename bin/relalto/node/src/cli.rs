@@ -24,6 +24,14 @@ use structopt::StructOpt;
 pub enum Subcommand {
 	/// Build a chain specification.
 	BuildSpec(sc_cli::BuildSpecCmd),
+
+	#[allow(missing_docs)]
+	#[structopt(name = "prepare-worker", setting = structopt::clap::AppSettings::Hidden)]
+	PvfPrepareWorker(ValidationWorkerCommand),
+
+	#[allow(missing_docs)]
+	#[structopt(name = "execute-worker", setting = structopt::clap::AppSettings::Hidden)]
+	PvfExecuteWorker(ValidationWorkerCommand),
 }
 
 #[allow(missing_docs)]
@@ -33,4 +41,11 @@ pub struct Cli {
 	pub subcommand: Option<Subcommand>,
 	#[structopt(flatten)]
 	pub run: RunCmd,
+}
+
+#[allow(missing_docs)]
+#[derive(Debug, StructOpt)]
+pub struct ValidationWorkerCommand {
+	/// The path to the validation host's socket.
+	pub socket_path: String,
 }

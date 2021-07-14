@@ -5918,6 +5918,7 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "log",
  "pallet-session",
  "parity-scale-codec",
  "serde",
@@ -8167,6 +8168,7 @@ dependencies = [
  "polkadot-node-core-chain-api",
  "polkadot-node-core-parachains-inherent",
  "polkadot-node-core-provisioner",
+ "polkadot-node-core-pvf",
  "polkadot-node-core-runtime-api",
  "polkadot-node-primitives",
  "polkadot-node-subsystem",

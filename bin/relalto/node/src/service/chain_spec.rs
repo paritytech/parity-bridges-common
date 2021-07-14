@@ -20,10 +20,13 @@ use relalto_runtime::{
 	ParachainsConfigurationConfig, SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use serde_json::json;
+use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
+
+use polkadot_primitives::v1::{AssignmentId, ValidatorId};
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
@@ -57,11 +60,14 @@ where
 }
 
 /// Helper function to generate an authority key for Babe
-pub fn get_authority_keys_from_seed(s: &str) -> (AccountId, BabeId, GrandpaId) {
+pub fn get_authority_keys_from_seed(s: &str) -> (AccountId, BabeId, GrandpaId, ValidatorId, AssignmentId, AuthorityDiscoveryId) {
 	(
 		get_account_id_from_seed::<sr25519::Public>(s),
 		get_from_seed::<BabeId>(s),
 		get_from_seed::<GrandpaId>(s),
+		get_from_seed::<ValidatorId>(s),
+		get_from_seed::<AssignmentId>(s),
+		get_from_seed::<AuthorityDiscoveryId>(s),
 	)
 }
 
@@ -174,12 +180,18 @@ impl Alternative {
 	}
 }
 
-fn session_keys(babe: BabeId, grandpa: GrandpaId) -> SessionKeys {
-	SessionKeys { babe, grandpa }
+fn session_keys(
+	babe: BabeId,
+	grandpa: GrandpaId,
+	para_validator: ValidatorId,
+	para_assignment: AssignmentId,
+	authority_discovery: AuthorityDiscoveryId,
+) -> SessionKeys {
+	SessionKeys { babe, grandpa, para_validator, para_assignment, authority_discovery }
 }
 
 fn testnet_genesis(
-	initial_authorities: Vec<(AccountId, BabeId, GrandpaId)>,
+	initial_authorities: Vec<(AccountId, BabeId, GrandpaId, ValidatorId, AssignmentId, AuthorityDiscoveryId)>,
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool,
@@ -205,7 +217,7 @@ fn testnet_genesis(
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
-				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
+				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone(), x.3.clone(), x.4.clone(), x.5.clone())))
 				.collect::<Vec<_>>(),
 		},
 		authority_discovery: Default::default(),

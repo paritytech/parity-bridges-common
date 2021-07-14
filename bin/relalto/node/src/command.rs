@@ -92,6 +92,22 @@ pub fn run() -> Result<(), crate::service::Error> {
 				cmd.run(config.chain_spec, config.network)
 			})?)
 		},
+		Some(crate::cli::Subcommand::PvfPrepareWorker(cmd)) => {
+			let mut builder = sc_cli::LoggerBuilder::new("");
+			builder.with_colors(false);
+			let _ = builder.init();
+
+			polkadot_node_core_pvf::prepare_worker_entrypoint(&cmd.socket_path);
+			Ok(())
+		},
+		Some(crate::cli::Subcommand::PvfExecuteWorker(cmd)) => {
+			let mut builder = sc_cli::LoggerBuilder::new("");
+			builder.with_colors(false);
+			let _ = builder.init();
+
+			polkadot_node_core_pvf::execute_worker_entrypoint(&cmd.socket_path);
+			Ok(())
+		},
 		None => {
 			let jaeger_agent = None;
 			let runner = cli.create_runner(&cli.run)?;
