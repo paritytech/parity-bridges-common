@@ -18,7 +18,7 @@
 use std::sync::Arc;
 
 // Local Runtime Types
-use rialto_parachain_runtime::RuntimeApi;
+use relalto_parachain_runtime::RuntimeApi;
 
 // Cumulus Imports
 use cumulus_client_consensus_aura::{
@@ -53,8 +53,8 @@ type Hash = sp_core::H256;
 // Native executor instance.
 native_executor_instance!(
 	pub ParachainRuntimeExecutor,
-	rialto_parachain_runtime::api::dispatch,
-	rialto_parachain_runtime::native_version,
+	relalto_parachain_runtime::api::dispatch,
+	relalto_parachain_runtime::native_version,
 	frame_benchmarking::benchmarking::HostFunctions,
 );
 

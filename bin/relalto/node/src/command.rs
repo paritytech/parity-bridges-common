@@ -15,7 +15,6 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use sc_cli::{SubstrateCli, RuntimeVersion, Role};
-use crate::cli::{Cli, Subcommand};
 use futures::future::TryFutureExt;
 /*
 #[derive(thiserror::Error, Debug)]
@@ -48,7 +47,7 @@ fn get_exec_name() -> Option<String> {
 		.and_then(|s| s.into_string().ok())
 }
 
-impl SubstrateCli for Cli {
+impl SubstrateCli for crate::cli::Cli {
 	fn impl_name() -> String { "Parity Relalto".into() }
 
 	fn impl_version() -> String { env!("SUBSTRATE_CLI_IMPL_VERSION").into() }
@@ -81,14 +80,19 @@ impl SubstrateCli for Cli {
 
 /// Parse and run command line arguments
 pub fn run() -> Result<(), crate::service::Error> {
-	let cli = Cli::from_args();
+	let cli = crate::cli::Cli::from_args();
 	sp_core::crypto::set_default_ss58_version(sp_core::crypto::Ss58AddressFormat::Custom(
 		relalto_runtime::SS58Prefix::get() as u16,
 	));
 
-/*	match &cli.subcommand {
-		_ => Err(crate::service::Error::Temp("InalidSubcommand".into())),
-		None => {*/
+	match &cli.subcommand {
+		Some(crate::cli::Subcommand::BuildSpec(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			Ok(runner.sync_run(|config| {
+				cmd.run(config.chain_spec, config.network)
+			})?)
+		},
+		None => {
 			let jaeger_agent = None;
 			let runner = cli.create_runner(&cli.run)?;
 			let grandpa_pause = None;
@@ -109,6 +113,6 @@ pub fn run() -> Result<(), crate::service::Error> {
 						).map(|full| full.task_manager).map_err(Into::into),
 					}
 				})
-/*		}
-	}*/
+		}
+	}
 }

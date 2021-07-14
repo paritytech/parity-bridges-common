@@ -22,6 +22,8 @@ use structopt::StructOpt;
 #[allow(missing_docs)]
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
+	/// Build a chain specification.
+	BuildSpec(sc_cli::BuildSpecCmd),
 }
 
 #[allow(missing_docs)]

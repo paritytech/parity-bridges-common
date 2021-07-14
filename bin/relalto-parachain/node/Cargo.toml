@@ -1,5 +1,5 @@
 [package]
-name = "rialto-parachain-collator"
+name = "relalto-parachain-collator"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
@@ -11,11 +11,11 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
 [[bin]]
-name = 'rialto-parachain-collator'
+name = 'relalto-parachain-collator'
 
 [features]
 default = []
-runtime-benchmarks = ['rialto-parachain-runtime/runtime-benchmarks']
+runtime-benchmarks = ['relalto-parachain-runtime/runtime-benchmarks']
 
 [dependencies]
 derive_more = '0.99.2'
@@ -29,7 +29,7 @@ hex-literal = '0.3.1'
 jsonrpc-core = '15.1.0'
 
 # Local Dependencies
-rialto-parachain-runtime = { path = '../runtime' }
+relalto-parachain-runtime = { path = '../runtime' }
 
 # Substrate Dependencies
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master" }

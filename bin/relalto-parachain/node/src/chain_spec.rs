@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use cumulus_primitives_core::ParaId;
-use rialto_parachain_runtime::{AccountId, AuraId, Signature};
+use relalto_parachain_runtime::{AccountId, AuraId, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type ChainSpec = sc_service::GenericChainSpec<rialto_parachain_runtime::GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<relalto_parachain_runtime::GenesisConfig, Extensions>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -150,24 +150,24 @@ fn testnet_genesis(
 	initial_authorities: Vec<AuraId>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
-) -> rialto_parachain_runtime::GenesisConfig {
-	rialto_parachain_runtime::GenesisConfig {
-		system: rialto_parachain_runtime::SystemConfig {
-			code: rialto_parachain_runtime::WASM_BINARY
+) -> relalto_parachain_runtime::GenesisConfig {
+	relalto_parachain_runtime::GenesisConfig {
+		system: relalto_parachain_runtime::SystemConfig {
+			code: relalto_parachain_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
 			changes_trie_config: Default::default(),
 		},
-		balances: rialto_parachain_runtime::BalancesConfig {
+		balances: relalto_parachain_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
 				.map(|k| (k, 1 << 60))
 				.collect(),
 		},
-		sudo: rialto_parachain_runtime::SudoConfig { key: root_key },
-		parachain_info: rialto_parachain_runtime::ParachainInfoConfig { parachain_id: id },
-		aura: rialto_parachain_runtime::AuraConfig {
+		sudo: relalto_parachain_runtime::SudoConfig { key: root_key },
+		parachain_info: relalto_parachain_runtime::ParachainInfoConfig { parachain_id: id },
+		aura: relalto_parachain_runtime::AuraConfig {
 			authorities: initial_authorities,
 		},
 		aura_ext: Default::default(),
