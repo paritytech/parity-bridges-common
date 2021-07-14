@@ -19,11 +19,9 @@
 #![deny(unused_results)]
 
 pub mod chain_spec;
-//mod grandpa_support;
-mod parachains_db;
-//mod relay_chain_selection;
 
 mod overseer;
+mod parachains_db;
 
 pub use self::overseer::{
 	OverseerGen,
@@ -334,18 +332,12 @@ fn new_partial<RuntimeApi, Executor>(
 		client.clone(),
 	);
 
-	let grandpa_hard_forks = /*if config.chain_spec.is_kusama() {
-		grandpa_support::kusama_hard_forks()
-	} else {*/
-		Vec::new()
-	/*}*/;
-
 	let (grandpa_block_import, grandpa_link) =
 		grandpa::block_import_with_authority_set_hard_forks(
 			client.clone(),
 			&(client.clone() as Arc<_>),
 			select_chain.clone(),
-			grandpa_hard_forks,
+			Vec::new(),
 			telemetry.as_ref().map(|x| x.handle()),
 		)?;
 
@@ -405,36 +397,45 @@ fn new_partial<RuntimeApi, Executor>(
 		let transaction_pool = transaction_pool.clone();
 		let select_chain = select_chain.clone();
 		let chain_spec = config.chain_spec.cloned_box();
+		let backend = backend.clone();
 
 		move |deny_unsafe, subscription_executor: polkadot_rpc::SubscriptionTaskExecutor|
 			-> polkadot_rpc::RpcExtension
 		{
-			polkadot_rpc::RpcExtension::default()
-/*			let deps = polkadot_rpc::FullDeps {
-				client: client.clone(),
-				pool: transaction_pool.clone(),
-				select_chain: select_chain.clone(),
-				chain_spec: chain_spec.cloned_box(),
-				deny_unsafe,
-				babe: polkadot_rpc::BabeDeps {
-					babe_config: babe_config.clone(),
-					shared_epoch_changes: shared_epoch_changes.clone(),
-					keystore: keystore.clone(),
-				},
-				grandpa: polkadot_rpc::GrandpaDeps {
-					shared_voter_state: shared_voter_state.clone(),
-					shared_authority_set: shared_authority_set.clone(),
-					justification_stream: justification_stream.clone(),
-					subscription_executor: subscription_executor.clone(),
-					finality_provider: finality_proof_provider.clone(),
-				},
-				beefy: polkadot_rpc::BeefyDeps {
-					beefy_commitment_stream: beefy_commitment_stream.clone(),
-					subscription_executor,
-				},
-			};
+			use grandpa::FinalityProofProvider as GrandpaFinalityProofProvider;
 
-			unimplemented!("TODO")// polkadot_rpc::create_full(deps)*/
+			use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+			use sc_finality_grandpa_rpc::{GrandpaApi, GrandpaRpcHandler};
+			use sc_rpc::DenyUnsafe;
+			use substrate_frame_rpc_system::{FullSystem, SystemApi};
+
+			let backend = backend.clone();
+			let client = client.clone();
+			let pool = transaction_pool.clone();
+
+			let shared_voter_state = shared_voter_state.clone();
+
+			let finality_proof_provider =
+				GrandpaFinalityProofProvider::new_for_service(backend, Some(shared_authority_set.clone()));
+
+			let mut io = jsonrpc_core::IoHandler::default();
+			io.extend_with(SystemApi::to_delegate(FullSystem::new(
+				client.clone(),
+				pool.clone(),
+				DenyUnsafe::No,
+			)));
+			io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
+				client.clone(),
+			)));
+			io.extend_with(GrandpaApi::to_delegate(GrandpaRpcHandler::new(
+				shared_authority_set.clone(),
+				shared_voter_state.clone(),
+				justification_stream.clone(),
+				subscription_executor,
+				finality_proof_provider.clone(),
+			)));
+
+			io
 		}
 	};
 
@@ -867,31 +868,6 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 		None
 	};
 
-	// We currently only run the BEEFY gadget on the Rococo and Wococo testnets.
-/*	if !disable_beefy && (chain_spec.is_rococo() || chain_spec.is_wococo()) {
-		let beefy_params = beefy_gadget::BeefyParams {
-			client: client.clone(),
-			backend: backend.clone(),
-			key_store: keystore_opt.clone(),
-			network: network.clone(),
-			signed_commitment_sender: beefy_link,
-			min_block_delta: if chain_spec.is_wococo() { 4 } else { 8 },
-			prometheus_registry: prometheus_registry.clone(),
-		};
-
-		let gadget = beefy_gadget::start_beefy_gadget::<_, _, _, _>(
-			beefy_params
-		);
-
-		// Wococo's purpose is to be a testbed for BEEFY, so if it fails we'll
-		// bring the node down with it to make sure it is noticed.
-		if chain_spec.is_wococo() {
-			task_manager.spawn_essential_handle().spawn_blocking("beefy-gadget", gadget);
-		} else {
-			task_manager.spawn_handle().spawn_blocking("beefy-gadget", gadget);
-		}
-	}*/
-
 	let config = grandpa::Config {
 		// FIXME substrate#1578 make this available through chainspec
 		gossip_duration: Duration::from_millis(1000),
@@ -935,23 +911,7 @@ pub fn new_full<RuntimeApi, Executor, OverseerGenerator>(
 			builder
 		};
 
-		let voting_rule = match grandpa_pause {
-			Some((block, delay)) => {
-				/*info!(
-					block_number = %block,
-					delay = %delay,
-					"GRANDPA scheduled voting pause set for block #{} with a duration of {} blocks.",
-					block,
-					delay,
-				);*/
-
-				builder
-					//.add(grandpa_support::PauseAfterBlockFor(block, delay))
-					.build()
-			}
-			None => builder.build(),
-		};
-
+		let voting_rule = builder.build();
 		let grandpa_config = grandpa::GrandpaParams {
 			config,
 			link: link_half,

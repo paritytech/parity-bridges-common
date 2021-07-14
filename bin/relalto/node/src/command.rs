@@ -16,30 +16,7 @@
 
 use sc_cli::{SubstrateCli, RuntimeVersion, Role};
 use futures::future::TryFutureExt;
-/*
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-	#[error(transparent)]
-	PolkadotService(#[from] crate::service::Error),
 
-	#[error(transparent)]
-	SubstrateCli(#[from] sc_cli::Error),
-
-	#[error(transparent)]
-	SubstrateService(sc_service::Error),
-
-	#[error("Other: {0}")]
-	Other(String),
-}
-
-impl std::convert::From<String> for Error {
-	fn from(s: String) -> Self {
-		Self::Other(s)
-	}
-}
-
-type Result<T> = std::result::Result<T, Error>;
-*/
 fn get_exec_name() -> Option<String> {
 	std::env::current_exe()
 		.ok()
