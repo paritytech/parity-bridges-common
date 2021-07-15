@@ -96,7 +96,7 @@ clippy-nightly:
   variables:
     RUSTFLAGS:                     "-D warnings"
   script:
-    - cargo +nightly clippy --all-targets
+    - cargo +nightly clippy --all-targets -- -A clippy::nonstandard_macro_braces
   # FIXME: remove when all the warns are fixed
   allow_failure:                   true
 
