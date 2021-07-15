@@ -22,7 +22,7 @@
 //! 2) add `declare_bridge_options!(...)` for the bridge;
 //! 3) add bridge support to the `select_bridge! { ... }` macro.
 
-use crate::cli::{CliChain, HexLaneId, PrometheusParams};
+use crate::cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams};
 use crate::declare_chain_options;
 use crate::messages_lane::MessagesRelayParams;
 use crate::on_demand_headers::OnDemandHeadersRelay;
@@ -31,6 +31,7 @@ use futures::{FutureExt, TryFutureExt};
 use relay_substrate_client::Chain;
 use relay_utils::metrics::MetricsParams;
 use structopt::StructOpt;
+use strum::VariantNames;
 
 /// Start headers+messages relayer process.
 #[derive(StructOpt)]
@@ -45,6 +46,8 @@ pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
 	#[structopt(long, default_value = "00000000")]
 	lane: Vec<HexLaneId>,
+	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
+	relayer_mode: RelayerMode,
 	#[structopt(flatten)]
 	prometheus_params: PrometheusParams,
 }
@@ -159,6 +162,7 @@ impl RelayHeadersAndMessages {
 			let right_sign = params.right_sign.to_keypair::<Right>()?;
 
 			let lanes = params.shared.lane;
+			let relayer_mode = params.shared.relayer_mode.into();
 
 			const METRIC_IS_SOME_PROOF: &str = "it is `None` when metric has been already registered; \
 				this is the command entrypoint, so nothing has been registered yet; \
@@ -228,6 +232,7 @@ impl RelayHeadersAndMessages {
 					source_to_target_headers_relay: Some(left_to_right_on_demand_headers.clone()),
 					target_to_source_headers_relay: Some(right_to_left_on_demand_headers.clone()),
 					lane_id: lane,
+					relayer_mode,
 					metrics_params: metrics_params.clone().disable().metrics_prefix(
 						messages_relay::message_lane_loop::metrics_prefix::<LeftToRightMessages>(&lane),
 					),
@@ -242,6 +247,7 @@ impl RelayHeadersAndMessages {
 					source_to_target_headers_relay: Some(right_to_left_on_demand_headers.clone()),
 					target_to_source_headers_relay: Some(left_to_right_on_demand_headers.clone()),
 					lane_id: lane,
+					relayer_mode,
 					metrics_params: metrics_params.clone().disable().metrics_prefix(
 						messages_relay::message_lane_loop::metrics_prefix::<RightToLeftMessages>(&lane),
 					),
