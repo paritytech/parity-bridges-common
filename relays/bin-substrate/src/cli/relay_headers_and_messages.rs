@@ -33,6 +33,14 @@ use relay_utils::metrics::MetricsParams;
 use structopt::StructOpt;
 use strum::VariantNames;
 
+/// Maximal allowed conversion rate error ratio (|real - stored| / stored) that we allow.
+///
+/// If it is zero, then transaction will be submitted every time we see difference between
+/// stored and real conversion rates. If it is large enough (e.g. > than 10%, which is 0.1),
+/// then rational relayers may stop relaying messages because they were submitted using
+/// lesser conversion rate.
+const CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO: f64 = 0.05;
+
 /// Start headers+messages relayer process.
 #[derive(StructOpt)]
 pub enum RelayHeadersAndMessages {
@@ -212,7 +220,7 @@ impl RelayHeadersAndMessages {
 						.source_to_base_conversion_rate
 						.clone()
 						.expect(METRIC_IS_SOME_PROOF),
-					0.0,
+					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 					move |new_rate| {
 						log::info!(
 							target: "bridge",
@@ -242,7 +250,7 @@ impl RelayHeadersAndMessages {
 					left_to_right_metrics
 						.target_to_base_conversion_rate
 						.expect(METRIC_IS_SOME_PROOF),
-					0.01,
+					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 					move |new_rate| {
 						log::info!(
 							target: "bridge",
