@@ -32,6 +32,10 @@ LARGE_MESSAGES_TIME=0
 # start sending message packs in a hour
 BUNCH_OF_MESSAGES_TIME=3600
 
+# give conversion rate updater some time to update Millau->Rialto conversion rate in Rialto
+# (initially rate=1 and rational relayer won't deliver any messages if it'll be changed to larger value)
+sleep 60
+
 while true
 do
 	rand_sleep
