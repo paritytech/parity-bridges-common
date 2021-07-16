@@ -223,9 +223,6 @@ pub(crate) fn add_standalone_metrics(
 	metrics_params: MetricsParams,
 	source_client: Client<Millau>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
-	// Millau/Rialto tokens have no any value, so the conversion rate is always 1:1. But we want to test our
-	// conversion rate update mechanism. So to keep it close to 1:1, we'll be treating Rialto as BTC and Millau
-	// as wBTC.
 	crate::messages_lane::add_standalone_metrics::<MillauMessagesToRialto>(
 		metrics_prefix,
 		metrics_params,
@@ -237,4 +234,33 @@ pub(crate) fn add_standalone_metrics(
 			millau_runtime::rialto_messages::INITIAL_RIALTO_TO_MILLAU_CONVERSION_RATE,
 		)),
 	)
+}
+
+/// Update Rialto -> Millau conversion rate, stored in Millau runtime storage.
+pub(crate) async fn update_rialto_to_millau_conversion_rate(
+	client: Client<Millau>,
+	signer: <Millau as TransactionSignScheme>::AccountKeyPair,
+	updated_rate: f64,
+) -> anyhow::Result<()> {
+	let signer_id = (*signer.public().as_array_ref()).into();
+	client
+		.submit_signed_extrinsic(signer_id, |transaction_nonce| {
+			Bytes(
+				Millau::sign_transaction(
+					*client.genesis_hash(),
+					&signer,
+					transaction_nonce,
+					millau_runtime::MessagesCall::update_pallet_parameter(
+						millau_runtime::rialto_messages::MillauToRialtoMessagesParameter::RialtoToMillauConversionRate(
+							sp_runtime::FixedU128::from_float(updated_rate),
+						),
+					)
+					.into(),
+				)
+				.encode(),
+			)
+		})
+		.await
+		.map(drop)
+		.map_err(|err| anyhow::format_err!("{:?}", err))
 }

@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use relay_utils::metrics::F64SharedRef;
-use std::time::Duration;
+use std::{future::Future, time::Duration};
 
 /// Duration between updater wakeups.
 const SLEEP_DURATION: Duration = Duration::from_secs(60);
@@ -32,12 +32,14 @@ enum TransactionStatus {
 /// Run infinite conversion rate updater loop.
 ///
 /// The loop is maintaining the Left -> Right conversion rate, used as `RightTokens = LeftTokens * Rate`.
-pub fn run_conversion_rate_update_loop(
+pub fn run_conversion_rate_update_loop<
+	SubmitConversionRateFuture: Future<Output = anyhow::Result<()>> + Send + 'static,
+>(
 	left_to_right_stored_conversion_rate: F64SharedRef,
 	left_to_base_conversion_rate: F64SharedRef,
 	right_to_base_conversion_rate: F64SharedRef,
 	max_difference_ratio: f64,
-	submit_conversion_rate: impl Fn(f64) -> Result<(), String> + Send + 'static,
+	submit_conversion_rate: impl Fn(f64) -> SubmitConversionRateFuture + Send + 'static,
 ) {
 	async_std::task::spawn(async move {
 		let mut transaction_status = TransactionStatus::Idle;
@@ -49,10 +51,17 @@ pub fn run_conversion_rate_update_loop(
 				&left_to_base_conversion_rate,
 				&right_to_base_conversion_rate,
 				max_difference_ratio,
-			).await;
+			)
+			.await;
 			if let Some((prev_conversion_rate, new_conversion_rate)) = maybe_new_conversion_rate {
-				if submit_conversion_rate(new_conversion_rate).is_ok() {
-					transaction_status = TransactionStatus::Submitted(prev_conversion_rate);
+				let submit_conversion_rate_future = submit_conversion_rate(new_conversion_rate);
+				match submit_conversion_rate_future.await {
+					Ok(()) => {
+						transaction_status = TransactionStatus::Submitted(prev_conversion_rate);
+					}
+					Err(error) => {
+						log::trace!(target: "bridge", "Failed to submit conversion rate update transaction: {:?}", error);
+					}
 				}
 			}
 		}
@@ -81,7 +90,7 @@ async fn maybe_select_new_conversion_rate(
 			}
 
 			*transaction_status = TransactionStatus::Idle;
-		},
+		}
 	}
 
 	let left_to_base_conversion_rate = (*left_to_base_conversion_rate.read().await)?;
@@ -94,13 +103,16 @@ async fn maybe_select_new_conversion_rate(
 		return None;
 	}
 
-	Some((left_to_right_stored_conversion_rate, actual_left_to_right_conversion_rate))
+	Some((
+		left_to_right_stored_conversion_rate,
+		actual_left_to_right_conversion_rate,
+	))
 }
 
 #[cfg(test)]
 mod tests {
-	use async_std::sync::{Arc, RwLock};
 	use super::*;
+	use async_std::sync::{Arc, RwLock};
 
 	fn test_maybe_select_new_conversion_rate(
 		mut transaction_status: TransactionStatus,
@@ -125,7 +137,13 @@ mod tests {
 	#[test]
 	fn rate_is_not_updated_when_transaction_is_submitted() {
 		assert_eq!(
-			test_maybe_select_new_conversion_rate(TransactionStatus::Submitted(10.0), Some(10.0), Some(1.0), Some(1.0), 0.0),
+			test_maybe_select_new_conversion_rate(
+				TransactionStatus::Submitted(10.0),
+				Some(10.0),
+				Some(1.0),
+				Some(1.0),
+				0.0
+			),
 			(None, TransactionStatus::Submitted(10.0)),
 		);
 	}
@@ -133,7 +151,13 @@ mod tests {
 	#[test]
 	fn transaction_state_is_changed_to_idle_when_stored_rate_shanges() {
 		assert_eq!(
-			test_maybe_select_new_conversion_rate(TransactionStatus::Submitted(1.0), Some(10.0), Some(1.0), Some(1.0), 100.0),
+			test_maybe_select_new_conversion_rate(
+				TransactionStatus::Submitted(1.0),
+				Some(10.0),
+				Some(1.0),
+				Some(1.0),
+				100.0
+			),
 			(None, TransactionStatus::Idle),
 		);
 	}

@@ -20,7 +20,9 @@ use crate::client::Client;
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use codec::Decode;
-use relay_utils::metrics::{metric_name, register, F64SharedRef, Gauge, PrometheusError, Registry, StandaloneMetrics, F64};
+use relay_utils::metrics::{
+	metric_name, register, F64SharedRef, Gauge, PrometheusError, Registry, StandaloneMetrics, F64,
+};
 use sp_core::storage::StorageKey;
 use sp_runtime::{traits::UniqueSaturatedInto, FixedPointNumber};
 use std::time::Duration;
@@ -81,8 +83,7 @@ where
 			.await
 			.map(|maybe_storage_value| {
 				maybe_storage_value.or(self.maybe_default_value).map(|storage_value| {
-					storage_value.into_inner().unique_saturated_into() as f64
-						/ T::DIV.unique_saturated_into() as f64
+					storage_value.into_inner().unique_saturated_into() as f64 / T::DIV.unique_saturated_into() as f64
 				})
 			})
 			.map_err(drop);

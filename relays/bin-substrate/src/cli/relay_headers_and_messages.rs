@@ -28,7 +28,7 @@ use crate::messages_lane::MessagesRelayParams;
 use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use futures::{FutureExt, TryFutureExt};
-use relay_substrate_client::Chain;
+use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
 use structopt::StructOpt;
 use strum::VariantNames;
@@ -68,9 +68,13 @@ macro_rules! declare_bridge_options {
 				#[structopt(flatten)]
 				left_sign: [<$chain1 SigningParams>],
 				#[structopt(flatten)]
+				left_messages_pallet_owner: [<$chain1 MessagesPalletOwnerSigningParams>],
+				#[structopt(flatten)]
 				right: [<$chain2 ConnectionParams>],
 				#[structopt(flatten)]
 				right_sign: [<$chain2 SigningParams>],
+				#[structopt(flatten)]
+				right_messages_pallet_owner: [<$chain2 MessagesPalletOwnerSigningParams>],
 			}
 
 			#[allow(unreachable_patterns)]
@@ -106,9 +110,11 @@ macro_rules! select_bridge {
 
 				use crate::chains::millau_messages_to_rialto::{
 					add_standalone_metrics as add_left_to_right_standalone_metrics, run as left_to_right_messages,
+					update_rialto_to_millau_conversion_rate as update_right_to_left_conversion_rate,
 				};
 				use crate::chains::rialto_messages_to_millau::{
 					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
+					update_millau_to_rialto_conversion_rate as update_left_to_right_conversion_rate,
 				};
 
 				$generic
@@ -135,6 +141,22 @@ macro_rules! select_bridge {
 					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
 				};
 
+				async fn update_right_to_left_conversion_rate(
+					_client: Client<Left>,
+					_signer: <Left as TransactionSignScheme>::AccountKeyPair,
+					_updated_rate: f64,
+				) -> anyhow::Result<()> {
+					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
+				}
+
+				async fn update_left_to_right_conversion_rate(
+					_client: Client<Right>,
+					_signer: <Right as TransactionSignScheme>::AccountKeyPair,
+					_updated_rate: f64,
+				) -> anyhow::Result<()> {
+					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
+				}
+
 				$generic
 			}
 		}
@@ -158,8 +180,10 @@ impl RelayHeadersAndMessages {
 
 			let left_client = params.left.to_client::<Left>().await?;
 			let left_sign = params.left_sign.to_keypair::<Left>()?;
+			let left_messages_pallet_owner = params.left_messages_pallet_owner.to_keypair::<Left>()?;
 			let right_client = params.right.to_client::<Right>().await?;
 			let right_sign = params.right_sign.to_keypair::<Right>()?;
+			let right_messages_pallet_owner = params.right_messages_pallet_owner.to_keypair::<Right>()?;
 
 			let lanes = params.shared.lane;
 			let relayer_mode = params.shared.relayer_mode.into();
@@ -170,42 +194,72 @@ impl RelayHeadersAndMessages {
 
 			let metrics_params: MetricsParams = params.shared.prometheus_params.into();
 			let metrics_params = relay_utils::relay_metrics(None, metrics_params).into_params();
-			let (metrics_params, left_to_right_metrics) = add_left_to_right_standalone_metrics(None, metrics_params, left_client.clone())?;
-			let (metrics_params, right_to_left_metrics) = add_right_to_left_standalone_metrics(None, metrics_params, right_client.clone())?;
-			crate::conversion_rate_update::run_conversion_rate_update_loop(
-				left_to_right_metrics.target_to_source_conversion_rate.expect(METRIC_IS_SOME_PROOF),
-				left_to_right_metrics.target_to_base_conversion_rate.clone().expect(METRIC_IS_SOME_PROOF),
-				left_to_right_metrics.source_to_base_conversion_rate.clone().expect(METRIC_IS_SOME_PROOF),
-				0.0,
-				|new_rate| {
-					log::info!(
-						target: "bridge",
-						"Going to update {} -> {} (on {}) conversion rate to {}.",
-						Right::NAME,
-						Left::NAME,
-						Left::NAME,
-						new_rate,
-					);
-					Ok(())
-				},
-			);
-			crate::conversion_rate_update::run_conversion_rate_update_loop(
-				right_to_left_metrics.target_to_source_conversion_rate.expect(METRIC_IS_SOME_PROOF),
-				left_to_right_metrics.source_to_base_conversion_rate.expect(METRIC_IS_SOME_PROOF),
-				left_to_right_metrics.target_to_base_conversion_rate.expect(METRIC_IS_SOME_PROOF),
-				0.01,
-				|new_rate| {
-					log::info!(
-						target: "bridge",
-						"Going to update {} -> {} (on {}) conversion rate to {}.",
-						Left::NAME,
-						Right::NAME,
-						Right::NAME,
-						new_rate,
-					);
-					Ok(())
-				},
-			);
+			let (metrics_params, left_to_right_metrics) =
+				add_left_to_right_standalone_metrics(None, metrics_params, left_client.clone())?;
+			let (metrics_params, right_to_left_metrics) =
+				add_right_to_left_standalone_metrics(None, metrics_params, right_client.clone())?;
+			if let Some(left_messages_pallet_owner) = left_messages_pallet_owner {
+				let left_client = left_client.clone();
+				crate::conversion_rate_update::run_conversion_rate_update_loop(
+					left_to_right_metrics
+						.target_to_source_conversion_rate
+						.expect(METRIC_IS_SOME_PROOF),
+					left_to_right_metrics
+						.target_to_base_conversion_rate
+						.clone()
+						.expect(METRIC_IS_SOME_PROOF),
+					left_to_right_metrics
+						.source_to_base_conversion_rate
+						.clone()
+						.expect(METRIC_IS_SOME_PROOF),
+					0.0,
+					move |new_rate| {
+						log::info!(
+							target: "bridge",
+							"Going to update {} -> {} (on {}) conversion rate to {}.",
+							Right::NAME,
+							Left::NAME,
+							Left::NAME,
+							new_rate,
+						);
+						update_right_to_left_conversion_rate(
+							left_client.clone(),
+							left_messages_pallet_owner.clone(),
+							new_rate,
+						)
+					},
+				);
+			}
+			if let Some(right_messages_pallet_owner) = right_messages_pallet_owner {
+				let right_client = right_client.clone();
+				crate::conversion_rate_update::run_conversion_rate_update_loop(
+					right_to_left_metrics
+						.target_to_source_conversion_rate
+						.expect(METRIC_IS_SOME_PROOF),
+					left_to_right_metrics
+						.source_to_base_conversion_rate
+						.expect(METRIC_IS_SOME_PROOF),
+					left_to_right_metrics
+						.target_to_base_conversion_rate
+						.expect(METRIC_IS_SOME_PROOF),
+					0.01,
+					move |new_rate| {
+						log::info!(
+							target: "bridge",
+							"Going to update {} -> {} (on {}) conversion rate to {}.",
+							Left::NAME,
+							Right::NAME,
+							Right::NAME,
+							new_rate,
+						);
+						update_left_to_right_conversion_rate(
+							right_client.clone(),
+							right_messages_pallet_owner.clone(),
+							new_rate,
+						)
+					},
+				);
+			}
 
 			let left_to_right_on_demand_headers = OnDemandHeadersRelay::new(
 				left_client.clone(),
