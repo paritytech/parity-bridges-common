@@ -280,9 +280,7 @@ where
 				pool,
 				deny_unsafe,
 			)));
-			io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
-				client,
-			)));
+			io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(client)));
 			io.extend_with(GrandpaApi::to_delegate(GrandpaRpcHandler::new(
 				shared_authority_set.clone(),
 				shared_voter_state,
