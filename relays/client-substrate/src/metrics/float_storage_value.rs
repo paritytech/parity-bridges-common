@@ -57,7 +57,7 @@ impl<C: Chain, T: Decode + FixedPointNumber> FloatStorageValueMetric<C, T> {
 			storage_key,
 			maybe_default_value,
 			metric: register(Gauge::new(metric_name(prefix, &name), help)?, registry)?,
-			shared_value_ref: shared_value_ref.clone(),
+			shared_value_ref,
 		})
 	}
 
@@ -87,7 +87,7 @@ where
 				})
 			})
 			.map_err(drop);
-		relay_utils::metrics::set_gauge_value(&self.metric, value.clone());
+		relay_utils::metrics::set_gauge_value(&self.metric, value);
 		*self.shared_value_ref.write().await = value.ok().and_then(|x| x);
 	}
 }
