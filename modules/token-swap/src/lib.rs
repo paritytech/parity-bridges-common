@@ -431,17 +431,21 @@ pub mod pallet {
 	pub type PendingMessages<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, MessageNonce, H256>;
 
 	impl<T: Config<I>, I: 'static> OnDeliveryConfirmed for Pallet<T, I> {
-		fn on_messages_delivered(lane: &LaneId, delivered_messages: &DeliveredMessages) {
+		fn on_messages_delivered(lane: &LaneId, delivered_messages: &DeliveredMessages) -> Weight {
 			// we're only interested in our lane messages
 			if *lane != T::OutboundMessageLaneId::get() {
-				return;
+				return 0;
 			}
 
 			// so now we're dealing with our lane messages. Ideally we'll have dedicated lane
 			// and every message from `delivered_messages` is actually our transfer message.
 			// But it may be some shared lane (which is not recommended).
+			let mut reads = 0;
+			let mut writes = 0;
 			for message_nonce in delivered_messages.begin..=delivered_messages.end {
+				reads += 1;
 				if let Some(swap_hash) = PendingMessages::<T, I>::take(message_nonce) {
+					writes += 1;
 					PendingSwaps::<T, I>::insert(
 						swap_hash,
 						if delivered_messages.message_dispatch_result(message_nonce) {
@@ -452,6 +456,8 @@ pub mod pallet {
 					);
 				}
 			}
+
+			<T as frame_system::Config>::DbWeight::get().reads_writes(reads, writes)
 		}
 	}
 
