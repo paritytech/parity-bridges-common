@@ -83,6 +83,10 @@ async fn maybe_select_new_conversion_rate(
 			// we can't compare float values from different sources directly, so we only care whether the
 			// stored rate has been changed or not. If it has been changed, then we assume that our proposal
 			// has been accepted.
+			//
+			// float comparison is ok here, because we compare same-origin (stored in runtime storage) values
+			// and if they are different, it means that the value has actually been updated
+			#[allow(clippy::float_cmp)]
 			if previous_left_to_right_stored_conversion_rate == left_to_right_stored_conversion_rate {
 				// the rate has not been changed => we won't submit any transactions until it is accepted,
 				// or the rate is changed by someone else
