@@ -295,7 +295,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		let slot_duration = babe_link.config().slot_duration();
 		let babe_config = sc_consensus_babe::BabeParams {
 			keystore: keystore_container.sync_keystore(),
-			client: client.clone(),
+			client,
 			select_chain,
 			env: proposer,
 			block_import: babe_block_import,
