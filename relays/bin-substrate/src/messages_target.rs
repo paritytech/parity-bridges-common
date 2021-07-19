@@ -18,26 +18,28 @@
 //! runtime that implements `<BridgedChainName>HeaderApi` to allow bridging with
 //! <BridgedName> chain.
 
-use crate::messages_lane::SubstrateMessageLane;
-use crate::messages_source::read_client_state;
+use crate::messages_lane::{StandaloneMessagesMetrics, SubstrateMessageLane};
+use crate::messages_source::{read_client_state, SubstrateMessagesProof};
 use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::ChainId;
-use bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof;
+use bridge_runtime_common::messages::{
+	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
+};
 use codec::{Decode, Encode};
 use frame_support::{traits::Instance, weights::Weight};
 use messages_relay::{
 	message_lane::{SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{TargetClient, TargetClientState},
 };
-use pallet_bridge_messages::Config as MessagesConfig;
+use num_traits::{Bounded, Zero};
 use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf};
-use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase};
+use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
-use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
-use std::{marker::PhantomData, ops::RangeInclusive};
+use sp_runtime::{traits::Header as HeaderT, DeserializeOwned, FixedPointNumber, FixedU128};
+use std::{convert::TryFrom, marker::PhantomData, ops::RangeInclusive};
 
 /// Message receiving proof returned by the target Substrate node.
 pub type SubstrateMessagesReceivingProof<C> = (
@@ -46,42 +48,46 @@ pub type SubstrateMessagesReceivingProof<C> = (
 );
 
 /// Substrate client as Substrate messages target.
-pub struct SubstrateMessagesTarget<C: Chain, P: SubstrateMessageLane, R, I> {
-	client: Client<C>,
+pub struct SubstrateMessagesTarget<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> {
+	client: Client<TC>,
 	lane: P,
 	lane_id: LaneId,
 	instance: ChainId,
-	source_to_target_headers_relay: Option<OnDemandHeadersRelay<P::SourceChain>>,
-	_phantom: PhantomData<(R, I)>,
+	metric_values: StandaloneMessagesMetrics,
+	source_to_target_headers_relay: Option<OnDemandHeadersRelay<SC>>,
+	_phantom: PhantomData<I>,
 }
 
-impl<C: Chain, P: SubstrateMessageLane, R, I> SubstrateMessagesTarget<C, P, R, I> {
+impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> SubstrateMessagesTarget<SC, TC, P, I> {
 	/// Create new Substrate headers target.
 	pub fn new(
-		client: Client<C>,
+		client: Client<TC>,
 		lane: P,
 		lane_id: LaneId,
 		instance: ChainId,
-		source_to_target_headers_relay: Option<OnDemandHeadersRelay<P::SourceChain>>,
+		metric_values: StandaloneMessagesMetrics,
+		source_to_target_headers_relay: Option<OnDemandHeadersRelay<SC>>,
 	) -> Self {
 		SubstrateMessagesTarget {
 			client,
 			lane,
 			lane_id,
 			instance,
+			metric_values,
 			source_to_target_headers_relay,
 			_phantom: Default::default(),
 		}
 	}
 }
 
-impl<C: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMessagesTarget<C, P, R, I> {
+impl<SC: Chain, TC: Chain, P: SubstrateMessageLane, I> Clone for SubstrateMessagesTarget<SC, TC, P, I> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client.clone(),
 			lane: self.lane.clone(),
 			lane_id: self.lane_id,
 			instance: self.instance,
+			metric_values: self.metric_values.clone(),
 			source_to_target_headers_relay: self.source_to_target_headers_relay.clone(),
 			_phantom: Default::default(),
 		}
@@ -89,11 +95,11 @@ impl<C: Chain, P: SubstrateMessageLane, R, I> Clone for SubstrateMessagesTarget<
 }
 
 #[async_trait]
-impl<C, P, R, I> RelayClient for SubstrateMessagesTarget<C, P, R, I>
+impl<SC, TC, P, I> RelayClient for SubstrateMessagesTarget<SC, TC, P, I>
 where
-	C: Chain,
+	SC: Chain,
+	TC: Chain,
 	P: SubstrateMessageLane,
-	R: 'static + Send + Sync,
 	I: Send + Sync + Instance,
 {
 	type Error = SubstrateError;
@@ -104,22 +110,24 @@ where
 }
 
 #[async_trait]
-impl<C, P, R, I> TargetClient<P> for SubstrateMessagesTarget<C, P, R, I>
+impl<SC, TC, P, I> TargetClient<P> for SubstrateMessagesTarget<SC, TC, P, I>
 where
-	C: Chain,
-	C::Header: DeserializeOwned,
-	C::Index: DeserializeOwned,
-	<C::Header as HeaderT>::Number: BlockNumberBase,
+	SC: Chain<Hash = P::SourceHeaderHash, BlockNumber = P::SourceHeaderNumber, Balance = P::SourceChainBalance>,
+	SC::Balance: TryFrom<TC::Balance> + Bounded,
+	TC: Chain<Hash = P::TargetHeaderHash, BlockNumber = P::TargetHeaderNumber>,
+	TC::Hash: Copy,
+	TC::BlockNumber: Copy,
+	TC::Header: DeserializeOwned,
+	TC::Index: DeserializeOwned,
+	<TC::Header as HeaderT>::Number: BlockNumberBase,
 	P: SubstrateMessageLane<
-		TargetChain = C,
-		MessagesReceivingProof = SubstrateMessagesReceivingProof<C>,
-		TargetHeaderNumber = <C::Header as HeaderT>::Number,
-		TargetHeaderHash = <C::Header as HeaderT>::Hash,
+		MessagesProof = SubstrateMessagesProof<SC>,
+		MessagesReceivingProof = SubstrateMessagesReceivingProof<TC>,
+		SourceChain = SC,
+		TargetChain = TC,
 	>,
-	P::SourceChain: Chain<Hash = P::SourceHeaderHash, BlockNumber = P::SourceHeaderNumber>,
 	P::SourceHeaderNumber: Decode,
 	P::SourceHeaderHash: Decode,
-	R: Send + Sync + MessagesConfig<I>,
 	I: Send + Sync + Instance,
 {
 	async fn state(&self) -> Result<TargetClientState<P>, SubstrateError> {
@@ -190,7 +198,7 @@ where
 		id: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, P::MessagesReceivingProof), SubstrateError> {
 		let (id, relayers_state) = self.unrewarded_relayers_state(id).await?;
-		let inbound_data_key = pallet_bridge_messages::storage_keys::inbound_lane_data_key::<R, I>(&self.lane_id);
+		let inbound_data_key = pallet_bridge_messages::storage_keys::inbound_lane_data_key::<I>(&self.lane_id);
 		let proof = self
 			.client
 			.prove_storage(vec![inbound_data_key], id.1)
@@ -232,10 +240,110 @@ where
 
 	async fn estimate_delivery_transaction_in_source_tokens(
 		&self,
-		_nonces: RangeInclusive<MessageNonce>,
-		_total_dispatch_weight: Weight,
-		_total_size: u32,
-	) -> P::SourceChainBalance {
-		num_traits::Zero::zero() // TODO: https://github.com/paritytech/parity-bridges-common/issues/997
+		nonces: RangeInclusive<MessageNonce>,
+		total_dispatch_weight: Weight,
+		total_size: u32,
+	) -> Result<P::SourceChainBalance, SubstrateError> {
+		let conversion_rate = self
+			.metric_values
+			.target_to_source_conversion_rate()
+			.await
+			.ok_or_else(|| {
+				SubstrateError::Custom(format!(
+					"Failed to compute conversion rate from {} to {}",
+					TC::NAME,
+					SC::NAME,
+				))
+			})?;
+		log::trace!(
+			target: "bridge",
+			"Using conversion rate {} when converting from {} tokens to {} tokens",
+			conversion_rate,
+			TC::NAME,
+			SC::NAME
+		);
+		Ok(convert_target_tokens_to_source_tokens::<SC, TC>(
+			FixedU128::from_float(conversion_rate),
+			self.client
+				.estimate_extrinsic_fee(self.lane.make_messages_delivery_transaction(
+					Zero::zero(),
+					HeaderId(Default::default(), Default::default()),
+					nonces.clone(),
+					prepare_dummy_messages_proof::<SC>(nonces, total_dispatch_weight, total_size),
+				))
+				.await
+				.unwrap_or_else(|_| TC::Balance::max_value()),
+		))
+	}
+}
+
+/// Prepare 'dummy' messages proof that will compose the delivery transaction.
+///
+/// We don't care about proof actually being the valid proof, because its validity doesn't
+/// affect the call weight - we only care about its size.
+fn prepare_dummy_messages_proof<SC: Chain>(
+	nonces: RangeInclusive<MessageNonce>,
+	total_dispatch_weight: Weight,
+	total_size: u32,
+) -> SubstrateMessagesProof<SC> {
+	(
+		total_dispatch_weight,
+		FromBridgedChainMessagesProof {
+			bridged_header_hash: Default::default(),
+			storage_proof: vec![vec![0; SC::STORAGE_PROOF_OVERHEAD.saturating_add(total_size) as usize]],
+			lane: Default::default(),
+			nonces_start: *nonces.start(),
+			nonces_end: *nonces.end(),
+		},
+	)
+}
+
+/// Given delivery transaction fee in target chain tokens and conversion rate to the source
+/// chain tokens, compute transaction cost in source chain tokens.
+fn convert_target_tokens_to_source_tokens<SC: Chain, TC: Chain>(
+	target_to_source_conversion_rate: FixedU128,
+	target_transaction_fee: TC::Balance,
+) -> SC::Balance
+where
+	SC::Balance: TryFrom<TC::Balance>,
+{
+	SC::Balance::try_from(target_to_source_conversion_rate.saturating_mul_int(target_transaction_fee))
+		.unwrap_or_else(|_| SC::Balance::max_value())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use relay_millau_client::Millau;
+	use relay_rialto_client::Rialto;
+
+	#[test]
+	fn prepare_dummy_messages_proof_works() {
+		const DISPATCH_WEIGHT: Weight = 1_000_000;
+		const SIZE: u32 = 1_000;
+		let dummy_proof = prepare_dummy_messages_proof::<Rialto>(1..=10, DISPATCH_WEIGHT, SIZE);
+		assert_eq!(dummy_proof.0, DISPATCH_WEIGHT);
+		assert!(
+			dummy_proof.1.encode().len() as u32 > SIZE,
+			"Expected proof size at least {}. Got: {}",
+			SIZE,
+			dummy_proof.1.encode().len(),
+		);
+	}
+
+	#[test]
+	fn convert_target_tokens_to_source_tokens_works() {
+		assert_eq!(
+			convert_target_tokens_to_source_tokens::<Rialto, Millau>((150, 100).into(), 1_000),
+			1_500
+		);
+		assert_eq!(
+			convert_target_tokens_to_source_tokens::<Rialto, Millau>((50, 100).into(), 1_000),
+			500
+		);
+		assert_eq!(
+			convert_target_tokens_to_source_tokens::<Rialto, Millau>((100, 100).into(), 1_000),
+			1_000
+		);
 	}
 }

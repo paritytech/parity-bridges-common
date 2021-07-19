@@ -19,11 +19,13 @@
 use crate::cli::{
 	bridge,
 	encode_call::{self, Call, CliEncodeCall},
-	encode_message, send_message, CliChain,
+	encode_message,
+	send_message::{self, DispatchFeePayment},
+	CliChain,
 };
 use bp_message_dispatch::{CallOrigin, MessagePayload};
 use codec::Decode;
-use frame_support::weights::{GetDispatchInfo, Weight};
+use frame_support::weights::{DispatchInfo, GetDispatchInfo, Weight};
 use relay_rialto_client::Rialto;
 use sp_version::RuntimeVersion;
 
@@ -60,6 +62,10 @@ impl CliEncodeCall for Rialto {
 			},
 		})
 	}
+
+	fn get_dispatch_info(call: &rialto_runtime::Call) -> anyhow::Result<DispatchInfo> {
+		Ok(call.get_dispatch_info())
+	}
 }
 
 impl CliChain for Rialto {
@@ -91,7 +97,13 @@ impl CliChain for Rialto {
 				let call = Target::encode_call(&call).map_err(|e| e.to_string())?;
 				let weight = call.get_dispatch_info().weight;
 
-				Ok(send_message::message_payload(spec_version, weight, origin, &call))
+				Ok(send_message::message_payload(
+					spec_version,
+					weight,
+					origin,
+					&call,
+					DispatchFeePayment::AtSourceChain,
+				))
 			}
 		}
 	}

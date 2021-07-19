@@ -76,7 +76,7 @@ pub struct MessageProofParams {
 	pub outbound_lane_data: Option<OutboundLaneData>,
 	/// Proof size requirements.
 	pub size: ProofSize,
-	/// If true, dispatch fee is paid at the target chain (if supported by configuration).
+	/// Where the fee for dispatching message is paid?
 	pub dispatch_fee_payment: DispatchFeePayment,
 }
 
@@ -904,7 +904,7 @@ fn confirm_message_delivery<T: Config<I>, I: Instance>(nonce: MessageNonce) {
 		});
 	}
 	assert!(matches!(
-		outbound_lane.confirm_delivery(nonce, &relayers),
+		outbound_lane.confirm_delivery(nonce - latest_received_nonce, nonce, &relayers),
 		ReceivalConfirmationResult::ConfirmedMessages(_),
 	));
 }

@@ -36,7 +36,7 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 	type TargetChain = Wococo;
 
 	fn customize_metrics(params: MetricsParams) -> anyhow::Result<MetricsParams> {
-		crate::chains::add_polkadot_kusama_price_metrics::<Self>(params)
+		crate::chains::add_polkadot_kusama_price_metrics::<Self>(Some(finality_relay::metrics_prefix::<Self>()), params)
 	}
 
 	fn start_relay_guards(&self) {
@@ -61,10 +61,9 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 		header: RococoSyncHeader,
 		proof: GrandpaJustification<bp_rococo::Header>,
 	) -> Bytes {
-		let call = bp_wococo::Call::BridgeGrandpaRococo(bp_wococo::BridgeGrandpaRococoCall::submit_finality_proof(
-			header.into_inner(),
-			proof,
-		));
+		let call = relay_wococo_client::runtime::Call::BridgeGrandpaRococo(
+			relay_wococo_client::runtime::BridgeGrandpaRococoCall::submit_finality_proof(header.into_inner(), proof),
+		);
 		let genesis_hash = *self.target_client.genesis_hash();
 		let transaction = Wococo::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
 

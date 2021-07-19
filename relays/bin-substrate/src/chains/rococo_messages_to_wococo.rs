@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Rialto-to-Millau messages sync entrypoint.
+//! Rococo-to-Wococo messages sync entrypoint.
 
 use crate::messages_lane::{
 	select_delivery_transaction_limits, MessagesRelayParams, StandaloneMessagesMetrics, SubstrateMessageLane,
@@ -24,74 +24,75 @@ use crate::messages_source::SubstrateMessagesSource;
 use crate::messages_target::SubstrateMessagesTarget;
 
 use bp_messages::MessageNonce;
-use bp_runtime::{MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
+use bp_runtime::{ROCOCO_CHAIN_ID, WOCOCO_CHAIN_ID};
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::Encode;
-use frame_support::dispatch::GetDispatchInfo;
 use messages_relay::message_lane::MessageLane;
-use relay_millau_client::{HeaderId as MillauHeaderId, Millau, SigningParams as MillauSigningParams};
-use relay_rialto_client::{HeaderId as RialtoHeaderId, Rialto, SigningParams as RialtoSigningParams};
+use relay_rococo_client::{HeaderId as RococoHeaderId, Rococo, SigningParams as RococoSigningParams};
 use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
+use relay_wococo_client::{HeaderId as WococoHeaderId, SigningParams as WococoSigningParams, Wococo};
 use sp_core::{Bytes, Pair};
 use std::{ops::RangeInclusive, time::Duration};
 
-/// Rialto-to-Millau message lane.
-pub type RialtoMessagesToMillau =
-	SubstrateMessageLaneToSubstrate<Rialto, RialtoSigningParams, Millau, MillauSigningParams>;
+/// Rococo-to-Wococo message lane.
+pub type RococoMessagesToWococo =
+	SubstrateMessageLaneToSubstrate<Rococo, RococoSigningParams, Wococo, WococoSigningParams>;
 
-impl SubstrateMessageLane for RialtoMessagesToMillau {
-	const OUTBOUND_LANE_MESSAGE_DETAILS_METHOD: &'static str = bp_millau::TO_MILLAU_MESSAGE_DETAILS_METHOD;
+impl SubstrateMessageLane for RococoMessagesToWococo {
+	const OUTBOUND_LANE_MESSAGE_DETAILS_METHOD: &'static str = bp_wococo::TO_WOCOCO_MESSAGE_DETAILS_METHOD;
 	const OUTBOUND_LANE_LATEST_GENERATED_NONCE_METHOD: &'static str =
-		bp_millau::TO_MILLAU_LATEST_GENERATED_NONCE_METHOD;
-	const OUTBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_millau::TO_MILLAU_LATEST_RECEIVED_NONCE_METHOD;
+		bp_wococo::TO_WOCOCO_LATEST_GENERATED_NONCE_METHOD;
+	const OUTBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_wococo::TO_WOCOCO_LATEST_RECEIVED_NONCE_METHOD;
 
-	const INBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_rialto::FROM_RIALTO_LATEST_RECEIVED_NONCE_METHOD;
+	const INBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_rococo::FROM_ROCOCO_LATEST_RECEIVED_NONCE_METHOD;
 	const INBOUND_LANE_LATEST_CONFIRMED_NONCE_METHOD: &'static str =
-		bp_rialto::FROM_RIALTO_LATEST_CONFIRMED_NONCE_METHOD;
-	const INBOUND_LANE_UNREWARDED_RELAYERS_STATE: &'static str = bp_rialto::FROM_RIALTO_UNREWARDED_RELAYERS_STATE;
+		bp_rococo::FROM_ROCOCO_LATEST_CONFIRMED_NONCE_METHOD;
+	const INBOUND_LANE_UNREWARDED_RELAYERS_STATE: &'static str = bp_rococo::FROM_ROCOCO_UNREWARDED_RELAYERS_STATE;
 
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_rialto::BEST_FINALIZED_RIALTO_HEADER_METHOD;
-	const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str = bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;
+	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
+	const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str = bp_wococo::BEST_FINALIZED_WOCOCO_HEADER_METHOD;
 
-	type SourceChain = Rialto;
-	type TargetChain = Millau;
+	type SourceChain = Rococo;
+	type TargetChain = Wococo;
 
-	fn source_transactions_author(&self) -> bp_rialto::AccountId {
+	fn source_transactions_author(&self) -> bp_rococo::AccountId {
 		(*self.source_sign.public().as_array_ref()).into()
 	}
 
 	fn make_messages_receiving_proof_transaction(
 		&self,
-		transaction_nonce: <Rialto as Chain>::Index,
-		_generated_at_block: MillauHeaderId,
+		transaction_nonce: <Rococo as Chain>::Index,
+		_generated_at_block: WococoHeaderId,
 		proof: <Self as MessageLane>::MessagesReceivingProof,
 	) -> Bytes {
 		let (relayers_state, proof) = proof;
-		let call: rialto_runtime::Call =
-			rialto_runtime::MessagesCall::receive_messages_delivery_proof(proof, relayers_state).into();
-		let call_weight = call.get_dispatch_info().weight;
+		let call = relay_rococo_client::runtime::Call::BridgeMessagesWococo(
+			relay_rococo_client::runtime::BridgeMessagesWococoCall::receive_messages_delivery_proof(
+				proof,
+				relayers_state,
+			),
+		);
 		let genesis_hash = *self.source_client.genesis_hash();
-		let transaction = Rialto::sign_transaction(genesis_hash, &self.source_sign, transaction_nonce, call);
+		let transaction = Rococo::sign_transaction(genesis_hash, &self.source_sign, transaction_nonce, call);
 		log::trace!(
 			target: "bridge",
-			"Prepared Millau -> Rialto confirmation transaction. Weight: {}/{}, size: {}/{}",
-			call_weight,
-			bp_rialto::max_extrinsic_weight(),
+			"Prepared Wococo -> Rococo confirmation transaction. Weight: <unknown>/{}, size: {}/{}",
+			bp_rococo::max_extrinsic_weight(),
 			transaction.encode().len(),
-			bp_rialto::max_extrinsic_size(),
+			bp_rococo::max_extrinsic_size(),
 		);
 		Bytes(transaction.encode())
 	}
 
-	fn target_transactions_author(&self) -> bp_millau::AccountId {
+	fn target_transactions_author(&self) -> bp_wococo::AccountId {
 		(*self.target_sign.public().as_array_ref()).into()
 	}
 
 	fn make_messages_delivery_transaction(
 		&self,
-		transaction_nonce: <Millau as Chain>::Index,
-		_generated_at_header: RialtoHeaderId,
+		transaction_nonce: <Wococo as Chain>::Index,
+		_generated_at_header: RococoHeaderId,
 		_nonces: RangeInclusive<MessageNonce>,
 		proof: <Self as MessageLane>::MessagesProof,
 	) -> Bytes {
@@ -102,65 +103,79 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 			..
 		} = proof;
 		let messages_count = nonces_end - nonces_start + 1;
-		let call: millau_runtime::Call = millau_runtime::MessagesCall::receive_messages_proof(
-			self.relayer_id_at_source.clone(),
-			proof,
-			messages_count as _,
-			dispatch_weight,
-		)
-		.into();
-		let call_weight = call.get_dispatch_info().weight;
+
+		let call = relay_wococo_client::runtime::Call::BridgeMessagesRococo(
+			relay_wococo_client::runtime::BridgeMessagesRococoCall::receive_messages_proof(
+				self.relayer_id_at_source.clone(),
+				proof,
+				messages_count as _,
+				dispatch_weight,
+			),
+		);
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
+		let transaction = Wococo::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
 		log::trace!(
 			target: "bridge",
-			"Prepared Rialto -> Millau delivery transaction. Weight: {}/{}, size: {}/{}",
-			call_weight,
-			bp_millau::max_extrinsic_weight(),
+			"Prepared Rococo -> Wococo delivery transaction. Weight: <unknown>/{}, size: {}/{}",
+			bp_wococo::max_extrinsic_weight(),
 			transaction.encode().len(),
-			bp_millau::max_extrinsic_size(),
+			bp_wococo::max_extrinsic_size(),
 		);
 		Bytes(transaction.encode())
 	}
 }
 
-/// Rialto node as messages source.
-type RialtoSourceClient =
-	SubstrateMessagesSource<Rialto, Millau, RialtoMessagesToMillau, rialto_runtime::WithMillauMessagesInstance>;
+/// Rococo node as messages source.
+type RococoSourceClient = SubstrateMessagesSource<
+	Rococo,
+	Wococo,
+	RococoMessagesToWococo,
+	relay_rococo_client::runtime::WithWococoMessagesInstance,
+>;
 
-/// Millau node as messages target.
-type MillauTargetClient =
-	SubstrateMessagesTarget<Rialto, Millau, RialtoMessagesToMillau, millau_runtime::WithRialtoMessagesInstance>;
+/// Wococo node as messages target.
+type WococoTargetClient = SubstrateMessagesTarget<
+	Rococo,
+	Wococo,
+	RococoMessagesToWococo,
+	relay_wococo_client::runtime::WithRococoMessagesInstance,
+>;
 
-/// Run Rialto-to-Millau messages sync.
+/// Run Rococo-to-Wococo messages sync.
 pub async fn run(
-	params: MessagesRelayParams<Rialto, RialtoSigningParams, Millau, MillauSigningParams>,
+	params: MessagesRelayParams<Rococo, RococoSigningParams, Wococo, WococoSigningParams>,
 ) -> anyhow::Result<()> {
 	let stall_timeout = Duration::from_secs(5 * 60);
-	let relayer_id_at_rialto = (*params.source_sign.public().as_array_ref()).into();
+	let relayer_id_at_rococo = (*params.source_sign.public().as_array_ref()).into();
 
 	let lane_id = params.lane_id;
 	let source_client = params.source_client;
-	let lane = RialtoMessagesToMillau {
+	let lane = RococoMessagesToWococo {
 		source_client: source_client.clone(),
 		source_sign: params.source_sign,
 		target_client: params.target_client.clone(),
 		target_sign: params.target_sign,
-		relayer_id_at_source: relayer_id_at_rialto,
+		relayer_id_at_source: relayer_id_at_rococo,
 	};
 
 	// 2/3 is reserved for proofs and tx overhead
-	let max_messages_size_in_single_batch = bp_millau::max_extrinsic_size() / 3;
+	let max_messages_size_in_single_batch = bp_wococo::max_extrinsic_size() / 3;
+	// we don't know exact weights of the Wococo runtime. So to guess weights we'll be using
+	// weights from Rialto and then simply dividing it by x2.
 	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
 		select_delivery_transaction_limits::<pallet_bridge_messages::weights::RialtoWeight<rialto_runtime::Runtime>>(
-			bp_millau::max_extrinsic_weight(),
-			bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
+			bp_wococo::max_extrinsic_weight(),
+			bp_wococo::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
 		);
+	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) = (
+		max_messages_in_single_batch / 2,
+		max_messages_weight_in_single_batch / 2,
+	);
 
 	log::info!(
 		target: "bridge",
-		"Starting Rialto -> Millau messages relay.\n\t\
-			Rialto relayer account id: {:?}\n\t\
+		"Starting Rococo -> Wococo messages relay.\n\t\
+			Rococo relayer account id: {:?}\n\t\
 			Max messages in single transaction: {}\n\t\
 			Max messages size in single transaction: {}\n\t\
 			Max messages weight in single transaction: {}\n\t\
@@ -174,7 +189,7 @@ pub async fn run(
 
 	let (metrics_params, metrics_values) = add_standalone_metrics(
 		Some(messages_relay::message_lane_loop::metrics_prefix::<
-			RialtoMessagesToMillau,
+			RococoMessagesToWococo,
 		>(&lane_id)),
 		params.metrics_params,
 		source_client.clone(),
@@ -182,31 +197,31 @@ pub async fn run(
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
 			lane: lane_id,
-			source_tick: Rialto::AVERAGE_BLOCK_INTERVAL,
-			target_tick: Millau::AVERAGE_BLOCK_INTERVAL,
+			source_tick: Rococo::AVERAGE_BLOCK_INTERVAL,
+			target_tick: Wococo::AVERAGE_BLOCK_INTERVAL,
 			reconnect_delay: relay_utils::relay_loop::RECONNECT_DELAY,
 			stall_timeout,
 			delivery_params: messages_relay::message_lane_loop::MessageDeliveryParams {
-				max_unrewarded_relayer_entries_at_target: bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
-				max_unconfirmed_nonces_at_target: bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+				max_unrewarded_relayer_entries_at_target: bp_wococo::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
+				max_unconfirmed_nonces_at_target: bp_wococo::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
 				relayer_mode: params.relayer_mode,
 			},
 		},
-		RialtoSourceClient::new(
+		RococoSourceClient::new(
 			source_client.clone(),
 			lane.clone(),
 			lane_id,
-			MILLAU_CHAIN_ID,
+			WOCOCO_CHAIN_ID,
 			params.target_to_source_headers_relay,
 		),
-		MillauTargetClient::new(
+		WococoTargetClient::new(
 			params.target_client,
 			lane,
 			lane_id,
-			RIALTO_CHAIN_ID,
+			ROCOCO_CHAIN_ID,
 			metrics_values,
 			params.source_to_target_headers_relay,
 		),
@@ -216,21 +231,18 @@ pub async fn run(
 	.await
 }
 
-/// Add standalone metrics for the Rialto -> Millau messages loop.
+/// Add standalone metrics for the Rococo -> Wococo messages loop.
 pub(crate) fn add_standalone_metrics(
 	metrics_prefix: Option<String>,
 	metrics_params: MetricsParams,
-	source_client: Client<Rialto>,
+	source_client: Client<Rococo>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
-	crate::messages_lane::add_standalone_metrics::<RialtoMessagesToMillau>(
+	crate::messages_lane::add_standalone_metrics::<RococoMessagesToWococo>(
 		metrics_prefix,
 		metrics_params,
 		source_client,
-		Some(crate::chains::RIALTO_ASSOCIATED_TOKEN_ID),
-		Some(crate::chains::MILLAU_ASSOCIATED_TOKEN_ID),
-		Some((
-			sp_core::storage::StorageKey(rialto_runtime::millau_messages::MillauToRialtoConversionRate::key().to_vec()),
-			rialto_runtime::millau_messages::INITIAL_MILLAU_TO_RIALTO_CONVERSION_RATE,
-		)),
+		None,
+		None,
+		None,
 	)
 }

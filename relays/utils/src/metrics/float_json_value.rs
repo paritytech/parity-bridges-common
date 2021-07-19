@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::metrics::{metric_name, register, Gauge, PrometheusError, Registry, StandaloneMetrics, F64};
+use crate::metrics::{metric_name, register, F64SharedRef, Gauge, PrometheusError, Registry, StandaloneMetrics, F64};
 
+use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use std::time::Duration;
 
@@ -23,11 +24,15 @@ use std::time::Duration;
 const UPDATE_INTERVAL: Duration = Duration::from_secs(60);
 
 /// Metric that represents float value received from HTTP service as float gauge.
+///
+/// The float value returned by the service is assumed to be normal (`f64::is_normal`
+/// should return `true`) and strictly positive.
 #[derive(Debug, Clone)]
 pub struct FloatJsonValueMetric {
 	url: String,
 	json_path: String,
 	metric: Gauge<F64>,
+	shared_value_ref: F64SharedRef,
 }
 
 impl FloatJsonValueMetric {
@@ -40,11 +45,18 @@ impl FloatJsonValueMetric {
 		name: String,
 		help: String,
 	) -> Result<Self, PrometheusError> {
+		let shared_value_ref = Arc::new(RwLock::new(None));
 		Ok(FloatJsonValueMetric {
 			url,
 			json_path,
 			metric: register(Gauge::new(metric_name(prefix, &name), help)?, registry)?,
+			shared_value_ref,
 		})
+	}
+
+	/// Get shared reference to metric value.
+	pub fn shared_value_ref(&self) -> F64SharedRef {
+		self.shared_value_ref.clone()
 	}
 
 	/// Read value from HTTP service.
@@ -79,7 +91,9 @@ impl StandaloneMetrics for FloatJsonValueMetric {
 	}
 
 	async fn update(&self) {
-		crate::metrics::set_gauge_value(&self.metric, self.read_value().await.map(Some));
+		let value = self.read_value().await;
+		crate::metrics::set_gauge_value(&self.metric, value.clone().map(Some));
+		*self.shared_value_ref.write().await = value.ok();
 	}
 }
 
@@ -103,6 +117,12 @@ fn parse_service_response(json_path: &str, response: &str) -> Result<f64, String
 		.first()
 		.and_then(|v| v.as_f64())
 		.ok_or_else(|| format!("Missing required value from response: {:?}", response,))?;
+	if !selected_value.is_normal() || selected_value < 0.0 {
+		return Err(format!(
+			"Failed to parse float value {:?} from response. It is assumed to be positive and normal",
+			selected_value,
+		));
+	}
 
 	Ok(selected_value)
 }
@@ -117,5 +137,20 @@ mod tests {
 			parse_service_response("$.kusama.usd", r#"{"kusama":{"usd":433.05}}"#).map_err(drop),
 			Ok(433.05),
 		);
+	}
+
+	#[test]
+	fn parse_service_response_rejects_negative_numbers() {
+		assert!(parse_service_response("$.kusama.usd", r#"{"kusama":{"usd":-433.05}}"#).is_err());
+	}
+
+	#[test]
+	fn parse_service_response_rejects_zero_numbers() {
+		assert!(parse_service_response("$.kusama.usd", r#"{"kusama":{"usd":0.0}}"#).is_err());
+	}
+
+	#[test]
+	fn parse_service_response_rejects_nan() {
+		assert!(parse_service_response("$.kusama.usd", r#"{"kusama":{"usd":NaN}}"#).is_err());
 	}
 }

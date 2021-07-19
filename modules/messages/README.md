@@ -159,7 +159,7 @@ all required traits and will simply reject all transactions, related to outbound
 
 The `pallet_bridge_messages::Config` trait has 2 main associated types that are used to work with
 inbound messages. The `pallet_bridge_messages::Config::SourceHeaderChain` defines how we see the
-bridged chain as the source or our inbound messages. When relayer sends us a  delivery transaction,
+bridged chain as the source or our inbound messages. When relayer sends us a delivery transaction,
 this implementation must be able to parse and verify the proof of messages wrapped in this
 transaction. Normally, you would reuse the same (configurable) type on all chains that are sending
 messages to the same bridged chain.
@@ -201,7 +201,7 @@ message needs to be read. So there's another
 When choosing values for these parameters, you must also keep in mind that if proof in your scheme
 is based on finality of headers (and it is the most obvious option for Substrate-based chains with
 finality notion), then choosing too small values for these parameters may cause significant delays
-in message delivery. That's because there too many actors involved in this scheme: 1) authorities
+in message delivery. That's because there are too many actors involved in this scheme: 1) authorities
 that are finalizing headers of the target chain need to finalize header with non-empty map; 2) the
 headers relayer then needs to submit this header and its finality proof to the source chain; 3) the
 messages relayer must then send confirmation transaction (storage proof of this map) to the source
@@ -354,7 +354,7 @@ Both conditions are verified by `pallet_bridge_messages::ensure_weights_are_corr
 `pallet_bridge_messages::ensure_able_to_receive_messages` functions, which must be called from every
 runtime's tests.
 
-### Post-dispatch weight refunds of the `receive_messages_proof` call
+#### Post-dispatch weight refunds of the `receive_messages_proof` call
 
 Weight formula of the `receive_messages_proof` call assumes that the dispatch fee of every message is
 paid at the target chain (where call is executed), that every message will be dispatched and that
@@ -388,6 +388,7 @@ The weight formula is:
 Weight = BaseWeight + MessagesCount * MessageConfirmationWeight
        + RelayersCount * RelayerRewardWeight
        + Max(0, ActualProofSize - ExpectedProofSize) * ProofByteDeliveryWeight
+       + MessagesCount * (DbReadWeight + DbWriteWeight)
 ```
 
 Where:
@@ -402,6 +403,15 @@ Where:
 | `ActualProofSize`         |                                                                                                                       | Provided by relayer                                                                                                                                                                                     |
 | `ExpectedProofSize`       | `EXTRA_STORAGE_PROOF_SIZE`                                                                                            | Size of proof that we are expecting                                                                                                                                                                     |
 | `ProofByteDeliveryWeight` | `(receive_single_message_proof_16_kb - receive_single_message_proof_1_kb) / (15 * 1024)`                              | Weight of processing every additional proof byte over `ExpectedProofSize` limit. We're using the same formula, as for message delivery, because proof mechanism is assumed to be the same in both cases |
+
+#### Post-dispatch weight refunds of the `receive_messages_delivery_proof` call
+
+Weight formula of the `receive_messages_delivery_proof` call assumes that all messages in the proof
+are actually delivered (so there are no already confirmed messages) and every messages is processed
+by the `OnDeliveryConfirmed` callback. This means that for every message, we're adding single db read
+weight and single db write weight. If, by some reason, messages are not processed by the
+`OnDeliveryConfirmed` callback, or their processing is faster than that additional weight, the
+difference is refunded to the submitter.
 
 #### Why we're always able to craft `receive_messages_delivery_proof` transaction?
 

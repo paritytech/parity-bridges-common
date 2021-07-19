@@ -31,15 +31,19 @@ use frame_support::{
 	weights::{DispatchClass, Weight},
 	RuntimeDebug,
 };
-use sp_runtime::{traits::Zero, FixedPointNumber, FixedU128};
+use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
 use sp_std::{convert::TryFrom, ops::RangeInclusive};
 
 /// Initial value of `RialtoToMillauConversionRate` parameter.
 pub const INITIAL_RIALTO_TO_MILLAU_CONVERSION_RATE: FixedU128 = FixedU128::from_inner(FixedU128::DIV);
+/// Initial value of `RialtoFeeMultiplier` parameter.
+pub const INITIAL_RIALTO_FEE_MULTIPLIER: FixedU128 = FixedU128::from_inner(FixedU128::DIV);
 
 parameter_types! {
 	/// Rialto to Millau conversion rate. Initially we treat both tokens as equal.
 	pub storage RialtoToMillauConversionRate: FixedU128 = INITIAL_RIALTO_TO_MILLAU_CONVERSION_RATE;
+	/// Fee multiplier value at Rialto chain.
+	pub storage RialtoFeeMultiplier: FixedU128 = INITIAL_RIALTO_FEE_MULTIPLIER;
 }
 
 /// Message payload for Millau -> Rialto messages.
@@ -52,7 +56,7 @@ pub type ToRialtoMessageVerifier = messages::source::FromThisChainMessageVerifie
 pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload<WithRialtoMessageBridge>;
 
 /// Encoded Millau Call as it comes from Rialto.
-pub type FromRialtoEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<WithRialtoMessageBridge>;
+pub type FromRialtoEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<crate::Call>;
 
 /// Messages proof for Rialto -> Millau messages.
 type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_rialto::Hash>;
@@ -74,9 +78,12 @@ pub struct WithRialtoMessageBridge;
 
 impl MessageBridge for WithRialtoMessageBridge {
 	const RELAYER_FEE_PERCENT: u32 = 10;
+	const THIS_CHAIN_ID: ChainId = MILLAU_CHAIN_ID;
+	const BRIDGED_CHAIN_ID: ChainId = RIALTO_CHAIN_ID;
 
 	type ThisChain = Millau;
 	type BridgedChain = Rialto;
+	type BridgedMessagesInstance = crate::WithRialtoMessagesInstance;
 
 	fn bridged_balance_to_this_balance(bridged_balance: bp_rialto::Balance) -> bp_millau::Balance {
 		bp_millau::Balance::try_from(RialtoToMillauConversionRate::get().saturating_mul_int(bridged_balance))
@@ -89,16 +96,12 @@ impl MessageBridge for WithRialtoMessageBridge {
 pub struct Millau;
 
 impl messages::ChainWithMessages for Millau {
-	const ID: ChainId = MILLAU_CHAIN_ID;
-
 	type Hash = bp_millau::Hash;
 	type AccountId = bp_millau::AccountId;
 	type Signer = bp_millau::AccountSigner;
 	type Signature = bp_millau::Signature;
 	type Weight = Weight;
 	type Balance = bp_millau::Balance;
-
-	type MessagesInstance = crate::WithRialtoMessagesInstance;
 }
 
 impl messages::ThisChainWithMessages for Millau {
@@ -129,11 +132,15 @@ impl messages::ThisChainWithMessages for Millau {
 	}
 
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_millau::Balance {
+		// `transaction` may represent transaction from the future, when multiplier value will
+		// be larger, so let's use slightly increased value
+		let multiplier = FixedU128::saturating_from_rational(110, 100)
+			.saturating_mul(pallet_transaction_payment::Pallet::<Runtime>::next_fee_multiplier());
 		// in our testnets, both per-byte fee and weight-to-fee are 1:1
 		messages::transaction_payment(
 			bp_millau::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
 			1,
-			FixedU128::zero(),
+			multiplier,
 			|weight| weight as _,
 			transaction,
 		)
@@ -145,16 +152,12 @@ impl messages::ThisChainWithMessages for Millau {
 pub struct Rialto;
 
 impl messages::ChainWithMessages for Rialto {
-	const ID: ChainId = RIALTO_CHAIN_ID;
-
 	type Hash = bp_rialto::Hash;
 	type AccountId = bp_rialto::AccountId;
 	type Signer = bp_rialto::AccountSigner;
 	type Signature = bp_rialto::Signature;
 	type Weight = Weight;
 	type Balance = bp_rialto::Balance;
-
-	type MessagesInstance = pallet_bridge_messages::DefaultInstance;
 }
 
 impl messages::BridgedChainWithMessages for Rialto {
@@ -200,11 +203,14 @@ impl messages::BridgedChainWithMessages for Rialto {
 	}
 
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_rialto::Balance {
+		// we don't have a direct access to the value of multiplier at Rialto chain
+		// => it is a messages module parameter
+		let multiplier = RialtoFeeMultiplier::get();
 		// in our testnets, both per-byte fee and weight-to-fee are 1:1
 		messages::transaction_payment(
 			bp_rialto::BlockWeights::get().get(DispatchClass::Normal).base_extrinsic,
 			1,
-			FixedU128::zero(),
+			multiplier,
 			|weight| weight as _,
 			transaction,
 		)

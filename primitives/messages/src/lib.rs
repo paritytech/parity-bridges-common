@@ -23,6 +23,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bitvec::prelude::*;
+use bp_runtime::messages::DispatchFeePayment;
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use sp_std::{collections::vec_deque::VecDeque, prelude::*};
@@ -61,6 +62,10 @@ impl Default for OperatingMode {
 pub trait Parameter: frame_support::Parameter {
 	/// Save parameter value in the runtime storage.
 	fn save(&self);
+}
+
+impl Parameter for () {
+	fn save(&self) {}
 }
 
 /// Lane identifier.
@@ -169,7 +174,7 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 }
 
 /// Message details, returned by runtime APIs.
-#[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
 pub struct MessageDetails<OutboundMessageFee> {
 	/// Nonce assigned to the message.
 	pub nonce: MessageNonce,
@@ -179,6 +184,8 @@ pub struct MessageDetails<OutboundMessageFee> {
 	pub size: u32,
 	/// Delivery+dispatch fee paid by the message submitter at the source chain.
 	pub delivery_and_dispatch_fee: OutboundMessageFee,
+	/// Where the fee for dispatching message is paid?
+	pub dispatch_fee_payment: DispatchFeePayment,
 }
 
 /// Bit vector of message dispatch results.
@@ -216,6 +223,15 @@ impl DeliveredMessages {
 			begin: nonce,
 			end: nonce,
 			dispatch_results: bitvec![Msb0, u8; if dispatch_result { 1 } else { 0 }],
+		}
+	}
+
+	/// Return total count of delivered messages.
+	pub fn total_messages(&self) -> MessageNonce {
+		if self.end >= self.begin {
+			self.end - self.begin + 1
+		} else {
+			0
 		}
 	}
 

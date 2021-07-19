@@ -37,7 +37,7 @@ use crate::rialto_messages::{ToRialtoMessagePayload, WithRialtoMessageBridge};
 use bridge_runtime_common::messages::{source::estimate_message_dispatch_and_delivery_fee, MessageBridge};
 use codec::Decode;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
-use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
+use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -45,7 +45,7 @@ use sp_runtime::traits::{Block as BlockT, IdentityLookup, NumberFor, OpaqueKeys}
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature, MultiSigner,
+	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, MultiSigner, Perquintill,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -273,13 +273,23 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const TransactionBaseFee: Balance = 0;
 	pub const TransactionByteFee: Balance = 1;
+	// values for following parameters are copypasted from polkadot repo, but it is fine
+	// not to sync them - we're not going to make Rialto a full copy of one of Polkadot-like chains
+	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
+	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000u128);
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = IdentityFee<Balance>;
-	type FeeMultiplierUpdate = ();
+	type FeeMultiplierUpdate = pallet_transaction_payment::TargetedFeeAdjustment<
+		Runtime,
+		TargetBlockFullness,
+		AdjustmentVariable,
+		MinimumMultiplier,
+	>;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -495,8 +505,9 @@ impl_runtime_apis! {
 		fn validate_transaction(
 			source: TransactionSource,
 			tx: <Block as BlockT>::Extrinsic,
+			block_hash: <Block as BlockT>::Hash,
 		) -> TransactionValidity {
-			Executive::validate_transaction(source, tx)
+			Executive::validate_transaction(source, tx, block_hash)
 		}
 	}
 
@@ -619,7 +630,7 @@ impl_runtime_apis! {
 					dispatch_weight: decoded_payload.weight,
 					size: message_data.payload.len() as _,
 					delivery_and_dispatch_fee: message_data.fee,
-					// TODO: include dispatch fee type (https://github.com/paritytech/parity-bridges-common/pull/911)
+					dispatch_fee_payment: decoded_payload.dispatch_fee_payment,
 				})
 			})
 			.collect()
@@ -688,6 +699,7 @@ mod tests {
 			bp_millau::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT,
 			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
 			bp_millau::PAY_INBOUND_DISPATCH_FEE_WEIGHT,
+			DbWeight::get(),
 		);
 
 		let max_incoming_message_proof_size = bp_rialto::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
@@ -712,6 +724,7 @@ mod tests {
 			max_incoming_inbound_lane_data_proof_size,
 			bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
 			bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+			DbWeight::get(),
 		);
 	}
 }

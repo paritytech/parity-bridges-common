@@ -14,7 +14,7 @@ SECONDARY_MESSAGE_LANE=${MSG_EXCHANGE_GEN_SECONDARY_LANE}
 MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE=128
 FERDIE_ADDR=6ztG3jPnJTwgZnnYsgCDXbbQVR82M96hBZtPvkN56A9668ZC
 
-SHARED_CMD=" /home/user/substrate-relay send-message MillauToRialto"
+SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto"
 SHARED_HOST="--source-host millau-node-bob --source-port 9944"
 DAVE_SIGNER="--target-signer //Dave --source-signer //Dave"
 
@@ -46,6 +46,7 @@ do
 		$SEND_MESSAGE \
 			--lane $SECONDARY_MESSAGE_LANE \
 			--origin Target \
+			--dispatch-fee-payment at-target-chain \
 			remark
 	fi
 
