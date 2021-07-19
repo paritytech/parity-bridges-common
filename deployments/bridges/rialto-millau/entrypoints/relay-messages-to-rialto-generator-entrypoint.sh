@@ -46,6 +46,7 @@ do
 		$SEND_MESSAGE \
 			--lane $SECONDARY_MESSAGE_LANE \
 			--origin Target \
+			--dispatch-fee-payment at-target-chain \
 			remark
 	fi
 
