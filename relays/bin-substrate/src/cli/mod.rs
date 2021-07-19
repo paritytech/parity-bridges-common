@@ -535,8 +535,8 @@ mod tests {
 				target_signer: None,
 				target_signer_password: None,
 
-				target_signer_file: Some(suri_file_path.clone().into()),
-				target_signer_password_file: Some(password_file_path.clone().into()),
+				target_signer_file: Some(suri_file_path.clone()),
+				target_signer_password_file: Some(password_file_path.clone()),
 			}
 			.to_keypair::<relay_rialto_client::Rialto>()
 			.map(|p| p.public())
@@ -550,8 +550,8 @@ mod tests {
 				target_signer: None,
 				target_signer_password: Some(ALICE_PASSWORD.into()),
 
-				target_signer_file: Some(suri_file_path.clone().into()),
-				target_signer_password_file: Some(password_file_path.clone().into()),
+				target_signer_file: Some(suri_file_path.clone()),
+				target_signer_password_file: Some(password_file_path.clone()),
 			}
 			.to_keypair::<relay_rialto_client::Rialto>()
 			.map(|p| p.public())
@@ -565,8 +565,8 @@ mod tests {
 				target_signer: Some(ALICE.into()),
 				target_signer_password: Some(ALICE_PASSWORD.into()),
 
-				target_signer_file: Some(suri_file_path.into()),
-				target_signer_password_file: Some(password_file_path.into()),
+				target_signer_file: Some(suri_file_path),
+				target_signer_password_file: Some(password_file_path),
 			}
 			.to_keypair::<relay_rialto_client::Rialto>()
 			.map(|p| p.public())
