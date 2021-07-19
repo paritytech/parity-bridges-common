@@ -386,7 +386,7 @@ macro_rules! declare_chain_options {
 				#[doc = "Path to the file, that contains SURI of secret key to use when transactions are submitted to the " $chain " node. Can be overridden with " $chain_prefix "_signer option."]
 				#[structopt(long)]
 				pub [<$chain_prefix _signer_file>]: Option<std::path::PathBuf>,
-				#[doc = "Path to the file, that password for the SURI of secret key to use when transactions are submitted to the " $chain " node. Can be overrided with " $chain_prefix " option."]
+				#[doc = "Path to the file, that password for the SURI of secret key to use when transactions are submitted to the " $chain " node. Can be overridden with " $chain_prefix "_signer_password option."]
 				#[structopt(long)]
 				pub [<$chain_prefix _signer_password_file>]: Option<std::path::PathBuf>,
 			}
