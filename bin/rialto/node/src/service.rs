@@ -19,6 +19,11 @@
 //! The code is mostly copy of https://github.com/paritytech/polkadot/blob/master/node/service/src/lib.rs
 //! without optional functions.
 
+// this warning comes from Error enum (sc_cli::Error in particular) && it isn't easy to use box there
+#![allow(clippy::large_enum_variant)]
+// this warning comes from `sc_service::PartialComponents` type
+#![allow(clippy::type_complexity)]
+
 use crate::overseer::{OverseerGen, OverseerGenArgs};
 
 use polkadot_network_bridge::RequestMultiplexer;
@@ -210,7 +215,6 @@ where
 		Vec::new(),
 		telemetry.as_ref().map(|x| x.handle()),
 	)?;
-
 	let justification_import = grandpa_block_import.clone();
 
 	let babe_config = sc_consensus_babe::Config::get_or_compute(&*client)?;
@@ -244,7 +248,7 @@ where
 	let shared_authority_set = grandpa_link.shared_authority_set().clone();
 	let shared_voter_state = sc_finality_grandpa::SharedVoterState::empty();
 
-	let import_setup = (block_import.clone(), grandpa_link, babe_link.clone());
+	let import_setup = (block_import, grandpa_link, babe_link);
 	let rpc_setup = shared_voter_state.clone();
 
 	let slot_duration = babe_config.slot_duration();
@@ -273,18 +277,18 @@ where
 			let mut io = jsonrpc_core::IoHandler::default();
 			io.extend_with(SystemApi::to_delegate(FullSystem::new(
 				client.clone(),
-				pool.clone(),
+				pool,
 				deny_unsafe,
 			)));
 			io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
-				client.clone(),
+				client,
 			)));
 			io.extend_with(GrandpaApi::to_delegate(GrandpaRpcHandler::new(
 				shared_authority_set.clone(),
-				shared_voter_state.clone(),
+				shared_voter_state,
 				justification_stream.clone(),
 				subscription_executor,
-				finality_proof_provider.clone(),
+				finality_proof_provider,
 			)));
 
 			io
@@ -343,11 +347,9 @@ where
 			let number = client.number(hash).ok()??;
 
 			// Only consider leaves that are in maximum an uncle of the best block.
-			if number < best_block.number().saturating_sub(1) {
+			if number < best_block.number().saturating_sub(1) || hash == best_block.hash() {
 				return None;
-			} else if hash == best_block.hash() {
-				return None;
-			};
+			}
 
 			let parent_hash = client.header(&BlockId::Hash(hash)).ok()??.parent_hash;
 
@@ -624,7 +626,7 @@ where
 						parent,
 					)
 					.await
-					.map_err(|e| Box::new(e))?;
+					.map_err(Box::new)?;
 
 					let uncles = sc_consensus_uncles::create_uncles_inherent_data_provider(&*client_clone, parent)?;
 
@@ -690,7 +692,7 @@ where
 			link: link_half,
 			network: network.clone(),
 			voting_rule,
-			prometheus_registry: prometheus_registry.clone(),
+			prometheus_registry,
 			shared_voter_state,
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
 		};

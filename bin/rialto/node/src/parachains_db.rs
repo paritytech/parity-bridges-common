@@ -93,7 +93,7 @@ pub fn open_creating(root: PathBuf, cache_sizes: CacheSizes) -> io::Result<Arc<d
 		.ok_or_else(|| other_io_error(format!("Bad database path: {:?}", path)))?;
 
 	std::fs::create_dir_all(&path_str)?;
-	let db = Database::open(&db_config, &path_str)?;
+	let db = Database::open(&db_config, path_str)?;
 
 	Ok(Arc::new(db))
 }
