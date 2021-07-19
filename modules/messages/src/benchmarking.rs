@@ -17,7 +17,7 @@
 //! Messages pallet benchmarking.
 
 use crate::weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH;
-use casdgasdgarate::{
+use crate::{
 	inbound_lane::InboundLaneStorage, inbound_lane_storage, outbound_lane, outbound_lane::ReceivalConfirmationResult,
 	Call, Instance,
 };
