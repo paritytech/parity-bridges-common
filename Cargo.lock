@@ -6085,6 +6085,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "relay-utils",
+ "tokio 1.8.1",
  "web3",
 ]
 
@@ -6217,6 +6218,7 @@ dependencies = [
  "sp-storage",
  "sp-trie",
  "sp-version",
+ "tokio 1.8.1",
 ]
 
 [[package]]
