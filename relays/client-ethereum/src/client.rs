@@ -76,7 +76,9 @@ impl Client {
 
 	/// Reopen client connection.
 	pub async fn reconnect(&mut self) -> Result<()> {
-		self.client = Self::build_client(&self.params).await?.1;
+		let (tokio, client) = Self::build_client(self.params.clone()).await?;
+		self.tokio = tokio;
+		self.client = client;
 		Ok(())
 	}
 }
