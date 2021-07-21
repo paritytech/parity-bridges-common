@@ -39,7 +39,7 @@ const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
 /// Opaque justifications subscription type.
-pub struct JustificationsSubscription(Arc<Mutex<futures::channel::mpsc::Receiver<Option<Bytes>>>>);
+pub struct JustificationsSubscription(Mutex<futures::channel::mpsc::Receiver<Option<Bytes>>>);
 
 /// Opaque GRANDPA authorities set.
 pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
@@ -406,7 +406,7 @@ impl<C: Chain> Client<C> {
 				}
 			}
 		});
-		Ok(JustificationsSubscription(Arc::new(Mutex::new(receiver))))
+		Ok(JustificationsSubscription(Mutex::new(receiver)))
 	}
 
 	/// Execute jsonrpsee future in tokio context.
