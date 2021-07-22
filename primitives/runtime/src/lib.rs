@@ -30,6 +30,7 @@ pub use storage_proof::{Error as StorageProofError, StorageProofChecker};
 pub use storage_proof::craft_valid_storage_proof;
 
 pub mod messages;
+pub mod storage_keys;
 
 mod chain;
 mod storage_proof;

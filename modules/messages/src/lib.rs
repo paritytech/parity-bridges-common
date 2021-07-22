@@ -841,38 +841,23 @@ impl<T: Config<I>, I: Instance> Pallet<T, I> {
 /// trying to avoid here) - by using strings like "Instance2", "OutboundMessages", etc.
 pub mod storage_keys {
 	use super::*;
-	use frame_support::{traits::Instance, StorageHasher};
+	use bp_runtime::storage_keys::storage_map_final_key_with_instance;
+	use frame_support::traits::Instance;
 	use sp_core::storage::StorageKey;
 
 	/// Storage key of the outbound message in the runtime storage.
 	pub fn message_key<I: Instance>(lane: &LaneId, nonce: MessageNonce) -> StorageKey {
-		storage_map_final_key::<I>("OutboundMessages", &MessageKey { lane_id: *lane, nonce }.encode())
+		storage_map_final_key_with_instance::<I>("OutboundMessages", &MessageKey { lane_id: *lane, nonce }.encode())
 	}
 
 	/// Storage key of the outbound message lane state in the runtime storage.
 	pub fn outbound_lane_data_key<I: Instance>(lane: &LaneId) -> StorageKey {
-		storage_map_final_key::<I>("OutboundLanes", lane)
+		storage_map_final_key_with_instance::<I>("OutboundLanes", lane)
 	}
 
 	/// Storage key of the inbound message lane state in the runtime storage.
 	pub fn inbound_lane_data_key<I: Instance>(lane: &LaneId) -> StorageKey {
-		storage_map_final_key::<I>("InboundLanes", lane)
-	}
-
-	/// This is a copypaste of the `frame_support::storage::generator::StorageMap::storage_map_final_key`.
-	fn storage_map_final_key<I: Instance>(map_name: &str, key: &[u8]) -> StorageKey {
-		let module_prefix_hashed = frame_support::Twox128::hash(I::PREFIX.as_bytes());
-		let storage_prefix_hashed = frame_support::Twox128::hash(map_name.as_bytes());
-		let key_hashed = frame_support::Blake2_128Concat::hash(key);
-
-		let mut final_key =
-			Vec::with_capacity(module_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.len());
-
-		final_key.extend_from_slice(&module_prefix_hashed[..]);
-		final_key.extend_from_slice(&storage_prefix_hashed[..]);
-		final_key.extend_from_slice(key_hashed.as_ref());
-
-		StorageKey(final_key)
+		storage_map_final_key_with_instance::<I>("InboundLanes", lane)
 	}
 }
 

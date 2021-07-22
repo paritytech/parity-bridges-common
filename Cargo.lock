@@ -4987,6 +4987,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-bridge-parachains"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-runtime",
+ "bp-test-utils",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-bridge-grandpa",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-trie",
+]
+
+[[package]]
 name = "pallet-grandpa"
 version = "3.1.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#3cd75117765c4a63d40c00aa41e1bf12135c237b"
