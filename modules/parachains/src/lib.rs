@@ -59,7 +59,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::error]
-	pub enum Error<T> {
+	pub enum Error<T, I = ()> {
 		/// Relay chain block is unknown to us.
 		UnknownRelayChainBlock,
 		/// Invalid storage proof has been passed.
@@ -68,7 +68,7 @@ pub mod pallet {
 
 	#[pallet::config]
 	#[pallet::disable_frame_system_supertrait_check]
-	pub trait Config: pallet_bridge_grandpa::Config<Self::BridgesGrandpaPalletInstance> {
+	pub trait Config<I: 'static = ()>: pallet_bridge_grandpa::Config<Self::BridgesGrandpaPalletInstance> {
 		/// Instance of bridges GRANDPA pallet that this pallet is linked to.
 		///
 		/// The GRANDPA pallet instance must be configured to import headers of relay chain that
@@ -86,21 +86,23 @@ pub mod pallet {
 
 	/// Best parachain heads.
 	#[pallet::storage]
-	pub type BestParaHeads<T: Config> = StorageMap<_, Identity, ParaId, BestParaHead>;
+	pub type BestParaHeads<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, ParaId, BestParaHead>;
 
 	/// Parachain heads which have been imported into the pallet.
 	#[pallet::storage]
-	pub type ImportedParaHeads<T: Config> = StorageDoubleMap<_, Identity, ParaId, Identity, ParaHash, ParaHead>;
+	pub type ImportedParaHeads<T: Config<I>, I: 'static = ()> =
+		StorageDoubleMap<_, Identity, ParaId, Identity, ParaHash, ParaHead>;
 
 	/// A ring buffer of imported parachain head hashes. Ordered by the insertion time.
 	#[pallet::storage]
-	pub(super) type ImportedParaHashes<T: Config> = StorageDoubleMap<_, Identity, ParaId, Identity, u32, ParaHash>;
+	pub(super) type ImportedParaHashes<T: Config<I>, I: 'static = ()> =
+		StorageDoubleMap<_, Identity, ParaId, Identity, u32, ParaHash>;
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T>
+	impl<T: Config<I>, I: 'static> Pallet<T, I>
 	where
 		<T as pallet_bridge_grandpa::Config<T::BridgesGrandpaPalletInstance>>::BridgedChain:
 			bp_runtime::Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
@@ -119,8 +121,9 @@ pub mod pallet {
 			parachain_heads_proof: ParachainHeadsProof,
 		) -> DispatchResult {
 			// we'll need relay chain header to verify that parachains heads are always increasing.
-			let relay_block = pallet_bridge_grandpa::ImportedHeaders::<T, T::BridgesGrandpaPalletInstance>::get(relay_block_hash)
-				.ok_or(Error::<T>::UnknownRelayChainBlock)?;
+			let relay_block =
+				pallet_bridge_grandpa::ImportedHeaders::<T, T::BridgesGrandpaPalletInstance>::get(relay_block_hash)
+					.ok_or(Error::<T, I>::UnknownRelayChainBlock)?;
 			let relay_block_number = *relay_block.number();
 
 			// now parse storage proof and read parachain heads
@@ -129,7 +132,7 @@ pub mod pallet {
 				sp_trie::StorageProof::new(parachain_heads_proof),
 				move |storage| {
 					for parachain in parachains {
-						let parachain_head = match Pallet::<T>::read_parachain_head(&storage, parachain) {
+						let parachain_head = match Pallet::<T, I>::read_parachain_head(&storage, parachain) {
 							Some(parachain_head) => parachain_head,
 							None => {
 								log::trace!(
@@ -141,8 +144,8 @@ pub mod pallet {
 							}
 						};
 
-						let _: Result<_, ()> = BestParaHeads::<T>::try_mutate(parachain, |stored_best_head| {
-							*stored_best_head = Some(Pallet::<T>::update_parachain_head(
+						let _: Result<_, ()> = BestParaHeads::<T, I>::try_mutate(parachain, |stored_best_head| {
+							*stored_best_head = Some(Pallet::<T, I>::update_parachain_head(
 								parachain,
 								stored_best_head.take(),
 								relay_block_number,
@@ -153,13 +156,13 @@ pub mod pallet {
 					}
 				},
 			)
-			.map_err(|_| Error::<T>::InvalidStorageProof)?;
+			.map_err(|_| Error::<T, I>::InvalidStorageProof)?;
 
 			Ok(())
 		}
 	}
 
-	impl<T: Config> Pallet<T> {
+	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Read parachain head from storage proof.
 		fn read_parachain_head(
 			storage: &bp_runtime::StorageProofChecker<RelayBlockHasher>,
@@ -215,14 +218,14 @@ pub mod pallet {
 			};
 
 			// insert updated best parachain head
-			let head_hash_to_prune = ImportedParaHashes::<T>::try_get(parachain, next_imported_hash_position);
+			let head_hash_to_prune = ImportedParaHashes::<T, I>::try_get(parachain, next_imported_hash_position);
 			let updated_best_para_head = BestParaHead {
 				at_relay_block_number: updated_at_relay_block_number,
 				head_hash: updated_head_hash,
 				next_imported_hash_position: (next_imported_hash_position + 1) % T::HeadsToKeep::get(),
 			};
-			ImportedParaHashes::<T>::insert(parachain, next_imported_hash_position, updated_head_hash);
-			ImportedParaHeads::<T>::insert(parachain, updated_head_hash, updated_head);
+			ImportedParaHashes::<T, I>::insert(parachain, next_imported_hash_position, updated_head_hash);
+			ImportedParaHeads::<T, I>::insert(parachain, updated_head_hash, updated_head);
 
 			// remove old head
 			if let Ok(head_hash_to_prune) = head_hash_to_prune {
@@ -232,7 +235,7 @@ pub mod pallet {
 					parachain,
 					head_hash_to_prune,
 				);
-				ImportedParaHeads::<T>::remove(parachain, head_hash_to_prune);
+				ImportedParaHeads::<T, I>::remove(parachain, head_hash_to_prune);
 			}
 
 			Ok(updated_best_para_head)
@@ -280,11 +283,13 @@ mod tests {
 
 		let header = test_relay_header(num, state_root);
 		let justification = make_default_justification(&header);
-		assert_ok!(pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::submit_finality_proof(
-			Origin::signed(1),
-			header,
-			justification,
-		));
+		assert_ok!(
+			pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::submit_finality_proof(
+				Origin::signed(1),
+				header,
+				justification,
+			)
+		);
 	}
 
 	fn prepare_parachain_heads_proof(heads: Vec<(ParaId, ParaHead)>) -> (RelayBlockHash, ParachainHeadsProof) {
