@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_runtime::{Chain, HeaderOf};
+use bp_runtime::Chain;
 use frame_support::{construct_runtime, parameter_types, weights::Weight};
 use sp_runtime::{
 	testing::{Header, H256},
@@ -25,10 +25,9 @@ use sp_runtime::{
 use crate as pallet_bridge_parachains;
 
 pub type AccountId = u64;
-pub type TestHeader = HeaderOf<<TestRuntime as pallet_bridge_grandpa::Config>::BridgedChain>;
-pub type TestNumber = crate::RelayBlockNumber<TestRuntime>;
-pub type TestHash = crate::RelayBlockHash<TestRuntime>;
-pub type TestHasher = BlakeTwo256;
+pub type TestNumber = u64;
+
+pub type RelayBlockHeader = sp_runtime::generic::Header<crate::RelayBlockNumber, crate::RelayBlockHasher>;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
@@ -46,7 +45,7 @@ construct_runtime! {
 }
 
 parameter_types! {
-	pub const BlockHashCount: u64 = 250;
+	pub const BlockHashCount: TestNumber = 250;
 	pub const MaximumBlockWeight: Weight = 1024;
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
@@ -56,7 +55,7 @@ impl frame_system::Config for TestRuntime {
 	type Origin = Origin;
 	type Index = u64;
 	type Call = Call;
-	type BlockNumber = u64;
+	type BlockNumber = TestNumber;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
@@ -92,25 +91,30 @@ impl pallet_bridge_grandpa::Config for TestRuntime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const HeadsToKeep: u32 = 4;
+}
+
 impl pallet_bridge_parachains::Config for TestRuntime {
+	type HeadsToKeep = HeadsToKeep;
 }
 
 #[derive(Debug)]
 pub struct TestBridgedChain;
 
 impl Chain for TestBridgedChain {
-	type BlockNumber = <TestRuntime as frame_system::Config>::BlockNumber;
-	type Hash = <TestRuntime as frame_system::Config>::Hash;
-	type Hasher = <TestRuntime as frame_system::Config>::Hashing;
-	type Header = <TestRuntime as frame_system::Config>::Header;
+	type BlockNumber = crate::RelayBlockNumber;
+	type Hash = crate::RelayBlockHash;
+	type Hasher = crate::RelayBlockHasher;
+	type Header = RelayBlockHeader;
 }
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
 }
 
-pub fn test_header(num: TestNumber, state_root: TestHash) -> TestHeader {
-	TestHeader::new(
+pub fn test_relay_header(num: crate::RelayBlockNumber, state_root: crate::RelayBlockHash) -> RelayBlockHeader {
+	RelayBlockHeader::new(
 		num,
 		Default::default(),
 		state_root,

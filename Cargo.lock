@@ -4991,6 +4991,7 @@ name = "pallet-bridge-parachains"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
+ "bp-polkadot-core",
  "bp-runtime",
  "bp-test-utils",
  "frame-support",
