@@ -68,7 +68,13 @@ pub mod pallet {
 
 	#[pallet::config]
 	#[pallet::disable_frame_system_supertrait_check]
-	pub trait Config: pallet_bridge_grandpa::Config {
+	pub trait Config: pallet_bridge_grandpa::Config<Self::BridgesGrandpaPalletInstance> {
+		/// Instance of bridges GRANDPA pallet that this pallet is linked to.
+		///
+		/// The GRANDPA pallet instance must be configured to import headers of relay chain that
+		/// we're interested in.
+		type BridgesGrandpaPalletInstance: 'static;
+
 		/// Maximal number of single parachain heads to keep in the storage.
 		///
 		/// The setting is there to prevent growing the on-chain state indefinitely. Note
@@ -96,7 +102,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		<T as pallet_bridge_grandpa::Config>::BridgedChain:
+		<T as pallet_bridge_grandpa::Config<T::BridgesGrandpaPalletInstance>>::BridgedChain:
 			bp_runtime::Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
 	{
 		/// Submit proof of one or several parachain heads.
@@ -113,12 +119,12 @@ pub mod pallet {
 			parachain_heads_proof: ParachainHeadsProof,
 		) -> DispatchResult {
 			// we'll need relay chain header to verify that parachains heads are always increasing.
-			let relay_block = pallet_bridge_grandpa::ImportedHeaders::<T>::get(relay_block_hash)
+			let relay_block = pallet_bridge_grandpa::ImportedHeaders::<T, T::BridgesGrandpaPalletInstance>::get(relay_block_hash)
 				.ok_or(Error::<T>::UnknownRelayChainBlock)?;
 			let relay_block_number = *relay_block.number();
 
 			// now parse storage proof and read parachain heads
-			pallet_bridge_grandpa::Pallet::<T>::parse_finalized_storage_proof(
+			pallet_bridge_grandpa::Pallet::<T, T::BridgesGrandpaPalletInstance>::parse_finalized_storage_proof(
 				relay_block_hash,
 				sp_trie::StorageProof::new(parachain_heads_proof),
 				move |storage| {
@@ -254,8 +260,10 @@ mod tests {
 	use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 	use sp_trie::{record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, TrieMut};
 
+	type BridgesGrandpaPalletInstance = pallet_bridge_grandpa::Instance1;
+
 	fn initialize(state_root: RelayBlockHash) {
-		pallet_bridge_grandpa::Pallet::<TestRuntime>::initialize(
+		pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::initialize(
 			Origin::root(),
 			bp_header_chain::InitializationData {
 				header: test_relay_header(0, state_root),
@@ -268,11 +276,11 @@ mod tests {
 	}
 
 	fn proceed(num: RelayBlockNumber, state_root: RelayBlockHash) {
-		pallet_bridge_grandpa::Pallet::<TestRuntime>::on_initialize(0);
+		pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::on_initialize(0);
 
 		let header = test_relay_header(num, state_root);
 		let justification = make_default_justification(&header);
-		assert_ok!(pallet_bridge_grandpa::Pallet::<TestRuntime>::submit_finality_proof(
+		assert_ok!(pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::submit_finality_proof(
 			Origin::signed(1),
 			header,
 			justification,

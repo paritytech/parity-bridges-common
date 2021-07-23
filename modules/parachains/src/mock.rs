@@ -39,7 +39,8 @@ construct_runtime! {
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Grandpa: pallet_bridge_grandpa::{Pallet},
+		Grandpa1: pallet_bridge_grandpa::<Instance1>::{Pallet},
+		Grandpa2: pallet_bridge_grandpa::<Instance2>::{Pallet},
 		Parachains: pallet_bridge_parachains::{Pallet},
 	}
 }
@@ -84,7 +85,14 @@ parameter_types! {
 	pub const NumValidators: u32 = 5;
 }
 
-impl pallet_bridge_grandpa::Config for TestRuntime {
+impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance1> for TestRuntime {
+	type BridgedChain = TestBridgedChain;
+	type MaxRequests = MaxRequests;
+	type HeadersToKeep = HeadersToKeep;
+	type WeightInfo = ();
+}
+
+impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance2> for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
@@ -96,6 +104,7 @@ parameter_types! {
 }
 
 impl pallet_bridge_parachains::Config for TestRuntime {
+	type BridgesGrandpaPalletInstance = pallet_bridge_grandpa::Instance1;
 	type HeadsToKeep = HeadsToKeep;
 }
 
@@ -107,6 +116,16 @@ impl Chain for TestBridgedChain {
 	type Hash = crate::RelayBlockHash;
 	type Hasher = crate::RelayBlockHasher;
 	type Header = RelayBlockHeader;
+}
+
+#[derive(Debug)]
+pub struct OtherBridgedChain;
+
+impl Chain for OtherBridgedChain {
+	type BlockNumber = u128;
+	type Hash = crate::RelayBlockHash;
+	type Hasher = crate::RelayBlockHasher;
+	type Header = sp_runtime::generic::Header<u128, crate::RelayBlockHasher>;
 }
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
