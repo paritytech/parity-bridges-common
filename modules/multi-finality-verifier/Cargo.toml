@@ -27,6 +27,7 @@ sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", tag = '
 sp-runtime = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' , default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' , default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' , default-features = false }
+pallet-xdns = { path = "../../../../circuit/src/xdns", default-features = false }
 
 [dev-dependencies]
 bp-test-utils = {path = "../../primitives/test-utils" }
@@ -49,5 +50,6 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"sp-trie/std",
+	"pallet-xdns/std"
 ]
 runtime-benchmarks = []

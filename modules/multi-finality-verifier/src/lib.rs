@@ -40,7 +40,7 @@ use crate::weights::WeightInfo;
 
 use bp_header_chain::justification::GrandpaJustification;
 use bp_header_chain::InitializationData;
-use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf, ChainId};
+use bp_runtime::{BlockNumberOf, Chain, ChainId, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::ensure;
 use frame_system::{ensure_signed, RawOrigin};
@@ -74,9 +74,11 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use frame_support::traits::UnixTime;
+
 
 	#[pallet::config]
-	pub trait Config<I: 'static = ()>: frame_system::Config {
+	pub trait Config<I: 'static = ()>: frame_system::Config + pallet_xdns::Config {
 		/// The chain we are bridging to here.
 		type BridgedChain: Chain;
 
@@ -99,7 +101,9 @@ pub mod pallet {
 
 		/// Weights gathered through benchmarking.
 		type WeightInfo: WeightInfo;
-	}
+
+        type TimeProvider: UnixTime;
+    }
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
@@ -145,7 +149,7 @@ pub mod pallet {
 			state_root: BridgedBlockHash<T, I>,
 		) -> DispatchResultWithPostInfo {
 			ensure_operational_single::<T, I>(gateway_id)?;
-			let _ = ensure_signed(origin)?;
+			ensure_signed(origin.clone())?;
 			ensure!(
 				Self::request_count_map(gateway_id).unwrap_or(0) < T::MaxRequests::get(),
 				<Error<T, I>>::TooManyRequests
@@ -202,8 +206,20 @@ pub mod pallet {
 				gateway_id
 			);
 
-			Ok(().into())
-		}
+            let now: u64 = T::TimeProvider::now().as_secs();
+
+            let _updated_ttl =
+                pallet_xdns::Pallet::<T>::update_ttl(origin.clone(), gateway_id, now);
+            ensure!(_updated_ttl.is_ok(), "Could not update TTL.");
+
+            log::info!(
+                "Succesfully updated gateway {:?} with finalized timestamp {:?}!",
+                gateway_id,
+                now
+            );
+
+            Ok(().into())
+        }
 
 		/// Submit finality proofs for the header and additionally preserve state and extrinics root.
 		#[pallet::weight(0)]
