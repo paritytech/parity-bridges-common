@@ -30,12 +30,13 @@ use relay_utils::relay_loop::Client as RelayClient;
 pub struct SubstrateFinalityTarget<C: Chain, P> {
 	client: Client<C>,
 	pipeline: P,
+	transactions_mortality: Option<u32>,
 }
 
 impl<C: Chain, P> SubstrateFinalityTarget<C, P> {
 	/// Create new Substrate headers target.
-	pub fn new(client: Client<C>, pipeline: P) -> Self {
-		SubstrateFinalityTarget { client, pipeline }
+	pub fn new(client: Client<C>, pipeline: P, transactions_mortality: Option<u32>) -> Self {
+		SubstrateFinalityTarget { client, pipeline, transactions_mortality }
 	}
 }
 
@@ -44,6 +45,7 @@ impl<C: Chain, P: SubstrateFinalitySyncPipeline> Clone for SubstrateFinalityTarg
 		SubstrateFinalityTarget {
 			client: self.client.clone(),
 			pipeline: self.pipeline.clone(),
+			transactions_mortality: self.transactions_mortality.clone(),
 		}
 	}
 }
@@ -82,9 +84,15 @@ where
 	async fn submit_finality_proof(&self, header: P::Header, proof: P::FinalityProof) -> Result<(), SubstrateError> {
 		let transactions_author = self.pipeline.transactions_author();
 		let pipeline = self.pipeline.clone();
+		let transactions_mortality = self.transactions_mortality;
 		self.client
-			.submit_signed_extrinsic(transactions_author, move |transaction_nonce| {
-				pipeline.make_submit_finality_proof_transaction(transaction_nonce, header, proof)
+			.submit_signed_extrinsic(transactions_author, move |best_block_number, transaction_nonce| {
+				pipeline.make_submit_finality_proof_transaction(
+					relay_substrate_client::transaction_era(transactions_mortality, best_block_number),
+					transaction_nonce,
+					header,
+					proof,
+				)
 			})
 			.await
 			.map(drop)

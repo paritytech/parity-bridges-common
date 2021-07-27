@@ -68,6 +68,7 @@ impl TransactionSignScheme for Wococo {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
+		era: sp_runtime::generic::Era,
 		signer_nonce: <Self::Chain as Chain>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
@@ -75,7 +76,7 @@ impl TransactionSignScheme for Wococo {
 			call,
 			bp_wococo::SignedExtensions::new(
 				bp_wococo::VERSION,
-				sp_runtime::generic::Era::Immortal,
+				era,
 				genesis_hash,
 				signer_nonce,
 				0,

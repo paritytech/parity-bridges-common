@@ -55,6 +55,7 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 	pub fn new<TargetChain: Chain, TargetSign>(
 		source_client: Client<SourceChain>,
 		target_client: Client<TargetChain>,
+		target_transactions_mortality: Option<u32>,
 		pipeline: SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
 		maximal_headers_difference: SourceChain::BlockNumber,
 	) -> Self
@@ -83,6 +84,7 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 			background_task(
 				source_client,
 				target_client,
+				target_transactions_mortality,
 				pipeline,
 				maximal_headers_difference,
 				required_header_number,
@@ -114,6 +116,7 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 async fn background_task<SourceChain, TargetChain, TargetSign>(
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
+	target_transactions_mortality: Option<u32>,
 	pipeline: SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
 	maximal_headers_difference: SourceChain::BlockNumber,
 	required_header_number: RequiredHeaderNumberRef<SourceChain>,
@@ -138,7 +141,7 @@ async fn background_task<SourceChain, TargetChain, TargetSign>(
 		_,
 		SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
 	>::new(source_client.clone(), Some(required_header_number.clone()));
-	let mut finality_target = SubstrateFinalityTarget::new(target_client.clone(), pipeline.clone());
+	let mut finality_target = SubstrateFinalityTarget::new(target_client.clone(), pipeline.clone(), target_transactions_mortality);
 	let mut latest_non_mandatory_at_source = Zero::zero();
 
 	let mut restart_relay = true;

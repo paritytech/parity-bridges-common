@@ -150,6 +150,7 @@ impl InitBridge {
 						Target::sign_transaction(
 							*target_client.genesis_hash(),
 							&target_sign,
+							sp_runtime::generic::Era::immortal(),
 							transaction_nonce,
 							encode_init_bridge(initialization_data),
 						)

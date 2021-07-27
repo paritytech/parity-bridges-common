@@ -31,6 +31,7 @@ use pallet_balances::AccountData;
 use pallet_transaction_payment::InclusionFee;
 use relay_utils::relay_loop::RECONNECT_DELAY;
 use sp_core::{storage::StorageKey, Bytes};
+use sp_runtime::traits::Header as HeaderT;
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::{convert::TryFrom, future::Future};
@@ -293,12 +294,13 @@ impl<C: Chain> Client<C> {
 	pub async fn submit_signed_extrinsic(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(C::Index) -> Bytes + Send + 'static,
+		prepare_extrinsic: impl FnOnce(C::BlockNumber, C::Index) -> Bytes + Send + 'static,
 	) -> Result<C::Hash> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
+		let best_block_number = *self.best_header().await?.number();
 		self.jsonrpsee_execute(move |client| async move {
-			let extrinsic = prepare_extrinsic(transaction_nonce);
+			let extrinsic = prepare_extrinsic(best_block_number, transaction_nonce);
 			let tx_hash = Substrate::<C>::author_submit_extrinsic(&*client, extrinsic).await?;
 			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 			Ok(tx_hash)

@@ -29,6 +29,9 @@ pub mod guard;
 pub mod headers_source;
 pub mod metrics;
 
+use sp_runtime::generic::Era;
+use std::time::Duration;
+
 pub use crate::chain::{BlockWithJustification, Chain, ChainWithBalances, TransactionSignScheme};
 pub use crate::client::{Client, JustificationsSubscription, OpaqueGrandpaAuthoritiesSet};
 pub use crate::error::{Error, Result};
@@ -57,4 +60,22 @@ impl Default for ConnectionParams {
 			secure: false,
 		}
 	}
+}
+
+/// Prepare transaction era, based on mortality period and current best block number.
+pub fn transaction_era(mortality_period: Option<u32>, best_block_number: impl Into<u64>) -> Era {
+	mortality_period
+		.map(|mortality_period| Era::mortal(mortality_period as _, best_block_number.into()))
+		.unwrap_or(Era::Immortal)
+}
+
+/// Returns stall timeout for relay loop.
+///
+/// Relay considers himself stalled if he has submitted transaction to the node, but it has not
+/// been mined for this period.
+///
+/// Returns `None` if mortality period is `None`
+pub fn transaction_stall_timeout(mortality_period: Option<u32>, average_block_interval: Duration) -> Option<Duration> {
+	// 1 extra block for transaction to reach the pool && 1 for relayer to awake after it is mined
+	mortality_period.map(|mortality_period| average_block_interval.saturating_mul(mortality_period + 1 + 1))
 }
