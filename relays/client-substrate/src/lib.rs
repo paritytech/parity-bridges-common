@@ -29,14 +29,13 @@ pub mod guard;
 pub mod headers_source;
 pub mod metrics;
 
-use sp_runtime::generic::Era;
 use std::time::Duration;
 
 pub use crate::chain::{BlockWithJustification, Chain, ChainWithBalances, TransactionSignScheme};
 pub use crate::client::{Client, JustificationsSubscription, OpaqueGrandpaAuthoritiesSet};
 pub use crate::error::{Error, Result};
 pub use crate::sync_header::SyncHeader;
-pub use bp_runtime::{BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf};
+pub use bp_runtime::{BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf, TransactionEra};
 
 /// Header id used by the chain.
 pub type HeaderIdOf<C> = relay_utils::HeaderId<HashOf<C>, BlockNumberOf<C>>;
@@ -60,13 +59,6 @@ impl Default for ConnectionParams {
 			secure: false,
 		}
 	}
-}
-
-/// Prepare transaction era, based on mortality period and current best block number.
-pub fn transaction_era(mortality_period: Option<u32>, best_block_number: impl Into<u64>) -> Era {
-	mortality_period
-		.map(|mortality_period| Era::mortal(mortality_period as _, best_block_number.into()))
-		.unwrap_or(Era::Immortal)
 }
 
 /// Returns stall timeout for relay loop.

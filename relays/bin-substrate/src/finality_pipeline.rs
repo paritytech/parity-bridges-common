@@ -60,7 +60,7 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 	/// Make submit header transaction.
 	fn make_submit_finality_proof_transaction(
 		&self,
-		era: sp_runtime::generic::Era,
+		era: bp_runtime::TransactionEra<BlockNumberOf<Self::TargetChain>, HashOf<Self::TargetChain>>,
 		transaction_nonce: <Self::TargetChain as Chain>::Index,
 		header: Self::Header,
 		proof: Self::FinalityProof,
@@ -153,7 +153,8 @@ where
 			stall_timeout: relay_substrate_client::transaction_stall_timeout(
 				transactions_mortality,
 				TargetChain::AVERAGE_BLOCK_INTERVAL,
-			).unwrap_or(STALL_TIMEOUT),
+			)
+			.unwrap_or(STALL_TIMEOUT),
 			only_mandatory_headers,
 		},
 		metrics_params,

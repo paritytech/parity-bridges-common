@@ -74,7 +74,13 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 			),
 		);
 		let genesis_hash = *self.source_client.genesis_hash();
-		let transaction = Wococo::sign_transaction(genesis_hash, &self.source_sign, sp_runtime::generic::Era::immortal(), transaction_nonce, call);
+		let transaction = Wococo::sign_transaction(
+			genesis_hash,
+			&self.source_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			transaction_nonce,
+			call,
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Rococo -> Wococo confirmation transaction. Weight: <unknown>/{}, size: {}/{}",
@@ -113,7 +119,13 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 			),
 		);
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Rococo::sign_transaction(genesis_hash, &self.target_sign, sp_runtime::generic::Era::immortal(), transaction_nonce, call);
+		let transaction = Rococo::sign_transaction(
+			genesis_hash,
+			&self.target_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			transaction_nonce,
+			call,
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Wococo -> Rococo delivery transaction. Weight: <unknown>/{}, size: {}/{}",

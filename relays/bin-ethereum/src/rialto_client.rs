@@ -162,7 +162,7 @@ impl SubmitEthereumHeaders for SubstrateClient<Rialto> {
 					Rialto::sign_transaction(
 						genesis_hash,
 						&params,
-						sp_runtime::generic::Era::immortal(),
+						relay_substrate_client::TransactionEra::immortal(),
 						transaction_nonce,
 						instance.build_signed_header_call(headers),
 					)
@@ -265,7 +265,7 @@ impl SubmitEthereumExchangeTransactionProof for SubstrateClient<Rialto> {
 				Rialto::sign_transaction(
 					genesis_hash,
 					&params,
-					sp_runtime::generic::Era::immortal(),
+					relay_substrate_client::TransactionEra::immortal(),
 					transaction_nonce,
 					instance.build_currency_exchange_call(proof),
 				)

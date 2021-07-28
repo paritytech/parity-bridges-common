@@ -17,7 +17,7 @@
 //! Types used to connect to the Millau-Substrate chain.
 
 use codec::Encode;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme};
+use relay_substrate_client::{BlockNumberOf, Chain, ChainBase, ChainWithBalances, HashOf, TransactionSignScheme};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
@@ -66,18 +66,17 @@ impl TransactionSignScheme for Millau {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		era: sp_runtime::generic::Era,
+		era: relay_substrate_client::TransactionEra<BlockNumberOf<Self::Chain>, HashOf<Self::Chain>>,
 		signer_nonce: <Self::Chain as Chain>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
-println!("=== ERA: {:?} : {}..{}", era, era.birth(1), era.death(1));
 		let raw_payload = SignedPayload::from_raw(
 			call,
 			(
 				frame_system::CheckSpecVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckTxVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckGenesis::<millau_runtime::Runtime>::new(),
-				frame_system::CheckEra::<millau_runtime::Runtime>::from(era),
+				frame_system::CheckEra::<millau_runtime::Runtime>::from(era.frame_era()),
 				frame_system::CheckNonce::<millau_runtime::Runtime>::from(signer_nonce),
 				frame_system::CheckWeight::<millau_runtime::Runtime>::new(),
 				pallet_transaction_payment::ChargeTransactionPayment::<millau_runtime::Runtime>::from(0),
@@ -86,7 +85,7 @@ println!("=== ERA: {:?} : {}..{}", era, era.birth(1), era.death(1));
 				millau_runtime::VERSION.spec_version,
 				millau_runtime::VERSION.transaction_version,
 				genesis_hash,
-				genesis_hash,
+				era.signed_payload(genesis_hash),
 				(),
 				(),
 				(),

@@ -36,7 +36,11 @@ pub struct SubstrateFinalityTarget<C: Chain, P> {
 impl<C: Chain, P> SubstrateFinalityTarget<C, P> {
 	/// Create new Substrate headers target.
 	pub fn new(client: Client<C>, pipeline: P, transactions_mortality: Option<u32>) -> Self {
-		SubstrateFinalityTarget { client, pipeline, transactions_mortality }
+		SubstrateFinalityTarget {
+			client,
+			pipeline,
+			transactions_mortality,
+		}
 	}
 }
 
@@ -86,9 +90,13 @@ where
 		let pipeline = self.pipeline.clone();
 		let transactions_mortality = self.transactions_mortality;
 		self.client
-			.submit_signed_extrinsic(transactions_author, move |best_block_number, transaction_nonce| {
+			.submit_signed_extrinsic(transactions_author, move |best_block_id, transaction_nonce| {
 				pipeline.make_submit_finality_proof_transaction(
-					relay_substrate_client::transaction_era(transactions_mortality, best_block_number),
+					relay_substrate_client::TransactionEra::new(
+						best_block_id.0,
+						best_block_id.1,
+						transactions_mortality,
+					),
 					transaction_nonce,
 					header,
 					proof,

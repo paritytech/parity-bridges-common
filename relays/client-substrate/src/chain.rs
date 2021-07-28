@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{BlockNumberOf, HashOf};
+
 use bp_runtime::Chain as ChainBase;
 use frame_support::Parameter;
 use jsonrpsee_ws_client::{DeserializeOwned, Serialize};
@@ -107,7 +109,7 @@ pub trait TransactionSignScheme {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		era: sp_runtime::generic::Era,
+		era: bp_runtime::TransactionEra<BlockNumberOf<Self::Chain>, HashOf<Self::Chain>>,
 		signer_nonce: <Self::Chain as Chain>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction;

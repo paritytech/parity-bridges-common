@@ -17,7 +17,7 @@
 //! Types used to connect to the Westend chain.
 
 use codec::Encode;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme};
+use relay_substrate_client::{BlockNumberOf, Chain, ChainBase, ChainWithBalances, HashOf, TransactionSignScheme};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
@@ -66,19 +66,13 @@ impl TransactionSignScheme for Westend {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		era: sp_runtime::generic::Era,
+		era: relay_substrate_client::TransactionEra<BlockNumberOf<Self::Chain>, HashOf<Self::Chain>>,
 		signer_nonce: <Self::Chain as Chain>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(
 			call,
-			bp_westend::SignedExtensions::new(
-				bp_westend::VERSION,
-				era,
-				genesis_hash,
-				signer_nonce,
-				0,
-			),
+			bp_westend::SignedExtensions::new(bp_westend::VERSION, era, genesis_hash, signer_nonce, 0),
 		)
 		.expect("SignedExtension never fails.");
 

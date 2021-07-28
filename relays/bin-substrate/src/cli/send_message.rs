@@ -182,7 +182,7 @@ impl SendMessage {
 					let signed_source_call = Source::sign_transaction(
 						source_genesis_hash,
 						&source_sign,
-						sp_runtime::generic::Era::immortal(),
+						relay_substrate_client::TransactionEra::immortal(),
 						transaction_nonce,
 						send_message_call,
 					)

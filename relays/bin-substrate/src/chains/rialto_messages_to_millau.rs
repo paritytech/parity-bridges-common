@@ -72,7 +72,13 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 			rialto_runtime::MessagesCall::receive_messages_delivery_proof(proof, relayers_state).into();
 		let call_weight = call.get_dispatch_info().weight;
 		let genesis_hash = *self.source_client.genesis_hash();
-		let transaction = Rialto::sign_transaction(genesis_hash, &self.source_sign, sp_runtime::generic::Era::immortal(), transaction_nonce, call);
+		let transaction = Rialto::sign_transaction(
+			genesis_hash,
+			&self.source_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			transaction_nonce,
+			call,
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Millau -> Rialto confirmation transaction. Weight: {}/{}, size: {}/{}",
@@ -111,7 +117,13 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 		.into();
 		let call_weight = call.get_dispatch_info().weight;
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign, sp_runtime::generic::Era::immortal(), transaction_nonce, call);
+		let transaction = Millau::sign_transaction(
+			genesis_hash,
+			&self.target_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			transaction_nonce,
+			call,
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Rialto -> Millau delivery transaction. Weight: {}/{}, size: {}/{}",

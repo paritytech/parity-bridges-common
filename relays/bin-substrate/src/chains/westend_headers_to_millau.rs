@@ -21,7 +21,7 @@ use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityT
 use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{BlockNumberOf, Chain, HashOf, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
 use sp_core::{Bytes, Pair};
@@ -44,7 +44,7 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 
 	fn make_submit_finality_proof_transaction(
 		&self,
-		era: sp_runtime::generic::Era,
+		era: bp_runtime::TransactionEra<BlockNumberOf<Millau>, HashOf<Millau>>,
 		transaction_nonce: <Millau as Chain>::Index,
 		header: WestendSyncHeader,
 		proof: GrandpaJustification<bp_westend::Header>,

@@ -141,7 +141,8 @@ async fn background_task<SourceChain, TargetChain, TargetSign>(
 		_,
 		SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
 	>::new(source_client.clone(), Some(required_header_number.clone()));
-	let mut finality_target = SubstrateFinalityTarget::new(target_client.clone(), pipeline.clone(), target_transactions_mortality);
+	let mut finality_target =
+		SubstrateFinalityTarget::new(target_client.clone(), pipeline.clone(), target_transactions_mortality);
 	let mut latest_non_mandatory_at_source = Zero::zero();
 
 	let mut restart_relay = true;

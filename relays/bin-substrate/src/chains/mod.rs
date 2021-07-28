@@ -232,7 +232,7 @@ mod tests {
 		let rialto_tx = Rialto::sign_transaction(
 			Default::default(),
 			&sp_keyring::AccountKeyring::Alice.pair(),
-			sp_runtime::generic::Era::immortal(),
+			relay_substrate_client::TransactionEra::immortal(),
 			0,
 			rialto_call.clone(),
 		);
@@ -251,7 +251,7 @@ mod tests {
 		let millau_tx = Millau::sign_transaction(
 			Default::default(),
 			&sp_keyring::AccountKeyring::Alice.pair(),
-			sp_runtime::generic::Era::immortal(),
+			relay_substrate_client::TransactionEra::immortal(),
 			0,
 			millau_call.clone(),
 		);
