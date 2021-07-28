@@ -17,7 +17,7 @@
 //! Types used to connect to the Rialto-Substrate chain.
 
 use codec::Encode;
-use relay_substrate_client::{BlockNumberOf, Chain, ChainBase, ChainWithBalances, HashOf, TransactionSignScheme};
+use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
@@ -66,7 +66,7 @@ impl TransactionSignScheme for Rialto {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		era: relay_substrate_client::TransactionEra<BlockNumberOf<Self::Chain>, HashOf<Self::Chain>>,
+		era: relay_substrate_client::TransactionEraOf<Self::Chain>,
 		signer_nonce: <Self::Chain as Chain>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {

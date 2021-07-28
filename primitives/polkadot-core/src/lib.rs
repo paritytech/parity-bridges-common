@@ -235,7 +235,7 @@ impl<Call> parity_scale_codec::Decode for SignedExtensions<Call> {
 impl<Call> SignedExtensions<Call> {
 	pub fn new(
 		version: sp_version::RuntimeVersion,
-		era: bp_runtime::TransactionEra<BlockNumber, Hash>,
+		era: bp_runtime::TransactionEraOf<PolkadotLike>,
 		genesis_hash: Hash,
 		nonce: Nonce,
 		tip: Balance,

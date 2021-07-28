@@ -35,7 +35,7 @@ pub use crate::chain::{BlockWithJustification, Chain, ChainWithBalances, Transac
 pub use crate::client::{Client, JustificationsSubscription, OpaqueGrandpaAuthoritiesSet};
 pub use crate::error::{Error, Result};
 pub use crate::sync_header::SyncHeader;
-pub use bp_runtime::{BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf, TransactionEra};
+pub use bp_runtime::{BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf, TransactionEra, TransactionEraOf};
 
 /// Header id used by the chain.
 pub type HeaderIdOf<C> = relay_utils::HeaderId<HashOf<C>, BlockNumberOf<C>>;

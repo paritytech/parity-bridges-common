@@ -22,7 +22,7 @@ use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SyncHeader as RialtoSyncHeader};
-use relay_substrate_client::{BlockNumberOf, Chain, HashOf, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme};
 use sp_core::{Bytes, Pair};
 
 /// Rialto-to-Millau finality sync pipeline.
@@ -39,7 +39,7 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 
 	fn make_submit_finality_proof_transaction(
 		&self,
-		era: bp_runtime::TransactionEra<BlockNumberOf<Millau>, HashOf<Millau>>,
+		era: bp_runtime::TransactionEraOf<Millau>,
 		transaction_nonce: <Millau as Chain>::Index,
 		header: RialtoSyncHeader,
 		proof: GrandpaJustification<bp_rialto::Header>,

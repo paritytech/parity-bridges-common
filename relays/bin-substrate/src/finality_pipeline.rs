@@ -60,7 +60,7 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 	/// Make submit header transaction.
 	fn make_submit_finality_proof_transaction(
 		&self,
-		era: bp_runtime::TransactionEra<BlockNumberOf<Self::TargetChain>, HashOf<Self::TargetChain>>,
+		era: bp_runtime::TransactionEraOf<Self::TargetChain>,
 		transaction_nonce: <Self::TargetChain as Chain>::Index,
 		header: Self::Header,
 		proof: Self::FinalityProof,
