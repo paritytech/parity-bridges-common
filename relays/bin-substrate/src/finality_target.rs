@@ -49,7 +49,7 @@ impl<C: Chain, P: SubstrateFinalitySyncPipeline> Clone for SubstrateFinalityTarg
 		SubstrateFinalityTarget {
 			client: self.client.clone(),
 			pipeline: self.pipeline.clone(),
-			transactions_mortality: self.transactions_mortality.clone(),
+			transactions_mortality: self.transactions_mortality,
 		}
 	}
 }

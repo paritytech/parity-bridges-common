@@ -401,8 +401,7 @@ macro_rules! declare_chain_options {
 				pub fn transactions_mortality(&self) -> anyhow::Result<Option<u32>> {
 					self.[<$chain_prefix _transactions_mortality>]
 						.map(|transactions_mortality| {
-							if transactions_mortality < 4
-								|| transactions_mortality > 65536
+							if !(4..=65536).contains(&transactions_mortality)
 								|| !transactions_mortality.is_power_of_two()
 							{
 								Err(anyhow::format_err!(
