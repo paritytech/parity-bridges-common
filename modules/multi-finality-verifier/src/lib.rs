@@ -74,11 +74,14 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use frame_support::traits::UnixTime;
-
+	use t3rn_primitives::EscrowTrait;
+	use frame_support::traits::Time;
+	use sp_std::convert::TryInto;
 
 	#[pallet::config]
-	pub trait Config<I: 'static = ()>: frame_system::Config + pallet_xdns::Config {
+	pub trait Config<I: 'static = ()>: frame_system::Config
+		+ pallet_xdns::Config
+		+ t3rn_primitives::EscrowTrait {
 		/// The chain we are bridging to here.
 		type BridgedChain: Chain;
 
@@ -101,8 +104,6 @@ pub mod pallet {
 
 		/// Weights gathered through benchmarking.
 		type WeightInfo: WeightInfo;
-
-        type TimeProvider: UnixTime;
     }
 
 	#[pallet::pallet]
@@ -136,7 +137,7 @@ pub mod pallet {
 		///
 		/// If successful in verification, it will write the target header to the underlying storage
 		/// pallet.
-		#[pallet::weight(T::WeightInfo::submit_finality_proof(
+		#[pallet::weight(<T as pallet::Config<I>>::WeightInfo::submit_finality_proof(
 		justification.votes_ancestries.len() as u32,
 		justification.commit.precommits.len() as u32,
 		))]
@@ -206,16 +207,16 @@ pub mod pallet {
 				gateway_id
 			);
 
-            let now: u64 = T::TimeProvider::now().as_secs();
+			let now = TryInto::<u64>::try_into(<T as EscrowTrait>::Time::now()).map_err(|_| "Unable to compute current timestamp")?;
 
             let _updated_ttl =
-                pallet_xdns::Pallet::<T>::update_ttl(origin.clone(), gateway_id, now);
+                pallet_xdns::Pallet::<T>::update_ttl(origin.clone(), gateway_id, now.clone());
             ensure!(_updated_ttl.is_ok(), "Could not update TTL.");
 
             log::info!(
                 "Succesfully updated gateway {:?} with finalized timestamp {:?}!",
                 gateway_id,
-                now
+                now.clone()
             );
 
             Ok(().into())
