@@ -74,7 +74,7 @@ pub enum TokenSwapState {
 	/// The swap has been started using the `start_claim` call, but we have no proof that it has
 	/// happened at the Bridged chain.
 	Started,
-	/// Ths swap has happened at the Bridged chain and may be claimed by the Bridged chain party using
+	/// The swap has happened at the Bridged chain and may be claimed by the Bridged chain party using
 	/// the `claim_swap` call.
 	Confirmed,
 	/// The swap has failed at the Bridged chain and This chain party may cancel it using the
