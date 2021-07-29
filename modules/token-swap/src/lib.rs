@@ -104,6 +104,9 @@ pub mod pallet {
 		///
 		/// It is highly recommended to use dedicated lane for every instance of token swap
 		/// pallet. Messages delivery confirmation callback is implemented in the way that
+		/// for every confirmed message, there is (at least) a storage read. Which mean,
+		/// that if pallet will see unrelated confirmations, it'll just burn storage-read
+		/// weight, achieving nothing.
 		type OutboundMessageLaneId: Get<LaneId>;
 		/// Messages bridge with Bridged chain.
 		type MessagesBridge: MessagesBridge<
