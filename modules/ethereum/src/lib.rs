@@ -316,10 +316,10 @@ pub trait PruningStrategy: Default {
 	/// Pallet may prune both finalized and unfinalized blocks. But it can't give any
 	/// guarantees on when it will happen. Example: if some unfinalized block at height N
 	/// has scheduled validators set change, then the module won't prune any blocks with
-	/// number >= N even if strategy allows that.
+	/// number greater than or equal to N even if strategy allows that.
 	///
 	/// If your strategy allows pruning unfinalized blocks, this could lead to switch
-	/// between finalized forks (only if authorities are misbehaving). But since 50%+1 (or 2/3)
+	/// between finalized forks (only if authorities are misbehaving). But since 50 percent plus one (or 2/3)
 	/// authorities are able to do whatever they want with the chain, this isn't considered
 	/// fatal. If your strategy only prunes finalized blocks, we'll never be able to finalize
 	/// header that isn't descendant of current best finalized block.

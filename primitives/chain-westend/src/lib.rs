@@ -52,7 +52,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// All entries here (like pretty much in the entire file) must be kept in sync with Westend
 /// `construct_runtime`, so that we maintain SCALE-compatibility.
 ///
-/// See: https://github.com/paritytech/polkadot/blob/master/runtime/westend/src/lib.rs
+/// See: [link](https://github.com/paritytech/polkadot/blob/master/runtime/westend/src/lib.rs)
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
 pub enum Call {
 	/// Rococo bridge pallet.

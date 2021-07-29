@@ -35,7 +35,7 @@ pub struct HeadersSyncParams {
 	/// Maximal total headers size in single submit request.
 	pub max_headers_size_in_single_submit: usize,
 	/// We only may store and accept (from Ethereum node) headers that have
-	/// number >= than best_substrate_header.number - prune_depth.
+	/// number >= than "best_substrate_header.number" - "prune_depth".
 	pub prune_depth: u32,
 	/// Target transactions mode.
 	pub target_tx_mode: TargetTransactionMode,

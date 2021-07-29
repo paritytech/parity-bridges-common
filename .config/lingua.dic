@@ -2,7 +2,9 @@
 1KB
 1MB
 5MB
->=
+=
+&&
+~
 annualised/MS
 Apache-2.0/M
 AccountId/MS
@@ -17,7 +19,7 @@ aren
 async
 Best/MS
 benchmarking/MS
-best_substrate_header.number
+best_substrate_header
 BlockId
 BFT/M
 bitfield/MS
@@ -81,8 +83,7 @@ Lane1
 Lane2
 Lane3
 LaneId
-lane.source/MS
-lane.target
+lane
 kusama/S
 KYC/M
 keccak
@@ -147,8 +148,7 @@ src
 S|N
 STALL_SYNC_TIMEOUT
 SURI
-sp_finality_grandpa,
-source
+sp_finality_grandpa
 source_at_target
 source_latest_generated
 struct/MS
