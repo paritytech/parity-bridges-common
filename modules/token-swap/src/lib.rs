@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Runtime module that allows token swap between two parties acting on differen chains.
+//! Runtime module that allows token swap between two parties acting on different chains.
 //!
 //! The swap is made using message lanes between This (where `pallet-bridge-token-swap` pallet
 //! is deployed) and some other Bridged chain. No other assumptions about the Bridged chain are
@@ -74,7 +74,7 @@ pub enum TokenSwapState {
 	/// The swap has been started using the `start_claim` call, but we have no proof that it has
 	/// happened at the Bridged chain.
 	Started,
-	/// Ths swap has happened at the Bridged chain and may be claimed by the Bridged chain party using
+	/// The swap has happened at the Bridged chain and may be claimed by the Bridged chain party using
 	/// the `claim_swap` call.
 	Confirmed,
 	/// The swap has failed at the Bridged chain and This chain party may cancel it using the
