@@ -122,10 +122,6 @@ pub mod pallet {
 		/// Converter from raw hash (derived from swap) to This chain account.
 		type FromSwapToThisAccountIdConverter: Convert<H256, Self::AccountId>;
 
-		/// Current `spec_version` of the Bridged chain.
-		type BridgedChainSpecVersion: Get<u32>;
-		/// Current weight of the transfer call at the Bridged chain.
-		type BridgedChainTransferWeight: Get<Weight>;
 		/// Tokens balance type at the Bridged chain.
 		type BridgedBalance: Parameter;
 		/// Account identifier type at the Bridged chain.
@@ -199,7 +195,9 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			swap: TokenSwapOf<T, I>,
 			target_public_at_bridged_chain: T::BridgedAccountPublic,
+			bridged_chain_spec_version: u32,
 			bridged_currency_transfer: RawBridgedTransferCall,
+			bridged_currency_transfer_weight: Weight,
 			bridged_currency_transfer_signature: T::BridgedAccountSignature,
 		) -> DispatchResultWithPostInfo {
 			// ensure that the `origin` is the same account that is mentioned in the `swap` intention
@@ -265,8 +263,8 @@ pub mod pallet {
 					swap_account.clone(),
 					T::OutboundMessageLaneId::get(),
 					bp_message_dispatch::MessagePayload {
-						spec_version: T::BridgedChainSpecVersion::get(),
-						weight: T::BridgedChainTransferWeight::get(),
+						spec_version: bridged_chain_spec_version,
+						weight: bridged_currency_transfer_weight,
 						origin: bp_message_dispatch::CallOrigin::TargetAccount(
 							swap_account,
 							target_public_at_bridged_chain,
@@ -546,6 +544,8 @@ mod tests {
 	const BRIDGED_CHAIN_ACCOUNT_PUBLIC: BridgedAccountPublic = 1;
 	const BRIDGED_CHAIN_ACCOUNT_SIGNATURE: BridgedAccountSignature = 2;
 	const BRIDGED_CHAIN_ACCOUNT: BridgedAccountId = 3;
+	const BRIDGED_CHAIN_SPEC_VERSION: u32 = 4;
+	const BRIDGED_CHAIN_CALL_WEIGHT: Balance = 5;
 
 	fn test_swap() -> TokenSwapOf<TestRuntime, ()> {
 		bp_token_swap::TokenSwap {
@@ -570,7 +570,9 @@ mod tests {
 			Origin::signed(THIS_CHAIN_ACCOUNT),
 			test_swap(),
 			BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+			BRIDGED_CHAIN_SPEC_VERSION,
 			test_transfer(),
+			BRIDGED_CHAIN_CALL_WEIGHT,
 			BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 		));
 	}
@@ -590,7 +592,9 @@ mod tests {
 					Origin::signed(THIS_CHAIN_ACCOUNT + 1),
 					test_swap(),
 					BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+					BRIDGED_CHAIN_SPEC_VERSION,
 					test_transfer(),
+					BRIDGED_CHAIN_CALL_WEIGHT,
 					BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 				),
 				Error::<TestRuntime, ()>::MismatchedSwapSourceOrigin
@@ -608,7 +612,9 @@ mod tests {
 					Origin::signed(THIS_CHAIN_ACCOUNT),
 					swap,
 					BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+					BRIDGED_CHAIN_SPEC_VERSION,
 					test_transfer(),
+					BRIDGED_CHAIN_CALL_WEIGHT,
 					BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 				),
 				Error::<TestRuntime, ()>::TooLowBalanceOnThisChain
@@ -626,7 +632,9 @@ mod tests {
 					Origin::signed(THIS_CHAIN_ACCOUNT),
 					swap,
 					BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+					BRIDGED_CHAIN_SPEC_VERSION,
 					test_transfer(),
+					BRIDGED_CHAIN_CALL_WEIGHT,
 					BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 				),
 				Error::<TestRuntime, ()>::FailedToTransferToSwapAccount
@@ -644,7 +652,9 @@ mod tests {
 					Origin::signed(THIS_CHAIN_ACCOUNT),
 					test_swap(),
 					BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+					BRIDGED_CHAIN_SPEC_VERSION,
 					transfer,
+					BRIDGED_CHAIN_CALL_WEIGHT,
 					BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 				),
 				Error::<TestRuntime, ()>::FailedToSendTransferMessage
@@ -659,7 +669,9 @@ mod tests {
 				Origin::signed(THIS_CHAIN_ACCOUNT),
 				test_swap(),
 				BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+				BRIDGED_CHAIN_SPEC_VERSION,
 				test_transfer(),
+				BRIDGED_CHAIN_CALL_WEIGHT,
 				BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 			));
 
@@ -668,7 +680,9 @@ mod tests {
 					Origin::signed(THIS_CHAIN_ACCOUNT),
 					test_swap(),
 					BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+					BRIDGED_CHAIN_SPEC_VERSION,
 					test_transfer(),
+					BRIDGED_CHAIN_CALL_WEIGHT,
 					BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 				),
 				Error::<TestRuntime, ()>::SwapAlreadyStarted
@@ -685,7 +699,9 @@ mod tests {
 					Origin::signed(THIS_CHAIN_ACCOUNT),
 					test_swap(),
 					BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+					BRIDGED_CHAIN_SPEC_VERSION,
 					test_transfer(),
+					BRIDGED_CHAIN_CALL_WEIGHT,
 					BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 				),
 				Error::<TestRuntime, ()>::SwapPeriodIsFinished
@@ -701,7 +717,9 @@ mod tests {
 				Origin::signed(THIS_CHAIN_ACCOUNT),
 				test_swap(),
 				BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+				BRIDGED_CHAIN_SPEC_VERSION,
 				test_transfer(),
+				BRIDGED_CHAIN_CALL_WEIGHT,
 				BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 			));
 		});
@@ -717,7 +735,9 @@ mod tests {
 				Origin::signed(THIS_CHAIN_ACCOUNT),
 				test_swap(),
 				BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+				BRIDGED_CHAIN_SPEC_VERSION,
 				test_transfer(),
+				BRIDGED_CHAIN_CALL_WEIGHT,
 				BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
 			));
 

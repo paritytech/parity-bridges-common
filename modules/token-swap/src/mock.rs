@@ -108,8 +108,6 @@ impl pallet_balances::Config for TestRuntime {
 frame_support::parameter_types! {
 	pub const BridgeChainId: ChainId = *b"inst";
 	pub const OutboundMessageLaneId: LaneId = *b"lane";
-	pub const BridgedChainSpecVersion: u32 = 42;
-	pub const BridgedChainTransferWeight: Weight = 1;
 	pub const MessageDeliveryAndDispatchFee: Balance = 1;
 }
 
@@ -124,8 +122,6 @@ impl pallet_bridge_token_swap::Config for TestRuntime {
 	type ThisCurrency = pallet_balances::Pallet<TestRuntime>;
 	type FromSwapToThisAccountIdConverter = TestAccountConverter;
 
-	type BridgedChainSpecVersion = BridgedChainSpecVersion;
-	type BridgedChainTransferWeight = BridgedChainTransferWeight;
 	type BridgedBalance = BridgedBalance;
 	type BridgedAccountId = BridgedAccountId;
 	type BridgedAccountPublic = BridgedAccountPublic;
