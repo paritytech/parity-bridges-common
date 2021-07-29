@@ -63,7 +63,7 @@ pub trait TargetHeaderChain<Payload, AccountId> {
 	/// never be delivered.
 	fn verify_message(payload: &Payload) -> Result<(), Self::Error>;
 
-	/// Verify messages delivery proof and return lane && nonce of the latest recevied message.
+	/// Verify messages delivery proof and return lane && nonce of the latest received message.
 	fn verify_messages_delivery_proof(
 		proof: Self::MessagesDeliveryProof,
 	) -> Result<(LaneId, InboundLaneData<AccountId>), Self::Error>;
@@ -102,7 +102,7 @@ pub trait LaneMessageVerifier<Submitter, Payload, Fee> {
 /// by relayer.
 ///
 /// So to be sure that any non-altruist relayer would agree to deliver message, submitter
-/// should set `delivery_and_dispatch_fee` to at least (equialent of): sum of fees from (2)
+/// should set `delivery_and_dispatch_fee` to at least (equivalent of): sum of fees from (2)
 /// to (4) above, plus some interest for the relayer.
 pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	/// Error type.

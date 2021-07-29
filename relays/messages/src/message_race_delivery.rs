@@ -219,7 +219,7 @@ where
 /// Additional nonces data from the target client used by message delivery race.
 #[derive(Debug, Clone)]
 struct DeliveryRaceTargetNoncesData {
-	/// Latest nonce that we know: (1) has been delivered to us (2) has been confirmed
+	/// The latest nonce that we know: (1) has been delivered to us (2) has been confirmed
 	/// back to the source node (by confirmations race) and (3) relayer has received
 	/// reward for (and this has been confirmed by the message delivery race).
 	confirmed_nonce: MessageNonce,

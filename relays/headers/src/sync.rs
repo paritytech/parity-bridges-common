@@ -58,9 +58,9 @@ pub enum TargetTransactionMode {
 pub struct HeadersSync<P: HeadersSyncPipeline> {
 	/// Synchronization parameters.
 	params: HeadersSyncParams,
-	/// Best header number known to source node.
+	/// The best header number known to source node.
 	source_best_number: Option<P::Number>,
-	/// Best header known to target node.
+	/// The best header known to target node.
 	target_best_header: Option<HeaderIdOf<P>>,
 	/// Headers queue.
 	headers: QueuedHeaders<P>,
@@ -85,7 +85,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		self.source_best_number
 	}
 
-	/// Best header known to target node.
+	/// The best header known to target node.
 	pub fn target_best_header(&self) -> Option<HeaderIdOf<P>> {
 		self.target_best_header
 	}
@@ -150,7 +150,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		Some(best_downloaded_number + One::one())
 	}
 
-	/// Selech orphan header to downoload.
+	/// Selech orphan header to download.
 	pub fn select_orphan_header_to_download(&self) -> Option<&QueuedHeader<P>> {
 		let orphan_header = self.headers.header(HeaderStatus::Orphan)?;
 

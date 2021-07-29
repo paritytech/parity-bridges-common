@@ -71,7 +71,7 @@ pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 /// This is a copy-paste from the Polkadot repo's `polkadot-runtime-common` crate.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
-/// All Polkadot-like chains allow 2 seconds of compute with a 6 second average block time.
+/// All Polkadot-like chains allow 2 seconds of compute with a 6-second average block time.
 ///
 /// This is a copy-paste from the Polkadot repo's `polkadot-runtime-common` crate.
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
@@ -165,7 +165,7 @@ pub type Index = u32;
 /// Hashing type.
 pub type Hashing = BlakeTwo256;
 
-/// The type of an object that can produce hashes on Polkadot-like chains.
+/// The type of object that can produce hashes on Polkadot-like chains.
 pub type Hasher = BlakeTwo256;
 
 /// The header type used by Polkadot-like chains.
