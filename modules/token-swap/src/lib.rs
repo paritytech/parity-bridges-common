@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Runtime module that allows token swap between two parties acting on differen chains.
+//! Runtime module that allows token swap between two parties acting on different chains.
 //!
 //! The swap is made using message lanes between This (where `pallet-bridge-token-swap` pallet
 //! is deployed) and some other Bridged chain. No other assumptions about the Bridged chain are
