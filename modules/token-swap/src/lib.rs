@@ -220,6 +220,16 @@ pub mod pallet {
 				Error::<T, I>::TooLowBalanceOnThisChain,
 			);
 
+			// if the swap is replay-protected, then we need to ensure that we have not yet passed the
+			// specified block yet
+			match swap.swap_type {
+				TokenSwapType::TemporaryTargetAccountAtBridgedChain => (),
+				TokenSwapType::LockClaimUntilBlock(block_number, _) => ensure!(
+					block_number >= frame_system::Pallet::<T>::block_number(),
+					Error::<T, I>::SwapPeriodIsFinished,
+				),
+			}
+
 			let swap_account = swap_account_id::<T, I>(&swap);
 			frame_support::storage::with_transaction(|| {
 				// funds are transferred from This account to the temporary Swap account
@@ -417,6 +427,11 @@ pub mod pallet {
 		/// Now the only possible case when you may get this error, is when you're trying to claim swap with
 		/// `TokenSwapType::LockClaimUntilBlock` before lock period is over.
 		SwapIsTemporaryLocked,
+		/// Swap period is finished and you can not restart it.
+		///
+		/// Now the only possible case when you may get this error, is when you're trying to start swap with
+		/// `TokenSwapType::LockClaimUntilBlock` after lock period is over.
+		SwapPeriodIsFinished,
 		/// Someone is trying to cancel swap that has been confirmed.
 		SwapIsConfirmed,
 		/// Someone is trying to claim/cancel swap that is either not started or already claimed/cancelled.
@@ -525,7 +540,8 @@ mod tests {
 	use crate::mock::*;
 	use frame_support::{assert_noop, assert_ok};
 
-	const CAN_CLAIM_BLOCK_NUMBER: u64 = 11;
+	const CAN_START_BLOCK_NUMBER: u64 = 10;
+	const CAN_CLAIM_BLOCK_NUMBER: u64 = CAN_START_BLOCK_NUMBER + 1;
 
 	const BRIDGED_CHAIN_ACCOUNT_PUBLIC: BridgedAccountPublic = 1;
 	const BRIDGED_CHAIN_ACCOUNT_SIGNATURE: BridgedAccountSignature = 2;
@@ -533,7 +549,7 @@ mod tests {
 
 	fn test_swap() -> TokenSwapOf<TestRuntime, ()> {
 		bp_token_swap::TokenSwap {
-			swap_type: TokenSwapType::LockClaimUntilBlock(CAN_CLAIM_BLOCK_NUMBER - 1, 0.into()),
+			swap_type: TokenSwapType::LockClaimUntilBlock(CAN_START_BLOCK_NUMBER, 0.into()),
 			source_balance_at_this_chain: 100,
 			source_account_at_this_chain: THIS_CHAIN_ACCOUNT,
 			target_balance_at_bridged_chain: 200,
@@ -637,7 +653,7 @@ mod tests {
 	}
 
 	#[test]
-	fn create_swap_fails_swap_is_active() {
+	fn create_swap_fails_if_swap_is_active() {
 		run_test(|| {
 			assert_ok!(Pallet::<TestRuntime>::create_swap(
 				Origin::signed(THIS_CHAIN_ACCOUNT),
@@ -657,6 +673,37 @@ mod tests {
 				),
 				Error::<TestRuntime, ()>::SwapAlreadyStarted
 			);
+		});
+	}
+
+	#[test]
+	fn create_swap_fails_if_trying_to_start_swap_after_lock_period_is_finished() {
+		run_test(|| {
+			frame_system::Pallet::<TestRuntime>::set_block_number(CAN_START_BLOCK_NUMBER + 1);
+			assert_noop!(
+				Pallet::<TestRuntime>::create_swap(
+					Origin::signed(THIS_CHAIN_ACCOUNT),
+					test_swap(),
+					BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+					test_transfer(),
+					BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
+				),
+				Error::<TestRuntime, ()>::SwapPeriodIsFinished
+			);
+		});
+	}
+
+	#[test]
+	fn create_swap_succeeds_if_trying_to_start_swap_at_lock_period_end() {
+		run_test(|| {
+			frame_system::Pallet::<TestRuntime>::set_block_number(CAN_START_BLOCK_NUMBER);
+			assert_ok!(Pallet::<TestRuntime>::create_swap(
+				Origin::signed(THIS_CHAIN_ACCOUNT),
+				test_swap(),
+				BRIDGED_CHAIN_ACCOUNT_PUBLIC,
+				test_transfer(),
+				BRIDGED_CHAIN_ACCOUNT_SIGNATURE,
+			));
 		});
 	}
 
