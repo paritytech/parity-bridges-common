@@ -82,8 +82,8 @@ impl Alternative {
 		);
 		match self {
 			Alternative::Development => ChainSpec::from_genesis(
-				"Development",
-				"dev",
+				"Rialto",
+				"rialto",
 				sc_service::ChainType::Development,
 				|| {
 					testnet_genesis(
