@@ -56,7 +56,7 @@ pub trait TargetHeaderChain<Payload, AccountId> {
 	///
 	/// The proper implementation must ensure that the delivery-transaction with this
 	/// payload would (at least) be accepted into target chain transaction pool AND
-	/// eventually will be successfully 'mined'. The most obvious incorrect implementation
+	/// eventually will be successfully mined. The most obvious incorrect implementation
 	/// example would be implementation for BTC chain that accepts payloads larger than
 	/// 1MB. BTC nodes aren't accepting transactions that are larger than 1MB, so relayer
 	/// will be unable to craft valid transaction => this (and all subsequent) messages will
