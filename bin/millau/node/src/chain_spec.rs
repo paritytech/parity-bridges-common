@@ -107,8 +107,8 @@ impl Alternative {
 				None,
 			),
 			Alternative::LocalTestnet => ChainSpec::from_genesis(
-				"Local Testnet",
-				"local_testnet",
+				"Millau",
+				"millau",
 				sc_service::ChainType::Local,
 				|| {
 					testnet_genesis(
