@@ -8940,18 +8940,15 @@ dependencies = [
  "bp-westend",
  "bp-wococo",
  "bridge-runtime-common",
- "finality-grandpa",
  "finality-relay",
  "frame-support",
  "futures 0.3.15",
- "headers-relay",
  "hex",
  "hex-literal 0.3.1",
  "log",
  "messages-relay",
  "millau-runtime",
  "num-format",
- "num-traits",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "parity-scale-codec",
@@ -8974,7 +8971,39 @@ dependencies = [
  "sp-version",
  "structopt",
  "strum 0.21.0",
+ "substrate-relay-helper",
  "tempdir",
+]
+
+[[package]]
+name = "substrate-relay-helper"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-std",
+ "async-trait",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "finality-grandpa",
+ "finality-relay",
+ "frame-support",
+ "futures 0.3.15",
+ "headers-relay",
+ "log",
+ "messages-relay",
+ "num-format",
+ "num-traits",
+ "pallet-bridge-messages",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-runtime",
+ "sp-trie",
+ "sp-version",
 ]
 
 [[package]]

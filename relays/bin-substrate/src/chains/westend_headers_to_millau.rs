@@ -16,18 +16,21 @@
 
 //! Westend-to-Millau headers sync entrypoint.
 
-use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
+use codec::Encode;
+use sp_core::{Bytes, Pair};
 
 use bp_header_chain::justification::GrandpaJustification;
-use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_substrate_client::{Chain, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
-use sp_core::{Bytes, Pair};
+use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
 /// Westend-to-Millau finality sync pipeline.
-pub(crate) type WestendFinalityToMillau = SubstrateFinalityToSubstrate<Westend, Millau, MillauSigningParams>;
+// pub(crate) type WestendFinalityToMillau = SubstrateFinalityToSubstrate<Westend, Millau, MillauSigningParams>;
+pub(crate) struct WestendFinalityToMillau {
+	finality_pipeline: SubstrateFinalityToSubstrate<Westend, Millau, MillauSigningParams>,
+}
 
 impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
@@ -39,7 +42,7 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 	}
 
 	fn transactions_author(&self) -> bp_millau::AccountId {
-		(*self.target_sign.public().as_array_ref()).into()
+		(*self.finality_pipeline.target_sign.public().as_array_ref()).into()
 	}
 
 	fn make_submit_finality_proof_transaction(
@@ -54,8 +57,13 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 		>::submit_finality_proof(header.into_inner(), proof)
 		.into();
 
-		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
+		let genesis_hash = *self.finality_pipeline.target_client.genesis_hash();
+		let transaction = Millau::sign_transaction(
+			genesis_hash,
+			&self.finality_pipeline.target_sign,
+			transaction_nonce,
+			call,
+		);
 
 		Bytes(transaction.encode())
 	}

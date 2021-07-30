@@ -14,19 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Substrate-to-substrate relay entrypoint.
-
-#![warn(missing_docs)]
-
-mod chains;
-mod cli;
-mod help;
-
-fn main() {
-	let command = cli::parse_args();
-	let run = command.run();
-	let result = async_std::task::block_on(run);
-	if let Err(error) = result {
-		log::error!(target: "bridge", "Failed to start relay: {}", error);
-	}
-}
+pub mod finality_pipeline;
+pub mod finality_target;
+pub mod headers_initialize;
+pub mod help;
+pub mod messages_lane;
+pub mod messages_source;
+pub mod messages_target;
+pub mod on_demand_headers;

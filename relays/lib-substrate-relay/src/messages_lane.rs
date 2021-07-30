@@ -109,15 +109,15 @@ pub trait SubstrateMessageLane: MessageLane {
 #[derive(Debug)]
 pub struct SubstrateMessageLaneToSubstrate<Source: Chain, SourceSignParams, Target: Chain, TargetSignParams> {
 	/// Client for the source Substrate chain.
-	pub(crate) source_client: Client<Source>,
+	pub source_client: Client<Source>,
 	/// Parameters required to sign transactions for source chain.
-	pub(crate) source_sign: SourceSignParams,
+	pub source_sign: SourceSignParams,
 	/// Client for the target Substrate chain.
-	pub(crate) target_client: Client<Target>,
+	pub target_client: Client<Target>,
 	/// Parameters required to sign transactions for target chain.
-	pub(crate) target_sign: TargetSignParams,
+	pub target_sign: TargetSignParams,
 	/// Account id of relayer at the source chain.
-	pub(crate) relayer_id_at_source: Source::AccountId,
+	pub relayer_id_at_source: Source::AccountId,
 }
 
 impl<Source: Chain, SourceSignParams: Clone, Target: Chain, TargetSignParams: Clone> Clone
@@ -261,14 +261,14 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 	}
 	if let Some(source_chain_token_id) = source_chain_token_id {
 		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
-			let metric = crate::chains::token_price_metric(registry, prefix, source_chain_token_id)?;
+			let metric = crate::help::token_price_metric(registry, prefix, source_chain_token_id)?;
 			source_to_base_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
 		})?;
 	}
 	if let Some(target_chain_token_id) = target_chain_token_id {
 		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
-			let metric = crate::chains::token_price_metric(registry, prefix, target_chain_token_id)?;
+			let metric = crate::help::token_price_metric(registry, prefix, target_chain_token_id)?;
 			target_to_base_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
 		})?;

@@ -34,7 +34,9 @@ pub(crate) const STALL_TIMEOUT: Duration = Duration::from_secs(120);
 pub(crate) const RECENT_FINALITY_PROOFS_LIMIT: usize = 4096;
 
 /// Headers sync pipeline for Substrate <-> Substrate relays.
-pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
+pub trait SubstrateFinalitySyncPipeline {
+	type FinalitySyncPipeline: FinalitySyncPipeline;
+
 	/// Name of the runtime method that returns id of best finalized source header at target chain.
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str;
 
@@ -69,9 +71,9 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 #[derive(Clone)]
 pub struct SubstrateFinalityToSubstrate<SourceChain, TargetChain: Chain, TargetSign> {
 	/// Client for the target chain.
-	pub(crate) target_client: Client<TargetChain>,
+	pub target_client: Client<TargetChain>,
 	/// Data required to sign target chain transactions.
-	pub(crate) target_sign: TargetSign,
+	pub target_sign: TargetSign,
 	/// Unused generic arguments dump.
 	_marker: PhantomData<SourceChain>,
 }

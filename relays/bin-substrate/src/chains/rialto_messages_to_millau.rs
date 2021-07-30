@@ -16,29 +16,34 @@
 
 //! Rialto-to-Millau messages sync entrypoint.
 
-use crate::messages_lane::{
-	select_delivery_transaction_limits, MessagesRelayParams, StandaloneMessagesMetrics, SubstrateMessageLane,
-	SubstrateMessageLaneToSubstrate,
-};
-use crate::messages_source::SubstrateMessagesSource;
-use crate::messages_target::SubstrateMessagesTarget;
+use std::{ops::RangeInclusive, time::Duration};
+
+use codec::Encode;
+use frame_support::dispatch::GetDispatchInfo;
+use sp_core::{Bytes, Pair};
 
 use bp_messages::MessageNonce;
 use bp_runtime::{MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
-use codec::Encode;
-use frame_support::dispatch::GetDispatchInfo;
 use messages_relay::message_lane::MessageLane;
 use relay_millau_client::{HeaderId as MillauHeaderId, Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{HeaderId as RialtoHeaderId, Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
-use sp_core::{Bytes, Pair};
-use std::{ops::RangeInclusive, time::Duration};
+use substrate_relay_helper::messages_lane::{
+	select_delivery_transaction_limits, MessagesRelayParams, StandaloneMessagesMetrics, SubstrateMessageLane,
+	SubstrateMessageLaneToSubstrate,
+};
+use substrate_relay_helper::messages_source::SubstrateMessagesSource;
+use substrate_relay_helper::messages_target::SubstrateMessagesTarget;
 
 /// Rialto-to-Millau message lane.
-pub type RialtoMessagesToMillau =
-	SubstrateMessageLaneToSubstrate<Rialto, RialtoSigningParams, Millau, MillauSigningParams>;
+// pub type RialtoMessagesToMillau =
+// 	SubstrateMessageLaneToSubstrate<Rialto, RialtoSigningParams, Millau, MillauSigningParams>;
+#[derive(Debug)]
+pub struct RialtoMessagesToMillau {
+	message_lane: SubstrateMessageLaneToSubstrate<Rialto, RialtoSigningParams, Millau, MillauSigningParams>,
+}
 
 impl SubstrateMessageLane for RialtoMessagesToMillau {
 	const OUTBOUND_LANE_MESSAGE_DETAILS_METHOD: &'static str = bp_millau::TO_MILLAU_MESSAGE_DETAILS_METHOD;
@@ -103,15 +108,16 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 		} = proof;
 		let messages_count = nonces_end - nonces_start + 1;
 		let call: millau_runtime::Call = millau_runtime::MessagesCall::receive_messages_proof(
-			self.relayer_id_at_source.clone(),
+			self.message_lane.relayer_id_at_source.clone(),
 			proof,
 			messages_count as _,
 			dispatch_weight,
 		)
 		.into();
 		let call_weight = call.get_dispatch_info().weight;
-		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
+		let genesis_hash = *self.message_lane.target_client.genesis_hash();
+		let transaction =
+			Millau::sign_transaction(genesis_hash, &self.message_lane.target_sign, transaction_nonce, call);
 		log::trace!(
 			target: "bridge",
 			"Prepared Rialto -> Millau delivery transaction. Weight: {}/{}, size: {}/{}",
@@ -142,11 +148,13 @@ pub async fn run(
 	let lane_id = params.lane_id;
 	let source_client = params.source_client;
 	let lane = RialtoMessagesToMillau {
-		source_client: source_client.clone(),
-		source_sign: params.source_sign,
-		target_client: params.target_client.clone(),
-		target_sign: params.target_sign,
-		relayer_id_at_source: relayer_id_at_rialto,
+		message_lane: SubstrateMessageLaneToSubstrate {
+			source_client: source_client.clone(),
+			source_sign: params.source_sign,
+			target_client: params.target_client.clone(),
+			target_sign: params.target_sign,
+			relayer_id_at_source: relayer_id_at_rialto,
+		},
 	};
 
 	// 2/3 is reserved for proofs and tx overhead
@@ -165,7 +173,7 @@ pub async fn run(
 			Max messages size in single transaction: {}\n\t\
 			Max messages weight in single transaction: {}\n\t\
 			Relayer mode: {:?}",
-		lane.relayer_id_at_source,
+		lane.message_lane.relayer_id_at_source,
 		max_messages_in_single_batch,
 		max_messages_size_in_single_batch,
 		max_messages_weight_in_single_batch,
@@ -222,7 +230,7 @@ pub(crate) fn add_standalone_metrics(
 	metrics_params: MetricsParams,
 	source_client: Client<Rialto>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
-	crate::messages_lane::add_standalone_metrics::<RialtoMessagesToMillau>(
+	substrate_relay_helper::messages_lane::add_standalone_metrics::<RialtoMessagesToMillau>(
 		metrics_prefix,
 		metrics_params,
 		source_client,

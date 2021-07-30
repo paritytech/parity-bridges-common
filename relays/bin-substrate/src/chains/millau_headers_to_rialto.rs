@@ -16,19 +16,24 @@
 
 //! Millau-to-Rialto headers sync entrypoint.
 
-use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
+use codec::Encode;
+use sp_core::{Bytes, Pair};
 
 use bp_header_chain::justification::GrandpaJustification;
-use codec::Encode;
+use finality_relay::FinalitySyncPipeline;
 use relay_millau_client::{Millau, SyncHeader as MillauSyncHeader};
 use relay_rialto_client::{Rialto, SigningParams as RialtoSigningParams};
 use relay_substrate_client::{Chain, TransactionSignScheme};
-use sp_core::{Bytes, Pair};
+use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
 /// Millau-to-Rialto finality sync pipeline.
-pub(crate) type MillauFinalityToRialto = SubstrateFinalityToSubstrate<Millau, Rialto, RialtoSigningParams>;
+// pub(crate) type MillauFinalityToRialto = SubstrateFinalityToSubstrate<Millau, Rialto, RialtoSigningParams>;
+#[derive(Clone, Debug)]
+pub(crate) struct MillauFinalityToRialto;
 
 impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
+	type FinalitySyncPipeline = SubstrateFinalityToSubstrate<Millau, Rialto, RialtoSigningParams>;
+
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;
 
 	type TargetChain = Rialto;
@@ -45,8 +50,13 @@ impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
 	) -> Bytes {
 		let call = rialto_runtime::BridgeGrandpaMillauCall::submit_finality_proof(header.into_inner(), proof).into();
 
-		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Rialto::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
+		let genesis_hash = *self.finality_pipeline.target_client.genesis_hash();
+		let transaction = Rialto::sign_transaction(
+			genesis_hash,
+			&self.finality_pipeline.target_sign,
+			transaction_nonce,
+			call,
+		);
 
 		Bytes(transaction.encode())
 	}
