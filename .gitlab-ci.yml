@@ -112,7 +112,7 @@ spellcheck:
   <<:                              *docker-env
   <<:                              *test-refs
   script:
-    - cargo spellcheck check -m 0 -vv $(find ./ -name "*.rs")
+    - cargo spellcheck check -m 1 -vv
 
 #### stage:                        check
 
