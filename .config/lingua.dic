@@ -107,6 +107,7 @@ debian/M
 decodable/MS
 delivery_and_dispatch_fee
 dev
+dispatchable
 dispatchables
 doesn
 ed25519
