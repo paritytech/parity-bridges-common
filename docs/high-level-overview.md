@@ -74,7 +74,7 @@ Referer to the [pallet documentation](../modules/substrate/src/lib.rs) for more 
 
 There is currently no reward strategy for the relayers at all. They also are not required to be
 staked or registered on-chain, unlike in other bridge designs. We consider the header sync to be
-an essential part of the bridge and the incentivisation should be happening on the higher layers.
+an essential part of the bridge and the incentivization should be happening on the higher layers.
 
 At the moment, signed transactions are the only way to submit headers to the header sync pallet.
 However, in the future we would like to use  unsigned transactions for headers delivery. This will
