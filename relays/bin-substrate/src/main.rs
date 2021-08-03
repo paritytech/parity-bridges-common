@@ -20,7 +20,6 @@
 
 mod chains;
 mod cli;
-mod help;
 
 fn main() {
 	let command = cli::parse_args();
