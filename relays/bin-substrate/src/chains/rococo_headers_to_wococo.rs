@@ -21,7 +21,7 @@ use sp_core::{Bytes, Pair};
 
 use bp_header_chain::justification::GrandpaJustification;
 use relay_rococo_client::{Rococo, SyncHeader as RococoSyncHeader};
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
 use relay_wococo_client::{SigningParams as WococoSigningParams, Wococo};
 use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
@@ -29,18 +29,34 @@ use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, S
 use crate::chains::wococo_headers_to_rococo::MAXIMAL_BALANCE_DECREASE_PER_DAY;
 
 /// Rococo-to-Wococo finality sync pipeline.
-// pub(crate) type RococoFinalityToWococo = SubstrateFinalityToSubstrate<Rococo, Wococo, WococoSigningParams>;
-pub struct RococoFinalityToWococo {
-	finality_pipeline: SubstrateFinalityToSubstrate<Rococo, Wococo, WococoSigningParams>,
+pub(crate) type FinalityPipelineRococoFinalityToWococo =
+	SubstrateFinalityToSubstrate<Rococo, Wococo, WococoSigningParams>;
+
+#[derive(Clone, Debug)]
+pub(crate) struct RococoFinalityToWococo {
+	finality_pipeline: FinalityPipelineRococoFinalityToWococo,
+}
+
+impl RococoFinalityToWococo {
+	pub fn new(target_client: Client<Wococo>, target_sign: WococoSigningParams) -> Self {
+		Self {
+			finality_pipeline: FinalityPipelineRococoFinalityToWococo::new(target_client, target_sign),
+		}
+	}
 }
 
 impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
+	type FinalitySyncPipeline = FinalityPipelineRococoFinalityToWococo;
+
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
 
 	type TargetChain = Wococo;
 
 	fn customize_metrics(params: MetricsParams) -> anyhow::Result<MetricsParams> {
-		crate::chains::add_polkadot_kusama_price_metrics::<Self>(Some(finality_relay::metrics_prefix::<Self>()), params)
+		crate::chains::add_polkadot_kusama_price_metrics::<Self::FinalitySyncPipeline>(
+			Some(finality_relay::metrics_prefix::<Self::FinalitySyncPipeline>()),
+			params,
+		)
 	}
 
 	fn start_relay_guards(&self) {
@@ -56,7 +72,7 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 	}
 
 	fn transactions_author(&self) -> bp_wococo::AccountId {
-		(*self.target_sign.public().as_array_ref()).into()
+		(*self.finality_pipeline.target_sign.public().as_array_ref()).into()
 	}
 
 	fn make_submit_finality_proof_transaction(

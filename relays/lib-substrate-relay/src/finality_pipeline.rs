@@ -34,7 +34,7 @@ pub(crate) const STALL_TIMEOUT: Duration = Duration::from_secs(120);
 pub(crate) const RECENT_FINALITY_PROOFS_LIMIT: usize = 4096;
 
 /// Headers sync pipeline for Substrate <-> Substrate relays.
-pub trait SubstrateFinalitySyncPipeline {
+pub trait SubstrateFinalitySyncPipeline: 'static + Clone + Debug + Send + Sync {
 	type FinalitySyncPipeline: FinalitySyncPipeline;
 
 	/// Name of the runtime method that returns id of best finalized source header at target chain.
@@ -62,8 +62,8 @@ pub trait SubstrateFinalitySyncPipeline {
 	fn make_submit_finality_proof_transaction(
 		&self,
 		transaction_nonce: <Self::TargetChain as Chain>::Index,
-		header: Self::Header,
-		proof: Self::FinalityProof,
+		header: <Self::FinalitySyncPipeline as FinalitySyncPipeline>::Header,
+		proof: <Self::FinalitySyncPipeline as FinalitySyncPipeline>::FinalityProof,
 	) -> Bytes;
 }
 
@@ -125,12 +125,12 @@ pub async fn run<SourceChain, TargetChain, P>(
 	metrics_params: MetricsParams,
 ) -> anyhow::Result<()>
 where
-	P: SubstrateFinalitySyncPipeline<
+	P: SubstrateFinalitySyncPipeline<TargetChain = TargetChain>,
+	P::FinalitySyncPipeline: FinalitySyncPipeline<
 		Hash = HashOf<SourceChain>,
 		Number = BlockNumberOf<SourceChain>,
 		Header = SyncHeader<SourceChain::Header>,
 		FinalityProof = GrandpaJustification<SourceChain::Header>,
-		TargetChain = TargetChain,
 	>,
 	SourceChain: Clone + Chain,
 	BlockNumberOf<SourceChain>: BlockNumberBase,

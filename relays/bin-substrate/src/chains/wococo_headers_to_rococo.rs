@@ -21,7 +21,7 @@ use sp_core::{Bytes, Pair};
 
 use bp_header_chain::justification::GrandpaJustification;
 use relay_rococo_client::{Rococo, SigningParams as RococoSigningParams};
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
 use relay_wococo_client::{SyncHeader as WococoSyncHeader, Wococo};
 use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
@@ -34,18 +34,34 @@ use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, S
 pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_rococo::Balance = 1_500_000_000_000_000;
 
 /// Wococo-to-Rococo finality sync pipeline.
-// pub(crate) type WococoFinalityToRococo = SubstrateFinalityToSubstrate<Wococo, Rococo, RococoSigningParams>;
+pub(crate) type FinalityPipelineWococoFinalityToRococo =
+	SubstrateFinalityToSubstrate<Wococo, Rococo, RococoSigningParams>;
+
+#[derive(Clone, Debug)]
 pub(crate) struct WococoFinalityToRococo {
-	finality_pipeline: SubstrateFinalityToSubstrate<Wococo, Rococo, RococoSigningParams>,
+	finality_pipeline: FinalityPipelineWococoFinalityToRococo,
+}
+
+impl WococoFinalityToRococo {
+	pub fn new(target_client: Client<Rococo>, target_sign: RococoSigningParams) -> Self {
+		Self {
+			finality_pipeline: FinalityPipelineWococoFinalityToRococo::new(target_client, target_sign),
+		}
+	}
 }
 
 impl SubstrateFinalitySyncPipeline for WococoFinalityToRococo {
+	type FinalitySyncPipeline = FinalityPipelineWococoFinalityToRococo;
+
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_wococo::BEST_FINALIZED_WOCOCO_HEADER_METHOD;
 
 	type TargetChain = Rococo;
 
 	fn customize_metrics(params: MetricsParams) -> anyhow::Result<MetricsParams> {
-		crate::chains::add_polkadot_kusama_price_metrics::<Self>(Some(finality_relay::metrics_prefix::<Self>()), params)
+		crate::chains::add_polkadot_kusama_price_metrics::<Self::FinalitySyncPipeline>(
+			Some(finality_relay::metrics_prefix::<Self::FinalitySyncPipeline>()),
+			params,
+		)
 	}
 
 	fn start_relay_guards(&self) {

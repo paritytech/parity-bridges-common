@@ -56,7 +56,9 @@ pub struct MessagesRelayParams<SC: Chain, SS, TC: Chain, TS> {
 }
 
 /// Message sync pipeline for Substrate <-> Substrate relays.
-pub trait SubstrateMessageLane: MessageLane {
+pub trait SubstrateMessageLane: 'static + Clone + Send + Sync {
+	type MessageLane: MessageLane;
+
 	/// Name of the runtime method that returns dispatch weight of outbound messages at the source chain.
 	const OUTBOUND_LANE_MESSAGE_DETAILS_METHOD: &'static str;
 	/// Name of the runtime method that returns latest generated nonce at the source chain.
@@ -88,9 +90,9 @@ pub trait SubstrateMessageLane: MessageLane {
 	fn make_messages_delivery_transaction(
 		&self,
 		transaction_nonce: <Self::TargetChain as Chain>::Index,
-		generated_at_header: SourceHeaderIdOf<Self>,
+		generated_at_header: SourceHeaderIdOf<Self::MessageLane>,
 		nonces: RangeInclusive<MessageNonce>,
-		proof: Self::MessagesProof,
+		proof: <Self::MessageLane as MessageLane>::MessagesProof,
 	) -> Bytes;
 
 	/// Returns id of account that we're using to sign transactions at source chain (delivery proof).
@@ -100,8 +102,8 @@ pub trait SubstrateMessageLane: MessageLane {
 	fn make_messages_receiving_proof_transaction(
 		&self,
 		transaction_nonce: <Self::SourceChain as Chain>::Index,
-		generated_at_header: TargetHeaderIdOf<Self>,
-		proof: Self::MessagesReceivingProof,
+		generated_at_header: TargetHeaderIdOf<Self::MessageLane>,
+		proof: <Self::MessageLane as MessageLane>::MessagesReceivingProof,
 	) -> Bytes;
 }
 

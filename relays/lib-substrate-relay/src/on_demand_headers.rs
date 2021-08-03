@@ -16,19 +16,17 @@
 
 //! On-demand Substrate -> Substrate headers relay.
 
-use crate::finality_pipeline::{
-	SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate, RECENT_FINALITY_PROOFS_LIMIT, STALL_TIMEOUT,
-};
-use crate::finality_target::SubstrateFinalityTarget;
+use std::fmt::Debug;
 
 use async_std::sync::{Arc, Mutex};
+use futures::{select, FutureExt};
+use num_traits::{CheckedSub, One, Zero};
+
 use bp_header_chain::justification::GrandpaJustification;
 use finality_relay::{
 	FinalitySyncParams, FinalitySyncPipeline, SourceClient as FinalitySourceClient, SourceHeader,
 	TargetClient as FinalityTargetClient,
 };
-use futures::{select, FutureExt};
-use num_traits::{CheckedSub, One, Zero};
 use relay_substrate_client::{
 	finality_source::{FinalitySource as SubstrateFinalitySource, RequiredHeaderNumberRef},
 	BlockNumberOf, Chain, Client, HashOf, HeaderIdOf, SyncHeader,
@@ -36,7 +34,11 @@ use relay_substrate_client::{
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient, MaybeConnectionError,
 };
-use std::fmt::Debug;
+
+use crate::finality_pipeline::{
+	SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate, RECENT_FINALITY_PROOFS_LIMIT, STALL_TIMEOUT,
+};
+use crate::finality_target::SubstrateFinalityTarget;
 
 /// On-demand Substrate <-> Substrate headers relay.
 ///
@@ -52,10 +54,10 @@ pub struct OnDemandHeadersRelay<SourceChain: Chain> {
 
 impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 	/// Create new on-demand headers relay.
-	pub fn new<TargetChain: Chain, TargetSign>(
+	pub fn new<TargetChain: Chain, TargetSign, P>(
 		source_client: Client<SourceChain>,
 		target_client: Client<TargetChain>,
-		pipeline: SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
+		pipeline: P,
 		maximal_headers_difference: SourceChain::BlockNumber,
 	) -> Self
 	where
@@ -64,15 +66,10 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 		TargetChain: Chain + Debug,
 		TargetChain::BlockNumber: BlockNumberBase,
 		TargetSign: Clone + Send + Sync + 'static,
-		SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>: SubstrateFinalitySyncPipeline<
-			Hash = HashOf<SourceChain>,
-			Number = BlockNumberOf<SourceChain>,
-			Header = SyncHeader<SourceChain::Header>,
-			FinalityProof = GrandpaJustification<SourceChain::Header>,
+		P: SubstrateFinalitySyncPipeline<
+			FinalitySyncPipeline = SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
 			TargetChain = TargetChain,
 		>,
-		SubstrateFinalityTarget<TargetChain, SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>>:
-			FinalityTargetClient<SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>>,
 	{
 		let required_header_number = Arc::new(Mutex::new(Zero::zero()));
 		let this = OnDemandHeadersRelay {
@@ -111,10 +108,11 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 }
 
 /// Background task that is responsible for starting headers relay.
-async fn background_task<SourceChain, TargetChain, TargetSign>(
+async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
-	pipeline: SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
+	// pipeline: SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
+	pipeline: P,
 	maximal_headers_difference: SourceChain::BlockNumber,
 	required_header_number: RequiredHeaderNumberRef<SourceChain>,
 ) where
@@ -123,15 +121,10 @@ async fn background_task<SourceChain, TargetChain, TargetSign>(
 	TargetChain: Chain + Debug,
 	TargetChain::BlockNumber: BlockNumberBase,
 	TargetSign: Clone + Send + Sync + 'static,
-	SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>: SubstrateFinalitySyncPipeline<
-		Hash = HashOf<SourceChain>,
-		Number = BlockNumberOf<SourceChain>,
-		Header = SyncHeader<SourceChain::Header>,
-		FinalityProof = GrandpaJustification<SourceChain::Header>,
+	P: SubstrateFinalitySyncPipeline<
+		FinalitySyncPipeline = SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
 		TargetChain = TargetChain,
 	>,
-	SubstrateFinalityTarget<TargetChain, SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>>:
-		FinalityTargetClient<SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>>,
 {
 	let relay_task_name = on_demand_headers_relay_name::<SourceChain, TargetChain>();
 	let mut finality_source = SubstrateFinalitySource::<
@@ -373,8 +366,9 @@ async fn best_finalized_source_header_at_target<SourceChain: Chain, TargetChain:
 	relay_task_name: &str,
 ) -> Result<SourceChain::BlockNumber, <SubstrateFinalityTarget<TargetChain, P> as RelayClient>::Error>
 where
-	SubstrateFinalityTarget<TargetChain, P>: FinalityTargetClient<P>,
-	P: FinalitySyncPipeline<Number = SourceChain::BlockNumber>,
+	SubstrateFinalityTarget<TargetChain, P>: FinalityTargetClient<P::FinalitySyncPipeline>,
+	P: SubstrateFinalitySyncPipeline,
+	P::FinalitySyncPipeline: FinalitySyncPipeline<Number = SourceChain::BlockNumber>,
 {
 	finality_target
 		.best_finalized_source_block_number()
