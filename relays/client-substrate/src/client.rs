@@ -21,7 +21,7 @@ use crate::rpc::Substrate;
 use crate::{ConnectionParams, Error, Result};
 
 use async_std::sync::{Arc, Mutex};
-use codec::Decode;
+use codec::{Decode, Encode};
 use frame_system::AccountInfo;
 use futures::{SinkExt, StreamExt};
 use jsonrpsee_ws_client::{traits::SubscriptionClient, v2::params::JsonRpcParams, DeserializeOwned};
@@ -31,11 +31,13 @@ use pallet_balances::AccountData;
 use pallet_transaction_payment::InclusionFee;
 use relay_utils::relay_loop::RECONNECT_DELAY;
 use sp_core::{storage::StorageKey, Bytes};
+use sp_runtime::transaction_validity::{TransactionSource, TransactionValidity};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::{convert::TryFrom, future::Future};
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
+const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
 /// Opaque justifications subscription type.
@@ -302,6 +304,37 @@ impl<C: Chain> Client<C> {
 			let tx_hash = Substrate::<C>::author_submit_extrinsic(&*client, extrinsic).await?;
 			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 			Ok(tx_hash)
+		})
+		.await
+	}
+
+	/// Returns pending extrinsics from transaction pool.
+	pub async fn pending_extrinsics(&self) -> Result<Vec<Bytes>> {
+		self.jsonrpsee_execute(move |client| async move {
+			Ok(Substrate::<C>::author_pending_extrinsics(&*client).await?)
+		})
+		.await
+	}
+
+	/// Validate transaction at given block state.
+	pub async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
+		&self,
+		at_block:C::Hash,
+		transaction: SignedTransaction,
+	) -> Result<TransactionValidity> {
+		self.jsonrpsee_execute(move |client| async move {
+			let call = SUB_API_TXPOOL_VALIDATE_TRANSACTION.to_string();
+			let data = Bytes((
+				TransactionSource::External,
+				transaction,
+				at_block,
+			).encode());
+
+			let encoded_response = Substrate::<C>::state_call(&*client, call, data, Some(at_block)).await?;
+			let validity = TransactionValidity::decode(&mut &encoded_response.0[..])
+				.map_err(Error::ResponseParseFailed)?;
+
+			Ok(validity)
 		})
 		.await
 	}

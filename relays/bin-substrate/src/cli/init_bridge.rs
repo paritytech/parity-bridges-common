@@ -18,7 +18,7 @@ use crate::cli::{SourceConnectionParams, TargetConnectionParams, TargetSigningPa
 use bp_header_chain::InitializationData;
 use bp_runtime::Chain as ChainBase;
 use codec::Encode;
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -150,8 +150,7 @@ impl InitBridge {
 						Target::sign_transaction(
 							*target_client.genesis_hash(),
 							&target_sign,
-							transaction_nonce,
-							encode_init_bridge(initialization_data),
+							UnsignedTransaction::new(encode_init_bridge(initialization_data), transaction_nonce)
 						)
 						.encode(),
 					)

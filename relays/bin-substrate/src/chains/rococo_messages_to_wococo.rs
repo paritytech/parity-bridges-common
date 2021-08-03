@@ -29,7 +29,7 @@ use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::Encode;
 use messages_relay::message_lane::MessageLane;
 use relay_rococo_client::{HeaderId as RococoHeaderId, Rococo, SigningParams as RococoSigningParams};
-use relay_substrate_client::{Chain, Client, TransactionSignScheme};
+use relay_substrate_client::{Chain, Client, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::MetricsParams;
 use relay_wococo_client::{HeaderId as WococoHeaderId, SigningParams as WococoSigningParams, Wococo};
 use sp_core::{Bytes, Pair};
@@ -74,7 +74,7 @@ impl SubstrateMessageLane for RococoMessagesToWococo {
 			),
 		);
 		let genesis_hash = *self.source_client.genesis_hash();
-		let transaction = Rococo::sign_transaction(genesis_hash, &self.source_sign, transaction_nonce, call);
+		let transaction = Rococo::sign_transaction(genesis_hash, &self.source_sign, UnsignedTransaction::new(call, transaction_nonce));
 		log::trace!(
 			target: "bridge",
 			"Prepared Wococo -> Rococo confirmation transaction. Weight: <unknown>/{}, size: {}/{}",
@@ -113,7 +113,7 @@ impl SubstrateMessageLane for RococoMessagesToWococo {
 			),
 		);
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Wococo::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
+		let transaction = Wococo::sign_transaction(genesis_hash, &self.target_sign, UnsignedTransaction::new(call, transaction_nonce));
 		log::trace!(
 			target: "bridge",
 			"Prepared Rococo -> Wococo delivery transaction. Weight: <unknown>/{}, size: {}/{}",

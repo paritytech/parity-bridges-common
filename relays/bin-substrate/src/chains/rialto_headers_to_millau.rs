@@ -22,7 +22,7 @@ use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SyncHeader as RialtoSyncHeader};
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
 
 /// Rialto-to-Millau finality sync pipeline.
@@ -50,7 +50,7 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 		.into();
 
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
+		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign, UnsignedTransaction::new(call, transaction_nonce));
 
 		Bytes(transaction.encode())
 	}

@@ -16,8 +16,8 @@
 
 //! Types used to connect to the Millau-Substrate chain.
 
-use codec::Encode;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme};
+use codec::{Compact, Decode, Encode};
+use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
@@ -66,19 +66,18 @@ impl TransactionSignScheme for Millau {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		signer_nonce: <Self::Chain as Chain>::Index,
-		call: <Self::Chain as Chain>::Call,
+		unsigned: UnsignedTransaction<Self::Chain>,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(
-			call,
+			unsigned.call,
 			(
 				frame_system::CheckSpecVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckTxVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckGenesis::<millau_runtime::Runtime>::new(),
 				frame_system::CheckEra::<millau_runtime::Runtime>::from(sp_runtime::generic::Era::Immortal),
-				frame_system::CheckNonce::<millau_runtime::Runtime>::from(signer_nonce),
+				frame_system::CheckNonce::<millau_runtime::Runtime>::from(unsigned.nonce),
 				frame_system::CheckWeight::<millau_runtime::Runtime>::new(),
-				pallet_transaction_payment::ChargeTransactionPayment::<millau_runtime::Runtime>::from(0),
+				pallet_transaction_payment::ChargeTransactionPayment::<millau_runtime::Runtime>::from(unsigned.tip),
 			),
 			(
 				millau_runtime::VERSION.spec_version,
@@ -95,6 +94,22 @@ impl TransactionSignScheme for Millau {
 		let (call, extra, _) = raw_payload.deconstruct();
 
 		millau_runtime::UncheckedExtrinsic::new_signed(call, signer.into_account(), signature.into(), extra)
+	}
+
+	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool {
+		tx.signature
+			.as_ref()
+			.map(|(address, _, _)| *address == millau_runtime::Address::from(*signer.public().as_array_ref()))
+			.unwrap_or(false)
+	}
+
+	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>> {
+		let extra = &tx.signature.as_ref()?.2;
+		Some(UnsignedTransaction {
+			call: tx.function,
+			nonce: Compact::<<Self::Chain as Chain>::Index>::decode(&mut &extra.4.encode()[..]).ok()?.into(),
+			tip: Compact::<<Self::Chain as Chain>::Balance>::decode(&mut &extra.6.encode()[..]).ok()?.into(),
+		})
 	}
 }
 

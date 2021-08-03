@@ -95,6 +95,9 @@ impl RelayHeaders {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.bridge, {
+				let target_client = self.target.clone().to_client::<relay_millau_client::Millau>().await?;
+				crate::cli::resubmit_transactions::resubmit_millau_transactions(target_client).await;
+
 			let source_client = self.source.to_client::<Source>().await?;
 			let target_client = self.target.to_client::<Target>().await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;

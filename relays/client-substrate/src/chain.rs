@@ -15,6 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_runtime::Chain as ChainBase;
+use codec::{Decode, Encode};
 use frame_support::Parameter;
 use jsonrpsee_ws_client::{DeserializeOwned, Serialize};
 use num_traits::{Bounded, CheckedSub, SaturatingAdd, Zero};
@@ -58,7 +59,7 @@ pub trait Chain: ChainBase + Clone {
 	/// Block type.
 	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification<Self::Header>;
 	/// The aggregated `Call` type.
-	type Call: Dispatchable + Debug;
+	type Call: Clone + Dispatchable + Debug;
 	/// Balance of an account in native tokens.
 	///
 	/// The chain may support multiple tokens, but this particular type is for token that is used
@@ -94,6 +95,30 @@ pub trait BlockWithJustification<Header> {
 	fn justification(&self) -> Option<&EncodedJustification>;
 }
 
+/// Transaction before it is signed.
+#[derive(Clone, Debug)]
+pub struct UnsignedTransaction<C: Chain> {
+	/// Runtime call of this transaction.
+	pub call: C::Call,
+	/// Transaction nonce.
+	pub nonce: C::Index,
+	/// Tip included into transaction.
+	pub tip: C::Balance,
+}
+
+impl<C: Chain> UnsignedTransaction<C> {
+	/// Create new unsigned transaction with given call, nonce and zero tip.
+	pub fn new(call: C::Call, nonce: C::Index) -> Self {
+		Self { call, nonce, tip: Zero::zero() }
+	}
+
+	/// Set transaction tip.
+	pub fn tip(mut self, tip: C::Balance) -> Self {
+		self.tip = tip;
+		self
+	}
+}
+
 /// Substrate-based chain transactions signing scheme.
 pub trait TransactionSignScheme {
 	/// Chain that this scheme is to be used.
@@ -101,15 +126,22 @@ pub trait TransactionSignScheme {
 	/// Type of key pairs used to sign transactions.
 	type AccountKeyPair: Pair;
 	/// Signed transaction.
-	type SignedTransaction;
+	type SignedTransaction: Clone + Debug + Decode + Encode + Send + 'static;
 
 	/// Create transaction for given runtime call, signed by given account.
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		signer_nonce: <Self::Chain as Chain>::Index,
-		call: <Self::Chain as Chain>::Call,
+		unsigned: UnsignedTransaction<Self::Chain>,
 	) -> Self::SignedTransaction;
+
+	/// Returns true if transaction is signed by given signer.
+	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool;
+
+	/// Parse signed transaction into its unsigned part.
+	///
+	/// Returns `None` if signed transaction has unsuported format.
+	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>>;
 }
 
 impl<Block: BlockT> BlockWithJustification<Block::Header> for SignedBlock<Block> {

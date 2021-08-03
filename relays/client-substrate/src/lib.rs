@@ -29,7 +29,7 @@ pub mod guard;
 pub mod headers_source;
 pub mod metrics;
 
-pub use crate::chain::{BlockWithJustification, Chain, ChainWithBalances, TransactionSignScheme};
+pub use crate::chain::{BlockWithJustification, Chain, ChainWithBalances, TransactionSignScheme, UnsignedTransaction};
 pub use crate::client::{Client, JustificationsSubscription, OpaqueGrandpaAuthoritiesSet};
 pub use crate::error::{Error, Result};
 pub use crate::sync_header::SyncHeader;

@@ -22,7 +22,7 @@ use crate::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityT
 use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use relay_rococo_client::{Rococo, SyncHeader as RococoSyncHeader};
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::MetricsParams;
 use relay_wococo_client::{SigningParams as WococoSigningParams, Wococo};
 use sp_core::{Bytes, Pair};
@@ -65,7 +65,7 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 			relay_wococo_client::runtime::BridgeGrandpaRococoCall::submit_finality_proof(header.into_inner(), proof),
 		);
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Wococo::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
+		let transaction = Wococo::sign_transaction(genesis_hash, &self.target_sign, UnsignedTransaction::new(call, transaction_nonce));
 
 		Bytes(transaction.encode())
 	}
