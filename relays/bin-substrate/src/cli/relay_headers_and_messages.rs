@@ -32,7 +32,6 @@ use substrate_relay_helper::on_demand_headers::OnDemandHeadersRelay;
 
 use crate::cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams};
 use crate::declare_chain_options;
-use substrate_relay_helper::finality_pipeline::SubstrateFinalitySyncPipeline;
 
 /// Start headers+messages relayer process.
 #[derive(StructOpt)]

@@ -41,7 +41,7 @@ pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = "bitcoin";
 /// The identifier of token, which value is associated with Millau token value by relayer.
 pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = "wrapped-bitcoin";
 
-use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams, PrometheusError, Registry};
+use relay_utils::metrics::MetricsParams;
 
 pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
 	prefix: Option<String>,

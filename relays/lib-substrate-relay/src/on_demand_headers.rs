@@ -22,14 +22,13 @@ use async_std::sync::{Arc, Mutex};
 use futures::{select, FutureExt};
 use num_traits::{CheckedSub, One, Zero};
 
-use bp_header_chain::justification::GrandpaJustification;
 use finality_relay::{
 	FinalitySyncParams, FinalitySyncPipeline, SourceClient as FinalitySourceClient, SourceHeader,
 	TargetClient as FinalityTargetClient,
 };
 use relay_substrate_client::{
 	finality_source::{FinalitySource as SubstrateFinalitySource, RequiredHeaderNumberRef},
-	BlockNumberOf, Chain, Client, HashOf, HeaderIdOf, SyncHeader,
+	Chain, Client, HeaderIdOf, SyncHeader,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient, MaybeConnectionError,

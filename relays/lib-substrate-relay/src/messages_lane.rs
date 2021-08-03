@@ -278,8 +278,8 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 	Ok((
 		metrics_params.into_params(),
 		StandaloneMessagesMetrics {
-			source_to_base_conversion_rate,
 			target_to_base_conversion_rate,
+			source_to_base_conversion_rate,
 		},
 	))
 }
