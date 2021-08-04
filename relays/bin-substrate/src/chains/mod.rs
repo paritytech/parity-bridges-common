@@ -51,10 +51,10 @@ pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncP
 	// relays, but we want to test metrics/dashboards in advance
 	Ok(relay_utils::relay_metrics(prefix, params)
 		.standalone_metric(|registry, prefix| {
-			substrate_relay_helper::help::token_price_metric(registry, prefix, "polkadot")
+			substrate_relay_helper::helpers::token_price_metric(registry, prefix, "polkadot")
 		})?
 		.standalone_metric(|registry, prefix| {
-			substrate_relay_helper::help::token_price_metric(registry, prefix, "kusama")
+			substrate_relay_helper::helpers::token_price_metric(registry, prefix, "kusama")
 		})?
 		.into_params())
 }
