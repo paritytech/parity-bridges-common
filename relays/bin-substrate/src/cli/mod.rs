@@ -88,7 +88,7 @@ pub enum Command {
 	/// Given a source chain `AccountId`, derive the corresponding `AccountId` for the target chain.
 	DeriveAccount(derive_account::DeriveAccount),
 	/// Resubmit transactions with increased tip if they are stalled.
-	ResubmitTransactions(resubmit_transactions::ResubmitTransactions)
+	ResubmitTransactions(resubmit_transactions::ResubmitTransactions),
 }
 
 impl Command {

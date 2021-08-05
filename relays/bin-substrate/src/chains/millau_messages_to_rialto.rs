@@ -72,7 +72,11 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 			millau_runtime::MessagesCall::receive_messages_delivery_proof(proof, relayers_state).into();
 		let call_weight = call.get_dispatch_info().weight;
 		let genesis_hash = *self.source_client.genesis_hash();
-		let transaction = Millau::sign_transaction(genesis_hash, &self.source_sign, UnsignedTransaction::new(call, transaction_nonce));
+		let transaction = Millau::sign_transaction(
+			genesis_hash,
+			&self.source_sign,
+			UnsignedTransaction::new(call, transaction_nonce),
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Rialto -> Millau confirmation transaction. Weight: {}/{}, size: {}/{}",
@@ -111,7 +115,11 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 		.into();
 		let call_weight = call.get_dispatch_info().weight;
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Rialto::sign_transaction(genesis_hash, &self.target_sign, UnsignedTransaction::new(call, transaction_nonce));
+		let transaction = Rialto::sign_transaction(
+			genesis_hash,
+			&self.target_sign,
+			UnsignedTransaction::new(call, transaction_nonce),
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Millau -> Rialto delivery transaction. Weight: {}/{}, size: {}/{}",

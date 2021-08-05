@@ -46,7 +46,11 @@ impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
 		let call = rialto_runtime::BridgeGrandpaMillauCall::submit_finality_proof(header.into_inner(), proof).into();
 
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Rialto::sign_transaction(genesis_hash, &self.target_sign, UnsignedTransaction::new(call, transaction_nonce));
+		let transaction = Rialto::sign_transaction(
+			genesis_hash,
+			&self.target_sign,
+			UnsignedTransaction::new(call, transaction_nonce),
+		);
 
 		Bytes(transaction.encode())
 	}

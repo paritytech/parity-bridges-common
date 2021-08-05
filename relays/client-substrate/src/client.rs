@@ -21,6 +21,7 @@ use crate::rpc::Substrate;
 use crate::{ConnectionParams, Error, Result};
 
 use async_std::sync::{Arc, Mutex};
+use async_trait::async_trait;
 use codec::{Decode, Encode};
 use frame_system::AccountInfo;
 use futures::{SinkExt, StreamExt};
@@ -62,6 +63,18 @@ pub struct Client<C: Chain> {
 	/// method, they may get the same transaction nonce. So one of transactions will be rejected
 	/// from the pool. This lock is here to prevent situations like that.
 	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
+}
+
+#[async_trait]
+impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
+	type Error = Error;
+
+	async fn reconnect(&mut self) -> Result<()> {
+		let (tokio, client) = Self::build_client(self.params.clone()).await?;
+		self.tokio = tokio;
+		self.client = client;
+		Ok(())
+	}
 }
 
 impl<C: Chain> Clone for Client<C> {
@@ -124,14 +137,6 @@ impl<C: Chain> Client<C> {
 			genesis_hash,
 			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
 		})
-	}
-
-	/// Reopen client connection.
-	pub async fn reconnect(&mut self) -> Result<()> {
-		let (tokio, client) = Self::build_client(self.params.clone()).await?;
-		self.tokio = tokio;
-		self.client = client;
-		Ok(())
 	}
 
 	/// Build client to use in connection.
@@ -310,29 +315,25 @@ impl<C: Chain> Client<C> {
 
 	/// Returns pending extrinsics from transaction pool.
 	pub async fn pending_extrinsics(&self) -> Result<Vec<Bytes>> {
-		self.jsonrpsee_execute(move |client| async move {
-			Ok(Substrate::<C>::author_pending_extrinsics(&*client).await?)
-		})
+		self.jsonrpsee_execute(
+			move |client| async move { Ok(Substrate::<C>::author_pending_extrinsics(&*client).await?) },
+		)
 		.await
 	}
 
 	/// Validate transaction at given block state.
 	pub async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
 		&self,
-		at_block:C::Hash,
+		at_block: C::Hash,
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity> {
 		self.jsonrpsee_execute(move |client| async move {
 			let call = SUB_API_TXPOOL_VALIDATE_TRANSACTION.to_string();
-			let data = Bytes((
-				TransactionSource::External,
-				transaction,
-				at_block,
-			).encode());
+			let data = Bytes((TransactionSource::External, transaction, at_block).encode());
 
 			let encoded_response = Substrate::<C>::state_call(&*client, call, data, Some(at_block)).await?;
-			let validity = TransactionValidity::decode(&mut &encoded_response.0[..])
-				.map_err(Error::ResponseParseFailed)?;
+			let validity =
+				TransactionValidity::decode(&mut &encoded_response.0[..]).map_err(Error::ResponseParseFailed)?;
 
 			Ok(validity)
 		})

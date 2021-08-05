@@ -16,7 +16,7 @@
 
 //! Types used to connect to the Rococo-Substrate chain.
 
-use codec::{Compact, Decode, Encode};
+use codec::Encode;
 use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -92,6 +92,10 @@ impl TransactionSignScheme for Rococo {
 			signature.into(),
 			extra,
 		)
+	}
+
+	fn is_signed(tx: &Self::SignedTransaction) -> bool {
+		tx.signature.is_some()
 	}
 
 	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool {

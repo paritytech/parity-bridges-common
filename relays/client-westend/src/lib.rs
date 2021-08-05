@@ -16,10 +16,8 @@
 
 //! Types used to connect to the Westend chain.
 
-use codec::Encode;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme};
-use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
+use relay_substrate_client::{Chain, ChainBase, ChainWithBalances};
+use sp_core::storage::StorageKey;
 use std::time::Duration;
 
 /// Westend header id.

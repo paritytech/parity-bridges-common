@@ -96,6 +96,10 @@ impl TransactionSignScheme for Rialto {
 		rialto_runtime::UncheckedExtrinsic::new_signed(call, signer.into_account(), signature.into(), extra)
 	}
 
+	fn is_signed(tx: &Self::SignedTransaction) -> bool {
+		tx.signature.is_some()
+	}
+
 	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool {
 		tx.signature
 			.as_ref()
@@ -107,8 +111,12 @@ impl TransactionSignScheme for Rialto {
 		let extra = &tx.signature.as_ref()?.2;
 		Some(UnsignedTransaction {
 			call: tx.function,
-			nonce: Compact::<<Self::Chain as Chain>::Index>::decode(&mut &extra.4.encode()[..]).ok()?.into(),
-			tip: Compact::<<Self::Chain as Chain>::Balance>::decode(&mut &extra.6.encode()[..]).ok()?.into(),
+			nonce: Compact::<<Self::Chain as Chain>::Index>::decode(&mut &extra.4.encode()[..])
+				.ok()?
+				.into(),
+			tip: Compact::<<Self::Chain as Chain>::Balance>::decode(&mut &extra.6.encode()[..])
+				.ok()?
+				.into(),
 		})
 	}
 }

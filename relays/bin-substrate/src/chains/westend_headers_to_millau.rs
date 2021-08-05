@@ -55,7 +55,11 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 		.into();
 
 		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Millau::sign_transaction(genesis_hash, &self.target_sign, UnsignedTransaction::new(call, transaction_nonce));
+		let transaction = Millau::sign_transaction(
+			genesis_hash,
+			&self.target_sign,
+			UnsignedTransaction::new(call, transaction_nonce),
+		);
 
 		Bytes(transaction.encode())
 	}

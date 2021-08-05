@@ -87,10 +87,15 @@ pub trait ChainWithBalances: Chain {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey;
 }
 
+/// SCALE-encoded extrinsic.
+pub type EncodedExtrinsic = Vec<u8>;
+
 /// Block with justification.
 pub trait BlockWithJustification<Header> {
 	/// Return block header.
 	fn header(&self) -> Header;
+	/// Return encoded block extrinsics.
+	fn extrinsics(&self) -> Vec<EncodedExtrinsic>;
 	/// Return block justification, if known.
 	fn justification(&self) -> Option<&EncodedJustification>;
 }
@@ -109,7 +114,11 @@ pub struct UnsignedTransaction<C: Chain> {
 impl<C: Chain> UnsignedTransaction<C> {
 	/// Create new unsigned transaction with given call, nonce and zero tip.
 	pub fn new(call: C::Call, nonce: C::Index) -> Self {
-		Self { call, nonce, tip: Zero::zero() }
+		Self {
+			call,
+			nonce,
+			tip: Zero::zero(),
+		}
 	}
 
 	/// Set transaction tip.
@@ -135,6 +144,9 @@ pub trait TransactionSignScheme {
 		unsigned: UnsignedTransaction<Self::Chain>,
 	) -> Self::SignedTransaction;
 
+	/// Returns true if transaction is signed.
+	fn is_signed(tx: &Self::SignedTransaction) -> bool;
+
 	/// Returns true if transaction is signed by given signer.
 	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool;
 
@@ -147,6 +159,10 @@ pub trait TransactionSignScheme {
 impl<Block: BlockT> BlockWithJustification<Block::Header> for SignedBlock<Block> {
 	fn header(&self) -> Block::Header {
 		self.block.header().clone()
+	}
+
+	fn extrinsics(&self) -> Vec<EncodedExtrinsic> {
+		self.block.extrinsics().iter().map(Encode::encode).collect()
 	}
 
 	fn justification(&self) -> Option<&EncodedJustification> {
