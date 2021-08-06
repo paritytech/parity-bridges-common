@@ -259,7 +259,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		/// Gets the chain id value from the instance.
-		const bridged_id: ChainId = T::BridgedChainId::get();
+		const BridgedChainId: ChainId = T::BridgedChainId::get();
 
 		/// Ensure runtime invariants.
 		fn on_runtime_upgrade() -> Weight {
