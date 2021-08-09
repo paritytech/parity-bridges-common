@@ -152,7 +152,7 @@ pub trait TransactionSignScheme {
 
 	/// Parse signed transaction into its unsigned part.
 	///
-	/// Returns `None` if signed transaction has unsuported format.
+	/// Returns `None` if signed transaction has unsupported format.
 	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>>;
 }
 

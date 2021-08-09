@@ -96,7 +96,7 @@ impl ResubmitTransactions {
 struct Context<C: Chain> {
 	/// Hash of the (potentially) stalled transaction.
 	transaction: Option<C::Hash>,
-	/// This transaction is in pool for `stalled_for` wakeup intevals.
+	/// This transaction is in pool for `stalled_for` wakeup intervals.
 	stalled_for: C::BlockNumber,
 	/// When `stalled_for` reaching this limit, transaction is considered stalled.
 	stalled_for_limit: C::BlockNumber,
@@ -119,7 +119,7 @@ impl<C: Chain> Context<C> {
 		self
 	}
 
-	/// Notice transaction from the tx pool.
+	/// Notice transaction from the transaction pool.
 	fn notice_transaction(mut self, transaction: C::Hash) -> Self {
 		if self.transaction == Some(transaction) {
 			self.stalled_for += One::one();
