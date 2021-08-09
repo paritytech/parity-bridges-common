@@ -253,8 +253,7 @@ async fn read_previous_best_priority<C: Chain, S: TransactionSignScheme<Chain = 
 		.extrinsics()
 		.iter()
 		.filter_map(|xt| S::SignedTransaction::decode(&mut &xt[..]).ok())
-		.filter(|xt| S::is_signed(&xt))
-		.next();
+		.find(|xt| S::is_signed(xt));
 	match best_transaction {
 		Some(best_transaction) => Ok(Some((
 			best_header_hash,
