@@ -37,6 +37,11 @@ impl ChainBase for Westend {
 	type Hash = bp_westend::Hash;
 	type Hasher = bp_westend::Hasher;
 	type Header = bp_westend::Header;
+
+	type AccountId = bp_westend::AccountId;
+	type Balance = bp_westend::Balance;
+	type Index = bp_westend::Nonce;
+	type Signature = bp_westend::Signature;
 }
 
 impl Chain for Westend {
@@ -45,11 +50,8 @@ impl Chain for Westend {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_westend::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_westend::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
 
-	type AccountId = bp_westend::AccountId;
-	type Index = bp_westend::Nonce;
 	type SignedBlock = bp_westend::SignedBlock;
 	type Call = bp_westend::Call;
-	type Balance = bp_westend::Balance;
 }
 
 impl ChainWithBalances for Westend {
@@ -66,7 +68,7 @@ impl TransactionSignScheme for Westend {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		signer_nonce: <Self::Chain as Chain>::Index,
+		signer_nonce: <Self::Chain as ChainBase>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(

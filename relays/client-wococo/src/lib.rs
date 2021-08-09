@@ -39,6 +39,11 @@ impl ChainBase for Wococo {
 	type Hash = bp_wococo::Hash;
 	type Hasher = bp_wococo::Hashing;
 	type Header = bp_wococo::Header;
+
+	type AccountId = bp_wococo::AccountId;
+	type Balance = bp_wococo::Balance;
+	type Index = bp_wococo::Nonce;
+	type Signature = bp_wococo::Signature;
 }
 
 impl Chain for Wococo {
@@ -47,11 +52,8 @@ impl Chain for Wococo {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_wococo::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_wococo::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
 
-	type AccountId = bp_wococo::AccountId;
-	type Index = bp_wococo::Index;
 	type SignedBlock = bp_wococo::SignedBlock;
 	type Call = crate::runtime::Call;
-	type Balance = bp_wococo::Balance;
 }
 
 impl ChainWithBalances for Wococo {
@@ -68,7 +70,7 @@ impl TransactionSignScheme for Wococo {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		signer_nonce: <Self::Chain as Chain>::Index,
+		signer_nonce: <Self::Chain as ChainBase>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(

@@ -24,7 +24,7 @@ use crate::messages_source::SubstrateMessagesSource;
 use crate::messages_target::SubstrateMessagesTarget;
 
 use bp_messages::MessageNonce;
-use bp_runtime::{ROCOCO_CHAIN_ID, WOCOCO_CHAIN_ID};
+use bp_runtime::{IndexOf, ROCOCO_CHAIN_ID, WOCOCO_CHAIN_ID};
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::Encode;
 use messages_relay::message_lane::MessageLane;
@@ -62,7 +62,7 @@ impl SubstrateMessageLane for RococoMessagesToWococo {
 
 	fn make_messages_receiving_proof_transaction(
 		&self,
-		transaction_nonce: <Rococo as Chain>::Index,
+		transaction_nonce: IndexOf<Rococo>,
 		_generated_at_block: WococoHeaderId,
 		proof: <Self as MessageLane>::MessagesReceivingProof,
 	) -> Bytes {
@@ -91,7 +91,7 @@ impl SubstrateMessageLane for RococoMessagesToWococo {
 
 	fn make_messages_delivery_transaction(
 		&self,
-		transaction_nonce: <Wococo as Chain>::Index,
+		transaction_nonce: IndexOf<Wococo>,
 		_generated_at_header: RococoHeaderId,
 		_nonces: RangeInclusive<MessageNonce>,
 		proof: <Self as MessageLane>::MessagesProof,

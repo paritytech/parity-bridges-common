@@ -39,6 +39,11 @@ impl ChainBase for Rococo {
 	type Hash = bp_rococo::Hash;
 	type Hasher = bp_rococo::Hashing;
 	type Header = bp_rococo::Header;
+
+	type AccountId = bp_rococo::AccountId;
+	type Balance = bp_rococo::Balance;
+	type Index = bp_rococo::Nonce;
+	type Signature = bp_rococo::Signature;
 }
 
 impl Chain for Rococo {
@@ -47,11 +52,8 @@ impl Chain for Rococo {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_rococo::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_rococo::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
 
-	type AccountId = bp_rococo::AccountId;
-	type Index = bp_rococo::Index;
 	type SignedBlock = bp_rococo::SignedBlock;
 	type Call = crate::runtime::Call;
-	type Balance = bp_rococo::Balance;
 }
 
 impl ChainWithBalances for Rococo {
@@ -68,7 +70,7 @@ impl TransactionSignScheme for Rococo {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		signer_nonce: <Self::Chain as Chain>::Index,
+		signer_nonce: <Self::Chain as ChainBase>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(

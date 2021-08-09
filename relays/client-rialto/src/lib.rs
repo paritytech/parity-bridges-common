@@ -34,6 +34,11 @@ impl ChainBase for Rialto {
 	type Hash = rialto_runtime::Hash;
 	type Hasher = rialto_runtime::Hashing;
 	type Header = rialto_runtime::Header;
+
+	type AccountId = rialto_runtime::AccountId;
+	type Balance = rialto_runtime::Balance;
+	type Index = rialto_runtime::Index;
+	type Signature = rialto_runtime::Signature;
 }
 
 impl Chain for Rialto {
@@ -42,11 +47,8 @@ impl Chain for Rialto {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_rialto::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
 
-	type AccountId = rialto_runtime::AccountId;
-	type Index = rialto_runtime::Index;
 	type SignedBlock = rialto_runtime::SignedBlock;
 	type Call = rialto_runtime::Call;
-	type Balance = rialto_runtime::Balance;
 }
 
 impl ChainWithBalances for Rialto {
@@ -66,7 +68,7 @@ impl TransactionSignScheme for Rialto {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		signer_nonce: <Self::Chain as Chain>::Index,
+		signer_nonce: <Self::Chain as ChainBase>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(

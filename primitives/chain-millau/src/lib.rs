@@ -149,6 +149,9 @@ pub type AccountSigner = MultiSigner;
 /// Balance of an account.
 pub type Balance = u64;
 
+/// Index of a transaction in the chain.
+pub type Index = u32;
+
 /// Millau chain.
 #[derive(RuntimeDebug)]
 pub struct Millau;
@@ -158,6 +161,11 @@ impl Chain for Millau {
 	type Hash = Hash;
 	type Hasher = Hasher;
 	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = Index;
+	type Signature = Signature;
 }
 
 /// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.

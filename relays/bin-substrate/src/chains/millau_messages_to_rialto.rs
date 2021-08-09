@@ -24,7 +24,7 @@ use crate::messages_source::SubstrateMessagesSource;
 use crate::messages_target::SubstrateMessagesTarget;
 
 use bp_messages::MessageNonce;
-use bp_runtime::{MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
+use bp_runtime::{IndexOf, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::Encode;
 use frame_support::dispatch::GetDispatchInfo;
@@ -63,7 +63,7 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 
 	fn make_messages_receiving_proof_transaction(
 		&self,
-		transaction_nonce: <Millau as Chain>::Index,
+		transaction_nonce: IndexOf<Millau>,
 		_generated_at_block: RialtoHeaderId,
 		proof: <Self as MessageLane>::MessagesReceivingProof,
 	) -> Bytes {
@@ -90,7 +90,7 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 
 	fn make_messages_delivery_transaction(
 		&self,
-		transaction_nonce: <Rialto as Chain>::Index,
+		transaction_nonce: IndexOf<Rialto>,
 		_generated_at_header: MillauHeaderId,
 		_nonces: RangeInclusive<MessageNonce>,
 		proof: <Self as MessageLane>::MessagesProof,

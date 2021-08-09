@@ -34,6 +34,11 @@ impl ChainBase for Millau {
 	type Hash = millau_runtime::Hash;
 	type Hasher = millau_runtime::Hashing;
 	type Header = millau_runtime::Header;
+
+	type AccountId = millau_runtime::AccountId;
+	type Balance = millau_runtime::Balance;
+	type Index = millau_runtime::Index;
+	type Signature = millau_runtime::Signature;
 }
 
 impl Chain for Millau {
@@ -42,11 +47,8 @@ impl Chain for Millau {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_millau::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_millau::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
 
-	type AccountId = millau_runtime::AccountId;
-	type Index = millau_runtime::Index;
 	type SignedBlock = millau_runtime::SignedBlock;
 	type Call = millau_runtime::Call;
-	type Balance = millau_runtime::Balance;
 }
 
 impl ChainWithBalances for Millau {
@@ -66,7 +68,7 @@ impl TransactionSignScheme for Millau {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		signer_nonce: <Self::Chain as Chain>::Index,
+		signer_nonce: <Self::Chain as ChainBase>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(
