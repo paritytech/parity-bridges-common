@@ -494,7 +494,7 @@ parameter_types! {
 }
 
 /// Instance of the messages pallet used to relay messages to/from Millau chain.
-pub type WithMillauMessagesInstance = pallet_bridge_messages::DefaultInstance;
+pub type WithMillauMessagesInstance = ();
 
 impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type Event = Event;
