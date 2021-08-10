@@ -125,12 +125,10 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 }
 
 /// Millau node as messages source.
-type MillauSourceClient =
-	SubstrateMessagesSource<Millau, Rialto, MillauMessagesToRialto, millau_runtime::WithRialtoMessagesInstance>;
+type MillauSourceClient = SubstrateMessagesSource<Millau, Rialto, MillauMessagesToRialto>;
 
 /// Rialto node as messages target.
-type RialtoTargetClient =
-	SubstrateMessagesTarget<Millau, Rialto, MillauMessagesToRialto, rialto_runtime::WithMillauMessagesInstance>;
+type RialtoTargetClient = SubstrateMessagesTarget<Millau, Rialto, MillauMessagesToRialto>;
 
 /// Run Millau-to-Rialto messages sync.
 pub async fn run(
@@ -201,6 +199,7 @@ pub async fn run(
 			lane.clone(),
 			lane_id,
 			RIALTO_CHAIN_ID,
+			bp_millau::WITH_RIALTO_MESSAGES_PALLET_NAME,
 			params.target_to_source_headers_relay,
 		),
 		RialtoTargetClient::new(
@@ -208,6 +207,7 @@ pub async fn run(
 			lane,
 			lane_id,
 			MILLAU_CHAIN_ID,
+			bp_rialto::WITH_MILLAU_MESSAGES_PALLET_NAME,
 			metrics_values,
 			params.source_to_target_headers_relay,
 		),

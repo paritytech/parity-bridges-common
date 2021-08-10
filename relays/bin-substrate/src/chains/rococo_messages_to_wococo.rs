@@ -126,20 +126,10 @@ impl SubstrateMessageLane for RococoMessagesToWococo {
 }
 
 /// Rococo node as messages source.
-type RococoSourceClient = SubstrateMessagesSource<
-	Rococo,
-	Wococo,
-	RococoMessagesToWococo,
-	relay_rococo_client::runtime::WithWococoMessagesInstance,
->;
+type RococoSourceClient = SubstrateMessagesSource<Rococo, Wococo, RococoMessagesToWococo>;
 
 /// Wococo node as messages target.
-type WococoTargetClient = SubstrateMessagesTarget<
-	Rococo,
-	Wococo,
-	RococoMessagesToWococo,
-	relay_wococo_client::runtime::WithRococoMessagesInstance,
->;
+type WococoTargetClient = SubstrateMessagesTarget<Rococo, Wococo, RococoMessagesToWococo>;
 
 /// Run Rococo-to-Wococo messages sync.
 pub async fn run(
@@ -215,6 +205,7 @@ pub async fn run(
 			lane.clone(),
 			lane_id,
 			WOCOCO_CHAIN_ID,
+			bp_rococo::WITH_WOCOCO_MESSAGES_PALLET_NAME,
 			params.target_to_source_headers_relay,
 		),
 		WococoTargetClient::new(
@@ -222,6 +213,7 @@ pub async fn run(
 			lane,
 			lane_id,
 			ROCOCO_CHAIN_ID,
+			bp_wococo::WITH_ROCOCO_MESSAGES_PALLET_NAME,
 			metrics_values,
 			params.source_to_target_headers_relay,
 		),
