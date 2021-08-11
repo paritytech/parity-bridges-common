@@ -711,15 +711,14 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	#[pallet::metadata(T::Parameter = "Parameter")]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// Pallet parameter has been updated.
-		ParameterUpdated(<T as Config<I>>::Parameter),
+		ParameterUpdated(T::Parameter),
 		/// Message has been accepted and is waiting to be delivered.
 		MessageAccepted(LaneId, MessageNonce),
 		/// Messages in the inclusive range have been delivered to the bridged chain.
 		MessagesDelivered(LaneId, DeliveredMessages),
-		/// Phantom member, never used.
-		Dummy(PhantomData<(<T as frame_system::Config>::AccountId, I)>),
 	}
 
 	#[pallet::error]
