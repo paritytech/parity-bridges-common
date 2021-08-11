@@ -105,6 +105,7 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	#[pallet::metadata(<T as frame_system::Config>::AccountId = "AccountId", MessageIdOf<T, I> = "MessageId")]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// Message has been rejected before reaching dispatch.
 		MessageRejected(ChainId, MessageIdOf<T, I>),
