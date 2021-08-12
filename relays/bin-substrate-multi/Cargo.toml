@@ -55,12 +55,12 @@ circuit-runtime = { path = "../../bin/runtimes/circuit-runtime" }
 gateway-runtime = { path = "../../bin/runtimes/gateway-runtime" }
 # Substrate Dependencies
 
-frame-support = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' }
-sp-core = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' }
-sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' }
-sp-runtime = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' }
-sp-trie = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' }
-sp-version = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' }
+sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' }
+sp-trie = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' }
+sp-version = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' }
 
 [dev-dependencies]
-sp-keyring = { git = "https://github.com/paritytech/substrate", tag = 'monthly-2021-06' }
+sp-keyring = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' }
