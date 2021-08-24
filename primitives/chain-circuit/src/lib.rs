@@ -168,23 +168,11 @@ pub fn derive_account_from_gateway_id(id: bp_runtime::SourceAccount<AccountId>) 
 }
 
 frame_support::parameter_types! {
-	pub BlockLength: limits::BlockLength =
-		limits::BlockLength::max_with_normal_ratio(2 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-	pub BlockWeights: limits::BlockWeights = limits::BlockWeights::builder()
-		// Allowance for Normal class
-		.for_class(DispatchClass::Normal, |weights| {
-			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
-		})
-		// Allowance for Operational class
-		.for_class(DispatchClass::Operational, |weights| {
-			weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
-			// Extra reserved space for Operational class
-			weights.reserved = Some(MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
-		})
-		// By default Mandatory class is not limited at all.
-		// This parameter is used to derive maximal size of a single extrinsic.
-		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
-		.build_or_panic();
+	/// We allow for 2 seconds of compute with a 6 second average block time.
+    pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
+        ::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
+    pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
+        ::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
 }
 
 /// Get the maximum weight (compute time) that a Normal extrinsic on the Circuit chain can use.
