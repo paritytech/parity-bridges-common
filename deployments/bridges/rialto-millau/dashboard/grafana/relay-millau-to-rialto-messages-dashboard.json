@@ -471,7 +471,7 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "7m",
         "frequency": "1m",
         "handler": 1,
         "name": "Messages from Millau to Rialto are not being delivered",
@@ -896,7 +896,7 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "7m",
         "frequency": "1m",
         "handler": 1,
         "name": "Messages (00000001) from Millau to Rialto are not being delivered",
