@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-///! The library of substrate relay. contains some public codes to provide to substrate relay.
+//! The library of substrate relay. contains some public codes to provide to substrate relay.
 
 #![warn(missing_docs)]
 
