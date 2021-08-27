@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+///! The library of substrate relay. contains some public codes to provide to substrate relay.
+
+#![warn(missing_docs)]
+
 pub mod finality_pipeline;
 pub mod finality_target;
 pub mod headers_initialize;

@@ -36,8 +36,6 @@ use substrate_relay_helper::messages_lane::{
 use substrate_relay_helper::messages_source::SubstrateMessagesSource;
 use substrate_relay_helper::messages_target::SubstrateMessagesTarget;
 
-// use crate::help::SubstrateMessageLaneToSubstrate;
-
 /// Wococo-to-Rococo message lane.
 pub type MessageLaneWococoMessagesToRococo =
 	SubstrateMessageLaneToSubstrate<Wococo, WococoSigningParams, Rococo, RococoSigningParams>;
