@@ -46,15 +46,15 @@ pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
 /// Cloning `Client` is a cheap operation.
 pub struct Client<C: Chain> {
 	/// Client connection params.
-	params: ConnectionParams,
+	pub params: ConnectionParams,
 	/// Substrate RPC client.
-	client: Arc<RpcClient>,
+	pub client: Arc<RpcClient>,
 	/// Genesis block hash.
-	genesis_hash: C::Hash,
+	pub genesis_hash: C::Hash,
 	/// If several tasks are submitting their transactions simultaneously using `submit_signed_extrinsic`
 	/// method, they may get the same transaction nonce. So one of transactions will be rejected
 	/// from the pool. This lock is here to prevent situations like that.
-	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
+	pub submit_signed_extrinsic_lock: Arc<Mutex<()>>,
 }
 
 impl<C: Chain> Clone for Client<C> {

@@ -9,8 +9,8 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 async-std = { version = "1.6.5", features = ["attributes"] }
 async-trait = "0.1.40"
 codec = { package = "parity-scale-codec", version = "2.0.0" }
-jsonrpsee-proc-macros = "=0.2.0-alpha.6"
-jsonrpsee-ws-client = "=0.2.0-alpha.6"
+jsonrpsee-proc-macros = "0.2.0"
+jsonrpsee-ws-client = "0.2.0"
 log = "0.4.11"
 num-traits = "0.2"
 rand = "0.7"
@@ -23,6 +23,7 @@ bp-runtime = { path = "../../primitives/runtime" }
 finality-relay = { path = "../finality" }
 headers-relay = { path = "../headers" }
 relay-utils = { path = "../utils" }
+tokio = "1.8"
 
 # Substrate Dependencies
 

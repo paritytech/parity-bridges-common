@@ -21,9 +21,9 @@
 mod chain;
 mod client;
 mod error;
-mod rpc;
 mod sync_header;
 
+pub mod rpc;
 pub mod finality_source;
 pub mod guard;
 pub mod headers_source;
