@@ -17,7 +17,7 @@
 //! Primitives of polkadot-like chains, that are related to parachains functionality.
 //!
 //! Even though this (bridges) repository references polkadot repository, we can't
-//! referenece polkadot crates from pallets. That's because bridges repository is
+//! reference polkadot crates from pallets. That's because bridges repository is
 //! included in the polkadot repository and included pallets are used by polkadot
 //! chains. Having pallets that are referencing polkadot, would mean that there may
 //! be two versions of polkadot crates included in the runtime. Which is bad.
