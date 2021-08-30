@@ -26,7 +26,7 @@ use strum::{EnumString, EnumVariantNames, VariantNames};
 /// Initialize bridge pallet.
 #[derive(StructOpt)]
 pub struct InitBridge {
-	/// A bridge instance to initalize.
+	/// A bridge instance to initialize.
 	#[structopt(possible_values = InitBridgeName::VARIANTS, case_insensitive = true)]
 	bridge: InitBridgeName,
 	#[structopt(flatten)]
@@ -141,7 +141,7 @@ impl InitBridge {
 			let target_client = self.target.to_client::<Target>().await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
-			crate::headers_initialize::initialize(
+			substrate_relay_helper::headers_initialize::initialize(
 				source_client,
 				target_client.clone(),
 				target_sign.public().into(),

@@ -56,14 +56,14 @@ pub trait TargetHeaderChain<Payload, AccountId> {
 	///
 	/// The proper implementation must ensure that the delivery-transaction with this
 	/// payload would (at least) be accepted into target chain transaction pool AND
-	/// eventually will be successfully 'mined'. The most obvious incorrect implementation
+	/// eventually will be successfully mined. The most obvious incorrect implementation
 	/// example would be implementation for BTC chain that accepts payloads larger than
 	/// 1MB. BTC nodes aren't accepting transactions that are larger than 1MB, so relayer
 	/// will be unable to craft valid transaction => this (and all subsequent) messages will
 	/// never be delivered.
 	fn verify_message(payload: &Payload) -> Result<(), Self::Error>;
 
-	/// Verify messages delivery proof and return lane && nonce of the latest recevied message.
+	/// Verify messages delivery proof and return lane && nonce of the latest received message.
 	fn verify_messages_delivery_proof(
 		proof: Self::MessagesDeliveryProof,
 	) -> Result<(LaneId, InboundLaneData<AccountId>), Self::Error>;
@@ -102,7 +102,7 @@ pub trait LaneMessageVerifier<Submitter, Payload, Fee> {
 /// by relayer.
 ///
 /// So to be sure that any non-altruist relayer would agree to deliver message, submitter
-/// should set `delivery_and_dispatch_fee` to at least (equialent of): sum of fees from (2)
+/// should set `delivery_and_dispatch_fee` to at least (equivalent of): sum of fees from (2)
 /// to (4) above, plus some interest for the relayer.
 pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	/// Error type.
@@ -133,6 +133,22 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	fn initialize(_relayer_fund_account: &AccountId) -> usize {
 		0
 	}
+}
+
+/// Messages bridge API to be used from other pallets.
+pub trait MessagesBridge<AccountId, Balance, Payload> {
+	/// Error type.
+	type Error: Debug;
+
+	/// Send message over the bridge.
+	///
+	/// Returns unique message nonce or error if send has failed.
+	fn send_message(
+		sender: AccountId,
+		lane: LaneId,
+		message: Payload,
+		delivery_and_dispatch_fee: Balance,
+	) -> Result<MessageNonce, Self::Error>;
 }
 
 /// Handler for messages delivery confirmation.

@@ -25,6 +25,8 @@ rand_sleep() {
 	SUBMIT_DELAY_S=`shuf -i 0-$MAX_SUBMIT_DELAY_S -n 1`
 	echo "Sleeping $SUBMIT_DELAY_S seconds..."
 	sleep $SUBMIT_DELAY_S
+	NOW=`date "+%Y-%m-%d %H:%M:%S"`
+	echo "Woke up at $NOW"
 }
 
 # start sending large messages immediately

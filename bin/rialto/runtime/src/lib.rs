@@ -41,7 +41,6 @@ pub mod rialto_poa;
 use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 
 use bridge_runtime_common::messages::{source::estimate_message_dispatch_and_delivery_fee, MessageBridge};
-use codec::Decode;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
@@ -371,7 +370,7 @@ parameter_types! {
 }
 
 impl pallet_timestamp::Config for Runtime {
-	/// A timestamp: milliseconds since the unix epoch.
+	/// A timestamp: milliseconds since the UNIX epoch.
 	type Moment = bp_rialto::Moment;
 	type OnTimestampSet = Babe;
 	type MinimumPeriod = MinimumPeriod;
@@ -491,6 +490,7 @@ parameter_types! {
 	pub const GetDeliveryConfirmationTransactionFee: Balance =
 		bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT as _;
 	pub const RootAccountForPayments: Option<AccountId> = None;
+  pub const BridgedChainId: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
 }
 
 /// Instance of the messages pallet used to relay messages to/from Millau chain.
@@ -525,6 +525,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 
 	type SourceHeaderChain = crate::millau_messages::Millau;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
+	type BridgedChainId = BridgedChainId;
 }
 
 construct_runtime!(
@@ -839,20 +840,11 @@ impl_runtime_apis! {
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
 		) -> Vec<bp_messages::MessageDetails<Balance>> {
-			(begin..=end).filter_map(|nonce| {
-				let message_data = BridgeMillauMessages::outbound_message_data(lane, nonce)?;
-				let decoded_payload = millau_messages::ToMillauMessagePayload::decode(
-					&mut &message_data.payload[..]
-				).ok()?;
-				Some(bp_messages::MessageDetails {
-					nonce,
-					dispatch_weight: decoded_payload.weight,
-					size: message_data.payload.len() as _,
-					delivery_and_dispatch_fee: message_data.fee,
-					dispatch_fee_payment: decoded_payload.dispatch_fee_payment,
-				})
-			})
-			.collect()
+			bridge_runtime_common::messages_api::outbound_message_details::<
+				Runtime,
+				WithMillauMessagesInstance,
+				WithMillauMessageBridge,
+			>(lane, begin, end)
 		}
 
 		fn latest_received_nonce(lane: bp_messages::LaneId) -> bp_messages::MessageNonce {
@@ -1110,6 +1102,7 @@ impl_runtime_apis! {
 				}
 			}
 
+			add_benchmark!(params, batches, pallet_bridge_eth_poa, BridgeRialtoPoa);
 			add_benchmark!(
 				params,
 				batches,

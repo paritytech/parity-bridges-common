@@ -112,7 +112,7 @@ spellcheck:
   <<:                              *docker-env
   <<:                              *test-refs
   script:
-    - cargo spellcheck check -m 1 -vv $(find modules/currency-exchange/src -name "*.rs")
+    - cargo spellcheck check -vvvv --cfg=.config/spellcheck.toml --checkers hunspell -m 1
 
 #### stage:                        check
 
