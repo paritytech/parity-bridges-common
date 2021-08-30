@@ -52,6 +52,7 @@ services:
   relay-messages-millau-to-rialto-generator:
     <<: *sub-bridge-relay
     environment:
+      RUST_LOG: bridge=trace
       MSG_EXCHANGE_GEN_SECONDARY_LANE: "00000001"
     entrypoint: /entrypoints/relay-messages-to-rialto-generator-entrypoint.sh
     ports:
@@ -62,6 +63,7 @@ services:
   relay-messages-rialto-to-millau-lane-00000001:
     <<: *sub-bridge-relay
     environment:
+      RUST_LOG: bridge=trace
       MSG_EXCHANGE_GEN_LANE: "00000001"
     entrypoint: /entrypoints/relay-messages-rialto-to-millau-entrypoint.sh
     ports:

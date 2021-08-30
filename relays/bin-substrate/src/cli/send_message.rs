@@ -35,7 +35,7 @@ use strum::{EnumString, EnumVariantNames, VariantNames};
 #[derive(Debug, EnumString, EnumVariantNames, Clone, Copy, PartialEq, Eq)]
 #[strum(serialize_all = "kebab_case")]
 pub enum DispatchFeePayment {
-	/// The dispacth fee is paid at the source chain.
+	/// The dispatch fee is paid at the source chain.
 	AtSourceChain,
 	/// The dispatch fee is paid at the target chain.
 	AtTargetChain,
@@ -176,10 +176,11 @@ impl SendMessage {
 				fee,
 			})?;
 
+			let source_genesis_hash = *source_client.genesis_hash();
 			source_client
-				.submit_signed_extrinsic(source_sign.public().into(), |transaction_nonce| {
+				.submit_signed_extrinsic(source_sign.public().into(), move |transaction_nonce| {
 					let signed_source_call = Source::sign_transaction(
-						*source_client.genesis_hash(),
+						source_genesis_hash,
 						&source_sign,
 						transaction_nonce,
 						send_message_call,

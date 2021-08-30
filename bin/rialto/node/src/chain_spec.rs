@@ -85,10 +85,7 @@ impl Alternative {
 		let properties = Some(
 			json!({
 				"tokenDecimals": 9,
-				"tokenSymbol": "RLT",
-				"bridgeIds": {
-					"Millau": bp_runtime::MILLAU_CHAIN_ID,
-				}
+				"tokenSymbol": "RLT"
 			})
 			.as_object()
 			.expect("Map given; qed")
@@ -96,8 +93,8 @@ impl Alternative {
 		);
 		match self {
 			Alternative::Development => ChainSpec::from_genesis(
-				"Development",
-				"dev",
+				"Rialto Development",
+				"rialto_dev",
 				sc_service::ChainType::Development,
 				|| {
 					testnet_genesis(
@@ -122,8 +119,8 @@ impl Alternative {
 				None,
 			),
 			Alternative::LocalTestnet => ChainSpec::from_genesis(
-				"Local Testnet",
-				"local_testnet",
+				"Rialto Local",
+				"rialto_local",
 				sc_service::ChainType::Local,
 				|| {
 					testnet_genesis(

@@ -861,6 +861,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-token-swap"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "sp-core",
+]
+
+[[package]]
 name = "bp-westend"
 version = "0.1.0"
 dependencies = [
@@ -5165,6 +5174,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-bridge-token-swap"
+version = "0.1.0"
+dependencies = [
+ "bp-message-dispatch",
+ "bp-messages",
+ "bp-runtime",
+ "bp-token-swap",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-bridge-dispatch",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-election-provider-multi-phase"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#3cd75117765c4a63d40c00aa41e1bf12135c237b"
@@ -7074,6 +7104,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "relay-utils",
+ "tokio 1.8.1",
  "web3",
 ]
 
@@ -7206,6 +7237,7 @@ dependencies = [
  "sp-storage",
  "sp-trie",
  "sp-version",
+ "tokio 1.8.1",
 ]
 
 [[package]]
@@ -10119,14 +10151,12 @@ dependencies = [
  "finality-relay",
  "frame-support",
  "futures 0.3.15",
- "headers-relay",
  "hex",
  "hex-literal 0.3.1",
  "log",
  "messages-relay",
  "millau-runtime",
  "num-format",
- "num-traits",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "parity-scale-codec",
@@ -10149,7 +10179,44 @@ dependencies = [
  "sp-version",
  "structopt",
  "strum 0.21.0",
+ "substrate-relay-helper",
  "tempdir",
+]
+
+[[package]]
+name = "substrate-relay-helper"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-std",
+ "async-trait",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-millau",
+ "bp-rialto",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "finality-grandpa",
+ "finality-relay",
+ "frame-support",
+ "futures 0.3.15",
+ "headers-relay",
+ "log",
+ "messages-relay",
+ "num-format",
+ "num-traits",
+ "pallet-bridge-messages",
+ "parity-scale-codec",
+ "relay-millau-client",
+ "relay-rialto-client",
+ "relay-substrate-client",
+ "relay-utils",
+ "rialto-runtime",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-runtime",
+ "sp-trie",
+ "sp-version",
 ]
 
 [[package]]

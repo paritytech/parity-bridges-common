@@ -112,7 +112,7 @@ spellcheck:
   <<:                              *docker-env
   <<:                              *test-refs
   script:
-    - cargo spellcheck check -m 1 -vv $(find modules/currency-exchange/src -name "*.rs")
+    - cargo spellcheck check -vvvv --cfg=.config/spellcheck.toml --checkers hunspell -m 1
 
 #### stage:                        check
 
@@ -223,6 +223,9 @@ build-nightly:
     GIT_STRATEGY:                  none
     DOCKERFILE:                    ci.Dockerfile
     IMAGE_NAME:                    docker.io/paritytech/$CI_JOB_NAME
+    VAULT_SERVER_URL:              "https://vault.parity-mgmt-vault.parity.io"
+    VAULT_AUTH_PATH:               "gitlab-parity-io-jwt"
+    VAULT_AUTH_ROLE:               "cicd_gitlab_parity_${CI_PROJECT_NAME}"
   needs:
     - job:                         build
       artifacts:                   true
@@ -233,8 +236,13 @@ build-nightly:
         VERSION=$(echo ${CI_COMMIT_REF_NAME} | sed -r 's#/+#-#g');
       fi
     - echo "Effective tags = ${VERSION} sha-${CI_COMMIT_SHORT_SHA} latest"
+  secrets:
+      DOCKER_HUB_USER:
+        vault:                     cicd/gitlab/parity/DOCKER_HUB_USER@kv
+      DOCKER_HUB_PASS:
+        vault:                     cicd/gitlab/parity/DOCKER_HUB_PASS@kv
   script:
-    - test "${Docker_Hub_User_Parity}" -a "${Docker_Hub_Pass_Parity}" ||
+    - test "$(<$DOCKER_HUB_USER)" -a "$(<$DOCKER_HUB_PASS)" ||
         ( echo "no docker credentials provided"; exit 1 )
     - cd ./artifacts
     - buildah bud
@@ -248,8 +256,8 @@ build-nightly:
         --tag "${IMAGE_NAME}:latest"
         --file "${DOCKERFILE}" .
     # The job will success only on the protected branch
-    - echo "$Docker_Hub_Pass_Parity" |
-        buildah login --username "$Docker_Hub_User_Parity" --password-stdin docker.io
+    - echo "$(<$DOCKER_HUB_PASS)" |
+        buildah login --username "$(<$DOCKER_HUB_USER)" --password-stdin docker.io
     - buildah info
     - buildah push --format=v2s2 "${IMAGE_NAME}:${VERSION}"
     - buildah push --format=v2s2 "${IMAGE_NAME}:sha-${CI_COMMIT_SHORT_SHA}"
