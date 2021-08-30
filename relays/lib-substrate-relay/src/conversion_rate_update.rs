@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Tools for updating conversion rate that is stored in the runtime storage.
+
 use relay_utils::metrics::F64SharedRef;
 use std::{future::Future, time::Duration};
 

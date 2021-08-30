@@ -41,13 +41,13 @@ type RpcResult<T> = std::result::Result<T, RpcError>;
 /// interactions involving, for example, an Ethereum bridge module.
 #[async_trait]
 pub trait SubstrateHighLevelRpc {
-	/// Returns best Ethereum block that Substrate runtime knows of.
+	/// Returns the best Ethereum block that Substrate runtime knows of.
 	async fn best_ethereum_block(&self) -> RpcResult<EthereumHeaderId>;
 	/// Returns best finalized Ethereum block that Substrate runtime knows of.
 	async fn best_ethereum_finalized_block(&self) -> RpcResult<EthereumHeaderId>;
-	/// Returns whether or not transactions receipts are required for Ethereum header submission.
+	/// Returns whether transactions receipts are required for Ethereum header submission.
 	async fn ethereum_receipts_required(&self, header: SubstrateEthereumHeader) -> RpcResult<bool>;
-	/// Returns whether or not the given Ethereum header is known to the Substrate runtime.
+	/// Returns whether the given Ethereum header is known to the Substrate runtime.
 	async fn ethereum_header_known(&self, header_id: EthereumHeaderId) -> RpcResult<bool>;
 }
 
@@ -155,11 +155,12 @@ impl SubmitEthereumHeaders for SubstrateClient<Rialto> {
 		headers: Vec<QueuedEthereumHeader>,
 	) -> SubmittedHeaders<EthereumHeaderId, RpcError> {
 		let ids = headers.iter().map(|header| header.id()).collect();
+		let genesis_hash = *self.genesis_hash();
 		let submission_result = async {
-			self.submit_signed_extrinsic((*params.public().as_array_ref()).into(), |transaction_nonce| {
+			self.submit_signed_extrinsic((*params.public().as_array_ref()).into(), move |transaction_nonce| {
 				Bytes(
 					Rialto::sign_transaction(
-						*self.genesis_hash(),
+						genesis_hash,
 						&params,
 						transaction_nonce,
 						instance.build_signed_header_call(headers),
@@ -257,10 +258,11 @@ impl SubmitEthereumExchangeTransactionProof for SubstrateClient<Rialto> {
 		instance: Arc<dyn BridgeInstance>,
 		proof: rialto_runtime::exchange::EthereumTransactionInclusionProof,
 	) -> RpcResult<()> {
-		self.submit_signed_extrinsic((*params.public().as_array_ref()).into(), |transaction_nonce| {
+		let genesis_hash = *self.genesis_hash();
+		self.submit_signed_extrinsic((*params.public().as_array_ref()).into(), move |transaction_nonce| {
 			Bytes(
 				Rialto::sign_transaction(
-					*self.genesis_hash(),
+					genesis_hash,
 					&params,
 					transaction_nonce,
 					instance.build_currency_exchange_call(proof),

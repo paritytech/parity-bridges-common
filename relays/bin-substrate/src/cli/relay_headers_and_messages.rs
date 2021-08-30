@@ -22,16 +22,17 @@
 //! 2) add `declare_bridge_options!(...)` for the bridge;
 //! 3) add bridge support to the `select_bridge! { ... }` macro.
 
-use crate::cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams};
-use crate::declare_chain_options;
-use crate::messages_lane::MessagesRelayParams;
-use crate::on_demand_headers::OnDemandHeadersRelay;
-
 use futures::{FutureExt, TryFutureExt};
-use relay_substrate_client::{Chain, Client, TransactionSignScheme};
-use relay_utils::metrics::MetricsParams;
 use structopt::StructOpt;
 use strum::VariantNames;
+
+use relay_substrate_client::{Chain, Client, TransactionSignScheme};
+use relay_utils::metrics::MetricsParams;
+use substrate_relay_helper::messages_lane::{MessagesRelayParams, SubstrateMessageLane};
+use substrate_relay_helper::on_demand_headers::OnDemandHeadersRelay;
+
+use crate::cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams};
+use crate::declare_chain_options;
 
 /// Maximal allowed conversion rate error ratio (|real - stored| / stored) that we allow.
 ///
@@ -208,7 +209,7 @@ impl RelayHeadersAndMessages {
 				add_right_to_left_standalone_metrics(None, metrics_params, right_client.clone())?;
 			if let Some(left_messages_pallet_owner) = left_messages_pallet_owner {
 				let left_client = left_client.clone();
-				crate::conversion_rate_update::run_conversion_rate_update_loop(
+				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
 					left_to_right_metrics
 						.target_to_source_conversion_rate
 						.expect(METRIC_IS_SOME_PROOF),
@@ -240,7 +241,7 @@ impl RelayHeadersAndMessages {
 			}
 			if let Some(right_messages_pallet_owner) = right_messages_pallet_owner {
 				let right_client = right_client.clone();
-				crate::conversion_rate_update::run_conversion_rate_update_loop(
+				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
 					right_to_left_metrics
 						.target_to_source_conversion_rate
 						.expect(METRIC_IS_SOME_PROOF),
@@ -296,7 +297,9 @@ impl RelayHeadersAndMessages {
 					lane_id: lane,
 					relayer_mode,
 					metrics_params: metrics_params.clone().disable().metrics_prefix(
-						messages_relay::message_lane_loop::metrics_prefix::<LeftToRightMessages>(&lane),
+						messages_relay::message_lane_loop::metrics_prefix::<
+							<LeftToRightMessages as SubstrateMessageLane>::MessageLane,
+						>(&lane),
 					),
 				})
 				.map_err(|e| anyhow::format_err!("{}", e))
@@ -311,7 +314,9 @@ impl RelayHeadersAndMessages {
 					lane_id: lane,
 					relayer_mode,
 					metrics_params: metrics_params.clone().disable().metrics_prefix(
-						messages_relay::message_lane_loop::metrics_prefix::<RightToLeftMessages>(&lane),
+						messages_relay::message_lane_loop::metrics_prefix::<
+							<RightToLeftMessages as SubstrateMessageLane>::MessageLane,
+						>(&lane),
 					),
 				})
 				.map_err(|e| anyhow::format_err!("{}", e))
