@@ -40,7 +40,10 @@ pub(crate) const STALL_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 pub(crate) const RECENT_FINALITY_PROOFS_LIMIT: usize = 4096;
 
 /// Headers sync pipeline for Substrate <-> Substrate relays.
-pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
+pub trait SubstrateFinalitySyncPipeline: 'static + Clone + Debug + Send + Sync {
+	/// Pipeline for syncing finalized Source chain headers to Target chain.
+	type FinalitySyncPipeline: FinalitySyncPipeline;
+
 	/// Name of the runtime method that returns id of best finalized source header at target chain.
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str;
 
@@ -55,7 +58,7 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 	/// Start finality relay guards.
 	///
 	/// Different finality bridges may have different set of guards - e.g. on ephemeral chains we
-	/// don't need version guards, on test chains we don't care that much about relayer account
+	/// don't need a version guards, on test chains we don't care that much about relayer account
 	/// balance, ... So the implementation is left to the specific bridges.
 	fn start_relay_guards(&self) {}
 
@@ -67,8 +70,8 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 		&self,
 		era: bp_runtime::TransactionEraOf<Self::TargetChain>,
 		transaction_nonce: <Self::TargetChain as Chain>::Index,
-		header: Self::Header,
-		proof: Self::FinalityProof,
+		header: <Self::FinalitySyncPipeline as FinalitySyncPipeline>::Header,
+		proof: <Self::FinalitySyncPipeline as FinalitySyncPipeline>::FinalityProof,
 	) -> Bytes;
 }
 
@@ -76,9 +79,9 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 #[derive(Clone)]
 pub struct SubstrateFinalityToSubstrate<SourceChain, TargetChain: Chain, TargetSign> {
 	/// Client for the target chain.
-	pub(crate) target_client: Client<TargetChain>,
+	pub target_client: Client<TargetChain>,
 	/// Data required to sign target chain transactions.
-	pub(crate) target_sign: TargetSign,
+	pub target_sign: TargetSign,
 	/// Unused generic arguments dump.
 	_marker: PhantomData<SourceChain>,
 }
@@ -131,12 +134,12 @@ pub async fn run<SourceChain, TargetChain, P>(
 	metrics_params: MetricsParams,
 ) -> anyhow::Result<()>
 where
-	P: SubstrateFinalitySyncPipeline<
+	P: SubstrateFinalitySyncPipeline<TargetChain = TargetChain>,
+	P::FinalitySyncPipeline: FinalitySyncPipeline<
 		Hash = HashOf<SourceChain>,
 		Number = BlockNumberOf<SourceChain>,
 		Header = SyncHeader<SourceChain::Header>,
 		FinalityProof = GrandpaJustification<SourceChain::Header>,
-		TargetChain = TargetChain,
 	>,
 	SourceChain: Clone + Chain,
 	BlockNumberOf<SourceChain>: BlockNumberBase,

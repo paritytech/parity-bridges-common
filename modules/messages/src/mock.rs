@@ -56,6 +56,8 @@ pub struct TestPayload {
 	/// Note: in correct code `dispatch_result.unspent_weight` will always be <= `declared_weight`, but for test
 	/// purposes we'll be making it larger than `declared_weight` sometimes.
 	pub dispatch_result: MessageDispatchResult,
+	/// Extra bytes that affect payload size.
+	pub extra: Vec<u8>,
 }
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
@@ -140,6 +142,7 @@ parameter_types! {
 	pub const MaxUnrewardedRelayerEntriesAtInboundLane: u64 = 16;
 	pub const MaxUnconfirmedMessagesAtInboundLane: u64 = 32;
 	pub storage TokenConversionRate: FixedU128 = 1.into();
+  pub const TestBridgedChainId: bp_runtime::ChainId = *b"test";
 }
 
 #[derive(Debug, Clone, Encode, Decode, PartialEq, Eq)]
@@ -179,11 +182,12 @@ impl Config for TestRuntime {
 
 	type SourceHeaderChain = TestSourceHeaderChain;
 	type MessageDispatch = TestMessageDispatch;
+	type BridgedChainId = TestBridgedChainId;
 }
 
 impl Size for TestPayload {
 	fn size_hint(&self) -> u32 {
-		16
+		16 + self.extra.len() as u32
 	}
 }
 
@@ -384,7 +388,7 @@ impl OnDeliveryConfirmed for TestOnDeliveryConfirmed1 {
 	}
 }
 
-/// Seconde on-messages-delivered callback.
+/// Second on-messages-delivered callback.
 #[derive(Debug)]
 pub struct TestOnDeliveryConfirmed2;
 
@@ -466,6 +470,7 @@ pub const fn message_payload(id: u64, declared_weight: Weight) -> TestPayload {
 		id,
 		declared_weight,
 		dispatch_result: dispatch_result(0),
+		extra: Vec::new(),
 	}
 }
 
