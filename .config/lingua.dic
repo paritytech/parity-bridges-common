@@ -48,6 +48,7 @@ Lane3
 LaneId
 MIN_SIZE
 MIT/M
+MMR
 MaxUnrewardedRelayerEntriesAtInboundLane
 MaybeExtra
 MaybeOrphan
@@ -140,6 +141,7 @@ keccak
 keccak256/M
 kusama/S
 lane
+malus
 max_value
 merkle/MS
 millau

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! This is almost 1:1 copy of https://github.com/paritytech/polkadot/blob/master/node/service/src/overseer.rs.
+//! This is almost 1:1 copy of `node/service/src/overseer.rs` file from Polkadot repository.
 //! The only exception is that we don't support db upgrades => no `upgrade.rs` module.
 
 // this warning comes from `polkadot_overseer::AllSubsystems` type

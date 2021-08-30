@@ -16,7 +16,7 @@
 
 //! Rialto chain node service.
 //!
-//! The code is mostly copy of https://github.com/paritytech/polkadot/blob/master/node/service/src/lib.rs
+//! The code is mostly copy of `service/src/lib.rs` file from Polkadot repository
 //! without optional functions.
 
 // this warning comes from Error enum (sc_cli::Error in particular) && it isn't easy to use box there
