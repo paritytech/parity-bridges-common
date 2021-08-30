@@ -18,7 +18,7 @@
 //! So we are giving runtime opportunity to prepare environment and construct proof
 //! before invoking module calls.
 
-use super::{
+use superx::{
 	Call, Config as CurrencyExchangeConfig, InclusionProofVerifier, Instance, Pallet as CurrencyExchangePallet,
 };
 use sp_std::prelude::*;
