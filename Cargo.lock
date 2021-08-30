@@ -8974,7 +8974,6 @@ dependencies = [
  "finality-relay",
  "frame-support",
  "futures 0.3.15",
- "headers-relay",
  "hex",
  "hex-literal 0.3.1",
  "log",
@@ -9004,7 +9003,44 @@ dependencies = [
  "sp-version",
  "structopt",
  "strum 0.21.0",
+ "substrate-relay-helper",
  "tempdir",
+]
+
+[[package]]
+name = "substrate-relay-helper"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-std",
+ "async-trait",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-millau",
+ "bp-rialto",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "finality-grandpa",
+ "finality-relay",
+ "frame-support",
+ "futures 0.3.15",
+ "headers-relay",
+ "log",
+ "messages-relay",
+ "num-format",
+ "num-traits",
+ "pallet-bridge-messages",
+ "parity-scale-codec",
+ "relay-millau-client",
+ "relay-rialto-client",
+ "relay-substrate-client",
+ "relay-utils",
+ "rialto-runtime",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-runtime",
+ "sp-trie",
+ "sp-version",
 ]
 
 [[package]]
