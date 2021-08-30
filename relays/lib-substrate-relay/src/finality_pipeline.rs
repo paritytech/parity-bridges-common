@@ -35,7 +35,10 @@ pub(crate) const STALL_TIMEOUT: Duration = Duration::from_secs(120);
 pub(crate) const RECENT_FINALITY_PROOFS_LIMIT: usize = 4096;
 
 /// Headers sync pipeline for Substrate <-> Substrate relays.
-pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
+pub trait SubstrateFinalitySyncPipeline: 'static + Clone + Debug + Send + Sync {
+	/// Pipeline for syncing finalized Source chain headers to Target chain.
+	type FinalitySyncPipeline: FinalitySyncPipeline;
+
 	/// Name of the runtime method that returns id of best finalized source header at target chain.
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str;
 
@@ -61,8 +64,8 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 	fn make_submit_finality_proof_transaction(
 		&self,
 		transaction_nonce: IndexOf<Self::TargetChain>,
-		header: Self::Header,
-		proof: Self::FinalityProof,
+		header: <Self::FinalitySyncPipeline as FinalitySyncPipeline>::Header,
+		proof: <Self::FinalitySyncPipeline as FinalitySyncPipeline>::FinalityProof,
 	) -> Bytes;
 }
 
@@ -70,9 +73,9 @@ pub trait SubstrateFinalitySyncPipeline: FinalitySyncPipeline {
 #[derive(Clone)]
 pub struct SubstrateFinalityToSubstrate<SourceChain, TargetChain: Chain, TargetSign> {
 	/// Client for the target chain.
-	pub(crate) target_client: Client<TargetChain>,
+	pub target_client: Client<TargetChain>,
 	/// Data required to sign target chain transactions.
-	pub(crate) target_sign: TargetSign,
+	pub target_sign: TargetSign,
 	/// Unused generic arguments dump.
 	_marker: PhantomData<SourceChain>,
 }
@@ -124,12 +127,12 @@ pub async fn run<SourceChain, TargetChain, P>(
 	metrics_params: MetricsParams,
 ) -> anyhow::Result<()>
 where
-	P: SubstrateFinalitySyncPipeline<
+	P: SubstrateFinalitySyncPipeline<TargetChain = TargetChain>,
+	P::FinalitySyncPipeline: FinalitySyncPipeline<
 		Hash = HashOf<SourceChain>,
 		Number = BlockNumberOf<SourceChain>,
 		Header = SyncHeader<SourceChain::Header>,
 		FinalityProof = GrandpaJustification<SourceChain::Header>,
-		TargetChain = TargetChain,
 	>,
 	SourceChain: Clone + Chain,
 	BlockNumberOf<SourceChain>: BlockNumberBase,
