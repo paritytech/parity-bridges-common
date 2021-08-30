@@ -157,7 +157,7 @@ impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber,
 			.unwrap_or(TransactionEra::Immortal)
 	}
 
-	/// Create new immortal transacion era.
+	/// Create new immortal transaction era.
 	pub fn immortal() -> Self {
 		TransactionEra::Immortal
 	}
