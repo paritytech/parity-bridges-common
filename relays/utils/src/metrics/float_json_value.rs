@@ -55,7 +55,7 @@ impl FloatJsonValueMetric {
 	}
 
 	/// Get shared reference to metric value.
-	pub fn shared_value_ref(&self) -> F64SharedRef {
+	pub fn get(&self) -> F64SharedRef {
 		self.shared_value_ref.clone()
 	}
 
