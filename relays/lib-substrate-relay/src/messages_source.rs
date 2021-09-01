@@ -24,7 +24,7 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
-use bp_runtime::{messages::DispatchFeePayment, ChainId};
+use bp_runtime::messages::DispatchFeePayment;
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -54,8 +54,6 @@ pub struct SubstrateMessagesSource<SC: Chain, TC: Chain, P: SubstrateMessageLane
 	client: Client<SC>,
 	lane: P,
 	lane_id: LaneId,
-	instance: ChainId,
-	messages_pallet_name: &'static str,
 	target_to_source_headers_relay: Option<OnDemandHeadersRelay<TC>>,
 }
 
@@ -65,16 +63,12 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> SubstrateMessagesSource<SC, 
 		client: Client<SC>,
 		lane: P,
 		lane_id: LaneId,
-		instance: ChainId,
-		messages_pallet_name: &'static str,
 		target_to_source_headers_relay: Option<OnDemandHeadersRelay<TC>>,
 	) -> Self {
 		SubstrateMessagesSource {
 			client,
 			lane,
 			lane_id,
-			instance,
-			messages_pallet_name,
 			target_to_source_headers_relay,
 		}
 	}
@@ -86,9 +80,7 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesS
 			client: self.client.clone(),
 			lane: self.lane.clone(),
 			lane_id: self.lane_id,
-			instance: self.instance,
 			target_to_source_headers_relay: self.target_to_source_headers_relay.clone(),
-			messages_pallet_name: self.messages_pallet_name,
 		}
 	}
 }
@@ -217,7 +209,7 @@ where
 		let mut message_nonce = *nonces.start();
 		while message_nonce <= *nonces.end() {
 			let message_key = pallet_bridge_messages::storage_keys::message_key(
-				self.messages_pallet_name,
+				P::MESSAGE_PALLET_NAME_AT_SOURCE,
 				&self.lane_id,
 				message_nonce,
 			);
@@ -226,7 +218,7 @@ where
 		}
 		if proof_parameters.outbound_state_proof_required {
 			storage_keys.push(pallet_bridge_messages::storage_keys::outbound_lane_data_key(
-				self.messages_pallet_name,
+				P::MESSAGE_PALLET_NAME_AT_SOURCE,
 				&self.lane_id,
 			));
 		}

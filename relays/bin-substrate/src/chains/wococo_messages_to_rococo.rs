@@ -22,7 +22,6 @@ use codec::Encode;
 use sp_core::{Bytes, Pair};
 
 use bp_messages::MessageNonce;
-use bp_runtime::{ROCOCO_CHAIN_ID, WOCOCO_CHAIN_ID};
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use messages_relay::message_lane::MessageLane;
 use relay_rococo_client::{HeaderId as RococoHeaderId, Rococo, SigningParams as RococoSigningParams};
@@ -59,6 +58,9 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_wococo::BEST_FINALIZED_WOCOCO_HEADER_METHOD;
 	const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str = bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
+
+	const MESSAGE_PALLET_NAME_AT_SOURCE: &'static str = bp_wococo::WITH_ROCOCO_MESSAGES_PALLET_NAME;
+	const MESSAGE_PALLET_NAME_AT_TARGET: &'static str = bp_rococo::WITH_WOCOCO_MESSAGES_PALLET_NAME;
 
 	type SourceChain = Wococo;
 	type TargetChain = Rococo;
@@ -215,16 +217,12 @@ pub async fn run(
 			source_client.clone(),
 			lane.clone(),
 			lane_id,
-			ROCOCO_CHAIN_ID,
-			bp_wococo::WITH_ROCOCO_MESSAGES_PALLET_NAME,
 			params.target_to_source_headers_relay,
 		),
 		RococoTargetClient::new(
 			params.target_client,
 			lane,
 			lane_id,
-			WOCOCO_CHAIN_ID,
-			bp_rococo::WITH_WOCOCO_MESSAGES_PALLET_NAME,
 			metrics_values,
 			params.source_to_target_headers_relay,
 		),

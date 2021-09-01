@@ -24,7 +24,6 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
-use bp_runtime::ChainId;
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -53,8 +52,6 @@ pub struct SubstrateMessagesTarget<SC: Chain, TC: Chain, P: SubstrateMessageLane
 	client: Client<TC>,
 	lane: P,
 	lane_id: LaneId,
-	instance: ChainId,
-	messages_pallet_name: &'static str,
 	metric_values: StandaloneMessagesMetrics,
 	source_to_target_headers_relay: Option<OnDemandHeadersRelay<SC>>,
 }
@@ -65,8 +62,6 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> SubstrateMessagesTarget<SC, 
 		client: Client<TC>,
 		lane: P,
 		lane_id: LaneId,
-		instance: ChainId,
-		messages_pallet_name: &'static str,
 		metric_values: StandaloneMessagesMetrics,
 		source_to_target_headers_relay: Option<OnDemandHeadersRelay<SC>>,
 	) -> Self {
@@ -74,8 +69,6 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> SubstrateMessagesTarget<SC, 
 			client,
 			lane,
 			lane_id,
-			instance,
-			messages_pallet_name,
 			metric_values,
 			source_to_target_headers_relay,
 		}
@@ -88,8 +81,6 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesT
 			client: self.client.clone(),
 			lane: self.lane.clone(),
 			lane_id: self.lane_id,
-			instance: self.instance,
-			messages_pallet_name: self.messages_pallet_name,
 			metric_values: self.metric_values.clone(),
 			source_to_target_headers_relay: self.source_to_target_headers_relay.clone(),
 		}
@@ -211,8 +202,10 @@ where
 		SubstrateError,
 	> {
 		let (id, relayers_state) = self.unrewarded_relayers_state(id).await?;
-		let inbound_data_key =
-			pallet_bridge_messages::storage_keys::inbound_lane_data_key(self.messages_pallet_name, &self.lane_id);
+		let inbound_data_key = pallet_bridge_messages::storage_keys::inbound_lane_data_key(
+			P::MESSAGE_PALLET_NAME_AT_TARGET,
+			&self.lane_id,
+		);
 		let proof = self
 			.client
 			.prove_storage(vec![inbound_data_key], id.1)
