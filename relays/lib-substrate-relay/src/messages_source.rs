@@ -25,6 +25,7 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::messages::DispatchFeePayment;
+use bp_runtime::Chain as ChainBase;
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -50,20 +51,20 @@ use std::ops::RangeInclusive;
 pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
 
 /// Substrate client as Substrate messages source.
-pub struct SubstrateMessagesSource<SC: Chain, TC: Chain, P: SubstrateMessageLane> {
-	client: Client<SC>,
+pub struct SubstrateMessagesSource<P: SubstrateMessageLane> {
+	client: Client<P::SourceChain>,
 	lane: P,
 	lane_id: LaneId,
-	target_to_source_headers_relay: Option<OnDemandHeadersRelay<TC>>,
+	target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
 }
 
-impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> SubstrateMessagesSource<SC, TC, P> {
+impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 	/// Create new Substrate headers source.
 	pub fn new(
-		client: Client<SC>,
+		client: Client<P::SourceChain>,
 		lane: P,
 		lane_id: LaneId,
-		target_to_source_headers_relay: Option<OnDemandHeadersRelay<TC>>,
+		target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
 	) -> Self {
 		SubstrateMessagesSource {
 			client,
@@ -74,7 +75,7 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> SubstrateMessagesSource<SC, 
 	}
 }
 
-impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesSource<SC, TC, P> {
+impl<P: SubstrateMessageLane> Clone for SubstrateMessagesSource<P> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client.clone(),
@@ -86,12 +87,7 @@ impl<SC: Chain, TC: Chain, P: SubstrateMessageLane> Clone for SubstrateMessagesS
 }
 
 #[async_trait]
-impl<SC, TC, P> RelayClient for SubstrateMessagesSource<SC, TC, P>
-where
-	SC: Chain,
-	TC: Chain,
-	P: SubstrateMessageLane,
-{
+impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<P> {
 	type Error = SubstrateError;
 
 	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
@@ -100,27 +96,28 @@ where
 }
 
 #[async_trait]
-impl<SC, TC, P> SourceClient<P::MessageLane> for SubstrateMessagesSource<SC, TC, P>
+impl<P> SourceClient<P::MessageLane> for SubstrateMessagesSource<P>
 where
-	SC: Chain<
+	P: SubstrateMessageLane,
+	P::SourceChain: Chain<
 		Hash = <P::MessageLane as MessageLane>::SourceHeaderHash,
 		BlockNumber = <P::MessageLane as MessageLane>::SourceHeaderNumber,
 		Balance = <P::MessageLane as MessageLane>::SourceChainBalance,
 	>,
-	SC::Hash: Copy,
-	SC::BlockNumber: Copy,
-	SC::Balance: Decode + Bounded,
-	SC::Header: DeserializeOwned,
-	SC::Index: DeserializeOwned,
-	SC::BlockNumber: BlockNumberBase,
-	TC: Chain<
+	<P::SourceChain as Chain>::Balance: Decode + Bounded,
+	<P::SourceChain as Chain>::Index: DeserializeOwned,
+	<P::SourceChain as ChainBase>::Hash: Copy,
+	<P::SourceChain as ChainBase>::BlockNumber: Copy,
+	<P::SourceChain as ChainBase>::Header: DeserializeOwned,
+	<P::SourceChain as ChainBase>::BlockNumber: BlockNumberBase,
+	P::TargetChain: Chain<
 		Hash = <P::MessageLane as MessageLane>::TargetHeaderHash,
 		BlockNumber = <P::MessageLane as MessageLane>::TargetHeaderNumber,
 	>,
-	P: SubstrateMessageLane<SourceChain = SC, TargetChain = TC>,
+
 	P::MessageLane: MessageLane<
-		MessagesProof = SubstrateMessagesProof<SC>,
-		MessagesReceivingProof = SubstrateMessagesReceivingProof<TC>,
+		MessagesProof = SubstrateMessagesProof<P::SourceChain>,
+		MessagesReceivingProof = SubstrateMessagesReceivingProof<P::TargetChain>,
 	>,
 	<P::MessageLane as MessageLane>::TargetHeaderNumber: Decode,
 	<P::MessageLane as MessageLane>::TargetHeaderHash: Decode,
@@ -186,7 +183,7 @@ where
 			)
 			.await?;
 
-		make_message_details_map::<SC>(
+		make_message_details_map::<P::SourceChain>(
 			Decode::decode(&mut &encoded_response.0[..]).map_err(SubstrateError::ResponseParseFailed)?,
 			nonces,
 		)
@@ -264,10 +261,10 @@ where
 			.estimate_extrinsic_fee(self.lane.make_messages_receiving_proof_transaction(
 				Zero::zero(),
 				HeaderId(Default::default(), Default::default()),
-				prepare_dummy_messages_delivery_proof::<SC, TC>(),
+				prepare_dummy_messages_delivery_proof::<P::SourceChain, P::TargetChain>(),
 			))
 			.await
-			.unwrap_or_else(|_| SC::Balance::max_value())
+			.unwrap_or_else(|_| <P::SourceChain as Chain>::Balance::max_value())
 	}
 }
 

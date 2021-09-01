@@ -147,7 +147,7 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 }
 
 /// Wococo node as messages source.
-type WococoSourceClient = SubstrateMessagesSource<Wococo, Rococo, WococoMessagesToRococo>;
+type WococoSourceClient = SubstrateMessagesSource<WococoMessagesToRococo>;
 
 /// Rococo node as messages target.
 type RococoTargetClient = SubstrateMessagesTarget<Wococo, Rococo, WococoMessagesToRococo>;
