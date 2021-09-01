@@ -16,8 +16,8 @@
 
 use bp_rialto::derive_account_from_millau_id;
 use rialto_runtime::{
-	AccountId, BabeConfig, BalancesConfig, BridgeKovanConfig, BridgeRialtoPoaConfig, GenesisConfig, GrandpaConfig,
-	SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	AccountId, BabeConfig, BalancesConfig, BridgeKovanConfig, BridgeMillauMessagesConfig, BridgeRialtoPoaConfig,
+	GenesisConfig, GrandpaConfig, SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use serde_json::json;
 use sp_consensus_babe::AuthorityId as BabeId;
@@ -71,10 +71,7 @@ impl Alternative {
 		let properties = Some(
 			json!({
 				"tokenDecimals": 9,
-				"tokenSymbol": "RLT",
-				"bridgeIds": {
-					"Millau": bp_runtime::MILLAU_CHAIN_ID,
-				}
+				"tokenSymbol": "RLT"
 			})
 			.as_object()
 			.expect("Map given; qed")
@@ -82,8 +79,8 @@ impl Alternative {
 		);
 		match self {
 			Alternative::Development => ChainSpec::from_genesis(
-				"Development",
-				"dev",
+				"Rialto Development",
+				"rialto_dev",
 				sc_service::ChainType::Development,
 				|| {
 					testnet_genesis(
@@ -108,8 +105,8 @@ impl Alternative {
 				None,
 			),
 			Alternative::LocalTestnet => ChainSpec::from_genesis(
-				"Local Testnet",
-				"local_testnet",
+				"Rialto Local",
+				"rialto_local",
 				sc_service::ChainType::Local,
 				|| {
 					testnet_genesis(
@@ -138,9 +135,10 @@ impl Alternative {
 							get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 							get_account_id_from_seed::<sr25519::Public>("George//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
+							get_account_id_from_seed::<sr25519::Public>("MillauMessagesOwner"),
 							pallet_bridge_messages::Pallet::<
 								rialto_runtime::Runtime,
-								pallet_bridge_messages::DefaultInstance,
+								rialto_runtime::WithMillauMessagesInstance,
 							>::relayer_fund_account_id(),
 							derive_account_from_millau_id(bp_runtime::SourceAccount::Account(
 								get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -207,6 +205,10 @@ fn testnet_genesis(
 				.iter()
 				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
 				.collect::<Vec<_>>(),
+		},
+		bridge_millau_messages: BridgeMillauMessagesConfig {
+			owner: Some(get_account_id_from_seed::<sr25519::Public>("MillauMessagesOwner")),
+			..Default::default()
 		},
 	}
 }
