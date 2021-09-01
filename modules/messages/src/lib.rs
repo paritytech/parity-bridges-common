@@ -48,7 +48,8 @@ use crate::weights::WeightInfo;
 
 use bp_messages::{
 	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards, TargetHeaderChain,
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards, SenderOrigin,
+		TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	total_unrewarded_messages, DeliveredMessages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce,
@@ -142,12 +143,23 @@ pub trait Config<I = DefaultInstance>: frame_system::Config {
 
 	// Types that are used by outbound_lane (on source chain).
 
+	/// Message sender origin.
+	type SenderOrigin: SenderOrigin<Self::AccountId> + From<Self::Origin>;
 	/// Target header chain.
 	type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload, Self::AccountId>;
 	/// Message payload verifier.
-	type LaneMessageVerifier: LaneMessageVerifier<Self::AccountId, Self::OutboundPayload, Self::OutboundMessageFee>;
+	type LaneMessageVerifier: LaneMessageVerifier<
+		Self::SenderOrigin,
+		Self::AccountId,
+		Self::OutboundPayload,
+		Self::OutboundMessageFee,
+	>;
 	/// Message delivery payment.
-	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<Self::AccountId, Self::OutboundMessageFee>;
+	type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
+		Self::SenderOrigin,
+		Self::AccountId,
+		Self::OutboundMessageFee,
+	>;
 	/// Handler for delivered messages.
 	type OnDeliveryConfirmed: OnDeliveryConfirmed;
 
@@ -322,7 +334,6 @@ decl_module! {
 			delivery_and_dispatch_fee: T::OutboundMessageFee,
 		) -> DispatchResultWithPostInfo {
 			ensure_normal_operating_mode::<T, I>()?;
-			let submitter = origin.into().map_err(|_| BadOrigin)?;
 
 			// initially, actual (post-dispatch) weight is equal to pre-dispatch weight
 			let mut actual_weight = T::WeightInfo::send_message_weight(&payload);
@@ -341,9 +352,10 @@ decl_module! {
 				})?;
 
 			// now let's enforce any additional lane rules
+			let origin = T::SenderOrigin::from(origin);
 			let mut lane = outbound_lane::<T, I>(lane_id);
 			T::LaneMessageVerifier::verify_message(
-				&submitter,
+				&origin,
 				&delivery_and_dispatch_fee,
 				&lane_id,
 				&lane.data(),
@@ -361,15 +373,14 @@ decl_module! {
 
 			// let's withdraw delivery and dispatch fee from submitter
 			T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
-				&submitter,
+				&origin,
 				&delivery_and_dispatch_fee,
 				&Self::relayer_fund_account_id(),
 			).map_err(|err| {
 				log::trace!(
 					target: "runtime::bridge-messages",
-					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
+					"Message to lane {:?} is rejected because submitter is unable to pay fee {:?}: {:?}",
 					lane_id,
-					submitter,
 					delivery_and_dispatch_fee,
 					err,
 				);
@@ -429,16 +440,14 @@ decl_module! {
 			ensure!(nonce <= lane.data().latest_generated_nonce, Error::<T, I>::MessageIsNotYetSent);
 
 			// withdraw additional fee from submitter
-			let submitter = origin.into().map_err(|_| BadOrigin)?;
 			T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
-				&submitter,
+				&T::SenderOrigin::from(origin),
 				&additional_fee,
 				&Self::relayer_fund_account_id(),
 			).map_err(|err| {
 				log::trace!(
 					target: "runtime::bridge-messages",
-					"Submitter {:?} can't pay additional fee {:?} for the message {:?}/{:?}: {:?}",
-					submitter,
+					"Submitter can't pay additional fee {:?} for the message {:?}/{:?}: {:?}",
 					additional_fee,
 					lane_id,
 					nonce,

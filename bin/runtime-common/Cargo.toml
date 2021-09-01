@@ -24,6 +24,7 @@ pallet-bridge-messages = { path = "../../modules/messages", default-features = f
 # Substrate dependencies
 
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" , default-features = false }
@@ -39,6 +40,7 @@ std = [
 	"bp-runtime/std",
 	"codec/std",
 	"frame-support/std",
+	"frame-system/std",
 	"hash-db/std",
 	"pallet-bridge-dispatch/std",
 	"pallet-bridge-grandpa/std",
