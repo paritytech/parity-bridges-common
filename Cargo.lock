@@ -1858,41 +1858,33 @@ dependencies = [
 name = "ethereum-poa-relay"
 version = "0.1.0"
 dependencies = [
- "ansi_term 0.12.1",
  "anyhow",
  "async-std",
  "async-trait",
  "bp-currency-exchange",
  "bp-eth-poa",
  "clap",
- "env_logger 0.8.3",
  "ethabi",
  "ethabi-contract",
  "ethabi-derive",
  "exchange-relay",
- "frame-system",
  "futures 0.3.15",
  "headers-relay",
  "hex",
  "hex-literal 0.3.1",
  "libsecp256k1",
  "log",
- "messages-relay",
  "num-traits",
- "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-ethereum-client",
  "relay-rialto-client",
  "relay-substrate-client",
  "relay-utils",
  "rialto-runtime",
- "serde",
  "serde_json",
  "sp-core",
  "sp-keyring",
  "sp-runtime",
- "substrate-prometheus-endpoint",
- "time 0.2.25",
 ]
 
 [[package]]
@@ -4265,7 +4257,6 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-messages",
  "bp-millau",
  "bp-runtime",
  "frame-benchmarking",
@@ -4293,7 +4284,6 @@ dependencies = [
  "sp-consensus-aura",
  "sp-core",
  "sp-finality-grandpa",
- "sp-inherents",
  "sp-runtime",
  "sp-timestamp",
  "structopt",
@@ -4316,7 +4306,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "hex-literal 0.3.1",
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-dispatch",
@@ -4923,7 +4912,6 @@ dependencies = [
  "frame-system",
  "log",
  "parity-scale-codec",
- "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -5078,7 +5066,6 @@ dependencies = [
  "frame-system",
  "pallet-session",
  "parity-scale-codec",
- "serde",
  "sp-core",
  "sp-runtime",
  "sp-staking",
@@ -6112,7 +6099,6 @@ dependencies = [
  "jsonrpsee-ws-client",
  "libsecp256k1",
  "log",
- "parity-scale-codec",
  "relay-utils",
  "tokio 1.8.1",
  "web3",
@@ -6123,16 +6109,8 @@ name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
  "bp-kusama",
- "frame-support",
- "frame-system",
- "headers-relay",
- "pallet-transaction-payment",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "sp-core",
- "sp-keyring",
- "sp-runtime",
 ]
 
 [[package]]
@@ -6142,14 +6120,12 @@ dependencies = [
  "bp-millau",
  "frame-support",
  "frame-system",
- "headers-relay",
  "millau-runtime",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
- "sp-keyring",
  "sp-runtime",
 ]
 
@@ -6158,16 +6134,8 @@ name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
  "bp-polkadot",
- "frame-support",
- "frame-system",
- "headers-relay",
- "pallet-transaction-payment",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "sp-core",
- "sp-keyring",
- "sp-runtime",
 ]
 
 [[package]]
@@ -6177,14 +6145,12 @@ dependencies = [
  "bp-rialto",
  "frame-support",
  "frame-system",
- "headers-relay",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
  "rialto-runtime",
  "sp-core",
- "sp-keyring",
  "sp-runtime",
 ]
 
@@ -6201,16 +6167,12 @@ dependencies = [
  "bp-wococo",
  "bridge-runtime-common",
  "frame-support",
- "frame-system",
- "headers-relay",
  "pallet-bridge-dispatch",
  "pallet-bridge-messages",
- "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
- "sp-keyring",
  "sp-runtime",
 ]
 
@@ -6221,7 +6183,6 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-header-chain",
- "bp-messages",
  "bp-runtime",
  "finality-relay",
  "frame-support",
@@ -6243,7 +6204,6 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-rpc",
  "sp-runtime",
- "sp-std",
  "sp-storage",
  "sp-trie",
  "sp-version",
@@ -6276,15 +6236,10 @@ name = "relay-westend-client"
 version = "0.1.0"
 dependencies = [
  "bp-westend",
- "frame-support",
- "frame-system",
- "headers-relay",
- "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
- "sp-keyring",
  "sp-runtime",
 ]
 
@@ -6301,16 +6256,12 @@ dependencies = [
  "bp-wococo",
  "bridge-runtime-common",
  "frame-support",
- "frame-system",
- "headers-relay",
  "pallet-bridge-dispatch",
  "pallet-bridge-messages",
- "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
- "sp-keyring",
  "sp-runtime",
 ]
 
@@ -6378,7 +6329,6 @@ checksum = "e9c17925a9027d298a4603d286befe3f9dc0e8ed02523141914eb628798d6e5b"
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-messages",
  "bp-rialto",
  "bp-runtime",
  "frame-benchmarking",
@@ -6402,12 +6352,10 @@ dependencies = [
  "sc-telemetry",
  "sc-transaction-pool",
  "serde_json",
- "sp-authorship",
  "sp-consensus",
  "sp-consensus-babe",
  "sp-core",
  "sp-finality-grandpa",
- "sp-inherents",
  "sp-runtime",
  "sp-timestamp",
  "structopt",
@@ -8781,21 +8729,11 @@ checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 name = "storage-proof-fuzzer"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
  "bp-runtime",
- "bp-test-utils",
  "env_logger 0.8.3",
- "finality-grandpa",
- "frame-support",
- "frame-system",
- "hash-db",
  "honggfuzz",
  "log",
- "parity-scale-codec",
  "sp-core",
- "sp-finality-grandpa",
- "sp-io",
- "sp-runtime",
  "sp-state-machine",
  "sp-std",
  "sp-trie",
@@ -8956,7 +8894,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-std",
- "async-trait",
  "bp-header-chain",
  "bp-kusama",
  "bp-message-dispatch",
@@ -8994,10 +8931,8 @@ dependencies = [
  "relay-wococo-client",
  "rialto-runtime",
  "sp-core",
- "sp-finality-grandpa",
  "sp-keyring",
  "sp-runtime",
- "sp-trie",
  "sp-version",
  "structopt",
  "strum 0.21.0",
@@ -9022,10 +8957,8 @@ dependencies = [
  "finality-relay",
  "frame-support",
  "futures 0.3.15",
- "headers-relay",
  "log",
  "messages-relay",
- "num-format",
  "num-traits",
  "pallet-bridge-messages",
  "parity-scale-codec",
@@ -9037,8 +8970,6 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-runtime",
- "sp-trie",
- "sp-version",
 ]
 
 [[package]]
