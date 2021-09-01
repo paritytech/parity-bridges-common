@@ -266,21 +266,21 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 					P::SourceChain::NAME
 				),
 			)?;
-			target_to_source_conversion_rate = Some(metric.get());
+			target_to_source_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
 		})?;
 	}
 	if let Some(source_chain_token_id) = source_chain_token_id {
 		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
 			let metric = crate::helpers::token_price_metric(registry, prefix, source_chain_token_id)?;
-			source_to_base_conversion_rate = Some(metric.get());
+			source_to_base_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
 		})?;
 	}
 	if let Some(target_chain_token_id) = target_chain_token_id {
 		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
 			let metric = crate::helpers::token_price_metric(registry, prefix, target_chain_token_id)?;
-			target_to_base_conversion_rate = Some(metric.get());
+			target_to_base_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
 		})?;
 	}
