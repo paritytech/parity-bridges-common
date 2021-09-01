@@ -83,7 +83,7 @@ pub trait SubstrateMessageLane: 'static + Clone + Send + Sync {
 
 	/// Name of the messages pallet as it is declared in the `construct_runtime!()` at source chain.
 	const MESSAGE_PALLET_NAME_AT_SOURCE: &'static str;
-	/// Name of the messages pallet as it is declared in the `construct_runtime!()` at targer chain.
+	/// Name of the messages pallet as it is declared in the `construct_runtime!()` at target chain.
 	const MESSAGE_PALLET_NAME_AT_TARGET: &'static str;
 
 	/// Source chain.
