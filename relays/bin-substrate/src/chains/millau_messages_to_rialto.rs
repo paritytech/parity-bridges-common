@@ -23,7 +23,6 @@ use frame_support::dispatch::GetDispatchInfo;
 use sp_core::{Bytes, Pair};
 
 use bp_messages::MessageNonce;
-use bp_runtime::{MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use messages_relay::message_lane::MessageLane;
 use relay_millau_client::{HeaderId as MillauHeaderId, Millau, SigningParams as MillauSigningParams};
@@ -61,6 +60,9 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;
 	const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str = bp_rialto::BEST_FINALIZED_RIALTO_HEADER_METHOD;
+
+	const MESSAGE_PALLET_NAME_AT_SOURCE: &'static str = bp_millau::WITH_RIALTO_MESSAGES_PALLET_NAME;
+	const MESSAGE_PALLET_NAME_AT_TARGET: &'static str = bp_rialto::WITH_MILLAU_MESSAGES_PALLET_NAME;
 
 	type SourceChain = Millau;
 	type TargetChain = Rialto;
@@ -135,12 +137,10 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 }
 
 /// Millau node as messages source.
-type MillauSourceClient =
-	SubstrateMessagesSource<Millau, Rialto, MillauMessagesToRialto, millau_runtime::WithRialtoMessagesInstance>;
+type MillauSourceClient = SubstrateMessagesSource<Millau, Rialto, MillauMessagesToRialto>;
 
 /// Rialto node as messages target.
-type RialtoTargetClient =
-	SubstrateMessagesTarget<Millau, Rialto, MillauMessagesToRialto, rialto_runtime::WithMillauMessagesInstance>;
+type RialtoTargetClient = SubstrateMessagesTarget<Millau, Rialto, MillauMessagesToRialto>;
 
 /// Run Millau-to-Rialto messages sync.
 pub async fn run(
@@ -212,14 +212,12 @@ pub async fn run(
 			source_client.clone(),
 			lane.clone(),
 			lane_id,
-			RIALTO_CHAIN_ID,
 			params.target_to_source_headers_relay,
 		),
 		RialtoTargetClient::new(
 			params.target_client,
 			lane,
 			lane_id,
-			MILLAU_CHAIN_ID,
 			metrics_values,
 			params.source_to_target_headers_relay,
 		),
@@ -246,4 +244,34 @@ pub(crate) fn add_standalone_metrics(
 			millau_runtime::rialto_messages::INITIAL_RIALTO_TO_MILLAU_CONVERSION_RATE,
 		)),
 	)
+}
+
+/// Update Rialto -> Millau conversion rate, stored in Millau runtime storage.
+pub(crate) async fn update_rialto_to_millau_conversion_rate(
+	client: Client<Millau>,
+	signer: <Millau as TransactionSignScheme>::AccountKeyPair,
+	updated_rate: f64,
+) -> anyhow::Result<()> {
+	let genesis_hash = *client.genesis_hash();
+	let signer_id = (*signer.public().as_array_ref()).into();
+	client
+		.submit_signed_extrinsic(signer_id, move |transaction_nonce| {
+			Bytes(
+				Millau::sign_transaction(
+					genesis_hash,
+					&signer,
+					transaction_nonce,
+					millau_runtime::MessagesCall::update_pallet_parameter(
+						millau_runtime::rialto_messages::MillauToRialtoMessagesParameter::RialtoToMillauConversionRate(
+							sp_runtime::FixedU128::from_float(updated_rate),
+						),
+					)
+					.into(),
+				)
+				.encode(),
+			)
+		})
+		.await
+		.map(drop)
+		.map_err(|err| anyhow::format_err!("{:?}", err))
 }
