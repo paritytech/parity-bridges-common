@@ -93,12 +93,8 @@ clippy-nightly:
   stage:                           lint
   <<:                              *docker-env
   <<:                              *test-refs
-  variables:
-    RUSTFLAGS:                     "-D warnings"
   script:
     - cargo +nightly clippy --all-targets
-  # FIXME: remove when all the warns are fixed
-  allow_failure:                   true
 
 fmt:
   stage:                           lint
@@ -141,6 +137,8 @@ test:
   stage:                           test
   <<:                              *docker-env
   <<:                              *test-refs
+  variables:
+    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
     - time cargo test --verbose --workspace
 
