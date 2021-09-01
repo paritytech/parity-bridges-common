@@ -4977,7 +4977,6 @@ dependencies = [
  "bitvec",
  "bp-message-dispatch",
  "bp-messages",
- "bp-rialto",
  "bp-runtime",
  "frame-benchmarking",
  "frame-support",
