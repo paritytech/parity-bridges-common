@@ -24,10 +24,7 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
-use bp_runtime::{
-	BlockNumberOf as ChainBaseBlockNumberOf, HashOf as ChainBaseHashOf, HeaderNumberOf as ChainBaseBlockHeaderNumberOf,
-	HeaderOf as ChainBaseBlockHeaderOf,
-};
+
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -39,7 +36,9 @@ use messages_relay::{
 	message_lane_loop::{TargetClient, TargetClientState},
 };
 use num_traits::{Bounded, Zero};
-use relay_substrate_client::{Chain, ChainIndexOf, Client, Error as SubstrateError, HashOf};
+use relay_substrate_client::{
+	BalanceOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf, HeaderOf, IndexOf,
+};
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
 use sp_runtime::{DeserializeOwned, FixedPointNumber, FixedU128};
@@ -109,16 +108,16 @@ where
 		BlockNumber = <P::MessageLane as MessageLane>::SourceHeaderNumber,
 		Balance = <P::MessageLane as MessageLane>::SourceChainBalance,
 	>,
-	<P::SourceChain as Chain>::Balance: TryFrom<<P::TargetChain as Chain>::Balance> + Bounded,
+	BalanceOf<P::SourceChain>: TryFrom<<P::TargetChain as Chain>::Balance> + Bounded,
 	P::TargetChain: Chain<
 		Hash = <P::MessageLane as MessageLane>::TargetHeaderHash,
 		BlockNumber = <P::MessageLane as MessageLane>::TargetHeaderNumber,
 	>,
-	ChainIndexOf<P::TargetChain>: DeserializeOwned,
-	ChainBaseHashOf<P::TargetChain>: Copy,
-	ChainBaseBlockNumberOf<P::TargetChain>: Copy,
-	ChainBaseBlockHeaderOf<P::TargetChain>: DeserializeOwned,
-	ChainBaseBlockHeaderNumberOf<P::TargetChain>: BlockNumberBase,
+	IndexOf<P::TargetChain>: DeserializeOwned,
+	HashOf<P::TargetChain>: Copy,
+	BlockNumberOf<P::TargetChain>: Copy,
+	HeaderOf<P::TargetChain>: DeserializeOwned,
+	BlockNumberOf<P::TargetChain>: BlockNumberBase,
 
 	P::MessageLane: MessageLane<
 		MessagesProof = SubstrateMessagesProof<P::SourceChain>,

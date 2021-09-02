@@ -91,6 +91,3 @@ pub type HeaderOf<C> = <C as Chain>::Header;
 
 /// Transaction era used by the chain.
 pub type TransactionEraOf<C> = crate::TransactionEra<BlockNumberOf<C>, HashOf<C>>;
-
-/// Number type used in the Header type used by the chain
-pub type HeaderNumberOf<C> = <<C as Chain>::Header as HeaderT>::Number;
