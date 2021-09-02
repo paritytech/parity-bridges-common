@@ -135,7 +135,7 @@ pub trait TransactionSignScheme {
 	/// Type of key pairs used to sign transactions.
 	type AccountKeyPair: Pair;
 	/// Signed transaction.
-	type SignedTransaction: Clone + Debug + Decode + Encode + Send + 'static;
+	type SignedTransaction: Clone + Debug + Codec + Send + 'static;
 
 	/// Create transaction for given runtime call, signed by given account.
 	fn sign_transaction(
