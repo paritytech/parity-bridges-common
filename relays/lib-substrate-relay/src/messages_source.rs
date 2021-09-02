@@ -25,7 +25,7 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::messages::DispatchFeePayment;
-use bp_runtime::Chain as BaseChain;
+use bp_runtime::{BlockNumberOf as ChainBaseBlockNumberOf, HashOf as ChainBaseHashOf, HeaderOf as ChainBaseHeaderOf};
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -39,7 +39,9 @@ use messages_relay::{
 	},
 };
 use num_traits::{Bounded, Zero};
-use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf};
+use relay_substrate_client::{
+	Chain, ChainBalanceOf, ChainIndexOf, Client, Error as SubstrateError, HashOf, HeaderIdOf,
+};
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
 use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
@@ -104,11 +106,11 @@ where
 		BlockNumber = <P::MessageLane as MessageLane>::SourceHeaderNumber,
 		Balance = <P::MessageLane as MessageLane>::SourceChainBalance,
 	>,
-	<P::SourceChain as Chain>::Balance: Decode + Bounded,
-	<P::SourceChain as Chain>::Index: DeserializeOwned,
-	<P::SourceChain as BaseChain>::Hash: Copy,
-	<P::SourceChain as BaseChain>::BlockNumber: BlockNumberBase + Copy,
-	<P::SourceChain as BaseChain>::Header: DeserializeOwned,
+	ChainBalanceOf<P::SourceChain>: Decode + Bounded,
+	ChainIndexOf<P::SourceChain>: DeserializeOwned,
+	ChainBaseHashOf<P::SourceChain>: Copy,
+	ChainBaseBlockNumberOf<P::SourceChain>: BlockNumberBase + Copy,
+	ChainBaseHeaderOf<P::SourceChain>: DeserializeOwned,
 	P::TargetChain: Chain<
 		Hash = <P::MessageLane as MessageLane>::TargetHeaderHash,
 		BlockNumber = <P::MessageLane as MessageLane>::TargetHeaderNumber,

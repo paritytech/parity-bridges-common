@@ -24,7 +24,10 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
-use bp_runtime::Chain as BaseChain;
+use bp_runtime::{
+	BlockNumberOf as ChainBaseBlockNumberOf, HashOf as ChainBaseHashOf, HeaderNumberOf as ChainBaseBlockHeaderNumberOf,
+	HeaderOf as ChainBaseBlockHeaderOf,
+};
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -36,10 +39,10 @@ use messages_relay::{
 	message_lane_loop::{TargetClient, TargetClientState},
 };
 use num_traits::{Bounded, Zero};
-use relay_substrate_client::{Chain, Client, Error as SubstrateError, HashOf};
+use relay_substrate_client::{Chain, ChainIndexOf, Client, Error as SubstrateError, HashOf};
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
-use sp_runtime::{traits::Header as HeaderT, DeserializeOwned, FixedPointNumber, FixedU128};
+use sp_runtime::{DeserializeOwned, FixedPointNumber, FixedU128};
 use std::{convert::TryFrom, ops::RangeInclusive};
 
 /// Message receiving proof returned by the target Substrate node.
@@ -111,11 +114,11 @@ where
 		Hash = <P::MessageLane as MessageLane>::TargetHeaderHash,
 		BlockNumber = <P::MessageLane as MessageLane>::TargetHeaderNumber,
 	>,
-	<P::TargetChain as Chain>::Index: DeserializeOwned,
-	<P::TargetChain as BaseChain>::Hash: Copy,
-	<P::TargetChain as BaseChain>::BlockNumber: Copy,
-	<P::TargetChain as BaseChain>::Header: DeserializeOwned,
-	<<P::TargetChain as BaseChain>::Header as HeaderT>::Number: BlockNumberBase,
+	ChainIndexOf<P::TargetChain>: DeserializeOwned,
+	ChainBaseHashOf<P::TargetChain>: Copy,
+	ChainBaseBlockNumberOf<P::TargetChain>: Copy,
+	ChainBaseBlockHeaderOf<P::TargetChain>: DeserializeOwned,
+	ChainBaseBlockHeaderNumberOf<P::TargetChain>: BlockNumberBase,
 
 	P::MessageLane: MessageLane<
 		MessagesProof = SubstrateMessagesProof<P::SourceChain>,

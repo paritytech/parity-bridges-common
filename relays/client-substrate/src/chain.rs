@@ -79,6 +79,11 @@ pub trait Chain: ChainBase + Clone {
 		+ std::convert::TryFrom<sp_core::U256>;
 }
 
+/// Chain balance used by the chain
+pub type ChainBalanceOf<C> = <C as Chain>::Balance;
+/// Chain index used by the chain
+pub type ChainIndexOf<C> = <C as Chain>::Index;
+
 /// Substrate-based chain with `frame_system::Config::AccountData` set to
 /// the `pallet_balances::AccountData<Balance>`.
 pub trait ChainWithBalances: Chain {
