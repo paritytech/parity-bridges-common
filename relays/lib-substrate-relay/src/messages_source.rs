@@ -25,7 +25,7 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::messages::DispatchFeePayment;
-use bp_runtime::Chain as ChainBase;
+use bp_runtime::Chain as BaseChain;
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -106,10 +106,9 @@ where
 	>,
 	<P::SourceChain as Chain>::Balance: Decode + Bounded,
 	<P::SourceChain as Chain>::Index: DeserializeOwned,
-	<P::SourceChain as ChainBase>::Hash: Copy,
-	<P::SourceChain as ChainBase>::BlockNumber: Copy,
-	<P::SourceChain as ChainBase>::Header: DeserializeOwned,
-	<P::SourceChain as ChainBase>::BlockNumber: BlockNumberBase,
+	<P::SourceChain as BaseChain>::Hash: Copy,
+	<P::SourceChain as BaseChain>::BlockNumber: BlockNumberBase + Copy,
+	<P::SourceChain as BaseChain>::Header: DeserializeOwned,
 	P::TargetChain: Chain<
 		Hash = <P::MessageLane as MessageLane>::TargetHeaderHash,
 		BlockNumber = <P::MessageLane as MessageLane>::TargetHeaderNumber,
