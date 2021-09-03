@@ -29,7 +29,7 @@ use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
 use codec::{Decode, Encode};
-use frame_support::weights::Weight;
+use frame_support::weights::{Weight, WeightToFeePolynomial};
 use messages_relay::message_lane::MessageLane;
 use messages_relay::{
 	message_lane::{SourceHeaderIdOf, TargetHeaderIdOf},
@@ -37,11 +37,11 @@ use messages_relay::{
 };
 use num_traits::{Bounded, Zero};
 use relay_substrate_client::{
-	BalanceOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf, HeaderOf, IndexOf,
+	BalanceOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf, HeaderOf, IndexOf, WeightToFeeOf,
 };
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
-use sp_runtime::{DeserializeOwned, FixedPointNumber, FixedU128};
+use sp_runtime::{DeserializeOwned, FixedPointNumber, FixedU128, traits::Saturating};
 use std::{convert::TryFrom, ops::RangeInclusive};
 
 /// Message receiving proof returned by the target Substrate node.
@@ -118,7 +118,6 @@ where
 	BlockNumberOf<P::TargetChain>: Copy,
 	HeaderOf<P::TargetChain>: DeserializeOwned,
 	BlockNumberOf<P::TargetChain>: BlockNumberBase,
-
 	P::MessageLane: MessageLane<
 		MessagesProof = SubstrateMessagesProof<P::SourceChain>,
 		MessagesReceivingProof = SubstrateMessagesReceivingProof<P::TargetChain>,
@@ -244,6 +243,7 @@ where
 	async fn estimate_delivery_transaction_in_source_tokens(
 		&self,
 		nonces: RangeInclusive<MessageNonce>,
+		total_prepaid_nonces: MessageNonce,
 		total_dispatch_weight: Weight,
 		total_size: u32,
 	) -> Result<<P::MessageLane as MessageLane>::SourceChainBalance, SubstrateError> {
@@ -258,27 +258,91 @@ where
 					P::SourceChain::NAME,
 				))
 			})?;
+
+		// Prepare 'dummy' delivery transaction - we only care about its length and dispatch weight.
+		let delivery_tx = self.lane.make_messages_delivery_transaction(
+			Zero::zero(),
+			HeaderId(Default::default(), Default::default()),
+			nonces.clone(),
+			prepare_dummy_messages_proof::<P::SourceChain>(nonces.clone(), total_dispatch_weight, total_size),
+		);
+		let delivery_tx_fee = self.client.estimate_extrinsic_fee(delivery_tx).await?;
+		let inclusion_fee_in_target_tokens = delivery_tx_fee.inclusion_fee();
+
+		// The pre-dispatch cost of delivery transaction includes additional fee to cover dispatch fee payment
+		// (Currency::transfer in regular deployment). But if message dispatch has already been paid
+		// at the Source chain, the delivery transaction will refund relayer with this additional cost.
+		// But `estimate_extrinsic_fee` obviously just returns pre-dispatch cost of the transaction. So
+		// if transaction delivers prepaid message, then it may happen that pre-dispatch cost is larger
+		// than reward and `Rational` relayer will refuse to deliver this message.
+		//
+		// The most ovious solution would be to deduct total weight of dispatch fee payments from the
+		// `total_dispatch_weight` and use regular `estimate_extrinsic_fee` call. But what if
+		// `total_dispatch_weight` is less than total dispatch fee payments weight? Weight is strictly
+		// positive, so we can't use this option.
+		//
+		// Instead we'll be directly using `WeightToFee` and `NextFeeMultiplier` of the Target chain.
+		// This requires more knowledge of the Target chain, but seems there's no better way to solve
+		// this now.
+		let expected_refund_in_target_tokens = if total_prepaid_nonces != 0 {
+			const WEIGHT_DIFFERENCE: Weight = 100;
+
+			let larger_dispatch_weight = total_dispatch_weight.saturating_add(WEIGHT_DIFFERENCE);
+			let larger_delivery_tx_fee = self.client.estimate_extrinsic_fee(
+				self.lane.make_messages_delivery_transaction(
+					Zero::zero(),
+					HeaderId(Default::default(), Default::default()),
+					nonces.clone(),
+					prepare_dummy_messages_proof::<P::SourceChain>(
+						nonces.clone(),
+						larger_dispatch_weight,
+						total_size,
+					),
+				),
+			).await?;
+
+			compute_prepaid_messages_refund::<P>(
+				total_prepaid_nonces,
+				compute_fee_multiplier::<P::TargetChain>(
+					delivery_tx_fee.adjusted_weight_fee,
+					total_dispatch_weight,
+					larger_delivery_tx_fee.adjusted_weight_fee,
+					larger_dispatch_weight,
+				),
+			)
+		} else {
+			Zero::zero()
+		};
+
+		let delivery_fee_in_source_tokens = convert_target_tokens_to_source_tokens::<P::SourceChain, P::TargetChain>(
+			FixedU128::from_float(conversion_rate),
+			inclusion_fee_in_target_tokens.saturating_sub(expected_refund_in_target_tokens),
+		);
+
 		log::trace!(
 			target: "bridge",
-			"Using conversion rate {} when converting from {} tokens to {} tokens",
-			conversion_rate,
-			P::TargetChain::NAME,
-			P::SourceChain::NAME,
+			"Estimated {} -> {} messages delivery transaction.\n\t\
+				Total nonces: {:?}\n\t\
+				Prepaid messages: {}\n\t\
+				Total messages size: {}\n\t\
+				Total messages dispatch weight: {}\n\t\
+				Inclusion fee (in {1} tokens): {:?}\n\t\
+				Expected refund (in {1} tokens): {:?}\n\t\
+				{1} -> {0} conversion rate: {:?}\n\t\
+				Expected delivery tx fee (in {0} tokens): {:?}",
+				P::SourceChain::NAME,
+				P::TargetChain::NAME,
+				nonces,
+				total_prepaid_nonces,
+				total_size,
+				total_dispatch_weight,
+				inclusion_fee_in_target_tokens,
+				expected_refund_in_target_tokens,
+				conversion_rate,
+				delivery_fee_in_source_tokens,
 		);
-		Ok(
-			convert_target_tokens_to_source_tokens::<P::SourceChain, P::TargetChain>(
-				FixedU128::from_float(conversion_rate),
-				self.client
-					.estimate_extrinsic_fee(self.lane.make_messages_delivery_transaction(
-						Zero::zero(),
-						HeaderId(Default::default(), Default::default()),
-						nonces.clone(),
-						prepare_dummy_messages_proof::<P::SourceChain>(nonces, total_dispatch_weight, total_size),
-					))
-					.await
-					.unwrap_or_else(|_| <P::TargetChain as Chain>::Balance::max_value()),
-			),
-		)
+
+		Ok(delivery_fee_in_source_tokens)
 	}
 }
 
@@ -316,6 +380,43 @@ where
 		.unwrap_or_else(|_| SC::Balance::max_value())
 }
 
+/// Compute fee multiplier that is used by the chain, given couple of fees for transactions
+/// that are only differ in dispatch weights.
+///
+/// This function assumes that standard transaction payment pallet is used by the chain.
+/// The only fee component that depends on dispatch weight is the `adjusted_weight_fee`.
+///
+/// **WARNING**: this functions will only be accurate if weight-to-fee conversion function
+/// is linear. For non-linear polynomials the error will grow with `weight_difference` growth.
+/// So better to use smaller differences.
+fn compute_fee_multiplier<C: Chain>(
+	smaller_adjusted_weight_fee: BalanceOf<C>,
+	smaller_tx_weight: Weight,
+	larger_adjusted_weight_fee: BalanceOf<C>,
+	larger_tx_weight: Weight,
+) -> FixedU128 {
+	let adjusted_weight_fee_difference = larger_adjusted_weight_fee
+		.saturating_sub(smaller_adjusted_weight_fee);
+	let smaller_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&smaller_tx_weight);
+	let larger_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&larger_tx_weight);
+	FixedU128::saturating_from_rational(
+		adjusted_weight_fee_difference,
+		larger_tx_unadjusted_weight_fee.saturating_sub(smaller_tx_unadjusted_weight_fee),
+	)
+}
+
+/// Compute fee that will be refunded to the relayer because dispatch of `total_prepaid_nonces`
+/// messages has been paid at the source chain.
+fn compute_prepaid_messages_refund<P: SubstrateMessageLane>(
+	total_prepaid_nonces: MessageNonce,
+	fee_multiplier: FixedU128,
+) -> BalanceOf<P::TargetChain> {
+	fee_multiplier
+		.saturating_mul_int(WeightToFeeOf::<P::TargetChain>::calc(&
+			P::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN.saturating_mul(total_prepaid_nonces)
+		))
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -349,6 +450,29 @@ mod tests {
 		assert_eq!(
 			convert_target_tokens_to_source_tokens::<Rialto, Millau>((100, 100).into(), 1_000),
 			1_000
+		);
+	}
+
+	#[test]
+	fn compute_fee_multiplier_returns_sane_results() {
+		assert_eq!(
+			compute_fee_multiplier::<bp_rococo::Rococo>(
+				1_000_000_000,
+				1_000_000,
+				1_200_000_000,
+				1_200_000,
+			),
+			FixedU128::from_rational(1, 1000),
+		);
+	}
+
+	#[test]
+	fn compute_prepaid_messages_refund_returns_sane_results() {
+		assert!(
+			compute_prepaid_messages_refund::<crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo>(
+				10,
+				FixedU128::from_rational(110, 100),
+			) > 10 * P::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN
 		);
 	}
 }

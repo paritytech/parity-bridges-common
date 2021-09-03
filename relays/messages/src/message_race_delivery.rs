@@ -561,6 +561,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 
 	let mut selected_weight: Weight = 0;
 	let mut selected_unpaid_weight: Weight = 0;
+	let mut selected_prepaid_nonces = 0;
 	let mut selected_size: u32 = 0;
 	let mut selected_count: MessageNonce = 0;
 	let mut selected_reward = P::SourceChainBalance::zero();
@@ -637,8 +638,12 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 		// dispatch origin account AND reward is not covering this fee.
 		//
 		// So in the latter case we're not adding the dispatch weight to the delivery transaction weight.
+		let mut new_selected_prepaid_nonces = selected_prepaid_nonces;
 		let new_selected_unpaid_weight = match details.dispatch_fee_payment {
-			DispatchFeePayment::AtSourceChain => selected_unpaid_weight.saturating_add(details.dispatch_weight),
+			DispatchFeePayment::AtSourceChain => {
+				new_selected_prepaid_nonces = new_selected_prepaid_nonces + 1;
+				selected_unpaid_weight.saturating_add(details.dispatch_weight)
+			},
 			DispatchFeePayment::AtTargetChain => selected_unpaid_weight,
 		};
 
@@ -652,6 +657,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 				let delivery_transaction_cost = lane_target_client
 					.estimate_delivery_transaction_in_source_tokens(
 						0..=(new_selected_count as MessageNonce - 1),
+						new_selected_prepaid_nonces,
 						new_selected_unpaid_weight,
 						new_selected_size as u32,
 					)
@@ -711,6 +717,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 		hard_selected_count = index + 1;
 		selected_weight = new_selected_weight;
 		selected_unpaid_weight = new_selected_unpaid_weight;
+		selected_prepaid_nonces = new_selected_prepaid_nonces;
 		selected_size = new_selected_size;
 		selected_count = new_selected_count;
 	}

@@ -43,7 +43,7 @@ use relay_substrate_client::{
 };
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
-use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
+use sp_runtime::{traits::{AtLeast32BitUnsigned, Header as HeaderT}, DeserializeOwned};
 use std::ops::RangeInclusive;
 
 /// Intermediate message proof returned by the source Substrate node. Includes everything
@@ -121,6 +121,7 @@ where
 	>,
 	<P::MessageLane as MessageLane>::TargetHeaderNumber: Decode,
 	<P::MessageLane as MessageLane>::TargetHeaderHash: Decode,
+	<P::MessageLane as MessageLane>::SourceChainBalance: AtLeast32BitUnsigned,
 {
 	async fn state(&self) -> Result<SourceClientState<P::MessageLane>, SubstrateError> {
 		// we can't continue to deliver confirmations if source node is out of sync, because
@@ -264,6 +265,7 @@ where
 				prepare_dummy_messages_delivery_proof::<P::SourceChain, P::TargetChain>(),
 			))
 			.await
+			.map(|fee| fee.inclusion_fee())
 			.unwrap_or_else(|_| BalanceOf::<P::SourceChain>::max_value())
 	}
 }

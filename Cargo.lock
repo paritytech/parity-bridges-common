@@ -703,6 +703,8 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
+ "frame-support",
+ "smallvec 1.6.1",
  "sp-api",
  "sp-std",
 ]
@@ -760,6 +762,8 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
+ "frame-support",
+ "smallvec 1.6.1",
  "sp-api",
  "sp-std",
 ]
@@ -858,7 +862,9 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
+ "frame-support",
  "parity-scale-codec",
+ "smallvec 1.6.1",
  "sp-api",
  "sp-runtime",
  "sp-std",
