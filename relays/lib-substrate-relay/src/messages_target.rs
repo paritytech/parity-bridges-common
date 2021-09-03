@@ -41,7 +41,7 @@ use relay_substrate_client::{
 };
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
-use sp_runtime::{DeserializeOwned, FixedPointNumber, FixedU128, traits::Saturating};
+use sp_runtime::{traits::Saturating, DeserializeOwned, FixedPointNumber, FixedU128};
 use std::{convert::TryFrom, ops::RangeInclusive};
 
 /// Message receiving proof returned by the target Substrate node.
@@ -288,18 +288,15 @@ where
 			const WEIGHT_DIFFERENCE: Weight = 100;
 
 			let larger_dispatch_weight = total_dispatch_weight.saturating_add(WEIGHT_DIFFERENCE);
-			let larger_delivery_tx_fee = self.client.estimate_extrinsic_fee(
-				self.lane.make_messages_delivery_transaction(
+			let larger_delivery_tx_fee = self
+				.client
+				.estimate_extrinsic_fee(self.lane.make_messages_delivery_transaction(
 					Zero::zero(),
 					HeaderId(Default::default(), Default::default()),
 					nonces.clone(),
-					prepare_dummy_messages_proof::<P::SourceChain>(
-						nonces.clone(),
-						larger_dispatch_weight,
-						total_size,
-					),
-				),
-			).await?;
+					prepare_dummy_messages_proof::<P::SourceChain>(nonces.clone(), larger_dispatch_weight, total_size),
+				))
+				.await?;
 
 			compute_prepaid_messages_refund::<P>(
 				total_prepaid_nonces,
@@ -395,8 +392,7 @@ fn compute_fee_multiplier<C: Chain>(
 	larger_adjusted_weight_fee: BalanceOf<C>,
 	larger_tx_weight: Weight,
 ) -> FixedU128 {
-	let adjusted_weight_fee_difference = larger_adjusted_weight_fee
-		.saturating_sub(smaller_adjusted_weight_fee);
+	let adjusted_weight_fee_difference = larger_adjusted_weight_fee.saturating_sub(smaller_adjusted_weight_fee);
 	let smaller_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&smaller_tx_weight);
 	let larger_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&larger_tx_weight);
 	FixedU128::saturating_from_rational(
@@ -411,10 +407,9 @@ fn compute_prepaid_messages_refund<P: SubstrateMessageLane>(
 	total_prepaid_nonces: MessageNonce,
 	fee_multiplier: FixedU128,
 ) -> BalanceOf<P::TargetChain> {
-	fee_multiplier
-		.saturating_mul_int(WeightToFeeOf::<P::TargetChain>::calc(&
-			P::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN.saturating_mul(total_prepaid_nonces)
-		))
+	fee_multiplier.saturating_mul_int(WeightToFeeOf::<P::TargetChain>::calc(
+		&P::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN.saturating_mul(total_prepaid_nonces),
+	))
 }
 
 #[cfg(test)]
@@ -456,12 +451,7 @@ mod tests {
 	#[test]
 	fn compute_fee_multiplier_returns_sane_results() {
 		assert_eq!(
-			compute_fee_multiplier::<bp_rococo::Rococo>(
-				1_000_000_000,
-				1_000_000,
-				1_200_000_000,
-				1_200_000,
-			),
+			compute_fee_multiplier::<bp_rococo::Rococo>(1_000_000_000, 1_000_000, 1_200_000_000, 1_200_000,),
 			FixedU128::from_rational(1, 1000),
 		);
 	}

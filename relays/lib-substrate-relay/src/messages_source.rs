@@ -42,7 +42,10 @@ use relay_substrate_client::{
 };
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
-use sp_runtime::{traits::{AtLeast32BitUnsigned, Header as HeaderT}, DeserializeOwned};
+use sp_runtime::{
+	traits::{AtLeast32BitUnsigned, Header as HeaderT},
+	DeserializeOwned,
+};
 use std::ops::RangeInclusive;
 
 /// Intermediate message proof returned by the source Substrate node. Includes everything

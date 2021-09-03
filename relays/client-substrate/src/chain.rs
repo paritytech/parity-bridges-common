@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_runtime::Chain as ChainBase;
-use frame_support::{Parameter, weights::WeightToFeePolynomial};
+use frame_support::{weights::WeightToFeePolynomial, Parameter};
 use jsonrpsee_ws_client::{DeserializeOwned, Serialize};
 use num_traits::{Bounded, CheckedSub, SaturatingAdd, Zero};
 use sp_core::{storage::StorageKey, Pair};
