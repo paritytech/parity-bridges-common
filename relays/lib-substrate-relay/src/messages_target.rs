@@ -395,13 +395,17 @@ fn compute_fee_multiplier<C: Chain>(
 	let adjusted_weight_fee_difference = larger_adjusted_weight_fee.saturating_sub(smaller_adjusted_weight_fee);
 	let smaller_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&smaller_tx_weight);
 	let larger_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&larger_tx_weight);
-println!(
-	"=== {}->{:?} {}->{:?} {}->{:?} {}->{:?}",
-	smaller_tx_weight, WeightToFeeOf::<C>::calc(&smaller_tx_weight),
-	smaller_tx_weight+100, WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 100)),
-	smaller_tx_weight+700, WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 700)),
-	200_000, WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 700)),
-);
+	println!(
+		"=== {}->{:?} {}->{:?} {}->{:?} {}->{:?}",
+		smaller_tx_weight,
+		WeightToFeeOf::<C>::calc(&smaller_tx_weight),
+		smaller_tx_weight + 100,
+		WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 100)),
+		smaller_tx_weight + 700,
+		WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 700)),
+		200_000,
+		WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 700)),
+	);
 	FixedU128::saturating_from_rational(
 		adjusted_weight_fee_difference,
 		larger_tx_unadjusted_weight_fee.saturating_sub(smaller_tx_unadjusted_weight_fee),
@@ -423,7 +427,7 @@ fn compute_prepaid_messages_refund<P: SubstrateMessageLane>(
 mod tests {
 	use super::*;
 	use relay_rococo_client::{Rococo, SigningParams as RococoSigningParams};
-	use relay_wococo_client::{Wococo, SigningParams as WococoSigningParams};
+	use relay_wococo_client::{SigningParams as WococoSigningParams, Wococo};
 
 	#[derive(Clone)]
 	struct TestSubstrateMessageLane;
@@ -455,7 +459,9 @@ mod tests {
 		type SourceChain = Rococo;
 		type TargetChain = Wococo;
 
-		fn source_transactions_author(&self) -> bp_rococo::AccountId { unreachable!() }
+		fn source_transactions_author(&self) -> bp_rococo::AccountId {
+			unreachable!()
+		}
 
 		fn make_messages_receiving_proof_transaction(
 			&self,
@@ -513,11 +519,11 @@ mod tests {
 
 	#[test]
 	fn compute_fee_multiplier_returns_sane_results() {
-/*Adj = Mult*Unadj
+		/*Adj = Mult*Unadj
 
-1_000_000_000 = Mult*1_000_000
-1_200_000_000 = Mult*
-*/
+		1_000_000_000 = Mult*1_000_000
+		1_200_000_000 = Mult*
+		*/
 		let multiplier = FixedU128::saturating_from_rational(1, 1000);
 
 		let smaller_weight = 1_000_000;
