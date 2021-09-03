@@ -415,12 +415,12 @@ fn make_message_details_map<C: Chain>(
 mod tests {
 	use super::*;
 	use bp_runtime::messages::DispatchFeePayment;
-	use relay_millau_client::Millau;
-	use relay_rialto_client::Rialto;
+	use relay_rococo_client::Rococo;
+	use relay_wococo_client::Wococo;
 
 	fn message_details_from_rpc(
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Vec<bp_messages::MessageDetails<bp_rialto::Balance>> {
+	) -> Vec<bp_messages::MessageDetails<bp_wococo::Balance>> {
 		nonces
 			.into_iter()
 			.map(|nonce| bp_messages::MessageDetails {
@@ -436,7 +436,7 @@ mod tests {
 	#[test]
 	fn make_message_details_map_succeeds_if_no_messages_are_missing() {
 		assert_eq!(
-			make_message_details_map::<relay_rialto_client::Rialto>(message_details_from_rpc(1..=3), 1..=3,).unwrap(),
+			make_message_details_map::<Wococo>(message_details_from_rpc(1..=3), 1..=3,).unwrap(),
 			vec![
 				(
 					1,
@@ -474,7 +474,7 @@ mod tests {
 	#[test]
 	fn make_message_details_map_succeeds_if_head_messages_are_missing() {
 		assert_eq!(
-			make_message_details_map::<relay_rialto_client::Rialto>(message_details_from_rpc(2..=3), 1..=3,).unwrap(),
+			make_message_details_map::<Wococo>(message_details_from_rpc(2..=3), 1..=3,).unwrap(),
 			vec![
 				(
 					2,
@@ -505,7 +505,7 @@ mod tests {
 		let mut message_details_from_rpc = message_details_from_rpc(1..=3);
 		message_details_from_rpc.remove(1);
 		assert!(matches!(
-			make_message_details_map::<relay_rialto_client::Rialto>(message_details_from_rpc, 1..=3,),
+			make_message_details_map::<Wococo>(message_details_from_rpc, 1..=3,),
 			Err(SubstrateError::Custom(_))
 		));
 	}
@@ -513,7 +513,7 @@ mod tests {
 	#[test]
 	fn make_message_details_map_fails_if_tail_messages_are_missing() {
 		assert!(matches!(
-			make_message_details_map::<relay_rialto_client::Rialto>(message_details_from_rpc(1..=2), 1..=3,),
+			make_message_details_map::<Wococo>(message_details_from_rpc(1..=2), 1..=3,),
 			Err(SubstrateError::Custom(_))
 		));
 	}
@@ -521,15 +521,15 @@ mod tests {
 	#[test]
 	fn make_message_details_map_fails_if_all_messages_are_missing() {
 		assert!(matches!(
-			make_message_details_map::<relay_rialto_client::Rialto>(vec![], 1..=3),
+			make_message_details_map::<Wococo>(vec![], 1..=3),
 			Err(SubstrateError::Custom(_))
 		));
 	}
 
 	#[test]
 	fn prepare_dummy_messages_delivery_proof_works() {
-		let expected_minimal_size = Rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE + Millau::STORAGE_PROOF_OVERHEAD;
-		let dummy_proof = prepare_dummy_messages_delivery_proof::<Rialto, Millau>();
+		let expected_minimal_size = Wococo::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE + Rococo::STORAGE_PROOF_OVERHEAD;
+		let dummy_proof = prepare_dummy_messages_delivery_proof::<Wococo, Rococo>();
 		assert!(
 			dummy_proof.1.encode().len() as u32 > expected_minimal_size,
 			"Expected proof size at least {}. Got: {}",

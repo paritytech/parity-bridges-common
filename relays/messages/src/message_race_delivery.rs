@@ -643,7 +643,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 		let mut new_selected_prepaid_nonces = selected_prepaid_nonces;
 		let new_selected_unpaid_weight = match details.dispatch_fee_payment {
 			DispatchFeePayment::AtSourceChain => {
-				new_selected_prepaid_nonces = new_selected_prepaid_nonces + 1;
+				new_selected_prepaid_nonces += 1;
 				selected_unpaid_weight.saturating_add(details.dispatch_weight)
 			}
 			DispatchFeePayment::AtTargetChain => selected_unpaid_weight,

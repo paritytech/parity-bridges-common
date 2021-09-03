@@ -395,6 +395,13 @@ fn compute_fee_multiplier<C: Chain>(
 	let adjusted_weight_fee_difference = larger_adjusted_weight_fee.saturating_sub(smaller_adjusted_weight_fee);
 	let smaller_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&smaller_tx_weight);
 	let larger_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&larger_tx_weight);
+println!(
+	"=== {}->{:?} {}->{:?} {}->{:?} {}->{:?}",
+	smaller_tx_weight, WeightToFeeOf::<C>::calc(&smaller_tx_weight),
+	smaller_tx_weight+100, WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 100)),
+	smaller_tx_weight+700, WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 700)),
+	200_000, WeightToFeeOf::<C>::calc(&(smaller_tx_weight + 700)),
+);
 	FixedU128::saturating_from_rational(
 		adjusted_weight_fee_difference,
 		larger_tx_unadjusted_weight_fee.saturating_sub(smaller_tx_unadjusted_weight_fee),
@@ -415,14 +422,70 @@ fn compute_prepaid_messages_refund<P: SubstrateMessageLane>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use relay_millau_client::Millau;
-	use relay_rialto_client::Rialto;
+	use relay_rococo_client::{Rococo, SigningParams as RococoSigningParams};
+	use relay_wococo_client::{Wococo, SigningParams as WococoSigningParams};
+
+	#[derive(Clone)]
+	struct TestSubstrateMessageLane;
+
+	impl SubstrateMessageLane for TestSubstrateMessageLane {
+		type MessageLane = crate::messages_lane::SubstrateMessageLaneToSubstrate<
+			Rococo,
+			RococoSigningParams,
+			Wococo,
+			WococoSigningParams,
+		>;
+
+		const OUTBOUND_LANE_MESSAGE_DETAILS_METHOD: &'static str = "";
+		const OUTBOUND_LANE_LATEST_GENERATED_NONCE_METHOD: &'static str = "";
+		const OUTBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = "";
+
+		const INBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = "";
+		const INBOUND_LANE_LATEST_CONFIRMED_NONCE_METHOD: &'static str = "";
+		const INBOUND_LANE_UNREWARDED_RELAYERS_STATE: &'static str = "";
+
+		const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = "";
+		const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str = "";
+
+		const MESSAGE_PALLET_NAME_AT_SOURCE: &'static str = "";
+		const MESSAGE_PALLET_NAME_AT_TARGET: &'static str = "";
+
+		const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN: Weight = 100_000;
+
+		type SourceChain = Rococo;
+		type TargetChain = Wococo;
+
+		fn source_transactions_author(&self) -> bp_rococo::AccountId { unreachable!() }
+
+		fn make_messages_receiving_proof_transaction(
+			&self,
+			_transaction_nonce: <Rococo as Chain>::Index,
+			_generated_at_block: TargetHeaderIdOf<Self::MessageLane>,
+			_proof: <Self::MessageLane as MessageLane>::MessagesReceivingProof,
+		) -> Bytes {
+			unreachable!()
+		}
+
+		fn target_transactions_author(&self) -> bp_wococo::AccountId {
+			unreachable!()
+		}
+
+		fn make_messages_delivery_transaction(
+			&self,
+			_transaction_nonce: <Wococo as Chain>::Index,
+			_generated_at_header: SourceHeaderIdOf<Self::MessageLane>,
+			_nonces: RangeInclusive<MessageNonce>,
+			_proof: <Self::MessageLane as MessageLane>::MessagesProof,
+		) -> Bytes {
+			unreachable!()
+		}
+	}
 
 	#[test]
 	fn prepare_dummy_messages_proof_works() {
 		const DISPATCH_WEIGHT: Weight = 1_000_000;
 		const SIZE: u32 = 1_000;
-		let dummy_proof = prepare_dummy_messages_proof::<Rialto>(1..=10, DISPATCH_WEIGHT, SIZE);
+		let dummy_proof = prepare_dummy_messages_proof::<Rococo>(1..=10, DISPATCH_WEIGHT, SIZE);
 		assert_eq!(dummy_proof.0, DISPATCH_WEIGHT);
 		assert!(
 			dummy_proof.1.encode().len() as u32 > SIZE,
@@ -435,34 +498,52 @@ mod tests {
 	#[test]
 	fn convert_target_tokens_to_source_tokens_works() {
 		assert_eq!(
-			convert_target_tokens_to_source_tokens::<Rialto, Millau>((150, 100).into(), 1_000),
+			convert_target_tokens_to_source_tokens::<Rococo, Wococo>((150, 100).into(), 1_000),
 			1_500
 		);
 		assert_eq!(
-			convert_target_tokens_to_source_tokens::<Rialto, Millau>((50, 100).into(), 1_000),
+			convert_target_tokens_to_source_tokens::<Rococo, Wococo>((50, 100).into(), 1_000),
 			500
 		);
 		assert_eq!(
-			convert_target_tokens_to_source_tokens::<Rialto, Millau>((100, 100).into(), 1_000),
+			convert_target_tokens_to_source_tokens::<Rococo, Wococo>((100, 100).into(), 1_000),
 			1_000
 		);
 	}
 
 	#[test]
 	fn compute_fee_multiplier_returns_sane_results() {
+/*Adj = Mult*Unadj
+
+1_000_000_000 = Mult*1_000_000
+1_200_000_000 = Mult*
+*/
+		let multiplier = FixedU128::saturating_from_rational(1, 1000);
+
+		let smaller_weight = 1_000_000;
+		let smaller_adjusted_weight_fee = multiplier.saturating_mul_int(WeightToFeeOf::<Rococo>::calc(&smaller_weight));
+
+		let larger_weight = smaller_weight + 200_000;
+		let larger_adjusted_weight_fee = multiplier.saturating_mul_int(WeightToFeeOf::<Rococo>::calc(&larger_weight));
+
 		assert_eq!(
-			compute_fee_multiplier::<bp_rococo::Rococo>(1_000_000_000, 1_000_000, 1_200_000_000, 1_200_000,),
-			FixedU128::from_rational(1, 1000),
+			compute_fee_multiplier::<Rococo>(
+				smaller_adjusted_weight_fee,
+				smaller_weight,
+				larger_adjusted_weight_fee,
+				larger_weight,
+			),
+			multiplier,
 		);
 	}
 
 	#[test]
 	fn compute_prepaid_messages_refund_returns_sane_results() {
 		assert!(
-			compute_prepaid_messages_refund::<crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo>(
+			compute_prepaid_messages_refund::<TestSubstrateMessageLane>(
 				10,
-				FixedU128::from_rational(110, 100),
-			) > 10 * P::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN
+				FixedU128::saturating_from_rational(110, 100),
+			) > (10 * TestSubstrateMessageLane::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN).into()
 		);
 	}
 }
