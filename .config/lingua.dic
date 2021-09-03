@@ -133,6 +133,7 @@ initialize/RG
 instantiate/B
 intrinsic/MS
 invariant/MS
+invariants
 io
 isn
 isolate/BG
