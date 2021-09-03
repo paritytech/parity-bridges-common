@@ -571,6 +571,8 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 	let mut total_confirmations_cost = P::SourceChainBalance::zero();
 	let mut total_cost = P::SourceChainBalance::zero();
 
+	let hard_selected_begin_nonce = nonces_queue[nonces_queue_range.start].1.begin();
+
 	// technically, multiple confirmations will be delivered in a single transaction,
 	// meaning less loses for relayer. But here we don't know the final relayer yet, so
 	// we're adding a separate transaction for every message. Normally, this cost is covered
@@ -656,7 +658,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			RelayerMode::Rational => {
 				let delivery_transaction_cost = lane_target_client
 					.estimate_delivery_transaction_in_source_tokens(
-						0..=(new_selected_count as MessageNonce - 1),
+						hard_selected_begin_nonce..=(hard_selected_begin_nonce + index as MessageNonce),
 						new_selected_prepaid_nonces,
 						new_selected_unpaid_weight,
 						new_selected_size as u32,
@@ -722,7 +724,6 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 		selected_count = new_selected_count;
 	}
 
-	let hard_selected_begin_nonce = nonces_queue[nonces_queue_range.start].1.begin();
 	if hard_selected_count != soft_selected_count {
 		let hard_selected_end_nonce = hard_selected_begin_nonce + hard_selected_count as MessageNonce - 1;
 		let soft_selected_begin_nonce = hard_selected_begin_nonce;
