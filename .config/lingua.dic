@@ -123,6 +123,8 @@ extrinsic/MS
 extrinsics
 fedora/M
 functor
+hasher
+hardcoded
 https
 implementers
 include/BG
@@ -138,6 +140,7 @@ js
 jsonrpsee
 keccak
 keccak256/M
+keyring
 kusama/S
 lane
 max_value
@@ -200,6 +203,7 @@ teleportation/SM
 teleporter/SM
 teleporters
 testnet/MS
+timeframe
 tokio
 timestamp
 trie/MS
