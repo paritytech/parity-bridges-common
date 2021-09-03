@@ -24,7 +24,6 @@ use crate::on_demand_headers::OnDemandHeadersRelay;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
-use bp_runtime::messages::DispatchFeePayment;
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -399,7 +398,7 @@ fn make_message_details_map<C: Chain>(
 				dispatch_weight: details.dispatch_weight,
 				size: details.size as _,
 				reward: details.delivery_and_dispatch_fee,
-				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
+				dispatch_fee_payment: details.dispatch_fee_payment,
 			},
 		);
 		expected_nonce = details.nonce + 1;
