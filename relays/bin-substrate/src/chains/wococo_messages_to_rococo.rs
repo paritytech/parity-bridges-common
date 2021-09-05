@@ -144,6 +144,14 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 		);
 		Bytes(transaction.encode())
 	}
+
+	fn source_chain_client(&self) -> Client<Self::SourceChain> {
+		self.message_lane.source_client.clone()
+	}
+
+	fn target_chain_client(&self) -> Client<Self::TargetChain> {
+		self.message_lane.target_client.clone()
+	}
 }
 
 /// Wococo node as messages source.
@@ -223,19 +231,8 @@ pub async fn run(
 				relayer_mode: params.relayer_mode,
 			},
 		},
-		WococoSourceClient::new(
-			source_client.clone(),
-			lane.clone(),
-			lane_id,
-			params.target_to_source_headers_relay,
-		),
-		RococoTargetClient::new(
-			params.target_client,
-			lane,
-			lane_id,
-			metrics_values,
-			params.source_to_target_headers_relay,
-		),
+		WococoSourceClient::new(lane.clone(), lane_id, params.target_to_source_headers_relay),
+		RococoTargetClient::new(lane, lane_id, metrics_values, params.source_to_target_headers_relay),
 		metrics_params,
 		futures::future::pending(),
 	)

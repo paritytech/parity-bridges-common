@@ -36,9 +36,7 @@ use messages_relay::{
 	message_lane_loop::{TargetClient, TargetClientState},
 };
 use num_traits::{Bounded, Zero};
-use relay_substrate_client::{
-	BalanceOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf, HeaderOf, IndexOf,
-};
+use relay_substrate_client::{BalanceOf, BlockNumberOf, Chain, Error as SubstrateError, HashOf, HeaderOf, IndexOf};
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
 use sp_runtime::{DeserializeOwned, FixedPointNumber, FixedU128};
@@ -52,7 +50,6 @@ pub type SubstrateMessagesReceivingProof<C> = (
 
 /// Substrate client as Substrate messages target.
 pub struct SubstrateMessagesTarget<P: SubstrateMessageLane> {
-	client: Client<P::TargetChain>,
 	lane: P,
 	lane_id: LaneId,
 	metric_values: StandaloneMessagesMetrics,
@@ -62,14 +59,12 @@ pub struct SubstrateMessagesTarget<P: SubstrateMessageLane> {
 impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 	/// Create new Substrate headers target.
 	pub fn new(
-		client: Client<P::TargetChain>,
 		lane: P,
 		lane_id: LaneId,
 		metric_values: StandaloneMessagesMetrics,
 		source_to_target_headers_relay: Option<OnDemandHeadersRelay<P::SourceChain>>,
 	) -> Self {
 		SubstrateMessagesTarget {
-			client,
 			lane,
 			lane_id,
 			metric_values,
@@ -81,7 +76,6 @@ impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 impl<P: SubstrateMessageLane> Clone for SubstrateMessagesTarget<P> {
 	fn clone(&self) -> Self {
 		Self {
-			client: self.client.clone(),
 			lane: self.lane.clone(),
 			lane_id: self.lane_id,
 			metric_values: self.metric_values.clone(),
@@ -95,7 +89,7 @@ impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesTarget<P> {
 	type Error = SubstrateError;
 
 	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
-		self.client.reconnect().await
+		self.lane.target_chain_client().reconnect().await
 	}
 }
 
@@ -129,13 +123,16 @@ where
 	async fn state(&self) -> Result<TargetClientState<P::MessageLane>, SubstrateError> {
 		// we can't continue to deliver messages if target node is out of sync, because
 		// it may have already received (some of) messages that we're going to deliver
-		self.client.ensure_synced().await?;
+		self.lane.target_chain_client().ensure_synced().await?;
 
 		read_client_state::<
 			_,
 			<P::MessageLane as MessageLane>::SourceHeaderHash,
 			<P::MessageLane as MessageLane>::SourceHeaderNumber,
-		>(&self.client, P::BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET)
+		>(
+			&self.lane.target_chain_client(),
+			P::BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET,
+		)
 		.await
 	}
 
@@ -144,7 +141,8 @@ where
 		id: TargetHeaderIdOf<P::MessageLane>,
 	) -> Result<(TargetHeaderIdOf<P::MessageLane>, MessageNonce), SubstrateError> {
 		let encoded_response = self
-			.client
+			.lane
+			.target_chain_client()
 			.state_call(
 				P::INBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD.into(),
 				Bytes(self.lane_id.encode()),
@@ -161,7 +159,8 @@ where
 		id: TargetHeaderIdOf<P::MessageLane>,
 	) -> Result<(TargetHeaderIdOf<P::MessageLane>, MessageNonce), SubstrateError> {
 		let encoded_response = self
-			.client
+			.lane
+			.target_chain_client()
 			.state_call(
 				P::INBOUND_LANE_LATEST_CONFIRMED_NONCE_METHOD.into(),
 				Bytes(self.lane_id.encode()),
@@ -178,7 +177,8 @@ where
 		id: TargetHeaderIdOf<P::MessageLane>,
 	) -> Result<(TargetHeaderIdOf<P::MessageLane>, UnrewardedRelayersState), SubstrateError> {
 		let encoded_response = self
-			.client
+			.lane
+			.target_chain_client()
 			.state_call(
 				P::INBOUND_LANE_UNREWARDED_RELAYERS_STATE.into(),
 				Bytes(self.lane_id.encode()),
@@ -206,7 +206,8 @@ where
 			&self.lane_id,
 		);
 		let proof = self
-			.client
+			.lane
+			.target_chain_client()
 			.prove_storage(vec![inbound_data_key], id.1)
 			.await?
 			.iter_nodes()
@@ -227,7 +228,8 @@ where
 	) -> Result<RangeInclusive<MessageNonce>, SubstrateError> {
 		let lane = self.lane.clone();
 		let nonces_clone = nonces.clone();
-		self.client
+		self.lane
+			.target_chain_client()
 			.submit_signed_extrinsic(self.lane.target_transactions_author(), move |_, transaction_nonce| {
 				lane.make_messages_delivery_transaction(transaction_nonce, generated_at_header, nonces_clone, proof)
 			})
@@ -268,7 +270,8 @@ where
 		Ok(
 			convert_target_tokens_to_source_tokens::<P::SourceChain, P::TargetChain>(
 				FixedU128::from_float(conversion_rate),
-				self.client
+				self.lane
+					.target_chain_client()
 					.estimate_extrinsic_fee(self.lane.make_messages_delivery_transaction(
 						Zero::zero(),
 						HeaderId(Default::default(), Default::default()),

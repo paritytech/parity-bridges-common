@@ -53,7 +53,6 @@ pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<Hash
 
 /// Substrate client as Substrate messages source.
 pub struct SubstrateMessagesSource<P: SubstrateMessageLane> {
-	client: Client<P::SourceChain>,
 	lane: P,
 	lane_id: LaneId,
 	target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
@@ -62,13 +61,11 @@ pub struct SubstrateMessagesSource<P: SubstrateMessageLane> {
 impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 	/// Create new Substrate headers source.
 	pub fn new(
-		client: Client<P::SourceChain>,
 		lane: P,
 		lane_id: LaneId,
 		target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
 	) -> Self {
 		SubstrateMessagesSource {
-			client,
 			lane,
 			lane_id,
 			target_to_source_headers_relay,
@@ -79,7 +76,6 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 impl<P: SubstrateMessageLane> Clone for SubstrateMessagesSource<P> {
 	fn clone(&self) -> Self {
 		Self {
-			client: self.client.clone(),
 			lane: self.lane.clone(),
 			lane_id: self.lane_id,
 			target_to_source_headers_relay: self.target_to_source_headers_relay.clone(),
@@ -92,7 +88,7 @@ impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<P> {
 	type Error = SubstrateError;
 
 	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
-		self.client.reconnect().await
+		self.lane.source_chain_client().reconnect().await
 	}
 }
 
@@ -125,13 +121,16 @@ where
 	async fn state(&self) -> Result<SourceClientState<P::MessageLane>, SubstrateError> {
 		// we can't continue to deliver confirmations if source node is out of sync, because
 		// it may have already received confirmations that we're going to deliver
-		self.client.ensure_synced().await?;
+		self.lane.source_chain_client().ensure_synced().await?;
 
 		read_client_state::<
 			_,
 			<P::MessageLane as MessageLane>::TargetHeaderHash,
 			<P::MessageLane as MessageLane>::TargetHeaderNumber,
-		>(&self.client, P::BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE)
+		>(
+			&self.lane.source_chain_client(),
+			P::BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE,
+		)
 		.await
 	}
 
@@ -140,7 +139,8 @@ where
 		id: SourceHeaderIdOf<P::MessageLane>,
 	) -> Result<(SourceHeaderIdOf<P::MessageLane>, MessageNonce), SubstrateError> {
 		let encoded_response = self
-			.client
+			.lane
+			.source_chain_client()
 			.state_call(
 				P::OUTBOUND_LANE_LATEST_GENERATED_NONCE_METHOD.into(),
 				Bytes(self.lane_id.encode()),
@@ -157,7 +157,8 @@ where
 		id: SourceHeaderIdOf<P::MessageLane>,
 	) -> Result<(SourceHeaderIdOf<P::MessageLane>, MessageNonce), SubstrateError> {
 		let encoded_response = self
-			.client
+			.lane
+			.source_chain_client()
 			.state_call(
 				P::OUTBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD.into(),
 				Bytes(self.lane_id.encode()),
@@ -175,7 +176,8 @@ where
 		nonces: RangeInclusive<MessageNonce>,
 	) -> Result<MessageDetailsMap<<P::MessageLane as MessageLane>::SourceChainBalance>, SubstrateError> {
 		let encoded_response = self
-			.client
+			.lane
+			.source_chain_client()
 			.state_call(
 				P::OUTBOUND_LANE_MESSAGE_DETAILS_METHOD.into(),
 				Bytes((self.lane_id, nonces.start(), nonces.end()).encode()),
@@ -221,7 +223,8 @@ where
 		}
 
 		let proof = self
-			.client
+			.lane
+			.source_chain_client()
 			.prove_storage(storage_keys, id.1)
 			.await?
 			.iter_nodes()
@@ -242,7 +245,8 @@ where
 		proof: <P::MessageLane as MessageLane>::MessagesReceivingProof,
 	) -> Result<(), SubstrateError> {
 		let lane = self.lane.clone();
-		self.client
+		self.lane
+			.source_chain_client()
 			.submit_signed_extrinsic(self.lane.source_transactions_author(), move |_, transaction_nonce| {
 				lane.make_messages_receiving_proof_transaction(transaction_nonce, generated_at_block, proof)
 			})
@@ -257,7 +261,8 @@ where
 	}
 
 	async fn estimate_confirmation_transaction(&self) -> <P::MessageLane as MessageLane>::SourceChainBalance {
-		self.client
+		self.lane
+			.source_chain_client()
 			.estimate_extrinsic_fee(self.lane.make_messages_receiving_proof_transaction(
 				Zero::zero(),
 				HeaderId(Default::default(), Default::default()),

@@ -115,6 +115,12 @@ pub trait SubstrateMessageLane: 'static + Clone + Send + Sync {
 		generated_at_header: TargetHeaderIdOf<Self::MessageLane>,
 		proof: <Self::MessageLane as MessageLane>::MessagesReceivingProof,
 	) -> Bytes;
+
+	/// Get the source chain client.
+	fn source_chain_client(&self) -> Client<Self::SourceChain>;
+
+	/// Get the target chain client.
+	fn target_chain_client(&self) -> Client<Self::TargetChain>;
 }
 
 /// Substrate-to-Substrate message lane.
