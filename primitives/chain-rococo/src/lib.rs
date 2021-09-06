@@ -102,7 +102,7 @@ pub const FROM_ROCOCO_UNREWARDED_RELAYERS_STATE: &str = "FromRococoInboundLaneAp
 /// This value corresponds to the result of `pallet_bridge_messages::WeightInfoExt::pay_inbound_dispatch_fee_overhead()`
 /// call for your chain. Don't put too much reserve there, because it is used to **decrease**
 /// `DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT` cost. So putting large reserve would make delivery transactions cheaper.
-pub const PAY_INBOUND_DISPATCH_FEE_WEIGHT: Weight = 600_000_000; // TODO: needs to be updated with real value
+pub const PAY_INBOUND_DISPATCH_FEE_WEIGHT: Weight = 600_000_000;
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Rococo headers.
