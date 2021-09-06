@@ -83,8 +83,13 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 			),
 		);
 		let genesis_hash = *self.message_lane.source_client.genesis_hash();
-		let transaction =
-			Wococo::sign_transaction(genesis_hash, &self.message_lane.source_sign, transaction_nonce, call);
+		let transaction = Wococo::sign_transaction(
+			genesis_hash,
+			&self.message_lane.source_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			transaction_nonce,
+			call,
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Rococo -> Wococo confirmation transaction. Weight: <unknown>/{}, size: {}/{}",
@@ -123,8 +128,13 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 			),
 		);
 		let genesis_hash = *self.message_lane.target_client.genesis_hash();
-		let transaction =
-			Rococo::sign_transaction(genesis_hash, &self.message_lane.target_sign, transaction_nonce, call);
+		let transaction = Rococo::sign_transaction(
+			genesis_hash,
+			&self.message_lane.target_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			transaction_nonce,
+			call,
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Wococo -> Rococo delivery transaction. Weight: <unknown>/{}, size: {}/{}",
@@ -137,10 +147,10 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 }
 
 /// Wococo node as messages source.
-type WococoSourceClient = SubstrateMessagesSource<Wococo, Rococo, WococoMessagesToRococo>;
+type WococoSourceClient = SubstrateMessagesSource<WococoMessagesToRococo>;
 
 /// Rococo node as messages target.
-type RococoTargetClient = SubstrateMessagesTarget<Wococo, Rococo, WococoMessagesToRococo>;
+type RococoTargetClient = SubstrateMessagesTarget<WococoMessagesToRococo>;
 
 /// Run Wococo-to-Rococo messages sync.
 pub async fn run(

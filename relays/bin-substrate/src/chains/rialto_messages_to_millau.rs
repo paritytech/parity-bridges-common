@@ -82,8 +82,13 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 			rialto_runtime::MessagesCall::receive_messages_delivery_proof(proof, relayers_state).into();
 		let call_weight = call.get_dispatch_info().weight;
 		let genesis_hash = *self.message_lane.source_client.genesis_hash();
-		let transaction =
-			Rialto::sign_transaction(genesis_hash, &self.message_lane.source_sign, transaction_nonce, call);
+		let transaction = Rialto::sign_transaction(
+			genesis_hash,
+			&self.message_lane.source_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			transaction_nonce,
+			call,
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Millau -> Rialto confirmation transaction. Weight: {}/{}, size: {}/{}",
@@ -122,8 +127,13 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 		.into();
 		let call_weight = call.get_dispatch_info().weight;
 		let genesis_hash = *self.message_lane.target_client.genesis_hash();
-		let transaction =
-			Millau::sign_transaction(genesis_hash, &self.message_lane.target_sign, transaction_nonce, call);
+		let transaction = Millau::sign_transaction(
+			genesis_hash,
+			&self.message_lane.target_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			transaction_nonce,
+			call,
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Rialto -> Millau delivery transaction. Weight: {}/{}, size: {}/{}",
@@ -137,10 +147,10 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 }
 
 /// Rialto node as messages source.
-type RialtoSourceClient = SubstrateMessagesSource<Rialto, Millau, RialtoMessagesToMillau>;
+type RialtoSourceClient = SubstrateMessagesSource<RialtoMessagesToMillau>;
 
 /// Millau node as messages target.
-type MillauTargetClient = SubstrateMessagesTarget<Rialto, Millau, RialtoMessagesToMillau>;
+type MillauTargetClient = SubstrateMessagesTarget<RialtoMessagesToMillau>;
 
 /// Run Rialto-to-Millau messages sync.
 pub async fn run(
@@ -254,11 +264,12 @@ pub(crate) async fn update_millau_to_rialto_conversion_rate(
 	let genesis_hash = *client.genesis_hash();
 	let signer_id = (*signer.public().as_array_ref()).into();
 	client
-		.submit_signed_extrinsic(signer_id, move |transaction_nonce| {
+		.submit_signed_extrinsic(signer_id, move |_, transaction_nonce| {
 			Bytes(
 				Rialto::sign_transaction(
 					genesis_hash,
 					&signer,
+					relay_substrate_client::TransactionEra::immortal(),
 					transaction_nonce,
 					rialto_runtime::MessagesCall::update_pallet_parameter(
 						rialto_runtime::millau_messages::RialtoToMillauMessagesParameter::MillauToRialtoConversionRate(

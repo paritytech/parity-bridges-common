@@ -79,6 +79,11 @@ pub trait Chain: ChainBase + Clone {
 		+ std::convert::TryFrom<sp_core::U256>;
 }
 
+/// Balance type used by the chain
+pub type BalanceOf<C> = <C as Chain>::Balance;
+/// Index type used by the chain
+pub type IndexOf<C> = <C as Chain>::Index;
+
 /// Substrate-based chain with `frame_system::Config::AccountData` set to
 /// the `pallet_balances::AccountData<Balance>`.
 pub trait ChainWithBalances: Chain {
@@ -107,6 +112,7 @@ pub trait TransactionSignScheme {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
+		era: bp_runtime::TransactionEraOf<Self::Chain>,
 		signer_nonce: <Self::Chain as Chain>::Index,
 		call: <Self::Chain as Chain>::Call,
 	) -> Self::SignedTransaction;
