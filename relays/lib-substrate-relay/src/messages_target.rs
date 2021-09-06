@@ -276,7 +276,7 @@ where
 		// if transaction delivers prepaid message, then it may happen that pre-dispatch cost is larger
 		// than reward and `Rational` relayer will refuse to deliver this message.
 		//
-		// The most ovious solution would be to deduct total weight of dispatch fee payments from the
+		// The most obvious solution would be to deduct total weight of dispatch fee payments from the
 		// `total_dispatch_weight` and use regular `estimate_extrinsic_fee` call. But what if
 		// `total_dispatch_weight` is less than total dispatch fee payments weight? Weight is strictly
 		// positive, so we can't use this option.
