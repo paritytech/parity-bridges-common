@@ -136,7 +136,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			return ReceivalResult::TooManyUnconfirmedMessages;
 		}
 
-		// then, dispatch message using pallet-bridge-dispatch
+		// then, dispatch message
 		let dispatch_result = P::dispatch(
 			relayer_at_this_chain,
 			DispatchMessage {
