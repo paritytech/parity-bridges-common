@@ -30,7 +30,7 @@ pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
 /// The byte vector returned by this function should be signed with a Kusama account private key.
 /// This way, the owner of `kusam_account_id` on Polkadot proves that the Kusama account private key
 /// is also under his control.
-pub fn kusam_to_kusama_account_ownership_digest<Call, AccountId, SpecVersion>(
+pub fn polkadot_to_kusama_account_ownership_digest<Call, AccountId, SpecVersion>(
 	kusama_call: &Call,
 	kusam_account_id: AccountId,
 	kusama_spec_version: SpecVersion,
