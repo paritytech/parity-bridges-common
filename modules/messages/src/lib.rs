@@ -184,15 +184,6 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
-	#[pallet::hooks]
-	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
-		/// Ensure runtime invariants.
-		fn on_runtime_upgrade() -> Weight {
-			let reads = T::MessageDeliveryAndDispatchPayment::initialize(&Self::relayer_fund_account_id());
-			T::DbWeight::get().reads(reads as u64)
-		}
-	}
-
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Change `PalletOwner`.
@@ -352,7 +343,7 @@ pub mod pallet {
 			// if someone tries to pay for already-delivered message, we're rejecting this intention
 			// (otherwise this additional fee will be locked forever in relayers fund)
 			//
-			// if someone tries to pay for not-yet-sent message, we're rejeting this intention, or
+			// if someone tries to pay for not-yet-sent message, we're rejecting this intention, or
 			// we're risking to have mess in the storage
 			let lane = outbound_lane::<T, I>(lane_id);
 			ensure!(
@@ -1722,7 +1713,7 @@ mod tests {
 	#[test]
 	fn receive_messages_delivery_proof_rejects_proof_if_declared_relayers_state_is_invalid() {
 		run_test(|| {
-			// when number of relayers entires is invalid
+			// when number of relayers entries is invalid
 			assert_noop!(
 				Pallet::<TestRuntime>::receive_messages_delivery_proof(
 					Origin::signed(1),

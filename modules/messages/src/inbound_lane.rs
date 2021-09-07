@@ -53,7 +53,7 @@ pub enum ReceivalResult {
 	Dispatched(MessageDispatchResult),
 	/// Message has invalid nonce and lane has rejected to accept this message.
 	InvalidNonce,
-	/// There are too many unrewarded relayer entires at the lane.
+	/// There are too many unrewarded relayer entries at the lane.
 	TooManyUnrewardedRelayers,
 	/// There are too many unconfirmed messages at the lane.
 	TooManyUnconfirmedMessages,
@@ -136,9 +136,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			return ReceivalResult::TooManyUnconfirmedMessages;
 		}
 
-		// dispatch message before updating anything in the storage. If dispatch would panic,
-		// (which should not happen in the runtime) then we simply won't consider message as
-		// delivered (no changes to the inbound lane storage have been made).
+		// then, dispatch message
 		let dispatch_result = P::dispatch(
 			relayer_at_this_chain,
 			DispatchMessage {
