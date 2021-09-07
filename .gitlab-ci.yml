@@ -263,7 +263,7 @@ build-nightly:
     - buildah push --format=v2s2 "${IMAGE_NAME}:sha-${CI_COMMIT_SHORT_SHA}"
     - buildah push --format=v2s2 "${IMAGE_NAME}:latest"
   after_script:
-    - env REGISTRY_AUTH_FILE= buildah logout "$IMAGE_NAME"
+    - env REGISTRY_AUTH_FILE= buildah logout --all
 
 rialto-bridge-node:
   stage:                           publish
