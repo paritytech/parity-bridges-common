@@ -17,7 +17,9 @@
 //! Types used to connect to the Rococo-Substrate chain.
 
 use codec::Encode;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme, UnsignedTransaction};
+use relay_substrate_client::{
+	Chain, ChainBase, ChainWithBalances, TransactionEraOf, TransactionSignScheme, UnsignedTransaction,
+};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
@@ -52,6 +54,7 @@ impl Chain for Rococo {
 	type SignedBlock = bp_rococo::SignedBlock;
 	type Call = crate::runtime::Call;
 	type Balance = bp_rococo::Balance;
+	type WeightToFee = bp_rococo::WeightToFee;
 }
 
 impl ChainWithBalances for Rococo {
@@ -68,17 +71,12 @@ impl TransactionSignScheme for Rococo {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
+		era: TransactionEraOf<Self::Chain>,
 		unsigned: UnsignedTransaction<Self::Chain>,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(
 			unsigned.call,
-			bp_rococo::SignedExtensions::new(
-				bp_rococo::VERSION,
-				sp_runtime::generic::Era::Immortal,
-				genesis_hash,
-				unsigned.nonce,
-				unsigned.tip,
-			),
+			bp_rococo::SignedExtensions::new(bp_rococo::VERSION, era, genesis_hash, unsigned.nonce, unsigned.tip),
 		)
 		.expect("SignedExtension never fails.");
 

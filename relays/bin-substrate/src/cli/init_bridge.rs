@@ -150,6 +150,7 @@ impl InitBridge {
 						Target::sign_transaction(
 							*target_client.genesis_hash(),
 							&target_sign,
+							relay_substrate_client::TransactionEra::immortal(),
 							UnsignedTransaction::new(encode_init_bridge(initialization_data), transaction_nonce),
 						)
 						.encode(),

@@ -17,7 +17,9 @@
 //! Types used to connect to the Millau-Substrate chain.
 
 use codec::{Compact, Decode, Encode};
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme, UnsignedTransaction};
+use relay_substrate_client::{
+	Chain, ChainBase, ChainWithBalances, TransactionEraOf, TransactionSignScheme, UnsignedTransaction,
+};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
@@ -47,6 +49,7 @@ impl Chain for Millau {
 	type SignedBlock = millau_runtime::SignedBlock;
 	type Call = millau_runtime::Call;
 	type Balance = millau_runtime::Balance;
+	type WeightToFee = bp_millau::WeightToFee;
 }
 
 impl ChainWithBalances for Millau {
@@ -66,6 +69,7 @@ impl TransactionSignScheme for Millau {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
+		era: TransactionEraOf<Self::Chain>,
 		unsigned: UnsignedTransaction<Self::Chain>,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(
@@ -74,7 +78,7 @@ impl TransactionSignScheme for Millau {
 				frame_system::CheckSpecVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckTxVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckGenesis::<millau_runtime::Runtime>::new(),
-				frame_system::CheckEra::<millau_runtime::Runtime>::from(sp_runtime::generic::Era::Immortal),
+				frame_system::CheckEra::<millau_runtime::Runtime>::from(era.frame_era()),
 				frame_system::CheckNonce::<millau_runtime::Runtime>::from(unsigned.nonce),
 				frame_system::CheckWeight::<millau_runtime::Runtime>::new(),
 				pallet_transaction_payment::ChargeTransactionPayment::<millau_runtime::Runtime>::from(unsigned.tip),
@@ -83,7 +87,7 @@ impl TransactionSignScheme for Millau {
 				millau_runtime::VERSION.spec_version,
 				millau_runtime::VERSION.transaction_version,
 				genesis_hash,
-				genesis_hash,
+				era.signed_payload(genesis_hash),
 				(),
 				(),
 				(),

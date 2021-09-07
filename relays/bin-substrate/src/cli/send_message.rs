@@ -178,18 +178,20 @@ impl SendMessage {
 
 			let source_genesis_hash = *source_client.genesis_hash();
 			source_client
-				.submit_signed_extrinsic(source_sign.public().into(), move |transaction_nonce| {
+				.submit_signed_extrinsic(source_sign.public().into(), move |_, transaction_nonce| {
 					let signed_source_call = Source::sign_transaction(
 						source_genesis_hash,
 						&source_sign,
+						relay_substrate_client::TransactionEra::immortal(),
 						UnsignedTransaction::new(send_message_call, transaction_nonce),
 					)
 					.encode();
 
 					log::info!(
 						target: "bridge",
-						"Sending message to {}. Size: {}. Dispatch weight: {}. Fee: {}",
+						"Sending message to {}. Lane: {:?}. Size: {}. Dispatch weight: {}. Fee: {}",
 						Target::NAME,
+						lane,
 						signed_source_call.len(),
 						dispatch_weight,
 						fee,

@@ -22,9 +22,6 @@ use bp_runtime::Chain;
 use codec::{Decode, Encode};
 use frame_support::weights::Weight;
 
-/// Instance of messages pallet that is used to bridge with Wococo chain.
-pub type WithWococoMessagesInstance = pallet_bridge_messages::Instance1;
-
 /// Unchecked Rococo extrinsic.
 pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
 
@@ -55,7 +52,7 @@ where
 /// Rococo Runtime `Call` enum.
 ///
 /// The enum represents a subset of possible `Call`s we can send to Rococo chain.
-/// Ideally this code would be auto-generated from Metadata, because we want to
+/// Ideally this code would be auto-generated from metadata, because we want to
 /// avoid depending directly on the ENTIRE runtime just to get the encoding of `Dispatchable`s.
 ///
 /// All entries here (like pretty much in the entire file) must be kept in sync with Rococo

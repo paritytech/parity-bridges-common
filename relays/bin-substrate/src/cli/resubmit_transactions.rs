@@ -301,7 +301,12 @@ async fn select_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 		current_priority = client
 			.validate_transaction(
 				at_block,
-				S::sign_transaction(*client.genesis_hash(), key_pair, unsigned_tx.clone()),
+				S::sign_transaction(
+					*client.genesis_hash(),
+					key_pair,
+					relay_substrate_client::TransactionEra::immortal(),
+					unsigned_tx.clone(),
+				),
 			)
 			.await??
 			.priority;
@@ -317,7 +322,12 @@ async fn select_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 
 	Ok((
 		old_tip != unsigned_tx.tip,
-		S::sign_transaction(*client.genesis_hash(), key_pair, unsigned_tx),
+		S::sign_transaction(
+			*client.genesis_hash(),
+			key_pair,
+			relay_substrate_client::TransactionEra::immortal(),
+			unsigned_tx,
+		),
 	))
 }
 

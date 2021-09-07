@@ -25,7 +25,7 @@ mod millau_hash;
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
-	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, Weight},
+	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, Weight},
 	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
@@ -149,6 +149,9 @@ pub type AccountSigner = MultiSigner;
 /// Balance of an account.
 pub type Balance = u64;
 
+/// Weight-to-Fee type used by Millau.
+pub type WeightToFee = IdentityFee<Balance>;
+
 /// Millau chain.
 #[derive(RuntimeDebug)]
 pub struct Millau;
@@ -244,6 +247,9 @@ pub fn max_extrinsic_weight() -> Weight {
 pub fn max_extrinsic_size() -> u32 {
 	*BlockLength::get().max.get(DispatchClass::Normal)
 }
+
+/// Name of the With-Rialto messages pallet instance in the Millau runtime.
+pub const WITH_RIALTO_MESSAGES_PALLET_NAME: &str = "BridgeRialtoMessages";
 
 /// Name of the `MillauFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_MILLAU_HEADER_METHOD: &str = "MillauFinalityApi_best_finalized";

@@ -17,7 +17,9 @@
 //! Types used to connect to the Rialto-Substrate chain.
 
 use codec::{Compact, Decode, Encode};
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme, UnsignedTransaction};
+use relay_substrate_client::{
+	Chain, ChainBase, ChainWithBalances, TransactionEraOf, TransactionSignScheme, UnsignedTransaction,
+};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
@@ -47,6 +49,7 @@ impl Chain for Rialto {
 	type SignedBlock = rialto_runtime::SignedBlock;
 	type Call = rialto_runtime::Call;
 	type Balance = rialto_runtime::Balance;
+	type WeightToFee = bp_rialto::WeightToFee;
 }
 
 impl ChainWithBalances for Rialto {
@@ -66,6 +69,7 @@ impl TransactionSignScheme for Rialto {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
+		era: TransactionEraOf<Self::Chain>,
 		unsigned: UnsignedTransaction<Self::Chain>,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(
@@ -74,7 +78,7 @@ impl TransactionSignScheme for Rialto {
 				frame_system::CheckSpecVersion::<rialto_runtime::Runtime>::new(),
 				frame_system::CheckTxVersion::<rialto_runtime::Runtime>::new(),
 				frame_system::CheckGenesis::<rialto_runtime::Runtime>::new(),
-				frame_system::CheckEra::<rialto_runtime::Runtime>::from(sp_runtime::generic::Era::Immortal),
+				frame_system::CheckEra::<rialto_runtime::Runtime>::from(era.frame_era()),
 				frame_system::CheckNonce::<rialto_runtime::Runtime>::from(unsigned.nonce),
 				frame_system::CheckWeight::<rialto_runtime::Runtime>::new(),
 				pallet_transaction_payment::ChargeTransactionPayment::<rialto_runtime::Runtime>::from(unsigned.tip),
@@ -83,7 +87,7 @@ impl TransactionSignScheme for Rialto {
 				rialto_runtime::VERSION.spec_version,
 				rialto_runtime::VERSION.transaction_version,
 				genesis_hash,
-				genesis_hash,
+				era.signed_payload(genesis_hash),
 				(),
 				(),
 				(),

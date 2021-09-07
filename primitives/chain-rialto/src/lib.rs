@@ -23,7 +23,7 @@
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
-	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, Weight},
+	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, Weight},
 	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
@@ -148,6 +148,9 @@ pub type Balance = u128;
 /// An instant or duration in time.
 pub type Moment = u64;
 
+/// Weight-to-Fee type used by Rialto.
+pub type WeightToFee = IdentityFee<Balance>;
+
 /// Rialto chain.
 #[derive(RuntimeDebug)]
 pub struct Rialto;
@@ -213,6 +216,9 @@ pub fn max_extrinsic_weight() -> Weight {
 pub fn max_extrinsic_size() -> u32 {
 	*BlockLength::get().max.get(DispatchClass::Normal)
 }
+
+/// Name of the With-Millau messages pallet instance in the Millau runtime.
+pub const WITH_MILLAU_MESSAGES_PALLET_NAME: &str = "BridgeMillauMessages";
 
 /// Name of the `RialtoFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_RIALTO_HEADER_METHOD: &str = "RialtoFinalityApi_best_finalized";

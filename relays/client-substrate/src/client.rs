@@ -18,7 +18,7 @@
 
 use crate::chain::{Chain, ChainWithBalances};
 use crate::rpc::Substrate;
-use crate::{ConnectionParams, Error, Result};
+use crate::{ConnectionParams, Error, HeaderIdOf, Result};
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
@@ -30,9 +30,12 @@ use jsonrpsee_ws_client::{WsClient as RpcClient, WsClientBuilder as RpcClientBui
 use num_traits::{Bounded, Zero};
 use pallet_balances::AccountData;
 use pallet_transaction_payment::InclusionFee;
-use relay_utils::relay_loop::RECONNECT_DELAY;
+use relay_utils::{relay_loop::RECONNECT_DELAY, HeaderId};
 use sp_core::{storage::StorageKey, Bytes};
-use sp_runtime::transaction_validity::{TransactionSource, TransactionValidity};
+use sp_runtime::{
+	traits::Header as HeaderT,
+	transaction_validity::{TransactionSource, TransactionValidity},
+};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::{convert::TryFrom, future::Future};
@@ -300,12 +303,14 @@ impl<C: Chain> Client<C> {
 	pub async fn submit_signed_extrinsic(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(C::Index) -> Bytes + Send + 'static,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Bytes + Send + 'static,
 	) -> Result<C::Hash> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
+		let best_header = self.best_header().await?;
+		let best_header_id = HeaderId(*best_header.number(), best_header.hash());
 		self.jsonrpsee_execute(move |client| async move {
-			let extrinsic = prepare_extrinsic(transaction_nonce);
+			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce);
 			let tx_hash = Substrate::<C>::author_submit_extrinsic(&*client, extrinsic).await?;
 			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 			Ok(tx_hash)
@@ -341,23 +346,24 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Estimate fee that will be spent on given extrinsic.
-	pub async fn estimate_extrinsic_fee(&self, transaction: Bytes) -> Result<C::Balance> {
+	pub async fn estimate_extrinsic_fee(&self, transaction: Bytes) -> Result<InclusionFee<C::Balance>> {
 		self.jsonrpsee_execute(move |client| async move {
 			let fee_details = Substrate::<C>::payment_query_fee_details(&*client, transaction, None).await?;
 			let inclusion_fee = fee_details
 				.inclusion_fee
-				.map(|inclusion_fee| {
-					InclusionFee {
-						base_fee: C::Balance::try_from(inclusion_fee.base_fee.into_u256())
-							.unwrap_or_else(|_| C::Balance::max_value()),
-						len_fee: C::Balance::try_from(inclusion_fee.len_fee.into_u256())
-							.unwrap_or_else(|_| C::Balance::max_value()),
-						adjusted_weight_fee: C::Balance::try_from(inclusion_fee.adjusted_weight_fee.into_u256())
-							.unwrap_or_else(|_| C::Balance::max_value()),
-					}
-					.inclusion_fee()
+				.map(|inclusion_fee| InclusionFee {
+					base_fee: C::Balance::try_from(inclusion_fee.base_fee.into_u256())
+						.unwrap_or_else(|_| C::Balance::max_value()),
+					len_fee: C::Balance::try_from(inclusion_fee.len_fee.into_u256())
+						.unwrap_or_else(|_| C::Balance::max_value()),
+					adjusted_weight_fee: C::Balance::try_from(inclusion_fee.adjusted_weight_fee.into_u256())
+						.unwrap_or_else(|_| C::Balance::max_value()),
 				})
-				.unwrap_or_else(Zero::zero);
+				.unwrap_or_else(|| InclusionFee {
+					base_fee: Zero::zero(),
+					len_fee: Zero::zero(),
+					adjusted_weight_fee: Zero::zero(),
+				});
 			Ok(inclusion_fee)
 		})
 		.await
