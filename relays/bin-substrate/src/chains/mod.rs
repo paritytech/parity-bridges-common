@@ -16,8 +16,10 @@
 
 //! Chain-specific relayer configuration.
 
+pub mod kusama_headers_to_polkadot;
 pub mod millau_headers_to_rialto;
 pub mod millau_messages_to_rialto;
+pub mod polkadot_headers_to_kusama;
 pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
 pub mod rococo_headers_to_wococo;
@@ -26,7 +28,9 @@ pub mod westend_headers_to_millau;
 pub mod wococo_headers_to_rococo;
 pub mod wococo_messages_to_rococo;
 
+mod kusama;
 mod millau;
+mod polkadot;
 mod rialto;
 mod rococo;
 mod westend;

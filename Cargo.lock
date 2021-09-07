@@ -707,6 +707,7 @@ dependencies = [
  "smallvec 1.6.1",
  "sp-api",
  "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -766,6 +767,7 @@ dependencies = [
  "smallvec 1.6.1",
  "sp-api",
  "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -6114,9 +6116,21 @@ dependencies = [
 name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-kusama",
+ "bp-message-dispatch",
+ "bp-messages",
+ "bp-polkadot",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "frame-support",
+ "pallet-bridge-dispatch",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -6139,9 +6153,21 @@ dependencies = [
 name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
+ "bp-kusama",
+ "bp-message-dispatch",
+ "bp-messages",
  "bp-polkadot",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "frame-support",
+ "pallet-bridge-dispatch",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]

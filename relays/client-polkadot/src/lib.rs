@@ -16,8 +16,13 @@
 
 //! Types used to connect to the Polkadot chain.
 
-use relay_substrate_client::{Chain, ChainBase};
+use codec::Encode;
+use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme};
+use sp_core::{storage::StorageKey, Pair};
+use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
+
+pub mod runtime;
 
 /// Polkadot header id.
 pub type HeaderId = relay_utils::HeaderId<bp_polkadot::Hash, bp_polkadot::BlockNumber>;
@@ -42,10 +47,50 @@ impl Chain for Polkadot {
 	type AccountId = bp_polkadot::AccountId;
 	type Index = bp_polkadot::Nonce;
 	type SignedBlock = bp_polkadot::SignedBlock;
-	type Call = ();
+	type Call = crate::runtime::Call;
 	type Balance = bp_polkadot::Balance;
 	type WeightToFee = bp_polkadot::WeightToFee;
 }
 
+impl ChainWithBalances for Polkadot {
+	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
+		StorageKey(bp_polkadot::account_info_storage_key(account_id))
+	}
+}
+
+impl TransactionSignScheme for Polkadot {
+	type Chain = Polkadot;
+	type AccountKeyPair = sp_core::sr25519::Pair;
+	type SignedTransaction = crate::runtime::UncheckedExtrinsic;
+
+	fn sign_transaction(
+		genesis_hash: <Self::Chain as ChainBase>::Hash,
+		signer: &Self::AccountKeyPair,
+		era: bp_runtime::TransactionEraOf<Self::Chain>,
+		signer_nonce: <Self::Chain as Chain>::Index,
+		call: <Self::Chain as Chain>::Call,
+	) -> Self::SignedTransaction {
+		let raw_payload = SignedPayload::new(
+			call,
+			bp_polkadot::SignedExtensions::new(bp_polkadot::VERSION, era, genesis_hash, signer_nonce, 0),
+		)
+		.expect("SignedExtension never fails.");
+
+		let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
+		let signer: sp_runtime::MultiSigner = signer.public().into();
+		let (call, extra, _) = raw_payload.deconstruct();
+
+		bp_polkadot::UncheckedExtrinsic::new_signed(
+			call,
+			sp_runtime::MultiAddress::Id(signer.into_account()),
+			signature.into(),
+			extra,
+		)
+	}
+}
+
 /// Polkadot header type used in headers sync.
 pub type SyncHeader = relay_substrate_client::SyncHeader<bp_polkadot::Header>;
+
+/// Polkadot signing params.
+pub type SigningParams = sp_core::sr25519::Pair;
