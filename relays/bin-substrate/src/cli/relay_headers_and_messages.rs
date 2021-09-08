@@ -47,6 +47,7 @@ const CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO: f64 = 0.05;
 pub enum RelayHeadersAndMessages {
 	MillauRialto(MillauRialtoHeadersAndMessages),
 	RococoWococo(RococoWococoHeadersAndMessages),
+	KusamaPolkadot(KusamaPolkadotHeadersAndMessages),
 }
 
 /// Parameters that have the same names across all bridges.
@@ -168,6 +169,49 @@ macro_rules! select_bridge {
 
 				$generic
 			}
+
+			RelayHeadersAndMessages::RococoWococo(_) => {
+				type Params = KusamaPolkadotHeadersAndMessages;
+
+				type Left = relay_kusama_client::Kusama;
+				type Right = relay_polkadot_client::Polkadot;
+
+				type LeftToRightFinality = crate::chains::kusama_headers_to_polkadot::KusamaFinalityToPolkadot;
+				type RightToLeftFinality = crate::chains::polkadot_headers_to_kusama::PolkadotFinalityToKusama;
+
+				type LeftToRightMessages = crate::chains::kusama_messages_to_polkadot::KusamaMessagesToPolkadot;
+				type RightToLeftMessages = crate::chains::polkadot_messages_to_kusama::PolkadotMessagesToKusama;
+
+				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_kusama::BlockNumber = bp_kusama::SESSION_LENGTH;
+				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_polkadot::BlockNumber = bp_polkadot::SESSION_LENGTH;
+
+				use crate::chains::kusama_messages_to_polkadot::{
+					add_standalone_metrics as add_left_to_right_standalone_metrics, run as left_to_right_messages,
+				};
+				use crate::chains::polkadot_messages_to_kusama::{
+					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
+				};
+
+				// TODO: implement me
+				async fn update_right_to_left_conversion_rate(
+					_client: Client<Left>,
+					_signer: <Left as TransactionSignScheme>::AccountKeyPair,
+					_updated_rate: f64,
+				) -> anyhow::Result<()> {
+					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
+				}
+
+				// TODO: implement me
+				async fn update_left_to_right_conversion_rate(
+					_client: Client<Right>,
+					_signer: <Right as TransactionSignScheme>::AccountKeyPair,
+					_updated_rate: f64,
+				) -> anyhow::Result<()> {
+					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
+				}
+
+				$generic
+			}
 		}
 	};
 }
@@ -177,9 +221,12 @@ declare_chain_options!(Millau, millau);
 declare_chain_options!(Rialto, rialto);
 declare_chain_options!(Rococo, rococo);
 declare_chain_options!(Wococo, wococo);
+declare_chain_options!(Kusama, kusama);
+declare_chain_options!(Polkadot, polkadot);
 // All supported bridges.
 declare_bridge_options!(Millau, Rialto);
 declare_bridge_options!(Rococo, Wococo);
+declare_bridge_options!(Kusama, Polkadot);
 
 impl RelayHeadersAndMessages {
 	/// Run the command.

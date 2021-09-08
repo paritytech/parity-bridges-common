@@ -14,11 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use codec::Decode;
 use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_polkadot_client::Polkadot;
 use sp_version::RuntimeVersion;
 
 use crate::cli::{
+	bridge,
 	encode_call::{Call, CliEncodeCall},
 	encode_message, CliChain,
 };
@@ -41,7 +43,24 @@ impl CliEncodeCall for Polkadot {
 					remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
 				))
 			}
-			_ => anyhow::bail!("The call is not supported"),
+			Call::BridgeSendMessage {
+				lane,
+				payload,
+				fee,
+				bridge_instance_index,
+			} => match *bridge_instance_index {
+				bridge::POLKADOT_TO_KUSAMA_INDEX => {
+					let payload = Decode::decode(&mut &*payload.0)?;
+					relay_polkadot_client::runtime::Call::BridgeKusamaMessages(
+						relay_polkadot_client::runtime::BridgeKusamaMessagesCall::send_message(lane.0, payload, fee.0),
+					)
+				}
+				_ => anyhow::bail!(
+					"Unsupported target bridge pallet with instance index: {}",
+					bridge_instance_index
+				),
+			},
+			_ => anyhow::bail!("Unsupported Polkadot call: {:?}", call),
 		})
 	}
 
