@@ -59,7 +59,8 @@ use codec::{Decode, Encode};
 use frame_support::{fail, traits::Get, weights::PostDispatchInfo};
 use frame_system::RawOrigin;
 use num_traits::{SaturatingAdd, Zero};
-use sp_runtime::traits::BadOrigin;
+use sp_core::H256;
+use sp_runtime::traits::{BadOrigin, Convert}	;
 use sp_std::{cell::RefCell, cmp::PartialOrd, marker::PhantomData, prelude::*};
 
 mod inbound_lane;
@@ -283,15 +284,16 @@ pub mod pallet {
 			T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
 				&submitter,
 				&delivery_and_dispatch_fee,
-				&Self::relayer_fund_account_id(),
+				&relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>(),
 			)
 			.map_err(|err| {
 				log::trace!(
 					target: "runtime::bridge-messages",
-					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?}: {:?}",
+					"Message to lane {:?} is rejected because submitter {:?} is unable to pay fee {:?} to {:?}: {:?}",
 					lane_id,
 					submitter,
 					delivery_and_dispatch_fee,
+					relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>(),
 					err,
 				);
 
@@ -360,16 +362,17 @@ pub mod pallet {
 			T::MessageDeliveryAndDispatchPayment::pay_delivery_and_dispatch_fee(
 				&submitter,
 				&additional_fee,
-				&Self::relayer_fund_account_id(),
+				&relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>(),
 			)
 			.map_err(|err| {
 				log::trace!(
 					target: "runtime::bridge-messages",
-					"Submitter {:?} can't pay additional fee {:?} for the message {:?}/{:?}: {:?}",
+					"Submitter {:?} can't pay additional fee {:?} for the message {:?}/{:?} to {:?}: {:?}",
 					submitter,
 					additional_fee,
 					lane_id,
 					nonce,
+					relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>(),
 					err,
 				);
 
@@ -678,7 +681,7 @@ pub mod pallet {
 
 			// if some new messages have been confirmed, reward relayers
 			if !relayers_rewards.is_empty() {
-				let relayer_fund_account = Self::relayer_fund_account_id();
+				let relayer_fund_account = relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>();
 				<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayers_rewards(
 					&confirmation_relayer,
 					relayers_rewards,
@@ -842,17 +845,6 @@ pub mod pallet {
 				total_messages: total_unrewarded_messages(&relayers).unwrap_or(MessageNonce::MAX),
 			}
 		}
-
-		/// AccountId of the shared relayer fund account.
-		///
-		/// This account is passed to `MessageDeliveryAndDispatchPayment` trait, and depending
-		/// on the implementation it can be used to store relayers rewards.
-		/// See [InstantCurrencyPayments] for a concrete implementation.
-		pub fn relayer_fund_account_id() -> T::AccountId {
-			use sp_runtime::traits::Convert;
-			let encoded_id = bp_runtime::derive_relayer_fund_account_id(bp_runtime::NO_INSTANCE_ID);
-			T::AccountIdConverter::convert(encoded_id)
-		}
 	}
 }
 
@@ -897,6 +889,16 @@ pub mod storage_keys {
 
 		StorageKey(final_key)
 	}
+}
+
+/// AccountId of the shared relayer fund account.
+///
+/// This account is passed to `MessageDeliveryAndDispatchPayment` trait, and depending
+/// on the implementation it can be used to store relayers rewards.
+/// See [InstantCurrencyPayments] for a concrete implementation.
+pub fn relayer_fund_account_id<AccountId, AccountIdConverter: Convert<H256, AccountId>>() -> AccountId {
+	let encoded_id = bp_runtime::derive_relayer_fund_account_id(bp_runtime::NO_INSTANCE_ID);
+	AccountIdConverter::convert(encoded_id)
 }
 
 /// Ensure that the origin is either root, or `PalletOwner`.
