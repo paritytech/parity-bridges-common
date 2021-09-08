@@ -134,7 +134,7 @@ impl Alternative {
 							get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 							get_account_id_from_seed::<sr25519::Public>("George//stash"),
-							get_account_id_from_s	eed::<sr25519::Public>("Harry//stash"),
+							get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
 							get_account_id_from_seed::<sr25519::Public>("MillauMessagesOwner"),
 							pallet_bridge_messages::relayer_fund_account_id::<
 								bp_rialto::AccountId,
