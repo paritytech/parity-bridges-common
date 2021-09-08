@@ -217,6 +217,9 @@ pub type AccountPublic = <Signature as Verify>::Signer;
 /// Id of account on Polkadot-like chains.
 pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 
+/// Address of account on Polkadot-like chains.
+pub type AccountAddress = MultiAddress<AccountId, ()>;
+
 /// Index of a transaction on the Polkadot-like chains.
 pub type Nonce = u32;
 
@@ -231,7 +234,7 @@ pub type Balance = u128;
 
 /// Unchecked Extrinsic type.
 pub type UncheckedExtrinsic<Call> =
-	generic::UncheckedExtrinsic<MultiAddress<AccountId, ()>, Call, Signature, SignedExtensions<Call>>;
+	generic::UncheckedExtrinsic<AccountAddress, Call, Signature, SignedExtensions<Call>>;
 
 /// A type of the data encoded as part of the transaction.
 pub type SignedExtra = (

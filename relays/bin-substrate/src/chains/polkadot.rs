@@ -31,6 +31,9 @@ use crate::cli::{
 /// calls in the future. But since it is used only in tests (and on test chains), this is ok.
 pub(crate) const SYSTEM_REMARK_CALL_WEIGHT: Weight = 2 * 1_345_000;
 
+/// Id of Polkadot token that is used to fetch token price.
+pub(crate) const TOKEN_ID: &'static str = "polkadot";
+
 impl CliEncodeCall for Polkadot {
 	fn max_extrinsic_size() -> u32 {
 		bp_polkadot::max_extrinsic_size()

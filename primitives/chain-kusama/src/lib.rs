@@ -69,8 +69,18 @@ pub fn derive_account_from_polkadot_id(id: bp_runtime::SourceAccount<AccountId>)
 /// Per-byte fee for Kusama transactions.
 pub const TRANSACTION_BYTE_FEE: Balance = 10 * 1_000_000_000_000 / 30_000 / 1_000;
 
+/// The target length of a session (how often authorities change) on Kusama measured in of number of
+/// blocks.
+///
+/// Note that since this is a target sessions may change before/after this time depending on network
+/// conditions.
+pub const SESSION_LENGTH: BlockNumber = 1 * time_units::HOURS;
+
 /// Name of the With-Polkadot messages pallet instance in the Kusama runtime.
 pub const WITH_POLKADOT_MESSAGES_PALLET_NAME: &str = "BridgePolkadotMessages";
+
+/// Name of the DOT->KSM conversion rate stored in the Kusama runtime.
+pub const POLKADOT_TO_KUSAMA_CONVERSION_RATE_PARAMETER_NAME: &str = "PolkadotToKusamaConversionRate";
 
 /// Name of the `KusamaFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_KUSAMA_HEADER_METHOD: &str = "KusamaFinalityApi_best_finalized";

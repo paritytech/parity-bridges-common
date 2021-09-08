@@ -17,10 +17,11 @@
 //! Types that are specific to the Kusama runtime.
 
 use bp_messages::{LaneId, UnrewardedRelayersState};
-use bp_polkadot_core::PolkadotLike;
+use bp_polkadot_core::{AccountAddress, Balance, PolkadotLike};
 use bp_runtime::Chain;
-use codec::{Decode, Encode};
+use codec::{Compact, Decode, Encode};
 use frame_support::weights::Weight;
+use sp_runtime::FixedU128;
 
 /// Unchecked Kusama extrinsic.
 pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
@@ -65,6 +66,9 @@ pub enum Call {
 	/// System pallet.
 	#[codec(index = 0)]
 	System(SystemCall),
+	/// Balances pallet.
+	#[codec(index = 4)]
+	Balances(BalancesCall),
 	/// Polkadot bridge pallet.
 	#[codec(index = 110)]
 	BridgePolkadotGrandpa(BridgePolkadotGrandpaCall),
@@ -82,6 +86,13 @@ pub enum SystemCall {
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
 #[allow(non_camel_case_types)]
+pub enum BalancesCall {
+	#[codec(index = 0)]
+	transfer(AccountAddress, Compact<Balance>),
+}
+
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
+#[allow(non_camel_case_types)]
 pub enum BridgePolkadotGrandpaCall {
 	#[codec(index = 0)]
 	submit_finality_proof(
@@ -95,6 +106,8 @@ pub enum BridgePolkadotGrandpaCall {
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
 #[allow(non_camel_case_types)]
 pub enum BridgePolkadotMessagesCall {
+	#[codec(index = 2)]
+	update_pallet_parameter(BridgePolkadotMessagesParameter),
 	#[codec(index = 3)]
 	send_message(
 		LaneId,
@@ -118,6 +131,13 @@ pub enum BridgePolkadotMessagesCall {
 		bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<bp_polkadot::Hash>,
 		UnrewardedRelayersState,
 	),
+}
+
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
+#[allow(non_camel_case_types)]
+pub enum BridgePolkadotMessagesParameter {
+	#[codec(index = 0)]
+	PolkadotToKusamaConversionRate(FixedU128)
 }
 
 impl sp_runtime::traits::Dispatchable for Call {

@@ -43,9 +43,9 @@ mod wococo;
 // Rialto as BTC and Millau as wBTC (only in relayer).
 
 /// The identifier of token, which value is associated with Rialto token value by relayer.
-pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = "polkadot";
+pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = polkadot::TOKEN_ID;
 /// The identifier of token, which value is associated with Millau token value by relayer.
-pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = "kusama";
+pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = kusama::TOKEN_ID;
 
 use relay_utils::metrics::MetricsParams;
 

@@ -26,8 +26,10 @@ use futures::{FutureExt, TryFutureExt};
 use structopt::StructOpt;
 use strum::VariantNames;
 
+use codec::Encode;
 use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
+use sp_core::{Bytes, Pair};
 use substrate_relay_helper::messages_lane::{MessagesRelayParams, SubstrateMessageLane};
 use substrate_relay_helper::on_demand_headers::OnDemandHeadersRelay;
 
@@ -58,6 +60,9 @@ pub struct HeadersAndMessagesSharedParams {
 	lane: Vec<HexLaneId>,
 	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
 	relayer_mode: RelayerMode,
+	/// Create relayers fund accounts on both chains, if it does not exists yet.
+	#[structopt(long)]
+	create_relayers_fund_accounts: bool,
 	#[structopt(flatten)]
 	prometheus_params: PrometheusParams,
 }
@@ -87,7 +92,6 @@ macro_rules! declare_bridge_options {
 				right_messages_pallet_owner: [<$chain2 MessagesPalletOwnerSigningParams>],
 			}
 
-			#[allow(unreachable_patterns)]
 			impl From<RelayHeadersAndMessages> for [<$chain1 $chain2 HeadersAndMessages>] {
 				fn from(relay_params: RelayHeadersAndMessages) -> [<$chain1 $chain2 HeadersAndMessages>] {
 					match relay_params {
@@ -115,6 +119,9 @@ macro_rules! select_bridge {
 				type LeftToRightMessages = crate::chains::millau_messages_to_rialto::MillauMessagesToRialto;
 				type RightToLeftMessages = crate::chains::rialto_messages_to_millau::RialtoMessagesToMillau;
 
+				type LeftAccountIdConverter = bp_millau::AccountIdConverter;
+				type RightAccountIdConverter = bp_rialto::AccountIdConverter;
+
 				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber = bp_rialto::SESSION_LENGTH;
 
@@ -126,6 +133,22 @@ macro_rules! select_bridge {
 					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
 					update_millau_to_rialto_conversion_rate as update_left_to_right_conversion_rate,
 				};
+
+				async fn left_create_account(
+					_left_client: Client<Left>,
+					_left_sign: <Left as TransactionSignScheme>::AccountKeyPair,
+					_account_id: <Left as Chain>::AccountId,
+				) -> anyhow::Result<()> {
+					Err(anyhow::format_err!("Account creation is not supported by this bridge"))
+				}
+
+				async fn right_create_account(
+					_right_client: Client<Right>,
+					_right_sign: <Right as TransactionSignScheme>::AccountKeyPair,
+					_account_id: <Right as Chain>::AccountId,
+				) -> anyhow::Result<()> {
+					Err(anyhow::format_err!("Account creation is not supported by this bridge"))
+				}
 
 				$generic
 			}
@@ -140,6 +163,9 @@ macro_rules! select_bridge {
 
 				type LeftToRightMessages = crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo;
 				type RightToLeftMessages = crate::chains::wococo_messages_to_rococo::WococoMessagesToRococo;
+
+				type LeftAccountIdConverter = bp_rococo::AccountIdConverter;
+				type RightAccountIdConverter = bp_wococo::AccountIdConverter;
 
 				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_rococo::BlockNumber = bp_rococo::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber = bp_wococo::SESSION_LENGTH;
@@ -167,10 +193,25 @@ macro_rules! select_bridge {
 					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
 				}
 
+				async fn left_create_account(
+					_left_client: Client<Left>,
+					_left_sign: <Left as TransactionSignScheme>::AccountKeyPair,
+					_account_id: <Left as Chain>::AccountId,
+				) -> anyhow::Result<()> {
+					Err(anyhow::format_err!("Account creation is not supported by this bridge"))
+				}
+
+				async fn right_create_account(
+					_right_client: Client<Right>,
+					_right_sign: <Right as TransactionSignScheme>::AccountKeyPair,
+					_account_id: <Right as Chain>::AccountId,
+				) -> anyhow::Result<()> {
+					Err(anyhow::format_err!("Account creation is not supported by this bridge"))
+				}
+
 				$generic
 			}
-
-			RelayHeadersAndMessages::RococoWococo(_) => {
+			RelayHeadersAndMessages::KusamaPolkadot(_) => {
 				type Params = KusamaPolkadotHeadersAndMessages;
 
 				type Left = relay_kusama_client::Kusama;
@@ -182,32 +223,69 @@ macro_rules! select_bridge {
 				type LeftToRightMessages = crate::chains::kusama_messages_to_polkadot::KusamaMessagesToPolkadot;
 				type RightToLeftMessages = crate::chains::polkadot_messages_to_kusama::PolkadotMessagesToKusama;
 
+				type LeftAccountIdConverter = bp_kusama::AccountIdConverter;
+				type RightAccountIdConverter = bp_polkadot::AccountIdConverter;
+
 				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_kusama::BlockNumber = bp_kusama::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_polkadot::BlockNumber = bp_polkadot::SESSION_LENGTH;
 
 				use crate::chains::kusama_messages_to_polkadot::{
 					add_standalone_metrics as add_left_to_right_standalone_metrics, run as left_to_right_messages,
+					update_polkadot_to_kusama_conversion_rate as update_right_to_left_conversion_rate,
 				};
 				use crate::chains::polkadot_messages_to_kusama::{
 					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
+					update_kusama_to_polkadot_conversion_rate as update_left_to_right_conversion_rate,
 				};
 
-				// TODO: implement me
-				async fn update_right_to_left_conversion_rate(
-					_client: Client<Left>,
-					_signer: <Left as TransactionSignScheme>::AccountKeyPair,
-					_updated_rate: f64,
+				async fn left_create_account(
+					left_client: Client<Left>,
+					left_sign: <Left as TransactionSignScheme>::AccountKeyPair,
+					account_id: <Left as Chain>::AccountId,
 				) -> anyhow::Result<()> {
-					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
+					let left_genesis_hash = *left_client.genesis_hash();
+					left_client
+						.submit_signed_extrinsic(left_sign.public().into(), move |_, transaction_nonce|
+							Bytes(Left::sign_transaction(
+								left_genesis_hash,
+								&left_sign,
+								relay_substrate_client::TransactionEra::immortal(),
+								transaction_nonce,
+								relay_kusama_client::runtime::Call::Balances(
+									relay_kusama_client::runtime::BalancesCall::transfer(
+										bp_kusama::AccountAddress::Id(account_id),
+										(1_000_000_000_000 / 30_000).into(), // Kusama ED
+									),
+								),
+							).encode()))
+						.await
+						.map(drop)
+						.map_err(|e| anyhow::format_err!("{}", e))
 				}
 
-				// TODO: implement me
-				async fn update_left_to_right_conversion_rate(
-					_client: Client<Right>,
-					_signer: <Right as TransactionSignScheme>::AccountKeyPair,
-					_updated_rate: f64,
+				async fn right_create_account(
+					right_client: Client<Right>,
+					right_sign: <Right as TransactionSignScheme>::AccountKeyPair,
+					account_id: <Right as Chain>::AccountId,
 				) -> anyhow::Result<()> {
-					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
+					let right_genesis_hash = *right_client.genesis_hash();
+					right_client
+						.submit_signed_extrinsic(right_sign.public().into(), move |_, transaction_nonce|
+							Bytes(Right::sign_transaction(
+								right_genesis_hash,
+								&right_sign,
+								relay_substrate_client::TransactionEra::immortal(),
+								transaction_nonce,
+								relay_polkadot_client::runtime::Call::Balances(
+									relay_polkadot_client::runtime::BalancesCall::transfer(
+										bp_polkadot::AccountAddress::Id(account_id),
+										10_000_000_000.into(), // Polkadot ED
+									),
+								),
+							).encode()))
+						.await
+						.map(drop)
+						.map_err(|e| anyhow::format_err!("{}", e))
 				}
 
 				$generic
@@ -317,6 +395,22 @@ impl RelayHeadersAndMessages {
 						)
 					},
 				);
+			}
+
+			if params.shared.create_relayers_fund_accounts {
+				let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<<Left as Chain>::AccountId, LeftAccountIdConverter>();
+				let relayers_fund_account_balance = left_client.free_native_balance(relayer_fund_acount_id.clone()).await;
+				if let Err(relay_substrate_client::Error::AccountDoesNotExist) = relayers_fund_account_balance {
+					log::info!(target: "bridge", "Going to create relayers fund account at {}.", Left::NAME);
+					left_create_account(left_client.clone(), left_sign.clone(), relayer_fund_acount_id).await?;
+				}
+
+				let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<<Right as Chain>::AccountId, RightAccountIdConverter>();
+				let relayers_fund_account_balance = right_client.free_native_balance(relayer_fund_acount_id.clone()).await;
+				if let Err(relay_substrate_client::Error::AccountDoesNotExist) = relayers_fund_account_balance {
+					log::info!(target: "bridge", "Going to create relayers fund account at {}.", Right::NAME);
+					right_create_account(right_client.clone(), right_sign.clone(), relayer_fund_acount_id).await?;
+				}
 			}
 
 			let left_to_right_on_demand_headers = OnDemandHeadersRelay::new(

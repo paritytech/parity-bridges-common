@@ -29,6 +29,7 @@ use relay_kusama_client::{HeaderId as KusamaHeaderId, Kusama, SigningParams as K
 use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
 use relay_polkadot_client::{HeaderId as PolkadotHeaderId, SigningParams as PolkadotSigningParams, Polkadot};
+use sp_runtime::{FixedPointNumber, FixedU128};
 use substrate_relay_helper::messages_lane::{
 	select_delivery_transaction_limits, MessagesRelayParams, StandaloneMessagesMetrics, SubstrateMessageLane,
 	SubstrateMessageLaneToSubstrate,
@@ -251,12 +252,53 @@ pub(crate) fn add_standalone_metrics(
 	metrics_params: MetricsParams,
 	source_client: Client<Polkadot>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
+	// that's how storage parameter (`parameter_types!`) key is computed
+	let kusama_to_polkadot_conversion_rate_key = sp_io::hashing::twox_128(
+		format!(":{}:", bp_polkadot::KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME).as_bytes(),
+	).to_vec();
+
 	substrate_relay_helper::messages_lane::add_standalone_metrics::<PolkadotMessagesToKusama>(
 		metrics_prefix,
 		metrics_params,
 		source_client,
-		None,
-		None,
-		None,
+		Some(crate::chains::kusama::TOKEN_ID),
+		Some(crate::chains::polkadot::TOKEN_ID),
+		Some((
+			sp_core::storage::StorageKey(kusama_to_polkadot_conversion_rate_key),
+			// starting relay before this parameter will be set to some value may cause troubles
+			FixedU128::from_inner(FixedU128::DIV),
+		)),
 	)
+}
+
+/// Update Kusama -> Polkadot conversion rate, stored in Polkadot runtime storage.
+pub(crate) async fn update_kusama_to_polkadot_conversion_rate(
+	client: Client<Polkadot>,
+	signer: <Polkadot as TransactionSignScheme>::AccountKeyPair,
+	updated_rate: f64,
+) -> anyhow::Result<()> {
+	let genesis_hash = *client.genesis_hash();
+	let signer_id = (*signer.public().as_array_ref()).into();
+	client
+		.submit_signed_extrinsic(signer_id, move |_, transaction_nonce| {
+			Bytes(
+				Polkadot::sign_transaction(
+					genesis_hash,
+					&signer,
+					relay_substrate_client::TransactionEra::immortal(),
+					transaction_nonce,
+					relay_polkadot_client::runtime::Call::BridgeKusamaMessages(
+						relay_polkadot_client::runtime::BridgeKusamaMessagesCall::update_pallet_parameter(
+							relay_polkadot_client::runtime::BridgeKusamaMessagesParameter::KusamaToPolkadotConversionRate(
+								sp_runtime::FixedU128::from_float(updated_rate),
+							)
+						)
+					)
+				)
+				.encode(),
+			)
+		})
+		.await
+		.map(drop)
+		.map_err(|err| anyhow::format_err!("{:?}", err))
 }
