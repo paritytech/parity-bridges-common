@@ -60,7 +60,7 @@ use frame_support::{fail, traits::Get, weights::PostDispatchInfo};
 use frame_system::RawOrigin;
 use num_traits::{SaturatingAdd, Zero};
 use sp_core::H256;
-use sp_runtime::traits::{BadOrigin, Convert}	;
+use sp_runtime::traits::{BadOrigin, Convert};
 use sp_std::{cell::RefCell, cmp::PartialOrd, marker::PhantomData, prelude::*};
 
 mod inbound_lane;

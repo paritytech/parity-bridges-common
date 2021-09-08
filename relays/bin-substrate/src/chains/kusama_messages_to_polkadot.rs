@@ -26,9 +26,9 @@ use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use frame_support::weights::Weight;
 use messages_relay::message_lane::MessageLane;
 use relay_kusama_client::{HeaderId as KusamaHeaderId, Kusama, SigningParams as KusamaSigningParams};
+use relay_polkadot_client::{HeaderId as PolkadotHeaderId, Polkadot, SigningParams as PolkadotSigningParams};
 use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
-use relay_polkadot_client::{HeaderId as PolkadotHeaderId, SigningParams as PolkadotSigningParams, Polkadot};
 use sp_runtime::{FixedPointNumber, FixedU128};
 use substrate_relay_helper::messages_lane::{
 	select_delivery_transaction_limits, MessagesRelayParams, StandaloneMessagesMetrics, SubstrateMessageLane,
@@ -52,7 +52,8 @@ impl SubstrateMessageLane for KusamaMessagesToPolkadot {
 	const OUTBOUND_LANE_MESSAGE_DETAILS_METHOD: &'static str = bp_polkadot::TO_POLKADOT_MESSAGE_DETAILS_METHOD;
 	const OUTBOUND_LANE_LATEST_GENERATED_NONCE_METHOD: &'static str =
 		bp_polkadot::TO_POLKADOT_LATEST_GENERATED_NONCE_METHOD;
-	const OUTBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_polkadot::TO_POLKADOT_LATEST_RECEIVED_NONCE_METHOD;
+	const OUTBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str =
+		bp_polkadot::TO_POLKADOT_LATEST_RECEIVED_NONCE_METHOD;
 
 	const INBOUND_LANE_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_kusama::FROM_KUSAMA_LATEST_RECEIVED_NONCE_METHOD;
 	const INBOUND_LANE_LATEST_CONFIRMED_NONCE_METHOD: &'static str =
@@ -256,7 +257,8 @@ pub(crate) fn add_standalone_metrics(
 	// that's how storage parameter (`parameter_types!`) key is computed
 	let polkadot_to_kusama_conversion_rate_key = sp_io::hashing::twox_128(
 		format!(":{}:", bp_kusama::POLKADOT_TO_KUSAMA_CONVERSION_RATE_PARAMETER_NAME).as_bytes(),
-	).to_vec();
+	)
+	.to_vec();
 
 	substrate_relay_helper::messages_lane::add_standalone_metrics::<KusamaMessagesToPolkadot>(
 		metrics_prefix,

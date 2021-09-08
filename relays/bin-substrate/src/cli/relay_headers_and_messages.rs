@@ -245,19 +245,23 @@ macro_rules! select_bridge {
 				) -> anyhow::Result<()> {
 					let left_genesis_hash = *left_client.genesis_hash();
 					left_client
-						.submit_signed_extrinsic(left_sign.public().into(), move |_, transaction_nonce|
-							Bytes(Left::sign_transaction(
-								left_genesis_hash,
-								&left_sign,
-								relay_substrate_client::TransactionEra::immortal(),
-								transaction_nonce,
-								relay_kusama_client::runtime::Call::Balances(
-									relay_kusama_client::runtime::BalancesCall::transfer(
-										bp_kusama::AccountAddress::Id(account_id),
-										(1_000_000_000_000 / 30_000).into(), // Kusama ED
+						.submit_signed_extrinsic(left_sign.public().into(), move |_, transaction_nonce| {
+							Bytes(
+								Left::sign_transaction(
+									left_genesis_hash,
+									&left_sign,
+									relay_substrate_client::TransactionEra::immortal(),
+									transaction_nonce,
+									relay_kusama_client::runtime::Call::Balances(
+										relay_kusama_client::runtime::BalancesCall::transfer(
+											bp_kusama::AccountAddress::Id(account_id),
+											(1_000_000_000_000 / 30_000).into(), // Kusama ED
+										),
 									),
-								),
-							).encode()))
+								)
+								.encode(),
+							)
+						})
 						.await
 						.map(drop)
 						.map_err(|e| anyhow::format_err!("{}", e))
@@ -270,19 +274,23 @@ macro_rules! select_bridge {
 				) -> anyhow::Result<()> {
 					let right_genesis_hash = *right_client.genesis_hash();
 					right_client
-						.submit_signed_extrinsic(right_sign.public().into(), move |_, transaction_nonce|
-							Bytes(Right::sign_transaction(
-								right_genesis_hash,
-								&right_sign,
-								relay_substrate_client::TransactionEra::immortal(),
-								transaction_nonce,
-								relay_polkadot_client::runtime::Call::Balances(
-									relay_polkadot_client::runtime::BalancesCall::transfer(
-										bp_polkadot::AccountAddress::Id(account_id),
-										10_000_000_000.into(), // Polkadot ED
+						.submit_signed_extrinsic(right_sign.public().into(), move |_, transaction_nonce| {
+							Bytes(
+								Right::sign_transaction(
+									right_genesis_hash,
+									&right_sign,
+									relay_substrate_client::TransactionEra::immortal(),
+									transaction_nonce,
+									relay_polkadot_client::runtime::Call::Balances(
+										relay_polkadot_client::runtime::BalancesCall::transfer(
+											bp_polkadot::AccountAddress::Id(account_id),
+											10_000_000_000.into(), // Polkadot ED
+										),
 									),
-								),
-							).encode()))
+								)
+								.encode(),
+							)
+						})
 						.await
 						.map(drop)
 						.map_err(|e| anyhow::format_err!("{}", e))
@@ -398,15 +406,23 @@ impl RelayHeadersAndMessages {
 			}
 
 			if params.shared.create_relayers_fund_accounts {
-				let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<<Left as Chain>::AccountId, LeftAccountIdConverter>();
-				let relayers_fund_account_balance = left_client.free_native_balance(relayer_fund_acount_id.clone()).await;
+				let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<
+					<Left as Chain>::AccountId,
+					LeftAccountIdConverter,
+				>();
+				let relayers_fund_account_balance =
+					left_client.free_native_balance(relayer_fund_acount_id.clone()).await;
 				if let Err(relay_substrate_client::Error::AccountDoesNotExist) = relayers_fund_account_balance {
 					log::info!(target: "bridge", "Going to create relayers fund account at {}.", Left::NAME);
 					left_create_account(left_client.clone(), left_sign.clone(), relayer_fund_acount_id).await?;
 				}
 
-				let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<<Right as Chain>::AccountId, RightAccountIdConverter>();
-				let relayers_fund_account_balance = right_client.free_native_balance(relayer_fund_acount_id.clone()).await;
+				let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<
+					<Right as Chain>::AccountId,
+					RightAccountIdConverter,
+				>();
+				let relayers_fund_account_balance =
+					right_client.free_native_balance(relayer_fund_acount_id.clone()).await;
 				if let Err(relay_substrate_client::Error::AccountDoesNotExist) = relayers_fund_account_balance {
 					log::info!(target: "bridge", "Going to create relayers fund account at {}.", Right::NAME);
 					right_create_account(right_client.clone(), right_sign.clone(), relayer_fund_acount_id).await?;

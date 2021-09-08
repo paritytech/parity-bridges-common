@@ -137,7 +137,7 @@ pub enum BridgePolkadotMessagesCall {
 #[allow(non_camel_case_types)]
 pub enum BridgePolkadotMessagesParameter {
 	#[codec(index = 0)]
-	PolkadotToKusamaConversionRate(FixedU128)
+	PolkadotToKusamaConversionRate(FixedU128),
 }
 
 impl sp_runtime::traits::Dispatchable for Call {
