@@ -183,8 +183,7 @@ impl SendMessage {
 						source_genesis_hash,
 						&source_sign,
 						relay_substrate_client::TransactionEra::immortal(),
-						0,
-						send_message_call.clone(),
+						UnsignedTransaction::new(send_message_call.clone(), 0),
 					)
 					.encode(),
 				))
