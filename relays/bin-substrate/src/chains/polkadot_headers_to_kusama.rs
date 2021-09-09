@@ -28,7 +28,10 @@ use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, S
 
 /// Maximal saturating difference between `balance(now)` and `balance(now-24h)` to treat
 /// relay as gone wild.
-pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_kusama::Balance = 0; // TODO
+///
+/// Actual value, returned by `maximal_balance_decrease_per_day_is_sane` test is ~0.001 KSMs,
+/// but let's round up to 0.1 KSM here.
+pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_polkadot::Balance = 100_000_000_000;
 
 /// Polkadot-to-Kusama finality sync pipeline.
 pub(crate) type FinalityPipelinePolkadotFinalityToKusama =
@@ -97,5 +100,27 @@ impl SubstrateFinalitySyncPipeline for PolkadotFinalityToKusama {
 		);
 
 		Bytes(transaction.encode())
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::chains::kusama_headers_to_polkadot::tests::compute_maximal_balance_decrease_per_day;
+	use super::*;
+
+	#[test]
+	fn maximal_balance_decrease_per_day_is_sane() {
+		// we expect Polkadot -> Kusama relay to be running in mandatory-headers-only mode
+		// => we expect single header for every Polkadot session
+		let maximal_balance_decrease = compute_maximal_balance_decrease_per_day::<
+			bp_kusama::Balance,
+			bp_kusama::WeightToFee,
+		>(bp_polkadot::DAYS / bp_polkadot::SESSION_LENGTH + 1);
+		assert!(
+			MAXIMAL_BALANCE_DECREASE_PER_DAY >= maximal_balance_decrease,
+			"Maximal expected loss per day {} is larger than hardcoded {}",
+			maximal_balance_decrease,
+			MAXIMAL_BALANCE_DECREASE_PER_DAY,
+		);
 	}
 }
