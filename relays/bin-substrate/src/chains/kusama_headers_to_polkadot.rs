@@ -29,8 +29,8 @@ use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, S
 /// Maximal saturating difference between `balance(now)` and `balance(now-24h)` to treat
 /// relay as gone wild.
 ///
-/// Actual value, returned by `maximal_balance_decrease_per_day_is_sane` test is ~21 DOTs,
-/// but let's round up to 30 DOTs here.
+/// Actual value, returned by `maximal_balance_decrease_per_day_is_sane` test is approximately 21 DOT,
+/// but let's round up to 30 DOT here.
 pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_polkadot::Balance = 30_000_000_000;
 
 /// Kusama-to-Polkadot finality sync pipeline.
@@ -105,13 +105,14 @@ impl SubstrateFinalitySyncPipeline for KusamaFinalityToPolkadot {
 
 #[cfg(test)]
 pub(crate) mod tests {
+	use super::*;
 	use frame_support::weights::WeightToFeePolynomial;
 	use pallet_bridge_grandpa::weights::WeightInfo;
-	use super::*;
 
-	pub fn compute_maximal_balance_decrease_per_day<B, W>(
-		expected_source_headers_per_day: u32,
-	) -> B where B: From<u32> + std::ops::Mul<Output = B>, W: WeightToFeePolynomial<Balance = B>,
+	pub fn compute_maximal_balance_decrease_per_day<B, W>(expected_source_headers_per_day: u32) -> B
+	where
+		B: From<u32> + std::ops::Mul<Output = B>,
+		W: WeightToFeePolynomial<Balance = B>,
 	{
 		// we assume that the GRANDPA is not lagging here => ancestry length will be near to 0 (let's round up to 2)
 		const AVG_VOTES_ANCESTRIES_LEN: u32 = 2;
@@ -127,7 +128,7 @@ pub(crate) mod tests {
 
 		// The following formula shall not be treated as super-accurate - guard is to protect from mad relays,
 		// not to protect from over-average loses.
-		
+
 		// increase number of headers a bit
 		let expected_source_headers_per_day = expected_source_headers_per_day * 110 / 100;
 		let single_source_header_submit_call_weight =

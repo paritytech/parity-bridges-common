@@ -29,7 +29,7 @@ use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, S
 /// Maximal saturating difference between `balance(now)` and `balance(now-24h)` to treat
 /// relay as gone wild.
 ///
-/// Actual value, returned by `maximal_balance_decrease_per_day_is_sane` test is ~0.001 KSMs,
+/// Actual value, returned by `maximal_balance_decrease_per_day_is_sane` test is approximately 0.001 KSM,
 /// but let's round up to 0.1 KSM here.
 pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_polkadot::Balance = 100_000_000_000;
 
@@ -105,8 +105,8 @@ impl SubstrateFinalitySyncPipeline for PolkadotFinalityToKusama {
 
 #[cfg(test)]
 mod tests {
-	use crate::chains::kusama_headers_to_polkadot::tests::compute_maximal_balance_decrease_per_day;
 	use super::*;
+	use crate::chains::kusama_headers_to_polkadot::tests::compute_maximal_balance_decrease_per_day;
 
 	#[test]
 	fn maximal_balance_decrease_per_day_is_sane() {
