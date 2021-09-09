@@ -8922,6 +8922,7 @@ dependencies = [
  "messages-relay",
  "millau-runtime",
  "num-format",
+ "num-traits",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "parity-scale-codec",
