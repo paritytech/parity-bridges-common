@@ -105,39 +105,18 @@ impl SubstrateFinalitySyncPipeline for WococoFinalityToRococo {
 
 #[cfg(test)]
 mod tests {
-	use frame_support::weights::WeightToFeePolynomial;
-
-	use pallet_bridge_grandpa::weights::WeightInfo;
-
 	use super::*;
+	use crate::chains::kusama_headers_to_polkadot::tests::compute_maximal_balance_decrease_per_day;
 
 	#[test]
 	fn maximal_balance_decrease_per_day_is_sane() {
-		// Rococo/Wococo GRANDPA pallet weights. They're now using Rialto weights => using `RialtoWeight` is justified.
-		//
-		// Using Rialto runtime this is slightly incorrect, because `DbWeight` of Rococo/Wococo runtime may differ
-		// from the `DbWeight` of Rialto runtime. But now (and most probably forever) it is the same.
-		type RococoGrandpaPalletWeights = pallet_bridge_grandpa::weights::RialtoWeight<rialto_runtime::Runtime>;
-
-		// The following formula shall not be treated as super-accurate - guard is to protect from mad relays,
-		// not to protect from over-average loses.
-		//
-		// Worst case: we're submitting proof for every source header. Since we submit every header, the number of
-		// headers in ancestry proof is near to 0 (let's round up to 2). And the number of authorities is 1024,
-		// which is (now) larger than on any existing chain => normally there'll be ~1024*2/3+1 commits.
-		const AVG_VOTES_ANCESTRIES_LEN: u32 = 2;
-		const AVG_PRECOMMITS_LEN: u32 = 1024 * 2 / 3 + 1;
-		let number_of_source_headers_per_day: bp_wococo::Balance = bp_wococo::DAYS as _;
-		let single_source_header_submit_call_weight =
-			RococoGrandpaPalletWeights::submit_finality_proof(AVG_VOTES_ANCESTRIES_LEN, AVG_PRECOMMITS_LEN);
-		// for simplicity - add extra weight for base tx fee + fee that is paid for the tx size + adjusted fee
-		let single_source_header_submit_tx_weight = single_source_header_submit_call_weight * 3 / 2;
-		let single_source_header_tx_cost = bp_rococo::WeightToFee::calc(&single_source_header_submit_tx_weight);
-		let maximal_expected_decrease = single_source_header_tx_cost * number_of_source_headers_per_day;
+		// we expect Wococo -> Rococo relay to be running in all-headers mode
+		let maximal_balance_decrease =
+			compute_maximal_balance_decrease_per_day::<bp_kusama::Balance, bp_kusama::WeightToFee>(bp_wococo::DAYS);
 		assert!(
-			MAXIMAL_BALANCE_DECREASE_PER_DAY >= maximal_expected_decrease,
+			MAXIMAL_BALANCE_DECREASE_PER_DAY >= maximal_balance_decrease,
 			"Maximal expected loss per day {} is larger than hardcoded {}",
-			maximal_expected_decrease,
+			maximal_balance_decrease,
 			MAXIMAL_BALANCE_DECREASE_PER_DAY,
 		);
 	}
