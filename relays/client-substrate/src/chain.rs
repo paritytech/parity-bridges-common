@@ -14,18 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_runtime::Chain as ChainBase;
-use frame_support::{weights::WeightToFeePolynomial, Parameter};
+use bp_runtime::{Chain as ChainBase, TransactionEraOf};
+use codec::{Codec, Encode};
+use frame_support::weights::WeightToFeePolynomial;
 use jsonrpsee_ws_client::{DeserializeOwned, Serialize};
-use num_traits::{Bounded, CheckedSub, SaturatingAdd, Zero};
+use num_traits::Zero;
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{
 	generic::SignedBlock,
-	traits::{
-		AtLeast32Bit, AtLeast32BitUnsigned, Block as BlockT, Dispatchable, MaybeDisplay, MaybeSerialize,
-		MaybeSerializeDeserialize, Member,
-	},
-	EncodedJustification, FixedPointOperand,
+	traits::{Block as BlockT, Dispatchable, Member},
+	EncodedJustification,
 };
 use std::{fmt::Debug, time::Duration};
 
@@ -43,49 +41,15 @@ pub trait Chain: ChainBase + Clone {
 	/// Maximal size (in bytes) of SCALE-encoded account id on this chain.
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32;
 
-	/// The user account identifier type for the runtime.
-	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
-	/// Index of a transaction used by the chain.
-	type Index: Parameter
-		+ Member
-		+ MaybeSerialize
-		+ Debug
-		+ Default
-		+ MaybeDisplay
-		+ DeserializeOwned
-		+ AtLeast32Bit
-		+ Copy;
 	/// Block type.
 	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification<Self::Header>;
 	/// The aggregated `Call` type.
-	type Call: Dispatchable + Debug;
-	/// Balance of an account in native tokens.
-	///
-	/// The chain may support multiple tokens, but this particular type is for token that is used
-	/// to pay for transaction dispatch, to reward different relayers (headers, messages), etc.
-	type Balance: AtLeast32BitUnsigned
-		+ FixedPointOperand
-		+ Parameter
-		+ Parameter
-		+ Member
-		+ DeserializeOwned
-		+ Clone
-		+ Copy
-		+ Bounded
-		+ CheckedSub
-		+ PartialOrd
-		+ SaturatingAdd
-		+ Zero
-		+ std::convert::TryFrom<sp_core::U256>;
+	type Call: Clone + Dispatchable + Debug;
 
 	/// Type that is used by the chain, to convert from weight to fee.
 	type WeightToFee: WeightToFeePolynomial<Balance = Self::Balance>;
 }
 
-/// Balance type used by the chain
-pub type BalanceOf<C> = <C as Chain>::Balance;
-/// Index type used by the chain
-pub type IndexOf<C> = <C as Chain>::Index;
 /// Weight-to-Fee type used by the chain
 pub type WeightToFeeOf<C> = <C as Chain>::WeightToFee;
 
@@ -96,12 +60,45 @@ pub trait ChainWithBalances: Chain {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey;
 }
 
+/// SCALE-encoded extrinsic.
+pub type EncodedExtrinsic = Vec<u8>;
+
 /// Block with justification.
 pub trait BlockWithJustification<Header> {
 	/// Return block header.
 	fn header(&self) -> Header;
+	/// Return encoded block extrinsics.
+	fn extrinsics(&self) -> Vec<EncodedExtrinsic>;
 	/// Return block justification, if known.
 	fn justification(&self) -> Option<&EncodedJustification>;
+}
+
+/// Transaction before it is signed.
+#[derive(Clone, Debug)]
+pub struct UnsignedTransaction<C: Chain> {
+	/// Runtime call of this transaction.
+	pub call: C::Call,
+	/// Transaction nonce.
+	pub nonce: C::Index,
+	/// Tip included into transaction.
+	pub tip: C::Balance,
+}
+
+impl<C: Chain> UnsignedTransaction<C> {
+	/// Create new unsigned transaction with given call, nonce and zero tip.
+	pub fn new(call: C::Call, nonce: C::Index) -> Self {
+		Self {
+			call,
+			nonce,
+			tip: Zero::zero(),
+		}
+	}
+
+	/// Set transaction tip.
+	pub fn tip(mut self, tip: C::Balance) -> Self {
+		self.tip = tip;
+		self
+	}
 }
 
 /// Substrate-based chain transactions signing scheme.
@@ -111,21 +108,35 @@ pub trait TransactionSignScheme {
 	/// Type of key pairs used to sign transactions.
 	type AccountKeyPair: Pair;
 	/// Signed transaction.
-	type SignedTransaction;
+	type SignedTransaction: Clone + Debug + Codec + Send + 'static;
 
 	/// Create transaction for given runtime call, signed by given account.
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		era: bp_runtime::TransactionEraOf<Self::Chain>,
-		signer_nonce: <Self::Chain as Chain>::Index,
-		call: <Self::Chain as Chain>::Call,
+		era: TransactionEraOf<Self::Chain>,
+		unsigned: UnsignedTransaction<Self::Chain>,
 	) -> Self::SignedTransaction;
+
+	/// Returns true if transaction is signed.
+	fn is_signed(tx: &Self::SignedTransaction) -> bool;
+
+	/// Returns true if transaction is signed by given signer.
+	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool;
+
+	/// Parse signed transaction into its unsigned part.
+	///
+	/// Returns `None` if signed transaction has unsupported format.
+	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>>;
 }
 
 impl<Block: BlockT> BlockWithJustification<Block::Header> for SignedBlock<Block> {
 	fn header(&self) -> Block::Header {
 		self.block.header().clone()
+	}
+
+	fn extrinsics(&self) -> Vec<EncodedExtrinsic> {
+		self.block.extrinsics().iter().map(Encode::encode).collect()
 	}
 
 	fn justification(&self) -> Option<&EncodedJustification> {

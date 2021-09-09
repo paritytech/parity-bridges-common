@@ -236,6 +236,9 @@ pub type Balance = u128;
 pub type UncheckedExtrinsic<Call> =
 	generic::UncheckedExtrinsic<AccountAddress, Call, Signature, SignedExtensions<Call>>;
 
+/// Account address, used by the Polkadot-like chain.
+pub type Address = MultiAddress<AccountId, ()>;
+
 /// A type of the data encoded as part of the transaction.
 pub type SignedExtra = (
 	(),
@@ -304,6 +307,18 @@ impl<Call> SignedExtensions<Call> {
 	}
 }
 
+impl<Call> SignedExtensions<Call> {
+	/// Return signer nonce, used to craft transaction.
+	pub fn nonce(&self) -> Nonce {
+		self.encode_payload.4.into()
+	}
+
+	/// Return transaction tip.
+	pub fn tip(&self) -> Balance {
+		self.encode_payload.6.into()
+	}
+}
+
 impl<Call> sp_runtime::traits::SignedExtension for SignedExtensions<Call>
 where
 	Call: parity_scale_codec::Codec + sp_std::fmt::Debug + Sync + Send + Clone + Eq + PartialEq,
@@ -330,6 +345,11 @@ impl Chain for PolkadotLike {
 	type Hash = Hash;
 	type Hasher = Hasher;
 	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = Index;
+	type Signature = Signature;
 }
 
 /// Convert a 256-bit hash into an AccountId.

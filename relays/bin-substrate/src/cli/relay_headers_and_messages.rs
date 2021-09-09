@@ -27,7 +27,7 @@ use structopt::StructOpt;
 use strum::VariantNames;
 
 use codec::Encode;
-use relay_substrate_client::{Chain, Client, TransactionSignScheme};
+use relay_substrate_client::{AccountIdOf, Chain, Client, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::MetricsParams;
 use sp_core::{Bytes, Pair};
 use substrate_relay_helper::messages_lane::{MessagesRelayParams, SubstrateMessageLane};
@@ -137,7 +137,7 @@ macro_rules! select_bridge {
 				async fn left_create_account(
 					_left_client: Client<Left>,
 					_left_sign: <Left as TransactionSignScheme>::AccountKeyPair,
-					_account_id: <Left as Chain>::AccountId,
+					_account_id: AccountIdOf<Left>,
 				) -> anyhow::Result<()> {
 					Err(anyhow::format_err!("Account creation is not supported by this bridge"))
 				}
@@ -145,7 +145,7 @@ macro_rules! select_bridge {
 				async fn right_create_account(
 					_right_client: Client<Right>,
 					_right_sign: <Right as TransactionSignScheme>::AccountKeyPair,
-					_account_id: <Right as Chain>::AccountId,
+					_account_id: AccountIdOf<Right>,
 				) -> anyhow::Result<()> {
 					Err(anyhow::format_err!("Account creation is not supported by this bridge"))
 				}
@@ -196,7 +196,7 @@ macro_rules! select_bridge {
 				async fn left_create_account(
 					_left_client: Client<Left>,
 					_left_sign: <Left as TransactionSignScheme>::AccountKeyPair,
-					_account_id: <Left as Chain>::AccountId,
+					_account_id: AccountIdOf<Left>,
 				) -> anyhow::Result<()> {
 					Err(anyhow::format_err!("Account creation is not supported by this bridge"))
 				}
@@ -204,7 +204,7 @@ macro_rules! select_bridge {
 				async fn right_create_account(
 					_right_client: Client<Right>,
 					_right_sign: <Right as TransactionSignScheme>::AccountKeyPair,
-					_account_id: <Right as Chain>::AccountId,
+					_account_id: AccountIdOf<Right>,
 				) -> anyhow::Result<()> {
 					Err(anyhow::format_err!("Account creation is not supported by this bridge"))
 				}
@@ -241,7 +241,7 @@ macro_rules! select_bridge {
 				async fn left_create_account(
 					left_client: Client<Left>,
 					left_sign: <Left as TransactionSignScheme>::AccountKeyPair,
-					account_id: <Left as Chain>::AccountId,
+					account_id: AccountIdOf<Left>,
 				) -> anyhow::Result<()> {
 					let left_genesis_hash = *left_client.genesis_hash();
 					left_client
@@ -251,12 +251,14 @@ macro_rules! select_bridge {
 									left_genesis_hash,
 									&left_sign,
 									relay_substrate_client::TransactionEra::immortal(),
-									transaction_nonce,
-									relay_kusama_client::runtime::Call::Balances(
-										relay_kusama_client::runtime::BalancesCall::transfer(
-											bp_kusama::AccountAddress::Id(account_id),
-											(1_000_000_000_000 / 30_000).into(), // Kusama ED
+									UnsignedTransaction::new(
+										relay_kusama_client::runtime::Call::Balances(
+											relay_kusama_client::runtime::BalancesCall::transfer(
+												bp_kusama::AccountAddress::Id(account_id),
+												(1_000_000_000_000 / 30_000).into(), // Kusama ED
+											),
 										),
+										transaction_nonce,
 									),
 								)
 								.encode(),
@@ -270,7 +272,7 @@ macro_rules! select_bridge {
 				async fn right_create_account(
 					right_client: Client<Right>,
 					right_sign: <Right as TransactionSignScheme>::AccountKeyPair,
-					account_id: <Right as Chain>::AccountId,
+					account_id: AccountIdOf<Right>,
 				) -> anyhow::Result<()> {
 					let right_genesis_hash = *right_client.genesis_hash();
 					right_client
@@ -280,12 +282,14 @@ macro_rules! select_bridge {
 									right_genesis_hash,
 									&right_sign,
 									relay_substrate_client::TransactionEra::immortal(),
-									transaction_nonce,
-									relay_polkadot_client::runtime::Call::Balances(
-										relay_polkadot_client::runtime::BalancesCall::transfer(
-											bp_polkadot::AccountAddress::Id(account_id),
-											10_000_000_000.into(), // Polkadot ED
+									UnsignedTransaction::new(
+										relay_polkadot_client::runtime::Call::Balances(
+											relay_polkadot_client::runtime::BalancesCall::transfer(
+												bp_polkadot::AccountAddress::Id(account_id),
+												10_000_000_000.into(), // Polkadot ED
+											),
 										),
+										transaction_nonce,
 									),
 								)
 								.encode(),
@@ -406,10 +410,8 @@ impl RelayHeadersAndMessages {
 			}
 
 			if params.shared.create_relayers_fund_accounts {
-				let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<
-					<Left as Chain>::AccountId,
-					LeftAccountIdConverter,
-				>();
+				let relayer_fund_acount_id =
+					pallet_bridge_messages::relayer_fund_account_id::<AccountIdOf<Left>, LeftAccountIdConverter>();
 				let relayers_fund_account_balance =
 					left_client.free_native_balance(relayer_fund_acount_id.clone()).await;
 				if let Err(relay_substrate_client::Error::AccountDoesNotExist) = relayers_fund_account_balance {
@@ -417,10 +419,8 @@ impl RelayHeadersAndMessages {
 					left_create_account(left_client.clone(), left_sign.clone(), relayer_fund_acount_id).await?;
 				}
 
-				let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<
-					<Right as Chain>::AccountId,
-					RightAccountIdConverter,
-				>();
+				let relayer_fund_acount_id =
+					pallet_bridge_messages::relayer_fund_account_id::<AccountIdOf<Right>, RightAccountIdConverter>();
 				let relayers_fund_account_balance =
 					right_client.free_native_balance(relayer_fund_acount_id.clone()).await;
 				if let Err(relay_substrate_client::Error::AccountDoesNotExist) = relayers_fund_account_balance {

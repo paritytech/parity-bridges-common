@@ -27,7 +27,7 @@ use frame_support::weights::Weight;
 use messages_relay::message_lane::MessageLane;
 use relay_kusama_client::{HeaderId as KusamaHeaderId, Kusama, SigningParams as KusamaSigningParams};
 use relay_polkadot_client::{HeaderId as PolkadotHeaderId, Polkadot, SigningParams as PolkadotSigningParams};
-use relay_substrate_client::{Chain, Client, TransactionSignScheme};
+use relay_substrate_client::{Chain, Client, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::MetricsParams;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use substrate_relay_helper::messages_lane::{
@@ -77,7 +77,7 @@ impl SubstrateMessageLane for KusamaMessagesToPolkadot {
 
 	fn make_messages_receiving_proof_transaction(
 		&self,
-		transaction_nonce: <Kusama as Chain>::Index,
+		transaction_nonce: bp_runtime::IndexOf<Kusama>,
 		_generated_at_block: PolkadotHeaderId,
 		proof: <Self::MessageLane as MessageLane>::MessagesReceivingProof,
 	) -> Bytes {
@@ -93,8 +93,7 @@ impl SubstrateMessageLane for KusamaMessagesToPolkadot {
 			genesis_hash,
 			&self.message_lane.source_sign,
 			relay_substrate_client::TransactionEra::immortal(),
-			transaction_nonce,
-			call,
+			UnsignedTransaction::new(call, transaction_nonce),
 		);
 		log::trace!(
 			target: "bridge",
@@ -112,7 +111,7 @@ impl SubstrateMessageLane for KusamaMessagesToPolkadot {
 
 	fn make_messages_delivery_transaction(
 		&self,
-		transaction_nonce: <Polkadot as Chain>::Index,
+		transaction_nonce: bp_runtime::IndexOf<Polkadot>,
 		_generated_at_header: KusamaHeaderId,
 		_nonces: RangeInclusive<MessageNonce>,
 		proof: <Self::MessageLane as MessageLane>::MessagesProof,
@@ -138,8 +137,7 @@ impl SubstrateMessageLane for KusamaMessagesToPolkadot {
 			genesis_hash,
 			&self.message_lane.target_sign,
 			relay_substrate_client::TransactionEra::immortal(),
-			transaction_nonce,
-			call,
+			UnsignedTransaction::new(call, transaction_nonce),
 		);
 		log::trace!(
 			target: "bridge",
@@ -289,14 +287,16 @@ pub(crate) async fn update_polkadot_to_kusama_conversion_rate(
 					genesis_hash,
 					&signer,
 					relay_substrate_client::TransactionEra::immortal(),
-					transaction_nonce,
-					relay_kusama_client::runtime::Call::BridgePolkadotMessages(
-						relay_kusama_client::runtime::BridgePolkadotMessagesCall::update_pallet_parameter(
-							relay_kusama_client::runtime::BridgePolkadotMessagesParameter::PolkadotToKusamaConversionRate(
-								sp_runtime::FixedU128::from_float(updated_rate),
+					UnsignedTransaction::new(
+						relay_kusama_client::runtime::Call::BridgePolkadotMessages(
+							relay_kusama_client::runtime::BridgePolkadotMessagesCall::update_pallet_parameter(
+								relay_kusama_client::runtime::BridgePolkadotMessagesParameter::PolkadotToKusamaConversionRate(
+									sp_runtime::FixedU128::from_float(updated_rate),
+								)
 							)
-						)
-					)
+						),
+						transaction_nonce,
+					),
 				)
 				.encode(),
 			)

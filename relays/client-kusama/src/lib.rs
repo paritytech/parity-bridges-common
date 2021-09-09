@@ -17,7 +17,9 @@
 //! Types used to connect to the Kusama chain.
 
 use codec::Encode;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, TransactionSignScheme};
+use relay_substrate_client::{
+	Chain, ChainBase, ChainWithBalances, TransactionEraOf, TransactionSignScheme, UnsignedTransaction,
+};
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
@@ -36,6 +38,11 @@ impl ChainBase for Kusama {
 	type Hash = bp_kusama::Hash;
 	type Hasher = bp_kusama::Hasher;
 	type Header = bp_kusama::Header;
+
+	type AccountId = bp_kusama::AccountId;
+	type Balance = bp_kusama::Balance;
+	type Index = bp_kusama::Nonce;
+	type Signature = bp_kusama::Signature;
 }
 
 impl Chain for Kusama {
@@ -44,11 +51,8 @@ impl Chain for Kusama {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_kusama::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_kusama::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
 
-	type AccountId = bp_kusama::AccountId;
-	type Index = bp_kusama::Nonce;
 	type SignedBlock = bp_kusama::SignedBlock;
 	type Call = crate::runtime::Call;
-	type Balance = bp_kusama::Balance;
 	type WeightToFee = bp_kusama::WeightToFee;
 }
 
@@ -66,13 +70,12 @@ impl TransactionSignScheme for Kusama {
 	fn sign_transaction(
 		genesis_hash: <Self::Chain as ChainBase>::Hash,
 		signer: &Self::AccountKeyPair,
-		era: bp_runtime::TransactionEraOf<Self::Chain>,
-		signer_nonce: <Self::Chain as Chain>::Index,
-		call: <Self::Chain as Chain>::Call,
+		era: TransactionEraOf<Self::Chain>,
+		unsigned: UnsignedTransaction<Self::Chain>,
 	) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(
-			call,
-			bp_kusama::SignedExtensions::new(bp_kusama::VERSION, era, genesis_hash, signer_nonce, 0),
+			unsigned.call,
+			bp_kusama::SignedExtensions::new(bp_kusama::VERSION, era, genesis_hash, unsigned.nonce, unsigned.tip),
 		)
 		.expect("SignedExtension never fails.");
 
@@ -86,6 +89,26 @@ impl TransactionSignScheme for Kusama {
 			signature.into(),
 			extra,
 		)
+	}
+
+	fn is_signed(tx: &Self::SignedTransaction) -> bool {
+		tx.signature.is_some()
+	}
+
+	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool {
+		tx.signature
+			.as_ref()
+			.map(|(address, _, _)| *address == bp_kusama::AccountId::from(*signer.public().as_array_ref()).into())
+			.unwrap_or(false)
+	}
+
+	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>> {
+		let extra = &tx.signature.as_ref()?.2;
+		Some(UnsignedTransaction {
+			call: tx.function,
+			nonce: extra.nonce(),
+			tip: extra.tip(),
+		})
 	}
 }
 

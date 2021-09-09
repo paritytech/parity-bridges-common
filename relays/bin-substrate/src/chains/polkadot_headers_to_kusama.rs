@@ -22,7 +22,7 @@ use sp_core::{Bytes, Pair};
 use bp_header_chain::justification::GrandpaJustification;
 use relay_kusama_client::{Kusama, SigningParams as KusamaSigningParams};
 use relay_polkadot_client::{Polkadot, SyncHeader as PolkadotSyncHeader};
-use relay_substrate_client::{Chain, Client, TransactionSignScheme};
+use relay_substrate_client::{Client, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::MetricsParams;
 use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
@@ -83,7 +83,7 @@ impl SubstrateFinalitySyncPipeline for PolkadotFinalityToKusama {
 	fn make_submit_finality_proof_transaction(
 		&self,
 		era: bp_runtime::TransactionEraOf<Kusama>,
-		transaction_nonce: <Kusama as Chain>::Index,
+		transaction_nonce: bp_runtime::IndexOf<Kusama>,
 		header: PolkadotSyncHeader,
 		proof: GrandpaJustification<bp_polkadot::Header>,
 	) -> Bytes {
@@ -95,8 +95,7 @@ impl SubstrateFinalitySyncPipeline for PolkadotFinalityToKusama {
 			genesis_hash,
 			&self.finality_pipeline.target_sign,
 			era,
-			transaction_nonce,
-			call,
+			UnsignedTransaction::new(call, transaction_nonce),
 		);
 
 		Bytes(transaction.encode())
