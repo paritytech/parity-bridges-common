@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_runtime::{Chain as ChainBase, TransactionEraOf};
-use codec::{Decode, Encode};
+use codec::{Codec, Decode, Encode};
 use frame_support::{weights::WeightToFeePolynomial, Parameter};
 use jsonrpsee_ws_client::{DeserializeOwned, Serialize};
 use num_traits::{Bounded, CheckedSub, SaturatingAdd, Zero};
