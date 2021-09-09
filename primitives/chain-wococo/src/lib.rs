@@ -25,7 +25,7 @@ use sp_std::prelude::*;
 
 pub use bp_polkadot_core::*;
 // Rococo runtime = Wococo runtime
-pub use bp_rococo::{WeightToFee, SESSION_LENGTH, VERSION};
+pub use bp_rococo::{WeightToFee, PAY_INBOUND_DISPATCH_FEE_WEIGHT, SESSION_LENGTH, VERSION};
 
 /// Wococo Chain
 pub type Wococo = PolkadotLike;
@@ -36,6 +36,9 @@ pub fn derive_account_from_rococo_id(id: bp_runtime::SourceAccount<AccountId>) -
 	let encoded_id = bp_runtime::derive_account_id(bp_runtime::ROCOCO_CHAIN_ID, id);
 	AccountIdConverter::convert(encoded_id)
 }
+
+/// Name of the With-Rococo messages pallet instance in the Wococo runtime.
+pub const WITH_ROCOCO_MESSAGES_PALLET_NAME: &str = "BridgeRococoMessages";
 
 /// Name of the `WococoFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_WOCOCO_HEADER_METHOD: &str = "WococoFinalityApi_best_finalized";

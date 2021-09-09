@@ -45,7 +45,10 @@ pub trait Chain: Send + Sync + 'static {
 		+ FromStr
 		+ MaybeMallocSizeOf
 		+ AsPrimitive<usize>
-		+ Default;
+		+ Default
+		// original `sp_runtime::traits::Header::BlockNumber` doesn't have this trait, but
+		// `sp_runtime::generic::Era` requires block number -> `u64` conversion.
+		+ Into<u64>;
 
 	/// A type that fulfills the abstract idea of what a Substrate hash is.
 	// Constraits come from the associated Hash type of `sp_runtime::traits::Header`
@@ -136,3 +139,6 @@ pub type SignatureOf<C> = <C as Chain>::Signature;
 
 /// Account public type used by the chain.
 pub type AccountPublicOf<C> = <SignatureOf<C> as Verify>::Signer;
+
+/// Transaction era used by the chain.
+pub type TransactionEraOf<C> = crate::TransactionEra<BlockNumberOf<C>, HashOf<C>>;

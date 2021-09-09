@@ -21,6 +21,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
+use frame_support::weights::{WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial};
 use sp_std::prelude::*;
 
 pub use bp_polkadot_core::*;
@@ -28,12 +29,36 @@ pub use bp_polkadot_core::*;
 /// Polkadot Chain
 pub type Polkadot = PolkadotLike;
 
+// NOTE: This needs to be kept up to date with the Polkadot runtime found in the Polkadot repo.
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+	type Balance = Balance;
+	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+		const CENTS: Balance = 10_000_000_000 / 100;
+		// in Polkadot, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
+		let p = CENTS;
+		let q = 10 * Balance::from(ExtrinsicBaseWeight::get());
+		smallvec::smallvec![WeightToFeeCoefficient {
+			degree: 1,
+			negative: false,
+			coeff_frac: Perbill::from_rational(p % q, q),
+			coeff_integer: p / q,
+		}]
+	}
+}
+
 // We use this to get the account on Polkadot (target) which is derived from Kusama's (source)
 // account.
 pub fn derive_account_from_kusama_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
 	let encoded_id = bp_runtime::derive_account_id(bp_runtime::KUSAMA_CHAIN_ID, id);
 	AccountIdConverter::convert(encoded_id)
 }
+
+/// Per-byte fee for Polkadot transactions.
+pub const TRANSACTION_BYTE_FEE: Balance = 10 * 10_000_000_000 / 100 / 1_000;
+
+/// Name of the With-Kusama messages pallet instance in the Polkadot runtime.
+pub const WITH_KUSAMA_MESSAGES_PALLET_NAME: &str = "BridgeKusamaMessages";
 
 /// Name of the `PolkadotFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_POLKADOT_HEADER_METHOD: &str = "PolkadotFinalityApi_best_finalized";

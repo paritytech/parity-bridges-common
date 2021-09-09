@@ -46,6 +46,7 @@ impl Chain for Kusama {
 
 	type SignedBlock = bp_kusama::SignedBlock;
 	type Call = ();
+	type WeightToFee = bp_kusama::WeightToFee;
 }
 
 /// Kusama header type used in headers sync.

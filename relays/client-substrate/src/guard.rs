@@ -165,6 +165,7 @@ impl<C: ChainWithBalances> Environment<C> for Client<C> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use frame_support::weights::IdentityFee;
 	use futures::{
 		channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
 		future::FutureExt,
@@ -196,6 +197,7 @@ mod tests {
 		type SignedBlock =
 			sp_runtime::generic::SignedBlock<sp_runtime::generic::Block<Self::Header, sp_runtime::OpaqueExtrinsic>>;
 		type Call = ();
+		type WeightToFee = IdentityFee<u32>;
 	}
 
 	impl ChainWithBalances for TestChain {

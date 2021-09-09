@@ -20,6 +20,7 @@ use crate::messages_source::SubstrateMessagesProof;
 use crate::messages_target::SubstrateMessagesReceivingProof;
 use crate::on_demand_headers::OnDemandHeadersRelay;
 
+use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce};
 use bp_runtime::{AccountIdOf, IndexOf};
 use frame_support::weights::Weight;
@@ -59,6 +60,7 @@ pub struct MessagesRelayParams<SC: Chain, SS, TC: Chain, TS> {
 }
 
 /// Message sync pipeline for Substrate <-> Substrate relays.
+#[async_trait]
 pub trait SubstrateMessageLane: 'static + Clone + Send + Sync {
 	/// Underlying generic message lane.
 	type MessageLane: MessageLane;
@@ -81,6 +83,18 @@ pub trait SubstrateMessageLane: 'static + Clone + Send + Sync {
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str;
 	/// Name of the runtime method that returns id of best finalized target header at source chain.
 	const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str;
+
+	/// Name of the messages pallet as it is declared in the `construct_runtime!()` at source chain.
+	const MESSAGE_PALLET_NAME_AT_SOURCE: &'static str;
+	/// Name of the messages pallet as it is declared in the `construct_runtime!()` at target chain.
+	const MESSAGE_PALLET_NAME_AT_TARGET: &'static str;
+
+	/// Extra weight of the delivery transaction at the target chain, that is paid to cover
+	/// dispatch fee payment.
+	///
+	/// If dispatch fee is paid at the source chain, then this weight is refunded by the
+	/// delivery transaction.
+	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN: Weight;
 
 	/// Source chain.
 	type SourceChain: Chain;
@@ -207,6 +221,8 @@ pub struct StandaloneMessagesMetrics {
 	pub target_to_base_conversion_rate: Option<F64SharedRef>,
 	/// Shared reference to the actual source -> <base> chain token conversion rate.
 	pub source_to_base_conversion_rate: Option<F64SharedRef>,
+	/// Shared reference to the stored (in the source chain runtime storage) target -> source chain conversion rate.
+	pub target_to_source_conversion_rate: Option<F64SharedRef>,
 }
 
 impl StandaloneMessagesMetrics {
@@ -214,7 +230,7 @@ impl StandaloneMessagesMetrics {
 	pub async fn target_to_source_conversion_rate(&self) -> Option<f64> {
 		let target_to_base_conversion_rate = (*self.target_to_base_conversion_rate.as_ref()?.read().await)?;
 		let source_to_base_conversion_rate = (*self.source_to_base_conversion_rate.as_ref()?.read().await)?;
-		Some(target_to_base_conversion_rate / source_to_base_conversion_rate)
+		Some(source_to_base_conversion_rate / target_to_base_conversion_rate)
 	}
 }
 
@@ -227,6 +243,7 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 	target_chain_token_id: Option<&str>,
 	target_to_source_conversion_rate_params: Option<(StorageKey, FixedU128)>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
+	let mut target_to_source_conversion_rate = None;
 	let mut source_to_base_conversion_rate = None;
 	let mut target_to_base_conversion_rate = None;
 	let mut metrics_params =
@@ -262,6 +279,7 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 					P::SourceChain::NAME
 				),
 			)?;
+			target_to_source_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
 		})?;
 	}
@@ -284,6 +302,7 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 		StandaloneMessagesMetrics {
 			target_to_base_conversion_rate,
 			source_to_base_conversion_rate,
+			target_to_source_conversion_rate,
 		},
 	))
 }
@@ -291,6 +310,7 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use async_std::sync::{Arc, RwLock};
 
 	type RialtoToMillauMessagesWeights = pallet_bridge_messages::weights::RialtoWeight<rialto_runtime::Runtime>;
 
@@ -309,5 +329,16 @@ mod tests {
 			// Any significant change in this values should attract additional attention.
 			(782, 216_583_333_334),
 		);
+	}
+
+	#[async_std::test]
+	async fn target_to_source_conversion_rate_works() {
+		let metrics = StandaloneMessagesMetrics {
+			target_to_base_conversion_rate: Some(Arc::new(RwLock::new(Some(183.15)))),
+			source_to_base_conversion_rate: Some(Arc::new(RwLock::new(Some(12.32)))),
+			target_to_source_conversion_rate: None, // we don't care
+		};
+
+		assert_eq!(metrics.target_to_source_conversion_rate().await, Some(12.32 / 183.15),);
 	}
 }

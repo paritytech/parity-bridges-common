@@ -20,10 +20,9 @@ use codec::Encode;
 use sp_core::{Bytes, Pair};
 
 use bp_header_chain::justification::GrandpaJustification;
-use bp_runtime::IndexOf;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
 use relay_rialto_client::{Rialto, SyncHeader as RialtoSyncHeader};
-use relay_substrate_client::{Client, TransactionSignScheme};
+use relay_substrate_client::{Client, IndexOf, TransactionSignScheme, UnsignedTransaction};
 use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
 
 /// Rialto-to-Millau finality sync pipeline.
@@ -56,6 +55,7 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 
 	fn make_submit_finality_proof_transaction(
 		&self,
+		era: bp_runtime::TransactionEraOf<Millau>,
 		transaction_nonce: IndexOf<Millau>,
 		header: RialtoSyncHeader,
 		proof: GrandpaJustification<bp_rialto::Header>,
@@ -70,8 +70,8 @@ impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 		let transaction = Millau::sign_transaction(
 			genesis_hash,
 			&self.finality_pipeline.target_sign,
-			transaction_nonce,
-			call,
+			era,
+			UnsignedTransaction::new(call, transaction_nonce),
 		);
 
 		Bytes(transaction.encode())

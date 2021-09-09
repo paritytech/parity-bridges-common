@@ -20,9 +20,8 @@ use codec::Encode;
 use sp_core::{Bytes, Pair};
 
 use bp_header_chain::justification::GrandpaJustification;
-use bp_runtime::IndexOf;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
-use relay_substrate_client::{Client, TransactionSignScheme};
+use relay_substrate_client::{Client, IndexOf, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::MetricsParams;
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
 use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
@@ -64,6 +63,7 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 
 	fn make_submit_finality_proof_transaction(
 		&self,
+		era: bp_runtime::TransactionEraOf<Millau>,
 		transaction_nonce: IndexOf<Millau>,
 		header: WestendSyncHeader,
 		proof: GrandpaJustification<bp_westend::Header>,
@@ -78,8 +78,8 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 		let transaction = Millau::sign_transaction(
 			genesis_hash,
 			&self.finality_pipeline.target_sign,
-			transaction_nonce,
-			call,
+			era,
+			UnsignedTransaction::new(call, transaction_nonce),
 		);
 
 		Bytes(transaction.encode())
