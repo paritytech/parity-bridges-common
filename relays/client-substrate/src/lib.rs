@@ -46,7 +46,7 @@ pub type HeaderIdOf<C> = relay_utils::HeaderId<HashOf<C>, BlockNumberOf<C>>;
 /// Substrate-over-websocket connection params.
 #[derive(Debug, Clone)]
 pub struct ConnectionParams {
-	/// Websocket server hostname.
+	/// Websocket server host name.
 	pub host: String,
 	/// Websocket server TCP port.
 	pub port: u16,
