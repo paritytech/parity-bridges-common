@@ -65,7 +65,7 @@ pub enum RelayerMode {
 	/// The relayer doesn't care about rewards.
 	Altruistic,
 	/// The relayer will deliver all messages and confirmations as long as he's not losing any funds.
-	NoLosses,
+	Rational,
 }
 
 /// Message delivery race parameters.
@@ -125,6 +125,7 @@ pub trait SourceClient<P: MessageLane>: RelayClient {
 		&self,
 		id: SourceHeaderIdOf<P>,
 	) -> Result<(SourceHeaderIdOf<P>, MessageNonce), Self::Error>;
+
 	/// Get nonce of the latest message, which receiving has been confirmed by the target chain.
 	async fn latest_confirmed_received_nonce(
 		&self,
@@ -175,11 +176,12 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 		id: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), Self::Error>;
 
-	/// Get nonce of latest confirmed message.
+	/// Get nonce of the latest confirmed message.
 	async fn latest_confirmed_received_nonce(
 		&self,
 		id: TargetHeaderIdOf<P>,
 	) -> Result<(TargetHeaderIdOf<P>, MessageNonce), Self::Error>;
+
 	/// Get state of unrewarded relayers set at the inbound lane.
 	async fn unrewarded_relayers_state(
 		&self,
@@ -210,6 +212,7 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 	async fn estimate_delivery_transaction_in_source_tokens(
 		&self,
 		nonces: RangeInclusive<MessageNonce>,
+		total_prepaid_nonces: MessageNonce,
 		total_dispatch_weight: Weight,
 		total_size: u32,
 	) -> Result<P::SourceChainBalance, Self::Error>;
@@ -218,7 +221,7 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 /// State of the client.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ClientState<SelfHeaderId, PeerHeaderId> {
-	/// Best header id of this chain.
+	/// The best header id of this chain.
 	pub best_self: SelfHeaderId,
 	/// Best finalized header id of this chain.
 	pub best_finalized_self: SelfHeaderId,
@@ -773,6 +776,7 @@ pub(crate) mod tests {
 		async fn estimate_delivery_transaction_in_source_tokens(
 			&self,
 			nonces: RangeInclusive<MessageNonce>,
+			_total_prepaid_nonces: MessageNonce,
 			total_dispatch_weight: Weight,
 			total_size: u32,
 		) -> Result<TestSourceChainBalance, TestError> {

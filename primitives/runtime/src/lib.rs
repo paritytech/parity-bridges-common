@@ -19,11 +19,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
+use frame_support::RuntimeDebug;
 use sp_core::hash::H256;
 use sp_io::hashing::blake2_256;
 use sp_std::convert::TryFrom;
 
-pub use chain::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
+pub use chain::{
+	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf, IndexOf, SignatureOf,
+	TransactionEraOf,
+};
 pub use storage_proof::{Error as StorageProofError, StorageProofChecker};
 
 #[cfg(feature = "std")]
@@ -74,9 +78,9 @@ pub type ChainId = [u8; 4];
 
 /// Type of accounts on the source chain.
 pub enum SourceAccount<T> {
-	/// An account that belongs to Root (priviledged origin).
+	/// An account that belongs to Root (privileged origin).
 	Root,
-	/// A non-priviledged account.
+	/// A non-privileged account.
 	///
 	/// The embedded account ID may or may not have a private key depending on the "owner" of the
 	/// account (private key, pallet, proxy, etc.).
@@ -86,7 +90,7 @@ pub enum SourceAccount<T> {
 /// Derive an account ID from a foreign account ID.
 ///
 /// This function returns an encoded Blake2 hash. It is the responsibility of the caller to ensure
-/// this can be succesfully decoded into an AccountId.
+/// this can be successfully decoded into an AccountId.
 ///
 /// The `bridge_id` is used to provide extra entropy when producing account IDs. This helps prevent
 /// AccountId collisions between different bridges on a single target chain.
@@ -136,5 +140,46 @@ pub struct PreComputedSize(pub usize);
 impl Size for PreComputedSize {
 	fn size_hint(&self) -> u32 {
 		u32::try_from(self.0).unwrap_or(u32::MAX)
+	}
+}
+
+/// Era of specific transaction.
+#[derive(RuntimeDebug, Clone, Copy)]
+pub enum TransactionEra<BlockNumber, BlockHash> {
+	/// Transaction is immortal.
+	Immortal,
+	/// Transaction is valid for a given number of blocks, starting from given block.
+	Mortal(BlockNumber, BlockHash, u32),
+}
+
+impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber, BlockHash> {
+	/// Prepare transaction era, based on mortality period and current best block number.
+	pub fn new(best_block_number: BlockNumber, best_block_hash: BlockHash, mortality_period: Option<u32>) -> Self {
+		mortality_period
+			.map(|mortality_period| TransactionEra::Mortal(best_block_number, best_block_hash, mortality_period))
+			.unwrap_or(TransactionEra::Immortal)
+	}
+
+	/// Create new immortal transaction era.
+	pub fn immortal() -> Self {
+		TransactionEra::Immortal
+	}
+
+	/// Returns era that is used by FRAME-based runtimes.
+	pub fn frame_era(&self) -> sp_runtime::generic::Era {
+		match *self {
+			TransactionEra::Immortal => sp_runtime::generic::Era::immortal(),
+			TransactionEra::Mortal(header_number, _, period) => {
+				sp_runtime::generic::Era::mortal(period as _, header_number.into())
+			}
+		}
+	}
+
+	/// Returns header hash that needs to be included in the signature payload.
+	pub fn signed_payload(&self, genesis_hash: BlockHash) -> BlockHash {
+		match *self {
+			TransactionEra::Immortal => genesis_hash,
+			TransactionEra::Mortal(_, header_hash, _) => header_hash,
+		}
 	}
 }

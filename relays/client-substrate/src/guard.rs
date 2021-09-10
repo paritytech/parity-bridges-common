@@ -80,7 +80,7 @@ pub fn abort_on_spec_version_change<C: ChainWithBalances>(mut env: impl Environm
 	});
 }
 
-/// Abort if, during a 24 hours, free balance of given account is decreased at least by given value.
+/// Abort if, during 24 hours, free balance of given account is decreased at least by given value.
 /// Other components may increase (or decrease) balance of account and it WILL affect logic of the guard.
 pub fn abort_when_account_balance_decreased<C: ChainWithBalances>(
 	mut env: impl Environment<C>,
@@ -165,6 +165,7 @@ impl<C: ChainWithBalances> Environment<C> for Client<C> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use frame_support::weights::IdentityFee;
 	use futures::{
 		channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
 		future::FutureExt,
@@ -180,6 +181,11 @@ mod tests {
 		type Hash = sp_core::H256;
 		type Hasher = sp_runtime::traits::BlakeTwo256;
 		type Header = sp_runtime::generic::Header<u32, sp_runtime::traits::BlakeTwo256>;
+
+		type AccountId = u32;
+		type Balance = u32;
+		type Index = u32;
+		type Signature = sp_runtime::testing::TestSignature;
 	}
 
 	impl Chain for TestChain {
@@ -188,12 +194,10 @@ mod tests {
 		const STORAGE_PROOF_OVERHEAD: u32 = 0;
 		const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 0;
 
-		type AccountId = u32;
-		type Index = u32;
 		type SignedBlock =
 			sp_runtime::generic::SignedBlock<sp_runtime::generic::Block<Self::Header, sp_runtime::OpaqueExtrinsic>>;
 		type Call = ();
-		type Balance = u32;
+		type WeightToFee = IdentityFee<u32>;
 	}
 
 	impl ChainWithBalances for TestChain {

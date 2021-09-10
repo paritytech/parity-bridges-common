@@ -37,11 +37,11 @@ mod wococo;
 // Rialto as BTC and Millau as wBTC (only in relayer).
 
 /// The identifier of token, which value is associated with Rialto token value by relayer.
-pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = "bitcoin";
+pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = "polkadot";
 /// The identifier of token, which value is associated with Millau token value by relayer.
-pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = "wrapped-bitcoin";
+pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = "kusama";
 
-use relay_utils::metrics::{FloatJsonValueMetric, MetricsParams, PrometheusError, Registry};
+use relay_utils::metrics::MetricsParams;
 
 pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
 	prefix: Option<String>,
@@ -50,31 +50,13 @@ pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncP
 	// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <-> Kusama
 	// relays, but we want to test metrics/dashboards in advance
 	Ok(relay_utils::relay_metrics(prefix, params)
-		.standalone_metric(|registry, prefix| token_price_metric(registry, prefix, "polkadot"))?
-		.standalone_metric(|registry, prefix| token_price_metric(registry, prefix, "kusama"))?
+		.standalone_metric(|registry, prefix| {
+			substrate_relay_helper::helpers::token_price_metric(registry, prefix, "polkadot")
+		})?
+		.standalone_metric(|registry, prefix| {
+			substrate_relay_helper::helpers::token_price_metric(registry, prefix, "kusama")
+		})?
 		.into_params())
-}
-
-/// Creates standalone token price metric.
-pub(crate) fn token_price_metric(
-	registry: &Registry,
-	prefix: Option<&str>,
-	token_id: &str,
-) -> Result<FloatJsonValueMetric, PrometheusError> {
-	FloatJsonValueMetric::new(
-		registry,
-		prefix,
-		format!(
-			"https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=btc",
-			token_id
-		),
-		format!("$.{}.btc", token_id),
-		format!("{}_to_base_conversion_rate", token_id.replace("-", "_")),
-		format!(
-			"Rate used to convert from {} to some BASE tokens",
-			token_id.to_uppercase()
-		),
-	)
 }
 
 #[cfg(test)]
@@ -85,7 +67,7 @@ mod tests {
 	use frame_support::dispatch::GetDispatchInfo;
 	use relay_millau_client::Millau;
 	use relay_rialto_client::Rialto;
-	use relay_substrate_client::TransactionSignScheme;
+	use relay_substrate_client::{TransactionSignScheme, UnsignedTransaction};
 	use sp_core::Pair;
 	use sp_runtime::traits::{IdentifyAccount, Verify};
 
@@ -146,6 +128,7 @@ mod tests {
 			call.get_dispatch_info().weight,
 			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
+			send_message::DispatchFeePayment::AtSourceChain,
 		);
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
 
@@ -156,6 +139,7 @@ mod tests {
 			call.get_dispatch_info().weight,
 			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
+			send_message::DispatchFeePayment::AtSourceChain,
 		);
 		assert!(Millau::verify_message(&payload).is_err());
 	}
@@ -183,6 +167,7 @@ mod tests {
 			maximal_dispatch_weight,
 			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
+			send_message::DispatchFeePayment::AtSourceChain,
 		);
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
 
@@ -191,6 +176,7 @@ mod tests {
 			maximal_dispatch_weight + 1,
 			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
+			send_message::DispatchFeePayment::AtSourceChain,
 		);
 		assert!(Millau::verify_message(&payload).is_err());
 	}
@@ -208,6 +194,7 @@ mod tests {
 			maximal_dispatch_weight,
 			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
+			send_message::DispatchFeePayment::AtSourceChain,
 		);
 		assert_eq!(Rialto::verify_message(&payload), Ok(()));
 
@@ -216,6 +203,7 @@ mod tests {
 			maximal_dispatch_weight + 1,
 			bp_message_dispatch::CallOrigin::SourceRoot,
 			&call,
+			send_message::DispatchFeePayment::AtSourceChain,
 		);
 		assert!(Rialto::verify_message(&payload).is_err());
 	}
@@ -226,8 +214,8 @@ mod tests {
 		let rialto_tx = Rialto::sign_transaction(
 			Default::default(),
 			&sp_keyring::AccountKeyring::Alice.pair(),
-			0,
-			rialto_call.clone(),
+			relay_substrate_client::TransactionEra::immortal(),
+			UnsignedTransaction::new(rialto_call.clone(), 0),
 		);
 		let extra_bytes_in_transaction = rialto_tx.encode().len() - rialto_call.encode().len();
 		assert!(
@@ -244,8 +232,8 @@ mod tests {
 		let millau_tx = Millau::sign_transaction(
 			Default::default(),
 			&sp_keyring::AccountKeyring::Alice.pair(),
-			0,
-			millau_call.clone(),
+			relay_substrate_client::TransactionEra::immortal(),
+			UnsignedTransaction::new(millau_call.clone(), 0),
 		);
 		let extra_bytes_in_transaction = millau_tx.encode().len() - millau_call.encode().len();
 		assert!(

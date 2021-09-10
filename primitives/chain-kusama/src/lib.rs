@@ -21,6 +21,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
+use frame_support::weights::{WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial};
 use sp_std::prelude::*;
 
 pub use bp_polkadot_core::*;
@@ -28,12 +29,36 @@ pub use bp_polkadot_core::*;
 /// Kusama Chain
 pub type Kusama = PolkadotLike;
 
+// NOTE: This needs to be kept up to date with the Kusama runtime found in the Polkadot repo.
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+	type Balance = Balance;
+	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+		const CENTS: Balance = 1_000_000_000_000 / 30_000;
+		// in Kusama, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
+		let p = CENTS;
+		let q = 10 * Balance::from(ExtrinsicBaseWeight::get());
+		smallvec::smallvec![WeightToFeeCoefficient {
+			degree: 1,
+			negative: false,
+			coeff_frac: Perbill::from_rational(p % q, q),
+			coeff_integer: p / q,
+		}]
+	}
+}
+
 // We use this to get the account on Kusama (target) which is derived from Polkadot's (source)
 // account.
 pub fn derive_account_from_polkadot_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
 	let encoded_id = bp_runtime::derive_account_id(bp_runtime::POLKADOT_CHAIN_ID, id);
 	AccountIdConverter::convert(encoded_id)
 }
+
+/// Per-byte fee for Kusama transactions.
+pub const TRANSACTION_BYTE_FEE: Balance = 10 * 1_000_000_000_000 / 30_000 / 1_000;
+
+/// Name of the With-Polkadot messages pallet instance in the Kusama runtime.
+pub const WITH_POLKADOT_MESSAGES_PALLET_NAME: &str = "BridgePolkadotMessages";
 
 /// Name of the `KusamaFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_KUSAMA_HEADER_METHOD: &str = "KusamaFinalityApi_best_finalized";
@@ -79,7 +104,7 @@ sp_api::decl_runtime_apis! {
 		///
 		/// Returns `None` if message is too expensive to be sent to Kusama from this chain.
 		///
-		/// Please keep in mind that this method returns lowest message fee required for message
+		/// Please keep in mind that this method returns the lowest message fee required for message
 		/// to be accepted to the lane. It may be good idea to pay a bit over this price to account
 		/// future exchange rate changes and guarantee that relayer would deliver your message
 		/// to the target chain.
@@ -110,7 +135,7 @@ sp_api::decl_runtime_apis! {
 	pub trait FromKusamaInboundLaneApi {
 		/// Returns nonce of the latest message, received by given lane.
 		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
-		/// Nonce of latest message that has been confirmed to the bridged chain.
+		/// Nonce of the latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
 		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;

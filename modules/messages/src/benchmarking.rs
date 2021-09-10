@@ -19,7 +19,7 @@
 use crate::weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH;
 use crate::{
 	inbound_lane::InboundLaneStorage, inbound_lane_storage, outbound_lane, outbound_lane::ReceivalConfirmationResult,
-	Call, Instance,
+	Call,
 };
 
 use bp_messages::{
@@ -27,7 +27,7 @@ use bp_messages::{
 	MessageData, MessageNonce, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
 };
 use bp_runtime::messages::DispatchFeePayment;
-use frame_benchmarking::{account, benchmarks_instance};
+use frame_benchmarking::{account, benchmarks_instance_pallet};
 use frame_support::{traits::Get, weights::Weight};
 use frame_system::RawOrigin;
 use sp_std::{
@@ -38,12 +38,12 @@ use sp_std::{
 };
 
 /// Fee paid by submitter for single message delivery.
-pub const MESSAGE_FEE: u64 = 10_000_000_000;
+pub const MESSAGE_FEE: u64 = 100_000_000_000;
 
 const SEED: u32 = 0;
 
 /// Pallet we're benchmarking here.
-pub struct Pallet<T: Config<I>, I: crate::Instance>(crate::Pallet<T, I>);
+pub struct Pallet<T: Config<I>, I: 'static>(crate::Pallet<T, I>);
 
 /// Proof size requirements.
 pub enum ProofSize {
@@ -91,7 +91,7 @@ pub struct MessageDeliveryProofParams<ThisChainAccountId> {
 }
 
 /// Trait that must be implemented by runtime.
-pub trait Config<I: Instance>: crate::Config<I> {
+pub trait Config<I: 'static>: crate::Config<I> {
 	/// Lane id to use in benchmarks.
 	fn bench_lane_id() -> LaneId {
 		Default::default()
@@ -123,7 +123,7 @@ pub trait Config<I: Instance>: crate::Config<I> {
 	fn is_message_dispatched(nonce: MessageNonce) -> bool;
 }
 
-benchmarks_instance! {
+benchmarks_instance_pallet! {
 	//
 	// Benchmarks that are used directly by the runtime.
 	//
@@ -237,7 +237,9 @@ benchmarks_instance! {
 	// Benchmark `increase_message_fee` with following conditions:
 	// * message has maximal message;
 	// * submitter account is killed because its balance is less than ED after payment.
-	increase_message_fee {
+	//
+	// Result of this benchmark is directly used by weight formula of the call.
+	maximal_increase_message_fee {
 		let sender = account("sender", 42, SEED);
 		T::endow_account(&sender);
 
@@ -246,6 +248,25 @@ benchmarks_instance! {
 		let nonce = 1;
 
 		send_regular_message_with_payload::<T, I>(vec![42u8; T::maximal_message_size() as _]);
+	}: increase_message_fee(RawOrigin::Signed(sender.clone()), lane_id, nonce, additional_fee)
+	verify {
+		assert_eq!(T::account_balance(&sender), 0.into());
+	}
+
+	// Benchmark `increase_message_fee` with following conditions:
+	// * message size varies from minimal to maximal;
+	// * submitter account is killed because its balance is less than ED after payment.
+	increase_message_fee {
+		let i in 0..T::maximal_message_size().try_into().unwrap_or_default();
+
+		let sender = account("sender", 42, SEED);
+		T::endow_account(&sender);
+
+		let additional_fee = T::account_balance(&sender);
+		let lane_id = T::bench_lane_id();
+		let nonce = 1;
+
+		send_regular_message_with_payload::<T, I>(vec![42u8; i as _]);
 	}: increase_message_fee(RawOrigin::Signed(sender.clone()), lane_id, nonce, additional_fee)
 	verify {
 		assert_eq!(T::account_balance(&sender), 0.into());
@@ -877,7 +898,7 @@ benchmarks_instance! {
 	}
 }
 
-fn send_regular_message<T: Config<I>, I: Instance>() {
+fn send_regular_message<T: Config<I>, I: 'static>() {
 	let mut outbound_lane = outbound_lane::<T, I>(T::bench_lane_id());
 	outbound_lane.send_message(MessageData {
 		payload: vec![],
@@ -885,7 +906,7 @@ fn send_regular_message<T: Config<I>, I: Instance>() {
 	});
 }
 
-fn send_regular_message_with_payload<T: Config<I>, I: Instance>(payload: Vec<u8>) {
+fn send_regular_message_with_payload<T: Config<I>, I: 'static>(payload: Vec<u8>) {
 	let mut outbound_lane = outbound_lane::<T, I>(T::bench_lane_id());
 	outbound_lane.send_message(MessageData {
 		payload,
@@ -893,7 +914,7 @@ fn send_regular_message_with_payload<T: Config<I>, I: Instance>(payload: Vec<u8>
 	});
 }
 
-fn confirm_message_delivery<T: Config<I>, I: Instance>(nonce: MessageNonce) {
+fn confirm_message_delivery<T: Config<I>, I: 'static>(nonce: MessageNonce) {
 	let mut outbound_lane = outbound_lane::<T, I>(T::bench_lane_id());
 	let latest_received_nonce = outbound_lane.data().latest_received_nonce;
 	let mut relayers = VecDeque::with_capacity((nonce - latest_received_nonce) as usize);
@@ -909,7 +930,7 @@ fn confirm_message_delivery<T: Config<I>, I: Instance>(nonce: MessageNonce) {
 	));
 }
 
-fn receive_messages<T: Config<I>, I: Instance>(nonce: MessageNonce) {
+fn receive_messages<T: Config<I>, I: 'static>(nonce: MessageNonce) {
 	let mut inbound_lane_storage = inbound_lane_storage::<T, I>(T::bench_lane_id());
 	inbound_lane_storage.set_data(InboundLaneData {
 		relayers: vec![UnrewardedRelayer {
@@ -922,7 +943,7 @@ fn receive_messages<T: Config<I>, I: Instance>(nonce: MessageNonce) {
 	});
 }
 
-fn ensure_relayer_rewarded<T: Config<I>, I: Instance>(relayer_id: &T::AccountId, old_balance: &T::OutboundMessageFee) {
+fn ensure_relayer_rewarded<T: Config<I>, I: 'static>(relayer_id: &T::AccountId, old_balance: &T::OutboundMessageFee) {
 	let new_balance = T::account_balance(relayer_id);
 	assert!(
 		new_balance > *old_balance,

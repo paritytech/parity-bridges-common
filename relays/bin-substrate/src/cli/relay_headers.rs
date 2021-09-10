@@ -14,10 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::{PrometheusParams, SourceConnectionParams, TargetConnectionParams, TargetSigningParams};
-use crate::finality_pipeline::SubstrateFinalitySyncPipeline;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
+
+use substrate_relay_helper::finality_pipeline::SubstrateFinalitySyncPipeline;
+
+use crate::cli::{PrometheusParams, SourceConnectionParams, TargetConnectionParams, TargetSigningParams};
 
 /// Start headers relayer process.
 #[derive(StructOpt)]
@@ -97,16 +99,18 @@ impl RelayHeaders {
 		select_bridge!(self.bridge, {
 			let source_client = self.source.to_client::<Source>().await?;
 			let target_client = self.target.to_client::<Target>().await?;
+			let target_transactions_mortality = self.target_sign.target_transactions_mortality;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 			let metrics_params = Finality::customize_metrics(self.prometheus_params.into())?;
 			let finality = Finality::new(target_client.clone(), target_sign);
 			finality.start_relay_guards();
 
-			crate::finality_pipeline::run(
+			substrate_relay_helper::finality_pipeline::run(
 				finality,
 				source_client,
 				target_client,
 				self.only_mandatory_headers,
+				target_transactions_mortality,
 				metrics_params,
 			)
 			.await

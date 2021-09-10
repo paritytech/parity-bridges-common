@@ -16,30 +16,37 @@
 
 //! Wococo-to-Rococo messages sync entrypoint.
 
-use crate::messages_lane::{
+use std::{ops::RangeInclusive, time::Duration};
+
+use codec::Encode;
+use sp_core::{Bytes, Pair};
+
+use bp_messages::MessageNonce;
+use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
+use frame_support::weights::Weight;
+use messages_relay::message_lane::MessageLane;
+use relay_rococo_client::{HeaderId as RococoHeaderId, Rococo, SigningParams as RococoSigningParams};
+use relay_substrate_client::{Chain, Client, IndexOf, TransactionSignScheme, UnsignedTransaction};
+use relay_utils::metrics::MetricsParams;
+use relay_wococo_client::{HeaderId as WococoHeaderId, SigningParams as WococoSigningParams, Wococo};
+use substrate_relay_helper::messages_lane::{
 	select_delivery_transaction_limits, MessagesRelayParams, StandaloneMessagesMetrics, SubstrateMessageLane,
 	SubstrateMessageLaneToSubstrate,
 };
-use crate::messages_source::SubstrateMessagesSource;
-use crate::messages_target::SubstrateMessagesTarget;
-
-use bp_messages::MessageNonce;
-use bp_runtime::{ROCOCO_CHAIN_ID, WOCOCO_CHAIN_ID};
-use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
-use codec::Encode;
-use messages_relay::message_lane::MessageLane;
-use relay_rococo_client::{HeaderId as RococoHeaderId, Rococo, SigningParams as RococoSigningParams};
-use relay_substrate_client::{Chain, Client, TransactionSignScheme};
-use relay_utils::metrics::MetricsParams;
-use relay_wococo_client::{HeaderId as WococoHeaderId, SigningParams as WococoSigningParams, Wococo};
-use sp_core::{Bytes, Pair};
-use std::{ops::RangeInclusive, time::Duration};
+use substrate_relay_helper::messages_source::SubstrateMessagesSource;
+use substrate_relay_helper::messages_target::SubstrateMessagesTarget;
 
 /// Wococo-to-Rococo message lane.
-pub type WococoMessagesToRococo =
+pub type MessageLaneWococoMessagesToRococo =
 	SubstrateMessageLaneToSubstrate<Wococo, WococoSigningParams, Rococo, RococoSigningParams>;
 
+#[derive(Clone)]
+pub struct WococoMessagesToRococo {
+	message_lane: MessageLaneWococoMessagesToRococo,
+}
+
 impl SubstrateMessageLane for WococoMessagesToRococo {
+	type MessageLane = MessageLaneWococoMessagesToRococo;
 	const OUTBOUND_LANE_MESSAGE_DETAILS_METHOD: &'static str = bp_rococo::TO_ROCOCO_MESSAGE_DETAILS_METHOD;
 	const OUTBOUND_LANE_LATEST_GENERATED_NONCE_METHOD: &'static str =
 		bp_rococo::TO_ROCOCO_LATEST_GENERATED_NONCE_METHOD;
@@ -53,18 +60,23 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_wococo::BEST_FINALIZED_WOCOCO_HEADER_METHOD;
 	const BEST_FINALIZED_TARGET_HEADER_ID_AT_SOURCE: &'static str = bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
 
+	const MESSAGE_PALLET_NAME_AT_SOURCE: &'static str = bp_wococo::WITH_ROCOCO_MESSAGES_PALLET_NAME;
+	const MESSAGE_PALLET_NAME_AT_TARGET: &'static str = bp_rococo::WITH_WOCOCO_MESSAGES_PALLET_NAME;
+
+	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN: Weight = bp_rococo::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
+
 	type SourceChain = Wococo;
 	type TargetChain = Rococo;
 
 	fn source_transactions_author(&self) -> bp_wococo::AccountId {
-		(*self.source_sign.public().as_array_ref()).into()
+		(*self.message_lane.source_sign.public().as_array_ref()).into()
 	}
 
 	fn make_messages_receiving_proof_transaction(
 		&self,
-		transaction_nonce: <Wococo as Chain>::Index,
+		transaction_nonce: IndexOf<Wococo>,
 		_generated_at_block: RococoHeaderId,
-		proof: <Self as MessageLane>::MessagesReceivingProof,
+		proof: <Self::MessageLane as MessageLane>::MessagesReceivingProof,
 	) -> Bytes {
 		let (relayers_state, proof) = proof;
 		let call = relay_wococo_client::runtime::Call::BridgeMessagesRococo(
@@ -73,8 +85,13 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 				relayers_state,
 			),
 		);
-		let genesis_hash = *self.source_client.genesis_hash();
-		let transaction = Wococo::sign_transaction(genesis_hash, &self.source_sign, transaction_nonce, call);
+		let genesis_hash = *self.message_lane.source_client.genesis_hash();
+		let transaction = Wococo::sign_transaction(
+			genesis_hash,
+			&self.message_lane.source_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			UnsignedTransaction::new(call, transaction_nonce),
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Rococo -> Wococo confirmation transaction. Weight: <unknown>/{}, size: {}/{}",
@@ -86,15 +103,15 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 	}
 
 	fn target_transactions_author(&self) -> bp_rococo::AccountId {
-		(*self.target_sign.public().as_array_ref()).into()
+		(*self.message_lane.target_sign.public().as_array_ref()).into()
 	}
 
 	fn make_messages_delivery_transaction(
 		&self,
-		transaction_nonce: <Rococo as Chain>::Index,
+		transaction_nonce: IndexOf<Rococo>,
 		_generated_at_header: WococoHeaderId,
 		_nonces: RangeInclusive<MessageNonce>,
-		proof: <Self as MessageLane>::MessagesProof,
+		proof: <Self::MessageLane as MessageLane>::MessagesProof,
 	) -> Bytes {
 		let (dispatch_weight, proof) = proof;
 		let FromBridgedChainMessagesProof {
@@ -106,14 +123,19 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 
 		let call = relay_rococo_client::runtime::Call::BridgeMessagesWococo(
 			relay_rococo_client::runtime::BridgeMessagesWococoCall::receive_messages_proof(
-				self.relayer_id_at_source.clone(),
+				self.message_lane.relayer_id_at_source.clone(),
 				proof,
 				messages_count as _,
 				dispatch_weight,
 			),
 		);
-		let genesis_hash = *self.target_client.genesis_hash();
-		let transaction = Rococo::sign_transaction(genesis_hash, &self.target_sign, transaction_nonce, call);
+		let genesis_hash = *self.message_lane.target_client.genesis_hash();
+		let transaction = Rococo::sign_transaction(
+			genesis_hash,
+			&self.message_lane.target_sign,
+			relay_substrate_client::TransactionEra::immortal(),
+			UnsignedTransaction::new(call, transaction_nonce),
+		);
 		log::trace!(
 			target: "bridge",
 			"Prepared Wococo -> Rococo delivery transaction. Weight: <unknown>/{}, size: {}/{}",
@@ -126,20 +148,10 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 }
 
 /// Wococo node as messages source.
-type WococoSourceClient = SubstrateMessagesSource<
-	Wococo,
-	Rococo,
-	WococoMessagesToRococo,
-	relay_wococo_client::runtime::WithRococoMessagesInstance,
->;
+type WococoSourceClient = SubstrateMessagesSource<WococoMessagesToRococo>;
 
 /// Rococo node as messages target.
-type RococoTargetClient = SubstrateMessagesTarget<
-	Wococo,
-	Rococo,
-	WococoMessagesToRococo,
-	relay_rococo_client::runtime::WithWococoMessagesInstance,
->;
+type RococoTargetClient = SubstrateMessagesTarget<WococoMessagesToRococo>;
 
 /// Run Wococo-to-Rococo messages sync.
 pub async fn run(
@@ -151,11 +163,13 @@ pub async fn run(
 	let lane_id = params.lane_id;
 	let source_client = params.source_client;
 	let lane = WococoMessagesToRococo {
-		source_client: source_client.clone(),
-		source_sign: params.source_sign,
-		target_client: params.target_client.clone(),
-		target_sign: params.target_sign,
-		relayer_id_at_source: relayer_id_at_wococo,
+		message_lane: SubstrateMessageLaneToSubstrate {
+			source_client: source_client.clone(),
+			source_sign: params.source_sign,
+			target_client: params.target_client.clone(),
+			target_sign: params.target_sign,
+			relayer_id_at_source: relayer_id_at_wococo,
+		},
 	};
 
 	// 2/3 is reserved for proofs and tx overhead
@@ -178,16 +192,18 @@ pub async fn run(
 			Wococo relayer account id: {:?}\n\t\
 			Max messages in single transaction: {}\n\t\
 			Max messages size in single transaction: {}\n\t\
-			Max messages weight in single transaction: {}",
-		lane.relayer_id_at_source,
+			Max messages weight in single transaction: {}\n\t\
+			Relayer mode: {:?}",
+		lane.message_lane.relayer_id_at_source,
 		max_messages_in_single_batch,
 		max_messages_size_in_single_batch,
 		max_messages_weight_in_single_batch,
+		params.relayer_mode,
 	);
 
 	let (metrics_params, metrics_values) = add_standalone_metrics(
 		Some(messages_relay::message_lane_loop::metrics_prefix::<
-			WococoMessagesToRococo,
+			<WococoMessagesToRococo as SubstrateMessageLane>::MessageLane,
 		>(&lane_id)),
 		params.metrics_params,
 		source_client.clone(),
@@ -205,21 +221,19 @@ pub async fn run(
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
-				relayer_mode: messages_relay::message_lane_loop::RelayerMode::Altruistic,
+				relayer_mode: params.relayer_mode,
 			},
 		},
 		WococoSourceClient::new(
 			source_client.clone(),
 			lane.clone(),
 			lane_id,
-			ROCOCO_CHAIN_ID,
 			params.target_to_source_headers_relay,
 		),
 		RococoTargetClient::new(
 			params.target_client,
 			lane,
 			lane_id,
-			WOCOCO_CHAIN_ID,
 			metrics_values,
 			params.source_to_target_headers_relay,
 		),
@@ -235,7 +249,7 @@ pub(crate) fn add_standalone_metrics(
 	metrics_params: MetricsParams,
 	source_client: Client<Wococo>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
-	crate::messages_lane::add_standalone_metrics::<WococoMessagesToRococo>(
+	substrate_relay_helper::messages_lane::add_standalone_metrics::<WococoMessagesToRococo>(
 		metrics_prefix,
 		metrics_params,
 		source_client,

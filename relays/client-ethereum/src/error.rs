@@ -28,6 +28,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// an Ethereum node through RPC.
 #[derive(Debug)]
 pub enum Error {
+	/// IO error.
+	Io(std::io::Error),
 	/// An error that can occur when making an HTTP request to
 	/// an JSON-RPC client.
 	RpcError(RpcError),
@@ -45,6 +47,8 @@ pub enum Error {
 	/// The client we're connected to is not synced, so we can't rely on its state. Contains
 	/// number of unsynced headers.
 	ClientNotSynced(U256),
+	/// Custom logic error.
+	Custom(String),
 }
 
 impl From<RpcError> for Error {
@@ -53,14 +57,25 @@ impl From<RpcError> for Error {
 	}
 }
 
+impl From<std::io::Error> for Error {
+	fn from(error: std::io::Error) -> Self {
+		Error::Io(error)
+	}
+}
+
+impl From<tokio::task::JoinError> for Error {
+	fn from(error: tokio::task::JoinError) -> Self {
+		Error::Custom(format!("Failed to wait tokio task: {}", error))
+	}
+}
+
 impl MaybeConnectionError for Error {
 	fn is_connection_error(&self) -> bool {
 		matches!(
 			*self,
-			Error::RpcError(RpcError::TransportError(_))
-				// right now if connection to the ws server is dropped (after it is already established),
-				// we're getting this error
+			Error::RpcError(RpcError::Transport(_))
 				| Error::RpcError(RpcError::Internal(_))
+				| Error::RpcError(RpcError::RestartNeeded(_))
 				| Error::ClientNotSynced(_),
 		)
 	}
@@ -69,6 +84,7 @@ impl MaybeConnectionError for Error {
 impl ToString for Error {
 	fn to_string(&self) -> String {
 		match self {
+			Self::Io(e) => e.to_string(),
 			Self::RpcError(e) => e.to_string(),
 			Self::ResponseParseFailed(e) => e.to_string(),
 			Self::IncompleteHeader => {
@@ -81,6 +97,7 @@ impl ToString for Error {
 			Self::ClientNotSynced(missing_headers) => {
 				format!("Ethereum client is not synced: syncing {} headers", missing_headers)
 			}
+			Self::Custom(ref e) => e.clone(),
 		}
 	}
 }

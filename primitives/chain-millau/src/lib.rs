@@ -25,7 +25,7 @@ mod millau_hash;
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
-	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, Weight},
+	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, Weight},
 	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
@@ -130,7 +130,7 @@ pub type BlockNumber = u64;
 /// Hash type used in Millau.
 pub type Hash = <BlakeTwoAndKeccak256 as HasherT>::Out;
 
-/// The type of an object that can produce hashes on Millau.
+/// Type of object that can produce hashes on Millau.
 pub type Hasher = BlakeTwoAndKeccak256;
 
 /// The header type used by Millau.
@@ -149,6 +149,12 @@ pub type AccountSigner = MultiSigner;
 /// Balance of an account.
 pub type Balance = u64;
 
+/// Index of a transaction in the chain.
+pub type Index = u32;
+
+/// Weight-to-Fee type used by Millau.
+pub type WeightToFee = IdentityFee<Balance>;
+
 /// Millau chain.
 #[derive(RuntimeDebug)]
 pub struct Millau;
@@ -158,6 +164,11 @@ impl Chain for Millau {
 	type Hash = Hash;
 	type Hasher = Hasher;
 	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = Index;
+	type Signature = Signature;
 }
 
 /// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
@@ -245,6 +256,9 @@ pub fn max_extrinsic_size() -> u32 {
 	*BlockLength::get().max.get(DispatchClass::Normal)
 }
 
+/// Name of the With-Rialto messages pallet instance in the Millau runtime.
+pub const WITH_RIALTO_MESSAGES_PALLET_NAME: &str = "BridgeRialtoMessages";
+
 /// Name of the `MillauFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_MILLAU_HEADER_METHOD: &str = "MillauFinalityApi_best_finalized";
 
@@ -287,7 +301,7 @@ sp_api::decl_runtime_apis! {
 		///
 		/// Returns `None` if message is too expensive to be sent to Millau from this chain.
 		///
-		/// Please keep in mind that this method returns lowest message fee required for message
+		/// Please keep in mind that this method returns the lowest message fee required for message
 		/// to be accepted to the lane. It may be good idea to pay a bit over this price to account
 		/// future exchange rate changes and guarantee that relayer would deliver your message
 		/// to the target chain.
@@ -318,7 +332,7 @@ sp_api::decl_runtime_apis! {
 	pub trait FromMillauInboundLaneApi {
 		/// Returns nonce of the latest message, received by given lane.
 		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
-		/// Nonce of latest message that has been confirmed to the bridged chain.
+		/// Nonce of the latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
 		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;

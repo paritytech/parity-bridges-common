@@ -31,14 +31,14 @@ use sp_std::fmt::Debug;
 
 /// Instant message payments made in given currency.
 ///
-/// The balance is initally reserved in a special `relayers-fund` account, and transferred
+/// The balance is initially reserved in a special `relayers-fund` account, and transferred
 /// to the relayer when message delivery is confirmed.
 ///
-/// Additionaly, confirmation transaction submitter (`confirmation_relayer`) is reimbursed
+/// Additionally, confirmation transaction submitter (`confirmation_relayer`) is reimbursed
 /// with the confirmation rewards (part of message fee, reserved to pay for delivery confirmation).
 ///
 /// NOTE The `relayers-fund` account must always exist i.e. be over Existential Deposit (ED; the
-/// pallet enforces that) to make sure that even if the message cost is below ED it is still payed
+/// pallet enforces that) to make sure that even if the message cost is below ED it is still paid
 /// to the relayer account.
 /// NOTE It's within relayer's interest to keep their balance above ED as well, to make sure they
 /// can receive the payment.
@@ -57,20 +57,15 @@ where
 {
 	type Error = &'static str;
 
-	fn initialize(relayer_fund_account: &T::AccountId) -> usize {
-		assert!(
-			frame_system::Pallet::<T>::account_exists(relayer_fund_account),
-			"The relayer fund account ({:?}) must exist for the message lanes pallet to work correctly.",
-			relayer_fund_account,
-		);
-		1
-	}
-
 	fn pay_delivery_and_dispatch_fee(
 		submitter: &Sender<T::AccountId>,
 		fee: &Currency::Balance,
 		relayer_fund_account: &T::AccountId,
 	) -> Result<(), Self::Error> {
+		if !frame_system::Pallet::<T>::account_exists(relayer_fund_account) {
+			return Err("The relayer fund account must exist for the message lanes pallet to work correctly.");
+		}
+
 		let root_account = RootAccount::get();
 		let account = match submitter {
 			Sender::Signed(submitter) => submitter,

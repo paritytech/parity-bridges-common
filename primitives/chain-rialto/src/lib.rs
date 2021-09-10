@@ -23,7 +23,7 @@
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
-	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, Weight},
+	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, Weight},
 	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
@@ -105,7 +105,7 @@ pub use time_units::*;
 
 /// Human readable time units defined in terms of number of blocks.
 pub mod time_units {
-	use super::BlockNumber;
+	use super::{BlockNumber, SESSION_LENGTH};
 
 	pub const MILLISECS_PER_BLOCK: u64 = 6000;
 	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
@@ -113,6 +113,11 @@ pub mod time_units {
 	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 	pub const HOURS: BlockNumber = MINUTES * 60;
 	pub const DAYS: BlockNumber = HOURS * 24;
+
+	pub const EPOCH_DURATION_IN_SLOTS: BlockNumber = SESSION_LENGTH;
+
+	// 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
+	pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 }
 
 /// Block number type used in Rialto.
@@ -121,7 +126,7 @@ pub type BlockNumber = u32;
 /// Hash type used in Rialto.
 pub type Hash = <BlakeTwo256 as HasherT>::Out;
 
-/// The type of an object that can produce hashes on Rialto.
+/// The type of object that can produce hashes on Rialto.
 pub type Hasher = BlakeTwo256;
 
 /// The header type used by Rialto.
@@ -140,6 +145,15 @@ pub type AccountSigner = MultiSigner;
 /// Balance of an account.
 pub type Balance = u128;
 
+/// An instant or duration in time.
+pub type Moment = u64;
+
+/// Index of a transaction in the chain.
+pub type Index = u32;
+
+/// Weight-to-Fee type used by Rialto.
+pub type WeightToFee = IdentityFee<Balance>;
+
 /// Rialto chain.
 #[derive(RuntimeDebug)]
 pub struct Rialto;
@@ -149,6 +163,11 @@ impl Chain for Rialto {
 	type Hash = Hash;
 	type Hasher = Hasher;
 	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = Index;
+	type Signature = Signature;
 }
 
 /// Convert a 256-bit hash into an AccountId.
@@ -206,6 +225,9 @@ pub fn max_extrinsic_size() -> u32 {
 	*BlockLength::get().max.get(DispatchClass::Normal)
 }
 
+/// Name of the With-Millau messages pallet instance in the Rialto runtime.
+pub const WITH_MILLAU_MESSAGES_PALLET_NAME: &str = "BridgeMillauMessages";
+
 /// Name of the `RialtoFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_RIALTO_HEADER_METHOD: &str = "RialtoFinalityApi_best_finalized";
 
@@ -248,7 +270,7 @@ sp_api::decl_runtime_apis! {
 		///
 		/// Returns `None` if message is too expensive to be sent to Rialto from this chain.
 		///
-		/// Please keep in mind that this method returns lowest message fee required for message
+		/// Please keep in mind that this method returns the lowest message fee required for message
 		/// to be accepted to the lane. It may be good idea to pay a bit over this price to account
 		/// future exchange rate changes and guarantee that relayer would deliver your message
 		/// to the target chain.
@@ -279,7 +301,7 @@ sp_api::decl_runtime_apis! {
 	pub trait FromRialtoInboundLaneApi {
 		/// Returns nonce of the latest message, received by given lane.
 		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
-		/// Nonce of latest message that has been confirmed to the bridged chain.
+		/// Nonce of the latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
 		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;

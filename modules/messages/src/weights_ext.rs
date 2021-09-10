@@ -29,6 +29,11 @@ pub const EXPECTED_DEFAULT_MESSAGE_LENGTH: u32 = 128;
 /// we're checking here would fit 1KB.
 const SIGNED_EXTENSIONS_SIZE: u32 = 1024;
 
+/// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
+/// Rialto chain. This mostly depends on number of entries (and their density) in the storage trie.
+/// Some reserve is reserved to account future chain growth.
+pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
+
 /// Ensure that weights from `WeightInfoExt` implementation are looking correct.
 pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 	expected_default_message_delivery_tx_weight: Weight,
@@ -266,7 +271,7 @@ pub trait WeightInfoExt: WeightInfo {
 		weight_of_two_messages_and_two_tx_overheads.saturating_sub(weight_of_two_messages_and_single_tx_overhead)
 	}
 
-	/// Returns weight that needs to be accounted when receiving given number of messages with message
+	/// Returns weight that needs to be accounted when receiving given a number of messages with message
 	/// delivery transaction (`receive_messages_proof`).
 	fn receive_messages_proof_messages_overhead(messages: MessageNonce) -> Weight {
 		let weight_of_two_messages_and_single_tx_overhead = Self::receive_two_messages_proof();
@@ -293,7 +298,7 @@ pub trait WeightInfoExt: WeightInfo {
 		weight_of_two_messages_and_two_tx_overheads.saturating_sub(weight_of_two_messages_and_single_tx_overhead)
 	}
 
-	/// Returns weight that needs to be accounted when receiving confirmations for given number of
+	/// Returns weight that needs to be accounted when receiving confirmations for given a number of
 	/// messages with delivery confirmation transaction (`receive_messages_delivery_proof`).
 	fn receive_messages_delivery_proof_messages_overhead(messages: MessageNonce) -> Weight {
 		let weight_of_two_messages = Self::receive_delivery_proof_for_two_messages_by_single_relayer();
@@ -303,7 +308,7 @@ pub trait WeightInfoExt: WeightInfo {
 			.saturating_mul(messages as Weight)
 	}
 
-	/// Returns weight that needs to be accounted when receiving confirmations for given number of
+	/// Returns weight that needs to be accounted when receiving confirmations for given a number of
 	/// relayers entries with delivery confirmation transaction (`receive_messages_delivery_proof`).
 	fn receive_messages_delivery_proof_relayers_overhead(relayers: MessageNonce) -> Weight {
 		let weight_of_two_messages_by_two_relayers = Self::receive_delivery_proof_for_two_messages_by_two_relayers();
@@ -314,7 +319,7 @@ pub trait WeightInfoExt: WeightInfo {
 			.saturating_mul(relayers as Weight)
 	}
 
-	/// Returns weight that needs to be accounted when storage proof of given size is recieved (either in
+	/// Returns weight that needs to be accounted when storage proof of given size is received (either in
 	/// `receive_messages_proof` or `receive_messages_delivery_proof`).
 	///
 	/// **IMPORTANT**: this overhead is already included in the 'base' transaction cost - e.g. proof
@@ -344,12 +349,12 @@ pub trait WeightInfoExt: WeightInfo {
 
 impl WeightInfoExt for () {
 	fn expected_extra_storage_proof_size() -> u32 {
-		bp_rialto::EXTRA_STORAGE_PROOF_SIZE
+		EXTRA_STORAGE_PROOF_SIZE
 	}
 }
 
 impl<T: frame_system::Config> WeightInfoExt for crate::weights::RialtoWeight<T> {
 	fn expected_extra_storage_proof_size() -> u32 {
-		bp_rialto::EXTRA_STORAGE_PROOF_SIZE
+		EXTRA_STORAGE_PROOF_SIZE
 	}
 }

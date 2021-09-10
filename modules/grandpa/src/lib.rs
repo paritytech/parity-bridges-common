@@ -28,7 +28,7 @@
 //!
 //! Since this pallet only tracks finalized headers it does not deal with forks. Forks can only
 //! occur if the GRANDPA validator set on the bridged chain is either colluding or there is a severe
-//! bug causing resulting in an equivocation. Such events are outside of the scope of this pallet.
+//! bug causing resulting in an equivocation. Such events are outside the scope of this pallet.
 //! Shall the fork occur on the bridged chain governance intervention will be required to
 //! re-initialize the bridge and track the right fork.
 
@@ -164,18 +164,26 @@ pub mod pallet {
 			let set_id = authority_set.set_id;
 			verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
 
-			let _enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
+			let is_authorities_change_enacted = try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
 			insert_header::<T, I>(finality_target, hash);
 			log::info!(target: "runtime::bridge-grandpa", "Succesfully imported finalized header with hash {:?}!", hash);
 
-			Ok(().into())
+			// mandatory header is a header that changes authorities set. The pallet can't go further
+			// without importing this header. So every bridge MUST import mandatory headers.
+			//
+			// We don't want to charge extra costs for mandatory operations. So relayer is not paying
+			// fee for mandatory headers import transactions.
+			let is_mandatory_header = is_authorities_change_enacted;
+			let pays_fee = if is_mandatory_header { Pays::No } else { Pays::Yes };
+
+			Ok(pays_fee.into())
 		}
 
 		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
 		///
 		/// The initial configuration provided does not need to be the genesis header of the bridged
-		/// chain, it can be any arbirary header. You can also provide the next scheduled set change
+		/// chain, it can be any arbitrary header. You can also provide the next scheduled set change
 		/// if it is already know.
 		///
 		/// This function is only allowed to be called from a trusted origin and writes to storage
@@ -355,7 +363,7 @@ pub mod pallet {
 	/// is found it will be enacted immediately.
 	///
 	/// This function does not support forced changes, or scheduled changes with delays
-	/// since these types of changes are indicitive of abnormal behaviour from GRANDPA.
+	/// since these types of changes are indicative of abnormal behavior from GRANDPA.
 	///
 	/// Returned value will indicate if a change was enacted or not.
 	pub(crate) fn try_enact_authority_change<T: Config<I>, I: 'static>(
@@ -401,7 +409,7 @@ pub mod pallet {
 	///
 	/// Will use the GRANDPA current authorities known to the pallet.
 	///
-	/// If succesful it returns the decoded GRANDPA justification so we can refund any weight which
+	/// If successful it returns the decoded GRANDPA justification so we can refund any weight which
 	/// was overcharged in the initial call.
 	pub(crate) fn verify_justification<T: Config<I>, I: 'static>(
 		justification: &GrandpaJustification<BridgedHeader<T, I>>,
@@ -432,7 +440,7 @@ pub mod pallet {
 	/// Import a previously verified header to the storage.
 	///
 	/// Note this function solely takes care of updating the storage and pruning old entries,
-	/// but does not verify the validaty of such import.
+	/// but does not verify the validity of such import.
 	pub(crate) fn insert_header<T: Config<I>, I: 'static>(header: BridgedHeader<T, I>, hash: BridgedBlockHash<T, I>) {
 		let index = <ImportedHashesPointer<T, I>>::get();
 		let pruning = <ImportedHashes<T, I>>::try_get(index);
@@ -567,7 +575,7 @@ pub(crate) fn find_scheduled_change<H: HeaderT>(header: &H) -> Option<sp_finalit
 	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
 }
 
-/// Checks the given header for a consensus digest signalling a **forced** scheduled change and
+/// Checks the given header for a consensus digest signaling a **forced** scheduled change and
 /// extracts it.
 pub(crate) fn find_forced_change<H: HeaderT>(
 	header: &H,
@@ -792,7 +800,13 @@ mod tests {
 	fn succesfully_imports_header_with_valid_finality() {
 		run_test(|| {
 			initialize_substrate_bridge();
-			assert_ok!(submit_finality_proof(1));
+			assert_ok!(
+				submit_finality_proof(1),
+				PostDispatchInfo {
+					actual_weight: None,
+					pays_fee: frame_support::weights::Pays::Yes,
+				},
+			);
 
 			let header = test_header(1);
 			assert_eq!(<BestFinalized<TestRuntime>>::get(), header.hash());
@@ -889,11 +903,13 @@ mod tests {
 			let justification = make_default_justification(&header);
 
 			// Let's import our test header
-			assert_ok!(Pallet::<TestRuntime>::submit_finality_proof(
-				Origin::signed(1),
-				header.clone(),
-				justification
-			));
+			assert_ok!(
+				Pallet::<TestRuntime>::submit_finality_proof(Origin::signed(1), header.clone(), justification),
+				PostDispatchInfo {
+					actual_weight: None,
+					pays_fee: frame_support::weights::Pays::No,
+				},
+			);
 
 			// Make sure that our header is the best finalized
 			assert_eq!(<BestFinalized<TestRuntime>>::get(), header.hash());

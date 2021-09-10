@@ -19,6 +19,7 @@
 use jsonrpsee_ws_client::Error as RpcError;
 use relay_utils::MaybeConnectionError;
 use sc_rpc_api::system::Health;
+use sp_runtime::transaction_validity::TransactionValidityError;
 
 /// Result type used by Substrate client.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -27,6 +28,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// a Substrate node through RPC.
 #[derive(Debug)]
 pub enum Error {
+	/// IO error.
+	Io(std::io::Error),
 	/// An error that can occur when making a request to
 	/// an JSON-RPC server.
 	RpcError(RpcError),
@@ -42,6 +45,8 @@ pub enum Error {
 	ClientNotSynced(Health),
 	/// An error has happened when we have tried to parse storage proof.
 	StorageProofError(bp_runtime::StorageProofError),
+	/// The Substrate transaction is invalid.
+	TransactionInvalid(TransactionValidityError),
 	/// Custom logic error.
 	Custom(String),
 }
@@ -49,6 +54,7 @@ pub enum Error {
 impl std::error::Error for Error {
 	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
 		match self {
+			Self::Io(ref e) => Some(e),
 			Self::RpcError(ref e) => Some(e),
 			Self::ResponseParseFailed(ref e) => Some(e),
 			Self::UninitializedBridgePallet => None,
@@ -56,6 +62,7 @@ impl std::error::Error for Error {
 			Self::MissingMandatoryCodeEntry => None,
 			Self::ClientNotSynced(_) => None,
 			Self::StorageProofError(_) => None,
+			Self::TransactionInvalid(_) => None,
 			Self::Custom(_) => None,
 		}
 	}
@@ -67,13 +74,29 @@ impl From<RpcError> for Error {
 	}
 }
 
+impl From<std::io::Error> for Error {
+	fn from(error: std::io::Error) -> Self {
+		Error::Io(error)
+	}
+}
+
+impl From<tokio::task::JoinError> for Error {
+	fn from(error: tokio::task::JoinError) -> Self {
+		Error::Custom(format!("Failed to wait tokio task: {}", error))
+	}
+}
+
+impl From<TransactionValidityError> for Error {
+	fn from(error: TransactionValidityError) -> Self {
+		Error::TransactionInvalid(error)
+	}
+}
+
 impl MaybeConnectionError for Error {
 	fn is_connection_error(&self) -> bool {
 		matches!(
 			*self,
-			Error::RpcError(RpcError::TransportError(_))
-				// right now if connection to the ws server is dropped (after it is already established),
-				// we're getting this error
+			Error::RpcError(RpcError::Transport(_))
 				| Error::RpcError(RpcError::Internal(_))
 				| Error::RpcError(RpcError::RestartNeeded(_))
 				| Error::ClientNotSynced(_),
@@ -84,6 +107,7 @@ impl MaybeConnectionError for Error {
 impl std::fmt::Display for Error {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		let s = match self {
+			Self::Io(e) => e.to_string(),
 			Self::RpcError(e) => e.to_string(),
 			Self::ResponseParseFailed(e) => e.to_string(),
 			Self::UninitializedBridgePallet => "The Substrate bridge pallet has not been initialized yet.".into(),
@@ -91,6 +115,7 @@ impl std::fmt::Display for Error {
 			Self::MissingMandatoryCodeEntry => "Mandatory :code: entry is missing from runtime storage".into(),
 			Self::StorageProofError(e) => format!("Error when parsing storage proof: {:?}", e),
 			Self::ClientNotSynced(health) => format!("Substrate client is not synced: {}", health),
+			Self::TransactionInvalid(e) => format!("Substrate transaction is invalid: {:?}", e),
 			Self::Custom(e) => e.clone(),
 		};
 

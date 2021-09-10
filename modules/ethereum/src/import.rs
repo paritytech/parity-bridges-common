@@ -22,14 +22,14 @@ use crate::{AuraConfiguration, ChainTime, ChangeToEnact, PruningStrategy, Storag
 use bp_eth_poa::{AuraHeader, HeaderId, Receipt};
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
-/// Imports bunch of headers and updates blocks finality.
+/// Imports a bunch of headers and updates blocks finality.
 ///
 /// Transactions receipts must be provided if `header_import_requires_receipts()`
 /// has returned true.
 /// If successful, returns tuple where first element is the number of useful headers
 /// we have imported and the second element is the number of useless headers (duplicate)
 /// we have NOT imported.
-/// Returns error if fatal error has occured during import. Some valid headers may be
+/// Returns error if fatal error has occurred during import. Some valid headers may be
 /// imported in this case.
 /// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/415)
 #[allow(clippy::too_many_arguments)]
@@ -176,9 +176,7 @@ mod tests {
 		validators_change_receipt, HeaderBuilder, KeepSomeHeadersBehindBest, TestRuntime, GAS_LIMIT,
 	};
 	use crate::validators::ValidatorsSource;
-	use crate::DefaultInstance;
 	use crate::{BlocksToPrune, BridgeStorage, Headers, PruningRange};
-	use frame_support::{StorageMap, StorageValue};
 	use secp256k1::SecretKey;
 
 	const TOTAL_VALIDATORS: usize = 3;
@@ -367,7 +365,7 @@ mod tests {
 				step += 3;
 			}
 			assert_eq!(
-				BlocksToPrune::<DefaultInstance>::get(),
+				BlocksToPrune::<TestRuntime, ()>::get(),
 				PruningRange {
 					oldest_unpruned_block: 11,
 					oldest_block_to_keep: 14,
@@ -394,7 +392,7 @@ mod tests {
 			.unwrap();
 			assert_eq!(finalized_blocks, expected_blocks);
 			assert_eq!(
-				BlocksToPrune::<DefaultInstance>::get(),
+				BlocksToPrune::<TestRuntime, ()>::get(),
 				PruningRange {
 					oldest_unpruned_block: 15,
 					oldest_block_to_keep: 15,

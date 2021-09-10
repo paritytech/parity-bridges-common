@@ -18,7 +18,7 @@ use crate::cli::{SourceConnectionParams, TargetConnectionParams, TargetSigningPa
 use bp_header_chain::InitializationData;
 use bp_runtime::Chain as ChainBase;
 use codec::Encode;
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -26,7 +26,7 @@ use strum::{EnumString, EnumVariantNames, VariantNames};
 /// Initialize bridge pallet.
 #[derive(StructOpt)]
 pub struct InitBridge {
-	/// A bridge instance to initalize.
+	/// A bridge instance to initialize.
 	#[structopt(possible_values = InitBridgeName::VARIANTS, case_insensitive = true)]
 	bridge: InitBridgeName,
 	#[structopt(flatten)]
@@ -141,7 +141,7 @@ impl InitBridge {
 			let target_client = self.target.to_client::<Target>().await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
-			crate::headers_initialize::initialize(
+			substrate_relay_helper::headers_initialize::initialize(
 				source_client,
 				target_client.clone(),
 				target_sign.public().into(),
@@ -150,8 +150,8 @@ impl InitBridge {
 						Target::sign_transaction(
 							*target_client.genesis_hash(),
 							&target_sign,
-							transaction_nonce,
-							encode_init_bridge(initialization_data),
+							relay_substrate_client::TransactionEra::immortal(),
+							UnsignedTransaction::new(encode_init_bridge(initialization_data), transaction_nonce),
 						)
 						.encode(),
 					)
