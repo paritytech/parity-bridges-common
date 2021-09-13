@@ -178,6 +178,7 @@ impl Config for TestRuntime {
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
+	type OnMessageAccepted = ();
 	type OnDeliveryConfirmed = (TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2);
 
 	type SourceHeaderChain = TestSourceHeaderChain;

@@ -48,7 +48,8 @@ use crate::weights::WeightInfo;
 
 use bp_messages::{
 	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards, TargetHeaderChain,
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, OnMessageAccepted,
+		RelayersRewards, TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	total_unrewarded_messages, DeliveredMessages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce,
@@ -156,6 +157,8 @@ pub mod pallet {
 			Self::AccountId,
 			Self::OutboundMessageFee,
 		>;
+		/// Handler for accepted messages.
+		type OnMessageAccepted: OnMessageAccepted;
 		/// Handler for delivered messages.
 		type OnDeliveryConfirmed: OnDeliveryConfirmed;
 
@@ -305,6 +308,8 @@ pub mod pallet {
 				payload: encoded_payload,
 				fee: delivery_and_dispatch_fee,
 			});
+			// todo: update the weight
+			let _weight = T::OnMessageAccepted::on_messages_accepted(&nonce);
 
 			// message sender pays for pruning at most `MaxMessagesToPruneAtOnce` messages
 			// the cost of pruning every message is roughly single db write
