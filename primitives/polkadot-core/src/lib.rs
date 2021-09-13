@@ -138,6 +138,43 @@ pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
 /// Maximal number of unconfirmed messages at inbound lane.
 pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
 
+// One important thing about weight-related constants here is that actually we may have
+// different weights on different Polkadot-like chains. But now all deployments are
+// almost the same, so we're exporting constants from this crate.
+
+/// Maximal weight of single message delivery confirmation transaction on Polkadot-like chain.
+///
+/// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_delivery_proof` weight formula
+/// computation for the case when single message is confirmed. The result then must be rounded up to account possible
+/// future runtime upgrades.
+pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = 2_000_000_000;
+
+/// Increase of delivery transaction weight on Polkadot-like chain with every additional message byte.
+///
+/// This value is a result of `pallet_bridge_messages::WeightInfoExt::storage_proof_size_overhead(1)` call. The
+/// result then must be rounded up to account possible future runtime upgrades.
+pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = 25_000;
+
+/// Maximal number of bytes, included in the signed Polkadot-like transaction apart from the encoded call itself.
+///
+/// Can be computed by subtracting encoded call size from raw transaction size.
+pub const TX_EXTRA_BYTES: u32 = 256;
+
+/// Weight of single regular message delivery transaction on Polkadot-like chain.
+///
+/// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_proof_weight()` call
+/// for the case when single message of `pallet_bridge_messages::EXPECTED_DEFAULT_MESSAGE_LENGTH` bytes is delivered.
+/// The message must have dispatch weight set to zero. The result then must be rounded up to account
+/// possible future runtime upgrades.
+pub const DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_500_000_000;
+
+/// Weight of pay-dispatch-fee operation for inbound messages at Polkadot-like chain.
+///
+/// This value corresponds to the result of `pallet_bridge_messages::WeightInfoExt::pay_inbound_dispatch_fee_overhead()`
+/// call for your chain. Don't put too much reserve there, because it is used to **decrease**
+/// `DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT` cost. So putting large reserve would make delivery transactions cheaper.
+pub const PAY_INBOUND_DISPATCH_FEE_WEIGHT: Weight = 600_000_000;
+
 /// Re-export `time_units` to make usage easier.
 pub use time_units::*;
 
@@ -196,6 +233,9 @@ pub type Balance = u128;
 pub type UncheckedExtrinsic<Call> =
 	generic::UncheckedExtrinsic<MultiAddress<AccountId, ()>, Call, Signature, SignedExtensions<Call>>;
 
+/// Account address, used by the Polkadot-like chain.
+pub type Address = MultiAddress<AccountId, ()>;
+
 /// A type of the data encoded as part of the transaction.
 pub type SignedExtra = (
 	(),
@@ -235,32 +275,44 @@ impl<Call> parity_scale_codec::Decode for SignedExtensions<Call> {
 impl<Call> SignedExtensions<Call> {
 	pub fn new(
 		version: sp_version::RuntimeVersion,
-		era: sp_runtime::generic::Era,
+		era: bp_runtime::TransactionEraOf<PolkadotLike>,
 		genesis_hash: Hash,
 		nonce: Nonce,
 		tip: Balance,
 	) -> Self {
 		Self {
 			encode_payload: (
-				(),           // spec version
-				(),           // tx version
-				(),           // genesis
-				era,          // era
-				nonce.into(), // nonce (compact encoding)
-				(),           // Check weight
-				tip.into(),   // transaction payment / tip (compact encoding)
+				(),              // spec version
+				(),              // tx version
+				(),              // genesis
+				era.frame_era(), // era
+				nonce.into(),    // nonce (compact encoding)
+				(),              // Check weight
+				tip.into(),      // transaction payment / tip (compact encoding)
 			),
 			additional_signed: (
 				version.spec_version,
 				version.transaction_version,
 				genesis_hash,
-				genesis_hash,
+				era.signed_payload(genesis_hash),
 				(),
 				(),
 				(),
 			),
 			_data: Default::default(),
 		}
+	}
+}
+
+impl<Call> SignedExtensions<Call> {
+	/// Return signer nonce, used to craft transaction.
+	pub fn nonce(&self) -> Nonce {
+		self.encode_payload.4.into()
+	}
+
+	/// Return transaction tip.
+	pub fn tip(&self) -> Balance {
+		self.encode_payload.6.into()
 	}
 }
 
@@ -290,6 +342,11 @@ impl Chain for PolkadotLike {
 	type Hash = Hash;
 	type Hasher = Hasher;
 	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = Index;
+	type Signature = Signature;
 }
 
 /// Convert a 256-bit hash into an AccountId.

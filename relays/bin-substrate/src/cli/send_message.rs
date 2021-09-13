@@ -22,9 +22,10 @@ use crate::cli::{
 	TargetSigningParams,
 };
 use bp_message_dispatch::{CallOrigin, MessagePayload};
+use bp_runtime::BalanceOf;
 use codec::Encode;
 use frame_support::weights::Weight;
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
 use sp_runtime::{traits::IdentifyAccount, AccountId32, MultiSignature, MultiSigner};
 use std::fmt::Debug;
@@ -159,7 +160,7 @@ impl SendMessage {
 			let fee = match self.fee {
 				Some(fee) => fee,
 				None => Balance(
-					estimate_message_delivery_and_dispatch_fee::<<Source as Chain>::Balance, _, _>(
+					estimate_message_delivery_and_dispatch_fee::<BalanceOf<Source>, _, _>(
 						&source_client,
 						ESTIMATE_MESSAGE_FEE_METHOD,
 						lane,
@@ -177,23 +178,44 @@ impl SendMessage {
 			})?;
 
 			let source_genesis_hash = *source_client.genesis_hash();
+			let estimated_transaction_fee = source_client
+				.estimate_extrinsic_fee(Bytes(
+					Source::sign_transaction(
+						source_genesis_hash,
+						&source_sign,
+						relay_substrate_client::TransactionEra::immortal(),
+						UnsignedTransaction::new(send_message_call.clone(), 0),
+					)
+					.encode(),
+				))
+				.await?;
 			source_client
-				.submit_signed_extrinsic(source_sign.public().into(), move |transaction_nonce| {
+				.submit_signed_extrinsic(source_sign.public().into(), move |_, transaction_nonce| {
 					let signed_source_call = Source::sign_transaction(
 						source_genesis_hash,
 						&source_sign,
-						transaction_nonce,
-						send_message_call,
+						relay_substrate_client::TransactionEra::immortal(),
+						UnsignedTransaction::new(send_message_call, transaction_nonce),
 					)
 					.encode();
 
 					log::info!(
 						target: "bridge",
-						"Sending message to {}. Size: {}. Dispatch weight: {}. Fee: {}",
+						"Sending message to {}. Lane: {:?}. Size: {}. Dispatch weight: {}. Fee: {}",
 						Target::NAME,
+						lane,
 						signed_source_call.len(),
 						dispatch_weight,
 						fee,
+					);
+					log::info!(
+						target: "bridge",
+						"The source account ({:?}) balance will be reduced by (at most) {} (message fee) + {} (tx fee	) = {} {} tokens",
+						AccountId32::from(source_sign.public()),
+						fee.0,
+						estimated_transaction_fee.inclusion_fee(),
+						fee.0.saturating_add(estimated_transaction_fee.inclusion_fee() as _),
+						Source::NAME,
 					);
 					log::info!(
 						target: "bridge",

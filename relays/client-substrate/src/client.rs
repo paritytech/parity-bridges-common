@@ -18,10 +18,11 @@
 
 use crate::chain::{Chain, ChainWithBalances};
 use crate::rpc::Substrate;
-use crate::{ConnectionParams, Error, Result};
+use crate::{ConnectionParams, Error, HeaderIdOf, Result};
 
 use async_std::sync::{Arc, Mutex};
-use codec::Decode;
+use async_trait::async_trait;
+use codec::{Decode, Encode};
 use frame_system::AccountInfo;
 use futures::{SinkExt, StreamExt};
 use jsonrpsee_ws_client::{traits::SubscriptionClient, v2::params::JsonRpcParams, DeserializeOwned};
@@ -29,13 +30,18 @@ use jsonrpsee_ws_client::{WsClient as RpcClient, WsClientBuilder as RpcClientBui
 use num_traits::{Bounded, Zero};
 use pallet_balances::AccountData;
 use pallet_transaction_payment::InclusionFee;
-use relay_utils::relay_loop::RECONNECT_DELAY;
+use relay_utils::{relay_loop::RECONNECT_DELAY, HeaderId};
 use sp_core::{storage::StorageKey, Bytes};
+use sp_runtime::{
+	traits::Header as HeaderT,
+	transaction_validity::{TransactionSource, TransactionValidity},
+};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::{convert::TryFrom, future::Future};
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
+const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
 /// Opaque justifications subscription type.
@@ -60,6 +66,18 @@ pub struct Client<C: Chain> {
 	/// method, they may get the same transaction nonce. So one of transactions will be rejected
 	/// from the pool. This lock is here to prevent situations like that.
 	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
+}
+
+#[async_trait]
+impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
+	type Error = Error;
+
+	async fn reconnect(&mut self) -> Result<()> {
+		let (tokio, client) = Self::build_client(self.params.clone()).await?;
+		self.tokio = tokio;
+		self.client = client;
+		Ok(())
+	}
 }
 
 impl<C: Chain> Clone for Client<C> {
@@ -122,14 +140,6 @@ impl<C: Chain> Client<C> {
 			genesis_hash,
 			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
 		})
-	}
-
-	/// Reopen client connection.
-	pub async fn reconnect(&mut self) -> Result<()> {
-		let (tokio, client) = Self::build_client(self.params.clone()).await?;
-		self.tokio = tokio;
-		self.client = client;
-		Ok(())
 	}
 
 	/// Build client to use in connection.
@@ -293,12 +303,14 @@ impl<C: Chain> Client<C> {
 	pub async fn submit_signed_extrinsic(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(C::Index) -> Bytes + Send + 'static,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Bytes + Send + 'static,
 	) -> Result<C::Hash> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
+		let best_header = self.best_header().await?;
+		let best_header_id = HeaderId(*best_header.number(), best_header.hash());
 		self.jsonrpsee_execute(move |client| async move {
-			let extrinsic = prepare_extrinsic(transaction_nonce);
+			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce);
 			let tx_hash = Substrate::<C>::author_submit_extrinsic(&*client, extrinsic).await?;
 			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 			Ok(tx_hash)
@@ -306,24 +318,52 @@ impl<C: Chain> Client<C> {
 		.await
 	}
 
+	/// Returns pending extrinsics from transaction pool.
+	pub async fn pending_extrinsics(&self) -> Result<Vec<Bytes>> {
+		self.jsonrpsee_execute(
+			move |client| async move { Ok(Substrate::<C>::author_pending_extrinsics(&*client).await?) },
+		)
+		.await
+	}
+
+	/// Validate transaction at given block state.
+	pub async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
+		&self,
+		at_block: C::Hash,
+		transaction: SignedTransaction,
+	) -> Result<TransactionValidity> {
+		self.jsonrpsee_execute(move |client| async move {
+			let call = SUB_API_TXPOOL_VALIDATE_TRANSACTION.to_string();
+			let data = Bytes((TransactionSource::External, transaction, at_block).encode());
+
+			let encoded_response = Substrate::<C>::state_call(&*client, call, data, Some(at_block)).await?;
+			let validity =
+				TransactionValidity::decode(&mut &encoded_response.0[..]).map_err(Error::ResponseParseFailed)?;
+
+			Ok(validity)
+		})
+		.await
+	}
+
 	/// Estimate fee that will be spent on given extrinsic.
-	pub async fn estimate_extrinsic_fee(&self, transaction: Bytes) -> Result<C::Balance> {
+	pub async fn estimate_extrinsic_fee(&self, transaction: Bytes) -> Result<InclusionFee<C::Balance>> {
 		self.jsonrpsee_execute(move |client| async move {
 			let fee_details = Substrate::<C>::payment_query_fee_details(&*client, transaction, None).await?;
 			let inclusion_fee = fee_details
 				.inclusion_fee
-				.map(|inclusion_fee| {
-					InclusionFee {
-						base_fee: C::Balance::try_from(inclusion_fee.base_fee.into_u256())
-							.unwrap_or_else(|_| C::Balance::max_value()),
-						len_fee: C::Balance::try_from(inclusion_fee.len_fee.into_u256())
-							.unwrap_or_else(|_| C::Balance::max_value()),
-						adjusted_weight_fee: C::Balance::try_from(inclusion_fee.adjusted_weight_fee.into_u256())
-							.unwrap_or_else(|_| C::Balance::max_value()),
-					}
-					.inclusion_fee()
+				.map(|inclusion_fee| InclusionFee {
+					base_fee: C::Balance::try_from(inclusion_fee.base_fee.into_u256())
+						.unwrap_or_else(|_| C::Balance::max_value()),
+					len_fee: C::Balance::try_from(inclusion_fee.len_fee.into_u256())
+						.unwrap_or_else(|_| C::Balance::max_value()),
+					adjusted_weight_fee: C::Balance::try_from(inclusion_fee.adjusted_weight_fee.into_u256())
+						.unwrap_or_else(|_| C::Balance::max_value()),
 				})
-				.unwrap_or_else(Zero::zero);
+				.unwrap_or_else(|| InclusionFee {
+					base_fee: Zero::zero(),
+					len_fee: Zero::zero(),
+					adjusted_weight_fee: Zero::zero(),
+				});
 			Ok(inclusion_fee)
 		})
 		.await

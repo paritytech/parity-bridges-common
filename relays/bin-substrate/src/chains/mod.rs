@@ -37,9 +37,9 @@ mod wococo;
 // Rialto as BTC and Millau as wBTC (only in relayer).
 
 /// The identifier of token, which value is associated with Rialto token value by relayer.
-pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = "bitcoin";
+pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = "polkadot";
 /// The identifier of token, which value is associated with Millau token value by relayer.
-pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = "wrapped-bitcoin";
+pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = "kusama";
 
 use relay_utils::metrics::MetricsParams;
 
@@ -67,7 +67,7 @@ mod tests {
 	use frame_support::dispatch::GetDispatchInfo;
 	use relay_millau_client::Millau;
 	use relay_rialto_client::Rialto;
-	use relay_substrate_client::TransactionSignScheme;
+	use relay_substrate_client::{TransactionSignScheme, UnsignedTransaction};
 	use sp_core::Pair;
 	use sp_runtime::traits::{IdentifyAccount, Verify};
 
@@ -214,8 +214,8 @@ mod tests {
 		let rialto_tx = Rialto::sign_transaction(
 			Default::default(),
 			&sp_keyring::AccountKeyring::Alice.pair(),
-			0,
-			rialto_call.clone(),
+			relay_substrate_client::TransactionEra::immortal(),
+			UnsignedTransaction::new(rialto_call.clone(), 0),
 		);
 		let extra_bytes_in_transaction = rialto_tx.encode().len() - rialto_call.encode().len();
 		assert!(
@@ -232,8 +232,8 @@ mod tests {
 		let millau_tx = Millau::sign_transaction(
 			Default::default(),
 			&sp_keyring::AccountKeyring::Alice.pair(),
-			0,
-			millau_call.clone(),
+			relay_substrate_client::TransactionEra::immortal(),
+			UnsignedTransaction::new(millau_call.clone(), 0),
 		);
 		let extra_bytes_in_transaction = millau_tx.encode().len() - millau_call.encode().len();
 		assert!(

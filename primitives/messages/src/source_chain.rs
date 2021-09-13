@@ -95,7 +95,7 @@ pub trait LaneMessageVerifier<Submitter, Payload, Fee> {
 /// submitter is paying (in source chain tokens/assets) for:
 ///
 /// 1) submit-message-transaction-fee itself. This fee is not included in the
-/// `delivery_and_dispatch_fee` and is witheld by the regular transaction payment mechanism;
+/// `delivery_and_dispatch_fee` and is withheld by the regular transaction payment mechanism;
 /// 2) message-delivery-transaction-fee. It is submitted to the target node by relayer;
 /// 3) message-dispatch fee. It is paid by relayer for processing message by target chain;
 /// 4) message-receiving-delivery-transaction-fee. It is submitted to the source node
@@ -125,14 +125,6 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 		relayers_rewards: RelayersRewards<AccountId, Balance>,
 		relayer_fund_account: &AccountId,
 	);
-
-	/// Perform some initialization in externalities-provided environment.
-	///
-	/// For instance you may ensure that particular required accounts or storage items are present.
-	/// Returns the number of storage reads performed.
-	fn initialize(_relayer_fund_account: &AccountId) -> usize {
-		0
-	}
 }
 
 /// Messages bridge API to be used from other pallets.

@@ -89,7 +89,7 @@ pub type AccountIndex = u32;
 pub type Balance = bp_millau::Balance;
 
 /// Index of a transaction in the chain.
-pub type Index = u32;
+pub type Index = bp_millau::Index;
 
 /// A hash of some data used by the chain.
 pub type Hash = bp_millau::Hash;
@@ -282,7 +282,7 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
 	type TransactionByteFee = TransactionByteFee;
-	type WeightToFee = IdentityFee<Balance>;
+	type WeightToFee = bp_millau::WeightToFee;
 	type FeeMultiplierUpdate = pallet_transaction_payment::TargetedFeeAdjustment<
 		Runtime,
 		TargetBlockFullness,
@@ -366,7 +366,7 @@ parameter_types! {
 }
 
 /// Instance of the messages pallet used to relay messages to/from Rialto chain.
-pub type WithRialtoMessagesInstance = pallet_bridge_messages::DefaultInstance;
+pub type WithRialtoMessagesInstance = ();
 
 impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type Event = Event;
@@ -407,7 +407,7 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		BridgeRialtoMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>},
+		BridgeRialtoMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
 		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
 		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
 		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Config<T>, Storage},
