@@ -308,8 +308,9 @@ pub mod pallet {
 				payload: encoded_payload,
 				fee: delivery_and_dispatch_fee,
 			});
-			// todo: update the weight
-			let _weight = T::OnMessageAccepted::on_messages_accepted(&nonce);
+			// Guaranteed to be called only when the message is accepted
+			let callback_weight = T::OnMessageAccepted::on_messages_accepted(&nonce);
+			actual_weight = actual_weight.saturating_sub(callback_weight);
 
 			// message sender pays for pruning at most `MaxMessagesToPruneAtOnce` messages
 			// the cost of pruning every message is roughly single db write
