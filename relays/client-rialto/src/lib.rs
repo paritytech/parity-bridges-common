@@ -110,7 +110,7 @@ impl TransactionSignScheme for Rialto {
 	fn is_signed_by(signer: &Self::AccountKeyPair, tx: &Self::SignedTransaction) -> bool {
 		tx.signature
 			.as_ref()
-			.map(|(address, _, _)| *address == rialto_runtime::Address::from(*signer.public().as_array_ref()))
+			.map(|(address, _, _)| *address == rialto_runtime::Address::Id(signer.public().into()))
 			.unwrap_or(false)
 	}
 
