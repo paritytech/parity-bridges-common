@@ -285,7 +285,7 @@ mod tests {
 			"encode-call",
 			"rialto-to-millau",
 			"raw",
-			"0400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0",
+			"040000d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0",
 		]);
 
 		// when
@@ -294,7 +294,7 @@ mod tests {
 		// then
 		assert_eq!(
 			format!("{:?}", hex),
-			"0x0400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0"
+			"0x040000d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c0"
 		);
 	}
 
@@ -332,7 +332,7 @@ mod tests {
 
 		// then
 		assert!(format!("{:?}", call_hex).starts_with(
-			"0x10030000000001000000b0d60f000000000001d43593c715fdd31c61141abd04a99fd6822c8558854cc\
+			"0x11030000000001000000b0d60f000000000001d43593c715fdd31c61141abd04a99fd6822c8558854cc\
 			de39a5684e7a56da27d01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01"
 		))
 	}
