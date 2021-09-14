@@ -22,8 +22,8 @@ use crate::Config;
 use bitvec::prelude::*;
 use bp_messages::{
 	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards, Sender,
-		TargetHeaderChain,
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, OnMessageAccepted,
+		RelayersRewards, Sender, TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	DeliveredMessages, InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
@@ -178,7 +178,7 @@ impl Config for TestRuntime {
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
-	type OnMessageAccepted = ();
+	type OnMessageAccepted = (TestOnMessageAccepted1, TestOnMessageAccepted2);
 	type OnDeliveryConfirmed = (TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2);
 
 	type SourceHeaderChain = TestSourceHeaderChain;
@@ -354,6 +354,44 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 			let key = (b":relayer-reward:", relayer, reward.reward).encode();
 			frame_support::storage::unhashed::put(&key, &true);
 		}
+	}
+}
+
+#[derive(Debug)]
+pub struct TestOnMessageAccepted1;
+
+impl TestOnMessageAccepted1 {
+	/// Verify that the callback has been called when the message is accepted.
+	pub fn ensure_called(message: &MessageNonce) {
+		let key = (b"TestOnMessageAccepted1", message).encode();
+		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
+	}
+}
+
+impl OnMessageAccepted for TestOnMessageAccepted1 {
+	fn on_messages_accepted(message: &MessageNonce) -> Weight {
+		let key = (b"TestOnMessageAccepted1", message).encode();
+		frame_support::storage::unhashed::put(&key, &true);
+		DbWeight::get().reads_writes(1, 1)
+	}
+}
+
+#[derive(Debug)]
+pub struct TestOnMessageAccepted2;
+
+impl TestOnMessageAccepted2 {
+	/// Verify that the callback has been called when the message is accepted.
+	pub fn ensure_called(message: &MessageNonce) {
+		let key = (b"TestOnMessageAccepted2", message).encode();
+		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
+	}
+}
+
+impl OnMessageAccepted for TestOnMessageAccepted2 {
+	fn on_messages_accepted(message: &MessageNonce) -> Weight {
+		let key = (b"TestOnMessageAccepted2", message).encode();
+		frame_support::storage::unhashed::put(&key, &true);
+		DbWeight::get().reads_writes(1, 1)
 	}
 }
 

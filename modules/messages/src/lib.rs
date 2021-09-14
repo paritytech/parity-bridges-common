@@ -309,8 +309,8 @@ pub mod pallet {
 				fee: delivery_and_dispatch_fee,
 			});
 			// Guaranteed to be called only when the message is accepted
-			let callback_weight = T::OnMessageAccepted::on_messages_accepted(&nonce);
-			actual_weight = actual_weight.saturating_sub(callback_weight);
+			let actual_callback_weight = T::OnMessageAccepted::on_messages_accepted(&nonce);
+			actual_weight = actual_weight.saturating_add(actual_callback_weight);
 
 			// message sender pays for pruning at most `MaxMessagesToPruneAtOnce` messages
 			// the cost of pruning every message is roughly single db write
@@ -1077,8 +1077,9 @@ mod tests {
 	use crate::mock::{
 		message, message_payload, run_test, unrewarded_relayer, Event as TestEvent, Origin,
 		TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof, TestMessagesParameter, TestMessagesProof,
-		TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2, TestRuntime, TokenConversionRate,
-		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
+		TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2, TestOnMessageAccepted1, TestOnMessageAccepted2,
+		TestRuntime, TokenConversionRate, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
+		TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
 	use frame_support::{assert_noop, assert_ok, weights::Weight};
@@ -2048,6 +2049,15 @@ mod tests {
 			TestOnDeliveryConfirmed1::ensure_called(&TEST_LANE_ID, &delivered_message_3);
 			TestOnDeliveryConfirmed2::ensure_called(&TEST_LANE_ID, &delivered_messages_1_and_2);
 			TestOnDeliveryConfirmed2::ensure_called(&TEST_LANE_ID, &delivered_message_3);
+		});
+	}
+
+	#[test]
+	fn message_accepted_callbacks_are_called() {
+		run_test(|| {
+			send_regular_message();
+			TestOnMessageAccepted1::ensure_called(&1);
+			TestOnMessageAccepted2::ensure_called(&1);
 		});
 	}
 
