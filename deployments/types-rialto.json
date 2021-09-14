@@ -1,5 +1,6 @@
 {
   "--1": "Millau Types",
+  "MillauAddress": "AccountId",
   "MillauBalance": "u64",
   "MillauBlockHash": "H512",
   "MillauBlockNumber": "u64",
@@ -25,6 +26,7 @@
     }
   },
   "--2": "Rialto Types",
+  "RialtoAddress": "MultiAddress<AccountId, AccountIndex>",
   "RialtoBalance": "u128",
   "RialtoBlockHash": "H256",
   "RialtoBlockNumber": "u32",
@@ -50,7 +52,6 @@
     }
   },
   "--3": "Common types",
-  "Address": "AccountId",
   "LookupSource": "AccountId",
   "AccountSigner": "MultiSigner",
   "SpecVersion": "u32",
@@ -172,6 +173,7 @@
     "commit": "Commit",
     "votes_ancestries": "Vec<BridgedHeader>"
   },
+  "Address": "RialtoAddress",
   "Fee": "RialtoBalance",
   "Balance": "RialtoBalance",
   "BlockHash": "RialtoBlockHash",
@@ -183,5 +185,8 @@
     "_enum": {
       "RialtoToMillauConversionRate": "u128"
     }
+  },
+  "ValidationCodeHash": {
+    "Hash": "Hash"
   }
 }

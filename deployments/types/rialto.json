@@ -1,4 +1,5 @@
 {
+	"Address": "RialtoAddress",
 	"Fee": "RialtoBalance",
 	"Balance": "RialtoBalance",
 	"BlockHash": "RialtoBlockHash",
@@ -10,5 +11,8 @@
 		"_enum": {
 			"RialtoToMillauConversionRate": "u128"
 		}
+	},
+	"ValidationCodeHash": {
+		"Hash": "Hash"
 	}
 }
