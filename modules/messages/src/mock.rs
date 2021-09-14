@@ -178,7 +178,7 @@ impl Config for TestRuntime {
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
-	type OnMessageAccepted = (TestOnMessageAccepted1, TestOnMessageAccepted2);
+	type OnMessageAccepted = TestOnMessageAccepted;
 	type OnDeliveryConfirmed = (TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2);
 
 	type SourceHeaderChain = TestSourceHeaderChain;
@@ -358,40 +358,31 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 }
 
 #[derive(Debug)]
-pub struct TestOnMessageAccepted1;
+pub struct TestOnMessageAccepted;
 
-impl TestOnMessageAccepted1 {
+impl TestOnMessageAccepted {
 	/// Verify that the callback has been called when the message is accepted.
 	pub fn ensure_called(message: &MessageNonce) {
-		let key = (b"TestOnMessageAccepted1", message).encode();
+		let key = (b"TestOnMessageAccepted", message).encode();
 		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
 	}
-}
 
-impl OnMessageAccepted for TestOnMessageAccepted1 {
-	fn on_messages_accepted(message: &MessageNonce) -> Weight {
-		let key = (b"TestOnMessageAccepted1", message).encode();
-		frame_support::storage::unhashed::put(&key, &true);
-		DbWeight::get().reads_writes(1, 1)
+	/// Set consumed weight returned by the callback.
+	pub fn set_consumed_weight_per_message(weight: Weight) {
+		frame_support::storage::unhashed::put(b"TestOnDeliveryConfirmed1_Weight", &weight);
+	}
+
+	/// Get consumed weight returned by the callback.
+	pub fn get_consumed_weight_per_message() -> Option<Weight> {
+		frame_support::storage::unhashed::get(b"TestOnDeliveryConfirmed1_Weight")
 	}
 }
 
-#[derive(Debug)]
-pub struct TestOnMessageAccepted2;
-
-impl TestOnMessageAccepted2 {
-	/// Verify that the callback has been called when the message is accepted.
-	pub fn ensure_called(message: &MessageNonce) {
-		let key = (b"TestOnMessageAccepted2", message).encode();
-		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
-	}
-}
-
-impl OnMessageAccepted for TestOnMessageAccepted2 {
+impl OnMessageAccepted for TestOnMessageAccepted {
 	fn on_messages_accepted(message: &MessageNonce) -> Weight {
-		let key = (b"TestOnMessageAccepted2", message).encode();
+		let key = (b"TestOnMessageAccepted", message).encode();
 		frame_support::storage::unhashed::put(&key, &true);
-		DbWeight::get().reads_writes(1, 1)
+		Self::get_consumed_weight_per_message().unwrap_or_else(|| DbWeight::get().reads_writes(1, 1))
 	}
 }
 

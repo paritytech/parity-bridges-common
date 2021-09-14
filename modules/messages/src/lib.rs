@@ -237,7 +237,7 @@ pub mod pallet {
 		}
 
 		/// Send message over lane.
-		#[pallet::weight(T::WeightInfo::send_message_weight(payload))]
+		#[pallet::weight(T::WeightInfo::send_message_weight(payload, T::DbWeight::get()))]
 		pub fn send_message(
 			origin: OriginFor<T>,
 			lane_id: LaneId,
@@ -248,7 +248,7 @@ pub mod pallet {
 			let submitter = origin.into().map_err(|_| BadOrigin)?;
 
 			// initially, actual (post-dispatch) weight is equal to pre-dispatch weight
-			let mut actual_weight = T::WeightInfo::send_message_weight(&payload);
+			let mut actual_weight = T::WeightInfo::send_message_weight(&payload, T::DbWeight::get());
 
 			// let's first check if message can be delivered to target chain
 			T::TargetHeaderChain::verify_message(&payload).map_err(|err| {
@@ -308,9 +308,38 @@ pub mod pallet {
 				payload: encoded_payload,
 				fee: delivery_and_dispatch_fee,
 			});
-			// Guaranteed to be called only when the message is accepted
+			// Guaranteed to be called outside only when the message is accepted.
+			// We assume that the maximum weight call back used is `single_message_callback_overhead`, so do not perform
+			// complex db operation in callback. If you want to, put these magic logic in outside pallet and control
+			// the weight there.
+			let single_message_callback_overhead = T::WeightInfo::single_message_callback_overhead(T::DbWeight::get());
 			let actual_callback_weight = T::OnMessageAccepted::on_messages_accepted(&nonce);
-			actual_weight = actual_weight.saturating_add(actual_callback_weight);
+			match single_message_callback_overhead.checked_sub(actual_callback_weight) {
+				Some(difference) if difference == 0 => (),
+				Some(difference) => {
+					log::trace!(
+						target: "runtime::bridge-messages",
+						"Messages accepted callback has returned unspent weight to refund the submitter: \
+						{} - {} = {}",
+						single_message_callback_overhead,
+						actual_callback_weight,
+						difference,
+					);
+					actual_weight -= difference;
+				}
+				None => {
+					debug_assert!(false, "The accepted callback is wrong");
+					log::error!(
+						target: "runtime::bridge-messages",
+						"Messages accepted callback has returned more weight that it may spent: \
+						{} vs {}",
+						single_message_callback_overhead,
+						actual_callback_weight,
+					);
+				}
+			}
+
+			// actual_weight = actual_weight.saturating_add(actual_callback_weight);
 
 			// message sender pays for pruning at most `MaxMessagesToPruneAtOnce` messages
 			// the cost of pruning every message is roughly single db write
@@ -650,7 +679,7 @@ pub mod pallet {
 					}
 					None => {
 						debug_assert!(false, "The delivery confirmation callback is wrong");
-						log::trace!(
+						log::error!(
 							target: "runtime::bridge-messages",
 							"Messages delivery callback has returned more weight that it may spent: \
 							{} vs {}",
@@ -1077,9 +1106,8 @@ mod tests {
 	use crate::mock::{
 		message, message_payload, run_test, unrewarded_relayer, Event as TestEvent, Origin,
 		TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof, TestMessagesParameter, TestMessagesProof,
-		TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2, TestOnMessageAccepted1, TestOnMessageAccepted2,
-		TestRuntime, TokenConversionRate, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
-		TEST_RELAYER_A, TEST_RELAYER_B,
+		TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2, TestOnMessageAccepted, TestRuntime, TokenConversionRate,
+		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
 	use frame_support::{assert_noop, assert_ok, weights::Weight};
@@ -2052,15 +2080,6 @@ mod tests {
 		});
 	}
 
-	#[test]
-	fn message_accepted_callbacks_are_called() {
-		run_test(|| {
-			send_regular_message();
-			TestOnMessageAccepted1::ensure_called(&1);
-			TestOnMessageAccepted2::ensure_called(&1);
-		});
-	}
-
 	fn confirm_3_messages_delivery() -> (Weight, Weight) {
 		send_regular_message();
 		send_regular_message();
@@ -2229,6 +2248,42 @@ mod tests {
 			assert_eq!(
 				weight_when_max_messages_are_pruned,
 				when_zero_messages_are_pruned + crate::mock::DbWeight::get().writes(max_messages_to_prune),
+			);
+		});
+	}
+
+	#[test]
+	fn message_accepted_callbacks_are_called() {
+		run_test(|| {
+			send_regular_message();
+			TestOnMessageAccepted::ensure_called(&1);
+		});
+	}
+
+	#[test]
+	#[should_panic]
+	fn message_accepted_panics_in_debug_mode_if_callback_is_wrong() {
+		run_test(|| {
+			TestOnMessageAccepted::set_consumed_weight_per_message(crate::mock::DbWeight::get().reads_writes(2, 2));
+			send_regular_message();
+		});
+	}
+
+	#[test]
+	fn message_accepted_refunds_non_zero_weight() {
+		run_test(|| {
+			TestOnDeliveryConfirmed1::set_consumed_weight_per_message(crate::mock::DbWeight::get().writes(1));
+			let actual_callback_weight = send_regular_message();
+			let pre_dispatch_weight = <TestRuntime as Config>::WeightInfo::send_message_weight(
+				&REGULAR_PAYLOAD,
+				crate::mock::DbWeight::get(),
+			);
+			let prune_weight =
+				crate::mock::DbWeight::get().writes(<TestRuntime as Config>::MaxMessagesToPruneAtOnce::get());
+
+			assert_eq!(
+				pre_dispatch_weight.saturating_sub(actual_callback_weight),
+				crate::mock::DbWeight::get().reads(1).saturating_add(prune_weight)
 			);
 		});
 	}

@@ -179,16 +179,9 @@ pub trait OnMessageAccepted {
 	fn on_messages_accepted(message: &MessageNonce) -> Weight;
 }
 
-#[impl_trait_for_tuples::impl_for_tuples(30)]
-impl OnMessageAccepted for Tuple {
-	fn on_messages_accepted(message: &MessageNonce) -> Weight {
-		let mut total_weight: Weight = 0;
-		for_tuples!(
-			#(
-				total_weight = total_weight.saturating_add(Tuple::on_messages_accepted(message));
-			)*
-		);
-		total_weight
+impl OnMessageAccepted for () {
+	fn on_messages_accepted(_message: &MessageNonce) -> Weight {
+		0
 	}
 }
 
