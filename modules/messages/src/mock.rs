@@ -362,8 +362,8 @@ pub struct TestOnMessageAccepted;
 
 impl TestOnMessageAccepted {
 	/// Verify that the callback has been called when the message is accepted.
-	pub fn ensure_called(message: &MessageNonce) {
-		let key = (b"TestOnMessageAccepted", message).encode();
+	pub fn ensure_called(lane: &LaneId, message: &MessageNonce) {
+		let key = (b"TestOnMessageAccepted", lane, message).encode();
 		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
 	}
 
@@ -379,8 +379,8 @@ impl TestOnMessageAccepted {
 }
 
 impl OnMessageAccepted for TestOnMessageAccepted {
-	fn on_messages_accepted(_lane: &LaneId, message: &MessageNonce) -> Weight {
-		let key = (b"TestOnMessageAccepted", message).encode();
+	fn on_messages_accepted(lane: &LaneId, message: &MessageNonce) -> Weight {
+		let key = (b"TestOnMessageAccepted", lane, message).encode();
 		frame_support::storage::unhashed::put(&key, &true);
 		Self::get_consumed_weight_per_message().unwrap_or_else(|| DbWeight::get().reads_writes(1, 1))
 	}

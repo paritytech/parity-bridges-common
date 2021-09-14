@@ -2254,7 +2254,7 @@ mod tests {
 	fn message_accepted_callbacks_are_called() {
 		run_test(|| {
 			send_regular_message();
-			TestOnMessageAccepted::ensure_called(&1);
+			TestOnMessageAccepted::ensure_called(&TEST_LANE_ID, &1);
 		});
 	}
 
