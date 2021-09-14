@@ -186,7 +186,5 @@
       "RialtoToMillauConversionRate": "u128"
     }
   },
-  "ValidationCodeHash": {
-    "Hash": "H256"
-  }
+  "ValidationCodeHash": "H256"
 }
