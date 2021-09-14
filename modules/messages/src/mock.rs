@@ -369,12 +369,12 @@ impl TestOnMessageAccepted {
 
 	/// Set consumed weight returned by the callback.
 	pub fn set_consumed_weight_per_message(weight: Weight) {
-		frame_support::storage::unhashed::put(b"TestOnDeliveryConfirmed1_Weight", &weight);
+		frame_support::storage::unhashed::put(b"TestOnMessageAccepted_Weight", &weight);
 	}
 
 	/// Get consumed weight returned by the callback.
 	pub fn get_consumed_weight_per_message() -> Option<Weight> {
-		frame_support::storage::unhashed::get(b"TestOnDeliveryConfirmed1_Weight")
+		frame_support::storage::unhashed::get(b"TestOnMessageAccepted_Weight")
 	}
 }
 

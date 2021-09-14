@@ -339,8 +339,6 @@ pub mod pallet {
 				}
 			}
 
-			// actual_weight = actual_weight.saturating_add(actual_callback_weight);
-
 			// message sender pays for pruning at most `MaxMessagesToPruneAtOnce` messages
 			// the cost of pruning every message is roughly single db write
 			// => lets refund sender if less than `MaxMessagesToPruneAtOnce` messages pruned
