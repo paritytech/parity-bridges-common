@@ -13,6 +13,6 @@
 		}
 	},
 	"ValidationCodeHash": {
-		"Hash": "Hash"
+		"Hash": "H256"
 	}
 }
