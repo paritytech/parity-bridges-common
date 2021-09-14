@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xeu
 
-sleep 20
+sleep 60
 curl -v http://millau-node-bob:9933/health
 curl -v http://rialto-node-bob:9933/health
 
