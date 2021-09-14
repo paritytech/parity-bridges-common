@@ -379,7 +379,7 @@ impl TestOnMessageAccepted {
 }
 
 impl OnMessageAccepted for TestOnMessageAccepted {
-	fn on_messages_accepted(message: &MessageNonce) -> Weight {
+	fn on_messages_accepted(_lane: &LaneId, message: &MessageNonce) -> Weight {
 		let key = (b"TestOnMessageAccepted", message).encode();
 		frame_support::storage::unhashed::put(&key, &true);
 		Self::get_consumed_weight_per_message().unwrap_or_else(|| DbWeight::get().reads_writes(1, 1))

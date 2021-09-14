@@ -313,7 +313,7 @@ pub mod pallet {
 			// complex db operation in callback. If you want to, put these magic logic in outside pallet and control
 			// the weight there.
 			let single_message_callback_overhead = T::WeightInfo::single_message_callback_overhead(T::DbWeight::get());
-			let actual_callback_weight = T::OnMessageAccepted::on_messages_accepted(&nonce);
+			let actual_callback_weight = T::OnMessageAccepted::on_messages_accepted(&lane_id, &nonce);
 			match single_message_callback_overhead.checked_sub(actual_callback_weight) {
 				Some(difference) if difference == 0 => (),
 				Some(difference) => {
