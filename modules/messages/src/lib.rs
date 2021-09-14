@@ -2270,7 +2270,7 @@ mod tests {
 	#[test]
 	fn message_accepted_refunds_non_zero_weight() {
 		run_test(|| {
-			TestOnDeliveryConfirmed1::set_consumed_weight_per_message(crate::mock::DbWeight::get().writes(1));
+			TestOnMessageAccepted::set_consumed_weight_per_message(crate::mock::DbWeight::get().writes(1));
 			let actual_callback_weight = send_regular_message();
 			let pre_dispatch_weight = <TestRuntime as Config>::WeightInfo::send_message_weight(
 				&REGULAR_PAYLOAD,
