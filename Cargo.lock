@@ -4456,6 +4456,7 @@ dependencies = [
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-bridge-token-swap",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
  "pallet-session",
