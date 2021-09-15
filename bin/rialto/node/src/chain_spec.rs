@@ -151,6 +151,7 @@ impl Alternative {
 							get_account_id_from_seed::<sr25519::Public>("George//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
 							get_account_id_from_seed::<sr25519::Public>("MillauMessagesOwner"),
+							get_account_id_from_seed::<sr25519::Public>("WithMillauTokenSwap"),
 							pallet_bridge_messages::Pallet::<
 								rialto_runtime::Runtime,
 								rialto_runtime::WithMillauMessagesInstance,
