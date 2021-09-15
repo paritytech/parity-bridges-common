@@ -325,7 +325,7 @@ pub mod pallet {
 						actual_callback_weight,
 						difference,
 					);
-					actual_weight -= difference;
+					actual_weight = actual_weight.saturating_sub(difference);
 				}
 				None => {
 					debug_assert!(false, "T::OnMessageAccepted callback consumed too much weight.");
@@ -673,7 +673,7 @@ pub mod pallet {
 							actual_callback_weight,
 							difference,
 						);
-						actual_weight -= difference;
+						actual_weight = actual_weight.saturating_sub(difference);
 					}
 					None => {
 						debug_assert!(false, "T::OnDeliveryConfirmed callback consumed too much weight.");
