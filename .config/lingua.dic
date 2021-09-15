@@ -48,6 +48,7 @@ Lane3
 LaneId
 MIN_SIZE
 MIT/M
+MMR
 MaxUnrewardedRelayerEntriesAtInboundLane
 MaybeExtra
 MaybeOrphan
@@ -147,6 +148,7 @@ keccak256/M
 keyring
 kusama/S
 lane
+malus
 max_value
 merkle/MS
 metadata
