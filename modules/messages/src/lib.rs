@@ -319,7 +319,7 @@ pub mod pallet {
 				Some(difference) => {
 					log::trace!(
 						target: "runtime::bridge-messages",
-						"Messages accepted callback has returned unspent weight to refund the submitter: \
+						"T::OnMessageAccepted callback has spent less weight than expected. Refunding: \
 						{} - {} = {}",
 						single_message_callback_overhead,
 						actual_callback_weight,
@@ -328,10 +328,10 @@ pub mod pallet {
 					actual_weight -= difference;
 				}
 				None => {
-					debug_assert!(false, "The accepted callback is wrong");
+					debug_assert!(false, "T::OnMessageAccepted callback consumed too much weight.");
 					log::error!(
 						target: "runtime::bridge-messages",
-						"Messages accepted callback has returned more weight that it may spent: \
+						"T::OnMessageAccepted callback has spent more weight that it is allowed to: \
 						{} vs {}",
 						single_message_callback_overhead,
 						actual_callback_weight,
@@ -667,7 +667,7 @@ pub mod pallet {
 					Some(difference) => {
 						log::trace!(
 							target: "runtime::bridge-messages",
-							"Messages delivery callback has returned unspent weight to refund the submitter: \
+							"T::OnDeliveryConfirmed callback has spent less weight than expected. Refunding: \
 							{} - {} = {}",
 							preliminary_callback_overhead,
 							actual_callback_weight,
@@ -676,10 +676,10 @@ pub mod pallet {
 						actual_weight -= difference;
 					}
 					None => {
-						debug_assert!(false, "The delivery confirmation callback is wrong");
+						debug_assert!(false, "T::OnDeliveryConfirmed callback consumed too much weight.");
 						log::error!(
 							target: "runtime::bridge-messages",
-							"Messages delivery callback has returned more weight that it may spent: \
+							"T::OnDeliveryConfirmed callback has spent more weight that it is allowed to: \
 							{} vs {}",
 							preliminary_callback_overhead,
 							actual_callback_weight,
