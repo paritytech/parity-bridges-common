@@ -1,4 +1,5 @@
 {
+	"Address": "RococoAddress",
 	"Fee": "RococoBalance",
 	"Balance": "RococoBalance",
 	"BlockHash": "RococoBlockHash",

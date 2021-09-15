@@ -1,10 +1,12 @@
 {
 	"--1": "Rococo Types",
+	"RococoAddress": "AccountId",
 	"RococoBalance": "u128",
 	"RococoBlockHash": "H256",
 	"RococoBlockNumber": "u32",
 	"RococoHeader": "Header",
 	"--2": "Wococo Types",
+	"WococoAddress": "AccountId",
 	"WococoBalance": "RococoBalance",
 	"WococoBlockHash": "RococoBlockHash",
 	"WococoBlockNumber": "RococoBlockNumber",

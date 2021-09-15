@@ -1,6 +1,5 @@
 {
 	"--3": "Common types",
-	"Address": "AccountId",
 	"LookupSource": "AccountId",
 	"AccountSigner": "MultiSigner",
 	"SpecVersion": "u32",
