@@ -360,7 +360,7 @@ mod tests {
 			payload,
 			MessagePayload {
 				spec_version: relay_millau_client::Millau::RUNTIME_VERSION.spec_version,
-				weight: 1038000,
+				weight: 576000,
 				origin: CallOrigin::TargetAccount(
 					sp_keyring::AccountKeyring::Alice.to_account_id(),
 					sp_keyring::AccountKeyring::Bob.into(),
