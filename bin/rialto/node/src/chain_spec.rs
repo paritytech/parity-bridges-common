@@ -18,7 +18,7 @@ use bp_rialto::derive_account_from_millau_id;
 use polkadot_primitives::v1::{AssignmentId, ValidatorId};
 use rialto_runtime::{
 	AccountId, BabeConfig, BalancesConfig, BridgeKovanConfig, BridgeMillauMessagesConfig, BridgeRialtoPoaConfig,
-	GenesisConfig, GrandpaConfig, ParachainsConfigurationConfig, SessionConfig, SessionKeys, Signature, SudoConfig,
+	GenesisConfig, GrandpaConfig, ConfigurationConfig, SessionConfig, SessionKeys, Signature, SudoConfig,
 	SystemConfig, WASM_BINARY,
 };
 use serde_json::json;
@@ -250,7 +250,7 @@ fn testnet_genesis(
 		hrmp: Default::default(),
 		// this configuration is exact copy of configuration from Polkadot repo
 		// (see /node/service/src/chain_spec.rs:default_parachains_host_configuration)
-		parachains_configuration: ParachainsConfigurationConfig {
+		configuration: ConfigurationConfig {
 			config: polkadot_runtime_parachains::configuration::HostConfiguration {
 				validation_upgrade_frequency: 1u32,
 				validation_upgrade_delay: 1,

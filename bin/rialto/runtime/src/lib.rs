@@ -578,7 +578,7 @@ construct_runtime!(
 
 		// Parachain modules.
 		ParachainsOrigin: polkadot_runtime_parachains::origin::{Pallet, Origin},
-		ParachainsConfiguration: polkadot_runtime_parachains::configuration::{Pallet, Call, Storage, Config<T>},
+		Configuration: polkadot_runtime_parachains::configuration::{Pallet, Call, Storage, Config<T>},
 		Shared: polkadot_runtime_parachains::shared::{Pallet, Call, Storage},
 		Inclusion: polkadot_runtime_parachains::inclusion::{Pallet, Call, Storage, Event<T>},
 		ParasInherent: polkadot_runtime_parachains::paras_inherent::{Pallet, Call, Storage, Inherent},
