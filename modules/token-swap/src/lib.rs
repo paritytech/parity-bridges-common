@@ -319,9 +319,6 @@ pub mod pallet {
 					swap_hash,
 				);
 
-				use frame_support::storage::generator::StorageMap;
-				log::trace!(target: "runtime::bridge-token-swap", "Swap storage key: {:?}", PendingSwaps::<T, I>::storage_map_final_key(swap_hash));
-
 				// remember that we're waiting for the transfer message delivery confirmation
 				PendingMessages::<T, I>::insert(transfer_message_nonce, swap_hash);
 
