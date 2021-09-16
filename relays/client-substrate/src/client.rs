@@ -192,7 +192,10 @@ impl<C: Chain> Client<C> {
 
 	/// Return number of the best finalized block.
 	pub async fn best_finalized_header_number(&self) -> Result<C::BlockNumber> {
-		Ok(*self.header_by_hash(self.best_finalized_header_hash().await?).await?.number())
+		Ok(*self
+			.header_by_hash(self.best_finalized_header_hash().await?)
+			.await?
+			.number())
 	}
 
 	/// Returns the best Substrate header.
@@ -248,7 +251,11 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Read value from runtime storage.
-	pub async fn storage_value<T: Send + Decode + 'static>(&self, storage_key: StorageKey, block_hash: Option<C::Hash>) -> Result<Option<T>> {
+	pub async fn storage_value<T: Send + Decode + 'static>(
+		&self,
+		storage_key: StorageKey,
+		block_hash: Option<C::Hash>,
+	) -> Result<Option<T>> {
 		self.jsonrpsee_execute(move |client| async move {
 			Substrate::<C>::state_get_storage(&*client, storage_key, block_hash)
 				.await?
@@ -341,7 +348,9 @@ impl<C: Chain> Client<C> {
 				let subscription = client
 					.subscribe(
 						"author_submitAndWatchExtrinsic",
-						JsonRpcParams::Array(vec![jsonrpsee_types::to_json_value(extrinsic).map_err(|e| Error::RpcError(e.into()))?]),
+						JsonRpcParams::Array(vec![
+							jsonrpsee_types::to_json_value(extrinsic).map_err(|e| Error::RpcError(e.into()))?
+						]),
 						"author_unwatchExtrinsic",
 					)
 					.await?;

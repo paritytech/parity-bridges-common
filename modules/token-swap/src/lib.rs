@@ -58,7 +58,10 @@ use bp_messages::{
 use bp_runtime::{messages::DispatchFeePayment, ChainId};
 use bp_token_swap::{TokenSwap, TokenSwapState, TokenSwapType};
 use codec::Encode;
-use frame_support::{fail, traits::{Currency, ExistenceRequirement}};
+use frame_support::{
+	fail,
+	traits::{Currency, ExistenceRequirement},
+};
 use sp_core::H256;
 use sp_io::hashing::blake2_256;
 use sp_runtime::traits::{Convert, Saturating};
@@ -316,8 +319,8 @@ pub mod pallet {
 					swap_hash,
 				);
 
-use frame_support::storage::generator::StorageMap;
-log::trace!(target: "runtime::bridge-token-swap", "Swap storage key: {:?}", PendingSwaps::<T, I>::storage_map_final_key(swap_hash));
+				use frame_support::storage::generator::StorageMap;
+				log::trace!(target: "runtime::bridge-token-swap", "Swap storage key: {:?}", PendingSwaps::<T, I>::storage_map_final_key(swap_hash));
 
 				// remember that we're waiting for the transfer message delivery confirmation
 				PendingMessages::<T, I>::insert(transfer_message_nonce, swap_hash);
@@ -483,7 +486,6 @@ log::trace!(target: "runtime::bridge-token-swap", "Swap storage key: {:?}", Pend
 						swap_hash,
 						token_swap_state,
 					);
-		
 
 					PendingSwaps::<T, I>::insert(swap_hash, token_swap_state);
 				}
