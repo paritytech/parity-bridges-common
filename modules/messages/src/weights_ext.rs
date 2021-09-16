@@ -345,6 +345,10 @@ pub trait WeightInfoExt: WeightInfo {
 	}
 
 	/// Returns pre-dispatch weight of single callback call.
+	///
+	/// When benchmarking the weight please take into consideration both the `OnMessageAccepted` and
+	/// `OnDeliveryConfirmed` callbacks. The method should return the greater of the two, because it's
+	/// used to estimate the weight in both contexts.
 	fn single_message_callback_overhead(db_weight: RuntimeDbWeight) -> Weight {
 		db_weight.reads_writes(1, 1)
 	}
