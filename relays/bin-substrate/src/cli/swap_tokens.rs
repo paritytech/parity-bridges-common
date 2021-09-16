@@ -93,8 +93,6 @@ macro_rules! select_bridge {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
 
-				//type FromTargetToSourceAccountIdConverter = bp_millau::AccountIdConverter;
-				//type FromSourceToTargetAccountIdConverter = bp_rialto::AccountIdConverter;
 				type FromSwapToThisAccountIdConverter = bp_rialto::AccountIdConverter;
 
 				use bp_millau::{
