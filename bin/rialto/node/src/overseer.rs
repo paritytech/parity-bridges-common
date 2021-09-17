@@ -86,6 +86,7 @@ where
 	/// POV request receiver
 	pub pov_req_receiver: IncomingRequestReceiver<request_v1::PoVFetchingRequest>,
 	pub chunk_req_receiver: IncomingRequestReceiver<request_v1::ChunkFetchingRequest>,
+	pub collation_req_receiver: IncomingRequestReceiver<request_v1::CollationFetchingRequest>,
 	pub available_data_req_receiver:
 		IncomingRequestReceiver<request_v1::AvailableDataFetchingRequest>,
 	pub statement_req_receiver: IncomingRequestReceiver<request_v1::StatementFetchingRequest>,
@@ -119,6 +120,7 @@ pub fn create_default_subsystems<'a, Spawner, RuntimeClient>(
 		authority_discovery_service,
 		pov_req_receiver,
 		chunk_req_receiver,
+		collation_req_receiver,
 		available_data_req_receiver,
 		statement_req_receiver,
 		dispute_req_receiver,
@@ -199,7 +201,12 @@ where
 			Metrics::register(registry)?, // validation host metrics
 		),
 		chain_api: ChainApiSubsystem::new(runtime_client.clone(), Metrics::register(registry)?),
-		collation_generation: CollationGenerationSubsystem::new(Metrics::register(registry)?),
+		collator_protocol: CollatorProtocolSubsystem::new(ProtocolSide::Collator(
+			network_service.local_peer_id().clone(),
+			collator_pair,
+			collation_req_receiver,
+			Metrics::register(registry)?,
+		)),
 		collator_protocol: CollatorProtocolSubsystem::new(ProtocolSide::Validator {
 			keystore: keystore.clone(),
 			eviction_policy: Default::default(),

@@ -454,8 +454,8 @@ where
 	config.network.request_response_protocols.push(cfg);
 	let (chunk_req_receiver, cfg) = IncomingRequest::get_config_receiver();
 	config.network.request_response_protocols.push(cfg);
-	//let (collation_req_receiver, cfg) = IncomingRequest::get_config_receiver();
-	//config.network.request_response_protocols.push(cfg);
+	let (collation_req_receiver, cfg) = IncomingRequest::get_config_receiver();
+	config.network.request_response_protocols.push(cfg);
 	let (available_data_req_receiver, cfg) = IncomingRequest::get_config_receiver();
 	config.network.request_response_protocols.push(cfg);
 	let (statement_req_receiver, cfg) = IncomingRequest::get_config_receiver();
@@ -599,6 +599,7 @@ where
 				available_data_req_receiver,
 				chain_selection_config,
 				chunk_req_receiver,
+				collation_req_receiver,
 				dispute_coordinator_config,
 				dispute_req_receiver,
 				pov_req_receiver,
