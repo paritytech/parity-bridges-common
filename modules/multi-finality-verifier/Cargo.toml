@@ -27,8 +27,8 @@ sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch 
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' , default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' , default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = 'polkadot-v0.9.8' , default-features = false }
-pallet-xdns = { path = "../../../../circuit/src/xdns", default-features = false }
-t3rn-primitives = { path = "../../../../circuit/src/primitives", default-features = false }
+pallet-xdns = { path = "../../../../circuit/pallets/xdns", default-features = false }
+t3rn-primitives = { path = "../../../../circuit/primitives", default-features = false }
 
 [dev-dependencies]
 bp-test-utils = {path = "../../primitives/test-utils" }
