@@ -25,8 +25,8 @@ use sp_io::hashing::blake2_256;
 use sp_std::convert::TryFrom;
 
 pub use chain::{
-	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf, IndexOf, SignatureOf,
-	TransactionEraOf,
+	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf,
+	IndexOf, SignatureOf, TransactionEraOf,
 };
 pub use storage_proof::{Error as StorageProofError, StorageProofChecker};
 
@@ -72,8 +72,9 @@ pub const ROOT_ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-deriva
 ///
 /// In addition to its main function (identifying the chain), this type may also be used to
 /// identify module instance. We have a bunch of pallets that may be used in different bridges. E.g.
-/// messages pallet may be deployed twice in the same runtime to bridge ThisChain with Chain1 and Chain2.
-/// Sometimes we need to be able to identify deployed instance dynamically. This type may be used for that.
+/// messages pallet may be deployed twice in the same runtime to bridge ThisChain with Chain1 and
+/// Chain2. Sometimes we need to be able to identify deployed instance dynamically. This type may be
+/// used for that.
 pub type ChainId = [u8; 4];
 
 /// Type of accounts on the source chain.
@@ -103,8 +104,10 @@ where
 	AccountId: Encode,
 {
 	match id {
-		SourceAccount::Root => (ROOT_ACCOUNT_DERIVATION_PREFIX, bridge_id).using_encoded(blake2_256),
-		SourceAccount::Account(id) => (ACCOUNT_DERIVATION_PREFIX, bridge_id, id).using_encoded(blake2_256),
+		SourceAccount::Root =>
+			(ROOT_ACCOUNT_DERIVATION_PREFIX, bridge_id).using_encoded(blake2_256),
+		SourceAccount::Account(id) =>
+			(ACCOUNT_DERIVATION_PREFIX, bridge_id, id).using_encoded(blake2_256),
 	}
 	.into()
 }
@@ -113,8 +116,8 @@ where
 ///
 /// This account is used to collect fees for relayers that are passing messages across the bridge.
 ///
-/// The account ID can be the same across different instances of `pallet-bridge-messages` if the same
-/// `bridge_id` is used.
+/// The account ID can be the same across different instances of `pallet-bridge-messages` if the
+/// same `bridge_id` is used.
 pub fn derive_relayer_fund_account_id(bridge_id: ChainId) -> H256 {
 	("relayer-fund-account", bridge_id).using_encoded(blake2_256).into()
 }
@@ -154,9 +157,15 @@ pub enum TransactionEra<BlockNumber, BlockHash> {
 
 impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber, BlockHash> {
 	/// Prepare transaction era, based on mortality period and current best block number.
-	pub fn new(best_block_number: BlockNumber, best_block_hash: BlockHash, mortality_period: Option<u32>) -> Self {
+	pub fn new(
+		best_block_number: BlockNumber,
+		best_block_hash: BlockHash,
+		mortality_period: Option<u32>,
+	) -> Self {
 		mortality_period
-			.map(|mortality_period| TransactionEra::Mortal(best_block_number, best_block_hash, mortality_period))
+			.map(|mortality_period| {
+				TransactionEra::Mortal(best_block_number, best_block_hash, mortality_period)
+			})
 			.unwrap_or(TransactionEra::Immortal)
 	}
 
@@ -169,9 +178,8 @@ impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber,
 	pub fn frame_era(&self) -> sp_runtime::generic::Era {
 		match *self {
 			TransactionEra::Immortal => sp_runtime::generic::Era::immortal(),
-			TransactionEra::Mortal(header_number, _, period) => {
-				sp_runtime::generic::Era::mortal(period as _, header_number.into())
-			}
+			TransactionEra::Mortal(header_number, _, period) =>
+				sp_runtime::generic::Era::mortal(period as _, header_number.into()),
 		}
 	}
 

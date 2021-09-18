@@ -65,7 +65,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
@@ -81,7 +81,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::WestendToMillau => {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
@@ -89,9 +89,10 @@ macro_rules! select_bridge {
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					// at Westend -> Millau initialization we're not using sudo, because otherwise our deployments
-					// may fail, because we need to initialize both Rialto -> Millau and Westend -> Millau bridge.
-					// => since there's single possible sudo account, one of transaction may fail with duplicate nonce error
+					// at Westend -> Millau initialization we're not using sudo, because otherwise
+					// our deployments may fail, because we need to initialize both Rialto -> Millau
+					// and Westend -> Millau bridge. => since there's single possible sudo account,
+					// one of transaction may fail with duplicate nonce error
 					millau_runtime::BridgeGrandpaWestendCall::<
 						millau_runtime::Runtime,
 						millau_runtime::WestendGrandpaInstance,
@@ -100,7 +101,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::RococoToWococo => {
 				type Source = relay_rococo_client::Rococo;
 				type Target = relay_wococo_client::Wococo;
@@ -109,12 +110,14 @@ macro_rules! select_bridge {
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
 					relay_wococo_client::runtime::Call::BridgeGrandpaRococo(
-						relay_wococo_client::runtime::BridgeGrandpaRococoCall::initialize(init_data),
+						relay_wococo_client::runtime::BridgeGrandpaRococoCall::initialize(
+							init_data,
+						),
 					)
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::WococoToRococo => {
 				type Source = relay_wococo_client::Wococo;
 				type Target = relay_rococo_client::Rococo;
@@ -123,12 +126,14 @@ macro_rules! select_bridge {
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
 					relay_rococo_client::runtime::Call::BridgeGrandpaWococo(
-						relay_rococo_client::runtime::BridgeGrandpaWococoCall::initialize(init_data),
+						relay_rococo_client::runtime::BridgeGrandpaWococoCall::initialize(
+							init_data,
+						),
 					)
 				}
 
 				$generic
-			}
+			},
 		}
 	};
 }
@@ -151,7 +156,10 @@ impl InitBridge {
 							*target_client.genesis_hash(),
 							&target_sign,
 							relay_substrate_client::TransactionEra::immortal(),
-							UnsignedTransaction::new(encode_init_bridge(initialization_data), transaction_nonce),
+							UnsignedTransaction::new(
+								encode_init_bridge(initialization_data),
+								transaction_nonce,
+							),
 						)
 						.encode(),
 					)

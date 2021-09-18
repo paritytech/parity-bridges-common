@@ -28,10 +28,8 @@ use sp_trie::StorageProof;
 use std::collections::HashMap;
 
 fn craft_known_storage_proof(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> (H256, StorageProof) {
-	let storage_proof_vec = vec![(
-		None,
-		input_vec.iter().map(|x| (x.0.clone(), Some(x.1.clone()))).collect(),
-	)];
+	let storage_proof_vec =
+		vec![(None, input_vec.iter().map(|x| (x.0.clone(), Some(x.1.clone()))).collect())];
 	log::info!("Storage proof vec {:?}", storage_proof_vec);
 	let backend = <InMemoryBackend<Blake2Hasher>>::from(storage_proof_vec);
 	let root = backend.storage_root(std::iter::empty()).0;
@@ -59,18 +57,16 @@ fn transform_into_unique(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> Vec<(Vec<u8>, Ve
 fn run_fuzzer() {
 	fuzz!(|input_vec: Vec<(Vec<u8>, Vec<u8>)>| {
 		if input_vec.is_empty() {
-			return;
+			return
 		}
 		let unique_input_vec = transform_into_unique(input_vec);
 		let (root, craft_known_storage_proof) = craft_known_storage_proof(unique_input_vec.clone());
-		let checker = <bp_runtime::StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof)
-			.expect("Valid proof passed; qed");
+		let checker =
+			<bp_runtime::StorageProofChecker<Blake2Hasher>>::new(root, craft_known_storage_proof)
+				.expect("Valid proof passed; qed");
 		for key_value_pair in unique_input_vec {
 			log::info!("Reading value for pair {:?}", key_value_pair);
-			assert_eq!(
-				checker.read_value(&key_value_pair.0),
-				Ok(Some(key_value_pair.1.clone()))
-			);
+			assert_eq!(checker.read_value(&key_value_pair.0), Ok(Some(key_value_pair.1.clone())));
 		}
 	})
 }
