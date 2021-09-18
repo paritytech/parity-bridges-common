@@ -31,14 +31,18 @@ pub mod metrics;
 
 use std::time::Duration;
 
-pub use crate::chain::{
-	BlockWithJustification, Chain, ChainWithBalances, TransactionSignScheme, UnsignedTransaction, WeightToFeeOf,
+pub use crate::{
+	chain::{
+		BlockWithJustification, Chain, ChainWithBalances, TransactionSignScheme,
+		UnsignedTransaction, WeightToFeeOf,
+	},
+	client::{Client, JustificationsSubscription, OpaqueGrandpaAuthoritiesSet},
+	error::{Error, Result},
+	sync_header::SyncHeader,
 };
-pub use crate::client::{Client, JustificationsSubscription, OpaqueGrandpaAuthoritiesSet};
-pub use crate::error::{Error, Result};
-pub use crate::sync_header::SyncHeader;
 pub use bp_runtime::{
-	BalanceOf, BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf, IndexOf, TransactionEra, TransactionEraOf,
+	BalanceOf, BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf, IndexOf, TransactionEra,
+	TransactionEraOf,
 };
 
 /// Header id used by the chain.
@@ -57,11 +61,7 @@ pub struct ConnectionParams {
 
 impl Default for ConnectionParams {
 	fn default() -> Self {
-		ConnectionParams {
-			host: "localhost".into(),
-			port: 9944,
-			secure: false,
-		}
+		ConnectionParams { host: "localhost".into(), port: 9944, secure: false }
 	}
 }
 
@@ -71,7 +71,11 @@ impl Default for ConnectionParams {
 /// been mined for this period.
 ///
 /// Returns `None` if mortality period is `None`
-pub fn transaction_stall_timeout(mortality_period: Option<u32>, average_block_interval: Duration) -> Option<Duration> {
+pub fn transaction_stall_timeout(
+	mortality_period: Option<u32>,
+	average_block_interval: Duration,
+) -> Option<Duration> {
 	// 1 extra block for transaction to reach the pool && 1 for relayer to awake after it is mined
-	mortality_period.map(|mortality_period| average_block_interval.saturating_mul(mortality_period + 1 + 1))
+	mortality_period
+		.map(|mortality_period| average_block_interval.saturating_mul(mortality_period + 1 + 1))
 }

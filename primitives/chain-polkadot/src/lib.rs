@@ -21,7 +21,9 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
-use frame_support::weights::{WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial};
+use frame_support::weights::{
+	WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+};
 use sp_std::prelude::*;
 
 pub use bp_polkadot_core::*;
@@ -65,22 +67,28 @@ pub const BEST_FINALIZED_POLKADOT_HEADER_METHOD: &str = "PolkadotFinalityApi_bes
 /// Name of the `PolkadotFinalityApi::is_known_header` runtime method.
 pub const IS_KNOWN_POLKADOT_HEADER_METHOD: &str = "PolkadotFinalityApi_is_known_header";
 
-/// Name of the `ToPolkadotOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
+/// Name of the `ToPolkadotOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime
+/// method.
 pub const TO_POLKADOT_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToPolkadotOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToPolkadotOutboundLaneApi::message_details` runtime method.
 pub const TO_POLKADOT_MESSAGE_DETAILS_METHOD: &str = "ToPolkadotOutboundLaneApi_message_details";
 /// Name of the `ToPolkadotOutboundLaneApi::latest_generated_nonce` runtime method.
-pub const TO_POLKADOT_LATEST_GENERATED_NONCE_METHOD: &str = "ToPolkadotOutboundLaneApi_latest_generated_nonce";
+pub const TO_POLKADOT_LATEST_GENERATED_NONCE_METHOD: &str =
+	"ToPolkadotOutboundLaneApi_latest_generated_nonce";
 /// Name of the `ToPolkadotOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_POLKADOT_LATEST_RECEIVED_NONCE_METHOD: &str = "ToPolkadotOutboundLaneApi_latest_received_nonce";
+pub const TO_POLKADOT_LATEST_RECEIVED_NONCE_METHOD: &str =
+	"ToPolkadotOutboundLaneApi_latest_received_nonce";
 
 /// Name of the `FromPolkadotInboundLaneApi::latest_received_nonce` runtime method.
-pub const FROM_POLKADOT_LATEST_RECEIVED_NONCE_METHOD: &str = "FromPolkadotInboundLaneApi_latest_received_nonce";
+pub const FROM_POLKADOT_LATEST_RECEIVED_NONCE_METHOD: &str =
+	"FromPolkadotInboundLaneApi_latest_received_nonce";
 /// Name of the `FromPolkadotInboundLaneApi::latest_onfirmed_nonce` runtime method.
-pub const FROM_POLKADOT_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromPolkadotInboundLaneApi_latest_confirmed_nonce";
+pub const FROM_POLKADOT_LATEST_CONFIRMED_NONCE_METHOD: &str =
+	"FromPolkadotInboundLaneApi_latest_confirmed_nonce";
 /// Name of the `FromPolkadotInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_POLKADOT_UNREWARDED_RELAYERS_STATE: &str = "FromPolkadotInboundLaneApi_unrewarded_relayers_state";
+pub const FROM_POLKADOT_UNREWARDED_RELAYERS_STATE: &str =
+	"FromPolkadotInboundLaneApi_unrewarded_relayers_state";
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Polkadot headers.

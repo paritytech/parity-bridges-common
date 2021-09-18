@@ -28,11 +28,15 @@ use strum::VariantNames;
 
 use relay_substrate_client::{Chain, Client, TransactionSignScheme};
 use relay_utils::metrics::MetricsParams;
-use substrate_relay_helper::messages_lane::{MessagesRelayParams, SubstrateMessageLane};
-use substrate_relay_helper::on_demand_headers::OnDemandHeadersRelay;
+use substrate_relay_helper::{
+	messages_lane::{MessagesRelayParams, SubstrateMessageLane},
+	on_demand_headers::OnDemandHeadersRelay,
+};
 
-use crate::cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams};
-use crate::declare_chain_options;
+use crate::{
+	cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams},
+	declare_chain_options,
+};
 
 /// Maximal allowed conversion rate error ratio (abs(real - stored) / stored) that we allow.
 ///
@@ -57,16 +61,17 @@ pub struct HeadersAndMessagesSharedParams {
 	lane: Vec<HexLaneId>,
 	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
 	relayer_mode: RelayerMode,
-	/// If passed, only mandatory headers (headers that are changing the GRANDPA authorities set) are relayed.
+	/// If passed, only mandatory headers (headers that are changing the GRANDPA authorities set)
+	/// are relayed.
 	#[structopt(long)]
 	only_mandatory_headers: bool,
 	#[structopt(flatten)]
 	prometheus_params: PrometheusParams,
 }
 
-// The reason behind this macro is that 'normal' relays are using source and target chains terminology,
-// which is unusable for both-way relays (if you're relaying headers from Rialto to Millau and from
-// Millau to Rialto, then which chain is source?).
+// The reason behind this macro is that 'normal' relays are using source and target chains
+// terminology, which is unusable for both-way relays (if you're relaying headers from Rialto to
+// Millau and from Millau to Rialto, then which chain is source?).
 macro_rules! declare_bridge_options {
 	($chain1:ident, $chain2:ident) => {
 		paste::item! {
@@ -111,46 +116,66 @@ macro_rules! select_bridge {
 				type Left = relay_millau_client::Millau;
 				type Right = relay_rialto_client::Rialto;
 
-				type LeftToRightFinality = crate::chains::millau_headers_to_rialto::MillauFinalityToRialto;
-				type RightToLeftFinality = crate::chains::rialto_headers_to_millau::RialtoFinalityToMillau;
+				type LeftToRightFinality =
+					crate::chains::millau_headers_to_rialto::MillauFinalityToRialto;
+				type RightToLeftFinality =
+					crate::chains::rialto_headers_to_millau::RialtoFinalityToMillau;
 
-				type LeftToRightMessages = crate::chains::millau_messages_to_rialto::MillauMessagesToRialto;
-				type RightToLeftMessages = crate::chains::rialto_messages_to_millau::RialtoMessagesToMillau;
+				type LeftToRightMessages =
+					crate::chains::millau_messages_to_rialto::MillauMessagesToRialto;
+				type RightToLeftMessages =
+					crate::chains::rialto_messages_to_millau::RialtoMessagesToMillau;
 
-				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_millau::BlockNumber = bp_millau::SESSION_LENGTH;
-				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber = bp_rialto::SESSION_LENGTH;
+				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_millau::BlockNumber =
+					bp_millau::SESSION_LENGTH;
+				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber =
+					bp_rialto::SESSION_LENGTH;
 
-				use crate::chains::millau_messages_to_rialto::{
-					add_standalone_metrics as add_left_to_right_standalone_metrics, run as left_to_right_messages,
-					update_rialto_to_millau_conversion_rate as update_right_to_left_conversion_rate,
-				};
-				use crate::chains::rialto_messages_to_millau::{
-					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
-					update_millau_to_rialto_conversion_rate as update_left_to_right_conversion_rate,
+				use crate::chains::{
+					millau_messages_to_rialto::{
+						add_standalone_metrics as add_left_to_right_standalone_metrics,
+						run as left_to_right_messages,
+						update_rialto_to_millau_conversion_rate as update_right_to_left_conversion_rate,
+					},
+					rialto_messages_to_millau::{
+						add_standalone_metrics as add_right_to_left_standalone_metrics,
+						run as right_to_left_messages,
+						update_millau_to_rialto_conversion_rate as update_left_to_right_conversion_rate,
+					},
 				};
 
 				$generic
-			}
+			},
 			RelayHeadersAndMessages::RococoWococo(_) => {
 				type Params = RococoWococoHeadersAndMessages;
 
 				type Left = relay_rococo_client::Rococo;
 				type Right = relay_wococo_client::Wococo;
 
-				type LeftToRightFinality = crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
-				type RightToLeftFinality = crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
+				type LeftToRightFinality =
+					crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
+				type RightToLeftFinality =
+					crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
 
-				type LeftToRightMessages = crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo;
-				type RightToLeftMessages = crate::chains::wococo_messages_to_rococo::WococoMessagesToRococo;
+				type LeftToRightMessages =
+					crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo;
+				type RightToLeftMessages =
+					crate::chains::wococo_messages_to_rococo::WococoMessagesToRococo;
 
-				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_rococo::BlockNumber = bp_rococo::SESSION_LENGTH;
-				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber = bp_wococo::SESSION_LENGTH;
+				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_rococo::BlockNumber =
+					bp_rococo::SESSION_LENGTH;
+				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber =
+					bp_wococo::SESSION_LENGTH;
 
-				use crate::chains::rococo_messages_to_wococo::{
-					add_standalone_metrics as add_left_to_right_standalone_metrics, run as left_to_right_messages,
-				};
-				use crate::chains::wococo_messages_to_rococo::{
-					add_standalone_metrics as add_right_to_left_standalone_metrics, run as right_to_left_messages,
+				use crate::chains::{
+					rococo_messages_to_wococo::{
+						add_standalone_metrics as add_left_to_right_standalone_metrics,
+						run as left_to_right_messages,
+					},
+					wococo_messages_to_rococo::{
+						add_standalone_metrics as add_right_to_left_standalone_metrics,
+						run as right_to_left_messages,
+					},
 				};
 
 				async fn update_right_to_left_conversion_rate(
@@ -170,7 +195,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 		}
 	};
 }
@@ -193,16 +218,19 @@ impl RelayHeadersAndMessages {
 			let left_client = params.left.to_client::<Left>().await?;
 			let left_transactions_mortality = params.left_sign.transactions_mortality()?;
 			let left_sign = params.left_sign.to_keypair::<Left>()?;
-			let left_messages_pallet_owner = params.left_messages_pallet_owner.to_keypair::<Left>()?;
+			let left_messages_pallet_owner =
+				params.left_messages_pallet_owner.to_keypair::<Left>()?;
 			let right_client = params.right.to_client::<Right>().await?;
 			let right_transactions_mortality = params.right_sign.transactions_mortality()?;
 			let right_sign = params.right_sign.to_keypair::<Right>()?;
-			let right_messages_pallet_owner = params.right_messages_pallet_owner.to_keypair::<Right>()?;
+			let right_messages_pallet_owner =
+				params.right_messages_pallet_owner.to_keypair::<Right>()?;
 
 			let lanes = params.shared.lane;
 			let relayer_mode = params.shared.relayer_mode.into();
 
-			const METRIC_IS_SOME_PROOF: &str = "it is `None` when metric has been already registered; \
+			const METRIC_IS_SOME_PROOF: &str =
+				"it is `None` when metric has been already registered; \
 				this is the command entrypoint, so nothing has been registered yet; \
 				qed";
 

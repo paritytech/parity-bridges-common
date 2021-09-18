@@ -121,7 +121,10 @@ pub fn create_default_subsystems<Spawner, RuntimeClient>(
 		ProvisionerSubsystem<Spawner>,
 		RuntimeApiSubsystem<RuntimeClient>,
 		AvailabilityStoreSubsystem,
-		NetworkBridgeSubsystem<Arc<sc_network::NetworkService<Block, Hash>>, AuthorityDiscoveryService>,
+		NetworkBridgeSubsystem<
+			Arc<sc_network::NetworkService<Block, Hash>>,
+			AuthorityDiscoveryService,
+		>,
 		ChainApiSubsystem<RuntimeClient>,
 		CollationGenerationSubsystem,
 		CollatorProtocolSubsystem,
@@ -182,8 +185,15 @@ where
 			Metrics::register(registry)?,
 		),
 		provisioner: ProvisionerSubsystem::new(spawner.clone(), (), Metrics::register(registry)?),
-		runtime_api: RuntimeApiSubsystem::new(runtime_client, Metrics::register(registry)?, spawner),
-		statement_distribution: StatementDistributionSubsystem::new(keystore.clone(), Metrics::register(registry)?),
+		runtime_api: RuntimeApiSubsystem::new(
+			runtime_client,
+			Metrics::register(registry)?,
+			spawner,
+		),
+		statement_distribution: StatementDistributionSubsystem::new(
+			keystore.clone(),
+			Metrics::register(registry)?,
+		),
 		approval_distribution: ApprovalDistributionSubsystem::new(Metrics::register(registry)?),
 		approval_voting: ApprovalVotingSubsystem::with_config(
 			approval_voting_config,
@@ -240,6 +250,7 @@ impl OverseerGen for RealOverseerGen {
 
 		let all_subsystems = create_default_subsystems::<Spawner, RuntimeClient>(args)?;
 
-		Overseer::new(leaves, all_subsystems, registry, runtime_client, spawner).map_err(|e| e.into())
+		Overseer::new(leaves, all_subsystems, registry, runtime_client, spawner)
+			.map_err(|e| e.into())
 	}
 }
