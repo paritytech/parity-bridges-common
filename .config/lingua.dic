@@ -48,6 +48,7 @@ Lane3
 LaneId
 MIN_SIZE
 MIT/M
+MMR
 MaxUnrewardedRelayerEntriesAtInboundLane
 MaybeExtra
 MaybeOrphan
@@ -85,6 +86,7 @@ U256
 Unparsed
 Vec
 WND/S
+Westend/MS
 Wococo/MS
 XCM/S
 XCMP/M
@@ -96,6 +98,7 @@ args
 async
 auth
 auths/SM
+backoff
 benchmarking/MS
 best_substrate_header
 bitfield/MS
@@ -123,6 +126,7 @@ extrinsic/MS
 extrinsics
 fedora/M
 functor
+fuzzer
 hasher
 hardcoded
 https
@@ -144,6 +148,7 @@ keccak256/M
 keyring
 kusama/S
 lane
+malus
 max_value
 merkle/MS
 metadata

@@ -63,6 +63,9 @@ pub struct HeadersAndMessagesSharedParams {
 	/// Create relayers fund accounts on both chains, if it does not exists yet.
 	#[structopt(long)]
 	create_relayers_fund_accounts: bool,
+	/// If passed, only mandatory headers (headers that are changing the GRANDPA authorities set) are relayed.
+	#[structopt(long)]
+	only_mandatory_headers: bool,
 	#[structopt(flatten)]
 	prometheus_params: PrometheusParams,
 }
@@ -435,6 +438,7 @@ impl RelayHeadersAndMessages {
 				right_transactions_mortality,
 				LeftToRightFinality::new(right_client.clone(), right_sign.clone()),
 				MAX_MISSING_LEFT_HEADERS_AT_RIGHT,
+				params.shared.only_mandatory_headers,
 			);
 			let right_to_left_on_demand_headers = OnDemandHeadersRelay::new(
 				right_client.clone(),
@@ -442,6 +446,7 @@ impl RelayHeadersAndMessages {
 				left_transactions_mortality,
 				RightToLeftFinality::new(left_client.clone(), left_sign.clone()),
 				MAX_MISSING_RIGHT_HEADERS_AT_LEFT,
+				params.shared.only_mandatory_headers,
 			);
 
 			// Need 2x capacity since we consider both directions for each lane

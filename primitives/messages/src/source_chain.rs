@@ -136,7 +136,7 @@ pub trait MessagesBridge<AccountId, Balance, Payload> {
 	///
 	/// Returns unique message nonce or error if send has failed.
 	fn send_message(
-		sender: AccountId,
+		sender: Sender<AccountId>,
 		lane: LaneId,
 		message: Payload,
 		delivery_and_dispatch_fee: Balance,
@@ -170,6 +170,18 @@ impl OnDeliveryConfirmed for Tuple {
 			)*
 		);
 		total_weight
+	}
+}
+
+/// Handler for messages have been accepted
+pub trait OnMessageAccepted {
+	/// Called when a message has been accepted by message pallet.
+	fn on_messages_accepted(lane: &LaneId, message: &MessageNonce) -> Weight;
+}
+
+impl OnMessageAccepted for () {
+	fn on_messages_accepted(_lane: &LaneId, _message: &MessageNonce) -> Weight {
+		0
 	}
 }
 
