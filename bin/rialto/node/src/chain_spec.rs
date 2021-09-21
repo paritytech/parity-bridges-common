@@ -18,8 +18,8 @@ use bp_rialto::derive_account_from_millau_id;
 use polkadot_primitives::v1::{AssignmentId, ValidatorId};
 use rialto_runtime::{
 	AccountId, BabeConfig, BalancesConfig, BridgeKovanConfig, BridgeMillauMessagesConfig, BridgeRialtoPoaConfig,
-	GenesisConfig, GrandpaConfig, ConfigurationConfig, SessionConfig, SessionKeys, Signature, SudoConfig,
-	SystemConfig, WASM_BINARY,
+	ConfigurationConfig, GenesisConfig, GrandpaConfig, SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig,
+	WASM_BINARY,
 };
 use serde_json::json;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
