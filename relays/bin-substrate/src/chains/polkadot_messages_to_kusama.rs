@@ -251,9 +251,8 @@ pub(crate) fn add_standalone_metrics(
 	metrics_params: MetricsParams,
 	source_client: Client<Polkadot>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
-	let kusama_to_polkadot_conversion_rate_key = bp_runtime::storage_parameter_key(
-		bp_polkadot::KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME,
-	).0;
+	let kusama_to_polkadot_conversion_rate_key =
+		bp_runtime::storage_parameter_key(bp_polkadot::KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME).0;
 
 	substrate_relay_helper::messages_lane::add_standalone_metrics::<PolkadotMessagesToKusama>(
 		metrics_prefix,
