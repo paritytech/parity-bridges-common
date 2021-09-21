@@ -158,6 +158,9 @@ macro_rules! construct_async_run {
 /// Parse command line arguments into service configuration.
 pub fn run() -> Result<()> {
 	let cli = Cli::from_args();
+	sp_core::crypto::set_default_ss58_version(sp_core::crypto::Ss58AddressFormat::Custom(
+		rialto_parachain_runtime::SS58Prefix::get() as u16,
+	));
 
 	match &cli.subcommand {
 		Some(Subcommand::BuildSpec(cmd)) => {

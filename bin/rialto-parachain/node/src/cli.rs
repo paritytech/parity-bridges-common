@@ -136,7 +136,7 @@ impl RelayChainCli {
 		let base_path = para_config
 			.base_path
 			.as_ref()
-			.map(|x| x.path().join("polkadot"));
+			.map(|x| x.path().join("rialto-bridge-node"));
 		Self {
 			base_path,
 			chain_id,

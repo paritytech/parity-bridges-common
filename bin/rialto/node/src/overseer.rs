@@ -201,12 +201,7 @@ where
 			Metrics::register(registry)?, // validation host metrics
 		),
 		chain_api: ChainApiSubsystem::new(runtime_client.clone(), Metrics::register(registry)?),
-		collator_protocol: CollatorProtocolSubsystem::new(ProtocolSide::Collator(
-			network_service.local_peer_id().clone(),
-			collator_pair,
-			collation_req_receiver,
-			Metrics::register(registry)?,
-		)),
+		collation_generation: CollationGenerationSubsystem::new(Metrics::register(registry)?),
 		collator_protocol: CollatorProtocolSubsystem::new(ProtocolSide::Validator {
 			keystore: keystore.clone(),
 			eviction_policy: Default::default(),
