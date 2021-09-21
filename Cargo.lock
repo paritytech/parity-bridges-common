@@ -782,6 +782,7 @@ dependencies = [
  "smallvec",
  "sp-api",
  "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -841,6 +842,7 @@ dependencies = [
  "smallvec",
  "sp-api",
  "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -8248,9 +8250,21 @@ dependencies = [
 name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-kusama",
+ "bp-message-dispatch",
+ "bp-messages",
+ "bp-polkadot",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "frame-support",
+ "pallet-bridge-dispatch",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -8273,9 +8287,21 @@ dependencies = [
 name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
+ "bp-kusama",
+ "bp-message-dispatch",
+ "bp-messages",
  "bp-polkadot",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "frame-support",
+ "pallet-bridge-dispatch",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -8330,6 +8356,7 @@ dependencies = [
  "futures 0.3.17",
  "headers-relay",
  "jsonrpsee-proc-macros 0.2.0",
+ "jsonrpsee-types 0.2.0",
  "jsonrpsee-ws-client 0.2.0",
  "log",
  "num-traits",
@@ -8345,6 +8372,7 @@ dependencies = [
  "sp-rpc",
  "sp-runtime",
  "sp-storage",
+ "sp-transaction-pool",
  "sp-trie",
  "sp-version",
  "tokio",
@@ -11273,6 +11301,7 @@ dependencies = [
  "bp-rialto",
  "bp-rococo",
  "bp-runtime",
+ "bp-token-swap",
  "bp-westend",
  "bp-wococo",
  "bridge-runtime-common",
@@ -11287,10 +11316,14 @@ dependencies = [
  "millau-runtime",
  "num-format",
  "num-traits",
+ "pallet-balances",
+ "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-bridge-token-swap",
  "parity-scale-codec",
  "paste 1.0.5",
+ "rand 0.8.4",
  "relay-kusama-client",
  "relay-millau-client",
  "relay-polkadot-client",
@@ -11302,6 +11335,7 @@ dependencies = [
  "relay-wococo-client",
  "rialto-runtime",
  "sp-core",
+ "sp-io",
  "sp-keyring",
  "sp-runtime",
  "sp-version",

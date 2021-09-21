@@ -19,10 +19,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
-use frame_support::RuntimeDebug;
-use sp_core::hash::H256;
+use frame_support::{RuntimeDebug, StorageHasher};
+use sp_core::{hash::H256, storage::StorageKey};
 use sp_io::hashing::blake2_256;
-use sp_std::convert::TryFrom;
+use sp_std::{convert::TryFrom, vec::Vec};
 
 pub use chain::{
 	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf, IndexOf, SignatureOf,
@@ -182,4 +182,43 @@ impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber,
 			TransactionEra::Mortal(_, header_hash, _) => header_hash,
 		}
 	}
+}
+
+/// This is a copypaste of the `frame_support::storage::generator::StorageMap::storage_map_final_key`
+/// for `Blake2_128Concat` maps.
+///
+/// We're using it because to call `storage_map_final_key` directly, we need access to the runtime
+/// and pallet instance, which (sometimes) is impossible.
+pub fn storage_map_final_key_blake2_128concat(pallet_prefix: &str, map_name: &str, key: &[u8]) -> StorageKey {
+	storage_map_final_key_identity(pallet_prefix, map_name, &frame_support::Blake2_128Concat::hash(key))
+}
+
+/// This is a copypaste of the `frame_support::storage::generator::StorageMap::storage_map_final_key`
+/// for `Identity` maps.
+///
+/// We're using it because to call `storage_map_final_key` directly, we need access to the runtime
+/// and pallet instance, which (sometimes) is impossible.
+pub fn storage_map_final_key_identity(pallet_prefix: &str, map_name: &str, key_hashed: &[u8]) -> StorageKey {
+	let pallet_prefix_hashed = frame_support::Twox128::hash(pallet_prefix.as_bytes());
+	let storage_prefix_hashed = frame_support::Twox128::hash(map_name.as_bytes());
+
+	let mut final_key = Vec::with_capacity(pallet_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.len());
+
+	final_key.extend_from_slice(&pallet_prefix_hashed[..]);
+	final_key.extend_from_slice(&storage_prefix_hashed[..]);
+	final_key.extend_from_slice(key_hashed.as_ref());
+
+	StorageKey(final_key)
+}
+
+/// This is how a storage key of storage parameter (`parameter_types! { storage Param: bool = false; }`) is computed.
+///
+/// Copypaste from `frame_support::parameter_types` macro
+pub fn storage_parameter_key(parameter_name: &str) -> StorageKey {
+	let mut buffer = Vec::with_capacity(1 + parameter_name.len() + 1 + 1);
+	buffer.push(':' as u8);
+	buffer.extend_from_slice(parameter_name.as_bytes());
+	buffer.push(':' as u8);
+	buffer.push(0);
+	StorageKey(sp_io::hashing::twox_128(&buffer).to_vec())
 }
