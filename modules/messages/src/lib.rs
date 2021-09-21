@@ -895,7 +895,7 @@ pub mod storage_keys {
 ///
 /// This account is passed to `MessageDeliveryAndDispatchPayment` trait, and depending
 /// on the implementation it can be used to store relayers rewards.
-/// See [InstantCurrencyPayments] for a concrete implementation.
+/// See [`InstantCurrencyPayments`] for a concrete implementation.
 pub fn relayer_fund_account_id<AccountId, AccountIdConverter: Convert<H256, AccountId>>() -> AccountId {
 	let encoded_id = bp_runtime::derive_relayer_fund_account_id(bp_runtime::NO_INSTANCE_ID);
 	AccountIdConverter::convert(encoded_id)
