@@ -119,7 +119,6 @@ pub fn create_default_subsystems<'a, Spawner, RuntimeClient>(
 		authority_discovery_service,
 		pov_req_receiver,
 		chunk_req_receiver,
-		collation_req_receiver,
 		available_data_req_receiver,
 		statement_req_receiver,
 		dispute_req_receiver,
