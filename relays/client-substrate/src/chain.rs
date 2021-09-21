@@ -25,7 +25,7 @@ use sp_runtime::{
 	traits::{Block as BlockT, Dispatchable, Member},
 	EncodedJustification,
 };
-use sp_transaction_pool::TransactionStatus;
+use sc_transaction_pool_api::TransactionStatus;
 use std::{fmt::Debug, time::Duration};
 
 /// Substrate-based chain from minimal relay-client point of view.
