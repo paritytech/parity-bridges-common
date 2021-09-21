@@ -1000,6 +1000,32 @@ impl_runtime_apis! {
 
 	#[cfg(feature = "runtime-benchmarks")]
 	impl frame_benchmarking::Benchmark<Block> for Runtime {
+		fn benchmark_metadata(extra: bool) -> (
+			Vec<frame_benchmarking::BenchmarkList>,
+			Vec<frame_support::traits::StorageInfo>,
+		) {
+			use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
+			use frame_support::traits::StorageInfoTrait;
+
+			// Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
+			// issues. To get around that, we separated the Session benchmarks into its own crate,
+			// which is why we need these two lines below.
+			use pallet_session_benchmarking::Pallet as SessionBench;
+			use pallet_offences_benchmarking::Pallet as OffencesBench;
+			use frame_system_benchmarking::Pallet as SystemBench;
+
+			let mut list = Vec::<BenchmarkList>::new();
+
+			list_benchmark!(list, extra, pallet_bridge_eth_poa, BridgeRialtoPoa);
+			list_benchmark!(list, extra, pallet_bridge_currency_exchange, BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>);
+			list_benchmark!(list, extra, pallet_bridge_messages, MessagesBench::<Runtime, WithMillauMessagesInstance>);
+			list_benchmark!(list, extra, pallet_bridge_grandpa, BridgeMillauGrandpa);
+
+			let storage_info = AllPalletsWithSystem::storage_info();
+
+			return (list, storage_info)
+		}
+
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig,
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
