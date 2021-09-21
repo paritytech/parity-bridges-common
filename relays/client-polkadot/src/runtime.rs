@@ -134,7 +134,6 @@ pub enum BridgeKusamaMessagesCall {
 }
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
-#[allow(non_camel_case_types)]
 pub enum BridgeKusamaMessagesParameter {
 	#[codec(index = 0)]
 	KusamaToPolkadotConversionRate(FixedU128),

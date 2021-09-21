@@ -258,7 +258,7 @@ macro_rules! select_bridge {
 										relay_kusama_client::runtime::Call::Balances(
 											relay_kusama_client::runtime::BalancesCall::transfer(
 												bp_kusama::AccountAddress::Id(account_id),
-												(1_000_000_000_000 / 30_000).into(), // Kusama ED
+												bp_kusama::EXISTENTIAL_DEPOSIT,
 											),
 										),
 										transaction_nonce,
@@ -289,7 +289,7 @@ macro_rules! select_bridge {
 										relay_polkadot_client::runtime::Call::Balances(
 											relay_polkadot_client::runtime::BalancesCall::transfer(
 												bp_polkadot::AccountAddress::Id(account_id),
-												10_000_000_000.into(), // Polkadot ED
+												bp_polkadot::EXISTENTIAL_DEPOSIT,
 											),
 										),
 										transaction_nonce,

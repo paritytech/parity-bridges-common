@@ -69,6 +69,9 @@ pub fn derive_account_from_kusama_id(id: bp_runtime::SourceAccount<AccountId>) -
 /// Per-byte fee for Polkadot transactions.
 pub const TRANSACTION_BYTE_FEE: Balance = 10 * 10_000_000_000 / 100 / 1_000;
 
+/// Existential deposit on Polkadot.
+pub const EXISTENTIAL_DEPOSIT: Balance = 10_000_000_000;
+
 /// The target length of a session (how often authorities change) on Polkadot measured in of number of
 /// blocks.
 ///
