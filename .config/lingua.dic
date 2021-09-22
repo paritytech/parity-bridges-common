@@ -192,6 +192,7 @@ source_at_target
 source_latest_confirmed
 source_latest_generated
 sp_finality_grandpa
+spawner
 sr25519
 src
 stringified
