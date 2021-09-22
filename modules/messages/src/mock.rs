@@ -41,7 +41,10 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 	FixedU128, Perbill,
 };
-use std::collections::BTreeMap;
+use std::{
+	collections::{BTreeMap, VecDeque},
+	ops::RangeInclusive,
+};
 
 pub type AccountId = u64;
 pub type Balance = u64;
@@ -346,13 +349,29 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 	}
 
 	fn pay_relayers_rewards(
+		lane_id: LaneId,
+		message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
-		relayers_rewards: RelayersRewards<AccountId, TestMessageFee>,
+		// relayers_rewards: RelayersRewards<AccountId, TestMessageFee>,
+		received_range: RangeInclusive<u64>,
 		_relayer_fund_account: &AccountId,
 	) {
-		for (relayer, reward) in relayers_rewards {
-			let key = (b":relayer-reward:", relayer, reward.reward).encode();
-			frame_support::storage::unhashed::put(&key, &true);
+		let mut relayers_rewards: RelayersRewards<_, TestMessageFee> = RelayersRewards::new();
+		for entry in message_relayers {
+			let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
+			let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
+
+			let mut relayer_reward = relayers_rewards.entry(entry.relayer).or_default();
+			for nonce in nonce_begin..nonce_end + 1 {
+				let message_data = Messages::outbound_message_data(lane_id, nonce)
+					.expect("message was just confirmed; we never prune unconfirmed messages; qed");
+				relayer_reward.reward = relayer_reward.reward.saturating_add(message_data.fee);
+				relayer_reward.messages += 1;
+			}
+			for (relayer, reward) in &relayers_rewards {
+				let key = (b":relayer-reward:", relayer, reward.reward).encode();
+				frame_support::storage::unhashed::put(&key, &true);
+			}
 		}
 	}
 }
