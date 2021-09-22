@@ -352,9 +352,9 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 		lane_id: LaneId,
 		message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
-		received_range: RangeInclusive<u64>,
+		received_range: &RangeInclusive<u64>,
 		_relayer_fund_account: &AccountId,
-	) {
+	) -> Result<(), Self::Error> {
 		let mut relayers_rewards: RelayersRewards<_, TestMessageFee> = RelayersRewards::new();
 		for entry in message_relayers {
 			let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
@@ -372,6 +372,7 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 				frame_support::storage::unhashed::put(&key, &true);
 			}
 		}
+		Ok(())
 	}
 }
 

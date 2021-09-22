@@ -91,9 +91,9 @@ where
 		lane_id: LaneId,
 		messages_relayers: VecDeque<UnrewardedRelayer<T::AccountId>>,
 		confirmation_relayer: &T::AccountId,
-		received_range: RangeInclusive<u64>,
+		received_range: &RangeInclusive<u64>,
 		relayer_fund_account: &T::AccountId,
-	) {
+	) -> Result<(), Self::Error> {
 		// remember to reward relayers that have delivered messages
 		// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
 		let mut relayers_rewards: RelayersRewards<_, Currency::Balance> = RelayersRewards::new();
@@ -119,6 +119,7 @@ where
 				GetConfirmationFee::get(),
 			);
 		}
+		Ok(())
 	}
 }
 

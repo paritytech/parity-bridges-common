@@ -18,10 +18,14 @@
 
 use crate::{DeliveredMessages, InboundLaneData, LaneId, MessageNonce, OutboundLaneData};
 
+use crate::UnrewardedRelayer;
 use bp_runtime::Size;
 use frame_support::{weights::Weight, Parameter, RuntimeDebug};
-use sp_std::{collections::{btree_map::BTreeMap, vec_deque::VecDeque}, fmt::Debug, ops::RangeInclusive};
-use crate::UnrewardedRelayer;
+use sp_std::{
+	collections::{btree_map::BTreeMap, vec_deque::VecDeque},
+	fmt::Debug,
+	ops::RangeInclusive,
+};
 
 /// The sender of the message on the source chain.
 pub type Sender<AccountId> = frame_system::RawOrigin<AccountId>;
@@ -125,9 +129,9 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 		lane_id: LaneId,
 		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		confirmation_relayer: &AccountId,
-		received_range: RangeInclusive<u64>,
+		received_range: &RangeInclusive<u64>,
 		relayer_fund_account: &AccountId,
-	);
+	) -> Result<(), Self::Error>;
 }
 
 /// Messages bridge API to be used from other pallets.
@@ -240,8 +244,9 @@ impl<AccountId, Balance> MessageDeliveryAndDispatchPayment<AccountId, Balance> f
 		_lane_id: LaneId,
 		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
-		_received_range: RangeInclusive<u64>,
+		_received_range: &RangeInclusive<u64>,
 		_relayer_fund_account: &AccountId,
-	) {
+	) -> Result<(), Self::Error> {
+		Ok(())
 	}
 }
