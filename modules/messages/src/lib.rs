@@ -59,7 +59,7 @@ use bp_runtime::{ChainId, Size};
 use codec::{Decode, Encode};
 use frame_support::{
 	fail,
-	traits::Get,
+	traits::{Currency, Get},
 	weights::{Pays, PostDispatchInfo},
 };
 use frame_system::RawOrigin;
@@ -162,8 +162,8 @@ pub mod pallet {
 			Self::AccountId,
 			Self::OutboundMessageFee,
 		>;
-		/// Handler for accepted messages.
 		type OnMessageAccepted: OnMessageAccepted;
+		/// Handler for accepted messages.
 		/// Handler for delivered messages.
 		type OnDeliveryConfirmed: OnDeliveryConfirmed;
 
@@ -523,7 +523,7 @@ pub mod pallet {
 
 			// mark messages as delivered
 			let mut lane = outbound_lane::<T, I>(lane_id);
-			let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
+			// let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
 			let last_delivered_nonce = lane_data.last_delivered_nonce();
 			let confirmed_messages =
 				match lane.confirm_delivery(relayers_state.total_messages, last_delivered_nonce, &lane_data.relayers) {
@@ -586,30 +586,13 @@ pub mod pallet {
 				let received_range = confirmed_messages.begin..=confirmed_messages.end;
 				Self::deposit_event(Event::MessagesDelivered(lane_id, confirmed_messages));
 
-				// remember to reward relayers that have delivered messages
-				// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
-				for entry in lane_data.relayers {
-					let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
-					let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
-
-					// loop won't proceed if current entry is ahead of received range (begin > end).
-					// this loop is bound by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
-					let mut relayer_reward = relayers_rewards.entry(entry.relayer).or_default();
-					for nonce in nonce_begin..nonce_end + 1 {
-						let message_data = OutboundMessages::<T, I>::get(MessageKey { lane_id, nonce })
-							.expect("message was just confirmed; we never prune unconfirmed messages; qed");
-						relayer_reward.reward = relayer_reward.reward.saturating_add(&message_data.fee);
-						relayer_reward.messages += 1;
-					}
-				}
-			}
-
-			// if some new messages have been confirmed, reward relayers
-			if !relayers_rewards.is_empty() {
+				// if some new messages have been confirmed, reward relayers
 				let relayer_fund_account = relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>();
 				<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayers_rewards(
+					lane_id,
+					lane_data.relayers,
 					&confirmation_relayer,
-					relayers_rewards,
+					received_range,
 					&relayer_fund_account,
 				);
 			}
