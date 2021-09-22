@@ -1,6 +1,5 @@
 {
 	"--3": "Common types",
-	"LookupSource": "AccountId",
 	"AccountSigner": "MultiSigner",
 	"SpecVersion": "u32",
 	"RelayerId": "AccountId",

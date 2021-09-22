@@ -1,5 +1,6 @@
 {
 	"Address": "RialtoAddress",
+	"LookupSource": "RialtoLookupSource",
 	"Fee": "RialtoBalance",
 	"Balance": "RialtoBalance",
 	"BlockHash": "RialtoBlockHash",
