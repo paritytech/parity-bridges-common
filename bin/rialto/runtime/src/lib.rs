@@ -524,6 +524,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = pallet_bridge_messages::instant_payments::InstantCurrencyPayments<
 		Runtime,
+		(),
 		pallet_balances::Pallet<Runtime>,
 		GetDeliveryConfirmationTransactionFee,
 		RootAccountForPayments,
