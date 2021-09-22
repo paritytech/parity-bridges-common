@@ -1647,7 +1647,7 @@ dependencies = [
  "sc-consensus",
  "sp-api",
  "sp-consensus",
- "sp-maybe-compressed-blob 4.0.0-dev",
+ "sp-maybe-compressed-blob",
  "sp-runtime",
  "tracing",
 ]
@@ -4902,7 +4902,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-trie",
  "sp-version",
- "substrate-wasm-builder 5.0.0-dev",
+ "substrate-wasm-builder",
 ]
 
 [[package]]
@@ -6781,7 +6781,7 @@ dependencies = [
  "polkadot-node-subsystem-util",
  "polkadot-primitives",
  "sp-core",
- "sp-maybe-compressed-blob 4.0.0-dev",
+ "sp-maybe-compressed-blob",
  "thiserror",
  "tracing",
 ]
@@ -6881,7 +6881,7 @@ dependencies = [
  "polkadot-node-subsystem-util",
  "polkadot-parachain",
  "polkadot-primitives",
- "sp-maybe-compressed-blob 4.0.0-dev",
+ "sp-maybe-compressed-blob",
  "tracing",
 ]
 
@@ -7006,7 +7006,7 @@ dependencies = [
  "sp-core",
  "sp-externalities",
  "sp-io",
- "sp-maybe-compressed-blob 4.0.0-dev",
+ "sp-maybe-compressed-blob",
  "sp-tracing",
  "sp-wasm-interface",
  "tracing",
@@ -7095,7 +7095,7 @@ dependencies = [
  "sp-consensus-vrf",
  "sp-core",
  "sp-keystore",
- "sp-maybe-compressed-blob 4.0.0-dev",
+ "sp-maybe-compressed-blob",
  "thiserror",
  "zstd",
 ]
@@ -7358,7 +7358,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
- "substrate-wasm-builder 5.0.0-dev",
+ "substrate-wasm-builder",
 ]
 
 [[package]]
@@ -7619,7 +7619,7 @@ dependencies = [
  "sp-std",
  "sp-transaction-pool",
  "sp-version",
- "substrate-wasm-builder 5.0.0-dev",
+ "substrate-wasm-builder",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -8700,7 +8700,7 @@ dependencies = [
  "sp-std",
  "sp-transaction-pool",
  "sp-version",
- "substrate-wasm-builder 4.0.0",
+ "substrate-wasm-builder",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -8763,7 +8763,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-trie",
  "sp-version",
- "substrate-wasm-builder 5.0.0-dev",
+ "substrate-wasm-builder",
 ]
 
 [[package]]
@@ -8870,16 +8870,6 @@ dependencies = [
  "rustls",
  "schannel",
  "security-framework",
-]
-
-[[package]]
-name = "ruzstd"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cada0ef59efa6a5f4dc5e491f93d9f31e3fc7758df421ff1de8a706338e1100"
-dependencies = [
- "byteorder",
- "twox-hash",
 ]
 
 [[package]]
@@ -9328,7 +9318,7 @@ dependencies = [
  "pwasm-utils",
  "sc-allocator",
  "sp-core",
- "sp-maybe-compressed-blob 4.0.0-dev",
+ "sp-maybe-compressed-blob",
  "sp-serializer",
  "sp-wasm-interface",
  "thiserror",
@@ -10675,7 +10665,7 @@ dependencies = [
  "sp-core",
  "sp-externalities",
  "sp-keystore",
- "sp-maybe-compressed-blob 4.0.0-dev",
+ "sp-maybe-compressed-blob",
  "sp-runtime-interface",
  "sp-state-machine",
  "sp-std",
@@ -10712,15 +10702,6 @@ dependencies = [
  "serde",
  "sp-core",
  "sp-externalities",
-]
-
-[[package]]
-name = "sp-maybe-compressed-blob"
-version = "3.0.0"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.7#9c572625f6557dfdb19f47474369a0327d51dfbc"
-dependencies = [
- "ruzstd",
- "zstd",
 ]
 
 [[package]]
@@ -11407,29 +11388,13 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasm-builder"
-version = "4.0.0"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.7#9c572625f6557dfdb19f47474369a0327d51dfbc"
-dependencies = [
- "ansi_term 0.12.1",
- "atty",
- "build-helper",
- "cargo_metadata",
- "sp-maybe-compressed-blob 3.0.0",
- "tempfile",
- "toml",
- "walkdir",
- "wasm-gc-api",
-]
-
-[[package]]
-name = "substrate-wasm-builder"
 version = "5.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#630422d6108cbaaca893ab213dde69f3bdaa1f6b"
 dependencies = [
  "ansi_term 0.12.1",
  "build-helper",
  "cargo_metadata",
- "sp-maybe-compressed-blob 4.0.0-dev",
+ "sp-maybe-compressed-blob",
  "tempfile",
  "toml",
  "walkdir",
