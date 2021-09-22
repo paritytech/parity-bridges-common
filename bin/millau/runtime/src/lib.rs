@@ -217,7 +217,7 @@ impl pallet_aura::Config for Runtime {
 }
 impl pallet_bridge_dispatch::Config for Runtime {
 	type Event = Event;
-	type MessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
+	type BridgeMessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
 	type Call = Call;
 	type CallFilter = frame_support::traits::Everything;
 	type EncodedCall = crate::rialto_messages::FromRialtoEncodedCall;
@@ -759,5 +759,13 @@ mod tests {
 			bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
 			DbWeight::get(),
 		);
+	}
+
+	#[test]
+	fn call_size() {
+		// pallets that are (to be) used by polkadot runtime
+		const MAX_CALL_SIZE: usize = 230; // value from polkadot-runtime tests
+		assert!(core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <= MAX_CALL_SIZE);
+		assert!(core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <= MAX_CALL_SIZE);
 	}
 }
