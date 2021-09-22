@@ -1016,7 +1016,7 @@ impl_runtime_apis! {
 			list_benchmark!(
 				list,
 				extra,
-				pallet_bridge_currency_exchange, BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>,
+				pallet_bridge_currency_exchange, BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>
 			);
 			list_benchmark!(list, extra, pallet_bridge_messages, MessagesBench::<Runtime, WithMillauMessagesInstance>);
 			list_benchmark!(list, extra, pallet_bridge_grandpa, BridgeMillauGrandpa);
