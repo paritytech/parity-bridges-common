@@ -598,7 +598,7 @@ pub(crate) fn find_forced_change<H: HeaderT>(
 #[cfg(feature = "runtime-benchmarks")]
 pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader<T, I>) {
 	initialize_bridge::<T, I>(InitializationData {
-		header,
+		Box::new(header),
 		authority_list: sp_std::vec::Vec::new(), // we don't verify any proofs in external benchmarks
 		set_id: 0,
 		is_halted: false,
