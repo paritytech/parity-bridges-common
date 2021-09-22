@@ -146,6 +146,7 @@ jsonrpsee
 keccak
 keccak256/M
 keyring
+keystore/MS
 kusama/S
 lane
 malus
