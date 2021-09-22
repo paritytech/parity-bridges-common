@@ -137,7 +137,7 @@ pub mod pallet {
 		/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 		type OutboundPayload: Parameter + Size;
 		/// Message fee type of outbound messages. This fee is paid on this chain.
-		type OutboundMessageFee: Default + From<u64> + PartialOrd + Parameter + SaturatingAdd + Zero;
+		type OutboundMessageFee: Default + From<u64> + PartialOrd + Parameter + SaturatingAdd + Zero + Copy;
 
 		/// Payload type of inbound messages. This payload is dispatched on this chain.
 		type InboundPayload: Decode;

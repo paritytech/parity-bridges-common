@@ -52,7 +52,7 @@ impl<T, I, Currency, GetConfirmationFee, RootAccount> MessageDeliveryAndDispatch
 where
 	T: frame_system::Config + crate::Config<I>,
 	I: 'static,
-	Currency: CurrencyT<T::AccountId>,
+	Currency: CurrencyT<T::AccountId, Balance = T::OutboundMessageFee>,
 	Currency::Balance: From<MessageNonce>,
 	GetConfirmationFee: Get<Currency::Balance>,
 	RootAccount: Get<Option<T::AccountId>>,
@@ -95,8 +95,8 @@ where
 	) {
 		// remember to reward relayers that have delivered messages
 		// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
-		// let mut relayers_rewards: RelayersRewards<_, Currency::Balance> = RelayersRewards::new();
-		let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
+		let mut relayers_rewards: RelayersRewards<_, Currency::Balance> = RelayersRewards::new();
+		// let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
 		for entry in message_relayers {
 			let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
 			let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
