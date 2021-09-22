@@ -123,7 +123,7 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 	/// a relayer that has submitted delivery confirmation transaction.
 	fn pay_relayers_rewards(
 		lane_id: LaneId,
-		message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
+		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		confirmation_relayer: &AccountId,
 		received_range: RangeInclusive<u64>,
 		relayer_fund_account: &AccountId,
@@ -238,7 +238,7 @@ impl<AccountId, Balance> MessageDeliveryAndDispatchPayment<AccountId, Balance> f
 
 	fn pay_relayers_rewards(
 		_lane_id: LaneId,
-		_message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
+		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		_received_range: RangeInclusive<u64>,
 		_relayer_fund_account: &AccountId,

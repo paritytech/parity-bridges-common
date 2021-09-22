@@ -162,8 +162,8 @@ pub mod pallet {
 			Self::AccountId,
 			Self::OutboundMessageFee,
 		>;
-		type OnMessageAccepted: OnMessageAccepted;
 		/// Handler for accepted messages.
+		type OnMessageAccepted: OnMessageAccepted;
 		/// Handler for delivered messages.
 		type OnDeliveryConfirmed: OnDeliveryConfirmed;
 
@@ -523,7 +523,6 @@ pub mod pallet {
 
 			// mark messages as delivered
 			let mut lane = outbound_lane::<T, I>(lane_id);
-			// let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
 			let last_delivered_nonce = lane_data.last_delivered_nonce();
 			let confirmed_messages =
 				match lane.confirm_delivery(relayers_state.total_messages, last_delivered_nonce, &lane_data.relayers) {

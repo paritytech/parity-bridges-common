@@ -20,6 +20,7 @@
 //! to the actual relayer in case confirmation is received.
 
 use crate::OutboundMessages;
+
 use bp_messages::{
 	source_chain::{MessageDeliveryAndDispatchPayment, RelayersRewards, Sender},
 	LaneId, MessageKey, MessageNonce, UnrewardedRelayer,
@@ -88,7 +89,7 @@ where
 
 	fn pay_relayers_rewards(
 		lane_id: LaneId,
-		message_relayers: VecDeque<UnrewardedRelayer<T::AccountId>>,
+		messages_relayers: VecDeque<UnrewardedRelayer<T::AccountId>>,
 		confirmation_relayer: &T::AccountId,
 		received_range: RangeInclusive<u64>,
 		relayer_fund_account: &T::AccountId,
@@ -96,8 +97,7 @@ where
 		// remember to reward relayers that have delivered messages
 		// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
 		let mut relayers_rewards: RelayersRewards<_, Currency::Balance> = RelayersRewards::new();
-		// let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
-		for entry in message_relayers {
+		for entry in messages_relayers {
 			let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
 			let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
 

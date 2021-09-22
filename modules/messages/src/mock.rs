@@ -352,7 +352,6 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 		lane_id: LaneId,
 		message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
-		// relayers_rewards: RelayersRewards<AccountId, TestMessageFee>,
 		received_range: RangeInclusive<u64>,
 		_relayer_fund_account: &AccountId,
 	) {
