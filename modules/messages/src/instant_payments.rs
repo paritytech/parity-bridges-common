@@ -22,7 +22,7 @@
 use crate::OutboundMessages;
 use bp_messages::{
 	source_chain::{MessageDeliveryAndDispatchPayment, RelayersRewards, Sender},
-	InboundLaneData, LaneId, MessageKey, MessageNonce, UnrewardedRelayer,
+	LaneId, MessageKey, MessageNonce, UnrewardedRelayer,
 };
 use codec::Encode;
 use frame_support::traits::{Currency as CurrencyT, ExistenceRequirement, Get};

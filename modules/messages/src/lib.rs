@@ -49,7 +49,7 @@ use crate::weights::WeightInfo;
 use bp_messages::{
 	source_chain::{
 		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, OnMessageAccepted,
-		RelayersRewards, TargetHeaderChain,
+		TargetHeaderChain,
 	},
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	total_unrewarded_messages, DeliveredMessages, InboundLaneData, LaneId, MessageData, MessageKey, MessageNonce,
@@ -59,7 +59,7 @@ use bp_runtime::{ChainId, Size};
 use codec::{Decode, Encode};
 use frame_support::{
 	fail,
-	traits::{Currency, Get},
+	traits::Get,
 	weights::{Pays, PostDispatchInfo},
 };
 use frame_system::RawOrigin;
