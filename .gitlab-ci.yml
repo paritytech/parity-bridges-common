@@ -116,6 +116,8 @@ check:
   stage:                           check
   <<:                              *docker-env
   <<:                              *test-refs
+  variables:
+    RUSTC_WRAPPER:
   script:                          &check-script
     - time cargo check --verbose --workspace
     # Check Rialto benchmarks runtime
