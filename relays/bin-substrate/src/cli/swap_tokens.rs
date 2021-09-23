@@ -16,6 +16,10 @@
 
 //! Tokens swap using token-swap bridge pallet.
 
+// TokenSwapBalances fields are never directly accessed, but the whole struct is printed
+// to show token swap progress
+#![allow(dead_code)]
+
 use codec::Encode;
 use num_traits::One;
 use rand::random;
@@ -283,7 +287,7 @@ impl SwapTokens {
 				Some(bp_token_swap::TokenSwapState::Failed) => {
 					log::info!(
 						target: "bridge",
-						"Transfer has been dispatched with an error at the target chain. Swap can be cancelled",
+						"Transfer has been dispatched with an error at the target chain. Swap can be canceled",
 					);
 					false
 				}
@@ -294,7 +298,7 @@ impl SwapTokens {
 			let intermediate_balances = read_account_balances(&accounts, &source_client, &target_client).await?;
 			log::info!(target: "bridge", "Intermediate balances: {:?}", intermediate_balances);
 
-			// transfer has been dispatched, but we may need to wait until block where swap can be claimed/cancelled
+			// transfer has been dispatched, but we may need to wait until block where swap can be claimed/canceled
 			if let bp_token_swap::TokenSwapType::LockClaimUntilBlock(ref last_available_block_number, _) =
 				token_swap.swap_type
 			{
@@ -436,7 +440,7 @@ impl SwapTokens {
 
 		// prepare token swap intention
 		Ok(bp_token_swap::TokenSwap {
-			swap_type: self.prepare_token_swap_type(&source_client).await?,
+			swap_type: self.prepare_token_swap_type(source_client).await?,
 			source_balance_at_this_chain,
 			source_account_at_this_chain: source_account_at_this_chain.clone(),
 			target_balance_at_bridged_chain,
@@ -498,26 +502,26 @@ async fn read_account_balances<Source: ChainWithBalances, Target: ChainWithBalan
 ) -> anyhow::Result<TokenSwapBalances<BalanceOf<Source>, BalanceOf<Target>>> {
 	Ok(TokenSwapBalances {
 		source_account_at_this_chain_balance: read_account_balance(
-			&source_client,
+			source_client,
 			&accounts.source_account_at_this_chain,
 		)
 		.await?,
 		source_account_at_bridged_chain_balance: read_account_balance(
-			&target_client,
+			target_client,
 			&accounts.source_account_at_bridged_chain,
 		)
 		.await?,
 		target_account_at_bridged_chain_balance: read_account_balance(
-			&target_client,
+			target_client,
 			&accounts.target_account_at_bridged_chain,
 		)
 		.await?,
 		target_account_at_this_chain_balance: read_account_balance(
-			&source_client,
+			source_client,
 			&accounts.target_account_at_this_chain,
 		)
 		.await?,
-		swap_account_balance: read_account_balance(&source_client, &accounts.swap_account).await?,
+		swap_account_balance: read_account_balance(source_client, &accounts.swap_account).await?,
 	})
 }
 
@@ -609,7 +613,7 @@ async fn wait_until_token_swap_state_is_changed<C: Chain>(
 	}
 }
 
-/// Waits until swap can be claimed or cancelled.
+/// Waits until swap can be claimed or canceled.
 async fn wait_until_swap_unlocked<C: Chain>(
 	client: &Client<C>,
 	required_block_number: BlockNumberOf<C>,

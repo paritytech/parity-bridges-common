@@ -93,6 +93,8 @@ clippy-nightly:
   stage:                           lint
   <<:                              *docker-env
   <<:                              *test-refs
+  variables:
+    RUSTC_WRAPPER:                 ""
   script:
     - cargo +nightly clippy --all-targets
 
@@ -116,17 +118,21 @@ check:
   stage:                           check
   <<:                              *docker-env
   <<:                              *test-refs
+  variables:
+    RUSTC_WRAPPER:                 ""
   script:                          &check-script
-    - time cargo check --verbose --workspace
+    - time cargo check --locked --verbose --workspace
     # Check Rialto benchmarks runtime
-    - time cargo check -p rialto-runtime --features runtime-benchmarks --verbose
+    - time cargo check -p rialto-runtime --locked --features runtime-benchmarks --verbose
     # Check Millau benchmarks runtime
-    - time cargo check -p millau-runtime --features runtime-benchmarks --verbose
+    - time cargo check -p millau-runtime --locked --features runtime-benchmarks --verbose
 
 check-nightly:
   stage:                           check
   <<:                              *docker-env
   <<:                              *nightly-test
+  variables:
+    RUSTC_WRAPPER:                 ""
   script:
     - rustup default nightly
     - *check-script
@@ -139,13 +145,16 @@ test:
   <<:                              *test-refs
   variables:
     RUSTFLAGS:                     "-D warnings"
+    RUSTC_WRAPPER:                 ""
   script:                          &test-script
-    - time cargo test --verbose --workspace
+    - time cargo test --locked --verbose --workspace
 
 test-nightly:
   stage:                           test
   <<:                              *docker-env
   <<:                              *nightly-test
+  variables:
+    RUSTC_WRAPPER:                 ""
   script:
     - rustup default nightly
     - *test-script

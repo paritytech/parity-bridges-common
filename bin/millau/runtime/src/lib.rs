@@ -156,7 +156,7 @@ parameter_types! {
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The aggregated dispatch type that is available for extrinsics.
@@ -206,14 +206,20 @@ impl frame_system::Config for Runtime {
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
+parameter_types! {
+	pub const MaxAuthorities: u32 = 10;
+}
+
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
+	type MaxAuthorities = MaxAuthorities;
+	type DisabledValidators = ();
 }
 impl pallet_bridge_dispatch::Config for Runtime {
 	type Event = Event;
-	type MessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
+	type BridgeMessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
 	type Call = Call;
-	type CallFilter = ();
+	type CallFilter = frame_support::traits::Everything;
 	type EncodedCall = crate::rialto_messages::FromRialtoEncodedCall;
 	type SourceChainAccountId = bp_rialto::AccountId;
 	type TargetChainAccountPublic = MultiSigner;
@@ -556,7 +562,7 @@ impl_runtime_apis! {
 		}
 
 		fn authorities() -> Vec<AuraId> {
-			Aura::authorities()
+			Aura::authorities().to_vec()
 		}
 	}
 
@@ -585,6 +591,10 @@ impl_runtime_apis! {
 	}
 
 	impl fg_primitives::GrandpaApi<Block> for Runtime {
+		fn current_set_id() -> fg_primitives::SetId {
+			Grandpa::current_set_id()
+		}
+
 		fn grandpa_authorities() -> GrandpaAuthorityList {
 			Grandpa::grandpa_authorities()
 		}
@@ -750,5 +760,13 @@ mod tests {
 			bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
 			DbWeight::get(),
 		);
+	}
+
+	#[test]
+	fn call_size() {
+		// pallets that are (to be) used by polkadot runtime
+		const MAX_CALL_SIZE: usize = 230; // value from polkadot-runtime tests
+		assert!(core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <= MAX_CALL_SIZE);
+		assert!(core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <= MAX_CALL_SIZE);
 	}
 }
