@@ -93,6 +93,8 @@ clippy-nightly:
   stage:                           lint
   <<:                              *docker-env
   <<:                              *test-refs
+  variables:
+    RUSTC_WRAPPER:                 ""
   script:
     - cargo +nightly clippy --all-targets
 
@@ -129,6 +131,8 @@ check-nightly:
   stage:                           check
   <<:                              *docker-env
   <<:                              *nightly-test
+  variables:
+    RUSTC_WRAPPER:                 ""
   script:
     - rustup default nightly
     - *check-script
@@ -149,6 +153,8 @@ test-nightly:
   stage:                           test
   <<:                              *docker-env
   <<:                              *nightly-test
+  variables:
+    RUSTC_WRAPPER:                 ""
   script:
     - rustup default nightly
     - *test-script
