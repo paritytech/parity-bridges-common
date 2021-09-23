@@ -1162,7 +1162,7 @@ mod tests {
 		// let's prepare situation when:
 		// - all messages [20; 23] have been generated at source block#1;
 		let (mut state, mut strategy) = prepare_strategy();
-		// 
+		//
 		// - messages [20; 21] have been delivered, but messages [11; 20] can't be delivered because
 		//   of unrewarded relayers vector capacity;
 		strategy.max_unconfirmed_nonces_at_target = 2;
@@ -1185,13 +1185,13 @@ mod tests {
 			&mut state,
 		);
 		assert_eq!(strategy.select_nonces_to_deliver(state).await, None);
-		// 
+		//
 		// - messages [1; 10] receiving confirmation has been delivered at source block#2;
 		strategy.source_nonces_updated(
 			header_id(2),
 			SourceClientNonces { new_nonces: MessageDetailsMap::new(), confirmed_nonce: Some(21) },
 		);
-		// 
+		//
 		// - so now we'll need to relay source block#11 to be able to accept messages [11; 20].
 		assert_eq!(strategy.required_source_header_at_target(&header_id(1)), Some(header_id(2)));
 	}
