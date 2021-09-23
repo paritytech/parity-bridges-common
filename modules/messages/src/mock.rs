@@ -352,7 +352,7 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 		lane_id: LaneId,
 		message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
-		received_range: &RangeInclusive<u64>,
+		received_range: &RangeInclusive<MessageNonce>,
 		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {
 		let relayers_rewards = cal_relayers_rewards::<TestRuntime, ()>(lane_id, message_relayers, received_range);
