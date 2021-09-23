@@ -129,7 +129,7 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 		lane_id: LaneId,
 		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		confirmation_relayer: &AccountId,
-		received_range: &RangeInclusive<u64>,
+		received_range: &RangeInclusive<MessageNonce>,
 		relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error>;
 }
@@ -244,7 +244,7 @@ impl<AccountId, Balance> MessageDeliveryAndDispatchPayment<AccountId, Balance> f
 		_lane_id: LaneId,
 		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
-		_received_range: &RangeInclusive<u64>,
+		_received_range: &RangeInclusive<MessageNonce>,
 		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {
 		Ok(())

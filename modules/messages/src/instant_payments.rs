@@ -91,7 +91,7 @@ where
 		lane_id: LaneId,
 		messages_relayers: VecDeque<UnrewardedRelayer<T::AccountId>>,
 		confirmation_relayer: &T::AccountId,
-		received_range: &RangeInclusive<u64>,
+		received_range: &RangeInclusive<MessageNonce>,
 		relayer_fund_account: &T::AccountId,
 	) -> Result<(), Self::Error> {
 		// remember to reward relayers that have delivered messages
