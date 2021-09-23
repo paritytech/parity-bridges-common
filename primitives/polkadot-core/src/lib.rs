@@ -77,8 +77,8 @@ const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
 
 /// All Polkadot-like chains assume that an on-initialize consumes 1 percent of the weight on
-/// average, hence a single extrinsic will not be allowed to consume more than `AvailableBlockRatio
-/// - 1 percent`.
+/// average, hence a single extrinsic will not be allowed to consume more than
+/// `AvailableBlockRatio - 1 percent`.
 ///
 /// This is a copy-paste from the Polkadot repo's `polkadot-runtime-common` crate.
 pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(1);
