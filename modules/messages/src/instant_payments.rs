@@ -94,23 +94,7 @@ where
 		received_range: &RangeInclusive<MessageNonce>,
 		relayer_fund_account: &T::AccountId,
 	) -> Result<(), Self::Error> {
-		// remember to reward relayers that have delivered messages
-		// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
-		let mut relayers_rewards: RelayersRewards<_, Currency::Balance> = RelayersRewards::new();
-		for entry in messages_relayers {
-			let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
-			let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
-
-			// loop won't proceed if current entry is ahead of received range (begin > end).
-			// this loop is bound by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
-			let mut relayer_reward = relayers_rewards.entry(entry.relayer).or_default();
-			for nonce in nonce_begin..nonce_end + 1 {
-				let message_data = OutboundMessages::<T, I>::get(MessageKey { lane_id, nonce })
-					.expect("message was just confirmed; we never prune unconfirmed messages; qed");
-				relayer_reward.reward = relayer_reward.reward.saturating_add(&message_data.fee);
-				relayer_reward.messages += 1;
-			}
-		}
+		let relayers_rewards = cal_relayers_rewards::<T, I>(lane_id, messages_relayers, received_range);
 		if !relayers_rewards.is_empty() {
 			pay_relayers_rewards::<Currency, _>(
 				confirmation_relayer,
@@ -121,6 +105,36 @@ where
 		}
 		Ok(())
 	}
+}
+
+/// Calculate the relayers rewards
+pub(crate) fn cal_relayers_rewards<T, I>(
+	lane_id: LaneId,
+	messages_relayers: VecDeque<UnrewardedRelayer<T::AccountId>>,
+	received_range: &RangeInclusive<MessageNonce>,
+) -> RelayersRewards<T::AccountId, T::OutboundMessageFee>
+where
+	T: frame_system::Config + crate::Config<I>,
+	I: 'static,
+{
+	// remember to reward relayers that have delivered messages
+	// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
+	let mut relayers_rewards: RelayersRewards<_, T::OutboundMessageFee> = RelayersRewards::new();
+	for entry in messages_relayers {
+		let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
+		let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
+
+		// loop won't proceed if current entry is ahead of received range (begin > end).
+		// this loop is bound by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
+		let mut relayer_reward = relayers_rewards.entry(entry.relayer).or_default();
+		for nonce in nonce_begin..nonce_end + 1 {
+			let message_data = OutboundMessages::<T, I>::get(MessageKey { lane_id, nonce })
+				.expect("message was just confirmed; we never prune unconfirmed messages; qed");
+			relayer_reward.reward = relayer_reward.reward.saturating_add(&message_data.fee);
+			relayer_reward.messages += 1;
+		}
+	}
+	relayers_rewards
 }
 
 /// Pay rewards to given relayers, optionally rewarding confirmation relayer.
