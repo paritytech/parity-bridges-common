@@ -144,7 +144,7 @@ test:
   <<:                              *docker-env
   <<:                              *test-refs
   variables:
-    RUSTFLAGS:                     "-D warnings"
+    # RUSTFLAGS:                     "-D warnings"
     RUSTC_WRAPPER:                 ""
   script:                          &test-script
     - time cargo test --locked --verbose --workspace
