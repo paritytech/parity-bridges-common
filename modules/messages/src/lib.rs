@@ -53,6 +53,9 @@ use bp_messages::{
 		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed,
 		OnMessageAccepted, TargetHeaderChain,
 	},
+	target_chain::{
+		DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
+	},
 	total_unrewarded_messages, DeliveredMessages, InboundLaneData, LaneId, MessageData, MessageKey,
 	MessageNonce, OperatingMode, OutboundLaneData, Parameter as MessagesParameter,
 	UnrewardedRelayersState,
