@@ -91,9 +91,9 @@
     "dispatch_results": "BitVec"
   },
   "OutboundLaneData": {
-    "latest_generated_nonce": "MessageNonce",
+    "oldest_unpruned_nonce": "MessageNonce",
     "latest_received_nonce": "MessageNonce",
-    "oldest_unpruned_nonce": "MessageNonce"
+    "latest_generated_nonce": "MessageNonce"
   },
   "MessageData": {
     "payload": "MessagePayload",
