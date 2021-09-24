@@ -1,18 +1,19 @@
 {
   "--1": "Rococo Types",
   "RococoAddress": "AccountId",
+  "RococoLookupSource": "AccountId",
   "RococoBalance": "u128",
   "RococoBlockHash": "H256",
   "RococoBlockNumber": "u32",
   "RococoHeader": "Header",
   "--2": "Wococo Types",
   "WococoAddress": "AccountId",
+  "WococoLookupSource": "AccountId",
   "WococoBalance": "RococoBalance",
   "WococoBlockHash": "RococoBlockHash",
   "WococoBlockNumber": "RococoBlockNumber",
   "WococoHeader": "RococoHeader",
   "--3": "Common types",
-  "LookupSource": "AccountId",
   "AccountSigner": "MultiSigner",
   "SpecVersion": "u32",
   "RelayerId": "AccountId",
@@ -52,8 +53,8 @@
   },
   "OutboundLaneData": {
     "oldest_unpruned_nonce": "MessageNonce",
-    "latest_received_nonce": "MessageNonce",
-    "latest_generated_nonce": "MessageNonce"
+    "latest_generated_nonce": "MessageNonce",
+    "latest_received_nonce": "MessageNonce"
   },
   "MessageData": {
     "payload": "MessagePayload",
@@ -134,6 +135,7 @@
     "votes_ancestries": "Vec<BridgedHeader>"
   },
   "Address": "WococoAddress",
+  "LookupSource": "WococoLookupSource",
   "Fee": "WococoBalance",
   "Balance": "WococoBalance",
   "Hash": "WococoBlockHash",

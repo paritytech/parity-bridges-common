@@ -1,6 +1,7 @@
 {
   "--1": "Millau Types",
   "MillauAddress": "AccountId",
+  "MillauLookupSource": "AccountId",
   "MillauBalance": "u64",
   "MillauBlockHash": "H512",
   "MillauBlockNumber": "u64",
@@ -26,7 +27,8 @@
     }
   },
   "--2": "Rialto Types",
-  "RialtoAddress": "MultiAddress<AccountId, AccountIndex>",
+  "RialtoAddress": "MultiAddress",
+  "RialtoLookupSource": "MultiAddress",
   "RialtoBalance": "u128",
   "RialtoBlockHash": "H256",
   "RialtoBlockNumber": "u32",
@@ -52,7 +54,6 @@
     }
   },
   "--3": "Common types",
-  "LookupSource": "AccountId",
   "AccountSigner": "MultiSigner",
   "SpecVersion": "u32",
   "RelayerId": "AccountId",
@@ -92,8 +93,8 @@
   },
   "OutboundLaneData": {
     "oldest_unpruned_nonce": "MessageNonce",
-    "latest_received_nonce": "MessageNonce",
-    "latest_generated_nonce": "MessageNonce"
+    "latest_generated_nonce": "MessageNonce",
+    "latest_received_nonce": "MessageNonce"
   },
   "MessageData": {
     "payload": "MessagePayload",
@@ -174,6 +175,7 @@
     "votes_ancestries": "Vec<BridgedHeader>"
   },
   "Address": "MillauAddress",
+  "LookupSource": "MillauLookupSource",
   "Fee": "MillauBalance",
   "Balance": "MillauBalance",
   "Hash": "MillauBlockHash",
