@@ -350,7 +350,7 @@ pub struct NewFull<C> {
 	pub backend: Arc<FullBackend>,
 }
 
-/// The maximum number of active leaves we forward to the [`Overseer`] on startup.
+/// The maximum number of active leaves we forward to the [`Overseer`] on start up.
 const MAX_ACTIVE_LEAVES: usize = 4;
 
 /// Returns the active leaves the overseer should start with.
