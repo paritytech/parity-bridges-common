@@ -153,7 +153,7 @@ impl<P: HeadersSyncPipeline> HeadersSync<P> {
 		Some(best_downloaded_number + One::one())
 	}
 
-	/// Selech orphan header to download.
+	/// Select orphan header to download.
 	pub fn select_orphan_header_to_download(&self) -> Option<&QueuedHeader<P>> {
 		let orphan_header = self.headers.header(HeaderStatus::Orphan)?;
 

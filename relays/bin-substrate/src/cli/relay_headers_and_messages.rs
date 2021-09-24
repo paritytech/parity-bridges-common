@@ -288,10 +288,8 @@ macro_rules! select_bridge {
 						.submit_signed_extrinsic(
 							left_sign.public().into(),
 							move |_, transaction_nonce| {
-								Bytes(Left::sign_transaction(
-										left_genesis_hash,
-										&left_sign,
-										relay_substrate_client::TransactionEra::immortal(),
+								Bytes(
+									Left::sign_transaction(left_genesis_hash, &left_sign, relay_substrate_client::TransactionEra::immortal(),
 										UnsignedTransaction::new(
 											relay_kusama_client::runtime::Call::Balances(
 												relay_kusama_client::runtime::BalancesCall::transfer(
@@ -301,7 +299,8 @@ macro_rules! select_bridge {
 											),
 											transaction_nonce,
 										),
-									).encode())
+									).encode()
+								)
 							},
 						)
 						.await
@@ -319,20 +318,19 @@ macro_rules! select_bridge {
 						.submit_signed_extrinsic(
 							right_sign.public().into(),
 							move |_, transaction_nonce| {
-								Bytes(Right::sign_transaction(
-											right_genesis_hash,
-											&right_sign,
-											relay_substrate_client::TransactionEra::immortal(),
-											UnsignedTransaction::new(
-												relay_polkadot_client::runtime::Call::Balances(
-													relay_polkadot_client::runtime::BalancesCall::transfer(
-														bp_polkadot::AccountAddress::Id(account_id),
-														bp_polkadot::EXISTENTIAL_DEPOSIT.into(),
-													),
+								Bytes(
+									Right::sign_transaction(right_genesis_hash, &right_sign, relay_substrate_client::TransactionEra::immortal(),
+										UnsignedTransaction::new(
+											relay_polkadot_client::runtime::Call::Balances(
+												relay_polkadot_client::runtime::BalancesCall::transfer(
+													bp_polkadot::AccountAddress::Id(account_id),
+													bp_polkadot::EXISTENTIAL_DEPOSIT.into(),
 												),
-												transaction_nonce,
 											),
-									).encode())
+											transaction_nonce,
+										),
+									).encode()
+								)
 							},
 						)
 						.await
