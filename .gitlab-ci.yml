@@ -15,7 +15,7 @@ variables:                         &default-vars
   GIT_DEPTH:                       100
   CARGO_INCREMENTAL:               0
   ARCH:                            "x86_64"
-  CI_IMAGE:                        "paritytech/bridges-ci:production"
+  CI_IMAGE:                        "paritytech/bridges-ci:staging"
   RUST_BACKTRACE:                  full
 
 default:
@@ -103,7 +103,7 @@ fmt:
   <<:                              *docker-env
   <<:                              *test-refs
   script:
-    - cargo fmt --all -- --check
+    - cargo +nightly fmt --all -- --check
 
 spellcheck:
   stage:                           lint
@@ -144,7 +144,7 @@ test:
   <<:                              *docker-env
   <<:                              *test-refs
   variables:
-    RUSTFLAGS:                     "-D warnings"
+    # RUSTFLAGS:                     "-D warnings"
     RUSTC_WRAPPER:                 ""
   script:                          &test-script
     - time cargo test --locked --verbose --workspace

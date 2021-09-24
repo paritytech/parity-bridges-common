@@ -48,7 +48,8 @@ pub struct InstantCurrencyPayments<T, I, Currency, GetConfirmationFee, RootAccou
 	_phantom: sp_std::marker::PhantomData<(T, I, Currency, GetConfirmationFee, RootAccount)>,
 }
 
-impl<T, I, Currency, GetConfirmationFee, RootAccount> MessageDeliveryAndDispatchPayment<T::AccountId, Currency::Balance>
+impl<T, I, Currency, GetConfirmationFee, RootAccount>
+	MessageDeliveryAndDispatchPayment<T::AccountId, Currency::Balance>
 	for InstantCurrencyPayments<T, I, Currency, GetConfirmationFee, RootAccount>
 where
 	T: frame_system::Config + crate::Config<I>,
@@ -94,7 +95,8 @@ where
 		received_range: &RangeInclusive<MessageNonce>,
 		relayer_fund_account: &T::AccountId,
 	) {
-		let relayers_rewards = cal_relayers_rewards::<T, I>(lane_id, messages_relayers, received_range);
+		let relayers_rewards =
+			cal_relayers_rewards::<T, I>(lane_id, messages_relayers, received_range);
 		if !relayers_rewards.is_empty() {
 			pay_relayers_rewards::<Currency, _>(
 				confirmation_relayer,
@@ -156,26 +158,31 @@ fn pay_relayers_rewards<Currency, AccountId>(
 			// If delivery confirmation is submitted by other relayer, let's deduct confirmation fee
 			// from relayer reward.
 			//
-			// If confirmation fee has been increased (or if it was the only component of message fee),
-			// then messages relayer may receive zero reward.
+			// If confirmation fee has been increased (or if it was the only component of message
+			// fee), then messages relayer may receive zero reward.
 			let mut confirmation_reward = confirmation_fee.saturating_mul(reward.messages.into());
 			if confirmation_reward > relayer_reward {
 				confirmation_reward = relayer_reward;
 			}
 			relayer_reward = relayer_reward.saturating_sub(confirmation_reward);
-			confirmation_relayer_reward = confirmation_relayer_reward.saturating_add(confirmation_reward);
+			confirmation_relayer_reward =
+				confirmation_relayer_reward.saturating_add(confirmation_reward);
 		} else {
 			// If delivery confirmation is submitted by this relayer, let's add confirmation fee
 			// from other relayers to this relayer reward.
 			confirmation_relayer_reward = confirmation_relayer_reward.saturating_add(reward.reward);
-			continue;
+			continue
 		}
 
 		pay_relayer_reward::<Currency, _>(relayer_fund_account, &relayer, relayer_reward);
 	}
 
 	// finally - pay reward to confirmation relayer
-	pay_relayer_reward::<Currency, _>(relayer_fund_account, confirmation_relayer, confirmation_relayer_reward);
+	pay_relayer_reward::<Currency, _>(
+		relayer_fund_account,
+		confirmation_relayer,
+		confirmation_relayer_reward,
+	);
 }
 
 /// Transfer funds from relayers fund account to given relayer.
@@ -188,7 +195,7 @@ fn pay_relayer_reward<Currency, AccountId>(
 	Currency: CurrencyT<AccountId>,
 {
 	if reward.is_zero() {
-		return;
+		return
 	}
 
 	let pay_result = Currency::transfer(
@@ -231,20 +238,8 @@ mod tests {
 
 	fn relayers_rewards() -> RelayersRewards<TestAccountId, TestBalance> {
 		vec![
-			(
-				RELAYER_1,
-				RelayerRewards {
-					reward: 100,
-					messages: 2,
-				},
-			),
-			(
-				RELAYER_2,
-				RelayerRewards {
-					reward: 100,
-					messages: 3,
-				},
-			),
+			(RELAYER_1, RelayerRewards { reward: 100, messages: 2 }),
+			(RELAYER_2, RelayerRewards { reward: 100, messages: 3 }),
 		]
 		.into_iter()
 		.collect()
@@ -253,7 +248,12 @@ mod tests {
 	#[test]
 	fn confirmation_relayer_is_rewarded_if_it_has_also_delivered_messages() {
 		run_test(|| {
-			pay_relayers_rewards::<Balances, _>(&RELAYER_2, relayers_rewards(), &RELAYERS_FUND_ACCOUNT, 10);
+			pay_relayers_rewards::<Balances, _>(
+				&RELAYER_2,
+				relayers_rewards(),
+				&RELAYERS_FUND_ACCOUNT,
+				10,
+			);
 
 			assert_eq!(Balances::free_balance(&RELAYER_1), 80);
 			assert_eq!(Balances::free_balance(&RELAYER_2), 120);
@@ -263,7 +263,12 @@ mod tests {
 	#[test]
 	fn confirmation_relayer_is_rewarded_if_it_has_not_delivered_any_delivered_messages() {
 		run_test(|| {
-			pay_relayers_rewards::<Balances, _>(&RELAYER_3, relayers_rewards(), &RELAYERS_FUND_ACCOUNT, 10);
+			pay_relayers_rewards::<Balances, _>(
+				&RELAYER_3,
+				relayers_rewards(),
+				&RELAYERS_FUND_ACCOUNT,
+				10,
+			);
 
 			assert_eq!(Balances::free_balance(&RELAYER_1), 80);
 			assert_eq!(Balances::free_balance(&RELAYER_2), 70);
@@ -274,7 +279,12 @@ mod tests {
 	#[test]
 	fn only_confirmation_relayer_is_rewarded_if_confirmation_fee_has_significantly_increased() {
 		run_test(|| {
-			pay_relayers_rewards::<Balances, _>(&RELAYER_3, relayers_rewards(), &RELAYERS_FUND_ACCOUNT, 1000);
+			pay_relayers_rewards::<Balances, _>(
+				&RELAYER_3,
+				relayers_rewards(),
+				&RELAYERS_FUND_ACCOUNT,
+				1000,
+			);
 
 			assert_eq!(Balances::free_balance(&RELAYER_1), 0);
 			assert_eq!(Balances::free_balance(&RELAYER_2), 0);
