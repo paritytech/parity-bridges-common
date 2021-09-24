@@ -354,13 +354,12 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 		_confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
 		_relayer_fund_account: &AccountId,
-	) -> Result<(), Self::Error> {
+	) {
 		let relayers_rewards = cal_relayers_rewards::<TestRuntime, ()>(lane_id, message_relayers, received_range);
 		for (relayer, reward) in &relayers_rewards {
 			let key = (b":relayer-reward:", relayer, reward.reward).encode();
 			frame_support::storage::unhashed::put(&key, &true);
 		}
-		Ok(())
 	}
 }
 

@@ -593,19 +593,7 @@ pub mod pallet {
 					&confirmation_relayer,
 					&received_range,
 					&relayer_fund_account,
-				)
-				.map_err(|err| {
-					log::trace!(
-						target: "runtime::bridge-messages",
-						"Failed to reward messages_relayers {:?}: confirmation_relayer {:?} for lane_id {:?}, message range {:?}: {:?}",
-						lane_data.relayers,
-						confirmation_relayer,
-						lane_id,
-						received_range,
-						err,
-					);
-					Error::<T, I>::FailedToRewardRelayers
-				})?;
+				);
 			}
 
 			log::trace!(
@@ -661,8 +649,6 @@ pub mod pallet {
 		/// The number of actually confirmed messages is going to be larger than the number of messages in the proof.
 		/// This may mean that this or bridged chain storage is corrupted.
 		TryingToConfirmMoreMessagesThanExpected,
-		/// Something wrong happened during reward message relayers and confirmation relayers
-		FailedToRewardRelayers,
 	}
 
 	/// Optional pallet owner.

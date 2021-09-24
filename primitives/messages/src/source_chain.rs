@@ -131,7 +131,7 @@ pub trait MessageDeliveryAndDispatchPayment<AccountId, Balance> {
 		confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
 		relayer_fund_account: &AccountId,
-	) -> Result<(), Self::Error>;
+	);
 }
 
 /// Messages bridge API to be used from other pallets.
@@ -246,7 +246,6 @@ impl<AccountId, Balance> MessageDeliveryAndDispatchPayment<AccountId, Balance> f
 		_confirmation_relayer: &AccountId,
 		_received_range: &RangeInclusive<MessageNonce>,
 		_relayer_fund_account: &AccountId,
-	) -> Result<(), Self::Error> {
-		Ok(())
+	) {
 	}
 }

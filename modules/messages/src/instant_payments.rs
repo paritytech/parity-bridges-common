@@ -93,7 +93,7 @@ where
 		confirmation_relayer: &T::AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
 		relayer_fund_account: &T::AccountId,
-	) -> Result<(), Self::Error> {
+	) {
 		let relayers_rewards = cal_relayers_rewards::<T, I>(lane_id, messages_relayers, received_range);
 		if !relayers_rewards.is_empty() {
 			pay_relayers_rewards::<Currency, _>(
@@ -103,7 +103,6 @@ where
 				GetConfirmationFee::get(),
 			);
 		}
-		Ok(())
 	}
 }
 
