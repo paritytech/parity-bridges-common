@@ -629,7 +629,7 @@ pub mod pallet {
 					relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>();
 				<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayers_rewards(
 					lane_id,
-					lane_data.relayers.clone(),
+					lane_data.relayers,
 					&confirmation_relayer,
 					&received_range,
 					&relayer_fund_account,
