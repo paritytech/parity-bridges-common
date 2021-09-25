@@ -93,10 +93,8 @@ clippy-nightly:
   stage:                           lint
   <<:                              *docker-env
   <<:                              *test-refs
-  variables:
-    RUSTC_WRAPPER:                 ""
   script:
-    - cargo +nightly clippy --all-targets
+    - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets
 
 fmt:
   stage:                           lint
@@ -118,21 +116,17 @@ check:
   stage:                           check
   <<:                              *docker-env
   <<:                              *test-refs
-  variables:
-    RUSTC_WRAPPER:                 ""
   script:                          &check-script
-    - time cargo check --locked --verbose --workspace
+    - SKIP_WASM_BUILD=1 time cargo check --locked --verbose --workspace
     # Check Rialto benchmarks runtime
-    - time cargo check -p rialto-runtime --locked --features runtime-benchmarks --verbose
+    - SKIP_WASM_BUILD=1 time cargo check -p rialto-runtime --locked --features runtime-benchmarks --verbose
     # Check Millau benchmarks runtime
-    - time cargo check -p millau-runtime --locked --features runtime-benchmarks --verbose
+    - SKIP_WASM_BUILD=1 time cargo check -p millau-runtime --locked --features runtime-benchmarks --verbose
 
 check-nightly:
   stage:                           check
   <<:                              *docker-env
   <<:                              *nightly-test
-  variables:
-    RUSTC_WRAPPER:                 ""
   script:
     - rustup default nightly
     - *check-script
@@ -143,18 +137,18 @@ test:
   stage:                           test
   <<:                              *docker-env
   <<:                              *test-refs
-  variables:
-    # RUSTFLAGS:                     "-D warnings"
-    RUSTC_WRAPPER:                 ""
+#  variables:
+#    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
-    - time cargo test --locked --verbose --workspace
+    - time cargo build --release --verbose -p millau-runtime
+    - time cargo build --release --verbose -p rialto-runtime
+    - time cargo build --release --verbose -p rialto-parachain-runtime
+    - SKIP_WASM_BUILD=1 time cargo test --verbose --workspace
 
 test-nightly:
   stage:                           test
   <<:                              *docker-env
   <<:                              *nightly-test
-  variables:
-    RUSTC_WRAPPER:                 ""
   script:
     - rustup default nightly
     - *test-script
@@ -196,7 +190,12 @@ build:
   <<:                              *collect-artifacts
   # master
   script:                          &build-script
-    - time cargo build --release --verbose --workspace
+    - time cargo build --release --verbose -p millau-runtime
+    - time cargo build --release --verbose -p rialto-runtime
+    - time cargo build --release --verbose -p rialto-parachain-runtime
+    - time cargo build --release --verbose -p polkadot-runtime
+    - time cargo build --release --verbose -p polkadot-test-runtime
+    - SKIP_WASM_BUILD=1 time cargo build --release --verbose --workspace
   after_script:
     # Prepare artifacts
     - mkdir -p ./artifacts
