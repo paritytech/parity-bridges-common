@@ -20,15 +20,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Codec, Decode, Encode, EncodeLike};
-use core::clone::Clone;
-use core::cmp::Eq;
-use core::default::Default;
-use core::fmt::Debug;
+use core::{clone::Clone, cmp::Eq, default::Default, fmt::Debug};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
-use sp_runtime::RuntimeDebug;
-use sp_runtime::{generic::OpaqueDigestItemId, traits::Header as HeaderT};
+use sp_runtime::{generic::OpaqueDigestItemId, traits::Header as HeaderT, RuntimeDebug};
+use sp_std::boxed::Box;
 
 pub mod justification;
 
@@ -62,7 +59,7 @@ impl AuthoritySet {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct InitializationData<H: HeaderT> {
 	/// The header from which we should start syncing.
-	pub header: H,
+	pub header: Box<H>,
 	/// The initial authorities of the pallet.
 	pub authority_list: AuthorityList,
 	/// The ID of the initial authority set.
@@ -81,7 +78,9 @@ pub trait InclusionProofVerifier {
 	/// Verify that transaction is a part of given block.
 	///
 	/// Returns Some(transaction) if proof is valid and None otherwise.
-	fn verify_transaction_inclusion_proof(proof: &Self::TransactionInclusionProof) -> Option<Self::Transaction>;
+	fn verify_transaction_inclusion_proof(
+		proof: &Self::TransactionInclusionProof,
+	) -> Option<Self::Transaction>;
 }
 
 /// A trait for pallets which want to keep track of finalized headers from a bridged chain.

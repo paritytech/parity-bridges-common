@@ -29,11 +29,21 @@ pub mod guard;
 pub mod headers_source;
 pub mod metrics;
 
-pub use crate::chain::{BlockWithJustification, Chain, ChainWithBalances, TransactionSignScheme};
-pub use crate::client::{Client, JustificationsSubscription, OpaqueGrandpaAuthoritiesSet};
-pub use crate::error::{Error, Result};
-pub use crate::sync_header::SyncHeader;
-pub use bp_runtime::{BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf};
+use std::time::Duration;
+
+pub use crate::{
+	chain::{
+		BlockWithJustification, CallOf, Chain, ChainWithBalances, TransactionSignScheme,
+		TransactionStatusOf, UnsignedTransaction, WeightToFeeOf,
+	},
+	client::{Client, OpaqueGrandpaAuthoritiesSet, Subscription},
+	error::{Error, Result},
+	sync_header::SyncHeader,
+};
+pub use bp_runtime::{
+	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain as ChainBase, HashOf, HeaderOf,
+	IndexOf, SignatureOf, TransactionEra, TransactionEraOf,
+};
 
 /// Header id used by the chain.
 pub type HeaderIdOf<C> = relay_utils::HeaderId<HashOf<C>, BlockNumberOf<C>>;
@@ -41,7 +51,7 @@ pub type HeaderIdOf<C> = relay_utils::HeaderId<HashOf<C>, BlockNumberOf<C>>;
 /// Substrate-over-websocket connection params.
 #[derive(Debug, Clone)]
 pub struct ConnectionParams {
-	/// Websocket server hostname.
+	/// Websocket server host name.
 	pub host: String,
 	/// Websocket server TCP port.
 	pub port: u16,
@@ -51,10 +61,21 @@ pub struct ConnectionParams {
 
 impl Default for ConnectionParams {
 	fn default() -> Self {
-		ConnectionParams {
-			host: "localhost".into(),
-			port: 9944,
-			secure: false,
-		}
+		ConnectionParams { host: "localhost".into(), port: 9944, secure: false }
 	}
+}
+
+/// Returns stall timeout for relay loop.
+///
+/// Relay considers himself stalled if he has submitted transaction to the node, but it has not
+/// been mined for this period.
+///
+/// Returns `None` if mortality period is `None`
+pub fn transaction_stall_timeout(
+	mortality_period: Option<u32>,
+	average_block_interval: Duration,
+) -> Option<Duration> {
+	// 1 extra block for transaction to reach the pool && 1 for relayer to awake after it is mined
+	mortality_period
+		.map(|mortality_period| average_block_interval.saturating_mul(mortality_period + 1 + 1))
 }

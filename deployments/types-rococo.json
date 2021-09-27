@@ -1,16 +1,17 @@
 {
   "--1": "Rococo Types",
+  "RococoAddress": "AccountId",
   "RococoBalance": "u128",
   "RococoBlockHash": "H256",
   "RococoBlockNumber": "u32",
   "RococoHeader": "Header",
   "--2": "Wococo Types",
+  "WococoAddress": "AccountId",
   "WococoBalance": "RococoBalance",
   "WococoBlockHash": "RococoBlockHash",
   "WococoBlockNumber": "RococoBlockNumber",
   "WococoHeader": "RococoHeader",
   "--3": "Common types",
-  "Address": "AccountId",
   "LookupSource": "AccountId",
   "AccountSigner": "MultiSigner",
   "SpecVersion": "u32",
@@ -30,7 +31,7 @@
   "ChainId": "Id",
   "LaneId": "Id",
   "MessageNonce": "u64",
-  "MessageId": "(Id, u64)",
+  "BridgeMessageId": "(Id, u64)",
   "MessageKey": {
     "lane_id": "LaneId",
     "nonce:": "MessageNonce"
@@ -132,6 +133,7 @@
     "commit": "Commit",
     "votes_ancestries": "Vec<BridgedHeader>"
   },
+  "Address": "RococoAddress",
   "Fee": "RococoBalance",
   "Balance": "RococoBalance",
   "BlockHash": "RococoBlockHash",
