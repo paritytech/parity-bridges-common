@@ -24,7 +24,7 @@ use crate::test_utils::{
 use bp_eth_poa::{compute_merkle_root, U256};
 use frame_benchmarking::benchmarks_instance_pallet;
 use frame_system::RawOrigin;
-xxx
+
 benchmarks_instance_pallet! {
 	// Benchmark `import_unsigned_header` extrinsic with the best possible conditions:
 	// * Parent header is finalized.
