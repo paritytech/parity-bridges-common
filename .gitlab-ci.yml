@@ -140,10 +140,8 @@ test:
 #  variables:
 #    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
-    - time cargo build --release --verbose -p millau-runtime
-    - time cargo build --release --verbose -p rialto-runtime
-    - time cargo build --release --verbose -p rialto-parachain-runtime
-    - SKIP_WASM_BUILD=1 time cargo test --verbose --workspace
+    - time cargo fetch
+    - time cargo test --verbose --workspace
 
 test-nightly:
   stage:                           test
@@ -190,12 +188,8 @@ build:
   <<:                              *collect-artifacts
   # master
   script:                          &build-script
-    - time cargo build --release --verbose -p millau-runtime
-    - time cargo build --release --verbose -p rialto-runtime
-    - time cargo build --release --verbose -p rialto-parachain-runtime
-    - time cargo build --release --verbose -p polkadot-runtime
-    - time cargo build --release --verbose -p polkadot-test-runtime
-    - SKIP_WASM_BUILD=1 time cargo build --release --verbose --workspace
+    - time cargo fetch
+    - time cargo build --release --verbose --workspace
   after_script:
     # Prepare artifacts
     - mkdir -p ./artifacts
