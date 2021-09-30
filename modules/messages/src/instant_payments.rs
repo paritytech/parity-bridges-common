@@ -234,7 +234,9 @@ fn pay_relayer_reward<Currency, AccountId>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{run_test, AccountId as TestAccountId, Balance as TestBalance, TestRuntime};
+	use crate::mock::{
+		run_test, AccountId as TestAccountId, Balance as TestBalance, Origin, TestRuntime,
+	};
 	use bp_messages::source_chain::RelayerRewards;
 
 	type Balances = pallet_balances::Pallet<TestRuntime>;
@@ -251,6 +253,48 @@ mod tests {
 		]
 		.into_iter()
 		.collect()
+	}
+
+	#[test]
+	fn pay_delivery_and_dispatch_fee_fails_on_non_zero_fee_and_unknown_payer() {
+		frame_support::parameter_types! {
+			const GetConfirmationFee: TestBalance = 0;
+		};
+
+		run_test(|| {
+			let result = InstantCurrencyPayments::<
+				TestRuntime,
+				(),
+				Balances,
+				GetConfirmationFee,
+			>::pay_delivery_and_dispatch_fee(
+				&Origin::root(),
+				&100,
+				&RELAYERS_FUND_ACCOUNT,
+			);
+			assert!(result.is_err());
+		});
+	}
+
+	#[test]
+	fn pay_delivery_and_dispatch_succeeds_on_zero_fee_and_unknown_payer() {
+		frame_support::parameter_types! {
+			const GetConfirmationFee: TestBalance = 0;
+		};
+
+		run_test(|| {
+			let result = InstantCurrencyPayments::<
+				TestRuntime,
+				(),
+				Balances,
+				GetConfirmationFee,
+			>::pay_delivery_and_dispatch_fee(
+				&Origin::root(),
+				&0,
+				&RELAYERS_FUND_ACCOUNT,
+			);
+			assert!(result.is_ok());
+		});
 	}
 
 	#[test]
