@@ -116,7 +116,17 @@ impl messages::ThisChainWithMessages for Millau {
 	type Call = crate::Call;
 
 	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
-		send_origin.linked_account().is_some() && (*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1])
+		// lanes 0x00000000 && 0x00000001 are accepting any paid messages, while `TokenSwapMessageLane`
+		// only accepts messages from token swap pallet
+		let token_swap_dedicated_lane = crate::TokenSwapMessagesLane::get();
+		match *lane {
+			[0, 0, 0, 0] | [0, 0, 0, 1] => send_origin.linked_account().is_some(),
+			_ if *lane == token_swap_dedicated_lane => matches!(
+				send_origin.caller,
+				crate::OriginCaller::BridgeRialtoTokenSwap(pallet_bridge_token_swap::RawOrigin::TokenSwap {..})
+			),
+			_ => false,
+		}
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
@@ -280,6 +290,10 @@ impl SenderOrigin<crate::AccountId> for crate::Origin {
 			crate::OriginCaller::system(frame_system::RawOrigin::Root) |
 			crate::OriginCaller::system(frame_system::RawOrigin::None) =>
 				crate::RootAccountForPayments::get(),
+			crate::OriginCaller::BridgeRialtoTokenSwap(pallet_bridge_token_swap::RawOrigin::TokenSwap {
+				ref swap_account_at_this_chain,
+				..
+			}) => Some(swap_account_at_this_chain.clone()),
 			_ => None,
 		}
 	}
