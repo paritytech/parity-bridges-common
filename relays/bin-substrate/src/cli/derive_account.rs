@@ -14,8 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::{bridge::FullBridge, AccountId};
-use crate::select_full_bridge;
+use crate::{
+	cli::{bridge::FullBridge, AccountId},
+	select_full_bridge,
+};
 use relay_substrate_client::Chain;
 use structopt::StructOpt;
 use strum::VariantNames;
@@ -28,7 +30,7 @@ use strum::VariantNames;
 /// since messages sent over the bridge will be able to spend these.
 #[derive(StructOpt)]
 pub struct DeriveAccount {
-	/// A bridge instance to initalize.
+	/// A bridge instance to initialize.
 	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
 	bridge: FullBridge,
 	/// Source-chain address to derive Target-chain address from.
@@ -55,11 +57,7 @@ impl DeriveAccount {
 		select_full_bridge!(self.bridge, {
 			let (account, derived_account) = self.derive_account();
 			println!("Source address:\n{} ({})", account, Source::NAME);
-			println!(
-				"->Corresponding (derived) address:\n{} ({})",
-				derived_account,
-				Target::NAME,
-			);
+			println!("->Corresponding (derived) address:\n{} ({})", derived_account, Target::NAME,);
 
 			Ok(())
 		})

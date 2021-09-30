@@ -22,4 +22,5 @@ sleep 6
 	--target-host millau-node-alice \
 	--target-port 9944 \
 	--target-signer //George \
+	--target-transactions-mortality=4\
 	--prometheus-host=0.0.0.0

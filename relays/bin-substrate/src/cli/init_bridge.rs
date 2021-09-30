@@ -18,7 +18,7 @@ use crate::cli::{SourceConnectionParams, TargetConnectionParams, TargetSigningPa
 use bp_header_chain::InitializationData;
 use bp_runtime::Chain as ChainBase;
 use codec::Encode;
-use relay_substrate_client::{Chain, TransactionSignScheme};
+use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -26,7 +26,7 @@ use strum::{EnumString, EnumVariantNames, VariantNames};
 /// Initialize bridge pallet.
 #[derive(StructOpt)]
 pub struct InitBridge {
-	/// A bridge instance to initalize.
+	/// A bridge instance to initialize.
 	#[structopt(possible_values = InitBridgeName::VARIANTS, case_insensitive = true)]
 	bridge: InitBridgeName,
 	#[structopt(flatten)]
@@ -46,6 +46,8 @@ pub enum InitBridgeName {
 	WestendToMillau,
 	RococoToWococo,
 	WococoToRococo,
+	KusamaToPolkadot,
+	PolkadotToKusama,
 }
 
 macro_rules! select_bridge {
@@ -65,7 +67,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
@@ -81,7 +83,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::WestendToMillau => {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
@@ -89,9 +91,10 @@ macro_rules! select_bridge {
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					// at Westend -> Millau initialization we're not using sudo, because otherwise our deployments
-					// may fail, because we need to initialize both Rialto -> Millau and Westend -> Millau bridge.
-					// => since there's single possible sudo account, one of transaction may fail with duplicate nonce error
+					// at Westend -> Millau initialization we're not using sudo, because otherwise
+					// our deployments may fail, because we need to initialize both Rialto -> Millau
+					// and Westend -> Millau bridge. => since there's single possible sudo account,
+					// one of transaction may fail with duplicate nonce error
 					millau_runtime::BridgeGrandpaWestendCall::<
 						millau_runtime::Runtime,
 						millau_runtime::WestendGrandpaInstance,
@@ -100,7 +103,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::RococoToWococo => {
 				type Source = relay_rococo_client::Rococo;
 				type Target = relay_wococo_client::Wococo;
@@ -109,12 +112,14 @@ macro_rules! select_bridge {
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
 					relay_wococo_client::runtime::Call::BridgeGrandpaRococo(
-						relay_wococo_client::runtime::BridgeGrandpaRococoCall::initialize(init_data),
+						relay_wococo_client::runtime::BridgeGrandpaRococoCall::initialize(
+							init_data,
+						),
 					)
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::WococoToRococo => {
 				type Source = relay_wococo_client::Wococo;
 				type Target = relay_rococo_client::Rococo;
@@ -123,12 +128,46 @@ macro_rules! select_bridge {
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
 					relay_rococo_client::runtime::Call::BridgeGrandpaWococo(
-						relay_rococo_client::runtime::BridgeGrandpaWococoCall::initialize(init_data),
+						relay_rococo_client::runtime::BridgeGrandpaWococoCall::initialize(
+							init_data,
+						),
 					)
 				}
 
 				$generic
-			}
+			},
+			InitBridgeName::KusamaToPolkadot => {
+				type Source = relay_kusama_client::Kusama;
+				type Target = relay_polkadot_client::Polkadot;
+
+				fn encode_init_bridge(
+					init_data: InitializationData<<Source as ChainBase>::Header>,
+				) -> <Target as Chain>::Call {
+					relay_polkadot_client::runtime::Call::BridgeKusamaGrandpa(
+						relay_polkadot_client::runtime::BridgeKusamaGrandpaCall::initialize(
+							init_data,
+						),
+					)
+				}
+
+				$generic
+			},
+			InitBridgeName::PolkadotToKusama => {
+				type Source = relay_polkadot_client::Polkadot;
+				type Target = relay_kusama_client::Kusama;
+
+				fn encode_init_bridge(
+					init_data: InitializationData<<Source as ChainBase>::Header>,
+				) -> <Target as Chain>::Call {
+					relay_kusama_client::runtime::Call::BridgePolkadotGrandpa(
+						relay_kusama_client::runtime::BridgePolkadotGrandpaCall::initialize(
+							init_data,
+						),
+					)
+				}
+
+				$generic
+			},
 		}
 	};
 }
@@ -141,7 +180,7 @@ impl InitBridge {
 			let target_client = self.target.to_client::<Target>().await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
-			crate::headers_initialize::initialize(
+			substrate_relay_helper::headers_initialize::initialize(
 				source_client,
 				target_client.clone(),
 				target_sign.public().into(),
@@ -150,8 +189,11 @@ impl InitBridge {
 						Target::sign_transaction(
 							*target_client.genesis_hash(),
 							&target_sign,
-							transaction_nonce,
-							encode_init_bridge(initialization_data),
+							relay_substrate_client::TransactionEra::immortal(),
+							UnsignedTransaction::new(
+								encode_init_bridge(initialization_data),
+								transaction_nonce,
+							),
 						)
 						.encode(),
 					)

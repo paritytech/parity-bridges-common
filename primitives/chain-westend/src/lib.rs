@@ -22,6 +22,9 @@
 
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
+use frame_support::weights::{
+	WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+};
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
 
@@ -29,6 +32,24 @@ pub use bp_polkadot_core::*;
 
 /// Westend Chain
 pub type Westend = PolkadotLike;
+
+// NOTE: This needs to be kept up to date with the Westend runtime found in the Polkadot repo.
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+	type Balance = Balance;
+	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+		const CENTS: Balance = 1_000_000_000_000 / 1_000;
+		// in Westend, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
+		let p = CENTS;
+		let q = 10 * Balance::from(ExtrinsicBaseWeight::get());
+		smallvec::smallvec![WeightToFeeCoefficient {
+			degree: 1,
+			negative: false,
+			coeff_frac: Perbill::from_rational(p % q, q),
+			coeff_integer: p / q,
+		}]
+	}
+}
 
 pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
 
@@ -46,13 +67,13 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// Westend Runtime `Call` enum.
 ///
 /// The enum represents a subset of possible `Call`s we can send to Westend chain.
-/// Ideally this code would be auto-generated from Metadata, because we want to
+/// Ideally this code would be auto-generated from metadata, because we want to
 /// avoid depending directly on the ENTIRE runtime just to get the encoding of `Dispatchable`s.
 ///
 /// All entries here (like pretty much in the entire file) must be kept in sync with Westend
 /// `construct_runtime`, so that we maintain SCALE-compatibility.
 ///
-/// See: https://github.com/paritytech/polkadot/blob/master/runtime/westend/src/lib.rs
+/// See: [link](https://github.com/paritytech/polkadot/blob/master/runtime/westend/src/lib.rs)
 #[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone)]
 pub enum Call {
 	/// Rococo bridge pallet.
@@ -95,25 +116,31 @@ pub const BEST_FINALIZED_WESTEND_HEADER_METHOD: &str = "WestendFinalityApi_best_
 /// Name of the `WestendFinalityApi::is_known_header` runtime method.
 pub const IS_KNOWN_WESTEND_HEADER_METHOD: &str = "WestendFinalityApi_is_known_header";
 
-/// Name of the `ToWestendOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
+/// Name of the `ToWestendOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime
+/// method.
 pub const TO_WESTEND_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToWestendOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToWestendOutboundLaneApi::message_details` runtime method.
 pub const TO_WESTEND_MESSAGE_DETAILS_METHOD: &str = "ToWestendOutboundLaneApi_message_details";
 /// Name of the `ToWestendOutboundLaneApi::latest_generated_nonce` runtime method.
-pub const TO_WESTEND_LATEST_GENERATED_NONCE_METHOD: &str = "ToWestendOutboundLaneApi_latest_generated_nonce";
+pub const TO_WESTEND_LATEST_GENERATED_NONCE_METHOD: &str =
+	"ToWestendOutboundLaneApi_latest_generated_nonce";
 /// Name of the `ToWestendOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_WESTEND_LATEST_RECEIVED_NONCE_METHOD: &str = "ToWestendOutboundLaneApi_latest_received_nonce";
+pub const TO_WESTEND_LATEST_RECEIVED_NONCE_METHOD: &str =
+	"ToWestendOutboundLaneApi_latest_received_nonce";
 
 /// Name of the `FromWestendInboundLaneApi::latest_received_nonce` runtime method.
-pub const FROM_WESTEND_LATEST_RECEIVED_NONCE_METHOD: &str = "FromWestendInboundLaneApi_latest_received_nonce";
+pub const FROM_WESTEND_LATEST_RECEIVED_NONCE_METHOD: &str =
+	"FromWestendInboundLaneApi_latest_received_nonce";
 /// Name of the `FromWestendInboundLaneApi::latest_onfirmed_nonce` runtime method.
-pub const FROM_WESTEND_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromWestendInboundLaneApi_latest_confirmed_nonce";
+pub const FROM_WESTEND_LATEST_CONFIRMED_NONCE_METHOD: &str =
+	"FromWestendInboundLaneApi_latest_confirmed_nonce";
 /// Name of the `FromWestendInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_WESTEND_UNREWARDED_RELAYERS_STATE: &str = "FromWestendInboundLaneApi_unrewarded_relayers_state";
+pub const FROM_WESTEND_UNREWARDED_RELAYERS_STATE: &str =
+	"FromWestendInboundLaneApi_unrewarded_relayers_state";
 
-/// The target length of a session (how often authorities change) on Westend measured in of number of
-/// blocks.
+/// The target length of a session (how often authorities change) on Westend measured in of number
+/// of blocks.
 ///
 /// Note that since this is a target sessions may change before/after this time depending on network
 /// conditions.
@@ -141,7 +168,7 @@ sp_api::decl_runtime_apis! {
 		///
 		/// Returns `None` if message is too expensive to be sent to Westend from this chain.
 		///
-		/// Please keep in mind that this method returns lowest message fee required for message
+		/// Please keep in mind that this method returns the lowest message fee required for message
 		/// to be accepted to the lane. It may be good idea to pay a bit over this price to account
 		/// future exchange rate changes and guarantee that relayer would deliver your message
 		/// to the target chain.
@@ -172,7 +199,7 @@ sp_api::decl_runtime_apis! {
 	pub trait FromWestendInboundLaneApi {
 		/// Returns nonce of the latest message, received by given lane.
 		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
-		/// Nonce of latest message that has been confirmed to the bridged chain.
+		/// Nonce of the latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
 		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;

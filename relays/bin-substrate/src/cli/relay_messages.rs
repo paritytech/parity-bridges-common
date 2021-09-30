@@ -14,15 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::bridge::FullBridge;
-use crate::cli::{
-	HexLaneId, PrometheusParams, SourceConnectionParams, SourceSigningParams, TargetConnectionParams,
-	TargetSigningParams,
-};
-use crate::messages_lane::MessagesRelayParams;
-use crate::select_full_bridge;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
+
+use substrate_relay_helper::messages_lane::MessagesRelayParams;
+
+use crate::{
+	cli::{
+		bridge::FullBridge, HexLaneId, PrometheusParams, SourceConnectionParams,
+		SourceSigningParams, TargetConnectionParams, TargetSigningParams,
+	},
+	select_full_bridge,
+};
 
 /// Relayer operating mode.
 #[derive(Debug, EnumString, EnumVariantNames, Clone, Copy, PartialEq)]
@@ -30,7 +33,8 @@ use strum::{EnumString, EnumVariantNames, VariantNames};
 pub enum RelayerMode {
 	/// The relayer doesn't care about rewards.
 	Altruistic,
-	/// The relayer will deliver all messages and confirmations as long as he's not losing any funds.
+	/// The relayer will deliver all messages and confirmations as long as he's not losing any
+	/// funds.
 	Rational,
 }
 
