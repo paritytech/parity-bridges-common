@@ -39,13 +39,13 @@ use sp_core::{
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
-///
+/// Name of the `NextFreeParaId` value in the `polkadot_runtime_common::paras_registrar` pallet.
 const NEXT_FREE_PARA_ID_STORAGE_NAME: &str = "NextFreeParaId";
-///
+/// Name of the `ParaLifecycles` map in the `polkadot_runtime_parachains::paras` pallet.
 const PARAS_LIFECYCLES_STORAGE_NAME: &str = "ParaLifecycles";
 
 /// Register parachain.
-#[derive(StructOpt)]
+#[derive(StructOpt, Debug, PartialEq)]
 pub struct RegisterParachain {
 	/// A parachain to register.
 	#[structopt(possible_values = Parachain::VARIANTS, case_insensitive = true)]
@@ -68,7 +68,7 @@ pub struct RegisterParachain {
 }
 
 /// Parachain to register.
-#[derive(Debug, EnumString, EnumVariantNames)]
+#[derive(Debug, EnumString, EnumVariantNames, PartialEq)]
 #[strum(serialize_all = "kebab_case")]
 pub enum Parachain {
 	RialtoParachain,
@@ -81,8 +81,7 @@ macro_rules! select_bridge {
 				type Relaychain = relay_rialto_client::Rialto;
 				type Parachain = relay_rialto_parachain_client::RialtoParachain;
 
-				const PARAS_REGISTRAR_PALLET_NAME: &str = "Registrar";
-				const PARAS_PALLET_NAME: &str = "Paras";
+				use bp_rialto::{PARAS_PALLET_NAME, PARAS_REGISTRAR_PALLET_NAME};
 
 				$generic
 			},
@@ -287,19 +286,58 @@ async fn wait_para_state<Relaychain: Chain>(
 	}
 }
 
-// RUST_LOG=bridge=trace ./bin/substrate-relay register-parachain rialto-parachain
-// --parachain-host=127.0.0.1 --parachain-port=11949 --relaychain-host=127.0.0.1
-// --relaychain-port=9944 --relaychain-signer=//Alice
-/*
 #[cfg(test)]
 mod tests {
 	use super::*;
 
 	#[test]
-	fn my_test() {
-		println!("0x{}", hex::encode(polkadot_runtime_common::paras_registrar::NextFreeParaId::<rialto_runtime::Runtime>::storage_value_final_key()));
-		println!("0x{}", hex::encode(bp_runtime::storage_value_final_key(b"Registrar", NEXT_FREE_PARA_ID_STORAGE_NAME)));
-		println!("{}", "0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb");
+	fn register_rialto_parachain() {
+		let register_parachain = RegisterParachain::from_iter(vec![
+			"register-parachain",
+			"rialto-parachain",
+			"--parachain-host",
+			"127.0.0.1",
+			"--parachain-port",
+			"11949",
+			"--relaychain-host",
+			"127.0.0.1",
+			"--relaychain-port",
+			"9944",
+			"--relaychain-signer",
+			"//Alice",
+			"--deposit",
+			"42",
+			"--lease-begin",
+			"100",
+			"--lease-end",
+			"200",
+		]);
+
+		assert_eq!(
+			register_parachain,
+			RegisterParachain {
+				parachain: Parachain::RialtoParachain,
+				deposit: Balance(42),
+				lease_begin: 100,
+				lease_end: 200,
+				relay_connection: RelaychainConnectionParams {
+					relaychain_host: "127.0.0.1".into(),
+					relaychain_port: 9944,
+					relaychain_secure: false,
+				},
+				relay_sign: RelaychainSigningParams {
+					relaychain_signer: Some("//Alice".into()),
+					relaychain_signer_password: None,
+					relaychain_signer_file: None,
+					relaychain_signer_password_file: None,
+					relaychain_transactions_mortality: None,
+				},
+				para_connection: ParachainConnectionParams {
+					parachain_host: "127.0.0.1".into(),
+					parachain_port: 11949,
+					parachain_secure: false,
+				},
+			}
+		);
 	}
 }
-*/
