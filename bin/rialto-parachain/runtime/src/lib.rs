@@ -59,8 +59,8 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 
 pub use bp_rialto_parachain::{
-	AccountId, Balance, BlockNumber, Hash, Hasher as Hashing, Header, Index, Signature,
-	MAXIMUM_BLOCK_WEIGHT, BlockWeights, BlockLength,
+	AccountId, Balance, BlockLength, BlockNumber, BlockWeights, Hash, Hasher as Hashing, Header,
+	Index, Signature, MAXIMUM_BLOCK_WEIGHT,
 };
 
 // Polkadot & XCM imports

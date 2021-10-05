@@ -18,8 +18,7 @@
 
 use crate::cli::{
 	encode_call::{Call, CliEncodeCall},
-	encode_message,
-	CliChain,
+	encode_message, CliChain,
 };
 use bp_message_dispatch::MessagePayload;
 use codec::Decode;
