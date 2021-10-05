@@ -196,6 +196,8 @@ build:
     - mkdir -p ./artifacts
     - strip ./target/release/rialto-bridge-node
     - mv -v ./target/release/rialto-bridge-node ./artifacts/
+    - strip ./target/release/rialto-parachain-collator
+    - mv -v ./target/release/rialto-parachain-collator ./artifacts/
     - strip ./target/release/millau-bridge-node
     - mv -v ./target/release/millau-bridge-node ./artifacts/
     - strip ./target/release/ethereum-poa-relay
@@ -269,6 +271,10 @@ build-nightly:
     - env REGISTRY_AUTH_FILE= buildah logout --all
 
 rialto-bridge-node:
+  stage:                           publish
+  <<:                              *build-push-image
+
+rialto-parachain-collator:
   stage:                           publish
   <<:                              *build-push-image
 
