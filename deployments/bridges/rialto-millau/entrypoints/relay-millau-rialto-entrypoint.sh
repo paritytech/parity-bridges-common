@@ -32,4 +32,5 @@ sleep 6
 	--rialto-signer //Charlie \
 	--rialto-messages-pallet-owner=//MillauMessagesOwner\
 	--lane=00000000 \
+	--lane=73776170 \
 	--prometheus-host=0.0.0.0
