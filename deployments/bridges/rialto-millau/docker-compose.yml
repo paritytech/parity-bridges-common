@@ -1,4 +1,4 @@
-# Exposed ports: 10016, 10116, 10216, 10316, 10416, 10516, 10616
+# Exposed ports: 10016, 10116, 10216, 10316, 10416, 10516, 10716
 
 version: '3.5'
 services:
@@ -95,7 +95,7 @@ services:
     <<: *sub-bridge-relay
     entrypoint: /entrypoints/relay-token-swap-generator-entrypoint.sh
     ports:
-      - "10616:9616"
+      - "10716:9616"
     depends_on:
       - relay-millau-rialto
 
