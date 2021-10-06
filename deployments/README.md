@@ -17,7 +17,6 @@ docker-compose -f ./networks/rialto.yml up
 
 After running this command we would have a network of several nodes producing blocks.
 
-
 ## Bridges
 A _bridge_ is a way for several _networks_ to connect to one another. Bridge deployments have their
 own Docker Compose files which can be found in the `./bridges` folder. These Compose files typically
