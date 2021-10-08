@@ -45,9 +45,9 @@ pub trait WeightInfo {
 	{{~/each}}
 }
 
-/// Weights for `{{pallet}}` using the Rialto node and recommended hardware.
-pub struct RialtoWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for RialtoWeight<T> {
+/// Weights for `{{pallet}}` using the Millau node and recommended hardware.
+pub struct MillauWeight<T>(PhantomData<T>);
+impl<T: frame_system::Config> WeightInfo for MillauWeight<T> {
 	{{~#each benchmarks as |benchmark|}}
 	fn {{benchmark.name~}}
 	(
