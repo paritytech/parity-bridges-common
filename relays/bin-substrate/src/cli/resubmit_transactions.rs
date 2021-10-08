@@ -46,8 +46,8 @@ pub struct ResubmitTransactions {
 	/// Tip limit. We'll never submit transaction with larger tip.
 	#[structopt(long)]
 	tip_limit: Balance,
-	/// Tip increase step. We'll be checking updated transaction priority by increasing its tip by this
-	/// step.
+	/// Tip increase step. We'll be checking updated transaction priority by increasing its tip by
+	/// this step.
 	#[structopt(long)]
 	tip_step: Balance,
 	/// Priority selection strategy.
