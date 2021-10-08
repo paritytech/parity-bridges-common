@@ -149,6 +149,15 @@ pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> {
 	);
 }
 
+/// Send message artifacts.
+#[derive(RuntimeDebug, PartialEq)]
+pub struct SendMessageArtifacts {
+	/// Nonce of the message.
+	pub nonce: MessageNonce,
+	/// Actual weight of send message call.
+	pub weight: Weight,
+}
+
 /// Messages bridge API to be used from other pallets.
 pub trait MessagesBridge<SenderOrigin, AccountId, Balance, Payload> {
 	/// Error type.
@@ -162,7 +171,26 @@ pub trait MessagesBridge<SenderOrigin, AccountId, Balance, Payload> {
 		lane: LaneId,
 		message: Payload,
 		delivery_and_dispatch_fee: Balance,
-	) -> Result<MessageNonce, Self::Error>;
+	) -> Result<SendMessageArtifacts, Self::Error>;
+}
+
+/// Bridge that does nothing when message is being sent.
+#[derive(RuntimeDebug, PartialEq)]
+pub struct NoopMessagesBridge;
+
+impl<SenderOrigin, AccountId, Balance, Payload>
+	MessagesBridge<SenderOrigin, AccountId, Balance, Payload> for NoopMessagesBridge
+{
+	type Error = &'static str;
+
+	fn send_message(
+		_sender: SenderOrigin,
+		_lane: LaneId,
+		_message: Payload,
+		_delivery_and_dispatch_fee: Balance,
+	) -> Result<SendMessageArtifacts, Self::Error> {
+		Ok(SendMessageArtifacts { nonce: 0, weight: 0 })
+	}
 }
 
 /// Handler for messages delivery confirmation.

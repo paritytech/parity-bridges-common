@@ -62,15 +62,25 @@ use codec::{Decode, Encode};
 use frame_support::{
 	fail,
 	traits::{Currency, ExistenceRequirement},
+	weights::PostDispatchInfo,
 	RuntimeDebug,
 };
 use sp_core::H256;
 use sp_io::hashing::blake2_256;
 use sp_runtime::traits::{Convert, Saturating};
 use sp_std::{marker::PhantomData, vec::Vec};
+use weights::WeightInfo;
+
+pub use weights_ext::WeightInfoExt;
 
 #[cfg(test)]
 mod mock;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
+pub mod weights;
+pub mod weights_ext;
 
 pub use pallet::*;
 
@@ -104,6 +114,8 @@ pub mod pallet {
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// The overarching event type.
 		type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+		/// Benchmarks results from runtime we're plugged into.
+		type WeightInfo: WeightInfoExt;
 
 		/// Id of the bridge with the Bridged chain.
 		type BridgedChainId: Get<ChainId>;
@@ -218,7 +230,13 @@ pub mod pallet {
 		/// Violating rule#1 will lead to losing your `source_balance_at_this_chain` tokens.
 		/// Violating other rules will lead to losing message fees for this and other transactions +
 		/// losing fees for message transfer.
-		#[pallet::weight(0)]
+		#[pallet::weight(
+			T::WeightInfo::create_swap()
+				.saturating_add(T::WeightInfo::send_message_weight(
+					&&bridged_currency_transfer[..],
+					T::DbWeight::get(),
+				))
+			)]
 		#[allow(clippy::too_many_arguments)]
 		pub fn create_swap(
 			origin: OriginFor<T>,
@@ -237,6 +255,9 @@ pub mod pallet {
 				origin_account == swap.source_account_at_this_chain,
 				Error::<T, I>::MismatchedSwapSourceOrigin,
 			);
+
+			// remember weight components
+			let base_weight = T::WeightInfo::create_swap();
 
 			// we can't exchange less than existential deposit (the temporary `swap_account` account
 			// won't be created then)
@@ -260,7 +281,7 @@ pub mod pallet {
 			}
 
 			let swap_account = swap_account_id::<T, I>(&swap);
-			frame_support::storage::with_transaction(|| {
+			let actual_send_message_weight = frame_support::storage::with_transaction(|| {
 				// funds are transferred from This account to the temporary Swap account
 				let transfer_result = T::ThisCurrency::transfer(
 					&swap.source_account_at_this_chain,
@@ -283,7 +304,7 @@ pub mod pallet {
 					);
 
 					return sp_runtime::TransactionOutcome::Rollback(Err(
-						Error::<T, I>::FailedToTransferToSwapAccount.into(),
+						Error::<T, I>::FailedToTransferToSwapAccount,
 					))
 				}
 
@@ -310,8 +331,8 @@ pub mod pallet {
 					},
 					swap_delivery_and_dispatch_fee,
 				);
-				let transfer_message_nonce = match send_message_result {
-					Ok(transfer_message_nonce) => transfer_message_nonce,
+				let sent_message = match send_message_result {
+					Ok(sent_message) => sent_message,
 					Err(err) => {
 						log::error!(
 							target: "runtime::bridge-token-swap",
@@ -321,7 +342,7 @@ pub mod pallet {
 						);
 
 						return sp_runtime::TransactionOutcome::Rollback(Err(
-							Error::<T, I>::FailedToSendTransferMessage.into(),
+							Error::<T, I>::FailedToSendTransferMessage,
 						))
 					},
 				};
@@ -345,7 +366,7 @@ pub mod pallet {
 					);
 
 					return sp_runtime::TransactionOutcome::Rollback(Err(
-						Error::<T, I>::SwapAlreadyStarted.into(),
+						Error::<T, I>::SwapAlreadyStarted,
 					))
 				}
 
@@ -357,12 +378,17 @@ pub mod pallet {
 				);
 
 				// remember that we're waiting for the transfer message delivery confirmation
-				PendingMessages::<T, I>::insert(transfer_message_nonce, swap_hash);
+				PendingMessages::<T, I>::insert(sent_message.nonce, swap_hash);
 
 				// finally - emit the event
-				Self::deposit_event(Event::SwapStarted(swap_hash, transfer_message_nonce));
+				Self::deposit_event(Event::SwapStarted(swap_hash, sent_message.nonce));
 
-				sp_runtime::TransactionOutcome::Commit(Ok(().into()))
+				sp_runtime::TransactionOutcome::Commit(Ok(sent_message.weight))
+			})?;
+
+			Ok(PostDispatchInfo {
+				actual_weight: Some(base_weight.saturating_add(actual_send_message_weight)),
+				pays_fee: Pays::Yes,
 			})
 		}
 
@@ -374,7 +400,7 @@ pub mod pallet {
 		/// `pallet_bridge_dispatch::CallOrigin::SourceAccount(target_account_at_bridged_chain)`.
 		///
 		/// This should be called only when successful transfer confirmation has been received.
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::claim_swap())]
 		pub fn claim_swap(
 			origin: OriginFor<T>,
 			swap: TokenSwapOf<T, I>,
@@ -410,7 +436,7 @@ pub mod pallet {
 		///
 		/// This should be called only when transfer has failed at Bridged chain and we have
 		/// received notification about that.
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::cancel_swap())]
 		pub fn cancel_swap(
 			origin: OriginFor<T>,
 			swap: TokenSwapOf<T, I>,

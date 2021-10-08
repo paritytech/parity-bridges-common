@@ -17,7 +17,10 @@
 use crate as pallet_bridge_token_swap;
 use crate::MessagePayloadOf;
 
-use bp_messages::{source_chain::MessagesBridge, LaneId, MessageNonce};
+use bp_messages::{
+	source_chain::{MessagesBridge, SendMessageArtifacts},
+	LaneId, MessageNonce,
+};
 use bp_runtime::ChainId;
 use frame_support::weights::Weight;
 use sp_core::H256;
@@ -114,6 +117,7 @@ frame_support::parameter_types! {
 
 impl pallet_bridge_token_swap::Config for TestRuntime {
 	type Event = Event;
+	type WeightInfo = ();
 
 	type BridgedChainId = BridgedChainId;
 	type OutboundMessageLaneId = OutboundMessageLaneId;
@@ -152,7 +156,7 @@ impl MessagesBridge<Origin, AccountId, Balance, MessagePayloadOf<TestRuntime, ()
 		lane: LaneId,
 		message: MessagePayloadOf<TestRuntime, ()>,
 		delivery_and_dispatch_fee: Balance,
-	) -> Result<MessageNonce, Self::Error> {
+	) -> Result<SendMessageArtifacts, Self::Error> {
 		assert_eq!(lane, OutboundMessageLaneId::get());
 		assert_eq!(delivery_and_dispatch_fee, SWAP_DELIVERY_AND_DISPATCH_FEE);
 		match sender.caller {
@@ -160,7 +164,7 @@ impl MessagesBridge<Origin, AccountId, Balance, MessagePayloadOf<TestRuntime, ()
 			_ => panic!("unexpected origin"),
 		}
 		match message.call[0] {
-			OK_TRANSFER_CALL => Ok(MESSAGE_NONCE),
+			OK_TRANSFER_CALL => Ok(SendMessageArtifacts { nonce: MESSAGE_NONCE, weight: 0 }),
 			BAD_TRANSFER_CALL => Err(()),
 			_ => unreachable!(),
 		}
