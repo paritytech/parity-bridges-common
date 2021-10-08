@@ -877,6 +877,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-rialto-parachain"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "sp-api",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-rococo"
 version = "0.1.0"
 dependencies = [
@@ -8270,6 +8284,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-rialto-parachain-client"
+version = "0.1.0"
+dependencies = [
+ "bp-rialto",
+ "frame-support",
+ "frame-system",
+ "pallet-transaction-payment",
+ "relay-substrate-client",
+ "relay-utils",
+ "rialto-parachain-runtime",
+]
+
+[[package]]
 name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
@@ -8609,6 +8636,7 @@ dependencies = [
 name = "rialto-parachain-runtime"
 version = "0.1.0"
 dependencies = [
+ "bp-rialto-parachain",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -11228,6 +11256,7 @@ dependencies = [
  "bp-millau",
  "bp-polkadot",
  "bp-rialto",
+ "bp-rialto-parachain",
  "bp-rococo",
  "bp-runtime",
  "bp-token-swap",
@@ -11252,16 +11281,22 @@ dependencies = [
  "pallet-bridge-token-swap",
  "parity-scale-codec",
  "paste 1.0.5",
+ "polkadot-parachain",
+ "polkadot-primitives",
+ "polkadot-runtime-common",
+ "polkadot-runtime-parachains",
  "rand 0.8.4",
  "relay-kusama-client",
  "relay-millau-client",
  "relay-polkadot-client",
  "relay-rialto-client",
+ "relay-rialto-parachain-client",
  "relay-rococo-client",
  "relay-substrate-client",
  "relay-utils",
  "relay-westend-client",
  "relay-wococo-client",
+ "rialto-parachain-runtime",
  "rialto-runtime",
  "sp-core",
  "sp-io",
