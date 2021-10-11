@@ -142,7 +142,7 @@ test:
 #    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
     - time cargo fetch
-    - time cargo test --verbose --workspace
+    - CARGO_NET_OFFLINE=true time cargo test --verbose --workspace
 
 test-nightly:
   stage:                           test
@@ -190,7 +190,7 @@ build:
   # master
   script:                          &build-script
     - time cargo fetch
-    - time cargo build --release --verbose --workspace
+    - CARGO_NET_OFFLINE=true time cargo build --release --verbose --workspace
   after_script:
     # Prepare artifacts
     - mkdir -p ./artifacts
