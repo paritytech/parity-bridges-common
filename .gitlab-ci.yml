@@ -142,22 +142,8 @@ test:
 #    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
     - time cargo fetch
-    - >
-      time cargo fetch --manifest-path=`
-        cargo metadata --format-version=1 |
-        jq
-          --compact-output
-          --raw-output
-          ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"
-      `
-    - >
-      time cargo fetch --manifest-path=`
-        cargo metadata --format-version=1 |
-        jq
-          --compact-output
-          --raw-output
-          ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"
-        `
+    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"`
+    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"`
     - CARGO_NET_OFFLINE=true time cargo test --verbose --workspace
 
 test-nightly:
@@ -206,22 +192,8 @@ build:
   # master
   script:                          &build-script
     - time cargo fetch
-    - >
-      time cargo fetch --manifest-path=`
-        cargo metadata --format-version=1 |
-        jq
-          --compact-output
-          --raw-output
-          ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"
-      `
-    - >
-      time cargo fetch --manifest-path=`
-        cargo metadata --format-version=1 |
-        jq
-          --compact-output
-          --raw-output
-          ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"
-        `
+    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"`
+    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"`
     - CARGO_NET_OFFLINE=true time cargo build --release --verbose --workspace
   after_script:
     # Prepare artifacts
