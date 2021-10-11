@@ -142,7 +142,6 @@ test:
 #    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
     - time cargo fetch
-    - time sudo apt-get install jq
     - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"`
     - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"`
 #    - time cargo fetch --target wasm32-unknown-unknown
