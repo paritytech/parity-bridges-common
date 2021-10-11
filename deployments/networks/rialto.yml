@@ -93,6 +93,9 @@ services:
       - ./networks/entrypoints:/entrypoints
       - rialto-share:/rialto-share:z
 
+# we're using `/rialto-share` to expose Rialto chain spec to those who are interested. Right
+# now it is Rialto Parachain collator nodes. Local + tmpfs combination allows sharing writable
+# in-memory volumes, which are dropped when containers are stopped.
 volumes:
   rialto-share:
     driver: local

@@ -1,9 +1,27 @@
-# TODO: expose ports
+# Compose file for quickly spinning up a local instance of the Rialto Parachain network.
+#
+# Since Rialto Parachain is unusable without Rialto, this file depends on some Rialto
+# network nodes.
 version: '3.5'
 services:
   rialto-parachain-collator-alice: &rialto-parachain-collator
     image: paritytech/rialto-parachain-collator
-    entrypoint: /home/user/rialto-parachain-collator --alice --collator --force-authoring --parachain-id 2000 --rpc-port 9933 --ws-port 9944 --rpc-cors=all --unsafe-rpc-external --unsafe-ws-external -- --execution wasm --chain /rialto-share/rialto-relaychain-spec-raw.json --rpc-port 9934 --ws-port 9945
+    entrypoint: >
+      /home/user/rialto-parachain-collator
+      --alice
+      --collator
+      --force-authoring
+      --parachain-id 2000
+      --rpc-port 9933
+      --ws-port 9944
+      --rpc-cors=all
+      --unsafe-rpc-external
+      --unsafe-ws-external
+      --
+      --execution wasm
+      --chain /rialto-share/rialto-relaychain-spec-raw.json
+      --rpc-port 9934
+      --ws-port 9945
     volumes:
       - rialto-share:/rialto-share:z
     environment:
@@ -16,14 +34,44 @@ services:
 
   rialto-parachain-collator-bob:
     <<: *rialto-parachain-collator
-    entrypoint: /home/user/rialto-parachain-collator --bob --collator --force-authoring --parachain-id 2000 --rpc-port 9933 --ws-port 9944 --rpc-cors=all --unsafe-rpc-external --unsafe-ws-external -- --execution wasm --chain /rialto-share/rialto-relaychain-spec-raw.json --rpc-port 9934 --ws-port 9945
+    entrypoint: >
+      /home/user/rialto-parachain-collator
+      --bob
+      --collator
+      --force-authoring
+      --parachain-id 2000
+      --rpc-port 9933
+      --ws-port 9944
+      --rpc-cors=all
+      --unsafe-rpc-external
+      --unsafe-ws-external
+      --
+      --execution wasm
+      --chain /rialto-share/rialto-relaychain-spec-raw.json
+      --rpc-port 9934
+      --ws-port 9945
     ports:
       - "20533:9933"
       - "20544:9944"
 
   rialto-parachain-collator-charlie:
     <<: *rialto-parachain-collator
-    entrypoint: /home/user/rialto-parachain-collator --charlie --collator --force-authoring --parachain-id 2000 --rpc-port 9933 --ws-port 9944 --rpc-cors=all --unsafe-rpc-external --unsafe-ws-external -- --execution wasm --chain /rialto-share/rialto-relaychain-spec-raw.json --rpc-port 9934 --ws-port 9945
+    entrypoint: >
+      /home/user/rialto-parachain-collator
+      --charlie
+      --collator
+      --force-authoring
+      --parachain-id 2000
+      --rpc-port 9933
+      --ws-port 9944
+      --rpc-cors=all
+      --unsafe-rpc-external
+      --unsafe-ws-external
+      --
+      --execution wasm
+      --chain /rialto-share/rialto-relaychain-spec-raw.json
+      --rpc-port 9934
+      --ws-port 9945
     ports:
       - "20633:9933"
       - "20644:9944"
