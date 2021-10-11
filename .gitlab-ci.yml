@@ -142,9 +142,12 @@ test:
 #    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
     - time cargo fetch
-    - time cargo fetch --target wasm32-unknown-unknown
-    - time cargo fetch --manifest-path=/usr/local/cargo/git/checkouts/polkadot-4038f27d5e4ea2e8/77e92ca/runtime/polkadot/Cargo.toml
-    - time cargo fetch --manifest-path=/usr/local/cargo/git/checkouts/polkadot-4038f27d5e4ea2e8/77e92ca/runtime/test-runtime/Cargo.toml
+    - time sudo apt-get install jq
+    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"`
+    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"`
+#    - time cargo fetch --target wasm32-unknown-unknown
+#    - time cargo fetch --manifest-path=/usr/local/cargo/git/checkouts/polkadot-4038f27d5e4ea2e8/77e92ca/runtime/polkadot/Cargo.toml
+#    - time cargo fetch --manifest-path=/usr/local/cargo/git/checkouts/polkadot-4038f27d5e4ea2e8/77e92ca/runtime/test-runtime/Cargo.toml
     - CARGO_NET_OFFLINE=true time cargo test --verbose --workspace
 
 test-nightly:
