@@ -143,6 +143,8 @@ test:
   script:                          &test-script
     - time cargo fetch
     - time cargo fetch --target wasm32-unknown-unknown
+    - time cargo fetch --manifest-path=/usr/local/cargo/git/checkouts/polkadot-4038f27d5e4ea2e8/77e92ca/runtime/polkadot/Cargo.toml
+    - time cargo fetch --manifest-path=/usr/local/cargo/git/checkouts/polkadot-4038f27d5e4ea2e8/77e92ca/runtime/test-runtime/Cargo.toml
     - CARGO_NET_OFFLINE=true time cargo test --verbose --workspace
 
 test-nightly:
@@ -192,6 +194,7 @@ build:
   script:                          &build-script
     - time cargo fetch
     - time cargo fetch --target wasm32-unknown-unknown
+    - time cargo fetch --manifest-path=/usr/local/cargo/git/checkouts/polkadot-4038f27d5e4ea2e8/77e92ca/runtime/polkadot/Cargo.toml
     - time cargo fetch --manifest-path=/usr/local/cargo/git/checkouts/polkadot-4038f27d5e4ea2e8/77e92ca/runtime/test-runtime/Cargo.toml
     - CARGO_NET_OFFLINE=true time cargo build --release --verbose --workspace
   after_script:
