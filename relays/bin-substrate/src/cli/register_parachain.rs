@@ -276,10 +276,6 @@ async fn wait_para_state<Relaychain: Chain>(
 		if !from_states.contains(&para_state) {
 			return Err(anyhow::format_err!("Invalid parachain lifecycle: {:?}", para_state))
 		}
-		if para_state == to_state {
-			log::info!(target: "bridge", "Parachain state is now: {:?}", to_state);
-			return Ok(())
-		}
 
 		log::info!(target: "bridge", "Parachain state: {:?}. Waiting for {:?}", para_state, to_state);
 		async_std::task::sleep(Relaychain::AVERAGE_BLOCK_INTERVAL).await;
