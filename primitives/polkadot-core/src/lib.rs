@@ -323,7 +323,14 @@ impl<Call> SignedExtensions<Call> {
 
 impl<Call> sp_runtime::traits::SignedExtension for SignedExtensions<Call>
 where
-	Call: parity_scale_codec::Codec + sp_std::fmt::Debug + Sync + Send + Clone + Eq + PartialEq + StaticTypeInfo,
+	Call: parity_scale_codec::Codec
+		+ sp_std::fmt::Debug
+		+ Sync
+		+ Send
+		+ Clone
+		+ Eq
+		+ PartialEq
+		+ StaticTypeInfo,
 	Call: Dispatchable,
 {
 	const IDENTIFIER: &'static str = "Not needed.";

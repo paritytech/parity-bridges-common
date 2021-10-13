@@ -64,9 +64,11 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 
 /// Westend Runtime `Call` enum.
 ///
-/// We are not currently submitting any Westend tx => it is empty. 
-#[derive(parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-pub enum Call { }
+/// We are not currently submitting any Westend tx => it is empty.
+#[derive(
+	parity_scale_codec::Encode, parity_scale_codec::Decode, Debug, PartialEq, Eq, Clone, TypeInfo,
+)]
+pub enum Call {}
 
 impl sp_runtime::traits::Dispatchable for Call {
 	type Origin = ();

@@ -357,12 +357,13 @@ impl SwapTokens {
 						claim_swap_message.clone(),
 					)
 					.await?;
-				let send_message_call: CallOf<Target> = pallet_bridge_messages::Call::send_message {
-					lane_id: TARGET_TO_SOURCE_LANE_ID,
-					payload: claim_swap_message,
-					delivery_and_dispatch_fee: claim_swap_delivery_and_dispatch_fee,
-				}
-				.into();
+				let send_message_call: CallOf<Target> =
+					pallet_bridge_messages::Call::send_message {
+						lane_id: TARGET_TO_SOURCE_LANE_ID,
+						payload: claim_swap_message,
+						delivery_and_dispatch_fee: claim_swap_delivery_and_dispatch_fee,
+					}
+					.into();
 
 				// send `claim_swap` message
 				let target_genesis_hash = *target_client.genesis_hash();

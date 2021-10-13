@@ -610,9 +610,9 @@ mod tests {
 			let id = [0; 4];
 
 			const BAD_SPEC_VERSION: SpecVersion = 99;
-			let mut message = prepare_root_message(Call::System(
-				frame_system::Call::remark { remark: vec![1, 2, 3] },
-			));
+			let mut message = prepare_root_message(Call::System(frame_system::Call::remark {
+				remark: vec![1, 2, 3],
+			}));
 			let weight = message.weight;
 			message.spec_version = BAD_SPEC_VERSION;
 
@@ -756,9 +756,9 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			let id = [0; 4];
 
-			let mut message = prepare_root_message(Call::System(
-				frame_system::Call::remark { remark: vec![1, 2, 3] },
-			));
+			let mut message = prepare_root_message(Call::System(frame_system::Call::remark {
+				remark: vec![1, 2, 3],
+			}));
 			let weight = message.weight;
 			message.call.0 = vec![];
 
@@ -794,7 +794,8 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			let id = [0; 4];
 
-			let call = Call::System(frame_system::Call::fill_block { ratio: Perbill::from_percent(75) });
+			let call =
+				Call::System(frame_system::Call::fill_block { ratio: Perbill::from_percent(75) });
 			let weight = call.get_dispatch_info().weight;
 			let mut message = prepare_root_message(call);
 			message.weight = weight;
@@ -831,9 +832,9 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			let id = [0; 4];
 
-			let mut message = prepare_root_message(Call::System(
-				frame_system::Call::remark { remark: vec![1, 2, 3] },
-			));
+			let mut message = prepare_root_message(Call::System(frame_system::Call::remark {
+				remark: vec![1, 2, 3],
+			}));
 			let weight = message.weight;
 			message.dispatch_fee_payment = DispatchFeePayment::AtTargetChain;
 
@@ -871,9 +872,9 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			let id = [0; 4];
 
-			let mut message = prepare_root_message(Call::System(
-				frame_system::Call::remark { remark: vec![1, 2, 3] },
-			));
+			let mut message = prepare_root_message(Call::System(frame_system::Call::remark {
+				remark: vec![1, 2, 3],
+			}));
 			message.dispatch_fee_payment = DispatchFeePayment::AtTargetChain;
 
 			System::set_block_number(1);
@@ -940,9 +941,9 @@ mod tests {
 	fn should_dispatch_bridge_message_from_root_origin() {
 		new_test_ext().execute_with(|| {
 			let id = [0; 4];
-			let message = prepare_root_message(Call::System(
-				frame_system::Call::remark { remark: vec![1, 2, 3] },
-			));
+			let message = prepare_root_message(Call::System(frame_system::Call::remark {
+				remark: vec![1, 2, 3],
+			}));
 
 			System::set_block_number(1);
 			let result = Dispatch::dispatch(
