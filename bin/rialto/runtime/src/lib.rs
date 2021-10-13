@@ -228,11 +228,13 @@ pub const BABE_GENESIS_EPOCH_CONFIG: sp_consensus_babe::BabeEpochConfiguration =
 parameter_types! {
 	pub const EpochDuration: u64 = bp_rialto::EPOCH_DURATION_IN_SLOTS as u64;
 	pub const ExpectedBlockTime: bp_rialto::Moment = bp_rialto::time_units::MILLISECS_PER_BLOCK;
+	pub const MaxAuthorities: u32 = 10;
 }
 
 impl pallet_babe::Config for Runtime {
 	type EpochDuration = EpochDuration;
 	type ExpectedBlockTime = ExpectedBlockTime;
+	type MaxAuthorities = MaxAuthorities;
 
 	// session module is the trigger
 	type EpochChangeTrigger = pallet_babe::ExternalTrigger;
@@ -372,6 +374,7 @@ impl bp_currency_exchange::DepositInto for DepositInto {
 impl pallet_grandpa::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
+	type MaxAuthorities = MaxAuthorities;
 	type KeyOwnerProofSystem = ();
 	type KeyOwnerProof =
 		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
@@ -423,6 +426,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const TransactionBaseFee: Balance = 0;
 	pub const TransactionByteFee: Balance = 1;
+	pub const OperationalFeeMultiplier: u8 = 5;
 	// values for following parameters are copied from polkadot repo, but it is fine
 	// not to sync them - we're not going to make Rialto a full copy of one of Polkadot-like chains
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
@@ -433,6 +437,7 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
 	type TransactionByteFee = TransactionByteFee;
+	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = bp_rialto::WeightToFee;
 	type FeeMultiplierUpdate = pallet_transaction_payment::TargetedFeeAdjustment<
 		Runtime,
@@ -456,13 +461,8 @@ impl pallet_session::Config for Runtime {
 	type SessionManager = pallet_shift_session_manager::Pallet<Runtime>;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
-	type DisabledValidatorsThreshold = ();
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
-}
-
-parameter_types! {
-	pub const MaxAuthorities: u32 = 10;
 }
 
 impl pallet_authority_discovery::Config for Runtime {
@@ -665,7 +665,7 @@ impl_runtime_apis! {
 
 	impl sp_api::Metadata<Block> for Runtime {
 		fn metadata() -> OpaqueMetadata {
-			Runtime::metadata().into()
+			OpaqueMetadata::new(Runtime::metadata().into())
 		}
 	}
 
@@ -786,7 +786,7 @@ impl_runtime_apis! {
 				slot_duration: Babe::slot_duration(),
 				epoch_length: EpochDuration::get(),
 				c: BABE_GENESIS_EPOCH_CONFIG.c,
-				genesis_authorities: Babe::authorities(),
+				genesis_authorities: Babe::authorities().to_vec(),
 				randomness: Babe::randomness(),
 				allowed_slots: BABE_GENESIS_EPOCH_CONFIG.allowed_slots,
 			}
@@ -904,6 +904,10 @@ impl_runtime_apis! {
 			hash: polkadot_primitives::v1::ValidationCodeHash,
 		) -> Option<polkadot_primitives::v1::ValidationCode> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::validation_code_by_hash::<Runtime>(hash)
+		}
+
+		fn on_chain_votes() -> Option<polkadot_primitives::v1::ScrapedOnChainVotes<Hash>> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::on_chain_votes::<Runtime>()
 		}
 	}
 

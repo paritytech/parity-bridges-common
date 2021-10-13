@@ -18,10 +18,11 @@
 
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
+use scale_info::TypeInfo;
 use sp_core::U256;
 
 /// Pending token swap state.
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub enum TokenSwapState {
 	/// The swap has been started using the `start_claim` call, but we have no proof that it has
 	/// happened at the Bridged chain.
@@ -38,7 +39,7 @@ pub enum TokenSwapState {
 ///
 /// Different swap types give a different guarantees regarding possible swap
 /// replay protection.
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub enum TokenSwapType<ThisBlockNumber> {
 	/// The `target_account_at_bridged_chain` is temporary and only have funds for single swap.
 	///
@@ -67,7 +68,7 @@ pub enum TokenSwapType<ThisBlockNumber> {
 /// when chain changes, the meaning of This and Bridged are still used to point to the same chains.
 /// This chain is always the chain where swap has been started. And the Bridged chain is the other
 /// chain.
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct TokenSwap<ThisBlockNumber, ThisBalance, ThisAccountId, BridgedBalance, BridgedAccountId>
 {
 	/// The type of the swap.
