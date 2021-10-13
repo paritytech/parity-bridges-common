@@ -469,7 +469,7 @@ dependencies = [
 [[package]]
 name = "beefy-gadget"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#90dd23e78851605180f3dc3bfcf43e2800354f79"
+source = "git+https://github.com/paritytech/substrate?branch=master#d0f6c1c60da22e04dd25c2eca46ebfe6f1571af0"
 dependencies = [
  "beefy-primitives",
  "fnv",
@@ -497,7 +497,7 @@ dependencies = [
 [[package]]
 name = "beefy-gadget-rpc"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#90dd23e78851605180f3dc3bfcf43e2800354f79"
+source = "git+https://github.com/paritytech/substrate?branch=master#d0f6c1c60da22e04dd25c2eca46ebfe6f1571af0"
 dependencies = [
  "beefy-gadget",
  "beefy-primitives",
@@ -517,12 +517,12 @@ dependencies = [
 [[package]]
 name = "beefy-merkle-tree"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#90dd23e78851605180f3dc3bfcf43e2800354f79"
+source = "git+https://github.com/paritytech/substrate?branch=master#d0f6c1c60da22e04dd25c2eca46ebfe6f1571af0"
 
 [[package]]
 name = "beefy-primitives"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#90dd23e78851605180f3dc3bfcf43e2800354f79"
+source = "git+https://github.com/paritytech/substrate?branch=master#d0f6c1c60da22e04dd25c2eca46ebfe6f1571af0"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -5460,7 +5460,7 @@ dependencies = [
 [[package]]
 name = "pallet-bags-list"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#90dd23e78851605180f3dc3bfcf43e2800354f79"
+source = "git+https://github.com/paritytech/substrate?branch=master#d0f6c1c60da22e04dd25c2eca46ebfe6f1571af0"
 dependencies = [
  "frame-election-provider-support",
  "frame-support",
@@ -5490,7 +5490,7 @@ dependencies = [
 [[package]]
 name = "pallet-beefy"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#90dd23e78851605180f3dc3bfcf43e2800354f79"
+source = "git+https://github.com/paritytech/substrate?branch=master#d0f6c1c60da22e04dd25c2eca46ebfe6f1571af0"
 dependencies = [
  "beefy-primitives",
  "frame-support",
@@ -5506,7 +5506,7 @@ dependencies = [
 [[package]]
 name = "pallet-beefy-mmr"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#90dd23e78851605180f3dc3bfcf43e2800354f79"
+source = "git+https://github.com/paritytech/substrate?branch=master#d0f6c1c60da22e04dd25c2eca46ebfe6f1571af0"
 dependencies = [
  "beefy-merkle-tree",
  "beefy-primitives",
