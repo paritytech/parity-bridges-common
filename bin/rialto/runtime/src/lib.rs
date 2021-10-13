@@ -1179,7 +1179,7 @@ impl_runtime_apis! {
 						MessagesProofSize::Minimal(ref size) => vec![0u8; *size as _],
 						_ => vec![],
 					};
-					let call = Call::System(SystemCall::remark(remark));
+					let call = Call::System(SystemCall::remark { remark });
 					let call_weight = call.get_dispatch_info().weight;
 
 					let millau_account_id: bp_millau::AccountId = Default::default();
