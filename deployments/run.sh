@@ -42,7 +42,7 @@ function show_help () {
   exit 1
 }
 
-RIALTO=' -f ./networks/rialto.yml'
+RIALTO=' -f ./networks/rialto.yml -f ./networks/rialto-parachain.yml'
 MILLAU=' -f ./networks/millau.yml'
 ETH_POA=' -f ./networks/eth-poa.yml'
 MONITORING=' -f ./monitoring/docker-compose.yml'
