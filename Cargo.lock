@@ -943,6 +943,7 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "sp-core",
+ "sp-std",
 ]
 
 [[package]]
