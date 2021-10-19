@@ -155,16 +155,15 @@ pub trait BridgedChainWithMessages: ChainWithMessages {
 	fn transaction_payment(transaction: MessageTransaction<WeightOf<Self>>) -> BalanceOf<Self>;
 }
 
-pub(crate) type ThisChain<B> = <B as MessageBridge>::ThisChain;
-pub(crate) type BridgedChain<B> = <B as MessageBridge>::BridgedChain;
-pub(crate) type HashOf<C> = <C as ChainWithMessages>::Hash;
-pub(crate) type AccountIdOf<C> = <C as ChainWithMessages>::AccountId;
-pub(crate) type SignerOf<C> = <C as ChainWithMessages>::Signer;
-pub(crate) type SignatureOf<C> = <C as ChainWithMessages>::Signature;
-pub(crate) type WeightOf<C> = <C as ChainWithMessages>::Weight;
-pub(crate) type BalanceOf<C> = <C as ChainWithMessages>::Balance;
-
-pub(crate) type CallOf<C> = <C as ThisChainWithMessages>::Call;
+pub type ThisChain<B> = <B as MessageBridge>::ThisChain;
+pub type BridgedChain<B> = <B as MessageBridge>::BridgedChain;
+pub type HashOf<C> = <C as ChainWithMessages>::Hash;
+pub type AccountIdOf<C> = <C as ChainWithMessages>::AccountId;
+pub type SignerOf<C> = <C as ChainWithMessages>::Signer;
+pub type SignatureOf<C> = <C as ChainWithMessages>::Signature;
+pub type WeightOf<C> = <C as ChainWithMessages>::Weight;
+pub type BalanceOf<C> = <C as ChainWithMessages>::Balance;
+pub type CallOf<C> = <C as ThisChainWithMessages>::Call;
 
 /// Raw storage proof type (just raw trie nodes).
 type RawStorageProof = Vec<Vec<u8>>;
@@ -259,12 +258,10 @@ pub mod source {
 	#[derive(RuntimeDebug)]
 	pub struct FromThisChainMessageVerifier<B>(PhantomData<B>);
 
-	pub(crate) const OUTBOUND_LANE_DISABLED: &str = "The outbound message lane is disabled.";
-	pub(crate) const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
-	pub(crate) const BAD_ORIGIN: &str =
-		"Unable to match the source origin to expected target origin.";
-	pub(crate) const TOO_LOW_FEE: &str =
-		"Provided fee is below minimal threshold required by the lane.";
+	pub const OUTBOUND_LANE_DISABLED: &str = "The outbound message lane is disabled.";
+	pub const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
+	pub const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
+	pub const TOO_LOW_FEE: &str = "Provided fee is below minimal threshold required by the lane.";
 
 	impl<B>
 		LaneMessageVerifier<
