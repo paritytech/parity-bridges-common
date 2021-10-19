@@ -61,6 +61,8 @@ ignore = [
     "RUSTSEC-2021-0110",
     # time (origin: Substrate RPC + benchmarking crates)
     "RUSTSEC-2020-0071",
+    # chrono (origin: Substrate benchmarking + cli + ...)
+    "RUSTSEC-2020-0159",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
