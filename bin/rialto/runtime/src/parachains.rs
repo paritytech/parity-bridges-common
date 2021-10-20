@@ -17,7 +17,7 @@
 //! Parachains support in Rialto runtime.
 
 use crate::{
-	AccountId, Balance, Balances, BlockNumber, Event, Origin, RandomnessCollectiveFlip, Registrar,
+	AccountId, Balance, Balances, BlockNumber, Event, Origin, Registrar,
 	Runtime, Slots,
 };
 
@@ -59,7 +59,7 @@ impl parachains_inclusion::Config for Runtime {
 }
 
 impl parachains_initializer::Config for Runtime {
-	type Randomness = RandomnessCollectiveFlip;
+	type Randomness = pallet_babe::RandomnessFromOneEpochAgo<Runtime>;
 	type ForceOrigin = EnsureRoot<AccountId>;
 }
 

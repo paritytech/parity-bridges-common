@@ -8669,7 +8669,6 @@ dependencies = [
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-grandpa",
- "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-shift-session-manager",
  "pallet-sudo",
