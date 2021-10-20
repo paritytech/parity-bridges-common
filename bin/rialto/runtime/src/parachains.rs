@@ -16,10 +16,7 @@
 
 //! Parachains support in Rialto runtime.
 
-use crate::{
-	AccountId, Balance, Balances, BlockNumber, Event, Origin, Registrar,
-	Runtime, Slots,
-};
+use crate::{AccountId, Balance, Balances, BlockNumber, Event, Origin, Registrar, Runtime, Slots};
 
 use frame_support::{parameter_types, weights::Weight};
 use frame_system::EnsureRoot;
