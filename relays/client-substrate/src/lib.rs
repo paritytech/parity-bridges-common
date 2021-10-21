@@ -84,8 +84,8 @@ pub fn transaction_stall_timeout(
 ///
 /// Bidirectional relay may have two active transactions. Even if one of them has been spoiled, we
 /// can't just restart the loop - the other transaction may still be alive and we'll be submitting
-/// duplicate transaction, which may result in funds loss. So we'll be selecting maximal mortality for
-/// choosing loop stall timeout.
+/// duplicate transaction, which may result in funds loss. So we'll be selecting maximal mortality
+/// for choosing loop stall timeout.
 pub fn bidirectional_transaction_stall_timeout(
 	left_mortality_period: Option<u32>,
 	right_mortality_period: Option<u32>,
