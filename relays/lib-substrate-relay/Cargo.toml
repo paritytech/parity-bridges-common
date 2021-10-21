@@ -31,7 +31,6 @@ pallet-bridge-messages = { path = "../../modules/messages" }
 bp-runtime = { path = "../../primitives/runtime" }
 bp-messages = { path = "../../primitives/messages" }
 
-
 # Substrate Dependencies
 
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
