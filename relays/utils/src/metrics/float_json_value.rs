@@ -17,8 +17,9 @@
 use crate::{
 	error::{self, Error},
 	metrics::{
-		metric_name, register, F64SharedRef, Gauge, PrometheusError, Registry, StandaloneMetrics, F64,
-	}
+		metric_name, register, F64SharedRef, Gauge, PrometheusError, Registry, StandaloneMetrics,
+		F64,
+	},
 };
 
 use async_std::sync::{Arc, RwLock};
@@ -68,14 +69,8 @@ impl FloatJsonValueMetric {
 	async fn request_value(&self) -> anyhow::Result<String> {
 		use isahc::{AsyncReadResponseExt, HttpClient, Request};
 
-		let request = Request::get(&self.url)
-			.header("Accept", "application/json")
-			.body(())?;
-		let raw_response = HttpClient::new()?
-			.send_async(request)
-			.await?
-			.text()
-			.await?;
+		let request = Request::get(&self.url).header("Accept", "application/json").body(())?;
+		let raw_response = HttpClient::new()?.send_async(request).await?.text().await?;
 		Ok(raw_response)
 	}
 
@@ -102,22 +97,18 @@ impl StandaloneMetrics for FloatJsonValueMetric {
 
 /// Parse HTTP service response.
 fn parse_service_response(json_path: &str, response: &str) -> error::Result<f64> {
-	let json = serde_json::from_str(response).map_err(|err| {
-		Error::ParseHttp(err, response.to_owned())
-	})?;
+	let json =
+		serde_json::from_str(response).map_err(|err| Error::ParseHttp(err, response.to_owned()))?;
 
 	let mut selector = jsonpath_lib::selector(&json);
-	let maybe_selected_value = selector(json_path).map_err(|err| {
-		Error::SelectResponseValue(err, response.to_owned(),)
-	})?;
+	let maybe_selected_value =
+		selector(json_path).map_err(|err| Error::SelectResponseValue(err, response.to_owned()))?;
 	let selected_value = maybe_selected_value
 		.first()
 		.and_then(|v| v.as_f64())
 		.ok_or_else(|| Error::MissingResponseValue(response.to_owned()))?;
 	if !selected_value.is_normal() || selected_value < 0.0 {
-		return Err(Error::ParseFloat(
-			selected_value,
-		))
+		return Err(Error::ParseFloat(selected_value))
 	}
 
 	Ok(selected_value)

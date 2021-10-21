@@ -252,7 +252,8 @@ pub async fn run(
 		metrics_params,
 		futures::future::pending(),
 	)
-	.await.map_err(Into::into)
+	.await
+	.map_err(Into::into)
 }
 
 /// Add standalone metrics for the Rococo -> Wococo messages loop.

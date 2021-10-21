@@ -17,10 +17,10 @@
 //! Westend chain specification for CLI.
 
 use crate::cli::{encode_message, CliChain};
+use anyhow::anyhow;
 use frame_support::weights::Weight;
 use relay_westend_client::Westend;
 use sp_version::RuntimeVersion;
-use anyhow::anyhow;
 
 impl CliChain for Westend {
 	const RUNTIME_VERSION: RuntimeVersion = bp_westend::VERSION;

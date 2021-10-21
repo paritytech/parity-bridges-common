@@ -18,15 +18,13 @@
 
 use crate::error::{Error, ErrorOf};
 
+use anyhow::anyhow;
 use async_trait::async_trait;
-use relay_utils::{
-	relay_loop::Client as RelayClient, FailedClient, MaybeConnectionError
-};
+use relay_utils::{relay_loop::Client as RelayClient, FailedClient, MaybeConnectionError};
 use std::{
 	fmt::{Debug, Display},
 	string::ToString,
 };
-use anyhow::anyhow;
 
 /// Transaction proof pipeline.
 pub trait TransactionProofPipeline: 'static {
@@ -264,11 +262,7 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 		wait_transaction_mined(source_client, &source_tx_hash).await?;
 	let source_block = source_client.block_by_hash(source_header_id.1.clone()).await;
 	let source_block = source_block.map_err(|err| {
-		Error::RetrievingBlock(
-			source_header_id.1.clone(),
-			P::SOURCE_NAME,
-			anyhow!("{:?}", err),
-		)
+		Error::RetrievingBlock(source_header_id.1.clone(), P::SOURCE_NAME, anyhow!("{:?}", err))
 	})?;
 	// wait for transaction and header on target node
 	wait_header_imported(target_client, &source_header_id).await?;
@@ -282,7 +276,8 @@ pub async fn relay_single_transaction_proof<P: TransactionProofPipeline>(
 		prepare_transaction_proof(source_client, &source_tx_id, &source_block, source_tx_index)
 			.await?,
 	)
-	.await.map_err(Into::into)
+	.await
+	.map_err(Into::into)
 }
 
 /// Prepare transaction proof.
@@ -332,7 +327,7 @@ async fn wait_transaction_mined<P: TransactionProofPipeline>(
 				Error::RetrievingTransaction(
 					source_tx_hash.clone(),
 					P::SOURCE_NAME,
-					anyhow!("{:?}", err)
+					anyhow!("{:?}", err),
 				)
 			})?;
 		match source_header_and_tx {
@@ -680,13 +675,12 @@ pub(crate) mod tests {
 		source: &TestTransactionsSource,
 		target: &TestTransactionsTarget,
 	) {
-		assert!(
-			async_std::task::block_on(relay_single_transaction_proof(
-				source,
-				target,
-				test_transaction_hash(0)
-			)).is_ok()
-		);
+		assert!(async_std::task::block_on(relay_single_transaction_proof(
+			source,
+			target,
+			test_transaction_hash(0)
+		))
+		.is_ok());
 		assert_eq!(
 			target.data.lock().submitted_proofs,
 			vec![TestTransactionProof(test_transaction_hash(0))],
@@ -698,7 +692,8 @@ pub(crate) mod tests {
 			&source,
 			&target,
 			test_transaction_hash(0),
-		)).is_err());
+		))
+		.is_err());
 		assert!(target.data.lock().submitted_proofs.is_empty());
 	}
 

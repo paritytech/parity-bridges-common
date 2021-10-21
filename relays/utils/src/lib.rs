@@ -16,8 +16,8 @@
 
 //! Utilities used by different relays.
 
-pub use relay_loop::{relay_loop, relay_metrics};
 pub use error::Error;
+pub use relay_loop::{relay_loop, relay_metrics};
 
 use backoff::{backoff::Backoff, ExponentialBackoff};
 use futures::future::FutureExt;
@@ -31,10 +31,10 @@ pub const MAX_BACKOFF_INTERVAL: Duration = Duration::from_secs(60);
 /// reconnection again.
 pub const CONNECTION_ERROR_DELAY: Duration = Duration::from_secs(10);
 
+pub mod error;
 pub mod initialize;
 pub mod metrics;
 pub mod relay_loop;
-pub mod error;
 
 /// Block number traits shared by all chains that relay is able to serve.
 pub trait BlockNumberBase:

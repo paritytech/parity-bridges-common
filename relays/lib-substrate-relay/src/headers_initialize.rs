@@ -101,7 +101,10 @@ async fn do_initialize<SourceChain: Chain, TargetChain: Chain>(
 /// Prepare initialization data for the GRANDPA verifier pallet.
 async fn prepare_initialization_data<SourceChain: Chain>(
 	source_client: Client<SourceChain>,
-) -> Result<InitializationData<SourceChain::Header>, Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>> {
+) -> Result<
+	InitializationData<SourceChain::Header>,
+	Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>,
+> {
 	// In ideal world we just need to get best finalized header and then to read GRANDPA authorities
 	// set (`pallet_grandpa::CurrentSetId` + `GrandpaApi::grandpa_authorities()`) at this header.
 	//
@@ -117,11 +120,14 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 		.next()
 		.await
 		.map_err(|e| Error::ReadJustification(SourceChain::NAME, e))
-		.and_then(|justification| justification.ok_or_else(|| Error::ReadJustificationStreamEnded(SourceChain::NAME)))?;
+		.and_then(|justification| {
+			justification.ok_or_else(|| Error::ReadJustificationStreamEnded(SourceChain::NAME))
+		})?;
 
 	// Read initial header.
-	let justification: GrandpaJustification<SourceChain::Header> = Decode::decode(&mut &justification.0[..])
-		.map_err(|err| Error::DecodeJustification(SourceChain::NAME, err))?;
+	let justification: GrandpaJustification<SourceChain::Header> =
+		Decode::decode(&mut &justification.0[..])
+			.map_err(|err| Error::DecodeJustification(SourceChain::NAME, err))?;
 
 	let (initial_header_hash, initial_header_number) =
 		(justification.commit.target_hash, justification.commit.target_number);
@@ -169,10 +175,7 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 	let mut min_possible_block_number = SourceChain::BlockNumber::zero();
 	let authorities_for_verification = VoterSet::new(authorities_for_verification.clone())
 		.ok_or_else(|| {
-			Error::ReadInvalidAuthorities(
-				SourceChain::NAME,
-				authorities_for_verification,
-			)
+			Error::ReadInvalidAuthorities(SourceChain::NAME, authorities_for_verification)
 		})?;
 	loop {
 		log::trace!(
@@ -199,10 +202,7 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 			// there can't be more authorities set changes than headers => if we have reached
 			// `initial_block_number` and still have not found correct value of
 			// `initial_authorities_set_id`, then something else is broken => fail
-			return Err(Error::GuessInitialAuthorities(
-				SourceChain::NAME,
-				initial_header_number
-			))
+			return Err(Error::GuessInitialAuthorities(SourceChain::NAME, initial_header_number))
 		}
 	}
 
@@ -222,34 +222,24 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 async fn source_header<SourceChain: Chain>(
 	source_client: &Client<SourceChain>,
 	header_hash: SourceChain::Hash,
-) -> Result<SourceChain::Header, Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>> {
-	source_client.header_by_hash(header_hash).await.map_err(|err| {
-		Error::RetrieveHeader(
-			SourceChain::NAME,
-			header_hash,
-			err,
-		)
-	})
+) -> Result<SourceChain::Header, Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>>
+{
+	source_client
+		.header_by_hash(header_hash)
+		.await
+		.map_err(|err| Error::RetrieveHeader(SourceChain::NAME, header_hash, err))
 }
 
 /// Read GRANDPA authorities set at given header.
 async fn source_authorities_set<SourceChain: Chain>(
 	source_client: &Client<SourceChain>,
 	header_hash: SourceChain::Hash,
-) -> Result<GrandpaAuthoritiesSet, Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>> {
-	let raw_authorities_set =
-		source_client.grandpa_authorities_set(header_hash).await.map_err(|err| {
-			Error::RetrieveAuthorities(
-				SourceChain::NAME,
-				header_hash,
-				err,
-			)
-		})?;
-	GrandpaAuthoritiesSet::decode(&mut &raw_authorities_set[..]).map_err(|err| {
-		Error::DecodeAuthorities(
-			SourceChain::NAME,
-			header_hash,
-			err,
-		)
-	})
+) -> Result<GrandpaAuthoritiesSet, Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>>
+{
+	let raw_authorities_set = source_client
+		.grandpa_authorities_set(header_hash)
+		.await
+		.map_err(|err| Error::RetrieveAuthorities(SourceChain::NAME, header_hash, err))?;
+	GrandpaAuthoritiesSet::decode(&mut &raw_authorities_set[..])
+		.map_err(|err| Error::DecodeAuthorities(SourceChain::NAME, header_hash, err))
 }

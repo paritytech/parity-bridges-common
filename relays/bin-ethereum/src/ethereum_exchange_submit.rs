@@ -16,6 +16,7 @@
 
 //! Submitting Ethereum -> Substrate exchange transactions.
 
+use anyhow::anyhow;
 use bp_eth_poa::{
 	signatures::{secret_to_address, SignTransaction},
 	UnsignedTransaction,
@@ -26,7 +27,6 @@ use relay_ethereum_client::{
 	SigningParams as EthereumSigningParams,
 };
 use rialto_runtime::exchange::LOCK_FUNDS_ADDRESS;
-use anyhow::anyhow;
 
 /// Ethereum exchange transaction params.
 #[derive(Debug)]

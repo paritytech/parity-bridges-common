@@ -17,18 +17,15 @@
 //! Pallet provides a set of guard functions that are running in background threads
 //! and are aborting process if some condition fails.
 
-use crate::{
-	error::Error,
-	Chain, ChainWithBalances, Client
-};
+use crate::{error::Error, Chain, ChainWithBalances, Client};
 
 use async_trait::async_trait;
 use num_traits::CheckedSub;
 use sp_version::RuntimeVersion;
 use std::{
 	collections::VecDeque,
+	fmt::Display,
 	time::{Duration, Instant},
-	fmt::Display
 };
 
 /// Guards environment.
@@ -40,7 +37,10 @@ pub trait Environment<C: ChainWithBalances>: Send + Sync + 'static {
 	/// Return current runtime version.
 	async fn runtime_version(&mut self) -> Result<RuntimeVersion, Self::Error>;
 	/// Return free native balance of the account on the chain.
-	async fn free_native_balance(&mut self, account: C::AccountId) -> Result<C::Balance, Self::Error>;
+	async fn free_native_balance(
+		&mut self,
+		account: C::AccountId,
+	) -> Result<C::Balance, Self::Error>;
 
 	/// Return current time.
 	fn now(&self) -> Instant {
@@ -170,7 +170,10 @@ impl<C: ChainWithBalances> Environment<C> for Client<C> {
 		Client::<C>::runtime_version(self).await
 	}
 
-	async fn free_native_balance(&mut self, account: C::AccountId) -> Result<C::Balance, Self::Error> {
+	async fn free_native_balance(
+		&mut self,
+		account: C::AccountId,
+	) -> Result<C::Balance, Self::Error> {
 		Client::<C>::free_native_balance(self, account).await
 	}
 }

@@ -15,9 +15,9 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+	error::Error,
 	metrics::{Metrics, MetricsAddress, MetricsParams, PrometheusError, StandaloneMetrics},
 	FailedClient, MaybeConnectionError,
-	error::Error
 };
 
 use async_trait::async_trait;
@@ -206,9 +206,10 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 	pub async fn expose(self) -> Result<Loop<SC, TC, LM>, Error> {
 		if let Some(address) = self.address {
 			let socket_addr = SocketAddr::new(
-				address.host.parse().map_err(|err| {
-					Error::ExposingMetricsInvalidHost(address.host.clone(), err)
-				})?,
+				address
+					.host
+					.parse()
+					.map_err(|err| Error::ExposingMetricsInvalidHost(address.host.clone(), err))?,
 				address.port,
 			);
 

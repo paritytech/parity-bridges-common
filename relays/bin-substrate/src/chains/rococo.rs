@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use anyhow::anyhow;
 use codec::Decode;
 use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_rococo_client::Rococo;
 use sp_version::RuntimeVersion;
-use anyhow::anyhow;
 
 use crate::cli::{
 	bridge,

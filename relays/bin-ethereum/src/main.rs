@@ -16,6 +16,7 @@
 
 #![recursion_limit = "1024"]
 
+mod error;
 mod ethereum_client;
 mod ethereum_deploy_contract;
 mod ethereum_exchange;
@@ -26,8 +27,8 @@ mod rialto_client;
 mod rpc_errors;
 mod substrate_sync_loop;
 mod substrate_types;
-mod error;
 
+use anyhow::anyhow;
 use ethereum_deploy_contract::EthereumDeployContractParams;
 use ethereum_exchange::EthereumExchangeParams;
 use ethereum_exchange_submit::EthereumExchangeSubmitParams;
@@ -42,7 +43,6 @@ use relay_utils::{
 };
 use sp_core::crypto::Pair;
 use substrate_sync_loop::SubstrateSyncParams;
-use anyhow::anyhow;
 
 use headers_relay::sync::HeadersSyncParams;
 use relay_ethereum_client::{

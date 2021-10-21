@@ -17,14 +17,15 @@
 //! Relaying proofs of exchange transactions.
 
 use crate::{
+	error::Error,
 	exchange::{
 		relay_block_transactions, BlockNumberOf, RelayedBlockTransactions, SourceClient,
 		TargetClient, TransactionProofPipeline,
 	},
 	exchange_loop_metrics::ExchangeLoopMetrics,
-	error::Error,
 };
 
+use crate::error::ErrorOf;
 use backoff::backoff::Backoff;
 use futures::{future::FutureExt, select};
 use num_traits::One;
@@ -33,7 +34,6 @@ use relay_utils::{
 	retry_backoff, FailedClient, MaybeConnectionError,
 };
 use std::future::Future;
-use crate::error::ErrorOf;
 
 /// Transactions proofs relay state.
 #[derive(Debug)]
@@ -112,7 +112,8 @@ pub async fn run<P: TransactionProofPipeline>(
 				exit_signal.clone(),
 			)
 		})
-		.await.map_err(Error::Utils)
+		.await
+		.map_err(Error::Utils)
 }
 
 /// Run proofs synchronization.
