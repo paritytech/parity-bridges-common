@@ -222,12 +222,17 @@ pub async fn run(
 			Max messages in single transaction: {}\n\t\
 			Max messages size in single transaction: {}\n\t\
 			Max messages weight in single transaction: {}\n\t\
-			Relayer mode: {:?}",
+			Relayer mode: {:?}\n\t\
+			Tx mortality: {:?}/{:?}\n\t\
+			Stall timeout: {:?}",
 		lane.message_lane.relayer_id_at_source,
 		max_messages_in_single_batch,
 		max_messages_size_in_single_batch,
 		max_messages_weight_in_single_batch,
 		params.relayer_mode,
+		params.source_transactions_mortality,
+		params.target_transactions_mortality,
+		stall_timeout,
 	);
 
 	let (metrics_params, metrics_values) = add_standalone_metrics(
