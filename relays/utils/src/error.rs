@@ -14,10 +14,10 @@
 use std::net::AddrParseError;
 use thiserror::Error;
 
-/// Result type used by relay utils.
+/// Result type used by relay utilities.
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// Relay utils errors.
+/// Relay utilities errors.
 #[derive(Error, Debug)]
 pub enum Error {
 	/// Failed to request a float value from HTTP service.

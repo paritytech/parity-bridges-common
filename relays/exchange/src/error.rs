@@ -49,7 +49,7 @@ pub enum Error<Hash: Display, HeaderNumber: Display, SourceTxHash: Display> {
 	/// Transaction filtering failed.
 	#[error("Transaction filtering has failed with {0:?}")]
 	TransactionFiltering(anyhow::Error, bool),
-	/// Utils/metrics error.
+	/// Utilities/metrics error.
 	#[error("{0}")]
 	Utils(#[from] relay_utils::Error),
 }
