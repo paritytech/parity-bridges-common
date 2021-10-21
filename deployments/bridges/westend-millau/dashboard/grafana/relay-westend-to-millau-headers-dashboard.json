@@ -24,7 +24,7 @@
           {
             "evaluator": {
               "params": [
-                5
+                32
               ],
               "type": "gt"
             },
@@ -46,11 +46,11 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "60m",
         "frequency": "5m",
         "handler": 1,
         "message": "",
-        "name": "Synced Header Difference is Over 5 (Westend to Millau)",
+        "name": "Synced Header Difference is Over 32 (Westend to Millau)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -163,7 +163,7 @@
           {
             "evaluator": {
               "params": [
-                5
+                32
               ],
               "type": "lt"
             },
@@ -185,7 +185,7 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "3m",
+        "for": "60m",
         "frequency": "5m",
         "handler": 1,
         "name": "No New Headers (Westend to Millau)",
