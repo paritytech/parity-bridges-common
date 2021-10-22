@@ -155,14 +155,23 @@ pub trait BridgedChainWithMessages: ChainWithMessages {
 	fn transaction_payment(transaction: MessageTransaction<WeightOf<Self>>) -> BalanceOf<Self>;
 }
 
+/// This chain in context of message bridge.
 pub type ThisChain<B> = <B as MessageBridge>::ThisChain;
+/// Bridged chain in context of message bridge.
 pub type BridgedChain<B> = <B as MessageBridge>::BridgedChain;
+/// Hash used on the chain.
 pub type HashOf<C> = <C as ChainWithMessages>::Hash;
+/// Account id used on the chain.
 pub type AccountIdOf<C> = <C as ChainWithMessages>::AccountId;
+/// Public key of the chain account that may be used to verify signature.
 pub type SignerOf<C> = <C as ChainWithMessages>::Signer;
+/// Signature type used on the chain.
 pub type SignatureOf<C> = <C as ChainWithMessages>::Signature;
+/// Type of weight that used on the chain.
 pub type WeightOf<C> = <C as ChainWithMessages>::Weight;
+/// Type of balances that is used on the chain.
 pub type BalanceOf<C> = <C as ChainWithMessages>::Balance;
+/// Type of call that is used on this chain.
 pub type CallOf<C> = <C as ThisChainWithMessages>::Call;
 
 /// Raw storage proof type (just raw trie nodes).
@@ -258,9 +267,13 @@ pub mod source {
 	#[derive(RuntimeDebug)]
 	pub struct FromThisChainMessageVerifier<B>(PhantomData<B>);
 
+	/// The lane state verification returned from LaneMessageVerifier.
 	pub const OUTBOUND_LANE_DISABLED: &str = "The outbound message lane is disabled.";
+	/// The pending messages verification returned from LaneMessageVerifier.
 	pub const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
+	/// The call origin verification returned from LaneMessageVerifier.
 	pub const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
+	/// The fee verification returned from LaneMessageVerifier.
 	pub const TOO_LOW_FEE: &str = "Provided fee is below minimal threshold required by the lane.";
 
 	impl<B>
