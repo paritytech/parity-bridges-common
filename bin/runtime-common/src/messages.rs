@@ -267,13 +267,13 @@ pub mod source {
 	#[derive(RuntimeDebug)]
 	pub struct FromThisChainMessageVerifier<B>(PhantomData<B>);
 
-	/// The error message return returned from LaneMessageVerifier when outbound lane is disabled.
+	/// The error message returned from LaneMessageVerifier when outbound lane is disabled.
 	pub const OUTBOUND_LANE_DISABLED: &str = "The outbound message lane is disabled.";
-	/// The error message return returned from LaneMessageVerifier when too many pending messages at the lane.
+	/// The error message returned from LaneMessageVerifier when too many pending messages at the lane.
 	pub const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
-	/// The error message return returned from LaneMessageVerifier when call origin is mismatch.
+	/// The error message returned from LaneMessageVerifier when call origin is mismatch.
 	pub const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
-	/// The error message return returned from LaneMessageVerifier when the message fee is too low.
+	/// The error message returned from LaneMessageVerifier when the message fee is too low.
 	pub const TOO_LOW_FEE: &str = "Provided fee is below minimal threshold required by the lane.";
 
 	impl<B>
