@@ -26,11 +26,13 @@ sleep 6
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
 	--millau-signer //Charlie \
-	--millau-messages-pallet-owner=//RialtoMessagesOwner\
+	--millau-messages-pallet-owner=//RialtoMessagesOwner \
+	--millau-transactions-mortality=64 \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
 	--rialto-signer //Charlie \
-	--rialto-messages-pallet-owner=//MillauMessagesOwner\
+	--rialto-messages-pallet-owner=//MillauMessagesOwner \
+	--rialto-transactions-mortality=64 \
 	--lane=00000000 \
 	--lane=73776170 \
 	--prometheus-host=0.0.0.0
