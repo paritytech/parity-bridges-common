@@ -121,7 +121,7 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 		.await
 		.map_err(|e| Error::ReadJustification(SourceChain::NAME, e))
 		.and_then(|justification| {
-			justification.ok_or_else(|| Error::ReadJustificationStreamEnded(SourceChain::NAME))
+			justification.ok_or(Error::ReadJustificationStreamEnded(SourceChain::NAME))
 		})?;
 
 	// Read initial header.
@@ -174,9 +174,7 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 	let mut initial_authorities_set_id = 0;
 	let mut min_possible_block_number = SourceChain::BlockNumber::zero();
 	let authorities_for_verification = VoterSet::new(authorities_for_verification.clone())
-		.ok_or_else(|| {
-			Error::ReadInvalidAuthorities(SourceChain::NAME, authorities_for_verification)
-		})?;
+		.ok_or(Error::ReadInvalidAuthorities(SourceChain::NAME, authorities_for_verification))?;
 	loop {
 		log::trace!(
 			target: "bridge", "Trying {} GRANDPA authorities set id: {}",
