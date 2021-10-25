@@ -34,7 +34,7 @@ use num_traits::{One, Zero};
 use relay_substrate_client::{Chain, Client};
 use sp_core::Bytes;
 use sp_finality_grandpa::AuthorityList as GrandpaAuthoritiesSet;
-use sp_runtime::traits::{Header as HeaderT, Header};
+use sp_runtime::traits::Header as HeaderT;
 
 /// Submit headers-bridge initialization transaction.
 pub async fn initialize<SourceChain: Chain, TargetChain: Chain>(
