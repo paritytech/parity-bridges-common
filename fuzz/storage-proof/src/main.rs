@@ -45,7 +45,7 @@ fn craft_known_storage_proof(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> (H256, Stora
 fn transform_into_unique(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> Vec<(Vec<u8>, Vec<u8>)> {
 	let mut output_hashmap = HashMap::new();
 	let mut output_vec = Vec::new();
-	for key_value_pair in input_vec.clone() {
+	for key_value_pair in input_vec {
 		output_hashmap.insert(key_value_pair.0, key_value_pair.1); //Only 1 value per key
 	}
 	for (key, val) in output_hashmap.iter() {
