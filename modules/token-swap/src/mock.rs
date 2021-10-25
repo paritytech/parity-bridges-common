@@ -17,7 +17,10 @@
 use crate as pallet_bridge_token_swap;
 use crate::MessagePayloadOf;
 
-use bp_messages::{source_chain::MessagesBridge, LaneId, MessageNonce};
+use bp_messages::{
+	source_chain::{MessagesBridge, SendMessageArtifacts},
+	LaneId, MessageNonce,
+};
 use bp_runtime::ChainId;
 use frame_support::weights::Weight;
 use sp_core::H256;
@@ -31,8 +34,8 @@ pub type AccountId = u64;
 pub type Balance = u64;
 pub type Block = frame_system::mocking::MockBlock<TestRuntime>;
 pub type BridgedAccountId = u64;
-pub type BridgedAccountPublic = u64;
-pub type BridgedAccountSignature = u64;
+pub type BridgedAccountPublic = sp_runtime::testing::UintAuthorityId;
+pub type BridgedAccountSignature = sp_runtime::testing::TestSignature;
 pub type BridgedBalance = u64;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
@@ -42,6 +45,8 @@ pub const MESSAGE_NONCE: MessageNonce = 3;
 
 pub const THIS_CHAIN_ACCOUNT: AccountId = 1;
 pub const THIS_CHAIN_ACCOUNT_BALANCE: Balance = 100_000;
+
+pub const SWAP_DELIVERY_AND_DISPATCH_FEE: Balance = 1;
 
 frame_support::construct_runtime! {
 	pub enum TestRuntime where
@@ -79,7 +84,7 @@ impl frame_system::Config for TestRuntime {
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	type SystemWeightInfo = ();
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -106,27 +111,37 @@ impl pallet_balances::Config for TestRuntime {
 }
 
 frame_support::parameter_types! {
-	pub const BridgeChainId: ChainId = *b"inst";
+	pub const BridgedChainId: ChainId = *b"inst";
 	pub const OutboundMessageLaneId: LaneId = *b"lane";
-	pub const MessageDeliveryAndDispatchFee: Balance = 1;
 }
 
 impl pallet_bridge_token_swap::Config for TestRuntime {
 	type Event = Event;
+	type WeightInfo = ();
 
-	type BridgeChainId = BridgeChainId;
+	type BridgedChainId = BridgedChainId;
 	type OutboundMessageLaneId = OutboundMessageLaneId;
 	type MessagesBridge = TestMessagesBridge;
-	type MessageDeliveryAndDispatchFee = MessageDeliveryAndDispatchFee;
 
 	type ThisCurrency = pallet_balances::Pallet<TestRuntime>;
 	type FromSwapToThisAccountIdConverter = TestAccountConverter;
 
-	type BridgedBalance = BridgedBalance;
-	type BridgedAccountId = BridgedAccountId;
-	type BridgedAccountPublic = BridgedAccountPublic;
-	type BridgedAccountSignature = BridgedAccountSignature;
+	type BridgedChain = BridgedChain;
 	type FromBridgedToThisAccountIdConverter = TestAccountConverter;
+}
+
+pub struct BridgedChain;
+
+impl bp_runtime::Chain for BridgedChain {
+	type BlockNumber = u64;
+	type Hash = H256;
+	type Hasher = BlakeTwo256;
+	type Header = sp_runtime::generic::Header<u64, BlakeTwo256>;
+
+	type AccountId = BridgedAccountId;
+	type Balance = BridgedBalance;
+	type Index = u64;
+	type Signature = BridgedAccountSignature;
 }
 
 pub struct TestMessagesBridge;
@@ -135,16 +150,16 @@ impl MessagesBridge<AccountId, Balance, MessagePayloadOf<TestRuntime, ()>> for T
 	type Error = ();
 
 	fn send_message(
-		sender: AccountId,
+		sender: frame_system::RawOrigin<AccountId>,
 		lane: LaneId,
 		message: MessagePayloadOf<TestRuntime, ()>,
 		delivery_and_dispatch_fee: Balance,
-	) -> Result<MessageNonce, Self::Error> {
-		assert_ne!(sender, THIS_CHAIN_ACCOUNT);
+	) -> Result<SendMessageArtifacts, Self::Error> {
+		assert_ne!(sender, frame_system::RawOrigin::Signed(THIS_CHAIN_ACCOUNT));
 		assert_eq!(lane, OutboundMessageLaneId::get());
-		assert_eq!(delivery_and_dispatch_fee, MessageDeliveryAndDispatchFee::get());
+		assert_eq!(delivery_and_dispatch_fee, SWAP_DELIVERY_AND_DISPATCH_FEE);
 		match message.call[0] {
-			OK_TRANSFER_CALL => Ok(MESSAGE_NONCE),
+			OK_TRANSFER_CALL => Ok(SendMessageArtifacts { nonce: MESSAGE_NONCE, weight: 0 }),
 			BAD_TRANSFER_CALL => Err(()),
 			_ => unreachable!(),
 		}
@@ -161,9 +176,7 @@ impl sp_runtime::traits::Convert<H256, AccountId> for TestAccountConverter {
 
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<TestRuntime>()
-		.unwrap();
+	let mut t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
 	pallet_balances::GenesisConfig::<TestRuntime> {
 		balances: vec![(THIS_CHAIN_ACCOUNT, THIS_CHAIN_ACCOUNT_BALANCE)],
 	}

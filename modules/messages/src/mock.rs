@@ -17,17 +17,19 @@
 // From construct_runtime macro
 #![allow(clippy::from_over_into)]
 
-use crate::Config;
+use crate::{instant_payments::cal_relayers_rewards, Config};
 
 use bitvec::prelude::*;
 use bp_messages::{
 	source_chain::{
-		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed, RelayersRewards, Sender,
-		TargetHeaderChain,
+		LaneMessageVerifier, MessageDeliveryAndDispatchPayment, OnDeliveryConfirmed,
+		OnMessageAccepted, Sender, TargetHeaderChain,
 	},
-	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
-	DeliveredMessages, InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
-	Parameter as MessagesParameter, UnrewardedRelayer,
+	target_chain::{
+		DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
+	},
+	DeliveredMessages, InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce,
+	OutboundLaneData, Parameter as MessagesParameter, UnrewardedRelayer,
 };
 use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode};
@@ -35,17 +37,21 @@ use frame_support::{
 	parameter_types,
 	weights::{RuntimeDbWeight, Weight},
 };
+use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
 	traits::{BlakeTwo256, IdentityLookup},
 	FixedU128, Perbill,
 };
-use std::collections::BTreeMap;
+use std::{
+	collections::{BTreeMap, VecDeque},
+	ops::RangeInclusive,
+};
 
 pub type AccountId = u64;
 pub type Balance = u64;
-#[derive(Decode, Encode, Clone, Debug, PartialEq, Eq)]
+#[derive(Decode, Encode, Clone, Debug, PartialEq, Eq, TypeInfo)]
 pub struct TestPayload {
 	/// Field that may be used to identify messages.
 	pub id: u64,
@@ -53,8 +59,8 @@ pub struct TestPayload {
 	pub declared_weight: Weight,
 	/// Message dispatch result.
 	///
-	/// Note: in correct code `dispatch_result.unspent_weight` will always be <= `declared_weight`, but for test
-	/// purposes we'll be making it larger than `declared_weight` sometimes.
+	/// Note: in correct code `dispatch_result.unspent_weight` will always be <= `declared_weight`,
+	/// but for test purposes we'll be making it larger than `declared_weight` sometimes.
 	pub dispatch_result: MessageDispatchResult,
 	/// Extra bytes that affect payload size.
 	pub extra: Vec<u8>,
@@ -112,7 +118,7 @@ impl frame_system::Config for TestRuntime {
 	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	type SystemWeightInfo = ();
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -145,7 +151,7 @@ parameter_types! {
   pub const TestBridgedChainId: bp_runtime::ChainId = *b"test";
 }
 
-#[derive(Debug, Clone, Encode, Decode, PartialEq, Eq)]
+#[derive(Debug, Clone, Encode, Decode, PartialEq, Eq, TypeInfo)]
 pub enum TestMessagesParameter {
 	TokenConversionRate(FixedU128),
 }
@@ -153,7 +159,8 @@ pub enum TestMessagesParameter {
 impl MessagesParameter for TestMessagesParameter {
 	fn save(&self) {
 		match *self {
-			TestMessagesParameter::TokenConversionRate(conversion_rate) => TokenConversionRate::set(&conversion_rate),
+			TestMessagesParameter::TokenConversionRate(conversion_rate) =>
+				TokenConversionRate::set(&conversion_rate),
 		}
 	}
 }
@@ -178,6 +185,7 @@ impl Config for TestRuntime {
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
 	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
+	type OnMessageAccepted = TestOnMessageAccepted;
 	type OnDeliveryConfirmed = (TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2);
 
 	type SourceHeaderChain = TestSourceHeaderChain;
@@ -219,7 +227,7 @@ pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = message_payload(1, 50)
 pub type MessagesByLaneVec = Vec<(LaneId, ProvedLaneMessages<Message<TestMessageFee>>)>;
 
 /// Test messages proof.
-#[derive(Debug, Encode, Decode, Clone, PartialEq, Eq)]
+#[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, TypeInfo)]
 pub struct TestMessagesProof {
 	pub result: Result<MessagesByLaneVec, ()>,
 }
@@ -234,14 +242,12 @@ impl From<Result<Vec<Message<TestMessageFee>>, ()>> for TestMessagesProof {
 	fn from(result: Result<Vec<Message<TestMessageFee>>, ()>) -> Self {
 		Self {
 			result: result.map(|messages| {
-				let mut messages_by_lane: BTreeMap<LaneId, ProvedLaneMessages<Message<TestMessageFee>>> =
-					BTreeMap::new();
+				let mut messages_by_lane: BTreeMap<
+					LaneId,
+					ProvedLaneMessages<Message<TestMessageFee>>,
+				> = BTreeMap::new();
 				for message in messages {
-					messages_by_lane
-						.entry(message.key.lane_id)
-						.or_default()
-						.messages
-						.push(message);
+					messages_by_lane.entry(message.key.lane_id).or_default().messages.push(message);
 				}
 				messages_by_lane.into_iter().collect()
 			}),
@@ -250,7 +256,7 @@ impl From<Result<Vec<Message<TestMessageFee>>, ()>> for TestMessagesProof {
 }
 
 /// Messages delivery proof used in tests.
-#[derive(Debug, Encode, Decode, Eq, Clone, PartialEq)]
+#[derive(Debug, Encode, Decode, Eq, Clone, PartialEq, TypeInfo)]
 pub struct TestMessagesDeliveryProof(pub Result<(LaneId, InboundLaneData<TestRelayer>), ()>);
 
 impl Size for TestMessagesDeliveryProof {
@@ -317,7 +323,8 @@ impl TestMessageDeliveryAndDispatchPayment {
 
 	/// Returns true if given fee has been paid by given submitter.
 	pub fn is_fee_paid(submitter: AccountId, fee: TestMessageFee) -> bool {
-		frame_support::storage::unhashed::get(b":message-fee:") == Some((Sender::Signed(submitter), fee))
+		frame_support::storage::unhashed::get(b":message-fee:") ==
+			Some((Sender::Signed(submitter), fee))
 	}
 
 	/// Returns true if given relayer has been rewarded with given balance. The reward-paid flag is
@@ -328,7 +335,9 @@ impl TestMessageDeliveryAndDispatchPayment {
 	}
 }
 
-impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessageDeliveryAndDispatchPayment {
+impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee>
+	for TestMessageDeliveryAndDispatchPayment
+{
 	type Error = &'static str;
 
 	fn pay_delivery_and_dispatch_fee(
@@ -337,7 +346,7 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {
 		if frame_support::storage::unhashed::get(b":reject-message-fee:") == Some(true) {
-			return Err(TEST_ERROR);
+			return Err(TEST_ERROR)
 		}
 
 		frame_support::storage::unhashed::put(b":message-fee:", &(submitter, fee));
@@ -345,14 +354,48 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee> for TestMessag
 	}
 
 	fn pay_relayers_rewards(
+		lane_id: LaneId,
+		message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
-		relayers_rewards: RelayersRewards<AccountId, TestMessageFee>,
+		received_range: &RangeInclusive<MessageNonce>,
 		_relayer_fund_account: &AccountId,
 	) {
-		for (relayer, reward) in relayers_rewards {
+		let relayers_rewards =
+			cal_relayers_rewards::<TestRuntime, ()>(lane_id, message_relayers, received_range);
+		for (relayer, reward) in &relayers_rewards {
 			let key = (b":relayer-reward:", relayer, reward.reward).encode();
 			frame_support::storage::unhashed::put(&key, &true);
 		}
+	}
+}
+
+#[derive(Debug)]
+pub struct TestOnMessageAccepted;
+
+impl TestOnMessageAccepted {
+	/// Verify that the callback has been called when the message is accepted.
+	pub fn ensure_called(lane: &LaneId, message: &MessageNonce) {
+		let key = (b"TestOnMessageAccepted", lane, message).encode();
+		assert_eq!(frame_support::storage::unhashed::get(&key), Some(true));
+	}
+
+	/// Set consumed weight returned by the callback.
+	pub fn set_consumed_weight_per_message(weight: Weight) {
+		frame_support::storage::unhashed::put(b"TestOnMessageAccepted_Weight", &weight);
+	}
+
+	/// Get consumed weight returned by the callback.
+	pub fn get_consumed_weight_per_message() -> Option<Weight> {
+		frame_support::storage::unhashed::get(b"TestOnMessageAccepted_Weight")
+	}
+}
+
+impl OnMessageAccepted for TestOnMessageAccepted {
+	fn on_messages_accepted(lane: &LaneId, message: &MessageNonce) -> Weight {
+		let key = (b"TestOnMessageAccepted", lane, message).encode();
+		frame_support::storage::unhashed::put(&key, &true);
+		Self::get_consumed_weight_per_message()
+			.unwrap_or_else(|| DbWeight::get().reads_writes(1, 1))
 	}
 }
 
@@ -421,10 +464,7 @@ impl SourceHeaderChain<TestMessageFee> for TestSourceHeaderChain {
 		proof: Self::MessagesProof,
 		_messages_count: u32,
 	) -> Result<ProvedMessages<Message<TestMessageFee>>, Self::Error> {
-		proof
-			.result
-			.map(|proof| proof.into_iter().collect())
-			.map_err(|_| TEST_ERROR)
+		proof.result.map(|proof| proof.into_iter().collect()).map_err(|_| TEST_ERROR)
 	}
 }
 
@@ -455,31 +495,17 @@ impl MessageDispatch<AccountId, TestMessageFee> for TestMessageDispatch {
 
 /// Return test lane message with given nonce and payload.
 pub fn message(nonce: MessageNonce, payload: TestPayload) -> Message<TestMessageFee> {
-	Message {
-		key: MessageKey {
-			lane_id: TEST_LANE_ID,
-			nonce,
-		},
-		data: message_data(payload),
-	}
+	Message { key: MessageKey { lane_id: TEST_LANE_ID, nonce }, data: message_data(payload) }
 }
 
 /// Constructs message payload using given arguments and zero unspent weight.
 pub const fn message_payload(id: u64, declared_weight: Weight) -> TestPayload {
-	TestPayload {
-		id,
-		declared_weight,
-		dispatch_result: dispatch_result(0),
-		extra: Vec::new(),
-	}
+	TestPayload { id, declared_weight, dispatch_result: dispatch_result(0), extra: Vec::new() }
 }
 
 /// Return message data with valid fee for given payload.
 pub fn message_data(payload: TestPayload) -> MessageData<TestMessageFee> {
-	MessageData {
-		payload: payload.encode(),
-		fee: 1,
-	}
+	MessageData { payload: payload.encode(), fee: 1 }
 }
 
 /// Returns message dispatch result with given unspent weight.
@@ -513,14 +539,10 @@ pub fn unrewarded_relayer(
 
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<TestRuntime>()
+	let mut t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+	pallet_balances::GenesisConfig::<TestRuntime> { balances: vec![(ENDOWED_ACCOUNT, 1_000_000)] }
+		.assimilate_storage(&mut t)
 		.unwrap();
-	pallet_balances::GenesisConfig::<TestRuntime> {
-		balances: vec![(ENDOWED_ACCOUNT, 1_000_000)],
-	}
-	.assimilate_storage(&mut t)
-	.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(test)
 }

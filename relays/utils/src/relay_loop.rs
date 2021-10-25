@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::metrics::{Metrics, MetricsAddress, MetricsParams, PrometheusError, StandaloneMetrics};
-use crate::{FailedClient, MaybeConnectionError};
+use crate::{
+	error::Error,
+	metrics::{Metrics, MetricsAddress, MetricsParams, PrometheusError, StandaloneMetrics},
+	FailedClient, MaybeConnectionError,
+};
 
 use async_trait::async_trait;
 use std::{fmt::Debug, future::Future, net::SocketAddr, time::Duration};
@@ -34,17 +37,22 @@ pub trait Client: 'static + Clone + Send + Sync {
 	async fn reconnect(&mut self) -> Result<(), Self::Error>;
 }
 
-/// Returns generic loop that may be customized and started.
-pub fn relay_loop<SC, TC>(source_client: SC, target_client: TC) -> Loop<SC, TC, ()> {
-	Loop {
-		reconnect_delay: RECONNECT_DELAY,
-		source_client,
-		target_client,
-		loop_metric: None,
+#[async_trait]
+impl Client for () {
+	type Error = crate::StringifiedMaybeConnectionError;
+
+	async fn reconnect(&mut self) -> Result<(), Self::Error> {
+		Ok(())
 	}
 }
 
-/// Returns generic relay loop metrics that may be customized and used in one or several relay loops.
+/// Returns generic loop that may be customized and started.
+pub fn relay_loop<SC, TC>(source_client: SC, target_client: TC) -> Loop<SC, TC, ()> {
+	Loop { reconnect_delay: RECONNECT_DELAY, source_client, target_client, loop_metric: None }
+}
+
+/// Returns generic relay loop metrics that may be customized and used in one or several relay
+/// loops.
 pub fn relay_metrics(prefix: Option<String>, params: MetricsParams) -> LoopMetrics<(), (), ()> {
 	LoopMetrics {
 		relay_loop: Loop {
@@ -85,7 +93,11 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 	}
 
 	/// Start building loop metrics using given prefix.
-	pub fn with_metrics(self, prefix: Option<String>, params: MetricsParams) -> LoopMetrics<SC, TC, ()> {
+	pub fn with_metrics(
+		self,
+		prefix: Option<String>,
+		params: MetricsParams,
+	) -> LoopMetrics<SC, TC, ()> {
 		LoopMetrics {
 			relay_loop: Loop {
 				reconnect_delay: self.reconnect_delay,
@@ -102,10 +114,10 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 
 	/// Run relay loop.
 	///
-	/// This function represents an outer loop, which in turn calls provided `run_loop` function to do
-	/// actual job. When `run_loop` returns, this outer loop reconnects to failed client (source,
+	/// This function represents an outer loop, which in turn calls provided `run_loop` function to
+	/// do actual job. When `run_loop` returns, this outer loop reconnects to failed client (source,
 	/// target or both) and calls `run_loop` again.
-	pub async fn run<R, F>(mut self, loop_name: String, run_loop: R) -> anyhow::Result<()>
+	pub async fn run<R, F>(mut self, loop_name: String, run_loop: R) -> Result<(), Error>
 	where
 		R: 'static + Send + Fn(SC, TC, Option<LM>) -> F,
 		F: 'static + Send + Future<Output = Result<(), FailedClient>>,
@@ -118,20 +130,20 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 
 			loop {
 				let loop_metric = self.loop_metric.clone();
-				let future_result = run_loop(self.source_client.clone(), self.target_client.clone(), loop_metric);
+				let future_result =
+					run_loop(self.source_client.clone(), self.target_client.clone(), loop_metric);
 				let result = future_result.await;
 
 				match result {
 					Ok(()) => break,
-					Err(failed_client) => {
+					Err(failed_client) =>
 						reconnect_failed_client(
 							failed_client,
 							self.reconnect_delay,
 							&mut self.source_client,
 							&mut self.target_client,
 						)
-						.await
-					}
+						.await,
 				}
 
 				log::debug!(target: "bridge", "Restarting relay loop");
@@ -151,7 +163,7 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 	pub fn loop_metric<NewLM: Metrics>(
 		self,
 		create_metric: impl FnOnce(&Registry, Option<&str>) -> Result<NewLM, PrometheusError>,
-	) -> anyhow::Result<LoopMetrics<SC, TC, NewLM>> {
+	) -> Result<LoopMetrics<SC, TC, NewLM>, Error> {
 		let loop_metric = create_metric(&self.registry, self.metrics_prefix.as_deref())?;
 
 		Ok(LoopMetrics {
@@ -167,13 +179,13 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 	pub fn standalone_metric<M: StandaloneMetrics>(
 		self,
 		create_metric: impl FnOnce(&Registry, Option<&str>) -> Result<M, PrometheusError>,
-	) -> anyhow::Result<Self> {
-		// since standalone metrics are updating themselves, we may just ignore the fact that the same
-		// standalone metric is exposed by several loops && only spawn single metric
+	) -> Result<Self, Error> {
+		// since standalone metrics are updating themselves, we may just ignore the fact that the
+		// same standalone metric is exposed by several loops && only spawn single metric
 		match create_metric(&self.registry, self.metrics_prefix.as_deref()) {
 			Ok(standalone_metrics) => standalone_metrics.spawn(),
 			Err(PrometheusError::AlreadyReg) => (),
-			Err(e) => anyhow::bail!(e),
+			Err(e) => return Err(e.into()),
 		}
 
 		Ok(self)
@@ -191,16 +203,13 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 	/// Expose metrics using address passed at creation.
 	///
 	/// If passed `address` is `None`, metrics are not exposed.
-	pub async fn expose(self) -> anyhow::Result<Loop<SC, TC, LM>> {
+	pub async fn expose(self) -> Result<Loop<SC, TC, LM>, Error> {
 		if let Some(address) = self.address {
 			let socket_addr = SocketAddr::new(
-				address.host.parse().map_err(|err| {
-					anyhow::format_err!(
-						"Invalid host {} is used to expose Prometheus metrics: {}",
-						address.host,
-						err,
-					)
-				})?,
+				address
+					.host
+					.parse()
+					.map_err(|err| Error::ExposingMetricsInvalidHost(address.host.clone(), err))?,
 				address.port,
 			);
 
@@ -243,8 +252,8 @@ pub async fn reconnect_failed_client(
 						reconnect_delay.as_secs(),
 						error,
 					);
-					continue;
-				}
+					continue
+				},
 			}
 		}
 		if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
@@ -257,12 +266,12 @@ pub async fn reconnect_failed_client(
 						reconnect_delay.as_secs(),
 						error,
 					);
-					continue;
-				}
+					continue
+				},
 			}
 		}
 
-		break;
+		break
 	}
 }
 
@@ -271,8 +280,9 @@ fn create_metrics_registry(prefix: Option<String>) -> Registry {
 	match prefix {
 		Some(prefix) => {
 			assert!(!prefix.is_empty(), "Metrics prefix can not be empty");
-			Registry::new_custom(Some(prefix), None).expect("only fails if prefix is empty; prefix is not empty; qed")
-		}
+			Registry::new_custom(Some(prefix), None)
+				.expect("only fails if prefix is empty; prefix is not empty; qed")
+		},
 		None => Registry::new(),
 	}
 }

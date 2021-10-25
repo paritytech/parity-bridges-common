@@ -31,18 +31,23 @@ use relay_substrate_client::{
 	Chain, Client, HeaderIdOf, SyncHeader,
 };
 use relay_utils::{
-	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient, MaybeConnectionError,
+	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient,
+	MaybeConnectionError,
 };
 
-use crate::finality_pipeline::{
-	SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate, RECENT_FINALITY_PROOFS_LIMIT, STALL_TIMEOUT,
+use crate::{
+	finality_pipeline::{
+		SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate, RECENT_FINALITY_PROOFS_LIMIT,
+	},
+	finality_target::SubstrateFinalityTarget,
+	STALL_TIMEOUT,
 };
-use crate::finality_target::SubstrateFinalityTarget;
 
 /// On-demand Substrate <-> Substrate headers relay.
 ///
-/// This relay may be requested to sync more headers, whenever some other relay (e.g. messages relay) needs
-/// it to continue its regular work. When enough headers are relayed, on-demand stops syncing headers.
+/// This relay may be requested to sync more headers, whenever some other relay (e.g. messages
+/// relay) needs it to continue its regular work. When enough headers are relayed, on-demand stops
+/// syncing headers.
 #[derive(Clone)]
 pub struct OnDemandHeadersRelay<SourceChain: Chain> {
 	/// Relay task name.
@@ -56,8 +61,10 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 	pub fn new<TargetChain: Chain, TargetSign, P>(
 		source_client: Client<SourceChain>,
 		target_client: Client<TargetChain>,
+		target_transactions_mortality: Option<u32>,
 		pipeline: P,
 		maximal_headers_difference: SourceChain::BlockNumber,
+		only_mandatory_headers: bool,
 	) -> Self
 	where
 		SourceChain: Chain + Debug,
@@ -66,7 +73,11 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 		TargetChain::BlockNumber: BlockNumberBase,
 		TargetSign: Clone + Send + Sync + 'static,
 		P: SubstrateFinalitySyncPipeline<
-			FinalitySyncPipeline = SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
+			FinalitySyncPipeline = SubstrateFinalityToSubstrate<
+				SourceChain,
+				TargetChain,
+				TargetSign,
+			>,
 			TargetChain = TargetChain,
 		>,
 	{
@@ -79,8 +90,10 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 			background_task(
 				source_client,
 				target_client,
+				target_transactions_mortality,
 				pipeline,
 				maximal_headers_difference,
+				only_mandatory_headers,
 				required_header_number,
 			)
 			.await;
@@ -110,9 +123,10 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 	source_client: Client<SourceChain>,
 	target_client: Client<TargetChain>,
-	// pipeline: SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
+	target_transactions_mortality: Option<u32>,
 	pipeline: P,
 	maximal_headers_difference: SourceChain::BlockNumber,
+	only_mandatory_headers: bool,
 	required_header_number: RequiredHeaderNumberRef<SourceChain>,
 ) where
 	SourceChain: Chain + Debug,
@@ -130,7 +144,11 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 		_,
 		SubstrateFinalityToSubstrate<SourceChain, TargetChain, TargetSign>,
 	>::new(source_client.clone(), Some(required_header_number.clone()));
-	let mut finality_target = SubstrateFinalityTarget::new(target_client.clone(), pipeline.clone());
+	let mut finality_target = SubstrateFinalityTarget::new(
+		target_client.clone(),
+		pipeline.clone(),
+		target_transactions_mortality,
+	);
 	let mut latest_non_mandatory_at_source = Zero::zero();
 
 	let mut restart_relay = true;
@@ -157,12 +175,16 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 				&mut finality_target,
 			)
 			.await;
-			continue;
+			continue
 		}
 
 		// read best finalized source header number from target
-		let best_finalized_source_header_at_target =
-			best_finalized_source_header_at_target::<SourceChain, _, _>(&finality_target, &relay_task_name).await;
+		let best_finalized_source_header_at_target = best_finalized_source_header_at_target::<
+			SourceChain,
+			_,
+			_,
+		>(&finality_target, &relay_task_name)
+		.await;
 		if matches!(best_finalized_source_header_at_target, Err(ref e) if e.is_connection_error()) {
 			relay_utils::relay_loop::reconnect_failed_client(
 				FailedClient::Target,
@@ -171,11 +193,12 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 				&mut finality_target,
 			)
 			.await;
-			continue;
+			continue
 		}
 
 		// submit mandatory header if some headers are missing
-		let best_finalized_source_header_at_target_fmt = format!("{:?}", best_finalized_source_header_at_target);
+		let best_finalized_source_header_at_target_fmt =
+			format!("{:?}", best_finalized_source_header_at_target);
 		let mandatory_scan_range = mandatory_headers_scan_range::<SourceChain>(
 			best_finalized_source_header_at_source.ok(),
 			best_finalized_source_header_at_target.ok(),
@@ -201,8 +224,8 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 					// there are no (or we don't need to relay them) mandatory headers in the range
 					// => to avoid scanning the same headers over and over again, remember that
 					latest_non_mandatory_at_source = mandatory_scan_range.1;
-				}
-				Err(e) => {
+				},
+				Err(e) =>
 					if e.is_connection_error() {
 						relay_utils::relay_loop::reconnect_failed_client(
 							FailedClient::Source,
@@ -211,9 +234,8 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 							&mut finality_target,
 						)
 						.await;
-						continue;
-					}
-				}
+						continue
+					},
 			}
 		}
 
@@ -224,10 +246,13 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 					finality_source.clone(),
 					finality_target.clone(),
 					FinalitySyncParams {
-						tick: std::cmp::max(SourceChain::AVERAGE_BLOCK_INTERVAL, TargetChain::AVERAGE_BLOCK_INTERVAL),
+						tick: std::cmp::max(
+							SourceChain::AVERAGE_BLOCK_INTERVAL,
+							TargetChain::AVERAGE_BLOCK_INTERVAL,
+						),
 						recent_finality_proofs_limit: RECENT_FINALITY_PROOFS_LIMIT,
 						stall_timeout: STALL_TIMEOUT,
-						only_mandatory_headers: false,
+						only_mandatory_headers,
 					},
 					MetricsParams::disabled(),
 					futures::future::pending(),
@@ -273,12 +298,12 @@ async fn mandatory_headers_scan_range<C: Chain>(
 		.checked_sub(&best_finalized_source_header_at_target)
 		.unwrap_or_else(Zero::zero);
 	if current_headers_difference <= maximal_headers_difference {
-		return None;
+		return None
 	}
 
 	// if relay is already asked to sync headers, don't do anything yet
 	if required_header_number > best_finalized_source_header_at_target {
-		return None;
+		return None
 	}
 
 	Some((
@@ -287,7 +312,8 @@ async fn mandatory_headers_scan_range<C: Chain>(
 	))
 }
 
-/// Try to find mandatory header in the inclusive headers range and, if one is found, ask to relay it.
+/// Try to find mandatory header in the inclusive headers range and, if one is found, ask to relay
+/// it.
 ///
 /// Returns `true` if header was found and (asked to be) relayed and `false` otherwise.
 async fn relay_mandatory_header_from_range<SourceChain: Chain, P>(
@@ -302,7 +328,8 @@ where
 	P: FinalitySyncPipeline<Number = SourceChain::BlockNumber>,
 {
 	// search for mandatory header first
-	let mandatory_source_header_number = find_mandatory_header_in_range(finality_source, range).await?;
+	let mandatory_source_header_number =
+		find_mandatory_header_in_range(finality_source, range).await?;
 
 	// if there are no mandatory headers - we have nothing to do
 	let mandatory_source_header_number = match mandatory_source_header_number {
@@ -314,7 +341,7 @@ where
 	// less than our `mandatory_source_header_number` before logging anything
 	let mut required_header_number = required_header_number.lock().await;
 	if *required_header_number >= mandatory_source_header_number {
-		return Ok(false);
+		return Ok(false)
 	}
 
 	log::trace!(
@@ -342,19 +369,16 @@ where
 	SubstrateFinalitySource<SourceChain, P>: FinalitySourceClient<P>,
 	P: FinalitySyncPipeline<Number = SourceChain::BlockNumber>,
 {
-	finality_source
-		.on_chain_best_finalized_block_number()
-		.await
-		.map_err(|error| {
-			log::error!(
-				target: "bridge",
-				"Failed to read best finalized source header from source in {} relay: {:?}",
-				relay_task_name,
-				error,
-			);
+	finality_source.on_chain_best_finalized_block_number().await.map_err(|error| {
+		log::error!(
+			target: "bridge",
+			"Failed to read best finalized source header from source in {} relay: {:?}",
+			relay_task_name,
+			error,
+		);
 
-			error
-		})
+		error
+	})
 }
 
 /// Read best finalized source block number from target client.
@@ -369,19 +393,16 @@ where
 	P: SubstrateFinalitySyncPipeline,
 	P::FinalitySyncPipeline: FinalitySyncPipeline<Number = SourceChain::BlockNumber>,
 {
-	finality_target
-		.best_finalized_source_block_number()
-		.await
-		.map_err(|error| {
-			log::error!(
-				target: "bridge",
-				"Failed to read best finalized source header from target in {} relay: {:?}",
-				relay_task_name,
-				error,
-			);
+	finality_target.best_finalized_source_block_number().await.map_err(|error| {
+		log::error!(
+			target: "bridge",
+			"Failed to read best finalized source header from target in {} relay: {:?}",
+			relay_task_name,
+			error,
+		);
 
-			error
-		})
+		error
+	})
 }
 
 /// Read first mandatory header in given inclusive range.
@@ -397,9 +418,10 @@ where
 {
 	let mut current = range.0;
 	while current <= range.1 {
-		let header: SyncHeader<SourceChain::Header> = finality_source.client().header_by_number(current).await?.into();
+		let header: SyncHeader<SourceChain::Header> =
+			finality_source.client().header_by_number(current).await?.into();
 		if header.is_mandatory() {
-			return Ok(Some(current));
+			return Ok(Some(current))
 		}
 
 		current += One::one();
@@ -417,15 +439,21 @@ fn on_demand_headers_relay_name<SourceChain: Chain, TargetChain: Chain>() -> Str
 mod tests {
 	use super::*;
 
-	type TestChain = relay_millau_client::Millau;
+	type TestChain = relay_rococo_client::Rococo;
 
-	const AT_SOURCE: Option<bp_millau::BlockNumber> = Some(10);
-	const AT_TARGET: Option<bp_millau::BlockNumber> = Some(1);
+	const AT_SOURCE: Option<bp_rococo::BlockNumber> = Some(10);
+	const AT_TARGET: Option<bp_rococo::BlockNumber> = Some(1);
 
 	#[async_std::test]
 	async fn mandatory_headers_scan_range_selects_range_if_too_many_headers_are_missing() {
 		assert_eq!(
-			mandatory_headers_scan_range::<TestChain>(AT_SOURCE, AT_TARGET, 5, &Arc::new(Mutex::new(0))).await,
+			mandatory_headers_scan_range::<TestChain>(
+				AT_SOURCE,
+				AT_TARGET,
+				5,
+				&Arc::new(Mutex::new(0))
+			)
+			.await,
 			Some((AT_TARGET.unwrap() + 1, AT_SOURCE.unwrap())),
 		);
 	}
@@ -433,7 +461,13 @@ mod tests {
 	#[async_std::test]
 	async fn mandatory_headers_scan_range_selects_nothing_if_enough_headers_are_relayed() {
 		assert_eq!(
-			mandatory_headers_scan_range::<TestChain>(AT_SOURCE, AT_TARGET, 10, &Arc::new(Mutex::new(0))).await,
+			mandatory_headers_scan_range::<TestChain>(
+				AT_SOURCE,
+				AT_TARGET,
+				10,
+				&Arc::new(Mutex::new(0))
+			)
+			.await,
 			None,
 		);
 	}

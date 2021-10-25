@@ -23,7 +23,7 @@
 use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
 use bp_runtime::Chain;
 use frame_support::{
-	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, Weight},
+	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, Weight},
 	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
@@ -42,7 +42,7 @@ pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 /// Number of bytes, included in the signed Rialto transaction apart from the encoded call itself.
 ///
 /// Can be computed by subtracting encoded call size from raw transaction size.
-pub const TX_EXTRA_BYTES: u32 = 103;
+pub const TX_EXTRA_BYTES: u32 = 104;
 
 /// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
 pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
@@ -68,29 +68,32 @@ pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 128;
 /// Weight of single regular message delivery transaction on Rialto chain.
 ///
 /// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_proof_weight()` call
-/// for the case when single message of `pallet_bridge_messages::EXPECTED_DEFAULT_MESSAGE_LENGTH` bytes is delivered.
-/// The message must have dispatch weight set to zero. The result then must be rounded up to account
-/// possible future runtime upgrades.
+/// for the case when single message of `pallet_bridge_messages::EXPECTED_DEFAULT_MESSAGE_LENGTH`
+/// bytes is delivered. The message must have dispatch weight set to zero. The result then must be
+/// rounded up to account possible future runtime upgrades.
 pub const DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_500_000_000;
 
 /// Increase of delivery transaction weight on Rialto chain with every additional message byte.
 ///
-/// This value is a result of `pallet_bridge_messages::WeightInfoExt::storage_proof_size_overhead(1)` call. The
-/// result then must be rounded up to account possible future runtime upgrades.
+/// This value is a result of
+/// `pallet_bridge_messages::WeightInfoExt::storage_proof_size_overhead(1)` call. The result then
+/// must be rounded up to account possible future runtime upgrades.
 pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = 25_000;
 
 /// Maximal weight of single message delivery confirmation transaction on Rialto chain.
 ///
-/// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_delivery_proof` weight formula computation
-/// for the case when single message is confirmed. The result then must be rounded up to account possible future
-/// runtime upgrades.
+/// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_delivery_proof`
+/// weight formula computation for the case when single message is confirmed. The result then must
+/// be rounded up to account possible future runtime upgrades.
 pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = 2_000_000_000;
 
 /// Weight of pay-dispatch-fee operation for inbound messages at Rialto chain.
 ///
-/// This value corresponds to the result of `pallet_bridge_messages::WeightInfoExt::pay_inbound_dispatch_fee_overhead()`
-/// call for your chain. Don't put too much reserve there, because it is used to **decrease**
-/// `DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT` cost. So putting large reserve would make delivery transactions cheaper.
+/// This value corresponds to the result of
+/// `pallet_bridge_messages::WeightInfoExt::pay_inbound_dispatch_fee_overhead()` call for your
+/// chain. Don't put too much reserve there, because it is used to **decrease**
+/// `DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT` cost. So putting large reserve would make delivery
+/// transactions cheaper.
 pub const PAY_INBOUND_DISPATCH_FEE_WEIGHT: Weight = 600_000_000;
 
 /// The target length of a session (how often authorities change) on Rialto measured in of number of
@@ -148,6 +151,12 @@ pub type Balance = u128;
 /// An instant or duration in time.
 pub type Moment = u64;
 
+/// Index of a transaction in the chain.
+pub type Index = u32;
+
+/// Weight-to-Fee type used by Rialto.
+pub type WeightToFee = IdentityFee<Balance>;
+
 /// Rialto chain.
 #[derive(RuntimeDebug)]
 pub struct Rialto;
@@ -157,6 +166,11 @@ impl Chain for Rialto {
 	type Hash = Hash;
 	type Hasher = Hasher;
 	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = Index;
+	type Signature = Signature;
 }
 
 /// Convert a 256-bit hash into an AccountId.
@@ -214,25 +228,40 @@ pub fn max_extrinsic_size() -> u32 {
 	*BlockLength::get().max.get(DispatchClass::Normal)
 }
 
+/// Name of the With-Millau messages pallet instance in the Rialto runtime.
+pub const WITH_MILLAU_MESSAGES_PALLET_NAME: &str = "BridgeMillauMessages";
+
+/// Name of the parachain registrar pallet in the Rialto runtime.
+pub const PARAS_REGISTRAR_PALLET_NAME: &str = "Registrar";
+
+/// Name of the parachains pallet in the Rialto runtime.
+pub const PARAS_PALLET_NAME: &str = "Paras";
+
 /// Name of the `RialtoFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_RIALTO_HEADER_METHOD: &str = "RialtoFinalityApi_best_finalized";
 
-/// Name of the `ToRialtoOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime method.
+/// Name of the `ToRialtoOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime
+/// method.
 pub const TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToRialtoOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToRialtoOutboundLaneApi::message_details` runtime method.
 pub const TO_RIALTO_MESSAGE_DETAILS_METHOD: &str = "ToRialtoOutboundLaneApi_message_details";
 /// Name of the `ToRialtoOutboundLaneApi::latest_generated_nonce` runtime method.
-pub const TO_RIALTO_LATEST_GENERATED_NONCE_METHOD: &str = "ToRialtoOutboundLaneApi_latest_generated_nonce";
+pub const TO_RIALTO_LATEST_GENERATED_NONCE_METHOD: &str =
+	"ToRialtoOutboundLaneApi_latest_generated_nonce";
 /// Name of the `ToRialtoOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "ToRialtoOutboundLaneApi_latest_received_nonce";
+pub const TO_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str =
+	"ToRialtoOutboundLaneApi_latest_received_nonce";
 
 /// Name of the `FromRialtoInboundLaneApi::latest_received_nonce` runtime method.
-pub const FROM_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str = "FromRialtoInboundLaneApi_latest_received_nonce";
+pub const FROM_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str =
+	"FromRialtoInboundLaneApi_latest_received_nonce";
 /// Name of the `FromRialtoInboundLaneApi::latest_onfirmed_nonce` runtime method.
-pub const FROM_RIALTO_LATEST_CONFIRMED_NONCE_METHOD: &str = "FromRialtoInboundLaneApi_latest_confirmed_nonce";
+pub const FROM_RIALTO_LATEST_CONFIRMED_NONCE_METHOD: &str =
+	"FromRialtoInboundLaneApi_latest_confirmed_nonce";
 /// Name of the `FromRialtoInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_RIALTO_UNREWARDED_RELAYERS_STATE: &str = "FromRialtoInboundLaneApi_unrewarded_relayers_state";
+pub const FROM_RIALTO_UNREWARDED_RELAYERS_STATE: &str =
+	"FromRialtoInboundLaneApi_unrewarded_relayers_state";
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Rialto headers.

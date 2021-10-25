@@ -21,10 +21,12 @@ use sp_core::{Bytes, Pair};
 
 use bp_header_chain::justification::GrandpaJustification;
 use relay_rococo_client::{Rococo, SyncHeader as RococoSyncHeader};
-use relay_substrate_client::{Chain, Client, TransactionSignScheme};
+use relay_substrate_client::{Client, IndexOf, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::MetricsParams;
 use relay_wococo_client::{SigningParams as WococoSigningParams, Wococo};
-use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
+use substrate_relay_helper::finality_pipeline::{
+	SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate,
+};
 
 use crate::chains::wococo_headers_to_rococo::MAXIMAL_BALANCE_DECREASE_PER_DAY;
 
@@ -40,7 +42,10 @@ pub(crate) struct RococoFinalityToWococo {
 impl RococoFinalityToWococo {
 	pub fn new(target_client: Client<Wococo>, target_sign: WococoSigningParams) -> Self {
 		Self {
-			finality_pipeline: FinalityPipelineRococoFinalityToWococo::new(target_client, target_sign),
+			finality_pipeline: FinalityPipelineRococoFinalityToWococo::new(
+				target_client,
+				target_sign,
+			),
 		}
 	}
 }
@@ -48,7 +53,8 @@ impl RococoFinalityToWococo {
 impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 	type FinalitySyncPipeline = FinalityPipelineRococoFinalityToWococo;
 
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
+	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str =
+		bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
 
 	type TargetChain = Wococo;
 
@@ -77,19 +83,23 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 
 	fn make_submit_finality_proof_transaction(
 		&self,
-		transaction_nonce: <Wococo as Chain>::Index,
+		era: bp_runtime::TransactionEraOf<Wococo>,
+		transaction_nonce: IndexOf<Wococo>,
 		header: RococoSyncHeader,
 		proof: GrandpaJustification<bp_rococo::Header>,
 	) -> Bytes {
 		let call = relay_wococo_client::runtime::Call::BridgeGrandpaRococo(
-			relay_wococo_client::runtime::BridgeGrandpaRococoCall::submit_finality_proof(header.into_inner(), proof),
+			relay_wococo_client::runtime::BridgeGrandpaRococoCall::submit_finality_proof(
+				Box::new(header.into_inner()),
+				proof,
+			),
 		);
 		let genesis_hash = *self.finality_pipeline.target_client.genesis_hash();
 		let transaction = Wococo::sign_transaction(
 			genesis_hash,
 			&self.finality_pipeline.target_sign,
-			transaction_nonce,
-			call,
+			era,
+			UnsignedTransaction::new(call, transaction_nonce),
 		);
 
 		Bytes(transaction.encode())

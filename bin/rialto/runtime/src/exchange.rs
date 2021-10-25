@@ -28,19 +28,21 @@
 //! 5) receive tokens by providing proof-of-inclusion of PoA transaction.
 
 use bp_currency_exchange::{
-	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction, Result as ExchangeResult,
+	Error as ExchangeError, LockFundsTransaction, MaybeLockFundsTransaction,
+	Result as ExchangeResult,
 };
 use bp_eth_poa::{transaction_decode_rlp, RawTransaction, RawTransactionReceipt};
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 use hex_literal::hex;
+use scale_info::TypeInfo;
 use sp_std::vec::Vec;
 
 /// Ethereum address where locked PoA funds must be sent to.
 pub const LOCK_FUNDS_ADDRESS: [u8; 20] = hex!("DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF");
 
 /// Ethereum transaction inclusion proof.
-#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct EthereumTransactionInclusionProof {
 	/// Hash of the block with transaction.
 	pub block: sp_core::H256,
@@ -57,7 +59,7 @@ pub struct EthereumTransactionInclusionProof {
 /// transactions included into finalized blocks. This is obviously true
 /// for any existing eth-like chain (that keep current TX format), because
 /// otherwise transaction can be replayed over and over.
-#[derive(Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct EthereumTransactionTag {
 	/// Account that has locked funds.
 	pub account: [u8; 20],
@@ -87,7 +89,7 @@ impl MaybeLockFundsTransaction for EthTransaction {
 				tx.unsigned.to,
 			);
 
-			return Err(ExchangeError::InvalidTransaction);
+			return Err(ExchangeError::InvalidTransaction)
 		}
 
 		let mut recipient_raw = sp_core::H256::default();
@@ -100,8 +102,8 @@ impl MaybeLockFundsTransaction for EthTransaction {
 					len,
 				);
 
-				return Err(ExchangeError::InvalidRecipient);
-			}
+				return Err(ExchangeError::InvalidRecipient)
+			},
 		}
 		let amount = tx.unsigned.value.low_u128();
 
@@ -112,7 +114,7 @@ impl MaybeLockFundsTransaction for EthTransaction {
 				tx.unsigned.value,
 			);
 
-			return Err(ExchangeError::InvalidAmount);
+			return Err(ExchangeError::InvalidAmount)
 		}
 
 		Ok(LockFundsTransaction {
@@ -161,7 +163,7 @@ pub(crate) fn prepare_ethereum_transaction(
 	// chain id is 0x11
 	// sender secret is 0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7
 	let chain_id = 0x11;
-	let signer = secp256k1::SecretKey::parse(&hex!(
+	let signer = libsecp256k1::SecretKey::parse(&hex!(
 		"4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7"
 	))
 	.unwrap();
@@ -213,10 +215,7 @@ mod tests {
 
 	#[test]
 	fn invalid_transaction_rejected() {
-		assert_eq!(
-			EthTransaction::parse(&Vec::new()),
-			Err(ExchangeError::InvalidTransaction),
-		);
+		assert_eq!(EthTransaction::parse(&Vec::new()), Err(ExchangeError::InvalidTransaction),);
 	}
 
 	#[test]

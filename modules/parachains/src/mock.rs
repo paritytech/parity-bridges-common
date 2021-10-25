@@ -27,7 +27,8 @@ use crate as pallet_bridge_parachains;
 pub type AccountId = u64;
 pub type TestNumber = u64;
 
-pub type RelayBlockHeader = sp_runtime::generic::Header<crate::RelayBlockNumber, crate::RelayBlockHasher>;
+pub type RelayBlockHeader =
+	sp_runtime::generic::Header<crate::RelayBlockNumber, crate::RelayBlockHasher>;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
@@ -69,7 +70,7 @@ impl frame_system::Config for TestRuntime {
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	type SystemWeightInfo = ();
 	type DbWeight = ();
 	type BlockWeights = ();
@@ -116,23 +117,36 @@ impl Chain for TestBridgedChain {
 	type Hash = crate::RelayBlockHash;
 	type Hasher = crate::RelayBlockHasher;
 	type Header = RelayBlockHeader;
+
+	type AccountId = AccountId;
+	type Balance = u32;
+	type Index = u32;
+	type Signature = sp_runtime::testing::TestSignature;
 }
 
 #[derive(Debug)]
 pub struct OtherBridgedChain;
 
 impl Chain for OtherBridgedChain {
-	type BlockNumber = u128;
+	type BlockNumber = u64;
 	type Hash = crate::RelayBlockHash;
 	type Hasher = crate::RelayBlockHasher;
-	type Header = sp_runtime::generic::Header<u128, crate::RelayBlockHasher>;
+	type Header = sp_runtime::generic::Header<u64, crate::RelayBlockHasher>;
+
+	type AccountId = AccountId;
+	type Balance = u32;
+	type Index = u32;
+	type Signature = sp_runtime::testing::TestSignature;
 }
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
 }
 
-pub fn test_relay_header(num: crate::RelayBlockNumber, state_root: crate::RelayBlockHash) -> RelayBlockHeader {
+pub fn test_relay_header(
+	num: crate::RelayBlockNumber,
+	state_root: crate::RelayBlockHash,
+) -> RelayBlockHeader {
 	RelayBlockHeader::new(
 		num,
 		Default::default(),

@@ -21,10 +21,12 @@ use sp_core::{Bytes, Pair};
 
 use bp_header_chain::justification::GrandpaJustification;
 use relay_millau_client::{Millau, SigningParams as MillauSigningParams};
-use relay_substrate_client::{Chain, Client, TransactionSignScheme};
+use relay_substrate_client::{Client, IndexOf, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::MetricsParams;
 use relay_westend_client::{SyncHeader as WestendSyncHeader, Westend};
-use substrate_relay_helper::finality_pipeline::{SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate};
+use substrate_relay_helper::finality_pipeline::{
+	SubstrateFinalitySyncPipeline, SubstrateFinalityToSubstrate,
+};
 
 /// Westend-to-Millau finality sync pipeline.
 pub(crate) type FinalityPipelineWestendFinalityToMillau =
@@ -38,7 +40,10 @@ pub(crate) struct WestendFinalityToMillau {
 impl WestendFinalityToMillau {
 	pub fn new(target_client: Client<Millau>, target_sign: MillauSigningParams) -> Self {
 		Self {
-			finality_pipeline: FinalityPipelineWestendFinalityToMillau::new(target_client, target_sign),
+			finality_pipeline: FinalityPipelineWestendFinalityToMillau::new(
+				target_client,
+				target_sign,
+			),
 		}
 	}
 }
@@ -46,7 +51,8 @@ impl WestendFinalityToMillau {
 impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 	type FinalitySyncPipeline = FinalityPipelineWestendFinalityToMillau;
 
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str = bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
+	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str =
+		bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
 
 	type TargetChain = Millau;
 
@@ -63,22 +69,26 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 
 	fn make_submit_finality_proof_transaction(
 		&self,
-		transaction_nonce: <Millau as Chain>::Index,
+		era: bp_runtime::TransactionEraOf<Millau>,
+		transaction_nonce: IndexOf<Millau>,
 		header: WestendSyncHeader,
 		proof: GrandpaJustification<bp_westend::Header>,
 	) -> Bytes {
-		let call = millau_runtime::BridgeGrandpaWestendCall::<
+		let call = millau_runtime::BridgeGrandpaCall::<
 			millau_runtime::Runtime,
 			millau_runtime::WestendGrandpaInstance,
-		>::submit_finality_proof(header.into_inner(), proof)
+		>::submit_finality_proof {
+			finality_target: Box::new(header.into_inner()),
+			justification: proof,
+		}
 		.into();
 
 		let genesis_hash = *self.finality_pipeline.target_client.genesis_hash();
 		let transaction = Millau::sign_transaction(
 			genesis_hash,
 			&self.finality_pipeline.target_sign,
-			transaction_nonce,
-			call,
+			era,
+			UnsignedTransaction::new(call, transaction_nonce),
 		);
 
 		Bytes(transaction.encode())

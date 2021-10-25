@@ -23,9 +23,12 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_polkadot_core::parachains::{parachain_head_hash, ParaHash, ParaHead, ParaId, ParachainHeadsProof};
+use bp_polkadot_core::parachains::{
+	parachain_head_hash, ParaHash, ParaHead, ParaId, ParachainHeadsProof,
+};
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
+use scale_info::TypeInfo;
 use sp_runtime::traits::Header as HeaderT;
 
 // Re-export in crate namespace for `construct_runtime!`.
@@ -42,7 +45,7 @@ pub type RelayBlockNumber = bp_polkadot_core::BlockNumber;
 pub type RelayBlockHasher = bp_polkadot_core::Hasher;
 
 /// Best known parachain head as it is stored in the runtime storage.
-#[derive(Decode, Encode, PartialEq, RuntimeDebug)]
+#[derive(Decode, Encode, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct BestParaHead {
 	/// Number of relay block where this head has been updated.
 	pub at_relay_block_number: RelayBlockNumber,
@@ -68,7 +71,9 @@ pub mod pallet {
 
 	#[pallet::config]
 	#[pallet::disable_frame_system_supertrait_check]
-	pub trait Config<I: 'static = ()>: pallet_bridge_grandpa::Config<Self::BridgesGrandpaPalletInstance> {
+	pub trait Config<I: 'static = ()>:
+		pallet_bridge_grandpa::Config<Self::BridgesGrandpaPalletInstance>
+	{
 		/// Instance of bridges GRANDPA pallet that this pallet is linked to.
 		///
 		/// The GRANDPA pallet instance must be configured to import headers of relay chain that
@@ -78,15 +83,16 @@ pub mod pallet {
 		/// Maximal number of single parachain heads to keep in the storage.
 		///
 		/// The setting is there to prevent growing the on-chain state indefinitely. Note
-		/// the setting does not relate to parachain block numbers - we will simply keep as much items
-		/// in the storage, so it doesn't guarantee any fixed timeframe for heads.
+		/// the setting does not relate to parachain block numbers - we will simply keep as much
+		/// items in the storage, so it doesn't guarantee any fixed timeframe for heads.
 		#[pallet::constant]
 		type HeadsToKeep: Get<u32>;
 	}
 
 	/// Best parachain heads.
 	#[pallet::storage]
-	pub type BestParaHeads<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, ParaId, BestParaHead>;
+	pub type BestParaHeads<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Identity, ParaId, BestParaHead>;
 
 	/// Parachain heads which have been imported into the pallet.
 	#[pallet::storage]
@@ -105,7 +111,11 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I>
 	where
 		<T as pallet_bridge_grandpa::Config<T::BridgesGrandpaPalletInstance>>::BridgedChain:
-			bp_runtime::Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
+			bp_runtime::Chain<
+				BlockNumber = RelayBlockNumber,
+				Hash = RelayBlockHash,
+				Hasher = RelayBlockHasher,
+			>,
 	{
 		/// Submit proof of one or several parachain heads.
 		///
@@ -121,9 +131,11 @@ pub mod pallet {
 			parachain_heads_proof: ParachainHeadsProof,
 		) -> DispatchResult {
 			// we'll need relay chain header to verify that parachains heads are always increasing.
-			let relay_block =
-				pallet_bridge_grandpa::ImportedHeaders::<T, T::BridgesGrandpaPalletInstance>::get(relay_block_hash)
-					.ok_or(Error::<T, I>::UnknownRelayChainBlock)?;
+			let relay_block = pallet_bridge_grandpa::ImportedHeaders::<
+				T,
+				T::BridgesGrandpaPalletInstance,
+			>::get(relay_block_hash)
+			.ok_or(Error::<T, I>::UnknownRelayChainBlock)?;
 			let relay_block_number = *relay_block.number();
 
 			// now parse storage proof and read parachain heads
@@ -180,11 +192,13 @@ pub mod pallet {
 			updated_at_relay_block_number: RelayBlockNumber,
 			updated_head: ParaHead,
 		) -> Result<BestParaHead, ()> {
-			// check if head has been already updated at better relay chain block. Without this check, we
-			// may import heads in random order
+			// check if head has been already updated at better relay chain block. Without this
+			// check, we may import heads in random order
 			let updated_head_hash = parachain_head_hash(&updated_head);
 			let next_imported_hash_position = match stored_best_head {
-				Some(stored_best_head) if stored_best_head.at_relay_block_number <= updated_at_relay_block_number => {
+				Some(stored_best_head)
+					if stored_best_head.at_relay_block_number <= updated_at_relay_block_number =>
+				{
 					// check if this head has already been imported before
 					if updated_head_hash == stored_best_head.head_hash {
 						log::trace!(
@@ -196,11 +210,11 @@ pub mod pallet {
 							stored_best_head.at_relay_block_number,
 							updated_at_relay_block_number,
 						);
-						return Err(());
+						return Err(())
 					}
 
 					stored_best_head.next_imported_hash_position
-				}
+				},
 				None => 0,
 				Some(stored_best_head) => {
 					log::trace!(
@@ -213,18 +227,24 @@ pub mod pallet {
 						stored_best_head.at_relay_block_number,
 						updated_at_relay_block_number,
 					);
-					return Err(());
-				}
+					return Err(())
+				},
 			};
 
 			// insert updated best parachain head
-			let head_hash_to_prune = ImportedParaHashes::<T, I>::try_get(parachain, next_imported_hash_position);
+			let head_hash_to_prune =
+				ImportedParaHashes::<T, I>::try_get(parachain, next_imported_hash_position);
 			let updated_best_para_head = BestParaHead {
 				at_relay_block_number: updated_at_relay_block_number,
 				head_hash: updated_head_hash,
-				next_imported_hash_position: (next_imported_hash_position + 1) % T::HeadsToKeep::get(),
+				next_imported_hash_position: (next_imported_hash_position + 1) %
+					T::HeadsToKeep::get(),
 			};
-			ImportedParaHashes::<T, I>::insert(parachain, next_imported_hash_position, updated_head_hash);
+			ImportedParaHashes::<T, I>::insert(
+				parachain,
+				next_imported_hash_position,
+				updated_head_hash,
+			);
 			ImportedParaHeads::<T, I>::insert(parachain, updated_head_hash, updated_head);
 
 			// remove old head
@@ -269,7 +289,7 @@ mod tests {
 		pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::initialize(
 			Origin::root(),
 			bp_header_chain::InitializationData {
-				header: test_relay_header(0, state_root),
+				header: Box::new(test_relay_header(0, state_root)),
 				authority_list: authority_list(),
 				set_id: 1,
 				is_halted: false,
@@ -279,20 +299,24 @@ mod tests {
 	}
 
 	fn proceed(num: RelayBlockNumber, state_root: RelayBlockHash) {
-		pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::on_initialize(0);
+		pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::on_initialize(
+			0,
+		);
 
 		let header = test_relay_header(num, state_root);
 		let justification = make_default_justification(&header);
 		assert_ok!(
 			pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::submit_finality_proof(
 				Origin::signed(1),
-				header,
+				Box::new(header),
 				justification,
 			)
 		);
 	}
 
-	fn prepare_parachain_heads_proof(heads: Vec<(ParaId, ParaHead)>) -> (RelayBlockHash, ParachainHeadsProof) {
+	fn prepare_parachain_heads_proof(
+		heads: Vec<(ParaId, ParaHead)>,
+	) -> (RelayBlockHash, ParachainHeadsProof) {
 		let mut root = Default::default();
 		let mut mdb = MemoryDB::default();
 		{
@@ -346,7 +370,8 @@ mod tests {
 
 	#[test]
 	fn imports_initial_parachain_heads() {
-		let (state_root, proof) = prepare_parachain_heads_proof(vec![(1, head_data(1, 0)), (3, head_data(3, 10))]);
+		let (state_root, proof) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 0)), (3, head_data(3, 10))]);
 		run_test(|| {
 			initialize(state_root);
 
@@ -501,18 +526,31 @@ mod tests {
 
 			// nothing is pruned yet
 			for i in 0..heads_to_keep {
-				assert!(ImportedParaHeads::<TestRuntime>::get(1, parachain_head_hash(&head_data(1, i))).is_some());
+				assert!(ImportedParaHeads::<TestRuntime>::get(
+					1,
+					parachain_head_hash(&head_data(1, i))
+				)
+				.is_some());
 			}
 
 			// import next relay chain header and next parachain head
-			let (state_root, proof) = prepare_parachain_heads_proof(vec![(1, head_data(1, heads_to_keep))]);
+			let (state_root, proof) =
+				prepare_parachain_heads_proof(vec![(1, head_data(1, heads_to_keep))]);
 			proceed(heads_to_keep, state_root);
 			assert_ok!(import_parachain_1_head(heads_to_keep, state_root, proof));
 
 			// and the head#0 is pruned
-			assert!(ImportedParaHeads::<TestRuntime>::get(1, parachain_head_hash(&head_data(1, 0))).is_none());
+			assert!(ImportedParaHeads::<TestRuntime>::get(
+				1,
+				parachain_head_hash(&head_data(1, 0))
+			)
+			.is_none());
 			for i in 1..=heads_to_keep {
-				assert!(ImportedParaHeads::<TestRuntime>::get(1, parachain_head_hash(&head_data(1, i))).is_some());
+				assert!(ImportedParaHeads::<TestRuntime>::get(
+					1,
+					parachain_head_hash(&head_data(1, i))
+				)
+				.is_some());
 			}
 		});
 	}

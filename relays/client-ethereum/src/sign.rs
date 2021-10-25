@@ -14,11 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::types::{Address, CallRequest, U256};
-use crate::{Client, Result};
+use crate::{
+	types::{Address, CallRequest, U256},
+	Client, Result,
+};
 use bp_eth_poa::signatures::{secret_to_address, SignTransaction};
 use hex_literal::hex;
-use secp256k1::SecretKey;
+use libsecp256k1::SecretKey;
 
 /// Ethereum signing params.
 #[derive(Clone, Debug)]
