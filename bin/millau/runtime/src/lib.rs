@@ -65,9 +65,7 @@ pub use frame_support::{
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_bridge_grandpa::{
-	Call as BridgeGrandpaRialtoCall, Call as BridgeGrandpaWestendCall,
-};
+pub use pallet_bridge_grandpa::Call as BridgeGrandpaCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -846,9 +844,7 @@ mod tests {
 
 	#[test]
 	fn call_size() {
-		// pallets that are (to be) used by polkadot runtime
 		const MAX_CALL_SIZE: usize = 230; // value from polkadot-runtime tests
-		assert!(core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <= MAX_CALL_SIZE);
-		assert!(core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <= MAX_CALL_SIZE);
+		assert!(core::mem::size_of::<Call>() <= MAX_CALL_SIZE);
 	}
 }

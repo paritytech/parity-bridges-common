@@ -295,7 +295,7 @@ mod rococo_tests {
 			Box::new(header.clone()),
 			justification.clone(),
 		);
-		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof {
+		let expected = millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
 			finality_target: Box::new(header),
 			justification,
 		};
@@ -343,10 +343,11 @@ mod westend_tests {
 			Box::new(header.clone()),
 			justification.clone(),
 		);
-		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof {
-			finality_target: Box::new(header),
-			justification,
-		};
+		let expected =
+			millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
+				finality_target: Box::new(header),
+				justification,
+			};
 
 		// when
 		let actual_encoded = actual.encode();

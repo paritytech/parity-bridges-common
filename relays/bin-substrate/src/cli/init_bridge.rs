@@ -78,7 +78,7 @@ macro_rules! select_bridge {
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					let initialize_call = millau_runtime::BridgeGrandpaRialtoCall::<
+					let initialize_call = millau_runtime::BridgeGrandpaCall::<
 						millau_runtime::Runtime,
 						millau_runtime::RialtoGrandpaInstance,
 					>::initialize {
@@ -100,7 +100,7 @@ macro_rules! select_bridge {
 					// our deployments may fail, because we need to initialize both Rialto -> Millau
 					// and Westend -> Millau bridge. => since there's single possible sudo account,
 					// one of transaction may fail with duplicate nonce error
-					millau_runtime::BridgeGrandpaWestendCall::<
+					millau_runtime::BridgeGrandpaCall::<
 						millau_runtime::Runtime,
 						millau_runtime::WestendGrandpaInstance,
 					>::initialize {

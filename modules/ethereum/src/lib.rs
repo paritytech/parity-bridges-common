@@ -26,7 +26,7 @@ use codec::{Decode, Encode};
 use frame_support::traits::Get;
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
-use sp_std::{cmp::Ord, collections::btree_map::BTreeMap, prelude::*};
+use sp_std::{boxed::Box, cmp::Ord, collections::btree_map::BTreeMap, prelude::*};
 
 pub use validators::{ValidatorsConfiguration, ValidatorsSource};
 
@@ -407,7 +407,7 @@ pub mod pallet {
 		#[pallet::weight(0)] // TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 		pub fn import_unsigned_header(
 			origin: OriginFor<T>,
-			header: AuraHeader,
+			header: Box<AuraHeader>,
 			receipts: Option<Vec<Receipt>>,
 		) -> DispatchResult {
 			frame_system::ensure_none(origin)?;
@@ -418,7 +418,7 @@ pub mod pallet {
 				&T::AuraConfiguration::get(),
 				&T::ValidatorsConfiguration::get(),
 				None,
-				header,
+				*header,
 				&T::ChainTime::default(),
 				receipts,
 			)

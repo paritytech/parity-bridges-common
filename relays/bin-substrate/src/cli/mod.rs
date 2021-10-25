@@ -257,7 +257,7 @@ pub trait CliChain: relay_substrate_client::Chain {
 	/// Construct message payload to be sent over the bridge.
 	fn encode_message(
 		message: crate::cli::encode_message::MessagePayload,
-	) -> Result<Self::MessagePayload, String>;
+	) -> anyhow::Result<Self::MessagePayload>;
 
 	/// Maximal extrinsic weight (from the runtime).
 	fn max_extrinsic_weight() -> Weight;
@@ -573,7 +573,7 @@ mod tests {
 		let bob_with_alice_password =
 			sp_core::sr25519::Pair::from_string(BOB, Some(ALICE_PASSWORD)).unwrap();
 
-		let temp_dir = tempdir::TempDir::new("reads_suri_from_file").unwrap();
+		let temp_dir = tempfile::tempdir().unwrap();
 		let mut suri_file_path = temp_dir.path().to_path_buf();
 		let mut password_file_path = temp_dir.path().to_path_buf();
 		suri_file_path.push("suri");

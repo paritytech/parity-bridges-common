@@ -152,6 +152,7 @@ pub fn accept_aura_header_into_pool<S: Storage, CT: ChainTime>(
 	// the heaviest, but rare operation - we do not want invalid receipts in the pool
 	if let Some(receipts) = receipts {
 		log::trace!(target: "runtime", "Got receipts! {:?}", receipts);
+		#[allow(clippy::question_mark)]
 		if header.check_receipts_root(receipts).is_err() {
 			return Err(Error::TransactionsReceiptsMismatch)
 		}
@@ -401,7 +402,7 @@ mod tests {
 	};
 	use bp_eth_poa::{compute_merkle_root, rlp_encode, TransactionOutcome, H520, U256};
 	use hex_literal::hex;
-	use secp256k1::SecretKey;
+	use libsecp256k1::SecretKey;
 	use sp_runtime::transaction_validity::TransactionTag;
 
 	const GENESIS_STEP: u64 = 42;
