@@ -79,7 +79,7 @@ async fn do_initialize<SourceChain: Chain, TargetChain: Chain>(
 	prepare_initialize_transaction: impl FnOnce(TargetChain::Index, InitializationData<SourceChain::Header>) -> Bytes
 		+ Send
 		+ 'static,
-) -> Result<TargetChain::Hash, Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>> {
+) -> Result<TargetChain::Hash, Error<SourceChain::Hash, <SourceChain::Header as HeaderT>::Number>> {
 	let initialization_data = prepare_initialization_data(source_client).await?;
 	log::info!(
 		target: "bridge",
@@ -103,7 +103,7 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 	source_client: Client<SourceChain>,
 ) -> Result<
 	InitializationData<SourceChain::Header>,
-	Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>,
+	Error<SourceChain::Hash, <SourceChain::Header as HeaderT>::Number>,
 > {
 	// In ideal world we just need to get best finalized header and then to read GRANDPA authorities
 	// set (`pallet_grandpa::CurrentSetId` + `GrandpaApi::grandpa_authorities()`) at this header.
@@ -222,7 +222,7 @@ async fn prepare_initialization_data<SourceChain: Chain>(
 async fn source_header<SourceChain: Chain>(
 	source_client: &Client<SourceChain>,
 	header_hash: SourceChain::Hash,
-) -> Result<SourceChain::Header, Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>>
+) -> Result<SourceChain::Header, Error<SourceChain::Hash, <SourceChain::Header as HeaderT>::Number>>
 {
 	source_client
 		.header_by_hash(header_hash)
@@ -234,7 +234,7 @@ async fn source_header<SourceChain: Chain>(
 async fn source_authorities_set<SourceChain: Chain>(
 	source_client: &Client<SourceChain>,
 	header_hash: SourceChain::Hash,
-) -> Result<GrandpaAuthoritiesSet, Error<SourceChain::Hash, <SourceChain::Header as Header>::Number>>
+) -> Result<GrandpaAuthoritiesSet, Error<SourceChain::Hash, <SourceChain::Header as HeaderT>::Number>>
 {
 	let raw_authorities_set = source_client
 		.grandpa_authorities_set(header_hash)
