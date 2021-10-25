@@ -295,10 +295,11 @@ mod rococo_tests {
 			Box::new(header.clone()),
 			justification.clone(),
 		);
-		let expected = millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
-			finality_target: Box::new(header),
-			justification,
-		};
+		let expected =
+			millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
+				finality_target: Box::new(header),
+				justification,
+			};
 
 		// when
 		let actual_encoded = actual.encode();
