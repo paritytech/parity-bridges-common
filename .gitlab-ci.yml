@@ -95,7 +95,7 @@ clippy-nightly:
   <<:                              *docker-env
   <<:                              *test-refs
   script:
-    - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets
+    - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets -- -A clippy::redundant_closure
 
 fmt:
   stage:                           lint
