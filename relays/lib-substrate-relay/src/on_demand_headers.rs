@@ -251,7 +251,11 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 							TargetChain::AVERAGE_BLOCK_INTERVAL,
 						),
 						recent_finality_proofs_limit: RECENT_FINALITY_PROOFS_LIMIT,
-						stall_timeout: STALL_TIMEOUT,
+						stall_timeout: relay_substrate_client::transaction_stall_timeout(
+							target_transactions_mortality,
+							TargetChain::AVERAGE_BLOCK_INTERVAL,
+							STALL_TIMEOUT,
+						),
 						only_mandatory_headers,
 					},
 					MetricsParams::disabled(),
