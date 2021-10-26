@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xeu
 
-sleep 20
+sleep 60
 curl -v http://millau-node-alice:9933/health
 curl -v https://westend-rpc.polkadot.io:443/health
 
