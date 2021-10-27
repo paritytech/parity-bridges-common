@@ -65,9 +65,7 @@ pub use frame_support::{
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_bridge_grandpa::{
-	Call as BridgeGrandpaRialtoCall, Call as BridgeGrandpaWestendCall,
-};
+pub use pallet_bridge_grandpa::Call as BridgeGrandpaCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -242,6 +240,7 @@ impl pallet_grandpa::Config for Runtime {
 	type HandleEquivocation = ();
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
+	type MaxAuthorities = MaxAuthorities;
 }
 
 parameter_types! {
@@ -283,6 +282,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const TransactionBaseFee: Balance = 0;
 	pub const TransactionByteFee: Balance = 1;
+	pub const OperationalFeeMultiplier: u8 = 5;
 	// values for following parameters are copied from polkadot repo, but it is fine
 	// not to sync them - we're not going to make Rialto a full copy of one of Polkadot-like chains
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
@@ -293,6 +293,7 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
 	type TransactionByteFee = TransactionByteFee;
+	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = bp_millau::WeightToFee;
 	type FeeMultiplierUpdate = pallet_transaction_payment::TargetedFeeAdjustment<
 		Runtime,
@@ -322,7 +323,6 @@ impl pallet_session::Config for Runtime {
 	type SessionManager = pallet_shift_session_manager::Pallet<Runtime>;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
-	type DisabledValidatorsThreshold = ();
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
 }
@@ -525,7 +525,7 @@ impl_runtime_apis! {
 
 	impl sp_api::Metadata<Block> for Runtime {
 		fn metadata() -> OpaqueMetadata {
-			Runtime::metadata().into()
+			OpaqueMetadata::new(Runtime::metadata().into())
 		}
 	}
 
@@ -844,9 +844,7 @@ mod tests {
 
 	#[test]
 	fn call_size() {
-		// pallets that are (to be) used by polkadot runtime
 		const MAX_CALL_SIZE: usize = 230; // value from polkadot-runtime tests
-		assert!(core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <= MAX_CALL_SIZE);
-		assert!(core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <= MAX_CALL_SIZE);
+		assert!(core::mem::size_of::<Call>() <= MAX_CALL_SIZE);
 	}
 }

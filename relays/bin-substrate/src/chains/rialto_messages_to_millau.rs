@@ -16,7 +16,7 @@
 
 //! Rialto-to-Millau messages sync entrypoint.
 
-use std::{ops::RangeInclusive, time::Duration};
+use std::ops::RangeInclusive;
 
 use codec::Encode;
 use frame_support::dispatch::GetDispatchInfo;
@@ -41,6 +41,7 @@ use substrate_relay_helper::{
 	},
 	messages_source::SubstrateMessagesSource,
 	messages_target::SubstrateMessagesTarget,
+	STALL_TIMEOUT,
 };
 
 /// Rialto-to-Millau message lane.
@@ -89,20 +90,24 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 
 	fn make_messages_receiving_proof_transaction(
 		&self,
+		best_block_id: RialtoHeaderId,
 		transaction_nonce: IndexOf<Rialto>,
 		_generated_at_block: MillauHeaderId,
 		proof: <Self::MessageLane as MessageLane>::MessagesReceivingProof,
 	) -> Bytes {
 		let (relayers_state, proof) = proof;
 		let call: rialto_runtime::Call =
-			rialto_runtime::MessagesCall::receive_messages_delivery_proof(proof, relayers_state)
+			rialto_runtime::MessagesCall::receive_messages_delivery_proof { proof, relayers_state }
 				.into();
 		let call_weight = call.get_dispatch_info().weight;
 		let genesis_hash = *self.message_lane.source_client.genesis_hash();
 		let transaction = Rialto::sign_transaction(
 			genesis_hash,
 			&self.message_lane.source_sign,
-			relay_substrate_client::TransactionEra::immortal(),
+			relay_substrate_client::TransactionEra::new(
+				best_block_id,
+				self.message_lane.source_transactions_mortality,
+			),
 			UnsignedTransaction::new(call, transaction_nonce),
 		);
 		log::trace!(
@@ -122,6 +127,7 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 
 	fn make_messages_delivery_transaction(
 		&self,
+		best_block_id: MillauHeaderId,
 		transaction_nonce: IndexOf<Millau>,
 		_generated_at_header: RialtoHeaderId,
 		_nonces: RangeInclusive<MessageNonce>,
@@ -130,19 +136,22 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 		let (dispatch_weight, proof) = proof;
 		let FromBridgedChainMessagesProof { ref nonces_start, ref nonces_end, .. } = proof;
 		let messages_count = nonces_end - nonces_start + 1;
-		let call: millau_runtime::Call = millau_runtime::MessagesCall::receive_messages_proof(
-			self.message_lane.relayer_id_at_source.clone(),
+		let call: millau_runtime::Call = millau_runtime::MessagesCall::receive_messages_proof {
+			relayer_id_at_bridged_chain: self.message_lane.relayer_id_at_source.clone(),
 			proof,
-			messages_count as _,
+			messages_count: messages_count as _,
 			dispatch_weight,
-		)
+		}
 		.into();
 		let call_weight = call.get_dispatch_info().weight;
 		let genesis_hash = *self.message_lane.target_client.genesis_hash();
 		let transaction = Millau::sign_transaction(
 			genesis_hash,
 			&self.message_lane.target_sign,
-			relay_substrate_client::TransactionEra::immortal(),
+			relay_substrate_client::TransactionEra::new(
+				best_block_id,
+				self.message_lane.target_transactions_mortality,
+			),
 			UnsignedTransaction::new(call, transaction_nonce),
 		);
 		log::trace!(
@@ -167,7 +176,13 @@ type MillauTargetClient = SubstrateMessagesTarget<RialtoMessagesToMillau>;
 pub async fn run(
 	params: MessagesRelayParams<Rialto, RialtoSigningParams, Millau, MillauSigningParams>,
 ) -> anyhow::Result<()> {
-	let stall_timeout = Duration::from_secs(5 * 60);
+	let stall_timeout = relay_substrate_client::bidirectional_transaction_stall_timeout(
+		params.source_transactions_mortality,
+		params.target_transactions_mortality,
+		Rialto::AVERAGE_BLOCK_INTERVAL,
+		Millau::AVERAGE_BLOCK_INTERVAL,
+		STALL_TIMEOUT,
+	);
 	let relayer_id_at_rialto = (*params.source_sign.public().as_array_ref()).into();
 
 	let lane_id = params.lane_id;
@@ -176,8 +191,10 @@ pub async fn run(
 		message_lane: SubstrateMessageLaneToSubstrate {
 			source_client: source_client.clone(),
 			source_sign: params.source_sign,
+			source_transactions_mortality: params.source_transactions_mortality,
 			target_client: params.target_client.clone(),
 			target_sign: params.target_sign,
+			target_transactions_mortality: params.target_transactions_mortality,
 			relayer_id_at_source: relayer_id_at_rialto,
 		},
 	};
@@ -199,12 +216,17 @@ pub async fn run(
 			Max messages in single transaction: {}\n\t\
 			Max messages size in single transaction: {}\n\t\
 			Max messages weight in single transaction: {}\n\t\
-			Relayer mode: {:?}",
+			Relayer mode: {:?}\n\t\
+			Tx mortality: {:?}/{:?}\n\t\
+			Stall timeout: {:?}",
 		lane.message_lane.relayer_id_at_source,
 		max_messages_in_single_batch,
 		max_messages_size_in_single_batch,
 		max_messages_weight_in_single_batch,
 		params.relayer_mode,
+		params.source_transactions_mortality,
+		params.target_transactions_mortality,
+		stall_timeout,
 	);
 
 	let (metrics_params, metrics_values) = add_standalone_metrics(
@@ -249,6 +271,7 @@ pub async fn run(
 		futures::future::pending(),
 	)
 	.await
+	.map_err(Into::into)
 }
 
 /// Add standalone metrics for the Rialto -> Millau messages loop.
@@ -288,11 +311,11 @@ pub(crate) async fn update_millau_to_rialto_conversion_rate(
 					&signer,
 					relay_substrate_client::TransactionEra::immortal(),
 					UnsignedTransaction::new(
-						rialto_runtime::MessagesCall::update_pallet_parameter(
-							rialto_runtime::millau_messages::RialtoToMillauMessagesParameter::MillauToRialtoConversionRate(
+						rialto_runtime::MessagesCall::update_pallet_parameter {
+							parameter: rialto_runtime::millau_messages::RialtoToMillauMessagesParameter::MillauToRialtoConversionRate(
 								sp_runtime::FixedU128::from_float(updated_rate),
 							),
-						)
+						}
 						.into(),
 						transaction_nonce,
 					),

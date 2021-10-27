@@ -35,15 +35,15 @@ impl CliEncodeCall for RialtoParachain {
 		Ok(match call {
 			Call::Raw { data } => Decode::decode(&mut &*data.0)?,
 			Call::Remark { remark_payload, .. } => rialto_parachain_runtime::Call::System(
-				rialto_parachain_runtime::SystemCall::remark(
-					remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
-				),
+				rialto_parachain_runtime::SystemCall::remark {
+					remark: remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
+				},
 			),
 			Call::Transfer { recipient, amount } => rialto_parachain_runtime::Call::Balances(
-				rialto_parachain_runtime::BalancesCall::transfer(
-					recipient.raw_id().into(),
-					amount.0,
-				),
+				rialto_parachain_runtime::BalancesCall::transfer {
+					dest: recipient.raw_id().into(),
+					value: amount.0,
+				},
 			),
 			Call::BridgeSendMessage { .. } =>
 				anyhow::bail!("Bridge messages are not (yet) supported here",),
@@ -76,7 +76,7 @@ impl CliChain for RialtoParachain {
 
 	fn encode_message(
 		_message: encode_message::MessagePayload,
-	) -> Result<Self::MessagePayload, String> {
-		Err("Not supported".into())
+	) -> anyhow::Result<Self::MessagePayload> {
+		anyhow::bail!("Not supported")
 	}
 }

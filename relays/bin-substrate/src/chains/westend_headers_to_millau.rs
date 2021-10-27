@@ -74,10 +74,13 @@ impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
 		header: WestendSyncHeader,
 		proof: GrandpaJustification<bp_westend::Header>,
 	) -> Bytes {
-		let call = millau_runtime::BridgeGrandpaWestendCall::<
+		let call = millau_runtime::BridgeGrandpaCall::<
 			millau_runtime::Runtime,
 			millau_runtime::WestendGrandpaInstance,
-		>::submit_finality_proof(Box::new(header.into_inner()), proof)
+		>::submit_finality_proof {
+			finality_target: Box::new(header.into_inner()),
+			justification: proof,
+		}
 		.into();
 
 		let genesis_hash = *self.finality_pipeline.target_client.genesis_hash();
