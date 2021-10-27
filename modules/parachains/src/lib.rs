@@ -171,10 +171,11 @@ pub mod pallet {
 			)
 			.map_err(|_| Error::<T, I>::InvalidStorageProof)?;
 
-			// TODO: there may be parachains we are not interested in - so we only need to accept intersection
-			// of `parachains-interesting-to-us` and `parachains`
+			// TODO: there may be parachains we are not interested in - so we only need to accept
+			// intersection of `parachains-interesting-to-us` and `parachains`
 
-			// TODO: if some parachain is no more interesting to us, we should start pruning its heads
+			// TODO: if some parachain is no more interesting to us, we should start pruning its
+			// heads
 
 			Ok(())
 		}
