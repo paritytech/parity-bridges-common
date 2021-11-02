@@ -13,6 +13,21 @@
 
 //! Message delivery race delivers proof-of-messages from "lane.source" to "lane.target".
 
+use std::{
+	collections::VecDeque,
+	marker::PhantomData,
+	ops::{Range, RangeInclusive},
+	time::Duration,
+};
+
+use async_trait::async_trait;
+use futures::stream::FusedStream;
+use num_traits::{SaturatingAdd, Zero};
+
+use bp_messages::{MessageNonce, UnrewardedRelayersState, Weight};
+use bp_runtime::messages::DispatchFeePayment;
+use relay_utils::FailedClient;
+
 use crate::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
@@ -26,19 +41,7 @@ use crate::{
 	},
 	message_race_strategy::{BasicStrategy, SourceRangesQueue},
 	metrics::MessageLaneLoopMetrics,
-};
-
-use async_trait::async_trait;
-use bp_messages::{MessageNonce, UnrewardedRelayersState, Weight};
-use bp_runtime::messages::DispatchFeePayment;
-use futures::stream::FusedStream;
-use num_traits::{SaturatingAdd, Zero};
-use relay_utils::FailedClient;
-use std::{
-	collections::VecDeque,
-	marker::PhantomData,
-	ops::{Range, RangeInclusive},
-	time::Duration,
+	relayer_strategy::{RelayerReference, RelayerStrategy},
 };
 
 /// Run message delivery race.
@@ -444,7 +447,7 @@ where
 				);
 
 				return None
-			},
+			}
 			_ => (),
 		}
 
@@ -652,6 +655,13 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			DispatchFeePayment::AtTargetChain => selected_unpaid_weight,
 		};
 
+		let reference = RelayerReference {
+			relayer_mode,
+			lane_source_client: lane_source_client.clone(),
+			lane_target_client: lane_target_client.clone(),
+		};
+		let decide = P::RelayerStrategy::decide(reference)?;
+
 		// now the message has passed all 'strong' checks, and we CAN deliver it. But do we WANT
 		// to deliver it? It depends on the relayer strategy.
 		match relayer_mode {
@@ -789,7 +799,8 @@ impl<SourceChainBalance: std::fmt::Debug> NoncesRange for MessageDetailsMap<Sour
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+	use bp_runtime::messages::DispatchFeePayment::*;
+
 	use crate::message_lane_loop::{
 		tests::{
 			header_id, TestMessageLane, TestMessagesProof, TestSourceChainBalance,
@@ -798,7 +809,8 @@ mod tests {
 		},
 		MessageDetails,
 	};
-	use bp_runtime::messages::DispatchFeePayment::*;
+
+	use super::*;
 
 	const DEFAULT_DISPATCH_WEIGHT: Weight = 1;
 	const DEFAULT_SIZE: u32 = 1;
@@ -877,12 +889,8 @@ mod tests {
 		);
 
 		let target_nonces = TargetClientNonces { latest_nonce: 19, nonces_data: () };
-		race_strategy
-			.strategy
-			.best_target_nonces_updated(target_nonces.clone(), &mut race_state);
-		race_strategy
-			.strategy
-			.finalized_target_nonces_updated(target_nonces, &mut race_state);
+		race_strategy.strategy.best_target_nonces_updated(target_nonces.clone(), &mut race_state);
+		race_strategy.strategy.finalized_target_nonces_updated(target_nonces, &mut race_state);
 
 		(race_state, race_strategy)
 	}

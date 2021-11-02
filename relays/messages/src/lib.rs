@@ -29,6 +29,7 @@ mod metrics;
 
 pub mod message_lane;
 pub mod message_lane_loop;
+pub mod relayer_strategy;
 
 mod message_race_delivery;
 mod message_race_loop;
