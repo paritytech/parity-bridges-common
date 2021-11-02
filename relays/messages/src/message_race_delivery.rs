@@ -571,21 +571,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 	let mut selected_reward = P::SourceChainBalance::zero();
 	let mut selected_cost = P::SourceChainBalance::zero();
 
-	let mut total_reward = P::SourceChainBalance::zero();
-	let mut total_confirmations_cost = P::SourceChainBalance::zero();
-	let mut total_cost = P::SourceChainBalance::zero();
-
 	let hard_selected_begin_nonce = nonces_queue[nonces_queue_range.start].1.begin();
-
-	// technically, multiple confirmations will be delivered in a single transaction,
-	// meaning less loses for relayer. But here we don't know the final relayer yet, so
-	// we're adding a separate transaction for every message. Normally, this cost is covered
-	// by the message sender. Probably reconsider this?
-	let confirmation_transaction_cost = if relayer_mode != RelayerMode::Altruistic {
-		lane_source_client.estimate_confirmation_transaction().await
-	} else {
-		Zero::zero()
-	};
 
 	let all_ready_nonces = nonces_queue
 		.range(nonces_queue_range.clone())
@@ -661,74 +647,17 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			lane_target_client: lane_target_client.clone(),
 		};
 		let decide = P::RelayerStrategy::decide(reference)?;
-
-		// now the message has passed all 'strong' checks, and we CAN deliver it. But do we WANT
-		// to deliver it? It depends on the relayer strategy.
-		match relayer_mode {
-			RelayerMode::Altruistic => {
-				soft_selected_count = index + 1;
-			},
-			RelayerMode::Rational => {
-				let delivery_transaction_cost = lane_target_client
-					.estimate_delivery_transaction_in_source_tokens(
-						hard_selected_begin_nonce..=
-							(hard_selected_begin_nonce + index as MessageNonce),
-						new_selected_prepaid_nonces,
-						new_selected_unpaid_weight,
-						new_selected_size as u32,
-					)
-					.await
-					.map_err(|err| {
-						log::debug!(
-							target: "bridge",
-							"Failed to estimate delivery transaction cost: {:?}. No nonces selected for delivery",
-							err,
-						);
-					})
-					.ok()?;
-
-				// if it is the first message that makes reward less than cost, let's log it
-				// if this message makes batch profitable again, let's log it
-				let is_total_reward_less_than_cost = total_reward < total_cost;
-				let prev_total_cost = total_cost;
-				let prev_total_reward = total_reward;
-				total_confirmations_cost =
-					total_confirmations_cost.saturating_add(&confirmation_transaction_cost);
-				total_reward = total_reward.saturating_add(&details.reward);
-				total_cost = total_confirmations_cost.saturating_add(&delivery_transaction_cost);
-				if !is_total_reward_less_than_cost && total_reward < total_cost {
-					log::debug!(
-						target: "bridge",
-						"Message with nonce {} (reward = {:?}) changes total cost {:?}->{:?} and makes it larger than \
-						total reward {:?}->{:?}",
-						nonce,
-						details.reward,
-						prev_total_cost,
-						total_cost,
-						prev_total_reward,
-						total_reward,
-					);
-				} else if is_total_reward_less_than_cost && total_reward >= total_cost {
-					log::debug!(
-						target: "bridge",
-						"Message with nonce {} (reward = {:?}) changes total cost {:?}->{:?} and makes it less than or \
-						equal to the total reward {:?}->{:?} (again)",
-						nonce,
-						details.reward,
-						prev_total_cost,
-						total_cost,
-						prev_total_reward,
-						total_reward,
-					);
-				}
-
-				// Rational relayer never want to lose his funds
-				if total_reward >= total_cost {
-					soft_selected_count = index + 1;
-					selected_reward = total_reward;
-					selected_cost = total_cost;
-				}
-			},
+		if decide.participate {
+			soft_selected_count = index + 1;
+			if let Some(total_reward) = decide.total_reward {
+				selected_reward = total_reward;
+			}
+			if let Some(total_cost) = decide.total_cost {
+				selected_cost = total_cost;
+			}
+			if let Some(total_confirmations_cost) = decide.total_confirmations_cost {
+				total_confirmations_cost = total_confirmations_cost;
+			}
 		}
 
 		hard_selected_count = index + 1;
