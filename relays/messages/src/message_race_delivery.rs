@@ -645,6 +645,13 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			relayer_mode,
 			lane_source_client: lane_source_client.clone(),
 			lane_target_client: lane_target_client.clone(),
+			hard_selected_begin_nonce,
+			new_selected_prepaid_nonces,
+			new_selected_unpaid_weight,
+			new_selected_size,
+			ready_nonces_index: index,
+			ready_nonce: *nonce,
+			ready_details: details,
 		};
 		let decide = P::RelayerStrategy::decide(reference)?;
 		if decide.participate {

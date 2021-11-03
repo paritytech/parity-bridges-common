@@ -1,10 +1,10 @@
-use bp_messages::MessageNonce;
+use bp_messages::{MessageNonce, Weight};
 use num_traits::{SaturatingAdd, Zero};
 
 use crate::{
 	message_lane::MessageLane,
 	message_lane_loop::{
-		RelayerMode, SourceClient as MessageLaneSourceClient,
+		MessageDetails, RelayerMode, SourceClient as MessageLaneSourceClient,
 		TargetClient as MessageLaneTargetClient,
 	},
 };
@@ -20,6 +20,7 @@ pub trait RelayerStrategy {
 }
 
 pub struct RelayerReference<
+	'a,
 	P: MessageLane,
 	SourceClient: MessageLaneSourceClient<P>,
 	TargetClient: MessageLaneTargetClient<P>,
@@ -27,6 +28,13 @@ pub struct RelayerReference<
 	pub relayer_mode: RelayerMode,
 	pub lane_source_client: SourceClient,
 	pub lane_target_client: TargetClient,
+	pub hard_selected_begin_nonce: MessageNonce,
+	pub new_selected_prepaid_nonces: MessageNonce,
+	pub new_selected_unpaid_weight: Weight,
+	pub new_selected_size: u32,
+	pub ready_nonces_index: usize,
+	pub ready_nonce: MessageNonce,
+	pub ready_details: &'a MessageDetails<P::SourceChainBalance>,
 }
 
 pub struct RelayerDecide<P: MessageLane> {
@@ -63,11 +71,12 @@ impl RelayerStrategy for DefaultRelayerStrategy {
 				let delivery_transaction_cost = reference
 					.lane_target_client
 					.estimate_delivery_transaction_in_source_tokens(
-						hard_selected_begin_nonce..=
-							(hard_selected_begin_nonce + index as MessageNonce),
-						new_selected_prepaid_nonces,
-						new_selected_unpaid_weight,
-						new_selected_size as u32,
+						reference.hard_selected_begin_nonce..=
+							(reference.hard_selected_begin_nonce +
+								reference.ready_nonces_index as MessageNonce),
+						reference.new_selected_prepaid_nonces,
+						reference.new_selected_unpaid_weight,
+						reference.new_selected_size as u32,
 					)
 					.await
 					.map_err(|err| {
@@ -86,15 +95,15 @@ impl RelayerStrategy for DefaultRelayerStrategy {
 				let prev_total_reward = total_reward;
 				total_confirmations_cost =
 					total_confirmations_cost.saturating_add(&confirmation_transaction_cost);
-				total_reward = total_reward.saturating_add(&details.reward);
+				total_reward = total_reward.saturating_add(&reference.ready_details.reward);
 				total_cost = total_confirmations_cost.saturating_add(&delivery_transaction_cost);
 				if !is_total_reward_less_than_cost && total_reward < total_cost {
 					log::debug!(
 						target: "bridge",
 						"Message with nonce {} (reward = {:?}) changes total cost {:?}->{:?} and makes it larger than \
 						total reward {:?}->{:?}",
-						nonce,
-						details.reward,
+						reference.ready_nonce,
+						reference.ready_details.reward,
 						prev_total_cost,
 						total_cost,
 						prev_total_reward,
@@ -105,8 +114,8 @@ impl RelayerStrategy for DefaultRelayerStrategy {
 						target: "bridge",
 						"Message with nonce {} (reward = {:?}) changes total cost {:?}->{:?} and makes it less than or \
 						equal to the total reward {:?}->{:?} (again)",
-						nonce,
-						details.reward,
+						reference.ready_nonce,
+						reference.ready_details.reward,
 						prev_total_cost,
 						total_cost,
 						prev_total_reward,
