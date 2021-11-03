@@ -28,7 +28,7 @@ use bp_runtime::{AccountIdOf, IndexOf};
 use frame_support::weights::Weight;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
-	relayer_strategy::RelayerStrategy,
+	relay_strategy::RelayStrategy,
 };
 use relay_substrate_client::{
 	metrics::{FloatStorageValueMetric, StorageProofOverheadMetric},
@@ -149,7 +149,7 @@ pub struct SubstrateMessageLaneToSubstrate<
 	SourceSignParams,
 	Target: Chain,
 	TargetSignParams,
-	Strategy: RelayerStrategy,
+	Strategy: RelayStrategy,
 > {
 	/// Client for the source Substrate chain.
 	pub source_client: Client<Source>,
@@ -174,7 +174,7 @@ impl<
 		SourceSignParams: Clone,
 		Target: Chain,
 		TargetSignParams: Clone,
-		Strategy: RelayerStrategy,
+		Strategy: RelayStrategy,
 	> Clone
 	for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams, Strategy>
 {
@@ -192,13 +192,8 @@ impl<
 	}
 }
 
-impl<
-		Source: Chain,
-		SourceSignParams,
-		Target: Chain,
-		TargetSignParams,
-		Strategy: RelayerStrategy,
-	> MessageLane
+impl<Source: Chain, SourceSignParams, Target: Chain, TargetSignParams, Strategy: RelayStrategy>
+	MessageLane
 	for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams, Strategy>
 where
 	SourceSignParams: Clone + Send + Sync + 'static,

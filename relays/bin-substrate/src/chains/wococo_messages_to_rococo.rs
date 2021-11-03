@@ -24,7 +24,7 @@ use sp_core::{Bytes, Pair};
 use bp_messages::MessageNonce;
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use frame_support::weights::Weight;
-use messages_relay::{message_lane::MessageLane, relayer_strategy::DefaultRelayerStrategy};
+use messages_relay::{message_lane::MessageLane, relay_strategy::DefaultRelayStrategy};
 use relay_rococo_client::{
 	HeaderId as RococoHeaderId, Rococo, SigningParams as RococoSigningParams,
 };
@@ -49,7 +49,7 @@ pub type MessageLaneWococoMessagesToRococo = SubstrateMessageLaneToSubstrate<
 	WococoSigningParams,
 	Rococo,
 	RococoSigningParams,
-	DefaultRelayerStrategy,
+	DefaultRelayStrategy,
 >;
 
 #[derive(Clone)]

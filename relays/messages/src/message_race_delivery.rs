@@ -41,7 +41,7 @@ use crate::{
 	},
 	message_race_strategy::{BasicStrategy, SourceRangesQueue},
 	metrics::MessageLaneLoopMetrics,
-	relayer_strategy::{RelayerReference, RelayerStrategy},
+	relay_strategy::{RelayReference, RelayStrategy},
 };
 
 /// Run message delivery race.
@@ -641,7 +641,7 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			DispatchFeePayment::AtTargetChain => selected_unpaid_weight,
 		};
 
-		let reference = RelayerReference {
+		let reference = RelayReference {
 			relayer_mode,
 			lane_source_client: lane_source_client.clone(),
 			lane_target_client: lane_target_client.clone(),

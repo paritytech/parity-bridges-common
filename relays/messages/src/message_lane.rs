@@ -19,7 +19,7 @@
 //! 1) relay new messages from source to target node;
 //! 2) relay proof-of-delivery from target to source node.
 
-use crate::relayer_strategy::RelayerStrategy;
+use crate::relay_strategy::RelayStrategy;
 use num_traits::{SaturatingAdd, Zero};
 use relay_utils::{BlockNumberBase, HeaderId};
 use std::{fmt::Debug, ops::Sub};
@@ -60,7 +60,7 @@ pub trait MessageLane: 'static + Clone + Send + Sync {
 	/// Hash of the target header.
 	type TargetHeaderHash: Clone + Debug + Default + PartialEq + Send + Sync;
 	/// Relayer strategy
-	type RelayerStrategy: RelayerStrategy;
+	type RelayerStrategy: RelayStrategy;
 }
 
 /// Source header id within given one-way message lane.

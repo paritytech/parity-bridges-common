@@ -31,19 +31,19 @@ use crate::{
 
 /// Relayer strategy trait
 #[async_trait]
-pub trait RelayerStrategy: 'static + Clone + Send + Sync {
+pub trait RelayStrategy: 'static + Clone + Send + Sync {
 	/// The relayer decide how to process nonce by reference
 	async fn decide<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
-		reference: RelayerReference<P, SourceClient, TargetClient>,
+		reference: RelayReference<P, SourceClient, TargetClient>,
 	) -> Option<RelayerDecide<P>>;
 }
 
-/// Relayer reference data
-pub struct RelayerReference<
+/// Relay reference data
+pub struct RelayReference<
 	P: MessageLane,
 	SourceClient: MessageLaneSourceClient<P>,
 	TargetClient: MessageLaneTargetClient<P>,
@@ -73,16 +73,16 @@ pub struct RelayerDecide<P: MessageLane> {
 
 /// The default strategy
 #[derive(Clone)]
-pub struct DefaultRelayerStrategy {}
+pub struct DefaultRelayStrategy {}
 
 #[async_trait]
-impl RelayerStrategy for DefaultRelayerStrategy {
+impl RelayStrategy for DefaultRelayStrategy {
 	async fn decide<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
-		reference: RelayerReference<P, SourceClient, TargetClient>,
+		reference: RelayReference<P, SourceClient, TargetClient>,
 	) -> Option<RelayerDecide<P>> {
 		match reference.relayer_mode {
 			RelayerMode::Altruistic =>
