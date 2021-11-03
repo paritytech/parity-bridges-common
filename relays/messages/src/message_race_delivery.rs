@@ -22,7 +22,7 @@ use std::{
 
 use async_trait::async_trait;
 use futures::stream::FusedStream;
-use num_traits::{SaturatingAdd, Zero};
+use num_traits::Zero;
 
 use bp_messages::{MessageNonce, UnrewardedRelayersState, Weight};
 use bp_runtime::messages::DispatchFeePayment;

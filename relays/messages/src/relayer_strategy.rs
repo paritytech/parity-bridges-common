@@ -1,3 +1,21 @@
+// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// This file is part of Parity Bridges Common.
+
+// Parity Bridges Common is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Parity Bridges Common is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
+
+//! Relayer strategy
+
 use async_trait::async_trait;
 use num_traits::{SaturatingAdd, Zero};
 
@@ -11,8 +29,10 @@ use crate::{
 	},
 };
 
+/// Relayer strategy trait
 #[async_trait]
 pub trait RelayerStrategy: 'static + Clone + Send + Sync {
+	/// The relayer decide how to process nonce by reference
 	async fn decide<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
@@ -22,13 +42,17 @@ pub trait RelayerStrategy: 'static + Clone + Send + Sync {
 	) -> Option<RelayerDecide<P>>;
 }
 
+/// Relayer reference data
 pub struct RelayerReference<
 	P: MessageLane,
 	SourceClient: MessageLaneSourceClient<P>,
 	TargetClient: MessageLaneTargetClient<P>,
 > {
+	/// Relayer operating mode.
 	pub relayer_mode: RelayerMode,
+	/// source chain client
 	pub lane_source_client: SourceClient,
+	/// target chain client
 	pub lane_target_client: TargetClient,
 	pub hard_selected_begin_nonce: MessageNonce,
 	pub new_selected_prepaid_nonces: MessageNonce,
@@ -39,12 +63,15 @@ pub struct RelayerReference<
 	pub ready_details: MessageDetails<P::SourceChainBalance>,
 }
 
+/// Relayer's decision
 pub struct RelayerDecide<P: MessageLane> {
+	/// Whether to participate
 	pub participate: bool,
 	pub total_reward: Option<P::SourceChainBalance>,
 	pub total_cost: Option<P::SourceChainBalance>,
 }
 
+/// The default strategy
 #[derive(Clone)]
 pub struct DefaultRelayerStrategy {}
 
