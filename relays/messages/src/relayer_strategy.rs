@@ -1,5 +1,7 @@
-use bp_messages::{MessageNonce, Weight};
+use async_trait::async_trait;
 use num_traits::{SaturatingAdd, Zero};
+
+use bp_messages::{MessageNonce, Weight};
 
 use crate::{
 	message_lane::MessageLane,
@@ -9,8 +11,9 @@ use crate::{
 	},
 };
 
-pub trait RelayerStrategy: Clone {
-	fn decide<
+#[async_trait]
+pub trait RelayerStrategy: 'static + Clone + Send + Sync {
+	async fn decide<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,
@@ -20,7 +23,6 @@ pub trait RelayerStrategy: Clone {
 }
 
 pub struct RelayerReference<
-	'a,
 	P: MessageLane,
 	SourceClient: MessageLaneSourceClient<P>,
 	TargetClient: MessageLaneTargetClient<P>,
@@ -34,7 +36,7 @@ pub struct RelayerReference<
 	pub new_selected_size: u32,
 	pub ready_nonces_index: usize,
 	pub ready_nonce: MessageNonce,
-	pub ready_details: &'a MessageDetails<P::SourceChainBalance>,
+	pub ready_details: MessageDetails<P::SourceChainBalance>,
 }
 
 pub struct RelayerDecide<P: MessageLane> {
@@ -46,14 +48,9 @@ pub struct RelayerDecide<P: MessageLane> {
 #[derive(Clone)]
 pub struct DefaultRelayerStrategy {}
 
-impl DefaultRelayerStrategy {
-	pub fn new() -> Self {
-		Self {}
-	}
-}
-
+#[async_trait]
 impl RelayerStrategy for DefaultRelayerStrategy {
-	fn decide<
+	async fn decide<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,

@@ -25,7 +25,7 @@ use sp_core::{Bytes, Pair};
 use bp_messages::MessageNonce;
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use frame_support::weights::Weight;
-use messages_relay::message_lane::MessageLane;
+use messages_relay::{message_lane::MessageLane, relayer_strategy::DefaultRelayerStrategy};
 use relay_millau_client::{
 	HeaderId as MillauHeaderId, Millau, SigningParams as MillauSigningParams,
 };
@@ -45,8 +45,13 @@ use substrate_relay_helper::{
 };
 
 /// Millau-to-Rialto message lane.
-pub type MessageLaneMillauMessagesToRialto =
-	SubstrateMessageLaneToSubstrate<Millau, MillauSigningParams, Rialto, RialtoSigningParams>;
+pub type MessageLaneMillauMessagesToRialto = SubstrateMessageLaneToSubstrate<
+	Millau,
+	MillauSigningParams,
+	Rialto,
+	RialtoSigningParams,
+	DefaultRelayerStrategy,
+>;
 
 #[derive(Clone)]
 pub struct MillauMessagesToRialto {

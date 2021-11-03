@@ -651,9 +651,9 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			new_selected_size,
 			ready_nonces_index: index,
 			ready_nonce: *nonce,
-			ready_details: details,
+			ready_details: details.clone(),
 		};
-		let decide = P::RelayerStrategy::decide(reference)?;
+		let decide = P::RelayerStrategy::decide(reference).await?;
 		if decide.participate {
 			soft_selected_count = index + 1;
 			if let Some(total_reward) = decide.total_reward {
@@ -661,9 +661,6 @@ async fn select_nonces_for_delivery_transaction<P: MessageLane>(
 			}
 			if let Some(total_cost) = decide.total_cost {
 				selected_cost = total_cost;
-			}
-			if let Some(total_confirmations_cost) = decide.total_confirmations_cost {
-				total_confirmations_cost = total_confirmations_cost;
 			}
 		}
 
@@ -825,8 +822,12 @@ mod tests {
 		);
 
 		let target_nonces = TargetClientNonces { latest_nonce: 19, nonces_data: () };
-		race_strategy.strategy.best_target_nonces_updated(target_nonces.clone(), &mut race_state);
-		race_strategy.strategy.finalized_target_nonces_updated(target_nonces, &mut race_state);
+		race_strategy
+			.strategy
+			.best_target_nonces_updated(target_nonces.clone(), &mut race_state);
+		race_strategy
+			.strategy
+			.finalized_target_nonces_updated(target_nonces, &mut race_state);
 
 		(race_state, race_strategy)
 	}
