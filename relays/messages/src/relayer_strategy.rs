@@ -9,7 +9,7 @@ use crate::{
 	},
 };
 
-pub trait RelayerStrategy {
+pub trait RelayerStrategy: Clone {
 	fn decide<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
@@ -43,7 +43,14 @@ pub struct RelayerDecide<P: MessageLane> {
 	pub total_cost: Option<P::SourceChainBalance>,
 }
 
+#[derive(Clone)]
 pub struct DefaultRelayerStrategy {}
+
+impl DefaultRelayerStrategy {
+	pub fn new() -> Self {
+		Self {}
+	}
+}
 
 impl RelayerStrategy for DefaultRelayerStrategy {
 	fn decide<
