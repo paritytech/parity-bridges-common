@@ -31,9 +31,11 @@ use crate::{
 	message_race_strategy::SourceRangesQueue,
 };
 
+pub(crate) use self::enforcement_strategy::*;
 pub use self::{altruistic_strategy::*, mix_strategy::*, rational_strategy::*};
 
 mod altruistic_strategy;
+mod enforcement_strategy;
 mod mix_strategy;
 mod rational_strategy;
 

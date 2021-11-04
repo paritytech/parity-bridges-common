@@ -34,7 +34,7 @@ use crate::{
 	},
 	message_race_strategy::BasicStrategy,
 	metrics::MessageLaneLoopMetrics,
-	relay_strategy::{RelayReference, RelayStrategy},
+	relay_strategy::{EnforcementStrategy, RelayReference, RelayStrategy},
 };
 
 /// Run message delivery race.
@@ -521,7 +521,8 @@ where
 			nonces_queue_range: 0..maximal_source_queue_index + 1,
 		};
 
-		let range_end = self.relay_strategy.decide(reference).await?;
+		let strategy = EnforcementStrategy::new(self.relay_strategy.clone());
+		let range_end = strategy.decide(reference).await?;
 
 		let range_begin = source_queue[0].1.begin();
 		let selected_nonces = range_begin..=range_end;
