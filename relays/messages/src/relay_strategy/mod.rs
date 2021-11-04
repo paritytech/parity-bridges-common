@@ -56,15 +56,22 @@ pub struct RelayReference<
 	SourceClient: MessageLaneSourceClient<P>,
 	TargetClient: MessageLaneTargetClient<P>,
 > {
+	/// Maximal number of relayed messages in single delivery transaction.
 	pub max_messages_in_this_batch: MessageNonce,
+	/// Maximal cumulative dispatch weight of relayed messages in single delivery transaction.
 	pub max_messages_weight_in_single_batch: Weight,
+	/// Maximal cumulative size of relayed messages in single delivery transaction.
 	pub max_messages_size_in_single_batch: u32,
+	/// The client that is connected to the message lane source node.
 	pub lane_source_client: SourceClient,
+	/// The client that is connected to the message lane target node.
 	pub lane_target_client: TargetClient,
+	/// Source queue.
 	pub nonces_queue: SourceRangesQueue<
 		P::SourceHeaderHash,
 		P::SourceHeaderNumber,
 		MessageDetailsMap<P::SourceChainBalance>,
 	>,
+	/// Source queue range
 	pub nonces_queue_range: Range<usize>,
 }
