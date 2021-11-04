@@ -185,7 +185,7 @@ impl<
 			target_sign: self.target_sign.clone(),
 			target_transactions_mortality: self.target_transactions_mortality,
 			relayer_id_at_source: self.relayer_id_at_source.clone(),
-			_marker: self._marker.clone(),
+			_marker: self._marker,
 		}
 	}
 }

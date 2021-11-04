@@ -552,7 +552,7 @@ impl<SourceChainBalance: std::fmt::Debug> NoncesRange for MessageDetailsMap<Sour
 
 #[cfg(test)]
 mod tests {
-	use bp_runtime::messages::DispatchFeePayment::*;
+	use bp_runtime::messages::DispatchFeePayment;
 
 	use crate::message_lane_loop::{
 		tests::{
