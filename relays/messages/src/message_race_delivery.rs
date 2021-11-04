@@ -437,7 +437,7 @@ where
 				);
 
 				return None
-			}
+			},
 			_ => (),
 		}
 
@@ -671,7 +671,7 @@ mod tests {
 							dispatch_weight: idx,
 							size: idx as _,
 							reward: idx as _,
-							dispatch_fee_payment: AtSourceChain,
+							dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 						},
 					)
 				})
@@ -980,7 +980,7 @@ mod tests {
 			24..=25,
 			19,
 			DEFAULT_REWARD - BASE_MESSAGE_DELIVERY_TRANSACTION_COST,
-			AtSourceChain,
+			DispatchFeePayment::AtSourceChain,
 		);
 		strategy.strategy.source_nonces_updated(header_id(2), nonces);
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
@@ -1025,11 +1025,11 @@ mod tests {
 		}
 
 		assert_eq!(
-			test_with_dispatch_fee_payment(AtTargetChain).await,
+			test_with_dispatch_fee_payment(DispatchFeePayment::AtTargetChain).await,
 			Some(((20..=24), proof_parameters(false, 5)))
 		);
 		assert_eq!(
-			test_with_dispatch_fee_payment(AtSourceChain).await,
+			test_with_dispatch_fee_payment(DispatchFeePayment::AtSourceChain).await,
 			Some(((20..=23), proof_parameters(false, 4)))
 		);
 	}
