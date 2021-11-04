@@ -34,7 +34,7 @@ use crate::{
 	},
 	message_race_strategy::BasicStrategy,
 	metrics::MessageLaneLoopMetrics,
-	relay_strategy::{EnforcementStrategy, RelayReference, RelayStrategy},
+	relay_strategy::{EnforcementStrategy, RelayMessagesBatchReference, RelayStrategy},
 };
 
 /// Run message delivery race.
@@ -511,7 +511,7 @@ where
 		let previous_total_dispatch_weight = self.total_queued_dispatch_weight();
 		let source_queue = self.strategy.source_queue();
 
-		let reference = RelayReference {
+		let reference = RelayMessagesBatchReference {
 			max_messages_in_this_batch: max_nonces,
 			max_messages_weight_in_single_batch,
 			max_messages_size_in_single_batch,

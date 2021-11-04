@@ -42,19 +42,8 @@ impl RelayStrategy for AltruisticStrategy {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		&self,
-		reference: RelayReference<P, SourceClient, TargetClient>,
-	) -> Option<MessageNonce> {
-		let mut soft_selected_count = 0;
-
-		let all_ready_nonces = reference
-			.nonces_queue
-			.range(reference.nonces_queue_range.clone())
-			.flat_map(|(_, ready_nonces)| ready_nonces.iter())
-			.enumerate();
-		for (index, (_nonce, _details)) in all_ready_nonces {
-			soft_selected_count = index + 1;
-		}
-
-		Some(soft_selected_count as MessageNonce)
+		_reference: &mut RelayReference<P, SourceClient, TargetClient>,
+	) -> bool {
+		true
 	}
 }

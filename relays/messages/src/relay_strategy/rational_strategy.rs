@@ -44,24 +44,8 @@ impl RelayStrategy for RationalStrategy {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		&self,
-		reference: RelayReference<P, SourceClient, TargetClient>,
-	) -> Option<MessageNonce> {
-		let mut soft_selected_count = 0;
-
-		let mut selected_unpaid_weight: Weight = 0;
-		let mut selected_prepaid_nonces = 0;
-		let mut selected_reward = P::SourceChainBalance::zero();
-		let mut selected_size: u32 = 0;
-		let mut selected_cost = P::SourceChainBalance::zero();
-		let mut selected_count: MessageNonce = 0;
-
-		let mut total_reward = P::SourceChainBalance::zero();
-		let mut total_confirmations_cost = P::SourceChainBalance::zero();
-		let mut total_cost = P::SourceChainBalance::zero();
-
-		let hard_selected_begin_nonce =
-			reference.nonces_queue[reference.nonces_queue_range.start].1.begin();
-
+		reference: &mut RelayReference<P, SourceClient, TargetClient>,
+	) -> bool {
 		// technically, multiple confirmations will be delivered in a single transaction,
 		// meaning less loses for relayer. But here we don't know the final relayer yet, so
 		// we're adding a separate transaction for every message. Normally, this cost is covered
@@ -69,130 +53,72 @@ impl RelayStrategy for RationalStrategy {
 		let confirmation_transaction_cost =
 			reference.lane_source_client.estimate_confirmation_transaction().await;
 
-		let all_ready_nonces = reference
-			.nonces_queue
-			.range(reference.nonces_queue_range.clone())
-			.flat_map(|(_, ready_nonces)| ready_nonces.iter())
-			.enumerate();
-		for (index, (nonce, details)) in all_ready_nonces {
-			// limit messages in the batch by size
-			let new_selected_size = match selected_size.checked_add(details.size) {
-				Some(new_selected_size)
-					if new_selected_size <= reference.max_messages_size_in_single_batch =>
-					new_selected_size,
-				new_selected_size if selected_count == 0 => {
-					log::warn!(
-						target: "bridge",
-						"Going to submit message delivery transaction with message \
-						size {:?} that overflows maximal configured size {}",
-						new_selected_size,
-						reference.max_messages_size_in_single_batch,
-					);
-					new_selected_size.unwrap_or(u32::MAX)
-				},
-				_ => break,
-			};
-			// limit number of messages in the batch
-			let new_selected_count = selected_count + 1;
-			if new_selected_count > reference.max_messages_in_this_batch {
-				break
-			}
-
-			// If dispatch fee has been paid at the source chain, it means that it is **relayer**
-			// who's paying for dispatch at the target chain AND reward must cover this dispatch
-			// fee.
-			//
-			// If dispatch fee is paid at the target chain, it means that it'll be withdrawn from
-			// the dispatch origin account AND reward is not covering this fee.
-			//
-			// So in the latter case we're not adding the dispatch weight to the delivery
-			// transaction weight.
-			let mut new_selected_prepaid_nonces = selected_prepaid_nonces;
-			let new_selected_unpaid_weight = match details.dispatch_fee_payment {
-				DispatchFeePayment::AtSourceChain => {
-					new_selected_prepaid_nonces += 1;
-					selected_unpaid_weight.saturating_add(details.dispatch_weight)
-				},
-				DispatchFeePayment::AtTargetChain => selected_unpaid_weight,
-			};
-
-			// now the message has passed all 'strong' checks, and we CAN deliver it. But do we WANT
-			// to deliver it? It depends on the relayer strategy.
-
-			let delivery_transaction_cost = reference
-				.lane_target_client
-				.estimate_delivery_transaction_in_source_tokens(
-					hard_selected_begin_nonce..=(hard_selected_begin_nonce + index as MessageNonce),
-					new_selected_prepaid_nonces,
-					new_selected_unpaid_weight,
-					new_selected_size as u32,
-				)
-				.await
-				.map_err(|err| {
-					log::debug!(
-						target: "bridge",
-						"Failed to estimate delivery transaction cost: {:?}. No nonces selected for delivery",
-						err,
-					);
-				})
-				.ok()?;
-
-			// if it is the first message that makes reward less than cost, let's log it
-			// if this message makes batch profitable again, let's log it
-			let is_total_reward_less_than_cost = total_reward < total_cost;
-			let prev_total_cost = total_cost;
-			let prev_total_reward = total_reward;
-			total_confirmations_cost =
-				total_confirmations_cost.saturating_add(&confirmation_transaction_cost);
-			total_reward = total_reward.saturating_add(&details.reward);
-			total_cost = total_confirmations_cost.saturating_add(&delivery_transaction_cost);
-			if !is_total_reward_less_than_cost && total_reward < total_cost {
+		let delivery_transaction_cost = match reference
+			.lane_target_client
+			.estimate_delivery_transaction_in_source_tokens(
+				reference.hard_selected_begin_nonce..=
+					(reference.hard_selected_begin_nonce + reference.index as MessageNonce),
+				reference.selected_prepaid_nonces,
+				reference.selected_unpaid_weight,
+				reference.selected_size as u32,
+			)
+			.await
+		{
+			Ok(v) => v,
+			Err(err) => {
 				log::debug!(
 					target: "bridge",
-					"Message with nonce {} (reward = {:?}) changes total cost {:?}->{:?} and makes it larger than \
-					total reward {:?}->{:?}",
-					nonce,
-					details.reward,
-					prev_total_cost,
-					total_cost,
-					prev_total_reward,
-					total_reward,
+					"Failed to estimate delivery transaction cost: {:?}. No nonces selected for delivery",
+					err,
 				);
-			} else if is_total_reward_less_than_cost && total_reward >= total_cost {
-				log::debug!(
-					target: "bridge",
-					"Message with nonce {} (reward = {:?}) changes total cost {:?}->{:?} and makes it less than or \
-					equal to the total reward {:?}->{:?} (again)",
-					nonce,
-					details.reward,
-					prev_total_cost,
-					total_cost,
-					prev_total_reward,
-					total_reward,
-				);
-			}
+				return false
+			},
+		};
 
-			// Rational relayer never want to lose his funds
-			if total_reward >= total_cost {
-				soft_selected_count = index + 1;
-				selected_reward = total_reward;
-				selected_cost = total_cost;
-			}
-
-			selected_size = new_selected_size;
-			selected_count = new_selected_count;
-		}
-
-		if soft_selected_count != 0 {
-			log::trace!(
+		// if it is the first message that makes reward less than cost, let's log it
+		// if this message makes batch profitable again, let's log it
+		let is_total_reward_less_than_cost = reference.total_reward < reference.total_cost;
+		let prev_total_cost = reference.total_cost;
+		let prev_total_reward = reference.total_reward;
+		reference.total_confirmations_cost = reference
+			.total_confirmations_cost
+			.saturating_add(&confirmation_transaction_cost);
+		reference.total_reward = reference.total_reward.saturating_add(&reference.details.reward);
+		reference.total_cost =
+			reference.total_confirmations_cost.saturating_add(&delivery_transaction_cost);
+		if !is_total_reward_less_than_cost && reference.total_reward < reference.total_cost {
+			log::debug!(
 				target: "bridge",
-				"Expected reward from delivering nonces [{:?}; ?] is: {:?} - {:?} = {:?}",
-				hard_selected_begin_nonce,
-				selected_reward,
-				selected_cost,
-				selected_reward - selected_cost,
+				"Message with nonce {} (reward = {:?}) changes total cost {:?}->{:?} and makes it larger than \
+				total reward {:?}->{:?}",
+				reference.nonce,
+				reference.details.reward,
+				prev_total_cost,
+				reference.total_cost,
+				prev_total_reward,
+				reference.total_reward,
+			);
+		} else if is_total_reward_less_than_cost && reference.total_reward >= reference.total_cost {
+			log::debug!(
+				target: "bridge",
+				"Message with nonce {} (reward = {:?}) changes total cost {:?}->{:?} and makes it less than or \
+				equal to the total reward {:?}->{:?} (again)",
+				reference.nonce,
+				reference.details.reward,
+				prev_total_cost,
+				reference.total_cost,
+				prev_total_reward,
+				reference.total_reward,
 			);
 		}
-		Some(soft_selected_count as MessageNonce)
+
+		// Rational relayer never want to lose his funds
+		if reference.total_reward >= reference.total_cost {
+			reference.selected_reward = reference.total_reward;
+			reference.selected_cost = reference.total_cost;
+			return true
+		}
+
+		false
 	}
 }

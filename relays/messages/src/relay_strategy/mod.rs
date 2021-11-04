@@ -25,7 +25,7 @@ use bp_messages::{MessageNonce, Weight};
 use crate::{
 	message_lane::MessageLane,
 	message_lane_loop::{
-		MessageDetailsMap, SourceClient as MessageLaneSourceClient,
+		MessageDetails, MessageDetailsMap, SourceClient as MessageLaneSourceClient,
 		TargetClient as MessageLaneTargetClient,
 	},
 	message_race_strategy::SourceRangesQueue,
@@ -53,12 +53,38 @@ pub trait RelayStrategy: 'static + Clone + Send + Sync {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		&self,
-		reference: RelayReference<P, SourceClient, TargetClient>,
-	) -> Option<MessageNonce>;
+		reference: &mut RelayReference<P, SourceClient, TargetClient>,
+	) -> bool;
+}
+
+pub struct RelayReference<
+	P: MessageLane,
+	SourceClient: MessageLaneSourceClient<P>,
+	TargetClient: MessageLaneTargetClient<P>,
+> {
+	/// The client that is connected to the message lane source node.
+	pub lane_source_client: SourceClient,
+	/// The client that is connected to the message lane target node.
+	pub lane_target_client: TargetClient,
+	pub selected_reward: P::SourceChainBalance,
+	pub selected_cost: P::SourceChainBalance,
+	pub selected_size: u32,
+
+	pub total_reward: P::SourceChainBalance,
+	pub total_confirmations_cost: P::SourceChainBalance,
+	pub total_cost: P::SourceChainBalance,
+
+	pub hard_selected_begin_nonce: MessageNonce,
+	pub selected_prepaid_nonces: MessageNonce,
+	pub selected_unpaid_weight: Weight,
+
+	pub index: usize,
+	pub nonce: MessageNonce,
+	pub details: MessageDetails<P::SourceChainBalance>,
 }
 
 /// Relay reference data
-pub struct RelayReference<
+pub struct RelayMessagesBatchReference<
 	P: MessageLane,
 	SourceClient: MessageLaneSourceClient<P>,
 	TargetClient: MessageLaneTargetClient<P>,

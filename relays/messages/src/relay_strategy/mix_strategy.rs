@@ -31,8 +31,8 @@ impl RelayStrategy for MixStrategy {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		&self,
-		reference: RelayReference<P, SourceClient, TargetClient>,
-	) -> Option<MessageNonce> {
+		reference: &mut RelayReference<P, SourceClient, TargetClient>,
+	) -> bool {
 		match self.relayer_mode {
 			RelayerMode::Altruistic => AltruisticStrategy.decide(reference).await,
 			RelayerMode::Rational => RationalStrategy.decide(reference).await,
