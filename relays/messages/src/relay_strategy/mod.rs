@@ -16,8 +16,9 @@
 
 //! Relayer strategy
 
-use async_trait::async_trait;
 use std::ops::Range;
+
+use async_trait::async_trait;
 
 use bp_messages::{MessageNonce, Weight};
 
@@ -30,8 +31,11 @@ use crate::{
 	message_race_strategy::SourceRangesQueue,
 };
 
-pub mod altruistic_strategy;
-pub mod rational_strategy;
+pub use self::{altruistic_strategy::*, mix_strategy::*, rational_strategy::*};
+
+mod altruistic_strategy;
+mod mix_strategy;
+mod rational_strategy;
 
 /// Relayer strategy trait
 #[async_trait]
@@ -46,6 +50,7 @@ pub trait RelayStrategy: 'static + Clone + Send + Sync {
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
+		&self,
 		reference: RelayReference<P, SourceClient, TargetClient>,
 	) -> Option<MessageNonce>;
 }

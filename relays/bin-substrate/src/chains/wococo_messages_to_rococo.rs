@@ -24,9 +24,7 @@ use sp_core::{Bytes, Pair};
 use bp_messages::MessageNonce;
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use frame_support::weights::Weight;
-use messages_relay::{
-	message_lane::MessageLane, relay_strategy::altruistic_strategy::AltruisticStrategy,
-};
+use messages_relay::{message_lane::MessageLane, relay_strategy::MixStrategy};
 use relay_rococo_client::{
 	HeaderId as RococoHeaderId, Rococo, SigningParams as RococoSigningParams,
 };
@@ -46,13 +44,8 @@ use substrate_relay_helper::{
 };
 
 /// Wococo-to-Rococo message lane.
-pub type MessageLaneWococoMessagesToRococo = SubstrateMessageLaneToSubstrate<
-	Wococo,
-	WococoSigningParams,
-	Rococo,
-	RococoSigningParams,
-	AltruisticStrategy,
->;
+pub type MessageLaneWococoMessagesToRococo =
+	SubstrateMessageLaneToSubstrate<Wococo, WococoSigningParams, Rococo, RococoSigningParams>;
 
 #[derive(Clone)]
 pub struct WococoMessagesToRococo {
@@ -180,7 +173,13 @@ type RococoTargetClient = SubstrateMessagesTarget<WococoMessagesToRococo>;
 
 /// Run Wococo-to-Rococo messages sync.
 pub async fn run(
-	params: MessagesRelayParams<Wococo, WococoSigningParams, Rococo, RococoSigningParams>,
+	params: MessagesRelayParams<
+		Wococo,
+		WococoSigningParams,
+		Rococo,
+		RococoSigningParams,
+		MixStrategy,
+	>,
 ) -> anyhow::Result<()> {
 	let stall_timeout = relay_substrate_client::bidirectional_transaction_stall_timeout(
 		params.source_transactions_mortality,
@@ -202,7 +201,6 @@ pub async fn run(
 			target_sign: params.target_sign,
 			target_transactions_mortality: params.target_transactions_mortality,
 			relayer_id_at_source: relayer_id_at_wococo,
-			_marker: Default::default(),
 		},
 	};
 
@@ -260,6 +258,7 @@ pub async fn run(
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
+				relay_strategy: params.relay_strategy,
 			},
 		},
 		WococoSourceClient::new(

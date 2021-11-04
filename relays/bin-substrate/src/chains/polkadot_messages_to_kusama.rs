@@ -24,9 +24,7 @@ use sp_core::{Bytes, Pair};
 use bp_messages::MessageNonce;
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use frame_support::weights::Weight;
-use messages_relay::{
-	message_lane::MessageLane, relay_strategy::altruistic_strategy::AltruisticStrategy,
-};
+use messages_relay::{message_lane::MessageLane, relay_strategy::MixStrategy};
 use relay_kusama_client::{
 	HeaderId as KusamaHeaderId, Kusama, SigningParams as KusamaSigningParams,
 };
@@ -47,13 +45,8 @@ use substrate_relay_helper::{
 };
 
 /// Polkadot-to-Kusama message lane.
-pub type MessageLanePolkadotMessagesToKusama = SubstrateMessageLaneToSubstrate<
-	Polkadot,
-	PolkadotSigningParams,
-	Kusama,
-	KusamaSigningParams,
-	AltruisticStrategy,
->;
+pub type MessageLanePolkadotMessagesToKusama =
+	SubstrateMessageLaneToSubstrate<Polkadot, PolkadotSigningParams, Kusama, KusamaSigningParams>;
 
 #[derive(Clone)]
 pub struct PolkadotMessagesToKusama {
@@ -183,7 +176,13 @@ type KusamaTargetClient = SubstrateMessagesTarget<PolkadotMessagesToKusama>;
 
 /// Run Polkadot-to-Kusama messages sync.
 pub async fn run(
-	params: MessagesRelayParams<Polkadot, PolkadotSigningParams, Kusama, KusamaSigningParams>,
+	params: MessagesRelayParams<
+		Polkadot,
+		PolkadotSigningParams,
+		Kusama,
+		KusamaSigningParams,
+		MixStrategy,
+	>,
 ) -> anyhow::Result<()> {
 	let stall_timeout = relay_substrate_client::bidirectional_transaction_stall_timeout(
 		params.source_transactions_mortality,
@@ -205,7 +204,6 @@ pub async fn run(
 			target_sign: params.target_sign,
 			target_transactions_mortality: params.target_transactions_mortality,
 			relayer_id_at_source: relayer_id_at_polkadot,
-			_marker: Default::default(),
 		},
 	};
 
@@ -263,6 +261,7 @@ pub async fn run(
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
+				relay_strategy: params.relay_strategy,
 			},
 		},
 		PolkadotSourceClient::new(

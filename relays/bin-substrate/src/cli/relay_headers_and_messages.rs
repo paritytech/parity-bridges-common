@@ -24,8 +24,10 @@
 
 use futures::{FutureExt, TryFutureExt};
 use structopt::StructOpt;
+use strum::VariantNames;
 
 use codec::Encode;
+use messages_relay::relay_strategy::MixStrategy;
 use relay_substrate_client::{
 	AccountIdOf, Chain, Client, TransactionSignScheme, UnsignedTransaction,
 };
@@ -37,7 +39,7 @@ use substrate_relay_helper::{
 };
 
 use crate::{
-	cli::{CliChain, HexLaneId, PrometheusParams},
+	cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams},
 	declare_chain_options,
 };
 
@@ -63,6 +65,8 @@ pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
 	#[structopt(long, default_value = "00000000")]
 	lane: Vec<HexLaneId>,
+	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
+	relayer_mode: RelayerMode,
 	/// Create relayers fund accounts on both chains, if it does not exists yet.
 	#[structopt(long)]
 	create_relayers_fund_accounts: bool,
@@ -371,6 +375,8 @@ impl RelayHeadersAndMessages {
 				params.right_messages_pallet_owner.to_keypair::<Right>()?;
 
 			let lanes = params.shared.lane;
+			let relayer_mode = params.shared.relayer_mode.into();
+			let relay_strategy = MixStrategy::new(relayer_mode);
 
 			const METRIC_IS_SOME_PROOF: &str =
 				"it is `None` when metric has been already registered; \
@@ -520,6 +526,7 @@ impl RelayHeadersAndMessages {
 							<LeftToRightMessages as SubstrateMessageLane>::MessageLane,
 						>(&lane),
 					),
+					relay_strategy: relay_strategy.clone(),
 				})
 				.map_err(|e| anyhow::format_err!("{}", e))
 				.boxed();
@@ -538,6 +545,7 @@ impl RelayHeadersAndMessages {
 							<RightToLeftMessages as SubstrateMessageLane>::MessageLane,
 						>(&lane),
 					),
+					relay_strategy: relay_strategy.clone(),
 				})
 				.map_err(|e| anyhow::format_err!("{}", e))
 				.boxed();

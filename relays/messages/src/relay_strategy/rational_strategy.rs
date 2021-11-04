@@ -43,6 +43,7 @@ impl RelayStrategy for RationalStrategy {
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
+		&self,
 		reference: RelayReference<P, SourceClient, TargetClient>,
 	) -> Option<MessageNonce> {
 		let mut hard_selected_count = 0;

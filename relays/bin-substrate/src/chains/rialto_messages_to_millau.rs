@@ -25,9 +25,7 @@ use sp_core::{Bytes, Pair};
 use bp_messages::MessageNonce;
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use frame_support::weights::Weight;
-use messages_relay::{
-	message_lane::MessageLane, relay_strategy::altruistic_strategy::AltruisticStrategy,
-};
+use messages_relay::{message_lane::MessageLane, relay_strategy::MixStrategy};
 use relay_millau_client::{
 	HeaderId as MillauHeaderId, Millau, SigningParams as MillauSigningParams,
 };
@@ -47,13 +45,8 @@ use substrate_relay_helper::{
 };
 
 /// Rialto-to-Millau message lane.
-pub type MessageLaneRialtoMessagesToMillau = SubstrateMessageLaneToSubstrate<
-	Rialto,
-	RialtoSigningParams,
-	Millau,
-	MillauSigningParams,
-	AltruisticStrategy,
->;
+pub type MessageLaneRialtoMessagesToMillau =
+	SubstrateMessageLaneToSubstrate<Rialto, RialtoSigningParams, Millau, MillauSigningParams>;
 
 #[derive(Clone)]
 pub struct RialtoMessagesToMillau {
@@ -181,7 +174,13 @@ type MillauTargetClient = SubstrateMessagesTarget<RialtoMessagesToMillau>;
 
 /// Run Rialto-to-Millau messages sync.
 pub async fn run(
-	params: MessagesRelayParams<Rialto, RialtoSigningParams, Millau, MillauSigningParams>,
+	params: MessagesRelayParams<
+		Rialto,
+		RialtoSigningParams,
+		Millau,
+		MillauSigningParams,
+		MixStrategy,
+	>,
 ) -> anyhow::Result<()> {
 	let stall_timeout = relay_substrate_client::bidirectional_transaction_stall_timeout(
 		params.source_transactions_mortality,
@@ -203,7 +202,6 @@ pub async fn run(
 			target_sign: params.target_sign,
 			target_transactions_mortality: params.target_transactions_mortality,
 			relayer_id_at_source: relayer_id_at_rialto,
-			_marker: Default::default(),
 		},
 	};
 
@@ -257,6 +255,7 @@ pub async fn run(
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
+				relay_strategy: params.relay_strategy,
 			},
 		},
 		RialtoSourceClient::new(

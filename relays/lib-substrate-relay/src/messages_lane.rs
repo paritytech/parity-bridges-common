@@ -43,7 +43,7 @@ use sp_runtime::FixedU128;
 use std::ops::RangeInclusive;
 
 /// Substrate <-> Substrate messages relay parameters.
-pub struct MessagesRelayParams<SC: Chain, SS, TC: Chain, TS> {
+pub struct MessagesRelayParams<SC: Chain, SS, TC: Chain, TS, Strategy: RelayStrategy> {
 	/// Messages source client.
 	pub source_client: Client<SC>,
 	/// Sign parameters for messages source chain.
@@ -64,6 +64,8 @@ pub struct MessagesRelayParams<SC: Chain, SS, TC: Chain, TS> {
 	pub lane_id: LaneId,
 	/// Metrics parameters.
 	pub metrics_params: MetricsParams,
+	/// Relay strategy
+	pub relay_strategy: Strategy,
 }
 
 /// Message sync pipeline for Substrate <-> Substrate relays.
@@ -147,7 +149,6 @@ pub struct SubstrateMessageLaneToSubstrate<
 	SourceSignParams,
 	Target: Chain,
 	TargetSignParams,
-	Strategy: RelayStrategy,
 > {
 	/// Client for the source Substrate chain.
 	pub source_client: Client<Source>,
@@ -163,18 +164,10 @@ pub struct SubstrateMessageLaneToSubstrate<
 	pub target_transactions_mortality: Option<u32>,
 	/// Account id of relayer at the source chain.
 	pub relayer_id_at_source: Source::AccountId,
-	/// marker
-	pub _marker: PhantomData<Strategy>,
 }
 
-impl<
-		Source: Chain,
-		SourceSignParams: Clone,
-		Target: Chain,
-		TargetSignParams: Clone,
-		Strategy: RelayStrategy,
-	> Clone
-	for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams, Strategy>
+impl<Source: Chain, SourceSignParams: Clone, Target: Chain, TargetSignParams: Clone> Clone
+	for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams>
 {
 	fn clone(&self) -> Self {
 		Self {
@@ -185,14 +178,12 @@ impl<
 			target_sign: self.target_sign.clone(),
 			target_transactions_mortality: self.target_transactions_mortality,
 			relayer_id_at_source: self.relayer_id_at_source.clone(),
-			_marker: self._marker,
 		}
 	}
 }
 
-impl<Source: Chain, SourceSignParams, Target: Chain, TargetSignParams, Strategy: RelayStrategy>
-	MessageLane
-	for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams, Strategy>
+impl<Source: Chain, SourceSignParams, Target: Chain, TargetSignParams> MessageLane
+	for SubstrateMessageLaneToSubstrate<Source, SourceSignParams, Target, TargetSignParams>
 where
 	SourceSignParams: Clone + Send + Sync + 'static,
 	TargetSignParams: Clone + Send + Sync + 'static,
@@ -211,7 +202,6 @@ where
 
 	type TargetHeaderNumber = BlockNumberOf<Target>;
 	type TargetHeaderHash = HashOf<Target>;
-	type RelayStrategy = Strategy;
 }
 
 /// Returns maximal number of messages and their maximal cumulative dispatch weight, based

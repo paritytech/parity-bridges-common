@@ -38,14 +38,14 @@ use crate::{
 };
 
 /// Run message delivery race.
-pub async fn run<P: MessageLane>(
+pub async fn run<P: MessageLane, Strategy: RelayStrategy>(
 	source_client: impl MessageLaneSourceClient<P>,
 	source_state_updates: impl FusedStream<Item = SourceClientState<P>>,
 	target_client: impl MessageLaneTargetClient<P>,
 	target_state_updates: impl FusedStream<Item = TargetClientState<P>>,
 	stall_timeout: Duration,
 	metrics_msg: Option<MessageLaneLoopMetrics>,
-	params: MessageDeliveryParams,
+	params: MessageDeliveryParams<Strategy>,
 ) -> Result<(), FailedClient> {
 	crate::message_race_loop::run(
 		MessageDeliveryRaceSource {
@@ -61,7 +61,7 @@ pub async fn run<P: MessageLane>(
 		},
 		target_state_updates,
 		stall_timeout,
-		MessageDeliveryStrategy::<P, _, _> {
+		MessageDeliveryStrategy::<P, Strategy, _, _> {
 			lane_source_client: source_client,
 			lane_target_client: target_client,
 			max_unrewarded_relayer_entries_at_target: params
@@ -70,6 +70,7 @@ pub async fn run<P: MessageLane>(
 			max_messages_in_single_batch: params.max_messages_in_single_batch,
 			max_messages_weight_in_single_batch: params.max_messages_weight_in_single_batch,
 			max_messages_size_in_single_batch: params.max_messages_size_in_single_batch,
+			relay_strategy: params.relay_strategy,
 			latest_confirmed_nonces_at_source: VecDeque::new(),
 			target_nonces: None,
 			strategy: BasicStrategy::new(),
@@ -230,7 +231,7 @@ struct DeliveryRaceTargetNoncesData {
 }
 
 /// Messages delivery strategy.
-struct MessageDeliveryStrategy<P: MessageLane, SC, TC> {
+struct MessageDeliveryStrategy<P: MessageLane, Strategy: RelayStrategy, SC, TC> {
 	/// The client that is connected to the message lane source node.
 	lane_source_client: SC,
 	/// The client that is connected to the message lane target node.
@@ -245,6 +246,8 @@ struct MessageDeliveryStrategy<P: MessageLane, SC, TC> {
 	max_messages_weight_in_single_batch: Weight,
 	/// Maximal messages size in the single delivery transaction.
 	max_messages_size_in_single_batch: u32,
+	/// Relayer operating mode.
+	relay_strategy: Strategy,
 	/// Latest confirmed nonces at the source client + the header id where we have first met this
 	/// nonce.
 	latest_confirmed_nonces_at_source: VecDeque<(SourceHeaderIdOf<P>, MessageNonce)>,
@@ -263,7 +266,9 @@ type MessageDeliveryStrategyBase<P> = BasicStrategy<
 	<P as MessageLane>::MessagesProof,
 >;
 
-impl<P: MessageLane, SC, TC> std::fmt::Debug for MessageDeliveryStrategy<P, SC, TC> {
+impl<P: MessageLane, Strategy: RelayStrategy, SC, TC> std::fmt::Debug
+	for MessageDeliveryStrategy<P, Strategy, SC, TC>
+{
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
 		fmt.debug_struct("MessageDeliveryStrategy")
 			.field(
@@ -281,7 +286,7 @@ impl<P: MessageLane, SC, TC> std::fmt::Debug for MessageDeliveryStrategy<P, SC, 
 	}
 }
 
-impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> {
+impl<P: MessageLane, Strategy: RelayStrategy, SC, TC> MessageDeliveryStrategy<P, Strategy, SC, TC> {
 	/// Returns total weight of all undelivered messages.
 	fn total_queued_dispatch_weight(&self) -> Weight {
 		self.strategy
@@ -293,8 +298,9 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> {
 }
 
 #[async_trait]
-impl<P, SC, TC> RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>
-	for MessageDeliveryStrategy<P, SC, TC>
+impl<P, Strategy: RelayStrategy, SC, TC>
+	RaceStrategy<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>
+	for MessageDeliveryStrategy<P, Strategy, SC, TC>
 where
 	P: MessageLane,
 	SC: MessageLaneSourceClient<P>,
@@ -437,7 +443,7 @@ where
 				);
 
 				return None
-			},
+			}
 			_ => (),
 		}
 
@@ -515,7 +521,7 @@ where
 			nonces_queue_range: 0..maximal_source_queue_index + 1,
 		};
 
-		let range_end = P::RelayStrategy::decide(reference).await?;
+		let range_end = self.relay_strategy.decide(reference).await?;
 
 		let range_begin = source_queue[0].1.begin();
 		let selected_nonces = range_begin..=range_end;
@@ -573,8 +579,12 @@ mod tests {
 		(DEFAULT_SIZE as TestSourceChainBalance);
 
 	type TestRaceState = RaceState<TestSourceHeaderId, TestTargetHeaderId, TestMessagesProof>;
-	type TestStrategy =
-		MessageDeliveryStrategy<TestMessageLane, TestSourceClient, TestTargetClient>;
+	type TestStrategy = MessageDeliveryStrategy<
+		TestMessageLane,
+		AltruisticStrategy,
+		TestSourceClient,
+		TestTargetClient,
+	>;
 
 	fn source_nonces(
 		new_nonces: RangeInclusive<MessageNonce>,
