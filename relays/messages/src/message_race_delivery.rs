@@ -637,7 +637,7 @@ mod tests {
 
 		race_strategy.strategy.source_nonces_updated(
 			header_id(1),
-			source_nonces(20..=23, 19, DEFAULT_REWARD, AtSourceChain),
+			source_nonces(20..=23, 19, DEFAULT_REWARD, DispatchFeePayment::AtSourceChain),
 		);
 
 		let target_nonces = TargetClientNonces { latest_nonce: 19, nonces_data: () };
@@ -1045,7 +1045,7 @@ mod tests {
 		// This was happening because selector (`select_nonces_for_delivery_transaction`) has been
 		// called for every `source_queue` entry separately without preserving any context.
 		let (mut state, mut strategy) = prepare_strategy();
-		let nonces = source_nonces(24..=25, 19, DEFAULT_REWARD, AtSourceChain);
+        let nonces = source_nonces(24..=25, 19, DEFAULT_REWARD, DispatchFeePayment::AtSourceChain);
 		strategy.strategy.source_nonces_updated(header_id(2), nonces);
 		strategy.max_unrewarded_relayer_entries_at_target = 100;
 		strategy.max_unconfirmed_nonces_at_target = 100;
