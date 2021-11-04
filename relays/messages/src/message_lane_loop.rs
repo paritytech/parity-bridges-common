@@ -24,17 +24,13 @@
 //! finalized header. I.e. when talking about headers in lane context, we
 //! only care about finalized headers.
 
-use crate::{
-	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
-	message_race_delivery::run as run_message_delivery_race,
-	message_race_receiving::run as run_message_receiving_race,
-	metrics::MessageLaneLoopMetrics,
-};
+use std::{collections::BTreeMap, fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
 
 use async_trait::async_trait;
+use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
+
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
 use bp_runtime::messages::DispatchFeePayment;
-use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
 use relay_utils::{
 	interval,
 	metrics::{GlobalMetrics, MetricsParams},
@@ -42,7 +38,13 @@ use relay_utils::{
 	relay_loop::Client as RelayClient,
 	retry_backoff, FailedClient,
 };
-use std::{collections::BTreeMap, fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
+
+use crate::{
+	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
+	message_race_delivery::run as run_message_delivery_race,
+	message_race_receiving::run as run_message_receiving_race,
+	metrics::MessageLaneLoopMetrics,
+};
 
 /// Message lane loop configuration params.
 #[derive(Debug, Clone)]
@@ -59,17 +61,6 @@ pub struct Params {
 	pub stall_timeout: Duration,
 	/// Message delivery race parameters.
 	pub delivery_params: MessageDeliveryParams,
-}
-
-/// Relayer operating mode.
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[deprecated]
-pub enum RelayerMode {
-	/// The relayer doesn't care about rewards.
-	Altruistic,
-	/// The relayer will deliver all messages and confirmations as long as he's not losing any
-	/// funds.
-	Rational,
 }
 
 /// Message delivery race parameters.
@@ -90,8 +81,6 @@ pub struct MessageDeliveryParams {
 	pub max_messages_weight_in_single_batch: Weight,
 	/// Maximal cumulative size of relayed messages in single delivery transaction.
 	pub max_messages_size_in_single_batch: u32,
-	/// Relayer operating mode.
-	pub relayer_mode: RelayerMode,
 }
 
 /// Message details.
@@ -450,11 +439,16 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 
 #[cfg(test)]
 pub(crate) mod tests {
-	use super::*;
+	use std::sync::Arc;
+
 	use futures::stream::StreamExt;
 	use parking_lot::Mutex;
+
 	use relay_utils::{HeaderId, MaybeConnectionError};
-	use std::sync::Arc;
+
+	use crate::relay_strategy::rational_strategy::RationalStrategy;
+
+	use super::*;
 
 	pub fn header_id(number: TestSourceHeaderNumber) -> TestSourceHeaderId {
 		HeaderId(number, number)
@@ -501,6 +495,7 @@ pub(crate) mod tests {
 
 		type TargetHeaderNumber = TestTargetHeaderNumber;
 		type TargetHeaderHash = TestTargetHeaderHash;
+		type RelayerStrategy = RationalStrategy;
 	}
 
 	#[derive(Debug, Default, Clone)]
@@ -808,7 +803,6 @@ pub(crate) mod tests {
 						max_messages_in_single_batch: 4,
 						max_messages_weight_in_single_batch: 4,
 						max_messages_size_in_single_batch: 4,
-						relayer_mode: RelayerMode::Altruistic,
 					},
 				},
 				source_client,

@@ -38,7 +38,7 @@ use substrate_relay_helper::{
 };
 
 use crate::{
-	cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams},
+	cli::{CliChain, HexLaneId, PrometheusParams},
 	declare_chain_options,
 };
 
@@ -64,8 +64,6 @@ pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
 	#[structopt(long, default_value = "00000000")]
 	lane: Vec<HexLaneId>,
-	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
-	relayer_mode: RelayerMode,
 	/// Create relayers fund accounts on both chains, if it does not exists yet.
 	#[structopt(long)]
 	create_relayers_fund_accounts: bool,
@@ -374,7 +372,6 @@ impl RelayHeadersAndMessages {
 				params.right_messages_pallet_owner.to_keypair::<Right>()?;
 
 			let lanes = params.shared.lane;
-			let relayer_mode = params.shared.relayer_mode.into();
 
 			const METRIC_IS_SOME_PROOF: &str =
 				"it is `None` when metric has been already registered; \
@@ -519,7 +516,6 @@ impl RelayHeadersAndMessages {
 					source_to_target_headers_relay: Some(left_to_right_on_demand_headers.clone()),
 					target_to_source_headers_relay: Some(right_to_left_on_demand_headers.clone()),
 					lane_id: lane,
-					relayer_mode,
 					metrics_params: metrics_params.clone().disable().metrics_prefix(
 						messages_relay::message_lane_loop::metrics_prefix::<
 							<LeftToRightMessages as SubstrateMessageLane>::MessageLane,
@@ -538,7 +534,6 @@ impl RelayHeadersAndMessages {
 					source_to_target_headers_relay: Some(right_to_left_on_demand_headers.clone()),
 					target_to_source_headers_relay: Some(left_to_right_on_demand_headers.clone()),
 					lane_id: lane,
-					relayer_mode,
 					metrics_params: metrics_params.clone().disable().metrics_prefix(
 						messages_relay::message_lane_loop::metrics_prefix::<
 							<RightToLeftMessages as SubstrateMessageLane>::MessageLane,

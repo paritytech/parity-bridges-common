@@ -31,7 +31,7 @@ use relay_utils::FailedClient;
 use crate::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
-		MessageDeliveryParams, MessageDetailsMap, MessageProofParameters, RelayerMode,
+		MessageDeliveryParams, MessageDetailsMap, MessageProofParameters,
 		SourceClient as MessageLaneSourceClient, SourceClientState,
 		TargetClient as MessageLaneTargetClient, TargetClientState,
 	},
@@ -77,7 +77,6 @@ pub async fn run<P: MessageLane>(
 			max_messages_in_single_batch: params.max_messages_in_single_batch,
 			max_messages_weight_in_single_batch: params.max_messages_weight_in_single_batch,
 			max_messages_size_in_single_batch: params.max_messages_size_in_single_batch,
-			relayer_mode: params.relayer_mode,
 			latest_confirmed_nonces_at_source: VecDeque::new(),
 			target_nonces: None,
 			strategy: BasicStrategy::new(),
@@ -253,8 +252,6 @@ struct MessageDeliveryStrategy<P: MessageLane, SC, TC> {
 	max_messages_weight_in_single_batch: Weight,
 	/// Maximal messages size in the single delivery transaction.
 	max_messages_size_in_single_batch: u32,
-	/// Relayer operating mode.
-	relayer_mode: RelayerMode,
 	/// Latest confirmed nonces at the source client + the header id where we have first met this
 	/// nonce.
 	latest_confirmed_nonces_at_source: VecDeque<(SourceHeaderIdOf<P>, MessageNonce)>,
@@ -507,7 +504,6 @@ where
 		let max_nonces = std::cmp::min(max_nonces, self.max_messages_in_single_batch);
 		let max_messages_weight_in_single_batch = self.max_messages_weight_in_single_batch;
 		let max_messages_size_in_single_batch = self.max_messages_size_in_single_batch;
-		let relayer_mode = self.relayer_mode;
 		let lane_source_client = self.lane_source_client.clone();
 		let lane_target_client = self.lane_target_client.clone();
 
@@ -624,7 +620,6 @@ mod tests {
 		};
 
 		let mut race_strategy = TestStrategy {
-			relayer_mode: RelayerMode::Altruistic,
 			max_unrewarded_relayer_entries_at_target: 4,
 			max_unconfirmed_nonces_at_target: 4,
 			max_messages_in_single_batch: 4,
@@ -975,7 +970,6 @@ mod tests {
 	#[async_std::test]
 	async fn rational_relayer_is_delivering_messages_if_cost_is_equal_to_reward() {
 		let (state, mut strategy) = prepare_strategy();
-		strategy.relayer_mode = RelayerMode::Rational;
 
 		// so now we have:
 		// - 20..=23 with reward = cost
@@ -997,7 +991,6 @@ mod tests {
 		);
 		strategy.strategy.source_nonces_updated(header_id(2), nonces);
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
-		strategy.relayer_mode = RelayerMode::Rational;
 
 		// so now we have:
 		// - 20..=23 with reward = cost
@@ -1028,7 +1021,6 @@ mod tests {
 			strategy.max_messages_in_single_batch = 100;
 			strategy.max_messages_weight_in_single_batch = 100;
 			strategy.max_messages_size_in_single_batch = 100;
-			strategy.relayer_mode = RelayerMode::Rational;
 
 			// so now we have:
 			// - 20..=23 with reward = cost

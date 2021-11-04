@@ -437,7 +437,7 @@ fn compute_prepaid_messages_refund<P: SubstrateMessageLane>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use messages_relay::relay_strategy::AltruisticStrategy;
+	use messages_relay::relay_strategy::altruistic_strategy::AltruisticStrategy;
 	use relay_rococo_client::{Rococo, SigningParams as RococoSigningParams};
 	use relay_wococo_client::{SigningParams as WococoSigningParams, Wococo};
 
