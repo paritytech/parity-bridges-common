@@ -17,7 +17,6 @@
 //! Altruistic relay strategy
 
 use async_trait::async_trait;
-use num_traits::Zero;
 
 use bp_messages::{MessageNonce, Weight};
 use bp_runtime::messages::DispatchFeePayment;

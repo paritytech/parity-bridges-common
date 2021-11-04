@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use structopt::StructOpt;
-use strum::{EnumString, EnumVariantNames, VariantNames};
+use strum::VariantNames;
 
 use substrate_relay_helper::messages_lane::MessagesRelayParams;
 

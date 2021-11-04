@@ -13,19 +13,12 @@
 
 //! Message delivery race delivers proof-of-messages from "lane.source" to "lane.target".
 
-use std::{
-	collections::VecDeque,
-	marker::PhantomData,
-	ops::{Range, RangeInclusive},
-	time::Duration,
-};
+use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive, time::Duration};
 
 use async_trait::async_trait;
 use futures::stream::FusedStream;
-use num_traits::Zero;
 
 use bp_messages::{MessageNonce, UnrewardedRelayersState, Weight};
-use bp_runtime::messages::DispatchFeePayment;
 use relay_utils::FailedClient;
 
 use crate::{
@@ -39,7 +32,7 @@ use crate::{
 		MessageRace, NoncesRange, RaceState, RaceStrategy, SourceClient, SourceClientNonces,
 		TargetClient, TargetClientNonces,
 	},
-	message_race_strategy::{BasicStrategy, SourceRangesQueue},
+	message_race_strategy::BasicStrategy,
 	metrics::MessageLaneLoopMetrics,
 	relay_strategy::{RelayReference, RelayStrategy},
 };

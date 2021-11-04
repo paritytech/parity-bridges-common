@@ -24,7 +24,6 @@
 
 use futures::{FutureExt, TryFutureExt};
 use structopt::StructOpt;
-use strum::VariantNames;
 
 use codec::Encode;
 use relay_substrate_client::{
