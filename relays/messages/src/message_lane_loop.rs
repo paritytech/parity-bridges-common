@@ -495,7 +495,7 @@ pub(crate) mod tests {
 
 		type TargetHeaderNumber = TestTargetHeaderNumber;
 		type TargetHeaderHash = TestTargetHeaderHash;
-		type RelayerStrategy = RationalStrategy;
+		type RelayStrategy = RationalStrategy;
 	}
 
 	#[derive(Debug, Default, Clone)]

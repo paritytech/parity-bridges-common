@@ -211,7 +211,7 @@ where
 
 	type TargetHeaderNumber = BlockNumberOf<Target>;
 	type TargetHeaderHash = HashOf<Target>;
-	type RelayerStrategy = Strategy;
+	type RelayStrategy = Strategy;
 }
 
 /// Returns maximal number of messages and their maximal cumulative dispatch weight, based

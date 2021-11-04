@@ -60,7 +60,7 @@ pub trait MessageLane: 'static + Clone + Send + Sync {
 	/// Hash of the target header.
 	type TargetHeaderHash: Clone + Debug + Default + PartialEq + Send + Sync;
 	/// Relayer strategy
-	type RelayerStrategy: RelayStrategy;
+	type RelayStrategy: RelayStrategy;
 }
 
 /// Source header id within given one-way message lane.

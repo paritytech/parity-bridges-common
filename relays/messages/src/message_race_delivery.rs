@@ -515,7 +515,7 @@ where
 			nonces_queue_range: 0..maximal_source_queue_index + 1,
 		};
 
-		let range_end = P::RelayerStrategy::decide(reference).await?;
+		let range_end = P::RelayStrategy::decide(reference).await?;
 
 		let range_begin = source_queue[0].1.begin();
 		let selected_nonces = range_begin..=range_end;
