@@ -24,7 +24,9 @@ use sp_core::{Bytes, Pair};
 use bp_messages::MessageNonce;
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use frame_support::weights::Weight;
-use messages_relay::{message_lane::MessageLane, relay_strategy::DefaultRelayStrategy};
+use messages_relay::{
+	message_lane::MessageLane, relay_strategy::altruistic_strategy::AltruisticStrategy,
+};
 use relay_kusama_client::{
 	HeaderId as KusamaHeaderId, Kusama, SigningParams as KusamaSigningParams,
 };
@@ -50,7 +52,7 @@ pub type MessageLanePolkadotMessagesToKusama = SubstrateMessageLaneToSubstrate<
 	PolkadotSigningParams,
 	Kusama,
 	KusamaSigningParams,
-	DefaultRelayStrategy,
+	AltruisticStrategy,
 >;
 
 #[derive(Clone)]

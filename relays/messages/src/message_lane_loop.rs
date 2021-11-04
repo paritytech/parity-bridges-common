@@ -63,6 +63,7 @@ pub struct Params {
 
 /// Relayer operating mode.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[deprecated]
 pub enum RelayerMode {
 	/// The relayer doesn't care about rewards.
 	Altruistic,
