@@ -464,7 +464,7 @@ pub(crate) mod tests {
 
 	use relay_utils::{HeaderId, MaybeConnectionError};
 
-	use crate::relay_strategy::rational_strategy::RationalStrategy;
+	use crate::relay_strategy::RationalStrategy;
 
 	use super::*;
 
