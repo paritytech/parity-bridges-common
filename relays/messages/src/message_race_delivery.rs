@@ -443,7 +443,7 @@ where
 				);
 
 				return None
-			}
+			},
 			_ => (),
 		}
 
