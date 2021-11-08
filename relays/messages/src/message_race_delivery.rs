@@ -569,6 +569,7 @@ mod tests {
 		},
 		MessageDetails,
 	};
+	use crate::relay_strategy::AltruisticStrategy;
 
 	use super::*;
 
