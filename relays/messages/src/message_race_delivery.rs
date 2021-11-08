@@ -643,7 +643,8 @@ mod tests {
 					},
 				},
 			}),
-			relay_strategy: BasicStrategy::new(),
+			strategy: BasicStrategy::new(),
+			relay_strategy: AltruisticStrategy,
 		};
 
 		race_strategy.strategy.source_nonces_updated(
