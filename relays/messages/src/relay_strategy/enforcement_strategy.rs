@@ -16,7 +16,7 @@
 
 //! enforcement strategy
 
-use num_traits::{SaturatingAdd, Zero};
+use num_traits::Zero;
 
 use bp_messages::{MessageNonce, Weight};
 use bp_runtime::messages::DispatchFeePayment;
@@ -24,7 +24,7 @@ use bp_runtime::messages::DispatchFeePayment;
 use crate::{
 	message_lane::MessageLane,
 	message_lane_loop::{
-		MessageDetails, RelayerMode, SourceClient as MessageLaneSourceClient,
+		MessageDetails, SourceClient as MessageLaneSourceClient,
 		TargetClient as MessageLaneTargetClient,
 	},
 	message_race_loop::NoncesRange,
@@ -96,7 +96,7 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 		for (index, (nonce, details)) in all_ready_nonces {
 			relay_reference.index = index;
 			relay_reference.nonce = *nonce;
-			relay_reference.details = details.clone();
+			relay_reference.details = *details;
 
 			// Since we (hopefully) have some reserves in `max_messages_weight_in_single_batch`
 			// and `max_messages_size_in_single_batch`, we may still try to submit transaction

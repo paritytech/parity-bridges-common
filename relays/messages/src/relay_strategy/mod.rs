@@ -57,6 +57,7 @@ pub trait RelayStrategy: 'static + Clone + Send + Sync {
 	) -> bool;
 }
 
+/// Reference data for participating in relay
 pub struct RelayReference<
 	P: MessageLane,
 	SourceClient: MessageLaneSourceClient<P>,
@@ -66,20 +67,32 @@ pub struct RelayReference<
 	pub lane_source_client: SourceClient,
 	/// The client that is connected to the message lane target node.
 	pub lane_target_client: TargetClient,
+	/// Current block reward summary
 	pub selected_reward: P::SourceChainBalance,
+	/// Current block cost summary
 	pub selected_cost: P::SourceChainBalance,
+	/// Messages size summary
 	pub selected_size: u32,
 
+	/// Current block reward summary
 	pub total_reward: P::SourceChainBalance,
+	/// All confirmations cost
 	pub total_confirmations_cost: P::SourceChainBalance,
+	/// Current block cost summary
 	pub total_cost: P::SourceChainBalance,
 
+	/// Hard check begin nonce
 	pub hard_selected_begin_nonce: MessageNonce,
+	/// Count prepaid nonces
 	pub selected_prepaid_nonces: MessageNonce,
+	/// Unpaid nonces weight summary
 	pub selected_unpaid_weight: Weight,
 
+	/// Index by all ready nonces
 	pub index: usize,
+	/// Current nonce
 	pub nonce: MessageNonce,
+	/// Current nonce details
 	pub details: MessageDetails<P::SourceChainBalance>,
 }
 

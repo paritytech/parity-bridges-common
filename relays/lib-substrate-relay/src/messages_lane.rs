@@ -20,7 +20,6 @@ use crate::{
 	messages_source::SubstrateMessagesProof, messages_target::SubstrateMessagesReceivingProof,
 	on_demand_headers::OnDemandHeadersRelay,
 };
-use std::marker::PhantomData;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce};

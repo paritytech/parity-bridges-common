@@ -18,15 +18,11 @@
 
 use async_trait::async_trait;
 
-use bp_messages::{MessageNonce, Weight};
-use bp_runtime::messages::DispatchFeePayment;
-
 use crate::{
 	message_lane::MessageLane,
 	message_lane_loop::{
 		SourceClient as MessageLaneSourceClient, TargetClient as MessageLaneTargetClient,
 	},
-	message_race_loop::NoncesRange,
 	relay_strategy::{RelayReference, RelayStrategy},
 };
 

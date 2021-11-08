@@ -1,7 +1,5 @@
 use async_trait::async_trait;
 
-use bp_messages::MessageNonce;
-
 use crate::{
 	message_lane::MessageLane,
 	message_lane_loop::{
@@ -18,6 +16,7 @@ pub struct MixStrategy {
 }
 
 impl MixStrategy {
+	/// Create mix strategy instance
 	pub fn new(relayer_mode: RelayerMode) -> Self {
 		Self { relayer_mode }
 	}
