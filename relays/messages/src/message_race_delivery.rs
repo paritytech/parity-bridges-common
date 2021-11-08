@@ -568,8 +568,8 @@ mod tests {
 			BASE_MESSAGE_DELIVERY_TRANSACTION_COST, CONFIRMATION_TRANSACTION_COST,
 		},
 		MessageDetails,
+		relay_strategy::AltruisticStrategy,
 	};
-	use crate::relay_strategy::AltruisticStrategy;
 
 	use super::*;
 
