@@ -561,13 +561,15 @@ impl<SourceChainBalance: std::fmt::Debug> NoncesRange for MessageDetailsMap<Sour
 mod tests {
 	use bp_runtime::messages::DispatchFeePayment;
 
-	use crate::message_lane_loop::{
-		tests::{
-			header_id, TestMessageLane, TestMessagesProof, TestSourceChainBalance,
-			TestSourceClient, TestSourceHeaderId, TestTargetClient, TestTargetHeaderId,
-			BASE_MESSAGE_DELIVERY_TRANSACTION_COST, CONFIRMATION_TRANSACTION_COST,
+	use crate::{
+		message_lane_loop::{
+			tests::{
+				header_id, TestMessageLane, TestMessagesProof, TestSourceChainBalance,
+				TestSourceClient, TestSourceHeaderId, TestTargetClient, TestTargetHeaderId,
+				BASE_MESSAGE_DELIVERY_TRANSACTION_COST, CONFIRMATION_TRANSACTION_COST,
+			},
+			MessageDetails,
 		},
-		MessageDetails,
 		relay_strategy::AltruisticStrategy,
 	};
 
