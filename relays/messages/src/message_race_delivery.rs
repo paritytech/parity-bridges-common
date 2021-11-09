@@ -570,7 +570,7 @@ mod tests {
 			},
 			MessageDetails,
 		},
-		relay_strategy::AltruisticStrategy,
+		relay_strategy::RationalStrategy,
 	};
 
 	use super::*;
@@ -585,7 +585,7 @@ mod tests {
 	type TestRaceState = RaceState<TestSourceHeaderId, TestTargetHeaderId, TestMessagesProof>;
 	type TestStrategy = MessageDeliveryStrategy<
 		TestMessageLane,
-		AltruisticStrategy,
+		RationalStrategy,
 		TestSourceClient,
 		TestTargetClient,
 	>;
