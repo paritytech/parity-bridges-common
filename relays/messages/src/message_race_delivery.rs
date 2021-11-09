@@ -568,9 +568,9 @@ mod tests {
 				TestSourceClient, TestSourceHeaderId, TestTargetClient, TestTargetHeaderId,
 				BASE_MESSAGE_DELIVERY_TRANSACTION_COST, CONFIRMATION_TRANSACTION_COST,
 			},
-			MessageDetails,
+			MessageDetails, RelayerMode,
 		},
-		relay_strategy::RationalStrategy,
+		relay_strategy::MixStrategy,
 	};
 
 	use super::*;
@@ -583,12 +583,8 @@ mod tests {
 		(DEFAULT_SIZE as TestSourceChainBalance);
 
 	type TestRaceState = RaceState<TestSourceHeaderId, TestTargetHeaderId, TestMessagesProof>;
-	type TestStrategy = MessageDeliveryStrategy<
-		TestMessageLane,
-		RationalStrategy,
-		TestSourceClient,
-		TestTargetClient,
-	>;
+	type TestStrategy =
+		MessageDeliveryStrategy<TestMessageLane, MixStrategy, TestSourceClient, TestTargetClient>;
 
 	fn source_nonces(
 		new_nonces: RangeInclusive<MessageNonce>,
@@ -647,7 +643,7 @@ mod tests {
 				},
 			}),
 			strategy: BasicStrategy::new(),
-			relay_strategy: RationalStrategy,
+			relay_strategy: MixStrategy::new(RelayerMode::Altruistic),
 		};
 
 		race_strategy.strategy.source_nonces_updated(
@@ -978,6 +974,7 @@ mod tests {
 	#[async_std::test]
 	async fn rational_relayer_is_delivering_messages_if_cost_is_equal_to_reward() {
 		let (state, mut strategy) = prepare_strategy();
+		strategy.relay_strategy = MixStrategy::new(RelayerMode::Rational);
 
 		// so now we have:
 		// - 20..=23 with reward = cost
@@ -999,6 +996,7 @@ mod tests {
 		);
 		strategy.strategy.source_nonces_updated(header_id(2), nonces);
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
+		strategy.relay_strategy = MixStrategy::new(RelayerMode::Rational);
 
 		// so now we have:
 		// - 20..=23 with reward = cost
@@ -1029,6 +1027,7 @@ mod tests {
 			strategy.max_messages_in_single_batch = 100;
 			strategy.max_messages_weight_in_single_batch = 100;
 			strategy.max_messages_size_in_single_batch = 100;
+			strategy.relay_strategy = MixStrategy::new(RelayerMode::Rational);
 
 			// so now we have:
 			// - 20..=23 with reward = cost

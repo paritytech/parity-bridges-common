@@ -144,6 +144,7 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 			if new_selected_count > reference.max_messages_in_this_batch {
 				break
 			}
+			relay_reference.selected_size = new_selected_size;
 
 			// If dispatch fee has been paid at the source chain, it means that it is **relayer**
 			// who's paying for dispatch at the target chain AND reward must cover this dispatch
@@ -173,9 +174,6 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 
 			hard_selected_count = index + 1;
 			selected_weight = new_selected_weight;
-			relay_reference.selected_unpaid_weight = new_selected_unpaid_weight;
-			relay_reference.selected_prepaid_nonces = new_selected_prepaid_nonces;
-			relay_reference.selected_size = new_selected_size;
 			selected_count = new_selected_count;
 		}
 
