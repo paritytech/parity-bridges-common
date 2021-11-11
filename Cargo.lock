@@ -1234,7 +1234,6 @@ dependencies = [
  "textwrap",
  "unicode-width",
  "vec_map",
- "yaml-rust",
 ]
 
 [[package]]
@@ -2271,24 +2270,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ethabi-contract"
-version = "11.0.0"
-source = "git+https://github.com/svyatonik/ethabi.git?branch=bump-deps#19bb6ea4a8099af1d70ab8c0ddcd3dec8fa45ed8"
-
-[[package]]
-name = "ethabi-derive"
-version = "14.0.0"
-source = "git+https://github.com/svyatonik/ethabi.git?branch=bump-deps#19bb6ea4a8099af1d70ab8c0ddcd3dec8fa45ed8"
-dependencies = [
- "anyhow",
- "ethabi",
- "heck",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "ethbloom"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2328,40 +2309,6 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-runtime",
-]
-
-[[package]]
-name = "ethereum-poa-relay"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-std",
- "async-trait",
- "bp-currency-exchange",
- "bp-eth-poa",
- "clap",
- "ethabi",
- "ethabi-contract",
- "ethabi-derive",
- "exchange-relay",
- "futures 0.3.17",
- "headers-relay",
- "hex",
- "hex-literal 0.3.3",
- "libsecp256k1 0.7.0",
- "log",
- "num-traits",
- "parity-scale-codec",
- "relay-ethereum-client",
- "relay-rialto-client",
- "relay-substrate-client",
- "relay-utils",
- "rialto-runtime",
- "serde_json",
- "sp-core",
- "sp-keyring",
- "sp-runtime",
- "thiserror",
 ]
 
 [[package]]
@@ -12723,12 +12670,6 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[package]]
-name = "yaml-rust"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e66366e18dc58b46801afbf2ca7661a9f59cc8c5962c29892b6039b4f86fa992"
 
 [[package]]
 name = "yamux"
