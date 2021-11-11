@@ -30,8 +30,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benches;
 pub mod millau_messages;
 pub mod parachains;
 
@@ -892,11 +890,6 @@ impl_runtime_apis! {
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
-
-			use pallet_bridge_currency_exchange::benchmarking::{
-				Pallet as BridgeCurrencyExchangeBench,
-				ProofParams as BridgeCurrencyExchangeProofParams,
-			};
 
 			use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 			use bp_runtime::messages::DispatchFeePayment;
