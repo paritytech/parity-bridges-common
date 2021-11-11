@@ -21,9 +21,8 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::{Decode, Encode, EncodeLike};
-use frame_support::{Parameter, RuntimeDebug};
+use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
-use sp_api::decl_runtime_apis;
 use sp_std::marker::PhantomData;
 
 /// All errors that may happen during exchange.
@@ -133,21 +132,5 @@ impl<Amount> CurrencyConverter for IdentityCurrencyConverter<Amount> {
 
 	fn convert(currency: Self::SourceAmount) -> Result<Self::TargetAmount> {
 		Ok(currency)
-	}
-}
-
-decl_runtime_apis! {
-	/// API for Rialto exchange transactions submitters.
-	pub trait RialtoCurrencyExchangeApi<Proof: Parameter> {
-		/// Returns true if currency exchange module is able to import transaction proof in
-		/// its current state.
-		fn filter_transaction_proof(proof: Proof) -> bool;
-	}
-
-	/// API for Kovan exchange transactions submitters.
-	pub trait KovanCurrencyExchangeApi<Proof: Parameter> {
-		/// Returns true if currency exchange module is able to import transaction proof in
-		/// its current state.
-		fn filter_transaction_proof(proof: Proof) -> bool;
 	}
 }

@@ -68,7 +68,6 @@ pub use frame_support::{
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
-pub use pallet_bridge_currency_exchange::Call as BridgeCurrencyExchangeCall;
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaMillauCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_sudo::Call as SudoCall;
@@ -258,68 +257,6 @@ impl pallet_bridge_dispatch::Config for Runtime {
 	type TargetChainAccountPublic = MultiSigner;
 	type TargetChainSignature = MultiSignature;
 	type AccountIdConverter = bp_rialto::AccountIdConverter;
-}
-
-pub struct DepositInto;
-
-impl bp_currency_exchange::DepositInto for DepositInto {
-	type Recipient = AccountId;
-	type Amount = Balance;
-
-	fn deposit_into(
-		recipient: Self::Recipient,
-		amount: Self::Amount,
-	) -> bp_currency_exchange::Result<()> {
-		// let balances module make all checks for us (it won't allow depositing lower than
-		// existential deposit, balance overflow, ...)
-		let deposited = <pallet_balances::Pallet<Runtime> as Currency<AccountId>>::deposit_creating(
-			&recipient, amount,
-		);
-
-		// I'm dropping deposited here explicitly to illustrate the fact that it'll update
-		// `TotalIssuance` on drop
-		let deposited_amount = deposited.peek();
-		drop(deposited);
-
-		// we have 3 cases here:
-		// - deposited == amount: success
-		// - deposited == 0: deposit has failed and no changes to storage were made
-		// - deposited != 0: (should never happen in practice) deposit has been partially completed
-		match deposited_amount {
-			_ if deposited_amount == amount => {
-				log::trace!(
-					target: "runtime",
-					"Deposited {} to {:?}",
-					amount,
-					recipient,
-				);
-
-				Ok(())
-			},
-			_ if deposited_amount == 0 => {
-				log::error!(
-					target: "runtime",
-					"Deposit of {} to {:?} has failed",
-					amount,
-					recipient,
-				);
-
-				Err(bp_currency_exchange::Error::DepositFailed)
-			},
-			_ => {
-				log::error!(
-					target: "runtime",
-					"Deposit of {} to {:?} has partially competed. {} has been deposited",
-					amount,
-					recipient,
-					deposited_amount,
-				);
-
-				// we can't return DepositFailed error here, because storage changes were made
-				Err(bp_currency_exchange::Error::DepositPartiallyFailed)
-			},
-		}
-	}
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -1168,47 +1105,7 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use bp_currency_exchange::DepositInto;
 	use bridge_runtime_common::messages;
-
-	fn run_deposit_into_test(test: impl Fn(AccountId) -> Balance) {
-		let mut ext: sp_io::TestExternalities =
-			SystemConfig::default().build_storage::<Runtime>().unwrap().into();
-		ext.execute_with(|| {
-			// initially issuance is zero
-			assert_eq!(
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::total_issuance(),
-				0,
-			);
-
-			// create account
-			let account: AccountId = [1u8; 32].into();
-			let initial_amount = ExistentialDeposit::get();
-			let deposited =
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::deposit_creating(
-					&account,
-					initial_amount,
-				);
-			drop(deposited);
-			assert_eq!(
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::total_issuance(),
-				initial_amount,
-			);
-			assert_eq!(
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::free_balance(&account),
-				initial_amount,
-			);
-
-			// run test
-			let total_issuance_change = test(account);
-
-			// check that total issuance has changed by `run_deposit_into_test`
-			assert_eq!(
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::total_issuance(),
-				initial_amount + total_issuance_change,
-			);
-		});
-	}
 
 	#[test]
 	fn ensure_rialto_message_lane_weights_are_correct() {
@@ -1249,50 +1146,6 @@ mod tests {
 			bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
 			DbWeight::get(),
 		);
-	}
-
-	#[test]
-	fn deposit_into_existing_account_works() {
-		run_deposit_into_test(|existing_account| {
-			let initial_amount =
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::free_balance(
-					&existing_account,
-				);
-			let additional_amount = 10_000;
-			<Runtime as pallet_bridge_currency_exchange::Config<KovanCurrencyExchange>>::DepositInto::deposit_into(
-				existing_account.clone(),
-				additional_amount,
-			)
-			.unwrap();
-			assert_eq!(
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::free_balance(
-					&existing_account
-				),
-				initial_amount + additional_amount,
-			);
-			additional_amount
-		});
-	}
-
-	#[test]
-	fn deposit_into_new_account_works() {
-		run_deposit_into_test(|_| {
-			let initial_amount = 0;
-			let additional_amount = ExistentialDeposit::get() + 10_000;
-			let new_account: AccountId = [42u8; 32].into();
-			<Runtime as pallet_bridge_currency_exchange::Config<KovanCurrencyExchange>>::DepositInto::deposit_into(
-				new_account.clone(),
-				additional_amount,
-			)
-			.unwrap();
-			assert_eq!(
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::free_balance(
-					&new_account
-				),
-				initial_amount + additional_amount,
-			);
-			additional_amount
-		});
 	}
 
 	#[test]
