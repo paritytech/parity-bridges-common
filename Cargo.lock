@@ -721,32 +721,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-eth-poa"
-version = "0.1.0"
-dependencies = [
- "ethbloom 0.10.0",
- "fixed-hash",
- "hash-db",
- "hex-literal 0.2.1",
- "impl-rlp",
- "impl-serde",
- "libsecp256k1 0.7.0",
- "parity-bytes",
- "parity-scale-codec",
- "plain_hasher",
- "primitive-types",
- "rlp",
- "scale-info",
- "serde",
- "serde-big-array",
- "sp-api",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "triehash",
-]
-
-[[package]]
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
@@ -2256,18 +2230,6 @@ dependencies = [
 
 [[package]]
 name = "ethbloom"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22a621dcebea74f2a6f2002d0a885c81ccf6cbdf86760183316a7722b5707ca4"
-dependencies = [
- "crunchy",
- "fixed-hash",
- "impl-rlp",
- "tiny-keccak",
-]
-
-[[package]]
-name = "ethbloom"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "779864b9c7f7ead1f092972c3257496c6a84b46dba2ce131dd8a282cb2cc5972"
@@ -2285,7 +2247,7 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0dd6bde671199089e601e8d47e153368b893ef885f11f365a3261ec58153c211"
 dependencies = [
- "ethbloom 0.11.0",
+ "ethbloom",
  "fixed-hash",
  "impl-rlp",
  "impl-serde",
@@ -3023,28 +2985,9 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hex-literal"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "961de220ec9a91af2e1e5bd80d02109155695e516771762381ef8581317066e0"
-dependencies = [
- "hex-literal-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "hex-literal"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21e4590e13640f19f249fe3e4eca5113bc4289f2497710378190e7f4bd96f45b"
-
-[[package]]
-name = "hex-literal-impl"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "853f769599eb31de176303197b7ba4973299c38c7a7604a6bc88c3eef05b9b46"
-dependencies = [
- "proc-macro-hack",
-]
 
 [[package]]
 name = "hex_fmt"
@@ -4649,7 +4592,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "hex-literal 0.3.3",
+ "hex-literal",
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-dispatch",
@@ -5362,7 +5305,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex",
- "hex-literal 0.3.3",
+ "hex-literal",
  "log",
  "num-traits",
  "pallet-balances",
@@ -5940,12 +5883,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "parity-bytes"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16b56e3a2420138bdb970f84dfb9c774aea80fa0e7371549eedec0d80c209c67"
-
-[[package]]
 name = "parity-db"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6285,15 +6222,6 @@ name = "pkg-config"
 version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
-
-[[package]]
-name = "plain_hasher"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e19e6491bdde87c2c43d70f4c194bc8a758f2eb732df00f61e43f7362e3b4cc"
-dependencies = [
- "crunchy",
-]
 
 [[package]]
 name = "platforms"
@@ -6989,7 +6917,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=master#dd4b2e6a34a08
 dependencies = [
  "bitvec 0.20.4",
  "frame-system",
- "hex-literal 0.3.3",
+ "hex-literal",
  "parity-scale-codec",
  "parity-util-mem",
  "polkadot-core-primitives",
@@ -7208,7 +7136,7 @@ dependencies = [
  "beefy-primitives",
  "frame-system-rpc-runtime-api",
  "futures 0.3.17",
- "hex-literal 0.3.3",
+ "hex-literal",
  "kvdb",
  "kvdb-rocksdb 0.14.0",
  "lru 0.7.0",
@@ -8304,7 +8232,7 @@ dependencies = [
  "derive_more",
  "frame-benchmarking",
  "frame-benchmarking-cli",
- "hex-literal 0.3.3",
+ "hex-literal",
  "jsonrpc-core",
  "log",
  "pallet-transaction-payment-rpc",
@@ -8417,7 +8345,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "hex-literal 0.3.3",
+ "hex-literal",
  "libsecp256k1 0.7.0",
  "log",
  "pallet-authority-discovery",
@@ -9744,16 +9672,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-big-array"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "883eee5198ea51720eab8be52a36cf6c0164ac90eea0ed95b649d5e35382404e"
-dependencies = [
- "serde",
- "serde_derive",
-]
-
-[[package]]
 name = "serde_derive"
 version = "1.0.130"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10974,7 +10892,7 @@ dependencies = [
  "frame-support",
  "futures 0.3.17",
  "hex",
- "hex-literal 0.3.3",
+ "hex-literal",
  "log",
  "messages-relay",
  "millau-runtime",
@@ -11523,16 +11441,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "652931506d2c1244d7217a70b99f56718a7b4161b37f04e7cd868072a99f68cd"
 dependencies = [
  "hash-db",
-]
-
-[[package]]
-name = "triehash"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1631b201eb031b563d2e85ca18ec8092508e262a3196ce9bd10a67ec87b9f5c"
-dependencies = [
- "hash-db",
- "rlp",
 ]
 
 [[package]]
