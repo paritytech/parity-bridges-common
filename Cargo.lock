@@ -5344,25 +5344,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-eth-poa"
-version = "0.1.0"
-dependencies = [
- "bp-eth-poa",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex-literal 0.3.3",
- "libsecp256k1 0.7.0",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-bridge-grandpa"
 version = "0.1.0"
 dependencies = [
