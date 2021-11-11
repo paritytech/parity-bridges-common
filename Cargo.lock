@@ -4742,6 +4742,7 @@ dependencies = [
  "num-traits",
  "parking_lot 0.11.2",
  "relay-utils",
+ "sp-arithmetic",
 ]
 
 [[package]]
