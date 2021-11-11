@@ -710,17 +710,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-currency-exchange"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-std",
-]
-
-[[package]]
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
@@ -5227,25 +5216,6 @@ dependencies = [
  "pallet-treasury",
  "parity-scale-codec",
  "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-bridge-currency-exchange"
-version = "0.1.0"
-dependencies = [
- "bp-currency-exchange",
- "bp-header-chain",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
