@@ -8682,7 +8682,6 @@ name = "rialto-runtime"
 version = "0.1.0"
 dependencies = [
  "bp-currency-exchange",
- "bp-eth-poa",
  "bp-header-chain",
  "bp-message-dispatch",
  "bp-messages",
@@ -8703,7 +8702,6 @@ dependencies = [
  "pallet-balances",
  "pallet-bridge-currency-exchange",
  "pallet-bridge-dispatch",
- "pallet-bridge-eth-poa",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-grandpa",

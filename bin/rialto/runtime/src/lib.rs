@@ -30,14 +30,10 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-pub mod exchange;
-
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benches;
-pub mod kovan;
 pub mod millau_messages;
 pub mod parachains;
-pub mod rialto_poa;
 
 use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 
@@ -73,7 +69,6 @@ pub use frame_support::{
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_currency_exchange::Call as BridgeCurrencyExchangeCall;
-pub use pallet_bridge_eth_poa::Call as BridgeEthPoACall;
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaMillauCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_sudo::Call as SudoCall;
@@ -251,48 +246,6 @@ impl pallet_babe::Config for Runtime {
 
 	type DisabledValidators = ();
 	type WeightInfo = ();
-}
-
-type RialtoPoA = pallet_bridge_eth_poa::Instance1;
-impl pallet_bridge_eth_poa::Config<RialtoPoA> for Runtime {
-	type AuraConfiguration = rialto_poa::BridgeAuraConfiguration;
-	type FinalityVotesCachingInterval = rialto_poa::FinalityVotesCachingInterval;
-	type ValidatorsConfiguration = rialto_poa::BridgeValidatorsConfiguration;
-	type PruningStrategy = rialto_poa::PruningStrategy;
-	type ChainTime = rialto_poa::ChainTime;
-	type OnHeadersSubmitted = ();
-}
-
-type Kovan = pallet_bridge_eth_poa::Instance2;
-impl pallet_bridge_eth_poa::Config<Kovan> for Runtime {
-	type AuraConfiguration = kovan::BridgeAuraConfiguration;
-	type FinalityVotesCachingInterval = kovan::FinalityVotesCachingInterval;
-	type ValidatorsConfiguration = kovan::BridgeValidatorsConfiguration;
-	type PruningStrategy = kovan::PruningStrategy;
-	type ChainTime = kovan::ChainTime;
-	type OnHeadersSubmitted = ();
-}
-
-type RialtoCurrencyExchange = pallet_bridge_currency_exchange::Instance1;
-impl pallet_bridge_currency_exchange::Config<RialtoCurrencyExchange> for Runtime {
-	type OnTransactionSubmitted = ();
-	type PeerBlockchain = rialto_poa::RialtoBlockchain;
-	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
-	type RecipientsMap = bp_currency_exchange::IdentityRecipients<AccountId>;
-	type Amount = Balance;
-	type CurrencyConverter = bp_currency_exchange::IdentityCurrencyConverter<Balance>;
-	type DepositInto = DepositInto;
-}
-
-type KovanCurrencyExchange = pallet_bridge_currency_exchange::Instance2;
-impl pallet_bridge_currency_exchange::Config<KovanCurrencyExchange> for Runtime {
-	type OnTransactionSubmitted = ();
-	type PeerBlockchain = kovan::KovanBlockchain;
-	type PeerMaybeLockFundsTransaction = exchange::EthTransaction;
-	type RecipientsMap = bp_currency_exchange::IdentityRecipients<AccountId>;
-	type Amount = Balance;
-	type CurrencyConverter = bp_currency_exchange::IdentityCurrencyConverter<Balance>;
-	type DepositInto = DepositInto;
 }
 
 impl pallet_bridge_dispatch::Config for Runtime {
@@ -578,12 +531,6 @@ construct_runtime!(
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
 
-		// Eth-PoA chains bridge modules.
-		BridgeRialtoPoa: pallet_bridge_eth_poa::<Instance1>::{Pallet, Call, Config, Storage, ValidateUnsigned},
-		BridgeKovan: pallet_bridge_eth_poa::<Instance2>::{Pallet, Call, Config, Storage, ValidateUnsigned},
-		BridgeRialtoCurrencyExchange: pallet_bridge_currency_exchange::<Instance1>::{Pallet, Call},
-		BridgeKovanCurrencyExchange: pallet_bridge_currency_exchange::<Instance2>::{Pallet, Call},
-
 		// Millau bridge modules.
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
 		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
@@ -693,46 +640,6 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_eth_poa::RialtoPoAHeaderApi<Block> for Runtime {
-		fn best_block() -> (u64, bp_eth_poa::H256) {
-			let best_block = BridgeRialtoPoa::best_block();
-			(best_block.number, best_block.hash)
-		}
-
-		fn finalized_block() -> (u64, bp_eth_poa::H256) {
-			let finalized_block = BridgeRialtoPoa::finalized_block();
-			(finalized_block.number, finalized_block.hash)
-		}
-
-		fn is_import_requires_receipts(header: bp_eth_poa::AuraHeader) -> bool {
-			BridgeRialtoPoa::is_import_requires_receipts(header)
-		}
-
-		fn is_known_block(hash: bp_eth_poa::H256) -> bool {
-			BridgeRialtoPoa::is_known_block(hash)
-		}
-	}
-
-	impl bp_eth_poa::KovanHeaderApi<Block> for Runtime {
-		fn best_block() -> (u64, bp_eth_poa::H256) {
-			let best_block = BridgeKovan::best_block();
-			(best_block.number, best_block.hash)
-		}
-
-		fn finalized_block() -> (u64, bp_eth_poa::H256) {
-			let finalized_block = BridgeKovan::finalized_block();
-			(finalized_block.number, finalized_block.hash)
-		}
-
-		fn is_import_requires_receipts(header: bp_eth_poa::AuraHeader) -> bool {
-			BridgeKovan::is_import_requires_receipts(header)
-		}
-
-		fn is_known_block(hash: bp_eth_poa::H256) -> bool {
-			BridgeKovan::is_known_block(hash)
-		}
-	}
-
 	impl bp_millau::MillauFinalityApi<Block> for Runtime {
 		fn best_finalized() -> (bp_millau::BlockNumber, bp_millau::Hash) {
 			let header = BridgeMillauGrandpa::best_finalized();
@@ -741,18 +648,6 @@ impl_runtime_apis! {
 
 		fn is_known_header(hash: bp_millau::Hash) -> bool {
 			BridgeMillauGrandpa::is_known_header(hash)
-		}
-	}
-
-	impl bp_currency_exchange::RialtoCurrencyExchangeApi<Block, exchange::EthereumTransactionInclusionProof> for Runtime {
-		fn filter_transaction_proof(proof: exchange::EthereumTransactionInclusionProof) -> bool {
-			BridgeRialtoCurrencyExchange::filter_transaction_proof(&proof)
-		}
-	}
-
-	impl bp_currency_exchange::KovanCurrencyExchangeApi<Block, exchange::EthereumTransactionInclusionProof> for Runtime {
-		fn filter_transaction_proof(proof: exchange::EthereumTransactionInclusionProof) -> bool {
-			BridgeKovanCurrencyExchange::filter_transaction_proof(&proof)
 		}
 	}
 
@@ -1028,17 +923,10 @@ impl_runtime_apis! {
 			use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
 			use frame_support::traits::StorageInfoTrait;
 
-			use pallet_bridge_currency_exchange::benchmarking::Pallet as BridgeCurrencyExchangeBench;
 			use pallet_bridge_messages::benchmarking::Pallet as MessagesBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
-			list_benchmark!(list, extra, pallet_bridge_eth_poa, BridgeRialtoPoa);
-			list_benchmark!(
-				list,
-				extra,
-				pallet_bridge_currency_exchange, BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>
-			);
 			list_benchmark!(list, extra, pallet_bridge_messages, MessagesBench::<Runtime, WithMillauMessagesInstance>);
 			list_benchmark!(list, extra, pallet_bridge_grandpa, BridgeMillauGrandpa);
 
@@ -1070,43 +958,8 @@ impl_runtime_apis! {
 
 			use pallet_bridge_currency_exchange::benchmarking::{
 				Pallet as BridgeCurrencyExchangeBench,
-				Config as BridgeCurrencyExchangeConfig,
 				ProofParams as BridgeCurrencyExchangeProofParams,
 			};
-
-			impl BridgeCurrencyExchangeConfig<KovanCurrencyExchange> for Runtime {
-				fn make_proof(
-					proof_params: BridgeCurrencyExchangeProofParams<AccountId>,
-				) -> crate::exchange::EthereumTransactionInclusionProof {
-					use bp_currency_exchange::DepositInto;
-
-					if proof_params.recipient_exists {
-						<Runtime as pallet_bridge_currency_exchange::Config<KovanCurrencyExchange>>::DepositInto::deposit_into(
-							proof_params.recipient.clone(),
-							ExistentialDeposit::get(),
-						).unwrap();
-					}
-
-					let (transaction, receipt) = crate::exchange::prepare_ethereum_transaction(
-						&proof_params.recipient,
-						|tx| {
-							// our runtime only supports transactions where data is exactly 32 bytes long
-							// (receiver key)
-							// => we are ignoring `transaction_size_factor` here
-							tx.value = (ExistentialDeposit::get() * 10).into();
-						},
-					);
-					let transactions = sp_std::iter::repeat((transaction, receipt))
-						.take(1 + proof_params.proof_size_factor as usize)
-						.collect::<Vec<_>>();
-					let block_hash = crate::exchange::prepare_environment_for_claim::<Runtime, Kovan>(&transactions);
-					crate::exchange::EthereumTransactionInclusionProof {
-						block: block_hash,
-						index: 0,
-						proof: transactions,
-					}
-				}
-			}
 
 			use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 			use bp_runtime::messages::DispatchFeePayment;
@@ -1274,13 +1127,6 @@ impl_runtime_apis! {
 				}
 			}
 
-			add_benchmark!(params, batches, pallet_bridge_eth_poa, BridgeRialtoPoa);
-			add_benchmark!(
-				params,
-				batches,
-				pallet_bridge_currency_exchange,
-				BridgeCurrencyExchangeBench::<Runtime, KovanCurrencyExchange>
-			);
 			add_benchmark!(
 				params,
 				batches,
