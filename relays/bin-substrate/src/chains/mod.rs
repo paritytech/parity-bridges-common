@@ -51,17 +51,16 @@ pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = kusama::TOKEN_ID;
 use relay_utils::metrics::MetricsParams;
 
 pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
-	prefix: Option<String>,
 	params: MetricsParams,
 ) -> anyhow::Result<MetricsParams> {
 	// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <->
 	// Kusama relays, but we want to test metrics/dashboards in advance
-	Ok(relay_utils::relay_metrics(prefix, params)
-		.standalone_metric(|registry, prefix| {
-			substrate_relay_helper::helpers::token_price_metric(registry, prefix, "polkadot")
+	Ok(relay_utils::relay_metrics(params)
+		.standalone_metric(|registry| {
+			substrate_relay_helper::helpers::token_price_metric(registry, "polkadot")
 		})?
-		.standalone_metric(|registry, prefix| {
-			substrate_relay_helper::helpers::token_price_metric(registry, prefix, "kusama")
+		.standalone_metric(|registry| {
+			substrate_relay_helper::helpers::token_price_metric(registry, "kusama")
 		})?
 		.into_params())
 }

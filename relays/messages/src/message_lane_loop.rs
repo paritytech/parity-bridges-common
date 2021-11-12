@@ -270,8 +270,10 @@ pub async fn run<P: MessageLane, Strategy: RelayStrategy>(
 	let exit_signal = exit_signal.shared();
 	relay_utils::relay_loop(source_client, target_client)
 		.reconnect_delay(params.reconnect_delay)
-		.with_metrics(Some(metrics_prefix::<P>(&params.lane)), metrics_params)
-		.loop_metric(MessageLaneLoopMetrics::new)?
+		.with_metrics(metrics_params)
+		.loop_metric(|registry| {
+			MessageLaneLoopMetrics::new(registry, Some(&metrics_prefix::<P>(&params.lane)))
+		})?
 		.standalone_metric(GlobalMetrics::new)?
 		.expose()
 		.await?

@@ -43,7 +43,6 @@ impl<C: Chain, T: Decode + FixedPointNumber> FloatStorageValueMetric<C, T> {
 	/// Create new metric.
 	pub fn new(
 		registry: &Registry,
-		prefix: Option<&str>,
 		client: Client<C>,
 		storage_key: StorageKey,
 		maybe_default_value: Option<T>,
@@ -55,7 +54,7 @@ impl<C: Chain, T: Decode + FixedPointNumber> FloatStorageValueMetric<C, T> {
 			client,
 			storage_key,
 			maybe_default_value,
-			metric: register(Gauge::new(metric_name(prefix, &name), help)?, registry)?,
+			metric: register(Gauge::new(metric_name(None, &name), help)?, registry)?,
 			shared_value_ref,
 		})
 	}

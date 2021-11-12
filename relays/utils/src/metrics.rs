@@ -47,8 +47,6 @@ pub struct MetricsParams {
 	pub address: Option<MetricsAddress>,
 	/// Metrics registry. May be `Some(_)` if several components share the same endpoint.
 	pub registry: Option<Registry>,
-	/// Prefix that must be used in metric names.
-	pub metrics_prefix: Option<String>,
 }
 
 /// Metrics API.
@@ -89,7 +87,7 @@ impl Default for MetricsAddress {
 impl MetricsParams {
 	/// Creates metrics params so that metrics are not exposed.
 	pub fn disabled() -> Self {
-		MetricsParams { address: None, registry: None, metrics_prefix: None }
+		MetricsParams { address: None, registry: None }
 	}
 
 	/// Do not expose metrics.
@@ -97,27 +95,19 @@ impl MetricsParams {
 		self.address = None;
 		self
 	}
-
-	/// Set prefix to use in metric names.
-	pub fn metrics_prefix(mut self, prefix: String) -> Self {
-		self.metrics_prefix = Some(prefix);
-		self
-	}
 }
 
 impl From<Option<MetricsAddress>> for MetricsParams {
 	fn from(address: Option<MetricsAddress>) -> Self {
-		MetricsParams { address, registry: None, metrics_prefix: None }
+		MetricsParams { address, registry: None }
 	}
 }
 
 /// Returns metric name optionally prefixed with given prefix.
 pub fn metric_name(prefix: Option<&str>, name: &str) -> String {
-	if let Some(prefix) = prefix {
-		format!("{}_{}", prefix, name)
-	} else {
-		name.into()
-	}
+	let x = if let Some(prefix) = prefix { format!("{}_{}", prefix, name) } else { name.into() };
+	println!("=== {:?}", x);
+	x
 }
 
 /// Set value of gauge metric.

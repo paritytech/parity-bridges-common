@@ -98,7 +98,7 @@ pub async fn run<P: TransactionProofPipeline>(
 	let exit_signal = exit_signal.shared();
 
 	relay_utils::relay_loop(source_client, target_client)
-		.with_metrics(Some(metrics_prefix::<P>()), metrics_params)
+		.with_metrics(metrics_params)
 		.loop_metric(ExchangeLoopMetrics::new)?
 		.standalone_metric(GlobalMetrics::new)?
 		.expose()

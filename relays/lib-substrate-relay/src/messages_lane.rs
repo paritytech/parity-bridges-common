@@ -266,7 +266,6 @@ impl StandaloneMessagesMetrics {
 
 /// Add general standalone metrics for the message lane relay loop.
 pub fn add_standalone_metrics<P: SubstrateMessageLane>(
-	metrics_prefix: Option<String>,
 	metrics_params: MetricsParams,
 	source_client: Client<P::SourceChain>,
 	source_chain_token_id: Option<&str>,
@@ -276,11 +275,10 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 	let mut target_to_source_conversion_rate = None;
 	let mut source_to_base_conversion_rate = None;
 	let mut target_to_base_conversion_rate = None;
-	let mut metrics_params = relay_utils::relay_metrics(metrics_prefix, metrics_params)
-		.standalone_metric(|registry, prefix| {
+	let mut metrics_params =
+		relay_utils::relay_metrics(metrics_params).standalone_metric(|registry| {
 			StorageProofOverheadMetric::new(
 				registry,
-				prefix,
 				source_client.clone(),
 				format!("{}_storage_proof_overhead", P::SourceChain::NAME.to_lowercase()),
 				format!("{} storage proof overhead", P::SourceChain::NAME),
@@ -291,10 +289,9 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 		initial_target_to_source_conversion_rate,
 	)) = target_to_source_conversion_rate_params
 	{
-		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
+		metrics_params = metrics_params.standalone_metric(|registry| {
 			let metric = FloatStorageValueMetric::<_, sp_runtime::FixedU128>::new(
 				registry,
-				prefix,
 				source_client,
 				target_to_source_conversion_rate_storage_key,
 				Some(initial_target_to_source_conversion_rate),
@@ -316,17 +313,15 @@ pub fn add_standalone_metrics<P: SubstrateMessageLane>(
 		})?;
 	}
 	if let Some(source_chain_token_id) = source_chain_token_id {
-		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
-			let metric =
-				crate::helpers::token_price_metric(registry, prefix, source_chain_token_id)?;
+		metrics_params = metrics_params.standalone_metric(|registry| {
+			let metric = crate::helpers::token_price_metric(registry, source_chain_token_id)?;
 			source_to_base_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
 		})?;
 	}
 	if let Some(target_chain_token_id) = target_chain_token_id {
-		metrics_params = metrics_params.standalone_metric(|registry, prefix| {
-			let metric =
-				crate::helpers::token_price_metric(registry, prefix, target_chain_token_id)?;
+		metrics_params = metrics_params.standalone_metric(|registry| {
+			let metric = crate::helpers::token_price_metric(registry, target_chain_token_id)?;
 			target_to_base_conversion_rate = Some(metric.shared_value_ref());
 			Ok(metric)
 		})?;

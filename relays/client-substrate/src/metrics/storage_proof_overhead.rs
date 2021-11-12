@@ -48,14 +48,13 @@ impl<C: Chain> StorageProofOverheadMetric<C> {
 	/// Create new metric instance with given name and help.
 	pub fn new(
 		registry: &Registry,
-		prefix: Option<&str>,
 		client: Client<C>,
 		name: String,
 		help: String,
 	) -> Result<Self, PrometheusError> {
 		Ok(StorageProofOverheadMetric {
 			client,
-			metric: register(Gauge::new(metric_name(prefix, &name), help)?, registry)?,
+			metric: register(Gauge::new(metric_name(None, &name), help)?, registry)?,
 		})
 	}
 

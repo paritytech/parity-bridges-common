@@ -237,13 +237,8 @@ pub async fn run(
 		stall_timeout,
 	);
 
-	let (metrics_params, metrics_values) = add_standalone_metrics(
-		Some(messages_relay::message_lane_loop::metrics_prefix::<
-			<RococoMessagesToWococo as SubstrateMessageLane>::MessageLane,
-		>(&lane_id)),
-		params.metrics_params,
-		source_client.clone(),
-	)?;
+	let (metrics_params, metrics_values) =
+		add_standalone_metrics(params.metrics_params, source_client.clone())?;
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
 			lane: lane_id,
@@ -284,12 +279,10 @@ pub async fn run(
 
 /// Add standalone metrics for the Rococo -> Wococo messages loop.
 pub(crate) fn add_standalone_metrics(
-	metrics_prefix: Option<String>,
 	metrics_params: MetricsParams,
 	source_client: Client<Rococo>,
 ) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
 	substrate_relay_helper::messages_lane::add_standalone_metrics::<RococoMessagesToWococo>(
-		metrics_prefix,
 		metrics_params,
 		source_client,
 		None,

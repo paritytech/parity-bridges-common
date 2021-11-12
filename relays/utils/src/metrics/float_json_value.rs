@@ -45,7 +45,6 @@ impl FloatJsonValueMetric {
 	/// Create new metric instance with given name and help.
 	pub fn new(
 		registry: &Registry,
-		prefix: Option<&str>,
 		url: String,
 		json_path: String,
 		name: String,
@@ -55,7 +54,7 @@ impl FloatJsonValueMetric {
 		Ok(FloatJsonValueMetric {
 			url,
 			json_path,
-			metric: register(Gauge::new(metric_name(prefix, &name), help)?, registry)?,
+			metric: register(Gauge::new(metric_name(None, &name), help)?, registry)?,
 			shared_value_ref,
 		})
 	}

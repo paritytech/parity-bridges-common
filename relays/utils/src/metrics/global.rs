@@ -40,26 +40,23 @@ pub struct GlobalMetrics {
 
 impl GlobalMetrics {
 	/// Create and register global metrics.
-	pub fn new(registry: &Registry, prefix: Option<&str>) -> Result<Self, PrometheusError> {
+	pub fn new(registry: &Registry) -> Result<Self, PrometheusError> {
 		Ok(GlobalMetrics {
 			system: Arc::new(Mutex::new(System::new_with_specifics(RefreshKind::everything()))),
 			system_average_load: register(
 				GaugeVec::new(
-					Opts::new(metric_name(prefix, "system_average_load"), "System load average"),
+					Opts::new(metric_name(None, "system_average_load"), "System load average"),
 					&["over"],
 				)?,
 				registry,
 			)?,
 			process_cpu_usage_percentage: register(
-				Gauge::new(
-					metric_name(prefix, "process_cpu_usage_percentage"),
-					"Process CPU usage",
-				)?,
+				Gauge::new(metric_name(None, "process_cpu_usage_percentage"), "Process CPU usage")?,
 				registry,
 			)?,
 			process_memory_usage_bytes: register(
 				Gauge::new(
-					metric_name(prefix, "process_memory_usage_bytes"),
+					metric_name(None, "process_memory_usage_bytes"),
 					"Process memory (resident set size) usage",
 				)?,
 				registry,

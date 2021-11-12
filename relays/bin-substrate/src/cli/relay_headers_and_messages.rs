@@ -34,8 +34,7 @@ use relay_substrate_client::{
 use relay_utils::metrics::MetricsParams;
 use sp_core::{Bytes, Pair};
 use substrate_relay_helper::{
-	messages_lane::{MessagesRelayParams, SubstrateMessageLane},
-	on_demand_headers::OnDemandHeadersRelay,
+	messages_lane::MessagesRelayParams, on_demand_headers::OnDemandHeadersRelay,
 };
 
 use crate::{
@@ -129,11 +128,6 @@ macro_rules! select_bridge {
 				type RightToLeftFinality =
 					crate::chains::rialto_headers_to_millau::RialtoFinalityToMillau;
 
-				type LeftToRightMessages =
-					crate::chains::millau_messages_to_rialto::MillauMessagesToRialto;
-				type RightToLeftMessages =
-					crate::chains::rialto_messages_to_millau::RialtoMessagesToMillau;
-
 				type LeftAccountIdConverter = bp_millau::AccountIdConverter;
 				type RightAccountIdConverter = bp_rialto::AccountIdConverter;
 
@@ -183,11 +177,6 @@ macro_rules! select_bridge {
 					crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
 				type RightToLeftFinality =
 					crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
-
-				type LeftToRightMessages =
-					crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo;
-				type RightToLeftMessages =
-					crate::chains::wococo_messages_to_rococo::WococoMessagesToRococo;
 
 				type LeftAccountIdConverter = bp_rococo::AccountIdConverter;
 				type RightAccountIdConverter = bp_wococo::AccountIdConverter;
@@ -252,11 +241,6 @@ macro_rules! select_bridge {
 					crate::chains::kusama_headers_to_polkadot::KusamaFinalityToPolkadot;
 				type RightToLeftFinality =
 					crate::chains::polkadot_headers_to_kusama::PolkadotFinalityToKusama;
-
-				type LeftToRightMessages =
-					crate::chains::kusama_messages_to_polkadot::KusamaMessagesToPolkadot;
-				type RightToLeftMessages =
-					crate::chains::polkadot_messages_to_kusama::PolkadotMessagesToKusama;
 
 				type LeftAccountIdConverter = bp_kusama::AccountIdConverter;
 				type RightAccountIdConverter = bp_polkadot::AccountIdConverter;
@@ -384,11 +368,11 @@ impl RelayHeadersAndMessages {
 				qed";
 
 			let metrics_params: MetricsParams = params.shared.prometheus_params.into();
-			let metrics_params = relay_utils::relay_metrics(None, metrics_params).into_params();
+			let metrics_params = relay_utils::relay_metrics(metrics_params).into_params();
 			let (metrics_params, left_to_right_metrics) =
-				add_left_to_right_standalone_metrics(None, metrics_params, left_client.clone())?;
+				add_left_to_right_standalone_metrics(metrics_params, left_client.clone())?;
 			let (metrics_params, right_to_left_metrics) =
-				add_right_to_left_standalone_metrics(None, metrics_params, right_client.clone())?;
+				add_right_to_left_standalone_metrics(metrics_params, right_client.clone())?;
 			if let Some(left_messages_pallet_owner) = left_messages_pallet_owner {
 				let left_client = left_client.clone();
 				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
@@ -521,11 +505,7 @@ impl RelayHeadersAndMessages {
 					source_to_target_headers_relay: Some(left_to_right_on_demand_headers.clone()),
 					target_to_source_headers_relay: Some(right_to_left_on_demand_headers.clone()),
 					lane_id: lane,
-					metrics_params: metrics_params.clone().disable().metrics_prefix(
-						messages_relay::message_lane_loop::metrics_prefix::<
-							<LeftToRightMessages as SubstrateMessageLane>::MessageLane,
-						>(&lane),
-					),
+					metrics_params: metrics_params.clone().disable(),
 					relay_strategy: relay_strategy.clone(),
 				})
 				.map_err(|e| anyhow::format_err!("{}", e))
@@ -540,11 +520,7 @@ impl RelayHeadersAndMessages {
 					source_to_target_headers_relay: Some(right_to_left_on_demand_headers.clone()),
 					target_to_source_headers_relay: Some(left_to_right_on_demand_headers.clone()),
 					lane_id: lane,
-					metrics_params: metrics_params.clone().disable().metrics_prefix(
-						messages_relay::message_lane_loop::metrics_prefix::<
-							<RightToLeftMessages as SubstrateMessageLane>::MessageLane,
-						>(&lane),
-					),
+					metrics_params: metrics_params.clone().disable(),
 					relay_strategy: relay_strategy.clone(),
 				})
 				.map_err(|e| anyhow::format_err!("{}", e))
@@ -554,7 +530,7 @@ impl RelayHeadersAndMessages {
 				message_relays.push(right_to_left_messages);
 			}
 
-			relay_utils::relay_metrics(None, metrics_params)
+			relay_utils::relay_metrics(metrics_params)
 				.expose()
 				.await
 				.map_err(|e| anyhow::format_err!("{}", e))?;
