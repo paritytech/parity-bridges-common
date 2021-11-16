@@ -2340,7 +2340,6 @@ dependencies = [
  "backoff",
  "bp-header-chain",
  "futures 0.3.17",
- "headers-relay",
  "log",
  "num-traits",
  "parking_lot 0.11.2",
