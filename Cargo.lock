@@ -2340,7 +2340,6 @@ dependencies = [
  "backoff",
  "bp-header-chain",
  "futures 0.3.17",
- "headers-relay",
  "log",
  "num-traits",
  "parking_lot 0.11.2",
@@ -2931,21 +2930,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 dependencies = [
  "ahash",
-]
-
-[[package]]
-name = "headers-relay"
-version = "0.1.0"
-dependencies = [
- "async-std",
- "async-trait",
- "backoff",
- "futures 0.3.17",
- "linked-hash-map",
- "log",
- "num-traits",
- "parking_lot 0.11.2",
- "relay-utils",
 ]
 
 [[package]]
@@ -7975,7 +7959,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "futures 0.3.17",
- "headers-relay",
  "jsonrpsee-proc-macros",
  "jsonrpsee-ws-client",
  "log",
