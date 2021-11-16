@@ -7975,7 +7975,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "futures 0.3.17",
- "headers-relay",
  "jsonrpsee-proc-macros",
  "jsonrpsee-ws-client",
  "log",
