@@ -16,9 +16,6 @@
 
 //! Metrics for headers synchronization relay loop.
 
-use crate::{sync::HeadersSync, sync_types::HeadersSyncPipeline};
-
-use num_traits::Zero;
 use relay_utils::metrics::{metric_name, register, GaugeVec, Opts, PrometheusError, Registry, U64};
 
 /// Headers sync metrics.
@@ -59,15 +56,5 @@ impl SyncLoopMetrics {
 		self.best_block_numbers
 			.with_label_values(&["target"])
 			.set(target_best_number.into());
-	}
-
-	/// Update metrics.
-	pub fn update<P: HeadersSyncPipeline>(&self, sync: &HeadersSync<P>) {
-		let source_best_number = sync.source_best_number().unwrap_or_else(Zero::zero);
-		let target_best_number =
-			sync.target_best_header().map(|id| id.0).unwrap_or_else(Zero::zero);
-
-		self.update_best_block_at_source(source_best_number);
-		self.update_best_block_at_target(target_best_number);
 	}
 }
