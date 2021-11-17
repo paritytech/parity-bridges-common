@@ -29,7 +29,6 @@ use relay_rococo_client::{
 	HeaderId as RococoHeaderId, Rococo, SigningParams as RococoSigningParams,
 };
 use relay_substrate_client::{Chain, Client, IndexOf, TransactionSignScheme, UnsignedTransaction};
-use relay_utils::metrics::MetricsParams;
 use relay_wococo_client::{
 	HeaderId as WococoHeaderId, SigningParams as WococoSigningParams, Wococo,
 };

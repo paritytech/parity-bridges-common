@@ -32,8 +32,6 @@ use relay_polkadot_client::{
 	HeaderId as PolkadotHeaderId, Polkadot, SigningParams as PolkadotSigningParams,
 };
 use relay_substrate_client::{Chain, Client, TransactionSignScheme, UnsignedTransaction};
-use relay_utils::metrics::MetricsParams;
-use sp_runtime::{FixedPointNumber, FixedU128};
 use substrate_relay_helper::{
 	messages_lane::{
 		select_delivery_transaction_limits, MessagesRelayParams, StandaloneMessagesMetrics,

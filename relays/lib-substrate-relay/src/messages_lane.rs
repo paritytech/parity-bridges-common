@@ -34,7 +34,7 @@ use relay_substrate_client::{
 	BlockNumberOf, Chain, Client, HashOf,
 };
 use relay_utils::{
-	metrics::{FloatJsonValueMetric, GlobalMetrics, Metric, MetricsParams, PrometheusError, Registry, StandaloneMetric},
+	metrics::{FloatJsonValueMetric, GlobalMetrics, MetricsParams, PrometheusError, StandaloneMetric},
 	BlockNumberBase,
 };
 use sp_core::{storage::StorageKey, Bytes};
@@ -295,11 +295,19 @@ impl<SC: Chain, TC: Chain> StandaloneMessagesMetrics<SC, TC> {
 
 	/// Return conversion rate from target to source tokens.
 	pub async fn target_to_source_conversion_rate(&self) -> Option<f64> {
-		let target_to_base_conversion_rate =
-			(*self.target_to_base_conversion_rate.as_ref()?.shared_value_ref().read().await)?;
-		let source_to_base_conversion_rate =
-			(*self.source_to_base_conversion_rate.as_ref()?.shared_value_ref().read().await)?;
-		Some(source_to_base_conversion_rate / target_to_base_conversion_rate)
+		Self::compute_target_to_source_conversion_rate(
+			*self.target_to_base_conversion_rate.as_ref()?.shared_value_ref().read().await,
+			*self.source_to_base_conversion_rate.as_ref()?.shared_value_ref().read().await,
+		)
+	}
+
+	/// Return conversion rate from target to source tokens, given conversion rates from target/source
+	/// tokens to some base token.
+	fn compute_target_to_source_conversion_rate(
+		target_to_base_conversion_rate: Option<f64>,
+		source_to_base_conversion_rate: Option<f64>,
+	) -> Option<f64> {
+		Some(source_to_base_conversion_rate? / target_to_base_conversion_rate?)
 	}
 }
 
@@ -377,7 +385,6 @@ pub fn standalone_metrics<SC: Chain, TC: Chain>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use async_std::sync::{Arc, RwLock};
 
 	type RialtoToMillauMessagesWeights =
 		pallet_bridge_messages::weights::RialtoWeight<rialto_runtime::Runtime>;
@@ -402,12 +409,9 @@ mod tests {
 
 	#[async_std::test]
 	async fn target_to_source_conversion_rate_works() {
-		let metrics = StandaloneMessagesMetrics {
-			target_to_base_conversion_rate: Some(Arc::new(RwLock::new(Some(183.15)))),
-			source_to_base_conversion_rate: Some(Arc::new(RwLock::new(Some(12.32)))),
-			target_to_source_conversion_rate: None, // we don't care
-		};
-
-		assert_eq!(metrics.target_to_source_conversion_rate().await, Some(12.32 / 183.15),);
+		assert_eq!(
+			StandaloneMessagesMetrics::<relay_rococo_client::Rococo, relay_wococo_client::Wococo>::compute_target_to_source_conversion_rate(Some(183.15), Some(12.32)),
+			Some(12.32 / 183.15),
+		);
 	}
 }

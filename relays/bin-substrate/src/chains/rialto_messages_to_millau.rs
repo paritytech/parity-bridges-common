@@ -33,7 +33,6 @@ use relay_rialto_client::{
 	HeaderId as RialtoHeaderId, Rialto, SigningParams as RialtoSigningParams,
 };
 use relay_substrate_client::{Chain, Client, IndexOf, TransactionSignScheme, UnsignedTransaction};
-use relay_utils::metrics::MetricsParams;
 use substrate_relay_helper::{
 	messages_lane::{
 		select_delivery_transaction_limits, MessagesRelayParams, StandaloneMessagesMetrics,
