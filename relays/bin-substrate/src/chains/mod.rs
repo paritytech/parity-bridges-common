@@ -39,23 +39,15 @@ mod rococo;
 mod westend;
 mod wococo;
 
-use relay_utils::metrics::MetricsParams;
+use relay_utils::metrics::{MetricsParams, StandaloneMetric};
 
 pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
 	params: MetricsParams,
 ) -> anyhow::Result<MetricsParams> {
-Ok(params)
-	/*	// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <->
-	// Kusama relays, but we want to test metrics/dashboards in advance
-	Ok(relay_utils::relay_metrics(params)
-		.standalone_metric(|registry| {
-			substrate_relay_helper::helpers::token_price_metric(registry, "polkadot")
-		})?
-		.standalone_metric(|registry| {
-			substrate_relay_helper::helpers::token_price_metric(registry, "kusama")
-		})?
-		.into_params())
-*/}
+	substrate_relay_helper::helpers::token_price_metric(polkadot::TOKEN_ID)?.register_and_spawn(&params.registry)?;
+	substrate_relay_helper::helpers::token_price_metric(kusama::TOKEN_ID)?.register_and_spawn(&params.registry)?;
+	Ok(params)
+}
 
 #[cfg(test)]
 mod tests {
