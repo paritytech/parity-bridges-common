@@ -17,8 +17,8 @@
 //! Global system-wide Prometheus metrics exposed by relays.
 
 use crate::metrics::{
-	metric_name, register, Gauge, GaugeVec, Metric, Opts, PrometheusError, Registry, StandaloneMetric,
-	F64, U64,
+	metric_name, register, Gauge, GaugeVec, Metric, Opts, PrometheusError, Registry,
+	StandaloneMetric, F64, U64,
 };
 
 use async_std::sync::{Arc, Mutex};
@@ -47,7 +47,10 @@ impl GlobalMetrics {
 				Opts::new(metric_name(None, "system_average_load"), "System load average"),
 				&["over"],
 			)?,
-			process_cpu_usage_percentage: Gauge::new(metric_name(None, "process_cpu_usage_percentage"), "Process CPU usage")?,
+			process_cpu_usage_percentage: Gauge::new(
+				metric_name(None, "process_cpu_usage_percentage"),
+				"Process CPU usage",
+			)?,
 			process_memory_usage_bytes: Gauge::new(
 				metric_name(None, "process_memory_usage_bytes"),
 				"Process memory (resident set size) usage",

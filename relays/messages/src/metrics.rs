@@ -22,7 +22,9 @@ use crate::{
 };
 
 use bp_messages::MessageNonce;
-use relay_utils::metrics::{metric_name, register, GaugeVec, Metric, Opts, PrometheusError, Registry, U64};
+use relay_utils::metrics::{
+	metric_name, register, GaugeVec, Metric, Opts, PrometheusError, Registry, U64,
+};
 
 /// Message lane relay metrics.
 ///

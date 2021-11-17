@@ -234,7 +234,10 @@ pub async fn run(
 		stall_timeout,
 	);
 
-	let standalone_metrics = params.standalone_metrics.map(Ok).unwrap_or_else(|| standalone_metrics(source_client.clone(), target_client.clone()))?;
+	let standalone_metrics = params
+		.standalone_metrics
+		.map(Ok)
+		.unwrap_or_else(|| standalone_metrics(source_client.clone(), target_client.clone()))?;
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
 			lane: lane_id,

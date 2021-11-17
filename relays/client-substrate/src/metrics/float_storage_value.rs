@@ -20,7 +20,8 @@ use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use codec::Decode;
 use relay_utils::metrics::{
-	metric_name, register, F64SharedRef, Gauge, Metric, PrometheusError, Registry, StandaloneMetric, F64,
+	metric_name, register, F64SharedRef, Gauge, Metric, PrometheusError, Registry,
+	StandaloneMetric, F64,
 };
 use sp_core::storage::StorageKey;
 use sp_runtime::{traits::UniqueSaturatedInto, FixedPointNumber};

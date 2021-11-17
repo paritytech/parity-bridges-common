@@ -32,10 +32,7 @@ use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
 use bp_runtime::messages::DispatchFeePayment;
 use relay_utils::{
-	interval,
-	metrics::MetricsParams,
-	process_future_result,
-	relay_loop::Client as RelayClient,
+	interval, metrics::MetricsParams, process_future_result, relay_loop::Client as RelayClient,
 	retry_backoff, FailedClient,
 };
 

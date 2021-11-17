@@ -28,9 +28,8 @@ use backoff::backoff::Backoff;
 use futures::{select, Future, FutureExt, Stream, StreamExt};
 use num_traits::{One, Saturating};
 use relay_utils::{
-	metrics::MetricsParams,
-	relay_loop::Client as RelayClient,
-	retry_backoff, FailedClient, MaybeConnectionError,
+	metrics::MetricsParams, relay_loop::Client as RelayClient, retry_backoff, FailedClient,
+	MaybeConnectionError,
 };
 use std::{
 	pin::Pin,

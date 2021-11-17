@@ -16,7 +16,9 @@
 
 //! Metrics for headers synchronization relay loop.
 
-use relay_utils::metrics::{metric_name, register, GaugeVec, Metric, Opts, PrometheusError, Registry, U64};
+use relay_utils::metrics::{
+	metric_name, register, GaugeVec, Metric, Opts, PrometheusError, Registry, U64,
+};
 
 /// Headers sync metrics.
 #[derive(Clone)]

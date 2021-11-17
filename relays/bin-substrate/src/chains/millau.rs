@@ -39,7 +39,6 @@ use sp_version::RuntimeVersion;
 /// The identifier of token, which value is associated with Millau token value by relayer.
 pub(crate) const ASSOCIATED_TOKEN_ID: &str = crate::chains::kusama::TOKEN_ID;
 
-
 impl CliEncodeCall for Millau {
 	fn max_extrinsic_size() -> u32 {
 		bp_millau::max_extrinsic_size()

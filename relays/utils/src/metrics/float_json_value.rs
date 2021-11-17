@@ -17,8 +17,8 @@
 use crate::{
 	error::{self, Error},
 	metrics::{
-		metric_name, register, F64SharedRef, Gauge, Metric, PrometheusError, Registry, StandaloneMetric,
-		F64,
+		metric_name, register, F64SharedRef, Gauge, Metric, PrometheusError, Registry,
+		StandaloneMetric, F64,
 	},
 };
 

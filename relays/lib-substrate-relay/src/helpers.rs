@@ -19,9 +19,7 @@
 use relay_utils::metrics::{FloatJsonValueMetric, PrometheusError};
 
 /// Creates standalone token price metric.
-pub fn token_price_metric(
-	token_id: &str,
-) -> Result<FloatJsonValueMetric, PrometheusError> {
+pub fn token_price_metric(token_id: &str) -> Result<FloatJsonValueMetric, PrometheusError> {
 	FloatJsonValueMetric::new(
 		format!("https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=btc", token_id),
 		format!("$.{}.btc", token_id),

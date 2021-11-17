@@ -46,11 +46,7 @@ impl<C: Chain> Clone for StorageProofOverheadMetric<C> {
 
 impl<C: Chain> StorageProofOverheadMetric<C> {
 	/// Create new metric instance with given name and help.
-	pub fn new(
-		client: Client<C>,
-		name: String,
-		help: String,
-	) -> Result<Self, PrometheusError> {
+	pub fn new(client: Client<C>, name: String, help: String) -> Result<Self, PrometheusError> {
 		Ok(StorageProofOverheadMetric {
 			client,
 			metric: Gauge::new(metric_name(None, &name), help)?,

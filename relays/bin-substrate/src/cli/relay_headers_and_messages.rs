@@ -362,35 +362,36 @@ impl RelayHeadersAndMessages {
 			// create metrics registry and register standalone metrics
 			let metrics_params: MetricsParams = params.shared.prometheus_params.into();
 			let metrics_params = relay_utils::relay_metrics(metrics_params).into_params();
-			let left_to_right_metrics = left_to_right_standalone_metrics(
-				left_client.clone(),
-				right_client.clone(),
-			)?;
+			let left_to_right_metrics =
+				left_to_right_standalone_metrics(left_client.clone(), right_client.clone())?;
 			let right_to_left_metrics = left_to_right_metrics.clone().reverse();
 
 			// start conversion rate update loops for left/right chains
 			if let Some(left_messages_pallet_owner) = left_messages_pallet_owner {
 				let left_client = left_client.clone();
-				let format_err = || anyhow::format_err!("Cannon run conversion rate updater: {} -> {}", Right::NAME, Left::NAME);
+				let format_err = || {
+					anyhow::format_err!(
+						"Cannon run conversion rate updater: {} -> {}",
+						Right::NAME,
+						Left::NAME
+					)
+				};
 				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
 					left_to_right_metrics
 						.target_to_source_conversion_rate
 						.as_ref()
 						.ok_or_else(format_err)?
-						.shared_value_ref()
-						.clone(),
+						.shared_value_ref(),
 					left_to_right_metrics
 						.target_to_base_conversion_rate
 						.as_ref()
 						.ok_or_else(format_err)?
-						.shared_value_ref()
-						.clone(),
+						.shared_value_ref(),
 					left_to_right_metrics
 						.source_to_base_conversion_rate
 						.as_ref()
 						.ok_or_else(format_err)?
-						.shared_value_ref()
-						.clone(),
+						.shared_value_ref(),
 					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 					move |new_rate| {
 						log::info!(
@@ -411,26 +412,29 @@ impl RelayHeadersAndMessages {
 			}
 			if let Some(right_messages_pallet_owner) = right_messages_pallet_owner {
 				let right_client = right_client.clone();
-				let format_err = || anyhow::format_err!("Cannon run conversion rate updater: {} -> {}", Left::NAME, Right::NAME);
+				let format_err = || {
+					anyhow::format_err!(
+						"Cannon run conversion rate updater: {} -> {}",
+						Left::NAME,
+						Right::NAME
+					)
+				};
 				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
 					right_to_left_metrics
 						.target_to_source_conversion_rate
 						.as_ref()
 						.ok_or_else(format_err)?
-						.shared_value_ref()
-						.clone(),
+						.shared_value_ref(),
 					left_to_right_metrics
 						.source_to_base_conversion_rate
 						.as_ref()
 						.ok_or_else(format_err)?
-						.shared_value_ref()
-						.clone(),
+						.shared_value_ref(),
 					left_to_right_metrics
 						.target_to_base_conversion_rate
 						.as_ref()
 						.ok_or_else(format_err)?
-						.shared_value_ref()
-						.clone(),
+						.shared_value_ref(),
 					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 					move |new_rate| {
 						log::info!(

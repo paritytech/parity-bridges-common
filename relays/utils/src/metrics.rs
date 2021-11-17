@@ -69,9 +69,12 @@ pub trait StandaloneMetric: Metric {
 	/// Register and spawn metric. Metric is only spawned if it is registered for the first time.
 	fn register_and_spawn(self, registry: &Registry) -> Result<(), PrometheusError> {
 		match self.register(registry) {
-			Ok(()) => Ok(self.spawn()),
+			Ok(()) => {
+				self.spawn();
+				Ok(())
+			},
 			Err(PrometheusError::AlreadyReg) => Ok(()),
-			Err(e) => return Err(e),
+			Err(e) => Err(e),
 		}
 	}
 

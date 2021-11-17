@@ -107,7 +107,9 @@ impl CliChain for Polkadot {
 /// Storage key and initial value of Kusama -> Polkadot conversion rate.
 pub(crate) fn kusama_to_polkadot_conversion_rate_params() -> (StorageKey, FixedU128) {
 	(
-		bp_runtime::storage_parameter_key(bp_polkadot::KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME),
+		bp_runtime::storage_parameter_key(
+			bp_polkadot::KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME,
+		),
 		// starting relay before this parameter will be set to some value may cause troubles
 		FixedU128::from_inner(FixedU128::DIV),
 	)

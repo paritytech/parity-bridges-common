@@ -167,7 +167,7 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 		})
 	}
 
-/*	/// Add standalone metrics.
+	/*	/// Add standalone metrics.
 	pub fn standalone_metric<M: StandaloneMetric>(
 		self,
 		metric: M,
