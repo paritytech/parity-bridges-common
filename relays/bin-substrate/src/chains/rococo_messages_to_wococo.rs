@@ -193,12 +193,13 @@ pub async fn run(
 
 	let lane_id = params.lane_id;
 	let source_client = params.source_client;
+	let target_client = params.target_client;
 	let lane = RococoMessagesToWococo {
 		message_lane: SubstrateMessageLaneToSubstrate {
 			source_client: source_client.clone(),
 			source_sign: params.source_sign,
 			source_transactions_mortality: params.source_transactions_mortality,
-			target_client: params.target_client.clone(),
+			target_client: target_client.clone(),
 			target_sign: params.target_sign,
 			target_transactions_mortality: params.target_transactions_mortality,
 			relayer_id_at_source: relayer_id_at_rococo,
@@ -237,8 +238,7 @@ pub async fn run(
 		stall_timeout,
 	);
 
-	let (metrics_params, metrics_values) =
-		add_standalone_metrics(params.metrics_params, source_client.clone())?;
+	let standalone_metrics = params.standalone_metrics.map(Ok).unwrap_or_else(|| standalone_metrics(source_client.clone(), target_client.clone()))?;
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
 			lane: lane_id,
@@ -264,27 +264,28 @@ pub async fn run(
 			params.target_to_source_headers_relay,
 		),
 		WococoTargetClient::new(
-			params.target_client,
+			target_client,
 			lane,
 			lane_id,
-			metrics_values,
+			standalone_metrics.clone(),
 			params.source_to_target_headers_relay,
 		),
-		metrics_params,
+		standalone_metrics.register_and_spawn(params.metrics_params)?,
 		futures::future::pending(),
 	)
 	.await
 	.map_err(Into::into)
 }
 
-/// Add standalone metrics for the Rococo -> Wococo messages loop.
-pub(crate) fn add_standalone_metrics(
-	metrics_params: MetricsParams,
+/// Create standalone metrics for the Rococo -> Wococo messages loop.
+pub(crate) fn standalone_metrics(
 	source_client: Client<Rococo>,
-) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
-	substrate_relay_helper::messages_lane::add_standalone_metrics::<RococoMessagesToWococo>(
-		metrics_params,
+	target_client: Client<Wococo>,
+) -> anyhow::Result<StandaloneMessagesMetrics<Rococo, Wococo>> {
+	substrate_relay_helper::messages_lane::standalone_metrics(
 		source_client,
+		target_client,
+		None,
 		None,
 		None,
 		None,

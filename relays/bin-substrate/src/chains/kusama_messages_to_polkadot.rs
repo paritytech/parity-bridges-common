@@ -196,12 +196,13 @@ pub async fn run(
 
 	let lane_id = params.lane_id;
 	let source_client = params.source_client;
+	let target_client = params.target_client;
 	let lane = KusamaMessagesToPolkadot {
 		message_lane: SubstrateMessageLaneToSubstrate {
 			source_client: source_client.clone(),
 			source_sign: params.source_sign,
 			source_transactions_mortality: params.source_transactions_mortality,
-			target_client: params.target_client.clone(),
+			target_client: target_client.clone(),
 			target_sign: params.target_sign,
 			target_transactions_mortality: params.target_transactions_mortality,
 			relayer_id_at_source: relayer_id_at_kusama,
@@ -240,8 +241,7 @@ pub async fn run(
 		stall_timeout,
 	);
 
-	let (metrics_params, metrics_values) =
-		add_standalone_metrics(params.metrics_params, source_client.clone())?;
+	let standalone_metrics = params.standalone_metrics.map(Ok).unwrap_or_else(|| standalone_metrics(source_client.clone(), target_client.clone()))?;
 	messages_relay::message_lane_loop::run(
 		messages_relay::message_lane_loop::Params {
 			lane: lane_id,
@@ -267,39 +267,31 @@ pub async fn run(
 			params.target_to_source_headers_relay,
 		),
 		PolkadotTargetClient::new(
-			params.target_client,
+			target_client.clone(),
 			lane,
 			lane_id,
-			metrics_values,
+			standalone_metrics.clone(),
 			params.source_to_target_headers_relay,
 		),
-		metrics_params,
+		standalone_metrics.register_and_spawn(params.metrics_params)?,
 		futures::future::pending(),
 	)
 	.await
 	.map_err(Into::into)
 }
 
-/// Add standalone metrics for the Kusama -> Polkadot messages loop.
-pub(crate) fn add_standalone_metrics(
-	metrics_params: MetricsParams,
+/// Create standalone metrics for the Kusama -> Polkadot messages loop.
+pub(crate) fn standalone_metrics(
 	source_client: Client<Kusama>,
-) -> anyhow::Result<(MetricsParams, StandaloneMessagesMetrics)> {
-	let polkadot_to_kusama_conversion_rate_key = bp_runtime::storage_parameter_key(
-		bp_kusama::POLKADOT_TO_KUSAMA_CONVERSION_RATE_PARAMETER_NAME,
-	)
-	.0;
-
-	substrate_relay_helper::messages_lane::add_standalone_metrics::<KusamaMessagesToPolkadot>(
-		metrics_params,
+	target_client: Client<Polkadot>,
+) -> anyhow::Result<StandaloneMessagesMetrics<Kusama, Polkadot>> {
+	substrate_relay_helper::messages_lane::standalone_metrics(
 		source_client,
-		Some(crate::chains::polkadot::TOKEN_ID),
+		target_client,
 		Some(crate::chains::kusama::TOKEN_ID),
-		Some((
-			sp_core::storage::StorageKey(polkadot_to_kusama_conversion_rate_key),
-			// starting relay before this parameter will be set to some value may cause troubles
-			FixedU128::from_inner(FixedU128::DIV),
-		)),
+		Some(crate::chains::polkadot::TOKEN_ID),
+		Some(crate::chains::polkadot::kusama_to_polkadot_conversion_rate_params()),
+		Some(crate::chains::kusama::polkadot_to_kusama_conversion_rate_params()),
 	)
 }
 

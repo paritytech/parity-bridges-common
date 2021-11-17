@@ -22,7 +22,7 @@ use crate::{
 };
 
 use num_traits::Zero;
-use relay_utils::metrics::{metric_name, register, GaugeVec, Opts, PrometheusError, Registry, U64};
+use relay_utils::metrics::{metric_name, register, GaugeVec, Metric, Opts, PrometheusError, Registry, U64};
 
 /// Headers sync metrics.
 #[derive(Clone)]
@@ -35,33 +35,25 @@ pub struct SyncLoopMetrics {
 
 impl SyncLoopMetrics {
 	/// Create and register headers loop metrics.
-	pub fn new(registry: &Registry, prefix: Option<&str>) -> Result<Self, PrometheusError> {
+	pub fn new(prefix: Option<&str>) -> Result<Self, PrometheusError> {
 		Ok(SyncLoopMetrics {
-			best_block_numbers: register(
-				GaugeVec::new(
-					Opts::new(
-						metric_name(prefix, "best_block_numbers"),
-						"Best block numbers on source and target nodes",
-					),
-					&["node"],
-				)?,
-				registry,
+			best_block_numbers: GaugeVec::new(
+				Opts::new(
+					metric_name(prefix, "best_block_numbers"),
+					"Best block numbers on source and target nodes",
+				),
+				&["node"],
 			)?,
-			blocks_in_state: register(
-				GaugeVec::new(
-					Opts::new(
-						metric_name(prefix, "blocks_in_state"),
-						"Number of blocks in given state",
-					),
-					&["state"],
-				)?,
-				registry,
+			blocks_in_state: GaugeVec::new(
+				Opts::new(
+					metric_name(prefix, "blocks_in_state"),
+					"Number of blocks in given state",
+				),
+				&["state"],
 			)?,
 		})
 	}
-}
 
-impl SyncLoopMetrics {
 	/// Update best block number at source.
 	pub fn update_best_block_at_source<Number: Into<u64>>(&self, source_best_number: Number) {
 		self.best_block_numbers
@@ -107,5 +99,13 @@ impl SyncLoopMetrics {
 		self.blocks_in_state
 			.with_label_values(&["submitted"])
 			.set(headers.headers_in_status(HeaderStatus::Submitted) as _);
+	}
+}
+
+impl Metric for SyncLoopMetrics {
+	fn register(&self, registry: &Registry) -> Result<(), PrometheusError> {
+		register(self.best_block_numbers.clone(), registry)?;
+		register(self.blocks_in_state.clone(), registry)?;
+		Ok(())
 	}
 }

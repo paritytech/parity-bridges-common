@@ -27,7 +27,7 @@ use futures::{future::FutureExt, stream::StreamExt};
 use num_traits::{Saturating, Zero};
 use relay_utils::{
 	format_ids, interval,
-	metrics::{GlobalMetrics, MetricsParams},
+	metrics::MetricsParams,
 	process_future_result,
 	relay_loop::Client as RelayClient,
 	retry_backoff, FailedClient, MaybeConnectionError, StringifiedMaybeConnectionError,
@@ -147,8 +147,7 @@ pub async fn run<P: HeadersSyncPipeline, TC: TargetClient<P>>(
 	let exit_signal = exit_signal.shared();
 	relay_utils::relay_loop(source_client, target_client)
 		.with_metrics(metrics_params)
-		.loop_metric(|registry| SyncLoopMetrics::new(registry, Some(&metrics_prefix::<P>())))?
-		.standalone_metric(GlobalMetrics::new)?
+		.loop_metric(SyncLoopMetrics::new(Some(&metrics_prefix::<P>()))?)?
 		.expose()
 		.await?
 		.run(metrics_prefix::<P>(), move |source_client, target_client, metrics| {

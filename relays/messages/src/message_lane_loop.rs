@@ -33,7 +33,7 @@ use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
 use bp_runtime::messages::DispatchFeePayment;
 use relay_utils::{
 	interval,
-	metrics::{GlobalMetrics, MetricsParams},
+	metrics::MetricsParams,
 	process_future_result,
 	relay_loop::Client as RelayClient,
 	retry_backoff, FailedClient,
@@ -271,10 +271,7 @@ pub async fn run<P: MessageLane, Strategy: RelayStrategy>(
 	relay_utils::relay_loop(source_client, target_client)
 		.reconnect_delay(params.reconnect_delay)
 		.with_metrics(metrics_params)
-		.loop_metric(|registry| {
-			MessageLaneLoopMetrics::new(registry, Some(&metrics_prefix::<P>(&params.lane)))
-		})?
-		.standalone_metric(GlobalMetrics::new)?
+		.loop_metric(MessageLaneLoopMetrics::new(Some(&metrics_prefix::<P>(&params.lane)))?)?
 		.expose()
 		.await?
 		.run(metrics_prefix::<P>(&params.lane), move |source_client, target_client, metrics| {

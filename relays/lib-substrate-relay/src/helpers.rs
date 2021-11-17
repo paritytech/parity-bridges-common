@@ -16,15 +16,13 @@
 
 //! Substrate relay helpers
 
-use relay_utils::metrics::{FloatJsonValueMetric, PrometheusError, Registry};
+use relay_utils::metrics::{FloatJsonValueMetric, PrometheusError};
 
 /// Creates standalone token price metric.
 pub fn token_price_metric(
-	registry: &Registry,
 	token_id: &str,
 ) -> Result<FloatJsonValueMetric, PrometheusError> {
 	FloatJsonValueMetric::new(
-		registry,
 		format!("https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=btc", token_id),
 		format!("$.{}.btc", token_id),
 		format!("{}_to_base_conversion_rate", token_id.replace("-", "_")),

@@ -39,21 +39,13 @@ mod rococo;
 mod westend;
 mod wococo;
 
-// Millau/Rialto tokens have no any real value, so the conversion rate we use is always 1:1. But we
-// want to test our code that is intended to work with real-value chains. So to keep it close to
-// 1:1, we'll be treating Rialto as BTC and Millau as wBTC (only in relayer).
-
-/// The identifier of token, which value is associated with Rialto token value by relayer.
-pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = polkadot::TOKEN_ID;
-/// The identifier of token, which value is associated with Millau token value by relayer.
-pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = kusama::TOKEN_ID;
-
 use relay_utils::metrics::MetricsParams;
 
 pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
 	params: MetricsParams,
 ) -> anyhow::Result<MetricsParams> {
-	// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <->
+Ok(params)
+	/*	// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <->
 	// Kusama relays, but we want to test metrics/dashboards in advance
 	Ok(relay_utils::relay_metrics(params)
 		.standalone_metric(|registry| {
@@ -63,7 +55,7 @@ pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncP
 			substrate_relay_helper::helpers::token_price_metric(registry, "kusama")
 		})?
 		.into_params())
-}
+*/}
 
 #[cfg(test)]
 mod tests {
