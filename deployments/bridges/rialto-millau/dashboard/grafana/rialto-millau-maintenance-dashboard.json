@@ -65,7 +65,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rialto_storage_proof_overhead",
+          "expr": "rialto_storage_proof_overhead{instance='relay-millau-rialto:9616'}",
           "interval": "",
           "legendFormat": "Actual overhead",
           "refId": "A"
@@ -169,14 +169,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "kusama_to_base_conversion_rate / polkadot_to_base_conversion_rate",
+          "expr": "kusama_to_base_conversion_rate{instance='relay-millau-rialto:9616'} / polkadot_to_base_conversion_rate{instance='relay-millau-rialto:9616'}",
           "interval": "",
           "legendFormat": "Outside of runtime (actually Polkadot -> Kusama)",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "rialto_millau_to_rialto_conversion_rate",
+          "expr": "Millau_Rialto_to_Millau_conversion_rate{instance='relay-millau-rialto:9616'}",
           "hide": false,
           "interval": "",
           "legendFormat": "At runtime",
@@ -273,7 +273,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "millau_storage_proof_overhead",
+          "expr": "millau_storage_proof_overhead{instance='relay-millau-rialto:9616'}",
           "interval": "",
           "legendFormat": "Actual overhead",
           "refId": "A"
@@ -377,14 +377,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "polkadot_to_base_conversion_rate / kusama_to_base_conversion_rate",
+          "expr": "polkadot_to_base_conversion_rate{instance='relay-millau-rialto:9616'} / kusama_to_base_conversion_rate{instance='relay-millau-rialto:9616'}",
           "interval": "",
           "legendFormat": "Outside of runtime (actually Kusama -> Polkadot)",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "millau_rialto_to_millau_conversion_rate",
+          "expr": "Rialto_Millau_to_Rialto_conversion_rate{instance='relay-millau-rialto:9616'}",
           "hide": false,
           "interval": "",
           "legendFormat": "At runtime",
