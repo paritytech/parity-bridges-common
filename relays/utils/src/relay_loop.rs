@@ -167,16 +167,6 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 		})
 	}
 
-	/*	/// Add standalone metrics.
-	pub fn standalone_metric<M: StandaloneMetric>(
-		self,
-		metric: M,
-	) -> Result<Self, Error> {
-		metric.register(&self.registry)?;
-		metric.spawn();
-		Ok(self)
-	}*/
-
 	/// Convert into `MetricsParams` structure so that metrics registry may be extended later.
 	pub fn into_params(self) -> MetricsParams {
 		MetricsParams { address: self.address, registry: self.registry }
