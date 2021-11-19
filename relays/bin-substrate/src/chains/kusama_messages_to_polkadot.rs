@@ -268,7 +268,7 @@ pub async fn run(
 			params.target_to_source_headers_relay,
 		),
 		PolkadotTargetClient::new(
-			target_client.clone(),
+			target_client,
 			lane,
 			lane_id,
 			standalone_metrics.clone(),
