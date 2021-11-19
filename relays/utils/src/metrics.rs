@@ -117,7 +117,11 @@ impl From<Option<MetricsAddress>> for MetricsParams {
 
 /// Returns metric name optionally prefixed with given prefix.
 pub fn metric_name(prefix: Option<&str>, name: &str) -> String {
-	if let Some(prefix) = prefix { format!("{}_{}", prefix, name) } else { name.into() }
+	if let Some(prefix) = prefix {
+		format!("{}_{}", prefix, name)
+	} else {
+		name.into()
+	}
 }
 
 /// Set value of gauge metric.
