@@ -187,7 +187,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Rialto: Millau -> Rialto conversion rate",
+      "title": "Millau: Rialto -> Millau conversion rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -395,7 +395,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Millau: Rialto -> Millau conversion rate",
+      "title": "Rialto: Millau -> Rialto conversion rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
