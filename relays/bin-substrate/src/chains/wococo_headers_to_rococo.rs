@@ -37,9 +37,6 @@ substrate_relay_helper::generate_mocked_submit_finality_proof_call_builder!(
 );
 
 impl SubstrateFinalitySyncPipeline for WococoFinalityToRococo {
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str =
-		bp_wococo::BEST_FINALIZED_WOCOCO_HEADER_METHOD;
-
 	type SourceChain = relay_wococo_client::Wococo;
 	type TargetChain = relay_rococo_client::Rococo;
 

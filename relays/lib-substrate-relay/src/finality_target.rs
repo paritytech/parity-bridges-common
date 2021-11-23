@@ -28,8 +28,8 @@ use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Client, Error, HashOf, HeaderOf, SyncHeader,
-	TransactionEra, TransactionSignScheme, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error, HashOf, HeaderOf,
+	SyncHeader, TransactionEra, TransactionSignScheme, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::{Bytes, Pair};
@@ -86,7 +86,7 @@ where
 			P::TargetChain,
 			HashOf<P::SourceChain>,
 			BlockNumberOf<P::SourceChain>,
-		>(&self.client, P::BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET)
+		>(&self.client, P::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD)
 		.await?
 		.best_finalized_peer_at_best_self
 		.0)

@@ -47,9 +47,6 @@ pub struct TransactionParams<TS> {
 
 /// Substrate -> Substrate finality proofs synchronization pipeline.
 pub trait SubstrateFinalitySyncPipeline: 'static + Clone + Debug + Send + Sync {
-	/// Name of the runtime method that returns id of best finalized source header at target chain.
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str;
-
 	/// Headers of this chain are submitted to the `TargetChain`.
 	type SourceChain: Chain;
 	/// Headers of the `SourceChain` are submitted to this chain.

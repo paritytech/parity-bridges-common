@@ -32,6 +32,12 @@ use std::{fmt::Debug, time::Duration};
 pub trait Chain: ChainBase + Clone {
 	/// Chain name.
 	const NAME: &'static str;
+	/// Name of the runtime API method that is returning best known finalized header number
+	/// and hash (as tuple).
+	///
+	/// Keep in mind that this method is normally provided by the other chain, which is
+	/// bridged with this chain.
+	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str;
 
 	/// Average block interval.
 	///

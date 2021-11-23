@@ -37,9 +37,6 @@ substrate_relay_helper::generate_mocked_submit_finality_proof_call_builder!(
 );
 
 impl SubstrateFinalitySyncPipeline for PolkadotFinalityToKusama {
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str =
-		bp_polkadot::BEST_FINALIZED_POLKADOT_HEADER_METHOD;
-
 	type SourceChain = relay_polkadot_client::Polkadot;
 	type TargetChain = relay_kusama_client::Kusama;
 

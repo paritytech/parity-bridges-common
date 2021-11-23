@@ -25,9 +25,6 @@ use substrate_relay_helper::finality_pipeline::{
 pub struct MillauFinalityToRialto;
 
 impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str =
-		bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;
-
 	type SourceChain = relay_millau_client::Millau;
 	type TargetChain = relay_rialto_client::Rialto;
 

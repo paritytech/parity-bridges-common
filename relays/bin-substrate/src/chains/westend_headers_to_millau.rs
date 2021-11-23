@@ -25,9 +25,6 @@ use substrate_relay_helper::finality_pipeline::{
 pub struct WestendFinalityToMillau;
 
 impl SubstrateFinalitySyncPipeline for WestendFinalityToMillau {
-	const BEST_FINALIZED_SOURCE_HEADER_ID_AT_TARGET: &'static str =
-		bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
-
 	type SourceChain = relay_westend_client::Westend;
 	type TargetChain = relay_millau_client::Millau;
 
