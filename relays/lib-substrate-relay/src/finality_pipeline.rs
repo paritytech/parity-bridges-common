@@ -133,18 +133,18 @@ macro_rules! generate_mocked_submit_finality_proof_call_builder {
 			for $mocked_builder
 		{
 			fn build_submit_finality_proof_call(
-						header: relay_substrate_client::SyncHeader<
-							relay_substrate_client::HeaderOf<
-								<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::SourceChain
-							>
-						>,
-						proof: bp_header_chain::justification::GrandpaJustification<
-							relay_substrate_client::HeaderOf<
-								<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::SourceChain
-							>
-						>,
-					) -> relay_substrate_client::CallOf<
-						<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::TargetChain
+								header: relay_substrate_client::SyncHeader<
+									relay_substrate_client::HeaderOf<
+										<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::SourceChain
+									>
+								>,
+								proof: bp_header_chain::justification::GrandpaJustification<
+									relay_substrate_client::HeaderOf<
+										<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::SourceChain
+									>
+								>,
+							) -> relay_substrate_client::CallOf<
+								<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::TargetChain
 			>{
 				$bridge_grandpa($submit_finality_proof(Box::new(header.into_inner()), proof))
 			}
