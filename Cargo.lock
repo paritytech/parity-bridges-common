@@ -10889,6 +10889,7 @@ dependencies = [
  "log",
  "messages-relay",
  "num-traits",
+ "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "parity-scale-codec",
  "relay-rococo-client",

@@ -32,6 +32,9 @@ use std::{fmt::Debug, time::Duration};
 pub trait Chain: ChainBase + Clone {
 	/// Chain name.
 	const NAME: &'static str;
+	// /// The identifier of the chain token, if applicable.
+	// const TOKEN_ID: Option<&'static str>;
+
 	/// Average block interval.
 	///
 	/// How often blocks are produced on that chain. It's suggested to set this value
@@ -45,7 +48,7 @@ pub trait Chain: ChainBase + Clone {
 	/// Block type.
 	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification<Self::Header>;
 	/// The aggregated `Call` type.
-	type Call: Clone + Dispatchable + Debug;
+	type Call: Clone + Dispatchable + Debug + Send;
 
 	/// Type that is used by the chain, to convert from weight to fee.
 	type WeightToFee: WeightToFeePolynomial<Balance = Self::Balance>;
@@ -101,6 +104,9 @@ impl<C: Chain> UnsignedTransaction<C> {
 		self
 	}
 }
+
+///
+pub type AccountKeyPairOf<S> = <S as TransactionSignScheme>::AccountKeyPair;
 
 /// Substrate-based chain transactions signing scheme.
 pub trait TransactionSignScheme {
