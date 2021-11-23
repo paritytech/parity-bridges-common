@@ -105,7 +105,7 @@ impl<C: Chain> UnsignedTransaction<C> {
 	}
 }
 
-///
+/// Account key pair used by transactions signing scheme.
 pub type AccountKeyPairOf<S> = <S as TransactionSignScheme>::AccountKeyPair;
 
 /// Substrate-based chain transactions signing scheme.
