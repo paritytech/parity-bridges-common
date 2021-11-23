@@ -32,8 +32,6 @@ use std::{fmt::Debug, time::Duration};
 pub trait Chain: ChainBase + Clone {
 	/// Chain name.
 	const NAME: &'static str;
-	// /// The identifier of the chain token, if applicable.
-	// const TOKEN_ID: Option<&'static str>;
 
 	/// Average block interval.
 	///
