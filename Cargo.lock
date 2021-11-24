@@ -4580,6 +4580,8 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "beefy-gadget",
+ "beefy-gadget-rpc",
  "beefy-primitives",
  "bp-millau",
  "bp-runtime",
