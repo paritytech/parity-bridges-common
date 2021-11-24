@@ -8365,6 +8365,7 @@ dependencies = [
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-grandpa",
+ "pallet-mmr",
  "pallet-session",
  "pallet-shift-session-manager",
  "pallet-sudo",
