@@ -8141,6 +8141,8 @@ checksum = "448296241d034b96c11173591deaa1302f2c17b56092106c1f92c1bc0183a8c9"
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "beefy-gadget",
+ "beefy-gadget-rpc",
  "beefy-primitives",
  "bp-rialto",
  "bp-runtime",

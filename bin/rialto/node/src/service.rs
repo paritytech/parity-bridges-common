@@ -184,7 +184,12 @@ pub fn new_partial(
 				sc_rpc::DenyUnsafe,
 				sc_rpc::SubscriptionTaskExecutor,
 			) -> Result<jsonrpc_core::IoHandler<sc_service::RpcMetadata>, sc_service::Error>,
-			(FullBabeBlockImport, FullGrandpaLink, FullBabeLink),
+			(
+				FullBabeBlockImport,
+				FullGrandpaLink,
+				FullBabeLink,
+				beefy_gadget::notification::BeefySignedCommitmentSender<Block>,
+			),
 			sc_finality_grandpa::SharedVoterState,
 			std::time::Duration,
 			Option<Telemetry>,
@@ -282,7 +287,10 @@ where
 	let shared_authority_set = grandpa_link.shared_authority_set().clone();
 	let shared_voter_state = sc_finality_grandpa::SharedVoterState::empty();
 
-	let import_setup = (block_import, grandpa_link, babe_link);
+	let (signed_commitment_sender, signed_commitment_stream) =
+		beefy_gadget::notification::BeefySignedCommitmentStream::channel();
+
+	let import_setup = (block_import, grandpa_link, babe_link, signed_commitment_sender);
 	let rpc_setup = shared_voter_state.clone();
 
 	let slot_duration = babe_config.slot_duration();
@@ -321,9 +329,15 @@ where
 				shared_authority_set.clone(),
 				shared_voter_state,
 				justification_stream.clone(),
-				subscription_executor,
+				subscription_executor.clone(),
 				finality_proof_provider,
 			)));
+			io.extend_with(beefy_gadget_rpc::BeefyApi::to_delegate(
+				beefy_gadget_rpc::BeefyRpcHandler::new(
+					signed_commitment_stream.clone(),
+					subscription_executor,
+				),
+			));
 
 			Ok(io)
 		}
@@ -442,6 +456,8 @@ where
 	// Substrate nodes.
 	config.network.extra_sets.push(sc_finality_grandpa::grandpa_peers_set_config());
 
+	config.network.extra_sets.push(beefy_gadget::beefy_peers_set_config());
+
 	{
 		use polkadot_network_bridge::{peer_sets_info, IsAuthority};
 		let is_authority = if role.is_authority() { IsAuthority::Yes } else { IsAuthority::No };
@@ -536,7 +552,7 @@ where
 		telemetry: telemetry.as_mut(),
 	})?;
 
-	let (block_import, link_half, babe_link) = import_setup;
+	let (block_import, link_half, babe_link, signed_commitment_sender) = import_setup;
 
 	let overseer_client = client.clone();
 	let spawner = task_manager.spawn_handle();
@@ -712,6 +728,22 @@ where
 	// need a keystore, regardless of which protocol we use below.
 	let keystore_opt =
 		if role.is_authority() { Some(keystore_container.sync_keystore()) } else { None };
+
+	let beefy_params = beefy_gadget::BeefyParams {
+		client: client.clone(),
+		backend: backend.clone(),
+		key_store: keystore_opt.clone(),
+		network: network.clone(),
+		signed_commitment_sender,
+		min_block_delta: 4,
+		prometheus_registry: prometheus_registry.clone(),
+	};
+
+	// Start the BEEFY bridge gadget.
+	task_manager.spawn_essential_handle().spawn_blocking(
+		"beefy-gadget",
+		beefy_gadget::start_beefy_gadget::<_, _, _, _>(beefy_params),
+	);
 
 	let config = sc_finality_grandpa::Config {
 		// FIXME substrate#1578 make this available through chainspec
