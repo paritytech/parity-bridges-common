@@ -35,6 +35,7 @@ pub mod parachains;
 
 use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 
+use beefy_primitives::{crypto::AuthorityId as BeefyId, ValidatorSet};
 use bridge_runtime_common::messages::{
 	source::estimate_message_dispatch_and_delivery_fee, MessageBridge,
 };
@@ -122,6 +123,7 @@ impl_opaque_keys! {
 	pub struct SessionKeys {
 		pub babe: Babe,
 		pub grandpa: Grandpa,
+		pub beefy: Beefy,
 		pub para_validator: Initializer,
 		pub para_assignment: SessionInfo,
 		pub authority_discovery: AuthorityDiscovery,
@@ -240,6 +242,10 @@ impl pallet_babe::Config for Runtime {
 
 	type DisabledValidators = ();
 	type WeightInfo = ();
+}
+
+impl pallet_beefy::Config for Runtime {
+	type BeefyId = BeefyId;
 }
 
 impl pallet_bridge_dispatch::Config for Runtime {
@@ -461,6 +467,7 @@ construct_runtime!(
 		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
+		Beefy: pallet_beefy::{Pallet, Call, Storage, Config<T>},
 		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
 
 		// Millau bridge modules.
@@ -569,6 +576,12 @@ impl_runtime_apis! {
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
 		fn account_nonce(account: AccountId) -> Index {
 			System::account_nonce(account)
+		}
+	}
+
+	impl beefy_primitives::BeefyApi<Block> for Runtime {
+		fn validator_set() -> ValidatorSet<BeefyId> {
+			Beefy::validator_set()
 		}
 	}
 
