@@ -34,6 +34,7 @@ pub mod rialto_messages;
 
 use crate::rialto_messages::{ToRialtoMessagePayload, WithRialtoMessageBridge};
 
+use beefy_primitives::{crypto::AuthorityId as BeefyId, ValidatorSet};
 use bridge_runtime_common::messages::{
 	source::estimate_message_dispatch_and_delivery_fee, MessageBridge,
 };
@@ -120,6 +121,7 @@ pub mod opaque {
 impl_opaque_keys! {
 	pub struct SessionKeys {
 		pub aura: Aura,
+		pub beefy: Beefy,
 		pub grandpa: Grandpa,
 	}
 }
@@ -212,6 +214,11 @@ impl pallet_aura::Config for Runtime {
 	type MaxAuthorities = MaxAuthorities;
 	type DisabledValidators = ();
 }
+
+impl pallet_beefy::Config for Runtime {
+	type BeefyId = BeefyId;
+}
+
 impl pallet_bridge_dispatch::Config for Runtime {
 	type Event = Event;
 	type BridgeMessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
@@ -459,6 +466,9 @@ construct_runtime!(
 		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
 
+		// Bridges support.
+		Beefy: pallet_beefy::{Pallet, Storage, Config<T>},
+
 		// Rialto bridge modules.
 		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
 		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
@@ -600,6 +610,12 @@ impl_runtime_apis! {
 			encoded: Vec<u8>,
 		) -> Option<Vec<(Vec<u8>, sp_core::crypto::KeyTypeId)>> {
 			SessionKeys::decode_into_raw_public_keys(&encoded)
+		}
+	}
+
+	impl beefy_primitives::BeefyApi<Block> for Runtime {
+		fn validator_set() -> ValidatorSet<BeefyId> {
+			Beefy::validator_set()
 		}
 	}
 

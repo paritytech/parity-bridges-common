@@ -4580,6 +4580,7 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "beefy-primitives",
  "bp-millau",
  "bp-runtime",
  "frame-benchmarking",
@@ -4618,6 +4619,7 @@ dependencies = [
 name = "millau-runtime"
 version = "0.1.0"
 dependencies = [
+ "beefy-primitives",
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
@@ -4633,6 +4635,7 @@ dependencies = [
  "hex-literal",
  "pallet-aura",
  "pallet-balances",
+ "pallet-beefy",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
