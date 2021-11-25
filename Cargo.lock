@@ -4643,6 +4643,7 @@ dependencies = [
  "pallet-bridge-messages",
  "pallet-bridge-token-swap",
  "pallet-grandpa",
+ "pallet-mmr",
  "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-shift-session-manager",

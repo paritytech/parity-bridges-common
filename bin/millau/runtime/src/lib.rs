@@ -47,7 +47,7 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{Block as BlockT, IdentityLookup, NumberFor, OpaqueKeys},
+	traits::{Block as BlockT, IdentityLookup, Keccak256, NumberFor, OpaqueKeys},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, MultiSigner, Perquintill,
 };
@@ -245,6 +245,32 @@ impl pallet_grandpa::Config for Runtime {
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
 	type MaxAuthorities = MaxAuthorities;
+}
+
+type MmrHash = bp_millau::Hash;
+
+// TODO: use `pallet_beefy_mmr::DepositBeefyDigest` instead of `DepositLog` below.
+
+/// A BEEFY consensus digest item with MMR root hash.
+pub struct DepositLog;
+impl pallet_mmr::primitives::OnNewRoot<Hash> for DepositLog {
+	fn on_new_root(root: &Hash) {
+		let digest = DigestItem::Consensus(
+			beefy_primitives::BEEFY_ENGINE_ID,
+			codec::Encode::encode(&beefy_primitives::ConsensusLog::<BeefyId>::MmrRoot(*root)),
+		);
+		<frame_system::Pallet<Runtime>>::deposit_log(digest);
+	}
+}
+
+/// Configure Merkle Mountain Range pallet.
+impl pallet_mmr::Config for Runtime {
+	const INDEXING_PREFIX: &'static [u8] = b"mmr";
+	type Hashing = Hashing;
+	type Hash = Hash;
+	type OnNewRoot = DepositLog;
+	type WeightInfo = ();
+	type LeafData = frame_system::Pallet<Self>;
 }
 
 parameter_types! {
@@ -468,6 +494,7 @@ construct_runtime!(
 
 		// Bridges support.
 		Beefy: pallet_beefy::{Pallet, Storage, Config<T>},
+		Mmr: pallet_mmr::{Pallet, Storage},
 
 		// Rialto bridge modules.
 		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},

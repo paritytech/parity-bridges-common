@@ -40,6 +40,7 @@ pallet-aura = { git = "https://github.com/paritytech/substrate", branch = "maste
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-beefy = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+pallet-mmr = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-session = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -87,6 +88,7 @@ std = [
 	"pallet-bridge-messages/std",
 	"pallet-bridge-token-swap/std",
 	"pallet-grandpa/std",
+	"pallet-mmr/std",
 	"pallet-randomness-collective-flip/std",
 	"pallet-session/std",
 	"pallet-shift-session-manager/std",
