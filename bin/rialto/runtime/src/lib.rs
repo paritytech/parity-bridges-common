@@ -1232,7 +1232,7 @@ mod tests {
 
 	#[test]
 	fn call_size() {
-		const MAX_CALL_SIZE: usize = 230; // value from polkadot-runtime tests
+		const MAX_CALL_SIZE: usize = 232; // slightly bigger than polkadot-runtime tests
 		assert!(core::mem::size_of::<Call>() <= MAX_CALL_SIZE);
 	}
 }
