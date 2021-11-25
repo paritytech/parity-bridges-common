@@ -8368,6 +8368,7 @@ dependencies = [
  "pallet-babe",
  "pallet-balances",
  "pallet-beefy",
+ "pallet-beefy-mmr",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
