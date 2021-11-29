@@ -376,7 +376,7 @@ where
 
 			// Only consider leaves that are in maximum an uncle of the best block.
 			if number < best_block.number().saturating_sub(1) || hash == best_block.hash() {
-				return None;
+				return None
 			}
 
 			let parent_hash = client.header(&BlockId::Hash(hash)).ok()??.parent_hash;

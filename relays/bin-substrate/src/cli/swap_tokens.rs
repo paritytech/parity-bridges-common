@@ -121,7 +121,7 @@ macro_rules! select_bridge {
 				const TARGET_TO_SOURCE_LANE_ID: bp_messages::LaneId = [0, 0, 0, 0];
 
 				$generic
-			}
+			},
 		}
 	};
 }
@@ -269,13 +269,12 @@ impl SwapTokens {
 					let intermediate_balances =
 						read_account_balances(&accounts, &source_client, &target_client).await?;
 					log::info!(target: "bridge", "Intermediate balances: {:?}", intermediate_balances);
-				}
-				Some(token_swap_state) => {
+				},
+				Some(token_swap_state) =>
 					return Err(anyhow::format_err!(
 						"Fresh token swap has unexpected state: {:?}",
 						token_swap_state,
-					))
-				}
+					)),
 				None => return Err(anyhow::format_err!("Failed to start token swap")),
 			};
 
@@ -294,26 +293,23 @@ impl SwapTokens {
 			let is_transfer_succeeded = match token_swap_state {
 				Some(bp_token_swap::TokenSwapState::Started) => {
 					unreachable!("wait_until_token_swap_state_is_changed only returns if state is not Started; qed",)
-				}
-				None => {
-					return Err(anyhow::format_err!(
-						"Fresh token swap has disappeared unexpectedly"
-					))
-				}
+				},
+				None =>
+					return Err(anyhow::format_err!("Fresh token swap has disappeared unexpectedly")),
 				Some(bp_token_swap::TokenSwapState::Confirmed) => {
 					log::info!(
 						target: "bridge",
 						"Transfer has been successfully dispatched at the target chain. Swap can be claimed",
 					);
 					true
-				}
+				},
 				Some(bp_token_swap::TokenSwapState::Failed) => {
 					log::info!(
 						target: "bridge",
 						"Transfer has been dispatched with an error at the target chain. Swap can be canceled",
 					);
 					false
-				}
+				},
 			};
 
 			// by this time: (1) token swap account has been created and (2) if transfer has been
@@ -407,7 +403,7 @@ impl SwapTokens {
 					return Err(anyhow::format_err!(
 						"Confirmed token swap state has been changed to {:?} unexpectedly",
 						token_swap_state
-					));
+					))
 				}
 			} else {
 				log::info!(target: "bridge", "Cancelling the swap");
@@ -491,9 +487,8 @@ impl SwapTokens {
 		source_client: &Client<Source>,
 	) -> anyhow::Result<bp_token_swap::TokenSwapType<BlockNumberOf<Source>>> {
 		match self.swap_type {
-			TokenSwapType::NoLock => {
-				Ok(bp_token_swap::TokenSwapType::TemporaryTargetAccountAtBridgedChain)
-			}
+			TokenSwapType::NoLock =>
+				Ok(bp_token_swap::TokenSwapType::TemporaryTargetAccountAtBridgedChain),
 			TokenSwapType::LockUntilBlock { blocks_before_expire, ref swap_nonce } => {
 				let blocks_before_expire: BlockNumberOf<Source> = blocks_before_expire.into();
 				let current_source_block_number = *source_client.best_header().await?.number();
@@ -503,7 +498,7 @@ impl SwapTokens {
 						U256::from(random::<u128>()).overflowing_mul(U256::from(random::<u128>())).0
 					}),
 				))
-			}
+			},
 		}
 	}
 }
@@ -585,17 +580,16 @@ pub(crate) async fn wait_until_transaction_is_finalized<C: Chain>(
 	loop {
 		let transaction_status = subscription.next().await?;
 		match transaction_status {
-			Some(TransactionStatusOf::<C>::FinalityTimeout(_))
-			| Some(TransactionStatusOf::<C>::Usurped(_))
-			| Some(TransactionStatusOf::<C>::Dropped)
-			| Some(TransactionStatusOf::<C>::Invalid)
-			| None => {
+			Some(TransactionStatusOf::<C>::FinalityTimeout(_)) |
+			Some(TransactionStatusOf::<C>::Usurped(_)) |
+			Some(TransactionStatusOf::<C>::Dropped) |
+			Some(TransactionStatusOf::<C>::Invalid) |
+			None =>
 				return Err(anyhow::format_err!(
 					"We've been waiting for finalization of {} transaction, but it now has the {:?} status",
 					C::NAME,
 					transaction_status,
-				))
-			}
+				)),
 			Some(TransactionStatusOf::<C>::Finalized(block_hash)) => {
 				log::trace!(
 					target: "bridge",
@@ -603,8 +597,8 @@ pub(crate) async fn wait_until_transaction_is_finalized<C: Chain>(
 					C::NAME,
 					block_hash,
 				);
-				return Ok(block_hash);
-			}
+				return Ok(block_hash)
+			},
 			_ => {
 				log::trace!(
 					target: "bridge",
@@ -612,7 +606,7 @@ pub(crate) async fn wait_until_transaction_is_finalized<C: Chain>(
 					C::NAME,
 					transaction_status,
 				);
-			}
+			},
 		}
 	}
 }
@@ -634,7 +628,7 @@ async fn wait_until_token_swap_state_is_changed<C: Chain>(
 		let token_swap_state =
 			read_token_swap_state(client, best_block_hash, swap_state_storage_key).await?;
 		match token_swap_state {
-			Some(new_token_swap_state) if new_token_swap_state == previous_token_swap_state => {}
+			Some(new_token_swap_state) if new_token_swap_state == previous_token_swap_state => {},
 			_ => {
 				log::trace!(
 					target: "bridge",
@@ -642,8 +636,8 @@ async fn wait_until_token_swap_state_is_changed<C: Chain>(
 					previous_token_swap_state,
 					token_swap_state,
 				);
-				return Ok(token_swap_state);
-			}
+				return Ok(token_swap_state)
+			},
 		}
 	}
 }
@@ -660,7 +654,7 @@ async fn wait_until_swap_unlocked<C: Chain>(
 		let best_block = client.best_finalized_header_number().await?;
 		let best_block_hash = client.block_hash_by_number(best_block).await?;
 		if best_block >= required_block_number {
-			return Ok(());
+			return Ok(())
 		}
 
 		log::trace!(target: "bridge", "Skipping {} block {}/{}", C::NAME, best_block, best_block_hash);
