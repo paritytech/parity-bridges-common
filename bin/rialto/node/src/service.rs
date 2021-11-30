@@ -19,12 +19,6 @@
 //! The code is mostly copy of `service/src/lib.rs` file from Polkadot repository
 //! without optional functions, and with BEEFY added on top.
 
-// this warning comes from Error enum (sc_cli::Error in particular) && it isn't easy to use box
-// there
-#![allow(clippy::large_enum_variant)]
-// this warning comes from `sc_service::PartialComponents` type
-#![allow(clippy::type_complexity)]
-
 use crate::overseer::{OverseerGen, OverseerGenArgs};
 
 use polkadot_node_core_approval_voting::Config as ApprovalVotingConfig;
@@ -173,6 +167,8 @@ fn set_prometheus_registry(config: &mut Configuration) -> Result<(), Error> {
 	Ok(())
 }
 
+// Needed here for complex return type while `impl Trait` in type aliases is unstable.
+#[allow(clippy::type_complexity)]
 pub fn new_partial(
 	config: &mut Configuration,
 ) -> Result<
