@@ -41,6 +41,9 @@ use bridge_runtime_common::messages::{
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
+use pallet_mmr_primitives::{
+	DataOrHash, EncodableOpaqueLeaf, Error as MmrError, LeafDataProvider, Proof as MmrProof,
+};
 use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -247,10 +250,12 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxAuthorities = MaxAuthorities;
 }
 
+type MmrHash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+
 impl pallet_mmr::Config for Runtime {
 	const INDEXING_PREFIX: &'static [u8] = b"mmr";
 	type Hashing = Keccak256;
-	type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+	type Hash = MmrHash;
 	type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
 	type WeightInfo = ();
 	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
@@ -650,6 +655,39 @@ impl_runtime_apis! {
 	impl beefy_primitives::BeefyApi<Block> for Runtime {
 		fn validator_set() -> ValidatorSet<BeefyId> {
 			Beefy::validator_set()
+		}
+	}
+
+	impl pallet_mmr_primitives::MmrApi<Block, MmrHash> for Runtime {
+		fn generate_proof(leaf_index: u64)
+			-> Result<(EncodableOpaqueLeaf, MmrProof<MmrHash>), MmrError>
+		{
+			Mmr::generate_proof(leaf_index)
+				.map(|(leaf, proof)| (EncodableOpaqueLeaf::from_leaf(&leaf), proof))
+		}
+
+		fn verify_proof(leaf: EncodableOpaqueLeaf, proof: MmrProof<MmrHash>)
+			-> Result<(), MmrError>
+		{
+			pub type Leaf = <
+				<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider
+			>::LeafData;
+
+			let leaf: Leaf = leaf
+				.into_opaque_leaf()
+				.try_decode()
+				.ok_or(MmrError::Verify)?;
+			Mmr::verify_leaf(leaf, proof)
+		}
+
+		fn verify_proof_stateless(
+			root: MmrHash,
+			leaf: EncodableOpaqueLeaf,
+			proof: MmrProof<MmrHash>
+		) -> Result<(), MmrError> {
+			type MmrHashing = <Runtime as pallet_mmr::Config>::Hashing;
+			let node = DataOrHash::Data(leaf.into_opaque_leaf());
+			pallet_mmr::verify_leaf_proof::<MmrHashing, _>(root, node, proof)
 		}
 	}
 

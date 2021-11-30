@@ -291,6 +291,9 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 					subscription_executor,
 				),
 			));
+			io.extend_with(pallet_mmr_rpc::MmrApi::to_delegate(pallet_mmr_rpc::Mmr::new(
+				client.clone(),
+			)));
 			Ok(io)
 		})
 	};

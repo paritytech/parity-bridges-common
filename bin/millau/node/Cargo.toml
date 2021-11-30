@@ -29,6 +29,7 @@ beefy-primitives = { git = "https://github.com/paritytech/substrate", branch = "
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", branch = "master" }
 node-inspect = { git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-mmr-rpc = { git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-basic-authorship = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-cli = { git = "https://github.com/paritytech/substrate", branch = "master", features = ["wasmtime"] }
