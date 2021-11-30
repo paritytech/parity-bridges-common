@@ -19,8 +19,10 @@
 //! <BridgedName> chain.
 
 use crate::{
-	messages_lane::SubstrateMessageLane, messages_target::SubstrateMessagesReceivingProof,
+	messages_lane::{MessageLaneAdapter, ReceiveMessagesDeliveryProofCallBuilder, SubstrateMessageLane},
+	messages_target::SubstrateMessagesDeliveryProof,
 	on_demand_headers::OnDemandHeadersRelay,
+	TransactionParams,
 };
 
 use async_trait::async_trait;
@@ -39,18 +41,414 @@ use messages_relay::{
 };
 use num_traits::{Bounded, Zero};
 use relay_substrate_client::{
-	BalanceOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf, HeaderOf,
-	IndexOf,
+	BalanceOf, Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf,
+	IndexOf, AccountKeyPairOf, AccountIdOf, TransactionSignScheme, TransactionEra, UnsignedTransaction,
+	ChainWithMessages,
 };
-use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
-use sp_core::Bytes;
+use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
+use sp_core::{Bytes, Pair};
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Header as HeaderT},
+	traits::Header as HeaderT,
 	DeserializeOwned,
 };
 use std::ops::RangeInclusive;
 
 /// Intermediate message proof returned by the source Substrate node. Includes everything
+/// required to submit to the target node: cumulative dispatch weight of bundled messages and
+/// the proof itself.
+pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
+
+/// Substrate client as Substrate messages source.
+pub struct SubstrateMessagesSource<P: SubstrateMessageLane> {
+	client: Client<P::SourceChain>,
+	lane_id: LaneId,
+	transaction_params: TransactionParams<AccountKeyPairOf<P::SourceTransactionSignScheme>>,
+	target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
+}
+
+impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
+	/// Create new Substrate headers source.
+	pub fn new(
+		client: Client<P::SourceChain>,
+		lane_id: LaneId,
+		transaction_params: TransactionParams<AccountKeyPairOf<P::SourceTransactionSignScheme>>,
+		target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
+	) -> Self {
+		SubstrateMessagesSource { client, lane_id, transaction_params, target_to_source_headers_relay }
+	}
+}
+
+impl<P: SubstrateMessageLane> Clone for SubstrateMessagesSource<P> {
+	fn clone(&self) -> Self {
+		Self {
+			client: self.client.clone(),
+			lane_id: self.lane_id,
+			transaction_params: self.transaction_params.clone(),
+			target_to_source_headers_relay: self.target_to_source_headers_relay.clone(),
+		}
+	}
+}
+
+#[async_trait]
+impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<P> {
+	type Error = SubstrateError;
+
+	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
+		self.client.reconnect().await
+	}
+}
+
+#[async_trait]
+impl<P: SubstrateMessageLane> SourceClient<MessageLaneAdapter<P>> for SubstrateMessagesSource<P> where
+	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceTransactionSignScheme> as Pair>::Public>,
+	P::SourceTransactionSignScheme: TransactionSignScheme<Chain = P::SourceChain>,
+{
+	async fn state(&self) -> Result<SourceClientState<MessageLaneAdapter<P>>, SubstrateError> {
+		// we can't continue to deliver confirmations if source node is out of sync, because
+		// it may have already received confirmations that we're going to deliver
+		self.client.ensure_synced().await?;
+
+		read_client_state::<
+			_,
+			<MessageLaneAdapter<P> as MessageLane>::TargetHeaderHash,
+			<MessageLaneAdapter<P> as MessageLane>::TargetHeaderNumber,
+		>(&self.client, P::TargetChain::BEST_FINALIZED_HEADER_ID_METHOD)
+		.await
+	}
+
+	async fn latest_generated_nonce(
+		&self,
+		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<(SourceHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
+		let encoded_response = self
+			.client
+			.state_call(
+				P::TargetChain::TO_CHAIN_LATEST_GENERATED_NONCE_METHOD.into(),
+				Bytes(self.lane_id.encode()),
+				Some(id.1),
+			)
+			.await?;
+		let latest_generated_nonce: MessageNonce = Decode::decode(&mut &encoded_response.0[..])
+			.map_err(SubstrateError::ResponseParseFailed)?;
+		Ok((id, latest_generated_nonce))
+	}
+
+	async fn latest_confirmed_received_nonce(
+		&self,
+		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<(SourceHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
+		let encoded_response = self
+			.client
+			.state_call(
+				P::TargetChain::TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD.into(),
+				Bytes(self.lane_id.encode()),
+				Some(id.1),
+			)
+			.await?;
+		let latest_received_nonce: MessageNonce = Decode::decode(&mut &encoded_response.0[..])
+			.map_err(SubstrateError::ResponseParseFailed)?;
+		Ok((id, latest_received_nonce))
+	}
+
+	async fn generated_message_details(
+		&self,
+		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+		nonces: RangeInclusive<MessageNonce>,
+	) -> Result<
+		MessageDetailsMap<<MessageLaneAdapter<P> as MessageLane>::SourceChainBalance>,
+		SubstrateError,
+	> {
+		let encoded_response = self
+			.client
+			.state_call(
+				P::TargetChain::TO_CHAIN_MESSAGE_DETAILS_METHOD.into(),
+				Bytes((self.lane_id, nonces.start(), nonces.end()).encode()),
+				Some(id.1),
+			)
+			.await?;
+
+		make_message_details_map::<P::SourceChain>(
+			Decode::decode(&mut &encoded_response.0[..])
+				.map_err(SubstrateError::ResponseParseFailed)?,
+			nonces,
+		)
+	}
+
+	async fn prove_messages(
+		&self,
+		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+		nonces: RangeInclusive<MessageNonce>,
+		proof_parameters: MessageProofParameters,
+	) -> Result<
+		(
+			SourceHeaderIdOf<MessageLaneAdapter<P>>,
+			RangeInclusive<MessageNonce>,
+			<MessageLaneAdapter<P> as MessageLane>::MessagesProof,
+		),
+		SubstrateError,
+	> {
+		let mut storage_keys =
+			Vec::with_capacity(nonces.end().saturating_sub(*nonces.start()) as usize + 1);
+		let mut message_nonce = *nonces.start();
+		while message_nonce <= *nonces.end() {
+			let message_key = pallet_bridge_messages::storage_keys::message_key(
+				P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+				&self.lane_id,
+				message_nonce,
+			);
+			storage_keys.push(message_key);
+			message_nonce += 1;
+		}
+		if proof_parameters.outbound_state_proof_required {
+			storage_keys.push(pallet_bridge_messages::storage_keys::outbound_lane_data_key(
+				P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+				&self.lane_id,
+			));
+		}
+
+		let proof = self.client.prove_storage(storage_keys, id.1).await?.iter_nodes().collect();
+		let proof = FromBridgedChainMessagesProof {
+			bridged_header_hash: id.1,
+			storage_proof: proof,
+			lane: self.lane_id,
+			nonces_start: *nonces.start(),
+			nonces_end: *nonces.end(),
+		};
+		Ok((id, nonces, (proof_parameters.dispatch_weight, proof)))
+	}
+
+	async fn submit_messages_receiving_proof(
+		&self,
+		_generated_at_block: TargetHeaderIdOf<MessageLaneAdapter<P>>,
+		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
+	) -> Result<(), SubstrateError> {
+/*
+TODO:
+		log::trace!(
+			target: "bridge",
+			"Prepared Rialto -> Millau confirmation transaction. Weight: {}/{}, size: {}/{}",
+			call_weight,
+			bp_millau::max_extrinsic_weight(),
+			transaction.encode().len(),
+			bp_millau::max_extrinsic_size(),
+		);
+*/
+
+		let genesis_hash = *self.client.genesis_hash();
+		let transaction_params = self.transaction_params.clone();
+		self.client
+			.submit_signed_extrinsic(
+				self.transaction_params.signer.public().into(),
+				move |best_block_id, transaction_nonce| {
+					make_messages_delivery_proof_transaction::<P>(
+						&genesis_hash,
+						&transaction_params,
+						best_block_id,
+						transaction_nonce,
+						proof,
+					)
+				},
+			)
+			.await?;
+		Ok(())
+	}
+
+	async fn require_target_header_on_source(&self, id: TargetHeaderIdOf<MessageLaneAdapter<P>>) {
+		if let Some(ref target_to_source_headers_relay) = self.target_to_source_headers_relay {
+			target_to_source_headers_relay.require_finalized_header(id).await;
+		}
+	}
+
+	async fn estimate_confirmation_transaction(
+		&self,
+	) -> <MessageLaneAdapter<P> as MessageLane>::SourceChainBalance {
+		self.client
+			.estimate_extrinsic_fee(make_messages_delivery_proof_transaction::<P>(
+				&self.client.genesis_hash(),
+				&self.transaction_params,
+				HeaderId(Default::default(), Default::default()),
+				Zero::zero(),
+				prepare_dummy_messages_delivery_proof::<P::SourceChain, P::TargetChain>(),
+			))
+			.await
+			.map(|fee| fee.inclusion_fee())
+			.unwrap_or_else(|_| BalanceOf::<P::SourceChain>::max_value())
+	}
+}
+
+/// Make messages delivery proof transaction from given proof.
+fn make_messages_delivery_proof_transaction<P: SubstrateMessageLane>(
+	source_genesis_hash: &HashOf<P::SourceChain>,
+	source_transaction_params: &TransactionParams<AccountKeyPairOf<P::SourceTransactionSignScheme>>,
+	source_best_block_id: HeaderIdOf<P::SourceChain>,
+	transaction_nonce: IndexOf<P::SourceChain>,
+	proof: SubstrateMessagesDeliveryProof<P::TargetChain>,
+) -> Bytes where
+	P::SourceTransactionSignScheme: TransactionSignScheme<Chain = P::SourceChain>,
+{
+	let call =
+		P::ReceiveMessagesDeliveryProofCallBuilder::build_receive_messages_delivery_proof_call(proof);
+	Bytes(
+		P::SourceTransactionSignScheme::sign_transaction(
+			*source_genesis_hash,
+			&source_transaction_params.signer,
+			TransactionEra::new(
+				source_best_block_id,
+				source_transaction_params.mortality,
+			),
+			UnsignedTransaction::new(call, transaction_nonce),
+		)
+		.encode(),
+	)
+}
+
+/// Prepare 'dummy' messages delivery proof that will compose the delivery confirmation transaction.
+///
+/// We don't care about proof actually being the valid proof, because its validity doesn't
+/// affect the call weight - we only care about its size.
+fn prepare_dummy_messages_delivery_proof<SC: Chain, TC: Chain>(
+) -> SubstrateMessagesDeliveryProof<TC> {
+	let single_message_confirmation_size = bp_messages::InboundLaneData::<()>::encoded_size_hint(
+		SC::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+		1,
+		1,
+	)
+	.unwrap_or(u32::MAX);
+	let proof_size = TC::STORAGE_PROOF_OVERHEAD.saturating_add(single_message_confirmation_size);
+	(
+		UnrewardedRelayersState {
+			unrewarded_relayer_entries: 1,
+			messages_in_oldest_entry: 1,
+			total_messages: 1,
+		},
+		FromBridgedChainMessagesDeliveryProof {
+			bridged_header_hash: Default::default(),
+			storage_proof: vec![vec![0; proof_size as usize]],
+			lane: Default::default(),
+		},
+	)
+}
+
+/// Read best blocks from given client.
+///
+/// This function assumes that the chain that is followed by the `self_client` has
+/// bridge GRANDPA pallet deployed and it provides `best_finalized_header_id_method_name`
+/// runtime API to read the best finalized Bridged chain header.
+pub async fn read_client_state<SelfChain, BridgedHeaderHash, BridgedHeaderNumber>(
+	self_client: &Client<SelfChain>,
+	best_finalized_header_id_method_name: &str,
+) -> Result<
+	ClientState<HeaderIdOf<SelfChain>, HeaderId<BridgedHeaderHash, BridgedHeaderNumber>>,
+	SubstrateError,
+>
+where
+	SelfChain: Chain,
+	SelfChain::Header: DeserializeOwned,
+	SelfChain::Index: DeserializeOwned,
+	BridgedHeaderHash: Decode,
+	BridgedHeaderNumber: Decode,
+{
+	// let's read our state first: we need best finalized header hash on **this** chain
+	let self_best_finalized_header_hash = self_client.best_finalized_header_hash().await?;
+	let self_best_finalized_header =
+		self_client.header_by_hash(self_best_finalized_header_hash).await?;
+	let self_best_finalized_id =
+		HeaderId(*self_best_finalized_header.number(), self_best_finalized_header_hash);
+
+	// now let's read our best header on **this** chain
+	let self_best_header = self_client.best_header().await?;
+	let self_best_hash = self_best_header.hash();
+	let self_best_id = HeaderId(*self_best_header.number(), self_best_hash);
+
+	// now let's read id of best finalized peer header at our best finalized block
+	let encoded_best_finalized_peer_on_self = self_client
+		.state_call(
+			best_finalized_header_id_method_name.into(),
+			Bytes(Vec::new()),
+			Some(self_best_hash),
+		)
+		.await?;
+	let decoded_best_finalized_peer_on_self: (BridgedHeaderNumber, BridgedHeaderHash) =
+		Decode::decode(&mut &encoded_best_finalized_peer_on_self.0[..])
+			.map_err(SubstrateError::ResponseParseFailed)?;
+	let peer_on_self_best_finalized_id =
+		HeaderId(decoded_best_finalized_peer_on_self.0, decoded_best_finalized_peer_on_self.1);
+
+	Ok(ClientState {
+		best_self: self_best_id,
+		best_finalized_self: self_best_finalized_id,
+		best_finalized_peer_at_best_self: peer_on_self_best_finalized_id,
+	})
+}
+
+fn make_message_details_map<C: Chain>(
+	weights: Vec<bp_messages::MessageDetails<C::Balance>>,
+	nonces: RangeInclusive<MessageNonce>,
+) -> Result<MessageDetailsMap<C::Balance>, SubstrateError> {
+	let make_missing_nonce_error = |expected_nonce| {
+		Err(SubstrateError::Custom(format!(
+			"Missing nonce {} in message_details call result. Expected all nonces from {:?}",
+			expected_nonce, nonces,
+		)))
+	};
+
+	let mut weights_map = MessageDetailsMap::new();
+
+	// this is actually prevented by external logic
+	if nonces.is_empty() {
+		return Ok(weights_map)
+	}
+
+	// check if last nonce is missing - loop below is not checking this
+	let last_nonce_is_missing =
+		weights.last().map(|details| details.nonce != *nonces.end()).unwrap_or(true);
+	if last_nonce_is_missing {
+		return make_missing_nonce_error(*nonces.end())
+	}
+
+	let mut expected_nonce = *nonces.start();
+	let mut is_at_head = true;
+
+	for details in weights {
+		match (details.nonce == expected_nonce, is_at_head) {
+			(true, _) => (),
+			(false, true) => {
+				// this may happen if some messages were already pruned from the source node
+				//
+				// this is not critical error and will be auto-resolved by messages lane (and target
+				// node)
+				log::info!(
+					target: "bridge",
+					"Some messages are missing from the {} node: {:?}. Target node may be out of sync?",
+					C::NAME,
+					expected_nonce..details.nonce,
+				);
+			},
+			(false, false) => {
+				// some nonces are missing from the middle/tail of the range
+				//
+				// this is critical error, because we can't miss any nonces
+				return make_missing_nonce_error(expected_nonce)
+			},
+		}
+
+		weights_map.insert(
+			details.nonce,
+			MessageDetails {
+				dispatch_weight: details.dispatch_weight,
+				size: details.size as _,
+				reward: details.delivery_and_dispatch_fee,
+				dispatch_fee_payment: details.dispatch_fee_payment,
+			},
+		);
+		expected_nonce = details.nonce + 1;
+		is_at_head = false;
+	}
+
+	Ok(weights_map)
+}
+
+/*/// Intermediate message proof returned by the source Substrate node. Includes everything
 /// required to submit to the target node: cumulative dispatch weight of bundled messages and
 /// the proof itself.
 pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
@@ -116,7 +514,7 @@ where
 
 	P::MessageLane: MessageLane<
 		MessagesProof = SubstrateMessagesProof<P::SourceChain>,
-		MessagesReceivingProof = SubstrateMessagesReceivingProof<P::TargetChain>,
+		MessagesReceivingProof = SubstrateMessagesDeliveryProof<P::TargetChain>,
 	>,
 	<P::MessageLane as MessageLane>::TargetHeaderNumber: Decode,
 	<P::MessageLane as MessageLane>::TargetHeaderHash: Decode,
@@ -285,7 +683,7 @@ where
 /// We don't care about proof actually being the valid proof, because its validity doesn't
 /// affect the call weight - we only care about its size.
 fn prepare_dummy_messages_delivery_proof<SC: Chain, TC: Chain>(
-) -> SubstrateMessagesReceivingProof<TC> {
+) -> SubstrateMessagesDeliveryProof<TC> {
 	let single_message_confirmation_size = bp_messages::InboundLaneData::<()>::encoded_size_hint(
 		SC::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
 		1,
@@ -425,7 +823,7 @@ fn make_message_details_map<C: Chain>(
 
 	Ok(weights_map)
 }
-
+*/
 #[cfg(test)]
 mod tests {
 	use super::*;

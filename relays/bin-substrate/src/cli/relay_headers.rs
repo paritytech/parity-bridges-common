@@ -126,9 +126,9 @@ impl RelayHeaders {
 			GlobalMetrics::new()?.register_and_spawn(&metrics_params.registry)?;
 
 			let target_transactions_params =
-				substrate_relay_helper::finality_pipeline::TransactionParams {
-					transactions_signer: target_sign,
-					transactions_mortality: target_transactions_mortality,
+				substrate_relay_helper::TransactionParams {
+					signer: target_sign,
+					mortality: target_transactions_mortality,
 				};
 			Finality::start_relay_guards(&target_client, &target_transactions_params);
 

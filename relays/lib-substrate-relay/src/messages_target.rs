@@ -19,9 +19,11 @@
 //! <BridgedName> chain.
 
 use crate::{
-	messages_lane::{StandaloneMessagesMetrics, SubstrateMessageLane},
+	messages_lane::{MessageLaneAdapter, SubstrateMessageLane, ReceiveMessagesProofCallBuilder},
+	messages_metrics::{StandaloneMessagesMetrics},
 	messages_source::{read_client_state, SubstrateMessagesProof},
 	on_demand_headers::OnDemandHeadersRelay,
+	TransactionParams,
 };
 
 use async_trait::async_trait;
@@ -38,14 +40,444 @@ use messages_relay::{
 };
 use num_traits::{Bounded, Zero};
 use relay_substrate_client::{
-	BalanceOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf, HeaderOf, IndexOf,
-	WeightToFeeOf,
+	BalanceOf, Chain, Client, Error as SubstrateError, HashOf, IndexOf,
+	WeightToFeeOf, AccountIdOf, AccountKeyPairOf, TransactionSignScheme, HeaderIdOf, TransactionEra,
+	UnsignedTransaction, ChainWithMessages,
 };
-use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
-use sp_core::Bytes;
-use sp_runtime::{traits::Saturating, DeserializeOwned, FixedPointNumber, FixedU128};
+use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
+use sp_core::{Bytes, Pair};
+use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
 use std::{convert::TryFrom, ops::RangeInclusive};
 
+/// Message receiving proof returned by the target Substrate node.
+pub type SubstrateMessagesDeliveryProof<C> =
+	(UnrewardedRelayersState, FromBridgedChainMessagesDeliveryProof<HashOf<C>>);
+
+/// Substrate client as Substrate messages target.
+pub struct SubstrateMessagesTarget<P: SubstrateMessageLane> {
+	client: Client<P::TargetChain>,
+	lane_id: LaneId,
+	relayer_id_at_source: AccountIdOf<P::SourceChain>,
+	transaction_params: TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
+	metric_values: StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>,
+	source_to_target_headers_relay: Option<OnDemandHeadersRelay<P::SourceChain>>,
+}
+
+impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
+	/// Create new Substrate headers target.
+	pub fn new(
+		client: Client<P::TargetChain>,
+		lane_id: LaneId,
+		relayer_id_at_source: AccountIdOf<P::SourceChain>,
+		transaction_params: TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
+		metric_values: StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>,
+		source_to_target_headers_relay: Option<OnDemandHeadersRelay<P::SourceChain>>,
+	) -> Self {
+		SubstrateMessagesTarget {
+			client,
+			lane_id,
+			relayer_id_at_source,
+			transaction_params,
+			metric_values,
+			source_to_target_headers_relay,
+		}
+	}
+}
+
+impl<P: SubstrateMessageLane> Clone for SubstrateMessagesTarget<P> {
+	fn clone(&self) -> Self {
+		Self {
+			client: self.client.clone(),
+			lane_id: self.lane_id,
+			relayer_id_at_source: self.relayer_id_at_source.clone(),
+			transaction_params: self.transaction_params.clone(),
+			metric_values: self.metric_values.clone(),
+			source_to_target_headers_relay: self.source_to_target_headers_relay.clone(),
+		}
+	}
+}
+
+#[async_trait]
+impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesTarget<P> {
+	type Error = SubstrateError;
+
+	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
+		self.client.reconnect().await
+	}
+}
+
+#[async_trait]
+impl<P: SubstrateMessageLane> TargetClient<MessageLaneAdapter<P>> for SubstrateMessagesTarget<P> where
+	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetTransactionSignScheme> as Pair>::Public>,
+	P::TargetTransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
+	BalanceOf<P::SourceChain>: TryFrom<BalanceOf<P::TargetChain>>,
+{
+	async fn state(&self) -> Result<TargetClientState<MessageLaneAdapter<P>>, SubstrateError> {
+		// we can't continue to deliver messages if target node is out of sync, because
+		// it may have already received (some of) messages that we're going to deliver
+		self.client.ensure_synced().await?;
+
+		read_client_state::<
+			_,
+			<MessageLaneAdapter<P> as MessageLane>::SourceHeaderHash,
+			<MessageLaneAdapter<P> as MessageLane>::SourceHeaderNumber,
+		>(&self.client, P::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD)
+		.await
+	}
+
+	async fn latest_received_nonce(
+		&self,
+		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<(TargetHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
+		let encoded_response = self
+			.client
+			.state_call(
+				P::SourceChain::FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD.into(),
+				Bytes(self.lane_id.encode()),
+				Some(id.1),
+			)
+			.await?;
+		let latest_received_nonce: MessageNonce = Decode::decode(&mut &encoded_response.0[..])
+			.map_err(SubstrateError::ResponseParseFailed)?;
+		Ok((id, latest_received_nonce))
+	}
+
+	async fn latest_confirmed_received_nonce(
+		&self,
+		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<(TargetHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
+		let encoded_response = self
+			.client
+			.state_call(
+				P::SourceChain::FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD.into(),
+				Bytes(self.lane_id.encode()),
+				Some(id.1),
+			)
+			.await?;
+		let latest_received_nonce: MessageNonce = Decode::decode(&mut &encoded_response.0[..])
+			.map_err(SubstrateError::ResponseParseFailed)?;
+		Ok((id, latest_received_nonce))
+	}
+
+	async fn unrewarded_relayers_state(
+		&self,
+		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<(TargetHeaderIdOf<MessageLaneAdapter<P>>, UnrewardedRelayersState), SubstrateError> {
+		let encoded_response = self
+			.client
+			.state_call(
+				P::SourceChain::FROM_CHAIN_UNREWARDED_RELAYERS_STATE.into(),
+				Bytes(self.lane_id.encode()),
+				Some(id.1),
+			)
+			.await?;
+		let unrewarded_relayers_state: UnrewardedRelayersState =
+			Decode::decode(&mut &encoded_response.0[..])
+				.map_err(SubstrateError::ResponseParseFailed)?;
+		Ok((id, unrewarded_relayers_state))
+	}
+
+	async fn prove_messages_receiving(
+		&self,
+		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<
+		(TargetHeaderIdOf<MessageLaneAdapter<P>>, <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof),
+		SubstrateError,
+	> {
+		let (id, relayers_state) = self.unrewarded_relayers_state(id).await?;
+		let inbound_data_key = pallet_bridge_messages::storage_keys::inbound_lane_data_key(
+			P::SourceChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+			&self.lane_id,
+		);
+		let proof = self
+			.client
+			.prove_storage(vec![inbound_data_key], id.1)
+			.await?
+			.iter_nodes()
+			.collect();
+		let proof = FromBridgedChainMessagesDeliveryProof {
+			bridged_header_hash: id.1,
+			storage_proof: proof,
+			lane: self.lane_id,
+		};
+		Ok((id, (relayers_state, proof)))
+	}
+
+	async fn submit_messages_proof(
+		&self,
+		_generated_at_header: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+		nonces: RangeInclusive<MessageNonce>,
+		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
+	) -> Result<RangeInclusive<MessageNonce>, SubstrateError> {
+/*
+TODO:
+
+		log::trace!(
+			target: "bridge",
+			"Prepared Millau -> Rialto delivery transaction. Weight: {}/{}, size: {}/{}",
+			call_weight,
+			bp_rialto::max_extrinsic_weight(),
+			transaction.encode().len(),
+			bp_rialto::max_extrinsic_size(),
+		);
+*/
+
+		let genesis_hash = *self.client.genesis_hash();
+		let transaction_params = self.transaction_params.clone();
+		let relayer_id_at_source = self.relayer_id_at_source.clone();
+		let nonces_clone = nonces.clone();
+		self.client
+			.submit_signed_extrinsic(
+				self.transaction_params.signer.public().into(),
+				move |best_block_id, transaction_nonce| {
+					make_messages_delivery_transaction::<P>(
+						&genesis_hash,
+						&transaction_params,
+						best_block_id,
+						transaction_nonce,
+						relayer_id_at_source,
+						nonces_clone,
+						proof,
+					)
+				},
+			)
+			.await?;
+		Ok(nonces)
+	}
+
+	async fn require_source_header_on_target(&self, id: SourceHeaderIdOf<MessageLaneAdapter<P>>) {
+		if let Some(ref source_to_target_headers_relay) = self.source_to_target_headers_relay {
+			source_to_target_headers_relay.require_finalized_header(id).await;
+		}
+	}
+
+	async fn estimate_delivery_transaction_in_source_tokens(
+		&self,
+		nonces: RangeInclusive<MessageNonce>,
+		total_prepaid_nonces: MessageNonce,
+		total_dispatch_weight: Weight,
+		total_size: u32,
+	) -> Result<<MessageLaneAdapter<P> as MessageLane>::SourceChainBalance, SubstrateError> {
+		let conversion_rate =
+			self.metric_values.target_to_source_conversion_rate().await.ok_or_else(|| {
+				SubstrateError::Custom(format!(
+					"Failed to compute conversion rate from {} to {}",
+					P::TargetChain::NAME,
+					P::SourceChain::NAME,
+				))
+			})?;
+
+		// Prepare 'dummy' delivery transaction - we only care about its length and dispatch weight.
+		let delivery_tx = make_messages_delivery_transaction::<P>(
+			self.client.genesis_hash(),
+			&self.transaction_params,
+			HeaderId(Default::default(), Default::default()),
+			Zero::zero(),
+			Default::default(),
+			nonces.clone(),
+			prepare_dummy_messages_proof::<P::SourceChain>(
+				nonces.clone(),
+				total_dispatch_weight,
+				total_size,
+			),
+		);
+		let delivery_tx_fee = self.client.estimate_extrinsic_fee(delivery_tx).await?;
+		let inclusion_fee_in_target_tokens = delivery_tx_fee.inclusion_fee();
+
+		// The pre-dispatch cost of delivery transaction includes additional fee to cover dispatch
+		// fee payment (Currency::transfer in regular deployment). But if message dispatch has
+		// already been paid at the Source chain, the delivery transaction will refund relayer with
+		// this additional cost. But `estimate_extrinsic_fee` obviously just returns pre-dispatch
+		// cost of the transaction. So if transaction delivers prepaid message, then it may happen
+		// that pre-dispatch cost is larger than reward and `Rational` relayer will refuse to
+		// deliver this message.
+		//
+		// The most obvious solution would be to deduct total weight of dispatch fee payments from
+		// the `total_dispatch_weight` and use regular `estimate_extrinsic_fee` call. But what if
+		// `total_dispatch_weight` is less than total dispatch fee payments weight? Weight is
+		// strictly positive, so we can't use this option.
+		//
+		// Instead we'll be directly using `WeightToFee` and `NextFeeMultiplier` of the Target
+		// chain. This requires more knowledge of the Target chain, but seems there's no better way
+		// to solve this now.
+		let expected_refund_in_target_tokens = if total_prepaid_nonces != 0 {
+			const WEIGHT_DIFFERENCE: Weight = 100;
+
+			let larger_dispatch_weight = total_dispatch_weight.saturating_add(WEIGHT_DIFFERENCE);
+			let larger_delivery_tx_fee = self
+				.client
+				.estimate_extrinsic_fee(make_messages_delivery_transaction::<P>(
+					self.client.genesis_hash(),
+					&self.transaction_params,
+					HeaderId(Default::default(), Default::default()),
+					Zero::zero(),
+					Default::default(),
+					nonces.clone(),
+					prepare_dummy_messages_proof::<P::SourceChain>(
+						nonces.clone(),
+						larger_dispatch_weight,
+						total_size,
+					),
+				))
+				.await?;
+
+			compute_prepaid_messages_refund::<P>(
+				total_prepaid_nonces,
+				compute_fee_multiplier::<P::TargetChain>(
+					delivery_tx_fee.adjusted_weight_fee,
+					total_dispatch_weight,
+					larger_delivery_tx_fee.adjusted_weight_fee,
+					larger_dispatch_weight,
+				),
+			)
+		} else {
+			Zero::zero()
+		};
+
+		let delivery_fee_in_source_tokens =
+			convert_target_tokens_to_source_tokens::<P::SourceChain, P::TargetChain>(
+				FixedU128::from_float(conversion_rate),
+				inclusion_fee_in_target_tokens.saturating_sub(expected_refund_in_target_tokens),
+			);
+
+		log::trace!(
+			target: "bridge",
+			"Estimated {} -> {} messages delivery transaction.\n\t\
+				Total nonces: {:?}\n\t\
+				Prepaid messages: {}\n\t\
+				Total messages size: {}\n\t\
+				Total messages dispatch weight: {}\n\t\
+				Inclusion fee (in {1} tokens): {:?}\n\t\
+				Expected refund (in {1} tokens): {:?}\n\t\
+				{1} -> {0} conversion rate: {:?}\n\t\
+				Expected delivery tx fee (in {0} tokens): {:?}",
+				P::SourceChain::NAME,
+				P::TargetChain::NAME,
+				nonces,
+				total_prepaid_nonces,
+				total_size,
+				total_dispatch_weight,
+				inclusion_fee_in_target_tokens,
+				expected_refund_in_target_tokens,
+				conversion_rate,
+				delivery_fee_in_source_tokens,
+		);
+
+		Ok(delivery_fee_in_source_tokens)
+	}
+}
+
+/// Make messages delivery transaction from given proof.
+fn make_messages_delivery_transaction<P: SubstrateMessageLane>(
+	target_genesis_hash: &HashOf<P::TargetChain>,
+	target_transaction_params: &TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
+	target_best_block_id: HeaderIdOf<P::TargetChain>,
+	transaction_nonce: IndexOf<P::TargetChain>,
+	relayer_id_at_source: AccountIdOf<P::SourceChain>,
+	nonces: RangeInclusive<MessageNonce>,
+	proof: SubstrateMessagesProof<P::SourceChain>,
+) -> Bytes where
+	P::TargetTransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
+{
+	let messages_count = nonces.end() - nonces.start() + 1;
+	let dispatch_weight = proof.0;
+	let call =
+		P::ReceiveMessagesProofCallBuilder::build_receive_messages_proof_call(
+			relayer_id_at_source,
+			proof,
+			messages_count as _,
+			dispatch_weight,
+		);
+	Bytes(
+		P::TargetTransactionSignScheme::sign_transaction(
+			*target_genesis_hash,
+			&target_transaction_params.signer,
+			TransactionEra::new(
+				target_best_block_id,
+				target_transaction_params.mortality,
+			),
+			UnsignedTransaction::new(call, transaction_nonce),
+		)
+		.encode(),
+	)
+}
+
+/// Prepare 'dummy' messages proof that will compose the delivery transaction.
+///
+/// We don't care about proof actually being the valid proof, because its validity doesn't
+/// affect the call weight - we only care about its size.
+fn prepare_dummy_messages_proof<SC: Chain>(
+	nonces: RangeInclusive<MessageNonce>,
+	total_dispatch_weight: Weight,
+	total_size: u32,
+) -> SubstrateMessagesProof<SC> {
+	(
+		total_dispatch_weight,
+		FromBridgedChainMessagesProof {
+			bridged_header_hash: Default::default(),
+			storage_proof: vec![vec![
+				0;
+				SC::STORAGE_PROOF_OVERHEAD.saturating_add(total_size) as usize
+			]],
+			lane: Default::default(),
+			nonces_start: *nonces.start(),
+			nonces_end: *nonces.end(),
+		},
+	)
+}
+
+/// Given delivery transaction fee in target chain tokens and conversion rate to the source
+/// chain tokens, compute transaction cost in source chain tokens.
+fn convert_target_tokens_to_source_tokens<SC: Chain, TC: Chain>(
+	target_to_source_conversion_rate: FixedU128,
+	target_transaction_fee: TC::Balance,
+) -> SC::Balance
+where
+	SC::Balance: TryFrom<TC::Balance>,
+{
+	SC::Balance::try_from(
+		target_to_source_conversion_rate.saturating_mul_int(target_transaction_fee),
+	)
+	.unwrap_or_else(|_| SC::Balance::max_value())
+}
+
+/// Compute fee multiplier that is used by the chain, given a couple of fees for transactions
+/// that are only differ in dispatch weights.
+///
+/// This function assumes that standard transaction payment pallet is used by the chain.
+/// The only fee component that depends on dispatch weight is the `adjusted_weight_fee`.
+///
+/// **WARNING**: this functions will only be accurate if weight-to-fee conversion function
+/// is linear. For non-linear polynomials the error will grow with `weight_difference` growth.
+/// So better to use smaller differences.
+fn compute_fee_multiplier<C: Chain>(
+	smaller_adjusted_weight_fee: BalanceOf<C>,
+	smaller_tx_weight: Weight,
+	larger_adjusted_weight_fee: BalanceOf<C>,
+	larger_tx_weight: Weight,
+) -> FixedU128 {
+	let adjusted_weight_fee_difference =
+		larger_adjusted_weight_fee.saturating_sub(smaller_adjusted_weight_fee);
+	let smaller_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&smaller_tx_weight);
+	let larger_tx_unadjusted_weight_fee = WeightToFeeOf::<C>::calc(&larger_tx_weight);
+	FixedU128::saturating_from_rational(
+		adjusted_weight_fee_difference,
+		larger_tx_unadjusted_weight_fee.saturating_sub(smaller_tx_unadjusted_weight_fee),
+	)
+}
+
+/// Compute fee that will be refunded to the relayer because dispatch of `total_prepaid_nonces`
+/// messages has been paid at the source chain.
+fn compute_prepaid_messages_refund<P: SubstrateMessageLane>(
+	total_prepaid_nonces: MessageNonce,
+	fee_multiplier: FixedU128,
+) -> BalanceOf<P::TargetChain> {
+	fee_multiplier.saturating_mul_int(WeightToFeeOf::<P::TargetChain>::calc(
+		&P::TargetChain::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN.saturating_mul(total_prepaid_nonces),
+	))
+}
+
+/*
 /// Message receiving proof returned by the target Substrate node.
 pub type SubstrateMessagesReceivingProof<C> =
 	(UnrewardedRelayersState, FromBridgedChainMessagesDeliveryProof<HashOf<C>>);
@@ -433,8 +865,8 @@ fn compute_prepaid_messages_refund<P: SubstrateMessageLane>(
 		&P::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_TARGET_CHAIN.saturating_mul(total_prepaid_nonces),
 	))
 }
-
-#[cfg(test)]
+*/
+/*#[cfg(test)]
 mod tests {
 	use super::*;
 	use relay_rococo_client::{Rococo, SigningParams as RococoSigningParams};
@@ -564,3 +996,4 @@ mod tests {
 		);
 	}
 }
+*/

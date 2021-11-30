@@ -37,10 +37,6 @@ pub(crate) const SYSTEM_REMARK_CALL_WEIGHT: Weight = 2 * 1_345_000;
 pub(crate) const TOKEN_ID: &str = "kusama";
 
 impl CliEncodeCall for Kusama {
-	fn max_extrinsic_size() -> u32 {
-		bp_kusama::max_extrinsic_size()
-	}
-
 	fn encode_call(call: &Call) -> anyhow::Result<Self::Call> {
 		Ok(match call {
 			Call::Remark { remark_payload, .. } => relay_kusama_client::runtime::Call::System(
@@ -91,10 +87,6 @@ impl CliChain for Kusama {
 
 	fn ss58_format() -> u16 {
 		42
-	}
-
-	fn max_extrinsic_weight() -> Weight {
-		bp_kusama::max_extrinsic_weight()
 	}
 
 	fn encode_message(

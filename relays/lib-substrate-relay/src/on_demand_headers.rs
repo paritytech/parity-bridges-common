@@ -31,11 +31,11 @@ use relay_utils::{
 
 use crate::{
 	finality_pipeline::{
-		SubstrateFinalitySyncPipeline, TransactionParams, RECENT_FINALITY_PROOFS_LIMIT,
+		SubstrateFinalitySyncPipeline, RECENT_FINALITY_PROOFS_LIMIT,
 	},
 	finality_source::{RequiredHeaderNumberRef, SubstrateFinalitySource},
 	finality_target::SubstrateFinalityTarget,
-	STALL_TIMEOUT,
+	STALL_TIMEOUT, TransactionParams,
 };
 
 /// On-demand Substrate <-> Substrate headers relay.

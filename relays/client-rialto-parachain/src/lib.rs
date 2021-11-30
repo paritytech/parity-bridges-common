@@ -16,6 +16,7 @@
 
 //! Types used to connect to the Rialto-Substrate chain.
 
+use frame_support::weights::Weight;
 use relay_substrate_client::{Chain, ChainBase};
 use std::time::Duration;
 
@@ -37,6 +38,14 @@ impl ChainBase for RialtoParachain {
 	type Balance = rialto_parachain_runtime::Balance;
 	type Index = rialto_parachain_runtime::Index;
 	type Signature = rialto_parachain_runtime::Signature;
+
+	fn max_extrinsic_size() -> u32 {
+		bp_rialto::Rialto::max_extrinsic_size()
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		bp_rialto::Rialto::max_extrinsic_weight()
+	}
 }
 
 impl Chain for RialtoParachain {

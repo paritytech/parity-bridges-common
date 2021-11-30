@@ -407,9 +407,9 @@ impl pallet_shift_session_manager::Config for Runtime {}
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_messages::MessageNonce = 8;
 	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_messages::MessageNonce =
-		bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
+		bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
-		bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+		bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	// `IdentityFee` is used by Millau => we may use weight directly
 	pub const GetDeliveryConfirmationTransactionFee: Balance =
 		bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT as _;
@@ -891,10 +891,10 @@ mod tests {
 		);
 
 		let max_incoming_message_proof_size = bp_rialto::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
-			messages::target::maximal_incoming_message_size(bp_millau::max_extrinsic_size()),
+			messages::target::maximal_incoming_message_size(bp_millau::Millau::max_extrinsic_size()),
 		);
 		pallet_bridge_messages::ensure_able_to_receive_message::<Weights>(
-			bp_millau::max_extrinsic_size(),
+			bp_millau::Millau::max_extrinsic_size(),
 			bp_millau::max_extrinsic_weight(),
 			max_incoming_message_proof_size,
 			messages::target::maximal_incoming_message_dispatch_weight(
@@ -905,16 +905,16 @@ mod tests {
 		let max_incoming_inbound_lane_data_proof_size =
 			bp_messages::InboundLaneData::<()>::encoded_size_hint(
 				bp_millau::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-				bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE as _,
-				bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE as _,
+				bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as _,
+				bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as _,
 			)
 			.unwrap_or(u32::MAX);
 		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
-			bp_millau::max_extrinsic_size(),
+			bp_millau::Millau::max_extrinsic_size(),
 			bp_millau::max_extrinsic_weight(),
 			max_incoming_inbound_lane_data_proof_size,
-			bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
-			bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+			bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 			DbWeight::get(),
 		);
 	}

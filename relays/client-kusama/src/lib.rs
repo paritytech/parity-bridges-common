@@ -16,9 +16,11 @@
 
 //! Types used to connect to the Kusama chain.
 
+use bp_messages::MessageNonce;
 use codec::Encode;
+use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, TransactionEraOf, TransactionSignScheme,
+	Chain, ChainBase, ChainWithBalances, ChainWithMessages, TransactionEraOf, TransactionSignScheme,
 	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
@@ -44,6 +46,14 @@ impl ChainBase for Kusama {
 	type Balance = bp_kusama::Balance;
 	type Index = bp_kusama::Nonce;
 	type Signature = bp_kusama::Signature;
+
+	fn max_extrinsic_size() -> u32 {
+		bp_kusama::Kusama::max_extrinsic_size()
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		bp_kusama::Kusama::max_extrinsic_weight()
+	}
 }
 
 impl Chain for Kusama {
@@ -57,6 +67,20 @@ impl Chain for Kusama {
 	type SignedBlock = bp_kusama::SignedBlock;
 	type Call = crate::runtime::Call;
 	type WeightToFee = bp_kusama::WeightToFee;
+}
+
+impl ChainWithMessages for Kusama {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = bp_kusama::WITH_KUSAMA_MESSAGES_PALLET_NAME;
+	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str = bp_kusama::TO_KUSAMA_MESSAGE_DETAILS_METHOD;
+	const TO_CHAIN_LATEST_GENERATED_NONCE_METHOD: &'static str = bp_kusama::TO_KUSAMA_LATEST_GENERATED_NONCE_METHOD;
+	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_kusama::TO_KUSAMA_LATEST_RECEIVED_NONCE_METHOD;
+	const FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_kusama::FROM_KUSAMA_LATEST_RECEIVED_NONCE_METHOD;
+	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str = bp_kusama::FROM_KUSAMA_LATEST_CONFIRMED_NONCE_METHOD;
+	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str = bp_kusama::FROM_KUSAMA_UNREWARDED_RELAYERS_STATE;
+	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight = bp_kusama::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = bp_kusama::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = bp_kusama::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+	type WeightInfo = ();
 }
 
 impl ChainWithBalances for Kusama {
