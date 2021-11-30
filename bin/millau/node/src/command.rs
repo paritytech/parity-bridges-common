@@ -20,7 +20,7 @@ use crate::{
 	service::new_partial,
 };
 use millau_runtime::{Block, RuntimeApi};
-use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
+use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 
 impl SubstrateCli for Cli {
@@ -146,14 +146,7 @@ pub fn run() -> sc_cli::Result<()> {
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
 			runner.run_node_until_exit(|config| async move {
-				match config.role {
-					Role::Light => {
-						println!("Light client is not supported.");
-						Err(sc_service::Error::Other("Light client is not supported".to_string()))
-					},
-					_ => service::new_full(config),
-				}
-				.map_err(sc_cli::Error::Service)
+				service::new_full(config).map_err(sc_cli::Error::Service)
 			})
 		},
 	}
