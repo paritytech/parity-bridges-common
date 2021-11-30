@@ -21,6 +21,7 @@
 
 use crate::overseer::{OverseerGen, OverseerGenArgs};
 
+use polkadot_client::RuntimeApiCollection;
 use polkadot_node_core_approval_voting::Config as ApprovalVotingConfig;
 use polkadot_node_core_av_store::Config as AvailabilityConfig;
 use polkadot_node_core_candidate_validation::Config as CandidateValidationConfig;
@@ -37,7 +38,7 @@ use sc_service::{config::PrometheusConfig, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_api::{ConstructRuntimeApi, HeaderT};
 use sp_consensus::SelectChain;
-use sp_runtime::traits::{BlakeTwo256, Block as BlockT};
+use sp_runtime::traits::Block as BlockT;
 use std::{sync::Arc, time::Duration};
 use substrate_prometheus_endpoint::Registry;
 
@@ -109,55 +110,6 @@ type FullBabeBlockImport =
 type FullBabeLink = sc_consensus_babe::BabeLink<Block>;
 type FullGrandpaLink = sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>;
 
-/// A set of APIs that polkadot-like runtimes must implement.
-///
-/// This is a copy of `polkadot_service::RuntimeApiCollection`.
-pub trait RequiredApiCollection:
-	sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
-	+ sp_api::ApiExt<Block>
-	+ sp_consensus_babe::BabeApi<Block>
-	+ sp_finality_grandpa::GrandpaApi<Block>
-	+ polkadot_primitives::v1::ParachainHost<Block>
-	+ sp_block_builder::BlockBuilder<Block>
-	+ frame_system_rpc_runtime_api::AccountNonceApi<
-		Block,
-		bp_rialto::AccountId,
-		rialto_runtime::Index,
-	> + pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, bp_rialto::Balance>
-	+ pallet_mmr_primitives::MmrApi<Block, <Block as BlockT>::Hash>
-	+ sp_api::Metadata<Block>
-	+ sp_offchain::OffchainWorkerApi<Block>
-	+ sp_session::SessionKeys<Block>
-	+ sp_authority_discovery::AuthorityDiscoveryApi<Block>
-	+ beefy_primitives::BeefyApi<Block>
-where
-	<Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
-{
-}
-
-impl<Api> RequiredApiCollection for Api
-where
-	Api: sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
-		+ sp_api::ApiExt<Block>
-		+ sp_consensus_babe::BabeApi<Block>
-		+ sp_finality_grandpa::GrandpaApi<Block>
-		+ polkadot_primitives::v1::ParachainHost<Block>
-		+ sp_block_builder::BlockBuilder<Block>
-		+ frame_system_rpc_runtime_api::AccountNonceApi<
-			Block,
-			bp_rialto::AccountId,
-			rialto_runtime::Index,
-		> + pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, bp_rialto::Balance>
-		+ pallet_mmr_primitives::MmrApi<Block, <Block as BlockT>::Hash>
-		+ sp_api::Metadata<Block>
-		+ sp_offchain::OffchainWorkerApi<Block>
-		+ sp_session::SessionKeys<Block>
-		+ sp_authority_discovery::AuthorityDiscoveryApi<Block>
-		+ beefy_primitives::BeefyApi<Block>,
-	<Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
-{
-}
-
 // If we're using prometheus, use a registry with a prefix of `polkadot`.
 fn set_prometheus_registry(config: &mut Configuration) -> Result<(), Error> {
 	if let Some(PrometheusConfig { registry, .. }) = config.prometheus_config.as_mut() {
@@ -199,7 +151,7 @@ pub fn new_partial(
 where
 	RuntimeApi: ConstructRuntimeApi<Block, FullClient> + Send + Sync + 'static,
 	<RuntimeApi as ConstructRuntimeApi<Block, FullClient>>::RuntimeApi:
-		RequiredApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
+		RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
 	ExecutorDispatch: NativeExecutionDispatch + 'static,
 {
 	set_prometheus_registry(config)?;
@@ -377,7 +329,7 @@ async fn active_leaves(
 where
 	RuntimeApi: ConstructRuntimeApi<Block, FullClient> + Send + Sync + 'static,
 	<RuntimeApi as ConstructRuntimeApi<Block, FullClient>>::RuntimeApi:
-		RequiredApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
+		RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
 	ExecutorDispatch: NativeExecutionDispatch + 'static,
 {
 	let best_block = select_chain.best_chain().await?;
@@ -422,7 +374,7 @@ pub fn new_full(
 where
 	RuntimeApi: ConstructRuntimeApi<Block, FullClient> + Send + Sync + 'static,
 	<RuntimeApi as ConstructRuntimeApi<Block, FullClient>>::RuntimeApi:
-		RequiredApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
+		RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
 	ExecutorDispatch: NativeExecutionDispatch + 'static,
 {
 	let is_collator = false;
