@@ -696,6 +696,7 @@ where
 	// Start the BEEFY bridge gadget.
 	task_manager.spawn_essential_handle().spawn_blocking(
 		"beefy-gadget",
+		None,
 		beefy_gadget::start_beefy_gadget::<_, _, _, _>(beefy_params),
 	);
 
