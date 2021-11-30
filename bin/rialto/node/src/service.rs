@@ -17,7 +17,7 @@
 //! Rialto chain node service.
 //!
 //! The code is mostly copy of `service/src/lib.rs` file from Polkadot repository
-//! without optional functions.
+//! without optional functions, and with BEEFY added on top.
 
 // this warning comes from Error enum (sc_cli::Error in particular) && it isn't easy to use box
 // there

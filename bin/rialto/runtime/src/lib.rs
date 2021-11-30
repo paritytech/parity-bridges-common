@@ -1232,7 +1232,10 @@ mod tests {
 
 	#[test]
 	fn call_size() {
-		const MAX_CALL_SIZE: usize = 232; // slightly bigger than polkadot-runtime tests
-		assert!(core::mem::size_of::<Call>() <= MAX_CALL_SIZE);
+		const DOT_MAX_CALL_SZ: usize = 230;
+		assert!(core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <= DOT_MAX_CALL_SZ);
+		// FIXME: get this down to 230. https://github.com/paritytech/grandpa-bridge-gadget/issues/359
+		const BEEFY_MAX_CALL_SZ: usize = 232;
+		assert!(core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <= BEEFY_MAX_CALL_SZ);
 	}
 }
