@@ -504,7 +504,7 @@ construct_runtime!(
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
 
-		// Bridges support.
+		// BEEFY Bridges support.
 		Beefy: pallet_beefy::{Pallet, Storage, Config<T>},
 		Mmr: pallet_mmr::{Pallet, Storage},
 		MmrLeaf: pallet_beefy_mmr::{Pallet, Storage},

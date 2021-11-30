@@ -498,7 +498,7 @@ construct_runtime!(
 		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
 
-		// Bridges support.
+		// BEEFY Bridges support.
 		Beefy: pallet_beefy::{Pallet, Storage, Config<T>},
 		Mmr: pallet_mmr::{Pallet, Storage},
 		MmrLeaf: pallet_beefy_mmr::{Pallet, Storage},

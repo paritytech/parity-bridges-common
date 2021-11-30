@@ -734,7 +734,7 @@ where
 		key_store: keystore_opt.clone(),
 		network: network.clone(),
 		signed_commitment_sender,
-		min_block_delta: 4,
+		min_block_delta: 2,
 		prometheus_registry: prometheus_registry.clone(),
 	};
 
