@@ -4580,6 +4580,9 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "beefy-gadget",
+ "beefy-gadget-rpc",
+ "beefy-primitives",
  "bp-millau",
  "bp-runtime",
  "frame-benchmarking",
@@ -4588,6 +4591,7 @@ dependencies = [
  "millau-runtime",
  "node-inspect",
  "pallet-bridge-messages",
+ "pallet-mmr-rpc",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
  "sc-cli",
@@ -4618,6 +4622,7 @@ dependencies = [
 name = "millau-runtime"
 version = "0.1.0"
 dependencies = [
+ "beefy-primitives",
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
@@ -4633,11 +4638,15 @@ dependencies = [
  "hex-literal",
  "pallet-aura",
  "pallet-balances",
+ "pallet-beefy",
+ "pallet-beefy-mmr",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-bridge-token-swap",
  "pallet-grandpa",
+ "pallet-mmr",
+ "pallet-mmr-primitives",
  "pallet-randomness-collective-flip",
  "pallet-session",
  "pallet-shift-session-manager",
@@ -8141,6 +8150,9 @@ checksum = "448296241d034b96c11173591deaa1302f2c17b56092106c1f92c1bc0183a8c9"
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "beefy-gadget",
+ "beefy-gadget-rpc",
+ "beefy-primitives",
  "bp-rialto",
  "bp-runtime",
  "frame-benchmarking",
@@ -8153,12 +8165,15 @@ dependencies = [
  "lru 0.7.0",
  "node-inspect",
  "pallet-bridge-messages",
+ "pallet-mmr-primitives",
+ "pallet-mmr-rpc",
  "pallet-transaction-payment-rpc",
  "pallet-transaction-payment-rpc-runtime-api",
  "polkadot-approval-distribution",
  "polkadot-availability-bitfield-distribution",
  "polkadot-availability-distribution",
  "polkadot-availability-recovery",
+ "polkadot-client",
  "polkadot-collator-protocol",
  "polkadot-dispute-distribution",
  "polkadot-gossip-support",
@@ -8338,6 +8353,7 @@ dependencies = [
 name = "rialto-runtime"
 version = "0.1.0"
 dependencies = [
+ "beefy-primitives",
  "bp-header-chain",
  "bp-message-dispatch",
  "bp-messages",
@@ -8356,10 +8372,14 @@ dependencies = [
  "pallet-authority-discovery",
  "pallet-babe",
  "pallet-balances",
+ "pallet-beefy",
+ "pallet-beefy-mmr",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-grandpa",
+ "pallet-mmr",
+ "pallet-mmr-primitives",
  "pallet-session",
  "pallet-shift-session-manager",
  "pallet-sudo",
