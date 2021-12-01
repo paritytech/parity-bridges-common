@@ -125,7 +125,7 @@ pub struct MessageProofParameters {
 /// Source client trait.
 #[async_trait]
 pub trait SourceClient<P: MessageLane>: RelayClient {
-	/// Simplify to get origin client, But you need use downcast_ref to convert to you want types
+	/// Simplify to get origin client, But you need use `downcast_ref` to convert to you want types
 	fn origin_client(&self) -> &dyn Any;
 
 	/// Returns state of the client.
@@ -178,6 +178,9 @@ pub trait SourceClient<P: MessageLane>: RelayClient {
 /// Target client trait.
 #[async_trait]
 pub trait TargetClient<P: MessageLane>: RelayClient {
+	/// Simplify to get origin client, But you need use `downcast_ref` to convert to you want types
+	fn origin_client(&self) -> &dyn Any;
+
 	/// Returns state of the client.
 	async fn state(&self) -> Result<TargetClientState<P>, Self::Error>;
 
@@ -799,6 +802,10 @@ pub(crate) mod tests {
 			Ok(BASE_MESSAGE_DELIVERY_TRANSACTION_COST * (nonces.end() - nonces.start() + 1) +
 				total_dispatch_weight +
 				total_size as TestSourceChainBalance)
+		}
+
+		fn origin_client(&self) -> &dyn Any {
+			&self
 		}
 	}
 

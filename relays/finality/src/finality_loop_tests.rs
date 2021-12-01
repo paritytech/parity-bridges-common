@@ -152,10 +152,6 @@ impl RelayClient for TestTargetClient {
 
 #[async_trait]
 impl TargetClient<TestFinalitySyncPipeline> for TestTargetClient {
-	fn origin_client(&self) -> &dyn Any {
-		&self
-	}
-
 	async fn best_finalized_source_block_number(&self) -> Result<TestNumber, TestError> {
 		let mut data = self.data.lock();
 		(self.on_method_call)(&mut *data);

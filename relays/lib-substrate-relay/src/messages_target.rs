@@ -44,7 +44,7 @@ use relay_substrate_client::{
 use relay_utils::{relay_loop::Client as RelayClient, BlockNumberBase, HeaderId};
 use sp_core::Bytes;
 use sp_runtime::{traits::Saturating, DeserializeOwned, FixedPointNumber, FixedU128};
-use std::{convert::TryFrom, ops::RangeInclusive};
+use std::{any::Any, convert::TryFrom, ops::RangeInclusive};
 
 /// Message receiving proof returned by the target Substrate node.
 pub type SubstrateMessagesReceivingProof<C> =
@@ -125,6 +125,10 @@ where
 	<P::MessageLane as MessageLane>::SourceHeaderNumber: Decode,
 	<P::MessageLane as MessageLane>::SourceHeaderHash: Decode,
 {
+	fn origin_client(&self) -> &dyn Any {
+		&self.client
+	}
+
 	async fn state(&self) -> Result<TargetClientState<P::MessageLane>, SubstrateError> {
 		// we can't continue to deliver messages if target node is out of sync, because
 		// it may have already received (some of) messages that we're going to deliver

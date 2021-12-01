@@ -87,9 +87,6 @@ pub trait SourceClient<P: FinalitySyncPipeline>: RelayClient {
 /// Target client used in finality synchronization loop.
 #[async_trait]
 pub trait TargetClient<P: FinalitySyncPipeline>: RelayClient {
-	/// Simplify to get origin client, But you need use downcast_ref to convert to you want types
-	fn origin_client(&self) -> &dyn Any;
-
 	/// Get best finalized source block number.
 	async fn best_finalized_source_block_number(&self) -> Result<P::Number, Self::Error>;
 
