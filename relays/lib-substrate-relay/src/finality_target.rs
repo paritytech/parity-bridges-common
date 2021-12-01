@@ -19,7 +19,6 @@
 //! <BridgedName> chain.
 
 use crate::finality_pipeline::SubstrateFinalitySyncPipeline;
-use std::any::Any;
 
 use async_trait::async_trait;
 use codec::Decode;
