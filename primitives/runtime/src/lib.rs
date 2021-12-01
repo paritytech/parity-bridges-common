@@ -262,3 +262,16 @@ pub fn storage_parameter_key(parameter_name: &str) -> StorageKey {
 	buffer.push(b':');
 	StorageKey(sp_io::hashing::twox_128(&buffer).to_vec())
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn storage_parameter_key_works() {
+		assert_eq!(
+			storage_parameter_key("MillauToRialtoConversionRate"),
+			StorageKey(hex_literal::hex!("58942375551bb0af1682f72786b59d04").to_vec()),
+		);
+	}
+}
