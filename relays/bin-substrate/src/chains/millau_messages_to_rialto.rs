@@ -23,11 +23,9 @@ use messages_relay::relay_strategy::MixStrategy;
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
 use relay_substrate_client::{Client, TransactionSignScheme, UnsignedTransaction};
-use substrate_relay_helper::{
-	messages_lane::{
-		SubstrateMessageLane, DirectReceiveMessagesProofCallBuilder, DirectReceiveMessagesDeliveryProofCallBuilder,
-	},
-	messages_metrics::StandaloneMessagesMetrics,
+use substrate_relay_helper::messages_lane::{
+	DirectReceiveMessagesDeliveryProofCallBuilder, DirectReceiveMessagesProofCallBuilder,
+	SubstrateMessageLane,
 };
 
 /// Description of Millau -> Rialto messages bridge.
@@ -35,6 +33,11 @@ use substrate_relay_helper::{
 pub struct MillauMessagesToRialto;
 
 impl SubstrateMessageLane for MillauMessagesToRialto {
+	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
+		Some(bp_rialto::MILLAU_TO_RIALTO_CONVERSION_RATE_PARAMETER_NAME);
+	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
+		Some(bp_millau::RIALTO_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME);
+
 	type SourceChain = Millau;
 	type TargetChain = Rialto;
 
@@ -53,21 +56,6 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 	>;
 
 	type RelayStrategy = MixStrategy;
-}
-
-/// Create standalone metrics for the Millau -> Rialto messages loop.
-pub(crate) fn standalone_metrics(
-	source_client: Client<Millau>,
-	target_client: Client<Rialto>,
-) -> anyhow::Result<StandaloneMessagesMetrics<Millau, Rialto>> {
-	substrate_relay_helper::messages_metrics::standalone_metrics(
-		source_client,
-		target_client,
-		Some(crate::chains::millau::ASSOCIATED_TOKEN_ID),
-		Some(crate::chains::rialto::ASSOCIATED_TOKEN_ID),
-		Some(crate::chains::rialto::millau_to_rialto_conversion_rate_params()),
-		Some(crate::chains::millau::rialto_to_millau_conversion_rate_params()),
-	)
 }
 
 /// Update Rialto -> Millau conversion rate, stored in Millau runtime storage.

@@ -17,7 +17,10 @@
 //! Types and functions intended to ease adding of new Substrate -> Substrate
 //! finality proofs synchronization pipelines.
 
-use crate::{TransactionParams, finality_source::SubstrateFinalitySource, finality_target::SubstrateFinalityTarget};
+use crate::{
+	finality_source::SubstrateFinalitySource, finality_target::SubstrateFinalityTarget,
+	TransactionParams,
+};
 
 use bp_header_chain::justification::GrandpaJustification;
 use finality_relay::FinalitySyncPipeline;

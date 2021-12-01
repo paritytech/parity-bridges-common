@@ -17,8 +17,6 @@
 use codec::Decode;
 use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_kusama_client::Kusama;
-use sp_core::storage::StorageKey;
-use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_version::RuntimeVersion;
 
 use crate::cli::{
@@ -32,9 +30,6 @@ use crate::cli::{
 /// This weight is larger (x2) than actual weight at current Kusama runtime to avoid unsuccessful
 /// calls in the future. But since it is used only in tests (and on test chains), this is ok.
 pub(crate) const SYSTEM_REMARK_CALL_WEIGHT: Weight = 2 * 1_345_000;
-
-/// Id of Kusama token that is used to fetch token price.
-pub(crate) const TOKEN_ID: &str = "kusama";
 
 impl CliEncodeCall for Kusama {
 	fn encode_call(call: &Call) -> anyhow::Result<Self::Call> {
@@ -94,15 +89,4 @@ impl CliChain for Kusama {
 	) -> anyhow::Result<Self::MessagePayload> {
 		anyhow::bail!("Sending messages from Kusama is not yet supported.")
 	}
-}
-
-/// Storage key and initial value of Polkadot -> Kusama conversion rate.
-pub(crate) fn polkadot_to_kusama_conversion_rate_params() -> (StorageKey, FixedU128) {
-	(
-		bp_runtime::storage_parameter_key(
-			bp_kusama::POLKADOT_TO_KUSAMA_CONVERSION_RATE_PARAMETER_NAME,
-		),
-		// starting relay before this parameter will be set to some value may cause troubles
-		FixedU128::from_inner(FixedU128::DIV),
-	)
 }

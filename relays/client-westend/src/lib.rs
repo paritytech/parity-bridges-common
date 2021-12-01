@@ -53,6 +53,7 @@ impl ChainBase for Westend {
 
 impl Chain for Westend {
 	const NAME: &'static str = "Westend";
+	const TOKEN_ID: Option<&'static str> = None;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);

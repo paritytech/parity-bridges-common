@@ -19,7 +19,9 @@
 //! <BridgedName> chain.
 
 use crate::{
-	messages_lane::{MessageLaneAdapter, ReceiveMessagesDeliveryProofCallBuilder, SubstrateMessageLane},
+	messages_lane::{
+		MessageLaneAdapter, ReceiveMessagesDeliveryProofCallBuilder, SubstrateMessageLane,
+	},
 	messages_target::SubstrateMessagesDeliveryProof,
 	on_demand_headers::OnDemandHeadersRelay,
 	TransactionParams,
@@ -41,16 +43,13 @@ use messages_relay::{
 };
 use num_traits::{Bounded, Zero};
 use relay_substrate_client::{
-	BalanceOf, Chain, Client, Error as SubstrateError, HashOf, HeaderIdOf,
-	IndexOf, AccountKeyPairOf, AccountIdOf, TransactionSignScheme, TransactionEra, UnsignedTransaction,
-	ChainWithMessages,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, Chain, ChainWithMessages, Client,
+	Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, TransactionEra, TransactionSignScheme,
+	UnsignedTransaction,
 };
 use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
 use sp_core::{Bytes, Pair};
-use sp_runtime::{
-	traits::Header as HeaderT,
-	DeserializeOwned,
-};
+use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
 use std::ops::RangeInclusive;
 
 /// Intermediate message proof returned by the source Substrate node. Includes everything
@@ -74,7 +73,12 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 		transaction_params: TransactionParams<AccountKeyPairOf<P::SourceTransactionSignScheme>>,
 		target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
 	) -> Self {
-		SubstrateMessagesSource { client, lane_id, transaction_params, target_to_source_headers_relay }
+		SubstrateMessagesSource {
+			client,
+			lane_id,
+			transaction_params,
+			target_to_source_headers_relay,
+		}
 	}
 }
 
@@ -99,8 +103,10 @@ impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<P> {
 }
 
 #[async_trait]
-impl<P: SubstrateMessageLane> SourceClient<MessageLaneAdapter<P>> for SubstrateMessagesSource<P> where
-	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceTransactionSignScheme> as Pair>::Public>,
+impl<P: SubstrateMessageLane> SourceClient<MessageLaneAdapter<P>> for SubstrateMessagesSource<P>
+where
+	AccountIdOf<P::SourceChain>:
+		From<<AccountKeyPairOf<P::SourceTransactionSignScheme> as Pair>::Public>,
 	P::SourceTransactionSignScheme: TransactionSignScheme<Chain = P::SourceChain>,
 {
 	async fn state(&self) -> Result<SourceClientState<MessageLaneAdapter<P>>, SubstrateError> {
@@ -222,17 +228,17 @@ impl<P: SubstrateMessageLane> SourceClient<MessageLaneAdapter<P>> for SubstrateM
 		_generated_at_block: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
 	) -> Result<(), SubstrateError> {
-/*
-TODO:
-		log::trace!(
-			target: "bridge",
-			"Prepared Rialto -> Millau confirmation transaction. Weight: {}/{}, size: {}/{}",
-			call_weight,
-			bp_millau::max_extrinsic_weight(),
-			transaction.encode().len(),
-			bp_millau::max_extrinsic_size(),
-		);
-*/
+		/*
+		TODO:
+				log::trace!(
+					target: "bridge",
+					"Prepared Rialto -> Millau confirmation transaction. Weight: {}/{}, size: {}/{}",
+					call_weight,
+					bp_millau::max_extrinsic_weight(),
+					transaction.encode().len(),
+					bp_millau::max_extrinsic_size(),
+				);
+		*/
 
 		let genesis_hash = *self.client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
@@ -283,19 +289,19 @@ fn make_messages_delivery_proof_transaction<P: SubstrateMessageLane>(
 	source_best_block_id: HeaderIdOf<P::SourceChain>,
 	transaction_nonce: IndexOf<P::SourceChain>,
 	proof: SubstrateMessagesDeliveryProof<P::TargetChain>,
-) -> Bytes where
+) -> Bytes
+where
 	P::SourceTransactionSignScheme: TransactionSignScheme<Chain = P::SourceChain>,
 {
 	let call =
-		P::ReceiveMessagesDeliveryProofCallBuilder::build_receive_messages_delivery_proof_call(proof);
+		P::ReceiveMessagesDeliveryProofCallBuilder::build_receive_messages_delivery_proof_call(
+			proof,
+		);
 	Bytes(
 		P::SourceTransactionSignScheme::sign_transaction(
 			*source_genesis_hash,
 			&source_transaction_params.signer,
-			TransactionEra::new(
-				source_best_block_id,
-				source_transaction_params.mortality,
-			),
+			TransactionEra::new(source_best_block_id, source_transaction_params.mortality),
 			UnsignedTransaction::new(call, transaction_nonce),
 		)
 		.encode(),

@@ -33,6 +33,11 @@ use std::{fmt::Debug, time::Duration};
 pub trait Chain: ChainBase + Clone {
 	/// Chain name.
 	const NAME: &'static str;
+	/// Identifier of the basic token of the chain (if applicable).
+	///
+	/// This identifier is used to fetch token price. In case of testnets, you may either
+	/// set it to `None`, or associate testnet with one of the existing tokens.
+	const TOKEN_ID: Option<&'static str>;
 	/// Name of the runtime API method that is returning best known finalized header number
 	/// and hash (as tuple).
 	///
@@ -71,11 +76,11 @@ pub trait ChainWithMessages: Chain {
 	/// Name of the `To<ChainWithMessages>OutboundLaneApi::message_details` runtime API method.
 	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str;
-	/// Name of the `To<ChainWithMessages>OutboundLaneApi::latest_generated_nonce` runtime API method.
-	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
+	/// Name of the `To<ChainWithMessages>OutboundLaneApi::latest_generated_nonce` runtime API
+	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const TO_CHAIN_LATEST_GENERATED_NONCE_METHOD: &'static str;
-	/// Name of the `To<ChainWithMessages>OutboundLaneApi::latest_received_nonce` runtime API method.
-	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
+	/// Name of the `To<ChainWithMessages>OutboundLaneApi::latest_received_nonce` runtime API
+	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str;
 
 	/// Name of the `From<ChainWithMessages>InboundLaneApi::latest_received_nonce` runtime method.
@@ -84,17 +89,19 @@ pub trait ChainWithMessages: Chain {
 	/// Name of the `From<ChainWithMessages>InboundLaneApi::latest_confirmed_nonce` runtime method.
 	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str;
-	/// Name of the `From<ChainWithMessages>InboundLaneApi::unrewarded_relayers_state` runtime method.
-	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
+	/// Name of the `From<ChainWithMessages>InboundLaneApi::unrewarded_relayers_state` runtime
+	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str;
 
 	/// Additional weight of the dispach fee payment if dispatch is paid at the target chain
 	/// and this `ChainWithMessages` is the target chain.
 	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight;
 
-	/// Maximal number of unrewarded relayers in a single confirmation transaction at this `ChainWithMessages`.
+	/// Maximal number of unrewarded relayers in a single confirmation transaction at this
+	/// `ChainWithMessages`.
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce;
-	/// Maximal number of unconfirmed messages in a single confirmation transaction at this `ChainWithMessages`.
+	/// Maximal number of unconfirmed messages in a single confirmation transaction at this
+	/// `ChainWithMessages`.
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce;
 
 	/// Weights of message pallet calls.

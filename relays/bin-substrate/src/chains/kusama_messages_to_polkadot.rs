@@ -24,10 +24,7 @@ use messages_relay::relay_strategy::MixStrategy;
 use relay_kusama_client::Kusama;
 use relay_polkadot_client::Polkadot;
 use relay_substrate_client::{Client, TransactionSignScheme, UnsignedTransaction};
-use substrate_relay_helper::{
-	messages_lane::SubstrateMessageLane,
-	messages_metrics::StandaloneMessagesMetrics,
-};
+use substrate_relay_helper::messages_lane::SubstrateMessageLane;
 
 /// Description of Kusama -> Polkadot messages bridge.
 #[derive(Clone, Debug)]
@@ -46,6 +43,11 @@ substrate_relay_helper::generate_mocked_receive_message_delivery_proof_call_buil
 );
 
 impl SubstrateMessageLane for KusamaMessagesToPolkadot {
+	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
+		Some(bp_polkadot::KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME);
+	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
+		Some(bp_kusama::POLKADOT_TO_KUSAMA_CONVERSION_RATE_PARAMETER_NAME);
+
 	type SourceChain = Kusama;
 	type TargetChain = Polkadot;
 
@@ -53,24 +55,10 @@ impl SubstrateMessageLane for KusamaMessagesToPolkadot {
 	type TargetTransactionSignScheme = Polkadot;
 
 	type ReceiveMessagesProofCallBuilder = KusamaMessagesToPolkadotReceiveMessagesProofCallBuilder;
-	type ReceiveMessagesDeliveryProofCallBuilder = KusamaMessagesToPolkadotReceiveMessagesDeliveryProofCallBuilder;
+	type ReceiveMessagesDeliveryProofCallBuilder =
+		KusamaMessagesToPolkadotReceiveMessagesDeliveryProofCallBuilder;
 
 	type RelayStrategy = MixStrategy;
-}
-
-/// Create standalone metrics for the Kusama -> Polkadot messages loop.
-pub(crate) fn standalone_metrics(
-	source_client: Client<Kusama>,
-	target_client: Client<Polkadot>,
-) -> anyhow::Result<StandaloneMessagesMetrics<Kusama, Polkadot>> {
-	substrate_relay_helper::messages_metrics::standalone_metrics(
-		source_client,
-		target_client,
-		Some(crate::chains::kusama::TOKEN_ID),
-		Some(crate::chains::polkadot::TOKEN_ID),
-		Some(crate::chains::polkadot::kusama_to_polkadot_conversion_rate_params()),
-		Some(crate::chains::kusama::polkadot_to_kusama_conversion_rate_params()),
-	)
 }
 
 /// Update Polkadot -> Kusama conversion rate, stored in Kusama runtime storage.

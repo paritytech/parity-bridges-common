@@ -50,6 +50,7 @@ impl ChainBase for RialtoParachain {
 
 impl Chain for RialtoParachain {
 	const NAME: &'static str = "RialtoParachain";
+	const TOKEN_ID: Option<&'static str> = None;
 	// should be fixed/changed in https://github.com/paritytech/parity-bridges-common/pull/1199
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str = "<UNIMPLEMENTED>";
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(5);

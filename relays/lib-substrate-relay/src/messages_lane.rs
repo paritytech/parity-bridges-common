@@ -17,11 +17,11 @@
 //! Tools for supporting message lanes between two Substrate-based chains.
 
 use crate::{
-	messages_metrics::{StandaloneMessagesMetrics},
+	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
 	on_demand_headers::OnDemandHeadersRelay,
-	STALL_TIMEOUT, TransactionParams,
+	TransactionParams, STALL_TIMEOUT,
 };
 
 use bridge_runtime_common::messages::{
@@ -33,24 +33,30 @@ use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessage
 use bp_messages::{LaneId, MessageNonce};
 use bp_runtime::{AccountIdOf, Chain as _};
 use frame_support::weights::Weight;
-use messages_relay::{
-	message_lane::{MessageLane},
-	relay_strategy::RelayStrategy,
-};
+use messages_relay::{message_lane::MessageLane, relay_strategy::RelayStrategy};
 use relay_substrate_client::{
-	AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain, Client, HashOf, ChainWithMessages, TransactionSignScheme,
-	CallOf,
+	AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain, ChainWithMessages, Client, HashOf,
+	TransactionSignScheme,
 };
-use relay_utils::{
-	metrics::{
-		MetricsParams,
-	},
-};
+use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
 /// Substrate -> Substrate messages synchronization pipeline.
 pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
+	/// Name of the source -> target tokens conversion rate parameter name.
+	///
+	/// The parameter is stored at the target chain and the storage key is computed using
+	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
+	/// to be 1.
+	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str>;
+	/// Name of the target -> source tokens conversion rate parameter name.
+	///
+	/// The parameter is stored at the source chain and the storage key is computed using
+	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
+	/// to be 1.
+	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str>;
+
 	/// Messages of this chain are relayed to the `TargetChain`.
 	type SourceChain: ChainWithMessages;
 	/// Messages from the `SourceChain` are dispatched on this chain.
@@ -96,11 +102,13 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 	/// Messages source client.
 	pub source_client: Client<P::SourceChain>,
 	/// Source transaction params.
-	pub source_transaction_params: TransactionParams<AccountKeyPairOf<P::SourceTransactionSignScheme>>,
+	pub source_transaction_params:
+		TransactionParams<AccountKeyPairOf<P::SourceTransactionSignScheme>>,
 	/// Messages target client.
 	pub target_client: Client<P::TargetChain>,
 	/// Target transaction params.
-	pub target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
+	pub target_transaction_params:
+		TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
 	/// Optional on-demand source to target headers relay.
 	pub source_to_target_headers_relay: Option<OnDemandHeadersRelay<P::SourceChain>>,
 	/// Optional on-demand target to source headers relay.
@@ -116,11 +124,12 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 }
 
 /// Run Substrate-to-Substrate messages sync loop.
-pub async fn run<P: SubstrateMessageLane>(
-	params: MessagesRelayParams<P>,
-) -> anyhow::Result<()> where
-	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceTransactionSignScheme> as Pair>::Public>,
-	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetTransactionSignScheme> as Pair>::Public>,
+pub async fn run<P: SubstrateMessageLane>(params: MessagesRelayParams<P>) -> anyhow::Result<()>
+where
+	AccountIdOf<P::SourceChain>:
+		From<<AccountKeyPairOf<P::SourceTransactionSignScheme> as Pair>::Public>,
+	AccountIdOf<P::TargetChain>:
+		From<<AccountKeyPairOf<P::TargetTransactionSignScheme> as Pair>::Public>,
 	BalanceOf<P::SourceChain>: TryFrom<BalanceOf<P::TargetChain>>,
 	P::SourceTransactionSignScheme: TransactionSignScheme<Chain = P::SourceChain>,
 	P::TargetTransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
@@ -134,31 +143,29 @@ pub async fn run<P: SubstrateMessageLane>(
 		P::TargetChain::AVERAGE_BLOCK_INTERVAL,
 		STALL_TIMEOUT,
 	);
-	let relayer_id_at_source: AccountIdOf<P::SourceChain> = params.source_transaction_params.signer.public().into();
+	let relayer_id_at_source: AccountIdOf<P::SourceChain> =
+		params.source_transaction_params.signer.public().into();
 
 	// 2/3 is reserved for proofs and tx overhead
 	let max_messages_size_in_single_batch = P::TargetChain::max_extrinsic_size() / 3;
 	// we don't know exact weights of the Polkadot runtime. So to guess weights we'll be using
 	// weights from Rialto and then simply dividing it by x2.
 	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
-		crate::messages_lane::select_delivery_transaction_limits::<<P::TargetChain as ChainWithMessages>::WeightInfo>(
+		crate::messages_lane::select_delivery_transaction_limits::<
+			<P::TargetChain as ChainWithMessages>::WeightInfo,
+		>(
 			P::TargetChain::max_extrinsic_weight(),
 			P::SourceChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 		);
 	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
 		(max_messages_in_single_batch / 2, max_messages_weight_in_single_batch / 2);
 
-	let standalone_metrics = params
-		.standalone_metrics
-		.map(Ok)
-		.unwrap_or_else(|| crate::messages_metrics::standalone_metrics(
+	let standalone_metrics = params.standalone_metrics.map(Ok).unwrap_or_else(|| {
+		crate::messages_metrics::standalone_metrics::<P>(
 			source_client.clone(),
 			target_client.clone(),
-			None, // TODO
-			None, // TODO
-			None, // TODO
-			None, // TODO
-		))?;
+		)
+	})?;
 
 	log::info!(
 		target: "bridge",
@@ -189,8 +196,10 @@ pub async fn run<P: SubstrateMessageLane>(
 			reconnect_delay: relay_utils::relay_loop::RECONNECT_DELAY,
 			stall_timeout,
 			delivery_params: messages_relay::message_lane_loop::MessageDeliveryParams {
-				max_unrewarded_relayer_entries_at_target: P::SourceChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-				max_unconfirmed_nonces_at_target: P::SourceChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+				max_unrewarded_relayer_entries_at_target:
+					P::SourceChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+				max_unconfirmed_nonces_at_target:
+					P::SourceChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
@@ -239,10 +248,7 @@ pub struct DirectReceiveMessagesProofCallBuilder<P, R, I> {
 impl<P, R, I> ReceiveMessagesProofCallBuilder<P> for DirectReceiveMessagesProofCallBuilder<P, R, I>
 where
 	P: SubstrateMessageLane,
-	R: BridgeMessagesConfig<
-		I,
-		InboundRelayer = AccountIdOf<P::SourceChain>,
-	>,
+	R: BridgeMessagesConfig<I, InboundRelayer = AccountIdOf<P::SourceChain>>,
 	I: 'static,
 	R::SourceHeaderChain: bp_messages::target_chain::SourceHeaderChain<
 		R::InboundMessageFee,
@@ -317,12 +323,11 @@ pub struct DirectReceiveMessagesDeliveryProofCallBuilder<P, R, I> {
 	_phantom: PhantomData<(P, R, I)>,
 }
 
-impl<P, R, I> ReceiveMessagesDeliveryProofCallBuilder<P> for DirectReceiveMessagesDeliveryProofCallBuilder<P, R, I>
+impl<P, R, I> ReceiveMessagesDeliveryProofCallBuilder<P>
+	for DirectReceiveMessagesDeliveryProofCallBuilder<P, R, I>
 where
 	P: SubstrateMessageLane,
-	R: BridgeMessagesConfig<
-		I,
-	>,
+	R: BridgeMessagesConfig<I>,
 	I: 'static,
 	R::TargetHeaderChain: bp_messages::source_chain::TargetHeaderChain<
 		R::OutboundPayload,
@@ -408,8 +413,8 @@ pub fn select_delivery_transaction_limits<W: pallet_bridge_messages::WeightInfoE
 
 #[cfg(test)]
 mod tests {
-	use bp_runtime::Chain;
 	use super::*;
+	use bp_runtime::Chain;
 
 	type RialtoToMillauMessagesWeights =
 		pallet_bridge_messages::weights::RialtoWeight<rialto_runtime::Runtime>;

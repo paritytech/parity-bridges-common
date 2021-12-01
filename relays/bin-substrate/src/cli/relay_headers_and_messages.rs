@@ -139,7 +139,6 @@ macro_rules! select_bridge {
 				use crate::chains::{
 					millau_messages_to_rialto::{
 						MillauMessagesToRialto as LeftToRightMessageLane,
-						standalone_metrics as left_to_right_standalone_metrics,
 						update_rialto_to_millau_conversion_rate as update_right_to_left_conversion_rate,
 					},
 					rialto_messages_to_millau::{
@@ -188,7 +187,6 @@ macro_rules! select_bridge {
 				use crate::chains::{
 					rococo_messages_to_wococo::{
 						RococoMessagesToWococo as LeftToRightMessageLane,
-						standalone_metrics as left_to_right_standalone_metrics,
 					},
 					wococo_messages_to_rococo::WococoMessagesToRococo as RightToLeftMessageLane,
 				};
@@ -269,7 +267,6 @@ macro_rules! select_bridge {
 				use crate::chains::{
 					kusama_messages_to_polkadot::{
 						KusamaMessagesToPolkadot as LeftToRightMessageLane,
-						standalone_metrics as left_to_right_standalone_metrics,
 						update_polkadot_to_kusama_conversion_rate as update_right_to_left_conversion_rate,
 					},
 					polkadot_messages_to_kusama::{
@@ -357,7 +354,9 @@ impl RelayHeadersAndMessages {
 			let metrics_params: MetricsParams = params.shared.prometheus_params.into();
 			let metrics_params = relay_utils::relay_metrics(metrics_params).into_params();
 			let left_to_right_metrics =
-				left_to_right_standalone_metrics(left_client.clone(), right_client.clone())?;
+				substrate_relay_helper::messages_metrics::standalone_metrics::<
+					LeftToRightMessageLane,
+				>(left_client.clone(), right_client.clone())?;
 			let right_to_left_metrics = left_to_right_metrics.clone().reverse();
 
 			// start conversion rate update loops for left/right chains
@@ -525,7 +524,9 @@ impl RelayHeadersAndMessages {
 			let mut message_relays = Vec::with_capacity(lanes.len() * 2);
 			for lane in lanes {
 				let lane = lane.into();
-				let left_to_right_messages = substrate_relay_helper::messages_lane::run::<LeftToRightMessageLane>(MessagesRelayParams {
+				let left_to_right_messages = substrate_relay_helper::messages_lane::run::<
+					LeftToRightMessageLane,
+				>(MessagesRelayParams {
 					source_client: left_client.clone(),
 					source_transaction_params: TransactionParams {
 						signer: left_sign.clone(),
@@ -545,7 +546,9 @@ impl RelayHeadersAndMessages {
 				})
 				.map_err(|e| anyhow::format_err!("{}", e))
 				.boxed();
-				let right_to_left_messages = substrate_relay_helper::messages_lane::run::<RightToLeftMessageLane>(MessagesRelayParams {
+				let right_to_left_messages = substrate_relay_helper::messages_lane::run::<
+					RightToLeftMessageLane,
+				>(MessagesRelayParams {
 					source_client: right_client.clone(),
 					source_transaction_params: TransactionParams {
 						signer: right_sign.clone(),

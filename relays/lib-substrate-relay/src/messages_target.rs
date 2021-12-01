@@ -19,8 +19,8 @@
 //! <BridgedName> chain.
 
 use crate::{
-	messages_lane::{MessageLaneAdapter, SubstrateMessageLane, ReceiveMessagesProofCallBuilder},
-	messages_metrics::{StandaloneMessagesMetrics},
+	messages_lane::{MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane},
+	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{read_client_state, SubstrateMessagesProof},
 	on_demand_headers::OnDemandHeadersRelay,
 	TransactionParams,
@@ -40,9 +40,9 @@ use messages_relay::{
 };
 use num_traits::{Bounded, Zero};
 use relay_substrate_client::{
-	BalanceOf, Chain, Client, Error as SubstrateError, HashOf, IndexOf,
-	WeightToFeeOf, AccountIdOf, AccountKeyPairOf, TransactionSignScheme, HeaderIdOf, TransactionEra,
-	UnsignedTransaction, ChainWithMessages,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, Chain, ChainWithMessages, Client,
+	Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, TransactionEra, TransactionSignScheme,
+	UnsignedTransaction, WeightToFeeOf,
 };
 use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
 use sp_core::{Bytes, Pair};
@@ -107,8 +107,10 @@ impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesTarget<P> {
 }
 
 #[async_trait]
-impl<P: SubstrateMessageLane> TargetClient<MessageLaneAdapter<P>> for SubstrateMessagesTarget<P> where
-	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetTransactionSignScheme> as Pair>::Public>,
+impl<P: SubstrateMessageLane> TargetClient<MessageLaneAdapter<P>> for SubstrateMessagesTarget<P>
+where
+	AccountIdOf<P::TargetChain>:
+		From<<AccountKeyPairOf<P::TargetTransactionSignScheme> as Pair>::Public>,
 	P::TargetTransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
 	BalanceOf<P::SourceChain>: TryFrom<BalanceOf<P::TargetChain>>,
 {
@@ -162,7 +164,8 @@ impl<P: SubstrateMessageLane> TargetClient<MessageLaneAdapter<P>> for SubstrateM
 	async fn unrewarded_relayers_state(
 		&self,
 		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
-	) -> Result<(TargetHeaderIdOf<MessageLaneAdapter<P>>, UnrewardedRelayersState), SubstrateError> {
+	) -> Result<(TargetHeaderIdOf<MessageLaneAdapter<P>>, UnrewardedRelayersState), SubstrateError>
+	{
 		let encoded_response = self
 			.client
 			.state_call(
@@ -181,7 +184,10 @@ impl<P: SubstrateMessageLane> TargetClient<MessageLaneAdapter<P>> for SubstrateM
 		&self,
 		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 	) -> Result<
-		(TargetHeaderIdOf<MessageLaneAdapter<P>>, <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof),
+		(
+			TargetHeaderIdOf<MessageLaneAdapter<P>>,
+			<MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
+		),
 		SubstrateError,
 	> {
 		let (id, relayers_state) = self.unrewarded_relayers_state(id).await?;
@@ -209,18 +215,18 @@ impl<P: SubstrateMessageLane> TargetClient<MessageLaneAdapter<P>> for SubstrateM
 		nonces: RangeInclusive<MessageNonce>,
 		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
 	) -> Result<RangeInclusive<MessageNonce>, SubstrateError> {
-/*
-TODO:
+		/*
+		TODO:
 
-		log::trace!(
-			target: "bridge",
-			"Prepared Millau -> Rialto delivery transaction. Weight: {}/{}, size: {}/{}",
-			call_weight,
-			bp_rialto::max_extrinsic_weight(),
-			transaction.encode().len(),
-			bp_rialto::max_extrinsic_size(),
-		);
-*/
+				log::trace!(
+					target: "bridge",
+					"Prepared Millau -> Rialto delivery transaction. Weight: {}/{}, size: {}/{}",
+					call_weight,
+					bp_rialto::max_extrinsic_weight(),
+					transaction.encode().len(),
+					bp_rialto::max_extrinsic_size(),
+				);
+		*/
 
 		let genesis_hash = *self.client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
@@ -376,26 +382,23 @@ fn make_messages_delivery_transaction<P: SubstrateMessageLane>(
 	relayer_id_at_source: AccountIdOf<P::SourceChain>,
 	nonces: RangeInclusive<MessageNonce>,
 	proof: SubstrateMessagesProof<P::SourceChain>,
-) -> Bytes where
+) -> Bytes
+where
 	P::TargetTransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
 {
 	let messages_count = nonces.end() - nonces.start() + 1;
 	let dispatch_weight = proof.0;
-	let call =
-		P::ReceiveMessagesProofCallBuilder::build_receive_messages_proof_call(
-			relayer_id_at_source,
-			proof,
-			messages_count as _,
-			dispatch_weight,
-		);
+	let call = P::ReceiveMessagesProofCallBuilder::build_receive_messages_proof_call(
+		relayer_id_at_source,
+		proof,
+		messages_count as _,
+		dispatch_weight,
+	);
 	Bytes(
 		P::TargetTransactionSignScheme::sign_transaction(
 			*target_genesis_hash,
 			&target_transaction_params.signer,
-			TransactionEra::new(
-				target_best_block_id,
-				target_transaction_params.mortality,
-			),
+			TransactionEra::new(target_best_block_id, target_transaction_params.mortality),
 			UnsignedTransaction::new(call, transaction_nonce),
 		)
 		.encode(),
@@ -473,7 +476,8 @@ fn compute_prepaid_messages_refund<P: SubstrateMessageLane>(
 	fee_multiplier: FixedU128,
 ) -> BalanceOf<P::TargetChain> {
 	fee_multiplier.saturating_mul_int(WeightToFeeOf::<P::TargetChain>::calc(
-		&P::TargetChain::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN.saturating_mul(total_prepaid_nonces),
+		&P::TargetChain::PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN
+			.saturating_mul(total_prepaid_nonces),
 	))
 }
 

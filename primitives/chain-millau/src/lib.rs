@@ -260,6 +260,9 @@ frame_support::parameter_types! {
 /// Name of the With-Millau messages pallet instance that is deployed at bridged chains.
 pub const WITH_MILLAU_MESSAGES_PALLET_NAME: &str = "BridgeMillauMessages";
 
+/// Name of the Rialto->Millau (actually DOT->KSM) conversion rate stored in the Millau runtime.
+pub const RIALTO_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME: &str = "RialtoToMillauConversionRate";
+
 /// Name of the With-Rialto token swap pallet instance in the Millau runtime.
 pub const WITH_RIALTO_TOKEN_SWAP_PALLET_NAME: &str = "BridgeRialtoTokenSwap";
 

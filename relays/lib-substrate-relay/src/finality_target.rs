@@ -18,9 +18,11 @@
 //! bridge GRANDPA pallet deployed and provide `<BridgedChainName>FinalityApi` to allow bridging
 //! with <BridgedName> chain.
 
-use crate::TransactionParams;
-use crate::finality_pipeline::{
-	FinalitySyncPipelineAdapter, SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
+use crate::{
+	finality_pipeline::{
+		FinalitySyncPipelineAdapter, SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
+	},
+	TransactionParams,
 };
 
 use async_trait::async_trait;
@@ -109,10 +111,7 @@ where
 						P::TransactionSignScheme::sign_transaction(
 							genesis_hash,
 							&transaction_params.signer,
-							TransactionEra::new(
-								best_block_id,
-								transaction_params.mortality,
-							),
+							TransactionEra::new(best_block_id, transaction_params.mortality),
 							UnsignedTransaction::new(call, transaction_nonce),
 						)
 						.encode(),

@@ -17,8 +17,6 @@
 use codec::Decode;
 use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_polkadot_client::Polkadot;
-use sp_core::storage::StorageKey;
-use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_version::RuntimeVersion;
 
 use crate::cli::{
@@ -32,9 +30,6 @@ use crate::cli::{
 /// This weight is larger (x2) than actual weight at current Polkadot runtime to avoid unsuccessful
 /// calls in the future. But since it is used only in tests (and on test chains), this is ok.
 pub(crate) const SYSTEM_REMARK_CALL_WEIGHT: Weight = 2 * 1_345_000;
-
-/// Id of Polkadot token that is used to fetch token price.
-pub(crate) const TOKEN_ID: &str = "polkadot";
 
 impl CliEncodeCall for Polkadot {
 	fn encode_call(call: &Call) -> anyhow::Result<Self::Call> {
@@ -94,15 +89,4 @@ impl CliChain for Polkadot {
 	) -> anyhow::Result<Self::MessagePayload> {
 		anyhow::bail!("Sending messages from Polkadot is not yet supported.")
 	}
-}
-
-/// Storage key and initial value of Kusama -> Polkadot conversion rate.
-pub(crate) fn kusama_to_polkadot_conversion_rate_params() -> (StorageKey, FixedU128) {
-	(
-		bp_runtime::storage_parameter_key(
-			bp_polkadot::KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME,
-		),
-		// starting relay before this parameter will be set to some value may cause troubles
-		FixedU128::from_inner(FixedU128::DIV),
-	)
 }

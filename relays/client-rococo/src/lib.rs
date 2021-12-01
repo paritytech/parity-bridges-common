@@ -20,8 +20,8 @@ use bp_messages::MessageNonce;
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithMessages, TransactionEraOf, TransactionSignScheme,
-	UnsignedTransaction,
+	Chain, ChainBase, ChainWithBalances, ChainWithMessages, TransactionEraOf,
+	TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -61,6 +61,7 @@ impl ChainBase for Rococo {
 
 impl Chain for Rococo {
 	const NAME: &'static str = "Rococo";
+	const TOKEN_ID: Option<&'static str> = None;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
@@ -73,16 +74,26 @@ impl Chain for Rococo {
 }
 
 impl ChainWithMessages for Rococo {
-	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = bp_rococo::WITH_ROCOCO_MESSAGES_PALLET_NAME;
-	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str = bp_rococo::TO_ROCOCO_MESSAGE_DETAILS_METHOD;
-	const TO_CHAIN_LATEST_GENERATED_NONCE_METHOD: &'static str = bp_rococo::TO_ROCOCO_LATEST_GENERATED_NONCE_METHOD;
-	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_rococo::TO_ROCOCO_LATEST_RECEIVED_NONCE_METHOD;
-	const FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str = bp_rococo::FROM_ROCOCO_LATEST_RECEIVED_NONCE_METHOD;
-	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str = bp_rococo::FROM_ROCOCO_LATEST_CONFIRMED_NONCE_METHOD;
-	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str = bp_rococo::FROM_ROCOCO_UNREWARDED_RELAYERS_STATE;
-	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight = bp_rococo::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
-	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = bp_rococo::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = bp_rococo::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		bp_rococo::WITH_ROCOCO_MESSAGES_PALLET_NAME;
+	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
+		bp_rococo::TO_ROCOCO_MESSAGE_DETAILS_METHOD;
+	const TO_CHAIN_LATEST_GENERATED_NONCE_METHOD: &'static str =
+		bp_rococo::TO_ROCOCO_LATEST_GENERATED_NONCE_METHOD;
+	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str =
+		bp_rococo::TO_ROCOCO_LATEST_RECEIVED_NONCE_METHOD;
+	const FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str =
+		bp_rococo::FROM_ROCOCO_LATEST_RECEIVED_NONCE_METHOD;
+	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str =
+		bp_rococo::FROM_ROCOCO_LATEST_CONFIRMED_NONCE_METHOD;
+	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str =
+		bp_rococo::FROM_ROCOCO_UNREWARDED_RELAYERS_STATE;
+	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight =
+		bp_rococo::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		bp_rococo::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		bp_rococo::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	type WeightInfo = ();
 }
 

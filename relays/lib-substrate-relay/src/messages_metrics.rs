@@ -16,18 +16,18 @@
 
 //! Tools for supporting message lanes between two Substrate-based chains.
 
+use crate::messages_lane::SubstrateMessageLane;
+
+use num_traits::One;
 use relay_substrate_client::{
 	metrics::{FloatStorageValueMetric, StorageProofOverheadMetric},
 	Chain, Client,
 };
-use relay_utils::{
-	metrics::{
-		FloatJsonValueMetric, GlobalMetrics, MetricsParams, PrometheusError, StandaloneMetric,
-	},
+use relay_utils::metrics::{
+	FloatJsonValueMetric, GlobalMetrics, MetricsParams, PrometheusError, StandaloneMetric,
 };
-use sp_core::{storage::StorageKey};
 use sp_runtime::FixedU128;
-use std::{fmt::Debug};
+use std::fmt::Debug;
 
 /// Shared references to the standalone metrics of the message lane relay loop.
 #[derive(Debug, Clone)]
@@ -108,65 +108,75 @@ impl<SC: Chain, TC: Chain> StandaloneMessagesMetrics<SC, TC> {
 ///
 /// All metrics returned by this function are exposed by loops that are serving given lane (`P`)
 /// and by loops that are serving reverse lane (`P` with swapped `TargetChain` and `SourceChain`).
-pub fn standalone_metrics<SC: Chain, TC: Chain>(
-	source_client: Client<SC>,
-	target_client: Client<TC>,
-	source_chain_token_id: Option<&str>,
-	target_chain_token_id: Option<&str>,
-	source_to_target_conversion_rate_params: Option<(StorageKey, FixedU128)>,
-	target_to_source_conversion_rate_params: Option<(StorageKey, FixedU128)>,
-) -> anyhow::Result<StandaloneMessagesMetrics<SC, TC>> {
+/// We assume that either conversion rate parameters have values in the storage, or they are
+/// initialized with 1:1.
+pub fn standalone_metrics<P: SubstrateMessageLane>(
+	source_client: Client<P::SourceChain>,
+	target_client: Client<P::TargetChain>,
+) -> anyhow::Result<StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>> {
 	Ok(StandaloneMessagesMetrics {
 		global: GlobalMetrics::new()?,
 		source_storage_proof_overhead: StorageProofOverheadMetric::new(
 			source_client.clone(),
-			format!("{}_storage_proof_overhead", SC::NAME.to_lowercase()),
-			format!("{} storage proof overhead", SC::NAME),
+			format!("{}_storage_proof_overhead", P::SourceChain::NAME.to_lowercase()),
+			format!("{} storage proof overhead", P::SourceChain::NAME),
 		)?,
 		target_storage_proof_overhead: StorageProofOverheadMetric::new(
 			target_client.clone(),
-			format!("{}_storage_proof_overhead", TC::NAME.to_lowercase()),
-			format!("{} storage proof overhead", TC::NAME),
+			format!("{}_storage_proof_overhead", P::TargetChain::NAME.to_lowercase()),
+			format!("{} storage proof overhead", P::TargetChain::NAME),
 		)?,
-		source_to_base_conversion_rate: source_chain_token_id
+		source_to_base_conversion_rate: P::SourceChain::TOKEN_ID
 			.map(|source_chain_token_id| {
 				crate::helpers::token_price_metric(source_chain_token_id).map(Some)
 			})
 			.unwrap_or(Ok(None))?,
-		target_to_base_conversion_rate: target_chain_token_id
+		target_to_base_conversion_rate: P::TargetChain::TOKEN_ID
 			.map(|target_chain_token_id| {
 				crate::helpers::token_price_metric(target_chain_token_id).map(Some)
 			})
 			.unwrap_or(Ok(None))?,
-		source_to_target_conversion_rate: source_to_target_conversion_rate_params
-			.map(|(key, rate)| {
+		source_to_target_conversion_rate: P::SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME
+			.map(bp_runtime::storage_parameter_key)
+			.map(|key| {
 				FloatStorageValueMetric::<_, sp_runtime::FixedU128>::new(
 					target_client,
 					key,
-					Some(rate),
-					format!("{}_{}_to_{}_conversion_rate", TC::NAME, SC::NAME, TC::NAME),
+					Some(FixedU128::one()),
+					format!(
+						"{}_{}_to_{}_conversion_rate",
+						P::TargetChain::NAME,
+						P::SourceChain::NAME,
+						P::TargetChain::NAME
+					),
 					format!(
 						"{} to {} tokens conversion rate (used by {})",
-						SC::NAME,
-						TC::NAME,
-						TC::NAME
+						P::SourceChain::NAME,
+						P::TargetChain::NAME,
+						P::TargetChain::NAME
 					),
 				)
 				.map(Some)
 			})
 			.unwrap_or(Ok(None))?,
-		target_to_source_conversion_rate: target_to_source_conversion_rate_params
-			.map(|(key, rate)| {
+		target_to_source_conversion_rate: P::TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME
+			.map(bp_runtime::storage_parameter_key)
+			.map(|key| {
 				FloatStorageValueMetric::<_, sp_runtime::FixedU128>::new(
 					source_client,
 					key,
-					Some(rate),
-					format!("{}_{}_to_{}_conversion_rate", SC::NAME, TC::NAME, SC::NAME),
+					Some(FixedU128::one()),
+					format!(
+						"{}_{}_to_{}_conversion_rate",
+						P::SourceChain::NAME,
+						P::TargetChain::NAME,
+						P::SourceChain::NAME
+					),
 					format!(
 						"{} to {} tokens conversion rate (used by {})",
-						TC::NAME,
-						SC::NAME,
-						SC::NAME
+						P::TargetChain::NAME,
+						P::SourceChain::NAME,
+						P::SourceChain::NAME
 					),
 				)
 				.map(Some)

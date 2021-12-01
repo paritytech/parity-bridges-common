@@ -20,12 +20,8 @@ use frame_support::weights::Weight;
 
 use messages_relay::relay_strategy::MixStrategy;
 use relay_rococo_client::Rococo;
-use relay_substrate_client::Client;
 use relay_wococo_client::Wococo;
-use substrate_relay_helper::{
-	messages_lane::SubstrateMessageLane,
-	messages_metrics::StandaloneMessagesMetrics,
-};
+use substrate_relay_helper::messages_lane::SubstrateMessageLane;
 
 /// Description of Wococo -> Rococo messages bridge.
 #[derive(Clone, Debug)]
@@ -44,6 +40,9 @@ substrate_relay_helper::generate_mocked_receive_message_delivery_proof_call_buil
 );
 
 impl SubstrateMessageLane for WococoMessagesToRococo {
+	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> = None;
+	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> = None;
+
 	type SourceChain = Wococo;
 	type TargetChain = Rococo;
 
@@ -51,22 +50,8 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 	type TargetTransactionSignScheme = Rococo;
 
 	type ReceiveMessagesProofCallBuilder = WococoMessagesToRococoReceiveMessagesProofCallBuilder;
-	type ReceiveMessagesDeliveryProofCallBuilder = WococoMessagesToRococoReceiveMessagesDeliveryProofCallBuilder;
+	type ReceiveMessagesDeliveryProofCallBuilder =
+		WococoMessagesToRococoReceiveMessagesDeliveryProofCallBuilder;
 
 	type RelayStrategy = MixStrategy;
-}
-
-/// Create standalone metrics for the Wococo -> Rococo messages loop.
-pub(crate) fn standalone_metrics(
-	source_client: Client<Wococo>,
-	target_client: Client<Rococo>,
-) -> anyhow::Result<StandaloneMessagesMetrics<Wococo, Rococo>> {
-	substrate_relay_helper::messages_metrics::standalone_metrics(
-		source_client,
-		target_client,
-		None,
-		None,
-		None,
-		None,
-	)
 }

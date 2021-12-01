@@ -22,14 +22,10 @@ use sp_core::{Bytes, Pair};
 use messages_relay::relay_strategy::MixStrategy;
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
-use relay_substrate_client::{
-	Client, TransactionSignScheme, UnsignedTransaction,
-};
-use substrate_relay_helper::{
-	messages_lane::{
-		SubstrateMessageLane, DirectReceiveMessagesProofCallBuilder, DirectReceiveMessagesDeliveryProofCallBuilder,
-	},
-	messages_metrics::StandaloneMessagesMetrics,
+use relay_substrate_client::{Client, TransactionSignScheme, UnsignedTransaction};
+use substrate_relay_helper::messages_lane::{
+	DirectReceiveMessagesDeliveryProofCallBuilder, DirectReceiveMessagesProofCallBuilder,
+	SubstrateMessageLane,
 };
 
 /// Description of Rialto -> Millau messages bridge.
@@ -37,6 +33,11 @@ use substrate_relay_helper::{
 pub struct RialtoMessagesToMillau;
 
 impl SubstrateMessageLane for RialtoMessagesToMillau {
+	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
+		Some(bp_millau::RIALTO_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME);
+	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
+		Some(bp_rialto::MILLAU_TO_RIALTO_CONVERSION_RATE_PARAMETER_NAME);
+
 	type SourceChain = Rialto;
 	type TargetChain = Millau;
 
@@ -55,21 +56,6 @@ impl SubstrateMessageLane for RialtoMessagesToMillau {
 	>;
 
 	type RelayStrategy = MixStrategy;
-}
-
-/// Create standalone metrics for the Rialto -> Millau messages loop.
-pub(crate) fn standalone_metrics(
-	source_client: Client<Rialto>,
-	target_client: Client<Millau>,
-) -> anyhow::Result<StandaloneMessagesMetrics<Rialto, Millau>> {
-	substrate_relay_helper::messages_metrics::standalone_metrics(
-		source_client,
-		target_client,
-		Some(crate::chains::rialto::ASSOCIATED_TOKEN_ID),
-		Some(crate::chains::millau::ASSOCIATED_TOKEN_ID),
-		Some(crate::chains::millau::rialto_to_millau_conversion_rate_params()),
-		Some(crate::chains::rialto::millau_to_rialto_conversion_rate_params()),
-	)
 }
 
 /// Update Millau -> Rialto conversion rate, stored in Rialto runtime storage.
