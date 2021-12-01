@@ -33,7 +33,7 @@ use parking_lot::Mutex;
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, MaybeConnectionError,
 };
-use std::{any::Any, collections::HashMap, pin::Pin, sync::Arc, time::Duration};
+use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
 type IsMandatory = bool;
 type TestNumber = u64;
