@@ -93,7 +93,7 @@ pub trait ChainWithMessages: Chain {
 	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str;
 
-	/// Additional weight of the dispach fee payment if dispatch is paid at the target chain
+	/// Additional weight of the dispatch fee payment if dispatch is paid at the target chain
 	/// and this `ChainWithMessages` is the target chain.
 	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight;
 
