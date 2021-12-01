@@ -32,7 +32,6 @@ use relay_utils::{
 	MaybeConnectionError,
 };
 use std::{
-	any::Any,
 	pin::Pin,
 	time::{Duration, Instant},
 };
