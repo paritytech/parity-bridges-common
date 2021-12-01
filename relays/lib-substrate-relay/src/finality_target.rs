@@ -19,6 +19,7 @@
 //! <BridgedName> chain.
 
 use crate::finality_pipeline::SubstrateFinalitySyncPipeline;
+use std::any::Any;
 
 use async_trait::async_trait;
 use codec::Decode;
@@ -67,6 +68,10 @@ where
 	<P::FinalitySyncPipeline as FinalitySyncPipeline>::Number: Decode,
 	<P::FinalitySyncPipeline as FinalitySyncPipeline>::Hash: Decode,
 {
+	fn origin_client(&self) -> &dyn Any {
+		&self.client
+	}
+
 	async fn best_finalized_source_block_number(
 		&self,
 	) -> Result<<P::FinalitySyncPipeline as FinalitySyncPipeline>::Number, SubstrateError> {

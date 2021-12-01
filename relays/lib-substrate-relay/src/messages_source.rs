@@ -22,6 +22,7 @@ use crate::{
 	messages_lane::SubstrateMessageLane, messages_target::SubstrateMessagesReceivingProof,
 	on_demand_headers::OnDemandHeadersRelay,
 };
+use std::any::Any;
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
@@ -122,6 +123,10 @@ where
 	<P::MessageLane as MessageLane>::TargetHeaderHash: Decode,
 	<P::MessageLane as MessageLane>::SourceChainBalance: AtLeast32BitUnsigned,
 {
+	fn origin_client(&self) -> &dyn Any {
+		&self.client
+	}
+
 	async fn state(&self) -> Result<SourceClientState<P::MessageLane>, SubstrateError> {
 		// we can't continue to deliver confirmations if source node is out of sync, because
 		// it may have already received confirmations that we're going to deliver

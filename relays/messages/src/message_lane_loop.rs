@@ -24,7 +24,10 @@
 //! finalized header. I.e. when talking about headers in lane context, we
 //! only care about finalized headers.
 
-use std::{collections::BTreeMap, fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
+use std::{
+	any::Any, collections::BTreeMap, fmt::Debug, future::Future, ops::RangeInclusive,
+	time::Duration,
+};
 
 use async_trait::async_trait;
 use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
@@ -122,6 +125,9 @@ pub struct MessageProofParameters {
 /// Source client trait.
 #[async_trait]
 pub trait SourceClient<P: MessageLane>: RelayClient {
+	/// Simplify to get origin client, But you need use downcast_ref to convert to you want types
+	fn origin_client(&self) -> &dyn Any;
+
 	/// Returns state of the client.
 	async fn state(&self) -> Result<SourceClientState<P>, Self::Error>;
 
@@ -562,6 +568,10 @@ pub(crate) mod tests {
 
 	#[async_trait]
 	impl SourceClient<TestMessageLane> for TestSourceClient {
+		fn origin_client(&self) -> &dyn Any {
+			&self
+		}
+
 		async fn state(&self) -> Result<SourceClientState<TestMessageLane>, TestError> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);

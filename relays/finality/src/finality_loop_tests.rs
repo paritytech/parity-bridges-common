@@ -33,7 +33,7 @@ use parking_lot::Mutex;
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, MaybeConnectionError,
 };
-use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
+use std::{any::Any, collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
 type IsMandatory = bool;
 type TestNumber = u64;
@@ -152,6 +152,10 @@ impl RelayClient for TestTargetClient {
 
 #[async_trait]
 impl TargetClient<TestFinalitySyncPipeline> for TestTargetClient {
+	fn origin_client(&self) -> &dyn Any {
+		&self
+	}
+
 	async fn best_finalized_source_block_number(&self) -> Result<TestNumber, TestError> {
 		let mut data = self.data.lock();
 		(self.on_method_call)(&mut *data);
