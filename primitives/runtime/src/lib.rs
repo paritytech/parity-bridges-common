@@ -109,12 +109,10 @@ where
 	AccountId: Encode,
 {
 	match id {
-		SourceAccount::Root => {
-			(ROOT_ACCOUNT_DERIVATION_PREFIX, bridge_id).using_encoded(blake2_256)
-		}
-		SourceAccount::Account(id) => {
-			(ACCOUNT_DERIVATION_PREFIX, bridge_id, id).using_encoded(blake2_256)
-		}
+		SourceAccount::Root =>
+			(ROOT_ACCOUNT_DERIVATION_PREFIX, bridge_id).using_encoded(blake2_256),
+		SourceAccount::Account(id) =>
+			(ACCOUNT_DERIVATION_PREFIX, bridge_id, id).using_encoded(blake2_256),
 	}
 	.into()
 }
@@ -188,9 +186,8 @@ impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber,
 	pub fn frame_era(&self) -> sp_runtime::generic::Era {
 		match *self {
 			TransactionEra::Immortal => sp_runtime::generic::Era::immortal(),
-			TransactionEra::Mortal(header_id, period) => {
-				sp_runtime::generic::Era::mortal(period as _, header_id.0.into())
-			}
+			TransactionEra::Mortal(header_id, period) =>
+				sp_runtime::generic::Era::mortal(period as _, header_id.0.into()),
 		}
 	}
 

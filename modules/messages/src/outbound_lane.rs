@@ -107,10 +107,10 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 	) -> ReceivalConfirmationResult {
 		let mut data = self.storage.data();
 		if latest_delivered_nonce <= data.latest_received_nonce {
-			return ReceivalConfirmationResult::NoNewConfirmations;
+			return ReceivalConfirmationResult::NoNewConfirmations
 		}
 		if latest_delivered_nonce > data.latest_generated_nonce {
-			return ReceivalConfirmationResult::FailedToConfirmFutureMessages;
+			return ReceivalConfirmationResult::FailedToConfirmFutureMessages
 		}
 		if latest_delivered_nonce - data.latest_received_nonce > max_allowed_messages {
 			// that the relayer has declared correct number of messages that the proof contains (it
@@ -120,7 +120,7 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 			// weight formula accounts, so we can't allow that.
 			return ReceivalConfirmationResult::TryingToConfirmMoreMessagesThanExpected(
 				latest_delivered_nonce - data.latest_received_nonce,
-			);
+			)
 		}
 
 		let dispatch_results = match extract_dispatch_results(
@@ -150,8 +150,8 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 		let mut pruned_messages = 0;
 		let mut anything_changed = false;
 		let mut data = self.storage.data();
-		while pruned_messages < max_messages_to_prune
-			&& data.oldest_unpruned_nonce <= data.latest_received_nonce
+		while pruned_messages < max_messages_to_prune &&
+			data.oldest_unpruned_nonce <= data.latest_received_nonce
 		{
 			self.storage.remove_message(&data.oldest_unpruned_nonce);
 
@@ -188,14 +188,14 @@ fn extract_dispatch_results<RelayerId>(
 		// unrewarded relayer entry must have at least 1 unconfirmed message
 		// (guaranteed by the `InboundLane::receive_message()`)
 		if entry.messages.end < entry.messages.begin {
-			return Err(ReceivalConfirmationResult::EmptyUnrewardedRelayerEntry);
+			return Err(ReceivalConfirmationResult::EmptyUnrewardedRelayerEntry)
 		}
 		// every entry must confirm range of messages that follows previous entry range
 		// (guaranteed by the `InboundLane::receive_message()`)
 		if let Some(last_entry_end) = last_entry_end {
 			let expected_entry_begin = last_entry_end.checked_add(1);
 			if expected_entry_begin != Some(entry.messages.begin) {
-				return Err(ReceivalConfirmationResult::NonConsecutiveUnrewardedRelayerEntries);
+				return Err(ReceivalConfirmationResult::NonConsecutiveUnrewardedRelayerEntries)
 			}
 		}
 		last_entry_end = Some(entry.messages.end);
@@ -205,14 +205,14 @@ fn extract_dispatch_results<RelayerId>(
 			// technically this will be detected in the next loop iteration as
 			// `InvalidNumberOfDispatchResults` but to guarantee safety of loop operations below
 			// this is detected now
-			return Err(ReceivalConfirmationResult::FailedToConfirmFutureMessages);
+			return Err(ReceivalConfirmationResult::FailedToConfirmFutureMessages)
 		}
 		// entry must have single dispatch result for every message
 		// (guaranteed by the `InboundLane::receive_message()`)
-		if entry.messages.dispatch_results.len() as MessageNonce
-			!= entry.messages.end - entry.messages.begin + 1
+		if entry.messages.dispatch_results.len() as MessageNonce !=
+			entry.messages.end - entry.messages.begin + 1
 		{
-			return Err(ReceivalConfirmationResult::InvalidNumberOfDispatchResults);
+			return Err(ReceivalConfirmationResult::InvalidNumberOfDispatchResults)
 		}
 
 		// now we know that the entry is valid
@@ -222,7 +222,7 @@ fn extract_dispatch_results<RelayerId>(
 		let new_messages_end = sp_std::cmp::min(entry.messages.end, latest_received_nonce);
 		let new_messages_range = new_messages_begin..=new_messages_end;
 		if new_messages_range.is_empty() {
-			continue;
+			continue
 		}
 
 		// now we know that entry brings new confirmations

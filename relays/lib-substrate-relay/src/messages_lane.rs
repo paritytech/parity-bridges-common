@@ -225,8 +225,8 @@ pub fn select_delivery_transaction_limits<W: pallet_bridge_messages::WeightInfoE
 	let weight_for_delivery_tx = max_extrinsic_weight / 3;
 	let weight_for_messages_dispatch = max_extrinsic_weight - weight_for_delivery_tx;
 
-	let delivery_tx_base_weight = W::receive_messages_proof_overhead()
-		+ W::receive_messages_proof_outbound_lane_state_overhead();
+	let delivery_tx_base_weight = W::receive_messages_proof_overhead() +
+		W::receive_messages_proof_outbound_lane_state_overhead();
 	let delivery_tx_weight_rest = weight_for_delivery_tx - delivery_tx_base_weight;
 	let max_number_of_messages = std::cmp::min(
 		delivery_tx_weight_rest / W::receive_messages_proof_messages_overhead(1),

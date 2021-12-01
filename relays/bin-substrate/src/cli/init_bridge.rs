@@ -70,7 +70,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
@@ -88,7 +88,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::WestendToMillau => {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
@@ -110,7 +110,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::RococoToWococo => {
 				type Source = relay_rococo_client::Rococo;
 				type Target = relay_wococo_client::Wococo;
@@ -126,7 +126,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::WococoToRococo => {
 				type Source = relay_wococo_client::Wococo;
 				type Target = relay_rococo_client::Rococo;
@@ -142,7 +142,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::KusamaToPolkadot => {
 				type Source = relay_kusama_client::Kusama;
 				type Target = relay_polkadot_client::Polkadot;
@@ -158,7 +158,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 			InitBridgeName::PolkadotToKusama => {
 				type Source = relay_polkadot_client::Polkadot;
 				type Target = relay_kusama_client::Kusama;
@@ -174,7 +174,7 @@ macro_rules! select_bridge {
 				}
 
 				$generic
-			}
+			},
 		}
 	};
 }

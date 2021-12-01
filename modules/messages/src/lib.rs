@@ -223,11 +223,11 @@ pub mod pallet {
 				Some(new_owner) => {
 					PalletOwner::<T, I>::put(&new_owner);
 					log::info!(target: "runtime::bridge-messages", "Setting pallet Owner to: {:?}", new_owner);
-				}
+				},
 				None => {
 					PalletOwner::<T, I>::kill();
 					log::info!(target: "runtime::bridge-messages", "Removed Owner of pallet.");
-				}
+				},
 			}
 			Ok(())
 		}
@@ -444,7 +444,7 @@ pub mod pallet {
 							dispatch_weight,
 							dispatch_weight_left,
 						);
-						break;
+						break
 					}
 					total_messages += 1;
 
@@ -468,10 +468,10 @@ pub mod pallet {
 								dispatch_result.unspent_weight,
 								!dispatch_result.dispatch_fee_paid_during_dispatch,
 							)
-						}
-						ReceivalResult::InvalidNonce
-						| ReceivalResult::TooManyUnrewardedRelayers
-						| ReceivalResult::TooManyUnconfirmedMessages => (dispatch_weight, true),
+						},
+						ReceivalResult::InvalidNonce |
+						ReceivalResult::TooManyUnrewardedRelayers |
+						ReceivalResult::TooManyUnconfirmedMessages => (dispatch_weight, true),
 					};
 
 					let unspent_weight = sp_std::cmp::min(unspent_weight, dispatch_weight);
@@ -548,10 +548,10 @@ pub mod pallet {
 			// (we only care about total number of entries and messages, because this affects call
 			// weight)
 			ensure!(
-				total_unrewarded_messages(&lane_data.relayers).unwrap_or(MessageNonce::MAX)
-					== relayers_state.total_messages
-					&& lane_data.relayers.len() as MessageNonce
-						== relayers_state.unrewarded_relayer_entries,
+				total_unrewarded_messages(&lane_data.relayers).unwrap_or(MessageNonce::MAX) ==
+					relayers_state.total_messages &&
+					lane_data.relayers.len() as MessageNonce ==
+						relayers_state.unrewarded_relayer_entries,
 				Error::<T, I>::InvalidUnrewardedRelayersState
 			);
 
@@ -563,9 +563,8 @@ pub mod pallet {
 				last_delivered_nonce,
 				&lane_data.relayers,
 			) {
-				ReceivalConfirmationResult::ConfirmedMessages(confirmed_messages) => {
-					Some(confirmed_messages)
-				}
+				ReceivalConfirmationResult::ConfirmedMessages(confirmed_messages) =>
+					Some(confirmed_messages),
 				ReceivalConfirmationResult::NoNewConfirmations => None,
 				ReceivalConfirmationResult::TryingToConfirmMoreMessagesThanExpected(
 					to_confirm_messages_count,
@@ -578,7 +577,7 @@ pub mod pallet {
 					);
 
 					fail!(Error::<T, I>::TryingToConfirmMoreMessagesThanExpected);
-				}
+				},
 				error => {
 					log::trace!(
 						target: "runtime::bridge-messages",
@@ -587,7 +586,7 @@ pub mod pallet {
 					);
 
 					fail!(Error::<T, I>::InvalidUnrewardedRelayers);
-				}
+				},
 			};
 
 			if let Some(confirmed_messages) = confirmed_messages {
@@ -608,7 +607,7 @@ pub mod pallet {
 							difference,
 						);
 						actual_weight = actual_weight.saturating_sub(difference);
-					}
+					},
 					None => {
 						debug_assert!(
 							false,
@@ -621,7 +620,7 @@ pub mod pallet {
 							preliminary_callback_overhead,
 							actual_callback_weight,
 						);
-					}
+					},
 				}
 
 				// emit 'delivered' event
@@ -951,7 +950,7 @@ fn send_message<T: Config<I>, I: 'static>(
 				difference,
 			);
 			actual_weight = actual_weight.saturating_sub(difference);
-		}
+		},
 		None => {
 			debug_assert!(false, "T::OnMessageAccepted callback consumed too much weight.");
 			log::error!(
@@ -961,7 +960,7 @@ fn send_message<T: Config<I>, I: 'static>(
 				single_message_callback_overhead,
 				actual_callback_weight,
 			);
-		}
+		},
 	}
 
 	// message sender pays for pruning at most `MaxMessagesToPruneAtOnce` messages
@@ -992,9 +991,7 @@ fn ensure_owner_or_root<T: Config<I>, I: 'static>(origin: T::Origin) -> Result<(
 		Ok(RawOrigin::Root) => Ok(()),
 		Ok(RawOrigin::Signed(ref signer))
 			if Some(signer) == Pallet::<T, I>::module_owner().as_ref() =>
-		{
-			Ok(())
-		}
+			Ok(()),
 		_ => Err(BadOrigin),
 	}
 }
@@ -1075,7 +1072,7 @@ impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<
 						we have no recursive borrows; qed",
 				) = Some(data.clone());
 				data
-			}
+			},
 		}
 	}
 
@@ -2317,8 +2314,8 @@ mod tests {
 			let weight_when_max_messages_are_pruned = send_regular_message();
 			assert_eq!(
 				weight_when_max_messages_are_pruned,
-				when_zero_messages_are_pruned
-					+ crate::mock::DbWeight::get().writes(max_messages_to_prune),
+				when_zero_messages_are_pruned +
+					crate::mock::DbWeight::get().writes(max_messages_to_prune),
 			);
 		});
 	}

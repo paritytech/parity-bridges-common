@@ -92,19 +92,19 @@ macro_rules! select_bridge {
 				type TargetSign = relay_millau_client::Millau;
 
 				$generic
-			}
+			},
 			RelayChain::Kusama => {
 				type Target = relay_kusama_client::Kusama;
 				type TargetSign = relay_kusama_client::Kusama;
 
 				$generic
-			}
+			},
 			RelayChain::Polkadot => {
 				type Target = relay_polkadot_client::Polkadot;
 				type TargetSign = relay_polkadot_client::Polkadot;
 
 				$generic
-			}
+			},
 		}
 	};
 }
@@ -154,12 +154,10 @@ impl PrioritySelectionStrategy {
 		context: &Context<C>,
 	) -> Result<Option<TransactionPriority>, SubstrateError> {
 		match *self {
-			PrioritySelectionStrategy::MakeItBestTransaction => {
-				read_previous_block_best_priority::<C, S>(client, context).await
-			}
-			PrioritySelectionStrategy::MakeItBetterThanQueuedTransaction => {
-				select_priority_from_queue::<C, S>(client, context).await
-			}
+			PrioritySelectionStrategy::MakeItBestTransaction =>
+				read_previous_block_best_priority::<C, S>(client, context).await,
+			PrioritySelectionStrategy::MakeItBetterThanQueuedTransaction =>
+				select_priority_from_queue::<C, S>(client, context).await,
 		}
 	}
 }
@@ -230,8 +228,8 @@ async fn run_until_connection_lost<C: Chain, S: TransactionSignScheme<Chain = C>
 					C::NAME,
 					error,
 				);
-				return Err(FailedClient::Target);
-			}
+				return Err(FailedClient::Target)
+			},
 		};
 	}
 }
@@ -250,8 +248,8 @@ async fn run_loop_iteration<C: Chain, S: TransactionSignScheme<Chain = C>>(
 		Some(original_transaction) => original_transaction,
 		None => {
 			log::trace!(target: "bridge", "No {} transactions from required signer in the txpool", C::NAME);
-			return Ok(context);
-		}
+			return Ok(context)
+		},
 	};
 	let original_transaction_hash = C::Hasher::hash(&original_transaction.encode());
 	let context = context.notice_transaction(original_transaction_hash);
@@ -266,7 +264,7 @@ async fn run_loop_iteration<C: Chain, S: TransactionSignScheme<Chain = C>>(
 			context.stalled_for,
 			context.stalled_for_limit,
 		);
-		return Ok(context);
+		return Ok(context)
 	}
 
 	// select priority for updated transaction
@@ -275,8 +273,8 @@ async fn run_loop_iteration<C: Chain, S: TransactionSignScheme<Chain = C>>(
 			Some(target_priority) => target_priority,
 			None => {
 				log::trace!(target: "bridge", "Failed to select target priority");
-				return Ok(context);
-			}
+				return Ok(context)
+			},
 		};
 
 	// update transaction tip
@@ -293,7 +291,7 @@ async fn run_loop_iteration<C: Chain, S: TransactionSignScheme<Chain = C>>(
 
 	if !is_updated {
 		log::trace!(target: "bridge", "{} transaction tip can not be updated. Reached limit?", C::NAME);
-		return Ok(context);
+		return Ok(context)
 	}
 
 	let updated_transaction = updated_transaction.encode();
@@ -321,10 +319,10 @@ async fn lookup_signer_transaction<C: Chain, S: TransactionSignScheme<Chain = C>
 		let pending_transaction = S::SignedTransaction::decode(&mut &pending_transaction.0[..])
 			.map_err(SubstrateError::ResponseParseFailed)?;
 		if !S::is_signed_by(key_pair, &pending_transaction) {
-			continue;
+			continue
 		}
 
-		return Ok(Some(pending_transaction));
+		return Ok(Some(pending_transaction))
 	}
 
 	Ok(None)
@@ -379,7 +377,7 @@ fn select_transaction_from_queue<C: Chain>(
 	context: &Context<C>,
 ) -> Option<Bytes> {
 	if queued_transactions.is_empty() {
-		return None;
+		return None
 	}
 
 	// the more times we resubmit transaction (`context.resubmitted`), the closer we move
@@ -416,7 +414,7 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 	while current_priority < target_priority {
 		let next_tip = unsigned_tx.tip + tip_step;
 		if next_tip > tip_limit {
-			break;
+			break
 		}
 
 		log::trace!(

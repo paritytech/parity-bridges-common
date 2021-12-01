@@ -102,13 +102,13 @@ impl StandaloneMetric for GlobalMetrics {
 					0f64
 				});
 				self.process_memory_usage_bytes.set(memory_usage);
-			}
+			},
 			_ => {
 				log::warn!(
 					target: "bridge-metrics",
 					"Failed to refresh process information. Metrics may show obsolete values",
 				);
-			}
+			},
 		}
 	}
 

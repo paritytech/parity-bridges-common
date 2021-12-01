@@ -42,7 +42,7 @@ where
 	pub fn new(root: H::Out, proof: StorageProof) -> Result<Self, Error> {
 		let db = proof.into_memory_db();
 		if !db.contains(&root, EMPTY_PREFIX) {
-			return Err(Error::StorageRootMismatch);
+			return Err(Error::StorageRootMismatch)
 		}
 
 		let checker = StorageProofChecker { root, db };

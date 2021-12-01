@@ -47,7 +47,7 @@ impl CliEncodeCall for RialtoParachain {
 			),
 			Call::BridgeSendMessage { .. } => {
 				anyhow::bail!("Bridge messages are not (yet) supported here",)
-			}
+			},
 		})
 	}
 

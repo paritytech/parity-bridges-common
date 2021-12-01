@@ -72,7 +72,7 @@ pub trait StandaloneMetric: Metric {
 			Ok(()) => {
 				self.spawn();
 				Ok(())
-			}
+			},
 			Err(PrometheusError::AlreadyReg) => Ok(()),
 			Err(e) => Err(e),
 		}
@@ -140,7 +140,7 @@ pub fn set_gauge_value<T: Default + Debug, V: Atomic<T = T>, E: Debug>(
 				value,
 			);
 			value
-		}
+		},
 		Ok(None) => {
 			log::warn!(
 				target: "bridge-metrics",
@@ -148,7 +148,7 @@ pub fn set_gauge_value<T: Default + Debug, V: Atomic<T = T>, E: Debug>(
 				gauge.desc().first().map(|d| &d.fq_name),
 			);
 			Default::default()
-		}
+		},
 		Err(error) => {
 			log::warn!(
 				target: "bridge-metrics",
@@ -157,6 +157,6 @@ pub fn set_gauge_value<T: Default + Debug, V: Atomic<T = T>, E: Debug>(
 				error,
 			);
 			Default::default()
-		}
+		},
 	})
 }

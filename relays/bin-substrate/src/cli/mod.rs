@@ -104,15 +104,15 @@ impl Command {
 		use relay_utils::initialize::{initialize_logger, initialize_relay};
 
 		match self {
-			Self::RelayHeaders(_)
-			| Self::RelayMessages(_)
-			| Self::RelayHeadersAndMessages(_)
-			| Self::InitBridge(_) => {
+			Self::RelayHeaders(_) |
+			Self::RelayMessages(_) |
+			Self::RelayHeadersAndMessages(_) |
+			Self::InitBridge(_) => {
 				initialize_relay();
-			}
+			},
 			_ => {
 				initialize_logger(false);
-			}
+			},
 		}
 	}
 
@@ -359,7 +359,7 @@ where
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		if s.to_lowercase() == "max" {
-			return Ok(ExplicitOrMaximal::Maximal);
+			return Ok(ExplicitOrMaximal::Maximal)
 		}
 
 		V::from_str(s)

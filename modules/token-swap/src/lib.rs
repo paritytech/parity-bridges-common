@@ -305,7 +305,7 @@ pub mod pallet {
 
 					return sp_runtime::TransactionOutcome::Rollback(Err(
 						Error::<T, I>::FailedToTransferToSwapAccount,
-					));
+					))
 				}
 
 				// the transfer message is sent over the bridge. The message is supposed to be a
@@ -339,8 +339,8 @@ pub mod pallet {
 
 						return sp_runtime::TransactionOutcome::Rollback(Err(
 							Error::<T, I>::FailedToSendTransferMessage,
-						));
-					}
+						))
+					},
 				};
 
 				// remember that we have started the swap
@@ -348,7 +348,7 @@ pub mod pallet {
 				let insert_swap_result =
 					PendingSwaps::<T, I>::try_mutate(swap_hash, |maybe_state| {
 						if maybe_state.is_some() {
-							return Err(());
+							return Err(())
 						}
 
 						*maybe_state = Some(TokenSwapState::Started);
@@ -363,7 +363,7 @@ pub mod pallet {
 
 					return sp_runtime::TransactionOutcome::Rollback(Err(
 						Error::<T, I>::SwapAlreadyStarted,
-					));
+					))
 				}
 
 				log::trace!(
@@ -414,13 +414,12 @@ pub mod pallet {
 				Some(TokenSwapState::Confirmed) => {
 					let is_claim_allowed = match swap.swap_type {
 						TokenSwapType::TemporaryTargetAccountAtBridgedChain => true,
-						TokenSwapType::LockClaimUntilBlock(block_number, _) => {
-							block_number < frame_system::Pallet::<T>::block_number()
-						}
+						TokenSwapType::LockClaimUntilBlock(block_number, _) =>
+							block_number < frame_system::Pallet::<T>::block_number(),
 					};
 
 					ensure!(is_claim_allowed, Error::<T, I>::SwapIsTemporaryLocked);
-				}
+				},
 				Some(TokenSwapState::Failed) => fail!(Error::<T, I>::SwapIsFailed),
 				None => fail!(Error::<T, I>::SwapIsInactive),
 			}
@@ -456,7 +455,7 @@ pub mod pallet {
 					// we allow canceling swap even before lock period is over - the
 					// `source_account_at_this_chain` has already paid for nothing and it is up to
 					// him to decide whether he want to try again
-				}
+				},
 				None => fail!(Error::<T, I>::SwapIsInactive),
 			}
 
@@ -530,7 +529,7 @@ pub mod pallet {
 		fn on_messages_delivered(lane: &LaneId, delivered_messages: &DeliveredMessages) -> Weight {
 			// we're only interested in our lane messages
 			if *lane != T::OutboundMessageLaneId::get() {
-				return 0;
+				return 0
 			}
 
 			// so now we're dealing with our lane messages. Ideally we'll have dedicated lane
@@ -610,7 +609,7 @@ pub mod pallet {
 
 				return sp_runtime::TransactionOutcome::Rollback(Err(
 					Error::<T, I>::FailedToTransferFromSwapAccount.into(),
-				));
+				))
 			}
 
 			log::trace!(
@@ -842,8 +841,8 @@ mod tests {
 				test_swap().source_balance_at_this_chain + SWAP_DELIVERY_AND_DISPATCH_FEE,
 			);
 			assert!(
-				frame_system::Pallet::<TestRuntime>::events().iter().any(|e| e.event
-					== crate::mock::Event::TokenSwap(crate::Event::SwapStarted(
+				frame_system::Pallet::<TestRuntime>::events().iter().any(|e| e.event ==
+					crate::mock::Event::TokenSwap(crate::Event::SwapStarted(
 						swap_hash,
 						MESSAGE_NONCE,
 					))),
@@ -975,8 +974,8 @@ mod tests {
 				test_swap().source_balance_at_this_chain,
 			);
 			assert!(
-				frame_system::Pallet::<TestRuntime>::events().iter().any(|e| e.event
-					== crate::mock::Event::TokenSwap(crate::Event::SwapClaimed(swap_hash,))),
+				frame_system::Pallet::<TestRuntime>::events().iter().any(|e| e.event ==
+					crate::mock::Event::TokenSwap(crate::Event::SwapClaimed(swap_hash,))),
 				"Missing SwapClaimed event: {:?}",
 				frame_system::Pallet::<TestRuntime>::events(),
 			);
@@ -1079,8 +1078,8 @@ mod tests {
 				THIS_CHAIN_ACCOUNT_BALANCE - SWAP_DELIVERY_AND_DISPATCH_FEE,
 			);
 			assert!(
-				frame_system::Pallet::<TestRuntime>::events().iter().any(|e| e.event
-					== crate::mock::Event::TokenSwap(crate::Event::SwapCanceled(swap_hash,))),
+				frame_system::Pallet::<TestRuntime>::events().iter().any(|e| e.event ==
+					crate::mock::Event::TokenSwap(crate::Event::SwapCanceled(swap_hash,))),
 				"Missing SwapCanceled event: {:?}",
 				frame_system::Pallet::<TestRuntime>::events(),
 			);

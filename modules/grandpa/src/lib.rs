@@ -149,7 +149,7 @@ pub mod pallet {
 						finality_target,
 					);
 					fail!(<Error<T, I>>::NotInitialized);
-				}
+				},
 			};
 
 			// We do a quick check here to ensure that our header chain is making progress and isn't
@@ -220,11 +220,11 @@ pub mod pallet {
 				Some(new_owner) => {
 					PalletOwner::<T, I>::put(&new_owner);
 					log::info!(target: "runtime::bridge-grandpa", "Setting pallet Owner to: {:?}", new_owner);
-				}
+				},
 				None => {
 					PalletOwner::<T, I>::kill();
 					log::info!(target: "runtime::bridge-grandpa", "Removed Owner of pallet.");
-				}
+				},
 			}
 
 			Ok(().into())
@@ -514,9 +514,7 @@ pub mod pallet {
 			Ok(RawOrigin::Root) => Ok(()),
 			Ok(RawOrigin::Signed(ref signer))
 				if Some(signer) == <PalletOwner<T, I>>::get().as_ref() =>
-			{
-				Ok(())
-			}
+				Ok(()),
 			_ => Err(BadOrigin),
 		}
 	}

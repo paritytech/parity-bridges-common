@@ -57,7 +57,7 @@ fn transform_into_unique(input_vec: Vec<(Vec<u8>, Vec<u8>)>) -> Vec<(Vec<u8>, Ve
 fn run_fuzzer() {
 	fuzz!(|input_vec: Vec<(Vec<u8>, Vec<u8>)>| {
 		if input_vec.is_empty() {
-			return;
+			return
 		}
 		let unique_input_vec = transform_into_unique(input_vec);
 		let (root, craft_known_storage_proof) = craft_known_storage_proof(unique_input_vec.clone());

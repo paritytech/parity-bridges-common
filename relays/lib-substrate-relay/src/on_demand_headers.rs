@@ -175,7 +175,7 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 				&mut finality_target,
 			)
 			.await;
-			continue;
+			continue
 		}
 
 		// read best finalized source header number from target
@@ -193,7 +193,7 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 				&mut finality_target,
 			)
 			.await;
-			continue;
+			continue
 		}
 
 		// submit mandatory header if some headers are missing
@@ -224,8 +224,8 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 					// there are no (or we don't need to relay them) mandatory headers in the range
 					// => to avoid scanning the same headers over and over again, remember that
 					latest_non_mandatory_at_source = mandatory_scan_range.1;
-				}
-				Err(e) => {
+				},
+				Err(e) =>
 					if e.is_connection_error() {
 						relay_utils::relay_loop::reconnect_failed_client(
 							FailedClient::Source,
@@ -234,9 +234,8 @@ async fn background_task<SourceChain, TargetChain, TargetSign, P>(
 							&mut finality_target,
 						)
 						.await;
-						continue;
-					}
-				}
+						continue
+					},
 			}
 		}
 
@@ -299,12 +298,12 @@ async fn mandatory_headers_scan_range<C: Chain>(
 		.checked_sub(&best_finalized_source_header_at_target)
 		.unwrap_or_else(Zero::zero);
 	if current_headers_difference <= maximal_headers_difference {
-		return None;
+		return None
 	}
 
 	// if relay is already asked to sync headers, don't do anything yet
 	if required_header_number > best_finalized_source_header_at_target {
-		return None;
+		return None
 	}
 
 	Some((
@@ -342,7 +341,7 @@ where
 	// less than our `mandatory_source_header_number` before logging anything
 	let mut required_header_number = required_header_number.lock().await;
 	if *required_header_number >= mandatory_source_header_number {
-		return Ok(false);
+		return Ok(false)
 	}
 
 	log::trace!(
@@ -422,7 +421,7 @@ where
 		let header: SyncHeader<SourceChain::Header> =
 			finality_source.client().header_by_number(current).await?.into();
 		if header.is_mandatory() {
-			return Ok(Some(current));
+			return Ok(Some(current))
 		}
 
 		current += One::one();

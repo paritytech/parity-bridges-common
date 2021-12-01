@@ -90,8 +90,8 @@ where
 			.await
 			.map(|maybe_storage_value| {
 				maybe_storage_value.or(self.maybe_default_value).map(|storage_value| {
-					storage_value.into_inner().unique_saturated_into() as f64
-						/ T::DIV.unique_saturated_into() as f64
+					storage_value.into_inner().unique_saturated_into() as f64 /
+						T::DIV.unique_saturated_into() as f64
 				})
 			})
 			.map_err(drop);

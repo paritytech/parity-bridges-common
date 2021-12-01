@@ -61,8 +61,8 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 		0,
 	);
 	assert!(
-		actual_single_regular_message_delivery_tx_weight
-			<= expected_default_message_delivery_tx_weight,
+		actual_single_regular_message_delivery_tx_weight <=
+			expected_default_message_delivery_tx_weight,
 		"Default message delivery transaction weight {} is larger than expected weight {}",
 		actual_single_regular_message_delivery_tx_weight,
 		expected_default_message_delivery_tx_weight,
@@ -94,8 +94,8 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 		db_weight,
 	);
 	assert!(
-		actual_messages_delivery_confirmation_tx_weight
-			<= expected_messages_delivery_confirmation_tx_weight,
+		actual_messages_delivery_confirmation_tx_weight <=
+			expected_messages_delivery_confirmation_tx_weight,
 		"Messages delivery confirmation transaction weight {} is larger than expected weight {}",
 		actual_messages_delivery_confirmation_tx_weight,
 		expected_messages_delivery_confirmation_tx_weight,
@@ -359,9 +359,9 @@ pub trait WeightInfoExt: WeightInfo {
 	/// is less than that cost).
 	fn storage_proof_size_overhead(proof_size: u32) -> Weight {
 		let proof_size_in_bytes = proof_size as Weight;
-		let byte_weight = (Self::receive_single_message_proof_16_kb()
-			- Self::receive_single_message_proof_1_kb())
-			/ (15 * 1024);
+		let byte_weight = (Self::receive_single_message_proof_16_kb() -
+			Self::receive_single_message_proof_1_kb()) /
+			(15 * 1024);
 		proof_size_in_bytes * byte_weight
 	}
 

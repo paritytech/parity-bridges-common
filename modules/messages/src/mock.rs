@@ -159,9 +159,8 @@ pub enum TestMessagesParameter {
 impl MessagesParameter for TestMessagesParameter {
 	fn save(&self) {
 		match *self {
-			TestMessagesParameter::TokenConversionRate(conversion_rate) => {
-				TokenConversionRate::set(&conversion_rate)
-			}
+			TestMessagesParameter::TokenConversionRate(conversion_rate) =>
+				TokenConversionRate::set(&conversion_rate),
 		}
 	}
 }
@@ -324,8 +323,8 @@ impl TestMessageDeliveryAndDispatchPayment {
 
 	/// Returns true if given fee has been paid by given submitter.
 	pub fn is_fee_paid(submitter: AccountId, fee: TestMessageFee) -> bool {
-		frame_support::storage::unhashed::get(b":message-fee:")
-			== Some((Sender::Signed(submitter), fee))
+		frame_support::storage::unhashed::get(b":message-fee:") ==
+			Some((Sender::Signed(submitter), fee))
 	}
 
 	/// Returns true if given relayer has been rewarded with given balance. The reward-paid flag is
@@ -347,7 +346,7 @@ impl MessageDeliveryAndDispatchPayment<AccountId, TestMessageFee>
 		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {
 		if frame_support::storage::unhashed::get(b":reject-message-fee:") == Some(true) {
-			return Err(TEST_ERROR);
+			return Err(TEST_ERROR)
 		}
 
 		frame_support::storage::unhashed::put(b":message-fee:", &(submitter, fee));

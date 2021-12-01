@@ -299,7 +299,7 @@ pub mod source {
 		) -> Result<(), Self::Error> {
 			// reject message if lane is blocked
 			if !ThisChain::<B>::is_outbound_lane_enabled(lane) {
-				return Err(OUTBOUND_LANE_DISABLED);
+				return Err(OUTBOUND_LANE_DISABLED)
 			}
 
 			// reject message if there are too many pending messages at this lane
@@ -308,7 +308,7 @@ pub mod source {
 				.latest_generated_nonce
 				.saturating_sub(lane_outbound_data.latest_received_nonce);
 			if pending_messages > max_pending_messages {
-				return Err(TOO_MANY_PENDING_MESSAGES);
+				return Err(TOO_MANY_PENDING_MESSAGES)
 			}
 
 			// Do the dispatch-specific check. We assume that the target chain uses
@@ -321,7 +321,7 @@ pub mod source {
 
 			// compare with actual fee paid
 			if *delivery_and_dispatch_fee < minimal_fee_in_this_tokens {
-				return Err(TOO_LOW_FEE);
+				return Err(TOO_LOW_FEE)
 			}
 
 			Ok(())
@@ -343,7 +343,7 @@ pub mod source {
 	) -> Result<(), &'static str> {
 		let weight_limits = BridgedChain::<B>::message_weight_limits(&payload.call);
 		if !weight_limits.contains(&payload.weight.into()) {
-			return Err("Incorrect message weight declared");
+			return Err("Incorrect message weight declared")
 		}
 
 		// The maximal size of extrinsic at Substrate-based chain depends on the
@@ -357,7 +357,7 @@ pub mod source {
 		// transaction also contains signatures and signed extensions. Because of this, we reserve
 		// 1/3 of the the maximal extrinsic weight for this data.
 		if payload.call.len() > maximal_message_size::<B>() as usize {
-			return Err("The message is too large to be sent over the lane");
+			return Err("The message is too large to be sent over the lane")
 		}
 
 		Ok(())
@@ -646,16 +646,13 @@ pub mod target {
 		fn from(err: MessageProofError) -> &'static str {
 			match err {
 				MessageProofError::Empty => "Messages proof is empty",
-				MessageProofError::MessagesCountMismatch => {
-					"Declared messages count doesn't match actual value"
-				}
+				MessageProofError::MessagesCountMismatch =>
+					"Declared messages count doesn't match actual value",
 				MessageProofError::MissingRequiredMessage => "Message is missing from the proof",
-				MessageProofError::FailedToDecodeMessage => {
-					"Failed to decode message from the proof"
-				}
-				MessageProofError::FailedToDecodeOutboundLaneState => {
-					"Failed to decode outbound lane data from the proof"
-				}
+				MessageProofError::FailedToDecodeMessage =>
+					"Failed to decode message from the proof",
+				MessageProofError::FailedToDecodeOutboundLaneState =>
+					"Failed to decode outbound lane data from the proof",
 				MessageProofError::Custom(err) => err,
 			}
 		}
@@ -721,7 +718,7 @@ pub mod target {
 				// (this bounds maximal capacity of messages vec below)
 				let messages_in_the_proof = nonces_difference.saturating_add(1);
 				if messages_in_the_proof != MessageNonce::from(messages_count) {
-					return Err(MessageProofError::MessagesCountMismatch);
+					return Err(MessageProofError::MessagesCountMismatch)
 				}
 
 				messages_in_the_proof
@@ -760,7 +757,7 @@ pub mod target {
 
 		// Now we may actually check if the proof is empty or not.
 		if proved_lane_messages.lane_state.is_none() && proved_lane_messages.messages.is_empty() {
-			return Err(MessageProofError::Empty);
+			return Err(MessageProofError::Empty)
 		}
 
 		// We only support single lane messages in this schema

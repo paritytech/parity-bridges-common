@@ -111,12 +111,12 @@ impl<
 
 		// if we have already selected nonces that we want to submit, do nothing
 		if race_state.nonces_to_submit.is_some() {
-			return None;
+			return None
 		}
 
 		// if we already submitted some nonces, do nothing
 		if race_state.nonces_submitted.is_some() {
-			return None;
+			return None
 		}
 
 		// 1) we want to deliver all nonces, starting from `target_nonce + 1`
@@ -140,7 +140,7 @@ impl<
 		while let Some((queued_at, queued_range)) = self.source_queue.pop_front() {
 			if let Some(range_to_requeue) = queued_range.greater_than(nonce) {
 				self.source_queue.push_front((queued_at, range_to_requeue));
-				break;
+				break
 			}
 		}
 	}
@@ -195,9 +195,8 @@ impl<
 	fn best_at_source(&self) -> Option<MessageNonce> {
 		let best_in_queue = self.source_queue.back().map(|(_, range)| range.end());
 		match (best_in_queue, self.best_target_nonce) {
-			(Some(best_in_queue), Some(best_target_nonce)) if best_in_queue > best_target_nonce => {
-				Some(best_in_queue)
-			}
+			(Some(best_in_queue), Some(best_target_nonce)) if best_in_queue > best_target_nonce =>
+				Some(best_in_queue),
 			(_, Some(best_target_nonce)) => Some(best_target_nonce),
 			(_, None) => None,
 		}
@@ -240,7 +239,7 @@ impl<
 
 		if let Some(best_target_nonce) = self.best_target_nonce {
 			if nonce < best_target_nonce {
-				return;
+				return
 			}
 		}
 
@@ -250,7 +249,7 @@ impl<
 			});
 			if let Some((at_block, subrange)) = maybe_subrange {
 				self.source_queue.push_front((at_block, subrange));
-				break;
+				break
 			}
 		}
 

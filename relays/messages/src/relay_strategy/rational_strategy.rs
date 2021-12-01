@@ -54,8 +54,8 @@ impl RelayStrategy for RationalStrategy {
 		let delivery_transaction_cost = match reference
 			.lane_target_client
 			.estimate_delivery_transaction_in_source_tokens(
-				reference.hard_selected_begin_nonce
-					..=(reference.hard_selected_begin_nonce + reference.index as MessageNonce),
+				reference.hard_selected_begin_nonce..=
+					(reference.hard_selected_begin_nonce + reference.index as MessageNonce),
 				reference.selected_prepaid_nonces,
 				reference.selected_unpaid_weight,
 				reference.selected_size as u32,
@@ -69,8 +69,8 @@ impl RelayStrategy for RationalStrategy {
 					"Failed to estimate delivery transaction cost: {:?}. No nonces selected for delivery",
 					err,
 				);
-				return false;
-			}
+				return false
+			},
 		};
 
 		// if it is the first message that makes reward less than cost, let's log it
@@ -114,7 +114,7 @@ impl RelayStrategy for RationalStrategy {
 		if reference.total_reward >= reference.total_cost {
 			reference.selected_reward = reference.total_reward;
 			reference.selected_cost = reference.total_cost;
-			return true;
+			return true
 		}
 
 		false

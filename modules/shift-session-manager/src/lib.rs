@@ -54,7 +54,7 @@ impl<T: Config> pallet_session::SessionManager<T::ValidatorId> for Pallet<T> {
 	fn new_session(session_index: sp_staking::SessionIndex) -> Option<Vec<T::ValidatorId>> {
 		// we don't want to add even more fields to genesis config => just return None
 		if session_index == 0 || session_index == 1 {
-			return None;
+			return None
 		}
 
 		// the idea that on first call (i.e. when session 1 ends) we're reading current

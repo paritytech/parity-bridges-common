@@ -129,8 +129,8 @@ pub(crate) fn preprocess_call<Source: CliEncodeCall + CliChain, Target: CliEncod
 	bridge_instance: u8,
 ) {
 	match *call {
-		Call::Raw { .. } => {}
-		Call::Remark { ref remark_size, ref mut remark_payload } => {
+		Call::Raw { .. } => {},
+		Call::Remark { ref remark_size, ref mut remark_payload } =>
 			if remark_payload.is_none() {
 				*remark_payload = Some(HexBytes(generate_remark_payload(
 					remark_size,
@@ -139,14 +139,13 @@ pub(crate) fn preprocess_call<Source: CliEncodeCall + CliChain, Target: CliEncod
 						Target::max_extrinsic_size(),
 					),
 				)));
-			}
-		}
+			},
 		Call::Transfer { ref mut recipient, .. } => {
 			recipient.enforce_chain::<Source>();
-		}
+		},
 		Call::BridgeSendMessage { ref mut bridge_instance_index, .. } => {
 			*bridge_instance_index = bridge_instance;
-		}
+		},
 	};
 }
 
@@ -287,8 +286,8 @@ mod tests {
 
 		let info = err.info.unwrap();
 		assert!(
-			info.contains(&"remark-payload".to_string())
-				| info.contains(&"remark-size".to_string())
+			info.contains(&"remark-payload".to_string()) |
+				info.contains(&"remark-size".to_string())
 		)
 	}
 

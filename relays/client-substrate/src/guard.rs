@@ -78,7 +78,7 @@ pub fn abort_on_spec_version_change<C: ChainWithBalances>(
 					);
 
 					env.abort().await;
-				}
+				},
 				Err(error) => log::warn!(
 					target: "bridge-guard",
 					"Failed to read {} runtime version: {}. Relay may need to be stopped manually",
@@ -140,7 +140,7 @@ pub fn abort_when_account_balance_decreased<C: ChainWithBalances>(
 
 						env.abort().await;
 					}
-				}
+				},
 				Err(error) => {
 					log::warn!(
 						target: "bridge-guard",
@@ -149,7 +149,7 @@ pub fn abort_when_account_balance_decreased<C: ChainWithBalances>(
 						account_id,
 						error,
 					);
-				}
+				},
 			};
 
 			env.sleep(conditions_check_delay::<C>()).await;

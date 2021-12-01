@@ -159,11 +159,11 @@ where
 						Ok(j) => j,
 						Err(err) => {
 							log_error(format!("decode failed with error {:?}", err));
-							continue;
-						}
+							continue
+						},
 					};
 
-					return Some((justification, subscription));
+					return Some((justification, subscription))
 				}
 			},
 		)

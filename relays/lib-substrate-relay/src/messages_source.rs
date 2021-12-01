@@ -374,14 +374,14 @@ fn make_message_details_map<C: Chain>(
 
 	// this is actually prevented by external logic
 	if nonces.is_empty() {
-		return Ok(weights_map);
+		return Ok(weights_map)
 	}
 
 	// check if last nonce is missing - loop below is not checking this
 	let last_nonce_is_missing =
 		weights.last().map(|details| details.nonce != *nonces.end()).unwrap_or(true);
 	if last_nonce_is_missing {
-		return make_missing_nonce_error(*nonces.end());
+		return make_missing_nonce_error(*nonces.end())
 	}
 
 	let mut expected_nonce = *nonces.start();
@@ -401,13 +401,13 @@ fn make_message_details_map<C: Chain>(
 					C::NAME,
 					expected_nonce..details.nonce,
 				);
-			}
+			},
 			(false, false) => {
 				// some nonces are missing from the middle/tail of the range
 				//
 				// this is critical error, because we can't miss any nonces
-				return make_missing_nonce_error(expected_nonce);
-			}
+				return make_missing_nonce_error(expected_nonce)
+			},
 		}
 
 		weights_map.insert(
