@@ -203,8 +203,12 @@ mod tests {
 		type Index = u32;
 		type Signature = sp_runtime::testing::TestSignature;
 
-		fn max_extrinsic_size() -> u32 { unreachable!() }
-		fn max_extrinsic_weight() -> Weight { unreachable!() }
+		fn max_extrinsic_size() -> u32 {
+			unreachable!()
+		}
+		fn max_extrinsic_weight() -> Weight {
+			unreachable!()
+		}
 	}
 
 	impl Chain for TestChain {

@@ -270,7 +270,7 @@ where
 	) -> <MessageLaneAdapter<P> as MessageLane>::SourceChainBalance {
 		self.client
 			.estimate_extrinsic_fee(make_messages_delivery_proof_transaction::<P>(
-				&self.client.genesis_hash(),
+				self.client.genesis_hash(),
 				&self.transaction_params,
 				HeaderId(Default::default(), Default::default()),
 				Zero::zero(),
