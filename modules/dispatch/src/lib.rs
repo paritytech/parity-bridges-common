@@ -173,8 +173,8 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 					dispatch_result: false,
 					unspent_weight: 0,
 					dispatch_fee_paid_during_dispatch: false,
-				}
-			},
+				};
+			}
 		};
 
 		// verify spec version
@@ -199,7 +199,7 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 				expected_version,
 				message.spec_version,
 			));
-			return dispatch_result
+			return dispatch_result;
 		}
 
 		// now that we have spec version checked, let's decode the call
@@ -213,8 +213,8 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 					id,
 				);
 				Self::deposit_event(Event::MessageCallDecodeFailed(source_chain, id));
-				return dispatch_result
-			},
+				return dispatch_result;
+			}
 		};
 
 		// prepare dispatch origin
@@ -225,7 +225,7 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 				let target_id = T::AccountIdConverter::convert(hex_id);
 				log::trace!(target: "runtime::bridge-dispatch", "Root Account: {:?}", &target_id);
 				target_id
-			},
+			}
 			CallOrigin::TargetAccount(source_account_id, target_public, target_signature) => {
 				let digest = account_ownership_digest(
 					&call,
@@ -246,19 +246,19 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 						target_signature,
 					);
 					Self::deposit_event(Event::MessageSignatureMismatch(source_chain, id));
-					return dispatch_result
+					return dispatch_result;
 				}
 
 				log::trace!(target: "runtime::bridge-dispatch", "Target Account: {:?}", &target_account);
 				target_account
-			},
+			}
 			CallOrigin::SourceAccount(source_account_id) => {
 				let hex_id =
 					derive_account_id(source_chain, SourceAccount::Account(source_account_id));
 				let target_id = T::AccountIdConverter::convert(hex_id);
 				log::trace!(target: "runtime::bridge-dispatch", "Source Account: {:?}", &target_id);
 				target_id
-			},
+			}
 		};
 
 		// filter the call
@@ -271,7 +271,7 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 				call,
 			);
 			Self::deposit_event(Event::MessageCallRejected(source_chain, id));
-			return dispatch_result
+			return dispatch_result;
 		}
 
 		// verify weight
@@ -294,14 +294,14 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 				expected_weight,
 				message.weight,
 			));
-			return dispatch_result
+			return dispatch_result;
 		}
 
 		// pay dispatch fee right before dispatch
 		let pay_dispatch_fee_at_target_chain =
 			message.dispatch_fee_payment == DispatchFeePayment::AtTargetChain;
-		if pay_dispatch_fee_at_target_chain &&
-			pay_dispatch_fee(&origin_account, message.weight).is_err()
+		if pay_dispatch_fee_at_target_chain
+			&& pay_dispatch_fee(&origin_account, message.weight).is_err()
 		{
 			log::trace!(
 				target: "runtime::bridge-dispatch",
@@ -316,7 +316,7 @@ impl<T: Config<I>, I: 'static> MessageDispatch<T::AccountId, T::BridgeMessageId>
 				origin_account,
 				message.weight,
 			));
-			return dispatch_result
+			return dispatch_result;
 		}
 		dispatch_result.dispatch_fee_paid_during_dispatch = pay_dispatch_fee_at_target_chain;
 
@@ -377,19 +377,19 @@ where
 		CallOrigin::SourceRoot => {
 			ensure!(sender_origin == &RawOrigin::Root, BadOrigin);
 			Ok(None)
-		},
+		}
 		CallOrigin::TargetAccount(ref source_account_id, _, _) => {
 			ensure!(sender_origin == &RawOrigin::Signed(source_account_id.clone()), BadOrigin);
 			Ok(Some(source_account_id.clone()))
-		},
+		}
 		CallOrigin::SourceAccount(ref source_account_id) => {
 			ensure!(
-				sender_origin == &RawOrigin::Signed(source_account_id.clone()) ||
-					sender_origin == &RawOrigin::Root,
+				sender_origin == &RawOrigin::Signed(source_account_id.clone())
+					|| sender_origin == &RawOrigin::Root,
 				BadOrigin
 			);
 			Ok(Some(source_account_id.clone()))
-		},
+		}
 	}
 }
 

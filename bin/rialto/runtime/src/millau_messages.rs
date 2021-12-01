@@ -282,8 +282,9 @@ pub enum RialtoToMillauMessagesParameter {
 impl MessagesParameter for RialtoToMillauMessagesParameter {
 	fn save(&self) {
 		match *self {
-			RialtoToMillauMessagesParameter::MillauToRialtoConversionRate(ref conversion_rate) =>
-				MillauToRialtoConversionRate::set(conversion_rate),
+			RialtoToMillauMessagesParameter::MillauToRialtoConversionRate(ref conversion_rate) => {
+				MillauToRialtoConversionRate::set(conversion_rate)
+			}
 		}
 	}
 }

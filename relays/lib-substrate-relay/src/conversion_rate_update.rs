@@ -61,10 +61,10 @@ pub fn run_conversion_rate_update_loop<
 				match submit_conversion_rate_future.await {
 					Ok(()) => {
 						transaction_status = TransactionStatus::Submitted(prev_conversion_rate);
-					},
+					}
 					Err(error) => {
 						log::trace!(target: "bridge", "Failed to submit conversion rate update transaction: {:?}", error);
-					},
+					}
 				}
 			}
 		}
@@ -96,11 +96,11 @@ async fn maybe_select_new_conversion_rate(
 			{
 				// the rate has not been changed => we won't submit any transactions until it is
 				// accepted, or the rate is changed by someone else
-				return None
+				return None;
 			}
 
 			*transaction_status = TransactionStatus::Idle;
-		},
+		}
 	}
 
 	let left_to_base_conversion_rate = (*left_to_base_conversion_rate.read().await)?;
@@ -112,7 +112,7 @@ async fn maybe_select_new_conversion_rate(
 		(actual_left_to_right_conversion_rate - left_to_right_stored_conversion_rate).abs();
 	let rate_difference_ratio = rate_difference / left_to_right_stored_conversion_rate;
 	if rate_difference_ratio < max_difference_ratio {
-		return None
+		return None;
 	}
 
 	Some((left_to_right_stored_conversion_rate, actual_left_to_right_conversion_rate))

@@ -139,7 +139,7 @@ impl SendMessage {
 								target_origin_public.into(),
 								digest_signature.into(),
 							)
-						},
+						}
 					},
 					&target_call,
 					*dispatch_fee_payment,

@@ -171,7 +171,7 @@ fn pay_relayers_rewards<Currency, AccountId>(
 			// If delivery confirmation is submitted by this relayer, let's add confirmation fee
 			// from other relayers to this relayer reward.
 			confirmation_relayer_reward = confirmation_relayer_reward.saturating_add(reward.reward);
-			continue
+			continue;
 		}
 
 		pay_relayer_reward::<Currency, _>(relayer_fund_account, &relayer, relayer_reward);
@@ -195,7 +195,7 @@ fn pay_relayer_reward<Currency, AccountId>(
 	Currency: CurrencyT<AccountId>,
 {
 	if reward.is_zero() {
-		return
+		return;
 	}
 
 	let pay_result = Currency::transfer(

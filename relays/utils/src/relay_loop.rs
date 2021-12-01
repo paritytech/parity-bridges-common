@@ -129,14 +129,15 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 
 				match result {
 					Ok(()) => break,
-					Err(failed_client) =>
+					Err(failed_client) => {
 						reconnect_failed_client(
 							failed_client,
 							self.reconnect_delay,
 							&mut self.source_client,
 							&mut self.target_client,
 						)
-						.await,
+						.await
+					}
 				}
 
 				log::debug!(target: "bridge", "Restarting relay loop");
@@ -224,8 +225,8 @@ pub async fn reconnect_failed_client(
 						reconnect_delay.as_secs(),
 						error,
 					);
-					continue
-				},
+					continue;
+				}
 			}
 		}
 		if failed_client == FailedClient::Both || failed_client == FailedClient::Target {
@@ -238,11 +239,11 @@ pub async fn reconnect_failed_client(
 						reconnect_delay.as_secs(),
 						error,
 					);
-					continue
-				},
+					continue;
+				}
 			}
 		}
 
-		break
+		break;
 	}
 }

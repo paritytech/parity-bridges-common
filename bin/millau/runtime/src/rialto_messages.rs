@@ -116,9 +116,9 @@ impl messages::ThisChainWithMessages for Millau {
 	type Call = crate::Call;
 
 	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
-		*lane == [0, 0, 0, 0] ||
-			*lane == [0, 0, 0, 1] ||
-			*lane == crate::TokenSwapMessagesLane::get()
+		*lane == [0, 0, 0, 0]
+			|| *lane == [0, 0, 0, 1]
+			|| *lane == crate::TokenSwapMessagesLane::get()
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
@@ -284,8 +284,9 @@ pub enum MillauToRialtoMessagesParameter {
 impl MessagesParameter for MillauToRialtoMessagesParameter {
 	fn save(&self) {
 		match *self {
-			MillauToRialtoMessagesParameter::RialtoToMillauConversionRate(ref conversion_rate) =>
-				RialtoToMillauConversionRate::set(conversion_rate),
+			MillauToRialtoMessagesParameter::RialtoToMillauConversionRate(ref conversion_rate) => {
+				RialtoToMillauConversionRate::set(conversion_rate)
+			}
 		}
 	}
 }

@@ -107,7 +107,9 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 			let new_selected_weight = match selected_weight.checked_add(details.dispatch_weight) {
 				Some(new_selected_weight)
 					if new_selected_weight <= reference.max_messages_weight_in_single_batch =>
-					new_selected_weight,
+				{
+					new_selected_weight
+				}
 				new_selected_weight if selected_count == 0 => {
 					log::warn!(
 						target: "bridge",
@@ -117,7 +119,7 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 						reference.max_messages_weight_in_single_batch,
 					);
 					new_selected_weight.unwrap_or(Weight::MAX)
-				},
+				}
 				_ => break,
 			};
 
@@ -125,7 +127,9 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 			let new_selected_size = match relay_reference.selected_size.checked_add(details.size) {
 				Some(new_selected_size)
 					if new_selected_size <= reference.max_messages_size_in_single_batch =>
-					new_selected_size,
+				{
+					new_selected_size
+				}
 				new_selected_size if selected_count == 0 => {
 					log::warn!(
 						target: "bridge",
@@ -135,14 +139,14 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 						reference.max_messages_size_in_single_batch,
 					);
 					new_selected_size.unwrap_or(u32::MAX)
-				},
+				}
 				_ => break,
 			};
 
 			// limit number of messages in the batch
 			let new_selected_count = selected_count + 1;
 			if new_selected_count > reference.max_messages_in_this_batch {
-				break
+				break;
 			}
 			relay_reference.selected_size = new_selected_size;
 
@@ -160,7 +164,7 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 				DispatchFeePayment::AtSourceChain => {
 					new_selected_prepaid_nonces += 1;
 					relay_reference.selected_unpaid_weight.saturating_add(details.dispatch_weight)
-				},
+				}
 				DispatchFeePayment::AtTargetChain => relay_reference.selected_unpaid_weight,
 			};
 			relay_reference.selected_prepaid_nonces = new_selected_prepaid_nonces;
@@ -197,8 +201,8 @@ impl<Strategy: RelayStrategy> EnforcementStrategy<Strategy> {
 		}
 
 		if hard_selected_count != 0 {
-			if relay_reference.selected_reward != P::SourceChainBalance::zero() &&
-				relay_reference.selected_cost != P::SourceChainBalance::zero()
+			if relay_reference.selected_reward != P::SourceChainBalance::zero()
+				&& relay_reference.selected_cost != P::SourceChainBalance::zero()
 			{
 				log::trace!(
 					target: "bridge",

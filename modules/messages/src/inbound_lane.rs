@@ -81,10 +81,10 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 
 		if outbound_lane_data.latest_received_nonce > last_delivered_nonce {
 			// this is something that should never happen if proofs are correct
-			return None
+			return None;
 		}
 		if outbound_lane_data.latest_received_nonce <= data.last_confirmed_nonce {
-			return None
+			return None;
 		}
 
 		let new_confirmed_nonce = outbound_lane_data.latest_received_nonce;
@@ -108,8 +108,8 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 					.dispatch_results
 					.split_off((new_confirmed_nonce + 1 - entry.messages.begin) as _);
 				entry.messages.begin = new_confirmed_nonce + 1;
-			},
-			_ => {},
+			}
+			_ => {}
 		}
 
 		self.storage.set_data(data);
@@ -127,18 +127,18 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		let mut data = self.storage.data();
 		let is_correct_message = nonce == data.last_delivered_nonce() + 1;
 		if !is_correct_message {
-			return ReceivalResult::InvalidNonce
+			return ReceivalResult::InvalidNonce;
 		}
 
 		// if there are more unrewarded relayer entries than we may accept, reject this message
 		if data.relayers.len() as MessageNonce >= self.storage.max_unrewarded_relayer_entries() {
-			return ReceivalResult::TooManyUnrewardedRelayers
+			return ReceivalResult::TooManyUnrewardedRelayers;
 		}
 
 		// if there are more unconfirmed messages than we may accept, reject this message
 		let unconfirmed_messages_count = nonce.saturating_sub(data.last_confirmed_nonce);
 		if unconfirmed_messages_count > self.storage.max_unconfirmed_messages() {
-			return ReceivalResult::TooManyUnconfirmedMessages
+			return ReceivalResult::TooManyUnconfirmedMessages;
 		}
 
 		// then, dispatch message
@@ -155,7 +155,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 			Some(entry) if entry.relayer == *relayer_at_bridged_chain => {
 				entry.messages.note_dispatched_message(dispatch_result.dispatch_result);
 				false
-			},
+			}
 			_ => true,
 		};
 		if push_new {

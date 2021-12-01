@@ -258,12 +258,12 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 				last_transaction = updated_last_transaction;
 				retry_backoff.reset();
 				sync_params.tick
-			},
+			}
 			Err(error) => {
 				log::error!(target: "bridge", "Finality sync loop iteration has failed with error: {:?}", error);
 				error.fail_if_connection_error()?;
 				retry_backoff.next_backoff().unwrap_or(relay_utils::relay_loop::RECONNECT_DELAY)
-			},
+			}
 		};
 		if finality_proofs_stream.needs_restart {
 			log::warn!(target: "bridge", "{} finality proofs stream is being restarted", P::SOURCE_NAME);
@@ -319,9 +319,9 @@ where
 				P::TARGET_NAME,
 			);
 
-			return Err(Error::Stalled)
+			return Err(Error::Stalled);
 		} else {
-			return Ok(Some(last_transaction))
+			return Ok(Some(last_transaction));
 		}
 	}
 
@@ -354,7 +354,7 @@ where
 				.await
 				.map_err(Error::Target)?;
 			Ok(Some(new_transaction))
-		},
+		}
 		None => Ok(None),
 	}
 }
@@ -391,15 +391,17 @@ where
 	)
 	.await?;
 	let (mut unjustified_headers, mut selected_finality_proof) = match selected_finality_proof {
-		SelectedFinalityProof::Mandatory(header, finality_proof) =>
-			return Ok(Some((header, finality_proof))),
+		SelectedFinalityProof::Mandatory(header, finality_proof) => {
+			return Ok(Some((header, finality_proof)))
+		}
 		_ if sync_params.only_mandatory_headers => {
 			// we are not reading finality proofs from the stream, so eventually it'll break
 			// but we don't care about transient proofs at all, so it is acceptable
-			return Ok(None)
-		},
-		SelectedFinalityProof::Regular(unjustified_headers, header, finality_proof) =>
-			(unjustified_headers, Some((header, finality_proof))),
+			return Ok(None);
+		}
+		SelectedFinalityProof::Regular(unjustified_headers, header, finality_proof) => {
+			(unjustified_headers, Some((header, finality_proof)))
+		}
 		SelectedFinalityProof::None(unjustified_headers) => (unjustified_headers, None),
 	};
 
@@ -467,17 +469,17 @@ pub(crate) async fn read_missing_headers<
 		match (is_mandatory, finality_proof) {
 			(true, Some(finality_proof)) => {
 				log::trace!(target: "bridge", "Header {:?} is mandatory", header_number);
-				return Ok(SelectedFinalityProof::Mandatory(header, finality_proof))
-			},
+				return Ok(SelectedFinalityProof::Mandatory(header, finality_proof));
+			}
 			(true, None) => return Err(Error::MissingMandatoryFinalityProof(header.number())),
 			(false, Some(finality_proof)) => {
 				log::trace!(target: "bridge", "Header {:?} has persistent finality proof", header_number);
 				unjustified_headers.clear();
 				selected_finality_proof = Some((header, finality_proof));
-			},
+			}
 			(false, None) => {
 				unjustified_headers.push(header);
-			},
+			}
 		}
 
 		header_number = header_number + One::one();
@@ -514,8 +516,8 @@ pub(crate) fn read_finality_proofs_from_stream<
 			Some(Some(finality_proof)) => finality_proof,
 			Some(None) => {
 				finality_proofs_stream.needs_restart = true;
-				break
-			},
+				break;
+			}
 			None => break,
 		};
 
@@ -555,7 +557,7 @@ pub(crate) fn select_better_recent_finality_proof<P: FinalitySyncPipeline>(
 			P::SOURCE_NAME,
 			selected_finality_proof.as_ref().map(|(h, _)| h.number()),
 		);
-		return selected_finality_proof
+		return selected_finality_proof;
 	}
 
 	const NOT_EMPTY_PROOF: &str = "we have checked that the vec is not empty; qed";
@@ -594,7 +596,7 @@ pub(crate) fn select_better_recent_finality_proof<P: FinalitySyncPipeline>(
 		if has_selected_finality_proof { "improved" } else { "not improved" },
 	);
 	if !has_selected_finality_proof {
-		return selected_finality_proof
+		return selected_finality_proof;
 	}
 
 	// now remove all obsolete headers and extract selected header
@@ -630,15 +632,15 @@ fn print_sync_progress<P: FinalitySyncPipeline>(
 	let (prev_time, prev_best_number_at_target) = progress_context;
 	let now = Instant::now();
 
-	let need_update = now - prev_time > Duration::from_secs(10) ||
-		prev_best_number_at_target
+	let need_update = now - prev_time > Duration::from_secs(10)
+		|| prev_best_number_at_target
 			.map(|prev_best_number_at_target| {
 				best_number_at_target.saturating_sub(prev_best_number_at_target) > 10.into()
 			})
 			.unwrap_or(true);
 
 	if !need_update {
-		return (prev_time, prev_best_number_at_target)
+		return (prev_time, prev_best_number_at_target);
 	}
 
 	log::info!(

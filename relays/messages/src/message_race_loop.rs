@@ -439,10 +439,10 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 				strategy,
 			);
 
-			return Err(FailedClient::Both)
-		} else if race_state.nonces_to_submit.is_none() &&
-			race_state.nonces_submitted.is_none() &&
-			strategy.is_empty()
+			return Err(FailedClient::Both);
+		} else if race_state.nonces_to_submit.is_none()
+			&& race_state.nonces_submitted.is_none()
+			&& strategy.is_empty()
 		{
 			stall_countdown = Instant::now();
 		}
@@ -551,7 +551,7 @@ where
 
 	let need_update = now_time.saturating_duration_since(prev_time) > Duration::from_secs(10);
 	if !need_update {
-		return prev_time
+		return prev_time;
 	}
 
 	let now_best_nonce_at_source = strategy.best_at_source();

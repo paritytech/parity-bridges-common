@@ -566,7 +566,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_source_fails {
-				return Err(TestError)
+				return Err(TestError);
 			}
 			Ok(data.source_state.clone())
 		}
@@ -578,7 +578,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_source_fails {
-				return Err(TestError)
+				return Err(TestError);
 			}
 			Ok((id, data.source_latest_generated_nonce))
 		}
@@ -699,7 +699,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
-				return Err(TestError)
+				return Err(TestError);
 			}
 			Ok(data.target_state.clone())
 		}
@@ -711,7 +711,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
-				return Err(TestError)
+				return Err(TestError);
 			}
 			Ok((id, data.target_latest_received_nonce))
 		}
@@ -737,7 +737,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
-				return Err(TestError)
+				return Err(TestError);
 			}
 			Ok((id, data.target_latest_confirmed_received_nonce))
 		}
@@ -758,7 +758,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			(self.tick)(&mut *data);
 			if data.is_target_fails {
-				return Err(TestError)
+				return Err(TestError);
 			}
 			data.target_state.best_self =
 				HeaderId(data.target_state.best_self.0 + 1, data.target_state.best_self.1 + 1);
@@ -786,9 +786,9 @@ pub(crate) mod tests {
 			total_dispatch_weight: Weight,
 			total_size: u32,
 		) -> Result<TestSourceChainBalance, TestError> {
-			Ok(BASE_MESSAGE_DELIVERY_TRANSACTION_COST * (nonces.end() - nonces.start() + 1) +
-				total_dispatch_weight +
-				total_size as TestSourceChainBalance)
+			Ok(BASE_MESSAGE_DELIVERY_TRANSACTION_COST * (nonces.end() - nonces.start() + 1)
+				+ total_dispatch_weight
+				+ total_size as TestSourceChainBalance)
 		}
 	}
 
@@ -906,8 +906,8 @@ pub(crate) mod tests {
 				// headers relay must only be started when we need new target headers at source node
 				if data.target_to_source_header_required.is_some() {
 					assert!(
-						data.source_state.best_finalized_peer_at_best_self.0 <
-							data.target_state.best_self.0
+						data.source_state.best_finalized_peer_at_best_self.0
+							< data.target_state.best_self.0
 					);
 					data.target_to_source_header_required = None;
 				}
@@ -926,8 +926,8 @@ pub(crate) mod tests {
 				// headers relay must only be started when we need new source headers at target node
 				if data.source_to_target_header_required.is_some() {
 					assert!(
-						data.target_state.best_finalized_peer_at_best_self.0 <
-							data.source_state.best_self.0
+						data.target_state.best_finalized_peer_at_best_self.0
+							< data.source_state.best_self.0
 					);
 					data.source_to_target_header_required = None;
 				}

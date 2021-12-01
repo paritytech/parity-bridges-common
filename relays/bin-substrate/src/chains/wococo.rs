@@ -38,7 +38,7 @@ impl CliEncodeCall for Wococo {
 					remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
 				),
 			),
-			Call::BridgeSendMessage { lane, payload, fee, bridge_instance_index } =>
+			Call::BridgeSendMessage { lane, payload, fee, bridge_instance_index } => {
 				match *bridge_instance_index {
 					bridge::WOCOCO_TO_ROCOCO_INDEX => {
 						let payload = Decode::decode(&mut &*payload.0)?;
@@ -47,12 +47,13 @@ impl CliEncodeCall for Wococo {
 								lane.0, payload, fee.0,
 							),
 						)
-					},
+					}
 					_ => anyhow::bail!(
 						"Unsupported target bridge pallet with instance index: {}",
 						bridge_instance_index
 					),
-				},
+				}
+			}
 			_ => anyhow::bail!("The call is not supported"),
 		})
 	}
