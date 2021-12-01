@@ -24,16 +24,15 @@ use crate::{
 	TransactionParams, STALL_TIMEOUT,
 };
 
+use bp_messages::{LaneId, MessageNonce};
+use bp_runtime::{AccountIdOf, Chain as _};
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
-
-use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
-
-use bp_messages::{LaneId, MessageNonce};
-use bp_runtime::{AccountIdOf, Chain as _};
-use frame_support::weights::Weight;
+use codec::Encode;
+use frame_support::weights::{GetDispatchInfo, Weight};
 use messages_relay::{message_lane::MessageLane, relay_strategy::RelayStrategy};
+use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
 	AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain, ChainWithMessages, Client, HashOf,
 	TransactionSignScheme,
@@ -236,6 +235,7 @@ pub trait ReceiveMessagesProofCallBuilder<P: SubstrateMessageLane> {
 		proof: SubstrateMessagesProof<P::SourceChain>,
 		messages_count: u32,
 		dispatch_weight: Weight,
+		trace_call: bool,
 	) -> CallOf<P::TargetChain>;
 }
 
@@ -254,21 +254,37 @@ where
 		R::InboundMessageFee,
 		MessagesProof = FromBridgedChainMessagesProof<HashOf<P::SourceChain>>,
 	>,
-	CallOf<P::TargetChain>: From<BridgeMessagesCall<R, I>>,
+	CallOf<P::TargetChain>: From<BridgeMessagesCall<R, I>> + GetDispatchInfo,
 {
 	fn build_receive_messages_proof_call(
 		relayer_id_at_source: AccountIdOf<P::SourceChain>,
 		proof: SubstrateMessagesProof<P::SourceChain>,
 		messages_count: u32,
 		dispatch_weight: Weight,
+		trace_call: bool,
 	) -> CallOf<P::TargetChain> {
-		BridgeMessagesCall::<R, I>::receive_messages_proof {
+		let call: CallOf<P::TargetChain> = BridgeMessagesCall::<R, I>::receive_messages_proof {
 			relayer_id_at_bridged_chain: relayer_id_at_source,
 			proof: proof.1,
 			messages_count,
 			dispatch_weight,
 		}
-		.into()
+		.into();
+		if trace_call {
+			// this trace isn't super-accurate, because limits are for transactions and we
+			// have a call here, but it provides required information
+			log::trace!(
+				target: "bridge",
+				"Prepared {} -> {} messages delivery call. Weight: {}/{}, size: {}/{}",
+				P::SourceChain::NAME,
+				P::TargetChain::NAME,
+				call.get_dispatch_info().weight,
+				P::TargetChain::max_extrinsic_weight(),
+				call.encode().len(),
+				P::TargetChain::max_extrinsic_size(),
+			);
+		}
+		call
 	}
 }
 
@@ -294,6 +310,7 @@ macro_rules! generate_mocked_receive_message_proof_call_builder {
 				>,
 				messages_count: u32,
 				dispatch_weight: Weight,
+				_trace_call: bool,
 			) -> relay_substrate_client::CallOf<
 				<$pipeline as $crate::messages_lane::SubstrateMessageLane>::TargetChain
 			> {
@@ -314,6 +331,7 @@ pub trait ReceiveMessagesDeliveryProofCallBuilder<P: SubstrateMessageLane> {
 	/// bridge messages module at the source chain.
 	fn build_receive_messages_delivery_proof_call(
 		proof: SubstrateMessagesDeliveryProof<P::TargetChain>,
+		trace_call: bool,
 	) -> CallOf<P::SourceChain>;
 }
 
@@ -334,16 +352,33 @@ where
 		R::AccountId,
 		MessagesDeliveryProof = FromBridgedChainMessagesDeliveryProof<HashOf<P::TargetChain>>,
 	>,
-	CallOf<P::SourceChain>: From<BridgeMessagesCall<R, I>>,
+	CallOf<P::SourceChain>: From<BridgeMessagesCall<R, I>> + GetDispatchInfo,
 {
 	fn build_receive_messages_delivery_proof_call(
 		proof: SubstrateMessagesDeliveryProof<P::TargetChain>,
+		trace_call: bool,
 	) -> CallOf<P::SourceChain> {
-		BridgeMessagesCall::<R, I>::receive_messages_delivery_proof {
-			proof: proof.1,
-			relayers_state: proof.0,
+		let call: CallOf<P::SourceChain> =
+			BridgeMessagesCall::<R, I>::receive_messages_delivery_proof {
+				proof: proof.1,
+				relayers_state: proof.0,
+			}
+			.into();
+		if trace_call {
+			// this trace isn't super-accurate, because limits are for transactions and we
+			// have a call here, but it provides required information
+			log::trace!(
+				target: "bridge",
+				"Prepared {} -> {} delivery confirmation transaction. Weight: {}/{}, size: {}/{}",
+				P::TargetChain::NAME,
+				P::SourceChain::NAME,
+				call.get_dispatch_info().weight,
+				P::SourceChain::max_extrinsic_weight(),
+				call.encode().len(),
+				P::SourceChain::max_extrinsic_size(),
+			);
 		}
-		.into()
+		call
 	}
 }
 
@@ -364,6 +399,7 @@ macro_rules! generate_mocked_receive_message_delivery_proof_call_builder {
 				proof: $crate::messages_target::SubstrateMessagesDeliveryProof<
 					<$pipeline as $crate::messages_lane::SubstrateMessageLane>::TargetChain
 				>,
+				_trace_call: bool,
 			) -> relay_substrate_client::CallOf<
 				<$pipeline as $crate::messages_lane::SubstrateMessageLane>::SourceChain
 			> {

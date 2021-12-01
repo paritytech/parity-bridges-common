@@ -28,7 +28,6 @@ use crate::{
 
 use async_trait::async_trait;
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState};
-
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
@@ -244,6 +243,7 @@ where
 						relayer_id_at_source,
 						nonces_clone,
 						proof,
+						true,
 					)
 				},
 			)
@@ -286,6 +286,7 @@ where
 				total_dispatch_weight,
 				total_size,
 			),
+			false,
 		);
 		let delivery_tx_fee = self.client.estimate_extrinsic_fee(delivery_tx).await?;
 		let inclusion_fee_in_target_tokens = delivery_tx_fee.inclusion_fee();
@@ -324,6 +325,7 @@ where
 						larger_dispatch_weight,
 						total_size,
 					),
+					false,
 				))
 				.await?;
 
@@ -374,6 +376,7 @@ where
 }
 
 /// Make messages delivery transaction from given proof.
+#[allow(clippy::too_many_arguments)]
 fn make_messages_delivery_transaction<P: SubstrateMessageLane>(
 	target_genesis_hash: &HashOf<P::TargetChain>,
 	target_transaction_params: &TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
@@ -382,6 +385,7 @@ fn make_messages_delivery_transaction<P: SubstrateMessageLane>(
 	relayer_id_at_source: AccountIdOf<P::SourceChain>,
 	nonces: RangeInclusive<MessageNonce>,
 	proof: SubstrateMessagesProof<P::SourceChain>,
+	trace_call: bool,
 ) -> Bytes
 where
 	P::TargetTransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
@@ -393,6 +397,7 @@ where
 		proof,
 		messages_count as _,
 		dispatch_weight,
+		trace_call,
 	);
 	Bytes(
 		P::TargetTransactionSignScheme::sign_transaction(

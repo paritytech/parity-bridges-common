@@ -58,7 +58,7 @@ pub trait Chain: ChainBase + Clone {
 	/// Block type.
 	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification<Self::Header>;
 	/// The aggregated `Call` type.
-	type Call: Clone + Dispatchable + Debug + Send;
+	type Call: Clone + Codec + Dispatchable + Debug + Send;
 
 	/// Type that is used by the chain, to convert from weight to fee.
 	type WeightToFee: WeightToFeePolynomial<Balance = Self::Balance>;

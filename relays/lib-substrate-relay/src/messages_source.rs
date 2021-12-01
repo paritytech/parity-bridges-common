@@ -228,18 +228,6 @@ where
 		_generated_at_block: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
 	) -> Result<(), SubstrateError> {
-		/*
-		TODO:
-				log::trace!(
-					target: "bridge",
-					"Prepared Rialto -> Millau confirmation transaction. Weight: {}/{}, size: {}/{}",
-					call_weight,
-					bp_millau::max_extrinsic_weight(),
-					transaction.encode().len(),
-					bp_millau::max_extrinsic_size(),
-				);
-		*/
-
 		let genesis_hash = *self.client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
 		self.client
@@ -252,6 +240,7 @@ where
 						best_block_id,
 						transaction_nonce,
 						proof,
+						true,
 					)
 				},
 			)
@@ -275,6 +264,7 @@ where
 				HeaderId(Default::default(), Default::default()),
 				Zero::zero(),
 				prepare_dummy_messages_delivery_proof::<P::SourceChain, P::TargetChain>(),
+				false,
 			))
 			.await
 			.map(|fee| fee.inclusion_fee())
@@ -289,13 +279,14 @@ fn make_messages_delivery_proof_transaction<P: SubstrateMessageLane>(
 	source_best_block_id: HeaderIdOf<P::SourceChain>,
 	transaction_nonce: IndexOf<P::SourceChain>,
 	proof: SubstrateMessagesDeliveryProof<P::TargetChain>,
+	trace_call: bool,
 ) -> Bytes
 where
 	P::SourceTransactionSignScheme: TransactionSignScheme<Chain = P::SourceChain>,
 {
 	let call =
 		P::ReceiveMessagesDeliveryProofCallBuilder::build_receive_messages_delivery_proof_call(
-			proof,
+			proof, trace_call,
 		);
 	Bytes(
 		P::SourceTransactionSignScheme::sign_transaction(
