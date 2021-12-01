@@ -424,7 +424,7 @@ mod tests {
 		let (max_count, max_weight) =
 			select_delivery_transaction_limits::<RialtoToMillauMessagesWeights>(
 				bp_millau::Millau::max_extrinsic_weight(),
-				bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
+				bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 			);
 		assert_eq!(
 			(max_count, max_weight),

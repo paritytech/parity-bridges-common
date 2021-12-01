@@ -11029,6 +11029,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
+ "bp-rialto",
  "bp-rococo",
  "bp-runtime",
  "bp-wococo",
