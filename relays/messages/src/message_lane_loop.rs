@@ -572,7 +572,8 @@ pub(crate) mod tests {
 	#[async_trait]
 	impl SourceClient<TestMessageLane> for TestSourceClient {
 		fn origin_client(&self) -> &dyn Any {
-			&self
+			// todo: I'm not sure what to return there
+			&self.data
 		}
 
 		async fn state(&self) -> Result<SourceClientState<TestMessageLane>, TestError> {
@@ -805,7 +806,8 @@ pub(crate) mod tests {
 		}
 
 		fn origin_client(&self) -> &dyn Any {
-			&self
+			// todo: I'm not sure what to return there
+			&self.data
 		}
 	}
 
