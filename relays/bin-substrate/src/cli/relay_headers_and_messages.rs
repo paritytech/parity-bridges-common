@@ -34,7 +34,8 @@ use relay_substrate_client::{
 use relay_utils::metrics::MetricsParams;
 use sp_core::{Bytes, Pair};
 use substrate_relay_helper::{
-	messages_lane::MessagesRelayParams, on_demand_headers::OnDemandHeadersRelay,
+	finality_pipeline::SubstrateFinalitySyncPipeline, messages_lane::MessagesRelayParams,
+	on_demand_headers::OnDemandHeadersRelay,
 };
 
 use crate::{
@@ -488,11 +489,17 @@ impl RelayHeadersAndMessages {
 			}
 
 			// start on-demand header relays
+			let left_to_right_finality =
+				LeftToRightFinality::new(right_client.clone(), right_sign.clone());
+			let right_to_left_finality =
+				RightToLeftFinality::new(left_client.clone(), left_sign.clone());
+			left_to_right_finality.start_relay_guards();
+			right_to_left_finality.start_relay_guards();
 			let left_to_right_on_demand_headers = OnDemandHeadersRelay::new(
 				left_client.clone(),
 				right_client.clone(),
 				right_transactions_mortality,
-				LeftToRightFinality::new(right_client.clone(), right_sign.clone()),
+				left_to_right_finality,
 				MAX_MISSING_LEFT_HEADERS_AT_RIGHT,
 				params.shared.only_mandatory_headers,
 			);
@@ -500,7 +507,7 @@ impl RelayHeadersAndMessages {
 				right_client.clone(),
 				left_client.clone(),
 				left_transactions_mortality,
-				RightToLeftFinality::new(left_client.clone(), left_sign.clone()),
+				right_to_left_finality,
 				MAX_MISSING_RIGHT_HEADERS_AT_LEFT,
 				params.shared.only_mandatory_headers,
 			);
