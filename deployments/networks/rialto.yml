@@ -17,10 +17,11 @@ services:
       - --alice
       - --node-key=79cf382988364291a7968ae7825c01f68c50d679796a8983237d07fe0ccf363b
       - --rpc-cors=all
+      - --enable-offchain-indexing=true
       - --unsafe-rpc-external
       - --unsafe-ws-external
     environment:
-      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,runtime::bridge=trace
+      RUST_LOG: runtime=trace,rpc=debug,txpool=trace,runtime::bridge=trace,beefy=debug
     ports:
       - "9933:9933"
       - "9944:9944"
@@ -35,6 +36,7 @@ services:
       - --bob
       - --node-key=4f9d0146dd9b7b3bf5a8089e3880023d1df92057f89e96e07bb4d8c2ead75bbd
       - --rpc-cors=all
+      - --enable-offchain-indexing=true
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
@@ -50,6 +52,7 @@ services:
       - --bootnodes=/dns4/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --charlie
       - --rpc-cors=all
+      - --enable-offchain-indexing=true
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
@@ -65,6 +68,7 @@ services:
       - --bootnodes=/dns4/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --dave
       - --rpc-cors=all
+      - --enable-offchain-indexing=true
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
@@ -80,6 +84,7 @@ services:
       - --bootnodes=/dns4/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
       - --eve
       - --rpc-cors=all
+      - --enable-offchain-indexing=true
       - --unsafe-rpc-external
       - --unsafe-ws-external
     ports:
