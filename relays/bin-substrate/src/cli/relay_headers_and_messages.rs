@@ -138,12 +138,12 @@ macro_rules! select_bridge {
 
 				use crate::chains::{
 					millau_messages_to_rialto::{
-						MillauMessagesToRialto as LeftToRightMessageLane,
 						update_rialto_to_millau_conversion_rate as update_right_to_left_conversion_rate,
+						MillauMessagesToRialto as LeftToRightMessageLane,
 					},
 					rialto_messages_to_millau::{
-						RialtoMessagesToMillau as RightToLeftMessageLane,
 						update_millau_to_rialto_conversion_rate as update_left_to_right_conversion_rate,
+						RialtoMessagesToMillau as RightToLeftMessageLane,
 					},
 				};
 
@@ -185,9 +185,7 @@ macro_rules! select_bridge {
 					bp_wococo::SESSION_LENGTH;
 
 				use crate::chains::{
-					rococo_messages_to_wococo::{
-						RococoMessagesToWococo as LeftToRightMessageLane,
-					},
+					rococo_messages_to_wococo::RococoMessagesToWococo as LeftToRightMessageLane,
 					wococo_messages_to_rococo::WococoMessagesToRococo as RightToLeftMessageLane,
 				};
 
@@ -266,12 +264,12 @@ macro_rules! select_bridge {
 
 				use crate::chains::{
 					kusama_messages_to_polkadot::{
-						KusamaMessagesToPolkadot as LeftToRightMessageLane,
 						update_polkadot_to_kusama_conversion_rate as update_right_to_left_conversion_rate,
+						KusamaMessagesToPolkadot as LeftToRightMessageLane,
 					},
 					polkadot_messages_to_kusama::{
-						PolkadotMessagesToKusama as RightToLeftMessageLane,
 						update_kusama_to_polkadot_conversion_rate as update_left_to_right_conversion_rate,
+						PolkadotMessagesToKusama as RightToLeftMessageLane,
 					},
 				};
 
