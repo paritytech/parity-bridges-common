@@ -214,19 +214,6 @@ where
 		nonces: RangeInclusive<MessageNonce>,
 		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
 	) -> Result<RangeInclusive<MessageNonce>, SubstrateError> {
-		/*
-		TODO:
-
-				log::trace!(
-					target: "bridge",
-					"Prepared Millau -> Rialto delivery transaction. Weight: {}/{}, size: {}/{}",
-					call_weight,
-					bp_rialto::max_extrinsic_weight(),
-					transaction.encode().len(),
-					bp_rialto::max_extrinsic_size(),
-				);
-		*/
-
 		let genesis_hash = *self.client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
 		let relayer_id_at_source = self.relayer_id_at_source.clone();
