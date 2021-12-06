@@ -813,6 +813,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-parachains"
+version = "0.1.0"
+dependencies = [
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+]
+
+[[package]]
 name = "bp-polkadot"
 version = "0.1.0"
 dependencies = [
@@ -5145,6 +5158,7 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-bridge-parachains",
  "pallet-grandpa",
  "pallet-mmr",
  "pallet-randomness-collective-flip",
@@ -5870,6 +5884,7 @@ name = "pallet-bridge-parachains"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
+ "bp-parachains",
  "bp-polkadot-core",
  "bp-runtime",
  "bp-test-utils",
@@ -6499,6 +6514,26 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
+]
+
+[[package]]
+name = "parachains-relay"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+ "async-trait",
+ "backoff",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "futures 0.3.21",
+ "linked-hash-map",
+ "log",
+ "num-traits",
+ "parity-scale-codec",
+ "parking_lot 0.11.2",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
 ]
 
 [[package]]
@@ -11698,6 +11733,7 @@ dependencies = [
  "bp-messages",
  "bp-millau",
  "bp-polkadot",
+ "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",
  "bp-rococo",
@@ -11720,6 +11756,7 @@ dependencies = [
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "parachains-relay",
  "parity-scale-codec",
  "paste",
  "polkadot-parachain",
@@ -11760,6 +11797,8 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
+ "bp-parachains",
+ "bp-polkadot-core",
  "bp-rialto",
  "bp-rococo",
  "bp-runtime",
@@ -11776,7 +11815,9 @@ dependencies = [
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-bridge-parachains",
  "pallet-transaction-payment",
+ "parachains-relay",
  "parity-scale-codec",
  "relay-rococo-client",
  "relay-substrate-client",
