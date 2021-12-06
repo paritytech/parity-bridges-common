@@ -34,8 +34,8 @@ use relay_substrate_client::{
 use relay_utils::metrics::MetricsParams;
 use sp_core::{Bytes, Pair};
 use substrate_relay_helper::{
-	finality_pipeline::SubstrateFinalitySyncPipeline,
-	messages_lane::MessagesRelayParams, on_demand_headers::OnDemandHeadersRelay, TransactionParams,
+	finality_pipeline::SubstrateFinalitySyncPipeline, messages_lane::MessagesRelayParams,
+	on_demand_headers::OnDemandHeadersRelay, TransactionParams,
 };
 
 use crate::{
@@ -486,16 +486,14 @@ impl RelayHeadersAndMessages {
 			}
 
 			// start on-demand header relays
-			let left_to_right_transaction_params =
-				TransactionParams {
-					mortality: right_transactions_mortality,
-					signer: right_sign.clone(),
-				};
-			let right_to_left_transaction_params =
-				TransactionParams {
-					mortality: left_transactions_mortality,
-					signer: left_sign.clone(),
-				};
+			let left_to_right_transaction_params = TransactionParams {
+				mortality: right_transactions_mortality,
+				signer: right_sign.clone(),
+			};
+			let right_to_left_transaction_params = TransactionParams {
+				mortality: left_transactions_mortality,
+				signer: left_sign.clone(),
+			};
 			LeftToRightFinality::start_relay_guards(
 				&right_client,
 				&left_to_right_transaction_params,
