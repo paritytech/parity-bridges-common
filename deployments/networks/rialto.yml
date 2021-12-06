@@ -55,9 +55,11 @@ services:
       - --enable-offchain-indexing=true
       - --unsafe-rpc-external
       - --unsafe-ws-external
+      - --prometheus-external
     ports:
       - "10133:9933"
       - "10144:9944"
+      - "10615:9615"
 
   rialto-node-dave:
     <<: *rialto-bridge-node
@@ -97,6 +99,13 @@ services:
     volumes:
       - ./networks/entrypoints:/entrypoints
       - rialto-share:/rialto-share:z
+
+  # Note: These are being overridden from the top level `monitoring` compose file.
+  prometheus-metrics:
+    volumes:
+      - ./networks/dashboard/prometheus/rialto-targets.yml:/etc/prometheus/targets-rialto-nodes.yml
+    depends_on:
+      - rialto-node-charlie
 
 # we're using `/rialto-share` to expose Rialto chain spec to those who are interested. Right
 # now it is Rialto Parachain collator nodes. Local + tmpfs combination allows sharing writable

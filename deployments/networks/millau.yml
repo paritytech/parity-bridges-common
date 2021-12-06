@@ -55,9 +55,11 @@ services:
       - --enable-offchain-indexing=true
       - --unsafe-rpc-external
       - --unsafe-ws-external
+      - --prometheus-external
     ports:
       - "20133:9933"
       - "20144:9944"
+      - "20615:9615"
 
   millau-node-dave:
     <<: *millau-bridge-node
@@ -90,3 +92,10 @@ services:
     ports:
       - "20333:9933"
       - "20344:9944"
+
+  # Note: These are being overridden from the top level `monitoring` compose file.
+  prometheus-metrics:
+    volumes:
+      - ./networks/dashboard/prometheus/millau-targets.yml:/etc/prometheus/targets-millau-nodes.yml
+    depends_on:
+      - millau-node-charlie
