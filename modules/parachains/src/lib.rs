@@ -93,17 +93,17 @@ pub mod pallet {
 	/// Best parachain heads.
 	#[pallet::storage]
 	pub type BestParaHeads<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Identity, ParaId, BestParaHead>;
+		StorageMap<_, Blake2_128Concat, ParaId, BestParaHead>;
 
 	/// Parachain heads which have been imported into the pallet.
 	#[pallet::storage]
 	pub type ImportedParaHeads<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Identity, ParaId, Identity, ParaHash, ParaHead>;
+		StorageDoubleMap<_, Blake2_128Concat, ParaId, Blake2_128Concat, ParaHash, ParaHead>;
 
 	/// A ring buffer of imported parachain head hashes. Ordered by the insertion time.
 	#[pallet::storage]
 	pub(super) type ImportedParaHashes<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Identity, ParaId, Identity, u32, ParaHash>;
+		StorageDoubleMap<_, Blake2_128Concat, ParaId, Blake2_128Concat, u32, ParaHash>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
