@@ -272,12 +272,13 @@ pub mod pallet {
 
 pub mod storage_keys {
 	use super::*;
-	use bp_runtime::storage_keys::storage_map_final_key;
+	use bp_runtime::storage_map_final_key;
+	use frame_support::Twox64Concat;
 	use sp_core::storage::StorageKey;
 
 	/// Storage key of the parachain head in the runtime storage of relay chain.
 	pub fn parachain_head_key(parachain: ParaId) -> StorageKey {
-		storage_map_final_key("Heads", &parachain.encode())
+		storage_map_final_key::<Twox64Concat>("Paras", "Heads", &parachain.encode())
 	}
 }
 
