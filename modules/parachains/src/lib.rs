@@ -103,7 +103,7 @@ pub mod pallet {
 	/// A ring buffer of imported parachain head hashes. Ordered by the insertion time.
 	#[pallet::storage]
 	pub(super) type ImportedParaHashes<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Blake2_128Concat, ParaId, twox64Concat, u32, ParaHash>;
+		StorageDoubleMap<_, Blake2_128Concat, ParaId, Twox64Concat, u32, ParaHash>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
