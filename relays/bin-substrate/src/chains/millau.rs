@@ -26,15 +26,11 @@ use crate::cli::{
 use anyhow::anyhow;
 use bp_message_dispatch::{CallOrigin, MessagePayload};
 use codec::Decode;
-use frame_support::weights::{DispatchInfo, GetDispatchInfo, Weight};
+use frame_support::weights::{DispatchInfo, GetDispatchInfo};
 use relay_millau_client::Millau;
 use sp_version::RuntimeVersion;
 
 impl CliEncodeCall for Millau {
-	fn max_extrinsic_size() -> u32 {
-		bp_millau::max_extrinsic_size()
-	}
-
 	fn encode_call(call: &Call) -> anyhow::Result<Self::Call> {
 		Ok(match call {
 			Call::Raw { data } => Decode::decode(&mut &*data.0)?,
@@ -85,10 +81,6 @@ impl CliChain for Millau {
 
 	fn ss58_format() -> u16 {
 		millau_runtime::SS58Prefix::get() as u16
-	}
-
-	fn max_extrinsic_weight() -> Weight {
-		bp_millau::max_extrinsic_weight()
 	}
 
 	// TODO [#854|#843] support multiple bridges?

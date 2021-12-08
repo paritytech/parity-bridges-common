@@ -25,7 +25,9 @@ use sp_std::prelude::*;
 
 pub use bp_polkadot_core::*;
 // Rococo runtime = Wococo runtime
-pub use bp_rococo::{WeightToFee, PAY_INBOUND_DISPATCH_FEE_WEIGHT, SESSION_LENGTH, VERSION};
+pub use bp_rococo::{
+	WeightToFee, EXISTENTIAL_DEPOSIT, PAY_INBOUND_DISPATCH_FEE_WEIGHT, SESSION_LENGTH, VERSION,
+};
 
 /// Wococo Chain
 pub type Wococo = PolkadotLike;
@@ -37,13 +39,11 @@ pub fn derive_account_from_rococo_id(id: bp_runtime::SourceAccount<AccountId>) -
 	AccountIdConverter::convert(encoded_id)
 }
 
-/// Name of the With-Rococo messages pallet instance in the Wococo runtime.
-pub const WITH_ROCOCO_MESSAGES_PALLET_NAME: &str = "BridgeRococoMessages";
+/// Name of the With-Wococo messages pallet instance that is deployed at bridged chains.
+pub const WITH_WOCOCO_MESSAGES_PALLET_NAME: &str = "BridgeWococoMessages";
 
 /// Name of the `WococoFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_WOCOCO_HEADER_METHOD: &str = "WococoFinalityApi_best_finalized";
-/// Name of the `WococoFinalityApi::is_known_header` runtime method.
-pub const IS_KNOWN_WOCOCO_HEADER_METHOD: &str = "WococoFinalityApi_is_known_header";
 
 /// Name of the `ToWococoOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime
 /// method.
@@ -76,8 +76,6 @@ sp_api::decl_runtime_apis! {
 	pub trait WococoFinalityApi {
 		/// Returns number and hash of the best finalized header known to the bridge module.
 		fn best_finalized() -> (BlockNumber, Hash);
-		/// Returns true if the header is known to the runtime.
-		fn is_known_header(hash: Hash) -> bool;
 	}
 
 	/// Outbound message lane API for messages that are sent to Wococo chain.

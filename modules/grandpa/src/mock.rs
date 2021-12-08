@@ -29,7 +29,6 @@ use sp_runtime::{
 pub type AccountId = u64;
 pub type TestHeader = crate::BridgedHeader<TestRuntime, ()>;
 pub type TestNumber = crate::BridgedBlockNumber<TestRuntime, ()>;
-pub type TestHash = crate::BridgedBlockHash<TestRuntime, ()>;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
@@ -107,6 +106,13 @@ impl Chain for TestBridgedChain {
 	type Balance = u64;
 	type Index = u64;
 	type Signature = Signature;
+
+	fn max_extrinsic_size() -> u32 {
+		unreachable!()
+	}
+	fn max_extrinsic_weight() -> Weight {
+		unreachable!()
+	}
 }
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {

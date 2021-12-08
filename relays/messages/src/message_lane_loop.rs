@@ -24,29 +24,29 @@
 //! finalized header. I.e. when talking about headers in lane context, we
 //! only care about finalized headers.
 
+use std::{collections::BTreeMap, fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
+
+use async_trait::async_trait;
+use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
+
+use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
+use bp_runtime::messages::DispatchFeePayment;
+use relay_utils::{
+	interval, metrics::MetricsParams, process_future_result, relay_loop::Client as RelayClient,
+	retry_backoff, FailedClient,
+};
+
 use crate::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_race_delivery::run as run_message_delivery_race,
 	message_race_receiving::run as run_message_receiving_race,
 	metrics::MessageLaneLoopMetrics,
+	relay_strategy::RelayStrategy,
 };
-
-use async_trait::async_trait;
-use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
-use bp_runtime::messages::DispatchFeePayment;
-use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
-use relay_utils::{
-	interval,
-	metrics::{GlobalMetrics, MetricsParams},
-	process_future_result,
-	relay_loop::Client as RelayClient,
-	retry_backoff, FailedClient,
-};
-use std::{collections::BTreeMap, fmt::Debug, future::Future, ops::RangeInclusive, time::Duration};
 
 /// Message lane loop configuration params.
 #[derive(Debug, Clone)]
-pub struct Params {
+pub struct Params<Strategy: RelayStrategy> {
 	/// Id of lane this loop is servicing.
 	pub lane: LaneId,
 	/// Interval at which we ask target node about its updates.
@@ -58,7 +58,7 @@ pub struct Params {
 	/// The loop will auto-restart if there has been no updates during this period.
 	pub stall_timeout: Duration,
 	/// Message delivery race parameters.
-	pub delivery_params: MessageDeliveryParams,
+	pub delivery_params: MessageDeliveryParams<Strategy>,
 }
 
 /// Relayer operating mode.
@@ -73,7 +73,7 @@ pub enum RelayerMode {
 
 /// Message delivery race parameters.
 #[derive(Debug, Clone)]
-pub struct MessageDeliveryParams {
+pub struct MessageDeliveryParams<Strategy: RelayStrategy> {
 	/// Maximal number of unconfirmed relayer entries at the inbound lane. If there's that number
 	/// of entries in the `InboundLaneData::relayers` set, all new messages will be rejected until
 	/// reward payment will be proved (by including outbound lane state to the message delivery
@@ -89,8 +89,8 @@ pub struct MessageDeliveryParams {
 	pub max_messages_weight_in_single_batch: Weight,
 	/// Maximal cumulative size of relayed messages in single delivery transaction.
 	pub max_messages_size_in_single_batch: u32,
-	/// Relayer operating mode.
-	pub relayer_mode: RelayerMode,
+	/// Relay strategy
+	pub relay_strategy: Strategy,
 }
 
 /// Message details.
@@ -257,8 +257,8 @@ pub fn metrics_prefix<P: MessageLane>(lane: &LaneId) -> String {
 }
 
 /// Run message lane service loop.
-pub async fn run<P: MessageLane>(
-	params: Params,
+pub async fn run<P: MessageLane, Strategy: RelayStrategy>(
+	params: Params<Strategy>,
 	source_client: impl SourceClient<P>,
 	target_client: impl TargetClient<P>,
 	metrics_params: MetricsParams,
@@ -267,9 +267,8 @@ pub async fn run<P: MessageLane>(
 	let exit_signal = exit_signal.shared();
 	relay_utils::relay_loop(source_client, target_client)
 		.reconnect_delay(params.reconnect_delay)
-		.with_metrics(Some(metrics_prefix::<P>(&params.lane)), metrics_params)
-		.loop_metric(|registry, prefix| MessageLaneLoopMetrics::new(registry, prefix))?
-		.standalone_metric(|registry, prefix| GlobalMetrics::new(registry, prefix))?
+		.with_metrics(metrics_params)
+		.loop_metric(MessageLaneLoopMetrics::new(Some(&metrics_prefix::<P>(&params.lane)))?)?
 		.expose()
 		.await?
 		.run(metrics_prefix::<P>(&params.lane), move |source_client, target_client, metrics| {
@@ -286,8 +285,13 @@ pub async fn run<P: MessageLane>(
 
 /// Run one-way message delivery loop until connection with target or source node is lost, or exit
 /// signal is received.
-async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: TargetClient<P>>(
-	params: Params,
+async fn run_until_connection_lost<
+	P: MessageLane,
+	Strategy: RelayStrategy,
+	SC: SourceClient<P>,
+	TC: TargetClient<P>,
+>(
+	params: Params<Strategy>,
 	source_client: SC,
 	target_client: TC,
 	metrics_msg: Option<MessageLaneLoopMetrics>,
@@ -449,11 +453,16 @@ async fn run_until_connection_lost<P: MessageLane, SC: SourceClient<P>, TC: Targ
 
 #[cfg(test)]
 pub(crate) mod tests {
-	use super::*;
+	use std::sync::Arc;
+
 	use futures::stream::StreamExt;
 	use parking_lot::Mutex;
+
 	use relay_utils::{HeaderId, MaybeConnectionError};
-	use std::sync::Arc;
+
+	use crate::relay_strategy::AltruisticStrategy;
+
+	use super::*;
 
 	pub fn header_id(number: TestSourceHeaderNumber) -> TestSourceHeaderId {
 		HeaderId(number, number)
@@ -807,7 +816,7 @@ pub(crate) mod tests {
 						max_messages_in_single_batch: 4,
 						max_messages_weight_in_single_batch: 4,
 						max_messages_size_in_single_batch: 4,
-						relayer_mode: RelayerMode::Altruistic,
+						relay_strategy: AltruisticStrategy,
 					},
 				},
 				source_client,
