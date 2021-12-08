@@ -122,6 +122,14 @@ impl Chain for TestBridgedChain {
 	type Balance = u32;
 	type Index = u32;
 	type Signature = sp_runtime::testing::TestSignature;
+
+	fn max_extrinsic_size() -> u32 {
+		unreachable!()
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		unreachable!()
+	}
 }
 
 #[derive(Debug)]
@@ -137,6 +145,14 @@ impl Chain for OtherBridgedChain {
 	type Balance = u32;
 	type Index = u32;
 	type Signature = sp_runtime::testing::TestSignature;
+
+	fn max_extrinsic_size() -> u32 {
+		unreachable!()
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		unreachable!()
+	}
 }
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
