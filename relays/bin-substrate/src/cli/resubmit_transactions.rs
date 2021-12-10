@@ -19,7 +19,8 @@ use crate::cli::{Balance, TargetConnectionParams, TargetSigningParams};
 use codec::{Decode, Encode};
 use num_traits::{One, Zero};
 use relay_substrate_client::{
-	BlockWithJustification, Chain, Client, Error as SubstrateError, HeaderOf, TransactionSignScheme,
+	BlockWithJustification, Chain, Client, Error as SubstrateError, HeaderOf, SignParam,
+	TransactionSignScheme,
 };
 use relay_utils::FailedClient;
 use sp_core::Bytes;
@@ -411,6 +412,7 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 	})?;
 	let old_tip = unsigned_tx.tip;
 
+	let runtime_version = client.runtime_version().await?;
 	while current_priority < target_priority {
 		let next_tip = unsigned_tx.tip + tip_step;
 		if next_tip > tip_limit {
@@ -430,12 +432,14 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 		current_priority = client
 			.validate_transaction(
 				at_block,
-				S::sign_transaction(
-					*client.genesis_hash(),
-					key_pair,
-					relay_substrate_client::TransactionEra::immortal(),
-					unsigned_tx.clone(),
-				),
+				S::sign_transaction(SignParam {
+					spec_version: runtime_version.spec_version,
+					transaction_version: runtime_version.transaction_version,
+					genesis_hash: *client.genesis_hash(),
+					signer: key_pair,
+					era: relay_substrate_client::TransactionEra::immortal(),
+					unsigned: unsigned_tx.clone(),
+				}),
 			)
 			.await??
 			.priority;
@@ -451,12 +455,14 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 
 	Ok((
 		old_tip != unsigned_tx.tip,
-		S::sign_transaction(
-			*client.genesis_hash(),
-			key_pair,
-			relay_substrate_client::TransactionEra::immortal(),
-			unsigned_tx,
-		),
+		S::sign_transaction(SignParam {
+			spec_version: runtime_version.spec_version,
+			transaction_version: runtime_version.transaction_version,
+			genesis_hash: *client.genesis_hash(),
+			signer: key_pair,
+			era: relay_substrate_client::TransactionEra::immortal(),
+			unsigned: unsigned_tx,
+		}),
 	))
 }
 

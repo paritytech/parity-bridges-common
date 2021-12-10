@@ -29,7 +29,7 @@ use strum::VariantNames;
 use codec::Encode;
 use messages_relay::relay_strategy::MixStrategy;
 use relay_substrate_client::{
-	AccountIdOf, CallOf, Chain, Client, TransactionSignScheme, UnsignedTransaction,
+	AccountIdOf, CallOf, Chain, Client, SignParam, TransactionSignScheme, UnsignedTransaction,
 };
 use relay_utils::metrics::MetricsParams;
 use sp_core::{Bytes, Pair};
@@ -591,15 +591,18 @@ where
 	CallOf<C>: Send,
 {
 	let genesis_hash = *client.genesis_hash();
+	let runtime_version = client.runtime_version().await?;
 	client
 		.submit_signed_extrinsic(sign.public().into(), move |_, transaction_nonce| {
 			Bytes(
-				C::sign_transaction(
+				C::sign_transaction(SignParam {
+					spec_version: runtime_version.spec_version,
+					transaction_version: runtime_version.transaction_version,
 					genesis_hash,
-					&sign,
-					relay_substrate_client::TransactionEra::immortal(),
-					UnsignedTransaction::new(call, transaction_nonce),
-				)
+					signer: sign,
+					era: relay_substrate_client::TransactionEra::immortal(),
+					unsigned: UnsignedTransaction::new(call, transaction_nonce),
+				})
 				.encode(),
 			)
 		})

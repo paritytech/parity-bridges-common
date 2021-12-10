@@ -29,8 +29,8 @@ use strum::{EnumString, EnumVariantNames, VariantNames};
 use frame_support::dispatch::GetDispatchInfo;
 use relay_substrate_client::{
 	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, CallOf, Chain, ChainWithBalances,
-	Client, Error as SubstrateError, HashOf, SignatureOf, Subscription, TransactionSignScheme,
-	TransactionStatusOf, UnsignedTransaction,
+	Client, Error as SubstrateError, HashOf, SignParam, SignatureOf, Subscription,
+	TransactionSignScheme, TransactionStatusOf, UnsignedTransaction,
 };
 use sp_core::{blake2_256, storage::StorageKey, Bytes, Pair, H256, U256};
 use sp_runtime::traits::{Convert, Header as HeaderT};
@@ -234,18 +234,24 @@ impl SwapTokens {
 			// start tokens swap
 			let source_genesis_hash = *source_client.genesis_hash();
 			let create_swap_signer = source_sign.clone();
+			let runtime_version = source_client.runtime_version().await?;
 			let swap_created_at = wait_until_transaction_is_finalized::<Source>(
 				source_client
 					.submit_and_watch_signed_extrinsic(
 						accounts.source_account_at_this_chain.clone(),
 						move |_, transaction_nonce| {
 							Bytes(
-								Source::sign_transaction(
-									source_genesis_hash,
-									&create_swap_signer,
-									relay_substrate_client::TransactionEra::immortal(),
-									UnsignedTransaction::new(create_swap_call, transaction_nonce),
-								)
+								Source::sign_transaction(SignParam {
+									spec_version: runtime_version.spec_version,
+									transaction_version: runtime_version.transaction_version,
+									genesis_hash: source_genesis_hash,
+									signer: create_swap_signer,
+									era: relay_substrate_client::TransactionEra::immortal(),
+									unsigned: UnsignedTransaction::new(
+										create_swap_call,
+										transaction_nonce,
+									),
+								})
 								.encode(),
 							)
 						},
@@ -369,21 +375,24 @@ impl SwapTokens {
 
 				// send `claim_swap` message
 				let target_genesis_hash = *target_client.genesis_hash();
+				let runtime_version = target_client.runtime_version().await?;
 				let _ = wait_until_transaction_is_finalized::<Target>(
 					target_client
 						.submit_and_watch_signed_extrinsic(
 							accounts.target_account_at_bridged_chain.clone(),
 							move |_, transaction_nonce| {
 								Bytes(
-									Target::sign_transaction(
-										target_genesis_hash,
-										&target_sign,
-										relay_substrate_client::TransactionEra::immortal(),
-										UnsignedTransaction::new(
+									Target::sign_transaction(SignParam {
+										spec_version: runtime_version.spec_version,
+										transaction_version: runtime_version.transaction_version,
+										genesis_hash: target_genesis_hash,
+										signer: target_sign,
+										era: relay_substrate_client::TransactionEra::immortal(),
+										unsigned: UnsignedTransaction::new(
 											send_message_call,
 											transaction_nonce,
 										),
-									)
+									})
 									.encode(),
 								)
 							},
@@ -409,21 +418,24 @@ impl SwapTokens {
 				log::info!(target: "bridge", "Cancelling the swap");
 				let cancel_swap_call: CallOf<Source> =
 					pallet_bridge_token_swap::Call::cancel_swap { swap: token_swap.clone() }.into();
+				let runtime_version = source_client.runtime_version().await?;
 				let _ = wait_until_transaction_is_finalized::<Source>(
 					source_client
 						.submit_and_watch_signed_extrinsic(
 							accounts.source_account_at_this_chain.clone(),
 							move |_, transaction_nonce| {
 								Bytes(
-									Source::sign_transaction(
-										source_genesis_hash,
-										&source_sign,
-										relay_substrate_client::TransactionEra::immortal(),
-										UnsignedTransaction::new(
+									Source::sign_transaction(SignParam {
+										spec_version: runtime_version.spec_version,
+										transaction_version: runtime_version.transaction_version,
+										genesis_hash: source_genesis_hash,
+										signer: source_sign,
+										era: relay_substrate_client::TransactionEra::immortal(),
+										unsigned: UnsignedTransaction::new(
 											cancel_swap_call,
 											transaction_nonce,
 										),
-									)
+									})
 									.encode(),
 								)
 							},

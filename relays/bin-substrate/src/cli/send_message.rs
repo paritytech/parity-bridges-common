@@ -25,7 +25,7 @@ use bp_message_dispatch::{CallOrigin, MessagePayload};
 use bp_runtime::{BalanceOf, Chain as _};
 use codec::Encode;
 use frame_support::weights::Weight;
-use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
+use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
 use sp_runtime::{traits::IdentifyAccount, AccountId32, MultiSignature, MultiSigner};
 use std::fmt::Debug;
@@ -179,25 +179,31 @@ impl SendMessage {
 			})?;
 
 			let source_genesis_hash = *source_client.genesis_hash();
+			let runtime_version = source_client.runtime_version().await?;
 			let estimated_transaction_fee = source_client
 				.estimate_extrinsic_fee(Bytes(
-					Source::sign_transaction(
-						source_genesis_hash,
-						&source_sign,
-						relay_substrate_client::TransactionEra::immortal(),
-						UnsignedTransaction::new(send_message_call.clone(), 0),
-					)
+					Source::sign_transaction(SignParam {
+						spec_version: runtime_version.spec_version,
+						transaction_version: runtime_version.transaction_version,
+						genesis_hash: source_genesis_hash,
+						signer: source_sign,
+						era: relay_substrate_client::TransactionEra::immortal(),
+						unsigned: UnsignedTransaction::new(send_message_call.clone(), 0),
+					})
 					.encode(),
 				))
 				.await?;
+			let runtime_version = source_client.runtime_version().await?;
 			source_client
 				.submit_signed_extrinsic(source_sign.public().into(), move |_, transaction_nonce| {
-					let signed_source_call = Source::sign_transaction(
-						source_genesis_hash,
-						&source_sign,
-						relay_substrate_client::TransactionEra::immortal(),
-						UnsignedTransaction::new(send_message_call, transaction_nonce),
-					)
+					let signed_source_call = Source::sign_transaction(SignParam {
+						spec_version: runtime_version.spec_version,
+						transaction_version: runtime_version.transaction_version,
+						genesis_hash: source_genesis_hash,
+						signer: source_sign,
+						era: relay_substrate_client::TransactionEra::immortal(),
+						unsigned: UnsignedTransaction::new(send_message_call, transaction_nonce),
+					})
 					.encode();
 
 					log::info!(

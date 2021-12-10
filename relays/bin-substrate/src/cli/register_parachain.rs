@@ -29,7 +29,7 @@ use polkadot_runtime_common::{
 };
 use polkadot_runtime_parachains::paras::ParaLifecycle;
 use relay_substrate_client::{
-	AccountIdOf, CallOf, Chain, Client, TransactionSignScheme, UnsignedTransaction,
+	AccountIdOf, CallOf, Chain, Client, SignParam, TransactionSignScheme, UnsignedTransaction,
 };
 use rialto_runtime::SudoCall;
 use sp_core::{
@@ -116,21 +116,24 @@ impl RegisterParachain {
 			let reserve_parachain_id_call: CallOf<Relaychain> =
 				ParaRegistrarCall::reserve {}.into();
 			let reserve_parachain_signer = relay_sign.clone();
+			let runtime_version = relay_client.runtime_version().await?;
 			wait_until_transaction_is_finalized::<Relaychain>(
 				relay_client
 					.submit_and_watch_signed_extrinsic(
 						relay_sudo_account.clone(),
 						move |_, transaction_nonce| {
 							Bytes(
-								Relaychain::sign_transaction(
-									relay_genesis_hash,
-									&reserve_parachain_signer,
-									relay_substrate_client::TransactionEra::immortal(),
-									UnsignedTransaction::new(
+								Relaychain::sign_transaction(SignParam {
+									spec_version: runtime_version.spec_version,
+									transaction_version: runtime_version.transaction_version,
+									genesis_hash: relay_genesis_hash,
+									signer: reserve_parachain_signer,
+									era: relay_substrate_client::TransactionEra::immortal(),
+									unsigned: UnsignedTransaction::new(
 										reserve_parachain_id_call,
 										transaction_nonce,
 									),
-								)
+								})
 								.encode(),
 							)
 						},
@@ -163,21 +166,24 @@ impl RegisterParachain {
 			}
 			.into();
 			let register_parathread_signer = relay_sign.clone();
+			let runtime_version = relay_client.runtime_version().await?;
 			wait_until_transaction_is_finalized::<Relaychain>(
 				relay_client
 					.submit_and_watch_signed_extrinsic(
 						relay_sudo_account.clone(),
 						move |_, transaction_nonce| {
 							Bytes(
-								Relaychain::sign_transaction(
-									relay_genesis_hash,
-									&register_parathread_signer,
-									relay_substrate_client::TransactionEra::immortal(),
-									UnsignedTransaction::new(
+								Relaychain::sign_transaction(SignParam {
+									spec_version: runtime_version.spec_version,
+									transaction_version: runtime_version.transaction_version,
+									genesis_hash: relay_genesis_hash,
+									signer: register_parathread_signer,
+									era: relay_substrate_client::TransactionEra::immortal(),
+									unsigned: UnsignedTransaction::new(
 										register_parathread_call,
 										transaction_nonce,
 									),
-								)
+								})
 								.encode(),
 							)
 						},
@@ -226,15 +232,18 @@ impl RegisterParachain {
 			}
 			.into();
 			let force_lease_signer = relay_sign.clone();
+			let runtime_version = relay_client.runtime_version().await?;
 			relay_client
 				.submit_signed_extrinsic(relay_sudo_account.clone(), move |_, transaction_nonce| {
 					Bytes(
-						Relaychain::sign_transaction(
-							relay_genesis_hash,
-							&force_lease_signer,
-							relay_substrate_client::TransactionEra::immortal(),
-							UnsignedTransaction::new(force_lease_call, transaction_nonce),
-						)
+						Relaychain::sign_transaction(SignParam {
+							spec_version: runtime_version.spec_version,
+							transaction_version: runtime_version.transaction_version,
+							genesis_hash: relay_genesis_hash,
+							signer: force_lease_signer,
+							era: relay_substrate_client::TransactionEra::immortal(),
+							unsigned: UnsignedTransaction::new(force_lease_call, transaction_nonce),
+						})
 						.encode(),
 					)
 				})
