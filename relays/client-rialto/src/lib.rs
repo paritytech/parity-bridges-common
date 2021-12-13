@@ -109,7 +109,7 @@ impl TransactionSignScheme for Rialto {
 
 	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(
-			param.unsigned.call,
+			param.unsigned.call.clone(),
 			(
 				frame_system::CheckSpecVersion::<rialto_runtime::Runtime>::new(),
 				frame_system::CheckTxVersion::<rialto_runtime::Runtime>::new(),

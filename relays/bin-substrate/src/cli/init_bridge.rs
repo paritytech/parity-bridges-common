@@ -197,13 +197,13 @@ impl InitBridge {
 						Target::sign_transaction(SignParam {
 							spec_version: runtime_version.spec_version,
 							transaction_version: runtime_version.transaction_version,
-							*target_client.genesis_hash(),
+							genesis_hash: *target_client.genesis_hash(),
 							signer: target_sign,
 							era: relay_substrate_client::TransactionEra::immortal(),
 							unsigned: UnsignedTransaction::new(
 								encode_init_bridge(initialization_data),
 								transaction_nonce,
-							)
+							),
 						})
 						.encode(),
 					)

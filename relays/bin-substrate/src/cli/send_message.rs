@@ -186,7 +186,7 @@ impl SendMessage {
 						spec_version: runtime_version.spec_version,
 						transaction_version: runtime_version.transaction_version,
 						genesis_hash: source_genesis_hash,
-						signer: source_sign,
+						signer: source_sign.clone(),
 						era: relay_substrate_client::TransactionEra::immortal(),
 						unsigned: UnsignedTransaction::new(send_message_call.clone(), 0),
 					})
@@ -200,7 +200,7 @@ impl SendMessage {
 						spec_version: runtime_version.spec_version,
 						transaction_version: runtime_version.transaction_version,
 						genesis_hash: source_genesis_hash,
-						signer: source_sign,
+						signer: source_sign.clone(),
 						era: relay_substrate_client::TransactionEra::immortal(),
 						unsigned: UnsignedTransaction::new(send_message_call, transaction_nonce),
 					})

@@ -107,7 +107,7 @@ impl TransactionSignScheme for Kusama {
 
 	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(
-			unsigned.call,
+			param.unsigned.call.clone(),
 			bp_kusama::SignedExtensions::new(
 				param.spec_version,
 				param.transaction_version,

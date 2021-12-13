@@ -109,7 +109,7 @@ impl TransactionSignScheme for Millau {
 
 	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(
-			param.unsigned.call,
+			param.unsigned.call.clone(),
 			(
 				frame_system::CheckSpecVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckTxVersion::<millau_runtime::Runtime>::new(),

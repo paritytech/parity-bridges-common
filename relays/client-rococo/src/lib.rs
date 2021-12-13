@@ -110,7 +110,7 @@ impl TransactionSignScheme for Rococo {
 
 	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(
-			param.unsigned.call,
+			param.unsigned.call.clone(),
 			bp_rococo::SignedExtensions::new(
 				param.spec_version,
 				param.transaction_version,

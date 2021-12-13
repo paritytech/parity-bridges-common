@@ -107,7 +107,7 @@ impl TransactionSignScheme for Polkadot {
 
 	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::new(
-			unsigned.call,
+			param.unsigned.call.clone(),
 			bp_polkadot::SignedExtensions::new(
 				param.spec_version,
 				param.transaction_version,

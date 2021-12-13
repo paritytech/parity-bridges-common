@@ -172,7 +172,9 @@ pub trait TransactionSignScheme {
 	type SignedTransaction: Clone + Debug + Codec + Send + 'static;
 
 	/// Create transaction for given runtime call, signed by given account.
-	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction;
+	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction
+	where
+		Self: Sized;
 
 	/// Returns true if transaction is signed.
 	fn is_signed(tx: &Self::SignedTransaction) -> bool;
