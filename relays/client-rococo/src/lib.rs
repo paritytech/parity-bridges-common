@@ -20,8 +20,8 @@ use bp_messages::MessageNonce;
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithMessages, SignParam, TransactionEraOf,
-	TransactionSignScheme, UnsignedTransaction,
+	Chain, ChainBase, ChainWithBalances, ChainWithMessages, SignParam, TransactionSignScheme,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};

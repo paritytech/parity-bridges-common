@@ -21,7 +21,7 @@ use codec::{Compact, Decode, Encode};
 use frame_support::weights::Weight;
 use relay_substrate_client::{
 	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithMessages, IndexOf, SignParam,
-	TransactionEraOf, TransactionSignScheme, UnsignedTransaction,
+	TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};

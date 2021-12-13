@@ -18,7 +18,6 @@
 
 use codec::Encode;
 use frame_support::weights::Weight;
-use num_format::Locale::ru_UA;
 use sp_core::{Bytes, Pair};
 
 use messages_relay::relay_strategy::MixStrategy;
