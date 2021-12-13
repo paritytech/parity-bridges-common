@@ -22,22 +22,61 @@
 //! chains. Having pallets that are referencing polkadot, would mean that there may
 //! be two versions of polkadot crates included in the runtime. Which is bad.
 
+use frame_support::RuntimeDebug;
+use parity_scale_codec::{CompactAs, Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 use sp_core::Hasher;
 use sp_std::vec::Vec;
 
-/// Parachain id.
-pub type ParaId = u32;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
-/// Parachain head, which is (at least in Cumulus) a SCALE-encoded parachain header.
-pub type ParaHead = Vec<u8>;
+#[cfg(feature = "std")]
+use parity_util_mem::MallocSizeOf;
+
+/// Parachain id.
+///
+/// This is an equivalent of the `polkadot_parachain::Id`, which is a compact-encoded `u32`.
+#[derive(
+	Clone,
+	CompactAs,
+	Copy,
+	Decode,
+	Default,
+	Encode,
+	Eq,
+	Hash,
+	MaxEncodedLen,
+	Ord,
+	PartialEq,
+	PartialOrd,
+	RuntimeDebug,
+	TypeInfo,
+)]
+pub struct ParaId(pub u32);
+
+/// Parachain head.
+///
+/// This is an equivalent of the `polkadot_parachain::HeadData`.
+///
+/// The parachain head means (at least in Cumulus) a SCALE-encoded parachain header. Keep in mind
+/// that in Polkadot it is twice-encoded (so `header.encode().encode()`). We'll also do it to keep
+/// it binary-compatible (implies hash-compatibility) with other parachain pallets.
+#[derive(
+	PartialEq, Eq, Clone, PartialOrd, Ord, Encode, Decode, RuntimeDebug, TypeInfo, Default,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash, MallocSizeOf))]
+pub struct ParaHead(pub Vec<u8>);
+
+impl ParaHead {
+	/// Returns the hash of this head data.
+	pub fn hash(&self) -> crate::Hash {
+		sp_runtime::traits::BlakeTwo256::hash(&self.0)
+	}
+}
 
 /// Parachain head hash.
 pub type ParaHash = crate::Hash;
 
 /// Raw storage proof of parachain heads, stored in polkadot-like chain runtime.
 pub type ParachainHeadsProof = Vec<Vec<u8>>;
-
-/// Return hash of the parachain head.
-pub fn parachain_head_hash(head: &[u8]) -> ParaHash {
-	sp_runtime::traits::BlakeTwo256::hash(head)
-}
