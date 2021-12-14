@@ -386,7 +386,7 @@ pub enum RuntimeVersionParams {
 /// signing parameters and bridge initialization parameters.
 #[macro_export]
 macro_rules! declare_chain_options {
-	($chain:ident, $chain_prefix:ident, $runtime_version:ident) => {
+	($chain:ident, $chain_prefix:ident) => {
 		paste::item! {
 			#[doc = $chain " connection params."]
 			#[derive(StructOpt, Debug, PartialEq, Eq, Clone)]
@@ -521,6 +521,8 @@ macro_rules! declare_chain_options {
 				/// Convert connection params into Substrate client.
 				pub async fn to_client<Chain: CliChain>(
 					&self,
+					bundle_spec_version: u32,
+					bundle_transaction_version: u32
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
 					let chain_runtime_version = match [<$chain_prefix _runtime_version>] {
 						RuntimeVersionParams::Auto => ChainRuntimeVersion::Auto,
@@ -529,8 +531,8 @@ macro_rules! declare_chain_options {
 							transaction_version
 						} => ChainRuntimeVersion::Custom(spec_version, transaction_version),
 						RuntimeVersionParams::Bundle => ChainRuntimeVersion::Custom(
-							$runtime_version.spec_version,
-							$runtime_version.transaction_version
+							bundle_spec_version,
+							bundle_transaction_version
 						)
 					};
 					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {

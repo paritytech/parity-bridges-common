@@ -183,8 +183,14 @@ impl InitBridge {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.bridge, {
-			let source_client = self.source.to_client::<Source>().await?;
-			let target_client = self.target.to_client::<Target>().await?;
+			let source_client = self
+				.source
+				.to_client::<Source>(SOURCE_SPEC_VERSION, SOURCE_TRANSACTION_VERSION)
+				.await?;
+			let target_client = self
+				.target
+				.to_client::<Target>(TARGET_SPEC_VERSION, TARGET_TRANSACTION_VERSION)
+				.await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
 			let spec_version = target_client.spec_version().await?;

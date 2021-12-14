@@ -115,7 +115,10 @@ impl ResubmitTransactions {
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.chain, {
 			let relay_loop_name = format!("ResubmitTransactions{}", Target::NAME);
-			let client = self.target.to_client::<Target>().await?;
+			let client = self
+				.target
+				.to_client::<Target>(TARGET_SPEC_VERSION, TARGET_TRANSACTION_VERSION)
+				.await?;
 			let key_pair = self.target_sign.to_keypair::<Target>()?;
 
 			relay_utils::relay_loop((), client)

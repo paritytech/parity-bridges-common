@@ -136,6 +136,10 @@ macro_rules! select_bridge {
 					bp_millau::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber =
 					bp_rialto::SESSION_LENGTH;
+				const LEFT_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const LEFT_TRANSACTION_VERSION: u32 = rillau_runtime::VERSION.transaction_version;
+				const RIGHT_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const RIGHT_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
 
 				use crate::chains::{
 					millau_messages_to_rialto::{
@@ -184,6 +188,10 @@ macro_rules! select_bridge {
 					bp_rococo::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber =
 					bp_wococo::SESSION_LENGTH;
+				const LEFT_SPEC_VERSION: u32 = rococo_runtime::VERSION.spec_version;
+				const LEFT_TRANSACTION_VERSION: u32 = rococo_runtime::VERSION.transaction_version;
+				const RIGHT_SPEC_VERSION: u32 = wococo_runtime::VERSION.spec_version;
+				const RIGHT_TRANSACTION_VERSION: u32 = wococo_runtime::VERSION.transaction_version;
 
 				use crate::chains::{
 					rococo_messages_to_wococo::RococoMessagesToWococo as LeftToRightMessageLane,
@@ -262,6 +270,11 @@ macro_rules! select_bridge {
 					bp_kusama::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_polkadot::BlockNumber =
 					bp_polkadot::SESSION_LENGTH;
+				const LEFT_SPEC_VERSION: u32 = kusama_runtime::VERSION.spec_version;
+				const LEFT_TRANSACTION_VERSION: u32 = kusama_runtime::VERSION.transaction_version;
+				const RIGHT_SPEC_VERSION: u32 = polkadot_runtime::VERSION.spec_version;
+				const RIGHT_TRANSACTION_VERSION: u32 =
+					polkadot_runtime::VERSION.transaction_version;
 
 				use crate::chains::{
 					kusama_messages_to_polkadot::{
@@ -317,12 +330,12 @@ macro_rules! select_bridge {
 }
 
 // All supported chains.
-declare_chain_options!(Millau, millau, millau_runtime::VERSION);
-declare_chain_options!(Rialto, rialto, rialto_runtime::VERSION);
-declare_chain_options!(Rococo, rococo, rococo_runtime::VERSION);
-declare_chain_options!(Wococo, wococo, wococo_runtime::VERSION);
-declare_chain_options!(Kusama, kusama, kusama_rutnime::VERSION);
-declare_chain_options!(Polkadot, polkadot, polkadot_runtime::VERSION);
+declare_chain_options!(Millau, millau);
+declare_chain_options!(Rialto, rialto);
+declare_chain_options!(Rococo, rococo);
+declare_chain_options!(Wococo, wococo);
+declare_chain_options!(Kusama, kusama);
+declare_chain_options!(Polkadot, polkadot);
 // All supported bridges.
 declare_bridge_options!(Millau, Rialto);
 declare_bridge_options!(Rococo, Wococo);
@@ -334,12 +347,18 @@ impl RelayHeadersAndMessages {
 		select_bridge!(self, {
 			let params: Params = self.into();
 
-			let left_client = params.left.to_client::<Left>().await?;
+			let left_client = params
+				.left
+				.to_client::<Left>(LEFT_SPEC_VERSION, LEFT_TRANSACTION_VERSION)
+				.await?;
 			let left_transactions_mortality = params.left_sign.transactions_mortality()?;
 			let left_sign = params.left_sign.to_keypair::<Left>()?;
 			let left_messages_pallet_owner =
 				params.left_messages_pallet_owner.to_keypair::<Left>()?;
-			let right_client = params.right.to_client::<Right>().await?;
+			let right_client = params
+				.right
+				.to_client::<Right>(RIGHT_SPEC_VERSION, RIGHT_TRANSACTION_VERSION)
+				.await?;
 			let right_transactions_mortality = params.right_sign.transactions_mortality()?;
 			let right_sign = params.right_sign.to_keypair::<Right>()?;
 			let right_messages_pallet_owner =

@@ -130,9 +130,15 @@ impl SwapTokens {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.bridge, {
-			let source_client = self.source.to_client::<Source>().await?;
+			let source_client = self
+				.source
+				.to_client::<Source>(SOURCE_SPEC_VERSION, SOURCE_TRANSACTION_VERSION)
+				.await?;
 			let source_sign = self.source_sign.to_keypair::<Target>()?;
-			let target_client = self.target.to_client::<Target>().await?;
+			let target_client = self
+				.target
+				.to_client::<Target>(TARGET_SPEC_VERSION, TARGET_TRANSACTION_VERSION)
+				.await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
 			// names of variables in this function are matching names used by the

@@ -77,6 +77,12 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use millau_runtime::millau_to_rialto_account_ownership_digest as account_ownership_digest;
 
+				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 =
+					rialto_runtime::VERSION.transaction_version;
+
 				$generic
 			}
 			FullBridge::RialtoToMillau => {
@@ -100,6 +106,11 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use rialto_runtime::rialto_to_millau_account_ownership_digest as account_ownership_digest;
 
+				const SOURCE_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 =
+					millau_runtime::VERSION.transaction_version;
 				$generic
 			}
 			FullBridge::RococoToWococo => {
@@ -122,6 +133,11 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use relay_rococo_client::runtime::rococo_to_wococo_account_ownership_digest as account_ownership_digest;
 
+				const SOURCE_SPEC_VERSION: u32 = rococo_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = rococo_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = wacoco_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 =
+					wacoco_runtime::VERSION.transaction_version;
 				$generic
 			}
 			FullBridge::WococoToRococo => {
@@ -144,6 +160,11 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use relay_wococo_client::runtime::wococo_to_rococo_account_ownership_digest as account_ownership_digest;
 
+				const SOURCE_SPEC_VERSION: u32 = wacoco_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = wacoco_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = racoco_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 =
+					racoco_runtime::VERSION.transaction_version;
 				$generic
 			}
 			FullBridge::KusamaToPolkadot => {
@@ -166,6 +187,11 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use relay_kusama_client::runtime::kusama_to_polkadot_account_ownership_digest as account_ownership_digest;
 
+				const SOURCE_SPEC_VERSION: u32 = kusama_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = kusama_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = polkadot_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 =
+					polkadot_runtime::VERSION.transaction_version;
 				$generic
 			}
 			FullBridge::PolkadotToKusama => {
@@ -188,6 +214,11 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use relay_polkadot_client::runtime::polkadot_to_kusama_account_ownership_digest as account_ownership_digest;
 
+				const SOURCE_SPEC_VERSION: u32 = polkadot_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = polkadot_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = kusama_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 =
+					kusama_runtime::VERSION.transaction_version;
 				$generic
 			}
 		}
