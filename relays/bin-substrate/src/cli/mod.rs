@@ -364,11 +364,29 @@ where
 	}
 }
 
+#[doc = "Runtime version params."]
+#[derive(StructOpt, Debug, PartialEq, Eq, Clone)]
+pub enum RuntimeVersionParams {
+	/// Auto query version from chain
+	Auto,
+	/// Custom spec_version and transaction_version
+	Custom {
+		/// spec_version
+		#[structopt(long)]
+		spec_version: u32,
+		/// transaction_version
+		#[structopt(long)]
+		transaction_version: u32,
+	},
+	/// Read version from bundle dependencies directly.
+	Bundle,
+}
+
 /// Create chain-specific set of configuration objects: connection parameters,
 /// signing parameters and bridge initialization parameters.
 #[macro_export]
 macro_rules! declare_chain_options {
-	($chain:ident, $chain_prefix:ident) => {
+	($chain:ident, $chain_prefix:ident, $runtime_version:ident) => {
 		paste::item! {
 			#[doc = $chain " connection params."]
 			#[derive(StructOpt, Debug, PartialEq, Eq, Clone)]
@@ -385,24 +403,6 @@ macro_rules! declare_chain_options {
 				#[doc = "Custom runtime version"]
 				#[structopt(long)]
 				pub [<$chain_prefix _runtime_version>]: RuntimeVersionParams,
-			}
-
-			#[doc = "Runtime version params."]
-			#[derive(StructOpt, Debug, PartialEq, Eq, Clone)]
-			pub enum RuntimeVersionParams {
-				/// Auto query version from chain
-				Auto,
-				/// Custom spec_version and transaction_verion
-				Custom {
-					/// spec_version
-					#[structopt(long)]
-					spec_version: u32,
-					/// transaction_version
-					#[structopt(long)]
-					transaction_version: u32,
-				},
-				/// Read version from bundle dependencies directly.
-				Bundle
 			}
 
 			#[doc = $chain " signing params."]
@@ -522,10 +522,22 @@ macro_rules! declare_chain_options {
 				pub async fn to_client<Chain: CliChain>(
 					&self,
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
+					let chain_runtime_version = match [<$chain_prefix _runtime_version>] {
+						RuntimeVersionParams::Auto => ChainRuntimeVersion::Auto,
+						RuntimeVersionParams::Custom {
+							spec_version,
+							transaction_version
+						} => ChainRuntimeVersion::Custom(spec_version, transaction_version),
+						RuntimeVersionParams::Bundle => ChainRuntimeVersion::Custom(
+							$runtime_version.spec_version,
+							$runtime_version.transaction_version
+						)
+					};
 					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {
 						host: self.[<$chain_prefix _host>].clone(),
 						port: self.[<$chain_prefix _port>],
 						secure: self.[<$chain_prefix _secure>],
+						chain_runtime_version,
 					})
 					.await
 					)

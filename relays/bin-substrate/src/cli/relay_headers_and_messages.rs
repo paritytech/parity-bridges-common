@@ -317,12 +317,12 @@ macro_rules! select_bridge {
 }
 
 // All supported chains.
-declare_chain_options!(Millau, millau);
-declare_chain_options!(Rialto, rialto);
-declare_chain_options!(Rococo, rococo);
-declare_chain_options!(Wococo, wococo);
-declare_chain_options!(Kusama, kusama);
-declare_chain_options!(Polkadot, polkadot);
+declare_chain_options!(Millau, millau, millau_runtime::VERSION);
+declare_chain_options!(Rialto, rialto, rialto_runtime::VERSION);
+declare_chain_options!(Rococo, rococo, rococo_runtime::VERSION);
+declare_chain_options!(Wococo, wococo, wococo_runtime::VERSION);
+declare_chain_options!(Kusama, kusama, kusama_rutnime::VERSION);
+declare_chain_options!(Polkadot, polkadot, polkadot_runtime::VERSION);
 // All supported bridges.
 declare_bridge_options!(Millau, Rialto);
 declare_bridge_options!(Rococo, Wococo);
