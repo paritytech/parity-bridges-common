@@ -387,8 +387,22 @@ macro_rules! declare_chain_options {
 				pub [<$chain_prefix _runtime_version>]: RuntimeVersionParams,
 			}
 
-			pub struct RuntionVersionParams {
-
+			#[doc = "Runtime version params."]
+			#[derive(StructOpt, Debug, PartialEq, Eq, Clone)]
+			pub enum RuntimeVersionParams {
+				/// Auto query version from chain
+				Auto,
+				/// Custom spec_version and transaction_verion
+				Custom {
+					/// spec_version
+					#[structopt(long)]
+					spec_version: u32,
+					/// transaction_version
+					#[structopt(long)]
+					transaction_version: u32,
+				},
+				/// Read version from bundle dependencies directly.
+				Bundle
 			}
 
 			#[doc = $chain " signing params."]
