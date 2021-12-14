@@ -382,6 +382,13 @@ macro_rules! declare_chain_options {
 				#[doc = "Use secure websocket connection."]
 				#[structopt(long)]
 				pub [<$chain_prefix _secure>]: bool,
+				#[doc = "Custom runtime version"]
+				#[structopt(long)]
+				pub [<$chain_prefix _runtime_version>]: RuntimeVersionParams,
+			}
+
+			pub struct RuntionVersionParams {
+
 			}
 
 			#[doc = $chain " signing params."]

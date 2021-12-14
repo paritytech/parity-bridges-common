@@ -60,6 +60,17 @@ pub struct Subscription<T>(Mutex<futures::channel::mpsc::Receiver<Option<T>>>);
 /// Opaque GRANDPA authorities set.
 pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
 
+/// Chain runtime version in client
+#[derive(Clone, Debug)]
+pub enum ChainRuntimeVersion {
+	/// Auto query from chain.
+	Auto,
+	/// Custom runtime version, defined by user.
+	/// the first is spec_version
+	/// the second is transaction_version
+	Custom(u32, u32),
+}
+
 /// Substrate client type.
 ///
 /// Cloning `Client` is a cheap operation.
@@ -77,6 +88,8 @@ pub struct Client<C: Chain> {
 	/// transactions will be rejected from the pool. This lock is here to prevent situations like
 	/// that.
 	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
+	/// Saved chain runtime version
+	chain_runtime_version: ChainRuntimeVersion,
 }
 
 #[async_trait]
@@ -99,6 +112,7 @@ impl<C: Chain> Clone for Client<C> {
 			client: self.client.clone(),
 			genesis_hash: self.genesis_hash,
 			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
+			chain_runtime_version: self.chain_runtime_version.clone(),
 		}
 	}
 }
@@ -150,6 +164,7 @@ impl<C: Chain> Client<C> {
 			client,
 			genesis_hash,
 			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
+			chain_runtime_version: params.chain_runtime_version.clone(),
 		})
 	}
 
@@ -178,6 +193,24 @@ impl<C: Chain> Client<C> {
 }
 
 impl<C: Chain> Client<C> {
+	/// Return spec version
+	pub async fn spec_version(&self) -> Result<u32> {
+		let spec_version = match self.chain_runtime_version {
+			ChainRuntimeVersion::Auto => self.runtime_version().await?.spec_version,
+			ChainRuntimeVersion::Custom(spec_version, _) => spec_version,
+		};
+		Ok(spec_version)
+	}
+
+	/// Return transaction version
+	pub async fn transaction_version(&self) -> Result<u32> {
+		let transaction_version = match self.chain_runtime_version {
+			ChainRuntimeVersion::Auto => self.runtime_version().await?.transaction_version,
+			ChainRuntimeVersion::Custom(_, transaction_version) => transaction_version,
+		};
+		Ok(transaction_version)
+	}
+
 	/// Returns true if client is connected to at least one peer and is in synced state.
 	pub async fn ensure_synced(&self) -> Result<()> {
 		self.jsonrpsee_execute(|client| async move {

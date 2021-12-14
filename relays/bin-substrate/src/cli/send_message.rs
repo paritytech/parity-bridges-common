@@ -179,12 +179,13 @@ impl SendMessage {
 			})?;
 
 			let source_genesis_hash = *source_client.genesis_hash();
-			let runtime_version = source_client.runtime_version().await?;
+			let spec_version = source_client.spec_version().await?;
+			let transaction_version = source_client.transaction_version().await?;
 			let estimated_transaction_fee = source_client
 				.estimate_extrinsic_fee(Bytes(
 					Source::sign_transaction(SignParam {
-						spec_version: runtime_version.spec_version,
-						transaction_version: runtime_version.transaction_version,
+						spec_version,
+						transaction_version,
 						genesis_hash: source_genesis_hash,
 						signer: source_sign.clone(),
 						era: relay_substrate_client::TransactionEra::immortal(),
@@ -193,12 +194,11 @@ impl SendMessage {
 					.encode(),
 				))
 				.await?;
-			let runtime_version = source_client.runtime_version().await?;
 			source_client
 				.submit_signed_extrinsic(source_sign.public().into(), move |_, transaction_nonce| {
 					let signed_source_call = Source::sign_transaction(SignParam {
-						spec_version: runtime_version.spec_version,
-						transaction_version: runtime_version.transaction_version,
+						spec_version,
+						transaction_version,
 						genesis_hash: source_genesis_hash,
 						signer: source_sign.clone(),
 						era: relay_substrate_client::TransactionEra::immortal(),

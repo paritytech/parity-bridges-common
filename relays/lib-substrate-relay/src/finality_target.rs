@@ -103,15 +103,16 @@ where
 		let transaction_params = self.transaction_params.clone();
 		let call =
 			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
-		let runtime_version = self.client.runtime_version().await?;
+		let spec_version = self.client.spec_version().await?;
+		let transaction_version = self.client.transaction_version().await?;
 		self.client
 			.submit_signed_extrinsic(
 				self.transaction_params.signer.public().into(),
 				move |best_block_id, transaction_nonce| {
 					Bytes(
 						P::TransactionSignScheme::sign_transaction(SignParam {
-							spec_version: runtime_version.spec_version,
-							transaction_version: runtime_version.transaction_version,
+							spec_version,
+							transaction_version,
 							genesis_hash,
 							signer: transaction_params.signer.clone(),
 							era: TransactionEra::new(best_block_id, transaction_params.mortality),

@@ -29,6 +29,7 @@ pub mod metrics;
 
 use std::time::Duration;
 
+use crate::client::ChainRuntimeVersion;
 pub use crate::{
 	chain::{
 		AccountKeyPairOf, BlockWithJustification, CallOf, Chain, ChainWithBalances,
@@ -56,11 +57,18 @@ pub struct ConnectionParams {
 	pub port: u16,
 	/// Use secure websocket connection.
 	pub secure: bool,
+	/// Defined chain runtime version
+	pub chain_runtime_version: ChainRuntimeVersion,
 }
 
 impl Default for ConnectionParams {
 	fn default() -> Self {
-		ConnectionParams { host: "localhost".into(), port: 9944, secure: false }
+		ConnectionParams {
+			host: "localhost".into(),
+			port: 9944,
+			secure: false,
+			chain_runtime_version: ChainRuntimeVersion::Auto,
+		}
 	}
 }
 

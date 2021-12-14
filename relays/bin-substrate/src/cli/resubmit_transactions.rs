@@ -412,7 +412,8 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 	})?;
 	let old_tip = unsigned_tx.tip;
 
-	let runtime_version = client.runtime_version().await?;
+	let spec_version = client.spec_version().await?;
+	let transaction_version = client.transaction_version().await?;
 	while current_priority < target_priority {
 		let next_tip = unsigned_tx.tip + tip_step;
 		if next_tip > tip_limit {
@@ -433,8 +434,8 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 			.validate_transaction(
 				at_block,
 				S::sign_transaction(SignParam {
-					spec_version: runtime_version.spec_version,
-					transaction_version: runtime_version.transaction_version,
+					spec_version,
+					transaction_version,
 					genesis_hash: *client.genesis_hash(),
 					signer: key_pair.clone(),
 					era: relay_substrate_client::TransactionEra::immortal(),

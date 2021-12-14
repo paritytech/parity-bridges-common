@@ -591,13 +591,14 @@ where
 	CallOf<C>: Send,
 {
 	let genesis_hash = *client.genesis_hash();
-	let runtime_version = client.runtime_version().await?;
+	let spec_version = client.spec_version().await?;
+	let transaction_version = client.transaction_version().await?;
 	client
 		.submit_signed_extrinsic(sign.public().into(), move |_, transaction_nonce| {
 			Bytes(
 				C::sign_transaction(SignParam {
-					spec_version: runtime_version.spec_version,
-					transaction_version: runtime_version.transaction_version,
+					spec_version,
+					transaction_version,
 					genesis_hash,
 					signer: sign,
 					era: relay_substrate_client::TransactionEra::immortal(),

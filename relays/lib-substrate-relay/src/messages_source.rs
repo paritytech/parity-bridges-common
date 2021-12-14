@@ -230,14 +230,15 @@ where
 	) -> Result<(), SubstrateError> {
 		let genesis_hash = *self.client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
-		let runtime_version = self.client.runtime_version().await?;
+		let spec_version = self.client.spec_version().await?;
+		let transaction_version = self.client.transaction_version().await?;
 		self.client
 			.submit_signed_extrinsic(
 				self.transaction_params.signer.public().into(),
 				move |best_block_id, transaction_nonce| {
 					make_messages_delivery_proof_transaction::<P>(
-						runtime_version.spec_version,
-						runtime_version.transaction_version,
+						spec_version,
+						transaction_version,
 						&genesis_hash,
 						&transaction_params,
 						best_block_id,

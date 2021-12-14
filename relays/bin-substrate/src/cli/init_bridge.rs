@@ -187,7 +187,8 @@ impl InitBridge {
 			let target_client = self.target.to_client::<Target>().await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
-			let runtime_version = target_client.runtime_version().await?;
+			let spec_version = target_client.spec_version().await?;
+			let transaction_version = target_client.transaction_version().await?;
 			substrate_relay_helper::headers_initialize::initialize(
 				source_client,
 				target_client.clone(),
@@ -195,8 +196,8 @@ impl InitBridge {
 				move |transaction_nonce, initialization_data| {
 					Bytes(
 						Target::sign_transaction(SignParam {
-							spec_version: runtime_version.spec_version,
-							transaction_version: runtime_version.transaction_version,
+							spec_version,
+							transaction_version,
 							genesis_hash: *target_client.genesis_hash(),
 							signer: target_sign,
 							era: relay_substrate_client::TransactionEra::immortal(),

@@ -116,7 +116,8 @@ impl RegisterParachain {
 			let reserve_parachain_id_call: CallOf<Relaychain> =
 				ParaRegistrarCall::reserve {}.into();
 			let reserve_parachain_signer = relay_sign.clone();
-			let runtime_version = relay_client.runtime_version().await?;
+			let spec_version = relay_client.spec_version().await?;
+			let transaction_version = relay_client.transaction_version().await?;
 			wait_until_transaction_is_finalized::<Relaychain>(
 				relay_client
 					.submit_and_watch_signed_extrinsic(
@@ -124,8 +125,8 @@ impl RegisterParachain {
 						move |_, transaction_nonce| {
 							Bytes(
 								Relaychain::sign_transaction(SignParam {
-									spec_version: runtime_version.spec_version,
-									transaction_version: runtime_version.transaction_version,
+									spec_version,
+									transaction_version,
 									genesis_hash: relay_genesis_hash,
 									signer: reserve_parachain_signer,
 									era: relay_substrate_client::TransactionEra::immortal(),
@@ -166,7 +167,8 @@ impl RegisterParachain {
 			}
 			.into();
 			let register_parathread_signer = relay_sign.clone();
-			let runtime_version = relay_client.runtime_version().await?;
+			let spec_version = relay_client.spec_version().await?;
+			let transaction_version = relay_client.transaction_version().await?;
 			wait_until_transaction_is_finalized::<Relaychain>(
 				relay_client
 					.submit_and_watch_signed_extrinsic(
@@ -174,8 +176,8 @@ impl RegisterParachain {
 						move |_, transaction_nonce| {
 							Bytes(
 								Relaychain::sign_transaction(SignParam {
-									spec_version: runtime_version.spec_version,
-									transaction_version: runtime_version.transaction_version,
+									spec_version,
+									transaction_version,
 									genesis_hash: relay_genesis_hash,
 									signer: register_parathread_signer,
 									era: relay_substrate_client::TransactionEra::immortal(),
@@ -232,13 +234,14 @@ impl RegisterParachain {
 			}
 			.into();
 			let force_lease_signer = relay_sign.clone();
-			let runtime_version = relay_client.runtime_version().await?;
+			let spec_version = relay_client.spec_version().await?;
+			let transaction_version = relay_client.transaction_version().await?;
 			relay_client
 				.submit_signed_extrinsic(relay_sudo_account.clone(), move |_, transaction_nonce| {
 					Bytes(
 						Relaychain::sign_transaction(SignParam {
-							spec_version: runtime_version.spec_version,
-							transaction_version: runtime_version.transaction_version,
+							spec_version,
+							transaction_version,
 							genesis_hash: relay_genesis_hash,
 							signer: force_lease_signer,
 							era: relay_substrate_client::TransactionEra::immortal(),

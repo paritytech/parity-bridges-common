@@ -234,7 +234,8 @@ impl SwapTokens {
 			// start tokens swap
 			let source_genesis_hash = *source_client.genesis_hash();
 			let create_swap_signer = source_sign.clone();
-			let runtime_version = source_client.runtime_version().await?;
+			let spec_version = source_client.spec_version().await?;
+			let transaction_version = source_client.transaction_version().await?;
 			let swap_created_at = wait_until_transaction_is_finalized::<Source>(
 				source_client
 					.submit_and_watch_signed_extrinsic(
@@ -242,8 +243,8 @@ impl SwapTokens {
 						move |_, transaction_nonce| {
 							Bytes(
 								Source::sign_transaction(SignParam {
-									spec_version: runtime_version.spec_version,
-									transaction_version: runtime_version.transaction_version,
+									spec_version,
+									transaction_version,
 									genesis_hash: source_genesis_hash,
 									signer: create_swap_signer,
 									era: relay_substrate_client::TransactionEra::immortal(),
@@ -375,7 +376,8 @@ impl SwapTokens {
 
 				// send `claim_swap` message
 				let target_genesis_hash = *target_client.genesis_hash();
-				let runtime_version = target_client.runtime_version().await?;
+				let spec_version = target_client.spec_version().await?;
+				let transaction_version = target_client.transaction_version().await?;
 				let _ = wait_until_transaction_is_finalized::<Target>(
 					target_client
 						.submit_and_watch_signed_extrinsic(
@@ -383,8 +385,8 @@ impl SwapTokens {
 							move |_, transaction_nonce| {
 								Bytes(
 									Target::sign_transaction(SignParam {
-										spec_version: runtime_version.spec_version,
-										transaction_version: runtime_version.transaction_version,
+										spec_version,
+										transaction_version,
 										genesis_hash: target_genesis_hash,
 										signer: target_sign,
 										era: relay_substrate_client::TransactionEra::immortal(),
@@ -418,7 +420,8 @@ impl SwapTokens {
 				log::info!(target: "bridge", "Cancelling the swap");
 				let cancel_swap_call: CallOf<Source> =
 					pallet_bridge_token_swap::Call::cancel_swap { swap: token_swap.clone() }.into();
-				let runtime_version = source_client.runtime_version().await?;
+				let spec_version = source_client.spec_version().await?;
+				let transaction_version = source_client.transaction_version().await?;
 				let _ = wait_until_transaction_is_finalized::<Source>(
 					source_client
 						.submit_and_watch_signed_extrinsic(
@@ -426,8 +429,8 @@ impl SwapTokens {
 							move |_, transaction_nonce| {
 								Bytes(
 									Source::sign_transaction(SignParam {
-										spec_version: runtime_version.spec_version,
-										transaction_version: runtime_version.transaction_version,
+										spec_version,
+										transaction_version,
 										genesis_hash: source_genesis_hash,
 										signer: source_sign,
 										era: relay_substrate_client::TransactionEra::immortal(),
