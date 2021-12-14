@@ -18,10 +18,12 @@
 
 use std::convert::TryInto;
 
-use bp_messages::LaneId;
 use codec::{Decode, Encode};
+use relay_substrate_client::ChainRuntimeVersion;
 use sp_runtime::app_crypto::Ss58Codec;
 use structopt::{clap::arg_enum, StructOpt};
+
+use bp_messages::LaneId;
 
 pub(crate) mod bridge;
 pub(crate) mod encode_call;
@@ -524,7 +526,7 @@ macro_rules! declare_chain_options {
 					bundle_spec_version: u32,
 					bundle_transaction_version: u32
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
-					let chain_runtime_version = match [<$chain_prefix _runtime_version>] {
+					let chain_runtime_version = match self.[<$chain_prefix _runtime_version>] {
 						RuntimeVersionParams::Auto => ChainRuntimeVersion::Auto,
 						RuntimeVersionParams::Custom {
 							spec_version,
@@ -556,8 +558,9 @@ declare_chain_options!(Parachain, parachain);
 
 #[cfg(test)]
 mod tests {
-	use sp_core::Pair;
 	use std::str::FromStr;
+
+	use sp_core::Pair;
 
 	use super::*;
 

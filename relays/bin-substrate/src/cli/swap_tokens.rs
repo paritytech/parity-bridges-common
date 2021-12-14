@@ -98,6 +98,10 @@ macro_rules! select_bridge {
 			SwapTokensBridge::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
+				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
 
 				type FromSwapToThisAccountIdConverter = bp_rialto::AccountIdConverter;
 
@@ -113,9 +117,6 @@ macro_rules! select_bridge {
 
 				const SOURCE_CHAIN_ID: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
 				const TARGET_CHAIN_ID: bp_runtime::ChainId = bp_runtime::RIALTO_CHAIN_ID;
-
-				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
-				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
 
 				const SOURCE_TO_TARGET_LANE_ID: bp_messages::LaneId = *b"swap";
 				const TARGET_TO_SOURCE_LANE_ID: bp_messages::LaneId = [0, 0, 0, 0];

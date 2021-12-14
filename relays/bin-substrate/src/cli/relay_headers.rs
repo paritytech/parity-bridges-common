@@ -64,6 +64,10 @@ macro_rules! select_bridge {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
 				type Finality = crate::chains::millau_headers_to_rialto::MillauFinalityToRialto;
+				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
 
 				$generic
 			},
@@ -71,6 +75,10 @@ macro_rules! select_bridge {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
 				type Finality = crate::chains::rialto_headers_to_millau::RialtoFinalityToMillau;
+				const SOURCE_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
 
 				$generic
 			},
@@ -78,6 +86,10 @@ macro_rules! select_bridge {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
 				type Finality = crate::chains::westend_headers_to_millau::WestendFinalityToMillau;
+				const SOURCE_SPEC_VERSION: u32 = bp_westend::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_westend::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
 
 				$generic
 			},
@@ -85,6 +97,10 @@ macro_rules! select_bridge {
 				type Source = relay_rococo_client::Rococo;
 				type Target = relay_wococo_client::Wococo;
 				type Finality = crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
+				const SOURCE_SPEC_VERSION: u32 = bp_rococo::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_rococo::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = bp_wococo::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = bp_wococo::VERSION.transaction_version;
 
 				$generic
 			},
@@ -92,6 +108,10 @@ macro_rules! select_bridge {
 				type Source = relay_wococo_client::Wococo;
 				type Target = relay_rococo_client::Rococo;
 				type Finality = crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
+				const SOURCE_SPEC_VERSION: u32 = bp_wococo::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_wococo::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = bp_rococo::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = bp_rococo::VERSION.transaction_version;
 
 				$generic
 			},
@@ -99,6 +119,10 @@ macro_rules! select_bridge {
 				type Source = relay_kusama_client::Kusama;
 				type Target = relay_polkadot_client::Polkadot;
 				type Finality = crate::chains::kusama_headers_to_polkadot::KusamaFinalityToPolkadot;
+				const SOURCE_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_kusama::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = bp_polkadot::VERSION.transaction_version;
 
 				$generic
 			},
@@ -106,6 +130,10 @@ macro_rules! select_bridge {
 				type Source = relay_polkadot_client::Polkadot;
 				type Target = relay_kusama_client::Kusama;
 				type Finality = crate::chains::polkadot_headers_to_kusama::PolkadotFinalityToKusama;
+				const SOURCE_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_polkadot::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = bp_kusama::VERSION.transaction_version;
 
 				$generic
 			},

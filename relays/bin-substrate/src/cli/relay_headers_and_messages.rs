@@ -29,7 +29,8 @@ use strum::VariantNames;
 use codec::Encode;
 use messages_relay::relay_strategy::MixStrategy;
 use relay_substrate_client::{
-	AccountIdOf, CallOf, Chain, Client, SignParam, TransactionSignScheme, UnsignedTransaction,
+	AccountIdOf, CallOf, Chain, ChainRuntimeVersion, Client, SignParam, TransactionSignScheme,
+	UnsignedTransaction,
 };
 use relay_utils::metrics::MetricsParams;
 use sp_core::{Bytes, Pair};
@@ -39,7 +40,9 @@ use substrate_relay_helper::{
 };
 
 use crate::{
-	cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams},
+	cli::{
+		relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams, RuntimeVersionParams,
+	},
 	declare_chain_options,
 };
 
@@ -137,7 +140,7 @@ macro_rules! select_bridge {
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber =
 					bp_rialto::SESSION_LENGTH;
 				const LEFT_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
-				const LEFT_TRANSACTION_VERSION: u32 = rillau_runtime::VERSION.transaction_version;
+				const LEFT_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
 				const RIGHT_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
 				const RIGHT_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
 
@@ -188,10 +191,10 @@ macro_rules! select_bridge {
 					bp_rococo::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber =
 					bp_wococo::SESSION_LENGTH;
-				const LEFT_SPEC_VERSION: u32 = rococo_runtime::VERSION.spec_version;
-				const LEFT_TRANSACTION_VERSION: u32 = rococo_runtime::VERSION.transaction_version;
-				const RIGHT_SPEC_VERSION: u32 = wococo_runtime::VERSION.spec_version;
-				const RIGHT_TRANSACTION_VERSION: u32 = wococo_runtime::VERSION.transaction_version;
+				const LEFT_SPEC_VERSION: u32 = bp_rococo::VERSION.spec_version;
+				const LEFT_TRANSACTION_VERSION: u32 = bp_rococo::VERSION.transaction_version;
+				const RIGHT_SPEC_VERSION: u32 = bp_wococo::VERSION.spec_version;
+				const RIGHT_TRANSACTION_VERSION: u32 = bp_wococo::VERSION.transaction_version;
 
 				use crate::chains::{
 					rococo_messages_to_wococo::RococoMessagesToWococo as LeftToRightMessageLane,
@@ -270,11 +273,10 @@ macro_rules! select_bridge {
 					bp_kusama::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_polkadot::BlockNumber =
 					bp_polkadot::SESSION_LENGTH;
-				const LEFT_SPEC_VERSION: u32 = kusama_runtime::VERSION.spec_version;
-				const LEFT_TRANSACTION_VERSION: u32 = kusama_runtime::VERSION.transaction_version;
-				const RIGHT_SPEC_VERSION: u32 = polkadot_runtime::VERSION.spec_version;
-				const RIGHT_TRANSACTION_VERSION: u32 =
-					polkadot_runtime::VERSION.transaction_version;
+				const LEFT_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
+				const LEFT_TRANSACTION_VERSION: u32 = bp_kusama::VERSION.transaction_version;
+				const RIGHT_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
+				const RIGHT_TRANSACTION_VERSION: u32 = bp_polkadot::VERSION.transaction_version;
 
 				use crate::chains::{
 					kusama_messages_to_polkadot::{

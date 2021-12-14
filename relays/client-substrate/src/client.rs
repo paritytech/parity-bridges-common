@@ -158,13 +158,14 @@ impl<C: Chain> Client<C> {
 			})
 			.await??;
 
+		let chain_runtime_version = params.chain_runtime_version.clone();
 		Ok(Self {
 			tokio,
 			params,
 			client,
 			genesis_hash,
 			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
-			chain_runtime_version: params.chain_runtime_version.clone(),
+			chain_runtime_version,
 		})
 	}
 

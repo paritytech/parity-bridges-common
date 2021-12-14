@@ -56,6 +56,10 @@ macro_rules! select_bridge {
 			InitBridgeName::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
+				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -74,6 +78,10 @@ macro_rules! select_bridge {
 			InitBridgeName::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
+				const SOURCE_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -92,6 +100,10 @@ macro_rules! select_bridge {
 			InitBridgeName::WestendToMillau => {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
+				const SOURCE_SPEC_VERSION: u32 = bp_westend::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_westend::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -114,6 +126,10 @@ macro_rules! select_bridge {
 			InitBridgeName::RococoToWococo => {
 				type Source = relay_rococo_client::Rococo;
 				type Target = relay_wococo_client::Wococo;
+				const SOURCE_SPEC_VERSION: u32 = bp_rococo::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_rococo::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = bp_wococo::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = bp_wococo::VERSION.transaction_version;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -130,6 +146,10 @@ macro_rules! select_bridge {
 			InitBridgeName::WococoToRococo => {
 				type Source = relay_wococo_client::Wococo;
 				type Target = relay_rococo_client::Rococo;
+				const SOURCE_SPEC_VERSION: u32 = bp_wococo::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_wococo::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = bp_rococo::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = bp_rococo::VERSION.transaction_version;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -146,6 +166,10 @@ macro_rules! select_bridge {
 			InitBridgeName::KusamaToPolkadot => {
 				type Source = relay_kusama_client::Kusama;
 				type Target = relay_polkadot_client::Polkadot;
+				const SOURCE_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_kusama::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = bp_polkadot::VERSION.transaction_version;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -162,6 +186,10 @@ macro_rules! select_bridge {
 			InitBridgeName::PolkadotToKusama => {
 				type Source = relay_polkadot_client::Polkadot;
 				type Target = relay_kusama_client::Kusama;
+				const SOURCE_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = bp_polkadot::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = bp_kusama::VERSION.transaction_version;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,

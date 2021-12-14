@@ -29,14 +29,13 @@ pub mod metrics;
 
 use std::time::Duration;
 
-use crate::client::ChainRuntimeVersion;
 pub use crate::{
 	chain::{
 		AccountKeyPairOf, BlockWithJustification, CallOf, Chain, ChainWithBalances,
 		ChainWithMessages, SignParam, TransactionSignScheme, TransactionStatusOf,
 		UnsignedTransaction, WeightToFeeOf,
 	},
-	client::{Client, OpaqueGrandpaAuthoritiesSet, Subscription},
+	client::{ChainRuntimeVersion, Client, OpaqueGrandpaAuthoritiesSet, Subscription},
 	error::{Error, Result},
 	sync_header::SyncHeader,
 };
