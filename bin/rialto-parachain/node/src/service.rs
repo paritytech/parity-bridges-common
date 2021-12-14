@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! RialtoParachain chain node service.
+//! Rialto parachain node service.
 //!
 //! The code is mostly copy of `polkadot-parachains/src/service.rs` file from Cumulus
-//! repository with some parts removed. We have added two rpc extensions to the original
+//! repository with some parts removed. We have added two RPC extensions to the original
 //! service: `pallet_transaction_payment_rpc::TransactionPaymentApi` and
 //! `substrate_frame_rpc_system::SystemApi`.
 
