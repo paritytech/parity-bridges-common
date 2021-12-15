@@ -77,9 +77,13 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use millau_runtime::millau_to_rialto_account_ownership_digest as account_ownership_digest;
 
+				#[allow(dead_code)]
 				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				#[allow(dead_code)]
 				const SOURCE_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
+				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				#[allow(dead_code)]
 				const TARGET_TRANSACTION_VERSION: u32 =
 					rialto_runtime::VERSION.transaction_version;
 
@@ -106,9 +110,13 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use rialto_runtime::rialto_to_millau_account_ownership_digest as account_ownership_digest;
 
+				#[allow(dead_code)]
 				const SOURCE_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				#[allow(dead_code)]
 				const SOURCE_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
+				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				#[allow(dead_code)]
 				const TARGET_TRANSACTION_VERSION: u32 =
 					millau_runtime::VERSION.transaction_version;
 				$generic
@@ -133,9 +141,13 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use relay_rococo_client::runtime::rococo_to_wococo_account_ownership_digest as account_ownership_digest;
 
+				#[allow(dead_code)]
 				const SOURCE_SPEC_VERSION: u32 = bp_rococo::VERSION.spec_version;
+				#[allow(dead_code)]
 				const SOURCE_TRANSACTION_VERSION: u32 = bp_rococo::VERSION.transaction_version;
+				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: u32 = bp_wococo::VERSION.spec_version;
+				#[allow(dead_code)]
 				const TARGET_TRANSACTION_VERSION: u32 =
 					bp_wococo::VERSION.transaction_version;
 				$generic
@@ -160,9 +172,13 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use relay_wococo_client::runtime::wococo_to_rococo_account_ownership_digest as account_ownership_digest;
 
+				#[allow(dead_code)]
 				const SOURCE_SPEC_VERSION: u32 = bp_wococo::VERSION.spec_version;
+				#[allow(dead_code)]
 				const SOURCE_TRANSACTION_VERSION: u32 = bp_wococo::VERSION.transaction_version;
+				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: u32 = bp_rococo::VERSION.spec_version;
+				#[allow(dead_code)]
 				const TARGET_TRANSACTION_VERSION: u32 =
 					bp_rococo::VERSION.transaction_version;
 				$generic
@@ -187,9 +203,13 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use relay_kusama_client::runtime::kusama_to_polkadot_account_ownership_digest as account_ownership_digest;
 
+				#[allow(dead_code)]
 				const SOURCE_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
+				#[allow(dead_code)]
 				const SOURCE_TRANSACTION_VERSION: u32 = bp_kusama::VERSION.transaction_version;
+				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
+				#[allow(dead_code)]
 				const TARGET_TRANSACTION_VERSION: u32 =
 					bp_polkadot::VERSION.transaction_version;
 				$generic
@@ -214,9 +234,13 @@ macro_rules! select_full_bridge {
 				#[allow(unused_imports)]
 				use relay_polkadot_client::runtime::polkadot_to_kusama_account_ownership_digest as account_ownership_digest;
 
+				#[allow(dead_code)]
 				const SOURCE_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
+				#[allow(dead_code)]
 				const SOURCE_TRANSACTION_VERSION: u32 = bp_polkadot::VERSION.transaction_version;
+				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
+				#[allow(dead_code)]
 				const TARGET_TRANSACTION_VERSION: u32 =
 					bp_kusama::VERSION.transaction_version;
 				$generic
