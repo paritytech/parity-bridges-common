@@ -756,10 +756,13 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "frame-system",
+ "hex",
+ "hex-literal",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
  "serde",
+ "sp-core",
  "sp-std",
 ]
 
@@ -898,10 +901,14 @@ dependencies = [
 name = "bp-token-swap"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "frame-support",
+ "hex",
+ "hex-literal",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
+ "sp-io",
  "sp-std",
 ]
 
@@ -5341,8 +5348,6 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex",
- "hex-literal",
  "log",
  "num-traits",
  "pallet-balances",
