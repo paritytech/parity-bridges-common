@@ -695,6 +695,7 @@ async fn read_token_swap_state<C: Chain>(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::cli::{RuntimeVersionType, SourceRuntimeVersionParams, TargetRuntimeVersionParams};
 
 	#[test]
 	fn swap_tokens_millau_to_rialto_no_lock() {
@@ -728,6 +729,11 @@ mod tests {
 					source_host: "127.0.0.1".into(),
 					source_port: 9000,
 					source_secure: false,
+					source_runtime_version: SourceRuntimeVersionParams {
+						source_version_mode: RuntimeVersionType::Bundle,
+						source_spec_version: None,
+						source_transaction_version: None,
+					}
 				},
 				source_sign: SourceSigningParams {
 					source_signer: Some("//Alice".into()),
@@ -740,6 +746,11 @@ mod tests {
 					target_host: "127.0.0.1".into(),
 					target_port: 9001,
 					target_secure: false,
+					target_runtime_version: TargetRuntimeVersionParams {
+						target_version_mode: RuntimeVersionType::Bundle,
+						target_spec_version: None,
+						target_transaction_version: None,
+					}
 				},
 				target_sign: TargetSigningParams {
 					target_signer: Some("//Bob".into()),
@@ -789,6 +800,11 @@ mod tests {
 					source_host: "127.0.0.1".into(),
 					source_port: 9000,
 					source_secure: false,
+					source_runtime_version: SourceRuntimeVersionParams {
+						source_version_mode: RuntimeVersionType::Bundle,
+						source_spec_version: None,
+						source_transaction_version: None,
+					}
 				},
 				source_sign: SourceSigningParams {
 					source_signer: Some("//Alice".into()),
@@ -801,6 +817,11 @@ mod tests {
 					target_host: "127.0.0.1".into(),
 					target_port: 9001,
 					target_secure: false,
+					target_runtime_version: TargetRuntimeVersionParams {
+						target_version_mode: RuntimeVersionType::Bundle,
+						target_spec_version: None,
+						target_transaction_version: None,
+					}
 				},
 				target_sign: TargetSigningParams {
 					target_signer: Some("//Bob".into()),

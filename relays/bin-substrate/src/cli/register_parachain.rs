@@ -315,6 +315,9 @@ async fn wait_para_state<Relaychain: Chain>(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::cli::{
+		ParachainRuntimeVersionParams, RelaychainRuntimeVersionParams, RuntimeVersionType,
+	};
 
 	#[test]
 	fn register_rialto_parachain() {
@@ -350,6 +353,11 @@ mod tests {
 					relaychain_host: "127.0.0.1".into(),
 					relaychain_port: 9944,
 					relaychain_secure: false,
+					relaychain_runtime_version: RelaychainRuntimeVersionParams {
+						relaychain_version_mode: RuntimeVersionType::Bundle,
+						relaychain_spec_version: None,
+						relaychain_transaction_version: None,
+					}
 				},
 				relay_sign: RelaychainSigningParams {
 					relaychain_signer: Some("//Alice".into()),
@@ -362,6 +370,11 @@ mod tests {
 					parachain_host: "127.0.0.1".into(),
 					parachain_port: 11949,
 					parachain_secure: false,
+					parachain_runtime_version: ParachainRuntimeVersionParams {
+						parachain_version_mode: RuntimeVersionType::Bundle,
+						parachain_spec_version: None,
+						parachain_transaction_version: None,
+					}
 				},
 			}
 		);
