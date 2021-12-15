@@ -22,6 +22,7 @@ use codec::{Decode, Encode};
 use relay_substrate_client::ChainRuntimeVersion;
 use sp_runtime::app_crypto::Ss58Codec;
 use structopt::{clap::arg_enum, StructOpt};
+use strum::{EnumString, EnumVariantNames};
 
 use bp_messages::LaneId;
 
@@ -367,7 +368,7 @@ where
 }
 
 #[doc = "Runtime version params."]
-#[derive(StructOpt, Debug, PartialEq, Eq, Clone)]
+#[derive(StructOpt, Debug, PartialEq, Eq, Clone, EnumString, EnumVariantNames)]
 pub enum RuntimeVersionParams {
 	/// Auto query version from chain
 	Auto,
