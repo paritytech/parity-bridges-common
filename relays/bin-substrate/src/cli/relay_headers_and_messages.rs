@@ -40,9 +40,7 @@ use substrate_relay_helper::{
 };
 
 use crate::{
-	cli::{
-		relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams, RuntimeVersionParams,
-	},
+	cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams, RuntimeVersionType},
 	declare_chain_options,
 };
 

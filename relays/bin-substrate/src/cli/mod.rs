@@ -369,18 +369,11 @@ where
 
 #[doc = "Runtime version params."]
 #[derive(StructOpt, Debug, PartialEq, Eq, Clone, EnumString, EnumVariantNames)]
-pub enum RuntimeVersionParams {
+pub enum RuntimeVersionType {
 	/// Auto query version from chain
 	Auto,
 	/// Custom spec_version and transaction_version
-	Custom {
-		/// spec_version
-		#[structopt(long)]
-		spec_version: u32,
-		/// transaction_version
-		#[structopt(long)]
-		transaction_version: u32,
-	},
+	Custom,
 	/// Read version from bundle dependencies directly.
 	Bundle,
 }
@@ -404,8 +397,22 @@ macro_rules! declare_chain_options {
 				#[structopt(long)]
 				pub [<$chain_prefix _secure>]: bool,
 				#[doc = "Custom runtime version"]
+				#[structopt(flatten)]
+				pub [<$chain_prefix _runtime_version>]: [<$chain RuntimeVersionParams>],
+			}
+
+			#[doc = $chain " runtime version params."]
+			#[derive(StructOpt, Debug, PartialEq, Eq, Clone)]
+			pub struct [<$chain RuntimeVersionParams>] {
+				#[doc = "The type of runtime version for chain " $chain]
+				#[structopt(long, default_value = "Bundle")]
+				pub [<$chain_prefix _version_mode>]: RuntimeVersionType,
+				#[doc = "The custom sepc_version for chain " $chain]
 				#[structopt(long)]
-				pub [<$chain_prefix _runtime_version>]: RuntimeVersionParams,
+				pub [<$chain_prefix _spec_version>]: Option<u32>,
+				#[doc = "The custom transaction_version for chain " $chain]
+				#[structopt(long)]
+				pub [<$chain_prefix _transaction_version>]: Option<u32>,
 			}
 
 			#[doc = $chain " signing params."]
@@ -527,17 +534,24 @@ macro_rules! declare_chain_options {
 					bundle_spec_version: u32,
 					bundle_transaction_version: u32
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
-					let chain_runtime_version = match self.[<$chain_prefix _runtime_version>] {
-						RuntimeVersionParams::Auto => ChainRuntimeVersion::Auto,
-						RuntimeVersionParams::Custom {
-							spec_version,
-							transaction_version
-						} => ChainRuntimeVersion::Custom(spec_version, transaction_version),
-						RuntimeVersionParams::Bundle => ChainRuntimeVersion::Custom(
+					let runtime_version_params = &self.[<$chain_prefix _runtime_version>];
+					let chain_runtime_version = match runtime_version_params.[<$chain_prefix _version_mode>] {
+						RuntimeVersionType::Auto => ChainRuntimeVersion::Auto,
+						RuntimeVersionType::Custom => {
+							let except_spec_version = runtime_version_params.[<$chain_prefix _spec_version>]
+								.ok_or(anyhow::Error::msg(format!("The {}-spec-version is required when choose custom mode", stringify!($chain_prefix))))?;
+							let except_transaction_version = runtime_version_params.[<$chain_prefix _transaction_version>]
+								.ok_or(anyhow::Error::msg(format!("The {}-transaction-version is required when choose custom mode", stringify!($chain_prefix))))?;
+							ChainRuntimeVersion::Custom(
+								except_spec_version,
+								except_transaction_version
+							)
+						}
+						RuntimeVersionType::Bundle => ChainRuntimeVersion::Custom(
 							bundle_spec_version,
 							bundle_transaction_version
 						)
-					};
+ 					};
 					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {
 						host: self.[<$chain_prefix _host>].clone(),
 						port: self.[<$chain_prefix _port>],
