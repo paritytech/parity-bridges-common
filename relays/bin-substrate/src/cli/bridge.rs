@@ -84,8 +84,8 @@ macro_rules! select_full_bridge {
 				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: Option<u32> = Some(rialto_runtime::VERSION.spec_version);
 				#[allow(dead_code)]
-				const TARGET_TRANSACTION_VERSION: u32 =
-					rialto_runtime::VERSION.transaction_version;
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(rialto_runtime::VERSION.transaction_version);
 
 				$generic
 			}
@@ -117,8 +117,8 @@ macro_rules! select_full_bridge {
 				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: Option<u32> = Some(millau_runtime::VERSION.spec_version);
 				#[allow(dead_code)]
-				const TARGET_TRANSACTION_VERSION: u32 =
-					millau_runtime::VERSION.transaction_version;
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(millau_runtime::VERSION.transaction_version);
 				$generic
 			}
 			FullBridge::RococoToWococo => {
@@ -148,8 +148,8 @@ macro_rules! select_full_bridge {
 				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: Option<u32> = Some(bp_wococo::VERSION.spec_version);
 				#[allow(dead_code)]
-				const TARGET_TRANSACTION_VERSION: u32 =
-					bp_wococo::VERSION.transaction_version;
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_wococo::VERSION.transaction_version);
 				$generic
 			}
 			FullBridge::WococoToRococo => {
@@ -179,8 +179,8 @@ macro_rules! select_full_bridge {
 				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: Option<u32> = Some(bp_rococo::VERSION.spec_version);
 				#[allow(dead_code)]
-				const TARGET_TRANSACTION_VERSION: u32 =
-					bp_rococo::VERSION.transaction_version;
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_rococo::VERSION.transaction_version);
 				$generic
 			}
 			FullBridge::KusamaToPolkadot => {
@@ -210,8 +210,8 @@ macro_rules! select_full_bridge {
 				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: Option<u32> = Some(bp_polkadot::VERSION.spec_version);
 				#[allow(dead_code)]
-				const TARGET_TRANSACTION_VERSION: u32 =
-					bp_polkadot::VERSION.transaction_version;
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_polkadot::VERSION.transaction_version);
 				$generic
 			}
 			FullBridge::PolkadotToKusama => {
@@ -241,8 +241,8 @@ macro_rules! select_full_bridge {
 				#[allow(dead_code)]
 				const TARGET_SPEC_VERSION: Option<u32> = Some(bp_kusama::VERSION.spec_version);
 				#[allow(dead_code)]
-				const TARGET_TRANSACTION_VERSION: u32 =
-					bp_kusama::VERSION.transaction_version;
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_kusama::VERSION.transaction_version);
 				$generic
 			}
 		}

@@ -98,12 +98,10 @@ macro_rules! select_bridge {
 			SwapTokensBridge::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
-				const SOURCE_SPEC_VERSION: Option<u32> = Some(millau_runtime::VERSION.spec_version);
-				const SOURCE_TRANSACTION_VERSION: Option<u32> =
-					Some(millau_runtime::VERSION.transaction_version);
-				const TARGET_SPEC_VERSION: Option<u32> = Some(rialto_runtime::VERSION.spec_version);
-				const TARGET_TRANSACTION_VERSION: Option<u32> =
-					Some(rialto_runtime::VERSION.transaction_version);
+				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
+				const SOURCE_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const TARGET_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
 
 				type FromSwapToThisAccountIdConverter = bp_rialto::AccountIdConverter;
 
@@ -135,12 +133,12 @@ impl SwapTokens {
 		select_bridge!(self.bridge, {
 			let source_client = self
 				.source
-				.to_client::<Source>(SOURCE_SPEC_VERSION, SOURCE_TRANSACTION_VERSION)
+				.to_client::<Source>(Some(SOURCE_SPEC_VERSION), Some(SOURCE_TRANSACTION_VERSION))
 				.await?;
 			let source_sign = self.source_sign.to_keypair::<Target>()?;
 			let target_client = self
 				.target
-				.to_client::<Target>(TARGET_SPEC_VERSION, TARGET_TRANSACTION_VERSION)
+				.to_client::<Target>(Some(TARGET_SPEC_VERSION), Some(TARGET_TRANSACTION_VERSION))
 				.await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
