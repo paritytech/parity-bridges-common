@@ -83,10 +83,12 @@ macro_rules! select_bridge {
 
 				use bp_rialto::{PARAS_PALLET_NAME, PARAS_REGISTRAR_PALLET_NAME};
 
-				const RELAY_CHAIN_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
+				const RELAY_CHAIN_SPEC_VERSION: Option<u32> =
+					Some(rialto_runtime::VERSION.spec_version);
 				const RELAY_CHAIN_TRANSACTION_VERSION: u32 =
 					rialto_runtime::VERSION.transaction_version;
-				const PARA_CHAIN_SPEC_VERSION: u32 = rialto_parachain_runtime::VERSION.spec_version;
+				const PARA_CHAIN_SPEC_VERSION: Option<u32> =
+					Some(rialto_parachain_runtime::VERSION.spec_version);
 				const PARA_CHAIN_TRANSACTION_VERSION: u32 =
 					rialto_parachain_runtime::VERSION.transaction_version;
 

@@ -91,24 +91,27 @@ macro_rules! select_bridge {
 			RelayChain::Millau => {
 				type Target = relay_millau_client::Millau;
 				type TargetSign = relay_millau_client::Millau;
-				const TARGET_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
-				const TARGET_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: Option<u32> = Some(millau_runtime::VERSION.spec_version);
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(millau_runtime::VERSION.transaction_version);
 
 				$generic
 			},
 			RelayChain::Kusama => {
 				type Target = relay_kusama_client::Kusama;
 				type TargetSign = relay_kusama_client::Kusama;
-				const TARGET_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
-				const TARGET_TRANSACTION_VERSION: u32 = bp_kusama::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: Option<u32> = Some(bp_kusama::VERSION.spec_version);
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_kusama::VERSION.transaction_version);
 
 				$generic
 			},
 			RelayChain::Polkadot => {
 				type Target = relay_polkadot_client::Polkadot;
 				type TargetSign = relay_polkadot_client::Polkadot;
-				const TARGET_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
-				const TARGET_TRANSACTION_VERSION: u32 = bp_polkadot::VERSION.transaction_version;
+				const TARGET_SPEC_VERSION: Option<u32> = Some(bp_polkadot::VERSION.spec_version);
+				const TARGET_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_polkadot::VERSION.transaction_version);
 
 				$generic
 			},

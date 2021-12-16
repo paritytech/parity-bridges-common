@@ -137,10 +137,12 @@ macro_rules! select_bridge {
 					bp_millau::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber =
 					bp_rialto::SESSION_LENGTH;
-				const LEFT_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
-				const LEFT_TRANSACTION_VERSION: u32 = millau_runtime::VERSION.transaction_version;
-				const RIGHT_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
-				const RIGHT_TRANSACTION_VERSION: u32 = rialto_runtime::VERSION.transaction_version;
+				const LEFT_SPEC_VERSION: Option<u32> = Some(millau_runtime::VERSION.spec_version);
+				const LEFT_TRANSACTION_VERSION: Option<u32> =
+					Some(millau_runtime::VERSION.transaction_version);
+				const RIGHT_SPEC_VERSION: Option<u32> = Some(rialto_runtime::VERSION.spec_version);
+				const RIGHT_TRANSACTION_VERSION: Option<u32> =
+					Some(rialto_runtime::VERSION.transaction_version);
 
 				use crate::chains::{
 					millau_messages_to_rialto::{
@@ -189,10 +191,12 @@ macro_rules! select_bridge {
 					bp_rococo::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber =
 					bp_wococo::SESSION_LENGTH;
-				const LEFT_SPEC_VERSION: u32 = bp_rococo::VERSION.spec_version;
-				const LEFT_TRANSACTION_VERSION: u32 = bp_rococo::VERSION.transaction_version;
-				const RIGHT_SPEC_VERSION: u32 = bp_wococo::VERSION.spec_version;
-				const RIGHT_TRANSACTION_VERSION: u32 = bp_wococo::VERSION.transaction_version;
+				const LEFT_SPEC_VERSION: Option<u32> = Some(bp_rococo::VERSION.spec_version);
+				const LEFT_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_rococo::VERSION.transaction_version);
+				const RIGHT_SPEC_VERSION: Option<u32> = Some(bp_wococo::VERSION.spec_version);
+				const RIGHT_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_wococo::VERSION.transaction_version);
 
 				use crate::chains::{
 					rococo_messages_to_wococo::RococoMessagesToWococo as LeftToRightMessageLane,
@@ -271,10 +275,12 @@ macro_rules! select_bridge {
 					bp_kusama::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_polkadot::BlockNumber =
 					bp_polkadot::SESSION_LENGTH;
-				const LEFT_SPEC_VERSION: u32 = bp_kusama::VERSION.spec_version;
-				const LEFT_TRANSACTION_VERSION: u32 = bp_kusama::VERSION.transaction_version;
-				const RIGHT_SPEC_VERSION: u32 = bp_polkadot::VERSION.spec_version;
-				const RIGHT_TRANSACTION_VERSION: u32 = bp_polkadot::VERSION.transaction_version;
+				const LEFT_SPEC_VERSION: Option<u32> = Some(bp_kusama::VERSION.spec_version);
+				const LEFT_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_kusama::VERSION.transaction_version);
+				const RIGHT_SPEC_VERSION: Option<u32> = Some(bp_polkadot::VERSION.spec_version);
+				const RIGHT_TRANSACTION_VERSION: Option<u32> =
+					Some(bp_polkadot::VERSION.transaction_version);
 
 				use crate::chains::{
 					kusama_messages_to_polkadot::{
