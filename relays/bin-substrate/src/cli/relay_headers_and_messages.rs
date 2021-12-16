@@ -137,12 +137,10 @@ macro_rules! select_bridge {
 					bp_millau::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber =
 					bp_rialto::SESSION_LENGTH;
-				const LEFT_SPEC_VERSION: Option<u32> = Some(millau_runtime::VERSION.spec_version);
-				const LEFT_TRANSACTION_VERSION: Option<u32> =
-					Some(millau_runtime::VERSION.transaction_version);
-				const RIGHT_SPEC_VERSION: Option<u32> = Some(rialto_runtime::VERSION.spec_version);
-				const RIGHT_TRANSACTION_VERSION: Option<u32> =
-					Some(rialto_runtime::VERSION.transaction_version);
+				const LEFT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(millau_runtime::VERSION);
+				const RIGHT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(rialto_runtime::VERSION);
 
 				use crate::chains::{
 					millau_messages_to_rialto::{
@@ -191,12 +189,11 @@ macro_rules! select_bridge {
 					bp_rococo::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber =
 					bp_wococo::SESSION_LENGTH;
-				const LEFT_SPEC_VERSION: Option<u32> = Some(bp_rococo::VERSION.spec_version);
-				const LEFT_TRANSACTION_VERSION: Option<u32> =
-					Some(bp_rococo::VERSION.transaction_version);
-				const RIGHT_SPEC_VERSION: Option<u32> = Some(bp_wococo::VERSION.spec_version);
-				const RIGHT_TRANSACTION_VERSION: Option<u32> =
-					Some(bp_wococo::VERSION.transaction_version);
+
+				const LEFT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_rococo::VERSION);
+				const RIGHT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_wococo::VERSION);
 
 				use crate::chains::{
 					rococo_messages_to_wococo::RococoMessagesToWococo as LeftToRightMessageLane,
@@ -275,12 +272,11 @@ macro_rules! select_bridge {
 					bp_kusama::SESSION_LENGTH;
 				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_polkadot::BlockNumber =
 					bp_polkadot::SESSION_LENGTH;
-				const LEFT_SPEC_VERSION: Option<u32> = Some(bp_kusama::VERSION.spec_version);
-				const LEFT_TRANSACTION_VERSION: Option<u32> =
-					Some(bp_kusama::VERSION.transaction_version);
-				const RIGHT_SPEC_VERSION: Option<u32> = Some(bp_polkadot::VERSION.spec_version);
-				const RIGHT_TRANSACTION_VERSION: Option<u32> =
-					Some(bp_polkadot::VERSION.transaction_version);
+
+				const LEFT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_kusama::VERSION);
+				const RIGHT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_polkadot::VERSION);
 
 				use crate::chains::{
 					kusama_messages_to_polkadot::{
@@ -353,18 +349,12 @@ impl RelayHeadersAndMessages {
 		select_bridge!(self, {
 			let params: Params = self.into();
 
-			let left_client = params
-				.left
-				.to_client::<Left>(LEFT_SPEC_VERSION, LEFT_TRANSACTION_VERSION)
-				.await?;
+			let left_client = params.left.to_client::<Left>(LEFT_RUNTIME_VERSION).await?;
 			let left_transactions_mortality = params.left_sign.transactions_mortality()?;
 			let left_sign = params.left_sign.to_keypair::<Left>()?;
 			let left_messages_pallet_owner =
 				params.left_messages_pallet_owner.to_keypair::<Left>()?;
-			let right_client = params
-				.right
-				.to_client::<Right>(RIGHT_SPEC_VERSION, RIGHT_TRANSACTION_VERSION)
-				.await?;
+			let right_client = params.right.to_client::<Right>(RIGHT_RUNTIME_VERSION).await?;
 			let right_transactions_mortality = params.right_sign.transactions_mortality()?;
 			let right_sign = params.right_sign.to_keypair::<Right>()?;
 			let right_messages_pallet_owner =

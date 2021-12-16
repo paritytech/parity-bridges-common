@@ -154,10 +154,7 @@ impl SendMessage {
 		crate::select_full_bridge!(self.bridge, {
 			let payload = self.encode_payload()?;
 
-			let source_client = self
-				.source
-				.to_client::<Source>(SOURCE_SPEC_VERSION, SOURCE_TRANSACTION_VERSION)
-				.await?;
+			let source_client = self.source.to_client::<Source>(SOURCE_RUNTIME_VERSION).await?;
 			let source_sign = self.source_sign.to_keypair::<Source>()?;
 
 			let lane = self.lane.clone().into();

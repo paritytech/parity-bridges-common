@@ -531,8 +531,7 @@ macro_rules! declare_chain_options {
 				/// Convert connection params into Substrate client.
 				pub async fn to_client<Chain: CliChain>(
 					&self,
-					bundle_spec_version: Option<u32>,
-					bundle_transaction_version: Option<u32>
+					bundle_runtime_version: Option<sp_version::RuntimeVersion>
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
 					let runtime_version_params = &self.[<$chain_prefix _runtime_version>];
 					let chain_runtime_version = match runtime_version_params.[<$chain_prefix _version_mode>] {
@@ -548,13 +547,12 @@ macro_rules! declare_chain_options {
 							)
 						}
 						RuntimeVersionType::Bundle => {
-							if bundle_spec_version.is_some() && bundle_transaction_version.is_some() {
-								ChainRuntimeVersion::Custom(
-									bundle_spec_version.unwrap(),
-									bundle_transaction_version.unwrap()
-								)
-							} else {
-								ChainRuntimeVersion::Auto
+							match bundle_runtime_version {
+								Some(runtime_version) => ChainRuntimeVersion::Custom(
+									runtime_version.spec_version,
+									runtime_version.transaction_version
+								),
+								None => ChainRuntimeVersion::Auto
 							}
 						}
  					};

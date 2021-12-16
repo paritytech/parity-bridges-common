@@ -91,27 +91,24 @@ macro_rules! select_bridge {
 			RelayChain::Millau => {
 				type Target = relay_millau_client::Millau;
 				type TargetSign = relay_millau_client::Millau;
-				const TARGET_SPEC_VERSION: Option<u32> = Some(millau_runtime::VERSION.spec_version);
-				const TARGET_TRANSACTION_VERSION: Option<u32> =
-					Some(millau_runtime::VERSION.transaction_version);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(millau_runtime::VERSION);
 
 				$generic
 			},
 			RelayChain::Kusama => {
 				type Target = relay_kusama_client::Kusama;
 				type TargetSign = relay_kusama_client::Kusama;
-				const TARGET_SPEC_VERSION: Option<u32> = Some(bp_kusama::VERSION.spec_version);
-				const TARGET_TRANSACTION_VERSION: Option<u32> =
-					Some(bp_kusama::VERSION.transaction_version);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_kusama::VERSION);
 
 				$generic
 			},
 			RelayChain::Polkadot => {
 				type Target = relay_polkadot_client::Polkadot;
 				type TargetSign = relay_polkadot_client::Polkadot;
-				const TARGET_SPEC_VERSION: Option<u32> = Some(bp_polkadot::VERSION.spec_version);
-				const TARGET_TRANSACTION_VERSION: Option<u32> =
-					Some(bp_polkadot::VERSION.transaction_version);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_polkadot::VERSION);
 
 				$generic
 			},
@@ -124,10 +121,7 @@ impl ResubmitTransactions {
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.chain, {
 			let relay_loop_name = format!("ResubmitTransactions{}", Target::NAME);
-			let client = self
-				.target
-				.to_client::<Target>(TARGET_SPEC_VERSION, TARGET_TRANSACTION_VERSION)
-				.await?;
+			let client = self.target.to_client::<Target>(TARGET_RUNTIME_VERSION).await?;
 			let key_pair = self.target_sign.to_keypair::<Target>()?;
 
 			relay_utils::relay_loop((), client)

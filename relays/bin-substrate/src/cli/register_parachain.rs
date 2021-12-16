@@ -83,14 +83,10 @@ macro_rules! select_bridge {
 
 				use bp_rialto::{PARAS_PALLET_NAME, PARAS_REGISTRAR_PALLET_NAME};
 
-				const RELAY_CHAIN_SPEC_VERSION: Option<u32> =
-					Some(rialto_runtime::VERSION.spec_version);
-				const RELAY_CHAIN_TRANSACTION_VERSION: Option<u32> =
-					Some(rialto_runtime::VERSION.transaction_version);
-				const PARA_CHAIN_SPEC_VERSION: Option<u32> =
-					Some(rialto_parachain_runtime::VERSION.spec_version);
-				const PARA_CHAIN_TRANSACTION_VERSION: Option<u32> =
-					Some(rialto_parachain_runtime::VERSION.transaction_version);
+				const RELAY_CHAIN_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(rialto_runtime::VERSION);
+				const PARA_CHAIN_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(rialto_parachain_runtime::VERSION);
 
 				$generic
 			},
@@ -104,13 +100,11 @@ impl RegisterParachain {
 		select_bridge!(self.parachain, {
 			let relay_client = self
 				.relay_connection
-				.to_client::<Relaychain>(RELAY_CHAIN_SPEC_VERSION, RELAY_CHAIN_TRANSACTION_VERSION)
+				.to_client::<Relaychain>(RELAY_CHAIN_RUNTIME_VERSION)
 				.await?;
 			let relay_sign = self.relay_sign.to_keypair::<Relaychain>()?;
-			let para_client = self
-				.para_connection
-				.to_client::<Parachain>(PARA_CHAIN_SPEC_VERSION, PARA_CHAIN_TRANSACTION_VERSION)
-				.await?;
+			let para_client =
+				self.para_connection.to_client::<Parachain>(PARA_CHAIN_RUNTIME_VERSION).await?;
 
 			// hopefully we're the only actor that is registering parachain right now
 			// => read next parachain id
