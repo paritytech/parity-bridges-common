@@ -66,8 +66,8 @@ pub enum ChainRuntimeVersion {
 	/// Auto query from chain.
 	Auto,
 	/// Custom runtime version, defined by user.
-	/// the first is spec_version
-	/// the second is transaction_version
+	/// the first is `spec_version`
+	/// the second is `transaction_version`
 	Custom(u32, u32),
 }
 

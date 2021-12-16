@@ -372,7 +372,7 @@ where
 pub enum RuntimeVersionType {
 	/// Auto query version from chain
 	Auto,
-	/// Custom spec_version and transaction_version
+	/// Custom `spec_version` and `transaction_version`
 	Custom,
 	/// Read version from bundle dependencies directly.
 	Bundle,
