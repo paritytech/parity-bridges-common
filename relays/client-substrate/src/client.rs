@@ -194,22 +194,17 @@ impl<C: Chain> Client<C> {
 }
 
 impl<C: Chain> Client<C> {
-	/// Return spec version
-	pub async fn spec_version(&self) -> Result<u32> {
-		let spec_version = match self.chain_runtime_version {
-			ChainRuntimeVersion::Auto => self.runtime_version().await?.spec_version,
-			ChainRuntimeVersion::Custom(spec_version, _) => spec_version,
+	/// Return simple runtime version, only include `spec_version` and `transaction_version`.
+	pub async fn simple_runtime_version(&self) -> Result<(u32, u32)> {
+		let (spec_version, transaction_version) = match self.chain_runtime_version {
+			ChainRuntimeVersion::Auto => {
+				let runtime_version = self.runtime_version().await?;
+				(runtime_version.spec_version, runtime_version.transaction_version)
+			},
+			ChainRuntimeVersion::Custom(spec_version, transaction_version) =>
+				(spec_version, transaction_version),
 		};
-		Ok(spec_version)
-	}
-
-	/// Return transaction version
-	pub async fn transaction_version(&self) -> Result<u32> {
-		let transaction_version = match self.chain_runtime_version {
-			ChainRuntimeVersion::Auto => self.runtime_version().await?.transaction_version,
-			ChainRuntimeVersion::Custom(_, transaction_version) => transaction_version,
-		};
-		Ok(transaction_version)
+		Ok((spec_version, transaction_version))
 	}
 
 	/// Returns true if client is connected to at least one peer and is in synced state.

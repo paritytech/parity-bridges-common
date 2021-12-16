@@ -66,8 +66,7 @@ pub(crate) async fn update_rialto_to_millau_conversion_rate(
 ) -> anyhow::Result<()> {
 	let genesis_hash = *client.genesis_hash();
 	let signer_id = (*signer.public().as_array_ref()).into();
-	let spec_version = client.spec_version().await?;
-	let transaction_version = client.transaction_version().await?;
+	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
 	client
 		.submit_signed_extrinsic(signer_id, move |_, transaction_nonce| {
 			Bytes(

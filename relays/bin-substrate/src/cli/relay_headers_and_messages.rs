@@ -610,8 +610,7 @@ where
 	CallOf<C>: Send,
 {
 	let genesis_hash = *client.genesis_hash();
-	let spec_version = client.spec_version().await?;
-	let transaction_version = client.transaction_version().await?;
+	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
 	client
 		.submit_signed_extrinsic(sign.public().into(), move |_, transaction_nonce| {
 			Bytes(

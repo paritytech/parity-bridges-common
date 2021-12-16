@@ -218,8 +218,7 @@ where
 		let transaction_params = self.transaction_params.clone();
 		let relayer_id_at_source = self.relayer_id_at_source.clone();
 		let nonces_clone = nonces.clone();
-		let spec_version = self.client.spec_version().await?;
-		let transaction_version = self.client.transaction_version().await?;
+		let (spec_version, transaction_version) = self.client.simple_runtime_version().await?;
 		self.client
 			.submit_signed_extrinsic(
 				self.transaction_params.signer.public().into(),
@@ -264,8 +263,7 @@ where
 				))
 			})?;
 
-		let spec_version = self.client.spec_version().await?;
-		let transaction_version = self.client.transaction_version().await?;
+		let (spec_version, transaction_version) = self.client.simple_runtime_version().await?;
 		// Prepare 'dummy' delivery transaction - we only care about its length and dispatch weight.
 		let delivery_tx = make_messages_delivery_transaction::<P>(
 			spec_version,
@@ -305,8 +303,7 @@ where
 		let expected_refund_in_target_tokens = if total_prepaid_nonces != 0 {
 			const WEIGHT_DIFFERENCE: Weight = 100;
 
-			let spec_version = self.client.spec_version().await?;
-			let transaction_version = self.client.transaction_version().await?;
+			let (spec_version, transaction_version) = self.client.simple_runtime_version().await?;
 			let larger_dispatch_weight = total_dispatch_weight.saturating_add(WEIGHT_DIFFERENCE);
 			let larger_delivery_tx_fee = self
 				.client

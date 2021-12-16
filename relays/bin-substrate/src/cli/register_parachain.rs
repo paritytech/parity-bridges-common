@@ -127,8 +127,7 @@ impl RegisterParachain {
 			let reserve_parachain_id_call: CallOf<Relaychain> =
 				ParaRegistrarCall::reserve {}.into();
 			let reserve_parachain_signer = relay_sign.clone();
-			let spec_version = relay_client.spec_version().await?;
-			let transaction_version = relay_client.transaction_version().await?;
+			let (spec_version, transaction_version) = relay_client.simple_runtime_version().await?;
 			wait_until_transaction_is_finalized::<Relaychain>(
 				relay_client
 					.submit_and_watch_signed_extrinsic(
@@ -178,8 +177,6 @@ impl RegisterParachain {
 			}
 			.into();
 			let register_parathread_signer = relay_sign.clone();
-			let spec_version = relay_client.spec_version().await?;
-			let transaction_version = relay_client.transaction_version().await?;
 			wait_until_transaction_is_finalized::<Relaychain>(
 				relay_client
 					.submit_and_watch_signed_extrinsic(
@@ -245,8 +242,6 @@ impl RegisterParachain {
 			}
 			.into();
 			let force_lease_signer = relay_sign.clone();
-			let spec_version = relay_client.spec_version().await?;
-			let transaction_version = relay_client.transaction_version().await?;
 			relay_client
 				.submit_signed_extrinsic(relay_sudo_account.clone(), move |_, transaction_nonce| {
 					Bytes(

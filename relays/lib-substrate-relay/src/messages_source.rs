@@ -230,8 +230,7 @@ where
 	) -> Result<(), SubstrateError> {
 		let genesis_hash = *self.client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
-		let spec_version = self.client.spec_version().await?;
-		let transaction_version = self.client.transaction_version().await?;
+		let (spec_version, transaction_version) = self.client.simple_runtime_version().await?;
 		self.client
 			.submit_signed_extrinsic(
 				self.transaction_params.signer.public().into(),

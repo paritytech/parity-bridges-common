@@ -103,8 +103,7 @@ where
 		let transaction_params = self.transaction_params.clone();
 		let call =
 			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
-		let spec_version = self.client.spec_version().await?;
-		let transaction_version = self.client.transaction_version().await?;
+		let (spec_version, transaction_version) = self.client.simple_runtime_version().await?;
 		self.client
 			.submit_signed_extrinsic(
 				self.transaction_params.signer.public().into(),

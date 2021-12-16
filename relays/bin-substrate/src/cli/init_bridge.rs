@@ -221,8 +221,8 @@ impl InitBridge {
 				.await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
-			let spec_version = target_client.spec_version().await?;
-			let transaction_version = target_client.transaction_version().await?;
+			let (spec_version, transaction_version) =
+				target_client.simple_runtime_version().await?;
 			substrate_relay_helper::headers_initialize::initialize(
 				source_client,
 				target_client.clone(),

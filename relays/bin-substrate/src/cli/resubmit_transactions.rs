@@ -421,8 +421,7 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 	})?;
 	let old_tip = unsigned_tx.tip;
 
-	let spec_version = client.spec_version().await?;
-	let transaction_version = client.transaction_version().await?;
+	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
 	while current_priority < target_priority {
 		let next_tip = unsigned_tx.tip + tip_step;
 		if next_tip > tip_limit {

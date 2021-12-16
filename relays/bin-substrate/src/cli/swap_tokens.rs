@@ -241,8 +241,8 @@ impl SwapTokens {
 			// start tokens swap
 			let source_genesis_hash = *source_client.genesis_hash();
 			let create_swap_signer = source_sign.clone();
-			let spec_version = source_client.spec_version().await?;
-			let transaction_version = source_client.transaction_version().await?;
+			let (spec_version, transaction_version) =
+				source_client.simple_runtime_version().await?;
 			let swap_created_at = wait_until_transaction_is_finalized::<Source>(
 				source_client
 					.submit_and_watch_signed_extrinsic(
@@ -383,8 +383,8 @@ impl SwapTokens {
 
 				// send `claim_swap` message
 				let target_genesis_hash = *target_client.genesis_hash();
-				let spec_version = target_client.spec_version().await?;
-				let transaction_version = target_client.transaction_version().await?;
+				let (spec_version, transaction_version) =
+					target_client.simple_runtime_version().await?;
 				let _ = wait_until_transaction_is_finalized::<Target>(
 					target_client
 						.submit_and_watch_signed_extrinsic(
@@ -427,8 +427,8 @@ impl SwapTokens {
 				log::info!(target: "bridge", "Cancelling the swap");
 				let cancel_swap_call: CallOf<Source> =
 					pallet_bridge_token_swap::Call::cancel_swap { swap: token_swap.clone() }.into();
-				let spec_version = source_client.spec_version().await?;
-				let transaction_version = source_client.transaction_version().await?;
+				let (spec_version, transaction_version) =
+					source_client.simple_runtime_version().await?;
 				let _ = wait_until_transaction_is_finalized::<Source>(
 					source_client
 						.submit_and_watch_signed_extrinsic(

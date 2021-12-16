@@ -182,8 +182,8 @@ impl SendMessage {
 			})?;
 
 			let source_genesis_hash = *source_client.genesis_hash();
-			let spec_version = source_client.spec_version().await?;
-			let transaction_version = source_client.transaction_version().await?;
+			let (spec_version, transaction_version) =
+				source_client.simple_runtime_version().await?;
 			let estimated_transaction_fee = source_client
 				.estimate_extrinsic_fee(Bytes(
 					Source::sign_transaction(SignParam {
