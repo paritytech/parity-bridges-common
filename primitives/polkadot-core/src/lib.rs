@@ -29,6 +29,7 @@ use frame_support::{
 };
 use frame_system::limits;
 use parity_scale_codec::Compact;
+use scale_info::{StaticTypeInfo, TypeInfo};
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	generic,
@@ -114,31 +115,17 @@ parameter_types! {
 		.build_or_panic();
 }
 
-/// Get the maximum weight (compute time) that a Normal extrinsic on the Polkadot-like chain can
-/// use.
-pub fn max_extrinsic_weight() -> Weight {
-	BlockWeights::get()
-		.get(DispatchClass::Normal)
-		.max_extrinsic
-		.unwrap_or(Weight::MAX)
-}
-
-/// Get the maximum length in bytes that a Normal extrinsic on the Polkadot-like chain requires.
-pub fn max_extrinsic_size() -> u32 {
-	*BlockLength::get().max.get(DispatchClass::Normal)
-}
-
 // TODO [#78] may need to be updated after https://github.com/paritytech/parity-bridges-common/issues/78
 /// Maximal number of messages in single delivery transaction.
 pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
 
 /// Maximal number of unrewarded relayer entries at inbound lane.
-pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
+pub const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 128;
 
 // TODO [#438] should be selected keeping in mind:
 // finality delay on both chains + reward payout cost + messages throughput.
 /// Maximal number of unconfirmed messages at inbound lane.
-pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 8192;
+pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 8192;
 
 // One important thing about weight-related constants here is that actually we may have
 // different weights on different Polkadot-like chains. But now all deployments are
@@ -255,7 +242,7 @@ pub type AdditionalSigned = (u32, u32, Hash, Hash, (), (), ());
 
 /// A simplified version of signed extensions meant for producing signed transactions
 /// and signed payload in the client code.
-#[derive(PartialEq, Eq, Clone, RuntimeDebug)]
+#[derive(PartialEq, Eq, Clone, RuntimeDebug, TypeInfo)]
 pub struct SignedExtensions<Call> {
 	encode_payload: SignedExtra,
 	additional_signed: AdditionalSigned,
@@ -278,7 +265,8 @@ impl<Call> parity_scale_codec::Decode for SignedExtensions<Call> {
 
 impl<Call> SignedExtensions<Call> {
 	pub fn new(
-		version: sp_version::RuntimeVersion,
+		spec_version: u32,
+		transaction_version: u32,
 		era: bp_runtime::TransactionEraOf<PolkadotLike>,
 		genesis_hash: Hash,
 		nonce: Nonce,
@@ -295,8 +283,8 @@ impl<Call> SignedExtensions<Call> {
 				tip.into(),      // transaction payment / tip (compact encoding)
 			),
 			additional_signed: (
-				version.spec_version,
-				version.transaction_version,
+				spec_version,
+				transaction_version,
 				genesis_hash,
 				era.signed_payload(genesis_hash),
 				(),
@@ -322,7 +310,14 @@ impl<Call> SignedExtensions<Call> {
 
 impl<Call> sp_runtime::traits::SignedExtension for SignedExtensions<Call>
 where
-	Call: parity_scale_codec::Codec + sp_std::fmt::Debug + Sync + Send + Clone + Eq + PartialEq,
+	Call: parity_scale_codec::Codec
+		+ sp_std::fmt::Debug
+		+ Sync
+		+ Send
+		+ Clone
+		+ Eq
+		+ PartialEq
+		+ StaticTypeInfo,
 	Call: Dispatchable,
 {
 	const IDENTIFIER: &'static str = "Not needed.";
@@ -353,6 +348,17 @@ impl Chain for PolkadotLike {
 	type Balance = Balance;
 	type Index = Index;
 	type Signature = Signature;
+
+	fn max_extrinsic_size() -> u32 {
+		*BlockLength::get().max.get(DispatchClass::Normal)
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		BlockWeights::get()
+			.get(DispatchClass::Normal)
+			.max_extrinsic
+			.unwrap_or(Weight::MAX)
+	}
 }
 
 /// Convert a 256-bit hash into an AccountId.

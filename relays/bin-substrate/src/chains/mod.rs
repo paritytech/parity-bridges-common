@@ -39,42 +39,16 @@ mod rococo;
 mod westend;
 mod wococo;
 
-// Millau/Rialto tokens have no any real value, so the conversion rate we use is always 1:1. But we
-// want to test our code that is intended to work with real-value chains. So to keep it close to
-// 1:1, we'll be treating Rialto as BTC and Millau as wBTC (only in relayer).
-
-/// The identifier of token, which value is associated with Rialto token value by relayer.
-pub(crate) const RIALTO_ASSOCIATED_TOKEN_ID: &str = polkadot::TOKEN_ID;
-/// The identifier of token, which value is associated with Millau token value by relayer.
-pub(crate) const MILLAU_ASSOCIATED_TOKEN_ID: &str = kusama::TOKEN_ID;
-
-use relay_utils::metrics::MetricsParams;
-
-pub(crate) fn add_polkadot_kusama_price_metrics<T: finality_relay::FinalitySyncPipeline>(
-	prefix: Option<String>,
-	params: MetricsParams,
-) -> anyhow::Result<MetricsParams> {
-	// Polkadot/Kusama prices are added as metrics here, because atm we don't have Polkadot <->
-	// Kusama relays, but we want to test metrics/dashboards in advance
-	Ok(relay_utils::relay_metrics(prefix, params)
-		.standalone_metric(|registry, prefix| {
-			substrate_relay_helper::helpers::token_price_metric(registry, prefix, "polkadot")
-		})?
-		.standalone_metric(|registry, prefix| {
-			substrate_relay_helper::helpers::token_price_metric(registry, prefix, "kusama")
-		})?
-		.into_params())
-}
-
 #[cfg(test)]
 mod tests {
 	use crate::cli::{encode_call, send_message};
 	use bp_messages::source_chain::TargetHeaderChain;
+	use bp_runtime::Chain as _;
 	use codec::Encode;
 	use frame_support::dispatch::GetDispatchInfo;
 	use relay_millau_client::Millau;
 	use relay_rialto_client::Rialto;
-	use relay_substrate_client::{TransactionSignScheme, UnsignedTransaction};
+	use relay_substrate_client::{SignParam, TransactionSignScheme, UnsignedTransaction};
 	use sp_core::Pair;
 	use sp_runtime::traits::{IdentifyAccount, Verify};
 
@@ -82,7 +56,8 @@ mod tests {
 	fn millau_signature_is_valid_on_rialto() {
 		let millau_sign = relay_millau_client::SigningParams::from_string("//Dave", None).unwrap();
 
-		let call = rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(vec![]));
+		let call =
+			rialto_runtime::Call::System(rialto_runtime::SystemCall::remark { remark: vec![] });
 
 		let millau_public: bp_millau::AccountSigner = millau_sign.public().into();
 		let millau_account_id: bp_millau::AccountId = millau_public.into_account();
@@ -104,7 +79,8 @@ mod tests {
 	fn rialto_signature_is_valid_on_millau() {
 		let rialto_sign = relay_rialto_client::SigningParams::from_string("//Dave", None).unwrap();
 
-		let call = millau_runtime::Call::System(millau_runtime::SystemCall::remark(vec![]));
+		let call =
+			millau_runtime::Call::System(millau_runtime::SystemCall::remark { remark: vec![] });
 
 		let rialto_public: bp_rialto::AccountSigner = rialto_sign.public().into();
 		let rialto_account_id: bp_rialto::AccountId = rialto_public.into_account();
@@ -127,12 +103,13 @@ mod tests {
 		use rialto_runtime::millau_messages::Millau;
 
 		let maximal_remark_size = encode_call::compute_maximal_message_arguments_size(
-			bp_rialto::max_extrinsic_size(),
-			bp_millau::max_extrinsic_size(),
+			bp_rialto::Rialto::max_extrinsic_size(),
+			bp_millau::Millau::max_extrinsic_size(),
 		);
 
 		let call: millau_runtime::Call =
-			millau_runtime::SystemCall::remark(vec![42; maximal_remark_size as _]).into();
+			millau_runtime::SystemCall::remark { remark: vec![42; maximal_remark_size as _] }
+				.into();
 		let payload = send_message::message_payload(
 			Default::default(),
 			call.get_dispatch_info().weight,
@@ -143,7 +120,8 @@ mod tests {
 		assert_eq!(Millau::verify_message(&payload), Ok(()));
 
 		let call: millau_runtime::Call =
-			millau_runtime::SystemCall::remark(vec![42; (maximal_remark_size + 1) as _]).into();
+			millau_runtime::SystemCall::remark { remark: vec![42; (maximal_remark_size + 1) as _] }
+				.into();
 		let payload = send_message::message_payload(
 			Default::default(),
 			call.get_dispatch_info().weight,
@@ -158,8 +136,8 @@ mod tests {
 	fn maximal_size_remark_to_rialto_is_generated_correctly() {
 		assert!(
 			bridge_runtime_common::messages::target::maximal_incoming_message_size(
-				bp_rialto::max_extrinsic_size()
-			) > bp_millau::max_extrinsic_size(),
+				bp_rialto::Rialto::max_extrinsic_size()
+			) > bp_millau::Millau::max_extrinsic_size(),
 			"We can't actually send maximal messages to Rialto from Millau, because Millau extrinsics can't be that large",
 		)
 	}
@@ -169,9 +147,10 @@ mod tests {
 		use rialto_runtime::millau_messages::Millau;
 
 		let maximal_dispatch_weight = send_message::compute_maximal_message_dispatch_weight(
-			bp_millau::max_extrinsic_weight(),
+			bp_millau::Millau::max_extrinsic_weight(),
 		);
-		let call: millau_runtime::Call = rialto_runtime::SystemCall::remark(vec![]).into();
+		let call: millau_runtime::Call =
+			rialto_runtime::SystemCall::remark { remark: vec![] }.into();
 
 		let payload = send_message::message_payload(
 			Default::default(),
@@ -197,9 +176,10 @@ mod tests {
 		use millau_runtime::rialto_messages::Rialto;
 
 		let maximal_dispatch_weight = send_message::compute_maximal_message_dispatch_weight(
-			bp_rialto::max_extrinsic_weight(),
+			bp_rialto::Rialto::max_extrinsic_weight(),
 		);
-		let call: rialto_runtime::Call = millau_runtime::SystemCall::remark(vec![]).into();
+		let call: rialto_runtime::Call =
+			millau_runtime::SystemCall::remark { remark: vec![] }.into();
 
 		let payload = send_message::message_payload(
 			Default::default(),
@@ -222,13 +202,16 @@ mod tests {
 
 	#[test]
 	fn rialto_tx_extra_bytes_constant_is_correct() {
-		let rialto_call = rialto_runtime::Call::System(rialto_runtime::SystemCall::remark(vec![]));
-		let rialto_tx = Rialto::sign_transaction(
-			Default::default(),
-			&sp_keyring::AccountKeyring::Alice.pair(),
-			relay_substrate_client::TransactionEra::immortal(),
-			UnsignedTransaction::new(rialto_call.clone(), 0),
-		);
+		let rialto_call =
+			rialto_runtime::Call::System(rialto_runtime::SystemCall::remark { remark: vec![] });
+		let rialto_tx = Rialto::sign_transaction(SignParam {
+			spec_version: 1,
+			transaction_version: 1,
+			genesis_hash: Default::default(),
+			signer: sp_keyring::AccountKeyring::Alice.pair(),
+			era: relay_substrate_client::TransactionEra::immortal(),
+			unsigned: UnsignedTransaction::new(rialto_call.clone(), 0),
+		});
 		let extra_bytes_in_transaction = rialto_tx.encode().len() - rialto_call.encode().len();
 		assert!(
 			bp_rialto::TX_EXTRA_BYTES as usize >= extra_bytes_in_transaction,
@@ -240,13 +223,16 @@ mod tests {
 
 	#[test]
 	fn millau_tx_extra_bytes_constant_is_correct() {
-		let millau_call = millau_runtime::Call::System(millau_runtime::SystemCall::remark(vec![]));
-		let millau_tx = Millau::sign_transaction(
-			Default::default(),
-			&sp_keyring::AccountKeyring::Alice.pair(),
-			relay_substrate_client::TransactionEra::immortal(),
-			UnsignedTransaction::new(millau_call.clone(), 0),
-		);
+		let millau_call =
+			millau_runtime::Call::System(millau_runtime::SystemCall::remark { remark: vec![] });
+		let millau_tx = Millau::sign_transaction(SignParam {
+			spec_version: 0,
+			transaction_version: 0,
+			genesis_hash: Default::default(),
+			signer: sp_keyring::AccountKeyring::Alice.pair(),
+			era: relay_substrate_client::TransactionEra::immortal(),
+			unsigned: UnsignedTransaction::new(millau_call.clone(), 0),
+		});
 		let extra_bytes_in_transaction = millau_tx.encode().len() - millau_call.encode().len();
 		assert!(
 			bp_millau::TX_EXTRA_BYTES as usize >= extra_bytes_in_transaction,
@@ -287,10 +273,11 @@ mod rococo_tests {
 			Box::new(header.clone()),
 			justification.clone(),
 		);
-		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
-			Box::new(header),
-			justification,
-		);
+		let expected =
+			millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
+				finality_target: Box::new(header),
+				justification,
+			};
 
 		// when
 		let actual_encoded = actual.encode();
@@ -331,14 +318,15 @@ mod westend_tests {
 			votes_ancestries: vec![],
 		};
 
-		let actual = bp_westend::BridgeGrandpaRococoCall::submit_finality_proof(
-			header.clone(),
+		let actual = relay_kusama_client::runtime::BridgePolkadotGrandpaCall::submit_finality_proof(
+			Box::new(header.clone()),
 			justification.clone(),
 		);
-		let expected = millau_runtime::BridgeGrandpaRialtoCall::<millau_runtime::Runtime>::submit_finality_proof(
-			Box::new(header),
-			justification,
-		);
+		let expected =
+			millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
+				finality_target: Box::new(header),
+				justification,
+			};
 
 		// when
 		let actual_encoded = actual.encode();

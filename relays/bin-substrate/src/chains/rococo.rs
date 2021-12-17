@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use anyhow::anyhow;
 use codec::Decode;
 use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_rococo_client::Rococo;
@@ -32,10 +33,6 @@ use crate::cli::{
 pub(crate) const SYSTEM_REMARK_CALL_WEIGHT: Weight = 2 * 1_345_000;
 
 impl CliEncodeCall for Rococo {
-	fn max_extrinsic_size() -> u32 {
-		bp_rococo::max_extrinsic_size()
-	}
-
 	fn encode_call(call: &Call) -> anyhow::Result<Self::Call> {
 		Ok(match call {
 			Call::Remark { remark_payload, .. } => relay_rococo_client::runtime::Call::System(
@@ -47,8 +44,8 @@ impl CliEncodeCall for Rococo {
 				match *bridge_instance_index {
 					bridge::ROCOCO_TO_WOCOCO_INDEX => {
 						let payload = Decode::decode(&mut &*payload.0)?;
-						relay_rococo_client::runtime::Call::BridgeMessagesWococo(
-							relay_rococo_client::runtime::BridgeMessagesWococoCall::send_message(
+						relay_rococo_client::runtime::Call::BridgeWococoMessages(
+							relay_rococo_client::runtime::BridgeWococoMessagesCall::send_message(
 								lane.0, payload, fee.0,
 							),
 						)
@@ -88,13 +85,9 @@ impl CliChain for Rococo {
 		42
 	}
 
-	fn max_extrinsic_weight() -> Weight {
-		bp_wococo::max_extrinsic_weight()
-	}
-
 	fn encode_message(
 		_message: encode_message::MessagePayload,
-	) -> Result<Self::MessagePayload, String> {
-		Err("Sending messages from Rococo is not yet supported.".into())
+	) -> anyhow::Result<Self::MessagePayload> {
+		Err(anyhow!("Sending messages from Rococo is not yet supported."))
 	}
 }

@@ -45,7 +45,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: sp_version::create_runtime_str!("rococo"),
 	impl_name: sp_version::create_runtime_str!("parity-rococo-v1.6"),
 	authoring_version: 0,
-	spec_version: 9004,
+	spec_version: 9130,
 	impl_version: 0,
 	apis: sp_version::create_apis_vec![[]],
 	transaction_version: 0,
@@ -75,13 +75,11 @@ pub fn derive_account_from_wococo_id(id: bp_runtime::SourceAccount<AccountId>) -
 	AccountIdConverter::convert(encoded_id)
 }
 
-/// Name of the With-Wococo messages pallet instance in the Rococo runtime.
-pub const WITH_WOCOCO_MESSAGES_PALLET_NAME: &str = "BridgeWococoMessages";
+/// Name of the With-Rococo messages pallet instance that is deployed at bridged chains.
+pub const WITH_ROCOCO_MESSAGES_PALLET_NAME: &str = "BridgeRococoMessages";
 
 /// Name of the `RococoFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_ROCOCO_HEADER_METHOD: &str = "RococoFinalityApi_best_finalized";
-/// Name of the `RococoFinalityApi::is_known_header` runtime method.
-pub const IS_KNOWN_ROCOCO_HEADER_METHOD: &str = "RococoFinalityApi_is_known_header";
 
 /// Name of the `ToRococoOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime
 /// method.
@@ -106,6 +104,9 @@ pub const FROM_ROCOCO_LATEST_CONFIRMED_NONCE_METHOD: &str =
 pub const FROM_ROCOCO_UNREWARDED_RELAYERS_STATE: &str =
 	"FromRococoInboundLaneApi_unrewarded_relayers_state";
 
+/// Existential deposit on Rococo.
+pub const EXISTENTIAL_DEPOSIT: Balance = 1_000_000_000_000 / 100;
+
 /// Weight of pay-dispatch-fee operation for inbound messages at Rococo chain.
 ///
 /// This value corresponds to the result of
@@ -123,8 +124,6 @@ sp_api::decl_runtime_apis! {
 	pub trait RococoFinalityApi {
 		/// Returns number and hash of the best finalized header known to the bridge module.
 		fn best_finalized() -> (BlockNumber, Hash);
-		/// Returns true if the header is known to the runtime.
-		fn is_known_header(hash: Hash) -> bool;
 	}
 
 	/// Outbound message lane API for messages that are sent to Rococo chain.

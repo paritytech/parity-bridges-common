@@ -84,9 +84,6 @@ pub enum Call {
 }
 
 pub trait CliEncodeCall: Chain {
-	/// Maximal size (in bytes) of any extrinsic (from the runtime).
-	fn max_extrinsic_size() -> u32;
-
 	/// Encode a CLI call.
 	fn encode_call(call: &Call) -> anyhow::Result<Self::Call>;
 
@@ -345,7 +342,7 @@ mod tests {
 
 		// then
 		assert!(format!("{:?}", call_hex).starts_with(
-			"0x11030000000001000000381409000000000001d43593c715fdd31c61141abd04a99fd6822c8558854cc\
+			"0x0f030000000001000000381409000000000001d43593c715fdd31c61141abd04a99fd6822c8558854cc\
 			de39a5684e7a56da27d01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01"
 		))
 	}

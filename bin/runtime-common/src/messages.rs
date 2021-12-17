@@ -37,6 +37,7 @@ use frame_support::{
 	RuntimeDebug,
 };
 use hash_db::Hasher;
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, Saturating, Zero},
 	FixedPointNumber, FixedPointOperand, FixedU128,
@@ -156,16 +157,24 @@ pub trait BridgedChainWithMessages: ChainWithMessages {
 	fn transaction_payment(transaction: MessageTransaction<WeightOf<Self>>) -> BalanceOf<Self>;
 }
 
-pub(crate) type ThisChain<B> = <B as MessageBridge>::ThisChain;
-pub(crate) type BridgedChain<B> = <B as MessageBridge>::BridgedChain;
-pub(crate) type HashOf<C> = <C as ChainWithMessages>::Hash;
-pub(crate) type AccountIdOf<C> = <C as ChainWithMessages>::AccountId;
-pub(crate) type SignerOf<C> = <C as ChainWithMessages>::Signer;
-pub(crate) type SignatureOf<C> = <C as ChainWithMessages>::Signature;
-pub(crate) type WeightOf<C> = <C as ChainWithMessages>::Weight;
-pub(crate) type BalanceOf<C> = <C as ChainWithMessages>::Balance;
-
-pub(crate) type CallOf<C> = <C as ThisChainWithMessages>::Call;
+/// This chain in context of message bridge.
+pub type ThisChain<B> = <B as MessageBridge>::ThisChain;
+/// Bridged chain in context of message bridge.
+pub type BridgedChain<B> = <B as MessageBridge>::BridgedChain;
+/// Hash used on the chain.
+pub type HashOf<C> = <C as ChainWithMessages>::Hash;
+/// Account id used on the chain.
+pub type AccountIdOf<C> = <C as ChainWithMessages>::AccountId;
+/// Public key of the chain account that may be used to verify signature.
+pub type SignerOf<C> = <C as ChainWithMessages>::Signer;
+/// Signature type used on the chain.
+pub type SignatureOf<C> = <C as ChainWithMessages>::Signature;
+/// Type of weight that used on the chain.
+pub type WeightOf<C> = <C as ChainWithMessages>::Weight;
+/// Type of balances that is used on the chain.
+pub type BalanceOf<C> = <C as ChainWithMessages>::Balance;
+/// Type of call that is used on this chain.
+pub type CallOf<C> = <C as ThisChainWithMessages>::Call;
 
 /// Raw storage proof type (just raw trie nodes).
 type RawStorageProof = Vec<Vec<u8>>;
@@ -217,7 +226,7 @@ pub mod source {
 	/// - hash of finalized header;
 	/// - storage proof of inbound lane state;
 	/// - lane id.
-	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug)]
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 	pub struct FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 		/// Hash of the bridge header the proof is for.
 		pub bridged_header_hash: BridgedHeaderHash,
@@ -260,12 +269,15 @@ pub mod source {
 	#[derive(RuntimeDebug)]
 	pub struct FromThisChainMessageVerifier<B>(PhantomData<B>);
 
-	pub(crate) const OUTBOUND_LANE_DISABLED: &str = "The outbound message lane is disabled.";
-	pub(crate) const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
-	pub(crate) const BAD_ORIGIN: &str =
-		"Unable to match the source origin to expected target origin.";
-	pub(crate) const TOO_LOW_FEE: &str =
-		"Provided fee is below minimal threshold required by the lane.";
+	/// The error message returned from LaneMessageVerifier when outbound lane is disabled.
+	pub const OUTBOUND_LANE_DISABLED: &str = "The outbound message lane is disabled.";
+	/// The error message returned from LaneMessageVerifier when too many pending messages at the
+	/// lane.
+	pub const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
+	/// The error message returned from LaneMessageVerifier when call origin is mismatch.
+	pub const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
+	/// The error message returned from LaneMessageVerifier when the message fee is too low.
+	pub const TOO_LOW_FEE: &str = "Provided fee is below minimal threshold required by the lane.";
 
 	impl<B>
 		LaneMessageVerifier<
@@ -424,7 +436,7 @@ pub mod source {
 				// Messages delivery proof is just proof of single storage key read => any error
 				// is fatal.
 				let storage_inbound_lane_data_key =
-					pallet_bridge_messages::storage_keys::inbound_lane_data_key(B::BRIDGED_MESSAGES_PALLET_NAME, &lane);
+					bp_messages::storage_keys::inbound_lane_data_key(B::BRIDGED_MESSAGES_PALLET_NAME, &lane);
 				let raw_inbound_lane_data = storage
 					.read_value(storage_inbound_lane_data_key.0.as_ref())
 					.map_err(|_| "Failed to read inbound lane state from storage proof")?
@@ -464,7 +476,7 @@ pub mod target {
 	/// - storage proof of messages and (optionally) outbound lane state;
 	/// - lane id;
 	/// - nonces (inclusive range) of messages which are included in this proof.
-	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug)]
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 	pub struct FromBridgedChainMessagesProof<BridgedHeaderHash> {
 		/// Hash of the finalized bridged header the proof is for.
 		pub bridged_header_hash: BridgedHeaderHash,
@@ -670,16 +682,15 @@ pub mod target {
 		B: MessageBridge,
 	{
 		fn read_raw_outbound_lane_data(&self, lane_id: &LaneId) -> Option<Vec<u8>> {
-			let storage_outbound_lane_data_key =
-				pallet_bridge_messages::storage_keys::outbound_lane_data_key(
-					B::BRIDGED_MESSAGES_PALLET_NAME,
-					lane_id,
-				);
+			let storage_outbound_lane_data_key = bp_messages::storage_keys::outbound_lane_data_key(
+				B::BRIDGED_MESSAGES_PALLET_NAME,
+				lane_id,
+			);
 			self.storage.read_value(storage_outbound_lane_data_key.0.as_ref()).ok()?
 		}
 
 		fn read_raw_message(&self, message_key: &MessageKey) -> Option<Vec<u8>> {
-			let storage_message_key = pallet_bridge_messages::storage_keys::message_key(
+			let storage_message_key = bp_messages::storage_keys::message_key(
 				B::BRIDGED_MESSAGES_PALLET_NAME,
 				&message_key.lane_id,
 				message_key.nonce,

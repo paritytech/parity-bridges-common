@@ -17,10 +17,11 @@
 //! Types that are specific to the Rococo runtime.
 
 use bp_messages::{LaneId, UnrewardedRelayersState};
-use bp_polkadot_core::PolkadotLike;
+use bp_polkadot_core::{AccountAddress, Balance, PolkadotLike};
 use bp_runtime::Chain;
-use codec::{Decode, Encode};
+use codec::{Compact, Decode, Encode};
 use frame_support::weights::Weight;
+use scale_info::TypeInfo;
 
 /// Unchecked Rococo extrinsic.
 pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
@@ -60,27 +61,37 @@ where
 ///
 /// See: [link](https://github.com/paritytech/polkadot/blob/master/runtime/rococo/src/lib.rs)
 #[allow(clippy::large_enum_variant)]
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Call {
 	/// System pallet.
 	#[codec(index = 0)]
 	System(SystemCall),
+	/// Balances pallet.
+	#[codec(index = 4)]
+	Balances(BalancesCall),
 	/// Wococo bridge pallet.
 	#[codec(index = 41)]
 	BridgeGrandpaWococo(BridgeGrandpaWococoCall),
 	/// Wococo messages pallet.
 	#[codec(index = 44)]
-	BridgeMessagesWococo(BridgeMessagesWococoCall),
+	BridgeWococoMessages(BridgeWococoMessagesCall),
 }
 
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 #[allow(non_camel_case_types)]
 pub enum SystemCall {
 	#[codec(index = 1)]
 	remark(Vec<u8>),
 }
 
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[allow(non_camel_case_types)]
+pub enum BalancesCall {
+	#[codec(index = 0)]
+	transfer(AccountAddress, Compact<Balance>),
+}
+
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 #[allow(non_camel_case_types)]
 pub enum BridgeGrandpaWococoCall {
 	#[codec(index = 0)]
@@ -92,9 +103,9 @@ pub enum BridgeGrandpaWococoCall {
 	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
 }
 
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone)]
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 #[allow(non_camel_case_types)]
-pub enum BridgeMessagesWococoCall {
+pub enum BridgeWococoMessagesCall {
 	#[codec(index = 3)]
 	send_message(
 		LaneId,

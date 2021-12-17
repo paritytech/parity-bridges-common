@@ -82,8 +82,8 @@ pub const EXISTENTIAL_DEPOSIT: Balance = 10_000_000_000;
 /// conditions.
 pub const SESSION_LENGTH: BlockNumber = 4 * time_units::HOURS;
 
-/// Name of the With-Kusama messages pallet instance in the Polkadot runtime.
-pub const WITH_KUSAMA_MESSAGES_PALLET_NAME: &str = "BridgeKusamaMessages";
+/// Name of the With-Polkadot messages pallet instance that is deployed at bridged chains.
+pub const WITH_POLKADOT_MESSAGES_PALLET_NAME: &str = "BridgePolkadotMessages";
 
 /// Name of the KSM->DOT conversion rate stored in the Polkadot runtime.
 pub const KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME: &str =
@@ -91,8 +91,6 @@ pub const KUSAMA_TO_POLKADOT_CONVERSION_RATE_PARAMETER_NAME: &str =
 
 /// Name of the `PolkadotFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_POLKADOT_HEADER_METHOD: &str = "PolkadotFinalityApi_best_finalized";
-/// Name of the `PolkadotFinalityApi::is_known_header` runtime method.
-pub const IS_KNOWN_POLKADOT_HEADER_METHOD: &str = "PolkadotFinalityApi_is_known_header";
 
 /// Name of the `ToPolkadotOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime
 /// method.
@@ -125,8 +123,6 @@ sp_api::decl_runtime_apis! {
 	pub trait PolkadotFinalityApi {
 		/// Returns number and hash of the best finalized header known to the bridge module.
 		fn best_finalized() -> (BlockNumber, Hash);
-		/// Returns true if the header is known to the runtime.
-		fn is_known_header(hash: Hash) -> bool;
 	}
 
 	/// Outbound message lane API for messages that are sent to Polkadot chain.

@@ -15,7 +15,7 @@ variables:                         &default-vars
   GIT_DEPTH:                       100
   CARGO_INCREMENTAL:               0
   ARCH:                            "x86_64"
-  CI_IMAGE:                        "paritytech/bridges-ci:staging"
+  CI_IMAGE:                        "paritytech/bridges-ci:e8a9ef25-20211215"
   RUST_BACKTRACE:                  full
 
 default:
@@ -95,7 +95,7 @@ clippy-nightly:
   <<:                              *docker-env
   <<:                              *test-refs
   script:
-    - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets
+    - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets -- -A clippy::redundant_closure
 
 fmt:
   stage:                           lint
@@ -204,8 +204,6 @@ build:
     - mv -v ./target/release/rialto-parachain-collator ./artifacts/
     - strip ./target/release/millau-bridge-node
     - mv -v ./target/release/millau-bridge-node ./artifacts/
-    - strip ./target/release/ethereum-poa-relay
-    - mv -v ./target/release/ethereum-poa-relay ./artifacts/
     - strip ./target/release/substrate-relay
     - mv -v ./target/release/substrate-relay ./artifacts/
     - mv -v ./deployments/local-scripts/bridge-entrypoint.sh ./artifacts/
@@ -283,10 +281,6 @@ rialto-parachain-collator:
   <<:                              *build-push-image
 
 millau-bridge-node:
-  stage:                           publish
-  <<:                              *build-push-image
-
-ethereum-poa-relay:
   stage:                           publish
   <<:                              *build-push-image
 

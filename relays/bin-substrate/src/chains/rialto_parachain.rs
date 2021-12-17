@@ -22,31 +22,28 @@ use crate::cli::{
 };
 use bp_message_dispatch::MessagePayload;
 use codec::Decode;
-use frame_support::weights::{DispatchInfo, GetDispatchInfo, Weight};
+use frame_support::weights::{DispatchInfo, GetDispatchInfo};
 use relay_rialto_parachain_client::RialtoParachain;
 use sp_version::RuntimeVersion;
 
 impl CliEncodeCall for RialtoParachain {
-	fn max_extrinsic_size() -> u32 {
-		bp_rialto_parachain::max_extrinsic_size()
-	}
-
 	fn encode_call(call: &Call) -> anyhow::Result<Self::Call> {
 		Ok(match call {
 			Call::Raw { data } => Decode::decode(&mut &*data.0)?,
 			Call::Remark { remark_payload, .. } => rialto_parachain_runtime::Call::System(
-				rialto_parachain_runtime::SystemCall::remark(
-					remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
-				),
+				rialto_parachain_runtime::SystemCall::remark {
+					remark: remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
+				},
 			),
 			Call::Transfer { recipient, amount } => rialto_parachain_runtime::Call::Balances(
-				rialto_parachain_runtime::BalancesCall::transfer(
-					recipient.raw_id().into(),
-					amount.0,
-				),
+				rialto_parachain_runtime::BalancesCall::transfer {
+					dest: recipient.raw_id().into(),
+					value: amount.0,
+				},
 			),
-			Call::BridgeSendMessage { .. } =>
-				anyhow::bail!("Bridge messages are not (yet) supported here",),
+			Call::BridgeSendMessage { .. } => {
+				anyhow::bail!("Bridge messages are not (yet) supported here",)
+			},
 		})
 	}
 
@@ -70,13 +67,9 @@ impl CliChain for RialtoParachain {
 		rialto_parachain_runtime::SS58Prefix::get() as u16
 	}
 
-	fn max_extrinsic_weight() -> Weight {
-		bp_rialto_parachain::max_extrinsic_weight()
-	}
-
 	fn encode_message(
 		_message: encode_message::MessagePayload,
-	) -> Result<Self::MessagePayload, String> {
-		Err("Not supported".into())
+	) -> anyhow::Result<Self::MessagePayload> {
+		anyhow::bail!("Not supported")
 	}
 }

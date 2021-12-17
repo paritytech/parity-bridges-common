@@ -15,13 +15,15 @@ log = "0.4.11"
 num-traits = "0.2"
 rand = "0.7"
 tokio = "1.8"
+thiserror = "1.0.26"
 
 # Bridge dependencies
 
 bp-header-chain = { path = "../../primitives/header-chain" }
+bp-messages = { path = "../../primitives/messages" }
 bp-runtime = { path = "../../primitives/runtime" }
+pallet-bridge-messages = { path = "../../modules/messages" }
 finality-relay = { path = "../finality" }
-headers-relay = { path = "../headers" }
 relay-utils = { path = "../utils" }
 
 # Substrate Dependencies
