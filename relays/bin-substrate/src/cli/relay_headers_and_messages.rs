@@ -138,14 +138,8 @@ macro_rules! select_bridge {
 					bp_rialto::SESSION_LENGTH;
 
 				use crate::chains::{
-					millau_messages_to_rialto::{
-						update_rialto_to_millau_conversion_rate as update_right_to_left_conversion_rate,
-						MillauMessagesToRialto as LeftToRightMessageLane,
-					},
-					rialto_messages_to_millau::{
-						update_millau_to_rialto_conversion_rate as update_left_to_right_conversion_rate,
-						RialtoMessagesToMillau as RightToLeftMessageLane,
-					},
+					millau_messages_to_rialto::MillauMessagesToRialto as LeftToRightMessageLane,
+					rialto_messages_to_millau::RialtoMessagesToMillau as RightToLeftMessageLane,
 				};
 
 				async fn left_create_account(
@@ -189,22 +183,6 @@ macro_rules! select_bridge {
 					rococo_messages_to_wococo::RococoMessagesToWococo as LeftToRightMessageLane,
 					wococo_messages_to_rococo::WococoMessagesToRococo as RightToLeftMessageLane,
 				};
-
-				async fn update_right_to_left_conversion_rate(
-					_client: Client<Left>,
-					_signer: <Left as TransactionSignScheme>::AccountKeyPair,
-					_updated_rate: f64,
-				) -> anyhow::Result<()> {
-					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
-				}
-
-				async fn update_left_to_right_conversion_rate(
-					_client: Client<Right>,
-					_signer: <Right as TransactionSignScheme>::AccountKeyPair,
-					_updated_rate: f64,
-				) -> anyhow::Result<()> {
-					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
-				}
 
 				async fn left_create_account(
 					left_client: Client<Left>,
@@ -264,14 +242,8 @@ macro_rules! select_bridge {
 					bp_polkadot::SESSION_LENGTH;
 
 				use crate::chains::{
-					kusama_messages_to_polkadot::{
-						update_polkadot_to_kusama_conversion_rate as update_right_to_left_conversion_rate,
-						KusamaMessagesToPolkadot as LeftToRightMessageLane,
-					},
-					polkadot_messages_to_kusama::{
-						update_kusama_to_polkadot_conversion_rate as update_left_to_right_conversion_rate,
-						PolkadotMessagesToKusama as RightToLeftMessageLane,
-					},
+					kusama_messages_to_polkadot::KusamaMessagesToPolkadot as LeftToRightMessageLane,
+					polkadot_messages_to_kusama::PolkadotMessagesToKusama as RightToLeftMessageLane,
 				};
 
 				async fn left_create_account(
@@ -368,7 +340,15 @@ impl RelayHeadersAndMessages {
 						Left::NAME
 					)
 				};
-				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
+				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop::<
+					LeftToRightMessageLane,
+					Left,
+				>(
+					left_client.clone(),
+					TransactionParams {
+						signer: left_messages_pallet_owner.clone(),
+						mortality: left_transactions_mortality,
+					},
 					left_to_right_metrics
 						.target_to_source_conversion_rate
 						.as_ref()
@@ -385,21 +365,6 @@ impl RelayHeadersAndMessages {
 						.ok_or_else(format_err)?
 						.shared_value_ref(),
 					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
-					move |new_rate| {
-						log::info!(
-							target: "bridge",
-							"Going to update {} -> {} (on {}) conversion rate to {}.",
-							Right::NAME,
-							Left::NAME,
-							Left::NAME,
-							new_rate,
-						);
-						update_right_to_left_conversion_rate(
-							left_client.clone(),
-							left_messages_pallet_owner.clone(),
-							new_rate,
-						)
-					},
 				);
 			}
 			if let Some(right_messages_pallet_owner) = right_messages_pallet_owner {
@@ -411,7 +376,15 @@ impl RelayHeadersAndMessages {
 						Right::NAME
 					)
 				};
-				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
+				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop::<
+					RightToLeftMessageLane,
+					Right,
+				>(
+					right_client.clone(),
+					TransactionParams {
+						signer: right_messages_pallet_owner.clone(),
+						mortality: right_transactions_mortality,
+					},
 					right_to_left_metrics
 						.target_to_source_conversion_rate
 						.as_ref()
@@ -428,21 +401,6 @@ impl RelayHeadersAndMessages {
 						.ok_or_else(format_err)?
 						.shared_value_ref(),
 					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
-					move |new_rate| {
-						log::info!(
-							target: "bridge",
-							"Going to update {} -> {} (on {}) conversion rate to {}.",
-							Left::NAME,
-							Right::NAME,
-							Right::NAME,
-							new_rate,
-						);
-						update_left_to_right_conversion_rate(
-							right_client.clone(),
-							right_messages_pallet_owner.clone(),
-							new_rate,
-						)
-					},
 				);
 			}
 

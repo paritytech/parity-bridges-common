@@ -53,5 +53,7 @@ impl SubstrateMessageLane for WococoMessagesToRococo {
 	type ReceiveMessagesDeliveryProofCallBuilder =
 		WococoMessagesToRococoReceiveMessagesDeliveryProofCallBuilder;
 
+	type TargetToSourceChainConversionRateUpdateBuilder = ();
+
 	type RelayStrategy = MixStrategy;
 }

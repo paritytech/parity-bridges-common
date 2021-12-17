@@ -16,8 +16,13 @@
 
 //! Tools for updating conversion rate that is stored in the runtime storage.
 
+use crate::{messages_lane::SubstrateMessageLane, TransactionParams};
+
+use codec::Encode;
+use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, CallOf, Chain, Client, TransactionEra, TransactionSignScheme, UnsignedTransaction};
 use relay_utils::metrics::F64SharedRef;
-use std::{future::Future, time::Duration};
+use sp_core::{Bytes, Pair};
+use std::time::Duration;
 
 /// Duration between updater iterations.
 const SLEEP_DURATION: Duration = Duration::from_secs(60);
@@ -31,19 +36,93 @@ enum TransactionStatus {
 	Submitted(f64),
 }
 
+/// Different ways of building 'update conversion rate' calls.
+pub trait UpdateConversionRateCallBuilder<C: Chain> {
+	/// Given conversion rate, build call that updates conversion rate in given chain runtime storage.
+	fn build_update_conversion_rate_call(conversion_rate: f64) -> anyhow::Result<CallOf<C>>;
+}
+
+impl<C: Chain> UpdateConversionRateCallBuilder<C> for () {
+	fn build_update_conversion_rate_call(_conversion_rate: f64) -> anyhow::Result<CallOf<C>> {
+		Err(anyhow::format_err!("Conversion rate update is not supported at {}", C::NAME))
+	}
+}
+
+/// Macro that generates `UpdateConversionRateCallBuilder` implementation for the case when
+/// you have a direct access to the source chain runtime.
+#[rustfmt::skip]
+#[macro_export]
+macro_rules! generate_direct_update_conversion_rate_call_builder {
+	(
+		$source_chain:ident,
+		$mocked_builder:ident,
+		$runtime:ty,
+		$instance:ty,
+		$parameter:path
+	) => {
+		pub struct $mocked_builder;
+
+		impl $crate::conversion_rate_update::UpdateConversionRateCallBuilder<$source_chain>
+			for $mocked_builder
+		{
+			fn build_update_conversion_rate_call(
+				conversion_rate: f64,
+			) -> anyhow::Result<relay_substrate_client::CallOf<$source_chain>> {
+				Ok(pallet_bridge_messages::Call::update_pallet_parameter::<$runtime, $instance> {
+					parameter: $parameter(sp_runtime::FixedU128::from_float(conversion_rate)),
+				}.into())
+			}
+		}
+	};
+}
+
+/// Macro that generates `UpdateConversionRateCallBuilder` implementation for the case when
+/// you only have an access to the mocked version of source chain runtime. In this case you
+/// should provide "name" of the call variant for the bridge messages calls, the "name" of
+/// the variant for the `update_pallet_parameter` call within that first option and the name
+/// of the conversion rate parameter itself.
+#[rustfmt::skip]
+#[macro_export]
+macro_rules! generate_mocked_update_conversion_rate_call_builder {
+	(
+		$source_chain:ident,
+		$mocked_builder:ident,
+		$bridge_messages:path,
+		$update_pallet_parameter:path,
+		$parameter:path
+	) => {
+		pub struct $mocked_builder;
+
+		impl $crate::conversion_rate_update::UpdateConversionRateCallBuilder<$source_chain>
+			for $mocked_builder
+		{
+			fn build_update_conversion_rate_call(
+				conversion_rate: f64,
+			) -> anyhow::Result<relay_substrate_client::CallOf<$source_chain>> {
+				Ok($bridge_messages($update_pallet_parameter($parameter(
+					sp_runtime::FixedU128::from_float(conversion_rate),
+				))))
+			}
+		}
+	};
+}
+
 /// Run infinite conversion rate updater loop.
 ///
 /// The loop is maintaining the Left -> Right conversion rate, used as `RightTokens = LeftTokens *
 /// Rate`.
-pub fn run_conversion_rate_update_loop<
-	SubmitConversionRateFuture: Future<Output = anyhow::Result<()>> + Send + 'static,
->(
+pub fn run_conversion_rate_update_loop<Lane, Sign>(
+	client: Client<Lane::SourceChain>,
+	transaction_params: TransactionParams<AccountKeyPairOf<Sign>>,
 	left_to_right_stored_conversion_rate: F64SharedRef,
 	left_to_base_conversion_rate: F64SharedRef,
 	right_to_base_conversion_rate: F64SharedRef,
 	max_difference_ratio: f64,
-	submit_conversion_rate: impl Fn(f64) -> SubmitConversionRateFuture + Send + 'static,
-) {
+) where
+	Lane: SubstrateMessageLane,
+	Sign: TransactionSignScheme<Chain = Lane::SourceChain>,
+	AccountIdOf<Lane::SourceChain>: From<<AccountKeyPairOf<Sign> as Pair>::Public>,
+{
 	async_std::task::spawn(async move {
 		let mut transaction_status = TransactionStatus::Idle;
 		loop {
@@ -57,13 +136,30 @@ pub fn run_conversion_rate_update_loop<
 			)
 			.await;
 			if let Some((prev_conversion_rate, new_conversion_rate)) = maybe_new_conversion_rate {
-				let submit_conversion_rate_future = submit_conversion_rate(new_conversion_rate);
-				match submit_conversion_rate_future.await {
+				log::info!(
+					target: "bridge",
+					"Going to update {} -> {} (on {}) conversion rate to {}.",
+					Lane::TargetChain::NAME,
+					Lane::SourceChain::NAME,
+					Lane::SourceChain::NAME,
+					new_conversion_rate,
+				);
+
+				let result = update_target_to_source_conversion_rate::<Lane, Sign>(
+					client.clone(),
+					transaction_params.clone(),
+					new_conversion_rate,
+				).await;
+				match result {
 					Ok(()) => {
 						transaction_status = TransactionStatus::Submitted(prev_conversion_rate);
 					},
 					Err(error) => {
-						log::trace!(target: "bridge", "Failed to submit conversion rate update transaction: {:?}", error);
+						log::trace!(
+							target: "bridge",
+							"Failed to submit conversion rate update transaction: {:?}",
+							error,
+						);
 					},
 				}
 			}
@@ -116,6 +212,38 @@ async fn maybe_select_new_conversion_rate(
 	}
 
 	Some((left_to_right_stored_conversion_rate, actual_left_to_right_conversion_rate))
+}
+
+/// Update Target -> Source tokens conversion rate, stored in the Source runtime storage.
+pub async fn update_target_to_source_conversion_rate<Lane, Sign>(
+	client: Client<Lane::SourceChain>,
+	transaction_params: TransactionParams<AccountKeyPairOf<Sign>>,
+	updated_rate: f64,
+) -> anyhow::Result<()> where
+	Lane: SubstrateMessageLane,
+	Sign: TransactionSignScheme<Chain = Lane::SourceChain>,
+	AccountIdOf<Lane::SourceChain>: From<<AccountKeyPairOf<Sign> as Pair>::Public>,
+{
+	let genesis_hash = *client.genesis_hash();
+	let signer_id = transaction_params.signer.public().into();
+	let call = Lane::TargetToSourceChainConversionRateUpdateBuilder::build_update_conversion_rate_call(
+		updated_rate
+	)?;
+	client
+		.submit_signed_extrinsic(signer_id, move |best_block_id, transaction_nonce| {
+			Bytes(
+				Sign::sign_transaction(
+					genesis_hash,
+					&transaction_params.signer,
+					TransactionEra::new(best_block_id, transaction_params.mortality),
+					UnsignedTransaction::new(call, transaction_nonce),
+				)
+					.encode(),
+			)
+		})
+		.await
+		.map(drop)
+		.map_err(|err| anyhow::format_err!("{:?}", err))
 }
 
 #[cfg(test)]
