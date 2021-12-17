@@ -19,13 +19,18 @@
 use crate::{messages_lane::SubstrateMessageLane, TransactionParams};
 
 use codec::Encode;
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, CallOf, Chain, Client, TransactionEra, TransactionSignScheme, UnsignedTransaction};
+use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, CallOf, Chain, Client, TransactionEra, TransactionSignScheme, UnsignedTransaction, transaction_stall_timeout};
 use relay_utils::metrics::F64SharedRef;
 use sp_core::{Bytes, Pair};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Duration between updater iterations.
 const SLEEP_DURATION: Duration = Duration::from_secs(60);
+
+/// Duration which will almost never expire. Since changing conversion rate may require manual
+/// intervention (e.g. if call is made through multisig pallet), we don't want relayer to
+/// resubmit transaction often.
+const ALMOST_NEVER_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 30);
 
 /// Update-conversion-rate transaction status.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -33,7 +38,7 @@ enum TransactionStatus {
 	/// We have not submitted any transaction recently.
 	Idle,
 	/// We have recently submitted transaction that should update conversion rate.
-	Submitted(f64),
+	Submitted(Instant, f64),
 }
 
 /// Different ways of building 'update conversion rate' calls.
@@ -123,11 +128,27 @@ pub fn run_conversion_rate_update_loop<Lane, Sign>(
 	Sign: TransactionSignScheme<Chain = Lane::SourceChain>,
 	AccountIdOf<Lane::SourceChain>: From<<AccountKeyPairOf<Sign> as Pair>::Public>,
 {
+	let stall_timeout = transaction_stall_timeout(
+		transaction_params.mortality,
+		Lane::SourceChain::AVERAGE_BLOCK_INTERVAL,
+		ALMOST_NEVER_DURATION,
+	);
+
+	log::info!(
+		target: "bridge",
+		"Starting {} -> {} conversion rate  (on {}) update loop. Stall timeout: {}s",
+		Lane::TargetChain::NAME,
+		Lane::SourceChain::NAME,
+		Lane::SourceChain::NAME,
+		stall_timeout.as_secs(),
+	);
+
 	async_std::task::spawn(async move {
 		let mut transaction_status = TransactionStatus::Idle;
 		loop {
 			async_std::task::sleep(SLEEP_DURATION).await;
 			let maybe_new_conversion_rate = maybe_select_new_conversion_rate(
+				stall_timeout,
 				&mut transaction_status,
 				&left_to_right_stored_conversion_rate,
 				&left_to_base_conversion_rate,
@@ -152,10 +173,10 @@ pub fn run_conversion_rate_update_loop<Lane, Sign>(
 				).await;
 				match result {
 					Ok(()) => {
-						transaction_status = TransactionStatus::Submitted(prev_conversion_rate);
+						transaction_status = TransactionStatus::Submitted(Instant::now(), prev_conversion_rate);
 					},
 					Err(error) => {
-						log::trace!(
+						log::error!(
 							target: "bridge",
 							"Failed to submit conversion rate update transaction: {:?}",
 							error,
@@ -169,6 +190,7 @@ pub fn run_conversion_rate_update_loop<Lane, Sign>(
 
 /// Select new conversion rate to submit to the node.
 async fn maybe_select_new_conversion_rate(
+	stall_timeout: Duration,
 	transaction_status: &mut TransactionStatus,
 	left_to_right_stored_conversion_rate: &F64SharedRef,
 	left_to_base_conversion_rate: &F64SharedRef,
@@ -179,7 +201,16 @@ async fn maybe_select_new_conversion_rate(
 		(*left_to_right_stored_conversion_rate.read().await)?;
 	match *transaction_status {
 		TransactionStatus::Idle => (),
-		TransactionStatus::Submitted(previous_left_to_right_stored_conversion_rate) => {
+		TransactionStatus::Submitted(submitted_at, _) if Instant::now() - submitted_at > stall_timeout => {
+			log::error!(
+				target: "bridge",
+				"Conversion rate update transaction has been lost and loop stalled. Restarting",
+			);
+
+			// we assume that our transaction has been lost
+			*transaction_status = TransactionStatus::Idle;
+		}
+		TransactionStatus::Submitted(_, previous_left_to_right_stored_conversion_rate) => {
 			// we can't compare float values from different sources directly, so we only care
 			// whether the stored rate has been changed or not. If it has been changed, then we
 			// assume that our proposal has been accepted.
@@ -251,6 +282,8 @@ mod tests {
 	use super::*;
 	use async_std::sync::{Arc, RwLock};
 
+	const TEST_STALL_TIMEOUT: Duration = Duration::from_secs(60);
+
 	fn test_maybe_select_new_conversion_rate(
 		mut transaction_status: TransactionStatus,
 		stored_conversion_rate: Option<f64>,
@@ -262,6 +295,7 @@ mod tests {
 		let left_to_base_conversion_rate = Arc::new(RwLock::new(left_to_base_conversion_rate));
 		let right_to_base_conversion_rate = Arc::new(RwLock::new(right_to_base_conversion_rate));
 		let result = async_std::task::block_on(maybe_select_new_conversion_rate(
+			TEST_STALL_TIMEOUT,
 			&mut transaction_status,
 			&stored_conversion_rate,
 			&left_to_base_conversion_rate,
@@ -273,15 +307,16 @@ mod tests {
 
 	#[test]
 	fn rate_is_not_updated_when_transaction_is_submitted() {
+		let status = TransactionStatus::Submitted(Instant::now(), 10.0);
 		assert_eq!(
 			test_maybe_select_new_conversion_rate(
-				TransactionStatus::Submitted(10.0),
+				status,
 				Some(10.0),
 				Some(1.0),
 				Some(1.0),
 				0.0
 			),
-			(None, TransactionStatus::Submitted(10.0)),
+			(None, status),
 		);
 	}
 
@@ -289,7 +324,7 @@ mod tests {
 	fn transaction_state_is_changed_to_idle_when_stored_rate_shanges() {
 		assert_eq!(
 			test_maybe_select_new_conversion_rate(
-				TransactionStatus::Submitted(1.0),
+				TransactionStatus::Submitted(Instant::now(), 1.0),
 				Some(10.0),
 				Some(1.0),
 				Some(1.0),
@@ -366,6 +401,33 @@ mod tests {
 				0.02
 			),
 			(Some((1.0, 1.03)), TransactionStatus::Idle),
+		);
+	}
+
+	#[test]
+	fn transaction_expires() {
+		let status = TransactionStatus::Submitted(Instant::now() - TEST_STALL_TIMEOUT / 2, 10.0);
+		assert_eq!(
+			test_maybe_select_new_conversion_rate(
+				status,
+				Some(10.0),
+				Some(1.0),
+				Some(1.0),
+				0.0
+			),
+			(None, status),
+		);
+
+		let status = TransactionStatus::Submitted(Instant::now() - TEST_STALL_TIMEOUT * 2, 10.0);
+		assert_eq!(
+			test_maybe_select_new_conversion_rate(
+				status,
+				Some(10.0),
+				Some(1.0),
+				Some(1.0),
+				0.0
+			),
+			(Some((10.0, 1.0)), TransactionStatus::Idle),
 		);
 	}
 }
