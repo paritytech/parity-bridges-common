@@ -21,7 +21,7 @@ use crate::{messages_lane::SubstrateMessageLane, TransactionParams};
 use codec::Encode;
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, CallOf, Chain, Client,
-	TransactionEra, TransactionSignScheme, UnsignedTransaction,
+	SignParam, TransactionEra, TransactionSignScheme, UnsignedTransaction,
 };
 use relay_utils::metrics::F64SharedRef;
 use sp_core::{Bytes, Pair};
@@ -266,6 +266,7 @@ where
 {
 	let genesis_hash = *client.genesis_hash();
 	let signer_id = transaction_params.signer.public().into();
+	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
 	let call =
 		Lane::TargetToSourceChainConversionRateUpdateBuilder::build_update_conversion_rate_call(
 			updated_rate,
@@ -273,12 +274,14 @@ where
 	client
 		.submit_signed_extrinsic(signer_id, move |best_block_id, transaction_nonce| {
 			Bytes(
-				Sign::sign_transaction(
+				Sign::sign_transaction(SignParam {
+					spec_version,
+					transaction_version,
 					genesis_hash,
-					&transaction_params.signer,
-					TransactionEra::new(best_block_id, transaction_params.mortality),
-					UnsignedTransaction::new(call, transaction_nonce),
-				)
+					signer: transaction_params.signer,
+					era: TransactionEra::new(best_block_id, transaction_params.mortality),
+					unsigned: UnsignedTransaction::new(call, transaction_nonce),
+				})
 				.encode(),
 			)
 		})
