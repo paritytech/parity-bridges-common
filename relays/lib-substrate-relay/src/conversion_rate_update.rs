@@ -20,8 +20,8 @@ use crate::{messages_lane::SubstrateMessageLane, TransactionParams};
 
 use codec::Encode;
 use relay_substrate_client::{
-	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, CallOf, Chain, Client,
-	SignParam, TransactionEra, TransactionSignScheme, UnsignedTransaction,
+	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, CallOf, Chain, Client, SignParam,
+	TransactionEra, TransactionSignScheme, UnsignedTransaction,
 };
 use relay_utils::metrics::F64SharedRef;
 use sp_core::{Bytes, Pair};
@@ -31,7 +31,7 @@ use std::time::{Duration, Instant};
 const SLEEP_DURATION: Duration = Duration::from_secs(60);
 
 /// Duration which will almost never expire. Since changing conversion rate may require manual
-/// intervention (e.g. if call is made through multisig pallet), we don't want relayer to
+/// intervention (e.g. if call is made through `multisig` pallet), we don't want relayer to
 /// resubmit transaction often.
 const ALMOST_NEVER_DURATION: Duration = Duration::from_secs(60 * 60 * 24 * 30);
 
