@@ -62,7 +62,8 @@ impl SubstrateMessageLane for KusamaMessagesToPolkadot {
 	type ReceiveMessagesDeliveryProofCallBuilder =
 		KusamaMessagesToPolkadotReceiveMessagesDeliveryProofCallBuilder;
 
-	type TargetToSourceChainConversionRateUpdateBuilder = KusamaMessagesToPolkadotUpdateConversionRateCallBuilder;
+	type TargetToSourceChainConversionRateUpdateBuilder =
+		KusamaMessagesToPolkadotUpdateConversionRateCallBuilder;
 
 	type RelayStrategy = MixStrategy;
 }

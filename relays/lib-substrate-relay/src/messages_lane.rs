@@ -75,7 +75,9 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	/// `TargetChain` tokens to `SourceChain` tokens conversion rate update builder.
 	///
 	/// If not applicale to this bridge, you may use `()` here.
-	type TargetToSourceChainConversionRateUpdateBuilder: UpdateConversionRateCallBuilder<Self::SourceChain>;
+	type TargetToSourceChainConversionRateUpdateBuilder: UpdateConversionRateCallBuilder<
+		Self::SourceChain,
+	>;
 
 	/// Message relay strategy.
 	type RelayStrategy: RelayStrategy;

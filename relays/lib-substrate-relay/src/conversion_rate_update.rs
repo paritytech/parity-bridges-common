@@ -19,7 +19,10 @@
 use crate::{messages_lane::SubstrateMessageLane, TransactionParams};
 
 use codec::Encode;
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, CallOf, Chain, Client, TransactionEra, TransactionSignScheme, UnsignedTransaction, transaction_stall_timeout};
+use relay_substrate_client::{
+	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, CallOf, Chain, Client,
+	TransactionEra, TransactionSignScheme, UnsignedTransaction,
+};
 use relay_utils::metrics::F64SharedRef;
 use sp_core::{Bytes, Pair};
 use std::time::{Duration, Instant};
@@ -43,7 +46,8 @@ enum TransactionStatus {
 
 /// Different ways of building 'update conversion rate' calls.
 pub trait UpdateConversionRateCallBuilder<C: Chain> {
-	/// Given conversion rate, build call that updates conversion rate in given chain runtime storage.
+	/// Given conversion rate, build call that updates conversion rate in given chain runtime
+	/// storage.
 	fn build_update_conversion_rate_call(conversion_rate: f64) -> anyhow::Result<CallOf<C>>;
 }
 
@@ -170,10 +174,12 @@ pub fn run_conversion_rate_update_loop<Lane, Sign>(
 					client.clone(),
 					transaction_params.clone(),
 					new_conversion_rate,
-				).await;
+				)
+				.await;
 				match result {
 					Ok(()) => {
-						transaction_status = TransactionStatus::Submitted(Instant::now(), prev_conversion_rate);
+						transaction_status =
+							TransactionStatus::Submitted(Instant::now(), prev_conversion_rate);
 					},
 					Err(error) => {
 						log::error!(
@@ -201,7 +207,9 @@ async fn maybe_select_new_conversion_rate(
 		(*left_to_right_stored_conversion_rate.read().await)?;
 	match *transaction_status {
 		TransactionStatus::Idle => (),
-		TransactionStatus::Submitted(submitted_at, _) if Instant::now() - submitted_at > stall_timeout => {
+		TransactionStatus::Submitted(submitted_at, _)
+			if Instant::now() - submitted_at > stall_timeout =>
+		{
 			log::error!(
 				target: "bridge",
 				"Conversion rate update transaction has been lost and loop stalled. Restarting",
@@ -209,7 +217,7 @@ async fn maybe_select_new_conversion_rate(
 
 			// we assume that our transaction has been lost
 			*transaction_status = TransactionStatus::Idle;
-		}
+		},
 		TransactionStatus::Submitted(_, previous_left_to_right_stored_conversion_rate) => {
 			// we can't compare float values from different sources directly, so we only care
 			// whether the stored rate has been changed or not. If it has been changed, then we
@@ -250,16 +258,18 @@ pub async fn update_target_to_source_conversion_rate<Lane, Sign>(
 	client: Client<Lane::SourceChain>,
 	transaction_params: TransactionParams<AccountKeyPairOf<Sign>>,
 	updated_rate: f64,
-) -> anyhow::Result<()> where
+) -> anyhow::Result<()>
+where
 	Lane: SubstrateMessageLane,
 	Sign: TransactionSignScheme<Chain = Lane::SourceChain>,
 	AccountIdOf<Lane::SourceChain>: From<<AccountKeyPairOf<Sign> as Pair>::Public>,
 {
 	let genesis_hash = *client.genesis_hash();
 	let signer_id = transaction_params.signer.public().into();
-	let call = Lane::TargetToSourceChainConversionRateUpdateBuilder::build_update_conversion_rate_call(
-		updated_rate
-	)?;
+	let call =
+		Lane::TargetToSourceChainConversionRateUpdateBuilder::build_update_conversion_rate_call(
+			updated_rate,
+		)?;
 	client
 		.submit_signed_extrinsic(signer_id, move |best_block_id, transaction_nonce| {
 			Bytes(
@@ -269,7 +279,7 @@ pub async fn update_target_to_source_conversion_rate<Lane, Sign>(
 					TransactionEra::new(best_block_id, transaction_params.mortality),
 					UnsignedTransaction::new(call, transaction_nonce),
 				)
-					.encode(),
+				.encode(),
 			)
 		})
 		.await
@@ -309,13 +319,7 @@ mod tests {
 	fn rate_is_not_updated_when_transaction_is_submitted() {
 		let status = TransactionStatus::Submitted(Instant::now(), 10.0);
 		assert_eq!(
-			test_maybe_select_new_conversion_rate(
-				status,
-				Some(10.0),
-				Some(1.0),
-				Some(1.0),
-				0.0
-			),
+			test_maybe_select_new_conversion_rate(status, Some(10.0), Some(1.0), Some(1.0), 0.0),
 			(None, status),
 		);
 	}
@@ -408,25 +412,13 @@ mod tests {
 	fn transaction_expires() {
 		let status = TransactionStatus::Submitted(Instant::now() - TEST_STALL_TIMEOUT / 2, 10.0);
 		assert_eq!(
-			test_maybe_select_new_conversion_rate(
-				status,
-				Some(10.0),
-				Some(1.0),
-				Some(1.0),
-				0.0
-			),
+			test_maybe_select_new_conversion_rate(status, Some(10.0), Some(1.0), Some(1.0), 0.0),
 			(None, status),
 		);
 
 		let status = TransactionStatus::Submitted(Instant::now() - TEST_STALL_TIMEOUT * 2, 10.0);
 		assert_eq!(
-			test_maybe_select_new_conversion_rate(
-				status,
-				Some(10.0),
-				Some(1.0),
-				Some(1.0),
-				0.0
-			),
+			test_maybe_select_new_conversion_rate(status, Some(10.0), Some(1.0), Some(1.0), 0.0),
 			(Some((10.0, 1.0)), TransactionStatus::Idle),
 		);
 	}

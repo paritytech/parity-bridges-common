@@ -30,7 +30,8 @@ pub struct MillauMessagesToRialto;
 substrate_relay_helper::generate_direct_update_conversion_rate_call_builder!(
 	Millau,
 	MillauMessagesToRialtoUpdateConversionRateCallBuilder,
-	millau_runtime::Runtime, millau_runtime::WithRialtoMessagesInstance,
+	millau_runtime::Runtime,
+	millau_runtime::WithRialtoMessagesInstance,
 	millau_runtime::rialto_messages::MillauToRialtoMessagesParameter::RialtoToMillauConversionRate
 );
 
@@ -57,7 +58,8 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 		millau_runtime::WithRialtoMessagesInstance,
 	>;
 
-	type TargetToSourceChainConversionRateUpdateBuilder = MillauMessagesToRialtoUpdateConversionRateCallBuilder;
+	type TargetToSourceChainConversionRateUpdateBuilder =
+		MillauMessagesToRialtoUpdateConversionRateCallBuilder;
 
 	type RelayStrategy = MixStrategy;
 }
