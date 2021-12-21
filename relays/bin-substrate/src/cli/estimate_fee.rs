@@ -80,8 +80,8 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
 ) -> anyhow::Result<BalanceOf<Source>> {
 	// actual conversion rate CAN be lesser than the rate stored in the runtime. So we may try to
 	// pay lesser fee for the message delivery. But in this case, message may be rejected by the
-	// lane. So we MUST use the larger of two fees - one computed with stored fee and the one computed
-	// with actual fee.
+	// lane. So we MUST use the larger of two fees - one computed with stored fee and the one
+	// computed with actual fee.
 
 	let conversion_rate_override = match (Source::TOKEN_ID, Target::TOKEN_ID) {
 		(Some(source_token_id), Some(target_token_id)) => {
@@ -114,7 +114,7 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
 	))
 }
 
-/// Estimate message delivery and dispatch fee with given conversion rate overrride.
+/// Estimate message delivery and dispatch fee with given conversion rate override.
 async fn do_estimate_message_delivery_and_dispatch_fee<Source: Chain, P: Encode>(
 	client: &relay_substrate_client::Client<Source>,
 	estimate_fee_method: &str,
