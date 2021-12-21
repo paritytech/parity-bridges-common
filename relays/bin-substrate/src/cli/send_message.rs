@@ -22,7 +22,7 @@ use crate::cli::{
 	SourceSigningParams, TargetSigningParams,
 };
 use bp_message_dispatch::{CallOrigin, MessagePayload};
-use bp_runtime::{BalanceOf, Chain as _};
+use bp_runtime::Chain as _;
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
@@ -161,7 +161,7 @@ impl SendMessage {
 			let fee = match self.fee {
 				Some(fee) => fee,
 				None => Balance(
-					estimate_message_delivery_and_dispatch_fee::<BalanceOf<Source>, _, _>(
+					estimate_message_delivery_and_dispatch_fee::<Source, Target, _>(
 						&source_client,
 						ESTIMATE_MESSAGE_FEE_METHOD,
 						lane,

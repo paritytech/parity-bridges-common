@@ -24,6 +24,7 @@ use relay_substrate_client::Chain;
 use sp_runtime::FixedU128;
 use structopt::StructOpt;
 use strum::VariantNames;
+use substrate_relay_helper::helpers::target_to_source_conversion_rate;
 
 /// Estimate Delivery & Dispatch Fee command.
 #[derive(StructOpt, Debug, PartialEq, Eq)]
@@ -52,7 +53,7 @@ impl EstimateFee {
 			let payload =
 				Source::encode_message(payload).map_err(|e| anyhow::format_err!("{:?}", e))?;
 
-			let fee: BalanceOf<Source> = estimate_message_delivery_and_dispatch_fee(
+			let fee = estimate_message_delivery_and_dispatch_fee::<Source, Target, _>(
 				&source_client,
 				ESTIMATE_MESSAGE_FEE_METHOD,
 				lane,
@@ -67,13 +68,60 @@ impl EstimateFee {
 	}
 }
 
-pub(crate) async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: Chain, P: Encode>(
-	client: &relay_substrate_client::Client<C>,
+pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
+	Source: Chain,
+	Target: Chain,
+	P: Clone + Encode,
+>(
+	client: &relay_substrate_client::Client<Source>,
 	estimate_fee_method: &str,
 	lane: bp_messages::LaneId,
 	payload: P,
-) -> anyhow::Result<Fee> {
-	let conversion_rate_override: Option<FixedU128> = None;
+) -> anyhow::Result<BalanceOf<Source>> {
+	// actual conversion rate CAN be lesser than the rate stored in the runtime. So we may try to
+	// pay lesser fee for the message delivery. But in this case, message may be rejected by the
+	// lane. So we MUST use the larger of two fees - one computed with stored fee and the one computed
+	// with actual fee.
+
+	let conversion_rate_override = match (Source::TOKEN_ID, Target::TOKEN_ID) {
+		(Some(source_token_id), Some(target_token_id)) => {
+			let conversion_rate_override = FixedU128::from_float(
+				target_to_source_conversion_rate(source_token_id, target_token_id).await?,
+			);
+			log::info!(target: "bridge", "Conversion rate override: {:?}", conversion_rate_override.to_float());
+			Some(conversion_rate_override)
+		},
+		_ => None,
+	};
+
+	Ok(std::cmp::max(
+		do_estimate_message_delivery_and_dispatch_fee(
+			client,
+			estimate_fee_method,
+			lane,
+			payload.clone(),
+			None,
+		)
+		.await?,
+		do_estimate_message_delivery_and_dispatch_fee(
+			client,
+			estimate_fee_method,
+			lane,
+			payload.clone(),
+			conversion_rate_override,
+		)
+		.await?,
+	))
+}
+
+/// Estimate message delivery and dispatch fee with given conversion rate overrride.
+async fn do_estimate_message_delivery_and_dispatch_fee<Source: Chain, P: Encode>(
+	client: &relay_substrate_client::Client<Source>,
+	estimate_fee_method: &str,
+	lane: bp_messages::LaneId,
+	payload: P,
+	conversion_rate_override: Option<FixedU128>,
+) -> anyhow::Result<BalanceOf<Source>> {
 	let encoded_response = client
 		.state_call(
 			estimate_fee_method.into(),
@@ -81,7 +129,7 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: C
 			None,
 		)
 		.await?;
-	let decoded_response: Option<Fee> = Decode::decode(&mut &encoded_response.0[..])
+	let decoded_response: Option<BalanceOf<Source>> = Decode::decode(&mut &encoded_response.0[..])
 		.map_err(relay_substrate_client::Error::ResponseParseFailed)?;
 	let fee = decoded_response.ok_or_else(|| {
 		anyhow::format_err!("Unable to decode fee from: {:?}", HexBytes(encoded_response.to_vec()))

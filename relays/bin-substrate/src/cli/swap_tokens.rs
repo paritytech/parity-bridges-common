@@ -203,8 +203,12 @@ impl SwapTokens {
 			// prepare `create_swap` call
 			let target_public_at_bridged_chain: AccountPublicOf<Target> =
 				target_sign.public().into();
-			let swap_delivery_and_dispatch_fee: BalanceOf<Source> =
-				crate::cli::estimate_fee::estimate_message_delivery_and_dispatch_fee(
+			let swap_delivery_and_dispatch_fee =
+				crate::cli::estimate_fee::estimate_message_delivery_and_dispatch_fee::<
+					Source,
+					Target,
+					_,
+				>(
 					&source_client,
 					ESTIMATE_SOURCE_TO_TARGET_MESSAGE_FEE_METHOD,
 					SOURCE_TO_TARGET_LANE_ID,
@@ -361,8 +365,12 @@ impl SwapTokens {
 					dispatch_fee_payment: bp_runtime::messages::DispatchFeePayment::AtSourceChain,
 					call: claim_swap_call.encode(),
 				};
-				let claim_swap_delivery_and_dispatch_fee: BalanceOf<Target> =
-					crate::cli::estimate_fee::estimate_message_delivery_and_dispatch_fee(
+				let claim_swap_delivery_and_dispatch_fee =
+					crate::cli::estimate_fee::estimate_message_delivery_and_dispatch_fee::<
+						Target,
+						Source,
+						_,
+					>(
 						&target_client,
 						ESTIMATE_TARGET_TO_SOURCE_MESSAGE_FEE_METHOD,
 						TARGET_TO_SOURCE_LANE_ID,
