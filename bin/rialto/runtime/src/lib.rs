@@ -53,7 +53,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, Block as BlockT, Keccak256, NumberFor, OpaqueKeys},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, MultiSigner, Perquintill,
+	ApplyExtrinsicResult, FixedPointNumber, FixedU128, MultiSignature, MultiSigner, Perquintill,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 #[cfg(feature = "std")]
@@ -434,9 +434,9 @@ impl pallet_shift_session_manager::Config for Runtime {}
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_messages::MessageNonce = 8;
 	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_messages::MessageNonce =
-		bp_rialto::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
+		bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
-		bp_rialto::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	// `IdentityFee` is used by Rialto => we may use weight directly
 	pub const GetDeliveryConfirmationTransactionFee: Balance =
 		bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT as _;
@@ -661,10 +661,6 @@ impl_runtime_apis! {
 		fn best_finalized() -> (bp_millau::BlockNumber, bp_millau::Hash) {
 			let header = BridgeMillauGrandpa::best_finalized();
 			(header.number, header.hash())
-		}
-
-		fn is_known_header(hash: bp_millau::Hash) -> bool {
-			BridgeMillauGrandpa::is_known_header(hash)
 		}
 	}
 
@@ -896,10 +892,12 @@ impl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			_lane_id: bp_messages::LaneId,
 			payload: ToMillauMessagePayload,
+			millau_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<Balance> {
 			estimate_message_dispatch_and_delivery_fee::<WithMillauMessageBridge>(
 				&payload,
 				WithMillauMessageBridge::RELAYER_FEE_PERCENT,
+				millau_to_this_conversion_rate,
 			).ok()
 		}
 
@@ -917,10 +915,6 @@ impl_runtime_apis! {
 
 		fn latest_received_nonce(lane: bp_messages::LaneId) -> bp_messages::MessageNonce {
 			BridgeMillauMessages::outbound_latest_received_nonce(lane)
-		}
-
-		fn latest_generated_nonce(lane: bp_messages::LaneId) -> bp_messages::MessageNonce {
-			BridgeMillauMessages::outbound_latest_generated_nonce(lane)
 		}
 	}
 
@@ -1034,14 +1028,13 @@ impl_runtime_apis! {
 					params: MessageProofParams,
 				) -> (millau_messages::FromMillauMessagesProof, Weight) {
 					use crate::millau_messages::WithMillauMessageBridge;
-					use bp_messages::MessageKey;
+					use bp_messages::{MessageKey, storage_keys};
 					use bridge_runtime_common::{
 						messages::MessageBridge,
 						messages_benchmarking::{ed25519_sign, prepare_message_proof},
 					};
 					use codec::Encode;
 					use frame_support::weights::GetDispatchInfo;
-					use pallet_bridge_messages::storage_keys;
 					use sp_runtime::traits::{Header, IdentifyAccount};
 
 					let remark = match params.size {
@@ -1119,7 +1112,7 @@ impl_runtime_apis! {
 
 					prepare_message_delivery_proof::<WithMillauMessageBridge, bp_millau::Hasher, Runtime, (), _, _>(
 						params,
-						|lane_id| pallet_bridge_messages::storage_keys::inbound_lane_data_key(
+						|lane_id| bp_messages::storage_keys::inbound_lane_data_key(
 							<WithMillauMessageBridge as MessageBridge>::BRIDGED_MESSAGES_PALLET_NAME,
 							&lane_id,
 						).0,
@@ -1187,6 +1180,7 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_runtime::Chain;
 	use bridge_runtime_common::messages;
 
 	#[test]
@@ -1202,40 +1196,49 @@ mod tests {
 		);
 
 		let max_incoming_message_proof_size = bp_millau::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
-			messages::target::maximal_incoming_message_size(bp_rialto::max_extrinsic_size()),
+			messages::target::maximal_incoming_message_size(bp_rialto::Rialto::max_extrinsic_size()),
 		);
 		pallet_bridge_messages::ensure_able_to_receive_message::<Weights>(
-			bp_rialto::max_extrinsic_size(),
-			bp_rialto::max_extrinsic_weight(),
+			bp_rialto::Rialto::max_extrinsic_size(),
+			bp_rialto::Rialto::max_extrinsic_weight(),
 			max_incoming_message_proof_size,
 			messages::target::maximal_incoming_message_dispatch_weight(
-				bp_rialto::max_extrinsic_weight(),
+				bp_rialto::Rialto::max_extrinsic_weight(),
 			),
 		);
 
 		let max_incoming_inbound_lane_data_proof_size =
 			bp_messages::InboundLaneData::<()>::encoded_size_hint(
 				bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-				bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE as _,
-				bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE as _,
+				bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as _,
+				bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as _,
 			)
 			.unwrap_or(u32::MAX);
 		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
-			bp_rialto::max_extrinsic_size(),
-			bp_rialto::max_extrinsic_weight(),
+			bp_rialto::Rialto::max_extrinsic_size(),
+			bp_rialto::Rialto::max_extrinsic_weight(),
 			max_incoming_inbound_lane_data_proof_size,
-			bp_millau::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE,
-			bp_millau::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE,
+			bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 			DbWeight::get(),
 		);
 	}
 
 	#[test]
 	fn call_size() {
-		const DOT_MAX_CALL_SZ: usize = 230;
-		assert!(core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <= DOT_MAX_CALL_SZ);
-		// FIXME: get this down to 230. https://github.com/paritytech/grandpa-bridge-gadget/issues/359
-		const BEEFY_MAX_CALL_SZ: usize = 232;
-		assert!(core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <= BEEFY_MAX_CALL_SZ);
+		const BRIDGES_PALLETS_MAX_CALL_SIZE: usize = 200;
+		assert!(
+			core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <=
+				BRIDGES_PALLETS_MAX_CALL_SIZE
+		);
+		assert!(
+			core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <=
+				BRIDGES_PALLETS_MAX_CALL_SIZE
+		);
+		// Largest inner Call is `pallet_session::Call` with a size of 224 bytes. This size is a
+		// result of large `SessionKeys` struct.
+		// Total size of Rialto runtime Call is 232.
+		const MAX_CALL_SIZE: usize = 232;
+		assert!(core::mem::size_of::<Call>() <= MAX_CALL_SIZE);
 	}
 }
