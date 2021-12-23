@@ -113,7 +113,7 @@ async fn do_initialize<SourceChain: ChainWithGrandpa, TargetChain: Chain>(
 	Ok(Some(initialization_tx_hash))
 }
 
-/// Returns `Ok(true)` if bridge has alredy been initialized.
+/// Returns `Ok(true)` if bridge has already been initialized.
 async fn is_initialized<SourceChain: ChainWithGrandpa, TargetChain: Chain>(
 	target_client: &Client<TargetChain>,
 ) -> Result<bool, Error<HashOf<SourceChain>, BlockNumberOf<SourceChain>>> {
