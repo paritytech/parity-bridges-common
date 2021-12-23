@@ -25,7 +25,7 @@ rand_sleep() {
 
 # give conversion rate updater some time to update Rialto->Millau conversion rate in Millau
 # (initially rate=1 and rational relayer won't deliver any messages if it'll be changed to larger value)
-sleep 180
+sleep 120
 
 while true
 do

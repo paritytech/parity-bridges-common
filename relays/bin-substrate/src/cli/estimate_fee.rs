@@ -21,6 +21,7 @@ use crate::{
 use bp_runtime::BalanceOf;
 use codec::{Decode, Encode};
 use relay_substrate_client::Chain;
+use sp_runtime::FixedU128;
 use structopt::StructOpt;
 use strum::VariantNames;
 
@@ -46,7 +47,7 @@ impl EstimateFee {
 		let Self { source, bridge, lane, payload } = self;
 
 		select_full_bridge!(bridge, {
-			let source_client = source.to_client::<Source>().await?;
+			let source_client = source.to_client::<Source>(SOURCE_RUNTIME_VERSION).await?;
 			let lane = lane.into();
 			let payload =
 				Source::encode_message(payload).map_err(|e| anyhow::format_err!("{:?}", e))?;
@@ -72,8 +73,13 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: C
 	lane: bp_messages::LaneId,
 	payload: P,
 ) -> anyhow::Result<Fee> {
+	let conversion_rate_override: Option<FixedU128> = None;
 	let encoded_response = client
-		.state_call(estimate_fee_method.into(), (lane, payload).encode().into(), None)
+		.state_call(
+			estimate_fee_method.into(),
+			(lane, payload, conversion_rate_override).encode().into(),
+			None,
+		)
 		.await?;
 	let decoded_response: Option<Fee> = Decode::decode(&mut &encoded_response.0[..])
 		.map_err(relay_substrate_client::Error::ResponseParseFailed)?;
@@ -86,7 +92,7 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<Fee: Decode, C: C
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::encode_call;
+	use crate::cli::{encode_call, RuntimeVersionType, SourceRuntimeVersionParams};
 	use sp_core::crypto::Ss58Codec;
 
 	#[test]
@@ -118,6 +124,11 @@ mod tests {
 					source_host: "127.0.0.1".into(),
 					source_port: 1234,
 					source_secure: false,
+					source_runtime_version: SourceRuntimeVersionParams {
+						source_version_mode: RuntimeVersionType::Bundle,
+						source_spec_version: None,
+						source_transaction_version: None,
+					}
 				},
 				payload: crate::cli::encode_message::MessagePayload::Call {
 					sender: alice.parse().unwrap(),

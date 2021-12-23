@@ -8,7 +8,7 @@
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
 
-FROM paritytech/bridges-ci:latest as builder
+FROM paritytech/bridges-ci:e8a9ef25-20211215 as builder
 WORKDIR /parity-bridges-common
 
 COPY . .

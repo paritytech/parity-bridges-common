@@ -733,6 +733,7 @@ dependencies = [
  "frame-support",
  "smallvec",
  "sp-api",
+ "sp-runtime",
  "sp-std",
  "sp-version",
 ]
@@ -756,10 +757,13 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "frame-system",
+ "hex",
+ "hex-literal",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
  "serde",
+ "sp-core",
  "sp-std",
 ]
 
@@ -796,6 +800,7 @@ dependencies = [
  "frame-support",
  "smallvec",
  "sp-api",
+ "sp-runtime",
  "sp-std",
  "sp-version",
 ]
@@ -898,10 +903,14 @@ dependencies = [
 name = "bp-token-swap"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "frame-support",
+ "hex",
+ "hex-literal",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
+ "sp-io",
  "sp-std",
 ]
 
@@ -910,7 +919,6 @@ name = "bp-westend"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
- "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
@@ -5341,8 +5349,6 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex",
- "hex-literal",
  "log",
  "num-traits",
  "pallet-balances",
@@ -7926,6 +7932,7 @@ dependencies = [
 name = "relay-millau-client"
 version = "0.1.0"
 dependencies = [
+ "bp-messages",
  "bp-millau",
  "frame-support",
  "frame-system",
@@ -7964,6 +7971,7 @@ dependencies = [
 name = "relay-rialto-client"
 version = "0.1.0"
 dependencies = [
+ "bp-messages",
  "bp-rialto",
  "frame-support",
  "frame-system",
@@ -8019,6 +8027,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-header-chain",
+ "bp-messages",
  "bp-runtime",
  "finality-relay",
  "frame-support",
@@ -8029,6 +8038,7 @@ dependencies = [
  "log",
  "num-traits",
  "pallet-balances",
+ "pallet-bridge-messages",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
@@ -8075,6 +8085,7 @@ name = "relay-westend-client"
 version = "0.1.0"
 dependencies = [
  "bp-westend",
+ "frame-support",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
@@ -10950,7 +10961,7 @@ dependencies = [
 
 [[package]]
 name = "substrate-relay"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-std",
@@ -11024,6 +11035,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
+ "bp-rialto",
  "bp-rococo",
  "bp-runtime",
  "bp-wococo",
@@ -11035,6 +11047,7 @@ dependencies = [
  "log",
  "messages-relay",
  "num-traits",
+ "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "parity-scale-codec",
  "relay-rococo-client",

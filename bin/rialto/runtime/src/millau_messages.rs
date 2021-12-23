@@ -23,7 +23,7 @@ use bp_messages::{
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessagesParameter,
 };
-use bp_runtime::{ChainId, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
+use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
 use bridge_runtime_common::messages::{self, MessageBridge, MessageTransaction};
 use codec::{Decode, Encode};
 use frame_support::{
@@ -86,16 +86,19 @@ impl MessageBridge for WithMillauMessageBridge {
 	const RELAYER_FEE_PERCENT: u32 = 10;
 	const THIS_CHAIN_ID: ChainId = RIALTO_CHAIN_ID;
 	const BRIDGED_CHAIN_ID: ChainId = MILLAU_CHAIN_ID;
-	const BRIDGED_MESSAGES_PALLET_NAME: &'static str = bp_millau::WITH_RIALTO_MESSAGES_PALLET_NAME;
+	const BRIDGED_MESSAGES_PALLET_NAME: &'static str = bp_rialto::WITH_RIALTO_MESSAGES_PALLET_NAME;
 
 	type ThisChain = Rialto;
 	type BridgedChain = Millau;
 
-	fn bridged_balance_to_this_balance(bridged_balance: bp_millau::Balance) -> bp_rialto::Balance {
-		bp_rialto::Balance::try_from(
-			MillauToRialtoConversionRate::get().saturating_mul_int(bridged_balance),
-		)
-		.unwrap_or(bp_rialto::Balance::MAX)
+	fn bridged_balance_to_this_balance(
+		bridged_balance: bp_millau::Balance,
+		bridged_to_this_conversion_rate_override: Option<FixedU128>,
+	) -> bp_rialto::Balance {
+		let conversion_rate = bridged_to_this_conversion_rate_override
+			.unwrap_or_else(|| MillauToRialtoConversionRate::get());
+		bp_rialto::Balance::try_from(conversion_rate.saturating_mul_int(bridged_balance))
+			.unwrap_or(bp_rialto::Balance::MAX)
 	}
 }
 
@@ -170,13 +173,13 @@ impl messages::ChainWithMessages for Millau {
 
 impl messages::BridgedChainWithMessages for Millau {
 	fn maximal_extrinsic_size() -> u32 {
-		bp_millau::max_extrinsic_size()
+		bp_millau::Millau::max_extrinsic_size()
 	}
 
 	fn message_weight_limits(_message_payload: &[u8]) -> RangeInclusive<Weight> {
 		// we don't want to relay too large messages + keep reserve for future upgrades
 		let upper_limit = messages::target::maximal_incoming_message_dispatch_weight(
-			bp_millau::max_extrinsic_weight(),
+			bp_millau::Millau::max_extrinsic_weight(),
 		);
 
 		// we're charging for payload bytes in `WithMillauMessageBridge::transaction_payment`

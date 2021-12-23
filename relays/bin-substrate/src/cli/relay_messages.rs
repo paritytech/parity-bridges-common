@@ -18,7 +18,7 @@ use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
 use messages_relay::relay_strategy::MixStrategy;
-use substrate_relay_helper::messages_lane::MessagesRelayParams;
+use substrate_relay_helper::{messages_lane::MessagesRelayParams, TransactionParams};
 
 use crate::{
 	cli::{
@@ -75,22 +75,26 @@ impl RelayMessages {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_full_bridge!(self.bridge, {
-			let source_client = self.source.to_client::<Source>().await?;
+			let source_client = self.source.to_client::<Source>(SOURCE_RUNTIME_VERSION).await?;
 			let source_sign = self.source_sign.to_keypair::<Source>()?;
 			let source_transactions_mortality = self.source_sign.transactions_mortality()?;
-			let target_client = self.target.to_client::<Target>().await?;
+			let target_client = self.target.to_client::<Target>(TARGET_RUNTIME_VERSION).await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 			let target_transactions_mortality = self.target_sign.transactions_mortality()?;
 			let relayer_mode = self.relayer_mode.into();
 			let relay_strategy = MixStrategy::new(relayer_mode);
 
-			relay_messages(MessagesRelayParams {
+			substrate_relay_helper::messages_lane::run::<MessagesLane>(MessagesRelayParams {
 				source_client,
-				source_sign,
-				source_transactions_mortality,
+				source_transaction_params: TransactionParams {
+					signer: source_sign,
+					mortality: source_transactions_mortality,
+				},
 				target_client,
-				target_sign,
-				target_transactions_mortality,
+				target_transaction_params: TransactionParams {
+					signer: target_sign,
+					mortality: target_transactions_mortality,
+				},
 				source_to_target_headers_relay: None,
 				target_to_source_headers_relay: None,
 				lane_id: self.lane.into(),

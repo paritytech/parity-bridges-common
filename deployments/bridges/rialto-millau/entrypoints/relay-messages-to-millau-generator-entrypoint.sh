@@ -36,7 +36,7 @@ BUNCH_OF_MESSAGES_TIME=3600
 
 # give conversion rate updater some time to update Millau->Rialto conversion rate in Rialto
 # (initially rate=1 and rational relayer won't deliver any messages if it'll be changed to larger value)
-sleep 180
+sleep 120
 
 while true
 do
