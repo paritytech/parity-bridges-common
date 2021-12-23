@@ -145,7 +145,7 @@ where
 			.await?;
 		// lane data missing from the storage is fine until first message is received
 		let latest_received_nonce =
-			outbound_lane_data.map(|data| data.last_delivered_nonce()).unwrap_or(0);
+			inbound_lane_data.map(|data| data.last_delivered_nonce()).unwrap_or(0);
 		Ok((id, latest_received_nonce))
 	}
 
