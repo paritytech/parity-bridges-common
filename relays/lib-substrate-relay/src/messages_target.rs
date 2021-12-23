@@ -133,7 +133,7 @@ where
 		&self,
 		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 	) -> Result<(TargetHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
-		let outbound_lane_data: Option<InboundLaneData<AccountIdOf<P::SourceChain>>> = self
+		let inbound_lane_data: Option<InboundLaneData<AccountIdOf<P::SourceChain>>> = self
 			.client
 			.storage_value(
 				inbound_lane_data_key(
