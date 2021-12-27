@@ -736,7 +736,6 @@ dependencies = [
  "frame-support",
  "smallvec",
  "sp-api",
- "sp-runtime",
  "sp-std",
  "sp-version",
 ]
@@ -803,7 +802,6 @@ dependencies = [
  "frame-support",
  "smallvec",
  "sp-api",
- "sp-runtime",
  "sp-std",
  "sp-version",
 ]
@@ -922,6 +920,7 @@ name = "bp-westend"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
+ "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
