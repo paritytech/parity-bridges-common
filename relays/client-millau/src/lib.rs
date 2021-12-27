@@ -20,8 +20,8 @@ use bp_messages::MessageNonce;
 use codec::{Compact, Decode, Encode};
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithMessages, IndexOf, SignParam,
-	TransactionSignScheme, UnsignedTransaction,
+	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, IndexOf,
+	SignParam, TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -54,15 +54,15 @@ impl ChainBase for Millau {
 	}
 }
 
+impl ChainWithGrandpa for Millau {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_millau::WITH_MILLAU_GRANDPA_PALLET_NAME;
+}
+
 impl ChainWithMessages for Millau {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
 		bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME;
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_millau::TO_MILLAU_MESSAGE_DETAILS_METHOD;
-	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str =
-		bp_millau::TO_MILLAU_LATEST_RECEIVED_NONCE_METHOD;
-	const FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str =
-		bp_millau::FROM_MILLAU_LATEST_RECEIVED_NONCE_METHOD;
 	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str =
 		bp_millau::FROM_MILLAU_LATEST_CONFIRMED_NONCE_METHOD;
 	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str =

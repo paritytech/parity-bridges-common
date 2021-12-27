@@ -20,8 +20,8 @@ use bp_messages::MessageNonce;
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithMessages, SignParam, TransactionSignScheme,
-	UnsignedTransaction,
+	Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, SignParam,
+	TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -73,15 +73,15 @@ impl Chain for Wococo {
 	type WeightToFee = bp_wococo::WeightToFee;
 }
 
+impl ChainWithGrandpa for Wococo {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_wococo::WITH_WOCOCO_GRANDPA_PALLET_NAME;
+}
+
 impl ChainWithMessages for Wococo {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
 		bp_wococo::WITH_WOCOCO_MESSAGES_PALLET_NAME;
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_wococo::TO_WOCOCO_MESSAGE_DETAILS_METHOD;
-	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str =
-		bp_wococo::TO_WOCOCO_LATEST_RECEIVED_NONCE_METHOD;
-	const FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str =
-		bp_wococo::FROM_WOCOCO_LATEST_RECEIVED_NONCE_METHOD;
 	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str =
 		bp_wococo::FROM_WOCOCO_LATEST_CONFIRMED_NONCE_METHOD;
 	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str =

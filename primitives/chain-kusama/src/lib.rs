@@ -24,7 +24,6 @@ use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState}
 use frame_support::weights::{
 	WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
 };
-use sp_runtime::FixedU128;
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
 
@@ -82,6 +81,8 @@ pub const EXISTENTIAL_DEPOSIT: Balance = 1_000_000_000_000 / 30_000;
 /// conditions.
 pub const SESSION_LENGTH: BlockNumber = time_units::HOURS;
 
+/// Name of the With-Kusama GRANDPA pallet instance that is deployed at bridged chains.
+pub const WITH_KUSAMA_GRANDPA_PALLET_NAME: &str = "BridgeKusamaGrandpa";
 /// Name of the With-Kusama messages pallet instance that is deployed at bridged chains.
 pub const WITH_KUSAMA_MESSAGES_PALLET_NAME: &str = "BridgeKusamaMessages";
 
@@ -98,13 +99,7 @@ pub const TO_KUSAMA_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToKusamaOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToKusamaOutboundLaneApi::message_details` runtime method.
 pub const TO_KUSAMA_MESSAGE_DETAILS_METHOD: &str = "ToKusamaOutboundLaneApi_message_details";
-/// Name of the `ToKusamaOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_KUSAMA_LATEST_RECEIVED_NONCE_METHOD: &str =
-	"ToKusamaOutboundLaneApi_latest_received_nonce";
 
-/// Name of the `FromKusamaInboundLaneApi::latest_received_nonce` runtime method.
-pub const FROM_KUSAMA_LATEST_RECEIVED_NONCE_METHOD: &str =
-	"FromKusamaInboundLaneApi_latest_received_nonce";
 /// Name of the `FromKusamaInboundLaneApi::latest_onfirmed_nonce` runtime method.
 pub const FROM_KUSAMA_LATEST_CONFIRMED_NONCE_METHOD: &str =
 	"FromKusamaInboundLaneApi_latest_confirmed_nonce";
@@ -139,7 +134,6 @@ sp_api::decl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			lane_id: LaneId,
 			payload: OutboundPayload,
-			kusama_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<OutboundMessageFee>;
 		/// Returns dispatch weight, encoded payload size and delivery+dispatch fee of all
 		/// messages in given inclusive range.
@@ -151,8 +145,6 @@ sp_api::decl_runtime_apis! {
 			begin: MessageNonce,
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
-		/// Returns nonce of the latest message, received by bridged chain.
-		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 	}
 
 	/// Inbound message lane API for messages sent by Kusama chain.
@@ -160,8 +152,6 @@ sp_api::decl_runtime_apis! {
 	/// This API is implemented by runtimes that are receiving messages from Kusama chain, not the
 	/// Kusama runtime itself.
 	pub trait FromKusamaInboundLaneApi {
-		/// Returns nonce of the latest message, received by given lane.
-		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 		/// Nonce of the latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
