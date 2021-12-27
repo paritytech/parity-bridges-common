@@ -64,6 +64,20 @@ pub trait Chain: ChainBase + Clone {
 	type WeightToFee: WeightToFeePolynomial<Balance = Self::Balance>;
 }
 
+/// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
+/// view.
+///
+/// Keep in mind that parachains are relying on relay chain GRANDPA, so they should not implement
+/// this trait.
+pub trait ChainWithGrandpa: Chain {
+	/// Name of the bridge GRANDPA pallet (used in `construct_runtime` macro call) that is deployed
+	/// at some other chain to bridge with this `ChainWithGrandpa`.
+	///
+	/// We assume that all chains that are bridging with this `ChainWithGrandpa` are using
+	/// the same name.
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
+}
+
 /// Substrate-based chain with messaging support from minimal relay-client point of view.
 pub trait ChainWithMessages: Chain {
 	/// Name of the bridge messages pallet (used in `construct_runtime` macro call) that is deployed
@@ -76,13 +90,7 @@ pub trait ChainWithMessages: Chain {
 	/// Name of the `To<ChainWithMessages>OutboundLaneApi::message_details` runtime API method.
 	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str;
-	/// Name of the `To<ChainWithMessages>OutboundLaneApi::latest_received_nonce` runtime API
-	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
-	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str;
 
-	/// Name of the `From<ChainWithMessages>InboundLaneApi::latest_received_nonce` runtime method.
-	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
-	const FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str;
 	/// Name of the `From<ChainWithMessages>InboundLaneApi::latest_confirmed_nonce` runtime method.
 	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str;

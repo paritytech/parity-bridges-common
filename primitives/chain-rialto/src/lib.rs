@@ -226,6 +226,8 @@ frame_support::parameter_types! {
 		.build_or_panic();
 }
 
+/// Name of the With-Rialto GRANDPA pallet instance that is deployed at bridged chains.
+pub const WITH_RIALTO_GRANDPA_PALLET_NAME: &str = "BridgeRialtoGrandpa";
 /// Name of the With-Rialto messages pallet instance that is deployed at bridged chains.
 pub const WITH_RIALTO_MESSAGES_PALLET_NAME: &str = "BridgeRialtoMessages";
 
@@ -247,13 +249,7 @@ pub const TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToRialtoOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToRialtoOutboundLaneApi::message_details` runtime method.
 pub const TO_RIALTO_MESSAGE_DETAILS_METHOD: &str = "ToRialtoOutboundLaneApi_message_details";
-/// Name of the `ToRialtoOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str =
-	"ToRialtoOutboundLaneApi_latest_received_nonce";
 
-/// Name of the `FromRialtoInboundLaneApi::latest_received_nonce` runtime method.
-pub const FROM_RIALTO_LATEST_RECEIVED_NONCE_METHOD: &str =
-	"FromRialtoInboundLaneApi_latest_received_nonce";
 /// Name of the `FromRialtoInboundLaneApi::latest_onfirmed_nonce` runtime method.
 pub const FROM_RIALTO_LATEST_CONFIRMED_NONCE_METHOD: &str =
 	"FromRialtoInboundLaneApi_latest_confirmed_nonce";
@@ -300,8 +296,6 @@ sp_api::decl_runtime_apis! {
 			begin: MessageNonce,
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
-		/// Returns nonce of the latest message, received by bridged chain.
-		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 	}
 
 	/// Inbound message lane API for messages sent by Rialto chain.
@@ -309,8 +303,6 @@ sp_api::decl_runtime_apis! {
 	/// This API is implemented by runtimes that are receiving messages from Rialto chain, not the
 	/// Rialto runtime itself.
 	pub trait FromRialtoInboundLaneApi {
-		/// Returns nonce of the latest message, received by given lane.
-		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 		/// Nonce of the latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.

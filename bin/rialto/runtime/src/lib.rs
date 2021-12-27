@@ -912,17 +912,9 @@ impl_runtime_apis! {
 				WithMillauMessageBridge,
 			>(lane, begin, end)
 		}
-
-		fn latest_received_nonce(lane: bp_messages::LaneId) -> bp_messages::MessageNonce {
-			BridgeMillauMessages::outbound_latest_received_nonce(lane)
-		}
 	}
 
 	impl bp_millau::FromMillauInboundLaneApi<Block> for Runtime {
-		fn latest_received_nonce(lane: bp_messages::LaneId) -> bp_messages::MessageNonce {
-			BridgeMillauMessages::inbound_latest_received_nonce(lane)
-		}
-
 		fn latest_confirmed_nonce(lane: bp_messages::LaneId) -> bp_messages::MessageNonce {
 			BridgeMillauMessages::inbound_latest_confirmed_nonce(lane)
 		}

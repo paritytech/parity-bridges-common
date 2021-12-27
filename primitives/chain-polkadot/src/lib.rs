@@ -82,6 +82,8 @@ pub const EXISTENTIAL_DEPOSIT: Balance = 10_000_000_000;
 /// conditions.
 pub const SESSION_LENGTH: BlockNumber = 4 * time_units::HOURS;
 
+/// Name of the With-Polkadot GRANDPA pallet instance that is deployed at bridged chains.
+pub const WITH_POLKADOT_GRANDPA_PALLET_NAME: &str = "BridgePolkadotGrandpa";
 /// Name of the With-Polkadot messages pallet instance that is deployed at bridged chains.
 pub const WITH_POLKADOT_MESSAGES_PALLET_NAME: &str = "BridgePolkadotMessages";
 
@@ -98,13 +100,7 @@ pub const TO_POLKADOT_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToPolkadotOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToPolkadotOutboundLaneApi::message_details` runtime method.
 pub const TO_POLKADOT_MESSAGE_DETAILS_METHOD: &str = "ToPolkadotOutboundLaneApi_message_details";
-/// Name of the `ToPolkadotOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_POLKADOT_LATEST_RECEIVED_NONCE_METHOD: &str =
-	"ToPolkadotOutboundLaneApi_latest_received_nonce";
 
-/// Name of the `FromPolkadotInboundLaneApi::latest_received_nonce` runtime method.
-pub const FROM_POLKADOT_LATEST_RECEIVED_NONCE_METHOD: &str =
-	"FromPolkadotInboundLaneApi_latest_received_nonce";
 /// Name of the `FromPolkadotInboundLaneApi::latest_onfirmed_nonce` runtime method.
 pub const FROM_POLKADOT_LATEST_CONFIRMED_NONCE_METHOD: &str =
 	"FromPolkadotInboundLaneApi_latest_confirmed_nonce";
@@ -151,8 +147,6 @@ sp_api::decl_runtime_apis! {
 			begin: MessageNonce,
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
-		/// Returns nonce of the latest message, received by bridged chain.
-		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 	}
 
 	/// Inbound message lane API for messages sent by Polkadot chain.
@@ -160,8 +154,6 @@ sp_api::decl_runtime_apis! {
 	/// This API is implemented by runtimes that are receiving messages from Polkadot chain, not the
 	/// Polkadot runtime itself.
 	pub trait FromPolkadotInboundLaneApi {
-		/// Returns nonce of the latest message, received by given lane.
-		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 		/// Nonce of the latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
