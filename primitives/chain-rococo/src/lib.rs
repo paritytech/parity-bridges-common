@@ -24,7 +24,6 @@ use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState}
 use frame_support::weights::{
 	Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
 };
-use sp_runtime::FixedU128;
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
 
@@ -75,6 +74,8 @@ pub fn derive_account_from_wococo_id(id: bp_runtime::SourceAccount<AccountId>) -
 	AccountIdConverter::convert(encoded_id)
 }
 
+/// Name of the With-Rococo GRANDPA pallet instance that is deployed at bridged chains.
+pub const WITH_ROCOCO_GRANDPA_PALLET_NAME: &str = "BridgeRococoGrandpa";
 /// Name of the With-Rococo messages pallet instance that is deployed at bridged chains.
 pub const WITH_ROCOCO_MESSAGES_PALLET_NAME: &str = "BridgeRococoMessages";
 
@@ -87,13 +88,7 @@ pub const TO_ROCOCO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToRococoOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToRococoOutboundLaneApi::message_details` runtime method.
 pub const TO_ROCOCO_MESSAGE_DETAILS_METHOD: &str = "ToRococoOutboundLaneApi_message_details";
-/// Name of the `ToRococoOutboundLaneApi::latest_received_nonce` runtime method.
-pub const TO_ROCOCO_LATEST_RECEIVED_NONCE_METHOD: &str =
-	"ToRococoOutboundLaneApi_latest_received_nonce";
 
-/// Name of the `FromRococoInboundLaneApi::latest_received_nonce` runtime method.
-pub const FROM_ROCOCO_LATEST_RECEIVED_NONCE_METHOD: &str =
-	"FromRococoInboundLaneApi_latest_received_nonce";
 /// Name of the `FromRococoInboundLaneApi::latest_onfirmed_nonce` runtime method.
 pub const FROM_ROCOCO_LATEST_CONFIRMED_NONCE_METHOD: &str =
 	"FromRococoInboundLaneApi_latest_confirmed_nonce";
@@ -140,7 +135,6 @@ sp_api::decl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			lane_id: LaneId,
 			payload: OutboundPayload,
-			rococo_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<OutboundMessageFee>;
 		/// Returns dispatch weight, encoded payload size and delivery+dispatch fee of all
 		/// messages in given inclusive range.
@@ -152,8 +146,6 @@ sp_api::decl_runtime_apis! {
 			begin: MessageNonce,
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
-		/// Returns nonce of the latest message, received by bridged chain.
-		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 	}
 
 	/// Inbound message lane API for messages sent by Rococo chain.
@@ -161,8 +153,6 @@ sp_api::decl_runtime_apis! {
 	/// This API is implemented by runtimes that are receiving messages from Rococo chain, not the
 	/// Rococo runtime itself.
 	pub trait FromRococoInboundLaneApi {
-		/// Returns nonce of the latest message, received by given lane.
-		fn latest_received_nonce(lane: LaneId) -> MessageNonce;
 		/// Nonce of the latest message that has been confirmed to the bridged chain.
 		fn latest_confirmed_nonce(lane: LaneId) -> MessageNonce;
 		/// State of the unrewarded relayers set at given lane.
