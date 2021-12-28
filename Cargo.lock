@@ -4635,6 +4635,7 @@ version = "0.1.0"
 dependencies = [
  "beefy-primitives",
  "bp-header-chain",
+ "bp-message-dispatch",
  "bp-messages",
  "bp-millau",
  "bp-rialto",
@@ -4647,6 +4648,7 @@ dependencies = [
  "frame-system",
  "frame-system-rpc-runtime-api",
  "hex-literal",
+ "libsecp256k1",
  "pallet-aura",
  "pallet-balances",
  "pallet-beefy",
