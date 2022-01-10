@@ -469,7 +469,7 @@ mod tests {
 			// i.e. weight reserved for messages dispatch allows dispatch of non-trivial messages.
 			//
 			// Any significant change in this values should attract additional attention.
-			(962, 216_583_333_334),
+			(958, 216_583_333_334),
 		);
 	}
 }
