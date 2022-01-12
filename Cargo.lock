@@ -10969,6 +10969,7 @@ version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-std",
+ "async-trait",
  "bp-header-chain",
  "bp-kusama",
  "bp-message-dispatch",
