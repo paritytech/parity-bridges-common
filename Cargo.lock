@@ -956,7 +956,9 @@ dependencies = [
  "bp-runtime",
  "ed25519-dalek",
  "frame-support",
+ "frame-system",
  "hash-db",
+ "pallet-balances",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
@@ -968,6 +970,7 @@ dependencies = [
  "sp-state-machine",
  "sp-std",
  "sp-trie",
+ "sp-version",
 ]
 
 [[package]]
