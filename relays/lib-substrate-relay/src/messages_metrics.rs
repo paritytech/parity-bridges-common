@@ -18,16 +18,21 @@
 
 use crate::messages_lane::SubstrateMessageLane;
 
-use num_traits::One;
+use codec::Decode;
+use frame_system::AccountInfo;
+use pallet_balances::AccountData;
 use relay_substrate_client::{
-	metrics::{FloatStorageValueMetric, StorageProofOverheadMetric},
-	Chain, Client,
+	metrics::{
+		FixedU128OrOne, FloatStorageValue, FloatStorageValueMetric, StorageProofOverheadMetric,
+	},
+	AccountIdOf, BalanceOf, Chain, ChainWithBalances, Client, Error as SubstrateError, IndexOf,
 };
 use relay_utils::metrics::{
 	FloatJsonValueMetric, GlobalMetrics, MetricsParams, PrometheusError, StandaloneMetric,
 };
-use sp_runtime::FixedU128;
-use std::fmt::Debug;
+use sp_core::storage::StorageData;
+use sp_runtime::{FixedPointNumber, FixedU128};
+use std::{fmt::Debug, marker::PhantomData};
 
 /// Shared references to the standalone metrics of the message lane relay loop.
 #[derive(Debug, Clone)]
@@ -44,12 +49,10 @@ pub struct StandaloneMessagesMetrics<SC: Chain, TC: Chain> {
 	pub target_to_base_conversion_rate: Option<FloatJsonValueMetric>,
 	/// Source tokens to target tokens conversion rate metric. This rate is stored by the target
 	/// chain.
-	pub source_to_target_conversion_rate:
-		Option<FloatStorageValueMetric<TC, sp_runtime::FixedU128>>,
+	pub source_to_target_conversion_rate: Option<FloatStorageValueMetric<TC, FixedU128OrOne>>,
 	/// Target tokens to source tokens conversion rate metric. This rate is stored by the source
 	/// chain.
-	pub target_to_source_conversion_rate:
-		Option<FloatStorageValueMetric<SC, sp_runtime::FixedU128>>,
+	pub target_to_source_conversion_rate: Option<FloatStorageValueMetric<SC, FixedU128OrOne>>,
 }
 
 impl<SC: Chain, TC: Chain> StandaloneMessagesMetrics<SC, TC> {
@@ -104,7 +107,7 @@ impl<SC: Chain, TC: Chain> StandaloneMessagesMetrics<SC, TC> {
 	}
 }
 
-/// Create standalone metrics for the message lane relay loop.
+/// Create symmetric standalone metrics for the message lane relay loop.
 ///
 /// All metrics returned by this function are exposed by loops that are serving given lane (`P`)
 /// and by loops that are serving reverse lane (`P` with swapped `TargetChain` and `SourceChain`).
@@ -139,10 +142,9 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 		source_to_target_conversion_rate: P::SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME
 			.map(bp_runtime::storage_parameter_key)
 			.map(|key| {
-				FloatStorageValueMetric::<_, sp_runtime::FixedU128>::new(
+				FloatStorageValueMetric::new(
 					target_client,
 					key,
-					Some(FixedU128::one()),
 					format!(
 						"{}_{}_to_{}_conversion_rate",
 						P::TargetChain::NAME,
@@ -162,10 +164,9 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 		target_to_source_conversion_rate: P::TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME
 			.map(bp_runtime::storage_parameter_key)
 			.map(|key| {
-				FloatStorageValueMetric::<_, sp_runtime::FixedU128>::new(
+				FloatStorageValueMetric::new(
 					source_client,
 					key,
-					Some(FixedU128::one()),
 					format!(
 						"{}_{}_to_{}_conversion_rate",
 						P::SourceChain::NAME,
@@ -183,6 +184,67 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 			})
 			.unwrap_or(Ok(None))?,
 	})
+}
+
+/// Add relay accounts balance metrics.
+pub async fn add_relay_balances_metrics<C: ChainWithBalances>(
+	client: Client<C>,
+	metrics: MetricsParams,
+	relay_account_id: Option<AccountIdOf<C>>,
+	messages_pallet_owner_account_id: Option<AccountIdOf<C>>,
+) -> anyhow::Result<MetricsParams>
+where
+	BalanceOf<C>: Into<u128> + std::fmt::Debug,
+{
+	if let Some(relay_account_id) = relay_account_id {
+		let relay_account_balance_metric =
+			FloatStorageValueMetric::<_, FreeAccountBalance<C>>::new(
+				client.clone(),
+				C::account_info_storage_key(&relay_account_id),
+				format!("at_{}_relay_balance", C::NAME),
+				format!("Balance of the relay account at the {}", C::NAME),
+			)?;
+		relay_account_balance_metric.register_and_spawn(&metrics.registry)?;
+	}
+	if let Some(messages_pallet_owner_account_id) = messages_pallet_owner_account_id {
+		let pallet_owner_account_balance_metric =
+			FloatStorageValueMetric::<_, FreeAccountBalance<C>>::new(
+				client.clone(),
+				C::account_info_storage_key(&messages_pallet_owner_account_id),
+				format!("at_{}_messages_pallet_owner_balance", C::NAME),
+				format!("Balance of the messages pallet owner at the {}", C::NAME),
+			)?;
+		pallet_owner_account_balance_metric.register_and_spawn(&metrics.registry)?;
+	}
+	Ok(metrics)
+}
+
+/// Adapter for `FloatStorageValueMetric` to decode account free balance.
+#[derive(Clone, Debug)]
+struct FreeAccountBalance<C> {
+	_phantom: PhantomData<C>,
+}
+
+impl<C> FloatStorageValue for FreeAccountBalance<C>
+where
+	C: Chain,
+	BalanceOf<C>: Into<u128>,
+{
+	type Value = FixedU128;
+
+	fn decode(maybe_raw_value: Option<StorageData>) -> Result<Option<Self::Value>, SubstrateError> {
+		maybe_raw_value
+			.map(|raw_value| {
+				AccountInfo::<IndexOf<C>, AccountData<BalanceOf<C>>>::decode(&mut &raw_value.0[..])
+					.map_err(SubstrateError::ResponseParseFailed)
+					.map(|account_data| {
+						FixedU128::from_inner(
+							account_data.data.free.into().saturating_mul(FixedU128::DIV),
+						)
+					})
+			})
+			.transpose()
+	}
 }
 
 #[cfg(test)]
