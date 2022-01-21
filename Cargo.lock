@@ -8050,6 +8050,7 @@ dependencies = [
  "parity-scale-codec",
  "rand 0.7.3",
  "relay-utils",
+ "sc-chain-spec",
  "sc-rpc-api",
  "sc-transaction-pool-api",
  "sp-core",

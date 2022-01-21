@@ -36,18 +36,24 @@ pub trait FloatStorageValue: 'static + Clone + Send + Sync {
 	/// Type of the value.
 	type Value: FixedPointNumber;
 	/// Try to decode value from the raw storage value.
-	fn decode(maybe_raw_value: Option<StorageData>) -> Result<Option<Self::Value>, SubstrateError>;
+	fn decode(
+		&self,
+		maybe_raw_value: Option<StorageData>,
+	) -> Result<Option<Self::Value>, SubstrateError>;
 }
 
 /// Implementation of `FloatStorageValue` that expects encoded `FixedU128` value and returns `1` if
 /// value is missing from the storage.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FixedU128OrOne;
 
 impl FloatStorageValue for FixedU128OrOne {
 	type Value = FixedU128;
 
-	fn decode(maybe_raw_value: Option<StorageData>) -> Result<Option<Self::Value>, SubstrateError> {
+	fn decode(
+		&self,
+		maybe_raw_value: Option<StorageData>,
+	) -> Result<Option<Self::Value>, SubstrateError> {
 		maybe_raw_value
 			.map(|raw_value| {
 				FixedU128::decode(&mut &raw_value.0[..])
@@ -61,6 +67,7 @@ impl FloatStorageValue for FixedU128OrOne {
 /// Metric that represents fixed-point runtime storage value as float gauge.
 #[derive(Clone, Debug)]
 pub struct FloatStorageValueMetric<C: Chain, V: FloatStorageValue> {
+	value_converter: V,
 	client: Client<C>,
 	storage_key: StorageKey,
 	metric: Gauge<F64>,
@@ -71,6 +78,7 @@ pub struct FloatStorageValueMetric<C: Chain, V: FloatStorageValue> {
 impl<C: Chain, V: FloatStorageValue> FloatStorageValueMetric<C, V> {
 	/// Create new metric.
 	pub fn new(
+		value_converter: V,
 		client: Client<C>,
 		storage_key: StorageKey,
 		name: String,
@@ -78,6 +86,7 @@ impl<C: Chain, V: FloatStorageValue> FloatStorageValueMetric<C, V> {
 	) -> Result<Self, PrometheusError> {
 		let shared_value_ref = Arc::new(RwLock::new(None));
 		Ok(FloatStorageValueMetric {
+			value_converter,
 			client,
 			storage_key,
 			metric: Gauge::new(metric_name(None, &name), help)?,
@@ -110,7 +119,7 @@ impl<C: Chain, V: FloatStorageValue> StandaloneMetric for FloatStorageValueMetri
 			.raw_storage_value(self.storage_key.clone(), None)
 			.await
 			.and_then(|maybe_storage_value| {
-				V::decode(maybe_storage_value).map(|maybe_fixed_point_value| {
+				self.value_converter.decode(maybe_storage_value).map(|maybe_fixed_point_value| {
 					maybe_fixed_point_value.map(|fixed_point_value| {
 						fixed_point_value.into_inner().unique_saturated_into() as f64 /
 							V::Value::DIV.unique_saturated_into() as f64

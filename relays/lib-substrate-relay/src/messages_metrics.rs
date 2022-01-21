@@ -32,7 +32,7 @@ use relay_utils::metrics::{
 };
 use sp_core::storage::StorageData;
 use sp_runtime::{FixedPointNumber, FixedU128};
-use std::{fmt::Debug, marker::PhantomData};
+use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
 /// Shared references to the standalone metrics of the message lane relay loop.
 #[derive(Debug, Clone)]
@@ -143,6 +143,7 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 			.map(bp_runtime::storage_parameter_key)
 			.map(|key| {
 				FloatStorageValueMetric::new(
+					FixedU128OrOne::default(),
 					target_client,
 					key,
 					format!(
@@ -165,6 +166,7 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 			.map(bp_runtime::storage_parameter_key)
 			.map(|key| {
 				FloatStorageValueMetric::new(
+					FixedU128OrOne::default(),
 					source_client,
 					key,
 					format!(
@@ -196,24 +198,39 @@ pub async fn add_relay_balances_metrics<C: ChainWithBalances>(
 where
 	BalanceOf<C>: Into<u128> + std::fmt::Debug,
 {
+	if relay_account_id.is_none() && messages_pallet_owner_account_id.is_none() {
+		return Ok(metrics)
+	}
+
+	let token_decimals = client.token_decimals().await?.ok_or_else(|| {
+		SubstrateError::Custom(format!("Missing token decimals from {} system properties", C::NAME))
+	})?;
+	let token_decimals = u32::try_from(token_decimals).map_err(|e| {
+		anyhow::format_err!(
+			"Token decimals value ({}) of {} doesn't fit into u32: {:?}",
+			token_decimals,
+			C::NAME,
+			e,
+		)
+	})?;
 	if let Some(relay_account_id) = relay_account_id {
-		let relay_account_balance_metric =
-			FloatStorageValueMetric::<_, FreeAccountBalance<C>>::new(
-				client.clone(),
-				C::account_info_storage_key(&relay_account_id),
-				format!("at_{}_relay_balance", C::NAME),
-				format!("Balance of the relay account at the {}", C::NAME),
-			)?;
+		let relay_account_balance_metric = FloatStorageValueMetric::new(
+			FreeAccountBalance::<C> { token_decimals, _phantom: Default::default() },
+			client.clone(),
+			C::account_info_storage_key(&relay_account_id),
+			format!("at_{}_relay_balance", C::NAME),
+			format!("Balance of the relay account at the {}", C::NAME),
+		)?;
 		relay_account_balance_metric.register_and_spawn(&metrics.registry)?;
 	}
 	if let Some(messages_pallet_owner_account_id) = messages_pallet_owner_account_id {
-		let pallet_owner_account_balance_metric =
-			FloatStorageValueMetric::<_, FreeAccountBalance<C>>::new(
-				client.clone(),
-				C::account_info_storage_key(&messages_pallet_owner_account_id),
-				format!("at_{}_messages_pallet_owner_balance", C::NAME),
-				format!("Balance of the messages pallet owner at the {}", C::NAME),
-			)?;
+		let pallet_owner_account_balance_metric = FloatStorageValueMetric::new(
+			FreeAccountBalance::<C> { token_decimals, _phantom: Default::default() },
+			client.clone(),
+			C::account_info_storage_key(&messages_pallet_owner_account_id),
+			format!("at_{}_messages_pallet_owner_balance", C::NAME),
+			format!("Balance of the messages pallet owner at the {}", C::NAME),
+		)?;
 		pallet_owner_account_balance_metric.register_and_spawn(&metrics.registry)?;
 	}
 	Ok(metrics)
@@ -222,6 +239,7 @@ where
 /// Adapter for `FloatStorageValueMetric` to decode account free balance.
 #[derive(Clone, Debug)]
 struct FreeAccountBalance<C> {
+	token_decimals: u32,
 	_phantom: PhantomData<C>,
 }
 
@@ -232,19 +250,26 @@ where
 {
 	type Value = FixedU128;
 
-	fn decode(maybe_raw_value: Option<StorageData>) -> Result<Option<Self::Value>, SubstrateError> {
+	fn decode(
+		&self,
+		maybe_raw_value: Option<StorageData>,
+	) -> Result<Option<Self::Value>, SubstrateError> {
 		maybe_raw_value
 			.map(|raw_value| {
 				AccountInfo::<IndexOf<C>, AccountData<BalanceOf<C>>>::decode(&mut &raw_value.0[..])
 					.map_err(SubstrateError::ResponseParseFailed)
 					.map(|account_data| {
-						FixedU128::from_inner(
-							account_data.data.free.into().saturating_mul(FixedU128::DIV),
-						)
+						convert_to_token_balance(account_data.data.free.into(), self.token_decimals)
 					})
 			})
 			.transpose()
 	}
+}
+
+/// Convert from raw `u128` balance (nominated in smallest chain token units) to the float regular
+/// tokens value.
+fn convert_to_token_balance(balance: u128, token_decimals: u32) -> FixedU128 {
+	FixedU128::from_inner(balance.saturating_mul(FixedU128::DIV / 10u128.pow(token_decimals)))
 }
 
 #[cfg(test)]
@@ -257,5 +282,13 @@ mod tests {
 			StandaloneMessagesMetrics::<relay_rococo_client::Rococo, relay_wococo_client::Wococo>::compute_target_to_source_conversion_rate(Some(183.15), Some(12.32)),
 			Some(12.32 / 183.15),
 		);
+	}
+
+	#[test]
+	fn token_decimals_used_properly() {
+		let plancks = 425_000_000_000;
+		let token_decimals = 10;
+		let dots = convert_to_token_balance(plancks, token_decimals);
+		assert_eq!(dots, FixedU128::saturating_from_rational(425, 10));
 	}
 }
