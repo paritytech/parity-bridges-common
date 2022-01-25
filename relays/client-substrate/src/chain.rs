@@ -91,9 +91,6 @@ pub trait ChainWithMessages: Chain {
 	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str;
 
-	/// Name of the `From<ChainWithMessages>InboundLaneApi::latest_confirmed_nonce` runtime method.
-	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
-	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str;
 	/// Name of the `From<ChainWithMessages>InboundLaneApi::unrewarded_relayers_state` runtime
 	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str;
@@ -120,7 +117,7 @@ pub type WeightToFeeOf<C> = <C as Chain>::WeightToFee;
 /// Transaction status of the chain.
 pub type TransactionStatusOf<C> = TransactionStatus<HashOf<C>, HashOf<C>>;
 
-/// Substrate-based chain with `frame_system::Config::AccountData` set to
+/// Substrate-based chain with `AccountData` generic argument of `frame_system::AccountInfo` set to
 /// the `pallet_balances::AccountData<Balance>`.
 pub trait ChainWithBalances: Chain {
 	/// Return runtime storage key for getting `frame_system::AccountInfo` of given account.

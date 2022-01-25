@@ -764,11 +764,6 @@ pub mod pallet {
 			OutboundMessages::<T, I>::get(MessageKey { lane_id: lane, nonce })
 		}
 
-		/// Get nonce of the latest confirmed message at given inbound lane.
-		pub fn inbound_latest_confirmed_nonce(lane: LaneId) -> MessageNonce {
-			InboundLanes::<T, I>::get(&lane).last_confirmed_nonce
-		}
-
 		/// Get state of unrewarded relayers set.
 		pub fn inbound_unrewarded_relayers_state(
 			lane: bp_messages::LaneId,
@@ -1118,7 +1113,11 @@ mod tests {
 		REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
-	use frame_support::{assert_noop, assert_ok, storage::generator::StorageMap, weights::Weight};
+	use frame_support::{
+		assert_noop, assert_ok,
+		storage::generator::{StorageMap, StorageValue},
+		weights::Weight,
+	};
 	use frame_system::{EventRecord, Pallet as System, Phase};
 	use sp_runtime::DispatchError;
 
@@ -2281,6 +2280,11 @@ mod tests {
 
 	#[test]
 	fn storage_keys_computed_properly() {
+		assert_eq!(
+			PalletOperatingMode::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_messages::storage_keys::operating_mode_key("Messages").0,
+		);
+
 		assert_eq!(
 			OutboundMessages::<TestRuntime>::storage_map_final_key(MessageKey {
 				lane_id: TEST_LANE_ID,

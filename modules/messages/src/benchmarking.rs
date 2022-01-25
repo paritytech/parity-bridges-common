@@ -41,6 +41,7 @@ const SEED: u32 = 0;
 pub struct Pallet<T: Config<I>, I: 'static>(crate::Pallet<T, I>);
 
 /// Proof size requirements.
+#[derive(Clone, Copy, Debug)]
 pub enum ProofSize {
 	/// The proof is expected to be minimal. If value size may be changed, then it is expected to
 	/// have given size.
@@ -54,6 +55,7 @@ pub enum ProofSize {
 }
 
 /// Benchmark-specific message parameters.
+#[derive(Debug)]
 pub struct MessageParams<ThisAccountId> {
 	/// Size of the message payload.
 	pub size: u32,
@@ -62,6 +64,7 @@ pub struct MessageParams<ThisAccountId> {
 }
 
 /// Benchmark-specific message proof parameters.
+#[derive(Debug)]
 pub struct MessageProofParams {
 	/// Id of the lane.
 	pub lane: LaneId,
@@ -76,6 +79,7 @@ pub struct MessageProofParams {
 }
 
 /// Benchmark-specific message delivery proof parameters.
+#[derive(Debug)]
 pub struct MessageDeliveryProofParams<ThisChainAccountId> {
 	/// Id of the lane.
 	pub lane: LaneId,
@@ -363,14 +367,9 @@ benchmarks_instance_pallet! {
 		});
 	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 1, dispatch_weight)
 	verify {
-		assert_eq!(
-			crate::InboundLanes::<T, I>::get(&T::bench_lane_id()).last_delivered_nonce(),
-			21,
-		);
-		assert_eq!(
-			crate::Pallet::<T, I>::inbound_latest_confirmed_nonce(T::bench_lane_id()),
-			20,
-		);
+		let lane_state = crate::InboundLanes::<T, I>::get(&T::bench_lane_id());
+		assert_eq!(lane_state.last_delivered_nonce(), 21);
+		assert_eq!(lane_state.last_confirmed_nonce, 20);
 		assert!(T::is_message_dispatched(21));
 	}
 

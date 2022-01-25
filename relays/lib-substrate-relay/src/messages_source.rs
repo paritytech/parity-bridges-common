@@ -29,8 +29,8 @@ use crate::{
 
 use async_trait::async_trait;
 use bp_messages::{
-	storage_keys::outbound_lane_data_key, LaneId, MessageNonce, OutboundLaneData,
-	UnrewardedRelayersState,
+	storage_keys::{operating_mode_key, outbound_lane_data_key},
+	LaneId, MessageNonce, OperatingMode, OutboundLaneData, UnrewardedRelayersState,
 };
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
@@ -83,6 +83,27 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 			target_to_source_headers_relay,
 		}
 	}
+
+	/// Read outbound lane state from the on-chain storage at given block.
+	async fn outbound_lane_data(
+		&self,
+		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<Option<OutboundLaneData>, SubstrateError> {
+		self.client
+			.storage_value(
+				outbound_lane_data_key(
+					P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+					&self.lane_id,
+				),
+				Some(id.1),
+			)
+			.await
+	}
+
+	/// Ensure that the messages pallet at source chain is active.
+	async fn ensure_pallet_active(&self) -> Result<(), SubstrateError> {
+		ensure_messages_pallet_active::<P::SourceChain, P::TargetChain>(&self.client).await
+	}
 }
 
 impl<P: SubstrateMessageLane> Clone for SubstrateMessagesSource<P> {
@@ -116,6 +137,8 @@ where
 		// we can't continue to deliver confirmations if source node is out of sync, because
 		// it may have already received confirmations that we're going to deliver
 		self.client.ensure_synced().await?;
+		// we can't relay confirmations if messages pallet at source chain is halted
+		self.ensure_pallet_active().await?;
 
 		read_client_state::<
 			_,
@@ -129,19 +152,12 @@ where
 		&self,
 		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
 	) -> Result<(SourceHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
-		let outbound_lane_data: Option<OutboundLaneData> = self
-			.client
-			.storage_value(
-				outbound_lane_data_key(
-					P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
-					&self.lane_id,
-				),
-				Some(id.1),
-			)
-			.await?;
 		// lane data missing from the storage is fine until first message is sent
-		let latest_generated_nonce =
-			outbound_lane_data.map(|data| data.latest_generated_nonce).unwrap_or(0);
+		let latest_generated_nonce = self
+			.outbound_lane_data(id)
+			.await?
+			.map(|data| data.latest_generated_nonce)
+			.unwrap_or(0);
 		Ok((id, latest_generated_nonce))
 	}
 
@@ -149,19 +165,12 @@ where
 		&self,
 		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
 	) -> Result<(SourceHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
-		let outbound_lane_data: Option<OutboundLaneData> = self
-			.client
-			.storage_value(
-				outbound_lane_data_key(
-					P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
-					&self.lane_id,
-				),
-				Some(id.1),
-			)
-			.await?;
 		// lane data missing from the storage is fine until first message is sent
-		let latest_received_nonce =
-			outbound_lane_data.map(|data| data.latest_received_nonce).unwrap_or(0);
+		let latest_received_nonce = self
+			.outbound_lane_data(id)
+			.await?
+			.map(|data| data.latest_received_nonce)
+			.unwrap_or(0);
 		Ok((id, latest_received_nonce))
 	}
 
@@ -287,6 +296,25 @@ where
 			.await
 			.map(|fee| fee.inclusion_fee())
 			.unwrap_or_else(|_| BalanceOf::<P::SourceChain>::max_value())
+	}
+}
+
+/// Ensure that the messages pallet at source chain is active.
+pub(crate) async fn ensure_messages_pallet_active<AtChain, WithChain>(
+	client: &Client<AtChain>,
+) -> Result<(), SubstrateError>
+where
+	AtChain: ChainWithMessages,
+	WithChain: ChainWithMessages,
+{
+	let operating_mode = client
+		.storage_value(operating_mode_key(WithChain::WITH_CHAIN_MESSAGES_PALLET_NAME), None)
+		.await?;
+	let is_halted = operating_mode == Some(OperatingMode::Halted);
+	if is_halted {
+		Err(SubstrateError::BridgePalletIsHalted)
+	} else {
+		Ok(())
 	}
 }
 

@@ -21,7 +21,7 @@
 use crate::{
 	messages_lane::{MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane},
 	messages_metrics::StandaloneMessagesMetrics,
-	messages_source::{read_client_state, SubstrateMessagesProof},
+	messages_source::{ensure_messages_pallet_active, read_client_state, SubstrateMessagesProof},
 	on_demand_headers::OnDemandHeadersRelay,
 	TransactionParams,
 };
@@ -84,6 +84,27 @@ impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 			source_to_target_headers_relay,
 		}
 	}
+
+	/// Read inbound lane state from the on-chain storage at given block.
+	async fn inbound_lane_data(
+		&self,
+		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<Option<InboundLaneData<AccountIdOf<P::SourceChain>>>, SubstrateError> {
+		self.client
+			.storage_value(
+				inbound_lane_data_key(
+					P::SourceChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+					&self.lane_id,
+				),
+				Some(id.1),
+			)
+			.await
+	}
+
+	/// Ensure that the messages pallet at target chain is active.
+	async fn ensure_pallet_active(&self) -> Result<(), SubstrateError> {
+		ensure_messages_pallet_active::<P::TargetChain, P::SourceChain>(&self.client).await
+	}
 }
 
 impl<P: SubstrateMessageLane> Clone for SubstrateMessagesTarget<P> {
@@ -120,6 +141,8 @@ where
 		// we can't continue to deliver messages if target node is out of sync, because
 		// it may have already received (some of) messages that we're going to deliver
 		self.client.ensure_synced().await?;
+		// we can't relay messages if messages pallet at target chain is halted
+		self.ensure_pallet_active().await?;
 
 		read_client_state::<
 			_,
@@ -133,19 +156,12 @@ where
 		&self,
 		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 	) -> Result<(TargetHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
-		let inbound_lane_data: Option<InboundLaneData<AccountIdOf<P::SourceChain>>> = self
-			.client
-			.storage_value(
-				inbound_lane_data_key(
-					P::SourceChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
-					&self.lane_id,
-				),
-				Some(id.1),
-			)
-			.await?;
 		// lane data missing from the storage is fine until first message is received
-		let latest_received_nonce =
-			inbound_lane_data.map(|data| data.last_delivered_nonce()).unwrap_or(0);
+		let latest_received_nonce = self
+			.inbound_lane_data(id)
+			.await?
+			.map(|data| data.last_delivered_nonce())
+			.unwrap_or(0);
 		Ok((id, latest_received_nonce))
 	}
 
@@ -153,17 +169,13 @@ where
 		&self,
 		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 	) -> Result<(TargetHeaderIdOf<MessageLaneAdapter<P>>, MessageNonce), SubstrateError> {
-		let encoded_response = self
-			.client
-			.state_call(
-				P::SourceChain::FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD.into(),
-				Bytes(self.lane_id.encode()),
-				Some(id.1),
-			)
-			.await?;
-		let latest_received_nonce: MessageNonce = Decode::decode(&mut &encoded_response.0[..])
-			.map_err(SubstrateError::ResponseParseFailed)?;
-		Ok((id, latest_received_nonce))
+		// lane data missing from the storage is fine until first message is received
+		let last_confirmed_nonce = self
+			.inbound_lane_data(id)
+			.await?
+			.map(|data| data.last_confirmed_nonce)
+			.unwrap_or(0);
+		Ok((id, last_confirmed_nonce))
 	}
 
 	async fn unrewarded_relayers_state(
