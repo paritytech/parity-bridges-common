@@ -104,6 +104,7 @@ impl Alternative {
 				vec![],
 				None,
 				None,
+				None,
 				properties,
 				Default::default(),
 			),
@@ -126,6 +127,7 @@ impl Alternative {
 					)
 				},
 				vec![],
+				None,
 				None,
 				None,
 				properties,
@@ -222,7 +224,7 @@ fn testnet_genesis(
 		},
 		beefy: BeefyConfig { authorities: Vec::new() },
 		grandpa: GrandpaConfig { authorities: Vec::new() },
-		sudo: SudoConfig { key: root_key },
+		sudo: SudoConfig { key: Some(root_key) },
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
@@ -248,7 +250,7 @@ fn testnet_genesis(
 		// (see /node/service/src/chain_spec.rs:default_parachains_host_configuration)
 		configuration: ConfigurationConfig {
 			config: polkadot_runtime_parachains::configuration::HostConfiguration {
-				validation_upgrade_frequency: 1u32,
+				validation_upgrade_cooldown: 2u32,
 				validation_upgrade_delay: 1,
 				code_retention_period: 1200,
 				max_code_size: polkadot_primitives::v1::MAX_CODE_SIZE,

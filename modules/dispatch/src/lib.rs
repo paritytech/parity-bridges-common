@@ -64,8 +64,7 @@ pub mod pallet {
 			+ MaybeSerializeDeserialize
 			+ Debug
 			+ MaybeDisplay
-			+ Ord
-			+ Default;
+			+ Ord;
 		/// Type of account public key on target chain.
 		type TargetChainAccountPublic: Parameter + IdentifyAccount<AccountId = Self::AccountId>;
 		/// Type of signature that may prove that the message has been signed by
@@ -520,6 +519,7 @@ mod tests {
 		type DbWeight = ();
 		type SS58Prefix = ();
 		type OnSetCode = ();
+		type MaxConsumers = frame_support::traits::ConstU32<16>;
 	}
 
 	impl Config for TestRuntime {

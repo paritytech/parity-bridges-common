@@ -88,8 +88,7 @@ pub trait Chain: Send + Sync + 'static {
 		+ MaybeSerializeDeserialize
 		+ Debug
 		+ MaybeDisplay
-		+ Ord
-		+ Default;
+		+ Ord;
 	/// Balance of an account in native tokens.
 	///
 	/// The chain may support multiple tokens, but this particular type is for token that is used
