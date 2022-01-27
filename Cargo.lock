@@ -4820,7 +4820,6 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-runtime",
  "sp-timestamp",
- "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
 ]
@@ -8561,7 +8560,6 @@ dependencies = [
  "sp-session",
  "sp-timestamp",
  "sp-transaction-pool",
- "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "substrate-prometheus-endpoint",
@@ -8625,7 +8623,6 @@ dependencies = [
  "sp-session",
  "sp-timestamp",
  "sp-transaction-pool",
- "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "substrate-prometheus-endpoint",
