@@ -843,7 +843,7 @@ impl_runtime_apis! {
 				}
 
 				fn bridged_relayer_id() -> Self::InboundRelayer {
-					Default::default()
+					[0u8; 32].into()
 				}
 
 				fn account_balance(account: &Self::AccountId) -> Self::OutboundMessageFee {

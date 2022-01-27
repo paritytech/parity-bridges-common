@@ -8,8 +8,6 @@ set -eux
 
 time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark \
 	--chain=dev \
-	--steps=50 \
-	--repeat=20 \
 	--pallet=pallet_bridge_messages \
 	--extrinsic=* \
 	--execution=wasm \
@@ -20,8 +18,6 @@ time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- 
 
 time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark \
 	--chain=dev \
-	--steps=50 \
-	--repeat=20 \
 	--pallet=pallet_bridge_grandpa \
 	--extrinsic=* \
 	--execution=wasm \
@@ -32,8 +28,6 @@ time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- 
 
 time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark \
 	--chain=dev \
-	--steps=50 \
-	--repeat=20 \
 	--pallet=pallet_bridge_token_swap \
 	--extrinsic=* \
 	--execution=wasm \
