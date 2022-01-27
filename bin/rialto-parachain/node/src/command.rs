@@ -211,7 +211,10 @@ pub fn run() -> Result<()> {
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let spec = load_spec(&params.chain.clone().unwrap_or_default(), params.parachain_id.expect("Missing ParaId").into(),)?;
+			let spec = load_spec(
+				&params.chain.clone().unwrap_or_default(),
+				params.parachain_id.expect("Missing ParaId").into(),
+			)?;
 			let state_version = Cli::native_runtime_version(&spec).state_version();
 			let block: Block = generate_genesis_block(&spec, state_version)?;
 			let raw_header = block.header().encode();
@@ -279,8 +282,8 @@ pub fn run() -> Result<()> {
 
 				let state_version =
 					RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
-				let block: Block =
-					generate_genesis_block(&config.chain_spec, state_version).map_err(|e| format!("{:?}", e))?;
+				let block: Block = generate_genesis_block(&config.chain_spec, state_version)
+					.map_err(|e| format!("{:?}", e))?;
 				let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
 				let polkadot_config = SubstrateCli::create_configuration(

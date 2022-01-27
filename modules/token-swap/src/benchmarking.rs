@@ -137,7 +137,7 @@ fn test_swap_hash<T: Config<I>, I: 'static>(sender: T::AccountId, is_create: boo
 
 /// Returns test token swap creation params.
 fn test_swap_creation<T: Config<I>, I: 'static>() -> TokenSwapCreationOf<T, I>
-	where
+where
 	BridgedAccountPublicOf<T, I>: Decode,
 	BridgedAccountSignatureOf<T, I>: Decode,
 {

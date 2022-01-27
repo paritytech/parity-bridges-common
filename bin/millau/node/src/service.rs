@@ -218,13 +218,19 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
 		&config.chain_spec,
 	);
-	config.network.extra_sets.push(sc_finality_grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone()));
+	config
+		.network
+		.extra_sets
+		.push(sc_finality_grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone()));
 
 	let beefy_protocol_name = beefy_gadget::protocol_standard_name(
 		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
 		&config.chain_spec,
 	);
-	config.network.extra_sets.push(beefy_gadget::beefy_peers_set_config(beefy_protocol_name.clone()));
+	config
+		.network
+		.extra_sets
+		.push(beefy_gadget::beefy_peers_set_config(beefy_protocol_name.clone()));
 
 	let warp_sync = Arc::new(sc_finality_grandpa::warp_proof::NetworkProvider::new(
 		backend.clone(),
@@ -302,11 +308,14 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 				subscription_executor.clone(),
 				finality_proof_provider.clone(),
 			)));
-			io.extend_with(beefy_gadget_rpc::BeefyApi::to_delegate(beefy_gadget_rpc::BeefyRpcHandler::<Block>::new(
-				beefy_commitment_stream.clone(),
-				beefy_best_block_stream.clone(),
-				subscription_executor,
-			).map_err(|e| sc_service::Error::Other(format!("{}", e)))?));
+			io.extend_with(beefy_gadget_rpc::BeefyApi::to_delegate(
+				beefy_gadget_rpc::BeefyRpcHandler::<Block>::new(
+					beefy_commitment_stream.clone(),
+					beefy_best_block_stream.clone(),
+					subscription_executor,
+				)
+				.map_err(|e| sc_service::Error::Other(format!("{}", e)))?,
+			));
 			io.extend_with(pallet_mmr_rpc::MmrApi::to_delegate(pallet_mmr_rpc::Mmr::new(
 				client.clone(),
 			)));
