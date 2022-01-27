@@ -10,6 +10,7 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 codec = { package = "parity-scale-codec", version = "2.2.0", default-features = false }
 hash-db = { version = "0.15.2", default-features = false }
 num-traits = { version = "0.2", default-features = false }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 
 # Substrate Dependencies
 
@@ -21,6 +22,9 @@ sp-state-machine = { git = "https://github.com/paritytech/substrate", branch = "
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 
+[dev-dependencies]
+hex-literal = "0.3"
+
 [features]
 default = ["std"]
 std = [
@@ -28,6 +32,7 @@ std = [
 	"frame-support/std",
 	"hash-db/std",
 	"num-traits/std",
+	"scale-info/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",

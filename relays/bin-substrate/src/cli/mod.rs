@@ -18,11 +18,13 @@
 
 use std::convert::TryInto;
 
-use bp_messages::LaneId;
 use codec::{Decode, Encode};
-use frame_support::weights::Weight;
+use relay_substrate_client::ChainRuntimeVersion;
 use sp_runtime::app_crypto::Ss58Codec;
 use structopt::{clap::arg_enum, StructOpt};
+use strum::{EnumString, EnumVariantNames};
+
+use bp_messages::LaneId;
 
 pub(crate) mod bridge;
 pub(crate) mod encode_call;
@@ -32,6 +34,7 @@ pub(crate) mod send_message;
 
 mod derive_account;
 mod init_bridge;
+mod register_parachain;
 mod relay_headers;
 mod relay_headers_and_messages;
 mod relay_messages;
@@ -93,6 +96,8 @@ pub enum Command {
 	ResubmitTransactions(resubmit_transactions::ResubmitTransactions),
 	/// Swap tokens using token-swap bridge.
 	SwapTokens(swap_tokens::SwapTokens),
+	/// Register parachain.
+	RegisterParachain(register_parachain::RegisterParachain),
 }
 
 impl Command {
@@ -128,6 +133,7 @@ impl Command {
 			Self::DeriveAccount(arg) => arg.run().await?,
 			Self::ResubmitTransactions(arg) => arg.run().await?,
 			Self::SwapTokens(arg) => arg.run().await?,
+			Self::RegisterParachain(arg) => arg.run().await?,
 		}
 		Ok(())
 	}
@@ -234,7 +240,7 @@ impl AccountId {
 ///
 /// Used to abstract away CLI commands.
 pub trait CliChain: relay_substrate_client::Chain {
-	/// Chain's current version of the runtime.
+	/// Current version of the chain runtime, known to relay.
 	const RUNTIME_VERSION: sp_version::RuntimeVersion;
 
 	/// Crypto KeyPair type used to send messages.
@@ -253,10 +259,7 @@ pub trait CliChain: relay_substrate_client::Chain {
 	/// Construct message payload to be sent over the bridge.
 	fn encode_message(
 		message: crate::cli::encode_message::MessagePayload,
-	) -> Result<Self::MessagePayload, String>;
-
-	/// Maximal extrinsic weight (from the runtime).
-	fn max_extrinsic_weight() -> Weight;
+	) -> anyhow::Result<Self::MessagePayload>;
 }
 
 /// Lane id.
@@ -364,6 +367,17 @@ where
 	}
 }
 
+#[doc = "Runtime version params."]
+#[derive(StructOpt, Debug, PartialEq, Eq, Clone, Copy, EnumString, EnumVariantNames)]
+pub enum RuntimeVersionType {
+	/// Auto query version from chain
+	Auto,
+	/// Custom `spec_version` and `transaction_version`
+	Custom,
+	/// Read version from bundle dependencies directly.
+	Bundle,
+}
+
 /// Create chain-specific set of configuration objects: connection parameters,
 /// signing parameters and bridge initialization parameters.
 #[macro_export]
@@ -377,11 +391,28 @@ macro_rules! declare_chain_options {
 				#[structopt(long, default_value = "127.0.0.1")]
 				pub [<$chain_prefix _host>]: String,
 				#[doc = "Connect to " $chain " node websocket server at given port."]
-				#[structopt(long)]
+				#[structopt(long, default_value = "9944")]
 				pub [<$chain_prefix _port>]: u16,
 				#[doc = "Use secure websocket connection."]
 				#[structopt(long)]
 				pub [<$chain_prefix _secure>]: bool,
+				#[doc = "Custom runtime version"]
+				#[structopt(flatten)]
+				pub [<$chain_prefix _runtime_version>]: [<$chain RuntimeVersionParams>],
+			}
+
+			#[doc = $chain " runtime version params."]
+			#[derive(StructOpt, Debug, PartialEq, Eq, Clone, Copy)]
+			pub struct [<$chain RuntimeVersionParams>] {
+				#[doc = "The type of runtime version for chain " $chain]
+				#[structopt(long, default_value = "Bundle")]
+				pub [<$chain_prefix _version_mode>]: RuntimeVersionType,
+				#[doc = "The custom sepc_version for chain " $chain]
+				#[structopt(long)]
+				pub [<$chain_prefix _spec_version>]: Option<u32>,
+				#[doc = "The custom transaction_version for chain " $chain]
+				#[structopt(long)]
+				pub [<$chain_prefix _transaction_version>]: Option<u32>,
 			}
 
 			#[doc = $chain " signing params."]
@@ -438,6 +469,7 @@ macro_rules! declare_chain_options {
 				}
 
 				/// Parse signing params into chain-specific KeyPair.
+				#[allow(dead_code)]
 				pub fn to_keypair<Chain: CliChain>(&self) -> anyhow::Result<Chain::KeyPair> {
 					let suri = match (self.[<$chain_prefix _signer>].as_ref(), self.[<$chain_prefix _signer_file>].as_ref()) {
 						(Some(suri), _) => suri.to_owned(),
@@ -496,17 +528,83 @@ macro_rules! declare_chain_options {
 			}
 
 			impl [<$chain ConnectionParams>] {
+				/// Returns `true` if version guard can be started.
+				///
+				/// There's no reason to run version guard when version mode is set to `Auto`. It can
+				/// lead to relay shutdown when chain is upgraded, even though we have explicitly
+				/// said that we don't want to shutdown.
+				#[allow(dead_code)]
+				pub fn can_start_version_guard(&self) -> bool {
+					self.[<$chain_prefix _runtime_version>].[<$chain_prefix _version_mode>] != RuntimeVersionType::Auto
+				}
+
 				/// Convert connection params into Substrate client.
 				pub async fn to_client<Chain: CliChain>(
 					&self,
+					bundle_runtime_version: Option<sp_version::RuntimeVersion>
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
+					let chain_runtime_version = self
+						.[<$chain_prefix _runtime_version>]
+						.into_runtime_version(bundle_runtime_version)?;
 					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {
 						host: self.[<$chain_prefix _host>].clone(),
 						port: self.[<$chain_prefix _port>],
 						secure: self.[<$chain_prefix _secure>],
+						chain_runtime_version,
 					})
 					.await
 					)
+				}
+
+				/// Return selected `chain_spec` version.
+				///
+				/// This function only connects to the node if version mode is set to `Auto`.
+				#[allow(dead_code)]
+				pub async fn selected_chain_spec_version<Chain: CliChain>(
+					&self,
+					bundle_runtime_version: Option<sp_version::RuntimeVersion>,
+				) -> anyhow::Result<u32> {
+					let chain_runtime_version = self
+						.[<$chain_prefix _runtime_version>]
+						.into_runtime_version(bundle_runtime_version.clone())?;
+					Ok(match chain_runtime_version {
+						ChainRuntimeVersion::Auto => self
+							.to_client::<Chain>(bundle_runtime_version)
+							.await?
+							.simple_runtime_version()
+							.await?
+							.0,
+						ChainRuntimeVersion::Custom(spec_version, _) => spec_version,
+					})
+				}
+			}
+
+			impl [<$chain RuntimeVersionParams>] {
+				/// Converts self into `ChainRuntimeVersion`.
+				pub fn into_runtime_version(
+					self,
+					bundle_runtime_version: Option<sp_version::RuntimeVersion>,
+				) -> anyhow::Result<ChainRuntimeVersion> {
+					Ok(match self.[<$chain_prefix _version_mode>] {
+						RuntimeVersionType::Auto => ChainRuntimeVersion::Auto,
+						RuntimeVersionType::Custom => {
+							let except_spec_version = self.[<$chain_prefix _spec_version>]
+								.ok_or_else(|| anyhow::Error::msg(format!("The {}-spec-version is required when choose custom mode", stringify!($chain_prefix))))?;
+							let except_transaction_version = self.[<$chain_prefix _transaction_version>]
+								.ok_or_else(|| anyhow::Error::msg(format!("The {}-transaction-version is required when choose custom mode", stringify!($chain_prefix))))?;
+							ChainRuntimeVersion::Custom(
+								except_spec_version,
+								except_transaction_version
+							)
+						},
+						RuntimeVersionType::Bundle => match bundle_runtime_version {
+							Some(runtime_version) => ChainRuntimeVersion::Custom(
+								runtime_version.spec_version,
+								runtime_version.transaction_version
+							),
+							None => ChainRuntimeVersion::Auto
+						},
+					})
 				}
 			}
 		}
@@ -515,11 +613,14 @@ macro_rules! declare_chain_options {
 
 declare_chain_options!(Source, source);
 declare_chain_options!(Target, target);
+declare_chain_options!(Relaychain, relaychain);
+declare_chain_options!(Parachain, parachain);
 
 #[cfg(test)]
 mod tests {
-	use sp_core::Pair;
 	use std::str::FromStr;
+
+	use sp_core::Pair;
 
 	use super::*;
 
@@ -566,7 +667,7 @@ mod tests {
 		let bob_with_alice_password =
 			sp_core::sr25519::Pair::from_string(BOB, Some(ALICE_PASSWORD)).unwrap();
 
-		let temp_dir = tempdir::TempDir::new("reads_suri_from_file").unwrap();
+		let temp_dir = tempfile::tempdir().unwrap();
 		let mut suri_file_path = temp_dir.path().to_path_buf();
 		let mut password_file_path = temp_dir.path().to_path_buf();
 		suri_file_path.push("suri");

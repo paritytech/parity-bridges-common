@@ -18,7 +18,7 @@ use crate::cli::{SourceConnectionParams, TargetConnectionParams, TargetSigningPa
 use bp_header_chain::InitializationData;
 use bp_runtime::Chain as ChainBase;
 use codec::Encode;
-use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
+use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -56,13 +56,20 @@ macro_rules! select_bridge {
 			InitBridgeName::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(millau_runtime::VERSION);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(rialto_runtime::VERSION);
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					rialto_runtime::SudoCall::sudo(Box::new(
-						rialto_runtime::BridgeGrandpaMillauCall::initialize(init_data).into(),
-					))
+					rialto_runtime::SudoCall::sudo {
+						call: Box::new(
+							rialto_runtime::BridgeGrandpaMillauCall::initialize { init_data }
+								.into(),
+						),
+					}
 					.into()
 				}
 
@@ -71,15 +78,21 @@ macro_rules! select_bridge {
 			InitBridgeName::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(rialto_runtime::VERSION);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(millau_runtime::VERSION);
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
 				) -> <Target as Chain>::Call {
-					let initialize_call = millau_runtime::BridgeGrandpaRialtoCall::<
+					let initialize_call = millau_runtime::BridgeGrandpaCall::<
 						millau_runtime::Runtime,
 						millau_runtime::RialtoGrandpaInstance,
-					>::initialize(init_data);
-					millau_runtime::SudoCall::sudo(Box::new(initialize_call.into())).into()
+					>::initialize {
+						init_data,
+					};
+					millau_runtime::SudoCall::sudo { call: Box::new(initialize_call.into()) }.into()
 				}
 
 				$generic
@@ -87,6 +100,10 @@ macro_rules! select_bridge {
 			InitBridgeName::WestendToMillau => {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_westend::VERSION);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(millau_runtime::VERSION);
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -95,10 +112,12 @@ macro_rules! select_bridge {
 					// our deployments may fail, because we need to initialize both Rialto -> Millau
 					// and Westend -> Millau bridge. => since there's single possible sudo account,
 					// one of transaction may fail with duplicate nonce error
-					millau_runtime::BridgeGrandpaWestendCall::<
+					millau_runtime::BridgeGrandpaCall::<
 						millau_runtime::Runtime,
 						millau_runtime::WestendGrandpaInstance,
-					>::initialize(init_data)
+					>::initialize {
+						init_data,
+					}
 					.into()
 				}
 
@@ -107,6 +126,10 @@ macro_rules! select_bridge {
 			InitBridgeName::RococoToWococo => {
 				type Source = relay_rococo_client::Rococo;
 				type Target = relay_wococo_client::Wococo;
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_rococo::VERSION);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_wococo::VERSION);
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -123,6 +146,10 @@ macro_rules! select_bridge {
 			InitBridgeName::WococoToRococo => {
 				type Source = relay_wococo_client::Wococo;
 				type Target = relay_rococo_client::Rococo;
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_wococo::VERSION);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_rococo::VERSION);
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -139,6 +166,10 @@ macro_rules! select_bridge {
 			InitBridgeName::KusamaToPolkadot => {
 				type Source = relay_kusama_client::Kusama;
 				type Target = relay_polkadot_client::Polkadot;
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_kusama::VERSION);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_polkadot::VERSION);
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -155,6 +186,10 @@ macro_rules! select_bridge {
 			InitBridgeName::PolkadotToKusama => {
 				type Source = relay_polkadot_client::Polkadot;
 				type Target = relay_kusama_client::Kusama;
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_polkadot::VERSION);
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
+					Some(bp_kusama::VERSION);
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -176,25 +211,29 @@ impl InitBridge {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.bridge, {
-			let source_client = self.source.to_client::<Source>().await?;
-			let target_client = self.target.to_client::<Target>().await?;
+			let source_client = self.source.to_client::<Source>(SOURCE_RUNTIME_VERSION).await?;
+			let target_client = self.target.to_client::<Target>(TARGET_RUNTIME_VERSION).await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
+			let (spec_version, transaction_version) =
+				target_client.simple_runtime_version().await?;
 			substrate_relay_helper::headers_initialize::initialize(
 				source_client,
 				target_client.clone(),
 				target_sign.public().into(),
 				move |transaction_nonce, initialization_data| {
 					Bytes(
-						Target::sign_transaction(
-							*target_client.genesis_hash(),
-							&target_sign,
-							relay_substrate_client::TransactionEra::immortal(),
-							UnsignedTransaction::new(
+						Target::sign_transaction(SignParam {
+							spec_version,
+							transaction_version,
+							genesis_hash: *target_client.genesis_hash(),
+							signer: target_sign,
+							era: relay_substrate_client::TransactionEra::immortal(),
+							unsigned: UnsignedTransaction::new(
 								encode_init_bridge(initialization_data),
 								transaction_nonce,
 							),
-						)
+						})
 						.encode(),
 					)
 				},

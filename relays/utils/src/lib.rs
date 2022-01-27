@@ -16,11 +16,14 @@
 
 //! Utilities used by different relays.
 
+pub use bp_runtime::HeaderId;
+pub use error::Error;
 pub use relay_loop::{relay_loop, relay_metrics};
 
 use backoff::{backoff::Backoff, ExponentialBackoff};
 use futures::future::FutureExt;
 use std::time::Duration;
+use thiserror::Error;
 
 /// Max delay after connection-unrelated error happened before we'll try the
 /// same request again.
@@ -29,6 +32,7 @@ pub const MAX_BACKOFF_INTERVAL: Duration = Duration::from_secs(60);
 /// reconnection again.
 pub const CONNECTION_ERROR_DELAY: Duration = Duration::from_secs(10);
 
+pub mod error;
 pub mod initialize;
 pub mod metrics;
 pub mod relay_loop;
@@ -100,10 +104,6 @@ macro_rules! bail_on_arg_error {
 	};
 }
 
-/// Ethereum header Id.
-#[derive(Debug, Default, Clone, Copy, Eq, Hash, PartialEq)]
-pub struct HeaderId<Hash, Number>(pub Number, pub Hash);
-
 /// Error type that can signal connection errors.
 pub trait MaybeConnectionError {
 	/// Returns true if error (maybe) represents connection error.
@@ -111,11 +111,13 @@ pub trait MaybeConnectionError {
 }
 
 /// Stringified error that may be either connection-related or not.
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum StringifiedMaybeConnectionError {
 	/// The error is connection-related error.
+	#[error("{0}")]
 	Connection(String),
 	/// The error is connection-unrelated error.
+	#[error("{0}")]
 	NonConnection(String),
 }
 
@@ -135,15 +137,6 @@ impl MaybeConnectionError for StringifiedMaybeConnectionError {
 		match *self {
 			StringifiedMaybeConnectionError::Connection(_) => true,
 			StringifiedMaybeConnectionError::NonConnection(_) => false,
-		}
-	}
-}
-
-impl ToString for StringifiedMaybeConnectionError {
-	fn to_string(&self) -> String {
-		match *self {
-			StringifiedMaybeConnectionError::Connection(ref err) => err.clone(),
-			StringifiedMaybeConnectionError::NonConnection(ref err) => err.clone(),
 		}
 	}
 }

@@ -8,12 +8,12 @@
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
 
-FROM paritytech/bridges-ci:latest as builder
+FROM paritytech/bridges-ci:e8a9ef25-20211215 as builder
 WORKDIR /parity-bridges-common
 
 COPY . .
 
-ARG PROJECT=ethereum-poa-relay
+ARG PROJECT=substrate-relay
 RUN cargo build --release --verbose -p ${PROJECT} && \
     strip ./target/release/${PROJECT}
 
@@ -42,7 +42,7 @@ USER user
 
 WORKDIR /home/user
 
-ARG PROJECT=ethereum-poa-relay
+ARG PROJECT=substrate-relay
 
 COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
 COPY --chown=user:user --from=builder /parity-bridges-common/deployments/local-scripts/bridge-entrypoint.sh ./

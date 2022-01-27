@@ -19,13 +19,13 @@ use crate::cli::{
 	encode_call::{self, CliEncodeCall},
 	estimate_fee::estimate_message_delivery_and_dispatch_fee,
 	Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
-	SourceSigningParams, TargetSigningParams,
+	SourceSigningParams, TargetConnectionParams, TargetSigningParams,
 };
 use bp_message_dispatch::{CallOrigin, MessagePayload};
-use bp_runtime::BalanceOf;
+use bp_runtime::{BalanceOf, Chain as _};
 use codec::Encode;
 use frame_support::weights::Weight;
-use relay_substrate_client::{Chain, TransactionSignScheme, UnsignedTransaction};
+use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
 use sp_runtime::{traits::IdentifyAccount, AccountId32, MultiSignature, MultiSigner};
 use std::fmt::Debug;
@@ -88,10 +88,16 @@ pub struct SendMessage {
 	/// `SourceAccount`.
 	#[structopt(long, possible_values = &Origins::variants(), default_value = "Source")]
 	origin: Origins,
+
+	// Normally we don't need to connect to the target chain to send message. But for testing
+	// we may want to use **actual** `spec_version` of the target chain when composing a message.
+	// Then we'll need to read version from the target chain node.
+	#[structopt(flatten)]
+	target: TargetConnectionParams,
 }
 
 impl SendMessage {
-	pub fn encode_payload(
+	pub async fn encode_payload(
 		&mut self,
 	) -> anyhow::Result<MessagePayload<AccountId32, MultiSigner, MultiSignature, Vec<u8>>> {
 		crate::select_full_bridge!(self.bridge, {
@@ -110,6 +116,10 @@ impl SendMessage {
 
 			encode_call::preprocess_call::<Source, Target>(message, bridge.bridge_instance_index());
 			let target_call = Target::encode_call(message)?;
+			let target_spec_version = self
+				.target
+				.selected_chain_spec_version::<Target>(Some(Target::RUNTIME_VERSION))
+				.await?;
 
 			let payload = {
 				let target_call_weight = prepare_call_dispatch_weight(
@@ -121,7 +131,7 @@ impl SendMessage {
 				let source_account_id = source_sender_public.into_account();
 
 				message_payload(
-					Target::RUNTIME_VERSION.spec_version,
+					target_spec_version,
 					target_call_weight,
 					match origin {
 						Origins::Source => CallOrigin::SourceAccount(source_account_id),
@@ -130,7 +140,7 @@ impl SendMessage {
 							let digest = account_ownership_digest(
 								&target_call,
 								source_account_id.clone(),
-								Target::RUNTIME_VERSION.spec_version,
+								target_spec_version,
 							);
 							let target_origin_public = target_sign.public();
 							let digest_signature = target_sign.sign(&digest);
@@ -152,9 +162,9 @@ impl SendMessage {
 	/// Run the command.
 	pub async fn run(mut self) -> anyhow::Result<()> {
 		crate::select_full_bridge!(self.bridge, {
-			let payload = self.encode_payload()?;
+			let payload = self.encode_payload().await?;
 
-			let source_client = self.source.to_client::<Source>().await?;
+			let source_client = self.source.to_client::<Source>(SOURCE_RUNTIME_VERSION).await?;
 			let source_sign = self.source_sign.to_keypair::<Source>()?;
 
 			let lane = self.lane.clone().into();
@@ -179,25 +189,31 @@ impl SendMessage {
 			})?;
 
 			let source_genesis_hash = *source_client.genesis_hash();
+			let (spec_version, transaction_version) =
+				source_client.simple_runtime_version().await?;
 			let estimated_transaction_fee = source_client
 				.estimate_extrinsic_fee(Bytes(
-					Source::sign_transaction(
-						source_genesis_hash,
-						&source_sign,
-						relay_substrate_client::TransactionEra::immortal(),
-						UnsignedTransaction::new(send_message_call.clone(), 0),
-					)
+					Source::sign_transaction(SignParam {
+						spec_version,
+						transaction_version,
+						genesis_hash: source_genesis_hash,
+						signer: source_sign.clone(),
+						era: relay_substrate_client::TransactionEra::immortal(),
+						unsigned: UnsignedTransaction::new(send_message_call.clone(), 0),
+					})
 					.encode(),
 				))
 				.await?;
 			source_client
 				.submit_signed_extrinsic(source_sign.public().into(), move |_, transaction_nonce| {
-					let signed_source_call = Source::sign_transaction(
-						source_genesis_hash,
-						&source_sign,
-						relay_substrate_client::TransactionEra::immortal(),
-						UnsignedTransaction::new(send_message_call, transaction_nonce),
-					)
+					let signed_source_call = Source::sign_transaction(SignParam {
+						spec_version,
+						transaction_version,
+						genesis_hash: source_genesis_hash,
+						signer: source_sign.clone(),
+						era: relay_substrate_client::TransactionEra::immortal(),
+						unsigned: UnsignedTransaction::new(send_message_call, transaction_nonce),
+					})
 					.encode();
 
 					log::info!(
@@ -285,8 +301,8 @@ mod tests {
 	use super::*;
 	use hex_literal::hex;
 
-	#[test]
-	fn send_remark_rialto_to_millau() {
+	#[async_std::test]
+	async fn send_remark_rialto_to_millau() {
 		// given
 		let mut send_message = SendMessage::from_iter(vec![
 			"send-message",
@@ -301,7 +317,7 @@ mod tests {
 		]);
 
 		// when
-		let payload = send_message.encode_payload().unwrap();
+		let payload = send_message.encode_payload().await.unwrap();
 
 		// then
 		assert_eq!(
@@ -318,8 +334,8 @@ mod tests {
 		);
 	}
 
-	#[test]
-	fn send_remark_millau_to_rialto() {
+	#[async_std::test]
+	async fn send_remark_millau_to_rialto() {
 		// given
 		let mut send_message = SendMessage::from_iter(vec![
 			"send-message",
@@ -338,7 +354,7 @@ mod tests {
 		]);
 
 		// when
-		let payload = send_message.encode_payload().unwrap();
+		let payload = send_message.encode_payload().await.unwrap();
 
 		// then
 		// Since signatures are randomized we extract it from here and only check the rest.
@@ -382,8 +398,8 @@ mod tests {
 		assert!(send_message.is_ok());
 	}
 
-	#[test]
-	fn accepts_non_default_dispatch_fee_payment() {
+	#[async_std::test]
+	async fn accepts_non_default_dispatch_fee_payment() {
 		// given
 		let mut send_message = SendMessage::from_iter(vec![
 			"send-message",
@@ -398,7 +414,7 @@ mod tests {
 		]);
 
 		// when
-		let payload = send_message.encode_payload().unwrap();
+		let payload = send_message.encode_payload().await.unwrap();
 
 		// then
 		assert_eq!(

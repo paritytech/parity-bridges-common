@@ -16,10 +16,12 @@
 
 //! Types used to connect to the Millau-Substrate chain.
 
+use bp_messages::MessageNonce;
 use codec::{Compact, Decode, Encode};
+use frame_support::weights::Weight;
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainBase, ChainWithBalances, IndexOf, TransactionEraOf,
-	TransactionSignScheme, UnsignedTransaction,
+	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, IndexOf,
+	SignParam, TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -42,10 +44,42 @@ impl ChainBase for Millau {
 	type Balance = millau_runtime::Balance;
 	type Index = millau_runtime::Index;
 	type Signature = millau_runtime::Signature;
+
+	fn max_extrinsic_size() -> u32 {
+		bp_millau::Millau::max_extrinsic_size()
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		bp_millau::Millau::max_extrinsic_weight()
+	}
+}
+
+impl ChainWithGrandpa for Millau {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_millau::WITH_MILLAU_GRANDPA_PALLET_NAME;
+}
+
+impl ChainWithMessages for Millau {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME;
+	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
+		bp_millau::TO_MILLAU_MESSAGE_DETAILS_METHOD;
+	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str =
+		bp_millau::FROM_MILLAU_UNREWARDED_RELAYERS_STATE;
+	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight =
+		bp_millau::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+	type WeightInfo = ();
 }
 
 impl Chain for Millau {
 	const NAME: &'static str = "Millau";
+	// Rialto token has no value, but we associate it with KSM token
+	const TOKEN_ID: Option<&'static str> = Some("kusama");
+	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
+		bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(5);
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_millau::EXTRA_STORAGE_PROOF_SIZE;
 	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = bp_millau::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE;
@@ -69,35 +103,30 @@ impl TransactionSignScheme for Millau {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = millau_runtime::UncheckedExtrinsic;
 
-	fn sign_transaction(
-		genesis_hash: <Self::Chain as ChainBase>::Hash,
-		signer: &Self::AccountKeyPair,
-		era: TransactionEraOf<Self::Chain>,
-		unsigned: UnsignedTransaction<Self::Chain>,
-	) -> Self::SignedTransaction {
+	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction {
 		let raw_payload = SignedPayload::from_raw(
-			unsigned.call,
+			param.unsigned.call.clone(),
 			(
 				frame_system::CheckSpecVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckTxVersion::<millau_runtime::Runtime>::new(),
 				frame_system::CheckGenesis::<millau_runtime::Runtime>::new(),
-				frame_system::CheckEra::<millau_runtime::Runtime>::from(era.frame_era()),
-				frame_system::CheckNonce::<millau_runtime::Runtime>::from(unsigned.nonce),
+				frame_system::CheckEra::<millau_runtime::Runtime>::from(param.era.frame_era()),
+				frame_system::CheckNonce::<millau_runtime::Runtime>::from(param.unsigned.nonce),
 				frame_system::CheckWeight::<millau_runtime::Runtime>::new(),
-				pallet_transaction_payment::ChargeTransactionPayment::<millau_runtime::Runtime>::from(unsigned.tip),
+				pallet_transaction_payment::ChargeTransactionPayment::<millau_runtime::Runtime>::from(param.unsigned.tip),
 			),
 			(
-				millau_runtime::VERSION.spec_version,
-				millau_runtime::VERSION.transaction_version,
-				genesis_hash,
-				era.signed_payload(genesis_hash),
+				param.spec_version,
+				param.transaction_version,
+				param.genesis_hash,
+				param.era.signed_payload(param.genesis_hash),
 				(),
 				(),
 				(),
 			),
 		);
-		let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
-		let signer: sp_runtime::MultiSigner = signer.public().into();
+		let signature = raw_payload.using_encoded(|payload| param.signer.sign(payload));
+		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
 		millau_runtime::UncheckedExtrinsic::new_signed(

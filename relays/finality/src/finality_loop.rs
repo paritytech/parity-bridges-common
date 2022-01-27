@@ -19,17 +19,17 @@
 //! is the mandatory headers, which we always submit to the target node. For such headers, we
 //! assume that the persistent proof either exists, or will eventually become available.
 
-use crate::{FinalityProof, FinalitySyncPipeline, SourceHeader};
+use crate::{
+	sync_loop_metrics::SyncLoopMetrics, FinalityProof, FinalitySyncPipeline, SourceHeader,
+};
 
 use async_trait::async_trait;
 use backoff::backoff::Backoff;
 use futures::{select, Future, FutureExt, Stream, StreamExt};
-use headers_relay::sync_loop_metrics::SyncLoopMetrics;
 use num_traits::{One, Saturating};
 use relay_utils::{
-	metrics::{GlobalMetrics, MetricsParams},
-	relay_loop::Client as RelayClient,
-	retry_backoff, FailedClient, MaybeConnectionError,
+	metrics::MetricsParams, relay_loop::Client as RelayClient, retry_backoff, FailedClient,
+	MaybeConnectionError,
 };
 use std::{
 	pin::Pin,
@@ -110,12 +110,11 @@ pub async fn run<P: FinalitySyncPipeline>(
 	sync_params: FinalitySyncParams,
 	metrics_params: MetricsParams,
 	exit_signal: impl Future<Output = ()> + 'static + Send,
-) -> anyhow::Result<()> {
+) -> Result<(), relay_utils::Error> {
 	let exit_signal = exit_signal.shared();
 	relay_utils::relay_loop(source_client, target_client)
-		.with_metrics(Some(metrics_prefix::<P>()), metrics_params)
-		.loop_metric(|registry, prefix| SyncLoopMetrics::new(registry, prefix))?
-		.standalone_metric(|registry, prefix| GlobalMetrics::new(registry, prefix))?
+		.with_metrics(metrics_params)
+		.loop_metric(SyncLoopMetrics::new(Some(&metrics_prefix::<P>()))?)?
 		.expose()
 		.await?
 		.run(metrics_prefix::<P>(), move |source_client, target_client, metrics| {
@@ -484,6 +483,14 @@ pub(crate) async fn read_missing_headers<
 		header_number = header_number + One::one();
 	}
 
+	log::trace!(
+		target: "bridge",
+		"Read {} {} headers. Selected finality proof for header: {:?}",
+		best_number_at_source.saturating_sub(best_number_at_target),
+		P::SOURCE_NAME,
+		selected_finality_proof.as_ref().map(|(header, _)| header),
+	);
+
 	Ok(match selected_finality_proof {
 		Some((header, proof)) => SelectedFinalityProof::Regular(unjustified_headers, header, proof),
 		None => SelectedFinalityProof::None(unjustified_headers),
@@ -584,7 +591,7 @@ pub(crate) fn select_better_recent_finality_proof<P: FinalitySyncPipeline>(
 		buffered_range_begin,
 		buffered_range_end,
 		selected_header_number,
-		if has_selected_finality_proof { "improved" } else { "failed" },
+		if has_selected_finality_proof { "improved" } else { "not improved" },
 	);
 	if !has_selected_finality_proof {
 		return selected_finality_proof

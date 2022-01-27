@@ -24,19 +24,18 @@ mod error;
 mod rpc;
 mod sync_header;
 
-pub mod finality_source;
 pub mod guard;
-pub mod headers_source;
 pub mod metrics;
 
 use std::time::Duration;
 
 pub use crate::{
 	chain::{
-		BlockWithJustification, CallOf, Chain, ChainWithBalances, TransactionSignScheme,
-		TransactionStatusOf, UnsignedTransaction, WeightToFeeOf,
+		AccountKeyPairOf, BlockWithJustification, CallOf, Chain, ChainWithBalances,
+		ChainWithGrandpa, ChainWithMessages, SignParam, TransactionSignScheme, TransactionStatusOf,
+		UnsignedTransaction, WeightToFeeOf,
 	},
-	client::{Client, OpaqueGrandpaAuthoritiesSet, Subscription},
+	client::{ChainRuntimeVersion, Client, OpaqueGrandpaAuthoritiesSet, Subscription},
 	error::{Error, Result},
 	sync_header::SyncHeader,
 };
@@ -57,11 +56,18 @@ pub struct ConnectionParams {
 	pub port: u16,
 	/// Use secure websocket connection.
 	pub secure: bool,
+	/// Defined chain runtime version
+	pub chain_runtime_version: ChainRuntimeVersion,
 }
 
 impl Default for ConnectionParams {
 	fn default() -> Self {
-		ConnectionParams { host: "localhost".into(), port: 9944, secure: false }
+		ConnectionParams {
+			host: "localhost".into(),
+			port: 9944,
+			secure: false,
+			chain_runtime_version: ChainRuntimeVersion::Auto,
+		}
 	}
 }
 
@@ -69,13 +75,40 @@ impl Default for ConnectionParams {
 ///
 /// Relay considers himself stalled if he has submitted transaction to the node, but it has not
 /// been mined for this period.
-///
-/// Returns `None` if mortality period is `None`
 pub fn transaction_stall_timeout(
 	mortality_period: Option<u32>,
 	average_block_interval: Duration,
-) -> Option<Duration> {
+	default_stall_timeout: Duration,
+) -> Duration {
 	// 1 extra block for transaction to reach the pool && 1 for relayer to awake after it is mined
 	mortality_period
 		.map(|mortality_period| average_block_interval.saturating_mul(mortality_period + 1 + 1))
+		.unwrap_or(default_stall_timeout)
+}
+
+/// Returns stall timeout for relay loop that submit transactions to two chains.
+///
+/// Bidirectional relay may have two active transactions. Even if one of them has been spoiled, we
+/// can't just restart the loop - the other transaction may still be alive and we'll be submitting
+/// duplicate transaction, which may result in funds loss. So we'll be selecting maximal mortality
+/// for choosing loop stall timeout.
+pub fn bidirectional_transaction_stall_timeout(
+	left_mortality_period: Option<u32>,
+	right_mortality_period: Option<u32>,
+	left_average_block_interval: Duration,
+	right_average_block_interval: Duration,
+	default_stall_timeout: Duration,
+) -> Duration {
+	std::cmp::max(
+		transaction_stall_timeout(
+			left_mortality_period,
+			left_average_block_interval,
+			default_stall_timeout,
+		),
+		transaction_stall_timeout(
+			right_mortality_period,
+			right_average_block_interval,
+			default_stall_timeout,
+		),
+	)
 }

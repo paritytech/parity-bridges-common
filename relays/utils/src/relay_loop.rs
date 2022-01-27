@@ -15,7 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	metrics::{Metrics, MetricsAddress, MetricsParams, PrometheusError, StandaloneMetrics},
+	error::Error,
+	metrics::{Metric, MetricsAddress, MetricsParams},
 	FailedClient, MaybeConnectionError,
 };
 
@@ -52,7 +53,7 @@ pub fn relay_loop<SC, TC>(source_client: SC, target_client: TC) -> Loop<SC, TC, 
 
 /// Returns generic relay loop metrics that may be customized and used in one or several relay
 /// loops.
-pub fn relay_metrics(prefix: Option<String>, params: MetricsParams) -> LoopMetrics<(), (), ()> {
+pub fn relay_metrics(params: MetricsParams) -> LoopMetrics<(), (), ()> {
 	LoopMetrics {
 		relay_loop: Loop {
 			reconnect_delay: RECONNECT_DELAY,
@@ -61,8 +62,7 @@ pub fn relay_metrics(prefix: Option<String>, params: MetricsParams) -> LoopMetri
 			loop_metric: None,
 		},
 		address: params.address,
-		registry: params.registry.unwrap_or_else(|| create_metrics_registry(prefix)),
-		metrics_prefix: params.metrics_prefix,
+		registry: params.registry,
 		loop_metric: None,
 	}
 }
@@ -80,7 +80,6 @@ pub struct LoopMetrics<SC, TC, LM> {
 	relay_loop: Loop<SC, TC, ()>,
 	address: Option<MetricsAddress>,
 	registry: Registry,
-	metrics_prefix: Option<String>,
 	loop_metric: Option<LM>,
 }
 
@@ -92,11 +91,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 	}
 
 	/// Start building loop metrics using given prefix.
-	pub fn with_metrics(
-		self,
-		prefix: Option<String>,
-		params: MetricsParams,
-	) -> LoopMetrics<SC, TC, ()> {
+	pub fn with_metrics(self, params: MetricsParams) -> LoopMetrics<SC, TC, ()> {
 		LoopMetrics {
 			relay_loop: Loop {
 				reconnect_delay: self.reconnect_delay,
@@ -105,8 +100,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 				loop_metric: None,
 			},
 			address: params.address,
-			registry: params.registry.unwrap_or_else(|| create_metrics_registry(prefix)),
-			metrics_prefix: params.metrics_prefix,
+			registry: params.registry,
 			loop_metric: None,
 		}
 	}
@@ -116,7 +110,7 @@ impl<SC, TC, LM> Loop<SC, TC, LM> {
 	/// This function represents an outer loop, which in turn calls provided `run_loop` function to
 	/// do actual job. When `run_loop` returns, this outer loop reconnects to failed client (source,
 	/// target or both) and calls `run_loop` again.
-	pub async fn run<R, F>(mut self, loop_name: String, run_loop: R) -> anyhow::Result<()>
+	pub async fn run<R, F>(mut self, loop_name: String, run_loop: R) -> Result<(), Error>
 	where
 		R: 'static + Send + Fn(SC, TC, Option<LM>) -> F,
 		F: 'static + Send + Future<Output = Result<(), FailedClient>>,
@@ -159,59 +153,35 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 	/// Add relay loop metrics.
 	///
 	/// Loop metrics will be passed to the loop callback.
-	pub fn loop_metric<NewLM: Metrics>(
+	pub fn loop_metric<NewLM: Metric>(
 		self,
-		create_metric: impl FnOnce(&Registry, Option<&str>) -> Result<NewLM, PrometheusError>,
-	) -> anyhow::Result<LoopMetrics<SC, TC, NewLM>> {
-		let loop_metric = create_metric(&self.registry, self.metrics_prefix.as_deref())?;
+		metric: NewLM,
+	) -> Result<LoopMetrics<SC, TC, NewLM>, Error> {
+		metric.register(&self.registry)?;
 
 		Ok(LoopMetrics {
 			relay_loop: self.relay_loop,
 			address: self.address,
 			registry: self.registry,
-			metrics_prefix: self.metrics_prefix,
-			loop_metric: Some(loop_metric),
+			loop_metric: Some(metric),
 		})
-	}
-
-	/// Add standalone metrics.
-	pub fn standalone_metric<M: StandaloneMetrics>(
-		self,
-		create_metric: impl FnOnce(&Registry, Option<&str>) -> Result<M, PrometheusError>,
-	) -> anyhow::Result<Self> {
-		// since standalone metrics are updating themselves, we may just ignore the fact that the
-		// same standalone metric is exposed by several loops && only spawn single metric
-		match create_metric(&self.registry, self.metrics_prefix.as_deref()) {
-			Ok(standalone_metrics) => standalone_metrics.spawn(),
-			Err(PrometheusError::AlreadyReg) => (),
-			Err(e) => anyhow::bail!(e),
-		}
-
-		Ok(self)
 	}
 
 	/// Convert into `MetricsParams` structure so that metrics registry may be extended later.
 	pub fn into_params(self) -> MetricsParams {
-		MetricsParams {
-			address: self.address,
-			registry: Some(self.registry),
-			metrics_prefix: self.metrics_prefix,
-		}
+		MetricsParams { address: self.address, registry: self.registry }
 	}
 
 	/// Expose metrics using address passed at creation.
 	///
 	/// If passed `address` is `None`, metrics are not exposed.
-	pub async fn expose(self) -> anyhow::Result<Loop<SC, TC, LM>> {
+	pub async fn expose(self) -> Result<Loop<SC, TC, LM>, Error> {
 		if let Some(address) = self.address {
 			let socket_addr = SocketAddr::new(
-				address.host.parse().map_err(|err| {
-					anyhow::format_err!(
-						"Invalid host {} is used to expose Prometheus metrics: {}",
-						address.host,
-						err,
-					)
-				})?,
+				address
+					.host
+					.parse()
+					.map_err(|err| Error::ExposingMetricsInvalidHost(address.host.clone(), err))?,
 				address.port,
 			);
 
@@ -274,17 +244,5 @@ pub async fn reconnect_failed_client(
 		}
 
 		break
-	}
-}
-
-/// Create new registry with global metrics.
-fn create_metrics_registry(prefix: Option<String>) -> Registry {
-	match prefix {
-		Some(prefix) => {
-			assert!(!prefix.is_empty(), "Metrics prefix can not be empty");
-			Registry::new_custom(Some(prefix), None)
-				.expect("only fails if prefix is empty; prefix is not empty; qed")
-		},
-		None => Registry::new(),
 	}
 }

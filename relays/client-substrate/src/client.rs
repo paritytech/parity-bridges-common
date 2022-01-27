@@ -34,11 +34,14 @@ use jsonrpsee_ws_client::{
 	},
 	WsClient as RpcClient, WsClientBuilder as RpcClientBuilder,
 };
-use num_traits::{Bounded, Zero};
+use num_traits::{Bounded, CheckedSub, One, Zero};
 use pallet_balances::AccountData;
 use pallet_transaction_payment::InclusionFee;
 use relay_utils::{relay_loop::RECONNECT_DELAY, HeaderId};
-use sp_core::{storage::StorageKey, Bytes, Hasher};
+use sp_core::{
+	storage::{StorageData, StorageKey},
+	Bytes, Hasher,
+};
 use sp_runtime::{
 	traits::Header as HeaderT,
 	transaction_validity::{TransactionSource, TransactionValidity},
@@ -57,6 +60,17 @@ pub struct Subscription<T>(Mutex<futures::channel::mpsc::Receiver<Option<T>>>);
 /// Opaque GRANDPA authorities set.
 pub type OpaqueGrandpaAuthoritiesSet = Vec<u8>;
 
+/// Chain runtime version in client
+#[derive(Clone, Debug)]
+pub enum ChainRuntimeVersion {
+	/// Auto query from chain.
+	Auto,
+	/// Custom runtime version, defined by user.
+	/// the first is `spec_version`
+	/// the second is `transaction_version`
+	Custom(u32, u32),
+}
+
 /// Substrate client type.
 ///
 /// Cloning `Client` is a cheap operation.
@@ -74,6 +88,8 @@ pub struct Client<C: Chain> {
 	/// transactions will be rejected from the pool. This lock is here to prevent situations like
 	/// that.
 	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
+	/// Saved chain runtime version
+	chain_runtime_version: ChainRuntimeVersion,
 }
 
 #[async_trait]
@@ -96,6 +112,7 @@ impl<C: Chain> Clone for Client<C> {
 			client: self.client.clone(),
 			genesis_hash: self.genesis_hash,
 			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
+			chain_runtime_version: self.chain_runtime_version.clone(),
 		}
 	}
 }
@@ -141,12 +158,14 @@ impl<C: Chain> Client<C> {
 			})
 			.await??;
 
+		let chain_runtime_version = params.chain_runtime_version.clone();
 		Ok(Self {
 			tokio,
 			params,
 			client,
 			genesis_hash,
 			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
+			chain_runtime_version,
 		})
 	}
 
@@ -175,6 +194,19 @@ impl<C: Chain> Client<C> {
 }
 
 impl<C: Chain> Client<C> {
+	/// Return simple runtime version, only include `spec_version` and `transaction_version`.
+	pub async fn simple_runtime_version(&self) -> Result<(u32, u32)> {
+		let (spec_version, transaction_version) = match self.chain_runtime_version {
+			ChainRuntimeVersion::Auto => {
+				let runtime_version = self.runtime_version().await?;
+				(runtime_version.spec_version, runtime_version.transaction_version)
+			},
+			ChainRuntimeVersion::Custom(spec_version, transaction_version) =>
+				(spec_version, transaction_version),
+		};
+		Ok((spec_version, transaction_version))
+	}
+
 	/// Returns true if client is connected to at least one peer and is in synced state.
 	pub async fn ensure_synced(&self) -> Result<()> {
 		self.jsonrpsee_execute(|client| async move {
@@ -269,13 +301,22 @@ impl<C: Chain> Client<C> {
 		storage_key: StorageKey,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<T>> {
+		self.raw_storage_value(storage_key, block_hash)
+			.await?
+			.map(|encoded_value| {
+				T::decode(&mut &encoded_value.0[..]).map_err(Error::ResponseParseFailed)
+			})
+			.transpose()
+	}
+
+	/// Read raw value from runtime storage.
+	pub async fn raw_storage_value(
+		&self,
+		storage_key: StorageKey,
+		block_hash: Option<C::Hash>,
+	) -> Result<Option<StorageData>> {
 		self.jsonrpsee_execute(move |client| async move {
-			Substrate::<C>::state_get_storage(&*client, storage_key, block_hash)
-				.await?
-				.map(|encoded_value| {
-					T::decode(&mut &encoded_value.0[..]).map_err(Error::ResponseParseFailed)
-				})
-				.transpose()
+			Ok(Substrate::<C>::state_get_storage(&*client, storage_key, block_hash).await?)
 		})
 		.await
 	}
@@ -337,7 +378,17 @@ impl<C: Chain> Client<C> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
 		let best_header = self.best_header().await?;
-		let best_header_id = HeaderId(*best_header.number(), best_header.hash());
+
+		// By using parent of best block here, we are protecing again best-block reorganizations.
+		// E.g. transaction my have been submitted when the best block was `A[num=100]`. Then it has
+		// been changed to `B[num=100]`. Hash of `A` has been included into transaction signature
+		// payload. So when signature will be checked, the check will fail and transaction will be
+		// dropped from the pool.
+		let best_header_id = match best_header.number().checked_sub(&One::one()) {
+			Some(parent_block_number) => HeaderId(parent_block_number, *best_header.parent_hash()),
+			None => HeaderId(*best_header.number(), best_header.hash()),
+		};
+
 		self.jsonrpsee_execute(move |client| async move {
 			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce);
 			let tx_hash = Substrate::<C>::author_submit_extrinsic(&*client, extrinsic).await?;
@@ -486,6 +537,15 @@ impl<C: Chain> Client<C> {
 				.await
 				.map(|proof| StorageProof::new(proof.proof.into_iter().map(|b| b.0).collect()))
 				.map_err(Into::into)
+		})
+		.await
+	}
+
+	/// Return `tokenDecimals` property from the set of chain properties.
+	pub async fn token_decimals(&self) -> Result<Option<u64>> {
+		self.jsonrpsee_execute(move |client| async move {
+			let system_properties = Substrate::<C>::system_properties(&*client).await?;
+			Ok(system_properties.get("tokenDecimals").and_then(|v| v.as_u64()))
 		})
 		.await
 	}

@@ -68,7 +68,7 @@ macro_rules! select_full_bridge {
 
 				// Relay-messages
 				#[allow(unused_imports)]
-				use crate::chains::millau_messages_to_rialto::run as relay_messages;
+				use crate::chains::millau_messages_to_rialto::MillauMessagesToRialto as MessagesLane;
 
 				// Send-message / Estimate-fee
 				#[allow(unused_imports)]
@@ -76,6 +76,11 @@ macro_rules! select_full_bridge {
 				// Send-message
 				#[allow(unused_imports)]
 				use millau_runtime::millau_to_rialto_account_ownership_digest as account_ownership_digest;
+
+				#[allow(dead_code)]
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(millau_runtime::VERSION);
+				#[allow(dead_code)]
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(rialto_runtime::VERSION);
 
 				$generic
 			}
@@ -90,7 +95,7 @@ macro_rules! select_full_bridge {
 
 				// Relay-messages
 				#[allow(unused_imports)]
-				use crate::chains::rialto_messages_to_millau::run as relay_messages;
+				use crate::chains::rialto_messages_to_millau::RialtoMessagesToMillau as MessagesLane;
 
 				// Send-message / Estimate-fee
 				#[allow(unused_imports)]
@@ -99,6 +104,11 @@ macro_rules! select_full_bridge {
 				// Send-message
 				#[allow(unused_imports)]
 				use rialto_runtime::rialto_to_millau_account_ownership_digest as account_ownership_digest;
+
+				#[allow(dead_code)]
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(rialto_runtime::VERSION);
+				#[allow(dead_code)]
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(millau_runtime::VERSION);
 
 				$generic
 			}
@@ -113,7 +123,7 @@ macro_rules! select_full_bridge {
 
 				// Relay-messages
 				#[allow(unused_imports)]
-				use crate::chains::rococo_messages_to_wococo::run as relay_messages;
+				use crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo as MessagesLane;
 
 				// Send-message / Estimate-fee
 				#[allow(unused_imports)]
@@ -121,6 +131,11 @@ macro_rules! select_full_bridge {
 				// Send-message
 				#[allow(unused_imports)]
 				use relay_rococo_client::runtime::rococo_to_wococo_account_ownership_digest as account_ownership_digest;
+
+				#[allow(dead_code)]
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(bp_rococo::VERSION);
+				#[allow(dead_code)]
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(bp_wococo::VERSION);
 
 				$generic
 			}
@@ -135,7 +150,7 @@ macro_rules! select_full_bridge {
 
 				// Relay-messages
 				#[allow(unused_imports)]
-				use crate::chains::wococo_messages_to_rococo::run as relay_messages;
+				use crate::chains::wococo_messages_to_rococo::WococoMessagesToRococo as MessagesLane;
 
 				// Send-message / Estimate-fee
 				#[allow(unused_imports)]
@@ -143,6 +158,11 @@ macro_rules! select_full_bridge {
 				// Send-message
 				#[allow(unused_imports)]
 				use relay_wococo_client::runtime::wococo_to_rococo_account_ownership_digest as account_ownership_digest;
+
+				#[allow(dead_code)]
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(bp_wococo::VERSION);
+				#[allow(dead_code)]
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(bp_rococo::VERSION);
 
 				$generic
 			}
@@ -157,7 +177,7 @@ macro_rules! select_full_bridge {
 
 				// Relay-messages
 				#[allow(unused_imports)]
-				use crate::chains::kusama_messages_to_polkadot::run as relay_messages;
+				use crate::chains::kusama_messages_to_polkadot::KusamaMessagesToPolkadot as MessagesLane;
 
 				// Send-message / Estimate-fee
 				#[allow(unused_imports)]
@@ -165,6 +185,11 @@ macro_rules! select_full_bridge {
 				// Send-message
 				#[allow(unused_imports)]
 				use relay_kusama_client::runtime::kusama_to_polkadot_account_ownership_digest as account_ownership_digest;
+
+				#[allow(dead_code)]
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(bp_kusama::VERSION);
+				#[allow(dead_code)]
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(bp_polkadot::VERSION);
 
 				$generic
 			}
@@ -179,7 +204,7 @@ macro_rules! select_full_bridge {
 
 				// Relay-messages
 				#[allow(unused_imports)]
-				use crate::chains::polkadot_messages_to_kusama::run as relay_messages;
+				use crate::chains::polkadot_messages_to_kusama::PolkadotMessagesToKusama as MessagesLane;
 
 				// Send-message / Estimate-fee
 				#[allow(unused_imports)]
@@ -187,6 +212,11 @@ macro_rules! select_full_bridge {
 				// Send-message
 				#[allow(unused_imports)]
 				use relay_polkadot_client::runtime::polkadot_to_kusama_account_ownership_digest as account_ownership_digest;
+
+				#[allow(dead_code)]
+				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(bp_polkadot::VERSION);
+				#[allow(dead_code)]
+				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> = Some(bp_kusama::VERSION);
 
 				$generic
 			}

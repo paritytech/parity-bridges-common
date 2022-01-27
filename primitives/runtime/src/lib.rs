@@ -28,6 +28,7 @@ pub use chain::{
 	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf,
 	IndexOf, SignatureOf, TransactionEraOf,
 };
+pub use frame_support::storage::storage_prefix as storage_value_final_key;
 pub use storage_proof::{Error as StorageProofError, StorageProofChecker};
 
 #[cfg(feature = "std")]
@@ -67,6 +68,10 @@ pub const ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/
 
 /// A unique prefix for entropy when generating a cross-chain account ID for the Root account.
 pub const ROOT_ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/root";
+
+/// Generic header Id.
+#[derive(RuntimeDebug, Default, Clone, Copy, Eq, Hash, PartialEq)]
+pub struct HeaderId<Hash, Number>(pub Number, pub Hash);
 
 /// Unique identifier of the chain.
 ///
@@ -158,20 +163,17 @@ pub enum TransactionEra<BlockNumber, BlockHash> {
 	/// Transaction is immortal.
 	Immortal,
 	/// Transaction is valid for a given number of blocks, starting from given block.
-	Mortal(BlockNumber, BlockHash, u32),
+	Mortal(HeaderId<BlockHash, BlockNumber>, u32),
 }
 
 impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber, BlockHash> {
 	/// Prepare transaction era, based on mortality period and current best block number.
 	pub fn new(
-		best_block_number: BlockNumber,
-		best_block_hash: BlockHash,
+		best_block_id: HeaderId<BlockHash, BlockNumber>,
 		mortality_period: Option<u32>,
 	) -> Self {
 		mortality_period
-			.map(|mortality_period| {
-				TransactionEra::Mortal(best_block_number, best_block_hash, mortality_period)
-			})
+			.map(|mortality_period| TransactionEra::Mortal(best_block_id, mortality_period))
 			.unwrap_or(TransactionEra::Immortal)
 	}
 
@@ -184,8 +186,8 @@ impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber,
 	pub fn frame_era(&self) -> sp_runtime::generic::Era {
 		match *self {
 			TransactionEra::Immortal => sp_runtime::generic::Era::immortal(),
-			TransactionEra::Mortal(header_number, _, period) =>
-				sp_runtime::generic::Era::mortal(period as _, header_number.into()),
+			TransactionEra::Mortal(header_id, period) =>
+				sp_runtime::generic::Era::mortal(period as _, header_id.0.into()),
 		}
 	}
 
@@ -193,44 +195,28 @@ impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber,
 	pub fn signed_payload(&self, genesis_hash: BlockHash) -> BlockHash {
 		match *self {
 			TransactionEra::Immortal => genesis_hash,
-			TransactionEra::Mortal(_, header_hash, _) => header_hash,
+			TransactionEra::Mortal(header_id, _) => header_id.1,
 		}
 	}
 }
 
 /// This is a copy of the
-/// `frame_support::storage::generator::StorageMap::storage_map_final_key` for `Blake2_128Concat`
-/// maps.
+/// `frame_support::storage::generator::StorageMap::storage_map_final_key` for maps based
+/// on selected hasher.
 ///
 /// We're using it because to call `storage_map_final_key` directly, we need access to the runtime
 /// and pallet instance, which (sometimes) is impossible.
-pub fn storage_map_final_key_blake2_128concat(
+pub fn storage_map_final_key<H: StorageHasher>(
 	pallet_prefix: &str,
 	map_name: &str,
 	key: &[u8],
 ) -> StorageKey {
-	storage_map_final_key_identity(
-		pallet_prefix,
-		map_name,
-		&frame_support::Blake2_128Concat::hash(key),
-	)
-}
-
-/// This is a copy of the
-/// `frame_support::storage::generator::StorageMap::storage_map_final_key` for `Identity` maps.
-///
-/// We're using it because to call `storage_map_final_key` directly, we need access to the runtime
-/// and pallet instance, which (sometimes) is impossible.
-pub fn storage_map_final_key_identity(
-	pallet_prefix: &str,
-	map_name: &str,
-	key_hashed: &[u8],
-) -> StorageKey {
+	let key_hashed = H::hash(key);
 	let pallet_prefix_hashed = frame_support::Twox128::hash(pallet_prefix.as_bytes());
 	let storage_prefix_hashed = frame_support::Twox128::hash(map_name.as_bytes());
 
 	let mut final_key = Vec::with_capacity(
-		pallet_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.len(),
+		pallet_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.as_ref().len(),
 	);
 
 	final_key.extend_from_slice(&pallet_prefix_hashed[..]);
@@ -245,10 +231,22 @@ pub fn storage_map_final_key_identity(
 ///
 /// Copied from `frame_support::parameter_types` macro
 pub fn storage_parameter_key(parameter_name: &str) -> StorageKey {
-	let mut buffer = Vec::with_capacity(1 + parameter_name.len() + 1 + 1);
+	let mut buffer = Vec::with_capacity(1 + parameter_name.len() + 1);
 	buffer.push(b':');
 	buffer.extend_from_slice(parameter_name.as_bytes());
 	buffer.push(b':');
-	buffer.push(0);
 	StorageKey(sp_io::hashing::twox_128(&buffer).to_vec())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn storage_parameter_key_works() {
+		assert_eq!(
+			storage_parameter_key("MillauToRialtoConversionRate"),
+			StorageKey(hex_literal::hex!("58942375551bb0af1682f72786b59d04").to_vec()),
+		);
+	}
 }

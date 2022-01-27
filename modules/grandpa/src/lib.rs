@@ -239,7 +239,7 @@ pub mod pallet {
 			operational: bool,
 		) -> DispatchResultWithPostInfo {
 			ensure_owner_or_root::<T, I>(origin)?;
-			<IsHalted<T, I>>::put(operational);
+			<IsHalted<T, I>>::put(!operational);
 
 			if operational {
 				log::info!(target: "runtime::bridge-grandpa", "Resuming pallet operations.");
@@ -620,15 +620,16 @@ pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::mock::{
-		run_test, test_header, Origin, TestHash, TestHeader, TestNumber, TestRuntime,
-	};
+	use crate::mock::{run_test, test_header, Origin, TestHeader, TestNumber, TestRuntime};
 	use bp_test_utils::{
 		authority_list, make_default_justification, make_justification_for_header,
 		JustificationGeneratorParams, ALICE, BOB,
 	};
 	use codec::Encode;
-	use frame_support::{assert_err, assert_noop, assert_ok, weights::PostDispatchInfo};
+	use frame_support::{
+		assert_err, assert_noop, assert_ok, storage::generator::StorageValue,
+		weights::PostDispatchInfo,
+	};
 	use sp_runtime::{Digest, DigestItem, DispatchError};
 
 	fn initialize_substrate_bridge() {
@@ -672,19 +673,17 @@ mod tests {
 		let _ = Pallet::<TestRuntime>::on_initialize(current_number);
 	}
 
-	fn change_log(delay: u64) -> Digest<TestHash> {
+	fn change_log(delay: u64) -> Digest {
 		let consensus_log =
 			ConsensusLog::<TestNumber>::ScheduledChange(sp_finality_grandpa::ScheduledChange {
 				next_authorities: vec![(ALICE.into(), 1), (BOB.into(), 1)],
 				delay,
 			});
 
-		Digest::<TestHash> {
-			logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
-		}
+		Digest { logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())] }
 	}
 
-	fn forced_change_log(delay: u64) -> Digest<TestHash> {
+	fn forced_change_log(delay: u64) -> Digest {
 		let consensus_log = ConsensusLog::<TestNumber>::ForcedChange(
 			delay,
 			sp_finality_grandpa::ScheduledChange {
@@ -693,9 +692,7 @@ mod tests {
 			},
 		);
 
-		Digest::<TestHash> {
-			logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())],
-		}
+		Digest { logs: vec![DigestItem::Consensus(GRANDPA_ENGINE_ID, consensus_log.encode())] }
 	}
 
 	#[test]
@@ -804,9 +801,13 @@ mod tests {
 	#[test]
 	fn pallet_rejects_transactions_if_halted() {
 		run_test(|| {
-			<IsHalted<TestRuntime>>::put(true);
+			initialize_substrate_bridge();
 
-			assert_noop!(submit_finality_proof(1), Error::<TestRuntime>::Halted,);
+			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), false));
+			assert_noop!(submit_finality_proof(1), Error::<TestRuntime>::Halted);
+
+			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), true));
+			assert_ok!(submit_finality_proof(1));
 		})
 	}
 
@@ -1146,5 +1147,18 @@ mod tests {
 				"First header should be pruned."
 			);
 		})
+	}
+
+	#[test]
+	fn storage_keys_computed_properly() {
+		assert_eq!(
+			IsHalted::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_header_chain::storage_keys::is_halted_key("Grandpa").0,
+		);
+
+		assert_eq!(
+			BestFinalized::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_header_chain::storage_keys::best_finalized_hash_key("Grandpa").0,
+		);
 	}
 }
