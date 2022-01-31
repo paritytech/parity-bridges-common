@@ -199,7 +199,20 @@ impl std::str::FromStr for AccountId {
 		Ok(Self { account, ss58_format })
 	}
 }
+/*
+fn set_default_ss58_version(spec: &Box<dyn service::ChainSpec>) {
+	let ss58_version = if spec.is_kusama() {
+		Ss58AddressFormatRegistry::KusamaAccount
+	} else if spec.is_westend() {
+		Ss58AddressFormatRegistry::SubstrateAccount
+	} else {
+		Ss58AddressFormatRegistry::PolkadotAccount
+	}
+	.into();
 
+	sp_core::crypto::set_default_ss58_version(ss58_version);
+}
+*/
 const SS58_FORMAT_PROOF: &str = "u16 -> Ss58Format is infallible; qed";
 
 impl AccountId {

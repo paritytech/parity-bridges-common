@@ -25,7 +25,7 @@ use substrate_relay_helper::{finality_pipeline::SubstrateFinalitySyncPipeline, T
 ///
 /// Actual value, returned by `maximal_balance_decrease_per_day_is_sane` test is approximately 0.001
 /// KSM, but let's round up to 0.1 KSM here.
-pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_polkadot::Balance = 100_000_000_000;
+pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_polkadot::Balance = 100_000_000_000_000; // TODO: revert me
 
 /// Description of Polkadot -> Kusama finalized headers bridge.
 #[derive(Clone, Debug)]
