@@ -37,10 +37,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: sp_version::create_runtime_str!("kusama"),
 	impl_name: sp_version::create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 9100,
+	spec_version: 9140,
 	impl_version: 0,
 	apis: sp_version::create_apis_vec![[]],
-	transaction_version: 5,
+	transaction_version: 8,
 };
 
 // NOTE: This needs to be kept up to date with the Kusama runtime found in the Polkadot repo.
