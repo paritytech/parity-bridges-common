@@ -165,15 +165,30 @@ async fn background_task<P: SubstrateFinalitySyncPipeline>(
 		}
 
 		// submit mandatory header if some headers are missing
+		let best_finalized_source_header_at_source_fmt =
+			format!("{:?}", best_finalized_source_header_at_source);
 		let best_finalized_source_header_at_target_fmt =
 			format!("{:?}", best_finalized_source_header_at_target);
+		let required_header_number_value = *required_header_number.lock().await;
 		let mandatory_scan_range = mandatory_headers_scan_range::<P::SourceChain>(
 			best_finalized_source_header_at_source.ok(),
 			best_finalized_source_header_at_target.ok(),
 			maximal_headers_difference,
-			&required_header_number,
+			required_header_number_value,
 		)
 		.await;
+
+		log::trace!(
+			target: "bridge",
+			"Mandatory headers scan range in {}: ({:?}, {:?}, {:?}, {:?}) -> {:?}",
+			relay_task_name,
+			required_header_number_value,
+			best_finalized_source_header_at_source_fmt,
+			best_finalized_source_header_at_target_fmt,
+			maximal_headers_difference,
+			mandatory_scan_range,
+		);
+
 		if let Some(mandatory_scan_range) = mandatory_scan_range {
 			let relay_mandatory_header_result = relay_mandatory_header_from_range(
 				&finality_source,
@@ -227,6 +242,25 @@ async fn background_task<P: SubstrateFinalitySyncPipeline>(
 
 		// start/restart relay
 		if restart_relay {
+			let stall_timeout = relay_substrate_client::transaction_stall_timeout(
+				target_transactions_mortality,
+				P::TargetChain::AVERAGE_BLOCK_INTERVAL,
+				STALL_TIMEOUT,
+			);
+
+			log::info!(
+				target: "bridge",
+				"Starting {} relay\n\t\
+					Only mandatory headers: {}\n\t\
+					Tx mortality: {:?} (~{}m)\n\t\
+					Stall timeout: {:?}",
+				relay_task_name,
+				only_mandatory_headers,
+				target_transactions_mortality,
+				stall_timeout.as_secs_f64() / 60.0f64,
+				stall_timeout,
+			);
+
 			finality_relay_task.set(
 				finality_relay::run(
 					finality_source.clone(),
@@ -237,11 +271,7 @@ async fn background_task<P: SubstrateFinalitySyncPipeline>(
 							P::TargetChain::AVERAGE_BLOCK_INTERVAL,
 						),
 						recent_finality_proofs_limit: RECENT_FINALITY_PROOFS_LIMIT,
-						stall_timeout: relay_substrate_client::transaction_stall_timeout(
-							target_transactions_mortality,
-							P::TargetChain::AVERAGE_BLOCK_INTERVAL,
-							STALL_TIMEOUT,
-						),
+						stall_timeout,
 						only_mandatory_headers,
 					},
 					MetricsParams::disabled(),
@@ -261,10 +291,8 @@ async fn mandatory_headers_scan_range<C: Chain>(
 	best_finalized_source_header_at_source: Option<C::BlockNumber>,
 	best_finalized_source_header_at_target: Option<C::BlockNumber>,
 	maximal_headers_difference: C::BlockNumber,
-	required_header_number: &RequiredHeaderNumberRef<C>,
+	required_header_number: BlockNumberOf<C>,
 ) -> Option<(C::BlockNumber, C::BlockNumber)> {
-	let required_header_number = *required_header_number.lock().await;
-
 	// if we have been unable to read header number from the target, then let's assume
 	// that it is the same as required header number. Otherwise we risk submitting
 	// unneeded transactions
