@@ -432,12 +432,7 @@ mod tests {
 	#[async_std::test]
 	async fn mandatory_headers_scan_range_selects_range_if_some_headers_are_missing() {
 		assert_eq!(
-			mandatory_headers_scan_range::<TestChain>(
-				AT_SOURCE,
-				AT_TARGET,
-				0,
-			)
-			.await,
+			mandatory_headers_scan_range::<TestChain>(AT_SOURCE, AT_TARGET, 0,).await,
 			Some((AT_TARGET.unwrap() + 1, AT_SOURCE.unwrap())),
 		);
 	}
@@ -445,12 +440,8 @@ mod tests {
 	#[async_std::test]
 	async fn mandatory_headers_scan_range_selects_nothing_if_already_queued() {
 		assert_eq!(
-			mandatory_headers_scan_range::<TestChain>(
-				AT_SOURCE,
-				AT_TARGET,
-				AT_SOURCE.unwrap(),
-			)
-			.await,
+			mandatory_headers_scan_range::<TestChain>(AT_SOURCE, AT_TARGET, AT_SOURCE.unwrap(),)
+				.await,
 			None,
 		);
 	}
