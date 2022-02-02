@@ -401,15 +401,6 @@ async fn find_mandatory_header_in_range<P: SubstrateFinalitySyncPipeline>(
 	finality_source: &SubstrateFinalitySource<P>,
 	range: (BlockNumberOf<P::SourceChain>, BlockNumberOf<P::SourceChain>),
 ) -> Result<Option<BlockNumberOf<P::SourceChain>>, relay_substrate_client::Error> {
-	log::trace!(
-		target: "bridge",
-		"Scanning mandatory {} headers range {:?}..={:?} in {}",
-		P::SourceChain::NAME,
-		range.0,
-		range.1,
-		on_demand_headers_relay_name::<P::SourceChain, P::TargetChain>(),
-	);
-
 	let mut current = range.0;
 	while current <= range.1 {
 		let header: SyncHeader<HeaderOf<P::SourceChain>> =
