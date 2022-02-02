@@ -298,8 +298,8 @@ async fn mandatory_headers_scan_range<C: Chain>(
 	let best_finalized_source_header_at_source =
 		best_finalized_source_header_at_source.unwrap_or(best_finalized_source_header_at_target);
 
-	// if relay is already asked to sync headers, don't do anything yet
-	if required_header_number > best_finalized_source_header_at_target {
+	// if relay is already asked to sync more headers than we have at source, don't do anything yet
+	if required_header_number >= best_finalized_source_header_at_source {
 		return None
 	}
 
