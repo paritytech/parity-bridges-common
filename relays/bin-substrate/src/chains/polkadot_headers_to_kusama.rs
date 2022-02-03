@@ -28,7 +28,7 @@ use substrate_relay_helper::{finality_pipeline::SubstrateFinalitySyncPipeline, T
 /// Polkadot deployment we'll be using the same account for delivering finality (free for mandatory
 /// headers) and messages. It means that we can't predict maximal loss. But to protect funds against
 /// relay/deployment issues, let's limit it so something that is much larger than this estimation -
-/// e.g. to 2 KSMs.
+/// e.g. to 2 KSM.
 // TODO: https://github.com/paritytech/parity-bridges-common/issues/1307
 pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_kusama::Balance = 2 * 1_000_000_000_000;
 

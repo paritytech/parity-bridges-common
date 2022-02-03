@@ -24,11 +24,11 @@ use substrate_relay_helper::{finality_pipeline::SubstrateFinalitySyncPipeline, T
 /// relay as gone wild.
 ///
 /// Actual value, returned by `maximal_balance_decrease_per_day_is_sane` test is approximately 21
-/// DOT, and initial value of this constant was rounded up to 30 DOTs. But for actual Kusama <>
+/// DOT, and initial value of this constant was rounded up to 30 DOT. But for actual Kusama <>
 /// Polkadot deployment we'll be using the same account for delivering finality (free for mandatory
 /// headers) and messages. It means that we can't predict maximal loss. But to protect funds against
 /// relay/deployment issues, let's limit it so something that is much larger than this estimation -
-/// e.g. to 100 DOTs.
+/// e.g. to 100 DOT.
 // TODO: https://github.com/paritytech/parity-bridges-common/issues/1307
 pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_polkadot::Balance = 100 * 10_000_000_000;
 
