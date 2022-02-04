@@ -105,6 +105,7 @@ where
 	FI: 'static,
 	BH: Header<Hash = HashOf<BridgedChain<B>>>,
 	BHH: Hasher<Out = HashOf<BridgedChain<B>>>,
+	AccountIdOf<ThisChain<B>>: PartialEq + sp_std::fmt::Debug,
 	AccountIdOf<BridgedChain<B>>: From<[u8; 32]>,
 	BalanceOf<ThisChain<B>>: Debug + MaybeSerializeDeserialize,
 	CallOf<ThisChain<B>>: From<frame_system::Call<R>> + GetDispatchInfo,
@@ -139,6 +140,7 @@ where
 
 	// if dispatch fee is paid at this chain, endow relayer account
 	if params.dispatch_fee_payment == DispatchFeePayment::AtTargetChain {
+		assert_eq!(this_public.clone().into_account(), dispatch_account::<B>());
 		pallet_balances::Pallet::<R, BI>::make_free_balance_be(
 			&this_public.clone().into_account(),
 			endow_amount,
