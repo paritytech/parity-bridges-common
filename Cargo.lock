@@ -11390,6 +11390,7 @@ dependencies = [
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-rococo-client",
  "relay-substrate-client",
