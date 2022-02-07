@@ -57,6 +57,8 @@ ignore = [
     "RUSTSEC-2020-0071",
     # chrono (origin: Substrate benchmarking + cli + ...)
     "RUSTSEC-2020-0159",
+    # lru 0.6.6 (origin: libp2p)
+    "RUSTSEC-2021-0130",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
