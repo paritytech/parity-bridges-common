@@ -37,7 +37,7 @@ pub struct Account(pub u16);
 
 impl Account {
 	pub fn public(&self) -> PublicKey {
-		self.secret().into()
+		(&self.secret()).into()
 	}
 
 	pub fn secret(&self) -> SecretKey {
