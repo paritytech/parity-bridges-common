@@ -289,3 +289,109 @@ impl MessagesParameter for MillauToRialtoMessagesParameter {
 		}
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{DbWeight, RialtoGrandpaInstance, Runtime, WithRialtoMessagesInstance};
+
+	use bp_runtime::Chain;
+	use bridge_runtime_common::messages;
+
+	#[test]
+	fn ensure_millau_message_lane_weights_are_correct() {
+		type Weights = pallet_bridge_messages::weights::MillauWeight<Runtime>;
+
+		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
+			bp_millau::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_millau::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT,
+			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+			bp_millau::PAY_INBOUND_DISPATCH_FEE_WEIGHT,
+			DbWeight::get(),
+		);
+
+		let max_incoming_message_proof_size = bp_rialto::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
+			messages::target::maximal_incoming_message_size(bp_millau::Millau::max_extrinsic_size()),
+		);
+		pallet_bridge_messages::ensure_able_to_receive_message::<Weights>(
+			bp_millau::Millau::max_extrinsic_size(),
+			bp_millau::Millau::max_extrinsic_weight(),
+			max_incoming_message_proof_size,
+			messages::target::maximal_incoming_message_dispatch_weight(
+				bp_millau::Millau::max_extrinsic_weight(),
+			),
+		);
+
+		let max_incoming_inbound_lane_data_proof_size =
+			bp_messages::InboundLaneData::<()>::encoded_size_hint(
+				bp_millau::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+				bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as _,
+				bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as _,
+			)
+			.unwrap_or(u32::MAX);
+		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
+			bp_millau::Millau::max_extrinsic_size(),
+			bp_millau::Millau::max_extrinsic_weight(),
+			max_incoming_inbound_lane_data_proof_size,
+			bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+			DbWeight::get(),
+		);
+	}
+
+	#[test]
+	fn ensure_bridge_integrity() {
+		bridge_runtime_common::assert_chain_types!(Runtime, bp_millau::Millau);
+		bridge_runtime_common::assert_bridge_types!(
+			WithRialtoMessageBridge,
+			bp_millau::Millau,
+			bp_rialto::Rialto
+		);
+		bridge_runtime_common::assert_bridge_grandpa_pallet_types!(
+			Runtime,
+			RialtoGrandpaInstance,
+			bp_rialto::Rialto
+		);
+		bridge_runtime_common::assert_bridge_messages_pallet_types!(
+			Runtime,
+			WithRialtoMessagesInstance,
+			WithRialtoMessageBridge,
+			bp_millau::AccountIdConverter
+		);
+
+		bridge_runtime_common::integrity::assert_chain_constants::<Runtime, bp_millau::Millau>(
+			bp_millau::BlockLength::get(),
+			bp_millau::BlockWeights::get(),
+		);
+		bridge_runtime_common::integrity::assert_bridge_grandpa_pallet_constants::<
+			Runtime,
+			RialtoGrandpaInstance,
+		>();
+		bridge_runtime_common::integrity::assert_bridge_messages_pallet_constants::<
+			Runtime,
+			WithRialtoMessagesInstance,
+		>(
+			bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+			bp_runtime::RIALTO_CHAIN_ID,
+		);
+		bridge_runtime_common::integrity::assert_bridge_pallet_names::<
+			WithRialtoMessageBridge,
+			Runtime,
+			RialtoGrandpaInstance,
+			WithRialtoMessagesInstance,
+		>(
+			bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME,
+			bp_rialto::WITH_RIALTO_GRANDPA_PALLET_NAME,
+			bp_rialto::WITH_RIALTO_MESSAGES_PALLET_NAME,
+		);
+
+		assert_eq!(
+			RialtoToMillauConversionRate::key().to_vec(),
+			bp_runtime::storage_parameter_key(
+				bp_millau::RIALTO_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME
+			)
+			.0,
+		);
+	}
+}

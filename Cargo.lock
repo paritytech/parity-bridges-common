@@ -975,6 +975,7 @@ dependencies = [
  "sp-std",
  "sp-trie",
  "sp-version",
+ "static_assertions",
 ]
 
 [[package]]
@@ -4867,6 +4868,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-trie",
  "sp-version",
+ "static_assertions",
  "substrate-wasm-builder",
 ]
 
@@ -8729,6 +8731,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-trie",
  "sp-version",
+ "static_assertions",
  "substrate-wasm-builder",
 ]
 

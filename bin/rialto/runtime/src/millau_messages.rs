@@ -291,13 +291,13 @@ impl MessagesParameter for RialtoToMillauMessagesParameter {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{AccountId, Call, ExistentialDeposit, Runtime, SystemCall, SystemConfig, VERSION};
+	use crate::{AccountId, Call, DbWeight, ExistentialDeposit, MillauGrandpaInstance, Runtime, SystemCall, SystemConfig, VERSION, WithMillauMessagesInstance};
 	use bp_message_dispatch::CallOrigin;
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		MessageKey,
 	};
-	use bp_runtime::{derive_account_id, messages::DispatchFeePayment, SourceAccount};
+	use bp_runtime::{derive_account_id, messages::DispatchFeePayment, Chain, SourceAccount};
 	use bridge_runtime_common::messages::target::{
 		FromBridgedChainEncodedMessageCall, FromBridgedChainMessagePayload,
 	};
@@ -376,5 +376,102 @@ mod tests {
 				initial_amount,
 			);
 		});
+	}
+
+	#[test]
+	fn ensure_rialto_message_lane_weights_are_correct() {
+		type Weights = pallet_bridge_messages::weights::MillauWeight<Runtime>;
+
+		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
+			bp_rialto::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_rialto::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT,
+			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+			bp_rialto::PAY_INBOUND_DISPATCH_FEE_WEIGHT,
+			DbWeight::get(),
+		);
+
+		let max_incoming_message_proof_size = bp_millau::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
+			messages::target::maximal_incoming_message_size(bp_rialto::Rialto::max_extrinsic_size()),
+		);
+		pallet_bridge_messages::ensure_able_to_receive_message::<Weights>(
+			bp_rialto::Rialto::max_extrinsic_size(),
+			bp_rialto::Rialto::max_extrinsic_weight(),
+			max_incoming_message_proof_size,
+			messages::target::maximal_incoming_message_dispatch_weight(
+				bp_rialto::Rialto::max_extrinsic_weight(),
+			),
+		);
+
+		let max_incoming_inbound_lane_data_proof_size =
+			bp_messages::InboundLaneData::<()>::encoded_size_hint(
+				bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+				bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as _,
+				bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as _,
+			)
+			.unwrap_or(u32::MAX);
+		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
+			bp_rialto::Rialto::max_extrinsic_size(),
+			bp_rialto::Rialto::max_extrinsic_weight(),
+			max_incoming_inbound_lane_data_proof_size,
+			bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+			DbWeight::get(),
+		);
+	}
+
+	#[test]
+	fn ensure_bridge_integrity() {
+		bridge_runtime_common::assert_chain_types!(Runtime, bp_rialto::Rialto);
+		bridge_runtime_common::assert_bridge_types!(
+			WithMillauMessageBridge,
+			bp_rialto::Rialto,
+			bp_millau::Millau
+		);
+		bridge_runtime_common::assert_bridge_grandpa_pallet_types!(
+			Runtime,
+			MillauGrandpaInstance,
+			bp_millau::Millau
+		);
+		bridge_runtime_common::assert_bridge_messages_pallet_types!(
+			Runtime,
+			WithMillauMessagesInstance,
+			WithMillauMessageBridge,
+			bp_rialto::AccountIdConverter
+		);
+
+		bridge_runtime_common::integrity::assert_chain_constants::<Runtime, bp_rialto::Rialto>(
+			bp_rialto::BlockLength::get(),
+			bp_rialto::BlockWeights::get(),
+		);
+		bridge_runtime_common::integrity::assert_bridge_grandpa_pallet_constants::<
+			Runtime,
+			MillauGrandpaInstance,
+		>();
+		bridge_runtime_common::integrity::assert_bridge_messages_pallet_constants::<
+			Runtime,
+			WithMillauMessagesInstance,
+		>(
+			bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+			bp_runtime::MILLAU_CHAIN_ID,
+		);
+		bridge_runtime_common::integrity::assert_bridge_pallet_names::<
+			WithMillauMessageBridge,
+			Runtime,
+			MillauGrandpaInstance,
+			WithMillauMessagesInstance,
+		>(
+			bp_rialto::WITH_RIALTO_MESSAGES_PALLET_NAME,
+			bp_millau::WITH_MILLAU_GRANDPA_PALLET_NAME,
+			bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME,
+		);
+
+		assert_eq!(
+			MillauToRialtoConversionRate::key().to_vec(),
+			bp_runtime::storage_parameter_key(
+				bp_rialto::MILLAU_TO_RIALTO_CONVERSION_RATE_PARAMETER_NAME
+			)
+			.0,
+		);
 	}
 }
