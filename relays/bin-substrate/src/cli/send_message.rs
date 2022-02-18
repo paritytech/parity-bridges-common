@@ -124,7 +124,11 @@ impl SendMessage {
 			let payload = {
 				let target_call_weight = prepare_call_dispatch_weight(
 					dispatch_weight,
-					|| Ok(ExplicitOrMaximal::Explicit(Target::get_dispatch_info(&target_call)?.weight)),
+					|| {
+						Ok(ExplicitOrMaximal::Explicit(
+							Target::get_dispatch_info(&target_call)?.weight,
+						))
+					},
 					compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
 				)?;
 				let source_sender_public: MultiSigner = source_sign.public().into();
@@ -255,7 +259,11 @@ fn prepare_call_dispatch_weight(
 	weight_from_pre_dispatch_call: impl Fn() -> anyhow::Result<ExplicitOrMaximal<Weight>>,
 	maximal_allowed_weight: Weight,
 ) -> anyhow::Result<Weight> {
-	match user_specified_dispatch_weight.clone().map(Ok).unwrap_or_else(weight_from_pre_dispatch_call)? {
+	match user_specified_dispatch_weight
+		.clone()
+		.map(Ok)
+		.unwrap_or_else(weight_from_pre_dispatch_call)?
+	{
 		ExplicitOrMaximal::Explicit(weight) => Ok(weight),
 		ExplicitOrMaximal::Maximal => Ok(maximal_allowed_weight),
 	}

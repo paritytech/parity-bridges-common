@@ -108,7 +108,9 @@ impl CliChain for Wococo {
 				);
 				let call = Target::encode_call(&call)?;
 				let dispatch_weight = dispatch_weight.map(Ok).unwrap_or_else(|| {
-					Err(anyhow::format_err!("Please specify dispatch weight of the encoded Rococo call"))
+					Err(anyhow::format_err!(
+						"Please specify dispatch weight of the encoded Rococo call"
+					))
 				})?;
 
 				Ok(send_message::message_payload(
