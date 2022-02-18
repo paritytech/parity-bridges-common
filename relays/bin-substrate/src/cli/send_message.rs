@@ -200,7 +200,7 @@ impl SendMessage {
 						signer: source_sign.clone(),
 						era: relay_substrate_client::TransactionEra::immortal(),
 						unsigned: UnsignedTransaction::new(send_message_call.clone(), 0),
-					})
+					})?
 					.encode(),
 				))
 				.await?;
@@ -213,7 +213,7 @@ impl SendMessage {
 						signer: source_sign.clone(),
 						era: relay_substrate_client::TransactionEra::immortal(),
 						unsigned: UnsignedTransaction::new(send_message_call, transaction_nonce),
-					})
+					})?
 					.encode();
 
 					log::info!(
@@ -241,7 +241,7 @@ impl SendMessage {
 						HexBytes::encode(&signed_source_call)
 					);
 
-					Bytes(signed_source_call)
+					Ok(Bytes(signed_source_call))
 				})
 				.await?;
 		});

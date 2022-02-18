@@ -18,6 +18,7 @@ use crate::{
 	cli::{bridge::FullBridge, AccountId, CliChain, HexBytes},
 	select_full_bridge,
 };
+use frame_support::weights::Weight;
 use structopt::StructOpt;
 use strum::VariantNames;
 
@@ -37,6 +38,12 @@ pub enum MessagePayload {
 		/// SS58 encoded Source account that will send the payload.
 		#[structopt(long)]
 		sender: AccountId,
+		/// Weight of the call.
+		///
+		/// It must be specified if the chain runtime is not bundled with the relay, or if
+		/// you want to override bundled weight.
+		#[structopt(long)]
+		weight: Option<Weight>,
 	},
 }
 
