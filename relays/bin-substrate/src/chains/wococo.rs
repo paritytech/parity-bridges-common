@@ -95,7 +95,7 @@ impl CliChain for Wococo {
 		match message {
 			encode_message::MessagePayload::Raw { data } => MessagePayload::decode(&mut &*data.0)
 				.map_err(|e| anyhow!("Failed to decode Wococo's MessagePayload: {:?}", e)),
-			encode_message::MessagePayload::Call { mut call, mut sender, weight } => {
+			encode_message::MessagePayload::Call { mut call, mut sender, dispatch_weight } => {
 				type Source = Wococo;
 				type Target = relay_rococo_client::Rococo;
 
@@ -107,13 +107,13 @@ impl CliChain for Wococo {
 					bridge::WOCOCO_TO_ROCOCO_INDEX,
 				);
 				let call = Target::encode_call(&call)?;
-				let weight = weight.map(Ok).unwrap_or_else(|| {
-					Err(anyhow::format_err!("Please specify weight of the encoded Rococo call"))
+				let dispatch_weight = dispatch_weight.map(Ok).unwrap_or_else(|| {
+					Err(anyhow::format_err!("Please specify dispatch weight of the encoded Rococo call"))
 				})?;
 
 				Ok(send_message::message_payload(
 					spec_version,
-					weight,
+					dispatch_weight,
 					origin,
 					&call,
 					DispatchFeePayment::AtSourceChain,

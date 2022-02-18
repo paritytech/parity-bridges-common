@@ -104,7 +104,7 @@ impl CliChain for Kusama {
 		match message {
 			encode_message::MessagePayload::Raw { data } => MessagePayload::decode(&mut &*data.0)
 				.map_err(|e| anyhow!("Failed to decode Kusama's MessagePayload: {:?}", e)),
-			encode_message::MessagePayload::Call { mut call, mut sender, weight } => {
+			encode_message::MessagePayload::Call { mut call, mut sender, dispatch_weight } => {
 				type Source = Kusama;
 				type Target = relay_polkadot_client::Polkadot;
 
@@ -116,13 +116,13 @@ impl CliChain for Kusama {
 					bridge::KUSAMA_TO_POLKADOT_INDEX,
 				);
 				let call = Target::encode_call(&call)?;
-				let weight = weight.map(Ok).unwrap_or_else(|| {
-					Err(anyhow::format_err!("Please specify weight of the encoded Polkadot call"))
+				let dispatch_weight = dispatch_weight.map(Ok).unwrap_or_else(|| {
+					Err(anyhow::format_err!("Please specify dispatch weight of the encoded Polkadot call"))
 				})?;
 
 				Ok(send_message::message_payload(
 					spec_version,
-					weight,
+					dispatch_weight,
 					origin,
 					&call,
 					DispatchFeePayment::AtSourceChain,

@@ -103,7 +103,7 @@ mod tests {
 			"call",
 			"--sender",
 			&alice,
-			"--weight",
+			"--dispatch-weight",
 			"42",
 			"remark",
 			"--remark-payload",
@@ -132,7 +132,7 @@ mod tests {
 						remark_payload: Some(HexBytes(vec![0x12, 0x34])),
 						remark_size: None,
 					},
-					weight: Some(42),
+					dispatch_weight: Some(42),
 				}
 			}
 		);

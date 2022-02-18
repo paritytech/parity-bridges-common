@@ -94,7 +94,7 @@ impl CliChain for Millau {
 		match message {
 			encode_message::MessagePayload::Raw { data } => MessagePayload::decode(&mut &*data.0)
 				.map_err(|e| anyhow!("Failed to decode Millau's MessagePayload: {:?}", e)),
-			encode_message::MessagePayload::Call { mut call, mut sender, weight } => {
+			encode_message::MessagePayload::Call { mut call, mut sender, dispatch_weight } => {
 				type Source = Millau;
 				type Target = relay_rialto_client::Rialto;
 
@@ -106,13 +106,13 @@ impl CliChain for Millau {
 					bridge::MILLAU_TO_RIALTO_INDEX,
 				);
 				let call = Target::encode_call(&call)?;
-				let weight = weight.map(Ok).unwrap_or_else(|| {
+				let dispatch_weight = dispatch_weight.map(Ok).unwrap_or_else(|| {
 					call.to_decoded().map(|call| call.get_dispatch_info().weight)
 				})?;
 
 				Ok(send_message::message_payload(
 					spec_version,
-					weight,
+					dispatch_weight,
 					origin,
 					&call,
 					DispatchFeePayment::AtSourceChain,
