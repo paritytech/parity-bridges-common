@@ -658,6 +658,7 @@ mod tests {
 			}),
 			strategy: BasicStrategy::new(),
 			relay_strategy: MixStrategy::new(RelayerMode::Altruistic),
+			latest_updated_confirm_nonce_at_source: None,
 		};
 
 		race_strategy.strategy.source_nonces_updated(
