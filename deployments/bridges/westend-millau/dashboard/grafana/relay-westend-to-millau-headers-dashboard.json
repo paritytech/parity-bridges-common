@@ -99,7 +99,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max(Westend_to_Millau_Sync_best_block_numbers{node=\"source\"}) - max(Westend_to_Millau_Sync_best_block_numbers{node=\"target\"})",
+          "expr": "max(Westend_to_Millau_Sync_best_source_block_number) - max(Westend_to_Millau_Sync_best_source_at_target_block_number)",
           "format": "table",
           "instant": false,
           "interval": "",
@@ -237,7 +237,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "max_over_time(Westend_to_Millau_Sync_best_block_numbers{node=\"source\"}[10m])-min_over_time(Westend_to_Millau_Sync_best_block_numbers{node=\"source\"}[10m])",
+          "expr": "max_over_time(Westend_to_Millau_Sync_best_source_block_numbers[10m])-min_over_time(Westend_to_Millau_Sync_best_source_block_number[10m])",
           "interval": "",
           "legendFormat": "Number of new Headers on Westend (Last 10 Mins)",
           "refId": "A"
@@ -341,13 +341,22 @@
       "pluginVersion": "7.1.3",
       "targets": [
         {
-          "expr": "Westend_to_Millau_Sync_best_block_numbers",
+          "expr": "Westend_to_Millau_Sync_best_source_block_number",
           "format": "time_series",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Best Known Header on {{node}} Node",
+          "legendFormat": "Best Known Westend Header at Westend",
           "refId": "A"
+        },
+        {
+          "expr": "Westend_to_Millau_Sync_best_source_at_target_block_number",
+          "format": "time_series",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "Best Known Westend Header at Millau",
+          "refId": "B"
         }
       ],
       "timeFrom": null,

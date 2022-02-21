@@ -31,7 +31,8 @@ use codec::Encode;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithGrandpa, Client, Error, HashOf,
-	HeaderOf, SignParam, SyncHeader, TransactionEra, TransactionSignScheme, UnsignedTransaction,
+	HeaderIdOf, HeaderOf, SignParam, SyncHeader, TransactionEra, TransactionSignScheme,
+	UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::{Bytes, Pair};
@@ -90,9 +91,7 @@ where
 	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TransactionSignScheme> as Pair>::Public>,
 	P::TransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
 {
-	async fn best_finalized_source_block_number(
-		&self,
-	) -> Result<BlockNumberOf<P::SourceChain>, Error> {
+	async fn best_finalized_source_block_id(&self) -> Result<HeaderIdOf<P::SourceChain>, Error> {
 		// we can't continue to relay finality if target node is out of sync, because
 		// it may have already received (some of) headers that we're going to relay
 		self.client.ensure_synced().await?;
@@ -105,8 +104,7 @@ where
 			BlockNumberOf<P::SourceChain>,
 		>(&self.client, P::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD)
 		.await?
-		.best_finalized_peer_at_best_self
-		.0)
+		.best_finalized_peer_at_best_self)
 	}
 
 	async fn submit_finality_proof(
