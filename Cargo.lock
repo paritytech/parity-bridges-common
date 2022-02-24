@@ -4740,6 +4740,7 @@ dependencies = [
  "async-trait",
  "bp-messages",
  "bp-runtime",
+ "finality-relay",
  "futures 0.3.19",
  "hex",
  "log",
