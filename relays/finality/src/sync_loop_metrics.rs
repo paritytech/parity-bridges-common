@@ -57,7 +57,7 @@ impl SyncLoopMetrics {
 	/// Returns current value of the using-same-fork flag.
 	#[cfg(test)]
 	pub(crate) fn is_using_same_fork(&self) -> bool {
-		self.using_same_fork.get() == 0
+		self.using_different_forks.get() == 0
 	}
 
 	/// Update best block number at source.

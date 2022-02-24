@@ -30,9 +30,8 @@ use bp_header_chain::{justification::GrandpaJustification, storage_keys::is_halt
 use codec::Encode;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithGrandpa, Client, Error, HashOf,
-	HeaderIdOf, HeaderOf, SignParam, SyncHeader, TransactionEra, TransactionSignScheme,
-	UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, Chain, ChainWithGrandpa, Client, Error, HeaderIdOf, HeaderOf,
+	SignParam, SyncHeader, TransactionEra, TransactionSignScheme, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::{Bytes, Pair};
@@ -98,11 +97,11 @@ where
 		// we can't relay finality if GRANDPA pallet at target chain is halted
 		self.ensure_pallet_active().await?;
 
-		Ok(crate::messages_source::read_client_state::<
-			P::TargetChain,
-			HashOf<P::SourceChain>,
-			BlockNumberOf<P::SourceChain>,
-		>(&self.client, P::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD)
+		Ok(crate::messages_source::read_client_state::<P::TargetChain, P::SourceChain>(
+			&self.client,
+			None,
+			P::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD,
+		)
 		.await?
 		.best_finalized_peer_at_best_self)
 	}

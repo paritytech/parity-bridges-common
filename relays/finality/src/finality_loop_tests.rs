@@ -257,7 +257,6 @@ fn run_sync_loop(
 
 #[test]
 fn finality_sync_loop_works() {
-	let _ = env_logger::try_init();
 	let client_data = run_sync_loop(|data| {
 		// header#7 has persistent finality proof, but it isn't mandatory => it isn't submitted,
 		// because header#8 has persistent finality proof && it is mandatory => it is submitted
