@@ -320,15 +320,16 @@ where
 	) -> Option<SourceHeaderIdOf<P>> {
 		let header_required_for_messages_delivery =
 			self.strategy.required_source_header_at_target(current_best);
-		let header_required_for_reward_confirmations_delivery =
-			self.latest_confirmed_nonces_at_source.back().map(|(id, _)| id.clone());
-		match (
-			header_required_for_messages_delivery,
-			header_required_for_reward_confirmations_delivery,
-		) {
-			(Some(id1), Some(id2)) => Some(if id1.0 > id2.0 { id1 } else { id2 }),
-			(a, b) => a.or(b),
-		}
+		header_required_for_messages_delivery
+//		let header_required_for_reward_confirmations_delivery =
+//			self.latest_confirmed_nonces_at_source.back().map(|(id, _)| id.clone());
+//		match (
+//			header_required_for_messages_delivery,
+//			header_required_for_reward_confirmations_delivery,
+//		) {
+//			(Some(id1), Some(id2)) => Some(if id1.0 > id2.0 { id1 } else { id2 }),
+//			(a, b) => a.or(b),
+//		}
 	}
 
 	fn best_at_source(&self) -> Option<MessageNonce> {
