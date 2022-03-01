@@ -18,7 +18,7 @@ use crate::cli::{
 	bridge::FullBridge,
 	encode_call::{self, CliEncodeCall},
 	estimate_fee::estimate_message_delivery_and_dispatch_fee,
-	Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
+	Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
 	SourceSigningParams, TargetConnectionParams, TargetSigningParams,
 };
 use bp_message_dispatch::{CallOrigin, MessagePayload};
