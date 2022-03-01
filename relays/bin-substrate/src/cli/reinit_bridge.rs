@@ -15,7 +15,10 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	chains::kusama_headers_to_polkadot::KusamaFinalityToPolkadot,
+	chains::{
+		kusama_headers_to_polkadot::KusamaFinalityToPolkadot,
+		polkadot_headers_to_kusama::PolkadotFinalityToKusama,
+	},
 	cli::{
 		swap_tokens::wait_until_transaction_is_finalized, SourceConnectionParams,
 		TargetConnectionParams, TargetSigningParams,
@@ -61,44 +64,66 @@ pub struct ReinitBridge {
 /// Bridge to initialize.
 pub enum ReinitBridgeName {
 	KusamaToPolkadot,
+	PolkadotToKusama,
 }
 
 macro_rules! select_bridge {
 	($bridge: expr, $generic: tt) => {
 		match $bridge {
 			ReinitBridgeName::KusamaToPolkadot => {
+				use relay_polkadot_client::runtime;
+
 				type Finality = KusamaFinalityToPolkadot;
+				type Call = runtime::Call;
 
-				fn prepare_submit_batch_call(
-					batch: HeadersAndProofs<Finality>,
-					is_last_batch: bool,
-				) -> relay_polkadot_client::runtime::Call {
-					use relay_polkadot_client::runtime;
+				fn submit_finality_proof_call(
+					header_and_proof: HeaderAndProof<Finality>,
+				) -> runtime::Call {
+					runtime::Call::BridgeKusamaGrandpa(
+						runtime::BridgeKusamaGrandpaCall::submit_finality_proof(
+							Box::new(header_and_proof.0.into_inner()),
+							header_and_proof.1,
+						),
+					)
+				}
 
-					let mut batch_calls = Vec::with_capacity(batch.len() + 2);
+				fn set_pallet_operation_mode_call(operational: bool) -> runtime::Call {
+					runtime::Call::BridgeKusamaGrandpa(
+						runtime::BridgeKusamaGrandpaCall::set_operational(operational),
+					)
+				}
 
-					// the first call is always resumes pallet operation
-					batch_calls.push(runtime::Call::BridgeKusamaGrandpa(
-						runtime::BridgeKusamaGrandpaCall::set_operational(true),
-					));
+				fn batch_all_call(calls: Vec<Call>) -> runtime::Call {
+					runtime::Call::Utility(runtime::UtilityCall::batch_all(calls))
+				}
 
-					for (header, proof) in batch {
-						batch_calls.push(runtime::Call::BridgeKusamaGrandpa(
-							runtime::BridgeKusamaGrandpaCall::submit_finality_proof(
-								Box::new(header.into_inner()),
-								proof,
-							),
-						))
-					}
+				$generic
+			},
+			ReinitBridgeName::PolkadotToKusama => {
+				use relay_kusama_client::runtime;
 
-					// if it isn't the last batch, we shall halt pallet
-					if !is_last_batch {
-						batch_calls.push(runtime::Call::BridgeKusamaGrandpa(
-							runtime::BridgeKusamaGrandpaCall::set_operational(false),
-						));
-					}
+				type Finality = PolkadotFinalityToKusama;
+				type Call = runtime::Call;
 
-					runtime::Call::Utility(runtime::UtilityCall::batch_all(batch_calls))
+				fn submit_finality_proof_call(
+					header_and_proof: HeaderAndProof<Finality>,
+				) -> runtime::Call {
+					runtime::Call::BridgePolkadotGrandpa(
+						runtime::BridgePolkadotGrandpaCall::submit_finality_proof(
+							Box::new(header_and_proof.0.into_inner()),
+							header_and_proof.1,
+						),
+					)
+				}
+
+				fn set_pallet_operation_mode_call(operational: bool) -> runtime::Call {
+					runtime::Call::BridgePolkadotGrandpa(
+						runtime::BridgePolkadotGrandpaCall::set_operational(operational),
+					)
+				}
+
+				fn batch_all_call(calls: Vec<Call>) -> runtime::Call {
+					runtime::Call::Utility(runtime::UtilityCall::batch_all(calls))
 				}
 
 				$generic
@@ -190,7 +215,6 @@ impl ReinitBridge {
 				let is_last_batch = i == last_batch_index;
 				let expected_number =
 					headers_batch.last().expect("all batches are non-empty").0.number();
-				let submit_batch_call = prepare_submit_batch_call(headers_batch, is_last_batch);
 				let transaction_params = transaction_params.clone();
 				log::info!(
 					target: "bridge",
@@ -199,6 +223,20 @@ impl ReinitBridge {
 					Target::NAME,
 					expected_number,
 				);
+
+				// prepare `batch_all` call
+				let mut batch_calls = Vec::with_capacity(headers_batch.len() + 2);
+				// the first call is always resumes pallet operation
+				batch_calls.push(set_pallet_operation_mode_call(true));
+				// followed by submit-finality-proofs calls
+				for header_and_proof in headers_batch {
+					batch_calls.push(submit_finality_proof_call(header_and_proof));
+				}
+				// if it isn't the last batch, we shall halt pallet again
+				if !is_last_batch {
+					batch_calls.push(set_pallet_operation_mode_call(false));
+				}
+				let submit_batch_call = batch_all_call(batch_calls);
 
 				let batch_transaction_events = target_client
 					.submit_and_watch_signed_extrinsic(
@@ -291,13 +329,12 @@ async fn ensure_pallet_operating_mode<P: SubstrateFinalitySyncPipeline>(
 	match (operational, finality_target.ensure_pallet_active().await) {
 		(true, Ok(())) => Ok(()),
 		(false, Err(SubstrateError::BridgePalletIsHalted)) => Ok(()),
-		_ => {
+		_ =>
 			return Err(anyhow::format_err!(
 				"Bridge GRANDPA pallet at {} is expected to be {}, but it isn't",
 				P::TargetChain::NAME,
 				if operational { "operational" } else { "halted" },
-			))
-		},
+			)),
 	}
 }
 
