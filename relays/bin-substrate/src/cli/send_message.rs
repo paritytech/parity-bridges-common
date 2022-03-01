@@ -304,6 +304,7 @@ pub(crate) fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::cli::CliChain;
 	use hex_literal::hex;
 
 	#[async_std::test]
