@@ -741,6 +741,7 @@ dependencies = [
  "frame-support",
  "smallvec",
  "sp-api",
+ "sp-runtime",
  "sp-std",
  "sp-version",
 ]
@@ -807,6 +808,7 @@ dependencies = [
  "frame-support",
  "smallvec",
  "sp-api",
+ "sp-runtime",
  "sp-std",
  "sp-version",
 ]
