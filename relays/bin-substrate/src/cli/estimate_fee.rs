@@ -118,7 +118,7 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
 		match (conversion_rate_override, Source::TOKEN_ID, Target::TOKEN_ID) {
 			(Some(ConversionRateOverride::Explicit(v)), _, _) => {
 				let conversion_rate_override = FixedU128::from_float(v);
-				log::info!(target: "bridge", "Conversion rate override: {:?}", conversion_rate_override.to_float());
+				log::info!(target: "bridge", "Conversion rate override: {:?} (explicit)", conversion_rate_override.to_float());
 				Some(conversion_rate_override)
 			},
 			(
@@ -129,7 +129,7 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
 				let conversion_rate_override = FixedU128::from_float(
 					target_to_source_conversion_rate(source_token_id, target_token_id).await?,
 				);
-				log::info!(target: "bridge", "Conversion rate override: {:?}", conversion_rate_override.to_float());
+				log::info!(target: "bridge", "Conversion rate override: {:?} (from metric)", conversion_rate_override.to_float());
 				Some(conversion_rate_override)
 			},
 			_ => None,
