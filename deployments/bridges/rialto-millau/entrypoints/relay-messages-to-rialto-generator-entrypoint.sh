@@ -117,10 +117,10 @@ do
 	fi
 
 	# every other hour we're sending a bunch of small messages
-	#if [ $SECONDS -ge $BUNCH_OF_MESSAGES_TIME ]; then
+	if [ $SECONDS -ge $BUNCH_OF_MESSAGES_TIME ]; then
 		BUNCH_OF_MESSAGES_TIME=$((SECONDS + 7200))
 
-		SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE --conversion-rate-override metric --origin Target remark`
+		SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE --conversion-rate-override metric --origin Target remark 2>&1`
 		echo $SEND_MESSAGE_OUTPUT
 		ACTUAL_CONVERSION_RATE_REGEX="Conversion rate override: ([0-9\.]+)"
 		if [[ $SEND_MESSAGE_OUTPUT =~ $ACTUAL_CONVERSION_RATE_REGEX ]]; then
