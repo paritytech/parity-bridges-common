@@ -23,10 +23,6 @@ rand_sleep() {
 	echo "Woke up at $NOW"
 }
 
-# give conversion rate updater some time to update Rialto->Millau conversion rate in Millau
-# (initially rate=1 and rational relayer won't deliver any messages if it'll be changed to larger value)
-sleep 120
-
 while true
 do
 	rand_sleep
