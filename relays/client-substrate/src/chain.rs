@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_messages::MessageNonce;
-use bp_runtime::{Chain as ChainBase, HashOf, TransactionEraOf};
+use bp_runtime::{Chain as ChainBase, EncodedOrDecodedCall, HashOf, TransactionEraOf};
 use codec::{Codec, Encode};
 use frame_support::weights::{Weight, WeightToFeePolynomial};
 use jsonrpsee_ws_client::types::{DeserializeOwned, Serialize};
@@ -64,6 +64,20 @@ pub trait Chain: ChainBase + Clone {
 	type WeightToFee: WeightToFeePolynomial<Balance = Self::Balance>;
 }
 
+/// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
+/// view.
+///
+/// Keep in mind that parachains are relying on relay chain GRANDPA, so they should not implement
+/// this trait.
+pub trait ChainWithGrandpa: Chain {
+	/// Name of the bridge GRANDPA pallet (used in `construct_runtime` macro call) that is deployed
+	/// at some other chain to bridge with this `ChainWithGrandpa`.
+	///
+	/// We assume that all chains that are bridging with this `ChainWithGrandpa` are using
+	/// the same name.
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
+}
+
 /// Substrate-based chain with messaging support from minimal relay-client point of view.
 pub trait ChainWithMessages: Chain {
 	/// Name of the bridge messages pallet (used in `construct_runtime` macro call) that is deployed
@@ -76,19 +90,7 @@ pub trait ChainWithMessages: Chain {
 	/// Name of the `To<ChainWithMessages>OutboundLaneApi::message_details` runtime API method.
 	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str;
-	/// Name of the `To<ChainWithMessages>OutboundLaneApi::latest_generated_nonce` runtime API
-	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
-	const TO_CHAIN_LATEST_GENERATED_NONCE_METHOD: &'static str;
-	/// Name of the `To<ChainWithMessages>OutboundLaneApi::latest_received_nonce` runtime API
-	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
-	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str;
 
-	/// Name of the `From<ChainWithMessages>InboundLaneApi::latest_received_nonce` runtime method.
-	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
-	const FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str;
-	/// Name of the `From<ChainWithMessages>InboundLaneApi::latest_confirmed_nonce` runtime method.
-	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
-	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str;
 	/// Name of the `From<ChainWithMessages>InboundLaneApi::unrewarded_relayers_state` runtime
 	/// method. The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str;
@@ -115,7 +117,7 @@ pub type WeightToFeeOf<C> = <C as Chain>::WeightToFee;
 /// Transaction status of the chain.
 pub type TransactionStatusOf<C> = TransactionStatus<HashOf<C>, HashOf<C>>;
 
-/// Substrate-based chain with `frame_system::Config::AccountData` set to
+/// Substrate-based chain with `AccountData` generic argument of `frame_system::AccountInfo` set to
 /// the `pallet_balances::AccountData<Balance>`.
 pub trait ChainWithBalances: Chain {
 	/// Return runtime storage key for getting `frame_system::AccountInfo` of given account.
@@ -139,7 +141,7 @@ pub trait BlockWithJustification<Header> {
 #[derive(Clone, Debug)]
 pub struct UnsignedTransaction<C: Chain> {
 	/// Runtime call of this transaction.
-	pub call: C::Call,
+	pub call: EncodedOrDecodedCall<C::Call>,
 	/// Transaction nonce.
 	pub nonce: C::Index,
 	/// Tip included into transaction.
@@ -148,7 +150,7 @@ pub struct UnsignedTransaction<C: Chain> {
 
 impl<C: Chain> UnsignedTransaction<C> {
 	/// Create new unsigned transaction with given call, nonce and zero tip.
-	pub fn new(call: C::Call, nonce: C::Index) -> Self {
+	pub fn new(call: EncodedOrDecodedCall<C::Call>, nonce: C::Index) -> Self {
 		Self { call, nonce, tip: Zero::zero() }
 	}
 
@@ -172,7 +174,7 @@ pub trait TransactionSignScheme {
 	type SignedTransaction: Clone + Debug + Codec + Send + 'static;
 
 	/// Create transaction for given runtime call, signed by given account.
-	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction
+	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, crate::Error>
 	where
 		Self: Sized;
 

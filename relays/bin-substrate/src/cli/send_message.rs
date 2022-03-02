@@ -18,8 +18,8 @@ use crate::cli::{
 	bridge::FullBridge,
 	encode_call::{self, CliEncodeCall},
 	estimate_fee::estimate_message_delivery_and_dispatch_fee,
-	Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
-	SourceSigningParams, TargetSigningParams,
+	Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
+	SourceSigningParams, TargetConnectionParams, TargetSigningParams,
 };
 use bp_message_dispatch::{CallOrigin, MessagePayload};
 use bp_runtime::Chain as _;
@@ -88,10 +88,16 @@ pub struct SendMessage {
 	/// `SourceAccount`.
 	#[structopt(long, possible_values = &Origins::variants(), default_value = "Source")]
 	origin: Origins,
+
+	// Normally we don't need to connect to the target chain to send message. But for testing
+	// we may want to use **actual** `spec_version` of the target chain when composing a message.
+	// Then we'll need to read version from the target chain node.
+	#[structopt(flatten)]
+	target: TargetConnectionParams,
 }
 
 impl SendMessage {
-	pub fn encode_payload(
+	pub async fn encode_payload(
 		&mut self,
 	) -> anyhow::Result<MessagePayload<AccountId32, MultiSigner, MultiSignature, Vec<u8>>> {
 		crate::select_full_bridge!(self.bridge, {
@@ -110,18 +116,23 @@ impl SendMessage {
 
 			encode_call::preprocess_call::<Source, Target>(message, bridge.bridge_instance_index());
 			let target_call = Target::encode_call(message)?;
+			let target_spec_version = self.target.selected_chain_spec_version::<Target>().await?;
 
 			let payload = {
 				let target_call_weight = prepare_call_dispatch_weight(
 					dispatch_weight,
-					ExplicitOrMaximal::Explicit(Target::get_dispatch_info(&target_call)?.weight),
+					|| {
+						Ok(ExplicitOrMaximal::Explicit(
+							Target::get_dispatch_info(&target_call)?.weight,
+						))
+					},
 					compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
-				);
+				)?;
 				let source_sender_public: MultiSigner = source_sign.public().into();
 				let source_account_id = source_sender_public.into_account();
 
 				message_payload(
-					Target::RUNTIME_VERSION.spec_version,
+					target_spec_version,
 					target_call_weight,
 					match origin {
 						Origins::Source => CallOrigin::SourceAccount(source_account_id),
@@ -130,7 +141,7 @@ impl SendMessage {
 							let digest = account_ownership_digest(
 								&target_call,
 								source_account_id.clone(),
-								Target::RUNTIME_VERSION.spec_version,
+								target_spec_version,
 							);
 							let target_origin_public = target_sign.public();
 							let digest_signature = target_sign.sign(&digest);
@@ -152,9 +163,9 @@ impl SendMessage {
 	/// Run the command.
 	pub async fn run(mut self) -> anyhow::Result<()> {
 		crate::select_full_bridge!(self.bridge, {
-			let payload = self.encode_payload()?;
+			let payload = self.encode_payload().await?;
 
-			let source_client = self.source.to_client::<Source>(SOURCE_RUNTIME_VERSION).await?;
+			let source_client = self.source.to_client::<Source>().await?;
 			let source_sign = self.source_sign.to_keypair::<Source>()?;
 
 			let lane = self.lane.clone().into();
@@ -190,7 +201,7 @@ impl SendMessage {
 						signer: source_sign.clone(),
 						era: relay_substrate_client::TransactionEra::immortal(),
 						unsigned: UnsignedTransaction::new(send_message_call.clone(), 0),
-					})
+					})?
 					.encode(),
 				))
 				.await?;
@@ -203,7 +214,7 @@ impl SendMessage {
 						signer: source_sign.clone(),
 						era: relay_substrate_client::TransactionEra::immortal(),
 						unsigned: UnsignedTransaction::new(send_message_call, transaction_nonce),
-					})
+					})?
 					.encode();
 
 					log::info!(
@@ -231,7 +242,7 @@ impl SendMessage {
 						HexBytes::encode(&signed_source_call)
 					);
 
-					Bytes(signed_source_call)
+					Ok(Bytes(signed_source_call))
 				})
 				.await?;
 		});
@@ -242,12 +253,16 @@ impl SendMessage {
 
 fn prepare_call_dispatch_weight(
 	user_specified_dispatch_weight: &Option<ExplicitOrMaximal<Weight>>,
-	weight_from_pre_dispatch_call: ExplicitOrMaximal<Weight>,
+	weight_from_pre_dispatch_call: impl Fn() -> anyhow::Result<ExplicitOrMaximal<Weight>>,
 	maximal_allowed_weight: Weight,
-) -> Weight {
-	match user_specified_dispatch_weight.clone().unwrap_or(weight_from_pre_dispatch_call) {
-		ExplicitOrMaximal::Explicit(weight) => weight,
-		ExplicitOrMaximal::Maximal => maximal_allowed_weight,
+) -> anyhow::Result<Weight> {
+	match user_specified_dispatch_weight
+		.clone()
+		.map(Ok)
+		.unwrap_or_else(weight_from_pre_dispatch_call)?
+	{
+		ExplicitOrMaximal::Explicit(weight) => Ok(weight),
+		ExplicitOrMaximal::Maximal => Ok(maximal_allowed_weight),
 	}
 }
 
@@ -289,10 +304,11 @@ pub(crate) fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::cli::CliChain;
 	use hex_literal::hex;
 
-	#[test]
-	fn send_remark_rialto_to_millau() {
+	#[async_std::test]
+	async fn send_remark_rialto_to_millau() {
 		// given
 		let mut send_message = SendMessage::from_iter(vec![
 			"send-message",
@@ -307,14 +323,14 @@ mod tests {
 		]);
 
 		// when
-		let payload = send_message.encode_payload().unwrap();
+		let payload = send_message.encode_payload().await.unwrap();
 
 		// then
 		assert_eq!(
 			payload,
 			MessagePayload {
 				spec_version: relay_millau_client::Millau::RUNTIME_VERSION.spec_version,
-				weight: 576000,
+				weight: 0,
 				origin: CallOrigin::SourceAccount(
 					sp_keyring::AccountKeyring::Alice.to_account_id()
 				),
@@ -324,8 +340,8 @@ mod tests {
 		);
 	}
 
-	#[test]
-	fn send_remark_millau_to_rialto() {
+	#[async_std::test]
+	async fn send_remark_millau_to_rialto() {
 		// given
 		let mut send_message = SendMessage::from_iter(vec![
 			"send-message",
@@ -344,7 +360,7 @@ mod tests {
 		]);
 
 		// when
-		let payload = send_message.encode_payload().unwrap();
+		let payload = send_message.encode_payload().await.unwrap();
 
 		// then
 		// Since signatures are randomized we extract it from here and only check the rest.
@@ -356,7 +372,7 @@ mod tests {
 			payload,
 			MessagePayload {
 				spec_version: relay_millau_client::Millau::RUNTIME_VERSION.spec_version,
-				weight: 576000,
+				weight: 0,
 				origin: CallOrigin::TargetAccount(
 					sp_keyring::AccountKeyring::Alice.to_account_id(),
 					sp_keyring::AccountKeyring::Bob.into(),
@@ -388,8 +404,8 @@ mod tests {
 		assert!(send_message.is_ok());
 	}
 
-	#[test]
-	fn accepts_non_default_dispatch_fee_payment() {
+	#[async_std::test]
+	async fn accepts_non_default_dispatch_fee_payment() {
 		// given
 		let mut send_message = SendMessage::from_iter(vec![
 			"send-message",
@@ -404,7 +420,7 @@ mod tests {
 		]);
 
 		// when
-		let payload = send_message.encode_payload().unwrap();
+		let payload = send_message.encode_payload().await.unwrap();
 
 		// then
 		assert_eq!(

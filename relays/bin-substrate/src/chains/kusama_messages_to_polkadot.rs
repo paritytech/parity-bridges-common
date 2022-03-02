@@ -48,6 +48,16 @@ impl SubstrateMessageLane for KusamaMessagesToPolkadot {
 	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
 		Some(bp_kusama::POLKADOT_TO_KUSAMA_CONVERSION_RATE_PARAMETER_NAME);
 
+	const SOURCE_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> =
+		Some(bp_polkadot::KUSAMA_FEE_MULTIPLIER_PARAMETER_NAME);
+	const TARGET_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> =
+		Some(bp_kusama::POLKADOT_FEE_MULTIPLIER_PARAMETER_NAME);
+
+	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> =
+		Some(bp_kusama::TRANSACTION_PAYMENT_PALLET_NAME);
+	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> =
+		Some(bp_polkadot::TRANSACTION_PAYMENT_PALLET_NAME);
+
 	type SourceChain = Kusama;
 	type TargetChain = Polkadot;
 
@@ -72,7 +82,7 @@ pub(crate) async fn update_polkadot_to_kusama_conversion_rate(
 	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
 	client
 		.submit_signed_extrinsic(signer_id, move |_, transaction_nonce| {
-			Bytes(
+			Ok(Bytes(
 				Kusama::sign_transaction(SignParam {
 					spec_version,
 					transaction_version,
@@ -86,12 +96,12 @@ pub(crate) async fn update_polkadot_to_kusama_conversion_rate(
 									sp_runtime::FixedU128::from_float(updated_rate),
 								)
 							)
-						),
+						).into(),
 						transaction_nonce,
 					),
-				})
+				})?
 				.encode(),
-			)
+			))
 		})
 		.await
 		.map(drop)

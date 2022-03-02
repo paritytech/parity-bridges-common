@@ -16,15 +16,21 @@
 
 //! Kusama-to-Polkadot headers sync entrypoint.
 
-use sp_core::Pair;
+use async_trait::async_trait;
+use relay_polkadot_client::Polkadot;
 use substrate_relay_helper::{finality_pipeline::SubstrateFinalitySyncPipeline, TransactionParams};
 
 /// Maximal saturating difference between `balance(now)` and `balance(now-24h)` to treat
 /// relay as gone wild.
 ///
 /// Actual value, returned by `maximal_balance_decrease_per_day_is_sane` test is approximately 21
-/// DOT, but let's round up to 30 DOT here.
-pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_polkadot::Balance = 30_000_000_000;
+/// DOT, and initial value of this constant was rounded up to 30 DOT. But for actual Kusama <>
+/// Polkadot deployment we'll be using the same account for delivering finality (free for mandatory
+/// headers) and messages. It means that we can't predict maximal loss. But to protect funds against
+/// relay/deployment issues, let's limit it so something that is much larger than this estimation -
+/// e.g. to 100 DOT.
+// TODO: https://github.com/paritytech/parity-bridges-common/issues/1307
+pub(crate) const MAXIMAL_BALANCE_DECREASE_PER_DAY: bp_polkadot::Balance = 100 * 10_000_000_000;
 
 /// Description of Kusama -> Polkadot finalized headers bridge.
 #[derive(Clone, Debug)]
@@ -36,26 +42,26 @@ substrate_relay_helper::generate_mocked_submit_finality_proof_call_builder!(
 	relay_polkadot_client::runtime::BridgeKusamaGrandpaCall::submit_finality_proof
 );
 
+#[async_trait]
 impl SubstrateFinalitySyncPipeline for KusamaFinalityToPolkadot {
 	type SourceChain = relay_kusama_client::Kusama;
-	type TargetChain = relay_polkadot_client::Polkadot;
+	type TargetChain = Polkadot;
 
 	type SubmitFinalityProofCallBuilder = KusamaFinalityToPolkadotCallBuilder;
-	type TransactionSignScheme = relay_polkadot_client::Polkadot;
+	type TransactionSignScheme = Polkadot;
 
-	fn start_relay_guards(
-		target_client: &relay_substrate_client::Client<relay_polkadot_client::Polkadot>,
+	async fn start_relay_guards(
+		target_client: &relay_substrate_client::Client<Polkadot>,
 		transaction_params: &TransactionParams<sp_core::sr25519::Pair>,
-	) {
-		relay_substrate_client::guard::abort_on_spec_version_change(
-			target_client.clone(),
-			bp_polkadot::VERSION.spec_version,
-		);
-		relay_substrate_client::guard::abort_when_account_balance_decreased(
-			target_client.clone(),
-			transaction_params.signer.public().into(),
+		enable_version_guard: bool,
+	) -> relay_substrate_client::Result<()> {
+		substrate_relay_helper::finality_guards::start::<Polkadot, Polkadot>(
+			target_client,
+			transaction_params,
+			enable_version_guard,
 			MAXIMAL_BALANCE_DECREASE_PER_DAY,
-		);
+		)
+		.await
 	}
 }
 
@@ -83,7 +89,7 @@ pub(crate) mod tests {
 		// differ from the `DbWeight` of Rialto runtime. But now (and most probably forever) it is
 		// the same.
 		type GrandpaPalletWeights =
-			pallet_bridge_grandpa::weights::RialtoWeight<rialto_runtime::Runtime>;
+			pallet_bridge_grandpa::weights::MillauWeight<rialto_runtime::Runtime>;
 
 		// The following formula shall not be treated as super-accurate - guard is to protect from
 		// mad relays, not to protect from over-average loses.

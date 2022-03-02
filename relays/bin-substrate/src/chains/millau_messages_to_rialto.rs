@@ -38,6 +38,11 @@ impl SubstrateMessageLane for MillauMessagesToRialto {
 	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
 		Some(bp_millau::RIALTO_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME);
 
+	const SOURCE_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> = None;
+	const TARGET_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> = None;
+	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> = None;
+	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> = None;
+
 	type SourceChain = Millau;
 	type TargetChain = Rialto;
 
@@ -69,7 +74,7 @@ pub(crate) async fn update_rialto_to_millau_conversion_rate(
 	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
 	client
 		.submit_signed_extrinsic(signer_id, move |_, transaction_nonce| {
-			Bytes(
+			Ok(Bytes(
 				Millau::sign_transaction(SignParam {
 					spec_version,
 					transaction_version,
@@ -77,17 +82,16 @@ pub(crate) async fn update_rialto_to_millau_conversion_rate(
 					signer,
 					era: relay_substrate_client::TransactionEra::immortal(),
 					unsigned: UnsignedTransaction::new(
-						millau_runtime::MessagesCall::update_pallet_parameter {
+						millau_runtime::Call::from(millau_runtime::MessagesCall::update_pallet_parameter {
 							parameter: millau_runtime::rialto_messages::MillauToRialtoMessagesParameter::RialtoToMillauConversionRate(
 								sp_runtime::FixedU128::from_float(updated_rate),
 							),
-						}
-							.into(),
+						}).into(),
 						transaction_nonce,
 					),
-				})
+				})?
 				.encode(),
-			)
+			))
 		})
 		.await
 		.map(drop)

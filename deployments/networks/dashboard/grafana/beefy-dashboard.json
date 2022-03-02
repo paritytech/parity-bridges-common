@@ -23,47 +23,24 @@
         "conditions": [
           {
             "evaluator": {
-              "params": [
-                1
-              ],
-              "type": "lt"
+            "params": [
+              1
+            ],
+            "type": "lt"
             },
             "operator": {
-              "type": "and"
+            "type": "and"
             },
             "query": {
-              "params": [
-                "C",
-                "5m",
-                "now"
-              ]
+            "params": [
+              "C",
+              "5m",
+              "now"
+            ]
             },
             "reducer": {
-              "params": [],
-              "type": "max"
-            },
-            "type": "query"
-          },
-          {
-            "evaluator": {
-              "params": [
-                1
-              ],
-              "type": "lt"
-            },
-            "operator": {
-              "type": "or"
-            },
-            "query": {
-              "params": [
-                "D",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "max"
+            "params": [],
+            "type": "max"
             },
             "type": "query"
           }
@@ -378,29 +355,6 @@
       "alert": {
         "alertRuleTags": {},
         "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                0
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "max"
-            },
-            "type": "query"
-          },
           {
             "evaluator": {
               "params": [

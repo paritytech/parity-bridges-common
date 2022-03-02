@@ -101,11 +101,6 @@ macro_rules! select_bridge {
 				const SOURCE_SPEC_VERSION: u32 = millau_runtime::VERSION.spec_version;
 				const TARGET_SPEC_VERSION: u32 = rialto_runtime::VERSION.spec_version;
 
-				const SOURCE_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
-					Some(millau_runtime::VERSION);
-				const TARGET_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
-					Some(rialto_runtime::VERSION);
-
 				type FromSwapToThisAccountIdConverter = bp_rialto::AccountIdConverter;
 
 				use bp_millau::{
@@ -134,9 +129,9 @@ impl SwapTokens {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.bridge, {
-			let source_client = self.source.to_client::<Source>(SOURCE_RUNTIME_VERSION).await?;
+			let source_client = self.source.to_client::<Source>().await?;
 			let source_sign = self.source_sign.to_keypair::<Target>()?;
-			let target_client = self.target.to_client::<Target>(TARGET_RUNTIME_VERSION).await?;
+			let target_client = self.target.to_client::<Target>().await?;
 			let target_sign = self.target_sign.to_keypair::<Target>()?;
 
 			// names of variables in this function are matching names used by the
@@ -249,7 +244,7 @@ impl SwapTokens {
 					.submit_and_watch_signed_extrinsic(
 						accounts.source_account_at_this_chain.clone(),
 						move |_, transaction_nonce| {
-							Bytes(
+							Ok(Bytes(
 								Source::sign_transaction(SignParam {
 									spec_version,
 									transaction_version,
@@ -257,12 +252,12 @@ impl SwapTokens {
 									signer: create_swap_signer,
 									era: relay_substrate_client::TransactionEra::immortal(),
 									unsigned: UnsignedTransaction::new(
-										create_swap_call,
+										create_swap_call.into(),
 										transaction_nonce,
 									),
-								})
+								})?
 								.encode(),
-							)
+							))
 						},
 					)
 					.await?,
@@ -394,7 +389,7 @@ impl SwapTokens {
 						.submit_and_watch_signed_extrinsic(
 							accounts.target_account_at_bridged_chain.clone(),
 							move |_, transaction_nonce| {
-								Bytes(
+								Ok(Bytes(
 									Target::sign_transaction(SignParam {
 										spec_version,
 										transaction_version,
@@ -402,12 +397,12 @@ impl SwapTokens {
 										signer: target_sign,
 										era: relay_substrate_client::TransactionEra::immortal(),
 										unsigned: UnsignedTransaction::new(
-											send_message_call,
+											send_message_call.into(),
 											transaction_nonce,
 										),
-									})
+									})?
 									.encode(),
-								)
+								))
 							},
 						)
 						.await?,
@@ -438,7 +433,7 @@ impl SwapTokens {
 						.submit_and_watch_signed_extrinsic(
 							accounts.source_account_at_this_chain.clone(),
 							move |_, transaction_nonce| {
-								Bytes(
+								Ok(Bytes(
 									Source::sign_transaction(SignParam {
 										spec_version,
 										transaction_version,
@@ -446,12 +441,12 @@ impl SwapTokens {
 										signer: source_sign,
 										era: relay_substrate_client::TransactionEra::immortal(),
 										unsigned: UnsignedTransaction::new(
-											cancel_swap_call,
+											cancel_swap_call.into(),
 											transaction_nonce,
 										),
-									})
+									})?
 									.encode(),
-								)
+								))
 							},
 						)
 						.await?,

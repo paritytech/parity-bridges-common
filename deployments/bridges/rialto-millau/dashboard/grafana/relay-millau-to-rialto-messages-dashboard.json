@@ -64,11 +64,18 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_best_block_numbers{type=~\"target|target_at_source\"}, \"type\", \"At Rialto\", \"type\", \"target\"), \"type\", \"At Millau\", \"type\", \"target_at_source\")",
+          "expr": "Millau_to_Rialto_MessageLane_00000000_best_target_block_number",
           "instant": false,
           "interval": "",
-          "legendFormat": "{{type}}",
+          "legendFormat": "At Rialto",
           "refId": "A"
+        },
+        {
+          "expr": "Millau_to_Rialto_MessageLane_00000000_best_target_at_source_block_number",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "At Millau",
+          "refId": "B"
         }
       ],
       "thresholds": [],
@@ -158,10 +165,16 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_best_block_numbers{type=~\"source|source_at_target\"}, \"type\", \"At Millau\", \"type\", \"source\"), \"type\", \"At Rialto\", \"type\", \"source_at_target\")",
+          "expr": "Millau_to_Rialto_MessageLane_00000000_best_source_block_number",
           "interval": "",
-          "legendFormat": "{{type}}",
+          "legendFormat": "At Millau",
           "refId": "A"
+        },
+        {
+          "expr": "Millau_to_Rialto_MessageLane_00000000_best_source_at_target_block_number",
+          "interval": "",
+          "legendFormat": "At Rialto",
+          "refId": "B"
         }
       ],
       "thresholds": [],

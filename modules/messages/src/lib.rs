@@ -209,6 +209,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::call]
@@ -764,26 +765,6 @@ pub mod pallet {
 			OutboundMessages::<T, I>::get(MessageKey { lane_id: lane, nonce })
 		}
 
-		/// Get nonce of the latest generated message at given outbound lane.
-		pub fn outbound_latest_generated_nonce(lane: LaneId) -> MessageNonce {
-			OutboundLanes::<T, I>::get(&lane).latest_generated_nonce
-		}
-
-		/// Get nonce of the latest confirmed message at given outbound lane.
-		pub fn outbound_latest_received_nonce(lane: LaneId) -> MessageNonce {
-			OutboundLanes::<T, I>::get(&lane).latest_received_nonce
-		}
-
-		/// Get nonce of the latest received message at given inbound lane.
-		pub fn inbound_latest_received_nonce(lane: LaneId) -> MessageNonce {
-			InboundLanes::<T, I>::get(&lane).last_delivered_nonce()
-		}
-
-		/// Get nonce of the latest confirmed message at given inbound lane.
-		pub fn inbound_latest_confirmed_nonce(lane: LaneId) -> MessageNonce {
-			InboundLanes::<T, I>::get(&lane).last_confirmed_nonce
-		}
-
 		/// Get state of unrewarded relayers set.
 		pub fn inbound_unrewarded_relayers_state(
 			lane: bp_messages::LaneId,
@@ -1133,7 +1114,11 @@ mod tests {
 		REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
-	use frame_support::{assert_noop, assert_ok, storage::generator::StorageMap, weights::Weight};
+	use frame_support::{
+		assert_noop, assert_ok,
+		storage::generator::{StorageMap, StorageValue},
+		weights::Weight,
+	};
 	use frame_system::{EventRecord, Pallet as System, Phase};
 	use sp_runtime::DispatchError;
 
@@ -2132,6 +2117,7 @@ mod tests {
 
 	#[test]
 	#[should_panic]
+	#[cfg(debug_assertions)]
 	fn receive_messages_panics_in_debug_mode_if_callback_is_wrong() {
 		run_test(|| {
 			TestOnDeliveryConfirmed1::set_consumed_weight_per_message(
@@ -2264,6 +2250,7 @@ mod tests {
 
 	#[test]
 	#[should_panic]
+	#[cfg(debug_assertions)]
 	fn message_accepted_panics_in_debug_mode_if_callback_is_wrong() {
 		run_test(|| {
 			TestOnMessageAccepted::set_consumed_weight_per_message(
@@ -2296,6 +2283,11 @@ mod tests {
 
 	#[test]
 	fn storage_keys_computed_properly() {
+		assert_eq!(
+			PalletOperatingMode::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_messages::storage_keys::operating_mode_key("Messages").0,
+		);
+
 		assert_eq!(
 			OutboundMessages::<TestRuntime>::storage_map_final_key(MessageKey {
 				lane_id: TEST_LANE_ID,

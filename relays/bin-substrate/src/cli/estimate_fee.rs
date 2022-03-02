@@ -48,7 +48,7 @@ impl EstimateFee {
 		let Self { source, bridge, lane, payload } = self;
 
 		select_full_bridge!(bridge, {
-			let source_client = source.to_client::<Source>(SOURCE_RUNTIME_VERSION).await?;
+			let source_client = source.to_client::<Source>().await?;
 			let lane = lane.into();
 			let payload =
 				Source::encode_message(payload).map_err(|e| anyhow::format_err!("{:?}", e))?;
@@ -157,6 +157,8 @@ mod tests {
 			"call",
 			"--sender",
 			&alice,
+			"--dispatch-weight",
+			"42",
 			"remark",
 			"--remark-payload",
 			"1234",
@@ -183,7 +185,8 @@ mod tests {
 					call: encode_call::Call::Remark {
 						remark_payload: Some(HexBytes(vec![0x12, 0x34])),
 						remark_size: None,
-					}
+					},
+					dispatch_weight: Some(42),
 				}
 			}
 		);

@@ -373,7 +373,7 @@ impl<C: Chain> Client<C> {
 	pub async fn submit_signed_extrinsic(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Bytes + Send + 'static,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<Bytes> + Send + 'static,
 	) -> Result<C::Hash> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
@@ -390,7 +390,7 @@ impl<C: Chain> Client<C> {
 		};
 
 		self.jsonrpsee_execute(move |client| async move {
-			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce);
+			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
 			let tx_hash = Substrate::<C>::author_submit_extrinsic(&*client, extrinsic).await?;
 			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 			Ok(tx_hash)
@@ -403,7 +403,7 @@ impl<C: Chain> Client<C> {
 	pub async fn submit_and_watch_signed_extrinsic(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Bytes + Send + 'static,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<Bytes> + Send + 'static,
 	) -> Result<Subscription<TransactionStatusOf<C>>> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
@@ -411,7 +411,7 @@ impl<C: Chain> Client<C> {
 		let best_header_id = HeaderId(*best_header.number(), best_header.hash());
 		let subscription = self
 			.jsonrpsee_execute(move |client| async move {
-				let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce);
+				let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
 				let tx_hash = C::Hasher::hash(&extrinsic.0);
 				let subscription = client
 					.subscribe(
@@ -537,6 +537,15 @@ impl<C: Chain> Client<C> {
 				.await
 				.map(|proof| StorageProof::new(proof.proof.into_iter().map(|b| b.0).collect()))
 				.map_err(Into::into)
+		})
+		.await
+	}
+
+	/// Return `tokenDecimals` property from the set of chain properties.
+	pub async fn token_decimals(&self) -> Result<Option<u64>> {
+		self.jsonrpsee_execute(move |client| async move {
+			let system_properties = Substrate::<C>::system_properties(&*client).await?;
+			Ok(system_properties.get("tokenDecimals").and_then(|v| v.as_u64()))
 		})
 		.await
 	}
