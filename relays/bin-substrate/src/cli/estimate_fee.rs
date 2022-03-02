@@ -114,26 +114,25 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
 	// lane. So we MUST use the larger of two fees - one computed with stored fee and the one
 	// computed with actual fee.
 
-	let conversion_rate_override =
-		match (conversion_rate_override, Source::TOKEN_ID, Target::TOKEN_ID) {
-			(Some(ConversionRateOverride::Explicit(v)), _, _) => {
-				let conversion_rate_override = FixedU128::from_float(v);
-				log::info!(target: "bridge", "Conversion rate override: {:?} (explicit)", conversion_rate_override.to_float());
-				Some(conversion_rate_override)
-			},
-			(
-				Some(ConversionRateOverride::Metric),
-				Some(source_token_id),
-				Some(target_token_id),
-			) => {
-				let conversion_rate_override = FixedU128::from_float(
-					target_to_source_conversion_rate(source_token_id, target_token_id).await?,
-				);
-				log::info!(target: "bridge", "Conversion rate override: {:?} (from metric)", conversion_rate_override.to_float());
-				Some(conversion_rate_override)
-			},
-			_ => None,
-		};
+	let conversion_rate_override = match (
+		conversion_rate_override,
+		Source::TOKEN_ID,
+		Target::TOKEN_ID,
+	) {
+		(Some(ConversionRateOverride::Explicit(v)), _, _) => {
+			let conversion_rate_override = FixedU128::from_float(v);
+			log::info!(target: "bridge", "Conversion rate override: {:?} (explicit)", conversion_rate_override.to_float());
+			Some(conversion_rate_override)
+		},
+		(Some(ConversionRateOverride::Metric), Some(source_token_id), Some(target_token_id)) => {
+			let conversion_rate_override = FixedU128::from_float(
+				target_to_source_conversion_rate(source_token_id, target_token_id).await?,
+			);
+			log::info!(target: "bridge", "Conversion rate override: {:?} (from metric)", conversion_rate_override.to_float());
+			Some(conversion_rate_override)
+		},
+		_ => None,
+	};
 
 	Ok(std::cmp::max(
 		do_estimate_message_delivery_and_dispatch_fee(
