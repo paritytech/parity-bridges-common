@@ -122,7 +122,7 @@ do
 
 		SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE --conversion-rate-override metric --origin Target remark 2>&1`
 		echo $SEND_MESSAGE_OUTPUT
-		ACTUAL_CONVERSION_RATE_REGEX="Conversion rate override: ([0-9\.]+)"
+		ACTUAL_CONVERSION_RATE_REGEX="conversion rate override: ([0-9\.]+)"
 		if [[ $SEND_MESSAGE_OUTPUT =~ $ACTUAL_CONVERSION_RATE_REGEX ]]; then
 			ACTUAL_CONVERSION_RATE=${BASH_REMATCH[1]}
 		else
