@@ -172,7 +172,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "kusama_to_base_conversion_rate{instance='relay-millau-rialto:9616'} / polkadot_to_base_conversion_rate{instance='relay-millau-rialto:9616'}",
+          "expr": "polkadot_to_base_conversion_rate{instance='relay-millau-rialto:9616'} / kusama_to_base_conversion_rate{instance='relay-millau-rialto:9616'}",
           "interval": "",
           "legendFormat": "Outside of runtime (actually Polkadot -> Kusama)",
           "refId": "A"
@@ -384,7 +384,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "polkadot_to_base_conversion_rate{instance='relay-millau-rialto:9616'} / kusama_to_base_conversion_rate{instance='relay-millau-rialto:9616'}",
+          "expr": "kusama_to_base_conversion_rate{instance='relay-millau-rialto:9616'} / polkadot_to_base_conversion_rate{instance='relay-millau-rialto:9616'}",
           "interval": "",
           "legendFormat": "Outside of runtime (actually Kusama -> Polkadot)",
           "refId": "A"
