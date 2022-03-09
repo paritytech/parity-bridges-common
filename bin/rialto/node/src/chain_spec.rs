@@ -30,7 +30,8 @@ use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+pub type ChainSpec =
+	sc_service::GenericChainSpec<GenesisConfig, polkadot_service::chain_spec::Extensions>;
 
 /// The chain specification option. This is expected to come in from the CLI and
 /// is little more than one of a number of alternatives which can easily be converted
@@ -103,8 +104,9 @@ impl Alternative {
 				vec![],
 				None,
 				None,
-				properties,
 				None,
+				properties,
+				Default::default(),
 			),
 			Alternative::LocalTestnet => ChainSpec::from_genesis(
 				"Rialto Local",
@@ -127,8 +129,9 @@ impl Alternative {
 				vec![],
 				None,
 				None,
-				properties,
 				None,
+				properties,
+				Default::default(),
 			),
 		}
 	}
@@ -221,7 +224,7 @@ fn testnet_genesis(
 		},
 		beefy: BeefyConfig { authorities: Vec::new() },
 		grandpa: GrandpaConfig { authorities: Vec::new() },
-		sudo: SudoConfig { key: root_key },
+		sudo: SudoConfig { key: Some(root_key) },
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
@@ -247,8 +250,8 @@ fn testnet_genesis(
 		// (see /node/service/src/chain_spec.rs:default_parachains_host_configuration)
 		configuration: ConfigurationConfig {
 			config: polkadot_runtime_parachains::configuration::HostConfiguration {
-				validation_upgrade_frequency: 1u32,
-				validation_upgrade_delay: 1,
+				validation_upgrade_cooldown: 2u32,
+				validation_upgrade_delay: 2,
 				code_retention_period: 1200,
 				max_code_size: polkadot_primitives::v1::MAX_CODE_SIZE,
 				max_pov_size: polkadot_primitives::v1::MAX_POV_SIZE,
@@ -258,13 +261,8 @@ fn testnet_genesis(
 				thread_availability_period: 4,
 				max_upward_queue_count: 8,
 				max_upward_queue_size: 1024 * 1024,
-				max_downward_message_size: 1024,
-				// this is approximatelly 4ms.
-				//
-				// Same as `4 * frame_support::weights::WEIGHT_PER_MILLIS`. We don't bother with
-				// an import since that's a made up number and should be replaced with a constant
-				// obtained by benchmarking anyway.
-				ump_service_total_weight: 4 * 1_000_000_000,
+				max_downward_message_size: 1024 * 1024,
+				ump_service_total_weight: 100_000_000_000,
 				max_upward_message_size: 1024 * 1024,
 				max_upward_message_num_per_candidate: 5,
 				hrmp_sender_deposit: 0,
@@ -283,6 +281,7 @@ fn testnet_genesis(
 				needed_approvals: 2,
 				relay_vrf_modulo_samples: 2,
 				zeroth_delay_tranche_width: 0,
+				minimum_validation_upgrade_delay: 5,
 				..Default::default()
 			},
 		},

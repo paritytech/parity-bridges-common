@@ -209,6 +209,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::call]
@@ -764,26 +765,6 @@ pub mod pallet {
 			OutboundMessages::<T, I>::get(MessageKey { lane_id: lane, nonce })
 		}
 
-		/// Get nonce of the latest generated message at given outbound lane.
-		pub fn outbound_latest_generated_nonce(lane: LaneId) -> MessageNonce {
-			OutboundLanes::<T, I>::get(&lane).latest_generated_nonce
-		}
-
-		/// Get nonce of the latest confirmed message at given outbound lane.
-		pub fn outbound_latest_received_nonce(lane: LaneId) -> MessageNonce {
-			OutboundLanes::<T, I>::get(&lane).latest_received_nonce
-		}
-
-		/// Get nonce of the latest received message at given inbound lane.
-		pub fn inbound_latest_received_nonce(lane: LaneId) -> MessageNonce {
-			InboundLanes::<T, I>::get(&lane).last_delivered_nonce()
-		}
-
-		/// Get nonce of the latest confirmed message at given inbound lane.
-		pub fn inbound_latest_confirmed_nonce(lane: LaneId) -> MessageNonce {
-			InboundLanes::<T, I>::get(&lane).last_confirmed_nonce
-		}
-
 		/// Get state of unrewarded relayers set.
 		pub fn inbound_unrewarded_relayers_state(
 			lane: bp_messages::LaneId,
@@ -798,32 +779,6 @@ pub mod pallet {
 				total_messages: total_unrewarded_messages(&relayers).unwrap_or(MessageNonce::MAX),
 			}
 		}
-	}
-}
-
-/// Getting storage keys for messages and lanes states. These keys are normally used when building
-/// messages and lanes states proofs.
-pub mod storage_keys {
-	use super::*;
-	use sp_core::storage::StorageKey;
-
-	/// Storage key of the outbound message in the runtime storage.
-	pub fn message_key(pallet_prefix: &str, lane: &LaneId, nonce: MessageNonce) -> StorageKey {
-		bp_runtime::storage_map_final_key_blake2_128concat(
-			pallet_prefix,
-			"OutboundMessages",
-			&MessageKey { lane_id: *lane, nonce }.encode(),
-		)
-	}
-
-	/// Storage key of the outbound message lane state in the runtime storage.
-	pub fn outbound_lane_data_key(pallet_prefix: &str, lane: &LaneId) -> StorageKey {
-		bp_runtime::storage_map_final_key_blake2_128concat(pallet_prefix, "OutboundLanes", lane)
-	}
-
-	/// Storage key of the inbound message lane state in the runtime storage.
-	pub fn inbound_lane_data_key(pallet_prefix: &str, lane: &LaneId) -> StorageKey {
-		bp_runtime::storage_map_final_key_blake2_128concat(pallet_prefix, "InboundLanes", lane)
 	}
 }
 
@@ -1159,9 +1114,12 @@ mod tests {
 		REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
-	use frame_support::{assert_noop, assert_ok, weights::Weight};
+	use frame_support::{
+		assert_noop, assert_ok,
+		storage::generator::{StorageMap, StorageValue},
+		weights::Weight,
+	};
 	use frame_system::{EventRecord, Pallet as System, Phase};
-	use hex_literal::hex;
 	use sp_runtime::DispatchError;
 
 	fn get_ready_for_events() {
@@ -1890,45 +1848,6 @@ mod tests {
 	}
 
 	#[test]
-	fn storage_message_key_computed_properly() {
-		// If this test fails, then something has been changed in module storage that is breaking
-		// all previously crafted messages proofs.
-		let storage_key = storage_keys::message_key("BridgeMessages", &*b"test", 42).0;
-		assert_eq!(
-			storage_key,
-			hex!("dd16c784ebd3390a9bc0357c7511ed018a395e6242c6813b196ca31ed0547ea79446af0e09063bd4a7874aef8a997cec746573742a00000000000000").to_vec(),
-			"Unexpected storage key: {}",
-			hex::encode(&storage_key),
-		);
-	}
-
-	#[test]
-	fn outbound_lane_data_key_computed_properly() {
-		// If this test fails, then something has been changed in module storage that is breaking
-		// all previously crafted outbound lane state proofs.
-		let storage_key = storage_keys::outbound_lane_data_key("BridgeMessages", &*b"test").0;
-		assert_eq!(
-			storage_key,
-			hex!("dd16c784ebd3390a9bc0357c7511ed0196c246acb9b55077390e3ca723a0ca1f44a8995dd50b6657a037a7839304535b74657374").to_vec(),
-			"Unexpected storage key: {}",
-			hex::encode(&storage_key),
-		);
-	}
-
-	#[test]
-	fn inbound_lane_data_key_computed_properly() {
-		// If this test fails, then something has been changed in module storage that is breaking
-		// all previously crafted inbound lane state proofs.
-		let storage_key = storage_keys::inbound_lane_data_key("BridgeMessages", &*b"test").0;
-		assert_eq!(
-			storage_key,
-			hex!("dd16c784ebd3390a9bc0357c7511ed01e5f83cf83f2127eb47afdc35d6e43fab44a8995dd50b6657a037a7839304535b74657374").to_vec(),
-			"Unexpected storage key: {}",
-			hex::encode(&storage_key),
-		);
-	}
-
-	#[test]
 	fn actual_dispatch_weight_does_not_overlow() {
 		run_test(|| {
 			let message1 = message(1, message_payload(0, Weight::MAX / 2));
@@ -2198,6 +2117,7 @@ mod tests {
 
 	#[test]
 	#[should_panic]
+	#[cfg(debug_assertions)]
 	fn receive_messages_panics_in_debug_mode_if_callback_is_wrong() {
 		run_test(|| {
 			TestOnDeliveryConfirmed1::set_consumed_weight_per_message(
@@ -2330,6 +2250,7 @@ mod tests {
 
 	#[test]
 	#[should_panic]
+	#[cfg(debug_assertions)]
 	fn message_accepted_panics_in_debug_mode_if_callback_is_wrong() {
 		run_test(|| {
 			TestOnMessageAccepted::set_consumed_weight_per_message(
@@ -2358,5 +2279,31 @@ mod tests {
 				crate::mock::DbWeight::get().reads(1).saturating_add(prune_weight)
 			);
 		});
+	}
+
+	#[test]
+	fn storage_keys_computed_properly() {
+		assert_eq!(
+			PalletOperatingMode::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_messages::storage_keys::operating_mode_key("Messages").0,
+		);
+
+		assert_eq!(
+			OutboundMessages::<TestRuntime>::storage_map_final_key(MessageKey {
+				lane_id: TEST_LANE_ID,
+				nonce: 42
+			}),
+			bp_messages::storage_keys::message_key("Messages", &TEST_LANE_ID, 42).0,
+		);
+
+		assert_eq!(
+			OutboundLanes::<TestRuntime>::storage_map_final_key(TEST_LANE_ID),
+			bp_messages::storage_keys::outbound_lane_data_key("Messages", &TEST_LANE_ID).0,
+		);
+
+		assert_eq!(
+			InboundLanes::<TestRuntime>::storage_map_final_key(TEST_LANE_ID),
+			bp_messages::storage_keys::inbound_lane_data_key("Messages", &TEST_LANE_ID).0,
+		);
 	}
 }
