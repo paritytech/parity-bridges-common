@@ -958,7 +958,7 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Rialto_to_Millau_MessageLane_00000001_lane_state_nonces{type=\"target_latest_received\"}[10m])",
+          "expr": "increase(Rialto_to_Millau_MessageLane_00000001_lane_state_nonces{type=\"target_latest_received\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
           "legendFormat": "Messages generated in last 5 minutes",
@@ -1102,7 +1102,7 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Rialto_to_Millau_MessageLane_00000001_lane_state_nonces{type=\"source_latest_confirmed\"}[10m])",
+          "expr": "increase(Rialto_to_Millau_MessageLane_00000001_lane_state_nonces{type=\"source_latest_confirmed\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
           "legendFormat": "",
