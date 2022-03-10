@@ -967,7 +967,7 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=\"target_latest_received\"}[10m])",
+          "expr": "increase(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=\"target_latest_received\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
           "legendFormat": "Messages generated in last 5 minutes",
@@ -1110,7 +1110,7 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=\"source_latest_confirmed\"}[10m])",
+          "expr": "increase(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=\"source_latest_confirmed\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
           "legendFormat": "",
@@ -1254,7 +1254,7 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Millau_to_Rialto_MessageLane_73776170_lane_state_nonces{type=\"target_latest_received\"}[20m])",
+          "expr": "increase(Millau_to_Rialto_MessageLane_73776170_lane_state_nonces{type=\"target_latest_received\"}[20m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
           "legendFormat": "Messages generated in last 5 minutes",
@@ -1362,7 +1362,7 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Millau_to_Rialto_MessageLane_73776170_lane_state_nonces{type=\"source_latest_confirmed\"}[10m])",
+          "expr": "increase(Millau_to_Rialto_MessageLane_73776170_lane_state_nonces{type=\"source_latest_confirmed\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
           "legendFormat": "",
