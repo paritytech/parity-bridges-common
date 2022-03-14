@@ -20,10 +20,11 @@
 // Runtime-generated DecodeLimit::decode_all_with_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
+use bp_messages::{LaneId, MessageDetails, MessageNonce};
 use frame_support::weights::{
 	Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
 };
+use sp_runtime::FixedU128;
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
 
@@ -32,12 +33,12 @@ pub use bp_polkadot_core::*;
 /// Rococo Chain
 pub type Rococo = PolkadotLike;
 
-/// The target length of a session (how often authorities change) on Westend measured in of number
+/// The target length of a session (how often authorities change) on Rococo measured in of number
 /// of blocks.
 ///
 /// Note that since this is a target sessions may change before/after this time depending on network
 /// conditions.
-pub const SESSION_LENGTH: BlockNumber = 10 * time_units::MINUTES;
+pub const SESSION_LENGTH: BlockNumber = time_units::HOURS;
 
 // NOTE: This needs to be kept up to date with the Rococo runtime found in the Polkadot repo.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
@@ -48,6 +49,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 0,
 	apis: sp_version::create_apis_vec![[]],
 	transaction_version: 0,
+	state_version: 0,
 };
 
 // NOTE: This needs to be kept up to date with the Rococo runtime found in the Polkadot repo.
@@ -89,10 +91,6 @@ pub const TO_ROCOCO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 /// Name of the `ToRococoOutboundLaneApi::message_details` runtime method.
 pub const TO_ROCOCO_MESSAGE_DETAILS_METHOD: &str = "ToRococoOutboundLaneApi_message_details";
 
-/// Name of the `FromRococoInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_ROCOCO_UNREWARDED_RELAYERS_STATE: &str =
-	"FromRococoInboundLaneApi_unrewarded_relayers_state";
-
 /// Existential deposit on Rococo.
 pub const EXISTENTIAL_DEPOSIT: Balance = 1_000_000_000_000 / 100;
 
@@ -132,6 +130,7 @@ sp_api::decl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			lane_id: LaneId,
 			payload: OutboundPayload,
+			rococo_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<OutboundMessageFee>;
 		/// Returns dispatch weight, encoded payload size and delivery+dispatch fee of all
 		/// messages in given inclusive range.
@@ -143,14 +142,5 @@ sp_api::decl_runtime_apis! {
 			begin: MessageNonce,
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
-	}
-
-	/// Inbound message lane API for messages sent by Rococo chain.
-	///
-	/// This API is implemented by runtimes that are receiving messages from Rococo chain, not the
-	/// Rococo runtime itself.
-	pub trait FromRococoInboundLaneApi {
-		/// State of the unrewarded relayers set at given lane.
-		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
 	}
 }

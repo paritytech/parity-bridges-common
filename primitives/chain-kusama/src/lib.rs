@@ -20,10 +20,11 @@
 // Runtime-generated DecodeLimit::decode_all_with_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
+use bp_messages::{LaneId, MessageDetails, MessageNonce};
 use frame_support::weights::{
 	WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
 };
+use sp_runtime::FixedU128;
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
 
@@ -37,10 +38,11 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: sp_version::create_runtime_str!("kusama"),
 	impl_name: sp_version::create_runtime_str!("parity-kusama"),
 	authoring_version: 2,
-	spec_version: 9100,
+	spec_version: 9140,
 	impl_version: 0,
 	apis: sp_version::create_apis_vec![[]],
-	transaction_version: 5,
+	transaction_version: 8,
+	state_version: 0,
 };
 
 // NOTE: This needs to be kept up to date with the Kusama runtime found in the Polkadot repo.
@@ -86,9 +88,14 @@ pub const WITH_KUSAMA_GRANDPA_PALLET_NAME: &str = "BridgeKusamaGrandpa";
 /// Name of the With-Kusama messages pallet instance that is deployed at bridged chains.
 pub const WITH_KUSAMA_MESSAGES_PALLET_NAME: &str = "BridgeKusamaMessages";
 
+/// Name of the transaction payment pallet at the Kusama runtime.
+pub const TRANSACTION_PAYMENT_PALLET_NAME: &str = "TransactionPayment";
+
 /// Name of the DOT->KSM conversion rate stored in the Kusama runtime.
 pub const POLKADOT_TO_KUSAMA_CONVERSION_RATE_PARAMETER_NAME: &str =
 	"PolkadotToKusamaConversionRate";
+/// Name of the Polkadot fee multiplier parameter, stored in the Polkadot runtime.
+pub const POLKADOT_FEE_MULTIPLIER_PARAMETER_NAME: &str = "PolkadotFeeMultiplier";
 
 /// Name of the `KusamaFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_KUSAMA_HEADER_METHOD: &str = "KusamaFinalityApi_best_finalized";
@@ -99,10 +106,6 @@ pub const TO_KUSAMA_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToKusamaOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToKusamaOutboundLaneApi::message_details` runtime method.
 pub const TO_KUSAMA_MESSAGE_DETAILS_METHOD: &str = "ToKusamaOutboundLaneApi_message_details";
-
-/// Name of the `FromKusamaInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_KUSAMA_UNREWARDED_RELAYERS_STATE: &str =
-	"FromKusamaInboundLaneApi_unrewarded_relayers_state";
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Kusama headers.
@@ -131,6 +134,7 @@ sp_api::decl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			lane_id: LaneId,
 			payload: OutboundPayload,
+			kusama_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<OutboundMessageFee>;
 		/// Returns dispatch weight, encoded payload size and delivery+dispatch fee of all
 		/// messages in given inclusive range.
@@ -142,14 +146,5 @@ sp_api::decl_runtime_apis! {
 			begin: MessageNonce,
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
-	}
-
-	/// Inbound message lane API for messages sent by Kusama chain.
-	///
-	/// This API is implemented by runtimes that are receiving messages from Kusama chain, not the
-	/// Kusama runtime itself.
-	pub trait FromKusamaInboundLaneApi {
-		/// State of the unrewarded relayers set at given lane.
-		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
 	}
 }

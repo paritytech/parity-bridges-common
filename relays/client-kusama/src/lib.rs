@@ -20,8 +20,8 @@ use bp_messages::MessageNonce;
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, SignParam,
-	TransactionSignScheme, UnsignedTransaction,
+	Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
+	Error as SubstrateError, SignParam, TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -79,8 +79,6 @@ impl ChainWithMessages for Kusama {
 		bp_kusama::WITH_KUSAMA_MESSAGES_PALLET_NAME;
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_kusama::TO_KUSAMA_MESSAGE_DETAILS_METHOD;
-	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str =
-		bp_kusama::FROM_KUSAMA_UNREWARDED_RELAYERS_STATE;
 	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight =
 		bp_kusama::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
@@ -101,7 +99,7 @@ impl TransactionSignScheme for Kusama {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = crate::runtime::UncheckedExtrinsic;
 
-	fn sign_transaction(param: SignParam<Self>) -> Self::SignedTransaction {
+	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
 			param.unsigned.call.clone(),
 			bp_kusama::SignedExtensions::new(
@@ -119,12 +117,12 @@ impl TransactionSignScheme for Kusama {
 		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		bp_kusama::UncheckedExtrinsic::new_signed(
+		Ok(bp_kusama::UncheckedExtrinsic::new_signed(
 			call,
 			sp_runtime::MultiAddress::Id(signer.into_account()),
 			signature.into(),
 			extra,
-		)
+		))
 	}
 
 	fn is_signed(tx: &Self::SignedTransaction) -> bool {

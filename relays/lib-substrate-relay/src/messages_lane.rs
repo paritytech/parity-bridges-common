@@ -17,6 +17,7 @@
 //! Tools for supporting message lanes between two Substrate-based chains.
 
 use crate::{
+	conversion_rate_update::UpdateConversionRateCallBuilder,
 	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
@@ -43,18 +44,36 @@ use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
 /// Substrate -> Substrate messages synchronization pipeline.
 pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
-	/// Name of the source -> target tokens conversion rate parameter name.
+	/// Name of the source -> target tokens conversion rate parameter.
 	///
 	/// The parameter is stored at the target chain and the storage key is computed using
 	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
 	/// to be 1.
 	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str>;
-	/// Name of the target -> source tokens conversion rate parameter name.
+	/// Name of the target -> source tokens conversion rate parameter.
 	///
 	/// The parameter is stored at the source chain and the storage key is computed using
 	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
 	/// to be 1.
 	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str>;
+
+	/// Name of the source chain fee multiplier parameter.
+	///
+	/// The parameter is stored at the target chain and the storage key is computed using
+	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
+	/// to be 1.
+	const SOURCE_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str>;
+	/// Name of the target chain fee multiplier parameter.
+	///
+	/// The parameter is stored at the source chain and the storage key is computed using
+	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
+	/// to be 1.
+	const TARGET_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str>;
+
+	/// Name of the transaction payment pallet, deployed at the source chain.
+	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
+	/// Name of the transaction payment pallet, deployed at the target chain.
+	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
 
 	/// Messages of this chain are relayed to the `TargetChain`.
 	type SourceChain: ChainWithMessages;
@@ -70,6 +89,13 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type ReceiveMessagesProofCallBuilder: ReceiveMessagesProofCallBuilder<Self>;
 	/// How receive messages delivery proof call is built?
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
+
+	/// `TargetChain` tokens to `SourceChain` tokens conversion rate update builder.
+	///
+	/// If not applicable to this bridge, you may use `()` here.
+	type TargetToSourceChainConversionRateUpdateBuilder: UpdateConversionRateCallBuilder<
+		Self::SourceChain,
+	>;
 
 	/// Message relay strategy.
 	type RelayStrategy: RelayStrategy;
@@ -216,13 +242,15 @@ where
 			},
 		},
 		SubstrateMessagesSource::<P>::new(
-			source_client,
+			source_client.clone(),
+			target_client.clone(),
 			params.lane_id,
 			params.source_transaction_params,
 			params.target_to_source_headers_relay,
 		),
 		SubstrateMessagesTarget::<P>::new(
 			target_client,
+			source_client,
 			params.lane_id,
 			relayer_id_at_source,
 			params.target_transaction_params,

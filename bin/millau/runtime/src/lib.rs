@@ -52,7 +52,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{Block as BlockT, IdentityLookup, Keccak256, NumberFor, OpaqueKeys},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, MultiSigner, Perquintill,
+	ApplyExtrinsicResult, FixedPointNumber, FixedU128, MultiSignature, MultiSigner, Perquintill,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -138,6 +138,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
+	state_version: 0,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -204,6 +205,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	/// The set code logic, just the default since we're not a parachain.
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -561,7 +563,7 @@ pub type Executive = frame_executive::Executive<
 	Block,
 	frame_system::ChainContext<Runtime>,
 	Runtime,
-	AllPallets,
+	AllPalletsWithSystem,
 >;
 
 impl_runtime_apis! {
@@ -663,7 +665,7 @@ impl_runtime_apis! {
 	}
 
 	impl beefy_primitives::BeefyApi<Block> for Runtime {
-		fn validator_set() -> ValidatorSet<BeefyId> {
+		fn validator_set() -> Option<ValidatorSet<BeefyId>> {
 			Beefy::validator_set()
 		}
 	}
@@ -754,10 +756,12 @@ impl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			_lane_id: bp_messages::LaneId,
 			payload: ToRialtoMessagePayload,
+			rialto_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<Balance> {
 			estimate_message_dispatch_and_delivery_fee::<WithRialtoMessageBridge>(
 				&payload,
 				WithRialtoMessageBridge::RELAYER_FEE_PERCENT,
+				rialto_to_this_conversion_rate,
 			).ok()
 		}
 
@@ -771,12 +775,6 @@ impl_runtime_apis! {
 				WithRialtoMessagesInstance,
 				WithRialtoMessageBridge,
 			>(lane, begin, end)
-		}
-	}
-
-	impl bp_rialto::FromRialtoInboundLaneApi<Block> for Runtime {
-		fn unrewarded_relayers_state(lane: bp_messages::LaneId) -> bp_messages::UnrewardedRelayersState {
-			BridgeRialtoMessages::inbound_unrewarded_relayers_state(lane)
 		}
 	}
 
@@ -840,7 +838,7 @@ impl_runtime_apis! {
 				}
 
 				fn bridged_relayer_id() -> Self::InboundRelayer {
-					Default::default()
+					[0u8; 32].into()
 				}
 
 				fn account_balance(account: &Self::AccountId) -> Self::OutboundMessageFee {
@@ -857,7 +855,7 @@ impl_runtime_apis! {
 				fn prepare_outbound_message(
 					params: MessageParams<Self::AccountId>,
 				) -> (rialto_messages::ToRialtoMessagePayload, Balance) {
-					prepare_outbound_message::<WithRialtoMessageBridge>(params)
+					(prepare_outbound_message::<WithRialtoMessageBridge>(params), Self::message_fee())
 				}
 
 				fn prepare_message_proof(
@@ -948,49 +946,6 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use bp_runtime::Chain;
-	use bridge_runtime_common::messages;
-
-	#[test]
-	fn ensure_millau_message_lane_weights_are_correct() {
-		type Weights = pallet_bridge_messages::weights::MillauWeight<Runtime>;
-
-		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
-			bp_millau::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
-			bp_millau::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT,
-			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
-			bp_millau::PAY_INBOUND_DISPATCH_FEE_WEIGHT,
-			DbWeight::get(),
-		);
-
-		let max_incoming_message_proof_size = bp_rialto::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
-			messages::target::maximal_incoming_message_size(bp_millau::Millau::max_extrinsic_size()),
-		);
-		pallet_bridge_messages::ensure_able_to_receive_message::<Weights>(
-			bp_millau::Millau::max_extrinsic_size(),
-			bp_millau::Millau::max_extrinsic_weight(),
-			max_incoming_message_proof_size,
-			messages::target::maximal_incoming_message_dispatch_weight(
-				bp_millau::Millau::max_extrinsic_weight(),
-			),
-		);
-
-		let max_incoming_inbound_lane_data_proof_size =
-			bp_messages::InboundLaneData::<()>::encoded_size_hint(
-				bp_millau::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-				bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as _,
-				bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as _,
-			)
-			.unwrap_or(u32::MAX);
-		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
-			bp_millau::Millau::max_extrinsic_size(),
-			bp_millau::Millau::max_extrinsic_weight(),
-			max_incoming_inbound_lane_data_proof_size,
-			bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-			bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-			DbWeight::get(),
-		);
-	}
 
 	#[test]
 	fn call_size() {

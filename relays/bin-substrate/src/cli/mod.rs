@@ -35,6 +35,7 @@ pub(crate) mod send_message;
 mod derive_account;
 mod init_bridge;
 mod register_parachain;
+mod reinit_bridge;
 mod relay_headers;
 mod relay_headers_and_messages;
 mod relay_messages;
@@ -71,6 +72,11 @@ pub enum Command {
 	///
 	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
 	InitBridge(init_bridge::InitBridge),
+	/// Reinitialize on-chain bridge pallet with current header data.
+	///
+	/// Sends all missing mandatory headers to bootstrap the bridge with current finalized block
+	/// data.
+	ReinitBridge(reinit_bridge::ReinitBridge),
 	/// Send custom message over the bridge.
 	///
 	/// Allows interacting with the bridge by sending messages over `Messages` component.
@@ -126,6 +132,7 @@ impl Command {
 			Self::RelayMessages(arg) => arg.run().await?,
 			Self::RelayHeadersAndMessages(arg) => arg.run().await?,
 			Self::InitBridge(arg) => arg.run().await?,
+			Self::ReinitBridge(arg) => arg.run().await?,
 			Self::SendMessage(arg) => arg.run().await?,
 			Self::EncodeCall(arg) => arg.run().await?,
 			Self::EncodeMessage(arg) => arg.run().await?,
@@ -541,11 +548,10 @@ macro_rules! declare_chain_options {
 				/// Convert connection params into Substrate client.
 				pub async fn to_client<Chain: CliChain>(
 					&self,
-					bundle_runtime_version: Option<sp_version::RuntimeVersion>
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
 					let chain_runtime_version = self
 						.[<$chain_prefix _runtime_version>]
-						.into_runtime_version(bundle_runtime_version)?;
+						.into_runtime_version(Some(Chain::RUNTIME_VERSION))?;
 					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {
 						host: self.[<$chain_prefix _host>].clone(),
 						port: self.[<$chain_prefix _port>],
@@ -562,14 +568,13 @@ macro_rules! declare_chain_options {
 				#[allow(dead_code)]
 				pub async fn selected_chain_spec_version<Chain: CliChain>(
 					&self,
-					bundle_runtime_version: Option<sp_version::RuntimeVersion>,
 				) -> anyhow::Result<u32> {
 					let chain_runtime_version = self
 						.[<$chain_prefix _runtime_version>]
-						.into_runtime_version(bundle_runtime_version.clone())?;
+						.into_runtime_version(Some(Chain::RUNTIME_VERSION))?;
 					Ok(match chain_runtime_version {
 						ChainRuntimeVersion::Auto => self
-							.to_client::<Chain>(bundle_runtime_version)
+							.to_client::<Chain>()
 							.await?
 							.simple_runtime_version()
 							.await?

@@ -53,7 +53,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, Block as BlockT, Keccak256, NumberFor, OpaqueKeys},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, MultiSigner, Perquintill,
+	ApplyExtrinsicResult, FixedPointNumber, FixedU128, MultiSignature, MultiSigner, Perquintill,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 #[cfg(feature = "std")]
@@ -142,6 +142,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
+	state_version: 1,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -208,6 +209,7 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	/// The set code logic, just the default since we're not a parachain.
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 /// The BABE epoch configuration at genesis.
@@ -552,7 +554,7 @@ pub type Executive = frame_executive::Executive<
 	Block,
 	frame_system::ChainContext<Runtime>,
 	Runtime,
-	AllPallets,
+	AllPalletsWithSystem,
 >;
 
 impl_runtime_apis! {
@@ -604,7 +606,7 @@ impl_runtime_apis! {
 	}
 
 	impl beefy_primitives::BeefyApi<Block> for Runtime {
-		fn validator_set() -> ValidatorSet<BeefyId> {
+		fn validator_set() -> Option<ValidatorSet<BeefyId>> {
 			Beefy::validator_set()
 		}
 	}
@@ -714,15 +716,12 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl polkadot_primitives::v1::ParachainHost<Block, Hash, BlockNumber> for Runtime {
+	impl polkadot_primitives::v2::ParachainHost<Block, Hash, BlockNumber> for Runtime {
 		fn validators() -> Vec<polkadot_primitives::v1::ValidatorId> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::validators::<Runtime>()
 		}
 
-		fn validator_groups() -> (
-			Vec<Vec<polkadot_primitives::v1::ValidatorIndex>>,
-			polkadot_primitives::v1::GroupRotationInfo<BlockNumber>,
-		) {
+		fn validator_groups() -> (Vec<Vec<polkadot_primitives::v1::ValidatorIndex>>, polkadot_primitives::v1::GroupRotationInfo<BlockNumber>) {
 			polkadot_runtime_parachains::runtime_api_impl::v1::validator_groups::<Runtime>()
 		}
 
@@ -730,10 +729,7 @@ impl_runtime_apis! {
 			polkadot_runtime_parachains::runtime_api_impl::v1::availability_cores::<Runtime>()
 		}
 
-		fn persisted_validation_data(
-			para_id: polkadot_primitives::v1::Id,
-			assumption: polkadot_primitives::v1::OccupiedCoreAssumption,
-		)
+		fn persisted_validation_data(para_id: polkadot_primitives::v1::Id, assumption: polkadot_primitives::v1::OccupiedCoreAssumption)
 			-> Option<polkadot_primitives::v1::PersistedValidationData<Hash, BlockNumber>> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::persisted_validation_data::<Runtime>(para_id, assumption)
 		}
@@ -742,7 +738,10 @@ impl_runtime_apis! {
 			para_id: polkadot_primitives::v1::Id,
 			expected_persisted_validation_data_hash: Hash,
 		) -> Option<(polkadot_primitives::v1::PersistedValidationData<Hash, BlockNumber>, polkadot_primitives::v1::ValidationCodeHash)> {
-			polkadot_runtime_parachains::runtime_api_impl::v1::assumed_validation_data::<Runtime>(para_id, expected_persisted_validation_data_hash)
+			polkadot_runtime_parachains::runtime_api_impl::v1::assumed_validation_data::<Runtime>(
+				para_id,
+				expected_persisted_validation_data_hash,
+			)
 		}
 
 		fn check_validation_outputs(
@@ -756,17 +755,12 @@ impl_runtime_apis! {
 			polkadot_runtime_parachains::runtime_api_impl::v1::session_index_for_child::<Runtime>()
 		}
 
-		fn validation_code(
-			para_id: polkadot_primitives::v1::Id,
-			assumption: polkadot_primitives::v1::OccupiedCoreAssumption,
-		)
+		fn validation_code(para_id: polkadot_primitives::v1::Id, assumption: polkadot_primitives::v1::OccupiedCoreAssumption)
 			-> Option<polkadot_primitives::v1::ValidationCode> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::validation_code::<Runtime>(para_id, assumption)
 		}
 
-		fn candidate_pending_availability(
-			para_id: polkadot_primitives::v1::Id,
-		) -> Option<polkadot_primitives::v1::CommittedCandidateReceipt<Hash>> {
+		fn candidate_pending_availability(para_id: polkadot_primitives::v1::Id) -> Option<polkadot_primitives::v1::CommittedCandidateReceipt<Hash>> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::candidate_pending_availability::<Runtime>(para_id)
 		}
 
@@ -781,13 +775,11 @@ impl_runtime_apis! {
 			})
 		}
 
-		fn session_info(index: polkadot_primitives::v1::SessionIndex) -> Option<polkadot_primitives::v1::SessionInfo> {
+		fn session_info(index: polkadot_primitives::v1::SessionIndex) -> Option<polkadot_primitives::v2::SessionInfo> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::session_info::<Runtime>(index)
 		}
 
-		fn dmq_contents(
-			recipient: polkadot_primitives::v1::Id,
-		) -> Vec<polkadot_primitives::v1::InboundDownwardMessage<BlockNumber>> {
+		fn dmq_contents(recipient: polkadot_primitives::v1::Id) -> Vec<polkadot_primitives::v1::InboundDownwardMessage<BlockNumber>> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::dmq_contents::<Runtime>(recipient)
 		}
 
@@ -797,14 +789,26 @@ impl_runtime_apis! {
 			polkadot_runtime_parachains::runtime_api_impl::v1::inbound_hrmp_channels_contents::<Runtime>(recipient)
 		}
 
-		fn validation_code_by_hash(
-			hash: polkadot_primitives::v1::ValidationCodeHash,
-		) -> Option<polkadot_primitives::v1::ValidationCode> {
+		fn validation_code_by_hash(hash: polkadot_primitives::v1::ValidationCodeHash) -> Option<polkadot_primitives::v1::ValidationCode> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::validation_code_by_hash::<Runtime>(hash)
 		}
 
 		fn on_chain_votes() -> Option<polkadot_primitives::v1::ScrapedOnChainVotes<Hash>> {
 			polkadot_runtime_parachains::runtime_api_impl::v1::on_chain_votes::<Runtime>()
+		}
+
+		fn submit_pvf_check_statement(stmt: polkadot_primitives::v2::PvfCheckStatement, signature: polkadot_primitives::v1::ValidatorSignature) {
+			polkadot_runtime_parachains::runtime_api_impl::v1::submit_pvf_check_statement::<Runtime>(stmt, signature)
+		}
+
+		fn pvfs_require_precheck() -> Vec<polkadot_primitives::v1::ValidationCodeHash> {
+			polkadot_runtime_parachains::runtime_api_impl::v1::pvfs_require_precheck::<Runtime>()
+		}
+
+		fn validation_code_hash(para_id: polkadot_primitives::v1::Id, assumption: polkadot_primitives::v1::OccupiedCoreAssumption)
+			-> Option<polkadot_primitives::v1::ValidationCodeHash>
+		{
+			polkadot_runtime_parachains::runtime_api_impl::v1::validation_code_hash::<Runtime>(para_id, assumption)
 		}
 	}
 
@@ -877,10 +881,12 @@ impl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			_lane_id: bp_messages::LaneId,
 			payload: ToMillauMessagePayload,
+			millau_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<Balance> {
 			estimate_message_dispatch_and_delivery_fee::<WithMillauMessageBridge>(
 				&payload,
 				WithMillauMessageBridge::RELAYER_FEE_PERCENT,
+				millau_to_this_conversion_rate,
 			).ok()
 		}
 
@@ -894,12 +900,6 @@ impl_runtime_apis! {
 				WithMillauMessagesInstance,
 				WithMillauMessageBridge,
 			>(lane, begin, end)
-		}
-	}
-
-	impl bp_millau::FromMillauInboundLaneApi<Block> for Runtime {
-		fn unrewarded_relayers_state(lane: bp_messages::LaneId) -> bp_messages::UnrewardedRelayersState {
-			BridgeMillauMessages::inbound_unrewarded_relayers_state(lane)
 		}
 	}
 }
@@ -931,49 +931,6 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use bp_runtime::Chain;
-	use bridge_runtime_common::messages;
-
-	#[test]
-	fn ensure_rialto_message_lane_weights_are_correct() {
-		type Weights = pallet_bridge_messages::weights::MillauWeight<Runtime>;
-
-		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
-			bp_rialto::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
-			bp_rialto::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT,
-			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
-			bp_rialto::PAY_INBOUND_DISPATCH_FEE_WEIGHT,
-			DbWeight::get(),
-		);
-
-		let max_incoming_message_proof_size = bp_millau::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
-			messages::target::maximal_incoming_message_size(bp_rialto::Rialto::max_extrinsic_size()),
-		);
-		pallet_bridge_messages::ensure_able_to_receive_message::<Weights>(
-			bp_rialto::Rialto::max_extrinsic_size(),
-			bp_rialto::Rialto::max_extrinsic_weight(),
-			max_incoming_message_proof_size,
-			messages::target::maximal_incoming_message_dispatch_weight(
-				bp_rialto::Rialto::max_extrinsic_weight(),
-			),
-		);
-
-		let max_incoming_inbound_lane_data_proof_size =
-			bp_messages::InboundLaneData::<()>::encoded_size_hint(
-				bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-				bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as _,
-				bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as _,
-			)
-			.unwrap_or(u32::MAX);
-		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
-			bp_rialto::Rialto::max_extrinsic_size(),
-			bp_rialto::Rialto::max_extrinsic_weight(),
-			max_incoming_inbound_lane_data_proof_size,
-			bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-			bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-			DbWeight::get(),
-		);
-	}
 
 	#[test]
 	fn call_size() {

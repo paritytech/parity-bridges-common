@@ -22,7 +22,7 @@
 
 mod millau_hash;
 
-use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
+use bp_messages::{LaneId, MessageDetails, MessageNonce};
 use bp_runtime::Chain;
 use frame_support::{
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, Weight},
@@ -30,13 +30,13 @@ use frame_support::{
 };
 use frame_system::limits;
 use scale_info::TypeInfo;
-use sp_core::Hasher as HasherT;
+use sp_core::{storage::StateVersion, Hasher as HasherT};
 use sp_runtime::{
 	traits::{Convert, IdentifyAccount, Verify},
-	MultiSignature, MultiSigner, Perbill,
+	FixedU128, MultiSignature, MultiSigner, Perbill,
 };
 use sp_std::prelude::*;
-use sp_trie::{trie_types::Layout, TrieConfiguration};
+use sp_trie::{LayoutV0, LayoutV1, TrieConfiguration};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -206,12 +206,18 @@ impl sp_core::Hasher for BlakeTwoAndKeccak256 {
 impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
 	type Output = MillauHash;
 
-	fn trie_root(input: Vec<(Vec<u8>, Vec<u8>)>) -> Self::Output {
-		Layout::<BlakeTwoAndKeccak256>::trie_root(input)
+	fn trie_root(input: Vec<(Vec<u8>, Vec<u8>)>, state_version: StateVersion) -> Self::Output {
+		match state_version {
+			StateVersion::V0 => LayoutV0::<BlakeTwoAndKeccak256>::trie_root(input),
+			StateVersion::V1 => LayoutV1::<BlakeTwoAndKeccak256>::trie_root(input),
+		}
 	}
 
-	fn ordered_trie_root(input: Vec<Vec<u8>>) -> Self::Output {
-		Layout::<BlakeTwoAndKeccak256>::ordered_trie_root(input)
+	fn ordered_trie_root(input: Vec<Vec<u8>>, state_version: StateVersion) -> Self::Output {
+		match state_version {
+			StateVersion::V0 => LayoutV0::<BlakeTwoAndKeccak256>::ordered_trie_root(input),
+			StateVersion::V1 => LayoutV1::<BlakeTwoAndKeccak256>::ordered_trie_root(input),
+		}
 	}
 }
 
@@ -278,10 +284,6 @@ pub const TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 /// Name of the `ToMillauOutboundLaneApi::message_details` runtime method.
 pub const TO_MILLAU_MESSAGE_DETAILS_METHOD: &str = "ToMillauOutboundLaneApi_message_details";
 
-/// Name of the `FromMillauInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_MILLAU_UNREWARDED_RELAYERS_STATE: &str =
-	"FromMillauInboundLaneApi_unrewarded_relayers_state";
-
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Millau headers.
 	///
@@ -309,6 +311,7 @@ sp_api::decl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			lane_id: LaneId,
 			payload: OutboundPayload,
+			millau_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<OutboundMessageFee>;
 		/// Returns dispatch weight, encoded payload size and delivery+dispatch fee of all
 		/// messages in given inclusive range.
@@ -321,15 +324,6 @@ sp_api::decl_runtime_apis! {
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
 	}
-
-	/// Inbound message lane API for messages sent by Millau chain.
-	///
-	/// This API is implemented by runtimes that are receiving messages from Millau chain, not the
-	/// Millau runtime itself.
-	pub trait FromMillauInboundLaneApi {
-		/// State of the unrewarded relayers set at given lane.
-		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
-	}
 }
 
 #[cfg(test)]
@@ -340,9 +334,9 @@ mod tests {
 	#[test]
 	fn maximal_account_size_does_not_overflow_constant() {
 		assert!(
-			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE as usize >= AccountId::default().encode().len(),
+			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE as usize >= AccountId::from([0u8; 32]).encode().len(),
 			"Actual maximal size of encoded AccountId ({}) overflows expected ({})",
-			AccountId::default().encode().len(),
+			AccountId::from([0u8; 32]).encode().len(),
 			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
 		);
 	}

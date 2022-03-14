@@ -20,17 +20,23 @@
 // Runtime-generated DecodeLimit::decode_all_with_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
+use bp_messages::{LaneId, MessageDetails, MessageNonce};
+use sp_runtime::FixedU128;
 use sp_std::prelude::*;
 
 pub use bp_polkadot_core::*;
 // Rococo runtime = Wococo runtime
-pub use bp_rococo::{
-	WeightToFee, EXISTENTIAL_DEPOSIT, PAY_INBOUND_DISPATCH_FEE_WEIGHT, SESSION_LENGTH, VERSION,
-};
+pub use bp_rococo::{WeightToFee, EXISTENTIAL_DEPOSIT, PAY_INBOUND_DISPATCH_FEE_WEIGHT, VERSION};
 
 /// Wococo Chain
 pub type Wococo = PolkadotLike;
+
+/// The target length of a session (how often authorities change) on Wococo measured in of number
+/// of blocks.
+///
+/// Note that since this is a target sessions may change before/after this time depending on network
+/// conditions.
+pub const SESSION_LENGTH: BlockNumber = time_units::MINUTES;
 
 // We use this to get the account on Wococo (target) which is derived from Rococo's (source)
 // account.
@@ -53,10 +59,6 @@ pub const TO_WOCOCO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 	"ToWococoOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
 /// Name of the `ToWococoOutboundLaneApi::message_details` runtime method.
 pub const TO_WOCOCO_MESSAGE_DETAILS_METHOD: &str = "ToWococoOutboundLaneApi_message_details";
-
-/// Name of the `FromWococoInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_WOCOCO_UNREWARDED_RELAYERS_STATE: &str =
-	"FromWococoInboundLaneApi_unrewarded_relayers_state";
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Wococo headers.
@@ -85,6 +87,7 @@ sp_api::decl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			lane_id: LaneId,
 			payload: OutboundPayload,
+			wococo_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<OutboundMessageFee>;
 		/// Returns dispatch weight, encoded payload size and delivery+dispatch fee of all
 		/// messages in given inclusive range.
@@ -96,14 +99,5 @@ sp_api::decl_runtime_apis! {
 			begin: MessageNonce,
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
-	}
-
-	/// Inbound message lane API for messages sent by Wococo chain.
-	///
-	/// This API is implemented by runtimes that are receiving messages from Wococo chain, not the
-	/// Wococo runtime itself.
-	pub trait FromWococoInboundLaneApi {
-		/// State of the unrewarded relayers set at given lane.
-		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
 	}
 }

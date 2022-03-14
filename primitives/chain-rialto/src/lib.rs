@@ -20,7 +20,7 @@
 // Runtime-generated DecodeLimit::decode_all_With_depth_limit
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bp_messages::{LaneId, MessageDetails, MessageNonce, UnrewardedRelayersState};
+use bp_messages::{LaneId, MessageDetails, MessageNonce};
 use bp_runtime::Chain;
 use frame_support::{
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, Weight},
@@ -30,7 +30,7 @@ use frame_system::limits;
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	traits::{BlakeTwo256, Convert, IdentifyAccount, Verify},
-	MultiSignature, MultiSigner, Perbill,
+	FixedU128, MultiSignature, MultiSigner, Perbill,
 };
 use sp_std::prelude::*;
 
@@ -250,10 +250,6 @@ pub const TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 /// Name of the `ToRialtoOutboundLaneApi::message_details` runtime method.
 pub const TO_RIALTO_MESSAGE_DETAILS_METHOD: &str = "ToRialtoOutboundLaneApi_message_details";
 
-/// Name of the `FromRialtoInboundLaneApi::unrewarded_relayers_state` runtime method.
-pub const FROM_RIALTO_UNREWARDED_RELAYERS_STATE: &str =
-	"FromRialtoInboundLaneApi_unrewarded_relayers_state";
-
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Rialto headers.
 	///
@@ -281,6 +277,7 @@ sp_api::decl_runtime_apis! {
 		fn estimate_message_delivery_and_dispatch_fee(
 			lane_id: LaneId,
 			payload: OutboundPayload,
+			rialto_to_this_conversion_rate: Option<FixedU128>,
 		) -> Option<OutboundMessageFee>;
 		/// Returns dispatch weight, encoded payload size and delivery+dispatch fee of all
 		/// messages in given inclusive range.
@@ -293,15 +290,6 @@ sp_api::decl_runtime_apis! {
 			end: MessageNonce,
 		) -> Vec<MessageDetails<OutboundMessageFee>>;
 	}
-
-	/// Inbound message lane API for messages sent by Rialto chain.
-	///
-	/// This API is implemented by runtimes that are receiving messages from Rialto chain, not the
-	/// Rialto runtime itself.
-	pub trait FromRialtoInboundLaneApi {
-		/// State of the unrewarded relayers set at given lane.
-		fn unrewarded_relayers_state(lane: LaneId) -> UnrewardedRelayersState;
-	}
 }
 
 #[cfg(test)]
@@ -312,9 +300,9 @@ mod tests {
 	#[test]
 	fn maximal_account_size_does_not_overflow_constant() {
 		assert!(
-			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE as usize >= AccountId::default().encode().len(),
+			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE as usize >= AccountId::from([0u8; 32]).encode().len(),
 			"Actual maximal size of encoded AccountId ({}) overflows expected ({})",
-			AccountId::default().encode().len(),
+			AccountId::from([0u8; 32]).encode().len(),
 			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
 		);
 	}

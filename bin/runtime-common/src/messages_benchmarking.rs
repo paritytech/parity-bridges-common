@@ -40,13 +40,36 @@ use pallet_bridge_messages::benchmarking::{
 use sp_core::Hasher;
 use sp_runtime::traits::{Header, IdentifyAccount, MaybeSerializeDeserialize, Zero};
 use sp_std::{fmt::Debug, prelude::*};
-use sp_trie::{record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, TrieMut};
+use sp_trie::{record_all_keys, trie_types::TrieDBMutV1, LayoutV1, MemoryDB, Recorder, TrieMut};
 use sp_version::RuntimeVersion;
+
+/// Return this chain account, used to dispatch message.
+pub fn dispatch_account<B>() -> AccountIdOf<ThisChain<B>>
+where
+	B: MessageBridge,
+	SignerOf<ThisChain<B>>:
+		From<sp_core::ed25519::Public> + IdentifyAccount<AccountId = AccountIdOf<ThisChain<B>>>,
+{
+	let this_raw_public = PublicKey::from(&dispatch_account_secret());
+	let this_public: SignerOf<ThisChain<B>> =
+		sp_core::ed25519::Public::from_raw(this_raw_public.to_bytes()).into();
+	this_public.into_account()
+}
+
+/// Return public key of this chain account, used to dispatch message.
+pub fn dispatch_account_secret() -> SecretKey {
+	// key from the repo example (https://docs.rs/ed25519-dalek/1.0.1/ed25519_dalek/struct.SecretKey.html)
+	SecretKey::from_bytes(&[
+		157, 097, 177, 157, 239, 253, 090, 096, 186, 132, 074, 244, 146, 236, 044, 196, 068, 073,
+		197, 105, 123, 050, 105, 025, 112, 059, 172, 003, 028, 174, 127, 096,
+	])
+	.expect("harcoded key is valid")
+}
 
 /// Prepare outbound message for the `send_message` call.
 pub fn prepare_outbound_message<B>(
 	params: MessageParams<AccountIdOf<ThisChain<B>>>,
-) -> (FromThisChainMessagePayload<B>, BalanceOf<ThisChain<B>>)
+) -> FromThisChainMessagePayload<B>
 where
 	B: MessageBridge,
 	BalanceOf<ThisChain<B>>: From<u64>,
@@ -54,14 +77,13 @@ where
 	let message_payload = vec![0; params.size as usize];
 	let dispatch_origin = bp_message_dispatch::CallOrigin::SourceAccount(params.sender_account);
 
-	let message = FromThisChainMessagePayload::<B> {
+	FromThisChainMessagePayload::<B> {
 		spec_version: 0,
 		weight: params.size as _,
 		origin: dispatch_origin,
 		call: message_payload,
 		dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-	};
-	(message, pallet_bridge_messages::benchmarking::MESSAGE_FEE.into())
+	}
 }
 
 /// Prepare proof of messages for the `receive_messages_proof` call.
@@ -83,6 +105,7 @@ where
 	FI: 'static,
 	BH: Header<Hash = HashOf<BridgedChain<B>>>,
 	BHH: Hasher<Out = HashOf<BridgedChain<B>>>,
+	AccountIdOf<ThisChain<B>>: PartialEq + sp_std::fmt::Debug,
 	AccountIdOf<BridgedChain<B>>: From<[u8; 32]>,
 	BalanceOf<ThisChain<B>>: Debug + MaybeSerializeDeserialize,
 	CallOf<ThisChain<B>>: From<frame_system::Call<R>> + GetDispatchInfo,
@@ -117,6 +140,7 @@ where
 
 	// if dispatch fee is paid at this chain, endow relayer account
 	if params.dispatch_fee_payment == DispatchFeePayment::AtTargetChain {
+		assert_eq!(this_public.clone().into_account(), dispatch_account::<B>());
 		pallet_balances::Pallet::<R, BI>::make_free_balance_be(
 			&this_public.clone().into_account(),
 			endow_amount,
@@ -177,7 +201,7 @@ where
 	let mut root = Default::default();
 	let mut mdb = MemoryDB::default();
 	{
-		let mut trie = TrieDBMut::<BHH>::new(&mut mdb, &mut root);
+		let mut trie = TrieDBMutV1::<BHH>::new(&mut mdb, &mut root);
 		trie.insert(&storage_key, &params.inbound_lane_data.encode())
 			.map_err(|_| "TrieMut::insert has failed")
 			.expect("TrieMut::insert should not fail in benchmarks");
@@ -186,7 +210,7 @@ where
 
 	// generate storage proof to be delivered to This chain
 	let mut proof_recorder = Recorder::<BHH::Out>::new();
-	record_all_keys::<Layout<BHH>, _>(&mdb, &root, &mut proof_recorder)
+	record_all_keys::<LayoutV1<BHH>, _>(&mdb, &root, &mut proof_recorder)
 		.map_err(|_| "record_all_keys has failed")
 		.expect("record_all_keys should not fail in benchmarks");
 	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
@@ -220,7 +244,7 @@ where
 	let mut root = Default::default();
 	let mut mdb = MemoryDB::default();
 	{
-		let mut trie = TrieDBMut::<BHH>::new(&mut mdb, &mut root);
+		let mut trie = TrieDBMutV1::<BHH>::new(&mut mdb, &mut root);
 
 		// insert messages
 		for nonce in params.message_nonces.clone() {
@@ -256,7 +280,7 @@ where
 
 	// generate storage proof to be delivered to This chain
 	let mut proof_recorder = Recorder::<BHH::Out>::new();
-	record_all_keys::<Layout<BHH>, _>(&mdb, &root, &mut proof_recorder)
+	record_all_keys::<LayoutV1<BHH>, _>(&mdb, &root, &mut proof_recorder)
 		.map_err(|_| "record_all_keys has failed")
 		.expect("record_all_keys should not fail in benchmarks");
 	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
@@ -299,12 +323,7 @@ fn ed25519_sign(
 	source_chain_id: ChainId,
 	target_chain_id: ChainId,
 ) -> ([u8; 32], [u8; 64]) {
-	// key from the repo example (https://docs.rs/ed25519-dalek/1.0.1/ed25519_dalek/struct.SecretKey.html)
-	let target_secret = SecretKey::from_bytes(&[
-		157, 097, 177, 157, 239, 253, 090, 096, 186, 132, 074, 244, 146, 236, 044, 196, 068, 073,
-		197, 105, 123, 050, 105, 025, 112, 059, 172, 003, 028, 174, 127, 096,
-	])
-	.expect("harcoded key is valid");
+	let target_secret = dispatch_account_secret();
 	let target_public: PublicKey = (&target_secret).into();
 
 	let mut target_pair_bytes = [0u8; KEYPAIR_LENGTH];
@@ -339,7 +358,7 @@ fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: Proo
 	loop {
 		// generate storage proof to be delivered to This chain
 		let mut proof_recorder = Recorder::<H::Out>::new();
-		record_all_keys::<Layout<H>, _>(mdb, &root, &mut proof_recorder)
+		record_all_keys::<LayoutV1<H>, _>(mdb, &root, &mut proof_recorder)
 			.map_err(|_| "record_all_keys has failed")
 			.expect("record_all_keys should not fail in benchmarks");
 		let size: usize = proof_recorder.drain().into_iter().map(|n| n.data.len()).sum();
@@ -347,9 +366,9 @@ fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: Proo
 			return root
 		}
 
-		let mut trie = TrieDBMut::<H>::from_existing(mdb, &mut root)
-			.map_err(|_| "TrieDBMut::from_existing has failed")
-			.expect("TrieDBMut::from_existing should not fail in benchmarks");
+		let mut trie = TrieDBMutV1::<H>::from_existing(mdb, &mut root)
+			.map_err(|_| "TrieDBMutV1::from_existing has failed")
+			.expect("TrieDBMutV1::from_existing should not fail in benchmarks");
 		for _ in 0..iterations {
 			trie.insert(&key_index.encode(), &vec![42u8; leaf_size as _])
 				.map_err(|_| "TrieMut::insert has failed")

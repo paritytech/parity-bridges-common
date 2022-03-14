@@ -50,7 +50,7 @@ use crate::{
 /// stored and real conversion rates. If it is large enough (e.g. > than 10 percents, which is 0.1),
 /// then rational relayers may stop relaying messages because they were submitted using
 /// lesser conversion rate.
-const CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO: f64 = 0.05;
+pub(crate) const CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO: f64 = 0.05;
 
 /// Start headers+messages relayer process.
 #[derive(StructOpt)]
@@ -133,24 +133,9 @@ macro_rules! select_bridge {
 				type LeftAccountIdConverter = bp_millau::AccountIdConverter;
 				type RightAccountIdConverter = bp_rialto::AccountIdConverter;
 
-				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_millau::BlockNumber =
-					bp_millau::SESSION_LENGTH;
-				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_rialto::BlockNumber =
-					bp_rialto::SESSION_LENGTH;
-				const LEFT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
-					Some(millau_runtime::VERSION);
-				const RIGHT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
-					Some(rialto_runtime::VERSION);
-
 				use crate::chains::{
-					millau_messages_to_rialto::{
-						update_rialto_to_millau_conversion_rate as update_right_to_left_conversion_rate,
-						MillauMessagesToRialto as LeftToRightMessageLane,
-					},
-					rialto_messages_to_millau::{
-						update_millau_to_rialto_conversion_rate as update_left_to_right_conversion_rate,
-						RialtoMessagesToMillau as RightToLeftMessageLane,
-					},
+					millau_messages_to_rialto::MillauMessagesToRialto as LeftToRightMessageLane,
+					rialto_messages_to_millau::RialtoMessagesToMillau as RightToLeftMessageLane,
 				};
 
 				async fn left_create_account(
@@ -185,36 +170,10 @@ macro_rules! select_bridge {
 				type LeftAccountIdConverter = bp_rococo::AccountIdConverter;
 				type RightAccountIdConverter = bp_wococo::AccountIdConverter;
 
-				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_rococo::BlockNumber =
-					bp_rococo::SESSION_LENGTH;
-				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_wococo::BlockNumber =
-					bp_wococo::SESSION_LENGTH;
-
-				const LEFT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
-					Some(bp_rococo::VERSION);
-				const RIGHT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
-					Some(bp_wococo::VERSION);
-
 				use crate::chains::{
 					rococo_messages_to_wococo::RococoMessagesToWococo as LeftToRightMessageLane,
 					wococo_messages_to_rococo::WococoMessagesToRococo as RightToLeftMessageLane,
 				};
-
-				async fn update_right_to_left_conversion_rate(
-					_client: Client<Left>,
-					_signer: <Left as TransactionSignScheme>::AccountKeyPair,
-					_updated_rate: f64,
-				) -> anyhow::Result<()> {
-					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
-				}
-
-				async fn update_left_to_right_conversion_rate(
-					_client: Client<Right>,
-					_signer: <Right as TransactionSignScheme>::AccountKeyPair,
-					_updated_rate: f64,
-				) -> anyhow::Result<()> {
-					Err(anyhow::format_err!("Conversion rate is not supported by this bridge"))
-				}
 
 				async fn left_create_account(
 					left_client: Client<Left>,
@@ -268,25 +227,9 @@ macro_rules! select_bridge {
 				type LeftAccountIdConverter = bp_kusama::AccountIdConverter;
 				type RightAccountIdConverter = bp_polkadot::AccountIdConverter;
 
-				const MAX_MISSING_LEFT_HEADERS_AT_RIGHT: bp_kusama::BlockNumber =
-					bp_kusama::SESSION_LENGTH;
-				const MAX_MISSING_RIGHT_HEADERS_AT_LEFT: bp_polkadot::BlockNumber =
-					bp_polkadot::SESSION_LENGTH;
-
-				const LEFT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
-					Some(bp_kusama::VERSION);
-				const RIGHT_RUNTIME_VERSION: Option<sp_version::RuntimeVersion> =
-					Some(bp_polkadot::VERSION);
-
 				use crate::chains::{
-					kusama_messages_to_polkadot::{
-						update_polkadot_to_kusama_conversion_rate as update_right_to_left_conversion_rate,
-						KusamaMessagesToPolkadot as LeftToRightMessageLane,
-					},
-					polkadot_messages_to_kusama::{
-						update_kusama_to_polkadot_conversion_rate as update_left_to_right_conversion_rate,
-						PolkadotMessagesToKusama as RightToLeftMessageLane,
-					},
+					kusama_messages_to_polkadot::KusamaMessagesToPolkadot as LeftToRightMessageLane,
+					polkadot_messages_to_kusama::PolkadotMessagesToKusama as RightToLeftMessageLane,
 				};
 
 				async fn left_create_account(
@@ -349,12 +292,12 @@ impl RelayHeadersAndMessages {
 		select_bridge!(self, {
 			let params: Params = self.into();
 
-			let left_client = params.left.to_client::<Left>(LEFT_RUNTIME_VERSION).await?;
+			let left_client = params.left.to_client::<Left>().await?;
 			let left_transactions_mortality = params.left_sign.transactions_mortality()?;
 			let left_sign = params.left_sign.to_keypair::<Left>()?;
 			let left_messages_pallet_owner =
 				params.left_messages_pallet_owner.to_keypair::<Left>()?;
-			let right_client = params.right.to_client::<Right>(RIGHT_RUNTIME_VERSION).await?;
+			let right_client = params.right.to_client::<Right>().await?;
 			let right_transactions_mortality = params.right_sign.transactions_mortality()?;
 			let right_sign = params.right_sign.to_keypair::<Right>()?;
 			let right_messages_pallet_owner =
@@ -383,7 +326,15 @@ impl RelayHeadersAndMessages {
 						Left::NAME
 					)
 				};
-				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
+				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop::<
+					LeftToRightMessageLane,
+					Left,
+				>(
+					left_client.clone(),
+					TransactionParams {
+						signer: left_messages_pallet_owner.clone(),
+						mortality: left_transactions_mortality,
+					},
 					left_to_right_metrics
 						.target_to_source_conversion_rate
 						.as_ref()
@@ -400,21 +351,6 @@ impl RelayHeadersAndMessages {
 						.ok_or_else(format_err)?
 						.shared_value_ref(),
 					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
-					move |new_rate| {
-						log::info!(
-							target: "bridge",
-							"Going to update {} -> {} (on {}) conversion rate to {}.",
-							Right::NAME,
-							Left::NAME,
-							Left::NAME,
-							new_rate,
-						);
-						update_right_to_left_conversion_rate(
-							left_client.clone(),
-							left_messages_pallet_owner.clone(),
-							new_rate,
-						)
-					},
 				);
 			}
 			if let Some(right_messages_pallet_owner) = right_messages_pallet_owner.clone() {
@@ -426,38 +362,31 @@ impl RelayHeadersAndMessages {
 						Right::NAME
 					)
 				};
-				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop(
+				substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop::<
+					RightToLeftMessageLane,
+					Right,
+				>(
+					right_client.clone(),
+					TransactionParams {
+						signer: right_messages_pallet_owner.clone(),
+						mortality: right_transactions_mortality,
+					},
 					right_to_left_metrics
 						.target_to_source_conversion_rate
 						.as_ref()
 						.ok_or_else(format_err)?
 						.shared_value_ref(),
-					left_to_right_metrics
-						.source_to_base_conversion_rate
-						.as_ref()
-						.ok_or_else(format_err)?
-						.shared_value_ref(),
-					left_to_right_metrics
+					right_to_left_metrics
 						.target_to_base_conversion_rate
 						.as_ref()
 						.ok_or_else(format_err)?
 						.shared_value_ref(),
+					right_to_left_metrics
+						.source_to_base_conversion_rate
+						.as_ref()
+						.ok_or_else(format_err)?
+						.shared_value_ref(),
 					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
-					move |new_rate| {
-						log::info!(
-							target: "bridge",
-							"Going to update {} -> {} (on {}) conversion rate to {}.",
-							Left::NAME,
-							Right::NAME,
-							Right::NAME,
-							new_rate,
-						);
-						update_left_to_right_conversion_rate(
-							right_client.clone(),
-							right_messages_pallet_owner.clone(),
-							new_rate,
-						)
-					},
 				);
 			}
 
@@ -543,14 +472,12 @@ impl RelayHeadersAndMessages {
 				left_client.clone(),
 				right_client.clone(),
 				left_to_right_transaction_params,
-				MAX_MISSING_LEFT_HEADERS_AT_RIGHT,
 				params.shared.only_mandatory_headers,
 			);
 			let right_to_left_on_demand_headers = OnDemandHeadersRelay::new::<RightToLeftFinality>(
 				right_client.clone(),
 				left_client.clone(),
 				right_to_left_transaction_params,
-				MAX_MISSING_RIGHT_HEADERS_AT_LEFT,
 				params.shared.only_mandatory_headers,
 			);
 
@@ -631,17 +558,17 @@ where
 	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
 	client
 		.submit_signed_extrinsic(sign.public().into(), move |_, transaction_nonce| {
-			Bytes(
+			Ok(Bytes(
 				C::sign_transaction(SignParam {
 					spec_version,
 					transaction_version,
 					genesis_hash,
 					signer: sign,
 					era: relay_substrate_client::TransactionEra::immortal(),
-					unsigned: UnsignedTransaction::new(call, transaction_nonce),
-				})
+					unsigned: UnsignedTransaction::new(call.into(), transaction_nonce),
+				})?
 				.encode(),
-			)
+			))
 		})
 		.await
 		.map(drop)
