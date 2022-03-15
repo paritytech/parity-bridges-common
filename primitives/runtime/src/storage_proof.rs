@@ -89,7 +89,7 @@ pub fn craft_valid_storage_proof() -> (sp_core::H256, StorageProof) {
 		prove_read(backend, &[&b"key1"[..], &b"key2"[..], &b"key22"[..]])
 			.unwrap()
 			.iter_nodes()
-			.collect(),
+			.collect::<Vec<_>>(),
 	);
 
 	(root, proof)
