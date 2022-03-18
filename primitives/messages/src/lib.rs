@@ -42,7 +42,7 @@ pub use frame_support::weights::Weight;
 pub enum OperatingMode {
 	/// Normal mode, when all operations are allowed.
 	Normal,
-	/// The pallet is not accepting outbound messages. Inbound messages and receival proofs
+	/// The pallet is not accepting outbound messages. Inbound messages and receiving proofs
 	/// are still accepted.
 	///
 	/// This mode may be used e.g. when bridged chain expects upgrade. Then to avoid dispatch
