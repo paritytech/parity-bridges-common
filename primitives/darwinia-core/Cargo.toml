@@ -1,0 +1,34 @@
+[package]
+authors     = ["Darwinia Network <hello@darwinia.network>"]
+description = "Primitives of Darwinia-like runtime."
+edition     = "2021"
+license     = "GPL-3.0"
+name        = "bp-darwinia-core"
+version     = "0.1.0"
+
+[dependencies]
+# crates.io
+parity-scale-codec = { version = "3.0.0", default-features = false, features = ["derive"] }
+scale-info         = { version = "2.0.1", default-features = false, features = ["derive"] }
+# paritytech
+bp-messages   = { path = "../messages", default-features = false }
+bp-runtime    = { path = "../runtime", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-system  = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-core       = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+	# crates.io
+	"parity-scale-codec/std",
+	"scale-info/std",
+	# paritytech
+	"bp-messages/std",
+	"bp-runtime/std",
+	"frame-support/std",
+	"frame-system/std",
+	"sp-core/std",
+	"sp-runtime/std",
+]
