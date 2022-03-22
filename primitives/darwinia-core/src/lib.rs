@@ -77,6 +77,13 @@ mod copy_paste_from_darwinia {
 	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 	pub const HOURS: BlockNumber = 60 * MINUTES;
 	pub const DAYS: BlockNumber = 24 * HOURS;
+
+	pub const NANO: Balance = 1;
+	pub const MICRO: Balance = 1_000 * NANO;
+	pub const MILLI: Balance = 1_000 * MICRO;
+	pub const COIN: Balance = 1_000 * MILLI;
+
+	pub const GWEI: Balance = 1_000_000_000;
 }
 pub use copy_paste_from_darwinia::*;
 
@@ -91,11 +98,13 @@ use bp_runtime::{Chain, EncodedOrDecodedCall, TransactionEraOf};
 use frame_support::{
 	unsigned::{TransactionValidityError, UnknownTransaction},
 	weights::{DispatchClass, Weight},
+	Blake2_128Concat, StorageHasher, Twox128,
 };
+use sp_core::H256;
 use sp_runtime::{
 	generic,
 	generic::Era,
-	traits::{DispatchInfoOf, Dispatchable, SignedExtension as SignedExtensionT},
+	traits::{Convert, DispatchInfoOf, Dispatchable, SignedExtension as SignedExtensionT},
 	RuntimeDebug,
 };
 

@@ -834,6 +834,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-pangolin"
+version = "0.1.0"
+dependencies = [
+ "bp-darwinia-core",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "smallvec",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
+]
+
+[[package]]
 name = "bp-polkadot"
 version = "0.1.0"
 dependencies = [
