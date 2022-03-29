@@ -515,6 +515,11 @@ dependencies = [
 name = "beefy-merkle-tree"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#89fcb3e4f62d221d4e161a437768e77d6265889e"
+dependencies = [
+ "hex",
+ "log",
+ "tiny-keccak",
+]
 
 [[package]]
 name = "beefy-primitives"
@@ -730,6 +735,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b47cca82fca99417fe405f09d93bb8fff90bdd03d13c631f18096ee123b4281c"
 dependencies = [
  "thiserror",
+]
+
+[[package]]
+name = "bp-beefy"
+version = "0.1.0"
+dependencies = [
+ "beefy-merkle-tree",
+ "beefy-primitives",
+ "bp-runtime",
+ "frame-support",
+ "pallet-mmr",
+ "pallet-mmr-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -5705,6 +5726,25 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-bridge-beefy"
+version = "0.1.0"
+dependencies = [
+ "beefy-merkle-tree",
+ "beefy-primitives",
+ "bp-beefy",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -11851,6 +11891,15 @@ dependencies = [
  "unicode-normalization",
  "wasm-bindgen",
  "zeroize",
+]
+
+[[package]]
+name = "tiny-keccak"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
+dependencies = [
+ "crunchy",
 ]
 
 [[package]]
