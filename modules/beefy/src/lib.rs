@@ -132,10 +132,26 @@ pub mod pallet {
 			)?;
 
 			// MMR proof verification
-			let mmr_proof =
-				BeefyMmrProof::decode(&mut &encoded_mmr_proof[..]).expect("TODO: fixme");
+			let mmr_proof = BeefyMmrProof::decode(&mut &encoded_mmr_proof[..])
+				.map_err(|e| {
+					log::error!(
+						target: "runtime::bridge-beefy",
+						"MMR proof decode has failed with error: {:?}",
+						e,
+					);
+
+					Error::<T, I>::FailedToDecodeArgument
+				})?;
 			let mmr_leaf = BridgedBeefyMmrLeaf::<T, I>::decode(&mut &encoded_mmr_leaf[..])
-				.expect("TODO: fixme");
+				.map_err(|e| {
+					log::error!(
+						target: "runtime::bridge-beefy",
+						"MMR leaf decode has failed with error: {:?}",
+						e,
+					);
+
+					Error::<T, I>::FailedToDecodeArgument
+				})?;
 			let mmr_leaf_artifacts = leaf::verify_beefy_mmr_leaf::<T, I>(
 				&validators,
 				&mmr_leaf,
