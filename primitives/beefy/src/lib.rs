@@ -43,13 +43,13 @@ pub trait ChainWithBeefy: Chain {
 	/// Corresponds to the hasing algorithm, used `beefy_gadget::BeefyKeystore`.
 	type CommitmentHasher: sp_runtime::traits::Hash;
 
-	// TODO: are MMR hasher and merkle hasher always the same? Shall we provide additional config
-	// field?
-
 	/// Hash algorithm used to build MMR.
 	///
 	/// Corresponds to the `Hashing` field` of the `pallet-mmr` configuration. In BEEFY+MMR
 	/// bundle, its output is hardcoded to be `H256` (see `beefy_merkle_tree::Hash` trait).
+	///
+	/// The same algorithm is also used to compute merkle roots in BEEFY - e.g. `parachain_heads`
+	/// and validator publics root in leaf data.
 	type MmrHasher: beefy_merkle_tree::Hasher;
 
 	/// A way to identify BEEFY validator and verify its signature.
