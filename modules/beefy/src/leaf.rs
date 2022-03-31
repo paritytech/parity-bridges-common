@@ -28,7 +28,9 @@ use bp_beefy::{
 };
 use codec::Encode;
 use frame_support::ensure;
+use scale_info::TypeInfo;
 use sp_runtime::{traits::Convert, RuntimeDebug};
+use sp_std::marker::PhantomData;
 
 /// Artifacts of MMR leaf proof verification.
 #[derive(RuntimeDebug)]
@@ -49,7 +51,7 @@ pub fn verify_beefy_mmr_leaf<T: Config<I>, I: 'static>(
 	mmr_root: BeefyMmrHash,
 ) -> Result<BeefyMmrLeafVerificationArtifacts<T, I>, Error<T, I>>
 where
-	BridgedBeefyMmrHasher<T, I>: sp_runtime::traits::Hash<Output = BeefyMmrHash>,
+	BridgedBeefyMmrHasher<T, I>: 'static + Send + Sync,
 {
 	// TODO: ensure!(mmr_leaf.leaf().version == T::MmrLeafVersion::get(), Error::<T,
 	// I>::UnsupportedMmrLeafVersion); TODO: is it the right condition? can id is increased by say
@@ -69,11 +71,10 @@ where
 	// verify mmr proof for the provided leaf
 	let mmr_leaf_hash =
 		<BridgedBeefyMmrHasher<T, I> as bp_beefy::BeefyMmrHasher>::hash(&mmr_leaf.leaf().encode());
-	verify_mmr_leaf_proof::<BridgedBeefyMmrHasher<T, I>, BridgedBeefyMmrLeaf<T, I>>(
-		mmr_root,
-		MmrDataOrHash::Hash(mmr_leaf_hash),
-		mmr_proof,
-	)
+	verify_mmr_leaf_proof::<
+		BridgedBeefyMmrHasherAdapter<BridgedBeefyMmrHasher<T, I>>,
+		BridgedBeefyMmrLeaf<T, I>,
+	>(mmr_root, MmrDataOrHash::Hash(mmr_leaf_hash), mmr_proof)
 	.map_err(|e| {
 		log::error!(
 			target: "runtime::bridge-beefy",
@@ -119,4 +120,62 @@ where
 		parent_number_and_hash: mmr_leaf.leaf().parent_number_and_hash,
 		next_validators,
 	})
+}
+
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+struct BridgedBeefyMmrHasherAdapter<H>(PhantomData<H>);
+
+#[cfg(feature = "std")]
+impl<H> sp_std::fmt::Debug for BridgedBeefyMmrHasherAdapter<H> {
+	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+		write!(f, "BridgedBeefyMmrHasherAdapter")
+	}
+}
+
+impl<H> Eq for BridgedBeefyMmrHasherAdapter<H> {}
+
+impl<H> PartialEq<BridgedBeefyMmrHasherAdapter<H>> for BridgedBeefyMmrHasherAdapter<H> {
+	fn eq(&self, _: &Self) -> bool {
+		true
+	}
+}
+
+impl<H> Clone for BridgedBeefyMmrHasherAdapter<H> {
+	fn clone(&self) -> Self {
+		BridgedBeefyMmrHasherAdapter(Default::default())
+	}
+}
+
+impl<H> sp_core::Hasher for BridgedBeefyMmrHasherAdapter<H>
+where
+	H: beefy_merkle_tree::Hasher + Send + Sync,
+{
+	type Out = BeefyMmrHash;
+	type StdHasher = hash256_std_hasher::Hash256StdHasher;
+	const LENGTH: usize = 32;
+
+	fn hash(s: &[u8]) -> Self::Out {
+		H::hash(s)
+	}
+}
+
+impl<H> sp_runtime::traits::Hash for BridgedBeefyMmrHasherAdapter<H>
+where
+	H: 'static + beefy_merkle_tree::Hasher + Send + Sync,
+{
+	type Output = BeefyMmrHash;
+
+	fn ordered_trie_root(
+		input: Vec<Vec<u8>>,
+		state_version: sp_runtime::StateVersion,
+	) -> Self::Output {
+		unreachable!("TODO: do we need this?")
+	}
+
+	fn trie_root(
+		input: Vec<(Vec<u8>, Vec<u8>)>,
+		state_version: sp_runtime::StateVersion,
+	) -> Self::Output {
+		unreachable!("TODO: do we need this?")
+	}
 }

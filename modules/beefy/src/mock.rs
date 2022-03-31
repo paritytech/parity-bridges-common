@@ -15,21 +15,38 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate as beefy;
+use crate::{
+	BridgedBeefyCommitmentHasher, BridgedBeefyMmrHasher, BridgedBeefyMmrLeaf,
+	BridgedBeefySignedCommitment, BridgedBeefyValidatorSet,
+};
 
-use bp_beefy::ChainWithBeefy;
+use bp_beefy::{BeefyMmrHash, ChainWithBeefy, Commitment, MmrDataOrHash, SignedCommitment};
 use bp_runtime::Chain;
+use codec::Encode;
 use frame_support::{construct_runtime, parameter_types, weights::Weight};
+use libsecp256k1::{sign, Message, PublicKey, SecretKey};
 use sp_core::sr25519::Signature;
 use sp_runtime::{
 	testing::{Header, H256},
-	traits::{BlakeTwo256, IdentityLookup},
+	traits::{BlakeTwo256, Hash, IdentityLookup},
 	Perbill,
 };
+use std::{collections::BTreeSet, marker::PhantomData};
 
 pub use beefy_primitives::crypto::AuthorityId as BeefyId;
 
 pub type AccountId = u64;
 pub type BridgedBlockNumber = u64;
+pub type BridgedBlockHash = H256;
+pub type BridgedHeader = Header;
+pub type BridgedCommitment = BridgedBeefySignedCommitment<TestRuntime, ()>;
+pub type BridgedValidatorSet = BridgedBeefyValidatorSet<TestRuntime, ()>;
+pub type BridgedCommitmentHasher = BridgedBeefyCommitmentHasher<TestRuntime, ()>;
+pub type BridgedMmrHasher = BridgedBeefyMmrHasher<TestRuntime, ()>;
+pub type BridgedMmrLeaf = BridgedBeefyMmrLeaf<TestRuntime, ()>;
+pub type BridgedRawMmrLeaf =
+	beefy_primitives::mmr::MmrLeaf<BridgedBlockNumber, BridgedBlockHash, BeefyMmrHash>;
+pub type BridgedMmrNode = MmrDataOrHash<sp_runtime::traits::Keccak256, BridgedRawMmrLeaf>;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
@@ -112,6 +129,55 @@ impl ChainWithBeefy for TestBridgedChain {
 	type ValidatorIdToMerkleLeaf = ();
 }
 
+/// Run test within test runtime.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
+}
+
+/// Return secret of validator with given index.
+pub fn validator_key(index: usize) -> SecretKey {
+	let mut raw_secret = [1u8; 32];
+	raw_secret[0..8].copy_from_slice(&(index as u64).encode());
+	SecretKey::parse(&raw_secret).expect("only zero key is invalid; qed")
+}
+
+/// Convert validator secret to public.
+pub fn validator_key_to_public(key: SecretKey) -> PublicKey {
+	PublicKey::from_secret_key(&key)
+}
+
+/// Return secrets of validators, starting at given index.
+pub fn validator_keys(index: usize, size: usize) -> Vec<SecretKey> {
+	(index..index + size).map(validator_key).collect()
+}
+
+/// Sign BEEFY commitment.
+pub fn sign_commitment(
+	commitment: Commitment<BridgedBlockNumber>,
+	validator_keys: &[SecretKey],
+) -> BridgedCommitment {
+	let total_validators = validator_keys.len();
+	let signatures_required = crate::commitment::signatures_required(total_validators);
+	let random_validators =
+		rand::seq::index::sample(&mut rand::thread_rng(), total_validators, signatures_required)
+			.into_iter()
+			.collect::<BTreeSet<_>>();
+
+	let commitment_hash =
+		Message::parse(BridgedCommitmentHasher::hash(&commitment.encode()).as_fixed_bytes());
+	let mut signatures = vec![None; total_validators];
+	for validator in 0..total_validators {
+		if !random_validators.contains(&validator) {
+			continue
+		}
+
+		let validator_key = &validator_keys[validator];
+		let (signature, recovery_id) = sign(&commitment_hash, validator_key);
+		let mut raw_signature_with_recovery = [recovery_id.serialize(); 65];
+		raw_signature_with_recovery[..64].copy_from_slice(&signature.serialize());
+		signatures[validator] =
+			Some(sp_core::ecdsa::Signature::from_raw(raw_signature_with_recovery).into());
+	}
+
+	BridgedCommitment { commitment, signatures }
 }

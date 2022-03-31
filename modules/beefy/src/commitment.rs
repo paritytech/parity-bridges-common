@@ -86,7 +86,7 @@ pub fn verify_beefy_signed_commitment<T: Config<I>, I: 'static>(
 /// Number of correct signatures, required from given validators set to accept signed commitment.
 ///
 /// We're using 'conservative' approach here, where signatures of `2/3+1` validators are required..
-fn signatures_required(validators_len: usize) -> usize {
+pub(crate) fn signatures_required(validators_len: usize) -> usize {
 	validators_len - validators_len.saturating_sub(1) / 3
 }
 

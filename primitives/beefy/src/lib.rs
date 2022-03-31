@@ -21,7 +21,8 @@
 
 pub use beefy_merkle_tree::{merkle_root as beefy_merkle_root, Hasher as BeefyMmrHasher};
 pub use beefy_primitives::{
-	known_payload_ids::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID, SignedCommitment, ValidatorSet,
+	known_payload_ids::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID, Commitment, Payload as BeefyPayload,
+	SignedCommitment, ValidatorSet, ValidatorSetId,
 };
 pub use pallet_mmr::verify_leaf_proof as verify_mmr_leaf_proof;
 pub use pallet_mmr_primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};
@@ -102,6 +103,12 @@ pub type BeefyMmrHash = beefy_merkle_tree::Hash;
 /// A way to convert validator id to its raw representation in the BEEFY merkle tree, used by given
 /// Substrate chain.
 pub type BeefyValidatorIdToMerkleLeafOf<C> = <C as ChainWithBeefy>::ValidatorIdToMerkleLeaf;
+
+/// Actual type of leafs in the BEEFY MMR.
+pub type RawBeefyMmrLeafOf<C> =
+	beefy_primitives::mmr::MmrLeaf<BlockNumberOf<C>, HashOf<C>, BeefyMmrHash>;
+
+// TODO: find a better name for that to avoid confusion with actual leaf data
 
 /// MMR leaf with unpacked validators set when they're changed.
 ///

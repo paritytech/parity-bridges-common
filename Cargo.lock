@@ -5736,15 +5736,21 @@ dependencies = [
  "beefy-primitives",
  "bp-beefy",
  "bp-runtime",
+ "ckb-merkle-mountain-range",
  "frame-support",
  "frame-system",
+ "hash256-std-hasher",
+ "libsecp256k1",
  "log",
+ "pallet-mmr",
  "parity-scale-codec",
+ "rand 0.8.5",
  "scale-info",
  "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
