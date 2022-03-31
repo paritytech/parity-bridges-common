@@ -257,6 +257,8 @@ mod tests {
 			BestBlockNumber::<TestRuntime, ()>::put(0);
 			CurrentValidatorSet::<TestRuntime, ()>::put(validator_set);
 
+			let _ = env_logger::try_init();
+
 			let chain = ChainBuilder::new(32)
 				.append_default_headers(16)
 				.append_finalized_header()

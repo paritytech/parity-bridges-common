@@ -64,11 +64,23 @@ pub fn verify_beefy_signed_commitment<T: Config<I>, I: 'static>(
 	for (validator_index, signature) in commitment.signatures.iter().enumerate() {
 		if let Some(signature) = signature {
 			let validator_public = &validators.validators()[validator_index];
+			// TODO: this is not correct - verify is hashing `commitment_hash` itself with
+			// blake2_256 we shall use `verify_prehashed` instead. The problem is that the
+			// `RuntimeAppPublic` doesn't have this method :( So we need to change to something like
+			// `RiuntimeAppPublicWithVerifyPrehashed` and impl it at least for ECDSA
 			if validator_public.verify(&commitment_hash, signature) {
 				correct_signatures += 1;
 				if correct_signatures >= correct_signatures_required {
 					break
 				}
+			} else {
+				log::debug!(
+					target: "runtime::bridge-beefy",
+					"Signed commitment contains incorrect signature of validator {} ({:?}): {:?}",
+					validator_index,
+					validator_public,
+					signature,
+				);
 			}
 		}
 	}

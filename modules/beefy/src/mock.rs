@@ -175,6 +175,14 @@ pub fn sign_commitment(
 		let (signature, recovery_id) = sign(&commitment_hash, validator_key);
 		let mut raw_signature_with_recovery = [recovery_id.serialize(); 65];
 		raw_signature_with_recovery[..64].copy_from_slice(&signature.serialize());
+		log::trace!(
+			target: "runtime::bridge-beefy",
+			"Validator {} ({:?}) has signed commitment hash ({:?}): {:?}",
+			validator,
+			hex::encode(validator_key_to_public(validator_key.clone()).serialize_compressed()),
+			hex::encode(commitment_hash.serialize()),
+			hex::encode(signature.serialize()),
+		);
 		signatures[validator] =
 			Some(sp_core::ecdsa::Signature::from_raw(raw_signature_with_recovery).into());
 	}
