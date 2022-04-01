@@ -20,7 +20,8 @@
 
 use crate::{
 	BridgedBeefyMmrHasher, BridgedBeefyMmrLeaf, BridgedBeefyValidatorIdToMerkleLeaf,
-	BridgedBeefyValidatorSet, BridgedBlockHash, BridgedBlockNumber, Config, Error,
+	BridgedBeefyValidatorSet, BridgedBlockHash, BridgedBlockNumber, BridgedRawBeefyMmrLeaf, Config,
+	Error,
 };
 
 use bp_beefy::{
@@ -53,13 +54,15 @@ pub fn verify_beefy_mmr_leaf<T: Config<I>, I: 'static>(
 where
 	BridgedBeefyMmrHasher<T, I>: 'static + Send + Sync,
 {
-	// TODO: ensure!(mmr_leaf.leaf().version == T::MmrLeafVersion::get(), Error::<T, I>::UnsupportedMmrLeafVersion);
+	// TODO: ensure!(mmr_leaf.leaf().version == T::MmrLeafVersion::get(), Error::<T,
+	// I>::UnsupportedMmrLeafVersion);
 
 	// TODO: is it the right condition? can id is increased by say +3?
 	let is_updating_validator_set =
 		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 2;
 	ensure!(
-		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 1 || is_updating_validator_set,
+		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 1 ||
+			is_updating_validator_set,
 		Error::<T, I>::InvalidNextValidatorsSetId,
 	);
 	// technically it is not an error, but we'd like to reduce tx size on real chains
@@ -69,16 +72,24 @@ where
 	);
 
 	// verify mmr proof for the provided leaf
+	let mmr_proof_leaf_index = mmr_proof.leaf_index;
+	let mmr_proof_leaf_count = mmr_proof.leaf_count;
+	let mmr_proof_length = mmr_proof.items.len();
 	let mmr_leaf_hash =
 		<BridgedBeefyMmrHasher<T, I> as bp_beefy::BeefyMmrHasher>::hash(&mmr_leaf.leaf().encode());
 	verify_mmr_leaf_proof::<
 		BridgedBeefyMmrHasherAdapter<BridgedBeefyMmrHasher<T, I>>,
-		BridgedBeefyMmrLeaf<T, I>,
+		MmrDataOrHash<BridgedBeefyMmrHasherAdapter<BridgedBeefyMmrHasher<T, I>>, BridgedRawBeefyMmrLeaf<T, I>>,
 	>(mmr_root, MmrDataOrHash::Hash(mmr_leaf_hash), mmr_proof)
 	.map_err(|e| {
 		log::error!(
 			target: "runtime::bridge-beefy",
-			"MMR proof verification has failed with error: {:?}",
+			"MMR proof of leaf {:?} (root: {:?} leaf: {} total: {} len: {}) verification has failed with error: {:?}",
+			mmr_leaf_hash,
+			mmr_root,
+			mmr_proof_leaf_index,
+			mmr_proof_leaf_count,
+			mmr_proof_length,
 			e,
 		);
 

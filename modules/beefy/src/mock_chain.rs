@@ -110,7 +110,7 @@ impl ChainBuilder {
 			Commitment {
 				payload: BeefyPayload::new(
 					MMR_ROOT_PAYLOAD_ID,
-					self.mmr.get_root().expect("TODO").encode(),
+					self.mmr.get_root().expect("TODO").hash().encode(),
 				),
 				block_number: *last_header.header.number(),
 				validator_set_id: self.validator_set_id,
@@ -137,7 +137,7 @@ impl ChainBuilder {
 			Commitment {
 				payload: BeefyPayload::new(
 					MMR_ROOT_PAYLOAD_ID,
-					self.mmr.get_root().expect("TODO").encode(),
+					self.mmr.get_root().expect("TODO").hash().encode(),
 				),
 				block_number: *last_header.header.number(),
 				validator_set_id: self.validator_set_id,
@@ -172,7 +172,7 @@ impl ChainBuilder {
 		next_validator_keys: Vec<SecretKey>,
 	) -> Self {
 		let header = HeaderAndCommitment::new(
-			self.headers.len() as BridgedBlockNumber + 1,
+			self.headers.len() as BridgedBlockNumber,
 			self.headers.last().map(|h| h.header.hash()).unwrap_or_default(),
 		);
 		let raw_leaf = beefy_primitives::mmr::MmrLeaf {
@@ -188,11 +188,18 @@ impl ChainBuilder {
 			},
 			parachain_heads: Default::default(), // TODO
 		};
-		let leaf_index = self.mmr.push(BridgedMmrNode::Data(raw_leaf.clone())).expect("TODO");
+		let node = BridgedMmrNode::Data(raw_leaf.clone());
+		log::trace!(
+			target: "runtime::bridge-beefy",
+			"Inserting MMR leaf with hash {} for header {}",
+			node.hash(),
+			header.header.number(),
+		);
+		let leaf_position = self.mmr.push(node).expect("TODO");
 		self.headers.push(header);
 
 		let last_header = self.headers.last_mut().expect("added one line above; qed");
-		let proof = self.mmr.gen_proof(vec![leaf_index]).expect("TODO");
+		let proof = self.mmr.gen_proof(vec![leaf_position]).expect("TODO");
 		last_header.leaf = Some(if !handoff {
 			BridgedMmrLeaf::Regular(raw_leaf)
 		} else {
@@ -209,11 +216,23 @@ impl ChainBuilder {
 					.collect(),
 			)
 		});
+		let leaf_index = *last_header.header.number();
+		let leaf_count = *last_header.header.number() + 1;
+		let proof_size = proof.proof_items().len();
 		last_header.leaf_proof = Some(MmrProof {
 			leaf_index,
-			leaf_count: proof.mmr_size(),
+			leaf_count,
 			items: proof.proof_items().iter().map(|i| i.hash().to_fixed_bytes()).collect(),
 		});
+		log::trace!(
+			target: "runtime::bridge-beefy",
+			"Proof of leaf {}/{} (for header {}) has {} items. Root: {}",
+			leaf_index,
+			leaf_count,
+			last_header.header.number(),
+			proof_size,
+			self.mmr.get_root().expect("TODO").hash(),
+		);
 
 		self
 	}

@@ -61,6 +61,8 @@ pub type BridgedBeefySignedCommitment<T, I> = bp_beefy::BeefySignedCommitmentOf<
 pub type BridgedBeefyMmrHasher<T, I> = bp_beefy::BeefyMmrHasherOf<BridgedChain<T, I>>;
 /// MMR leaf type, used by configured bridged chain.
 pub type BridgedBeefyMmrLeaf<T, I> = bp_beefy::BeefyMmrLeafOf<BridgedChain<T, I>>;
+/// TODO
+pub type BridgedRawBeefyMmrLeaf<T, I> = bp_beefy::RawBeefyMmrLeafOf<BridgedChain<T, I>>;
 /// A way to encode validator id to the BEEFY merkle tree leaf.
 pub type BridgedBeefyValidatorIdToMerkleLeaf<T, I> =
 	bp_beefy::BeefyValidatorIdToMerkleLeafOf<BridgedChain<T, I>>;
