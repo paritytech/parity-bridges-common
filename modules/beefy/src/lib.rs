@@ -168,6 +168,12 @@ pub mod pallet {
 			// TODO: store parent header number => hash to eb able to verify header-based proofs
 			// TODO: store MMR root + parachain heads root for verifying later proofs
 
+			log::info!(
+				target: "runtime::bridge-beefy",
+				"Successfully imported commitment for block {:?}",
+				commitment.commitment.block_number,
+			);
+
 			Ok(())
 		}
 	}

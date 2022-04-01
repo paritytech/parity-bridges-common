@@ -53,13 +53,13 @@ pub fn verify_beefy_mmr_leaf<T: Config<I>, I: 'static>(
 where
 	BridgedBeefyMmrHasher<T, I>: 'static + Send + Sync,
 {
-	// TODO: ensure!(mmr_leaf.leaf().version == T::MmrLeafVersion::get(), Error::<T,
-	// I>::UnsupportedMmrLeafVersion); TODO: is it the right condition? can id is increased by say
-	// +2?
+	// TODO: ensure!(mmr_leaf.leaf().version == T::MmrLeafVersion::get(), Error::<T, I>::UnsupportedMmrLeafVersion);
+
+	// TODO: is it the right condition? can id is increased by say +3?
 	let is_updating_validator_set =
-		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 1;
+		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 2;
 	ensure!(
-		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() || is_updating_validator_set,
+		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 1 || is_updating_validator_set,
 		Error::<T, I>::InvalidNextValidatorsSetId,
 	);
 	// technically it is not an error, but we'd like to reduce tx size on real chains
