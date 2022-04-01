@@ -80,19 +80,36 @@ pub trait BeefyRuntimeAppPublic<CommitmentHash>: RuntimeAppPublic {
 	fn verify_prehashed(&self, sig: &Self::Signature, msg_hash: &CommitmentHash) -> bool;
 }
 
+// this implementation allows to bridge with BEEFY chains, that are using default (eth-compatible) BEEFY configuration
 impl BeefyRuntimeAppPublic<H256> for beefy_primitives::crypto::AuthorityId {
 	fn verify_prehashed(&self, sig: &Self::Signature, msg_hash: &H256) -> bool {
-		// TODO: is there a better way to do that? probably add something to app_crypto!?
-		let ecdsa_signature = sp_core::ecdsa::Signature::try_from(sig.as_ref());
-		let ecdsa_public = sp_core::ecdsa::Public::try_from(self.as_ref());
-		match (ecdsa_signature, ecdsa_public) {
-			(Ok(ecdsa_signature), Ok(ecdsa_public)) => sp_io::crypto::ecdsa_verify_prehashed(
-				&ecdsa_signature,
-				msg_hash.as_fixed_bytes(),
-				&ecdsa_public,
-			),
-			_ => false,
-		}
+		use sp_application_crypto::AppKey;
+		static_assertions::assert_type_eq_all!(
+			<<beefy_primitives::crypto::AuthorityId as RuntimeAppPublic>::Signature as AppKey>::UntypedGeneric,
+			sp_core::ecdsa::Signature,
+		);
+		static_assertions::assert_type_eq_all!(
+			<beefy_primitives::crypto::AuthorityId as AppKey>::UntypedGeneric,
+			sp_core::ecdsa::Public,
+		);
+
+		// why it is here:
+		//
+		// 1) we need to call `sp_io::crypto::ecdsa_verify_prehashed` to be sure that the host function is
+		//    used to verify signature;
+		// 2) there's no explicit conversions from app-crypto sig+key types to matching underlying types;
+		// 3) `ecdsa_verify_prehashed` works with underlying ECDSA types;
+		// 4) hence this "convert".
+		const PROOF: &'static str = "static assertion guarantees that both underlying types are equal; \
+			conversion between same types can't fail; \
+			qed";
+		let ecdsa_signature = sp_core::ecdsa::Signature::try_from(sig.as_ref()).expect(PROOF);
+		let ecdsa_public = sp_core::ecdsa::Public::try_from(self.as_ref()).expect(PROOF);
+		sp_io::crypto::ecdsa_verify_prehashed(
+			&ecdsa_signature,
+			msg_hash.as_fixed_bytes(),
+			&ecdsa_public,
+		),
 	}
 }
 

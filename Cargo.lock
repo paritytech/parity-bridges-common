@@ -749,10 +749,12 @@ dependencies = [
  "pallet-mmr-primitives",
  "parity-scale-codec",
  "scale-info",
+ "sp-application-crypto",
  "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "static_assertions",
 ]
 
 [[package]]

@@ -9,6 +9,7 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "bit-vec"] }
 scale-info = { version = "2.0.1", default-features = false, features = ["bit-vec", "derive"] }
+static_assertions = "1.1"
 
 # Bridge Dependencies
 
@@ -21,6 +22,7 @@ beefy-primitives = { git = "https://github.com/paritytech/substrate", branch = "
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-mmr = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-mmr-primitives = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -36,6 +38,7 @@ std = [
 	"pallet-mmr/std",
 	"pallet-mmr-primitives/std",
 	"scale-info/std",
+	"sp-application-crypto/std",
 	"sp-core/std",
 	"sp-io/std",
 	"sp-runtime/std",
