@@ -24,16 +24,16 @@
 //!
 //! - header hashes;
 //! - changes of BEEFY authorities;
-//! - heads of parachains (when bridged with relay chain and properly configured).
+//! - extra data of MMR leafs (e.g. parachains heads when bridged with relay chain and properly configured).
 //!
 //! Given the header hash (and parachain heads), other pallets are able to verify header-based
 //! proofs. For example - storage proofs, transaction inclustion proofs, ...There are two options to
 //! do that:
 //!
 //! - the cheap option only works when proof is header-proof is based on some recent header. Then
-//!   the submitter may relay on the fact that the pallet (if configured to support that) is storing
-//!   hashes of the most recent bridged headers. Then you may ensure that the provided header is
-//!   valid by checking that the `RecentHeaderHashes` map contains an entry for your header.
+//!   the submitter may relay on the fact that the pallet is storing hashes of the most recent bridged
+//!   headers. Then you may ensure that the provided header is valid by checking that the `RecentHeaderHashes`
+//!   map contains an entry for your header.
 //! - the expensive option works for any header that is "covered" with MMR. The proof then must
 //!   include MMR proof for leaf, corresponding to the header and the header itself.
 
