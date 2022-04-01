@@ -30,6 +30,7 @@ pub use pallet_mmr_primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};
 use bp_runtime::{BlockNumberOf, Chain, HashOf};
 use codec::{Codec, Decode, Encode};
 use scale_info::TypeInfo;
+use sp_core::H256;
 use sp_runtime::{app_crypto::RuntimeAppPublic, traits::Convert, RuntimeDebug};
 use sp_std::fmt::Debug;
 
@@ -56,13 +57,43 @@ pub trait ChainWithBeefy: Chain {
 	/// A way to identify BEEFY validator and verify its signature.
 	///
 	/// Corresponds to the `BeefyId` field of the `pallet-beefy` configuration.
-	type ValidatorId: Clone + Codec + Debug + PartialEq + RuntimeAppPublic + TypeInfo;
+	type ValidatorId: BeefyRuntimeAppPublic<<Self::CommitmentHasher as sp_runtime::traits::Hash>::Output>
+		+ Clone
+		+ Codec
+		+ Debug
+		+ PartialEq
+		+ TypeInfo;
 
 	/// A way to convert validator id to its raw representation in the BEEFY merkle tree.
 	///
 	/// Corresponds to the `BeefyAuthorityToMerkleLeaf` field of the `pallet-beefy-mmr`
 	/// configuration.
 	type ValidatorIdToMerkleLeaf: Convert<Self::ValidatorId, Vec<u8>>;
+}
+
+/// Extended vesion of `RuntimeAppPublic`, which is able to verify signature of prehashed
+/// message. Regular `RuntimeAppPublic` is hasing message itself (using `blake2`), which
+/// is not how things work in BEEFY.
+pub trait BeefyRuntimeAppPublic<CommitmentHash>: RuntimeAppPublic {
+	/// Verify a signature on a pre-hashed message. Return `true` if the signature is valid
+	/// and thus matches the given `public` key.
+	fn verify_prehashed(&self, sig: &Self::Signature, msg_hash: &CommitmentHash) -> bool;
+}
+
+impl BeefyRuntimeAppPublic<H256> for beefy_primitives::crypto::AuthorityId {
+	fn verify_prehashed(&self, sig: &Self::Signature, msg_hash: &H256) -> bool {
+		// TODO: is there a better way to do that? probably add something to app_crypto!?
+		let ecdsa_signature = sp_core::ecdsa::Signature::try_from(sig.as_ref());
+		let ecdsa_public = sp_core::ecdsa::Public::try_from(self.as_ref());
+		match (ecdsa_signature, ecdsa_public) {
+			(Ok(ecdsa_signature), Ok(ecdsa_public)) => sp_io::crypto::ecdsa_verify_prehashed(
+				&ecdsa_signature,
+				msg_hash.as_fixed_bytes(),
+				&ecdsa_public,
+			),
+			_ => false,
+		}
+	}
 }
 
 /// BEEFY validator id used by given Substrate chain.

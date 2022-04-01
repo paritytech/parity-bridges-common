@@ -21,10 +21,10 @@ use crate::{
 	BridgedBlockNumber, Config, Error,
 };
 
-use bp_beefy::BeefyMmrHash;
+use bp_beefy::{BeefyMmrHash, BeefyRuntimeAppPublic};
 use codec::Encode;
 use frame_support::ensure;
-use sp_runtime::{traits::Hash, RuntimeAppPublic, RuntimeDebug};
+use sp_runtime::{traits::Hash, RuntimeDebug};
 
 /// Artifacts of BEEFY commitment verification.
 #[derive(RuntimeDebug)]
@@ -64,11 +64,7 @@ pub fn verify_beefy_signed_commitment<T: Config<I>, I: 'static>(
 	for (validator_index, signature) in commitment.signatures.iter().enumerate() {
 		if let Some(signature) = signature {
 			let validator_public = &validators.validators()[validator_index];
-			// TODO: this is not correct - verify is hashing `commitment_hash` itself with
-			// blake2_256 we shall use `verify_prehashed` instead. The problem is that the
-			// `RuntimeAppPublic` doesn't have this method :( So we need to change to something like
-			// `RiuntimeAppPublicWithVerifyPrehashed` and impl it at least for ECDSA
-			if validator_public.verify(&commitment_hash, signature) {
+			if validator_public.verify_prehashed(signature, &commitment_hash) {
 				correct_signatures += 1;
 				if correct_signatures >= correct_signatures_required {
 					break
