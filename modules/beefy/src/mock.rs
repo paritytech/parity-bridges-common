@@ -17,7 +17,7 @@
 use crate as beefy;
 use crate::{
 	BridgedBeefyCommitmentHasher, BridgedBeefyMmrHasher, BridgedBeefyMmrLeaf,
-	BridgedBeefySignedCommitment, BridgedBeefyValidatorSet,
+	BridgedBeefySignedCommitment, BridgedBeefyValidatorIdToMerkleLeaf, BridgedBeefyValidatorSet,
 };
 
 use bp_beefy::{BeefyMmrHash, ChainWithBeefy, Commitment, MmrDataOrHash, SignedCommitment};
@@ -47,6 +47,7 @@ pub type BridgedMmrLeaf = BridgedBeefyMmrLeaf<TestRuntime, ()>;
 pub type BridgedRawMmrLeaf =
 	beefy_primitives::mmr::MmrLeaf<BridgedBlockNumber, BridgedBlockHash, BeefyMmrHash>;
 pub type BridgedMmrNode = MmrDataOrHash<sp_runtime::traits::Keccak256, BridgedRawMmrLeaf>;
+pub type BridgedValidatorIdToMerkleLeaf = BridgedBeefyValidatorIdToMerkleLeaf<TestRuntime, ()>;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
@@ -126,7 +127,7 @@ impl ChainWithBeefy for TestBridgedChain {
 	type CommitmentHasher = sp_runtime::traits::Keccak256;
 	type MmrHasher = beefy_merkle_tree::Keccak256;
 	type ValidatorId = BeefyId;
-	type ValidatorIdToMerkleLeaf = ();
+	type ValidatorIdToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
 }
 
 /// Run test within test runtime.

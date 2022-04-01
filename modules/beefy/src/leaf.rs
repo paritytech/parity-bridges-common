@@ -39,7 +39,7 @@ pub struct BeefyMmrLeafVerificationArtifacts<T: Config<I>, I: 'static> {
 	/// Block number and hash of the finalized block parent.
 	pub parent_number_and_hash: (BridgedBlockNumber<T, I>, BridgedBlockHash<T, I>),
 	/// Next validator set, if handoff is happening.
-	pub next_validators: Option<BridgedBeefyValidatorSet<T, I>>,
+	pub next_validator_set: Option<BridgedBeefyValidatorSet<T, I>>,
 }
 
 /// Verify MMR proof of given leaf.
@@ -97,7 +97,7 @@ where
 	})?;
 
 	// if new validators are provided, ensure that they match data from the leaf
-	let next_validators = if let Some(ref next_validators) = mmr_leaf.next_validators() {
+	let next_validator_set = if let Some(ref next_validators) = mmr_leaf.next_validators() {
 		ensure!(!next_validators.is_empty(), Error::<T, I>::EmptyNextValidatorSet);
 
 		let next_validator_addresses = next_validators
@@ -129,7 +129,7 @@ where
 
 	Ok(BeefyMmrLeafVerificationArtifacts {
 		parent_number_and_hash: mmr_leaf.leaf().parent_number_and_hash,
-		next_validators,
+		next_validator_set,
 	})
 }
 

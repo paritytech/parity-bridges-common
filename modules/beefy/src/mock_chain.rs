@@ -19,7 +19,7 @@
 use crate::mock::{
 	sign_commitment, validator_key_to_public, validator_keys, BridgedBlockHash, BridgedBlockNumber,
 	BridgedCommitment, BridgedCommitmentHasher, BridgedHeader, BridgedMmrHasher, BridgedMmrLeaf,
-	BridgedMmrNode, BridgedRawMmrLeaf, BridgedValidatorSet,
+	BridgedMmrNode, BridgedRawMmrLeaf, BridgedValidatorIdToMerkleLeaf, BridgedValidatorSet,
 };
 
 use beefy_primitives::mmr::{BeefyNextAuthoritySet, MmrLeafVersion};
@@ -30,7 +30,7 @@ use codec::Encode;
 use libsecp256k1::{sign, Message, SecretKey};
 use pallet_mmr::NodeIndex;
 use rand::Rng;
-use sp_runtime::traits::{Hash as _, Header as _};
+use sp_runtime::traits::{Convert as _, Hash as _, Header as _};
 use std::collections::{BTreeSet, HashMap};
 
 pub struct HeaderAndCommitment {
@@ -171,6 +171,18 @@ impl ChainBuilder {
 		next_validator_set_id: ValidatorSetId,
 		next_validator_keys: Vec<SecretKey>,
 	) -> Self {
+		let next_validator_publics = next_validator_keys
+			.into_iter()
+			.map(|k| {
+				sp_core::ecdsa::Public::from_raw(validator_key_to_public(k).serialize_compressed())
+					.into()
+			})
+			.collect::<Vec<_>>();
+		let next_validator_addresses = next_validator_publics
+			.iter()
+			.cloned()
+			.map(BridgedValidatorIdToMerkleLeaf::convert)
+			.collect::<Vec<_>>();
 		let header = HeaderAndCommitment::new(
 			self.headers.len() as BridgedBlockNumber,
 			self.headers.last().map(|h| h.header.hash()).unwrap_or_default(),
@@ -183,8 +195,10 @@ impl ChainBuilder {
 			),
 			beefy_next_authority_set: BeefyNextAuthoritySet {
 				id: next_validator_set_id,
-				len: next_validator_keys.len() as _,
-				root: Default::default(), // TODO
+				len: next_validator_publics.len() as _,
+				root: bp_beefy::beefy_merkle_root::<BridgedMmrHasher, _, _>(
+					next_validator_addresses,
+				),
 			},
 			parachain_heads: Default::default(), // TODO
 		};
@@ -203,18 +217,7 @@ impl ChainBuilder {
 		last_header.leaf = Some(if !handoff {
 			BridgedMmrLeaf::Regular(raw_leaf)
 		} else {
-			BridgedMmrLeaf::Handoff(
-				raw_leaf,
-				next_validator_keys
-					.into_iter()
-					.map(|k| {
-						sp_core::ecdsa::Public::from_raw(
-							validator_key_to_public(k).serialize_compressed(),
-						)
-						.into()
-					})
-					.collect(),
-			)
+			BridgedMmrLeaf::Handoff(raw_leaf, next_validator_publics)
 		});
 		let leaf_index = *last_header.header.number();
 		let leaf_count = *last_header.header.number() + 1;

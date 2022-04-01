@@ -129,6 +129,13 @@ pub mod pallet {
 
 						Error::<T, I>::FailedToDecodeArgument
 					})?;
+
+			log::trace!(
+				target: "runtime::bridge-beefy",
+				"Importing commitment for block {:?}",
+				commitment.commitment.block_number,
+			);
+
 			let commitment_artifacts = commitment::verify_beefy_signed_commitment::<T, I>(
 				best_block_number,
 				&validators,
@@ -164,8 +171,20 @@ pub mod pallet {
 
 			// update storage
 			BestBlockNumber::<T, I>::put(commitment.commitment.block_number);
-			if let Some(next_validators) = mmr_leaf_artifacts.next_validators {
-				CurrentValidatorSet::<T, I>::put(next_validators);
+			if let Some(new_next_validator_set) = mmr_leaf_artifacts.next_validator_set {
+				let next_validator_set =
+					NextValidatorSet::<T, I>::get().ok_or(Error::<T, I>::NotInitialized)?;
+				log::info!(
+					target: "runtime::bridge-beefy",
+					"Enacting new BEEFY validator set #{} with {} validators. Next validator set: #{} with {} validators.",
+					next_validator_set.id(),
+					next_validator_set.len(),
+					new_next_validator_set.id(),
+					new_next_validator_set.len(),
+				);
+
+				CurrentValidatorSet::<T, I>::put(next_validator_set);
+				NextValidatorSet::<T, I>::put(new_next_validator_set);
 			}
 			// TODO: store parent header number => hash to eb able to verify header-based proofs
 			// TODO: store MMR root + parachain heads root for verifying later proofs
@@ -187,9 +206,14 @@ pub mod pallet {
 	pub type BestBlockNumber<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, BridgedBlockNumber<T, I>>;
 
-	/// The current BEEFY validators set at the bridged chain.
+	/// Current BEEFY validators set at the bridged chain.
 	#[pallet::storage]
 	pub type CurrentValidatorSet<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, BridgedBeefyValidatorSet<T, I>>;
+
+	/// Next BEEFY validators set at the bridged chain.
+	#[pallet::storage]
+	pub type NextValidatorSet<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, BridgedBeefyValidatorSet<T, I>>;
 
 	// TODO: pallet owner + is halted
@@ -262,8 +286,19 @@ mod tests {
 				0,
 			)
 			.expect("TODO");
+			let next_validator_set = BridgedBeefyValidatorSet::<TestRuntime, ()>::new(
+				validator_keys(0, 32).into_iter().map(|k| {
+					sp_core::ecdsa::Public::from_raw(
+						validator_key_to_public(k).serialize_compressed(),
+					)
+					.into()
+				}),
+				1,
+			)
+			.expect("TODO");
 			BestBlockNumber::<TestRuntime, ()>::put(0);
 			CurrentValidatorSet::<TestRuntime, ()>::put(validator_set);
+			NextValidatorSet::<TestRuntime, ()>::put(next_validator_set);
 
 			let _ = env_logger::try_init();
 

@@ -5746,6 +5746,7 @@ dependencies = [
  "hex",
  "libsecp256k1",
  "log",
+ "pallet-beefy-mmr",
  "pallet-mmr",
  "parity-scale-codec",
  "rand 0.8.5",
