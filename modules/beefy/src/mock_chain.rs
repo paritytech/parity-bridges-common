@@ -33,6 +33,7 @@ use rand::Rng;
 use sp_runtime::traits::{Convert, Header as HeaderT};
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
 pub struct HeaderAndCommitment {
 	pub header: BridgedHeader,
 	pub commitment: Option<BridgedCommitment>,
@@ -63,6 +64,13 @@ pub struct ChainBuilder {
 	validator_keys: Vec<SecretKey>,
 	next_validator_keys: Vec<SecretKey>,
 	mmr: mmr_lib::MMR<BridgedMmrNode, BridgedMmrHashMerge, BridgedMmrStorage>,
+}
+
+impl From<ChainBuilder> for HeaderAndCommitment {
+	fn from(mut chain: ChainBuilder) -> HeaderAndCommitment {
+		assert_eq!(chain.headers.len(), 1);
+		chain.headers.remove(0)
+	}
 }
 
 impl From<ChainBuilder> for Vec<HeaderAndCommitment> {
@@ -99,6 +107,11 @@ impl ChainBuilder {
 			next_validator_keys: validator_keys(0, initial_validators_count),
 			mmr: mmr_lib::MMR::new(0, BridgedMmrStorage { nodes: HashMap::new() }),
 		}
+	}
+
+	/// Get header with given number.
+	pub fn header(&self, number: BridgedBlockNumber) -> HeaderAndCommitment {
+		self.headers[number as usize - 1].clone()
 	}
 
 	/// Appends header, that has been finalized by BEEFY (so it has a linked signed commitment).

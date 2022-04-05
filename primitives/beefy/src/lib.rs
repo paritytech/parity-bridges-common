@@ -21,8 +21,8 @@
 
 pub use beefy_merkle_tree::{merkle_root as beefy_merkle_root, Hasher as BeefyMmrHasher};
 pub use beefy_primitives::{
-	known_payload_ids::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID, Commitment, Payload as BeefyPayload,
-	SignedCommitment, ValidatorSet, ValidatorSetId,
+	known_payload_ids::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID, mmr::MmrLeafVersion, Commitment,
+	Payload as BeefyPayload, SignedCommitment, ValidatorSet, ValidatorSetId,
 };
 pub use pallet_mmr::verify_leaf_proof as verify_mmr_leaf_proof;
 pub use pallet_mmr_primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};

@@ -99,6 +99,7 @@ impl frame_system::Config for TestRuntime {
 impl beefy::Config for TestRuntime {
 	type MaxRequests = frame_support::traits::ConstU32<16>;
 	type BridgedChain = TestBridgedChain;
+	type ExpectedMmrLeafMajorVersion = frame_support::traits::ConstU8<0>;
 }
 
 #[derive(Debug)]
@@ -133,6 +134,36 @@ impl ChainWithBeefy for TestBridgedChain {
 /// Run test within test runtime.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(Default::default()).execute_with(test)
+}
+
+/// Initialize pallet and run test.
+pub fn run_test_with_initialize<T>(initial_validators_count: usize, test: impl FnOnce() -> T) -> T {
+	run_test(|| {
+		crate::Pallet::<TestRuntime>::initialize(
+			Origin::root(),
+			bp_beefy::InitializationData {
+				is_halted: false,
+				best_beefy_block_number: 0,
+				current_validator_set: (0, validator_ids(0, initial_validators_count)),
+				next_validator_set: (1, validator_ids(0, initial_validators_count)),
+			},
+		)
+		.expect("initialization data is correct");
+
+		test()
+	})
+}
+
+/// Import given commitment.
+pub fn import_commitment(
+	header: crate::mock_chain::HeaderAndCommitment,
+) -> sp_runtime::DispatchResult {
+	crate::Pallet::<TestRuntime>::submit_commitment(
+		Origin::signed(1),
+		header.commitment.expect("TODO").encode(),
+		header.leaf_proof.expect("TODO").encode(),
+		header.leaf.expect("TODO").encode(),
+	)
 }
 
 /// Return secret of validator with given index.

@@ -16,8 +16,6 @@
 
 //! BEEFY MMR leaf verification verification.
 
-//use crate::{BeefyMmrHasher, BeefyMmrLeaf, BeefyValidatorSet, Config, Error};
-
 use crate::{
 	BridgedBeefyMmrHasher, BridgedBeefyMmrLeaf, BridgedBeefyValidatorIdToMerkleLeaf,
 	BridgedBeefyValidatorSet, BridgedBlockHash, BridgedBlockNumber, BridgedRawBeefyMmrLeaf, Config,
@@ -26,9 +24,10 @@ use crate::{
 
 use bp_beefy::{
 	beefy_merkle_root, verify_mmr_leaf_proof, BeefyMmrHash, BeefyMmrProof, MmrDataOrHash,
+	MmrLeafVersion,
 };
-use codec::Encode;
-use frame_support::ensure;
+use codec::{Decode, Encode};
+use frame_support::{ensure, traits::Get};
 use sp_runtime::{traits::Convert, RuntimeDebug};
 use sp_std::marker::PhantomData;
 
@@ -39,6 +38,37 @@ pub struct BeefyMmrLeafVerificationArtifacts<T: Config<I>, I: 'static> {
 	pub parent_number_and_hash: (BridgedBlockNumber<T, I>, BridgedBlockHash<T, I>),
 	/// Next validator set, if handoff is happening.
 	pub next_validator_set: Option<BridgedBeefyValidatorSet<T, I>>,
+}
+
+/// Decode MMR leaf of given major version.
+pub fn decode_mmr_leaf<T: Config<I>, I: 'static>(
+	encoded_leaf: &[u8],
+) -> Result<BridgedBeefyMmrLeaf<T, I>, Error<T, I>> {
+	// decode version first, so that we know that the leaf format hasn't changed
+	let version = MmrLeafVersion::decode(&mut &encoded_leaf[..]).map_err(|e| {
+		log::error!(
+			target: "runtime::bridge-beefy",
+			"MMR leaf version decode has failed with error: {:?}",
+			e,
+		);
+
+		Error::<T, I>::FailedToDecodeMmrLeafVersion
+	})?;
+	ensure!(
+		version.split().0 == T::ExpectedMmrLeafMajorVersion::get(),
+		Error::<T, I>::UnsupportedMmrLeafVersion
+	);
+
+	// decode the whole leaf
+	BridgedBeefyMmrLeaf::<T, I>::decode(&mut &encoded_leaf[..]).map_err(|e| {
+		log::error!(
+			target: "runtime::bridge-beefy",
+			"MMR leaf decode has failed with error: {:?}",
+			e,
+		);
+
+		Error::<T, I>::FailedToDecodeMmrLeaf
+	})
 }
 
 /// Verify MMR proof of given leaf.
@@ -53,9 +83,6 @@ pub fn verify_beefy_mmr_leaf<T: Config<I>, I: 'static>(
 where
 	BridgedBeefyMmrHasher<T, I>: 'static + Send + Sync,
 {
-	// TODO: ensure!(mmr_leaf.leaf().version == T::MmrLeafVersion::get(), Error::<T,
-	// I>::UnsupportedMmrLeafVersion);
-
 	// TODO: is it the right condition? can id is increased by say +3?
 	let is_updating_validator_set =
 		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 2;
