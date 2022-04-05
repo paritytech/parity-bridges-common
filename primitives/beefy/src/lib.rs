@@ -28,11 +28,15 @@ pub use pallet_mmr::verify_leaf_proof as verify_mmr_leaf_proof;
 pub use pallet_mmr_primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};
 
 use bp_runtime::{BlockNumberOf, Chain, HashOf};
-use codec::{Codec, Decode, Encode};
+use codec::{Decode, Encode};
+use frame_support::Parameter;
 use scale_info::TypeInfo;
 use sp_core::H256;
-use sp_runtime::{app_crypto::RuntimeAppPublic, traits::Convert, RuntimeDebug};
-use sp_std::fmt::Debug;
+use sp_runtime::{
+	app_crypto::RuntimeAppPublic,
+	traits::{Convert, MaybeSerializeDeserialize},
+	RuntimeDebug,
+};
 
 /// Substrate-based chain with BEEFY && MMR pallets deployed.
 ///
@@ -58,11 +62,8 @@ pub trait ChainWithBeefy: Chain {
 	///
 	/// Corresponds to the `BeefyId` field of the `pallet-beefy` configuration.
 	type ValidatorId: BeefyRuntimeAppPublic<<Self::CommitmentHasher as sp_runtime::traits::Hash>::Output>
-		+ Clone
-		+ Codec
-		+ Debug
-		+ PartialEq
-		+ TypeInfo;
+		+ Parameter
+		+ MaybeSerializeDeserialize;
 
 	/// A way to convert validator id to its raw representation in the BEEFY merkle tree.
 	///
@@ -80,7 +81,8 @@ pub trait BeefyRuntimeAppPublic<CommitmentHash>: RuntimeAppPublic {
 	fn verify_prehashed(&self, sig: &Self::Signature, msg_hash: &CommitmentHash) -> bool;
 }
 
-// this implementation allows to bridge with BEEFY chains, that are using default (eth-compatible) BEEFY configuration
+// this implementation allows to bridge with BEEFY chains, that are using default (eth-compatible)
+// BEEFY configuration
 impl BeefyRuntimeAppPublic<H256> for beefy_primitives::crypto::AuthorityId {
 	fn verify_prehashed(&self, sig: &Self::Signature, msg_hash: &H256) -> bool {
 		use sp_application_crypto::AppKey;
@@ -95,12 +97,13 @@ impl BeefyRuntimeAppPublic<H256> for beefy_primitives::crypto::AuthorityId {
 
 		// why it is here:
 		//
-		// 1) we need to call `sp_io::crypto::ecdsa_verify_prehashed` to be sure that the host function is
-		//    used to verify signature;
-		// 2) there's no explicit conversions from app-crypto sig+key types to matching underlying types;
-		// 3) `ecdsa_verify_prehashed` works with underlying ECDSA types;
+		// 1) we need to call `sp_io::crypto::ecdsa_verify_prehashed` to be sure that the host
+		// function is    used to verify signature;
+		// 2) there's no explicit conversions from app-crypto sig+key types to matching underlying
+		// types; 3) `ecdsa_verify_prehashed` works with underlying ECDSA types;
 		// 4) hence this "convert".
-		const PROOF: &'static str = "static assertion guarantees that both underlying types are equal; \
+		const PROOF: &'static str =
+			"static assertion guarantees that both underlying types are equal; \
 			conversion between same types can't fail; \
 			qed";
 		let ecdsa_signature = sp_core::ecdsa::Signature::try_from(sig.as_ref()).expect(PROOF);
@@ -109,7 +112,7 @@ impl BeefyRuntimeAppPublic<H256> for beefy_primitives::crypto::AuthorityId {
 			&ecdsa_signature,
 			msg_hash.as_fixed_bytes(),
 			&ecdsa_public,
-		),
+		)
 	}
 }
 
@@ -198,4 +201,19 @@ impl<BlockNumber, BlockHash, BeefyValidatorId>
 			BeefyMmrLeaf::Handoff(_, ref next_validators) => Some(next_validators),
 		}
 	}
+}
+
+/// Data required for initializing the BEEFY pallet.
+#[derive(Encode, Decode, RuntimeDebug, PartialEq, Eq, Clone, TypeInfo)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+pub struct InitializationData<BlockNumber, ValidatorId> {
+	/// Should the pallet block transaction immediately after initialization.
+	pub is_halted: bool,
+	/// Number of the best block, finalized by BEEFY.
+	pub best_beefy_block_number: BlockNumber,
+	/// BEEFY validator set that will be finalizing descendants of the `best_beefy_block_number`
+	/// block.
+	pub current_validator_set: (ValidatorSetId, Vec<ValidatorId>),
+	/// Next BEEFY validator set, that we'll switch to, once we see the handoff header.
+	pub next_validator_set: (ValidatorSetId, Vec<ValidatorId>),
 }

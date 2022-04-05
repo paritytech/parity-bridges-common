@@ -17,10 +17,10 @@
 use crate as beefy;
 use crate::{
 	BridgedBeefyCommitmentHasher, BridgedBeefyMmrHasher, BridgedBeefyMmrLeaf,
-	BridgedBeefySignedCommitment, BridgedBeefyValidatorIdToMerkleLeaf, BridgedBeefyValidatorSet,
+	BridgedBeefySignedCommitment, BridgedBeefyValidatorIdToMerkleLeaf,
 };
 
-use bp_beefy::{BeefyMmrHash, ChainWithBeefy, Commitment, MmrDataOrHash, SignedCommitment};
+use bp_beefy::{BeefyMmrHash, ChainWithBeefy, Commitment, MmrDataOrHash};
 use bp_runtime::Chain;
 use codec::Encode;
 use frame_support::{construct_runtime, parameter_types, weights::Weight};
@@ -31,7 +31,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, Hash, IdentityLookup},
 	Perbill,
 };
-use std::{collections::BTreeSet, marker::PhantomData};
+use std::collections::BTreeSet;
 
 pub use beefy_primitives::crypto::AuthorityId as BeefyId;
 
@@ -40,7 +40,6 @@ pub type BridgedBlockNumber = u64;
 pub type BridgedBlockHash = H256;
 pub type BridgedHeader = Header;
 pub type BridgedCommitment = BridgedBeefySignedCommitment<TestRuntime, ()>;
-pub type BridgedValidatorSet = BridgedBeefyValidatorSet<TestRuntime, ()>;
 pub type BridgedCommitmentHasher = BridgedBeefyCommitmentHasher<TestRuntime, ()>;
 pub type BridgedMmrHasher = BridgedBeefyMmrHasher<TestRuntime, ()>;
 pub type BridgedMmrLeaf = BridgedBeefyMmrLeaf<TestRuntime, ()>;
@@ -150,6 +149,17 @@ pub fn validator_key_to_public(key: SecretKey) -> PublicKey {
 /// Return secrets of validators, starting at given index.
 pub fn validator_keys(index: usize, size: usize) -> Vec<SecretKey> {
 	(index..index + size).map(validator_key).collect()
+}
+
+/// Return identifiers of validators, starting at given index.
+pub fn validator_ids(index: usize, size: usize) -> Vec<BeefyId> {
+	validator_keys(index, size)
+		.into_iter()
+		.map(|k| {
+			sp_core::ecdsa::Public::from_raw(validator_key_to_public(k).serialize_compressed())
+				.into()
+		})
+		.collect()
 }
 
 /// Sign BEEFY commitment.

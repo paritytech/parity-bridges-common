@@ -29,7 +29,6 @@ use bp_beefy::{
 };
 use codec::Encode;
 use frame_support::ensure;
-use scale_info::TypeInfo;
 use sp_runtime::{traits::Convert, RuntimeDebug};
 use sp_std::marker::PhantomData;
 
@@ -177,15 +176,15 @@ where
 	type Output = BeefyMmrHash;
 
 	fn ordered_trie_root(
-		input: Vec<Vec<u8>>,
-		state_version: sp_runtime::StateVersion,
+		_input: Vec<Vec<u8>>,
+		_state_version: sp_runtime::StateVersion,
 	) -> Self::Output {
 		unreachable!("TODO: do we need this?")
 	}
 
 	fn trie_root(
-		input: Vec<(Vec<u8>, Vec<u8>)>,
-		state_version: sp_runtime::StateVersion,
+		_input: Vec<(Vec<u8>, Vec<u8>)>,
+		_state_version: sp_runtime::StateVersion,
 	) -> Self::Output {
 		unreachable!("TODO: do we need this?")
 	}

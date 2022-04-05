@@ -18,8 +18,8 @@
 
 use crate::mock::{
 	sign_commitment, validator_key_to_public, validator_keys, BridgedBlockHash, BridgedBlockNumber,
-	BridgedCommitment, BridgedCommitmentHasher, BridgedHeader, BridgedMmrHasher, BridgedMmrLeaf,
-	BridgedMmrNode, BridgedRawMmrLeaf, BridgedValidatorIdToMerkleLeaf, BridgedValidatorSet,
+	BridgedCommitment, BridgedHeader, BridgedMmrHasher, BridgedMmrLeaf, BridgedMmrNode,
+	BridgedValidatorIdToMerkleLeaf,
 };
 
 use beefy_primitives::mmr::{BeefyNextAuthoritySet, MmrLeafVersion};
@@ -27,11 +27,11 @@ use bp_beefy::{
 	BeefyMmrProof, BeefyPayload, Commitment, MmrProof, ValidatorSetId, MMR_ROOT_PAYLOAD_ID,
 };
 use codec::Encode;
-use libsecp256k1::{sign, Message, SecretKey};
+use libsecp256k1::SecretKey;
 use pallet_mmr::NodeIndex;
 use rand::Rng;
-use sp_runtime::traits::{Convert as _, Hash as _, Header as _};
-use std::collections::{BTreeSet, HashMap};
+use sp_runtime::traits::{Convert, Header as HeaderT};
+use std::collections::HashMap;
 
 pub struct HeaderAndCommitment {
 	pub header: BridgedHeader,
@@ -152,14 +152,14 @@ impl ChainBuilder {
 		self
 	}
 
-	pub fn append_default_header(mut self) -> Self {
+	pub fn append_default_header(self) -> Self {
 		let next_validator_set_id = self.validator_set_id + 1;
 		let next_validator_keys = self.next_validator_keys.clone();
 		self.append_header(false, next_validator_set_id, next_validator_keys)
 	}
 
 	pub fn append_default_headers(mut self, count: usize) -> Self {
-		for i in 0..count {
+		for _ in 0..count {
 			self = self.append_default_header();
 		}
 		self
@@ -183,8 +183,10 @@ impl ChainBuilder {
 			.cloned()
 			.map(BridgedValidatorIdToMerkleLeaf::convert)
 			.collect::<Vec<_>>();
+		// we're starting with header#1, since header#0 is always finalized
+		let header_number = self.headers.len() as BridgedBlockNumber + 1;
 		let header = HeaderAndCommitment::new(
-			self.headers.len() as BridgedBlockNumber,
+			header_number,
 			self.headers.last().map(|h| h.header.hash()).unwrap_or_default(),
 		);
 		let raw_leaf = beefy_primitives::mmr::MmrLeaf {
@@ -219,8 +221,9 @@ impl ChainBuilder {
 		} else {
 			BridgedMmrLeaf::Handoff(raw_leaf, next_validator_publics)
 		});
-		let leaf_index = *last_header.header.number();
-		let leaf_count = *last_header.header.number() + 1;
+		// genesis has no leaf => leaf index is header number minus 1
+		let leaf_index = *last_header.header.number() - 1;
+		let leaf_count = *last_header.header.number();
 		let proof_size = proof.proof_items().len();
 		last_header.leaf_proof = Some(MmrProof {
 			leaf_index,
