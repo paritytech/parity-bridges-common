@@ -89,6 +89,15 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
+		/// The upper bound on the number of requests allowed by the pallet.
+		///
+		/// A request refers to an action which writes a header to storage.
+		///
+		/// Once this bound is reached the pallet will reject all commitments
+		/// until the request count has decreased.
+		#[pallet::constant]
+		type MaxRequests: Get<u32>;
+
 		/// The chain we are bridging to here.
 		type BridgedChain: ChainWithBeefy;
 	}
@@ -96,6 +105,17 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
+
+	#[pallet::hooks]
+	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
+		fn on_initialize(_n: T::BlockNumber) -> frame_support::weights::Weight {
+			<RequestCount<T, I>>::mutate(|count| *count = count.saturating_sub(1));
+
+			(0_u64)
+				.saturating_add(T::DbWeight::get().reads(1))
+				.saturating_add(T::DbWeight::get().writes(1))
+		}
+	}
 
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I>
@@ -133,6 +153,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
 			let _ = ensure_signed(origin)?;
+
+			ensure!(Self::request_count() < T::MaxRequests::get(), <Error<T, I>>::TooManyRequests);
 
 			// verify BEEFY commitment: once verification is completed, we know that BEEFY
 			// validators have finalized block with given number and given MMR root
@@ -221,7 +243,16 @@ pub mod pallet {
 		}
 	}
 
-	// TODO: request count
+	/// The current number of requests which have written to storage.
+	///
+	/// If the `RequestCount` hits `MaxRequests`, no more calls will be allowed to the pallet until
+	/// the request capacity is increased.
+	///
+	/// The `RequestCount` is decreased by one at the beginning of every block. This is to ensure
+	/// that the pallet can always make progress.
+	#[pallet::storage]
+	#[pallet::getter(fn request_count)]
+	pub(super) type RequestCount<T: Config<I>, I: 'static = ()> = StorageValue<_, u32, ValueQuery>;
 
 	/// Best known block number of the bridged chain, finalized by BEEFY.
 	#[pallet::storage]
@@ -295,6 +326,8 @@ pub mod pallet {
 		InvalidNextValidatorSet,
 		/// All pallet operations are halted.
 		Halted,
+		/// There are too many requests for the current window to handle.
+		TooManyRequests,
 		/// Failed to decode method arguments (will be removed once `TypeInfo` wiwill be
 		/// implemented for all arguments).
 		FailedToDecodeArgument,

@@ -97,6 +97,7 @@ impl frame_system::Config for TestRuntime {
 }
 
 impl beefy::Config for TestRuntime {
+	type MaxRequests = frame_support::traits::ConstU32<16>;
 	type BridgedChain = TestBridgedChain;
 }
 
