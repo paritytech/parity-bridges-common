@@ -119,22 +119,6 @@ impl ChainBuilder {
 		let next_validator_keys = self.next_validator_keys.clone();
 		HeaderBuilder::with_chain(self, false, next_validator_set_id, next_validator_keys)
 			.finalize()
-		/*		self = self.append_default_header();
-
-		let last_header = self.headers.last_mut().expect("added by append_header; qed");
-		last_header.commitment = Some(sign_commitment(
-			Commitment {
-				payload: BeefyPayload::new(
-					MMR_ROOT_PAYLOAD_ID,
-					self.mmr.get_root().expect("TODO").hash().encode(),
-				),
-				block_number: *last_header.header.number(),
-				validator_set_id: self.validator_set_id,
-			},
-			&self.validator_keys,
-		));
-
-		self*/
 	}
 
 	/// Append multiple finalized headers at once.
@@ -148,141 +132,31 @@ impl ChainBuilder {
 	/// Appends header, that enacts new validator set.
 	///
 	/// Such headers are explicitly finalized by BEEFY.
-	pub fn append_handoff_header(mut self, next_validators_len: usize) -> Self {
+	pub fn append_handoff_header(self, next_validators_len: usize) -> Self {
 		let new_validator_set_id = self.validator_set_id + 2;
 		let new_validator_keys = validator_keys(
 			rand::thread_rng().gen::<usize>() % (usize::MAX / 2),
 			next_validators_len,
 		);
 
-		self =
-			HeaderBuilder::with_chain(self, true, new_validator_set_id, new_validator_keys.clone())
-				.finalize();
-		/*
-				self = self.append_header(
-					true,
-					new_validator_set_id,
-					new_validator_keys.clone(),
-				);
-
-				let last_header = self.headers.last_mut().expect("added by append_header; qed");
-				last_header.commitment = Some(sign_commitment(
-					Commitment {
-						payload: BeefyPayload::new(
-							MMR_ROOT_PAYLOAD_ID,
-							self.mmr.get_root().expect("TODO").hash().encode(),
-						),
-						block_number: *last_header.header.number(),
-						validator_set_id: self.validator_set_id,
-					},
-					&self.validator_keys,
-				));
-		*/
-		/*
-				self.validator_set_id = self.validator_set_id + 1;
-				self.validator_keys = self.next_validator_keys;
-				self.next_validator_keys = new_validator_keys;
-		*/
-		self
+		HeaderBuilder::with_chain(self, true, new_validator_set_id, new_validator_keys.clone())
+			.finalize()
 	}
 
+	/// Append single default header without commitment.
 	pub fn append_default_header(self) -> Self {
-		/*		let next_validator_set_id = self.validator_set_id + 1;
-		let next_validator_keys = self.next_validator_keys.clone();
-		self.append_header(
-			false,
-			next_validator_set_id,
-			next_validator_keys,
-		)*/
 		let next_validator_set_id = self.validator_set_id + 1;
 		let next_validator_keys = self.next_validator_keys.clone();
 		HeaderBuilder::with_chain(self, false, next_validator_set_id, next_validator_keys).build()
 	}
 
+	/// Append several default header without commitment.
 	pub fn append_default_headers(mut self, count: usize) -> Self {
 		for _ in 0..count {
 			self = self.append_default_header();
 		}
 		self
 	}
-	/*
-	fn append_header(
-		mut self,
-		handoff: bool,
-		next_validator_set_id: ValidatorSetId,
-		next_validator_keys: Vec<SecretKey>,
-	) -> Self {
-		let next_validator_publics = next_validator_keys
-			.into_iter()
-			.map(|k| {
-				sp_core::ecdsa::Public::from_raw(validator_key_to_public(k).serialize_compressed())
-					.into()
-			})
-			.collect::<Vec<_>>();
-		let next_validator_addresses = next_validator_publics
-			.iter()
-			.cloned()
-			.map(BridgedValidatorIdToMerkleLeaf::convert)
-			.collect::<Vec<_>>();
-		// we're starting with header#1, since header#0 is always finalized
-		let header_number = self.headers.len() as BridgedBlockNumber + 1;
-		let header = HeaderAndCommitment::new(
-			header_number,
-			self.headers.last().map(|h| h.header.hash()).unwrap_or_default(),
-		);
-		let raw_leaf = BridgedRawMmrLeaf {
-			version: MmrLeafVersion::new(EXPECTED_MMR_LEAF_MAJOR_VERSION, 0),
-			parent_number_and_hash: (
-				header.header.number().saturating_sub(1),
-				*header.header.parent_hash(),
-			),
-			beefy_next_authority_set: BeefyNextAuthoritySet {
-				id: next_validator_set_id,
-				len: next_validator_publics.len() as _,
-				root: bp_beefy::beefy_merkle_root::<BridgedMmrHasher, _, _>(
-					next_validator_addresses,
-				),
-			},
-			parachain_heads: Default::default(), // TODO
-		};
-		let node = BridgedMmrNode::Data(raw_leaf.clone());
-		log::trace!(
-			target: "runtime::bridge-beefy",
-			"Inserting MMR leaf with hash {} for header {}",
-			node.hash(),
-			header.header.number(),
-		);
-		let leaf_position = self.mmr.push(node).expect("TODO");
-		self.headers.push(header);
-
-		let last_header = self.headers.last_mut().expect("added one line above; qed");
-		let proof = self.mmr.gen_proof(vec![leaf_position]).expect("TODO");
-		last_header.leaf = Some(if !handoff {
-			BridgedMmrLeaf::Regular(raw_leaf.encode())
-		} else {
-			BridgedMmrLeaf::Handoff(raw_leaf.encode(), next_validator_publics)
-		});
-		// genesis has no leaf => leaf index is header number minus 1
-		let leaf_index = *last_header.header.number() - 1;
-		let leaf_count = *last_header.header.number();
-		let proof_size = proof.proof_items().len();
-		last_header.leaf_proof = Some(MmrProof {
-			leaf_index,
-			leaf_count,
-			items: proof.proof_items().iter().map(|i| i.hash().to_fixed_bytes()).collect(),
-		});
-		log::trace!(
-			target: "runtime::bridge-beefy",
-			"Proof of leaf {}/{} (for header {}) has {} items. Root: {}",
-			leaf_index,
-			leaf_count,
-			last_header.header.number(),
-			proof_size,
-			self.mmr.get_root().expect("TODO").hash(),
-		);
-
-		self
-	}*/
 }
 
 /// Custom header builder.
@@ -350,12 +224,18 @@ impl HeaderBuilder {
 		}
 	}
 
+	/// Customize header MMR leaf.
 	pub fn customize_leaf(mut self, f: impl FnOnce(BridgedMmrLeaf) -> BridgedMmrLeaf) -> Self {
 		self.leaf = f(self.leaf);
 		self
 	}
 
+	/// Customize generated proof of header MMR leaf.
+	///
+	/// Can only be called once.
 	pub fn customize_proof(mut self, f: impl FnOnce(BeefyMmrProof) -> BeefyMmrProof) -> Self {
+		assert!(self.leaf_proof.is_none());
+
 		let raw_leaf_hash = BridgedMmrHasher::hash(self.leaf.leaf());
 		let node = BridgedMmrNode::Hash(raw_leaf_hash.into());
 		log::trace!(
@@ -389,6 +269,7 @@ impl HeaderBuilder {
 		self
 	}
 
+	/// Build header without commitment.
 	pub fn build(mut self) -> ChainBuilder {
 		if self.leaf_proof.is_none() {
 			self = self.customize_proof(|proof| proof);
@@ -411,6 +292,7 @@ impl HeaderBuilder {
 		self.chain
 	}
 
+	/// Build header with commitment.
 	pub fn finalize(self) -> ChainBuilder {
 		let current_validator_set_id = self.chain.validator_set_id;
 		let current_validator_set_keys = self.chain.validator_keys.clone();
