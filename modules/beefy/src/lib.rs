@@ -72,6 +72,9 @@ pub type BridgedRawBeefyMmrLeaf<T, I> = bp_beefy::RawBeefyMmrLeafOf<BridgedChain
 /// A way to encode validator id to the BEEFY merkle tree leaf.
 pub type BridgedBeefyValidatorIdToMerkleLeaf<T, I> =
 	bp_beefy::BeefyValidatorIdToMerkleLeafOf<BridgedChain<T, I>>;
+/// Imported commitment data, stored by the pallet.
+pub type ImportedCommitment<T, I> =
+	bp_beefy::ImportedCommitment<BridgedBlockNumber<T, I>, BridgedBlockHash<T, I>>;
 
 mod commitment;
 mod leaf;
@@ -103,6 +106,14 @@ pub mod pallet {
 		/// The pallet will reject all leafs with misimatching major version.
 		#[pallet::constant]
 		type ExpectedMmrLeafMajorVersion: Get<u8>;
+
+		/// Maximal number of imported commitments to keep in the storage.
+		///
+		/// The setting is there to prevent growing the on-chain state indefinitely. Note
+		/// the setting does not relate to block numbers - we will simply keep as much items
+		/// in the storage, so it doesn't guarantee any fixed timeframe for imported commitments.
+		#[pallet::constant]
+		type CommitmentsToKeep: Get<u32>;
 
 		/// The chain we are bridging to here.
 		type BridgedChain: ChainWithBeefy;
@@ -250,7 +261,7 @@ pub mod pallet {
 				commitment_artifacts.mmr_root,
 			)?;
 
-			// update storage
+			// update storage, essential for pallet operation
 			RequestCount::<T, I>::mutate(|count| *count += 1);
 			BestBlockNumber::<T, I>::put(commitment.commitment.block_number);
 			if let Some(new_next_validator_set) = mmr_leaf_artifacts.next_validator_set {
@@ -268,8 +279,29 @@ pub mod pallet {
 				CurrentValidatorSet::<T, I>::put(next_validator_set);
 				NextValidatorSet::<T, I>::put(new_next_validator_set);
 			}
-			// TODO: store parent header number => hash to eb able to verify header-based proofs
-			// TODO: store MMR root + parachain heads root for verifying later proofs
+
+			// store imported commitment data
+			let index = ImportedCommitmentNumbersPointer::<T, I>::get();
+			let to_prune = ImportedCommitmentNumbers::<T, I>::try_get(index);
+			ImportedCommitments::<T, I>::insert(
+				commitment_artifacts.finalized_block_number,
+				ImportedCommitment::<T, I> {
+					parent_number_and_hash: mmr_leaf_artifacts.parent_number_and_hash,
+					mmr_root: commitment_artifacts.mmr_root,
+					parachain_heads: mmr_leaf_artifacts.parachain_heads,
+				},
+			);
+			ImportedCommitmentNumbers::<T, I>::insert(
+				index,
+				commitment_artifacts.finalized_block_number,
+			);
+			ImportedCommitmentNumbersPointer::<T, I>::put(
+				(index + 1) % T::CommitmentsToKeep::get(),
+			);
+			if let Ok(commitment_number) = to_prune {
+				log::debug!(target: "runtime::bridge-beefy", "Pruning old commitment: {:?}.", commitment_number);
+				ImportedCommitments::<T, I>::remove(commitment_number);
+			}
 
 			log::info!(
 				target: "runtime::bridge-beefy",
@@ -290,12 +322,27 @@ pub mod pallet {
 	/// that the pallet can always make progress.
 	#[pallet::storage]
 	#[pallet::getter(fn request_count)]
-	pub(super) type RequestCount<T: Config<I>, I: 'static = ()> = StorageValue<_, u32, ValueQuery>;
+	pub type RequestCount<T: Config<I>, I: 'static = ()> = StorageValue<_, u32, ValueQuery>;
 
 	/// Best known block number of the bridged chain, finalized by BEEFY.
 	#[pallet::storage]
 	pub type BestBlockNumber<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, BridgedBlockNumber<T, I>>;
+
+	/// All unpruned commitments that we have imported.
+	#[pallet::storage]
+	pub type ImportedCommitments<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Blake2_128Concat, BridgedBlockNumber<T, I>, ImportedCommitment<T, I>>;
+
+	/// A ring buffer of imported commitment numbers. Ordered by the insertion time
+	#[pallet::storage]
+	pub(super) type ImportedCommitmentNumbers<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Identity, u32, BridgedBlockNumber<T, I>>;
+
+	/// Current ring buffer position.
+	#[pallet::storage]
+	pub type ImportedCommitmentNumbersPointer<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, u32, ValueQuery>;
 
 	/// Current BEEFY validators set at the bridged chain.
 	#[pallet::storage]
@@ -695,28 +742,101 @@ mod tests {
 	}
 
 	#[test]
-	fn submit_commitment_works_with_long_chain() {
-		run_test_with_initialize(32, || {
-			let chain = ChainBuilder::new(32)
+	fn submit_commitment_works_with_long_chain_with_handoffs() {
+		run_test_with_initialize(3, || {
+			let chain = ChainBuilder::new(3)
 				.append_finalized_header() // 1
 				.append_default_headers(16) // 2..17
 				.append_finalized_header() // 18
 				.append_default_headers(16) // 19..34
-				.append_handoff_header(64) // 35
+				.append_handoff_header(9) // 35
 				.append_default_headers(8) // 36..43
 				.append_finalized_header() // 44
 				.append_default_headers(8) // 45..52
-				.append_handoff_header(128) // 53
+				.append_handoff_header(17) // 53
 				.append_default_headers(4) // 54..57
 				.append_finalized_header() // 58
 				.append_default_headers(4); // 59..63
 			import_header_chain(chain.into());
 
-			assert_eq!(BestBlockNumber::<TestRuntime, ()>::get().unwrap(), 58);
-			assert_eq!(CurrentValidatorSet::<TestRuntime, ()>::get().unwrap().id(), 2);
-			assert_eq!(CurrentValidatorSet::<TestRuntime, ()>::get().unwrap().len(), 64);
-			assert_eq!(NextValidatorSet::<TestRuntime, ()>::get().unwrap().id(), 3);
-			assert_eq!(NextValidatorSet::<TestRuntime, ()>::get().unwrap().len(), 128);
+			assert_eq!(BestBlockNumber::<TestRuntime>::get().unwrap(), 58);
+			assert_eq!(CurrentValidatorSet::<TestRuntime>::get().unwrap().id(), 2);
+			assert_eq!(CurrentValidatorSet::<TestRuntime>::get().unwrap().len(), 9);
+			assert_eq!(NextValidatorSet::<TestRuntime>::get().unwrap().id(), 3);
+			assert_eq!(NextValidatorSet::<TestRuntime>::get().unwrap().len(), 17);
 		})
+	}
+
+	#[test]
+	fn commitment_pruning_works() {
+		run_test_with_initialize(3, || {
+			let commitments_to_keep = <TestRuntime as Config<()>>::CommitmentsToKeep::get();
+			let commitments_to_import: Vec<HeaderAndCommitment> = ChainBuilder::new(3)
+				.append_finalized_headers(commitments_to_keep as usize + 2)
+				.into();
+
+			// import exactly `CommitmentsToKeep` commitments
+			for index in 0..commitments_to_keep {
+				next_block();
+				import_commitment(commitments_to_import[index as usize].clone())
+					.expect("must succeed");
+				assert_eq!(
+					ImportedCommitmentNumbersPointer::<TestRuntime>::get(),
+					(index + 1) % commitments_to_keep
+				);
+			}
+
+			// ensure that all commitments are in the storage
+			assert_eq!(
+				BestBlockNumber::<TestRuntime>::get().unwrap(),
+				commitments_to_keep as mock::BridgedBlockNumber
+			);
+			assert_eq!(ImportedCommitmentNumbersPointer::<TestRuntime>::get(), 0);
+			for index in 0..commitments_to_keep {
+				assert!(ImportedCommitments::<TestRuntime>::get(
+					index as mock::BridgedBlockNumber + 1
+				)
+				.is_some());
+				assert_eq!(
+					ImportedCommitmentNumbers::<TestRuntime>::get(index),
+					Some(index + 1).map(Into::into)
+				);
+			}
+
+			// import next commitment
+			next_block();
+			import_commitment(commitments_to_import[commitments_to_keep as usize].clone())
+				.expect("must succeed");
+			assert_eq!(ImportedCommitmentNumbersPointer::<TestRuntime>::get(), 1);
+			assert!(ImportedCommitments::<TestRuntime>::get(
+				commitments_to_keep as mock::BridgedBlockNumber + 1
+			)
+			.is_some());
+			assert_eq!(
+				ImportedCommitmentNumbers::<TestRuntime>::get(0),
+				Some(commitments_to_keep + 1).map(Into::into)
+			);
+
+			// the side effect of the import is that the commitment#1 is pruned
+			assert!(ImportedCommitments::<TestRuntime>::get(1).is_none());
+
+			// import next commitment
+			next_block();
+			import_commitment(commitments_to_import[commitments_to_keep as usize + 1].clone())
+				.expect("must succeed");
+			assert_eq!(ImportedCommitmentNumbersPointer::<TestRuntime>::get(), 2);
+			assert!(ImportedCommitments::<TestRuntime>::get(
+				commitments_to_keep as mock::BridgedBlockNumber + 2
+			)
+			.is_some());
+			assert_eq!(
+				ImportedCommitmentNumbers::<TestRuntime>::get(1),
+				Some(commitments_to_keep + 2).map(Into::into)
+			);
+
+			// the side effect of the import is that the commitment#2 is pruned
+			assert!(ImportedCommitments::<TestRuntime>::get(1).is_none());
+			assert!(ImportedCommitments::<TestRuntime>::get(2).is_none());
+		});
 	}
 }

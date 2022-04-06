@@ -242,3 +242,15 @@ pub struct InitializationData<BlockNumber, ValidatorId> {
 	/// Next BEEFY validator set, that we'll switch to, once we see the handoff header.
 	pub next_validator_set: (ValidatorSetId, Vec<ValidatorId>),
 }
+
+/// Basic data, stored by the pallet for every imported commitment.
+#[derive(Encode, Decode, RuntimeDebug, PartialEq, Eq, Clone, TypeInfo)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+pub struct ImportedCommitment<BlockNumber, BlockHash> {
+	/// Block number and hash of the finalized block parent.
+	pub parent_number_and_hash: (BlockNumber, BlockHash),
+	/// MMR root at the imported block.
+	pub mmr_root: BeefyMmrHash,
+	/// Parachain heads merkle root at the imported block.
+	pub parachain_heads: BeefyMmrHash,
+}

@@ -38,6 +38,8 @@ pub struct BeefyMmrLeafVerificationArtifacts<T: Config<I>, I: 'static> {
 	pub parent_number_and_hash: (BridgedBlockNumber<T, I>, BridgedBlockHash<T, I>),
 	/// Next validator set, if handoff is happening.
 	pub next_validator_set: Option<BridgedBeefyValidatorSet<T, I>>,
+	/// Parachain heads merkle root at the imported block.
+	pub parachain_heads: BeefyMmrHash,
 }
 
 /// Verify MMR proof of given leaf.
@@ -131,6 +133,7 @@ where
 	Ok(BeefyMmrLeafVerificationArtifacts {
 		parent_number_and_hash: raw_mmr_leaf.parent_number_and_hash,
 		next_validator_set,
+		parachain_heads: raw_mmr_leaf.parachain_heads,
 	})
 }
 

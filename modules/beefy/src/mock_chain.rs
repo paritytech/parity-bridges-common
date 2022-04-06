@@ -153,6 +153,14 @@ impl ChainBuilder {
 		self*/
 	}
 
+	/// Append multiple finalized headers at once.
+	pub fn append_finalized_headers(mut self, count: usize) -> Self {
+		for _ in 0..count {
+			self = self.append_finalized_header();
+		}
+		self
+	}
+
 	/// Appends header, that enacts new validator set.
 	///
 	/// Such headers are explicitly finalized by BEEFY.

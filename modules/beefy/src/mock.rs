@@ -103,6 +103,7 @@ impl beefy::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type ExpectedMmrLeafMajorVersion =
 		frame_support::traits::ConstU8<EXPECTED_MMR_LEAF_MAJOR_VERSION>;
+	type CommitmentsToKeep = frame_support::traits::ConstU32<16>;
 }
 
 #[derive(Debug)]
