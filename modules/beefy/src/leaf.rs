@@ -28,7 +28,10 @@ use bp_beefy::{
 };
 use codec::Decode;
 use frame_support::{ensure, traits::Get};
-use sp_runtime::{traits::Convert, RuntimeDebug};
+use sp_runtime::{
+	traits::{Convert, One, Saturating},
+	RuntimeDebug,
+};
 use sp_std::marker::PhantomData;
 
 /// Artifacts of MMR leaf proof verification.
@@ -47,6 +50,7 @@ pub struct BeefyMmrLeafVerificationArtifacts<T: Config<I>, I: 'static> {
 /// Returns new BEEFY validator set if it is enacted.
 pub fn verify_beefy_mmr_leaf<T: Config<I>, I: 'static>(
 	validators: &BridgedBeefyValidatorSet<T, I>,
+	at_header: BridgedBlockNumber<T, I>,
 	mmr_leaf: BridgedBeefyMmrLeafUnpacked<T, I>,
 	mmr_proof: BeefyMmrProof,
 	mmr_root: BeefyMmrHash,
@@ -56,6 +60,10 @@ where
 {
 	// decode raw MMR leaf
 	let raw_mmr_leaf = decode_raw_mmr_leaf::<T, I>(mmr_leaf.leaf())?;
+	ensure!(
+		raw_mmr_leaf.parent_number_and_hash.0 == at_header.saturating_sub(One::one()),
+		Error::<T, I>::InvalidParentNumberAndHash,
+	);
 
 	// TODO: is it the right condition? can id is increased by say +3?
 	let is_updating_validator_set = raw_mmr_leaf.beefy_next_authority_set.id == validators.id() + 2;
@@ -125,9 +133,6 @@ where
 	} else {
 		None
 	};
-
-	// TODO: ensure that ther parent_number_and_hash are actually for parent of
-	// commitment.block_number
 
 	Ok(BeefyMmrLeafVerificationArtifacts {
 		parent_number_and_hash: raw_mmr_leaf.parent_number_and_hash,
@@ -242,8 +247,7 @@ mod tests {
 			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_leaf(|leaf| {
-					let mut raw_leaf =
-						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
+					let mut raw_leaf = BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
 					raw_leaf.version = MmrLeafVersion::new(EXPECTED_MMR_LEAF_MAJOR_VERSION - 1, 0);
 					leaf.set_leaf(raw_leaf.encode())
 				})
@@ -281,6 +285,27 @@ mod tests {
 	}
 
 	#[test]
+	fn fails_to_import_commitment_if_leaf_is_not_for_parent() {
+		run_test_with_initialize(1, || {
+			// let's change parent number in MMR leaf to something that isn't expected
+			let commitment = ChainBuilder::new(1)
+				.custom_header()
+				.customize_leaf(|leaf| {
+					let mut raw_leaf = BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
+					raw_leaf.parent_number_and_hash.0 = raw_leaf.parent_number_and_hash.0 + 1;
+					leaf.set_leaf(raw_leaf.encode())
+				})
+				.finalize()
+				.to_header();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::InvalidParentNumberAndHash,
+			);
+		});
+	}
+
+	#[test]
 	fn fails_to_import_commitment_if_signed_by_wrong_validator_set_id() {
 		run_test_with_initialize(1, || {
 			// let's change next validator set id, so that it won't match next
@@ -288,8 +313,7 @@ mod tests {
 			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_leaf(|leaf| {
-					let mut raw_leaf =
-						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
+					let mut raw_leaf = BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
 					raw_leaf.beefy_next_authority_set.id += 10;
 					leaf.set_leaf(raw_leaf.encode())
 				})
@@ -327,8 +351,7 @@ mod tests {
 			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_leaf(|leaf| {
-					let mut raw_leaf =
-						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
+					let mut raw_leaf = BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
 					raw_leaf.beefy_next_authority_set.id += 1;
 					leaf.set_leaf(raw_leaf.encode())
 				})
@@ -386,8 +409,7 @@ mod tests {
 			let commitment = ChainBuilder::new(1)
 				.custom_handoff_header(1)
 				.customize_leaf(|leaf| {
-					let mut raw_leaf =
-						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
+					let mut raw_leaf = BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
 					raw_leaf.beefy_next_authority_set.root = Default::default();
 					leaf.set_leaf(raw_leaf.encode())
 				})

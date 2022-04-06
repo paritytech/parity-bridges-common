@@ -256,6 +256,7 @@ pub mod pallet {
 			})?;
 			let mmr_leaf_artifacts = leaf::verify_beefy_mmr_leaf::<T, I>(
 				&validators,
+				commitment_artifacts.finalized_block_number,
 				mmr_leaf,
 				mmr_proof,
 				commitment_artifacts.mmr_root,
@@ -434,6 +435,8 @@ pub mod pallet {
 		UnsupportedMmrLeafVersion,
 		/// Failed to decode MMR leaf version.
 		FailedToDecodeMmrLeaf,
+		/// Parent header number and hash field of the MMR leaf is invalid.
+		InvalidParentNumberAndHash,
 		/// MMR proof verification has failed.
 		MmrProofVeriricationFailed,
 		/// Next validator set id is invalid.
