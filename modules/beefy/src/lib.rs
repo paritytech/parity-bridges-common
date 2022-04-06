@@ -65,10 +65,10 @@ pub type BridgedBeefyValidatorSet<T, I> = bp_beefy::BeefyValidatorSetOf<BridgedC
 pub type BridgedBeefySignedCommitment<T, I> = bp_beefy::BeefySignedCommitmentOf<BridgedChain<T, I>>;
 /// MMR hash algorithm, used by configured bridged chain.
 pub type BridgedBeefyMmrHasher<T, I> = bp_beefy::BeefyMmrHasherOf<BridgedChain<T, I>>;
+/// Unpacked MMR leaf type, used by the pallet.
+pub type BridgedBeefyMmrLeafUnpacked<T, I> = bp_beefy::BeefyMmrLeafUnpackedOf<BridgedChain<T, I>>;
 /// MMR leaf type, used by configured bridged chain.
 pub type BridgedBeefyMmrLeaf<T, I> = bp_beefy::BeefyMmrLeafOf<BridgedChain<T, I>>;
-/// TODO
-pub type BridgedRawBeefyMmrLeaf<T, I> = bp_beefy::RawBeefyMmrLeafOf<BridgedChain<T, I>>;
 /// A way to encode validator id to the BEEFY merkle tree leaf.
 pub type BridgedBeefyValidatorIdToMerkleLeaf<T, I> =
 	bp_beefy::BeefyValidatorIdToMerkleLeafOf<BridgedChain<T, I>>;
@@ -203,10 +203,10 @@ pub mod pallet {
 		pub fn submit_commitment(
 			origin: OriginFor<T>,
 			// TODO: implement `TypeInfo` for `BridgedBeefySignedCommitment<T, I>`, `BeefyMmrProof`
-			// and `BridgedBeefyMmrLeaf::<T, I>`
+			// and `BridgedBeefyMmrLeafUnpacked::<T, I>`
 			encoded_commitment: Vec<u8>,
 			encoded_mmr_proof: Vec<u8>,
-			mmr_leaf: BridgedBeefyMmrLeaf<T, I>,
+			mmr_leaf: BridgedBeefyMmrLeafUnpacked<T, I>,
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
 			let _ = ensure_signed(origin)?;

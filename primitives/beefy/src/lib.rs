@@ -134,10 +134,10 @@ pub type BeefyValidatorSetOf<C> = ValidatorSet<BeefyValidatorIdOf<C>>;
 /// commitment.
 pub type BeefyCommitmentHasher<C> = <C as ChainWithBeefy>::CommitmentHasher;
 
-/// Our "customized" BEEFY MMR leaf contents.
+/// unpacked BEEFY MMR leaf contents.
 ///
-/// See `BeefyMmrLeaf` for details.
-pub type BeefyMmrLeafOf<C> = BeefyMmrLeaf<BeefyValidatorIdOf<C>>;
+/// See `BeefyMmrLeafUnpacked` for details.
+pub type BeefyMmrLeafUnpackedOf<C> = BeefyMmrLeafUnpacked<BeefyValidatorIdOf<C>>;
 
 /// BEEFY version of MMR leaf proof.
 ///
@@ -156,10 +156,8 @@ pub type BeefyMmrHash = beefy_merkle_tree::Hash;
 pub type BeefyValidatorIdToMerkleLeafOf<C> = <C as ChainWithBeefy>::ValidatorIdToMerkleLeaf;
 
 /// Actual type of leafs in the BEEFY MMR.
-pub type RawBeefyMmrLeafOf<C> =
+pub type BeefyMmrLeafOf<C> =
 	beefy_primitives::mmr::MmrLeaf<BlockNumberOf<C>, HashOf<C>, BeefyMmrHash>;
-
-// TODO: find a better name for that to avoid confusion with actual leaf data
 
 /// MMR leaf with unpacked validators set when they're changed.
 ///
@@ -170,60 +168,62 @@ pub type RawBeefyMmrLeafOf<C> =
 /// all these keys against validators merkle root. This makes the handoff procedure more heavy,
 /// but all subsequent operations on the same set are cheaper.
 #[derive(Encode, Decode, RuntimeDebug, PartialEq, Eq, Clone, TypeInfo)]
-pub enum BeefyMmrLeaf<BeefyValidatorId> {
+pub enum BeefyMmrLeafUnpacked<BeefyValidatorId> {
 	/// This variant shall be used when containing MMR leaf is not signalling BEEFY authorities
 	/// change.
+	///
+	/// The vector is encoded MMR leaf contents (`beefy_primitives::mmr::MmrLeaf`). We can't
+	/// use it here directly, because leaf structure may change in the future.
 	Regular(
-		// TODO: it is actually beefy_primitives::mmr::MmrLeaf<BlockNumber, BlockHash,
-		// BeefyMmrHash>, but we can't use it, because it doesn't implement `TypeInfo`
 		Vec<u8>,
 	),
 	/// This variant shall be used when containing MMR leaf is signalling BEEFY authorities change.
 	///
+	/// The vector is encoded MMR leaf contents (`beefy_primitives::mmr::MmrLeaf`). We can't
+	/// use it here directly, because leaf structure may change in the future.
+	///
 	/// The pallet will reject this variant if MMR leaf is not changing authorities.
 	Handoff(
-		// TODO: it is actually beefy_primitives::mmr::MmrLeaf<BlockNumber, BlockHash,
-		// BeefyMmrHash>, but we can't use it, because it doesn't implement `TypeInfo`
 		Vec<u8>,
 		Vec<BeefyValidatorId>,
 	),
 }
 
-impl<BeefyValidatorId> BeefyMmrLeaf<BeefyValidatorId> {
+impl<BeefyValidatorId> BeefyMmrLeafUnpacked<BeefyValidatorId> {
 	/// Returns reference to the actual MMR leaf contents.
 	pub fn leaf(&self) -> &[u8] {
 		match *self {
-			BeefyMmrLeaf::Regular(ref leaf) => leaf,
-			BeefyMmrLeaf::Handoff(ref leaf, _) => leaf,
+			BeefyMmrLeafUnpacked::Regular(ref leaf) => leaf,
+			BeefyMmrLeafUnpacked::Handoff(ref leaf, _) => leaf,
 		}
 	}
 
 	/// Returns reference to the next validator set, if available.
 	pub fn next_validators(&self) -> Option<&Vec<BeefyValidatorId>> {
 		match *self {
-			BeefyMmrLeaf::Regular(_) => None,
-			BeefyMmrLeaf::Handoff(_, ref next_validators) => Some(next_validators),
+			BeefyMmrLeafUnpacked::Regular(_) => None,
+			BeefyMmrLeafUnpacked::Handoff(_, ref next_validators) => Some(next_validators),
 		}
 	}
 
 	/// Set actual MMR leaf contents.
 	pub fn set_leaf(self, new_raw_leaf: Vec<u8>) -> Self {
 		match self {
-			BeefyMmrLeaf::Regular(_) => BeefyMmrLeaf::Regular(new_raw_leaf),
-			BeefyMmrLeaf::Handoff(_, next_validators) =>
-				BeefyMmrLeaf::Handoff(new_raw_leaf, next_validators),
+			BeefyMmrLeafUnpacked::Regular(_) => BeefyMmrLeafUnpacked::Regular(new_raw_leaf),
+			BeefyMmrLeafUnpacked::Handoff(_, next_validators) =>
+			BeefyMmrLeafUnpacked::Handoff(new_raw_leaf, next_validators),
 		}
 	}
 
 	/// Set next validator set.
 	pub fn set_next_validators(self, next_validators: Option<Vec<BeefyValidatorId>>) -> Self {
 		let raw_leaf = match self {
-			BeefyMmrLeaf::Regular(raw_leaf) => raw_leaf,
-			BeefyMmrLeaf::Handoff(raw_leaf, _) => raw_leaf,
+			BeefyMmrLeafUnpacked::Regular(raw_leaf) => raw_leaf,
+			BeefyMmrLeafUnpacked::Handoff(raw_leaf, _) => raw_leaf,
 		};
 		match next_validators {
-			Some(next_validators) => BeefyMmrLeaf::Handoff(raw_leaf, next_validators),
-			None => BeefyMmrLeaf::Regular(raw_leaf),
+			Some(next_validators) => BeefyMmrLeafUnpacked::Handoff(raw_leaf, next_validators),
+			None => BeefyMmrLeafUnpacked::Regular(raw_leaf),
 		}
 	}
 }

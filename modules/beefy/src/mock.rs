@@ -16,7 +16,7 @@
 
 use crate as beefy;
 use crate::{
-	BridgedBeefyCommitmentHasher, BridgedBeefyMmrHasher, BridgedBeefyMmrLeaf,
+	BridgedBeefyCommitmentHasher, BridgedBeefyMmrHasher, BridgedBeefyMmrLeafUnpacked,
 	BridgedBeefySignedCommitment, BridgedBeefyValidatorIdToMerkleLeaf,
 };
 
@@ -42,7 +42,7 @@ pub type BridgedHeader = Header;
 pub type BridgedCommitment = BridgedBeefySignedCommitment<TestRuntime, ()>;
 pub type BridgedCommitmentHasher = BridgedBeefyCommitmentHasher<TestRuntime, ()>;
 pub type BridgedMmrHasher = BridgedBeefyMmrHasher<TestRuntime, ()>;
-pub type BridgedMmrLeaf = BridgedBeefyMmrLeaf<TestRuntime, ()>;
+pub type BridgedMmrLeaf = BridgedBeefyMmrLeafUnpacked<TestRuntime, ()>;
 pub type BridgedRawMmrLeaf =
 	beefy_primitives::mmr::MmrLeaf<BridgedBlockNumber, BridgedBlockHash, BeefyMmrHash>;
 pub type BridgedMmrNode = MmrDataOrHash<sp_runtime::traits::Keccak256, BridgedRawMmrLeaf>;
