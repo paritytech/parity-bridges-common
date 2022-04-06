@@ -28,7 +28,7 @@ use libsecp256k1::{sign, Message, PublicKey, SecretKey};
 use sp_core::sr25519::Signature;
 use sp_runtime::{
 	testing::{Header, H256},
-	traits::{BlakeTwo256, Hash, IdentityLookup},
+	traits::{BlakeTwo256, Hash, Header as HeaderT, IdentityLookup},
 	Perbill,
 };
 use std::collections::BTreeSet;
@@ -164,9 +164,12 @@ pub fn import_commitment(
 ) -> sp_runtime::DispatchResult {
 	crate::Pallet::<TestRuntime>::submit_commitment(
 		Origin::signed(1),
-		header.commitment.expect("TODO").encode(),
-		header.leaf_proof.expect("TODO").encode(),
-		header.leaf.expect("TODO"),
+		header
+			.commitment
+			.expect("thou shall not call import_commitment on header without commitment")
+			.encode(),
+		header.leaf_proof.encode(),
+		header.leaf,
 	)
 }
 
@@ -235,4 +238,12 @@ pub fn sign_commitment(
 	}
 
 	BridgedCommitment { commitment, signatures }
+}
+
+/// Returns dummy parachain heads for given header.
+pub fn parachain_heads(header: &BridgedHeader) -> BeefyMmrHash {
+	bp_beefy::beefy_merkle_root::<BridgedMmrHasher, _, _>(vec![
+		header.number().encode(),
+		header.hash().encode(),
+	])
 }

@@ -120,8 +120,7 @@ mod tests {
 	fn fails_to_import_commitment_if_signed_by_unexpected_validator_set() {
 		run_test_with_initialize(1, || {
 			// when `validator_set_id` is different from what's stored in the runtime
-			let mut commitment: HeaderAndCommitment =
-				ChainBuilder::new(1).append_finalized_header().into();
+			let mut commitment = ChainBuilder::new(1).append_finalized_header().to_header();
 			commitment.commitment.as_mut().unwrap().commitment.validator_set_id += 1;
 
 			assert_noop!(
@@ -135,8 +134,7 @@ mod tests {
 	fn fails_to_import_commitment_if_number_of_signatures_is_invalid() {
 		run_test_with_initialize(8, || {
 			// when additional signature is provided
-			let mut commitment: HeaderAndCommitment =
-				ChainBuilder::new(1).append_finalized_header().into();
+			let mut commitment = ChainBuilder::new(1).append_finalized_header().to_header();
 			commitment.commitment.as_mut().unwrap().signatures.push(Default::default());
 
 			assert_noop!(
@@ -161,8 +159,7 @@ mod tests {
 			BestBlockNumber::<TestRuntime>::put(10);
 
 			// when commitment is for the same block
-			let mut commitment: HeaderAndCommitment =
-				ChainBuilder::new(1).append_finalized_header().into();
+			let mut commitment = ChainBuilder::new(1).append_finalized_header().to_header();
 			commitment.commitment.as_mut().unwrap().commitment.block_number = 10;
 
 			assert_noop!(
@@ -181,8 +178,7 @@ mod tests {
 	fn fails_to_import_commitment_if_it_has_no_enough_valid_signatures() {
 		run_test_with_initialize(1, || {
 			// invalidate single signature
-			let mut commitment: HeaderAndCommitment =
-				ChainBuilder::new(1).append_finalized_header().into();
+			let mut commitment = ChainBuilder::new(1).append_finalized_header().to_header();
 			*commitment
 				.commitment
 				.as_mut()
@@ -203,8 +199,7 @@ mod tests {
 	fn fails_to_import_commitment_if_there_is_no_mmr_root_in_the_payload() {
 		run_test_with_initialize(1, || {
 			// remove MMR root from the payload
-			let mut commitment: HeaderAndCommitment =
-				ChainBuilder::new(1).append_finalized_header().into();
+			let mut commitment = ChainBuilder::new(1).append_finalized_header().to_header();
 			commitment.commitment = Some(sign_commitment(
 				Commitment {
 					payload: BeefyPayload::new(*b"xy", vec![]),
@@ -230,8 +225,7 @@ mod tests {
 	fn fails_to_import_commitment_if_mmr_root_decode_fails() {
 		run_test_with_initialize(1, || {
 			// MMR root is a 32-byte array and we have replaced it with single byte
-			let mut commitment: HeaderAndCommitment =
-				ChainBuilder::new(1).append_finalized_header().into();
+			let mut commitment = ChainBuilder::new(1).append_finalized_header().to_header();
 			commitment.commitment = Some(sign_commitment(
 				Commitment {
 					payload: BeefyPayload::new(MMR_ROOT_PAYLOAD_ID, vec![42]),

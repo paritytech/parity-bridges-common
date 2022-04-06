@@ -17,13 +17,15 @@
 //! Utitlites to build bridged chain and BEEFY+MMR structures.
 
 use crate::mock::{
-	sign_commitment, validator_key_to_public, validator_keys, BridgedBlockHash, BridgedBlockNumber,
+	parachain_heads, sign_commitment, validator_key_to_public, validator_keys, BridgedBlockNumber,
 	BridgedCommitment, BridgedHeader, BridgedMmrHasher, BridgedMmrLeaf, BridgedMmrNode,
 	BridgedValidatorIdToMerkleLeaf, EXPECTED_MMR_LEAF_MAJOR_VERSION,
 };
 
 use beefy_primitives::mmr::{BeefyNextAuthoritySet, MmrLeafVersion};
-use bp_beefy::{BeefyMmrProof, BeefyPayload, Commitment, ValidatorSetId, MMR_ROOT_PAYLOAD_ID};
+use bp_beefy::{
+	BeefyMmrHash, BeefyMmrProof, BeefyPayload, Commitment, ValidatorSetId, MMR_ROOT_PAYLOAD_ID,
+};
 use codec::Encode;
 use libsecp256k1::SecretKey;
 use pallet_mmr::NodeIndex;
@@ -35,25 +37,9 @@ use std::collections::HashMap;
 pub struct HeaderAndCommitment {
 	pub header: BridgedHeader,
 	pub commitment: Option<BridgedCommitment>,
-	pub leaf: Option<BridgedMmrLeaf>,
-	pub leaf_proof: Option<BeefyMmrProof>,
-}
-
-impl HeaderAndCommitment {
-	pub fn new(number: BridgedBlockNumber, parent_hash: BridgedBlockHash) -> Self {
-		HeaderAndCommitment {
-			header: BridgedHeader::new(
-				number,
-				Default::default(),
-				Default::default(),
-				parent_hash,
-				Default::default(),
-			),
-			commitment: None,
-			leaf: None,
-			leaf_proof: None,
-		}
-	}
+	pub leaf: BridgedMmrLeaf,
+	pub leaf_proof: BeefyMmrProof,
+	pub mmr_root: BeefyMmrHash,
 }
 
 pub struct ChainBuilder {
@@ -62,19 +48,6 @@ pub struct ChainBuilder {
 	validator_keys: Vec<SecretKey>,
 	next_validator_keys: Vec<SecretKey>,
 	mmr: mmr_lib::MMR<BridgedMmrNode, BridgedMmrHashMerge, BridgedMmrStorage>,
-}
-
-impl From<ChainBuilder> for HeaderAndCommitment {
-	fn from(mut chain: ChainBuilder) -> HeaderAndCommitment {
-		assert_eq!(chain.headers.len(), 1);
-		chain.headers.remove(0)
-	}
-}
-
-impl From<ChainBuilder> for Vec<HeaderAndCommitment> {
-	fn from(chain: ChainBuilder) -> Vec<HeaderAndCommitment> {
-		chain.headers
-	}
 }
 
 struct BridgedMmrStorage {
@@ -110,6 +83,17 @@ impl ChainBuilder {
 	/// Get header with given number.
 	pub fn header(&self, number: BridgedBlockNumber) -> HeaderAndCommitment {
 		self.headers[number as usize - 1].clone()
+	}
+
+	/// Returns single built header.
+	pub fn to_header(&self) -> HeaderAndCommitment {
+		assert_eq!(self.headers.len(), 1);
+		self.headers[0].clone()
+	}
+
+	/// Returns built chain.
+	pub fn to_chain(&self) -> Vec<HeaderAndCommitment> {
+		self.headers.clone()
 	}
 
 	/// Append custom regular header using `HeaderBuilder`.
@@ -304,7 +288,9 @@ impl ChainBuilder {
 /// Custom header builder.
 pub struct HeaderBuilder {
 	chain: ChainBuilder,
-	header: HeaderAndCommitment,
+	header: BridgedHeader,
+	leaf: BridgedMmrLeaf,
+	leaf_proof: Option<BeefyMmrProof>,
 	new_validator_keys: Option<Vec<SecretKey>>,
 }
 
@@ -317,9 +303,12 @@ impl HeaderBuilder {
 	) -> Self {
 		// we're starting with header#1, since header#0 is always finalized
 		let header_number = chain.headers.len() as BridgedBlockNumber + 1;
-		let mut header = HeaderAndCommitment::new(
+		let header = BridgedHeader::new(
 			header_number,
+			Default::default(),
+			Default::default(),
 			chain.headers.last().map(|h| h.header.hash()).unwrap_or_default(),
+			Default::default(),
 		);
 
 		let next_validator_publics = next_validator_keys
@@ -337,10 +326,7 @@ impl HeaderBuilder {
 			.collect::<Vec<_>>();
 		let raw_leaf = beefy_primitives::mmr::MmrLeaf {
 			version: MmrLeafVersion::new(EXPECTED_MMR_LEAF_MAJOR_VERSION, 0),
-			parent_number_and_hash: (
-				header.header.number().saturating_sub(1),
-				*header.header.parent_hash(),
-			),
+			parent_number_and_hash: (header.number().saturating_sub(1), *header.parent_hash()),
 			beefy_next_authority_set: BeefyNextAuthoritySet {
 				id: next_validator_set_id,
 				len: next_validator_publics.len() as _,
@@ -348,46 +334,44 @@ impl HeaderBuilder {
 					next_validator_addresses,
 				),
 			},
-			parachain_heads: Default::default(), // TODO
+			parachain_heads: parachain_heads(&header),
 		};
-		header.leaf = Some(if !handoff {
-			BridgedMmrLeaf::Regular(raw_leaf.encode())
-		} else {
-			BridgedMmrLeaf::Handoff(raw_leaf.encode(), next_validator_publics)
-		});
 
 		HeaderBuilder {
 			chain,
 			header,
+			leaf: if !handoff {
+				BridgedMmrLeaf::Regular(raw_leaf.encode())
+			} else {
+				BridgedMmrLeaf::Handoff(raw_leaf.encode(), next_validator_publics)
+			},
+			leaf_proof: None,
 			new_validator_keys: if handoff { Some(next_validator_keys) } else { None },
 		}
 	}
 
 	pub fn customize_leaf(mut self, f: impl FnOnce(BridgedMmrLeaf) -> BridgedMmrLeaf) -> Self {
-		let mut leaf = self.header.leaf.take().expect("set in constructor; qed");
-		leaf = f(leaf);
-		self.header.leaf = Some(leaf);
+		self.leaf = f(self.leaf);
 		self
 	}
 
 	pub fn customize_proof(mut self, f: impl FnOnce(BeefyMmrProof) -> BeefyMmrProof) -> Self {
-		let raw_leaf = self.header.leaf.as_ref().expect("set in constructor; qed").leaf();
-		let raw_leaf_hash = BridgedMmrHasher::hash(raw_leaf);
+		let raw_leaf_hash = BridgedMmrHasher::hash(self.leaf.leaf());
 		let node = BridgedMmrNode::Hash(raw_leaf_hash.into());
 		log::trace!(
 			target: "runtime::bridge-beefy",
 			"Inserting MMR leaf with hash {} for header {}",
 			node.hash(),
-			self.header.header.number(),
+			self.header.number(),
 		);
-		let leaf_position = self.chain.mmr.push(node).expect("TODO");
+		let leaf_position = self.chain.mmr.push(node).unwrap();
 
-		let proof = self.chain.mmr.gen_proof(vec![leaf_position]).expect("TODO");
+		let proof = self.chain.mmr.gen_proof(vec![leaf_position]).unwrap();
 		// genesis has no leaf => leaf index is header number minus 1
-		let leaf_index = *self.header.header.number() - 1;
-		let leaf_count = *self.header.header.number();
+		let leaf_index = *self.header.number() - 1;
+		let leaf_count = *self.header.number();
 		let proof_size = proof.proof_items().len();
-		self.header.leaf_proof = Some(f(BeefyMmrProof {
+		self.leaf_proof = Some(f(BeefyMmrProof {
 			leaf_index,
 			leaf_count,
 			items: proof.proof_items().iter().map(|i| i.hash().to_fixed_bytes()).collect(),
@@ -397,16 +381,16 @@ impl HeaderBuilder {
 			"Proof of leaf {}/{} (for header {}) has {} items. Root: {}",
 			leaf_index,
 			leaf_count,
-			self.header.header.number(),
+			self.header.number(),
 			proof_size,
-			self.chain.mmr.get_root().expect("TODO").hash(),
+			self.chain.mmr.get_root().unwrap().hash(),
 		);
 
 		self
 	}
 
 	pub fn build(mut self) -> ChainBuilder {
-		if self.header.leaf_proof.is_none() {
+		if self.leaf_proof.is_none() {
 			self = self.customize_proof(|proof| proof);
 		}
 
@@ -416,7 +400,13 @@ impl HeaderBuilder {
 			self.chain.next_validator_keys = new_validator_keys;
 		}
 
-		self.chain.headers.push(self.header);
+		self.chain.headers.push(HeaderAndCommitment {
+			header: self.header,
+			commitment: None,
+			leaf: self.leaf,
+			leaf_proof: self.leaf_proof.expect("guaranteed by the customize_proof call above; qed"),
+			mmr_root: self.chain.mmr.get_root().unwrap().hash().into(),
+		});
 
 		self.chain
 	}
@@ -431,7 +421,7 @@ impl HeaderBuilder {
 			Commitment {
 				payload: BeefyPayload::new(
 					MMR_ROOT_PAYLOAD_ID,
-					chain.mmr.get_root().expect("TODO").hash().encode(),
+					chain.mmr.get_root().unwrap().hash().encode(),
 				),
 				block_number: *last_header.header.number(),
 				validator_set_id: current_validator_set_id,

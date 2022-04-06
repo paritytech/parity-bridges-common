@@ -17,9 +17,9 @@
 //! BEEFY MMR leaf verification verification.
 
 use crate::{
-	BridgedBeefyMmrHasher, BridgedBeefyMmrLeafUnpacked, BridgedBeefyValidatorIdToMerkleLeaf,
-	BridgedBeefyValidatorSet, BridgedBlockHash, BridgedBlockNumber, BridgedBeefyMmrLeaf, Config,
-	Error,
+	BridgedBeefyMmrHasher, BridgedBeefyMmrLeaf, BridgedBeefyMmrLeafUnpacked,
+	BridgedBeefyValidatorIdToMerkleLeaf, BridgedBeefyValidatorSet, BridgedBlockHash,
+	BridgedBlockNumber, Config, Error,
 };
 
 use bp_beefy::{
@@ -239,7 +239,7 @@ mod tests {
 	fn fails_to_import_commitment_if_leaf_version_is_unexpected() {
 		run_test_with_initialize(1, || {
 			// let's change leaf version to something lesser than expected
-			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
@@ -248,7 +248,7 @@ mod tests {
 					leaf.set_leaf(raw_leaf.encode())
 				})
 				.finalize()
-				.into();
+				.to_header();
 
 			assert_noop!(
 				import_commitment(commitment),
@@ -262,7 +262,7 @@ mod tests {
 		run_test_with_initialize(1, || {
 			// let's leave leaf version, but replace other leaf data with something that can't be
 			// decoded
-			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
@@ -271,7 +271,7 @@ mod tests {
 					leaf.set_leaf(raw_leaf)
 				})
 				.finalize()
-				.into();
+				.to_header();
 
 			assert_noop!(
 				import_commitment(commitment),
@@ -285,7 +285,7 @@ mod tests {
 		run_test_with_initialize(1, || {
 			// let's change next validator set id, so that it won't match next
 			// validator set id and new valdiator set id
-			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
@@ -294,7 +294,7 @@ mod tests {
 					leaf.set_leaf(raw_leaf.encode())
 				})
 				.finalize()
-				.into();
+				.to_header();
 
 			assert_noop!(
 				import_commitment(commitment),
@@ -307,11 +307,11 @@ mod tests {
 	fn fails_to_import_commitment_if_leaf_provides_redundant_new_validator_set() {
 		run_test_with_initialize(1, || {
 			// let's change leaf so that signals handoff where handoff is not happening
-			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_leaf(|leaf| leaf.set_next_validators(Some(Vec::new())))
 				.finalize()
-				.into();
+				.to_header();
 
 			assert_noop!(
 				import_commitment(commitment),
@@ -324,7 +324,7 @@ mod tests {
 	fn fails_to_import_commitment_if_new_validator_set_is_not_provided() {
 		run_test_with_initialize(1, || {
 			// let's change leaf so that it should provide new validator set, but it does not
-			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
@@ -333,7 +333,7 @@ mod tests {
 					leaf.set_leaf(raw_leaf.encode())
 				})
 				.finalize()
-				.into();
+				.to_header();
 
 			assert_noop!(
 				import_commitment(commitment),
@@ -346,14 +346,14 @@ mod tests {
 	fn fails_to_import_commitment_if_mmr_proof_is_wrong() {
 		run_test_with_initialize(1, || {
 			// let's change proof so that its verification fails
-			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+			let commitment = ChainBuilder::new(1)
 				.custom_header()
 				.customize_proof(|mut proof| {
 					proof.leaf_index += 1;
 					proof
 				})
 				.finalize()
-				.into();
+				.to_header();
 
 			assert_noop!(
 				import_commitment(commitment),
@@ -366,11 +366,11 @@ mod tests {
 	fn fails_to_import_commitment_if_new_validator_set_is_empty() {
 		run_test_with_initialize(1, || {
 			// let's change leaf so that it handoffs to empty validator set
-			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+			let commitment = ChainBuilder::new(1)
 				.custom_handoff_header(1)
 				.customize_leaf(|leaf| leaf.set_next_validators(Some(Vec::new())))
 				.finalize()
-				.into();
+				.to_header();
 
 			assert_noop!(
 				import_commitment(commitment),
@@ -383,7 +383,7 @@ mod tests {
 	fn fails_to_import_commitment_if_validators_merkle_root_mismatch() {
 		run_test_with_initialize(1, || {
 			// let's change leaf so that merkle root of new validators is wrong
-			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+			let commitment = ChainBuilder::new(1)
 				.custom_handoff_header(1)
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
@@ -392,7 +392,7 @@ mod tests {
 					leaf.set_leaf(raw_leaf.encode())
 				})
 				.finalize()
-				.into();
+				.to_header();
 
 			assert_noop!(
 				import_commitment(commitment),

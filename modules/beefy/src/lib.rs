@@ -693,7 +693,7 @@ mod tests {
 		run_test_with_initialize(1, || {
 			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), false));
 			assert_noop!(
-				import_commitment(ChainBuilder::new(1).append_finalized_header().into()),
+				import_commitment(ChainBuilder::new(1).append_finalized_header().to_header()),
 				Error::<TestRuntime, ()>::Halted,
 			);
 		})
@@ -735,7 +735,7 @@ mod tests {
 	fn fails_to_import_commitment_if_not_initialized() {
 		run_test(|| {
 			assert_noop!(
-				import_commitment(ChainBuilder::new(1).append_finalized_header().into()),
+				import_commitment(ChainBuilder::new(1).append_finalized_header().to_header()),
 				Error::<TestRuntime, ()>::NotInitialized,
 			);
 		})
@@ -757,13 +757,23 @@ mod tests {
 				.append_default_headers(4) // 54..57
 				.append_finalized_header() // 58
 				.append_default_headers(4); // 59..63
-			import_header_chain(chain.into());
+			import_header_chain(chain.to_chain());
 
 			assert_eq!(BestBlockNumber::<TestRuntime>::get().unwrap(), 58);
 			assert_eq!(CurrentValidatorSet::<TestRuntime>::get().unwrap().id(), 2);
 			assert_eq!(CurrentValidatorSet::<TestRuntime>::get().unwrap().len(), 9);
 			assert_eq!(NextValidatorSet::<TestRuntime>::get().unwrap().id(), 3);
 			assert_eq!(NextValidatorSet::<TestRuntime>::get().unwrap().len(), 17);
+
+			let imported_commitment = ImportedCommitments::<TestRuntime>::get(58).unwrap();
+			assert_eq!(
+				imported_commitment,
+				bp_beefy::ImportedCommitment {
+					parent_number_and_hash: (57, chain.header(57).header.hash()),
+					mmr_root: chain.header(58).mmr_root,
+					parachain_heads: parachain_heads(&chain.header(58).header),
+				},
+			);
 		})
 	}
 
@@ -773,7 +783,7 @@ mod tests {
 			let commitments_to_keep = <TestRuntime as Config<()>>::CommitmentsToKeep::get();
 			let commitments_to_import: Vec<HeaderAndCommitment> = ChainBuilder::new(3)
 				.append_finalized_headers(commitments_to_keep as usize + 2)
-				.into();
+				.to_chain();
 
 			// import exactly `CommitmentsToKeep` commitments
 			for index in 0..commitments_to_keep {

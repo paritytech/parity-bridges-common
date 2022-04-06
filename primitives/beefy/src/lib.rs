@@ -174,19 +174,14 @@ pub enum BeefyMmrLeafUnpacked<BeefyValidatorId> {
 	///
 	/// The vector is encoded MMR leaf contents (`beefy_primitives::mmr::MmrLeaf`). We can't
 	/// use it here directly, because leaf structure may change in the future.
-	Regular(
-		Vec<u8>,
-	),
+	Regular(Vec<u8>),
 	/// This variant shall be used when containing MMR leaf is signalling BEEFY authorities change.
 	///
 	/// The vector is encoded MMR leaf contents (`beefy_primitives::mmr::MmrLeaf`). We can't
 	/// use it here directly, because leaf structure may change in the future.
 	///
 	/// The pallet will reject this variant if MMR leaf is not changing authorities.
-	Handoff(
-		Vec<u8>,
-		Vec<BeefyValidatorId>,
-	),
+	Handoff(Vec<u8>, Vec<BeefyValidatorId>),
 }
 
 impl<BeefyValidatorId> BeefyMmrLeafUnpacked<BeefyValidatorId> {
@@ -219,7 +214,7 @@ impl<BeefyValidatorId> BeefyMmrLeafUnpacked<BeefyValidatorId> {
 		match self {
 			BeefyMmrLeafUnpacked::Regular(_) => BeefyMmrLeafUnpacked::Regular(new_raw_leaf),
 			BeefyMmrLeafUnpacked::Handoff(_, next_validators) =>
-			BeefyMmrLeafUnpacked::Handoff(new_raw_leaf, next_validators),
+				BeefyMmrLeafUnpacked::Handoff(new_raw_leaf, next_validators),
 		}
 	}
 
