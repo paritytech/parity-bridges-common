@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Utitlites to build bridged chain and BEEFY+MMR structures.
+//! Utilities to build bridged chain and BEEFY+MMR structures.
 
 use crate::mock::{
 	parachain_heads, sign_commitment, validator_key_to_public, validator_keys, BridgedBlockNumber,

@@ -46,7 +46,7 @@ use sp_runtime::{
 pub trait ChainWithBeefy: Chain {
 	/// Hash algorithm used to compute digest of the BEEFY commitment.
 	///
-	/// Corresponds to the hasing algorithm, used `beefy_gadget::BeefyKeystore`.
+	/// Corresponds to the hashing algorithm, used `beefy_gadget::BeefyKeystore`.
 	type CommitmentHasher: sp_runtime::traits::Hash;
 
 	/// Hash algorithm used to build MMR.
@@ -55,7 +55,7 @@ pub trait ChainWithBeefy: Chain {
 	/// bundle, its output is hardcoded to be `H256` (see `beefy_merkle_tree::Hash` trait).
 	///
 	/// The same algorithm is also used to compute merkle roots in BEEFY - e.g. `parachain_heads`
-	/// and validator publics root in leaf data.
+	/// and validator addresses root in leaf data.
 	type MmrHasher: beefy_merkle_tree::Hasher;
 
 	/// A way to identify BEEFY validator and verify its signature.
@@ -72,8 +72,8 @@ pub trait ChainWithBeefy: Chain {
 	type ValidatorIdToMerkleLeaf: Convert<Self::ValidatorId, Vec<u8>>;
 }
 
-/// Extended vesion of `RuntimeAppPublic`, which is able to verify signature of prehashed
-/// message. Regular `RuntimeAppPublic` is hasing message itself (using `blake2`), which
+/// Extended version of `RuntimeAppPublic`, which is able to verify signature of pre-hashed
+/// message. Regular `RuntimeAppPublic` is hashing message itself (using `blake2`), which
 /// is not how things work in BEEFY.
 pub trait BeefyRuntimeAppPublic<CommitmentHash>: RuntimeAppPublic {
 	/// Verify a signature on a pre-hashed message. Return `true` if the signature is valid
@@ -201,7 +201,7 @@ impl<BeefyValidatorId> BeefyMmrLeafUnpacked<BeefyValidatorId> {
 		}
 	}
 
-	/// Converts self to unpacked next valiator set, if available.
+	/// Converts self to unpacked next validator set, if available.
 	pub fn into_next_validators(self) -> Option<Vec<BeefyValidatorId>> {
 		match self {
 			BeefyMmrLeafUnpacked::Regular(_) => None,

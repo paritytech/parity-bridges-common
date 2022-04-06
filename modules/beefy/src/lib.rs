@@ -28,7 +28,7 @@
 //!   configured).
 //!
 //! Given the header hash (and parachain heads), other pallets are able to verify header-based
-//! proofs. For example - storage proofs, transaction inclustion proofs, ...There are two options to
+//! proofs. For example - storage proofs, transaction inclusion proofs, ...There are two options to
 //! do that:
 //!
 //! - the cheap option only works when proof is header-proof is based on some recent header. Then
@@ -103,7 +103,7 @@ pub mod pallet {
 
 		/// Expected MMR leaf version.
 		///
-		/// The pallet will reject all leafs with misimatching major version.
+		/// The pallet will reject all leafs with mismatching major version.
 		#[pallet::constant]
 		type ExpectedMmrLeafMajorVersion: Get<u8>;
 
@@ -414,7 +414,7 @@ pub mod pallet {
 		Halted,
 		/// There are too many requests for the current window to handle.
 		TooManyRequests,
-		/// Failed to decode method arguments (will be removed once `TypeInfo` wiwill be
+		/// Failed to decode method arguments (will be removed once `TypeInfo` will be
 		/// implemented for all arguments).
 		FailedToDecodeArgument,
 		/// The pallet has not been initialized yet.
@@ -451,7 +451,7 @@ pub mod pallet {
 		EmptyNextValidatorSet,
 	}
 
-	/// Initialize pallet with given parameterns.
+	/// Initialize pallet with given parameters.
 	pub(super) fn initialize<T: Config<I>, I: 'static>(
 		init_data: InitializationDataOf<T, I>,
 	) -> Result<(), Error<T, I>> {
