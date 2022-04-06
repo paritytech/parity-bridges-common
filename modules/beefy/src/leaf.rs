@@ -120,7 +120,7 @@ where
 				next_validators,
 				raw_mmr_leaf.beefy_next_authority_set.id,
 			)
-			.expect("TODO"),
+			.unwrap(),
 		)
 	} else {
 		None
@@ -217,14 +217,14 @@ where
 		_input: Vec<Vec<u8>>,
 		_state_version: sp_runtime::StateVersion,
 	) -> Self::Output {
-		unreachable!("TODO: do we need this?")
+		unreachable!("MMR never needs trie root functions; qed")
 	}
 
 	fn trie_root(
 		_input: Vec<(Vec<u8>, Vec<u8>)>,
 		_state_version: sp_runtime::StateVersion,
 	) -> Self::Output {
-		unreachable!("TODO: do we need this?")
+		unreachable!("MMR never needs trie root functions; qed")
 	}
 }
 
@@ -243,7 +243,7 @@ mod tests {
 				.custom_header()
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
-						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).expect("TODO");
+						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
 					raw_leaf.version = MmrLeafVersion::new(EXPECTED_MMR_LEAF_MAJOR_VERSION - 1, 0);
 					leaf.set_leaf(raw_leaf.encode())
 				})
@@ -289,7 +289,7 @@ mod tests {
 				.custom_header()
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
-						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).expect("TODO");
+						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
 					raw_leaf.beefy_next_authority_set.id += 10;
 					leaf.set_leaf(raw_leaf.encode())
 				})
@@ -328,7 +328,7 @@ mod tests {
 				.custom_header()
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
-						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).expect("TODO");
+						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
 					raw_leaf.beefy_next_authority_set.id += 1;
 					leaf.set_leaf(raw_leaf.encode())
 				})
@@ -387,7 +387,7 @@ mod tests {
 				.custom_handoff_header(1)
 				.customize_leaf(|leaf| {
 					let mut raw_leaf =
-						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).expect("TODO");
+						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
 					raw_leaf.beefy_next_authority_set.root = Default::default();
 					leaf.set_leaf(raw_leaf.encode())
 				})
