@@ -47,7 +47,7 @@ pub struct BeefyMmrLeafVerificationArtifacts<T: Config<I>, I: 'static> {
 /// Returns new BEEFY validator set if it is enacted.
 pub fn verify_beefy_mmr_leaf<T: Config<I>, I: 'static>(
 	validators: &BridgedBeefyValidatorSet<T, I>,
-	mmr_leaf: &BridgedBeefyMmrLeafUnpacked<T, I>,
+	mmr_leaf: BridgedBeefyMmrLeafUnpacked<T, I>,
 	mmr_proof: BeefyMmrProof,
 	mmr_root: BeefyMmrHash,
 ) -> Result<BeefyMmrLeafVerificationArtifacts<T, I>, Error<T, I>>
@@ -100,7 +100,7 @@ where
 	})?;
 
 	// if new validators are provided, ensure that they match data from the leaf
-	let next_validator_set = if let Some(ref next_validators) = mmr_leaf.next_validators() {
+	let next_validator_set = if let Some(next_validators) = mmr_leaf.into_next_validators() {
 		ensure!(!next_validators.is_empty(), Error::<T, I>::EmptyNextValidatorSet);
 
 		let next_validator_addresses = next_validators
@@ -115,10 +115,9 @@ where
 			Error::<T, I>::InvalidNextValidatorSetRoot
 		);
 
-		// TODO: avoid clone?
 		Some(
 			BridgedBeefyValidatorSet::<T, I>::new(
-				next_validators.iter().cloned(),
+				next_validators,
 				raw_mmr_leaf.beefy_next_authority_set.id,
 			)
 			.expect("TODO"),

@@ -206,6 +206,14 @@ impl<BeefyValidatorId> BeefyMmrLeafUnpacked<BeefyValidatorId> {
 		}
 	}
 
+	/// Converts self to unpacked next valiator set, if available.
+	pub fn into_next_validators(self) -> Option<Vec<BeefyValidatorId>> {
+		match self {
+			BeefyMmrLeafUnpacked::Regular(_) => None,
+			BeefyMmrLeafUnpacked::Handoff(_, next_validators) => Some(next_validators),
+		}
+	}
+
 	/// Set actual MMR leaf contents.
 	pub fn set_leaf(self, new_raw_leaf: Vec<u8>) -> Self {
 		match self {

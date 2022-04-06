@@ -256,7 +256,7 @@ pub mod pallet {
 			})?;
 			let mmr_leaf_artifacts = leaf::verify_beefy_mmr_leaf::<T, I>(
 				&validators,
-				&mmr_leaf,
+				mmr_leaf,
 				mmr_proof,
 				commitment_artifacts.mmr_root,
 			)?;
