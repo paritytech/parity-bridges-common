@@ -26,7 +26,7 @@ use bp_beefy::{
 	beefy_merkle_root, verify_mmr_leaf_proof, BeefyMmrHash, BeefyMmrProof, MmrDataOrHash,
 	MmrLeafVersion,
 };
-use codec::{Decode, Encode};
+use codec::Decode;
 use frame_support::{ensure, traits::Get};
 use sp_runtime::{traits::Convert, RuntimeDebug};
 use sp_std::marker::PhantomData;
@@ -38,37 +38,6 @@ pub struct BeefyMmrLeafVerificationArtifacts<T: Config<I>, I: 'static> {
 	pub parent_number_and_hash: (BridgedBlockNumber<T, I>, BridgedBlockHash<T, I>),
 	/// Next validator set, if handoff is happening.
 	pub next_validator_set: Option<BridgedBeefyValidatorSet<T, I>>,
-}
-
-/// Decode MMR leaf of given major version.
-pub fn decode_mmr_leaf<T: Config<I>, I: 'static>(
-	encoded_leaf: &[u8],
-) -> Result<BridgedBeefyMmrLeaf<T, I>, Error<T, I>> {
-	// decode version first, so that we know that the leaf format hasn't changed
-	let version = MmrLeafVersion::decode(&mut &encoded_leaf[..]).map_err(|e| {
-		log::error!(
-			target: "runtime::bridge-beefy",
-			"MMR leaf version decode has failed with error: {:?}",
-			e,
-		);
-
-		Error::<T, I>::FailedToDecodeMmrLeafVersion
-	})?;
-	ensure!(
-		version.split().0 == T::ExpectedMmrLeafMajorVersion::get(),
-		Error::<T, I>::UnsupportedMmrLeafVersion
-	);
-
-	// decode the whole leaf
-	BridgedBeefyMmrLeaf::<T, I>::decode(&mut &encoded_leaf[..]).map_err(|e| {
-		log::error!(
-			target: "runtime::bridge-beefy",
-			"MMR leaf decode has failed with error: {:?}",
-			e,
-		);
-
-		Error::<T, I>::FailedToDecodeMmrLeaf
-	})
 }
 
 /// Verify MMR proof of given leaf.
@@ -83,18 +52,24 @@ pub fn verify_beefy_mmr_leaf<T: Config<I>, I: 'static>(
 where
 	BridgedBeefyMmrHasher<T, I>: 'static + Send + Sync,
 {
+	// decode raw MMR leaf
+	let raw_mmr_leaf = decode_raw_mmr_leaf::<T, I>(mmr_leaf.leaf())?;
+
 	// TODO: is it the right condition? can id is increased by say +3?
-	let is_updating_validator_set =
-		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 2;
+	let is_updating_validator_set = raw_mmr_leaf.beefy_next_authority_set.id == validators.id() + 2;
 	ensure!(
-		mmr_leaf.leaf().beefy_next_authority_set.id == validators.id() + 1 ||
+		raw_mmr_leaf.beefy_next_authority_set.id == validators.id() + 1 ||
 			is_updating_validator_set,
 		Error::<T, I>::InvalidNextValidatorsSetId,
 	);
 	// technically it is not an error, but we'd like to reduce tx size on real chains
 	ensure!(
-		is_updating_validator_set == mmr_leaf.next_validators().is_some(),
+		!mmr_leaf.next_validators().is_some() || is_updating_validator_set,
 		Error::<T, I>::RedundantNextValidatorsProvided,
+	);
+	ensure!(
+		mmr_leaf.next_validators().is_some() || !is_updating_validator_set,
+		Error::<T, I>::NextValidatorsAreNotProvided,
 	);
 
 	// verify mmr proof for the provided leaf
@@ -102,7 +77,7 @@ where
 	let mmr_proof_leaf_count = mmr_proof.leaf_count;
 	let mmr_proof_length = mmr_proof.items.len();
 	let mmr_leaf_hash =
-		<BridgedBeefyMmrHasher<T, I> as bp_beefy::BeefyMmrHasher>::hash(&mmr_leaf.leaf().encode());
+		<BridgedBeefyMmrHasher<T, I> as bp_beefy::BeefyMmrHasher>::hash(mmr_leaf.leaf());
 	verify_mmr_leaf_proof::<
 		BridgedBeefyMmrHasherAdapter<BridgedBeefyMmrHasher<T, I>>,
 		MmrDataOrHash<BridgedBeefyMmrHasherAdapter<BridgedBeefyMmrHasher<T, I>>, BridgedRawBeefyMmrLeaf<T, I>>,
@@ -134,7 +109,7 @@ where
 		let next_validator_addresses_root: BeefyMmrHash =
 			beefy_merkle_root::<BridgedBeefyMmrHasher<T, I>, _, _>(next_validator_addresses).into();
 		ensure!(
-			next_validator_addresses_root == mmr_leaf.leaf().beefy_next_authority_set.root,
+			next_validator_addresses_root == raw_mmr_leaf.beefy_next_authority_set.root,
 			Error::<T, I>::InvalidNextValidatorSetRoot
 		);
 
@@ -142,7 +117,7 @@ where
 		Some(
 			BridgedBeefyValidatorSet::<T, I>::new(
 				next_validators.iter().cloned(),
-				mmr_leaf.leaf().beefy_next_authority_set.id,
+				raw_mmr_leaf.beefy_next_authority_set.id,
 			)
 			.expect("TODO"),
 		)
@@ -154,8 +129,42 @@ where
 	// commitment.block_number
 
 	Ok(BeefyMmrLeafVerificationArtifacts {
-		parent_number_and_hash: mmr_leaf.leaf().parent_number_and_hash,
+		parent_number_and_hash: raw_mmr_leaf.parent_number_and_hash,
 		next_validator_set,
+	})
+}
+
+/// Decode MMR leaf of given major version.
+fn decode_raw_mmr_leaf<T: Config<I>, I: 'static>(
+	encoded_leaf: &[u8],
+) -> Result<BridgedRawBeefyMmrLeaf<T, I>, Error<T, I>> {
+	// decode version first, so that we know that the leaf format hasn't changed
+	let version = MmrLeafVersion::decode(&mut &encoded_leaf[..]).map_err(|e| {
+		// this shall never happen, because (as of now) leaf version is simple `u8`
+		// and we can't fail to decode `u8`. So this is here to support potential
+		// future changes
+		log::error!(
+			target: "runtime::bridge-beefy",
+			"MMR leaf version decode has failed with error: {:?}",
+			e,
+		);
+
+		Error::<T, I>::FailedToDecodeMmrLeafVersion
+	})?;
+	ensure!(
+		version.split().0 == T::ExpectedMmrLeafMajorVersion::get(),
+		Error::<T, I>::UnsupportedMmrLeafVersion
+	);
+
+	// decode the whole leaf
+	BridgedRawBeefyMmrLeaf::<T, I>::decode(&mut &encoded_leaf[..]).map_err(|e| {
+		log::error!(
+			target: "runtime::bridge-beefy",
+			"MMR leaf decode has failed with error: {:?}",
+			e,
+		);
+
+		Error::<T, I>::FailedToDecodeMmrLeaf
 	})
 }
 
@@ -214,5 +223,179 @@ where
 		_state_version: sp_runtime::StateVersion,
 	) -> Self::Output {
 		unreachable!("TODO: do we need this?")
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::{mock::*, mock_chain::*, *};
+	use codec::Encode;
+	use frame_support::assert_noop;
+
+	#[test]
+	fn fails_to_import_commitment_if_leaf_version_is_unexpected() {
+		run_test_with_initialize(1, || {
+			// let's change leaf version to something lesser than expected
+			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+				.custom_header()
+				.customize_leaf(|leaf| {
+					let mut raw_leaf =
+						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).expect("TODO");
+					raw_leaf.version = MmrLeafVersion::new(EXPECTED_MMR_LEAF_MAJOR_VERSION - 1, 0);
+					leaf.set_leaf(raw_leaf.encode())
+				})
+				.finalize()
+				.into();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::UnsupportedMmrLeafVersion,
+			);
+		});
+	}
+
+	#[test]
+	fn fails_to_import_commitment_if_leaf_decode_fails() {
+		run_test_with_initialize(1, || {
+			// let's leave leaf version, but replace other leaf data with something that can't be
+			// decoded
+			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+				.custom_header()
+				.customize_leaf(|leaf| {
+					let mut raw_leaf =
+						MmrLeafVersion::new(EXPECTED_MMR_LEAF_MAJOR_VERSION, 0).encode();
+					raw_leaf.push(42);
+					leaf.set_leaf(raw_leaf)
+				})
+				.finalize()
+				.into();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::FailedToDecodeMmrLeaf,
+			);
+		});
+	}
+
+	#[test]
+	fn fails_to_import_commitment_if_signed_by_wrong_validator_set_id() {
+		run_test_with_initialize(1, || {
+			// let's change next validator set id, so that it won't match next
+			// validator set id and new valdiator set id
+			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+				.custom_header()
+				.customize_leaf(|leaf| {
+					let mut raw_leaf =
+						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).expect("TODO");
+					raw_leaf.beefy_next_authority_set.id += 10;
+					leaf.set_leaf(raw_leaf.encode())
+				})
+				.finalize()
+				.into();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::InvalidNextValidatorsSetId,
+			);
+		});
+	}
+
+	#[test]
+	fn fails_to_import_commitment_if_leaf_provides_redundant_new_validator_set() {
+		run_test_with_initialize(1, || {
+			// let's change leaf so that signals handoff where handoff is not happening
+			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+				.custom_header()
+				.customize_leaf(|leaf| leaf.set_next_validators(Some(Vec::new())))
+				.finalize()
+				.into();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::RedundantNextValidatorsProvided,
+			);
+		});
+	}
+
+	#[test]
+	fn fails_to_import_commitment_if_new_validator_set_is_not_provided() {
+		run_test_with_initialize(1, || {
+			// let's change leaf so that it should provide new validator set, but it does not
+			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+				.custom_header()
+				.customize_leaf(|leaf| {
+					let mut raw_leaf =
+						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).expect("TODO");
+					raw_leaf.beefy_next_authority_set.id += 1;
+					leaf.set_leaf(raw_leaf.encode())
+				})
+				.finalize()
+				.into();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::NextValidatorsAreNotProvided,
+			);
+		});
+	}
+
+	#[test]
+	fn fails_to_import_commitment_if_mmr_proof_is_wrong() {
+		run_test_with_initialize(1, || {
+			// let's change proof so that its verification fails
+			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+				.custom_header()
+				.customize_proof(|mut proof| {
+					proof.leaf_index += 1;
+					proof
+				})
+				.finalize()
+				.into();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::MmrProofVeriricationFailed,
+			);
+		});
+	}
+
+	#[test]
+	fn fails_to_import_commitment_if_new_validator_set_is_empty() {
+		run_test_with_initialize(1, || {
+			// let's change leaf so that it handoffs to empty validator set
+			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+				.custom_handoff_header(1)
+				.customize_leaf(|leaf| leaf.set_next_validators(Some(Vec::new())))
+				.finalize()
+				.into();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::EmptyNextValidatorSet,
+			);
+		});
+	}
+
+	#[test]
+	fn fails_to_import_commitment_if_validators_merkle_root_mismatch() {
+		run_test_with_initialize(1, || {
+			// let's change leaf so that merkle root of new validators is wrong
+			let commitment: HeaderAndCommitment = ChainBuilder::new(1)
+				.custom_handoff_header(1)
+				.customize_leaf(|leaf| {
+					let mut raw_leaf =
+						BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).expect("TODO");
+					raw_leaf.beefy_next_authority_set.root = Default::default();
+					leaf.set_leaf(raw_leaf.encode())
+				})
+				.finalize()
+				.into();
+
+			assert_noop!(
+				import_commitment(commitment),
+				Error::<TestRuntime, ()>::InvalidNextValidatorSetRoot,
+			);
+		});
 	}
 }

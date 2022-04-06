@@ -195,8 +195,7 @@ pub mod pallet {
 			// and `BridgedBeefyMmrLeaf::<T, I>`
 			encoded_commitment: Vec<u8>,
 			encoded_mmr_proof: Vec<u8>,
-			encoded_mmr_leaf: Vec<u8>, /* TODO: what about version? we can't just use structure
-			                            * here */
+			mmr_leaf: BridgedBeefyMmrLeaf<T, I>,
 		) -> DispatchResult {
 			ensure_operational::<T, I>()?;
 			let _ = ensure_signed(origin)?;
@@ -223,8 +222,9 @@ pub mod pallet {
 
 			log::trace!(
 				target: "runtime::bridge-beefy",
-				"Importing commitment for block {:?}",
+				"Importing commitment for block {:?}: {:?}",
 				commitment.commitment.block_number,
+				commitment,
 			);
 
 			let commitment_artifacts = commitment::verify_beefy_signed_commitment::<T, I>(
@@ -243,7 +243,6 @@ pub mod pallet {
 
 				Error::<T, I>::FailedToDecodeArgument
 			})?;
-			let mmr_leaf = leaf::decode_mmr_leaf::<T, I>(&encoded_mmr_leaf)?;
 			let mmr_leaf_artifacts = leaf::verify_beefy_mmr_leaf::<T, I>(
 				&validators,
 				&mmr_leaf,
@@ -394,6 +393,8 @@ pub mod pallet {
 		InvalidNextValidatorsSetId,
 		/// Next validators are provided when leaf is not signalling set change.
 		RedundantNextValidatorsProvided,
+		/// Next validators are not provided when leaf is signalling set change.
+		NextValidatorsAreNotProvided,
 		/// Next validators are not matching the merkle tree root.
 		InvalidNextValidatorSetRoot,
 		/// Next validator set is empty.
@@ -695,8 +696,6 @@ mod tests {
 
 	#[test]
 	fn submit_commitment_works_with_long_chain() {
-		let _ = env_logger::try_init();
-
 		run_test_with_initialize(32, || {
 			let chain = ChainBuilder::new(32)
 				.append_finalized_header() // 1

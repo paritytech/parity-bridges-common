@@ -19,13 +19,11 @@
 use crate::mock::{
 	sign_commitment, validator_key_to_public, validator_keys, BridgedBlockHash, BridgedBlockNumber,
 	BridgedCommitment, BridgedHeader, BridgedMmrHasher, BridgedMmrLeaf, BridgedMmrNode,
-	BridgedValidatorIdToMerkleLeaf,
+	BridgedValidatorIdToMerkleLeaf, EXPECTED_MMR_LEAF_MAJOR_VERSION,
 };
 
 use beefy_primitives::mmr::{BeefyNextAuthoritySet, MmrLeafVersion};
-use bp_beefy::{
-	BeefyMmrProof, BeefyPayload, Commitment, MmrProof, ValidatorSetId, MMR_ROOT_PAYLOAD_ID,
-};
+use bp_beefy::{BeefyMmrProof, BeefyPayload, Commitment, ValidatorSetId, MMR_ROOT_PAYLOAD_ID};
 use codec::Encode;
 use libsecp256k1::SecretKey;
 use pallet_mmr::NodeIndex;
@@ -114,9 +112,30 @@ impl ChainBuilder {
 		self.headers[number as usize - 1].clone()
 	}
 
+	/// Append custom regular header using `HeaderBuilder`.
+	pub fn custom_header(self) -> HeaderBuilder {
+		let next_validator_set_id = self.validator_set_id + 1;
+		let next_validator_keys = self.next_validator_keys.clone();
+		HeaderBuilder::with_chain(self, false, next_validator_set_id, next_validator_keys)
+	}
+
+	/// Append custom handoff header using `HeaderBuilder`.
+	pub fn custom_handoff_header(self, next_validators_len: usize) -> HeaderBuilder {
+		let new_validator_set_id = self.validator_set_id + 2;
+		let new_validator_keys = validator_keys(
+			rand::thread_rng().gen::<usize>() % (usize::MAX / 2),
+			next_validators_len,
+		);
+		HeaderBuilder::with_chain(self, true, new_validator_set_id, new_validator_keys)
+	}
+
 	/// Appends header, that has been finalized by BEEFY (so it has a linked signed commitment).
-	pub fn append_finalized_header(mut self) -> Self {
-		self = self.append_default_header();
+	pub fn append_finalized_header(self) -> Self {
+		let next_validator_set_id = self.validator_set_id + 1;
+		let next_validator_keys = self.next_validator_keys.clone();
+		HeaderBuilder::with_chain(self, false, next_validator_set_id, next_validator_keys)
+			.finalize()
+		/*		self = self.append_default_header();
 
 		let last_header = self.headers.last_mut().expect("added by append_header; qed");
 		last_header.commitment = Some(sign_commitment(
@@ -131,7 +150,7 @@ impl ChainBuilder {
 			&self.validator_keys,
 		));
 
-		self
+		self*/
 	}
 
 	/// Appends header, that enacts new validator set.
@@ -143,32 +162,49 @@ impl ChainBuilder {
 			rand::thread_rng().gen::<usize>() % (usize::MAX / 2),
 			next_validators_len,
 		);
-		self = self.append_header(true, new_validator_set_id, new_validator_keys.clone());
 
-		let last_header = self.headers.last_mut().expect("added by append_header; qed");
-		last_header.commitment = Some(sign_commitment(
-			Commitment {
-				payload: BeefyPayload::new(
-					MMR_ROOT_PAYLOAD_ID,
-					self.mmr.get_root().expect("TODO").hash().encode(),
-				),
-				block_number: *last_header.header.number(),
-				validator_set_id: self.validator_set_id,
-			},
-			&self.validator_keys,
-		));
+		self =
+			HeaderBuilder::with_chain(self, true, new_validator_set_id, new_validator_keys.clone())
+				.finalize();
+		/*
+				self = self.append_header(
+					true,
+					new_validator_set_id,
+					new_validator_keys.clone(),
+				);
 
-		self.validator_set_id = self.validator_set_id + 1;
-		self.validator_keys = self.next_validator_keys;
-		self.next_validator_keys = new_validator_keys;
-
+				let last_header = self.headers.last_mut().expect("added by append_header; qed");
+				last_header.commitment = Some(sign_commitment(
+					Commitment {
+						payload: BeefyPayload::new(
+							MMR_ROOT_PAYLOAD_ID,
+							self.mmr.get_root().expect("TODO").hash().encode(),
+						),
+						block_number: *last_header.header.number(),
+						validator_set_id: self.validator_set_id,
+					},
+					&self.validator_keys,
+				));
+		*/
+		/*
+				self.validator_set_id = self.validator_set_id + 1;
+				self.validator_keys = self.next_validator_keys;
+				self.next_validator_keys = new_validator_keys;
+		*/
 		self
 	}
 
 	pub fn append_default_header(self) -> Self {
+		/*		let next_validator_set_id = self.validator_set_id + 1;
+		let next_validator_keys = self.next_validator_keys.clone();
+		self.append_header(
+			false,
+			next_validator_set_id,
+			next_validator_keys,
+		)*/
 		let next_validator_set_id = self.validator_set_id + 1;
 		let next_validator_keys = self.next_validator_keys.clone();
-		self.append_header(false, next_validator_set_id, next_validator_keys)
+		HeaderBuilder::with_chain(self, false, next_validator_set_id, next_validator_keys).build()
 	}
 
 	pub fn append_default_headers(mut self, count: usize) -> Self {
@@ -177,7 +213,7 @@ impl ChainBuilder {
 		}
 		self
 	}
-
+	/*
 	fn append_header(
 		mut self,
 		handoff: bool,
@@ -202,8 +238,8 @@ impl ChainBuilder {
 			header_number,
 			self.headers.last().map(|h| h.header.hash()).unwrap_or_default(),
 		);
-		let raw_leaf = beefy_primitives::mmr::MmrLeaf {
-			version: MmrLeafVersion::new(0, 0),
+		let raw_leaf = BridgedRawMmrLeaf {
+			version: MmrLeafVersion::new(EXPECTED_MMR_LEAF_MAJOR_VERSION, 0),
 			parent_number_and_hash: (
 				header.header.number().saturating_sub(1),
 				*header.header.parent_hash(),
@@ -230,9 +266,9 @@ impl ChainBuilder {
 		let last_header = self.headers.last_mut().expect("added one line above; qed");
 		let proof = self.mmr.gen_proof(vec![leaf_position]).expect("TODO");
 		last_header.leaf = Some(if !handoff {
-			BridgedMmrLeaf::Regular(raw_leaf)
+			BridgedMmrLeaf::Regular(raw_leaf.encode())
 		} else {
-			BridgedMmrLeaf::Handoff(raw_leaf, next_validator_publics)
+			BridgedMmrLeaf::Handoff(raw_leaf.encode(), next_validator_publics)
 		});
 		// genesis has no leaf => leaf index is header number minus 1
 		let leaf_index = *last_header.header.number() - 1;
@@ -254,6 +290,148 @@ impl ChainBuilder {
 		);
 
 		self
+	}*/
+}
+
+/// Custom header builder.
+pub struct HeaderBuilder {
+	chain: ChainBuilder,
+	header: HeaderAndCommitment,
+	new_validator_keys: Option<Vec<SecretKey>>,
+}
+
+impl HeaderBuilder {
+	fn with_chain(
+		chain: ChainBuilder,
+		handoff: bool,
+		next_validator_set_id: ValidatorSetId,
+		next_validator_keys: Vec<SecretKey>,
+	) -> Self {
+		// we're starting with header#1, since header#0 is always finalized
+		let header_number = chain.headers.len() as BridgedBlockNumber + 1;
+		let mut header = HeaderAndCommitment::new(
+			header_number,
+			chain.headers.last().map(|h| h.header.hash()).unwrap_or_default(),
+		);
+
+		let next_validator_publics = next_validator_keys
+			.iter()
+			.cloned()
+			.map(|k| {
+				sp_core::ecdsa::Public::from_raw(validator_key_to_public(k).serialize_compressed())
+					.into()
+			})
+			.collect::<Vec<_>>();
+		let next_validator_addresses = next_validator_publics
+			.iter()
+			.cloned()
+			.map(BridgedValidatorIdToMerkleLeaf::convert)
+			.collect::<Vec<_>>();
+		let raw_leaf = beefy_primitives::mmr::MmrLeaf {
+			version: MmrLeafVersion::new(EXPECTED_MMR_LEAF_MAJOR_VERSION, 0),
+			parent_number_and_hash: (
+				header.header.number().saturating_sub(1),
+				*header.header.parent_hash(),
+			),
+			beefy_next_authority_set: BeefyNextAuthoritySet {
+				id: next_validator_set_id,
+				len: next_validator_publics.len() as _,
+				root: bp_beefy::beefy_merkle_root::<BridgedMmrHasher, _, _>(
+					next_validator_addresses,
+				),
+			},
+			parachain_heads: Default::default(), // TODO
+		};
+		header.leaf = Some(if !handoff {
+			BridgedMmrLeaf::Regular(raw_leaf.encode())
+		} else {
+			BridgedMmrLeaf::Handoff(raw_leaf.encode(), next_validator_publics)
+		});
+
+		HeaderBuilder {
+			chain,
+			header,
+			new_validator_keys: if handoff { Some(next_validator_keys) } else { None },
+		}
+	}
+
+	pub fn customize_leaf(mut self, f: impl FnOnce(BridgedMmrLeaf) -> BridgedMmrLeaf) -> Self {
+		let mut leaf = self.header.leaf.take().expect("set in constructor; qed");
+		leaf = f(leaf);
+		self.header.leaf = Some(leaf);
+		self
+	}
+
+	pub fn customize_proof(mut self, f: impl FnOnce(BeefyMmrProof) -> BeefyMmrProof) -> Self {
+		let raw_leaf = self.header.leaf.as_ref().expect("set in constructor; qed").leaf();
+		let raw_leaf_hash = BridgedMmrHasher::hash(raw_leaf);
+		let node = BridgedMmrNode::Hash(raw_leaf_hash.into());
+		log::trace!(
+			target: "runtime::bridge-beefy",
+			"Inserting MMR leaf with hash {} for header {}",
+			node.hash(),
+			self.header.header.number(),
+		);
+		let leaf_position = self.chain.mmr.push(node).expect("TODO");
+
+		let proof = self.chain.mmr.gen_proof(vec![leaf_position]).expect("TODO");
+		// genesis has no leaf => leaf index is header number minus 1
+		let leaf_index = *self.header.header.number() - 1;
+		let leaf_count = *self.header.header.number();
+		let proof_size = proof.proof_items().len();
+		self.header.leaf_proof = Some(f(BeefyMmrProof {
+			leaf_index,
+			leaf_count,
+			items: proof.proof_items().iter().map(|i| i.hash().to_fixed_bytes()).collect(),
+		}));
+		log::trace!(
+			target: "runtime::bridge-beefy",
+			"Proof of leaf {}/{} (for header {}) has {} items. Root: {}",
+			leaf_index,
+			leaf_count,
+			self.header.header.number(),
+			proof_size,
+			self.chain.mmr.get_root().expect("TODO").hash(),
+		);
+
+		self
+	}
+
+	pub fn build(mut self) -> ChainBuilder {
+		if self.header.leaf_proof.is_none() {
+			self = self.customize_proof(|proof| proof);
+		}
+
+		if let Some(new_validator_keys) = self.new_validator_keys {
+			self.chain.validator_set_id = self.chain.validator_set_id + 1;
+			self.chain.validator_keys = self.chain.next_validator_keys;
+			self.chain.next_validator_keys = new_validator_keys;
+		}
+
+		self.chain.headers.push(self.header);
+
+		self.chain
+	}
+
+	pub fn finalize(self) -> ChainBuilder {
+		let current_validator_set_id = self.chain.validator_set_id;
+		let current_validator_set_keys = self.chain.validator_keys.clone();
+		let mut chain = self.build();
+
+		let last_header = chain.headers.last_mut().expect("added by append_header; qed");
+		last_header.commitment = Some(sign_commitment(
+			Commitment {
+				payload: BeefyPayload::new(
+					MMR_ROOT_PAYLOAD_ID,
+					chain.mmr.get_root().expect("TODO").hash().encode(),
+				),
+				block_number: *last_header.header.number(),
+				validator_set_id: current_validator_set_id,
+			},
+			&current_validator_set_keys,
+		));
+
+		chain
 	}
 }
 

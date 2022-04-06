@@ -96,10 +96,13 @@ impl frame_system::Config for TestRuntime {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
+pub const EXPECTED_MMR_LEAF_MAJOR_VERSION: u8 = 3;
+
 impl beefy::Config for TestRuntime {
 	type MaxRequests = frame_support::traits::ConstU32<16>;
 	type BridgedChain = TestBridgedChain;
-	type ExpectedMmrLeafMajorVersion = frame_support::traits::ConstU8<0>;
+	type ExpectedMmrLeafMajorVersion =
+		frame_support::traits::ConstU8<EXPECTED_MMR_LEAF_MAJOR_VERSION>;
 }
 
 #[derive(Debug)]
@@ -162,7 +165,7 @@ pub fn import_commitment(
 		Origin::signed(1),
 		header.commitment.expect("TODO").encode(),
 		header.leaf_proof.expect("TODO").encode(),
-		header.leaf.expect("TODO").encode(),
+		header.leaf.expect("TODO"),
 	)
 }
 
