@@ -1,0 +1,56 @@
+[package]
+authors     = ["Darwinia Network <hello@darwinia.network>"]
+description = "Fee Market provides suitable fee for message relaying"
+edition     = "2021"
+homepage    = "https://darwinia.network"
+license     = "GPL-3.0"
+name        = "pallet-fee-market"
+readme      = "README.md"
+repository  = "https://github.com/darwinia-network/darwinia-bridges-substrate"
+version     = "0.1.0"
+
+[dependencies]
+# crates.io
+bitvec     = { version = "1", default-features = false, features = ["alloc"] }
+codec      = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+# paritytech
+frame-benchmarking = { optional = true, git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-support      = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-system       = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+pallet-timestamp   = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-core            = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-io              = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-runtime         = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-std             = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+# darwinia-bridges-substrate
+bp-messages            = { default-features = false, path = "../../primitives/messages" }
+bp-runtime             = { default-features = false, path = "../../primitives/runtime"  }
+pallet-bridge-messages = { default-features = false, path = "../messages" }
+
+[dev-dependencies]
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+
+[features]
+default = ["std"]
+
+std = [
+	# crates.io
+	"bitvec/std",
+	"codec/std",
+	"scale-info/std",
+	# paritytech
+	"frame-support/std",
+	"frame-system/std",
+	"pallet-timestamp/std",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-std/std",
+	"sp-runtime/std",
+	# darwinia-bridges-substrate
+	"bp-messages/std",
+	"bp-runtime/std",
+	"pallet-bridge-messages/std",
+]
+
+runtime-benchmarks = ["frame-benchmarking"]

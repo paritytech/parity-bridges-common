@@ -6,6 +6,8 @@ members = [
 	"bin/*/runtime",
 	"fuzz/*",
 	"modules/*",
+	"modules/*/rpc",
+	"modules/*/rpc/runtime-api",
 	"primitives/*",
 	"relays/*",
 ]

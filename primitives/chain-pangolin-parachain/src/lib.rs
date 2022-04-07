@@ -55,10 +55,12 @@ pub const WITH_PANGOLIN_PARACHAIN_GRANDPA_PALLET_NAME: &str = "BridgePangolinPar
 pub const WITH_PANGOLIN_PARACHAIN_MESSAGES_PALLET_NAME: &str = "BridgePangolinParachainMessages";
 
 /// Name of the `PangolinParachainFinalityApi::best_finalized` runtime method.
-pub const BEST_FINALIZED_PANGOLIN_PARACHAIN_HEADER_METHOD: &str = "PangolinParachainFinalityApi_best_finalized";
+pub const BEST_FINALIZED_PANGOLIN_PARACHAIN_HEADER_METHOD: &str =
+	"PangolinParachainFinalityApi_best_finalized";
 
 /// Name of the `ToPangolinParachainOutboundLaneApi::message_details` runtime method.
-pub const TO_PANGOLIN_PARACHAIN_MESSAGE_DETAILS_METHOD: &str = "ToPangolinParachainOutboundLaneApi_message_details";
+pub const TO_PANGOLIN_PARACHAIN_MESSAGE_DETAILS_METHOD: &str =
+	"ToPangolinParachainOutboundLaneApi_message_details";
 
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized PangolinParachain headers.

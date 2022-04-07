@@ -951,7 +951,7 @@ fn ensure_not_halted<T: Config<I>, I: 'static>() -> Result<(), Error<T, I>> {
 }
 
 /// Creates new inbound lane object, backed by runtime storage.
-fn inbound_lane<T: Config<I>, I: 'static>(
+pub fn inbound_lane<T: Config<I>, I: 'static>(
 	lane_id: LaneId,
 ) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
 	InboundLane::new(inbound_lane_storage::<T, I>(lane_id))
@@ -969,14 +969,14 @@ fn inbound_lane_storage<T: Config<I>, I: 'static>(
 }
 
 /// Creates new outbound lane object, backed by runtime storage.
-fn outbound_lane<T: Config<I>, I: 'static>(
+pub fn outbound_lane<T: Config<I>, I: 'static>(
 	lane_id: LaneId,
 ) -> OutboundLane<RuntimeOutboundLaneStorage<T, I>> {
 	OutboundLane::new(RuntimeOutboundLaneStorage { lane_id, _phantom: Default::default() })
 }
 
 /// Runtime inbound lane storage.
-struct RuntimeInboundLaneStorage<T: Config<I>, I: 'static = ()> {
+pub struct RuntimeInboundLaneStorage<T: Config<I>, I: 'static = ()> {
 	lane_id: LaneId,
 	cached_data: RefCell<Option<InboundLaneData<T::InboundRelayer>>>,
 	_phantom: PhantomData<I>,
@@ -1022,7 +1022,7 @@ impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<
 }
 
 /// Runtime outbound lane storage.
-struct RuntimeOutboundLaneStorage<T, I = ()> {
+pub struct RuntimeOutboundLaneStorage<T, I = ()> {
 	lane_id: LaneId,
 	_phantom: PhantomData<(T, I)>,
 }
