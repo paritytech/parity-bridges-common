@@ -27,12 +27,9 @@ use bp_beefy::{
 	MmrLeafVersion,
 };
 use codec::Decode;
-use frame_support::{ensure, traits::Get};
-use sp_runtime::{
-	traits::{Convert, One, Saturating},
-	RuntimeDebug,
-};
-use sp_std::marker::PhantomData;
+use frame_support::{ensure, traits::Get, RuntimeDebug, RuntimeDebugNoBound};
+use sp_runtime::traits::{Convert, One, Saturating};
+use sp_std::{marker::PhantomData, prelude::*};
 
 /// Artifacts of MMR leaf proof verification.
 #[derive(RuntimeDebug)]
@@ -175,15 +172,16 @@ fn decode_raw_mmr_leaf<T: Config<I>, I: 'static>(
 	})
 }
 
+#[derive(RuntimeDebugNoBound)]
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 struct BridgedBeefyMmrHasherAdapter<H>(PhantomData<H>);
 
-#[cfg(feature = "std")]
+/*#[cfg(feature = "std")]
 impl<H> sp_std::fmt::Debug for BridgedBeefyMmrHasherAdapter<H> {
 	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
 		write!(f, "BridgedBeefyMmrHasherAdapter")
 	}
-}
+}*/
 
 impl<H> Eq for BridgedBeefyMmrHasherAdapter<H> {}
 

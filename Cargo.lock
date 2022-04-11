@@ -745,6 +745,7 @@ dependencies = [
  "beefy-primitives",
  "bp-runtime",
  "frame-support",
+ "pallet-beefy-mmr",
  "pallet-mmr",
  "pallet-mmr-primitives",
  "parity-scale-codec",
@@ -826,6 +827,7 @@ dependencies = [
 name = "bp-millau"
 version = "0.1.0"
 dependencies = [
+ "bp-beefy",
  "bp-messages",
  "bp-runtime",
  "fixed-hash",
@@ -8566,6 +8568,7 @@ dependencies = [
 name = "relay-millau-client"
 version = "0.1.0"
 dependencies = [
+ "bp-beefy",
  "bp-messages",
  "bp-millau",
  "frame-support",
@@ -8660,6 +8663,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-beefy",
  "bp-header-chain",
  "bp-messages",
  "bp-runtime",
@@ -9000,6 +9004,7 @@ dependencies = [
  "pallet-balances",
  "pallet-beefy",
  "pallet-beefy-mmr",
+ "pallet-bridge-beefy",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
@@ -11608,6 +11613,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
+ "bp-beefy",
  "bp-header-chain",
  "bp-kusama",
  "bp-message-dispatch",
@@ -11676,6 +11682,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
+ "bp-beefy",
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
@@ -11693,6 +11700,7 @@ dependencies = [
  "messages-relay",
  "num-traits",
  "pallet-balances",
+ "pallet-bridge-beefy",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-transaction-payment",

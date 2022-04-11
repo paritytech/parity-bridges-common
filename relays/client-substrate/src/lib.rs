@@ -31,7 +31,7 @@ use std::time::Duration;
 
 pub use crate::{
 	chain::{
-		AccountKeyPairOf, BlockWithJustification, CallOf, Chain, ChainWithBalances,
+		AccountKeyPairOf, BlockWithJustification, CallOf, Chain, ChainWithBalances, ChainWithBeefy,
 		ChainWithGrandpa, ChainWithMessages, SignParam, TransactionSignScheme, TransactionStatusOf,
 		UnsignedTransaction, WeightToFeeOf,
 	},

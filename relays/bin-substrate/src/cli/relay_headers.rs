@@ -18,7 +18,7 @@ use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
-use substrate_relay_helper::finality_pipeline::SubstrateFinalitySyncPipeline;
+use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
 
 use crate::cli::{
 	PrometheusParams, SourceConnectionParams, TargetConnectionParams, TargetSigningParams,
@@ -50,6 +50,7 @@ pub struct RelayHeaders {
 pub enum RelayHeadersBridge {
 	MillauToRialto,
 	RialtoToMillau,
+	MillauBeefyToRialto,
 	WestendToMillau,
 	RococoToWococo,
 	WococoToRococo,
@@ -71,6 +72,14 @@ macro_rules! select_bridge {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
 				type Finality = crate::chains::rialto_headers_to_millau::RialtoFinalityToMillau;
+
+				$generic
+			},
+			RelayHeadersBridge::MillauBeefyToRialto => {
+				type Source = relay_millau_client::Millau;
+				type Target = relay_rialto_client::Rialto;
+				type Finality =
+					crate::chains::millau_headers_to_rialto::MillauBeefyFinalityToRialto;
 
 				$generic
 			},
@@ -136,7 +145,7 @@ impl RelayHeaders {
 			)
 			.await?;
 
-			substrate_relay_helper::finality_pipeline::run::<Finality>(
+			substrate_relay_helper::finality::run::<Finality>(
 				source_client,
 				target_client,
 				self.only_mandatory_headers,

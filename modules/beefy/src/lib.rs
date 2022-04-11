@@ -43,6 +43,7 @@
 use bp_beefy::{BeefyMmrProof, ChainWithBeefy, InitializationData};
 use frame_system::RawOrigin;
 use sp_runtime::traits::BadOrigin;
+use sp_std::prelude::*;
 
 // Re-export in crate namespace for `construct_runtime!`
 pub use pallet::*;

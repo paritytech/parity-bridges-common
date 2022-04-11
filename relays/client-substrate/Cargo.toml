@@ -19,6 +19,7 @@ thiserror = "1.0.26"
 
 # Bridge dependencies
 
+bp-beefy = { path = "../../primitives/beefy" }
 bp-header-chain = { path = "../../primitives/header-chain" }
 bp-messages = { path = "../../primitives/messages" }
 bp-runtime = { path = "../../primitives/runtime" }

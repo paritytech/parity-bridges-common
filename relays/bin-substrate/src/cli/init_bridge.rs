@@ -18,7 +18,9 @@ use crate::cli::{SourceConnectionParams, TargetConnectionParams, TargetSigningPa
 use bp_header_chain::InitializationData;
 use bp_runtime::Chain as ChainBase;
 use codec::Encode;
-use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
+use relay_substrate_client::{
+	BlockNumberOf, Chain, SignParam, TransactionSignScheme, UnsignedTransaction,
+};
 use sp_core::{Bytes, Pair};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -43,6 +45,7 @@ pub struct InitBridge {
 pub enum InitBridgeName {
 	MillauToRialto,
 	RialtoToMillau,
+	MillauBeefyToRialto,
 	WestendToMillau,
 	RococoToWococo,
 	WococoToRococo,
@@ -56,6 +59,7 @@ macro_rules! select_bridge {
 			InitBridgeName::MillauToRialto => {
 				type Source = relay_millau_client::Millau;
 				type Target = relay_rialto_client::Rialto;
+				type Engine = substrate_relay_helper::finality::engine::Grandpa<Source>;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -74,6 +78,7 @@ macro_rules! select_bridge {
 			InitBridgeName::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
+				type Engine = substrate_relay_helper::finality::engine::Grandpa<Source>;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -89,9 +94,32 @@ macro_rules! select_bridge {
 
 				$generic
 			},
+			InitBridgeName::MillauBeefyToRialto => {
+				type Source = relay_millau_client::Millau;
+				type Target = relay_rialto_client::Rialto;
+				type Engine = substrate_relay_helper::finality::engine::Beefy<Source>;
+
+				fn encode_init_bridge(
+					init_data: bp_beefy::InitializationData<
+						BlockNumberOf<Source>,
+						bp_beefy::BeefyValidatorIdOf<Source>,
+					>,
+				) -> <Target as Chain>::Call {
+					let initialize_call = rialto_runtime::BridgeBeefyCall::<
+						rialto_runtime::Runtime,
+						rialto_runtime::MillauGrandpaInstance,
+					>::initialize {
+						init_data,
+					};
+					rialto_runtime::SudoCall::sudo { call: Box::new(initialize_call.into()) }.into()
+				}
+
+				$generic
+			},
 			InitBridgeName::WestendToMillau => {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
+				type Engine = substrate_relay_helper::finality::engine::Grandpa<Source>;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -114,6 +142,7 @@ macro_rules! select_bridge {
 			InitBridgeName::RococoToWococo => {
 				type Source = relay_rococo_client::Rococo;
 				type Target = relay_wococo_client::Wococo;
+				type Engine = substrate_relay_helper::finality::engine::Grandpa<Source>;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -130,6 +159,7 @@ macro_rules! select_bridge {
 			InitBridgeName::WococoToRococo => {
 				type Source = relay_wococo_client::Wococo;
 				type Target = relay_rococo_client::Rococo;
+				type Engine = substrate_relay_helper::finality::engine::Grandpa<Source>;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -146,6 +176,7 @@ macro_rules! select_bridge {
 			InitBridgeName::KusamaToPolkadot => {
 				type Source = relay_kusama_client::Kusama;
 				type Target = relay_polkadot_client::Polkadot;
+				type Engine = substrate_relay_helper::finality::engine::Grandpa<Source>;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -162,6 +193,7 @@ macro_rules! select_bridge {
 			InitBridgeName::PolkadotToKusama => {
 				type Source = relay_polkadot_client::Polkadot;
 				type Target = relay_kusama_client::Kusama;
+				type Engine = substrate_relay_helper::finality::engine::Grandpa<Source>;
 
 				fn encode_init_bridge(
 					init_data: InitializationData<<Source as ChainBase>::Header>,
@@ -189,7 +221,7 @@ impl InitBridge {
 
 			let (spec_version, transaction_version) =
 				target_client.simple_runtime_version().await?;
-			substrate_relay_helper::headers_initialize::initialize(
+			substrate_relay_helper::finality::initialize::initialize::<Engine, _, _, _>(
 				source_client,
 				target_client.clone(),
 				target_sign.public().into(),

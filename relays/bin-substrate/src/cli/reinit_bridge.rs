@@ -40,8 +40,12 @@ use std::convert::{TryFrom, TryInto};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 use substrate_relay_helper::{
-	finality_pipeline::SubstrateFinalitySyncPipeline, finality_source::SubstrateFinalitySource,
-	finality_target::SubstrateFinalityTarget, messages_source::read_client_state,
+	finality::{
+		source::{SubstrateFinalityProof, SubstrateFinalitySource},
+		target::SubstrateFinalityTarget,
+		SubstrateFinalitySyncPipeline,
+	},
+	messages_source::read_client_state,
 	TransactionParams,
 };
 
@@ -299,7 +303,7 @@ impl ReinitBridge {
 /// Mandatory header and its finality proof.
 type HeaderAndProof<P> = (
 	SyncHeader<HeaderOf<<P as SubstrateFinalitySyncPipeline>::SourceChain>>,
-	GrandpaJustification<HeaderOf<<P as SubstrateFinalitySyncPipeline>::SourceChain>>,
+	SubstrateFinalityProof<P>,
 );
 /// Vector of mandatory headers and their finality proofs.
 type HeadersAndProofs<P> = Vec<HeaderAndProof<P>>;

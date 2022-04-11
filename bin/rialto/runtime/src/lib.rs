@@ -68,6 +68,7 @@ pub use frame_support::{
 
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
+pub use pallet_bridge_beefy::Call as BridgeBeefyCall;
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaMillauCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_sudo::Call as SudoCall;
@@ -427,7 +428,7 @@ parameter_types! {
 	pub const GetDeliveryConfirmationTransactionFee: Balance =
 		bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT as _;
 	pub const RootAccountForPayments: Option<AccountId> = None;
-  pub const BridgedChainId: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
+	pub const BridgedChainId: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
 }
 
 /// Instance of the messages pallet used to relay messages to/from Millau chain.
@@ -467,6 +468,14 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type BridgedChainId = BridgedChainId;
 }
 
+pub type MillauBeefyInstance = ();
+impl pallet_bridge_beefy::Config<MillauBeefyInstance> for Runtime {
+	type MaxRequests = frame_support::traits::ConstU32<16>;
+	type ExpectedMmrLeafMajorVersion = frame_support::traits::ConstU8<0>;
+	type CommitmentsToKeep = frame_support::traits::ConstU32<8>;
+	type BridgedChain = bp_millau::Millau;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -494,10 +503,13 @@ construct_runtime!(
 		Mmr: pallet_mmr::{Pallet, Storage},
 		MmrLeaf: pallet_beefy_mmr::{Pallet, Storage},
 
-		// Millau bridge modules.
+		// Millau bridge modules (GRANDPA based).
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
 		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
+
+		// Millau bridge modules (BEEFY based).
+		BridgeMillauBeefy: pallet_bridge_beefy::{Pallet, Call, Storage},
 
 		// Parachain modules.
 		ParachainsOrigin: polkadot_runtime_parachains::origin::{Pallet, Origin},

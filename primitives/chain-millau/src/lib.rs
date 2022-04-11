@@ -20,6 +20,7 @@
 
 mod millau_hash;
 
+use bp_beefy::ChainWithBeefy;
 use bp_messages::{LaneId, MessageDetails, MessageNonce};
 use bp_runtime::Chain;
 use frame_support::{
@@ -183,6 +184,13 @@ impl Chain for Millau {
 	}
 }
 
+impl ChainWithBeefy for Millau {
+	type CommitmentHasher = sp_runtime::traits::Keccak256;
+	type MmrHasher = bp_beefy::BeefyKeccak256;
+	type ValidatorId = bp_beefy::EcdsaValidatorId;
+	type ValidatorIdToMerkleLeaf = bp_beefy::BeefyEcdsaToEthereum;
+}
+
 /// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
 #[derive(PartialEq, Eq, Clone, Copy, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -261,10 +269,14 @@ frame_support::parameter_types! {
 		.build_or_panic();
 }
 
+/// Name of the `pallet-beefy` instance that is deployed at Millau.
+pub const AT_MILLAU_BEEFY_PALLET_NAME: &'static str = "Beefy";
 /// Name of the With-Millau GRANDPA pallet instance that is deployed at bridged chains.
 pub const WITH_MILLAU_GRANDPA_PALLET_NAME: &str = "BridgeMillauGrandpa";
 /// Name of the With-Millau messages pallet instance that is deployed at bridged chains.
 pub const WITH_MILLAU_MESSAGES_PALLET_NAME: &str = "BridgeMillauMessages";
+/// Name of the With-Millau BEEFY pallet instance that is deployed at bridged chains.
+pub const WITH_MILLAU_BEEFY_PALLET_NAME: &'static str = "BridgeMillauBeefy";
 
 /// Name of the Rialto->Millau (actually DOT->KSM) conversion rate stored in the Millau runtime.
 pub const RIALTO_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME: &str = "RialtoToMillauConversionRate";

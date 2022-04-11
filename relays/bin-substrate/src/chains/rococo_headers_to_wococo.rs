@@ -20,7 +20,7 @@ use crate::chains::wococo_headers_to_rococo::MAXIMAL_BALANCE_DECREASE_PER_DAY;
 
 use async_trait::async_trait;
 use relay_wococo_client::Wococo;
-use substrate_relay_helper::{finality_pipeline::SubstrateFinalitySyncPipeline, TransactionParams};
+use substrate_relay_helper::{finality::SubstrateFinalitySyncPipeline, TransactionParams};
 
 /// Description of Rococo -> Wococo finalized headers bridge.
 #[derive(Clone, Debug)]
@@ -37,6 +37,7 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
 	type SourceChain = relay_rococo_client::Rococo;
 	type TargetChain = Wococo;
 
+	type FinalityEngine = substrate_relay_helper::finality::engine::Grandpa<Self::SourceChain>;
 	type SubmitFinalityProofCallBuilder = RococoFinalityToWococoCallBuilder;
 	type TransactionSignScheme = Wococo;
 
