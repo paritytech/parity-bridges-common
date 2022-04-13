@@ -428,6 +428,7 @@ fn make_mandatory_headers_batches<
 mod tests {
 	use super::*;
 	use crate::cli::{RuntimeVersionType, SourceRuntimeVersionParams, TargetRuntimeVersionParams};
+	use bp_header_chain::justification::GrandpaJustification;
 	use bp_test_utils::{make_default_justification, test_header};
 	use relay_polkadot_client::Polkadot;
 	use sp_runtime::{traits::Header as _, DigestItem};
