@@ -48,7 +48,7 @@ pub trait Engine<C: Chain> {
 	/// Returns storage key at the bridged (target) chain that corresponds to the `bool` value,
 	/// which is true when the bridge pallet is halted.
 	fn is_halted_key() -> StorageKey;
-	/// Returns storage at the bridged (target) chain that corresponds to some valud that is
+	/// Returns storage at the bridged (target) chain that corresponds to some value that is
 	/// missing from the storage until bridge pallet is initialized.
 	///
 	/// Note that we don't care about type of the value - just if it present or not.
