@@ -34,6 +34,12 @@ use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use std::{fmt::Debug, marker::PhantomData};
 
+pub mod engine;
+pub mod guards;
+pub mod initialize;
+pub mod source;
+pub mod target;
+
 /// Default limit of recent finality proofs.
 ///
 /// Finality delay of 4096 blocks is unlikely to happen in practice in
