@@ -516,8 +516,6 @@ name = "beefy-merkle-tree"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#666f39b8a22108f57732215de006518738034ba2"
 dependencies = [
- "hex",
- "log",
  "tiny-keccak",
 ]
 

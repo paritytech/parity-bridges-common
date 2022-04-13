@@ -19,10 +19,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-pub use beefy_merkle_tree::{merkle_root as beefy_merkle_root, Hasher as BeefyMmrHasher};
+pub use beefy_merkle_tree::{
+	merkle_root as beefy_merkle_root, Hasher as BeefyMmrHasher, Keccak256 as BeefyKeccak256,
+};
 pub use beefy_primitives::{
-	known_payload_ids::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID, mmr::MmrLeafVersion, Commitment,
-	Payload as BeefyPayload, SignedCommitment, ValidatorSet, ValidatorSetId,
+	crypto::AuthorityId as EcdsaValidatorId, known_payload_ids::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID,
+	mmr::MmrLeafVersion, Commitment, Payload as BeefyPayload, SignedCommitment, ValidatorSet,
+	ValidatorSetId, BEEFY_ENGINE_ID,
 };
 pub use pallet_mmr::verify_leaf_proof as verify_mmr_leaf_proof;
 pub use pallet_mmr_primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};
@@ -37,6 +40,7 @@ use sp_runtime::{
 	traits::{Convert, MaybeSerializeDeserialize},
 	RuntimeDebug,
 };
+use sp_std::prelude::*;
 
 /// Substrate-based chain with BEEFY && MMR pallets deployed.
 ///
@@ -63,7 +67,9 @@ pub trait ChainWithBeefy: Chain {
 	/// Corresponds to the `BeefyId` field of the `pallet-beefy` configuration.
 	type ValidatorId: BeefyRuntimeAppPublic<<Self::CommitmentHasher as sp_runtime::traits::Hash>::Output>
 		+ Parameter
-		+ MaybeSerializeDeserialize;
+		+ MaybeSerializeDeserialize
+		+ Send
+		+ Sync;
 
 	/// A way to convert validator id to its raw representation in the BEEFY merkle tree.
 	///
