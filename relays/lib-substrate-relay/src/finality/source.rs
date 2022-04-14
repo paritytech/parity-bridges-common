@@ -44,7 +44,7 @@ pub type SubstrateFinalityProofsStream<P> = Pin<
 	>,
 >;
 
-/// TODO
+/// Substrate finality proof. Specific to the used `FinalityEngine`.
 pub type SubstrateFinalityProof<P> =
 	<<P as SubstrateFinalitySyncPipeline>::FinalityEngine as Engine<
 		<P as SubstrateFinalitySyncPipeline>::SourceChain,
