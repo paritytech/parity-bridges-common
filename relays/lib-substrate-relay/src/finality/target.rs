@@ -19,19 +19,19 @@
 //! with <BridgedName> chain.
 
 use crate::{
-	finality_pipeline::{
-		FinalitySyncPipelineAdapter, SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
+	finality::{
+		engine::Engine, source::SubstrateFinalityProof, FinalitySyncPipelineAdapter,
+		SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
 	},
 	TransactionParams,
 };
 
 use async_trait::async_trait;
-use bp_header_chain::{justification::GrandpaJustification, storage_keys::is_halted_key};
 use codec::Encode;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Chain, ChainWithGrandpa, Client, Error, HeaderIdOf, HeaderOf,
-	SignParam, SyncHeader, TransactionEra, TransactionSignScheme, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, Chain, Client, Error, HeaderIdOf, HeaderOf, SignParam,
+	SyncHeader, TransactionEra, TransactionSignScheme, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::{Bytes, Pair};
@@ -53,10 +53,7 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalityTarget<P> {
 
 	/// Ensure that the GRANDPA pallet at target chain is active.
 	pub async fn ensure_pallet_active(&self) -> Result<(), Error> {
-		let is_halted = self
-			.client
-			.storage_value(is_halted_key(P::SourceChain::WITH_CHAIN_GRANDPA_PALLET_NAME), None)
-			.await?;
+		let is_halted = self.client.storage_value(P::FinalityEngine::is_halted_key(), None).await?;
 		if is_halted.unwrap_or(false) {
 			Err(Error::BridgePalletIsHalted)
 		} else {
@@ -109,7 +106,7 @@ where
 	async fn submit_finality_proof(
 		&self,
 		header: SyncHeader<HeaderOf<P::SourceChain>>,
-		proof: GrandpaJustification<HeaderOf<P::SourceChain>>,
+		proof: SubstrateFinalityProof<P>,
 	) -> Result<(), Error> {
 		let genesis_hash = *self.client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();

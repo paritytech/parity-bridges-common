@@ -20,8 +20,9 @@ use bp_messages::MessageNonce;
 use codec::{Compact, Decode, Encode};
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
-	Error as SubstrateError, IndexOf, SignParam, TransactionSignScheme, UnsignedTransaction,
+	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithBeefy, ChainWithGrandpa,
+	ChainWithMessages, Error as SubstrateError, IndexOf, SignParam, TransactionSignScheme,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -56,6 +57,19 @@ impl ChainBase for Millau {
 
 impl ChainWithGrandpa for Millau {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_millau::WITH_MILLAU_GRANDPA_PALLET_NAME;
+}
+
+impl bp_beefy::ChainWithBeefy for Millau {
+	type CommitmentHasher = <bp_millau::Millau as bp_beefy::ChainWithBeefy>::CommitmentHasher;
+	type MmrHasher = <bp_millau::Millau as bp_beefy::ChainWithBeefy>::MmrHasher;
+	type ValidatorId = <bp_millau::Millau as bp_beefy::ChainWithBeefy>::ValidatorId;
+	type ValidatorIdToMerkleLeaf =
+		<bp_millau::Millau as bp_beefy::ChainWithBeefy>::ValidatorIdToMerkleLeaf;
+}
+
+impl ChainWithBeefy for Millau {
+	const AT_CHAIN_BEEFY_PALLET_NAME: &'static str = bp_millau::AT_MILLAU_BEEFY_PALLET_NAME;
+	const WITH_CHAIN_BEEFY_PALLET_NAME: &'static str = bp_millau::WITH_MILLAU_BEEFY_PALLET_NAME;
 }
 
 impl ChainWithMessages for Millau {

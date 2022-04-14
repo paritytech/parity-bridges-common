@@ -78,6 +78,19 @@ pub trait ChainWithGrandpa: Chain {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
 }
 
+/// Substrate based chain that is using BEEFY finality from minimal relay-client point of view.
+pub trait ChainWithBeefy: Chain + bp_beefy::ChainWithBeefy {
+	/// Name of the original `pallet-beefy` at this chain (used in `construct_runtime` macro call).
+	const AT_CHAIN_BEEFY_PALLET_NAME: &'static str;
+
+	/// Name of the bridge BEEFY pallet (used in `construct_runtime` macro call) that is deployed
+	/// at some other chain to bridge with this `ChainWithBeefy`.
+	///
+	/// We assume that all chains that are bridging with this `ChainWithBeefy` are using
+	/// the same name.
+	const WITH_CHAIN_BEEFY_PALLET_NAME: &'static str;
+}
+
 /// Substrate-based chain with messaging support from minimal relay-client point of view.
 pub trait ChainWithMessages: Chain {
 	/// Name of the bridge messages pallet (used in `construct_runtime` macro call) that is deployed

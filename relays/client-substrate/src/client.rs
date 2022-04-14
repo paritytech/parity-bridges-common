@@ -262,6 +262,22 @@ impl<C: Chain> Client<C> {
 		Ok(*self.header_by_hash(self.best_finalized_header_hash().await?).await?.number())
 	}
 
+	/// Return hash of the best block, finalized by BEEFY.
+	pub async fn best_finalized_beefy_hash(&self) -> Result<C::Hash> {
+		self.jsonrpsee_execute(|client| async move {
+			Ok(SubstrateClient::<
+				AccountIdOf<C>,
+				BlockNumberOf<C>,
+				HashOf<C>,
+				HeaderOf<C>,
+				IndexOf<C>,
+				C::SignedBlock,
+			>::beefy_get_finalized_head(&*client)
+			.await?)
+		})
+		.await
+	}
+
 	/// Returns the best Substrate header.
 	pub async fn best_header(&self) -> Result<C::Header>
 	where
@@ -704,8 +720,8 @@ impl<C: Chain> Client<C> {
 		.await
 	}
 
-	/// Return new justifications stream.
-	pub async fn subscribe_justifications(&self) -> Result<Subscription<Bytes>> {
+	/// Return new GRANDPA justifications stream.
+	pub async fn subscribe_grandpa_justifications(&self) -> Result<Subscription<Bytes>> {
 		let subscription = self
 			.jsonrpsee_execute(move |client| async move {
 				Ok(client
@@ -720,7 +736,30 @@ impl<C: Chain> Client<C> {
 		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
 		self.tokio.spawn(Subscription::background_worker(
 			C::NAME.into(),
-			"justification".into(),
+			"grandpa-justification".into(),
+			subscription,
+			sender,
+		));
+		Ok(Subscription(Mutex::new(receiver)))
+	}
+
+	/// Return new BEEFY justifications stream.
+	pub async fn subscribe_beefy_justifications(&self) -> Result<Subscription<Bytes>> {
+		let subscription = self
+			.jsonrpsee_execute(move |client| async move {
+				Ok(client
+					.subscribe(
+						"beefy_subscribeJustifications",
+						None,
+						"beefy_unsubscribeJustifications",
+					)
+					.await?)
+			})
+			.await?;
+		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
+		self.tokio.spawn(Subscription::background_worker(
+			C::NAME.into(),
+			"beefy-justification".into(),
 			subscription,
 			sender,
 		));

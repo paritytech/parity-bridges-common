@@ -515,6 +515,11 @@ dependencies = [
 name = "beefy-merkle-tree"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#666f39b8a22108f57732215de006518738034ba2"
+dependencies = [
+ "hex",
+ "log",
+ "tiny-keccak",
+]
 
 [[package]]
 name = "beefy-primitives"
@@ -733,6 +738,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-beefy"
+version = "0.1.0"
+dependencies = [
+ "beefy-merkle-tree",
+ "beefy-primitives",
+ "bp-runtime",
+ "frame-support",
+ "pallet-beefy-mmr",
+ "pallet-mmr",
+ "pallet-mmr-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "static_assertions",
+]
+
+[[package]]
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
@@ -800,6 +827,7 @@ dependencies = [
 name = "bp-millau"
 version = "0.1.0"
 dependencies = [
+ "bp-beefy",
  "bp-messages",
  "bp-runtime",
  "fixed-hash",
@@ -5755,6 +5783,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-bridge-beefy"
+version = "0.1.0"
+dependencies = [
+ "beefy-merkle-tree",
+ "beefy-primitives",
+ "bp-beefy",
+ "bp-runtime",
+ "ckb-merkle-mountain-range",
+ "env_logger 0.8.4",
+ "frame-support",
+ "frame-system",
+ "hash256-std-hasher",
+ "hex",
+ "libsecp256k1",
+ "log",
+ "pallet-beefy-mmr",
+ "pallet-mmr",
+ "parity-scale-codec",
+ "rand 0.8.5",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-bridge-dispatch"
 version = "0.1.0"
 dependencies = [
@@ -8512,6 +8568,7 @@ dependencies = [
 name = "relay-millau-client"
 version = "0.1.0"
 dependencies = [
+ "bp-beefy",
  "bp-messages",
  "bp-millau",
  "frame-support",
@@ -8606,6 +8663,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "bp-beefy",
  "bp-header-chain",
  "bp-messages",
  "bp-runtime",
@@ -8946,6 +9004,7 @@ dependencies = [
  "pallet-balances",
  "pallet-beefy",
  "pallet-beefy-mmr",
+ "pallet-bridge-beefy",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
@@ -11554,6 +11613,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
+ "bp-beefy",
  "bp-header-chain",
  "bp-kusama",
  "bp-message-dispatch",
@@ -11622,6 +11682,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
+ "bp-beefy",
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
@@ -11639,6 +11700,7 @@ dependencies = [
  "messages-relay",
  "num-traits",
  "pallet-balances",
+ "pallet-bridge-beefy",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-transaction-payment",
@@ -11905,6 +11967,15 @@ dependencies = [
  "unicode-normalization",
  "wasm-bindgen",
  "zeroize",
+]
+
+[[package]]
+name = "tiny-keccak"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
+dependencies = [
+ "crunchy",
 ]
 
 [[package]]

@@ -22,6 +22,7 @@ strum = { version = "0.21.0", features = ["derive"] }
 
 # Bridge dependencies
 
+bp-beefy = { path = "../../primitives/beefy" }
 bp-header-chain = { path = "../../primitives/header-chain" }
 bp-kusama = { path = "../../primitives/chain-kusama" }
 bp-messages = { path = "../../primitives/messages" }

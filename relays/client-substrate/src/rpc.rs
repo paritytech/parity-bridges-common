@@ -36,6 +36,8 @@ pub(crate) trait Substrate<AccountId, BlockNumber, Hash, Header, Index, SignedBl
 	async fn chain_get_header(&self, block_hash: Option<Hash>) -> RpcResult<Header>;
 	#[method(name = "chain_getFinalizedHead", param_kind = array)]
 	async fn chain_get_finalized_head(&self) -> RpcResult<Hash>;
+	#[method(name = "beefy_getFinalizedHead", param_kind = array)]
+	async fn beefy_get_finalized_head(&self) -> RpcResult<Hash>;
 	#[method(name = "chain_getBlock", param_kind = array)]
 	async fn chain_get_block(&self, block_hash: Option<Hash>) -> RpcResult<SignedBlock>;
 	#[method(name = "chain_getBlockHash", param_kind = array)]
