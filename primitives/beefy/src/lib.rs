@@ -27,6 +27,7 @@ pub use beefy_primitives::{
 	mmr::MmrLeafVersion, Commitment, Payload as BeefyPayload, SignedCommitment, ValidatorSet,
 	ValidatorSetId, BEEFY_ENGINE_ID,
 };
+pub use pallet_beefy_mmr::BeefyEcdsaToEthereum;
 pub use pallet_mmr::verify_leaf_proof as verify_mmr_leaf_proof;
 pub use pallet_mmr_primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};
 

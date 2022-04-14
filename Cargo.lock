@@ -743,6 +743,7 @@ dependencies = [
  "beefy-primitives",
  "bp-runtime",
  "frame-support",
+ "pallet-beefy-mmr",
  "pallet-mmr",
  "pallet-mmr-primitives",
  "parity-scale-codec",
@@ -824,6 +825,7 @@ dependencies = [
 name = "bp-millau"
 version = "0.1.0"
 dependencies = [
+ "bp-beefy",
  "bp-messages",
  "bp-runtime",
  "fixed-hash",
@@ -8998,6 +9000,7 @@ dependencies = [
  "pallet-balances",
  "pallet-beefy",
  "pallet-beefy-mmr",
+ "pallet-bridge-beefy",
  "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",

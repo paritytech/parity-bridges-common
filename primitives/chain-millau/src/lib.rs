@@ -20,6 +20,7 @@
 
 mod millau_hash;
 
+use bp_beefy::ChainWithBeefy;
 use bp_messages::{LaneId, MessageDetails, MessageNonce};
 use bp_runtime::Chain;
 use frame_support::{
@@ -181,6 +182,13 @@ impl Chain for Millau {
 			.max_extrinsic
 			.unwrap_or(Weight::MAX)
 	}
+}
+
+impl ChainWithBeefy for Millau {
+	type CommitmentHasher = sp_runtime::traits::Keccak256;
+	type MmrHasher = bp_beefy::BeefyKeccak256;
+	type ValidatorId = bp_beefy::EcdsaValidatorId;
+	type ValidatorIdToMerkleLeaf = bp_beefy::BeefyEcdsaToEthereum;
 }
 
 /// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
