@@ -20,7 +20,7 @@ use crate::{
 		polkadot_headers_to_kusama::PolkadotFinalityToKusama,
 	},
 	cli::{
-		swap_tokens::wait_until_transaction_is_finalized, SourceConnectionParams,
+		register_parachain::wait_until_transaction_is_finalized, SourceConnectionParams,
 		TargetConnectionParams, TargetSigningParams,
 	},
 };
@@ -265,7 +265,7 @@ impl ReinitBridge {
 						},
 					)
 					.await?;
-				wait_until_transaction_is_finalized::<Target>(batch_transaction_events).await?;
+				// TODO: wait_until_transaction_is_finalized::<Target>(batch_transaction_events).await?;
 
 				// verify that the best finalized header at target has been updated
 				let current_number =

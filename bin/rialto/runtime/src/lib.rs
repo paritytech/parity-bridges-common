@@ -251,18 +251,6 @@ impl pallet_beefy::Config for Runtime {
 	type BeefyId = BeefyId;
 }
 
-impl pallet_bridge_dispatch::Config for Runtime {
-	type Event = Event;
-	type BridgeMessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
-	type Call = Call;
-	type CallFilter = frame_support::traits::Everything;
-	type EncodedCall = crate::millau_messages::FromMillauEncodedCall;
-	type SourceChainAccountId = bp_millau::AccountId;
-	type TargetChainAccountPublic = MultiSigner;
-	type TargetChainSignature = MultiSignature;
-	type AccountIdConverter = bp_rialto::AccountIdConverter;
-}
-
 impl pallet_grandpa::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
@@ -496,7 +484,6 @@ construct_runtime!(
 
 		// Millau bridge modules.
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
-		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Parachain modules.
@@ -901,30 +888,6 @@ impl_runtime_apis! {
 			>(lane, begin, end)
 		}
 	}
-}
-
-/// Millau account ownership digest from Rialto.
-///
-/// The byte vector returned by this function should be signed with a Millau account private key.
-/// This way, the owner of `rialto_account_id` on Rialto proves that the 'millau' account private
-/// key is also under his control.
-pub fn rialto_to_millau_account_ownership_digest<Call, AccountId, SpecVersion>(
-	millau_call: &Call,
-	rialto_account_id: AccountId,
-	millau_spec_version: SpecVersion,
-) -> sp_std::vec::Vec<u8>
-where
-	Call: codec::Encode,
-	AccountId: codec::Encode,
-	SpecVersion: codec::Encode,
-{
-	pallet_bridge_dispatch::account_ownership_digest(
-		millau_call,
-		rialto_account_id,
-		millau_spec_version,
-		bp_runtime::RIALTO_CHAIN_ID,
-		bp_runtime::MILLAU_CHAIN_ID,
-	)
 }
 
 #[cfg(test)]

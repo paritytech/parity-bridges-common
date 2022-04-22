@@ -27,12 +27,10 @@ use strum::{EnumString, EnumVariantNames};
 use bp_messages::LaneId;
 
 pub(crate) mod bridge;
-pub(crate) mod encode_call;
-pub(crate) mod encode_message;
+pub(crate) mod encode_payload;
 pub(crate) mod estimate_fee;
 pub(crate) mod send_message;
 
-mod derive_account;
 mod init_bridge;
 mod register_parachain;
 mod reinit_bridge;
@@ -40,7 +38,6 @@ mod relay_headers;
 mod relay_headers_and_messages;
 mod relay_messages;
 mod resubmit_transactions;
-mod swap_tokens;
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
@@ -83,25 +80,10 @@ pub enum Command {
 	/// The message is being sent to the source chain, delivered to the target chain and dispatched
 	/// there.
 	SendMessage(send_message::SendMessage),
-	/// Generate SCALE-encoded `Call` for choosen network.
-	///
-	/// The call can be used either as message payload or can be wrapped into a transaction
-	/// and executed on the chain directly.
-	EncodeCall(encode_call::EncodeCall),
-	/// Generate SCALE-encoded `MessagePayload` object that can be sent over selected bridge.
-	///
-	/// The `MessagePayload` can be then fed to `Messages::send_message` function and sent over
-	/// the bridge.
-	EncodeMessage(encode_message::EncodeMessage),
 	/// Estimate Delivery and Dispatch Fee required for message submission to messages pallet.
 	EstimateFee(estimate_fee::EstimateFee),
-	/// Given a source chain `AccountId`, derive the corresponding `AccountId` for the target
-	/// chain.
-	DeriveAccount(derive_account::DeriveAccount),
 	/// Resubmit transactions with increased tip if they are stalled.
 	ResubmitTransactions(resubmit_transactions::ResubmitTransactions),
-	/// Swap tokens using token-swap bridge.
-	SwapTokens(swap_tokens::SwapTokens),
 	/// Register parachain.
 	RegisterParachain(register_parachain::RegisterParachain),
 }
@@ -134,12 +116,8 @@ impl Command {
 			Self::InitBridge(arg) => arg.run().await?,
 			Self::ReinitBridge(arg) => arg.run().await?,
 			Self::SendMessage(arg) => arg.run().await?,
-			Self::EncodeCall(arg) => arg.run().await?,
-			Self::EncodeMessage(arg) => arg.run().await?,
 			Self::EstimateFee(arg) => arg.run().await?,
-			Self::DeriveAccount(arg) => arg.run().await?,
 			Self::ResubmitTransactions(arg) => arg.run().await?,
-			Self::SwapTokens(arg) => arg.run().await?,
 			Self::RegisterParachain(arg) => arg.run().await?,
 		}
 		Ok(())
@@ -262,11 +240,6 @@ pub trait CliChain: relay_substrate_client::Chain {
 
 	/// Numeric value of SS58 format.
 	fn ss58_format() -> u16;
-
-	/// Construct message payload to be sent over the bridge.
-	fn encode_message(
-		message: crate::cli::encode_message::MessagePayload,
-	) -> anyhow::Result<Self::MessagePayload>;
 }
 
 /// Lane id.

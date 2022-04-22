@@ -74,16 +74,7 @@ where
 	B: MessageBridge,
 	BalanceOf<ThisChain<B>>: From<u64>,
 {
-	let message_payload = vec![0; params.size as usize];
-	let dispatch_origin = bp_message_dispatch::CallOrigin::SourceAccount(params.sender_account);
-
-	FromThisChainMessagePayload::<B> {
-		spec_version: 0,
-		weight: params.size as _,
-		origin: dispatch_origin,
-		call: message_payload,
-		dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-	}
+	vec![0; params.size as usize]
 }
 
 /// Prepare proof of messages for the `receive_messages_proof` call.
@@ -148,18 +139,7 @@ where
 	}
 
 	// prepare message payload that is stored in the Bridged chain storage
-	let message_payload = bp_message_dispatch::MessagePayload {
-		spec_version: version.spec_version,
-		weight: call_weight,
-		origin: bp_message_dispatch::CallOrigin::<
-			AccountIdOf<BridgedChain<B>>,
-			SignerOf<ThisChain<B>>,
-			SignatureOf<ThisChain<B>>,
-		>::TargetAccount(bridged_account_id, this_public, this_signature),
-		dispatch_fee_payment: params.dispatch_fee_payment.clone(),
-		call: call.encode(),
-	}
-	.encode();
+	let message_payload = call.encode();
 
 	// finally - prepare storage proof and update environment
 	let (state_root, storage_proof) =
@@ -332,7 +312,7 @@ fn ed25519_sign(
 	let target_pair =
 		ed25519_dalek::Keypair::from_bytes(&target_pair_bytes).expect("hardcoded pair is valid");
 
-	let signature_message = pallet_bridge_dispatch::account_ownership_digest(
+/*	let signature_message = pallet_bridge_dispatch::account_ownership_digest(
 		target_call,
 		source_account_id,
 		target_spec_version,
@@ -343,7 +323,8 @@ fn ed25519_sign(
 		.try_sign(&signature_message)
 		.expect("Ed25519 try_sign should not fail in benchmarks");
 
-	(target_public.to_bytes(), target_origin_signature.to_bytes())
+	(target_public.to_bytes(), target_origin_signature.to_bytes())*/
+	unimplemented!("TODO")
 }
 
 /// Populate trie with dummy keys+values until trie has at least given size.

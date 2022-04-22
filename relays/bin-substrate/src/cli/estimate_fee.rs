@@ -16,7 +16,7 @@
 
 use crate::{
 	cli::{
-		bridge::FullBridge, relay_headers_and_messages::CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
+		bridge::FullBridge, encode_payload::CliEncodePayload, relay_headers_and_messages::CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 		Balance, CliChain, HexBytes, HexLaneId, SourceConnectionParams,
 	},
 	select_full_bridge,
@@ -48,7 +48,7 @@ pub struct EstimateFee {
 	conversion_rate_override: Option<ConversionRateOverride>,
 	/// Payload to send over the bridge.
 	#[structopt(flatten)]
-	payload: crate::cli::encode_message::MessagePayload,
+	payload: crate::cli::encode_payload::Payload,
 }
 
 /// A way to override conversion rate between bridge tokens.
@@ -83,7 +83,7 @@ impl EstimateFee {
 			let source_client = source.to_client::<Source>().await?;
 			let lane = lane.into();
 			let payload =
-				Source::encode_message(payload).map_err(|e| anyhow::format_err!("{:?}", e))?;
+				Source::encode_payload(&payload).map_err(|e| anyhow::format_err!("{:?}", e))?;
 
 			let fee = estimate_message_delivery_and_dispatch_fee::<Source, Target, _>(
 				&source_client,
@@ -215,7 +215,7 @@ async fn do_estimate_message_delivery_and_dispatch_fee<Source: Chain, P: Encode>
 	})?;
 	Ok(fee)
 }
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -274,3 +274,4 @@ mod tests {
 		);
 	}
 }
+*/

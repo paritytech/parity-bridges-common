@@ -16,12 +16,11 @@
 
 use crate::cli::{
 	bridge::FullBridge,
-	encode_call::{self, CliEncodeCall},
+	encode_payload::{self, CliEncodePayload},
 	estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
 	Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
 	SourceSigningParams, TargetConnectionParams, TargetSigningParams,
 };
-use bp_message_dispatch::{CallOrigin, MessagePayload};
 use bp_runtime::Chain as _;
 use codec::Encode;
 use frame_support::weights::Weight;
@@ -72,28 +71,13 @@ pub struct SendMessage {
 	/// your message won't be relayed.
 	#[structopt(long)]
 	conversion_rate_override: Option<ConversionRateOverride>,
-	/// Where dispatch fee is paid?
-	#[structopt(
-		long,
-		possible_values = DispatchFeePayment::VARIANTS,
-		case_insensitive = true,
-		default_value = "at-source-chain",
-	)]
-	dispatch_fee_payment: DispatchFeePayment,
-	/// Dispatch weight of the message. If not passed, determined automatically.
-	#[structopt(long)]
-	dispatch_weight: Option<ExplicitOrMaximal<Weight>>,
 	/// Delivery and dispatch fee in source chain base currency units. If not passed, determined
 	/// automatically.
 	#[structopt(long)]
 	fee: Option<Balance>,
 	/// Message type.
 	#[structopt(subcommand)]
-	message: crate::cli::encode_call::Call,
-	/// The origin to use when dispatching the message on the target chain. Defaults to
-	/// `SourceAccount`.
-	#[structopt(long, possible_values = &Origins::variants(), default_value = "Source")]
-	origin: Origins,
+	message: crate::cli::encode_payload::Payload,
 
 	// Normally we don't need to connect to the target chain to send message. But for testing
 	// we may want to use **actual** `spec_version` of the target chain when composing a message.
@@ -103,73 +87,10 @@ pub struct SendMessage {
 }
 
 impl SendMessage {
-	pub async fn encode_payload(
-		&mut self,
-	) -> anyhow::Result<MessagePayload<AccountId32, MultiSigner, MultiSignature, Vec<u8>>> {
-		crate::select_full_bridge!(self.bridge, {
-			let SendMessage {
-				source_sign,
-				target_sign,
-				ref mut message,
-				dispatch_fee_payment,
-				dispatch_weight,
-				origin,
-				bridge,
-				..
-			} = self;
-
-			let source_sign = source_sign.to_keypair::<Source>()?;
-
-			encode_call::preprocess_call::<Source, Target>(message, bridge.bridge_instance_index());
-			let target_call = Target::encode_call(message)?;
-			let target_spec_version = self.target.selected_chain_spec_version::<Target>().await?;
-
-			let payload = {
-				let target_call_weight = prepare_call_dispatch_weight(
-					dispatch_weight,
-					|| {
-						Ok(ExplicitOrMaximal::Explicit(
-							Target::get_dispatch_info(&target_call)?.weight,
-						))
-					},
-					compute_maximal_message_dispatch_weight(Target::max_extrinsic_weight()),
-				)?;
-				let source_sender_public: MultiSigner = source_sign.public().into();
-				let source_account_id = source_sender_public.into_account();
-
-				message_payload(
-					target_spec_version,
-					target_call_weight,
-					match origin {
-						Origins::Source => CallOrigin::SourceAccount(source_account_id),
-						Origins::Target => {
-							let target_sign = target_sign.to_keypair::<Target>()?;
-							let digest = account_ownership_digest(
-								&target_call,
-								source_account_id.clone(),
-								target_spec_version,
-							);
-							let target_origin_public = target_sign.public();
-							let digest_signature = target_sign.sign(&digest);
-							CallOrigin::TargetAccount(
-								source_account_id,
-								target_origin_public.into(),
-								digest_signature.into(),
-							)
-						},
-					},
-					&target_call,
-					*dispatch_fee_payment,
-				)
-			};
-			Ok(payload)
-		})
-	}
-
 	/// Run the command.
 	pub async fn run(mut self) -> anyhow::Result<()> {
 		crate::select_full_bridge!(self.bridge, {
-			let payload = self.encode_payload().await?;
+			let payload = Source::encode_payload(&self.message)?;
 
 			let source_client = self.source.to_client::<Source>().await?;
 			let source_sign = self.source_sign.to_keypair::<Source>()?;
@@ -189,14 +110,13 @@ impl SendMessage {
 					.await? as _,
 				),
 			};
-			let dispatch_weight = payload.weight;
 			let payload_len = payload.encode().len();
-			let send_message_call = Source::encode_call(&encode_call::Call::BridgeSendMessage {
-				bridge_instance_index: self.bridge.bridge_instance_index(),
-				lane: self.lane,
-				payload: HexBytes::encode(&payload),
-				fee,
-			})?;
+			let send_message_call = Source::encode_send_message_call(
+				self.lane.0,
+				payload,
+				fee.cast().into(),
+				self.bridge.bridge_instance_index(),
+			)?;
 
 			let source_genesis_hash = *source_client.genesis_hash();
 			let (spec_version, transaction_version) =
@@ -228,11 +148,10 @@ impl SendMessage {
 
 					log::info!(
 						target: "bridge",
-						"Sending message to {}. Lane: {:?}. Size: {}. Dispatch weight: {}. Fee: {}",
+						"Sending message to {}. Lane: {:?}. Size: {}. Fee: {}",
 						Target::NAME,
 						lane,
 						payload_len,
-						dispatch_weight,
 						fee,
 					);
 					log::info!(
@@ -275,41 +194,12 @@ fn prepare_call_dispatch_weight(
 	}
 }
 
-pub(crate) fn message_payload<SAccountId, TPublic, TSignature>(
-	spec_version: u32,
-	weight: Weight,
-	origin: CallOrigin<SAccountId, TPublic, TSignature>,
-	call: &impl Encode,
-	dispatch_fee_payment: DispatchFeePayment,
-) -> MessagePayload<SAccountId, TPublic, TSignature, Vec<u8>>
-where
-	SAccountId: Encode + Debug,
-	TPublic: Encode + Debug,
-	TSignature: Encode + Debug,
-{
-	// Display nicely formatted call.
-	let payload = MessagePayload {
-		spec_version,
-		weight,
-		origin,
-		dispatch_fee_payment: dispatch_fee_payment.into(),
-		call: HexBytes::encode(call),
-	};
-
-	log::info!(target: "bridge", "Created Message Payload: {:#?}", payload);
-	log::info!(target: "bridge", "Encoded Message Payload: {:?}", HexBytes::encode(&payload));
-
-	// re-pack to return `Vec<u8>`
-	let MessagePayload { spec_version, weight, origin, dispatch_fee_payment, call } = payload;
-	MessagePayload { spec_version, weight, origin, dispatch_fee_payment, call: call.0 }
-}
-
 pub(crate) fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
 	bridge_runtime_common::messages::target::maximal_incoming_message_dispatch_weight(
 		maximal_extrinsic_weight,
 	)
 }
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -442,3 +332,4 @@ mod tests {
 		);
 	}
 }
+**/

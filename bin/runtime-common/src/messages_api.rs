@@ -37,14 +37,12 @@ where
 		.filter_map(|nonce| {
 			let message_data =
 				pallet_bridge_messages::Pallet::<Runtime, MessagesPalletInstance>::outbound_message_data(lane, nonce)?;
-			let decoded_payload =
-				FromThisChainMessagePayload::<BridgeConfig>::decode(&mut &message_data.payload[..]).ok()?;
 			Some(MessageDetails {
 				nonce,
-				dispatch_weight: decoded_payload.weight,
+				dispatch_weight: 0,
 				size: message_data.payload.len() as _,
 				delivery_and_dispatch_fee: message_data.fee,
-				dispatch_fee_payment: decoded_payload.dispatch_fee_payment,
+				dispatch_fee_payment: bp_runtime::messages::DispatchFeePayment::AtTargetChain,
 			})
 		})
 		.collect()
