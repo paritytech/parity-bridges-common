@@ -215,11 +215,11 @@ async fn do_estimate_message_delivery_and_dispatch_fee<Source: Chain, P: Encode>
 	})?;
 	Ok(fee)
 }
-/*
+
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::{encode_call, RuntimeVersionType, SourceRuntimeVersionParams};
+	use crate::cli::{RuntimeVersionType, SourceRuntimeVersionParams};
 	use sp_core::crypto::Ss58Codec;
 
 	#[test]
@@ -235,13 +235,7 @@ mod tests {
 			"1234",
 			"--conversion-rate-override",
 			"42.5",
-			"call",
-			"--sender",
-			&alice,
-			"--dispatch-weight",
-			"42",
-			"remark",
-			"--remark-payload",
+			"raw",
 			"1234",
 		]);
 
@@ -262,16 +256,10 @@ mod tests {
 						source_transaction_version: None,
 					}
 				},
-				payload: crate::cli::encode_message::MessagePayload::Call {
-					sender: alice.parse().unwrap(),
-					call: encode_call::Call::Remark {
-						remark_payload: Some(HexBytes(vec![0x12, 0x34])),
-						remark_size: None,
-					},
-					dispatch_weight: Some(42),
+				payload: crate::cli::encode_payload::Payload::Raw {
+					data: HexBytes(vec![0x12, 0x34])
 				}
 			}
 		);
 	}
 }
-*/

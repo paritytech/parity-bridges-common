@@ -265,7 +265,7 @@ impl ReinitBridge {
 						},
 					)
 					.await?;
-				// TODO: wait_until_transaction_is_finalized::<Target>(batch_transaction_events).await?;
+				wait_until_transaction_is_finalized::<Target>(batch_transaction_events).await?;
 
 				// verify that the best finalized header at target has been updated
 				let current_number =

@@ -199,7 +199,7 @@ pub(crate) fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: 
 		maximal_extrinsic_weight,
 	)
 }
-/*
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -207,7 +207,7 @@ mod tests {
 	use hex_literal::hex;
 
 	#[async_std::test]
-	async fn send_remark_rialto_to_millau() {
+	async fn send_raw_rialto_to_millau() {
 		// given
 		let mut send_message = SendMessage::from_iter(vec![
 			"send-message",
@@ -218,118 +218,15 @@ mod tests {
 			"//Alice",
 			"--conversion-rate-override",
 			"0.75",
-			"remark",
-			"--remark-payload",
+			"raw",
 			"1234",
 		]);
-
-		// when
-		let payload = send_message.encode_payload().await.unwrap();
 
 		// then
-		assert_eq!(
-			payload,
-			MessagePayload {
-				spec_version: relay_millau_client::Millau::RUNTIME_VERSION.spec_version,
-				weight: 0,
-				origin: CallOrigin::SourceAccount(
-					sp_keyring::AccountKeyring::Alice.to_account_id()
-				),
-				dispatch_fee_payment: bp_runtime::messages::DispatchFeePayment::AtSourceChain,
-				call: hex!("0001081234").to_vec(),
-			}
-		);
-	}
-
-	#[async_std::test]
-	async fn send_remark_millau_to_rialto() {
-		// given
-		let mut send_message = SendMessage::from_iter(vec![
-			"send-message",
-			"millau-to-rialto",
-			"--source-port",
-			"1234",
-			"--source-signer",
-			"//Alice",
-			"--origin",
-			"Target",
-			"--target-signer",
-			"//Bob",
-			"--conversion-rate-override",
-			"metric",
-			"remark",
-			"--remark-payload",
-			"1234",
-		]);
-
-		// when
-		let payload = send_message.encode_payload().await.unwrap();
-
-		// then
-		// Since signatures are randomized we extract it from here and only check the rest.
-		let signature = match payload.origin {
-			CallOrigin::TargetAccount(_, _, ref sig) => sig.clone(),
-			_ => panic!("Unexpected `CallOrigin`: {:?}", payload),
-		};
-		assert_eq!(
-			payload,
-			MessagePayload {
-				spec_version: relay_millau_client::Millau::RUNTIME_VERSION.spec_version,
-				weight: 0,
-				origin: CallOrigin::TargetAccount(
-					sp_keyring::AccountKeyring::Alice.to_account_id(),
-					sp_keyring::AccountKeyring::Bob.into(),
-					signature,
-				),
-				dispatch_fee_payment: bp_runtime::messages::DispatchFeePayment::AtSourceChain,
-				call: hex!("0001081234").to_vec(),
-			}
-		);
-	}
-
-	#[test]
-	fn accepts_send_message_command_without_target_sign_options() {
-		// given
-		let send_message = SendMessage::from_iter_safe(vec![
-			"send-message",
-			"rialto-to-millau",
-			"--source-port",
-			"1234",
-			"--source-signer",
-			"//Alice",
-			"--origin",
-			"Target",
-			"remark",
-			"--remark-payload",
-			"1234",
-		]);
-
-		assert!(send_message.is_ok());
-	}
-
-	#[async_std::test]
-	async fn accepts_non_default_dispatch_fee_payment() {
-		// given
-		let mut send_message = SendMessage::from_iter(vec![
-			"send-message",
-			"rialto-to-millau",
-			"--source-port",
-			"1234",
-			"--source-signer",
-			"//Alice",
-			"--dispatch-fee-payment",
-			"at-target-chain",
-			"remark",
-		]);
-
-		// when
-		let payload = send_message.encode_payload().await.unwrap();
-
-		// then
-		assert_eq!(
-			payload.dispatch_fee_payment,
-			bp_runtime::messages::DispatchFeePayment::AtTargetChain
-		);
+		assert_eq!(send_message.bridge, FullBridge::RialtoToMillau);
+		assert_eq!(send_message.source.source_port, 1234);
+		assert_eq!(send_message.source_sign.source_signer, Some("//Alice".into()));
+		assert_eq!(send_message.conversion_rate_override, Some(ConversionRateOverride::Explicit(0.75)));
+		assert_eq!(send_message.message, crate::cli::encode_payload::Payload::Raw { data: HexBytes(vec![0x12, 0x34]) });
 	}
 }
-**/
