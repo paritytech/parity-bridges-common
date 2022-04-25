@@ -16,7 +16,7 @@
 
 use crate::cli::{
 	bridge::FullBridge,
-	encode_payload::{self, CliEncodePayload},
+	encode_message::{self, CliEncodeMessage},
 	estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
 	Balance, HexBytes, HexLaneId, SourceConnectionParams, SourceSigningParams,
 };
@@ -72,14 +72,14 @@ pub struct SendMessage {
 	fee: Option<Balance>,
 	/// Message type.
 	#[structopt(subcommand)]
-	message: crate::cli::encode_payload::Payload,
+	message: crate::cli::encode_message::Message,
 }
 
 impl SendMessage {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		crate::select_full_bridge!(self.bridge, {
-			let payload = encode_payload::encode_payload::<Source, Target>(&self.message)?;
+			let payload = encode_message::encode_message::<Source, Target>(&self.message)?;
 
 			let source_client = self.source.to_client::<Source>().await?;
 			let source_sign = self.source_sign.to_keypair::<Source>()?;
@@ -198,7 +198,7 @@ mod tests {
 		);
 		assert_eq!(
 			send_message.message,
-			crate::cli::encode_payload::Payload::Raw { data: HexBytes(vec![0x12, 0x34]) }
+			crate::cli::encode_message::Message::Raw { data: HexBytes(vec![0x12, 0x34]) }
 		);
 	}
 }

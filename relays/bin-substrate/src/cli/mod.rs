@@ -26,7 +26,7 @@ use strum::{EnumString, EnumVariantNames};
 use bp_messages::LaneId;
 
 pub(crate) mod bridge;
-pub(crate) mod encode_payload;
+pub(crate) mod encode_message;
 pub(crate) mod estimate_fee;
 pub(crate) mod send_message;
 

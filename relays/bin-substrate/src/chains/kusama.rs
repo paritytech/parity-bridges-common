@@ -22,14 +22,14 @@ use sp_version::RuntimeVersion;
 
 use crate::cli::{
 	bridge,
-	encode_payload::{CliEncodePayload, RawPayload},
+	encode_message::{CliEncodeMessage, RawMessage},
 	CliChain,
 };
 
-impl CliEncodePayload for Kusama {
+impl CliEncodeMessage for Kusama {
 	fn encode_send_message_call(
 		lane: LaneId,
-		payload: RawPayload,
+		payload: RawMessage,
 		fee: BalanceOf<Self>,
 		bridge_instance_index: u8,
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {

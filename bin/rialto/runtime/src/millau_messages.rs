@@ -292,28 +292,15 @@ impl MessagesParameter for RialtoToMillauMessagesParameter {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{
-		AccountId, Call, DbWeight, ExistentialDeposit, MillauGrandpaInstance, Runtime, SystemCall,
-		SystemConfig, WithMillauMessagesInstance, VERSION,
-	};
-	use bp_messages::{
-		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-		MessageKey,
-	};
-	use bp_runtime::{derive_account_id, messages::DispatchFeePayment, Chain, SourceAccount};
+	use crate::{DbWeight, MillauGrandpaInstance, Runtime, WithMillauMessagesInstance};
+	use bp_runtime::Chain;
 	use bridge_runtime_common::{
 		assert_complete_bridge_types,
 		integrity::{
 			assert_complete_bridge_constants, AssertBridgeMessagesPalletConstants,
 			AssertBridgePalletNames, AssertChainConstants, AssertCompleteBridgeConstants,
 		},
-		messages::target::FromBridgedChainMessagePayload,
 	};
-	use frame_support::{
-		traits::Currency,
-		weights::{GetDispatchInfo, WeightToFeePolynomial},
-	};
-	use sp_runtime::traits::Convert;
 
 	#[test]
 	fn ensure_rialto_message_lane_weights_are_correct() {

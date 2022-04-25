@@ -41,7 +41,7 @@ mod wococo;
 
 #[cfg(test)]
 mod tests {
-	use crate::cli::encode_payload;
+	use crate::cli::encode_message;
 	use bp_messages::source_chain::TargetHeaderChain;
 	use bp_runtime::Chain as _;
 	use codec::Encode;
@@ -53,7 +53,7 @@ mod tests {
 	fn maximal_rialto_to_millau_message_size_is_computed_correctly() {
 		use rialto_runtime::millau_messages::Millau;
 
-		let maximal_message_size = encode_payload::compute_maximal_message_size(
+		let maximal_message_size = encode_message::compute_maximal_message_size(
 			bp_rialto::Rialto::max_extrinsic_size(),
 			bp_millau::Millau::max_extrinsic_size(),
 		);

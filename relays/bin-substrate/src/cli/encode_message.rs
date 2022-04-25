@@ -25,7 +25,7 @@ use structopt::StructOpt;
 /// Note this enum may be used in the context of both Source (as part of `encode-call`)
 /// and Target chain (as part of `encode-message/send-message`).
 #[derive(StructOpt, Debug, PartialEq, Eq)]
-pub enum Payload {
+pub enum Message {
 	/// Raw bytes for the message.
 	Raw {
 		/// Raw message bytes.
@@ -39,25 +39,25 @@ pub enum Payload {
 }
 
 /// Raw, SCALE-encoded message payload used in expected deployment.
-pub type RawPayload = Vec<u8>;
+pub type RawMessage = Vec<u8>;
 
-pub trait CliEncodePayload: Chain {
+pub trait CliEncodeMessage: Chain {
 	/// Encode a send message call.
 	fn encode_send_message_call(
 		lane: LaneId,
-		payload: RawPayload,
+		message: RawMessage,
 		fee: Self::Balance,
 		bridge_instance_index: u8,
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>>;
 }
 
 /// Encode message payload passed through CLI flags.
-pub(crate) fn encode_payload<Source: Chain, Target: Chain>(
-	payload: &Payload,
-) -> anyhow::Result<RawPayload> {
-	Ok(match payload {
-		Payload::Raw { ref data } => data.0.clone(),
-		Payload::Sized { ref size } => match *size {
+pub(crate) fn encode_message<Source: Chain, Target: Chain>(
+	message: &Message,
+) -> anyhow::Result<RawMessage> {
+	Ok(match message {
+		Message::Raw { ref data } => data.0.clone(),
+		Message::Sized { ref size } => match *size {
 			ExplicitOrMaximal::Explicit(size) => vec![42; size as usize],
 			ExplicitOrMaximal::Maximal => {
 				let maximal_size = compute_maximal_message_size(

@@ -18,7 +18,7 @@
 
 use crate::cli::{
 	bridge,
-	encode_payload::{CliEncodePayload, RawPayload},
+	encode_message::{CliEncodeMessage, RawMessage},
 	CliChain,
 };
 use bp_messages::LaneId;
@@ -27,10 +27,10 @@ use relay_rialto_client::Rialto;
 use relay_substrate_client::BalanceOf;
 use sp_version::RuntimeVersion;
 
-impl CliEncodePayload for Rialto {
+impl CliEncodeMessage for Rialto {
 	fn encode_send_message_call(
 		lane: LaneId,
-		payload: RawPayload,
+		payload: RawMessage,
 		fee: BalanceOf<Self>,
 		bridge_instance_index: u8,
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {

@@ -48,7 +48,7 @@ pub struct EstimateFee {
 	conversion_rate_override: Option<ConversionRateOverride>,
 	/// Payload to send over the bridge.
 	#[structopt(flatten)]
-	payload: crate::cli::encode_payload::Payload,
+	payload: crate::cli::encode_message::Message,
 }
 
 /// A way to override conversion rate between bridge tokens.
@@ -82,7 +82,7 @@ impl EstimateFee {
 		select_full_bridge!(bridge, {
 			let source_client = source.to_client::<Source>().await?;
 			let lane = lane.into();
-			let payload = crate::cli::encode_payload::encode_payload::<Source, Target>(&payload)
+			let payload = crate::cli::encode_message::encode_message::<Source, Target>(&payload)
 				.map_err(|e| anyhow::format_err!("{:?}", e))?;
 
 			let fee = estimate_message_delivery_and_dispatch_fee::<Source, Target, _>(
@@ -252,7 +252,7 @@ mod tests {
 						source_transaction_version: None,
 					}
 				},
-				payload: crate::cli::encode_payload::Payload::Raw {
+				payload: crate::cli::encode_message::Message::Raw {
 					data: HexBytes(vec![0x12, 0x34])
 				}
 			}
