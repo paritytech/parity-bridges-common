@@ -170,10 +170,11 @@ impl SendMessage {
 
 #[cfg(test)]
 mod tests {
+	use crate::cli::ExplicitOrMaximal;
 	use super::*;
 
-	#[async_std::test]
-	async fn send_raw_rialto_to_millau() {
+	#[test]
+	fn send_raw_rialto_to_millau() {
 		// given
 		let send_message = SendMessage::from_iter(vec![
 			"send-message",
@@ -185,7 +186,7 @@ mod tests {
 			"--conversion-rate-override",
 			"0.75",
 			"raw",
-			"1234",
+			"dead",
 		]);
 
 		// then
@@ -198,7 +199,37 @@ mod tests {
 		);
 		assert_eq!(
 			send_message.message,
-			crate::cli::encode_message::Message::Raw { data: HexBytes(vec![0x12, 0x34]) }
+			crate::cli::encode_message::Message::Raw { data: HexBytes(vec![0xDE, 0xAD]) }
+		);
+	}
+
+	#[test]
+	fn send_sized_rialto_to_millau() {
+		// given
+		let send_message = SendMessage::from_iter(vec![
+			"send-message",
+			"rialto-to-millau",
+			"--source-port",
+			"1234",
+			"--source-signer",
+			"//Alice",
+			"--conversion-rate-override",
+			"metric",
+			"sized",
+			"max",
+		]);
+
+		// then
+		assert_eq!(send_message.bridge, FullBridge::RialtoToMillau);
+		assert_eq!(send_message.source.source_port, 1234);
+		assert_eq!(send_message.source_sign.source_signer, Some("//Alice".into()));
+		assert_eq!(
+			send_message.conversion_rate_override,
+			Some(ConversionRateOverride::Metric)
+		);
+		assert_eq!(
+			send_message.message,
+			crate::cli::encode_message::Message::Sized { size: ExplicitOrMaximal::Maximal }
 		);
 	}
 }
