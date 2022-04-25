@@ -740,7 +740,8 @@ mod tests {
 	const THIS_CHAIN_WEIGHT_TO_BALANCE_RATE: Weight = 2;
 	const BRIDGED_CHAIN_WEIGHT_TO_BALANCE_RATE: Weight = 4;
 	const BRIDGED_CHAIN_TO_THIS_CHAIN_BALANCE_RATE: u32 = 6;
-	const BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT: Weight = 2048;
+	const BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT: usize = 5;
+	const BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT: usize = 2048;
 	const BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE: u32 = 1024;
 
 	/// Bridge that is deployed on ThisChain and allows sending/receiving messages to/from
@@ -1002,9 +1003,8 @@ mod tests {
 		}
 
 		fn verify_dispatch_weight(message_payload: &[u8]) -> bool {
-			let begin =
-				std::cmp::min(BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT, message_payload.len() as Weight);
-			message_payload.len() >= begin && message_payload.len() <= BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
+			message_payload.len() >=  BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT
+				&& message_payload.len() <= BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
 		}
 
 		fn estimate_delivery_transaction(
@@ -1029,51 +1029,16 @@ mod tests {
 		OutboundLaneData::default()
 	}
 
-	#[test]
-	fn message_from_bridged_chain_is_decoded() {
-/*		// the message is encoded on the bridged chain
-		let message_on_bridged_chain =
-			source::FromThisChainMessagePayload::<OnBridgedChainBridge> {
-				spec_version: 1,
-				weight: 100,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-				call: ThisChainCall::Transfer.encode(),
-			}
-			.encode();
-
-		// and sent to this chain where it is decoded
-		let message_on_this_chain =
-			target::FromBridgedChainMessagePayload::<OnThisChainBridge>::decode(
-				&mut &message_on_bridged_chain[..],
-			)
-			.unwrap();
-		assert_eq!(
-			message_on_this_chain,
-			target::FromBridgedChainMessagePayload::<OnThisChainBridge> {
-				spec_version: 1,
-				weight: 100,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-				call: target::FromBridgedChainEncodedMessageCall::<ThisChainCall>::new(
-					ThisChainCall::Transfer.encode(),
-				),
-			}
-		);
-		assert_eq!(Ok(ThisChainCall::Transfer), message_on_this_chain.call.into());*/
-		unimplemented!("TODO")
-	}
-
 	const TEST_LANE_ID: &LaneId = b"test";
 	const MAXIMAL_PENDING_MESSAGES_AT_TEST_LANE: MessageNonce = 32;
 
 	fn regular_outbound_message_payload() -> source::FromThisChainMessagePayload {
 		vec![42]
 	}
-/*
+
 	#[test]
 	fn message_fee_is_checked_by_verifier() {
-		const EXPECTED_MINIMAL_FEE: u32 = 5500;
+		const EXPECTED_MINIMAL_FEE: u32 = 2860;
 
 		// payload of the This -> Bridged chain message
 		let payload = regular_outbound_message_payload();
@@ -1086,25 +1051,6 @@ mod tests {
 				None,
 			),
 			Ok(ThisChainBalance(EXPECTED_MINIMAL_FEE)),
-		);
-
-		// let's check if estimation is less than hardcoded, if dispatch is paid at target chain
-		let mut payload_with_pay_on_target = regular_outbound_message_payload();
-		payload_with_pay_on_target.dispatch_fee_payment = DispatchFeePayment::AtTargetChain;
-		let fee_at_source =
-			source::estimate_message_dispatch_and_delivery_fee::<OnThisChainBridge>(
-				&payload_with_pay_on_target,
-				OnThisChainBridge::RELAYER_FEE_PERCENT,
-				None,
-			)
-			.expect(
-				"estimate_message_dispatch_and_delivery_fee failed for pay-at-target-chain message",
-			);
-		assert!(
-			fee_at_source < EXPECTED_MINIMAL_FEE.into(),
-			"Computed fee {:?} without prepaid dispatch must be less than the fee with prepaid dispatch {}",
-			fee_at_source,
-			EXPECTED_MINIMAL_FEE,
 		);
 
 		// and now check that the verifier checks the fee
@@ -1127,7 +1073,7 @@ mod tests {
 		)
 		.is_ok(),);
 	}
-*/
+
 	#[test]
 	fn message_is_rejected_when_sent_using_disabled_lane() {
 		assert_eq!(
@@ -1162,38 +1108,18 @@ mod tests {
 
 	#[test]
 	fn verify_chain_message_rejects_message_with_too_small_declared_weight() {
-/*		assert!(source::verify_chain_message::<OnThisChainBridge>(
-			&source::FromThisChainMessagePayload::<OnThisChainBridge> {
-				spec_version: 1,
-				weight: 5,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-				call: vec![1, 2, 3, 4, 5, 6],
-			},
-		)
-		.is_err());*/
-		unimplemented!("TODO")
+		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![42; BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT - 1]).is_err());
 	}
 
 	#[test]
 	fn verify_chain_message_rejects_message_with_too_large_declared_weight() {
-/*		assert!(source::verify_chain_message::<OnThisChainBridge>(
-			&source::FromThisChainMessagePayload::<OnThisChainBridge> {
-				spec_version: 1,
-				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT + 1,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-				call: vec![1, 2, 3, 4, 5, 6],
-			},
-		)
-		.is_err());*/
-		unimplemented!("TODO")
+		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![42; BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT - 1]).is_err());
 	}
-/*
+
 	#[test]
 	fn verify_chain_message_rejects_message_too_large_message() {
 		assert!(source::verify_chain_message::<OnThisChainBridge>(
-			vec![0; source::maximal_message_size::<OnThisChainBridge>() as usize + 1],
+			&vec![0; source::maximal_message_size::<OnThisChainBridge>() as usize + 1],
 		)
 		.is_err());
 	}
@@ -1202,7 +1128,7 @@ mod tests {
 	fn verify_chain_message_accepts_maximal_message() {
 		assert_eq!(
 			source::verify_chain_message::<OnThisChainBridge>(
-				vec![0; source::maximal_message_size::<OnThisChainBridge>() as _],
+				&vec![0; source::maximal_message_size::<OnThisChainBridge>() as _],
 			),
 			Ok(()),
 		);
@@ -1494,5 +1420,5 @@ mod tests {
 		);
 
 		assert!(regular_fee < overrided_fee);
-	}*/
+	}
 }
