@@ -536,8 +536,8 @@ declare_chain_options!(Parachain, parachain);
 
 #[cfg(test)]
 mod tests {
-	use sp_core::Pair;
 	use super::*;
+	use sp_core::Pair;
 
 	#[test]
 	fn hex_bytes_display_matches_from_str_for_clap() {

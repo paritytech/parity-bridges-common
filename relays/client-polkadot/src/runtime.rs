@@ -91,11 +91,7 @@ pub enum BridgeKusamaMessagesCall {
 	#[codec(index = 2)]
 	update_pallet_parameter(BridgeKusamaMessagesParameter),
 	#[codec(index = 3)]
-	send_message(
-		LaneId,
-		Vec<u8>,
-		bp_polkadot::Balance,
-	),
+	send_message(LaneId, Vec<u8>, bp_polkadot::Balance),
 	#[codec(index = 5)]
 	receive_messages_proof(
 		bp_kusama::AccountId,

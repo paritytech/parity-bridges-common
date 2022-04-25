@@ -35,14 +35,14 @@ impl CliEncodePayload for Rialto {
 		bridge_instance_index: u8,
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
 		Ok(match bridge_instance_index {
-			bridge::RIALTO_TO_MILLAU_INDEX => {
-				rialto_runtime::Call::BridgeMillauMessages(
-					rialto_runtime::MessagesCall::send_message {
-						lane_id: lane, payload, delivery_and_dispatch_fee: fee,
-					},
-				)
-				.into()
-			},
+			bridge::RIALTO_TO_MILLAU_INDEX => rialto_runtime::Call::BridgeMillauMessages(
+				rialto_runtime::MessagesCall::send_message {
+					lane_id: lane,
+					payload,
+					delivery_and_dispatch_fee: fee,
+				},
+			)
+			.into(),
 			_ => anyhow::bail!(
 				"Unsupported target bridge pallet with instance index: {}",
 				bridge_instance_index

@@ -16,8 +16,8 @@
 
 use bp_messages::LaneId;
 use bp_runtime::EncodedOrDecodedCall;
-use relay_substrate_client::BalanceOf;
 use relay_kusama_client::Kusama;
+use relay_substrate_client::BalanceOf;
 use sp_version::RuntimeVersion;
 
 use crate::cli::{
@@ -34,14 +34,13 @@ impl CliEncodePayload for Kusama {
 		bridge_instance_index: u8,
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
 		Ok(match bridge_instance_index {
-			bridge::KUSAMA_TO_POLKADOT_INDEX => {
+			bridge::KUSAMA_TO_POLKADOT_INDEX =>
 				relay_kusama_client::runtime::Call::BridgePolkadotMessages(
 					relay_kusama_client::runtime::BridgePolkadotMessagesCall::send_message(
 						lane, payload, fee,
 					),
 				)
-				.into()
-			},
+				.into(),
 			_ => anyhow::bail!(
 				"Unsupported target bridge pallet with instance index: {}",
 				bridge_instance_index

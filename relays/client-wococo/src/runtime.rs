@@ -83,11 +83,7 @@ pub enum BridgeGrandpaRococoCall {
 #[allow(non_camel_case_types)]
 pub enum BridgeRococoMessagesCall {
 	#[codec(index = 3)]
-	send_message(
-		LaneId,
-		Vec<u8>,
-		bp_rococo::Balance,
-	),
+	send_message(LaneId, Vec<u8>, bp_rococo::Balance),
 	#[codec(index = 5)]
 	receive_messages_proof(
 		bp_rococo::AccountId,

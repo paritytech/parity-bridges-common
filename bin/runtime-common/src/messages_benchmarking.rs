@@ -312,7 +312,7 @@ fn ed25519_sign(
 	let target_pair =
 		ed25519_dalek::Keypair::from_bytes(&target_pair_bytes).expect("hardcoded pair is valid");
 
-/*	let signature_message = pallet_bridge_dispatch::account_ownership_digest(
+	/*	let signature_message = pallet_bridge_dispatch::account_ownership_digest(
 		target_call,
 		source_account_id,
 		target_spec_version,

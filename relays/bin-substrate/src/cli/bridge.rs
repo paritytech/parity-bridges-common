@@ -75,7 +75,7 @@ macro_rules! select_full_bridge {
 				use bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
-			}
+			},
 			FullBridge::RialtoToMillau => {
 				type Source = relay_rialto_client::Rialto;
 				#[allow(dead_code)]
@@ -94,7 +94,7 @@ macro_rules! select_full_bridge {
 				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
-			}
+			},
 			FullBridge::RococoToWococo => {
 				type Source = relay_rococo_client::Rococo;
 				#[allow(dead_code)]
@@ -113,7 +113,7 @@ macro_rules! select_full_bridge {
 				use bp_wococo::TO_WOCOCO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
-			}
+			},
 			FullBridge::WococoToRococo => {
 				type Source = relay_wococo_client::Wococo;
 				#[allow(dead_code)]
@@ -132,7 +132,7 @@ macro_rules! select_full_bridge {
 				use bp_rococo::TO_ROCOCO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
-			}
+			},
 			FullBridge::KusamaToPolkadot => {
 				type Source = relay_kusama_client::Kusama;
 				#[allow(dead_code)]
@@ -151,7 +151,7 @@ macro_rules! select_full_bridge {
 				use bp_polkadot::TO_POLKADOT_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
-			}
+			},
 			FullBridge::PolkadotToKusama => {
 				type Source = relay_polkadot_client::Polkadot;
 				#[allow(dead_code)]
@@ -170,7 +170,7 @@ macro_rules! select_full_bridge {
 				use bp_kusama::TO_KUSAMA_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
-			}
+			},
 		}
 	};
 }

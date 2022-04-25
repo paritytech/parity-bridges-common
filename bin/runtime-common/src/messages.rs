@@ -25,26 +25,16 @@ use bp_messages::{
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
-use bp_runtime::{
-	messages::MessageDispatchResult,
-	ChainId, Size, StorageProofChecker,
-};
+use bp_runtime::{messages::MessageDispatchResult, ChainId, Size, StorageProofChecker};
 use codec::{Decode, DecodeLimit, Encode};
-use frame_support::{
-	traits::Currency,
-	weights::Weight,
-	RuntimeDebug,
-};
+use frame_support::{traits::Currency, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, Saturating},
 	FixedPointNumber, FixedPointOperand, FixedU128,
 };
-use sp_std::{
-	cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData,
-	vec::Vec,
-};
+use sp_std::{cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData, vec::Vec};
 use sp_trie::StorageProof;
 
 /// Bidirectional message bridge.
@@ -370,11 +360,8 @@ pub mod source {
 		//
 		// if we're going to pay dispatch fee at the target chain, then we don't include weight
 		// of the message dispatch in the delivery transaction cost
-		let delivery_transaction = BridgedChain::<B>::estimate_delivery_transaction(
-			&payload.encode(),
-			true,
-			0.into(),
-		);
+		let delivery_transaction =
+			BridgedChain::<B>::estimate_delivery_transaction(&payload.encode(), true, 0.into());
 		let delivery_transaction_fee = BridgedChain::<B>::transaction_payment(delivery_transaction);
 
 		// the fee (in This tokens) of all transactions that are made on This chain
@@ -529,7 +516,7 @@ pub mod target {
 		fn dispatch_weight(
 			_message: &DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> frame_support::weights::Weight {
-//			message.data.payload.as_ref().map(|payload| payload.weight).unwrap_or(0)
+			//			message.data.payload.as_ref().map(|payload| payload.weight).unwrap_or(0)
 			0
 		}
 
@@ -1003,8 +990,8 @@ mod tests {
 		}
 
 		fn verify_dispatch_weight(message_payload: &[u8]) -> bool {
-			message_payload.len() >=  BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT
-				&& message_payload.len() <= BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
+			message_payload.len() >= BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT &&
+				message_payload.len() <= BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
 		}
 
 		fn estimate_delivery_transaction(
@@ -1108,28 +1095,42 @@ mod tests {
 
 	#[test]
 	fn verify_chain_message_rejects_message_with_too_small_declared_weight() {
-		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![42; BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT - 1]).is_err());
+		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![
+			42;
+			BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT -
+				1
+		])
+		.is_err());
 	}
 
 	#[test]
 	fn verify_chain_message_rejects_message_with_too_large_declared_weight() {
-		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![42; BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT - 1]).is_err());
+		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![
+			42;
+			BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT -
+				1
+		])
+		.is_err());
 	}
 
 	#[test]
 	fn verify_chain_message_rejects_message_too_large_message() {
-		assert!(source::verify_chain_message::<OnThisChainBridge>(
-			&vec![0; source::maximal_message_size::<OnThisChainBridge>() as usize + 1],
-		)
+		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![
+			0;
+			source::maximal_message_size::<OnThisChainBridge>()
+				as usize + 1
+		],)
 		.is_err());
 	}
 
 	#[test]
 	fn verify_chain_message_accepts_maximal_message() {
 		assert_eq!(
-			source::verify_chain_message::<OnThisChainBridge>(
-				&vec![0; source::maximal_message_size::<OnThisChainBridge>() as _],
-			),
+			source::verify_chain_message::<OnThisChainBridge>(&vec![
+				0;
+				source::maximal_message_size::<OnThisChainBridge>()
+					as _
+			],),
 			Ok(()),
 		);
 	}

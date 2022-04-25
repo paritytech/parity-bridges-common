@@ -34,14 +34,13 @@ impl CliEncodePayload for Wococo {
 		bridge_instance_index: u8,
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
 		Ok(match bridge_instance_index {
-			bridge::WOCOCO_TO_ROCOCO_INDEX => {
+			bridge::WOCOCO_TO_ROCOCO_INDEX =>
 				relay_wococo_client::runtime::Call::BridgeRococoMessages(
 					relay_wococo_client::runtime::BridgeRococoMessagesCall::send_message(
 						lane, payload, fee,
 					),
 				)
-				.into()
-			},
+				.into(),
 			_ => anyhow::bail!(
 				"Unsupported target bridge pallet with instance index: {}",
 				bridge_instance_index

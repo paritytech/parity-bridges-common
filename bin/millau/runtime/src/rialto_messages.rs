@@ -49,16 +49,14 @@ parameter_types! {
 }
 
 /// Message payload for Millau -> Rialto messages.
-pub type ToRialtoMessagePayload =
-	messages::source::FromThisChainMessagePayload;
+pub type ToRialtoMessagePayload = messages::source::FromThisChainMessagePayload;
 
 /// Message verifier for Millau -> Rialto messages.
 pub type ToRialtoMessageVerifier =
 	messages::source::FromThisChainMessageVerifier<WithRialtoMessageBridge>;
 
 /// Message payload for Rialto -> Millau messages.
-pub type FromRialtoMessagePayload =
-	messages::target::FromBridgedChainMessagePayload;
+pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload;
 
 /// Encoded Millau Call as it comes from Rialto.
 pub type FromRialtoEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<crate::Call>;
@@ -301,7 +299,6 @@ mod tests {
 
 	use bp_runtime::Chain;
 	use bridge_runtime_common::{
-		//assert_complete_bridge_types,
 		integrity::{
 			assert_complete_bridge_constants, AssertBridgeMessagesPalletConstants,
 			AssertBridgePalletNames, AssertChainConstants, AssertCompleteBridgeConstants,
@@ -352,7 +349,7 @@ mod tests {
 
 	#[test]
 	fn ensure_bridge_integrity() {
-/*		assert_complete_bridge_types!(
+		/*		assert_complete_bridge_types!(
 			runtime: Runtime,
 			with_bridged_chain_grandpa_instance: RialtoGrandpaInstance,
 			with_bridged_chain_messages_instance: WithRialtoMessagesInstance,

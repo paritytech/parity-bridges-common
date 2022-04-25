@@ -18,8 +18,7 @@ use crate::cli::{
 	bridge::FullBridge,
 	encode_payload::{self, CliEncodePayload},
 	estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
-	Balance, HexBytes, HexLaneId, SourceConnectionParams,
-	SourceSigningParams,
+	Balance, HexBytes, HexLaneId, SourceConnectionParams, SourceSigningParams,
 };
 use codec::Encode;
 use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
@@ -193,7 +192,13 @@ mod tests {
 		assert_eq!(send_message.bridge, FullBridge::RialtoToMillau);
 		assert_eq!(send_message.source.source_port, 1234);
 		assert_eq!(send_message.source_sign.source_signer, Some("//Alice".into()));
-		assert_eq!(send_message.conversion_rate_override, Some(ConversionRateOverride::Explicit(0.75)));
-		assert_eq!(send_message.message, crate::cli::encode_payload::Payload::Raw { data: HexBytes(vec![0x12, 0x34]) });
+		assert_eq!(
+			send_message.conversion_rate_override,
+			Some(ConversionRateOverride::Explicit(0.75))
+		);
+		assert_eq!(
+			send_message.message,
+			crate::cli::encode_payload::Payload::Raw { data: HexBytes(vec![0x12, 0x34]) }
+		);
 	}
 }

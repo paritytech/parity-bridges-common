@@ -34,14 +34,13 @@ impl CliEncodePayload for Polkadot {
 		bridge_instance_index: u8,
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
 		Ok(match bridge_instance_index {
-			bridge::POLKADOT_TO_KUSAMA_INDEX => {
+			bridge::POLKADOT_TO_KUSAMA_INDEX =>
 				relay_polkadot_client::runtime::Call::BridgeKusamaMessages(
 					relay_polkadot_client::runtime::BridgeKusamaMessagesCall::send_message(
 						lane, payload, fee,
 					),
 				)
-				.into()
-			},
+				.into(),
 			_ => anyhow::bail!(
 				"Unsupported target bridge pallet with instance index: {}",
 				bridge_instance_index

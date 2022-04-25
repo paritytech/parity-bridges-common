@@ -15,8 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::cli::{
-	Balance, ParachainConnectionParams,
-	RelaychainConnectionParams, RelaychainSigningParams,
+	Balance, ParachainConnectionParams, RelaychainConnectionParams, RelaychainSigningParams,
 };
 
 use codec::Encode;
@@ -30,8 +29,8 @@ use polkadot_runtime_common::{
 };
 use polkadot_runtime_parachains::paras::ParaLifecycle;
 use relay_substrate_client::{
-	AccountIdOf, CallOf, Chain, Client, SignParam, TransactionSignScheme, TransactionStatusOf, UnsignedTransaction,
-	Subscription, HashOf,
+	AccountIdOf, CallOf, Chain, Client, HashOf, SignParam, Subscription, TransactionSignScheme,
+	TransactionStatusOf, UnsignedTransaction,
 };
 use rialto_runtime::SudoCall;
 use sp_core::{
