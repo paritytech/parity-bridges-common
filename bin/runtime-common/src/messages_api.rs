@@ -16,10 +16,9 @@
 
 //! Helpers for implementing various message-related runtime API mthods.
 
-use crate::messages::{source::FromThisChainMessagePayload, MessageBridge};
+use crate::messages::MessageBridge;
 
 use bp_messages::{LaneId, MessageDetails, MessageNonce};
-use codec::Decode;
 use sp_std::vec::Vec;
 
 /// Implementation of the `To*OutboundLaneApi::message_details`.

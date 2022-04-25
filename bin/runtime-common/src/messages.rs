@@ -26,7 +26,7 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
 use bp_runtime::{
-	messages::{DispatchFeePayment, MessageDispatchResult},
+	messages::MessageDispatchResult,
 	ChainId, Size, StorageProofChecker,
 };
 use codec::{Decode, DecodeLimit, Encode};
@@ -42,7 +42,7 @@ use sp_runtime::{
 	FixedPointNumber, FixedPointOperand, FixedU128,
 };
 use sp_std::{
-	cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData, ops::RangeInclusive,
+	cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData,
 	vec::Vec,
 };
 use sp_trie::StorageProof;
@@ -135,16 +135,9 @@ pub trait BridgedChainWithMessages: ChainWithMessages {
 	/// Maximal extrinsic size at Bridged chain.
 	fn maximal_extrinsic_size() -> u32;
 
-	/// Returns feasible weights range for given message payload at the Bridged chain.
-	///
-	/// If message is being sent with the weight that is out of this range, then it
-	/// should be rejected.
-	///
-	/// Weights returned from this function shall not include transaction overhead
-	/// (like weight of signature and signed extensions verification), because they're
-	/// already accounted by the `weight_of_delivery_transaction`. So this function should
-	/// return pure call dispatch weights range.
-	fn message_weight_limits(message_payload: &[u8]) -> RangeInclusive<Self::Weight>;
+	/// Returns `true` if message dispatch weight is withing expected limits. `false` means
+	/// that the message is too heavy to be sent over the bridge and shall be rejected.
+	fn verify_dispatch_weight(message_payload: &[u8]) -> bool;
 
 	/// Estimate size and weight of single message delivery transaction at the Bridged chain.
 	fn estimate_delivery_transaction(
@@ -314,24 +307,6 @@ pub mod source {
 				return Err(TOO_MANY_PENDING_MESSAGES)
 			}
 
-			// Do the dispatch-specific check. We assume that the target chain uses
-			// `Dispatch`, so we verify the message accordingly.
-			let raw_origin_or_err: Result<
-				frame_system::RawOrigin<AccountIdOf<ThisChain<B>>>,
-				OriginOf<ThisChain<B>>,
-			> = submitter.clone().into();
-			if let Ok(raw_origin) = raw_origin_or_err {
-/*				pallet_bridge_dispatch::verify_message_origin(&raw_origin, payload)
-					.map(drop)
-					.map_err(|_| BAD_ORIGIN)?;*/
-			} else {
-				// so what it means that we've failed to convert origin to the
-				// `frame_system::RawOrigin`? now it means that the custom pallet origin has
-				// been used to send the message. Do we need to verify it? The answer is no,
-				// because pallet may craft any origin (e.g. root) && we can't verify whether it
-				// is valid, or not.
-			};
-
 			let minimal_fee_in_this_tokens = estimate_message_dispatch_and_delivery_fee::<B>(
 				payload,
 				B::RELAYER_FEE_PERCENT,
@@ -360,10 +335,9 @@ pub mod source {
 	pub fn verify_chain_message<B: MessageBridge>(
 		payload: &FromThisChainMessagePayload,
 	) -> Result<(), &'static str> {
-/*		let weight_limits = BridgedChain::<B>::message_weight_limits(&payload.call);
-		if !weight_limits.contains(&payload.weight.into()) {
+		if !BridgedChain::<B>::verify_dispatch_weight(payload) {
 			return Err("Incorrect message weight declared")
-		}*/
+		}
 
 		// The maximal size of extrinsic at Substrate-based chain depends on the
 		// `frame_system::Config::MaximumBlockLength` and
@@ -560,7 +534,7 @@ pub mod target {
 		}
 
 		fn dispatch(
-			relayer_account: &AccountIdOf<ThisChain<B>>,
+			_relayer_account: &AccountIdOf<ThisChain<B>>,
 			message: DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> MessageDispatchResult {
 			let message_id = (message.key.lane_id, message.key.nonce);
@@ -969,7 +943,7 @@ mod tests {
 			unreachable!()
 		}
 
-		fn message_weight_limits(_message_payload: &[u8]) -> RangeInclusive<Self::Weight> {
+		fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
 			unreachable!()
 		}
 
@@ -1027,10 +1001,10 @@ mod tests {
 			BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE
 		}
 
-		fn message_weight_limits(message_payload: &[u8]) -> RangeInclusive<Self::Weight> {
+		fn verify_dispatch_weight(message_payload: &[u8]) -> bool {
 			let begin =
 				std::cmp::min(BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT, message_payload.len() as Weight);
-			begin..=BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
+			message_payload.len() >= begin && message_payload.len() <= BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
 		}
 
 		fn estimate_delivery_transaction(

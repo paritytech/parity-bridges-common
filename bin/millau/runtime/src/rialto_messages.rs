@@ -33,7 +33,7 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
-use sp_std::{convert::TryFrom, ops::RangeInclusive};
+use sp_std::convert::TryFrom;
 
 /// Initial value of `RialtoToMillauConversionRate` parameter.
 pub const INITIAL_RIALTO_TO_MILLAU_CONVERSION_RATE: FixedU128 =
@@ -177,19 +177,8 @@ impl messages::BridgedChainWithMessages for Rialto {
 		bp_rialto::Rialto::max_extrinsic_size()
 	}
 
-	fn message_weight_limits(_message_payload: &[u8]) -> RangeInclusive<Weight> {
-		// we don't want to relay too large messages + keep reserve for future upgrades
-		let upper_limit = messages::target::maximal_incoming_message_dispatch_weight(
-			bp_rialto::Rialto::max_extrinsic_weight(),
-		);
-
-		// we're charging for payload bytes in `WithRialtoMessageBridge::transaction_payment`
-		// function
-		//
-		// this bridge may be used to deliver all kind of messages, so we're not making any
-		// assumptions about minimal dispatch weight here
-
-		0..=upper_limit
+	fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
+		true
 	}
 
 	fn estimate_delivery_transaction(
