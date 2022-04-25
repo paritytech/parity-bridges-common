@@ -29,19 +29,7 @@ use crate::cli::{
 	CliChain,
 };
 
-/// Weight of the `system::remark` call at Rococo.
-///
-/// This weight is larger (x2) than actual weight at current Rococo runtime to avoid unsuccessful
-/// calls in the future. But since it is used only in tests (and on test chains), this is ok.
-pub(crate) const SYSTEM_REMARK_CALL_WEIGHT: Weight = 2 * 1_345_000;
-
 impl CliEncodePayload for Rococo {
-	fn encode_payload(payload: &Payload) -> anyhow::Result<RawPayload> {
-		Ok(match payload {
-			Payload::Raw { data } => data.0.clone(),
-		})
-	}
-
 	fn encode_send_message_call(
 		lane: LaneId,
 		payload: RawPayload,

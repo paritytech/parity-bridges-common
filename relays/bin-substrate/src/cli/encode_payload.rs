@@ -33,10 +33,15 @@ use strum::VariantNames;
 /// and Target chain (as part of `encode-message/send-message`).
 #[derive(StructOpt, Debug, PartialEq, Eq)]
 pub enum Payload {
-	/// Raw bytes for the message
+	/// Raw bytes for the message.
 	Raw {
-		/// Raw, SCALE-encoded message
+		/// Raw message bytes.
 		data: HexBytes,
+	},
+	/// Message with given size.
+	Sized {
+		/// Sized of the message.
+		size: ExplicitOrMaximal<u32>,
 	},
 }
 
@@ -44,9 +49,6 @@ pub enum Payload {
 pub type RawPayload = Vec<u8>;
 
 pub trait CliEncodePayload: Chain {
-	/// Encode a CLI payload.
-	fn encode_payload(payload: &Payload) -> anyhow::Result<RawPayload>;
-
 	/// Encode a send message call.
 	fn encode_send_message_call(
 		lane: LaneId,
@@ -56,7 +58,25 @@ pub trait CliEncodePayload: Chain {
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>>;
 }
 
-pub(crate) fn compute_maximal_message_arguments_size(
+/// Encode message payload passed through cli flags.
+pub(crate) fn encode_payload<Source: Chain, Target: Chain>(payload: &Payload) -> anyhow::Result<RawPayload> {
+	Ok(match payload {
+		Payload::Raw { ref data } => data.0.clone(),
+		Payload::Sized { ref size } => match *size {
+			ExplicitOrMaximal::Explicit(size) => vec![42; size as usize],
+			ExplicitOrMaximal::Maximal => {
+				let maximal_size = 	compute_maximal_message_size(
+					Source::max_extrinsic_size(),
+					Target::max_extrinsic_size(),
+				);
+				vec![42; maximal_size as usize]
+			}
+		},
+	})
+}
+
+/// Compute maximal message size, given max extrinsic size at source and target chains.
+pub(crate) fn compute_maximal_message_size(
 	maximal_source_extrinsic_size: u32,
 	maximal_target_extrinsic_size: u32,
 ) -> u32 {
@@ -64,16 +84,14 @@ pub(crate) fn compute_maximal_message_arguments_size(
 	let service_tx_bytes_on_source_chain = 1024;
 	let maximal_source_extrinsic_size =
 		maximal_source_extrinsic_size - service_tx_bytes_on_source_chain;
-	let maximal_call_size = bridge_runtime_common::messages::target::maximal_incoming_message_size(
+	let maximal_message_size = bridge_runtime_common::messages::target::maximal_incoming_message_size(
 		maximal_target_extrinsic_size,
 	);
-	let maximal_call_size = if maximal_call_size > maximal_source_extrinsic_size {
+	let maximal_message_size = if maximal_message_size > maximal_source_extrinsic_size {
 		maximal_source_extrinsic_size
 	} else {
-		maximal_call_size
+		maximal_message_size
 	};
 
-	// bytes in Call encoding that are used to encode everything except arguments
-	let service_bytes = 1 + 1 + 4;
-	maximal_call_size - service_bytes
+	maximal_message_size
 }

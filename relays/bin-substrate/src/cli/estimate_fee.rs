@@ -82,8 +82,7 @@ impl EstimateFee {
 		select_full_bridge!(bridge, {
 			let source_client = source.to_client::<Source>().await?;
 			let lane = lane.into();
-			let payload =
-				Source::encode_payload(&payload).map_err(|e| anyhow::format_err!("{:?}", e))?;
+			let payload = crate::cli::encode_payload::encode_payload::<Source, Target>(&payload).map_err(|e| anyhow::format_err!("{:?}", e))?;
 
 			let fee = estimate_message_delivery_and_dispatch_fee::<Source, Target, _>(
 				&source_client,

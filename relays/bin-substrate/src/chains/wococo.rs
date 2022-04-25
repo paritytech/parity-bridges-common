@@ -30,12 +30,6 @@ use crate::cli::{
 };
 
 impl CliEncodePayload for Wococo {
-	fn encode_payload(payload: &Payload) -> anyhow::Result<RawPayload> {
-		Ok(match payload {
-			Payload::Raw { data } => data.0.clone(),
-		})
-	}
-
 	fn encode_send_message_call(
 		lane: LaneId,
 		payload: RawPayload,

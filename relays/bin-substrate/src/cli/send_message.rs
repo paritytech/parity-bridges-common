@@ -90,7 +90,7 @@ impl SendMessage {
 	/// Run the command.
 	pub async fn run(mut self) -> anyhow::Result<()> {
 		crate::select_full_bridge!(self.bridge, {
-			let payload = Source::encode_payload(&self.message)?;
+			let payload = encode_payload::encode_payload::<Source, Target>(&self.message)?;
 
 			let source_client = self.source.to_client::<Source>().await?;
 			let source_sign = self.source_sign.to_keypair::<Source>()?;
