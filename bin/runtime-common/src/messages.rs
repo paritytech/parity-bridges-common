@@ -26,7 +26,7 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
 use bp_runtime::{messages::MessageDispatchResult, ChainId, Size, StorageProofChecker};
-use codec::{Decode, DecodeLimit, Encode};
+use codec::{Decode, Encode};
 use frame_support::{traits::Currency, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
@@ -462,35 +462,6 @@ pub mod target {
 		}
 	}
 
-	/// Encoded Call of This chain as it is transferred over bridge.
-	///
-	/// Our Call is opaque (`Vec<u8>`) for Bridged chain. So it is encoded, prefixed with
-	/// vector length. Custom decode implementation here is exactly to deal with this.
-	#[derive(Decode, Encode, RuntimeDebug, PartialEq)]
-	pub struct FromBridgedChainEncodedMessageCall<DecodedCall> {
-		encoded_call: Vec<u8>,
-		_marker: PhantomData<DecodedCall>,
-	}
-
-	impl<DecodedCall> FromBridgedChainEncodedMessageCall<DecodedCall> {
-		/// Create encoded call.
-		pub fn new(encoded_call: Vec<u8>) -> Self {
-			FromBridgedChainEncodedMessageCall { encoded_call, _marker: PhantomData::default() }
-		}
-	}
-
-	impl<DecodedCall: Decode> From<FromBridgedChainEncodedMessageCall<DecodedCall>>
-		for Result<DecodedCall, ()>
-	{
-		fn from(encoded_call: FromBridgedChainEncodedMessageCall<DecodedCall>) -> Self {
-			DecodedCall::decode_with_depth_limit(
-				sp_api::MAX_EXTRINSIC_DEPTH,
-				&mut &encoded_call.encoded_call[..],
-			)
-			.map_err(drop)
-		}
-	}
-
 	/// Dispatching Bridged -> This chain messages.
 	#[derive(RuntimeDebug, Clone, Copy)]
 	pub struct FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, ThisDispatchInstance> {
@@ -516,7 +487,6 @@ pub mod target {
 		fn dispatch_weight(
 			_message: &DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> frame_support::weights::Weight {
-			//			message.data.payload.as_ref().map(|payload| payload.weight).unwrap_or(0)
 			0
 		}
 

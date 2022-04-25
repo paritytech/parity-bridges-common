@@ -58,9 +58,6 @@ pub type ToMillauMessageVerifier =
 /// Message payload for Millau -> Rialto messages.
 pub type FromMillauMessagePayload = messages::target::FromBridgedChainMessagePayload;
 
-/// Encoded Rialto Call as it comes from Millau.
-pub type FromMillauEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<crate::Call>;
-
 /// Call-dispatch based message dispatch for Millau -> Rialto messages.
 pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
 	WithMillauMessageBridge,
@@ -305,89 +302,19 @@ mod tests {
 	};
 	use bp_runtime::{derive_account_id, messages::DispatchFeePayment, Chain, SourceAccount};
 	use bridge_runtime_common::{
+		assert_complete_bridge_types,
 		integrity::{
 			assert_complete_bridge_constants, AssertBridgeMessagesPalletConstants,
 			AssertBridgePalletNames, AssertChainConstants, AssertCompleteBridgeConstants,
 		},
-		messages::target::{FromBridgedChainEncodedMessageCall, FromBridgedChainMessagePayload},
+		messages::target::FromBridgedChainMessagePayload,
 	};
 	use frame_support::{
 		traits::Currency,
 		weights::{GetDispatchInfo, WeightToFeePolynomial},
 	};
 	use sp_runtime::traits::Convert;
-	/*
-		#[test]
-		fn transfer_happens_when_dispatch_fee_is_paid_at_target_chain() {
-			// this test actually belongs to the `bridge-runtime-common` crate, but there we have no
-			// mock runtime. Making another one there just for this test, given that both crates
-			// live n single repo is an overkill
-			let mut ext: sp_io::TestExternalities =
-				SystemConfig::default().build_storage::<Runtime>().unwrap().into();
-			ext.execute_with(|| {
-				let bridge = MILLAU_CHAIN_ID;
-				let call: Call = SystemCall::set_heap_pages { pages: 64 }.into();
-				let dispatch_weight = call.get_dispatch_info().weight;
-				let dispatch_fee = <Runtime as pallet_transaction_payment::Config>::WeightToFee::calc(
-					&dispatch_weight,
-				);
-				assert!(dispatch_fee > 0);
 
-				// create relayer account with minimal balance
-				let relayer_account: AccountId = [1u8; 32].into();
-				let initial_amount = ExistentialDeposit::get();
-				let _ = <pallet_balances::Pallet<Runtime> as Currency<AccountId>>::deposit_creating(
-					&relayer_account,
-					initial_amount,
-				);
-
-				// create dispatch account with minimal balance + dispatch fee
-				let dispatch_account = derive_account_id::<
-					<Runtime as pallet_bridge_dispatch::Config>::SourceChainAccountId,
-				>(bridge, SourceAccount::Root);
-				let dispatch_account =
-					<Runtime as pallet_bridge_dispatch::Config>::AccountIdConverter::convert(
-						dispatch_account,
-					);
-				let _ = <pallet_balances::Pallet<Runtime> as Currency<AccountId>>::deposit_creating(
-					&dispatch_account,
-					initial_amount + dispatch_fee,
-				);
-
-				// dispatch message with intention to pay dispatch fee at the target chain
-				FromMillauMessageDispatch::dispatch(
-					&relayer_account,
-					DispatchMessage {
-						key: MessageKey { lane_id: Default::default(), nonce: 0 },
-						data: DispatchMessageData {
-							payload: Ok(FromBridgedChainMessagePayload::<WithMillauMessageBridge> {
-								spec_version: VERSION.spec_version,
-								weight: dispatch_weight,
-								origin: CallOrigin::SourceRoot,
-								dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-								call: FromBridgedChainEncodedMessageCall::new(call.encode()),
-							}),
-							fee: 1,
-						},
-					},
-				);
-
-				// ensure that fee has been transferred from dispatch to relayer account
-				assert_eq!(
-					<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::free_balance(
-						&relayer_account
-					),
-					initial_amount + dispatch_fee,
-				);
-				assert_eq!(
-					<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::free_balance(
-						&dispatch_account
-					),
-					initial_amount,
-				);
-			});
-		}
-	*/
 	#[test]
 	fn ensure_rialto_message_lane_weights_are_correct() {
 		type Weights = pallet_bridge_messages::weights::MillauWeight<Runtime>;
@@ -431,7 +358,7 @@ mod tests {
 
 	#[test]
 	fn ensure_bridge_integrity() {
-		/*assert_complete_bridge_types!(
+		assert_complete_bridge_types!(
 			runtime: Runtime,
 			with_bridged_chain_grandpa_instance: MillauGrandpaInstance,
 			with_bridged_chain_messages_instance: WithMillauMessagesInstance,
@@ -473,73 +400,6 @@ mod tests {
 				bp_rialto::MILLAU_TO_RIALTO_CONVERSION_RATE_PARAMETER_NAME
 			)
 			.0,
-		);*/
-		unimplemented!("TODO")
+		);
 	}
-	/*
-		#[test]
-		#[ignore]
-		fn no_stack_overflow_when_decoding_nested_call_during_dispatch() {
-			// this test is normally ignored, because it only makes sense to run it in release mode
-
-			let mut ext: sp_io::TestExternalities =
-				SystemConfig::default().build_storage::<Runtime>().unwrap().into();
-			ext.execute_with(|| {
-				let bridge = MILLAU_CHAIN_ID;
-
-				let mut call: Call = SystemCall::set_heap_pages { pages: 64 }.into();
-
-				for _i in 0..3000 {
-					call = Call::Sudo(pallet_sudo::Call::sudo { call: Box::new(call) });
-				}
-
-				let dispatch_weight = 500;
-				let dispatch_fee = <Runtime as pallet_transaction_payment::Config>::WeightToFee::calc(
-					&dispatch_weight,
-				);
-				assert!(dispatch_fee > 0);
-
-				// create relayer account with minimal balance
-				let relayer_account: AccountId = [1u8; 32].into();
-				let initial_amount = ExistentialDeposit::get();
-				let _ = <pallet_balances::Pallet<Runtime> as Currency<AccountId>>::deposit_creating(
-					&relayer_account,
-					initial_amount,
-				);
-
-				// create dispatch account with minimal balance + dispatch fee
-				let dispatch_account = derive_account_id::<
-					<Runtime as pallet_bridge_dispatch::Config>::SourceChainAccountId,
-				>(bridge, SourceAccount::Root);
-				let dispatch_account =
-					<Runtime as pallet_bridge_dispatch::Config>::AccountIdConverter::convert(
-						dispatch_account,
-					);
-				let _ = <pallet_balances::Pallet<Runtime> as Currency<AccountId>>::deposit_creating(
-					&dispatch_account,
-					initial_amount + dispatch_fee,
-				);
-
-				// dispatch message with intention to pay dispatch fee at the target chain
-				//
-				// this is where the stack overflow has happened before the fix has been applied
-				FromMillauMessageDispatch::dispatch(
-					&relayer_account,
-					DispatchMessage {
-						key: MessageKey { lane_id: Default::default(), nonce: 0 },
-						data: DispatchMessageData {
-							payload: Ok(FromBridgedChainMessagePayload::<WithMillauMessageBridge> {
-								spec_version: VERSION.spec_version,
-								weight: dispatch_weight,
-								origin: CallOrigin::SourceRoot,
-								dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-								call: FromBridgedChainEncodedMessageCall::new(call.encode()),
-							}),
-							fee: 1,
-						},
-					},
-				);
-			});
-		}
-	*/
 }
