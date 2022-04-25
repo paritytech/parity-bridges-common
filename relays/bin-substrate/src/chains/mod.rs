@@ -41,16 +41,13 @@ mod wococo;
 
 #[cfg(test)]
 mod tests {
-	use crate::cli::{encode_payload, send_message};
+	use crate::cli::encode_payload;
 	use bp_messages::source_chain::TargetHeaderChain;
 	use bp_runtime::Chain as _;
 	use codec::Encode;
-	use frame_support::dispatch::GetDispatchInfo;
 	use relay_millau_client::Millau;
 	use relay_rialto_client::Rialto;
 	use relay_substrate_client::{SignParam, TransactionSignScheme, UnsignedTransaction};
-	use sp_core::Pair;
-	use sp_runtime::traits::{IdentifyAccount, Verify};
 
 	#[test]
 	fn maximal_rialto_to_millau_message_size_is_computed_correctly() {

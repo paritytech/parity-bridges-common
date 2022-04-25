@@ -18,15 +18,13 @@ use crate::cli::{
 	bridge::FullBridge,
 	encode_payload::{self, CliEncodePayload},
 	estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
-	Balance, ExplicitOrMaximal, HexBytes, HexLaneId, Origins, SourceConnectionParams,
-	SourceSigningParams, TargetConnectionParams, TargetSigningParams,
+	Balance, HexBytes, HexLaneId, SourceConnectionParams,
+	SourceSigningParams,
 };
-use bp_runtime::Chain as _;
 use codec::Encode;
-use frame_support::weights::Weight;
 use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
 use sp_core::{Bytes, Pair};
-use sp_runtime::{traits::IdentifyAccount, AccountId32, MultiSignature, MultiSigner};
+use sp_runtime::AccountId32;
 use std::fmt::Debug;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -60,8 +58,6 @@ pub struct SendMessage {
 	source: SourceConnectionParams,
 	#[structopt(flatten)]
 	source_sign: SourceSigningParams,
-	#[structopt(flatten)]
-	target_sign: TargetSigningParams,
 	/// Hex-encoded lane id. Defaults to `00000000`.
 	#[structopt(long, default_value = "00000000")]
 	lane: HexLaneId,
@@ -78,17 +74,11 @@ pub struct SendMessage {
 	/// Message type.
 	#[structopt(subcommand)]
 	message: crate::cli::encode_payload::Payload,
-
-	// Normally we don't need to connect to the target chain to send message. But for testing
-	// we may want to use **actual** `spec_version` of the target chain when composing a message.
-	// Then we'll need to read version from the target chain node.
-	#[structopt(flatten)]
-	target: TargetConnectionParams,
 }
 
 impl SendMessage {
 	/// Run the command.
-	pub async fn run(mut self) -> anyhow::Result<()> {
+	pub async fn run(self) -> anyhow::Result<()> {
 		crate::select_full_bridge!(self.bridge, {
 			let payload = encode_payload::encode_payload::<Source, Target>(&self.message)?;
 
@@ -179,37 +169,14 @@ impl SendMessage {
 	}
 }
 
-fn prepare_call_dispatch_weight(
-	user_specified_dispatch_weight: &Option<ExplicitOrMaximal<Weight>>,
-	weight_from_pre_dispatch_call: impl Fn() -> anyhow::Result<ExplicitOrMaximal<Weight>>,
-	maximal_allowed_weight: Weight,
-) -> anyhow::Result<Weight> {
-	match user_specified_dispatch_weight
-		.clone()
-		.map(Ok)
-		.unwrap_or_else(weight_from_pre_dispatch_call)?
-	{
-		ExplicitOrMaximal::Explicit(weight) => Ok(weight),
-		ExplicitOrMaximal::Maximal => Ok(maximal_allowed_weight),
-	}
-}
-
-pub(crate) fn compute_maximal_message_dispatch_weight(maximal_extrinsic_weight: Weight) -> Weight {
-	bridge_runtime_common::messages::target::maximal_incoming_message_dispatch_weight(
-		maximal_extrinsic_weight,
-	)
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::CliChain;
-	use hex_literal::hex;
 
 	#[async_std::test]
 	async fn send_raw_rialto_to_millau() {
 		// given
-		let mut send_message = SendMessage::from_iter(vec![
+		let send_message = SendMessage::from_iter(vec![
 			"send-message",
 			"rialto-to-millau",
 			"--source-port",

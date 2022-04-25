@@ -16,16 +16,13 @@
 
 use crate::{
 	cli::{
-		bridge::FullBridge, AccountId, Balance, CliChain, ExplicitOrMaximal, HexBytes, HexLaneId,
+		ExplicitOrMaximal, HexBytes,
 	},
-	select_full_bridge,
 };
 use bp_messages::LaneId;
 use bp_runtime::EncodedOrDecodedCall;
-use frame_support::weights::DispatchInfo;
-use relay_substrate_client::{BalanceOf, Chain};
+use relay_substrate_client::Chain;
 use structopt::StructOpt;
-use strum::VariantNames;
 
 /// All possible messages that may be delivered to generic Substrate chain.
 ///

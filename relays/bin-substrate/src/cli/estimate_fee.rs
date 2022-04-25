@@ -16,8 +16,8 @@
 
 use crate::{
 	cli::{
-		bridge::FullBridge, encode_payload::CliEncodePayload, relay_headers_and_messages::CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
-		Balance, CliChain, HexBytes, HexLaneId, SourceConnectionParams,
+		bridge::FullBridge, relay_headers_and_messages::CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
+		Balance, HexBytes, HexLaneId, SourceConnectionParams,
 	},
 	select_full_bridge,
 };
@@ -219,13 +219,9 @@ async fn do_estimate_message_delivery_and_dispatch_fee<Source: Chain, P: Encode>
 mod tests {
 	use super::*;
 	use crate::cli::{RuntimeVersionType, SourceRuntimeVersionParams};
-	use sp_core::crypto::Ss58Codec;
 
 	#[test]
 	fn should_parse_cli_options() {
-		// given
-		let alice = sp_keyring::AccountKeyring::Alice.to_account_id().to_ss58check();
-
 		// when
 		let res = EstimateFee::from_iter(vec![
 			"estimate_fee",

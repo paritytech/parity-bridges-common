@@ -17,9 +17,6 @@
 //! Rialto parachain specification for CLI.
 
 use crate::cli::CliChain;
-use bp_runtime::EncodedOrDecodedCall;
-use codec::Decode;
-use frame_support::weights::{DispatchInfo, GetDispatchInfo};
 use relay_rialto_parachain_client::RialtoParachain;
 use sp_version::RuntimeVersion;
 

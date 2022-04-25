@@ -17,7 +17,6 @@
 //! Westend chain specification for CLI.
 
 use crate::cli::CliChain;
-use anyhow::anyhow;
 use relay_westend_client::Westend;
 use sp_version::RuntimeVersion;
 

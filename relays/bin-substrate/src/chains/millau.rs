@@ -18,14 +18,11 @@
 
 use crate::cli::{
 	bridge,
-	encode_payload::{Payload, CliEncodePayload, RawPayload},
+	encode_payload::{CliEncodePayload, RawPayload},
 	CliChain,
 };
-use anyhow::anyhow;
 use bp_messages::LaneId;
 use bp_runtime::EncodedOrDecodedCall;
-use codec::Decode;
-use frame_support::weights::{DispatchInfo, GetDispatchInfo};
 use relay_millau_client::Millau;
 use relay_substrate_client::BalanceOf;
 use sp_version::RuntimeVersion;

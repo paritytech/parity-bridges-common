@@ -14,18 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use anyhow::anyhow;
 use bp_messages::LaneId;
 use bp_runtime::EncodedOrDecodedCall;
-use codec::Decode;
-use frame_support::weights::{DispatchClass, DispatchInfo, Pays, Weight};
 use relay_substrate_client::BalanceOf;
 use relay_kusama_client::Kusama;
 use sp_version::RuntimeVersion;
 
 use crate::cli::{
 	bridge,
-	encode_payload::{Payload, CliEncodePayload, RawPayload},
+	encode_payload::{CliEncodePayload, RawPayload},
 	CliChain,
 };
 
