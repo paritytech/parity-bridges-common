@@ -51,7 +51,7 @@ pub trait CliEncodePayload: Chain {
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>>;
 }
 
-/// Encode message payload passed through cli flags.
+/// Encode message payload passed through CLI flags.
 pub(crate) fn encode_payload<Source: Chain, Target: Chain>(
 	payload: &Payload,
 ) -> anyhow::Result<RawPayload> {
