@@ -16,7 +16,7 @@ FERDIE_ADDR=6ztG3jPnJTwgZnnYsgCDXbbQVR82M96hBZtPvkN56A9668ZC
 
 SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto"
 SHARED_HOST="--source-host millau-node-bob --source-port 9944"
-DAVE_SIGNER="--target-signer //Dave --source-signer //Dave"
+DAVE_SIGNER="--source-signer //Dave"
 
 SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $DAVE_SIGNER"
 
