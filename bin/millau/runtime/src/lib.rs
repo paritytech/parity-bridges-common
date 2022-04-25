@@ -822,8 +822,6 @@ impl_runtime_apis! {
 				) -> (rialto_messages::FromRialtoMessagesProof, Weight) {
 					prepare_message_proof::<Runtime, (), (), WithRialtoMessageBridge, bp_rialto::Header, bp_rialto::Hasher>(
 						params,
-						&VERSION,
-						Balance::MAX / 100,
 					)
 				}
 
@@ -835,8 +833,8 @@ impl_runtime_apis! {
 					)
 				}
 
-				fn is_message_dispatched(nonce: bp_messages::MessageNonce) -> bool {
-					unimplemented!("TODO")
+				fn is_message_dispatched(_nonce: bp_messages::MessageNonce) -> bool {
+					true
 				}
 			}
 
