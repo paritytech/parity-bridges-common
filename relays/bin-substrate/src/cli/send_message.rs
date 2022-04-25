@@ -170,8 +170,8 @@ impl SendMessage {
 
 #[cfg(test)]
 mod tests {
-	use crate::cli::ExplicitOrMaximal;
 	use super::*;
+	use crate::cli::ExplicitOrMaximal;
 
 	#[test]
 	fn send_raw_rialto_to_millau() {
@@ -223,10 +223,7 @@ mod tests {
 		assert_eq!(send_message.bridge, FullBridge::RialtoToMillau);
 		assert_eq!(send_message.source.source_port, 1234);
 		assert_eq!(send_message.source_sign.source_signer, Some("//Alice".into()));
-		assert_eq!(
-			send_message.conversion_rate_override,
-			Some(ConversionRateOverride::Metric)
-		);
+		assert_eq!(send_message.conversion_rate_override, Some(ConversionRateOverride::Metric));
 		assert_eq!(
 			send_message.message,
 			crate::cli::encode_message::Message::Sized { size: ExplicitOrMaximal::Maximal }
