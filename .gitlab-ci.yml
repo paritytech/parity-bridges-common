@@ -144,6 +144,7 @@ test:
     - time cargo fetch
     - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"`
     - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"`
+    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"kusama-runtime\").manifest_path"`
     - CARGO_NET_OFFLINE=true time cargo test --verbose --workspace
 
 test-nightly:
