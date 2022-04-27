@@ -10,6 +10,12 @@ members = [
 	"relays/*",
 ]
 
+# we need to be able to work with XCMv3, but it is not yet in Polkadot master
+# => manual patch is required. Because of https://github.com/rust-lang/cargo/issues/5478
+# we need to use double slash in the repo name.
+#
+# Once XCMv3 PR is merged, we may remove both Substrate and Polkadot patch section.
+
 [patch."https://github.com/paritytech/substrate"]
 beefy-gadget = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges" }
 beefy-gadget-rpc = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges" }
