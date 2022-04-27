@@ -256,7 +256,6 @@ pub fn run() -> Result<()> {
 
 			Ok(())
 		},
-
 		Some(Subcommand::Benchmark(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			match cmd {
