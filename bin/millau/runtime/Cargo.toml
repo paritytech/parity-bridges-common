@@ -62,6 +62,13 @@ sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch 
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 
+# Polkadot Dependencies
+
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+
 [dev-dependencies]
 bridge-runtime-common = { path = "../../runtime-common", features = ["integrity-test"] }
 static_assertions = "1.1"
@@ -100,6 +107,7 @@ std = [
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
+	"pallet-xcm/std",
 	"scale-info/std",
 	"serde",
 	"sp-api/std",
@@ -115,6 +123,9 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-trie/std",
 	"sp-version/std",
+	"xcm/std",
+	"xcm-builder/std",
+	"xcm-executor/std",
 ]
 runtime-benchmarks = [
 	"bridge-runtime-common/runtime-benchmarks",

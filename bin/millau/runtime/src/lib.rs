@@ -29,6 +29,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod rialto_messages;
+pub mod xcm_config;
 
 use crate::rialto_messages::{ToRialtoMessagePayload, WithRialtoMessageBridge};
 
@@ -499,6 +500,9 @@ construct_runtime!(
 
 		// Westend bridge modules.
 		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Config<T>, Storage},
+
+		// Pallet for sending XCM.
+		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config} = 99,
 	}
 );
 
