@@ -35,7 +35,6 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch =
 frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "master" }
 node-inspect = { git = "https://github.com/paritytech/substrate", branch = "master" }
-pallet-mmr-primitives = { git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-mmr-rpc = { git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "master" }
@@ -66,6 +65,7 @@ sp-consensus-babe = { git = "https://github.com/paritytech/substrate", branch = 
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-mmr-primitives = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-session = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "master" }

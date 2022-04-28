@@ -67,5 +67,5 @@ pub enum Subcommand {
 	Inspect(node_inspect::cli::InspectCmd),
 
 	/// Benchmark runtime pallets.
-	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
+	Benchmark(frame_benchmarking_cli::PalletCmd),
 }

@@ -67,7 +67,7 @@ pub enum Subcommand {
 	Inspect(node_inspect::cli::InspectCmd),
 
 	/// Benchmark runtime pallets.
-	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
+	Benchmark(frame_benchmarking_cli::PalletCmd),
 
 	/// FOR INTERNAL USE: analog of the "prepare-worker" command of the polkadot binary.
 	#[clap(name = "prepare-worker", hide = true)]

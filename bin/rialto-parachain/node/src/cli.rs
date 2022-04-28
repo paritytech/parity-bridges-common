@@ -52,7 +52,7 @@ pub enum Subcommand {
 
 	/// The custom benchmark subcommmand benchmarking runtime pallets.
 	#[clap(name = "benchmark", about = "Benchmark runtime pallets.")]
-	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
+	Benchmark(frame_benchmarking_cli::PalletCmd),
 }
 
 /// Command for exporting the genesis state of the parachain

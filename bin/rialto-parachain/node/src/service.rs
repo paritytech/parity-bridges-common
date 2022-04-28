@@ -271,11 +271,13 @@ where
 	let (mut telemetry, telemetry_worker_handle) = params.other;
 
 	let mut task_manager = params.task_manager;
+	let hwbench = None;
 	let (relay_chain_interface, collator_key) = build_inprocess_relay_chain(
 		polkadot_config,
 		&parachain_config,
 		telemetry_worker_handle,
 		&mut task_manager,
+		hwbench,
 	)
 	.map_err(|e| match e {
 		RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
