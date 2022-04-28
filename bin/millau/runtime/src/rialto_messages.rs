@@ -114,8 +114,9 @@ impl messages::ThisChainWithMessages for Millau {
 	type Origin = crate::Origin;
 	type Call = crate::Call;
 
-	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
-		(*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]) && send_origin.linked_account().is_some()
+	fn is_message_accepted(_send_origin: &Self::Origin, lane: &LaneId) -> bool {
+		*lane == [0, 0, 0, 0]
+		//(*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]) && send_origin.linked_account().is_some()
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {

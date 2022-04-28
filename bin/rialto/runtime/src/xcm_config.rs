@@ -16,14 +16,21 @@
 
 //! XCM configurations for the Rialto runtime.
 
-use super::{AccountId, AllPalletsWithSystem, Balances, Call, Event, Origin, Runtime, XcmPallet};
-use bp_rialto::WeightToFee;
+use super::{
+	AccountId, AllPalletsWithSystem, Balances, BridgeMillauMessages, Call, Event, Origin, Runtime,
+	XcmPallet,
+};
+use bp_messages::source_chain::MessagesBridge;
+use bp_rialto::{Balance, WeightToFee};
+use bridge_runtime_common::messages::source::FromThisChainMessagePayload;
+use codec::Encode;
 use frame_support::{
 	parameter_types,
 	traits::{Everything, Nothing},
 	weights::Weight,
 };
-use sp_std::prelude::*;
+use sp_runtime::traits::Zero;
+use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowTopLevelPaidExecutionFrom,
@@ -100,7 +107,7 @@ pub type XcmRouter = (
 	// Only one router so far - use DMP to communicate with Rialto.
 	xcm_builder::SovereignPaidRemoteExporter<
 		xcm_builder::NetworkExportTable<BridgeTable>,
-		ToMillauBridge,
+		ToMillauBridge<BridgeMillauMessages>,
 		UniversalLocation,
 	>,
 );
@@ -185,9 +192,11 @@ impl pallet_xcm::Config for Runtime {
 }
 
 /// With-rialto bridge.
-pub struct ToMillauBridge;
+pub struct ToMillauBridge<MB>(PhantomData<MB>);
 
-impl SendXcm for ToMillauBridge {
+impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>> SendXcm
+	for ToMillauBridge<MB>
+{
 	type Ticket = (MultiLocation, Xcm<()>);
 
 	fn validate(
@@ -198,9 +207,17 @@ impl SendXcm for ToMillauBridge {
 		Ok((pair, MultiAssets::new()))
 	}
 
-	fn deliver(_pair: (MultiLocation, Xcm<()>)) -> Result<XcmHash, SendError> {
-		log::info!(target: "runtime::bridge", "Going to send XCM message to Millau");
-		Ok(XcmHash::default())
+	fn deliver(pair: (MultiLocation, Xcm<()>)) -> Result<XcmHash, SendError> {
+		let result = MB::send_message(
+			pallet_xcm::Origin::from(MultiLocation::from(UniversalLocation::get())).into(),
+			[0, 0, 0, 0],
+			pair.encode(),
+			Zero::zero(),
+		);
+		log::info!(target: "runtime::bridge", "Trying to send XCM message to Millau: {:?}", result);
+		result
+			.map(|_artifacts| XcmHash::default()) // TODO: what's hash here? (lane, nonce).encode().hash() or something else
+			.map_err(|_e| SendError::Transport("Bridge has rejected the message"))
 	}
 }
 

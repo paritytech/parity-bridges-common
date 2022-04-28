@@ -278,10 +278,10 @@ pub mod source {
 
 		fn verify_message(
 			submitter: &OriginOf<ThisChain<B>>,
-			delivery_and_dispatch_fee: &BalanceOf<ThisChain<B>>,
+			_delivery_and_dispatch_fee: &BalanceOf<ThisChain<B>>,
 			lane: &LaneId,
 			lane_outbound_data: &OutboundLaneData,
-			payload: &FromThisChainMessagePayload,
+			_payload: &FromThisChainMessagePayload,
 		) -> Result<(), Self::Error> {
 			// reject message if lane is blocked
 			if !ThisChain::<B>::is_message_accepted(submitter, lane) {
@@ -297,6 +297,7 @@ pub mod source {
 				return Err(TOO_MANY_PENDING_MESSAGES)
 			}
 
+			/* TODO: this check must take origin into account
 			let minimal_fee_in_this_tokens = estimate_message_dispatch_and_delivery_fee::<B>(
 				payload,
 				B::RELAYER_FEE_PERCENT,
@@ -306,7 +307,7 @@ pub mod source {
 			// compare with actual fee paid
 			if *delivery_and_dispatch_fee < minimal_fee_in_this_tokens {
 				return Err(TOO_LOW_FEE)
-			}
+			}*/
 
 			Ok(())
 		}
