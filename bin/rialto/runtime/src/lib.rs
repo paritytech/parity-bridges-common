@@ -30,6 +30,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod millau_messages;
 pub mod parachains;
+pub mod xcm_config;
 
 use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 
@@ -513,6 +514,9 @@ construct_runtime!(
 		Registrar: polkadot_runtime_common::paras_registrar::{Pallet, Call, Storage, Event<T>},
 		Slots: polkadot_runtime_common::slots::{Pallet, Call, Storage, Event<T>},
 		ParasSudoWrapper: polkadot_runtime_common::paras_sudo_wrapper::{Pallet, Call},
+
+		// Pallet for sending XCM.
+		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config} = 99,
 	}
 );
 

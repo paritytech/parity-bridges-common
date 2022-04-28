@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! XCM configurations for the Millau runtime.
+//! XCM configurations for the Rialto runtime.
 
 use super::{AccountId, AllPalletsWithSystem, Balances, Call, Event, Origin, Runtime, XcmPallet};
-use bp_millau::WeightToFee;
+use bp_rialto::WeightToFee;
 use frame_support::{
 	parameter_types,
 	traits::{Everything, Nothing},
@@ -37,21 +37,21 @@ parameter_types! {
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
 	/// the context".
 	pub const TokenLocation: MultiLocation = Here.into_location();
-	/// The Millau network ID, associated with Kusama.
-	pub const ThisNetwork: NetworkId = Kusama;
 	/// The Rialto network ID, associated with Polkadot.
-	pub const RialtoNetwork: NetworkId = Polkadot;
+	pub const ThisNetwork: NetworkId = Polkadot;
+	/// The Millau network ID, associated with Kusama.
+	pub const MillauNetwork: NetworkId = Kusama;
 
 	/// Our XCM location ancestry - i.e. our location within the Consensus Universe.
 	///
-	/// Since Kusama is a top-level relay-chain with its own consensus, it's just our network ID.
+	/// Since Polkadot is a top-level relay-chain with its own consensus, it's just our network ID.
 	pub UniversalLocation: InteriorMultiLocation = ThisNetwork::get().into();
 	/// The check account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
 
 	/// Available bridges.
 	pub BridgeTable: Vec<(NetworkId, MultiLocation, Option<MultiAsset>)>
-		= vec![(RialtoNetwork::get(), MultiLocation::here(), None)];
+		= vec![(MillauNetwork::get(), MultiLocation::new(1, X1(GlobalConsensus(Kusama))), None)];
 }
 
 /// The canonical means of converting a `MultiLocation` into an `AccountId`, used when we want to
@@ -100,7 +100,7 @@ pub type XcmRouter = (
 	// Only one router so far - use DMP to communicate with Rialto.
 	xcm_builder::SovereignPaidRemoteExporter<
 		xcm_builder::NetworkExportTable<BridgeTable>,
-		ToRialtoBridge,
+		ToMillauBridge,
 		UniversalLocation,
 	>,
 );
@@ -185,9 +185,9 @@ impl pallet_xcm::Config for Runtime {
 }
 
 /// With-rialto bridge.
-pub struct ToRialtoBridge;
+pub struct ToMillauBridge;
 
-impl SendXcm for ToRialtoBridge {
+impl SendXcm for ToMillauBridge {
 	type Ticket = (MultiLocation, Xcm<()>);
 
 	fn validate(
@@ -199,7 +199,31 @@ impl SendXcm for ToRialtoBridge {
 	}
 
 	fn deliver(_pair: (MultiLocation, Xcm<()>)) -> Result<XcmHash, SendError> {
-		log::info!(target: "runtime::bridge", "Going to send XCM message to Rialto");
+		log::info!(target: "runtime::bridge", "Going to send XCM message to Millau");
 		Ok(XcmHash::default())
 	}
 }
+
+/*#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn millau_is_reachable_from_rialto() {
+		let mut dest = MultiLocation::new(1, X1(GlobalConsensus(Kusama)));
+		let mut msg = Xcm::new();
+		assert_eq!(
+			XcmRouter::validate(&mut Some(dest), &mut Some(msg)),
+			Ok((
+				(
+					Some((
+						MultiLocation::new(1, X1(GlobalConsensus(Kusama))),
+						Xcm::new()
+					)),
+				),
+				MultiAssets::new()
+			)),
+		);
+	}
+}
+*/

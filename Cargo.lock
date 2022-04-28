@@ -5094,6 +5094,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "hex-literal",
  "libsecp256k1",
+ "log",
  "pallet-aura",
  "pallet-balances",
  "pallet-beefy",
@@ -8961,6 +8962,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-xcm",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -8985,6 +8987,9 @@ dependencies = [
  "sp-version",
  "static_assertions",
  "substrate-wasm-builder",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
 ]
 
 [[package]]
