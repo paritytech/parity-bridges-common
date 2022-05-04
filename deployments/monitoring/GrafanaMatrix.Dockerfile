@@ -1,4 +1,4 @@
-FROM docker.io/library/ruby:alpine
+FROM ROM ruby:alpine3.13
 
 RUN apk add --no-cache git
 
