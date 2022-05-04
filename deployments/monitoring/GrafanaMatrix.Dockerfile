@@ -1,4 +1,4 @@
-FROM ROM ruby:alpine3.13
+FROM ruby:alpine3.13
 
 RUN apk add --no-cache git
 
