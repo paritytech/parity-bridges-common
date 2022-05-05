@@ -158,7 +158,7 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 			data.oldest_unpruned_nonce += 1;
 		}
 
-		if prune_messages > 0 {
+		if pruned_messages > 0 {
 			self.storage.set_data(data);
 		}
 
