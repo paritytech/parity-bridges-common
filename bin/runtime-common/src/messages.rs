@@ -465,16 +465,16 @@ pub mod target {
 
 	/// Dispatching Bridged -> This chain messages.
 	#[derive(RuntimeDebug, Clone, Copy)]
-	pub struct FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, ThisDispatchInstance> {
-		_marker: PhantomData<(B, ThisRuntime, ThisCurrency, ThisDispatchInstance)>,
+	pub struct FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, XcmExecutor> {
+		_marker: PhantomData<(B, ThisRuntime, ThisCurrency, XcmExecutor)>,
 	}
 
-	impl<B: MessageBridge, ThisRuntime, ThisCurrency, ThisDispatchInstance>
+	impl<B: MessageBridge, ThisRuntime, ThisCurrency, XcmExecutor>
 		MessageDispatch<AccountIdOf<ThisChain<B>>, BalanceOf<BridgedChain<B>>>
-		for FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, ThisDispatchInstance>
+		for FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, XcmExecutor>
 	where
 		BalanceOf<ThisChain<B>>: Saturating + FixedPointOperand,
-		ThisDispatchInstance: 'static,
+		XcmExecutor: xcm::v3::ExecuteXcm<CallOf<ThisChain<B>>>,
 		ThisRuntime: pallet_transaction_payment::Config,
 		<ThisRuntime as pallet_transaction_payment::Config>::OnChargeTransaction:
 			pallet_transaction_payment::OnChargeTransaction<
@@ -495,8 +495,35 @@ pub mod target {
 			_relayer_account: &AccountIdOf<ThisChain<B>>,
 			message: DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> MessageDispatchResult {
+			use xcm::latest::*;
+
 			let message_id = (message.key.lane_id, message.key.nonce);
-			log::trace!(target: "runtime::bridge-dispatch", "Incoming message {:?}: {:?}", message_id, message.data.payload);
+			let do_dispatch = move || -> sp_std::result::Result<Outcome, ()> {
+				let (location, xcm): (MultiLocation, Xcm<CallOf<ThisChain<B>>>) = Decode::decode(&mut &message.data.payload.expect("TODO")[..])
+					.map_err(|e| {
+						log::warn!(target: "runtime::bridge-dispatch", "Failed to decode incoming XCM message {:?}: {:?}", message_id, e);
+						()
+					})?;
+				log::trace!(target: "runtime::bridge-dispatch", "Going to execute message {:?}: {:?} {:?}", message_id, location, xcm);
+/*				let xcm_prepared = XcmExecutor::prepare(xcm).map_err(|e| {
+					log::warn!(target: "runtime::bridge-dispatch", "Failed to prepare incoming XCM message {:?}: {:?}", message_id, e);
+					()
+				})?;*/
+				let hash = xcm.using_encoded(sp_io::hashing::blake2_256);
+				let max_weight = 1000000000;
+				let weight_credit = 1000000000;
+				let xcm_outcome = XcmExecutor::execute_xcm_in_credit(
+					location,
+					xcm,
+					hash,
+					max_weight,
+					weight_credit,
+				);
+				Ok(xcm_outcome)
+			};
+
+			let xcm_outcome = do_dispatch();
+			log::trace!(target: "runtime::bridge-dispatch", "Incoming message {:?} dispatched with result: {:?}", message_id, xcm_outcome);
 			MessageDispatchResult {
 				dispatch_result: true,
 				unspent_weight: 0,
@@ -683,6 +710,110 @@ pub mod target {
 		proved_messages.insert(lane, proved_lane_messages);
 
 		Ok(proved_messages)
+	}
+}
+
+pub use xcm_copy::*;
+
+// copy of private types from xcm-builder/src/universal_exports.rs
+pub mod xcm_copy {
+	use codec::{Decode, Encode};
+	use frame_support::{ensure, traits::Get};
+	use sp_std::{convert::TryInto, marker::PhantomData, prelude::*};
+	use xcm::prelude::*;
+	use xcm_executor::traits::ExportXcm;
+
+	pub trait DispatchBlob {
+		/// Dispatches an incoming blob and returns the unexpectable weight consumed by the dispatch.
+		fn dispatch_blob(blob: Vec<u8>) -> Result<(), DispatchBlobError>;
+	}
+	
+	pub trait HaulBlob {
+		/// Sends a blob over some point-to-point link. This will generally be implemented by a bridge.
+		fn haul_blob(blob: Vec<u8>);
+	}
+	
+	#[derive(Clone, Encode, Decode)]
+	pub struct BridgeMessage {
+		/// The message destination as a *Universal Location*. This means it begins with a
+		/// `GlobalConsensus` junction describing the network under which global consensus happens.
+		/// If this does not match our global consensus then it's a fatal error.
+		universal_dest: VersionedInteriorMultiLocation,
+		message: VersionedXcm<()>,
+	}
+	
+	pub enum DispatchBlobError {
+		Unbridgable,
+		InvalidEncoding,
+		UnsupportedLocationVersion,
+		UnsupportedXcmVersion,
+		RoutingError,
+		NonUniversalDestination,
+		WrongGlobal,
+	}
+
+	pub struct BridgeBlobDispatcher<Router, OurPlace>(PhantomData<(Router, OurPlace)>);
+	impl<Router: SendXcm, OurPlace: Get<InteriorMultiLocation>> DispatchBlob
+		for BridgeBlobDispatcher<Router, OurPlace>
+	{
+		fn dispatch_blob(blob: Vec<u8>) -> Result<(), DispatchBlobError> {
+			let our_universal = OurPlace::get();
+			let our_global =
+				our_universal.global_consensus().map_err(|()| DispatchBlobError::Unbridgable)?;
+			let BridgeMessage { universal_dest, message } =
+				Decode::decode(&mut &blob[..]).map_err(|_| DispatchBlobError::InvalidEncoding)?;
+			let universal_dest: InteriorMultiLocation = universal_dest
+				.try_into()
+				.map_err(|_| DispatchBlobError::UnsupportedLocationVersion)?;
+			// `universal_dest` is the desired destination within the universe: first we need to check
+			// we're in the right global consensus.
+			let intended_global = universal_dest
+				.global_consensus()
+				.map_err(|()| DispatchBlobError::NonUniversalDestination)?;
+			ensure!(intended_global == our_global, DispatchBlobError::WrongGlobal);
+			let dest = universal_dest.relative_to(&our_universal);
+			let message: Xcm<()> =
+				message.try_into().map_err(|_| DispatchBlobError::UnsupportedXcmVersion)?;
+			send_xcm::<Router>(dest, message).map_err(|_| DispatchBlobError::RoutingError)?;
+			Ok(())
+		}
+	}
+
+	pub struct HaulBlobExporter<Bridge, BridgedNetwork, Price>(
+		PhantomData<(Bridge, BridgedNetwork, Price)>,
+	);
+	impl<Bridge: HaulBlob, BridgedNetwork: Get<NetworkId>, Price: Get<MultiAssets>> ExportXcm
+		for HaulBlobExporter<Bridge, BridgedNetwork, Price>
+	{
+		type Ticket = (Vec<u8>, XcmHash);
+
+		fn validate(
+			network: NetworkId,
+			_channel: u32,
+			destination: &mut Option<InteriorMultiLocation>,
+			message: &mut Option<Xcm<()>>,
+		) -> Result<((Vec<u8>, XcmHash), MultiAssets), SendError> {
+			let bridged_network = BridgedNetwork::get();
+			ensure!(&network == &bridged_network, SendError::NotApplicable);
+			// We don't/can't use the `channel` for this adapter.
+			let dest = destination.take().ok_or(SendError::MissingArgument)?;
+			let universal_dest = match dest.pushed_front_with(GlobalConsensus(bridged_network)) {
+				Ok(d) => d.into(),
+				Err((dest, _)) => {
+					*destination = Some(dest);
+					return Err(SendError::NotApplicable)
+				},
+			};
+			let message = VersionedXcm::from(message.take().ok_or(SendError::MissingArgument)?);
+			let hash = message.using_encoded(sp_io::hashing::blake2_256);
+			let blob = BridgeMessage { universal_dest, message }.encode();
+			Ok(((blob, hash), Price::get()))
+		}
+
+		fn deliver((blob, hash): (Vec<u8>, XcmHash)) -> Result<XcmHash, SendError> {
+			Bridge::haul_blob(blob);
+			Ok(hash)
+		}
 	}
 }
 

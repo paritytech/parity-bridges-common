@@ -29,11 +29,18 @@ pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "m
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-state-machine = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
+
+# Polkadot dependencies
+
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 
 [features]
 default = ["std"]
@@ -51,10 +58,14 @@ std = [
 	"scale-info/std",
 	"sp-api/std",
 	"sp-core/std",
+	"sp-io/std",
 	"sp-runtime/std",
 	"sp-state-machine/std",
 	"sp-std/std",
 	"sp-trie/std",
+	"xcm/std",
+	"xcm-builder/std",
+	"xcm-executor/std",
 ]
 runtime-benchmarks = [
 	"pallet-balances",

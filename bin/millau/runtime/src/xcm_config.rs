@@ -58,7 +58,10 @@ parameter_types! {
 
 	/// Available bridges.
 	pub BridgeTable: Vec<(NetworkId, MultiLocation, Option<MultiAsset>)>
-		= vec![(RialtoNetwork::get(), MultiLocation::here(), None)];
+		= vec![(RialtoNetwork::get(), MultiLocation::parent(), None)];
+
+	/// TODO
+	pub ToRialtoPrice: MultiAssets = MultiAssets::new();
 }
 
 /// The canonical means of converting a `MultiLocation` into an `AccountId`, used when we want to
@@ -148,8 +151,11 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = ();
-	// No bridges yet...
-	type MessageExporter = ();
+	type MessageExporter = bridge_runtime_common::messages::HaulBlobExporter<
+		ToRialtoBridge<BridgeRialtoMessages>,
+		RialtoNetwork,
+		ToRialtoPrice,
+	>;
 	type UniversalAliases = Nothing;
 }
 
@@ -203,7 +209,10 @@ impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>
 		dest: &mut Option<MultiLocation>,
 		msg: &mut Option<Xcm<()>>,
 	) -> SendResult<(MultiLocation, Xcm<()>)> {
-		let pair = (dest.take().unwrap(), msg.take().unwrap());
+		let dest: InteriorMultiLocation = RialtoNetwork::get().into();
+		let here = UniversalLocation::get();
+		let route = dest.relative_to(&here);
+		let pair = (route, msg.take().unwrap());
 		Ok((pair, MultiAssets::new()))
 	}
 
@@ -214,33 +223,76 @@ impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>
 			pair.encode(),
 			Zero::zero(),
 		);
-		log::info!(target: "runtime::bridge", "Trying to send XCM message to Millau: {:?}", result);
+		log::info!(target: "runtime::bridge", "Trying to send XCM message (SendXcm) to Millau: {:?}", result);
 		result
 			.map(|_artifacts| XcmHash::default()) // TODO: what's hash here? (lane, nonce).encode().hash() or something else
 			.map_err(|_e| SendError::Transport("Bridge has rejected the message"))
 	}
 }
 
-/*#[cfg(test)]
+impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>> bridge_runtime_common::messages::HaulBlob for ToRialtoBridge<MB> {
+	fn haul_blob(blob: Vec<u8>) {
+		let result = MB::send_message(
+			pallet_xcm::Origin::from(MultiLocation::from(UniversalLocation::get())).into(),
+			[0, 0, 0, 0],
+			blob,
+			Zero::zero(),
+		);
+		log::info!(target: "runtime::bridge", "Trying to send XCM message (HaulBlob) to Millau: {:?}", result);
+	}
+}
+
+#[cfg(test)]
 mod tests {
 	use super::*;
 
+	fn new_test_ext() -> sp_io::TestExternalities {
+		sp_io::TestExternalities::new(frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap())
+	}
+
 	#[test]
-	fn rialto_is_reachable_from_millau() {
-		let mut dest = MultiLocation::new(1, X1(GlobalConsensus(Polkadot)));
-		let mut msg = Xcm::new();
-		assert_eq!(
-			XcmRouter::validate(&mut Some(dest), &mut Some(msg)),
-			Ok((
-				(
-					Some((
-						MultiLocation::new(1, X1(GlobalConsensus(Polkadot))),
-						Xcm::new()
-					)),
-				),
-				MultiAssets::new()
-			)),
-		);
+	fn messages_to_rialto_are_sent() {
+		let outcome = new_test_ext().execute_with(|| {
+			let dest = (Parent, X1(GlobalConsensus(RialtoNetwork::get())));
+			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
+
+			let (ticket, price) = validate_send::<XcmRouter>(dest.into(), xcm)?;
+			println!("=== ticket: {:?}", ticket);
+			println!("=== price: {:?}", price);
+
+			XcmRouter::deliver(ticket)
+		});
+
+		println!("=== {:?}", outcome);
+	}
+
+	#[test]
+	fn messages_from_rialto_are_dispatched() {
+		type XcmExecutor = xcm_executor::XcmExecutor<XcmConfig>;
+
+		let _ = env_logger::try_init();
+
+		let outcome = new_test_ext().execute_with(|| {
+			let location = (Parent, X1(GlobalConsensus(RialtoNetwork::get())));
+			// simple Trap(42) is converted to this XCM by SovereignPaidRemoteExporter
+			let xcm: Xcm<Call> = vec![
+				ExportMessage {
+					network: RialtoNetwork::get(),
+					destination: Here,
+					xcm: vec![
+						Instruction::UniversalOrigin(GlobalConsensus(RialtoNetwork::get())),
+						Instruction::Trap(42)
+					].into(),
+				},
+			].into();
+
+			let hash = xcm.using_encoded(sp_io::hashing::blake2_256);
+			let max_weight = 1000000000;
+			let weight_credit = 1000000000;
+
+			XcmExecutor::execute_xcm_in_credit(location, xcm, hash, max_weight, weight_credit)
+		});
+
+		println!("=== {:?}", outcome);
 	}
 }
-*/
