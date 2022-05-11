@@ -748,6 +748,7 @@ impl_runtime_apis! {
 				Runtime,
 				WithRialtoMessagesInstance,
 				WithRialtoMessageBridge,
+				xcm_config::OutboundXcmWeigher,
 			>(lane, begin, end)
 		}
 	}

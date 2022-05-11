@@ -119,6 +119,8 @@ pub type Barrier = (
 	AllowKnownQueryResponses<XcmPallet>,
 );
 
+/// Outbound XCM weigher type.
+pub type OutboundXcmWeigher = xcm_builder::FixedWeightBounds<BaseXcmWeight, (), MaxInstructions>;
 /// XCM weigher type.
 pub type XcmWeigher = xcm_builder::FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
 

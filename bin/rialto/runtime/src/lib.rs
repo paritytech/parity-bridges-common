@@ -900,6 +900,7 @@ impl_runtime_apis! {
 				Runtime,
 				WithMillauMessagesInstance,
 				WithMillauMessageBridge,
+				xcm_config::OutboundXcmWeigher,
 			>(lane, begin, end)
 		}
 	}

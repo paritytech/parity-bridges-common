@@ -16,7 +16,7 @@
 
 //! Everything required to serve Millau <-> Rialto messages.
 
-use crate::Runtime;
+use crate::{Call, Runtime};
 
 use bp_messages::{
 	source_chain::{SenderOrigin, TargetHeaderChain},
@@ -56,8 +56,7 @@ pub type ToRialtoMessageVerifier =
 	messages::source::FromThisChainMessageVerifier<WithRialtoMessageBridge>;
 
 /// Message payload for Rialto -> Millau messages.
-pub type FromRialtoMessagePayload =
-	messages::target::FromBridgedChainMessagePayload<WithRialtoMessageBridge>;
+pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload<Call>;
 
 /// Messages proof for Rialto -> Millau messages.
 pub type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_rialto::Hash>;

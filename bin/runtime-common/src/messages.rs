@@ -26,7 +26,7 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
 use bp_runtime::{messages::MessageDispatchResult, ChainId, Size, StorageProofChecker};
-use codec::{Decode, Encode};
+use codec::{Decode, DecodeLimit, Encode};
 use frame_support::{weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
@@ -430,19 +430,32 @@ pub mod target {
 	use super::*;
 
 	/// Decoded Bridged -> This message payload.
-	#[derive(Decode, Encode)]
-	pub struct FromBridgedChainMessagePayload<B: MessageBridge> {
+	#[derive(RuntimeDebug, PartialEq)]
+	pub struct FromBridgedChainMessagePayload<Call> {
 		/// Data that is actually sent over the wire.
-		pub xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<CallOf<ThisChain<B>>>),
+		pub xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>),
 		/// Weight of the message, computed by the weigher. Unknown initially.
-		#[codec(skip)]
 		pub weight: Option<Weight>,
 	}
 
-	impl<B: MessageBridge> From<(xcm::v3::MultiLocation, xcm::v3::Xcm<CallOf<ThisChain<B>>>)>
-		for FromBridgedChainMessagePayload<B>
+	impl<Call: Decode> Decode for FromBridgedChainMessagePayload<Call> {
+		fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
+			let _: codec::Compact<u32> = Decode::decode(input)?;
+			type XcmPairType<Call> = (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>);
+			Ok(FromBridgedChainMessagePayload {
+				xcm: XcmPairType::<Call>::decode_with_depth_limit(
+					sp_api::MAX_EXTRINSIC_DEPTH,
+					input,
+				)?,
+				weight: None,
+			})
+		}
+	}
+
+	impl<Call> From<(xcm::v3::MultiLocation, xcm::v3::Xcm<Call>)>
+		for FromBridgedChainMessagePayload<Call>
 	{
-		fn from(xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<CallOf<ThisChain<B>>>)) -> Self {
+		fn from(xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>)) -> Self {
 			FromBridgedChainMessagePayload { xcm, weight: None }
 		}
 	}
@@ -490,7 +503,7 @@ pub mod target {
 		XcmExecutor: xcm::v3::ExecuteXcm<CallOf<ThisChain<B>>>,
 		XcmWeigher: xcm_executor::traits::WeightBounds<CallOf<ThisChain<B>>>,
 	{
-		type DispatchPayload = FromBridgedChainMessagePayload<B>;
+		type DispatchPayload = FromBridgedChainMessagePayload<CallOf<ThisChain<B>>>;
 
 		fn dispatch_weight(
 			message: &mut DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
@@ -498,7 +511,7 @@ pub mod target {
 			match message.data.payload {
 				Ok(ref mut payload) => {
 					// I have no idea why this method takes `&mut` reference and there's nothing
-					// about that in documentation. Hope it'll mutate iff error is returned.
+					// about that in documentation. Hope it'll only mutate iff error is returned.
 					let weight = XcmWeigher::weight(&mut payload.xcm.1);
 					let weight = weight.unwrap_or_else(|e| {
 						log::debug!(
@@ -542,7 +555,7 @@ pub mod target {
 				let hash = message_id.using_encoded(sp_io::hashing::blake2_256);
 
 				// TODO: make this configurable or remove
-				let weight_credit = 1_000_000_000;
+				let weight_credit = 2 * 1_000_000_000;
 
 				let xcm_outcome = XcmExecutor::execute_xcm_in_credit(
 					location,
