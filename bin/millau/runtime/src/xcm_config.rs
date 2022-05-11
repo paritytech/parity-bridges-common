@@ -36,9 +36,8 @@ use sp_std::marker::PhantomData;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowTopLevelPaidExecutionFrom,
-	CurrencyAdapter as XcmCurrencyAdapter, FixedWeightBounds, IsConcrete,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	UsingComponents,
+	CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
 
 parameter_types! {
@@ -120,6 +119,9 @@ pub type Barrier = (
 	AllowKnownQueryResponses<XcmPallet>,
 );
 
+/// XCM weigher type.
+pub type XcmWeigher = xcm_builder::FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
@@ -130,7 +132,7 @@ impl xcm_executor::Config for XcmConfig {
 	type IsTeleporter = ();
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
-	type Weigher = xcm_builder::FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
+	type Weigher = XcmWeigher;
 	// The weight trader piggybacks on the existing transaction-fee conversion logic.
 	type Trader = UsingComponents<WeightToFee, TokenLocation, AccountId, Balances, ()>;
 	type ResponseHandler = XcmPallet;
@@ -171,7 +173,7 @@ impl pallet_xcm::Config for Runtime {
 	// Anyone is able to use reserve transfers regardless of who they are and what they want to
 	// transfer.
 	type XcmReserveTransferFilter = Everything;
-	type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
+	type Weigher = XcmWeigher;
 	type UniversalLocation = UniversalLocation;
 	type Origin = Origin;
 	type Call = Call;
@@ -273,7 +275,7 @@ mod tests {
 	fn xcm_messages_from_rialto_are_dispatched() {
 		type XcmExecutor = xcm_executor::XcmExecutor<XcmConfig>;
 		type MessageDispatcher =
-			FromBridgedChainMessageDispatch<WithRialtoMessageBridge, XcmExecutor>;
+			FromBridgedChainMessageDispatch<WithRialtoMessageBridge, XcmExecutor, XcmWeigher>;
 
 		new_test_ext().execute_with(|| {
 			let location: MultiLocation =
@@ -282,7 +284,7 @@ mod tests {
 
 			let mut incoming_message = DispatchMessage {
 				key: MessageKey { lane_id: [0, 0, 0, 0], nonce: 1 },
-				data: DispatchMessageData { payload: Ok((location, xcm)), fee: 0 },
+				data: DispatchMessageData { payload: Ok((location, xcm).into()), fee: 0 },
 			};
 
 			let dispatch_weight = MessageDispatcher::dispatch_weight(&mut incoming_message);

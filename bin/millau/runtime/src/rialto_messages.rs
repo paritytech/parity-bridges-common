@@ -70,6 +70,7 @@ pub type ToRialtoMessagesDeliveryProof =
 pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
 	WithRialtoMessageBridge,
 	xcm_executor::XcmExecutor<crate::xcm_config::XcmConfig>,
+	crate::xcm_config::XcmWeigher,
 >;
 
 /// Millau <-> Rialto message bridge.

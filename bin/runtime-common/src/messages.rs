@@ -430,8 +430,22 @@ pub mod target {
 	use super::*;
 
 	/// Decoded Bridged -> This message payload.
-	pub type FromBridgedChainMessagePayload<B> =
-		(xcm::v3::MultiLocation, xcm::v3::Xcm<CallOf<ThisChain<B>>>);
+	#[derive(Decode, Encode)]
+	pub struct FromBridgedChainMessagePayload<B: MessageBridge> {
+		/// Data that is actually sent over the wire.
+		pub xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<CallOf<ThisChain<B>>>),
+		/// Weight of the message, computed by the weigher. Unknown initially.
+		#[codec(skip)]
+		pub weight: Option<Weight>,
+	}
+
+	impl<B: MessageBridge> From<(xcm::v3::MultiLocation, xcm::v3::Xcm<CallOf<ThisChain<B>>>)>
+		for FromBridgedChainMessagePayload<B>
+	{
+		fn from(xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<CallOf<ThisChain<B>>>)) -> Self {
+			FromBridgedChainMessagePayload { xcm, weight: None }
+		}
+	}
 
 	/// Messages proof from bridged chain:
 	///
@@ -465,37 +479,28 @@ pub mod target {
 
 	/// Dispatching Bridged -> This chain messages.
 	#[derive(RuntimeDebug, Clone, Copy)]
-	pub struct FromBridgedChainMessageDispatch<B, XcmExecutor> {
-		_marker: PhantomData<(B, XcmExecutor)>,
+	pub struct FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher> {
+		_marker: PhantomData<(B, XcmExecutor, XcmWeigher)>,
 	}
 
-	impl<B: MessageBridge, XcmExecutor>
+	impl<B: MessageBridge, XcmExecutor, XcmWeigher>
 		MessageDispatch<AccountIdOf<ThisChain<B>>, BalanceOf<BridgedChain<B>>>
-		for FromBridgedChainMessageDispatch<B, XcmExecutor>
+		for FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher>
 	where
-		CallOf<ThisChain<B>>: frame_support::weights::GetDispatchInfo,
 		XcmExecutor: xcm::v3::ExecuteXcm<CallOf<ThisChain<B>>>,
+		XcmWeigher: xcm_executor::traits::WeightBounds<CallOf<ThisChain<B>>>,
 	{
 		type DispatchPayload = FromBridgedChainMessagePayload<B>;
 
 		fn dispatch_weight(
 			message: &mut DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> frame_support::weights::Weight {
-			use xcm_executor::traits::WeightBounds;
-
-			type Weigher<B> = xcm_builder::FixedWeightBounds<
-				frame_support::traits::ConstU64<1_000_000_000>,
-				CallOf<ThisChain<B>>,
-				frame_support::traits::ConstU32<100>,
-			>;
-
 			match message.data.payload {
-				Ok((_, ref xcm)) => {
+				Ok(ref mut payload) => {
 					// I have no idea why this method takes `&mut` reference and there's nothing
-					// about that in documentation. Until this is clarified, let's jsut clone xcm.
-					let mut xcm_clone = xcm.clone();
-					let weight = Weigher::<B>::weight(&mut xcm_clone);
-					weight.unwrap_or_else(|e| {
+					// about that in documentation. Hope it'll mutate iff error is returned.
+					let weight = XcmWeigher::weight(&mut payload.xcm.1);
+					let weight = weight.unwrap_or_else(|e| {
 						log::debug!(
 							target: "runtime::bridge-dispatch",
 							"Failed to compute dispatch weight of incoming XCM message {:?}/{}: {:?}",
@@ -504,9 +509,13 @@ pub mod target {
 							e,
 						);
 
-						// TODO: the lane will stuck if MAX is returned
-						frame_support::weights::Weight::MAX
-					})
+						// we shall return 0 and then the XCM executor will fail to execute XCM
+						// if we'll return something else (e.g. maximal value), the lane may stuck
+						0
+					});
+
+					payload.weight = Some(weight);
+					weight
 				},
 				_ => 0,
 			}
@@ -520,20 +529,26 @@ pub mod target {
 
 			let message_id = (message.key.lane_id, message.key.nonce);
 			let do_dispatch = move || -> sp_std::result::Result<Outcome, codec::Error> {
-				let (location, xcm) = message.data.payload?;
-				log::trace!(target: "runtime::bridge-dispatch", "Going to execute message {:?}: {:?} {:?}", message_id, location, xcm);
-				/*				let xcm_prepared = XcmExecutor::prepare(xcm).map_err(|e| {
-					log::warn!(target: "runtime::bridge-dispatch", "Failed to prepare incoming XCM message {:?}: {:?}", message_id, e);
-					()
-				})?;*/
-				let hash = xcm.using_encoded(sp_io::hashing::blake2_256);
-				let max_weight = 1000000000;
-				let weight_credit = 1000000000;
+				let FromBridgedChainMessagePayload { xcm: (location, xcm), weight: weight_limit } =
+					message.data.payload?;
+				log::trace!(
+					target: "runtime::bridge-dispatch",
+					"Going to execute message {:?} (weight limit: {:?}): {:?} {:?}",
+					message_id,
+					weight_limit,
+					location,
+					xcm,
+				);
+				let hash = message_id.using_encoded(sp_io::hashing::blake2_256);
+
+				// TODO: make this configurable or remove
+				let weight_credit = 1_000_000_000;
+
 				let xcm_outcome = XcmExecutor::execute_xcm_in_credit(
 					location,
 					xcm,
 					hash,
-					max_weight,
+					weight_limit.unwrap_or(0),
 					weight_credit,
 				);
 				Ok(xcm_outcome)

@@ -63,6 +63,7 @@ pub type FromMillauMessagePayload =
 pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
 	WithMillauMessageBridge,
 	xcm_executor::XcmExecutor<crate::xcm_config::XcmConfig>,
+	crate::xcm_config::XcmWeigher,
 >;
 
 /// Messages proof for Millau -> Rialto messages.
