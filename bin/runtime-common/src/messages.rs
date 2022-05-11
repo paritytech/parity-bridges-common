@@ -27,11 +27,11 @@ use bp_messages::{
 };
 use bp_runtime::{messages::MessageDispatchResult, ChainId, Size, StorageProofChecker};
 use codec::{Decode, Encode};
-use frame_support::{traits::Currency, weights::Weight, RuntimeDebug};
+use frame_support::{weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, Saturating},
+	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul},
 	FixedPointNumber, FixedPointOperand, FixedU128,
 };
 use sp_std::{cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData, vec::Vec};
@@ -464,29 +464,22 @@ pub mod target {
 
 	/// Dispatching Bridged -> This chain messages.
 	#[derive(RuntimeDebug, Clone, Copy)]
-	pub struct FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, XcmExecutor> {
-		_marker: PhantomData<(B, ThisRuntime, ThisCurrency, XcmExecutor)>,
+	pub struct FromBridgedChainMessageDispatch<B, XcmExecutor> {
+		_marker: PhantomData<(B, XcmExecutor)>,
 	}
 
-	impl<B: MessageBridge, ThisRuntime, ThisCurrency, XcmExecutor>
+	impl<B: MessageBridge, XcmExecutor>
 		MessageDispatch<AccountIdOf<ThisChain<B>>, BalanceOf<BridgedChain<B>>>
-		for FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, XcmExecutor>
+		for FromBridgedChainMessageDispatch<B, XcmExecutor>
 	where
-		BalanceOf<ThisChain<B>>: Saturating + FixedPointOperand,
 		XcmExecutor: xcm::v3::ExecuteXcm<CallOf<ThisChain<B>>>,
-		ThisRuntime: pallet_transaction_payment::Config,
-		<ThisRuntime as pallet_transaction_payment::Config>::OnChargeTransaction:
-			pallet_transaction_payment::OnChargeTransaction<
-				ThisRuntime,
-				Balance = BalanceOf<ThisChain<B>>,
-			>,
-		ThisCurrency: Currency<AccountIdOf<ThisChain<B>>, Balance = BalanceOf<ThisChain<B>>>,
 	{
 		type DispatchPayload = FromBridgedChainMessagePayload;
 
 		fn dispatch_weight(
 			_message: &DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> frame_support::weights::Weight {
+			// TODO
 			0
 		}
 

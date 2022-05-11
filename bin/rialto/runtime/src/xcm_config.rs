@@ -17,19 +17,21 @@
 //! XCM configurations for the Rialto runtime.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balances, BridgeMillauMessages, Call, Event, Origin, Runtime,
-	XcmPallet,
+	millau_messages::WithMillauMessageBridge, AccountId, AllPalletsWithSystem, Balances,
+	BridgeMillauMessages, Call, Event, Origin, Runtime, XcmPallet,
 };
 use bp_messages::source_chain::MessagesBridge;
 use bp_rialto::{Balance, WeightToFee};
-use bridge_runtime_common::messages::source::FromThisChainMessagePayload;
+use bridge_runtime_common::messages::{
+	source::{estimate_message_dispatch_and_delivery_fee, FromThisChainMessagePayload},
+	MessageBridge,
+};
 use codec::Encode;
 use frame_support::{
 	parameter_types,
 	traits::{Everything, Nothing},
 	weights::Weight,
 };
-use sp_runtime::traits::Zero;
 use sp_std::marker::PhantomData;
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -188,36 +190,64 @@ pub struct ToMillauBridge<MB>(PhantomData<MB>);
 impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>> SendXcm
 	for ToMillauBridge<MB>
 {
-	type Ticket = (MultiLocation, Xcm<()>);
+	type Ticket = (Balance, FromThisChainMessagePayload);
 
 	fn validate(
-		_dest: &mut Option<MultiLocation>,
+		dest: &mut Option<MultiLocation>,
 		msg: &mut Option<Xcm<()>>,
-	) -> SendResult<(MultiLocation, Xcm<()>)> {
+	) -> SendResult<Self::Ticket> {
+		let d = dest.take().ok_or(SendError::MissingArgument)?;
+		if !matches!(d, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == MillauNetwork::get())
+		{
+			*dest = Some(d);
+			return Err(SendError::NotApplicable)
+		};
+
 		let dest: InteriorMultiLocation = MillauNetwork::get().into();
 		let here = UniversalLocation::get();
 		let route = dest.relative_to(&here);
-		let msg = msg.take().unwrap();
-		Ok(((route, msg), MultiAssets::new()))
+		let msg = (route, msg.take().unwrap()).encode();
+		let fee = estimate_message_dispatch_and_delivery_fee::<WithMillauMessageBridge>(
+			&msg,
+			WithMillauMessageBridge::RELAYER_FEE_PERCENT,
+			None,
+		)
+		.map_err(SendError::Transport)?;
+		// TOOD: fee -> MultiAssets
+		Ok(((fee, msg), MultiAssets::new()))
 	}
 
-	fn deliver(pair: (MultiLocation, Xcm<()>)) -> Result<XcmHash, SendError> {
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		let lane = [0, 0, 0, 0];
+		let (fee, msg) = ticket;
 		let result = MB::send_message(
 			pallet_xcm::Origin::from(MultiLocation::from(UniversalLocation::get())).into(),
-			[0, 0, 0, 0],
-			pair.encode(),
-			Zero::zero(),
+			lane,
+			msg,
+			fee,
 		);
-		log::info!(target: "runtime::bridge", "Trying to send XCM message (SendXcm) to Millau: {:?}", result);
 		result
-			.map(|_artifacts| XcmHash::default()) // TODO: what's hash here? (lane, nonce).encode().hash() or something else
-			.map_err(|_e| SendError::Transport("Bridge has rejected the message"))
+			.map(|artifacts| {
+				let hash = (lane, artifacts.nonce).using_encoded(sp_io::hashing::blake2_256);
+				log::debug!(target: "runtime::bridge", "Sent XCM message {:?}/{} to Rialto: {:?}", lane, artifacts.nonce, hash);
+				hash
+			})
+			.map_err(|e| {
+				log::debug!(target: "runtime::bridge", "Failed to send XCM message over lane {:?} to Rialto: {:?}", lane, e);
+				SendError::Transport("Bridge has rejected the message")
+			})
 	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_messages::{
+		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
+		MessageKey,
+	};
+	use bp_runtime::messages::MessageDispatchResult;
+	use bridge_runtime_common::messages::target::FromBridgedChainMessageDispatch;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
 		sp_io::TestExternalities::new(
@@ -226,58 +256,48 @@ mod tests {
 	}
 
 	#[test]
-	fn my_test() {
-		let dest: InteriorMultiLocation = MillauNetwork::get().into();
-		let here = UniversalLocation::get();
-		println!("{:?}", dest);
-		let route = dest.relative_to(&here);
-		//let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
-		println!("{:?}", route);
-	}
-
-	#[test]
-	fn messages_to_millau_are_sent() {
-		let outcome = new_test_ext().execute_with(|| {
+	fn xcm_messages_to_millau_are_sent() {
+		new_test_ext().execute_with(|| {
 			let dest = (Parent, X1(GlobalConsensus(MillauNetwork::get())));
 			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
 
-			let (ticket, price) = validate_send::<XcmRouter>(dest.into(), xcm)?;
-			println!("=== ticket: {:?}", ticket);
-			println!("=== price: {:?}", price);
-
-			XcmRouter::deliver(ticket)
-		});
-
-		println!("=== {:?}", outcome);
+			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
+			let expected_fee = MultiAssets::new();
+			let expected_hash =
+				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
+			assert_eq!(send_result, Ok((expected_hash, expected_fee)),);
+		})
 	}
 
 	#[test]
-	fn messages_from_millau_are_dispatched() {
+	fn xcm_messages_from_millau_are_dispatched() {
 		type XcmExecutor = xcm_executor::XcmExecutor<XcmConfig>;
+		type MessageDispatcher =
+			FromBridgedChainMessageDispatch<WithMillauMessageBridge, XcmExecutor>;
 
-		let _ = env_logger::try_init();
+		new_test_ext().execute_with(|| {
+			let location: MultiLocation =
+				(Parent, X1(GlobalConsensus(MillauNetwork::get()))).into();
+			let xcm: Xcm<Call> = vec![Instruction::Trap(42)].into();
 
-		let outcome = new_test_ext().execute_with(|| {
-			let location = (Parent, X1(GlobalConsensus(MillauNetwork::get())));
-			// simple Trap(42) is converted to this XCM by SovereignPaidRemoteExporter
-			let xcm: Xcm<Call> = vec![ExportMessage {
-				network: MillauNetwork::get(),
-				destination: Here,
-				xcm: vec![
-					Instruction::UniversalOrigin(GlobalConsensus(MillauNetwork::get())),
-					Instruction::Trap(42),
-				]
-				.into(),
-			}]
-			.into();
+			let incoming_message = DispatchMessage {
+				key: MessageKey { lane_id: [0, 0, 0, 0], nonce: 1 },
+				data: DispatchMessageData { payload: Ok((location, xcm).encode()), fee: 0 },
+			};
 
-			let hash = xcm.using_encoded(sp_io::hashing::blake2_256);
-			let max_weight = 1000000000;
-			let weight_credit = 1000000000;
+			let dispatch_weight = MessageDispatcher::dispatch_weight(&incoming_message);
+			assert_eq!(dispatch_weight, 0);
 
-			XcmExecutor::execute_xcm_in_credit(location, xcm, hash, max_weight, weight_credit)
-		});
-
-		println!("=== {:?}", outcome);
+			let dispatch_result =
+				MessageDispatcher::dispatch(&AccountId::from([0u8; 32]), incoming_message);
+			assert_eq!(
+				dispatch_result,
+				MessageDispatchResult {
+					dispatch_result: true,
+					unspent_weight: 0,
+					dispatch_fee_paid_during_dispatch: false,
+				}
+			);
+		})
 	}
 }

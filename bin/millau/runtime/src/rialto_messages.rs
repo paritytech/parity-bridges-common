@@ -68,8 +68,6 @@ pub type ToRialtoMessagesDeliveryProof =
 /// Call-dispatch based message dispatch for Rialto -> Millau messages.
 pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
 	WithRialtoMessageBridge,
-	crate::Runtime,
-	pallet_balances::Pallet<Runtime>,
 	xcm_executor::XcmExecutor<crate::xcm_config::XcmConfig>,
 >;
 
