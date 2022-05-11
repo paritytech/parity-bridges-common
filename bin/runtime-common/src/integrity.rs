@@ -123,7 +123,7 @@ macro_rules! assert_bridge_messages_pallet_types(
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::OutboundPayload, FromThisChainMessagePayload);
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::OutboundMessageFee, BalanceOf<ThisChain<$bridge>>);
 
-			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundPayload, FromBridgedChainMessagePayload);
+			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundPayload, FromBridgedChainMessagePayload<$bridge>);
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundMessageFee, BalanceOf<BridgedChain<$bridge>>);
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundRelayer, AccountIdOf<BridgedChain<$bridge>>);
 

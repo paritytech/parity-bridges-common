@@ -280,13 +280,13 @@ mod tests {
 				(Parent, X1(GlobalConsensus(MillauNetwork::get()))).into();
 			let xcm: Xcm<Call> = vec![Instruction::Trap(42)].into();
 
-			let incoming_message = DispatchMessage {
+			let mut incoming_message = DispatchMessage {
 				key: MessageKey { lane_id: [0, 0, 0, 0], nonce: 1 },
-				data: DispatchMessageData { payload: Ok((location, xcm).encode()), fee: 0 },
+				data: DispatchMessageData { payload: Ok((location, xcm)), fee: 0 },
 			};
 
-			let dispatch_weight = MessageDispatcher::dispatch_weight(&incoming_message);
-			assert_eq!(dispatch_weight, 0);
+			let dispatch_weight = MessageDispatcher::dispatch_weight(&mut incoming_message);
+			assert_eq!(dispatch_weight, 1_000_000_000);
 
 			let dispatch_result =
 				MessageDispatcher::dispatch(&AccountId::from([0u8; 32]), incoming_message);

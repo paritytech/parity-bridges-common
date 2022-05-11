@@ -489,7 +489,7 @@ pub struct TestMessageDispatch;
 impl MessageDispatch<AccountId, TestMessageFee> for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
 
-	fn dispatch_weight(message: &DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
+	fn dispatch_weight(message: &mut DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
 		match message.data.payload.as_ref() {
 			Ok(payload) => payload.declared_weight,
 			Err(_) => 0,

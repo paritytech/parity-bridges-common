@@ -430,7 +430,8 @@ pub mod target {
 	use super::*;
 
 	/// Decoded Bridged -> This message payload.
-	pub type FromBridgedChainMessagePayload = Vec<u8>;
+	pub type FromBridgedChainMessagePayload<B> =
+		(xcm::v3::MultiLocation, xcm::v3::Xcm<CallOf<ThisChain<B>>>);
 
 	/// Messages proof from bridged chain:
 	///
@@ -472,15 +473,43 @@ pub mod target {
 		MessageDispatch<AccountIdOf<ThisChain<B>>, BalanceOf<BridgedChain<B>>>
 		for FromBridgedChainMessageDispatch<B, XcmExecutor>
 	where
+		CallOf<ThisChain<B>>: frame_support::weights::GetDispatchInfo,
 		XcmExecutor: xcm::v3::ExecuteXcm<CallOf<ThisChain<B>>>,
 	{
-		type DispatchPayload = FromBridgedChainMessagePayload;
+		type DispatchPayload = FromBridgedChainMessagePayload<B>;
 
 		fn dispatch_weight(
-			_message: &DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
+			message: &mut DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> frame_support::weights::Weight {
-			// TODO
-			0
+			use xcm_executor::traits::WeightBounds;
+
+			type Weigher<B> = xcm_builder::FixedWeightBounds<
+				frame_support::traits::ConstU64<1_000_000_000>,
+				CallOf<ThisChain<B>>,
+				frame_support::traits::ConstU32<100>,
+			>;
+
+			match message.data.payload {
+				Ok((_, ref xcm)) => {
+					// I have no idea why this method takes `&mut` reference and there's nothing
+					// about that in documentation. Until this is clarified, let's jsut clone xcm.
+					let mut xcm_clone = xcm.clone();
+					let weight = Weigher::<B>::weight(&mut xcm_clone);
+					weight.unwrap_or_else(|e| {
+						log::debug!(
+							target: "runtime::bridge-dispatch",
+							"Failed to compute dispatch weight of incoming XCM message {:?}/{}: {:?}",
+							message.key.lane_id,
+							message.key.nonce,
+							e,
+						);
+
+						// TODO: the lane will stuck if MAX is returned
+						frame_support::weights::Weight::MAX
+					})
+				},
+				_ => 0,
+			}
 		}
 
 		fn dispatch(
@@ -490,12 +519,8 @@ pub mod target {
 			use xcm::latest::*;
 
 			let message_id = (message.key.lane_id, message.key.nonce);
-			let do_dispatch = move || -> sp_std::result::Result<Outcome, ()> {
-				let (location, xcm): (MultiLocation, Xcm<CallOf<ThisChain<B>>>) = Decode::decode(&mut &message.data.payload.expect("TODO")[..])
-					.map_err(|e| {
-						log::warn!(target: "runtime::bridge-dispatch", "Failed to decode incoming XCM message {:?}: {:?}", message_id, e);
-						()
-					})?;
+			let do_dispatch = move || -> sp_std::result::Result<Outcome, codec::Error> {
+				let (location, xcm) = message.data.payload?;
 				log::trace!(target: "runtime::bridge-dispatch", "Going to execute message {:?}: {:?} {:?}", message_id, location, xcm);
 				/*				let xcm_prepared = XcmExecutor::prepare(xcm).map_err(|e| {
 					log::warn!(target: "runtime::bridge-dispatch", "Failed to prepare incoming XCM message {:?}: {:?}", message_id, e);

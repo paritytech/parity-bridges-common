@@ -428,13 +428,13 @@ pub mod pallet {
 					}
 				}
 
-				for message in lane_data.messages {
+				for mut message in lane_data.messages {
 					debug_assert_eq!(message.key.lane_id, lane_id);
 
 					// ensure that relayer has declared enough weight for dispatching next message
 					// on this lane. We can't dispatch lane messages out-of-order, so if declared
 					// weight is not enough, let's move to next lane
-					let dispatch_weight = T::MessageDispatch::dispatch_weight(&message);
+					let dispatch_weight = T::MessageDispatch::dispatch_weight(&mut message);
 					if dispatch_weight > dispatch_weight_left {
 						log::trace!(
 							target: "runtime::bridge-messages",
