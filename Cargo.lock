@@ -962,6 +962,7 @@ dependencies = [
  "frame-system",
  "hash-db",
  "log",
+ "num-traits",
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",

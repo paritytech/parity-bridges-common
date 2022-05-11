@@ -278,10 +278,10 @@ pub mod source {
 
 		fn verify_message(
 			submitter: &OriginOf<ThisChain<B>>,
-			_delivery_and_dispatch_fee: &BalanceOf<ThisChain<B>>,
+			delivery_and_dispatch_fee: &BalanceOf<ThisChain<B>>,
 			lane: &LaneId,
 			lane_outbound_data: &OutboundLaneData,
-			_payload: &FromThisChainMessagePayload,
+			payload: &FromThisChainMessagePayload,
 		) -> Result<(), Self::Error> {
 			// reject message if lane is blocked
 			if !ThisChain::<B>::is_message_accepted(submitter, lane) {
@@ -297,7 +297,6 @@ pub mod source {
 				return Err(TOO_MANY_PENDING_MESSAGES)
 			}
 
-			/* TODO: this check must take origin into account
 			let minimal_fee_in_this_tokens = estimate_message_dispatch_and_delivery_fee::<B>(
 				payload,
 				B::RELAYER_FEE_PERCENT,
@@ -307,7 +306,7 @@ pub mod source {
 			// compare with actual fee paid
 			if *delivery_and_dispatch_fee < minimal_fee_in_this_tokens {
 				return Err(TOO_LOW_FEE)
-			}*/
+			}
 
 			Ok(())
 		}
@@ -505,7 +504,7 @@ pub mod target {
 						()
 					})?;
 				log::trace!(target: "runtime::bridge-dispatch", "Going to execute message {:?}: {:?} {:?}", message_id, location, xcm);
-/*				let xcm_prepared = XcmExecutor::prepare(xcm).map_err(|e| {
+				/*				let xcm_prepared = XcmExecutor::prepare(xcm).map_err(|e| {
 					log::warn!(target: "runtime::bridge-dispatch", "Failed to prepare incoming XCM message {:?}: {:?}", message_id, e);
 					()
 				})?;*/
@@ -724,15 +723,17 @@ pub mod xcm_copy {
 	use xcm_executor::traits::ExportXcm;
 
 	pub trait DispatchBlob {
-		/// Dispatches an incoming blob and returns the unexpectable weight consumed by the dispatch.
+		/// Dispatches an incoming blob and returns the unexpectable weight consumed by the
+		/// dispatch.
 		fn dispatch_blob(blob: Vec<u8>) -> Result<(), DispatchBlobError>;
 	}
-	
+
 	pub trait HaulBlob {
-		/// Sends a blob over some point-to-point link. This will generally be implemented by a bridge.
+		/// Sends a blob over some point-to-point link. This will generally be implemented by a
+		/// bridge.
 		fn haul_blob(blob: Vec<u8>);
 	}
-	
+
 	#[derive(Clone, Encode, Decode)]
 	pub struct BridgeMessage {
 		/// The message destination as a *Universal Location*. This means it begins with a
@@ -741,7 +742,7 @@ pub mod xcm_copy {
 		universal_dest: VersionedInteriorMultiLocation,
 		message: VersionedXcm<()>,
 	}
-	
+
 	pub enum DispatchBlobError {
 		Unbridgable,
 		InvalidEncoding,
@@ -765,8 +766,8 @@ pub mod xcm_copy {
 			let universal_dest: InteriorMultiLocation = universal_dest
 				.try_into()
 				.map_err(|_| DispatchBlobError::UnsupportedLocationVersion)?;
-			// `universal_dest` is the desired destination within the universe: first we need to check
-			// we're in the right global consensus.
+			// `universal_dest` is the desired destination within the universe: first we need to
+			// check we're in the right global consensus.
 			let intended_global = universal_dest
 				.global_consensus()
 				.map_err(|()| DispatchBlobError::NonUniversalDestination)?;

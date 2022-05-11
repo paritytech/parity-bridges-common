@@ -30,7 +30,7 @@ use frame_support::{
 	weights::Weight,
 };
 use sp_runtime::traits::Zero;
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::marker::PhantomData;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowTopLevelPaidExecutionFrom,
@@ -55,13 +55,6 @@ parameter_types! {
 	pub UniversalLocation: InteriorMultiLocation = ThisNetwork::get().into();
 	/// The check account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
-
-	/// Available bridges.
-	pub BridgeTable: Vec<(NetworkId, MultiLocation, Option<MultiAsset>)>
-		= vec![(MillauNetwork::get(), MultiLocation::parent(), None)];
-
-	/// TODO
-	pub ToMillauPrice: MultiAssets = MultiAssets::new();
 }
 
 /// The canonical means of converting a `MultiLocation` into an `AccountId`, used when we want to
@@ -108,11 +101,7 @@ parameter_types! {
 /// individual routers.
 pub type XcmRouter = (
 	// Router to send messages to Millau.
-	xcm_builder::SovereignPaidRemoteExporter<
-		xcm_builder::NetworkExportTable<BridgeTable>,
-		ToMillauBridge<BridgeMillauMessages>,
-		UniversalLocation,
-	>,
+	ToMillauBridge<BridgeMillauMessages>,
 );
 
 parameter_types! {
@@ -151,11 +140,7 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = ();
-	type MessageExporter = bridge_runtime_common::messages::HaulBlobExporter<
-		ToMillauBridge<BridgeMillauMessages>,
-		MillauNetwork,
-		ToMillauPrice,
-	>;
+	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 }
 
@@ -206,15 +191,14 @@ impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>
 	type Ticket = (MultiLocation, Xcm<()>);
 
 	fn validate(
-		dest: &mut Option<MultiLocation>,
+		_dest: &mut Option<MultiLocation>,
 		msg: &mut Option<Xcm<()>>,
 	) -> SendResult<(MultiLocation, Xcm<()>)> {
 		let dest: InteriorMultiLocation = MillauNetwork::get().into();
 		let here = UniversalLocation::get();
-		let route = here.relative_to(&dest); // dest.relative_to(&here);
-		let pair = (route, msg.take().unwrap());
-		//let pair = (dest.take().unwrap(), msg.take().unwrap());
-		Ok((pair, MultiAssets::new()))
+		let route = dest.relative_to(&here);
+		let msg = msg.take().unwrap();
+		Ok(((route, msg), MultiAssets::new()))
 	}
 
 	fn deliver(pair: (MultiLocation, Xcm<()>)) -> Result<XcmHash, SendError> {
@@ -231,24 +215,14 @@ impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>
 	}
 }
 
-impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>> bridge_runtime_common::messages::HaulBlob for ToMillauBridge<MB> {
-	fn haul_blob(blob: Vec<u8>) {
-		let result = MB::send_message(
-			pallet_xcm::Origin::from(MultiLocation::from(UniversalLocation::get())).into(),
-			[0, 0, 0, 0],
-			blob,
-			Zero::zero(),
-		);
-		log::info!(target: "runtime::bridge", "Trying to send XCM message (HaulBlob) to Millau: {:?}", result);
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
-		sp_io::TestExternalities::new(frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap())
+		sp_io::TestExternalities::new(
+			frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap(),
+		)
 	}
 
 	#[test]
@@ -286,16 +260,16 @@ mod tests {
 		let outcome = new_test_ext().execute_with(|| {
 			let location = (Parent, X1(GlobalConsensus(MillauNetwork::get())));
 			// simple Trap(42) is converted to this XCM by SovereignPaidRemoteExporter
-			let xcm: Xcm<Call> = vec![
-				ExportMessage {
-					network: MillauNetwork::get(),
-					destination: Here,
-					xcm: vec![
-						Instruction::UniversalOrigin(GlobalConsensus(MillauNetwork::get())),
-						Instruction::Trap(42)
-					].into(),
-				},
-			].into();
+			let xcm: Xcm<Call> = vec![ExportMessage {
+				network: MillauNetwork::get(),
+				destination: Here,
+				xcm: vec![
+					Instruction::UniversalOrigin(GlobalConsensus(MillauNetwork::get())),
+					Instruction::Trap(42),
+				]
+				.into(),
+			}]
+			.into();
 
 			let hash = xcm.using_encoded(sp_io::hashing::blake2_256);
 			let max_weight = 1000000000;
@@ -307,21 +281,3 @@ mod tests {
 		println!("=== {:?}", outcome);
 	}
 }
-
-/*
-unning 1 test
-[2022-05-04T14:10:56Z DEBUG xcm::v3::traits] origin: MultiLocation { parents: 1, interior: X1(GlobalConsensus(Kusama)) }, message: Xcm([ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Kusama)), Trap(42)]) }]), weight_limit: 1000000000
-[2022-05-04T14:10:56Z TRACE xcm_builder::weight] FixedWeightBounds message: Xcm([ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Kusama)), Trap(42)]) }])
-[2022-05-04T14:10:56Z TRACE xcm_executor] origin: MultiLocation { parents: 1, interior: X1(GlobalConsensus(Kusama)) }, message: Xcm([ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Kusama)), Trap(42)]) }]), weight_credit: 0
-[2022-05-04T14:10:56Z TRACE xcm_builder::barriers] TakeWeightCredit origin: MultiLocation { parents: 1, interior: X1(GlobalConsensus(Kusama)) }, instructions: [ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Kusama)), Trap(42)]) }], max_weight: 1000000000, weight_credit: 0
-[2022-05-04T14:10:56Z TRACE xcm_builder::barriers] AllowTopLevelPaidExecutionFrom origin: MultiLocation { parents: 1, interior: X1(GlobalConsensus(Kusama)) }, instructions: [ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Kusama)), Trap(42)]) }], max_weight: 1000000000, weight_credit: 0
-[2022-05-04T14:10:56Z TRACE xcm_builder::barriers] AllowKnownQueryResponses origin: MultiLocation { parents: 1, interior: X1(GlobalConsensus(Kusama)) }, instructions: [ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Kusama)), Trap(42)]) }], max_weight: 1000000000, weight_credit: 0
-[2022-05-04T14:10:56Z TRACE xcm_executor::traits::should_execute] did not pass barrier: origin: MultiLocation { parents: 1, interior: X1(GlobalConsensus(Kusama)) }, instructions: [ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Kusama)), Trap(42)]) }], max_weight: 1000000000, weight_credit: 0
-[2022-05-04T14:10:56Z TRACE xcm_executor] Barrier blocked execution! Error: (). (origin: MultiLocation { parents: 1, interior: X1(GlobalConsensus(Kusama)) }, message: Xcm([ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Kusama)), Trap(42)]) }]), weight_credit: 0)
-=== Error(Barrier)
-test xcm_config::tests::messages_from_millau_are_dispatched ... ok
-
-
-ExportMessage { network: Kusama, destination: Here, xcm: Xcm([UniversalOrigin(GlobalConsensus(Polkadot)), DescendOrigin(X1(AccountId32 { network: Some(Polkadot), id: [28, 189, 45, 67, 83, 10, 68, 112, 90, 208, 136, 175, 49, 62, 24, 248, 11, 83, 239, 22, 179, 97, 119, 205, 75, 119, 184, 70, 242, 165, 240, 124] })), Trap(42)]) }
-
-*/

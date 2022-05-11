@@ -30,7 +30,7 @@ use frame_support::{
 	weights::Weight,
 };
 use sp_runtime::traits::Zero;
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::marker::PhantomData;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowTopLevelPaidExecutionFrom,
@@ -55,13 +55,6 @@ parameter_types! {
 	pub UniversalLocation: InteriorMultiLocation = ThisNetwork::get().into();
 	/// The check account, which holds any native assets that have been teleported out and not back in (yet).
 	pub CheckAccount: AccountId = XcmPallet::check_account();
-
-	/// Available bridges.
-	pub BridgeTable: Vec<(NetworkId, MultiLocation, Option<MultiAsset>)>
-		= vec![(RialtoNetwork::get(), MultiLocation::parent(), None)];
-
-	/// TODO
-	pub ToRialtoPrice: MultiAssets = MultiAssets::new();
 }
 
 /// The canonical means of converting a `MultiLocation` into an `AccountId`, used when we want to
@@ -107,12 +100,8 @@ parameter_types! {
 /// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
 /// individual routers.
 pub type XcmRouter = (
-	// Only one router so far - use DMP to communicate with Rialto.
-	xcm_builder::SovereignPaidRemoteExporter<
-		xcm_builder::NetworkExportTable<BridgeTable>,
-		ToRialtoBridge<BridgeRialtoMessages>,
-		UniversalLocation,
-	>,
+	// Router to send messages to Rialto.
+	ToRialtoBridge<BridgeRialtoMessages>,
 );
 
 parameter_types! {
@@ -151,11 +140,7 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
 	type FeeManager = ();
-	type MessageExporter = bridge_runtime_common::messages::HaulBlobExporter<
-		ToRialtoBridge<BridgeRialtoMessages>,
-		RialtoNetwork,
-		ToRialtoPrice,
-	>;
+	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 }
 
@@ -206,14 +191,14 @@ impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>
 	type Ticket = (MultiLocation, Xcm<()>);
 
 	fn validate(
-		dest: &mut Option<MultiLocation>,
+		_dest: &mut Option<MultiLocation>,
 		msg: &mut Option<Xcm<()>>,
 	) -> SendResult<(MultiLocation, Xcm<()>)> {
 		let dest: InteriorMultiLocation = RialtoNetwork::get().into();
 		let here = UniversalLocation::get();
 		let route = dest.relative_to(&here);
-		let pair = (route, msg.take().unwrap());
-		Ok((pair, MultiAssets::new()))
+		let msg = msg.take().unwrap();
+		Ok(((route, msg), MultiAssets::new()))
 	}
 
 	fn deliver(pair: (MultiLocation, Xcm<()>)) -> Result<XcmHash, SendError> {
@@ -230,40 +215,25 @@ impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>
 	}
 }
 
-impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>> bridge_runtime_common::messages::HaulBlob for ToRialtoBridge<MB> {
-	fn haul_blob(blob: Vec<u8>) {
-		let result = MB::send_message(
-			pallet_xcm::Origin::from(MultiLocation::from(UniversalLocation::get())).into(),
-			[0, 0, 0, 0],
-			blob,
-			Zero::zero(),
-		);
-		log::info!(target: "runtime::bridge", "Trying to send XCM message (HaulBlob) to Millau: {:?}", result);
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
-		sp_io::TestExternalities::new(frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap())
+		sp_io::TestExternalities::new(
+			frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap(),
+		)
 	}
 
 	#[test]
-	fn messages_to_rialto_are_sent() {
-		let outcome = new_test_ext().execute_with(|| {
+	fn send_message_to_rialto_works() {
+		new_test_ext().execute_with(|| {
 			let dest = (Parent, X1(GlobalConsensus(RialtoNetwork::get())));
 			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
 
-			let (ticket, price) = validate_send::<XcmRouter>(dest.into(), xcm)?;
-			println!("=== ticket: {:?}", ticket);
-			println!("=== price: {:?}", price);
-
-			XcmRouter::deliver(ticket)
-		});
-
-		println!("=== {:?}", outcome);
+			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
+			println!("{:?}", send_result);
+		})
 	}
 
 	#[test]
@@ -275,16 +245,16 @@ mod tests {
 		let outcome = new_test_ext().execute_with(|| {
 			let location = (Parent, X1(GlobalConsensus(RialtoNetwork::get())));
 			// simple Trap(42) is converted to this XCM by SovereignPaidRemoteExporter
-			let xcm: Xcm<Call> = vec![
-				ExportMessage {
-					network: RialtoNetwork::get(),
-					destination: Here,
-					xcm: vec![
-						Instruction::UniversalOrigin(GlobalConsensus(RialtoNetwork::get())),
-						Instruction::Trap(42)
-					].into(),
-				},
-			].into();
+			let xcm: Xcm<Call> = vec![ExportMessage {
+				network: ThisNetwork::get(),
+				destination: Here,
+				xcm: vec![
+					Instruction::UniversalOrigin(GlobalConsensus(RialtoNetwork::get())),
+					Instruction::Trap(42),
+				]
+				.into(),
+			}]
+			.into();
 
 			let hash = xcm.using_encoded(sp_io::hashing::blake2_256);
 			let max_weight = 1000000000;
