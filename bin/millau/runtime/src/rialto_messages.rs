@@ -40,6 +40,10 @@ pub const INITIAL_RIALTO_TO_MILLAU_CONVERSION_RATE: FixedU128 =
 	FixedU128::from_inner(FixedU128::DIV);
 /// Initial value of `RialtoFeeMultiplier` parameter.
 pub const INITIAL_RIALTO_FEE_MULTIPLIER: FixedU128 = FixedU128::from_inner(FixedU128::DIV);
+/// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
+/// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
+/// tests, confirming that we don't break encoding somewhere between.
+pub const BASE_XCM_WEIGHT_TWICE: Weight = 2 * crate::xcm_config::BASE_XCM_WEIGHT;
 
 parameter_types! {
 	/// Rialto to Millau conversion rate. Initially we treat both tokens as equal.
@@ -70,6 +74,9 @@ pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDi
 	WithRialtoMessageBridge,
 	xcm_executor::XcmExecutor<crate::xcm_config::XcmConfig>,
 	crate::xcm_config::XcmWeigher,
+	// 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
+	// (it is prepended with `UniversalOrigin` instruction)
+	frame_support::traits::ConstU64<BASE_XCM_WEIGHT_TWICE>,
 >;
 
 /// Millau <-> Rialto message bridge.

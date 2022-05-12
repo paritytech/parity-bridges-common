@@ -90,9 +90,12 @@ type LocalOriginConverter = (
 	SignedAccountId32AsNative<ThisNetwork, Origin>,
 );
 
+/// The amount of weight an XCM operation takes. This is a safe overestimate.
+pub const BASE_XCM_WEIGHT: Weight = 1_000_000_000;
+
 parameter_types! {
 	/// The amount of weight an XCM operation takes. This is a safe overestimate.
-	pub const BaseXcmWeight: Weight = 1_000_000_000;
+	pub const BaseXcmWeight: Weight = BASE_XCM_WEIGHT;
 	/// Maximum number of instructions in a single XCM fragment. A sanity check against weight
 	/// calculations getting too crazy.
 	pub const MaxInstructions: u32 = 100;
@@ -276,8 +279,12 @@ mod tests {
 	#[test]
 	fn xcm_messages_from_rialto_are_dispatched() {
 		type XcmExecutor = xcm_executor::XcmExecutor<XcmConfig>;
-		type MessageDispatcher =
-			FromBridgedChainMessageDispatch<WithRialtoMessageBridge, XcmExecutor, XcmWeigher>;
+		type MessageDispatcher = FromBridgedChainMessageDispatch<
+			WithMillauMessageBridge,
+			XcmExecutor,
+			XcmWeigher,
+			frame_support::traits::ConstU64<BASE_XCM_WEIGHT>,
+		>;
 
 		new_test_ext().execute_with(|| {
 			let location: MultiLocation =

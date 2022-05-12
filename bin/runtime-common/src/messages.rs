@@ -27,7 +27,7 @@ use bp_messages::{
 };
 use bp_runtime::{messages::MessageDispatchResult, ChainId, Size, StorageProofChecker};
 use codec::{Decode, DecodeLimit, Encode};
-use frame_support::{weights::Weight, RuntimeDebug};
+use frame_support::{traits::Get, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -492,16 +492,17 @@ pub mod target {
 
 	/// Dispatching Bridged -> This chain messages.
 	#[derive(RuntimeDebug, Clone, Copy)]
-	pub struct FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher> {
-		_marker: PhantomData<(B, XcmExecutor, XcmWeigher)>,
+	pub struct FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher, WeightCredit> {
+		_marker: PhantomData<(B, XcmExecutor, XcmWeigher, WeightCredit)>,
 	}
 
-	impl<B: MessageBridge, XcmExecutor, XcmWeigher>
+	impl<B: MessageBridge, XcmExecutor, XcmWeigher, WeightCredit>
 		MessageDispatch<AccountIdOf<ThisChain<B>>, BalanceOf<BridgedChain<B>>>
-		for FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher>
+		for FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher, WeightCredit>
 	where
 		XcmExecutor: xcm::v3::ExecuteXcm<CallOf<ThisChain<B>>>,
 		XcmWeigher: xcm_executor::traits::WeightBounds<CallOf<ThisChain<B>>>,
+		WeightCredit: Get<Weight>,
 	{
 		type DispatchPayload = FromBridgedChainMessagePayload<CallOf<ThisChain<B>>>;
 
@@ -554,8 +555,8 @@ pub mod target {
 				);
 				let hash = message_id.using_encoded(sp_io::hashing::blake2_256);
 
-				// TODO: make this configurable or remove
-				let weight_credit = 2 * 1_000_000_000;
+				// if this cod will end up in production, this most likely needs to be set to zero
+				let weight_credit = WeightCredit::get();
 
 				let xcm_outcome = XcmExecutor::execute_xcm_in_credit(
 					location,
