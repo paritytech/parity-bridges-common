@@ -214,14 +214,16 @@ impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>
 		let here = UniversalLocation::get();
 		let route = dest.relative_to(&here);
 		let msg = (route, msg.take().unwrap()).encode();
+
 		let fee = estimate_message_dispatch_and_delivery_fee::<WithMillauMessageBridge>(
 			&msg,
 			WithMillauMessageBridge::RELAYER_FEE_PERCENT,
 			None,
 		)
 		.map_err(SendError::Transport)?;
-		// TOOD: fee -> MultiAssets
-		Ok(((fee, msg), MultiAssets::new()))
+		let fee_assets = MultiAssets::from((Here, fee));
+
+		Ok(((fee, msg), fee_assets))
 	}
 
 	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {

@@ -214,14 +214,16 @@ impl<MB: MessagesBridge<Origin, AccountId, Balance, FromThisChainMessagePayload>
 		let here = UniversalLocation::get();
 		let route = dest.relative_to(&here);
 		let msg = (route, msg.take().unwrap()).encode();
+
 		let fee = estimate_message_dispatch_and_delivery_fee::<WithRialtoMessageBridge>(
 			&msg,
 			WithRialtoMessageBridge::RELAYER_FEE_PERCENT,
 			None,
 		)
 		.map_err(SendError::Transport)?;
-		// TOOD: fee -> MultiAssets
-		Ok(((fee, msg), MultiAssets::new()))
+		let fee_assets = MultiAssets::from((Here, fee));
+
+		Ok(((fee, msg), fee_assets))
 	}
 
 	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
@@ -280,7 +282,7 @@ mod tests {
 	fn xcm_messages_from_rialto_are_dispatched() {
 		type XcmExecutor = xcm_executor::XcmExecutor<XcmConfig>;
 		type MessageDispatcher = FromBridgedChainMessageDispatch<
-			WithMillauMessageBridge,
+			WithRialtoMessageBridge,
 			XcmExecutor,
 			XcmWeigher,
 			frame_support::traits::ConstU64<BASE_XCM_WEIGHT>,
