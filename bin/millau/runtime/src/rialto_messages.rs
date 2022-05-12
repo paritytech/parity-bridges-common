@@ -126,9 +126,18 @@ impl messages::ThisChainWithMessages for Millau {
 		match send_origin.caller {
 			OriginCaller::XcmPallet(pallet_xcm::Origin::Xcm(ref location))
 				if *location == here_location =>
-				*lane == [0, 0, 0, 0],
-			_ => false,
+			{
+				log::trace!(target: "runtime::bridge", "Verifying message sent using XCM pallet to Rialto");
+			},
+			_ => {
+				// keep in mind that in this case all messages are free (in term of fees)
+				// => it's just to keep testing bridge on our test deployments until we'll have a
+				// better option
+				log::trace!(target: "runtime::bridge", "Verifying message sent using messages pallet to Rialto");
+			},
 		}
+
+		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {

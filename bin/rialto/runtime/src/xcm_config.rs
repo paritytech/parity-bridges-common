@@ -267,6 +267,7 @@ mod tests {
 	#[test]
 	fn xcm_messages_to_millau_are_sent() {
 		new_test_ext().execute_with(|| {
+			// the encoded message (origin ++ xcm) is 0x010109030419A8
 			let dest = (Parent, X1(GlobalConsensus(MillauNetwork::get())));
 			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
 
