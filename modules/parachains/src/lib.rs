@@ -124,7 +124,7 @@ pub mod pallet {
 		/// `polkadot-runtime-parachains::paras` pallet instance, deployed at the bridged chain.
 		/// The proof is supposed to be crafted at the `relay_header_hash` that must already be
 		/// imported by corresponding GRANDPA pallet at this chain.
-		#[pallet::weight(0)] // TODO
+		#[pallet::weight(0)] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1391
 		pub fn submit_parachain_heads(
 			_origin: OriginFor<T>,
 			relay_block_hash: RelayBlockHash,
@@ -145,6 +145,7 @@ pub mod pallet {
 				sp_trie::StorageProof::new(parachain_heads_proof),
 				move |storage| {
 					for parachain in parachains {
+						// TODO: https://github.com/paritytech/parity-bridges-common/issues/1393
 						let parachain_head = match Pallet::<T, I>::read_parachain_head(&storage, parachain) {
 							Some(parachain_head) => parachain_head,
 							None => {
@@ -173,9 +174,11 @@ pub mod pallet {
 
 			// TODO: there may be parachains we are not interested in - so we only need to accept
 			// intersection of `parachains-interesting-to-us` and `parachains`
+			// https://github.com/paritytech/parity-bridges-common/issues/1392
 
 			// TODO: if some parachain is no more interesting to us, we should start pruning its
 			// heads
+			// https://github.com/paritytech/parity-bridges-common/issues/1392
 
 			Ok(())
 		}
