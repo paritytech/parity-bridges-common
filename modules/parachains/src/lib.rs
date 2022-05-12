@@ -104,6 +104,8 @@ pub mod pallet {
 		StorageDoubleMap<_, Blake2_128Concat, ParaId, Twox64Concat, u32, ParaHash>;
 
 	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::call]
@@ -288,7 +290,9 @@ mod tests {
 
 	use bp_test_utils::{authority_list, make_default_justification};
 	use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
-	use sp_trie::{record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, TrieMut};
+	use sp_trie::{
+		record_all_keys, trie_types::TrieDBMutV1, LayoutV1, MemoryDB, Recorder, TrieMut,
+	};
 
 	type BridgesGrandpaPalletInstance = pallet_bridge_grandpa::Instance1;
 
@@ -327,7 +331,7 @@ mod tests {
 		let mut root = Default::default();
 		let mut mdb = MemoryDB::default();
 		{
-			let mut trie = TrieDBMut::<RelayBlockHasher>::new(&mut mdb, &mut root);
+			let mut trie = TrieDBMutV1::<RelayBlockHasher>::new(&mut mdb, &mut root);
 			for (parachain, head) in heads {
 				let storage_key = storage_keys::parachain_head_key(parachain);
 				trie.insert(&storage_key.0, &head.encode())
@@ -338,7 +342,7 @@ mod tests {
 
 		// generate storage proof to be delivered to This chain
 		let mut proof_recorder = Recorder::<RelayBlockHash>::new();
-		record_all_keys::<Layout<RelayBlockHasher>, _>(&mdb, &root, &mut proof_recorder)
+		record_all_keys::<LayoutV1<RelayBlockHasher>, _>(&mdb, &root, &mut proof_recorder)
 			.map_err(|_| "record_all_keys has failed")
 			.expect("record_all_keys should not fail in benchmarks");
 		let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();

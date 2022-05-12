@@ -15,8 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::cli::{
-	swap_tokens::wait_until_transaction_is_finalized, Balance, ParachainConnectionParams,
-	RelaychainConnectionParams, RelaychainSigningParams,
+	Balance, ParachainConnectionParams, RelaychainConnectionParams, RelaychainSigningParams,
 };
 
 use codec::Encode;
@@ -30,7 +29,8 @@ use polkadot_runtime_common::{
 };
 use polkadot_runtime_parachains::paras::ParaLifecycle;
 use relay_substrate_client::{
-	AccountIdOf, CallOf, Chain, Client, TransactionSignScheme, UnsignedTransaction,
+	AccountIdOf, CallOf, Chain, Client, HashOf, SignParam, Subscription, TransactionSignScheme,
+	TransactionStatusOf, UnsignedTransaction,
 };
 use rialto_runtime::SudoCall;
 use sp_core::{
@@ -107,8 +107,8 @@ impl RegisterParachain {
 			let para_id: ParaId = relay_client
 				.storage_value(StorageKey(para_id_key.to_vec()), None)
 				.await?
-				.unwrap_or(polkadot_primitives::v1::LOWEST_PUBLIC_ID)
-				.max(polkadot_primitives::v1::LOWEST_PUBLIC_ID);
+				.unwrap_or(polkadot_primitives::v2::LOWEST_PUBLIC_ID)
+				.max(polkadot_primitives::v2::LOWEST_PUBLIC_ID);
 			log::info!(target: "bridge", "Going to reserve parachain id: {:?}", para_id);
 
 			// step 1: reserve a parachain id
@@ -117,23 +117,26 @@ impl RegisterParachain {
 			let reserve_parachain_id_call: CallOf<Relaychain> =
 				ParaRegistrarCall::reserve {}.into();
 			let reserve_parachain_signer = relay_sign.clone();
+			let (spec_version, transaction_version) = relay_client.simple_runtime_version().await?;
 			wait_until_transaction_is_finalized::<Relaychain>(
 				relay_client
 					.submit_and_watch_signed_extrinsic(
 						relay_sudo_account.clone(),
 						move |_, transaction_nonce| {
-							Bytes(
-								Relaychain::sign_transaction(
-									relay_genesis_hash,
-									&reserve_parachain_signer,
-									relay_substrate_client::TransactionEra::immortal(),
-									UnsignedTransaction::new(
-										reserve_parachain_id_call,
+							Ok(Bytes(
+								Relaychain::sign_transaction(SignParam {
+									spec_version,
+									transaction_version,
+									genesis_hash: relay_genesis_hash,
+									signer: reserve_parachain_signer,
+									era: relay_substrate_client::TransactionEra::immortal(),
+									unsigned: UnsignedTransaction::new(
+										reserve_parachain_id_call.into(),
 										transaction_nonce,
 									),
-								)
+								})?
 								.encode(),
-							)
+							))
 						},
 					)
 					.await?,
@@ -169,18 +172,20 @@ impl RegisterParachain {
 					.submit_and_watch_signed_extrinsic(
 						relay_sudo_account.clone(),
 						move |_, transaction_nonce| {
-							Bytes(
-								Relaychain::sign_transaction(
-									relay_genesis_hash,
-									&register_parathread_signer,
-									relay_substrate_client::TransactionEra::immortal(),
-									UnsignedTransaction::new(
-										register_parathread_call,
+							Ok(Bytes(
+								Relaychain::sign_transaction(SignParam {
+									spec_version,
+									transaction_version,
+									genesis_hash: relay_genesis_hash,
+									signer: register_parathread_signer,
+									era: relay_substrate_client::TransactionEra::immortal(),
+									unsigned: UnsignedTransaction::new(
+										register_parathread_call.into(),
 										transaction_nonce,
 									),
-								)
+								})?
 								.encode(),
-							)
+							))
 						},
 					)
 					.await?,
@@ -229,15 +234,20 @@ impl RegisterParachain {
 			let force_lease_signer = relay_sign.clone();
 			relay_client
 				.submit_signed_extrinsic(relay_sudo_account.clone(), move |_, transaction_nonce| {
-					Bytes(
-						Relaychain::sign_transaction(
-							relay_genesis_hash,
-							&force_lease_signer,
-							relay_substrate_client::TransactionEra::immortal(),
-							UnsignedTransaction::new(force_lease_call, transaction_nonce),
-						)
+					Ok(Bytes(
+						Relaychain::sign_transaction(SignParam {
+							spec_version,
+							transaction_version,
+							genesis_hash: relay_genesis_hash,
+							signer: force_lease_signer,
+							era: relay_substrate_client::TransactionEra::immortal(),
+							unsigned: UnsignedTransaction::new(
+								force_lease_call.into(),
+								transaction_nonce,
+							),
+						})?
 						.encode(),
-					)
+					))
 				})
 				.await?;
 			log::info!(target: "bridge", "Registered parachain leases: {:?}. Waiting for onboarding", para_id);
@@ -257,6 +267,46 @@ impl RegisterParachain {
 
 			Ok(())
 		})
+	}
+}
+
+/// Wait until transaction is included into finalized block.
+///
+/// Returns the hash of the finalized block with transaction.
+pub(crate) async fn wait_until_transaction_is_finalized<C: Chain>(
+	subscription: Subscription<TransactionStatusOf<C>>,
+) -> anyhow::Result<HashOf<C>> {
+	loop {
+		let transaction_status = subscription.next().await?;
+		match transaction_status {
+			Some(TransactionStatusOf::<C>::FinalityTimeout(_)) |
+			Some(TransactionStatusOf::<C>::Usurped(_)) |
+			Some(TransactionStatusOf::<C>::Dropped) |
+			Some(TransactionStatusOf::<C>::Invalid) |
+			None =>
+				return Err(anyhow::format_err!(
+					"We've been waiting for finalization of {} transaction, but it now has the {:?} status",
+					C::NAME,
+					transaction_status,
+				)),
+			Some(TransactionStatusOf::<C>::Finalized(block_hash)) => {
+				log::trace!(
+					target: "bridge",
+					"{} transaction has been finalized at block {}",
+					C::NAME,
+					block_hash,
+				);
+				return Ok(block_hash)
+			},
+			_ => {
+				log::trace!(
+					target: "bridge",
+					"Received intermediate status of {} transaction: {:?}",
+					C::NAME,
+					transaction_status,
+				);
+			},
+		}
 	}
 }
 
@@ -293,6 +343,9 @@ async fn wait_para_state<Relaychain: Chain>(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::cli::{
+		ParachainRuntimeVersionParams, RelaychainRuntimeVersionParams, RuntimeVersionType,
+	};
 
 	#[test]
 	fn register_rialto_parachain() {
@@ -328,6 +381,11 @@ mod tests {
 					relaychain_host: "127.0.0.1".into(),
 					relaychain_port: 9944,
 					relaychain_secure: false,
+					relaychain_runtime_version: RelaychainRuntimeVersionParams {
+						relaychain_version_mode: RuntimeVersionType::Bundle,
+						relaychain_spec_version: None,
+						relaychain_transaction_version: None,
+					}
 				},
 				relay_sign: RelaychainSigningParams {
 					relaychain_signer: Some("//Alice".into()),
@@ -340,6 +398,11 @@ mod tests {
 					parachain_host: "127.0.0.1".into(),
 					parachain_port: 11949,
 					parachain_secure: false,
+					parachain_runtime_version: ParachainRuntimeVersionParams {
+						parachain_version_mode: RuntimeVersionType::Bundle,
+						parachain_spec_version: None,
+						parachain_transaction_version: None,
+					}
 				},
 			}
 		);

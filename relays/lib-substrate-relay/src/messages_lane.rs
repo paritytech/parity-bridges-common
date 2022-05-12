@@ -17,6 +17,7 @@
 //! Tools for supporting message lanes between two Substrate-based chains.
 
 use crate::{
+	conversion_rate_update::UpdateConversionRateCallBuilder,
 	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
@@ -34,8 +35,8 @@ use frame_support::weights::{GetDispatchInfo, Weight};
 use messages_relay::{message_lane::MessageLane, relay_strategy::RelayStrategy};
 use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
-	AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain, ChainWithMessages, Client, HashOf,
-	TransactionSignScheme,
+	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
+	ChainWithMessages, Client, HashOf, TransactionSignScheme,
 };
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
@@ -43,18 +44,36 @@ use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
 /// Substrate -> Substrate messages synchronization pipeline.
 pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
-	/// Name of the source -> target tokens conversion rate parameter name.
+	/// Name of the source -> target tokens conversion rate parameter.
 	///
 	/// The parameter is stored at the target chain and the storage key is computed using
 	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
 	/// to be 1.
 	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str>;
-	/// Name of the target -> source tokens conversion rate parameter name.
+	/// Name of the target -> source tokens conversion rate parameter.
 	///
 	/// The parameter is stored at the source chain and the storage key is computed using
 	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
 	/// to be 1.
 	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str>;
+
+	/// Name of the source chain fee multiplier parameter.
+	///
+	/// The parameter is stored at the target chain and the storage key is computed using
+	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
+	/// to be 1.
+	const SOURCE_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str>;
+	/// Name of the target chain fee multiplier parameter.
+	///
+	/// The parameter is stored at the source chain and the storage key is computed using
+	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
+	/// to be 1.
+	const TARGET_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str>;
+
+	/// Name of the transaction payment pallet, deployed at the source chain.
+	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
+	/// Name of the transaction payment pallet, deployed at the target chain.
+	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
 
 	/// Messages of this chain are relayed to the `TargetChain`.
 	type SourceChain: ChainWithMessages;
@@ -70,6 +89,13 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type ReceiveMessagesProofCallBuilder: ReceiveMessagesProofCallBuilder<Self>;
 	/// How receive messages delivery proof call is built?
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
+
+	/// `TargetChain` tokens to `SourceChain` tokens conversion rate update builder.
+	///
+	/// If not applicable to this bridge, you may use `()` here.
+	type TargetToSourceChainConversionRateUpdateBuilder: UpdateConversionRateCallBuilder<
+		Self::SourceChain,
+	>;
 
 	/// Message relay strategy.
 	type RelayStrategy: RelayStrategy;
@@ -173,7 +199,7 @@ where
 			Max messages in single transaction: {}\n\t\
 			Max messages size in single transaction: {}\n\t\
 			Max messages weight in single transaction: {}\n\t\
-			Tx mortality: {:?}/{:?}\n\t\
+			Tx mortality: {:?} (~{}m)/{:?} (~{}m)\n\t\
 			Stall timeout: {:?}",
 		P::SourceChain::NAME,
 		P::TargetChain::NAME,
@@ -183,7 +209,17 @@ where
 		max_messages_size_in_single_batch,
 		max_messages_weight_in_single_batch,
 		params.source_transaction_params.mortality,
+		transaction_stall_timeout(
+			params.source_transaction_params.mortality,
+			P::SourceChain::AVERAGE_BLOCK_INTERVAL,
+			STALL_TIMEOUT,
+		).as_secs_f64() / 60.0f64,
 		params.target_transaction_params.mortality,
+		transaction_stall_timeout(
+			params.target_transaction_params.mortality,
+			P::TargetChain::AVERAGE_BLOCK_INTERVAL,
+			STALL_TIMEOUT,
+		).as_secs_f64() / 60.0f64,
 		stall_timeout,
 	);
 
@@ -206,13 +242,15 @@ where
 			},
 		},
 		SubstrateMessagesSource::<P>::new(
-			source_client,
+			source_client.clone(),
+			target_client.clone(),
 			params.lane_id,
 			params.source_transaction_params,
 			params.target_to_source_headers_relay,
 		),
 		SubstrateMessagesTarget::<P>::new(
 			target_client,
+			source_client,
 			params.lane_id,
 			relayer_id_at_source,
 			params.target_transaction_params,
@@ -453,7 +491,7 @@ mod tests {
 	use bp_runtime::Chain;
 
 	type RialtoToMillauMessagesWeights =
-		pallet_bridge_messages::weights::RialtoWeight<rialto_runtime::Runtime>;
+		pallet_bridge_messages::weights::MillauWeight<rialto_runtime::Runtime>;
 
 	#[test]
 	fn select_delivery_transaction_limits_works() {
@@ -469,7 +507,7 @@ mod tests {
 			// i.e. weight reserved for messages dispatch allows dispatch of non-trivial messages.
 			//
 			// Any significant change in this values should attract additional attention.
-			(782, 216_583_333_334),
+			(958, 216_583_333_334),
 		);
 	}
 }

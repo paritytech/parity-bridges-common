@@ -14,23 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Substrate client as Substrate finality proof target. The chain we connect to should have
-//! bridge GRANDPA pallet deployed and provide `<BridgedChainName>FinalityApi` to allow bridging
-//! with <BridgedName> chain.
+//! Substrate client as Substrate finality proof target.
 
 use crate::{
-	finality_pipeline::{
-		FinalitySyncPipelineAdapter, SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
+	finality::{
+		engine::Engine, source::SubstrateFinalityProof, FinalitySyncPipelineAdapter,
+		SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
 	},
 	TransactionParams,
 };
 
 use async_trait::async_trait;
-use bp_header_chain::justification::GrandpaJustification;
 use codec::Encode;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error, HashOf, HeaderOf,
+	AccountIdOf, AccountKeyPairOf, Chain, Client, Error, HeaderIdOf, HeaderOf, SignParam,
 	SyncHeader, TransactionEra, TransactionSignScheme, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
@@ -49,6 +47,16 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalityTarget<P> {
 		transaction_params: TransactionParams<AccountKeyPairOf<P::TransactionSignScheme>>,
 	) -> Self {
 		SubstrateFinalityTarget { client, transaction_params }
+	}
+
+	/// Ensure that the bridge pallet at target chain is active.
+	pub async fn ensure_pallet_active(&self) -> Result<(), Error> {
+		let is_halted = self.client.storage_value(P::FinalityEngine::is_halted_key(), None).await?;
+		if is_halted.unwrap_or(false) {
+			Err(Error::BridgePalletIsHalted)
+		} else {
+			Ok(())
+		}
 	}
 }
 
@@ -77,45 +85,47 @@ where
 	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TransactionSignScheme> as Pair>::Public>,
 	P::TransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
 {
-	async fn best_finalized_source_block_number(
-		&self,
-	) -> Result<BlockNumberOf<P::SourceChain>, Error> {
+	async fn best_finalized_source_block_id(&self) -> Result<HeaderIdOf<P::SourceChain>, Error> {
 		// we can't continue to relay finality if target node is out of sync, because
 		// it may have already received (some of) headers that we're going to relay
 		self.client.ensure_synced().await?;
+		// we can't relay finality if bridge pallet at target chain is halted
+		self.ensure_pallet_active().await?;
 
-		Ok(crate::messages_source::read_client_state::<
-			P::TargetChain,
-			HashOf<P::SourceChain>,
-			BlockNumberOf<P::SourceChain>,
-		>(&self.client, P::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD)
+		Ok(crate::messages_source::read_client_state::<P::TargetChain, P::SourceChain>(
+			&self.client,
+			None,
+			P::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD,
+		)
 		.await?
-		.best_finalized_peer_at_best_self
-		.0)
+		.best_finalized_peer_at_best_self)
 	}
 
 	async fn submit_finality_proof(
 		&self,
 		header: SyncHeader<HeaderOf<P::SourceChain>>,
-		proof: GrandpaJustification<HeaderOf<P::SourceChain>>,
+		proof: SubstrateFinalityProof<P>,
 	) -> Result<(), Error> {
 		let genesis_hash = *self.client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
 		let call =
 			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
+		let (spec_version, transaction_version) = self.client.simple_runtime_version().await?;
 		self.client
 			.submit_signed_extrinsic(
 				self.transaction_params.signer.public().into(),
 				move |best_block_id, transaction_nonce| {
-					Bytes(
-						P::TransactionSignScheme::sign_transaction(
+					Ok(Bytes(
+						P::TransactionSignScheme::sign_transaction(SignParam {
+							spec_version,
+							transaction_version,
 							genesis_hash,
-							&transaction_params.signer,
-							TransactionEra::new(best_block_id, transaction_params.mortality),
-							UnsignedTransaction::new(call, transaction_nonce),
-						)
+							signer: transaction_params.signer.clone(),
+							era: TransactionEra::new(best_block_id, transaction_params.mortality),
+							unsigned: UnsignedTransaction::new(call.into(), transaction_nonce),
+						})?
 						.encode(),
-					)
+					))
 				},
 			)
 			.await

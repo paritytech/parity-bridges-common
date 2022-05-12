@@ -1,9 +1,7 @@
 #!/bin/bash
 set -xeu
 
-sleep 60
-curl -v http://millau-node-alice:9933/health
-curl -v http://rialto-node-alice:9933/health
+sleep 15
 
 /home/user/substrate-relay init-bridge millau-to-rialto \
 	--source-host millau-node-alice \

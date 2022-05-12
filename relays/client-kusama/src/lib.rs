@@ -20,8 +20,8 @@ use bp_messages::MessageNonce;
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithMessages, TransactionEraOf,
-	TransactionSignScheme, UnsignedTransaction,
+	Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
+	Error as SubstrateError, SignParam, TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -70,21 +70,15 @@ impl Chain for Kusama {
 	type WeightToFee = bp_kusama::WeightToFee;
 }
 
+impl ChainWithGrandpa for Kusama {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_kusama::WITH_KUSAMA_GRANDPA_PALLET_NAME;
+}
+
 impl ChainWithMessages for Kusama {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
 		bp_kusama::WITH_KUSAMA_MESSAGES_PALLET_NAME;
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_kusama::TO_KUSAMA_MESSAGE_DETAILS_METHOD;
-	const TO_CHAIN_LATEST_GENERATED_NONCE_METHOD: &'static str =
-		bp_kusama::TO_KUSAMA_LATEST_GENERATED_NONCE_METHOD;
-	const TO_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str =
-		bp_kusama::TO_KUSAMA_LATEST_RECEIVED_NONCE_METHOD;
-	const FROM_CHAIN_LATEST_RECEIVED_NONCE_METHOD: &'static str =
-		bp_kusama::FROM_KUSAMA_LATEST_RECEIVED_NONCE_METHOD;
-	const FROM_CHAIN_LATEST_CONFIRMED_NONCE_METHOD: &'static str =
-		bp_kusama::FROM_KUSAMA_LATEST_CONFIRMED_NONCE_METHOD;
-	const FROM_CHAIN_UNREWARDED_RELAYERS_STATE: &'static str =
-		bp_kusama::FROM_KUSAMA_UNREWARDED_RELAYERS_STATE;
 	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight =
 		bp_kusama::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
@@ -105,34 +99,30 @@ impl TransactionSignScheme for Kusama {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = crate::runtime::UncheckedExtrinsic;
 
-	fn sign_transaction(
-		genesis_hash: <Self::Chain as ChainBase>::Hash,
-		signer: &Self::AccountKeyPair,
-		era: TransactionEraOf<Self::Chain>,
-		unsigned: UnsignedTransaction<Self::Chain>,
-	) -> Self::SignedTransaction {
+	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
-			unsigned.call,
+			param.unsigned.call.clone(),
 			bp_kusama::SignedExtensions::new(
-				bp_kusama::VERSION,
-				era,
-				genesis_hash,
-				unsigned.nonce,
-				unsigned.tip,
+				param.spec_version,
+				param.transaction_version,
+				param.era,
+				param.genesis_hash,
+				param.unsigned.nonce,
+				param.unsigned.tip,
 			),
 		)
 		.expect("SignedExtension never fails.");
 
-		let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
-		let signer: sp_runtime::MultiSigner = signer.public().into();
+		let signature = raw_payload.using_encoded(|payload| param.signer.sign(payload));
+		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		bp_kusama::UncheckedExtrinsic::new_signed(
+		Ok(bp_kusama::UncheckedExtrinsic::new_signed(
 			call,
 			sp_runtime::MultiAddress::Id(signer.into_account()),
 			signature.into(),
 			extra,
-		)
+		))
 	}
 
 	fn is_signed(tx: &Self::SignedTransaction) -> bool {

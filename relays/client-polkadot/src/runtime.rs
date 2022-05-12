@@ -27,30 +27,6 @@ use sp_runtime::FixedU128;
 /// Unchecked Polkadot extrinsic.
 pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
 
-/// Kusama account ownership digest from Polkadot.
-///
-/// The byte vector returned by this function should be signed with a Kusama account private key.
-/// This way, the owner of `kusam_account_id` on Polkadot proves that the Kusama account private key
-/// is also under his control.
-pub fn polkadot_to_kusama_account_ownership_digest<Call, AccountId, SpecVersion>(
-	kusama_call: &Call,
-	kusam_account_id: AccountId,
-	kusama_spec_version: SpecVersion,
-) -> Vec<u8>
-where
-	Call: codec::Encode,
-	AccountId: codec::Encode,
-	SpecVersion: codec::Encode,
-{
-	pallet_bridge_dispatch::account_ownership_digest(
-		kusama_call,
-		kusam_account_id,
-		kusama_spec_version,
-		bp_runtime::POLKADOT_CHAIN_ID,
-		bp_runtime::KUSAMA_CHAIN_ID,
-	)
-}
-
 /// Polkadot Runtime `Call` enum.
 ///
 /// The enum represents a subset of possible `Call`s we can send to Polkadot chain.
@@ -70,6 +46,9 @@ pub enum Call {
 	/// Balances pallet.
 	#[codec(index = 5)]
 	Balances(BalancesCall),
+	/// Utility pallet.
+	#[codec(index = 26)]
+	Utility(UtilityCall),
 	/// Kusama bridge pallet.
 	#[codec(index = 110)]
 	BridgeKusamaGrandpa(BridgeKusamaGrandpaCall),
@@ -102,6 +81,8 @@ pub enum BridgeKusamaGrandpaCall {
 	),
 	#[codec(index = 1)]
 	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
+	#[codec(index = 3)]
+	set_operational(bool),
 }
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
@@ -110,16 +91,7 @@ pub enum BridgeKusamaMessagesCall {
 	#[codec(index = 2)]
 	update_pallet_parameter(BridgeKusamaMessagesParameter),
 	#[codec(index = 3)]
-	send_message(
-		LaneId,
-		bp_message_dispatch::MessagePayload<
-			bp_polkadot::AccountId,
-			bp_kusama::AccountId,
-			bp_kusama::AccountPublic,
-			Vec<u8>,
-		>,
-		bp_polkadot::Balance,
-	),
+	send_message(LaneId, Vec<u8>, bp_polkadot::Balance),
 	#[codec(index = 5)]
 	receive_messages_proof(
 		bp_kusama::AccountId,
@@ -134,6 +106,13 @@ pub enum BridgeKusamaMessagesCall {
 		>,
 		UnrewardedRelayersState,
 	),
+}
+
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[allow(non_camel_case_types)]
+pub enum UtilityCall {
+	#[codec(index = 2)]
+	batch_all(Vec<Call>),
 }
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]

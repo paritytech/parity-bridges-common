@@ -2,15 +2,16 @@
 name = "millau-runtime"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
-edition = "2018"
+edition = "2021"
 homepage = "https://substrate.dev"
 repository = "https://github.com/paritytech/parity-bridges-common/"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
 hex-literal = "0.3"
-codec = { package = "parity-scale-codec", version = "2.2.0", default-features = false, features = ["derive"] }
-scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
+libsecp256k1 = { version = "0.7", optional = true, default-features = false, features = ["hmac"] }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 
 # Bridge dependencies
@@ -22,10 +23,8 @@ bp-rialto = { path = "../../../primitives/chain-rialto", default-features = fals
 bp-runtime = { path = "../../../primitives/runtime", default-features = false }
 bp-westend = { path = "../../../primitives/chain-westend", default-features = false }
 bridge-runtime-common = { path = "../../runtime-common", default-features = false }
-pallet-bridge-dispatch = { path = "../../../modules/dispatch", default-features = false }
 pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = false }
 pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
-pallet-bridge-token-swap = { path = "../../../modules/token-swap", default-features = false }
 pallet-shift-session-manager = { path = "../../../modules/shift-session-manager", default-features = false }
 
 # Substrate Dependencies
@@ -42,7 +41,6 @@ pallet-beefy = { git = "https://github.com/paritytech/substrate", branch = "mast
 pallet-beefy-mmr = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-mmr = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-pallet-mmr-primitives = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-session = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -55,6 +53,7 @@ sp-consensus-aura = { git = "https://github.com/paritytech/substrate", branch = 
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-mmr-primitives = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-session = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -62,6 +61,10 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", d
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+
+[dev-dependencies]
+bridge-runtime-common = { path = "../../runtime-common", features = ["integrity-test"] }
+static_assertions = "1.1"
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "master" }
@@ -86,10 +89,8 @@ std = [
 	"pallet-balances/std",
 	"pallet-beefy/std",
 	"pallet-beefy-mmr/std",
-	"pallet-bridge-dispatch/std",
 	"pallet-bridge-grandpa/std",
 	"pallet-bridge-messages/std",
-	"pallet-bridge-token-swap/std",
 	"pallet-grandpa/std",
 	"pallet-mmr/std",
 	"pallet-randomness-collective-flip/std",
@@ -116,8 +117,11 @@ std = [
 	"sp-version/std",
 ]
 runtime-benchmarks = [
-	"frame-benchmarking",
+	"bridge-runtime-common/runtime-benchmarks",
+	"frame-benchmarking/runtime-benchmarks",
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
-	"pallet-bridge-token-swap/runtime-benchmarks",
+	"libsecp256k1",
+	"pallet-bridge-messages/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
 ]

@@ -18,10 +18,15 @@
 //! finality proofs synchronization pipelines.
 
 use crate::{
-	finality_source::SubstrateFinalitySource, finality_target::SubstrateFinalityTarget,
+	finality::{
+		engine::Engine,
+		source::{SubstrateFinalityProof, SubstrateFinalitySource},
+		target::SubstrateFinalityTarget,
+	},
 	TransactionParams,
 };
 
+use async_trait::async_trait;
 use bp_header_chain::justification::GrandpaJustification;
 use finality_relay::FinalitySyncPipeline;
 use pallet_bridge_grandpa::{Call as BridgeGrandpaCall, Config as BridgeGrandpaConfig};
@@ -33,6 +38,12 @@ use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use std::{fmt::Debug, marker::PhantomData};
 
+pub mod engine;
+pub mod guards;
+pub mod initialize;
+pub mod source;
+pub mod target;
+
 /// Default limit of recent finality proofs.
 ///
 /// Finality delay of 4096 blocks is unlikely to happen in practice in
@@ -40,28 +51,33 @@ use std::{fmt::Debug, marker::PhantomData};
 pub(crate) const RECENT_FINALITY_PROOFS_LIMIT: usize = 4096;
 
 /// Substrate -> Substrate finality proofs synchronization pipeline.
+#[async_trait]
 pub trait SubstrateFinalitySyncPipeline: 'static + Clone + Debug + Send + Sync {
 	/// Headers of this chain are submitted to the `TargetChain`.
 	type SourceChain: Chain;
 	/// Headers of the `SourceChain` are submitted to this chain.
 	type TargetChain: Chain;
 
+	/// Finality engine.
+	type FinalityEngine: Engine<Self::SourceChain>;
 	/// How submit finality proof call is built?
 	type SubmitFinalityProofCallBuilder: SubmitFinalityProofCallBuilder<Self>;
 	/// Scheme used to sign target chain transactions.
 	type TransactionSignScheme: TransactionSignScheme;
 
 	/// Add relay guards if required.
-	fn start_relay_guards(
+	async fn start_relay_guards(
 		_target_client: &Client<Self::TargetChain>,
 		_transaction_params: &TransactionParams<AccountKeyPairOf<Self::TransactionSignScheme>>,
-	) {
+		_enable_version_guard: bool,
+	) -> relay_substrate_client::Result<()> {
+		Ok(())
 	}
 }
 
 /// Adapter that allows all `SubstrateFinalitySyncPipeline` to act as `FinalitySyncPipeline`.
 #[derive(Clone, Debug)]
-pub(crate) struct FinalitySyncPipelineAdapter<P: SubstrateFinalitySyncPipeline> {
+pub struct FinalitySyncPipelineAdapter<P: SubstrateFinalitySyncPipeline> {
 	_phantom: PhantomData<P>,
 }
 
@@ -72,7 +88,7 @@ impl<P: SubstrateFinalitySyncPipeline> FinalitySyncPipeline for FinalitySyncPipe
 	type Hash = HashOf<P::SourceChain>;
 	type Number = BlockNumberOf<P::SourceChain>;
 	type Header = relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>;
-	type FinalityProof = GrandpaJustification<HeaderOf<P::SourceChain>>;
+	type FinalityProof = SubstrateFinalityProof<P>;
 }
 
 /// Different ways of building `submit_finality_proof` calls.
@@ -81,23 +97,26 @@ pub trait SubmitFinalityProofCallBuilder<P: SubstrateFinalitySyncPipeline> {
 	/// function of bridge GRANDPA module at the target chain.
 	fn build_submit_finality_proof_call(
 		header: SyncHeader<HeaderOf<P::SourceChain>>,
-		proof: GrandpaJustification<HeaderOf<P::SourceChain>>,
+		proof: SubstrateFinalityProof<P>,
 	) -> CallOf<P::TargetChain>;
 }
 
 /// Building `submit_finality_proof` call when you have direct access to the target
 /// chain runtime.
-pub struct DirectSubmitFinalityProofCallBuilder<P, R, I> {
+pub struct DirectSubmitGrandpaFinalityProofCallBuilder<P, R, I> {
 	_phantom: PhantomData<(P, R, I)>,
 }
 
-impl<P, R, I> SubmitFinalityProofCallBuilder<P> for DirectSubmitFinalityProofCallBuilder<P, R, I>
+impl<P, R, I> SubmitFinalityProofCallBuilder<P>
+	for DirectSubmitGrandpaFinalityProofCallBuilder<P, R, I>
 where
 	P: SubstrateFinalitySyncPipeline,
 	R: BridgeGrandpaConfig<I>,
 	I: 'static,
 	R::BridgedChain: bp_runtime::Chain<Header = HeaderOf<P::SourceChain>>,
 	CallOf<P::TargetChain>: From<BridgeGrandpaCall<R, I>>,
+	P::FinalityEngine:
+		Engine<P::SourceChain, FinalityProof = GrandpaJustification<HeaderOf<P::SourceChain>>>,
 {
 	fn build_submit_finality_proof_call(
 		header: SyncHeader<HeaderOf<P::SourceChain>>,
@@ -121,22 +140,22 @@ macro_rules! generate_mocked_submit_finality_proof_call_builder {
 	($pipeline:ident, $mocked_builder:ident, $bridge_grandpa:path, $submit_finality_proof:path) => {
 		pub struct $mocked_builder;
 
-		impl $crate::finality_pipeline::SubmitFinalityProofCallBuilder<$pipeline>
+		impl $crate::finality::SubmitFinalityProofCallBuilder<$pipeline>
 			for $mocked_builder
 		{
 			fn build_submit_finality_proof_call(
 				header: relay_substrate_client::SyncHeader<
 					relay_substrate_client::HeaderOf<
-						<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::SourceChain
+						<$pipeline as $crate::finality::SubstrateFinalitySyncPipeline>::SourceChain
 					>
 				>,
 				proof: bp_header_chain::justification::GrandpaJustification<
 					relay_substrate_client::HeaderOf<
-						<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::SourceChain
+						<$pipeline as $crate::finality::SubstrateFinalitySyncPipeline>::SourceChain
 					>
 				>,
 			) -> relay_substrate_client::CallOf<
-				<$pipeline as $crate::finality_pipeline::SubstrateFinalitySyncPipeline>::TargetChain
+				<$pipeline as $crate::finality::SubstrateFinalitySyncPipeline>::TargetChain
 			> {
 				$bridge_grandpa($submit_finality_proof(Box::new(header.into_inner()), proof))
 			}

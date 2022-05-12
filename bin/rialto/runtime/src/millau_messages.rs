@@ -19,7 +19,7 @@
 use crate::Runtime;
 
 use bp_messages::{
-	source_chain::TargetHeaderChain,
+	source_chain::{SenderOrigin, TargetHeaderChain},
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessagesParameter,
 };
@@ -33,7 +33,7 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
-use sp_std::{convert::TryFrom, ops::RangeInclusive};
+use sp_std::convert::TryFrom;
 
 /// Initial value of `MillauToRialtoConversionRate` parameter.
 pub const INITIAL_MILLAU_TO_RIALTO_CONVERSION_RATE: FixedU128 =
@@ -49,19 +49,14 @@ parameter_types! {
 }
 
 /// Message payload for Rialto -> Millau messages.
-pub type ToMillauMessagePayload =
-	messages::source::FromThisChainMessagePayload<WithMillauMessageBridge>;
+pub type ToMillauMessagePayload = messages::source::FromThisChainMessagePayload;
 
 /// Message verifier for Rialto -> Millau messages.
 pub type ToMillauMessageVerifier =
 	messages::source::FromThisChainMessageVerifier<WithMillauMessageBridge>;
 
 /// Message payload for Millau -> Rialto messages.
-pub type FromMillauMessagePayload =
-	messages::target::FromBridgedChainMessagePayload<WithMillauMessageBridge>;
-
-/// Encoded Rialto Call as it comes from Millau.
-pub type FromMillauEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<crate::Call>;
+pub type FromMillauMessagePayload = messages::target::FromBridgedChainMessagePayload;
 
 /// Call-dispatch based message dispatch for Millau -> Rialto messages.
 pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
@@ -91,11 +86,14 @@ impl MessageBridge for WithMillauMessageBridge {
 	type ThisChain = Rialto;
 	type BridgedChain = Millau;
 
-	fn bridged_balance_to_this_balance(bridged_balance: bp_millau::Balance) -> bp_rialto::Balance {
-		bp_rialto::Balance::try_from(
-			MillauToRialtoConversionRate::get().saturating_mul_int(bridged_balance),
-		)
-		.unwrap_or(bp_rialto::Balance::MAX)
+	fn bridged_balance_to_this_balance(
+		bridged_balance: bp_millau::Balance,
+		bridged_to_this_conversion_rate_override: Option<FixedU128>,
+	) -> bp_rialto::Balance {
+		let conversion_rate = bridged_to_this_conversion_rate_override
+			.unwrap_or_else(|| MillauToRialtoConversionRate::get());
+		bp_rialto::Balance::try_from(conversion_rate.saturating_mul_int(bridged_balance))
+			.unwrap_or(bp_rialto::Balance::MAX)
 	}
 }
 
@@ -113,10 +111,11 @@ impl messages::ChainWithMessages for Rialto {
 }
 
 impl messages::ThisChainWithMessages for Rialto {
+	type Origin = crate::Origin;
 	type Call = crate::Call;
 
-	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
-		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
+	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
+		send_origin.linked_account().is_some() && (*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1])
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
@@ -173,19 +172,8 @@ impl messages::BridgedChainWithMessages for Millau {
 		bp_millau::Millau::max_extrinsic_size()
 	}
 
-	fn message_weight_limits(_message_payload: &[u8]) -> RangeInclusive<Weight> {
-		// we don't want to relay too large messages + keep reserve for future upgrades
-		let upper_limit = messages::target::maximal_incoming_message_dispatch_weight(
-			bp_millau::Millau::max_extrinsic_weight(),
-		);
-
-		// we're charging for payload bytes in `WithMillauMessageBridge::transaction_payment`
-		// function
-		//
-		// this bridge may be used to deliver all kind of messages, so we're not making any
-		// assumptions about minimal dispatch weight here
-
-		0..=upper_limit
+	fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
+		true
 	}
 
 	fn estimate_delivery_transaction(
@@ -272,6 +260,19 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 	}
 }
 
+impl SenderOrigin<crate::AccountId> for crate::Origin {
+	fn linked_account(&self) -> Option<crate::AccountId> {
+		match self.caller {
+			crate::OriginCaller::system(frame_system::RawOrigin::Signed(ref submitter)) =>
+				Some(submitter.clone()),
+			crate::OriginCaller::system(frame_system::RawOrigin::Root) |
+			crate::OriginCaller::system(frame_system::RawOrigin::None) =>
+				crate::RootAccountForPayments::get(),
+			_ => None,
+		}
+	}
+}
+
 /// Rialto -> Millau message lane pallet parameters.
 #[derive(RuntimeDebug, Clone, Encode, Decode, PartialEq, Eq, TypeInfo)]
 pub enum RialtoToMillauMessagesParameter {
@@ -291,90 +292,101 @@ impl MessagesParameter for RialtoToMillauMessagesParameter {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{AccountId, Call, ExistentialDeposit, Runtime, SystemCall, SystemConfig, VERSION};
-	use bp_message_dispatch::CallOrigin;
-	use bp_messages::{
-		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-		MessageKey,
+	use crate::{DbWeight, MillauGrandpaInstance, Runtime, WithMillauMessagesInstance};
+	use bp_runtime::Chain;
+	use bridge_runtime_common::{
+		assert_complete_bridge_types,
+		integrity::{
+			assert_complete_bridge_constants, AssertBridgeMessagesPalletConstants,
+			AssertBridgePalletNames, AssertChainConstants, AssertCompleteBridgeConstants,
+		},
 	};
-	use bp_runtime::{derive_account_id, messages::DispatchFeePayment, SourceAccount};
-	use bridge_runtime_common::messages::target::{
-		FromBridgedChainEncodedMessageCall, FromBridgedChainMessagePayload,
-	};
-	use frame_support::{
-		traits::Currency,
-		weights::{GetDispatchInfo, WeightToFeePolynomial},
-	};
-	use sp_runtime::traits::Convert;
 
 	#[test]
-	fn transfer_happens_when_dispatch_fee_is_paid_at_target_chain() {
-		// this test actually belongs to the `bridge-runtime-common` crate, but there we have no
-		// mock runtime. Making another one there just for this test, given that both crates
-		// live n single repo is an overkill
-		let mut ext: sp_io::TestExternalities =
-			SystemConfig::default().build_storage::<Runtime>().unwrap().into();
-		ext.execute_with(|| {
-			let bridge = MILLAU_CHAIN_ID;
-			let call: Call = SystemCall::remark { remark: vec![] }.into();
-			let dispatch_weight = call.get_dispatch_info().weight;
-			let dispatch_fee = <Runtime as pallet_transaction_payment::Config>::WeightToFee::calc(
-				&dispatch_weight,
-			);
-			assert!(dispatch_fee > 0);
+	fn ensure_rialto_message_lane_weights_are_correct() {
+		type Weights = pallet_bridge_messages::weights::MillauWeight<Runtime>;
 
-			// create relayer account with minimal balance
-			let relayer_account: AccountId = [1u8; 32].into();
-			let initial_amount = ExistentialDeposit::get();
-			let _ = <pallet_balances::Pallet<Runtime> as Currency<AccountId>>::deposit_creating(
-				&relayer_account,
-				initial_amount,
-			);
+		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
+			bp_rialto::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
+			bp_rialto::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT,
+			bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+			bp_rialto::PAY_INBOUND_DISPATCH_FEE_WEIGHT,
+			DbWeight::get(),
+		);
 
-			// create dispatch account with minimal balance + dispatch fee
-			let dispatch_account = derive_account_id::<
-				<Runtime as pallet_bridge_dispatch::Config>::SourceChainAccountId,
-			>(bridge, SourceAccount::Root);
-			let dispatch_account =
-				<Runtime as pallet_bridge_dispatch::Config>::AccountIdConverter::convert(
-					dispatch_account,
-				);
-			let _ = <pallet_balances::Pallet<Runtime> as Currency<AccountId>>::deposit_creating(
-				&dispatch_account,
-				initial_amount + dispatch_fee,
-			);
+		let max_incoming_message_proof_size = bp_millau::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
+			messages::target::maximal_incoming_message_size(bp_rialto::Rialto::max_extrinsic_size()),
+		);
+		pallet_bridge_messages::ensure_able_to_receive_message::<Weights>(
+			bp_rialto::Rialto::max_extrinsic_size(),
+			bp_rialto::Rialto::max_extrinsic_weight(),
+			max_incoming_message_proof_size,
+			messages::target::maximal_incoming_message_dispatch_weight(
+				bp_rialto::Rialto::max_extrinsic_weight(),
+			),
+		);
 
-			// dispatch message with intention to pay dispatch fee at the target chain
-			FromMillauMessageDispatch::dispatch(
-				&relayer_account,
-				DispatchMessage {
-					key: MessageKey { lane_id: Default::default(), nonce: 0 },
-					data: DispatchMessageData {
-						payload: Ok(FromBridgedChainMessagePayload::<WithMillauMessageBridge> {
-							spec_version: VERSION.spec_version,
-							weight: dispatch_weight,
-							origin: CallOrigin::SourceRoot,
-							dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-							call: FromBridgedChainEncodedMessageCall::new(call.encode()),
-						}),
-						fee: 1,
-					},
-				},
-			);
+		let max_incoming_inbound_lane_data_proof_size =
+			bp_messages::InboundLaneData::<()>::encoded_size_hint(
+				bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+				bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as _,
+				bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as _,
+			)
+			.unwrap_or(u32::MAX);
+		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
+			bp_rialto::Rialto::max_extrinsic_size(),
+			bp_rialto::Rialto::max_extrinsic_weight(),
+			max_incoming_inbound_lane_data_proof_size,
+			bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+			bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+			DbWeight::get(),
+		);
+	}
 
-			// ensure that fee has been transferred from dispatch to relayer account
-			assert_eq!(
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::free_balance(
-					&relayer_account
-				),
-				initial_amount + dispatch_fee,
-			);
-			assert_eq!(
-				<pallet_balances::Pallet<Runtime> as Currency<AccountId>>::free_balance(
-					&dispatch_account
-				),
-				initial_amount,
-			);
+	#[test]
+	fn ensure_bridge_integrity() {
+		assert_complete_bridge_types!(
+			runtime: Runtime,
+			with_bridged_chain_grandpa_instance: MillauGrandpaInstance,
+			with_bridged_chain_messages_instance: WithMillauMessagesInstance,
+			bridge: WithMillauMessageBridge,
+			this_chain: bp_rialto::Rialto,
+			bridged_chain: bp_millau::Millau,
+			this_chain_account_id_converter: bp_rialto::AccountIdConverter
+		);
+
+		assert_complete_bridge_constants::<
+			Runtime,
+			MillauGrandpaInstance,
+			WithMillauMessagesInstance,
+			WithMillauMessageBridge,
+			bp_rialto::Rialto,
+		>(AssertCompleteBridgeConstants {
+			this_chain_constants: AssertChainConstants {
+				block_length: bp_rialto::BlockLength::get(),
+				block_weights: bp_rialto::BlockWeights::get(),
+			},
+			messages_pallet_constants: AssertBridgeMessagesPalletConstants {
+				max_unrewarded_relayers_in_bridged_confirmation_tx:
+					bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+				max_unconfirmed_messages_in_bridged_confirmation_tx:
+					bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+				bridged_chain_id: bp_runtime::MILLAU_CHAIN_ID,
+			},
+			pallet_names: AssertBridgePalletNames {
+				with_this_chain_messages_pallet_name: bp_rialto::WITH_RIALTO_MESSAGES_PALLET_NAME,
+				with_bridged_chain_grandpa_pallet_name: bp_millau::WITH_MILLAU_GRANDPA_PALLET_NAME,
+				with_bridged_chain_messages_pallet_name:
+					bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME,
+			},
 		});
+
+		assert_eq!(
+			MillauToRialtoConversionRate::key().to_vec(),
+			bp_runtime::storage_parameter_key(
+				bp_rialto::MILLAU_TO_RIALTO_CONVERSION_RATE_PARAMETER_NAME
+			)
+			.0,
+		);
 	}
 }

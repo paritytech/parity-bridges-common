@@ -20,80 +20,137 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use crate::messages::{
-	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
-	AccountIdOf, BalanceOf, BridgedChain, HashOf, MessageBridge, ThisChain,
+	source::{FromBridgedChainMessagesDeliveryProof, FromThisChainMessagePayload},
+	target::FromBridgedChainMessagesProof,
+	AccountIdOf, BalanceOf, BridgedChain, CallOf, HashOf, MessageBridge, RawStorageProof,
+	SignatureOf, SignerOf, ThisChain,
 };
 
-use bp_messages::{LaneId, MessageData, MessageKey, MessagePayload};
-use bp_runtime::ChainId;
+use bp_messages::{storage_keys, MessageData, MessageKey, MessagePayload};
 use codec::Encode;
-use ed25519_dalek::{PublicKey, SecretKey, Signer, KEYPAIR_LENGTH, SECRET_KEY_LENGTH};
-use frame_support::weights::Weight;
+use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_messages::benchmarking::{
-	MessageDeliveryProofParams, MessageProofParams, ProofSize,
+	MessageDeliveryProofParams, MessageParams, MessageProofParams, ProofSize,
 };
 use sp_core::Hasher;
-use sp_runtime::traits::Header;
-use sp_std::prelude::*;
-use sp_trie::{record_all_keys, trie_types::TrieDBMut, Layout, MemoryDB, Recorder, TrieMut};
+use sp_runtime::traits::{Header, IdentifyAccount, MaybeSerializeDeserialize, Zero};
+use sp_std::{fmt::Debug, prelude::*};
+use sp_trie::{record_all_keys, trie_types::TrieDBMutV1, LayoutV1, MemoryDB, Recorder, TrieMut};
 
-/// Generate ed25519 signature to be used in
-/// `pallet_brdige_call_dispatch::CallOrigin::TargetAccount`.
-///
-/// Returns public key of the signer and the signature itself.
-pub fn ed25519_sign(
-	target_call: &impl Encode,
-	source_account_id: &impl Encode,
-	target_spec_version: u32,
-	source_chain_id: ChainId,
-	target_chain_id: ChainId,
-) -> ([u8; 32], [u8; 64]) {
-	// key from the repo example (https://docs.rs/ed25519-dalek/1.0.1/ed25519_dalek/struct.SecretKey.html)
-	let target_secret = SecretKey::from_bytes(&[
-		157, 097, 177, 157, 239, 253, 090, 096, 186, 132, 074, 244, 146, 236, 044, 196, 068, 073,
-		197, 105, 123, 050, 105, 025, 112, 059, 172, 003, 028, 174, 127, 096,
-	])
-	.expect("harcoded key is valid");
-	let target_public: PublicKey = (&target_secret).into();
-
-	let mut target_pair_bytes = [0u8; KEYPAIR_LENGTH];
-	target_pair_bytes[..SECRET_KEY_LENGTH].copy_from_slice(&target_secret.to_bytes());
-	target_pair_bytes[SECRET_KEY_LENGTH..].copy_from_slice(&target_public.to_bytes());
-	let target_pair =
-		ed25519_dalek::Keypair::from_bytes(&target_pair_bytes).expect("hardcoded pair is valid");
-
-	let signature_message = pallet_bridge_dispatch::account_ownership_digest(
-		target_call,
-		source_account_id,
-		target_spec_version,
-		source_chain_id,
-		target_chain_id,
-	);
-	let target_origin_signature = target_pair
-		.try_sign(&signature_message)
-		.expect("Ed25519 try_sign should not fail in benchmarks");
-
-	(target_public.to_bytes(), target_origin_signature.to_bytes())
+/// Prepare outbound message for the `send_message` call.
+pub fn prepare_outbound_message<B>(
+	params: MessageParams<AccountIdOf<ThisChain<B>>>,
+) -> FromThisChainMessagePayload
+where
+	B: MessageBridge,
+	BalanceOf<ThisChain<B>>: From<u64>,
+{
+	vec![0; params.size as usize]
 }
 
 /// Prepare proof of messages for the `receive_messages_proof` call.
-pub fn prepare_message_proof<B, H, R, FI, MM, ML, MH>(
+///
+/// In addition to returning valid messages proof, environment is prepared to verify this message
+/// proof.
+pub fn prepare_message_proof<R, BI, FI, B, BH, BHH>(
 	params: MessageProofParams,
-	make_bridged_message_storage_key: MM,
-	make_bridged_outbound_lane_data_key: ML,
-	make_bridged_header: MH,
-	message_dispatch_weight: Weight,
-	message_payload: MessagePayload,
 ) -> (FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>, Weight)
 where
+	R: frame_system::Config<AccountId = AccountIdOf<ThisChain<B>>>
+		+ pallet_balances::Config<BI, Balance = BalanceOf<ThisChain<B>>>
+		+ pallet_bridge_grandpa::Config<FI>,
+	R::BridgedChain: bp_runtime::Chain<Header = BH>,
 	B: MessageBridge,
-	H: Hasher,
-	R: pallet_bridge_grandpa::Config<FI>,
+	BI: 'static,
 	FI: 'static,
-	<R::BridgedChain as bp_runtime::Chain>::Hash: Into<HashOf<BridgedChain<B>>>,
-	MM: Fn(MessageKey) -> Vec<u8>,
-	ML: Fn(LaneId) -> Vec<u8>,
-	MH: Fn(H::Out) -> <R::BridgedChain as bp_runtime::Chain>::Header,
+	BH: Header<Hash = HashOf<BridgedChain<B>>>,
+	BHH: Hasher<Out = HashOf<BridgedChain<B>>>,
+	AccountIdOf<ThisChain<B>>: PartialEq + sp_std::fmt::Debug,
+	AccountIdOf<BridgedChain<B>>: From<[u8; 32]>,
+	BalanceOf<ThisChain<B>>: Debug + MaybeSerializeDeserialize,
+	CallOf<ThisChain<B>>: From<frame_system::Call<R>> + GetDispatchInfo,
+	HashOf<BridgedChain<B>>: Copy + Default,
+	SignatureOf<ThisChain<B>>: From<sp_core::ed25519::Signature>,
+	SignerOf<ThisChain<B>>: Clone
+		+ From<sp_core::ed25519::Public>
+		+ IdentifyAccount<AccountId = AccountIdOf<ThisChain<B>>>,
+{
+	let message_payload = match params.size {
+		ProofSize::Minimal(ref size) => vec![0u8; *size as _],
+		_ => vec![],
+	};
+
+	// finally - prepare storage proof and update environment
+	let (state_root, storage_proof) =
+		prepare_messages_storage_proof::<B, BHH>(&params, message_payload);
+	let bridged_header_hash = insert_bridged_chain_header::<R, FI, B, BH>(state_root);
+
+	(
+		FromBridgedChainMessagesProof {
+			bridged_header_hash,
+			storage_proof,
+			lane: params.lane,
+			nonces_start: *params.message_nonces.start(),
+			nonces_end: *params.message_nonces.end(),
+		},
+		0,
+	)
+}
+
+/// Prepare proof of messages delivery for the `receive_messages_delivery_proof` call.
+pub fn prepare_message_delivery_proof<R, FI, B, BH, BHH>(
+	params: MessageDeliveryProofParams<AccountIdOf<ThisChain<B>>>,
+) -> FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChain<B>>>
+where
+	R: pallet_bridge_grandpa::Config<FI>,
+	R::BridgedChain: bp_runtime::Chain<Header = BH>,
+	FI: 'static,
+	B: MessageBridge,
+	BH: Header<Hash = HashOf<BridgedChain<B>>>,
+	BHH: Hasher<Out = HashOf<BridgedChain<B>>>,
+	HashOf<BridgedChain<B>>: Copy + Default,
+{
+	// prepare Bridged chain storage with inbound lane state
+	let storage_key =
+		storage_keys::inbound_lane_data_key(B::BRIDGED_MESSAGES_PALLET_NAME, &params.lane).0;
+	let mut root = Default::default();
+	let mut mdb = MemoryDB::default();
+	{
+		let mut trie = TrieDBMutV1::<BHH>::new(&mut mdb, &mut root);
+		trie.insert(&storage_key, &params.inbound_lane_data.encode())
+			.map_err(|_| "TrieMut::insert has failed")
+			.expect("TrieMut::insert should not fail in benchmarks");
+	}
+	root = grow_trie(root, &mut mdb, params.size);
+
+	// generate storage proof to be delivered to This chain
+	let mut proof_recorder = Recorder::<BHH::Out>::new();
+	record_all_keys::<LayoutV1<BHH>, _>(&mdb, &root, &mut proof_recorder)
+		.map_err(|_| "record_all_keys has failed")
+		.expect("record_all_keys should not fail in benchmarks");
+	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
+
+	// finally insert header with given state root to our storage
+	let bridged_header_hash = insert_bridged_chain_header::<R, FI, B, BH>(root);
+
+	FromBridgedChainMessagesDeliveryProof {
+		bridged_header_hash: bridged_header_hash.into(),
+		storage_proof,
+		lane: params.lane,
+	}
+}
+
+/// Prepare storage proof of given messages.
+///
+/// Returns state trie root and nodes with prepared messages.
+fn prepare_messages_storage_proof<B, BHH>(
+	params: &MessageProofParams,
+	message_payload: MessagePayload,
+) -> (HashOf<BridgedChain<B>>, RawStorageProof)
+where
+	B: MessageBridge,
+	BHH: Hasher<Out = HashOf<BridgedChain<B>>>,
+	HashOf<BridgedChain<B>>: Copy + Default,
 {
 	// prepare Bridged chain storage with messages and (optionally) outbound lane state
 	let message_count =
@@ -102,7 +159,7 @@ where
 	let mut root = Default::default();
 	let mut mdb = MemoryDB::default();
 	{
-		let mut trie = TrieDBMut::<H>::new(&mut mdb, &mut root);
+		let mut trie = TrieDBMutV1::<BHH>::new(&mut mdb, &mut root);
 
 		// insert messages
 		for nonce in params.message_nonces.clone() {
@@ -111,7 +168,12 @@ where
 				fee: BalanceOf::<BridgedChain<B>>::from(0),
 				payload: message_payload.clone(),
 			};
-			let storage_key = make_bridged_message_storage_key(message_key);
+			let storage_key = storage_keys::message_key(
+				B::BRIDGED_MESSAGES_PALLET_NAME,
+				&message_key.lane_id,
+				message_key.nonce,
+			)
+			.0;
 			trie.insert(&storage_key, &message_data.encode())
 				.map_err(|_| "TrieMut::insert has failed")
 				.expect("TrieMut::insert should not fail in benchmarks");
@@ -119,8 +181,10 @@ where
 		}
 
 		// insert outbound lane state
-		if let Some(outbound_lane_data) = params.outbound_lane_data {
-			let storage_key = make_bridged_outbound_lane_data_key(params.lane);
+		if let Some(ref outbound_lane_data) = params.outbound_lane_data {
+			let storage_key =
+				storage_keys::outbound_lane_data_key(B::BRIDGED_MESSAGES_PALLET_NAME, &params.lane)
+					.0;
 			trie.insert(&storage_key, &outbound_lane_data.encode())
 				.map_err(|_| "TrieMut::insert has failed")
 				.expect("TrieMut::insert should not fail in benchmarks");
@@ -130,75 +194,37 @@ where
 	root = grow_trie(root, &mut mdb, params.size);
 
 	// generate storage proof to be delivered to This chain
-	let mut proof_recorder = Recorder::<H::Out>::new();
-	record_all_keys::<Layout<H>, _>(&mdb, &root, &mut proof_recorder)
+	let mut proof_recorder = Recorder::<BHH::Out>::new();
+	record_all_keys::<LayoutV1<BHH>, _>(&mdb, &root, &mut proof_recorder)
 		.map_err(|_| "record_all_keys has failed")
 		.expect("record_all_keys should not fail in benchmarks");
 	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
 
-	// prepare Bridged chain header and insert it into the Substrate pallet
-	let bridged_header = make_bridged_header(root);
-	let bridged_header_hash = bridged_header.hash();
-	pallet_bridge_grandpa::initialize_for_benchmarks::<R, FI>(bridged_header);
-
-	(
-		FromBridgedChainMessagesProof {
-			bridged_header_hash: bridged_header_hash.into(),
-			storage_proof,
-			lane: params.lane,
-			nonces_start: *params.message_nonces.start(),
-			nonces_end: *params.message_nonces.end(),
-		},
-		message_dispatch_weight
-			.checked_mul(message_count)
-			.expect("too many messages requested by benchmark"),
-	)
+	(root, storage_proof)
 }
 
-/// Prepare proof of messages delivery for the `receive_messages_delivery_proof` call.
-pub fn prepare_message_delivery_proof<B, H, R, FI, ML, MH>(
-	params: MessageDeliveryProofParams<AccountIdOf<ThisChain<B>>>,
-	make_bridged_inbound_lane_data_key: ML,
-	make_bridged_header: MH,
-) -> FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChain<B>>>
+/// Insert Bridged chain header with given state root into storage of GRANDPA pallet at This chain.
+fn insert_bridged_chain_header<R, FI, B, BH>(
+	state_root: HashOf<BridgedChain<B>>,
+) -> HashOf<BridgedChain<B>>
 where
-	B: MessageBridge,
-	H: Hasher,
 	R: pallet_bridge_grandpa::Config<FI>,
+	R::BridgedChain: bp_runtime::Chain<Header = BH>,
 	FI: 'static,
-	<R::BridgedChain as bp_runtime::Chain>::Hash: Into<HashOf<BridgedChain<B>>>,
-	ML: Fn(LaneId) -> Vec<u8>,
-	MH: Fn(H::Out) -> <R::BridgedChain as bp_runtime::Chain>::Header,
+	B: MessageBridge,
+	BH: Header<Hash = HashOf<BridgedChain<B>>>,
+	HashOf<BridgedChain<B>>: Default,
 {
-	// prepare Bridged chain storage with inbound lane state
-	let storage_key = make_bridged_inbound_lane_data_key(params.lane);
-	let mut root = Default::default();
-	let mut mdb = MemoryDB::default();
-	{
-		let mut trie = TrieDBMut::<H>::new(&mut mdb, &mut root);
-		trie.insert(&storage_key, &params.inbound_lane_data.encode())
-			.map_err(|_| "TrieMut::insert has failed")
-			.expect("TrieMut::insert should not fail in benchmarks");
-	}
-	root = grow_trie(root, &mut mdb, params.size);
-
-	// generate storage proof to be delivered to This chain
-	let mut proof_recorder = Recorder::<H::Out>::new();
-	record_all_keys::<Layout<H>, _>(&mdb, &root, &mut proof_recorder)
-		.map_err(|_| "record_all_keys has failed")
-		.expect("record_all_keys should not fail in benchmarks");
-	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
-
-	// prepare Bridged chain header and insert it into the Substrate pallet
-	let bridged_header = make_bridged_header(root);
+	let bridged_header = BH::new(
+		Zero::zero(),
+		Default::default(),
+		state_root,
+		Default::default(),
+		Default::default(),
+	);
 	let bridged_header_hash = bridged_header.hash();
 	pallet_bridge_grandpa::initialize_for_benchmarks::<R, FI>(bridged_header);
-
-	FromBridgedChainMessagesDeliveryProof {
-		bridged_header_hash: bridged_header_hash.into(),
-		storage_proof,
-		lane: params.lane,
-	}
+	bridged_header_hash
 }
 
 /// Populate trie with dummy keys+values until trie has at least given size.
@@ -213,7 +239,7 @@ fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: Proo
 	loop {
 		// generate storage proof to be delivered to This chain
 		let mut proof_recorder = Recorder::<H::Out>::new();
-		record_all_keys::<Layout<H>, _>(mdb, &root, &mut proof_recorder)
+		record_all_keys::<LayoutV1<H>, _>(mdb, &root, &mut proof_recorder)
 			.map_err(|_| "record_all_keys has failed")
 			.expect("record_all_keys should not fail in benchmarks");
 		let size: usize = proof_recorder.drain().into_iter().map(|n| n.data.len()).sum();
@@ -221,9 +247,9 @@ fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: Proo
 			return root
 		}
 
-		let mut trie = TrieDBMut::<H>::from_existing(mdb, &mut root)
-			.map_err(|_| "TrieDBMut::from_existing has failed")
-			.expect("TrieDBMut::from_existing should not fail in benchmarks");
+		let mut trie = TrieDBMutV1::<H>::from_existing(mdb, &mut root)
+			.map_err(|_| "TrieDBMutV1::from_existing has failed")
+			.expect("TrieDBMutV1::from_existing should not fail in benchmarks");
 		for _ in 0..iterations {
 			trie.insert(&key_index.encode(), &vec![42u8; leaf_size as _])
 				.map_err(|_| "TrieMut::insert has failed")

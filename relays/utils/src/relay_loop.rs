@@ -85,6 +85,7 @@ pub struct LoopMetrics<SC, TC, LM> {
 
 impl<SC, TC, LM> Loop<SC, TC, LM> {
 	/// Customize delay between reconnect attempts.
+	#[must_use]
 	pub fn reconnect_delay(mut self, reconnect_delay: Duration) -> Self {
 		self.reconnect_delay = reconnect_delay;
 		self
@@ -187,12 +188,32 @@ impl<SC, TC, LM> LoopMetrics<SC, TC, LM> {
 
 			let registry = self.registry;
 			async_std::task::spawn(async move {
-				let result = init_prometheus(socket_addr, registry).await;
-				log::trace!(
-					target: "bridge-metrics",
-					"Prometheus endpoint has exited with result: {:?}",
-					result,
-				);
+				let runtime =
+					match tokio::runtime::Builder::new_current_thread().enable_all().build() {
+						Ok(runtime) => runtime,
+						Err(err) => {
+							log::trace!(
+								target: "bridge-metrics",
+								"Failed to create tokio runtime. Prometheus meterics are not available: {:?}",
+								err,
+							);
+							return
+						},
+					};
+
+				let _ = runtime.block_on(async move {
+					log::trace!(
+						target: "bridge-metrics",
+						"Starting prometheus endpoint at: {:?}",
+						socket_addr,
+					);
+					let result = init_prometheus(socket_addr, registry).await;
+					log::trace!(
+						target: "bridge-metrics",
+						"Prometheus endpoint has exited with result: {:?}",
+						result,
+					);
+				});
 			});
 		}
 

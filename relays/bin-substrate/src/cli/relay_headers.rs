@@ -18,7 +18,7 @@ use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
-use substrate_relay_helper::finality_pipeline::SubstrateFinalitySyncPipeline;
+use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
 
 use crate::cli::{
 	PrometheusParams, SourceConnectionParams, TargetConnectionParams, TargetSigningParams,
@@ -129,9 +129,14 @@ impl RelayHeaders {
 				signer: target_sign,
 				mortality: target_transactions_mortality,
 			};
-			Finality::start_relay_guards(&target_client, &target_transactions_params);
+			Finality::start_relay_guards(
+				&target_client,
+				&target_transactions_params,
+				self.target.can_start_version_guard(),
+			)
+			.await?;
 
-			substrate_relay_helper::finality_pipeline::run::<Finality>(
+			substrate_relay_helper::finality::run::<Finality>(
 				source_client,
 				target_client,
 				self.only_mandatory_headers,

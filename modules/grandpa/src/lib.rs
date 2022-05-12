@@ -36,8 +36,6 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use crate::weights::WeightInfo;
-
 use bp_header_chain::{justification::GrandpaJustification, InitializationData};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
 use finality_grandpa::voter_set::VoterSet;
@@ -58,6 +56,7 @@ pub mod benchmarking;
 
 // Re-export in crate namespace for `construct_runtime!`
 pub use pallet::*;
+pub use weights::WeightInfo;
 
 /// Block number of the bridged chain.
 pub type BridgedBlockNumber<T, I> = BlockNumberOf<<T as Config<I>>::BridgedChain>;
@@ -101,6 +100,7 @@ pub mod pallet {
 	}
 
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
@@ -165,7 +165,7 @@ pub mod pallet {
 				try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
 			insert_header::<T, I>(*finality_target, hash);
-			log::info!(target: "runtime::bridge-grandpa", "Succesfully imported finalized header with hash {:?}!", hash);
+			log::info!(target: "runtime::bridge-grandpa", "Successfully imported finalized header with hash {:?}!", hash);
 
 			// mandatory header is a header that changes authorities set. The pallet can't go
 			// further without importing this header. So every bridge MUST import mandatory headers.
@@ -299,7 +299,7 @@ pub mod pallet {
 	/// runtime methods may still be used to do that (i.e. democracy::referendum to update halt
 	/// flag directly or call the `halt_operations`).
 	#[pallet::storage]
-	pub(super) type PalletOwner<T: Config<I>, I: 'static = ()> =
+	pub type PalletOwner<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, T::AccountId, OptionQuery>;
 
 	/// If true, all pallet transactions are failed immediately.
@@ -626,7 +626,10 @@ mod tests {
 		JustificationGeneratorParams, ALICE, BOB,
 	};
 	use codec::Encode;
-	use frame_support::{assert_err, assert_noop, assert_ok, weights::PostDispatchInfo};
+	use frame_support::{
+		assert_err, assert_noop, assert_ok, storage::generator::StorageValue,
+		weights::PostDispatchInfo,
+	};
 	use sp_runtime::{Digest, DigestItem, DispatchError};
 
 	fn initialize_substrate_bridge() {
@@ -1144,5 +1147,18 @@ mod tests {
 				"First header should be pruned."
 			);
 		})
+	}
+
+	#[test]
+	fn storage_keys_computed_properly() {
+		assert_eq!(
+			IsHalted::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_header_chain::storage_keys::is_halted_key("Grandpa").0,
+		);
+
+		assert_eq!(
+			BestFinalized::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_header_chain::storage_keys::best_finalized_hash_key("Grandpa").0,
+		);
 	}
 }
