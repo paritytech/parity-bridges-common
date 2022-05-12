@@ -75,6 +75,7 @@ runtime-benchmarks = [
 	"pallet-bridge-messages/runtime-benchmarks",
 	"sp-state-machine",
 	"sp-version",
+	"xcm-builder/runtime-benchmarks",
 ]
 integrity-test = [
 	"static_assertions",
