@@ -16,7 +16,7 @@
 
 //! Everything required to serve Millau <-> Rialto messages.
 
-use crate::{Call, Runtime};
+use crate::{Call, OriginCaller, Runtime};
 
 use bp_messages::{
 	source_chain::{SenderOrigin, TargetHeaderChain},
@@ -113,10 +113,15 @@ impl messages::ThisChainWithMessages for Rialto {
 	type Origin = crate::Origin;
 	type Call = crate::Call;
 
-	fn is_message_accepted(_send_origin: &Self::Origin, lane: &LaneId) -> bool {
-		*lane == [0, 0, 0, 0]
-		//send_origin.linked_account().is_some() && (*lane == [0, 0, 0, 0] || *lane == [0, 0, 0,
-		// 1])
+	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
+		let here_location =
+			xcm::v3::MultiLocation::from(crate::xcm_config::UniversalLocation::get());
+		match send_origin.caller {
+			OriginCaller::XcmPallet(pallet_xcm::Origin::Xcm(ref location))
+				if *location == here_location =>
+				*lane == [0, 0, 0, 0],
+			_ => false,
+		}
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
@@ -263,14 +268,8 @@ impl SourceHeaderChain<bp_millau::Balance> for Millau {
 
 impl SenderOrigin<crate::AccountId> for crate::Origin {
 	fn linked_account(&self) -> Option<crate::AccountId> {
-		match self.caller {
-			crate::OriginCaller::system(frame_system::RawOrigin::Signed(ref submitter)) =>
-				Some(submitter.clone()),
-			crate::OriginCaller::system(frame_system::RawOrigin::Root) |
-			crate::OriginCaller::system(frame_system::RawOrigin::None) =>
-				crate::RootAccountForPayments::get(),
-			_ => None,
-		}
+		// XCM deals wit fees in our deployments
+		None
 	}
 }
 
