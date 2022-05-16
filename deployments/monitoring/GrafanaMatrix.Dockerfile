@@ -12,4 +12,4 @@ RUN bundle install --without development
 
 RUN mkdir /config && touch /config/config.yml && ln -s /config/config.yml ./config.yml
 
-CMD ["bundle", "exec", "rackup"]
+CMD ["bundle", "exec", "rackup", "-p4567"]
