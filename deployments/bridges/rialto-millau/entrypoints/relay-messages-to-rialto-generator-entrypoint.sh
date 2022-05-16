@@ -41,7 +41,7 @@ do
 	$SEND_MESSAGE \
 		--lane $MESSAGE_LANE \
 		--conversion-rate-override metric \
-		raw 1234
+		raw 010109020419A8
 
 	if [ ! -z $SECONDARY_MESSAGE_LANE ]; then
 		echo "Sending Message from Millau to Rialto using secondary lane: $SECONDARY_MESSAGE_LANE"
