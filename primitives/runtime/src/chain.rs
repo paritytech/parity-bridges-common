@@ -27,7 +27,7 @@ use sp_runtime::{
 use sp_std::{convert::TryFrom, fmt::Debug, hash::Hash, str::FromStr, vec, vec::Vec};
 
 /// Chain call, that is either SCALE-encoded, or decoded.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EncodedOrDecodedCall<ChainCall> {
 	/// The call that is SCALE-encoded.
 	///
@@ -153,7 +153,6 @@ pub trait Chain: Send + Sync + 'static {
 	/// to pay for transaction dispatch, to reward different relayers (headers, messages), etc.
 	type Balance: AtLeast32BitUnsigned
 		+ FixedPointOperand
-		+ Parameter
 		+ Parameter
 		+ Member
 		+ MaybeSerializeDeserialize

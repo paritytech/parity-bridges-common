@@ -18,7 +18,7 @@ use bp_messages::MessageNonce;
 use bp_runtime::{Chain as ChainBase, EncodedOrDecodedCall, HashOf, TransactionEraOf};
 use codec::{Codec, Encode};
 use frame_support::weights::{Weight, WeightToFeePolynomial};
-use jsonrpsee_ws_client::types::{DeserializeOwned, Serialize};
+use jsonrpsee::core::{DeserializeOwned, Serialize};
 use num_traits::Zero;
 use sc_transaction_pool_api::TransactionStatus;
 use sp_core::{storage::StorageKey, Pair};
@@ -134,7 +134,7 @@ pub trait BlockWithJustification<Header> {
 }
 
 /// Transaction before it is signed.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct UnsignedTransaction<C: Chain> {
 	/// Runtime call of this transaction.
 	pub call: EncodedOrDecodedCall<C::Call>,
@@ -151,6 +151,7 @@ impl<C: Chain> UnsignedTransaction<C> {
 	}
 
 	/// Set transaction tip.
+	#[must_use]
 	pub fn tip(mut self, tip: C::Balance) -> Self {
 		self.tip = tip;
 		self

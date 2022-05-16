@@ -16,7 +16,7 @@
 
 //! Substrate node RPC errors.
 
-use jsonrpsee_ws_client::types::Error as RpcError;
+use jsonrpsee::core::Error as RpcError;
 use relay_utils::MaybeConnectionError;
 use sc_rpc_api::system::Health;
 use sp_runtime::transaction_validity::TransactionValidityError;
@@ -45,9 +45,9 @@ pub enum Error {
 	/// Account does not exist on the chain.
 	#[error("Account does not exist on the chain.")]
 	AccountDoesNotExist,
-	/// Runtime storage is missing mandatory ":code:" entry.
-	#[error("Mandatory :code: entry is missing from runtime storage.")]
-	MissingMandatoryCodeEntry,
+	/// Runtime storage is missing some mandatory value.
+	#[error("Mandatory storage value is missing from the runtime storage.")]
+	MissingMandatoryStorageValue,
 	/// The client we're connected to is not synced, so we can't rely on its state.
 	#[error("Substrate client is not synced {0}.")]
 	ClientNotSynced(Health),

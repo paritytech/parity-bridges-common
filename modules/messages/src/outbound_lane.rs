@@ -74,7 +74,7 @@ pub struct OutboundLane<S> {
 }
 
 impl<S: OutboundLaneStorage> OutboundLane<S> {
-	/// Create new inbound lane backed by given storage.
+	/// Create new outbound lane backed by given storage.
 	pub fn new(storage: S) -> Self {
 		OutboundLane { storage }
 	}
@@ -148,19 +148,17 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 	/// Returns number of pruned messages.
 	pub fn prune_messages(&mut self, max_messages_to_prune: MessageNonce) -> MessageNonce {
 		let mut pruned_messages = 0;
-		let mut anything_changed = false;
 		let mut data = self.storage.data();
 		while pruned_messages < max_messages_to_prune &&
 			data.oldest_unpruned_nonce <= data.latest_received_nonce
 		{
 			self.storage.remove_message(&data.oldest_unpruned_nonce);
 
-			anything_changed = true;
 			pruned_messages += 1;
 			data.oldest_unpruned_nonce += 1;
 		}
 
-		if anything_changed {
+		if pruned_messages > 0 {
 			self.storage.set_data(data);
 		}
 
@@ -260,7 +258,7 @@ mod tests {
 		DeliveredMessages {
 			begin: *nonces.start(),
 			end: *nonces.end(),
-			dispatch_results: bitvec![Msb0, u8; 1; (nonces.end() - nonces.start() + 1) as _],
+			dispatch_results: bitvec![u8, Msb0; 1; (nonces.end() - nonces.start() + 1) as _],
 		}
 	}
 

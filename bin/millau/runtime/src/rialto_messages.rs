@@ -16,10 +16,10 @@
 
 //! Everything required to serve Millau <-> Rialto messages.
 
-use crate::Runtime;
+use crate::{Call, OriginCaller, Runtime};
 
 use bp_messages::{
-	source_chain::TargetHeaderChain,
+	source_chain::{SenderOrigin, TargetHeaderChain},
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessagesParameter,
 };
@@ -33,13 +33,17 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
-use sp_std::{convert::TryFrom, ops::RangeInclusive};
+use sp_std::convert::TryFrom;
 
 /// Initial value of `RialtoToMillauConversionRate` parameter.
 pub const INITIAL_RIALTO_TO_MILLAU_CONVERSION_RATE: FixedU128 =
 	FixedU128::from_inner(FixedU128::DIV);
 /// Initial value of `RialtoFeeMultiplier` parameter.
 pub const INITIAL_RIALTO_FEE_MULTIPLIER: FixedU128 = FixedU128::from_inner(FixedU128::DIV);
+/// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
+/// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
+/// tests, confirming that we don't break encoding somewhere between.
+pub const BASE_XCM_WEIGHT_TWICE: Weight = 2 * crate::xcm_config::BASE_XCM_WEIGHT;
 
 parameter_types! {
 	/// Rialto to Millau conversion rate. Initially we treat both tokens as equal.
@@ -49,19 +53,14 @@ parameter_types! {
 }
 
 /// Message payload for Millau -> Rialto messages.
-pub type ToRialtoMessagePayload =
-	messages::source::FromThisChainMessagePayload<WithRialtoMessageBridge>;
+pub type ToRialtoMessagePayload = messages::source::FromThisChainMessagePayload;
 
 /// Message verifier for Millau -> Rialto messages.
 pub type ToRialtoMessageVerifier =
 	messages::source::FromThisChainMessageVerifier<WithRialtoMessageBridge>;
 
 /// Message payload for Rialto -> Millau messages.
-pub type FromRialtoMessagePayload =
-	messages::target::FromBridgedChainMessagePayload<WithRialtoMessageBridge>;
-
-/// Encoded Millau Call as it comes from Rialto.
-pub type FromRialtoEncodedCall = messages::target::FromBridgedChainEncodedMessageCall<crate::Call>;
+pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload<Call>;
 
 /// Messages proof for Rialto -> Millau messages.
 pub type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_rialto::Hash>;
@@ -73,9 +72,11 @@ pub type ToRialtoMessagesDeliveryProof =
 /// Call-dispatch based message dispatch for Rialto -> Millau messages.
 pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
 	WithRialtoMessageBridge,
-	crate::Runtime,
-	pallet_balances::Pallet<Runtime>,
-	(),
+	xcm_executor::XcmExecutor<crate::xcm_config::XcmConfig>,
+	crate::xcm_config::XcmWeigher,
+	// 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
+	// (it is prepended with `UniversalOrigin` instruction)
+	frame_support::traits::ConstU64<BASE_XCM_WEIGHT_TWICE>,
 >;
 
 /// Millau <-> Rialto message bridge.
@@ -116,12 +117,27 @@ impl messages::ChainWithMessages for Millau {
 }
 
 impl messages::ThisChainWithMessages for Millau {
+	type Origin = crate::Origin;
 	type Call = crate::Call;
 
-	fn is_outbound_lane_enabled(lane: &LaneId) -> bool {
-		*lane == [0, 0, 0, 0] ||
-			*lane == [0, 0, 0, 1] ||
-			*lane == crate::TokenSwapMessagesLane::get()
+	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
+		let here_location =
+			xcm::v3::MultiLocation::from(crate::xcm_config::UniversalLocation::get());
+		match send_origin.caller {
+			OriginCaller::XcmPallet(pallet_xcm::Origin::Xcm(ref location))
+				if *location == here_location =>
+			{
+				log::trace!(target: "runtime::bridge", "Verifying message sent using XCM pallet to Rialto");
+			},
+			_ => {
+				// keep in mind that in this case all messages are free (in term of fees)
+				// => it's just to keep testing bridge on our test deployments until we'll have a
+				// better option
+				log::trace!(target: "runtime::bridge", "Verifying message sent using messages pallet to Rialto");
+			},
+		}
+
+		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
@@ -178,19 +194,8 @@ impl messages::BridgedChainWithMessages for Rialto {
 		bp_rialto::Rialto::max_extrinsic_size()
 	}
 
-	fn message_weight_limits(_message_payload: &[u8]) -> RangeInclusive<Weight> {
-		// we don't want to relay too large messages + keep reserve for future upgrades
-		let upper_limit = messages::target::maximal_incoming_message_dispatch_weight(
-			bp_rialto::Rialto::max_extrinsic_weight(),
-		);
-
-		// we're charging for payload bytes in `WithRialtoMessageBridge::transaction_payment`
-		// function
-		//
-		// this bridge may be used to deliver all kind of messages, so we're not making any
-		// assumptions about minimal dispatch weight here
-
-		0..=upper_limit
+	fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
+		true
 	}
 
 	fn estimate_delivery_transaction(
@@ -274,6 +279,13 @@ impl SourceHeaderChain<bp_rialto::Balance> for Rialto {
 			Runtime,
 			crate::RialtoGrandpaInstance,
 		>(proof, messages_count)
+	}
+}
+
+impl SenderOrigin<crate::AccountId> for crate::Origin {
+	fn linked_account(&self) -> Option<crate::AccountId> {
+		// XCM deals wit fees in our deployments
+		None
 	}
 }
 

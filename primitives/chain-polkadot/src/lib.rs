@@ -17,8 +17,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // RuntimeApi generated functions
 #![allow(clippy::too_many_arguments)]
-// Runtime-generated DecodeLimit::decode_all_with_depth_limit
-#![allow(clippy::unnecessary_mut_passed)]
 
 use bp_messages::{LaneId, MessageDetails, MessageNonce};
 use frame_support::weights::{
@@ -38,10 +36,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: sp_version::create_runtime_str!("polkadot"),
 	impl_name: sp_version::create_runtime_str!("parity-polkadot"),
 	authoring_version: 0,
-	spec_version: 9140,
+	spec_version: 9180,
 	impl_version: 0,
 	apis: sp_version::create_apis_vec![[]],
-	transaction_version: 9,
+	transaction_version: 12,
 	state_version: 0,
 };
 

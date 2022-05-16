@@ -20,11 +20,10 @@ use crate::{
 		polkadot_headers_to_kusama::PolkadotFinalityToKusama,
 	},
 	cli::{
-		swap_tokens::wait_until_transaction_is_finalized, SourceConnectionParams,
+		register_parachain::wait_until_transaction_is_finalized, SourceConnectionParams,
 		TargetConnectionParams, TargetSigningParams,
 	},
 };
-use bp_header_chain::justification::GrandpaJustification;
 use bp_runtime::Chain;
 use codec::Encode;
 use finality_relay::{SourceClient, SourceHeader};
@@ -40,8 +39,12 @@ use std::convert::{TryFrom, TryInto};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 use substrate_relay_helper::{
-	finality_pipeline::SubstrateFinalitySyncPipeline, finality_source::SubstrateFinalitySource,
-	finality_target::SubstrateFinalityTarget, messages_source::read_client_state,
+	finality::{
+		source::{SubstrateFinalityProof, SubstrateFinalitySource},
+		target::SubstrateFinalityTarget,
+		SubstrateFinalitySyncPipeline,
+	},
+	messages_source::read_client_state,
 	TransactionParams,
 };
 
@@ -178,7 +181,7 @@ impl ReinitBridge {
 				(current_number + 1, target_number),
 			)
 			.await?;
-			let latest_andatory_header_number = headers_to_submit.last().map(|(h, _)| h.number());
+			let latest_mandatory_header_number = headers_to_submit.last().map(|(h, _)| h.number());
 			log::info!(
 				target: "bridge",
 				"Missing {} mandatory {} headers at {}",
@@ -281,13 +284,13 @@ impl ReinitBridge {
 				ensure_pallet_operating_mode(&finality_target, is_last_batch).await?;
 			}
 
-			if let Some(latest_andatory_header_number) = latest_andatory_header_number {
+			if let Some(latest_mandatory_header_number) = latest_mandatory_header_number {
 				log::info!(
 					target: "bridge",
 					"Successfully updated best {} header at {} to {}. Pallet is now operational",
 					Source::NAME,
 					Target::NAME,
-					latest_andatory_header_number,
+					latest_mandatory_header_number,
 				);
 			}
 
@@ -299,7 +302,7 @@ impl ReinitBridge {
 /// Mandatory header and its finality proof.
 type HeaderAndProof<P> = (
 	SyncHeader<HeaderOf<<P as SubstrateFinalitySyncPipeline>::SourceChain>>,
-	GrandpaJustification<HeaderOf<<P as SubstrateFinalitySyncPipeline>::SourceChain>>,
+	SubstrateFinalityProof<P>,
 );
 /// Vector of mandatory headers and their finality proofs.
 type HeadersAndProofs<P> = Vec<HeaderAndProof<P>>;
@@ -425,6 +428,7 @@ fn make_mandatory_headers_batches<
 mod tests {
 	use super::*;
 	use crate::cli::{RuntimeVersionType, SourceRuntimeVersionParams, TargetRuntimeVersionParams};
+	use bp_header_chain::justification::GrandpaJustification;
 	use bp_test_utils::{make_default_justification, test_header};
 	use relay_polkadot_client::Polkadot;
 	use sp_runtime::{traits::Header as _, DigestItem};
