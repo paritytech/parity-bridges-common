@@ -8600,6 +8600,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "millau-runtime",
+ "pallet-bridge-grandpa",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
