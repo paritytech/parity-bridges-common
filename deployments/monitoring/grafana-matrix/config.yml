@@ -1,8 +1,6 @@
 ---
 # Webhook server configuration
 # Or use the launch options `-o '::' -p 4567`
-#bind: '::'
-#port: 4567
 
 # Set up your HS connections
 matrix:
