@@ -8,4 +8,5 @@
 ## Code that need security audit
 
 - the whole [parachains finality pallet](./modules/parachains);
-- parts of the [bridge-runtime-common crate](./bin/runtime-common). They are likely to be removed, though.
+- parts of the [bridge-runtime-common crate](./bin/runtime-common). They are likely to be removed, though;
+- [CheckBridgedBlockNumber signed extension to reject duplicate header-submit transactions](https://github.com/paritytech/parity-bridges-common/pull/1352).
