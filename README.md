@@ -15,6 +15,9 @@ bridge. Right there's an ongoing work to make our bridge work with XCM messages.
 available at [encoded-calls-messaging](https://github.com/paritytech/parity-bridges-common/releases/tag/encoded-calls-messaging)
 tag.
 
+**IMPORTANT**: some portions of the code is still in active development and need proper review and
+security audit. You may find details in the [REVIEW-STATUS.md](./REVIEW-STATUS.md) document.
+
 ## Contents
 
 - [Installation](#installation)
