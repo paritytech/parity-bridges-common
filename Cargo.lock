@@ -11773,6 +11773,7 @@ dependencies = [
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-bridge-parachains",
  "parachains-relay",
  "parity-scale-codec",
  "paste",
