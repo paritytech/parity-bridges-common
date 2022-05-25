@@ -538,7 +538,7 @@ mod tests {
 		}
 	}
 
-	#[derive(Clone, Debug, PartialEq)]
+	#[derive(Clone, Debug, PartialEq, Eq)]
 	struct TestParachainsPipeline;
 
 	impl ParachainsPipeline for TestParachainsPipeline {
