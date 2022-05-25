@@ -944,7 +944,7 @@ pub mod xcm_copy {
 			message: &mut Option<Xcm<()>>,
 		) -> Result<((Vec<u8>, XcmHash), MultiAssets), SendError> {
 			let bridged_network = BridgedNetwork::get();
-			ensure!(&network == &bridged_network, SendError::NotApplicable);
+			ensure!(network == bridged_network, SendError::NotApplicable);
 			// We don't/can't use the `channel` for this adapter.
 			let dest = destination.take().ok_or(SendError::MissingArgument)?;
 			let universal_dest = match dest.pushed_front_with(GlobalConsensus(bridged_network)) {
