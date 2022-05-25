@@ -30,19 +30,21 @@ function show_help () {
   echo Error: $1
   echo " "
   echo "Usage:"
-  echo "  ./run.sh rialto-millau [stop|update]       Run Rialto <> Millau Networks & Bridge"
-  echo "  ./run.sh westend-millau [stop|update]      Run Westend -> Millau Networks & Bridge"
+  echo "  ./run.sh rialto-millau [stop|update]            Run Rialto <> Millau Networks & Bridge"
+  echo "  ./run.sh rialto-parachain-millau [stop|update]  Run RialtoParachain <> Millau Networks & Bridge"
+  echo "  ./run.sh westend-millau [stop|update]           Run Westend -> Millau Networks & Bridge"
   echo " "
   echo "Options:"
   echo "  --no-monitoring                            Disable monitoring"
   echo "  --no-ui                                    Disable UI"
   echo " "
   echo "You can start multiple bridges at once by passing several bridge names:"
-  echo "  ./run.sh rialto-millau westend-millau [stop|update]"
+  echo "  ./run.sh rialto-millau rialto-parachain-millau westend-millau [stop|update]"
   exit 1
 }
 
-RIALTO=' -f ./networks/rialto.yml -f ./networks/rialto-parachain.yml'
+RIALTO=' -f ./networks/rialto.yml'
+RIALTO_PARACHAIN=' -f ./networks/rialto-parachain.yml'
 MILLAU=' -f ./networks/millau.yml'
 MONITORING=' -f ./monitoring/docker-compose.yml'
 UI=' -f ./ui/docker-compose.yml'
@@ -67,6 +69,16 @@ do
       BRIDGES+=($i)
       NETWORKS+=${RIALTO}
       RIALTO=''
+      NETWORKS+=${MILLAU}
+      MILLAU=''
+      shift
+      ;;
+    rialto-parachain-millau)
+      BRIDGES+=($i)
+      NETWORKS+=${RIALTO}
+      RIALTO=''
+      NETWORKS+=${RIALTO_PARACHAIN}
+      RIALTO_PARACHAIN=''
       NETWORKS+=${MILLAU}
       MILLAU=''
       shift
