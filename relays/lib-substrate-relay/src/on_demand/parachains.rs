@@ -324,7 +324,7 @@ struct RelayData<'a, SourceParaBlock, SourceRelayBlock> {
 	pub relay_header_at_target: SourceRelayBlock,
 	/// Map of relay to para header block numbers for recent relay headers.
 	///
-	/// Even if we have been trying to relay relay header #100 to relay prarachain header #50
+	/// Even if we have been trying to relay relay header #100 to relay parachain header #50
 	/// afterwards, it may happen that the relay header #200 may be relayed instead - either
 	/// by us (e.g. if GRANDPA justification is generated for #200, or if we are only syncing
 	/// mandatory headers), or by other relayer. Then, instead of parachain header #50 we may
