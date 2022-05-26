@@ -187,6 +187,8 @@ impl<C: Chain> Client<C> {
 			params.host,
 			params.port,
 		);
+		log::info!(target: "bridge", "Connecting to {} node at {}", C::NAME, uri);
+
 		let client = tokio
 			.spawn(async move {
 				RpcClientBuilder::default()
@@ -653,6 +655,8 @@ impl<C: Chain> Client<C> {
 		data: Bytes,
 		at_block: Option<C::Hash>,
 	) -> Result<Bytes> {
+		log::trace!(target: "bridge", "Calling {} of {} at {:?}", method, C::NAME, at_block);
+
 		self.jsonrpsee_execute(move |client| async move {
 			SubstrateClient::<
 				AccountIdOf<C>,

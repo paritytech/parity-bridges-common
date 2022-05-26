@@ -17,7 +17,6 @@
 //! Parachain heads source.
 
 use crate::{
-	finality::source::RequiredHeaderNumberRef,
 	parachains::{ParachainsPipelineAdapter, SubstrateParachainsPipeline},
 };
 
@@ -33,22 +32,23 @@ use relay_substrate_client::{
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_runtime::traits::Header as HeaderT;
 
+/// Shared updatable reference to the maximal header id that we want to sync from the source.
+pub type RequiredHeaderIdRef<C> = Arc<Mutex<HeaderIdOf<C>>>;
+
 /// Substrate client as parachain heads source.
 #[derive(Clone)]
 pub struct ParachainsSource<P: SubstrateParachainsPipeline> {
 	client: Client<P::SourceRelayChain>,
-	maximal_header_number: Option<RequiredHeaderNumberRef<P::SourceParachain>>,
-	previous_parachain_head: Arc<Mutex<Option<ParaHash>>>,
+	maximal_header_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
 }
 
 impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 	/// Creates new parachains source client.
 	pub fn new(
 		client: Client<P::SourceRelayChain>,
-		maximal_header_number: Option<RequiredHeaderNumberRef<P::SourceParachain>>,
+		maximal_header_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
 	) -> Self {
-		let previous_parachain_head = Arc::new(Mutex::new(None));
-		ParachainsSource { client, maximal_header_number, previous_parachain_head }
+		ParachainsSource { client, maximal_header_id }
 	}
 
 	/// Returns reference to the underlying RPC client.
@@ -116,14 +116,24 @@ where
 			Some(parachain_header) => {
 				let mut parachain_head = Some(parachain_header.hash());
 				// never return head that is larger than requested. This way we'll never sync
-				// headers past `maximal_header_number`
-				if let Some(ref maximal_header_number) = self.maximal_header_number {
-					let maximal_header_number = *maximal_header_number.lock().await;
-					if *parachain_header.number() > maximal_header_number {
-						let previous_parachain_head = *self.previous_parachain_head.lock().await;
-						if let Some(previous_parachain_head) = previous_parachain_head {
-							parachain_head = Some(previous_parachain_head);
-						}
+				// headers past `maximal_header_id`
+				if let Some(ref maximal_header_id) = self.maximal_header_id {
+					let maximal_header_id = *maximal_header_id.lock().await;
+/*
+					log::trace!(
+						target: "bridge",
+						"=== maximal_header_number={:?} parachain_header.number()={:?}",
+						maximal_header_number,
+						parachain_header.number(),
+					);
+*/
+
+					// TODO: either this is wrong, because not every parachain header is finalized by the relay chain
+					// => we can't just cut all descendants of the required header. We need to sync at least one.
+					//
+					// Or we need to guarantee that the maximal_header_id is always finalized by the relay chain.
+					if *parachain_header.number() > maximal_header_id.0 {
+						parachain_head = Some(maximal_header_id.1);
 					}
 				}
 
@@ -131,8 +141,6 @@ where
 			},
 			None => None,
 		};
-
-		*self.previous_parachain_head.lock().await = parachain_head;
 
 		Ok(parachain_head)
 	}

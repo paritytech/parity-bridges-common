@@ -19,10 +19,15 @@ SERVICES=(\
 	deployments_relay-messages-rialto-to-millau-lane-00000001_1 \
 	deployments_relay-millau-rialto_1 \
 	deployments_relay-headers-westend-to-millau_1 \
+	deployments_relay-messages-millau-to-rialto-parachain-generator_1 \
+	deployments_relay-messages-rialto-parachain-to-millau-generator_1 \
+	deployments_relay-millau-rialto-parachain_1 \
 	deployments_rialto-node-alice_1 \
 	deployments_rialto-node-bob_1 \
 	deployments_millau-node-alice_1 \
 	deployments_millau-node-bob_1 \
+	deployments_rialto-parachain-collator-alice_1 \
+	deployments_rialto-parachain-collator-bob_1 \
 )
 
 for SVC in ${SERVICES[*]}
