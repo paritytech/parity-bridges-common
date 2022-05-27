@@ -25,7 +25,7 @@ use async_trait::async_trait;
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
 use codec::Decode;
-use parachains_relay::parachains_loop::SourceClient;
+use parachains_relay::parachains_loop::{ParaHashAtSource, SourceClient};
 use relay_substrate_client::{
 	Chain, Client, Error as SubstrateError, HeaderIdOf, HeaderOf, RelayChain,
 };
@@ -33,7 +33,7 @@ use relay_utils::relay_loop::Client as RelayClient;
 use sp_runtime::traits::Header as HeaderT;
 
 /// Shared updatable reference to the maximal header id that we want to sync from the source.
-pub type RequiredHeaderIdRef<C> = Arc<Mutex<HeaderIdOf<C>>>;
+pub type RequiredHeaderIdRef<C> = Arc<Mutex<Option<HeaderIdOf<C>>>>;
 
 /// Substrate client as parachain heads source.
 #[derive(Clone)]
@@ -102,7 +102,7 @@ where
 		&self,
 		at_block: HeaderIdOf<P::SourceRelayChain>,
 		para_id: ParaId,
-	) -> Result<Option<ParaHash>, Self::Error> {
+	) -> Result<ParaHashAtSource, Self::Error> {
 		// we don't need to support many parachains now
 		if para_id.0 != P::SOURCE_PARACHAIN_PARA_ID {
 			return Err(SubstrateError::Custom(format!(
@@ -112,9 +112,9 @@ where
 			)))
 		}
 
-		let parachain_head = match self.on_chain_parachain_header(at_block, para_id).await? {
+		Ok(match self.on_chain_parachain_header(at_block, para_id).await? {
 			Some(parachain_header) => {
-				let mut parachain_head = Some(parachain_header.hash());
+				let mut parachain_head = ParaHashAtSource::Some(parachain_header.hash());
 				// never return head that is larger than requested. This way we'll never sync
 				// headers past `maximal_header_id`
 				if let Some(ref maximal_header_id) = self.maximal_header_id {
@@ -132,17 +132,23 @@ where
 					// => we can't just cut all descendants of the required header. We need to sync at least one.
 					//
 					// Or we need to guarantee that the maximal_header_id is always finalized by the relay chain.
-					if *parachain_header.number() > maximal_header_id.0 {
-						parachain_head = Some(maximal_header_id.1);
+					match maximal_header_id {
+						Some(maximal_header_id) if *parachain_header.number() > maximal_header_id.0 => {
+							// we don't want this header yet
+							parachain_head = ParaHashAtSource::Some(maximal_header_id.1);
+						},
+						Some(_) => (),
+						None => {
+							// on-demand relay has not yet asked us to sync anything let's do that
+							parachain_head = ParaHashAtSource::Unavailable;
+						}
 					}
 				}
 
 				parachain_head
 			},
-			None => None,
-		};
-
-		Ok(parachain_head)
+			None => ParaHashAtSource::None,
+		})
 	}
 
 	async fn prove_parachain_heads(

@@ -52,6 +52,23 @@ pub enum ParachainSyncStrategy {
 	All,
 }
 
+/// Parachain head hash, available at the source (relay) chain.
+#[derive(Clone, Copy, Debug)]
+pub enum ParaHashAtSource {
+	/// There's no parachain head at the source chain.
+	///
+	/// Normally it means that the parachain is not registered there.
+	None,
+	/// Parachain head with given hash is available at the source chain.
+	Some(ParaHash),
+	/// The source client refuses to report parachain head hash now.
+	///
+	/// It is a "mild" error, which may appear when e.g. on-demand parachains relay is used.
+	/// This variant must be treated as we don't want to update parachain head value at the
+	/// target chain at this moment.
+	Unavailable,
+}
+
 /// Source client used in parachain heads synchronization loop.
 #[async_trait]
 pub trait SourceClient<P: ParachainsPipeline>: RelayClient {
@@ -63,7 +80,7 @@ pub trait SourceClient<P: ParachainsPipeline>: RelayClient {
 		&self,
 		at_block: HeaderIdOf<P::SourceChain>,
 		para_id: ParaId,
-	) -> Result<Option<ParaHash>, Self::Error>;
+	) -> Result<ParaHashAtSource, Self::Error>;
 
 	/// Get parachain heads proof.
 	async fn prove_parachain_heads(
@@ -291,7 +308,7 @@ where
 
 /// Given heads at source and target clients, returns set of heads that are out of sync.
 fn select_parachains_to_update<P: ParachainsPipeline>(
-	heads_at_source: BTreeMap<ParaId, Option<ParaHash>>,
+	heads_at_source: BTreeMap<ParaId, ParaHashAtSource>,
 	heads_at_target: BTreeMap<ParaId, Option<BestParaHeadHash>>,
 	best_finalized_relay_block: HeaderIdOf<P::SourceChain>,
 ) -> Vec<ParaId>
@@ -317,7 +334,12 @@ where
 		.zip(heads_at_target.into_iter())
 		.filter(|((para, head_at_source), (_, head_at_target))| {
 			let needs_update = match (head_at_source, head_at_target) {
-				(Some(head_at_source), Some(head_at_target))
+				(ParaHashAtSource::Unavailable, _) => {
+					// source client has asked us not to update current parachain head at the
+					// target chain
+					false
+				}
+				(ParaHashAtSource::Some(head_at_source), Some(head_at_target))
 					if head_at_target.at_relay_block_number < best_finalized_relay_block.0 &&
 						head_at_target.head_hash != *head_at_source =>
 				{
@@ -325,22 +347,22 @@ where
 					// client
 					true
 				},
-				(Some(_), Some(_)) => {
+				(ParaHashAtSource::Some(_), Some(_)) => {
 					// this is normal case when relay has recently updated heads, when parachain is
 					// not progressing or when our source client is
 					false
 				},
-				(Some(_), None) => {
+				(ParaHashAtSource::Some(_), None) => {
 					// parachain is not yet known to the target client. This is true when parachain
 					// or bridge has been just onboarded/started
 					true
 				},
-				(None, Some(_)) => {
+				(ParaHashAtSource::None, Some(_)) => {
 					// parachain/parathread has been offboarded removed from the system. It needs to
 					// be propageted to the target client
 					true
 				},
-				(None, None) => {
+				(ParaHashAtSource::None, None) => {
 					// all's good - parachain is unknown to both clients
 					false
 				},
@@ -378,7 +400,7 @@ async fn read_heads_at_source<P: ParachainsPipeline>(
 	source_client: &impl SourceClient<P>,
 	at_relay_block: &HeaderIdOf<P::SourceChain>,
 	parachains: &[ParaId],
-) -> Result<BTreeMap<ParaId, Option<ParaHash>>, FailedClient> {
+) -> Result<BTreeMap<ParaId, ParaHashAtSource>, FailedClient> {
 	let mut para_head_hashes = BTreeMap::new();
 	for para in parachains {
 		let para_head = source_client.parachain_head(*at_relay_block, *para).await;
