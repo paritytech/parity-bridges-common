@@ -16,9 +16,7 @@
 
 //! Parachain heads source.
 
-use crate::{
-	parachains::{ParachainsPipelineAdapter, SubstrateParachainsPipeline},
-};
+use crate::parachains::{ParachainsPipelineAdapter, SubstrateParachainsPipeline};
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
@@ -32,7 +30,8 @@ use relay_substrate_client::{
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_runtime::traits::Header as HeaderT;
 
-/// Shared updatable reference to the maximal header id that we want to sync from the source.
+/// Shared updatable reference to the maximal parachain header id that we want to sync from the
+/// source.
 pub type RequiredHeaderIdRef<C> = Arc<Mutex<Option<HeaderIdOf<C>>>>;
 
 /// Substrate client as parachain heads source.
@@ -119,29 +118,19 @@ where
 				// headers past `maximal_header_id`
 				if let Some(ref maximal_header_id) = self.maximal_header_id {
 					let maximal_header_id = *maximal_header_id.lock().await;
-/*
-					log::trace!(
-						target: "bridge",
-						"=== maximal_header_number={:?} parachain_header.number()={:?}",
-						maximal_header_number,
-						parachain_header.number(),
-					);
-*/
-
-					// TODO: either this is wrong, because not every parachain header is finalized by the relay chain
-					// => we can't just cut all descendants of the required header. We need to sync at least one.
-					//
-					// Or we need to guarantee that the maximal_header_id is always finalized by the relay chain.
 					match maximal_header_id {
-						Some(maximal_header_id) if *parachain_header.number() > maximal_header_id.0 => {
-							// we don't want this header yet
+						Some(maximal_header_id)
+							if *parachain_header.number() > maximal_header_id.0 =>
+						{
+							// we don't want this header yet => let's report previously requested
+							// header
 							parachain_head = ParaHashAtSource::Some(maximal_header_id.1);
 						},
 						Some(_) => (),
 						None => {
 							// on-demand relay has not yet asked us to sync anything let's do that
 							parachain_head = ParaHashAtSource::Unavailable;
-						}
+						},
 					}
 				}
 

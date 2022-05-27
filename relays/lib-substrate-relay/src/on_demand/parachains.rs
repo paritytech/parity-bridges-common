@@ -37,14 +37,14 @@ use num_traits::Zero;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use parachains_relay::parachains_loop::{ParachainSyncParams, TargetClient};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error as SubstrateError,
-	HashOf, HeaderIdOf, TransactionSignScheme,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
+	TransactionSignScheme,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId,
 };
 use sp_runtime::traits::Header as HeaderT;
-use std::{collections::BTreeMap, fmt::Debug};
+use std::fmt::Debug;
 
 /// On-demand Substrate <-> Substrate parachain finality relay.
 ///
@@ -142,7 +142,6 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 	let target_transactions_mortality = target_transaction_params.mortality;
 
 	let mut relay_state = RelayState::Idle;
-	let mut headers_map_cache = BTreeMap::new();
 	let mut required_parachain_header_number = Zero::zero();
 	let required_para_header_number_ref = Arc::new(Mutex::new(None));
 
@@ -191,7 +190,10 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 		// the workflow of the on-demand parachains relay is:
 		//
 		// 1) message relay (or any other dependent relay) sees new message at parachain header
-		// `PH`; 2) it sees that the target chain does not know `PH`;
+		// `PH`;
+		//
+		// 2) it sees that the target chain does not know `PH`;
+		//
 		// 3) it asks on-demand parachains relay to relay `PH` to the target chain;
 		//
 		// Phase#1: relaying relay chain header
@@ -204,21 +206,21 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 		// Phase#2: relaying parachain header
 		//
 		// 7) on-demand parachains relay sets `ParachainsSource::maximal_header_number` to the
-		// `PH'.number()`. 8) parachains finality relay sees that the parachain head has been
-		// updated and relays `PH'` to    the target chain.
+		//    `PH'.number()`.
+		// 8) parachains finality relay sees that the parachain head has been
+		//    updated and relays `PH'` to    the target chain.
 
 		// select headers to relay
 		let relay_data = read_relay_data(
 			&parachains_source,
 			&parachains_target,
 			required_parachain_header_number,
-			&mut headers_map_cache,
 		)
 		.await;
 		match relay_data {
-			Ok(mut relay_data) => {
+			Ok(relay_data) => {
 				let prev_relay_state = relay_state;
-				relay_state = select_headers_to_relay(&relay_task_name, &mut relay_data, relay_state);
+				relay_state = select_headers_to_relay(&relay_data, relay_state);
 				log::trace!(
 					target: "bridge",
 					"[{}] Selected new relay state: {:?} using old state {:?} and data {:?}",
@@ -244,7 +246,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 		// requirements
 		match relay_state {
 			RelayState::Idle => (),
-			RelayState::RelayingRelayHeader(required_relay_header, _) => {
+			RelayState::RelayingRelayHeader(required_relay_header) => {
 				on_demand_source_relay_to_target_headers
 					.require_more_headers(required_relay_header)
 					.await;
@@ -304,51 +306,40 @@ enum RelayState<ParaHash, ParaNumber, RelayNumber> {
 	/// On-demand relay is not doing anything.
 	Idle,
 	/// Relaying given relay header to relay given parachain header later.
-	RelayingRelayHeader(RelayNumber, ParaNumber),
+	RelayingRelayHeader(RelayNumber),
 	/// Relaying given parachain header.
 	RelayingParaHeader(HeaderId<ParaHash, ParaNumber>),
 }
 
 /// Data gathered from source and target clients, used by on-demand relay.
 #[derive(Debug)]
-struct RelayData<'a, ParaHash, ParaNumber, RelayNumber> {
+struct RelayData<ParaHash, ParaNumber, RelayNumber> {
 	/// Parachain header number that is required at the target chain.
 	pub required_para_header: ParaNumber,
 	/// Parachain header number, known to the target chain.
 	pub para_header_at_target: ParaNumber,
-	/// Parachain header number, known to the source (relay) chain.
+	/// Parachain header id, known to the source (relay) chain.
 	pub para_header_at_source: Option<HeaderId<ParaHash, ParaNumber>>,
+	/// Parachain header, that is available at the source relay chain at `relay_header_at_target`
+	/// block.
+	pub para_header_at_relay_header_at_target: Option<HeaderId<ParaHash, ParaNumber>>,
 	/// Relay header number at the source chain.
 	pub relay_header_at_source: RelayNumber,
 	/// Relay header number at the target chain.
 	pub relay_header_at_target: RelayNumber,
-	/// Map of relay to para header block numbers for recent relay headers.
-	///
-	/// Even if we have been trying to relay relay header #100 to relay parachain header #50
-	/// afterwards, it may happen that the relay header #200 may be relayed instead - either
-	/// by us (e.g. if GRANDPA justification is generated for #200, or if we are only syncing
-	/// mandatory headers), or by other relayer. Then, instead of parachain header #50 we may
-	/// relay parachain header #70.
-	///
-	/// This cache is especially important, given that we assume that the nodes we're connected
-	/// to are not necessarily archive nodes. Then, if current relay chain block is #210 and #200
-	/// has been delivered to the target chain, we have more chances to generate storage proof
-	/// at relay block #200 than on relay block #100, which is most likely has pruned state
-	/// already.
-	pub headers_map_cache: &'a mut BTreeMap<RelayNumber, HeaderId<ParaHash, ParaNumber>>,
 }
 
 /// Read required data from source and target clients.
-async fn read_relay_data<'a, P: SubstrateParachainsPipeline>(
+async fn read_relay_data<P: SubstrateParachainsPipeline>(
 	source: &ParachainsSource<P>,
 	target: &ParachainsTarget<P>,
 	required_header_number: BlockNumberOf<P::SourceParachain>,
-	headers_map_cache: &'a mut BTreeMap<
-		BlockNumberOf<P::SourceRelayChain>,
-		HeaderIdOf<P::SourceParachain>,
-	>,
 ) -> Result<
-	RelayData<'a, HashOf<P::SourceParachain>, BlockNumberOf<P::SourceParachain>, BlockNumberOf<P::SourceRelayChain>>,
+	RelayData<
+		HashOf<P::SourceParachain>,
+		BlockNumberOf<P::SourceParachain>,
+		BlockNumberOf<P::SourceRelayChain>,
+	>,
 	FailedClient,
 >
 where
@@ -408,28 +399,27 @@ where
 			P::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD,
 		)
 		.await
-		.map_err(map_target_err)?
-		.0;
+		.map_err(map_target_err)?;
+
+	let para_header_at_relay_header_at_target = source
+		.on_chain_parachain_header(relay_header_at_target, P::SOURCE_PARACHAIN_PARA_ID.into())
+		.await
+		.map_err(map_source_err)?
+		.map(|h| HeaderId(*h.number(), h.hash()));
 
 	Ok(RelayData {
 		required_para_header: required_header_number,
 		para_header_at_target,
 		para_header_at_source,
 		relay_header_at_source,
-		relay_header_at_target,
-		headers_map_cache,
+		relay_header_at_target: relay_header_at_target.0,
+		para_header_at_relay_header_at_target,
 	})
 }
 
-// This number is bigger than the session length of any well-known Substrate-based relay
-// chain. We expect that the underlying on-demand relay will submit at least 1 header per
-// session.
-const MAX_HEADERS_MAP_CACHE_ENTRIES: usize = 4096;
-
 /// Select relay and parachain headers that need to be relayed.
-fn select_headers_to_relay<'a, ParaHash, ParaNumber, RelayNumber>(
-	relay_task_name: &str,
-	data: &mut RelayData<'a, ParaHash, ParaNumber, RelayNumber>,
+fn select_headers_to_relay<ParaHash, ParaNumber, RelayNumber>(
+	data: &RelayData<ParaHash, ParaNumber, RelayNumber>,
 	mut state: RelayState<ParaHash, ParaNumber, RelayNumber>,
 ) -> RelayState<ParaHash, ParaNumber, RelayNumber>
 where
@@ -437,59 +427,24 @@ where
 	ParaNumber: Copy + PartialOrd,
 	RelayNumber: Copy + Debug + Ord,
 {
-	// despite of our current state, we want to update the headers map cache
-	if let Some(para_header_at_source) = data.para_header_at_source.clone() {
-		data.headers_map_cache
-			.insert(data.relay_header_at_source, para_header_at_source);
-		if data.headers_map_cache.len() > MAX_HEADERS_MAP_CACHE_ENTRIES {
-			let first_key = *data.headers_map_cache.keys().next().expect("map is not empty; qed");
-			data.headers_map_cache.remove(&first_key);
-		}
-	}
-
 	// this switch is responsible for processing `RelayingRelayHeader` state
 	match state {
 		RelayState::Idle | RelayState::RelayingParaHeader(_) => (),
-		RelayState::RelayingRelayHeader(relay_header_number, para_header_id) => {
+		RelayState::RelayingRelayHeader(relay_header_number) => {
 			if data.relay_header_at_target < relay_header_number {
 				// required relay header hasn't yet been relayed
-				return RelayState::RelayingRelayHeader(relay_header_number, para_header_id)
+				return RelayState::RelayingRelayHeader(relay_header_number)
 			}
 
-			// even though we have been asked to sync `para_header_id` initially, we:
-			// 1) may select better parachain head, covered by the `relay_header_number`;
-			// 2) must select parachain header that is actually finalized at the
-			//    `data.relay_header_at_target`. Otherwise if `para_header_id` has
-			//    not been explicitly finalized by the relay chain, we may stuck. That's
-			//    because parachains source will keep returning `para_header_id`, instead
-			//    of explicitly finalized (and available at the `data.relay_header_at_target`)
-			//    `para_header_id + N`.
-			let explicit_para_header_id = data
-				.headers_map_cache
-				.range(..=data.relay_header_at_target)
-				.next_back()
-				.map(|(_, next_para_header_id)| next_para_header_id.clone());
-			match explicit_para_header_id {
-				Some(explicit_para_header_id) => {
-					// we know that the `explicit_para_header_id` is larger than or equal, because
-					// we have checked that during `RelayState::RelayingRelayHeader` transition
-					state = RelayState::RelayingParaHeader(explicit_para_header_id);
-				}
-				None => {
-					// something abnormal has happened: we have waited for relay header delivery so
-					// long that the cache already has no entry for the updated relay header. All we
-					// can do is to relay new relay chain header.
-					log::error!(
-						target: "bridge",
-						"[{}] Headers map cache ({:?}..={:?}) is missing entry for relay chain header {:?}",
-						relay_task_name,
-						data.headers_map_cache.keys().next(),
-						data.headers_map_cache.keys().next_back(),
-						data.relay_header_at_target,
-					);
-
-					return RelayState::RelayingRelayHeader(data.relay_header_at_source, para_header_id)
-				},
+			// we may switch to `RelayingParaHeader` if parachain head is available
+			if let Some(para_header_at_relay_header_at_target) =
+				data.para_header_at_relay_header_at_target.clone()
+			{
+				state = RelayState::RelayingParaHeader(para_header_at_relay_header_at_target);
+			} else {
+				// otherwise, we'd need to restart (this may happen only if parachain has been
+				// deregistered)
+				state = RelayState::Idle;
 			}
 		},
 	}
@@ -497,7 +452,7 @@ where
 	// this switch is responsible for processing `RelayingParaHeader` state
 	match state {
 		RelayState::Idle => (),
-		RelayState::RelayingRelayHeader(_, _) => unreachable!("processed by previous match; qed"),
+		RelayState::RelayingRelayHeader(_) => unreachable!("processed by previous match; qed"),
 		RelayState::RelayingParaHeader(para_header_id) => {
 			if data.para_header_at_target < para_header_id.0 {
 				// parachain header hasn't yet been relayed
@@ -527,10 +482,7 @@ where
 
 	// we need relay chain header first
 	if data.relay_header_at_target < data.relay_header_at_source {
-		return RelayState::RelayingRelayHeader(
-			data.relay_header_at_source,
-			data.required_para_header,
-		)
+		return RelayState::RelayingRelayHeader(data.relay_header_at_source)
 	}
 
 	// if all relay headers synced, we may start directly with parachain header
@@ -545,17 +497,17 @@ mod tests {
 	fn relay_waits_for_relay_header_to_be_delivered() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 100,
+				&RelayData {
+					required_para_header: 90,
 					para_header_at_target: 50,
-					para_header_at_source: Some(110),
+					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
 					relay_header_at_target: 700,
-					headers_map_cache: &mut BTreeMap::new(),
+					para_header_at_relay_header_at_target: Some(HeaderId(100, 100)),
 				},
-				RelayState::RelayingRelayHeader(750, 100),
+				RelayState::RelayingRelayHeader(750),
 			),
-			RelayState::RelayingRelayHeader(750, 100),
+			RelayState::RelayingRelayHeader(750),
 		);
 	}
 
@@ -563,53 +515,17 @@ mod tests {
 	fn relay_starts_relaying_requested_para_header_after_relay_header_is_delivered() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 100,
+				&RelayData {
+					required_para_header: 90,
 					para_header_at_target: 50,
-					para_header_at_source: Some(110),
+					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
 					relay_header_at_target: 750,
-					headers_map_cache: &mut BTreeMap::new(),
+					para_header_at_relay_header_at_target: Some(HeaderId(100, 100)),
 				},
-				RelayState::RelayingRelayHeader(750, 100),
+				RelayState::RelayingRelayHeader(750),
 			),
-			RelayState::RelayingParaHeader(100),
-		);
-	}
-
-	#[test]
-	fn relay_selects_same_para_header_after_better_relay_header_is_delivered_1() {
-		assert_eq!(
-			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 100,
-					para_header_at_target: 50,
-					para_header_at_source: Some(110),
-					relay_header_at_source: 800,
-					relay_header_at_target: 780,
-					headers_map_cache: &mut vec![(700, 90), (750, 100)].into_iter().collect(),
-				},
-				RelayState::RelayingRelayHeader(750, 100),
-			),
-			RelayState::RelayingParaHeader(100),
-		);
-	}
-
-	#[test]
-	fn relay_selects_same_para_header_after_better_relay_header_is_delivered_2() {
-		assert_eq!(
-			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 100,
-					para_header_at_target: 50,
-					para_header_at_source: Some(110),
-					relay_header_at_source: 800,
-					relay_header_at_target: 780,
-					headers_map_cache: &mut BTreeMap::new(),
-				},
-				RelayState::RelayingRelayHeader(750, 100),
-			),
-			RelayState::RelayingParaHeader(100),
+			RelayState::RelayingParaHeader(HeaderId(100, 100)),
 		);
 	}
 
@@ -617,37 +533,34 @@ mod tests {
 	fn relay_selects_better_para_header_after_better_relay_header_is_delivered() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 100,
+				&RelayData {
+					required_para_header: 90,
 					para_header_at_target: 50,
-					para_header_at_source: Some(120),
+					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
 					relay_header_at_target: 780,
-					headers_map_cache: &mut vec![(700, 90), (750, 100), (780, 110), (790, 120)]
-						.into_iter()
-						.collect(),
+					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
-				RelayState::RelayingRelayHeader(750, 100),
+				RelayState::RelayingRelayHeader(750),
 			),
-			RelayState::RelayingParaHeader(110),
+			RelayState::RelayingParaHeader(HeaderId(105, 105)),
 		);
 	}
-
 	#[test]
 	fn relay_waits_for_para_header_to_be_delivered() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 100,
+				&RelayData {
+					required_para_header: 90,
 					para_header_at_target: 50,
-					para_header_at_source: Some(110),
+					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 700,
-					headers_map_cache: &mut BTreeMap::new(),
+					relay_header_at_target: 780,
+					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
-				RelayState::RelayingParaHeader(100),
+				RelayState::RelayingParaHeader(HeaderId(105, 105)),
 			),
-			RelayState::RelayingParaHeader(100),
+			RelayState::RelayingParaHeader(HeaderId(105, 105)),
 		);
 	}
 
@@ -655,13 +568,13 @@ mod tests {
 	fn relay_stays_idle_if_required_para_header_is_already_delivered() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 100,
-					para_header_at_target: 100,
-					para_header_at_source: Some(110),
+				&RelayData {
+					required_para_header: 90,
+					para_header_at_target: 105,
+					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 700,
-					headers_map_cache: &mut BTreeMap::new(),
+					relay_header_at_target: 780,
+					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::Idle,
 			),
@@ -673,13 +586,13 @@ mod tests {
 	fn relay_waits_for_required_para_header_to_appear_at_source_1() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 110,
-					para_header_at_target: 100,
+				&RelayData {
+					required_para_header: 120,
+					para_header_at_target: 105,
 					para_header_at_source: None,
 					relay_header_at_source: 800,
-					relay_header_at_target: 700,
-					headers_map_cache: &mut BTreeMap::new(),
+					relay_header_at_target: 780,
+					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::Idle,
 			),
@@ -691,13 +604,13 @@ mod tests {
 	fn relay_waits_for_required_para_header_to_appear_at_source_2() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 110,
-					para_header_at_target: 100,
-					para_header_at_source: Some(100),
+				&RelayData {
+					required_para_header: 120,
+					para_header_at_target: 105,
+					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 700,
-					headers_map_cache: &mut BTreeMap::new(),
+					relay_header_at_target: 780,
+					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::Idle,
 			),
@@ -709,17 +622,17 @@ mod tests {
 	fn relay_starts_relaying_relay_header_when_new_para_header_is_requested() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 110,
-					para_header_at_target: 100,
-					para_header_at_source: Some(110),
+				&RelayData {
+					required_para_header: 120,
+					para_header_at_target: 105,
+					para_header_at_source: Some(HeaderId(125, 125)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 700,
-					headers_map_cache: &mut BTreeMap::new(),
+					relay_header_at_target: 780,
+					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::Idle,
 			),
-			RelayState::RelayingRelayHeader(800, 110),
+			RelayState::RelayingRelayHeader(800),
 		);
 	}
 
@@ -727,97 +640,35 @@ mod tests {
 	fn relay_starts_relaying_para_header_when_new_para_header_is_requested() {
 		assert_eq!(
 			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 110,
-					para_header_at_target: 100,
-					para_header_at_source: Some(110),
+				&RelayData {
+					required_para_header: 120,
+					para_header_at_target: 105,
+					para_header_at_source: Some(HeaderId(125, 125)),
 					relay_header_at_source: 800,
 					relay_header_at_target: 800,
-					headers_map_cache: &mut BTreeMap::new(),
+					para_header_at_relay_header_at_target: Some(HeaderId(125, 125)),
 				},
 				RelayState::Idle,
 			),
-			RelayState::RelayingParaHeader(110),
+			RelayState::RelayingParaHeader(HeaderId(125, 125)),
 		);
 	}
 
 	#[test]
-	fn headers_map_cache_is_updated() {
-		let mut headers_map_cache = BTreeMap::new();
-
-		// when parachain header is known, map is updated
-		select_headers_to_relay(
-			&mut RelayData {
-				required_para_header: 0,
-				para_header_at_target: 50,
-				para_header_at_source: Some(110),
-				relay_header_at_source: 800,
-				relay_header_at_target: 700,
-				headers_map_cache: &mut headers_map_cache,
-			},
-			RelayState::RelayingRelayHeader(750, 100),
-		);
-		assert_eq!(headers_map_cache.clone().into_iter().collect::<Vec<_>>(), vec![(800, 110)],);
-
-		// when parachain header is not known, map is NOT updated
-		select_headers_to_relay(
-			&mut RelayData {
-				required_para_header: 0,
-				para_header_at_target: 50,
-				para_header_at_source: None,
-				relay_header_at_source: 800,
-				relay_header_at_target: 700,
-				headers_map_cache: &mut headers_map_cache,
-			},
-			RelayState::RelayingRelayHeader(750, 100),
-		);
-		assert_eq!(headers_map_cache.clone().into_iter().collect::<Vec<_>>(), vec![(800, 110)],);
-
-		// map auto-deduplicates equal entries
-		select_headers_to_relay(
-			&mut RelayData {
-				required_para_header: 0,
-				para_header_at_target: 50,
-				para_header_at_source: Some(110),
-				relay_header_at_source: 800,
-				relay_header_at_target: 700,
-				headers_map_cache: &mut headers_map_cache,
-			},
-			RelayState::RelayingRelayHeader(750, 100),
-		);
-		assert_eq!(headers_map_cache.clone().into_iter().collect::<Vec<_>>(), vec![(800, 110)],);
-
-		// nothing is pruned if number of map entries is < MAX_HEADERS_MAP_CACHE_ENTRIES
-		for i in 1..MAX_HEADERS_MAP_CACHE_ENTRIES {
-			select_headers_to_relay(
-				&mut RelayData {
-					required_para_header: 0,
-					para_header_at_target: 50,
-					para_header_at_source: Some(110 + i),
-					relay_header_at_source: 800 + i,
-					relay_header_at_target: 700,
-					headers_map_cache: &mut headers_map_cache,
+	fn relay_goes_idle_when_parachain_is_deregistered() {
+		assert_eq!(
+			select_headers_to_relay::<i32, _, _>(
+				&RelayData {
+					required_para_header: 120,
+					para_header_at_target: 105,
+					para_header_at_source: None,
+					relay_header_at_source: 800,
+					relay_header_at_target: 800,
+					para_header_at_relay_header_at_target: None,
 				},
-				RelayState::RelayingRelayHeader(750, 100),
-			);
-			assert_eq!(headers_map_cache.len(), i + 1);
-		}
-
-		// when we add next entry, the oldest one is pruned
-		assert!(headers_map_cache.contains_key(&800));
-		assert_eq!(headers_map_cache.len(), MAX_HEADERS_MAP_CACHE_ENTRIES);
-		select_headers_to_relay(
-			&mut RelayData {
-				required_para_header: 0,
-				para_header_at_target: 50,
-				para_header_at_source: Some(110 + MAX_HEADERS_MAP_CACHE_ENTRIES),
-				relay_header_at_source: 800 + MAX_HEADERS_MAP_CACHE_ENTRIES,
-				relay_header_at_target: 700,
-				headers_map_cache: &mut headers_map_cache,
-			},
-			RelayState::RelayingRelayHeader(750, 100),
+				RelayState::RelayingRelayHeader(800),
+			),
+			RelayState::Idle,
 		);
-		assert!(!headers_map_cache.contains_key(&800));
-		assert_eq!(headers_map_cache.len(), MAX_HEADERS_MAP_CACHE_ENTRIES);
 	}
 }
