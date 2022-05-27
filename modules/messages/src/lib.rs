@@ -436,7 +436,6 @@ pub mod pallet {
 					// weight is not enough, let's move to next lane
 					let dispatch_weight = T::MessageDispatch::dispatch_weight(&mut message);
 					if dispatch_weight > dispatch_weight_left {
-						// declared=1_000_000_000 (BASE_XCM_WEIGHT at Rialto/Millau), left=9_000_000
 						log::trace!(
 							target: "runtime::bridge-messages",
 							"Cannot dispatch any more messages on lane {:?}. Weight: declared={}, left={}",

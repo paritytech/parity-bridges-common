@@ -4,7 +4,7 @@
 # built can be specified with the `PROJECT` build-arg. For example, to build the `substrate-relay`
 # you would do the following:
 #
-# `docker build . -t paritytech/substrate-relay --build-arg=PROJECT=substrate-relay`
+# `docker build . -t local/substrate-relay --build-arg=PROJECT=substrate-relay`
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
 
