@@ -357,7 +357,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 // TODO: until https://github.com/paritytech/parity-bridges-common/issues/1417 is fixed (in either way),
 // the following constant must match the similar constant in the Millau runtime.
 
-/// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
+/// One XCM operation is `1_000_000_000` weight - almost certainly a conservative estimate.
 pub const BASE_XCM_WEIGHT: Weight = 1_000_000_000;
 
 parameter_types! {
