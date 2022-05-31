@@ -483,7 +483,7 @@ where
 }
 
 fn make_message_details_map<C: Chain>(
-	weights: Vec<bp_messages::MessageDetails<C::Balance>>,
+	weights: Vec<bp_messages::OutboundMessageDetails<C::Balance>>,
 	nonces: RangeInclusive<MessageNonce>,
 ) -> Result<MessageDetailsMap<C::Balance>, SubstrateError> {
 	let make_missing_nonce_error = |expected_nonce| {
@@ -558,10 +558,10 @@ mod tests {
 
 	fn message_details_from_rpc(
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Vec<bp_messages::MessageDetails<bp_wococo::Balance>> {
+	) -> Vec<bp_messages::OutboundMessageDetails<bp_wococo::Balance>> {
 		nonces
 			.into_iter()
-			.map(|nonce| bp_messages::MessageDetails {
+			.map(|nonce| bp_messages::OutboundMessageDetails {
 				nonce,
 				dispatch_weight: 0,
 				size: 0,
