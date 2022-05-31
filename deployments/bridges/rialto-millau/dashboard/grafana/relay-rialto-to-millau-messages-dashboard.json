@@ -598,7 +598,7 @@
           {
             "evaluator": {
               "params": [
-                10
+                50
               ],
               "type": "gt"
             },
