@@ -250,7 +250,7 @@
           "for": "5m",
           "frequency": "1m",
           "handler": 1,
-          "name": "Messages generated at RialtoParachain are not detected by relay",
+          "name": "RialtoParachain -> Millau messages are not detected by relay",
           "noDataState": "no_data",
           "notifications": []
         },
@@ -299,7 +299,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "label_replace(label_replace(RialtoParachain_to_Millau_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Millau\", \"type\", \"source_latest_generated\"), \"type\", \"Latest message received by RialtoParachain\", \"type\", \"target_latest_received\")",
+            "expr": "label_replace(label_replace(RialtoParachain_to_Millau_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Millau\", \"type\", \"source_latest_generated\"), \"type\", \"Latest Millau message received by RialtoParachain\", \"type\", \"target_latest_received\")",
             "interval": "",
             "legendFormat": "{{type}}",
             "refId": "A"
@@ -407,7 +407,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "label_replace(label_replace(RialtoParachain_to_Millau_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Millau to RialtoParachain\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest message received by RialtoParachain\", \"type\", \"target_latest_received\")",
+            "expr": "label_replace(label_replace(RialtoParachain_to_Millau_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Millau to RialtoParachain\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest Millau message received by RialtoParachain\", \"type\", \"target_latest_received\")",
             "interval": "",
             "legendFormat": "{{type}}",
             "refId": "A"
@@ -630,7 +630,7 @@
           "for": "5m",
           "frequency": "1m",
           "handler": 1,
-          "name": "Too many unconfirmed messages",
+          "name": "Too many unconfirmed messages (RialtoParachain -> Millau)",
           "noDataState": "no_data",
           "notifications": []
         },

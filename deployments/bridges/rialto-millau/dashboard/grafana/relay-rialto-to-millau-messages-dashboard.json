@@ -250,7 +250,7 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Messages generated at Rialto are not detected by relay",
+        "name": "Rialto -> Millau messages are not detected by relay",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -623,7 +623,7 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Too many unconfirmed messages",
+        "name": "Too many unconfirmed messages (Rialto -> Millau)",
         "noDataState": "no_data",
         "notifications": []
       },
