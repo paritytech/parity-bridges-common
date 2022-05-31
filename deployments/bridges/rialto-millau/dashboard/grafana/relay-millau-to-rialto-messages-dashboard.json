@@ -249,7 +249,7 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Messages generated at Millau are not detected by relay",
+        "name": "Millau -> Rialto messages are not detected by relay",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -298,7 +298,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest Rialto message received by Millau\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
@@ -407,7 +407,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest Rialto message received by Millau\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
@@ -543,9 +543,9 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[1m]) OR on() vector(0)",
+          "expr": "increase(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[5m]) OR on() vector(0)",
           "interval": "",
-          "legendFormat": "Messages delivered to Rialto in last 1m",
+          "legendFormat": "Millau Messages delivered to Rialto in last 5m",
           "refId": "B"
         }
       ],
@@ -606,7 +606,7 @@
           {
             "evaluator": {
               "params": [
-                10
+                50
               ],
               "type": "gt"
             },
@@ -631,7 +631,7 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Too many unconfirmed messages",
+        "name": "Too many unconfirmed messages  (Millau -> Rialto)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -825,7 +825,7 @@
         {
           "expr": "(scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m])) - scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_confirmed\"}[2m]))) * (max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) > bool min_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]))",
           "interval": "",
-          "legendFormat": "Unconfirmed rewards at Rialto (zero if messages are not being delivered to Rialto)",
+          "legendFormat": "Unconfirmed rewards at Millau->Rialto (zero if messages are not being delivered to Rialto)",
           "refId": "B"
         }
       ],
@@ -960,7 +960,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest Rialto message received by Millau\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
@@ -1103,7 +1103,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest Rialto message received by Millau\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"

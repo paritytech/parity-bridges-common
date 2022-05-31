@@ -250,7 +250,7 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Messages generated at Rialto are not detected by relay",
+        "name": "Rialto -> Millau messages are not detected by relay",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -535,9 +535,9 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[1m]) OR on() vector(0)",
+          "expr": "increase(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[5m]) OR on() vector(0)",
           "interval": "",
-          "legendFormat": "Messages delivered to Millau in last 1m",
+          "legendFormat": "Rialto Messages delivered to Millau in last 5m",
           "refId": "B"
         }
       ],
@@ -598,7 +598,7 @@
           {
             "evaluator": {
               "params": [
-                10
+                50
               ],
               "type": "gt"
             },
@@ -623,7 +623,7 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Too many unconfirmed messages",
+        "name": "Too many unconfirmed messages (Rialto -> Millau)",
         "noDataState": "no_data",
         "notifications": []
       },
