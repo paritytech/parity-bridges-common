@@ -212,6 +212,10 @@ pub const TO_RIALTO_PARACHAIN_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 pub const TO_RIALTO_PARACHAIN_MESSAGE_DETAILS_METHOD: &str =
 	"ToRialtoParachainOutboundLaneApi_message_details";
 
+/// Name of the `FromRialtoParachainInboundLaneApi::message_details` runtime method.
+pub const FROM_RIALTO_PARACHAIN_MESSAGE_DETAILS_METHOD: &str =
+	"FromRialtoParachainInboundLaneApi_message_details";
+
 // We use this to get the account on RialtoParachain (target) which is derived from Millau's
 // (source) account. We do this so we can fund the derived account on RialtoParachain at Genesis to
 // it can pay transaction fees.

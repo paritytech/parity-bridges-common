@@ -91,6 +91,9 @@ pub const TO_ROCOCO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 /// Name of the `ToRococoOutboundLaneApi::message_details` runtime method.
 pub const TO_ROCOCO_MESSAGE_DETAILS_METHOD: &str = "ToRococoOutboundLaneApi_message_details";
 
+/// Name of the `FromRococoInboundLaneApi::message_details` runtime method.
+pub const FROM_ROCOCO_MESSAGE_DETAILS_METHOD: &str = "FromRococoInboundLaneApi_message_details";
+
 /// Existential deposit on Rococo.
 pub const EXISTENTIAL_DEPOSIT: Balance = 1_000_000_000_000 / 100;
 

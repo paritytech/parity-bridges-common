@@ -107,6 +107,10 @@ pub const TO_POLKADOT_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 /// Name of the `ToPolkadotOutboundLaneApi::message_details` runtime method.
 pub const TO_POLKADOT_MESSAGE_DETAILS_METHOD: &str = "ToPolkadotOutboundLaneApi_message_details";
 
+/// Name of the `FromPolkadotInboundLaneApi::message_details` runtime method.
+pub const FROM_POLKADOT_MESSAGE_DETAILS_METHOD: &str =
+	"FromPolkadotOutboundLaneApi_message_details";
+
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Polkadot headers.
 	///

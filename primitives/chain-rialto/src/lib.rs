@@ -252,6 +252,9 @@ pub const TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 /// Name of the `ToRialtoOutboundLaneApi::message_details` runtime method.
 pub const TO_RIALTO_MESSAGE_DETAILS_METHOD: &str = "ToRialtoOutboundLaneApi_message_details";
 
+/// Name of the `FromRialtoInboundLaneApi::message_details` runtime method.
+pub const FROM_RIALTO_MESSAGE_DETAILS_METHOD: &str = "FromRialtoInboundLaneApi_message_details";
+
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Rialto headers.
 	///

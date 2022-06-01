@@ -60,6 +60,9 @@ pub const TO_WOCOCO_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 /// Name of the `ToWococoOutboundLaneApi::message_details` runtime method.
 pub const TO_WOCOCO_MESSAGE_DETAILS_METHOD: &str = "ToWococoOutboundLaneApi_message_details";
 
+/// Name of the `FromWococoInboundLaneApi::message_details` runtime method.
+pub const FROM_WOCOCO_MESSAGE_DETAILS_METHOD: &str = "FromWococoInboundLaneApi_message_details";
+
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Wococo headers.
 	///

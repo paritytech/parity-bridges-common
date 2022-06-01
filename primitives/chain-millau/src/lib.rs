@@ -296,6 +296,9 @@ pub const TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD: &str =
 /// Name of the `ToMillauOutboundLaneApi::message_details` runtime method.
 pub const TO_MILLAU_MESSAGE_DETAILS_METHOD: &str = "ToMillauOutboundLaneApi_message_details";
 
+/// Name of the `FromMillauInboundLaneApi::message_details` runtime method.
+pub const FROM_MILLAU_MESSAGE_DETAILS_METHOD: &str = "FromMillauInboundLaneApi_message_details";
+
 sp_api::decl_runtime_apis! {
 	/// API for querying information about the finalized Millau headers.
 	///
