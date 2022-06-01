@@ -94,7 +94,7 @@ pub trait MessageDispatch<AccountId, Fee> {
 	/// Estimate dispatch weight.
 	///
 	/// This function must return correct upper bound of dispatch weight. The return value
-	/// of this function is expecte to match return value of the corresponding
+	/// of this function is expected to match return value of the corresponding
 	/// `From<Chain>InboundLaneApi::message_details().dispatch_weight` call.
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload, Fee>) -> Weight;
 

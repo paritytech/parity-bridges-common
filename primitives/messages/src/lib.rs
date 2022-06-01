@@ -199,9 +199,9 @@ pub struct OutboundMessageDetails<OutboundMessageFee> {
 pub struct InboundMessageDetails {
 	/// Computed message dispatch weight.
 	///
-	/// Runtime API gurantees that it will match the value, returned by
+	/// Runtime API guarantees that it will match the value, returned by
 	/// `target_chain::MessageDispatch::dispatch_weight`. This means that if the runtime
-	/// has failed to decode the message, it will be zero - that's because undecodable
+	/// has failed to decode the message, it will be zero - that's because `undecodable`
 	/// message cannot be dispatched.
 	pub dispatch_weight: Weight,
 }
