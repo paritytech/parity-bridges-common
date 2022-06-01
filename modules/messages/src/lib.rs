@@ -2362,12 +2362,11 @@ mod tests {
 						dispatch_weight: 0,
 						size: 0,
 						delivery_and_dispatch_fee: 0,
-						dispatch_fee_payment: bp_runtime::messages::DispatchFeePayment::AtTargetChain,
+						dispatch_fee_payment:
+							bp_runtime::messages::DispatchFeePayment::AtTargetChain,
 					},
 				),
-				InboundMessageDetails {
-					dispatch_weight: REGULAR_PAYLOAD.declared_weight,
-				},
+				InboundMessageDetails { dispatch_weight: REGULAR_PAYLOAD.declared_weight },
 			);
 		});
 	}
