@@ -383,8 +383,6 @@ pub type Barrier = (
 	// ^^^ Parent & its unit plurality gets free execution
 );
 
-/// Outbound XCM weigher type.
-pub type OutboundXcmWeigher = FixedWeightBounds<UnitWeightCost, (), MaxInstructions>;
 /// XCM weigher type.
 pub type XcmWeigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 
