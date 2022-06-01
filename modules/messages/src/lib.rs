@@ -2349,4 +2349,26 @@ mod tests {
 			bp_messages::storage_keys::inbound_lane_data_key("Messages", &TEST_LANE_ID).0,
 		);
 	}
+
+	#[test]
+	fn inbound_message_details_works() {
+		run_test(|| {
+			assert_eq!(
+				Pallet::<TestRuntime>::inbound_message_data(
+					TEST_LANE_ID,
+					REGULAR_PAYLOAD.encode(),
+					OutboundMessageDetails {
+						nonce: 0,
+						dispatch_weight: 0,
+						size: 0,
+						delivery_and_dispatch_fee: 0,
+						dispatch_fee_payment: bp_runtime::messages::DispatchFeePayment::AtTargetChain,
+					},
+				),
+				InboundMessageDetails {
+					dispatch_weight: REGULAR_PAYLOAD.declared_weight,
+				},
+			);
+		});
+	}
 }
