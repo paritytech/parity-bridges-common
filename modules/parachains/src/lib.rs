@@ -23,6 +23,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use weights::WeightInfo;
+pub use weights_ext::WeightInfoExt;
+
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHasher, ParaHead, ParaHeadsProof, ParaId};
 use bp_runtime::StorageProofError;
@@ -34,6 +37,12 @@ use sp_std::vec::Vec;
 
 // Re-export in crate namespace for `construct_runtime!`.
 pub use pallet::*;
+
+mod weights;
+mod weights_ext;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;

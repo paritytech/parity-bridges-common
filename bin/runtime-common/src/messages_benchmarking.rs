@@ -27,10 +27,11 @@ use crate::messages::{
 };
 
 use bp_messages::{storage_keys, MessageData, MessageKey, MessagePayload};
+use bp_runtime::StorageProofSize;
 use codec::Encode;
 use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_messages::benchmarking::{
-	MessageDeliveryProofParams, MessageParams, MessageProofParams, ProofSize,
+	MessageDeliveryProofParams, MessageParams, MessageProofParams,
 };
 use sp_core::Hasher;
 use sp_runtime::traits::{Header, IdentifyAccount, MaybeSerializeDeserialize, Zero};
@@ -76,7 +77,7 @@ where
 		+ IdentifyAccount<AccountId = AccountIdOf<ThisChain<B>>>,
 {
 	let message_payload = match params.size {
-		ProofSize::Minimal(ref size) => vec![0u8; *size as _],
+		StorageProofSize::Minimal(ref size) => vec![0u8; *size as _],
 		_ => vec![],
 	};
 
@@ -228,11 +229,15 @@ where
 }
 
 /// Populate trie with dummy keys+values until trie has at least given size.
-fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: ProofSize) -> H::Out {
+pub fn grow_trie<H: Hasher>(
+	mut root: H::Out,
+	mdb: &mut MemoryDB<H>,
+	trie_size: StorageProofSize,
+) -> H::Out {
 	let (iterations, leaf_size, minimal_trie_size) = match trie_size {
-		ProofSize::Minimal(_) => return root,
-		ProofSize::HasLargeLeaf(size) => (1, size, size),
-		ProofSize::HasExtraNodes(size) => (8, 1, size),
+		StorageProofSize::Minimal(_) => return root,
+		StorageProofSize::HasLargeLeaf(size) => (1, size, size),
+		StorageProofSize::HasExtraNodes(size) => (8, 1, size),
 	};
 
 	let mut key_index = 0;
