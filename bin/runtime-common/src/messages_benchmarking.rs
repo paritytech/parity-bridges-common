@@ -60,7 +60,7 @@ where
 	R: frame_system::Config<AccountId = AccountIdOf<ThisChain<B>>>
 		+ pallet_balances::Config<BI, Balance = BalanceOf<ThisChain<B>>>
 		+ pallet_bridge_grandpa::Config<FI>,
-	R::BridgedChain: bp_runtime::Chain<Header = BH>,
+	R::BridgedChain: bp_runtime::Chain<Hash = HashOf<BridgedChain<B>>, Header = BH>,
 	B: MessageBridge,
 	BI: 'static,
 	FI: 'static,
@@ -84,7 +84,7 @@ where
 	// finally - prepare storage proof and update environment
 	let (state_root, storage_proof) =
 		prepare_messages_storage_proof::<B, BHH>(&params, message_payload);
-	let bridged_header_hash = insert_bridged_chain_header::<R, FI, B, BH>(state_root);
+	let bridged_header_hash = insert_header_to_grandpa_pallet::<R, FI>(state_root);
 
 	(
 		FromBridgedChainMessagesProof {
@@ -104,7 +104,7 @@ pub fn prepare_message_delivery_proof<R, FI, B, BH, BHH>(
 ) -> FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChain<B>>>
 where
 	R: pallet_bridge_grandpa::Config<FI>,
-	R::BridgedChain: bp_runtime::Chain<Header = BH>,
+	R::BridgedChain: bp_runtime::Chain<Hash = HashOf<BridgedChain<B>>, Header = BH>,
 	FI: 'static,
 	B: MessageBridge,
 	BH: Header<Hash = HashOf<BridgedChain<B>>>,
@@ -132,7 +132,7 @@ where
 	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
 
 	// finally insert header with given state root to our storage
-	let bridged_header_hash = insert_bridged_chain_header::<R, FI, B, BH>(root);
+	let bridged_header_hash = insert_header_to_grandpa_pallet::<R, FI>(root);
 
 	FromBridgedChainMessagesDeliveryProof {
 		bridged_header_hash: bridged_header_hash.into(),
@@ -204,19 +204,16 @@ where
 	(root, storage_proof)
 }
 
-/// Insert Bridged chain header with given state root into storage of GRANDPA pallet at This chain.
-fn insert_bridged_chain_header<R, FI, B, BH>(
-	state_root: HashOf<BridgedChain<B>>,
-) -> HashOf<BridgedChain<B>>
+/// Insert header to the bridge GRANDPA pallet.
+pub(crate) fn insert_header_to_grandpa_pallet<R, GI>(
+	state_root: bp_runtime::HashOf<R::BridgedChain>,
+) -> bp_runtime::HashOf<R::BridgedChain>
 where
-	R: pallet_bridge_grandpa::Config<FI>,
-	R::BridgedChain: bp_runtime::Chain<Header = BH>,
-	FI: 'static,
-	B: MessageBridge,
-	BH: Header<Hash = HashOf<BridgedChain<B>>>,
-	HashOf<BridgedChain<B>>: Default,
+	R: pallet_bridge_grandpa::Config<GI>,
+	GI: 'static,
+	R::BridgedChain: bp_runtime::Chain,
 {
-	let bridged_header = BH::new(
+	let bridged_header = bp_runtime::HeaderOf::<R::BridgedChain>::new(
 		Zero::zero(),
 		Default::default(),
 		state_root,
@@ -224,7 +221,7 @@ where
 		Default::default(),
 	);
 	let bridged_header_hash = bridged_header.hash();
-	pallet_bridge_grandpa::initialize_for_benchmarks::<R, FI>(bridged_header);
+	pallet_bridge_grandpa::initialize_for_benchmarks::<R, GI>(bridged_header);
 	bridged_header_hash
 }
 

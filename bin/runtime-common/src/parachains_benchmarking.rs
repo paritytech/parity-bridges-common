@@ -18,16 +18,14 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use crate::messages_benchmarking::grow_trie;
+use crate::messages_benchmarking::{grow_trie, insert_header_to_grandpa_pallet};
 
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHead, ParaHeadsProof, ParaId};
-use bp_runtime::{HeaderOf, StorageProofSize};
+use bp_runtime::StorageProofSize;
 use codec::Encode;
 use frame_support::traits::Get;
-use num_traits::Zero;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher};
-use sp_runtime::traits::Header as HeaderT;
 use sp_std::prelude::*;
 use sp_trie::{record_all_keys, trie_types::TrieDBMutV1, LayoutV1, MemoryDB, Recorder, TrieMut};
 
@@ -76,26 +74,7 @@ where
 	let proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
 
 	let relay_block_hash =
-		insert_relay_chain_header::<R, R::BridgesGrandpaPalletInstance>(state_root);
+		insert_header_to_grandpa_pallet::<R, R::BridgesGrandpaPalletInstance>(state_root);
 
 	(relay_block_hash, proof)
-}
-
-/// Insert relay chain header with given state root into storage of GRANDPA pallet at chain.
-fn insert_relay_chain_header<R, GI>(state_root: RelayBlockHash) -> RelayBlockHash
-where
-	R: pallet_bridge_grandpa::Config<GI>,
-	GI: 'static,
-	R::BridgedChain: bp_runtime::Chain<Hash = RelayBlockHash>,
-{
-	let bridged_header = HeaderOf::<R::BridgedChain>::new(
-		Zero::zero(),
-		Default::default(),
-		state_root,
-		Default::default(),
-		Default::default(),
-	);
-	let bridged_header_hash = bridged_header.hash();
-	pallet_bridge_grandpa::initialize_for_benchmarks::<R, GI>(bridged_header);
-	bridged_header_hash
 }
