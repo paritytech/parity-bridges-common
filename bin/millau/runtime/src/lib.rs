@@ -1000,7 +1000,11 @@ impl_runtime_apis! {
 					parachains: &[bp_polkadot_core::parachains::ParaId],
 					parachain_head_size: u32,
 					proof_size: bp_runtime::StorageProofSize,
-				) -> (pallet_bridge_parachains::RelayBlockHash, bp_polkadot_core::parachains::ParaHeadsProof) {
+				) -> (
+					pallet_bridge_parachains::RelayBlockNumber,
+					pallet_bridge_parachains::RelayBlockHash,
+					bp_polkadot_core::parachains::ParaHeadsProof,
+				) {
 					bridge_runtime_common::parachains_benchmarking::prepare_parachain_heads_proof::<Runtime, WithRialtoParachainsInstance>(
 						parachains,
 						parachain_head_size,
