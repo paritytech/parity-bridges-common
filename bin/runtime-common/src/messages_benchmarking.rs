@@ -84,7 +84,7 @@ where
 	// finally - prepare storage proof and update environment
 	let (state_root, storage_proof) =
 		prepare_messages_storage_proof::<B, BHH>(&params, message_payload);
-	let bridged_header_hash = insert_header_to_grandpa_pallet::<R, FI>(state_root);
+	let (_, bridged_header_hash) = insert_header_to_grandpa_pallet::<R, FI>(state_root);
 
 	(
 		FromBridgedChainMessagesProof {
@@ -132,7 +132,7 @@ where
 	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
 
 	// finally insert header with given state root to our storage
-	let bridged_header_hash = insert_header_to_grandpa_pallet::<R, FI>(root);
+	let (_, bridged_header_hash) = insert_header_to_grandpa_pallet::<R, FI>(root);
 
 	FromBridgedChainMessagesDeliveryProof {
 		bridged_header_hash: bridged_header_hash.into(),
