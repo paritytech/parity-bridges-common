@@ -518,6 +518,7 @@ parameter_types! {
 pub type WithRialtoParachainsInstance = ();
 
 impl pallet_bridge_parachains::Config<WithRialtoParachainsInstance> for Runtime {
+	type WeightInfo = pallet_bridge_parachains::weights::MillauWeight<Runtime>;
 	type BridgesGrandpaPalletInstance = RialtoGrandpaInstance;
 	type ParasPalletName = RialtoParasPalletName;
 	type TrackedParachains = frame_support::traits::Everything;

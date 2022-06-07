@@ -27,7 +27,7 @@ use frame_support::weights::{RuntimeDbWeight, Weight};
 /// reject all heads that have larger/lesser size. It is about head size that we use in benchmarks.
 /// Relayer would need to pay additional fee for extra bytes.
 ///
-/// 384 is a bit larger (x1.3) than the size of the randomly chosen Polkadot block.
+/// 384 is a bit larger (1.3 times) than the size of the randomly chosen Polkadot block.
 pub const DEFAULT_PARACHAIN_HEAD_SIZE: u32 = 384;
 
 /// Number of extra bytes (excluding size of storage value itself) of storage proof, built at

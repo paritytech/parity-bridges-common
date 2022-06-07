@@ -38,8 +38,8 @@ use sp_std::vec::Vec;
 // Re-export in crate namespace for `construct_runtime!`.
 pub use pallet::*;
 
-mod weights;
-mod weights_ext;
+pub mod weights;
+pub mod weights_ext;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;

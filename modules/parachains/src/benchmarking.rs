@@ -30,7 +30,7 @@ use sp_std::prelude::*;
 /// Pallet we're benchmarking here.
 pub struct Pallet<T: Config<I>, I: 'static>(crate::Pallet<T, I>);
 
-/// Trait that must be implemented by runtime to behcnmark the parachains finality pallet.
+/// Trait that must be implemented by runtime to benchmark the parachains finality pallet.
 pub trait Config<I: 'static>: crate::Config<I> {
 	/// Generate parachain heads proof and prepare environment for verifying this proof.
 	fn prepare_parachain_heads_proof(
