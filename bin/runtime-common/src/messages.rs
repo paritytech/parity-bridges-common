@@ -523,6 +523,7 @@ pub mod target {
 		pub bridged_header_hash: BridgedHeaderHash,
 		/// A storage trie proof of messages being delivered.
 		pub storage_proof: RawStorageProof,
+		/// Messages in this proof are sent over this lane.
 		pub lane: LaneId,
 		/// Nonce of the first message being delivered.
 		pub nonces_start: MessageNonce,

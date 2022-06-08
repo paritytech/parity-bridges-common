@@ -570,6 +570,12 @@ pallet_bridge_parachains::declare_bridge_reject_obsolete_parachain_header! {
 	Call::BridgeRialtoParachains => WithRialtoParachainsInstance
 }
 
+bridge_runtime_common::declare_bridge_reject_obsolete_messages! {
+	Runtime,
+	Call::BridgeRialtoMessages => WithRialtoMessagesInstance,
+	Call::BridgeRialtoParachainMessages => WithRialtoParachainMessagesInstance
+}
+
 /// The address format for describing accounts.
 pub type Address = AccountId;
 /// Block header type as expected by this runtime.
@@ -592,6 +598,7 @@ pub type SignedExtra = (
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	BridgeRejectObsoleteGrandpaHeader,
 	BridgeRejectObsoleteParachainHeader,
+	BridgeRejectObsoleteMessages,
 );
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
