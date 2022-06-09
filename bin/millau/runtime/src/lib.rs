@@ -67,6 +67,9 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+// to be able to use Millau runtime in `bridge-runtime-common` tests
+pub use bridge_runtime_common;
+
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,

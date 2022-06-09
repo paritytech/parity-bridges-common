@@ -308,12 +308,8 @@ impl MessagesParameter for MillauToRialtoMessagesParameter {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{
-		BridgeRejectObsoleteMessages, DbWeight, RialtoGrandpaInstance, Runtime,
-		WithRialtoMessagesInstance,
-	};
+	use crate::{DbWeight, RialtoGrandpaInstance, Runtime, WithRialtoMessagesInstance};
 
-	use bp_messages::UnrewardedRelayersState;
 	use bp_runtime::Chain;
 	use bridge_runtime_common::{
 		assert_complete_bridge_types,
@@ -322,12 +318,7 @@ mod tests {
 			AssertBridgePalletNames, AssertChainConstants, AssertCompleteBridgeConstants,
 		},
 		messages,
-		messages::{
-			source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
-		},
 	};
-	use frame_support::weights::{DispatchClass, DispatchInfo, Pays};
-	use sp_runtime::traits::SignedExtension;
 
 	#[test]
 	fn ensure_millau_message_lane_weights_are_correct() {
@@ -415,137 +406,5 @@ mod tests {
 			)
 			.0,
 		);
-	}
-
-	// below are tests for the `BridgeRejectObsoleteMessages` signed extension
-
-	fn deliver_message_10() {
-		pallet_bridge_messages::InboundLanes::<Runtime, WithRialtoMessagesInstance>::insert(
-			[0, 0, 0, 0],
-			bp_messages::InboundLaneData { relayers: Default::default(), last_confirmed_nonce: 10 },
-		);
-	}
-
-	fn validate_message_delivery(
-		nonces_start: bp_messages::MessageNonce,
-		nonces_end: bp_messages::MessageNonce,
-	) -> bool {
-		BridgeRejectObsoleteMessages
-			.validate(
-				&[0u8; 32].into(),
-				&Call::BridgeRialtoMessages(pallet_bridge_messages::Call::<
-					Runtime,
-					WithRialtoMessagesInstance,
-				>::receive_messages_proof {
-					relayer_id_at_bridged_chain: [0u8; 32].into(),
-					messages_count: (nonces_end - nonces_start + 1) as u32,
-					dispatch_weight: 0,
-					proof: FromBridgedChainMessagesProof {
-						bridged_header_hash: Default::default(),
-						storage_proof: vec![],
-						lane: [0, 0, 0, 0],
-						nonces_start,
-						nonces_end,
-					},
-				}),
-				&DispatchInfo { weight: 0, class: DispatchClass::Operational, pays_fee: Pays::Yes },
-				0,
-			)
-			.is_ok()
-	}
-
-	#[test]
-	fn extension_rejects_obsolete_messages() {
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best delivered is message#10 and we're trying to deliver message#5 => tx
-			// is rejected
-			deliver_message_10();
-			assert!(!validate_message_delivery(8, 9));
-		});
-	}
-
-	#[test]
-	fn extension_rejects_same_message() {
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best delivered is message#10 and we're trying to import message#10 => tx
-			// is rejected
-			deliver_message_10();
-			assert!(!validate_message_delivery(8, 10));
-		});
-	}
-
-	#[test]
-	fn extension_accepts_new_message() {
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best delivered is message#10 and we're trying to deliver message#15 =>
-			// tx is accepted
-			deliver_message_10();
-			assert!(validate_message_delivery(10, 15));
-		});
-	}
-
-	fn confirm_message_10() {
-		pallet_bridge_messages::OutboundLanes::<Runtime, WithRialtoMessagesInstance>::insert(
-			[0, 0, 0, 0],
-			bp_messages::OutboundLaneData {
-				oldest_unpruned_nonce: 0,
-				latest_received_nonce: 10,
-				latest_generated_nonce: 10,
-			},
-		);
-	}
-
-	fn validate_message_confirmation(last_delivered_nonce: bp_messages::MessageNonce) -> bool {
-		BridgeRejectObsoleteMessages
-			.validate(
-				&[0u8; 32].into(),
-				&Call::BridgeRialtoMessages(pallet_bridge_messages::Call::<
-					Runtime,
-					WithRialtoMessagesInstance,
-				>::receive_messages_delivery_proof {
-					proof: FromBridgedChainMessagesDeliveryProof {
-						bridged_header_hash: Default::default(),
-						storage_proof: Vec::new(),
-						lane: [0, 0, 0, 0],
-					},
-					relayers_state: UnrewardedRelayersState {
-						last_delivered_nonce,
-						..Default::default()
-					},
-				}),
-				&DispatchInfo { weight: 0, class: DispatchClass::Operational, pays_fee: Pays::Yes },
-				0,
-			)
-			.is_ok()
-	}
-
-	#[test]
-	fn extension_rejects_obsolete_confirmations() {
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best confirmed is message#10 and we're trying to confirm message#5 => tx
-			// is rejected
-			confirm_message_10();
-			assert!(!validate_message_confirmation(5));
-		});
-	}
-
-	#[test]
-	fn extension_rejects_same_confirmation() {
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best confirmed is message#10 and we're trying to confirm message#10 =>
-			// tx is rejected
-			confirm_message_10();
-			assert!(!validate_message_confirmation(10));
-		});
-	}
-
-	#[test]
-	fn extension_accepts_new_confirmation() {
-		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best confirmed is message#10 and we're trying to confirm message#15 =>
-			// tx is accepted
-			confirm_message_10();
-			assert!(validate_message_confirmation(15));
-		});
 	}
 }
