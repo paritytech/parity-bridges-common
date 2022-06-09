@@ -333,7 +333,7 @@ async fn ensure_pallet_operating_mode<P: SubstrateFinalitySyncPipeline>(
 		(true, Ok(())) => Ok(()),
 		(false, Err(SubstrateError::BridgePalletIsHalted)) => Ok(()),
 		_ =>
-			return Err(anyhow::format_err!(
+			Err(anyhow::format_err!(
 				"Bridge GRANDPA pallet at {} is expected to be {}, but it isn't",
 				P::TargetChain::NAME,
 				if operational { "operational" } else { "halted" },
