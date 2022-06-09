@@ -27,15 +27,15 @@
 /// }
 /// ```
 ///
-/// The goal of this extension is to avoid "mining" message delivery transactions
-/// that are delivering outdated messages. Without that extension, even honest relayers
-/// may lose their funds if there are multiple relays running and submitting the
-/// same messages.
+/// The goal of this extension is to avoid "mining" messages delivery and delivery confirmation
+/// transactions, that are delivering outdated messages/confirmations. Without that extension,
+/// even honest relayers may lose their funds if there are multiple relays running and submitting
+/// the same messages/confirmations.
 #[macro_export]
 macro_rules! declare_bridge_reject_obsolete_messages {
 	($runtime:ident, $($call:path => $instance:ty),*) => {
 		/// Transaction-with-obsolete-messages check that will reject transaction if
-		/// it submits obsolete messages.
+		/// it submits obsolete messages/confirmations.
 		#[derive(Clone, codec::Decode, codec::Encode, Eq, PartialEq, frame_support::RuntimeDebug, scale_info::TypeInfo)]
 		pub struct BridgeRejectObsoleteMessages;
 
@@ -75,6 +75,20 @@ macro_rules! declare_bridge_reject_obsolete_messages {
 
 							Ok(sp_runtime::transaction_validity::ValidTransaction::default())
 						},
+						$call(pallet_bridge_messages::Call::<$runtime, $instance>::receive_messages_delivery_proof {
+							ref proof,
+							ref relayers_state,
+							..
+						}) => {
+							let latest_delivered_nonce = relayers_state.last_delivered_nonce;
+
+							let outbound_lane_data = pallet_bridge_messages::OutboundLanes::<$runtime, $instance>::get(&proof.lane);
+							if latest_delivered_nonce <= outbound_lane_data.latest_received_nonce {
+								return sp_runtime::transaction_validity::InvalidTransaction::Stale.into();
+							}
+
+							Ok(sp_runtime::transaction_validity::ValidTransaction::default())
+						}
 					)*
 					_ => Ok(sp_runtime::transaction_validity::ValidTransaction::default()),
 				}
