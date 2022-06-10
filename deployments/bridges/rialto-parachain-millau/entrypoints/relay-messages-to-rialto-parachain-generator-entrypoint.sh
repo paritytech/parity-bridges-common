@@ -13,7 +13,7 @@ MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
 
 SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto-parachain"
 SHARED_HOST="--source-host millau-node-bob --source-port 9944"
-DAVE_SIGNER="--source-signer //Dave"
+DAVE_SIGNER="--source-signer //Bob"
 
 SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $DAVE_SIGNER"
 
