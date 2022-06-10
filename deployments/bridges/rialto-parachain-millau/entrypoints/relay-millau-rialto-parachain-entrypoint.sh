@@ -24,11 +24,11 @@ sleep 6
 	--relayer-mode=altruistic \
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
-	--millau-signer //Charlie \
+	--millau-signer //George \
 	--millau-transactions-mortality=64 \
 	--rialto-parachain-host rialto-parachain-collator-charlie \
 	--rialto-parachain-port 9944 \
-	--rialto-parachain-signer //Charlie \
+	--rialto-parachain-signer //George \
 	--rialto-parachain-transactions-mortality=64 \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
