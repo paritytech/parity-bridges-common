@@ -21,14 +21,15 @@ sleep 15
 sleep 6
 
 /home/user/substrate-relay relay-headers-and-messages millau-rialto-parachain \
-	--relayer-mode=altruistic \
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
 	--millau-signer //George \
+	--millau-messages-pallet-owner=//RialtoParachainMessagesOwner \
 	--millau-transactions-mortality=64 \
 	--rialto-parachain-host rialto-parachain-collator-charlie \
 	--rialto-parachain-port 9944 \
 	--rialto-parachain-signer //George \
+	--rialto-parachain-messages-pallet-owner=//MillauMessagesOwner \
 	--rialto-parachain-transactions-mortality=64 \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
