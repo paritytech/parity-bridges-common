@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use cumulus_primitives_core::ParaId;
-use rialto_parachain_runtime::{AccountId, AuraId, Signature};
+use rialto_parachain_runtime::{AccountId, AuraId, BridgeMillauMessagesConfig, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
