@@ -119,13 +119,13 @@ Following accounts are used when `rialto-millau` bridge is running:
 
 Following accounts are used when `westend-millau` bridge is running:
 
-- Millau's `George` signs relay transactions with new Westend headers.
+- Millau's `George` and `Harry` are signing relay transactions with new Westend headers.
 
 Following accounts are used when `rialto-parachain-millau` bridge is running:
 
 - RialtoParachain's `Bob` signs RialtoParachain transactions which contain messages for Millau;
 - Millau's `Bob` signs Millau transactions which contain messages for RialtoParachain;
-- Millau's `George` signs complex headers+parachains+messages relay transactions on Millau chain;
+- Millau's `Iden` signs complex headers+parachains+messages relay transactions on Millau chain;
 - RialtoParachain's `George` signs complex headers+messages relay transactions on RialtoParachain chain.
 
 ### Docker Usage
