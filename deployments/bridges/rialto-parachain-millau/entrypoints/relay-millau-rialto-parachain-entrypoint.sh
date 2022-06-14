@@ -23,7 +23,7 @@ sleep 6
 /home/user/substrate-relay relay-headers-and-messages millau-rialto-parachain \
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
-	--millau-signer //George \
+	--millau-signer //Iden \
 	--millau-messages-pallet-owner=//RialtoParachainMessagesOwner \
 	--millau-transactions-mortality=64 \
 	--rialto-parachain-host rialto-parachain-collator-charlie \
