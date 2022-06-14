@@ -70,7 +70,7 @@ do
 		$SEND_MESSAGE \
 			--lane $SECONDARY_MESSAGE_LANE \
 			--conversion-rate-override $CONVERSION_RATE \
-			raw 5678
+			raw 010109030419A8
 	fi
 
 	# every other hour we're sending 3 large (size, weight, size+weight) messages
@@ -94,7 +94,7 @@ do
 			$SEND_MESSAGE \
 				--lane $MESSAGE_LANE \
 				--conversion-rate-override $CONVERSION_RATE \
-				raw deadbeef
+				raw 010109030419A8
 		done
 
 	fi
