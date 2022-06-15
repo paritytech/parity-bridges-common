@@ -392,6 +392,12 @@ macro_rules! declare_chain_options {
 						.transpose()
 				}
 
+				/// Returns `true` if either SURI, or file with SURI is specified.
+				#[allow(dead_code)]
+				pub fn is_defined(&self) -> bool {
+					self.[<$chain_prefix _signer>].is_some() || self.[<$chain_prefix _signer_file>].is_some()
+				}
+
 				/// Parse signing params into chain-specific KeyPair.
 				#[allow(dead_code)]
 				pub fn to_keypair<Chain: CliChain>(&self) -> anyhow::Result<Chain::KeyPair> {

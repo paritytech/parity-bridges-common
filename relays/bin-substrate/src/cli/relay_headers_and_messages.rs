@@ -95,21 +95,32 @@ macro_rules! declare_bridge_options {
 	// chain, parachain, relay-chain-of-parachain
 	($chain1:ident, $chain2:ident, $chain3:ident) => {
 		paste::item! {
-			#[doc = $chain1 ", " $chain2 " and " $chain3 " headers+messages relay params."]
+			#[doc = $chain1 ", " $chain2 " and " $chain3 " headers+parachains+messages relay params."]
 			#[derive(StructOpt)]
 			pub struct [<$chain1 $chain2 HeadersAndMessages>] {
 				#[structopt(flatten)]
 				shared: HeadersAndMessagesSharedParams,
 				#[structopt(flatten)]
 				left: [<$chain1 ConnectionParams>],
+				// default signer, which is always used to sign messages relay transactions on the left chain
 				#[structopt(flatten)]
 				left_sign: [<$chain1 SigningParams>],
+				// override for right_relay->left headers signer
+				#[structopt(flatten)]
+				right_relay_headers_to_left_sign_override: [<$chain3 HeadersTo $chain1 SigningParams>],
+				// override for right->left parachains signer
+				#[structopt(flatten)]
+				right_parachains_to_left_sign_override: [<$chain3 ParachainsTo $chain1 SigningParams>],
 				#[structopt(flatten)]
 				left_messages_pallet_owner: [<$chain1 MessagesPalletOwnerSigningParams>],
 				#[structopt(flatten)]
 				right: [<$chain2 ConnectionParams>],
+				// default signer, which is always used to sign messages relay transactions on the right chain
 				#[structopt(flatten)]
 				right_sign: [<$chain2 SigningParams>],
+				// override for left->right headers signer
+				#[structopt(flatten)]
+				left_headers_to_right_sign_override: [<$chain1 HeadersTo $chain2 SigningParams>],
 				#[structopt(flatten)]
 				right_messages_pallet_owner: [<$chain2 MessagesPalletOwnerSigningParams>],
 				#[structopt(flatten)]
@@ -126,14 +137,22 @@ macro_rules! declare_bridge_options {
 			pub struct [<$chain1 $chain2 HeadersAndMessages>] {
 				#[structopt(flatten)]
 				shared: HeadersAndMessagesSharedParams,
+				// default signer, which is always used to sign messages relay transactions on the left chain
 				#[structopt(flatten)]
 				left: [<$chain1 ConnectionParams>],
+				// override for right->left headers signer
+				#[structopt(flatten)]
+				right_headers_to_left_sign_override: [<$chain2 HeadersTo $chain1 SigningParams>],
 				#[structopt(flatten)]
 				left_sign: [<$chain1 SigningParams>],
 				#[structopt(flatten)]
 				left_messages_pallet_owner: [<$chain1 MessagesPalletOwnerSigningParams>],
+				// default signer, which is always used to sign messages relay transactions on the right chain
 				#[structopt(flatten)]
 				right: [<$chain2 ConnectionParams>],
+				// override for left->right headers signer
+				#[structopt(flatten)]
+				left_headers_to_right_sign_override: [<$chain1 HeadersTo $chain2 SigningParams>],
 				#[structopt(flatten)]
 				right_sign: [<$chain2 SigningParams>],
 				#[structopt(flatten)]
@@ -190,13 +209,27 @@ macro_rules! select_bridge {
 					>(
 						left_client,
 						right_client,
-						TransactionParams {
-							mortality: params.right_sign.transactions_mortality()?,
-							signer: params.right_sign.to_keypair::<Right>()?,
+						if params.left_headers_to_right_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.left_headers_to_right_sign_override.transactions_mortality()?,
+								signer: params.left_headers_to_right_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.right_sign.transactions_mortality()?,
+								signer: params.right_sign.to_keypair::<Right>()?,
+							}
 						},
-						TransactionParams {
-							mortality: params.left_sign.transactions_mortality()?,
-							signer: params.left_sign.to_keypair::<Left>()?,
+						if params.right_headers_to_left_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.right_headers_to_left_sign_override.transactions_mortality()?,
+								signer: params.right_headers_to_left_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.left_sign.transactions_mortality()?,
+								signer: params.left_sign.to_keypair::<Right>()?,
+							}
 						},
 						params.shared.only_mandatory_headers,
 						params.shared.only_mandatory_headers,
@@ -246,7 +279,7 @@ macro_rules! select_bridge {
 					Arc<dyn OnDemandRelay<BlockNumberOf<Right>>>,
 				)> {
 					type RightRelayChain = relay_rialto_client::Rialto;
-					let rialto_relay_chain_client = params.right_relay.to_client::<RightRelayChain>().await?; // TODO: should be the relaychain connection params
+					let rialto_relay_chain_client = params.right_relay.to_client::<RightRelayChain>().await?;
 
 					start_on_demand_relay_to_parachain::<
 						Left,
@@ -259,13 +292,38 @@ macro_rules! select_bridge {
 						left_client,
 						right_client,
 						rialto_relay_chain_client,
-						TransactionParams {
-							mortality: params.right_sign.transactions_mortality()?,
-							signer: params.right_sign.to_keypair::<Right>()?,
+						if params.left_headers_to_right_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.left_headers_to_right_sign_override.transactions_mortality()?,
+								signer: params.left_headers_to_right_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.right_sign.transactions_mortality()?,
+								signer: params.right_sign.to_keypair::<Right>()?,
+							}
 						},
-						TransactionParams {
-							mortality: params.left_sign.transactions_mortality()?,
-							signer: params.left_sign.to_keypair::<Left>()?,
+						if params.right_relay_headers_to_left_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.right_relay_headers_to_left_sign_override.transactions_mortality()?,
+								signer: params.right_relay_headers_to_left_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.left_sign.transactions_mortality()?,
+								signer: params.left_sign.to_keypair::<Right>()?,
+							}
+						},
+						if params.right_parachains_to_left_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.right_parachains_to_left_sign_override.transactions_mortality()?,
+								signer: params.right_parachains_to_left_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.left_sign.transactions_mortality()?,
+								signer: params.left_sign.to_keypair::<Right>()?,
+							}
 						},
 						params.shared.only_mandatory_headers,
 						params.shared.only_mandatory_headers,
@@ -322,13 +380,27 @@ macro_rules! select_bridge {
 					>(
 						left_client,
 						right_client,
-						TransactionParams {
-							mortality: params.right_sign.transactions_mortality()?,
-							signer: params.right_sign.to_keypair::<Right>()?,
+						if params.left_headers_to_right_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.left_headers_to_right_sign_override.transactions_mortality()?,
+								signer: params.left_headers_to_right_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.right_sign.transactions_mortality()?,
+								signer: params.right_sign.to_keypair::<Right>()?,
+							}
 						},
-						TransactionParams {
-							mortality: params.left_sign.transactions_mortality()?,
-							signer: params.left_sign.to_keypair::<Left>()?,
+						if params.right_headers_to_left_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.right_headers_to_left_sign_override.transactions_mortality()?,
+								signer: params.right_headers_to_left_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.left_sign.transactions_mortality()?,
+								signer: params.left_sign.to_keypair::<Right>()?,
+							}
 						},
 						params.shared.only_mandatory_headers,
 						params.shared.only_mandatory_headers,
@@ -405,13 +477,27 @@ macro_rules! select_bridge {
 					>(
 						left_client,
 						right_client,
-						TransactionParams {
-							mortality: params.right_sign.transactions_mortality()?,
-							signer: params.right_sign.to_keypair::<Right>()?,
+						if params.left_headers_to_right_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.left_headers_to_right_sign_override.transactions_mortality()?,
+								signer: params.left_headers_to_right_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.right_sign.transactions_mortality()?,
+								signer: params.right_sign.to_keypair::<Right>()?,
+							}
 						},
-						TransactionParams {
-							mortality: params.left_sign.transactions_mortality()?,
-							signer: params.left_sign.to_keypair::<Left>()?,
+						if params.right_headers_to_left_sign_override.is_defined() {
+							TransactionParams {
+								mortality: params.right_headers_to_left_sign_override.transactions_mortality()?,
+								signer: params.right_headers_to_left_sign_override.to_keypair::<Right>()?,
+							}
+						} else {
+							TransactionParams {
+								mortality: params.left_sign.transactions_mortality()?,
+								signer: params.left_sign.to_keypair::<Right>()?,
+							}
 						},
 						params.shared.only_mandatory_headers,
 						params.shared.only_mandatory_headers,
@@ -470,6 +556,15 @@ declare_chain_options!(Rococo, rococo);
 declare_chain_options!(Wococo, wococo);
 declare_chain_options!(Kusama, kusama);
 declare_chain_options!(Polkadot, polkadot);
+// Means to override signers of different layer transactions.
+declare_chain_options!(MillauHeadersToRialto, millau_headers_to_rialto);
+declare_chain_options!(MillauHeadersToRialtoParachain, millau_headers_to_rialto_parachain);
+declare_chain_options!(RialtoHeadersToMillau, rialto_headers_to_millau);
+declare_chain_options!(RialtoParachainsToMillau, rialto_parachains_to_millau);
+declare_chain_options!(WococoHeadersToRococo, wococo_headers_to_rococo);
+declare_chain_options!(RococoHeadersToWococo, rococo_headers_to_wococo);
+declare_chain_options!(KusamaHeadersToPolkadot, kusama_headers_to_polkadot);
+declare_chain_options!(PolkadotHeadersToKusama, polkadot_headers_to_kusama);
 // All supported bridges.
 declare_bridge_options!(Millau, Rialto);
 declare_bridge_options!(Millau, RialtoParachain, Rialto);
@@ -768,8 +863,9 @@ async fn start_on_demand_relay_to_parachain<LC, RC, RRC, LR, RRF, RL>(
 	left_client: Client<LC>,
 	right_client: Client<RC>,
 	right_relay_client: Client<RRC>,
-	left_to_right_transaction_params: TransactionParams<AccountKeyPairOf<RC>>,
-	right_to_left_transaction_params: TransactionParams<AccountKeyPairOf<LC>>,
+	left_headers_to_right_transaction_params: TransactionParams<AccountKeyPairOf<RC>>,
+	right_headers_to_left_transaction_params: TransactionParams<AccountKeyPairOf<LC>>,
+	right_parachains_to_left_transaction_params: TransactionParams<AccountKeyPairOf<LC>>,
 	left_to_right_only_mandatory_headers: bool,
 	right_to_left_only_mandatory_headers: bool,
 	left_can_start_version_guard: bool,
@@ -804,32 +900,32 @@ where
 {
 	LR::start_relay_guards(
 		&right_client,
-		&left_to_right_transaction_params,
+		&left_headers_to_right_transaction_params,
 		right_can_start_version_guard,
 	)
 	.await?;
 	RRF::start_relay_guards(
 		&left_client,
-		&right_to_left_transaction_params,
+		&right_headers_to_left_transaction_params,
 		left_can_start_version_guard,
 	)
 	.await?;
 	let left_to_right_on_demand_headers = OnDemandHeadersRelay::new::<LR>(
 		left_client.clone(),
 		right_client,
-		left_to_right_transaction_params,
+		left_headers_to_right_transaction_params,
 		left_to_right_only_mandatory_headers,
 	);
 	let right_relay_to_left_on_demand_headers = OnDemandHeadersRelay::new::<RRF>(
 		right_relay_client.clone(),
 		left_client.clone(),
-		right_to_left_transaction_params.clone(),
+		right_headers_to_left_transaction_params,
 		right_to_left_only_mandatory_headers,
 	);
 	let right_to_left_on_demand_parachains = OnDemandParachainsRelay::new::<RL>(
 		right_relay_client,
 		left_client,
-		right_to_left_transaction_params,
+		right_parachains_to_left_transaction_params,
 		Arc::new(right_relay_to_left_on_demand_headers),
 	);
 
