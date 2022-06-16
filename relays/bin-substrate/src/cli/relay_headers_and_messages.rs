@@ -44,11 +44,14 @@ use substrate_relay_helper::{
 		headers::OnDemandHeadersRelay, parachains::OnDemandParachainsRelay, OnDemandRelay,
 	},
 	parachains::SubstrateParachainsPipeline,
-	TransactionParams,
+	TaggedAccount, TransactionParams,
 };
 
 use crate::{
-	cli::{relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams, RuntimeVersionType},
+	cli::{
+		relay_messages::RelayerMode, CliChain, HexLaneId, PrometheusParams, RuntimeVersionType,
+		TransactionParamsProvider,
+	},
 	declare_chain_options,
 };
 
@@ -197,6 +200,8 @@ macro_rules! select_bridge {
 					params: &Params,
 					left_client: Client<Left>,
 					right_client: Client<Right>,
+					at_left_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Left>>>,
+					at_right_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Right>>>,
 				) -> anyhow::Result<(
 					Arc<dyn OnDemandRelay<BlockNumberOf<Left>>>,
 					Arc<dyn OnDemandRelay<BlockNumberOf<Right>>>,
@@ -209,32 +214,14 @@ macro_rules! select_bridge {
 					>(
 						left_client,
 						right_client,
-						if params.left_headers_to_right_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.left_headers_to_right_sign_override.transactions_mortality()?,
-								signer: params.left_headers_to_right_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.right_sign.transactions_mortality()?,
-								signer: params.right_sign.to_keypair::<Right>()?,
-							}
-						},
-						if params.right_headers_to_left_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.right_headers_to_left_sign_override.transactions_mortality()?,
-								signer: params.right_headers_to_left_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.left_sign.transactions_mortality()?,
-								signer: params.left_sign.to_keypair::<Right>()?,
-							}
-						},
+						params.left_headers_to_right_sign_override.transaction_params_or::<Right, _>(&params.right_sign)?,
+						params.right_headers_to_left_sign_override.transaction_params_or::<Left, _>(&params.left_sign)?,
 						params.shared.only_mandatory_headers,
 						params.shared.only_mandatory_headers,
 						params.left.can_start_version_guard(),
 						params.right.can_start_version_guard(),
+						at_left_relay_accounts,
+						at_right_relay_accounts,
 					).await
 				}
 
@@ -274,6 +261,8 @@ macro_rules! select_bridge {
 					params: &Params,
 					left_client: Client<Left>,
 					right_client: Client<Right>,
+					at_left_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Left>>>,
+					at_right_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Right>>>,
 				) -> anyhow::Result<(
 					Arc<dyn OnDemandRelay<BlockNumberOf<Left>>>,
 					Arc<dyn OnDemandRelay<BlockNumberOf<Right>>>,
@@ -292,43 +281,15 @@ macro_rules! select_bridge {
 						left_client,
 						right_client,
 						rialto_relay_chain_client,
-						if params.left_headers_to_right_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.left_headers_to_right_sign_override.transactions_mortality()?,
-								signer: params.left_headers_to_right_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.right_sign.transactions_mortality()?,
-								signer: params.right_sign.to_keypair::<Right>()?,
-							}
-						},
-						if params.right_relay_headers_to_left_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.right_relay_headers_to_left_sign_override.transactions_mortality()?,
-								signer: params.right_relay_headers_to_left_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.left_sign.transactions_mortality()?,
-								signer: params.left_sign.to_keypair::<Right>()?,
-							}
-						},
-						if params.right_parachains_to_left_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.right_parachains_to_left_sign_override.transactions_mortality()?,
-								signer: params.right_parachains_to_left_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.left_sign.transactions_mortality()?,
-								signer: params.left_sign.to_keypair::<Right>()?,
-							}
-						},
+						params.left_headers_to_right_sign_override.transaction_params_or::<Right, _>(&params.right_sign)?,
+						params.right_relay_headers_to_left_sign_override.transaction_params_or::<Left, _>(&params.left_sign)?,
+						params.right_parachains_to_left_sign_override.transaction_params_or::<Left, _>(&params.left_sign)?,
 						params.shared.only_mandatory_headers,
 						params.shared.only_mandatory_headers,
 						params.left.can_start_version_guard(),
 						params.right.can_start_version_guard(),
+						at_left_relay_accounts,
+						at_right_relay_accounts,
 					).await
 				}
 
@@ -368,6 +329,8 @@ macro_rules! select_bridge {
 					params: &Params,
 					left_client: Client<Left>,
 					right_client: Client<Right>,
+					at_left_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Left>>>,
+					at_right_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Right>>>,
 				) -> anyhow::Result<(
 					Arc<dyn OnDemandRelay<BlockNumberOf<Left>>>,
 					Arc<dyn OnDemandRelay<BlockNumberOf<Right>>>,
@@ -380,32 +343,14 @@ macro_rules! select_bridge {
 					>(
 						left_client,
 						right_client,
-						if params.left_headers_to_right_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.left_headers_to_right_sign_override.transactions_mortality()?,
-								signer: params.left_headers_to_right_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.right_sign.transactions_mortality()?,
-								signer: params.right_sign.to_keypair::<Right>()?,
-							}
-						},
-						if params.right_headers_to_left_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.right_headers_to_left_sign_override.transactions_mortality()?,
-								signer: params.right_headers_to_left_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.left_sign.transactions_mortality()?,
-								signer: params.left_sign.to_keypair::<Right>()?,
-							}
-						},
+						params.left_headers_to_right_sign_override.transaction_params_or::<Right, _>(&params.right_sign)?,
+						params.right_headers_to_left_sign_override.transaction_params_or::<Left, _>(&params.left_sign)?,
 						params.shared.only_mandatory_headers,
 						params.shared.only_mandatory_headers,
 						params.left.can_start_version_guard(),
 						params.right.can_start_version_guard(),
+						at_left_relay_accounts,
+						at_right_relay_accounts,
 					).await
 				}
 
@@ -465,6 +410,8 @@ macro_rules! select_bridge {
 					params: &Params,
 					left_client: Client<Left>,
 					right_client: Client<Right>,
+					at_left_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Left>>>,
+					at_right_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Right>>>,
 				) -> anyhow::Result<(
 					Arc<dyn OnDemandRelay<BlockNumberOf<Left>>>,
 					Arc<dyn OnDemandRelay<BlockNumberOf<Right>>>,
@@ -477,32 +424,14 @@ macro_rules! select_bridge {
 					>(
 						left_client,
 						right_client,
-						if params.left_headers_to_right_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.left_headers_to_right_sign_override.transactions_mortality()?,
-								signer: params.left_headers_to_right_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.right_sign.transactions_mortality()?,
-								signer: params.right_sign.to_keypair::<Right>()?,
-							}
-						},
-						if params.right_headers_to_left_sign_override.is_defined() {
-							TransactionParams {
-								mortality: params.right_headers_to_left_sign_override.transactions_mortality()?,
-								signer: params.right_headers_to_left_sign_override.to_keypair::<Right>()?,
-							}
-						} else {
-							TransactionParams {
-								mortality: params.left_sign.transactions_mortality()?,
-								signer: params.left_sign.to_keypair::<Right>()?,
-							}
-						},
+						params.left_headers_to_right_sign_override.transaction_params_or::<Right, _>(&params.right_sign)?,
+						params.right_headers_to_left_sign_override.transaction_params_or::<Left, _>(&params.left_sign)?,
 						params.shared.only_mandatory_headers,
 						params.shared.only_mandatory_headers,
 						params.left.can_start_version_guard(),
 						params.right.can_start_version_guard(),
+						at_left_relay_accounts,
+						at_right_relay_accounts,
 					).await
 				}
 
@@ -600,6 +529,14 @@ impl RelayHeadersAndMessages {
 					LeftToRightMessageLane,
 				>(left_client.clone(), right_client.clone())?;
 			let right_to_left_metrics = left_to_right_metrics.clone().reverse();
+			let mut at_left_relay_accounts = vec![TaggedAccount::Messages {
+				id: left_sign.public().into(),
+				bridged_chain: Right::NAME.to_string(),
+			}];
+			let mut at_right_relay_accounts = vec![TaggedAccount::Messages {
+				id: right_sign.public().into(),
+				bridged_chain: Left::NAME.to_string(),
+			}];
 
 			// start conversion rate update loops for left/right chains
 			if let Some(left_messages_pallet_owner) = left_messages_pallet_owner.clone() {
@@ -714,27 +651,33 @@ impl RelayHeadersAndMessages {
 				}
 			}
 
+			// start on-demand header relays
+			let (left_to_right_on_demand_headers, right_to_left_on_demand_headers) =
+				start_on_demand_relays(
+					&params,
+					left_client.clone(),
+					right_client.clone(),
+					&mut at_left_relay_accounts,
+					&mut at_right_relay_accounts,
+				)
+				.await?;
+
 			// add balance-related metrics
 			let metrics_params =
 				substrate_relay_helper::messages_metrics::add_relay_balances_metrics(
 					left_client.clone(),
 					metrics_params,
-					Some(left_sign.public().into()),
-					left_messages_pallet_owner.map(|kp| kp.public().into()),
+					at_left_relay_accounts,
 				)
 				.await?;
 			let metrics_params =
 				substrate_relay_helper::messages_metrics::add_relay_balances_metrics(
 					right_client.clone(),
 					metrics_params,
-					Some(right_sign.public().into()),
-					right_messages_pallet_owner.map(|kp| kp.public().into()),
+					at_right_relay_accounts,
 				)
 				.await?;
 
-			// start on-demand header relays
-			let (left_to_right_on_demand_headers, right_to_left_on_demand_headers) =
-				start_on_demand_relays(&params, left_client.clone(), right_client.clone()).await?;
 			// Need 2x capacity since we consider both directions for each lane
 			let mut message_relays = Vec::with_capacity(lanes.len() * 2);
 			for lane in lanes {
@@ -809,13 +752,15 @@ async fn start_on_demand_relay_to_relay<LC, RC, LR, RL>(
 	right_to_left_only_mandatory_headers: bool,
 	left_can_start_version_guard: bool,
 	right_can_start_version_guard: bool,
+	at_left_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<LC>>>,
+	at_right_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<RC>>>,
 ) -> anyhow::Result<(
 	Arc<dyn OnDemandRelay<BlockNumberOf<LC>>>,
 	Arc<dyn OnDemandRelay<BlockNumberOf<RC>>>,
 )>
 where
-	LC: Chain + TransactionSignScheme<Chain = LC>,
-	RC: Chain + TransactionSignScheme<Chain = RC>,
+	LC: Chain + TransactionSignScheme<Chain = LC> + CliChain<KeyPair = AccountKeyPairOf<LC>>,
+	RC: Chain + TransactionSignScheme<Chain = RC> + CliChain<KeyPair = AccountKeyPairOf<RC>>,
 	LR: SubstrateFinalitySyncPipeline<
 		SourceChain = LC,
 		TargetChain = RC,
@@ -829,6 +774,15 @@ where
 	AccountIdOf<LC>: From<<<LC as TransactionSignScheme>::AccountKeyPair as Pair>::Public>,
 	AccountIdOf<RC>: From<<<RC as TransactionSignScheme>::AccountKeyPair as Pair>::Public>,
 {
+	at_left_relay_accounts.push(TaggedAccount::Headers {
+		id: right_to_left_transaction_params.signer.public().into(),
+		bridged_chain: RC::NAME.to_string(),
+	});
+	at_right_relay_accounts.push(TaggedAccount::Headers {
+		id: left_to_right_transaction_params.signer.public().into(),
+		bridged_chain: LC::NAME.to_string(),
+	});
+
 	LR::start_relay_guards(
 		&right_client,
 		&left_to_right_transaction_params,
@@ -870,15 +824,20 @@ async fn start_on_demand_relay_to_parachain<LC, RC, RRC, LR, RRF, RL>(
 	right_to_left_only_mandatory_headers: bool,
 	left_can_start_version_guard: bool,
 	right_can_start_version_guard: bool,
+	at_left_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<LC>>>,
+	at_right_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<RC>>>,
 ) -> anyhow::Result<(
 	Arc<dyn OnDemandRelay<BlockNumberOf<LC>>>,
 	Arc<dyn OnDemandRelay<BlockNumberOf<RC>>>,
 )>
 where
-	LC: Chain + TransactionSignScheme<Chain = LC>,
-	RC: Chain<Hash = ParaHash> + TransactionSignScheme<Chain = RC>,
+	LC: Chain + TransactionSignScheme<Chain = LC> + CliChain<KeyPair = AccountKeyPairOf<LC>>,
+	RC: Chain<Hash = ParaHash>
+		+ TransactionSignScheme<Chain = RC>
+		+ CliChain<KeyPair = AccountKeyPairOf<RC>>,
 	RRC: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
-		+ TransactionSignScheme<Chain = RRC>,
+		+ TransactionSignScheme<Chain = RRC>
+		+ CliChain<KeyPair = AccountKeyPairOf<RRC>>,
 	LR: SubstrateFinalitySyncPipeline<
 		SourceChain = LC,
 		TargetChain = RC,
@@ -898,6 +857,19 @@ where
 	AccountIdOf<LC>: From<<<LC as TransactionSignScheme>::AccountKeyPair as Pair>::Public>,
 	AccountIdOf<RC>: From<<<RC as TransactionSignScheme>::AccountKeyPair as Pair>::Public>,
 {
+	at_left_relay_accounts.push(TaggedAccount::Headers {
+		id: right_headers_to_left_transaction_params.signer.public().into(),
+		bridged_chain: RRC::NAME.to_string(),
+	});
+	at_left_relay_accounts.push(TaggedAccount::Parachains {
+		id: right_parachains_to_left_transaction_params.signer.public().into(),
+		bridged_chain: RRC::NAME.to_string(),
+	});
+	at_right_relay_accounts.push(TaggedAccount::Headers {
+		id: left_headers_to_right_transaction_params.signer.public().into(),
+		bridged_chain: LC::NAME.to_string(),
+	});
+
 	LR::start_relay_guards(
 		&right_client,
 		&left_headers_to_right_transaction_params,

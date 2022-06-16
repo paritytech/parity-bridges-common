@@ -22,6 +22,7 @@ use codec::{Decode, Encode};
 use relay_substrate_client::ChainRuntimeVersion;
 use structopt::{clap::arg_enum, StructOpt};
 use strum::{EnumString, EnumVariantNames};
+use substrate_relay_helper::TransactionParams;
 
 use bp_messages::LaneId;
 
@@ -302,6 +303,29 @@ pub enum RuntimeVersionType {
 	Bundle,
 }
 
+/// Helper trait to override transaction parameters differently.
+pub trait TransactionParamsProvider {
+	/// Returns `true` if transaction parameters are defined by this provider.
+	fn is_defined(&self) -> bool;
+	/// Returns transaction parameters.
+	fn transaction_params<Chain: CliChain>(
+		&self,
+	) -> anyhow::Result<TransactionParams<Chain::KeyPair>>;
+
+	/// Returns transaction parameters, defined by `self` provider or, if they're not defined,
+	/// defined by `other` provider.
+	fn transaction_params_or<Chain: CliChain, T: TransactionParamsProvider>(
+		&self,
+		other: &T,
+	) -> anyhow::Result<TransactionParams<Chain::KeyPair>> {
+		if self.is_defined() {
+			self.transaction_params::<Chain>()
+		} else {
+			other.transaction_params::<Chain>()
+		}
+	}
+}
+
 /// Create chain-specific set of configuration objects: connection parameters,
 /// signing parameters and bridge initialization parameters.
 #[macro_export]
@@ -392,12 +416,6 @@ macro_rules! declare_chain_options {
 						.transpose()
 				}
 
-				/// Returns `true` if either SURI, or file with SURI is specified.
-				#[allow(dead_code)]
-				pub fn is_defined(&self) -> bool {
-					self.[<$chain_prefix _signer>].is_some() || self.[<$chain_prefix _signer_file>].is_some()
-				}
-
 				/// Parse signing params into chain-specific KeyPair.
 				#[allow(dead_code)]
 				pub fn to_keypair<Chain: CliChain>(&self) -> anyhow::Result<Chain::KeyPair> {
@@ -437,6 +455,20 @@ macro_rules! declare_chain_options {
 						&suri,
 						suri_password.as_deref()
 					).map_err(|e| anyhow::format_err!("{:?}", e))
+				}
+			}
+
+			#[allow(dead_code)]
+			impl TransactionParamsProvider for [<$chain SigningParams>] {
+				fn is_defined(&self) -> bool {
+					self.[<$chain_prefix _signer>].is_some() || self.[<$chain_prefix _signer_file>].is_some()
+				}
+
+				fn transaction_params<Chain: CliChain>(&self) -> anyhow::Result<TransactionParams<Chain::KeyPair>> {
+					Ok(TransactionParams {
+						mortality: self.transactions_mortality()?,
+						signer: self.to_keypair::<Chain>()?,
+					})
 				}
 			}
 
