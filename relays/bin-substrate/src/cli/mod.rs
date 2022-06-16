@@ -64,7 +64,7 @@ pub enum Command {
 	/// and two `RelayMessages` relays. Headers are only relayed when they are required by
 	/// the message relays - i.e. when there are messages or confirmations that needs to be
 	/// relayed between chains.
-	RelayHeadersAndMessages(relay_headers_and_messages::RelayHeadersAndMessages),
+	RelayHeadersAndMessages(Box<relay_headers_and_messages::RelayHeadersAndMessages>),
 	/// Initialize on-chain bridge pallet with current header data.
 	///
 	/// Sends initialization transaction to bootstrap the bridge with current finalized block data.
