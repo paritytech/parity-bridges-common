@@ -73,6 +73,13 @@ pub enum TaggedAccount<AccountId> {
 		/// Name of the bridged chain, which sends us messages or delivery confirmations.
 		bridged_chain: String,
 	},
+	/// Account, used to sign messages with-bridged-chain pallet parameters update transactions.
+	MessagesPalletOwner {
+		/// Account id.
+		id: AccountId,
+		/// Name of the chain, bridged using messages pallet at our chain.
+		bridged_chain: String,
+	},
 }
 
 impl<AccountId> TaggedAccount<AccountId> {
@@ -82,6 +89,7 @@ impl<AccountId> TaggedAccount<AccountId> {
 			TaggedAccount::Headers { ref id, .. } => id,
 			TaggedAccount::Parachains { ref id, .. } => id,
 			TaggedAccount::Messages { ref id, .. } => id,
+			TaggedAccount::MessagesPalletOwner { ref id, .. } => id,
 		}
 	}
 
@@ -93,6 +101,8 @@ impl<AccountId> TaggedAccount<AccountId> {
 				format!("{}Parachains", bridged_chain),
 			TaggedAccount::Messages { ref bridged_chain, .. } =>
 				format!("{}Messages", bridged_chain),
+			TaggedAccount::MessagesPalletOwner { ref bridged_chain, .. } =>
+				format!("{}MessagesPalletOwner", bridged_chain),
 		}
 	}
 }

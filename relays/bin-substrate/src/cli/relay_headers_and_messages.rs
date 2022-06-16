@@ -554,7 +554,7 @@ impl RelayHeadersAndMessages {
 				>(
 					left_client,
 					TransactionParams {
-						signer: left_messages_pallet_owner,
+						signer: left_messages_pallet_owner.clone(),
 						mortality: left_transactions_mortality,
 					},
 					left_to_right_metrics
@@ -574,6 +574,10 @@ impl RelayHeadersAndMessages {
 						.shared_value_ref(),
 					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 				);
+				at_left_relay_accounts.push(TaggedAccount::MessagesPalletOwner {
+					id: left_messages_pallet_owner.public().into(),
+					bridged_chain: Right::NAME.to_string(),
+				});
 			}
 			if let Some(right_messages_pallet_owner) = right_messages_pallet_owner.clone() {
 				let right_client = right_client.clone();
@@ -590,7 +594,7 @@ impl RelayHeadersAndMessages {
 				>(
 					right_client,
 					TransactionParams {
-						signer: right_messages_pallet_owner,
+						signer: right_messages_pallet_owner.clone(),
 						mortality: right_transactions_mortality,
 					},
 					right_to_left_metrics
@@ -610,6 +614,10 @@ impl RelayHeadersAndMessages {
 						.shared_value_ref(),
 					CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 				);
+				at_right_relay_accounts.push(TaggedAccount::MessagesPalletOwner {
+					id: right_messages_pallet_owner.public().into(),
+					bridged_chain: Left::NAME.to_string(),
+				});
 			}
 
 			// optionally, create relayers fund account
