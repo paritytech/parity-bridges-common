@@ -986,7 +986,10 @@ mod tests {
 			res,
 			RelayHeadersAndMessages::MillauRialto(MillauRialtoHeadersAndMessages {
 				shared: HeadersAndMessagesSharedParams {
-					lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00]), HexLaneId([0x73, 0x77, 0x61, 0x70])],
+					lane: vec![
+						HexLaneId([0x00, 0x00, 0x00, 0x00]),
+						HexLaneId([0x73, 0x77, 0x61, 0x70])
+					],
 					relayer_mode: RelayerMode::Rational,
 					create_relayers_fund_accounts: false,
 					only_mandatory_headers: false,
@@ -1097,92 +1100,97 @@ mod tests {
 		// then
 		assert_eq!(
 			res,
-			RelayHeadersAndMessages::MillauRialtoParachain(MillauRialtoParachainHeadersAndMessages {
-				shared: HeadersAndMessagesSharedParams {
-					lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00])],
-					relayer_mode: RelayerMode::Rational,
-					create_relayers_fund_accounts: false,
-					only_mandatory_headers: false,
-					prometheus_params: PrometheusParams {
-						no_prometheus: false,
-						prometheus_host: "0.0.0.0".into(),
-						prometheus_port: 9616,
+			RelayHeadersAndMessages::MillauRialtoParachain(
+				MillauRialtoParachainHeadersAndMessages {
+					shared: HeadersAndMessagesSharedParams {
+						lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00])],
+						relayer_mode: RelayerMode::Rational,
+						create_relayers_fund_accounts: false,
+						only_mandatory_headers: false,
+						prometheus_params: PrometheusParams {
+							no_prometheus: false,
+							prometheus_host: "0.0.0.0".into(),
+							prometheus_port: 9616,
+						},
 					},
-				},
-				left: MillauConnectionParams {
-					millau_host: "millau-node-alice".into(),
-					millau_port: 9944,
-					millau_secure: false,
-					millau_runtime_version: MillauRuntimeVersionParams {
-						millau_version_mode: RuntimeVersionType::Bundle,
-						millau_spec_version: None,
-						millau_transaction_version: None,
+					left: MillauConnectionParams {
+						millau_host: "millau-node-alice".into(),
+						millau_port: 9944,
+						millau_secure: false,
+						millau_runtime_version: MillauRuntimeVersionParams {
+							millau_version_mode: RuntimeVersionType::Bundle,
+							millau_spec_version: None,
+							millau_transaction_version: None,
+						},
 					},
-				},
-				left_sign: MillauSigningParams {
-					millau_signer: Some("//Iden".into()),
-					millau_signer_password: None,
-					millau_signer_file: None,
-					millau_signer_password_file: None,
-					millau_transactions_mortality: Some(64),
-				},
-				left_messages_pallet_owner: MillauMessagesPalletOwnerSigningParams {
-					millau_messages_pallet_owner: Some("//RialtoParachainMessagesOwner".into()),
-					millau_messages_pallet_owner_password: None,
-				},
-				left_headers_to_right_sign_override: MillauHeadersToRialtoParachainSigningParams {
-					millau_headers_to_rialto_parachain_signer: None,
-					millau_headers_to_rialto_parachain_signer_password: None,
-					millau_headers_to_rialto_parachain_signer_file: None,
-					millau_headers_to_rialto_parachain_signer_password_file: None,
-					millau_headers_to_rialto_parachain_transactions_mortality: None,
-				},
-				right: RialtoParachainConnectionParams {
-					rialto_parachain_host: "rialto-parachain-collator-charlie".into(),
-					rialto_parachain_port: 9944,
-					rialto_parachain_secure: false,
-					rialto_parachain_runtime_version: RialtoParachainRuntimeVersionParams {
-						rialto_parachain_version_mode: RuntimeVersionType::Bundle,
-						rialto_parachain_spec_version: None,
-						rialto_parachain_transaction_version: None,
+					left_sign: MillauSigningParams {
+						millau_signer: Some("//Iden".into()),
+						millau_signer_password: None,
+						millau_signer_file: None,
+						millau_signer_password_file: None,
+						millau_transactions_mortality: Some(64),
 					},
-				},
-				right_sign: RialtoParachainSigningParams {
-					rialto_parachain_signer: Some("//George".into()),
-					rialto_parachain_signer_password: None,
-					rialto_parachain_signer_file: None,
-					rialto_parachain_signer_password_file: None,
-					rialto_parachain_transactions_mortality: Some(64),
-				},
-				right_messages_pallet_owner: RialtoParachainMessagesPalletOwnerSigningParams {
-					rialto_parachain_messages_pallet_owner: Some("//MillauMessagesOwner".into()),
-					rialto_parachain_messages_pallet_owner_password: None,
-				},
-				right_relay_headers_to_left_sign_override: RialtoHeadersToMillauSigningParams {
-					rialto_headers_to_millau_signer: Some("//Ken".into()),
-					rialto_headers_to_millau_signer_password: None,
-					rialto_headers_to_millau_signer_file: None,
-					rialto_headers_to_millau_signer_password_file: None,
-					rialto_headers_to_millau_transactions_mortality: None,
-				},
-				right_parachains_to_left_sign_override: RialtoParachainsToMillauSigningParams {
-					rialto_parachains_to_millau_signer: None,
-					rialto_parachains_to_millau_signer_password: None,
-					rialto_parachains_to_millau_signer_file: None,
-					rialto_parachains_to_millau_signer_password_file: None,
-					rialto_parachains_to_millau_transactions_mortality: None,
-				},
-				right_relay: RialtoConnectionParams {
-					rialto_host: "rialto-node-alice".into(),
-					rialto_port: 9944,
-					rialto_secure: false,
-					rialto_runtime_version: RialtoRuntimeVersionParams {
-						rialto_version_mode: RuntimeVersionType::Bundle,
-						rialto_spec_version: None,
-						rialto_transaction_version: None,
+					left_messages_pallet_owner: MillauMessagesPalletOwnerSigningParams {
+						millau_messages_pallet_owner: Some("//RialtoParachainMessagesOwner".into()),
+						millau_messages_pallet_owner_password: None,
 					},
-				},
-			}),
+					left_headers_to_right_sign_override:
+						MillauHeadersToRialtoParachainSigningParams {
+							millau_headers_to_rialto_parachain_signer: None,
+							millau_headers_to_rialto_parachain_signer_password: None,
+							millau_headers_to_rialto_parachain_signer_file: None,
+							millau_headers_to_rialto_parachain_signer_password_file: None,
+							millau_headers_to_rialto_parachain_transactions_mortality: None,
+						},
+					right: RialtoParachainConnectionParams {
+						rialto_parachain_host: "rialto-parachain-collator-charlie".into(),
+						rialto_parachain_port: 9944,
+						rialto_parachain_secure: false,
+						rialto_parachain_runtime_version: RialtoParachainRuntimeVersionParams {
+							rialto_parachain_version_mode: RuntimeVersionType::Bundle,
+							rialto_parachain_spec_version: None,
+							rialto_parachain_transaction_version: None,
+						},
+					},
+					right_sign: RialtoParachainSigningParams {
+						rialto_parachain_signer: Some("//George".into()),
+						rialto_parachain_signer_password: None,
+						rialto_parachain_signer_file: None,
+						rialto_parachain_signer_password_file: None,
+						rialto_parachain_transactions_mortality: Some(64),
+					},
+					right_messages_pallet_owner: RialtoParachainMessagesPalletOwnerSigningParams {
+						rialto_parachain_messages_pallet_owner: Some(
+							"//MillauMessagesOwner".into()
+						),
+						rialto_parachain_messages_pallet_owner_password: None,
+					},
+					right_relay_headers_to_left_sign_override: RialtoHeadersToMillauSigningParams {
+						rialto_headers_to_millau_signer: Some("//Ken".into()),
+						rialto_headers_to_millau_signer_password: None,
+						rialto_headers_to_millau_signer_file: None,
+						rialto_headers_to_millau_signer_password_file: None,
+						rialto_headers_to_millau_transactions_mortality: None,
+					},
+					right_parachains_to_left_sign_override: RialtoParachainsToMillauSigningParams {
+						rialto_parachains_to_millau_signer: None,
+						rialto_parachains_to_millau_signer_password: None,
+						rialto_parachains_to_millau_signer_file: None,
+						rialto_parachains_to_millau_signer_password_file: None,
+						rialto_parachains_to_millau_transactions_mortality: None,
+					},
+					right_relay: RialtoConnectionParams {
+						rialto_host: "rialto-node-alice".into(),
+						rialto_port: 9944,
+						rialto_secure: false,
+						rialto_runtime_version: RialtoRuntimeVersionParams {
+							rialto_version_mode: RuntimeVersionType::Bundle,
+							rialto_spec_version: None,
+							rialto_transaction_version: None,
+						},
+					},
+				}
+			),
 		);
 	}
 }

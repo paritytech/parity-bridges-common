@@ -310,7 +310,7 @@ where
 		let relay_account_balance_metric = FloatStorageValueMetric::new(
 			FreeAccountBalance::<C> { token_decimals, _phantom: Default::default() },
 			client.clone(),
-			C::account_info_storage_key(&account.id()),
+			C::account_info_storage_key(account.id()),
 			format!("at_{}_relay_{}_balance", C::NAME, account.tag()),
 			format!("Balance of the {} relay account at the {}", account.tag(), C::NAME),
 		)?;

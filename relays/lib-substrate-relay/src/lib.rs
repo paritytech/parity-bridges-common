@@ -49,7 +49,7 @@ pub struct TransactionParams<TS> {
 	pub mortality: Option<u32>,
 }
 
-/// Taggged relay account, which balance may be exposed as metrics by the relay.
+/// Tagged relay account, which balance may be exposed as metrics by the relay.
 #[derive(Clone, Debug)]
 pub enum TaggedAccount<AccountId> {
 	/// Account, used to sign headers relay transactions from given bridged chain.
