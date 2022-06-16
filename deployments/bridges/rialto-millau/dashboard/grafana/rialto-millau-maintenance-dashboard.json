@@ -544,16 +544,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "at_Rialto_relay_balance",
+          "expr": "at_Rialto_relay_MillauHeaders_balance",
           "interval": "",
-          "legendFormat": "Relay account balance",
+          "legendFormat": "With-Millau headers relay account balance",
           "refId": "A"
         },
         {
-          "expr": "at_Rialto_messages_pallet_owner_balance",
+          "expr": "at_Rialto_relay_MillauMessages_balance",
           "interval": "",
-          "legendFormat": "Messages pallet owner balance",
+          "legendFormat": "With-Millau messages relay account balance",
           "refId": "B"
+        },
+        {
+          "expr": "at_Rialto_relay_MillauMessagesPalletOwner_balance",
+          "interval": "",
+          "legendFormat": "With-Millau messages pallet owner account balance",
+          "refId": "C"
         }
       ],
       "thresholds": [
@@ -708,16 +714,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "at_Millau_relay_balance",
+          "expr": "at_Millau_relay_RialtoHeaders_balance{instance=\"relay-millau-rialto:9616\"}",
           "interval": "",
-          "legendFormat": "Relay account balance",
+          "legendFormat": "With-Rialto headers relay account balance",
           "refId": "A"
         },
         {
-          "expr": "at_Millau_messages_pallet_owner_balance",
+          "expr": "at_Millau_relay_RialtoMessages_balance",
           "interval": "",
-          "legendFormat": "Messages pallet owner balance",
+          "legendFormat": "With-Rialto messages relay account balance",
           "refId": "B"
+        },
+        {
+          "expr": "at_Millau_relay_RialtoMessagesPalletOwner_balance",
+          "interval": "",
+          "legendFormat": "With-Rialto messages pallet owner account balance",
+          "refId": "C"
         }
       ],
       "thresholds": [
