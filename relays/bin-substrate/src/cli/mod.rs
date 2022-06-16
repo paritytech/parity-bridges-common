@@ -239,7 +239,7 @@ impl HexBytes {
 }
 
 /// Prometheus metrics params.
-#[derive(Clone, Debug, StructOpt)]
+#[derive(Clone, Debug, PartialEq, StructOpt)]
 pub struct PrometheusParams {
 	/// Do not expose a Prometheus metric endpoint.
 	#[structopt(long)]

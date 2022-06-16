@@ -24,6 +24,7 @@ sleep 6
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
 	--millau-signer //Iden \
+	--rialto-headers-to-millau-signer //Ken \
 	--millau-messages-pallet-owner=//RialtoParachainMessagesOwner \
 	--millau-transactions-mortality=64 \
 	--rialto-parachain-host rialto-parachain-collator-charlie \
