@@ -8,7 +8,7 @@
 version: '3.5'
 services:
   rialto-node-alice: &rialto-bridge-node
-    image: paritytech/rialto-bridge-node
+    image: local/rialto-bridge-node
     entrypoint:
       - /home/user/rialto-bridge-node
       - --execution=Native
@@ -94,7 +94,7 @@ services:
       - "10344:9944"
 
   rialto-chainspec-exporter:
-    image: paritytech/rialto-bridge-node
+    image: local/rialto-bridge-node
     entrypoint: /entrypoints/rialto-chainspec-exporter-entrypoint.sh
     volumes:
       - ./networks/entrypoints:/entrypoints

@@ -537,17 +537,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	///
 	/// Returns a dummy header if there is no best header. This can only happen
 	/// if the pallet has not been initialized yet.
-	pub fn best_finalized() -> BridgedHeader<T, I> {
+	pub fn best_finalized() -> Option<BridgedHeader<T, I>> {
 		let hash = <BestFinalized<T, I>>::get();
-		<ImportedHeaders<T, I>>::get(hash).unwrap_or_else(|| {
-			<BridgedHeader<T, I>>::new(
-				Default::default(),
-				Default::default(),
-				Default::default(),
-				Default::default(),
-				Default::default(),
-			)
-		})
+		<ImportedHeaders<T, I>>::get(hash)
 	}
 
 	/// Check if a particular header is known to the bridge pallet.
