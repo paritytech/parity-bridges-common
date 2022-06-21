@@ -710,7 +710,7 @@ mod tests {
 				BestFinalized::<TestRuntime>::get(),
 				BridgedBlockHash::<TestRuntime, ()>::default()
 			);
-			assert_eq!(Pallet::<TestRuntime>::best_finalized(), test_header(0));
+			assert_eq!(Pallet::<TestRuntime>::best_finalized(), None);
 
 			let init_data = init_with_origin(Origin::root()).unwrap();
 
@@ -1123,7 +1123,7 @@ mod tests {
 		run_test(|| {
 			initialize_substrate_bridge();
 			assert_ok!(submit_finality_proof(1));
-			let first_header = Pallet::<TestRuntime>::best_finalized();
+			let first_header = Pallet::<TestRuntime>::best_finalized().unwrap();
 			next_block();
 
 			assert_ok!(submit_finality_proof(2));
