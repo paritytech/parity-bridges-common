@@ -13,12 +13,6 @@ WORKDIR /parity-bridges-common
 
 COPY . .
 
-USER root
-RUN rustup toolchain uninstall stable && \
-    rustup toolchain uninstall nightly && \
-    rustup toolchain install stable && \
-    rustup toolchain install nightly && \
-    rustup target add wasm32-unknown-unknown --toolchain nightly
 ARG PROJECT=substrate-relay
 RUN cargo build --release --verbose -p ${PROJECT} && \
     strip ./target/release/${PROJECT}
