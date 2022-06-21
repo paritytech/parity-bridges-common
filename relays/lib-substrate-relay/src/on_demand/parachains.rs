@@ -457,8 +457,7 @@ where
 	}
 
 	// this switch is responsible for processing `RelayingParaHeader` state
-	let para_header_at_target_or_zero =
-		data.para_header_at_target.clone().unwrap_or_else(Zero::zero);
+	let para_header_at_target_or_zero = data.para_header_at_target.unwrap_or_else(Zero::zero);
 	match state {
 		RelayState::Idle => (),
 		RelayState::RelayingRelayHeader(_) => unreachable!("processed by previous match; qed"),
