@@ -31,8 +31,8 @@ rand_sleep() {
 
 # last time when we have been asking for conversion rate update
 LAST_CONVERSION_RATE_UPDATE_TIME=0
-# current conversion rate
-CONVERSION_RATE=metric
+# conversion rate override argument
+CONVERSION_RATE_OVERRIDE="--conversion-rate-override metric"
 
 # start sending large messages immediately
 LARGE_MESSAGES_TIME=0
@@ -46,22 +46,24 @@ do
 	# ask for latest conversion rate. We're doing that because otherwise we'll be facing
 	# bans from the conversion rate provider
 	if [ $SECONDS -ge $LAST_CONVERSION_RATE_UPDATE_TIME ]; then
-		CONVERSION_RATE=metric
-		LAST_CONVERSION_RATE_UPDATE_TIME=$((SECONDS + 300))
+		CONVERSION_RATE_OVERRIDE="--conversion-rate-override metric"
+		CONVERSION_RATE_UPDATE_DELAY=`shuf -i 300-600 -n 1`
+		LAST_CONVERSION_RATE_UPDATE_TIME=$((SECONDS + $CONVERSION_RATE_UPDATE_DELAY))
 	fi
 
 	# send regular message
 	echo "Sending Message from Rialto to Millau"
-	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE --conversion-rate-override $CONVERSION_RATE raw 010109030419A8 2>&1`
+	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE $CONVERSION_RATE_OVERRIDE raw 010109030419A8 2>&1`
 	echo $SEND_MESSAGE_OUTPUT
-	if [ "$CONVERSION_RATE" = "metric" ]; then
+	if [ "$CONVERSION_RATE_OVERRIDE" = "--conversion-rate-override metric" ]; then
 		ACTUAL_CONVERSION_RATE_REGEX="conversion rate override: ([0-9\.]+)"
 		if [[ $SEND_MESSAGE_OUTPUT =~ $ACTUAL_CONVERSION_RATE_REGEX ]]; then
 			CONVERSION_RATE=${BASH_REMATCH[1]}
 			echo "Read updated conversion rate: $CONVERSION_RATE"
+			CONVERSION_RATE_OVERRIDE="--conversion-rate-override $CONVERSION_RATE"
 		else
-			echo "Unable to find conversion rate in send-message output"
-			exit 1
+			echo "Error: unable to find conversion rate in send-message output. Will keep using on-chain rate"
+			CONVERSION_RATE_OVERRIDE=""
 		fi
 	fi
 
@@ -69,7 +71,7 @@ do
 		echo "Sending Message from Rialto to Millau using secondary lane: $SECONDARY_MESSAGE_LANE"
 		$SEND_MESSAGE \
 			--lane $SECONDARY_MESSAGE_LANE \
-			--conversion-rate-override $CONVERSION_RATE \
+			$CONVERSION_RATE_OVERRIDE \
 			raw 010109030419A8
 	fi
 
@@ -81,7 +83,7 @@ do
 		echo "Sending Maximal Size Message from Rialto to Millau"
 		$SEND_MESSAGE \
 			--lane $MESSAGE_LANE \
-			--conversion-rate-override $CONVERSION_RATE \
+			$CONVERSION_RATE_OVERRIDE \
 			sized max
 	fi
 
@@ -93,7 +95,7 @@ do
 		do
 			$SEND_MESSAGE \
 				--lane $MESSAGE_LANE \
-				--conversion-rate-override $CONVERSION_RATE \
+				$CONVERSION_RATE_OVERRIDE \
 				raw 010109030419A8
 		done
 
