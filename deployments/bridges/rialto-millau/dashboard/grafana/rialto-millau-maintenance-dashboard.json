@@ -490,6 +490,29 @@
               "type": "last"
             },
             "type": "query"
+          },
+          {
+            "evaluator": {
+              "params": [
+                1000
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "or"
+            },
+            "query": {
+              "params": [
+                "C",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "last"
+            },
+            "type": "query"
           }
         ],
         "executionErrorState": "alerting",
@@ -497,7 +520,7 @@
         "frequency": "1m",
         "handler": 1,
         "name": "At-Rialto relay balances are too low",
-        "noDataState": "no_data",
+        "noDataState": "ok",
         "notifications": []
       },
       "aliasColors": {},
@@ -646,11 +669,34 @@
               "type": "lt"
             },
             "operator": {
-              "type": "and"
+              "type": "or"
             },
             "query": {
               "params": [
                 "B",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "last"
+            },
+            "type": "query"
+          },
+          {
+            "evaluator": {
+              "params": [
+                1000
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "or"
+            },
+            "query": {
+              "params": [
+                "C",
                 "5m",
                 "now"
               ]
@@ -667,7 +713,7 @@
         "frequency": "1m",
         "handler": 1,
         "name": "At-Millau relay balances are too low",
-        "noDataState": "no_data",
+        "noDataState": "ok",
         "notifications": []
       },
       "aliasColors": {},
@@ -861,7 +907,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Rialto_to_Millau_MessageLane_00000000_is_source_and_source_at_target_using_different_forks",
+          "expr": "Rialto_to_Millau_MessageLane_00000000_is_source_and_source_at_target_using_different_forks OR on() vector(0)",
           "interval": "",
           "legendFormat": "On different forks?",
           "refId": "A"
@@ -996,7 +1042,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Millau_to_Rialto_MessageLane_00000000_is_source_and_source_at_target_using_different_forks",
+          "expr": "Millau_to_Rialto_MessageLane_00000000_is_source_and_source_at_target_using_different_forks OR on() vector(0)",
           "interval": "",
           "legendFormat": "On different forks?",
           "refId": "A"
