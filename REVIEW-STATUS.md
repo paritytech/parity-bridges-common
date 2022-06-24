@@ -11,7 +11,8 @@
 - [remove duplicate parachain heads exension](https://github.com/paritytech/parity-bridges-common/pull/1444);
 - [Signed extension for rejecting obsolete messages pallet transactions](https://github.com/paritytech/parity-bridges-common/pull/1446);
 - [Separate signers for different complex relay layers](https://github.com/paritytech/parity-bridges-common/pull/1465);
-- [Fix on-different-forks metrics during initialization](https://github.com/paritytech/parity-bridges-common/pull/1468).
+- [Fix on-different-forks metrics during initialization](https://github.com/paritytech/parity-bridges-common/pull/1468);
+- [Store both block number and hash in best finalized storage value](https://github.com/paritytech/parity-bridges-common/pull/1475).
 
 ## Code that need security audit
 
