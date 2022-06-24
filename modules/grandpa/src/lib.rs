@@ -1153,7 +1153,7 @@ mod tests {
 
 		assert_eq!(
 			BestFinalized::<TestRuntime>::storage_value_final_key().to_vec(),
-			bp_header_chain::storage_keys::best_finalized_hash_key("Grandpa").0,
+			bp_header_chain::storage_keys::best_finalized_key("Grandpa").0,
 		);
 	}
 }
