@@ -34,7 +34,7 @@ pub fn is_halted_key(pallet_prefix: &str) -> StorageKey {
 	)
 }
 
-/// Storage key of the best finalized header number abd hash value in the runtime storage.
+/// Storage key of the best finalized header number and hash value in the runtime storage.
 pub fn best_finalized_key(pallet_prefix: &str) -> StorageKey {
 	StorageKey(
 		bp_runtime::storage_value_final_key(
