@@ -247,7 +247,7 @@
             }
           ],
           "executionErrorState": "alerting",
-          "for": "5m",
+          "for": "20m",
           "frequency": "1m",
           "handler": 1,
           "name": "Millau -> RialtoParachain messages are not detected by relay",
