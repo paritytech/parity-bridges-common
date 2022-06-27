@@ -91,6 +91,7 @@ impl grandpa::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
+	type MaxBridgedAuthorities = frame_support::traits::ConstU32<256>;
 	type WeightInfo = ();
 }
 

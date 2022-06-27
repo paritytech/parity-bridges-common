@@ -36,12 +36,14 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use bp_header_chain::{justification::GrandpaJustification, InitializationData};
+use bp_header_chain::{justification::GrandpaJustification, AuthoritySet, InitializationData};
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
+use codec::{Decode, Encode, MaxEncodedLen};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{ensure, fail};
+use frame_support::{traits::Get, BoundedVec, RuntimeDebugNoBound, ensure, fail};
 use frame_system::{ensure_signed, RawOrigin};
-use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
+use scale_info::TypeInfo;
+use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight, ConsensusLog, GRANDPA_ENGINE_ID, SetId};
 use sp_runtime::traits::{BadOrigin, Header as HeaderT, Zero};
 use sp_std::{boxed::Box, convert::TryInto};
 
@@ -67,6 +69,56 @@ pub type BridgedBlockHash<T, I> = HashOf<<T as Config<I>>::BridgedChain>;
 pub type BridgedBlockHasher<T, I> = HasherOf<<T as Config<I>>::BridgedChain>;
 /// Header of the bridged chain.
 pub type BridgedHeader<T, I> = HeaderOf<<T as Config<I>>::BridgedChain>;
+
+/// A bounded list of Grandpa authorities with associated weights.
+type StoredAuthorityList<T> = BoundedVec<(AuthorityId, AuthorityWeight), T>;
+
+/// A bounded GRANDPA Authority List and ID.
+#[derive(Encode, Eq, Decode, RuntimeDebugNoBound, PartialEq, Clone, TypeInfo, MaxEncodedLen)]
+struct StoredAuthoritySet<T: Get<u32>> {
+	/// List of GRANDPA authorities for the current round.
+	pub authorities: StoredAuthorityList<T>,
+	/// Monotonic identifier of the current GRANDPA authority set.
+	pub set_id: SetId,
+}
+
+impl<T: Get<u32>> StoredAuthoritySet<T> {
+	/// Try to create a new bounded GRANDPA Authority Set from unbounded list.
+	///
+	/// Returns error if number of authorities in the provided list is too large.
+	pub fn new(authorities: AuthorityList, set_id: SetId) -> Result<Self, ()> {
+		Ok(Self { authorities: TryFrom::try_from(authorities)?, set_id })
+	}
+}
+
+impl<T: Get<u32>> Default for StoredAuthoritySet<T> {
+	fn default() -> Self {
+		StoredAuthoritySet {
+			authorities: BoundedVec::default(),
+			set_id: 0,
+		}
+	}
+}
+
+impl<T: Get<u32>> From<StoredAuthoritySet<T>> for AuthoritySet {
+	fn from(t: StoredAuthoritySet<T>) -> Self {
+		AuthoritySet {
+			authorities: t.authorities.into(),
+			set_id: t.set_id,
+		}
+	}
+}
+
+impl<T: Get<u32>> TryFrom<AuthoritySet> for StoredAuthoritySet<T> {
+	type Error = ();
+
+	fn try_from(t: AuthoritySet) -> Result<Self, Self::Error> {
+		Ok(StoredAuthoritySet {
+			authorities: TryFrom::try_from(t.authorities)?,
+			set_id: t.set_id
+		})
+	}
+}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -98,12 +150,15 @@ pub mod pallet {
 		#[pallet::constant]
 		type HeadersToKeep: Get<u32>;
 
+		/// Max number of authorities at the bridged chain.
+		#[pallet::constant]
+		type MaxBridgedAuthorities: Get<u32>;
+
 		/// Weights gathered through benchmarking.
 		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::pallet]
-	#[pallet::without_storage_info]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
@@ -165,7 +220,7 @@ pub mod pallet {
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
 			let set_id = authority_set.set_id;
-			verify_justification::<T, I>(&justification, hash, *number, authority_set)?;
+			verify_justification::<T, I>(&justification, hash, *number, authority_set.into())?;
 
 			let is_authorities_change_enacted =
 				try_enact_authority_change::<T, I>(&finality_target, set_id)?;
@@ -202,7 +257,7 @@ pub mod pallet {
 
 			let init_allowed = !<BestFinalized<T, I>>::exists();
 			ensure!(init_allowed, <Error<T, I>>::AlreadyInitialized);
-			initialize_bridge::<T, I>(init_data.clone());
+			initialize_bridge::<T, I>(init_data.clone())?;
 
 			log::info!(
 				target: "runtime::bridge-grandpa",
@@ -296,7 +351,7 @@ pub mod pallet {
 	/// The current GRANDPA Authority set.
 	#[pallet::storage]
 	pub(super) type CurrentAuthoritySet<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, bp_header_chain::AuthoritySet, ValueQuery>;
+		StorageValue<_, StoredAuthoritySet<T::MaxBridgedAuthorities>, ValueQuery>;
 
 	/// Optional pallet owner.
 	///
@@ -335,7 +390,7 @@ pub mod pallet {
 			}
 
 			if let Some(init_data) = self.init_data.clone() {
-				initialize_bridge::<T, I>(init_data);
+				initialize_bridge::<T, I>(init_data).expect("genesis config is correct; qed");
 			} else {
 				// Since the bridge hasn't been initialized we shouldn't allow anyone to perform
 				// transactions.
@@ -368,6 +423,8 @@ pub mod pallet {
 		Halted,
 		/// The storage proof doesn't contains storage root. So it is invalid for given header.
 		StorageRootMismatch,
+		/// Too many authorities in the set.
+		TooManyAuthoritiesInSet,
 	}
 
 	/// Check the given header for a GRANDPA scheduled authority set change. If a change
@@ -394,8 +451,8 @@ pub mod pallet {
 			ensure!(change.delay == Zero::zero(), <Error<T, I>>::UnsupportedScheduledChange);
 
 			// TODO [#788]: Stop manually increasing the `set_id` here.
-			let next_authorities = bp_header_chain::AuthoritySet {
-				authorities: change.next_authorities,
+			let next_authorities = StoredAuthoritySet {
+				authorities: change.next_authorities.try_into().map_err(|_| Error::<T, I>::TooManyAuthoritiesInSet)?,
 				set_id: current_set_id + 1,
 			};
 
@@ -477,7 +534,7 @@ pub mod pallet {
 	/// were called by a trusted origin.
 	pub(crate) fn initialize_bridge<T: Config<I>, I: 'static>(
 		init_params: super::InitializationData<BridgedHeader<T, I>>,
-	) {
+	) -> Result<(), Error<T, I>>{
 		let super::InitializationData { header, authority_list, set_id, is_halted } = init_params;
 
 		let initial_hash = header.hash();
@@ -485,10 +542,13 @@ pub mod pallet {
 		<ImportedHashesPointer<T, I>>::put(0);
 		insert_header::<T, I>(*header, initial_hash);
 
-		let authority_set = bp_header_chain::AuthoritySet::new(authority_list, set_id);
+		let authority_set = StoredAuthoritySet::new(authority_list, set_id)
+			.map_err(|_| Error::TooManyAuthoritiesInSet)?;
 		<CurrentAuthoritySet<T, I>>::put(authority_set);
 
 		<IsHalted<T, I>>::put(is_halted);
+	
+		Ok(())
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
@@ -949,7 +1009,7 @@ mod tests {
 			// Make sure that the authority set actually changed upon importing our header
 			assert_eq!(
 				<CurrentAuthoritySet<TestRuntime>>::get(),
-				bp_header_chain::AuthoritySet::new(next_authorities, next_set_id),
+				StoredAuthoritySet::new(next_authorities, next_set_id).unwrap(),
 			);
 		})
 	}
