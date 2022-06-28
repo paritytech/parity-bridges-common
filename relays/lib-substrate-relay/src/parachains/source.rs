@@ -23,7 +23,10 @@ use async_trait::async_trait;
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
 use codec::Decode;
-use parachains_relay::parachains_loop::{ParaHashAtSource, SourceClient};
+use parachains_relay::{
+	parachains_loop::{ParaHashAtSource, SourceClient},
+	parachains_loop_metrics::ParachainsLoopMetrics,
+};
 use relay_substrate_client::{
 	Chain, Client, Error as SubstrateError, HeaderIdOf, HeaderOf, RelayChain,
 };
@@ -100,6 +103,7 @@ where
 	async fn parachain_head(
 		&self,
 		at_block: HeaderIdOf<P::SourceRelayChain>,
+		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
 	) -> Result<ParaHashAtSource, Self::Error> {
 		// we don't need to support many parachains now
@@ -125,8 +129,20 @@ where
 							// we don't want this header yet => let's report previously requested
 							// header
 							parachain_head = ParaHashAtSource::Some(maximal_header_id.1);
+							if let Some(metrics) = metrics {
+								metrics.update_best_parachain_block_at_source(
+									para_id,
+									maximal_header_id.0,
+								);
+							}
 						},
-						Some(_) => (),
+						Some(_) =>
+							if let Some(metrics) = metrics {
+								metrics.update_best_parachain_block_at_source(
+									para_id,
+									*parachain_header.number(),
+								);
+							},
 						None => {
 							// on-demand relay has not yet asked us to sync anything let's do that
 							parachain_head = ParaHashAtSource::Unavailable;

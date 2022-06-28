@@ -24,13 +24,19 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use bp_parachains::{parachain_head_storage_key_at_target, BestParaHeadHash};
+use bp_parachains::{
+	best_parachain_head_hash_storage_key_at_target, imported_parachain_head_storage_key_at_target,
+	BestParaHeadHash,
+};
 use bp_polkadot_core::parachains::{ParaHeadsProof, ParaId};
 use codec::{Decode, Encode};
-use parachains_relay::parachains_loop::TargetClient;
+use parachains_relay::{
+	parachains_loop::TargetClient, parachains_loop_metrics::ParachainsLoopMetrics,
+};
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
-	HeaderIdOf, RelayChain, SignParam, TransactionEra, TransactionSignScheme, UnsignedTransaction,
+	HeaderIdOf, HeaderOf, RelayChain, SignParam, TransactionEra, TransactionSignScheme,
+	UnsignedTransaction,
 };
 use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
 use sp_core::{Bytes, Pair};
@@ -115,15 +121,31 @@ where
 	async fn parachain_head(
 		&self,
 		at_block: HeaderIdOf<P::TargetChain>,
+		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
 	) -> Result<Option<BestParaHeadHash>, Self::Error> {
-		let storage_key = parachain_head_storage_key_at_target(
+		let best_para_head_hash_key = best_parachain_head_hash_storage_key_at_target(
 			P::SourceRelayChain::PARACHAINS_FINALITY_PALLET_NAME,
 			para_id,
 		);
-		let para_head = self.client.storage_value(storage_key, Some(at_block.1)).await?;
+		let best_para_head_hash: Option<BestParaHeadHash> =
+			self.client.storage_value(best_para_head_hash_key, Some(at_block.1)).await?;
 
-		Ok(para_head)
+		if let (Some(metrics), &Some(ref best_para_head_hash)) = (metrics, &best_para_head_hash) {
+			let imported_para_head_key = imported_parachain_head_storage_key_at_target(
+				P::SourceRelayChain::PARACHAINS_FINALITY_PALLET_NAME,
+				para_id,
+				best_para_head_hash.head_hash,
+			);
+			let imported_para_head: Option<HeaderOf<P::SourceParachain>> =
+				self.client.storage_value(imported_para_head_key, Some(at_block.1)).await?;
+			if let Some(imported_para_head) = imported_para_head {
+				metrics
+					.update_best_parachain_block_at_target(para_id, *imported_para_head.number());
+			}
+		}
+
+		Ok(best_para_head_hash)
 	}
 
 	async fn submit_parachain_heads_proof(
