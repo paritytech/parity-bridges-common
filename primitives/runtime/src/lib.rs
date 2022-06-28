@@ -271,6 +271,7 @@ pub enum OwnedBridgeModuleError {
 
 /// Operating mode for a bridge module.
 pub trait OperatingMode: Send + Copy + Debug + FullCodec {
+	// Returns true if the bridge module is halted.
 	fn is_halted(&self) -> bool;
 }
 
@@ -291,7 +292,6 @@ impl Default for BasicOperatingMode {
 }
 
 impl OperatingMode for BasicOperatingMode {
-	// Returns true if the bridge module is halted.
 	fn is_halted(&self) -> bool {
 		*self == BasicOperatingMode::Halted
 	}
