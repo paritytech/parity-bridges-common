@@ -20,6 +20,8 @@ SERVICES=(\
 	deployments_relay-millau-rialto_1 \
 	deployments_relay-headers-westend-to-millau-1_1 \
 	deployments_relay-headers-westend-to-millau-2_1 \
+	deployments_relay-parachains-westend-to-millau-1_1 \
+	deployments_relay-parachains-westend-to-millau-1_2 \
 	deployments_relay-messages-millau-to-rialto-parachain-generator_1 \
 	deployments_relay-messages-rialto-parachain-to-millau-generator_1 \
 	deployments_relay-millau-rialto-parachain_1 \

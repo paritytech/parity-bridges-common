@@ -1,4 +1,4 @@
-# Exposed ports: 10616, 10617
+# Exposed ports: 10616, 10617, 10618, 10619
 
 version: '3.5'
 services:
@@ -27,6 +27,31 @@ services:
     depends_on:
       - millau-node-alice
 
+  relay-parachains-westend-to-millau-1:
+    image: paritytech/substrate-relay
+    entrypoint: /entrypoints/relay-parachains-westend-to-millau-entrypoint.sh
+    volumes:
+      - ./bridges/westend-millau/entrypoints:/entrypoints
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+    ports:
+      - "10618:9616"
+    depends_on:
+      - millau-node-alice
+
+  relay-parachains-westend-to-millau-2:
+    image: paritytech/substrate-relay
+    entrypoint: /entrypoints/relay-parachains-westend-to-millau-entrypoint.sh
+    volumes:
+      - ./bridges/westend-millau/entrypoints:/entrypoints
+    environment:
+      RUST_LOG: rpc=trace,bridge=trace
+      EXT_RELAY_ACCOUNT: //Mary
+    ports:
+      - "10619:9616"
+    depends_on:
+      - millau-node-alice
+
   # Note: These are being overridden from the top level `monitoring` compose file.
   grafana-dashboard:
     environment:
@@ -43,3 +68,5 @@ services:
     depends_on:
       - relay-headers-westend-to-millau-1
       - relay-headers-westend-to-millau-2
+      - relay-parachains-westend-to-millau-1
+      - relay-parachains-westend-to-millau-2
