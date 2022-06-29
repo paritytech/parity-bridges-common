@@ -628,7 +628,7 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "20m",
         "frequency": "1m",
         "handler": 1,
         "name": "Too many unconfirmed messages  (Millau -> Rialto)",
