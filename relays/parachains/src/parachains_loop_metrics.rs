@@ -63,9 +63,7 @@ impl ParachainsLoopMetrics {
 			label,
 			block_number,
 		);
-		self.best_source_block_numbers
-			.with_label_values(&[&label])
-			.set(block_number);
+		self.best_source_block_numbers.with_label_values(&[&label]).set(block_number);
 	}
 
 	/// Update best block number at target.
@@ -82,9 +80,7 @@ impl ParachainsLoopMetrics {
 			label,
 			block_number,
 		);
-		self.best_target_block_numbers
-			.with_label_values(&[&label])
-			.set(block_number);
+		self.best_target_block_numbers.with_label_values(&[&label]).set(block_number);
 	}
 }
 

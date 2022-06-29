@@ -28,7 +28,7 @@ use bp_parachains::{
 	best_parachain_head_hash_storage_key_at_target, imported_parachain_head_storage_key_at_target,
 	BestParaHeadHash,
 };
-use bp_polkadot_core::parachains::{ParaHeadsProof, ParaId};
+use bp_polkadot_core::parachains::{ParaHead, ParaHeadsProof, ParaId};
 use codec::{Decode, Encode};
 use parachains_relay::{
 	parachains_loop::TargetClient, parachains_loop_metrics::ParachainsLoopMetrics,
@@ -130,18 +130,33 @@ where
 		);
 		let best_para_head_hash: Option<BestParaHeadHash> =
 			self.client.storage_value(best_para_head_hash_key, Some(at_block.1)).await?;
-
 		if let (Some(metrics), &Some(ref best_para_head_hash)) = (metrics, &best_para_head_hash) {
 			let imported_para_head_key = imported_parachain_head_storage_key_at_target(
 				P::SourceRelayChain::PARACHAINS_FINALITY_PALLET_NAME,
 				para_id,
 				best_para_head_hash.head_hash,
 			);
-			let imported_para_head: Option<HeaderOf<P::SourceParachain>> =
-				self.client.storage_value(imported_para_head_key, Some(at_block.1)).await?;
-			if let Some(imported_para_head) = imported_para_head {
+			let imported_para_header = self
+				.client
+				.storage_value::<ParaHead>(imported_para_head_key, Some(at_block.1))
+				.await?
+				.and_then(|h| match HeaderOf::<P::SourceParachain>::decode(&mut &h.0[..]) {
+					Ok(header) => Some(header),
+					Err(e) => {
+						log::error!(
+							target: "bridge-metrics",
+							"Failed to decode {} parachain header at {}: {:?}. Metric will have obsolete value",
+							P::SourceParachain::NAME,
+							P::TargetChain::NAME,
+							e,
+						);
+
+						None
+					},
+				});
+			if let Some(imported_para_header) = imported_para_header {
 				metrics
-					.update_best_parachain_block_at_target(para_id, *imported_para_head.number());
+					.update_best_parachain_block_at_target(para_id, *imported_para_header.number());
 			}
 		}
 
