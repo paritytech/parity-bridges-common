@@ -30,22 +30,21 @@ pub struct ParachainsLoopMetrics {
 
 impl ParachainsLoopMetrics {
 	/// Create and register parachains loop metrics.
-	pub fn new(prefix: Option<&str>, parachains: &[ParaId]) -> Result<Self, PrometheusError> {
-		let parachains_str = parachains.iter().map(|p| p.0.to_string()).collect::<Vec<_>>();
+	pub fn new(prefix: Option<&str>) -> Result<Self, PrometheusError> {
 		Ok(ParachainsLoopMetrics {
 			best_source_block_numbers: GaugeVec::new(
 				Opts::new(
 					metric_name(prefix, "best_parachain_block_number_at_source"),
 					"Best parachain block numbers at the source relay chain".to_string(),
 				),
-				&parachains_str.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+				&["parachain"],
 			)?,
 			best_target_block_numbers: GaugeVec::new(
 				Opts::new(
 					metric_name(prefix, "best_parachain_block_number_at_target"),
 					"Best parachain block numbers at the target chain".to_string(),
 				),
-				&parachains_str.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+				&["parachain"],
 			)?,
 		})
 	}
@@ -56,10 +55,17 @@ impl ParachainsLoopMetrics {
 		parachain: ParaId,
 		block_number: Number,
 	) {
-		let label = parachain.0.to_string();
+		let block_number = block_number.into();
+		let label = parachain_label(&parachain);
+		log::trace!(
+			target: "bridge-metrics",
+			"Updated value of metric 'best_parachain_block_number_at_source[{}]': {:?}",
+			label,
+			block_number,
+		);
 		self.best_source_block_numbers
 			.with_label_values(&[&label])
-			.set(block_number.into());
+			.set(block_number);
 	}
 
 	/// Update best block number at target.
@@ -68,10 +74,17 @@ impl ParachainsLoopMetrics {
 		parachain: ParaId,
 		block_number: Number,
 	) {
-		let label = parachain.0.to_string();
+		let block_number = block_number.into();
+		let label = parachain_label(&parachain);
+		log::trace!(
+			target: "bridge-metrics",
+			"Updated value of metric 'best_parachain_block_number_at_target[{}]': {:?}",
+			label,
+			block_number,
+		);
 		self.best_target_block_numbers
 			.with_label_values(&[&label])
-			.set(block_number.into());
+			.set(block_number);
 	}
 }
 
@@ -81,4 +94,9 @@ impl Metric for ParachainsLoopMetrics {
 		register(self.best_target_block_numbers.clone(), registry)?;
 		Ok(())
 	}
+}
+
+/// Return metric label for the parachain.
+fn parachain_label(parachain: &ParaId) -> String {
+	format!("para_{}", parachain.0)
 }

@@ -75,7 +75,7 @@ pub fn imported_parachain_head_storage_key_at_target(
 	para_id: ParaId,
 	head_hash: ParaHash,
 ) -> StorageKey {
-	bp_runtime::storage_double_map_final_key::<Blake2_128Concat, Twox64Concat>(
+	bp_runtime::storage_double_map_final_key::<Blake2_128Concat, Blake2_128Concat>(
 		bridge_parachains_pallet_name,
 		"ImportedParaHeads",
 		&para_id.encode(),

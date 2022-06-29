@@ -146,10 +146,7 @@ where
 	let exit_signal = exit_signal.shared();
 	relay_utils::relay_loop(source_client, target_client)
 		.with_metrics(metrics_params)
-		.loop_metric(ParachainsLoopMetrics::new(
-			Some(&metrics_prefix::<P>()),
-			&sync_params.parachains,
-		)?)?
+		.loop_metric(ParachainsLoopMetrics::new(Some(&metrics_prefix::<P>()))?)?
 		.expose()
 		.await?
 		.run(metrics_prefix::<P>(), move |source_client, target_client, metrics| {
