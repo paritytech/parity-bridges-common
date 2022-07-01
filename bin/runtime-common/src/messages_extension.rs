@@ -69,7 +69,7 @@ macro_rules! declare_bridge_reject_obsolete_messages {
 							let nonces_end = proof.nonces_end;
 
 							let inbound_lane_data = pallet_bridge_messages::InboundLanes::<$runtime, $instance>::get(&proof.lane);
-							if proof.nonces_end <= inbound_lane_data.last_delivered_nonce() {
+							if proof.nonces_end <= inbound_lane_data.0.last_delivered_nonce() {
 								return sp_runtime::transaction_validity::InvalidTransaction::Stale.into();
 							}
 
@@ -132,7 +132,10 @@ mod tests {
 	fn deliver_message_10() {
 		pallet_bridge_messages::InboundLanes::<Runtime, WithRialtoMessagesInstance>::insert(
 			[0, 0, 0, 0],
-			bp_messages::InboundLaneData { relayers: Default::default(), last_confirmed_nonce: 10 },
+			pallet_bridge_messages::StoredInboundLaneData(bp_messages::InboundLaneData {
+				relayers: Default::default(),
+				last_confirmed_nonce: 10,
+			}),
 		);
 	}
 
