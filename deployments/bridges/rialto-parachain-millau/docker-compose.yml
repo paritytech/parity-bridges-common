@@ -1,4 +1,4 @@
-# Exposed ports: 10816, 10916, 11016
+# Exposed ports: 10816, 10916, 11016, 11017
 
 version: '3.5'
 services:
@@ -52,6 +52,16 @@ services:
       - "11016:9616"
     depends_on:
       - relay-millau-rialto-parachain
+
+  relay-messages-millau-to-rialto-parachain-resubmitter:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/relay-messages-to-rialto-parachain-resubmitter-entrypoint.sh
+    ports:
+      - "11017:9616"
+    depends_on:
+      - relay-messages-millau-to-rialto-parachain-generator
 
   # Note: These are being overridden from the top level `monitoring` compose file.
   grafana-dashboard:

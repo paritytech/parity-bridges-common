@@ -31,6 +31,8 @@ SERVICES=(\
 	deployments_millau-node-bob_1 \
 	deployments_rialto-parachain-collator-alice_1 \
 	deployments_rialto-parachain-collator-bob_1 \
+	deployments_relay-messages-millau-to-rialto-resubmitter_1 \
+	deployments_relay-messages-millau-to-rialto-parachain-resubmitter_1 \
 )
 
 for SVC in ${SERVICES[*]}
