@@ -24,7 +24,7 @@ use bp_messages::{
 	UnrewardedRelayer,
 };
 use bp_runtime::messages::MessageDispatchResult;
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
 use frame_support::{traits::Get, RuntimeDebug};
 use scale_info::{Type, TypeInfo};
 use sp_std::prelude::PartialEq;
@@ -59,22 +59,45 @@ pub trait InboundLaneStorage {
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct StoredInboundLaneData<T: Config<I>, I: 'static>(pub InboundLaneData<T::InboundRelayer>);
 
+impl<T: Config<I>, I: 'static> sp_std::ops::Deref for StoredInboundLaneData<T, I> {
+	type Target = InboundLaneData<T::InboundRelayer>;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+
+impl<T: Config<I>, I: 'static> sp_std::ops::DerefMut for StoredInboundLaneData<T, I> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.0
+	}
+}
+
 impl<T: Config<I>, I: 'static> Default for StoredInboundLaneData<T, I> {
 	fn default() -> Self {
 		StoredInboundLaneData(Default::default())
 	}
 }
 
-impl<T: Config<I>, I: 'static> From<InboundLaneData<T::InboundRelayer>> for StoredInboundLaneData<T, I> {
+impl<T: Config<I>, I: 'static> From<InboundLaneData<T::InboundRelayer>>
+	for StoredInboundLaneData<T, I>
+{
 	fn from(data: InboundLaneData<T::InboundRelayer>) -> Self {
 		StoredInboundLaneData(data)
 	}
 }
 
-impl<T: Config<I>, I: 'static> From<StoredInboundLaneData<T, I>> for InboundLaneData<T::InboundRelayer> {
+impl<T: Config<I>, I: 'static> From<StoredInboundLaneData<T, I>>
+	for InboundLaneData<T::InboundRelayer>
+{
 	fn from(data: StoredInboundLaneData<T, I>) -> Self {
 		data.0
 	}
+}
+
+impl<T: Config<I>, I: 'static> EncodeLike<StoredInboundLaneData<T, I>>
+	for InboundLaneData<T::InboundRelayer>
+{
 }
 
 impl<T: Config<I>, I: 'static> TypeInfo for StoredInboundLaneData<T, I> {
@@ -90,7 +113,8 @@ impl<T: Config<I>, I: 'static> MaxEncodedLen for StoredInboundLaneData<T, I> {
 		InboundLaneData::<T::InboundRelayer>::encoded_size_hint(
 			T::MaxUnrewardedRelayerEntriesAtInboundLane::get() as usize,
 			T::MaxUnconfirmedMessagesAtInboundLane::get() as usize,
-		).unwrap_or(usize::MAX)
+		)
+		.unwrap_or(usize::MAX)
 	}
 }
 
@@ -422,8 +446,7 @@ mod tests {
 	fn fails_to_receive_messages_above_unconfirmed_messages_limit_per_lane() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
-			let max_nonce =
-				<TestRuntime as Config>::MaxUnconfirmedMessagesAtInboundLane::get();
+			let max_nonce = <TestRuntime as Config>::MaxUnconfirmedMessagesAtInboundLane::get();
 			for current_nonce in 1..=max_nonce {
 				assert_eq!(
 					lane.receive_message::<TestMessageDispatch, _>(

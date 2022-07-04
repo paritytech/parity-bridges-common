@@ -148,12 +148,9 @@ impl messages::ThisChainWithMessages for Rialto {
 	}
 
 	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight> {
-		let inbound_data_size = InboundLaneData::<bp_rialto::AccountId>::encoded_size_hint(
-			1,
-			1,
-		)
-		.and_then(|x| u32::try_from(x).ok())
-		.unwrap_or(u32::MAX);
+		let inbound_data_size = InboundLaneData::<bp_rialto::AccountId>::encoded_size_hint(1, 1)
+			.and_then(|x| u32::try_from(x).ok())
+			.unwrap_or(u32::MAX);
 
 		MessageTransaction {
 			dispatch_weight: bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,

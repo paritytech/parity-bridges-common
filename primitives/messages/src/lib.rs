@@ -158,10 +158,10 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 	/// size of each entry.
 	///
 	/// Returns `None` if size overflows `usize` limits.
-	pub fn encoded_size_hint(
-		relayers_entries: usize,
-		messages_count: usize,
-	) -> Option<usize> where RelayerId: MaxEncodedLen {
+	pub fn encoded_size_hint(relayers_entries: usize, messages_count: usize) -> Option<usize>
+	where
+		RelayerId: MaxEncodedLen,
+	{
 		let message_nonce_size = MessageNonce::max_encoded_len();
 		let relayer_id_encoded_size = RelayerId::max_encoded_len();
 		let relayers_entry_size = relayer_id_encoded_size.checked_add(2 * message_nonce_size)?;
@@ -378,10 +378,8 @@ mod tests {
 			(13u8, 128u8),
 		];
 		for (relayer_entries, messages_count) in test_cases {
-			let expected_size = InboundLaneData::<u8>::encoded_size_hint(
-				relayer_entries as _,
-				messages_count as _,
-			);
+			let expected_size =
+				InboundLaneData::<u8>::encoded_size_hint(relayer_entries as _, messages_count as _);
 			let actual_size = InboundLaneData {
 				relayers: (1u8..=relayer_entries)
 					.map(|i| {

@@ -485,7 +485,8 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
-	type MaximalOutboundPayloadSize = crate::rialto_parachain_messages::ToRialtoParachainMaximalOutboundPayloadSize;	
+	type MaximalOutboundPayloadSize =
+		crate::rialto_parachain_messages::ToRialtoParachainMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::rialto_parachain_messages::ToRialtoParachainMessagePayload;
 	type OutboundMessageFee = Balance;
 

@@ -338,8 +338,8 @@ pub mod pallet {
 				let message_data = message_data.as_mut().expect(
 					"the message is sent and not yet delivered; so it is in the storage; qed",
 				);
-				message_data.0.fee = message_data.0.fee.saturating_add(&additional_fee);
-				message_data.0.payload.len()
+				message_data.fee = message_data.fee.saturating_add(&additional_fee);
+				message_data.payload.len()
 			});
 
 			// compute actual dispatch weight that depends on the stored message size
@@ -969,9 +969,8 @@ where
 		let mut relayer_reward = relayers_rewards.entry(entry.relayer).or_default();
 		for nonce in nonce_begin..nonce_end + 1 {
 			let key = MessageKey { lane_id, nonce };
-			let message_data: MessageData<T::OutboundMessageFee> = OutboundMessages::<T, I>::get(key)
-				.expect("message was just confirmed; we never prune unconfirmed messages; qed")
-				.into();
+			let message_data = OutboundMessages::<T, I>::get(key)
+				.expect("message was just confirmed; we never prune unconfirmed messages; qed");
 			relayer_reward.reward = relayer_reward.reward.saturating_add(&message_data.fee);
 			relayer_reward.messages += 1;
 		}
@@ -1040,9 +1039,10 @@ impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<
 
 	fn data(&self) -> InboundLaneData<T::InboundRelayer> {
 		match self.cached_data.clone().into_inner() {
-			Some(data) => data.into(),
+			Some(data) => data,
 			None => {
-				let data: InboundLaneData<T::InboundRelayer> = InboundLanes::<T, I>::get(&self.lane_id).into();
+				let data: InboundLaneData<T::InboundRelayer> =
+					InboundLanes::<T, I>::get(&self.lane_id).into();
 				*self.cached_data.try_borrow_mut().expect(
 					"we're in the single-threaded environment;\
 						we have no recursive borrows; qed",
@@ -1084,7 +1084,8 @@ impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorag
 
 	#[cfg(test)]
 	fn message(&self, nonce: &MessageNonce) -> Option<MessageData<T::OutboundMessageFee>> {
-		OutboundMessages::<T, I>::get(MessageKey { lane_id: self.lane_id, nonce: *nonce }).map(Into::into)
+		OutboundMessages::<T, I>::get(MessageKey { lane_id: self.lane_id, nonce: *nonce })
+			.map(Into::into)
 	}
 
 	fn save_message(
@@ -1092,10 +1093,7 @@ impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorag
 		nonce: MessageNonce,
 		mesage_data: MessageData<T::OutboundMessageFee>,
 	) {
-		OutboundMessages::<T, I>::insert(
-			MessageKey { lane_id: self.lane_id, nonce },
-			StoredMessageData::<T, I>::from(mesage_data),
-		);
+		OutboundMessages::<T, I>::insert(MessageKey { lane_id: self.lane_id, nonce }, mesage_data);
 	}
 
 	fn remove_message(&mut self, nonce: &MessageNonce) {
@@ -1134,8 +1132,9 @@ mod tests {
 		message, message_payload, run_test, unrewarded_relayer, Event as TestEvent, Origin,
 		TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof, TestMessagesParameter,
 		TestMessagesProof, TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2,
-		TestOnMessageAccepted, TestRuntime, TokenConversionRate, PAYLOAD_REJECTED_BY_TARGET_CHAIN,
-		REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B, MAX_OUTBOUND_PAYLOAD_SIZE,
+		TestOnMessageAccepted, TestRuntime, TokenConversionRate, MAX_OUTBOUND_PAYLOAD_SIZE,
+		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A,
+		TEST_RELAYER_B,
 	};
 	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
 	use bp_test_utils::generate_owned_bridge_module_tests;
@@ -1465,9 +1464,11 @@ mod tests {
 	fn send_message_rejects_too_large_message() {
 		run_test(|| {
 			let mut message_payload = message_payload(1, 0);
-			// the payload isn't simply extra, so it'll definitely overflow `MAX_OUTBOUND_PAYLOAD_SIZE`
-			// if we add `MAX_OUTBOUND_PAYLOAD_SIZE` bytes to extra
-			message_payload.extra.extend_from_slice(&[0u8; MAX_OUTBOUND_PAYLOAD_SIZE as usize]);
+			// the payload isn't simply extra, so it'll definitely overflow
+			// `MAX_OUTBOUND_PAYLOAD_SIZE` if we add `MAX_OUTBOUND_PAYLOAD_SIZE` bytes to extra
+			message_payload
+				.extra
+				.extend_from_slice(&[0u8; MAX_OUTBOUND_PAYLOAD_SIZE as usize]);
 			assert_noop!(
 				Pallet::<TestRuntime>::send_message(
 					Origin::signed(1),
@@ -1549,7 +1550,7 @@ mod tests {
 			// say we have received 10 messages && last confirmed message is 8
 			InboundLanes::<TestRuntime, ()>::insert(
 				TEST_LANE_ID,
-				StoredInboundLaneData::<TestRuntime, ()>(InboundLaneData {
+				InboundLaneData {
 					last_confirmed_nonce: 8,
 					relayers: vec![
 						unrewarded_relayer(9, 9, TEST_RELAYER_A),
@@ -1557,7 +1558,7 @@ mod tests {
 					]
 					.into_iter()
 					.collect(),
-				}),
+				},
 			);
 			assert_eq!(
 				inbound_unrewarded_relayers_state(TEST_LANE_ID),
@@ -1617,7 +1618,7 @@ mod tests {
 				1,
 				REGULAR_PAYLOAD.declared_weight - 1,
 			));
-			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).0.last_delivered_nonce(), 0);
+			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).last_delivered_nonce(), 0);
 		});
 	}
 
@@ -1843,7 +1844,7 @@ mod tests {
 				0, // weight may be zero in this case (all messages are improperly encoded)
 			),);
 
-			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).0.last_delivered_nonce(), 1,);
+			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).last_delivered_nonce(), 1,);
 		});
 	}
 
@@ -1864,7 +1865,7 @@ mod tests {
 				REGULAR_PAYLOAD.declared_weight + REGULAR_PAYLOAD.declared_weight,
 			),);
 
-			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).0.last_delivered_nonce(), 3,);
+			assert_eq!(InboundLanes::<TestRuntime>::get(&TEST_LANE_ID).last_delivered_nonce(), 3,);
 		});
 	}
 
@@ -1883,7 +1884,7 @@ mod tests {
 				3,
 				Weight::MAX,
 			));
-			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).0.last_delivered_nonce(), 2);
+			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).last_delivered_nonce(), 2);
 		});
 	}
 
@@ -2183,8 +2184,8 @@ mod tests {
 		run_test(|| {
 			let mut small_payload = message_payload(0, 100);
 			let mut large_payload = message_payload(1, 100);
-			small_payload.extra = vec![1; 100];
-			large_payload.extra = vec![2; 16_384];
+			small_payload.extra = vec![1; MAX_OUTBOUND_PAYLOAD_SIZE as usize / 10];
+			large_payload.extra = vec![2; MAX_OUTBOUND_PAYLOAD_SIZE as usize / 5];
 
 			assert_ok!(Pallet::<TestRuntime>::send_message(
 				Origin::signed(1),
