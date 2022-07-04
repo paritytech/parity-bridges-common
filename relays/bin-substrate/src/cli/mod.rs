@@ -31,6 +31,7 @@ pub(crate) mod encode_message;
 pub(crate) mod estimate_fee;
 pub(crate) mod send_message;
 
+mod chain_schema;
 mod init_bridge;
 mod register_parachain;
 mod relay_headers;
