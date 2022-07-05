@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use async_trait::async_trait;
+
 use crate::cli::{
 	bridge::{
 		CliBridgeBase, KusamaToPolkadotCliBridge, MillauToRialtoCliBridge,
@@ -28,7 +30,6 @@ use relay_substrate_client::{
 	AccountKeyPairOf, Chain, SignParam, TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{Bytes, Pair};
-use std::{future::Future, pin::Pin};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 use substrate_relay_helper::finality::engine::{Engine, Grandpa as GrandpaFinalityEngine};
@@ -61,6 +62,7 @@ pub enum InitBridgeName {
 	MillauToRialtoParachain,
 }
 
+#[async_trait]
 trait BridgeInitializer: CliBridgeBase
 where
 	<Self::Target as ChainBase>::AccountId: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
@@ -73,41 +75,36 @@ where
 	) -> <Self::Target as Chain>::Call;
 
 	/// Initialize the bridge.
-	fn init_bridge(
-		data: InitBridge,
-	) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send + 'static>> {
-		Box::pin(async move {
-			let source_client = data.source.to_client::<Self::Source>().await?;
-			let target_client = data.target.to_client::<Self::Target>().await?;
-			let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
+	async fn init_bridge(data: InitBridge) -> anyhow::Result<()> {
+		let source_client = data.source.to_client::<Self::Source>().await?;
+		let target_client = data.target.to_client::<Self::Target>().await?;
+		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 
-			let (spec_version, transaction_version) =
-				target_client.simple_runtime_version().await?;
-			substrate_relay_helper::finality::initialize::initialize::<Self::Engine, _, _, _>(
-				source_client,
-				target_client.clone(),
-				target_sign.public().into(),
-				move |transaction_nonce, initialization_data| {
-					Ok(Bytes(
-						Self::Target::sign_transaction(SignParam {
-							spec_version,
-							transaction_version,
-							genesis_hash: *target_client.genesis_hash(),
-							signer: target_sign,
-							era: relay_substrate_client::TransactionEra::immortal(),
-							unsigned: UnsignedTransaction::new(
-								Self::encode_init_bridge(initialization_data).into(),
-								transaction_nonce,
-							),
-						})?
-						.encode(),
-					))
-				},
-			)
-			.await;
+		let (spec_version, transaction_version) = target_client.simple_runtime_version().await?;
+		substrate_relay_helper::finality::initialize::initialize::<Self::Engine, _, _, _>(
+			source_client,
+			target_client.clone(),
+			target_sign.public().into(),
+			move |transaction_nonce, initialization_data| {
+				Ok(Bytes(
+					Self::Target::sign_transaction(SignParam {
+						spec_version,
+						transaction_version,
+						genesis_hash: *target_client.genesis_hash(),
+						signer: target_sign,
+						era: relay_substrate_client::TransactionEra::immortal(),
+						unsigned: UnsignedTransaction::new(
+							Self::encode_init_bridge(initialization_data).into(),
+							transaction_nonce,
+						),
+					})?
+					.encode(),
+				))
+			},
+		)
+		.await;
 
-			Ok(())
-		})
+		Ok(())
 	}
 }
 

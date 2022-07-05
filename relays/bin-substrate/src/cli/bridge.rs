@@ -349,9 +349,9 @@ impl CliBridgeBase for RialtoParachainToMillauCliBridge {
 }
 
 //// `WestendParachain` to `Millau` bridge definition.
-pub struct WestendParachainToMillauCliBridge {}
+pub struct WestmintToMillauCliBridge {}
 
-impl CliBridgeBase for WestendParachainToMillauCliBridge {
+impl CliBridgeBase for WestmintToMillauCliBridge {
 	type Source = relay_westend_client::Westmint;
 	type Target = relay_millau_client::Millau;
 }

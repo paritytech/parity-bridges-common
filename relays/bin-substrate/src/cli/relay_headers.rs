@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use async_trait::async_trait;
 use relay_substrate_client::{AccountKeyPairOf, ChainBase};
 use sp_core::Pair;
-use std::{future::Future, pin::Pin};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
@@ -66,43 +66,40 @@ pub enum RelayHeadersBridge {
 	MillauToRialtoParachain,
 }
 
+#[async_trait]
 trait HeadersRelayer: CliBridge
 where
 	<Self::Target as ChainBase>::AccountId: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
 {
 	/// Relay headers.
-	fn relay_headers(
-		data: RelayHeaders,
-	) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send + 'static>> {
-		Box::pin(async move {
-			let source_client = data.source.to_client::<Self::Source>().await?;
-			let target_client = data.target.to_client::<Self::Target>().await?;
-			let target_transactions_mortality = data.target_sign.target_transactions_mortality;
-			let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
+	async fn relay_headers(data: RelayHeaders) -> anyhow::Result<()> {
+		let source_client = data.source.to_client::<Self::Source>().await?;
+		let target_client = data.target.to_client::<Self::Target>().await?;
+		let target_transactions_mortality = data.target_sign.target_transactions_mortality;
+		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 
-			let metrics_params: relay_utils::metrics::MetricsParams = data.prometheus_params.into();
-			GlobalMetrics::new()?.register_and_spawn(&metrics_params.registry)?;
+		let metrics_params: relay_utils::metrics::MetricsParams = data.prometheus_params.into();
+		GlobalMetrics::new()?.register_and_spawn(&metrics_params.registry)?;
 
-			let target_transactions_params = substrate_relay_helper::TransactionParams {
-				signer: target_sign,
-				mortality: target_transactions_mortality,
-			};
-			Self::Finality::start_relay_guards(
-				&target_client,
-				&target_transactions_params,
-				data.target.can_start_version_guard(),
-			)
-			.await?;
+		let target_transactions_params = substrate_relay_helper::TransactionParams {
+			signer: target_sign,
+			mortality: target_transactions_mortality,
+		};
+		Self::Finality::start_relay_guards(
+			&target_client,
+			&target_transactions_params,
+			data.target.can_start_version_guard(),
+		)
+		.await?;
 
-			substrate_relay_helper::finality::run::<Self::Finality>(
-				source_client,
-				target_client,
-				data.only_mandatory_headers,
-				target_transactions_params,
-				metrics_params,
-			)
-			.await
-		})
+		substrate_relay_helper::finality::run::<Self::Finality>(
+			source_client,
+			target_client,
+			data.only_mandatory_headers,
+			target_transactions_params,
+			metrics_params,
+		)
+		.await
 	}
 }
 
