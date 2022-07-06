@@ -11835,6 +11835,7 @@ dependencies = [
  "pallet-transaction-payment",
  "parachains-relay",
  "parity-scale-codec",
+ "relay-rialto-client",
  "relay-rococo-client",
  "relay-substrate-client",
  "relay-utils",
