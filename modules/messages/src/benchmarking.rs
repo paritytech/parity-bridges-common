@@ -307,7 +307,7 @@ benchmarks_instance_pallet! {
 		assert!(T::is_message_dispatched(21));
 	}
 
-	// Benchmark `receive_messages_proof` extrinsic with two minimal-weight messages and following conditions:
+	// Benchmark `receive_messages_proof` extrinsic with 8 minimal-weight messages and following conditions:
 	// * proof does not include outbound lane state proof;
 	// * inbound lane already has state, so it needs to be read and decoded;
 	// * message is successfully dispatched;
@@ -315,10 +315,10 @@ benchmarks_instance_pallet! {
 	// * message dispatch fee is paid at target (this) chain.
 	//
 	// The weight of single message delivery could be approximated as
-	// `weight(receive_two_messages_proof) - weight(receive_single_message_proof)`.
+	// `(weight(receive_eight_messages_proof) - weight(receive_single_message_proof))/7`.
 	// This won't be super-accurate if message has non-zero dispatch weight, but estimation should
 	// be close enough to real weight.
-	receive_two_messages_proof {
+	receive_eight_messages_proof {
 		let relayer_id_on_source = T::bridged_relayer_id();
 		let relayer_id_on_target = account("relayer", 0, SEED);
 		T::endow_account(&relayer_id_on_target);
@@ -328,18 +328,20 @@ benchmarks_instance_pallet! {
 
 		let (proof, dispatch_weight) = T::prepare_message_proof(MessageProofParams {
 			lane: T::bench_lane_id(),
-			message_nonces: 21..=22,
+			message_nonces: 21..=28,
 			outbound_lane_data: None,
 			size: StorageProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
 			dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 		});
-	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 2, dispatch_weight)
+	}: receive_messages_proof(RawOrigin::Signed(relayer_id_on_target), relayer_id_on_source, proof, 8, dispatch_weight)
 	verify {
 		assert_eq!(
 			crate::InboundLanes::<T, I>::get(&T::bench_lane_id()).last_delivered_nonce(),
-			22,
+			28,
 		);
-		assert!(T::is_message_dispatched(22));
+		for nonce in 21..=28 {
+			assert!(T::is_message_dispatched(nonce));
+		}
 	}
 
 	// Benchmark `receive_messages_proof` extrinsic with single minimal-weight message and following conditions:
@@ -519,13 +521,13 @@ benchmarks_instance_pallet! {
 	}
 
 	// Benchmark `receive_messages_delivery_proof` extrinsic with following conditions:
-	// * single relayer is rewarded for relaying two messages;
+	// * single relayer is rewarded for relaying eight messages;
 	// * relayer account does not exist (in practice it needs to exist in production environment).
 	//
 	// Additional weight for paying single-message reward to the same relayer could be computed
-	// as `weight(receive_delivery_proof_for_two_messages_by_single_relayer)
-	//   - weight(receive_delivery_proof_for_single_message)`.
-	receive_delivery_proof_for_two_messages_by_single_relayer {
+	// as `(weight(receive_delivery_proof_for_eight_messages_by_single_relayer)
+	//   - weight(receive_delivery_proof_for_single_message))/7`.
+	receive_delivery_proof_for_eight_messages_by_single_relayer {
 		let relayers_fund_id = crate::relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>();
 		let relayer_id: T::AccountId = account("relayer", 0, SEED);
 		let relayer_balance = T::account_balance(&relayer_id);
@@ -534,14 +536,26 @@ benchmarks_instance_pallet! {
 		// send message that we're going to confirm
 		send_regular_message::<T, I>();
 		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
 
 		let relayers_state = UnrewardedRelayersState {
 			unrewarded_relayer_entries: 1,
-			messages_in_oldest_entry: 2,
-			total_messages: 2,
-			last_delivered_nonce: 2,
+			messages_in_oldest_entry: 8,
+			total_messages: 8,
+			last_delivered_nonce: 8,
 		};
 		let mut delivered_messages = DeliveredMessages::new(1, true);
+		delivered_messages.note_dispatched_message(true);
+		delivered_messages.note_dispatched_message(true);
+		delivered_messages.note_dispatched_message(true);
+		delivered_messages.note_dispatched_message(true);
+		delivered_messages.note_dispatched_message(true);
+		delivered_messages.note_dispatched_message(true);
 		delivered_messages.note_dispatched_message(true);
 		let proof = T::prepare_message_delivery_proof(MessageDeliveryProofParams {
 			lane: T::bench_lane_id(),
@@ -556,7 +570,7 @@ benchmarks_instance_pallet! {
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer_id.clone()), proof, relayers_state)
 	verify {
-		assert_eq!(OutboundLanes::<T, I>::get(T::bench_lane_id()).latest_received_nonce, 2);
+		assert_eq!(OutboundLanes::<T, I>::get(T::bench_lane_id()).latest_received_nonce, 8);
 	}
 
 	// Benchmark `receive_messages_delivery_proof` extrinsic with following conditions:
@@ -564,9 +578,9 @@ benchmarks_instance_pallet! {
 	// * relayer account does not exist (in practice it needs to exist in production environment).
 	//
 	// Additional weight for paying reward to the next relayer could be computed
-	// as `weight(receive_delivery_proof_for_two_messages_by_two_relayers)
-	//   - weight(receive_delivery_proof_for_two_messages_by_single_relayer)`.
-	receive_delivery_proof_for_two_messages_by_two_relayers {
+	// as `(weight(receive_delivery_proof_for_eight_messages_by_two_relayers)
+	//   - weight(receive_delivery_proof_for_eight_messages_by_single_relayer)) / 7`.
+	receive_delivery_proof_for_eight_messages_by_two_relayers {
 		let relayers_fund_id = crate::relayer_fund_account_id::<T::AccountId, T::AccountIdConverter>();
 		let relayer1_id: T::AccountId = account("relayer1", 1, SEED);
 		let relayer1_balance = T::account_balance(&relayer1_id);
@@ -577,12 +591,27 @@ benchmarks_instance_pallet! {
 		// send message that we're going to confirm
 		send_regular_message::<T, I>();
 		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+		send_regular_message::<T, I>();
+
+		let mut messages1 = DeliveredMessages::new(1, true);
+		messages1.note_dispatched_message(true);
+		messages1.note_dispatched_message(true);
+		messages1.note_dispatched_message(true);
+		let mut messages2 = DeliveredMessages::new(5, true);
+		messages2.note_dispatched_message(true);
+		messages2.note_dispatched_message(true);
+		messages2.note_dispatched_message(true);
 
 		let relayers_state = UnrewardedRelayersState {
 			unrewarded_relayer_entries: 2,
-			messages_in_oldest_entry: 1,
-			total_messages: 2,
-			last_delivered_nonce: 2,
+			messages_in_oldest_entry: 4,
+			total_messages: 8,
+			last_delivered_nonce: 8,
 		};
 		let proof = T::prepare_message_delivery_proof(MessageDeliveryProofParams {
 			lane: T::bench_lane_id(),
@@ -590,11 +619,11 @@ benchmarks_instance_pallet! {
 				relayers: vec![
 					UnrewardedRelayer {
 						relayer: relayer1_id.clone(),
-						messages: DeliveredMessages::new(1, true),
+						messages: messages1,
 					},
 					UnrewardedRelayer {
 						relayer: relayer2_id.clone(),
-						messages: DeliveredMessages::new(2, true),
+						messages: messages2,
 					},
 				].into_iter().collect(),
 				last_confirmed_nonce: 0,
@@ -603,7 +632,7 @@ benchmarks_instance_pallet! {
 		});
 	}: receive_messages_delivery_proof(RawOrigin::Signed(relayer1_id.clone()), proof, relayers_state)
 	verify {
-		assert_eq!(OutboundLanes::<T, I>::get(T::bench_lane_id()).latest_received_nonce, 2);
+		assert_eq!(OutboundLanes::<T, I>::get(T::bench_lane_id()).latest_received_nonce, 8);
 	}
 }
 

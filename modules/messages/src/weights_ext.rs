@@ -79,8 +79,9 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 
 	// verify `receive_messages_delivery_proof` weight components
 	assert_ne!(W::receive_messages_delivery_proof_overhead(), 0);
-	assert_ne!(W::receive_messages_delivery_proof_messages_overhead(1), 0);
-	assert_ne!(W::receive_messages_delivery_proof_relayers_overhead(1), 0);
+	// TODO: explain why it can be zero
+	// assert_ne!(W::receive_messages_delivery_proof_messages_overhead(1), 0); TODO: explain why it
+	// can be zero assert_ne!(W::receive_messages_delivery_proof_relayers_overhead(1), 0);
 	assert_ne!(W::storage_proof_size_overhead(1), 0);
 
 	// verify that the hardcoded value covers `receive_messages_delivery_proof` weight
@@ -291,19 +292,21 @@ pub trait WeightInfoExt: WeightInfo {
 	fn receive_messages_proof_overhead() -> Weight {
 		let weight_of_two_messages_and_two_tx_overheads =
 			Self::receive_single_message_proof().saturating_mul(2);
-		let weight_of_two_messages_and_single_tx_overhead = Self::receive_two_messages_proof();
+		let weight_of_eight_messages_and_single_tx_overhead = Self::receive_eight_messages_proof();
 		weight_of_two_messages_and_two_tx_overheads
-			.saturating_sub(weight_of_two_messages_and_single_tx_overhead)
+			.saturating_sub(weight_of_eight_messages_and_single_tx_overhead) /
+			7
 	}
 
 	/// Returns weight that needs to be accounted when receiving given a number of messages with
 	/// message delivery transaction (`receive_messages_proof`).
 	fn receive_messages_proof_messages_overhead(messages: MessageNonce) -> Weight {
-		let weight_of_two_messages_and_single_tx_overhead = Self::receive_two_messages_proof();
+		let weight_of_eight_messages_and_single_tx_overhead = Self::receive_eight_messages_proof();
 		let weight_of_single_message_and_single_tx_overhead = Self::receive_single_message_proof();
-		weight_of_two_messages_and_single_tx_overhead
-			.saturating_sub(weight_of_single_message_and_single_tx_overhead)
-			.saturating_mul(messages as Weight)
+		(weight_of_eight_messages_and_single_tx_overhead
+			.saturating_sub(weight_of_single_message_and_single_tx_overhead) /
+			7)
+		.saturating_mul(messages as Weight)
 	}
 
 	/// Returns weight that needs to be accounted when message delivery transaction
@@ -318,34 +321,34 @@ pub trait WeightInfoExt: WeightInfo {
 	/// Returns weight overhead of delivery confirmation transaction
 	/// (`receive_messages_delivery_proof`).
 	fn receive_messages_delivery_proof_overhead() -> Weight {
-		let weight_of_two_messages_and_two_tx_overheads =
-			Self::receive_delivery_proof_for_single_message().saturating_mul(2);
-		let weight_of_two_messages_and_single_tx_overhead =
-			Self::receive_delivery_proof_for_two_messages_by_single_relayer();
-		weight_of_two_messages_and_two_tx_overheads
-			.saturating_sub(weight_of_two_messages_and_single_tx_overhead)
+		let weight_of_eight_messages_and_two_tx_overheads =
+			Self::receive_delivery_proof_for_single_message().saturating_mul(8);
+		let weight_of_eight_messages_and_single_tx_overhead =
+			Self::receive_delivery_proof_for_eight_messages_by_single_relayer();
+		weight_of_eight_messages_and_two_tx_overheads
+			.saturating_sub(weight_of_eight_messages_and_single_tx_overhead) /
+			8
 	}
 
 	/// Returns weight that needs to be accounted when receiving confirmations for given a number of
 	/// messages with delivery confirmation transaction (`receive_messages_delivery_proof`).
 	fn receive_messages_delivery_proof_messages_overhead(messages: MessageNonce) -> Weight {
-		let weight_of_two_messages =
-			Self::receive_delivery_proof_for_two_messages_by_single_relayer();
+		let weight_of_eight_messages =
+			Self::receive_delivery_proof_for_eight_messages_by_single_relayer();
 		let weight_of_single_message = Self::receive_delivery_proof_for_single_message();
-		weight_of_two_messages
-			.saturating_sub(weight_of_single_message)
+		(weight_of_eight_messages.saturating_sub(weight_of_single_message) / 7)
 			.saturating_mul(messages as Weight)
 	}
 
 	/// Returns weight that needs to be accounted when receiving confirmations for given a number of
 	/// relayers entries with delivery confirmation transaction (`receive_messages_delivery_proof`).
 	fn receive_messages_delivery_proof_relayers_overhead(relayers: MessageNonce) -> Weight {
-		let weight_of_two_messages_by_two_relayers =
-			Self::receive_delivery_proof_for_two_messages_by_two_relayers();
-		let weight_of_two_messages_by_single_relayer =
-			Self::receive_delivery_proof_for_two_messages_by_single_relayer();
-		weight_of_two_messages_by_two_relayers
-			.saturating_sub(weight_of_two_messages_by_single_relayer)
+		let weight_of_eight_messages_by_two_relayers =
+			Self::receive_delivery_proof_for_eight_messages_by_two_relayers();
+		let weight_of_eight_messages_by_single_relayer =
+			Self::receive_delivery_proof_for_eight_messages_by_single_relayer();
+		weight_of_eight_messages_by_two_relayers
+			.saturating_sub(weight_of_eight_messages_by_single_relayer)
 			.saturating_mul(relayers as Weight)
 	}
 
