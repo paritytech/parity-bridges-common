@@ -25,8 +25,6 @@ use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
 pub enum FullBridge {
 	MillauToRialto,
 	RialtoToMillau,
-	KusamaToPolkadot,
-	PolkadotToKusama,
 	MillauToRialtoParachain,
 	RialtoParachainToMillau,
 }
@@ -37,8 +35,6 @@ impl FullBridge {
 		match self {
 			Self::MillauToRialto => MILLAU_TO_RIALTO_INDEX,
 			Self::RialtoToMillau => RIALTO_TO_MILLAU_INDEX,
-			Self::KusamaToPolkadot => KUSAMA_TO_POLKADOT_INDEX,
-			Self::PolkadotToKusama => POLKADOT_TO_KUSAMA_INDEX,
 			Self::MillauToRialtoParachain => MILLAU_TO_RIALTO_PARACHAIN_INDEX,
 			Self::RialtoParachainToMillau => RIALTO_PARACHAIN_TO_MILLAU_INDEX,
 		}
@@ -47,8 +43,6 @@ impl FullBridge {
 
 pub const RIALTO_TO_MILLAU_INDEX: u8 = 0;
 pub const MILLAU_TO_RIALTO_INDEX: u8 = 0;
-pub const KUSAMA_TO_POLKADOT_INDEX: u8 = 0;
-pub const POLKADOT_TO_KUSAMA_INDEX: u8 = 0;
 pub const MILLAU_TO_RIALTO_PARACHAIN_INDEX: u8 = 1;
 pub const RIALTO_PARACHAIN_TO_MILLAU_INDEX: u8 = 0;
 
@@ -95,44 +89,6 @@ macro_rules! select_full_bridge {
 				// Send-message / Estimate-fee
 				#[allow(unused_imports)]
 				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
-
-				$generic
-			},
-			FullBridge::KusamaToPolkadot => {
-				type Source = relay_kusama_client::Kusama;
-				#[allow(dead_code)]
-				type Target = relay_polkadot_client::Polkadot;
-
-				// Derive-account
-				#[allow(unused_imports)]
-				use bp_polkadot::derive_account_from_kusama_id as derive_account;
-
-				// Relay-messages
-				#[allow(unused_imports)]
-				use $crate::chains::kusama_messages_to_polkadot::KusamaMessagesToPolkadot as MessagesLane;
-
-				// Send-message / Estimate-fee
-				#[allow(unused_imports)]
-				use bp_polkadot::TO_POLKADOT_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
-
-				$generic
-			},
-			FullBridge::PolkadotToKusama => {
-				type Source = relay_polkadot_client::Polkadot;
-				#[allow(dead_code)]
-				type Target = relay_kusama_client::Kusama;
-
-				// Derive-account
-				#[allow(unused_imports)]
-				use bp_kusama::derive_account_from_polkadot_id as derive_account;
-
-				// Relay-messages
-				#[allow(unused_imports)]
-				use $crate::chains::polkadot_messages_to_kusama::PolkadotMessagesToKusama as MessagesLane;
-
-				// Send-message / Estimate-fee
-				#[allow(unused_imports)]
-				use bp_kusama::TO_KUSAMA_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
 			},
@@ -233,30 +189,6 @@ impl CliBridgeBase for WestendToMillauCliBridge {
 
 impl CliBridge for WestendToMillauCliBridge {
 	type Finality = crate::chains::westend_headers_to_millau::WestendFinalityToMillau;
-}
-
-//// `Kusama` to `Polkadot` bridge definition.
-pub struct KusamaToPolkadotCliBridge {}
-
-impl CliBridgeBase for KusamaToPolkadotCliBridge {
-	type Source = relay_kusama_client::Kusama;
-	type Target = relay_polkadot_client::Polkadot;
-}
-
-impl CliBridge for KusamaToPolkadotCliBridge {
-	type Finality = crate::chains::kusama_headers_to_polkadot::KusamaFinalityToPolkadot;
-}
-
-//// `Polkadot` to `Kusama`  bridge definition.
-pub struct PolkadotToKusamaCliBridge {}
-
-impl CliBridgeBase for PolkadotToKusamaCliBridge {
-	type Source = relay_polkadot_client::Polkadot;
-	type Target = relay_kusama_client::Kusama;
-}
-
-impl CliBridge for PolkadotToKusamaCliBridge {
-	type Finality = crate::chains::polkadot_headers_to_kusama::PolkadotFinalityToKusama;
 }
 
 //// `Millau` to `RialtoParachain`  bridge definition.

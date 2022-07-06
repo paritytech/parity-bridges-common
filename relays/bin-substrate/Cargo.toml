@@ -23,11 +23,9 @@ strum = { version = "0.21.0", features = ["derive"] }
 # Bridge dependencies
 
 bp-header-chain = { path = "../../primitives/header-chain" }
-bp-kusama = { path = "../../primitives/chain-kusama" }
 bp-messages = { path = "../../primitives/messages" }
 bp-millau = { path = "../../primitives/chain-millau" }
 bp-parachains = { path = "../../primitives/parachains" }
-bp-polkadot = { path = "../../primitives/chain-polkadot" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-rialto = { path = "../../primitives/chain-rialto" }
 bp-rialto-parachain = { path = "../../primitives/chain-rialto-parachain" }
@@ -41,9 +39,7 @@ pallet-bridge-grandpa = { path = "../../modules/grandpa" }
 pallet-bridge-messages = { path = "../../modules/messages" }
 pallet-bridge-parachains = { path = "../../modules/parachains" }
 parachains-relay = { path = "../parachains" }
-relay-kusama-client = { path = "../client-kusama" }
 relay-millau-client = { path = "../client-millau" }
-relay-polkadot-client = { path = "../client-polkadot" }
 relay-rialto-client = { path = "../client-rialto" }
 relay-rialto-parachain-client = { path = "../client-rialto-parachain" }
 relay-substrate-client = { path = "../client-substrate" }

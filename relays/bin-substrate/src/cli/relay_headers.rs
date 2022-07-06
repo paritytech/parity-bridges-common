@@ -25,8 +25,8 @@ use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
 
 use crate::cli::{
 	bridge::{
-		CliBridge, KusamaToPolkadotCliBridge, MillauToRialtoCliBridge,
-		MillauToRialtoParachainCliBridge, PolkadotToKusamaCliBridge, RialtoToMillauCliBridge,
+		CliBridge, MillauToRialtoCliBridge,
+		MillauToRialtoParachainCliBridge, RialtoToMillauCliBridge,
 		WestendToMillauCliBridge,
 	},
 	PrometheusParams, SourceConnectionParams, TargetConnectionParams, TargetSigningParams,
@@ -59,8 +59,6 @@ pub enum RelayHeadersBridge {
 	MillauToRialto,
 	RialtoToMillau,
 	WestendToMillau,
-	KusamaToPolkadot,
-	PolkadotToKusama,
 	MillauToRialtoParachain,
 }
 
@@ -104,8 +102,6 @@ where
 impl HeadersRelayer for MillauToRialtoCliBridge {}
 impl HeadersRelayer for RialtoToMillauCliBridge {}
 impl HeadersRelayer for WestendToMillauCliBridge {}
-impl HeadersRelayer for KusamaToPolkadotCliBridge {}
-impl HeadersRelayer for PolkadotToKusamaCliBridge {}
 impl HeadersRelayer for MillauToRialtoParachainCliBridge {}
 
 impl RelayHeaders {
@@ -115,8 +111,6 @@ impl RelayHeaders {
 			RelayHeadersBridge::MillauToRialto => MillauToRialtoCliBridge::relay_headers(self),
 			RelayHeadersBridge::RialtoToMillau => RialtoToMillauCliBridge::relay_headers(self),
 			RelayHeadersBridge::WestendToMillau => WestendToMillauCliBridge::relay_headers(self),
-			RelayHeadersBridge::KusamaToPolkadot => KusamaToPolkadotCliBridge::relay_headers(self),
-			RelayHeadersBridge::PolkadotToKusama => PolkadotToKusamaCliBridge::relay_headers(self),
 			RelayHeadersBridge::MillauToRialtoParachain =>
 				MillauToRialtoParachainCliBridge::relay_headers(self),
 		}
