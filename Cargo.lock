@@ -8620,20 +8620,11 @@ dependencies = [
 name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
  "bp-kusama",
- "bp-messages",
- "bp-polkadot",
- "bp-polkadot-core",
- "bp-runtime",
- "bridge-runtime-common",
  "frame-support",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "scale-info",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8658,20 +8649,11 @@ dependencies = [
 name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
- "bp-kusama",
- "bp-messages",
  "bp-polkadot",
- "bp-polkadot-core",
- "bp-runtime",
- "bridge-runtime-common",
  "frame-support",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "scale-info",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8712,21 +8694,11 @@ dependencies = [
 name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
- "bp-messages",
- "bp-polkadot-core",
  "bp-rococo",
- "bp-runtime",
- "bp-wococo",
- "bridge-runtime-common",
  "frame-support",
- "pallet-bridge-messages",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "scale-info",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8808,21 +8780,11 @@ dependencies = [
 name = "relay-wococo-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
- "bp-messages",
- "bp-polkadot-core",
- "bp-rococo",
- "bp-runtime",
  "bp-wococo",
- "bridge-runtime-common",
  "frame-support",
- "pallet-bridge-messages",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "scale-info",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -11751,19 +11713,15 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-header-chain",
- "bp-kusama",
  "bp-messages",
  "bp-millau",
  "bp-parachains",
- "bp-polkadot",
  "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",
- "bp-rococo",
  "bp-runtime",
  "bp-test-utils",
  "bp-westend",
- "bp-wococo",
  "bridge-runtime-common",
  "finality-grandpa",
  "finality-relay",
@@ -11788,16 +11746,12 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "rand 0.8.5",
- "relay-kusama-client",
  "relay-millau-client",
- "relay-polkadot-client",
  "relay-rialto-client",
  "relay-rialto-parachain-client",
- "relay-rococo-client",
  "relay-substrate-client",
  "relay-utils",
  "relay-westend-client",
- "relay-wococo-client",
  "rialto-parachain-runtime",
  "rialto-runtime",
  "sp-core",
@@ -11843,6 +11797,7 @@ dependencies = [
  "pallet-transaction-payment",
  "parachains-relay",
  "parity-scale-codec",
+ "relay-rialto-client",
  "relay-rococo-client",
  "relay-substrate-client",
  "relay-utils",
