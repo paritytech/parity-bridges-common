@@ -60,7 +60,7 @@ pub trait CliBridgeBase: Sized {
 		+ CliChain<KeyPair = AccountKeyPairOf<Self::Target>>;
 }
 
-/// Bridge representation that can be used from the CLI.
+/// Bridge representation that can be used from the CLI for relaying headers.
 pub trait HeadersCliBridge: CliBridgeBase {
 	/// Finality proofs synchronization pipeline.
 	type Finality: SubstrateFinalitySyncPipeline<
@@ -70,8 +70,12 @@ pub trait HeadersCliBridge: CliBridgeBase {
 	>;
 }
 
+/// Bridge representation that can be used from the CLI for relaying messages.
 pub trait MessagesCliBridge: CliBridgeBase {
+	/// Name of the runtime method used to estimate the message dispatch and delivery fee for the
+	/// defined bridge.
 	const ESTIMATE_MESSAGE_FEE_METHOD: &'static str;
+	/// The Source -> Destination messages synchronization pipeline.
 	type MessagesLane: SubstrateMessageLane<
 		SourceChain = Self::Source,
 		TargetChain = Self::Target,
@@ -79,6 +83,7 @@ pub trait MessagesCliBridge: CliBridgeBase {
 		TargetTransactionSignScheme = Self::Target,
 	>;
 
+	/// We use this to get the account on the target which is derived from the source account.
 	fn derive_account_from_id(
 		id: SourceAccount<AccountIdOf<Self::Source>>,
 	) -> AccountIdOf<Self::Target>;
