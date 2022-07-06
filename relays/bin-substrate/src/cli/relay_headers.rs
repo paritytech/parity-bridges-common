@@ -25,9 +25,8 @@ use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
 
 use crate::cli::{
 	bridge::{
-		CliBridge, MillauToRialtoCliBridge,
-		MillauToRialtoParachainCliBridge, RialtoToMillauCliBridge,
-		WestendToMillauCliBridge,
+		CliBridge, MillauToRialtoCliBridge, MillauToRialtoParachainCliBridge,
+		RialtoToMillauCliBridge, WestendToMillauCliBridge,
 	},
 	PrometheusParams, SourceConnectionParams, TargetConnectionParams, TargetSigningParams,
 };

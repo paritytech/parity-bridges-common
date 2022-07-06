@@ -18,9 +18,8 @@ use async_trait::async_trait;
 
 use crate::cli::{
 	bridge::{
-		CliBridgeBase, MillauToRialtoCliBridge,
-		MillauToRialtoParachainCliBridge, RialtoToMillauCliBridge,
-		WestendToMillauCliBridge,
+		CliBridgeBase, MillauToRialtoCliBridge, MillauToRialtoParachainCliBridge,
+		RialtoToMillauCliBridge, WestendToMillauCliBridge,
 	},
 	SourceConnectionParams, TargetConnectionParams, TargetSigningParams,
 };
