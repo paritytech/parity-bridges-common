@@ -8620,20 +8620,11 @@ dependencies = [
 name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
  "bp-kusama",
- "bp-messages",
- "bp-polkadot",
- "bp-polkadot-core",
- "bp-runtime",
- "bridge-runtime-common",
  "frame-support",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "scale-info",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8658,20 +8649,11 @@ dependencies = [
 name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
- "bp-kusama",
- "bp-messages",
  "bp-polkadot",
- "bp-polkadot-core",
- "bp-runtime",
- "bridge-runtime-common",
  "frame-support",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "scale-info",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8712,21 +8694,11 @@ dependencies = [
 name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
- "bp-messages",
- "bp-polkadot-core",
  "bp-rococo",
- "bp-runtime",
- "bp-wococo",
- "bridge-runtime-common",
  "frame-support",
- "pallet-bridge-messages",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "scale-info",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8808,21 +8780,11 @@ dependencies = [
 name = "relay-wococo-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
- "bp-messages",
- "bp-polkadot-core",
- "bp-rococo",
- "bp-runtime",
  "bp-wococo",
- "bridge-runtime-common",
  "frame-support",
- "pallet-bridge-messages",
- "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "scale-info",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
