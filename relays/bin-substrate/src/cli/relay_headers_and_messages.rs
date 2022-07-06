@@ -68,7 +68,6 @@ pub(crate) const CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO: f64 = 0.05;
 pub enum RelayHeadersAndMessages {
 	MillauRialto(MillauRialtoHeadersAndMessages),
 	MillauRialtoParachain(MillauRialtoParachainHeadersAndMessages),
-	RococoWococo(RococoWococoHeadersAndMessages),
 	KusamaPolkadot(KusamaPolkadotHeadersAndMessages),
 }
 
@@ -311,87 +310,6 @@ macro_rules! select_bridge {
 
 				$generic
 			},
-			RelayHeadersAndMessages::RococoWococo(_) => {
-				type Params = RococoWococoHeadersAndMessages;
-
-				type Left = relay_rococo_client::Rococo;
-				type Right = relay_wococo_client::Wococo;
-
-				type LeftAccountIdConverter = bp_rococo::AccountIdConverter;
-				type RightAccountIdConverter = bp_wococo::AccountIdConverter;
-
-				use crate::chains::{
-					rococo_messages_to_wococo::RococoMessagesToWococo as LeftToRightMessageLane,
-					wococo_messages_to_rococo::WococoMessagesToRococo as RightToLeftMessageLane,
-				};
-
-				async fn start_on_demand_relays(
-					params: &Params,
-					left_client: Client<Left>,
-					right_client: Client<Right>,
-					at_left_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Left>>>,
-					at_right_relay_accounts: &mut Vec<TaggedAccount<AccountIdOf<Right>>>,
-				) -> anyhow::Result<(
-					Arc<dyn OnDemandRelay<BlockNumberOf<Left>>>,
-					Arc<dyn OnDemandRelay<BlockNumberOf<Right>>>,
-				)> {
-					start_on_demand_relay_to_relay::<
-						Left,
-						Right,
-						crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo,
-						crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo,
-					>(
-						left_client,
-						right_client,
-						params.left_headers_to_right_sign_override.transaction_params_or::<Right, _>(&params.right_sign)?,
-						params.right_headers_to_left_sign_override.transaction_params_or::<Left, _>(&params.left_sign)?,
-						params.shared.only_mandatory_headers,
-						params.shared.only_mandatory_headers,
-						params.left.can_start_version_guard(),
-						params.right.can_start_version_guard(),
-						at_left_relay_accounts,
-						at_right_relay_accounts,
-					).await
-				}
-
-				async fn left_create_account(
-					left_client: Client<Left>,
-					left_sign: <Left as TransactionSignScheme>::AccountKeyPair,
-					account_id: AccountIdOf<Left>,
-				) -> anyhow::Result<()> {
-					submit_signed_extrinsic(
-						left_client,
-						left_sign,
-						relay_rococo_client::runtime::Call::Balances(
-							relay_rococo_client::runtime::BalancesCall::transfer(
-								bp_rococo::AccountAddress::Id(account_id),
-								bp_rococo::EXISTENTIAL_DEPOSIT.into(),
-							),
-						),
-					)
-					.await
-				}
-
-				async fn right_create_account(
-					right_client: Client<Right>,
-					right_sign: <Right as TransactionSignScheme>::AccountKeyPair,
-					account_id: AccountIdOf<Right>,
-				) -> anyhow::Result<()> {
-					submit_signed_extrinsic(
-						right_client,
-						right_sign,
-						relay_wococo_client::runtime::Call::Balances(
-							relay_wococo_client::runtime::BalancesCall::transfer(
-								bp_wococo::AccountAddress::Id(account_id),
-								bp_wococo::EXISTENTIAL_DEPOSIT.into(),
-							),
-						),
-					)
-					.await
-				}
-
-				$generic
-			},
 			RelayHeadersAndMessages::KusamaPolkadot(_) => {
 				type Params = KusamaPolkadotHeadersAndMessages;
 
@@ -481,8 +399,6 @@ macro_rules! select_bridge {
 declare_chain_options!(Millau, millau);
 declare_chain_options!(Rialto, rialto);
 declare_chain_options!(RialtoParachain, rialto_parachain);
-declare_chain_options!(Rococo, rococo);
-declare_chain_options!(Wococo, wococo);
 declare_chain_options!(Kusama, kusama);
 declare_chain_options!(Polkadot, polkadot);
 // Means to override signers of different layer transactions.
@@ -490,14 +406,11 @@ declare_chain_options!(MillauHeadersToRialto, millau_headers_to_rialto);
 declare_chain_options!(MillauHeadersToRialtoParachain, millau_headers_to_rialto_parachain);
 declare_chain_options!(RialtoHeadersToMillau, rialto_headers_to_millau);
 declare_chain_options!(RialtoParachainsToMillau, rialto_parachains_to_millau);
-declare_chain_options!(WococoHeadersToRococo, wococo_headers_to_rococo);
-declare_chain_options!(RococoHeadersToWococo, rococo_headers_to_wococo);
 declare_chain_options!(KusamaHeadersToPolkadot, kusama_headers_to_polkadot);
 declare_chain_options!(PolkadotHeadersToKusama, polkadot_headers_to_kusama);
 // All supported bridges.
 declare_bridge_options!(Millau, Rialto);
 declare_bridge_options!(Millau, RialtoParachain, Rialto);
-declare_bridge_options!(Rococo, Wococo);
 declare_bridge_options!(Kusama, Polkadot);
 
 impl RelayHeadersAndMessages {

@@ -27,7 +27,7 @@ use crate::cli::{
 	bridge::{
 		CliBridge, KusamaToPolkadotCliBridge, MillauToRialtoCliBridge,
 		MillauToRialtoParachainCliBridge, PolkadotToKusamaCliBridge, RialtoToMillauCliBridge,
-		RococoToWococoCliBridge, WestendToMillauCliBridge, WococoToRococoCliBridge,
+		WestendToMillauCliBridge,
 	},
 	PrometheusParams, SourceConnectionParams, TargetConnectionParams, TargetSigningParams,
 };
@@ -59,8 +59,6 @@ pub enum RelayHeadersBridge {
 	MillauToRialto,
 	RialtoToMillau,
 	WestendToMillau,
-	RococoToWococo,
-	WococoToRococo,
 	KusamaToPolkadot,
 	PolkadotToKusama,
 	MillauToRialtoParachain,
@@ -106,8 +104,6 @@ where
 impl HeadersRelayer for MillauToRialtoCliBridge {}
 impl HeadersRelayer for RialtoToMillauCliBridge {}
 impl HeadersRelayer for WestendToMillauCliBridge {}
-impl HeadersRelayer for RococoToWococoCliBridge {}
-impl HeadersRelayer for WococoToRococoCliBridge {}
 impl HeadersRelayer for KusamaToPolkadotCliBridge {}
 impl HeadersRelayer for PolkadotToKusamaCliBridge {}
 impl HeadersRelayer for MillauToRialtoParachainCliBridge {}
@@ -119,8 +115,6 @@ impl RelayHeaders {
 			RelayHeadersBridge::MillauToRialto => MillauToRialtoCliBridge::relay_headers(self),
 			RelayHeadersBridge::RialtoToMillau => RialtoToMillauCliBridge::relay_headers(self),
 			RelayHeadersBridge::WestendToMillau => WestendToMillauCliBridge::relay_headers(self),
-			RelayHeadersBridge::RococoToWococo => RococoToWococoCliBridge::relay_headers(self),
-			RelayHeadersBridge::WococoToRococo => WococoToRococoCliBridge::relay_headers(self),
 			RelayHeadersBridge::KusamaToPolkadot => KusamaToPolkadotCliBridge::relay_headers(self),
 			RelayHeadersBridge::PolkadotToKusama => PolkadotToKusamaCliBridge::relay_headers(self),
 			RelayHeadersBridge::MillauToRialtoParachain =>

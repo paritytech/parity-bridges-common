@@ -25,8 +25,6 @@ use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
 pub enum FullBridge {
 	MillauToRialto,
 	RialtoToMillau,
-	RococoToWococo,
-	WococoToRococo,
 	KusamaToPolkadot,
 	PolkadotToKusama,
 	MillauToRialtoParachain,
@@ -39,8 +37,6 @@ impl FullBridge {
 		match self {
 			Self::MillauToRialto => MILLAU_TO_RIALTO_INDEX,
 			Self::RialtoToMillau => RIALTO_TO_MILLAU_INDEX,
-			Self::RococoToWococo => ROCOCO_TO_WOCOCO_INDEX,
-			Self::WococoToRococo => WOCOCO_TO_ROCOCO_INDEX,
 			Self::KusamaToPolkadot => KUSAMA_TO_POLKADOT_INDEX,
 			Self::PolkadotToKusama => POLKADOT_TO_KUSAMA_INDEX,
 			Self::MillauToRialtoParachain => MILLAU_TO_RIALTO_PARACHAIN_INDEX,
@@ -51,8 +47,6 @@ impl FullBridge {
 
 pub const RIALTO_TO_MILLAU_INDEX: u8 = 0;
 pub const MILLAU_TO_RIALTO_INDEX: u8 = 0;
-pub const ROCOCO_TO_WOCOCO_INDEX: u8 = 0;
-pub const WOCOCO_TO_ROCOCO_INDEX: u8 = 0;
 pub const KUSAMA_TO_POLKADOT_INDEX: u8 = 0;
 pub const POLKADOT_TO_KUSAMA_INDEX: u8 = 0;
 pub const MILLAU_TO_RIALTO_PARACHAIN_INDEX: u8 = 1;
@@ -101,44 +95,6 @@ macro_rules! select_full_bridge {
 				// Send-message / Estimate-fee
 				#[allow(unused_imports)]
 				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
-
-				$generic
-			},
-			FullBridge::RococoToWococo => {
-				type Source = relay_rococo_client::Rococo;
-				#[allow(dead_code)]
-				type Target = relay_wococo_client::Wococo;
-
-				// Derive-account
-				#[allow(unused_imports)]
-				use bp_wococo::derive_account_from_rococo_id as derive_account;
-
-				// Relay-messages
-				#[allow(unused_imports)]
-				use $crate::chains::rococo_messages_to_wococo::RococoMessagesToWococo as MessagesLane;
-
-				// Send-message / Estimate-fee
-				#[allow(unused_imports)]
-				use bp_wococo::TO_WOCOCO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
-
-				$generic
-			},
-			FullBridge::WococoToRococo => {
-				type Source = relay_wococo_client::Wococo;
-				#[allow(dead_code)]
-				type Target = relay_rococo_client::Rococo;
-
-				// Derive-account
-				#[allow(unused_imports)]
-				use bp_rococo::derive_account_from_wococo_id as derive_account;
-
-				// Relay-messages
-				#[allow(unused_imports)]
-				use $crate::chains::wococo_messages_to_rococo::WococoMessagesToRococo as MessagesLane;
-
-				// Send-message / Estimate-fee
-				#[allow(unused_imports)]
-				use bp_rococo::TO_ROCOCO_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
 
 				$generic
 			},
@@ -277,30 +233,6 @@ impl CliBridgeBase for WestendToMillauCliBridge {
 
 impl CliBridge for WestendToMillauCliBridge {
 	type Finality = crate::chains::westend_headers_to_millau::WestendFinalityToMillau;
-}
-
-//// `Rococo` to `Wococo` bridge definition.
-pub struct RococoToWococoCliBridge {}
-
-impl CliBridgeBase for RococoToWococoCliBridge {
-	type Source = relay_rococo_client::Rococo;
-	type Target = relay_wococo_client::Wococo;
-}
-
-impl CliBridge for RococoToWococoCliBridge {
-	type Finality = crate::chains::rococo_headers_to_wococo::RococoFinalityToWococo;
-}
-
-//// `Wococo` to `Rococo` bridge definition.
-pub struct WococoToRococoCliBridge {}
-
-impl CliBridgeBase for WococoToRococoCliBridge {
-	type Source = relay_wococo_client::Wococo;
-	type Target = relay_rococo_client::Rococo;
-}
-
-impl CliBridge for WococoToRococoCliBridge {
-	type Finality = crate::chains::wococo_headers_to_rococo::WococoFinalityToRococo;
 }
 
 //// `Kusama` to `Polkadot` bridge definition.
