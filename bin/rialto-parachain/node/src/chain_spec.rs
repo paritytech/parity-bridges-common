@@ -68,25 +68,26 @@ where
 /// purposes), are all available on these chains.
 fn endowed_accounts() -> Vec<AccountId> {
 	vec![
+		// Sudo account
+		get_account_id_from_seed::<sr25519::Public>("Sudo"),
+		// Authorities accounts
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		get_account_id_from_seed::<sr25519::Public>("Bob"),
+		get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+		get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+		// Regular (unused) accounts
 		get_account_id_from_seed::<sr25519::Public>("Charlie"),
 		get_account_id_from_seed::<sr25519::Public>("Dave"),
 		get_account_id_from_seed::<sr25519::Public>("Eve"),
 		get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-		get_account_id_from_seed::<sr25519::Public>("George"),
-		get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-		get_account_id_from_seed::<sr25519::Public>("George//stash"),
-		get_account_id_from_seed::<sr25519::Public>("MillauMessagesOwner"),
-		pallet_bridge_messages::relayer_fund_account_id::<
-			bp_rialto_parachain::AccountId,
-			bp_rialto_parachain::AccountIdConverter,
-		>(),
+		// Accounts, used by RialtoParachain<>Millau bridge
+		get_account_id_from_seed::<sr25519::Public>("Millau.MessagesOwner"),
+		get_account_id_from_seed::<sr25519::Public>("Millau.HeadersAndMessagesRelay"),
+		get_account_id_from_seed::<sr25519::Public>("Millau.MessagesSender"),
 	]
 }
 
@@ -174,7 +175,7 @@ fn testnet_genesis(
 		aura: rialto_parachain_runtime::AuraConfig { authorities: initial_authorities },
 		aura_ext: Default::default(),
 		bridge_millau_messages: BridgeMillauMessagesConfig {
-			owner: Some(get_account_id_from_seed::<sr25519::Public>("MillauMessagesOwner")),
+			owner: Some(get_account_id_from_seed::<sr25519::Public>("Millau.MessagesOwner")),
 			..Default::default()
 		},
 	}

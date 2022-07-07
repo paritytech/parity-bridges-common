@@ -96,7 +96,7 @@ impl Alternative {
 				|| {
 					testnet_genesis(
 						vec![get_authority_keys_from_seed("Alice")],
-						get_account_id_from_seed::<sr25519::Public>("Alice"),
+						get_account_id_from_seed::<sr25519::Public>("Sudo"),
 						endowed_accounts(),
 						true,
 					)
@@ -121,7 +121,7 @@ impl Alternative {
 							get_authority_keys_from_seed("Dave"),
 							get_authority_keys_from_seed("Eve"),
 						],
-						get_account_id_from_seed::<sr25519::Public>("Alice"),
+						get_account_id_from_seed::<sr25519::Public>("Sudo"),
 						endowed_accounts(),
 						true,
 					)
@@ -143,46 +143,28 @@ impl Alternative {
 /// purposes), are all available on these chains.
 fn endowed_accounts() -> Vec<AccountId> {
 	vec![
+		// Sudo account
+		get_account_id_from_seed::<sr25519::Public>("Sudo"),
+		// Authorities accounts
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		get_account_id_from_seed::<sr25519::Public>("Bob"),
 		get_account_id_from_seed::<sr25519::Public>("Charlie"),
 		get_account_id_from_seed::<sr25519::Public>("Dave"),
 		get_account_id_from_seed::<sr25519::Public>("Eve"),
-		get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-		get_account_id_from_seed::<sr25519::Public>("George"),
-		get_account_id_from_seed::<sr25519::Public>("Harry"),
 		get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+		// Regular (unused) accounts
+		get_account_id_from_seed::<sr25519::Public>("Ferdie"),
 		get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-		get_account_id_from_seed::<sr25519::Public>("George//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
-		get_account_id_from_seed::<sr25519::Public>("MillauMessagesOwner"),
-		get_account_id_from_seed::<sr25519::Public>("WithMillauTokenSwap"),
-		pallet_bridge_messages::relayer_fund_account_id::<
-			bp_rialto::AccountId,
-			bp_rialto::AccountIdConverter,
-		>(),
-		derive_account_from_millau_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
-		)),
-		derive_account_from_millau_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Bob"),
-		)),
-		derive_account_from_millau_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Charlie"),
-		)),
-		derive_account_from_millau_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Dave"),
-		)),
-		derive_account_from_millau_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Eve"),
-		)),
-		derive_account_from_millau_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-		)),
+		// Accounts, used by Rialto<>Millau bridge
+		get_account_id_from_seed::<sr25519::Public>("Millau.MessagesOwner"),
+		get_account_id_from_seed::<sr25519::Public>("Millau.HeadersAndMessagesRelay"),
+		get_account_id_from_seed::<sr25519::Public>("Millau.OutboundMessagesRelay.Lane00000001"),
+		get_account_id_from_seed::<sr25519::Public>("Millau.InboundMessagesRelay.Lane00000001"),
+		get_account_id_from_seed::<sr25519::Public>("Millau.MessagesSender"),
 	]
 }
 
@@ -287,7 +269,7 @@ fn testnet_genesis(
 		},
 		paras: Default::default(),
 		bridge_millau_messages: BridgeMillauMessagesConfig {
-			owner: Some(get_account_id_from_seed::<sr25519::Public>("MillauMessagesOwner")),
+			owner: Some(get_account_id_from_seed::<sr25519::Public>("Millau.MessagesOwner")),
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),

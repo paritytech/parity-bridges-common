@@ -15,7 +15,6 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use beefy_primitives::crypto::AuthorityId as BeefyId;
-use bp_millau::derive_account_from_rialto_id;
 use millau_runtime::{
 	AccountId, AuraConfig, BalancesConfig, BeefyConfig, BridgeRialtoMessagesConfig,
 	BridgeRialtoParachainMessagesConfig, BridgeWestendGrandpaConfig, GenesisConfig, GrandpaConfig,
@@ -87,7 +86,7 @@ impl Alternative {
 				|| {
 					testnet_genesis(
 						vec![get_authority_keys_from_seed("Alice")],
-						get_account_id_from_seed::<sr25519::Public>("Alice"),
+						get_account_id_from_seed::<sr25519::Public>("Sudo"),
 						endowed_accounts(),
 						true,
 					)
@@ -112,7 +111,7 @@ impl Alternative {
 							get_authority_keys_from_seed("Dave"),
 							get_authority_keys_from_seed("Eve"),
 						],
-						get_account_id_from_seed::<sr25519::Public>("Alice"),
+						get_account_id_from_seed::<sr25519::Public>("Sudo"),
 						endowed_accounts(),
 						true,
 					)
@@ -134,54 +133,38 @@ impl Alternative {
 /// purposes), are all available on these chains.
 fn endowed_accounts() -> Vec<AccountId> {
 	vec![
+		// Sudo account
+		get_account_id_from_seed::<sr25519::Public>("Sudo"),
+		// Authorities accounts
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		get_account_id_from_seed::<sr25519::Public>("Bob"),
 		get_account_id_from_seed::<sr25519::Public>("Charlie"),
 		get_account_id_from_seed::<sr25519::Public>("Dave"),
 		get_account_id_from_seed::<sr25519::Public>("Eve"),
-		get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-		get_account_id_from_seed::<sr25519::Public>("George"),
-		get_account_id_from_seed::<sr25519::Public>("Harry"),
-		get_account_id_from_seed::<sr25519::Public>("Iden"),
-		get_account_id_from_seed::<sr25519::Public>("Ken"),
-		get_account_id_from_seed::<sr25519::Public>("Leon"),
-		get_account_id_from_seed::<sr25519::Public>("Mary"),
 		get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+		// Regular (unused) accounts
+		get_account_id_from_seed::<sr25519::Public>("Ferdie"),
 		get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-		get_account_id_from_seed::<sr25519::Public>("George//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Harry//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Iden//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Ken//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Leon//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Mary//stash"),
-		get_account_id_from_seed::<sr25519::Public>("RialtoMessagesOwner"),
-		get_account_id_from_seed::<sr25519::Public>("RialtoParachainMessagesOwner"),
-		pallet_bridge_messages::relayer_fund_account_id::<
-			bp_millau::AccountId,
-			bp_millau::AccountIdConverter,
-		>(),
-		derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
-		)),
-		derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Bob"),
-		)),
-		derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Charlie"),
-		)),
-		derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Dave"),
-		)),
-		derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Eve"),
-		)),
-		derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
-			get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-		)),
+		// Accounts, used by Westend<>Millau bridge
+		get_account_id_from_seed::<sr25519::Public>("Westend.GrandpaOwner"),
+		get_account_id_from_seed::<sr25519::Public>("Westend.HeadersRelay1"),
+		get_account_id_from_seed::<sr25519::Public>("Westend.HeadersRelay2"),
+		get_account_id_from_seed::<sr25519::Public>("Westend.WestmintHeaders"),
+		// Accounts, used by Rialto<>Millau bridge
+		get_account_id_from_seed::<sr25519::Public>("Rialto.MessagesOwner"),
+		get_account_id_from_seed::<sr25519::Public>("Rialto.HeadersAndMessagesRelay"),
+		get_account_id_from_seed::<sr25519::Public>("Rialto.OutboundMessagesRelay.Lane00000001"),
+		get_account_id_from_seed::<sr25519::Public>("Rialto.InboundMessagesRelay.Lane00000001"),
+		get_account_id_from_seed::<sr25519::Public>("Rialto.MessagesSender"),
+		// Accounts, used by RialtoParachain<>Millau bridge
+		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.MessagesOwner"),
+		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.HeadersAndMessagesRelay"),
+		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.RialtoHeadersRelay"),
+		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.MessagesSender"),
 	]
 }
 
@@ -217,28 +200,20 @@ fn testnet_genesis(
 		bridge_westend_grandpa: BridgeWestendGrandpaConfig {
 			// for our deployments to avoid multiple same-nonces transactions:
 			// //Alice is already used to initialize Rialto<->Millau bridge
-			// => let's use //George to initialize Westend->Millau bridge
-			owner: Some(get_account_id_from_seed::<sr25519::Public>("George")),
+			// => let's use //Westend.GrandpaOwner to initialize Westend->Millau bridge
+			owner: Some(get_account_id_from_seed::<sr25519::Public>("Westend.GrandpaOwner")),
 			..Default::default()
 		},
 		bridge_rialto_messages: BridgeRialtoMessagesConfig {
-			owner: Some(get_account_id_from_seed::<sr25519::Public>("RialtoMessagesOwner")),
+			owner: Some(get_account_id_from_seed::<sr25519::Public>("Rialto.MessagesOwner")),
 			..Default::default()
 		},
 		bridge_rialto_parachain_messages: BridgeRialtoParachainMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(
-				"RialtoParachainMessagesOwner",
+				"RialtoParachain.MessagesOwner",
 			)),
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
 	}
-}
-
-#[test]
-fn derived_dave_account_is_as_expected() {
-	let dave = get_account_id_from_seed::<sr25519::Public>("Dave");
-	let derived: AccountId =
-		derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(dave));
-	assert_eq!(derived.to_string(), "5DNW6UVnb7TN6wX5KwXtDYR3Eccecbdzuw89HqjyNfkzce6J".to_string());
 }

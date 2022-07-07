@@ -3,7 +3,7 @@ set -xeu
 
 sleep 15
 
-RELAY_ACCOUNT=${EXT_RELAY_ACCOUNT:-//George}
+RELAY_ACCOUNT=${EXT_RELAY_ACCOUNT:-//Westend.HeadersRelay1}
 
 /home/user/substrate-relay init-bridge westend-to-millau \
 	--source-host westend-rpc.polkadot.io \
@@ -11,7 +11,7 @@ RELAY_ACCOUNT=${EXT_RELAY_ACCOUNT:-//George}
 	--source-secure \
 	--target-host millau-node-alice \
 	--target-port 9944 \
-	--target-signer $RELAY_ACCOUNT
+	--target-signer //Westend.GrandpaOwner
 
 # Give chain a little bit of time to process initialization transaction
 sleep 6

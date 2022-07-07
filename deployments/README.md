@@ -81,11 +81,15 @@ not strictly required.
 
 Rialto authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`.
 Millau authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`.
+RialtoParachain authorities are named: `Alice`, `Bob`.
+
+`Sudo` is a sudo account on all chains.
 
 Both authorities and following accounts have enough funds (for test purposes) on corresponding Substrate chains:
 
-- on Rialto: `Ferdie`, `George`, `Harry`.
-- on Millau: `Ferdie`, `George`, `Harry`.
+- on Rialto: `Ferdie`.
+- on Millau: `Ferdie`.
+- on RialtoParachain: `Charlie`, `Dave`, `Eve`, `Ferdie`.
 
 Names of accounts on Substrate (Rialto and Millau) chains may be prefixed with `//` and used as
 seeds for the `sr25519` keys. This seed may also be used in the signer argument in Substrate relays.
@@ -106,27 +110,29 @@ is not recommended, because this may lead to nonces conflict.
 
 Following accounts are used when `rialto-millau` bridge is running:
 
-- Millau's `Charlie` signs complex headers+messages relay transactions on Millau chain;
-- Rialto's `Charlie` signs complex headers+messages relay transactions on Rialto chain;
-- Millau's `Dave` signs Millau transactions which contain messages for Rialto;
-- Rialto's `Dave` signs Rialto transactions which contain messages for Millau;
-- Millau's `Eve` signs relay transactions with message delivery confirmations (lane 00000001) from Rialto to Millau;
-- Rialto's `Eve` signs relay transactions with messages (lane 00000001) from Millau to Rialto;
-- Millau's `Ferdie` signs relay transactions with messages (lane 00000001) from Rialto to Millau;
-- Rialto's `Ferdie` signs relay transactions with message delivery confirmations (lane 00000001) from Millau to Rialto;
-- Millau's `RialtoMessagesOwner` signs relay transactions with updated Rialto -> Millau conversion rate;
-- Rialto's `MillauMessagesOwner` signs relay transactions with updated Millau -> Rialto conversion rate.
+- Millau's `Rialto.HeadersAndMessagesRelay` signs complex headers+messages relay transactions on Millau chain;
+- Rialto's `Millau.HeadersAndMessagesRelay` signs complex headers+messages relay transactions on Rialto chain;
+- Millau's `Rialto.MessagesSender` signs Millau transactions which contain messages for Rialto;
+- Rialto's `Millau.MessagesSender` signs Rialto transactions which contain messages for Millau;
+- Millau's `Rialto.OutboundMessagesRelay.Lane00000001` signs relay transactions with message delivery confirmations (lane 00000001) from Rialto to Millau;
+- Rialto's `Millau.InboundMessagesRelay.Lane00000001` signs relay transactions with messages (lane 00000001) from Millau to Rialto;
+- Millau's `Millau.OutboundMessagesRelay.Lane00000001` signs relay transactions with messages (lane 00000001) from Rialto to Millau;
+- Rialto's `Rialto.InboundMessagesRelay.Lane00000001` signs relay transactions with message delivery confirmations (lane 00000001) from Millau to Rialto;
+- Millau's `Rialto.MessagesOwner` signs relay transactions with updated Rialto -> Millau conversion rate;
+- Rialto's `Millau.MessagesOwner` signs relay transactions with updated Millau -> Rialto conversion rate.
 
 Following accounts are used when `westend-millau` bridge is running:
 
-- Millau's `George` and `Harry` are signing relay transactions with new Westend headers.
+- Millau's `Westend.GrandpaOwner` is signing with-Westend GRANDPA pallet initialization transaction.
+- Millau's `Westend.HeadersRelay1` and `Westend.HeadersRelay2` are signing transactions with new Westend headers.
+- Millau's `Westend.WestmintHeaders1` and `Westend.WestmintHeaders2` is signing transactions with new Westming headers.
 
 Following accounts are used when `rialto-parachain-millau` bridge is running:
 
-- RialtoParachain's `Bob` signs RialtoParachain transactions which contain messages for Millau;
-- Millau's `Bob` signs Millau transactions which contain messages for RialtoParachain;
-- Millau's `Iden` signs complex headers+parachains+messages relay transactions on Millau chain;
-- RialtoParachain's `George` signs complex headers+messages relay transactions on RialtoParachain chain.
+- RialtoParachain's `Millau.MessagesSender` signs RialtoParachain transactions which contain messages for Millau;
+- Millau's `RialtoParachain.MessagesSender` signs Millau transactions which contain messages for RialtoParachain;
+- Millau's `RialtoParachain.HeadersAndMessagesRelay` signs complex headers+parachains+messages relay transactions on Millau chain;
+- RialtoParachain's `Millau.HeadersAndMessagesRelay` signs complex headers+messages relay transactions on RialtoParachain chain.
 
 ### Docker Usage
 When the network is running you can query logs from individual nodes using:
