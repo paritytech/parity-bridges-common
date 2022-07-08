@@ -23,15 +23,15 @@ use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 /// "Names" of the authorities accounts at local testnet.
-const LOCAL_AUTHORITIES_ACCOUNTS: [&'static str; 2] = ["Alice", "Bob"];
+const LOCAL_AUTHORITIES_ACCOUNTS: [&str; 2] = ["Alice", "Bob"];
 /// "Names" of the authorities accounts at development testnet.
-const DEV_AUTHORITIES_ACCOUNTS: [&'static str; 2] = LOCAL_AUTHORITIES_ACCOUNTS;
+const DEV_AUTHORITIES_ACCOUNTS: [&str; 2] = LOCAL_AUTHORITIES_ACCOUNTS;
 /// "Names" of all possible authorities accounts.
-const ALL_AUTHORITIES_ACCOUNTS: [&'static str; 2] = LOCAL_AUTHORITIES_ACCOUNTS;
+const ALL_AUTHORITIES_ACCOUNTS: [&str; 2] = LOCAL_AUTHORITIES_ACCOUNTS;
 /// "Name" of the `sudo` account.
-const SUDO_ACCOUNT: &'static str = "Sudo";
+const SUDO_ACCOUNT: &str = "Sudo";
 /// "Name" of the account, which owns the with-Millau messages pallet.
-const MILLAU_MESSAGES_PALLET_OWNER: &'static str = "Millau.MessagesOwner";
+const MILLAU_MESSAGES_PALLET_OWNER: &str = "Millau.MessagesOwner";
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =

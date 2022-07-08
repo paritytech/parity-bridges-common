@@ -29,15 +29,15 @@ use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 /// "Names" of the authorities accounts at local testnet.
-const LOCAL_AUTHORITIES_ACCOUNTS: [&'static str; 5] = ["Alice", "Bob", "Charlie", "Dave", "Eve"];
+const LOCAL_AUTHORITIES_ACCOUNTS: [&str; 5] = ["Alice", "Bob", "Charlie", "Dave", "Eve"];
 /// "Names" of the authorities accounts at development testnet.
-const DEV_AUTHORITIES_ACCOUNTS: [&'static str; 1] = [LOCAL_AUTHORITIES_ACCOUNTS[0]];
+const DEV_AUTHORITIES_ACCOUNTS: [&str; 1] = [LOCAL_AUTHORITIES_ACCOUNTS[0]];
 /// "Names" of all possible authorities accounts.
-const ALL_AUTHORITIES_ACCOUNTS: [&'static str; 5] = LOCAL_AUTHORITIES_ACCOUNTS;
+const ALL_AUTHORITIES_ACCOUNTS: [&str; 5] = LOCAL_AUTHORITIES_ACCOUNTS;
 /// "Name" of the `sudo` account.
-const SUDO_ACCOUNT: &'static str = "Sudo";
+const SUDO_ACCOUNT: &str = "Sudo";
 /// "Name" of the account, which owns the with-Millau messages pallet.
-const MILLAU_MESSAGES_PALLET_OWNER: &'static str = "Millau.MessagesOwner";
+const MILLAU_MESSAGES_PALLET_OWNER: &str = "Millau.MessagesOwner";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec =
