@@ -34,7 +34,7 @@ const LOCAL_AUTHORITIES_ACCOUNTS: [&'static str; 5] = ["Alice", "Bob", "Charlie"
 const DEV_AUTHORITIES_ACCOUNTS: [&'static str; 1] = [LOCAL_AUTHORITIES_ACCOUNTS[0]];
 /// "Names" of all possible authorities accounts.
 const ALL_AUTHORITIES_ACCOUNTS: [&'static str; 5] = LOCAL_AUTHORITIES_ACCOUNTS;
-/// "Name" of the sudo account.
+/// "Name" of the `sudo` account.
 const SUDO_ACCOUNT: &'static str = "Sudo";
 /// "Name" of the account, which owns the with-Millau messages pallet.
 const MILLAU_MESSAGES_PALLET_OWNER: &'static str = "Millau.MessagesOwner";
