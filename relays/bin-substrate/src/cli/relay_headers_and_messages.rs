@@ -925,7 +925,9 @@ mod tests {
 						millau_transactions_mortality: Some(64),
 					},
 					left_messages_pallet_owner: MillauMessagesPalletOwnerSigningParams {
-						millau_messages_pallet_owner: Some("//RialtoParachain.MessagesOwner".into()),
+						millau_messages_pallet_owner: Some(
+							"//RialtoParachain.MessagesOwner".into()
+						),
 						millau_messages_pallet_owner_password: None,
 					},
 					left_headers_to_right_sign_override:
