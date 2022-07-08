@@ -25,6 +25,21 @@ use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
+/// "Names" of the authorities accounts at local testnet.
+const LOCAL_AUTHORITIES_ACCOUNTS: [&'static str; 5] = ["Alice", "Bob", "Charlie", "Dave", "Eve"];
+/// "Names" of the authorities accounts at development testnet.
+const DEV_AUTHORITIES_ACCOUNTS: [&'static str; 1] = [LOCAL_AUTHORITIES_ACCOUNTS[0]];
+/// "Names" of all possible authorities accounts.
+const ALL_AUTHORITIES_ACCOUNTS: [&'static str; 5] = LOCAL_AUTHORITIES_ACCOUNTS;
+/// "Name" of the sudo account.
+const SUDO_ACCOUNT: &'static str = "Sudo";
+/// "Name" of the account, which owns the with-Westend GRANDPA pallet.
+const WESTEND_GRANDPA_PALLET_OWNER: &'static str = "Westend.GrandpaOwner";
+/// "Name" of the account, which owns the with-Rialto messages pallet.
+const RIALTO_MESSAGES_PALLET_OWNER: &'static str = "Rialto.MessagesOwner";
+/// "Name" of the account, which owns the with-RialtoParachain messages pallet.
+const RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER: &'static str = "RialtoParachain.MessagesOwner";
+
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
@@ -85,8 +100,8 @@ impl Alternative {
 				sc_service::ChainType::Development,
 				|| {
 					testnet_genesis(
-						vec![get_authority_keys_from_seed("Alice")],
-						get_account_id_from_seed::<sr25519::Public>("Sudo"),
+						DEV_AUTHORITIES_ACCOUNTS.into_iter().map(get_authority_keys_from_seed).collect(),
+						get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
 						endowed_accounts(),
 						true,
 					)
@@ -104,14 +119,8 @@ impl Alternative {
 				sc_service::ChainType::Local,
 				|| {
 					testnet_genesis(
-						vec![
-							get_authority_keys_from_seed("Alice"),
-							get_authority_keys_from_seed("Bob"),
-							get_authority_keys_from_seed("Charlie"),
-							get_authority_keys_from_seed("Dave"),
-							get_authority_keys_from_seed("Eve"),
-						],
-						get_account_id_from_seed::<sr25519::Public>("Sudo"),
+						LOCAL_AUTHORITIES_ACCOUNTS.into_iter().map(get_authority_keys_from_seed).collect(),
+						get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
 						endowed_accounts(),
 						true,
 					)
@@ -132,41 +141,34 @@ impl Alternative {
 /// accounts used by relayers in our test deployments, accounts used for demonstration
 /// purposes), are all available on these chains.
 fn endowed_accounts() -> Vec<AccountId> {
+	let all_authorities = ALL_AUTHORITIES_ACCOUNTS.iter().flat_map(|x| [
+		get_account_id_from_seed::<sr25519::Public>(x),
+		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", x)),
+	]);
 	vec![
 		// Sudo account
-		get_account_id_from_seed::<sr25519::Public>("Sudo"),
-		// Authorities accounts
-		get_account_id_from_seed::<sr25519::Public>("Alice"),
-		get_account_id_from_seed::<sr25519::Public>("Bob"),
-		get_account_id_from_seed::<sr25519::Public>("Charlie"),
-		get_account_id_from_seed::<sr25519::Public>("Dave"),
-		get_account_id_from_seed::<sr25519::Public>("Eve"),
-		get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-		get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+		get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
 		// Regular (unused) accounts
 		get_account_id_from_seed::<sr25519::Public>("Ferdie"),
 		get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 		// Accounts, used by Westend<>Millau bridge
-		get_account_id_from_seed::<sr25519::Public>("Westend.GrandpaOwner"),
+		get_account_id_from_seed::<sr25519::Public>(WESTEND_GRANDPA_PALLET_OWNER),
 		get_account_id_from_seed::<sr25519::Public>("Westend.HeadersRelay1"),
 		get_account_id_from_seed::<sr25519::Public>("Westend.HeadersRelay2"),
 		get_account_id_from_seed::<sr25519::Public>("Westend.WestmintHeaders1"),
 		get_account_id_from_seed::<sr25519::Public>("Westend.WestmintHeaders2"),
 		// Accounts, used by Rialto<>Millau bridge
-		get_account_id_from_seed::<sr25519::Public>("Rialto.MessagesOwner"),
+		get_account_id_from_seed::<sr25519::Public>(RIALTO_MESSAGES_PALLET_OWNER),
 		get_account_id_from_seed::<sr25519::Public>("Rialto.HeadersAndMessagesRelay"),
 		get_account_id_from_seed::<sr25519::Public>("Rialto.OutboundMessagesRelay.Lane00000001"),
 		get_account_id_from_seed::<sr25519::Public>("Rialto.InboundMessagesRelay.Lane00000001"),
 		get_account_id_from_seed::<sr25519::Public>("Rialto.MessagesSender"),
 		// Accounts, used by RialtoParachain<>Millau bridge
-		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.MessagesOwner"),
+		get_account_id_from_seed::<sr25519::Public>(RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER),
 		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.HeadersAndMessagesRelay"),
 		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.RialtoHeadersRelay"),
 		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.MessagesSender"),
-	]
+	].into_iter().chain(all_authorities).collect()
 }
 
 fn session_keys(aura: AuraId, beefy: BeefyId, grandpa: GrandpaId) -> SessionKeys {
@@ -202,17 +204,15 @@ fn testnet_genesis(
 			// for our deployments to avoid multiple same-nonces transactions:
 			// //Alice is already used to initialize Rialto<->Millau bridge
 			// => let's use //Westend.GrandpaOwner to initialize Westend->Millau bridge
-			owner: Some(get_account_id_from_seed::<sr25519::Public>("Westend.GrandpaOwner")),
+			owner: Some(get_account_id_from_seed::<sr25519::Public>(WESTEND_GRANDPA_PALLET_OWNER)),
 			..Default::default()
 		},
 		bridge_rialto_messages: BridgeRialtoMessagesConfig {
-			owner: Some(get_account_id_from_seed::<sr25519::Public>("Rialto.MessagesOwner")),
+			owner: Some(get_account_id_from_seed::<sr25519::Public>(RIALTO_MESSAGES_PALLET_OWNER)),
 			..Default::default()
 		},
 		bridge_rialto_parachain_messages: BridgeRialtoParachainMessagesConfig {
-			owner: Some(get_account_id_from_seed::<sr25519::Public>(
-				"RialtoParachain.MessagesOwner",
-			)),
+			owner: Some(get_account_id_from_seed::<sr25519::Public>(RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER)),
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
