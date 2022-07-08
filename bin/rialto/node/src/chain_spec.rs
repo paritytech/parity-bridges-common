@@ -105,7 +105,10 @@ impl Alternative {
 				sc_service::ChainType::Development,
 				|| {
 					testnet_genesis(
-						DEV_AUTHORITIES_ACCOUNTS.into_iter().map(get_authority_keys_from_seed).collect(),
+						DEV_AUTHORITIES_ACCOUNTS
+							.into_iter()
+							.map(get_authority_keys_from_seed)
+							.collect(),
 						get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
 						endowed_accounts(),
 						true,
@@ -124,7 +127,10 @@ impl Alternative {
 				sc_service::ChainType::Local,
 				|| {
 					testnet_genesis(
-						LOCAL_AUTHORITIES_ACCOUNTS.into_iter().map(get_authority_keys_from_seed).collect(),
+						LOCAL_AUTHORITIES_ACCOUNTS
+							.into_iter()
+							.map(get_authority_keys_from_seed)
+							.collect(),
 						get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
 						endowed_accounts(),
 						true,
@@ -146,10 +152,12 @@ impl Alternative {
 /// accounts used by relayers in our test deployments, accounts used for demonstration
 /// purposes), are all available on these chains.
 fn endowed_accounts() -> Vec<AccountId> {
-	let all_authorities = ALL_AUTHORITIES_ACCOUNTS.iter().flat_map(|x| [
-		get_account_id_from_seed::<sr25519::Public>(x),
-		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", x)),
-	]);
+	let all_authorities = ALL_AUTHORITIES_ACCOUNTS.iter().flat_map(|x| {
+		[
+			get_account_id_from_seed::<sr25519::Public>(x),
+			get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", x)),
+		]
+	});
 	vec![
 		// Sudo account
 		get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
@@ -162,7 +170,10 @@ fn endowed_accounts() -> Vec<AccountId> {
 		get_account_id_from_seed::<sr25519::Public>("Millau.OutboundMessagesRelay.Lane00000001"),
 		get_account_id_from_seed::<sr25519::Public>("Millau.InboundMessagesRelay.Lane00000001"),
 		get_account_id_from_seed::<sr25519::Public>("Millau.MessagesSender"),
-	].into_iter().chain(all_authorities).collect()
+	]
+	.into_iter()
+	.chain(all_authorities)
+	.collect()
 }
 
 fn session_keys(

@@ -78,10 +78,12 @@ where
 /// accounts used by relayers in our test deployments, accounts used for demonstration
 /// purposes), are all available on these chains.
 fn endowed_accounts() -> Vec<AccountId> {
-	let all_authorities = ALL_AUTHORITIES_ACCOUNTS.iter().flat_map(|x| [
-		get_account_id_from_seed::<sr25519::Public>(x),
-		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", x)),
-	]);
+	let all_authorities = ALL_AUTHORITIES_ACCOUNTS.iter().flat_map(|x| {
+		[
+			get_account_id_from_seed::<sr25519::Public>(x),
+			get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", x)),
+		]
+	});
 	vec![
 		// Sudo account
 		get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
@@ -98,7 +100,10 @@ fn endowed_accounts() -> Vec<AccountId> {
 		get_account_id_from_seed::<sr25519::Public>(MILLAU_MESSAGES_PALLET_OWNER),
 		get_account_id_from_seed::<sr25519::Public>("Millau.HeadersAndMessagesRelay"),
 		get_account_id_from_seed::<sr25519::Public>("Millau.MessagesSender"),
-	].into_iter().chain(all_authorities).collect()
+	]
+	.into_iter()
+	.chain(all_authorities)
+	.collect()
 }
 
 pub fn development_config(id: ParaId) -> ChainSpec {
@@ -116,7 +121,10 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 		move || {
 			testnet_genesis(
 				get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
-				DEV_AUTHORITIES_ACCOUNTS.into_iter().map(|x| get_from_seed::<AuraId>(x)).collect(),
+				DEV_AUTHORITIES_ACCOUNTS
+					.into_iter()
+					.map(|x| get_from_seed::<AuraId>(x))
+					.collect(),
 				endowed_accounts(),
 				id,
 			)
@@ -148,7 +156,10 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 		move || {
 			testnet_genesis(
 				get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
-				LOCAL_AUTHORITIES_ACCOUNTS.into_iter().map(|x| get_from_seed::<AuraId>(x)).collect(),
+				LOCAL_AUTHORITIES_ACCOUNTS
+					.into_iter()
+					.map(|x| get_from_seed::<AuraId>(x))
+					.collect(),
 				endowed_accounts(),
 				id,
 			)

@@ -100,7 +100,10 @@ impl Alternative {
 				sc_service::ChainType::Development,
 				|| {
 					testnet_genesis(
-						DEV_AUTHORITIES_ACCOUNTS.into_iter().map(get_authority_keys_from_seed).collect(),
+						DEV_AUTHORITIES_ACCOUNTS
+							.into_iter()
+							.map(get_authority_keys_from_seed)
+							.collect(),
 						get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
 						endowed_accounts(),
 						true,
@@ -119,7 +122,10 @@ impl Alternative {
 				sc_service::ChainType::Local,
 				|| {
 					testnet_genesis(
-						LOCAL_AUTHORITIES_ACCOUNTS.into_iter().map(get_authority_keys_from_seed).collect(),
+						LOCAL_AUTHORITIES_ACCOUNTS
+							.into_iter()
+							.map(get_authority_keys_from_seed)
+							.collect(),
 						get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
 						endowed_accounts(),
 						true,
@@ -141,10 +147,12 @@ impl Alternative {
 /// accounts used by relayers in our test deployments, accounts used for demonstration
 /// purposes), are all available on these chains.
 fn endowed_accounts() -> Vec<AccountId> {
-	let all_authorities = ALL_AUTHORITIES_ACCOUNTS.iter().flat_map(|x| [
-		get_account_id_from_seed::<sr25519::Public>(x),
-		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", x)),
-	]);
+	let all_authorities = ALL_AUTHORITIES_ACCOUNTS.iter().flat_map(|x| {
+		[
+			get_account_id_from_seed::<sr25519::Public>(x),
+			get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", x)),
+		]
+	});
 	vec![
 		// Sudo account
 		get_account_id_from_seed::<sr25519::Public>(SUDO_ACCOUNT),
@@ -168,7 +176,10 @@ fn endowed_accounts() -> Vec<AccountId> {
 		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.HeadersAndMessagesRelay"),
 		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.RialtoHeadersRelay"),
 		get_account_id_from_seed::<sr25519::Public>("RialtoParachain.MessagesSender"),
-	].into_iter().chain(all_authorities).collect()
+	]
+	.into_iter()
+	.chain(all_authorities)
+	.collect()
 }
 
 fn session_keys(aura: AuraId, beefy: BeefyId, grandpa: GrandpaId) -> SessionKeys {
@@ -212,7 +223,9 @@ fn testnet_genesis(
 			..Default::default()
 		},
 		bridge_rialto_parachain_messages: BridgeRialtoParachainMessagesConfig {
-			owner: Some(get_account_id_from_seed::<sr25519::Public>(RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER)),
+			owner: Some(get_account_id_from_seed::<sr25519::Public>(
+				RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER,
+			)),
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
