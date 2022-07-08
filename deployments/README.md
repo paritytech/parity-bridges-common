@@ -101,7 +101,7 @@ Example:
 	--source-port 9944 \
 	--target-host millau-node-alice \
 	--target-port 9944 \
-	--source-signer //Harry \
+	--source-signer //Ferdie \
 	--prometheus-host=0.0.0.0
 ```
 
