@@ -16,7 +16,7 @@ FERDIE_ADDR=5oSLwptwgySxh5vz1HdvznQJjbQVgwYSvHEpYYeTXu1Ei8j7
 
 SHARED_CMD="/home/user/substrate-relay send-message rialto-to-millau"
 SHARED_HOST="--source-host rialto-node-bob --source-port 9944"
-SOURCE_SIGNER="--source-signer //Millau.MessageSender"
+SOURCE_SIGNER="--source-signer //Millau.MessagesSender"
 
 SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $SOURCE_SIGNER"
 

@@ -105,7 +105,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 		ChainType::Local,
 		move || {
 			testnet_genesis(
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_account_id_from_seed::<sr25519::Public>("Sudo"),
 				vec![get_from_seed::<AuraId>("Alice"), get_from_seed::<AuraId>("Bob")],
 				endowed_accounts(),
 				id,
@@ -137,7 +137,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 		ChainType::Local,
 		move || {
 			testnet_genesis(
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_account_id_from_seed::<sr25519::Public>("Sudo"),
 				vec![get_from_seed::<AuraId>("Alice"), get_from_seed::<AuraId>("Bob")],
 				endowed_accounts(),
 				id,

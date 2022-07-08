@@ -15,7 +15,6 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use beefy_primitives::crypto::AuthorityId as BeefyId;
-use bp_rialto::derive_account_from_millau_id;
 use polkadot_primitives::v2::{AssignmentId, ValidatorId};
 use rialto_runtime::{
 	AccountId, BabeConfig, BalancesConfig, BeefyConfig, BridgeMillauMessagesConfig,
@@ -274,12 +273,4 @@ fn testnet_genesis(
 		},
 		xcm_pallet: Default::default(),
 	}
-}
-
-#[test]
-fn derived_dave_account_is_as_expected() {
-	let dave = get_account_id_from_seed::<sr25519::Public>("Dave");
-	let derived: AccountId =
-		derive_account_from_millau_id(bp_runtime::SourceAccount::Account(dave));
-	assert_eq!(derived.to_string(), "5HZhdv53gSJmWWtD8XR5Ypu4PgbT5JNWwGw2mkE75cN61w9t".to_string());
 }
