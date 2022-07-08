@@ -14,9 +14,9 @@ MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE=1024
 
 SHARED_CMD="/home/user/substrate-relay send-message rialto-parachain-to-millau"
 SHARED_HOST="--source-host rialto-parachain-collator-bob --source-port 9944"
-DAVE_SIGNER="--source-signer //Bob"
+SOURCE_SIGNER="--source-signer //Millau.MessagesSender"
 
-SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $DAVE_SIGNER"
+SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $SOURCE_SIGNER"
 
 # Sleep a bit between messages
 rand_sleep() {

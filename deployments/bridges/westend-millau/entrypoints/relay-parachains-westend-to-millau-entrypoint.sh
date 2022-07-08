@@ -3,7 +3,7 @@ set -xeu
 
 sleep 15
 
-RELAY_ACCOUNT=${EXT_RELAY_ACCOUNT:-//Leon}
+RELAY_ACCOUNT=${EXT_RELAY_ACCOUNT:-//Westend.WestmintHeaders1}
 
 /home/user/substrate-relay relay-parachains westend-to-millau \
 	--source-host westend-rpc.polkadot.io \

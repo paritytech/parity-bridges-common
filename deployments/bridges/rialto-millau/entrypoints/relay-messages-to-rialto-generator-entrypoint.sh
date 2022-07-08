@@ -16,9 +16,9 @@ FERDIE_ADDR=6ztG3jPnJTwgZnnYsgCDXbbQVR82M96hBZtPvkN56A9668ZC
 
 SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto"
 SHARED_HOST="--source-host millau-node-bob --source-port 9944"
-DAVE_SIGNER="--source-signer //Dave"
+SOURCE_SIGNER="--source-signer //Rialto.MessagesSender"
 
-SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $DAVE_SIGNER"
+SEND_MESSAGE="$SHARED_CMD $SHARED_HOST $SOURCE_SIGNER"
 
 # Sleep a bit between messages
 rand_sleep() {

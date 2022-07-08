@@ -3,7 +3,7 @@ set -xeu
 
 sleep 15
 
-# //Dave is signing Millau -> Rialto message-send transactions, which are causing problems.
+# //Rialto.MessagesSender is signing Millau -> Rialto message-send transactions, which are causing problems.
 #
 # When large message is being sent from Millau to Rialto AND other transactions are
 # blocking it from being mined, we'll see something like this in logs:
@@ -18,7 +18,7 @@ sleep 15
 /home/user/substrate-relay resubmit-transactions millau \
 	--target-host millau-node-alice \
 	--target-port 9944 \
-	--target-signer //Dave \
+	--target-signer //Rialto.MessagesSender \
 	--stalled-blocks 5 \
 	--tip-limit 1000000000000 \
 	--tip-step 1000000000 \
