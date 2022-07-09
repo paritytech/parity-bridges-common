@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use async_trait::async_trait;
-use relay_substrate_client::{AccountKeyPairOf, ChainBase};
+use relay_substrate_client::{AccountIdOf, AccountKeyPairOf};
 use sp_core::Pair;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -59,9 +59,9 @@ pub enum RelayHeadersBridge {
 }
 
 #[async_trait]
-trait HeadersRelayer: HeadersCliBridge
+trait HeadersRelayer: RelayHeadersCliBridge
 where
-	<Self::Target as ChainBase>::AccountId: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
+	AccountIdOf<Self::Target>: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
 {
 	/// Relay headers.
 	async fn relay_headers(data: RelayHeaders) -> anyhow::Result<()> {

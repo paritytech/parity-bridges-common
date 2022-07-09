@@ -20,11 +20,8 @@ use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
 use messages_relay::relay_strategy::MixStrategy;
-use relay_substrate_client::{AccountKeyPairOf, ChainBase, TransactionSignScheme};
-use substrate_relay_helper::{
-	messages_lane::{MessagesRelayParams, SubstrateMessageLane},
-	TransactionParams,
-};
+use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, BalanceOf, TransactionSignScheme};
+use substrate_relay_helper::{messages_lane::MessagesRelayParams, TransactionParams};
 
 use crate::cli::{
 	bridge::*, CliChain, HexLaneId, PrometheusParams, SourceConnectionParams, SourceSigningParams,
@@ -79,10 +76,9 @@ trait MessagesRelayer: MessagesCliBridge
 where
 	Self::Source: TransactionSignScheme<Chain = Self::Source>
 		+ CliChain<KeyPair = AccountKeyPairOf<Self::Source>>,
-	<Self::Source as ChainBase>::AccountId: From<<AccountKeyPairOf<Self::Source> as Pair>::Public>,
-	<Self::Target as ChainBase>::AccountId: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
-	<Self::Source as ChainBase>::Balance: TryFrom<<Self::Target as ChainBase>::Balance>,
-	Self::MessagesLane: SubstrateMessageLane<RelayStrategy = MixStrategy>,
+	AccountIdOf<Self::Source>: From<<AccountKeyPairOf<Self::Source> as Pair>::Public>,
+	AccountIdOf<Self::Target>: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
+	BalanceOf<Self::Source>: TryFrom<BalanceOf<Self::Target>>,
 {
 	async fn relay_messages(data: RelayMessages) -> anyhow::Result<()> {
 		let source_client = data.source.to_client::<Self::Source>().await?;

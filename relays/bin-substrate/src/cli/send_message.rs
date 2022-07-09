@@ -21,10 +21,10 @@ use crate::cli::{
 	Balance, CliChain, HexBytes, HexLaneId, SourceConnectionParams, SourceSigningParams,
 };
 use async_trait::async_trait;
-use bp_runtime::AccountIdOf;
 use codec::Encode;
 use relay_substrate_client::{
-	AccountKeyPairOf, Chain, ChainBase, SignParam, TransactionSignScheme, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, Chain, ChainBase, SignParam, TransactionSignScheme,
+	UnsignedTransaction,
 };
 use sp_core::{Bytes, Pair};
 use sp_runtime::AccountId32;
