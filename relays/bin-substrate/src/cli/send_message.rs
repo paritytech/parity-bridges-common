@@ -16,9 +16,10 @@
 
 use crate::cli::{
 	bridge::{FullBridge, MessagesCliBridge, *},
+	chain_schema::*,
 	encode_message::{self, CliEncodeMessage},
 	estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
-	Balance, CliChain, HexBytes, HexLaneId, SourceConnectionParams, SourceSigningParams,
+	Balance, CliChain, HexBytes, HexLaneId,
 };
 use async_trait::async_trait;
 use codec::Encode;
@@ -95,8 +96,8 @@ where
 	async fn send_message(data: SendMessage) -> anyhow::Result<()> {
 		let payload = encode_message::encode_message::<Self::Source, Self::Target>(&data.message)?;
 
-		let source_client = data.source.to_client::<Self::Source>().await?;
-		let source_sign = data.source_sign.to_keypair::<Self::Source>()?;
+		let source_client = ConnectionParams::from(data.source).to_client::<Self::Source>().await?;
+		let source_sign = SigningParams::from(data.source_sign).to_keypair::<Self::Source>()?;
 
 		let lane = data.lane.clone().into();
 		let conversion_rate_override = data.conversion_rate_override;

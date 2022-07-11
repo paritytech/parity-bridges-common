@@ -23,10 +23,7 @@ use messages_relay::relay_strategy::MixStrategy;
 use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, BalanceOf, TransactionSignScheme};
 use substrate_relay_helper::{messages_lane::MessagesRelayParams, TransactionParams};
 
-use crate::cli::{
-	bridge::*, CliChain, HexLaneId, PrometheusParams, SourceConnectionParams, SourceSigningParams,
-	TargetConnectionParams, TargetSigningParams,
-};
+use crate::cli::{bridge::*, chain_schema::*, CliChain, HexLaneId, PrometheusParams};
 
 /// Relayer operating mode.
 #[derive(Debug, EnumString, EnumVariantNames, Clone, Copy, PartialEq, Eq)]
@@ -81,24 +78,26 @@ where
 	BalanceOf<Self::Source>: TryFrom<BalanceOf<Self::Target>>,
 {
 	async fn relay_messages(data: RelayMessages) -> anyhow::Result<()> {
-		let source_client = data.source.to_client::<Self::Source>().await?;
-		let source_sign = data.source_sign.to_keypair::<Self::Source>()?;
-		let source_transactions_mortality = data.source_sign.transactions_mortality()?;
-		let target_client = data.target.to_client::<Self::Target>().await?;
-		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
-		let target_transactions_mortality = data.target_sign.transactions_mortality()?;
+		let source_client = ConnectionParams::from(data.source).to_client::<Self::Source>().await?;
+		let source_sign = SigningParams::from(data.source_sign);
+		let source_sign_keypair = source_sign.to_keypair::<Self::Source>()?;
+		let source_transactions_mortality = source_sign.transactions_mortality()?;
+		let target_client = ConnectionParams::from(data.target).to_client::<Self::Target>().await?;
+		let target_sign = SigningParams::from(data.target_sign);
+		let target_sign_keypair = target_sign.to_keypair::<Self::Target>()?;
+		let target_transactions_mortality = target_sign.transactions_mortality()?;
 		let relayer_mode = data.relayer_mode.into();
 		let relay_strategy = MixStrategy::new(relayer_mode);
 
 		substrate_relay_helper::messages_lane::run::<Self::MessagesLane>(MessagesRelayParams {
 			source_client,
 			source_transaction_params: TransactionParams {
-				signer: source_sign,
+				signer: source_sign_keypair,
 				mortality: source_transactions_mortality,
 			},
 			target_client,
 			target_transaction_params: TransactionParams {
-				signer: target_sign,
+				signer: target_sign_keypair,
 				mortality: target_transactions_mortality,
 			},
 			source_to_target_headers_relay: None,

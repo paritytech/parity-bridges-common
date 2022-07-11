@@ -29,7 +29,8 @@ use crate::cli::{
 	bridge::{
 		ParachainHeadersCliBridge, RialtoParachainToMillauCliBridge, WestmintToMillauCliBridge,
 	},
-	PrometheusParams, SourceConnectionParams, TargetConnectionParams, TargetSigningParams,
+	chain_schema::*,
+	PrometheusParams,
 };
 
 /// Start parachain heads relayer process.
@@ -65,14 +66,16 @@ where
 		TargetClient<ParachainsPipelineAdapter<Self::ParachainFinality>>,
 {
 	async fn relay_headers(data: RelayParachains) -> anyhow::Result<()> {
-		let source_client = data.source.to_client::<Self::SourceRelay>().await?;
+		let source_client =
+			ConnectionParams::from(data.source).to_client::<Self::SourceRelay>().await?;
 		let source_client = ParachainsSource::<Self::ParachainFinality>::new(source_client, None);
 
+		let target_sign = SigningParams::from(data.target_sign);
 		let target_transaction_params = TransactionParams {
-			signer: data.target_sign.to_keypair::<Self::Target>()?,
-			mortality: data.target_sign.target_transactions_mortality,
+			signer: target_sign.to_keypair::<Self::Target>()?,
+			mortality: target_sign.transactions_mortality,
 		};
-		let target_client = data.target.to_client::<Self::Target>().await?;
+		let target_client = ConnectionParams::from(data.target).to_client::<Self::Target>().await?;
 		let target_client = ParachainsTarget::<Self::ParachainFinality>::new(
 			target_client.clone(),
 			target_transaction_params,

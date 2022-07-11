@@ -125,13 +125,11 @@ impl ConnectionParams {
 	/// There's no reason to run version guard when version mode is set to `Auto`. It can
 	/// lead to relay shutdown when chain is upgraded, even though we have explicitly
 	/// said that we don't want to shutdown.
-	#[allow(dead_code)]
 	pub fn can_start_version_guard(&self) -> bool {
 		self.runtime_version.version_mode != RuntimeVersionType::Auto
 	}
 
 	/// Convert connection params into Substrate client.
-	#[allow(dead_code)]
 	pub async fn to_client<Chain: CliChain>(
 		&self,
 	) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
@@ -144,20 +142,6 @@ impl ConnectionParams {
 			chain_runtime_version,
 		})
 		.await)
-	}
-
-	/// Return selected `chain_spec` version.
-	///
-	/// This function only connects to the node if version mode is set to `Auto`.
-	#[allow(dead_code)]
-	pub async fn selected_chain_spec_version<Chain: CliChain>(&self) -> anyhow::Result<u32> {
-		let chain_runtime_version =
-			self.runtime_version.into_runtime_version(Some(Chain::RUNTIME_VERSION))?;
-		Ok(match chain_runtime_version {
-			ChainRuntimeVersion::Auto =>
-				self.to_client::<Chain>().await?.simple_runtime_version().await?.0,
-			ChainRuntimeVersion::Custom(spec_version, _) => spec_version,
-		})
 	}
 }
 
@@ -253,7 +237,6 @@ impl SigningParams {
 	}
 
 	/// Parse signing params into chain-specific KeyPair.
-	#[allow(dead_code)]
 	pub fn to_keypair<Chain: CliChain>(&self) -> anyhow::Result<Chain::KeyPair> {
 		let suri = match (self.signer.as_ref(), self.signer_file.as_ref()) {
 			(Some(suri), _) => suri.to_owned(),
@@ -353,7 +336,6 @@ pub struct MessagesPalletOwnerSigningParams {
 
 impl MessagesPalletOwnerSigningParams {
 	/// Parse signing params into chain-specific KeyPair.
-	#[allow(dead_code)]
 	pub fn to_keypair<Chain: CliChain>(&self) -> anyhow::Result<Option<Chain::KeyPair>> {
 		let messages_pallet_owner = match self.messages_pallet_owner {
 			Some(ref messages_pallet_owner) => messages_pallet_owner,
@@ -415,3 +397,98 @@ declare_chain_cli_schema!(Source, source);
 declare_chain_cli_schema!(Target, target);
 declare_chain_cli_schema!(Relaychain, relaychain);
 declare_chain_cli_schema!(Parachain, parachain);
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use sp_core::Pair;
+
+	#[test]
+	fn reads_suri_from_file() {
+		const ALICE: &str = "//Alice";
+		const BOB: &str = "//Bob";
+		const ALICE_PASSWORD: &str = "alice_password";
+		const BOB_PASSWORD: &str = "bob_password";
+
+		let alice: sp_core::sr25519::Pair = Pair::from_string(ALICE, Some(ALICE_PASSWORD)).unwrap();
+		let bob: sp_core::sr25519::Pair = Pair::from_string(BOB, Some(BOB_PASSWORD)).unwrap();
+		let bob_with_alice_password =
+			sp_core::sr25519::Pair::from_string(BOB, Some(ALICE_PASSWORD)).unwrap();
+
+		let temp_dir = tempfile::tempdir().unwrap();
+		let mut suri_file_path = temp_dir.path().to_path_buf();
+		let mut password_file_path = temp_dir.path().to_path_buf();
+		suri_file_path.push("suri");
+		password_file_path.push("password");
+		std::fs::write(&suri_file_path, BOB.as_bytes()).unwrap();
+		std::fs::write(&password_file_path, BOB_PASSWORD.as_bytes()).unwrap();
+
+		// when both seed and password are read from file
+		assert_eq!(
+			SigningParams::from(TargetSigningParams {
+				target_signer: Some(ALICE.into()),
+				target_signer_password: Some(ALICE_PASSWORD.into()),
+
+				target_signer_file: None,
+				target_signer_password_file: None,
+
+				target_transactions_mortality: None,
+			})
+			.to_keypair::<relay_rialto_client::Rialto>()
+			.map(|p| p.public())
+			.map_err(drop),
+			Ok(alice.public()),
+		);
+
+		// when both seed and password are read from file
+		assert_eq!(
+			SigningParams::from(TargetSigningParams {
+				target_signer: None,
+				target_signer_password: None,
+
+				target_signer_file: Some(suri_file_path.clone()),
+				target_signer_password_file: Some(password_file_path.clone()),
+
+				target_transactions_mortality: None,
+			})
+			.to_keypair::<relay_rialto_client::Rialto>()
+			.map(|p| p.public())
+			.map_err(drop),
+			Ok(bob.public()),
+		);
+
+		// when password are is overriden by cli option
+		assert_eq!(
+			SigningParams::from(TargetSigningParams {
+				target_signer: None,
+				target_signer_password: Some(ALICE_PASSWORD.into()),
+
+				target_signer_file: Some(suri_file_path.clone()),
+				target_signer_password_file: Some(password_file_path.clone()),
+
+				target_transactions_mortality: None,
+			})
+			.to_keypair::<relay_rialto_client::Rialto>()
+			.map(|p| p.public())
+			.map_err(drop),
+			Ok(bob_with_alice_password.public()),
+		);
+
+		// when both seed and password are overriden by cli options
+		assert_eq!(
+			SigningParams::from(TargetSigningParams {
+				target_signer: Some(ALICE.into()),
+				target_signer_password: Some(ALICE_PASSWORD.into()),
+
+				target_signer_file: Some(suri_file_path),
+				target_signer_password_file: Some(password_file_path),
+
+				target_transactions_mortality: None,
+			})
+			.to_keypair::<relay_rialto_client::Rialto>()
+			.map(|p| p.public())
+			.map_err(drop),
+			Ok(alice.public()),
+		);
+	}
+}
