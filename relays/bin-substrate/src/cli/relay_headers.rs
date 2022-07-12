@@ -56,7 +56,7 @@ pub enum RelayHeadersBridge {
 }
 
 #[async_trait]
-trait HeadersRelayer: RelayHeadersCliBridge
+trait HeadersRelayer: RelayToRelayHeadersCliBridge
 where
 	AccountIdOf<Self::Target>: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
 {

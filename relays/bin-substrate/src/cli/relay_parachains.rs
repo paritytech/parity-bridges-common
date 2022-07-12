@@ -27,7 +27,8 @@ use substrate_relay_helper::{
 
 use crate::cli::{
 	bridge::{
-		ParachainHeadersCliBridge, RialtoParachainToMillauCliBridge, WestmintToMillauCliBridge,
+		ParachainToRelayHeadersCliBridge, RialtoParachainToMillauCliBridge,
+		WestmintToMillauCliBridge,
 	},
 	chain_schema::*,
 	PrometheusParams,
@@ -58,7 +59,7 @@ pub enum RelayParachainsBridge {
 }
 
 #[async_trait]
-trait ParachainsRelayer: ParachainHeadersCliBridge
+trait ParachainsRelayer: ParachainToRelayHeadersCliBridge
 where
 	ParachainsSource<Self::ParachainFinality>:
 		SourceClient<ParachainsPipelineAdapter<Self::ParachainFinality>>,

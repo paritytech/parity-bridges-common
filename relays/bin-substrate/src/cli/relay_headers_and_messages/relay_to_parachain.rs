@@ -18,7 +18,10 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::cli::{
-	bridge::{CliBridgeBase, MessagesCliBridge, ParachainHeadersCliBridge, RelayHeadersCliBridge},
+	bridge::{
+		CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge,
+		RelayToRelayHeadersCliBridge,
+	},
 	chain_schema::*,
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
 	CliChain,
@@ -36,7 +39,7 @@ use substrate_relay_helper::{
 	TaggedAccount,
 };
 
-pub struct ChainToParachainBridgeParams {
+pub struct RelayToParachainBridgeParams {
 	pub common: Full2WayBridgeCommonParams,
 	pub right_relay: ConnectionParams,
 
@@ -48,7 +51,7 @@ pub struct ChainToParachainBridgeParams {
 	pub left_headers_to_right_sign_override: SigningParams,
 }
 
-macro_rules! declare_chain_to_parachain_bridge_schema {
+macro_rules! declare_relay_to_parachain_bridge_schema {
 	// chain, parachain, relay-chain-of-parachain
 	($left_chain:ident, $right_parachain:ident, $right_chain:ident) => {
 		paste::item! {
@@ -84,9 +87,9 @@ macro_rules! declare_chain_to_parachain_bridge_schema {
 				right_relay: [<$right_chain ConnectionParams>],
 			}
 
-			impl From<[<$left_chain $right_parachain HeadersAndMessages>]> for ChainToParachainBridgeParams {
-				fn from(item: [<$left_chain $right_parachain HeadersAndMessages>]) -> ChainToParachainBridgeParams {
-					ChainToParachainBridgeParams {
+			impl From<[<$left_chain $right_parachain HeadersAndMessages>]> for RelayToParachainBridgeParams {
+				fn from(item: [<$left_chain $right_parachain HeadersAndMessages>]) -> RelayToParachainBridgeParams {
+					RelayToParachainBridgeParams {
 						common: Full2WayBridgeCommonParams {
 							shared: item.shared,
 							left: item.left.into(),
@@ -107,11 +110,11 @@ macro_rules! declare_chain_to_parachain_bridge_schema {
 	};
 }
 
-pub struct ChainToParachainEnv<
-	L2R: MessagesCliBridge + RelayHeadersCliBridge,
-	R2L: MessagesCliBridge + ParachainHeadersCliBridge,
+pub struct RelayToParachainFull2WayBridge<
+	L2R: MessagesCliBridge + RelayToRelayHeadersCliBridge,
+	R2L: MessagesCliBridge + ParachainToRelayHeadersCliBridge,
 > {
-	params: ChainToParachainBridgeParams,
+	params: RelayToParachainBridgeParams,
 
 	left_client: Client<<L2R as CliBridgeBase>::Source>,
 	right_client: Client<<R2L as CliBridgeBase>::Source>,
@@ -129,20 +132,22 @@ impl<
 		RightRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
 			+ TransactionSignScheme
 			+ CliChain,
-		L2R: CliBridgeBase<Source = Left, Target = Right> + MessagesCliBridge + RelayHeadersCliBridge,
+		L2R: CliBridgeBase<Source = Left, Target = Right>
+			+ MessagesCliBridge
+			+ RelayToRelayHeadersCliBridge,
 		R2L: CliBridgeBase<Source = Right, Target = Left>
 			+ MessagesCliBridge
-			+ ParachainHeadersCliBridge<SourceRelay = RightRelay>,
-	> Full2WayBridgeBase for ChainToParachainEnv<L2R, R2L>
+			+ ParachainToRelayHeadersCliBridge<SourceRelay = RightRelay>,
+	> Full2WayBridgeBase for RelayToParachainFull2WayBridge<L2R, R2L>
 where
 	AccountIdOf<Left>: From<<AccountKeyPairOf<Left> as Pair>::Public>,
 	AccountIdOf<Right>: From<<AccountKeyPairOf<Right> as Pair>::Public>,
 {
-	type Params = ChainToParachainBridgeParams;
+	type Params = RelayToParachainBridgeParams;
 	type Left = Left;
 	type Right = Right;
 
-	async fn new(params: ChainToParachainBridgeParams) -> anyhow::Result<Self> {
+	async fn new(params: RelayToParachainBridgeParams) -> anyhow::Result<Self> {
 		let left_client = params.common.left.to_client::<Left>().await?;
 		let right_client = params.common.right.to_client::<Right>().await?;
 
@@ -209,13 +214,13 @@ where
 			bridged_chain: Left::NAME.to_string(),
 		});
 
-		<L2R as RelayHeadersCliBridge>::Finality::start_relay_guards(
+		<L2R as RelayToRelayHeadersCliBridge>::Finality::start_relay_guards(
 			&self.right_client,
 			&left_headers_to_right_transaction_params,
 			self.params.common.right.can_start_version_guard(),
 		)
 		.await?;
-		<R2L as ParachainHeadersCliBridge>::RelayFinality::start_relay_guards(
+		<R2L as ParachainToRelayHeadersCliBridge>::RelayFinality::start_relay_guards(
 			&self.left_client,
 			&right_headers_to_left_transaction_params,
 			self.params.common.left.can_start_version_guard(),
@@ -223,26 +228,27 @@ where
 		.await?;
 
 		let left_to_right_on_demand_headers =
-			OnDemandHeadersRelay::new::<<L2R as RelayHeadersCliBridge>::Finality>(
+			OnDemandHeadersRelay::new::<<L2R as RelayToRelayHeadersCliBridge>::Finality>(
 				self.left_client.clone(),
 				self.right_client.clone(),
 				left_headers_to_right_transaction_params,
 				self.params.common.shared.only_mandatory_headers,
 			);
 		let right_relay_to_left_on_demand_headers =
-			OnDemandHeadersRelay::new::<<R2L as ParachainHeadersCliBridge>::RelayFinality>(
+			OnDemandHeadersRelay::new::<<R2L as ParachainToRelayHeadersCliBridge>::RelayFinality>(
 				right_relay_client.clone(),
 				self.left_client.clone(),
 				right_headers_to_left_transaction_params,
 				self.params.common.shared.only_mandatory_headers,
 			);
-		let right_to_left_on_demand_parachains =
-			OnDemandParachainsRelay::new::<<R2L as ParachainHeadersCliBridge>::ParachainFinality>(
-				right_relay_client,
-				self.left_client.clone(),
-				right_parachains_to_left_transaction_params,
-				Arc::new(right_relay_to_left_on_demand_headers),
-			);
+		let right_to_left_on_demand_parachains = OnDemandParachainsRelay::new::<
+			<R2L as ParachainToRelayHeadersCliBridge>::ParachainFinality,
+		>(
+			right_relay_client,
+			self.left_client.clone(),
+			right_parachains_to_left_transaction_params,
+			Arc::new(right_relay_to_left_on_demand_headers),
+		);
 
 		Ok((
 			Arc::new(left_to_right_on_demand_headers),

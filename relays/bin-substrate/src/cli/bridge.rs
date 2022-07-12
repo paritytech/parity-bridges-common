@@ -66,7 +66,7 @@ pub trait CliBridgeBase: Sized {
 
 /// Bridge representation that can be used from the CLI for relaying headers
 /// from a relay chain to a relay chain.
-pub trait RelayHeadersCliBridge: CliBridgeBase {
+pub trait RelayToRelayHeadersCliBridge: CliBridgeBase {
 	/// Finality proofs synchronization pipeline.
 	type Finality: SubstrateFinalitySyncPipeline<
 		SourceChain = Self::Source,
@@ -77,7 +77,7 @@ pub trait RelayHeadersCliBridge: CliBridgeBase {
 
 /// Bridge representation that can be used from the CLI for relaying headers
 /// from a parachain to a relay chain.
-pub trait ParachainHeadersCliBridge: CliBridgeBase {
+pub trait ParachainToRelayHeadersCliBridge: CliBridgeBase {
 	// The `CliBridgeBase` type represents the parachain in this situation.
 	// We need to add an extra type for the relay chain.
 	type SourceRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
@@ -126,7 +126,7 @@ impl CliBridgeBase for MillauToRialtoCliBridge {
 	type Target = relay_rialto_client::Rialto;
 }
 
-impl RelayHeadersCliBridge for MillauToRialtoCliBridge {
+impl RelayToRelayHeadersCliBridge for MillauToRialtoCliBridge {
 	type Finality = crate::chains::millau_headers_to_rialto::MillauFinalityToRialto;
 }
 
@@ -150,7 +150,7 @@ impl CliBridgeBase for RialtoToMillauCliBridge {
 	type Target = relay_millau_client::Millau;
 }
 
-impl RelayHeadersCliBridge for RialtoToMillauCliBridge {
+impl RelayToRelayHeadersCliBridge for RialtoToMillauCliBridge {
 	type Finality = crate::chains::rialto_headers_to_millau::RialtoFinalityToMillau;
 }
 
@@ -176,7 +176,7 @@ impl CliBridgeBase for WestendToMillauCliBridge {
 	type Target = relay_millau_client::Millau;
 }
 
-impl RelayHeadersCliBridge for WestendToMillauCliBridge {
+impl RelayToRelayHeadersCliBridge for WestendToMillauCliBridge {
 	type Finality = crate::chains::westend_headers_to_millau::WestendFinalityToMillau;
 }
 
@@ -188,7 +188,7 @@ impl CliBridgeBase for MillauToRialtoParachainCliBridge {
 	type Target = relay_rialto_parachain_client::RialtoParachain;
 }
 
-impl RelayHeadersCliBridge for MillauToRialtoParachainCliBridge {
+impl RelayToRelayHeadersCliBridge for MillauToRialtoParachainCliBridge {
 	type Finality =
 		crate::chains::millau_headers_to_rialto_parachain::MillauFinalityToRialtoParachain;
 }
@@ -214,7 +214,7 @@ impl CliBridgeBase for RialtoParachainToMillauCliBridge {
 	type Target = relay_millau_client::Millau;
 }
 
-impl ParachainHeadersCliBridge for RialtoParachainToMillauCliBridge {
+impl ParachainToRelayHeadersCliBridge for RialtoParachainToMillauCliBridge {
 	type SourceRelay = relay_rialto_client::Rialto;
 	type ParachainFinality = crate::chains::rialto_parachains_to_millau::RialtoParachainsToMillau;
 	type RelayFinality = crate::chains::rialto_headers_to_millau::RialtoFinalityToMillau;
@@ -236,7 +236,7 @@ impl MessagesCliBridge for RialtoParachainToMillauCliBridge {
 //// `WestendParachain` to `Millau` bridge definition.
 pub struct WestmintToMillauCliBridge {}
 
-impl ParachainHeadersCliBridge for WestmintToMillauCliBridge {
+impl ParachainToRelayHeadersCliBridge for WestmintToMillauCliBridge {
 	type SourceRelay = relay_westend_client::Westend;
 	type ParachainFinality = crate::chains::westend_parachains_to_millau::WestendParachainsToMillau;
 	type RelayFinality = crate::chains::westend_headers_to_millau::WestendFinalityToMillau;

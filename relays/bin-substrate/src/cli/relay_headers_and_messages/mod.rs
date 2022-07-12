@@ -24,18 +24,18 @@
 //! 3) declare a new struct for the added bridge and implement the `Full2WayBridge` trait for it.
 
 #[macro_use]
-mod chain_to_chain;
+mod relay_to_relay;
 #[macro_use]
-mod chain_to_parachain;
+mod relay_to_parachain;
 
 use async_trait::async_trait;
 use std::sync::Arc;
 use structopt::StructOpt;
 use strum::VariantNames;
 
-use chain_to_chain::*;
-use chain_to_parachain::*;
 use futures::{FutureExt, TryFutureExt};
+use relay_to_parachain::*;
+use relay_to_relay::*;
 
 use crate::{
 	cli::{
@@ -111,8 +111,8 @@ declare_chain_cli_schema!(MillauHeadersToRialtoParachain, millau_headers_to_rial
 declare_chain_cli_schema!(RialtoHeadersToMillau, rialto_headers_to_millau);
 declare_chain_cli_schema!(RialtoParachainsToMillau, rialto_parachains_to_millau);
 // All supported bridges.
-declare_chain_to_chain_bridge_schema!(Millau, Rialto);
-declare_chain_to_parachain_bridge_schema!(Millau, RialtoParachain, Rialto);
+declare_relay_to_relay_bridge_schema!(Millau, Rialto);
+declare_relay_to_parachain_bridge_schema!(Millau, RialtoParachain, Rialto);
 
 #[async_trait]
 trait Full2WayBridgeBase: Sized + Send + Sync {
@@ -433,12 +433,12 @@ where
 }
 
 pub struct MillauRialtoFull2WayBridge {
-	env: ChainToChainEnv<<Self as Full2WayBridge>::L2R, <Self as Full2WayBridge>::R2L>,
+	base: RelayToRelayFull2WayBridge<<Self as Full2WayBridge>::L2R, <Self as Full2WayBridge>::R2L>,
 }
 
 #[async_trait]
 impl Full2WayBridge for MillauRialtoFull2WayBridge {
-	type Base = ChainToChainEnv<Self::L2R, Self::R2L>;
+	type Base = RelayToRelayFull2WayBridge<Self::L2R, Self::R2L>;
 	type Left = relay_millau_client::Millau;
 	type LeftAccountIdConverter = bp_millau::AccountIdConverter;
 	type Right = relay_rialto_client::Rialto;
@@ -447,25 +447,28 @@ impl Full2WayBridge for MillauRialtoFull2WayBridge {
 	type R2L = RialtoToMillauCliBridge;
 
 	async fn new(params: <Self::Base as Full2WayBridgeBase>::Params) -> anyhow::Result<Self> {
-		Ok(Self { env: ChainToChainEnv::new(params).await? })
+		Ok(Self { base: RelayToRelayFull2WayBridge::new(params).await? })
 	}
 
 	fn base(&self) -> &Self::Base {
-		&self.env
+		&self.base
 	}
 
 	fn mut_base(&mut self) -> &mut Self::Base {
-		&mut self.env
+		&mut self.base
 	}
 }
 
 pub struct MillauRialtoParachainFull2WayBridge {
-	env: ChainToParachainEnv<<Self as Full2WayBridge>::L2R, <Self as Full2WayBridge>::R2L>,
+	base: RelayToParachainFull2WayBridge<
+		<Self as Full2WayBridge>::L2R,
+		<Self as Full2WayBridge>::R2L,
+	>,
 }
 
 #[async_trait]
 impl Full2WayBridge for MillauRialtoParachainFull2WayBridge {
-	type Base = ChainToParachainEnv<Self::L2R, Self::R2L>;
+	type Base = RelayToParachainFull2WayBridge<Self::L2R, Self::R2L>;
 	type Left = relay_millau_client::Millau;
 	type LeftAccountIdConverter = bp_millau::AccountIdConverter;
 	type Right = relay_rialto_parachain_client::RialtoParachain;
@@ -474,15 +477,15 @@ impl Full2WayBridge for MillauRialtoParachainFull2WayBridge {
 	type R2L = RialtoParachainToMillauCliBridge;
 
 	async fn new(params: <Self::Base as Full2WayBridgeBase>::Params) -> anyhow::Result<Self> {
-		Ok(Self { env: ChainToParachainEnv::new(params).await? })
+		Ok(Self { base: RelayToParachainFull2WayBridge::new(params).await? })
 	}
 
 	fn base(&self) -> &Self::Base {
-		&self.env
+		&self.base
 	}
 
 	fn mut_base(&mut self) -> &mut Self::Base {
-		&mut self.env
+		&mut self.base
 	}
 }
 
