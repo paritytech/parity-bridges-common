@@ -102,11 +102,10 @@ impl ResubmitTransactions {
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.chain, {
 			let relay_loop_name = format!("ResubmitTransactions{}", Target::NAME);
-			let client = ConnectionParams::from(self.target).to_client::<Target>().await?;
-			let target_sign = SigningParams::from(self.target_sign);
+			let client = self.target.into_client::<Target>().await?;
 			let transaction_params = TransactionParams {
-				signer: target_sign.to_keypair::<Target>()?,
-				mortality: target_sign.transactions_mortality,
+				signer: self.target_sign.to_keypair::<Target>()?,
+				mortality: self.target_sign.target_transactions_mortality,
 			};
 
 			relay_utils::relay_loop((), client)

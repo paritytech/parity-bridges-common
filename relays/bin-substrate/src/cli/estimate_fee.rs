@@ -81,7 +81,7 @@ where
 	<Self::Source as ChainBase>::Balance: Display + Into<u128>,
 {
 	async fn estimate_fee(data: EstimateFee) -> anyhow::Result<()> {
-		let source_client = ConnectionParams::from(data.source).to_client::<Self::Source>().await?;
+		let source_client = data.source.into_client::<Self::Source>().await?;
 		let lane = data.lane.into();
 		let payload =
 			crate::cli::encode_message::encode_message::<Self::Source, Self::Target>(&data.payload)

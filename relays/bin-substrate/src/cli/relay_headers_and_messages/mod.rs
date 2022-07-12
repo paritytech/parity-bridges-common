@@ -40,8 +40,10 @@ use relay_to_relay::*;
 use crate::{
 	cli::{
 		bridge::{
-			MessagesCliBridge, MillauToRialtoCliBridge, MillauToRialtoParachainCliBridge,
-			RialtoParachainToMillauCliBridge, RialtoToMillauCliBridge,
+			CliBridgeBase, MessagesCliBridge, MillauToRialtoCliBridge,
+			MillauToRialtoParachainCliBridge, ParachainToRelayHeadersCliBridge,
+			RelayToRelayHeadersCliBridge, RialtoParachainToMillauCliBridge,
+			RialtoToMillauCliBridge,
 		},
 		chain_schema::*,
 		relay_messages::RelayerMode,
@@ -87,18 +89,25 @@ pub struct HeadersAndMessagesSharedParams {
 	pub prometheus_params: PrometheusParams,
 }
 
-pub struct Full2WayBridgeCommonParams {
+pub struct Full2WayBridgeCommonParams<
+	Left: TransactionSignScheme + CliChain,
+	Right: TransactionSignScheme + CliChain,
+> {
 	pub shared: HeadersAndMessagesSharedParams,
 
-	pub left: ConnectionParams,
+	pub left: Client<Left>,
 	// default signer, which is always used to sign messages relay transactions on the left chain
-	pub left_sign: SigningParams,
-	pub left_messages_pallet_owner: MessagesPalletOwnerSigningParams,
+	pub left_sign: AccountKeyPairOf<Left>,
+	pub left_transactions_mortality: Option<u32>,
+	pub left_messages_pallet_owner: Option<AccountKeyPairOf<Left>>,
+	pub at_left_accounts: Vec<TaggedAccount<AccountIdOf<Left>>>,
 
-	pub right: ConnectionParams,
+	pub right: Client<Right>,
 	// default signer, which is always used to sign messages relay transactions on the right chain
-	pub right_sign: SigningParams,
-	pub right_messages_pallet_owner: MessagesPalletOwnerSigningParams,
+	pub right_sign: AccountKeyPairOf<Right>,
+	pub right_transactions_mortality: Option<u32>,
+	pub right_messages_pallet_owner: Option<AccountKeyPairOf<Right>>,
+	pub at_right_accounts: Vec<TaggedAccount<AccountIdOf<Right>>>,
 }
 
 // All supported chains.
@@ -119,20 +128,15 @@ trait Full2WayBridgeBase: Sized + Send + Sync {
 	/// The CLI params for the bridge.
 	type Params;
 	/// The left relay chain.
-	type Left: Chain;
+	type Left: TransactionSignScheme<Chain = Self::Left>
+		+ CliChain<KeyPair = AccountKeyPairOf<Self::Left>>;
 	/// The right destination chain (it can be a relay or a parachain).
-	type Right: Chain;
+	type Right: TransactionSignScheme<Chain = Self::Right>
+		+ CliChain<KeyPair = AccountKeyPairOf<Self::Right>>;
 
-	async fn new(params: Self::Params) -> anyhow::Result<Self>;
+	fn common(&self) -> &Full2WayBridgeCommonParams<Self::Left, Self::Right>;
 
-	fn common(&self) -> &Full2WayBridgeCommonParams;
-
-	fn left_client(&self) -> &Client<Self::Left>;
-
-	fn right_client(&self) -> &Client<Self::Right>;
-
-	fn mut_at_left_accounts(&mut self) -> &mut Vec<TaggedAccount<AccountIdOf<Self::Left>>>;
-	fn mut_at_right_accounts(&mut self) -> &mut Vec<TaggedAccount<AccountIdOf<Self::Right>>>;
+	fn mut_common(&mut self) -> &mut Full2WayBridgeCommonParams<Self::Left, Self::Right>;
 
 	async fn start_on_demand_headers_relayers(
 		&mut self,
@@ -170,7 +174,7 @@ where
 	// Right to Left bridge
 	type R2L: MessagesCliBridge<Source = Self::Right, Target = Self::Left>;
 
-	async fn new(params: <Self::Base as Full2WayBridgeBase>::Params) -> anyhow::Result<Self>;
+	fn new(params: <Self::Base as Full2WayBridgeBase>::Params) -> anyhow::Result<Self>;
 
 	fn base(&self) -> &Self::Base;
 
@@ -193,18 +197,14 @@ where
 	}
 
 	async fn run(&mut self) -> anyhow::Result<()> {
-		let left_client = self.base().left_client().clone();
-		let left_transactions_mortality =
-			self.base().common().left_sign.transactions_mortality()?;
-		let left_sign = self.base().common().left_sign.to_keypair::<Self::Left>()?;
-		let left_messages_pallet_owner =
-			self.base().common().left_messages_pallet_owner.to_keypair::<Self::Left>()?;
-		let right_client = self.base().right_client().clone();
-		let right_transactions_mortality =
-			self.base().common().right_sign.transactions_mortality()?;
-		let right_sign = self.base().common().right_sign.to_keypair::<Self::Right>()?;
-		let right_messages_pallet_owner =
-			self.base().common().right_messages_pallet_owner.to_keypair::<Self::Right>()?;
+		let left_client = self.base().common().left.clone();
+		let left_transactions_mortality = self.base().common().left_transactions_mortality;
+		let left_sign = self.base().common().left_sign.clone();
+		let left_messages_pallet_owner = self.base().common().left_messages_pallet_owner.clone();
+		let right_client = self.base().common().right.clone();
+		let right_transactions_mortality = self.base().common().right_transactions_mortality;
+		let right_sign = self.base().common().right_sign.clone();
+		let right_messages_pallet_owner = self.base().common().right_messages_pallet_owner.clone();
 
 		let lanes = self.base().common().shared.lane.clone();
 		let relayer_mode = self.base().common().shared.relayer_mode.into();
@@ -218,11 +218,11 @@ where
 			<Self::L2R as MessagesCliBridge>::MessagesLane,
 		>(left_client.clone(), right_client.clone())?;
 		let right_to_left_metrics = left_to_right_metrics.clone().reverse();
-		self.mut_base().mut_at_left_accounts().push(TaggedAccount::Messages {
+		self.mut_base().mut_common().at_left_accounts.push(TaggedAccount::Messages {
 			id: left_sign.public().into(),
 			bridged_chain: Self::Right::NAME.to_string(),
 		});
-		self.mut_base().mut_at_right_accounts().push(TaggedAccount::Messages {
+		self.mut_base().mut_common().at_right_accounts.push(TaggedAccount::Messages {
 			id: right_sign.public().into(),
 			bridged_chain: Self::Left::NAME.to_string(),
 		});
@@ -263,10 +263,12 @@ where
 					.shared_value_ref(),
 				CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 			);
-			self.mut_base().mut_at_left_accounts().push(TaggedAccount::MessagesPalletOwner {
-				id: left_messages_pallet_owner.public().into(),
-				bridged_chain: Self::Right::NAME.to_string(),
-			});
+			self.mut_base().mut_common().at_left_accounts.push(
+				TaggedAccount::MessagesPalletOwner {
+					id: left_messages_pallet_owner.public().into(),
+					bridged_chain: Self::Right::NAME.to_string(),
+				},
+			);
 		}
 		if let Some(right_messages_pallet_owner) = right_messages_pallet_owner.clone() {
 			let right_client = right_client.clone();
@@ -303,12 +305,12 @@ where
 					.shared_value_ref(),
 				CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
 			);
-			self.mut_base()
-				.mut_at_right_accounts()
-				.push(TaggedAccount::MessagesPalletOwner {
+			self.mut_base().mut_common().at_right_accounts.push(
+				TaggedAccount::MessagesPalletOwner {
 					id: right_messages_pallet_owner.public().into(),
 					bridged_chain: Self::Left::NAME.to_string(),
-				});
+				},
+			);
 		}
 
 		// optionally, create relayers fund account
@@ -360,13 +362,13 @@ where
 		let metrics_params = substrate_relay_helper::messages_metrics::add_relay_balances_metrics(
 			left_client.clone(),
 			metrics_params,
-			self.mut_base().mut_at_left_accounts(),
+			&self.base().common().at_left_accounts,
 		)
 		.await?;
 		let metrics_params = substrate_relay_helper::messages_metrics::add_relay_balances_metrics(
 			right_client.clone(),
 			metrics_params,
-			self.mut_base().mut_at_right_accounts(),
+			&self.base().common().at_right_accounts,
 		)
 		.await?;
 
@@ -433,12 +435,12 @@ where
 }
 
 pub struct MillauRialtoFull2WayBridge {
-	base: RelayToRelayFull2WayBridge<<Self as Full2WayBridge>::L2R, <Self as Full2WayBridge>::R2L>,
+	base: <Self as Full2WayBridge>::Base,
 }
 
 #[async_trait]
 impl Full2WayBridge for MillauRialtoFull2WayBridge {
-	type Base = RelayToRelayFull2WayBridge<Self::L2R, Self::R2L>;
+	type Base = RelayToRelayBridge<Self::L2R, Self::R2L>;
 	type Left = relay_millau_client::Millau;
 	type LeftAccountIdConverter = bp_millau::AccountIdConverter;
 	type Right = relay_rialto_client::Rialto;
@@ -446,8 +448,8 @@ impl Full2WayBridge for MillauRialtoFull2WayBridge {
 	type L2R = MillauToRialtoCliBridge;
 	type R2L = RialtoToMillauCliBridge;
 
-	async fn new(params: <Self::Base as Full2WayBridgeBase>::Params) -> anyhow::Result<Self> {
-		Ok(Self { base: RelayToRelayFull2WayBridge::new(params).await? })
+	fn new(base: Self::Base) -> anyhow::Result<Self> {
+		Ok(Self { base })
 	}
 
 	fn base(&self) -> &Self::Base {
@@ -460,15 +462,12 @@ impl Full2WayBridge for MillauRialtoFull2WayBridge {
 }
 
 pub struct MillauRialtoParachainFull2WayBridge {
-	base: RelayToParachainFull2WayBridge<
-		<Self as Full2WayBridge>::L2R,
-		<Self as Full2WayBridge>::R2L,
-	>,
+	base: <Self as Full2WayBridge>::Base,
 }
 
 #[async_trait]
 impl Full2WayBridge for MillauRialtoParachainFull2WayBridge {
-	type Base = RelayToParachainFull2WayBridge<Self::L2R, Self::R2L>;
+	type Base = RelayToParachainBridge<Self::L2R, Self::R2L>;
 	type Left = relay_millau_client::Millau;
 	type LeftAccountIdConverter = bp_millau::AccountIdConverter;
 	type Right = relay_rialto_parachain_client::RialtoParachain;
@@ -476,8 +475,8 @@ impl Full2WayBridge for MillauRialtoParachainFull2WayBridge {
 	type L2R = MillauToRialtoParachainCliBridge;
 	type R2L = RialtoParachainToMillauCliBridge;
 
-	async fn new(params: <Self::Base as Full2WayBridgeBase>::Params) -> anyhow::Result<Self> {
-		Ok(Self { base: RelayToParachainFull2WayBridge::new(params).await? })
+	fn new(base: Self::Base) -> anyhow::Result<Self> {
+		Ok(Self { base })
 	}
 
 	fn base(&self) -> &Self::Base {
@@ -501,9 +500,11 @@ impl RelayHeadersAndMessages {
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self {
 			RelayHeadersAndMessages::MillauRialto(params) =>
-				MillauRialtoFull2WayBridge::new(params.into()).await?.run().await,
+				MillauRialtoFull2WayBridge::new(params.into_bridge().await?)?.run().await,
 			RelayHeadersAndMessages::MillauRialtoParachain(params) =>
-				MillauRialtoParachainFull2WayBridge::new(params.into()).await?.run().await,
+				MillauRialtoParachainFull2WayBridge::new(params.into_bridge().await?)?
+					.run()
+					.await,
 		}
 	}
 }

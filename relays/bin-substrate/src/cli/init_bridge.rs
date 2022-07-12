@@ -71,9 +71,9 @@ where
 
 	/// Initialize the bridge.
 	async fn init_bridge(data: InitBridge) -> anyhow::Result<()> {
-		let source_client = ConnectionParams::from(data.source).to_client::<Self::Source>().await?;
-		let target_client = ConnectionParams::from(data.target).to_client::<Self::Target>().await?;
-		let target_sign = SigningParams::from(data.target_sign).to_keypair::<Self::Target>()?;
+		let source_client = data.source.into_client::<Self::Source>().await?;
+		let target_client = data.target.into_client::<Self::Target>().await?;
+		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 
 		let (spec_version, transaction_version) = target_client.simple_runtime_version().await?;
 		substrate_relay_helper::finality::initialize::initialize::<Self::Engine, _, _, _>(

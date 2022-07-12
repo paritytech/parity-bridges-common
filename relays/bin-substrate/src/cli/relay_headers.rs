@@ -62,11 +62,10 @@ where
 {
 	/// Relay headers.
 	async fn relay_headers(data: RelayHeaders) -> anyhow::Result<()> {
-		let source_client = ConnectionParams::from(data.source).to_client::<Self::Source>().await?;
-		let target = ConnectionParams::from(data.target);
-		let target_client = target.to_client::<Self::Target>().await?;
+		let source_client = data.source.into_client::<Self::Source>().await?;
+		let target_client = data.target.into_client::<Self::Target>().await?;
 		let target_transactions_mortality = data.target_sign.target_transactions_mortality;
-		let target_sign = SigningParams::from(data.target_sign).to_keypair::<Self::Target>()?;
+		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 
 		let metrics_params: relay_utils::metrics::MetricsParams = data.prometheus_params.into();
 		GlobalMetrics::new()?.register_and_spawn(&metrics_params.registry)?;
@@ -78,7 +77,7 @@ where
 		Self::Finality::start_relay_guards(
 			&target_client,
 			&target_transactions_params,
-			target.can_start_version_guard(),
+			target_client.can_start_version_guard(),
 		)
 		.await?;
 
