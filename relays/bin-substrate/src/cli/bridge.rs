@@ -15,7 +15,6 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::cli::CliChain;
-use bp_runtime::{AccountIdOf, SourceAccount};
 use messages_relay::relay_strategy::MixStrategy;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use parachains_relay::ParachainsPipeline;
@@ -111,11 +110,6 @@ pub trait MessagesCliBridge: CliBridgeBase {
 		TargetTransactionSignScheme = Self::Target,
 		RelayStrategy = MixStrategy,
 	>;
-
-	/// We use this to get the account on the target which is derived from the source account.
-	fn derive_account_from_id(
-		id: SourceAccount<AccountIdOf<Self::Source>>,
-	) -> AccountIdOf<Self::Target>;
 }
 
 //// `Millau` to `Rialto` bridge definition.
@@ -134,12 +128,6 @@ impl MessagesCliBridge for MillauToRialtoCliBridge {
 	const ESTIMATE_MESSAGE_FEE_METHOD: &'static str =
 		bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD;
 	type MessagesLane = crate::chains::millau_messages_to_rialto::MillauMessagesToRialto;
-
-	fn derive_account_from_id(
-		id: SourceAccount<AccountIdOf<Self::Source>>,
-	) -> AccountIdOf<Self::Target> {
-		bp_rialto::derive_account_from_millau_id(id)
-	}
 }
 
 //// `Rialto` to `Millau` bridge definition.
@@ -158,14 +146,6 @@ impl MessagesCliBridge for RialtoToMillauCliBridge {
 	const ESTIMATE_MESSAGE_FEE_METHOD: &'static str =
 		bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD;
 	type MessagesLane = crate::chains::rialto_messages_to_millau::RialtoMessagesToMillau;
-
-	/// We use this to get the account on the target chain which is derived from
-	/// the source chain account.
-	fn derive_account_from_id(
-		id: SourceAccount<AccountIdOf<Self::Source>>,
-	) -> AccountIdOf<Self::Target> {
-		bp_millau::derive_account_from_rialto_id(id)
-	}
 }
 
 //// `Westend` to `Millau` bridge definition.
@@ -198,12 +178,6 @@ impl MessagesCliBridge for MillauToRialtoParachainCliBridge {
 		bp_rialto_parachain::TO_RIALTO_PARACHAIN_ESTIMATE_MESSAGE_FEE_METHOD;
 	type MessagesLane =
 		crate::chains::millau_messages_to_rialto_parachain::MillauMessagesToRialtoParachain;
-
-	fn derive_account_from_id(
-		id: SourceAccount<AccountIdOf<Self::Source>>,
-	) -> AccountIdOf<Self::Target> {
-		bp_rialto_parachain::derive_account_from_millau_id(id)
-	}
 }
 
 //// `RialtoParachain` to `Millau` bridge definition.
@@ -225,12 +199,6 @@ impl MessagesCliBridge for RialtoParachainToMillauCliBridge {
 		bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD;
 	type MessagesLane =
 		crate::chains::rialto_parachain_messages_to_millau::RialtoParachainMessagesToMillau;
-
-	fn derive_account_from_id(
-		id: SourceAccount<AccountIdOf<Self::Source>>,
-	) -> AccountIdOf<Self::Target> {
-		bp_millau::derive_account_from_rialto_parachain_id(id)
-	}
 }
 
 //// `WestendParachain` to `Millau` bridge definition.

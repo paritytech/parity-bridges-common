@@ -57,7 +57,7 @@ use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, ChainWithBalances, Client, TransactionSignScheme,
 };
 use relay_utils::metrics::MetricsParams;
-use sp_core::{Pair, H256};
+use sp_core::Pair;
 use substrate_relay_helper::{
 	messages_lane::MessagesRelayParams, on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
 };
@@ -161,13 +161,11 @@ where
 		+ ChainWithBalances
 		+ TransactionSignScheme<Chain = Self::Left>
 		+ CliChain<KeyPair = AccountKeyPairOf<Self::Left>>;
-	type LeftAccountIdConverter: sp_runtime::traits::Convert<H256, AccountIdOf<Self::Left>>;
 	/// The right relay chain.
 	type Right: Chain
 		+ ChainWithBalances
 		+ TransactionSignScheme<Chain = Self::Right>
 		+ CliChain<KeyPair = AccountKeyPairOf<Self::Right>>;
-	type RightAccountIdConverter: sp_runtime::traits::Convert<H256, AccountIdOf<Self::Right>>;
 
 	// Left to Right bridge
 	type L2R: MessagesCliBridge<Source = Self::Left, Target = Self::Right>;
@@ -179,22 +177,6 @@ where
 	fn base(&self) -> &Self::Base;
 
 	fn mut_base(&mut self) -> &mut Self::Base;
-
-	async fn left_create_account(
-		_left_client: Client<Self::Left>,
-		_left_sign: AccountKeyPairOf<Self::Left>,
-		_account_id: AccountIdOf<Self::Left>,
-	) -> anyhow::Result<()> {
-		Err(anyhow::format_err!("Account creation is not supported by this bridge"))
-	}
-
-	async fn right_create_account(
-		_right_client: Client<Self::Right>,
-		_right_sign: AccountKeyPairOf<Self::Right>,
-		_account_id: AccountIdOf<Self::Right>,
-	) -> anyhow::Result<()> {
-		Err(anyhow::format_err!("Account creation is not supported by this bridge"))
-	}
 
 	async fn run(&mut self) -> anyhow::Result<()> {
 		let left_client = self.base().common().left.clone();
@@ -313,47 +295,6 @@ where
 			);
 		}
 
-		// optionally, create relayers fund account
-		if self.base().common().shared.create_relayers_fund_accounts {
-			let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<
-				AccountIdOf<Self::Left>,
-				Self::LeftAccountIdConverter,
-			>();
-			let relayers_fund_account_balance =
-				left_client.free_native_balance(relayer_fund_acount_id.clone()).await;
-			if let Err(relay_substrate_client::Error::AccountDoesNotExist) =
-				relayers_fund_account_balance
-			{
-				log::info!(target: "bridge",
-					"Going to create relayers fund account at {}.", Self::Left::NAME);
-				Self::left_create_account(
-					left_client.clone(),
-					left_sign.clone(),
-					relayer_fund_acount_id,
-				)
-				.await?;
-			}
-
-			let relayer_fund_acount_id = pallet_bridge_messages::relayer_fund_account_id::<
-				AccountIdOf<Self::Right>,
-				Self::RightAccountIdConverter,
-			>();
-			let relayers_fund_account_balance =
-				right_client.free_native_balance(relayer_fund_acount_id.clone()).await;
-			if let Err(relay_substrate_client::Error::AccountDoesNotExist) =
-				relayers_fund_account_balance
-			{
-				log::info!(target: "bridge",
-					"Going to create relayers fund account at {}.", Self::Right::NAME);
-				Self::right_create_account(
-					right_client.clone(),
-					right_sign.clone(),
-					relayer_fund_acount_id,
-				)
-				.await?;
-			}
-		}
-
 		// start on-demand header relays
 		let (left_to_right_on_demand_headers, right_to_left_on_demand_headers) =
 			self.mut_base().start_on_demand_headers_relayers().await?;
@@ -442,9 +383,7 @@ pub struct MillauRialtoFull2WayBridge {
 impl Full2WayBridge for MillauRialtoFull2WayBridge {
 	type Base = RelayToRelayBridge<Self::L2R, Self::R2L>;
 	type Left = relay_millau_client::Millau;
-	type LeftAccountIdConverter = bp_millau::AccountIdConverter;
 	type Right = relay_rialto_client::Rialto;
-	type RightAccountIdConverter = bp_rialto::AccountIdConverter;
 	type L2R = MillauToRialtoCliBridge;
 	type R2L = RialtoToMillauCliBridge;
 
@@ -469,9 +408,7 @@ pub struct MillauRialtoParachainFull2WayBridge {
 impl Full2WayBridge for MillauRialtoParachainFull2WayBridge {
 	type Base = RelayToParachainBridge<Self::L2R, Self::R2L>;
 	type Left = relay_millau_client::Millau;
-	type LeftAccountIdConverter = bp_millau::AccountIdConverter;
 	type Right = relay_rialto_parachain_client::RialtoParachain;
-	type RightAccountIdConverter = bp_rialto_parachain::AccountIdConverter;
 	type L2R = MillauToRialtoParachainCliBridge;
 	type R2L = RialtoParachainToMillauCliBridge;
 
