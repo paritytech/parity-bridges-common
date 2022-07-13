@@ -78,9 +78,6 @@ pub struct HeadersAndMessagesSharedParams {
 	pub lane: Vec<HexLaneId>,
 	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
 	pub relayer_mode: RelayerMode,
-	/// Create relayers fund accounts on both chains, if it does not exists yet.
-	#[structopt(long)]
-	pub create_relayers_fund_accounts: bool,
 	/// If passed, only mandatory headers (headers that are changing the GRANDPA authorities set)
 	/// are relayed.
 	#[structopt(long)]
@@ -494,7 +491,6 @@ mod tests {
 						HexLaneId([0x73, 0x77, 0x61, 0x70])
 					],
 					relayer_mode: RelayerMode::Rational,
-					create_relayers_fund_accounts: false,
 					only_mandatory_headers: false,
 					prometheus_params: PrometheusParams {
 						no_prometheus: false,
@@ -608,7 +604,6 @@ mod tests {
 					shared: HeadersAndMessagesSharedParams {
 						lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00])],
 						relayer_mode: RelayerMode::Rational,
-						create_relayers_fund_accounts: false,
 						only_mandatory_headers: false,
 						prometheus_params: PrometheusParams {
 							no_prometheus: false,
