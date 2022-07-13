@@ -209,7 +209,7 @@ pub mod pallet {
 		pub fn submit_parachain_heads(
 			_origin: OriginFor<T>,
 			at_relay_block: (RelayBlockNumber, RelayBlockHash),
-			parachains: Vec<ParaId>,
+			parachains: Vec<(ParaId, ParaHash)>,
 			parachain_heads_proof: ParaHeadsProof,
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_not_halted().map_err(Error::<T, I>::BridgeModule)?;
@@ -235,7 +235,7 @@ pub mod pallet {
 				relay_block_hash,
 				sp_trie::StorageProof::new(parachain_heads_proof.0),
 				move |storage| {
-					for parachain in parachains {
+					for (parachain, parachain_head_hash) in parachains {
 						// if we're not tracking this parachain, we'll just ignore its head proof here
 						if !T::TrackedParachains::contains(&parachain) {
 							log::trace!(
@@ -272,12 +272,27 @@ pub mod pallet {
 							},
 						};
 
+						// if relayer has specified invalid parachain head hash, ignore the head
+						// (this isn't strictly necessary, but better safe than sorry)
+						let actual_parachain_head_hash = parachain_head.hash();
+						if parachain_head_hash != actual_parachain_head_hash {
+							log::trace!(
+								target: LOG_TARGET,
+								"The submitter has specified invalid parachain {:?} head hash: {:?} vs {:?}",
+								parachain,
+								parachain_head_hash,
+								actual_parachain_head_hash,
+							);
+							continue;
+						}
+
 						let prune_happened: Result<_, ()> = BestParaHeads::<T, I>::try_mutate(parachain, |stored_best_head| {
 							let artifacts = Pallet::<T, I>::update_parachain_head(
 								parachain,
 								stored_best_head.take(),
 								relay_block_number,
 								parachain_head,
+								parachain_head_hash,
 							)?;
 							*stored_best_head = Some(artifacts.best_head);
 							Ok(artifacts.prune_happened)
@@ -364,10 +379,10 @@ pub mod pallet {
 			stored_best_head: Option<BestParaHead>,
 			updated_at_relay_block_number: RelayBlockNumber,
 			updated_head: ParaHead,
+			updated_head_hash: ParaHash,
 		) -> Result<UpdateParachainHeadArtifacts, ()> {
 			// check if head has been already updated at better relay chain block. Without this
 			// check, we may import heads in random order
-			let updated_head_hash = updated_head.hash();
 			let next_imported_hash_position = match stored_best_head {
 				Some(stored_best_head)
 					if stored_best_head.at_relay_block_number <= updated_at_relay_block_number =>
@@ -376,7 +391,7 @@ pub mod pallet {
 					if updated_head_hash == stored_best_head.head_hash {
 						log::trace!(
 							target: LOG_TARGET,
-							"The head of parachain {:?} can't be updated to {}, because it has been already updated\
+							"The head of parachain {:?} can't be updated to {}, because it has been already updated \
 							to the same value at previous relay chain block: {} < {}",
 							parachain,
 							updated_head_hash,
@@ -392,7 +407,7 @@ pub mod pallet {
 				Some(stored_best_head) => {
 					log::trace!(
 						target: LOG_TARGET,
-						"The head of parachain {:?} can't be updated to {}, because it has been already updated\
+						"The head of parachain {:?} can't be updated to {}, because it has been already updated \
 						to {} at better relay chain block: {} > {}",
 						parachain,
 						updated_head_hash,

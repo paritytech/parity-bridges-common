@@ -72,15 +72,18 @@ macro_rules! declare_bridge_reject_obsolete_parachain_header {
 							ref parachains,
 							..
 						}) if parachains.len() == 1 => {
-							let parachain = parachains.get(0).expect("verified by match condition; qed");
+							let (parachain, parachain_head_hash) = parachains.get(0).expect("verified by match condition; qed");
 
 							let bundled_relay_block_number = at_relay_block.0;
 
 							let best_parachain_head = $crate::BestParaHeads::<$runtime, $instance>::get(parachain);
+log::trace!(target: "runtime-bridge", "BridgeRejectObsoleteParachainHeader: Para={:?} Number={:?} Hash={:?} Best={:?}", parachain, bundled_relay_block_number, parachain_head_hash, best_parachain_head);
 							match best_parachain_head {
 								Some(best_parachain_head) if best_parachain_head.at_relay_block_number
 									>= bundled_relay_block_number =>
 										sp_runtime::transaction_validity::InvalidTransaction::Stale.into(),
+								Some(best_parachain_head) if best_parachain_head.head_hash == *parachain_head_hash =>
+									sp_runtime::transaction_validity::InvalidTransaction::Stale.into(),
 								_ => Ok(sp_runtime::transaction_validity::ValidTransaction::default()),
 							}
 						},
