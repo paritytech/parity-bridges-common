@@ -49,7 +49,7 @@ mod extension;
 mod mock;
 
 /// The target that will be used when publishing logs related to this pallet.
-const LOG_TARGET: &str = "runtime::bridge-parachains";
+pub const LOG_TARGET: &str = "runtime::bridge-parachains";
 
 /// Block hash of the bridged relay chain.
 pub type RelayBlockHash = bp_polkadot_core::Hash;
