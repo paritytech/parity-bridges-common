@@ -3,6 +3,10 @@ set -xeu
 
 sleep 15
 
+MILLAU_RELAY_ACCOUNT=${EXT_MILLAU_RELAY_ACCOUNT:-//RialtoParachain.HeadersAndMessagesRelay1}
+MILLAU_RELAY_ACCOUNT_HEADERS_OVERRIDE=${EXT_MILLAU_RELAY_ACCOUNT_HEADERS_OVERRIDE:-//RialtoParachain.RialtoHeadersRelay1}
+RIALTO_PARACHAIN_RELAY_ACCOUNT=${EXT_RIALTO_PARACHAIN_RELAY_ACCOUNT:-//Millau.HeadersAndMessagesRelay1}
+
 /home/user/substrate-relay init-bridge millau-to-rialto-parachain \
 	--source-host millau-node-alice \
 	--source-port 9944 \
@@ -23,13 +27,13 @@ sleep 6
 /home/user/substrate-relay relay-headers-and-messages millau-rialto-parachain \
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
-	--millau-signer //RialtoParachain.HeadersAndMessagesRelay \
-	--rialto-headers-to-millau-signer //RialtoParachain.RialtoHeadersRelay \
+	--millau-signer $MILLAU_RELAY_ACCOUNT \
+	--rialto-headers-to-millau-signer $MILLAU_RELAY_ACCOUNT_HEADERS_OVERRIDE \
 	--millau-messages-pallet-owner=//RialtoParachain.MessagesOwner \
 	--millau-transactions-mortality=64 \
 	--rialto-parachain-host rialto-parachain-collator-charlie \
 	--rialto-parachain-port 9944 \
-	--rialto-parachain-signer //Millau.HeadersAndMessagesRelay \
+	--rialto-parachain-signer $RIALTO_PARACHAIN_RELAY_ACCOUNT \
 	--rialto-parachain-messages-pallet-owner=//Millau.MessagesOwner \
 	--rialto-parachain-transactions-mortality=64 \
 	--rialto-host rialto-node-alice \

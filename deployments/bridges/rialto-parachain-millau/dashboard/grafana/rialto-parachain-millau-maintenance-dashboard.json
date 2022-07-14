@@ -66,7 +66,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rialtoparachain_storage_proof_overhead{instance='relay-millau-rialto-parachain:9616'}",
+          "expr": "rialtoparachain_storage_proof_overhead{instance='relay-millau-rialto-parachain-1:9616'}",
           "interval": "",
           "legendFormat": "Actual overhead",
           "refId": "A"
@@ -170,14 +170,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "polkadot_to_base_conversion_rate{instance='relay-millau-rialto-parachain:9616'} / kusama_to_base_conversion_rate{instance='relay-millau-rialto-parachain:9616'}",
+          "expr": "polkadot_to_base_conversion_rate{instance='relay-millau-rialto-parachain-1:9616'} / kusama_to_base_conversion_rate{instance='relay-millau-rialto-parachain-1:9616'}",
           "interval": "",
           "legendFormat": "Outside of runtime (actually Polkadot -> Kusama)",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "Millau_RialtoParachain_to_Millau_conversion_rate{instance='relay-millau-rialto-parachain:9616'}",
+          "expr": "Millau_RialtoParachain_to_Millau_conversion_rate{instance='relay-millau-rialto-parachain-1:9616'}",
           "hide": false,
           "interval": "",
           "legendFormat": "At runtime",
@@ -274,7 +274,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "millau_storage_proof_overhead{instance='relay-millau-rialto-parachain:9616'}",
+          "expr": "millau_storage_proof_overhead{instance='relay-millau-rialto-parachain-1:9616'}",
           "interval": "",
           "legendFormat": "Actual overhead",
           "refId": "A"
@@ -378,14 +378,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "kusama_to_base_conversion_rate{instance='relay-millau-rialto-parachain:9616'} / polkadot_to_base_conversion_rate{instance='relay-millau-rialto-parachain:9616'}",
+          "expr": "kusama_to_base_conversion_rate{instance='relay-millau-rialto-parachain-1:9616'} / polkadot_to_base_conversion_rate{instance='relay-millau-rialto-parachain-1:9616'}",
           "interval": "",
           "legendFormat": "Outside of runtime (actually Kusama -> Polkadot)",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "RialtoParachain_Millau_to_RialtoParachain_conversion_rate{instance='relay-millau-rialto-parachain:9616'}",
+          "expr": "RialtoParachain_Millau_to_RialtoParachain_conversion_rate{instance='relay-millau-rialto-parachain-1:9616'}",
           "hide": false,
           "interval": "",
           "legendFormat": "At runtime",
@@ -559,19 +559,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "at_RialtoParachain_relay_MillauHeaders_balance",
+          "expr": "at_RialtoParachain_relay_MillauHeaders_balance{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "With-Millau headers relay account balance",
           "refId": "A"
         },
         {
-          "expr": "at_RialtoParachain_relay_MillauMessages_balance",
+          "expr": "at_RialtoParachain_relay_MillauMessages_balance{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "With-Millau messages relay account balance",
           "refId": "B"
         },
         {
-          "expr": "at_RialtoParachain_relay_MillauMessagesPalletOwner_balance",
+          "expr": "at_RialtoParachain_relay_MillauMessagesPalletOwner_balance{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "With-Millau messages pallet owner account balance",
           "refId": "C"
@@ -752,25 +752,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "at_Millau_relay_RialtoHeaders_balance{instance=\"relay-millau-rialto-parachain:9616\"}",
+          "expr": "at_Millau_relay_RialtoHeaders_balance{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "With-Rialto headers relay account balance",
           "refId": "A"
         },
         {
-          "expr": "at_Millau_relay_RialtoParachainMessages_balance",
+          "expr": "at_Millau_relay_RialtoParachainMessages_balance{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "With-RialtoParachain messages relay account balance",
           "refId": "B"
         },
         {
-          "expr": "at_Millau_relay_RialtoParachains_balance",
+          "expr": "at_Millau_relay_RialtoParachains_balance{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "With-Rialto parachains relay account balance",
           "refId": "C"
         },
         {
-          "expr": "at_Millau_relay_RialtoParachainMessagesPalletOwner_balance",
+          "expr": "at_Millau_relay_RialtoParachainMessagesPalletOwner_balance{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "With-RialtoParachain messages pallet owner account balance",
           "refId": "D"
@@ -905,7 +905,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "RialtoParachain_to_Millau_MessageLane_00000000_is_source_and_source_at_target_using_different_forks OR on() vector(0)",
+          "expr": "RialtoParachain_to_Millau_MessageLane_00000000_is_source_and_source_at_target_using_different_forks{instance=\"relay-millau-rialto-parachain-1:9616\"} OR on() vector(0)",
           "instant": false,
           "interval": "",
           "legendFormat": "On different forks?",
@@ -1041,7 +1041,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "Millau_to_RialtoParachain_MessageLane_00000000_is_source_and_source_at_target_using_different_forks OR on() vector(0)",
+          "expr": "Millau_to_RialtoParachain_MessageLane_00000000_is_source_and_source_at_target_using_different_forks{instance=\"relay-millau-rialto-parachain-1:9616\"} OR on() vector(0)",
           "interval": "",
           "legendFormat": "On different forks?",
           "refId": "A"
