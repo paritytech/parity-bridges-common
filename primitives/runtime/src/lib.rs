@@ -18,15 +18,21 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, FullCodec, MaxEncodedLen};
+use codec::{Codec, Decode, Encode, FullCodec, MaxEncodedLen};
 use frame_support::{
 	log, pallet_prelude::DispatchResult, PalletError, RuntimeDebug, StorageHasher, StorageValue,
 };
 use frame_system::RawOrigin;
 use scale_info::TypeInfo;
-use sp_core::{hash::H256, storage::StorageKey};
+use sp_core::{hash::H256, storage::StorageKey, U256};
 use sp_io::hashing::blake2_256;
-use sp_runtime::traits::BadOrigin;
+use sp_runtime::{
+	generic::Header,
+	traits::{
+		AtLeast32BitUnsigned, BadOrigin, Hash as HashT, Header as HeaderT, MaybeDisplay,
+		MaybeMallocSizeOf, MaybeSerialize, MaybeSerializeDeserialize, Member, SimpleBitOps,
+	},
+};
 use sp_std::{convert::TryFrom, fmt::Debug, vec, vec::Vec};
 
 pub use chain::{
@@ -34,6 +40,7 @@ pub use chain::{
 	HasherOf, HeaderOf, IndexOf, SignatureOf, TransactionEraOf,
 };
 pub use frame_support::storage::storage_prefix as storage_value_final_key;
+use num_traits::One;
 pub use storage_proof::{
 	Error as StorageProofError, ProofSize as StorageProofSize, StorageProofChecker,
 };
@@ -82,6 +89,53 @@ pub const ROOT_ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-deriva
 /// Generic header Id.
 #[derive(RuntimeDebug, Default, Clone, Copy, Eq, Hash, PartialEq)]
 pub struct HeaderId<Hash, Number>(pub Number, pub Hash);
+
+/// Generic header id provider.
+pub trait HeaderIdProvider<Number, Hash> {
+	// Get the header id.
+	fn id(&self) -> HeaderId<Hash, Number>;
+
+	// Get the header id for the parent block.
+	fn parent_id(&self) -> Option<HeaderId<Hash, Number>>;
+}
+
+impl<Number, Hash> HeaderIdProvider<Number, Hash::Output> for Header<Number, Hash>
+where
+	Number: Member
+		+ MaybeSerializeDeserialize
+		+ Debug
+		+ sp_std::hash::Hash
+		+ MaybeDisplay
+		+ Copy
+		+ Into<U256>
+		+ TryFrom<U256>
+		+ AtLeast32BitUnsigned
+		+ Codec
+		+ sp_std::str::FromStr
+		+ MaybeMallocSizeOf,
+	Hash: HashT,
+	Hash::Output: Default
+		+ sp_std::hash::Hash
+		+ Copy
+		+ Member
+		+ Ord
+		+ MaybeSerialize
+		+ Debug
+		+ MaybeDisplay
+		+ SimpleBitOps
+		+ Codec
+		+ MaybeMallocSizeOf,
+{
+	fn id(&self) -> HeaderId<Hash::Output, Number> {
+		HeaderId(*self.number(), self.hash())
+	}
+
+	fn parent_id(&self) -> Option<HeaderId<Hash::Output, Number>> {
+		self.number()
+			.checked_sub(&One::one())
+			.map(|parent_number| HeaderId(parent_number, *self.parent_hash()))
+	}
+}
 
 /// Unique identifier of the chain.
 ///
