@@ -15,7 +15,8 @@
 - [Store both block number and hash in best finalized storage value](https://github.com/paritytech/parity-bridges-common/pull/1475);
 - [Parachain loop metrics](https://github.com/paritytech/parity-bridges-common/pull/1484);
 - [Remove without_storage_info for messages pallet](https://github.com/paritytech/parity-bridges-common/pull/1487);
-- [Fix and update benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1494).
+- [Fix and update benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1494);
+- [Add another condition to the reject-obsolete-parachain-heads extension](https://github.com/paritytech/parity-bridges-common/pull/1505).
 
 ## Code that need security audit
 
