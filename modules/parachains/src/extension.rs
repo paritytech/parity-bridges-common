@@ -166,14 +166,14 @@ mod tests {
 			ParaId(1),
 			BestParaHead {
 				at_relay_block_number: 10,
-				head_hash: Default::default(),
+				head_hash: [1u8; 32].into(),
 				next_imported_hash_position: 0,
 			},
 		);
 	}
 
 	#[test]
-	fn extension_rejects_obsolete_header() {
+	fn extension_rejects_header_from_the_obsolete_relay_block() {
 		run_test(|| {
 			// when current best finalized is #10 and we're trying to import header#5 => tx is
 			// rejected
@@ -183,7 +183,7 @@ mod tests {
 	}
 
 	#[test]
-	fn extension_rejects_same_header() {
+	fn extension_rejects_header_from_the_same_relay_block() {
 		run_test(|| {
 			// when current best finalized is #10 and we're trying to import header#10 => tx is
 			// rejected
@@ -193,12 +193,22 @@ mod tests {
 	}
 
 	#[test]
+	fn extension_rejects_header_from_new_relay_block_with_same_hash() {
+		run_test(|| {
+			// when current best finalized is #10 and we're trying to import header#10 => tx is
+			// rejected
+			sync_to_relay_header_10();
+			assert!(!validate_submit_parachain_heads(20, vec![(ParaId(1), [1u8; 32].into())]));
+		});
+	}
+
+	#[test]
 	fn extension_accepts_new_header() {
 		run_test(|| {
 			// when current best finalized is #10 and we're trying to import header#15 => tx is
 			// accepted
 			sync_to_relay_header_10();
-			assert!(validate_submit_parachain_heads(15, vec![(ParaId(1), [1u8; 32].into())]));
+			assert!(validate_submit_parachain_heads(15, vec![(ParaId(1), [2u8; 32].into())]));
 		});
 	}
 
