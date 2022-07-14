@@ -208,7 +208,7 @@ mod tests {
 			// when current best finalized is #10 and we're trying to import header#5, but another
 			// parachain head is also supplied => tx is accepted
 			sync_to_relay_header_10();
-			assert!(validate_submit_parachain_heads(5, vec![ParaId(1), ParaId(2)]));
+			assert!(validate_submit_parachain_heads(5, vec![(ParaId(1), [1u8; 32].into()), (ParaId(2), [1u8; 32].into())]));
 		});
 	}
 }

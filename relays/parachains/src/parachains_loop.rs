@@ -697,7 +697,7 @@ mod tests {
 						.ok_or(TestError::MissingParachainHeadProof)?,
 				);
 			}
-			Ok(ParaHeadsProof((proofs, vec![Default::default(); parachains.len()])))
+			Ok((ParaHeadsProof(proofs), vec![Default::default(); parachains.len()]))
 		}
 	}
 
@@ -726,7 +726,7 @@ mod tests {
 		async fn submit_parachain_heads_proof(
 			&self,
 			_at_source_block: HeaderIdOf<TestChain>,
-			_updated_parachains: Vec<ParaId>,
+			_updated_parachains: Vec<(ParaId, ParaHash)>,
 			_proof: ParaHeadsProof,
 		) -> Result<(), Self::Error> {
 			self.data.lock().await.target_submit_result.clone()?;
