@@ -144,7 +144,7 @@ pub trait Chain: Send + Sync + 'static {
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html
 	type Header: Parameter
 		+ HeaderT<Number = Self::BlockNumber, Hash = Self::Hash>
-		+ HeaderIdProvider<Self::BlockNumber, Self::Hash>
+		+ HeaderIdProvider<Self::Header>
 		+ MaybeSerializeDeserialize;
 
 	/// The user account identifier type for the runtime.
