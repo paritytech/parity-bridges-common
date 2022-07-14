@@ -168,12 +168,10 @@ where
 				P::SOURCE_PARACHAIN_PARA_ID,
 			)))
 		}
-		
+
 		let parachain = parachains[0];
-		let storage_key = parachain_head_storage_key_at_source(
-			P::SourceRelayChain::PARAS_PALLET_NAME,
-			parachain,
-		);
+		let storage_key =
+			parachain_head_storage_key_at_source(P::SourceRelayChain::PARAS_PALLET_NAME, parachain);
 		let parachain_heads_proof = self
 			.client
 			.prove_storage(vec![storage_key.clone()], at_block.1)
@@ -181,19 +179,25 @@ where
 			.iter_nodes()
 			.collect();
 
-		// why we're reading parachain head here once again (it has already been read at the `parachain_head`)?
-		// that's because `parachain_head` sometimes returns obsolete parachain head and loop sometimes asks to prove
-		// this obsolete head and gets other (actual) head instead
+		// why we're reading parachain head here once again (it has already been read at the
+		// `parachain_head`)? that's because `parachain_head` sometimes returns obsolete parachain
+		// head and loop sometimes asks to prove this obsolete head and gets other (actual) head
+		// instead
 		//
-		// => since we want to provide proper hashes in our `submit_parachain_heads` call, we're rereading actual
-		// value here
+		// => since we want to provide proper hashes in our `submit_parachain_heads` call, we're
+		// rereading actual value here
 		let parachain_head = self
 			.client
 			.raw_storage_value(storage_key, Some(at_block.1))
 			.await?
 			.map(|h| ParaHead::decode(&mut &h.0[..]))
 			.transpose()?
-			.ok_or_else(|| SubstrateError::Custom(format!("Failed to read expected parachain {:?} head at {:?}", parachain, at_block)))?;
+			.ok_or_else(|| {
+				SubstrateError::Custom(format!(
+					"Failed to read expected parachain {:?} head at {:?}",
+					parachain, at_block
+				))
+			})?;
 		let parachain_head_hash = parachain_head.hash();
 
 		Ok((ParaHeadsProof(parachain_heads_proof), vec![parachain_head_hash]))

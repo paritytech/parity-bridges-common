@@ -307,7 +307,11 @@ where
 				P::TargetChain::NAME,
 			);
 
-			assert_eq!(head_hashes.len(), updated_ids.len(), "Incorrect parachains SourceClient implementation");
+			assert_eq!(
+				head_hashes.len(),
+				updated_ids.len(),
+				"Incorrect parachains SourceClient implementation"
+			);
 
 			target_client
 				.submit_parachain_heads_proof(

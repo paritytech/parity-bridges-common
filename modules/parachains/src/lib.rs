@@ -613,7 +613,8 @@ mod tests {
 
 	#[test]
 	fn submit_parachain_heads_checks_operating_mode() {
-		let (state_root, proof, parachains) = prepare_parachain_heads_proof(vec![(1, head_data(1, 0))]);
+		let (state_root, proof, parachains) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 0))]);
 
 		run_test(|| {
 			initialize(state_root);
@@ -685,8 +686,10 @@ mod tests {
 
 	#[test]
 	fn imports_parachain_heads_is_able_to_progress() {
-		let (state_root_5, proof_5, parachains_5) = prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
-		let (state_root_10, proof_10, parachains_10) = prepare_parachain_heads_proof(vec![(1, head_data(1, 10))]);
+		let (state_root_5, proof_5, parachains_5) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
+		let (state_root_10, proof_10, parachains_10) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 10))]);
 		run_test(|| {
 			// start with relay block #0 and import head#5 of parachain#1
 			initialize(state_root_5);
@@ -769,7 +772,8 @@ mod tests {
 
 	#[test]
 	fn does_nothing_when_already_imported_this_head_at_previous_relay_header() {
-		let (state_root, proof, parachains) = prepare_parachain_heads_proof(vec![(1, head_data(1, 0))]);
+		let (state_root, proof, parachains) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 0))]);
 		run_test(|| {
 			// import head#0 of parachain#1 at relay block#0
 			initialize(state_root);
@@ -786,8 +790,10 @@ mod tests {
 
 	#[test]
 	fn does_nothing_when_already_imported_head_at_better_relay_header() {
-		let (state_root_5, proof_5, parachains_5) = prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
-		let (state_root_10, proof_10, parachains_10) = prepare_parachain_heads_proof(vec![(1, head_data(1, 10))]);
+		let (state_root_5, proof_5, parachains_5) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
+		let (state_root_10, proof_10, parachains_10) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 10))]);
 		run_test(|| {
 			// start with relay block #0
 			initialize(state_root_5);
@@ -825,7 +831,8 @@ mod tests {
 
 			// import exactly `HeadsToKeep` headers
 			for i in 0..heads_to_keep {
-				let (state_root, proof, parachains) = prepare_parachain_heads_proof(vec![(1, head_data(1, i))]);
+				let (state_root, proof, parachains) =
+					prepare_parachain_heads_proof(vec![(1, head_data(1, i))]);
 				if i == 0 {
 					initialize(state_root);
 				} else {
@@ -866,7 +873,8 @@ mod tests {
 
 	#[test]
 	fn fails_on_unknown_relay_chain_block() {
-		let (state_root, proof, parachains) = prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
+		let (state_root, proof, parachains) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
 		run_test(|| {
 			// start with relay block #0
 			initialize(state_root);
@@ -881,7 +889,8 @@ mod tests {
 
 	#[test]
 	fn fails_on_invalid_storage_proof() {
-		let (_state_root, proof, parachains) = prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
+		let (_state_root, proof, parachains) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
 		run_test(|| {
 			// start with relay block #0
 			initialize(Default::default());
@@ -896,7 +905,8 @@ mod tests {
 
 	#[test]
 	fn is_not_rewriting_existing_head_if_failed_to_read_updated_head() {
-		let (state_root_5, proof_5, parachains_5) = prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
+		let (state_root_5, proof_5, parachains_5) =
+			prepare_parachain_heads_proof(vec![(1, head_data(1, 5))]);
 		let (state_root_10_at_20, proof_10_at_20, parachains_10_at_20) =
 			prepare_parachain_heads_proof(vec![(2, head_data(2, 10))]);
 		let (state_root_10_at_30, proof_10_at_30, parachains_10_at_30) =
