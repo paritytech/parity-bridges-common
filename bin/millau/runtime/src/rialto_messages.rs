@@ -24,7 +24,9 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessagesParameter,
 };
 use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
-use bridge_runtime_common::messages::{self, MessageBridge, MessageTransaction};
+use bridge_runtime_common::messages::{
+	self, MessageBridge, MessageTransaction, TransactionEstimationParams,
+};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
@@ -120,9 +122,20 @@ impl messages::ChainWithMessages for Millau {
 	type Balance = bp_millau::Balance;
 }
 
+pub struct MillauTransactionEstimationParams();
+impl TransactionEstimationParams<Weight> for MillauTransactionEstimationParams {
+	const EXTRA_STORAGE_PROOF_SIZE: u32 = bp_rialto::EXTRA_STORAGE_PROOF_SIZE;
+	const TX_EXTRA_BYTES: u32 = bp_millau::TX_EXTRA_BYTES;
+
+	fn max_delivery_tx_weight() -> Weight {
+		bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT
+	}
+}
+
 impl messages::ThisChainWithMessages for Millau {
 	type Origin = crate::Origin;
 	type Call = crate::Call;
+	type TransactionEstimationParams = MillauTransactionEstimationParams;
 
 	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
 		let here_location =
@@ -146,18 +159,6 @@ impl messages::ThisChainWithMessages for Millau {
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
 		MessageNonce::MAX
-	}
-
-	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight> {
-		let inbound_data_size =
-			InboundLaneData::<bp_millau::AccountId>::encoded_size_hint_u32(1, 1);
-
-		MessageTransaction {
-			dispatch_weight: bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
-			size: inbound_data_size
-				.saturating_add(bp_rialto::EXTRA_STORAGE_PROOF_SIZE)
-				.saturating_add(bp_millau::TX_EXTRA_BYTES),
-		}
 	}
 
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_millau::Balance {
