@@ -138,9 +138,8 @@ impl messages::ThisChainWithMessages for Millau {
 	}
 
 	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight> {
-		let inbound_data_size = InboundLaneData::<bp_millau::AccountId>::encoded_size_hint(1, 1)
-			.and_then(|x| u32::try_from(x).ok())
-			.unwrap_or(u32::MAX);
+		let inbound_data_size =
+			InboundLaneData::<bp_millau::AccountId>::encoded_size_hint_u32(1, 1);
 
 		MessageTransaction {
 			dispatch_weight: bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
