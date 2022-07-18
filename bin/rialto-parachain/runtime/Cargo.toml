@@ -24,6 +24,7 @@ bp-rialto-parachain = { path = "../../../primitives/chain-rialto-parachain", def
 bridge-runtime-common = { path = "../../runtime-common", default-features = false }
 pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = false }
 pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
+pallet-bridge-relayers = { path = "../../../modules/relayers", default-features = false }
 
 # Substrate Dependencies
 ## Substrate Primitive Dependencies
@@ -113,6 +114,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-bridge-grandpa/std",
 	"pallet-bridge-messages/std",
+	"pallet-bridge-relayers/std",
 	"pallet-randomness-collective-flip/std",
 	"pallet-timestamp/std",
 	"pallet-sudo/std",

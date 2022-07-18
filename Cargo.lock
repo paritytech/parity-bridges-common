@@ -861,6 +861,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-relayers"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "hex",
+ "hex-literal",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-rialto"
 version = "0.1.0"
 dependencies = [
@@ -5913,6 +5924,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-bridge-relayers"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-relayers",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-bridge-messages",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-child-bounties"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges#aa7520bd0a2094204a6c0b33865aa264e6d686a5"
@@ -8989,6 +9016,7 @@ dependencies = [
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-bridge-relayers",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-timestamp",
