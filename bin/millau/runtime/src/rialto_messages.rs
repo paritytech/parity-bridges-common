@@ -25,7 +25,7 @@ use bp_messages::{
 };
 use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
 use bridge_runtime_common::messages::{
-	self, MessageBridge, MessageTransaction, TransactionEstimationParams,
+	self, BasicTransactionEstimation, MessageBridge, MessageTransaction,
 };
 use codec::{Decode, Encode};
 use frame_support::{
@@ -122,20 +122,15 @@ impl messages::ChainWithMessages for Millau {
 	type Balance = bp_millau::Balance;
 }
 
-pub struct MillauTransactionEstimationParams();
-impl TransactionEstimationParams<Weight> for MillauTransactionEstimationParams {
-	const EXTRA_STORAGE_PROOF_SIZE: u32 = bp_rialto::EXTRA_STORAGE_PROOF_SIZE;
-	const TX_EXTRA_BYTES: u32 = bp_millau::TX_EXTRA_BYTES;
-
-	fn max_delivery_tx_weight() -> Weight {
-		bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT
-	}
-}
-
 impl messages::ThisChainWithMessages for Millau {
 	type Origin = crate::Origin;
 	type Call = crate::Call;
-	type TransactionEstimationParams = MillauTransactionEstimationParams;
+	type TransactionEstimation = BasicTransactionEstimation<
+		Self::AccountId,
+		{ bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT },
+		{ bp_rialto::EXTRA_STORAGE_PROOF_SIZE },
+		{ bp_millau::TX_EXTRA_BYTES },
+	>;
 
 	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
 		let here_location =

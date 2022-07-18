@@ -28,7 +28,7 @@ use bp_messages::{
 };
 use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
 use bridge_runtime_common::messages::{
-	self, MessageBridge, MessageTransaction, TransactionEstimationParams,
+	self, BasicTransactionEstimation, MessageBridge, MessageTransaction,
 };
 use codec::{Decode, Encode};
 use frame_support::{
@@ -126,20 +126,15 @@ impl messages::ChainWithMessages for RialtoParachain {
 	type Balance = bp_rialto_parachain::Balance;
 }
 
-pub struct RialtoParachainTransactionEstimationParams();
-impl TransactionEstimationParams<Weight> for RialtoParachainTransactionEstimationParams {
-	const EXTRA_STORAGE_PROOF_SIZE: u32 = bp_millau::EXTRA_STORAGE_PROOF_SIZE;
-	const TX_EXTRA_BYTES: u32 = bp_rialto_parachain::TX_EXTRA_BYTES;
-
-	fn max_delivery_tx_weight() -> Weight {
-		bp_rialto_parachain::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT
-	}
-}
-
 impl messages::ThisChainWithMessages for RialtoParachain {
 	type Call = crate::Call;
 	type Origin = crate::Origin;
-	type TransactionEstimationParams = RialtoParachainTransactionEstimationParams;
+	type TransactionEstimation = BasicTransactionEstimation<
+		Self::AccountId,
+		{ bp_rialto_parachain::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT },
+		{ bp_millau::EXTRA_STORAGE_PROOF_SIZE },
+		{ bp_rialto_parachain::TX_EXTRA_BYTES },
+	>;
 
 	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
 		send_origin.linked_account().is_some() && (*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1])

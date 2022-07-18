@@ -99,11 +99,41 @@ pub struct MessageTransaction<Weight> {
 	pub size: u32,
 }
 
-pub trait TransactionEstimationParams<Weight> {
-	const EXTRA_STORAGE_PROOF_SIZE: u32;
-	const TX_EXTRA_BYTES: u32;
+/// Helper trait for estimating the size and weight of a single message delivery confirmation
+/// transaction.
+pub trait TransactionEstimation<Weight> {
+	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight>;
+}
 
-	fn max_delivery_tx_weight() -> Weight;
+pub struct BasicTransactionEstimation<
+	AccountId: MaxEncodedLen,
+	const MAX_CONFIRMATION_TX_WEIGHT: Weight,
+	const EXTRA_STORAGE_PROOF_SIZE: u32,
+	const TX_EXTRA_BYTES: u32,
+>(PhantomData<AccountId>);
+
+impl<
+		AccountId: MaxEncodedLen,
+		const MAX_CONFIRMATION_TX_WEIGHT: Weight,
+		const EXTRA_STORAGE_PROOF_SIZE: u32,
+		const TX_EXTRA_BYTES: u32,
+	> TransactionEstimation<Weight>
+	for BasicTransactionEstimation<
+		AccountId,
+		MAX_CONFIRMATION_TX_WEIGHT,
+		EXTRA_STORAGE_PROOF_SIZE,
+		TX_EXTRA_BYTES,
+	>
+{
+	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight> {
+		let inbound_data_size = InboundLaneData::<AccountId>::encoded_size_hint_u32(1, 1);
+		MessageTransaction {
+			dispatch_weight: MAX_CONFIRMATION_TX_WEIGHT,
+			size: inbound_data_size
+				.saturating_add(EXTRA_STORAGE_PROOF_SIZE)
+				.saturating_add(TX_EXTRA_BYTES),
+		}
+	}
 }
 
 /// This chain that has `pallet-bridge-messages` and `dispatch` modules.
@@ -114,7 +144,7 @@ pub trait ThisChainWithMessages: ChainWithMessages {
 	type Call: Encode + Decode;
 	/// Helper for estimating the size and weight of a single message delivery confirmation
 	/// transaction at this chain.
-	type TransactionEstimationParams: TransactionEstimationParams<WeightOf<Self>>;
+	type TransactionEstimation: TransactionEstimation<WeightOf<Self>>;
 
 	/// Do we accept message sent by given origin to given lane?
 	fn is_message_accepted(origin: &Self::Origin, lane: &LaneId) -> bool;
@@ -126,13 +156,7 @@ pub trait ThisChainWithMessages: ChainWithMessages {
 
 	/// Estimate size and weight of single message delivery confirmation transaction at This chain.
 	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<WeightOf<Self>> {
-		let inbound_data_size = InboundLaneData::<Self::AccountId>::encoded_size_hint_u32(1, 1);
-		MessageTransaction {
-			dispatch_weight: Self::TransactionEstimationParams::max_delivery_tx_weight(),
-			size: inbound_data_size
-				.saturating_add(Self::TransactionEstimationParams::EXTRA_STORAGE_PROOF_SIZE)
-				.saturating_add(Self::TransactionEstimationParams::TX_EXTRA_BYTES),
-		}
+		Self::TransactionEstimation::estimate_delivery_confirmation_transaction()
 	}
 
 	/// Returns minimal transaction fee that must be paid for given transaction at This chain.
@@ -1177,20 +1201,15 @@ mod tests {
 		type Balance = ThisChainBalance;
 	}
 
-	struct BasicTransactionEstimationParams();
-	impl TransactionEstimationParams<Weight> for BasicTransactionEstimationParams {
-		const EXTRA_STORAGE_PROOF_SIZE: u32 = 0;
-		const TX_EXTRA_BYTES: u32 = 0;
-
-		fn max_delivery_tx_weight() -> Weight {
-			DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT
-		}
-	}
-
 	impl ThisChainWithMessages for ThisChain {
 		type Origin = ThisChainOrigin;
 		type Call = ThisChainCall;
-		type TransactionEstimationParams = BasicTransactionEstimationParams;
+		type TransactionEstimation = BasicTransactionEstimation<
+			<ThisChain as ChainWithMessages>::AccountId,
+			{ DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT },
+			0,
+			0,
+		>;
 
 		fn is_message_accepted(_send_origin: &Self::Origin, lane: &LaneId) -> bool {
 			lane == TEST_LANE_ID
@@ -1242,20 +1261,11 @@ mod tests {
 		type Balance = BridgedChainBalance;
 	}
 
-	pub struct UnimplementedTransactionEstimationParams();
-	impl TransactionEstimationParams<Weight> for UnimplementedTransactionEstimationParams {
-		const EXTRA_STORAGE_PROOF_SIZE: u32 = 0;
-		const TX_EXTRA_BYTES: u32 = 0;
-
-		fn max_delivery_tx_weight() -> Weight {
-			unreachable!()
-		}
-	}
-
 	impl ThisChainWithMessages for BridgedChain {
 		type Origin = BridgedChainOrigin;
 		type Call = BridgedChainCall;
-		type TransactionEstimationParams = UnimplementedTransactionEstimationParams;
+		type TransactionEstimation =
+			BasicTransactionEstimation<<BridgedChain as ChainWithMessages>::AccountId, 0, 0, 0>;
 
 		fn is_message_accepted(_send_origin: &Self::Origin, _lane: &LaneId) -> bool {
 			unreachable!()
