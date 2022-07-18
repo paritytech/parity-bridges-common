@@ -101,11 +101,13 @@ pub struct MessageTransaction<Weight> {
 
 /// Helper trait for estimating the size and weight of a single message delivery confirmation
 /// transaction.
-pub trait TransactionEstimation<Weight> {
+pub trait ConfirmationTransactionEstimation<Weight> {
+	// Estimate size and weight of single message delivery confirmation transaction.
 	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight>;
 }
 
-pub struct BasicTransactionEstimation<
+/// Default implementation for `ConfirmationTransactionEstimation`.
+pub struct BasicConfirmationTransactionEstimation<
 	AccountId: MaxEncodedLen,
 	const MAX_CONFIRMATION_TX_WEIGHT: Weight,
 	const EXTRA_STORAGE_PROOF_SIZE: u32,
@@ -117,8 +119,8 @@ impl<
 		const MAX_CONFIRMATION_TX_WEIGHT: Weight,
 		const EXTRA_STORAGE_PROOF_SIZE: u32,
 		const TX_EXTRA_BYTES: u32,
-	> TransactionEstimation<Weight>
-	for BasicTransactionEstimation<
+	> ConfirmationTransactionEstimation<Weight>
+	for BasicConfirmationTransactionEstimation<
 		AccountId,
 		MAX_CONFIRMATION_TX_WEIGHT,
 		EXTRA_STORAGE_PROOF_SIZE,
@@ -144,7 +146,7 @@ pub trait ThisChainWithMessages: ChainWithMessages {
 	type Call: Encode + Decode;
 	/// Helper for estimating the size and weight of a single message delivery confirmation
 	/// transaction at this chain.
-	type TransactionEstimation: TransactionEstimation<WeightOf<Self>>;
+	type ConfirmationTransactionEstimation: ConfirmationTransactionEstimation<WeightOf<Self>>;
 
 	/// Do we accept message sent by given origin to given lane?
 	fn is_message_accepted(origin: &Self::Origin, lane: &LaneId) -> bool;
@@ -156,7 +158,7 @@ pub trait ThisChainWithMessages: ChainWithMessages {
 
 	/// Estimate size and weight of single message delivery confirmation transaction at This chain.
 	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<WeightOf<Self>> {
-		Self::TransactionEstimation::estimate_delivery_confirmation_transaction()
+		Self::ConfirmationTransactionEstimation::estimate_delivery_confirmation_transaction()
 	}
 
 	/// Returns minimal transaction fee that must be paid for given transaction at This chain.
@@ -1204,7 +1206,7 @@ mod tests {
 	impl ThisChainWithMessages for ThisChain {
 		type Origin = ThisChainOrigin;
 		type Call = ThisChainCall;
-		type TransactionEstimation = BasicTransactionEstimation<
+		type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
 			<ThisChain as ChainWithMessages>::AccountId,
 			{ DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT },
 			0,
@@ -1264,8 +1266,12 @@ mod tests {
 	impl ThisChainWithMessages for BridgedChain {
 		type Origin = BridgedChainOrigin;
 		type Call = BridgedChainCall;
-		type TransactionEstimation =
-			BasicTransactionEstimation<<BridgedChain as ChainWithMessages>::AccountId, 0, 0, 0>;
+		type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
+			<BridgedChain as ChainWithMessages>::AccountId,
+			0,
+			0,
+			0,
+		>;
 
 		fn is_message_accepted(_send_origin: &Self::Origin, _lane: &LaneId) -> bool {
 			unreachable!()

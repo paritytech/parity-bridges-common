@@ -28,7 +28,7 @@ use bp_messages::{
 };
 use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
 use bridge_runtime_common::messages::{
-	self, BasicTransactionEstimation, MessageBridge, MessageTransaction,
+	self, BasicConfirmationTransactionEstimation, MessageBridge, MessageTransaction,
 };
 use codec::{Decode, Encode};
 use frame_support::{
@@ -129,7 +129,7 @@ impl messages::ChainWithMessages for RialtoParachain {
 impl messages::ThisChainWithMessages for RialtoParachain {
 	type Call = crate::Call;
 	type Origin = crate::Origin;
-	type TransactionEstimation = BasicTransactionEstimation<
+	type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
 		Self::AccountId,
 		{ bp_rialto_parachain::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT },
 		{ bp_millau::EXTRA_STORAGE_PROOF_SIZE },
