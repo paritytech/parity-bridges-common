@@ -171,3 +171,119 @@ fn pay_relayer_reward<T: Config>(relayer: &T::AccountId, reward: T::Reward) {
 		*old_reward = Some(new_reward);
 	});
 }
+
+#[cfg(test)]
+mod tests {
+	/* tests from instant payments:
+
+	use super::*;
+	use crate::mock::{
+		run_test, AccountId as TestAccountId, Balance as TestBalance, Origin, TestRuntime,
+	};
+	use bp_messages::source_chain::RelayerRewards;
+
+	type Balances = pallet_balances::Pallet<TestRuntime>;
+
+	const RELAYER_1: TestAccountId = 1;
+	const RELAYER_2: TestAccountId = 2;
+	const RELAYER_3: TestAccountId = 3;
+	const RELAYERS_FUND_ACCOUNT: TestAccountId = crate::mock::ENDOWED_ACCOUNT;
+
+	fn relayers_rewards() -> RelayersRewards<TestAccountId, TestBalance> {
+		vec![
+			(RELAYER_1, RelayerRewards { reward: 100, messages: 2 }),
+			(RELAYER_2, RelayerRewards { reward: 100, messages: 3 }),
+		]
+		.into_iter()
+		.collect()
+	}
+
+	#[test]
+	fn pay_delivery_and_dispatch_fee_fails_on_non_zero_fee_and_unknown_payer() {
+		frame_support::parameter_types! {
+			const GetConfirmationFee: TestBalance = 0;
+		};
+
+		run_test(|| {
+			let result = InstantCurrencyPayments::<
+				TestRuntime,
+				(),
+				Balances,
+				GetConfirmationFee,
+			>::pay_delivery_and_dispatch_fee(
+				&Origin::root(),
+				&100,
+				&RELAYERS_FUND_ACCOUNT,
+			);
+			assert_eq!(result, Err(NON_ZERO_MESSAGE_FEE_CANT_BE_PAID_BY_NONE));
+		});
+	}
+
+	#[test]
+	fn pay_delivery_and_dispatch_succeeds_on_zero_fee_and_unknown_payer() {
+		frame_support::parameter_types! {
+			const GetConfirmationFee: TestBalance = 0;
+		};
+
+		run_test(|| {
+			let result = InstantCurrencyPayments::<
+				TestRuntime,
+				(),
+				Balances,
+				GetConfirmationFee,
+			>::pay_delivery_and_dispatch_fee(
+				&Origin::root(),
+				&0,
+				&RELAYERS_FUND_ACCOUNT,
+			);
+			assert!(result.is_ok());
+		});
+	}
+
+	#[test]
+	fn confirmation_relayer_is_rewarded_if_it_has_also_delivered_messages() {
+		run_test(|| {
+			pay_relayers_rewards::<Balances, _>(
+				&RELAYER_2,
+				relayers_rewards(),
+				&RELAYERS_FUND_ACCOUNT,
+				10,
+			);
+
+			assert_eq!(Balances::free_balance(&RELAYER_1), 80);
+			assert_eq!(Balances::free_balance(&RELAYER_2), 120);
+		});
+	}
+
+	#[test]
+	fn confirmation_relayer_is_rewarded_if_it_has_not_delivered_any_delivered_messages() {
+		run_test(|| {
+			pay_relayers_rewards::<Balances, _>(
+				&RELAYER_3,
+				relayers_rewards(),
+				&RELAYERS_FUND_ACCOUNT,
+				10,
+			);
+
+			assert_eq!(Balances::free_balance(&RELAYER_1), 80);
+			assert_eq!(Balances::free_balance(&RELAYER_2), 70);
+			assert_eq!(Balances::free_balance(&RELAYER_3), 50);
+		});
+	}
+
+	#[test]
+	fn only_confirmation_relayer_is_rewarded_if_confirmation_fee_has_significantly_increased() {
+		run_test(|| {
+			pay_relayers_rewards::<Balances, _>(
+				&RELAYER_3,
+				relayers_rewards(),
+				&RELAYERS_FUND_ACCOUNT,
+				1000,
+			);
+
+			assert_eq!(Balances::free_balance(&RELAYER_1), 0);
+			assert_eq!(Balances::free_balance(&RELAYER_2), 0);
+			assert_eq!(Balances::free_balance(&RELAYER_3), 200);
+		});
+	}*/
+}

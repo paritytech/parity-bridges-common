@@ -24,7 +24,6 @@ pallet-bridge-messages = { path = "../messages", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-#sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 
 [features]
@@ -41,6 +40,5 @@ std = [
 	"scale-info/std",
 	"serde",
 	"sp-arithmetic/std",
-#	"sp-runtime/std",
 	"sp-std/std",
 ]

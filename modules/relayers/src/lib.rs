@@ -99,3 +99,28 @@ pub mod pallet {
 	pub type RelayerRewards<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, T::Reward, OptionQuery>;
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn root_cant_claim_anything() {
+		unimplemented!("TODO")
+	}
+
+	#[test]
+	fn relayer_cant_claim_if_no_reward_exists() {
+		unimplemented!("TODO")
+	}
+
+	#[test]
+	fn relayer_cant_claim_if_payment_procedure_fails() {
+		unimplemented!("TODO")
+	}
+
+	#[test]
+	fn relayer_can_claim_reward() {
+		unimplemented!("TODO")
+	}
+}
