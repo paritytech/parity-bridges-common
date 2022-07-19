@@ -388,6 +388,12 @@ parameter_types! {
 	pub const MaxRequests: u32 = 50;
 }
 
+impl pallet_bridge_relayers::Config for Runtime {
+	type Event = Event;
+	type Reward = Balance;
+	type PaymentProcedure = bp_relayers::MintReward<pallet_balances::Pallet<Runtime>, AccountId>;
+}
+
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
 	/// Number of headers to keep in benchmarks.
@@ -463,7 +469,12 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 
 	type TargetHeaderChain = crate::rialto_messages::Rialto;
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
-	type MessageDeliveryAndDispatchPayment = ();
+	type MessageDeliveryAndDispatchPayment =
+		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
+			Runtime,
+			WithRialtoMessagesInstance,
+			GetDeliveryConfirmationTransactionFee,
+		>;
 	type OnMessageAccepted = ();
 	type OnDeliveryConfirmed = ();
 
@@ -494,7 +505,12 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 
 	type TargetHeaderChain = crate::rialto_parachain_messages::RialtoParachain;
 	type LaneMessageVerifier = crate::rialto_parachain_messages::ToRialtoParachainMessageVerifier;
-	type MessageDeliveryAndDispatchPayment = ();
+	type MessageDeliveryAndDispatchPayment =
+		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
+			Runtime,
+			WithRialtoParachainMessagesInstance,
+			GetDeliveryConfirmationTransactionFee,
+		>;
 	type OnMessageAccepted = ();
 	type OnDeliveryConfirmed = ();
 
@@ -558,6 +574,7 @@ construct_runtime!(
 		MmrLeaf: pallet_beefy_mmr::{Pallet, Storage},
 
 		// Rialto bridge modules.
+		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
 		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
 		BridgeRialtoMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
 

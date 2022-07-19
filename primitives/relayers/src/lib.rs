@@ -33,7 +33,7 @@ pub trait PaymentProcedure<Relayer, Reward> {
 /// Reward payment procedure that is simply minting given amount of tokens.
 pub struct MintReward<T, Relayer>(PhantomData<(T, Relayer)>);
 
-impl<T, Relayer> PaymentProcedure<Relayer, T::Balance> for T
+impl<T, Relayer> PaymentProcedure<Relayer, T::Balance> for MintReward<T, Relayer>
 where
 	T: frame_support::traits::fungible::Mutate<Relayer>,
 {
