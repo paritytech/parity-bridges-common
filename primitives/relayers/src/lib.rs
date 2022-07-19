@@ -33,7 +33,8 @@ pub trait PaymentProcedure<Relayer, Reward> {
 /// Reward payment procedure that is simply minting given amount of tokens.
 pub struct MintReward<T, Relayer>(PhantomData<(T, Relayer)>);
 
-impl<T, Relayer> PaymentProcedure<Relayer, T::Balance> for T where
+impl<T, Relayer> PaymentProcedure<Relayer, T::Balance> for T
+where
 	T: frame_support::traits::fungible::Mutate<Relayer>,
 {
 	type Error = sp_runtime::DispatchError;

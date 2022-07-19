@@ -5932,10 +5932,12 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "num-traits",
  "pallet-bridge-messages",
  "parity-scale-codec",
  "scale-info",
  "serde",
+ "sp-arithmetic",
  "sp-std",
 ]
 

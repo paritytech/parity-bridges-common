@@ -18,11 +18,16 @@
 //! coordinate relations between relayers.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![warn(missing_docs)]
 
 use bp_relayers::PaymentProcedure;
-use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive};
+use sp_arithmetic::traits::AtLeast32BitUnsigned;
+use sp_std::marker::PhantomData;
 
 pub use pallet::*;
+pub use payment_adapter::MessageDeliveryAndDispatchPaymentAdapter;
+
+mod payment_adapter;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -35,7 +40,7 @@ pub mod pallet {
 		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// Type of relayer reward.
-		type Reward: Parameter + MaxEncodedLen;
+		type Reward: AtLeast32BitUnsigned + Copy + Parameter + MaxEncodedLen;
 		/// Pay rewards adapter.
 		type PaymentProcedure: PaymentProcedure<Self::AccountId, Self::Reward>;
 	}
@@ -63,10 +68,7 @@ pub mod pallet {
 					Error::<T>::FailedToPayReward
 				})?;
 
-				Self::deposit_event(Event::<T>::RewardPaid {
-					relayer: relayer.clone(),
-					reward
-				});
+				Self::deposit_event(Event::<T>::RewardPaid { relayer: relayer.clone(), reward });
 				Ok(())
 			})
 		}
@@ -76,7 +78,12 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Reward has been paid to the relayer.
-		RewardPaid { relayer: T::AccountId, reward: T::Reward },
+		RewardPaid {
+			/// Relayer account that has been rewarded.
+			relayer: T::AccountId,
+			/// Reward amount.
+			reward: T::Reward,
+		},
 	}
 
 	#[pallet::error]
@@ -89,36 +96,6 @@ pub mod pallet {
 
 	/// Map of the relayer => accumulated reward.
 	#[pallet::storage]
-	pub type RelayerRewards<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, T::Reward, OptionQuery>;
-}
-
-/// Adapter that allows relayers pallet to be used as a delivery+dispatch payment mechanism
-/// for the messages pallet.
-pub struct MessageDeliveryAndDispatchPaymentAdapter<T, MessagesInstance>(PhantomData<(T, MessagesInstance)>);
-
-impl<T, MessagesInstance> bp_messages::source_chain::MessageDeliveryAndDispatchPayment<T::Origin, T::AccountId, T::Reward> for MessageDeliveryAndDispatchPaymentAdapter<T, MessagesInstance> where
-	T: Config + pallet_bridge_messages::Config<MessagesInstance>,
-	MessagesInstance: 'static,
-{
-	type Error = &'static str;
-
-	fn pay_delivery_and_dispatch_fee(
-		_submitter: &T::Origin,
-		_fee: &T::Reward,
-	) -> Result<(), Self::Error> {
-		// nothing shall happen here, because XCM deals with fee payment (planned to be burnt?
-		// or transferred to the treasury?)
-		Ok(())
-	}
-
-	fn pay_relayers_rewards(
-		_lane_id: bp_messages::LaneId,
-		_messages_relayers: VecDeque<bp_messages::UnrewardedRelayer<T::AccountId>>,
-		_confirmation_relayer: &T::AccountId,
-		_received_range: &RangeInclusive<bp_messages::MessageNonce>,
-	) {
-		// TODO: deal with confirmation relayer
-		// TODO: read every message from the messages pallet and insert/update RelayerRewards entries
-		unimplemented!("TODO")
-	}
+	pub type RelayerRewards<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, T::Reward, OptionQuery>;
 }
