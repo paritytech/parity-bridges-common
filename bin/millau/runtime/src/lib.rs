@@ -88,6 +88,7 @@ pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_bridge_parachains::Call as BridgeParachainsCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
+pub use pallet_xcm::Call as XcmCall;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;

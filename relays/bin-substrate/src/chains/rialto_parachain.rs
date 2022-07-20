@@ -28,6 +28,13 @@ use relay_substrate_client::BalanceOf;
 use sp_version::RuntimeVersion;
 
 impl CliEncodeMessage for RialtoParachain {
+	fn encode_send_xcm(
+		_message: xcm::VersionedXcm<()>,
+		_bridge_instance_index: u8,
+	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
+		unimplemented!("TODO")
+	}
+
 	fn encode_send_message_call(
 		lane: LaneId,
 		payload: RawMessage,

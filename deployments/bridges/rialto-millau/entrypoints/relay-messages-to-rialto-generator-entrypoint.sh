@@ -14,7 +14,7 @@ SECONDARY_MESSAGE_LANE=${MSG_EXCHANGE_GEN_SECONDARY_LANE}
 MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE=128
 FERDIE_ADDR=6ztG3jPnJTwgZnnYsgCDXbbQVR82M96hBZtPvkN56A9668ZC
 
-SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto"
+SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto --use-xcm-pallet"
 SHARED_HOST="--source-host millau-node-bob --source-port 9944"
 SOURCE_SIGNER="--source-signer //Rialto.MessagesSender"
 
@@ -53,7 +53,7 @@ do
 
 	# send regular message
 	echo "Sending Message from Millau to Rialto"
-	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE $CONVERSION_RATE_OVERRIDE raw 010109020419A8 2>&1`
+	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE $CONVERSION_RATE_OVERRIDE raw 020419ac 2>&1`
 	echo $SEND_MESSAGE_OUTPUT
 	if [ "$CONVERSION_RATE_OVERRIDE" = "--conversion-rate-override metric" ]; then
 		ACTUAL_CONVERSION_RATE_REGEX="conversion rate override: ([0-9\.]+)"
@@ -72,7 +72,7 @@ do
 		$SEND_MESSAGE \
 			--lane $SECONDARY_MESSAGE_LANE \
 			$CONVERSION_RATE_OVERRIDE \
-			raw 010109020419A8
+			raw 020419ac
 	fi
 
 	# every other hour we're sending 3 large (size, weight, size+weight) messages
@@ -95,7 +95,7 @@ do
 			$SEND_MESSAGE \
 				--lane $MESSAGE_LANE \
 				$CONVERSION_RATE_OVERRIDE \
-				raw 010109020419A8
+				raw 020419ac
 		done
 
 	fi
