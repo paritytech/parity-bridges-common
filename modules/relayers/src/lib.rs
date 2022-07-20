@@ -106,7 +106,7 @@ mod tests {
 	use super::*;
 	use mock::*;
 
-	use frame_support::{assert_noop, assert_ok};
+	use frame_support::{assert_noop, assert_ok, traits::fungible::Inspect};
 	use sp_runtime::DispatchError;
 
 	#[test]
@@ -146,6 +146,19 @@ mod tests {
 			RelayerRewards::<TestRuntime>::insert(REGULAR_RELAYER, 100);
 			assert_ok!(Pallet::<TestRuntime>::claim_rewards(Origin::signed(REGULAR_RELAYER)));
 			assert_eq!(RelayerRewards::<TestRuntime>::get(REGULAR_RELAYER), None);
+		});
+	}
+
+	#[test]
+	fn mint_reward_payment_procedure_actually_mints_tokens() {
+		type Balances = pallet_balances::Pallet<TestRuntime>;
+
+		run_test(|| {
+			assert_eq!(Balances::balance(&1), 0);
+			assert_eq!(Balances::total_issuance(), 0);
+			bp_relayers::MintReward::<Balances, AccountId>::pay_reward(&1, 100).unwrap();
+			assert_eq!(Balances::balance(&1), 100);
+			assert_eq!(Balances::total_issuance(), 100);
 		});
 	}
 }
