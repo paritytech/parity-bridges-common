@@ -41,3 +41,15 @@ time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- 
 	--heap-pages=4096 \
 	--output=./modules/parachains/src/weights.rs \
 	--template=./.maintain/millau-weight-template.hbs
+
+time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet \
+	--chain=dev \
+	--steps=50 \
+	--repeat=20 \
+	--pallet=pallet_bridge_relayers \
+	--extrinsic=* \
+	--execution=wasm \
+	--wasm-execution=Compiled \
+	--heap-pages=4096 \
+	--output=./modules/relayers/src/weights.rs \
+	--template=./.maintain/millau-weight-template.hbs

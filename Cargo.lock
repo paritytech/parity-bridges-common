@@ -5932,6 +5932,7 @@ dependencies = [
  "bp-messages",
  "bp-relayers",
  "bp-runtime",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",

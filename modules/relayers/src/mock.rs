@@ -125,15 +125,8 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type Event = Event;
 	type Reward = Balance;
 	type PaymentProcedure = TestPaymentProcedure;
+	type WeightInfo = ();
 }
-/*
-impl SenderOrigin<AccountId> for Origin {
-	fn linked_account(&self) -> Option<AccountId> {
-		match self.caller {
-			_ => None,
-		}
-	}
-}*/
 
 /// Regular relayer that may receive rewards.
 pub const REGULAR_RELAYER: AccountId = 1;

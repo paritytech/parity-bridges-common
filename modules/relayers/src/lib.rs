@@ -23,12 +23,16 @@
 use bp_relayers::PaymentProcedure;
 use sp_arithmetic::traits::AtLeast32BitUnsigned;
 use sp_std::marker::PhantomData;
+use weights::WeightInfo;
 
 pub use pallet::*;
 pub use payment_adapter::MessageDeliveryAndDispatchPaymentAdapter;
 
+mod benchmarking;
 mod mock;
 mod payment_adapter;
+
+pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -44,6 +48,8 @@ pub mod pallet {
 		type Reward: AtLeast32BitUnsigned + Copy + Parameter + MaxEncodedLen;
 		/// Pay rewards adapter.
 		type PaymentProcedure: PaymentProcedure<Self::AccountId, Self::Reward>;
+		/// Pallet call weights.
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::pallet]
@@ -53,7 +59,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Claim accumulated rewards.
-		#[pallet::weight(0)] // TODO: weights
+		#[pallet::weight(T::WeightInfo::claim_rewards())]
 		pub fn claim_rewards(origin: OriginFor<T>) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 

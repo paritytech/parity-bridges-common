@@ -392,6 +392,7 @@ impl pallet_bridge_relayers::Config for Runtime {
 	type Event = Event;
 	type Reward = Balance;
 	type PaymentProcedure = bp_relayers::MintReward<pallet_balances::Pallet<Runtime>, AccountId>;
+	type WeightInfo = ();
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -954,6 +955,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_bridge_messages, MessagesBench::<Runtime, WithRialtoMessagesInstance>);
 			list_benchmark!(list, extra, pallet_bridge_grandpa, BridgeRialtoGrandpa);
 			list_benchmark!(list, extra, pallet_bridge_parachains, ParachainsBench::<Runtime, WithRialtoMessagesInstance>);
+			list_benchmark!(list, extra, pallet_bridge_relayers, BridgeRelayers);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1075,6 +1077,7 @@ impl_runtime_apis! {
 				pallet_bridge_parachains,
 				ParachainsBench::<Runtime, WithRialtoParachainsInstance>
 			);
+			add_benchmark!(params, batches, pallet_bridge_relayers, BridgeRelayers);
 
 			Ok(batches)
 		}
