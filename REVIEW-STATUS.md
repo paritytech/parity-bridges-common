@@ -14,11 +14,13 @@
 - [Fix on-different-forks metrics during initialization](https://github.com/paritytech/parity-bridges-common/pull/1468);
 - [Store both block number and hash in best finalized storage value](https://github.com/paritytech/parity-bridges-common/pull/1475);
 - [Parachain loop metrics](https://github.com/paritytech/parity-bridges-common/pull/1484);
-- [Add another condition to the reject-obsolete-parachain-heads extension](https://github.com/paritytech/parity-bridges-common/pull/1505).
+- [Add another condition to the reject-obsolete-parachain-heads extension](https://github.com/paritytech/parity-bridges-common/pull/1505);
+- [Introduce bridge relayers pallet](https://github.com/paritytech/parity-bridges-common/pull/1513).
 
 ## Code that need security audit
 
 - the whole [parachains finality pallet](./modules/parachains);
+- the whole [relayers pallet](./modules/relayers);
 - parts of the [bridge-runtime-common crate](./bin/runtime-common). They are likely to be removed, though;
 - [CheckBridgedBlockNumber signed extension to reject duplicate header-submit transactions](https://github.com/paritytech/parity-bridges-common/pull/1352);
 - [remove duplicate parachain heads exension](https://github.com/paritytech/parity-bridges-common/pull/1444);
