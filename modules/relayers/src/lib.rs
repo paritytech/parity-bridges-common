@@ -103,8 +103,8 @@ pub mod pallet {
 
 #[cfg(test)]
 mod tests {
-	use mock::*;
 	use super::*;
+	use mock::*;
 
 	use frame_support::{assert_noop, assert_ok};
 	use sp_runtime::DispatchError;

@@ -18,15 +18,9 @@
 
 use crate as pallet_bridge_relayers;
 
-use bp_messages::{
-	source_chain::ForbidOutboundMessages,
-	target_chain::ForbidInboundMessages,
-};
+use bp_messages::{source_chain::ForbidOutboundMessages, target_chain::ForbidInboundMessages};
 use bp_relayers::PaymentProcedure;
-use frame_support::{
-	parameter_types,
-	weights::RuntimeDbWeight,
-};
+use frame_support::{parameter_types, weights::RuntimeDbWeight};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
@@ -164,9 +158,6 @@ impl PaymentProcedure<AccountId, Balance> for TestPaymentProcedure {
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	let t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
-//	pallet_balances::GenesisConfig::<TestRuntime> { balances: vec![(ENDOWED_ACCOUNT, 1_000_000)] }
-//		.assimilate_storage(&mut t)
-//		.unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(test)
 }
