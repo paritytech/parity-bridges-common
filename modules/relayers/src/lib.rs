@@ -65,7 +65,7 @@ pub mod pallet {
 
 			RelayerRewards::<T>::try_mutate_exists(&relayer, |maybe_reward| -> DispatchResult {
 				let reward = maybe_reward.take().ok_or(Error::<T>::NoRewardForRelayer)?;
-				T::PaymentProcedure::pay_reward(&relayer, reward.clone()).map_err(|e| {
+				T::PaymentProcedure::pay_reward(&relayer, reward).map_err(|e| {
 					log::trace!(
 						target: "runtime::bridge-relayers",
 						"Failed to pay rewards to {:?}: {:?}",
