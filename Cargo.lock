@@ -861,6 +861,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-relayers"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "hex",
+ "hex-literal",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-rialto"
 version = "0.1.0"
 dependencies = [
@@ -5146,6 +5157,7 @@ dependencies = [
  "bp-messages",
  "bp-millau",
  "bp-polkadot-core",
+ "bp-relayers",
  "bp-rialto",
  "bp-rialto-parachain",
  "bp-runtime",
@@ -5167,6 +5179,7 @@ dependencies = [
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
+ "pallet-bridge-relayers",
  "pallet-grandpa",
  "pallet-mmr",
  "pallet-randomness-collective-flip",
@@ -5910,6 +5923,30 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-trie",
+]
+
+[[package]]
+name = "pallet-bridge-relayers"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-relayers",
+ "bp-runtime",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "num-traits",
+ "pallet-balances",
+ "pallet-bridge-messages",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -8967,6 +9004,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-millau",
+ "bp-relayers",
  "bp-rialto-parachain",
  "bp-runtime",
  "bridge-runtime-common",
@@ -8989,6 +9027,7 @@ dependencies = [
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-bridge-relayers",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-timestamp",
@@ -9026,6 +9065,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
+ "bp-relayers",
  "bp-rialto",
  "bp-runtime",
  "bridge-runtime-common",
@@ -9045,6 +9085,7 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
+ "pallet-bridge-relayers",
  "pallet-grandpa",
  "pallet-mmr",
  "pallet-session",
