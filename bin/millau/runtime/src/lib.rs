@@ -78,7 +78,7 @@ pub use frame_support::{
 		constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, IdentityFee,
 		RuntimeDbWeight, Weight,
 	},
-	StorageValue,
+	RuntimeDebug, StorageValue,
 };
 
 pub use frame_system::Call as SystemCall;
@@ -89,6 +89,8 @@ pub use pallet_bridge_parachains::Call as BridgeParachainsCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
+use bridge_runtime_common::generate_reject_obsolete_headers_and_messages;
+use sp_runtime::traits::DispatchInfoOf;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
@@ -592,12 +594,6 @@ construct_runtime!(
 	}
 );
 
-pallet_bridge_grandpa::declare_bridge_reject_obsolete_grandpa_header! {
-	Runtime,
-	Call::BridgeRialtoGrandpa => RialtoGrandpaInstance,
-	Call::BridgeWestendGrandpa => WestendGrandpaInstance
-}
-
 pallet_bridge_parachains::declare_bridge_reject_obsolete_parachain_header! {
 	Runtime,
 	Call::BridgeRialtoParachains => WithRialtoParachainsInstance
@@ -608,6 +604,8 @@ bridge_runtime_common::declare_bridge_reject_obsolete_messages! {
 	Call::BridgeRialtoMessages => WithRialtoMessagesInstance,
 	Call::BridgeRialtoParachainMessages => WithRialtoParachainMessagesInstance
 }
+
+generate_reject_obsolete_headers_and_messages!(Runtime, BridgeRialtoGrandpa, BridgeWestendGrandpa);
 
 /// The address format for describing accounts.
 pub type Address = AccountId;
@@ -629,7 +627,7 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-	BridgeRejectObsoleteGrandpaHeader,
+	RejectObsoleteHeadersAndMessages,
 	BridgeRejectObsoleteParachainHeader,
 	BridgeRejectObsoleteMessages,
 );

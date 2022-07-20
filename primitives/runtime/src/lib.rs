@@ -35,6 +35,7 @@ pub use chain::{
 };
 pub use frame_support::storage::storage_prefix as storage_value_final_key;
 use num_traits::{CheckedSub, One};
+use sp_runtime::transaction_validity::TransactionValidity;
 pub use storage_proof::{
 	Error as StorageProofError, ProofSize as StorageProofSize, StorageProofChecker,
 };
@@ -398,6 +399,10 @@ pub trait OwnedBridgeModule<T: frame_system::Config> {
 		log::info!(target: Self::LOG_TARGET, "Setting operating mode to {:?}.", operating_mode);
 		Ok(())
 	}
+}
+
+pub trait FilterCall<Call> {
+	fn validate(call: &Call) -> TransactionValidity;
 }
 
 #[cfg(test)]
