@@ -5931,15 +5931,20 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-relayers",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "log",
  "num-traits",
+ "pallet-balances",
  "pallet-bridge-messages",
  "parity-scale-codec",
  "scale-info",
  "serde",
  "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-std",
 ]
 

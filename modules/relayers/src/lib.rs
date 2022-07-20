@@ -27,6 +27,7 @@ use sp_std::marker::PhantomData;
 pub use pallet::*;
 pub use payment_adapter::MessageDeliveryAndDispatchPaymentAdapter;
 
+mod mock;
 mod payment_adapter;
 
 #[frame_support::pallet]
@@ -102,25 +103,49 @@ pub mod pallet {
 
 #[cfg(test)]
 mod tests {
+	use mock::*;
 	use super::*;
+
+	use frame_support::{assert_noop, assert_ok};
+	use sp_runtime::DispatchError;
 
 	#[test]
 	fn root_cant_claim_anything() {
-		unimplemented!("TODO")
+		run_test(|| {
+			assert_noop!(
+				Pallet::<TestRuntime>::claim_rewards(Origin::root()),
+				DispatchError::BadOrigin,
+			);
+		});
 	}
 
 	#[test]
 	fn relayer_cant_claim_if_no_reward_exists() {
-		unimplemented!("TODO")
+		run_test(|| {
+			assert_noop!(
+				Pallet::<TestRuntime>::claim_rewards(Origin::signed(REGULAR_RELAYER)),
+				Error::<TestRuntime>::NoRewardForRelayer,
+			);
+		});
 	}
 
 	#[test]
 	fn relayer_cant_claim_if_payment_procedure_fails() {
-		unimplemented!("TODO")
+		run_test(|| {
+			RelayerRewards::<TestRuntime>::insert(FAILING_RELAYER, 100);
+			assert_noop!(
+				Pallet::<TestRuntime>::claim_rewards(Origin::signed(FAILING_RELAYER)),
+				Error::<TestRuntime>::FailedToPayReward,
+			);
+		});
 	}
 
 	#[test]
 	fn relayer_can_claim_reward() {
-		unimplemented!("TODO")
+		run_test(|| {
+			RelayerRewards::<TestRuntime>::insert(REGULAR_RELAYER, 100);
+			assert_ok!(Pallet::<TestRuntime>::claim_rewards(Origin::signed(REGULAR_RELAYER)));
+			assert_eq!(RelayerRewards::<TestRuntime>::get(REGULAR_RELAYER), None);
+		});
 	}
 }
