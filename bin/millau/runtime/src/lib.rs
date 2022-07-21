@@ -594,18 +594,19 @@ construct_runtime!(
 	}
 );
 
-pallet_bridge_parachains::declare_bridge_reject_obsolete_parachain_header! {
-	Runtime,
-	Call::BridgeRialtoParachains => WithRialtoParachainsInstance
-}
-
 bridge_runtime_common::declare_bridge_reject_obsolete_messages! {
 	Runtime,
 	Call::BridgeRialtoMessages => WithRialtoMessagesInstance,
 	Call::BridgeRialtoParachainMessages => WithRialtoParachainMessagesInstance
 }
 
-generate_reject_obsolete_headers_and_messages!(Runtime, BridgeRialtoGrandpa, BridgeWestendGrandpa);
+generate_reject_obsolete_headers_and_messages! {
+	Runtime,
+	// Grandpa
+	BridgeRialtoGrandpa, BridgeWestendGrandpa,
+	// Parachains
+	BridgeRialtoParachains
+}
 
 /// The address format for describing accounts.
 pub type Address = AccountId;
@@ -628,7 +629,6 @@ pub type SignedExtra = (
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	RejectObsoleteHeadersAndMessages,
-	BridgeRejectObsoleteParachainHeader,
 	BridgeRejectObsoleteMessages,
 );
 /// The payload being signed in transactions.
