@@ -18,6 +18,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use bp_runtime::FilterCall;
+use sp_runtime::transaction_validity::TransactionValidity;
+
 pub mod messages;
 pub mod messages_api;
 pub mod messages_benchmarking;
@@ -26,6 +29,28 @@ pub mod parachains_benchmarking;
 
 #[cfg(feature = "integrity-test")]
 pub mod integrity;
+
+pub trait BridgeRuntimeFilterCall<Call> {
+	fn validate(call: &Call) -> TransactionValidity;
+}
+
+impl<Call, T, I> BridgeRuntimeFilterCall<Call> for pallet_bridge_grandpa::Pallet<T, I>
+where
+	pallet_bridge_grandpa::Pallet<T, I>: FilterCall<Call>,
+{
+	fn validate(call: &Call) -> TransactionValidity {
+		<pallet_bridge_grandpa::Pallet<T, I> as FilterCall<Call>>::validate(call)
+	}
+}
+
+impl<Call, T, I> BridgeRuntimeFilterCall<Call> for pallet_bridge_parachains::Pallet<T, I>
+where
+	pallet_bridge_parachains::Pallet<T, I>: FilterCall<Call>,
+{
+	fn validate(call: &Call) -> TransactionValidity {
+		<pallet_bridge_parachains::Pallet<T, I> as FilterCall<Call>>::validate(call)
+	}
+}
 
 #[macro_export]
 macro_rules! generate_reject_obsolete_headers_and_messages {
@@ -53,7 +78,7 @@ macro_rules! generate_reject_obsolete_headers_and_messages {
 				_info: &DispatchInfoOf<Self::Call>,
 				_len: usize,
 			) -> sp_runtime::transaction_validity::TransactionValidity {
-				use bp_runtime::FilterCall;
+				use bridge_runtime_common::BridgeRuntimeFilterCall;
 
 				let valid = sp_runtime::transaction_validity::ValidTransaction::default();
 				$(let valid = valid.combine_with(<$filter_call>::validate(call)?);)*

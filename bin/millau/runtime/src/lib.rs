@@ -594,18 +594,14 @@ construct_runtime!(
 	}
 );
 
-bridge_runtime_common::declare_bridge_reject_obsolete_messages! {
-	Runtime,
-	Call::BridgeRialtoMessages => WithRialtoMessagesInstance,
-	Call::BridgeRialtoParachainMessages => WithRialtoParachainMessagesInstance
-}
-
 generate_reject_obsolete_headers_and_messages! {
 	Runtime,
 	// Grandpa
 	BridgeRialtoGrandpa, BridgeWestendGrandpa,
 	// Parachains
-	BridgeRialtoParachains
+	BridgeRialtoParachains,
+	//Messages
+	BridgeRialtoMessages, BridgeRialtoParachainMessages
 }
 
 /// The address format for describing accounts.
@@ -629,7 +625,6 @@ pub type SignedExtra = (
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	RejectObsoleteHeadersAndMessages,
-	BridgeRejectObsoleteMessages,
 );
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
