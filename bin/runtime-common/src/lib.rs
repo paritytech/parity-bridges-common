@@ -30,7 +30,12 @@ pub mod parachains_benchmarking;
 #[cfg(feature = "integrity-test")]
 pub mod integrity;
 
+/// A duplication of the `FilterCall` trait.
+///
+/// We need this trait in order to be able to implement it for the messages pallet,
+/// since the implementation is done outside of the pallet crate.
 pub trait BridgeRuntimeFilterCall<Call> {
+	/// Checks if a runtime call is valid.
 	fn validate(call: &Call) -> TransactionValidity;
 }
 
@@ -52,15 +57,30 @@ where
 	}
 }
 
+/// Declares a runtime-specific `BridgeRejectObsoleteHeadersAndMessages` signed extension.
+///
+/// ## Example
+///
+/// ```nocompile
+/// generate_bridge_reject_obsolete_headers_and_messages!{
+///     Call, AccountId
+///     BridgeRialtoGrandpa, BridgeWestendGrandpa,
+///     BridgeRialtoParachains
+/// }
+/// ```
+///
+/// The goal of this extension is to avoid "mining" transactions that provide outdated bridged
+/// headers and messages. Without that extension, even honest relayers may lose their funds if
+/// there are multiple relays running and submitting the same information.
 #[macro_export]
-macro_rules! generate_reject_obsolete_headers_and_messages {
-	($runtime:ident, $($filter_call:ty),*) => {
+macro_rules! generate_bridge_reject_obsolete_headers_and_messages {
+	($call:ty, $account_id:ty, $($filter_call:ty),*) => {
 		#[derive(Clone, codec::Decode, codec::Encode, Eq, PartialEq, frame_support::RuntimeDebug, scale_info::TypeInfo)]
-		pub struct RejectObsoleteHeadersAndMessages;
-		impl sp_runtime::traits::SignedExtension for RejectObsoleteHeadersAndMessages {
+		pub struct BridgeRejectObsoleteHeadersAndMessages;
+		impl sp_runtime::traits::SignedExtension for BridgeRejectObsoleteHeadersAndMessages {
 			const IDENTIFIER: &'static str = "BridgeRejectObsoleteHeadersAndMessages";
-			type AccountId = <$runtime as frame_system::Config>::AccountId;
-			type Call = <$runtime as frame_system::Config>::Call;
+			type AccountId = $account_id;
+			type Call = $call;
 			type AdditionalSigned = ();
 			type Pre = ();
 
@@ -75,13 +95,14 @@ macro_rules! generate_reject_obsolete_headers_and_messages {
 				&self,
 				_who: &Self::AccountId,
 				call: &Self::Call,
-				_info: &DispatchInfoOf<Self::Call>,
+				_info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
 				_len: usize,
 			) -> sp_runtime::transaction_validity::TransactionValidity {
-				use bridge_runtime_common::BridgeRuntimeFilterCall;
-
 				let valid = sp_runtime::transaction_validity::ValidTransaction::default();
-				$(let valid = valid.combine_with(<$filter_call>::validate(call)?);)*
+				$(
+					let valid = valid
+						.combine_with(<$filter_call as $crate::BridgeRuntimeFilterCall<$call>>::validate(call)?);
+				)*
 				Ok(valid)
 			}
 
@@ -96,4 +117,79 @@ macro_rules! generate_reject_obsolete_headers_and_messages {
 			}
 		}
 	};
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::BridgeRuntimeFilterCall;
+	use frame_support::{assert_err, assert_ok};
+	use sp_runtime::{
+		traits::SignedExtension,
+		transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
+	};
+
+	pub struct MockCall {
+		data: u32,
+	}
+
+	impl sp_runtime::traits::Dispatchable for MockCall {
+		type Origin = ();
+		type Config = ();
+		type Info = ();
+		type PostInfo = ();
+
+		fn dispatch(
+			self,
+			_origin: Self::Origin,
+		) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
+			unimplemented!()
+		}
+	}
+
+	struct FirstFilterCall;
+	impl BridgeRuntimeFilterCall<MockCall> for FirstFilterCall {
+		fn validate(call: &MockCall) -> TransactionValidity {
+			if call.data <= 1 {
+				return InvalidTransaction::Custom(1).into()
+			}
+
+			Ok(ValidTransaction { priority: 1, ..Default::default() })
+		}
+	}
+
+	struct SecondFilterCall;
+	impl BridgeRuntimeFilterCall<MockCall> for SecondFilterCall {
+		fn validate(call: &MockCall) -> TransactionValidity {
+			if call.data <= 2 {
+				return InvalidTransaction::Custom(2).into()
+			}
+
+			Ok(ValidTransaction { priority: 2, ..Default::default() })
+		}
+	}
+
+	#[test]
+	fn test() {
+		generate_bridge_reject_obsolete_headers_and_messages!(
+			MockCall,
+			(),
+			FirstFilterCall,
+			SecondFilterCall
+		);
+
+		assert_err!(
+			BridgeRejectObsoleteHeadersAndMessages.validate(&(), &MockCall { data: 1 }, &(), 0),
+			InvalidTransaction::Custom(1)
+		);
+
+		assert_err!(
+			BridgeRejectObsoleteHeadersAndMessages.validate(&(), &MockCall { data: 2 }, &(), 0),
+			InvalidTransaction::Custom(2)
+		);
+
+		assert_ok!(
+			BridgeRejectObsoleteHeadersAndMessages.validate(&(), &MockCall { data: 3 }, &(), 0),
+			ValidTransaction { priority: 3, ..Default::default() }
+		)
+	}
 }

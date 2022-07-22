@@ -401,7 +401,9 @@ pub trait OwnedBridgeModule<T: frame_system::Config> {
 	}
 }
 
+/// A trait for querying whether a runtime call is valid.
 pub trait FilterCall<Call> {
+	/// Checks if a runtime call is valid.
 	fn validate(call: &Call) -> TransactionValidity;
 }
 

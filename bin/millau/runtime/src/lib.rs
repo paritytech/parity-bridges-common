@@ -89,8 +89,7 @@ pub use pallet_bridge_parachains::Call as BridgeParachainsCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
-use bridge_runtime_common::generate_reject_obsolete_headers_and_messages;
-use sp_runtime::traits::DispatchInfoOf;
+use bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
@@ -594,8 +593,8 @@ construct_runtime!(
 	}
 );
 
-generate_reject_obsolete_headers_and_messages! {
-	Runtime,
+generate_bridge_reject_obsolete_headers_and_messages! {
+	Call, AccountId,
 	// Grandpa
 	BridgeRialtoGrandpa, BridgeWestendGrandpa,
 	// Parachains
@@ -624,7 +623,7 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
-	RejectObsoleteHeadersAndMessages,
+	BridgeRejectObsoleteHeadersAndMessages,
 );
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
