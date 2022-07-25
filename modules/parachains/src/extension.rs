@@ -58,10 +58,11 @@ where
 
 		let maybe_stored_best_head = crate::BestParaHeads::<T, I>::get(parachain);
 		Self::validate_updated_parachain_head(
+			parachain,
 			&maybe_stored_best_head,
 			updated_at_relay_block_number,
 			parachain_head_hash,
-			format!("Rejecting obsolete parachain-head {:?} transaction", parachain),
+			"Rejecting obsolete parachain-head transaction",
 		)
 	}
 }
