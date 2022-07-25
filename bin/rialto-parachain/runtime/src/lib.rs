@@ -72,6 +72,7 @@ pub use bp_rialto_parachain::{
 
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
+pub use pallet_xcm::Call as XcmCall;
 
 // Polkadot & XCM imports
 use pallet_xcm::XcmPassthrough;

@@ -32,7 +32,7 @@ impl CliEncodeMessage for Rialto {
 		_message: xcm::VersionedXcm<()>,
 		_bridge_instance_index: u8,
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
-		unimplemented!("TODO")
+		anyhow::bail!("Rialto to Millau messages are (yet) sent using messages pallet")
 	}
 
 	fn encode_send_message_call(

@@ -43,13 +43,20 @@ impl CliEncodeMessage for Millau {
 				})
 				.into()
 			},
-			/*			bridge::MILLAU_TO_RIALTO_PARACHAIN_INDEX => {
-				let dest = (Parent, X1(GlobalConsensus(RialtoParachainNetwork::get())));
-				millau_runtime::Call::Xcm(millau_runtime::XcmCall::send {
+			bridge::MILLAU_TO_RIALTO_PARACHAIN_INDEX => {
+				let dest = (
+					Parent,
+					X2(
+						GlobalConsensus(millau_runtime::xcm_config::RialtoNetwork::get()),
+						Parachain(2000u32.into()),
+					),
+				);
+				millau_runtime::Call::XcmPallet(millau_runtime::XcmCall::send {
 					dest: Box::new(dest.into()),
-					xcm: Box::new(message.into()),
-				}).into()
-			}*/
+					message: Box::new(message.into()),
+				})
+				.into()
+			},
 			_ => anyhow::bail!(
 				"Unsupported target bridge pallet with instance index: {}",
 				bridge_instance_index
