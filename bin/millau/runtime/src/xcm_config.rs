@@ -208,8 +208,7 @@ impl XcmBridge for ToRialtoBridge {
 	fn build_destination() -> MultiLocation {
 		let dest: InteriorMultiLocation = RialtoNetwork::get().into();
 		let here = UniversalLocation::get();
-		let route = dest.relative_to(&here);
-		route
+		dest.relative_to(&here)
 	}
 
 	fn xcm_lane() -> LaneId {
@@ -236,8 +235,7 @@ impl XcmBridge for ToRialtoParachainBridge {
 	fn build_destination() -> MultiLocation {
 		let dest: InteriorMultiLocation = RialtoParachainNetwork::get().into();
 		let here = UniversalLocation::get();
-		let route = dest.relative_to(&here);
-		route
+		dest.relative_to(&here)
 	}
 
 	fn xcm_lane() -> LaneId {

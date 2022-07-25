@@ -449,8 +449,7 @@ impl XcmBridge for ToMillauBridge {
 	fn build_destination() -> MultiLocation {
 		let dest: InteriorMultiLocation = MillauNetwork::get().into();
 		let here = UniversalLocation::get();
-		let route = dest.relative_to(&here);
-		route
+		dest.relative_to(&here)
 	}
 
 	fn xcm_lane() -> bp_messages::LaneId {
