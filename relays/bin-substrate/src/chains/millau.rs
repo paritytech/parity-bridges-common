@@ -35,13 +35,15 @@ impl CliEncodeMessage for Millau {
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
 		Ok(match bridge_instance_index {
 			bridge::MILLAU_TO_RIALTO_INDEX => {
-				let dest = (Parent, X1(GlobalConsensus(millau_runtime::xcm_config::RialtoNetwork::get())));
+				let dest =
+					(Parent, X1(GlobalConsensus(millau_runtime::xcm_config::RialtoNetwork::get())));
 				millau_runtime::Call::XcmPallet(millau_runtime::XcmCall::send {
 					dest: Box::new(dest.into()),
 					message: Box::new(message.into()),
-				}).into()
-			}
-/*			bridge::MILLAU_TO_RIALTO_PARACHAIN_INDEX => {
+				})
+				.into()
+			},
+			/*			bridge::MILLAU_TO_RIALTO_PARACHAIN_INDEX => {
 				let dest = (Parent, X1(GlobalConsensus(RialtoParachainNetwork::get())));
 				millau_runtime::Call::Xcm(millau_runtime::XcmCall::send {
 					dest: Box::new(dest.into()),

@@ -29,7 +29,8 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 
 use bridge_runtime_common::messages::{
-	source::estimate_message_dispatch_and_delivery_fee, MessageBridge,
+	source::{estimate_message_dispatch_and_delivery_fee, XcmBridge, XcmBridgeAdapter},
+	MessageBridge,
 };
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -302,6 +303,10 @@ parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
 	pub RelayOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorMultiLocation = X1(Parachain(ParachainInfo::parachain_id().into()));
+	/// The Millau network ID, associated with Kusama.
+	pub const MillauNetwork: NetworkId = Kusama;
+	/// The RialtoParachain network ID, associated with Westend.
+	pub const ThisNetwork: NetworkId = Westend;
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -417,11 +422,40 @@ pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNet
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
 pub type XcmRouter = (
-	// Two routers - use UMP to communicate with the relay chain:
+	// UMP is used to communicate with the relay chain.
 	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, (), ()>,
-	// ..and XCMP to communicate with the sibling chains.
+	// XCMP is used to communicate with the sibling chains.
 	XcmpQueue,
+	// Bridge is used to communicate with other relay chain (Millau).
+	XcmBridgeAdapter<ToMillauBridge>,
 );
+
+/// With-Millau bridge.
+pub struct ToMillauBridge;
+
+impl XcmBridge for ToMillauBridge {
+	type MessageBridge = WithMillauMessageBridge;
+	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithMillauMessagesInstance>;
+
+	fn universal_location() -> InteriorMultiLocation {
+		UniversalLocation::get()
+	}
+
+	fn verify_destination(dest: &MultiLocation) -> bool {
+		matches!(*dest, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == MillauNetwork::get())
+	}
+
+	fn build_destination() -> MultiLocation {
+		let dest: InteriorMultiLocation = MillauNetwork::get().into();
+		let here = UniversalLocation::get();
+		let route = dest.relative_to(&here);
+		route
+	}
+
+	fn xcm_lane() -> bp_messages::LaneId {
+		[0, 0, 0, 0]
+	}
+}
 
 impl pallet_xcm::Config for Runtime {
 	type Event = Event;
