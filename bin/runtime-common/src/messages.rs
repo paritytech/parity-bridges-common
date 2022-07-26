@@ -575,8 +575,20 @@ pub mod source {
 				&msg,
 				T::MessageBridge::RELAYER_FEE_PERCENT,
 				None,
-			)
-			.map_err(SendError::Transport)?;
+			);
+			let fee = match fee {
+				Ok(fee) => fee,
+				Err(e) => {
+					log::trace!(
+						target: "runtime::bridge",
+						"Failed to comupte fee for XCM message to {:?}: {:?}",
+						T::MessageBridge::BRIDGED_CHAIN_ID,
+						e,
+					);
+					*dest = Some(d);
+					return Err(SendError::Transport(e))
+				},
+			};
 			let fee_assets = MultiAssets::from((Here, fee));
 
 			Ok(((fee, msg), fee_assets))

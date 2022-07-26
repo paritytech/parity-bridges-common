@@ -19,7 +19,7 @@
 // TODO: this is almost exact copy of `millau_messages.rs` from Rialto runtime.
 // Should be extracted to a separate crate and reused here.
 
-use crate::Runtime;
+use crate::{OriginCaller, Runtime};
 
 use bp_messages::{
 	source_chain::{SenderOrigin, TargetHeaderChain},
@@ -137,7 +137,22 @@ impl messages::ThisChainWithMessages for RialtoParachain {
 	>;
 
 	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
-		send_origin.linked_account().is_some() && (*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1])
+		let here_location = xcm::v3::MultiLocation::from(crate::UniversalLocation::get());
+		match send_origin.caller {
+			OriginCaller::PolkadotXcm(pallet_xcm::Origin::Xcm(ref location))
+				if *location == here_location =>
+			{
+				log::trace!(target: "runtime::bridge", "Verifying message sent using XCM pallet to Millau");
+			},
+			_ => {
+				// keep in mind that in this case all messages are free (in term of fees)
+				// => it's just to keep testing bridge on our test deployments until we'll have a
+				// better option
+				log::trace!(target: "runtime::bridge", "Verifying message sent using messages pallet to Millau");
+			},
+		}
+
+		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
@@ -294,5 +309,17 @@ impl MessagesParameter for RialtoParachainToMillauMessagesParameter {
 				ref conversion_rate,
 			) => MillauToRialtoParachainConversionRate::set(conversion_rate),
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn my_test() {
+		println!("{}", messages::source::maximal_message_size::<WithMillauMessageBridge>());
+		// ^^^ 1_048_576
+		//     1_048_576
 	}
 }

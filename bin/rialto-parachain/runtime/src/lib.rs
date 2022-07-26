@@ -423,10 +423,6 @@ pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNet
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
 pub type XcmRouter = (
-	// UMP is used to communicate with the relay chain.
-	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, (), ()>,
-	// XCMP is used to communicate with the sibling chains.
-	XcmpQueue,
 	// Bridge is used to communicate with other relay chain (Millau).
 	XcmBridgeAdapter<ToMillauBridge>,
 );
@@ -834,3 +830,30 @@ cumulus_pallet_parachain_system::register_validate_block!(
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 	CheckInherents = CheckInherents,
 );
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use codec::Encode;
+
+	fn new_test_ext() -> sp_io::TestExternalities {
+		sp_io::TestExternalities::new(
+			frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap(),
+		)
+	}
+
+	#[test]
+	fn xcm_messages_to_millau_are_sent() {
+		new_test_ext().execute_with(|| {
+			// the encoded message (origin ++ xcm) is 0x010109020419A8
+			let dest = (Parent, X1(GlobalConsensus(MillauNetwork::get())));
+			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
+
+			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
+			let expected_fee = MultiAssets::from((Here, Fungibility::Fungible(4_345_002_552_u128)));
+			let expected_hash =
+				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
+			assert_eq!(send_result, Ok((expected_hash, expected_fee)),);
+		})
+	}
+}

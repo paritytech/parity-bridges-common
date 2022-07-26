@@ -229,7 +229,7 @@ impl XcmBridge for ToRialtoParachainBridge {
 	}
 
 	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == RialtoParachainNetwork::get())
+		matches!(*dest, MultiLocation { parents: 1, interior: X2(GlobalConsensus(r), Parachain(2000u32)) } if r == RialtoNetwork::get())
 	}
 
 	fn build_destination() -> MultiLocation {
@@ -265,6 +265,21 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			// the encoded message (origin ++ xcm) is 0x010109020419A8
 			let dest = (Parent, X1(GlobalConsensus(RialtoNetwork::get())));
+			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
+
+			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
+			let expected_fee = MultiAssets::from((Here, 4_345_002_552_u64));
+			let expected_hash =
+				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
+			assert_eq!(send_result, Ok((expected_hash, expected_fee)),);
+		})
+	}
+
+	#[test]
+	fn xcm_messages_to_rialto_parachain_are_sent() {
+		new_test_ext().execute_with(|| {
+			// the encoded message (origin ++ xcm) is 0x010109020419A8
+			let dest = (Parent, X2(GlobalConsensus(RialtoNetwork::get()), Parachain(2000u32)));
 			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
 
 			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
