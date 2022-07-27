@@ -836,6 +836,12 @@ cumulus_pallet_parachain_system::register_validate_block!(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_messages::{
+		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
+		MessageKey,
+	};
+	use bp_runtime::messages::MessageDispatchResult;
+	use bridge_runtime_common::messages::target::FromBridgedChainMessageDispatch;
 	use codec::Encode;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
@@ -856,6 +862,42 @@ mod tests {
 			let expected_hash =
 				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
 			assert_eq!(send_result, Ok((expected_hash, expected_fee)),);
+		})
+	}
+
+	#[test]
+	fn xcm_messages_from_millau_are_dispatched() {
+		type XcmExecutor = xcm_executor::XcmExecutor<XcmConfig>;
+		type MessageDispatcher = FromBridgedChainMessageDispatch<
+			WithMillauMessageBridge,
+			XcmExecutor,
+			XcmWeigher,
+			frame_support::traits::ConstU64<BASE_XCM_WEIGHT>,
+		>;
+
+		new_test_ext().execute_with(|| {
+			let location: MultiLocation =
+				(Parent, X1(GlobalConsensus(MillauNetwork::get()))).into();
+			let xcm: Xcm<Call> = vec![Instruction::Trap(42)].into();
+
+			let mut incoming_message = DispatchMessage {
+				key: MessageKey { lane_id: [0, 0, 0, 0], nonce: 1 },
+				data: DispatchMessageData { payload: Ok((location, xcm).into()), fee: 0 },
+			};
+
+			let dispatch_weight = MessageDispatcher::dispatch_weight(&mut incoming_message);
+			assert_eq!(dispatch_weight, 1_000_000_000);
+
+			let dispatch_result =
+				MessageDispatcher::dispatch(&AccountId::from([0u8; 32]), incoming_message);
+			assert_eq!(
+				dispatch_result,
+				MessageDispatchResult {
+					dispatch_result: true,
+					unspent_weight: 0,
+					dispatch_fee_paid_during_dispatch: false,
+				}
+			);
 		})
 	}
 }

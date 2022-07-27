@@ -264,33 +264,23 @@ mod tests {
 	}
 
 	#[test]
-	fn xcm_messages_to_rialto_are_sent() {
+	fn xcm_messages_are_sent_using_bridge_router() {
 		new_test_ext().execute_with(|| {
-			// the encoded message (origin ++ xcm) is 0x010109020419A8
-			let dest = (Parent, X1(GlobalConsensus(RialtoNetwork::get())));
 			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
-
-			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
 			let expected_fee = MultiAssets::from((Here, 4_345_002_552_u64));
 			let expected_hash =
 				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
-			assert_eq!(send_result, Ok((expected_hash, expected_fee)),);
-		})
-	}
 
-	#[test]
-	fn xcm_messages_to_rialto_parachain_are_sent() {
-		new_test_ext().execute_with(|| {
-			// the encoded message (origin ++ xcm) is 0x010109020419A8
+			// message 1 to Rialto
+			let dest = (Parent, X1(GlobalConsensus(RialtoNetwork::get())));
+			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm.clone());
+			assert_eq!(send_result, Ok((expected_hash, expected_fee.clone())));
+
+			// message 2 to RialtoParachain (expected hash is the same, since other lane is used)
 			let dest =
 				(Parent, X2(GlobalConsensus(RialtoNetwork::get()), Parachain(RIALTO_PARACHAIN_ID)));
-			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
-
 			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
-			let expected_fee = MultiAssets::from((Here, 4_345_002_552_u64));
-			let expected_hash =
-				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
-			assert_eq!(send_result, Ok((expected_hash, expected_fee)),);
+			assert_eq!(send_result, Ok((expected_hash, expected_fee)));
 		})
 	}
 
