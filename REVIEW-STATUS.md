@@ -8,7 +8,6 @@
 - [Added tracked parachains filter](https://github.com/paritytech/parity-bridges-common/pull/1432);
 - [Parachains pallet benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1436);
 - [remove duplicate parachain heads exension](https://github.com/paritytech/parity-bridges-common/pull/1444);
-- [Signed extension for rejecting obsolete messages pallet transactions](https://github.com/paritytech/parity-bridges-common/pull/1446);
 - [Separate signers for different complex relay layers](https://github.com/paritytech/parity-bridges-common/pull/1465);
 - [Fix on-different-forks metrics during initialization](https://github.com/paritytech/parity-bridges-common/pull/1468);
 - [Introduce bridge relayers pallet](https://github.com/paritytech/parity-bridges-common/pull/1513).
