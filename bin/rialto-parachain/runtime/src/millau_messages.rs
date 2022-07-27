@@ -313,15 +313,3 @@ impl MessagesParameter for RialtoParachainToMillauMessagesParameter {
 		}
 	}
 }
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn my_test() {
-		println!("{}", messages::source::maximal_message_size::<WithMillauMessageBridge>());
-		// ^^^ 1_048_576
-		//     1_048_576
-	}
-}

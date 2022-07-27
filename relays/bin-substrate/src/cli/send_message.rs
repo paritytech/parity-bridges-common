@@ -288,11 +288,4 @@ mod tests {
 			crate::cli::encode_message::Message::Sized { size: ExplicitOrMaximal::Maximal }
 		);
 	}
-
-	#[test]
-	fn my_test() {
-		// 0x020419ac
-		let xcm = xcm::VersionedXcm::<()>::V3(vec![xcm::v3::Instruction::Trap(43)].into());
-		println!("XCM: {:?}", crate::cli::HexBytes(xcm.encode()));
-	}
 }
