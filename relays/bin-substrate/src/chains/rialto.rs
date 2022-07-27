@@ -39,7 +39,7 @@ impl CliEncodeMessage for Rialto {
 					(Parent, X1(GlobalConsensus(rialto_runtime::xcm_config::MillauNetwork::get())));
 				rialto_runtime::Call::XcmPallet(rialto_runtime::XcmCall::send {
 					dest: Box::new(dest.into()),
-					message: Box::new(message.into()),
+					message: Box::new(message),
 				})
 				.into()
 			},
