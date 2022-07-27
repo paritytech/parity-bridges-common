@@ -12,7 +12,6 @@
 - [Separate signers for different complex relay layers](https://github.com/paritytech/parity-bridges-common/pull/1465);
 - [Fix on-different-forks metrics during initialization](https://github.com/paritytech/parity-bridges-common/pull/1468);
 - [Store both block number and hash in best finalized storage value](https://github.com/paritytech/parity-bridges-common/pull/1475);
-- [Parachain loop metrics](https://github.com/paritytech/parity-bridges-common/pull/1484);
 - [Introduce bridge relayers pallet](https://github.com/paritytech/parity-bridges-common/pull/1513).
 
 ## Code that need security audit
