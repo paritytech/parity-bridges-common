@@ -999,6 +999,7 @@ dependencies = [
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
  "pallet-transaction-payment",
+ "pallet-xcm",
  "parity-scale-codec",
  "scale-info",
  "sp-api",
@@ -11804,6 +11805,7 @@ dependencies = [
  "strum 0.21.0",
  "substrate-relay-helper",
  "tempfile",
+ "xcm",
 ]
 
 [[package]]

@@ -53,7 +53,7 @@ do
 
 	# send regular message
 	echo "Sending Message from Rialto to Millau"
-	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE $CONVERSION_RATE_OVERRIDE raw 010109030419A8 2>&1`
+	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE $CONVERSION_RATE_OVERRIDE raw 020419ac 2>&1`
 	echo $SEND_MESSAGE_OUTPUT
 	if [ "$CONVERSION_RATE_OVERRIDE" = "--conversion-rate-override metric" ]; then
 		ACTUAL_CONVERSION_RATE_REGEX="conversion rate override: ([0-9\.]+)"
@@ -72,7 +72,7 @@ do
 		$SEND_MESSAGE \
 			--lane $SECONDARY_MESSAGE_LANE \
 			$CONVERSION_RATE_OVERRIDE \
-			raw 010109030419A8
+			raw 020419ac
 	fi
 
 	# every other hour we're sending 3 large (size, weight, size+weight) messages
@@ -96,7 +96,7 @@ do
 			$SEND_MESSAGE \
 				--lane $MESSAGE_LANE \
 				$CONVERSION_RATE_OVERRIDE \
-				raw 010109030419A8
+				raw 020419ac
 		done
 
 	fi

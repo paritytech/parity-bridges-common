@@ -84,6 +84,7 @@ services:
   relay-messages-rialto-to-millau-generator:
     <<: *sub-bridge-relay
     environment:
+      RUST_LOG: bridge=trace
       MSG_EXCHANGE_GEN_SECONDARY_LANE: "00000001"
     entrypoint: /entrypoints/relay-messages-to-millau-generator-entrypoint.sh
     ports:
