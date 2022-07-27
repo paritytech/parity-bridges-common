@@ -37,12 +37,10 @@ impl CliEncodeMessage for Rialto {
 			bridge::RIALTO_TO_MILLAU_INDEX => {
 				let dest =
 					(Parent, X1(GlobalConsensus(rialto_runtime::xcm_config::MillauNetwork::get())));
-				rialto_runtime::Call::XcmPallet(
-					rialto_runtime::XcmCall::send {
-						dest: Box::new(dest.into()),
-						message: Box::new(message.into()),
-					},
-				)
+				rialto_runtime::Call::XcmPallet(rialto_runtime::XcmCall::send {
+					dest: Box::new(dest.into()),
+					message: Box::new(message.into()),
+				})
 				.into()
 			},
 			_ => anyhow::bail!(
