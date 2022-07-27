@@ -9,7 +9,8 @@
 - [Parachains pallet benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1436);
 - [Separate signers for different complex relay layers](https://github.com/paritytech/parity-bridges-common/pull/1465);
 - [Fix on-different-forks metrics during initialization](https://github.com/paritytech/parity-bridges-common/pull/1468);
-- [Introduce bridge relayers pallet](https://github.com/paritytech/parity-bridges-common/pull/1513).
+- [Introduce bridge relayers pallet](https://github.com/paritytech/parity-bridges-common/pull/1513);
+- [Send messages using xcm pallet](https://github.com/paritytech/parity-bridges-common/pull/1518).
 
 ## Code that need security audit
 
