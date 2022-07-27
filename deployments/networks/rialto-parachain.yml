@@ -77,7 +77,7 @@ services:
       - "20644:9944"
 
   rialto-parachain-registrar:
-    image: local/substrate-relay
+    image: paritytech/substrate-relay
     entrypoint: /entrypoints/rialto-parachain-registrar-entrypoint.sh
     volumes:
       - ./networks/entrypoints:/entrypoints
