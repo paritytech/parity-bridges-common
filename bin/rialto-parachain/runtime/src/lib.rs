@@ -26,7 +26,9 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
+use crate::millau_messages::{
+	ToMillauMessagePayload, WithMillauMessageBridge, DEFAULT_XCM_LANE_TO_MILLAU,
+};
 
 use bridge_runtime_common::messages::{
 	source::{estimate_message_dispatch_and_delivery_fee, XcmBridge, XcmBridgeAdapter},
@@ -449,7 +451,7 @@ impl XcmBridge for ToMillauBridge {
 	}
 
 	fn xcm_lane() -> bp_messages::LaneId {
-		[0, 0, 0, 0]
+		DEFAULT_XCM_LANE_TO_MILLAU
 	}
 }
 

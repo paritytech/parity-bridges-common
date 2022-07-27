@@ -22,6 +22,7 @@ use crate::cli::{
 	CliChain,
 };
 use bp_messages::LaneId;
+use bp_rialto_parachain::RIALTO_PARACHAIN_ID;
 use bp_runtime::EncodedOrDecodedCall;
 use relay_millau_client::Millau;
 use relay_substrate_client::BalanceOf;
@@ -48,7 +49,7 @@ impl CliEncodeMessage for Millau {
 					Parent,
 					X2(
 						GlobalConsensus(millau_runtime::xcm_config::RialtoNetwork::get()),
-						Parachain(2000u32.into()),
+						Parachain(RIALTO_PARACHAIN_ID.into()),
 					),
 				);
 				millau_runtime::Call::XcmPallet(millau_runtime::XcmCall::send {

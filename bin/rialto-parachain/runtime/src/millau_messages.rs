@@ -40,6 +40,8 @@ use scale_info::TypeInfo;
 use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
 use sp_std::convert::TryFrom;
 
+/// Default lane that is used to send messages to Millau.
+pub const DEFAULT_XCM_LANE_TO_MILLAU: LaneId = [0, 0, 0, 0];
 /// Initial value of `MillauToRialtoParachainConversionRate` parameter.
 pub const INITIAL_MILLAU_TO_RIALTO_PARACHAIN_CONVERSION_RATE: FixedU128 =
 	FixedU128::from_inner(FixedU128::DIV);

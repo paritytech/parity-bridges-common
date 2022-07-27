@@ -17,13 +17,16 @@
 //! XCM configurations for the Millau runtime.
 
 use super::{
-	rialto_messages::WithRialtoMessageBridge,
-	rialto_parachain_messages::WithRialtoParachainMessageBridge, AccountId, AllPalletsWithSystem,
-	Balances, Call, Event, Origin, Runtime, WithRialtoMessagesInstance,
-	WithRialtoParachainMessagesInstance, XcmPallet,
+	rialto_messages::{WithRialtoMessageBridge, DEFAULT_XCM_LANE_TO_RIALTO},
+	rialto_parachain_messages::{
+		WithRialtoParachainMessageBridge, DEFAULT_XCM_LANE_TO_RIALTO_PARACHAIN,
+	},
+	AccountId, AllPalletsWithSystem, Balances, Call, Event, Origin, Runtime,
+	WithRialtoMessagesInstance, WithRialtoParachainMessagesInstance, XcmPallet,
 };
 use bp_messages::LaneId;
 use bp_millau::WeightToFee;
+use bp_rialto_parachain::RIALTO_PARACHAIN_ID;
 use bridge_runtime_common::messages::source::{XcmBridge, XcmBridgeAdapter};
 use frame_support::{
 	parameter_types,
@@ -212,7 +215,7 @@ impl XcmBridge for ToRialtoBridge {
 	}
 
 	fn xcm_lane() -> LaneId {
-		[0, 0, 0, 0]
+		DEFAULT_XCM_LANE_TO_RIALTO
 	}
 }
 
@@ -229,7 +232,7 @@ impl XcmBridge for ToRialtoParachainBridge {
 	}
 
 	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X2(GlobalConsensus(r), Parachain(2000u32)) } if r == RialtoNetwork::get())
+		matches!(*dest, MultiLocation { parents: 1, interior: X2(GlobalConsensus(r), Parachain(RIALTO_PARACHAIN_ID)) } if r == RialtoNetwork::get())
 	}
 
 	fn build_destination() -> MultiLocation {
@@ -239,7 +242,7 @@ impl XcmBridge for ToRialtoParachainBridge {
 	}
 
 	fn xcm_lane() -> LaneId {
-		[0, 0, 0, 0]
+		DEFAULT_XCM_LANE_TO_RIALTO_PARACHAIN
 	}
 }
 
@@ -279,7 +282,8 @@ mod tests {
 	fn xcm_messages_to_rialto_parachain_are_sent() {
 		new_test_ext().execute_with(|| {
 			// the encoded message (origin ++ xcm) is 0x010109020419A8
-			let dest = (Parent, X2(GlobalConsensus(RialtoNetwork::get()), Parachain(2000u32)));
+			let dest =
+				(Parent, X2(GlobalConsensus(RialtoNetwork::get()), Parachain(RIALTO_PARACHAIN_ID)));
 			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
 
 			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
