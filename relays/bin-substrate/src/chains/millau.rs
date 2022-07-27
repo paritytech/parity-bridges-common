@@ -40,7 +40,7 @@ impl CliEncodeMessage for Millau {
 					(Parent, X1(GlobalConsensus(millau_runtime::xcm_config::RialtoNetwork::get())));
 				millau_runtime::Call::XcmPallet(millau_runtime::XcmCall::send {
 					dest: Box::new(dest.into()),
-					message: Box::new(message.into()),
+					message: Box::new(message),
 				})
 				.into()
 			},
@@ -49,12 +49,12 @@ impl CliEncodeMessage for Millau {
 					Parent,
 					X2(
 						GlobalConsensus(millau_runtime::xcm_config::RialtoNetwork::get()),
-						Parachain(RIALTO_PARACHAIN_ID.into()),
+						Parachain(RIALTO_PARACHAIN_ID),
 					),
 				);
 				millau_runtime::Call::XcmPallet(millau_runtime::XcmCall::send {
 					dest: Box::new(dest.into()),
-					message: Box::new(message.into()),
+					message: Box::new(message),
 				})
 				.into()
 			},

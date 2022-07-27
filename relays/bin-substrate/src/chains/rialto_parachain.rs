@@ -40,7 +40,7 @@ impl CliEncodeMessage for RialtoParachain {
 				rialto_parachain_runtime::Call::PolkadotXcm(
 					rialto_parachain_runtime::XcmCall::send {
 						dest: Box::new(dest.into()),
-						message: Box::new(message.into()),
+						message: Box::new(message),
 					},
 				)
 				.into()
