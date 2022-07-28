@@ -38,6 +38,11 @@ function show_help () {
   echo "Options:"
   echo "  --no-monitoring                            Disable monitoring"
   echo "  --no-ui                                    Disable UI"
+  echo "  --local                                    Use prebuilt local images when starting relay and nodes"
+  echo "  --local-substrate-relay                    Use prebuilt local/substrate-realy image when starting relay"
+  echo "  --local-rialto                             Use prebuilt local/rialto-bridge-node image when starting nodes"
+  echo "  --local-rialto-parachain                   Use prebuilt local/rialto-parachain-collator image when starting nodes"
+  echo "  --local-millau                             Use prebuilt local/millau-bridge-node image when starting nodes"
   echo " "
   echo "You can start multiple bridges at once by passing several bridge names:"
   echo "  ./run.sh rialto-millau rialto-parachain-millau westend-millau [stop|update]"
@@ -68,6 +73,34 @@ do
       ;;
     --no-ui)
       UI=""
+      shift
+      continue
+      ;;
+    --local)
+      export SUBSTRATE_RELAY_IMAGE=local/substrate-relay
+      export RIALTO_BRIDGE_NODE_IMAGE=local/rialto-bridge-node
+      export RIALTO_PARACHAIN_COLLATOR_IMAGE=local/rialto-parachain-collator
+      export MILLAU_BRIDGE_NODE_IMAGE=local/millau-bridge-node
+      shift
+      continue
+      ;;
+    --local-substrate-relay)
+      export SUBSTRATE_RELAY_IMAGE=local/substrate-relay
+      shift
+      continue
+      ;;
+    --local-rialto)
+      export RIALTO_BRIDGE_NODE_IMAGE=local/rialto-bridge-node
+      shift
+      continue
+      ;;
+    --local-rialto-parachain)
+      export RIALTO_PARACHAIN_COLLATOR_IMAGE=local/rialto-parachain-collator
+      shift
+      continue
+      ;;
+    --local-millau)
+      export MILLAU_BRIDGE_NODE_IMAGE=local/millau-bridge-node
       shift
       continue
       ;;

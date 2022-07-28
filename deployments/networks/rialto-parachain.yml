@@ -5,7 +5,7 @@
 version: '3.5'
 services:
   rialto-parachain-collator-alice: &rialto-parachain-collator
-    image: paritytech/rialto-parachain-collator
+    image: ${RIALTO_PARACHAIN_COLLATOR_IMAGE:-paritytech/rialto-parachain-collator}
     entrypoint: >
       /home/user/rialto-parachain-collator
       --alice
@@ -77,7 +77,7 @@ services:
       - "20644:9944"
 
   rialto-parachain-registrar:
-    image: paritytech/substrate-relay
+    image: ${SUBSTRATE_RELAY_IMAGE:-paritytech/substrate-relay}
     entrypoint: /entrypoints/rialto-parachain-registrar-entrypoint.sh
     volumes:
       - ./networks/entrypoints:/entrypoints
