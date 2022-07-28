@@ -33,6 +33,7 @@ function show_help () {
   echo "  ./run.sh rialto-millau [stop|update]            Run Rialto <> Millau Networks & Bridge"
   echo "  ./run.sh rialto-parachain-millau [stop|update]  Run RialtoParachain <> Millau Networks & Bridge"
   echo "  ./run.sh westend-millau [stop|update]           Run Westend -> Millau Networks & Bridge"
+  echo "  ./run.sh everything|all [stop|update]           Run all available Networks & Bridges"
   echo " "
   echo "Options:"
   echo "  --no-monitoring                            Disable monitoring"
@@ -46,6 +47,11 @@ function show_help () {
 RIALTO=' -f ./networks/rialto.yml'
 RIALTO_PARACHAIN=' -f ./networks/rialto-parachain.yml'
 MILLAU=' -f ./networks/millau.yml'
+
+RIALTO_MILLAU='rialto-millau'
+RIALTO_PARACHAIN_MILLAU='rialto-parachain-millau'
+WESTEND_MILLAU='westend-millau'
+
 MONITORING=' -f ./monitoring/docker-compose.yml'
 UI=' -f ./ui/docker-compose.yml'
 
@@ -65,28 +71,28 @@ do
       shift
       continue
       ;;
+    everything|all)
+      BRIDGES=(${RIALTO_MILLAU:-} ${RIALTO_PARACHAIN_MILLAU:-} ${WESTEND_MILLAU:-})
+      NETWORKS="${RIALTO:-} ${RIALTO_PARACHAIN:-} ${MILLAU:-}"
+      unset RIALTO RIALTO_PARACHAIN MILLAU RIALTO_MILLAU RIALTO_PARACHAIN_MILLAU WESTEND_MILLAU
+      shift
+      ;;
     rialto-millau)
-      BRIDGES+=($i)
-      NETWORKS+=${RIALTO}
-      RIALTO=''
-      NETWORKS+=${MILLAU}
-      MILLAU=''
+      BRIDGES+=(${RIALTO_MILLAU:-})
+      NETWORKS+="${RIALTO:-} ${MILLAU:-}"
+      unset RIALTO MILLAU RIALTO_MILLAU
       shift
       ;;
     rialto-parachain-millau)
-      BRIDGES+=($i)
-      NETWORKS+=${RIALTO}
-      RIALTO=''
-      NETWORKS+=${RIALTO_PARACHAIN}
-      RIALTO_PARACHAIN=''
-      NETWORKS+=${MILLAU}
-      MILLAU=''
+      BRIDGES+=(${RIALTO_PARACHAIN_MILLAU:-})
+      NETWORKS+="${RIALTO:-} ${RIALTO_PARACHAIN:-} ${MILLAU:-}"
+      unset RIALTO RIALTO_PARACHAIN MILLAU RIALTO_PARACHAIN_MILLAU
       shift
       ;;
     westend-millau)
-      BRIDGES+=($i)
-      NETWORKS+=${MILLAU}
-      MILLAU=''
+      BRIDGES+=(${WESTEND_MILLAU:-})
+      NETWORKS+=${MILLAU:-}
+      unset MILLAU WESTEND_MILLAU
       shift
       ;;
     start|stop|update)
