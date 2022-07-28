@@ -3,7 +3,7 @@
 version: '3.5'
 services:
   relay-headers-westend-to-millau-1:
-    image: paritytech/substrate-relay
+    image: ${SUBSTRATE_RELAY_IMAGE:-paritytech/substrate-relay}
     entrypoint: /entrypoints/relay-headers-westend-to-millau-entrypoint.sh
     volumes:
       - ./bridges/westend-millau/entrypoints:/entrypoints
@@ -15,7 +15,7 @@ services:
       - millau-node-alice
 
   relay-headers-westend-to-millau-2:
-    image: paritytech/substrate-relay
+    image: ${SUBSTRATE_RELAY_IMAGE:-paritytech/substrate-relay}
     entrypoint: /entrypoints/relay-headers-westend-to-millau-entrypoint.sh
     volumes:
       - ./bridges/westend-millau/entrypoints:/entrypoints
@@ -28,7 +28,7 @@ services:
       - millau-node-alice
 
   relay-parachains-westend-to-millau-1:
-    image: paritytech/substrate-relay
+    image: ${SUBSTRATE_RELAY_IMAGE:-paritytech/substrate-relay}
     entrypoint: /entrypoints/relay-parachains-westend-to-millau-entrypoint.sh
     volumes:
       - ./bridges/westend-millau/entrypoints:/entrypoints
@@ -40,7 +40,7 @@ services:
       - millau-node-alice
 
   relay-parachains-westend-to-millau-2:
-    image: paritytech/substrate-relay
+    image: ${SUBSTRATE_RELAY_IMAGE:-paritytech/substrate-relay}
     entrypoint: /entrypoints/relay-parachains-westend-to-millau-entrypoint.sh
     volumes:
       - ./bridges/westend-millau/entrypoints:/entrypoints

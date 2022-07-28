@@ -8,7 +8,7 @@
 version: '3.5'
 services:
   millau-node-alice: &millau-bridge-node
-    image: paritytech/millau-bridge-node
+    image: ${MILLAU_BRIDGE_NODE_IMAGE:-paritytech/millau-bridge-node}
     entrypoint:
       - /home/user/millau-bridge-node
       - --execution=Native
