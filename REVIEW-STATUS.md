@@ -5,7 +5,6 @@
 - [Add RialtoParachain <> Millau bridge to test deployments](https://github.com/paritytech/parity-bridges-common/pull/1412);
 - [Ensure that the bridge GRANDPA pallet is initialized in the finality relay](https://github.com/paritytech/parity-bridges-common/pull/1423);
 - [Get dispatch weight from the target chain (when DispatchFeePayment::AtTargetChain is used)](https://github.com/paritytech/parity-bridges-common/pull/1430);
-- [Added tracked parachains filter](https://github.com/paritytech/parity-bridges-common/pull/1432);
 - [Parachains pallet benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1436);
 - [Introduce bridge relayers pallet](https://github.com/paritytech/parity-bridges-common/pull/1513);
 - [Send messages using xcm pallet](https://github.com/paritytech/parity-bridges-common/pull/1518).
