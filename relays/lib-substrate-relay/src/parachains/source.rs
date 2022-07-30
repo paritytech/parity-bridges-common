@@ -22,16 +22,15 @@ use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
+use bp_runtime::HeaderIdProvider;
 use codec::Decode;
 use parachains_relay::{
-	parachains_loop::{ParaHashAtSource, SourceClient},
-	parachains_loop_metrics::ParachainsLoopMetrics,
+	parachains_loop::SourceClient, parachains_loop_metrics::ParachainsLoopMetrics,
 };
 use relay_substrate_client::{
 	Chain, Client, Error as SubstrateError, HeaderIdOf, HeaderOf, RelayChain,
 };
-use relay_utils::relay_loop::Client as RelayClient;
-use sp_runtime::traits::Header as HeaderT;
+use relay_utils::{relay_loop::Client as RelayClient, NoopOption};
 
 /// Shared updatable reference to the maximal parachain header id that we want to sync from the
 /// source.
@@ -41,16 +40,16 @@ pub type RequiredHeaderIdRef<C> = Arc<Mutex<Option<HeaderIdOf<C>>>>;
 #[derive(Clone)]
 pub struct ParachainsSource<P: SubstrateParachainsPipeline> {
 	client: Client<P::SourceRelayChain>,
-	maximal_header_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
+	max_head_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
 }
 
 impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 	/// Creates new parachains source client.
 	pub fn new(
 		client: Client<P::SourceRelayChain>,
-		maximal_header_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
+		max_head_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
 	) -> Self {
-		ParachainsSource { client, maximal_header_id }
+		ParachainsSource { client, max_head_id }
 	}
 
 	/// Returns reference to the underlying RPC client.
@@ -58,12 +57,23 @@ impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 		&self.client
 	}
 
+	/// Returns the `max_header_id` as an `NoopOption`
+	async fn max_head_id(&self) -> NoopOption<HeaderIdOf<P::SourceParachain>> {
+		match self.max_head_id {
+			Some(ref max_head_id_guard) => match *max_head_id_guard.lock().await {
+				Some(max_head_id) => NoopOption::Some(max_head_id),
+				None => NoopOption::Noop,
+			},
+			None => NoopOption::None,
+		}
+	}
+
 	/// Return decoded head of given parachain.
-	pub async fn on_chain_parachain_header(
+	pub async fn on_chain_para_head_id(
 		&self,
 		at_block: HeaderIdOf<P::SourceRelayChain>,
 		para_id: ParaId,
-	) -> Result<Option<HeaderOf<P::SourceParachain>>, SubstrateError> {
+	) -> Result<Option<HeaderIdOf<P::SourceParachain>>, SubstrateError> {
 		let storage_key =
 			parachain_head_storage_key_at_source(P::SourceRelayChain::PARAS_PALLET_NAME, para_id);
 		let para_head = self.client.raw_storage_value(storage_key, Some(at_block.1)).await?;
@@ -72,8 +82,8 @@ impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 			Some(para_head) => para_head,
 			None => return Ok(None),
 		};
-
-		Ok(Some(Decode::decode(&mut &para_head.0[..])?))
+		let para_head: HeaderOf<P::SourceParachain> = Decode::decode(&mut &para_head.0[..])?;
+		Ok(Some(para_head.id()))
 	}
 }
 
@@ -105,7 +115,7 @@ where
 		at_block: HeaderIdOf<P::SourceRelayChain>,
 		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
-	) -> Result<ParaHashAtSource, Self::Error> {
+	) -> Result<NoopOption<ParaHash>, Self::Error> {
 		// we don't need to support many parachains now
 		if para_id.0 != P::SOURCE_PARACHAIN_PARA_ID {
 			return Err(SubstrateError::Custom(format!(
@@ -115,44 +125,28 @@ where
 			)))
 		}
 
-		let mut para_hash_at_source = ParaHashAtSource::None;
-		let mut para_header_number_at_source = None;
-		match self.on_chain_parachain_header(at_block, para_id).await? {
-			Some(parachain_header) => {
-				para_hash_at_source = ParaHashAtSource::Some(parachain_header.hash());
-				para_header_number_at_source = Some(*parachain_header.number());
-				// never return head that is larger than requested. This way we'll never sync
-				// headers past `maximal_header_id`
-				if let Some(ref maximal_header_id) = self.maximal_header_id {
-					let maximal_header_id = *maximal_header_id.lock().await;
-					match maximal_header_id {
-						Some(maximal_header_id)
-							if *parachain_header.number() > maximal_header_id.0 =>
-						{
-							// we don't want this header yet => let's report previously requested
-							// header
-							para_hash_at_source = ParaHashAtSource::Some(maximal_header_id.1);
-							para_header_number_at_source = Some(maximal_header_id.0);
-						},
-						Some(_) => (),
-						None => {
-							// on-demand relay has not yet asked us to sync anything let's do that
-							para_hash_at_source = ParaHashAtSource::Unavailable;
-							para_header_number_at_source = None;
-						},
-					}
-				}
-			},
-			None => {},
-		};
-
-		if let (Some(metrics), Some(para_header_number_at_source)) =
-			(metrics, para_header_number_at_source)
-		{
-			metrics.update_best_parachain_block_at_source(para_id, para_header_number_at_source);
+		let mut para_head_id = NoopOption::None;
+		if let Some(on_chain_para_head_id) = self.on_chain_para_head_id(at_block, para_id).await? {
+			// Never return head that is larger than requested. This way we'll never sync
+			// headers past `max_header_id`.
+			para_head_id = match self.max_head_id().await {
+				NoopOption::Noop => NoopOption::Noop,
+				NoopOption::None => {
+					// `max_header_id` is not set. There is no limit.
+					NoopOption::Some(on_chain_para_head_id)
+				},
+				NoopOption::Some(max_head_id) => {
+					// We report at most `max_header_id`.
+					NoopOption::Some(std::cmp::min(on_chain_para_head_id, max_head_id))
+				},
+			}
 		}
 
-		Ok(para_hash_at_source)
+		if let (Some(metrics), NoopOption::Some(para_head_id)) = (metrics, para_head_id) {
+			metrics.update_best_parachain_block_at_source(para_id, para_head_id.0);
+		}
+
+		Ok(para_head_id.map(|para_head_id| para_head_id.1))
 	}
 
 	async fn prove_parachain_heads(

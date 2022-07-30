@@ -389,13 +389,9 @@ where
 		source.client().best_finalized_header().await.map_err(map_source_err)?;
 	let best_finalized_relay_block_id = best_finalized_relay_header.id();
 	let para_header_at_source = source
-		.on_chain_parachain_header(
-			best_finalized_relay_block_id,
-			P::SOURCE_PARACHAIN_PARA_ID.into(),
-		)
+		.on_chain_para_head_id(best_finalized_relay_block_id, P::SOURCE_PARACHAIN_PARA_ID.into())
 		.await
-		.map_err(map_source_err)?
-		.map(|h| h.id());
+		.map_err(map_source_err)?;
 
 	let relay_header_at_source = best_finalized_relay_block_id.0;
 	let relay_header_at_target =
@@ -408,10 +404,9 @@ where
 		.map_err(map_target_err)?;
 
 	let para_header_at_relay_header_at_target = source
-		.on_chain_parachain_header(relay_header_at_target, P::SOURCE_PARACHAIN_PARA_ID.into())
+		.on_chain_para_head_id(relay_header_at_target, P::SOURCE_PARACHAIN_PARA_ID.into())
 		.await
-		.map_err(map_source_err)?
-		.map(|h| h.id());
+		.map_err(map_source_err)?;
 
 	Ok(RelayData {
 		required_para_header: required_header_number,

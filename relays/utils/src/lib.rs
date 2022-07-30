@@ -271,3 +271,28 @@ where
 		},
 	}
 }
+
+/// An extension over rust's `Option` that adds an extra possibility: `Noop`.
+#[derive(Clone, Copy, Debug)]
+pub enum NoopOption<T> {
+	/// If any operation depends on this `NoopOption`, we shouldn't perform it.
+	Noop,
+	/// Same as `Option::None`.
+	None,
+	/// Same as `Option::Some`.
+	Some(T),
+}
+
+impl<T> NoopOption<T> {
+	/// Transform contained value.
+	pub fn map<F, U>(self, f: F) -> NoopOption<U>
+	where
+		F: FnOnce(T) -> U,
+	{
+		match self {
+			NoopOption::Noop => NoopOption::Noop,
+			NoopOption::None => NoopOption::None,
+			NoopOption::Some(val) => NoopOption::Some(f(val)),
+		}
+	}
+}
