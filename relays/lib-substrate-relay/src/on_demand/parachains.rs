@@ -42,7 +42,7 @@ use relay_substrate_client::{
 	TransactionSignScheme,
 };
 use relay_utils::{
-	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId,
+	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId, NoopOption,
 };
 use std::fmt::Debug;
 
@@ -143,7 +143,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 
 	let mut relay_state = RelayState::Idle;
 	let mut required_parachain_header_number = Zero::zero();
-	let required_para_header_number_ref = Arc::new(Mutex::new(None));
+	let required_para_header_number_ref = Arc::new(Mutex::new(NoopOption::Noop));
 
 	let mut restart_relay = true;
 	let parachains_relay_task = futures::future::Fuse::terminated();
@@ -151,7 +151,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 
 	let mut parachains_source = ParachainsSource::<P>::new(
 		source_relay_client.clone(),
-		Some(required_para_header_number_ref.clone()),
+		required_para_header_number_ref.clone(),
 	);
 	let mut parachains_target =
 		ParachainsTarget::<P>::new(target_client.clone(), target_transaction_params.clone());
@@ -253,7 +253,8 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 					.await;
 			},
 			RelayState::RelayingParaHeader(required_para_header) => {
-				*required_para_header_number_ref.lock().await = Some(required_para_header);
+				*required_para_header_number_ref.lock().await =
+					NoopOption::Some(required_para_header);
 			},
 		}
 

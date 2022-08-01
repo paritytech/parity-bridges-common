@@ -34,20 +34,20 @@ use relay_utils::{relay_loop::Client as RelayClient, NoopOption};
 
 /// Shared updatable reference to the maximal parachain header id that we want to sync from the
 /// source.
-pub type RequiredHeaderIdRef<C> = Arc<Mutex<Option<HeaderIdOf<C>>>>;
+pub type RequiredHeaderIdRef<C> = Arc<Mutex<NoopOption<HeaderIdOf<C>>>>;
 
 /// Substrate client as parachain heads source.
 #[derive(Clone)]
 pub struct ParachainsSource<P: SubstrateParachainsPipeline> {
 	client: Client<P::SourceRelayChain>,
-	max_head_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
+	max_head_id: RequiredHeaderIdRef<P::SourceParachain>,
 }
 
 impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 	/// Creates new parachains source client.
 	pub fn new(
 		client: Client<P::SourceRelayChain>,
-		max_head_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
+		max_head_id: RequiredHeaderIdRef<P::SourceParachain>,
 	) -> Self {
 		ParachainsSource { client, max_head_id }
 	}
@@ -55,17 +55,6 @@ impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 	/// Returns reference to the underlying RPC client.
 	pub fn client(&self) -> &Client<P::SourceRelayChain> {
 		&self.client
-	}
-
-	/// Returns the `max_header_id` as an `NoopOption`
-	async fn max_head_id(&self) -> NoopOption<HeaderIdOf<P::SourceParachain>> {
-		match self.max_head_id {
-			Some(ref max_head_id_guard) => match *max_head_id_guard.lock().await {
-				Some(max_head_id) => NoopOption::Some(max_head_id),
-				None => NoopOption::Noop,
-			},
-			None => NoopOption::None,
-		}
 	}
 
 	/// Return decoded head of given parachain.
@@ -129,7 +118,7 @@ where
 		if let Some(on_chain_para_head_id) = self.on_chain_para_head_id(at_block, para_id).await? {
 			// Never return head that is larger than requested. This way we'll never sync
 			// headers past `max_header_id`.
-			para_head_id = match self.max_head_id().await {
+			para_head_id = match *self.max_head_id.lock().await {
 				NoopOption::Noop => NoopOption::Noop,
 				NoopOption::None => {
 					// `max_header_id` is not set. There is no limit.
