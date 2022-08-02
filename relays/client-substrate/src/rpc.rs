@@ -16,7 +16,7 @@
 
 //! The most generic Substrate node RPC interface.
 
-use crate::Chain;
+use crate::{Chain, TransactionStatusOf};
 
 use jsonrpsee::{core::RpcResult, proc_macros::rpc};
 use pallet_transaction_payment_rpc_runtime_api::FeeDetails;
@@ -65,6 +65,9 @@ pub(crate) trait SubstrateAuthor<C> {
 	/// Return vector of pending extrinsics from the transaction pool.
 	#[method(name = "pendingExtrinsics")]
 	async fn pending_extrinsics(&self) -> RpcResult<Vec<Bytes>>;
+	/// Submit and watch for extrinsic state.
+	#[subscription(name = "submitAndWatchExtrinsic", unsubscribe = "unwatchExtrinsic", item = TransactionStatusOf<C>)]
+	fn submit_and_watch_extrinsic(&self, extrinsic: Bytes);
 }
 
 /// RPC methods of Substrate `state` namespace, that we are using.
@@ -97,6 +100,14 @@ pub(crate) trait SubstrateState<C> {
 	) -> RpcResult<ReadProof<C::Hash>>;
 }
 
+/// RPC methods of Substrate `grandpa` namespace, that we are using.
+#[rpc(client, client_bounds(C: Chain), namespace = "grandpa")]
+pub(crate) trait SubstrateGrandpa<C> {
+	/// Subscribe to GRANDPA justifications.
+	#[subscription(name = "subscribeJustifications", unsubscribe = "unsubscribeJustifications", item = Bytes)]
+	fn subscribe_justifications(&self);
+}
+
 /// RPC methods of Substrate `system` frame pallet, that we are using.
 #[rpc(client, client_bounds(C: Chain), namespace = "system")]
 pub(crate) trait SubstrateFrameSystem<C> {
@@ -116,6 +127,6 @@ pub(crate) trait SubstrateTransactionPayment<C> {
 		at_block: Option<C::Hash>,
 	) -> RpcResult<FeeDetails<NumberOrHex>>;
 }
-/*	#[subscription(name = "grandpa_subscribeJustifications", unsubscribe = "grandpa_unsubscribeJustifications", item = Bytes)]
+/*	#[subscription(name = "grandpa_", unsubscribe = "grandpa_", item = Bytes)]
 	fn grandpa_subscribeJustifications(&self) -> Result<()>;
 }*/

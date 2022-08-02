@@ -20,7 +20,8 @@ use crate::{
 	chain::{Chain, ChainWithBalances, TransactionStatusOf},
 	rpc::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFrameSystemClient,
-		SubstrateStateClient, SubstrateSystemClient, SubstrateTransactionPaymentClient,
+		SubstrateGrandpaClient, SubstrateStateClient, SubstrateSystemClient,
+		SubstrateTransactionPaymentClient,
 	},
 	ConnectionParams, Error, HashOf, HeaderIdOf, Result,
 };
@@ -32,8 +33,7 @@ use codec::{Decode, Encode};
 use frame_system::AccountInfo;
 use futures::{SinkExt, StreamExt};
 use jsonrpsee::{
-	core::{client::SubscriptionClientT, DeserializeOwned},
-	types::params::ParamsSer,
+	core::DeserializeOwned,
 	ws_client::{WsClient as RpcClient, WsClientBuilder as RpcClientBuilder},
 };
 use num_traits::{Bounded, Zero};
@@ -447,18 +447,19 @@ impl<C: Chain> Client<C> {
 			.jsonrpsee_execute(move |client| async move {
 				let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
 				let tx_hash = C::Hasher::hash(&extrinsic.0);
-				let subscription = client
-					.subscribe(
-						"author_submitAndWatchExtrinsic",
-						Some(ParamsSer::Array(vec![jsonrpsee::core::to_json_value(extrinsic)
-							.map_err(|e| Error::RpcError(e.into()))?])),
-						"author_unwatchExtrinsic",
-					)
-					.await
-					.map_err(|e| {
-						log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-						e
-					})?;
+				let subscription =
+					SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(&*client, extrinsic)
+						/*.subscribe(
+							"author_submitAndWatchExtrinsic",
+							Some(ParamsSer::Array(vec![jsonrpsee::core::to_json_value(extrinsic)
+								.map_err(|e| Error::RpcError(e.into()))?])),
+							"author_unwatchExtrinsic",
+						)*/
+						.await
+						.map_err(|e| {
+							log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+							e
+						})?;
 				log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 				Ok(subscription)
 			})
@@ -595,13 +596,7 @@ impl<C: Chain> Client<C> {
 	pub async fn subscribe_grandpa_justifications(&self) -> Result<Subscription<Bytes>> {
 		let subscription = self
 			.jsonrpsee_execute(move |client| async move {
-				Ok(client
-					.subscribe(
-						"grandpa_subscribeJustifications",
-						None,
-						"grandpa_unsubscribeJustifications",
-					)
-					.await?)
+				Ok(SubstrateGrandpaClient::<C>::subscribe_justifications(&*client).await?)
 			})
 			.await?;
 		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
