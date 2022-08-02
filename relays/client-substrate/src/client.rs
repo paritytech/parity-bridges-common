@@ -449,12 +449,6 @@ impl<C: Chain> Client<C> {
 				let tx_hash = C::Hasher::hash(&extrinsic.0);
 				let subscription =
 					SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(&*client, extrinsic)
-						/*.subscribe(
-							"author_submitAndWatchExtrinsic",
-							Some(ParamsSer::Array(vec![jsonrpsee::core::to_json_value(extrinsic)
-								.map_err(|e| Error::RpcError(e.into()))?])),
-							"author_unwatchExtrinsic",
-						)*/
 						.await
 						.map_err(|e| {
 							log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
