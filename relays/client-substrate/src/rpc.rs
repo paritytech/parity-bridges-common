@@ -127,6 +127,3 @@ pub(crate) trait SubstrateTransactionPayment<C> {
 		at_block: Option<C::Hash>,
 	) -> RpcResult<FeeDetails<NumberOrHex>>;
 }
-/*	#[subscription(name = "grandpa_", unsubscribe = "grandpa_", item = Bytes)]
-	fn grandpa_subscribeJustifications(&self) -> Result<()>;
-}*/
