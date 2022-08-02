@@ -24,9 +24,7 @@ use bp_polkadot_core::{
 };
 use futures::{future::FutureExt, select};
 use relay_substrate_client::{BlockNumberOf, Chain, HeaderIdOf};
-use relay_utils::{
-	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, NoopOption,
-};
+use relay_utils::{metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient};
 use std::{
 	collections::{BTreeMap, BTreeSet},
 	future::Future,
@@ -54,6 +52,37 @@ pub enum ParachainSyncStrategy {
 	All,
 }
 
+/// Parachain header availability at a certain chain.
+#[derive(Clone, Copy, Debug)]
+pub enum AvailableHeader<T> {
+	/// The client refuses to report parachain head at this moment.
+	///
+	/// It is a "mild" error, which may appear when e.g. on-demand parachains relay is used.
+	/// This variant must be treated as "we don't want to update parachain head value at the
+	/// target chain at this moment".
+	Unavailable,
+	/// There's no parachain header at the relay chain.
+	///
+	/// Normally it means that the parachain is not registered there.
+	Missing,
+	/// Parachain head with given hash is available at the source chain.
+	Available(T),
+}
+
+impl<T> AvailableHeader<T> {
+	/// Transform contained value.
+	pub fn map<F, U>(self, f: F) -> AvailableHeader<U>
+	where
+		F: FnOnce(T) -> U,
+	{
+		match self {
+			AvailableHeader::Unavailable => AvailableHeader::Unavailable,
+			AvailableHeader::Missing => AvailableHeader::Missing,
+			AvailableHeader::Available(val) => AvailableHeader::Available(f(val)),
+		}
+	}
+}
+
 /// Source client used in parachain heads synchronization loop.
 #[async_trait]
 pub trait SourceClient<P: ParachainsPipeline>: RelayClient {
@@ -69,7 +98,7 @@ pub trait SourceClient<P: ParachainsPipeline>: RelayClient {
 		at_block: HeaderIdOf<P::SourceChain>,
 		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
-	) -> Result<NoopOption<ParaHash>, Self::Error>;
+	) -> Result<AvailableHeader<ParaHash>, Self::Error>;
 
 	/// Get parachain heads proof.
 	///
@@ -317,7 +346,7 @@ where
 
 /// Given heads at source and target clients, returns set of heads that are out of sync.
 fn select_parachains_to_update<P: ParachainsPipeline>(
-	heads_at_source: BTreeMap<ParaId, NoopOption<ParaHash>>,
+	heads_at_source: BTreeMap<ParaId, AvailableHeader<ParaHash>>,
 	heads_at_target: BTreeMap<ParaId, Option<BestParaHeadHash>>,
 	best_finalized_relay_block: HeaderIdOf<P::SourceChain>,
 ) -> Vec<ParaId>
@@ -343,12 +372,12 @@ where
 		.zip(heads_at_target.into_iter())
 		.filter(|((para, head_at_source), (_, head_at_target))| {
 			let needs_update = match (head_at_source, head_at_target) {
-				(NoopOption::Noop, _) => {
+				(AvailableHeader::Unavailable, _) => {
 					// source client has politely asked us not to update current parachain head
 					// at the target chain
 					false
 				},
-				(NoopOption::Some(head_at_source), Some(head_at_target))
+				(AvailableHeader::Available(head_at_source), Some(head_at_target))
 					if head_at_target.at_relay_block_number < best_finalized_relay_block.0 &&
 						head_at_target.head_hash != *head_at_source =>
 				{
@@ -356,22 +385,22 @@ where
 					// client
 					true
 				},
-				(NoopOption::Some(_), Some(_)) => {
+				(AvailableHeader::Available(_), Some(_)) => {
 					// this is normal case when relay has recently updated heads, when parachain is
 					// not progressing, or when our source client is still syncing
 					false
 				},
-				(NoopOption::Some(_), None) => {
+				(AvailableHeader::Available(_), None) => {
 					// parachain is not yet known to the target client. This is true when parachain
 					// or bridge has been just onboarded/started
 					true
 				},
-				(NoopOption::None, Some(_)) => {
+				(AvailableHeader::Missing, Some(_)) => {
 					// parachain/parathread has been offboarded removed from the system. It needs to
 					// be propageted to the target client
 					true
 				},
-				(NoopOption::None, None) => {
+				(AvailableHeader::Missing, None) => {
 					// all's good - parachain is unknown to both clients
 					false
 				},
@@ -410,7 +439,7 @@ async fn read_heads_at_source<P: ParachainsPipeline>(
 	metrics: Option<&ParachainsLoopMetrics>,
 	at_relay_block: &HeaderIdOf<P::SourceChain>,
 	parachains: &[ParaId],
-) -> Result<BTreeMap<ParaId, NoopOption<ParaHash>>, FailedClient> {
+) -> Result<BTreeMap<ParaId, AvailableHeader<ParaHash>>, FailedClient> {
 	let mut para_head_hashes = BTreeMap::new();
 	for para in parachains {
 		let para_head = source_client.parachain_head(*at_relay_block, metrics, *para).await;
@@ -587,7 +616,7 @@ mod tests {
 	#[derive(Clone, Debug)]
 	struct TestClientData {
 		source_sync_status: Result<bool, TestError>,
-		source_heads: BTreeMap<u32, Result<NoopOption<ParaHash>, TestError>>,
+		source_heads: BTreeMap<u32, Result<AvailableHeader<ParaHash>, TestError>>,
 		source_proofs: BTreeMap<u32, Result<Vec<u8>, TestError>>,
 
 		target_best_block: Result<HeaderIdOf<TestChain>, TestError>,
@@ -602,7 +631,7 @@ mod tests {
 		pub fn minimal() -> Self {
 			TestClientData {
 				source_sync_status: Ok(true),
-				source_heads: vec![(PARA_ID, Ok(NoopOption::Some(PARA_0_HASH)))]
+				source_heads: vec![(PARA_ID, Ok(AvailableHeader::Available(PARA_0_HASH)))]
 					.into_iter()
 					.collect(),
 				source_proofs: vec![(PARA_ID, Ok(PARA_0_HASH.encode()))].into_iter().collect(),
@@ -651,10 +680,10 @@ mod tests {
 			_at_block: HeaderIdOf<TestChain>,
 			_metrics: Option<&ParachainsLoopMetrics>,
 			para_id: ParaId,
-		) -> Result<NoopOption<ParaHash>, TestError> {
+		) -> Result<AvailableHeader<ParaHash>, TestError> {
 			match self.data.lock().await.source_heads.get(&para_id.0).cloned() {
 				Some(result) => result,
-				None => Ok(NoopOption::None),
+				None => Ok(AvailableHeader::Missing),
 			}
 		}
 
@@ -963,7 +992,7 @@ mod tests {
 	fn parachain_is_not_updated_if_it_is_unknown_to_both_clients() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), NoopOption::None)].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Missing)].into_iter().collect(),
 				vec![(ParaId(PARA_ID), None)].into_iter().collect(),
 				HeaderId(10, Default::default()),
 			),
@@ -975,7 +1004,9 @@ mod tests {
 	fn parachain_is_not_updated_if_it_has_been_updated_at_better_relay_block() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), NoopOption::Some(PARA_0_HASH))].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Available(PARA_0_HASH))]
+					.into_iter()
+					.collect(),
 				vec![(
 					ParaId(PARA_ID),
 					Some(BestParaHeadHash { at_relay_block_number: 20, head_hash: PARA_1_HASH })
@@ -992,7 +1023,9 @@ mod tests {
 	fn parachain_is_not_updated_if_hash_is_the_same_at_next_relay_block() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), NoopOption::Some(PARA_0_HASH))].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Available(PARA_0_HASH))]
+					.into_iter()
+					.collect(),
 				vec![(
 					ParaId(PARA_ID),
 					Some(BestParaHeadHash { at_relay_block_number: 0, head_hash: PARA_0_HASH })
@@ -1009,7 +1042,7 @@ mod tests {
 	fn parachain_is_updated_after_offboarding() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), NoopOption::None)].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Missing)].into_iter().collect(),
 				vec![(
 					ParaId(PARA_ID),
 					Some(BestParaHeadHash {
@@ -1029,7 +1062,9 @@ mod tests {
 	fn parachain_is_updated_after_onboarding() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), NoopOption::Some(PARA_0_HASH))].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Available(PARA_0_HASH))]
+					.into_iter()
+					.collect(),
 				vec![(ParaId(PARA_ID), None)].into_iter().collect(),
 				HeaderId(10, Default::default()),
 			),
@@ -1041,7 +1076,9 @@ mod tests {
 	fn parachain_is_updated_if_newer_head_is_known() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), NoopOption::Some(PARA_1_HASH))].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Available(PARA_1_HASH))]
+					.into_iter()
+					.collect(),
 				vec![(
 					ParaId(PARA_ID),
 					Some(BestParaHeadHash { at_relay_block_number: 0, head_hash: PARA_0_HASH })
@@ -1058,7 +1095,7 @@ mod tests {
 	fn parachain_is_not_updated_if_source_head_is_unavailable() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), NoopOption::Noop)].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Unavailable)].into_iter().collect(),
 				vec![(
 					ParaId(PARA_ID),
 					Some(BestParaHeadHash { at_relay_block_number: 0, head_hash: PARA_0_HASH })

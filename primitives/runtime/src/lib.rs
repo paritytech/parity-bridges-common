@@ -27,7 +27,7 @@ use scale_info::TypeInfo;
 use sp_core::{hash::H256, storage::StorageKey};
 use sp_io::hashing::blake2_256;
 use sp_runtime::traits::{BadOrigin, Header as HeaderT};
-use sp_std::{cmp::Ordering, convert::TryFrom, fmt::Debug, vec, vec::Vec};
+use sp_std::{convert::TryFrom, fmt::Debug, vec, vec::Vec};
 
 pub use chain::{
 	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain, EncodedOrDecodedCall, HashOf,
@@ -82,20 +82,10 @@ pub const ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/
 pub const ROOT_ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/root";
 
 /// Generic header Id.
-#[derive(RuntimeDebug, Default, Clone, Encode, Decode, Copy, Eq, Hash, PartialEq)]
+#[derive(
+	RuntimeDebug, Default, Clone, Encode, Decode, Copy, Eq, Hash, PartialEq, PartialOrd, Ord,
+)]
 pub struct HeaderId<Hash, Number>(pub Number, pub Hash);
-
-impl<Hash: PartialEq, Number: PartialOrd> PartialOrd for HeaderId<Hash, Number> {
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		self.0.partial_cmp(&other.0)
-	}
-}
-
-impl<Hash: Eq, Number: Ord> Ord for HeaderId<Hash, Number> {
-	fn cmp(&self, other: &Self) -> Ordering {
-		self.0.cmp(&other.0)
-	}
-}
 
 /// Generic header id provider.
 pub trait HeaderIdProvider<Header: HeaderT> {

@@ -36,13 +36,13 @@ use bp_runtime::HeaderIdProvider;
 use futures::{select, FutureExt};
 use num_traits::Zero;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
-use parachains_relay::parachains_loop::{ParachainSyncParams, TargetClient};
+use parachains_relay::parachains_loop::{AvailableHeader, ParachainSyncParams, TargetClient};
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
 	TransactionSignScheme,
 };
 use relay_utils::{
-	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId, NoopOption,
+	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId,
 };
 use std::fmt::Debug;
 
@@ -143,7 +143,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 
 	let mut relay_state = RelayState::Idle;
 	let mut required_parachain_header_number = Zero::zero();
-	let required_para_header_number_ref = Arc::new(Mutex::new(NoopOption::Noop));
+	let required_para_header_number_ref = Arc::new(Mutex::new(AvailableHeader::Unavailable));
 
 	let mut restart_relay = true;
 	let parachains_relay_task = futures::future::Fuse::terminated();
@@ -254,7 +254,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 			},
 			RelayState::RelayingParaHeader(required_para_header) => {
 				*required_para_header_number_ref.lock().await =
-					NoopOption::Some(required_para_header);
+					AvailableHeader::Available(required_para_header);
 			},
 		}
 

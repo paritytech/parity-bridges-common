@@ -25,16 +25,17 @@ use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
 use bp_runtime::HeaderIdProvider;
 use codec::Decode;
 use parachains_relay::{
-	parachains_loop::SourceClient, parachains_loop_metrics::ParachainsLoopMetrics,
+	parachains_loop::{AvailableHeader, SourceClient},
+	parachains_loop_metrics::ParachainsLoopMetrics,
 };
 use relay_substrate_client::{
 	Chain, Client, Error as SubstrateError, HeaderIdOf, HeaderOf, RelayChain,
 };
-use relay_utils::{relay_loop::Client as RelayClient, NoopOption};
+use relay_utils::relay_loop::Client as RelayClient;
 
 /// Shared updatable reference to the maximal parachain header id that we want to sync from the
 /// source.
-pub type RequiredHeaderIdRef<C> = Arc<Mutex<NoopOption<HeaderIdOf<C>>>>;
+pub type RequiredHeaderIdRef<C> = Arc<Mutex<AvailableHeader<HeaderIdOf<C>>>>;
 
 /// Substrate client as parachain heads source.
 #[derive(Clone)]
@@ -104,7 +105,7 @@ where
 		at_block: HeaderIdOf<P::SourceRelayChain>,
 		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
-	) -> Result<NoopOption<ParaHash>, Self::Error> {
+	) -> Result<AvailableHeader<ParaHash>, Self::Error> {
 		// we don't need to support many parachains now
 		if para_id.0 != P::SOURCE_PARACHAIN_PARA_ID {
 			return Err(SubstrateError::Custom(format!(
@@ -114,24 +115,24 @@ where
 			)))
 		}
 
-		let mut para_head_id = NoopOption::None;
+		let mut para_head_id = AvailableHeader::Missing;
 		if let Some(on_chain_para_head_id) = self.on_chain_para_head_id(at_block, para_id).await? {
 			// Never return head that is larger than requested. This way we'll never sync
 			// headers past `max_header_id`.
 			para_head_id = match *self.max_head_id.lock().await {
-				NoopOption::Noop => NoopOption::Noop,
-				NoopOption::None => {
+				AvailableHeader::Unavailable => AvailableHeader::Unavailable,
+				AvailableHeader::Missing => {
 					// `max_header_id` is not set. There is no limit.
-					NoopOption::Some(on_chain_para_head_id)
+					AvailableHeader::Available(on_chain_para_head_id)
 				},
-				NoopOption::Some(max_head_id) => {
+				AvailableHeader::Available(max_head_id) => {
 					// We report at most `max_header_id`.
-					NoopOption::Some(std::cmp::min(on_chain_para_head_id, max_head_id))
+					AvailableHeader::Available(std::cmp::min(on_chain_para_head_id, max_head_id))
 				},
 			}
 		}
 
-		if let (Some(metrics), NoopOption::Some(para_head_id)) = (metrics, para_head_id) {
+		if let (Some(metrics), AvailableHeader::Available(para_head_id)) = (metrics, para_head_id) {
 			metrics.update_best_parachain_block_at_source(para_id, para_head_id.0);
 		}
 

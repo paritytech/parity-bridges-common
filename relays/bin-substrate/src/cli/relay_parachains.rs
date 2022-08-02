@@ -21,11 +21,10 @@ use crate::chains::{
 use async_std::sync::Mutex;
 use async_trait::async_trait;
 use bp_polkadot_core::parachains::ParaId;
-use parachains_relay::parachains_loop::{ParachainSyncParams, SourceClient, TargetClient};
-use relay_utils::{
-	metrics::{GlobalMetrics, StandaloneMetric},
-	NoopOption,
+use parachains_relay::parachains_loop::{
+	AvailableHeader, ParachainSyncParams, SourceClient, TargetClient,
 };
+use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
 use std::sync::Arc;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -72,7 +71,7 @@ where
 		let source_client = data.source.into_client::<Self::SourceRelay>().await?;
 		let source_client = ParachainsSource::<Self::ParachainFinality>::new(
 			source_client,
-			Arc::new(Mutex::new(NoopOption::None)),
+			Arc::new(Mutex::new(AvailableHeader::Missing)),
 		);
 
 		let target_transaction_params = TransactionParams {
