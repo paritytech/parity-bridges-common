@@ -29,6 +29,7 @@ use crate::{
 		TargetClient as MessageLaneTargetClient,
 	},
 	message_race_strategy::SourceRangesQueue,
+	metrics::MessageLaneLoopMetrics,
 };
 
 pub(crate) use self::enforcement_strategy::*;
@@ -55,6 +56,17 @@ pub trait RelayStrategy: 'static + Clone + Send + Sync {
 		&mut self,
 		reference: &mut RelayReference<P, SourceClient, TargetClient>,
 	) -> bool;
+
+	/// Notification that the following maximal nonce has been selected for the delivery.
+	async fn final_decision<
+		P: MessageLane,
+		SourceClient: MessageLaneSourceClient<P>,
+		TargetClient: MessageLaneTargetClient<P>,
+	>(
+		&self,
+		reference: &RelayMessagesBatchReference<P, SourceClient, TargetClient>,
+		selected_max_nonce: MessageNonce,
+	);
 }
 
 /// Reference data for participating in relay
@@ -120,4 +132,6 @@ pub struct RelayMessagesBatchReference<
 	>,
 	/// Source queue range
 	pub nonces_queue_range: Range<usize>,
+	/// Metrics reference.
+	pub metrics: Option<MessageLaneLoopMetrics>,
 }

@@ -17,13 +17,14 @@
 //! Altruistic relay strategy
 
 use async_trait::async_trait;
+use bp_messages::MessageNonce;
 
 use crate::{
 	message_lane::MessageLane,
 	message_lane_loop::{
 		SourceClient as MessageLaneSourceClient, TargetClient as MessageLaneTargetClient,
 	},
-	relay_strategy::{RelayReference, RelayStrategy},
+	relay_strategy::{RelayMessagesBatchReference, RelayReference, RelayStrategy},
 };
 
 /// The relayer doesn't care about rewards.
@@ -38,8 +39,35 @@ impl RelayStrategy for AltruisticStrategy {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		&mut self,
-		_reference: &mut RelayReference<P, SourceClient, TargetClient>,
+		reference: &mut RelayReference<P, SourceClient, TargetClient>,
 	) -> bool {
+		let delivery_transaction_cost = reference
+			.lane_target_client
+			.estimate_delivery_transaction_in_source_tokens(
+				reference.hard_selected_begin_nonce..=
+					(reference.hard_selected_begin_nonce + reference.index as MessageNonce),
+				reference.selected_prepaid_nonces,
+				reference.selected_unpaid_weight,
+				reference.selected_size as u32,
+			)
+			.await;
+
 		true
+	}
+
+	async fn final_decision<
+		P: MessageLane,
+		SourceClient: MessageLaneSourceClient<P>,
+		TargetClient: MessageLaneTargetClient<P>,
+	>(
+		&self,
+		reference: &RelayMessagesBatchReference<P, SourceClient, TargetClient>,
+		selected_max_nonce: MessageNonce,
+	) {
+		// TODO
+		// if let Some(ref metrics) = reference.metrics {
+		// 	let total_cost = estimate_messages_delivery_cost(reference);
+		// 	metrics.note_unprofitable_delivery_transactions();
+		// }
 	}
 }

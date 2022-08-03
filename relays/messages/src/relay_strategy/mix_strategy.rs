@@ -17,6 +17,7 @@
 //! Adapter for using `enum RelayerMode` in a context which requires `RelayStrategy`.
 
 use async_trait::async_trait;
+use bp_messages::MessageNonce;
 
 use crate::{
 	message_lane::MessageLane,
@@ -24,7 +25,10 @@ use crate::{
 		RelayerMode, SourceClient as MessageLaneSourceClient,
 		TargetClient as MessageLaneTargetClient,
 	},
-	relay_strategy::{AltruisticStrategy, RationalStrategy, RelayReference, RelayStrategy},
+	relay_strategy::{
+		AltruisticStrategy, RationalStrategy, RelayMessagesBatchReference, RelayReference,
+		RelayStrategy,
+	},
 };
 
 /// `RelayerMode` adapter.
@@ -53,6 +57,23 @@ impl RelayStrategy for MixStrategy {
 		match self.relayer_mode {
 			RelayerMode::Altruistic => AltruisticStrategy.decide(reference).await,
 			RelayerMode::Rational => RationalStrategy.decide(reference).await,
+		}
+	}
+
+	async fn final_decision<
+		P: MessageLane,
+		SourceClient: MessageLaneSourceClient<P>,
+		TargetClient: MessageLaneTargetClient<P>,
+	>(
+		&self,
+		reference: &RelayMessagesBatchReference<P, SourceClient, TargetClient>,
+		selected_max_nonce: MessageNonce,
+	) {
+		match self.relayer_mode {
+			RelayerMode::Altruistic =>
+				AltruisticStrategy.final_decision(reference, selected_max_nonce).await,
+			RelayerMode::Rational =>
+				RationalStrategy.final_decision(reference, selected_max_nonce).await,
 		}
 	}
 }
