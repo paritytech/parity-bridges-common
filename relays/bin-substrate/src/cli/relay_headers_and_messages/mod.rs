@@ -101,8 +101,8 @@ pub struct Full2WayBridgeCommonParams<
 	pub right: BridgeEndCommonParams<Right>,
 
 	pub metrics_params: MetricsParams,
-	pub l2r_metrics: StandaloneMessagesMetrics<Left, Right>,
-	pub r2l_metrics: StandaloneMessagesMetrics<Right, Left>,
+	pub left_to_right_metrics: StandaloneMessagesMetrics<Left, Right>,
+	pub right_to_left_metrics: StandaloneMessagesMetrics<Right, Left>,
 }
 
 impl<Left: TransactionSignScheme + CliChain, Right: TransactionSignScheme + CliChain>
@@ -126,8 +126,8 @@ impl<Left: TransactionSignScheme + CliChain, Right: TransactionSignScheme + CliC
 			left,
 			right,
 			metrics_params,
-			l2r_metrics: left_to_right_metrics,
-			r2l_metrics: right_to_left_metrics,
+			left_to_right_metrics,
+			right_to_left_metrics,
 		})
 	}
 }
@@ -316,25 +316,25 @@ where
 
 	fn mut_base(&mut self) -> &mut Self::Base;
 
-	fn l2r(&mut self) -> FullBridge<Self::Left, Self::Right, Self::L2R> {
+	fn left_to_right(&mut self) -> FullBridge<Self::Left, Self::Right, Self::L2R> {
 		let common = self.mut_base().mut_common();
 		FullBridge::<_, _, Self::L2R>::new(
 			&common.shared,
 			&mut common.left,
 			&mut common.right,
 			&common.metrics_params,
-			&common.l2r_metrics,
+			&common.left_to_right_metrics,
 		)
 	}
 
-	fn r2l(&mut self) -> FullBridge<Self::Right, Self::Left, Self::R2L> {
+	fn right_to_left(&mut self) -> FullBridge<Self::Right, Self::Left, Self::R2L> {
 		let common = self.mut_base().mut_common();
 		FullBridge::<_, _, Self::R2L>::new(
 			&common.shared,
 			&mut common.right,
 			&mut common.left,
 			&common.metrics_params,
-			&common.r2l_metrics,
+			&common.right_to_left_metrics,
 		)
 	}
 
@@ -353,11 +353,11 @@ where
 		}
 
 		// start conversion rate update loops for left/right chains
-		self.l2r().start_conversion_rate_update_loop()?;
-		self.r2l().start_conversion_rate_update_loop()?;
+		self.left_to_right().start_conversion_rate_update_loop()?;
+		self.right_to_left().start_conversion_rate_update_loop()?;
 
 		// start on-demand header relays
-		let (l2r_on_demand_headers, r2l_on_demand_headers) =
+		let (left_to_right_on_demand_headers, right_to_left_on_demand_headers) =
 			self.mut_base().start_on_demand_headers_relayers().await?;
 
 		// add balance-related metrics
@@ -383,27 +383,27 @@ where
 		for lane in lanes {
 			let lane = lane.into();
 
-			let l2r_messages = substrate_relay_helper::messages_lane::run::<
+			let left_to_right_messages = substrate_relay_helper::messages_lane::run::<
 				<Self::L2R as MessagesCliBridge>::MessagesLane,
-			>(self.l2r().messages_relay_params(
-				l2r_on_demand_headers.clone(),
-				r2l_on_demand_headers.clone(),
+			>(self.left_to_right().messages_relay_params(
+				left_to_right_on_demand_headers.clone(),
+				right_to_left_on_demand_headers.clone(),
 				lane,
 			))
 			.map_err(|e| anyhow::format_err!("{}", e))
 			.boxed();
-			message_relays.push(l2r_messages);
+			message_relays.push(left_to_right_messages);
 
-			let r2l_messages = substrate_relay_helper::messages_lane::run::<
+			let right_to_left_messages = substrate_relay_helper::messages_lane::run::<
 				<Self::R2L as MessagesCliBridge>::MessagesLane,
-			>(self.r2l().messages_relay_params(
-				r2l_on_demand_headers.clone(),
-				l2r_on_demand_headers.clone(),
+			>(self.right_to_left().messages_relay_params(
+				right_to_left_on_demand_headers.clone(),
+				left_to_right_on_demand_headers.clone(),
 				lane,
 			))
 			.map_err(|e| anyhow::format_err!("{}", e))
 			.boxed();
-			message_relays.push(r2l_messages);
+			message_relays.push(right_to_left_messages);
 		}
 
 		relay_utils::relay_metrics(self.base().common().metrics_params.clone())
