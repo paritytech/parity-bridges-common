@@ -16,11 +16,9 @@
 
 //! Relayer strategy
 
-use std::ops::Range;
-
 use async_trait::async_trait;
-
 use bp_messages::{MessageNonce, Weight};
+use std::ops::Range;
 
 use crate::{
 	message_lane::MessageLane,
@@ -64,8 +62,7 @@ pub trait RelayStrategy: 'static + Clone + Send + Sync {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		&self,
-		reference: &RelayMessagesBatchReference<P, SourceClient, TargetClient>,
-		selected_max_nonce: MessageNonce,
+		reference: &RelayReference<P, SourceClient, TargetClient>,
 	);
 }
 
@@ -79,6 +76,8 @@ pub struct RelayReference<
 	pub lane_source_client: SourceClient,
 	/// The client that is connected to the message lane target node.
 	pub lane_target_client: TargetClient,
+	/// Metrics reference.
+	pub metrics: Option<MessageLaneLoopMetrics>,
 	/// Current block reward summary
 	pub selected_reward: P::SourceChainBalance,
 	/// Current block cost summary
@@ -124,6 +123,8 @@ pub struct RelayMessagesBatchReference<
 	pub lane_source_client: SourceClient,
 	/// The client that is connected to the message lane target node.
 	pub lane_target_client: TargetClient,
+	/// Metrics reference.
+	pub metrics: Option<MessageLaneLoopMetrics>,
 	/// Source queue.
 	pub nonces_queue: SourceRangesQueue<
 		P::SourceHeaderHash,
@@ -132,6 +133,4 @@ pub struct RelayMessagesBatchReference<
 	>,
 	/// Source queue range
 	pub nonces_queue_range: Range<usize>,
-	/// Metrics reference.
-	pub metrics: Option<MessageLaneLoopMetrics>,
 }

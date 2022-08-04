@@ -26,7 +26,7 @@ use crate::{
 	message_lane_loop::{
 		SourceClient as MessageLaneSourceClient, TargetClient as MessageLaneTargetClient,
 	},
-	relay_strategy::{RelayMessagesBatchReference, RelayReference, RelayStrategy},
+	relay_strategy::{RelayReference, RelayStrategy},
 };
 
 /// The relayer will deliver all messages and confirmations as long as he's not losing any
@@ -59,7 +59,7 @@ impl RelayStrategy for RationalStrategy {
 
 		// if it is the first message that makes reward less than cost, let's log it
 		// if this message makes batch profitable again, let's log it
-		let TotalMessageDeliveryCost { confirmation_transaction_cost, delivery_transaction_cost } =
+		let MessagesDeliveryCost { confirmation_transaction_cost, delivery_transaction_cost } =
 			total_cost;
 		let is_total_reward_less_than_cost = reference.total_reward < reference.total_cost;
 		let prev_total_cost = reference.total_cost;
@@ -112,8 +112,7 @@ impl RelayStrategy for RationalStrategy {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		&self,
-		_reference: &RelayMessagesBatchReference<P, SourceClient, TargetClient>,
-		_selected_max_nonce: MessageNonce,
+		_reference: &RelayReference<P, SourceClient, TargetClient>,
 	) {
 		// rational relayer would never submit unprofitable transactions, so we don't need to do
 		// anything here
@@ -121,7 +120,7 @@ impl RelayStrategy for RationalStrategy {
 }
 
 /// Total cost of mesage delivery and confirmation.
-pub(crate) struct TotalMessageDeliveryCost<SourceChainBalance> {
+struct MessagesDeliveryCost<SourceChainBalance> {
 	/// Cost of message delivery transaction.
 	pub delivery_transaction_cost: SourceChainBalance,
 	/// Cost of confirmation delivery transaction.
@@ -129,13 +128,13 @@ pub(crate) struct TotalMessageDeliveryCost<SourceChainBalance> {
 }
 
 /// Returns cost of message delivery and confirmation delivery transactions
-pub(crate) async fn estimate_messages_delivery_cost<
+async fn estimate_messages_delivery_cost<
 	P: MessageLane,
 	SourceClient: MessageLaneSourceClient<P>,
 	TargetClient: MessageLaneTargetClient<P>,
 >(
 	reference: &RelayReference<P, SourceClient, TargetClient>,
-) -> Result<TotalMessageDeliveryCost<P::SourceChainBalance>, TargetClient::Error> {
+) -> Result<MessagesDeliveryCost<P::SourceChainBalance>, TargetClient::Error> {
 	// technically, multiple confirmations will be delivered in a single transaction,
 	// meaning less loses for relayer. But here we don't know the final relayer yet, so
 	// we're adding a separate transaction for every message. Normally, this cost is covered
@@ -154,5 +153,5 @@ pub(crate) async fn estimate_messages_delivery_cost<
 		)
 		.await?;
 
-	Ok(TotalMessageDeliveryCost { confirmation_transaction_cost, delivery_transaction_cost })
+	Ok(MessagesDeliveryCost { confirmation_transaction_cost, delivery_transaction_cost })
 }
