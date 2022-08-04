@@ -1,6 +1,5 @@
 ## Merged pull requests that need reviews
 
-- [Add RialtoParachain <> Millau bridge to test deployments](https://github.com/paritytech/parity-bridges-common/pull/1412);
 - [Get dispatch weight from the target chain (when DispatchFeePayment::AtTargetChain is used)](https://github.com/paritytech/parity-bridges-common/pull/1430);
 - [Parachains pallet benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1436);
 - [Introduce bridge relayers pallet](https://github.com/paritytech/parity-bridges-common/pull/1513);
