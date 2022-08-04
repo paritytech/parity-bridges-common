@@ -42,7 +42,7 @@ impl RelayStrategy for AltruisticStrategy {
 	) -> bool {
 		// we don't care about costs and rewards, but we want to report unprofitable transactions
 		// => let rational strategy fill required fields
-		let _ = RationalStrategy.decide(reference);
+		let _ = RationalStrategy.decide(reference).await;
 		true
 	}
 
@@ -56,6 +56,16 @@ impl RelayStrategy for AltruisticStrategy {
 	) {
 		if let Some(ref metrics) = reference.metrics {
 			if reference.total_cost > reference.total_reward {
+				log::debug!(
+					target: "bridge",
+					"The relayer has submitted unprofitable {} -> {} message delivery trabsaction with {} messages: total cost = {:?}, total reward = {:?}",
+					P::SOURCE_NAME,
+					P::TARGET_NAME,
+					reference.index + 1,
+					reference.total_cost,
+					reference.total_reward,
+				);
+
 				metrics.note_unprofitable_delivery_transactions();
 			}
 		}
