@@ -22,6 +22,7 @@ services:
     image: ${SUBSTRATE_RELAY_IMAGE:-paritytech/substrate-relay}
     entrypoint: /entrypoints/relay-millau-rialto-entrypoint.sh
     volumes:
+      - ./bridges/common:/common
       - ./bridges/rialto-millau/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace

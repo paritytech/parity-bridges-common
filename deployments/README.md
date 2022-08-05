@@ -43,14 +43,15 @@ and Grafana. We cover these in more details in the [Monitoring](#monitoring) sec
 the monitoring Compose file is _not_ optional, and must be included for bridge deployments.
 
 ### Running and Updating Deployments
-We currently support two bridge deployments
+We currently support three bridge deployments
 1. Rialto Substrate to Millau Substrate
+2. Rialto Parachain Substrate to Millau Substrate
 2. Westend Substrate to Millau Substrate
 
 These bridges can be deployed using our [`./run.sh`](./run.sh) script.
 
-The first argument it takes is the name of the bridge you want to run. Right now we only support two
-bridges: `rialto-millau` and `westend-millau`.
+The first argument it takes is the name of the bridge you want to run. Right now we only support three
+bridges: `rialto-millau`, `rialto-parachain-millau` and `westend-millau`.
 
 ```bash
 ./run.sh rialto-millau
@@ -158,7 +159,7 @@ docker-compose up -d  # Start the nodes in detached mode.
 docker-compose down   # Stop the network.
 ```
 
-Note that for the you'll need to add the appropriate `-f` arguments that were mentioned in the
+Note that you'll also need to add the appropriate `-f` arguments that were mentioned in the
 [Bridges](#bridges) section. You can read more about using multiple Compose files
 [here](https://docs.docker.com/compose/extends/#multiple-compose-files). One thing worth noting is
 that the _order_ the compose files are specified in matters. A different order will result in a
@@ -185,7 +186,7 @@ docker build . -t local/<project_you're_building> --build-arg=PROJECT=<project>
 This will build a local image of a particular component with a tag of
 `local/<project_you're_building>`. This tag can be used in Docker Compose files.
 
-You can configure the build using using Docker
+You can configure the build using Docker
 [build arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg).
 Here are the arguments currently supported:
   - `BRIDGE_REPO`: Git repository of the bridge node and relay code
@@ -256,5 +257,5 @@ and import the [`./types.json`](./types.json)
 
 ## Scripts
 
-The are some bash scripts in `scripts` folder that allow testing `Relay`
+There are some bash scripts in `scripts` folder that allow testing `Relay`
 without running the entire network within docker. Use if needed for development.
