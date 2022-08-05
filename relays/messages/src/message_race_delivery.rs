@@ -635,6 +635,7 @@ mod tests {
 			latest_confirmed_nonces_at_source: vec![(header_id(1), 19)].into_iter().collect(),
 			lane_source_client: TestSourceClient::default(),
 			lane_target_client: TestTargetClient::default(),
+			metrics_msg: None,
 			target_nonces: Some(TargetClientNonces {
 				latest_nonce: 19,
 				nonces_data: DeliveryRaceTargetNoncesData {
