@@ -7,6 +7,7 @@ MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
 
 /home/user/substrate-relay relay-messages rialto-to-millau \
 	--lane $MESSAGE_LANE \
+	--relayer-mode=altruistic \
 	--source-host rialto-node-bob \
 	--source-port 9944 \
 	--source-signer //Millau.OutboundMessagesRelay.Lane00000001 \
