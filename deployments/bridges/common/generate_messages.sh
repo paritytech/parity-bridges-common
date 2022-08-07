@@ -11,12 +11,14 @@
 # SEND_MESSAGE - the command that is executed to send a message
 # MESSAGE_LANE
 # SECONDARY_MESSAGE_LANE - optional
+# SECONDARY_EXTRA_ARGS - optional, for example "--use-xcm-pallet"
 # EXTRA_ARGS - for example "--use-xcm-pallet"
 # REGULAR_PAYLOAD
 # BATCH_PAYLOAD
 # MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE
 
 SECONDARY_MESSAGE_LANE=${SECONDARY_MESSAGE_LANE:-""}
+SECONDARY_EXTRA_ARGS=${SECONDARY_EXTRA_ARGS:-""}
 
 # Sleep a bit between messages
 rand_sleep() {
@@ -69,7 +71,7 @@ do
 		echo "Sending Message from $SOURCE_CHAIN to $TARGET_CHAIN using secondary lane: $SECONDARY_MESSAGE_LANE"
 		$SEND_MESSAGE \
 			--lane $SECONDARY_MESSAGE_LANE \
-			$EXTRA_ARGS \
+			$SECONDARY_EXTRA_ARGS \
 			$CONVERSION_RATE_OVERRIDE \
 			raw $REGULAR_PAYLOAD
 	fi
