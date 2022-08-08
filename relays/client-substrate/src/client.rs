@@ -625,6 +625,14 @@ impl<C: Chain> Client<C> {
 }
 
 impl<T: DeserializeOwned> Subscription<T> {
+	/// Consumes subscription and returns future statuses strean.
+	pub fn into_stream(self) -> impl futures::Stream<Item = T> {
+		futures::stream::unfold(self, |this| async {
+			let item = this.0.lock().await.next().await.unwrap_or(None);
+			item.map(|i| (i, this))
+		})
+	}
+
 	/// Return next item from the subscription.
 	pub async fn next(&self) -> Result<Option<T>> {
 		let mut receiver = self.0.lock().await;
