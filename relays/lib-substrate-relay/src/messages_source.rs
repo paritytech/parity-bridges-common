@@ -56,7 +56,7 @@ use relay_substrate_client::{
 use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
 use sp_core::{Bytes, Pair};
 use sp_runtime::{traits::Header as HeaderT, DeserializeOwned};
-use std::{collections::HashMap, ops::RangeInclusive};
+use std::ops::RangeInclusive;
 
 /// Intermediate message proof returned by the source Substrate node. Includes everything
 /// required to submit to the target node: cumulative dispatch weight of bundled messages and
@@ -205,97 +205,92 @@ where
 			)
 			.await?;
 
-		let mut messages = make_message_details_map::<P::SourceChain>(
-			Decode::decode(&mut &encoded_response.0[..])
-				.map_err(SubstrateError::ResponseParseFailed)?,
-			nonces,
-		)?;
+		let mut out_msgs_details: Vec<_> = Decode::decode(&mut &encoded_response.0[..])
+			.map_err(SubstrateError::ResponseParseFailed)?;
+		validate_out_msgs_details::<P::SourceChain>(&out_msgs_details, nonces)?;
 
 		// prepare arguments of the inbound message details call (if we need it)
-		let mut messages_to_refine = HashMap::new();
-		for (message_nonce, message) in &messages {
-			if message.dispatch_fee_payment != DispatchFeePayment::AtTargetChain {
+		let mut msgs_to_refine = vec![];
+		for out_msg_details in out_msgs_details.iter_mut() {
+			if out_msg_details.dispatch_fee_payment != DispatchFeePayment::AtTargetChain {
 				continue
 			}
 
 			// for pay-at-target messages we may want to ask target chain for
 			// refined dispatch weight
-			let message_key = bp_messages::storage_keys::message_key(
+			let msg_key = bp_messages::storage_keys::message_key(
 				P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
 				&self.lane_id,
-				*message_nonce,
+				out_msg_details.nonce,
 			);
-			let message_data: MessageData<BalanceOf<P::SourceChain>> =
-				self.source_client.storage_value(message_key, Some(id.1)).await?.ok_or_else(
-					|| {
-						SubstrateError::Custom(format!(
-							"Message to {} {:?}/{} is missing from runtime the storage of {} at {:?}",
-							P::TargetChain::NAME,
-							self.lane_id,
-							message_nonce,
-							P::SourceChain::NAME,
-							id,
-						))
-					},
-				)?;
-			let message_payload = message_data.payload;
-			messages_to_refine.insert(
-				*message_nonce,
-				(
-					message_payload,
-					OutboundMessageDetails {
-						nonce: *message_nonce,
-						dispatch_weight: message.dispatch_weight,
-						size: message.size,
-						delivery_and_dispatch_fee: message.reward,
-						dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-					},
-				),
-			);
+			let msg_data: MessageData<BalanceOf<P::SourceChain>> =
+				self.source_client.storage_value(msg_key, Some(id.1)).await?.ok_or_else(|| {
+					SubstrateError::Custom(format!(
+						"Message to {} {:?}/{} is missing from runtime the storage of {} at {:?}",
+						P::TargetChain::NAME,
+						self.lane_id,
+						out_msg_details.nonce,
+						P::SourceChain::NAME,
+						id,
+					))
+				})?;
+			msgs_to_refine.push((msg_data.payload, out_msg_details));
 		}
 
 		// request inbound message details from the target client
-		if !messages_to_refine.is_empty() {
-			let refined_messages_encoded = self
+		if !msgs_to_refine.is_empty() {
+			let encoded_in_msgs_details = self
 				.target_client
 				.state_call(
 					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into(),
-					Bytes((self.lane_id, messages_to_refine.values().collect::<Vec<_>>()).encode()),
+					Bytes((self.lane_id, &msgs_to_refine).encode()),
 					None,
 				)
 				.await?;
-			let refined_messages =
-				Vec::<InboundMessageDetails>::decode(&mut &refined_messages_encoded.0[..])
+			let in_msgs_details =
+				Vec::<InboundMessageDetails>::decode(&mut &encoded_in_msgs_details.0[..])
 					.map_err(SubstrateError::ResponseParseFailed)?;
-			if refined_messages.len() != messages_to_refine.len() {
+			if in_msgs_details.len() != msgs_to_refine.len() {
 				return Err(SubstrateError::Custom(format!(
 					"Call of {} at {} has returned {} entries instead of expected {}",
 					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
 					P::TargetChain::NAME,
-					refined_messages.len(),
-					messages_to_refine.len(),
+					in_msgs_details.len(),
+					msgs_to_refine.len(),
 				)))
 			}
 
-			for (nonce, refined_message) in messages_to_refine.keys().zip(refined_messages) {
-				let message = messages
-					.get_mut(nonce)
-					.expect("`messages_to_refine` is a subset of `messages`; qed");
+			for ((_, out_msg_details), in_msg_details) in
+				msgs_to_refine.iter_mut().zip(in_msgs_details)
+			{
 				log::trace!(
 					target: "bridge",
 					"Refined weight of {}->{} message {:?}/{}: at-source: {}, at-target: {}",
 					P::SourceChain::NAME,
 					P::TargetChain::NAME,
 					self.lane_id,
-					nonce,
-					message.dispatch_weight,
-					refined_message.dispatch_weight,
+					out_msg_details.nonce,
+					out_msg_details.dispatch_weight,
+					in_msg_details.dispatch_weight,
 				);
-				message.dispatch_weight = refined_message.dispatch_weight;
+				out_msg_details.dispatch_weight = in_msg_details.dispatch_weight;
 			}
 		}
 
-		Ok(messages)
+		let mut msgs_details_map = MessageDetailsMap::new();
+		for out_msg_details in out_msgs_details {
+			msgs_details_map.insert(
+				out_msg_details.nonce,
+				MessageDetails {
+					dispatch_weight: out_msg_details.dispatch_weight,
+					size: out_msg_details.size as _,
+					reward: out_msg_details.delivery_and_dispatch_fee,
+					dispatch_fee_payment: out_msg_details.dispatch_fee_payment,
+				},
+			);
+		}
+
+		Ok(msgs_details_map)
 	}
 
 	async fn prove_messages(
@@ -571,10 +566,10 @@ where
 	.unwrap_or(Err(SubstrateError::BridgePalletIsNotInitialized))
 }
 
-fn make_message_details_map<C: Chain>(
-	weights: Vec<bp_messages::OutboundMessageDetails<C::Balance>>,
+fn validate_out_msgs_details<C: Chain>(
+	out_msgs_details: &[OutboundMessageDetails<C::Balance>],
 	nonces: RangeInclusive<MessageNonce>,
-) -> Result<MessageDetailsMap<C::Balance>, SubstrateError> {
+) -> Result<(), SubstrateError> {
 	let make_missing_nonce_error = |expected_nonce| {
 		Err(SubstrateError::Custom(format!(
 			"Missing nonce {} in message_details call result. Expected all nonces from {:?}",
@@ -582,60 +577,35 @@ fn make_message_details_map<C: Chain>(
 		)))
 	};
 
-	let mut weights_map = MessageDetailsMap::new();
-
-	// this is actually prevented by external logic
-	if nonces.is_empty() {
-		return Ok(weights_map)
+	let mut nonces_iter = nonces.clone().rev().peekable();
+	let mut out_msgs_details_iter = out_msgs_details.iter().rev();
+	while let Some((out_msg_details, &nonce)) = out_msgs_details_iter.next().zip(nonces_iter.peek())
+	{
+		nonces_iter.next();
+		if out_msg_details.nonce != nonce {
+			// Some nonces are missing from the middle/tail of the range. This is critical error.
+			return make_missing_nonce_error(nonce)
+		}
 	}
 
-	// check if last nonce is missing - loop below is not checking this
-	let last_nonce_is_missing =
-		weights.last().map(|details| details.nonce != *nonces.end()).unwrap_or(true);
-	if last_nonce_is_missing {
+	// Check if last nonce is missing. The loop above is not checking this.
+	if !nonces.is_empty() && nonces_iter.peek() == Some(nonces.end()) {
 		return make_missing_nonce_error(*nonces.end())
 	}
 
-	let mut expected_nonce = *nonces.start();
-	let mut is_at_head = true;
-
-	for details in weights {
-		match (details.nonce == expected_nonce, is_at_head) {
-			(true, _) => (),
-			(false, true) => {
-				// this may happen if some messages were already pruned from the source node
-				//
-				// this is not critical error and will be auto-resolved by messages lane (and target
-				// node)
-				log::info!(
-					target: "bridge",
-					"Some messages are missing from the {} node: {:?}. Target node may be out of sync?",
-					C::NAME,
-					expected_nonce..details.nonce,
-				);
-			},
-			(false, false) => {
-				// some nonces are missing from the middle/tail of the range
-				//
-				// this is critical error, because we can't miss any nonces
-				return make_missing_nonce_error(expected_nonce)
-			},
-		}
-
-		weights_map.insert(
-			details.nonce,
-			MessageDetails {
-				dispatch_weight: details.dispatch_weight,
-				size: details.size as _,
-				reward: details.delivery_and_dispatch_fee,
-				dispatch_fee_payment: details.dispatch_fee_payment,
-			},
+	// Check if some nonces from the beginning of the range are missing. This may happen if
+	// some messages were already pruned from the source node. This is not a critical error
+	// and will be auto-resolved by messages lane (and target node).
+	if nonces_iter.peek().is_some() {
+		log::info!(
+			target: "bridge",
+			"Some messages are missing from the {} node: {:?}. Target node may be out of sync?",
+			C::NAME,
+			nonces_iter.rev().collect::<Vec<_>>(),
 		);
-		expected_nonce = details.nonce + 1;
-		is_at_head = false;
 	}
 
-	Ok(weights_map)
+	Ok(())
 }
 
 #[cfg(test)]
@@ -662,94 +632,41 @@ mod tests {
 	}
 
 	#[test]
-	fn make_message_details_map_succeeds_if_no_messages_are_missing() {
-		assert_eq!(
-			make_message_details_map::<Wococo>(message_details_from_rpc(1..=3), 1..=3,).unwrap(),
-			vec![
-				(
-					1,
-					MessageDetails {
-						dispatch_weight: 0,
-						size: 0,
-						reward: 0,
-						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-					}
-				),
-				(
-					2,
-					MessageDetails {
-						dispatch_weight: 0,
-						size: 0,
-						reward: 0,
-						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-					}
-				),
-				(
-					3,
-					MessageDetails {
-						dispatch_weight: 0,
-						size: 0,
-						reward: 0,
-						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-					}
-				),
-			]
-			.into_iter()
-			.collect(),
+	fn validate_out_msgs_details_succeeds_if_no_messages_are_missing() {
+		assert!(
+			validate_out_msgs_details::<Wococo>(&message_details_from_rpc(1..=3), 1..=3,).is_ok()
 		);
 	}
 
 	#[test]
-	fn make_message_details_map_succeeds_if_head_messages_are_missing() {
-		assert_eq!(
-			make_message_details_map::<Wococo>(message_details_from_rpc(2..=3), 1..=3,).unwrap(),
-			vec![
-				(
-					2,
-					MessageDetails {
-						dispatch_weight: 0,
-						size: 0,
-						reward: 0,
-						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-					}
-				),
-				(
-					3,
-					MessageDetails {
-						dispatch_weight: 0,
-						size: 0,
-						reward: 0,
-						dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-					}
-				),
-			]
-			.into_iter()
-			.collect(),
-		);
+	fn validate_out_msgs_details_succeeds_if_head_messages_are_missing() {
+		assert!(
+			validate_out_msgs_details::<Wococo>(&message_details_from_rpc(2..=3), 1..=3,).is_ok()
+		)
 	}
 
 	#[test]
-	fn make_message_details_map_fails_if_mid_messages_are_missing() {
+	fn validate_out_msgs_details_fails_if_mid_messages_are_missing() {
 		let mut message_details_from_rpc = message_details_from_rpc(1..=3);
 		message_details_from_rpc.remove(1);
 		assert!(matches!(
-			make_message_details_map::<Wococo>(message_details_from_rpc, 1..=3,),
+			validate_out_msgs_details::<Wococo>(&message_details_from_rpc, 1..=3,),
 			Err(SubstrateError::Custom(_))
 		));
 	}
 
 	#[test]
-	fn make_message_details_map_fails_if_tail_messages_are_missing() {
+	fn validate_out_msgs_details_map_fails_if_tail_messages_are_missing() {
 		assert!(matches!(
-			make_message_details_map::<Wococo>(message_details_from_rpc(1..=2), 1..=3,),
+			validate_out_msgs_details::<Wococo>(&message_details_from_rpc(1..=2), 1..=3,),
 			Err(SubstrateError::Custom(_))
 		));
 	}
 
 	#[test]
-	fn make_message_details_map_fails_if_all_messages_are_missing() {
+	fn validate_out_msgs_details_fails_if_all_messages_are_missing() {
 		assert!(matches!(
-			make_message_details_map::<Wococo>(vec![], 1..=3),
+			validate_out_msgs_details::<Wococo>(&[], 1..=3),
 			Err(SubstrateError::Custom(_))
 		));
 	}
