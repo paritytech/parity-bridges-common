@@ -196,17 +196,14 @@ where
 		MessageDetailsMap<<MessageLaneAdapter<P> as MessageLane>::SourceChainBalance>,
 		SubstrateError,
 	> {
-		let encoded_response = self
+		let mut out_msgs_details = self
 			.source_client
-			.state_call(
+			.typed_state_call::<_, Vec<_>>(
 				P::TargetChain::TO_CHAIN_MESSAGE_DETAILS_METHOD.into(),
-				Bytes((self.lane_id, nonces.start(), nonces.end()).encode()),
+				(self.lane_id, *nonces.start(), *nonces.end()),
 				Some(id.1),
 			)
 			.await?;
-
-		let mut out_msgs_details: Vec<_> = Decode::decode(&mut &encoded_response.0[..])
-			.map_err(SubstrateError::ResponseParseFailed)?;
 		validate_out_msgs_details::<P::SourceChain>(&out_msgs_details, nonces)?;
 
 		// prepare arguments of the inbound message details call (if we need it)
@@ -239,17 +236,14 @@ where
 
 		// request inbound message details from the target client
 		if !msgs_to_refine.is_empty() {
-			let encoded_in_msgs_details = self
+			let in_msgs_details = self
 				.target_client
-				.state_call(
+				.typed_state_call::<_, Vec<InboundMessageDetails>>(
 					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into(),
-					Bytes((self.lane_id, &msgs_to_refine).encode()),
+					(self.lane_id, &msgs_to_refine),
 					None,
 				)
 				.await?;
-			let in_msgs_details =
-				Vec::<InboundMessageDetails>::decode(&mut &encoded_in_msgs_details.0[..])
-					.map_err(SubstrateError::ResponseParseFailed)?;
 			if in_msgs_details.len() != msgs_to_refine.len() {
 				return Err(SubstrateError::Custom(format!(
 					"Call of {} at {} has returned {} entries instead of expected {}",
