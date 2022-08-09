@@ -115,41 +115,66 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 
 	async fn refine_msgs_details(
 		&self,
-		msgs_to_refine: &mut Vec<(
+		msgs_to_refine: Vec<(
 			MessagePayload,
 			&mut OutboundMessageDetails<<P::SourceChain as ChainBase>::Balance>,
 		)>,
 	) -> Result<(), SubstrateError> {
-		let in_msgs_details = self
-			.target_client
-			.typed_state_call::<_, Vec<InboundMessageDetails>>(
-				P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into(),
-				(self.lane_id, &msgs_to_refine),
-				None,
-			)
-			.await?;
-		if in_msgs_details.len() != msgs_to_refine.len() {
-			return Err(SubstrateError::Custom(format!(
-				"Call of {} at {} has returned {} entries instead of expected {}",
-				P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
-				P::TargetChain::NAME,
-				in_msgs_details.len(),
-				msgs_to_refine.len(),
-			)))
-		}
-		for ((_, out_msg_details), in_msg_details) in msgs_to_refine.iter_mut().zip(in_msgs_details)
-		{
-			log::trace!(
-				target: "bridge",
-				"Refined weight of {}->{} message {:?}/{}: at-source: {}, at-target: {}",
-				P::SourceChain::NAME,
-				P::TargetChain::NAME,
-				self.lane_id,
-				out_msg_details.nonce,
-				out_msg_details.dispatch_weight,
-				in_msg_details.dispatch_weight,
-			);
-			out_msg_details.dispatch_weight = in_msg_details.dispatch_weight;
+		let mut current_msgs_batch = msgs_to_refine;
+		while !current_msgs_batch.is_empty() {
+			let mut next_msgs_batch = vec![];
+			while (self.lane_id, &current_msgs_batch).encoded_size() >
+				P::TargetChain::max_extrinsic_size() as usize
+			{
+				if current_msgs_batch.len() <= 1 {
+					return Err(SubstrateError::Custom(format!(
+						"Call of {} at {} can't be executed even if only one message is supplied. \
+						max_extrinsic_size(): {}",
+						P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
+						P::TargetChain::NAME,
+						P::TargetChain::max_extrinsic_size(),
+					)))
+				}
+
+				if let Some(msg) = current_msgs_batch.pop() {
+					next_msgs_batch.push(msg);
+				}
+			}
+
+			let in_msgs_details = self
+				.target_client
+				.typed_state_call::<_, Vec<InboundMessageDetails>>(
+					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into(),
+					(self.lane_id, &current_msgs_batch),
+					None,
+				)
+				.await?;
+			if in_msgs_details.len() != current_msgs_batch.len() {
+				return Err(SubstrateError::Custom(format!(
+					"Call of {} at {} has returned {} entries instead of expected {}",
+					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
+					P::TargetChain::NAME,
+					in_msgs_details.len(),
+					current_msgs_batch.len(),
+				)))
+			}
+			for ((_, out_msg_details), in_msg_details) in
+				current_msgs_batch.iter_mut().zip(in_msgs_details)
+			{
+				log::trace!(
+					target: "bridge",
+					"Refined weight of {}->{} message {:?}/{}: at-source: {}, at-target: {}",
+					P::SourceChain::NAME,
+					P::TargetChain::NAME,
+					self.lane_id,
+					out_msg_details.nonce,
+					out_msg_details.dispatch_weight,
+					in_msg_details.dispatch_weight,
+				);
+				out_msg_details.dispatch_weight = in_msg_details.dispatch_weight;
+			}
+
+			current_msgs_batch = next_msgs_batch;
 		}
 
 		Ok(())
@@ -249,6 +274,7 @@ where
 		validate_out_msgs_details::<P::SourceChain>(&out_msgs_details, nonces)?;
 
 		// prepare arguments of the inbound message details call (if we need it)
+		let mut msgs_to_refine = vec![];
 		for out_msg_details in out_msgs_details.iter_mut() {
 			if out_msg_details.dispatch_fee_payment != DispatchFeePayment::AtTargetChain {
 				continue
@@ -273,9 +299,9 @@ where
 					))
 				})?;
 
-			let mut msgs_to_refine = vec![(msg_data.payload, out_msg_details)];
-			self.refine_msgs_details(&mut msgs_to_refine).await?;
+			msgs_to_refine.push((msg_data.payload, out_msg_details));
 		}
+		self.refine_msgs_details(msgs_to_refine).await?;
 
 		let mut msgs_details_map = MessageDetailsMap::new();
 		for out_msg_details in out_msgs_details {
