@@ -49,8 +49,8 @@ use messages_relay::{
 };
 use num_traits::{Bounded, Zero};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain, ChainBase, ChainWithMessages,
-	Client, Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, SignParam, TransactionEra,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain, ChainWithMessages, Client,
+	Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, SignParam, TransactionEra,
 	TransactionSignScheme, UnsignedTransaction,
 };
 use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
@@ -62,6 +62,7 @@ use std::ops::RangeInclusive;
 /// required to submit to the target node: cumulative dispatch weight of bundled messages and
 /// the proof itself.
 pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
+type MessagesToRefine<'a, Balance> = Vec<(MessagePayload, &'a mut OutboundMessageDetails<Balance>)>;
 
 /// Substrate client as Substrate messages source.
 pub struct SubstrateMessagesSource<P: SubstrateMessageLane> {
@@ -111,73 +112,6 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 	/// Ensure that the messages pallet at source chain is active.
 	async fn ensure_pallet_active(&self) -> Result<(), SubstrateError> {
 		ensure_messages_pallet_active::<P::SourceChain, P::TargetChain>(&self.source_client).await
-	}
-
-	async fn refine_msgs_details(
-		&self,
-		msgs_to_refine: Vec<(
-			MessagePayload,
-			&mut OutboundMessageDetails<<P::SourceChain as ChainBase>::Balance>,
-		)>,
-	) -> Result<(), SubstrateError> {
-		let mut current_msgs_batch = msgs_to_refine;
-		while !current_msgs_batch.is_empty() {
-			let mut next_msgs_batch = vec![];
-			while (self.lane_id, &current_msgs_batch).encoded_size() >
-				P::TargetChain::max_extrinsic_size() as usize
-			{
-				if current_msgs_batch.len() <= 1 {
-					return Err(SubstrateError::Custom(format!(
-						"Call of {} at {} can't be executed even if only one message is supplied. \
-						max_extrinsic_size(): {}",
-						P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
-						P::TargetChain::NAME,
-						P::TargetChain::max_extrinsic_size(),
-					)))
-				}
-
-				if let Some(msg) = current_msgs_batch.pop() {
-					next_msgs_batch.push(msg);
-				}
-			}
-
-			let in_msgs_details = self
-				.target_client
-				.typed_state_call::<_, Vec<InboundMessageDetails>>(
-					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into(),
-					(self.lane_id, &current_msgs_batch),
-					None,
-				)
-				.await?;
-			if in_msgs_details.len() != current_msgs_batch.len() {
-				return Err(SubstrateError::Custom(format!(
-					"Call of {} at {} has returned {} entries instead of expected {}",
-					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
-					P::TargetChain::NAME,
-					in_msgs_details.len(),
-					current_msgs_batch.len(),
-				)))
-			}
-			for ((_, out_msg_details), in_msg_details) in
-				current_msgs_batch.iter_mut().zip(in_msgs_details)
-			{
-				log::trace!(
-					target: "bridge",
-					"Refined weight of {}->{} message {:?}/{}: at-source: {}, at-target: {}",
-					P::SourceChain::NAME,
-					P::TargetChain::NAME,
-					self.lane_id,
-					out_msg_details.nonce,
-					out_msg_details.dispatch_weight,
-					in_msg_details.dispatch_weight,
-				);
-				out_msg_details.dispatch_weight = in_msg_details.dispatch_weight;
-			}
-
-			current_msgs_batch = next_msgs_batch;
-		}
-
-		Ok(())
 	}
 }
 
@@ -259,10 +193,7 @@ where
 		&self,
 		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Result<
-		MessageDetailsMap<<MessageLaneAdapter<P> as MessageLane>::SourceChainBalance>,
-		SubstrateError,
-	> {
+	) -> Result<MessageDetailsMap<BalanceOf<P::SourceChain>>, SubstrateError> {
 		let mut out_msgs_details = self
 			.source_client
 			.typed_state_call::<_, Vec<_>>(
@@ -301,7 +232,43 @@ where
 
 			msgs_to_refine.push((msg_data.payload, out_msg_details));
 		}
-		self.refine_msgs_details(msgs_to_refine).await?;
+
+		for mut msgs_to_refine_batch in
+			split_msgs_to_refine::<P::SourceChain, P::TargetChain>(self.lane_id, msgs_to_refine)?
+		{
+			let in_msgs_details = self
+				.target_client
+				.typed_state_call::<_, Vec<InboundMessageDetails>>(
+					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into(),
+					(self.lane_id, &msgs_to_refine_batch),
+					None,
+				)
+				.await?;
+			if in_msgs_details.len() != msgs_to_refine_batch.len() {
+				return Err(SubstrateError::Custom(format!(
+					"Call of {} at {} has returned {} entries instead of expected {}",
+					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
+					P::TargetChain::NAME,
+					in_msgs_details.len(),
+					msgs_to_refine_batch.len(),
+				)))
+			}
+			for ((_, out_msg_details), in_msg_details) in
+				msgs_to_refine_batch.iter_mut().zip(in_msgs_details)
+			{
+				log::trace!(
+					target: "bridge",
+					"Refined weight of {}->{} message {:?}/{}: at-source: {}, at-target: {}",
+					P::SourceChain::NAME,
+					P::TargetChain::NAME,
+					self.lane_id,
+					out_msg_details.nonce,
+					out_msg_details.dispatch_weight,
+					in_msg_details.dispatch_weight,
+				);
+				out_msg_details.dispatch_weight = in_msg_details.dispatch_weight;
+			}
+		}
 
 		let mut msgs_details_map = MessageDetailsMap::new();
 		for out_msg_details in out_msgs_details {
@@ -640,17 +607,51 @@ fn validate_out_msgs_details<C: Chain>(
 	Ok(())
 }
 
+fn split_msgs_to_refine<Source: Chain + ChainWithMessages, Target: Chain>(
+	lane_id: LaneId,
+	msgs_to_refine: MessagesToRefine<Source::Balance>,
+) -> Result<Vec<MessagesToRefine<Source::Balance>>, SubstrateError> {
+	let max_batch_size = Target::max_extrinsic_size() as usize;
+	let mut batches = vec![];
+
+	let mut current_msgs_batch = msgs_to_refine;
+	while !current_msgs_batch.is_empty() {
+		let mut next_msgs_batch = vec![];
+		while (lane_id, &current_msgs_batch).encoded_size() > max_batch_size {
+			if current_msgs_batch.len() <= 1 {
+				return Err(SubstrateError::Custom(format!(
+					"Call of {} at {} can't be executed even if only one message is supplied. \
+						max_extrinsic_size(): {}",
+					Source::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
+					Target::NAME,
+					Target::max_extrinsic_size(),
+				)))
+			}
+
+			if let Some(msg) = current_msgs_batch.pop() {
+				next_msgs_batch.insert(0, msg);
+			}
+		}
+
+		batches.push(current_msgs_batch);
+		current_msgs_batch = next_msgs_batch;
+	}
+
+	Ok(batches)
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use bp_runtime::messages::DispatchFeePayment;
+	use bp_runtime::{messages::DispatchFeePayment, Chain as ChainBase};
 	use codec::MaxEncodedLen;
+	use relay_rialto_client::Rialto;
 	use relay_rococo_client::Rococo;
 	use relay_wococo_client::Wococo;
 
 	fn message_details_from_rpc(
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Vec<bp_messages::OutboundMessageDetails<bp_wococo::Balance>> {
+	) -> Vec<OutboundMessageDetails<bp_wococo::Balance>> {
 		nonces
 			.into_iter()
 			.map(|nonce| bp_messages::OutboundMessageDetails {
@@ -721,6 +722,103 @@ mod tests {
 			"Expected proof size at least {}. Got: {}",
 			expected_minimal_size,
 			dummy_proof.1.encode().len(),
+		);
+	}
+
+	fn check_split_msgs_to_refine(
+		payload_sizes: Vec<usize>,
+		expected_batches: Result<Vec<usize>, ()>,
+	) {
+		let mut out_msgs_details = vec![];
+		for (idx, _) in payload_sizes.iter().enumerate() {
+			out_msgs_details.push(OutboundMessageDetails::<BalanceOf<Rialto>> {
+				nonce: idx as MessageNonce,
+				dispatch_weight: 0,
+				size: 0,
+				delivery_and_dispatch_fee: 0,
+				dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
+			});
+		}
+
+		let mut msgs_to_refine = vec![];
+		for (&payload_size, out_msg_details) in
+			payload_sizes.iter().zip(out_msgs_details.iter_mut())
+		{
+			let payload = vec![1u8; payload_size];
+			msgs_to_refine.push((payload, out_msg_details));
+		}
+
+		let maybe_batches = split_msgs_to_refine::<Rialto, Rococo>([0, 0, 0, 0], msgs_to_refine);
+		match expected_batches {
+			Ok(expected_batches) => {
+				let batches = maybe_batches.unwrap();
+				let mut idx = 0;
+				assert_eq!(batches.len(), expected_batches.len());
+				for (batch, &expected_batch_size) in batches.iter().zip(expected_batches.iter()) {
+					assert_eq!(batch.len(), expected_batch_size);
+					for msg_to_refine in batch {
+						assert_eq!(msg_to_refine.0.len(), payload_sizes[idx]);
+						idx += 1;
+					}
+				}
+			},
+			Err(_) => {
+				matches!(maybe_batches, Err(SubstrateError::Custom(_)));
+			},
+		}
+	}
+
+	#[test]
+	fn test_split_msgs_to_refine() {
+		let max_extrinsic_size = Rococo::max_extrinsic_size() as usize;
+
+		// Check that an error is returned when one of the messages is too big.
+		check_split_msgs_to_refine(vec![max_extrinsic_size], Err(()));
+		check_split_msgs_to_refine(vec![50, 100, max_extrinsic_size, 200], Err(()));
+
+		// Otherwise check that the split is valid.
+		check_split_msgs_to_refine(vec![100, 200, 300, 400], Ok(vec![4]));
+		check_split_msgs_to_refine(
+			vec![
+				50,
+				100,
+				max_extrinsic_size - 500,
+				500,
+				1000,
+				1500,
+				max_extrinsic_size - 3500,
+				5000,
+				10000,
+			],
+			Ok(vec![3, 4, 2]),
+		);
+		check_split_msgs_to_refine(
+			vec![
+				50,
+				100,
+				max_extrinsic_size - 150,
+				500,
+				1000,
+				1500,
+				max_extrinsic_size - 3000,
+				5000,
+				10000,
+			],
+			Ok(vec![2, 1, 3, 1, 2]),
+		);
+		check_split_msgs_to_refine(
+			vec![
+				5000,
+				10000,
+				max_extrinsic_size - 3500,
+				500,
+				1000,
+				1500,
+				max_extrinsic_size - 500,
+				50,
+				100,
+			],
+			Ok(vec![2, 4, 3]),
 		);
 	}
 }
