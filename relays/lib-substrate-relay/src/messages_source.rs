@@ -603,6 +603,17 @@ fn validate_out_msgs_details<C: Chain>(
 		)))
 	};
 
+	if out_msgs_details.len() > nonces.clone().count() {
+		return Err(SubstrateError::Custom(
+			"More messages than requested returned by the message_details call.".into(),
+		))
+	}
+
+	// Check if last nonce is missing. The loop below is not checking this.
+	if out_msgs_details.is_empty() && !nonces.is_empty() {
+		return make_missing_nonce_error(*nonces.end())
+	}
+
 	let mut nonces_iter = nonces.clone().rev().peekable();
 	let mut out_msgs_details_iter = out_msgs_details.iter().rev();
 	while let Some((out_msg_details, &nonce)) = out_msgs_details_iter.next().zip(nonces_iter.peek())
@@ -612,11 +623,6 @@ fn validate_out_msgs_details<C: Chain>(
 			// Some nonces are missing from the middle/tail of the range. This is critical error.
 			return make_missing_nonce_error(nonce)
 		}
-	}
-
-	// Check if last nonce is missing. The loop above is not checking this.
-	if !nonces.is_empty() && nonces_iter.peek() == Some(nonces.end()) {
-		return make_missing_nonce_error(*nonces.end())
 	}
 
 	// Check if some nonces from the beginning of the range are missing. This may happen if
@@ -693,6 +699,14 @@ mod tests {
 	fn validate_out_msgs_details_fails_if_all_messages_are_missing() {
 		assert!(matches!(
 			validate_out_msgs_details::<Wococo>(&[], 1..=3),
+			Err(SubstrateError::Custom(_))
+		));
+	}
+
+	#[test]
+	fn validate_out_msgs_details_fails_if_more_messages_than_nonces() {
+		assert!(matches!(
+			validate_out_msgs_details::<Wococo>(&message_details_from_rpc(1..=5), 2..=5,),
 			Err(SubstrateError::Custom(_))
 		));
 	}
