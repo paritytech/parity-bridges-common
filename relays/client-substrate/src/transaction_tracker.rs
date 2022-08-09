@@ -18,10 +18,11 @@
 
 use crate::{Chain, HashOf, Subscription, TransactionStatusOf};
 
+use async_trait::async_trait;
 use futures::{Stream, StreamExt};
 use std::time::Duration;
 
-/// Substrate transaction invalidation helper.
+/// Substrate transaction tracker implementation.
 ///
 /// Substrate node provides RPC API to submit and watch for transaction events. This way
 /// we may know when transaction is included into block, finalized or rejected. There are
@@ -41,19 +42,15 @@ use std::time::Duration;
 ///    it is lost.
 ///
 /// This struct implements third option as it seems to be the most optimal.
-pub struct TransactionInvalidationTracker<C: Chain> {
+pub struct TransactionTracker<C: Chain> {
 	transaction_hash: HashOf<C>,
 	subscription: Subscription<TransactionStatusOf<C>>,
 	stall_timeout: Duration,
 }
 
-impl<C: Chain> TransactionInvalidationTracker<C> {
-	/// Wait until transaction is finalized or invalidated.
-	///
-	/// Note that in places where this structure is used, the finalization event will be
-	/// ignored - relay loops are detecting the mining/finalization using their own techniques.
-	/// That's why the structure is called "transaction invalidation tracker".
-	pub async fn wait(self) -> Result<(), ()> {
+#[async_trait]
+impl<C: Chain> relay_utils::TransactionTracker for TransactionTracker<C> {
+	async fn wait(self) -> Result<(), ()> {
 		let invalidation_status = watch_transaction_status::<C, _>(
 			self.transaction_hash,
 			self.subscription.into_stream(),
@@ -80,6 +77,10 @@ impl<C: Chain> TransactionInvalidationTracker<C> {
 }
 
 /// Transaction invalidation status.
+///
+/// Note that in places where the `TransactionTracker` is used, the finalization event will be
+/// ignored - relay loops are detecting the mining/finalization using their own
+/// techniques. That's why we're using `InvalidationStatus` here.
 #[derive(Debug, PartialEq)]
 enum InvalidationStatus {
 	/// Transaction has been included into block and finalized.

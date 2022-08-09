@@ -20,6 +20,7 @@ pub use bp_runtime::HeaderId;
 pub use error::Error;
 pub use relay_loop::{relay_loop, relay_metrics};
 
+use async_trait::async_trait;
 use backoff::{backoff::Backoff, ExponentialBackoff};
 use futures::future::FutureExt;
 use std::time::Duration;
@@ -108,6 +109,15 @@ macro_rules! bail_on_arg_error {
 pub trait MaybeConnectionError {
 	/// Returns true if error (maybe) represents connection error.
 	fn is_connection_error(&self) -> bool;
+}
+
+/// Transaction tracker.
+#[async_trait]
+pub trait TransactionTracker {
+	/// Wait until transaction is either finalized or invalidated/lost.
+	///
+	/// Returns `Ok(())` if transaction has been finalized and `Err(())` if it has been invalidated.
+	async fn wait(self) -> Result<(), ()>;
 }
 
 /// Stringified error that may be either connection-related or not.
