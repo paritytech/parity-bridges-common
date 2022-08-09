@@ -1,6 +1,5 @@
 ## Merged pull requests that need reviews
 
-- [Get dispatch weight from the target chain (when DispatchFeePayment::AtTargetChain is used)](https://github.com/paritytech/parity-bridges-common/pull/1430);
 - [Parachains pallet benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1436);
 - [Introduce bridge relayers pallet](https://github.com/paritytech/parity-bridges-common/pull/1513);
 - [Send messages using xcm pallet](https://github.com/paritytech/parity-bridges-common/pull/1518);
