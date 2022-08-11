@@ -441,11 +441,11 @@ impl XcmBridge for ToMillauBridge {
 		UniversalLocation::get()
 	}
 
-	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == MillauNetwork::get())
+	fn absolute_destination() -> MultiLocation {
+		(Parent, X1(GlobalConsensus(MillauNetwork::get()))).into()
 	}
 
-	fn build_destination() -> MultiLocation {
+	fn relative_destination() -> MultiLocation {
 		let dest: InteriorMultiLocation = MillauNetwork::get().into();
 		let here = UniversalLocation::get();
 		dest.relative_to(&here)

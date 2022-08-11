@@ -204,11 +204,11 @@ impl XcmBridge for ToRialtoBridge {
 		UniversalLocation::get()
 	}
 
-	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == RialtoNetwork::get())
+	fn absolute_destination() -> MultiLocation {
+		(Parent, X1(GlobalConsensus(RialtoNetwork::get()))).into()
 	}
 
-	fn build_destination() -> MultiLocation {
+	fn relative_destination() -> MultiLocation {
 		let dest: InteriorMultiLocation = RialtoNetwork::get().into();
 		let here = UniversalLocation::get();
 		dest.relative_to(&here)
@@ -231,11 +231,11 @@ impl XcmBridge for ToRialtoParachainBridge {
 		UniversalLocation::get()
 	}
 
-	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X2(GlobalConsensus(r), Parachain(RIALTO_PARACHAIN_ID)) } if r == RialtoNetwork::get())
+	fn absolute_destination() -> MultiLocation {
+		(Parent, X2(GlobalConsensus(RialtoNetwork::get()), Parachain(RIALTO_PARACHAIN_ID))).into()
 	}
 
-	fn build_destination() -> MultiLocation {
+	fn relative_destination() -> MultiLocation {
 		let dest: InteriorMultiLocation = RialtoParachainNetwork::get().into();
 		let here = UniversalLocation::get();
 		dest.relative_to(&here)
