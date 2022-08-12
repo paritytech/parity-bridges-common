@@ -23,10 +23,10 @@ use crate::cli::{
 };
 use bp_messages::LaneId;
 use bp_runtime::EncodedOrDecodedCall;
-use bridge_runtime_common::messages::source::XcmBridge;
 use relay_rialto_parachain_client::RialtoParachain;
 use relay_substrate_client::BalanceOf;
 use sp_version::RuntimeVersion;
+use xcm::latest::prelude::*;
 
 impl CliEncodeMessage for RialtoParachain {
 	fn encode_send_xcm(
@@ -35,7 +35,7 @@ impl CliEncodeMessage for RialtoParachain {
 	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
 		let dest = match bridge_instance_index {
 			bridge::RIALTO_PARACHAIN_TO_MILLAU_INDEX =>
-				rialto_parachain_runtime::ToMillauBridge::absolute_destination(),
+				(Parent, X1(GlobalConsensus(rialto_parachain_runtime::MillauNetwork::get()))),
 			_ => anyhow::bail!(
 				"Unsupported target bridge pallet with instance index: {}",
 				bridge_instance_index

@@ -540,14 +540,10 @@ pub mod source {
 
 		/// Our location within the Consensus Universe.
 		fn universal_location() -> InteriorMultiLocation;
-		/// Build absolute route to the XCM destination.
-		fn absolute_destination() -> MultiLocation;
 		/// Verify that the adapter is responsible for handling given XCM destination.
-		fn verify_absolute_destination(dest: &MultiLocation) -> bool {
-			*dest == Self::absolute_destination()
-		}
-		/// Build relative route from this chain to the XCM destination.
-		fn relative_destination() -> MultiLocation;
+		fn verify_destination(dest: &MultiLocation) -> bool;
+		/// Build route from this chain to the XCM destination.
+		fn build_destination() -> MultiLocation;
 		/// Return message lane used to deliver XCM messages.
 		fn xcm_lane() -> LaneId;
 	}
@@ -567,12 +563,12 @@ pub mod source {
 			msg: &mut Option<Xcm<()>>,
 		) -> SendResult<Self::Ticket> {
 			let d = dest.take().ok_or(SendError::MissingArgument)?;
-			if !T::verify_absolute_destination(&d) {
+			if !T::verify_destination(&d) {
 				*dest = Some(d);
 				return Err(SendError::NotApplicable)
 			}
 
-			let route = T::relative_destination();
+			let route = T::build_destination();
 			let msg = (route, msg.take().ok_or(SendError::MissingArgument)?).encode();
 
 			let fee = estimate_message_dispatch_and_delivery_fee::<T::MessageBridge>(
