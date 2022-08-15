@@ -1,7 +1,6 @@
 ## Merged pull requests that need reviews
 
 - [Parachains pallet benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1436);
-- [Refund relayer if parachain head has not been updated](https://github.com/paritytech/parity-bridges-common/pull/1528);
 - [Use jsonrpsee subscriptions](https://github.com/paritytech/parity-bridges-common/pull/1533);
 - [Unprofitable message delivery tx metric](https://github.com/paritytech/parity-bridges-common/pull/1536).
 
