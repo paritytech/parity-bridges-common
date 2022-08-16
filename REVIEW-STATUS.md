@@ -1,6 +1,5 @@
 ## Merged pull requests that need reviews
 
-- [Parachains pallet benchmarks](https://github.com/paritytech/parity-bridges-common/pull/1436);
 - [Unprofitable message delivery tx metric](https://github.com/paritytech/parity-bridges-common/pull/1536).
 
 ## Code that need security audit
