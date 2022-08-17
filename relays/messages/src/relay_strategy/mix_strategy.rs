@@ -56,7 +56,7 @@ impl RelayStrategy for MixStrategy {
 		}
 	}
 
-	async fn final_decision<
+	fn final_decision<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,
@@ -65,8 +65,8 @@ impl RelayStrategy for MixStrategy {
 		reference: &RelayReference<P, SourceClient, TargetClient>,
 	) {
 		match self.relayer_mode {
-			RelayerMode::Altruistic => AltruisticStrategy.final_decision(reference).await,
-			RelayerMode::Rational => RationalStrategy.final_decision(reference).await,
+			RelayerMode::Altruistic => AltruisticStrategy.final_decision(reference),
+			RelayerMode::Rational => RationalStrategy.final_decision(reference),
 		}
 	}
 }

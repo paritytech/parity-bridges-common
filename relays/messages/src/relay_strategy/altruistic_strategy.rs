@@ -46,7 +46,7 @@ impl RelayStrategy for AltruisticStrategy {
 		true
 	}
 
-	async fn final_decision<
+	fn final_decision<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,
