@@ -61,7 +61,7 @@ impl RelayStrategy for RationalStrategy {
 		false
 	}
 
-	fn final_decision<
+	fn on_final_decision<
 		P: MessageLane,
 		SourceClient: MessageLaneSourceClient<P>,
 		TargetClient: MessageLaneTargetClient<P>,
