@@ -40,6 +40,8 @@ parachains-relay = { path = "../parachains" }
 relay-millau-client = { path = "../client-millau" }
 relay-rialto-client = { path = "../client-rialto" }
 relay-rialto-parachain-client = { path = "../client-rialto-parachain" }
+relay-bridge-hub-rococo-client = { path = "../client-bridge-hub-rococo" }
+relay-bridge-hub-wococo-client = { path = "../client-bridge-hub-wococo" }
 relay-substrate-client = { path = "../client-substrate" }
 relay-utils = { path = "../utils" }
 relay-westend-client = { path = "../client-westend" }

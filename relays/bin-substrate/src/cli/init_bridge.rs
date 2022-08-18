@@ -18,6 +18,7 @@ use async_trait::async_trait;
 
 use crate::{
 	chains::{
+		bridge_hub_rococo_headers_to_bridge_hub_wococo::RococoToWococoCliBridge,
 		millau_headers_to_rialto::MillauToRialtoCliBridge,
 		millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
 		rialto_headers_to_millau::RialtoToMillauCliBridge,
@@ -57,6 +58,7 @@ pub enum InitBridgeName {
 	RialtoToMillau,
 	WestendToMillau,
 	MillauToRialtoParachain,
+	BridgeHubRococoToBridgeHubWococo,
 }
 
 #[async_trait]
@@ -170,6 +172,22 @@ impl BridgeInitializer for WestendToMillauCliBridge {
 	}
 }
 
+impl BridgeInitializer for RococoToWococoCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		pallet_bridge_grandpa::Call::<
+			relay_bridge_hub_wococo_client::runtime::Runtime,
+			relay_bridge_hub_wococo_client::runtime::BridgeGrandpaRococoInstance,
+		>::initialize {
+			init_data,
+		}
+		.into()
+	}
+}
+
 impl InitBridge {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
@@ -179,6 +197,8 @@ impl InitBridge {
 			InitBridgeName::WestendToMillau => WestendToMillauCliBridge::init_bridge(self),
 			InitBridgeName::MillauToRialtoParachain =>
 				MillauToRialtoParachainCliBridge::init_bridge(self),
+			InitBridgeName::BridgeHubRococoToBridgeHubWococo =>
+				RococoToWococoCliBridge::init_bridge(self),
 		}
 		.await
 	}
