@@ -964,6 +964,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "parity-scale-codec",
+ "paste",
  "scale-info",
  "smallvec",
  "sp-api",
