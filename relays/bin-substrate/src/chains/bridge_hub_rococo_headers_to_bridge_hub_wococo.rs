@@ -17,39 +17,38 @@
 //! Rococo-to-Wococo bridge hubs headers sync entrypoint.
 
 use crate::cli::bridge::{CliBridgeBase, RelayToRelayHeadersCliBridge};
-use bp_runtime::HeaderOf;
-use relay_substrate_client::{CallOf, SyncHeader};
 use substrate_relay_helper::finality::{
-	engine::Grandpa as GrandpaFinalityEngine, source::SubstrateFinalityProof,
-	DirectSubmitGrandpaFinalityProofCallBuilder, SubmitFinalityProofCallBuilder,
-	SubstrateFinalitySyncPipeline,
+	engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalitySyncPipeline,
 };
 
 /// Description of Rococo -> Wococo finalized headers bridge.
 #[derive(Clone, Debug)]
-pub struct RococoFinalityToWococo;
+pub struct BridgeHubRococoFinalityToBridgeHubWococo;
 
-impl SubstrateFinalitySyncPipeline for RococoFinalityToWococo {
+substrate_relay_helper::generate_mocked_submit_finality_proof_call_builder!(
+	BridgeHubRococoFinalityToBridgeHubWococo,
+	BridgeHubRococoFinalityToBridgeHubWococoCallBuilder,
+	relay_bridge_hub_wococo_client::runtime::Call::BridgeGrandpaRococo,
+	relay_bridge_hub_wococo_client::runtime::BridgeGrandpaRococoCall::submit_finality_proof
+);
+
+impl SubstrateFinalitySyncPipeline for BridgeHubRococoFinalityToBridgeHubWococo {
 	type SourceChain = relay_bridge_hub_rococo_client::BridgeHubRococo;
 	type TargetChain = relay_bridge_hub_wococo_client::BridgeHubWococo;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
-	type SubmitFinalityProofCallBuilder = DirectSubmitGrandpaFinalityProofCallBuilder<
-		Self,
-		relay_bridge_hub_wococo_client::runtime::Runtime,
-		relay_bridge_hub_wococo_client::runtime::BridgeGrandpaRococoInstance,
-	>;
+	type SubmitFinalityProofCallBuilder = BridgeHubRococoFinalityToBridgeHubWococoCallBuilder;
 	type TransactionSignScheme = relay_bridge_hub_wococo_client::BridgeHubWococo;
 }
 
-/// `Rococo` to `Wococo` bridge definition.
-pub struct RococoToWococoCliBridge {}
+/// BridgeHub `Rococo` to BridgeHub `Wococo` bridge definition.
+pub struct BridgeHubRococoToBridgeHubWococoCliBridge {}
 
-impl CliBridgeBase for RococoToWococoCliBridge {
+impl CliBridgeBase for BridgeHubRococoToBridgeHubWococoCliBridge {
 	type Source = relay_bridge_hub_rococo_client::BridgeHubRococo;
 	type Target = relay_bridge_hub_wococo_client::BridgeHubWococo;
 }
 
-impl RelayToRelayHeadersCliBridge for RococoToWococoCliBridge {
-	type Finality = RococoFinalityToWococo;
+impl RelayToRelayHeadersCliBridge for BridgeHubRococoToBridgeHubWococoCliBridge {
+	type Finality = BridgeHubRococoFinalityToBridgeHubWococo;
 }

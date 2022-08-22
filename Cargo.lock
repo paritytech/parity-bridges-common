@@ -737,6 +737,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-bridge-hub-rococo"
+version = "0.1.0"
+dependencies = [
+ "bp-polkadot-core",
+ "frame-support",
+]
+
+[[package]]
+name = "bp-bridge-hub-wococo"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-rococo",
+]
+
+[[package]]
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
@@ -8661,28 +8676,40 @@ dependencies = [
 name = "relay-bridge-hub-rococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-bridge-hub-rococo",
+ "bp-bridge-hub-wococo",
+ "bp-header-chain",
  "bp-messages",
  "bp-polkadot-core",
+ "bp-runtime",
  "frame-support",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "scale-info",
  "sp-core",
  "sp-runtime",
+ "sp-version",
 ]
 
 [[package]]
 name = "relay-bridge-hub-wococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-bridge-hub-wococo",
+ "bp-header-chain",
  "bp-messages",
  "bp-polkadot-core",
+ "bp-runtime",
  "frame-support",
  "parity-scale-codec",
+ "relay-bridge-hub-rococo-client",
  "relay-substrate-client",
  "relay-utils",
+ "scale-info",
  "sp-core",
  "sp-runtime",
+ "sp-version",
 ]
 
 [[package]]
@@ -11815,6 +11842,8 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "rand 0.8.5",
+ "relay-bridge-hub-rococo-client",
+ "relay-bridge-hub-wococo-client",
  "relay-millau-client",
  "relay-rialto-client",
  "relay-rialto-parachain-client",
