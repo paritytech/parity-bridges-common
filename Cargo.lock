@@ -8688,6 +8688,7 @@ dependencies = [
  "relay-utils",
  "scale-info",
  "sp-core",
+ "sp-finality-grandpa",
  "sp-runtime",
  "sp-version",
 ]
@@ -8697,10 +8698,6 @@ name = "relay-bridge-hub-wococo-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-wococo",
- "bp-header-chain",
- "bp-messages",
- "bp-polkadot-core",
- "bp-runtime",
  "frame-support",
  "parity-scale-codec",
  "relay-bridge-hub-rococo-client",

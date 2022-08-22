@@ -46,31 +46,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// Unchecked BridgeHubRococo extrinsic.
 pub type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<Call>;
 
-// TODO: do we need?
-// /// Wococo account ownership digest from Rococo.
-// ///
-// /// The byte vector returned by this function should be signed with a Wococo account private key.
-// /// This way, the owner of `rococo_account_id` on Rococo proves that the Wococo account private
-// key /// is also under his control.
-// pub fn rococo_to_wococo_account_ownership_digest<Call, AccountId, SpecVersion>(
-// 	wococo_call: &Call,
-// 	rococo_account_id: AccountId,
-// 	wococo_spec_version: SpecVersion,
-// ) -> Vec<u8>
-// 	where
-// 		Call: codec::Encode,
-// 		AccountId: codec::Encode,
-// 		SpecVersion: codec::Encode,
-// {
-// 	pallet_bridge_dispatch::account_ownership_digest(
-// 		wococo_call,
-// 		rococo_account_id,
-// 		wococo_spec_version,
-// 		bp_runtime::ROCOCO_CHAIN_ID,
-// 		bp_runtime::WOCOCO_CHAIN_ID,
-// 	)
-// }
-
 /// Rococo Runtime `Call` enum.
 ///
 /// The enum represents a subset of possible `Call`s we can send to Rococo chain.
@@ -80,23 +55,20 @@ pub type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<Call>;
 /// All entries here (like pretty much in the entire file) must be kept in sync with Rococo
 /// `construct_runtime`, so that we maintain SCALE-compatibility.
 ///
-/// See: [link](https://github.com/paritytech/polkadot/blob/master/runtime/rococo/src/lib.rs)
+/// // TODO:check-parameter -> change bko-bridge-rococo-wococo when merged to master in cumulus
+/// See: [link](https://github.com/paritytech/cumulus/blob/bko-bridge-rococo-wococo/parachains/runtimes/bridge-hubs/bridge-hub-rococo/src/lib.rs)
 #[allow(clippy::large_enum_variant)]
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Call {
-	// TODO:check-parameter - indexes
 	/// System pallet.
 	#[codec(index = 0)]
 	System(SystemCall),
-	// TODO: /// Balances pallet.
-	// #[codec(index = 4)]
-	// Balances(BalancesCall),
 	/// Wococo bridge pallet.
-	#[codec(index = 41)]
+	#[codec(index = 35)]
 	BridgeGrandpaWococo(BridgeGrandpaWococoCall),
-	// TODO: /// Wococo messages pallet.
-	// #[codec(index = 44)]
-	// BridgeWococoMessages(BridgeWococoMessagesCall),
+	/// Rococo bridge pallet.
+	#[codec(index = 37)]
+	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
 }
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
@@ -105,14 +77,6 @@ pub enum SystemCall {
 	#[codec(index = 1)]
 	remark(Vec<u8>),
 }
-
-// TODO:check-parameter
-// #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-// #[allow(non_camel_case_types)]
-// pub enum BalancesCall {
-// 	#[codec(index = 0)]
-// 	transfer(AccountAddress, Compact<Balance>),
-// }
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 #[allow(non_camel_case_types)]
@@ -126,38 +90,17 @@ pub enum BridgeGrandpaWococoCall {
 	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
 }
 
-// TODO:check-parameter add BridgeParachainWococoCall
-
-// TODO:check-parameter add messages
-// #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-// #[allow(non_camel_case_types)]
-// pub enum BridgeWococoMessagesCall {
-// 	#[codec(index = 3)]
-// 	send_message(
-// 		LaneId,
-// 		bp_message_dispatch::MessagePayload<
-// 			bp_bridge_hub_rococo::AccountId,
-// 			bp_bridge_hub_wococo::AccountId,
-// 			bp_bridge_hub_wococo::AccountPublic,
-// 			Vec<u8>,
-// 		>,
-// 		bp_bridge_hub_rococo::Balance,
-// 	),
-// 	#[codec(index = 5)]
-// 	receive_messages_proof(
-// 		bp_bridge_hub_wococo::AccountId,
-// 		bridge_runtime_common::messages::target::FromBridgedChainMessagesProof<bp_bridge_hub_wococo::Hash>,
-// 		u32,
-// 		Weight,
-// 	),
-// 	#[codec(index = 6)]
-// 	receive_messages_delivery_proof(
-// 		bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<
-// 			bp_bridge_hub_wococo::Hash,
-// 		>,
-// 		UnrewardedRelayersState,
-// 	),
-// }
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[allow(non_camel_case_types)]
+pub enum BridgeGrandpaRococoCall {
+	#[codec(index = 0)]
+	submit_finality_proof(
+		Box<<PolkadotLike as Chain>::Header>,
+		bp_header_chain::justification::GrandpaJustification<<PolkadotLike as Chain>::Header>,
+	),
+	#[codec(index = 1)]
+	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
+}
 
 impl sp_runtime::traits::Dispatchable for Call {
 	type Origin = ();
@@ -167,5 +110,51 @@ impl sp_runtime::traits::Dispatchable for Call {
 
 	fn dispatch(self, _origin: Self::Origin) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
 		unimplemented!("The Call is not expected to be dispatched.")
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use bp_runtime::BasicOperatingMode;
+	use sp_core::hexdisplay::HexDisplay;
+	use sp_finality_grandpa::AuthorityList;
+	use sp_runtime::traits::Header;
+	use std::str::FromStr;
+
+	pub type RelayBlockNumber = bp_polkadot_core::BlockNumber;
+	pub type RelayBlockHasher = bp_polkadot_core::Hasher;
+	pub type RelayBlockHeader = sp_runtime::generic::Header<RelayBlockNumber, RelayBlockHasher>;
+
+	#[test]
+	fn encode_decode_calls() {
+		let header = RelayBlockHeader::new(
+			75,
+			bp_polkadot_core::Hash::from_str(
+				"0xd2c0afaab32de0cb8f7f0d89217e37c5ea302c1ffb5a7a83e10d20f12c32874d",
+			)
+			.expect("invalid value"),
+			bp_polkadot_core::Hash::from_str(
+				"0x92b965f0656a4e0e5fc0167da2d4b5ee72b3be2c1583c4c1e5236c8c12aa141b",
+			)
+			.expect("invalid value"),
+			bp_polkadot_core::Hash::from_str(
+				"0xae4a25acf250d72ed02c149ecc7dd3c9ee976d41a2888fc551de8064521dc01d",
+			)
+			.expect("invalid value"),
+			Default::default(),
+		);
+		let init_data = bp_header_chain::InitializationData {
+			header: Box::new(header),
+			authority_list: AuthorityList::default(),
+			set_id: 6,
+			operating_mode: BasicOperatingMode::Normal,
+		};
+		let call = BridgeGrandpaRococoCall::initialize(init_data);
+		let tx = Call::BridgeGrandpaRococo(call);
+
+		// encode call as hex string
+		let hex_encoded_call = format!("0x{:?}", HexDisplay::from(&Encode::encode(&tx)));
+		assert_eq!(hex_encoded_call, "0x2501ae4a25acf250d72ed02c149ecc7dd3c9ee976d41a2888fc551de8064521dc01d2d0192b965f0656a4e0e5fc0167da2d4b5ee72b3be2c1583c4c1e5236c8c12aa141bd2c0afaab32de0cb8f7f0d89217e37c5ea302c1ffb5a7a83e10d20f12c32874d0000060000000000000000");
 	}
 }

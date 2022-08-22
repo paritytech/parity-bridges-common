@@ -14,10 +14,6 @@ relay-utils = { path = "../utils" }
 # Bridge dependencies
 
 bp-bridge-hub-wococo = { path = "../../primitives/chain-bridge-hub-wococo" }
-bp-header-chain = { path = "../../primitives/header-chain" }
-bp-messages = { path = "../../primitives/messages" }
-bp-polkadot-core = { path = "../../primitives/polkadot-core" }
-bp-runtime = { path = "../../primitives/runtime" }
 relay-bridge-hub-rococo-client = { path = "../client-bridge-hub-rococo" }
 
 # Substrate Dependencies
