@@ -64,10 +64,10 @@ pub enum Call {
 	#[codec(index = 0)]
 	System(SystemCall),
 	/// Wococo bridge pallet.
-	#[codec(index = 35)]
+	#[codec(index = 41)]
 	BridgeGrandpaWococo(BridgeGrandpaWococoCall),
 	/// Rococo bridge pallet.
-	#[codec(index = 37)]
+	#[codec(index = 43)]
 	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
 }
 
