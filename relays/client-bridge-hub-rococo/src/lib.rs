@@ -77,16 +77,20 @@ impl Chain for BridgeHubRococo {
 }
 
 impl RelayChain for BridgeHubRococo {
+	// TODO:check-parameter
 	const PARAS_PALLET_NAME: &'static str = "TODO:BridgeHubRococo:PARAS_PALLET_NAME";
+	// TODO:check-parameter
 	const PARACHAINS_FINALITY_PALLET_NAME: &'static str =
 		"TODO:BridgeHubRococo:PARACHAINS_FINALITY_PALLET_NAME";
 }
 
 impl ChainWithGrandpa for BridgeHubRococo {
+	// TODO:check-parameter
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str =
 		"TODO:BridgeHubRococo:WITH_CHAIN_GRANDPA_PALLET_NAME";
 }
 
+// TODO:check-parameter
 impl ChainWithBalances for BridgeHubRococo {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		StorageKey(bp_bridge_hub_rococo::account_info_storage_key(account_id))
@@ -100,6 +104,9 @@ impl TransactionSignScheme for BridgeHubRococo {
 
 	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, SubstrateError> {
 		// TODO:check-parameter
+		// TODO: log: param.spec_version, param.transaction_version vs
+		// bp_bridge_hub_rococo::VERSION.spec_version,
+		// bp_bridge_hub_rococo::VERSION.transaction_version,
 		let raw_payload = SignedPayload::new(
 			param.unsigned.call,
 			bp_bridge_hub_rococo::SignedExtensions::new(
