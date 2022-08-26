@@ -339,7 +339,7 @@ macro_rules! decl_bridge_messages_runtime_apis {
 #[macro_export]
 macro_rules! decl_bridge_runtime_apis {
 	($chain: ident) => {
-		decl_bridge_finality_runtime_apis!($chain);
-		decl_bridge_messages_runtime_apis!($chain);
+		bp_runtime::decl_bridge_finality_runtime_apis!($chain);
+		bp_runtime::decl_bridge_messages_runtime_apis!($chain);
 	};
 }
