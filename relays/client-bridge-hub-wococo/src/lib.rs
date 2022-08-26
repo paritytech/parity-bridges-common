@@ -19,10 +19,10 @@
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, Error as SubstrateError, RelayChain,
-	SignParam, TransactionSignScheme, UnsignedTransaction,
+	Chain, ChainBase, ChainWithGrandpa, Error as SubstrateError, SignParam, TransactionSignScheme,
+	UnsignedTransaction,
 };
-use sp_core::{storage::StorageKey, Pair};
+use sp_core::Pair;
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
@@ -68,7 +68,7 @@ impl Chain for BridgeHubWococo {
 	const NAME: &'static str = "BridgeHubWococo";
 	const TOKEN_ID: Option<&'static str> = None;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
-		"TODO: add best_finalized runtime api to bridge-hubs";
+		bp_bridge_hub_wococo::BEST_FINALIZED_WOCOCO_HEADER_METHOD;
 	// TODO:check-parameter
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_bridge_hub_wococo::EXTRA_STORAGE_PROOF_SIZE;
@@ -78,25 +78,8 @@ impl Chain for BridgeHubWococo {
 	type WeightToFee = bp_bridge_hub_wococo::WeightToFee;
 }
 
-impl RelayChain for BridgeHubWococo {
-	// TODO:check-parameter
-	const PARAS_PALLET_NAME: &'static str = "TODO:BridgeHubWococo:PARAS_PALLET_NAME";
-	// TODO:check-parameter
-	const PARACHAINS_FINALITY_PALLET_NAME: &'static str =
-		"TODO:BridgeHubWococo:PARACHAINS_FINALITY_PALLET_NAME";
-}
-
 impl ChainWithGrandpa for BridgeHubWococo {
-	// TODO:check-parameter
-	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str =
-		"TODO:BridgeHubWococo:WITH_CHAIN_GRANDPA_PALLET_NAME";
-}
-
-// TODO:check-parameter
-impl ChainWithBalances for BridgeHubWococo {
-	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
-		StorageKey(bp_bridge_hub_wococo::account_info_storage_key(account_id))
-	}
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "BridgeWococoGrandpa";
 }
 
 impl TransactionSignScheme for BridgeHubWococo {

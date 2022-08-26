@@ -26,5 +26,8 @@ pub use bp_bridge_hub_rococo::{
 	Hashing, Header, Nonce, SS58Prefix, Signature, SignedBlock, SignedExtensions,
 	UncheckedExtrinsic, WeightToFee, EXTRA_STORAGE_PROOF_SIZE,
 };
+use bp_runtime::decl_bridge_finality_runtime_apis;
 
 pub type BridgeHubWococo = bp_bridge_hub_rococo::BridgeHubRococo;
+
+decl_bridge_finality_runtime_apis!(wococo);

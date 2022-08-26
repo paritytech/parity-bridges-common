@@ -18,6 +18,7 @@
 //! Hashes...)
 
 pub use bp_polkadot_core::*;
+use bp_runtime::decl_bridge_finality_runtime_apis;
 use frame_support::{parameter_types, sp_runtime::MultiAddress};
 
 pub type BridgeHubRococo = PolkadotLike;
@@ -29,3 +30,5 @@ pub type Address = MultiAddress<AccountId, ()>;
 parameter_types! {
 	pub const SS58Prefix: u16 = 42;
 }
+
+decl_bridge_finality_runtime_apis!(rococo);
