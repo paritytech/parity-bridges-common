@@ -80,7 +80,7 @@ pub struct Client<C: Chain> {
 	/// Tokio runtime handle.
 	tokio: Arc<tokio::runtime::Runtime>,
 	/// Client connection params.
-	params: ConnectionParams,
+	params: Arc<ConnectionParams>,
 	/// Substrate RPC client.
 	client: Arc<RpcClient>,
 	/// Genesis block hash.
@@ -99,7 +99,7 @@ impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
 	type Error = Error;
 
 	async fn reconnect(&mut self) -> Result<()> {
-		let (tokio, client) = Self::build_client(self.params.clone()).await?;
+		let (tokio, client) = Self::build_client(&self.params).await?;
 		self.tokio = tokio;
 		self.client = client;
 		Ok(())
@@ -150,7 +150,7 @@ impl<C: Chain> Client<C> {
 	/// Try to connect to Substrate node over websocket. Returns Substrate RPC client if connection
 	/// has been established or error otherwise.
 	pub async fn try_connect(params: ConnectionParams) -> Result<Self> {
-		let (tokio, client) = Self::build_client(params.clone()).await?;
+		let (tokio, client) = Self::build_client(&params).await?;
 
 		let number: C::BlockNumber = Zero::zero();
 		let genesis_hash_client = client.clone();
@@ -163,7 +163,7 @@ impl<C: Chain> Client<C> {
 		let chain_runtime_version = params.chain_runtime_version.clone();
 		Ok(Self {
 			tokio,
-			params,
+			params: Arc::new(params),
 			client,
 			genesis_hash,
 			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
@@ -173,7 +173,7 @@ impl<C: Chain> Client<C> {
 
 	/// Build client to use in connection.
 	async fn build_client(
-		params: ConnectionParams,
+		params: &ConnectionParams,
 	) -> Result<(Arc<tokio::runtime::Runtime>, Arc<RpcClient>)> {
 		let tokio = tokio::runtime::Runtime::new()?;
 		let uri = format!(
