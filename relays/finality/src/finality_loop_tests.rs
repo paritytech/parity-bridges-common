@@ -164,6 +164,8 @@ impl RelayClient for TestTargetClient {
 
 #[async_trait]
 impl TargetClient<TestFinalitySyncPipeline> for TestTargetClient {
+	type TransactionTracker = ();
+
 	async fn best_finalized_source_block_id(
 		&self,
 	) -> Result<HeaderId<TestHash, TestNumber>, TestError> {
@@ -538,7 +540,7 @@ fn different_forks_at_source_and_at_target_are_detected() {
 			progress: &mut progress,
 			finality_proofs_stream: &mut finality_proofs_stream,
 			recent_finality_proofs: &mut recent_finality_proofs,
-			last_transaction: None,
+			submitted_header_number: None,
 		},
 		&test_sync_params(),
 		&Some(metrics_sync.clone()),
@@ -547,3 +549,6 @@ fn different_forks_at_source_and_at_target_are_detected() {
 
 	assert!(!metrics_sync.is_using_same_fork());
 }
+
+#[test]
+fn stalls_when_transaction_tracker_returns_error() {}

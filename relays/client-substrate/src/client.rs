@@ -17,13 +17,14 @@
 //! Substrate node client.
 
 use crate::{
-	chain::{Chain, ChainWithBalances, TransactionStatusOf},
+	chain::{Chain, ChainWithBalances},
 	rpc::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFrameSystemClient,
 		SubstrateGrandpaClient, SubstrateStateClient, SubstrateSystemClient,
 		SubstrateTransactionPaymentClient,
 	},
-	ConnectionParams, Error, HashOf, HeaderIdOf, Result,
+	transaction_stall_timeout, ConnectionParams, Error, HashOf, HeaderIdOf, Result, SignParam,
+	TransactionSignScheme, TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex};
@@ -39,7 +40,7 @@ use jsonrpsee::{
 use num_traits::{Bounded, Zero};
 use pallet_balances::AccountData;
 use pallet_transaction_payment::InclusionFee;
-use relay_utils::relay_loop::RECONNECT_DELAY;
+use relay_utils::{relay_loop::RECONNECT_DELAY, STALL_TIMEOUT};
 use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Hasher,
@@ -402,10 +403,13 @@ impl<C: Chain> Client<C> {
 	/// if all client instances are clones of the same initial `Client`.
 	///
 	/// Note: The given transaction needs to be SCALE encoded beforehand.
-	pub async fn submit_signed_extrinsic(
+	pub async fn submit_signed_extrinsic<S: TransactionSignScheme<Chain = C> + 'static>(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<Bytes> + Send + 'static,
+		signing_data: SignParam<S>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
 	) -> Result<C::Hash> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
@@ -420,12 +424,14 @@ impl<C: Chain> Client<C> {
 
 		self.jsonrpsee_execute(move |client| async move {
 			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-			let tx_hash = SubstrateAuthorClient::<C>::submit_extrinsic(&*client, extrinsic)
-				.await
-				.map_err(|e| {
-				log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-				e
-			})?;
+			let signed_extrinsic = S::sign_transaction(signing_data, extrinsic)?.encode();
+			let tx_hash =
+				SubstrateAuthorClient::<C>::submit_extrinsic(&*client, Bytes(signed_extrinsic))
+					.await
+					.map_err(|e| {
+						log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+						e
+					})?;
 			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 			Ok(tx_hash)
 		})
@@ -434,38 +440,56 @@ impl<C: Chain> Client<C> {
 
 	/// Does exactly the same as `submit_signed_extrinsic`, but keeps watching for extrinsic status
 	/// after submission.
-	pub async fn submit_and_watch_signed_extrinsic(
+	pub async fn submit_and_watch_signed_extrinsic<
+		S: TransactionSignScheme<Chain = C> + 'static,
+	>(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<Bytes> + Send + 'static,
-	) -> Result<Subscription<TransactionStatusOf<C>>> {
+		signing_data: SignParam<S>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
+	) -> Result<TransactionTracker<C>> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
 		let best_header = self.best_header().await?;
 		let best_header_id = best_header.id();
-		let subscription = self
+		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
+		let (tracker, subscription) = self
 			.jsonrpsee_execute(move |client| async move {
 				let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-				let tx_hash = C::Hasher::hash(&extrinsic.0);
-				let subscription =
-					SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(&*client, extrinsic)
-						.await
-						.map_err(|e| {
-							log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-							e
-						})?;
+				let stall_timeout = transaction_stall_timeout(
+					extrinsic.era.mortality_period(),
+					C::AVERAGE_BLOCK_INTERVAL,
+					STALL_TIMEOUT,
+				);
+				let signed_extrinsic = S::sign_transaction(signing_data, extrinsic)?.encode();
+				let tx_hash = C::Hasher::hash(&signed_extrinsic);
+				let subscription = SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(
+					&*client,
+					Bytes(signed_extrinsic),
+				)
+				.await
+				.map_err(|e| {
+					log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+					e
+				})?;
 				log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
-				Ok(subscription)
+				let tracker = TransactionTracker::new(
+					stall_timeout,
+					tx_hash,
+					Subscription(Mutex::new(receiver)),
+				);
+				Ok((tracker, subscription))
 			})
 			.await?;
-		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
 		self.tokio.spawn(Subscription::background_worker(
 			C::NAME.into(),
 			"extrinsic".into(),
 			subscription,
 			sender,
 		));
-		Ok(Subscription(Mutex::new(receiver)))
+		Ok(tracker)
 	}
 
 	/// Returns pending extrinsics from transaction pool.

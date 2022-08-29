@@ -44,8 +44,19 @@ use std::time::Duration;
 /// This struct implements third option as it seems to be the most optimal.
 pub struct TransactionTracker<C: Chain> {
 	transaction_hash: HashOf<C>,
-	subscription: Subscription<TransactionStatusOf<C>>,
 	stall_timeout: Duration,
+	subscription: Subscription<TransactionStatusOf<C>>,
+}
+
+impl<C: Chain> TransactionTracker<C> {
+	/// Create transaction tracker.
+	pub fn new(
+		stall_timeout: Duration,
+		transaction_hash: HashOf<C>,
+		subscription: Subscription<TransactionStatusOf<C>>,
+	) -> Self {
+		Self { stall_timeout, transaction_hash, subscription }
+	}
 }
 
 #[async_trait]
