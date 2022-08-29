@@ -20,7 +20,7 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus-metrics
-    entrypoint: sh -c "echo 'sleeping for 180s' && sleep 180 && /run.sh"
+    entrypoint: sh -c "echo 'sleeping for 240s' && sleep 240 && /run.sh"
 
   grafana-matrix-notifier:
     build:
