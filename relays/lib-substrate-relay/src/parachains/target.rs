@@ -29,7 +29,7 @@ use bp_parachains::{
 };
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::HeaderIdProvider;
-use codec::{Decode, Encode};
+use codec::Decode;
 use parachains_relay::{
 	parachains_loop::TargetClient, parachains_loop_metrics::ParachainsLoopMetrics,
 };
@@ -182,18 +182,15 @@ where
 		self.client
 			.submit_signed_extrinsic(
 				self.transaction_params.signer.public().into(),
+				SignParam::<P::TransactionSignScheme> {
+					spec_version,
+					transaction_version,
+					genesis_hash,
+					signer: transaction_params.signer,
+				},
 				move |best_block_id, transaction_nonce| {
-					Ok(Bytes(
-						P::TransactionSignScheme::sign_transaction(SignParam {
-							spec_version,
-							transaction_version,
-							genesis_hash,
-							signer: transaction_params.signer,
-							era: TransactionEra::new(best_block_id, transaction_params.mortality),
-							unsigned: UnsignedTransaction::new(call.into(), transaction_nonce),
-						})?
-						.encode(),
-					))
+					Ok(UnsignedTransaction::new(call.into(), transaction_nonce)
+						.era(TransactionEra::new(best_block_id, transaction_params.mortality)))
 				},
 			)
 			.await
