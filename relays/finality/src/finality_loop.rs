@@ -253,7 +253,7 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 				progress: &mut progress,
 				finality_proofs_stream: &mut finality_proofs_stream,
 				recent_finality_proofs: &mut recent_finality_proofs,
-				submitted_header_number: last_submitted_header_number.clone(),
+				submitted_header_number: last_submitted_header_number,
 			},
 			&sync_params,
 			&metrics_sync,
@@ -289,7 +289,7 @@ async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 		// wait till exit signal, or new source block
 		select! {
 			transaction_status = last_transaction_tracker => {
-				if let Err(_) = transaction_status {
+				if transaction_status.is_err() {
 					log::error!(
 						target: "bridge",
 						"Finality synchronization from {} to {} has stalled. Going to restart",

@@ -649,7 +649,7 @@ impl<C: Chain> Client<C> {
 }
 
 impl<T: DeserializeOwned> Subscription<T> {
-	/// Consumes subscription and returns future statuses strean.
+	/// Consumes subscription and returns future statuses stream.
 	pub fn into_stream(self) -> impl futures::Stream<Item = T> {
 		futures::stream::unfold(self, |this| async {
 			let item = this.0.lock().await.next().await.unwrap_or(None);

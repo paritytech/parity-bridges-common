@@ -28,7 +28,7 @@ use std::time::Duration;
 /// we may know when transaction is included into block, finalized or rejected. There are
 /// some edge cases, when we can't fully trust this mechanism - e.g. transaction may broadcasted
 /// and then dropped out of node transaction pool (some other cases are also possible - node
-/// restarts, connection losts, ...). Then we can't know for sure - what is currently happening
+/// restarts, connection lost, ...). Then we can't know for sure - what is currently happening
 /// with our transaction. Is the transaction really lost? Is it still alive on the chain network?
 ///
 /// We have several options to handle such cases:
