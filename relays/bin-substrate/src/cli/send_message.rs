@@ -225,7 +225,7 @@ fn decode_xcm(message: RawMessage) -> anyhow::Result<xcm::VersionedXcm<()>> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::ExplicitOrMaximal;
+	use crate::cli::{ExplicitOrMaximal, HexBytes};
 
 	#[test]
 	fn send_raw_rialto_to_millau() {

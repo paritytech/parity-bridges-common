@@ -141,7 +141,7 @@ where
 				.and_then(|maybe_encoded_head| match maybe_encoded_head {
 					Some(encoded_head) =>
 						HeaderOf::<P::SourceParachain>::decode(&mut &encoded_head.0[..])
-							.map(|head| Some(head))
+							.map(Some)
 							.map_err(Self::Error::ResponseParseFailed),
 					None => Ok(None),
 				})
