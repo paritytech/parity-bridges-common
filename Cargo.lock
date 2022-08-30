@@ -694,7 +694,7 @@ dependencies = [
  "assert_matches",
  "bp-runtime",
  "bp-test-utils",
- "finality-grandpa 0.15.0",
+ "finality-grandpa",
  "frame-support",
  "hex",
  "hex-literal",
@@ -892,7 +892,7 @@ version = "0.1.0"
 dependencies = [
  "bp-header-chain",
  "ed25519-dalek",
- "finality-grandpa 0.15.0",
+ "finality-grandpa",
  "parity-scale-codec",
  "sp-application-crypto",
  "sp-finality-grandpa",
@@ -2601,22 +2601,6 @@ dependencies = [
  "libc",
  "redox_syscall",
  "windows-sys 0.36.1",
-]
-
-[[package]]
-name = "finality-grandpa"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9def033d8505edf199f6a5d07aa7e6d2d6185b164293b77f0efd108f4f3e11d"
-dependencies = [
- "either",
- "futures",
- "futures-timer",
- "log",
- "num-traits",
- "parity-scale-codec",
- "parking_lot 0.11.2",
- "scale-info",
 ]
 
 [[package]]
@@ -5726,7 +5710,7 @@ dependencies = [
  "bp-header-chain",
  "bp-runtime",
  "bp-test-utils",
- "finality-grandpa 0.15.0",
+ "finality-grandpa",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -9597,7 +9581,7 @@ dependencies = [
  "ahash",
  "async-trait",
  "dyn-clone",
- "finality-grandpa 0.16.0",
+ "finality-grandpa",
  "fork-tree",
  "futures",
  "futures-timer",
@@ -9635,7 +9619,7 @@ name = "sc-finality-grandpa-rpc"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#57e3486d9c7bb4deaef33cf9ba2da083b4e40314"
 dependencies = [
- "finality-grandpa 0.16.0",
+ "finality-grandpa",
  "futures",
  "jsonrpsee",
  "log",
@@ -10920,7 +10904,7 @@ name = "sp-finality-grandpa"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#57e3486d9c7bb4deaef33cf9ba2da083b4e40314"
 dependencies = [
- "finality-grandpa 0.16.0",
+ "finality-grandpa",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -11568,7 +11552,7 @@ dependencies = [
  "bp-test-utils",
  "bp-westend",
  "bridge-runtime-common",
- "finality-grandpa 0.15.0",
+ "finality-grandpa",
  "finality-relay",
  "frame-support",
  "futures",
@@ -11626,7 +11610,7 @@ dependencies = [
  "bp-runtime",
  "bp-wococo",
  "bridge-runtime-common",
- "finality-grandpa 0.15.0",
+ "finality-grandpa",
  "finality-relay",
  "frame-support",
  "frame-system",
@@ -12295,7 +12279,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",
