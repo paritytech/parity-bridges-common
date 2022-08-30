@@ -81,7 +81,7 @@ pub struct Client<C: Chain> {
 	/// Tokio runtime handle.
 	tokio: Arc<tokio::runtime::Runtime>,
 	/// Client connection params.
-	params: ConnectionParams,
+	params: Arc<ConnectionParams>,
 	/// Substrate RPC client.
 	client: Arc<RpcClient>,
 	/// Genesis block hash.
@@ -100,7 +100,7 @@ impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
 	type Error = Error;
 
 	async fn reconnect(&mut self) -> Result<()> {
-		let (tokio, client) = Self::build_client(self.params.clone()).await?;
+		let (tokio, client) = Self::build_client(&self.params).await?;
 		self.tokio = tokio;
 		self.client = client;
 		Ok(())
@@ -132,6 +132,7 @@ impl<C: Chain> Client<C> {
 	/// This function will keep connecting to given Substrate node until connection is established
 	/// and is functional. If attempt fail, it will wait for `RECONNECT_DELAY` and retry again.
 	pub async fn new(params: ConnectionParams) -> Self {
+		let params = Arc::new(params);
 		loop {
 			match Self::try_connect(params.clone()).await {
 				Ok(client) => return client,
@@ -150,8 +151,8 @@ impl<C: Chain> Client<C> {
 
 	/// Try to connect to Substrate node over websocket. Returns Substrate RPC client if connection
 	/// has been established or error otherwise.
-	pub async fn try_connect(params: ConnectionParams) -> Result<Self> {
-		let (tokio, client) = Self::build_client(params.clone()).await?;
+	pub async fn try_connect(params: Arc<ConnectionParams>) -> Result<Self> {
+		let (tokio, client) = Self::build_client(&params).await?;
 
 		let number: C::BlockNumber = Zero::zero();
 		let genesis_hash_client = client.clone();
@@ -174,7 +175,7 @@ impl<C: Chain> Client<C> {
 
 	/// Build client to use in connection.
 	async fn build_client(
-		params: ConnectionParams,
+		params: &ConnectionParams,
 	) -> Result<(Arc<tokio::runtime::Runtime>, Arc<RpcClient>)> {
 		let tokio = tokio::runtime::Runtime::new()?;
 		let uri = format!(
@@ -567,6 +568,18 @@ impl<C: Chain> Client<C> {
 			Ok(authority_list)
 		})
 		.await
+	}
+
+	/// Execute runtime call at given block, provided the input and output types.
+	/// It also performs the input encode and output decode.
+	pub async fn typed_state_call<Input: codec::Encode, Output: codec::Decode>(
+		&self,
+		method_name: String,
+		input: Input,
+		at_block: Option<C::Hash>,
+	) -> Result<Output> {
+		let encoded_output = self.state_call(method_name, Bytes(input.encode()), at_block).await?;
+		Output::decode(&mut &encoded_output.0[..]).map_err(Error::ResponseParseFailed)
 	}
 
 	/// Execute runtime call at given block.

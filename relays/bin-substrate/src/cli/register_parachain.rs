@@ -226,7 +226,7 @@ impl RegisterParachain {
 			let force_lease_signer = relay_sign.clone();
 			relay_client
 				.submit_signed_extrinsic(
-					relay_sudo_account.clone(),
+					relay_sudo_account,
 					SignParam::<Relaychain> {
 						spec_version,
 						transaction_version,

@@ -26,7 +26,7 @@ use crate::{
 		chain_schema::*,
 		encode_message::{self, CliEncodeMessage, RawMessage},
 		estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
-		Balance, CliChain, HexBytes, HexLaneId,
+		Balance, CliChain, HexLaneId,
 	},
 };
 use async_trait::async_trait;
@@ -121,13 +121,13 @@ where
 					conversion_rate_override,
 					Self::ESTIMATE_MESSAGE_FEE_METHOD,
 					lane,
-					payload.clone(),
+					&payload,
 				)
 				.await?
 				.into(),
 			),
 		};
-		let payload_len = payload.encode().len();
+		let payload_len = payload.encoded_size();
 		let send_message_call = if data.use_xcm_pallet {
 			Self::Source::encode_send_xcm(
 				decode_xcm(payload)?,
@@ -225,7 +225,7 @@ fn decode_xcm(message: RawMessage) -> anyhow::Result<xcm::VersionedXcm<()>> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::ExplicitOrMaximal;
+	use crate::cli::{ExplicitOrMaximal, HexBytes};
 
 	#[test]
 	fn send_raw_rialto_to_millau() {
