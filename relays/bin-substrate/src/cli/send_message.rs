@@ -26,7 +26,7 @@ use crate::{
 		chain_schema::*,
 		encode_message::{self, CliEncodeMessage, RawMessage},
 		estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
-		Balance, CliChain, HexBytes, HexLaneId,
+		Balance, CliChain, HexLaneId,
 	},
 };
 use async_trait::async_trait;
