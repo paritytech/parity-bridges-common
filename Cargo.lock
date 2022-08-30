@@ -883,6 +883,7 @@ dependencies = [
  "sp-state-machine",
  "sp-std",
  "sp-trie",
+ "trie-db",
 ]
 
 [[package]]

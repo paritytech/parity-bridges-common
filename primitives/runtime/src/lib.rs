@@ -37,7 +37,7 @@ pub use frame_support::storage::storage_prefix as storage_value_final_key;
 use num_traits::{CheckedSub, One};
 use sp_runtime::transaction_validity::TransactionValidity;
 pub use storage_proof::{
-	Error as StorageProofError, ProofSize as StorageProofSize, StorageProofChecker,
+	Error as StorageProofError, ProofSize as StorageProofSize, StorageProofChecker, record_all_keys as record_all_trie_keys,
 };
 
 #[cfg(feature = "std")]
