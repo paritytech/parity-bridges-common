@@ -48,6 +48,7 @@ use codec::Decode;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
+use pallet_mmr::primitives as mmr;
 use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -238,6 +239,8 @@ impl pallet_aura::Config for Runtime {
 
 impl pallet_beefy::Config for Runtime {
 	type BeefyId = BeefyId;
+	type MaxAuthorities = MaxAuthorities;
+	type OnNewValidatorSet = MmrLeaf;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -257,6 +260,7 @@ impl pallet_grandpa::Config for Runtime {
 }
 
 type MmrHash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+type MmrHashing = <Runtime as pallet_mmr::Config>::Hashing;
 
 impl pallet_mmr::Config for Runtime {
 	const INDEXING_PREFIX: &'static [u8] = b"mmr";
@@ -355,6 +359,7 @@ impl pallet_transaction_payment::Config for Runtime {
 		AdjustmentVariable,
 		MinimumMultiplier,
 	>;
+	type Event = Event;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -562,7 +567,7 @@ construct_runtime!(
 
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>},
 
 		// Consensus support.
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
@@ -748,14 +753,17 @@ impl_runtime_apis! {
 		fn generate_proof(leaf_index: u64)
 			-> Result<(EncodableOpaqueLeaf, MmrProof<MmrHash>), MmrError>
 		{
-			Mmr::generate_proof(leaf_index)
-				.map(|(leaf, proof)| (EncodableOpaqueLeaf::from_leaf(&leaf), proof))
+			Mmr::generate_batch_proof(vec![leaf_index])
+				.and_then(|(leaves, proof)| Ok((
+					mmr::EncodableOpaqueLeaf::from_leaf(&leaves[0]),
+					mmr::BatchProof::into_single_leaf_proof(proof)?
+				)))
 		}
 
 		fn verify_proof(leaf: EncodableOpaqueLeaf, proof: MmrProof<MmrHash>)
 			-> Result<(), MmrError>
 		{
-			pub type Leaf = <
+			type Leaf = <
 				<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider
 			>::LeafData;
 
@@ -763,7 +771,7 @@ impl_runtime_apis! {
 				.into_opaque_leaf()
 				.try_decode()
 				.ok_or(MmrError::Verify)?;
-			Mmr::verify_leaf(leaf, proof)
+			Mmr::verify_leaves(vec![leaf], mmr::Proof::into_batch_proof(proof))
 		}
 
 		fn verify_proof_stateless(
@@ -771,13 +779,45 @@ impl_runtime_apis! {
 			leaf: EncodableOpaqueLeaf,
 			proof: MmrProof<MmrHash>
 		) -> Result<(), MmrError> {
-			type MmrHashing = <Runtime as pallet_mmr::Config>::Hashing;
 			let node = DataOrHash::Data(leaf.into_opaque_leaf());
-			pallet_mmr::verify_leaf_proof::<MmrHashing, _>(root, node, proof)
+			pallet_mmr::verify_leaves_proof::<MmrHashing, _>(
+				root,
+				vec![node],
+				pallet_mmr::primitives::Proof::into_batch_proof(proof),
+			)
 		}
 
 		fn mmr_root() -> Result<MmrHash, MmrError> {
 			Ok(Mmr::mmr_root())
+		}
+
+		fn generate_batch_proof(leaf_indices: Vec<pallet_mmr::primitives::LeafIndex>)
+			-> Result<(Vec<mmr::EncodableOpaqueLeaf>, mmr::BatchProof<MmrHash>), mmr::Error>
+		{
+			Mmr::generate_batch_proof(leaf_indices)
+				.map(|(leaves, proof)| (leaves.into_iter().map(|leaf| mmr::EncodableOpaqueLeaf::from_leaf(&leaf)).collect(), proof))
+		}
+
+		fn verify_batch_proof(leaves: Vec<mmr::EncodableOpaqueLeaf>, proof: mmr::BatchProof<MmrHash>)
+			-> Result<(), mmr::Error>
+		{
+			type Leaf = <
+				<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider
+			>::LeafData;
+			let leaves = leaves.into_iter().map(|leaf|
+				leaf.into_opaque_leaf()
+				.try_decode()
+				.ok_or(mmr::Error::Verify)).collect::<Result<Vec<Leaf>, mmr::Error>>()?;
+			Mmr::verify_leaves(leaves, proof)
+		}
+
+		fn verify_batch_proof_stateless(
+			root: MmrHash,
+			leaves: Vec<mmr::EncodableOpaqueLeaf>,
+			proof: mmr::BatchProof<MmrHash>
+		) -> Result<(), mmr::Error> {
+			let nodes = leaves.into_iter().map(|leaf|mmr::DataOrHash::Data(leaf.into_opaque_leaf())).collect();
+			pallet_mmr::verify_leaves_proof::<MmrHashing, _>(root, nodes, proof)
 		}
 	}
 

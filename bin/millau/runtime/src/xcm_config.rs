@@ -156,6 +156,7 @@ impl xcm_executor::Config for XcmConfig {
 	type FeeManager = ();
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
+	type CallDispatcher = Call;
 }
 
 /// Type to convert an `Origin` type value into a `MultiLocation` value which represents an interior
