@@ -21,12 +21,12 @@ use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
 use crate::chains::{
-	bridge_hub_rococo_headers_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
-	bridge_hub_wococo_headers_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoCliBridge,
 	millau_headers_to_rialto::MillauToRialtoCliBridge,
 	millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
 	rialto_headers_to_millau::RialtoToMillauCliBridge,
+	rococo_headers_to_bridge_hub_wococo::RococoToBridgeHubWococoCliBridge,
 	westend_headers_to_millau::WestendToMillauCliBridge,
+	wococo_headers_to_bridge_hub_rococo::WococoToBridgeHubRococoCliBridge,
 };
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
 use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
@@ -61,8 +61,8 @@ pub enum RelayHeadersBridge {
 	RialtoToMillau,
 	WestendToMillau,
 	MillauToRialtoParachain,
-	BridgeHubRococoToBridgeHubWococo,
-	BridgeHubWococoToBridgeHubRococo,
+	RococoToBridgeHubWococo,
+	WococoToBridgeHubRococo,
 }
 
 #[async_trait]
@@ -106,8 +106,8 @@ impl HeadersRelayer for MillauToRialtoCliBridge {}
 impl HeadersRelayer for RialtoToMillauCliBridge {}
 impl HeadersRelayer for WestendToMillauCliBridge {}
 impl HeadersRelayer for MillauToRialtoParachainCliBridge {}
-impl HeadersRelayer for BridgeHubRococoToBridgeHubWococoCliBridge {}
-impl HeadersRelayer for BridgeHubWococoToBridgeHubRococoCliBridge {}
+impl HeadersRelayer for RococoToBridgeHubWococoCliBridge {}
+impl HeadersRelayer for WococoToBridgeHubRococoCliBridge {}
 
 impl RelayHeaders {
 	/// Run the command.
@@ -118,10 +118,10 @@ impl RelayHeaders {
 			RelayHeadersBridge::WestendToMillau => WestendToMillauCliBridge::relay_headers(self),
 			RelayHeadersBridge::MillauToRialtoParachain =>
 				MillauToRialtoParachainCliBridge::relay_headers(self),
-			RelayHeadersBridge::BridgeHubRococoToBridgeHubWococo =>
-				BridgeHubRococoToBridgeHubWococoCliBridge::relay_headers(self),
-			RelayHeadersBridge::BridgeHubWococoToBridgeHubRococo =>
-				BridgeHubWococoToBridgeHubRococoCliBridge::relay_headers(self),
+			RelayHeadersBridge::RococoToBridgeHubWococo =>
+				RococoToBridgeHubWococoCliBridge::relay_headers(self),
+			RelayHeadersBridge::WococoToBridgeHubRococo =>
+				WococoToBridgeHubRococoCliBridge::relay_headers(self),
 		}
 		.await
 	}

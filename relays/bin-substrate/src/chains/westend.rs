@@ -35,6 +35,7 @@ impl CliChain for Westend {
 }
 
 impl CliChain for Westmint {
+	// TODO:check-parameter - wrong VERSION, should be bp_westmint::VERSION
 	const RUNTIME_VERSION: RuntimeVersion = bp_westend::VERSION;
 
 	type KeyPair = sp_core::sr25519::Pair;

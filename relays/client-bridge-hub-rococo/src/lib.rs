@@ -19,7 +19,7 @@
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithGrandpa, Error as SubstrateError, SignParam, TransactionSignScheme,
+	Chain, ChainBase, Error as SubstrateError, SignParam, TransactionSignScheme,
 	UnsignedTransaction,
 };
 use sp_core::Pair;
@@ -30,11 +30,12 @@ use std::time::Duration;
 pub mod runtime_wrapper;
 pub use runtime_wrapper as runtime;
 
-
+// TODO:check-parameter - do we need this?
 /// BridgeHubRococo header id.
 pub type ParachainHeaderId =
 	relay_utils::HeaderId<bp_bridge_hub_rococo::Hash, bp_bridge_hub_rococo::BlockNumber>;
 
+// TODO:check-parameter - do we need this?
 /// BridgeHubRococo header type used in headers sync.
 pub type ParachainSyncHeader = relay_substrate_client::SyncHeader<bp_bridge_hub_rococo::Header>;
 
@@ -74,10 +75,6 @@ impl Chain for BridgeHubRococo {
 	type SignedBlock = bp_bridge_hub_rococo::SignedBlock;
 	type Call = runtime::Call;
 	type WeightToFee = bp_bridge_hub_rococo::WeightToFee;
-}
-
-impl ChainWithGrandpa for BridgeHubRococo {
-	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "BridgeRococoGrandpa";
 }
 
 impl TransactionSignScheme for BridgeHubRococo {

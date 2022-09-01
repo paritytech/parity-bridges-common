@@ -23,32 +23,32 @@ use substrate_relay_helper::finality::{
 
 /// Description of Rococo -> Wococo finalized headers bridge.
 #[derive(Clone, Debug)]
-pub struct BridgeHubRococoFinalityToBridgeHubWococo;
+pub struct RococoFinalityToBridgeHubWococo;
 
 substrate_relay_helper::generate_mocked_submit_finality_proof_call_builder!(
-	BridgeHubRococoFinalityToBridgeHubWococo,
-	BridgeHubRococoFinalityToBridgeHubWococoCallBuilder,
+	RococoFinalityToBridgeHubWococo,
+	RococoFinalityToBridgeHubWococoCallBuilder,
 	relay_bridge_hub_wococo_client::runtime::Call::BridgeGrandpaRococo,
 	relay_bridge_hub_wococo_client::runtime::BridgeGrandpaRococoCall::submit_finality_proof
 );
 
-impl SubstrateFinalitySyncPipeline for BridgeHubRococoFinalityToBridgeHubWococo {
-	type SourceChain = relay_bridge_hub_rococo_client::BridgeHubRococo;
+impl SubstrateFinalitySyncPipeline for RococoFinalityToBridgeHubWococo {
+	type SourceChain = relay_rococo_client::Rococo;
 	type TargetChain = relay_bridge_hub_wococo_client::BridgeHubWococo;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
-	type SubmitFinalityProofCallBuilder = BridgeHubRococoFinalityToBridgeHubWococoCallBuilder;
+	type SubmitFinalityProofCallBuilder = RococoFinalityToBridgeHubWococoCallBuilder;
 	type TransactionSignScheme = relay_bridge_hub_wococo_client::BridgeHubWococo;
 }
 
-/// BridgeHub `Rococo` to BridgeHub `Wococo` bridge definition.
-pub struct BridgeHubRococoToBridgeHubWococoCliBridge {}
+/// `Rococo` to BridgeHub `Wococo` bridge definition.
+pub struct RococoToBridgeHubWococoCliBridge {}
 
-impl CliBridgeBase for BridgeHubRococoToBridgeHubWococoCliBridge {
-	type Source = relay_bridge_hub_rococo_client::BridgeHubRococo;
+impl CliBridgeBase for RococoToBridgeHubWococoCliBridge {
+	type Source = relay_rococo_client::Rococo;
 	type Target = relay_bridge_hub_wococo_client::BridgeHubWococo;
 }
 
-impl RelayToRelayHeadersCliBridge for BridgeHubRococoToBridgeHubWococoCliBridge {
-	type Finality = BridgeHubRococoFinalityToBridgeHubWococo;
+impl RelayToRelayHeadersCliBridge for RococoToBridgeHubWococoCliBridge {
+	type Finality = RococoFinalityToBridgeHubWococo;
 }

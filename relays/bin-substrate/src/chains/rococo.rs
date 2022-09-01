@@ -14,11 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! BridgeHubRococo parachain specification for CLI.
+//! Rococo + Rococo parachains specification for CLI.
 
 use crate::cli::CliChain;
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
+use relay_rococo_client::Rococo;
 use sp_version::RuntimeVersion;
+
+impl CliChain for Rococo {
+	const RUNTIME_VERSION: RuntimeVersion = bp_rococo::VERSION;
+
+	type KeyPair = sp_core::sr25519::Pair;
+	type MessagePayload = Vec<u8>;
+
+	fn ss58_format() -> u16 {
+		bp_rococo::SS58Prefix::get() as u16
+	}
+}
 
 impl CliChain for BridgeHubRococo {
 	const RUNTIME_VERSION: RuntimeVersion = relay_bridge_hub_rococo_client::runtime::VERSION;

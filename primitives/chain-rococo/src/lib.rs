@@ -21,8 +21,9 @@
 use bp_messages::{
 	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, OutboundMessageDetails,
 };
-use frame_support::weights::{
-	Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+use frame_support::{
+	parameter_types,
+	weights::{Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial},
 };
 use sp_runtime::FixedU128;
 use sp_std::prelude::*;
@@ -41,6 +42,11 @@ pub type Rococo = PolkadotLike;
 /// conditions.
 pub const SESSION_LENGTH: BlockNumber = time_units::HOURS;
 
+parameter_types! {
+	pub const SS58Prefix: u8 = 42;
+}
+
+// TODO:check-parameter - update?
 // NOTE: This needs to be kept up to date with the Rococo runtime found in the Polkadot repo.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: sp_version::create_runtime_str!("rococo"),

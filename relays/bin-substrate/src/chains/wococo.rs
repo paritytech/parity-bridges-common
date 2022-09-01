@@ -14,11 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! BridgeHubWococo parachain specification for CLI.
+//! Wococo + Wococo parachains specification for CLI.
 
 use crate::cli::CliChain;
 use relay_bridge_hub_wococo_client::BridgeHubWococo;
+use relay_wococo_client::Wococo;
 use sp_version::RuntimeVersion;
+
+impl CliChain for Wococo {
+	const RUNTIME_VERSION: RuntimeVersion = bp_wococo::VERSION;
+
+	type KeyPair = sp_core::sr25519::Pair;
+	type MessagePayload = Vec<u8>;
+
+	fn ss58_format() -> u16 {
+		bp_wococo::SS58Prefix::get() as u16
+	}
+}
 
 impl CliChain for BridgeHubWococo {
 	const RUNTIME_VERSION: RuntimeVersion = relay_bridge_hub_wococo_client::runtime::VERSION;
