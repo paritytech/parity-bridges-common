@@ -43,7 +43,7 @@
             "query": {
               "params": [
                 "A",
-                "10m",
+                "15m",
                 "now"
               ]
             },
@@ -55,7 +55,7 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "3m",
         "frequency": "1m",
         "handler": 1,
         "name": "Nodes are not running",
