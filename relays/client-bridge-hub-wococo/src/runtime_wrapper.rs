@@ -25,3 +25,4 @@ pub const VERSION: sp_version::RuntimeVersion = relay_bridge_hub_rococo_client::
 pub type Call = relay_bridge_hub_rococo_client::runtime::Call;
 pub type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<Call>;
 pub type BridgeGrandpaRococoCall = relay_bridge_hub_rococo_client::runtime::BridgeGrandpaRococoCall;
+pub type BridgeParachainCall = relay_bridge_hub_rococo_client::runtime::BridgeParachainCall;

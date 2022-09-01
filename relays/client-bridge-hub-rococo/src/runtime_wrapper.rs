@@ -25,6 +25,7 @@ use sp_runtime::create_runtime_str;
 use sp_version::RuntimeVersion;
 
 pub use bp_bridge_hub_rococo::SS58Prefix;
+use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::Chain;
 
 // TODO: we meed to keep this up-to-date with
@@ -69,6 +70,13 @@ pub enum Call {
 	/// Rococo bridge pallet.
 	#[codec(index = 43)]
 	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
+
+	/// Wococo parachain bridge pallet.
+	#[codec(index = 42)]
+	BridgeParachainWococo(BridgeParachainCall),
+	/// Rococo parachain bridge pallet.
+	#[codec(index = 44)]
+	BridgeParachainRococo(BridgeParachainCall),
 }
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
@@ -102,6 +110,20 @@ pub enum BridgeGrandpaRococoCall {
 	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
 }
 
+pub type RelayBlockHash = bp_polkadot_core::Hash;
+pub type RelayBlockNumber = bp_polkadot_core::BlockNumber;
+
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[allow(non_camel_case_types)]
+pub enum BridgeParachainCall {
+	#[codec(index = 0)]
+	submit_parachain_heads(
+		(RelayBlockNumber, RelayBlockHash),
+		Vec<(ParaId, ParaHash)>,
+		ParaHeadsProof,
+	),
+}
+
 impl sp_runtime::traits::Dispatchable for Call {
 	type Origin = ();
 	type Config = ();
@@ -122,7 +144,6 @@ mod tests {
 	use sp_runtime::traits::Header;
 	use std::str::FromStr;
 
-	pub type RelayBlockNumber = bp_polkadot_core::BlockNumber;
 	pub type RelayBlockHasher = bp_polkadot_core::Hasher;
 	pub type RelayBlockHeader = sp_runtime::generic::Header<RelayBlockNumber, RelayBlockHasher>;
 

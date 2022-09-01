@@ -93,4 +93,7 @@ pub const EXISTENTIAL_DEPOSIT: Balance = 1_000_000_000_000 / 100;
 /// transactions cheaper.
 pub const PAY_INBOUND_DISPATCH_FEE_WEIGHT: Weight = 600_000_000;
 
+/// Name of the parachains pallet in the Rococo runtime.
+pub const PARAS_PALLET_NAME: &str = "Paras";
+
 decl_bridge_runtime_apis!(rococo);

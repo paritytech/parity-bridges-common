@@ -25,9 +25,11 @@ pub mod rialto_messages_to_millau;
 pub mod rialto_parachain_messages_to_millau;
 pub mod rialto_parachains_to_millau;
 pub mod rococo_headers_to_bridge_hub_wococo;
+pub mod rococo_parachains_to_bridge_hub_wococo;
 pub mod westend_headers_to_millau;
 pub mod westend_parachains_to_millau;
 pub mod wococo_headers_to_bridge_hub_rococo;
+pub mod wococo_parachains_to_bridge_hub_rococo;
 
 mod millau;
 mod rialto;
