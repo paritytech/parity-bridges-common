@@ -4944,7 +4944,7 @@ dependencies = [
  "clap 3.2.18",
  "frame-benchmarking",
  "frame-benchmarking-cli",
- "jsonrpc-core",
+ "jsonrpsee",
  "millau-runtime",
  "node-inspect",
  "pallet-bridge-messages",
