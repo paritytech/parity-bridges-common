@@ -25,7 +25,7 @@ use crate::{
 
 use async_trait::async_trait;
 use bp_parachains::{
-	best_parachain_head_hash_storage_key_at_target, BestParaHeadHash, ImportedParaHeadsKeyProvider,
+	paras_info_storage_key_at_target, BestParaHeadHash, ImportedParaHeadsKeyProvider,
 };
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::HeaderIdProvider;
@@ -122,7 +122,7 @@ where
 		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
 	) -> Result<Option<BestParaHeadHash>, Self::Error> {
-		let best_para_head_hash_key = best_parachain_head_hash_storage_key_at_target(
+		let best_para_head_hash_key = paras_info_storage_key_at_target(
 			P::SourceRelayChain::PARACHAINS_FINALITY_PALLET_NAME,
 			para_id,
 		);

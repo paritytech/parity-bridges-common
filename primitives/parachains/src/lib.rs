@@ -46,7 +46,7 @@ pub struct BestParaHeadHash {
 
 /// Best known parachain head as it is stored in the runtime storage.
 #[derive(Decode, Encode, PartialEq, RuntimeDebug, TypeInfo)]
-pub struct BestParaHead {
+pub struct ParaInfo {
 	/// Best known parachain head hash.
 	pub best_head_hash: BestParaHeadHash,
 	/// Current ring buffer position for this parachain.
@@ -65,14 +65,14 @@ pub fn parachain_head_storage_key_at_source(
 
 /// Returns runtime storage key of best known parachain head at the target chain.
 ///
-/// The head is stored by the `pallet-bridge-parachains` pallet in the `BestParaHeads` map.
-pub fn best_parachain_head_hash_storage_key_at_target(
+/// The head is stored by the `pallet-bridge-parachains` pallet in the `ParasInfo` map.
+pub fn paras_info_storage_key_at_target(
 	bridge_parachains_pallet_name: &str,
 	para_id: ParaId,
 ) -> StorageKey {
 	bp_runtime::storage_map_final_key::<Blake2_128Concat>(
 		bridge_parachains_pallet_name,
-		"BestParaHeads",
+		"ParasInfo",
 		&para_id.encode(),
 	)
 }

@@ -26,7 +26,7 @@
 pub use weights::WeightInfo;
 pub use weights_ext::WeightInfoExt;
 
-use bp_parachains::{parachain_head_storage_key_at_source, BestParaHead};
+use bp_parachains::{parachain_head_storage_key_at_source, ParaInfo};
 use bp_polkadot_core::parachains::{ParaHash, ParaHasher, ParaHead, ParaHeadsProof, ParaId};
 use bp_runtime::StorageProofError;
 use frame_support::{traits::Contains, weights::PostDispatchInfo};
@@ -59,7 +59,7 @@ pub type RelayBlockHasher = bp_polkadot_core::Hasher;
 /// Artifacts of the parachains head update.
 struct UpdateParachainHeadArtifacts {
 	/// New best head of the parachain.
-	pub best_head: BestParaHead,
+	pub best_head: ParaInfo,
 	/// If `true`, some old parachain head has been pruned during update.
 	pub prune_happened: bool,
 }
@@ -146,10 +146,14 @@ pub mod pallet {
 	pub type PalletOperatingMode<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, BasicOperatingMode, ValueQuery>;
 
-	/// Best parachain heads.
+	/// Parachains info.
+	///
+	/// Contains the following info:
+	/// - best parachain head hash
+	/// - the head of the `ImportedParaHashes` ring buffer
 	#[pallet::storage]
-	pub type BestParaHeads<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, ParaId, BestParaHead>;
+	pub type ParasInfo<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Blake2_128Concat, ParaId, ParaInfo>;
 
 	/// Parachain heads which have been imported into the pallet.
 	#[pallet::storage]
@@ -248,7 +252,7 @@ pub mod pallet {
 									target: LOG_TARGET,
 									"The head of parachain {:?} is None. {}",
 									parachain,
-									if BestParaHeads::<T, I>::contains_key(&parachain) {
+									if ParasInfo::<T, I>::contains_key(&parachain) {
 										"Looks like it is not yet registered at the source relay chain"
 									} else {
 										"Looks like it has been deregistered from the source relay chain"
@@ -281,7 +285,7 @@ pub mod pallet {
 							continue;
 						}
 
-						let update_result: Result<_, ()> = BestParaHeads::<T, I>::try_mutate(parachain, |stored_best_head| {
+						let update_result: Result<_, ()> = ParasInfo::<T, I>::try_mutate(parachain, |stored_best_head| {
 							let artifacts = Pallet::<T, I>::update_parachain_head(
 								parachain,
 								stored_best_head.take(),
@@ -335,8 +339,7 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Get best finalized header of the given parachain.
 		pub fn best_parachain_head(parachain: ParaId) -> Option<ParaHead> {
-			let best_para_head_hash =
-				BestParaHeads::<T, I>::get(parachain)?.best_head_hash.head_hash;
+			let best_para_head_hash = ParasInfo::<T, I>::get(parachain)?.best_head_hash.head_hash;
 			ImportedParaHeads::<T, I>::get(parachain, best_para_head_hash)
 		}
 
@@ -380,7 +383,7 @@ pub mod pallet {
 		/// Without this check, we may import heads in random order.
 		pub fn validate_updated_parachain_head(
 			parachain: ParaId,
-			maybe_stored_best_head: &Option<BestParaHead>,
+			maybe_stored_best_head: &Option<ParaInfo>,
 			updated_at_relay_block_number: RelayBlockNumber,
 			updated_head_hash: ParaHash,
 			err_log_prefix: &str,
@@ -423,7 +426,7 @@ pub mod pallet {
 		/// Try to update parachain head.
 		pub(super) fn update_parachain_head(
 			parachain: ParaId,
-			stored_best_head: Option<BestParaHead>,
+			stored_best_head: Option<ParaInfo>,
 			updated_at_relay_block_number: RelayBlockNumber,
 			updated_head: ParaHead,
 			updated_head_hash: ParaHash,
@@ -444,7 +447,7 @@ pub mod pallet {
 			// insert updated best parachain head
 			let head_hash_to_prune =
 				ImportedParaHashes::<T, I>::try_get(parachain, next_imported_hash_position);
-			let updated_best_para_head = BestParaHead {
+			let updated_best_para_head = ParaInfo {
 				best_head_hash: BestParaHeadHash {
 					at_relay_block_number: updated_at_relay_block_number,
 					head_hash: updated_head_hash,
@@ -599,8 +602,8 @@ mod tests {
 		(root, ParaHeadsProof(storage_proof), parachains)
 	}
 
-	fn initial_best_head(parachain: u32) -> BestParaHead {
-		BestParaHead {
+	fn initial_best_head(parachain: u32) -> ParaInfo {
+		ParaInfo {
 			best_head_hash: BestParaHeadHash {
 				at_relay_block_number: 0,
 				head_hash: head_data(parachain, 0).hash(),
@@ -692,11 +695,11 @@ mod tests {
 			assert_eq!(result.expect("checked above").actual_weight, Some(expected_weight));
 
 			// but only 1 and 2 are updated, because proof is missing head of parachain#2
-			assert_eq!(BestParaHeads::<TestRuntime>::get(ParaId(1)), Some(initial_best_head(1)));
-			assert_eq!(BestParaHeads::<TestRuntime>::get(ParaId(2)), None);
+			assert_eq!(ParasInfo::<TestRuntime>::get(ParaId(1)), Some(initial_best_head(1)));
+			assert_eq!(ParasInfo::<TestRuntime>::get(ParaId(2)), None);
 			assert_eq!(
-				BestParaHeads::<TestRuntime>::get(ParaId(3)),
-				Some(BestParaHead {
+				ParasInfo::<TestRuntime>::get(ParaId(3)),
+				Some(ParaInfo {
 					best_head_hash: BestParaHeadHash {
 						at_relay_block_number: 0,
 						head_hash: head_data(3, 10).hash()
@@ -737,8 +740,8 @@ mod tests {
 			initialize(state_root_5);
 			assert_ok!(import_parachain_1_head(0, state_root_5, parachains_5, proof_5));
 			assert_eq!(
-				BestParaHeads::<TestRuntime>::get(ParaId(1)),
-				Some(BestParaHead {
+				ParasInfo::<TestRuntime>::get(ParaId(1)),
+				Some(ParaInfo {
 					best_head_hash: BestParaHeadHash {
 						at_relay_block_number: 0,
 						head_hash: head_data(1, 5).hash()
@@ -759,8 +762,8 @@ mod tests {
 			proceed(1, state_root_10);
 			assert_ok!(import_parachain_1_head(1, state_root_10, parachains_10, proof_10));
 			assert_eq!(
-				BestParaHeads::<TestRuntime>::get(ParaId(1)),
-				Some(BestParaHead {
+				ParasInfo::<TestRuntime>::get(ParaId(1)),
+				Some(ParaInfo {
 					best_head_hash: BestParaHeadHash {
 						at_relay_block_number: 1,
 						head_hash: head_data(1, 10).hash()
@@ -804,8 +807,8 @@ mod tests {
 			assert_ok!(result);
 			assert_eq!(result.expect("checked above").actual_weight, Some(expected_weight));
 			assert_eq!(
-				BestParaHeads::<TestRuntime>::get(ParaId(1)),
-				Some(BestParaHead {
+				ParasInfo::<TestRuntime>::get(ParaId(1)),
+				Some(ParaInfo {
 					best_head_hash: BestParaHeadHash {
 						at_relay_block_number: 0,
 						head_hash: head_data(1, 5).hash()
@@ -813,10 +816,10 @@ mod tests {
 					next_imported_hash_position: 1,
 				})
 			);
-			assert_eq!(BestParaHeads::<TestRuntime>::get(ParaId(UNTRACKED_PARACHAIN_ID)), None,);
+			assert_eq!(ParasInfo::<TestRuntime>::get(ParaId(UNTRACKED_PARACHAIN_ID)), None,);
 			assert_eq!(
-				BestParaHeads::<TestRuntime>::get(ParaId(2)),
-				Some(BestParaHead {
+				ParasInfo::<TestRuntime>::get(ParaId(2)),
+				Some(ParaInfo {
 					best_head_hash: BestParaHeadHash {
 						at_relay_block_number: 0,
 						head_hash: head_data(1, 5).hash()
@@ -835,13 +838,13 @@ mod tests {
 			// import head#0 of parachain#1 at relay block#0
 			initialize(state_root);
 			assert_ok!(import_parachain_1_head(0, state_root, parachains.clone(), proof.clone()));
-			assert_eq!(BestParaHeads::<TestRuntime>::get(ParaId(1)), Some(initial_best_head(1)));
+			assert_eq!(ParasInfo::<TestRuntime>::get(ParaId(1)), Some(initial_best_head(1)));
 
 			// try to import head#0 of parachain#1 at relay block#1
 			// => call succeeds, but nothing is changed
 			proceed(1, state_root);
 			assert_ok!(import_parachain_1_head(1, state_root, parachains, proof));
-			assert_eq!(BestParaHeads::<TestRuntime>::get(ParaId(1)), Some(initial_best_head(1)));
+			assert_eq!(ParasInfo::<TestRuntime>::get(ParaId(1)), Some(initial_best_head(1)));
 		});
 	}
 
@@ -859,8 +862,8 @@ mod tests {
 			proceed(1, state_root_10);
 			assert_ok!(import_parachain_1_head(1, state_root_10, parachains_10, proof_10));
 			assert_eq!(
-				BestParaHeads::<TestRuntime>::get(ParaId(1)),
-				Some(BestParaHead {
+				ParasInfo::<TestRuntime>::get(ParaId(1)),
+				Some(ParaInfo {
 					best_head_hash: BestParaHeadHash {
 						at_relay_block_number: 1,
 						head_hash: head_data(1, 10).hash()
@@ -873,8 +876,8 @@ mod tests {
 			// => nothing is changed, because better head has already been imported
 			assert_ok!(import_parachain_1_head(0, state_root_5, parachains_5, proof_5));
 			assert_eq!(
-				BestParaHeads::<TestRuntime>::get(ParaId(1)),
-				Some(BestParaHead {
+				ParasInfo::<TestRuntime>::get(ParaId(1)),
+				Some(ParaInfo {
 					best_head_hash: BestParaHeadHash {
 						at_relay_block_number: 1,
 						head_hash: head_data(1, 10).hash()
@@ -1018,9 +1021,8 @@ mod tests {
 	#[test]
 	fn storage_keys_computed_properly() {
 		assert_eq!(
-			BestParaHeads::<TestRuntime>::storage_map_final_key(ParaId(42)).to_vec(),
-			bp_parachains::best_parachain_head_hash_storage_key_at_target("Parachains", ParaId(42))
-				.0,
+			ParasInfo::<TestRuntime>::storage_map_final_key(ParaId(42)).to_vec(),
+			bp_parachains::paras_info_storage_key_at_target("Parachains", ParaId(42)).0,
 		);
 
 		assert_eq!(
