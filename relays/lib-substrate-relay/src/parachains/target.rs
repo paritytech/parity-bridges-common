@@ -25,7 +25,7 @@ use crate::{
 
 use async_trait::async_trait;
 use bp_parachains::{
-	paras_info_storage_key_at_target, BestParaHeadHash, ImportedParaHeadsKeyProvider,
+	paras_info_storage_key_at_target, BestParaHeadHash, ImportedParaHeadsKeyProvider, ParaInfo,
 };
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::HeaderIdProvider;
@@ -126,8 +126,11 @@ where
 			P::SourceRelayChain::PARACHAINS_FINALITY_PALLET_NAME,
 			para_id,
 		);
-		let best_para_head_hash: Option<BestParaHeadHash> =
-			self.client.storage_value(best_para_head_hash_key, Some(at_block.1)).await?;
+		let best_para_head_hash: Option<BestParaHeadHash> = self
+			.client
+			.storage_value::<ParaInfo>(best_para_head_hash_key, Some(at_block.1))
+			.await?
+			.map(|para_info| para_info.best_head_hash);
 		if let (Some(metrics), &Some(ref best_para_head_hash)) = (metrics, &best_para_head_hash) {
 			let imported_para_head = self
 				.client
