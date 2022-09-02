@@ -44,6 +44,15 @@ pub struct BestParaHeadHash {
 	pub head_hash: ParaHash,
 }
 
+/// Best known parachain head as it is stored in the runtime storage.
+#[derive(Decode, Encode, PartialEq, RuntimeDebug, TypeInfo)]
+pub struct BestParaHead {
+	/// Best known parachain head hash.
+	pub best_head_hash: BestParaHeadHash,
+	/// Current ring buffer position for this parachain.
+	pub next_imported_hash_position: u32,
+}
+
 /// Returns runtime storage key of given parachain head at the source chain.
 ///
 /// The head is stored by the `paras` pallet in the `Heads` map.

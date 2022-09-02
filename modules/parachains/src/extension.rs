@@ -74,6 +74,7 @@ mod tests {
 		mock::{run_test, Call, TestRuntime},
 		BestParaHead, BestParaHeads, RelayBlockNumber,
 	};
+	use bp_parachains::BestParaHeadHash;
 	use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 
 	fn validate_submit_parachain_heads(
@@ -94,8 +95,10 @@ mod tests {
 		BestParaHeads::<TestRuntime, ()>::insert(
 			ParaId(1),
 			BestParaHead {
-				at_relay_block_number: 10,
-				head_hash: [1u8; 32].into(),
+				best_head_hash: BestParaHeadHash {
+					at_relay_block_number: 10,
+					head_hash: [1u8; 32].into(),
+				},
 				next_imported_hash_position: 0,
 			},
 		);
