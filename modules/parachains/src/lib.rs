@@ -67,8 +67,10 @@ struct UpdateParachainHeadArtifacts {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use bp_parachains::{BestParaHeadHash, ImportedParaHeadsKeyProvider};
-	use bp_runtime::{BasicOperatingMode, OwnedBridgeModule, StorageDoubleMapKeyProvider};
+	use bp_parachains::{BestParaHeadHash, ImportedParaHeadsKeyProvider, ParasInfoKeyProvider};
+	use bp_runtime::{
+		BasicOperatingMode, OwnedBridgeModule, StorageDoubleMapKeyProvider, StorageMapKeyProvider,
+	};
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
@@ -152,8 +154,12 @@ pub mod pallet {
 	/// - best parachain head hash
 	/// - the head of the `ImportedParaHashes` ring buffer
 	#[pallet::storage]
-	pub type ParasInfo<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, ParaId, ParaInfo>;
+	pub type ParasInfo<T: Config<I>, I: 'static = ()> = StorageMap<
+		_,
+		<ParasInfoKeyProvider as StorageMapKeyProvider>::Hasher,
+		<ParasInfoKeyProvider as StorageMapKeyProvider>::Key,
+		<ParasInfoKeyProvider as StorageMapKeyProvider>::Value,
+	>;
 
 	/// Parachain heads which have been imported into the pallet.
 	#[pallet::storage]
@@ -524,8 +530,11 @@ mod tests {
 	};
 	use codec::Encode;
 
-	use bp_parachains::{BestParaHeadHash, ImportedParaHeadsKeyProvider};
-	use bp_runtime::{BasicOperatingMode, OwnedBridgeModuleError, StorageDoubleMapKeyProvider};
+	use bp_parachains::{BestParaHeadHash, ImportedParaHeadsKeyProvider, ParasInfoKeyProvider};
+	use bp_runtime::{
+		BasicOperatingMode, OwnedBridgeModuleError, StorageDoubleMapKeyProvider,
+		StorageMapKeyProvider,
+	};
 	use bp_test_utils::{
 		authority_list, generate_owned_bridge_module_tests, make_default_justification,
 	};
@@ -1022,7 +1031,7 @@ mod tests {
 	fn storage_keys_computed_properly() {
 		assert_eq!(
 			ParasInfo::<TestRuntime>::storage_map_final_key(ParaId(42)).to_vec(),
-			bp_parachains::paras_info_storage_key_at_target("Parachains", ParaId(42)).0,
+			ParasInfoKeyProvider::final_key("Parachains", &ParaId(42)).0
 		);
 
 		assert_eq!(
