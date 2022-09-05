@@ -8756,7 +8756,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "hex-literal",
- "jsonrpc-core",
+ "jsonrpsee",
  "log",
  "pallet-bridge-messages",
  "pallet-transaction-payment-rpc",

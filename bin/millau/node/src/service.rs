@@ -261,10 +261,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
 	let shared_voter_state = SharedVoterState::empty();
-//	let (beefy_commitment_link, beefy_commitment_stream) =
-//		beefy_gadget::notification::BeefySignedCommitmentStream::<Block>::channel();
-//	let (beefy_best_block_link, beefy_best_block_stream) =
-//		beefy_gadget::notification::BeefyBestBlockStream::<Block>::channel();
 
 	let rpc_extensions_builder = {
 		use sc_finality_grandpa::FinalityProofProvider as GrandpaFinalityProofProvider;
@@ -295,11 +291,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			io.merge(System::new(client.clone(), pool.clone(), DenyUnsafe::No).into_rpc()).map_err(map_err)?;
 			io.merge(TransactionPayment::new(client.clone()).into_rpc()).map_err(map_err)?;
 			io.merge(Grandpa::new(
-/*				shared_authority_set.clone(),
-				shared_voter_state.clone(),
-				justification_stream.clone(),
-				subscription_executor.clone(),
-				finality_proof_provider.clone(),*/
 				subscription_executor.clone(),
 				shared_authority_set.clone(),
 				shared_voter_state.clone(),
