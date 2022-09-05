@@ -20,6 +20,7 @@ log = "0.4.17"
 bp-header-chain = { path = "../../primitives/header-chain" }
 bp-parachains = { path = "../../primitives/parachains" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
+bp-rococo = { path = "../../primitives/chain-rococo" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 
 finality-grandpa = { version = "0.16.0" }
@@ -48,7 +49,6 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master
 [dev-dependencies]
 bp-millau = { path = "../../primitives/chain-millau" }
 bp-rialto = { path = "../../primitives/chain-rialto" }
-bp-rococo = { path = "../../primitives/chain-rococo" }
 bp-wococo = { path = "../../primitives/chain-wococo" }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master" }
 relay-rialto-client = { path = "../client-rialto" }

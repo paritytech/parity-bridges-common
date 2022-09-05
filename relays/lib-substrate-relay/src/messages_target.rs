@@ -558,7 +558,7 @@ mod tests {
 
 	#[test]
 	fn compute_fee_multiplier_returns_sane_results() {
-		let multiplier = FixedU128::saturating_from_rational(1, 1000);
+		let multiplier: FixedU128 = bp_rococo::WeightToFee::weight_to_fee(&1).into();
 
 		let smaller_weight = 1_000_000;
 		let smaller_adjusted_weight_fee =
@@ -567,7 +567,6 @@ mod tests {
 		let larger_weight = smaller_weight + 200_000;
 		let larger_adjusted_weight_fee =
 			multiplier.saturating_mul_int(WeightToFeeOf::<Rococo>::weight_to_fee(&larger_weight));
-
 		assert_eq!(
 			compute_fee_multiplier::<Rococo>(
 				smaller_adjusted_weight_fee,
