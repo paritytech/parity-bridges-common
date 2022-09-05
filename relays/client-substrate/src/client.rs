@@ -17,18 +17,19 @@
 //! Substrate node client.
 
 use crate::{
-	chain::{Chain, ChainWithBalances, TransactionStatusOf},
+	chain::{Chain, ChainWithBalances},
 	rpc::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFrameSystemClient,
 		SubstrateGrandpaClient, SubstrateStateClient, SubstrateSystemClient,
 		SubstrateTransactionPaymentClient,
 	},
-	ConnectionParams, Error, HashOf, HeaderIdOf, Result,
+	ConnectionParams, Error, HashOf, HeaderIdOf, Result, SignParam, TransactionSignScheme,
+	TransactionStatusOf, UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
-use bp_runtime::{HeaderIdProvider, StorageDoubleMapKeyProvider};
+use bp_runtime::{HeaderIdProvider, StorageDoubleMapKeyProvider, StorageMapKeyProvider};
 use codec::{Decode, Encode};
 use frame_system::AccountInfo;
 use futures::{SinkExt, StreamExt};
@@ -319,6 +320,23 @@ impl<C: Chain> Client<C> {
 			.transpose()
 	}
 
+	/// Read `MapStorage` value from runtime storage.
+	pub async fn storage_map_value<T: StorageMapKeyProvider>(
+		&self,
+		pallet_prefix: &str,
+		key: &T::Key,
+		block_hash: Option<C::Hash>,
+	) -> Result<Option<T::Value>> {
+		let storage_key = T::final_key(pallet_prefix, key);
+
+		self.raw_storage_value(storage_key, block_hash)
+			.await?
+			.map(|encoded_value| {
+				T::Value::decode(&mut &encoded_value.0[..]).map_err(Error::ResponseParseFailed)
+			})
+			.transpose()
+	}
+
 	/// Read `DoubleMapStorage` value from runtime storage.
 	pub async fn storage_double_map_value<T: StorageDoubleMapKeyProvider>(
 		&self,
@@ -403,10 +421,13 @@ impl<C: Chain> Client<C> {
 	/// if all client instances are clones of the same initial `Client`.
 	///
 	/// Note: The given transaction needs to be SCALE encoded beforehand.
-	pub async fn submit_signed_extrinsic(
+	pub async fn submit_signed_extrinsic<S: TransactionSignScheme<Chain = C> + 'static>(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<Bytes> + Send + 'static,
+		signing_data: SignParam<S>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
 	) -> Result<C::Hash> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
@@ -421,12 +442,14 @@ impl<C: Chain> Client<C> {
 
 		self.jsonrpsee_execute(move |client| async move {
 			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-			let tx_hash = SubstrateAuthorClient::<C>::submit_extrinsic(&*client, extrinsic)
-				.await
-				.map_err(|e| {
-				log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-				e
-			})?;
+			let signed_extrinsic = S::sign_transaction(signing_data, extrinsic)?.encode();
+			let tx_hash =
+				SubstrateAuthorClient::<C>::submit_extrinsic(&*client, Bytes(signed_extrinsic))
+					.await
+					.map_err(|e| {
+						log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+						e
+					})?;
 			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 			Ok(tx_hash)
 		})
@@ -435,10 +458,15 @@ impl<C: Chain> Client<C> {
 
 	/// Does exactly the same as `submit_signed_extrinsic`, but keeps watching for extrinsic status
 	/// after submission.
-	pub async fn submit_and_watch_signed_extrinsic(
+	pub async fn submit_and_watch_signed_extrinsic<
+		S: TransactionSignScheme<Chain = C> + 'static,
+	>(
 		&self,
 		extrinsic_signer: C::AccountId,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<Bytes> + Send + 'static,
+		signing_data: SignParam<S>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
 	) -> Result<Subscription<TransactionStatusOf<C>>> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
@@ -447,14 +475,17 @@ impl<C: Chain> Client<C> {
 		let subscription = self
 			.jsonrpsee_execute(move |client| async move {
 				let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-				let tx_hash = C::Hasher::hash(&extrinsic.0);
-				let subscription =
-					SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(&*client, extrinsic)
-						.await
-						.map_err(|e| {
-							log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-							e
-						})?;
+				let signed_extrinsic = S::sign_transaction(signing_data, extrinsic)?.encode();
+				let tx_hash = C::Hasher::hash(&signed_extrinsic);
+				let subscription = SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(
+					&*client,
+					Bytes(signed_extrinsic),
+				)
+				.await
+				.map_err(|e| {
+					log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+					e
+				})?;
 				log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 				Ok(subscription)
 			})
