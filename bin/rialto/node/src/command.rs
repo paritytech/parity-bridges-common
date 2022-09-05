@@ -208,8 +208,8 @@ pub fn run() -> sc_cli::Result<()> {
 					None,
 					None,
 				)
-					.map(|full| full.task_manager)
-					.map_err(service_error)
+				.map(|full| full.task_manager)
+				.map_err(service_error)
 			})
 		},
 	}

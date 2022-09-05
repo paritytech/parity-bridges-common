@@ -20,7 +20,10 @@ use codec::Decode;
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
 use sp_runtime::RuntimeDebug;
 use sp_std::{boxed::Box, vec::Vec};
-use sp_trie::{read_trie_value, LayoutV1, MemoryDB, Recorder, StorageProof, Trie, TrieConfiguration, TrieDBBuilder, TrieError, TrieHash};
+use sp_trie::{
+	read_trie_value, LayoutV1, MemoryDB, Recorder, StorageProof, Trie, TrieConfiguration,
+	TrieDBBuilder, TrieError, TrieHash,
+};
 
 /// Storage proof size requirements.
 ///

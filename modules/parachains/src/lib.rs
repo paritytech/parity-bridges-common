@@ -529,7 +529,10 @@ mod tests {
 	};
 
 	use bp_parachains::ImportedParaHeadsKeyProvider;
-	use bp_runtime::{BasicOperatingMode, OwnedBridgeModuleError, StorageDoubleMapKeyProvider, record_all_trie_keys};
+	use bp_runtime::{
+		record_all_trie_keys, BasicOperatingMode, OwnedBridgeModuleError,
+		StorageDoubleMapKeyProvider,
+	};
 	use bp_test_utils::{
 		authority_list, generate_owned_bridge_module_tests, make_default_justification,
 	};
@@ -541,9 +544,7 @@ mod tests {
 		weights::Weight,
 	};
 	use sp_runtime::DispatchError;
-	use sp_trie::{
-		trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, Recorder, TrieMut,
-	};
+	use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, Recorder, TrieMut};
 
 	type BridgesGrandpaPalletInstance = pallet_bridge_grandpa::Instance1;
 	type WeightInfo = <TestRuntime as Config>::WeightInfo;

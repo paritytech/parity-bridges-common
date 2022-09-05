@@ -288,26 +288,31 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		Box::new(move |_, subscription_executor: sc_rpc::SubscriptionTaskExecutor| {
 			let mut io = RpcModule::new(());
 			let map_err = |e| sc_service::Error::Other(format!("{}", e));
-			io.merge(System::new(client.clone(), pool.clone(), DenyUnsafe::No).into_rpc()).map_err(map_err)?;
+			io.merge(System::new(client.clone(), pool.clone(), DenyUnsafe::No).into_rpc())
+				.map_err(map_err)?;
 			io.merge(TransactionPayment::new(client.clone()).into_rpc()).map_err(map_err)?;
-			io.merge(Grandpa::new(
-				subscription_executor.clone(),
-				shared_authority_set.clone(),
-				shared_voter_state.clone(),
-				justification_stream.clone(),
-				finality_proof_provider.clone(),
-			).into_rpc()).map_err(map_err)?;
+			io.merge(
+				Grandpa::new(
+					subscription_executor.clone(),
+					shared_authority_set.clone(),
+					shared_voter_state.clone(),
+					justification_stream.clone(),
+					finality_proof_provider.clone(),
+				)
+				.into_rpc(),
+			)
+			.map_err(map_err)?;
 			io.merge(
 				Beefy::<Block>::new(
 					beefy_rpc_links.from_voter_justif_stream.clone(),
 					beefy_rpc_links.from_voter_best_beefy_stream.clone(),
 					subscription_executor,
-				).map_err(|e| sc_service::Error::Other(format!("{}", e)))?
+				)
+				.map_err(|e| sc_service::Error::Other(format!("{}", e)))?
 				.into_rpc(),
-			).map_err(map_err)?;
-			io.merge(Mmr::new(
-				client.clone(),
-			).into_rpc()).map_err(map_err)?;
+			)
+			.map_err(map_err)?;
+			io.merge(Mmr::new(client.clone()).into_rpc()).map_err(map_err)?;
 			Ok(io)
 		})
 	};

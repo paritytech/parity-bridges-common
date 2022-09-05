@@ -50,7 +50,6 @@ pub mod pallet {
 	pub(super) type InitialValidators<T: Config> = StorageValue<_, Vec<T::ValidatorId>>;
 }
 
-
 impl<T: pallet_session::Config + Config> ValidatorSet<T::AccountId> for Pallet<T> {
 	type ValidatorId = T::ValidatorId;
 	type ValidatorIdOf = T::ValidatorIdOf;
