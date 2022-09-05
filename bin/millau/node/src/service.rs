@@ -141,7 +141,7 @@ pub fn new_partial(
 
 	let import_queue =
 		sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(ImportQueueParams {
-			block_import: beefy_block_import.clone(),
+			block_import: beefy_block_import,
 			justification_import: Some(Box::new(grandpa_block_import.clone())),
 			client: client.clone(),
 			create_inherent_data_providers: move |_, ()| async move {

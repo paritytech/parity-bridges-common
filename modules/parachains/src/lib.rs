@@ -258,7 +258,7 @@ pub mod pallet {
 									target: LOG_TARGET,
 									"The head of parachain {:?} is None. {}",
 									parachain,
-									if ParasInfo::<T, I>::contains_key(&parachain) {
+									if ParasInfo::<T, I>::contains_key(parachain) {
 										"Looks like it is not yet registered at the source relay chain"
 									} else {
 										"Looks like it has been deregistered from the source relay chain"
@@ -514,7 +514,7 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
 		fn build(&self) {
-			PalletOperatingMode::<T, I>::put(&self.operating_mode);
+			PalletOperatingMode::<T, I>::put(self.operating_mode);
 			if let Some(ref owner) = self.owner {
 				PalletOwner::<T, I>::put(owner);
 			}

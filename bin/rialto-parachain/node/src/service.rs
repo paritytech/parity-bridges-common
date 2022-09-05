@@ -446,9 +446,9 @@ pub async fn start_node(
 
 			let mut io = jsonrpsee::RpcModule::new(());
 			let map_err = |e| sc_service::Error::Other(format!("{}", e));
-			io.merge(System::new(client.clone(), pool.clone(), DenyUnsafe::No).into_rpc())
+			io.merge(System::new(client.clone(), pool, DenyUnsafe::No).into_rpc())
 				.map_err(map_err)?;
-			io.merge(TransactionPayment::new(client.clone()).into_rpc()).map_err(map_err)?;
+			io.merge(TransactionPayment::new(client).into_rpc()).map_err(map_err)?;
 			Ok(io)
 		},
 		parachain_build_import_queue,
