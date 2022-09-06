@@ -80,7 +80,7 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
-		/// The caller has provided head of untracker parachain.
+		/// The caller has provided head of untracked parachain.
 		UntrackedParachainRejected { parachain: ParaId },
 		/// The caller has declared that he has provided given parachain head, but it is missing
 		/// from the storage proof.
@@ -419,18 +419,19 @@ pub mod pallet {
 		/// Check if para head has been already updated at better relay chain block.
 		/// Without this check, we may import heads in random order.
 		///
-		/// Returns `Ok(())` if the pallet is ready to import given parachain head.
-		/// Returns `Err(())` if the pallet already knows the same or better parachain head.
+		/// Returns `true` if the pallet is ready to import given parachain head.
+		/// Returns `false` if the pallet already knows the same or better parachain head.
+		#[must_use]
 		pub fn validate_updated_parachain_head(
 			parachain: ParaId,
 			maybe_stored_best_head: &Option<ParaInfo>,
 			updated_at_relay_block_number: RelayBlockNumber,
 			updated_head_hash: ParaHash,
 			err_log_prefix: &str,
-		) -> Result<(), ()> {
+		) -> bool {
 			let stored_best_head = match maybe_stored_best_head {
 				Some(stored_best_head) => stored_best_head,
-				None => return Ok(()),
+				None => return true,
 			};
 
 			if stored_best_head.best_head_hash.at_relay_block_number >=
@@ -444,7 +445,7 @@ pub mod pallet {
 					stored_best_head.best_head_hash.at_relay_block_number,
 					updated_at_relay_block_number
 				);
-				return Err(())
+				return false
 			}
 
 			if stored_best_head.best_head_hash.head_hash == updated_head_hash {
@@ -457,10 +458,10 @@ pub mod pallet {
 					stored_best_head.best_head_hash.at_relay_block_number,
 					updated_at_relay_block_number
 				);
-				return Err(())
+				return false
 			}
 
-			Ok(())
+			true
 		}
 
 		/// Try to update parachain head.
@@ -473,20 +474,20 @@ pub mod pallet {
 		) -> Result<UpdateParachainHeadArtifacts, ()> {
 			// check if head has been already updated at better relay chain block. Without this
 			// check, we may import heads in random order
-			Self::validate_updated_parachain_head(
+			let is_valid = Self::validate_updated_parachain_head(
 				parachain,
 				&stored_best_head,
 				updated_at_relay_block_number,
 				updated_head_hash,
 				"The parachain head can't be updated",
-			)
-			.map_err(|_| {
+			);
+			if !is_valid {
 				Self::deposit_event(Event::RejectedObsoleteParachainHead {
 					parachain,
 					parachain_head_hash: updated_head_hash,
 				});
-				()
-			})?;
+				return Err(())
+			}
 			let next_imported_hash_position = stored_best_head
 				.map_or(0, |stored_best_head| stored_best_head.next_imported_hash_position);
 

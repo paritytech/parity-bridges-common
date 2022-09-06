@@ -57,7 +57,7 @@ where
 		};
 
 		let maybe_stored_best_head = crate::ParasInfo::<T, I>::get(parachain);
-		let result = Self::validate_updated_parachain_head(
+		let is_valid = Self::validate_updated_parachain_head(
 			parachain,
 			&maybe_stored_best_head,
 			updated_at_relay_block_number,
@@ -65,9 +65,10 @@ where
 			"Rejecting obsolete parachain-head transaction",
 		);
 
-		match result {
-			Ok(()) => Ok(ValidTransaction::default()),
-			Err(()) => InvalidTransaction::Stale.into(),
+		if is_valid {
+			Ok(ValidTransaction::default())
+		} else {
+			InvalidTransaction::Stale.into()
 		}
 	}
 }
