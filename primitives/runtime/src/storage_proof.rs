@@ -137,9 +137,7 @@ where
 	DB: hash_db::HashDBRef<L::Hash, trie_db::DBValue>,
 {
 	let trie = TrieDBBuilder::<L>::new(db, root).with_recorder(recorder).build();
-	let iter = trie.iter()?;
-
-	for x in iter {
+	for x in trie.iter()? {
 		let (key, _) = x?;
 		trie.get(&key)?;
 	}
