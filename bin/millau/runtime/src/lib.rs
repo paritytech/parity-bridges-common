@@ -48,14 +48,11 @@ use codec::Decode;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
-use pallet_mmr::primitives as mmr;
 use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_mmr_primitives::{
-	DataOrHash, EncodableOpaqueLeaf, Error as MmrError, LeafDataProvider, Proof as MmrProof,
-};
+use sp_mmr_primitives::{DataOrHash, EncodableOpaqueLeaf, Error as MmrError, Proof as MmrProof};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{Block as BlockT, IdentityLookup, Keccak256, NumberFor, OpaqueKeys},
@@ -259,13 +256,21 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxAuthorities = MaxAuthorities;
 }
 
-type MmrHash = <Keccak256 as sp_runtime::traits::Hash>::Output;
-type MmrHashing = <Runtime as pallet_mmr::Config>::Hashing;
+/// MMR helper types.
+mod mmr {
+	use super::Runtime;
+	pub use pallet_mmr::primitives::*;
+	use sp_runtime::traits::Keccak256;
+
+	pub type Leaf = <<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider>::LeafData;
+	pub type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+	pub type Hashing = <Runtime as pallet_mmr::Config>::Hashing;
+}
 
 impl pallet_mmr::Config for Runtime {
 	const INDEXING_PREFIX: &'static [u8] = b"mmr";
 	type Hashing = Keccak256;
-	type Hash = MmrHash;
+	type Hash = mmr::Hash;
 	type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
 	type WeightInfo = ();
 	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
@@ -749,9 +754,9 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_mmr_primitives::MmrApi<Block, MmrHash> for Runtime {
+	impl sp_mmr_primitives::MmrApi<Block, mmr::Hash> for Runtime {
 		fn generate_proof(leaf_index: u64)
-			-> Result<(EncodableOpaqueLeaf, MmrProof<MmrHash>), MmrError>
+			-> Result<(EncodableOpaqueLeaf, MmrProof<mmr::Hash>), MmrError>
 		{
 			Mmr::generate_batch_proof(vec![leaf_index])
 				.and_then(|(leaves, proof)| Ok((
@@ -760,14 +765,10 @@ impl_runtime_apis! {
 				)))
 		}
 
-		fn verify_proof(leaf: EncodableOpaqueLeaf, proof: MmrProof<MmrHash>)
+		fn verify_proof(leaf: EncodableOpaqueLeaf, proof: MmrProof<mmr::Hash>)
 			-> Result<(), MmrError>
 		{
-			type Leaf = <
-				<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider
-			>::LeafData;
-
-			let leaf: Leaf = leaf
+			let leaf: mmr::Leaf = leaf
 				.into_opaque_leaf()
 				.try_decode()
 				.ok_or(MmrError::Verify)?;
@@ -775,49 +776,46 @@ impl_runtime_apis! {
 		}
 
 		fn verify_proof_stateless(
-			root: MmrHash,
+			root: mmr::Hash,
 			leaf: EncodableOpaqueLeaf,
-			proof: MmrProof<MmrHash>
+			proof: MmrProof<mmr::Hash>
 		) -> Result<(), MmrError> {
 			let node = DataOrHash::Data(leaf.into_opaque_leaf());
-			pallet_mmr::verify_leaves_proof::<MmrHashing, _>(
+			pallet_mmr::verify_leaves_proof::<mmr::Hashing, _>(
 				root,
 				vec![node],
 				pallet_mmr::primitives::Proof::into_batch_proof(proof),
 			)
 		}
 
-		fn mmr_root() -> Result<MmrHash, MmrError> {
+		fn mmr_root() -> Result<mmr::Hash, MmrError> {
 			Ok(Mmr::mmr_root())
 		}
 
 		fn generate_batch_proof(leaf_indices: Vec<pallet_mmr::primitives::LeafIndex>)
-			-> Result<(Vec<mmr::EncodableOpaqueLeaf>, mmr::BatchProof<MmrHash>), mmr::Error>
+			-> Result<(Vec<mmr::EncodableOpaqueLeaf>, mmr::BatchProof<mmr::Hash>), mmr::Error>
 		{
 			Mmr::generate_batch_proof(leaf_indices)
 				.map(|(leaves, proof)| (leaves.into_iter().map(|leaf| mmr::EncodableOpaqueLeaf::from_leaf(&leaf)).collect(), proof))
 		}
 
-		fn verify_batch_proof(leaves: Vec<mmr::EncodableOpaqueLeaf>, proof: mmr::BatchProof<MmrHash>)
+		fn verify_batch_proof(leaves: Vec<mmr::EncodableOpaqueLeaf>, proof: mmr::BatchProof<mmr::Hash>)
 			-> Result<(), mmr::Error>
 		{
-			type Leaf = <
-				<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider
-			>::LeafData;
 			let leaves = leaves.into_iter().map(|leaf|
 				leaf.into_opaque_leaf()
 				.try_decode()
-				.ok_or(mmr::Error::Verify)).collect::<Result<Vec<Leaf>, mmr::Error>>()?;
+				.ok_or(mmr::Error::Verify)).collect::<Result<Vec<mmr::Leaf>, mmr::Error>>()?;
 			Mmr::verify_leaves(leaves, proof)
 		}
 
 		fn verify_batch_proof_stateless(
-			root: MmrHash,
+			root: mmr::Hash,
 			leaves: Vec<mmr::EncodableOpaqueLeaf>,
-			proof: mmr::BatchProof<MmrHash>
+			proof: mmr::BatchProof<mmr::Hash>
 		) -> Result<(), mmr::Error> {
 			let nodes = leaves.into_iter().map(|leaf|mmr::DataOrHash::Data(leaf.into_opaque_leaf())).collect();
-			pallet_mmr::verify_leaves_proof::<MmrHashing, _>(root, nodes, proof)
+			pallet_mmr::verify_leaves_proof::<mmr::Hashing, _>(root, nodes, proof)
 		}
 	}
 
