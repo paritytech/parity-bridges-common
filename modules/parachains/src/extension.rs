@@ -17,7 +17,7 @@
 use crate::{Config, Pallet, RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use bp_runtime::FilterCall;
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType};
-use sp_runtime::transaction_validity::{TransactionValidity, ValidTransaction};
+use sp_runtime::transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction};
 
 /// Validate parachain heads in order to avoid "mining" transactions that provide
 /// outdated bridged parachain heads. Without this validation, even honest relayers
@@ -57,13 +57,18 @@ where
 		};
 
 		let maybe_stored_best_head = crate::ParasInfo::<T, I>::get(parachain);
-		Self::validate_updated_parachain_head(
+		let result = Self::validate_updated_parachain_head(
 			parachain,
 			&maybe_stored_best_head,
 			updated_at_relay_block_number,
 			parachain_head_hash,
 			"Rejecting obsolete parachain-head transaction",
-		)
+		);
+
+		match result {
+			Ok(()) => Ok(ValidTransaction::default()),
+			Err(()) => InvalidTransaction::Stale.into(),
+		}
 	}
 }
 
