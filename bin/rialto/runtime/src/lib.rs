@@ -30,28 +30,30 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod millau_messages;
 pub mod parachains;
+pub mod xcm_config;
 
 use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
 
 use beefy_primitives::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
+use bp_runtime::{HeaderId, HeaderIdProvider};
 use bridge_runtime_common::messages::{
 	source::estimate_message_dispatch_and_delivery_fee, MessageBridge,
 };
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
-use pallet_mmr_primitives::{
-	DataOrHash, EncodableOpaqueLeaf, Error as MmrError, LeafDataProvider, Proof as MmrProof,
-};
 use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_mmr_primitives::{
+	DataOrHash, EncodableOpaqueLeaf, Error as MmrError, LeafDataProvider, Proof as MmrProof,
+};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, Block as BlockT, Keccak256, NumberFor, OpaqueKeys},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, FixedU128, MultiSignature, MultiSigner, Perquintill,
+	ApplyExtrinsicResult, FixedPointNumber, FixedU128, Perquintill,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 #[cfg(feature = "std")]
@@ -69,10 +71,11 @@ pub use frame_support::{
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_beefy::Call as BridgeBeefyCall;
-pub use pallet_bridge_grandpa::Call as BridgeGrandpaMillauCall;
+pub use pallet_bridge_grandpa::Call as BridgeGrandpaCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
+pub use pallet_xcm::Call as XcmCall;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -252,18 +255,6 @@ impl pallet_beefy::Config for Runtime {
 	type BeefyId = BeefyId;
 }
 
-impl pallet_bridge_dispatch::Config for Runtime {
-	type Event = Event;
-	type BridgeMessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
-	type Call = Call;
-	type CallFilter = frame_support::traits::Everything;
-	type EncodedCall = crate::millau_messages::FromMillauEncodedCall;
-	type SourceChainAccountId = bp_millau::AccountId;
-	type TargetChainAccountPublic = MultiSigner;
-	type TargetChainSignature = MultiSignature;
-	type AccountIdConverter = bp_rialto::AccountIdConverter;
-}
-
 impl pallet_grandpa::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
@@ -306,10 +297,17 @@ parameter_types! {
 	pub LeafVersion: MmrLeafVersion = MmrLeafVersion::new(0, 0);
 }
 
+pub struct BeefyDummyDataProvider;
+
+impl beefy_primitives::mmr::BeefyDataProvider<()> for BeefyDummyDataProvider {
+	fn extra_data() {}
+}
+
 impl pallet_beefy_mmr::Config for Runtime {
 	type LeafVersion = LeafVersion;
 	type BeefyAuthorityToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
-	type ParachainHeads = ();
+	type LeafExtra = ();
+	type BeefyDataProvider = BeefyDummyDataProvider;
 }
 
 parameter_types! {
@@ -361,9 +359,9 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
-	type TransactionByteFee = TransactionByteFee;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = bp_rialto::WeightToFee;
+	type LengthToFee = bp_rialto::WeightToFee;
 	type FeeMultiplierUpdate = pallet_transaction_payment::TargetedFeeAdjustment<
 		Runtime,
 		TargetBlockFullness,
@@ -392,6 +390,13 @@ impl pallet_session::Config for Runtime {
 
 impl pallet_authority_discovery::Config for Runtime {
 	type MaxAuthorities = MaxAuthorities;
+}
+
+impl pallet_bridge_relayers::Config for Runtime {
+	type Event = Event;
+	type Reward = Balance;
+	type PaymentProcedure = bp_relayers::MintReward<pallet_balances::Pallet<Runtime>, AccountId>;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -442,6 +447,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
+	type MaximalOutboundPayloadSize = crate::millau_messages::ToMillauMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;
 	type OutboundMessageFee = Balance;
 
@@ -449,15 +455,12 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type InboundMessageFee = bp_millau::Balance;
 	type InboundRelayer = bp_millau::AccountId;
 
-	type AccountIdConverter = bp_rialto::AccountIdConverter;
-
 	type TargetHeaderChain = crate::millau_messages::Millau;
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type MessageDeliveryAndDispatchPayment =
-		pallet_bridge_messages::instant_payments::InstantCurrencyPayments<
+		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
 			Runtime,
 			WithMillauMessagesInstance,
-			pallet_balances::Pallet<Runtime>,
 			GetDeliveryConfirmationTransactionFee,
 		>;
 	type OnMessageAccepted = ();
@@ -504,8 +507,8 @@ construct_runtime!(
 		MmrLeaf: pallet_beefy_mmr::{Pallet, Storage},
 
 		// Millau bridge modules (GRANDPA based).
+		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
-		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Millau bridge modules (BEEFY based).
@@ -529,6 +532,9 @@ construct_runtime!(
 		Registrar: polkadot_runtime_common::paras_registrar::{Pallet, Call, Storage, Event<T>},
 		Slots: polkadot_runtime_common::slots::{Pallet, Call, Storage, Event<T>},
 		ParasSudoWrapper: polkadot_runtime_common::paras_sudo_wrapper::{Pallet, Call},
+
+		// Pallet for sending XCM.
+		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config} = 99,
 	}
 );
 
@@ -622,7 +628,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_mmr_primitives::MmrApi<Block, Hash> for Runtime {
+	impl sp_mmr_primitives::MmrApi<Block, Hash> for Runtime {
 		fn generate_proof(leaf_index: u64)
 			-> Result<(EncodableOpaqueLeaf, MmrProof<Hash>), MmrError>
 		{
@@ -653,12 +659,15 @@ impl_runtime_apis! {
 			let node = DataOrHash::Data(leaf.into_opaque_leaf());
 			pallet_mmr::verify_leaf_proof::<MmrHashing, _>(root, node, proof)
 		}
+
+		fn mmr_root() -> Result<Hash, MmrError> {
+			Ok(Mmr::mmr_root())
+		}
 	}
 
 	impl bp_millau::MillauFinalityApi<Block> for Runtime {
-		fn best_finalized() -> (bp_millau::BlockNumber, bp_millau::Hash) {
-			let header = BridgeMillauGrandpa::best_finalized();
-			(header.number, header.hash())
+		fn best_finalized() -> Option<HeaderId<bp_millau::Hash, bp_millau::BlockNumber>> {
+			BridgeMillauGrandpa::best_finalized().map(|header| header.id())
 		}
 	}
 
@@ -727,7 +736,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl polkadot_primitives::v2::ParachainHost<Block, Hash, BlockNumber> for Runtime {
+	impl polkadot_primitives::runtime_api::ParachainHost<Block, Hash, BlockNumber> for Runtime {
 		fn validators() -> Vec<polkadot_primitives::v2::ValidatorId> {
 			polkadot_runtime_parachains::runtime_api_impl::v2::validators::<Runtime>()
 		}
@@ -821,6 +830,10 @@ impl_runtime_apis! {
 		{
 			polkadot_runtime_parachains::runtime_api_impl::v2::validation_code_hash::<Runtime>(para_id, assumption)
 		}
+
+		fn staging_get_disputes() -> Vec<(polkadot_primitives::v2::SessionIndex, polkadot_primitives::v2::CandidateHash, polkadot_primitives::v2::DisputeState<BlockNumber>)> {
+			unimplemented!()
+		}
 	}
 
 	impl sp_authority_discovery::AuthorityDiscoveryApi<Block> for Runtime {
@@ -905,38 +918,25 @@ impl_runtime_apis! {
 			lane: bp_messages::LaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
-		) -> Vec<bp_messages::MessageDetails<Balance>> {
+		) -> Vec<bp_messages::OutboundMessageDetails<Balance>> {
 			bridge_runtime_common::messages_api::outbound_message_details::<
 				Runtime,
 				WithMillauMessagesInstance,
-				WithMillauMessageBridge,
 			>(lane, begin, end)
 		}
 	}
-}
 
-/// Millau account ownership digest from Rialto.
-///
-/// The byte vector returned by this function should be signed with a Millau account private key.
-/// This way, the owner of `rialto_account_id` on Rialto proves that the 'millau' account private
-/// key is also under his control.
-pub fn rialto_to_millau_account_ownership_digest<Call, AccountId, SpecVersion>(
-	millau_call: &Call,
-	rialto_account_id: AccountId,
-	millau_spec_version: SpecVersion,
-) -> sp_std::vec::Vec<u8>
-where
-	Call: codec::Encode,
-	AccountId: codec::Encode,
-	SpecVersion: codec::Encode,
-{
-	pallet_bridge_dispatch::account_ownership_digest(
-		millau_call,
-		rialto_account_id,
-		millau_spec_version,
-		bp_runtime::RIALTO_CHAIN_ID,
-		bp_runtime::MILLAU_CHAIN_ID,
-	)
+	impl bp_millau::FromMillauInboundLaneApi<Block, bp_millau::Balance> for Runtime {
+		fn message_details(
+			lane: bp_messages::LaneId,
+			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails<bp_millau::Balance>)>,
+		) -> Vec<bp_messages::InboundMessageDetails> {
+			bridge_runtime_common::messages_api::inbound_message_details::<
+				Runtime,
+				WithMillauMessagesInstance,
+			>(lane, messages)
+		}
+	}
 }
 
 #[cfg(test)]

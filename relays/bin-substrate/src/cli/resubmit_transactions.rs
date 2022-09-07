@@ -14,15 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::{Balance, TargetConnectionParams, TargetSigningParams};
+use crate::cli::{chain_schema::*, Balance};
 
+use bp_runtime::HeaderIdProvider;
 use codec::{Decode, Encode};
 use num_traits::{One, Zero};
 use relay_substrate_client::{
 	BlockWithJustification, Chain, Client, Error as SubstrateError, HeaderIdOf, HeaderOf,
 	SignParam, TransactionSignScheme,
 };
-use relay_utils::{FailedClient, HeaderId};
+use relay_utils::FailedClient;
 use sp_core::Bytes;
 use sp_runtime::{
 	traits::{Hash, Header as HeaderT},
@@ -62,8 +63,6 @@ pub struct ResubmitTransactions {
 #[strum(serialize_all = "kebab_case")]
 pub enum RelayChain {
 	Millau,
-	Kusama,
-	Polkadot,
 }
 
 /// Strategy to use for priority selection.
@@ -95,18 +94,6 @@ macro_rules! select_bridge {
 
 				$generic
 			},
-			RelayChain::Kusama => {
-				type Target = relay_kusama_client::Kusama;
-				type TargetSign = relay_kusama_client::Kusama;
-
-				$generic
-			},
-			RelayChain::Polkadot => {
-				type Target = relay_polkadot_client::Polkadot;
-				type TargetSign = relay_polkadot_client::Polkadot;
-
-				$generic
-			},
 		}
 	};
 }
@@ -116,7 +103,7 @@ impl ResubmitTransactions {
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.chain, {
 			let relay_loop_name = format!("ResubmitTransactions{}", Target::NAME);
-			let client = self.target.to_client::<Target>().await?;
+			let client = self.target.into_client::<Target>().await?;
 			let transaction_params = TransactionParams {
 				signer: self.target_sign.to_keypair::<Target>()?,
 				mortality: self.target_sign.target_transactions_mortality,
@@ -288,7 +275,7 @@ async fn run_loop_iteration<C: Chain, S: TransactionSignScheme<Chain = C>>(
 	let (is_updated, updated_transaction) = update_transaction_tip::<C, S>(
 		&client,
 		&transaction_params,
-		HeaderId(*context.best_header.number(), context.best_header.hash()),
+		context.best_header.id(),
 		original_transaction,
 		context.tip_step,
 		context.tip_limit,
@@ -438,14 +425,15 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 		current_priority = client
 			.validate_transaction(
 				at_block.1,
-				S::sign_transaction(SignParam {
-					spec_version,
-					transaction_version,
-					genesis_hash: *client.genesis_hash(),
-					signer: transaction_params.signer.clone(),
-					era: relay_substrate_client::TransactionEra::immortal(),
-					unsigned: unsigned_tx.clone(),
-				})?,
+				S::sign_transaction(
+					SignParam {
+						spec_version,
+						transaction_version,
+						genesis_hash: *client.genesis_hash(),
+						signer: transaction_params.signer.clone(),
+					},
+					unsigned_tx.clone(),
+				)?,
 			)
 			.await??
 			.priority;
@@ -461,17 +449,18 @@ async fn update_transaction_tip<C: Chain, S: TransactionSignScheme<Chain = C>>(
 
 	Ok((
 		old_tip != unsigned_tx.tip,
-		S::sign_transaction(SignParam {
-			spec_version,
-			transaction_version,
-			genesis_hash: *client.genesis_hash(),
-			signer: transaction_params.signer.clone(),
-			era: relay_substrate_client::TransactionEra::new(
+		S::sign_transaction(
+			SignParam {
+				spec_version,
+				transaction_version,
+				genesis_hash: *client.genesis_hash(),
+				signer: transaction_params.signer.clone(),
+			},
+			unsigned_tx.era(relay_substrate_client::TransactionEra::new(
 				at_block,
 				transaction_params.mortality,
-			),
-			unsigned: unsigned_tx,
-		})?,
+			)),
+		)?,
 	))
 }
 

@@ -15,7 +15,9 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_messages::MessageNonce;
-use bp_runtime::{Chain as ChainBase, EncodedOrDecodedCall, HashOf, TransactionEraOf};
+use bp_runtime::{
+	Chain as ChainBase, EncodedOrDecodedCall, HashOf, TransactionEra, TransactionEraOf,
+};
 use codec::{Codec, Encode};
 use frame_support::weights::{Weight, WeightToFeePolynomial};
 use jsonrpsee::core::{DeserializeOwned, Serialize};
@@ -52,8 +54,6 @@ pub trait Chain: ChainBase + Clone {
 	const AVERAGE_BLOCK_INTERVAL: Duration;
 	/// Maximal expected storage proof overhead (in bytes).
 	const STORAGE_PROOF_OVERHEAD: u32;
-	/// Maximal size (in bytes) of SCALE-encoded account id on this chain.
-	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32;
 
 	/// Block type.
 	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification<Self::Header>;
@@ -62,6 +62,20 @@ pub trait Chain: ChainBase + Clone {
 
 	/// Type that is used by the chain, to convert from weight to fee.
 	type WeightToFee: WeightToFeePolynomial<Balance = Self::Balance>;
+}
+
+/// Substrate-based relay chain that supports parachains.
+///
+/// We assume that the parachains are supported using `runtime_parachains::paras` pallet.
+pub trait RelayChain: Chain {
+	/// Name of the `runtime_parachains::paras` pallet in the runtime of this chain.
+	const PARAS_PALLET_NAME: &'static str;
+	/// Name of the bridge parachains pallet (used in `construct_runtime` macro call) that is
+	/// deployed at the **bridged** chain.
+	///
+	/// We assume that all chains that are bridging with this `ChainWithGrandpa` are using
+	/// the same name.
+	const PARACHAINS_FINALITY_PALLET_NAME: &'static str;
 }
 
 /// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
@@ -90,6 +104,10 @@ pub trait ChainWithMessages: Chain {
 	/// Name of the `To<ChainWithMessages>OutboundLaneApi::message_details` runtime API method.
 	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str;
+
+	/// Name of the `From<ChainWithMessages>InboundLaneApi::message_details` runtime API method.
+	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
+	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str;
 
 	/// Additional weight of the dispatch fee payment if dispatch is paid at the target chain
 	/// and this `ChainWithMessages` is the target chain.
@@ -142,12 +160,14 @@ pub struct UnsignedTransaction<C: Chain> {
 	pub nonce: C::Index,
 	/// Tip included into transaction.
 	pub tip: C::Balance,
+	/// Transaction era used by the chain.
+	pub era: TransactionEraOf<C>,
 }
 
 impl<C: Chain> UnsignedTransaction<C> {
-	/// Create new unsigned transaction with given call, nonce and zero tip.
+	/// Create new unsigned transaction with given call, nonce, era and zero tip.
 	pub fn new(call: EncodedOrDecodedCall<C::Call>, nonce: C::Index) -> Self {
-		Self { call, nonce, tip: Zero::zero() }
+		Self { call, nonce, era: TransactionEra::Immortal, tip: Zero::zero() }
 	}
 
 	/// Set transaction tip.
@@ -156,13 +176,20 @@ impl<C: Chain> UnsignedTransaction<C> {
 		self.tip = tip;
 		self
 	}
+
+	/// Set transaction era.
+	#[must_use]
+	pub fn era(mut self, era: TransactionEraOf<C>) -> Self {
+		self.era = era;
+		self
+	}
 }
 
 /// Account key pair used by transactions signing scheme.
 pub type AccountKeyPairOf<S> = <S as TransactionSignScheme>::AccountKeyPair;
 
 /// Substrate-based chain transactions signing scheme.
-pub trait TransactionSignScheme {
+pub trait TransactionSignScheme: 'static {
 	/// Chain that this scheme is to be used.
 	type Chain: Chain;
 	/// Type of key pairs used to sign transactions.
@@ -171,7 +198,10 @@ pub trait TransactionSignScheme {
 	type SignedTransaction: Clone + Debug + Codec + Send + 'static;
 
 	/// Create transaction for given runtime call, signed by given account.
-	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, crate::Error>
+	fn sign_transaction(
+		param: SignParam<Self>,
+		unsigned: UnsignedTransaction<Self::Chain>,
+	) -> Result<Self::SignedTransaction, crate::Error>
 	where
 		Self: Sized;
 
@@ -197,10 +227,6 @@ pub struct SignParam<T: TransactionSignScheme> {
 	pub genesis_hash: <T::Chain as ChainBase>::Hash,
 	/// Signer account
 	pub signer: T::AccountKeyPair,
-	/// Transaction era used by the chain.
-	pub era: TransactionEraOf<T::Chain>,
-	/// Transaction before it is signed.
-	pub unsigned: UnsignedTransaction<T::Chain>,
 }
 
 impl<Block: BlockT> BlockWithJustification<Block::Header> for SignedBlock<Block> {

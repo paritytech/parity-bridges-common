@@ -53,9 +53,11 @@ pub enum Error<Hash: Debug + MaybeDisplay, HeaderNumber: Debug + MaybeDisplay> {
 	#[error("Failed to decode {0} GRANDPA authorities set at header {1}: {2:?}")]
 	DecodeAuthorities(&'static str, Hash, codec::Error),
 	/// Failed to retrieve header by the hash from the source chain.
-	#[error("Failed to retrieve {0} header with hash {1}: {:?}")]
+	#[error("Failed to retrieve {0} header with hash {1}: {2:?}")]
 	RetrieveHeader(&'static str, Hash, client::Error),
-	/// Failed to retrieve best finalized source header hash from the target chain.
-	#[error("Failed to retrieve best finalized {0} header from the target chain: {1}")]
-	RetrieveBestFinalizedHeaderHash(&'static str, client::Error),
+	/// Failed to submit signed extrinsic from to the target chain.
+	#[error(
+		"Failed to retrieve `is_initialized` flag of the with-{0} finality pallet at {1}: {2:?}"
+	)]
+	IsInitializedRetrieve(&'static str, &'static str, client::Error),
 }

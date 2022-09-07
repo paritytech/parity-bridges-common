@@ -21,10 +21,11 @@ use crate::{
 	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
-	on_demand_headers::OnDemandHeadersRelay,
-	TransactionParams, STALL_TIMEOUT,
+	on_demand::OnDemandRelay,
+	TransactionParams,
 };
 
+use async_std::sync::Arc;
 use bp_messages::{LaneId, MessageNonce};
 use bp_runtime::{AccountIdOf, Chain as _};
 use bridge_runtime_common::messages::{
@@ -38,7 +39,7 @@ use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
 	ChainWithMessages, Client, HashOf, TransactionSignScheme,
 };
-use relay_utils::metrics::MetricsParams;
+use relay_utils::{metrics::MetricsParams, STALL_TIMEOUT};
 use sp_core::Pair;
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
@@ -135,9 +136,11 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 	pub target_transaction_params:
 		TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
 	/// Optional on-demand source to target headers relay.
-	pub source_to_target_headers_relay: Option<OnDemandHeadersRelay<P::SourceChain>>,
+	pub source_to_target_headers_relay:
+		Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::SourceChain>>>>,
 	/// Optional on-demand target to source headers relay.
-	pub target_to_source_headers_relay: Option<OnDemandHeadersRelay<P::TargetChain>>,
+	pub target_to_source_headers_relay:
+		Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::TargetChain>>>>,
 	/// Identifier of lane that needs to be served.
 	pub lane_id: LaneId,
 	/// Metrics parameters.
@@ -507,7 +510,7 @@ mod tests {
 			// i.e. weight reserved for messages dispatch allows dispatch of non-trivial messages.
 			//
 			// Any significant change in this values should attract additional attention.
-			(958, 216_583_333_334),
+			(1024, 216_583_333_334),
 		);
 	}
 }

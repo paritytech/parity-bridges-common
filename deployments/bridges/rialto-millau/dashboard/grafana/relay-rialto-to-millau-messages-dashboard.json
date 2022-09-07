@@ -247,10 +247,10 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "20m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Messages generated at Rialto are not detected by relay",
+        "name": "Rialto -> Millau messages are not detected by relay",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -305,10 +305,10 @@
           "refId": "A"
         },
         {
-          "expr": "max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"source_latest_generated\"}[5m]) - min_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"source_latest_generated\"}[5m])",
+          "expr": "increase(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"source_latest_generated\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
-          "legendFormat": "Messages generated in last 5 minutes",
+          "legendFormat": "Messages generated in last 5 minutes (Rialto -> Millau, 00000000)",
           "refId": "B"
         }
       ],
@@ -535,9 +535,9 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[1m]) OR on() vector(0)",
+          "expr": "increase(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[5m]) OR on() vector(0)",
           "interval": "",
-          "legendFormat": "Messages delivered to Millau in last 1m",
+          "legendFormat": "Rialto Messages delivered to Millau in last 5m",
           "refId": "B"
         }
       ],
@@ -598,7 +598,7 @@
           {
             "evaluator": {
               "params": [
-                10
+                50
               ],
               "type": "gt"
             },
@@ -620,10 +620,10 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "20m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Too many unconfirmed messages",
+        "name": "Too many unconfirmed messages (Rialto -> Millau)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -672,7 +672,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m])) - scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m]))",
+          "expr": "scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) OR on() vector(0)) - scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m]) OR on() vector(0))",
           "interval": "",
           "legendFormat": "Unconfirmed messages at Rialto",
           "refId": "A"
@@ -757,10 +757,10 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "20m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Rewards are not being confirmed",
+        "name": "Rewards are not being confirmed (Rialto -> Millau messages)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -815,7 +815,7 @@
           "refId": "A"
         },
         {
-          "expr": "(scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m])) - scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_confirmed\"}[2m]))) * (max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) > bool min_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]))",
+          "expr": "(scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))) * (max_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) > bool min_over_time(Rialto_to_Millau_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]))",
           "interval": "",
           "legendFormat": "Unconfirmed rewards at Millau (zero if messages are not being delivered to Millau)",
           "refId": "B"
@@ -958,10 +958,10 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Rialto_to_Millau_MessageLane_00000001_lane_state_nonces{type=\"target_latest_received\"}[10m]) OR on() vector(0)",
+          "expr": "increase(Rialto_to_Millau_MessageLane_00000001_lane_state_nonces{type=\"source_latest_generated\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
-          "legendFormat": "Messages generated in last 5 minutes",
+          "legendFormat": "Messages generated in last 5 minutes (Rialto -> Millau, 00000001)",
           "refId": "B"
         }
       ],

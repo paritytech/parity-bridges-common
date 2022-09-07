@@ -44,7 +44,7 @@ pub type BridgedCommitmentHasher = BridgedBeefyCommitmentHasher<TestRuntime, ()>
 pub type BridgedMmrHasher = BridgedBeefyMmrHasher<TestRuntime, ()>;
 pub type BridgedMmrLeaf = BridgedBeefyMmrLeafUnpacked<TestRuntime, ()>;
 pub type BridgedRawMmrLeaf =
-	beefy_primitives::mmr::MmrLeaf<BridgedBlockNumber, BridgedBlockHash, BeefyMmrHash>;
+	beefy_primitives::mmr::MmrLeaf<BridgedBlockNumber, BridgedBlockHash, BeefyMmrHash, BeefyMmrHash>;
 pub type BridgedMmrNode = MmrDataOrHash<sp_runtime::traits::Keccak256, BridgedRawMmrLeaf>;
 pub type BridgedValidatorIdToMerkleLeaf = BridgedBeefyValidatorIdToMerkleLeaf<TestRuntime, ()>;
 

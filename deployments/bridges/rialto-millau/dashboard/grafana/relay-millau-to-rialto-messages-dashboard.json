@@ -15,7 +15,6 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 3,
   "links": [],
   "panels": [
     {
@@ -247,10 +246,10 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "20m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Messages generated at Millau are not detected by relay",
+        "name": "Millau -> Rialto messages are not detected by relay",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -299,16 +298,16 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest Rialto message received by Millau\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
         },
         {
-          "expr": "max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_generated\"}[5m]) - min_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_generated\"}[5m])",
+          "expr": "increase(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_generated\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
-          "legendFormat": "Messages generated in last 5 minutes",
+          "legendFormat": "Messages generated in last 5 minutes (Millau -> Rialto, 00000000)",
           "refId": "B"
         }
       ],
@@ -408,7 +407,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest Rialto message received by Millau\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
@@ -544,9 +543,9 @@
           "refId": "A"
         },
         {
-          "expr": "increase(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[1m]) OR on() vector(0)",
+          "expr": "increase(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[5m]) OR on() vector(0)",
           "interval": "",
-          "legendFormat": "Messages delivered to Rialto in last 1m",
+          "legendFormat": "Millau Messages delivered to Rialto in last 5m",
           "refId": "B"
         }
       ],
@@ -607,7 +606,7 @@
           {
             "evaluator": {
               "params": [
-                10
+                50
               ],
               "type": "gt"
             },
@@ -629,10 +628,10 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "20m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Too many unconfirmed messages",
+        "name": "Too many unconfirmed messages  (Millau -> Rialto)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -681,7 +680,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m])) - scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m]))",
+          "expr": "scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) OR on() vector(0)) - scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m]) OR on() vector(0))",
           "interval": "",
           "legendFormat": "Unconfirmed messages at Millau",
           "refId": "A"
@@ -766,10 +765,10 @@
           }
         ],
         "executionErrorState": "alerting",
-        "for": "5m",
+        "for": "20m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Rewards are not being confirmed",
+        "name": "Rewards are not being confirmed (Millau -> Rialto messages)",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -824,9 +823,9 @@
           "refId": "A"
         },
         {
-          "expr": "(scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m])) - scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_confirmed\"}[2m]))) * (max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) > bool min_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]))",
+          "expr": "(scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))) * (max_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]) > bool min_over_time(Millau_to_Rialto_MessageLane_00000000_lane_state_nonces{type=\"target_latest_received\"}[2m]))",
           "interval": "",
-          "legendFormat": "Unconfirmed rewards at Rialto (zero if messages are not being delivered to Rialto)",
+          "legendFormat": "Unconfirmed rewards at Millau->Rialto (zero if messages are not being delivered to Rialto)",
           "refId": "B"
         }
       ],
@@ -961,16 +960,16 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest Rialto message received by Millau\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
         },
         {
-          "expr": "increase(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=\"target_latest_received\"}[10m]) OR on() vector(0)",
+          "expr": "increase(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=\"source_latest_generated\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
-          "legendFormat": "Messages generated in last 5 minutes",
+          "legendFormat": "Messages generated in last 5 minutes (Millau -> Rialto, 00000001)",
           "refId": "B"
         }
       ],
@@ -1104,7 +1103,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_00000001_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest Rialto message received by Millau\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
@@ -1168,249 +1167,6 @@
       }
     },
     {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                1
-              ],
-              "type": "lt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "B",
-                "1m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "max"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "name": "Token swap messages from Millau to Rialto are not being delivered",
-        "noDataState": "no_data",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 11,
-        "w": 12,
-        "x": 0,
-        "y": 38
-      },
-      "hiddenSeries": false,
-      "id": 23,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.3",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_73776170_lane_state_nonces{type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Rialto\", \"type\", \"source_latest_generated\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
-          "interval": "",
-          "legendFormat": "{{type}}",
-          "refId": "A"
-        },
-        {
-          "expr": "increase(Millau_to_Rialto_MessageLane_73776170_lane_state_nonces{type=\"target_latest_received\"}[20m]) OR on() vector(0)",
-          "hide": true,
-          "interval": "",
-          "legendFormat": "Messages generated in last 5 minutes",
-          "refId": "B"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "lt",
-          "value": 1
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Delivery race (73776170)",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 11,
-        "w": 12,
-        "x": 12,
-        "y": 38
-      },
-      "hiddenSeries": false,
-      "id": 24,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.3",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "label_replace(label_replace(Millau_to_Rialto_MessageLane_73776170_lane_state_nonces{type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Rialto to Millau\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest message received by Millau\", \"type\", \"target_latest_received\")",
-          "interval": "",
-          "legendFormat": "{{type}}",
-          "refId": "A"
-        },
-        {
-          "expr": "increase(Millau_to_Rialto_MessageLane_73776170_lane_state_nonces{type=\"source_latest_confirmed\"}[10m]) OR on() vector(0)",
-          "hide": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "B"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Confirmations race (73776170)",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
@@ -1436,7 +1192,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 49
+        "y": 38
       },
       "id": 16,
       "options": {
@@ -1485,7 +1241,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 49
+        "y": 38
       },
       "hiddenSeries": false,
       "id": 18,
@@ -1578,7 +1334,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 49
+        "y": 38
       },
       "hiddenSeries": false,
       "id": 20,
@@ -1680,5 +1436,5 @@
   "timezone": "",
   "title": "Millau to Rialto Message Sync Dashboard",
   "uid": "relay-millau-to-rialto-messages",
-  "version": 2
+  "version": 1
 }

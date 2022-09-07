@@ -16,10 +16,27 @@
 
 //! Logic for checking Substrate storage proofs.
 
+use codec::Decode;
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
 use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
 use sp_trie::{read_trie_value, LayoutV1, MemoryDB, StorageProof};
+
+/// Storage proof size requirements.
+///
+/// This is currently used by benchmarks when generating storage proofs.
+#[derive(Clone, Copy, Debug)]
+pub enum ProofSize {
+	/// The proof is expected to be minimal. If value size may be changed, then it is expected to
+	/// have given size.
+	Minimal(u32),
+	/// The proof is expected to have at least given size and grow by increasing number of trie
+	/// nodes included in the proof.
+	HasExtraNodes(u32),
+	/// The proof is expected to have at least given size and grow by increasing value that is
+	/// stored in the trie.
+	HasLargeLeaf(u32),
+}
 
 /// This struct is used to read storage values from a subset of a Merklized database. The "proof"
 /// is a subset of the nodes in the Merkle structure of the database, so that it provides
@@ -50,18 +67,29 @@ where
 	}
 
 	/// Reads a value from the available subset of storage. If the value cannot be read due to an
-	/// incomplete or otherwise invalid proof, this returns an error.
+	/// incomplete or otherwise invalid proof, this function returns an error.
 	pub fn read_value(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Error> {
 		// LayoutV1 or LayoutV0 is identical for proof that only read values.
 		read_trie_value::<LayoutV1<H>, _>(&self.db, &self.root, key)
 			.map_err(|_| Error::StorageValueUnavailable)
 	}
+
+	/// Reads and decodes a value from the available subset of storage. If the value cannot be read
+	/// due to an incomplete or otherwise invalid proof, this function returns an error. If value is
+	/// read, but decoding fails, this function returns an error.
+	pub fn read_and_decode_value<T: Decode>(&self, key: &[u8]) -> Result<Option<T>, Error> {
+		self.read_value(key).and_then(|v| {
+			v.map(|v| T::decode(&mut &v[..]).map_err(Error::StorageValueDecodeFailed))
+				.transpose()
+		})
+	}
 }
 
-#[derive(RuntimeDebug, PartialEq)]
+#[derive(Eq, RuntimeDebug, PartialEq)]
 pub enum Error {
 	StorageRootMismatch,
 	StorageValueUnavailable,
+	StorageValueDecodeFailed(codec::Error),
 }
 
 /// Return valid storage proof and state root.
@@ -69,6 +97,7 @@ pub enum Error {
 /// NOTE: This should only be used for **testing**.
 #[cfg(feature = "std")]
 pub fn craft_valid_storage_proof() -> (sp_core::H256, StorageProof) {
+	use codec::Encode;
 	use sp_state_machine::{backend::Backend, prove_read, InMemoryBackend};
 
 	let state_version = sp_runtime::StateVersion::default();
@@ -79,6 +108,7 @@ pub fn craft_valid_storage_proof() -> (sp_core::H256, StorageProof) {
 			(None, vec![(b"key1".to_vec(), Some(b"value1".to_vec()))]),
 			(None, vec![(b"key2".to_vec(), Some(b"value2".to_vec()))]),
 			(None, vec![(b"key3".to_vec(), Some(b"value3".to_vec()))]),
+			(None, vec![(b"key4".to_vec(), Some((42u64, 42u32, 42u16, 42u8).encode()))]),
 			// Value is too big to fit in a branch node
 			(None, vec![(b"key11".to_vec(), Some(vec![0u8; 32]))]),
 		],
@@ -86,7 +116,7 @@ pub fn craft_valid_storage_proof() -> (sp_core::H256, StorageProof) {
 	));
 	let root = backend.storage_root(std::iter::empty(), state_version).0;
 	let proof = StorageProof::new(
-		prove_read(backend, &[&b"key1"[..], &b"key2"[..], &b"key22"[..]])
+		prove_read(backend, &[&b"key1"[..], &b"key2"[..], &b"key4"[..], &b"key22"[..]])
 			.unwrap()
 			.iter_nodes(),
 	);
@@ -97,6 +127,7 @@ pub fn craft_valid_storage_proof() -> (sp_core::H256, StorageProof) {
 #[cfg(test)]
 pub mod tests {
 	use super::*;
+	use codec::Encode;
 
 	#[test]
 	fn storage_proof_check() {
@@ -107,8 +138,14 @@ pub mod tests {
 			<StorageProofChecker<sp_core::Blake2Hasher>>::new(root, proof.clone()).unwrap();
 		assert_eq!(checker.read_value(b"key1"), Ok(Some(b"value1".to_vec())));
 		assert_eq!(checker.read_value(b"key2"), Ok(Some(b"value2".to_vec())));
+		assert_eq!(checker.read_value(b"key4"), Ok(Some((42u64, 42u32, 42u16, 42u8).encode())));
 		assert_eq!(checker.read_value(b"key11111"), Err(Error::StorageValueUnavailable));
 		assert_eq!(checker.read_value(b"key22"), Ok(None));
+		assert_eq!(checker.read_and_decode_value(b"key4"), Ok(Some((42u64, 42u32, 42u16, 42u8))),);
+		assert!(matches!(
+			checker.read_and_decode_value::<[u8; 64]>(b"key4"),
+			Err(Error::StorageValueDecodeFailed(_)),
+		));
 
 		// checking proof against invalid commitment fails
 		assert_eq!(

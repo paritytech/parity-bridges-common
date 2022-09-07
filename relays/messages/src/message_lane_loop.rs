@@ -62,7 +62,7 @@ pub struct Params<Strategy: RelayStrategy> {
 }
 
 /// Relayer operating mode.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RelayerMode {
 	/// The relayer doesn't care about rewards.
 	Altruistic,
@@ -94,7 +94,7 @@ pub struct MessageDeliveryParams<Strategy: RelayStrategy> {
 }
 
 /// Message details.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MessageDetails<SourceChainBalance> {
 	/// Message dispatch weight.
 	pub dispatch_weight: Weight,
@@ -111,7 +111,7 @@ pub type MessageDetailsMap<SourceChainBalance> =
 	BTreeMap<MessageNonce, MessageDetails<SourceChainBalance>>;
 
 /// Message delivery race proof parameters.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct MessageProofParameters {
 	/// Include outbound lane state proof?
 	pub outbound_state_proof_required: bool,
@@ -224,7 +224,7 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 }
 
 /// State of the client.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ClientState<SelfHeaderId, PeerHeaderId> {
 	/// The best header id of this chain.
 	pub best_self: SelfHeaderId,
@@ -271,7 +271,11 @@ pub async fn run<P: MessageLane, Strategy: RelayStrategy>(
 	relay_utils::relay_loop(source_client, target_client)
 		.reconnect_delay(params.reconnect_delay)
 		.with_metrics(metrics_params)
-		.loop_metric(MessageLaneLoopMetrics::new(Some(&metrics_prefix::<P>(&params.lane)))?)?
+		.loop_metric(MessageLaneLoopMetrics::new(
+			Some(&metrics_prefix::<P>(&params.lane)),
+			P::SOURCE_NAME,
+			P::TARGET_NAME,
+		)?)?
 		.expose()
 		.await?
 		.run(metrics_prefix::<P>(&params.lane), move |source_client, target_client, metrics| {
@@ -556,7 +560,7 @@ pub(crate) mod tests {
 		async fn reconnect(&mut self) -> Result<(), TestError> {
 			{
 				let mut data = self.data.lock();
-				(self.tick)(&mut *data);
+				(self.tick)(&mut data);
 				data.is_source_reconnected = true;
 			}
 			Ok(())
@@ -567,7 +571,7 @@ pub(crate) mod tests {
 	impl SourceClient<TestMessageLane> for TestSourceClient {
 		async fn state(&self) -> Result<SourceClientState<TestMessageLane>, TestError> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			if data.is_source_fails {
 				return Err(TestError)
 			}
@@ -579,7 +583,7 @@ pub(crate) mod tests {
 			id: SourceHeaderIdOf<TestMessageLane>,
 		) -> Result<(SourceHeaderIdOf<TestMessageLane>, MessageNonce), TestError> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			if data.is_source_fails {
 				return Err(TestError)
 			}
@@ -591,7 +595,7 @@ pub(crate) mod tests {
 			id: SourceHeaderIdOf<TestMessageLane>,
 		) -> Result<(SourceHeaderIdOf<TestMessageLane>, MessageNonce), TestError> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			Ok((id, data.source_latest_confirmed_received_nonce))
 		}
 
@@ -625,7 +629,7 @@ pub(crate) mod tests {
 			TestError,
 		> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			Ok((
 				id,
 				nonces.clone(),
@@ -646,7 +650,7 @@ pub(crate) mod tests {
 			proof: TestMessagesReceivingProof,
 		) -> Result<(), TestError> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			data.source_state.best_self =
 				HeaderId(data.source_state.best_self.0 + 1, data.source_state.best_self.1 + 1);
 			data.source_state.best_finalized_self = data.source_state.best_self;
@@ -659,7 +663,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			data.target_to_source_header_required = Some(id);
 			data.target_to_source_header_requirements.push(id);
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 		}
 
 		async fn estimate_confirmation_transaction(&self) -> TestSourceChainBalance {
@@ -689,7 +693,7 @@ pub(crate) mod tests {
 		async fn reconnect(&mut self) -> Result<(), TestError> {
 			{
 				let mut data = self.data.lock();
-				(self.tick)(&mut *data);
+				(self.tick)(&mut data);
 				data.is_target_reconnected = true;
 			}
 			Ok(())
@@ -700,7 +704,7 @@ pub(crate) mod tests {
 	impl TargetClient<TestMessageLane> for TestTargetClient {
 		async fn state(&self) -> Result<TargetClientState<TestMessageLane>, TestError> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			if data.is_target_fails {
 				return Err(TestError)
 			}
@@ -712,7 +716,7 @@ pub(crate) mod tests {
 			id: TargetHeaderIdOf<TestMessageLane>,
 		) -> Result<(TargetHeaderIdOf<TestMessageLane>, MessageNonce), TestError> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			if data.is_target_fails {
 				return Err(TestError)
 			}
@@ -729,6 +733,7 @@ pub(crate) mod tests {
 					unrewarded_relayer_entries: 0,
 					messages_in_oldest_entry: 0,
 					total_messages: 0,
+					last_delivered_nonce: 0,
 				},
 			))
 		}
@@ -738,7 +743,7 @@ pub(crate) mod tests {
 			id: TargetHeaderIdOf<TestMessageLane>,
 		) -> Result<(TargetHeaderIdOf<TestMessageLane>, MessageNonce), TestError> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			if data.is_target_fails {
 				return Err(TestError)
 			}
@@ -759,7 +764,7 @@ pub(crate) mod tests {
 			proof: TestMessagesProof,
 		) -> Result<RangeInclusive<MessageNonce>, TestError> {
 			let mut data = self.data.lock();
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 			if data.is_target_fails {
 				return Err(TestError)
 			}
@@ -779,7 +784,7 @@ pub(crate) mod tests {
 			let mut data = self.data.lock();
 			data.source_to_target_header_required = Some(id);
 			data.source_to_target_header_requirements.push(id);
-			(self.tick)(&mut *data);
+			(self.tick)(&mut data);
 		}
 
 		async fn estimate_delivery_transaction_in_source_tokens(

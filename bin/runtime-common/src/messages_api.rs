@@ -16,36 +16,54 @@
 
 //! Helpers for implementing various message-related runtime API mthods.
 
-use crate::messages::{source::FromThisChainMessagePayload, MessageBridge};
-
-use bp_messages::{LaneId, MessageDetails, MessageNonce};
-use codec::Decode;
+use bp_messages::{
+	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, OutboundMessageDetails,
+};
 use sp_std::vec::Vec;
 
 /// Implementation of the `To*OutboundLaneApi::message_details`.
-pub fn outbound_message_details<Runtime, MessagesPalletInstance, BridgeConfig>(
+pub fn outbound_message_details<Runtime, MessagesPalletInstance>(
 	lane: LaneId,
 	begin: MessageNonce,
 	end: MessageNonce,
-) -> Vec<MessageDetails<Runtime::OutboundMessageFee>>
+) -> Vec<OutboundMessageDetails<Runtime::OutboundMessageFee>>
 where
 	Runtime: pallet_bridge_messages::Config<MessagesPalletInstance>,
 	MessagesPalletInstance: 'static,
-	BridgeConfig: MessageBridge,
 {
 	(begin..=end)
 		.filter_map(|nonce| {
 			let message_data =
 				pallet_bridge_messages::Pallet::<Runtime, MessagesPalletInstance>::outbound_message_data(lane, nonce)?;
-			let decoded_payload =
-				FromThisChainMessagePayload::<BridgeConfig>::decode(&mut &message_data.payload[..]).ok()?;
-			Some(MessageDetails {
+			Some(OutboundMessageDetails {
 				nonce,
-				dispatch_weight: decoded_payload.weight,
+				// dispatch message weight is always zero at the source chain, since we're paying for
+				// dispatch at the target chain
+				dispatch_weight: 0,
 				size: message_data.payload.len() as _,
 				delivery_and_dispatch_fee: message_data.fee,
-				dispatch_fee_payment: decoded_payload.dispatch_fee_payment,
+				// we're delivering XCM messages here, so fee is always paid at the target chain
+				dispatch_fee_payment: bp_runtime::messages::DispatchFeePayment::AtTargetChain,
 			})
+		})
+		.collect()
+}
+
+/// Implementation of the `To*InboundLaneApi::message_details`.
+pub fn inbound_message_details<Runtime, MessagesPalletInstance>(
+	lane: LaneId,
+	messages: Vec<(MessagePayload, OutboundMessageDetails<Runtime::InboundMessageFee>)>,
+) -> Vec<InboundMessageDetails>
+where
+	Runtime: pallet_bridge_messages::Config<MessagesPalletInstance>,
+	MessagesPalletInstance: 'static,
+{
+	messages
+		.into_iter()
+		.map(|(payload, details)| {
+			pallet_bridge_messages::Pallet::<Runtime, MessagesPalletInstance>::inbound_message_data(
+				lane, payload, details,
+			)
 		})
 		.collect()
 }

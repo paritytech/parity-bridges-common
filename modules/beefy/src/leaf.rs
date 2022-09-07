@@ -134,7 +134,7 @@ where
 	Ok(BeefyMmrLeafVerificationArtifacts {
 		parent_number_and_hash: raw_mmr_leaf.parent_number_and_hash,
 		next_validator_set,
-		parachain_heads: raw_mmr_leaf.parachain_heads,
+		parachain_heads: raw_mmr_leaf.leaf_extra,
 	})
 }
 

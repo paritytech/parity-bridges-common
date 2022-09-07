@@ -133,7 +133,6 @@ pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> {
 	fn pay_delivery_and_dispatch_fee(
 		submitter: &SenderOrigin,
 		fee: &Balance,
-		relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error>;
 
 	/// Pay rewards for delivering messages to the given relayers.
@@ -145,12 +144,32 @@ pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> {
 		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
-		relayer_fund_account: &AccountId,
 	);
 }
 
+impl<SenderOrigin, AccountId, Balance>
+	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> for ()
+{
+	type Error = &'static str;
+
+	fn pay_delivery_and_dispatch_fee(
+		_submitter: &SenderOrigin,
+		_fee: &Balance,
+	) -> Result<(), Self::Error> {
+		Ok(())
+	}
+
+	fn pay_relayers_rewards(
+		_lane_id: LaneId,
+		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
+		_confirmation_relayer: &AccountId,
+		_received_range: &RangeInclusive<MessageNonce>,
+	) {
+	}
+}
+
 /// Send message artifacts.
-#[derive(RuntimeDebug, PartialEq)]
+#[derive(Eq, RuntimeDebug, PartialEq)]
 pub struct SendMessageArtifacts {
 	/// Nonce of the message.
 	pub nonce: MessageNonce,
@@ -175,7 +194,7 @@ pub trait MessagesBridge<SenderOrigin, AccountId, Balance, Payload> {
 }
 
 /// Bridge that does nothing when message is being sent.
-#[derive(RuntimeDebug, PartialEq)]
+#[derive(Eq, RuntimeDebug, PartialEq)]
 pub struct NoopMessagesBridge;
 
 impl<SenderOrigin, AccountId, Balance, Payload>
@@ -283,7 +302,6 @@ impl<SenderOrigin, AccountId, Balance>
 	fn pay_delivery_and_dispatch_fee(
 		_submitter: &SenderOrigin,
 		_fee: &Balance,
-		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {
 		Err(ALL_OUTBOUND_MESSAGES_REJECTED)
 	}
@@ -293,7 +311,6 @@ impl<SenderOrigin, AccountId, Balance>
 		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		_received_range: &RangeInclusive<MessageNonce>,
-		_relayer_fund_account: &AccountId,
 	) {
 	}
 }

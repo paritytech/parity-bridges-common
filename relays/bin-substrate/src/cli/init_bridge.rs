@@ -14,14 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::{SourceConnectionParams, TargetConnectionParams, TargetSigningParams};
-use bp_header_chain::InitializationData;
+use async_trait::async_trait;
+
+use crate::{
+	chains::{
+		millau_headers_to_rialto::MillauToRialtoCliBridge,
+		millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
+		rialto_headers_to_millau::RialtoToMillauCliBridge,
+		westend_headers_to_millau::WestendToMillauCliBridge,
+	},
+	cli::{bridge::CliBridgeBase, chain_schema::*},
+};
 use bp_runtime::Chain as ChainBase;
-use codec::Encode;
-use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
-use sp_core::{Bytes, Pair};
+use relay_substrate_client::{AccountKeyPairOf, Chain, SignParam, UnsignedTransaction};
+use sp_core::Pair;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
+use substrate_relay_helper::finality::engine::{Engine, Grandpa as GrandpaFinalityEngine};
 
 /// Initialize bridge pallet.
 #[derive(StructOpt)]
@@ -44,175 +53,126 @@ pub enum InitBridgeName {
 	MillauToRialto,
 	RialtoToMillau,
 	WestendToMillau,
-	RococoToWococo,
-	WococoToRococo,
-	KusamaToPolkadot,
-	PolkadotToKusama,
+	MillauToRialtoParachain,
 }
 
-macro_rules! select_bridge {
-	($bridge: expr, $generic: tt) => {
-		match $bridge {
-			InitBridgeName::MillauToRialto => {
-				type Source = relay_millau_client::Millau;
-				type Target = relay_rialto_client::Rialto;
+#[async_trait]
+trait BridgeInitializer: CliBridgeBase
+where
+	<Self::Target as ChainBase>::AccountId: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
+{
+	type Engine: Engine<Self::Source>;
 
-				fn encode_init_bridge(
-					init_data: InitializationData<<Source as ChainBase>::Header>,
-				) -> <Target as Chain>::Call {
-					rialto_runtime::SudoCall::sudo {
-						call: Box::new(
-							rialto_runtime::BridgeGrandpaMillauCall::initialize { init_data }
-								.into(),
-						),
-					}
-					.into()
-				}
+	/// Get the encoded call to init the bridge.
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call;
 
-				$generic
+	/// Initialize the bridge.
+	async fn init_bridge(data: InitBridge) -> anyhow::Result<()> {
+		let source_client = data.source.into_client::<Self::Source>().await?;
+		let target_client = data.target.into_client::<Self::Target>().await?;
+		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
+
+		let (spec_version, transaction_version) = target_client.simple_runtime_version().await?;
+		substrate_relay_helper::finality::initialize::initialize::<Self::Engine, _, _, _>(
+			source_client,
+			target_client.clone(),
+			target_sign.public().into(),
+			SignParam {
+				spec_version,
+				transaction_version,
+				genesis_hash: *target_client.genesis_hash(),
+				signer: target_sign,
 			},
-			InitBridgeName::RialtoToMillau => {
-				type Source = relay_rialto_client::Rialto;
-				type Target = relay_millau_client::Millau;
-
-				fn encode_init_bridge(
-					init_data: InitializationData<<Source as ChainBase>::Header>,
-				) -> <Target as Chain>::Call {
-					let initialize_call = millau_runtime::BridgeGrandpaCall::<
-						millau_runtime::Runtime,
-						millau_runtime::RialtoGrandpaInstance,
-					>::initialize {
-						init_data,
-					};
-					millau_runtime::SudoCall::sudo { call: Box::new(initialize_call.into()) }.into()
-				}
-
-				$generic
+			move |transaction_nonce, initialization_data| {
+				Ok(UnsignedTransaction::new(
+					Self::encode_init_bridge(initialization_data).into(),
+					transaction_nonce,
+				))
 			},
-			InitBridgeName::WestendToMillau => {
-				type Source = relay_westend_client::Westend;
-				type Target = relay_millau_client::Millau;
+		)
+		.await;
 
-				fn encode_init_bridge(
-					init_data: InitializationData<<Source as ChainBase>::Header>,
-				) -> <Target as Chain>::Call {
-					// at Westend -> Millau initialization we're not using sudo, because otherwise
-					// our deployments may fail, because we need to initialize both Rialto -> Millau
-					// and Westend -> Millau bridge. => since there's single possible sudo account,
-					// one of transaction may fail with duplicate nonce error
-					millau_runtime::BridgeGrandpaCall::<
-						millau_runtime::Runtime,
-						millau_runtime::WestendGrandpaInstance,
-					>::initialize {
-						init_data,
-					}
-					.into()
-				}
+		Ok(())
+	}
+}
 
-				$generic
-			},
-			InitBridgeName::RococoToWococo => {
-				type Source = relay_rococo_client::Rococo;
-				type Target = relay_wococo_client::Wococo;
+impl BridgeInitializer for MillauToRialtoCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
 
-				fn encode_init_bridge(
-					init_data: InitializationData<<Source as ChainBase>::Header>,
-				) -> <Target as Chain>::Call {
-					relay_wococo_client::runtime::Call::BridgeGrandpaRococo(
-						relay_wococo_client::runtime::BridgeGrandpaRococoCall::initialize(
-							init_data,
-						),
-					)
-				}
-
-				$generic
-			},
-			InitBridgeName::WococoToRococo => {
-				type Source = relay_wococo_client::Wococo;
-				type Target = relay_rococo_client::Rococo;
-
-				fn encode_init_bridge(
-					init_data: InitializationData<<Source as ChainBase>::Header>,
-				) -> <Target as Chain>::Call {
-					relay_rococo_client::runtime::Call::BridgeGrandpaWococo(
-						relay_rococo_client::runtime::BridgeGrandpaWococoCall::initialize(
-							init_data,
-						),
-					)
-				}
-
-				$generic
-			},
-			InitBridgeName::KusamaToPolkadot => {
-				type Source = relay_kusama_client::Kusama;
-				type Target = relay_polkadot_client::Polkadot;
-
-				fn encode_init_bridge(
-					init_data: InitializationData<<Source as ChainBase>::Header>,
-				) -> <Target as Chain>::Call {
-					relay_polkadot_client::runtime::Call::BridgeKusamaGrandpa(
-						relay_polkadot_client::runtime::BridgeKusamaGrandpaCall::initialize(
-							init_data,
-						),
-					)
-				}
-
-				$generic
-			},
-			InitBridgeName::PolkadotToKusama => {
-				type Source = relay_polkadot_client::Polkadot;
-				type Target = relay_kusama_client::Kusama;
-
-				fn encode_init_bridge(
-					init_data: InitializationData<<Source as ChainBase>::Header>,
-				) -> <Target as Chain>::Call {
-					relay_kusama_client::runtime::Call::BridgePolkadotGrandpa(
-						relay_kusama_client::runtime::BridgePolkadotGrandpaCall::initialize(
-							init_data,
-						),
-					)
-				}
-
-				$generic
-			},
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		rialto_runtime::SudoCall::sudo {
+			call: Box::new(rialto_runtime::BridgeGrandpaCall::initialize { init_data }.into()),
 		}
-	};
+		.into()
+	}
+}
+
+impl BridgeInitializer for MillauToRialtoParachainCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		let initialize_call = rialto_parachain_runtime::BridgeGrandpaCall::<
+			rialto_parachain_runtime::Runtime,
+			rialto_parachain_runtime::MillauGrandpaInstance,
+		>::initialize {
+			init_data,
+		};
+		rialto_parachain_runtime::SudoCall::sudo { call: Box::new(initialize_call.into()) }.into()
+	}
+}
+
+impl BridgeInitializer for RialtoToMillauCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		let initialize_call = millau_runtime::BridgeGrandpaCall::<
+			millau_runtime::Runtime,
+			millau_runtime::RialtoGrandpaInstance,
+		>::initialize {
+			init_data,
+		};
+		millau_runtime::SudoCall::sudo { call: Box::new(initialize_call.into()) }.into()
+	}
+}
+
+impl BridgeInitializer for WestendToMillauCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		// at Westend -> Millau initialization we're not using sudo, because otherwise
+		// our deployments may fail, because we need to initialize both Rialto -> Millau
+		// and Westend -> Millau bridge. => since there's single possible sudo account,
+		// one of transaction may fail with duplicate nonce error
+		millau_runtime::BridgeGrandpaCall::<
+			millau_runtime::Runtime,
+			millau_runtime::WestendGrandpaInstance,
+		>::initialize {
+			init_data,
+		}
+		.into()
+	}
 }
 
 impl InitBridge {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		select_bridge!(self.bridge, {
-			let source_client = self.source.to_client::<Source>().await?;
-			let target_client = self.target.to_client::<Target>().await?;
-			let target_sign = self.target_sign.to_keypair::<Target>()?;
-
-			let (spec_version, transaction_version) =
-				target_client.simple_runtime_version().await?;
-			substrate_relay_helper::headers_initialize::initialize(
-				source_client,
-				target_client.clone(),
-				target_sign.public().into(),
-				move |transaction_nonce, initialization_data| {
-					Ok(Bytes(
-						Target::sign_transaction(SignParam {
-							spec_version,
-							transaction_version,
-							genesis_hash: *target_client.genesis_hash(),
-							signer: target_sign,
-							era: relay_substrate_client::TransactionEra::immortal(),
-							unsigned: UnsignedTransaction::new(
-								encode_init_bridge(initialization_data).into(),
-								transaction_nonce,
-							),
-						})?
-						.encode(),
-					))
-				},
-			)
-			.await;
-
-			Ok(())
-		})
+		match self.bridge {
+			InitBridgeName::MillauToRialto => MillauToRialtoCliBridge::init_bridge(self),
+			InitBridgeName::RialtoToMillau => RialtoToMillauCliBridge::init_bridge(self),
+			InitBridgeName::WestendToMillau => WestendToMillauCliBridge::init_bridge(self),
+			InitBridgeName::MillauToRialtoParachain =>
+				MillauToRialtoParachainCliBridge::init_bridge(self),
+		}
+		.await
 	}
 }

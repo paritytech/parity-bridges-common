@@ -1,8 +1,6 @@
 ---
 # Webhook server configuration
 # Or use the launch options `-o '::' -p 4567`
-#bind: '::'
-#port: 4567
 
 # Set up your HS connections
 matrix:
@@ -24,7 +22,7 @@ msgtype: m.text
 # Set up notification ingress rules
 rules:
 - name: bridge              # Name of the rule
-  room: "#bridges-workers:matrix.parity.io" # Room or ID
+  room: "#bridges-rialto-millau-alerts:matrix.parity.io" # Room or ID
   matrix: matrix-parity-io     # The Matrix HS to use - defaults to first one
   msgtype: m.notice
   # The following values are optional:

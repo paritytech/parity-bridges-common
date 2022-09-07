@@ -17,25 +17,25 @@
 //! Storage keys of bridge GRANDPA pallet.
 
 /// Name of the `IsHalted` storage value.
-pub const IS_HALTED_VALUE_NAME: &str = "IsHalted";
+pub const PALLET_OPERATING_MODE_VALUE_NAME: &str = "PalletOperatingMode";
 /// Name of the `BestFinalized` storage value.
 pub const BEST_FINALIZED_VALUE_NAME: &str = "BestFinalized";
 
 use sp_core::storage::StorageKey;
 
-/// Storage key of the `IsHalted` flag in the runtime storage.
-pub fn is_halted_key(pallet_prefix: &str) -> StorageKey {
+/// Storage key of the `PalletOperatingMode` variable in the runtime storage.
+pub fn pallet_operating_mode_key(pallet_prefix: &str) -> StorageKey {
 	StorageKey(
 		bp_runtime::storage_value_final_key(
 			pallet_prefix.as_bytes(),
-			IS_HALTED_VALUE_NAME.as_bytes(),
+			PALLET_OPERATING_MODE_VALUE_NAME.as_bytes(),
 		)
 		.to_vec(),
 	)
 }
 
-/// Storage key of the best finalized header hash value in the runtime storage.
-pub fn best_finalized_hash_key(pallet_prefix: &str) -> StorageKey {
+/// Storage key of the best finalized header number and hash value in the runtime storage.
+pub fn best_finalized_key(pallet_prefix: &str) -> StorageKey {
 	StorageKey(
 		bp_runtime::storage_value_final_key(
 			pallet_prefix.as_bytes(),
@@ -51,23 +51,23 @@ mod tests {
 	use hex_literal::hex;
 
 	#[test]
-	fn is_halted_key_computed_properly() {
+	fn pallet_operating_mode_key_computed_properly() {
 		// If this test fails, then something has been changed in module storage that is breaking
 		// compatibility with previous pallet.
-		let storage_key = is_halted_key("BridgeGrandpa").0;
+		let storage_key = pallet_operating_mode_key("BridgeGrandpa").0;
 		assert_eq!(
 			storage_key,
-			hex!("0b06f475eddb98cf933a12262e0388de9611a984bbd04e2fd39f97bbc006115f").to_vec(),
+			hex!("0b06f475eddb98cf933a12262e0388de0f4cf0917788d791142ff6c1f216e7b3").to_vec(),
 			"Unexpected storage key: {}",
 			hex::encode(&storage_key),
 		);
 	}
 
 	#[test]
-	fn best_finalized_hash_key_computed_properly() {
+	fn best_finalized_key_computed_properly() {
 		// If this test fails, then something has been changed in module storage that is breaking
 		// compatibility with previous pallet.
-		let storage_key = best_finalized_hash_key("BridgeGrandpa").0;
+		let storage_key = best_finalized_key("BridgeGrandpa").0;
 		assert_eq!(
 			storage_key,
 			hex!("0b06f475eddb98cf933a12262e0388dea4ebafdd473c549fdb24c5c991c5591c").to_vec(),

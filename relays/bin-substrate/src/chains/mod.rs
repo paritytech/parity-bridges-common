@@ -16,120 +16,46 @@
 
 //! Chain-specific relayer configuration.
 
-pub mod kusama_headers_to_polkadot;
-pub mod kusama_messages_to_polkadot;
 pub mod millau_headers_to_rialto;
+pub mod millau_headers_to_rialto_parachain;
 pub mod millau_messages_to_rialto;
-pub mod polkadot_headers_to_kusama;
-pub mod polkadot_messages_to_kusama;
+pub mod millau_messages_to_rialto_parachain;
 pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
-pub mod rococo_headers_to_wococo;
-pub mod rococo_messages_to_wococo;
+pub mod rialto_parachain_messages_to_millau;
+pub mod rialto_parachains_to_millau;
 pub mod westend_headers_to_millau;
-pub mod wococo_headers_to_rococo;
-pub mod wococo_messages_to_rococo;
+pub mod westend_parachains_to_millau;
 
-mod kusama;
 mod millau;
-mod polkadot;
 mod rialto;
 mod rialto_parachain;
-mod rococo;
 mod westend;
-mod wococo;
 
 #[cfg(test)]
 mod tests {
-	use crate::cli::{encode_call, send_message};
+	use crate::cli::encode_message;
 	use bp_messages::source_chain::TargetHeaderChain;
 	use bp_runtime::Chain as _;
 	use codec::Encode;
-	use frame_support::dispatch::GetDispatchInfo;
 	use relay_millau_client::Millau;
 	use relay_rialto_client::Rialto;
 	use relay_substrate_client::{SignParam, TransactionSignScheme, UnsignedTransaction};
-	use sp_core::Pair;
-	use sp_runtime::traits::{IdentifyAccount, Verify};
 
 	#[test]
-	fn millau_signature_is_valid_on_rialto() {
-		let millau_sign = relay_millau_client::SigningParams::from_string("//Dave", None).unwrap();
-
-		let call =
-			rialto_runtime::Call::System(rialto_runtime::SystemCall::remark { remark: vec![] });
-
-		let millau_public: bp_millau::AccountSigner = millau_sign.public().into();
-		let millau_account_id: bp_millau::AccountId = millau_public.into_account();
-
-		let digest = millau_runtime::millau_to_rialto_account_ownership_digest(
-			&call,
-			millau_account_id,
-			rialto_runtime::VERSION.spec_version,
-		);
-
-		let rialto_signer =
-			relay_rialto_client::SigningParams::from_string("//Dave", None).unwrap();
-		let signature = rialto_signer.sign(&digest);
-
-		assert!(signature.verify(&digest[..], &rialto_signer.public()));
-	}
-
-	#[test]
-	fn rialto_signature_is_valid_on_millau() {
-		let rialto_sign = relay_rialto_client::SigningParams::from_string("//Dave", None).unwrap();
-
-		let call =
-			millau_runtime::Call::System(millau_runtime::SystemCall::remark { remark: vec![] });
-
-		let rialto_public: bp_rialto::AccountSigner = rialto_sign.public().into();
-		let rialto_account_id: bp_rialto::AccountId = rialto_public.into_account();
-
-		let digest = rialto_runtime::rialto_to_millau_account_ownership_digest(
-			&call,
-			rialto_account_id,
-			millau_runtime::VERSION.spec_version,
-		);
-
-		let millau_signer =
-			relay_millau_client::SigningParams::from_string("//Dave", None).unwrap();
-		let signature = millau_signer.sign(&digest);
-
-		assert!(signature.verify(&digest[..], &millau_signer.public()));
-	}
-
-	#[test]
-	fn maximal_rialto_to_millau_message_arguments_size_is_computed_correctly() {
+	fn maximal_rialto_to_millau_message_size_is_computed_correctly() {
 		use rialto_runtime::millau_messages::Millau;
 
-		let maximal_remark_size = encode_call::compute_maximal_message_arguments_size(
+		let maximal_message_size = encode_message::compute_maximal_message_size(
 			bp_rialto::Rialto::max_extrinsic_size(),
 			bp_millau::Millau::max_extrinsic_size(),
 		);
 
-		let call: millau_runtime::Call =
-			millau_runtime::SystemCall::remark { remark: vec![42; maximal_remark_size as _] }
-				.into();
-		let payload = send_message::message_payload(
-			Default::default(),
-			call.get_dispatch_info().weight,
-			bp_message_dispatch::CallOrigin::SourceRoot,
-			&call,
-			send_message::DispatchFeePayment::AtSourceChain,
-		);
-		assert_eq!(Millau::verify_message(&payload), Ok(()));
+		let message = vec![42; maximal_message_size as _];
+		assert_eq!(Millau::verify_message(&message), Ok(()));
 
-		let call: millau_runtime::Call =
-			millau_runtime::SystemCall::remark { remark: vec![42; (maximal_remark_size + 1) as _] }
-				.into();
-		let payload = send_message::message_payload(
-			Default::default(),
-			call.get_dispatch_info().weight,
-			bp_message_dispatch::CallOrigin::SourceRoot,
-			&call,
-			send_message::DispatchFeePayment::AtSourceChain,
-		);
-		assert!(Millau::verify_message(&payload).is_err());
+		let message = vec![42; (maximal_message_size + 1) as _];
+		assert!(Millau::verify_message(&message).is_err());
 	}
 
 	#[test]
@@ -141,77 +67,19 @@ mod tests {
 			"We can't actually send maximal messages to Rialto from Millau, because Millau extrinsics can't be that large",
 		)
 	}
-
-	#[test]
-	fn maximal_rialto_to_millau_message_dispatch_weight_is_computed_correctly() {
-		use rialto_runtime::millau_messages::Millau;
-
-		let maximal_dispatch_weight = send_message::compute_maximal_message_dispatch_weight(
-			bp_millau::Millau::max_extrinsic_weight(),
-		);
-		let call: millau_runtime::Call =
-			rialto_runtime::SystemCall::remark { remark: vec![] }.into();
-
-		let payload = send_message::message_payload(
-			Default::default(),
-			maximal_dispatch_weight,
-			bp_message_dispatch::CallOrigin::SourceRoot,
-			&call,
-			send_message::DispatchFeePayment::AtSourceChain,
-		);
-		assert_eq!(Millau::verify_message(&payload), Ok(()));
-
-		let payload = send_message::message_payload(
-			Default::default(),
-			maximal_dispatch_weight + 1,
-			bp_message_dispatch::CallOrigin::SourceRoot,
-			&call,
-			send_message::DispatchFeePayment::AtSourceChain,
-		);
-		assert!(Millau::verify_message(&payload).is_err());
-	}
-
-	#[test]
-	fn maximal_weight_fill_block_to_rialto_is_generated_correctly() {
-		use millau_runtime::rialto_messages::Rialto;
-
-		let maximal_dispatch_weight = send_message::compute_maximal_message_dispatch_weight(
-			bp_rialto::Rialto::max_extrinsic_weight(),
-		);
-		let call: rialto_runtime::Call =
-			millau_runtime::SystemCall::remark { remark: vec![] }.into();
-
-		let payload = send_message::message_payload(
-			Default::default(),
-			maximal_dispatch_weight,
-			bp_message_dispatch::CallOrigin::SourceRoot,
-			&call,
-			send_message::DispatchFeePayment::AtSourceChain,
-		);
-		assert_eq!(Rialto::verify_message(&payload), Ok(()));
-
-		let payload = send_message::message_payload(
-			Default::default(),
-			maximal_dispatch_weight + 1,
-			bp_message_dispatch::CallOrigin::SourceRoot,
-			&call,
-			send_message::DispatchFeePayment::AtSourceChain,
-		);
-		assert!(Rialto::verify_message(&payload).is_err());
-	}
-
 	#[test]
 	fn rialto_tx_extra_bytes_constant_is_correct() {
 		let rialto_call =
 			rialto_runtime::Call::System(rialto_runtime::SystemCall::remark { remark: vec![] });
-		let rialto_tx = Rialto::sign_transaction(SignParam {
-			spec_version: 1,
-			transaction_version: 1,
-			genesis_hash: Default::default(),
-			signer: sp_keyring::AccountKeyring::Alice.pair(),
-			era: relay_substrate_client::TransactionEra::immortal(),
-			unsigned: UnsignedTransaction::new(rialto_call.clone().into(), 0),
-		})
+		let rialto_tx = Rialto::sign_transaction(
+			SignParam {
+				spec_version: 1,
+				transaction_version: 1,
+				genesis_hash: Default::default(),
+				signer: sp_keyring::AccountKeyring::Alice.pair(),
+			},
+			UnsignedTransaction::new(rialto_call.clone().into(), 0),
+		)
 		.unwrap();
 		let extra_bytes_in_transaction = rialto_tx.encode().len() - rialto_call.encode().len();
 		assert!(
@@ -226,14 +94,15 @@ mod tests {
 	fn millau_tx_extra_bytes_constant_is_correct() {
 		let millau_call =
 			millau_runtime::Call::System(millau_runtime::SystemCall::remark { remark: vec![] });
-		let millau_tx = Millau::sign_transaction(SignParam {
-			spec_version: 0,
-			transaction_version: 0,
-			genesis_hash: Default::default(),
-			signer: sp_keyring::AccountKeyring::Alice.pair(),
-			era: relay_substrate_client::TransactionEra::immortal(),
-			unsigned: UnsignedTransaction::new(millau_call.clone().into(), 0),
-		})
+		let millau_tx = Millau::sign_transaction(
+			SignParam {
+				spec_version: 0,
+				transaction_version: 0,
+				genesis_hash: Default::default(),
+				signer: sp_keyring::AccountKeyring::Alice.pair(),
+			},
+			UnsignedTransaction::new(millau_call.clone().into(), 0),
+		)
 		.unwrap();
 		let extra_bytes_in_transaction = millau_tx.encode().len() - millau_call.encode().len();
 		assert!(
@@ -241,104 +110,6 @@ mod tests {
 			"Hardcoded number of extra bytes in Millau transaction {} is lower than actual value: {}",
 			bp_millau::TX_EXTRA_BYTES,
 			extra_bytes_in_transaction,
-		);
-	}
-}
-
-#[cfg(test)]
-mod rococo_tests {
-	use bp_header_chain::justification::GrandpaJustification;
-	use codec::Encode;
-
-	#[test]
-	fn scale_compatibility_of_bridges_call() {
-		// given
-		let header = sp_runtime::generic::Header {
-			parent_hash: Default::default(),
-			number: Default::default(),
-			state_root: Default::default(),
-			extrinsics_root: Default::default(),
-			digest: sp_runtime::generic::Digest { logs: vec![] },
-		};
-
-		let justification = GrandpaJustification {
-			round: 0,
-			commit: finality_grandpa::Commit {
-				target_hash: Default::default(),
-				target_number: Default::default(),
-				precommits: vec![],
-			},
-			votes_ancestries: vec![],
-		};
-
-		let actual = relay_rococo_client::runtime::BridgeGrandpaWococoCall::submit_finality_proof(
-			Box::new(header.clone()),
-			justification.clone(),
-		);
-		let expected =
-			millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
-				finality_target: Box::new(header),
-				justification,
-			};
-
-		// when
-		let actual_encoded = actual.encode();
-		let expected_encoded = expected.encode();
-
-		// then
-		assert_eq!(
-			actual_encoded, expected_encoded,
-			"\n\nEncoding difference.\nGot {:#?} \nExpected: {:#?}",
-			actual, expected
-		);
-	}
-}
-
-#[cfg(test)]
-mod westend_tests {
-	use bp_header_chain::justification::GrandpaJustification;
-	use codec::Encode;
-
-	#[test]
-	fn scale_compatibility_of_bridges_call() {
-		// given
-		let header = sp_runtime::generic::Header {
-			parent_hash: Default::default(),
-			number: Default::default(),
-			state_root: Default::default(),
-			extrinsics_root: Default::default(),
-			digest: sp_runtime::generic::Digest { logs: vec![] },
-		};
-
-		let justification = GrandpaJustification {
-			round: 0,
-			commit: finality_grandpa::Commit {
-				target_hash: Default::default(),
-				target_number: Default::default(),
-				precommits: vec![],
-			},
-			votes_ancestries: vec![],
-		};
-
-		let actual = relay_kusama_client::runtime::BridgePolkadotGrandpaCall::submit_finality_proof(
-			Box::new(header.clone()),
-			justification.clone(),
-		);
-		let expected =
-			millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
-				finality_target: Box::new(header),
-				justification,
-			};
-
-		// when
-		let actual_encoded = actual.encode();
-		let expected_encoded = expected.encode();
-
-		// then
-		assert_eq!(
-			actual_encoded, expected_encoded,
-			"\n\nEncoding difference.\nGot {:#?} \nExpected: {:#?}",
-			actual, expected
 		);
 	}
 }

@@ -41,6 +41,7 @@
 
 use crate::*;
 
+use bp_runtime::BasicOperatingMode;
 use bp_test_utils::{
 	accounts, make_justification_for_header, JustificationGeneratorParams, TEST_GRANDPA_ROUND,
 	TEST_GRANDPA_SET_ID,
@@ -61,6 +62,16 @@ const MAX_VOTE_ANCESTRIES: u32 = 1000;
 // The maximum number of pre-commits to include in a justification. In practice this scales with the
 // number of validators.
 const MAX_VALIDATOR_SET_SIZE: u32 = 1024;
+
+// `1..MAX_VALIDATOR_SET_SIZE` and `1..MAX_VOTE_ANCESTRIES` are too large && benchmarks are
+// running for almost 40m (steps=50, repeat=20) on a decent laptop, which is too much. Since
+// we're building linear function here, let's just select some limited subrange for benchmarking.
+const VALIDATOR_SET_SIZE_RANGE_BEGIN: u32 = MAX_VALIDATOR_SET_SIZE / 20;
+const VALIDATOR_SET_SIZE_RANGE_END: u32 =
+	VALIDATOR_SET_SIZE_RANGE_BEGIN + VALIDATOR_SET_SIZE_RANGE_BEGIN;
+const MAX_VOTE_ANCESTRIES_RANGE_BEGIN: u32 = MAX_VOTE_ANCESTRIES / 20;
+const MAX_VOTE_ANCESTRIES_RANGE_END: u32 =
+	MAX_VOTE_ANCESTRIES_RANGE_BEGIN + MAX_VOTE_ANCESTRIES_RANGE_BEGIN;
 
 /// Returns number of first header to be imported.
 ///
@@ -84,7 +95,7 @@ fn prepare_benchmark_data<T: Config<I>, I: 'static>(
 		header: Box::new(bp_test_utils::test_header(Zero::zero())),
 		authority_list,
 		set_id: TEST_GRANDPA_SET_ID,
-		is_halted: false,
+		operating_mode: BasicOperatingMode::Normal,
 	};
 
 	bootstrap_bridge::<T, I>(init_data);
@@ -106,8 +117,8 @@ benchmarks_instance_pallet! {
 	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
 	// annotate the weight in the pallet.
 	submit_finality_proof {
-		let p in 1..MAX_VALIDATOR_SET_SIZE;
-		let v in 1..MAX_VOTE_ANCESTRIES;
+		let p in VALIDATOR_SET_SIZE_RANGE_BEGIN..VALIDATOR_SET_SIZE_RANGE_END;
+		let v in MAX_VOTE_ANCESTRIES_RANGE_BEGIN..MAX_VOTE_ANCESTRIES_RANGE_END;
 		let caller: T::AccountId = whitelisted_caller();
 		let (header, justification) = prepare_benchmark_data::<T, I>(p, v);
 	}: submit_finality_proof(RawOrigin::Signed(caller), Box::new(header), justification)
@@ -115,7 +126,7 @@ benchmarks_instance_pallet! {
 		let header: BridgedHeader<T, I> = bp_test_utils::test_header(header_number::<T, I, _>());
 		let expected_hash = header.hash();
 
-		assert_eq!(<BestFinalized<T, I>>::get(), expected_hash);
+		assert_eq!(<BestFinalized<T, I>>::get().unwrap().1, expected_hash);
 		assert!(<ImportedHeaders<T, I>>::contains_key(expected_hash));
 	}
 }

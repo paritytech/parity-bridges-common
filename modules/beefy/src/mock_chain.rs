@@ -208,7 +208,7 @@ impl HeaderBuilder {
 					next_validator_addresses,
 				),
 			},
-			parachain_heads: parachain_heads(&header),
+			leaf_extra: parachain_heads(&header),
 		};
 
 		HeaderBuilder {

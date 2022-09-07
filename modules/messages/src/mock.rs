@@ -17,7 +17,7 @@
 // From construct_runtime macro
 #![allow(clippy::from_over_into)]
 
-use crate::{instant_payments::cal_relayers_rewards, Config};
+use crate::{calc_relayers_rewards, Config};
 
 use bitvec::prelude::*;
 use bp_messages::{
@@ -67,14 +67,6 @@ pub struct TestPayload {
 }
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
-
-pub struct AccountIdConverter;
-
-impl sp_runtime::traits::Convert<H256, AccountId> for AccountIdConverter {
-	fn convert(hash: H256) -> AccountId {
-		hash.to_low_u64_ne()
-	}
-}
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
@@ -149,7 +141,7 @@ parameter_types! {
 	pub const MaxUnrewardedRelayerEntriesAtInboundLane: u64 = 16;
 	pub const MaxUnconfirmedMessagesAtInboundLane: u64 = 32;
 	pub storage TokenConversionRate: FixedU128 = 1.into();
-  pub const TestBridgedChainId: bp_runtime::ChainId = *b"test";
+	pub const TestBridgedChainId: bp_runtime::ChainId = *b"test";
 }
 
 #[derive(Debug, Clone, Encode, Decode, PartialEq, Eq, TypeInfo)]
@@ -174,14 +166,13 @@ impl Config for TestRuntime {
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
+	type MaximalOutboundPayloadSize = frame_support::traits::ConstU32<MAX_OUTBOUND_PAYLOAD_SIZE>;
 	type OutboundPayload = TestPayload;
 	type OutboundMessageFee = TestMessageFee;
 
 	type InboundPayload = TestPayload;
 	type InboundMessageFee = TestMessageFee;
 	type InboundRelayer = TestRelayer;
-
-	type AccountIdConverter = AccountIdConverter;
 
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
@@ -205,10 +196,13 @@ impl SenderOrigin<AccountId> for Origin {
 }
 
 impl Size for TestPayload {
-	fn size_hint(&self) -> u32 {
+	fn size(&self) -> u32 {
 		16 + self.extra.len() as u32
 	}
 }
+
+/// Maximal outbound payload size.
+pub const MAX_OUTBOUND_PAYLOAD_SIZE: u32 = 4096;
 
 /// Account that has balance to use in tests.
 pub const ENDOWED_ACCOUNT: AccountId = 0xDEAD;
@@ -244,7 +238,7 @@ pub struct TestMessagesProof {
 }
 
 impl Size for TestMessagesProof {
-	fn size_hint(&self) -> u32 {
+	fn size(&self) -> u32 {
 		0
 	}
 }
@@ -271,7 +265,7 @@ impl From<Result<Vec<Message<TestMessageFee>>, ()>> for TestMessagesProof {
 pub struct TestMessagesDeliveryProof(pub Result<(LaneId, InboundLaneData<TestRelayer>), ()>);
 
 impl Size for TestMessagesDeliveryProof {
-	fn size_hint(&self) -> u32 {
+	fn size(&self) -> u32 {
 		0
 	}
 }
@@ -356,7 +350,6 @@ impl MessageDeliveryAndDispatchPayment<Origin, AccountId, TestMessageFee>
 	fn pay_delivery_and_dispatch_fee(
 		submitter: &Origin,
 		fee: &TestMessageFee,
-		_relayer_fund_account: &AccountId,
 	) -> Result<(), Self::Error> {
 		if frame_support::storage::unhashed::get(b":reject-message-fee:") == Some(true) {
 			return Err(TEST_ERROR)
@@ -372,10 +365,9 @@ impl MessageDeliveryAndDispatchPayment<Origin, AccountId, TestMessageFee>
 		message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
-		_relayer_fund_account: &AccountId,
 	) {
 		let relayers_rewards =
-			cal_relayers_rewards::<TestRuntime, ()>(lane_id, message_relayers, received_range);
+			calc_relayers_rewards::<TestRuntime, ()>(lane_id, message_relayers, received_range);
 		for (relayer, reward) in &relayers_rewards {
 			let key = (b":relayer-reward:", relayer, reward.reward).encode();
 			frame_support::storage::unhashed::put(&key, &true);
@@ -489,7 +481,7 @@ pub struct TestMessageDispatch;
 impl MessageDispatch<AccountId, TestMessageFee> for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
 
-	fn dispatch_weight(message: &DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
+	fn dispatch_weight(message: &mut DispatchMessage<TestPayload, TestMessageFee>) -> Weight {
 		match message.data.payload.as_ref() {
 			Ok(payload) => payload.declared_weight,
 			Err(_) => 0,

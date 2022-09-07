@@ -19,6 +19,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use bp_runtime::BasicOperatingMode;
 use codec::{Codec, Decode, Encode, EncodeLike};
 use core::{clone::Clone, cmp::Eq, default::Default, fmt::Debug};
 use scale_info::TypeInfo;
@@ -38,7 +39,7 @@ pub trait Parameter: Codec + EncodeLike + Clone + Eq + Debug + TypeInfo {}
 impl<T> Parameter for T where T: Codec + EncodeLike + Clone + Eq + Debug + TypeInfo {}
 
 /// A GRANDPA Authority List and ID.
-#[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Clone, TypeInfo)]
+#[derive(Default, Encode, Eq, Decode, RuntimeDebug, PartialEq, Clone, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct AuthoritySet {
 	/// List of GRANDPA authorities for the current round.
@@ -66,8 +67,8 @@ pub struct InitializationData<H: HeaderT> {
 	pub authority_list: AuthorityList,
 	/// The ID of the initial authority set.
 	pub set_id: SetId,
-	/// Should the pallet block transaction immediately after initialization.
-	pub is_halted: bool,
+	/// Pallet operating mode.
+	pub operating_mode: BasicOperatingMode,
 }
 
 /// base trait for verifying transaction inclusion proofs.
@@ -88,7 +89,7 @@ pub trait InclusionProofVerifier {
 /// A trait for pallets which want to keep track of finalized headers from a bridged chain.
 pub trait HeaderChain<H, E> {
 	/// Get the best finalized header known to the header chain.
-	fn best_finalized() -> H;
+	fn best_finalized() -> Option<H>;
 
 	/// Get the best authority set known to the header chain.
 	fn authority_set() -> AuthoritySet;
@@ -98,8 +99,8 @@ pub trait HeaderChain<H, E> {
 }
 
 impl<H: Default, E> HeaderChain<H, E> for () {
-	fn best_finalized() -> H {
-		H::default()
+	fn best_finalized() -> Option<H> {
+		None
 	}
 
 	fn authority_set() -> AuthoritySet {

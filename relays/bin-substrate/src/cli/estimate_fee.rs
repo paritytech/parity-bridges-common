@@ -15,16 +15,25 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	cli::{
-		bridge::FullBridge, relay_headers_and_messages::CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
-		Balance, CliChain, HexBytes, HexLaneId, SourceConnectionParams,
+	chains::{
+		millau_headers_to_rialto::MillauToRialtoCliBridge,
+		millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
+		rialto_headers_to_millau::RialtoToMillauCliBridge,
+		rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
 	},
-	select_full_bridge,
+	cli::{
+		bridge::{FullBridge, MessagesCliBridge},
+		chain_schema::*,
+		relay_headers_and_messages::CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
+		Balance, HexBytes, HexLaneId,
+	},
 };
+use async_trait::async_trait;
 use bp_runtime::BalanceOf;
 use codec::{Decode, Encode};
-use relay_substrate_client::Chain;
+use relay_substrate_client::{Chain, ChainBase};
 use sp_runtime::FixedU128;
+use std::fmt::Display;
 use structopt::StructOpt;
 use strum::VariantNames;
 use substrate_relay_helper::helpers::tokens_conversion_rate_from_metrics;
@@ -48,7 +57,7 @@ pub struct EstimateFee {
 	conversion_rate_override: Option<ConversionRateOverride>,
 	/// Payload to send over the bridge.
 	#[structopt(flatten)]
-	payload: crate::cli::encode_message::MessagePayload,
+	payload: crate::cli::encode_message::Message,
 }
 
 /// A way to override conversion rate between bridge tokens.
@@ -74,30 +83,50 @@ impl std::str::FromStr for ConversionRateOverride {
 	}
 }
 
+#[async_trait]
+trait FeeEstimator: MessagesCliBridge
+where
+	<Self::Source as ChainBase>::Balance: Display + Into<u128>,
+{
+	async fn estimate_fee(data: EstimateFee) -> anyhow::Result<()> {
+		let source_client = data.source.into_client::<Self::Source>().await?;
+		let lane = data.lane.into();
+		let payload =
+			crate::cli::encode_message::encode_message::<Self::Source, Self::Target>(&data.payload)
+				.map_err(|e| anyhow::format_err!("{:?}", e))?;
+
+		let fee = estimate_message_delivery_and_dispatch_fee::<Self::Source, Self::Target, _>(
+			&source_client,
+			data.conversion_rate_override,
+			Self::ESTIMATE_MESSAGE_FEE_METHOD,
+			lane,
+			&payload,
+		)
+		.await?;
+
+		log::info!(target: "bridge", "Fee: {:?}", Balance(fee.into()));
+		println!("{}", fee);
+		Ok(())
+	}
+}
+
+impl FeeEstimator for MillauToRialtoCliBridge {}
+impl FeeEstimator for RialtoToMillauCliBridge {}
+impl FeeEstimator for MillauToRialtoParachainCliBridge {}
+impl FeeEstimator for RialtoParachainToMillauCliBridge {}
+
 impl EstimateFee {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
-		let Self { source, bridge, lane, conversion_rate_override, payload } = self;
-
-		select_full_bridge!(bridge, {
-			let source_client = source.to_client::<Source>().await?;
-			let lane = lane.into();
-			let payload =
-				Source::encode_message(payload).map_err(|e| anyhow::format_err!("{:?}", e))?;
-
-			let fee = estimate_message_delivery_and_dispatch_fee::<Source, Target, _>(
-				&source_client,
-				conversion_rate_override,
-				ESTIMATE_MESSAGE_FEE_METHOD,
-				lane,
-				payload,
-			)
-			.await?;
-
-			log::info!(target: "bridge", "Fee: {:?}", Balance(fee as _));
-			println!("{}", fee);
-			Ok(())
-		})
+		match self.bridge {
+			FullBridge::MillauToRialto => MillauToRialtoCliBridge::estimate_fee(self),
+			FullBridge::RialtoToMillau => RialtoToMillauCliBridge::estimate_fee(self),
+			FullBridge::MillauToRialtoParachain =>
+				MillauToRialtoParachainCliBridge::estimate_fee(self),
+			FullBridge::RialtoParachainToMillau =>
+				RialtoParachainToMillauCliBridge::estimate_fee(self),
+		}
+		.await
 	}
 }
 
@@ -112,7 +141,7 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
 	conversion_rate_override: Option<ConversionRateOverride>,
 	estimate_fee_method: &str,
 	lane: bp_messages::LaneId,
-	payload: P,
+	payload: &P,
 ) -> anyhow::Result<BalanceOf<Source>> {
 	// actual conversion rate CAN be lesser than the rate stored in the runtime. So we may try to
 	// pay lesser fee for the message delivery. But in this case, message may be rejected by the
@@ -167,7 +196,7 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
 		client,
 		estimate_fee_method,
 		lane,
-		payload.clone(),
+		payload,
 		None,
 	)
 	.await?;
@@ -175,7 +204,7 @@ pub(crate) async fn estimate_message_delivery_and_dispatch_fee<
 		client,
 		estimate_fee_method,
 		lane,
-		payload.clone(),
+		payload,
 		conversion_rate_override,
 	)
 	.await?;
@@ -198,7 +227,7 @@ async fn do_estimate_message_delivery_and_dispatch_fee<Source: Chain, P: Encode>
 	client: &relay_substrate_client::Client<Source>,
 	estimate_fee_method: &str,
 	lane: bp_messages::LaneId,
-	payload: P,
+	payload: &P,
 	conversion_rate_override: Option<FixedU128>,
 ) -> anyhow::Result<BalanceOf<Source>> {
 	let encoded_response = client
@@ -219,14 +248,9 @@ async fn do_estimate_message_delivery_and_dispatch_fee<Source: Chain, P: Encode>
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::{encode_call, RuntimeVersionType, SourceRuntimeVersionParams};
-	use sp_core::crypto::Ss58Codec;
 
 	#[test]
 	fn should_parse_cli_options() {
-		// given
-		let alice = sp_keyring::AccountKeyring::Alice.to_account_id().to_ss58check();
-
 		// when
 		let res = EstimateFee::from_iter(vec![
 			"estimate_fee",
@@ -235,13 +259,7 @@ mod tests {
 			"1234",
 			"--conversion-rate-override",
 			"42.5",
-			"call",
-			"--sender",
-			&alice,
-			"--dispatch-weight",
-			"42",
-			"remark",
-			"--remark-payload",
+			"raw",
 			"1234",
 		]);
 
@@ -262,13 +280,8 @@ mod tests {
 						source_transaction_version: None,
 					}
 				},
-				payload: crate::cli::encode_message::MessagePayload::Call {
-					sender: alice.parse().unwrap(),
-					call: encode_call::Call::Remark {
-						remark_payload: Some(HexBytes(vec![0x12, 0x34])),
-						remark_size: None,
-					},
-					dispatch_weight: Some(42),
+				payload: crate::cli::encode_message::Message::Raw {
+					data: HexBytes(vec![0x12, 0x34])
 				}
 			}
 		);

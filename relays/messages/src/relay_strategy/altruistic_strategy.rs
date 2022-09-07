@@ -38,8 +38,44 @@ impl RelayStrategy for AltruisticStrategy {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		&mut self,
-		_reference: &mut RelayReference<P, SourceClient, TargetClient>,
+		reference: &mut RelayReference<P, SourceClient, TargetClient>,
 	) -> bool {
+		// We don't care about costs and rewards, but we want to report unprofitable transactions.
+		if let Err(e) = reference.update_cost_and_reward().await {
+			log::debug!(
+				target: "bridge",
+				"Failed to update transaction cost and reward: {:?}. \
+				The `unprofitable_delivery_transactions` metric will be inaccurate",
+				e,
+			);
+		}
+
 		true
+	}
+
+	fn on_final_decision<
+		P: MessageLane,
+		SourceClient: MessageLaneSourceClient<P>,
+		TargetClient: MessageLaneTargetClient<P>,
+	>(
+		&self,
+		reference: &RelayReference<P, SourceClient, TargetClient>,
+	) {
+		if let Some(ref metrics) = reference.metrics {
+			if !reference.is_profitable() {
+				log::debug!(
+					target: "bridge",
+					"The relayer has submitted unprofitable {} -> {} message delivery transaction \
+					with {} messages: total cost = {:?}, total reward = {:?}",
+					P::SOURCE_NAME,
+					P::TARGET_NAME,
+					reference.index + 1,
+					reference.total_cost,
+					reference.total_reward,
+				);
+
+				metrics.note_unprofitable_delivery_transactions();
+			}
+		}
 	}
 }

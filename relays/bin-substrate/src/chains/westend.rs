@@ -16,16 +16,15 @@
 
 //! Westend chain specification for CLI.
 
-use crate::cli::{encode_message, CliChain};
-use anyhow::anyhow;
-use relay_westend_client::Westend;
+use crate::cli::CliChain;
+use relay_westend_client::{Westend, Westmint};
 use sp_version::RuntimeVersion;
 
 impl CliChain for Westend {
 	const RUNTIME_VERSION: RuntimeVersion = bp_westend::VERSION;
 
 	type KeyPair = sp_core::sr25519::Pair;
-	type MessagePayload = ();
+	type MessagePayload = Vec<u8>;
 
 	fn ss58_format() -> u16 {
 		sp_core::crypto::Ss58AddressFormat::from(
@@ -33,10 +32,18 @@ impl CliChain for Westend {
 		)
 		.into()
 	}
+}
 
-	fn encode_message(
-		_message: encode_message::MessagePayload,
-	) -> anyhow::Result<Self::MessagePayload> {
-		Err(anyhow!("Sending messages from Westend is not yet supported."))
+impl CliChain for Westmint {
+	const RUNTIME_VERSION: RuntimeVersion = bp_westend::VERSION;
+
+	type KeyPair = sp_core::sr25519::Pair;
+	type MessagePayload = Vec<u8>;
+
+	fn ss58_format() -> u16 {
+		sp_core::crypto::Ss58AddressFormat::from(
+			sp_core::crypto::Ss58AddressFormatRegistry::SubstrateAccount,
+		)
+		.into()
 	}
 }

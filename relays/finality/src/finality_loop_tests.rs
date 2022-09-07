@@ -70,7 +70,7 @@ impl FinalitySyncPipeline for TestFinalitySyncPipeline {
 	type FinalityProof = TestFinalityProof;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct TestSourceHeader(IsMandatory, TestNumber, TestHash);
 
 impl SourceHeader<TestHash, TestNumber> for TestSourceHeader {
@@ -87,7 +87,7 @@ impl SourceHeader<TestHash, TestNumber> for TestSourceHeader {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct TestFinalityProof(TestNumber);
 
 impl FinalityProof<TestNumber> for TestFinalityProof {
@@ -127,7 +127,7 @@ impl SourceClient<TestFinalitySyncPipeline> for TestSourceClient {
 
 	async fn best_finalized_block_number(&self) -> Result<TestNumber, TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		Ok(data.source_best_block_number)
 	}
 
@@ -136,13 +136,13 @@ impl SourceClient<TestFinalitySyncPipeline> for TestSourceClient {
 		number: TestNumber,
 	) -> Result<(TestSourceHeader, Option<TestFinalityProof>), TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		data.source_headers.get(&number).cloned().ok_or(TestError::NonConnection)
 	}
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		Ok(futures::stream::iter(data.source_proofs.clone()).boxed())
 	}
 }
@@ -168,7 +168,7 @@ impl TargetClient<TestFinalitySyncPipeline> for TestTargetClient {
 		&self,
 	) -> Result<HeaderId<TestHash, TestNumber>, TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		Ok(data.target_best_block_id)
 	}
 
@@ -178,7 +178,7 @@ impl TargetClient<TestFinalitySyncPipeline> for TestTargetClient {
 		proof: TestFinalityProof,
 	) -> Result<(), TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		data.target_best_block_id = HeaderId(header.number(), header.hash());
 		data.target_headers.push((header, proof));
 		Ok(())

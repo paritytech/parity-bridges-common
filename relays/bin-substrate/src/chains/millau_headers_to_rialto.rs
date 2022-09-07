@@ -16,8 +16,10 @@
 
 //! Millau-to-Rialto headers sync entrypoint.
 
-use substrate_relay_helper::finality_pipeline::{
-	DirectSubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
+use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge};
+use substrate_relay_helper::finality::{
+	engine::Grandpa as GrandpaFinalityEngine, DirectSubmitGrandpaFinalityProofCallBuilder,
+	SubstrateFinalitySyncPipeline,
 };
 
 /// Description of Millau -> Rialto finalized headers bridge.
@@ -28,10 +30,29 @@ impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
 	type SourceChain = relay_millau_client::Millau;
 	type TargetChain = relay_rialto_client::Rialto;
 
-	type SubmitFinalityProofCallBuilder = DirectSubmitFinalityProofCallBuilder<
+	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
+	type SubmitFinalityProofCallBuilder = DirectSubmitGrandpaFinalityProofCallBuilder<
 		Self,
 		rialto_runtime::Runtime,
 		rialto_runtime::MillauGrandpaInstance,
 	>;
 	type TransactionSignScheme = relay_rialto_client::Rialto;
+}
+
+//// `Millau` to `Rialto` bridge definition.
+pub struct MillauToRialtoCliBridge {}
+
+impl CliBridgeBase for MillauToRialtoCliBridge {
+	type Source = relay_millau_client::Millau;
+	type Target = relay_rialto_client::Rialto;
+}
+
+impl RelayToRelayHeadersCliBridge for MillauToRialtoCliBridge {
+	type Finality = MillauFinalityToRialto;
+}
+
+impl MessagesCliBridge for MillauToRialtoCliBridge {
+	const ESTIMATE_MESSAGE_FEE_METHOD: &'static str =
+		bp_rialto::TO_RIALTO_ESTIMATE_MESSAGE_FEE_METHOD;
+	type MessagesLane = crate::chains::millau_messages_to_rialto::MillauMessagesToRialto;
 }

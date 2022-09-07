@@ -30,20 +30,33 @@ function show_help () {
   echo Error: $1
   echo " "
   echo "Usage:"
-  echo "  ./run.sh rialto-millau [stop|update]       Run Rialto <> Millau Networks & Bridge"
-  echo "  ./run.sh westend-millau [stop|update]      Run Westend -> Millau Networks & Bridge"
+  echo "  ./run.sh rialto-millau [stop|update]            Run Rialto <> Millau Networks & Bridge"
+  echo "  ./run.sh rialto-parachain-millau [stop|update]  Run RialtoParachain <> Millau Networks & Bridge"
+  echo "  ./run.sh westend-millau [stop|update]           Run Westend -> Millau Networks & Bridge"
+  echo "  ./run.sh everything|all [stop|update]           Run all available Networks & Bridges"
   echo " "
   echo "Options:"
   echo "  --no-monitoring                            Disable monitoring"
   echo "  --no-ui                                    Disable UI"
+  echo "  --local                                    Use prebuilt local images when starting relay and nodes"
+  echo "  --local-substrate-relay                    Use prebuilt local/substrate-realy image when starting relay"
+  echo "  --local-rialto                             Use prebuilt local/rialto-bridge-node image when starting nodes"
+  echo "  --local-rialto-parachain                   Use prebuilt local/rialto-parachain-collator image when starting nodes"
+  echo "  --local-millau                             Use prebuilt local/millau-bridge-node image when starting nodes"
   echo " "
   echo "You can start multiple bridges at once by passing several bridge names:"
-  echo "  ./run.sh rialto-millau westend-millau [stop|update]"
+  echo "  ./run.sh rialto-millau rialto-parachain-millau westend-millau [stop|update]"
   exit 1
 }
 
-RIALTO=' -f ./networks/rialto.yml -f ./networks/rialto-parachain.yml'
+RIALTO=' -f ./networks/rialto.yml'
+RIALTO_PARACHAIN=' -f ./networks/rialto-parachain.yml'
 MILLAU=' -f ./networks/millau.yml'
+
+RIALTO_MILLAU='rialto-millau'
+RIALTO_PARACHAIN_MILLAU='rialto-parachain-millau'
+WESTEND_MILLAU='westend-millau'
+
 MONITORING=' -f ./monitoring/docker-compose.yml'
 UI=' -f ./ui/docker-compose.yml'
 
@@ -63,18 +76,56 @@ do
       shift
       continue
       ;;
+    --local)
+      export SUBSTRATE_RELAY_IMAGE=local/substrate-relay
+      export RIALTO_BRIDGE_NODE_IMAGE=local/rialto-bridge-node
+      export RIALTO_PARACHAIN_COLLATOR_IMAGE=local/rialto-parachain-collator
+      export MILLAU_BRIDGE_NODE_IMAGE=local/millau-bridge-node
+      shift
+      continue
+      ;;
+    --local-substrate-relay)
+      export SUBSTRATE_RELAY_IMAGE=local/substrate-relay
+      shift
+      continue
+      ;;
+    --local-rialto)
+      export RIALTO_BRIDGE_NODE_IMAGE=local/rialto-bridge-node
+      shift
+      continue
+      ;;
+    --local-rialto-parachain)
+      export RIALTO_PARACHAIN_COLLATOR_IMAGE=local/rialto-parachain-collator
+      shift
+      continue
+      ;;
+    --local-millau)
+      export MILLAU_BRIDGE_NODE_IMAGE=local/millau-bridge-node
+      shift
+      continue
+      ;;
+    everything|all)
+      BRIDGES=(${RIALTO_MILLAU:-} ${RIALTO_PARACHAIN_MILLAU:-} ${WESTEND_MILLAU:-})
+      NETWORKS="${RIALTO:-} ${RIALTO_PARACHAIN:-} ${MILLAU:-}"
+      unset RIALTO RIALTO_PARACHAIN MILLAU RIALTO_MILLAU RIALTO_PARACHAIN_MILLAU WESTEND_MILLAU
+      shift
+      ;;
     rialto-millau)
-      BRIDGES+=($i)
-      NETWORKS+=${RIALTO}
-      RIALTO=''
-      NETWORKS+=${MILLAU}
-      MILLAU=''
+      BRIDGES+=(${RIALTO_MILLAU:-})
+      NETWORKS+="${RIALTO:-} ${MILLAU:-}"
+      unset RIALTO MILLAU RIALTO_MILLAU
+      shift
+      ;;
+    rialto-parachain-millau)
+      BRIDGES+=(${RIALTO_PARACHAIN_MILLAU:-})
+      NETWORKS+="${RIALTO:-} ${RIALTO_PARACHAIN:-} ${MILLAU:-}"
+      unset RIALTO RIALTO_PARACHAIN MILLAU RIALTO_PARACHAIN_MILLAU
       shift
       ;;
     westend-millau)
-      BRIDGES+=($i)
-      NETWORKS+=${MILLAU}
-      MILLAU=''
+      BRIDGES+=(${WESTEND_MILLAU:-})
+      NETWORKS+=${MILLAU:-}
+      unset MILLAU WESTEND_MILLAU
       shift
       ;;
     start|stop|update)

@@ -21,8 +21,10 @@
 mod millau_hash;
 
 use bp_beefy::ChainWithBeefy;
-use bp_messages::{LaneId, MessageDetails, MessageNonce};
-use bp_runtime::Chain;
+use bp_messages::{
+	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, OutboundMessageDetails,
+};
+use bp_runtime::{decl_bridge_runtime_apis, Chain};
 use frame_support::{
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, Weight},
 	Parameter, RuntimeDebug,
@@ -31,7 +33,7 @@ use frame_system::limits;
 use scale_info::TypeInfo;
 use sp_core::{storage::StateVersion, Hasher as HasherT};
 use sp_runtime::{
-	traits::{Convert, IdentifyAccount, Verify},
+	traits::{IdentifyAccount, Verify},
 	FixedU128, MultiSignature, MultiSigner, Perbill,
 };
 use sp_std::prelude::*;
@@ -51,9 +53,6 @@ pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 ///
 /// Can be computed by subtracting encoded call size from raw transaction size.
 pub const TX_EXTRA_BYTES: u32 = 103;
-
-/// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
-pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 
 /// Maximum weight of single Millau block.
 ///
@@ -227,28 +226,6 @@ impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
 	}
 }
 
-/// Convert a 256-bit hash into an AccountId.
-pub struct AccountIdConverter;
-
-impl sp_runtime::traits::Convert<sp_core::H256, AccountId> for AccountIdConverter {
-	fn convert(hash: sp_core::H256) -> AccountId {
-		hash.to_fixed_bytes().into()
-	}
-}
-
-/// We use this to get the account on Millau (target) which is derived from Rialto's (source)
-/// account. We do this so we can fund the derived account on Millau at Genesis to it can pay
-/// transaction fees.
-///
-/// The reason we can use the same `AccountId` type for both chains is because they share the same
-/// development seed phrase.
-///
-/// Note that this should only be used for testing.
-pub fn derive_account_from_rialto_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
-	let encoded_id = bp_runtime::derive_account_id(bp_runtime::RIALTO_CHAIN_ID, id);
-	AccountIdConverter::convert(encoded_id)
-}
-
 frame_support::parameter_types! {
 	pub BlockLength: limits::BlockLength =
 		limits::BlockLength::max_with_normal_ratio(2 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
@@ -273,77 +250,16 @@ frame_support::parameter_types! {
 pub const WITH_MILLAU_GRANDPA_PALLET_NAME: &str = "BridgeMillauGrandpa";
 /// Name of the With-Millau messages pallet instance that is deployed at bridged chains.
 pub const WITH_MILLAU_MESSAGES_PALLET_NAME: &str = "BridgeMillauMessages";
+/// Name of the transaction payment pallet at the Millau runtime.
+pub const TRANSACTION_PAYMENT_PALLET_NAME: &str = "TransactionPayment";
 
 /// Name of the Rialto->Millau (actually DOT->KSM) conversion rate stored in the Millau runtime.
 pub const RIALTO_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME: &str = "RialtoToMillauConversionRate";
+/// Name of the RialtoParachain->Millau (actually DOT->KSM) conversion rate stored in the Millau
+/// runtime.
+pub const RIALTO_PARACHAIN_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME: &str =
+	"RialtoParachainToMillauConversionRate";
+/// Name of the RialtoParachain fee multiplier parameter, stored in the Millau runtime.
+pub const RIALTO_PARACHAIN_FEE_MULTIPLIER_PARAMETER_NAME: &str = "RialtoParachainFeeMultiplier";
 
-/// Name of the With-Rialto token swap pallet instance in the Millau runtime.
-pub const WITH_RIALTO_TOKEN_SWAP_PALLET_NAME: &str = "BridgeRialtoTokenSwap";
-
-/// Name of the `MillauFinalityApi::best_finalized` runtime method.
-pub const BEST_FINALIZED_MILLAU_HEADER_METHOD: &str = "MillauFinalityApi_best_finalized";
-
-/// Name of the `ToMillauOutboundLaneApi::estimate_message_delivery_and_dispatch_fee` runtime
-/// method.
-pub const TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD: &str =
-	"ToMillauOutboundLaneApi_estimate_message_delivery_and_dispatch_fee";
-/// Name of the `ToMillauOutboundLaneApi::message_details` runtime method.
-pub const TO_MILLAU_MESSAGE_DETAILS_METHOD: &str = "ToMillauOutboundLaneApi_message_details";
-
-sp_api::decl_runtime_apis! {
-	/// API for querying information about the finalized Millau headers.
-	///
-	/// This API is implemented by runtimes that are bridging with the Millau chain, not the
-	/// Millau runtime itself.
-	pub trait MillauFinalityApi {
-		/// Returns number and hash of the best finalized header known to the bridge module.
-		fn best_finalized() -> (BlockNumber, Hash);
-	}
-
-	/// Outbound message lane API for messages that are sent to Millau chain.
-	///
-	/// This API is implemented by runtimes that are sending messages to Millau chain, not the
-	/// Millau runtime itself.
-	pub trait ToMillauOutboundLaneApi<OutboundMessageFee: Parameter, OutboundPayload: Parameter> {
-		/// Estimate message delivery and dispatch fee that needs to be paid by the sender on
-		/// this chain.
-		///
-		/// Returns `None` if message is too expensive to be sent to Millau from this chain.
-		///
-		/// Please keep in mind that this method returns the lowest message fee required for message
-		/// to be accepted to the lane. It may be good idea to pay a bit over this price to account
-		/// future exchange rate changes and guarantee that relayer would deliver your message
-		/// to the target chain.
-		fn estimate_message_delivery_and_dispatch_fee(
-			lane_id: LaneId,
-			payload: OutboundPayload,
-			millau_to_this_conversion_rate: Option<FixedU128>,
-		) -> Option<OutboundMessageFee>;
-		/// Returns dispatch weight, encoded payload size and delivery+dispatch fee of all
-		/// messages in given inclusive range.
-		///
-		/// If some (or all) messages are missing from the storage, they'll also will
-		/// be missing from the resulting vector. The vector is ordered by the nonce.
-		fn message_details(
-			lane: LaneId,
-			begin: MessageNonce,
-			end: MessageNonce,
-		) -> Vec<MessageDetails<OutboundMessageFee>>;
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use sp_runtime::codec::Encode;
-
-	#[test]
-	fn maximal_account_size_does_not_overflow_constant() {
-		assert!(
-			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE as usize >= AccountId::from([0u8; 32]).encode().len(),
-			"Actual maximal size of encoded AccountId ({}) overflows expected ({})",
-			AccountId::from([0u8; 32]).encode().len(),
-			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-		);
-	}
-}
+decl_bridge_runtime_apis!(millau);

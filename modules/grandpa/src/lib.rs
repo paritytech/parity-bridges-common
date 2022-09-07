@@ -36,21 +36,20 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use crate::weights::WeightInfo;
-
 use bp_header_chain::{justification::GrandpaJustification, InitializationData};
-use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf};
+use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderOf, OwnedBridgeModule};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{ensure, fail};
-use frame_system::{ensure_signed, RawOrigin};
+use frame_system::ensure_signed;
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
-use sp_runtime::traits::{BadOrigin, Header as HeaderT, Zero};
+use sp_runtime::traits::{Header as HeaderT, Zero};
 use sp_std::{boxed::Box, convert::TryInto};
 
+mod extension;
 #[cfg(test)]
 mod mock;
 
-/// Pallet containing weights for this pallet.
+/// Module, containing weights for this pallet.
 pub mod weights;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -58,6 +57,10 @@ pub mod benchmarking;
 
 // Re-export in crate namespace for `construct_runtime!`
 pub use pallet::*;
+pub use weights::WeightInfo;
+
+/// The target that will be used when publishing logs related to this pallet.
+pub const LOG_TARGET: &str = "runtime::bridge-grandpa";
 
 /// Block number of the bridged chain.
 pub type BridgedBlockNumber<T, I> = BlockNumberOf<<T as Config<I>>::BridgedChain>;
@@ -71,6 +74,7 @@ pub type BridgedHeader<T, I> = HeaderOf<<T as Config<I>>::BridgedChain>;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use bp_runtime::BasicOperatingMode;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
@@ -93,6 +97,8 @@ pub mod pallet {
 		/// The setting is there to prevent growing the on-chain state indefinitely. Note
 		/// the setting does not relate to block numbers - we will simply keep as much items
 		/// in the storage, so it doesn't guarantee any fixed timeframe for finality headers.
+		///
+		/// Incautious change of this constant may lead to orphan entries in the runtime storage.
 		#[pallet::constant]
 		type HeadersToKeep: Get<u32>;
 
@@ -115,6 +121,13 @@ pub mod pallet {
 		}
 	}
 
+	impl<T: Config<I>, I: 'static> OwnedBridgeModule<T> for Pallet<T, I> {
+		const LOG_TARGET: &'static str = LOG_TARGET;
+		type OwnerStorage = PalletOwner<T, I>;
+		type OperatingMode = BasicOperatingMode;
+		type OperatingModeStorage = PalletOperatingMode<T, I>;
+	}
+
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Verify a target header is finalized according to the given finality proof.
@@ -133,19 +146,26 @@ pub mod pallet {
 			finality_target: Box<BridgedHeader<T, I>>,
 			justification: GrandpaJustification<BridgedHeader<T, I>>,
 		) -> DispatchResultWithPostInfo {
-			ensure_operational::<T, I>()?;
+			Self::ensure_not_halted().map_err(Error::<T, I>::BridgeModule)?;
 			let _ = ensure_signed(origin)?;
 
 			ensure!(Self::request_count() < T::MaxRequests::get(), <Error<T, I>>::TooManyRequests);
 
 			let (hash, number) = (finality_target.hash(), finality_target.number());
-			log::trace!(target: "runtime::bridge-grandpa", "Going to try and finalize header {:?}", finality_target);
+			log::trace!(
+				target: LOG_TARGET,
+				"Going to try and finalize header {:?}",
+				finality_target
+			);
 
-			let best_finalized = match <ImportedHeaders<T, I>>::get(<BestFinalized<T, I>>::get()) {
+			let best_finalized = BestFinalized::<T, I>::get();
+			let best_finalized =
+				best_finalized.and_then(|(_, hash)| ImportedHeaders::<T, I>::get(hash));
+			let best_finalized = match best_finalized {
 				Some(best_finalized) => best_finalized,
 				None => {
 					log::error!(
-						target: "runtime::bridge-grandpa",
+						target: LOG_TARGET,
 						"Cannot finalize header {:?} because pallet is not yet initialized",
 						finality_target,
 					);
@@ -166,7 +186,11 @@ pub mod pallet {
 				try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
 			insert_header::<T, I>(*finality_target, hash);
-			log::info!(target: "runtime::bridge-grandpa", "Successfully imported finalized header with hash {:?}!", hash);
+			log::info!(
+				target: LOG_TARGET,
+				"Successfully imported finalized header with hash {:?}!",
+				hash
+			);
 
 			// mandatory header is a header that changes authorities set. The pallet can't go
 			// further without importing this header. So every bridge MUST import mandatory headers.
@@ -193,14 +217,14 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			init_data: super::InitializationData<BridgedHeader<T, I>>,
 		) -> DispatchResultWithPostInfo {
-			ensure_owner_or_root::<T, I>(origin)?;
+			Self::ensure_owner_or_root(origin)?;
 
 			let init_allowed = !<BestFinalized<T, I>>::exists();
 			ensure!(init_allowed, <Error<T, I>>::AlreadyInitialized);
 			initialize_bridge::<T, I>(init_data.clone());
 
 			log::info!(
-				target: "runtime::bridge-grandpa",
+				target: LOG_TARGET,
 				"Pallet has been initialized with the following parameters: {:?}",
 				init_data
 			);
@@ -212,43 +236,19 @@ pub mod pallet {
 		///
 		/// May only be called either by root, or by `PalletOwner`.
 		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
-		pub fn set_owner(
-			origin: OriginFor<T>,
-			new_owner: Option<T::AccountId>,
-		) -> DispatchResultWithPostInfo {
-			ensure_owner_or_root::<T, I>(origin)?;
-			match new_owner {
-				Some(new_owner) => {
-					PalletOwner::<T, I>::put(&new_owner);
-					log::info!(target: "runtime::bridge-grandpa", "Setting pallet Owner to: {:?}", new_owner);
-				},
-				None => {
-					PalletOwner::<T, I>::kill();
-					log::info!(target: "runtime::bridge-grandpa", "Removed Owner of pallet.");
-				},
-			}
-
-			Ok(().into())
+		pub fn set_owner(origin: OriginFor<T>, new_owner: Option<T::AccountId>) -> DispatchResult {
+			<Self as OwnedBridgeModule<_>>::set_owner(origin, new_owner)
 		}
 
 		/// Halt or resume all pallet operations.
 		///
 		/// May only be called either by root, or by `PalletOwner`.
 		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
-		pub fn set_operational(
+		pub fn set_operating_mode(
 			origin: OriginFor<T>,
-			operational: bool,
-		) -> DispatchResultWithPostInfo {
-			ensure_owner_or_root::<T, I>(origin)?;
-			<IsHalted<T, I>>::put(!operational);
-
-			if operational {
-				log::info!(target: "runtime::bridge-grandpa", "Resuming pallet operations.");
-			} else {
-				log::warn!(target: "runtime::bridge-grandpa", "Stopping pallet operations.");
-			}
-
-			Ok(().into())
+			operating_mode: BasicOperatingMode,
+		) -> DispatchResult {
+			<Self as OwnedBridgeModule<_>>::set_operating_mode(origin, operating_mode)
 		}
 	}
 
@@ -270,8 +270,8 @@ pub mod pallet {
 
 	/// Hash of the best finalized header.
 	#[pallet::storage]
-	pub(super) type BestFinalized<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, BridgedBlockHash<T, I>, ValueQuery>;
+	pub type BestFinalized<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, (BridgedBlockNumber<T, I>, BridgedBlockHash<T, I>), OptionQuery>;
 
 	/// A ring buffer of imported hashes. Ordered by the insertion time.
 	#[pallet::storage]
@@ -285,7 +285,7 @@ pub mod pallet {
 
 	/// Headers which have been imported into the pallet.
 	#[pallet::storage]
-	pub(super) type ImportedHeaders<T: Config<I>, I: 'static = ()> =
+	pub type ImportedHeaders<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Identity, BridgedBlockHash<T, I>, BridgedHeader<T, I>>;
 
 	/// The current GRANDPA Authority set.
@@ -303,9 +303,12 @@ pub mod pallet {
 	pub type PalletOwner<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, T::AccountId, OptionQuery>;
 
-	/// If true, all pallet transactions are failed immediately.
+	/// The current operating mode of the pallet.
+	///
+	/// Depending on the mode either all, or no transactions will be allowed.
 	#[pallet::storage]
-	pub(super) type IsHalted<T: Config<I>, I: 'static = ()> = StorageValue<_, bool, ValueQuery>;
+	pub type PalletOperatingMode<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, BasicOperatingMode, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
@@ -334,7 +337,7 @@ pub mod pallet {
 			} else {
 				// Since the bridge hasn't been initialized we shouldn't allow anyone to perform
 				// transactions.
-				<IsHalted<T, I>>::put(true);
+				<PalletOperatingMode<T, I>>::put(BasicOperatingMode::Halted);
 			}
 		}
 	}
@@ -359,10 +362,10 @@ pub mod pallet {
 		NotInitialized,
 		/// The pallet has already been initialized.
 		AlreadyInitialized,
-		/// All pallet operations are halted.
-		Halted,
 		/// The storage proof doesn't contains storage root. So it is invalid for given header.
 		StorageRootMismatch,
+		/// Error generated by the `OwnedBridgeModule` trait.
+		BridgeModule(bp_runtime::OwnedBridgeModuleError),
 	}
 
 	/// Check the given header for a GRANDPA scheduled authority set change. If a change
@@ -400,7 +403,7 @@ pub mod pallet {
 			change_enacted = true;
 
 			log::info!(
-				target: "runtime::bridge-grandpa",
+				target: LOG_TARGET,
 				"Transitioned from authority set {} to {}! New authorities are: {:?}",
 				current_set_id,
 				current_set_id + 1,
@@ -437,7 +440,7 @@ pub mod pallet {
 		)
 		.map_err(|e| {
 			log::error!(
-				target: "runtime::bridge-grandpa",
+				target: LOG_TARGET,
 				"Received invalid justification for {:?}: {:?}",
 				hash,
 				e,
@@ -456,14 +459,14 @@ pub mod pallet {
 	) {
 		let index = <ImportedHashesPointer<T, I>>::get();
 		let pruning = <ImportedHashes<T, I>>::try_get(index);
-		<BestFinalized<T, I>>::put(hash);
+		<BestFinalized<T, I>>::put((*header.number(), hash));
 		<ImportedHeaders<T, I>>::insert(hash, header);
 		<ImportedHashes<T, I>>::insert(index, hash);
 
 		// Update ring buffer pointer and remove old header.
 		<ImportedHashesPointer<T, I>>::put((index + 1) % T::HeadersToKeep::get());
 		if let Ok(hash) = pruning {
-			log::debug!(target: "runtime::bridge-grandpa", "Pruning old header: {:?}.", hash);
+			log::debug!(target: LOG_TARGET, "Pruning old header: {:?}.", hash);
 			<ImportedHeaders<T, I>>::remove(hash);
 		}
 	}
@@ -473,7 +476,8 @@ pub mod pallet {
 	pub(crate) fn initialize_bridge<T: Config<I>, I: 'static>(
 		init_params: super::InitializationData<BridgedHeader<T, I>>,
 	) {
-		let super::InitializationData { header, authority_list, set_id, is_halted } = init_params;
+		let super::InitializationData { header, authority_list, set_id, operating_mode } =
+			init_params;
 
 		let initial_hash = header.hash();
 		<InitialHash<T, I>>::put(initial_hash);
@@ -483,7 +487,7 @@ pub mod pallet {
 		let authority_set = bp_header_chain::AuthoritySet::new(authority_list, set_id);
 		<CurrentAuthoritySet<T, I>>::put(authority_set);
 
-		<IsHalted<T, I>>::put(is_halted);
+		<PalletOperatingMode<T, I>>::put(operating_mode);
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
@@ -508,26 +512,6 @@ pub mod pallet {
 			insert_header::<T, I>(header, hash);
 		}
 	}
-
-	/// Ensure that the origin is either root, or `PalletOwner`.
-	fn ensure_owner_or_root<T: Config<I>, I: 'static>(origin: T::Origin) -> Result<(), BadOrigin> {
-		match origin.into() {
-			Ok(RawOrigin::Root) => Ok(()),
-			Ok(RawOrigin::Signed(ref signer))
-				if Some(signer) == <PalletOwner<T, I>>::get().as_ref() =>
-				Ok(()),
-			_ => Err(BadOrigin),
-		}
-	}
-
-	/// Ensure that the pallet is in operational mode (not halted).
-	fn ensure_operational<T: Config<I>, I: 'static>() -> Result<(), Error<T, I>> {
-		if <IsHalted<T, I>>::get() {
-			Err(<Error<T, I>>::Halted)
-		} else {
-			Ok(())
-		}
-	}
 }
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -535,17 +519,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	///
 	/// Returns a dummy header if there is no best header. This can only happen
 	/// if the pallet has not been initialized yet.
-	pub fn best_finalized() -> BridgedHeader<T, I> {
-		let hash = <BestFinalized<T, I>>::get();
-		<ImportedHeaders<T, I>>::get(hash).unwrap_or_else(|| {
-			<BridgedHeader<T, I>>::new(
-				Default::default(),
-				Default::default(),
-				Default::default(),
-				Default::default(),
-				Default::default(),
-			)
-		})
+	pub fn best_finalized() -> Option<BridgedHeader<T, I>> {
+		let (_, hash) = <BestFinalized<T, I>>::get()?;
+		<ImportedHeaders<T, I>>::get(hash)
 	}
 
 	/// Check if a particular header is known to the bridge pallet.
@@ -614,7 +590,7 @@ pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader
 		authority_list: sp_std::vec::Vec::new(), /* we don't verify any proofs in external
 		                                          * benchmarks */
 		set_id: 0,
-		is_halted: false,
+		operating_mode: bp_runtime::BasicOperatingMode::Normal,
 	});
 }
 
@@ -622,9 +598,10 @@ pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader
 mod tests {
 	use super::*;
 	use crate::mock::{run_test, test_header, Origin, TestHeader, TestNumber, TestRuntime};
+	use bp_runtime::BasicOperatingMode;
 	use bp_test_utils::{
-		authority_list, make_default_justification, make_justification_for_header,
-		JustificationGeneratorParams, ALICE, BOB,
+		authority_list, generate_owned_bridge_module_tests, make_default_justification,
+		make_justification_for_header, JustificationGeneratorParams, ALICE, BOB,
 	};
 	use codec::Encode;
 	use frame_support::{
@@ -649,7 +626,7 @@ mod tests {
 			header: Box::new(genesis),
 			authority_list: authority_list(),
 			set_id: 1,
-			is_halted: false,
+			operating_mode: BasicOperatingMode::Normal,
 		};
 
 		Pallet::<TestRuntime>::initialize(origin, init_data.clone()).map(|_| init_data)
@@ -712,21 +689,18 @@ mod tests {
 	#[test]
 	fn init_storage_entries_are_correctly_initialized() {
 		run_test(|| {
-			assert_eq!(
-				BestFinalized::<TestRuntime>::get(),
-				BridgedBlockHash::<TestRuntime, ()>::default()
-			);
-			assert_eq!(Pallet::<TestRuntime>::best_finalized(), test_header(0));
+			assert_eq!(BestFinalized::<TestRuntime>::get(), None,);
+			assert_eq!(Pallet::<TestRuntime>::best_finalized(), None);
 
 			let init_data = init_with_origin(Origin::root()).unwrap();
 
 			assert!(<ImportedHeaders<TestRuntime>>::contains_key(init_data.header.hash()));
-			assert_eq!(BestFinalized::<TestRuntime>::get(), init_data.header.hash());
+			assert_eq!(BestFinalized::<TestRuntime>::get().unwrap().1, init_data.header.hash());
 			assert_eq!(
 				CurrentAuthoritySet::<TestRuntime>::get().authorities,
 				init_data.authority_list
 			);
-			assert!(!IsHalted::<TestRuntime>::get());
+			assert_eq!(PalletOperatingMode::<TestRuntime>::get(), BasicOperatingMode::Normal);
 		})
 	}
 
@@ -742,72 +716,23 @@ mod tests {
 	}
 
 	#[test]
-	fn pallet_owner_may_change_owner() {
-		run_test(|| {
-			PalletOwner::<TestRuntime>::put(2);
-
-			assert_ok!(Pallet::<TestRuntime>::set_owner(Origin::root(), Some(1)));
-			assert_noop!(
-				Pallet::<TestRuntime>::set_operational(Origin::signed(2), false),
-				DispatchError::BadOrigin,
-			);
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), false));
-
-			assert_ok!(Pallet::<TestRuntime>::set_owner(Origin::signed(1), None));
-			assert_noop!(
-				Pallet::<TestRuntime>::set_operational(Origin::signed(1), true),
-				DispatchError::BadOrigin,
-			);
-			assert_noop!(
-				Pallet::<TestRuntime>::set_operational(Origin::signed(2), true),
-				DispatchError::BadOrigin,
-			);
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), true));
-		});
-	}
-
-	#[test]
-	fn pallet_may_be_halted_by_root() {
-		run_test(|| {
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), false));
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), true));
-		});
-	}
-
-	#[test]
-	fn pallet_may_be_halted_by_owner() {
-		run_test(|| {
-			PalletOwner::<TestRuntime>::put(2);
-
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::signed(2), false));
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::signed(2), true));
-
-			assert_noop!(
-				Pallet::<TestRuntime>::set_operational(Origin::signed(1), false),
-				DispatchError::BadOrigin,
-			);
-			assert_noop!(
-				Pallet::<TestRuntime>::set_operational(Origin::signed(1), true),
-				DispatchError::BadOrigin,
-			);
-
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::signed(2), false));
-			assert_noop!(
-				Pallet::<TestRuntime>::set_operational(Origin::signed(1), true),
-				DispatchError::BadOrigin,
-			);
-		});
-	}
-
-	#[test]
 	fn pallet_rejects_transactions_if_halted() {
 		run_test(|| {
 			initialize_substrate_bridge();
 
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), false));
-			assert_noop!(submit_finality_proof(1), Error::<TestRuntime>::Halted);
+			assert_ok!(Pallet::<TestRuntime>::set_operating_mode(
+				Origin::root(),
+				BasicOperatingMode::Halted
+			));
+			assert_noop!(
+				submit_finality_proof(1),
+				Error::<TestRuntime>::BridgeModule(bp_runtime::OwnedBridgeModuleError::Halted)
+			);
 
-			assert_ok!(Pallet::<TestRuntime>::set_operational(Origin::root(), true));
+			assert_ok!(Pallet::<TestRuntime>::set_operating_mode(
+				Origin::root(),
+				BasicOperatingMode::Normal
+			));
 			assert_ok!(submit_finality_proof(1));
 		})
 	}
@@ -832,7 +757,7 @@ mod tests {
 			);
 
 			let header = test_header(1);
-			assert_eq!(<BestFinalized<TestRuntime>>::get(), header.hash());
+			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
 			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 		})
 	}
@@ -889,7 +814,7 @@ mod tests {
 				header: Box::new(genesis),
 				authority_list: invalid_authority_list,
 				set_id: 1,
-				is_halted: false,
+				operating_mode: BasicOperatingMode::Normal,
 			};
 
 			assert_ok!(Pallet::<TestRuntime>::initialize(Origin::root(), init_data));
@@ -949,7 +874,7 @@ mod tests {
 			);
 
 			// Make sure that our header is the best finalized
-			assert_eq!(<BestFinalized<TestRuntime>>::get(), header.hash());
+			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
 			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 
 			// Make sure that the authority set actually changed upon importing our header
@@ -1033,7 +958,7 @@ mod tests {
 			header.set_state_root(state_root);
 
 			let hash = header.hash();
-			<BestFinalized<TestRuntime>>::put(hash);
+			<BestFinalized<TestRuntime>>::put((2, hash));
 			<ImportedHeaders<TestRuntime>>::insert(hash, header);
 
 			assert_ok!(
@@ -1129,7 +1054,7 @@ mod tests {
 		run_test(|| {
 			initialize_substrate_bridge();
 			assert_ok!(submit_finality_proof(1));
-			let first_header = Pallet::<TestRuntime>::best_finalized();
+			let first_header = Pallet::<TestRuntime>::best_finalized().unwrap();
 			next_block();
 
 			assert_ok!(submit_finality_proof(2));
@@ -1153,13 +1078,15 @@ mod tests {
 	#[test]
 	fn storage_keys_computed_properly() {
 		assert_eq!(
-			IsHalted::<TestRuntime>::storage_value_final_key().to_vec(),
-			bp_header_chain::storage_keys::is_halted_key("Grandpa").0,
+			PalletOperatingMode::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_header_chain::storage_keys::pallet_operating_mode_key("Grandpa").0,
 		);
 
 		assert_eq!(
 			BestFinalized::<TestRuntime>::storage_value_final_key().to_vec(),
-			bp_header_chain::storage_keys::best_finalized_hash_key("Grandpa").0,
+			bp_header_chain::storage_keys::best_finalized_key("Grandpa").0,
 		);
 	}
+
+	generate_owned_bridge_module_tests!(BasicOperatingMode::Normal, BasicOperatingMode::Halted);
 }

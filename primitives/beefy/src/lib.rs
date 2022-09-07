@@ -29,7 +29,7 @@ pub use beefy_primitives::{
 };
 pub use pallet_beefy_mmr::BeefyEcdsaToEthereum;
 pub use pallet_mmr::verify_leaf_proof as verify_mmr_leaf_proof;
-pub use pallet_mmr_primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};
+pub use pallet_mmr::primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};
 
 use bp_runtime::{BlockNumberOf, Chain, HashOf};
 use codec::{Decode, Encode};
@@ -164,7 +164,7 @@ pub type BeefyValidatorIdToMerkleLeafOf<C> = <C as ChainWithBeefy>::ValidatorIdT
 
 /// Actual type of leafs in the BEEFY MMR.
 pub type BeefyMmrLeafOf<C> =
-	beefy_primitives::mmr::MmrLeaf<BlockNumberOf<C>, HashOf<C>, BeefyMmrHash>;
+	beefy_primitives::mmr::MmrLeaf<BlockNumberOf<C>, HashOf<C>, BeefyMmrHash, BeefyMmrHash>;
 
 /// MMR leaf with unpacked validators set when they're changed.
 ///

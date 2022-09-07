@@ -37,7 +37,6 @@ InitiateChange
 Instance1
 Instance2
 Instance42
-InstantCurrencyPayments
 KSM/S
 KYC/M
 KeyPair
@@ -66,6 +65,7 @@ Pre
 RLP
 RPC/MS
 Rialto/MS
+RialtoParachain/MS
 Relayer/MS
 Runtime1
 Runtime2

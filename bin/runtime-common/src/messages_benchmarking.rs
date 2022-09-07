@@ -27,63 +27,26 @@ use crate::messages::{
 };
 
 use bp_messages::{storage_keys, MessageData, MessageKey, MessagePayload};
-use bp_runtime::{messages::DispatchFeePayment, ChainId};
+use bp_runtime::StorageProofSize;
 use codec::Encode;
-use ed25519_dalek::{PublicKey, SecretKey, Signer, KEYPAIR_LENGTH, SECRET_KEY_LENGTH};
-use frame_support::{
-	traits::Currency,
-	weights::{GetDispatchInfo, Weight},
-};
+use frame_support::weights::{GetDispatchInfo, Weight};
 use pallet_bridge_messages::benchmarking::{
-	MessageDeliveryProofParams, MessageParams, MessageProofParams, ProofSize,
+	MessageDeliveryProofParams, MessageParams, MessageProofParams,
 };
 use sp_core::Hasher;
 use sp_runtime::traits::{Header, IdentifyAccount, MaybeSerializeDeserialize, Zero};
 use sp_std::{fmt::Debug, prelude::*};
 use sp_trie::{record_all_keys, trie_types::TrieDBMutV1, LayoutV1, MemoryDB, Recorder, TrieMut};
-use sp_version::RuntimeVersion;
-
-/// Return this chain account, used to dispatch message.
-pub fn dispatch_account<B>() -> AccountIdOf<ThisChain<B>>
-where
-	B: MessageBridge,
-	SignerOf<ThisChain<B>>:
-		From<sp_core::ed25519::Public> + IdentifyAccount<AccountId = AccountIdOf<ThisChain<B>>>,
-{
-	let this_raw_public = PublicKey::from(&dispatch_account_secret());
-	let this_public: SignerOf<ThisChain<B>> =
-		sp_core::ed25519::Public::from_raw(this_raw_public.to_bytes()).into();
-	this_public.into_account()
-}
-
-/// Return public key of this chain account, used to dispatch message.
-pub fn dispatch_account_secret() -> SecretKey {
-	// key from the repo example (https://docs.rs/ed25519-dalek/1.0.1/ed25519_dalek/struct.SecretKey.html)
-	SecretKey::from_bytes(&[
-		157, 097, 177, 157, 239, 253, 090, 096, 186, 132, 074, 244, 146, 236, 044, 196, 068, 073,
-		197, 105, 123, 050, 105, 025, 112, 059, 172, 003, 028, 174, 127, 096,
-	])
-	.expect("harcoded key is valid")
-}
 
 /// Prepare outbound message for the `send_message` call.
 pub fn prepare_outbound_message<B>(
 	params: MessageParams<AccountIdOf<ThisChain<B>>>,
-) -> FromThisChainMessagePayload<B>
+) -> FromThisChainMessagePayload
 where
 	B: MessageBridge,
 	BalanceOf<ThisChain<B>>: From<u64>,
 {
-	let message_payload = vec![0; params.size as usize];
-	let dispatch_origin = bp_message_dispatch::CallOrigin::SourceAccount(params.sender_account);
-
-	FromThisChainMessagePayload::<B> {
-		spec_version: 0,
-		weight: params.size as _,
-		origin: dispatch_origin,
-		call: message_payload,
-		dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-	}
+	vec![0; params.size as usize]
 }
 
 /// Prepare proof of messages for the `receive_messages_proof` call.
@@ -92,14 +55,12 @@ where
 /// proof.
 pub fn prepare_message_proof<R, BI, FI, B, BH, BHH>(
 	params: MessageProofParams,
-	version: &RuntimeVersion,
-	endow_amount: BalanceOf<ThisChain<B>>,
 ) -> (FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>, Weight)
 where
 	R: frame_system::Config<AccountId = AccountIdOf<ThisChain<B>>>
 		+ pallet_balances::Config<BI, Balance = BalanceOf<ThisChain<B>>>
 		+ pallet_bridge_grandpa::Config<FI>,
-	R::BridgedChain: bp_runtime::Chain<Header = BH>,
+	R::BridgedChain: bp_runtime::Chain<Hash = HashOf<BridgedChain<B>>, Header = BH>,
 	B: MessageBridge,
 	BI: 'static,
 	FI: 'static,
@@ -115,56 +76,15 @@ where
 		+ From<sp_core::ed25519::Public>
 		+ IdentifyAccount<AccountId = AccountIdOf<ThisChain<B>>>,
 {
-	// we'll be dispatching the same call at This chain
-	let remark = match params.size {
-		ProofSize::Minimal(ref size) => vec![0u8; *size as _],
+	let message_payload = match params.size {
+		StorageProofSize::Minimal(ref size) => vec![0u8; *size as _],
 		_ => vec![],
 	};
-	let call: CallOf<ThisChain<B>> = frame_system::Call::remark { remark }.into();
-	let call_weight = call.get_dispatch_info().weight;
-
-	// message payload needs to be signed, because we use `TargetAccount` call origin
-	// (which is 'heaviest' to verify)
-	let bridged_account_id: AccountIdOf<BridgedChain<B>> = [0u8; 32].into();
-	let (this_raw_public, this_raw_signature) = ed25519_sign(
-		&call,
-		&bridged_account_id,
-		version.spec_version,
-		B::BRIDGED_CHAIN_ID,
-		B::THIS_CHAIN_ID,
-	);
-	let this_public: SignerOf<ThisChain<B>> =
-		sp_core::ed25519::Public::from_raw(this_raw_public).into();
-	let this_signature: SignatureOf<ThisChain<B>> =
-		sp_core::ed25519::Signature::from_raw(this_raw_signature).into();
-
-	// if dispatch fee is paid at this chain, endow relayer account
-	if params.dispatch_fee_payment == DispatchFeePayment::AtTargetChain {
-		assert_eq!(this_public.clone().into_account(), dispatch_account::<B>());
-		pallet_balances::Pallet::<R, BI>::make_free_balance_be(
-			&this_public.clone().into_account(),
-			endow_amount,
-		);
-	}
-
-	// prepare message payload that is stored in the Bridged chain storage
-	let message_payload = bp_message_dispatch::MessagePayload {
-		spec_version: version.spec_version,
-		weight: call_weight,
-		origin: bp_message_dispatch::CallOrigin::<
-			AccountIdOf<BridgedChain<B>>,
-			SignerOf<ThisChain<B>>,
-			SignatureOf<ThisChain<B>>,
-		>::TargetAccount(bridged_account_id, this_public, this_signature),
-		dispatch_fee_payment: params.dispatch_fee_payment.clone(),
-		call: call.encode(),
-	}
-	.encode();
 
 	// finally - prepare storage proof and update environment
 	let (state_root, storage_proof) =
 		prepare_messages_storage_proof::<B, BHH>(&params, message_payload);
-	let bridged_header_hash = insert_bridged_chain_header::<R, FI, B, BH>(state_root);
+	let (_, bridged_header_hash) = insert_header_to_grandpa_pallet::<R, FI>(state_root);
 
 	(
 		FromBridgedChainMessagesProof {
@@ -174,11 +94,7 @@ where
 			nonces_start: *params.message_nonces.start(),
 			nonces_end: *params.message_nonces.end(),
 		},
-		call_weight
-			.checked_mul(
-				params.message_nonces.end().saturating_sub(*params.message_nonces.start()) + 1,
-			)
-			.expect("too many messages requested by benchmark"),
+		0,
 	)
 }
 
@@ -188,7 +104,7 @@ pub fn prepare_message_delivery_proof<R, FI, B, BH, BHH>(
 ) -> FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChain<B>>>
 where
 	R: pallet_bridge_grandpa::Config<FI>,
-	R::BridgedChain: bp_runtime::Chain<Header = BH>,
+	R::BridgedChain: bp_runtime::Chain<Hash = HashOf<BridgedChain<B>>, Header = BH>,
 	FI: 'static,
 	B: MessageBridge,
 	BH: Header<Hash = HashOf<BridgedChain<B>>>,
@@ -216,7 +132,7 @@ where
 	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
 
 	// finally insert header with given state root to our storage
-	let bridged_header_hash = insert_bridged_chain_header::<R, FI, B, BH>(root);
+	let (_, bridged_header_hash) = insert_header_to_grandpa_pallet::<R, FI>(root);
 
 	FromBridgedChainMessagesDeliveryProof {
 		bridged_header_hash: bridged_header_hash.into(),
@@ -288,70 +204,38 @@ where
 	(root, storage_proof)
 }
 
-/// Insert Bridged chain header with given state root into storage of GRANDPA pallet at This chain.
-fn insert_bridged_chain_header<R, FI, B, BH>(
-	state_root: HashOf<BridgedChain<B>>,
-) -> HashOf<BridgedChain<B>>
+/// Insert header to the bridge GRANDPA pallet.
+pub(crate) fn insert_header_to_grandpa_pallet<R, GI>(
+	state_root: bp_runtime::HashOf<R::BridgedChain>,
+) -> (bp_runtime::BlockNumberOf<R::BridgedChain>, bp_runtime::HashOf<R::BridgedChain>)
 where
-	R: pallet_bridge_grandpa::Config<FI>,
-	R::BridgedChain: bp_runtime::Chain<Header = BH>,
-	FI: 'static,
-	B: MessageBridge,
-	BH: Header<Hash = HashOf<BridgedChain<B>>>,
-	HashOf<BridgedChain<B>>: Default,
+	R: pallet_bridge_grandpa::Config<GI>,
+	GI: 'static,
+	R::BridgedChain: bp_runtime::Chain,
 {
-	let bridged_header = BH::new(
-		Zero::zero(),
+	let bridged_block_number = Zero::zero();
+	let bridged_header = bp_runtime::HeaderOf::<R::BridgedChain>::new(
+		bridged_block_number,
 		Default::default(),
 		state_root,
 		Default::default(),
 		Default::default(),
 	);
 	let bridged_header_hash = bridged_header.hash();
-	pallet_bridge_grandpa::initialize_for_benchmarks::<R, FI>(bridged_header);
-	bridged_header_hash
-}
-
-/// Generate ed25519 signature to be used in
-/// `pallet_brdige_call_dispatch::CallOrigin::TargetAccount`.
-///
-/// Returns public key of the signer and the signature itself.
-fn ed25519_sign(
-	target_call: &impl Encode,
-	source_account_id: &impl Encode,
-	target_spec_version: u32,
-	source_chain_id: ChainId,
-	target_chain_id: ChainId,
-) -> ([u8; 32], [u8; 64]) {
-	let target_secret = dispatch_account_secret();
-	let target_public: PublicKey = (&target_secret).into();
-
-	let mut target_pair_bytes = [0u8; KEYPAIR_LENGTH];
-	target_pair_bytes[..SECRET_KEY_LENGTH].copy_from_slice(&target_secret.to_bytes());
-	target_pair_bytes[SECRET_KEY_LENGTH..].copy_from_slice(&target_public.to_bytes());
-	let target_pair =
-		ed25519_dalek::Keypair::from_bytes(&target_pair_bytes).expect("hardcoded pair is valid");
-
-	let signature_message = pallet_bridge_dispatch::account_ownership_digest(
-		target_call,
-		source_account_id,
-		target_spec_version,
-		source_chain_id,
-		target_chain_id,
-	);
-	let target_origin_signature = target_pair
-		.try_sign(&signature_message)
-		.expect("Ed25519 try_sign should not fail in benchmarks");
-
-	(target_public.to_bytes(), target_origin_signature.to_bytes())
+	pallet_bridge_grandpa::initialize_for_benchmarks::<R, GI>(bridged_header);
+	(bridged_block_number, bridged_header_hash)
 }
 
 /// Populate trie with dummy keys+values until trie has at least given size.
-fn grow_trie<H: Hasher>(mut root: H::Out, mdb: &mut MemoryDB<H>, trie_size: ProofSize) -> H::Out {
+pub fn grow_trie<H: Hasher>(
+	mut root: H::Out,
+	mdb: &mut MemoryDB<H>,
+	trie_size: StorageProofSize,
+) -> H::Out {
 	let (iterations, leaf_size, minimal_trie_size) = match trie_size {
-		ProofSize::Minimal(_) => return root,
-		ProofSize::HasLargeLeaf(size) => (1, size, size),
-		ProofSize::HasExtraNodes(size) => (8, 1, size),
+		StorageProofSize::Minimal(_) => return root,
+		StorageProofSize::HasLargeLeaf(size) => (1, size, size),
+		StorageProofSize::HasExtraNodes(size) => (8, 1, size),
 	};
 
 	let mut key_index = 0;

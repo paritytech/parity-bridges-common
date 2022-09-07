@@ -17,41 +17,59 @@
 //! Rialto parachain specification for CLI.
 
 use crate::cli::{
-	encode_call::{Call, CliEncodeCall},
-	encode_message, CliChain,
+	bridge,
+	encode_message::{CliEncodeMessage, RawMessage},
+	CliChain,
 };
-use bp_message_dispatch::MessagePayload;
+use bp_messages::LaneId;
 use bp_runtime::EncodedOrDecodedCall;
-use codec::Decode;
-use frame_support::weights::{DispatchInfo, GetDispatchInfo};
 use relay_rialto_parachain_client::RialtoParachain;
+use relay_substrate_client::BalanceOf;
 use sp_version::RuntimeVersion;
+use xcm::latest::prelude::*;
 
-impl CliEncodeCall for RialtoParachain {
-	fn encode_call(call: &Call) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
-		Ok(match call {
-			Call::Raw { data } => Self::Call::decode(&mut &*data.0)?.into(),
-			Call::Remark { remark_payload, .. } => rialto_parachain_runtime::Call::System(
-				rialto_parachain_runtime::SystemCall::remark {
-					remark: remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default(),
-				},
-			)
-			.into(),
-			Call::Transfer { recipient, amount } => rialto_parachain_runtime::Call::Balances(
-				rialto_parachain_runtime::BalancesCall::transfer {
-					dest: recipient.raw_id().into(),
-					value: amount.0,
-				},
-			)
-			.into(),
-			Call::BridgeSendMessage { .. } => {
-				anyhow::bail!("Bridge messages are not (yet) supported here",)
-			},
+impl CliEncodeMessage for RialtoParachain {
+	fn encode_send_xcm(
+		message: xcm::VersionedXcm<()>,
+		bridge_instance_index: u8,
+	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
+		let dest = match bridge_instance_index {
+			bridge::RIALTO_PARACHAIN_TO_MILLAU_INDEX =>
+				(Parent, X1(GlobalConsensus(rialto_parachain_runtime::MillauNetwork::get()))),
+			_ => anyhow::bail!(
+				"Unsupported target bridge pallet with instance index: {}",
+				bridge_instance_index
+			),
+		};
+
+		Ok(rialto_parachain_runtime::Call::PolkadotXcm(rialto_parachain_runtime::XcmCall::send {
+			dest: Box::new(dest.into()),
+			message: Box::new(message),
 		})
+		.into())
 	}
 
-	fn get_dispatch_info(call: &EncodedOrDecodedCall<Self::Call>) -> anyhow::Result<DispatchInfo> {
-		Ok(call.to_decoded()?.get_dispatch_info())
+	fn encode_send_message_call(
+		lane: LaneId,
+		payload: RawMessage,
+		fee: BalanceOf<Self>,
+		bridge_instance_index: u8,
+	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
+		Ok(match bridge_instance_index {
+			bridge::RIALTO_PARACHAIN_TO_MILLAU_INDEX =>
+				rialto_parachain_runtime::Call::BridgeMillauMessages(
+					rialto_parachain_runtime::MessagesCall::send_message {
+						lane_id: lane,
+						payload,
+						delivery_and_dispatch_fee: fee,
+					},
+				)
+				.into(),
+			_ => anyhow::bail!(
+				"Unsupported target bridge pallet with instance index: {}",
+				bridge_instance_index
+			),
+		})
 	}
 }
 
@@ -59,20 +77,9 @@ impl CliChain for RialtoParachain {
 	const RUNTIME_VERSION: RuntimeVersion = rialto_parachain_runtime::VERSION;
 
 	type KeyPair = sp_core::sr25519::Pair;
-	type MessagePayload = MessagePayload<
-		bp_rialto_parachain::AccountId,
-		bp_millau::AccountSigner,
-		bp_millau::Signature,
-		Vec<u8>,
-	>;
+	type MessagePayload = Vec<u8>;
 
 	fn ss58_format() -> u16 {
 		rialto_parachain_runtime::SS58Prefix::get() as u16
-	}
-
-	fn encode_message(
-		_message: encode_message::MessagePayload,
-	) -> anyhow::Result<Self::MessagePayload> {
-		anyhow::bail!("Not supported")
 	}
 }

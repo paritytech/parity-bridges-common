@@ -8,4 +8,4 @@ sleep 15
 	--parachain-port 9944 \
 	--relaychain-host rialto-node-alice \
 	--relaychain-port 9944 \
-	--relaychain-signer //Alice
+	--relaychain-signer //Sudo

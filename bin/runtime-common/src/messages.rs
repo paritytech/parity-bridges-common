@@ -20,33 +20,24 @@
 //! pallet is used to dispatch incoming messages. Message identified by a tuple
 //! of to elements - message lane id and message nonce.
 
-use bp_message_dispatch::MessageDispatch as _;
 use bp_messages::{
 	source_chain::LaneMessageVerifier,
 	target_chain::{DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages},
 	InboundLaneData, LaneId, Message, MessageData, MessageKey, MessageNonce, OutboundLaneData,
 };
-use bp_runtime::{
-	messages::{DispatchFeePayment, MessageDispatchResult},
-	ChainId, Size, StorageProofChecker,
-};
-use codec::{Decode, DecodeLimit, Encode};
-use frame_support::{
-	traits::{Currency, ExistenceRequirement},
-	weights::{Weight, WeightToFeePolynomial},
-	RuntimeDebug,
-};
+use bp_polkadot_core::parachains::{ParaHash, ParaHasher, ParaId};
+use bp_runtime::{messages::MessageDispatchResult, ChainId, Size, StorageProofChecker};
+use codec::{Decode, DecodeLimit, Encode, MaxEncodedLen};
+use frame_support::{traits::Get, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, Saturating, Zero},
+	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, Header as HeaderT},
 	FixedPointNumber, FixedPointOperand, FixedU128,
 };
-use sp_std::{
-	cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData, ops::RangeInclusive,
-	vec::Vec,
-};
+use sp_std::{cmp::PartialOrd, convert::TryFrom, fmt::Debug, marker::PhantomData, vec::Vec};
 use sp_trie::StorageProof;
+use xcm::latest::prelude::*;
 
 /// Bidirectional message bridge.
 pub trait MessageBridge {
@@ -79,7 +70,7 @@ pub trait ChainWithMessages {
 	/// Hash used in the chain.
 	type Hash: Decode;
 	/// Accound id on the chain.
-	type AccountId: Encode + Decode;
+	type AccountId: Encode + Decode + MaxEncodedLen;
 	/// Public key of the chain account that may be used to verify signatures.
 	type Signer: Encode + Decode;
 	/// Signature type used on the chain.
@@ -109,12 +100,54 @@ pub struct MessageTransaction<Weight> {
 	pub size: u32,
 }
 
+/// Helper trait for estimating the size and weight of a single message delivery confirmation
+/// transaction.
+pub trait ConfirmationTransactionEstimation<Weight> {
+	// Estimate size and weight of single message delivery confirmation transaction.
+	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight>;
+}
+
+/// Default implementation for `ConfirmationTransactionEstimation`.
+pub struct BasicConfirmationTransactionEstimation<
+	AccountId: MaxEncodedLen,
+	const MAX_CONFIRMATION_TX_WEIGHT: Weight,
+	const EXTRA_STORAGE_PROOF_SIZE: u32,
+	const TX_EXTRA_BYTES: u32,
+>(PhantomData<AccountId>);
+
+impl<
+		AccountId: MaxEncodedLen,
+		const MAX_CONFIRMATION_TX_WEIGHT: Weight,
+		const EXTRA_STORAGE_PROOF_SIZE: u32,
+		const TX_EXTRA_BYTES: u32,
+	> ConfirmationTransactionEstimation<Weight>
+	for BasicConfirmationTransactionEstimation<
+		AccountId,
+		MAX_CONFIRMATION_TX_WEIGHT,
+		EXTRA_STORAGE_PROOF_SIZE,
+		TX_EXTRA_BYTES,
+	>
+{
+	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight> {
+		let inbound_data_size = InboundLaneData::<AccountId>::encoded_size_hint_u32(1, 1);
+		MessageTransaction {
+			dispatch_weight: MAX_CONFIRMATION_TX_WEIGHT,
+			size: inbound_data_size
+				.saturating_add(EXTRA_STORAGE_PROOF_SIZE)
+				.saturating_add(TX_EXTRA_BYTES),
+		}
+	}
+}
+
 /// This chain that has `pallet-bridge-messages` and `dispatch` modules.
 pub trait ThisChainWithMessages: ChainWithMessages {
 	/// Call origin on the chain.
 	type Origin;
 	/// Call type on the chain.
 	type Call: Encode + Decode;
+	/// Helper for estimating the size and weight of a single message delivery confirmation
+	/// transaction at this chain.
+	type ConfirmationTransactionEstimation: ConfirmationTransactionEstimation<WeightOf<Self>>;
 
 	/// Do we accept message sent by given origin to given lane?
 	fn is_message_accepted(origin: &Self::Origin, lane: &LaneId) -> bool;
@@ -125,7 +158,9 @@ pub trait ThisChainWithMessages: ChainWithMessages {
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce;
 
 	/// Estimate size and weight of single message delivery confirmation transaction at This chain.
-	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<WeightOf<Self>>;
+	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<WeightOf<Self>> {
+		Self::ConfirmationTransactionEstimation::estimate_delivery_confirmation_transaction()
+	}
 
 	/// Returns minimal transaction fee that must be paid for given transaction at This chain.
 	fn transaction_payment(transaction: MessageTransaction<WeightOf<Self>>) -> BalanceOf<Self>;
@@ -136,16 +171,9 @@ pub trait BridgedChainWithMessages: ChainWithMessages {
 	/// Maximal extrinsic size at Bridged chain.
 	fn maximal_extrinsic_size() -> u32;
 
-	/// Returns feasible weights range for given message payload at the Bridged chain.
-	///
-	/// If message is being sent with the weight that is out of this range, then it
-	/// should be rejected.
-	///
-	/// Weights returned from this function shall not include transaction overhead
-	/// (like weight of signature and signed extensions verification), because they're
-	/// already accounted by the `weight_of_delivery_transaction`. So this function should
-	/// return pure call dispatch weights range.
-	fn message_weight_limits(message_payload: &[u8]) -> RangeInclusive<Self::Weight>;
+	/// Returns `true` if message dispatch weight is withing expected limits. `false` means
+	/// that the message is too heavy to be sent over the bridge and shall be rejected.
+	fn verify_dispatch_weight(message_payload: &[u8]) -> bool;
 
 	/// Estimate size and weight of single message delivery transaction at the Bridged chain.
 	fn estimate_delivery_transaction(
@@ -214,16 +242,17 @@ pub fn transaction_payment<Balance: AtLeast32BitUnsigned + FixedPointOperand>(
 pub mod source {
 	use super::*;
 
-	/// Encoded Call of the Bridged chain. We never try to decode it on This chain.
-	pub type BridgedChainOpaqueCall = Vec<u8>;
-
 	/// Message payload for This -> Bridged chain messages.
-	pub type FromThisChainMessagePayload<B> = bp_message_dispatch::MessagePayload<
-		AccountIdOf<ThisChain<B>>,
-		SignerOf<BridgedChain<B>>,
-		SignatureOf<BridgedChain<B>>,
-		BridgedChainOpaqueCall,
-	>;
+	pub type FromThisChainMessagePayload = Vec<u8>;
+
+	/// Maximal size of outbound message payload.
+	pub struct FromThisChainMaximalOutboundPayloadSize<B>(PhantomData<B>);
+
+	impl<B: MessageBridge> Get<u32> for FromThisChainMaximalOutboundPayloadSize<B> {
+		fn get() -> u32 {
+			maximal_message_size::<B>()
+		}
+	}
 
 	/// Messages delivery proof from bridged chain:
 	///
@@ -241,7 +270,7 @@ pub mod source {
 	}
 
 	impl<BridgedHeaderHash> Size for FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
-		fn size_hint(&self) -> u32 {
+		fn size(&self) -> u32 {
 			u32::try_from(
 				self.storage_proof
 					.iter()
@@ -260,7 +289,6 @@ pub mod source {
 	/// This verifier assumes following:
 	///
 	/// - all message lanes are equivalent, so all checks are the same;
-	/// - messages are being dispatched using `pallet-bridge-dispatch` pallet on the target chain.
 	///
 	/// Following checks are made:
 	///
@@ -288,7 +316,7 @@ pub mod source {
 		LaneMessageVerifier<
 			OriginOf<ThisChain<B>>,
 			AccountIdOf<ThisChain<B>>,
-			FromThisChainMessagePayload<B>,
+			FromThisChainMessagePayload,
 			BalanceOf<ThisChain<B>>,
 		> for FromThisChainMessageVerifier<B>
 	where
@@ -305,7 +333,7 @@ pub mod source {
 			delivery_and_dispatch_fee: &BalanceOf<ThisChain<B>>,
 			lane: &LaneId,
 			lane_outbound_data: &OutboundLaneData,
-			payload: &FromThisChainMessagePayload<B>,
+			payload: &FromThisChainMessagePayload,
 		) -> Result<(), Self::Error> {
 			// reject message if lane is blocked
 			if !ThisChain::<B>::is_message_accepted(submitter, lane) {
@@ -320,24 +348,6 @@ pub mod source {
 			if pending_messages > max_pending_messages {
 				return Err(TOO_MANY_PENDING_MESSAGES)
 			}
-
-			// Do the dispatch-specific check. We assume that the target chain uses
-			// `Dispatch`, so we verify the message accordingly.
-			let raw_origin_or_err: Result<
-				frame_system::RawOrigin<AccountIdOf<ThisChain<B>>>,
-				OriginOf<ThisChain<B>>,
-			> = submitter.clone().into();
-			if let Ok(raw_origin) = raw_origin_or_err {
-				pallet_bridge_dispatch::verify_message_origin(&raw_origin, payload)
-					.map(drop)
-					.map_err(|_| BAD_ORIGIN)?;
-			} else {
-				// so what it means that we've failed to convert origin to the
-				// `frame_system::RawOrigin`? now it means that the custom pallet origin has
-				// been used to send the message. Do we need to verify it? The answer is no,
-				// because pallet may craft any origin (e.g. root) && we can't verify whether it
-				// is valid, or not.
-			};
 
 			let minimal_fee_in_this_tokens = estimate_message_dispatch_and_delivery_fee::<B>(
 				payload,
@@ -365,10 +375,9 @@ pub mod source {
 	/// may be 'mined' by the target chain. But the lane may have its own checks (e.g. fee
 	/// check) that would reject message (see `FromThisChainMessageVerifier`).
 	pub fn verify_chain_message<B: MessageBridge>(
-		payload: &FromThisChainMessagePayload<B>,
+		payload: &FromThisChainMessagePayload,
 	) -> Result<(), &'static str> {
-		let weight_limits = BridgedChain::<B>::message_weight_limits(&payload.call);
-		if !weight_limits.contains(&payload.weight.into()) {
+		if !BridgedChain::<B>::verify_dispatch_weight(payload) {
 			return Err("Incorrect message weight declared")
 		}
 
@@ -382,7 +391,7 @@ pub mod source {
 		// is enormously large, it should be several dozens/hundreds of bytes. The delivery
 		// transaction also contains signatures and signed extensions. Because of this, we reserve
 		// 1/3 of the the maximal extrinsic weight for this data.
-		if payload.call.len() > maximal_message_size::<B>() as usize {
+		if payload.len() > maximal_message_size::<B>() as usize {
 			return Err("The message is too large to be sent over the lane")
 		}
 
@@ -395,7 +404,7 @@ pub mod source {
 	/// The fee is paid in This chain Balance, but we use Bridged chain balance to avoid additional
 	/// conversions. Returns `None` if overflow has happened.
 	pub fn estimate_message_dispatch_and_delivery_fee<B: MessageBridge>(
-		payload: &FromThisChainMessagePayload<B>,
+		payload: &FromThisChainMessagePayload,
 		relayer_fee_percent: u32,
 		bridged_to_this_conversion_rate: Option<FixedU128>,
 	) -> Result<BalanceOf<ThisChain<B>>, &'static str> {
@@ -403,13 +412,8 @@ pub mod source {
 		//
 		// if we're going to pay dispatch fee at the target chain, then we don't include weight
 		// of the message dispatch in the delivery transaction cost
-		let pay_dispatch_fee_at_target_chain =
-			payload.dispatch_fee_payment == DispatchFeePayment::AtTargetChain;
-		let delivery_transaction = BridgedChain::<B>::estimate_delivery_transaction(
-			&payload.encode(),
-			pay_dispatch_fee_at_target_chain,
-			if pay_dispatch_fee_at_target_chain { 0.into() } else { payload.weight.into() },
-		);
+		let delivery_transaction =
+			BridgedChain::<B>::estimate_delivery_transaction(&payload.encode(), true, 0.into());
 		let delivery_transaction_fee = BridgedChain::<B>::transaction_payment(delivery_transaction);
 
 		// the fee (in This tokens) of all transactions that are made on This chain
@@ -438,6 +442,9 @@ pub mod source {
 	}
 
 	/// Verify proof of This -> Bridged chain messages delivery.
+	///
+	/// This function is used when Bridged chain is directly using GRANDPA finality. For Bridged
+	/// parachains, please use the `verify_messages_delivery_proof_from_parachain`.
 	pub fn verify_messages_delivery_proof<B: MessageBridge, ThisRuntime, GrandpaInstance: 'static>(
 		proof: FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChain<B>>>,
 	) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<B>, &'static str>
@@ -454,22 +461,174 @@ pub mod source {
 		pallet_bridge_grandpa::Pallet::<ThisRuntime, GrandpaInstance>::parse_finalized_storage_proof(
 			bridged_header_hash.into(),
 			StorageProof::new(storage_proof),
-			|storage| {
-				// Messages delivery proof is just proof of single storage key read => any error
-				// is fatal.
-				let storage_inbound_lane_data_key =
-					bp_messages::storage_keys::inbound_lane_data_key(B::BRIDGED_MESSAGES_PALLET_NAME, &lane);
-				let raw_inbound_lane_data = storage
-					.read_value(storage_inbound_lane_data_key.0.as_ref())
-					.map_err(|_| "Failed to read inbound lane state from storage proof")?
-					.ok_or("Inbound lane state is missing from the messages proof")?;
-				let inbound_lane_data = InboundLaneData::decode(&mut &raw_inbound_lane_data[..])
-					.map_err(|_| "Failed to decode inbound lane state from the proof")?;
-
-				Ok((lane, inbound_lane_data))
-			},
+			|storage| do_verify_messages_delivery_proof::<
+				B,
+				bp_runtime::HasherOf<
+					<ThisRuntime as pallet_bridge_grandpa::Config<GrandpaInstance>>::BridgedChain,
+				>,
+			>(lane, storage),
 		)
 		.map_err(<&'static str>::from)?
+	}
+
+	/// Verify proof of This -> Bridged chain messages delivery.
+	///
+	/// This function is used when Bridged chain is using parachain finality. For Bridged
+	/// chains with direct GRANDPA finality, please use the `verify_messages_delivery_proof`.
+	///
+	/// This function currently only supports parachains, which are using header type that
+	/// implements `sp_runtime::traits::Header` trait.
+	pub fn verify_messages_delivery_proof_from_parachain<
+		B,
+		BridgedHeader,
+		ThisRuntime,
+		ParachainsInstance: 'static,
+	>(
+		bridged_parachain: ParaId,
+		proof: FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChain<B>>>,
+	) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<B>, &'static str>
+	where
+		B: MessageBridge,
+		B::BridgedChain: ChainWithMessages<Hash = ParaHash>,
+		BridgedHeader: HeaderT<Hash = HashOf<BridgedChain<B>>>,
+		ThisRuntime: pallet_bridge_parachains::Config<ParachainsInstance>,
+	{
+		let FromBridgedChainMessagesDeliveryProof { bridged_header_hash, storage_proof, lane } =
+			proof;
+		pallet_bridge_parachains::Pallet::<ThisRuntime, ParachainsInstance>::parse_finalized_storage_proof(
+			bridged_parachain,
+			bridged_header_hash,
+			StorageProof::new(storage_proof),
+			|para_head| BridgedHeader::decode(&mut &para_head.0[..]).ok().map(|h| *h.state_root()),
+			|storage| do_verify_messages_delivery_proof::<B, ParaHasher>(lane, storage),
+		)
+		.map_err(<&'static str>::from)?
+	}
+
+	/// The essense of This -> Bridged chain messages delivery proof verification.
+	fn do_verify_messages_delivery_proof<B: MessageBridge, H: Hasher>(
+		lane: LaneId,
+		storage: bp_runtime::StorageProofChecker<H>,
+	) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<B>, &'static str> {
+		// Messages delivery proof is just proof of single storage key read => any error
+		// is fatal.
+		let storage_inbound_lane_data_key = bp_messages::storage_keys::inbound_lane_data_key(
+			B::BRIDGED_MESSAGES_PALLET_NAME,
+			&lane,
+		);
+		let raw_inbound_lane_data = storage
+			.read_value(storage_inbound_lane_data_key.0.as_ref())
+			.map_err(|_| "Failed to read inbound lane state from storage proof")?
+			.ok_or("Inbound lane state is missing from the messages proof")?;
+		let inbound_lane_data = InboundLaneData::decode(&mut &raw_inbound_lane_data[..])
+			.map_err(|_| "Failed to decode inbound lane state from the proof")?;
+
+		Ok((lane, inbound_lane_data))
+	}
+
+	/// XCM bridge.
+	pub trait XcmBridge {
+		/// Runtime message bridge configuration.
+		type MessageBridge: MessageBridge;
+		/// Runtime message sender adapter.
+		type MessageSender: bp_messages::source_chain::MessagesBridge<
+			OriginOf<ThisChain<Self::MessageBridge>>,
+			AccountIdOf<ThisChain<Self::MessageBridge>>,
+			BalanceOf<ThisChain<Self::MessageBridge>>,
+			FromThisChainMessagePayload,
+		>;
+
+		/// Our location within the Consensus Universe.
+		fn universal_location() -> InteriorMultiLocation;
+		/// Verify that the adapter is responsible for handling given XCM destination.
+		fn verify_destination(dest: &MultiLocation) -> bool;
+		/// Build route from this chain to the XCM destination.
+		fn build_destination() -> MultiLocation;
+		/// Return message lane used to deliver XCM messages.
+		fn xcm_lane() -> LaneId;
+	}
+
+	/// XCM bridge adapter for `bridge-messages` pallet.
+	pub struct XcmBridgeAdapter<T>(PhantomData<T>);
+
+	impl<T: XcmBridge> SendXcm for XcmBridgeAdapter<T>
+	where
+		BalanceOf<ThisChain<T::MessageBridge>>: Into<Fungibility>,
+		OriginOf<ThisChain<T::MessageBridge>>: From<pallet_xcm::Origin>,
+	{
+		type Ticket = (BalanceOf<ThisChain<T::MessageBridge>>, FromThisChainMessagePayload);
+
+		fn validate(
+			dest: &mut Option<MultiLocation>,
+			msg: &mut Option<Xcm<()>>,
+		) -> SendResult<Self::Ticket> {
+			let d = dest.take().ok_or(SendError::MissingArgument)?;
+			if !T::verify_destination(&d) {
+				*dest = Some(d);
+				return Err(SendError::NotApplicable)
+			}
+
+			let route = T::build_destination();
+			let msg = (route, msg.take().ok_or(SendError::MissingArgument)?).encode();
+
+			let fee = estimate_message_dispatch_and_delivery_fee::<T::MessageBridge>(
+				&msg,
+				T::MessageBridge::RELAYER_FEE_PERCENT,
+				None,
+			);
+			let fee = match fee {
+				Ok(fee) => fee,
+				Err(e) => {
+					log::trace!(
+						target: "runtime::bridge",
+						"Failed to comupte fee for XCM message to {:?}: {:?}",
+						T::MessageBridge::BRIDGED_CHAIN_ID,
+						e,
+					);
+					*dest = Some(d);
+					return Err(SendError::Transport(e))
+				},
+			};
+			let fee_assets = MultiAssets::from((Here, fee));
+
+			Ok(((fee, msg), fee_assets))
+		}
+
+		fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+			use bp_messages::source_chain::MessagesBridge;
+
+			let lane = T::xcm_lane();
+			let (fee, msg) = ticket;
+			let result = T::MessageSender::send_message(
+				pallet_xcm::Origin::from(MultiLocation::from(T::universal_location())).into(),
+				lane,
+				msg,
+				fee,
+			);
+			result
+				.map(|artifacts| {
+					let hash = (lane, artifacts.nonce).using_encoded(sp_io::hashing::blake2_256);
+					log::debug!(
+						target: "runtime::bridge",
+						"Sent XCM message {:?}/{} to {:?}: {:?}",
+						lane,
+						artifacts.nonce,
+						T::MessageBridge::BRIDGED_CHAIN_ID,
+						hash,
+					);
+					hash
+				})
+				.map_err(|e| {
+					log::debug!(
+						target: "runtime::bridge",
+						"Failed to send XCM message over lane {:?} to {:?}: {:?}",
+						lane,
+						T::MessageBridge::BRIDGED_CHAIN_ID,
+						e,
+					);
+					SendError::Transport("Bridge has rejected the message")
+				})
+		}
 	}
 }
 
@@ -477,20 +636,36 @@ pub mod source {
 pub mod target {
 	use super::*;
 
-	/// Call origin for Bridged -> This chain messages.
-	pub type FromBridgedChainMessageCallOrigin<B> = bp_message_dispatch::CallOrigin<
-		AccountIdOf<BridgedChain<B>>,
-		SignerOf<ThisChain<B>>,
-		SignatureOf<ThisChain<B>>,
-	>;
-
 	/// Decoded Bridged -> This message payload.
-	pub type FromBridgedChainMessagePayload<B> = bp_message_dispatch::MessagePayload<
-		AccountIdOf<BridgedChain<B>>,
-		SignerOf<ThisChain<B>>,
-		SignatureOf<ThisChain<B>>,
-		FromBridgedChainEncodedMessageCall<CallOf<ThisChain<B>>>,
-	>;
+	#[derive(RuntimeDebug, PartialEq, Eq)]
+	pub struct FromBridgedChainMessagePayload<Call> {
+		/// Data that is actually sent over the wire.
+		pub xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>),
+		/// Weight of the message, computed by the weigher. Unknown initially.
+		pub weight: Option<Weight>,
+	}
+
+	impl<Call: Decode> Decode for FromBridgedChainMessagePayload<Call> {
+		fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
+			let _: codec::Compact<u32> = Decode::decode(input)?;
+			type XcmPairType<Call> = (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>);
+			Ok(FromBridgedChainMessagePayload {
+				xcm: XcmPairType::<Call>::decode_with_depth_limit(
+					sp_api::MAX_EXTRINSIC_DEPTH,
+					input,
+				)?,
+				weight: None,
+			})
+		}
+	}
+
+	impl<Call> From<(xcm::v3::MultiLocation, xcm::v3::Xcm<Call>)>
+		for FromBridgedChainMessagePayload<Call>
+	{
+		fn from(xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>)) -> Self {
+			FromBridgedChainMessagePayload { xcm, weight: None }
+		}
+	}
 
 	/// Messages proof from bridged chain:
 	///
@@ -504,6 +679,7 @@ pub mod target {
 		pub bridged_header_hash: BridgedHeaderHash,
 		/// A storage trie proof of messages being delivered.
 		pub storage_proof: RawStorageProof,
+		/// Messages in this proof are sent over this lane.
 		pub lane: LaneId,
 		/// Nonce of the first message being delivered.
 		pub nonces_start: MessageNonce,
@@ -512,7 +688,7 @@ pub mod target {
 	}
 
 	impl<BridgedHeaderHash> Size for FromBridgedChainMessagesProof<BridgedHeaderHash> {
-		fn size_hint(&self) -> u32 {
+		fn size(&self) -> u32 {
 			u32::try_from(
 				self.storage_proof
 					.iter()
@@ -522,101 +698,89 @@ pub mod target {
 		}
 	}
 
-	/// Encoded Call of This chain as it is transferred over bridge.
-	///
-	/// Our Call is opaque (`Vec<u8>`) for Bridged chain. So it is encoded, prefixed with
-	/// vector length. Custom decode implementation here is exactly to deal with this.
-	#[derive(Decode, Encode, RuntimeDebug, PartialEq)]
-	pub struct FromBridgedChainEncodedMessageCall<DecodedCall> {
-		encoded_call: Vec<u8>,
-		_marker: PhantomData<DecodedCall>,
-	}
-
-	impl<DecodedCall> FromBridgedChainEncodedMessageCall<DecodedCall> {
-		/// Create encoded call.
-		pub fn new(encoded_call: Vec<u8>) -> Self {
-			FromBridgedChainEncodedMessageCall { encoded_call, _marker: PhantomData::default() }
-		}
-	}
-
-	impl<DecodedCall: Decode> From<FromBridgedChainEncodedMessageCall<DecodedCall>>
-		for Result<DecodedCall, ()>
-	{
-		fn from(encoded_call: FromBridgedChainEncodedMessageCall<DecodedCall>) -> Self {
-			DecodedCall::decode_with_depth_limit(
-				sp_api::MAX_EXTRINSIC_DEPTH,
-				&mut &encoded_call.encoded_call[..],
-			)
-			.map_err(drop)
-		}
-	}
-
 	/// Dispatching Bridged -> This chain messages.
 	#[derive(RuntimeDebug, Clone, Copy)]
-	pub struct FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, ThisDispatchInstance> {
-		_marker: PhantomData<(B, ThisRuntime, ThisCurrency, ThisDispatchInstance)>,
+	pub struct FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher, WeightCredit> {
+		_marker: PhantomData<(B, XcmExecutor, XcmWeigher, WeightCredit)>,
 	}
 
-	impl<B: MessageBridge, ThisRuntime, ThisCurrency, ThisDispatchInstance>
+	impl<B: MessageBridge, XcmExecutor, XcmWeigher, WeightCredit>
 		MessageDispatch<AccountIdOf<ThisChain<B>>, BalanceOf<BridgedChain<B>>>
-		for FromBridgedChainMessageDispatch<B, ThisRuntime, ThisCurrency, ThisDispatchInstance>
+		for FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher, WeightCredit>
 	where
-		BalanceOf<ThisChain<B>>: Saturating + FixedPointOperand,
-		ThisDispatchInstance: 'static,
-		ThisRuntime: pallet_bridge_dispatch::Config<
-				ThisDispatchInstance,
-				BridgeMessageId = (LaneId, MessageNonce),
-			> + pallet_transaction_payment::Config,
-		<ThisRuntime as pallet_transaction_payment::Config>::OnChargeTransaction:
-			pallet_transaction_payment::OnChargeTransaction<
-				ThisRuntime,
-				Balance = BalanceOf<ThisChain<B>>,
-			>,
-		ThisCurrency: Currency<AccountIdOf<ThisChain<B>>, Balance = BalanceOf<ThisChain<B>>>,
-		pallet_bridge_dispatch::Pallet<ThisRuntime, ThisDispatchInstance>:
-			bp_message_dispatch::MessageDispatch<
-				AccountIdOf<ThisChain<B>>,
-				(LaneId, MessageNonce),
-				Message = FromBridgedChainMessagePayload<B>,
-			>,
+		XcmExecutor: xcm::v3::ExecuteXcm<CallOf<ThisChain<B>>>,
+		XcmWeigher: xcm_executor::traits::WeightBounds<CallOf<ThisChain<B>>>,
+		WeightCredit: Get<Weight>,
 	{
-		type DispatchPayload = FromBridgedChainMessagePayload<B>;
+		type DispatchPayload = FromBridgedChainMessagePayload<CallOf<ThisChain<B>>>;
 
 		fn dispatch_weight(
-			message: &DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
+			message: &mut DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> frame_support::weights::Weight {
-			message.data.payload.as_ref().map(|payload| payload.weight).unwrap_or(0)
+			match message.data.payload {
+				Ok(ref mut payload) => {
+					// I have no idea why this method takes `&mut` reference and there's nothing
+					// about that in documentation. Hope it'll only mutate iff error is returned.
+					let weight = XcmWeigher::weight(&mut payload.xcm.1);
+					let weight = weight.unwrap_or_else(|e| {
+						log::debug!(
+							target: "runtime::bridge-dispatch",
+							"Failed to compute dispatch weight of incoming XCM message {:?}/{}: {:?}",
+							message.key.lane_id,
+							message.key.nonce,
+							e,
+						);
+
+						// we shall return 0 and then the XCM executor will fail to execute XCM
+						// if we'll return something else (e.g. maximal value), the lane may stuck
+						0
+					});
+
+					payload.weight = Some(weight);
+					weight
+				},
+				_ => 0,
+			}
 		}
 
 		fn dispatch(
-			relayer_account: &AccountIdOf<ThisChain<B>>,
+			_relayer_account: &AccountIdOf<ThisChain<B>>,
 			message: DispatchMessage<Self::DispatchPayload, BalanceOf<BridgedChain<B>>>,
 		) -> MessageDispatchResult {
 			let message_id = (message.key.lane_id, message.key.nonce);
-			pallet_bridge_dispatch::Pallet::<ThisRuntime, ThisDispatchInstance>::dispatch(
-				B::BRIDGED_CHAIN_ID,
-				B::THIS_CHAIN_ID,
-				message_id,
-				message.data.payload.map_err(drop),
-				|dispatch_origin, dispatch_weight| {
-					let unadjusted_weight_fee = ThisRuntime::WeightToFee::calc(&dispatch_weight);
-					let fee_multiplier =
-						pallet_transaction_payment::Pallet::<ThisRuntime>::next_fee_multiplier();
-					let adjusted_weight_fee =
-						fee_multiplier.saturating_mul_int(unadjusted_weight_fee);
-					if !adjusted_weight_fee.is_zero() {
-						ThisCurrency::transfer(
-							dispatch_origin,
-							relayer_account,
-							adjusted_weight_fee,
-							ExistenceRequirement::AllowDeath,
-						)
-						.map_err(drop)
-					} else {
-						Ok(())
-					}
-				},
-			)
+			let do_dispatch = move || -> sp_std::result::Result<Outcome, codec::Error> {
+				let FromBridgedChainMessagePayload { xcm: (location, xcm), weight: weight_limit } =
+					message.data.payload?;
+				log::trace!(
+					target: "runtime::bridge-dispatch",
+					"Going to execute message {:?} (weight limit: {:?}): {:?} {:?}",
+					message_id,
+					weight_limit,
+					location,
+					xcm,
+				);
+				let hash = message_id.using_encoded(sp_io::hashing::blake2_256);
+
+				// if this cod will end up in production, this most likely needs to be set to zero
+				let weight_credit = WeightCredit::get();
+
+				let xcm_outcome = XcmExecutor::execute_xcm_in_credit(
+					location,
+					xcm,
+					hash,
+					weight_limit.unwrap_or(0),
+					weight_credit,
+				);
+				Ok(xcm_outcome)
+			};
+
+			let xcm_outcome = do_dispatch();
+			log::trace!(target: "runtime::bridge-dispatch", "Incoming message {:?} dispatched with result: {:?}", message_id, xcm_outcome);
+			MessageDispatchResult {
+				dispatch_result: true,
+				unspent_weight: 0,
+				dispatch_fee_paid_during_dispatch: false,
+			}
 		}
 	}
 
@@ -631,6 +795,9 @@ pub mod target {
 	}
 
 	/// Verify proof of Bridged -> This chain messages.
+	///
+	/// This function is used when Bridged chain is directly using GRANDPA finality. For Bridged
+	/// parachains, please use the `verify_messages_proof_from_parachain`.
 	///
 	/// The `messages_count` argument verification (sane limits) is supposed to be made
 	/// outside of this function. This function only verifies that the proof declares exactly
@@ -666,7 +833,55 @@ pub mod target {
 		.map_err(Into::into)
 	}
 
-	#[derive(Debug, PartialEq)]
+	/// Verify proof of Bridged -> This chain messages.
+	///
+	/// This function is used when Bridged chain is using parachain finality. For Bridged
+	/// chains with direct GRANDPA finality, please use the `verify_messages_proof`.
+	///
+	/// The `messages_count` argument verification (sane limits) is supposed to be made
+	/// outside of this function. This function only verifies that the proof declares exactly
+	/// `messages_count` messages.
+	///
+	/// This function currently only supports parachains, which are using header type that
+	/// implements `sp_runtime::traits::Header` trait.
+	pub fn verify_messages_proof_from_parachain<
+		B,
+		BridgedHeader,
+		ThisRuntime,
+		ParachainsInstance: 'static,
+	>(
+		bridged_parachain: ParaId,
+		proof: FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>,
+		messages_count: u32,
+	) -> Result<ProvedMessages<Message<BalanceOf<BridgedChain<B>>>>, &'static str>
+	where
+		B: MessageBridge,
+		B::BridgedChain: ChainWithMessages<Hash = ParaHash>,
+		BridgedHeader: HeaderT<Hash = HashOf<BridgedChain<B>>>,
+		ThisRuntime: pallet_bridge_parachains::Config<ParachainsInstance>,
+	{
+		verify_messages_proof_with_parser::<B, _, _>(
+			proof,
+			messages_count,
+			|bridged_header_hash, bridged_storage_proof| {
+				pallet_bridge_parachains::Pallet::<ThisRuntime, ParachainsInstance>::parse_finalized_storage_proof(
+					bridged_parachain,
+					bridged_header_hash,
+					StorageProof::new(bridged_storage_proof),
+					|para_head| BridgedHeader::decode(&mut &para_head.0[..]).ok().map(|h| *h.state_root()),
+					|storage_adapter| storage_adapter,
+				)
+				.map(|storage| StorageProofCheckerAdapter::<_, B> {
+					storage,
+					_dummy: Default::default(),
+				})
+				.map_err(|err| MessageProofError::Custom(err.into()))
+			},
+		)
+		.map_err(Into::into)
+	}
+
+	#[derive(Debug, PartialEq, Eq)]
 	pub(crate) enum MessageProofError {
 		Empty,
 		MessagesCountMismatch,
@@ -793,11 +1008,117 @@ pub mod target {
 			return Err(MessageProofError::Empty)
 		}
 
-		// We only support single lane messages in this schema
+		// We only support single lane messages in this generated_schema
 		let mut proved_messages = ProvedMessages::new();
 		proved_messages.insert(lane, proved_lane_messages);
 
 		Ok(proved_messages)
+	}
+}
+
+pub use xcm_copy::*;
+
+// copy of private types from xcm-builder/src/universal_exports.rs
+pub mod xcm_copy {
+	use codec::{Decode, Encode};
+	use frame_support::{ensure, traits::Get};
+	use sp_std::{convert::TryInto, marker::PhantomData, prelude::*};
+	use xcm::prelude::*;
+	use xcm_executor::traits::ExportXcm;
+
+	pub trait DispatchBlob {
+		/// Dispatches an incoming blob and returns the unexpectable weight consumed by the
+		/// dispatch.
+		fn dispatch_blob(blob: Vec<u8>) -> Result<(), DispatchBlobError>;
+	}
+
+	pub trait HaulBlob {
+		/// Sends a blob over some point-to-point link. This will generally be implemented by a
+		/// bridge.
+		fn haul_blob(blob: Vec<u8>);
+	}
+
+	#[derive(Clone, Encode, Decode)]
+	pub struct BridgeMessage {
+		/// The message destination as a *Universal Location*. This means it begins with a
+		/// `GlobalConsensus` junction describing the network under which global consensus happens.
+		/// If this does not match our global consensus then it's a fatal error.
+		universal_dest: VersionedInteriorMultiLocation,
+		message: VersionedXcm<()>,
+	}
+
+	pub enum DispatchBlobError {
+		Unbridgable,
+		InvalidEncoding,
+		UnsupportedLocationVersion,
+		UnsupportedXcmVersion,
+		RoutingError,
+		NonUniversalDestination,
+		WrongGlobal,
+	}
+
+	pub struct BridgeBlobDispatcher<Router, OurPlace>(PhantomData<(Router, OurPlace)>);
+	impl<Router: SendXcm, OurPlace: Get<InteriorMultiLocation>> DispatchBlob
+		for BridgeBlobDispatcher<Router, OurPlace>
+	{
+		fn dispatch_blob(blob: Vec<u8>) -> Result<(), DispatchBlobError> {
+			let our_universal = OurPlace::get();
+			let our_global =
+				our_universal.global_consensus().map_err(|()| DispatchBlobError::Unbridgable)?;
+			let BridgeMessage { universal_dest, message } =
+				Decode::decode(&mut &blob[..]).map_err(|_| DispatchBlobError::InvalidEncoding)?;
+			let universal_dest: InteriorMultiLocation = universal_dest
+				.try_into()
+				.map_err(|_| DispatchBlobError::UnsupportedLocationVersion)?;
+			// `universal_dest` is the desired destination within the universe: first we need to
+			// check we're in the right global consensus.
+			let intended_global = universal_dest
+				.global_consensus()
+				.map_err(|()| DispatchBlobError::NonUniversalDestination)?;
+			ensure!(intended_global == our_global, DispatchBlobError::WrongGlobal);
+			let dest = universal_dest.relative_to(&our_universal);
+			let message: Xcm<()> =
+				message.try_into().map_err(|_| DispatchBlobError::UnsupportedXcmVersion)?;
+			send_xcm::<Router>(dest, message).map_err(|_| DispatchBlobError::RoutingError)?;
+			Ok(())
+		}
+	}
+
+	pub struct HaulBlobExporter<Bridge, BridgedNetwork, Price>(
+		PhantomData<(Bridge, BridgedNetwork, Price)>,
+	);
+	impl<Bridge: HaulBlob, BridgedNetwork: Get<NetworkId>, Price: Get<MultiAssets>> ExportXcm
+		for HaulBlobExporter<Bridge, BridgedNetwork, Price>
+	{
+		type Ticket = (Vec<u8>, XcmHash);
+
+		fn validate(
+			network: NetworkId,
+			_channel: u32,
+			destination: &mut Option<InteriorMultiLocation>,
+			message: &mut Option<Xcm<()>>,
+		) -> Result<((Vec<u8>, XcmHash), MultiAssets), SendError> {
+			let bridged_network = BridgedNetwork::get();
+			ensure!(network == bridged_network, SendError::NotApplicable);
+			// We don't/can't use the `channel` for this adapter.
+			let dest = destination.take().ok_or(SendError::MissingArgument)?;
+			let universal_dest = match dest.pushed_front_with(GlobalConsensus(bridged_network)) {
+				Ok(d) => d.into(),
+				Err((dest, _)) => {
+					*destination = Some(dest);
+					return Err(SendError::NotApplicable)
+				},
+			};
+			let message = VersionedXcm::from(message.take().ok_or(SendError::MissingArgument)?);
+			let hash = message.using_encoded(sp_io::hashing::blake2_256);
+			let blob = BridgeMessage { universal_dest, message }.encode();
+			Ok(((blob, hash), Price::get()))
+		}
+
+		fn deliver((blob, hash): (Vec<u8>, XcmHash)) -> Result<XcmHash, SendError> {
+			Bridge::haul_blob(blob);
+			Ok(hash)
+		}
 	}
 }
 
@@ -813,7 +1134,8 @@ mod tests {
 	const THIS_CHAIN_WEIGHT_TO_BALANCE_RATE: Weight = 2;
 	const BRIDGED_CHAIN_WEIGHT_TO_BALANCE_RATE: Weight = 4;
 	const BRIDGED_CHAIN_TO_THIS_CHAIN_BALANCE_RATE: u32 = 6;
-	const BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT: Weight = 2048;
+	const BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT: usize = 5;
+	const BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT: usize = 2048;
 	const BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE: u32 = 1024;
 
 	/// Bridge that is deployed on ThisChain and allows sending/receiving messages to/from
@@ -863,13 +1185,13 @@ mod tests {
 		}
 	}
 
-	#[derive(Debug, PartialEq, Decode, Encode, Clone)]
+	#[derive(Debug, PartialEq, Eq, Decode, Encode, Clone, MaxEncodedLen)]
 	struct ThisChainAccountId(u32);
-	#[derive(Debug, PartialEq, Decode, Encode)]
+	#[derive(Debug, PartialEq, Eq, Decode, Encode)]
 	struct ThisChainSigner(u32);
-	#[derive(Debug, PartialEq, Decode, Encode)]
+	#[derive(Debug, PartialEq, Eq, Decode, Encode)]
 	struct ThisChainSignature(u32);
-	#[derive(Debug, PartialEq, Decode, Encode)]
+	#[derive(Debug, PartialEq, Eq, Decode, Encode)]
 	enum ThisChainCall {
 		#[codec(index = 42)]
 		Transfer,
@@ -889,13 +1211,13 @@ mod tests {
 		}
 	}
 
-	#[derive(Debug, PartialEq, Decode, Encode)]
+	#[derive(Debug, PartialEq, Eq, Decode, Encode, MaxEncodedLen)]
 	struct BridgedChainAccountId(u32);
-	#[derive(Debug, PartialEq, Decode, Encode)]
+	#[derive(Debug, PartialEq, Eq, Decode, Encode)]
 	struct BridgedChainSigner(u32);
-	#[derive(Debug, PartialEq, Decode, Encode)]
+	#[derive(Debug, PartialEq, Eq, Decode, Encode)]
 	struct BridgedChainSignature(u32);
-	#[derive(Debug, PartialEq, Decode, Encode)]
+	#[derive(Debug, PartialEq, Eq, Decode, Encode)]
 	enum BridgedChainCall {}
 	#[derive(Clone, Debug)]
 	struct BridgedChainOrigin;
@@ -912,7 +1234,7 @@ mod tests {
 
 	macro_rules! impl_wrapped_balance {
 		($name:ident) => {
-			#[derive(Debug, PartialEq, Decode, Encode, Clone, Copy)]
+			#[derive(Debug, PartialEq, Eq, Decode, Encode, Clone, Copy)]
 			struct $name(u32);
 
 			impl From<u32> for $name {
@@ -988,6 +1310,12 @@ mod tests {
 	impl ThisChainWithMessages for ThisChain {
 		type Origin = ThisChainOrigin;
 		type Call = ThisChainCall;
+		type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
+			<ThisChain as ChainWithMessages>::AccountId,
+			{ DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT },
+			0,
+			0,
+		>;
 
 		fn is_message_accepted(_send_origin: &Self::Origin, lane: &LaneId) -> bool {
 			lane == TEST_LANE_ID
@@ -995,13 +1323,6 @@ mod tests {
 
 		fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
 			MAXIMAL_PENDING_MESSAGES_AT_TEST_LANE
-		}
-
-		fn estimate_delivery_confirmation_transaction() -> MessageTransaction<WeightOf<Self>> {
-			MessageTransaction {
-				dispatch_weight: DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT,
-				size: 0,
-			}
 		}
 
 		fn transaction_payment(transaction: MessageTransaction<WeightOf<Self>>) -> BalanceOf<Self> {
@@ -1016,7 +1337,7 @@ mod tests {
 			unreachable!()
 		}
 
-		fn message_weight_limits(_message_payload: &[u8]) -> RangeInclusive<Self::Weight> {
+		fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
 			unreachable!()
 		}
 
@@ -1049,16 +1370,18 @@ mod tests {
 	impl ThisChainWithMessages for BridgedChain {
 		type Origin = BridgedChainOrigin;
 		type Call = BridgedChainCall;
+		type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
+			<BridgedChain as ChainWithMessages>::AccountId,
+			0,
+			0,
+			0,
+		>;
 
 		fn is_message_accepted(_send_origin: &Self::Origin, _lane: &LaneId) -> bool {
 			unreachable!()
 		}
 
 		fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
-			unreachable!()
-		}
-
-		fn estimate_delivery_confirmation_transaction() -> MessageTransaction<WeightOf<Self>> {
 			unreachable!()
 		}
 
@@ -1074,10 +1397,9 @@ mod tests {
 			BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE
 		}
 
-		fn message_weight_limits(message_payload: &[u8]) -> RangeInclusive<Self::Weight> {
-			let begin =
-				std::cmp::min(BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT, message_payload.len() as Weight);
-			begin..=BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
+		fn verify_dispatch_weight(message_payload: &[u8]) -> bool {
+			message_payload.len() >= BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT &&
+				message_payload.len() <= BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
 		}
 
 		fn estimate_delivery_transaction(
@@ -1102,57 +1424,16 @@ mod tests {
 		OutboundLaneData::default()
 	}
 
-	#[test]
-	fn message_from_bridged_chain_is_decoded() {
-		// the message is encoded on the bridged chain
-		let message_on_bridged_chain =
-			source::FromThisChainMessagePayload::<OnBridgedChainBridge> {
-				spec_version: 1,
-				weight: 100,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-				call: ThisChainCall::Transfer.encode(),
-			}
-			.encode();
-
-		// and sent to this chain where it is decoded
-		let message_on_this_chain =
-			target::FromBridgedChainMessagePayload::<OnThisChainBridge>::decode(
-				&mut &message_on_bridged_chain[..],
-			)
-			.unwrap();
-		assert_eq!(
-			message_on_this_chain,
-			target::FromBridgedChainMessagePayload::<OnThisChainBridge> {
-				spec_version: 1,
-				weight: 100,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
-				call: target::FromBridgedChainEncodedMessageCall::<ThisChainCall>::new(
-					ThisChainCall::Transfer.encode(),
-				),
-			}
-		);
-		assert_eq!(Ok(ThisChainCall::Transfer), message_on_this_chain.call.into());
-	}
-
 	const TEST_LANE_ID: &LaneId = b"test";
 	const MAXIMAL_PENDING_MESSAGES_AT_TEST_LANE: MessageNonce = 32;
 
-	fn regular_outbound_message_payload() -> source::FromThisChainMessagePayload<OnThisChainBridge>
-	{
-		source::FromThisChainMessagePayload::<OnThisChainBridge> {
-			spec_version: 1,
-			weight: 100,
-			origin: bp_message_dispatch::CallOrigin::SourceRoot,
-			dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-			call: vec![42],
-		}
+	fn regular_outbound_message_payload() -> source::FromThisChainMessagePayload {
+		vec![42]
 	}
 
 	#[test]
 	fn message_fee_is_checked_by_verifier() {
-		const EXPECTED_MINIMAL_FEE: u32 = 5500;
+		const EXPECTED_MINIMAL_FEE: u32 = 2860;
 
 		// payload of the This -> Bridged chain message
 		let payload = regular_outbound_message_payload();
@@ -1165,25 +1446,6 @@ mod tests {
 				None,
 			),
 			Ok(ThisChainBalance(EXPECTED_MINIMAL_FEE)),
-		);
-
-		// let's check if estimation is less than hardcoded, if dispatch is paid at target chain
-		let mut payload_with_pay_on_target = regular_outbound_message_payload();
-		payload_with_pay_on_target.dispatch_fee_payment = DispatchFeePayment::AtTargetChain;
-		let fee_at_source =
-			source::estimate_message_dispatch_and_delivery_fee::<OnThisChainBridge>(
-				&payload_with_pay_on_target,
-				OnThisChainBridge::RELAYER_FEE_PERCENT,
-				None,
-			)
-			.expect(
-				"estimate_message_dispatch_and_delivery_fee failed for pay-at-target-chain message",
-			);
-		assert!(
-			fee_at_source < EXPECTED_MINIMAL_FEE.into(),
-			"Computed fee {:?} without prepaid dispatch must be less than the fee with prepaid dispatch {}",
-			fee_at_source,
-			EXPECTED_MINIMAL_FEE,
 		);
 
 		// and now check that the verifier checks the fee
@@ -1199,80 +1461,6 @@ mod tests {
 		);
 		assert!(source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
 			&ThisChainOrigin(Ok(frame_system::RawOrigin::Root)),
-			&ThisChainBalance(1_000_000),
-			TEST_LANE_ID,
-			&test_lane_outbound_data(),
-			&payload,
-		)
-		.is_ok(),);
-	}
-
-	#[test]
-	fn should_disallow_root_calls_from_regular_accounts() {
-		// payload of the This -> Bridged chain message
-		let payload = source::FromThisChainMessagePayload::<OnThisChainBridge> {
-			spec_version: 1,
-			weight: 100,
-			origin: bp_message_dispatch::CallOrigin::SourceRoot,
-			dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-			call: vec![42],
-		};
-
-		// and now check that the verifier checks the fee
-		assert_eq!(
-			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&ThisChainOrigin(Ok(frame_system::RawOrigin::Signed(ThisChainAccountId(0)))),
-				&ThisChainBalance(1_000_000),
-				TEST_LANE_ID,
-				&test_lane_outbound_data(),
-				&payload,
-			),
-			Err(source::BAD_ORIGIN)
-		);
-		assert_eq!(
-			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&ThisChainOrigin(Ok(frame_system::RawOrigin::None)),
-				&ThisChainBalance(1_000_000),
-				TEST_LANE_ID,
-				&test_lane_outbound_data(),
-				&payload,
-			),
-			Err(source::BAD_ORIGIN)
-		);
-		assert!(source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-			&ThisChainOrigin(Ok(frame_system::RawOrigin::Root)),
-			&ThisChainBalance(1_000_000),
-			TEST_LANE_ID,
-			&test_lane_outbound_data(),
-			&payload,
-		)
-		.is_ok(),);
-	}
-
-	#[test]
-	fn should_verify_source_and_target_origin_matching() {
-		// payload of the This -> Bridged chain message
-		let payload = source::FromThisChainMessagePayload::<OnThisChainBridge> {
-			spec_version: 1,
-			weight: 100,
-			origin: bp_message_dispatch::CallOrigin::SourceAccount(ThisChainAccountId(1)),
-			dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-			call: vec![42],
-		};
-
-		// and now check that the verifier checks the fee
-		assert_eq!(
-			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&ThisChainOrigin(Ok(frame_system::RawOrigin::Signed(ThisChainAccountId(0)))),
-				&ThisChainBalance(1_000_000),
-				TEST_LANE_ID,
-				&test_lane_outbound_data(),
-				&payload,
-			),
-			Err(source::BAD_ORIGIN)
-		);
-		assert!(source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-			&ThisChainOrigin(Ok(frame_system::RawOrigin::Signed(ThisChainAccountId(1)))),
 			&ThisChainBalance(1_000_000),
 			TEST_LANE_ID,
 			&test_lane_outbound_data(),
@@ -1315,58 +1503,42 @@ mod tests {
 
 	#[test]
 	fn verify_chain_message_rejects_message_with_too_small_declared_weight() {
-		assert!(source::verify_chain_message::<OnThisChainBridge>(
-			&source::FromThisChainMessagePayload::<OnThisChainBridge> {
-				spec_version: 1,
-				weight: 5,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-				call: vec![1, 2, 3, 4, 5, 6],
-			},
-		)
+		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![
+			42;
+			BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT -
+				1
+		])
 		.is_err());
 	}
 
 	#[test]
 	fn verify_chain_message_rejects_message_with_too_large_declared_weight() {
-		assert!(source::verify_chain_message::<OnThisChainBridge>(
-			&source::FromThisChainMessagePayload::<OnThisChainBridge> {
-				spec_version: 1,
-				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT + 1,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-				call: vec![1, 2, 3, 4, 5, 6],
-			},
-		)
+		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![
+			42;
+			BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT -
+				1
+		])
 		.is_err());
 	}
 
 	#[test]
 	fn verify_chain_message_rejects_message_too_large_message() {
-		assert!(source::verify_chain_message::<OnThisChainBridge>(
-			&source::FromThisChainMessagePayload::<OnThisChainBridge> {
-				spec_version: 1,
-				weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT,
-				origin: bp_message_dispatch::CallOrigin::SourceRoot,
-				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-				call: vec![0; source::maximal_message_size::<OnThisChainBridge>() as usize + 1],
-			},
-		)
+		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![
+			0;
+			source::maximal_message_size::<OnThisChainBridge>()
+				as usize + 1
+		],)
 		.is_err());
 	}
 
 	#[test]
 	fn verify_chain_message_accepts_maximal_message() {
 		assert_eq!(
-			source::verify_chain_message::<OnThisChainBridge>(
-				&source::FromThisChainMessagePayload::<OnThisChainBridge> {
-					spec_version: 1,
-					weight: BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT,
-					origin: bp_message_dispatch::CallOrigin::SourceRoot,
-					dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
-					call: vec![0; source::maximal_message_size::<OnThisChainBridge>() as _],
-				},
-			),
+			source::verify_chain_message::<OnThisChainBridge>(&vec![
+				0;
+				source::maximal_message_size::<OnThisChainBridge>()
+					as _
+			],),
 			Ok(()),
 		);
 	}

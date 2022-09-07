@@ -21,8 +21,8 @@
 #![allow(clippy::too_many_arguments)]
 
 use bitvec::prelude::*;
-use bp_runtime::messages::DispatchFeePayment;
-use codec::{Decode, Encode};
+use bp_runtime::{messages::DispatchFeePayment, BasicOperatingMode, OperatingMode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 use sp_std::{collections::vec_deque::VecDeque, prelude::*};
@@ -35,11 +35,11 @@ pub mod target_chain;
 pub use frame_support::weights::Weight;
 
 /// Messages pallet operating mode.
-#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-pub enum OperatingMode {
-	/// Normal mode, when all operations are allowed.
-	Normal,
+pub enum MessagesOperatingMode {
+	/// Basic operating mode (Normal/Halted)
+	Basic(BasicOperatingMode),
 	/// The pallet is not accepting outbound messages. Inbound messages and receiving proofs
 	/// are still accepted.
 	///
@@ -48,13 +48,20 @@ pub enum OperatingMode {
 	/// queued messages to the bridged chain. Once upgrade is completed, the mode may be switched
 	/// back to `Normal`.
 	RejectingOutboundMessages,
-	/// The pallet is halted. All operations (except operating mode change) are prohibited.
-	Halted,
 }
 
-impl Default for OperatingMode {
+impl Default for MessagesOperatingMode {
 	fn default() -> Self {
-		OperatingMode::Normal
+		MessagesOperatingMode::Basic(BasicOperatingMode::Normal)
+	}
+}
+
+impl OperatingMode for MessagesOperatingMode {
+	fn is_halted(&self) -> bool {
+		match self {
+			Self::Basic(operating_mode) => operating_mode.is_halted(),
+			_ => false,
+		}
 	}
 }
 
@@ -81,7 +88,7 @@ pub type BridgeMessageId = (LaneId, MessageNonce);
 pub type MessagePayload = Vec<u8>;
 
 /// Message key (unique message identifier) as it is stored in the storage.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub struct MessageKey {
 	/// ID of the message lane.
 	pub lane_id: LaneId,
@@ -150,13 +157,13 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 	/// Returns approximate size of the struct, given a number of entries in the `relayers` set and
 	/// size of each entry.
 	///
-	/// Returns `None` if size overflows `u32` limits.
-	pub fn encoded_size_hint(
-		relayer_id_encoded_size: u32,
-		relayers_entries: u32,
-		messages_count: u32,
-	) -> Option<u32> {
-		let message_nonce_size = 8;
+	/// Returns `None` if size overflows `usize` limits.
+	pub fn encoded_size_hint(relayers_entries: usize, messages_count: usize) -> Option<usize>
+	where
+		RelayerId: MaxEncodedLen,
+	{
+		let message_nonce_size = MessageNonce::max_encoded_len();
+		let relayer_id_encoded_size = RelayerId::max_encoded_len();
 		let relayers_entry_size = relayer_id_encoded_size.checked_add(2 * message_nonce_size)?;
 		let relayers_size = relayers_entries.checked_mul(relayers_entry_size)?;
 		let dispatch_results_per_byte = 8;
@@ -165,6 +172,19 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 		relayers_size
 			.checked_add(message_nonce_size)
 			.and_then(|result| result.checked_add(dispatch_result_size))
+	}
+
+	/// Returns the approximate size of the struct as u32, given a number of entries in the
+	/// `relayers` set and the size of each entry.
+	///
+	/// Returns `u32::MAX` if size overflows `u32` limits.
+	pub fn encoded_size_hint_u32(relayers_entries: usize, messages_count: usize) -> u32
+	where
+		RelayerId: MaxEncodedLen,
+	{
+		Self::encoded_size_hint(relayers_entries, messages_count)
+			.and_then(|x| u32::try_from(x).ok())
+			.unwrap_or(u32::MAX)
 	}
 
 	/// Nonce of the last message that has been delivered to this (target) chain.
@@ -176,12 +196,15 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 	}
 }
 
-/// Message details, returned by runtime APIs.
+/// Outbound message details, returned by runtime APIs.
 #[derive(Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
-pub struct MessageDetails<OutboundMessageFee> {
+pub struct OutboundMessageDetails<OutboundMessageFee> {
 	/// Nonce assigned to the message.
 	pub nonce: MessageNonce,
-	/// Message dispatch weight, declared by the submitter.
+	/// Message dispatch weight.
+	///
+	/// Depending on messages pallet configuration, it may be declared by the message submitter,
+	/// computed automatically or just be zero if dispatch fee is paid at the target chain.
 	pub dispatch_weight: Weight,
 	/// Size of the encoded message.
 	pub size: u32,
@@ -189,6 +212,18 @@ pub struct MessageDetails<OutboundMessageFee> {
 	pub delivery_and_dispatch_fee: OutboundMessageFee,
 	/// Where the fee for dispatching message is paid?
 	pub dispatch_fee_payment: DispatchFeePayment,
+}
+
+/// Inbound message details, returned by runtime APIs.
+#[derive(Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
+pub struct InboundMessageDetails {
+	/// Computed message dispatch weight.
+	///
+	/// Runtime API guarantees that it will match the value, returned by
+	/// `target_chain::MessageDispatch::dispatch_weight`. This means that if the runtime
+	/// has failed to decode the message, it will be zero - that's because `undecodable`
+	/// message cannot be dispatched.
+	pub dispatch_weight: Weight,
 }
 
 /// Bit vector of message dispatch results.
@@ -274,10 +309,15 @@ pub struct UnrewardedRelayersState {
 	pub messages_in_oldest_entry: MessageNonce,
 	/// Total number of messages in the relayers vector.
 	pub total_messages: MessageNonce,
+	/// Nonce of the latest message that has been delivered to the target chain.
+	///
+	/// This corresponds to the result of the `InboundLaneData::last_delivered_nonce` call
+	/// at the bridged chain.
+	pub last_delivered_nonce: MessageNonce,
 }
 
 /// Outbound lane data.
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
 pub struct OutboundLaneData {
 	/// Nonce of the oldest message that we haven't yet pruned. May point to not-yet-generated
 	/// message if all sent messages are already pruned.
@@ -351,11 +391,8 @@ mod tests {
 			(13u8, 128u8),
 		];
 		for (relayer_entries, messages_count) in test_cases {
-			let expected_size = InboundLaneData::<u8>::encoded_size_hint(
-				1,
-				relayer_entries as _,
-				messages_count as _,
-			);
+			let expected_size =
+				InboundLaneData::<u8>::encoded_size_hint(relayer_entries as _, messages_count as _);
 			let actual_size = InboundLaneData {
 				relayers: (1u8..=relayer_entries)
 					.map(|i| {
